@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-005
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-cheatsheet-back-implement.yaml
+  title: Cheatsheet BACK IMPLEMENT hot path — create .cursor/rules/shared/cheatsheets/back-implement.mdc
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-cheatsheet-integ-plan.yaml
+  title: Cheatsheet INTEG PLAN hot path — create .cursor/rules/shared/cheatsheets/integ-plan.mdc
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-wire-cheatsheet-links.yaml
+  title: Wire cheatsheet links — 4 workflow files link to new cheatsheets
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-trim-suspension-dupes.yaml
+  title: Trim SUSPENSION GUARD duplicates — back/front workflow-plan.mdc one-liner
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-finish-block-pointer-trio.yaml
+  title: finish-block.mdc header pointer trio — block/doc-router/template in one stub
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-projects-readme.yaml
+  title: projects/README.md — optional per-slug env overrides; currently unused
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-idea-pipeline-gate-verify.yaml
+  title: IDEA PIPELINE archive gate — verify presence + add link if missing
+  next_phase: BACK IMPLEMENT
+  status: completed

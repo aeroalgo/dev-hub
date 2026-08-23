@@ -1,0 +1,72 @@
+---
+description: Карта режима IDEA PIPELINE — от идеи до реализации
+globs: idea-pipeline-mode-map.mdc
+alwaysApply: false
+---
+# IDEA PIPELINE: КАРТА ПРОЦЕССА
+
+> **TL;DR:** Идея → classify intent → pipeline фаз → delegate existing workflow → FINISH → next chat.
+
+## ПОТОК
+
+```mermaid
+graph TD
+    Start["IDEA PIPELINE<br>идея пользователя"] --> Read["activeContext<br>productContext<br>tasks.md"]
+    Read --> Classify["INTAKE:<br>intent + PM-L + DEV-L"]
+    Classify --> Build["Построить цепочку<br>фаз из workflow"]
+    Build --> Save["idea-slug.md<br>portfolio + tasks"]
+    Save --> Exec["EXECUTE фаза N<br>delegate role workflow"]
+    Exec --> Artifact["Артефакт роли<br>pm/front/back/…"]
+    Artifact --> Finish{"IDEA PIPELINE<br>FINISH?"}
+    Finish -->|да| Update["idea-* done<br>Handoff + doc-router"]
+    Update --> More{"Ещё фазы?"}
+    More -->|да| NewChat["New chat<br>NEXT COMMAND"]
+    NewChat --> Exec
+    More -->|нет| Done["REFLECT / ARCHIVE<br>pipeline complete"]
+    Finish -->|continue| Exec
+```
+
+## INTENT → WORKFLOW ROUTER
+
+```mermaid
+graph LR
+    I[Intent] --> P[positioning]
+    I --> U[feature_ui]
+    I --> A[feature_api]
+    I --> F[feature_full]
+    I --> C[content]
+    I --> G[growth]
+    I --> N[initiative]
+
+    P --> P1[PM DISCOVER MARKET]
+    P1 --> P2[MARKETING PLAN]
+    P2 --> P3[FRONT CREATIVE]
+    P3 --> P4[CONTENT PLAN]
+    P4 --> P5[FRONT IMPLEMENT]
+
+    U --> U1[FRONT VAN]
+    U1 --> U2[FRONT CREATIVE]
+    U2 --> U3[FRONT PLAN]
+    U3 --> U4[FRONT IMPLEMENT]
+    U4 --> U5[FRONT QA]
+
+    A --> A1[BACK VAN]
+    A1 --> A2[BACK PLAN]
+    A2 --> A3[BACK IMPLEMENT]
+    A3 --> A4[BACK QA]
+
+    F --> F1[PM PLAN]
+    F1 --> F2[BACK + FRONT ветки]
+    F2 --> F3[QA]
+```
+
+## ЧЕКЛИСТ
+
+```
+✓ IDEA PIPELINE
+- intent определён? [ДА/НЕТ]
+- pipeline ≥1 фаза? [ДА/НЕТ]
+- фаза делегирована role workflow? [ДА/НЕТ]
+- one chat = one phase? [ДА/НЕТ]
+- Handoff с NEXT COMMAND? [ДА/НЕТ]
+```

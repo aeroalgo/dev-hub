@@ -1,0 +1,49 @@
+---
+description: "BACK — TDD, memory bank, переходы (только при BACK-командах)"
+alwaysApply: false
+---
+# BACK — общий контекст
+
+## TDD (один раз)
+
+1. Red → тесты до кода  
+2. Green → минимальный код  
+3. Refactor → тесты зелёные  
+4. **IMPLEMENT / TASK:** только targeted pytest (файл/`-k`/path). Полный suite → **BACK QA**  
+Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дублировать вторым TDD-skill).
+
+## pytest runner (HARD)
+
+Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
+
+1. Shell **cwd** = корень репо (где `.venv/` и `pyproject.toml`)
+2. Всегда: `timeout 300s .venv/bin/pytest …` (или `timeout 300s .venv/bin/python -m pytest …`)
+3. **FORBIDDEN:** голый `pytest` / system PATH и запуск без внешнего timeout
+4. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
+
+## MEMORY BANK
+
+- `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-core.mdc §0.5.1)
+- Index → ONE shard; не грузить `done — do NOT load`
+- Session start: @.cursor/rules/shared/context-session-economy.mdc §3
+- Артефакты: `memory-bank/back/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — `memory-bank-paths.mdc` (VAN)
+
+## УРОВНИ
+
+| L | Scope |
+|---|--------|
+| L1 | 1–2 файла, <1ч |
+| L2 | 3–5 файлов, <4ч |
+| L3 | новая фича / дизайн, <2д |
+| L4 | архитектура, >2д |
+
+## ПЕРЕХОДЫ
+
+Next: Handoff в `memory-bank/activeContext.md`; следующий шаг выбирается по activeContext + decompose index.
+Runner: `./loop/loop.sh` · context-first gates.
+
+Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.
+
+## ФОРМАТ
+
+`OK BACK <РЕЖИМ> - [действие]`

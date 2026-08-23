@@ -1,0 +1,49 @@
+---
+description: "Режим INTEG PLAN — master-план wire портала"
+alwaysApply: false
+---
+### Команда: INTEG PLAN
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/plan.mdc
+**Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Скиллы:**
+- @.agents/skills/query-builder/SKILL.md
+- @.agents/skills/brainstorming/SKILL.md
+- @.agents/skills/architecture-patterns/SKILL.md
+- @.agents/skills/fastapi-templates/SKILL.md
+- @.agents/skills/frontend-patterns/SKILL.md
+- @.agents/skills/vercel-react-best-practices/SKILL.md
+
+**Цель:** Master-план wire портала — route × UI × API × БД.  
+**§0.0:** после OK — `SUSPENSION GUARD active — plan output unlimited`. Артефакт exhaustive; chat brief OK.
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/integ-plan.mdc
+
+**Scope в plan:** `portal` (default) | `journey` | `section` (только если явно).  
+Gap опционален — не блокирует PLAN. Не читать as input: gap/, contracts/, BACK/FRONT decompose.
+
+**Multi-epic (research):** если вход — research/audit с ≥2 независимыми wire-осями / продуктами / journey-пакетами → **не** склеивать в один portal mega-plan. Чистый `INTEG PLAN` без research и `scope=portal` → один master plan как раньше.
+
+**Процесс**:
+1. `OK INTEG PLAN - Создаю master-план wire портала` + SUSPENSION GUARD
+1a. Прочитай **Gates**
+1a2. Research / multi-axis → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
+1b. QueryBuilder + graphify (routes/components/endpoints)
+2. `load_now`
+2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
+2b. §0.11 endpoint ↔ fetch; mocks в registry
+3. **Single-epic:** `memory-bank/integration/plan/plan-<task_id>.md` по @.cursor/templates/integration-plan.md  
+3a. **Multi-epic path (HARD):**  
+    - epic cut (таблица по wire-осям / продуктам / journeys)  
+    - `memory-bank/integration/plan/roadmap-<slug>-epics.md` (шаблон @.cursor/templates/roadmap-epics.md)  
+    - **`memory-bank/integration/plan/roadmap-<slug>-epics.queue.yaml`** (`role: integration`, шаблон @.cursor/templates/roadmap-queue.yaml) — оба обязательны  
+    - полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0; portal-scope `wc -l` ≥ 400 **на каждый**; Rollout без status-checkboxes)  
+4. `contracts/` не обязателен
+5. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
+5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `.queue.yaml` → FAIL
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `INTEG ROADMAP MERGE` → затем `INTEG DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+7. → **INTEG DECOMPOSE** → IMPLEMENT e01
+
+**После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN
+
+**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.

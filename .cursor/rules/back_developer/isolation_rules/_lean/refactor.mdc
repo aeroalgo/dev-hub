@@ -1,0 +1,27 @@
+---
+description: "REFACTOR gates — analysis, TDD, epic vs ad-hoc paths (lean)"
+alwaysApply: false
+---
+# REFACTOR — gates
+
+**Канон путей:** @.cursor/rules/shared/workflow-refactor-epic.mdc
+
+**Артефакты:**
+- **Эпик:** `refactor/plan/{analysis,plan,decompose-<id>/}` + execute → `refactor/implement/implement-<id>/rNN-*.md`
+- **Без эпика (S):** `refactor/session-YYYYMMDD-<slug>.md` (+ опц. analysis/plan в `refactor/` или `refactor/plan/`)
+
+## Gates
+
+1. Path rule: эпик → **только** implement/rNN; без эпика → **только** session в корне `refactor/`
+2. Не писать session+implement одновременно
+3. Behavior freeze; self-check plan/rNN AC
+4. Per fix: tests green before → refactor → green after
+5. Priority: Critical → High → Medium → Low
+6. Execute-артефакт с итогом создан (один путь из п.1)
+7. §0.11 если external refs
+
+## Abort
+
+- Без тестов на затронутый код → tests first
+- Behavior change без scope → stop / split to IMPLEMENT
+- Session в корне при активном `decompose-<id>/` → FAIL, перенести в implement

@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Link hub tooling into a product repo so Cursor sees rules/skills/templates.
+# Usage:
+#   DEV_HUB=/path/to/dev-hub ./bin/hub-link [/path/to/product]
+#   (from product) make hub-link
+set -euo pipefail
+
+HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PRODUCT_ROOT="${1:-${PROJECT_ROOT:-$PWD}}"
+PRODUCT_ROOT="$(cd "$PRODUCT_ROOT" && pwd)"
+DEV_HUB="${DEV_HUB:-$HUB_ROOT}"
+DEV_HUB="$(cd "$DEV_HUB" && pwd)"
+
+if [[ ! -d "$PRODUCT_ROOT/memory-bank" ]]; then
+  echo "WARN: $PRODUCT_ROOT/memory-bank missing (ok if greenfield)" >&2
+fi
+if [[ ! -d "$DEV_HUB/.cursor/rules" ]]; then
+  echo "ERROR: hub rules missing: $DEV_HUB/.cursor/rules" >&2
+  exit 2
+fi
+
+rel_or_abs() {
+  local dest_parent="$1"
+  local target="$2"
+  python3 - "$dest_parent" "$target" <<'PY'
+import os, sys
+from pathlib import Path
+start = Path(sys.argv[1]).resolve()
+target = Path(sys.argv[2]).resolve()
+try:
+    print(os.path.relpath(target, start))
+except Exception:
+    print(target)
+PY
+}
+
+link_one() {
+  local name="$1"
+  local target="$2"
+  local dest="$PRODUCT_ROOT/$name"
+  local link_target
+  mkdir -p "$(dirname "$dest")"
+  link_target="$(rel_or_abs "$(dirname "$dest")" "$target")"
+  if [[ -L "$dest" ]]; then
+    ln -sfn "$link_target" "$dest"
+    echo "refresh $name → $link_target"
+  elif [[ -e "$dest" ]]; then
+    echo "ERROR: $dest exists and is not a symlink. Move it aside first." >&2
+    exit 2
+  else
+    ln -sfn "$link_target" "$dest"
+    echo "link    $name → $link_target"
+  fi
+}
+
+mkdir -p "$PRODUCT_ROOT/.cursor" "$PRODUCT_ROOT/.claude"
+
+link_one ".cursor/rules" "$DEV_HUB/.cursor/rules"
+link_one ".cursor/templates" "$DEV_HUB/.cursor/templates"
+link_one ".agents" "$DEV_HUB/.agents"
+link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
+
+# Claude Code extension: agents/hooks/settings from hub; runtime stays local per product.
+if [[ ! -d "$DEV_HUB/.claude" ]]; then
+  echo "ERROR: hub .claude missing: $DEV_HUB/.claude" >&2
+  exit 2
+fi
+for sub in agents hooks skills commands instructions rules; do
+  if [[ -e "$DEV_HUB/.claude/$sub" ]]; then
+    link_one ".claude/$sub" "$DEV_HUB/.claude/$sub"
+  fi
+done
+for f in settings.json project.env; do
+  if [[ -e "$DEV_HUB/.claude/$f" ]]; then
+    link_one ".claude/$f" "$DEV_HUB/.claude/$f"
+  fi
+done
+# optional local overrides (do not overwrite existing)
+if [[ -e "$DEV_HUB/.claude/project.env.local" && ! -e "$PRODUCT_ROOT/.claude/project.env.local" ]]; then
+  link_one ".claude/project.env.local" "$DEV_HUB/.claude/project.env.local"
+fi
+mkdir -p "$PRODUCT_ROOT/.claude/runtime" "$PRODUCT_ROOT/.claude/worktrees"
+
+# Cursor always-on stub (real file, not symlink) — points agent at hub modes.
+STUB="$PRODUCT_ROOT/.cursor/rules-product"
+# rules is symlink to hub; product-only stub lives beside via AGENTS.md
+AGENTS="$PRODUCT_ROOT/AGENTS.md"
+if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null; then
+  cat > "$AGENTS" <<EOF
+<!-- dev-hub product stub: keep this file; modes/skills live in DEV_HUB -->
+# Agent entry (product)
+
+- **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
+- **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
+  \`.cursor/rules/mainrule.mdc\` (symlinked from hub).
+- **Claude Code extension:** \`.claude/agents\` (\`verify\`/\`reviewer\`/\`explorer\`), hooks, settings — symlinks → hub; \`runtime/\` local to this product.
+- **Skills:** \`.agents/skills/*/SKILL.md\` (symlink → hub)
+- **Artifacts:** only this repo — \`memory-bank/\`
+- **Autoloop:** \`make loop ARGS="gpt"\` / \`make loop-epic EPIC=decompose-…\`
+
+On role command: read hub router \`.cursor/rules/mainrule.mdc\` first, then role workflow.
+EOF
+  echo "write   AGENTS.md"
+fi
+
+# Ensure .dev-hub exists for Make
+if [[ ! -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+  rel_hub="$(rel_or_abs "$PRODUCT_ROOT" "$DEV_HUB")"
+  printf '%s\n' "$rel_hub" > "$PRODUCT_ROOT/.dev-hub"
+  echo "write   .dev-hub → $rel_hub"
+fi
+
+echo "OK Cursor + Claude Code links in $PRODUCT_ROOT"
+echo "Reload Cursor window (Developer: Reload Window) if agents/rules not visible yet."

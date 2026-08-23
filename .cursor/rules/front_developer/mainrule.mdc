@@ -1,0 +1,32 @@
+---
+description: "Frontend Dev — индекс команд (FRONT VAN, FRONT PLAN, FRONT IMPLEMENT…)"
+alwaysApply: false
+---
+# FRONT DEV — ИНДЕКС
+
+Папка: `.cursor/rules/front_developer/`  
+**Роутер:** @.cursor/rules/mainrule.mdc  
+**Core:** @.cursor/rules/front_developer/mainrule-core.mdc  
+**Процесс:** `workflow-*.mdc` → gates `isolation_rules/_lean/<mode>.mdc`. Скиллы — только из workflow.
+
+| Режим | Процесс |
+|-------|---------|
+| `FRONT VAN` | @.cursor/rules/front_developer/workflow-van.mdc |
+| `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc |
+| `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc |
+| `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
+| `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
+| `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
+| `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
+| `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |
+| `FRONT REFACTOR` | @.cursor/rules/front_developer/workflow-refactor.mdc |
+| `FRONT REFLECT` | @.cursor/rules/front_developer/workflow-reflect.mdc |
+| `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
+| `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
+| `FRONT SECURITY` · `FRONT SECURITY PLAN` · `FRONT SECURITY DECOMPOSE` | @.cursor/rules/front_developer/workflow-security.mdc |
+
+Пути: `memory-bank/front/<режим>/` — таблица в @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (**только VAN** / создание структуры).  
+As-built UI: `memory-bank/architecture/frontend.md` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
+FINISH: @.cursor/rules/shared/finish-block.mdc  
+
+API/БД → `BACK *`. Сквозной wire → `INTEG *`.

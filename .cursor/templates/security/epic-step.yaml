@@ -1,0 +1,29 @@
+schema: epic-security/v1
+role: back
+step_id: aNN
+plan_id: <plan_id>
+title: aNN — <title> SECURITY
+status: in_progress
+date: YYYY-MM-DD
+audit_surface: auth
+
+scope_paths:
+  - apps/api/
+
+threats:
+  - OWASP focus for this slice
+
+evidence_commands:
+  - "rg …"
+  - ".venv/bin/pytest … -q"
+
+findings: []
+
+decompose_ref: memory-bank/back/security/plan/decompose-<plan_id>/aNN-<slug>.yaml
+
+checkpoints:
+  - id: cp1
+    criterion: findings artifact complete, no code fixes in session
+    status: pending
+
+resume_from: cp1

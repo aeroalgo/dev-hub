@@ -1,0 +1,20 @@
+---
+description: "FRONT REFLECT gates (lean)"
+alwaysApply: false
+---
+# FRONT REFLECT — gates
+
+**Артефакт:** `memory-bank/front/reflection/reflection-[task_id].md`
+
+## Gates
+
+1. Implementation + QA scope done
+2. reflection vs plan/decompose; lessons
+3. **Orchestration signals:** events (front или shared epic) + `.claude/runtime/epic/{last-session,checkpoint,state}.json`; session logs только при аномалии
+4. **Promote candidates:** каждый сигнал → `workflow` | `loop/hooks` | `skip`
+5. `tasks.md` append-only
+
+## Abort
+
+- Incomplete → QA/IMPLEMENT first
+- Нет секций Orchestration signals / Promote candidates → FAIL

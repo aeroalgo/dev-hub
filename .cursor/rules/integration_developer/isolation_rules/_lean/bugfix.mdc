@@ -1,0 +1,20 @@
+---
+description: "INTEG BUGFIX gates — contract drift (lean)"
+alwaysApply: false
+---
+# INTEG BUGFIX — gates
+
+**Артефакт:** с эпиком `memory-bank/integration/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`; без — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc
+
+## Gates
+
+1. Classify: BACK / FRONT / CONTRACT drift
+2. TDD failing test before fix; root cause — не mock/fallback
+3. **Scenario:** user-visible → Playwright **или** `.venv/bin/pytest` HTTP outcome; unit alone insufficient
+4. bugfix-файл; contract update if keys; **Источник:** qa §Fix plan
+5. §0.11 re-verify
+6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
+
+## Abort
+
+- Symptom-only · user-visible без scenario · «manual smoke only» → no FINISH

@@ -1,0 +1,78 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-004
+title: 's02 — NEED_HUMAN messaging: pretool BLOCKED→NEED_HUMAN, spawn-hard sync IMPLEMENT'
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-004-hooks-hygiene/s02-need-human-messaging.yaml
+level: L2
+skills_used:
+- tdd
+- python-testing-patterns
+- verification-before-completion
+- requesting-code-review
+discovery: []
+gaps:
+  status: none
+done:
+- 'agent-pretool.py:143,176 — BLOCKED: verify_no_verdict → NEED_HUMAN: verify_no_verdict'
+- _lib.py:1208 — comment compat/deprecate BLOCKED; RE unchanged (BLOCKED|NEED_HUMAN)
+- stop-gate.py:16 — comment compat/deprecate BLOCKED on has_blocked_verify_no_verdict
+  import
+- spawn-hard.md — already NEED_HUMAN (cp3 confirmed; no edit)
+- 'AC+ 3: rg BLOCKED: verify_no_verdict agent-pretool.py → 0'
+- loop/tests/test_stop_gate.py — _run_stop_gate/_run_agent_pretool clear DEV_HUB/HUB_ROOT/PROJECT_ROOT/CLAUDE_PROJECT_DIR
+  (tmp state isolation)
+- pytest -k need_human → PASS under ambient hub env
+files:
+- .claude/hooks/agent-pretool.py
+- .claude/hooks/_lib.py
+- .claude/hooks/stop-gate.py
+- .claude/instructions/spawn-hard.md
+- loop/tests/test_stop_gate.py
+deletes:
+- 'Строка `BLOCKED: verify_no_verdict` в agent-pretool.py (замена на NEED_HUMAN)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k need_human -q --tb=short`
+  — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k ''need_human or
+  verify_no_verdict or extract_verdict'' -q --tb=line` — PASS'
+integration_check:
+- 'rg -n ''BLOCKED: verify_no_verdict'' .claude/hooks/agent-pretool.py → empty'
+- 'grep -n ''NEED_HUMAN: verify_no_verdict'' .claude/hooks/agent-pretool.py → 143,176'
+- grep -n 'NEED_HUMAN.*verify_no_verdict' .claude/instructions/spawn-hard.md → 67,72,179
+- grep -n 'deprecate BLOCKED' .claude/hooks/stop-gate.py .claude/hooks/_lib.py → present
+- loop/context_loop.py messaging untouched (still NEED_HUMAN; no edit this step)
+grep_control: []
+verification_results:
+- cp1–cp5 messaging checks green
+- cp6 need_human pytest PASS (after test runner env isolation)
+- targeted suite need_human|verify_no_verdict|extract_verdict PASS under ambient env
+checkpoints:
+- id: cp1
+  criterion: 'agent-pretool.py не содержит `BLOCKED: verify_no_verdict`'
+  status: done
+  done_at: '2026-08-22T18:05:38Z'
+- id: cp2
+  criterion: 'agent-pretool.py содержит `NEED_HUMAN: verify_no_verdict` в deny_reasons'
+  status: done
+  done_at: '2026-08-22T18:05:38Z'
+- id: cp3
+  criterion: spawn-hard.md messaging согласован (NEED_HUMAN)
+  status: done
+  done_at: '2026-08-22T18:05:38Z'
+- id: cp4
+  criterion: stop-gate.py regex compat с комментарием deprecate
+  status: done
+  done_at: '2026-08-22T18:05:38Z'
+- id: cp5
+  criterion: 'AC+ 3: rg BLOCKED в pretool → 0'
+  status: done
+  done_at: '2026-08-22T18:05:38Z'
+- id: cp6
+  criterion: 'Регрессия: test_stop_gate_allows_need_human_verify_no_verdict всё ещё
+    проходит'
+  status: done
+  done_at: '2026-08-22T18:08:58Z'
+resume_from: cp1

@@ -1,0 +1,81 @@
+---
+description: "BACK skills gate — situational allowlist + checklists (DECOMPOSE/IMPLEMENT + CREATIVE)"
+alwaysApply: false
+---
+# BACK — situational skills (shared)
+
+Канон allowlist. **DECOMPOSE / CREATIVE** грузят этот файл и прогоняют свой checklist.  
+**FORBIDDEN:** situational вне таблиц ниже; копировать весь файл в `sNN` / `creative-*` — только выбранные пути.
+
+Пути: `.agents/skills/<name>/SKILL.md`
+
+**Core DECOMPOSE/IMPLEMENT** (не здесь — в `workflow-decompose.mdc`):  
+`tdd` · `python-testing-patterns` · `modern-python` · `python-anti-patterns`
+
+---
+
+## Allowlist (все situational)
+
+| id | skill | DECOMPOSE/IMPLEMENT | CREATIVE |
+|----|-------|:-------------------:|:--------:|
+| S01 | `fastapi-templates` | ✓ | — |
+| S02 | `async-python-patterns` | ✓ | ✓ |
+| S03 | `python-error-handling` | ✓ | — |
+| S04 | `sqlalchemy-postgres` | ✓ | — |
+| S05 | `supabase-postgres-best-practices` | ✓ | — |
+| S06 | `websocket-engineer` | ✓ | ✓ |
+| S07 | `python-performance-optimization` | ✓ | ✓ |
+| S08 | `python-configuration` | ✓ | — |
+| S09 | `python-observability` | ✓ | — |
+| S10 | `python-resilience` | ✓ | — |
+| S11 | `python-type-safety` | ✓ | — |
+| S12 | `grill-me` | — | ✓ |
+| S13 | `improve-codebase-architecture` | — | ✓ |
+| S14 | `python-design-patterns` | — | ✓ |
+| S15 | `property-based-testing` | — | ✓ |
+| S16 | `clean-ddd-hexagonal` | — | ✓ |
+| S17 | `query-builder` | — | ✓ |
+
+---
+
+## Checklist — DECOMPOSE → Impl skills (situational)
+
+На каждый `sNN`: yes → добавь путь. Cap situational ≤ **6** (+ Core из `workflow-decompose`).
+
+| # | Вопрос | skill |
+|---|--------|-------|
+| 1 | Доминирующий surface? → `code_surface:` `service\|api\|sql\|ws\|model\|infra\|test` | — |
+| 2 | HTTP routes / schemas / envelope / DI? | `fastapi-templates` |
+| 3 | async I/O / concurrent / FastAPI handlers / WS tasks? | `async-python-patterns` |
+| 4 | domain/HTTP/envelope ошибки (не docs-only)? | `python-error-handling` |
+| 5 | ORM / Alembic / asyncpg session? | `sqlalchemy-postgres` |
+| 6 | raw SQL / indexes / Postgres best practices? | `supabase-postgres-best-practices` |
+| 7 | WebSocket / fanout / Redis realtime? | `websocket-engineer` |
+| 8 | hot-path / downsample / series / perf? | `python-performance-optimization` |
+| 9 | settings / env / config load? | `python-configuration` |
+| 10 | health / metrics / structured logs / telemetry? | `python-observability` |
+| 11 | rate-limit / retry / timeout / circuit? | `python-resilience` |
+| 12 | новые публичные типы / Pydantic / typing API? | `python-type-safety` |
+
+**Defaults (не docs-only):** `api` → #2–4; `service` → #3–4; `ws` → #3 #4 #7; `sql` → #5 (+#6 если SQL); `infra` → #9/#10/#11 только по факту.
+
+---
+
+## Checklist — CREATIVE → Skills gate (situational)
+
+На каждый CR/batch: yes → добавь путь. Cap situational ≤ **5** (+ Core из `workflow-creative`).
+
+| # | Вопрос | skill |
+|---|--------|-------|
+| 1 | Тип? Architecture / Algorithm / UI-UX | — (метка в phase) |
+| 2 | Блокирующие неясности? | `grill-me` |
+| 3 | Границы модулей / as-built? | `improve-codebase-architecture` |
+| 4 | Паттерн кода (strategy/factory/ports…)? | `python-design-patterns` |
+| 5 | Алгоритм / инварианты / property-based? | `property-based-testing` |
+| 6 | hex / ports-adapters / bounded context? | `clean-ddd-hexagonal` |
+| 7 | downsample / series / hot-path / perf? | `python-performance-optimization` |
+| 8 | WebSocket / fanout / Redis realtime? | `websocket-engineer` |
+| 9 | async architecture / concurrency? | `async-python-patterns` |
+| 10 | сложные SQL/query design? | `query-builder` |
+
+**Defaults:** Architecture → #3/#4; Algorithm → #5 (+#7 perf); WS CR → #8 #9.

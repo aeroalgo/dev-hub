@@ -1,0 +1,43 @@
+---
+description: "SECURITY gates — PLAN/DECOMPOSE/execute, epic vs ad-hoc paths (lean)"
+alwaysApply: false
+---
+# SECURITY — gates
+
+**Канон путей:** @.cursor/rules/shared/workflow-security-epic.mdc
+
+**Артефакты:**
+- **PLAN:** `security/plan/plan-<id>.md` (§0.0 unlimited)
+- **DECOMPOSE:** `security/plan/decompose-<id>/` (`index.md` + `aNN-*.md`)
+- **Эпик execute:** `security/implement/implement-<id>/aNN-*.md`
+- **Без эпика (S):** `security/security-audit-YYYYMMDD-<slug>.md`
+
+## Gates (все submodes)
+
+1. Path rule: эпик → **только** implement/aNN; без эпика → **только** root `security-audit-*`
+2. Не писать root-audit + implement/aNN одновременно
+3. SECURITY не чинит код (`code_changed: no`)
+4. Findings: severity Critical→Low + evidence + suggested fix mode
+5. Execute-артефакт создан (один путь из п.1)
+
+## PLAN-only
+
+1. Inventory surfaces + priority matrix (FRONT: XSS/tokens/CSP/bundle/deps)
+2. Draft aNN outline без checkbox
+3. Next → SECURITY DECOMPOSE
+4. `wc -l` plan — не TOC-only stub
+
+## DECOMPOSE-only
+
+1. Объект: `plan-<id>.md`
+2. Каждый `aNN`: `audit_surface`, Audit skills (concrete paths), scope, threats, checkpoint
+3. Index = единственный трекер; plan без дубль-чеклистов aNN
+4. `load_now` → `a01-*.md` (не index)
+5. `next_phase: * SECURITY`
+
+## Abort
+
+- Полный project audit в одном SECURITY без PLAN при M/L → FAIL → SECURITY PLAN
+- Session/`security-audit-*` в корне при активном `decompose-<id>/` → FAIL
+- `aNN` без `audit_surface` / без Audit skills → incomplete
+- Правка кода в SECURITY → stop; split to BUGFIX/IMPLEMENT

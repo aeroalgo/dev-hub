@@ -1,0 +1,40 @@
+---
+description: "FRONT IMPLEMENT gates — shards, TDD, Playwright (lean)"
+alwaysApply: false
+---
+# FRONT IMPLEMENT — gates
+
+**Артефакт:** с эпиком `memory-bank/front/implement/implement-<epic_id>/…`; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
+
+## Gates
+
+1. `load_now`: work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; **не** полный `plan-*.md`, **не** `index.md`; AC = work shard
+2. Level из step — L2 substep → L2
+3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index без `✅`. Канон: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен FRONT CREATIVE <CR-ID>`). `no (… closed)` = дрейф → нормализовать
+4. TDD red/green: Vitest/RTL **targeted**; suite/Playwright → FRONT QA; запуск **только parent**
+5. **Scenario:** user-visible flow → Playwright targeted обязателен; путь в step/Handoff
+6. **Skills:** Read **целиком** только Impl (+ Design если не `—`) из step (+ FINISH-only); без широкого слоя A; Design **до** UI-кода
+6a. **`deletes`:** выполнить все из work shard; FINISH → implement `deletes:`; §0.11 на отсутствие callers
+6b. Purge step (`*-legacy-fallback-purge`): evidence `rg`/entrypoint inventory обязательна (shared/workflow-legacy-fallback-cleanup.mdc §3)
+7. §0.11 если API/env/keys
+8. **FINISH:** finish-block — **порядок:** Write step → Handoff → `@verify`; step+Handoff **до** decompose completed
+8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
+
+## Level delta
+
+| L | Фокус |
+|---|--------|
+| L1 | targeted UI fix |
+| L2–L4 | step/phased; creative если flagged |
+
+## Abort
+
+- Shard missing · creative open · E2E шага нет при plan requirement → no FINISH
+- Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
+- User-visible без Playwright · Handoff «manual smoke only» · visible UI без design Read → reject
+- Impl/Design из step не Read · Read вне step (кроме FINISH-only) → no FINISH
+- Непустой decompose `deletes` не выполнен → no FINISH
+- Purge step без evidence `rg`/inventory → no FINISH
+- Полный suite в IMPLEMENT · subagent runs tests → FRONT QA / FAIL
+- FINISH без step/Handoff → FAIL (finish-block)
+- Step не по `templates/implement/epic-step.yaml` → FAIL

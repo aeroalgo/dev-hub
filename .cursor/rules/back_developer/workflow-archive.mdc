@@ -1,0 +1,24 @@
+---
+description: "Команда ARCHIVE NOW — перенос epic tree в memory-bank/archive/"
+alwaysApply: false
+---
+### Команда: BACK ARCHIVE NOW
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/archive.mdc
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc
+
+**Процесс**:
+1. `OK ARCHIVE - Переношу артефакты эпика в memory-bank/archive/`
+1a. Прочитай **Gates** + epic-scoped-paths
+2. Reflection complete (`reflection-*.md` существует; **остаётся** в `back/reflection/`)
+3. Определи `epic_id` из Handoff / `load_now` / аргумента (`BACK ARCHIVE NOW` + plan_id эпика)
+4. **Move** (агент выполняет сам — `git mv` / filesystem move; **не** создавать `archive-*.md` манифест):
+   - plan + decompose + implement + `creative/<epic_id>/` + `qa/<epic_id>/` + `bugfix/<epic_id>/` (+ legacy flat с этим slug)
+   - цель: `memory-bank/archive/back/…` (зеркало структуры)
+   - опционально для точности rewrite: `scripts/mb-archive-epic.py --role back --epic <epic_id>` (хелпер; не замена команде)
+5. Verify links: relative внутри archive-дерева ок; rewrite внешних (`tasks.md`, reflection, activeContext, log)
+6. `tasks.md` append-only: archive path + ЗАВЕРШЕНА И АРХИВИРОВАНА
+7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — clear `load_now`; Handoff → next T-xxx из roadmap Queue (или `ROADMAP_DONE`)
+8. «Задача завершена. Следующий эпик из roadmap (не VAN, если queue не пуста)»
+
+**Верификация**: gates + нет битых ссылок на старые `memory-bank/back/{plan|implement|qa|bugfix|creative}/…` для этого epic

@@ -1,0 +1,35 @@
+---
+description: HARD — frontend-тесты только в главном агенте (always-on)
+---
+
+# FRONT TESTS = PARENT ONLY (HARD RULE)
+
+Канон: `~/.claude/rules/02-front-tests-parent-only.md`.  
+Cursor: `.cursor/rules/front-tests-parent-only.mdc`.
+
+**Железное правило:** frontend-тесты (Vitest / RTL / Playwright / `npm|pnpm test` / e2e) запускает **только parent**. Subagent — **никогда**.
+
+## Subagent — FORBIDDEN
+
+- Любой запуск `vitest`, `playwright`, `npm/pnpm/yarn test`, e2e в `frontend/`
+- «Быстро один файл» / «проверить green» — тоже запрет
+
+Писать `*.test.*` / `*.spec.*` / e2e-файлы — можно. Запуск — нет.
+
+## Parent — REQUIRED
+
+1. Сам запускает тесты в своём shell.
+2. В каждый spawn-промпт вставляет:
+
+```
+HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).
+Пиши/правь тестовые файлы если нужно. Запуск тестов — только у parent после твоего отчёта.
+```
+
+3. После отчёта subagent — parent прогоняет тесты.
+
+## FRONT *
+
+TDD red/green и Playwright в `FRONT IMPLEMENT|TASK|BUGFIX|QA|REFACTOR` — **только parent**.
+
+**FAIL:** subagent прогнал frontend-тесты; parent spawn без HARD RULE строки.

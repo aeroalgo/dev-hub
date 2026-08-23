@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-002
+title: s06 — architecture SoT note + legacy-fallback-purge rg verification suite IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-002-canon-sync/s06-architecture-note-rg-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'cp1: overview.md — добавлен раздел ''## Rules & role-command SoT'' со строками
+  rules СoT, role-command SoT, зеркало .agents'
+- 'cp2: mainrule.mdc — 0 живых путей project_manager/team_lead/content_growth/marketing_growth/seo_ops
+  без archived-маркера'
+- 'cp3: CLAUDE.md — строка ''L1–L2 без spawn'' отсутствует (removed в s01–s05)'
+- 'cp4: .cursor/rules/front-tests-parent-only.mdc — существует'
+- 'cp5: graphify.mdc — 5 hits на N/A protocol|Hub|INTEG PLAN|Plan exceptions'
+- 'cp6: pm-plan.md, seo-tech.md, tl-standup.md — все содержат ARCHIVED/FAIL preamble'
+files:
+- memory-bank/architecture/overview.md
+deletes:
+- Все remaining wording-призраки из s01–s05 — rg-sweep выявляет, manual fix или re-apply
+  шага
+- Любой broken @-ref выявленный sweep → fix inline или note as follow-up
+tests:
+- '`timeout 300s .venv/bin/pytest --collect-only -q 2>/dev/null || true` (docs-only
+  шаг; rg-sweep выполнен через checkpoint grep)'
+integration_check:
+- 'overview.md SoT-заметка: overview читается без внешних зависимостей; mainrule.mdc
+  live-пути чисты'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: memory-bank/architecture/overview.md содержит SoT note о rules и role-command
+  status: done
+  done_at: '2026-08-22T10:31:28Z'
+- id: cp2
+  criterion: 'rg legacy purge: нет live project_manager/team_lead/content_growth/marketing_growth/seo_ops
+    в mainrule без archived маркера'
+  status: done
+  done_at: '2026-08-22T10:31:28Z'
+- id: cp3
+  criterion: 'rg purge: нет ''L1–L2 без spawn'' как абсолютной строки в CLAUDE.md'
+  status: done
+  done_at: '2026-08-22T10:31:28Z'
+- id: cp4
+  criterion: 'rg purge: .cursor/rules/front-tests-parent-only.mdc существует'
+  status: done
+  done_at: '2026-08-22T10:31:28Z'
+- id: cp5
+  criterion: 'rg purge: graphify.mdc содержит hub N/A + INTEG PLAN exception'
+  status: done
+  done_at: '2026-08-22T10:31:29Z'
+- id: cp6
+  criterion: 'rg purge: pm-plan.md + seo-tech.md + tl-standup.md содержат ARCHIVED
+    FAIL preamble'
+  status: done
+  done_at: '2026-08-22T10:31:29Z'
+resume_from: cp1

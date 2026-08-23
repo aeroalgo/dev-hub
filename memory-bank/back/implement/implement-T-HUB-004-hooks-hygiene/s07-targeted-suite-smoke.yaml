@@ -1,0 +1,97 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-004
+title: 's07 — Targeted suite + import smoke: pytest on affected + import epic after
+  delete IMPLEMENT'
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml
+skills_used:
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: graphify N/A (hub); epic package = __init__.py+core.py only after s05;
+  epic_lib.py facade; PYTHONPATH=.claude/hooks; spawn tests live in test_stop_gate
+  (not epoch file); finish_integrity ambient needs -u DEV_HUB/HUB_ROOT/PROJECT_ROOT'
+gaps:
+  status: none
+done:
+- 'cp1: test_stop_gate extract_verdict|need_human → 7 passed, 48 deselected'
+- 'cp2: test_agent_registry → 5 passed'
+- 'cp3: test_hook_epoch_gates -k verdict|spawn → 2 passed, 7 deselected'
+- 'cp4: test_finish_integrity full → 19 passed (env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT);
+  без unset — 8 failed verify_pass_missing из-за ambient epic state T-HUB-004'
+- 'cp5 AC+7: targeted suite зелёный (cp1–cp4)'
+- 'cp6 smoke: PYTHONPATH=.claude/hooks import epic + from epic import finalize_step,mirror_verify_verdict,load_index_yaml
+  OK; from epic_lib import … OK'
+- 'cp7: ls .claude/hooks/epic/*.py = 2 (__init__.py, core.py); stubs deleted, facade
+  OK'
+- 'decompose fix: verify: ''[]'' → verify: [] (seed-implement pydantic)'
+- 'Отложено: без -u DEV_HUB/HUB_ROOT/PROJECT_ROOT finish_integrity finalize/prepare
+  падают на ambient active epic — known env isolation, не regression stubs'
+files:
+- loop/tests/test_stop_gate.py
+- loop/tests/test_agent_registry.py
+- loop/tests/test_hook_epoch_gates.py
+- loop/tests/test_finish_integrity.py
+- .claude/hooks/epic/__init__.py
+- .claude/hooks/epic/core.py
+- .claude/hooks/epic_lib.py
+- memory-bank/back/plan/decompose-T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml
+deletes:
+- n/a — только запуск тестов
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k ''extract_verdict
+  or need_human'' -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_registry.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hook_epoch_gates.py -k ''verdict
+  or spawn'' -q --tb=line`'
+- '`env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py
+  -q --tb=line`'
+- '`PYTHONPATH=.claude/hooks python3 -c "import epic; from epic import finalize_step,
+  mirror_verify_verdict, load_index_yaml; print(''epic package OK'')"`'
+- '`PYTHONPATH=.claude/hooks python3 -c "from epic_lib import mirror_verify_verdict,
+  finalize_step; print(''epic_lib OK'')"`'
+integration_check:
+- '§0.11: epic facade + epic_lib exports intact after stub delete; targeted hooks/loop
+  tests green; full finish_integrity requires env isolation from live epic state'
+grep_control: []
+verification_results:
+- 'cp1: 7 passed, 48 deselected'
+- 'cp2: 5 passed'
+- 'cp3: 2 passed, 7 deselected'
+- 'cp4: 19 passed (with -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT)'
+- 'cp5: AC+7 aggregate green'
+- 'cp6: epic package OK; epic_lib OK'
+- 'cp7: epic/*.py count=2; facade OK'
+checkpoints:
+- id: cp1
+  criterion: test_stop_gate.py extract_verdict + need_human — зелёный
+  status: done
+  done_at: '2026-08-22T19:05:33Z'
+- id: cp2
+  criterion: test_agent_registry.py — зелёный
+  status: done
+  done_at: '2026-08-22T19:05:37Z'
+- id: cp3
+  criterion: test_hook_epoch_gates.py verdict/spawn — зелёный
+  status: done
+  done_at: '2026-08-22T19:05:43Z'
+- id: cp4
+  criterion: test_finish_integrity.py — зелёный (epic facade smoke)
+  status: done
+  done_at: '2026-08-22T19:06:39Z'
+- id: cp5
+  criterion: 'AC+ 7: targeted pytest на hooks/loop tests затронутых — зелёный'
+  status: done
+  done_at: '2026-08-22T19:06:39Z'
+- id: cp6
+  criterion: 'Smoke: import epic + from epic import ... работает'
+  status: done
+  done_at: '2026-08-22T19:06:39Z'
+- id: cp7
+  criterion: 'Smoke: import epic после delete 6 stubs не сломан'
+  status: done
+  done_at: '2026-08-22T19:06:39Z'
+resume_from: cp1

@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-004
+title: 's04 — ALIAS explore: add ALIAS["explore"]="explorer", test normalization IMPLEMENT'
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-004-hooks-hygiene/s04-alias-explore.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: ALIAS={} @ _lib.py:23; normalize_type @1062; pretool raw→norm @41-50;
+  explorer.md claim alias only; no prior explore→explorer tests'
+gaps:
+  status: none
+done:
+- '_lib.py: ALIAS["explore"]="explorer"'
+- normalize_type("explore") → "explorer"; normalize_type("explorer") as-is
+- 'loop/tests/test_agent_hooks.py: test_normalize_type_alias_explore + test_pretool_alias_explore_normalizes_to_explorer'
+- 'pretool path: subagent_type explore → updatedInput.subagent_type explorer (AC+
+  6)'
+- explorer.md claim не меняли
+files:
+- .claude/hooks/_lib.py
+- loop/tests/test_agent_hooks.py
+deletes:
+- n/a — добавление, не удаление
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_hooks.py -k ''alias_explore''
+  -q --tb=short` — PASS 2'
+integration_check:
+- '§0.11: agent-pretool already uses normalize_type(raw_type); ALIAS fills explore→explorer
+  gap claimed by explorer.md'
+grep_control: []
+verification_results:
+- 'pytest -k alias_explore: 2 passed, 23 deselected'
+- 'python: normalize_type(explore)=explorer; normalize_type(explorer)=explorer'
+checkpoints:
+- id: cp1
+  criterion: _lib.py содержит ALIAS['explore'] = 'explorer'
+  status: done
+  done_at: '2026-08-22T18:42:42Z'
+- id: cp2
+  criterion: normalize_type('explore') == 'explorer'
+  status: done
+  done_at: '2026-08-22T18:42:43Z'
+- id: cp3
+  criterion: normalize_type('explorer') == 'explorer' (as-is)
+  status: done
+  done_at: '2026-08-22T18:42:43Z'
+- id: cp4
+  criterion: 'Тест alias normalization: explore → explorer'
+  status: done
+  done_at: '2026-08-22T18:42:43Z'
+- id: cp5
+  criterion: 'AC+ 6: spawn type explore нормализуется к explorer (pretool path)'
+  status: done
+  done_at: '2026-08-22T18:42:43Z'
+resume_from: cp1

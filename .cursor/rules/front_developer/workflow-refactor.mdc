@@ -1,0 +1,21 @@
+---
+description: "Режим FRONT REFACTOR — анализ и рефакторинг UI"
+alwaysApply: false
+---
+### Команда: FRONT REFACTOR
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/refactor.mdc  
+**Epic paths:** @.cursor/rules/shared/workflow-refactor-epic.mdc  
+**Скиллы:** @.agents/skills/frontend-patterns/SKILL.md, @.agents/skills/vercel-react-best-practices/SKILL.md, @.agents/skills/vercel-composition-patterns/SKILL.md
+
+**Процесс**:
+1. `OK FRONT REFACTOR - Начинаю`
+1a. Gates + workflow-refactor-epic (path rule)
+1b. Epic? (`decompose-<id>/` / `@rNN`) → implement/rNN; иначе → `front/refactor/session-*.md`
+2. `tasks.md` + files
+3. Execute; tests green before/after; Playwright если UI (**только parent**)
+4. FINISH artifact по path rule (не оба)
+5. **FINISH:** @.cursor/rules/shared/finish-block.mdc  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index
+
+**Верификация**: gates + path rule + FINISH + graphify

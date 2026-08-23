@@ -1,0 +1,24 @@
+---
+description: "FRONT CREATIVE gates — UI/UX design batch (lean)"
+alwaysApply: false
+---
+# FRONT CREATIVE — gates
+
+**Артефакт:** с эпиком `memory-bank/front/creative/<epic_id>/creative-[feature_name].md`; без — `memory-bank/front/creative/creative-[feature_name].md`. @.cursor/rules/shared/epic-scoped-paths.mdc
+Batch обязателен. Формат фазы — в `workflow-creative.mdc`.  
+**Situational:** @.cursor/rules/front_developer/skills-gate-situational.mdc
+
+## Gates
+
+1. Компоненты из plan/decompose
+2. **Skills gate:** Core(2) ∪ Design Core (если UI) ∪ situational ≤3; список в `## Skills gate`; Read только его
+3. UI/UX: 2+ варианта + recommended
+4. Один creative-файл; decompose link если от шага
+5. Design tokens / layout / signature задокументированы
+6. `tasks.md` append-only
+7. **Rewire dependents:** каждый `sNN` с этим CR-ID — ссылка на creative + канон `yes (CR-…) — **closed**` / partial open + index `yes (CR-…) ✅` (workflow §5a / `templates/decompose/epic-step.yaml`). Без rewire → FAIL FINISH
+
+## Abort
+
+- Блокеры → grill-me (если gate yes)
+- Нет `## Skills gate` / Read вне списка / situational >3 / вне allowlist → FAIL

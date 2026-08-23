@@ -1,0 +1,134 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "run_dsh_session + run_agent_session dispatch — loop.sh executor branch"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `loop.sh` функцию `run_dsh_session` и обёртку `run_agent_session`,
+  которая диспетчеризует по prep_json["runtime"]; fail-closed при отсутствии dsh бинаря.
+  Интеграционный тест с fake-dsh скриптом проверяет argv и prompt. FR-3, FR-4, AC+1, AC+6.
+
+context:
+  consumes:
+    - loop/loop.sh                         # run_claude_session, $STATE_DIR, SESSION_WRAPPER, STREAM_FILTER
+    - loop/runtime_adapters/dsh.py         # build_dsh_command (из s02) — используется в run_dsh_session
+    - loop/tests/fixtures/fake_claude.py   # паттерн fake runner
+    - dsh/bin/which-dsh.sh                 # создан в s06 — используется как DSH_BIN resolver
+  produces:
+    - loop/loop.sh              # run_dsh_session + run_agent_session + dispatch logic
+    - loop/tests/fixtures/fake_dsh.sh      # fake dsh script — записывает argv + prompt в tmp файл
+    - loop/tests/test_loop_dsh_dispatch.py # интеграционный тест dispatch (fake_dsh)
+  plan_refs:
+    - FR-3
+    - FR-4
+    - NFR-2
+    - NFR-3
+    - AC+1
+    - AC+6
+    - AC-2 (run_claude_session не удаляется)
+    - AC-5 (default остаётся claude)
+  files:
+    - loop/loop.sh
+    - loop/tests/fixtures/fake_dsh.sh
+    - loop/tests/test_loop_dsh_dispatch.py
+
+as_built:
+  - loop/loop.sh:run_claude_session — вызывает claude через session_resilience; log в $STATE_DIR/session-${iter}.log
+  - loop/loop.sh:main session loop — всегда вызывает `run_claude_session "$session_tag" "$prompt_file"`
+  - loop/loop.sh — нет run_dsh_session, нет run_agent_session, нет `runtime` ветки
+  - loop/loop.sh — prep_json используется для session_tag/prompt/fingerprint, поле runtime не читается
+  - loop/tests/fixtures/fake_dsh.sh — НЕ существует
+
+delta:
+  - loop/loop.sh: добавить функцию `resolve_dsh_bin()`:
+      1. если DSH_BIN env задан и бинарь исполняем — echo "$DSH_BIN"; return
+      2. иначе — попробовать `dsh/bin/which-dsh.sh` (out of scope: script создаётся в s06,
+         но функция принимает fallback)
+      3. иначе — echo "dsh binary not found; set DSH_BIN or install @deepseek-ai/dsh" >&2; return 127
+  - loop/loop.sh: добавить функцию `run_dsh_session(iter, prompt_file)`:
+      - resolve_dsh_bin → DSH_PATH; rc=$?; [[ $rc -ne 0 ]] → exit 2 fail-closed с диагнозом
+      - profile="${prep_json_runtime_dsh_profile:-epic-implement}" (читается из exported переменной)
+      - log_file="$STATE_DIR/session-${iter}.log"
+      - prompt="$(cat "$prompt_file")"
+      - command=(cd "$PROJECT_ROOT" && "$DSH_PATH" --profile "$profile" --no-open "$prompt")
+      - вызывает python3 "$SESSION_WRAPPER" run-session --mode headless --session-id "$iter"
+        --timeout "$EPIC_SESSION_TIMEOUT_SEC" --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC"
+        --log "$log_file" -- "${command[@]}"
+      - НЕ передаёт STREAM_FILTER (separate passthrough — или no-op; из плана §Stream filter)
+      - возвращает rc SESSION_WRAPPER
+  - loop/loop.sh: добавить функцию `run_agent_session(iter, prompt_file)`:
+      - читает глобальную переменную EPIC_RUNTIME_RESOLVED (выставляется из prep_json после prepare)
+      - [[ "$EPIC_RUNTIME_RESOLVED" == "dsh" ]] → run_dsh_session "$iter" "$prompt_file"
+      - иначе → run_claude_session "$iter" "$prompt_file"
+  - loop/loop.sh: в main session loop — заменить вызов `run_claude_session "$session_tag" "$prompt_file"`
+    на `run_agent_session "$session_tag" "$prompt_file"`
+  - loop/loop.sh: после prep_json extract — добавить:
+      EPIC_RUNTIME_RESOLVED="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("runtime","claude"))')"
+      EPIC_DSH_PROFILE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile","epic-implement"))')"
+      export EPIC_RUNTIME_RESOLVED EPIC_DSH_PROFILE
+  - CREATE loop/tests/fixtures/fake_dsh.sh:
+      #!/usr/bin/env bash
+      # Записывает argv и первый позиционный arg (prompt) в $FAKE_DSH_RECORD_FILE
+      echo "argv: $@" >> "${FAKE_DSH_RECORD_FILE:-/tmp/fake_dsh_record.txt}"
+      cat /dev/null  # нулевой вывод
+      exit 0
+  - CREATE loop/tests/test_loop_dsh_dispatch.py:
+      - test_run_agent_session_dispatches_dsh: monkeypatch EPIC_RUNTIME=dsh,
+        DSH_BIN=fake_dsh.sh; вызывает loop как subprocess с минимальным prep mock;
+        читает FAKE_DSH_RECORD_FILE и проверяет: argv содержит --profile epic-implement
+      - test_run_agent_session_dispatches_claude_default: EPIC_RUNTIME unset → run_claude_session
+        (not fake_dsh called)
+      - test_run_dsh_session_fails_closed_on_missing_dsh: DSH_BIN=/nonexistent →
+        process exit non-zero + stderr содержит "dsh binary not found"
+
+deletes: []
+# run_claude_session остаётся как внутренняя функция (AC−2); обёртка run_agent_session добавляется
+
+out_of_scope:
+  - "analyze_session_log для DSH log — s05"
+  - "dsh/bin/which-dsh.sh — s06"
+  - "DSH stream filter / epic_stream_filter.py — AC−3 / out-of-scope"
+  - "EPIC_RUNTIME validation в loop.sh (startup) — s01/_lib.py failure propagates через runtime_config_status"
+  - "Интерактивный режим DSH — план Phase 1: headless only"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                          # fake_dsh integration test
+    - .agents/skills/python-testing-patterns/SKILL.md      # subprocess test pattern
+    - .agents/skills/modern-python/SKILL.md                # pathlib, subprocess
+    - .agents/skills/python-anti-patterns/SKILL.md         # fail-closed не fallback
+    - .agents/skills/async-python-patterns/SKILL.md        # S02: subprocess/session wrapper wiring
+    - .agents/skills/python-resilience/SKILL.md            # S10: timeout/retry contract с SESSION_WRAPPER
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      loop.sh компилируется без синтаксических ошибок (bash -n)
+    verify: "bash -n loop/loop.sh && echo 'syntax ok'"
+  - id: cp2
+    criterion: >
+      fake_dsh.sh исполняем и записывает argv в файл при вызове
+    verify: >
+      FAKE_DSH_RECORD_FILE=/tmp/fake_dsh_test.txt bash loop/tests/fixtures/fake_dsh.sh --profile epic-implement "hello" &&
+      grep -q 'epic-implement' /tmp/fake_dsh_test.txt && echo 'fake_dsh ok'
+  - id: cp3
+    criterion: >
+      test_run_dsh_session_fails_closed_on_missing_dsh PASS: нет fallback, exit non-zero
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py::test_run_dsh_session_fails_closed_on_missing_dsh -q --tb=short"
+  - id: cp4
+    criterion: >
+      test_run_agent_session_dispatches_dsh PASS: fake_dsh получает --profile epic-implement
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py::test_run_agent_session_dispatches_dsh -q --tb=short"
+
+verify:
+  - "bash -n loop/loop.sh"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=short"
+
+tdd:
+  - "test_run_agent_session_dispatches_dsh (fake_dsh argv)"
+  - "test_run_agent_session_dispatches_claude_default (EPIC_RUNTIME unset)"
+  - "test_run_dsh_session_fails_closed_on_missing_dsh (DSH_BIN=/nonexistent)"

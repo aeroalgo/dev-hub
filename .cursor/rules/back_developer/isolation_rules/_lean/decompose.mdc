@@ -1,0 +1,53 @@
+---
+description: "DECOMPOSE gates — plan input, atomic steps (lean)"
+alwaysApply: false
+---
+# DECOMPOSE — gates
+
+**Артефакт:** `memory-bank/back/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`)
+
+## Gates
+
+1. Объект: `plan-<id>.md` или shard из `load_now`
+2. L3–L4: все shards плана (исключение ONE shard)
+2a. **Maximal detail:** index содержит `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; каждый AC+/AC−/FR/NFR → sNN или явный out_of_scope; этапы плана/канона → sNN. Артефакты decompose **без** telegraph/200-line economy. Канон: `workflow-decompose.mdc` §Maximal detail + §Outcome preserve + §Replacement cleanup
+2b. **Outcome preserve:** map ≠ замена sNN; titles outcome-first; plan step-count **advisory**
+2c. Execution matrix / lifecycle / async·thread·queue → **отдельные sNN** (не layout/celery)
+2d. Existing services wire — явный sNN с путями, не «в skeleton»
+2e. **Replacement cleanup:** brownfield → Kind A|B|C + `deletes` + финальный `*-legacy-fallback-purge`; greenfield → `n/a`; replace без deletes/follow-up-in-queue/purge = incomplete. Канон: `shared/workflow-legacy-fallback-cleanup.mdc`
+3. Шаг = один IMPLEMENT + TDD; `step_id`, files, `deletes`, `needs_creative`, `tdd`, `code_surface`
+3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь goal); непустой `deletes` → ≥1 `rg`/import-audit cp
+3b. Один IMPLEMENT = один prod-модуль или один test-file; атомарность — 2–4 cp, не склейка чужих модулей; test-строки плана → `tdd`/cp конкретных sNN
+3c. Purge sNN: anti-fallback `rg` + entrypoint inventory cp обязательны
+4. Каждый `sNN`: skills gate — Core(4) ∪ situational из @.cursor/rules/back_developer/skills-gate-situational.mdc (concrete paths)
+5. Папка создана: index + `sNN-*.yaml`
+6. Plan: ссылка на index как единственный трекер; нет sNN-чеклистов в plan; Goal/NFR плана не переписаны под infra-only; §нарезка = фактический диапазон
+7. `load_now` → `s01-*.yaml` (не index)
+
+## Abort
+
+- Нет решения в плане → `needs_creative`, не код
+- Есть unresolved `CR-*`, без которого шаг нельзя реализовать корректно → `needs_creative: yes (...)` + `Next Phase: BACK CREATIVE`; не прятать это в тексте шага
+- Не писать код / не гонять тесты реализации
+- Полные тела методов в `sNN` вместо lean-интерфейсов → incomplete
+- Plan всё ещё с дубль «Шаги / Результат sNN» → incomplete
+- Нет Requirements coverage / Stages coverage / Outcome map / Replacement cleanup → incomplete
+- AC+/AC−/FR/NFR без sNN и без out_of_scope в coverage → incomplete
+- Goals/index читаются только как scaffolding при ином Goal/NFR плана → incomplete (intent compressed)
+- Matrix/lifecycle только в Outcome map, без отдельных sNN → incomplete
+- ≥ половины titles в очереди — infra-slug without outcome → incomplete
+- Отказ добавить sNN из‑за «слишком много шагов», если coverage с дырой → incomplete
+- Дробление одного модуля/одного test-file на несколько sNN без новой границы coverage → incomplete
+- Канон/план требуют wire existing services, а в sNN это «подразумевается» → incomplete
+- План заменяет поверхность, а нет sNN с `deletes` / нет out_of_scope+follow-up **в queue** → incomplete
+- Непустой `deletes` без checkpoint `rg`/import-audit → incomplete
+- Replace без `*-legacy-fallback-purge` при cleanup ≠ n/a → incomplete
+- Plan sunset без A+B+C при brownfield → incomplete
+- `sNN` без `code_surface` → incomplete
+- `sNN` без Core-четырёх (`tdd`, `python-testing-patterns`, `modern-python`, `python-anti-patterns`) → incomplete
+- Impl skills с условными пометками `(api) если…` вместо путей → incomplete
+- situational > 6 → incomplete
+- путь вне allowlist `skills-gate-situational.mdc` → incomplete
+- `code_surface: api` без `fastapi-templates` → incomplete
+- `code_surface: sql` без `sqlalchemy-postgres` → incomplete
+- `code_surface: ws` без `websocket-engineer` → incomplete

@@ -1,0 +1,50 @@
+---
+description: "INTEG — element-first portal wire, vertical slices (только при INTEG-командах)"
+alwaysApply: false
+---
+# INTEGR — общий контекст
+
+## ELEMENT-FIRST
+
+Один UI-элемент за сессию IMPLEMENT. `INTEG PLAN` → registry · `DECOMPOSE` → eNN+§Contract · `IMPLEMENT` → BACK+FRONT wire+§0.11 · `QA` → journey E2E.
+
+**Запрещено:** mock forever без §Contract; layer-first нарезка; raw SQL — только QueryBuilder.
+
+## SCENARIO TESTS
+
+User-visible flow → scenario test до FINISH; QA прогон + дыры. Playwright (UI) · pytest HTTP outcome (контракт) · vitest alone **недостаточно** для «пользователь нажал X». **FORBIDDEN Handoff:** «manual smoke only» без scenario path.
+
+## pytest runner (HARD)
+
+Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
+
+cwd = корень репо; `timeout 300s .venv/bin/pytest …`; **FORBIDDEN** голый `pytest` и запуск без внешнего timeout.
+
+## QUERY BUILDER
+
+`@.agents/skills/query-builder/SKILL.md` — `HTTP ?filters= → PaginateQueryParams → QueryBuilder → crud.get_multi`; `relation__column` → join; числа → `gt`/`lt`.
+
+## КОНТРАКТ
+
+§Contract в `decompose-*/eNN-*.yaml`: method+path · request · response · DB. Skill TDD: только из workflow.
+
+## BACK / FRONT в одном eNN
+
+BACK если §API=❌: schema, endpoint, mapping_filters, targeted pytest. FRONT: api client, filter-utils, wire, vitest, убрать mock. Wire: §0.11 endpoint↔fetch.
+
+## MEMORY BANK
+
+- `activeContext` → `load_now` first
+- PLAN: portal implement + routes grep; IMPLEMENT: ONE `eNN-*.yaml`
+- Не читать as-built BACK/FRONT plan/decompose; gap — только через GAP CLOSE
+
+## ПЕРЕХОДЫ
+
+Next-mode: `memory-bank/activeContext.md` + decompose index
+Runner: `./loop/loop.sh` · context-first gates · GAP fanout: `.claude/instructions/program-loop.md`
+
+Не копировать next-mode таблицы — transitions + program-loop / FINISH sync.
+
+## ФОРМАТ
+
+`OK INTEG <РЕЖИМ> - [действие]`

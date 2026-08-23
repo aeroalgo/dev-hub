@@ -1,0 +1,49 @@
+schema: "loop-dag/v2"
+
+pipeline:
+  id: "integ-demo"
+
+execution:
+  autonomous: false
+
+source:
+  kind: "manifest"
+  artifacts:
+    - "loop/dag/integ-demo.yaml"
+
+nodes:
+  - id: "gap_close"
+    role: "INTEG"
+    action: "close"
+    completion:
+      type: "artifact"
+    artifact: "memory-bank/integ/plan/decompose-demo-gap/index.yaml"
+    depends_on: []
+
+  - id: "back_impl"
+    role: "BACK"
+    action: "implement"
+    completion:
+      type: "decompose"
+      decompose: "memory-bank/back/plan/decompose-demo-back/index.yaml"
+    depends_on:
+      - "gap_close"
+
+  - id: "front_impl"
+    role: "FRONT"
+    action: "implement"
+    completion:
+      type: "decompose"
+      decompose: "memory-bank/front/plan/decompose-demo-front/index.yaml"
+    depends_on:
+      - "gap_close"
+
+  - id: "integ_verify"
+    role: "INTEG"
+    action: "implement"
+    completion:
+      type: "decompose"
+      decompose: "memory-bank/integ/plan/decompose-demo-verify/index.yaml"
+    depends_on:
+      - "back_impl"
+      - "front_impl"

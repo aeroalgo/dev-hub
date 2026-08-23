@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "DSH adapter module: build_command + normalize_log — pure fn isolation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать пакет `loop/runtime_adapters/` с модулем `dsh.py`:
+  чистые функции `build_dsh_command(profile, prompt_file, dsh_bin) → list[str]`
+  и `normalize_dsh_log(raw_log: str) → str` без сайд-эффектов.
+  TDD red→green; AC−4 (не дублировать state logic); FR-6, NFR-4.
+
+context:
+  consumes:
+    - loop/loop.sh           # DSH invoke contract v1 (план §DSH invoke contract)
+    - loop/tests/fixtures/   # директория фикстур для новых JSONL fixtures
+  produces:
+    - loop/runtime_adapters/__init__.py   # пустой пакет
+    - loop/runtime_adapters/dsh.py        # build_dsh_command + normalize_dsh_log
+    - loop/tests/test_dsh_runtime_adapter.py   # TDD unit tests
+    - loop/tests/fixtures/dsh_session_completed.jsonl   # fixture: успешная сессия DSH
+    - loop/tests/fixtures/dsh_session_transient.jsonl   # fixture: HTTP 429/5xx в stderr
+    - loop/tests/fixtures/dsh_session_permanent.jsonl   # fixture: fatal API error
+  plan_refs:
+    - FR-6
+    - NFR-4
+    - AC-4
+    - AC+4 (fixtures используются также в s05)
+  files:
+    - loop/runtime_adapters/__init__.py
+    - loop/runtime_adapters/dsh.py
+    - loop/tests/test_dsh_runtime_adapter.py
+    - loop/tests/fixtures/dsh_session_completed.jsonl
+    - loop/tests/fixtures/dsh_session_transient.jsonl
+    - loop/tests/fixtures/dsh_session_permanent.jsonl
+
+as_built:
+  - loop/runtime_adapters/ — НЕ существует
+  - loop/tests/fixtures/ — содержит только canary/ и fake_claude.py; DSH fixtures отсутствуют
+  - Функции build_command/normalize — нигде не реализованы
+
+delta:
+  - CREATE loop/runtime_adapters/__init__.py — пустой, маркер пакета
+  - CREATE loop/runtime_adapters/dsh.py:
+      - Константа DSH_MISSING_EXIT = 127
+      - def build_dsh_command(profile: str, prompt: str, dsh_bin: str = "dsh") -> list[str]:
+          возвращает ["dsh_bin", "--profile", profile, "--no-open", prompt]
+          (prompt = содержимое prompt_file, не путь — caller передаёт текст)
+      - def build_dsh_command_from_file(profile: str, prompt_file: Path, dsh_bin: str = "dsh") -> list[str]:
+          читает prompt_file.read_text(); вызывает build_dsh_command
+      - def normalize_dsh_log(raw_log: str) -> str:
+          если raw_log содержит валидный JSONL с event.type=="session_end" или "result" → extract content
+          иначе → raw_log (passthrough); никогда не raise
+      - def detect_dsh_model_mismatch(raw_log: str, expected_model: str | None) -> str | None:
+          сканирует лог на смену модели DSH adapter (placeholder — логика уточняется в s05)
+  - CREATE loop/tests/test_dsh_runtime_adapter.py:
+      - test_build_dsh_command_default_profile — profile=epic-implement → правильный argv
+      - test_build_dsh_command_custom_bin — dsh_bin=npx → argv начинается с npx
+      - test_build_dsh_command_prompt_inline — prompt текст встраивается как последний arg
+      - test_normalize_dsh_log_passthrough — произвольный текст → тот же текст
+      - test_normalize_dsh_log_session_end_jsonl — JSONL с session_end event → извлечённый текст
+      - test_normalize_dsh_log_empty — "" → ""
+      - test_normalize_dsh_log_malformed_jsonl — невалидный JSON → passthrough без raise
+  - CREATE loop/tests/fixtures/dsh_session_completed.jsonl:
+      mock JSONL: exit_code=0 + session_end event с status=completed
+  - CREATE loop/tests/fixtures/dsh_session_transient.jsonl:
+      mock JSONL: stderr строки с "429 Too Many Requests" / "503 Service Unavailable"
+  - CREATE loop/tests/fixtures/dsh_session_permanent.jsonl:
+      mock JSONL: "API Error: terminated" или аналогичная fatal строка
+
+deletes: []
+# Greenfield: нет существующих файлов для удаления
+
+out_of_scope:
+  - "loop.sh dispatch и вызов функций — s04"
+  - "analyze_session_log DSH ветка — s05 (использует fixtures этого шага)"
+  - "DSH профили и система T-HUB-007 — out of scope эпика"
+  - "detect_dsh_model_mismatch полная логика — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # NFR-4: red→green обязателен
+    - .agents/skills/python-testing-patterns/SKILL.md     # параметризация, fixture factory
+    - .agents/skills/modern-python/SKILL.md               # pathlib, dataclass, typing
+    - .agents/skills/python-anti-patterns/SKILL.md        # pure fn без сайд-эффектов
+    - .agents/skills/python-error-handling/SKILL.md       # normalize не должен raise
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_build_dsh_command_* все варианты PASS: argv верный при разных bin и profile
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'build_dsh_command' -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_normalize_dsh_log_* все варианты PASS: passthrough, JSONL, empty, malformed
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'normalize_dsh_log' -q --tb=short"
+  - id: cp3
+    criterion: >
+      Весь test_dsh_runtime_adapter.py зелёный
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+  - id: cp4
+    criterion: >
+      Fixtures существуют и парсятся без ошибок (smoke json check)
+    verify: >
+      python3 -c "
+      import json, pathlib
+      for f in pathlib.Path('loop/tests/fixtures').glob('dsh_session_*.jsonl'):
+          for line in f.read_text().splitlines():
+              if line.strip(): json.loads(line)
+      print('ok')
+      "
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+
+tdd:
+  - "test_build_dsh_command_default_profile"
+  - "test_build_dsh_command_custom_bin (npx / global dsh)"
+  - "test_build_dsh_command_prompt_inline"
+  - "test_normalize_dsh_log_passthrough"
+  - "test_normalize_dsh_log_session_end_jsonl"
+  - "test_normalize_dsh_log_empty"
+  - "test_normalize_dsh_log_malformed_jsonl — no raise"

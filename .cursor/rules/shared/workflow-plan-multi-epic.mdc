@@ -1,0 +1,89 @@
+---
+description: "PLAN multi-epic — из research/audit нарезать N эпиков, не один mega-plan"
+alwaysApply: false
+---
+# PLAN multi-epic (BACK / FRONT / INTEG)
+
+**Когда грузить:** любой `* PLAN`, если вход — research / audit / большой spec / несколько приоритетов (P0…Pn) / ≥2 независимых subsystem.
+
+**Зачем:** один mega-plan режет детализацию и ломает §0.0 + контекст DECOMPOSE/IMPLEMENT. N полных `plan-<epic_id>-*.md` + тонкий roadmap = норма.
+
+## Триггер (любой)
+
+- Пользователь приложил / `@` / указал research, audit, architecture-audit, discovery, gap-matrix-as-research
+- В источнике явные полосы приоритета (`P0`…`Pn`) или независимые оси (разные деревья кода / разные cutover)
+- Объём research такой, что один plan не удержит exhaustive AC без урезания
+
+**Не триггер (один эпик OK):** узкий `T-xxx` уже в команде; пользователь явно «один эпик»; INTEG `scope=portal` **без** research-нарезки на продукты/journeys (канон — один master portal plan).
+
+## HARD
+
+1. **FORBIDDEN:** весь research → один `plan-*.md`, если по критериям ниже нужны ≥2 эпика
+2. **FORBIDDEN:** урезать AC/детали «потому что plan большой» вместо split
+3. **REQUIRED:** сначала **epic cut** (таблица), потом roadmap **пары** файлов, потом **полный** plan на каждый эпик (§0.0 на каждый файл)
+4. **REQUIRED при ≥2 эпиках:** оба артефакта roadmap (см. таблицу ниже). Без `.queue.yaml` = FAIL (loop/PLAN не имеют machine queue)
+5. Hygiene / мелкие хвосты (`P4`) — **внутри** ближайшего эпика или отдельный тонкий эпик; не раздувать mega-plan
+6. Один чат PLAN может создать slug roadmap + queue + все `plan-*.md` батчем; FINISH → next = `* ROADMAP MERGE` → затем `* DECOMPOSE` **первого** эпика из **canon** `roadmap-epics.queue.yaml`
+
+## Критерии нарезки (epic cut)
+
+Режь в **отдельный эпик**, если выполняется **хотя бы одно**:
+
+| # | Критерий |
+|---|----------|
+| 1 | Отдельная полоса приоритета в research (`P0` ≠ `P1` …) |
+| 2 | Другое дерево кода / runtime (control plane vs langgraph vs gateway vs front route-group) |
+| 3 | Другой тип риска (locks/DB vs thread-cap vs async HTTP vs CPU/process isolation vs UI surface) |
+| 4 | Hard-dep: эпик B бессмысленен или вреден до A → разные ID + строка deps в `.queue.yaml` |
+| 5 | Independent deliverable: можно QA/ship A без B |
+
+**Не** режь только «по файлам» или «по слоям» (migration → endpoint → UI) внутри одной фичи — это DECOMPOSE `sNN|eNN`, не эпики.
+
+## Артефакты
+
+| Роль | Roadmap (human) | Queue (machine) | Планы эпиков |
+|------|-----------------|-----------------|--------------|
+| BACK | `memory-bank/back/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/back/plan/plan-<epic_id>-<slug>.md` |
+| FRONT | `memory-bank/front/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/front/plan/plan-<epic_id>-<slug>.md` |
+| INTEG | `memory-bank/integration/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/integration/plan/plan-<epic_id>-<slug>.md` |
+
+**Шаблоны:**
+- Human roadmap: @.cursor/templates/roadmap-epics.md  
+- Machine queue: @.cursor/templates/roadmap-queue.yaml  
+- Plan: @.cursor/templates/plan.md (BACK/FRONT) · @.cursor/templates/integration-plan.md (INTEG)
+
+**ID:** взять свободные `T-xxx` / `INTEG-…` из `tasks.md`; не переиспользовать закрытые.
+
+**Именование пары:** один slug → `roadmap-<slug>-epics.md` + `roadmap-<slug>-epics.queue.yaml` (sibling).
+
+**Loop canon:** `roadmap-epics.queue.yaml` (default в `loop/roadmap_queue.py`). Slug-queues — источники; после PLAN обязателен `* ROADMAP MERGE` (@.cursor/rules/shared/workflow-roadmap-merge.mdc), иначе `roadmap-advance` не видит новые эпики.
+
+## Порядок шагов (внутри `* PLAN`)
+
+1. Прочитать research **целиком** (не 200-line cap на read)
+2. Объявить в чате: `MULTI-EPIC PLAN — N эпиков из research` + краткая таблица cut
+3. Записать **roadmap.md** (порядок narrative, deps mermaid, in/out, ссылки на research §)
+4. Записать **roadmap.queue.yaml** (version `roadmap-queue/v1`, `role`, `roadmap:` path, `queue[]` с `id`/`plan`/`deps` hard-only) — шаблон @.cursor/templates/roadmap-queue.yaml
+5. Для **каждого** эпика — полный `plan-*.md` (§0.0; CREATIVE need; Replacement/sunset; черновик фаз без checkbox)
+6. `tasks.md` append-only: строка на roadmap + queue + строка на каждый эпик
+7. FINISH: `load_now` → slug roadmap + `.queue.yaml` + **первый** `plan-T-…`; next = `* ROADMAP MERGE` (затем DECOMPOSE first из canon)
+
+## Chat vs files
+
+- Chat: brief — список эпиков + порядок + пути roadmap.md / `.queue.yaml`
+- Files: каждый plan exhaustive; roadmap.md = карта; `.queue.yaml` = machine canon для loop
+
+## FAIL
+
+- Research с ≥2 критериями cut → создан только 1 plan
+- Roadmap.md без sibling `.queue.yaml` (при ≥2 эпиках)
+- `.queue.yaml` без `version: roadmap-queue/v1` / пустой `queue` / soft deps в `deps`
+- Roadmap без полных `plan-*.md` на каждый ID
+- Один plan «оглавление всех P0–P3» без детальных AC по эпику
+- Сжатие любого `plan-*.md` «ради токенов» вместо split
+- Встроенный YAML fence внутри roadmap.md вместо отдельного `.queue.yaml` (устарело; не канон)
+
+## Пример канона
+
+Аудит async-locks → slug `roadmap-async-locks-epics.*` + plans T-041…T-044 → `* ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`.
+Несколько батчей PLAN → несколько slug queues → снова MERGE в один canon.

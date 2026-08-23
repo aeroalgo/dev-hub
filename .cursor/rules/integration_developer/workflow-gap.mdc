@@ -1,0 +1,39 @@
+---
+description: "Режим INTEG GAP — сверка BACK↔FRONT, gap + plans"
+alwaysApply: false
+---
+### Команда: INTEG GAP
+**Алиас:** `INTEGRATION GAP`
+
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/gap.mdc
+**Скиллы:**
+- @.agents/skills/competitor-analysis/SKILL.md
+- @.agents/skills/architecture-patterns/SKILL.md
+- @.agents/skills/content-gap-analysis/SKILL.md
+
+**Цель:** Расхождения BACK↔FRONT → gap + plans; при `@implement` — перенести §Gaps в gap и **rewrite §Gaps → link**.  
+**§0.0:** gap/plan без лимитов. Таблица ID без «Работы по gap» = **FAIL**.
+
+**Scoped вход:** `@…/implement-*/eNN-*.yaml` (+ §Gaps).
+
+**Процесс**:
+1. `OK INTEG GAP - Сверяю back/implement × front/implement` + при plan/gap: `SUSPENSION GUARD active`
+1a. Прочитай **Gates**
+1b. graphify по доменам
+2. `load_now`
+3. **Инвентаризация:** scoped §Gaps **или** epic indexes (follow links only). **ЗАПРЕЩЕНО** glob flat `*/implement/*`
+4. §0.11: endpoints ↔ `*-api.ts` / hooks; mock vs live
+5. Матрица паритетности
+6. Gap-реестр G-BF* / G-FB*
+7. **A** gap artifact (@.cursor/templates/integration-gap.md): Links + **«Работы по gap»** на каждый G-* (асимметрия · что сделать по ролям · критерии done · зависимости)  
+   - **с эпиком:** `integration/gap/<epic_id>/gap-YYYYMMDD-<slug>.md`  
+   - **без эпика:** `integration/gap/gap-YYYYMMDD-<slug>.md`  
+   **B/C** plan-BACK-GAP / plan-FRONT-GAP если нужно (`covered_by` если epic есть)
+7b. **REWRITE** implement §Gaps → link на gap, Status=open
+8. `tasks.md` append-only
+9. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`, artifact: `gap-*.md`)
+10. New chat / **program-loop**: G-F→B → BACK *; G-B→F → FRONT *; затем **`INTEG GAP CLOSE`** `@implement`  
+    Авто: `.claude/instructions/program-loop.md` + `./loop/loop.sh --phase GAP_FANOUT` (снаружи сессии; без `--gap`/`--track`)
+
+**Не путать:** GAP CLOSE = verify+rewire; PLAN/DECOMPOSE/IMPLEMENT = wire (gap не вход)

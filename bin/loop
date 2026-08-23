@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Run hub loop against a product repo.
+# Usage:
+#   ./bin/loop [/path/to/project] gpt
+#   PROJECT_ROOT=/path/to/project ./bin/loop gpt
+set -euo pipefail
+HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [[ $# -ge 1 && -d "${1:-}" && -d "${1}/memory-bank" ]]; then
+  export PROJECT_ROOT="$(cd "$1" && pwd)"
+  shift
+elif [[ -z "${PROJECT_ROOT:-}" ]]; then
+  echo "Usage: $0 <project-root> [loop args...]" >&2
+  echo "   or: PROJECT_ROOT=/path/to/project $0 [loop args...]" >&2
+  exit 2
+fi
+
+export DEV_HUB="$HUB_ROOT"
+export HUB_ROOT
+export CLAUDE_PROJECT_DIR="$HUB_ROOT"
+exec "$HUB_ROOT/loop/loop.sh" "$@"

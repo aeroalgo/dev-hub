@@ -1,0 +1,62 @@
+---
+description: "Режим FRONT CREATIVE — UI/UX дизайн batch"
+alwaysApply: false
+---
+### Команда: FRONT CREATIVE
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/creative.mdc
+**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design Core)
+
+**Batch:** все компоненты в одном `creative-*.md`.
+
+---
+
+## Skills gate → каждый creative-файл / CR batch (HARD)
+
+**Core ∪ Design Core ∪ situational** → список в creative-файле → Read **только** его.
+
+### Core (всегда для FRONT CREATIVE)
+
+- `.agents/skills/brainstorming/SKILL.md` → секция **OVERRIDE — BACK/FRONT/INTEG CREATIVE** (batch; без one-at-a-time / wait-for-approval)
+- `.agents/skills/frontend-patterns/SKILL.md`
+
+### Situational + Design
+
+1. **Read** @.cursor/rules/front_developer/skills-gate-situational.mdc
+2. Прогони **Checklist — CREATIVE**
+3. UI batch → **Design Core** (все 6); иначе `Design: —` + причина
+4. Cap situational ≤ **3** (+ 2 Core; Design Core не в cap)
+5. В creative-файле блок `## Skills gate` с итоговыми путями
+
+```markdown
+## Skills gate
+- `.agents/skills/brainstorming/SKILL.md`
+- `.agents/skills/frontend-patterns/SKILL.md`
+- …Design Core…
+- …situational…
+```
+
+**FORBIDDEN:** Read вне списка; situational вне allowlist; situational >3.
+
+---
+
+**Процесс**:
+1. `OK FRONT CREATIVE - Начинаю творческую фазу`
+1a. Прочитай **Gates** + **skills-gate-situational**
+2. `tasks.md` + plan/decompose из `load_now`
+2a. Skills gate → creative-файл: с эпиком `memory-bank/front/creative/<epic_id>/…`; без — `memory-bank/front/creative/creative-[feature_name].md` (@.cursor/rules/shared/epic-scoped-paths.mdc)
+3. Компоненты
+4. На каждый: тип Architecture / Algorithm / UI-UX; 2+ варианта + recommended + implementation guide
+5. Один creative-файл (+ **Skills gate** + **Decompose link** если от шага)
+5a. **Rewire dependents (обязательно до FINISH):** все `decompose-*/sNN-*.yaml` и `decompose-*/index.md`, где `needs_creative` / blockers ссылаются на этот CR-ID. Канон: `.cursor/templates/decompose/epic-step.yaml` + `index.md`.
+   - markdown-ссылка на creative: `[CR-…/creative-….md](../../creative/…)` (+ SVG/spec/assets если есть)
+   - **все CR closed:** step `needs_creative: yes (CR-…) — **closed**`; `Next Phase: FRONT IMPLEMENT`
+   - **есть open CR:** step `needs_creative: yes (<open-ids>)`; `Next Phase: FRONT CREATIVE`; в `**Creative:**` явно `open:` + `closed:`
+   - index: blockers `CR-… ✅`; колонка → `yes (CR-…) ✅` (не `yes (done)`); `next_phase` → `FRONT IMPLEMENT` только без open CR; snapshot §Handoff обновить
+   - **FORBIDDEN:** `no (… closed)` · `yes (done)` без CR-ID · `next_phase: CREATIVE` при `completed`
+   - **FAIL** если creative closed, а зависимый `sNN` без ссылки / open gate без closed для этого CR
+6. `tasks.md` append-only
+7. **FINISH:** finish-block (`code_changed: no`) — только после 5a  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index
+
+**Верификация**: skills gate; 2+ вариантов; tokens/signature; dependents rewired (5a)

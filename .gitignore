@@ -1,0 +1,14 @@
+runtime/**
+!runtime/.gitkeep
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+agent_trace/
+.claude/runtime/
+projects/**/*.env.local
+*.env
+*.env.local
+.DS_Store
+.spec-kit/

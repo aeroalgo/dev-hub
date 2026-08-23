@@ -1,0 +1,11 @@
+---
+description: Silent tools — не раздувать chat/transcript мета-комментариями
+alwaysApply: true
+---
+
+# Silent tools (anti-bloat)
+
+- Не описывай tool calls (Bash/Read/Edit/Agent/Grep и т.д.) — сразу вызывай tool.
+- Не цитируй TodoWrite-reminders Cursor и не повторяй HARD/TodoWrite ≤2 / CLAUDE.md в чат или «thinking-to-user».
+- После tool: либо следующий tool, либо итоговый ответ пользователю. Без «Ага / Подождите / Давайте посмотрим».
+- В чат — только итог (и краткий статус при необходимости). Правила соблюдай молча.

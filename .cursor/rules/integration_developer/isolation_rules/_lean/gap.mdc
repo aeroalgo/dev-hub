@@ -1,0 +1,34 @@
+---
+description: "INTEG GAP gates — parity matrix (lean)"
+alwaysApply: false
+---
+# INTEG GAP — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/integration/gap/<epic_id>/gap-YYYYMMDD-<slug>.md`  
+- без: `memory-bank/integration/gap/gap-YYYYMMDD-<slug>.md`  
+**Пути:** @.cursor/rules/shared/epic-scoped-paths.mdc  
+**SUSPENSION GUARD** для gap/plan (§0.0).
+
+## Gates
+
+1. `load_now` → extract `epic_id`
+2. Scope: epic indexes (follow links) **или** scoped implement §Gaps — **не** glob flat `*/implement/*`
+3. §0.11 endpoint ↔ fetch
+4. Матрица + G-BF / G-FB
+5. gap под `gap/<epic_id>/` (если эпик) · Links + «Работы по gap» на каждый G-*
+6. plan-BACK-GAP / plan-FRONT-GAP если нужно
+7. REWRITE implement §Gaps → link; Status=open
+8. `tasks.md` append-only
+
+## Abort
+
+- Без grep → incomplete
+- Подмена PLAN → wrong mode
+- §Gaps не на ссылку → incomplete
+- Gap без §«Работы по gap» → FAIL
+- Эпик известен, а gap в корне `gap/` без `<epic_id>/` → FAIL
+
+## FINISH
+
+→ BACK/FRONT → **`INTEG GAP CLOSE`**. Gap не вход в обычный eNN IMPLEMENT.

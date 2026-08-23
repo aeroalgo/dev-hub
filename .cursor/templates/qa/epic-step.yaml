@@ -1,0 +1,32 @@
+schema: epic-qa/v1
+role: back
+task_id: T-xxx
+plan_id: <plan_id>
+epic_id: <plan_id>
+date: YYYY-MM-DD
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-xxx"
+  - "epic: <plan_id>"
+  - "steps: s01–sNN"
+  - "files: apps/…"
+
+checks:
+  - "tests green: `.venv/bin/pytest …`"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "optional QA caveats"
+
+suite:
+  - ".venv/bin/pytest tests/storage/ -q --tb=line"

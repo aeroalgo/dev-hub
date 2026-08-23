@@ -1,0 +1,29 @@
+---
+description: "Режим BACK REFLECT — reflection-[task_id].md"
+alwaysApply: false
+---
+### Команда: BACK REFLECT
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/reflect.mdc
+
+**Процесс**:
+1. `OK BACK REFLECT - Начинаю рефлексию`
+1a. Прочитай **Gates**
+2. `tasks.md`; убедись что реализация завершена (QA pass / scope done)
+3. **Слой A — эпик:** vs plan/decompose · successes · problems · lessons · improvements (process)
+4. **Слой B — оркестрация** (обязателен):
+   - `memory-bank/back/events/<epic_id>/events.jsonl` — timeline режимов (`*_done` / `qa_fail` / retries)
+   - `.claude/runtime/epic/last-session.json` · `checkpoint.json` · снимок `state.json`
+   - `session-*.log` / `session-*-tN.log` — **только при аномалии** (не весь dump): grep `abort` / `halt` / FINISH / повтор skill / same `step_id`
+   - Зафиксировать сигналы: зацикливание · обрыв · дрейф role/phase/epic · пропуск режима · dirty чужих эпиков · `retry_count` без advance
+5. Артефакт: `memory-bank/back/reflection/reflection-[task_id].md`  
+   Обязательные секции: итог · vs plan · successes · problems · lessons · improvements · **Orchestration signals** · **Promote candidates** (`→ workflow` | `→ loop/hooks` | `→ skip`)
+6. `tasks.md` append-only
+7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)  
+   Next-mode: `memory-bank/activeContext.md` + decompose index; ARCHIVE NOW — вручную после complete
+8. Предложи ARCHIVE NOW (**новый чат**) — не запускать ARCHIVE внутри автоцикла REFLECT  
+   Если есть `Promote → workflow|loop` — предложи отдельный чат на допил (не смешивать с ARCHIVE)
+
+**FORBIDDEN:** тащить полный текст всех `session-*.log` в reflection; править `.cursor/rules` / `loop/` / hooks внутри REFLECT без явного запроса на promote-pass.
+
+**Верификация**: gates + секции Orchestration signals и Promote candidates присутствуют

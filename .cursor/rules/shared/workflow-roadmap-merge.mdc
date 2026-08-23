@@ -1,0 +1,67 @@
+---
+description: "ROADMAP MERGE — slug queues → canon roadmap-epics.queue.yaml for loop"
+alwaysApply: false
+---
+# ROADMAP MERGE (BACK / FRONT / INTEG)
+
+**Команды:** `BACK ROADMAP MERGE` · `FRONT ROADMAP MERGE` · `INTEG ROADMAP MERGE`
+
+**Зачем:** MULTI-EPIC PLAN пишет `roadmap-<slug>-epics.queue.yaml`. Loop `roadmap-advance` по умолчанию читает **только** `memory-bank/<role>/plan/roadmap-epics.queue.yaml`. MERGE склеивает все slug-источники в этот канон.
+
+## Модель файлов
+
+| Файл | Роль |
+|------|------|
+| `roadmap-<slug>-epics.md` + `.queue.yaml` | источник одного PLAN-батча (provenance; не удалять) |
+| `roadmap-epics.queue.yaml` | **machine canon** для loop (`DEFAULT_QUEUE`) |
+| `roadmap-epics.md` | human mirror канона (ссылки на источники + таблица queue) |
+
+Роли → dirs: back `memory-bank/back/plan/` · front `…/front/plan/` · integ `…/integration/plan/` (`role: integration`).
+
+## Правила слияния (HARD)
+
+1. **Discover:** все `roadmap-*-epics.queue.yaml` в plan-dir роли, **кроме** `roadmap-epics.queue.yaml`.
+2. **Existing canon:** если канон уже есть — его active ids сохраняют относительный порядок (база preferred order).
+3. **Skip done:** эпик с QA pass + REFLECT (`is_epic_done` / phase DONE) → не в канон; deps на done снимаются.
+4. **Dedup `id`:** один id один раз. Разные `plan` path → **FAIL** `roadmap_merge_plan_conflict` (human).
+5. **Deps:** hard-only; union при повторе id; неизвестный dep (не active и не done) → **FAIL** `roadmap_merge_unknown_deps`.
+6. **Order:** topo-sort по hard deps; среди ready — порядок preferred (canon → источники по mtime → хвост).
+7. **Write:** `roadmap-epics.queue.yaml` + `roadmap-epics.md`. Slug-файлы не трогать.
+8. **Empty active** после фильтра → FAIL (не писать пустой канон молча).
+
+Soft deps из slug `.md` **не** копируются в queue `deps` (только narrative в источниках).
+
+## CLI (канон автоматизации)
+
+```bash
+# из корня продукта
+python loop/context_loop.py --cwd "$PWD" roadmap-merge --role back
+python loop/context_loop.py --cwd "$PWD" roadmap-merge --role back --dry-run
+```
+
+Hub: `dev-hub/bin/loop` / `make loop` → тот же `context_loop`. Реализация: `loop/roadmap_queue.py::roadmap_merge`.
+
+## Процесс агента
+
+1. `OK {ROLE} ROADMAP MERGE`
+2. Gates lean `roadmap-merge.mdc`
+3. Inventory: list slug queues + existing canon + `tasks.md` active epics
+4. Dry-run mentally / CLI `--dry-run` → показать ids order + skipped done + conflicts
+5. Write via CLI **или** Write тех же файлов по правилам выше (байт-в-байт schema `roadmap-queue/v1`)
+6. Обновить `tasks.md` (строка: active canon path) + `activeContext.md` load_now: canon md + queue + first plan
+7. FINISH: next = `{ROLE} DECOMPOSE <queue[0].id>` (если первый без decompose) иначе status из smart entry
+
+## Когда вызывать
+
+- После каждого MULTI-EPIC PLAN (slug queue создан)
+- Когда появились ≥2 slug queues без актуального канона
+- Перед `EPIC_CHAIN_ROADMAP=1` loop, если канон отсутствует/устарел
+
+**Не** заменяет PLAN/DECOMPOSE. **Не** ARCHIVE.
+
+## FAIL
+
+- Нет источников и нет канона
+- Plan path conflict / unknown hard deps / cycle
+- Role mismatch в source yaml
+- Пустой active queue после skip done

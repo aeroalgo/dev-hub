@@ -1,0 +1,45 @@
+# YAML-CONTRACT — lint для epic shard + decompose index (opt-in)
+
+Поля `epic-decompose/v1`, `epic-implement/v1`, qa/refactor/security.  
+**Не** часть runner hot path. Opt-in:
+
+```bash
+python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>
+```
+
+Шаг YAML = ТЗ агенту (цель, файлы, tests).
+
+## Decompose index — yaml канон, md зеркало
+
+| Файл | Роль |
+|------|------|
+| `plan/decompose-*/index.yaml` | **единственный SoT** очереди + `status`; prepare / identity / IMPLEMENT |
+| `plan/decompose-*/index.md` | human coverage (DECOMPOSE/AUDIT); status = best-effort зеркало |
+
+Курсор = `activeContext.md` + `index.yaml` + step yaml.  
+Md **не** fail-closed gate. Рассинхрон → deterministic `repair-index-mirror` (prepare/check_after вызывают автоматически; CLI вручную).
+
+**Fingerprint stall** (агент вышел без смены Handoff): `check-after` → `repair_fingerprint_stall`. Если implement ready (checkpoints + files на диске) → finalize/re-arm без LLM. Иначе **outer retry** (новый агент, prompt со stall-блоком) до `EPIC_DEGRADED_MAX`; после лимита → `NEED_HUMAN` HALT.
+
+**Cursor SoT = `index.yaml` only.** На `prepare` вызывается `sync_cursor_from_index`: `activeContext` + `armed_step` переписываются из next pending; stale checkpoint с другим step сбрасывается. `armed_step` — кэш, не источник правды.
+
+**Одна точка записи status** (не править md и yaml руками):
+
+```bash
+python3 .claude/hooks/epic_resolve.py finalize-step \
+  --decompose decompose-v1-portal --step e22
+```
+
+`finalize-step` также пишет `tasks/log` и при смене фазы — `tasks.md`.
+
+После смены состава шагов в `index.md` (новые строки таблицы) или если md битый:
+
+```bash
+python3 .claude/hooks/epic_resolve.py repair-index-mirror \
+  --decompose decompose-v1-portal
+python3 .claude/hooks/epic_resolve.py sync-index-yaml \
+  --decompose decompose-v1-portal
+```
+
+`repair-index-mirror` пересобирает queue-таблицу md из yaml (не трогает yaml).  
+`sync-index-yaml` по умолчанию **сохраняет** status из yaml; `--from-md-status` — bootstrap из md (только bootstrap).

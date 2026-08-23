@@ -1,0 +1,141 @@
+---
+description: "Legacy + fallback cleanup — PLAN sunset A/B/C, DECOMPOSE purge sNN, AUDIT/QA leftover (shared BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# Legacy / fallback cleanup (HARD — brownfield replace)
+
+**Когда:** любой `* PLAN` / `* DECOMPOSE` / `* AUDIT` / `* QA` / `* IMPLEMENT`, если эпик **заменяет** существующий runtime (cutover, rewrite, mock→live, dual-path collapse).  
+**Greenfield:** таблицы sunset = `n/a`; purge sNN не обязателен.  
+**Роли:** BACK · FRONT · INTEG. Детали роли — в `workflow-*-decompose.mdc` §Replacement cleanup; этот файл = **канон policy**.
+
+**Принцип done:** новый путь — **единственный**; старый удалён из кода **и** всех entrypoints; misconfig **падает**, не деградирует в legacy/stub/fallback.
+
+---
+
+## 1. PLAN — `## Replacement / sunset` (три таблицы)
+
+Шаблон: @.cursor/templates/plan.md · @.cursor/templates/integration-plan.md
+
+Brownfield replace **обязан** заполнить **A + B + C** (не одну строку «модуль X»). Greenfield → одна строка `n/a` во всех трёх.
+
+### A. Code / modules
+
+Файлы, классы, символы, пакеты, тесты, которые вытесняются.
+
+### B. Entrypoints / deploy
+
+Inventory **всех** поверхностей запуска той же роли:
+
+- `docker-compose*.yml` / `compose*.yml` services + `command` / `CMD`
+- `Dockerfile*` `CMD` / `ENTRYPOINT`
+- CLI (`python -m …`, `npm run …`, bin scripts)
+- gateway / appliance / root / dev compose (не «уже отдельный» без строки)
+- package.json scripts / Makefile targets, если они стартуют legacy
+
+**FORBIDDEN:** пометить entrypoint «уже отдельный / out of scope» без `Policy: shim+follow-up` + **epic ID уже в roadmap `.queue.yaml`**.
+
+### C. Fallbacks / soft-fail
+
+Любой путь «если нет X → Y (legacy/default/stub)»:
+
+- `or "http://…"`, default host/port «наугад»
+- silent `return` / exit 0 при выключенном feature flag в container entry
+- user-safe stub reply при **misconfig** (нет port, нет URL) вместо fail-at-start
+- dual path: `if legacy_enabled … else new`
+- try/except, глотающий отсутствие нового пути и уходящий в старый
+
+**Policy для строк A/B/C:**
+
+| Policy | Когда |
+|--------|--------|
+| `delete in-epic` | **Default** для cutover/replace |
+| `shim+follow-up` | Только если follow-up **epic ID** уже в `roadmap-*.queue.yaml` (не «потом») |
+| `keep` | Только non-cutover обоснование + ADR; для architecture-replace **запрещён** без явного ADR в плане |
+| `fallback` | **FORBIDDEN** как policy; fallback → строка в C с `delete in-epic` |
+
+### AC− (обязательны при brownfield replace)
+
+1. Нет второго entrypoint на ту же роль (тот же bot token / тот же user-facing route group / тот же job consumer role).  
+2. Нет soft default URL/host/path на чужой сервис.  
+3. Misconfig → fail at start (non-zero / raise), не stub пользователю и не silent success.  
+4. Нет prod-path dual: new + legacy рядом после эпика (без follow-up ID в queue).
+
+---
+
+## 2. DECOMPOSE — Replacement cleanup + финальный purge
+
+### 2.1. Таблица index
+
+Шаблон: @.cursor/templates/decompose/index.md
+
+Колонки:
+
+| Устаревает | Kind (A\|B\|C) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |
+|------------|----------------|--------|---------------------|-----------|-------|
+
+- `Kind`: A=code · B=entrypoint/deploy · C=fallback/soft-fail  
+- `Fallback?`: `yes` → обязан `deletes` в этом эпике (не follow-up «на потом» без ID)  
+- Каждая строка plan sunset A/B/C → строка здесь
+
+### 2.2. Финальный шаг очереди (REQUIRED при любой строке ≠ n/a)
+
+Имя (slug): `*-legacy-fallback-purge` (BACK/FRONT: `sNN-…`; INTEG: отдельный `eNN-…` или последний cutover eNN с полным остатком `deletes`).
+
+**Обязан:**
+
+1. Стоять **после** migrate/wire шагов (цепочка `add → migrate → delete` завершена здесь).  
+2. `deletes:` = **весь остаток** из Replacement cleanup (A+B+C), ещё не удалённый предыдущими sNN|eNN.  
+3. Checkpoints (≥2):
+   - `rg` / import-audit: символы/пути legacy **без** живых callers (кроме archive/docs history).  
+   - Anti-fallback `rg` по scope эпика: `or "http://`, `fallback`, silent stub patterns из plan C; dual `legacy`/`old_` entry в compose command.  
+   - Entrypoint inventory: все релевантные `docker-compose*.yml` / `Dockerfile*` — **нет** старого `command`/`CMD` (список из plan B).  
+4. Greenfield / `n/a` во всех sunset → purge **не** создавать; в Replacement cleanup одна строка `n/a — нет замен`.
+
+### 2.3. FORBIDDEN (дополнительно к §Replacement cleanup роли)
+
+- Закрыть эпик на «новое включено, старое рядом».  
+- `out_of_scope: оставить shim` без epic ID **в queue**.  
+- Считать rewrite модуля достаточным, если CLI/compose/CMD всё ещё зовут legacy.  
+- Оставить fallback URL/default в коде как «удобство local».
+
+---
+
+## 3. IMPLEMENT
+
+- Выполнить все `deletes:` work shard (как lean implement).  
+- Если work shard = purge step — evidence **обязана** включать команды `rg`/compose inventory и их пустой (или archive-only) результат.  
+- User-facing soft-fail при misconfig **не** добавлять «чтобы тесты зелёные».
+
+---
+
+## 4. AUDIT
+
+В `audit-*.yaml` (шаблон `templates/audit/epic-audit.yaml`) для brownfield replace:
+
+```yaml
+legacy_surfaces_remaining: []   # path/symbol ещё живы vs sunset A/B
+fallback_remaining: []          # soft-fail / dual-path ещё живы vs sunset C
+```
+
+- Непустой массив → `not_implemented` / новый `*-audit-*` shard **или** FAIL (нельзя PASS в QA с leftover).  
+- Проверить наличие purge sNN|eNN в decompose queue (или `n/a` sunset).
+
+---
+
+## 5. QA
+
+Для brownfield replace / cutover эпиков — доп. checks (в qa yaml `checks:` или Issues):
+
+1. `rg` leftover symbols из plan sunset (expect no prod callers).  
+2. Compose/Dockerfile: нет legacy service name / `command` из plan B.  
+3. Нет запрещённых fallback patterns из plan C в prod paths.  
+4. (BACK) optional: `docker compose config` / `ps` smoke — нет legacy consumer рядом с новым.
+
+PASS при leftover A/B/C = **FAIL** (fix_plan → BUGFIX purge).
+
+---
+
+## 6. Multi-epic
+
+Поверхность в другом дереве (root compose vs gateway vs ORM) → **отдельный эпик в `.queue.yaml`**, не фраза «уже отдельный» в as_built без ID.  
+Ссылка: @.cursor/rules/shared/workflow-plan-multi-epic.mdc

@@ -1,0 +1,56 @@
+---
+description: "Session & chat context economy — handoff, new chat gate, lean load (referenced by workflows FINISH)"
+alwaysApply: false
+---
+# Context Session Economy
+
+Cross-cutting. Layer 0: @.cursor/rules/token-economy-core.mdc
+
+## 1. Session unit
+
+**One chat = one atomic subtask** with clear AC.
+
+| Scope | Own chat? |
+|-------|-----------|
+| Single file / L1 typo | same chat OK |
+| IMPLEMENT → QA · PLAN → IMPLEMENT · role switch | **new chat** |
+
+## 2. New chat — recommend when
+
+AC met · next substep differs · role switch · long debug trace · user confusion.  
+**Не требовать** для: checkbox в том же subtask; тот же bug в fresh context.
+
+## 3. Session start
+
+1. `activeContext.md` → `load_now` only (PLAN/DECOMPOSE: plan as work object; иначе — **без** полного `plan-*.md`)
+2. **§Handoff** — единственный канон навигации: в `activeContext.md` **ровно один** блок `## Handoff` (на FINISH — **Write весь файл**; стопка / ≥2 done = FAIL/halt)
+3. Не опираться на transcript
+4. **IMPLEMENT (эпик):** work shard `sNN|eNN` + `decompose-*/index.yaml`. Иначе ONE work shard (task/bugfix/qa). **AC = work shard**, не index; **не** полный `plan-*.md` и **не** `index.md`
+5. Skills: только для subtask
+6. Недостающий AC → дописать в step **или** jump `plan §N` из Consumes; **FORBIDDEN** тащить весь plan в `load_now`
+
+**PLAN:** Load ≠ Write — plan output unlimited (§0.0).
+
+## 4. During session
+
+Read once per file · search → обязательный `@explorer` · прочие Agent свободно · index = link only · isolation level из task.
+
+## 5. FINISH
+
+`finish-block.mdc` → шаблон `finish-doc-router.md` → routing `finish-doc-router.mdc`.
+
+## 6. User message (RU)
+
+New chat: текст из `finish-doc-router.md` §«Сообщение пользователю».
+
+## 7. QA lean load
+
+`load_now` + qa/bugfix shard + diff + §0.11 grep. **Skip** полный `plan-*.md`. AC из Handoff Epic QA / Fix plan / implement yaml заголовки. Если AC неясен — только `plan §N`. Skip explore/recall. Parent гоняет suite из handoff.
+
+## 8. TASK / BUGFIX
+
+`load_now` first (bugfix/qa shard с subject); core roots — только cross-cutting. **FORBIDDEN** полный plan как «acceptance context».
+
+## 9. Forbidden
+
+`done — do NOT load` · plan prose в shard/chat · completed substep в `load_now` · **полный `plan-*.md` в `load_now`** вне PLAN/DECOMPOSE · over-refusal spawn

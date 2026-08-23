@@ -1,0 +1,92 @@
+---
+description: "Epic-scoped memory-bank paths — ARCHIVE move + CREATIVE/QA/BUGFIX/IMPLEMENT placement"
+alwaysApply: false
+---
+# Epic-scoped paths (BACK / FRONT / INTEG)
+
+**Канон размещения артефактов.** Роли читают этот файл из ARCHIVE / CREATIVE / QA / BUGFIX / IMPLEMENT / DECOMPOSE gates.
+
+## Epic id
+
+`epic_id` = `plan_id` (slug латиница), напр. `v1-p1-pipeline-db-e2e`.
+
+**Есть эпик**, если любое из:
+
+1. `activeContext` `load_now` / единственный `## Handoff` содержит `plan-<id>`, `decompose-<id>`, `implement-<id>`, или явный `epic_id` / `plan_id`
+2. Команда с явным id: `BACK QA v1-p1-pipeline-db-e2e`, `BACK BUGFIX …` из qa §Fix plan эпика
+3. Текущий шаг из `decompose-<id>/`
+
+**Нет эпика** (ad-hoc TASK / голый BUGFIX / голый QA без plan): артефакт → **плоская** папка режима.
+
+## Активное дерево (`memory-bank/{role}/`)
+
+`{role}` = `back` | `front` | `integration`.
+
+| Режим | С эпиком | Без эпика |
+|-------|----------|-----------|
+| PLAN | `plan/plan-<epic_id>.md` + `plan/decompose-<epic_id>/` | — (PLAN всегда с id) |
+| IMPLEMENT | `implement/implement-<epic_id>/` | `implement/<slug>/` или `implement/task-YYYYMMDD-<slug>.md` (без `implement-<epic>/`) |
+| REFACTOR | `refactor/plan/decompose-<epic_id>/` + execute `refactor/implement/implement-<epic_id>/rNN-*.yaml` | `refactor/session-YYYYMMDD-<slug>.md` (корень `refactor/`) |
+| SECURITY | `security/plan/decompose-<epic_id>/` + execute `security/implement/implement-<epic_id>/aNN-*.yaml` | `security/security-audit-YYYYMMDD-<slug>.md` (корень `security/`) |
+| CREATIVE | `creative/<epic_id>/creative-<feature>.md` | `creative/creative-<feature>.md` |
+| QA | `qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` | `qa/qa-YYYYMMDD-<slug>.yaml` |
+| BUGFIX | `bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md` | `bugfix/bugfix-YYYYMMDD-<slug>.md` |
+| GAP (INTEG) | `gap/<epic_id>/gap-YYYYMMDD-<slug>.md` | `gap/gap-YYYYMMDD-<slug>.md` |
+| GAP CLOSE (INTEG) | `gap/<epic_id>/close-YYYYMMDD-<slug>.md` | `gap/close-YYYYMMDD-<slug>.md` |
+| REFLECT | `reflection/reflection-<task_id>-….md` | то же — **не** под `<epic_id>/` |
+| TASK | — | `task/task-YYYYMMDD-<slug>.md` |
+
+**FORBIDDEN:** писать epic-артефакт CREATIVE/QA/BUGFIX/GAP в корень `creative/` / `qa/` / `bugfix/` / `gap/` без `<epic_id>/`, если эпик известен.
+
+**Rewire CREATIVE:** ссылки из `decompose-<epic_id>/sNN` → `../../creative/<epic_id>/creative-….md` (с эпиком) или `../../creative/creative-….md` (без).
+
+## ARCHIVE NOW — перенос
+
+**Цель:** `memory-bank/archive/{role}/…` — **зеркало** относительной структуры под `{role}/` (не `back/archive/archive-*.md`).
+
+### Переносить (всё, что относится к `epic_id`)
+
+- `plan/plan-<epic_id>.md`
+- `plan/decompose-<epic_id>/` (целиком)
+- `implement/implement-<epic_id>/` (целиком)
+- `refactor/plan/{analysis,plan}-<epic_id>.md`, `refactor/plan/decompose-<epic_id>/`, `refactor/implement/implement-<epic_id>/` (целиком)
+- `security/plan/plan-<epic_id>.md`, `security/plan/decompose-<epic_id>/`, `security/implement/implement-<epic_id>/` (целиком)
+- `creative/<epic_id>/` (целиком)
+- `qa/<epic_id>/` (целиком)
+- `bugfix/<epic_id>/` (целиком)
+- `gap/<epic_id>/` (целиком; INTEG: gap-*.md + close-*.md)
+- Legacy flat-файлы с этим epic slug в имени, если ещё не в `<epic_id>/`:  
+  `qa/qa-*-<epic_id>*.yaml`, `bugfix/*<epic_id>*`, `creative/*`, `gap/gap-*` / `gap/close-*` явно связанные с эпиком — перенести **в** `archive/.../qa|bugfix|creative|gap/<epic_id>/`
+
+### Не переносить
+
+- `reflection/**` — остаётся в `{role}/reflection/`
+- `architecture/**`, `tasks.md`, `tasks/log/**`, `activeContext.md`, код `apps/` / `tests/`
+- Чужие эпики / ad-hoc файлы без этого `epic_id`
+
+### Манифест
+
+**Убран:** `memory-bank/{role}/archive/archive-<task_id>.md` — не создавать.  
+Индекс: строка в `tasks.md` + `tasks/log/` + ссылки из reflection (обновить пути).
+
+### Ссылки (обязательно работоспособность)
+
+1. **Внутри перенесённого дерева** — relative links между plan/decompose/implement/qa/bugfix/creative **сохраняются**, если layout под `archive/{role}/` = бывший layout под `{role}/`.
+2. **Снаружи** (остались на месте): `reflection/**`, `tasks.md`, `tasks/log/**`, `activeContext`, другие живые docs — **rewrite**  
+   `memory-bank/{role}/<path>` → `memory-bank/archive/{role}/<path>`  
+   и relative из reflection: пересчитать глубину (`../qa/` → `../../archive/{role}/qa/…` и т.п.).
+3. Канон-инструмент (опционально): `scripts/mb-archive-epic.py` — агент **может** вызвать для move+rewrite. Пользователь запускает **`BACK|FRONT|INTEG ARCHIVE NOW`**, не скрипт. Ручной move без rewrite = FAIL.
+
+### После переноса
+
+- `tasks.md`: статус ЗАВЕРШЕНА И АРХИВИРОВАНА + пути на `archive/…`
+- `activeContext`: clear `load_now`; Handoff → next T-xxx из roadmap Queue (не VAN, если queue не пуста)
+- Пустые legacy `memory-bank/{role}/archive/` не использовать для новых артефактов
+
+## Определение эпика на старте сессии
+
+```
+load_now / Handoff → extract epic_id
+если найден → писать в {mode}/{epic_id}/…
+иначе → {mode}/… (плоско)
+```

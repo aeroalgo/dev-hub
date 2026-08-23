@@ -1,0 +1,16 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.md
+queue:
+  - id: T-HUB-002
+    plan: plan-T-HUB-002-canon-sync.md
+    deps: []
+  - id: T-HUB-003
+    plan: plan-T-HUB-003-loop-halt.md
+    deps: []
+  - id: T-HUB-004
+    plan: plan-T-HUB-004-hooks-hygiene.md
+    deps: []
+  - id: T-HUB-005
+    plan: plan-T-HUB-005-simplify-docs.md
+    deps: [T-HUB-002]

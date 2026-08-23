@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-005
+title: "finish-block.mdc header pointer trio — block/doc-router/template routing index in header"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Агент, открывая finish-block.mdc, сразу видит в самой шапке (index stub) три указателя:
+  1. порядок → finish-block (сам файл), 2. routing/load_now → finish-doc-router, 3. fill-in → template.
+  Без слияния в mega-файл. Закрывает FR-5, AC+ #5.
+
+context:
+  consumes:
+    - .cursor/rules/shared/finish-block.mdc                # EDIT — добавить header index
+    - .cursor/rules/shared/finish-doc-router.mdc           # ссылка (не менять)
+    - .cursor/templates/finish-doc-router.md               # ссылка (не менять)
+  produces:
+    - .cursor/rules/shared/finish-block.mdc                # EDIT
+  plan_refs:
+    - plan-T-HUB-005-simplify-docs.md §FR-5 §AC+ #5 §Зафиксированные решения (pointer trio)
+  files:
+    - .cursor/rules/shared/finish-block.mdc
+
+as_built:
+  - >
+    finish-block.mdc существует (79 строк); уже содержит ссылки на doc-router и template
+    (строки 11-12 Handoff fill-in + By-command routing / graphify).
+    НО они НЕ В ШАПКЕ как index stub — они в теле файла после Anti-mix блока.
+  - Нет явного pointer-trio «порядок / routing / fill-in» как первых строк файла.
+
+delta:
+  - >
+    В самое начало finish-block.mdc (после YAML frontmatter, перед "# FINISH Block")
+    добавить index stub с тремя указателями: Порядок → finish-block.mdc;
+    Routing load_now → finish-doc-router.mdc; Fill-in → finish-doc-router.md template.
+  - Оставить тело файла без изменений (не сливать doc-router внутрь).
+  - >
+    Проверить: не дублировать ссылки, которые уже есть в строках 11-12 (оставить как есть —
+    они в контексте Handoff fill-in, новый stub — navigation только).
+
+deletes: []
+# Только добавление header-блока; ничего не удаляем
+
+out_of_scope:
+  - Слияние finish-block + finish-doc-router + template в один mega-файл — ЗАПРЕЩЕНО (plan NFR)
+  - Изменение семантики §Порядок / 5 точек — не трогать
+  - finish-doc-router.mdc — не трогать
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step
+
+checkpoints:
+  - id: cp1
+    criterion: "finish-block.mdc начинается с pointer trio (или содержит его сразу после frontmatter)"
+    verify: "head -15 .cursor/rules/shared/finish-block.mdc | rg 'Порядок|Routing|Fill-in|doc-router'"
+  - id: cp2
+    criterion: "AC+ #5: finish-block начинается с pointer на doc-router + template"
+    verify: "rg -n 'finish-doc-router|finish-doc-router.md' .cursor/rules/shared/finish-block.mdc | head -5"
+  - id: cp3
+    criterion: "wc -l finish-block.mdc не уменьшился (только добавления)"
+    verify: "wc -l .cursor/rules/shared/finish-block.mdc"
+  - id: cp4
+    criterion: "Семантика §Порядок / 5 точек не изменена: строка '## Порядок' всё ещё есть"
+    verify: "rg -n '## Порядок|## 5 точек' .cursor/rules/shared/finish-block.mdc"
+
+verify: []
+tdd: []

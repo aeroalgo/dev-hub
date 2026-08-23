@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-002
+title: s05 — graphify.mdc hub N/A protocol + INTEG PLAN inventory exception in graphify
+  + mainrule Step 0 IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-002-canon-sync/s05-graphify-hub-na-integ-plan.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'graphify.mdc: added §Hub / tooling repositories (N/A protocol) — no halt, inventory
+  fallback'
+- 'graphify.mdc: added §Plan exceptions (inventory mode) — INTEG PLAN + brownfield
+  VAN N/A'
+- 'graphify.mdc: updated ''Do not skip graphify'' line to exceptions-aware wording'
+- 'mainrule.mdc Step 0: appended Hub N/A and INTEG PLAN inventory mode references'
+files:
+- .cursor/rules/graphify.mdc
+- .cursor/rules/mainrule.mdc
+deletes:
+- 'graphify.mdc: строка ''Do not skip graphify because files are already known or
+  because a plan is being executed'' — уточнена: exceptions-aware wording с ссылками
+  на §Hub N/A и §Plan exceptions'
+tests:
+- '`timeout 300s .venv/bin/pytest --collect-only -q 2>&1 | head -5 || true`'
+integration_check:
+- graphify.mdc §Hub N/A и §Plan exceptions согласованы с mainrule.mdc Step 0 — ссылки
+  взаимные
+- Исходная строка 'Do not skip graphify because a plan is being executed' заменена
+  exceptions-aware wording — нет противоречий с INTEG PLAN exception
+grep_control: []
+verification_results:
+- 'cp1: grep graphify.mdc — Hub / tooling repositories (N/A protocol) section found'
+- 'cp2: grep graphify.mdc — Plan exceptions / INTEG PLAN inventory section found'
+- 'cp3: grep mainrule.mdc Step 0 — Hub N/A and INTEG PLAN references appended'
+- 'cp4: ''Do not skip graphify because files are already known'' remains with exceptions-aware
+  wording (no longer halts on N/A)'
+checkpoints:
+- id: cp1
+  criterion: graphify.mdc содержит секцию 'Hub' или 'N/A protocol' (hub/tooling без
+    graph.json)
+  status: done
+  done_at: '2026-08-22T10:25:28Z'
+- id: cp2
+  criterion: graphify.mdc содержит 'INTEG PLAN' exception или 'Plan exceptions' секцию
+  status: done
+  done_at: '2026-08-22T10:25:28Z'
+- id: cp3
+  criterion: mainrule.mdc Step 0 содержит reference на hub N/A или INTEG PLAN exception
+  status: done
+  done_at: '2026-08-22T10:25:29Z'
+- id: cp4
+  criterion: Проблемная строка 'Do not skip graphify because files are already known'
+    дополнена или заменена уточнённым wording
+  status: done
+  done_at: '2026-08-22T10:25:29Z'
+resume_from: cp1

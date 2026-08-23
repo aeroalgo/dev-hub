@@ -1,0 +1,18 @@
+---
+description: "Режим INTEG TASK — внеплановый integration slice"
+alwaysApply: false
+---
+### Команда: INTEG TASK
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/task.mdc
+**Скиллы:** по ситуации (@.agents/skills/find-skills/SKILL.md)
+
+**Процесс**:
+1. `OK INTEG TASK - [суть]`
+1a. Прочитай **Gates**
+2. `load_now` + eNN §Contract если есть
+3. `integration/task/task-YYYYMMDD-<slug>.md`
+4. Contract change → обнови §Contract в eNN
+5. Фазы implement (сокращённо если L1); §0.11
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`)  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index

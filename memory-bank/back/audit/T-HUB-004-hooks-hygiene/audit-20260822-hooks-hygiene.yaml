@@ -1,0 +1,99 @@
+schema: epic-audit/v1
+role: back
+epic_id: T-HUB-004-hooks-hygiene
+plan_id: T-HUB-004
+date: 2026-08-22
+auditor: BACK AUDIT
+verdict: PASS
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 2
+
+gap_matrix:
+  - step_id: s01
+    plan_title: "extract_verdict: remove short-circuit, last-match wins, TDD tests"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s01-extract-verdict-tdd.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s02
+    plan_title: "NEED_HUMAN messaging: pretool BLOCKED→NEED_HUMAN, spawn-hard sync"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s02-need-human-messaging.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s03
+    plan_title: "Unified registry discovery: all hooks use _discover_registry (file-wins)"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s03-unified-registry-discovery.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s04
+    plan_title: 'ALIAS explore: add ALIAS["explore"]="explorer", test normalization'
+    implement_file: implement-T-HUB-004-hooks-hygiene/s04-alias-explore.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s05
+    plan_title: "Delete dead epic re-exports: rm 6 stubs, rm unused import, verify rg=0"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s05-delete-epic-reexports.yaml
+    status: implemented
+    mark: "⚠️"
+    note: "AC шага закрыты; ambient finish_integrity failures при полном env отложены на s07/known isolation"
+  - step_id: s06
+    plan_title: "Posttool mirror + save_state lock: remove bare except, add lock/atomic"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s06-posttool-mirror-lock.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s07
+    plan_title: "Targeted suite + import smoke: pytest on affected + import epic after delete"
+    implement_file: implement-T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml
+    status: implemented
+    mark: "⚠️"
+    note: "AC+7 targeted suite зелёный; без -u DEV_HUB/HUB_ROOT/PROJECT_ROOT finish_integrity ambient fails — known env isolation, не regression stubs"
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-004-hooks-hygiene/s01-extract-verdict-tdd.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-004-hooks-hygiene/s02-need-human-messaging.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-004-hooks-hygiene/s03-unified-registry-discovery.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-004-hooks-hygiene/s04-alias-explore.yaml
+  - step_id: s05
+    implement_file: implement-T-HUB-004-hooks-hygiene/s05-delete-epic-reexports.yaml
+  - step_id: s06
+    implement_file: implement-T-HUB-004-hooks-hygiene/s06-posttool-mirror-lock.yaml
+  - step_id: s07
+    implement_file: implement-T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s05
+    implement_file: implement-T-HUB-004-hooks-hygiene/s05-delete-epic-reexports.yaml
+    plan_intent: "delete 6 stubs + unused import; import smoke clean"
+    actual: "stubs deleted + epic_lib cleanup + slice smoke OK; полный ambient finish_integrity без env unset отложен (verify_pass_missing / active epic identity) — не связан со stubs"
+    impact: low
+  - step_id: s07
+    implement_file: implement-T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml
+    plan_intent: "targeted pytest + import smoke после delete"
+    actual: "AC+7 targeted зелёный с -u DEV_HUB/HUB_ROOT/PROJECT_ROOT; без unset — known ambient epic isolation, задокументировано как Deferred, не gap реализации"
+    impact: low
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+
+blocked_reason: ""
+next_phase: QA
+notes:
+  - |
+    Leftover checks (rg/ls, no suite): BLOCKED: verify_no_verdict в agent-pretool → 0;
+    epic/{checkpoint,context,events,index,io,state}.py absent; from epic.(…) imports → 0;
+    ALIAS["explore"]="explorer" в _lib.py; extract_verdict = last finditer match;
+    agent-pretool/posttool/user-prompt/stop-gate → _discover_registry; save_state = fcntl lock + atomic replace;
+    bare except:pass на mirror не найден.
+  - |
+    Sunset deletes закрыты: s01 short-circuit, s02 BLOCKED messaging, s03 dual discover, s05 stubs+import, s06 silent mirror.
+    not_implemented[] пуст → next = BACK QA. EPIC_DONE запрещён до QA pass + REFLECT.

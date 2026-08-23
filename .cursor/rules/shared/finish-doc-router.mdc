@@ -1,0 +1,47 @@
+---
+description: "FINISH hook — update activeContext doc-router (referenced by workflow finish steps)"
+alwaysApply: false
+---
+# FINISH — Doc Router Update
+
+**Mandatory** before handoff. Дополняет `finish-block.mdc`: только routing `load_now`/by-command/graphify.
+
+**Fill-in:** @.cursor/templates/finish-doc-router.md — не копировать скелет в rules.
+
+## By command
+
+| Command | load_now update |
+|---------|-----------------|
+| `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
+| `* AUDIT` | audit-артефакт в `load_now`; `not_implemented[]` непуст → next = `* IMPLEMENT` новых sNN/eNN (петля); `not_implemented[]` пуст → next = `* QA` |
+| `* QA` | `## Handoff * QA` + qa link; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** plan |
+| `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
+| `* REFLECT` | align post-task |
+| `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; reflection остаётся; clear `load_now`; «await VAN» / next T-xxx |
+| `* CREATIVE` | rewire `sNN`/`eNN` канон `yes (CR-…) — **closed**` / index `yes (CR-…) ✅`; next tip по open/closed (`templates/decompose/epic-step.yaml`) |
+| `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
+| `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
+| `* PLAN` | plan artifact в `load_now` OK (объект работы) → next обычно DECOMPOSE; multi-epic → roadmap + **первый** plan / `* DECOMPOSE <first-epic>` |
+| `VAN` / `TASK` | init or shift focus |
+
+## graphify update
+
+После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/REFLECT/ARCHIVE.
+
+## Forbidden at FINISH
+
+- Completed work в `load_now`
+- **Полный `plan-*.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK / REFLECT (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
+- `tasks.md` / `systemPatterns.md` / `decompose-*/index.md` / `implement-*/index.md` в IMPLEMENT `load_now` (разрешён только `decompose-*/index.yaml`)
+- `decompose=completed` / next `load_now` **до** step-файл + `## Handoff`
+- IMPLEMENT done без step-файл
+- IMPLEMENT epic без `decompose-*/index.yaml` в `load_now` (пока есть pending steps)
+- **≥2** блока `## Handoff` в `activeContext.md` (append/история) — хронология только в `tasks/log/` и role-артефактах
+- **≥2** блока `## done` / sandwich (старый Handoff или done в хвосте после нового)
+- Оставлять предыдущий Handoff «на всякий случай» рядом с новым
+- Partial Edit хвоста `activeContext` вместо Write всего файла
+
+## After template
+
+1. `## Handoff` в `activeContext.md` — **ровно один**, файл **целиком** (Write). Epic-loop читает первый `## Handoff`; стопка / ≥2 done = дрейф и **halt** (shape gate)
+2. New chat: context-session-economy §2

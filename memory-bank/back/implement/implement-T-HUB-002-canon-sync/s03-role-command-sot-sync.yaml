@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-002
+title: s03 — role-command SoT sync (.agents ← .claude mirror) + SECURITY/graphify
+  wording align IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: /home/aero/PyProject/dev-hub/memory-bank/back/plan/decompose-T-HUB-002-canon-sync/s03-role-command-sot-sync.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- diff == 0 → sync note добавлена в .claude/skills/role-command/SKILL.md (## Sync
+  note, строка 154-156)
+- 'SECURITY execute wording выровнен с graphify.mdc: добавлено (@aNN / S one-shot)
+  в строке 27'
+- .agents/skills/role-command/SKILL.md перезаписан из .claude (зеркало обновлено)
+files:
+- .agents/skills/role-command/SKILL.md
+- .claude/skills/role-command/SKILL.md
+deletes:
+- Любые diverging строки .agents/role-command/SKILL.md если diff != 0 (overwrite =
+  удаление расхождения)
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>&1 | head -5`'
+integration_check:
+- diff .claude ↔ .agents → IDENTICAL (exit 0)
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md
+    → exit 0
+  status: done
+  done_at: '2026-08-22T09:39:41Z'
+- id: cp2
+  criterion: SKILL.md содержит 'SECURITY execute' в Step 0 graphify секции (соответствует
+    graphify.mdc)
+  status: done
+  done_at: '2026-08-22T09:39:42Z'
+- id: cp3
+  criterion: SKILL.md содержит sync note или комментарий о SoT (.claude) и зеркале
+    (.agents)
+  status: done
+  done_at: '2026-08-22T09:39:42Z'
+resume_from: cp1

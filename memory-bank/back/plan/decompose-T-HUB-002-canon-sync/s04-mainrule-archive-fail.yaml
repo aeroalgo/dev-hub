@@ -1,0 +1,141 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-002
+title: "mainrule.mdc archived prefix table + pm/tl/content/marketing/seo commands FAIL preamble"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Устранить live-пути PM/TL/CONTENT/MARKETING/SEO в mainrule.mdc: строки «Префикс → индекс → core»
+  для этих ролей заменить на `archived — FAIL if _archive/cursor-rules/ missing`. Добавить в каждую
+  команду `.claude/commands/pm-*.md`, `tl-*.md`, `content-*.md`, `marketing-*.md`, `seo-*.md` преамбулу:
+  FAIL if `_archive/cursor-rules/<role>/` отсутствует + restore instructions. Агент больше не Load
+  битый path молча.
+
+context:
+  consumes:
+    - ".cursor/rules/mainrule.mdc — §Префикс → индекс → core таблица"
+    - ".claude/commands/pm-*.md (12 файлов)"
+    - ".claude/commands/tl-*.md (6 файлов)"
+    - ".claude/commands/content-*.md (8 файлов)"
+    - ".claude/commands/marketing-*.md (8 файлов)"
+    - ".claude/commands/seo-*.md (9 файлов)"
+  produces:
+    - ".cursor/rules/mainrule.mdc (edit: PM/TL/CONTENT/MARKETING/SEO rows → archived FAIL)"
+    - ".claude/commands/pm-*.md (edit: добавить FAIL preamble — 12 файлов)"
+    - ".claude/commands/tl-*.md (edit: добавить FAIL preamble — 6 файлов)"
+    - ".claude/commands/content-*.md (edit: добавить FAIL preamble — 8 файлов)"
+    - ".claude/commands/marketing-*.md (edit: добавить FAIL preamble — 8 файлов)"
+    - ".claude/commands/seo-*.md (edit: добавить FAIL preamble — 9 файлов)"
+  plan_refs:
+    - "plan-T-HUB-002-canon-sync.md §Зафиксированные решения (FR-6, FR-7)"
+    - "plan-T-HUB-002-canon-sync.md §AC+ #7, AC+ #8, AC− #2, AC− #4"
+    - "plan-T-HUB-002-canon-sync.md §Файлы для правки таблица"
+  files:
+    - ".cursor/rules/mainrule.mdc"
+    - ".claude/commands/pm-archive.md"
+    - ".claude/commands/pm-backlog.md"
+    - ".claude/commands/pm-discover-market.md"
+    - ".claude/commands/pm-discover.md"
+    - ".claude/commands/pm-init.md"
+    - ".claude/commands/pm-jira.md"
+    - ".claude/commands/pm-plan.md"
+    - ".claude/commands/pm-retro.md"
+    - ".claude/commands/pm-roadmap.md"
+    - ".claude/commands/pm-session.md"
+    - ".claude/commands/pm-sprint-plan.md"
+    - ".claude/commands/pm-status.md"
+    - ".claude/commands/tl-blockers.md"
+    - ".claude/commands/tl-capacity.md"
+    - ".claude/commands/tl-delivery.md"
+    - ".claude/commands/tl-sprint.md"
+    - ".claude/commands/tl-standup.md"
+    - ".claude/commands/tl-sync-dev.md"
+    - ".claude/commands/content-audit.md"
+    - ".claude/commands/content-init.md"
+    - ".claude/commands/content-interview.md"
+    - ".claude/commands/content-launch.md"
+    - ".claude/commands/content-optimize.md"
+    - ".claude/commands/content-plan.md"
+    - ".claude/commands/content-seo.md"
+    - ".claude/commands/content-write.md"
+    - ".claude/commands/marketing-ads.md"
+    - ".claude/commands/marketing-email.md"
+    - ".claude/commands/marketing-monetize.md"
+    - ".claude/commands/marketing-plan.md"
+    - ".claude/commands/marketing-pr.md"
+    - ".claude/commands/marketing-retain.md"
+    - ".claude/commands/marketing-revops.md"
+    - ".claude/commands/marketing-social.md"
+    - ".claude/commands/seo-aso.md"
+    - ".claude/commands/seo-competitors.md"
+    - ".claude/commands/seo-content-ops.md"
+    - ".claude/commands/seo-data.md"
+    - ".claude/commands/seo-ecommerce.md"
+    - ".claude/commands/seo-geo.md"
+    - ".claude/commands/seo-links.md"
+    - ".claude/commands/seo-local.md"
+    - ".claude/commands/seo-tech.md"
+
+as_built:
+  - ".cursor/rules/mainrule.mdc §Префикс → индекс → core: строки PM/TL/CONTENT/MARKETING/SEO содержат live @-пути (project_manager/, team_lead/, content_growth/, marketing_growth/, seo_ops/)"
+  - "_archive/ — НЕ существует в dev-hub (ls вернул NO_ARCHIVE)"
+  - ".claude/commands/pm-plan.md — содержит только 'Apply SKILL.md for PM PLAN. Load _archive/…/workflow-pm-plan.mdc' без FAIL preamble"
+  - ".claude/commands/pm-backlog.md — аналогично, Load без FAIL preamble"
+  - "Все 43 команды — нет unified FAIL preamble если _archive missing"
+
+delta:
+  - >
+    .cursor/rules/mainrule.mdc §Префикс → индекс → core: для PM, TL, CONTENT, MARKETING, SEO —
+    заменить строку с @-путём на formulation:
+    `archived — FAIL: требуется _archive/cursor-rules/<role>/ или restore из product repo`
+  - >
+    Каждый .claude/commands/pm-*.md, tl-*.md, content-*.md, marketing-*.md, seo-*.md —
+    добавить после ---frontmatter--- блок:
+    ```
+    > **ARCHIVED ROLE — FAIL-FAST**
+    > Если `_archive/cursor-rules/<role>/` отсутствует в текущем репо — STOP.
+    > Восстановить: скопировать из product-repo или vendor из канона hub.
+    > Не Load битый path молча.
+    ```
+
+deletes:
+  - ".cursor/rules/mainrule.mdc: live @.cursor/rules/project_manager/mainrule-pm.mdc строка (→ archived формулировка)"
+  - ".cursor/rules/mainrule.mdc: live @.cursor/rules/team_lead/mainrule-tl.mdc строка (→ archived)"
+  - ".cursor/rules/mainrule.mdc: live @.cursor/rules/content_growth/mainrule-content.mdc строка (→ archived)"
+  - ".cursor/rules/mainrule.mdc: live @.cursor/rules/marketing_growth/mainrule-marketing.mdc строка (→ archived)"
+  - ".cursor/rules/mainrule.mdc: live @.cursor/rules/seo_ops/mainrule-seo.mdc строка (→ archived)"
+
+out_of_scope:
+  - "Vendor полного _archive/ в этом эпике — YAGNI, product-decision"
+  - "graphify / hub N/A — s05"
+  - "rg-purge итоговый — s06"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "mainrule.mdc — нет '@.cursor/rules/project_manager/' как live path без archived-маркера"
+    verify: "grep -n 'project_manager\\|team_lead\\|content_growth\\|marketing_growth\\|seo_ops' /home/aero/PyProject/dev-hub/.cursor/rules/mainrule.mdc | head -20"
+  - id: cp2
+    criterion: "pm-plan.md содержит FAIL preamble (слово 'ARCHIVED' или 'FAIL' в первых 15 строках)"
+    verify: "head -15 /home/aero/PyProject/dev-hub/.claude/commands/pm-plan.md"
+  - id: cp3
+    criterion: "tl-standup.md содержит FAIL preamble"
+    verify: "head -15 /home/aero/PyProject/dev-hub/.claude/commands/tl-standup.md"
+  - id: cp4
+    criterion: "Все 43 команд (pm/tl/content/marketing/seo) содержат 'ARCHIVED' или 'FAIL' keyword"
+    verify: |
+      for f in /home/aero/PyProject/dev-hub/.claude/commands/pm-*.md \
+                /home/aero/PyProject/dev-hub/.claude/commands/tl-*.md \
+                /home/aero/PyProject/dev-hub/.claude/commands/content-*.md \
+                /home/aero/PyProject/dev-hub/.claude/commands/marketing-*.md \
+                /home/aero/PyProject/dev-hub/.claude/commands/seo-*.md; do
+        grep -q 'ARCHIVED\|FAIL' "$f" || echo "MISSING: $f"
+      done
+
+verify: []
+tdd: []

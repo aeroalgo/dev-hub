@@ -1,0 +1,70 @@
+---
+description: "BACK SECURITY — PLAN / DECOMPOSE / audit execute (SAST, supply chain)"
+alwaysApply: false
+---
+### Команда: BACK SECURITY | BACK SECURITY PLAN | BACK SECURITY DECOMPOSE
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+**Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
+**Скиллы:**
+- @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)
+- @.agents/skills/owasp-security-check/SKILL.md
+- @.agents/skills/security-auditor/SKILL.md
+- @.agents/skills/security-auditor-owasp/SKILL.md
+- @.agents/skills/codeql/SKILL.md
+- @.agents/skills/supply-chain-risk-auditor/SKILL.md
+- @.agents/skills/insecure-defaults/SKILL.md
+- @.agents/skills/agentic-actions-auditor/SKILL.md
+- @.agents/skills/secure-workflow-guide/SKILL.md
+- @.agents/skills/agentsec/SKILL.md
+- @.agents/skills/sarif-parsing/SKILL.md
+- @.agents/skills/semgrep-rule-creator/SKILL.md (кастомные правила)
+- @.agents/skills/semgrep-rule-variant-creator/SKILL.md
+- @.agents/skills/skill-security-audit/SKILL.md
+- @.agents/skills/sigil-scan/SKILL.md
+- @.agents/skills/variant-analysis/SKILL.md
+
+**Цель:** security-аудит кусками (эпик) или one-shot (S). Isolation maps не грузить сверх Gates.
+
+**Detect submode:** args / Handoff содержат `PLAN` → PLAN; `DECOMPOSE` → DECOMPOSE; иначе EXECUTE.
+
+---
+
+## A. SECURITY PLAN
+
+1. `OK BACK SECURITY PLAN - Security plan` + `SUSPENSION GUARD active — plan output unlimited`
+1a. Gates + workflow-security-epic
+2. Scope detect: сомнение → M/L
+3. Inventory surfaces (api/auth/db/jobs/secrets/deps/ci) + priority + skills map
+4. Сохрани `memory-bank/back/security/plan/plan-<id>.md` (@.cursor/templates/security/plan.md)
+5. `tasks.md` append-only
+6. **FINISH:** finish-block (`code_changed: no`)
+7. Next: **BACK SECURITY DECOMPOSE**
+
+## B. SECURITY DECOMPOSE
+
+1. `OK BACK SECURITY DECOMPOSE - [plan_id]`
+1a. Gates + workflow-security-epic
+2. Прочитай plan (весь)
+3. Нарежь `aNN` — один surface / threat class / чат
+4. Папка `memory-bank/back/security/plan/decompose-<id>/` из `@.cursor/templates/security/`
+5. Каждый `aNN`: `audit_surface` + Audit skills (concrete) + scope + threats + checkpoint
+6. Plan → ссылка на index как трекер; без дубль-чеклистов aNN
+7. **FINISH:** finish-block (`code_changed: no`) — `load_now` → `a01-*.md`
+8. Next: **BACK SECURITY** @a01
+
+## C. SECURITY execute (@aNN или S)
+
+1. `OK BACK SECURITY - Security audit`
+1a. Gates + workflow-security-epic (path rule)
+1b. Epic detect: `decompose-<id>/` / `@aNN` / plan id → **эпик**; иначе **S**
+2. `tasks.md` + load_now; skills = Audit skills шага (эпик) или workflow list (S)
+3. **Эпик:** один `aNN` → findings → `security/implement/implement-<id>/aNN-<slug>.md`  
+   **FORBIDDEN:** `security-audit-*.md` в корне при эпике
+4. **S:** audit → `security/security-audit-YYYYMMDD-<slug>.md`  
+   **FORBIDDEN:** `implement/…/aNN-*.md`
+5. Не чинить код; §0.11 на findings
+6. **FINISH:** finish-block (`code_changed: no`)  
+   Next: Handoff · workflow-loop-state
+
+**Next (фиксы):** BUGFIX / IMPLEMENT. Drift → не SECURITY.

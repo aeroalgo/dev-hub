@@ -1,0 +1,168 @@
+---
+description: "IDEA PIPELINE — от идеи до реализации: классификация, маршрутизация, цепочка существующих workflow"
+alwaysApply: false
+---
+### Команда: IDEA PIPELINE
+**Layer 0:** @.cursor/rules/token-economy-core.mdc  
+**Router:** @.cursor/rules/mainrule.mdc  
+**Session economy:** @.cursor/rules/shared/context-session-economy.mdc  
+**FINISH hook:** @.cursor/rules/shared/finish-doc-router.mdc
+
+**Скиллы (по фазе, lazy):**
+- @.agents/skills/brainstorming/SKILL.md — intake, неясная идея
+- @.agents/skills/product-discovery/SKILL.md — positioning, market
+- @.agents/skills/writing-plans/SKILL.md — декомпозиция фаз / stories (не GitHub-issues `breakdown-plan`)
+- @.agents/skills/bmad-orchestrator/SKILL.md — PM-L3/L4, /status mindset
+
+**Цель:** Пользователь даёт **идею** (без знания ролей) → агент классифицирует, строит цепочку из **существующих** workflow, выполняет **текущую фазу**, фиксирует артефакт, рекомендует следующую команду до реализации.
+
+**Не дублирует** шаги дочерних workflow — **делегирует** им (читает и следует `workflow-*.mdc` целевой роли).
+
+---
+
+## Распознавание
+
+| Команда | Действие |
+|---------|----------|
+| `IDEA PIPELINE <идея>` | Новая идея: intake + классификация + фаза 1 |
+| `IDEA PIPELINE CONTINUE` | Продолжить по `memory-bank/idea/idea-<slug>.md` |
+| `IDEA PIPELINE FINISH` | Закрыть текущую фазу, обновить pipeline, handoff |
+| `IDEA PIPELINE STATUS` | Статус pipeline + рекомендация next command |
+
+Без префикса роли. Не путать с `PM INIT` (инициатива уже структурирована).
+
+---
+
+## Процесс
+
+### 0. Старт
+1. Ответь: `OK IDEA PIPELINE - <intake | continue | finish | status>`
+2. Прочитай: `memory-bank/activeContext.md`, `memory-bank/productContext.md`, `memory-bank/tasks.md`
+3. Для CONTINUE/STATUS/FINISH — прочитай `memory-bank/idea/idea-<slug>.md` из `load_now` или последний pipeline пользователя
+
+### 1. INTAKE — классификация идеи
+
+**1a. Извлечь из сообщения:**
+- суть идеи (1–2 предложения)
+- тип затрагиваемых слоёв: продукт / UI / API / контент / маркетинг / ops
+- ограничения (фаза F0/F1, срок, scope)
+
+**1b. Intent type** (один primary + optional secondary):
+
+| Intent | Сигналы | Типичная цепочка |
+|--------|---------|------------------|
+| `positioning` | позиционирование, messaging, «главная идея продукта», бренд | DISCOVER MARKET → MARKETING PLAN → CREATIVE → CONTENT PLAN → IMPLEMENT |
+| `feature_full` | новая фича UI+API | PM PLAN → BACK VAN/PLAN/CREATIVE → FRONT VAN/PLAN/CREATIVE → IMPLEMENT×2 → QA |
+| `feature_ui` | страница, компонент, UX | FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
+| `feature_api` | эндпоинт, сервис, БД | BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
+| `content` | гайды, SEO-тексты, хабы | CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
+| `growth` | ads, email, retention | MARKETING PLAN → MARKETING * |
+| `initiative` | новая инициатива, multi-sprint | PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
+| `bugfix` | баг, ошибка | BACK/FRONT BUGFIX (минуя pipeline) |
+| `refactor` | качество кода | BACK/FRONT REFACTOR |
+
+**1c. Complexity (два измерения):**
+- **PM-L:** L1 task · L2 feature · L3 initiative · L4 portfolio
+- **DEV-L:** L1 fix · L2 simple · L3 feature · L4 system
+
+**1d. Построить pipeline** — упорядоченный список фаз. Каждая фаза = **одна команда** из существующих workflow:
+
+```
+Фаза N: <ROLE COMMAND> → артефакт path → gate (auto|approval)
+```
+
+**Gates:**
+- `auto` — выполняется в рамках role command (PM PLAN, FRONT CREATIVE, …)
+- `approval` — требует `implement this` или явной команды IMPLEMENT (token-economy §0.9)
+
+**1e. Сохранить** `memory-bank/idea/idea-<slug>.md` по @.cursor/templates/idea-pipeline.md (все секции шаблона; статусы фаз: pending | active | done | skipped)
+
+**1f. Append** `memory-bank/tasks.md` — строка T-xxx + ссылка на idea-*
+
+### 2. EXECUTE — текущая фаза
+
+1. Взять **первую** фазу со status `pending` (или `active` при CONTINUE)
+2. Пометить `active` в idea-*
+3. **Прочитать и выполнить** workflow целевой роли:
+   - PM → @.cursor/rules/project_manager/mainrule-pm.mdc + `workflow-pm-*.mdc`
+   - FRONT → @.cursor/rules/front_developer/mainrule.mdc + `workflow-*.mdc`
+   - BACK → @.cursor/rules/back_developer/mainrule.mdc + `workflow-*.mdc`
+   - CONTENT → @.cursor/rules/content_growth/mainrule-content.mdc
+   - MARKETING → @.cursor/rules/marketing_growth/mainrule-marketing.mdc
+   - SEO → @.cursor/rules/seo_ops/mainrule-seo.mdc
+4. Результат фазы — артефакт дочернего workflow (не дублировать в idea-*; только ссылка)
+5. **Одна фаза = один чат** (context-session-economy §2). После фазы → FINISH + new chat
+
+### 3. IDEA PIPELINE FINISH
+
+1. Пометить текущую фазу `done`, записать ссылку на артефакт
+2. Следующая фаза → `pending`; если IMPLEMENT — проверить approval gate
+3. **Handoff** в idea-* — §Handoff из @.cursor/templates/idea-pipeline.md (`Done` = фаза N — command; `Artifact`; `Next` = фаза N+1 — command; `New chat: yes`)
+4. Обновить `activeContext.md` (@.cursor/rules/shared/finish-doc-router.mdc + шаблон): `load_now` → idea-* + next phase artifact
+5. Сообщение new chat — шаблон §«Сообщение пользователю» с **точной** next command
+
+### 4. IDEA PIPELINE STATUS
+
+- Таблица фаз: done / active / pending
+- % прогресса
+- Блокеры / open questions
+- Рекомендация: `<NEXT COMMAND>` или «pipeline complete → REFLECT → ARCHIVE»
+- **Завершение:** `BACK/FRONT ARCHIVE NOW` — финальная фаза pipeline после REFLECT.
+  Канон: @.cursor/rules/back_developer/workflow-archive.mdc (FRONT: `front_developer/workflow-archive.mdc`)
+
+---
+
+## Карта процесса
+
+@.cursor/rules/shared/visual-maps/idea-pipeline-mode-map.mdc
+
+---
+
+## Матрица: intent → минимальная цепочка
+
+| Intent | Обязательные фазы | Опционально |
+|--------|-------------------|-------------|
+| positioning | DISCOVER MARKET, MARKETING PLAN, FRONT CREATIVE | CONTENT PLAN, FRONT IMPLEMENT |
+| feature_ui | FRONT VAN, FRONT CREATIVE, FRONT PLAN, FRONT IMPLEMENT, FRONT QA | BACK PLAN если API |
+| feature_api | BACK VAN, BACK PLAN, BACK IMPLEMENT, BACK QA | BACK CREATIVE L3+ |
+| feature_full | PM PLAN, BACK+FRONT ветки, QA×2 | PM ROADMAP L3+ |
+| content | CONTENT PLAN, CONTENT WRITE | SEO CONTENT OPS |
+| initiative | PM INIT, PM DISCOVER, PM PLAN, PM BACKLOG | PM ROADMAP L3+ |
+
+Пропуск фазы — только с явной причиной в idea-* (`skipped` + why).
+
+---
+
+## Верификация pipeline
+
+```
+✓ IDEA PIPELINE CHECKLIST
+- Intent + PM-L + DEV-L определены? [ДА/НЕТ]
+- idea-<slug>.md создан, фазы перечислены? [ДА/НЕТ]
+- Текущая фаза делегирована существующему workflow? [ДА/НЕТ]
+- Арtefact дочернего workflow сохранён? [ДА/НЕТ]
+- Handoff + next command для пользователя? [ДА/НЕТ]
+- tasks.md append-only? [ДА/НЕТ]
+```
+
+---
+
+## Связь с productContext
+
+Идеи проверять на соответствие @memory-bank/productContext.md и @memory-bank/systemPatterns.md. Противоречие → явно в idea-* §Risks, не silent override.
+
+---
+
+## Пример вызова
+
+```
+IDEA PIPELINE главная идея продукта — продажа эмоций, не услуг
+```
+
+```
+IDEA PIPELINE CONTINUE
+```
+
+```
+IDEA PIPELINE FINISH
+```

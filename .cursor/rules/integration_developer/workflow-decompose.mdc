@@ -1,0 +1,71 @@
+---
+description: "Режим INTEG DECOMPOSE — batch всех eNN за один проход"
+alwaysApply: false
+---
+### Команда: INTEG DECOMPOSE
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc
+**Скиллы (сессия DECOMPOSE):** @.agents/skills/query-builder/SKILL.md; @.agents/skills/writing-plans/SKILL.md
+**Не грузить:** `executing-plans`
+**FORBIDDEN в полях `back:`/`front:` eNN:** `writing-plans` · `brainstorming` — они сессионные (DECOMPOSE-only). В back/front impl lists — только skills из BACK/FRONT allowlist.
+
+**Цель:** Plan Element registry → `decompose-*/` (`index.md` + **все** `eNN-*.yaml`) за **один** проход. НЕ писать код.  
+DECOMPOSE = весь batch; IMPLEMENT = один eNN.
+
+**Нарезка:** по UI-элементам, не по слоям. Не читать: gap/, contracts/, BACK/FRONT decompose.
+
+## Outcome preserve (HARD)
+
+Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
+
+**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
+
+---
+
+## Replacement cleanup — удалять mock/legacy wire (HARD)
+
+INTEG DECOMPOSE **обязан** нарезать удаление вытесненного mock/legacy: api clients, filter helpers, dead fetch-ветки, stub UI, дублирующие wire-пути. Иначе IMPLEMENT оставляет mock в prod path рядом с live API.
+
+**PLAN** (`## Replacement / sunset` **A/B/C** / Element registry ⚠️ mock) называет поверхности; **DECOMPOSE** — `deletes:` + eNN + verify; **IMPLEMENT** исполняет список (фаза C/E).  
+**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+
+### REQUIRED
+
+1. В `index.md` — **`## Replacement cleanup (plan → steps)`** (Kind A|B|C + Fallback?). Нет секции = FAIL.
+2. Каждая поверхность sunset A/B/C / «⚠️ mock / legacy client» → ≥1 `eNN` с **непустым** `deletes:`, **или** out_of_scope + follow-up epic **в queue**.
+3. Нет замен по эпику → одна строка `n/a — нет замен`.
+4. У каждого `eNN`: поле **`deletes:`** (`[]` только если элемент ничего не вытесняет).
+5. Типичная цепочка: `wire live API → migrate callers → delete mock`. Delete в том же eNN или отдельный late eNN — не «вечный mock».
+6. Непустой `deletes` → ≥1 checkpoint `rg` / import-audit (+ `grep_control`).
+7. `out_of_scope: оставить mock` — только с follow-up epic/eNN ID **в queue**; иначе FAIL.
+8. **Финальный purge:** cleanup ≠ n/a → `eNN-*-legacy-fallback-purge` (или последний cutover eNN с полным остатком A+B+C + anti-fallback rg). Нет purge = FAIL.
+
+### FORBIDDEN
+
+- Wire live API при сохранении mock-ветки без `deletes` / follow-up.
+- «Оставим mock для storybook/dev» без явного out_of_scope + follow-up (prod path должен быть чист).
+- Считать `front:`/`back:` списками удаления (удаление = `deletes:`).
+- Растворить cleanup только в Outcome map без eNN/`deletes`.
+- Soft default / dual client в prod path.
+
+---
+
+**Процесс**:
+1. `OK INTEG DECOMPOSE - Разбиваю план по UI-элементам (batch)`
+1a. Прочитай **Gates**
+2. Source: `integration/plan/plan-<task_id>.md` — Element registry + **Replacement / sunset** + mocks
+3. Папка `integration/plan/decompose-<plan_id>/`: index + все eNN  
+   Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml  
+   `index.yaml` обязателен: `schema: epic-decompose-index/v1`, корень `steps:`, каждый `eNN` содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.  
+   Шаг: §UI · §Data · §API today · **§Contract lean** · §BACK/FRONT/DB · `deletes` · §0.11 · §Verify
+3a. Index: Requirements / Stages / Outcome map / **Replacement cleanup**
+3b. **FAIL** если mock/legacy replace в plan без eNN с `deletes` (и без out_of_scope+follow-up **в queue**)
+3c. **FAIL** если `deletes` непустой без checkpoint `rg`/import-audit
+3d. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc)
+4. Обнови plan → ссылка на index; удали `- [ ] e01…`
+5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `e01-*.md`
+6. → INTEG IMPLEMENT e01 (**новый чат**)
+
+**Границы:** нет кода реализации; batch = весь decompose; **не ужимать** Replacement cleanup.
+
+**Верификация**: gates + Maximal detail + Outcome preserve + Replacement cleanup

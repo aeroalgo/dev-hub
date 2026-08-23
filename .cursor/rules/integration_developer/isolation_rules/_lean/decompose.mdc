@@ -1,0 +1,32 @@
+---
+description: "INTEG DECOMPOSE gates — one step = one UI element (lean)"
+alwaysApply: false
+---
+# INTEG DECOMPOSE — gates
+
+**Артефакт:** `memory-bank/integration/plan/decompose-<plan_id>/` (`index.md` + `eNN-*.yaml`)
+
+## Gates
+
+1. Source: `plan-<task_id>.md` Element registry
+2. Folder: все eNN из plan
+2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; eNN.goal = user-visible outcome из plan registry (не wire-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (INTEG) + BACK §Maximal detail / §Outcome preserve
+3. Step: §UI, §Data, §API today, §Contract lean, §BACK/FRONT/DB, `deletes`, §0.11, §Verify
+3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify`; непустой `deletes` → ≥1 `rg`/import-audit cp
+3b. Replace mock/legacy → `deletes` у eNN или follow-up **в queue**; cleanup ≠ n/a → `*-legacy-fallback-purge`. Канон: `shared/workflow-legacy-fallback-cleanup.mdc`
+4. One element per file — не layer-first
+5. Batch: весь decompose за один проход
+6. Plan → index tracker; колонка `implement`
+7. `load_now` → `e01-*.yaml` на FINISH
+8. Не читать gap/contracts; не грузить executing-plans
+
+## Abort
+
+- Layer-first нарезка → wrong
+- §Contract пуст или с полным TS/Pydantic → incomplete
+- Нет Requirements/Stages coverage / Outcome map / Replacement cleanup / intent compressed до «подключить API» → incomplete
+- Element/AC из registry без eNN → incomplete
+- Replace без `deletes`/follow-up в queue → incomplete
+- Replace без purge при cleanup ≠ n/a → incomplete
+- Непустой `deletes` без `rg`/import-audit cp → incomplete
+- Сжатие batch «ради токенов» → incomplete

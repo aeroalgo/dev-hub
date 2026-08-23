@@ -1,0 +1,15 @@
+---
+description: "Команда INTEG ARCHIVE NOW — перенос epic tree в memory-bank/archive/integration/"
+alwaysApply: false
+---
+### Команда: INTEG ARCHIVE NOW
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/archive.mdc
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc
+
+**Процесс**:
+1. `OK INTEG ARCHIVE NOW`
+1a. Gates + epic-scoped-paths
+2. Reflection complete (остаётся)
+3. Агент: move + rewrite (`scripts/mb-archive-epic.py --role integration --epic <epic_id>` опционально)
+4. **FINISH:** finish-block (`code_changed: no`) — clear `load_now`; Handoff → next epic из roadmap Queue (не VAN, если queue не пуста)

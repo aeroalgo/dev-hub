@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-010
+title: "QA smoke — rg AC+ ×7 + dry-run clarify completion-report structure — эпик acceptance gate"
+next_phase: BACK QA
+needs_creative: "no"
+
+goal: |
+  Провести smoke QA всего эпика T-HUB-010: прогнать все 7 AC+ rg-проверок из плана,
+  проверить AC− (нет specify-cli install, нет specs/ структуры, нет /speckit.* slash),
+  выполнить dry-run сценарий «3 ambiguity → clarify → plan без CRITICAL markers»
+  (по описанию в workflow Done When — не реальный PLAN, только проверка структуры).
+  Если ≥1 AC+ не проходит → блокер: вернуться в нужный sNN, исправить, перегнать.
+  Outcome: все AC+ зелёные, эпик готов к REFLECT.
+  Связь: тест-стратегия плана §QA эпика; все AC+ #1–#7; AC− #1–#5.
+
+context:
+  consumes:
+    - "Все артефакты s01–s05 (read для rg/ls verify)"
+    - "план AC+ #1–#7 checklist"
+    - ".cursor/rules/mainrule.mdc, workflow-clarify.mdc, templates/clarify.md и др."
+  produces:
+    - "QA report: краткий список AC+ status (в stdout / activeContext или отдельный clarify-QA log)"
+    - "Если blocker → задача на sNN repair"
+  plan_refs:
+    - "план §Тест-стратегия: QA эпика: rg AC+ + dry-run"
+    - "BC+ #1–#7"
+    - "AC− #1–#5"
+  files: []
+  # QA-only: нет создания файлов кроме опционального QA-лога
+
+as_built:
+  - "s01–s05 выполнены (предполагается)"
+  - "Все целевые файлы эпика созданы/отредактированы"
+
+delta:
+  - "RUN AC+ #1: rg -n 'CLARIFY' .cursor/rules/mainrule.mdc .cursor/rules/back_developer/mainrule.mdc → expect match"
+  - "RUN AC+ #2: ls .cursor/rules/back_developer/workflow-clarify.mdc .cursor/rules/front_developer/workflow-clarify.mdc .cursor/rules/integration_developer/workflow-clarify.mdc .cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc → all exist"
+  - "RUN AC+ #3: rg -n 'Independent Test\\|НУЖНО УТОЧНИТЬ\\|WHAT\\|HOW' .cursor/templates/clarify.md .cursor/templates/plan.md → match"
+  - "RUN AC+ #4: ls .claude/commands/back-clarify.md → exists; rg -n 'role-command\\|BACK CLARIFY' .claude/commands/back-clarify.md → delegation"
+  - "RUN AC+ #5: rg -n 'Completion Report\\|Done When' .cursor/rules/back_developer/workflow-clarify.mdc → dry-run structure described"
+  - "RUN AC+ #6: rg -n 'clarify' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc → path exists"
+  - "RUN AC+ #7: rg -n 'FORBIDDEN\\|specify-cli' memory-bank/back/plan/refs/speckit-adapt-010.md → found"
+  - "RUN AC− #1: rg -rn 'specify-cli\\|specify init\\|\\.specify' .cursor/rules/ .claude/ CLAUDE.md → NONE (0 matches = green)"
+  - "RUN AC− #3: rg -rn 'speckit\\.' .claude/commands/ → 0 matches (нет /speckit.* slash)"
+  - "DRY-RUN: Описание в workflow Done When позволяет сформулировать Completion Report структуру:
+       Scenario: фича 'add OAuth login', 3 ambiguities (scope, data, UX).
+       Expected: workflow задаёт Q1 (scope), Q2 (data), Q3 (UX) sequential;
+       clarify-YYYYMMDD-oauth.md создан; Completion Report: 3 resolved / 0 deferred;
+       PLAN без CRITICAL markers → FINISH не заблокирован."
+
+deletes: []
+out_of_scope:
+  - "Реальный BACK PLAN (не в этом шаге)"
+  - "pytest / vitest — нет Python/frontend в эпике"
+  - "REFLECT — отдельно после QA"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "AC+ #1–#3 зелёные (rg нашёл CLARIFY + Independent Test + все файлы)"
+    verify: "rg -n 'CLARIFY' .cursor/rules/mainrule.mdc && rg -n 'Independent Test' .cursor/templates/plan.md && ls .cursor/rules/back_developer/workflow-clarify.mdc"
+  - id: cp2
+    criterion: "AC+ #4–#7 зелёные (slash exist + completion report + paths + refs FORBIDDEN)"
+    verify: "ls .claude/commands/back-clarify.md && rg -n 'Completion Report' .cursor/rules/back_developer/workflow-clarify.mdc && rg -n 'clarify' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc && rg -n 'specify-cli' memory-bank/back/plan/refs/speckit-adapt-010.md"
+  - id: cp3
+    criterion: "AC− #1 зелёный: нет specify-cli install в артефактах"
+    verify: "rg -rn 'specify-cli install\\|specify init' .cursor/rules/ .claude/ | wc -l | grep -qx '0' && echo 'AC- #1 GREEN'"
+
+verify:
+  - "Все AC+ #1–#7: rg команды выше → exit 0"
+  - "AC− #1: rg 'specify-cli install' .cursor/rules/ .claude/ → 0 hits"
+
+tdd:
+  - "Этот шаг IS the QA. Если blocker → repair нужного sNN, не skip."

@@ -1,0 +1,19 @@
+---
+description: "INTEG ARCHIVE gates — epic move"
+alwaysApply: false
+---
+# INTEG ARCHIVE NOW — gates
+
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc  
+**Цель:** `memory-bank/archive/integration/`
+
+## Gates
+
+1. Reflection exists — не переносить
+2. `epic_id` + move/rewrite агентом (хелпер `mb-archive-epic.py --role integration` опционально)
+3. Rewrite внешних ссылок
+4. FINISH clear `load_now`
+
+## Abort
+
+- Reflection missing · epic_id unknown · move без rewrite

@@ -1,0 +1,18 @@
+---
+description: "Режим FRONT ROADMAP MERGE — слияние slug queues в canon для loop"
+alwaysApply: false
+---
+### Команда: FRONT ROADMAP MERGE
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/roadmap-merge.mdc
+**Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
+**Скиллы:** нет
+
+**Процесс**:
+1. `OK FRONT ROADMAP MERGE`
+1a. Gates + Алгоритм
+2. Inventory `memory-bank/front/plan/roadmap-*-epics.queue.yaml`
+3. CLI `--role front`
+4. Conflict → halt
+5. `tasks.md` + `activeContext.md`
+6. FINISH → `FRONT DECOMPOSE <first-id>`

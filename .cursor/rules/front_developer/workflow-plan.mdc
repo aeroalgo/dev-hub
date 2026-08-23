@@ -1,0 +1,45 @@
+---
+description: "Режим FRONT PLAN — детальный план, E2E, design"
+alwaysApply: false
+---
+### Команда: FRONT PLAN
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/plan.mdc
+**Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Скиллы:**
+- @.agents/skills/grill-me/SKILL.md (только блокеры)
+- @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch)
+- @.agents/skills/frontend-design/SKILL.md
+- @.agents/skills/design-taste-frontend/SKILL.md
+- @.agents/skills/impeccable/SKILL.md
+- @.agents/skills/high-end-visual-design/SKILL.md
+- @.agents/skills/ui-ux-pro-max/SKILL.md
+- @.agents/skills/next-best-practices/SKILL.md
+- @.agents/skills/vercel-react-best-practices/SKILL.md
+- @.agents/skills/frontend-patterns/SKILL.md
+- @.agents/skills/playwright-best-practices/SKILL.md
+
+**Batch:** шаги за один проход.
+
+**Процесс**:
+1. `OK FRONT PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
+1a. Прочитай **Gates**
+1b. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
+2. `tasks.md` → level (+ свободные ID при multi-epic)
+3. Skills по UI (design stack + next); skills list в каждом `plan-<task_id>.md`
+3a. **Multi-epic path (HARD):**  
+    - epic cut (таблица)  
+    - `memory-bank/front/plan/roadmap-<slug>-epics.md` (шаблон @.cursor/templates/roadmap-epics.md)  
+    - **`memory-bank/front/plan/roadmap-<slug>-epics.queue.yaml`** (`role: front`, шаблон @.cursor/templates/roadmap-queue.yaml) — оба файла обязательны  
+    - полный `plan-<epic_id>-*.md` на **каждый** эпик (E2E + design direction; §0.0)  
+4. Single-epic: содержание по level delta в gates; E2E в плане; после DECOMPOSE трекер только в `decompose/index.md`
+
+**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
+5. CREATIVE need? (per epic при multi-epic)
+6. Сохрани: один `memory-bank/front/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
+7. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `FRONT ROADMAP MERGE` → затем `FRONT DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+8. Next: L2+ → **FRONT DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
+
+**Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `.queue.yaml` при ≥2 → FAIL)

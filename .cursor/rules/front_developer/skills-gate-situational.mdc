@@ -1,0 +1,71 @@
+---
+description: "FRONT skills gate — situational allowlist + checklists (DECOMPOSE/IMPLEMENT + CREATIVE)"
+alwaysApply: false
+---
+# FRONT — situational skills (shared)
+
+Канон allowlist. **DECOMPOSE / CREATIVE** грузят этот файл и прогоняют свой checklist.  
+**FORBIDDEN:** situational вне таблиц ниже; копировать весь файл в `sNN` / `creative-*` — только выбранные пути / пакеты.
+
+Пути: `.agents/skills/<name>/SKILL.md`
+
+**Impl Core DECOMPOSE/IMPLEMENT** (не здесь — в `workflow-decompose.mdc`):  
+`tdd` · `frontend-testing` · `frontend-patterns` · `next-best-practices` · `vercel-react-best-practices` · `vercel-composition-patterns`
+
+---
+
+## Design Core (пакет — all-or-nothing)
+
+Когда `visible_ui: yes` **или** FRONT CREATIVE (UI batch) — копировать **все 6** путей. Не дробить пакет.
+
+- `.agents/skills/frontend-design/SKILL.md`
+- `.agents/skills/design-taste-frontend/SKILL.md`
+- `.agents/skills/emil-design-eng/SKILL.md`
+- `.agents/skills/impeccable/SKILL.md`
+- `.agents/skills/high-end-visual-design/SKILL.md`
+- `.agents/skills/ui-ux-pro-max/SKILL.md`
+
+`visible_ui: no` → `**Design skills:** —` + причина; пакет **не** копировать.
+
+---
+
+## Allowlist (situational)
+
+| id | skill | DECOMPOSE/IMPLEMENT | CREATIVE |
+|----|-------|:-------------------:|:--------:|
+| S01 | `playwright-best-practices` | ✓ | — |
+| S02 | `playwright-generate-test` | ✓ | — |
+| S03 | `web-design-guidelines` | ✓ | ✓ |
+| S04 | `vercel-react-view-transitions` | ✓ | ✓ |
+| S05 | `grill-me` | — | ✓ |
+
+---
+
+## Checklist — DECOMPOSE → Impl + Design
+
+На каждый `sNN`: yes → добавь. Cap situational ≤ **4** (+ Impl Core из `workflow-decompose` + Design Core если `yes`).
+
+| # | Вопрос | skill / пакет |
+|---|--------|---------------|
+| 1 | User-facing JSX/TSX / shell / DS / theme UI? → `visible_ui:` yes\|no | Design Core если **yes** |
+| 2 | E2E / user-visible scenario / PW suite в step? | `playwright-best-practices` |
+| 3 | Новый Playwright spec с нуля? | `playwright-generate-test` |
+| 4 | View Transitions API / transition UX? | `vercel-react-view-transitions` |
+| 5 | Web design / a11y guidelines audit в scope? | `web-design-guidelines` |
+
+**Defaults:** user-visible flow → #2 **yes**; новый e2e файл → +#3; pure lib → `visible_ui: no`, Design —, situational часто пусто.
+
+---
+
+## Checklist — CREATIVE → Skills gate
+
+На каждый CR/batch: yes → добавь. Cap situational ≤ **3** (+ CREATIVE Core из `workflow-creative` + Design Core пакет).
+
+| # | Вопрос | skill |
+|---|--------|-------|
+| 1 | UI/UX / visual / layout CR? | Design Core (пакет) — обычно **yes** для FRONT CREATIVE |
+| 2 | Блокирующие неясности? | `grill-me` |
+| 3 | View Transitions в дизайне? | `vercel-react-view-transitions` |
+| 4 | Web design / a11y guidelines? | `web-design-guidelines` |
+
+**Defaults:** FRONT CREATIVE UI batch → #1 **yes** (весь Design Core); Architecture-only без UI → #1 **no** + причина в файле.

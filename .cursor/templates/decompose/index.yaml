@@ -1,0 +1,10 @@
+schema: epic-decompose-index/v1
+plan_id: <plan_id>
+source_md: index.md
+status_canon: index.yaml
+steps:
+  - id: s01
+    file: s01-<slug>.yaml
+    title: "<outcome-first title>"
+    next_phase: BACK IMPLEMENT
+    status: pending

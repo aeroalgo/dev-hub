@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-002
+title: "Create front-tests-parent-only.mdc + rg broken-refs sweep in CLAUDE.md and rules"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.cursor/rules/front-tests-parent-only.mdc` (аналог `.claude/rules/front-tests-parent-only.md`
+  и `~/.claude/rules/02-front-tests-parent-only.md`) чтобы Cursor-агент находил rule по `@`-ссылке из
+  mainrule.mdc / workflow. Затем rg-sweep: все `@.cursor/rules/…` и `@.claude/…` ссылки в CLAUDE.md,
+  mainrule.mdc, skills — убедиться что пути существуют; битые — исправить или пометить.
+
+context:
+  consumes:
+    - "CLAUDE.md — все @ ссылки"
+    - ".cursor/rules/mainrule.mdc — @ ссылки"
+    - ".claude/rules/front-tests-parent-only.md — source of truth текст"
+    - "~/.claude/rules/02-front-tests-parent-only.md — глобальный канон"
+  produces:
+    - ".cursor/rules/front-tests-parent-only.mdc (create)"
+    - "CLAUDE.md (edit: исправить broken @-refs если найдены)"
+    - ".cursor/rules/mainrule.mdc (edit: исправить broken @-refs если найдены)"
+  plan_refs:
+    - "plan-T-HUB-002-canon-sync.md §AC+ #3, AC+ #4, AC− /, FR-3, FR-4"
+  files:
+    - ".cursor/rules/front-tests-parent-only.mdc"   # CREATE
+    - "CLAUDE.md"                                    # EDIT if broken refs found
+    - ".cursor/rules/mainrule.mdc"                  # EDIT if broken refs found
+
+as_built:
+  - ".claude/rules/front-tests-parent-only.md — существует, содержит full rule text"
+  - "~/.claude/rules/02-front-tests-parent-only.md — глобальное правило, существует"
+  - ".cursor/rules/front-tests-parent-only.mdc — ОТСУТСТВУЕТ (нет в .cursor/rules/)"
+  - "CLAUDE.md:95 — упоминает '.cursor/rules/front-tests-parent-only.mdc' как ссылку, но файл не создан"
+  - ".cursor/rules/ — содержит back_developer/, front_developer/, integration_developer/, shared/, mainrule.mdc, graphify.mdc, token-economy-core.mdc, silent-tools.mdc"
+
+delta:
+  - "CREATE .cursor/rules/front-tests-parent-only.mdc — содержимое: канон text из .claude/rules/front-tests-parent-only.md + mdc frontmatter (description, alwaysApply: false)"
+  - "rg sweep CLAUDE.md: все строки '@.cursor/rules/' → проверить exists на диске"
+  - "rg sweep .cursor/rules/mainrule.mdc: все '@.cursor/rules/' → проверить exists"
+  - "Fix любой broken @-ref в CLAUDE.md или mainrule.mdc (rename/remove/placeholder)"
+
+deletes: []
+# Этот шаг только создаёт + чинит, не удаляет surface-замены
+
+out_of_scope:
+  - "Правка .agents/ — s03"
+  - "archived-FAIL в mainrule prefix table — s04"
+  - "graphify.mdc hub section — s05"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл .cursor/rules/front-tests-parent-only.mdc существует и содержит frontmatter + rule text"
+    verify: "test -f /home/aero/PyProject/dev-hub/.cursor/rules/front-tests-parent-only.mdc && echo OK || echo MISSING"
+  - id: cp2
+    criterion: "rg sweep CLAUDE.md: все @.cursor/rules/-пути существуют (нет 404)"
+    verify: |
+      grep -oP '@\.cursor/rules/[^\s)>]+' /home/aero/PyProject/dev-hub/CLAUDE.md \
+        | sed 's|@||' \
+        | while read p; do
+            test -e "/home/aero/PyProject/dev-hub/$p" || echo "MISSING: $p"
+          done
+  - id: cp3
+    criterion: "rg sweep mainrule.mdc: все @.cursor/rules/-пути существуют"
+    verify: |
+      grep -oP '@\.cursor/rules/[^\s)>]+' /home/aero/PyProject/dev-hub/.cursor/rules/mainrule.mdc \
+        | sed 's|@||' \
+        | while read p; do
+            test -e "/home/aero/PyProject/dev-hub/$p" || echo "MISSING: $p"
+          done
+
+verify: []
+tdd: []

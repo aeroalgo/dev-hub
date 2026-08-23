@@ -1,0 +1,24 @@
+---
+description: "FRONT REFACTOR gates (lean)"
+alwaysApply: false
+---
+# FRONT REFACTOR — gates
+
+**Канон путей:** @.cursor/rules/shared/workflow-refactor-epic.mdc
+
+**Артефакты:**
+- **Эпик:** `front/refactor/implement/implement-<id>/rNN-*.md`
+- **Без эпика:** `front/refactor/session-YYYYMMDD-<slug>.md`
+
+## Gates
+
+1. Path rule: эпик → implement/rNN; без эпика → session в корне
+2. Не дублировать session+implement
+3. Tests green before/after; Playwright если UI; запуск **только parent**
+4. Priority Critical → Low
+5. §0.11 если refs
+
+## Abort
+
+- Без tests → tests first
+- Session в корне при активном epic decompose → FAIL

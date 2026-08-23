@@ -1,0 +1,24 @@
+---
+description: "BUGFIX gates — root cause, TDD (lean)"
+alwaysApply: false
+---
+# BUGFIX — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/back/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`  
+- без эпика: `memory-bank/back/bugfix/bugfix-YYYYMMDD-<slug>.md`  
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc
+
+## Gates
+
+1. Баг описан; `load_now` first; извлечь `epic_id` → путь; core docs — только cross-cutting (§8)
+2. Root cause — не симптом; no mask/fallback
+3. Regression red → fix → green: `.venv/bin/pytest` из корня
+4. bugfix-файл complete в правильной папке; **Источник:** qa §Fix plan
+5. §0.11 если refs
+6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
+
+## Abort
+
+- Mask · tests skipped · голый `pytest` → no FINISH
+- Epic известен, bugfix в корне `bugfix/` без `<epic_id>/` → FAIL

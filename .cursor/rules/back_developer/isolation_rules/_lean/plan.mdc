@@ -1,0 +1,32 @@
+---
+description: "PLAN gates — memory bank, level scope (lean)"
+alwaysApply: false
+---
+# PLAN — gates
+
+**Артефакт:** `memory-bank/back/plan/plan-<task_id>.md`  
+**Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); после PLAN → `BACK ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`  
+**SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
+
+## Gates
+
+1. `tasks.md` прочитан; level зафиксирован
+2. L2 substep → L2 scope, не L4 по умолчанию
+3. План сохранён в path выше; при research — roadmap + полный plan на **каждый** эпик (не один mega-plan)
+4. `tasks.md` append-only со ссылкой (roadmap + каждый эпик)
+4a. Brownfield replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc. DECOMPOSE нарежет `deletes` + purge sNN
+4b. Brownfield FAIL: replace без inventory entrypoints (B) или без fallback table (C) → halt
+5. CREATIVE need (да/нет) перед next mode (per epic при multi-epic)
+6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt
+6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
+## Level delta
+
+| L | Секции |
+|---|--------|
+| L2 | обзор, файлы, шаги, риски, тест-стратегия, AC |
+| L3–L4 | + требования, компоненты, архитектура, зависимости, creative |
+
+## Abort
+
+- Нет task context → VAN
+- Блокирующие неясности → grill-me (skill из workflow)

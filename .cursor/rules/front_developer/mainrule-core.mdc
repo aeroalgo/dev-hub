@@ -1,0 +1,34 @@
+---
+description: "FRONT — TDD, Playwright, memory bank (только при FRONT-командах)"
+alwaysApply: false
+---
+# FRONT — общий контекст
+
+## ТЕСТИРОВАНИЕ
+
+Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`; все test-команды запускаются через `timeout 300s`.
+
+- **HARD:** Vitest/RTL/Playwright — **только parent** (never subagent): `.cursor/rules/front-tests-parent-only.mdc`.
+- TDD targeted в IMPLEMENT/TASK; полный suite/Playwright → **FRONT QA**
+- **Scenario:** user-visible flow → Playwright targeted до FINISH; QA дописывает дыры. **FORBIDDEN Handoff:** «manual smoke only» без spec path
+- Skill TDD: только `tdd/SKILL.md` из workflow; spawn → HARD RULE строка в промпт subagent
+
+## DESIGN STACK (visible UI)
+
+Канон: decompose `visible_ui` + Design skills **или** workflow-implement A + `isolation_rules/_lean/implement` gate 6. Read **до** UI-кода. `visible_ui: no` / pure lib — skip. DECOMPOSE обязан проставить `visible_ui` в каждом `sNN`.
+
+## MEMORY BANK
+
+- `activeContext` → `load_now` first (§0.5.1); session start: context-session-economy §3
+- Артефакты: `memory-bank/front/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`
+
+## ПЕРЕХОДЫ
+
+Next-mode: `memory-bank/activeContext.md` + decompose index
+Runner: `./loop/loop.sh` · context-first gates  
+
+Не дублировать next-mode таблицы — transitions + FINISH sync ledger.
+
+## ФОРМАТ
+
+`OK FRONT <РЕЖИМ> - [действие]`

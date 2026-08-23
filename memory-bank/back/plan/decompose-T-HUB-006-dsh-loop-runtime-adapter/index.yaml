@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+source_md: index.md
+status_canon: index.yaml
+steps:
+  - id: s01
+    file: s01-runtime-config-validation.yaml
+    title: "EPIC_RUNTIME validation + fail-closed unit tests — runtime config guard"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s02
+    file: s02-dsh-adapter-module.yaml
+    title: "DSH adapter module: build_command + normalize_log — pure fn isolation"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s03
+    file: s03-prepare-runtime-fields.yaml
+    title: "prepare runtime fields + --runtime CLI override — orchestrator contract"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s04
+    file: s04-run-dsh-session-loop-dispatch.yaml
+    title: "run_dsh_session + run_agent_session dispatch — loop.sh executor branch"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s05
+    file: s05-analyze-session-log-dsh-branch.yaml
+    title: "analyze_session_log DSH branch + record-session classify — resilience parity"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s06
+    file: s06-dsh-scaffold.yaml
+    title: "dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep — T-HUB-007 landing pad"
+    next_phase: BACK IMPLEMENT
+    status: pending
+
+  - id: s07
+    file: s07-regression-suite.yaml
+    title: "Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green"
+    next_phase: BACK IMPLEMENT
+    status: pending

@@ -1,0 +1,49 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-004
+plan_id: T-HUB-004-hooks-hygiene
+epic_id: T-HUB-004-hooks-hygiene
+date: "2026-08-22"
+reviewer: BACK QA + reviewer subagent (haiku)
+verdict: pass
+
+scope:
+  - "epic: T-HUB-004-hooks-hygiene"
+  - "steps: s01–s07"
+  - "files: .claude/hooks/_lib.py, agent-pretool.py, agent-posttool.py, epic/*, epic_lib.py"
+  - "files: .claude/instructions/spawn-hard.md"
+  - "files: loop/tests/test_stop_gate.py, test_agent_registry.py, test_registry_file_wins.py, test_hook_epoch_gates.py, test_agent_hooks.py, test_finish_integrity.py"
+  - "audit: back/audit/T-HUB-004-hooks-hygiene/audit-20260822-hooks-hygiene.yaml"
+
+checks:
+  - "suite AC: stop_gate extract|need_human → 7 passed, 48 deselected"
+  - "suite AC: agent_registry → 5 passed"
+  - "suite AC: registry_file_wins → 1 passed"
+  - "suite AC: hook_epoch verdict|spawn → 2 passed, 7 deselected"
+  - "suite AC: agent_hooks alias|posttool|state (env -u DEV_HUB/HUB_ROOT/PROJECT_ROOT) → 5 passed, 22 deselected"
+  - "suite AC: finish_integrity (env -u DEV_HUB/HUB_ROOT/PROJECT_ROOT) → 19 passed"
+  - "smoke: PYTHONPATH=.claude/hooks import epic + epic_lib OK"
+  - "AC+ extract_verdict last-wins / contract-blob / NEED_HUMAN / stubs gone / file-wins / alias explore / targeted suite: PASS (reviewer)"
+  - "AC− core.py+epic_lib / loop.sh halt / vendor archive / no monolith split: PASS"
+  - "leftover: BLOCKED verify_no_verdict=0; epic stubs absent; from epic.X=0; ALIAS explore; save_state lock+replace: PASS"
+  - "§0.11 phantom stubs / facade intact: PASS"
+  - "AUDIT verdict PASS; not_implemented[] empty"
+  - "reviewer gate VERDICT: PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Отложено: finish_integrity / часть agent_hooks без -u DEV_HUB/HUB_ROOT/PROJECT_ROOT падают на ambient active epic T-HUB-004 — known env isolation, не regression stubs (audit s05/s07)"
+  - "Отложено: broader full-file run 6 test-файлов без -k → 9 failed / 107 passed; fails out-of-scope T-HUB-004 (session_resilience/loop.sh wrapper, gate_bypass, model registry ambient) — AC− Do Not Touch / follow-up вне эпика"
+
+suite:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k 'extract_verdict or need_human' -q --tb=line"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_agent_registry.py -q --tb=line"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_registry_file_wins.py -q --tb=line"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_hook_epoch_gates.py -k 'verdict or spawn' -q --tb=line"
+  - "env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT timeout 300s .venv/bin/pytest loop/tests/test_agent_hooks.py -k 'alias_explore or posttool_mirror or save_state_concurrent or posttool_fail_then_pass' -q --tb=line"
+  - "env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -q --tb=line"

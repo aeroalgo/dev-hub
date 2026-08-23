@@ -1,0 +1,17 @@
+---
+description: "Команда FRONT ARCHIVE NOW — перенос epic tree в memory-bank/archive/front/"
+alwaysApply: false
+---
+### Команда: FRONT ARCHIVE NOW
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/archive.mdc
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc
+
+**Процесс**:
+1. `OK ARCHIVE - Переношу артефакты эпика в memory-bank/archive/front/`
+1a. Gates + epic-scoped-paths
+2. Reflection complete (остаётся в `front/reflection/`)
+3. Агент: move epic tree + rewrite ссылок (`scripts/mb-archive-epic.py --role front --epic <epic_id>` опционально)
+4. `tasks.md` + rewrite внешних ссылок
+5. **FINISH:** finish-block (`code_changed: no`) — clear `load_now`; Handoff → next T-xxx из roadmap Queue
+6. «Задача завершена. Следующий эпик из roadmap (не VAN, если queue не пуста)»

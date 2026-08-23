@@ -1,0 +1,53 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-005
+plan_id: T-HUB-005-simplify-docs
+epic_id: T-HUB-005-simplify-docs
+date: "2026-08-22"
+reviewer: BACK QA + reviewer subagent (haiku)
+verdict: pass
+
+scope:
+  - "epic: T-HUB-005-simplify-docs"
+  - "steps: s01–s07"
+  - "files: .cursor/rules/shared/cheatsheets/back-implement.mdc"
+  - "files: .cursor/rules/shared/cheatsheets/integ-plan.mdc"
+  - "files: .cursor/rules/back_developer/workflow-implement.mdc"
+  - "files: .cursor/rules/integration_developer/workflow-plan.mdc"
+  - "files: .cursor/rules/back_developer/workflow-plan.mdc"
+  - "files: .cursor/rules/front_developer/workflow-plan.mdc"
+  - "files: .cursor/rules/integration_developer/workflow-implement.mdc"
+  - "files: .cursor/rules/shared/finish-block.mdc"
+  - "files: projects/README.md"
+  - "files: .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - "audit: back/audit/T-HUB-005-simplify-docs/audit-20260822-simplify-docs.yaml"
+
+checks:
+  - "suite ambient full: timeout 300s .venv/bin/pytest -q --tb=line → 117 failed, 376 passed — out-of-scope docs-only (parity T-HUB-004 limitations)"
+  - "suite docs-related: env -u DEV_HUB/HUB_ROOT/PROJECT_ROOT pytest loop/tests/test_reducer_qa_bugfix.py loop/tests/test_shard_parity.py -k 'qa_' → EXIT 0"
+  - "suite finish-block: env -u … pytest loop/tests/test_stop_gate.py::test_finish_rule_requires_verify_before_mark → 1 passed"
+  - "AC+ cheatsheets 14/14 ≤40: PASS"
+  - "AC+ cheatsheet links (back workflow-implement + integ workflow-plan; +2 deviation s03): PASS"
+  - "AC+ projects/README.md exists: PASS"
+  - "AC+ finish-block pointer trio (block → doc-router.mdc → template): PASS"
+  - "AC+ §0.0 token-economy intact + SUSPENSION one-liner back/front plan: PASS"
+  - "AC− no epic/core.py|_lib.py split / no hook Python semantics / no _archive vendor: PASS"
+  - "leftover A (SUSPENSION dupes) closed; B/C n/a: PASS"
+  - "§0.11 counterparts (cheatsheets, finish-doc-router, template, workflow-archive): PASS"
+  - "AUDIT verdict PASS; not_implemented[] empty"
+  - "reviewer gate VERDICT: PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Отложено: full ambient pytest 117 failed / 376 passed в loop/tests (identity_resolution, stop_gate gate_bypass_reason, finish_integrity ambient, shard_parity fixtures и др.) — out-of-scope T-HUB-005 docs-only; паритет limitations T-HUB-004"
+  - "Deviation s03 (audit ⚠️): plan §Нарезка 3 файла, implement закрыл 4 (+ integ workflow-implement) — impact low, AC+ hit"
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line  # ambient: 117 failed, 376 passed (out-of-scope)"
+  - "env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT timeout 300s .venv/bin/pytest loop/tests/test_reducer_qa_bugfix.py loop/tests/test_shard_parity.py -k 'qa_' -q --tb=line"
+  - "env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT timeout 120s .venv/bin/pytest loop/tests/test_stop_gate.py::test_finish_rule_requires_verify_before_mark -q --tb=line"

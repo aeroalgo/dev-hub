@@ -1,0 +1,91 @@
+schema: epic-audit/v1
+role: back
+epic_id: T-HUB-005-simplify-docs
+plan_id: T-HUB-005
+date: 2026-08-22
+auditor: BACK AUDIT
+verdict: PASS
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 1
+
+gap_matrix:
+  - step_id: s01
+    plan_title: "Cheatsheet BACK IMPLEMENT hot path — create back-implement.mdc ≤40 lines"
+    implement_file: implement-T-HUB-005-simplify-docs/s01-cheatsheet-back-implement.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s02
+    plan_title: "Cheatsheet INTEG PLAN hot path — create integ-plan.mdc ≤40 lines"
+    implement_file: implement-T-HUB-005-simplify-docs/s02-cheatsheet-integ-plan.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s03
+    plan_title: "Wire cheatsheet links — workflow files reference new cheatsheets"
+    implement_file: implement-T-HUB-005-simplify-docs/s03-wire-cheatsheet-links.yaml
+    status: implemented
+    mark: "⚠️"
+    note: "Plan §Нарезка перечислял 3 файла; implement + FR-3/decompose закрыли 4 (добавлен integ/workflow-implement.mdc). AC+ #2/#3 hit."
+  - step_id: s04
+    plan_title: "Trim SUSPENSION GUARD duplicates — back/front workflow-plan.mdc one-liner"
+    implement_file: implement-T-HUB-005-simplify-docs/s04-trim-suspension-dupes.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s05
+    plan_title: "finish-block.mdc header pointer trio — block/doc-router/template"
+    implement_file: implement-T-HUB-005-simplify-docs/s05-finish-block-pointer-trio.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s06
+    plan_title: "projects/README.md — optional per-slug env overrides"
+    implement_file: implement-T-HUB-005-simplify-docs/s06-projects-readme.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s07
+    plan_title: "IDEA PIPELINE archive gate — verify + wire ARCHIVE NOW link"
+    implement_file: implement-T-HUB-005-simplify-docs/s07-idea-pipeline-gate-verify.yaml
+    status: implemented
+    mark: "✅"
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-005-simplify-docs/s01-cheatsheet-back-implement.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-005-simplify-docs/s02-cheatsheet-integ-plan.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-005-simplify-docs/s03-wire-cheatsheet-links.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-005-simplify-docs/s04-trim-suspension-dupes.yaml
+  - step_id: s05
+    implement_file: implement-T-HUB-005-simplify-docs/s05-finish-block-pointer-trio.yaml
+  - step_id: s06
+    implement_file: implement-T-HUB-005-simplify-docs/s06-projects-readme.yaml
+  - step_id: s07
+    implement_file: implement-T-HUB-005-simplify-docs/s07-idea-pipeline-gate-verify.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s03
+    implement_file: implement-T-HUB-005-simplify-docs/s03-wire-cheatsheet-links.yaml
+    plan_intent: "Plan §Нарезка: back/workflow-implement + integ/workflow-plan + back/workflow-plan (3 EDIT)"
+    actual: "Implement + FR-3/decompose: 4 файла — также integration_developer/workflow-implement.mdc → back-implement.mdc. Spot-check: все 4 имеют Cheatsheet hot path; cheatsheets 14 строк каждый (≤40)."
+    impact: low
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true   # docs-only sunset A закрыт в s04 (SUSPENSION dupes); B/C n/a
+
+blocked_reason: ""
+next_phase: QA
+notes:
+  - |
+    Spot-check (docs, no suite): cheatsheets exist (14/14 lines); projects/README.md exists;
+    finish-block header = pointer trio; IDEA PIPELINE L110-111 ARCHIVE NOW + workflow-archive;
+    back/front workflow-plan SUSPENSION = one-liner → §0.0.
+  - |
+    Replacement cleanup: A-surfaces (SUSPENSION dupes, missing README, missing cheatsheets, finish-block header) закрыты s01–s07.
+    not_implemented[] пуст → next = BACK QA. EPIC_DONE запрещён до QA pass + REFLECT.

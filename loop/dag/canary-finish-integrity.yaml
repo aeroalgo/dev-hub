@@ -1,0 +1,39 @@
+schema: "loop-dag/v2"
+
+pipeline:
+  id: "canary-finish-integrity"
+
+execution:
+  autonomous: true
+
+source:
+  kind: "manifest"
+  artifacts:
+    - "loop/tests/fixtures/canary/source.yaml"
+
+nodes:
+  - id: "validate_finish"
+    role: "BACK"
+    action: "implement"
+    completion:
+      type: "artifact"
+    artifact: "loop/tests/fixtures/canary/validate-finish.yaml"
+    depends_on: []
+
+  - id: "check_after"
+    role: "BACK"
+    action: "implement"
+    completion:
+      type: "artifact"
+    artifact: "loop/tests/fixtures/canary/check-after.yaml"
+    depends_on:
+      - "validate_finish"
+
+  - id: "prepare_session"
+    role: "BACK"
+    action: "implement"
+    completion:
+      type: "artifact"
+    artifact: "loop/tests/fixtures/canary/prepare-session.yaml"
+    depends_on:
+      - "check_after"

@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-003
+title: "Suite targeted run + architecture Cursor-hooks unwired note"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: |
+  Прогнать целевой pytest suite охватывающий все изменения T-HUB-003; собрать evidence.
+  Добавить в architecture note: S-HOOKS-CUR = unwired / N/A for epic gates (Cursor hooks).
+  Зафиксировать pytest entry для hub (вместе с techContext или architecture) — как запускать тесты из hub env.
+context:
+  consumes:
+    - "Результаты s01–s05 (все код + docs изменения)"
+    - "plan-T-HUB-003-loop-halt.md §Стратегия тестирования, NFR-4"
+    - "plan-T-HUB-003-loop-halt.md §Зафиксированные решения — Cursor hooks N/A, Pytest в hub"
+    - "memory-bank/techContext.md — если файл есть"
+    - "memory-bank/architecture/services.md или overview.md — для hooks note"
+  produces:
+    - "Suite run evidence (в implement yaml, не в shard)"
+    - "memory-bank/architecture/services.md (или overview.md) — S-HOOKS-CUR: unwired note"
+    - "memory-bank/techContext.md — pytest entry для hub (опционально: minimal pyproject stub)"
+  plan_refs:
+    - "plan-T-HUB-003-loop-halt.md §Зафиксированные решения — Cursor hooks, Pytest в hub"
+    - "plan-T-HUB-003-loop-halt.md NFR-4"
+  files:
+    - "memory-bank/architecture/services.md"
+    - "memory-bank/techContext.md"
+as_built:
+  - "loop/tests/ — полный список test файлов после s01–s03"
+  - "memory-bank/architecture/services.md — текущие entries (найти hooks-related)"
+  - "memory-bank/techContext.md — есть ли pytest section"
+delta:
+  - |
+    Suite command (parent запускает):
+      cd /home/aero/PyProject/dev-hub
+      timeout 300s .venv/bin/pytest loop/tests/ -k 'check_after or decide_after_action or last_session or loop_shell or halt' -q --tb=short
+  - |
+    architecture/services.md (или overview.md): добавить запись:
+      S-HOOKS-CUR | Cursor hooks (hooks.json) | unwired / N/A for epic gates | wiring = out of scope T-HUB-003; follow-up эпик
+  - |
+    techContext.md: добавить/обновить pytest section:
+      Тесты loop (hub): из `dev-hub/` запустить `.venv/bin/pytest loop/tests/ -q --tb=short`
+      (не из product venv; hub имеет собственный .venv с pytest)
+  - |
+    Опционально: если pyproject.toml не существует или нет testpaths — добавить minimal entry:
+      [tool.pytest.ini_options]
+      testpaths = ["loop/tests"]
+deletes:
+  - "n/a — нет replace в этом шаге"
+out_of_scope:
+  - "Wiring Cursor hooks — отдельный эпик"
+  - "Product-side тесты"
+  - "E2E / playwright"
+skills:
+  code_surface: python+docs
+  impl:
+    - python-testing-patterns
+checkpoints:
+  - id: cp1
+    criterion: "Suite targeted run проходит (все новые тесты зелёные, регрессии нет)"
+    verify: "cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/ -k 'check_after or decide_after_action or last_session or halt' -q --tb=short 2>&1 | tail -20"
+  - id: cp2
+    criterion: "architecture содержит запись о S-HOOKS-CUR unwired"
+    verify: "rg -rn 'S-HOOKS-CUR\\|Cursor hooks\\|unwired' /home/aero/PyProject/dev-hub/memory-bank/architecture/ | head -10"
+  - id: cp3
+    criterion: "techContext.md или architecture/overview.md содержит pytest entry для hub"
+    verify: "rg -n 'loop/tests\\|hub.*pytest\\|pytest.*hub' /home/aero/PyProject/dev-hub/memory-bank/ -l | head -5"
+verify: []
+tdd: []

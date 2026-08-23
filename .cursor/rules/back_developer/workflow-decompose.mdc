@@ -1,0 +1,179 @@
+---
+description: "Режим BACK DECOMPOSE — план → атомарные шаги"
+alwaysApply: false
+---
+### Команда: BACK DECOMPOSE
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
+**Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc (allowlist + checklist DECOMPOSE)
+**Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
+**Не грузить:** `executing-plans`, `breakdown-plan`
+
+**Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
+**Вход:** план из `load_now` или `BACK DECOMPOSE plan-<id>` (в одном сообщении).
+
+---
+
+## Maximal detail DECOMPOSE (HARD) — все этапы + все требования
+
+DECOMPOSE = **максимально подробная** нарезка. Не «краткий скелет для IMPLEMENT». Не жать число/объём шагов «для токенов / краткости чата».
+
+**Аналог §0.0 plan-artifact:** на артефакты `decompose-*/index.md` + каждый `sNN|eNN-*.yaml` **не применять** telegraph / «max 3 sentences» / 200-line cap / «сожми для контекста». Chat reply MAY be brief; **decompose artifacts MUST be exhaustive**.
+
+### REQUIRED — coverage (закрыть план целиком)
+
+Перед FINISH построй и держи в `index.md` секции:
+
+1. **`## Requirements coverage (plan → steps)`** — таблица: каждый **AC+**, каждый **AC−**, каждый **FR-***, каждый **NFR-*** → ≥1 `sNN` (или явный out_of_scope со ссылкой на follow-up). Пустая ячейка / «закрыто layout» без delta = FAIL.
+2. **`## Stages coverage`** — каждый этап/фаза из плана и канон-доков, на которые план ссылается (напр. async-architecture §11 этапы 1…N, plan §миграции, §тест-стратегия группы) → sNN. Этап «зафиксировать границы» / «перенести длинные пути» / «sync через run_sync_io» **нельзя** растворить в package-layout.
+3. **`## Outcome map`** — как ниже (intent). Coverage-таблицы **дополнительно**, не вместо Outcome map.
+4. **`## Replacement cleanup (plan → steps)`** — см. §Replacement cleanup ниже. Brownfield replace → строки на каждую устаревшую поверхность; greenfield → одна строка `n/a`.
+5. **ADR → sNN:** каждое ADR следствие, которое требует кода/теста/compose/миграции — отдельный delta или отдельный sNN; не «учтем потом».
+6. **Тест-стратегия плана:** каждая строка unit/API/celery/migration smoke из plan §тесты → checkpoint или `tdd:` у конкретного sNN (не один sNN «все тесты» без списка).
+7. **§0.11 / инварианты:** каждая строка counterpart-таблицы плана → verify/grep у sNN cutover или dedicated step.
+8. **Existing services / матрица исполнения / lifecycle:** отдельные sNN (см. Outcome preserve) — не map-only.
+
+### REQUIRED — granularity (как дробить)
+
+- Один sNN = **один** независимо ревьюируемый deliverable + свой TDD-цикл.
+- **Один IMPLEMENT = один prod-модуль или один test-file.** Атомарность внутри шага — 2–4 checkpoint, не отдельные sNN/чаты.
+- Соседние delta в одном файле и одном тесте → **один sNN** (не два чата на две функции).
+- Инфра (package, alembic, skeleton) — **средства**; рядом обязательны product/NFR sNN.
+- Черновик «s01–sN» в plan — **advisory floor**, не потолок. Дыра в coverage → **добавь sNN**. Не дроби уже закрытый модуль «чтобы было больше файлов».
+
+### FORBIDDEN (maximal detail)
+
+- Сокращать нарезку «чтобы быстрее перейти к IMPLEMENT». Дыра в coverage → добавь sNN. Один модуль/один test-file не дробить на чаты.  
+- Покрывать AC+/NFR только текстом в `goal` без строк в Requirements coverage.  
+- Один mega-sNN «implement the epic» или «suite = весь план».  
+- Пропускать этап канона, потому что «сделается внутри celery-skeleton».  
+- Ужимать `delta`/`checkpoints`/`tdd` до одной строки на шаг при богатом plan §.
+
+### Per-step depth (не код, но полно)
+
+В каждом `sNN`: полный delta layer (`as_built` · `delta` · `deletes` · `out_of_scope`); 2–4 checkpoint с `verify`; `tdd` список кейсов из плана; `files` полные; `consumes`/`produces`; lean-интерфейсы (имена/поля) — **без** полных тел методов. Подробность = **требования и процесс**, не dump кода из плана.
+
+---
+
+## Replacement cleanup — удалять вытесненный код (HARD)
+
+DECOMPOSE **обязан** нарезать удаление устаревшего кода, который эпик заменяет. Иначе IMPLEMENT плодит мёртвые пути/shim без владельца.
+
+**PLAN** называет поверхности (`## Replacement / sunset` **A/B/C**); **DECOMPOSE** делает их атомарными (`deletes:` + sNN + verify); **IMPLEMENT** только исполняет список из step.  
+**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+
+### REQUIRED
+
+1. В `index.md` — секция **`## Replacement cleanup (plan → steps)`** (шаблон `templates/decompose/index.md` с колонками Kind A|B|C + Fallback?). Нет секции = FAIL.
+2. Каждая строка плана/канона sunset A (code) / B (entrypoint/deploy) / C (fallback) → ≥1 `sNN` с **непустым** `deletes:` (пути и/или символы), **или** явный out_of_scope + follow-up epic **уже в** roadmap `.queue.yaml`.
+3. Greenfield / нет замен → одна строка `n/a — нет замен` (не оставляй секцию пустой).
+4. У каждого `sNN`: поле **`deletes:`** (список; `[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
+5. Цепочка допустима: `add → migrate callers → delete`. Delete-шаг **в очереди обязателен**, если замена есть; нельзя закрыть эпик на «новое + вечный shim» без follow-up в cleanup-таблице.
+6. Если `deletes` непустой → ≥1 checkpoint с `verify` через `rg` / import-audit: старый путь/символ **без живых callers** (и тесты переведены на новое).
+7. `out_of_scope: оставить shim` — только с follow-up epic ID **в queue**; иначе FAIL.
+8. **Финальный purge:** любая строка cleanup ≠ `n/a` → последний (или явный late) `sNN-*-legacy-fallback-purge` с остатком `deletes` A+B+C + cp: anti-fallback `rg` + inventory `docker-compose*`/`Dockerfile*`/`python -m` из plan B. Нет purge при replace = FAIL.
+9. Plan B «уже отдельный» без follow-up ID в queue = FAIL (см. shared §1.B / §6).
+
+### FORBIDDEN
+
+- Cutover/replace в `delta` без владельца `deletes` в этом или более позднем sNN очереди.
+- «Оставим старый модуль на всякий случай» без out_of_scope + follow-up.
+- Считать `files:` достаточным для удаления (удаление ≠ edit).
+- Растворить cleanup только в Outcome map без sNN/`deletes`.
+- Soft default URL / silent return / user stub при misconfig как «временный DX».
+- Rewrite модуля при живом legacy CLI/compose/CMD без строки B + deletes.
+---
+
+## Outcome preserve — не ужимать контекст плана (HARD)
+
+DECOMPOSE **нарезает**, но **не сужает** смысл плана. Технические sNN (layout, migration, skeleton) — средства; продукт/NFR/канон архитектуры из плана остаются видимыми.
+
+**`## Outcome map` ≠ замена шагов.** Строка в map без отдельного `sNN` (или без явного non-infra `title`/`delta` с путями) = intent всё ещё сжат. Map — трассировка; закрытие outcome — **в очереди шагов**.
+
+### REQUIRED
+
+1. Перед нарезкой зафиксируй из плана (и канон-доков, на которые план ссылается): **проблема → Goal → NFR/AC+ → out_of_scope**. Не выкидывай NFR «ради краткости шагов».
+2. В `index.md` — секция **`## Outcome map (plan → steps)`**: 4–12 строк «зачем эпик / user|system outcome → какие sNN это закрывают». Без этой секции → FAIL.
+3. У каждого `sNN.goal` — **outcome-фраза** (latency, multi-user, durability, contract, safety…), не только «создать файл X».
+4. **`title` в очереди index — outcome-first** (что даёт системе/latency/lifecycle), не только infra-slug. Допустим теххвост после тире (`Short webhook path — yookassa enqueue`). Если ≥ половины titles = только `package|layout|skeleton|baseline|hardening|shim|cutover` без outcome-слов → FAIL.
+5. Если план/канон содержит **матрицу исполнения** / lifecycle / границы async·thread·queue·process (`§3.3`, `async-architecture`, NFR latency/backpressure) — обязательны **отдельные sNN** (не «подразумевается в layout/celery»):
+   - минимум один sNN **execution boundaries** (куда идёт existing code: native async / `run_sync_io` / очередь; inventory call-sites control plane);
+   - минимум один sNN **job lifecycle** (status machine PENDING→…→DLQ, transitions persist/observe), если план вводит Job/outbox.
+6. Если план/канон требует довести **существующие** сервисы (long-lived clients, short webhook, saga→worker, `run_sync_io` wire) — **явный sNN** с путями в `files`/`delta`. Одна строка в Outcome map без sNN = FAIL.
+7. Out_of_scope из плана **копируй в index** + follow-up эпики одной строкой в Outcome map.
+8. **Черновик числа шагов в plan §«Нарезка» — advisory.** DECOMPOSE **обязан добавить** sNN, если Outcome preserve / матрица / existing-services это требуют. Нельзя отказать в новых шагах со словами «в плане написано s01–s11». После расширения — обнови plan §нарезка → актуальный диапазон + ссылка на index.
+
+### FORBIDDEN
+
+- Свести эпик к списку infra-slug (`package-layout`, `celery-skeleton`, `alembic-baseline`) так, что из **очереди titles** не читается зачем (multi-user / p95 / lifecycle / boundaries).
+- Считать Outcome map достаточным закрытием NFR, пока в очереди только scaffolding titles.
+- Выбросить NFR/матрицу границ/канон (`async-architecture`, research) из видимости шагов.
+- Отвечать/handoff «это только scaffolding» если plan Goal/§1.1 говорят иначе.
+- Ужимать `goal` до telegraph «создать модуль» без связи с AC+/NFR.
+- Фиксировать count шагов по черновику плана в ущерб матрице/lifecycle/existing wire.
+
+**Lean load ≠ lean intent:** читать план можно по workflow; **смысл Goal/NFR в артефактах decompose ужимать нельзя.**
+
+---
+
+## Skills gate → каждый `sNN` (HARD)
+
+Канон для IMPLEMENT — **только** список в step. IMPLEMENT **не** угадывает скиллы и **не** держит широкий слой A.
+
+Каждый `sNN`: `**code_surface:**` + блок **Impl skills** = **Core ∪ situational** (конкретные пути, без «(api) если…»).
+
+**FORBIDDEN в `impl:` любого `sNN`:** `writing-plans` · `brainstorming` · `executing-plans` · `breakdown-plan` — они **сессионные** (DECOMPOSE-only, грузятся сейчас). В `impl:` — **только Core + allowlist S01–S17** из `skills-gate-situational.mdc`. Поставить session skill в `impl:` = FAIL.
+
+### Core (всегда — ровно эти 4, пути обязательны)
+
+- `.agents/skills/tdd/SKILL.md`
+- `.agents/skills/python-testing-patterns/SKILL.md`
+- `.agents/skills/modern-python/SKILL.md`
+- `.agents/skills/python-anti-patterns/SKILL.md`
+
+**HARD:** Core — не опционально. Если шаг docs-only (нет Python-кода) — `impl: []` (пустой список), не Core. Иначе — все 4 Core + situational. Частичный Core без обоснования = FAIL.
+
+### Situational (S01–S17 из allowlist)
+
+1. **Read** @.cursor/rules/back_developer/skills-gate-situational.mdc
+2. Прогони **Checklist — DECOMPOSE** по каждому пункту (yes → путь `.agents/skills/<skill>/SKILL.md`); запиши обоснование в комментарий `#` рядом с путём
+3. Cap: situational ≤ **6** (+ 4 core)
+4. В step — только итоговые пути (bullet) + `#`-комментарий почему. **FORBIDDEN:** скиллы вне allowlist S01–S17; копировать весь checklist в `sNN`; указывать skill без обоснования (молчаливый список = FAIL)
+
+**FINISH-only** (не в `sNN`; только IMPLEMENT pre-FINISH):
+`verification-before-completion` · `requesting-code-review`
+
+**Смешанный шаг:** один доминирующий `code_surface`; situational = union ответов checklist (в пределах cap).
+
+**Index:** в `## Skills в контексте` — «per-step skills gate (Core + situational из skills-gate-situational); канон в каждом sNN».
+
+IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `workflow-implement.mdc`.
+
+---
+
+**Процесс**:
+1. `OK BACK DECOMPOSE - [plan_id]`
+1a. Прочитай **Gates** + **skills-gate-situational**
+2. Прочитай план (L3–4: **все** shards) — выпиши **Maximal detail** inputs: все AC+/AC−, FR, NFR, этапы/фазы, ADR→code, тест-строки, §0.11, канон-этапы + **Outcome preserve** (проблема, Goal, out_of_scope)
+3. В `index.md`: **Requirements coverage** + **Stages coverage** + **Outcome map** + **Replacement cleanup** (все четыре — gate)
+4. Атомарные шаги IMPLEMENT: files, `deletes`, `step_id`, `needs_creative`, `code_surface`, next phase (`creative`|`implement`), `tdd: true` по умолчанию; каждый `goal` с outcome-фразой; **дроби** пока coverage-таблицы не закрыты без дыр; brownfield replace → явные delete/cutover sNN
+4a. Если шаг **требует** unresolved `CR-*` для корректной реализации, это должен быть **hard stop**: `needs_creative: yes (CR-...)`, `Next Phase: BACK CREATIVE`, ссылка на CR в `index.md`. Канон форм после close: `templates/decompose/epic-step.yaml` (`yes (CR-…) — **closed**`, не `no (… closed)` / не `yes (done)`). Упоминание CR только в тексте шага без `needs_creative` = FAIL
+5. Каждый `sNN-<slug>.yaml` (@.cursor/templates/decompose/epic-step.yaml): **skills gate** (Core ∪ situational из checklist) + lean-интерфейсы (имена/поля/наследование, **без** тел и полных type), процесс словами, тест-кейсы, checkpoint, **`deletes`**. Не дублировать буллеты плана как copy-paste стену, не вставлять код — но **не пропускай** требования
+5a. **FAIL** если BACK-шаг без `**code_surface:**`, без Core-четырёх, с путями вне allowlist, с situational >6, или с «(api) если…» вместо конкретных путей
+5b. **FAIL** если нет Outcome map / Requirements coverage / Stages coverage / Replacement cleanup; или goal-only без связи с Goal/NFR; или existing services «потерялись»
+5c. **FAIL** если execution matrix / job lifecycle / async·thread·queue в плане, а отдельных sNN boundaries/(lifecycle) нет
+5d. **FAIL** если отказ добавить sNN при дыре в coverage («в plan уже s01–sN» / «слишком много шагов»). Не FAIL: склейка двух функций одного модуля/теста.
+5e. **FAIL** если любой AC+/AC−/FR/NFR из плана без sNN и без явного out_of_scope в coverage
+5f. **FAIL** если план/канон заменяет поверхность, а в очереди нет sNN с `deletes` на неё (и нет out_of_scope+follow-up **в queue** в Replacement cleanup)
+5g. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
+5h. **FAIL** если Replacement cleanup имеет строки ≠ n/a, а в очереди нет `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §2.2)
+5i. **FAIL** если plan sunset без таблиц A+B+C при brownfield replace (только одна таблица modules)6. Папка `memory-bank/back/plan/decompose-<plan_id>/` из `@.cursor/templates/decompose/`. `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
+7. Обнови plan: ссылка на index как единственный трекер; удали дубль-чеклисты sNN; сохрани Goal/AC/архитектуру/risks (**не** переписывай Goal плана под infra-only); при добавлении шагов — поправь §нарезка на фактический s01–sN
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.md`, status `active`
+8. `tasks.md` append-only
+9. Next: `needs_creative` → CREATIVE; иначе IMPLEMENT
+10. **Новый чат** для IMPLEMENT (context-session §2)
+
+**Границы:** нет кода/тестов реализации; нет арх-решений вне плана (`needs_creative`); не путать с TASK; **не ужимать intent и не ужимать coverage** (Maximal detail + Outcome preserve + Replacement cleanup).
+
+**Верификация**: gates (все пункты) + Maximal detail + Outcome preserve + Replacement cleanup

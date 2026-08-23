@@ -1,0 +1,17 @@
+---
+description: "INTEG TASK gates (lean)"
+alwaysApply: false
+---
+# INTEG TASK — gates
+
+**Артефакт:** `memory-bank/integration/task/task-YYYYMMDD-<slug>.md`
+
+## Gates
+
+1. task-файл создан
+2. Contract update если keys/endpoints
+3. §0.11 если refs
+
+## Abort
+
+- Contract change без обновления §Contract в eNN → incomplete

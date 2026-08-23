@@ -1,0 +1,75 @@
+---
+description: "Режим BACK CREATIVE — дизайн и архитектурные решения"
+alwaysApply: false
+---
+### Команда: BACK CREATIVE
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/creative.mdc
+**Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc (allowlist + checklist CREATIVE)
+
+**Batch:** шаги 1–8 за один проход; все компоненты в одном `creative-*.md`.
+
+---
+
+## Skills gate → каждый creative-файл / CR batch (HARD)
+
+Не грузить весь каталог. **Core ∪ situational** → список в creative-файле → Read **только** его.
+
+### Core (всегда для BACK CREATIVE)
+
+- `.agents/skills/brainstorming/SKILL.md` → секция **OVERRIDE — BACK/FRONT/INTEG CREATIVE** (batch; без one-at-a-time / wait-for-approval)
+- `.agents/skills/architecture-patterns/SKILL.md`
+
+### Situational
+
+1. **Read** @.cursor/rules/back_developer/skills-gate-situational.mdc
+2. Прогони **Checklist — CREATIVE** (yes → путь `.agents/skills/<skill>/SKILL.md`)
+3. Cap: situational ≤ **5** (+ 2 core)
+4. В creative-файле блок `## Skills gate` с итоговыми путями. **FORBIDDEN:** Read вне списка; situational вне allowlist; situational >5
+
+```markdown
+## Skills gate
+- `.agents/skills/brainstorming/SKILL.md`
+- `.agents/skills/architecture-patterns/SKILL.md`
+- …situational…
+```
+
+---
+
+**Процесс**:
+1. `OK BACK CREATIVE - Начинаю творческую фазу`
+1a. Прочитай **Gates** + **skills-gate-situational**
+2. `tasks.md` + plan/decompose step из `load_now`
+2a. **Skills gate** → список в creative-файле → Read Core ∪ выбранные situational  
+   Путь: с эпиком `memory-bank/back/creative/<epic_id>/creative-[feature_name].md`; без — `memory-bank/back/creative/creative-[feature_name].md` (@.cursor/rules/shared/epic-scoped-paths.mdc)
+3. Компоненты для дизайна
+4. На каждый компонент — тип Architecture / Algorithm / UI-UX; 2+ варианта:
+
+```
+🎨🎨🎨 ENTERING CREATIVE PHASE: [ТИП]
+Decompose step: [sNN-*.yaml](…) (если от шага)
+Компонент: …
+Требования и ограничения: …
+Вариант 1/2/… — плюсы/минусы
+Рекомендуемый подход: … + обоснование
+Руководство по реализации: …
+Верификация: …
+🎨🎨🎨 EXITING CREATIVE PHASE
+```
+
+5. Один файл `creative-[feature_name].md` (+ **Skills gate** + **Decompose link** если от шага)
+5a. **Rewire dependents (обязательно до FINISH):** все `decompose-*/sNN-*.yaml` и `decompose-*/index.md`, где `needs_creative` / blockers ссылаются на этот CR-ID. Канон форм: `.cursor/templates/decompose/epic-step.yaml` + `index.md`.
+   - markdown-ссылка на creative: `[CR-…/creative-….md](../../creative/<epic_id>/…)` или `(../../creative/…)` без эпика
+   - **если все CR шага closed:** step `needs_creative: yes (CR-…) — **closed**`; `Next Phase: BACK IMPLEMENT`
+   - **если остались open CR:** step `needs_creative: yes (<open-ids>)`; `Next Phase: BACK CREATIVE`; в `**Creative:**` явно `open:` + `closed:`
+   - index: blockers `CR-… ✅`; колонка `needs_creative` → `yes (CR-…) ✅` (не `yes (done)`); `next_phase` → `BACK IMPLEMENT` только когда **нет** open CR; `status` снять голый `needs_creative` → `pending` (если ещё не implement)
+   - index §Handoff snapshot обновить под tip (не оставлять старый CR/sNN)
+   - **FORBIDDEN:** `no (… closed)` · `yes (done)` без CR-ID · `next_phase: CREATIVE` при `completed`
+   - **FAIL** если creative closed, а зависимый `sNN` без кликабельной ссылки / open `needs_creative: yes (CR)` без closed для этого CR
+6. `tasks.md` append-only
+7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`, artifact: `creative-*.md`) — только после 5a  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index
+
+**Типы:** Architecture (структура/связи) · Algorithm (сложность/edge) · UI/UX (UX/a11y/паттерны)
+
+**Верификация**: skills gate записан; все компоненты, 2+ вариантов, обоснованная рекомендация; dependents rewired (5a)

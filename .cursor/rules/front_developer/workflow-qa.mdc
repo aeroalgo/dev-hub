@@ -1,0 +1,19 @@
+---
+description: "Режим FRONT QA — suite, Playwright, UX/a11y, exploratory"
+alwaysApply: false
+---
+### Команда: FRONT QA
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/qa.mdc
+**Скиллы:** playwright-generate-test · playwright-best-practices · web-design-guidelines · impeccable · emil-design-eng · high-end-visual-design · ui-ux-pro-max · frontend-testing · performance-reporter · nextjs-seo-audit
+
+**Процесс**:
+1. `OK FRONT QA - Выполняю техническую валидацию` → **Gates**
+2. Проверки + exploratory browser (live app) — gates; suite/Playwright **parent only**
+3. `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
+4. fail|blocked → §Fix plan (`FRONT BUGFIX <subject>`)
+5. **FINISH:** finish-block (`code_changed: no`|`yes` если дописали тесты) + Handoff  
+   Next: Handoff в `memory-bank/activeContext.md` + decompose index
+   **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь
+
+**Верификация**: gates + scenarios + Handoff (+ leftover legacy/fallback при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)

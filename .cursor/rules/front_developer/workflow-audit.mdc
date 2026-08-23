@@ -1,0 +1,22 @@
+---
+description: "Режим FRONT AUDIT — сравнение plan vs implement, delta-отчёт, новые decompose shards"
+alwaysApply: false
+---
+### Команда: FRONT AUDIT
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
+**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать vitest/playwright/npm test; делать code-review кода.
+
+**Процесс**:
+1. `OK FRONT AUDIT — начинаю gap-анализ эпика` → **Gates**
+2. Lean load §7: `load_now` → `epic_id`; читать `plan-<epic_id>.md` (список sNN из §нарезка); читать `decompose-<epic_id>/index.md` (coverage + step_id); список `implement-*/sNN-*.yaml` (заголовки status/step_id)
+3. Построить gap-матрицу (✅ / ❌ / ⚠️) — сравнение по `step_id`
+4. Для каждого ❌: создать `decompose-<epic_id>/sNN-audit-<slug>.yaml` (`role: front`; шаблон `.cursor/templates/decompose/epic-step.yaml`); обновить `decompose-<epic_id>/index.md` + `index.yaml` (`epic_resolve.py sync-index-yaml`)
+5. Записать артефакт: `memory-bank/front/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
+6. Append в tasks log
+7. **FINISH:** finish-block (`code_changed: no`) + `## Handoff FRONT AUDIT` обязателен
+   Next: `not_implemented[]` непуст → `FRONT IMPLEMENT` новых sNN → снова `FRONT AUDIT` (петля)
+         `not_implemented[]` пуст → `FRONT QA`
+         только ⚠️ (deviations, нет ❌) → `FRONT QA` (deviation фиксирован в артефакте)
+
+**Верификация**: gap-матрица полна (все step_id плана проверены) + audit yaml записан + новые shards в index + leftover A/B/C при replace (@.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)

@@ -1,0 +1,18 @@
+---
+description: "INTEG CREATIVE gates — contract decisions (lean)"
+alwaysApply: false
+---
+# INTEG CREATIVE — gates
+
+**Артефакт:** с эпиком `memory-bank/integration/creative/<epic_id>/creative-<feature>.md`; без — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc
+
+## Gates
+
+1. Спорные решения до кода (filters, facets, period, state)
+2. 2+ варианта + recommended
+3. creative-файл; contract draft updated
+4. **Rewire dependents:** каждый `eNN` с этим creative — ссылка + канон `yes (CR-…) — **closed**` / partial open + index `yes (CR-…) ✅` (workflow §3a / `templates/decompose/epic-step.yaml`). Без rewire → FAIL FINISH
+
+## Abort
+
+- Решение без вариантов → incomplete

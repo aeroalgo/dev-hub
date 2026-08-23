@@ -1,0 +1,232 @@
+---
+description: "Layer 0 — token economy, doc format, approval gates (always)"
+alwaysApply: true
+---
+# TOKEN ECONOMY (Layer 0)
+
+Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge cases) > economy when conflict.
+
+## 0.0 SUSPENSION GUARD — PLAN / gap-plan / architecture / **DECOMPOSE** artifacts (AUTHORITATIVE)
+
+**Trigger (any of):**
+- Role command: `BACK PLAN`, `FRONT PLAN`, `INTEG PLAN`, `PM PLAN`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
+- Role command: `BACK DECOMPOSE`, `FRONT DECOMPOSE`, `INTEG DECOMPOSE` (and SECURITY/REFACTOR DECOMPOSE when writing step shards)
+- Role command brownfield: `BACK VAN`, `FRONT VAN`, `INTEG VAN` when writing `memory-bank/architecture/**`
+- Writing/updating: `memory-bank/**/plan-*.md`, `memory-bank/**/plan/decompose-*/**`, `memory-bank/integration/gap/**/gap-*.md`, gap closing plans `plan-BACK-GAP-*` / `plan-FRONT-GAP-*`, `memory-bank/**/security/plan/plan-*.md`, `memory-bank/**/refactor/plan/plan-*.md`, или `memory-bank/architecture/**`
+
+### FORBIDDEN while guard is active (plan/gap/architecture/**decompose** OUTPUT)
+
+- Apply §0.2 telegraph brevity to the plan/gap/**architecture**/`decompose-*/` file
+- Cap size (~200 lines, «keep short», «оглавление достаточно», «мало шагов»)
+- Compress Element/API registry / omit routes or UI elements / omit mermaid diagrams for length
+- Compress DECOMPOSE: skip AC/FR/NFR/stages coverage, merge stages into infra-only sNN, refuse extra sNN «ради токенов»
+- Treat chat «brief» as a reason to shorten `plan-*.md` / architecture / `decompose-*/**`
+- Confuse lean **LOAD** (§0.3, §0.5.1) with lean **WRITE** of the plan/map/decompose
+
+### REQUIRED
+
+- Plan/gap/**architecture**/`decompose-*/index.md`+`sNN|eNN-*.yaml`: **maximally detailed, exhaustive, comprehensive** — no line/size/brevity limits on intent/coverage (DECOMPOSE still lean = no full code bodies in shards)
+- Chat with user MAY stay brief (1–3 sentences summary); **artifact must not**
+- Research/audit PLAN input with ≥2 cut criteria → **N epics** + roadmap (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); one mega-plan that truncates = FAIL
+
+### SUSPENDED for plan/gap/architecture/decompose artifact only
+
+§0.2 · §0.5 size cap · §0.6 chunked execution · §0.12 single-pass economy · §0.15 session/chat economy **as applied to writing the plan/map/decompose file**
+
+### RETAINED
+
+§0.9 approval · §0.13 roles · §0.14 model routing · §0.10 session start / FINISH · lean **read** of unrelated shards (still don't dump whole memory-bank into context — but **do** inventory everything the PLAN / DECOMPOSE / brownfield VAN workflow requires)
+
+This section **supersedes** every conflicting brevity rule. Workflow PLAN / DECOMPOSE / brownfield VAN files must restate it; if ignored → FAIL.
+
+## 0.0.1 Load ≠ Write (Claude Code / Cursor)
+
+| | Economy applies? | Notes |
+|--|------------------|-------|
+| **Which files you READ** | YES lean | `load_now`, ONE shard for IMPLEMENT; PLAN may inventory all required portal implement + routes |
+| **How much of an allowed file you READ** | **NO line-cap** | Skills / `.cursor/rules` / code / step shard — **full file**. FORBIDDEN: `read … limit:200` «из-за §0.5» |
+| **What you WRITE** to `plan-*.md` / `gap-*.md` / `architecture/**` / `decompose-*/**` | **NO lean** | §0.0 — full detail (DECOMPOSE: coverage+steps; still no code bodies in sNN) |
+| **What you WRITE** to other `memory-bank/**` non-plan docs | YES §0.5 | max ~200 lines **on write/split** — not a read tool limit |
+| **Chat reply to user** | YES brief OK | Do not mirror chat brevity into the plan/map/decompose file |
+
+**Anti-pattern:** «Token economy → shorten plan/architecture/decompose» / «Token economy → read only 200 lines of SKILL.md».
+**Correct:** lean **which** files to load; full **content** of those files; §0.5 caps **write size** of non-plan docs only.
+
+## 0.1 Doc language
+
+| Layer | Lang | Notes |
+|-------|------|-------|
+| `.cursor/rules/`, skills refs | EN | compact |
+| `memory-bank/**/plan-*.md`, `**/gap/gap-*.md`, `plan-*-GAP-*.md`, `architecture/**`, `**/plan/decompose-*/**` | RU | **NOT telegraph** — full, exhaustive (§0.0) |
+| Other `memory-bank/` artifacts | RU | telegraph style (§0.2) |
+| Chat with user | **RU** (default) | brief; does **not** limit plan/map artifact size |
+
+## 0.2 Telegraph format (memory-bank) — NOT for plan/gap
+
+Applies to implement/task/qa/reflect shards, etc.
+
+- Bullets > paragraphs. One line = one fact.
+- Abbrev: req impl cfg auth val err msg fn comp dep AC PRD ERD
+- Max 3 sentences/section unless technical detail requires more
+- No filler, no intros
+
+**Does NOT apply** to `plan-*.md` / `gap-*.md` / `architecture/**` / `decompose-*/**` (§0.0). Using telegraph on those files = violation.
+
+## 0.3 Context window — load only role input
+
+| Role | Reads | Does NOT read |
+|------|-------|---------------|
+| PM | user chat, `pm/*` | full ARCHITECTURE, all code |
+| BACK/FRONT/INTEG dev | `activeContext.md` **`load_now`**: work shard + `decompose-*/index.yaml`; AC = work shard | **full `plan-*.md`**, `index.md` coverage, `tasks.md`/`systemPatterns` as load, all shards, `done` section |
+| TL | `tl/*`, `activeContext.md`, delivery refs | full design docs |
+| Reviewer (BACK QA) | qa/bugfix shard + changed files; plan **§N** only if AC unclear | full `plan-*.md`, full memory-bank |
+| Architect (BACK PLAN) | `DECISION_LOG` / plan refs + stage summary | unrelated task shards |
+| **INTEG PLAN** | as required by `workflow-plan.mdc` (portal inventory, all relevant implement) | infra-only implement; gap/contracts not required |
+
+Workflow router (`mainrule.mdc`) + isolation rules enforce this per command. Lean load **input** ≠ short plan **output**.
+
+## 0.4 Reference by ID — never repeat
+
+- Every entity: `T-xxx`, `US-xxx`, `BUG-xxx`, `SCR-xxx`, legacy `[VAN-20260529]` kept as alias
+- Cross-ref by ID + link — do not copy-paste descriptions
+- Canonical detail: one shard in `memory-bank/<category>/<id>.md` or role artifact path
+- Exception under §0.0: plan may **expand** as-built detail needed for wire; still prefer links to implement IDs when already documented
+
+## 0.5 Document size limits (**WRITE only**)
+
+Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT** limit `read` / `skill` tool output.
+
+- Max **200 lines** per **written** non-plan doc. Split → subfiles; root = index + links.
+- **`plan-*.md` / `gap-*.md` / PLAN GAP plans / `architecture/**` / `decompose-*/**`: NO max lines** — must be maximally detailed (§0.0). DECOMPOSE shards: no code bodies, but full coverage/delta/checkpoints.
+- `memory-bank/tasks.md` = **index** (активные + progress); хронология → `tasks/log/` (**пишет `finalize-step` на sNN**; руками — только смена фазы эпика)
+- Task detail → `memory-bank/<category>/<id>.md` (e.g. `back/implement/T-020-slug.md`)
+- Large **non-plan** docs split into shard dirs (see `memory-bank-paths.mdc`):
+  - `domain/SP-*.md` ← `systemPatterns.md`
+  - `back/creative/shards/` (ERD/TG)
+- **FORBIDDEN:** трактовать «200 lines» как `limit` на Read `SKILL.md` / workflow / code.
+
+## 0.5.1 Doc router (mandatory)
+
+**FORBIDDEN:** read full index target as monolith — indexes are tables only.
+
+**REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
+
+1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
+2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` + `decompose-*/index.yaml`
+3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
+4. AC source = **work shard** (цель / файлы / TDD / Fix plan). **Не** подставлять полный `plan-*.md` или index «как AC»
+5. Если в step `Consumes: plan §N` и AC в shard не хватает — **jump только на §N** (Read/offset), не весь plan
+6. `load_if_needed` only when task requires
+7. **NEVER** load `done — do NOT load` section files
+
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+
+**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/AUDIT coverage, не IMPLEMENT hot path.
+
+**`load_now` OK для полного plan:** только когда следующий режим **PLAN** или **DECOMPOSE** и plan — объект работы.
+
+**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory (may require many implement files + code grep). Doc-router lean defaults yield to workflow PLAN steps + §0.0.
+
+**Index files** (load table, then ONE shard link):
+
+| Index | Shards |
+|-------|--------|
+| `systemPatterns.md` | `domain/SP-*.md` |
+| `back/creative/creative-booking-erd.md` | `back/creative/shards/ERD-*.md` |
+| `back/creative/creative-telegram-*.md` | `back/creative/shards/TG-*.md` |
+| `plan/decompose-*/index.yaml` | status queue (`load_now` IMPLEMENT) |
+| `plan/decompose-*/index.md` | coverage tables (DECOMPOSE/AUDIT only) |
+
+Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `decompose-*/index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
+
+## 0.6 Chunked execution
+
+- Dev: ONE task shard at a time → review → next
+- Reviewer: ONE batch (max 4 related tasks, same domain, no mutual deps)
+- Do NOT load full task history when working one task
+- **PLAN:** write full plan artifact in one session; do not artificially split plan into «short chapters» to save tokens
+
+## 0.7 Handoff summary
+
+When passing work between roles: 2–3 lines + file path. Not "read everything".
+
+**activeContext ONE Handoff (HARD):** ровно один блок `## Handoff …` + ≤ один `## done` — на FINISH **Write весь файл** (не sandwich). Append/стопка = FAIL/halt. История → `tasks/log/` + role artifacts. Detail: `finish-block.mdc` / `finish-doc-router.mdc`.
+
+## 0.8 Code comments
+
+Minimal. WHY only, not WHAT. Max 1 line. No comments unless non-obvious.
+
+## 0.9 Approval gate — `implement this`
+
+**Requires exact phrase `implement this`** (no typos, no translations):
+
+- file create/edit/delete
+- git commit/push/branch ops
+- deploy, db push, secrets, docker compose up that mutates state
+- autonomous multi-file batches outside explicit role command
+
+**Does NOT require gate:**
+
+- role commands (`BACK IMPLEMENT`, `PM PLAN`, …) — user intent via command
+- read-only: grep, read files, curl GET, diagnostics
+- analysis + change plan before approval
+
+Before requesting approval: list files, changes, commands, consequences.
+
+## 0.10 Session start
+
+Triggers: `continue project <name>` · role command (`BACK IMPLEMENT`, …) · `PM INIT`
+
+On start: (1) read `memory-bank/activeContext.md`; (2) load ONLY current role docs (§0.3) unless PLAN workflow expands inventory; (3) continue from current stage — do NOT re-execute completed stages.
+
+**On FINISH** (end of IMPLEMENT, QA pass, PLAN, VAN, REFLECT, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed).
+
+## 0.11 Integration verification (connection rule)
+
+For every external ref in code — grep project for counterpart. Missing counterpart = **bug**.
+
+| Type | Rule |
+|------|------|
+| Storage key | every `.get(key)` ↔ `.set(key)` consumer |
+| Events | every listener ↔ dispatcher |
+| DB | column in code ↔ migration |
+| ENV | every env var in code ↔ `.env` / settings |
+| API route | endpoint ↔ client/test caller |
+
+Mandatory in **BACK IMPLEMENT** (before finish) and **BACK QA**.
+
+## 0.12 Execution discipline
+
+- Collect ALL edits per file → one Write/Edit pass
+- Read file once per session; plan edits from that read
+- **Subagents:** **обязательные gate’ы** — codebase search → `explorer`; pre-FINISH `verify` (`code_changed`); BACK QA `reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
+- `tasks.md` updates: только смена фазы эпика (или `finalize-step`); checkbox-only на shards
+- **PLAN:** prefer one comprehensive Write of `plan-*.md`; size is not a reason to truncate
+
+## 0.13 Role mapping
+
+| Framework role | This project |
+|----------------|--------------|
+| PM | `PM *` |
+| Architect | `BACK PLAN`, `creative-*` |
+| Developer | `BACK/FRONT IMPLEMENT` |
+| Reviewer | `BACK QA` |
+| Tester | TDD in IMPLEMENT |
+| Designer | `FRONT CREATIVE` |
+
+Templates: `.cursor/templates/`
+
+## 0.14 AI tool routing
+
+On role command / FINISH: recommend tool if unclear — Cursor + fast-editing (default) | Claude Code + premium-coding (E2E / multi-file / **any PLAN**). Detail: @.cursor/rules/shared/context-session-economy.mdc §3, §5
+
+## 0.15 Session & chat economy
+
+Detail: @.cursor/rules/shared/context-session-economy.mdc
+
+- **One chat = one atomic subtask** (not whole epic); new chat on role switch or subtask done
+- **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + @.cursor/rules/shared/finish-doc-router.mdc)
+- **Session start:** `load_now` + handoff file; never depend on prior chat transcript
+- **Skills:** lazy — only skills for current subtask
+- **QA:** qa/bugfix shard + diff + §0.11 grep; skip `plan-*.md`; if AC unclear → only `plan §N`, never full plan in `load_now`
+- **PLAN / DECOMPOSE / architecture exception:** §0.0 — do not shorten plan, `decompose-*/**`, or `architecture/**` artifacts to satisfy this section

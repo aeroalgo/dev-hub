@@ -1,0 +1,111 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-010
+title: "FRONT + INTEG workflow-clarify stubs + lean gates × 2 + slash commands × 3 — clarify parity layer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить покрытие CLARIFY на FRONT и INTEG роли: создать thin wrappers вокруг shared-core (DRY),
+  соответствующие lean gates, slash-команды для всех трёх ролей (back/front/integ-clarify.md).
+  Outcome: любая из трёх ролей может запустить `* CLARIFY`, получить одинаковую таксономию (shared-core)
+  с role-специфичным контекстом; slash-команды делегируют в role-command.
+  Связь с Goal/NFR: FR-1 (FRONT+INTEG stubs), FR-2 (slash), FR-3 (slash ×3), NFR-1, NFR-3, AC+ #2, #4; риск §Параллель FRONT/INTEG drift.
+
+context:
+  consumes:
+    - ".cursor/rules/shared/workflow-clarify-core.mdc — из s01 (must exist)"
+    - ".cursor/rules/back_developer/workflow-clarify.mdc — образец структуры"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc — образец lean gate"
+    - ".claude/commands/back-clarify.md — образец (если есть) или создать первым"
+    - ".claude/skills/role-command/SKILL.md — мультиword table"
+  produces:
+    - ".cursor/rules/front_developer/workflow-clarify.mdc (create)"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc (create)"
+    - ".cursor/rules/integration_developer/workflow-clarify.mdc (create)"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc (create)"
+    - ".claude/commands/back-clarify.md (create)"
+    - ".claude/commands/front-clarify.md (create)"
+    - ".claude/commands/integ-clarify.md (create)"
+  plan_refs:
+    - "FR-1 (FRONT/INTEG wrappers), FR-3 (slash ×3)"
+    - "AC+ #2 (workflows exist), AC+ #4 (back-clarify.md exists)"
+    - "NFR-3 (lean load per role)"
+    - "plan §Компоненты таблица: front/integ workflow + lean + slash"
+    - "plan §Архитектура: shared core + thin role wrappers"
+  files:
+    - ".cursor/rules/front_developer/workflow-clarify.mdc"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc"
+    - ".cursor/rules/integration_developer/workflow-clarify.mdc"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc"
+    - ".claude/commands/back-clarify.md"
+    - ".claude/commands/front-clarify.md"
+    - ".claude/commands/integ-clarify.md"
+
+as_built:
+  - ".cursor/rules/front_developer/ — существует; workflow-clarify.mdc отсутствует"
+  - ".cursor/rules/front_developer/isolation_rules/_lean/ — существует; clarify.mdc отсутствует"
+  - ".cursor/rules/integration_developer/ — существует; workflow-clarify.mdc отсутствует"
+  - ".cursor/rules/integration_developer/isolation_rules/_lean/ — существует; clarify.mdc отсутствует"
+  - ".claude/commands/ — существует (есть back-plan.md, back-decompose.md и др.); clarify-команды отсутствуют"
+
+delta:
+  - "CREATE .cursor/rules/front_developer/workflow-clarify.mdc:
+      - Frontmatter
+      - @core ref: .cursor/rules/front_developer/mainrule-core.mdc + shared/workflow-clarify-core.mdc
+      - @lean: .cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc
+      - §FRONT-специфика: clarify охватывает UX/component-tree/routes/state/API-contracts; не затрагивает backend impl
+      - §Артефакт: memory-bank/front/clarify/clarify-YYYYMMDD-<slug>.md
+      - §Done When + §Handoff → FRONT PLAN"
+  - "CREATE .cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc:
+      - описание + lean gate FRONT: load clarify artifact + activeContext; не весь frontend plan monolith"
+  - "CREATE .cursor/rules/integration_developer/workflow-clarify.mdc:
+      - Frontmatter
+      - @core + @lean refs
+      - §INTEG-специфика: clarify фокус на wire/contract gaps (BACK↔FRONT): API shape, auth flow, mock vs live, route/param ambiguity
+      - §Артефакт: memory-bank/integration/clarify/clarify-YYYYMMDD-<slug>.md
+      - §Done When + §Handoff → INTEG PLAN"
+  - "CREATE .cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc:
+      - lean gate INTEG: load clarify artifact + activeContext + опционально gap-*.md если явно указан"
+  - "CREATE .claude/commands/back-clarify.md:
+      - Frontmatter (description: 'BACK CLARIFY — снять ambiguity до PLAN')
+      - Тело: делегирует в role-command как 'BACK CLARIFY'; ссылка на .claude/skills/role-command/SKILL.md"
+  - "CREATE .claude/commands/front-clarify.md:
+      - аналогично для FRONT CLARIFY"
+  - "CREATE .claude/commands/integ-clarify.md:
+      - аналогично для INTEG CLARIFY"
+
+deletes: []
+# greenfield shard: создаём новые файлы, ничего не удаляем
+
+out_of_scope:
+  - "mainrule.mdc CLARIFY table — s04"
+  - "role-command SKILL.md мультиword table edit — s05 (только если CLARIFY не зарегистрирован)"
+  - "memory-bank-paths — s04"
+  - "BACK workflow-clarify.mdc — уже в s01"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only: нет Python. Core FORBIDDEN для docs-only.
+
+checkpoints:
+  - id: cp1
+    criterion: "FRONT workflow-clarify.mdc и lean существуют, содержат ссылку на shared-core"
+    verify: "rg -rn 'workflow-clarify-core\\|shared' .cursor/rules/front_developer/workflow-clarify.mdc | head -5"
+  - id: cp2
+    criterion: "INTEG workflow-clarify.mdc и lean существуют, содержат INTEG-специфику (contract/wire)"
+    verify: "rg -n 'contract\\|wire\\|INTEG' .cursor/rules/integration_developer/workflow-clarify.mdc | head -5"
+  - id: cp3
+    criterion: "Все три slash-команды существуют и содержат делегирование role-command"
+    verify: "ls .claude/commands/*-clarify.md && rg -l 'role-command\\|BACK CLARIFY\\|FRONT CLARIFY\\|INTEG CLARIFY' .claude/commands/*-clarify.md"
+
+verify:
+  - "ls .cursor/rules/front_developer/workflow-clarify.mdc .cursor/rules/integration_developer/workflow-clarify.mdc — оба exist"
+  - "ls .cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc .cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc — оба exist"
+  - "ls .claude/commands/back-clarify.md .claude/commands/front-clarify.md .claude/commands/integ-clarify.md — все три exist"
+  - "rg -n 'FRONT CLARIFY\\|INTEG CLARIFY' .claude/commands/front-clarify.md .claude/commands/integ-clarify.md — делегирование есть"
+
+tdd:
+  - "docs-only; QA в s06: ls + rg AC+ #2, #4"

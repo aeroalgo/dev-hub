@@ -1,0 +1,44 @@
+---
+description: "QA gates — lint, types, tests, security (lean)"
+alwaysApply: false
+---
+# QA — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/back/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`  
+- без эпика: `memory-bank/back/qa/qa-YYYYMMDD-<slug>.yaml`  
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/qa/epic-step.yaml` (`epic-qa/v1`)
+
+## Gates (обязательные — узкий путь)
+
+1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика** (не все sNN prose); **не** полный `plan-*.md`; `plan §N` только если AC неясен; parent гоняет suite; `epic_id` → путь артефакта
+2. verification-before-completion · §0.11 · линт · типы · **полный** `.venv/bin/pytest` из корня (не голый `pytest`)
+2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B symbols; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
+3. После suite → **1× reviewer** обязателен (`Suite results` · `AC+` · `AC−` · `§0.11` · `ALLOW READ` ≤10). Claude Code: `Agent`→`reviewer`. Reviewer = основной code-review; **не** дублировать полным `code-review` skill на весь эпик.
+4. Security spot-check: OWASP checklist на auth/API в diff (коротко). `semgrep` / `differential-review` — только если в diff есть auth, crypto, external I/O, secrets/config.
+5. qa-артефакт + tasks append-only
+5a. **fail|blocked:** `fix_plan[]` в qa yaml + Handoff — `finish-doc-router.md`
+6. FINISH: finish-block (`code_changed: no`); next-mode — `memory-bank/activeContext.md` + decompose index
+
+## Situational (не каждый QA)
+
+Триггер → один скилл, findings в Issues; иначе skip + строка `skipped: <skill>`.
+
+| Триггер | Скилл |
+|---------|--------|
+| AC спорный / reviewer blocked по Spec | `code-review` (fixed point = merge-base; Spec = plan AC) |
+| явные дыры coverage / AC-path без тестов | `pytest-coverage` (только pkg из fail/diff; `.venv/bin/pytest`) |
+| suite green но баги «проскакивают» | `mutation-testing` (узкий target) |
+| SQL / Alembic / JSONB в diff | `postgresql-code-review` ± `sqlalchemy-postgres` |
+| fail-open config/auth | `insecure-defaults` |
+| инварианты/парсинг без property tests | `property-based-testing` |
+
+**Epic scope:** QA = suite + AC matrix + diff review через reviewer. Не line-by-line всех 20 шагов. Глубокий Standards∥Spec — только по триггеру или отдельный чат `BACK QA deep <surface>`.
+
+## Abort
+
+- PASS при failing suite · голый `pytest` → reject/FAIL
+- BACK QA без reviewer после suite → FAIL
+- Epic известен, qa-файл в корне `qa/` без `<epic_id>/` → FAIL
+- FINISH qa shard `.md` вместо `.yaml` → FAIL
+- PASS при leftover legacy entrypoint / fallback из plan sunset → FAIL

@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-003
+title: s05 — workers.md create + projectbrief/index gaps cleanup IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-003-loop-halt/s05-workers-projectbrief-gaps.yaml
+skills_used:
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: index:18 workers.md missing; index:32 orphan test_ports_browser; projectbrief:17
+  false root tests/; loop/tests only'
+gaps:
+  status: none
+done:
+- architecture/workers.md created — Overview/Runtime slot/Lifecycle + mermaid + Constraints
+- 'architecture/index.md — removed gap #3 orphan test_ports_browser; refresh date
+  2026-08-22'
+- projectbrief.md — removed false root `tests/` claim; kept `loop/tests/`
+- cp1–cp3 verify green; deletes executed
+files:
+- memory-bank/architecture/workers.md
+- memory-bank/architecture/index.md
+- memory-bank/projectbrief.md
+deletes:
+- architecture/index.md — orphan claim tests/unit/test_ports_browser (строку)
+- projectbrief.md — ложный tests/ root claim (строку, не файл)
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_last_session_path.py -q --tb=line`'
+integration_check:
+- rg 'test_ports_browser' memory-bank/architecture/index.md → 0
+- rg 'tests/unit|test_ports_browser' memory-bank/projectbrief.md → clean
+- test -f memory-bank/architecture/workers.md && grep mermaid → ≥1
+grep_control:
+- back: AC− no reintroduce tests/unit/test_ports_browser orphan claims
+  front: n/a
+verification_results:
+- 'cp1: workers.md exists + mermaid count=1 — PASS'
+- 'cp2: architecture/index.md test_ports_browser count=0 — PASS'
+- 'cp3: projectbrief.md no tests/unit|test_ports_browser — PASS'
+- docs suite bash checks — SUITE_PASS
+- timeout 300s .venv/bin/pytest loop/tests/test_last_session_path.py -q --tb=line
+  → 5 passed
+checkpoints:
+- id: cp1
+  criterion: 'AC+ 6: workers.md создан и содержит mermaid блок'
+  status: done
+  done_at: '2026-08-22T17:28:12Z'
+- id: cp2
+  criterion: 'AC+ 7: architecture/index.md не содержит orphan test_ports_browser claim'
+  status: done
+  done_at: '2026-08-22T17:28:12Z'
+- id: cp3
+  criterion: projectbrief.md не содержит ложный tests/ root claim
+  status: done
+  done_at: '2026-08-22T17:28:12Z'
+resume_from: ''

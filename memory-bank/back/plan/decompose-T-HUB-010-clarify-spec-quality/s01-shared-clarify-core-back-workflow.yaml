@@ -1,0 +1,119 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-010
+title: "Shared clarify-core + BACK workflow + lean gate + template clarify.md — foundational clarify layer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать полноценный foundational слой команды CLARIFY:
+  - `.cursor/rules/shared/workflow-clarify-core.mdc` — общая таксономия вопросов (scope/data/UX-API/NFR/integrations/edge/constraints/terminology), лимиты (≤5 Q, sequential, Recommended), формат Q→A, Completion Report, CRITICAL marker policy
+  - `.cursor/rules/back_developer/workflow-clarify.mdc` — BACK-специфичный workflow wrapper поверх shared-core: как грузить, gates, Handoff → PLAN или continue CLARIFY
+  - `.cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc` — lean gate: load_now только clarify artifact + activeContext; не весь plan monolith
+  - `.cursor/templates/clarify.md` — шаблон нового артефакта `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md`
+  Outcome: агент может провести структурированную сессию BACK CLARIFY с ≤5 вопросами, записать Q→A, выдать Completion Report и перейти к PLAN с минимальным ambiguity.
+  Связь с Goal/NFR: FR-1, FR-4, FR-5, NFR-1, NFR-3, NFR-4, AC+ #2, #3, #5; AC− #5 (адаптация, не clone).
+
+context:
+  consumes:
+    - "spec-kit/templates/commands/clarify.md — reference (read-only, не clone)"
+    - "spec-kit/templates/spec-template.md — паттерны Independent Test, SC"
+    - ".cursor/rules/back_developer/workflow-plan.mdc — как стыкуется gate"
+    - "memory-bank/activeContext.md — load_now только"
+  produces:
+    - ".cursor/rules/shared/workflow-clarify-core.mdc (create)"
+    - ".cursor/rules/back_developer/workflow-clarify.mdc (create)"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc (create)"
+    - ".cursor/templates/clarify.md (create)"
+  plan_refs:
+    - "FR-1, FR-4, FR-5"
+    - "NFR-1, NFR-3, NFR-4"
+    - "AC+ #2, #3, #5"
+    - "AC− #5 (AC−(bf) #2"
+    - "plan §Архитектура §Зафиксированные решения"
+  files:
+    - ".cursor/rules/shared/workflow-clarify-core.mdc"
+    - ".cursor/rules/back_developer/workflow-clarify.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc"
+    - ".cursor/templates/clarify.md"
+
+as_built:
+  - "spec-kit/templates/commands/clarify.md — 291 строк оригинала (read-only)"
+  - ".cursor/rules/back_developer/workflow-plan.mdc — существует, gate CLARIFY туда ещё не добавлен"
+  - ".cursor/rules/shared/ — директория существует, workflow-clarify-core.mdc отсутствует"
+  - ".cursor/rules/back_developer/isolation_rules/_lean/ — существует, clarify.mdc отсутствует"
+  - ".cursor/templates/ — существует, clarify.md отсутствует"
+
+delta:
+  - "CREATE .cursor/rules/shared/workflow-clarify-core.mdc:
+      - Frontmatter (description, alwaysApply: false)
+      - §Таксономия вопросов (8 категорий: scope/data/UX-API/NFR/integrations/edge/constraints/terminology)
+      - §Лимиты и формат (≤5 Q per session; sequential; MC 2–5 опций или short ≤5 слов; c Recommended/Suggested)
+      - §CRITICAL marker: при `[НУЖНО УТОЧНИТЬ: CRITICAL …]` PLAN не закрывается без resolve или явного defer-list
+      - §Q→A записать: в целевой артефакт + инкрементально в черновик plan/spec-секций если есть
+      - §Completion Report формат (compact RU): список Q→A + resolved/deferred + next action
+      - §skip policy: только при явном 'spike / exploratory' + warning
+      - §FORBIDDEN: silent assumption при пустом prompt / угал auth/stack"
+  - "CREATE .cursor/rules/back_developer/workflow-clarify.mdc:
+      - Frontmatter
+      - @.cursor/rules/back_developer/mainrule-core.mdc (context ref)
+      - @.cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc (gates ref)
+      - §Когда запускать: рекомендуется до BACK PLAN при размытом scope; допустим в начале PLAN как step 0 gate
+      - §Вход: 'BACK CLARIFY <feature>' slug + опциональный draft plan/spec
+      - §Load: clarify artifact (если уже есть) + activeContext (load_now), не весь plan
+      - §Процесс: вызов shared/workflow-clarify-core.mdc §Таксономия → задаём Q → записываем→patching → Completion Report
+      - §Артефакт: memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md (шаблон .cursor/templates/clarify.md)
+      - §Done When: Completion Report написан, ≤5 Q обработаны, нет CRITICAL blockers или они в defer-list
+      - §Handoff: next BACK PLAN | continue CLARIFY | spike skip warning"
+  - "CREATE .cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc:
+      - Frontmatter (description: 'CLARIFY gates — lean load', alwaysApply: false)
+      - §Gates: load_now = только clarify artifact (если есть) + activeContext; НЕ plan monolith без нужды
+      - §NFR-3 enforced: lean load; не грузить все workflow/templates в контекст
+      - §Abort: не давать советы по стеку/архитектуре до PLAN; только снимать ambiguity"
+  - "CREATE .cursor/templates/clarify.md:
+      - Frontmatter с полями: plan_id, slug, role, date, feature_description, status
+      - ##Контекст и цель
+      - ##Таксономия сканирования (8 категорий чеклист — какие зоны проверены)
+      - ##Q→A log (нумерованные Q с вариантами + ответ + resolution: resolved|deferred)
+      - ##Deferred / [НУЖНО УТОЧНИТЬ] items с severity (CRITICAL|IMPORTANT|NICE)
+      - ##Completion Report (compact): resolved count / deferred list / next action (BACK PLAN slug / continue / spike)"
+
+deletes: []
+# greenfield shard: нет удалений. silent assumption — поведенческая замена, закрывается в s04 (workflow-plan edit)
+
+out_of_scope:
+  - "FRONT/INTEG workflow-clarify.mdc — в s02"
+  - "mainrule.mdc CLARIFY entries — в s04"
+  - "finish-doc-router CLARIFY row — в s04"
+  - "memory-bank-paths clarify path — в s04"
+  - "specify-cli install — FORBIDDEN во всём эпике"
+
+skills:
+  code_surface: infra
+  # docs/rules/templates — нет Python кода
+  impl: []
+  # docs-only: Core FORBIDDEN (нет Python). Situational: нет.
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-clarify-core.mdc создан и содержит §Таксономия (8 категорий) + §Лимиты (≤5 Q) + §CRITICAL marker policy"
+    verify: "rg -n 'НУЖНО УТОЧНИТЬ\\|CRITICAL' .cursor/rules/shared/workflow-clarify-core.mdc | head -10"
+  - id: cp2
+    criterion: "workflow-clarify.mdc (BACK) содержит §Процесс, §Done When, §Handoff и ссылается на shared-core"
+    verify: "rg -n 'shared/workflow-clarify-core\\|Done When\\|Handoff' .cursor/rules/back_developer/workflow-clarify.mdc | head -10"
+  - id: cp3
+    criterion: "_lean/clarify.mdc gate создан: содержит NFR-3 lean-load правило"
+    verify: "rg -n 'load_now\\|NFR' .cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc"
+  - id: cp4
+    criterion: "clarify.md шаблон создан: содержит Q→A log секцию + Completion Report + Deferred items"
+    verify: "rg -n 'Completion Report\\|Q→A\\|Deferred\\|НУЖНО УТОЧНИТЬ' .cursor/templates/clarify.md | head -10"
+
+verify:
+  - "rg -rn 'НУЖНО УТОЧНИТЬ' .cursor/rules/shared/workflow-clarify-core.mdc — найден"
+  - "rg -rn 'workflow-clarify-core' .cursor/rules/back_developer/workflow-clarify.mdc — ссылка есть"
+  - "rg -rn 'silent assumption\\|specify-cli\\|specify init' .cursor/rules/shared/workflow-clarify-core.mdc — FORBIDDEN блок есть"
+  - "wc -l .cursor/rules/shared/workflow-clarify-core.mdc — разумный объём (≥40 строк, не clone 291)"
+
+tdd:
+  - "Нет pytest (docs-only). QA-проверка в s06: rg AC+ #2, #3, #5 и dry-run Completion Report структура"

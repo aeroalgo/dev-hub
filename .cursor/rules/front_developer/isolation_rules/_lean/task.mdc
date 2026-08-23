@@ -1,0 +1,25 @@
+---
+description: "FRONT TASK gates — ad-hoc (lean)"
+alwaysApply: false
+---
+# FRONT TASK — gates
+
+**Артефакт:** `memory-bank/front/task/task-YYYYMMDD-<slug>.md`
+
+## Gates
+
+1. TASK + описание в одном сообщении
+2. `load_now`; projectbrief/techContext/systemPatterns — только cross-cutting (§8)
+3. ONE shard; wide search → subagent
+4. TDD targeted; Playwright если UI; запуск тестов **только parent** (never subagent)
+5. **Visible UI → DESIGN STACK HARD** (6 skills из `workflow-implement.mdc`) — Read + list в task shard до UI-кода
+6. task-файл + tasks append-only
+7. §0.11 если refs
+
+## Level
+
+Как IMPLEMENT level delta по scope.
+
+## Abort
+
+- Visible UI без design stack Read / Skills → no FINISH

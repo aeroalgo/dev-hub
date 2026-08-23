@@ -1,0 +1,25 @@
+# Machine queue for multi-epic roadmap (loop + PLAN)
+# Path (slug source): memory-bank/<role>/plan/roadmap-<slug>-epics.queue.yaml
+# Sibling human doc: roadmap-<slug>-epics.md
+# Loop canon after MERGE: roadmap-epics.queue.yaml (@.cursor/rules/shared/workflow-roadmap-merge.mdc)
+# REQUIRED when PLAN produces ≥2 epics (@.cursor/rules/shared/workflow-plan-multi-epic.mdc)
+#
+# Roles:
+#   BACK  → memory-bank/back/plan/…         role: back
+#   FRONT → memory-bank/front/plan/…        role: front
+#   INTEG → memory-bank/integration/plan/…  role: integration
+#
+# version: roadmap-queue/v1
+# roadmap: relative path to human roadmap md
+# queue[].id / plan / deps (hard only)
+
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-<slug>-epics.md
+queue:
+  - id: T-xxx
+    plan: plan-T-xxx-<slug>.md
+    deps: []
+  - id: T-yyy
+    plan: plan-T-yyy-<slug>.md
+    deps: [T-xxx]

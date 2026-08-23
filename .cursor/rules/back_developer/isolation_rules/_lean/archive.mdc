@@ -1,0 +1,31 @@
+---
+description: "ARCHIVE gates — reflection + epic move to memory-bank/archive/"
+alwaysApply: false
+---
+# ARCHIVE NOW — gates
+
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc  
+**Цель:** `memory-bank/archive/{role}/` (не `{role}/archive/archive-*.md`)
+
+## Gates
+
+1. `reflection-[task_id].md` exists — **не** переносить
+2. `epic_id` известен (Handoff / load_now / arg)
+3. Move: агент переносит дерево + rewrite ссылок (опционально хелпер `scripts/mb-archive-epic.py --role <back|front|integration> --epic <epic_id>`): plan, decompose, implement, creative/qa/bugfix под epic
+4. Внешние ссылки rewritten; внутри archive-дерева relative валидны
+5. `tasks.md` append-only: archive + ЗАВЕРШЕНА И АРХИВИРОВАНА + новые пути
+6. FINISH: clear `load_now`; «await VAN» или next T-xxx
+7. **FORBIDDEN:** создавать `archive-<task_id>.md` манифест; оставлять epic-файлы в живом `{role}/` после успешного move; требовать от пользователя запуска скрипта вместо `* ARCHIVE NOW`
+
+## Level delta
+
+| L | Depth |
+|---|--------|
+| L2 | move + rewrite + tasks |
+| L3–L4 | + creative/<epic> + phased qa/bugfix |
+
+## Abort
+
+- Reflection missing → BACK REFLECT first
+- `epic_id` неизвестен → FAIL (уточнить plan_id)
+- Move без rewrite ссылок → FAIL

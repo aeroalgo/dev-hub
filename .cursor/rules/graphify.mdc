@@ -1,0 +1,92 @@
+---
+description: graphify — Step 0 of role workflow. Loaded by mainrule.mdc on recognized role commands (BACK/FRONT/PM/TL/etc), NOT always-on.
+alwaysApply: false
+---
+
+# graphify (workflow Step 0)
+
+Knowledge graph at **repo-root** `graphify-out/graph.json` (`.agents/`, `memory-bank/`, `_archive/` excluded via `.graphifyignore`). Frontend under `frontend/` is indexed.
+
+**This rule activates ONLY inside a recognized role command** (Step 0 of the mainrule chain, before core/workflow) **for code modes**: IMPLEMENT, TASK, BUGFIX, REFACTOR, QA, **SECURITY execute** (@aNN / S one-shot) (+ PM DISCOVER, TL SYNC DEV) **and brownfield VAN** (`BACK/FRONT/INTEG VAN` when writing `memory-bank/architecture/**`). Skip for greenfield VAN, PLAN, DECOMPOSE, CREATIVE, REFLECT, ARCHIVE, **SECURITY PLAN / SECURITY DECOMPOSE**. Plain questions do NOT load it.
+
+## HARD RULE — cwd = repo root only
+
+CLI writes/reads `graphify-out/` relative to **cwd** (and `update <path>` → `<path>/graphify-out/`). Wrong cwd creates stray dirs (`frontend/graphify-out`, `apps/.../graphify-out`).
+
+**REQUIRED for every graphify invocation** (`query` / `path` / `explain` / `update`):
+
+1. Shell **cwd** = repository root (directory with `.venv/` and root `graphify-out/`).
+2. Use `.venv/bin/graphify` from that root (not system PATH).
+3. `update` argument is always `.` meaning the **repo root**, never a subpackage path.
+4. Cursor Shell: set `working_directory` to repo root; do **not** inherit `frontend/` / `apps/...` from prior commands.
+5. Subagent prompts: repeat this HARD RULE.
+
+**FORBIDDEN:**
+
+- `cd frontend && … graphify …` / `cd apps/… && … graphify …`
+- `graphify update frontend` / `graphify update apps/edge/collector` (creates nested `graphify-out`)
+- Leaving or keeping nested `**/graphify-out/` outside repo root — delete as junk
+
+Canonical path only: `<repo>/graphify-out/`. Optional absolute override: `GRAPHIFY_OUT=<repo>/graphify-out`.
+
+## When loaded: orient via the graph FIRST
+
+```bash
+# cwd MUST be repo root
+.venv/bin/graphify query "<question>"
+.venv/bin/graphify path "<A>" "<B>"
+.venv/bin/graphify explain "<concept>"
+```
+
+Before Read/Grep/Glob on codebase questions, run:
+- `.venv/bin/graphify query "<question>"` — scoped subgraph for architecture/data-flow questions
+- `.venv/bin/graphify path "<A>" "<B>"` — dependency path between two symbols
+- `.venv/bin/graphify explain "<concept>"` — all nodes related to a concept
+
+Fall back to Read/Grep only when:
+1. graphify has oriented you and you need specific lines to edit/debug
+2. **root** `graphify-out/graph.json` does not exist or is stale (commit mismatch)
+3. The question is about a single known file, not cross-file structure
+
+**Do not skip graphify because files are "already known"** — the graph surfaces cross-file dependencies and INFERRED edges that grep cannot find. Include this rule in every code-exploration subagent prompt.
+
+**Exceptions where graphify is replaced by inventory mode (do not halt, do not query):**
+- **Hub / tooling repositories** — see §Hub / tooling repositories (N/A protocol) below.
+- **INTEG PLAN** — see §Plan exceptions (inventory mode) below.
+
+## After code changes
+
+From **repo root only**:
+
+```bash
+.venv/bin/graphify update .
+```
+
+AST-only, no LLM, no API cost. ~3s on this repo. `--force` only if node count shrinks (#479).
+
+## Hub / tooling repositories (N/A protocol)
+
+When the repository is a **hub or tooling-only repo** (e.g., `dev-hub`) — identified by the absence of `graphify-out/graph.json` at the repo root — graphify is **N/A**, not broken:
+
+1. **Do not halt** the workflow. N/A is expected, not an error.
+2. Log the attempt: emit one line to chat — `graphify N/A — hub repository (no graph.json)`.
+3. **Inventory fallback:** use `ls` / `rg` over `memory-bank/`, `.cursor/rules/`, `.claude/` to orient instead of the graph.
+4. Proceed with the step; inventory is sufficient for docs-only and tooling shards.
+
+**FORBIDDEN:** treating missing `graph.json` in a hub repo as a fatal error or blocking the workflow.
+
+## Plan exceptions (inventory mode)
+
+Two modes skip `graphify query` and use inventory instead. **Do not halt, do not error.**
+
+| Mode | What to do instead |
+|------|--------------------|
+| **INTEG PLAN** | Do **not** run `graphify query`. Read inventory from the corresponding `workflow-integ-plan.mdc` (portal routes + UI elements listed there). |
+| **brownfield VAN** (when `graph.json` is N/A) | Attempt graphify; if N/A → read inventory from `memory-bank/architecture/**` shards. |
+
+Both modes = **document attempt + inventory fallback**, not halt. The allowlist in the rule header already skips PLAN / DECOMPOSE — these two are the boundary cases that also skip `graphify query` even though they are active sessions.
+
+## What is NOT in the graph
+
+`.agents/` (vendor skills), `memory-bank/` (artifacts), `_archive/`. For those, use Read/Grep directly.
+Frontend files under `frontend/` are fully indexed and integrated into the graph.

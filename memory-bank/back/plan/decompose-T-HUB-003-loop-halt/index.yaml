@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-003
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-decide-helper-tdd.yaml
+  title: Pure decide_after_action helper + TDD (halt matrix)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-loop-sh-wire.yaml
+  title: loop.sh halt-parity branches after check-after
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-last-session-path-tdd.yaml
+  title: last_session_path → epic_dir alignment (TDD)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-docs-epic-loop-workflow.yaml
+  title: 'Docs: epic-loop.md / WORKFLOW.md / architecture data-flow canon'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-workers-projectbrief-gaps.yaml
+  title: workers.md create + projectbrief/index gaps cleanup
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-suite-arch-hooks-note.yaml
+  title: Suite targeted run + architecture Cursor-hooks unwired note
+  next_phase: BACK IMPLEMENT
+  status: completed

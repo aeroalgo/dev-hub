@@ -1,0 +1,19 @@
+---
+description: "FRONT ARCHIVE gates — epic move"
+alwaysApply: false
+---
+# FRONT ARCHIVE NOW — gates
+
+**Paths:** @.cursor/rules/shared/epic-scoped-paths.mdc  
+**Цель:** `memory-bank/archive/front/`
+
+## Gates
+
+1. Reflection exists — не переносить
+2. `epic_id` + move/rewrite агентом (хелпер `mb-archive-epic.py --role front` опционально)
+3. Rewrite внешних ссылок
+4. `tasks.md` + FINISH clear `load_now`
+
+## Abort
+
+- Reflection missing · epic_id unknown · move без rewrite

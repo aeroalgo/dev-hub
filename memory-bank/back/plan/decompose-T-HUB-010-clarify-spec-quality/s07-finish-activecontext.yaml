@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-010
+title: "activeContext Handoff + index status update — FINISH эпика"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финализировать эпик T-HUB-010 в системе учёта:
+  - Записать Handoff в `memory-bank/activeContext.md`: текущий эпик, load_now → s01-*.yaml,
+    next action (IMPLEMENT s01), ссылка на decompose index.
+  - Обновить `index.yaml` (status SoT): все шаги s01–s07 — статус pending → ready для IMPLEMENT.
+  - Обновить ссылку в `plan-T-HUB-010`: указать `decompose-T-HUB-010-clarify-spec-quality/index.md`
+    как единственный трекер (убрать черновик «До DECOMPOSE» нарезки если она дублирует index).
+  - Убедиться `graphify update .` если code_changed (в данном случае — нет Python кода, только docs;
+    graphify для doc-only не обязателен, но выполнить если indexer настроен на .mdc/.md).
+  Outcome: следующий чат может стартовать IMPLEMENT s01 через `load_now: s01-shared-clarify-core-back-workflow.yaml`.
+  Связь: workflow-decompose §7 (update plan ref) + §7b (FINISH gate).
+
+context:
+  consumes:
+    - "memory-bank/activeContext.md — read once, then write (pre-FINISH re-read allowed)"
+    - "memory-bank/back/plan/plan-T-HUB-010-clarify-spec-quality.md — read, then edit (ссылка на index)"
+    - "decompose-T-HUB-010-clarify-spec-quality/index.yaml — write status"
+    - "decompose-T-HUB-010-clarify-spec-quality/index.md — final check"
+  produces:
+    - "memory-bank/activeContext.md (edit — Handoff)"
+    - "memory-bank/back/plan/plan-T-HUB-010-clarify-spec-quality.md (edit — ссылка на index)"
+    - "decompose-T-HUB-010-clarify-spec-quality/index.yaml (create/update — все шаги)"
+  plan_refs:
+    - "workflow-decompose §7 (plan ссылка на index)"
+    - "workflow-decompose §7b (FINISH: load_now → s01, code_changed: no)"
+    - "context-economy-cc: activeContext 1× re-read перед FINISH allowed"
+  files:
+    - "memory-bank/activeContext.md"
+    - "memory-bank/back/plan/plan-T-HUB-010-clarify-spec-quality.md"
+    - "memory-bank/back/plan/decompose-T-HUB-010-clarify-spec-quality/index.yaml"
+
+as_built:
+  - "activeContext.md — содержит данные предыдущей сессии (PLAN done)"
+  - "plan-T-HUB-010 §следующий режим — указан DECOMPOSE; после этого шага → IMPLEMENT"
+  - "index.yaml — будет создан в этом шаге (SoT)"
+
+delta:
+  - "WRITE index.yaml (schema: epic-decompose-index/v1):
+      plan_id: T-HUB-010
+      steps:
+        - {id: s01, file: s01-shared-clarify-core-back-workflow.yaml, title: 'Shared clarify-core + BACK workflow + lean + template', next_phase: BACK IMPLEMENT, status: pending}
+        - {id: s02, file: s02-front-integ-clarify-slash.yaml, title: 'FRONT/INTEG wrappers + lean ×2 + slash ×3', next_phase: BACK IMPLEMENT, status: pending}
+        - {id: s03, file: s03-plan-templates-what-how.yaml, title: 'plan.md + integration-plan.md WHAT/HOW sections', next_phase: BACK IMPLEMENT, status: pending}
+        - {id: s04, file: s04-mainrule-plan-gate-paths.yaml, title: 'mainrule registration + plan gate + memory-bank-paths', next_phase: BACK IMPLEMENT, status: pending}
+        - {id: s05, file: s05-role-command-refs-claude.yaml, title: 'role-command parity + speckit-adapt-010.md + CLAUDE.md', next_phase: BACK IMPLEMENT, status: pending}
+        - {id: s06, file: s06-qa-smoke-rg.yaml, title: 'QA smoke: rg AC+ ×7 + dry-run clarify', next_phase: BACK QA, status: pending}
+        - {id: s07, file: s07-finish-activecontext.yaml, title: 'activeContext Handoff + index update — FINISH', next_phase: BACK IMPLEMENT, status: in_progress}"
+  - "EDIT activeContext.md:
+      ## Handoff — T-HUB-010 clarify-spec-quality DECOMPOSE ✓
+      - Эпик: T-HUB-010 — CLARIFY workflow + WHAT/HOW plan templates + [НУЖНО УТОЧНИТЬ] markers
+      - Status: DECOMPOSE завершён; следующий: BACK IMPLEMENT s01
+      - load_now: memory-bank/back/plan/decompose-T-HUB-010-clarify-spec-quality/s01-shared-clarify-core-back-workflow.yaml
+      - index: decompose-T-HUB-010-clarify-spec-quality/index.yaml (SoT)
+      - Последовательность: s01→s02→s03→s04→s05→s06(QA)→s07(FINISH)
+      - Новый чат для IMPLEMENT (context-session economy §2)"
+  - "EDIT plan-T-HUB-010.md §Следующий режим:
+      - Обновить: '→ [decompose-T-HUB-010-clarify-spec-quality/index.md](…/index.md) — DECOMPOSE ✓'
+      - Ссылка на index как единственный трекер; удалить дубль §До DECOMPOSE нарезки (заменить ссылкой на index)"
+
+deletes: []
+
+out_of_scope:
+  - "IMPLEMENT кода — следующий чат"
+  - "graphify update — только если indexer покрывает .mdc/.md (опционально)"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "index.yaml создан, schema = epic-decompose-index/v1, s01–s07 присутствуют со status pending/in_progress"
+    verify: "rg -n 'schema\\|s01\\|s07' memory-bank/back/plan/decompose-T-HUB-010-clarify-spec-quality/index.yaml | head -15"
+  - id: cp2
+    criterion: "activeContext.md содержит load_now ссылку на s01-*.yaml"
+    verify: "rg -n 'load_now\\|s01-shared' memory-bank/activeContext.md | head -5"
+  - id: cp3
+    criterion: "plan-T-HUB-010.md содержит ссылку на index.md как трекер"
+    verify: "rg -n 'decompose-T-HUB-010.*index' memory-bank/back/plan/plan-T-HUB-010-clarify-spec-quality.md | head -3"
+
+verify:
+  - "rg 'epic-decompose-index/v1' memory-bank/back/plan/decompose-T-HUB-010-clarify-spec-quality/index.yaml — schema OK"
+  - "rg 'load_now' memory-bank/activeContext.md — Handoff записан"
+
+tdd:
+  - "docs/meta. Успех = следующий IMPLEMENT может грузить s01 через load_now без поиска."

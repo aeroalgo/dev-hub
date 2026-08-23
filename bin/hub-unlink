@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Remove hub symlinks from a product repo (keeps AGENTS.md / .dev-hub).
+set -euo pipefail
+PRODUCT_ROOT="${1:-${PROJECT_ROOT:-$PWD}}"
+PRODUCT_ROOT="$(cd "$PRODUCT_ROOT" && pwd)"
+for name in \
+  .cursor/rules .cursor/templates .agents CLAUDE.md \
+  .claude/agents .claude/hooks .claude/skills .claude/commands \
+  .claude/instructions .claude/rules .claude/settings.json .claude/project.env \
+  .claude/project.env.local
+do
+  dest="$PRODUCT_ROOT/$name"
+  if [[ -L "$dest" ]]; then
+    rm "$dest"
+    echo "removed $name"
+  fi
+done
+# drop empty dirs
+for d in .cursor .claude; do
+  if [[ -d "$PRODUCT_ROOT/$d" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/$d" 2>/dev/null | grep -v '^\(runtime\|worktrees\)$' || true)" ]]; then
+    # keep runtime/worktrees; only remove if nothing left but those — skip auto-rmdir of .claude
+    :
+  fi
+  if [[ -d "$PRODUCT_ROOT/$d" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/$d" 2>/dev/null)" ]]; then
+    rmdir "$PRODUCT_ROOT/$d" 2>/dev/null || true
+  fi
+done
+echo "OK hub-unlink $PRODUCT_ROOT"

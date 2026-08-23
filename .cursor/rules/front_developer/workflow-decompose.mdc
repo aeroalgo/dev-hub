@@ -1,0 +1,111 @@
+---
+description: "Режим FRONT DECOMPOSE — план → атомарные шаги sNN"
+alwaysApply: false
+---
+### Команда: FRONT DECOMPOSE
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/decompose.mdc
+**Situational skills:** @.cursor/rules/front_developer/skills-gate-situational.mdc (allowlist + checklist + Design Core)
+**Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если размыто)  
+**Не грузить:** `executing-plans`, `breakdown-plan`
+
+**Цель:** `plan-<id>.md` → `memory-bank/front/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
+**Вход:** `load_now` или `FRONT DECOMPOSE plan-<id>` (в одном сообщении).
+
+---
+
+## Outcome preserve — не ужимать контекст плана (HARD)
+
+Как BACK: нарезать без сужения Goal/UX/NFR плана. В `index.md` — **`## Outcome map (plan → steps)`**. Каждый `sNN.goal` — user-visible / UX outcome, не только «создать компонент».
+
+**Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph/лимита шагов; черновик count в plan — advisory. Канон формулировок: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
+
+---
+
+## Replacement cleanup — удалять вытесненный UI-код (HARD)
+
+FRONT DECOMPOSE **обязан** нарезать удаление устаревших компонентов/hooks/clients/styles, которые эпик заменяет. Иначе IMPLEMENT плодит мёртвые модули и mock-ветки.
+
+**PLAN** называет поверхности (`## Replacement / sunset` **A/B/C**); **DECOMPOSE** делает их атомарными (`deletes:` + sNN + verify); **IMPLEMENT** только исполняет список из step.  
+**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+
+### REQUIRED
+
+1. В `index.md` — секция **`## Replacement cleanup (plan → steps)`** (Kind A|B|C + Fallback?). Нет секции = FAIL.
+2. Каждая строка плана sunset A/B/C → ≥1 `sNN` с **непустым** `deletes:` (пути `.tsx`/`.ts`/hooks/utils **и/или** export-символы), **или** out_of_scope + follow-up epic **в queue**.
+3. Greenfield / нет замен → одна строка `n/a — нет замен`.
+4. У каждого `sNN`: поле **`deletes:`** (`[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
+5. Цепочка OK: `add новый UI → migrate imports → delete старый`. Delete-шаг **в очереди обязателен**, если замена есть.
+6. Непустой `deletes` → ≥1 checkpoint `verify` через `rg` / import-audit: старый путь/символ **без живых callers** (и Vitest/Playwright переведены на новое).
+7. `out_of_scope: оставить shim/mock` — только с follow-up epic ID **в queue**; иначе FAIL.
+8. **Финальный purge:** cleanup ≠ n/a → `sNN-*-legacy-fallback-purge` (остаток A+B+C + anti-fallback rg + routes/scripts inventory из plan B). Нет purge = FAIL.
+
+### FORBIDDEN
+
+- Replace UI в `delta` без владельца `deletes` в этом или более позднем sNN.
+- «Оставим старый компонент на всякий случай» без out_of_scope + follow-up.
+- Считать `files:` достаточным для удаления.
+- Растворить cleanup только в Outcome map без sNN/`deletes`.
+- Soft mock/default в prod path «для DX».
+
+---
+
+## Skills gate → каждый `sNN` (HARD)
+
+Канон для IMPLEMENT — **только** списки в step. IMPLEMENT **не** угадывает скиллы и **не** держит широкий слой A.
+
+Каждый FRONT `sNN`: `**visible_ui:**` + **Impl skills** = **Impl Core ∪ situational** (+ **Design Core** пакет если `yes`).
+
+**FORBIDDEN в `impl:` любого `sNN`:** `writing-plans` · `brainstorming` · `executing-plans` · `breakdown-plan` — они **сессионные** (DECOMPOSE-only). В `impl:` — **только Impl Core + allowlist** из `skills-gate-situational.mdc`. Поставить session skill в `impl:` = FAIL.
+
+### Impl Core (всегда — ровно эти 6)
+
+- `.agents/skills/tdd/SKILL.md`
+- `.agents/skills/frontend-testing/SKILL.md`
+- `.agents/skills/frontend-patterns/SKILL.md`
+- `.agents/skills/next-best-practices/SKILL.md`
+- `.agents/skills/vercel-react-best-practices/SKILL.md`
+- `.agents/skills/vercel-composition-patterns/SKILL.md`
+
+### Situational + Design
+
+1. **Read** @.cursor/rules/front_developer/skills-gate-situational.mdc
+2. Прогони **Checklist — DECOMPOSE** (`visible_ui`, playwright, …)
+3. `visible_ui: yes` → скопировать **Design Core** (все 6) в блок Design skills  
+   `visible_ui: no` → `**Design skills:** —` + причина
+4. Cap situational ≤ **4** (+ 6 Impl Core; Design Core не в cap situational)
+5. В step — только итоговые пути + `#`-комментарий почему (silent = FAIL). **FORBIDDEN:** скиллы вне allowlist/пакетов; копировать весь checklist в `sNN`; skill без обоснования
+
+**Сессия DECOMPOSE:** если ≥1 шаг с `visible_ui: yes` — **Read Design Core один раз** до нарезки этих `sNN`.
+
+**FINISH-only** (не в `sNN`): `verification-before-completion` · `requesting-code-review`
+
+**Index:** «per-step skills gate (Impl Core + situational + Design Core); канон в каждом sNN».
+
+IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. `workflow-implement.mdc`.
+
+---
+
+**Процесс**:
+1. `OK FRONT DECOMPOSE - [plan_id]`
+1a. Прочитай **Gates** + **skills-gate-situational**
+2. Прочитай план (L3–4: все shards) — выпиши AC/NFR/этапы UX + **Replacement / sunset**
+2b. UI в scope → Read Design Core до нарезки `visible_ui: yes`
+3. В `index.md`: Requirements / Stages / Outcome map / **Replacement cleanup** + Skills note (gate, не полный каталог)
+4. Атомарные шаги: files, `deletes`, `step_id`, `needs_creative`, `visible_ui`, next (`creative`|`implement`), `tdd: true`; brownfield UI replace → явные delete/cutover sNN
+5. Каждый `sNN-<slug>.yaml` (@.cursor/templates/decompose/epic-step.yaml): skills gate + lean-интерфейсы (без полных interface/TSX), процесс, тест-кейсы, checkpoint, **`deletes`**
+5a. **FAIL** без `visible_ui` / без Impl Core / `yes` без Design Core / `no` без причины / situational вне allowlist / situational >4
+5b. **FAIL** если нет Outcome map / Requirements / Stages / Replacement cleanup
+5c. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` в очереди (shared/workflow-legacy-fallback-cleanup.mdc)
+5c. **FAIL** если план заменяет UI-поверхность, а нет sNN с `deletes` (и нет out_of_scope+follow-up)
+5d. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
+6. Папка из `.cursor/templates/decompose/`. `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
+7. Plan: index = единственный трекер; удали дубль-чеклисты sNN
+7b. **FINISH:** finish-block (`code_changed: no`) — `load_now` → `s01-*.md`
+8. `tasks.md` append-only
+9. Next: CREATIVE или IMPLEMENT
+10. **Новый чат** для IMPLEMENT
+
+**Границы:** нет кода/тестов реализации; нет design-решений вне плана (`needs_creative`); **не ужимать coverage** (Maximal detail + Outcome preserve + Replacement cleanup).
+
+**Верификация**: gates + `visible_ui` + Impl skills (+ Design block) + Replacement cleanup

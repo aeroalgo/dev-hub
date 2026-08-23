@@ -1,0 +1,45 @@
+---
+description: "Режим BACK PLAN — детальный план по уровню сложности"
+alwaysApply: false
+---
+### Команда: BACK PLAN
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+**Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Скиллы:**
+- @.agents/skills/writing-plans/SKILL.md
+- @.agents/skills/grill-me/SKILL.md (только блокирующие неясности)
+- @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch, без HARD-GATE пауз)
+- @.agents/skills/python-testing-patterns/SKILL.md
+- @.agents/skills/fastapi-templates/SKILL.md (если FastAPI в techContext)
+- @.agents/skills/sqlalchemy-postgres/SKILL.md (если SQLAlchemy / Alembic)
+- @.agents/skills/supabase-postgres-best-practices/SKILL.md (если Postgres)
+- @.agents/skills/async-python-patterns/SKILL.md (если async / WS в scope)
+- @.agents/skills/websocket-engineer/SKILL.md (если realtime / WS)
+- @.agents/skills/architecture-patterns/SKILL.md (L3–4)
+- @.agents/skills/python-design-patterns/SKILL.md (L3–4)
+
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+
+**Batch:** шаги 1–8 за один проход; grill-me только при блокерах; вопросы пакетом.
+
+**Процесс**:
+1. `OK BACK PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
+1a. Прочитай **Gates**
+1b. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
+2. `tasks.md` → level (+ свободные `T-xxx` при multi-epic)
+3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → brainstorming / architecture-patterns
+3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** (оба обязательны) → полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0 каждый файл). Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
+4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback)
+5. CREATIVE need? (per epic при multi-epic)
+6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
+7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `BACK ROADMAP MERGE` → затем `BACK DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+8. Next: L2+ обычно → **BACK DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
+
+**После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
+
+**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `decompose-*/index.md`, **не** меняет колонку status/чеклист, **не** перезаписывает `activeContext.md` Handoff этого эпика. Roadmap-ссылку в шапке index можно StrReplace одной строкой. Status только `epic_resolve.py mark-index-status` / `finalize-step`. Рассинхрон yaml↔md → `repair-index-mirror`, не руками и не `sync-index-yaml --from-md-status`.
+
+**Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks (если research) + brownfield sunset A/B/C (если replace)

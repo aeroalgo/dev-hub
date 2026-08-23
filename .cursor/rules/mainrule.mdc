@@ -1,0 +1,98 @@
+---
+description: "Корневая карта команд — роутер workflow (always)"
+alwaysApply: true
+---
+# WORKFLOW ROUTER
+
+**Layer 0:** @.cursor/rules/token-economy-core.mdc (token economy, approval gate, doc format)
+
+**Test runner policy:** @.cursor/rules/shared/test-timeout.mdc (all test commands: 300s external timeout)
+
+`memory-bank/` — канон артефактов. **Router:** `activeContext.md` → `load_now`. Index-only: `tasks.md`, `systemPatterns.md`, `plan-*`, `architecture/index.md`. Shards: `domain/` (SP), `architecture/*`, `back/creative/shards/` (ERD/TG). Plan/gap/architecture не резать — `plan-*.md` + `decompose-*/` + `architecture/**`. Скиллы — `@.agents/skills/` (читать по цепочке, не индексировать весь каталог).
+
+## Когда что грузить
+
+| Сообщение | Действие |
+|-----------|----------|
+| Обычный вопрос, без команды роли | **Не** читай workflow, isolation rules, `.agents/skills/` |
+| Идея продукта без команды роли, но явный запрос «примени workflow» / «от идеи до реализации» | **IDEA PIPELINE** — @.cursor/rules/shared/workflow-idea-pipeline.mdc |
+| Есть команда (`BACK IMPLEMENT`, `PM PLAN`, `IDEA PIPELINE`, …) | Цепочка ниже, **до** ответа |
+
+## Цепочка при распознанной команде
+
+0. **graphify (ориентация по графу)** — @.cursor/rules/graphify.mdc. Только для команд с кодом/ориентацией по codebase: `BACK/FRONT/INTEG IMPLEMENT`, `TASK`, `BUGFIX`, `REFACTOR`, `QA`, **`SECURITY` execute (@aNN / S)**; также `PM DISCOVER`, `TL SYNC DEV`; **brownfield `BACK/FRONT/INTEG VAN`** (карта `architecture/`). **Пропуск:** greenfield VAN, PLAN, DECOMPOSE, CREATIVE, REFLECT, ARCHIVE NOW, **`SECURITY PLAN` / `SECURITY DECOMPOSE`**, GAP (если только docs). CONTENT/MARKETING/SEO — пропускают. **Hub repos без `graph.json`:** N/A protocol — не halt, fallback inventory (@.cursor/rules/graphify.mdc §Hub / tooling repositories). **INTEG PLAN:** inventory mode — не query, читай `workflow-integ-plan.mdc` (@.cursor/rules/graphify.mdc §Plan exceptions).
+1. **Индекс роли** — таблица «Префикс → индекс»
+2. **Core роли** — `mainrule-core` (BACK/FRONT) или `*-core.mdc` (остальные роли)
+3. **Workflow** — файл из индекса роли для этой команды (`workflow-*.mdc`)
+4. **Скиллы** — только пути из шага 3; читай `SKILL.md`. `references/FULL-GUIDE.md` — только если workflow явно требует полный гайд
+
+Распознавание: токен префикса + режим в **UPPERCASE** (`BACK`, `FRONT`, `PM`, `TL`, `CONTENT`, `MARKETING`, `SEO`). Многословные: `BACK ARCHIVE NOW`, `BACK|FRONT|INTEG ROADMAP MERGE`, `PM DISCOVER MARKET`, `SEO CONTENT OPS`, `BACK|FRONT|INTEG SECURITY PLAN`, `BACK|FRONT|INTEG SECURITY DECOMPOSE`, `BACK|FRONT|INTEG REFACTOR PLAN`, `BACK|FRONT|INTEG REFACTOR DECOMPOSE`.
+
+## Префикс → индекс → core
+
+| Префикс | Индекс | Core (шаг 2) |
+|---------|--------|--------------|
+| `BACK` | @.cursor/rules/back_developer/mainrule.mdc | @.cursor/rules/back_developer/mainrule-core.mdc |
+| `FRONT` | @.cursor/rules/front_developer/mainrule.mdc | @.cursor/rules/front_developer/mainrule-core.mdc |
+| `INTEG` | @.cursor/rules/integration_developer/mainrule.mdc | @.cursor/rules/integration_developer/mainrule-core.mdc |
+| `PM` | archived — FAIL: требуется `_archive/cursor-rules/project_manager/` или restore из product repo | archived |
+| `TL` | archived — FAIL: требуется `_archive/cursor-rules/team_lead/` или restore из product repo | archived |
+| `CONTENT` | archived — FAIL: требуется `_archive/cursor-rules/content_growth/` или restore из product repo | archived |
+| `MARKETING` | archived — FAIL: требуется `_archive/cursor-rules/marketing_growth/` или restore из product repo | archived |
+| `SEO` | archived — FAIL: требуется `_archive/cursor-rules/seo_ops/` или restore из product repo | archived |
+
+В индексе роли — таблица «команда → workflow». Isolation rules — шаг `1a` внутри workflow.
+
+## Команды (распознавание)
+
+**BACK:** `VAN` `PLAN` `ROADMAP MERGE` `DECOMPOSE` `CREATIVE` `IMPLEMENT` `TASK` `BUGFIX` `REFACTOR` `QA` `SECURITY` `SECURITY PLAN` `SECURITY DECOMPOSE` `REFLECT` `ARCHIVE NOW`
+
+**FRONT:** `VAN` `PLAN` `ROADMAP MERGE` `DECOMPOSE` `CREATIVE` `IMPLEMENT` `TASK` `BUGFIX` `REFACTOR` `QA` `SECURITY` `SECURITY PLAN` `SECURITY DECOMPOSE` `REFLECT` `ARCHIVE NOW`
+
+**INTEG:** `VAN` `GAP` `GAP CLOSE` `PLAN` `ROADMAP MERGE` `DECOMPOSE` `CREATIVE` `IMPLEMENT` `TASK` `BUGFIX` `REFACTOR` `QA` `SECURITY` `SECURITY PLAN` `SECURITY DECOMPOSE` `REFLECT` `ARCHIVE NOW`
+
+**PM:** `INIT` `DISCOVER` `DISCOVER MARKET` `PLAN` `ROADMAP` `BACKLOG` `SPRINT PLAN` `JIRA` `STATUS` `SESSION` `RETRO` `ARCHIVE`
+
+**TL:** `STANDUP` `SPRINT` `DELIVERY` `BLOCKERS` `CAPACITY` `SYNC DEV`
+
+**CONTENT:** `INIT` `PLAN` `WRITE` `SEO` `AUDIT` `LAUNCH` `OPTIMIZE` `INTERVIEW`
+
+**MARKETING:** `PLAN` `ADS` `EMAIL` `MONETIZE` `RETAIN` `SOCIAL` `PR` `REVOPS`
+
+**SEO:** `TECH` `LOCAL` `LINKS` `GEO` `CONTENT OPS` `ECOMMERCE` `DATA` `COMPETITORS` `ASO`
+
+## IDEA PIPELINE (cross-role)
+
+**Команда:** `IDEA PIPELINE` · `IDEA PIPELINE CONTINUE` · `IDEA PIPELINE FINISH` · `IDEA PIPELINE STATUS`
+**Workflow:** @.cursor/rules/shared/workflow-idea-pipeline.mdc
+**Артефакты:** `memory-bank/idea/idea-<slug>.md`
+**Суть:** идея пользователя → classify intent → цепочка **существующих** role workflow → реализация по фазам (one chat = one phase).
+
+Пример: `IDEA PIPELINE главная идея — продажа эмоций` → см. `memory-bank/idea/idea-emotions-selling.md`
+
+## Быстрый выбор
+
+| Ситуация | Команда |
+|----------|---------|
+| Идея → реализация (полный цикл) | `IDEA PIPELINE <идея>` |
+| Продолжить pipeline | `IDEA PIPELINE CONTINUE` |
+| Backend API | `BACK IMPLEMENT` |
+| Frontend UI | `FRONT IMPLEMENT` |
+| Сверка BACK↔FRONT / Gaps из implement | `INTEG GAP` (`@implement` → §Gaps станет link на gap) |
+| Закрыть Gaps implement после BACK/FRONT | `INTEG GAP CLOSE` `@implement` |
+| Сквозная интеграция (API + filters + UI) | `INTEG PLAN` → `DECOMPOSE` → `IMPLEMENT` (+ GAP/CLOSE по долгу) |
+| Каталог / таблица / dashboard filters | `INTEG PLAN` → `DECOMPOSE` → `IMPLEMENT` |
+| Security audit (эпик) | `* SECURITY PLAN` → `* SECURITY DECOMPOSE` → `* SECURITY` @aNN |
+| Security audit (S one-shot) | `BACK SECURITY` · `FRONT SECURITY` · `INTEG SECURITY` |
+| SEO-гайды | `CONTENT PLAN` |
+| ТехSEO | `SEO TECH` |
+| Paid ads | `MARKETING ADS` |
+| Рынок / конкуренты | `PM DISCOVER MARKET` |
+
+## Скиллы без workflow
+
+`find-skills` · `git-commit` · `memory-management` — только по явному запросу.
+
+## Вызов
+
+Достаточно написать команду в чате: `BACK IMPLEMENT сделай эндпоинт`. @-упоминание rules опционально.

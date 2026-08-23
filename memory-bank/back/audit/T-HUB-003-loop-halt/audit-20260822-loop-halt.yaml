@@ -1,0 +1,88 @@
+schema: epic-audit/v1
+role: back
+epic_id: T-HUB-003-loop-halt
+plan_id: T-HUB-003
+date: 2026-08-22
+auditor: BACK AUDIT
+verdict: PASS
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 2
+
+gap_matrix:
+  - step_id: s01
+    plan_title: "halt matrix + pure decide helper (TDD)"
+    implement_file: implement-T-HUB-003-loop-halt/s01-decide-helper-tdd.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s02
+    plan_title: "wire loop.sh halt-parity after check-after"
+    implement_file: implement-T-HUB-003-loop-halt/s02-loop-sh-wire.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s03
+    plan_title: "last_session_path → epic_dir (TDD)"
+    implement_file: implement-T-HUB-003-loop-halt/s03-last-session-path-tdd.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s04
+    plan_title: "docs epic-loop / WORKFLOW / architecture data-flow"
+    implement_file: implement-T-HUB-003-loop-halt/s04-docs-epic-loop-workflow.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s05
+    plan_title: "workers.md + projectbrief/index gaps"
+    implement_file: implement-T-HUB-003-loop-halt/s05-workers-projectbrief-gaps.yaml
+    status: implemented
+    mark: "✅"
+  - step_id: s06
+    plan_title: "suite targeted + architecture Cursor-hooks unwired note"
+    implement_file: implement-T-HUB-003-loop-halt/s06-suite-arch-hooks-note.yaml
+    status: implemented
+    mark: "⚠️"
+    note: "AC шага закрыты; 2 deferred docs follow-up (не блокируют QA)"
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-003-loop-halt/s01-decide-helper-tdd.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-003-loop-halt/s02-loop-sh-wire.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-003-loop-halt/s03-last-session-path-tdd.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-003-loop-halt/s04-docs-epic-loop-workflow.yaml
+  - step_id: s05
+    implement_file: implement-T-HUB-003-loop-halt/s05-workers-projectbrief-gaps.yaml
+  - step_id: s06
+    implement_file: implement-T-HUB-003-loop-halt/s06-suite-arch-hooks-note.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s06
+    implement_file: implement-T-HUB-003-loop-halt/s06-suite-arch-hooks-note.yaml
+    plan_intent: "architecture index gaps закрыты / pytest entry для hub"
+    actual: "S-HOOKS-CUR unwired + techContext §Тесты (hub) сделаны; architecture/index.md gap#1 всё ещё упоминает «нет .venv»"
+    impact: low
+  - step_id: s06
+    implement_file: implement-T-HUB-003-loop-halt/s06-suite-arch-hooks-note.yaml
+    plan_intent: "optional pyproject.toml testpaths stub при необходимости"
+    actual: "stub skipped — .venv/bin/pytest уже есть; не требуется для AC"
+    impact: low
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+
+blocked_reason: ""
+next_phase: QA
+notes:
+  - |
+    Deliverable path notes (не gaps): decide helper = loop/halt_logic.py::decide_after_action;
+    workers.md = memory-bank/architecture/workers.md (не memory-bank/workers.md).
+  - |
+    Sunset deletes выполнены в s02 (NEED_HUMAN/retry+sleep ветки), s03 (hardcoded last_session path),
+    s04 (primary-canon wording `.claude/runtime/epic/`). Leftover legacy/fallback поверхностей нет.

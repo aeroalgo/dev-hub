@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-010
+title: "role-command parity check + speckit-adapt-010.md refs + CLAUDE.md optional touch — finalization layer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Завершить эпик-уровневые мета-артефакты:
+  1. Проверить/обновить `.claude/skills/role-command/SKILL.md` + зеркало `.agents/skills/role-command/SKILL.md`
+     на sync: если CLARIFY — не multi-word, убедиться что не конфликтует с таблицей; при diff != 0 — sync.
+  2. Создать `memory-bank/back/plan/refs/speckit-adapt-010.md` — кратко (telegraph): что взяли из spec-kit,
+     что отвергли, FORBIDDEN specify-cli строка.
+  3. CLAUDE.md: опционально (≤10 строк) — упомянуть CLARIFY в quick commands. Если секция quick commands
+     существует → добавить; иначе skip без ошибки.
+  Outcome: role-command parity подтверждена; refs-doc позволяет будущим читателям понять решения
+  по адаптации Spec Kit без re-reading исходников; CLAUDE.md отражает новые команды.
+  Связь с Goal/NFR: FR-11, FR-12, AC+ #7; plan §Sync note.
+
+context:
+  consumes:
+    - ".claude/skills/role-command/SKILL.md — read (проверить multi-word table)"
+    - ".agents/skills/role-command/SKILL.md — read (зеркало, сравнить)"
+    - "spec-kit/templates/commands/clarify.md — read-only ref (для refs-doc)"
+    - "CLAUDE.md — read (quick commands секция если есть)"
+    - "memory-bank/back/plan/refs/ — директория (создать если нет)"
+  produces:
+    - "memory-bank/back/plan/refs/speckit-adapt-010.md (create)"
+    - ".claude/skills/role-command/SKILL.md (edit если diff != 0)"
+    - ".agents/skills/role-command/SKILL.md (sync если diff с .claude)"
+    - "CLAUDE.md (edit ≤10 строк если quick commands секция exists)"
+  plan_refs:
+    - "FR-11 (refs-doc telegraph)"
+    - "FR-12 (role-command parity + .agents mirror sync)"
+    - "AC+ #7 (refs-doc перечисляет FORBIDDEN specify-cli)"
+    - "plan §Sync note (SoT = .claude/skills/…; sync on DECOMPOSE if diff != 0)"
+    - "CLAUDE.md §Компоненты: опционально ≤10 строк"
+  files:
+    - "memory-bank/back/plan/refs/speckit-adapt-010.md"
+    - ".claude/skills/role-command/SKILL.md"
+    - ".agents/skills/role-command/SKILL.md"
+    - "CLAUDE.md"
+
+as_built:
+  - ".claude/skills/role-command/SKILL.md — CLARIFY скорее всего не зарегистрирован как multi-word (одно слово, не нужно)"
+  - ".agents/skills/role-command/SKILL.md — зеркало; может отставать"
+  - "memory-bank/back/plan/refs/ — директория может не существовать"
+  - "CLAUDE.md — quick commands или упоминание CLARIFY отсутствует"
+
+delta:
+  - "CHECK .claude/skills/role-command/SKILL.md:
+      - CLARIFY = одно слово; в multi-word table не нужно (только ARCHIVE NOW, ROADMAP MERGE, etc.)
+      - Если diff .claude vs .agents != 0 → overwrite .agents из .claude (sync note workflow-decompose)"
+  - "CREATE memory-bank/back/plan/refs/speckit-adapt-010.md (telegraph ~30–50 строк):
+      - §Что взяли из Spec Kit:
+          - sequential Q (≤5, one per turn)
+          - Recommended/Suggested per option
+          - Q→A incremental write to draft
+          - Coverage taxonomy (8 категорий)
+          - Independent Test per Story
+          - SC-### (measurable; outcome vs buildable)
+          - компактный Completion Report
+      - §Что отвергли / адаптировали:
+          - FEATURE_DIR/specs/###-feature/ structure → наш memory-bank/{role}/clarify/
+          - `{SCRIPT}` check-prerequisites → нет; shell gates в rules
+          - extension hooks YAML → нет
+          - `__SPECKIT_COMMAND_*` placeholders → нет
+          - Constitution Articles I–IX → T-HUB-013
+          - ANALYZE/AUDIT converge → T-HUB-011/012
+          - spec-kit/extensions/assess/ → T-HUB-013 (partial)
+      - §FORBIDDEN (строка): install specify-cli / specify init / создавать .specify/ / заменять memory-bank/ на specs/
+      - §Refs: spec-kit/templates/commands/clarify.md · spec-kit/templates/spec-template.md (локальный клон)"
+  - "EDIT CLAUDE.md (если существует quick commands / slash section ≤10 строк):
+      - Добавить: `BACK|FRONT|INTEG CLARIFY` — снять ambiguity до PLAN; артефакт memory-bank/{role}/clarify/"
+
+deletes: []
+# greenfield: только создание и minor edit.
+
+out_of_scope:
+  - "ANALYZE/AUDIT commands в role-command — T-HUB-011/012"
+  - "Полный re-write role-command SKILL.md"
+  - "Добавление CLARIFY в Cursor mainrule.mdc — уже s04"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only шаг.
+
+checkpoints:
+  - id: cp1
+    criterion: "speckit-adapt-010.md создан: содержит §Что взяли, §Что отвергли, §FORBIDDEN specify-cli"
+    verify: "rg -n 'specify-cli\\|Что взяли\\|Что отвергли\\|FORBIDDEN' memory-bank/back/plan/refs/speckit-adapt-010.md | head -10"
+  - id: cp2
+    criterion: ".agents/skills/role-command/SKILL.md идентичен .claude/skills/role-command/SKILL.md (or diff == 0)"
+    verify: "diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md && echo 'IN SYNC' || echo 'DELTA FOUND'"
+  - id: cp3
+    criterion: "CLAUDE.md содержит CLARIFY упоминание (если quick commands секция существует)"
+    verify: "rg -n 'CLARIFY' CLAUDE.md | head -5 || echo 'no quick-commands section — skip OK'"
+
+verify:
+  - "rg -n 'FORBIDDEN\\|specify-cli' memory-bank/back/plan/refs/speckit-adapt-010.md — AC+ #7"
+  - "diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md || echo 'synced'"
+
+tdd:
+  - "docs-only. QA в s06: ls refs/speckit-adapt-010.md + rg AC+ #7."

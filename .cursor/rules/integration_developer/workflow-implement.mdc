@@ -1,0 +1,45 @@
+---
+description: "Режим INTEG IMPLEMENT — wire одного UI-элемента back+front"
+alwaysApply: false
+---
+### Команда: INTEG IMPLEMENT
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+**Скиллы:** query-builder · tdd · fastapi-templates · frontend-patterns · frontend-testing · vercel-react-best-practices · verification-before-completion
+
+**Цель:** Один UI-элемент — live API, без mock в prod path.
+
+**Процесс**:
+1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · graphify
+2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`  
+   **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`. Jump `plan §N` только при нехватке.
+3. **Contract gate:** §Contract из шага — пуст → допиши до кода
+
+## Фазы A–F
+
+**A** Discovery: §UI/API/Data/DB; grep mock; §Gaps  
+**B** BACK (если §BACK): schema → endpoint → targeted `.venv/bin/pytest`  
+**C** FRONT: api client → filter-utils → vitest → убрать mock  
+**D** Wire: fetch + loading/error + URL sync  
+**E** §0.11 + mock удалён + все `deletes:` из eNN выполнены  
+**E2** Scenario: user-visible → Playwright **или** pytest HTTP outcome  
+**F** FINISH: finish-block — Write step (в т.ч. `deletes`) → `validate-step` → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`)  
+Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
+
+## Step format (HARD — loop after-hook)
+
+Шаблон: `@.cursor/templates/implement/epic-step.yaml`. Канон = `epic_lib.validate_implement_step_format` = `@verify` §6.
+
+| Обязательно | Значение |
+|-------------|----------|
+| yaml keys | `plan_id` · `element_ref` · `grep_control` · `verification_results` · `gaps` · `checkpoints[]` · pre-FINISH `status: in_progress` (`completed` только `finalize-step`) |
+
+Самопроверка перед finalize: `python3 .claude/hooks/epic_resolve.py validate-step --path memory-bank/integration/implement/implement-<plan>/eNN-<slug>.yaml`
+
+**FORBIDDEN:** `.md` shard для eNN · BACK-секции вместо integ-обязательных · `## Handoff` в step.
+
+
+**Антипаттерны:** query-builder/references/ANTI-PATTERNS.md
+
+**Верификация**: gates + §0.11 + deletes executed + FINISH + graphify

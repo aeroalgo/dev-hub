@@ -1,0 +1,42 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-002
+plan_id: T-HUB-002-canon-sync
+epic_id: T-HUB-002-canon-sync
+date: "2026-08-22"
+reviewer: claude-sonnet-5 + reviewer subagent
+verdict: pass
+
+scope:
+  - "epic: T-HUB-002-canon-sync"
+  - "steps: s01–s06"
+  - "files: .claude/commands/back-qa.md, front-qa.md"
+  - "files: .cursor/rules/back_developer/workflow-qa.mdc + _lean/qa.mdc"
+  - "files: .cursor/rules/front_developer/workflow-qa.mdc + _lean/qa.mdc"
+  - "files: .cursor/rules/integration_developer/workflow-qa.mdc + _lean/qa.mdc"
+  - "files: .cursor/templates/qa/epic-step.yaml"
+  - "files: loop/tests/test_reducer_qa_bugfix.py"
+
+checks:
+  - "suite: loop/tests/test_reducer_qa_bugfix.py — 6 passed in 0.09s (python3 -m pytest -q --tb=short)"
+  - "back-qa.md / front-qa.md → role-command/SKILL.md: PASS"
+  - "workflow-qa.mdc back/front/integ → _lean/qa.mdc gates refs: PASS"
+  - "_lean/qa.mdc epic-scoped qa paths (memory-bank/.../qa/<epic_id>/qa-YYYYMMDD-*.yaml): PASS"
+  - "epic-step.yaml schema: epic-qa/v1: PASS"
+  - "lifecycle coverage: qa_failed → bugfix_reopens_qa → qa_passed → REFLECT: PASS"
+  - "§0.11 phantom refs check: PASS (epic-scoped-paths.mdc, workflow-legacy-fallback-cleanup.mdc, mainrule-core.mdc, role-command/SKILL.md exist)"
+  - "reviewer gate VERDICT: PASS"
+  - "AUDIT verdict: PASS (audit-20260822-canon-sync.yaml) — not_implemented: []"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Trailing backtick в CLAUDE.md:38 — косметически, не блокирует QA (аномалия зафиксирована в audit)"
+  - "front/integ mainrule-core.mdc не проверялись в reviewer (вне ALLOW); риск низкий"
+
+suite:
+  - "python3 -m pytest loop/tests/test_reducer_qa_bugfix.py -q --tb=short"

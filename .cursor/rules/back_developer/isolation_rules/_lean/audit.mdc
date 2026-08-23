@@ -1,0 +1,28 @@
+---
+description: "AUDIT gates — plan vs implement gap, delta report, new decompose shards (lean)"
+alwaysApply: false
+---
+# AUDIT — gates
+**Артефакт:**
+`memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v1`)
+
+## Gates (обязательные — узкий путь)
+1. Lean load §7: `load_now` + `plan-<epic_id>.md` + заголовки `implement-*/sNN|eNN-*.yaml` + `decompose/index.md` (coverage) + `index.yaml` (status); **не** читать полный текст каждого shard
+2. Построить gap-матрицу:
+   - **✅ реализовано** — `step_id` из decompose index присутствует в `implement-<epic_id>/` как файл
+   - **❌ не реализовано** — `step_id` есть в плане/decompose, но файла implement нет
+   - **⚠️ отклонение** — файл implement есть, но цель/delta в нём расходится с планом (фиксируется только в delta-отчёте, без нового shard)
+3. Для каждого ❌ → новый decompose shard `sNN-audit-<slug>.yaml` в `decompose-<epic_id>/`; формат = `.cursor/templates/decompose/epic-step.yaml`; обновить `index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`
+4. Артефакт audit yaml: секции `implemented[]`, `not_implemented[]`, `deviations[]`, плюс при brownfield replace: `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`; путь с `<epic_id>/`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §4
+5. Append в tasks log
+5a. **blocked:** `blocked_reason` в audit yaml + Handoff → `finish-doc-router.md`
+5b. Непустой `legacy_surfaces_remaining` / `fallback_remaining` → новые `*-audit-*` shards (не пускать в QA как clean)
+6. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index (обновлён новыми sNN)
+
+## Abort
+- AUDIT без `epic_id` → reject (нет ad-hoc режима)
+- Артефакт в корне `audit/` без `<epic_id>/` → FAIL
+- Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
+- FINISH без gap-матрицы в артефакте → FAIL
+- Brownfield replace: нет полей leftover / `purge_step_present=false` при sunset ≠ n/a → FAIL

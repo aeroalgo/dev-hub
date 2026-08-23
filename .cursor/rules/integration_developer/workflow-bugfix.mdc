@@ -1,0 +1,18 @@
+---
+description: "Режим INTEG BUGFIX — contract drift"
+alwaysApply: false
+---
+### Команда: INTEG BUGFIX
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+**Скиллы:** query-builder · diagnosing-bugs · systematic-debugging · tdd · playwright-best-practices · playwright-generate-test · frontend-testing
+
+**Процесс**:
+1. `OK INTEG BUGFIX - Ищу причину рассинхрона` → **Gates**
+2. **Вход из QA:** §Fix plan → `INTEG|BACK|FRONT BUGFIX <subject>` по владельцу
+3. TDD failing test → root cause → fix; scenario если user-visible — **parent** runs FRONT tests
+4. `integration/bugfix/bugfix-*.md`; contract update if keys
+5. **FINISH:** finish-block (`code_changed: yes`); Handoff → runner next session  
+   Next-mode: `memory-bank/activeContext.md` + decompose index · §BUGFIX FINISH
+
+**Верификация**: gates + scenario + FINISH + graphify

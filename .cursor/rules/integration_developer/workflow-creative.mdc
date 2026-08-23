@@ -1,0 +1,22 @@
+---
+description: "Режим INTEG CREATIVE — решения контракта/filters"
+alwaysApply: false
+---
+### Команда: INTEG CREATIVE
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/creative.mdc
+**Скиллы:**
+- @.agents/skills/brainstorming/SKILL.md → секция **OVERRIDE — BACK/FRONT/INTEG CREATIVE** (batch; без one-at-a-time / wait-for-approval)
+- @.agents/skills/architecture-patterns/SKILL.md
+
+**Процесс**:
+1. `OK INTEG CREATIVE - Проектирую контракт интеграции`
+1a. Прочитай **Gates**
+2. ≥2 варианта: facets vs meta · period · key style · URL vs context
+3. `integration/creative/creative-<feature>.md`; contract draft
+3a. **Rewire dependents (обязательно до FINISH):** все `decompose-*/eNN-*.yaml` и index, где `needs_creative` / blockers ссылаются на этот creative. Канон: `.cursor/templates/decompose/epic-step.yaml` + `index.md`.
+   - markdown-ссылка на creative в шаге; при всех CR closed → `needs_creative: yes (CR-…) — **closed**` + Next Phase IMPLEMENT; при open → `yes (<open>)` + CREATIVE
+   - index: blockers `✅`; колонка `yes (CR-…) ✅` (не `yes (done)`); snapshot §Handoff обновить
+   - **FAIL** если creative closed без кликабельной ссылки в зависимом `eNN`
+4. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — только после 3a  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index

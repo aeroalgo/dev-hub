@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-005
+title: "Wire cheatsheet links — 4 workflow files reference new cheatsheets in header"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Агент читает 4 workflow-файла и сразу видит ссылку на cheatsheet в шапке — без необходимости
+  читать весь файл ради ориентира. Закрывает FR-3, AC+ #2, AC+ #3.
+  Зависит от s01 + s02 (файлы уже созданы).
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/workflow-implement.mdc
+    - .cursor/rules/integration_developer/workflow-plan.mdc
+    - .cursor/rules/back_developer/workflow-plan.mdc        # для проверки (не добавляем здесь)
+    - .cursor/rules/shared/cheatsheets/back-implement.mdc   # из s01
+    - .cursor/rules/shared/cheatsheets/integ-plan.mdc       # из s02
+  produces:
+    - .cursor/rules/back_developer/workflow-implement.mdc   # EDIT — добавить cheatsheet ссылку
+    - .cursor/rules/integration_developer/workflow-plan.mdc # EDIT — добавить cheatsheet ссылку
+    - .cursor/rules/back_developer/workflow-plan.mdc        # EDIT — добавить cheatsheet ссылку (FR-3)
+    - .cursor/rules/integration_developer/workflow-implement.mdc  # EDIT — если файл существует
+  plan_refs:
+    - plan-T-HUB-005-simplify-docs.md §FR-3 §AC+ #2 §AC+ #3
+  files:
+    - .cursor/rules/back_developer/workflow-implement.mdc
+    - .cursor/rules/integration_developer/workflow-plan.mdc
+    - .cursor/rules/back_developer/workflow-plan.mdc
+
+as_built:
+  - "workflow-implement.mdc (back): 37 строк, начинается с --- / description; нет cheatsheet link"
+  - "workflow-plan.mdc (integ): 48 строк; нет cheatsheet link"
+  - "workflow-plan.mdc (back): 44 строки; нет cheatsheet link"
+
+delta:
+  - |
+    workflow-implement.mdc (back) — добавить в шапку (после Gates-строки):
+    **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+  - |
+    workflow-plan.mdc (integ) — добавить в шапку (после §0.0 строки):
+    **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/integ-plan.mdc
+  - |
+    workflow-plan.mdc (back) — добавить в шапку (после §0.0 SUSPENSION строки):
+    **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+    # back-implement cheatsheet покрывает hot path implement; PLAN отдельный файл не нужен
+    # (FR-3 требует именно implement + plan ссылались на cheatsheet)
+
+deletes: []
+# Только добавления; ничего не убираем на этом шаге
+
+out_of_scope:
+  - workflow-plan.mdc (front) — FR-3 явно называет только back_developer и integration_developer
+  - изменение workflow-decompose.mdc / workflow-qa.mdc — вне scope
+  - trim SUSPENSION dupes — это s04
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'cheatsheet' back_developer/workflow-implement.mdc → hit"
+    verify: "rg -n 'cheatsheet' .cursor/rules/back_developer/workflow-implement.mdc"
+  - id: cp2
+    criterion: "rg 'cheatsheet' integration_developer/workflow-plan.mdc → hit"
+    verify: "rg -n 'cheatsheet' .cursor/rules/integration_developer/workflow-plan.mdc"
+  - id: cp3
+    criterion: "rg 'cheatsheet' back_developer/workflow-plan.mdc → hit"
+    verify: "rg -n 'cheatsheet' .cursor/rules/back_developer/workflow-plan.mdc"
+  - id: cp4
+    criterion: "Остальные gates в workflow-implement.mdc не затронуты (wc -l не уменьшился значительно)"
+    verify: "wc -l .cursor/rules/back_developer/workflow-implement.mdc .cursor/rules/integration_developer/workflow-plan.mdc"
+
+verify: []
+tdd: []

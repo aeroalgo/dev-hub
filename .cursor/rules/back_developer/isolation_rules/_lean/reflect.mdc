@@ -1,0 +1,29 @@
+---
+description: "REFLECT gates — post-implementation review (lean)"
+alwaysApply: false
+---
+# REFLECT — gates
+
+**Артефакт:** `memory-bank/back/reflection/reflection-[task_id].md`
+
+## Gates
+
+1. Implementation завершена (QA pass или scope done)
+2. reflection: successes, problems, lessons, improvements
+3. Compare vs plan/decompose
+4. **Orchestration signals:** `events.jsonl` (epic) + `.claude/runtime/epic/{last-session,checkpoint,state}.json`; session logs только при аномалии
+5. **Promote candidates:** каждый сигнал → `workflow` | `loop/hooks` | `skip`
+6. `tasks.md` append-only
+
+## Level delta
+
+| L | Depth |
+|---|--------|
+| L2 | краткая, key lessons + orchestration summary |
+| L3 | + process / component notes |
+| L4 | + architectural / cross-cutting + orchestration anomalies |
+
+## Abort
+
+- Не завершено → QA / IMPLEMENT first
+- Нет секций Orchestration signals / Promote candidates → FAIL

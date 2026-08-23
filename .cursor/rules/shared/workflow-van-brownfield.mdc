@@ -1,0 +1,104 @@
+---
+description: "Brownfield VAN — as-built architecture map (shared by BACK/FRONT/INTEG VAN)"
+alwaysApply: false
+---
+# VAN BROWNFIELD — as-built map
+
+**Канон карты:** `memory-bank/architecture/`  
+**Шаблоны:** `.cursor/templates/architecture/`  
+**Paths:** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc  
+**Economy:** architecture shards = **§0.0 SUSPENSION GUARD** (как plan/gap) — деталь без telegraph / 200-line cap.
+
+## Detect mode
+
+| Signal | Mode |
+|--------|------|
+| Есть `apps/` **или** `app/` **или** `frontend/` **или** `docker-compose*.yml` **или** миграции/модели | **brownfield** |
+| Только пустой/scaffold MB, кода продукта нет | **greenfield** |
+
+Сомнение → **brownfield**.
+
+## Scope by role
+
+| Command | Writes / refreshes |
+|---------|-------------------|
+| `INTEG VAN` | **все** shards `architecture/` (front нет → `frontend.md` = `status: absent`) |
+| `BACK VAN` | `overview` (backend slice) · `services` · `data-flow` · `erd` · `workers` · `containers` — **не** обязан полный `frontend.md` |
+| `FRONT VAN` | `overview` (UI slice) · `frontend.md` · ссылки на API/consumers; backend ERD/workers — только если нужны для UI |
+
+Session log (тонкий, telegraph OK):
+- BACK → `memory-bank/back/van/van-YYYYMMDD.md`
+- FRONT → `memory-bank/front/van/van-YYYYMMDD.md`
+- INTEG → `memory-bank/integration/van/van-YYYYMMDD-<slug>.md`
+
+Session log = mode + L + next + **links** на обновлённые architecture shards. Не дублировать схемы в van-логе.
+
+## SUSPENSION GUARD (architecture OUTPUT)
+
+При записи `memory-bank/architecture/**`:
+
+- `SUSPENSION GUARD active — architecture map output unlimited`
+- FORBIDDEN: telegraph / «кратко» / оглавление без схем / omit mermaid «ради токенов»
+- REQUIRED: maximally detailed as-built; chat summary 1–3 sentences OK
+
+## Sources (обязательный inventory)
+
+1. `memory-bank/projectbrief.md`, `techContext.md`, `systemPatterns.md` (если есть)
+2. **graphify** из корня: `.venv/bin/graphify query|path|explain` (HARD — brownfield VAN **не** пропускает graphify)
+3. `docker-compose*.yml` / Dockerfile* / k8s / systemd unit если есть
+4. entrypoints: `apps/**`, `app/**`, workers, cron, sidecar
+5. DB: SQLAlchemy/Prisma/models + Alembic/migrations → ERD
+6. queues / IPC / MQTT / Redis / NOTIFY / Celery / RQ / ARQ
+7. ETL / pipelines / batch jobs
+8. external systems (OPC UA, Modbus, APS, S3, …)
+9. Front (если есть): `frontend/` routes, screens, API clients, realtime
+10. README / docs только как hint — **код = source of truth**
+
+## Required shards
+
+| File | Content |
+|------|---------|
+| `index.md` | оглавление, last refresh, role that refreshed, gaps |
+| `overview.md` | продукт, границы, версии, actors |
+| `services.md` | сервисы/процессы + mermaid взаимодействия |
+| `data-flow.md` | пайплайны данных / ETL / sample→store→API→UI |
+| `erd.md` | ERD / ключевые таблицы / связи (mermaid erDiagram) |
+| `workers.md` | async tasks, workers, queues, sidecars |
+| `containers.md` | compose nodes, networks, volumes, ports |
+| `frontend.md` | routes/screens/clients **или** `status: absent` |
+
+Отсутствующий слой (нет front / нет workers) → явная секция `absent` / `n/a` с обоснованием, **не** молчаливый пропуск.
+
+## Mermaid minimum
+
+Brownfield FAIL если нет хотя бы:
+
+1. service interaction (flowchart/C4-ish)
+2. data-flow (sequence или flowchart)
+3. ERD **или** явное `erd: n/a` (нет persistence)
+
+## Process (brownfield)
+
+1. Detect brownfield → announce guard
+2. graphify orientation
+3. Inventory sources → refresh in-scope shards (Write/Edit)
+4. Update `architecture/index.md` (last refresh + role)
+5. Complexity L1–L4 (task scope user asked **or** default «map-only» → зафиксировать L для next)
+6. Session van log + `tasks.md` append
+7. FINISH → finish-block (`code_changed: no` unless agent also edited code — обычно no)
+8. Next: L1 → IMPLEMENT; L2–4 → PLAN (INTEG: L2+ may → GAP if no fresh gap)
+
+## Greenfield (unchanged essence)
+
+1. Validate/create `memory-bank/` per paths
+2. Required roots: `tasks.md`, `activeContext.md`, `projectbrief.md`
+3. L1–L4 → tasks.md
+4. **Не** создавать полный `architecture/` (можно пустой `index.md` stub)
+5. Next mode as before
+
+## Abort
+
+- Invalid MB → fix first
+- Brownfield без graphify attempt (когда CLI доступен) → FAIL
+- Brownfield session log без links на architecture → FAIL
+- Architecture TOC-only без схем → FAIL

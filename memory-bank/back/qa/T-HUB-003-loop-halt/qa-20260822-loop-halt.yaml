@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-003
+plan_id: T-HUB-003-loop-halt
+epic_id: T-HUB-003-loop-halt
+date: "2026-08-22"
+reviewer: BACK QA + reviewer subagent (haiku)
+verdict: pass
+
+scope:
+  - "epic: T-HUB-003-loop-halt"
+  - "steps: s01–s06"
+  - "files: loop/halt_logic.py, loop/loop.sh"
+  - "files: .claude/hooks/session_resilience.py"
+  - "files: loop/tests/test_decide_after_action.py, test_loop_shell_halt_parity.py, test_last_session_path.py"
+  - "files: memory-bank/architecture/workers.md, services.md, techContext.md"
+  - "audit: back/audit/T-HUB-003-loop-halt/audit-20260822-loop-halt.yaml"
+
+checks:
+  - "suite: env -u HUB_ROOT -u DEV_HUB -u PROJECT_ROOT .venv/bin/pytest loop/tests/ -k 'check_after or decide_after_action or last_session or halt' -q --tb=line → 42 passed, 440 deselected, exit 0"
+  - "AC+ halt=true / NEED_HUMAN / EPIC_DONE / last_session_path / docs canon / workers.md / architecture gaps: PASS (reviewer)"
+  - "AC− no halt on continue / no product runtime delete / no Cursor stop-gate / extract_verdict untouched: PASS"
+  - "leftover: NEED_HUMAN outer retry+sleep after check-after removed; decide_after_action wired; prepare/DAG retry only: PASS"
+  - "§0.11 phantom refs (halt_logic, tests, workers, epic-scoped paths): PASS"
+  - "AUDIT verdict PASS; not_implemented[] empty"
+  - "reviewer gate VERDICT: PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Отложено: architecture/index.md gap#1 ещё упоминает «нет .venv» — docs follow-up (low, audit deviation)"
+  - "Отложено: minimal pyproject.toml testpaths stub — skipped; .venv/bin/pytest уже есть"
+
+suite:
+  - "timeout 300s env -u HUB_ROOT -u DEV_HUB -u PROJECT_ROOT .venv/bin/pytest loop/tests/ -k 'check_after or decide_after_action or last_session or halt' -q --tb=line"

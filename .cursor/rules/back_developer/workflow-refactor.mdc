@@ -1,0 +1,32 @@
+---
+description: "Режим BACK REFACTOR — анализ качества, memory-bank/back/refactor/"
+alwaysApply: false
+---
+### Команда: BACK REFACTOR
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/refactor.mdc  
+**Epic paths:** @.cursor/rules/shared/workflow-refactor-epic.mdc  
+**Скиллы:**
+- @.agents/skills/improve-codebase-architecture/SKILL.md
+- @.agents/skills/architecture-patterns/SKILL.md
+- @.agents/skills/python-design-patterns/SKILL.md
+- @.agents/skills/python-anti-patterns/SKILL.md
+- @.agents/skills/async-python-patterns/SKILL.md (async / concurrency refactor)
+- @.agents/skills/differential-review/SKILL.md
+- @.agents/skills/requesting-code-review/SKILL.md
+
+**Процесс**:
+1. `OK BACK REFACTOR - Начинаю`
+1a. Прочитай **Gates** + **workflow-refactor-epic** (path rule)
+1b. Detect epic: `decompose-<id>/` / `@rNN` / plan id в Handoff → **эпик**; иначе **S**
+2. `tasks.md` + load_now; skills из Impl skills шага (эпик) или analysis (S)
+3. **Эпик (M/L):** один `rNN` из decompose → code → FINISH artifact = `refactor/implement/implement-<id>/rNN-<slug>.md`  
+   **FORBIDDEN:** `session-*.md` в корне `refactor/`
+4. **Без эпика (S):** analysis(+plan) → code → FINISH artifact = `refactor/session-YYYYMMDD-<slug>.md`  
+   **FORBIDDEN:** `implement/implement-*/rNN-*.md`
+5. Behavior freeze; tests green before → refactor → green after
+6. §0.11 если refs
+7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed` по факту)  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index
+
+**Верификация**: gates + epic path rule + FINISH + graphify (если code_changed)

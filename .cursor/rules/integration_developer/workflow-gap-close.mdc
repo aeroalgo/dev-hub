@@ -1,0 +1,34 @@
+---
+description: "Режим INTEG GAP CLOSE — verify links + rewire eNN"
+alwaysApply: false
+---
+### Команда: INTEG GAP CLOSE
+**Алиасы:** `INTEGRATION GAP CLOSE` · `INTEG GAPCLOSE`
+
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/gap-close.mdc
+**Скиллы:**
+- @.agents/skills/verification-before-completion/SKILL.md
+- @.agents/skills/frontend-patterns/SKILL.md
+- @.agents/skills/frontend-testing/SKILL.md
+- @.agents/skills/tdd/SKILL.md
+
+**Цель:** По одному `implement-*/eNN-*.yaml` пройти §Gaps → gap → plans → decompose; PASS → rewire Element Ref.
+
+**Вход:** implement step с §Gaps = **link** на `gap-*.md` (иначе сначала `INTEG GAP`).
+
+**Процесс**:
+1. `OK INTEG GAP CLOSE - Проверяю закрытие gap`
+1a. Прочитай **Gates**
+2. implement → link §Gaps + Element Ref
+3. master gap: G-* → plan links
+4. plans → decompose index statuses
+5. **Code verify** grep полей/endpoints (не только index)
+6. Gate: unfinished → `close-*.md` **blocked**, no code; else Rewire
+7. **Rewire:** убрать хардкод/mock; §0.11; targeted tests
+8. `close-YYYYMMDD-<slug>.md` под `gap/<epic_id>/` (если эпик) или плоско; implement Status=closed; gap G-* closed
+9. `tasks.md` append-only
+10. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes` если rewire)
+11. New chat → next eNN или остаток BACK/FRONT
+
+**Не путать:** GAP = открытие; IMPLEMENT = обычный wire

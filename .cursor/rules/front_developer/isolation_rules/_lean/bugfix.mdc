@@ -1,0 +1,21 @@
+---
+description: "FRONT BUGFIX gates — root cause, Playwright (lean)"
+alwaysApply: false
+---
+# FRONT BUGFIX — gates
+
+**Артефакт:** с эпиком `memory-bank/front/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`; без — `memory-bank/front/bugfix/bugfix-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/epic-scoped-paths.mdc
+
+## Gates
+
+1. Баг описан; `load_now` first; core — cross-cutting (§8)
+2. Root cause; no mask; regression red → fix → green
+3. **Scenario:** user-visible UI → Playwright targeted обязателен; **parent** runs
+4. Visible UI → Read design stack (6 из workflow-implement) **до** UI edit
+5. bugfix-файл; scenario path; **Источник:** qa §Fix plan
+6. §0.11 если applicable
+7. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
+
+## Abort
+
+- Workaround · tests skipped · user-visible без Playwright · «manual smoke only» → no FINISH

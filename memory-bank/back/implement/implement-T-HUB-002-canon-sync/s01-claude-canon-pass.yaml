@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-002
+title: CLAUDE.md canon pass — Handoff/spawn/re-read wording
+status: completed
+date: '2026-08-22'
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'CLAUDE.md §FINISH п.1: добавлено явное ''→ activeContext.md (не в implement-yaml)'''
+- 'CLAUDE.md §Context economy: заменено ''L1–L2 без spawn'' на pointer spawn-hard.md
+  + exceptions'
+- 'CLAUDE.md §Session start п.3: уточнено ''(для load_now; Handoff пишется в activeContext.md,
+  не в shard)'''
+files:
+- CLAUDE.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true`'
+integration_check:
+- grep -n 'spawn-hard' /home/aero/PyProject/dev-hub/CLAUDE.md | head -5
+- grep -c 'L1–L2 без spawn' /home/aero/PyProject/dev-hub/CLAUDE.md || true
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Строка spawn в CLAUDE.md содержит pointer 'spawn-hard.md' и не является
+    абсолютным запретом L1–L2
+  status: done
+- id: cp2
+  criterion: CLAUDE.md §FINISH или §Session содержит 'activeContext.md' как место
+    Handoff (не только 'implement-*.md')
+  status: done
+- id: cp3
+  criterion: Нет строки 'L1–L2 без spawn' как standalone правило (удалена или преобразована
+    в pointer)
+  status: done

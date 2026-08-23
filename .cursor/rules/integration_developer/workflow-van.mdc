@@ -1,0 +1,27 @@
+---
+description: "Режим INTEG VAN — full as-built map (back+front) + integration complexity"
+alwaysApply: false
+---
+### Команда: INTEG VAN
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/van.mdc  
+**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Скиллы:** @.agents/skills/architecture-patterns/SKILL.md  
+**Paths**: @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+
+**Процесс**:
+1. `OK INTEG VAN - Оцениваю интеграцию / полную карту`
+1a. Прочитай **Gates** + **Brownfield map**
+2. Detect greenfield | brownfield
+3. **greenfield / thin:** domain scope + as-built checklist → L → van artifact → FINISH  
+   **brownfield (default если код есть):**
+   - announce: `SUSPENSION GUARD active — architecture map output unlimited`
+   - graphify: services, endpoints, consumers, pipelines
+   - refresh **все** shards `memory-bank/architecture/` (front нет → `frontend.md` absent)
+   - update `architecture/index.md`
+   - session: `memory-bank/integration/van/van-YYYYMMDD-<slug>.md` + L + next
+4. L1–L4 (integration gates)
+5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)
+6. Next: L1 → IMPLEMENT; L2+ → GAP (если нет свежего) → PLAN → DECOMPOSE
+
+**Верификация**: gates + полный architecture set + mermaid minimum

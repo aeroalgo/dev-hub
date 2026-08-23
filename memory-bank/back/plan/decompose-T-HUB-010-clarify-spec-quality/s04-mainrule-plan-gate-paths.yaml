@@ -1,0 +1,134 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-010
+title: "mainrule registration + workflow-plan clarify gates + finish-doc-router + memory-bank-paths — CLARIFY canon wiring"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зарегистрировать CLARIFY во всех точках canon-индексации и ввести gate: PLAN не закрывается
+  без resolve/defer CRITICAL markers:
+  - `mainrule.mdc` (root): BACK/FRONT/INTEG команды + quick table
+  - `back_developer/mainrule.mdc`, `front_developer/mainrule.mdc`, `integration_developer/mainrule.mdc`: строки индексов
+  - `workflow-back-plan.mdc`, `workflow-front-plan.mdc`, `workflow-integration-plan.mdc`: step «clarify gate»
+    + FINISH guard при CRITICAL markers без resolve
+  - `finish-doc-router.mdc`: row для CLARIFY → clarify artifact
+  - `memory-bank-paths.mdc`: строка clarify paths (back/front/integration)
+  Поведенческая замена (Kind C): silent assumption → `[НУЖНО УТОЧНИТЬ]` + CLARIFY gate.
+  Outcome: rg 'CLARIFY' в mainrule.mdc → есть; PLAN workflow принудительно направляет к clarify при ambiguity.
+  Связь с Goal/NFR: FR-2, FR-6, FR-9, FR-10, AC+ #1, #6; Replacement cleanup Kind C (s04 owns это).
+
+context:
+  consumes:
+    - ".cursor/rules/mainrule.mdc — read, then edit (команды list)"
+    - ".cursor/rules/back_developer/mainrule.mdc — read, then edit"
+    - ".cursor/rules/front_developer/mainrule.mdc — read, then edit"
+    - ".cursor/rules/integration_developer/mainrule.mdc — read, then edit"
+    - ".cursor/rules/back_developer/workflow-plan.mdc — read, then edit (clarify gate)"
+    - ".cursor/rules/front_developer/workflow-plan.mdc — read, then edit"
+    - ".cursor/rules/integration_developer/workflow-plan.mdc — read, then edit"
+    - ".cursor/rules/shared/finish-doc-router.mdc — read, then edit"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc — read, then edit"
+    - ".cursor/rules/back_developer/workflow-clarify.mdc — из s01 (для ссылки)"
+  produces:
+    - ".cursor/rules/mainrule.mdc (edit)"
+    - ".cursor/rules/back_developer/mainrule.mdc (edit)"
+    - ".cursor/rules/front_developer/mainrule.mdc (edit)"
+    - ".cursor/rules/integration_developer/mainrule.mdc (edit)"
+    - ".cursor/rules/back_developer/workflow-plan.mdc (edit)"
+    - ".cursor/rules/front_developer/workflow-plan.mdc (edit)"
+    - ".cursor/rules/integration_developer/workflow-plan.mdc (edit)"
+    - ".cursor/rules/shared/finish-doc-router.mdc (edit)"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (edit)"
+  plan_refs:
+    - "FR-2 (CLARIFY в mainrule команды + multi-word table)"
+    - "FR-6 ([НУЖНО УТОЧНИТЬ] как правило; silent assumption → marked)"
+    - "FR-9 (workflow-*-plan: clarify gate; PLAN не FINISH при CRITICAL без resolve)"
+    - "FR-10 (memory-bank-paths: строка clarify)"
+    - "AC+ #1 (rg CLARIFY в mainrule.mdc → found)"
+    - "AC+ #6 (memory-bank-paths содержит clarify path)"
+    - "plan §Replacement/sunset §C: silent assumption → FAIL"
+  files:
+    - ".cursor/rules/mainrule.mdc"
+    - ".cursor/rules/back_developer/mainrule.mdc"
+    - ".cursor/rules/front_developer/mainrule.mdc"
+    - ".cursor/rules/integration_developer/mainrule.mdc"
+    - ".cursor/rules/back_developer/workflow-plan.mdc"
+    - ".cursor/rules/front_developer/workflow-plan.mdc"
+    - ".cursor/rules/integration_developer/workflow-plan.mdc"
+    - ".cursor/rules/shared/finish-doc-router.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc"
+
+as_built:
+  - "mainrule.mdc — содержит команды BACK/FRONT/INTEG + multi-word table; CLARIFY отсутствует"
+  - "role mainrule.mdc ×3 — индексируют режимы; CLARIFY отсутствует в таблицах"
+  - "workflow-*-plan.mdc ×3 — есть clarify упоминания? (проверить при чтении); CRITICAL gate отсутствует"
+  - "finish-doc-router.mdc — маршрутизирует по command; CLARIFY row отсутствует"
+  - "memory-bank-paths.mdc — таблицы back/front/integration path; clarify path отсутствует"
+
+delta:
+  - "EDIT mainrule.mdc:
+      - В таблице команд BACK добавить: | CLARIFY | BACK CLARIFY | workflow-clarify.mdc |
+      - В таблице команд FRONT добавить: | CLARIFY | FRONT CLARIFY | workflow-clarify.mdc |
+      - В таблице команд INTEG добавить: | CLARIFY | INTEG CLARIFY | workflow-clarify.mdc |
+      - В multi-word table: CLARIFY не multi-word (одно слово), но убедиться что не конфликтует
+      - Ссылка на .claude/commands/{back,front,integ}-clarify.md если таблица slash-команд есть"
+  - "EDIT back_developer/mainrule.mdc, front_developer/mainrule.mdc, integration_developer/mainrule.mdc:
+      - Добавить строку CLARIFY в режим-индекс с ссылкой на workflow-clarify.mdc
+      - Описание: 'снять ambiguity до PLAN; рекомендуется при размытом scope'"
+  - "EDIT workflow-back-plan.mdc (и FRONT/INTEG аналогично):
+      - В §Начало PLAN или §Step 0: добавить clarify gate:
+          'Если scope размыт или есть [НУЖНО УТОЧНИТЬ] maркеры → рекомендовать BACK CLARIFY (или выполнить clarify-gate inline)'
+      - В §FINISH / Done When: добавить guard:
+          'PLAN не закрывается через FINISH при наличии [НУЖНО УТОЧНИТЬ: CRITICAL …] без resolve или явного defer-list'
+      - Не менять существующую inventory/rollout логику"
+  - "EDIT finish-doc-router.mdc:
+      - Добавить row в by-command table:
+          | CLARIFY | memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md | — |
+      - Формат артефакта: .cursor/templates/clarify.md"
+  - "EDIT memory-bank-paths.mdc:
+      - В таблицу back paths: memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md
+      - В таблицу front paths: memory-bank/front/clarify/
+      - В таблицу integration paths: memory-bank/integration/clarify/"
+
+deletes:
+  - "Поведение 'silent assumption при пустом prompt / размытом scope' устраняется через edit workflow-plan.mdc ×3:
+     добавляется FAIL/warn при CRITICAL markers + clarify gate. Не физическое удаление файла.
+     Kind C: Fallback? yes → сделать в этом шаге, не откладывать."
+  # rg-verify: после edit — искать 'silent assumption' чтобы убедиться нет остаточных поощрений этого паттерна
+
+out_of_scope:
+  - "role-command SKILL.md edit — s05"
+  - "CLAUDE.md touch — s05"
+  - "refs/speckit-adapt-010.md — s05"
+  - "specify-cli — FORBIDDEN"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only: mdc/md files. Нет Python.
+
+checkpoints:
+  - id: cp1
+    criterion: "CLARIFY зарегистрирована в mainrule.mdc (root): rg 'CLARIFY' → ≥3 совпадений (BACK/FRONT/INTEG)"
+    verify: "rg -n 'CLARIFY' .cursor/rules/mainrule.mdc | head -10"
+  - id: cp2
+    criterion: "workflow-back-plan.mdc содержит clarify gate и CRITICAL marker FINISH guard"
+    verify: "rg -n 'НУЖНО УТОЧНИТЬ\\|clarify\\|CRITICAL' .cursor/rules/back_developer/workflow-plan.mdc | head -10"
+  - id: cp3
+    criterion: "finish-doc-router.mdc содержит CLARIFY row с путём артефакта"
+    verify: "rg -n 'CLARIFY\\|clarify' .cursor/rules/shared/finish-doc-router.mdc | head -5"
+  - id: cp4
+    criterion: "memory-bank-paths.mdc содержит clarify paths для back + front + integration"
+    verify: "rg -n 'clarify' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc | head -5"
+
+verify:
+  - "rg -n 'CLARIFY' .cursor/rules/mainrule.mdc — AC+ #1: найден"
+  - "rg -n 'CLARIFY' .cursor/rules/back_developer/mainrule.mdc .cursor/rules/front_developer/mainrule.mdc .cursor/rules/integration_developer/mainrule.mdc — все три найдены"
+  - "rg -n 'НУЖНО УТОЧНИТЬ\\|CRITICAL' .cursor/rules/back_developer/workflow-plan.mdc — gate добавлен"
+  - "rg -n 'clarify' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc — AC+ #6"
+  - "rg -rn 'silent assumption' .cursor/rules/ — не должно быть поощрений паттерна (только запреты)"
+
+tdd:
+  - "docs. QA в s06: rg AC+ #1 зелёный; dry-run: проверить что рекомендация CLARIFY появляется при [НУЖНО УТОЧНИТЬ] в scope."

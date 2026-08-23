@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: sNN
+plan_id: <plan_id>
+title: <title>
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  одна-две строки: user/system outcome + связь с Goal/NFR плана (не только «создать файл X»).
+  # Outcome preserve: см. workflow-*-decompose.mdc — intent плана не ужимать до scaffolding
+
+context:
+  consumes: []
+  produces: []
+  plan_refs: []
+  files: []
+  # files = create/edit paths; удаления — только в top-level deletes (не дублировать сюда)
+
+# Delta layer (HARD for brownfield / «already wired»)
+as_built: []
+# что уже в коде до этого sNN/eNN (пути + 1 факт)
+
+delta: []
+# только что меняем в этом шаге (add/edit/wire). Удаление замены — в deletes + cp verify
+
+deletes: []
+# пути/символы, которые ЭТОТ sNN|eNN обязан удалить (не shim «на потом»).
+# [] только если шаг ничего не вытесняет. Replace X→Y без deletes у владельца cutover = FAIL.
+# Цепочка OK: sN add → sN+1 migrate callers → sN+2 deletes старого. Delete-шаг в очереди обязателен.
+# Checkpoint: ≥1 verify с `rg`/import-audit — старый путь/символ без живых callers.
+# Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C + anti-fallback rg + entrypoint inventory.
+# Канон: shared/workflow-legacy-fallback-cleanup.mdc
+
+out_of_scope: []
+# соседние sNN/eNN, full suite → QA, не трогать.
+# «оставить legacy/shim» — только здесь + follow-up epic; иначе deletes.
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: атомарный AC (не весь goal)
+    verify: ".venv/bin/pytest path/to/test -q"
+  - id: cp2
+    criterion: ...
+    verify: "..."
+
+verify: []
+tdd: []
+
+# needs_creative (BACK/FRONT): no | yes (CR-…) | yes (CR-…) — **closed**
+#
+# role: front — next_phase: FRONT IMPLEMENT; code_surface: ui
+#   deletes: legacy components/hooks/clients; rg/import-audit cp обязателен если непустой
+#
+# role: integ — дополнительно:
+# element_id: eNN
+# ui: { route, components, user_sees }
+# data_need: ...
+# api_today: [{ status, detail }]
+# contract: { method_path, query_keys, response_shape, front_client }
+# db: ...
+# back: []
+# front: []
+# deletes: []  # mock/legacy client paths — HARD при ⚠️ mock→live
+# grep_control: [{ back, front }]
+# goal / as_built / delta / deletes / out_of_scope — обязательны как у BACK/FRONT
+# checkpoints[] — 2–4 cp; у каждого criterion + verify (vitest/pytest/rg)

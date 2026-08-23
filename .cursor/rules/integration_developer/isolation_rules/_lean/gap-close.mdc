@@ -1,0 +1,29 @@
+---
+description: "INTEG GAP CLOSE gates — verify links + rewire (lean)"
+alwaysApply: false
+---
+# INTEG GAP CLOSE — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/integration/gap/<epic_id>/close-YYYYMMDD-<slug>.md`  
+- без: `memory-bank/integration/gap/close-YYYYMMDD-<slug>.md`  
+**Пути:** @.cursor/rules/shared/epic-scoped-paths.mdc
+
+## Gates
+
+1. Вход: ONE `implement-*/eNN-*.yaml` (legacy flat OK)
+2. §Gaps = link на `gap-*.md`
+3. Follow: gap → plans → decompose index
+4. Index + code grep по G-*
+5. FAIL → `close-*.md` blocked, no code
+6. PASS → rewire Element Ref; §Gaps closed; G-* closed
+
+## Abort
+
+- §Gaps без link → `INTEG GAP` first
+- Шире одного eNN → split
+- Rewire без PASS → forbidden
+
+## FINISH
+
+→ next `INTEG IMPLEMENT eNN+1` (new chat)

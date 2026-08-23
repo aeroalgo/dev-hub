@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-002
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-claude-canon-pass.yaml
+  title: CLAUDE.md canon pass — Handoff/spawn/re-read wording
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-front-tests-mdc-link-sweep.yaml
+  title: Create front-tests-parent-only.mdc + rg broken-refs sweep
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-role-command-sot-sync.yaml
+  title: role-command SoT sync (.agents ← .claude) + SECURITY graphify align
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-mainrule-archive-fail.yaml
+  title: mainrule.mdc archived prefix + pm/tl/content/marketing/seo commands FAIL
+    preamble
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-graphify-hub-na-integ-plan.yaml
+  title: graphify.mdc hub N/A protocol + INTEG PLAN inventory exception
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-architecture-note-rg-purge.yaml
+  title: architecture SoT note + legacy-fallback-purge rg verification suite
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -1,0 +1,18 @@
+---
+description: "Режим FRONT BUGFIX — root cause, Playwright"
+alwaysApply: false
+---
+### Команда: FRONT BUGFIX
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/bugfix.mdc
+**Скиллы:** tdd · playwright-best-practices · playwright-generate-test · next-best-practices · vercel-react-best-practices · verification-before-completion · requesting-code-review
+
+**Процесс**:
+1. `OK FRONT BUGFIX - [суть]` → **Gates**
+2. **Вход из QA:** §Fix plan → `FRONT BUGFIX <subject>`; visible UI → design stack Read до UI edit
+3. Reproduce → root cause → regression → fix → green; scenario Playwright если user-visible — **parent**
+4. §0.11 · pre-FINISH skills
+5. **FINISH:** finish-block (`code_changed: yes`); Handoff → runner next session  
+   Next-mode: `memory-bank/activeContext.md` + decompose index · §BUGFIX FINISH
+
+**Верификация**: gates + scenario + FINISH + graphify

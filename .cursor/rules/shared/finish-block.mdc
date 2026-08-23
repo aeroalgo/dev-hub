@@ -1,0 +1,83 @@
+---
+description: "FINISH block — Handoff, doc-router, graphify, new chat"
+alwaysApply: false
+---
+> **Порядок** → этот файл (finish-block.mdc)
+> **Routing load_now** → @.cursor/rules/shared/finish-doc-router.mdc
+> **Fill-in** → @.cursor/templates/finish-doc-router.md
+
+# FINISH Block
+
+**Единая точка FINISH для BACK / FRONT / INTEG.**  
+Workflow `* IMPLEMENT` только ссылается сюда.
+
+Handoff fill-in: @.cursor/templates/finish-doc-router.md  
+By-command routing / graphify: @.cursor/rules/shared/finish-doc-router.mdc
+
+**Канон курсора:** `$PROJECT_ROOT/memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
+**Anti-mix (HARD):** product-артефакты только в `$PROJECT_ROOT/memory-bank`; hub `T-HUB-*` только в `dev-hub/memory-bank`. Claude cwd=hub → всегда `--cwd "$PROJECT_ROOT"`.  
+Runner: `./loop/loop.sh` (context-first; cursor = `$PROJECT_ROOT/memory-bank/activeContext.md`).
+
+## Порядок (обязательно)
+
+> **IMPLEMENT (канон, без deadlock):**  
+> `seed-implement` (`in_progress`) → flush cp по ходу → suite → evidence  
+> (`status` остаётся **`in_progress`**, все cp `done`) → `validate-step` → `Handoff` →  
+> `@verify` → `PASS` → **`finalize-step`** (атомарно implement+index → `completed`) → stop.  
+>
+> **FORBIDDEN:** писать `status: completed` руками · `@verify` до step YAML на диске ·  
+> `finalize-step` до `VERDICT: PASS` · требовать `completed` до `@verify` ·  
+> писать product-эпики в `dev-hub/memory-bank` / hub-планы в product `memory-bank`.
+
+1. **Pre-FINISH skills** — если workflow указал
+2. **Role artifact (IMPLEMENT):** yaml step  
+   - `$PROJECT_ROOT/memory-bank/{back|front|integration}/implement/implement-<plan>/sNN|eNN-<slug>.yaml`  
+   **Формат:** `schema: epic-implement/v1`, `role: back|front|integ`  
+   Seed сразу: `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" seed-implement --decompose <decompose-shard>`  
+   До `@verify` / `finalize-step`: `status: in_progress` + все `checkpoints[].status=done` + заполнены done/files/tests (и role-поля)  
+   Самопроверка: `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" validate-step --path <shard>`  
+   **`status: completed` пишет только `finalize-step`** (вместе с index)  
+   **FORBIDDEN:** legacy `.md` implement shards · Handoff внутри yaml · ручной Edit `status: completed`
+3. **## Handoff** в `$PROJECT_ROOT/memory-bank/activeContext.md` only — **ONE Handoff (HARD):** Write весь файл (`## load_now` → один `## Handoff` → ≤ один `## done`)
+3a. **Epic complete:** `finalize-step` переписывает Handoff на `* AUDIT` (не QA, не EPIC_DONE). Пока pending в index — QA в Handoff запрещён.  
+    В Handoff зафиксируй сделанное и что дальше (модель сама выбирает next mode/step).  
+    Стоп: `BLOCKED:` / `GAPS:` / `NEED_HUMAN:` / `EPIC_DONE`
+4. **Delivery log:** пишет `finalize-step` (`tasks/log` всегда; `tasks.md` только смена фазы эпика). Агент не append на sNN.
+5. **@verify:** step on disk + evidence ready + **`status: in_progress`** → Handoff → `@verify` → FAIL → fix → PASS. **FORBIDDEN:** повтор после PASS; FAIL только из‑за `in_progress`
+6. **Status sync:** только после `VERDICT: PASS`:  
+   `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" finalize-step --decompose <decompose-shard|index> --step sNN|eNN`  
+   (атомарно implement+index `completed` + log + next `load_now`). Не вызывай отдельно `mark-index-status` вместо finalize на обычном IMPLEMENT FINISH.  
+   **FORBIDDEN:** bulk `sed`/`cat >` на весь index · ручной `status: completed`
+7. **doc-router**
+8. **graphify** если `code_changed: yes`: `.venv/bin/graphify update .`
+9. **new chat:** context-session-economy §2
+
+**Критический порядок:** `@verify` и `VERDICT: PASS` обязательны **до** `finalize-step`; при FAIL индекс не переводится в `completed`.
+```text
+seed → flush cp → suite → evidence (in_progress) → validate-step → Handoff → @verify → PASS → finalize-step → doc-router → graphify
+```
+
+Для `FRONT` и `INTEG` действует тот же порядок, что и для `BACK`.
+
+
+## 5 точек перед «готово»
+
+1. Step-файл существует, `validate-step` exit 0 (ещё `in_progress` до finalize)
+2. Ровно один `## Handoff` этого шага
+3. Index текущий = `completed` (**после** `finalize-step`)
+4. Следующий = `pending` (или `* AUDIT` / `EPIC_DONE`)
+5. `load_now` → следующий work shard + `decompose-*/index.yaml`; **FORBIDDEN** полный `plan-*.md` и `decompose-*/index.md` в IMPLEMENT `load_now`
+
+## FAIL
+
+- Нет step / Handoff / ≥2 Handoff / ≥2 done / completed в load_now / plan в load_now
+- Epic complete без `* AUDIT` в Handoff (после `finalize-step`)
+- QA при pending в index
+- `@verify` до step на диске
+- Ручной `status: completed` до PASS / в обход `finalize-step`
+- **`finalize-step` пропущен** — implement yaml = `completed`, но index.yaml = `pending` (рассинхрон)
+- **`@verify` не дал `VERDICT:`** → написал `NEED_HUMAN: verify_no_verdict` без retry (сначала 1 retry)
+## code_changed
+
+| yes | IMPLEMENT, TASK, BUGFIX, REFACTOR |
+| no | VAN, PLAN, DECOMPOSE, CREATIVE, QA, REFLECT, ARCHIVE NOW, SECURITY |

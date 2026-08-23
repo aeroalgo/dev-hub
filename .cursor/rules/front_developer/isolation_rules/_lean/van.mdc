@@ -1,0 +1,34 @@
+---
+description: "FRONT VAN gates — memory bank, complexity, brownfield UI map (lean)"
+alwaysApply: false
+---
+# FRONT VAN — gates
+
+**Артефакт (session):** `memory-bank/front/van/van-YYYYMMDD.md`  
+**Карта (brownfield):** `memory-bank/architecture/frontend.md` (+ overview UI slice)  
+**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Пути:** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+
+## Gates
+
+1. `memory-bank/` valid — иначе create; abort до valid
+2. Required: `tasks.md`, `activeContext.md`, `projectbrief.md`
+3. Mode: greenfield | brownfield
+4. L1–L4 в `tasks.md` append-only
+5. Артефакты режимов только `memory-bank/front/` (+ shared `architecture/`)
+6. **Brownfield:** `frontend.md` refreshed (`current` или `absent`); `architecture/index.md` updated; session van log с links
+
+## Complexity
+
+| L | Scope |
+|---|--------|
+| L1 | 1–2 файла, UI fix |
+| L2 | 3–5 файлов |
+| L3 | фича/UI, возможен CREATIVE |
+| L4 | design system / routing / UI arch |
+
+## Abort
+
+- Invalid MB → fix first
+- Complexity не определён → не рекомендовать IMPLEMENT/PLAN
+- Brownfield без frontend shard refresh → FAIL

@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-005
+title: s04 — Trim SUSPENSION GUARD duplicates — back/front workflow-plan.mdc → one-liner
+  + §0.0 link IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-005-simplify-docs/s04-trim-suspension-dupes.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Removed duplicate **Важно:** §0.0 SUSPENSION line from back/workflow-plan.mdc
+- Removed duplicate **Важно:** §0.0 line from front/workflow-plan.mdc
+- Left single SUSPENSION GUARD active announcement in step 1 for back+front with §0.0
+  link
+- token-economy-core.mdc untouched; cheatsheet link preserved
+files:
+- .cursor/rules/back_developer/workflow-plan.mdc
+- .cursor/rules/front_developer/workflow-plan.mdc
+deletes:
+- Строка "**Важно:** §0.0 SUSPENSION GUARD — plan максимально детальный; lean load
+  ≠ lean write." из .cursor/rules/back_developer/workflow-plan.mdc
+- Строка "**Важно:** §0.0 — plan без telegraph / 200-line cap." из .cursor/rules/front_developer/workflow-plan.mdc
+tests:
+- '`rg -c ''SUSPENSION'' .cursor/rules/back_developer/workflow-plan.mdc` — 1'
+- '`rg -n ''§0.0'' .cursor/rules/token-economy-core.mdc | head -5` — present'
+- '`rg -n ''SUSPENSION GUARD active'' .cursor/rules/front_developer/workflow-plan.mdc`
+  — 1'
+- '`rg -n ''cheatsheet'' .cursor/rules/back_developer/workflow-plan.mdc` — present'
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- test -f .cursor/rules/token-economy-core.mdc
+- rg -c 'SUSPENSION' .cursor/rules/back_developer/workflow-plan.mdc
+- rg -c 'SUSPENSION' .cursor/rules/front_developer/workflow-plan.mdc
+grep_control: []
+verification_results:
+- 'cp1: back SUSPENSION count = 1'
+- 'cp2: token-economy-core §0.0 present'
+- 'cp3: front SUSPENSION GUARD active present'
+- 'cp4: cheatsheet link preserved'
+- 'counterparts_ok: token-economy-core.mdc untouched'
+checkpoints:
+- id: cp1
+  criterion: 'back/workflow-plan.mdc: rg SUSPENSION → ровно 1 уникальная строка (а
+    не 2)'
+  status: done
+  done_at: '2026-08-22T19:45:53Z'
+- id: cp2
+  criterion: '§0.0 не урезан в token-economy-core (регрессия AC+ #6)'
+  status: done
+  done_at: '2026-08-22T19:45:53Z'
+- id: cp3
+  criterion: front/workflow-plan.mdc всё ещё содержит SUSPENSION GUARD active в шаге
+    1
+  status: done
+  done_at: '2026-08-22T19:45:53Z'
+- id: cp4
+  criterion: Cheatsheet link из s03 не потерян в back/workflow-plan.mdc после Edit
+  status: done
+  done_at: '2026-08-22T19:45:53Z'
+resume_from: cp1

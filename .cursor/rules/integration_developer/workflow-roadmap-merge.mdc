@@ -1,0 +1,18 @@
+---
+description: "Режим INTEG ROADMAP MERGE — слияние slug queues в canon для loop"
+alwaysApply: false
+---
+### Команда: INTEG ROADMAP MERGE
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/roadmap-merge.mdc
+**Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
+**Скиллы:** нет
+
+**Процесс**:
+1. `OK INTEG ROADMAP MERGE`
+1a. Gates + Алгоритм
+2. Inventory `memory-bank/integration/plan/roadmap-*-epics.queue.yaml`
+3. CLI `--role integration`
+4. Conflict → halt
+5. `tasks.md` + `activeContext.md`
+6. FINISH → `INTEG DECOMPOSE <first-id>`

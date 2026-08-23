@@ -1,0 +1,14 @@
+# Пример EDL после фазы generate (агент создаст work/assembly/edl.yaml)
+version: 1
+clips:
+  - shot: S01
+    path: work/shots/S01.mp4
+    in: 0
+    out: 4
+  - shot: S02
+    path: work/shots/S02.mp4
+    in: 0
+    out: 4
+audio:
+  - path: work/audio/bed.mp3
+    duck_db: -12

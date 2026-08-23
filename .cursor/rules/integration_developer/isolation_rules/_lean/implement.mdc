@@ -1,0 +1,32 @@
+---
+description: "INTEG IMPLEMENT gates — one UI element, phases A–F (lean)"
+alwaysApply: false
+---
+# INTEG IMPLEMENT — gates
+
+**Артефакт:** `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml`  
+**Шаблоны:** `@.cursor/templates/implement/epic-step.yaml` (**строго**; без вольных секций)
+
+## Gates
+
+1. `load_now`: work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`; **не** gap/contracts/полный `plan-*.md` / `index.md`; AC = eNN
+2. §Contract из шага; пуст → допиши до кода
+3. Phases A→F = один UI-элемент; QueryBuilder для list/filter
+4. §0.11; mock убран из prod path; **`deletes`** из eNN выполнены (legacy/mock client не висит)
+4a. Purge eNN: evidence `rg`/inventory при slug `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §3)
+5. TDD targeted `.venv/bin/pytest` из корня → полный suite в QA
+6. **Scenario:** user-visible → Playwright **или** `.venv/bin/pytest` HTTP outcome; путь в step
+7. Step yaml; `gaps`; INTEG — `epic-step.yaml` (`role: integ`); implement `deletes:` = факт удаления
+7a. **Format gate:** `grep_control` · `verification_results` · `checkpoints[]` (все `done`); pre-FINISH `status: in_progress`; `validate-step` exit 0 **до** `@verify`; `status: completed` только через `finalize-step` после PASS
+8. **FINISH:** finish-block — **порядок:** Write step → validate-step → Handoff → `@verify`; step+Handoff **до** decompose completed
+8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
+
+## Abort
+
+- Шире eNN · gap вместо step · Phase E skipped · mock in prod → no FINISH
+- Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
+- Flat implement для нового эпика · user-visible без scenario · «manual smoke only» → reject
+- Непустой eNN `deletes` не выполнен → no FINISH
+- Purge без evidence `rg`/inventory → no FINISH
+- FINISH без step/Handoff → FAIL (finish-block)
+- INTEG eNN `.md` shard или step не по `templates/implement/epic-step.yaml` → FAIL

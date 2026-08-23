@@ -1,0 +1,16 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-dsh-loop-backend-epics.md
+queue:
+  - id: T-HUB-006
+    plan: plan-T-HUB-006-dsh-loop-runtime-adapter.md
+    deps: []
+  - id: T-HUB-007
+    plan: plan-T-HUB-007-dsh-profiles-presets.md
+    deps: [T-HUB-006]
+  - id: T-HUB-008
+    plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
+    deps: [T-HUB-006, T-HUB-007]
+  - id: T-HUB-009
+    plan: plan-T-HUB-009-dsh-rollout-docs.md
+    deps: [T-HUB-006, T-HUB-007, T-HUB-008]

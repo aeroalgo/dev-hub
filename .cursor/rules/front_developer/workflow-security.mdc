@@ -1,0 +1,62 @@
+---
+description: "FRONT SECURITY — PLAN / DECOMPOSE / audit execute (XSS, client, deps)"
+alwaysApply: false
+---
+### Команда: FRONT SECURITY | FRONT SECURITY PLAN | FRONT SECURITY DECOMPOSE
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+**Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
+**Скиллы:**
+- @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)
+- @.agents/skills/owasp-security-check/SKILL.md
+- @.agents/skills/security-auditor/SKILL.md
+- @.agents/skills/security-auditor-owasp/SKILL.md
+- @.agents/skills/codeql/SKILL.md
+- @.agents/skills/supply-chain-risk-auditor/SKILL.md
+- @.agents/skills/insecure-defaults/SKILL.md
+- @.agents/skills/agentic-actions-auditor/SKILL.md
+- @.agents/skills/secure-workflow-guide/SKILL.md
+- @.agents/skills/agentsec/SKILL.md
+- @.agents/skills/sarif-parsing/SKILL.md
+- @.agents/skills/semgrep-rule-creator/SKILL.md (кастомные правила)
+- @.agents/skills/semgrep-rule-variant-creator/SKILL.md
+- @.agents/skills/skill-security-audit/SKILL.md
+- @.agents/skills/sigil-scan/SKILL.md
+- @.agents/skills/variant-analysis/SKILL.md
+
+**Цель:** security-аудит frontend кусками (эпик) или one-shot (S).
+
+**Scope:** `frontend/` — XSS/DOM, auth tokens, CSP/headers client, secrets в bundle, deps, CI Actions front.
+
+**Detect submode:** `PLAN` → PLAN; `DECOMPOSE` → DECOMPOSE; иначе EXECUTE.
+
+---
+
+## A. SECURITY PLAN
+
+1. `OK FRONT SECURITY PLAN - Security plan` + `SUSPENSION GUARD active — plan output unlimited`
+1a. Gates + workflow-security-epic
+2. Inventory surfaces (XSS/tokens/CSP/bundle/deps/ci) + priority + skills map
+3. Сохрани `memory-bank/front/security/plan/plan-<id>.md`
+4. `tasks.md` append-only
+5. **FINISH:** finish-block (`code_changed: no`)
+6. Next: **FRONT SECURITY DECOMPOSE**
+
+## B. SECURITY DECOMPOSE
+
+1. `OK FRONT SECURITY DECOMPOSE - [plan_id]`
+1a. Gates + workflow-security-epic
+2. Нарежь `aNN` → `memory-bank/front/security/plan/decompose-<id>/`
+3. Каждый `aNN`: `audit_surface` + Audit skills + scope + threats + checkpoint
+4. **FINISH:** `load_now` → `a01-*.md`
+5. Next: **FRONT SECURITY** @a01
+
+## C. SECURITY execute (@aNN или S)
+
+1. `OK FRONT SECURITY - Security audit`
+1a. Gates + workflow-security-epic
+1b. Epic → `implement/implement-<id>/aNN-*.md`; S → `security-audit-YYYYMMDD-<slug>.md`
+2. Skills из step (эпик) или workflow (S); не чинить код
+3. **FINISH:** finish-block (`code_changed: no`)
+
+**Next (фиксы):** BUGFIX / IMPLEMENT.

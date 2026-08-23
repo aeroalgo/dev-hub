@@ -1,0 +1,44 @@
+---
+description: "Integration Dev — индекс команд (INTEG VAN … INTEG QA)"
+alwaysApply: false
+---
+# INTEGRATION — ИНДЕКС
+
+Папка: `.cursor/rules/integration_developer/`  
+**Роутер:** @.cursor/rules/mainrule.mdc  
+**Core:** @.cursor/rules/integration_developer/mainrule-core.mdc  
+
+**Суть:** wire портала — route × UI-элемент × API × БД. PLAN = Element registry; DECOMPOSE = `eNN` на элемент; IMPLEMENT = vertical slice.
+
+**Процесс:** `workflow-*.mdc` → gates `isolation_rules/_lean/<mode>.mdc`. Скиллы — только из workflow.
+
+| Режим | Процесс |
+|-------|---------|
+| `INTEG VAN` | @.cursor/rules/integration_developer/workflow-van.mdc |
+| `INTEG GAP` | @.cursor/rules/integration_developer/workflow-gap.mdc |
+| `INTEG GAP CLOSE` | @.cursor/rules/integration_developer/workflow-gap-close.mdc |
+| `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc |
+| `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc |
+| `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |
+| `INTEG CREATIVE` | @.cursor/rules/integration_developer/workflow-creative.mdc |
+| `INTEG IMPLEMENT` | @.cursor/rules/integration_developer/workflow-implement.mdc |
+| `INTEG TASK` | @.cursor/rules/integration_developer/workflow-task.mdc |
+| `INTEG BUGFIX` | @.cursor/rules/integration_developer/workflow-bugfix.mdc |
+| `INTEG REFACTOR` | @.cursor/rules/integration_developer/workflow-refactor.mdc |
+| `INTEG REFLECT` | @.cursor/rules/integration_developer/workflow-reflect.mdc |
+| `INTEG ARCHIVE NOW` | @.cursor/rules/integration_developer/workflow-archive.mdc |
+| `INTEG QA` | @.cursor/rules/integration_developer/workflow-qa.mdc |
+| `INTEG SECURITY` · `INTEG SECURITY PLAN` · `INTEG SECURITY DECOMPOSE` | @.cursor/rules/integration_developer/workflow-security.mdc |
+
+Пути: `memory-bank/integration/<режим>/` — @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (**только VAN** / create).  
+As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).  
+Контракт: **inline** §Contract в `decompose-*/eNN-*.yaml` (`integration/contracts/` опц.).  
+FINISH: @.cursor/rules/shared/finish-block.mdc  
+
+**QueryBuilder (канон list/filter):** @.agents/skills/query-builder/SKILL.md  
+
+| Слой | Отдельно | Через INTEG |
+|------|----------|-------------|
+| BACK | инфра, миграции без UI | endpoint + mapping_filters |
+| FRONT | UI без API | wire без контракта |
+| INTEG | — | list/filter, QB, filter-utils, hooks, contract tests |

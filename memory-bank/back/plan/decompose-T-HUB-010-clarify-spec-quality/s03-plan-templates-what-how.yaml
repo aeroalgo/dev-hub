@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-010
+title: "plan.md + integration-plan.md — WHAT/HOW, User Stories, Independent Test, FR-###, SC-### sections"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить шаблоны планов так, чтобы каждый новый PLAN содержал чёткое разделение WHAT (продуктовая спека,
+  без стека) и HOW (техника/архитектура), User Stories с полями Priority + Independent Test +
+  Acceptance Scenarios (Given/When/Then), FR-### ID, SC-### Success Criteria, раздел Assumptions
+  и stub Clarifications session.
+  integration-plan.md: адаптировать те же WHAT-поля под element registry, не ломая portal inventory (≥400 строк plan).
+  Outcome: шаблоны принуждают WHAT→HOW и измеримые SC — фундамент для T-HUB-011 ANALYZE (FR/AC-refs).
+  Legacy plans без WHAT-секции остаются валидными (brownfield-safe, только новые PLAN).
+  Связь с Goal/NFR: FR-7, FR-8, NFR-2, NFR-4, AC+ #3; AC−(bf) #1.
+
+context:
+  consumes:
+    - ".cursor/templates/plan.md — текущий шаблон (read, then edit)"
+    - ".cursor/templates/integration-plan.md — текущий шаблон portal inventory (read, then edit)"
+    - "spec-kit/templates/spec-template.md — паттерны Independent Test, SC, Given/When/Then (read-only ref)"
+    - "plan §Зафиксированные решения: WHAT vs HOW, Independent Test, SC-###, Clarifications stub"
+  produces:
+    - ".cursor/templates/plan.md (edit)"
+    - ".cursor/templates/integration-plan.md (edit)"
+  plan_refs:
+    - "FR-7 (plan.md: Stories + Independent Test + FR + SC + WHAT/HOW)"
+    - "FR-8 (integration-plan.md: WHAT-поля без ломки portal inventory)"
+    - "NFR-2 (WHAT секция не telegraph-cap)"
+    - "NFR-4 (язык шаблонов RU)"
+    - "AC+ #3 (plan.md содержит Independent Test + [НУЖНО УТОЧНИТЬ] + WHAT/HOW)"
+    - "AC−(bf) #1 (legacy plans без WHAT остаются валидны)"
+  files:
+    - ".cursor/templates/plan.md"
+    - ".cursor/templates/integration-plan.md"
+
+as_built:
+  - ".cursor/templates/plan.md — существует; смотреть наличие WHAT/HOW блоков и User Stories"
+  - ".cursor/templates/integration-plan.md — существует; portal element registry + rollout sections"
+  - "plan.md сейчас не содержит: явный WHAT vs HOW раздел, Independent Test, SC-###, Clarifications stub"
+
+delta:
+  - "EDIT .cursor/templates/plan.md — добавить / перестроить секции:
+      - ##Продуктовая спека (WHAT) — [без стека; только user/system outcomes]:
+          - ##User Stories (P0, P1, Pn):
+              | # | Story | Priority | Independent Test |
+              - Acceptance Scenarios: Given / When / Then per story P0+
+          - ##Success Criteria SC-001 … (измеримые; KPI post-launch → type: outcome)
+          - ##FR-### (Functional Requirements нумерованные)
+          - ##Assumptions (задокументированные допущения)
+          - ##Clarifications (session stub: ссылка на clarify-*.md если есть; иначе пусто)
+          - ##[НУЖНО УТОЧНИТЬ] placeholder секция (убрать при PLAN завершении или перенести в defer)
+      - ##Техника / архитектура (HOW) — [стек, модули, интеграции — отдельно от WHAT]
+      NOTE: NFR-2: WHAT-секции не telegraph-cap; существующие секции Goal/Контекст/Риски — сохранить"
+  - "EDIT .cursor/templates/integration-plan.md — адаптировать WHAT-поля:
+      - добавить перед element registry:
+          ##Продуктовая спека (WHAT) — краткая: user journey goals + ключевые SC-###
+          (компактная версия: portal plan = element-centric, не story-centric)
+          ##Clarifications stub
+      - в каждый element entry (если template позволяет): поле Independent Test + FR-ref
+      - НЕ трогать: portal inventory table, rollout eNN, §API today ✅/⚠️/❌ структуру"
+
+deletes: []
+# greenfield: шаблоны только расширяются, не замещаются. Старые plan-файлы не редактируем.
+
+out_of_scope:
+  - "Ретроактивное обновление legacy plan-*.md файлов (brownfield-safe)"
+  - "workflow-plan.mdc gate — s04"
+  - "clarify template (.cursor/templates/clarify.md) — s01"
+  - "Spec Kit spec-template.md clone — FORBIDDEN"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only: шаблоны markdown/mdc. Нет Python.
+
+checkpoints:
+  - id: cp1
+    criterion: "plan.md содержит секцию 'Продуктовая спека (WHAT)' и 'Техника / архитектура (HOW)' отдельными блоками"
+    verify: "rg -n 'Продуктовая спека\\|WHAT\\|Техника.*HOW' .cursor/templates/plan.md | head -10"
+  - id: cp2
+    criterion: "plan.md содержит User Stories таблицу с колонкой 'Independent Test' и SC-### секцию"
+    verify: "rg -n 'Independent Test\\|SC-0\\|Given.*When.*Then' .cursor/templates/plan.md | head -10"
+  - id: cp3
+    criterion: "plan.md содержит Clarifications stub и [НУЖНО УТОЧНИТЬ] placeholder"
+    verify: "rg -n 'Clarifications\\|НУЖНО УТОЧНИТЬ' .cursor/templates/plan.md | head -5"
+  - id: cp4
+    criterion: "integration-plan.md содержит WHAT блок (compact) и Clarifications stub, portal inventory не сломан"
+    verify: "rg -n 'Продуктовая спека\\|Clarifications\\|element' .cursor/templates/integration-plan.md | head -10"
+
+verify:
+  - "rg -n 'WHAT\\|HOW\\|Independent Test\\|SC-' .cursor/templates/plan.md — все четыре найдены"
+  - "rg -n 'НУЖНО УТОЧНИТЬ' .cursor/templates/plan.md — placeholder есть"
+  - "rg -n 'Продуктовая спека' .cursor/templates/integration-plan.md — WHAT-блок добавлен"
+  - "rg -n 'API today\\|element\\|rollout' .cursor/templates/integration-plan.md — portal части не сломаны"
+
+tdd:
+  - "docs-only. QA в s06: rg AC+ #3 — plan.md содержит Independent Test."

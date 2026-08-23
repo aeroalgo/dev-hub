@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-005
+title: "projects/README.md — optional per-slug env overrides; currently unused"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Папка projects/ перестаёт выглядеть «сломанным секретом»: появляется README.md с назначением
+  (optional per-slug env overrides), состоянием (currently unused), и примером snippet.
+  Закрывает FR-6, AC+ #4.
+
+context:
+  consumes:
+    - projects/                                              # существующая пустая директория
+  produces:
+    - projects/README.md                                     # CREATE
+  plan_refs:
+    - plan-T-HUB-005-simplify-docs.md §FR-6 §AC+ #4 §Зафиксированные решения (projects/)
+  files:
+    - projects/README.md                                    # CREATE
+
+as_built:
+  - projects/ существует (ls пустая, без файлов)
+  - Нет README.md / .gitkeep
+
+delta:
+  - |
+    Создать projects/README.md со следующим содержимым:
+      # projects/
+      Optional per-slug environment overrides for dev-hub projects.
+      Currently unused. Intended structure:
+      ```
+      projects/<project-slug>/  # одна папка per project
+        .env.override           # env vars override (не в git)
+        config.local.yaml       # local config overrides
+      ```
+
+      When a project slug matches, dev-hub tooling (bin/, loop/) can source
+      these overrides before starting the loop or running commands.
+
+      No files here = no overrides applied (default behaviour).
+
+deletes: []
+# Greenfield add — ничего не вытесняем
+
+out_of_scope:
+  - Vendor _archive — AC− #3
+  - Создание реальных project-slug папок — не в этом шаге
+  - bin/ / loop/ tooling integration — вне scope этого эпика
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step
+
+checkpoints:
+  - id: cp1
+    criterion: "test -f projects/README.md → exit 0 (AC+ #4)"
+    verify: "test -f projects/README.md && echo PASS || echo FAIL"
+  - id: cp2
+    criterion: "README содержит слова 'per-slug' и 'currently unused'"
+    verify: "rg -n 'per-slug|currently unused' projects/README.md"
+  - id: cp3
+    criterion: "README содержит example snippet (backtick block)"
+    verify: "rg -n 'project-slug\\|override' projects/README.md"
+
+verify: []
+tdd: []

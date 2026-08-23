@@ -1,0 +1,16 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-speckit-workflow-boost-epics.md
+queue:
+  - id: T-HUB-010
+    plan: plan-T-HUB-010-clarify-spec-quality.md
+    deps: []
+  - id: T-HUB-011
+    plan: plan-T-HUB-011-analyze-pre-implement.md
+    deps: [T-HUB-010]
+  - id: T-HUB-012
+    plan: plan-T-HUB-012-audit-converge.md
+    deps: [T-HUB-010]
+  - id: T-HUB-013
+    plan: plan-T-HUB-013-idea-decide-constitution.md
+    deps: []

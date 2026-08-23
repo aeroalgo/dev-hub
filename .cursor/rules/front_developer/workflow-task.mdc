@@ -1,0 +1,27 @@
+---
+description: "Режим FRONT TASK — внеплановая UI-задача"
+alwaysApply: false
+---
+### Команда: FRONT TASK
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/task.mdc
+**Скиллы:** мини skills gate — Impl Core + situational из `skills-gate-situational.mdc` (не весь каталог); Design Core если visible UI; pre-FINISH: verification + code-review — `@.agents/skills/<name>/SKILL.md`
+
+**Visible UI → DESIGN CORE HARD** (пакет 6 из `skills-gate-situational.mdc`): Read до UI-кода + list в task shard. Pure lib — skip.
+
+**Процесс**:
+1. `OK FRONT TASK - [суть]` — задача в том же сообщении
+1a. Прочитай **Gates**
+2. `load_now` + handoff; `tasks.md`
+2a. Skills в `memory-bank/front/task/task-YYYYMMDD-<slug>.md` (+ design stack если UI)
+2b. Visible UI → Read design stack до UI edit
+3. ONE shard; wide search → subagent
+4–7. Компоненты → место → reuse → план
+8. TDD targeted; Playwright если UI
+9. `tasks.md` append-only; §0.11 если refs
+10. Pre-FINISH skills
+11. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`, artifact: `task-*.md`)
+    - FAIL: visible UI без design stack Read / без Skills
+12. Дополни task-файл (формулировка, ход, файлы, тесты)
+
+**Верификация**: gates + FINISH + graphify

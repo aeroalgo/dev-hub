@@ -1,0 +1,76 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-003
+title: "loop.sh halt-parity branches after check-after"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: |
+  Заменить в `loop.sh` outer-retry логику после `check-after` на halt-parity:
+  результат check-after → call decide_after_action (через python helper или inline shell test)
+  → если halt → print reason → exit 1; если complete → existing chain; если continue → inner loop continue.
+  NFR-1: `prepare` halt fail-closed сохранён. NFR-5: flock / model_substitution / phase models — DoNotTouch.
+context:
+  consumes:
+    - "loop/loop.sh строки ~641–647 (check-after block) + prepare halt block"
+    - "s01 decide_after_action — результат предыдущего шага"
+    - "plan-T-HUB-003-loop-halt.md §Halt matrix (канон) + §Компоненты"
+  produces:
+    - "loop/loop.sh — halt-parity ветки после check-after"
+  plan_refs:
+    - "plan-T-HUB-003-loop-halt.md FR-1, FR-2, FR-3, FR-4, NFR-1, NFR-5"
+    - "plan-T-HUB-003-loop-halt.md AC+ 1, AC+ 2, AC+ 3, AC− 1"
+  files:
+    - "loop/loop.sh"
+as_built:
+  - "loop/loop.sh:641–647 — текущий check-after block: как читается JSON, как принимается решение"
+  - "loop/loop.sh — prepare halt block (найти по grep 'prepare.*halt')"
+  - "loop/context_loop.py — check_after return contract (что именно возвращается в stdout)"
+delta:
+  - |
+    В check-after shell block добавить ветки:
+      if halt == '1' or '':
+        print "HALT: <cause>" → exit 1
+      elif stop starts_with NEED_HUMAN:
+        print "HALT: NEED_HUMAN — $stop_value" → exit 1
+      elif stop == EPIC_DONE:
+        → existing complete/chain path
+      elif ok + continue:
+        → inner loop continue (as-is)
+      else:
+        → exit 1  # fail-closed default
+  - "Убрать безусловный outer retry/sleep на NEED_HUMAN (текущая неверная ветка)"
+  - "Добавить human-readable HALT message в stdout при exit 1 для диагностики"
+  - "Вызвать decide_after_action через python helper если s01 вынес в py, иначе inline jq/grep в bash"
+deletes:
+  - "Ветка 'else continue' / outer-sleep после NEED_HUMAN в check-after block"
+out_of_scope:
+  - "last_session_path — s03"
+  - "flock logic — DoNotTouch NFR-5"
+  - "model_substitution / phase models — DoNotTouch NFR-5"
+  - "prepare block изменения — только regression тест; не трогать логику"
+skills:
+  code_surface: shell+python
+  impl:
+    - python-testing-patterns
+checkpoints:
+  - id: cp1
+    criterion: "grep -n 'NEED_HUMAN' loop/loop.sh содержит exit 1 (не только continue)"
+    verify: "grep -n 'NEED_HUMAN' /home/aero/PyProject/dev-hub/loop/loop.sh | head -10"
+  - id: cp2
+    criterion: "loop.sh после check-after block не содержит безусловного outer retry / sleep на NEED_HUMAN"
+    verify: "awk '/check.after/,/done|fi/' /home/aero/PyProject/dev-hub/loop/loop.sh | grep -c 'sleep\\|retry\\|continue' || true"
+  - id: cp3
+    criterion: |
+      Регрессия prepare halt — не сломана: grep prepare-halt block существует и содержит exit/halt
+    verify: "grep -n 'prepare\\|fail.closed\\|halt' /home/aero/PyProject/dev-hub/loop/loop.sh | head -15"
+  - id: cp4
+    criterion: "Тесты покрывающие shell halt parity проходят (s01 + s02 combined)"
+    verify: "cd /home/aero/PyProject/dev-hub && timeout 120s .venv/bin/pytest loop/tests/ -k 'halt or check_after or loop_shell' -q --tb=short 2>&1 | tail -20"
+verify: []
+tdd:
+  - "AC+ 1: mock check-after output {halt:true} → loop.sh exit code ≠0"
+  - "AC+ 2: mock check-after output {stop:'NEED_HUMAN: verify_no_verdict', complete:true} → exit≠0"
+  - "AC+ 3: mock check-after {stop:'EPIC_DONE'} → exit 0 / chain path"
+  - "AC− 1: mock check-after {ok:true, continue:true} → no HALT, inner loop continues"
+  - "NFR-1 regression: prepare fail-closed block still exits≠0 on integrity failure"

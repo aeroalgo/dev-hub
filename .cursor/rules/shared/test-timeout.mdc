@@ -1,0 +1,47 @@
+---
+description: "Единая политика таймаута тестовых команд для Cursor, Claude Code и loop"
+alwaysApply: false
+---
+# TEST TIMEOUT — общий workflow-контракт
+
+## Канон
+
+Все тестовые команды, запускаемые workflow, loop или агентом, обязаны иметь внешний лимит **300 секунд (5 минут)** на процесс.
+
+- POSIX-команды запускаются через `timeout 300s <команда>`.
+- pytest дополнительно использует `pytest-timeout` и `timeout = 300` в `pyproject.toml`; это лимит отдельного pytest item, поэтому внешний `timeout 300s` всё равно обязателен для всего процесса.
+- `timeout=` у HTTP-клиента, fixture или бизнес-логики не заменяет runner timeout.
+- Для suite из нескольких команд лимит применяется к каждой команде, если workflow явно не указал один внешний `timeout 300s` на весь suite.
+- При истечении лимита команда считается failed/blocked, а не passed; timeout нельзя скрывать как успешный skip.
+
+## Обязательная форма
+
+```text
+timeout 300s .venv/bin/pytest ...
+timeout 300s npm --prefix frontend exec vitest ...
+timeout 300s npm --prefix frontend exec tsc ...
+timeout 300s npx playwright test ...
+timeout 300s python tests/test_*.py
+timeout 300s npm test
+timeout 300s make test
+```
+
+В implement/QA step поле `tests:` содержит исполняемую команду в backticks, а результат записывается отдельно в `verification_results`.
+
+## Единый scope
+
+- **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд;
+- **suite:** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
+- если scope не указан, применяется targeted-команда с лимитом 300 секунд.
+
+## Parity
+
+Этот контракт обязателен для:
+
+- Cursor rules и hooks;
+- Claude Code role commands и subagents;
+- `loop/loop.sh` и prompt из `loop/context_loop.py`;
+- BACK, FRONT и INTEG IMPLEMENT/TASK/BUGFIX/QA/REFACTOR;
+- CI и локального запуска.
+
+Источник политики — этот shared rule. Конкретный runner обязан сохранить лимит при фактическом запуске команды.

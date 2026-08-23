@@ -1,0 +1,19 @@
+---
+description: "Режим INTEG QA — контракт back↔front"
+alwaysApply: false
+---
+### Команда: INTEG QA
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+**Скиллы:** query-builder · verification-before-completion · frontend-testing · python-testing-patterns · playwright-best-practices · playwright-generate-test
+
+**Процесс**:
+1. `OK INTEG QA - Верификация интеграции` → **Gates**
+2. §Contract + §0.11 + INTEG-CHECKLIST; tests — gates (`.venv/bin/pytest` из корня)
+3. `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
+4. fail|blocked → §Fix plan (`INTEG|BACK|FRONT BUGFIX <subject>`)
+5. **FINISH:** finish-block (`code_changed: no`|`yes` если дописали тесты) + Handoff  
+   Next: Handoff в `memory-bank/activeContext.md` + decompose index
+   **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь
+
+**Верификация**: gates + contract + scenario + Handoff (+ leftover mock/legacy/fallback при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)

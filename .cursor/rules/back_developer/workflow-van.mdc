@@ -1,0 +1,27 @@
+---
+description: "Режим BACK VAN — init / brownfield architecture map (backend scope)"
+alwaysApply: false
+---
+### Команда: BACK VAN
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/van.mdc  
+**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Paths**: @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+
+**Процесс**:
+1. `OK BACK VAN - Запускаю инициализацию / карту backend`
+1a. Прочитай **Gates** + **Brownfield map** (+ paths если create MB)
+2. Detect greenfield | brownfield (shared rule)
+3. `tasks.md`, `projectbrief.md`, `activeContext.md`
+4. **greenfield:** структура MB → L1–L4 → tasks append → van log (опц.) → FINISH  
+   **brownfield:**
+   - announce: `SUSPENSION GUARD active — architecture map output unlimited`
+   - graphify + inventory (shared)
+   - refresh backend-scope shards: `overview` (BE) · `services` · `data-flow` · `erd` · `workers` · `containers`
+   - update `memory-bank/architecture/index.md`
+   - session log: `memory-bank/back/van/van-YYYYMMDD.md` (links only)
+5. L1–L4 в `tasks.md` (append-only)
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`)
+7. Next: L1 → IMPLEMENT; L2–4 → PLAN
+
+**Верификация**: gates + (brownfield → architecture shards + mermaid minimum)

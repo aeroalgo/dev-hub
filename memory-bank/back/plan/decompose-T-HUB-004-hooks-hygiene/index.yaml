@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-004
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-extract-verdict-tdd.yaml
+  title: 'extract_verdict: remove short-circuit, last-match wins, TDD tests'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-need-human-messaging.yaml
+  title: 'NEED_HUMAN messaging: pretool BLOCKED→NEED_HUMAN, spawn-hard sync'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-unified-registry-discovery.yaml
+  title: 'Unified registry discovery: all hooks use _discover_registry (file-wins)'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-alias-explore.yaml
+  title: 'ALIAS explore: add ALIAS["explore"]="explorer", test normalization'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-delete-epic-reexports.yaml
+  title: 'Delete dead epic re-exports: rm 6 stubs, rm unused import, verify rg=0'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-posttool-mirror-lock.yaml
+  title: 'Posttool mirror + save_state lock: remove bare except, add lock/atomic'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-targeted-suite-smoke.yaml
+  title: 'Targeted suite + import smoke: pytest on affected + import epic after delete'
+  next_phase: BACK IMPLEMENT
+  status: completed

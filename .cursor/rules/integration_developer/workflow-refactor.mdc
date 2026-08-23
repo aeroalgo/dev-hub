@@ -1,0 +1,19 @@
+---
+description: "Режим INTEG REFACTOR — filter-utils, api clients"
+alwaysApply: false
+---
+### Команда: INTEG REFACTOR
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc  
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/refactor.mdc  
+**Epic paths:** @.cursor/rules/shared/workflow-refactor-epic.mdc  
+**Скиллы:** @.agents/skills/architecture-patterns/SKILL.md
+
+**Процесс**:
+1. `OK INTEG REFACTOR`
+1a. Gates + workflow-refactor-epic (path rule)
+1b. Epic? → `integration/refactor/implement/implement-<id>/rNN-*.md`; иначе → `integration/refactor/session-*.md`
+2. Типовые цели: dedupe filters, shared buildApiUrl, typed api
+3. Tests green before/after
+4. FINISH artifact по path rule
+5. **FINISH:** @.cursor/rules/shared/finish-block.mdc  
+   Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index

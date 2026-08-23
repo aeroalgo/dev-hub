@@ -1,0 +1,25 @@
+schema: epic-refactor/v1
+role: back
+step_id: rNN
+plan_id: <plan_id>
+title: rNN — <title> REFACTOR
+status: in_progress
+date: YYYY-MM-DD
+behavior_freeze: |
+  что не меняется (wire, API, semantics)
+
+decompose_ref: memory-bank/back/refactor/plan/decompose-<plan_id>/rNN-<slug>.yaml
+
+done: []
+
+files: []
+
+tests: []
+# HARD: wrap executable cmd in `backticks`; FORBIDDEN "npm exec tsc — passed"
+
+checkpoints:
+  - id: cp1
+    criterion: behavior freeze preserved + targeted pytest green
+    status: pending
+
+resume_from: cp1

@@ -1,0 +1,33 @@
+---
+description: "INTEG VAN gates — domain L1-L4 + full architecture map (lean)"
+alwaysApply: false
+---
+# INTEG VAN — gates
+
+**Артефакт (session):** `memory-bank/integration/van/van-YYYYMMDD-<slug>.md`  
+**Карта (brownfield):** `memory-bank/architecture/` (все shards)  
+**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Пути:** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+
+## Gates
+
+1. Домен/scope (entity, screens, endpoints) **или** full-repo map если user не сузил
+2. Mode: greenfield | brownfield
+3. As-built checklist: model / endpoint / front / contract?
+4. L1–L4 в van-артефакте
+5. Next: L1 → IMPLEMENT; L2+ → GAP (если нет свежего) → PLAN
+6. **Brownfield:** все architecture shards refreshed; front нет → `frontend.md` = absent; mermaid minimum; index updated; session log с links
+
+## Level
+
+| L | Scope |
+|---|--------|
+| L1 | flat CRUD, 1 screen |
+| L2 | filters + URL sync |
+| L3 | joins, mapping_filters |
+| L4 | dashboard N API |
+
+## Abort
+
+- Complexity не определён → не рекомендовать next
+- Brownfield TOC-only architecture → FAIL

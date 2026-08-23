@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Запустить полный regression suite `loop/tests/` с `EPIC_RUNTIME` unset (claude default)
+  и с `EPIC_RUNTIME=dsh` (fake_dsh); убедиться, что все существующие тесты зелёные.
+  Обнаружить и исправить регрессии от s01–s06. NFR-1, AC+1, AC+2.
+
+context:
+  consumes:
+    - loop/tests/                          # весь suite (test_context_loop.py, test_finish_integrity.py, …)
+    - loop/tests/test_runtime_config.py    # расширен в s01
+    - loop/tests/test_dsh_runtime_adapter.py  # создан в s02, расширен в s05
+    - loop/tests/test_loop_dsh_dispatch.py    # создан в s04
+    - loop/tests/test_context_loop.py         # расширен в s03
+    - loop/tests/fixtures/fake_dsh.sh         # создан в s04
+  produces:
+    - Исправления если регрессии обнаружены (in situ в предыдущих файлах)
+    - loop/tests/test_dsh_e2e_smoke.py     # тест smoke: EPIC_RUNTIME=dsh + fake_dsh → record-session ok
+  plan_refs:
+    - NFR-1
+    - AC+1
+    - AC+2
+  files:
+    - loop/tests/test_dsh_e2e_smoke.py
+    - loop/tests/  # all existing files — regression only
+
+as_built:
+  - Все тесты loop/tests/ проходят с EPIC_RUNTIME unset (claude path)
+  - test_dsh_e2e_smoke.py — НЕ существует
+
+delta:
+  - CREATE loop/tests/test_dsh_e2e_smoke.py:
+      Smoke test e2e: вызывает context_loop.py prepare (с monkeypatch EPIC_RUNTIME=dsh),
+        убеждается что runtime=="dsh" и dsh_profile startswith "epic-";
+      Вызывает fake_dsh.sh через run_dsh_session симуляцию (через shell subprocess),
+        проверяет что fake_dsh получил --profile;
+      Вызывает record_abort с dsh_session_completed.jsonl fixture + runtime="dsh" →
+        outcome=="clean", ok==True;
+      Проверяет что при EPIC_RUNTIME=claude (default) — fake_dsh НЕ вызван.
+  - Исправления регрессий (если найдены в s01-s06 после прогона полного suite):
+      правки минимальны и прямые (TDD: red fix → green)
+  - Запуск и документирование итога: все тесты PASS
+
+deletes: []
+
+out_of_scope:
+  - "Performance / load тесты"
+  - "Реальный DSH API вызов (headless sandbox)"
+  - "T-HUB-003 halt parity — мягкая зависимость, не блокирует"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # red→green на регрессиях
+    - .agents/skills/python-testing-patterns/SKILL.md     # e2e smoke pattern, subprocess test
+    - .agents/skills/modern-python/SKILL.md               # pathlib, monkeypatch, tmp_path
+    - .agents/skills/python-anti-patterns/SKILL.md        # избегать overmocking
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      Полный suite loop/tests/ с EPIC_RUNTIME unset — все тесты PASS (0 failed)
+    verify: "timeout 300s .venv/bin/pytest loop/tests/ -q --tb=short 2>&1 | tail -20"
+  - id: cp2
+    criterion: >
+      test_dsh_e2e_smoke.py все тесты PASS: e2e smoke с fake_dsh
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_e2e_smoke.py -q --tb=short"
+  - id: cp3
+    criterion: >
+      DSH-специфичные тесты (test_dsh_runtime_adapter + test_loop_dsh_dispatch) PASS
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_loop_dsh_dispatch.py -q --tb=short"
+  - id: cp4
+    criterion: >
+      plan AC-command: все тесты вместе зелёные
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_runtime_config.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/ -q --tb=short"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_runtime_config.py -q --tb=line"
+
+tdd:
+  - "test_dsh_e2e_smoke_prepare_runtime_dsh"
+  - "test_dsh_e2e_smoke_record_abort_completed"
+  - "test_dsh_e2e_smoke_claude_default_no_fake_dsh_called"
+  - "Regression: весь loop/tests/ зелёный с EPIC_RUNTIME unset"

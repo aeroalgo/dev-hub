@@ -1,0 +1,20 @@
+---
+description: "Режим BACK ROADMAP MERGE — слияние slug queues в canon для loop"
+alwaysApply: false
+---
+### Команда: BACK ROADMAP MERGE
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/roadmap-merge.mdc
+**Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
+**Скиллы:** нет (docs + CLI)
+
+**Процесс**:
+1. `OK BACK ROADMAP MERGE`
+1a. Прочитай **Gates** + **Алгоритм**
+2. Inventory `memory-bank/back/plan/roadmap-*-epics.queue.yaml` (+ existing `roadmap-epics.queue.yaml`)
+3. CLI: `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back` (из hub: путь к `dev-hub/loop/context_loop.py`)
+4. При conflict/unknown deps/cycle → halt + покажи JSON error (не silent fix)
+5. Обнови `tasks.md` + `activeContext.md` (load_now = canon md + queue + first plan)
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no` если только memory-bank); next = `BACK DECOMPOSE <first-id>`
+
+**Верификация**: gates + `parse_roadmap_queue` ok на canon

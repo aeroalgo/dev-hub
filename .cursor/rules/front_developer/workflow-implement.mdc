@@ -1,0 +1,37 @@
+---
+description: "Режим FRONT IMPLEMENT — UI по плану, TDD + Playwright targeted"
+alwaysApply: false
+---
+### Команда: FRONT IMPLEMENT
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
+
+**Скиллы — только step + FINISH (HARD)**
+
+Канон задаёт **DECOMPOSE skills gate** в `sNN` (`Impl skills` + `Design skills`).
+
+| Что | Когда |
+|-----|--------|
+| **Impl skills** из step | Read каждый путь целиком **до** prod-кода |
+| **Design skills** из step | Read **до** UI-кода; если `—` / `visible_ui: no` → skip |
+| `verification-before-completion` | pre-FINISH |
+| `requesting-code-review` | pre-FINISH |
+
+**FORBIDDEN:**
+- широкий слой A / угадывание скиллов
+- Read скиллов вне step (кроме FINISH-only)
+- Design Read при `visible_ui: no`
+- пропуск пути из Impl/Design step
+- `limit` на Read SKILL.md
+
+**Процесс**:
+1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates**
+2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`  
+   **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.
+3. Read Impl (+ Design если есть) до prod-edit
+4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard
+5. §0.11 · pre-FINISH skills; после deletes — нет callers на удалённое
+6. **FINISH:** finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)  
+   Next: Handoff в `activeContext.md` + `index.yaml`
+
+**Верификация**: gates + deletes executed + FINISH/Handoff + graphify

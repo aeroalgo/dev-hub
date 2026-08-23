@@ -1,0 +1,31 @@
+---
+description: "FRONT PLAN gates — plan artifact, E2E, design (lean)"
+alwaysApply: false
+---
+# FRONT PLAN — gates
+
+**Артефакт:** `memory-bank/front/plan/plan-<task_id>.md`  
+**Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× plan; после PLAN → `FRONT ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`  
+**SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0
+
+## Gates
+
+1. `tasks.md` + level
+2. План в path выше; при research — roadmap.md + `.queue.yaml` + полный plan на каждый эпик
+3. UI → design direction (palette, type, layout, signature) — per epic
+4. Playwright E2E сценарии в плане — per epic
+4a. Brownfield UI replace → `## Replacement / sunset` **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+4b. Brownfield FAIL: replace без entrypoints (B) или fallbacks (C) → halt
+5. CREATIVE need; `tasks.md` append-only (roadmap + queue + каждый эпик)
+6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt; ≥2 эпика без sibling `.queue.yaml` → halt
+
+## Level delta
+
+| L | Секции |
+|---|--------|
+| L2 | обзор, файлы, шаги, риски, component+E2E strategy, AC |
+| L3–L4 | + requirements, components, design system, deps, creative |
+
+## Abort
+
+- Блокеры scope → grill-me

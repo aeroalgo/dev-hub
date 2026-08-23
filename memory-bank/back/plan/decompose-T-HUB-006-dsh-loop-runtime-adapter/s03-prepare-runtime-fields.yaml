@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "prepare runtime fields + --runtime CLI override — orchestrator contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `context_loop.py::prepare_session` эмитирует поля `runtime`, `dsh_profile`, `dsh_workspace`
+  в JSON-ответе; добавить `--runtime claude|dsh` CLI arg (FR-2, FR-5).
+  Оркестратор (loop.sh) видит runtime в prep_json без дополнительных env-читок.
+
+context:
+  consumes:
+    - loop/context_loop.py           # prepare_session, main CLI parser, argparse
+    - .claude/hooks/_lib.py          # RuntimeConfig.epic_runtime (создан в s01)
+    - loop/tests/test_context_loop.py  # regression baseline
+  produces:
+    - loop/context_loop.py           # prepare_session + CLI --runtime
+    - loop/tests/test_context_loop.py  # новые кейсы runtime fields
+  plan_refs:
+    - FR-2
+    - FR-5
+    - AC+1 (prep_json содержит runtime=dsh для dispatch в s04)
+    - AC+2 (claude default без регрессии)
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_context_loop.py
+
+as_built:
+  - loop/context_loop.py:prepare_session — возвращает dict с ok, load_now, prompt_file,
+    fingerprint, degraded, shape_errors; нет полей runtime / dsh_profile / dsh_workspace
+  - loop/context_loop.py:main CLI — нет --runtime флага; MODEL через --model
+  - loop/context_loop.py — импортирует resolve_runtime_config из _lib; RuntimeConfig без epic_runtime (до s01)
+
+delta:
+  - context_loop.py:prepare_session — после resolve_runtime_config(cwd_p):
+      добавить в return dict:
+        "runtime": config.epic_runtime,          # "claude" | "dsh"
+        "dsh_profile": f"epic-{loop_phase or 'implement'}",   # phase из state
+        "dsh_workspace": str(cwd_p),             # PROJECT_ROOT для cd в s04
+  - context_loop.py:main CLI parser — добавить аргумент к p_prepare:
+        p_prepare.add_argument("--runtime", choices=["claude","dsh"], default=None)
+  - context_loop.py:prepare_session signature — добавить kwarg runtime: str | None = None;
+    если runtime не None → override config.epic_runtime (CLI wins over env, как --model)
+  - context_loop.py:main — при args.cmd=="prepare": передать runtime=args.runtime в prepare_session
+  - test_context_loop.py: test_prepare_emits_runtime_claude_default — без EPIC_RUNTIME →
+    prep["runtime"] == "claude"
+  - test_context_loop.py: test_prepare_emits_runtime_dsh — EPIC_RUNTIME=dsh monkeypatch →
+    prep["runtime"] == "dsh"
+  - test_context_loop.py: test_prepare_emits_dsh_profile — runtime=dsh → dsh_profile начинается с "epic-"
+  - test_context_loop.py: test_prepare_emits_dsh_workspace — runtime=dsh → dsh_workspace == str(cwd_p)
+  - test_context_loop.py: test_prepare_cli_runtime_override — --runtime dsh CLI override →
+    prep["runtime"] == "dsh" даже без EPIC_RUNTIME env
+
+deletes: []
+# Additive: prepare_session расширяется, не заменяется
+
+out_of_scope:
+  - "loop.sh читает prep_json[runtime] — s04 (этот шаг только emits поля)"
+  - "DSH command construction — s02"
+  - "dsh_profile полный lifecycle (T-HUB-007)"
+  - "analyze_session_log — s05"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # TDD: red→green
+    - .agents/skills/python-testing-patterns/SKILL.md     # monkeypatch env, argparse tests
+    - .agents/skills/modern-python/SKILL.md               # typing, dataclass usage
+    - .agents/skills/python-anti-patterns/SKILL.md        # CLI override pattern (как --model)
+    - .agents/skills/python-error-handling/SKILL.md       # invalid runtime в prepare → fail-closed
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_prepare_emits_runtime_claude_default PASS: unset → runtime=="claude"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k 'test_prepare_emits_runtime_claude_default' -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_prepare_emits_runtime_dsh PASS: EPIC_RUNTIME=dsh → runtime=="dsh"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k 'test_prepare_emits_runtime_dsh' -q --tb=short"
+  - id: cp3
+    criterion: >
+      test_prepare_cli_runtime_override PASS: --runtime dsh beats env
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k 'test_prepare_cli_runtime_override' -q --tb=short"
+  - id: cp4
+    criterion: >
+      Существующие test_context_loop.py тесты регрессия — все зелёные
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=short"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=short"
+
+tdd:
+  - "test_prepare_emits_runtime_claude_default"
+  - "test_prepare_emits_runtime_dsh"
+  - "test_prepare_emits_dsh_profile (начинается с epic-)"
+  - "test_prepare_emits_dsh_workspace (str(cwd_p))"
+  - "test_prepare_cli_runtime_override (--runtime dsh override)"

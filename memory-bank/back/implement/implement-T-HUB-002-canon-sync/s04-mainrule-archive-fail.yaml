@@ -1,0 +1,110 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-002
+title: s04 — mainrule.mdc archived prefix table + pm/tl/content/marketing/seo commands
+  FAIL preamble IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: /home/aero/PyProject/dev-hub/memory-bank/back/plan/decompose-T-HUB-002-canon-sync/s04-mainrule-archive-fail.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'mainrule.mdc: строки PM/TL/CONTENT/MARKETING/SEO заменены на archived-формулировку
+  с FAIL'
+- '43 command-файла: добавлена FAIL preamble (ARCHIVED ROLE — FAIL-FAST) после frontmatter'
+- 'cp1-cp4: все зелёные'
+files:
+- .cursor/rules/mainrule.mdc
+- .claude/commands/pm-archive.md
+- .claude/commands/pm-backlog.md
+- .claude/commands/pm-discover-market.md
+- .claude/commands/pm-discover.md
+- .claude/commands/pm-init.md
+- .claude/commands/pm-jira.md
+- .claude/commands/pm-plan.md
+- .claude/commands/pm-retro.md
+- .claude/commands/pm-roadmap.md
+- .claude/commands/pm-session.md
+- .claude/commands/pm-sprint-plan.md
+- .claude/commands/pm-status.md
+- .claude/commands/tl-blockers.md
+- .claude/commands/tl-capacity.md
+- .claude/commands/tl-delivery.md
+- .claude/commands/tl-sprint.md
+- .claude/commands/tl-standup.md
+- .claude/commands/tl-sync-dev.md
+- .claude/commands/content-audit.md
+- .claude/commands/content-init.md
+- .claude/commands/content-interview.md
+- .claude/commands/content-launch.md
+- .claude/commands/content-optimize.md
+- .claude/commands/content-plan.md
+- .claude/commands/content-seo.md
+- .claude/commands/content-write.md
+- .claude/commands/marketing-ads.md
+- .claude/commands/marketing-email.md
+- .claude/commands/marketing-monetize.md
+- .claude/commands/marketing-plan.md
+- .claude/commands/marketing-pr.md
+- .claude/commands/marketing-retain.md
+- .claude/commands/marketing-revops.md
+- .claude/commands/marketing-social.md
+- .claude/commands/seo-aso.md
+- .claude/commands/seo-competitors.md
+- .claude/commands/seo-content-ops.md
+- .claude/commands/seo-data.md
+- .claude/commands/seo-ecommerce.md
+- .claude/commands/seo-geo.md
+- .claude/commands/seo-links.md
+- .claude/commands/seo-local.md
+- .claude/commands/seo-tech.md
+deletes:
+- '.cursor/rules/mainrule.mdc: live @.cursor/rules/project_manager/mainrule-pm.mdc
+  строка (→ archived формулировка)'
+- '.cursor/rules/mainrule.mdc: live @.cursor/rules/team_lead/mainrule-tl.mdc строка
+  (→ archived)'
+- '.cursor/rules/mainrule.mdc: live @.cursor/rules/content_growth/mainrule-content.mdc
+  строка (→ archived)'
+- '.cursor/rules/mainrule.mdc: live @.cursor/rules/marketing_growth/mainrule-marketing.mdc
+  строка (→ archived)'
+- '.cursor/rules/mainrule.mdc: live @.cursor/rules/seo_ops/mainrule-seo.mdc строка
+  (→ archived)'
+tests:
+- '`timeout 300s .venv/bin/pytest --collect-only -q 2>&1 | head -5 || true`'
+integration_check:
+- 'mainrule.mdc: PM/TL/CONTENT/MARKETING/SEO rows replaced with archived FAIL formulation
+  — no live @-paths remain'
+grep_control:
+- back: grep -n 'project_manager\|team_lead\|content_growth\|marketing_growth\|seo_ops'
+    .cursor/rules/mainrule.mdc
+  front: ''
+verification_results:
+- 'cp1: grep mainrule.mdc — only archived rows for PM/TL/CONTENT/MARKETING/SEO, no
+  live @-paths'
+- 'cp2: pm-plan.md head-15 contains ARCHIVED ROLE — FAIL-FAST'
+- 'cp3: tl-standup.md head-15 contains ARCHIVED ROLE — FAIL-FAST'
+- 'cp4: for-loop 43 files — no MISSING output'
+checkpoints:
+- id: cp1
+  criterion: mainrule.mdc — нет '@.cursor/rules/project_manager/' как live path без
+    archived-маркера
+  status: done
+  done_at: '2026-08-22T10:12:48Z'
+- id: cp2
+  criterion: pm-plan.md содержит FAIL preamble (слово 'ARCHIVED' или 'FAIL' в первых
+    15 строках)
+  status: done
+  done_at: '2026-08-22T10:13:44Z'
+- id: cp3
+  criterion: tl-standup.md содержит FAIL preamble
+  status: done
+  done_at: '2026-08-22T10:13:44Z'
+- id: cp4
+  criterion: Все 43 команд (pm/tl/content/marketing/seo) содержат 'ARCHIVED' или 'FAIL'
+    keyword
+  status: done
+  done_at: '2026-08-22T10:13:44Z'
+resume_from: cp1

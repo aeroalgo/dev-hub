@@ -1,0 +1,38 @@
+---
+description: "Режим BACK IMPLEMENT — реализация кода по плану, уровни 1–4, TDD"
+alwaysApply: false
+---
+### Команда: BACK IMPLEMENT
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+
+**Скиллы — только step + FINISH (HARD)**
+
+Канон скиллов задаёт **DECOMPOSE skills gate** в `sNN` (`Impl skills`).
+
+| Что | Когда |
+|-----|--------|
+| **Impl skills** из текущего `sNN` | Read **каждый** путь целиком **до** prod-кода (docs-only: skip) |
+| `verification-before-completion` | pre-FINISH |
+| `requesting-code-review` | pre-FINISH |
+
+**FORBIDDEN:**
+- широкий слой A / угадывание скиллов по предикату
+- Read скиллов, которых **нет** в `Impl skills` step (кроме FINISH-only)
+- пропуск пути из `Impl skills`
+- `limit` на Read SKILL.md
+
+Пути: `@.agents/skills/<name>/SKILL.md` как в step.
+
+**Процесс**:
+1. `OK BACK IMPLEMENT - Начинаю реализацию` → **Gates**
+2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`  
+   **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now` / «acceptance = plan». Jump `plan §N` только из Consumes при нехватке AC.
+3. Read **Impl skills** из step до prod-edit (после TDD red ок)
+4. TDD targeted → code → green (`.venv/bin/pytest` из корня); level delta — gates; **выполнить все `deletes:`** из work shard (не оставлять вытесненный код)
+5. §0.11 · pre-FINISH skills (verification + code-review); при непустом `deletes` — grep/import-audit: старые символы без callers
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`) — Write implement yaml → Handoff → `@verify` → PASS → `finalize-step` (index + log + load_now). Epic complete → AUDIT через хук.  
+   Next: Handoff в `activeContext.md` + `index.yaml`
+
+**Верификация**: gates + §0.11 + deletes executed + FINISH + `graphify update .`

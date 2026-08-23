@@ -1,0 +1,98 @@
+schema_version: 1
+project_id: test_project
+title: "Demo — утро в кофейне"
+aspect: "9:16"
+duration_target_sec: 24
+fps: 24
+style: "cinematic warm, 35mm, soft morning light, natural skin"
+language: ru
+
+phase: plan
+# plan | keyframes | generate | audio | assemble | qc | done
+
+budget:
+  max_shots: 8
+  max_redo_per_shot: 2
+  auto: false
+  notes: "MVP: сначала plan+yaml, gen API позже"
+
+audio:
+  vo_path: null
+  music_path: null
+  captions: true
+
+paths:
+  briefs: briefs/
+  shots: work/shots/
+  audio: work/audio/
+  assembly: work/assembly/
+  qc: work/qc/
+  out: out/
+
+shots:
+  - id: S01
+    sec: 4
+    action: "Wide: barista opens shutters, morning light floods the empty cafe"
+    camera: "slow push in"
+    image_prompt: null
+    video_prompt: null
+    ref_image: work/shots/S01_key.png
+    clip: work/shots/S01.mp4
+    status: pending
+    redo_count: 0
+
+  - id: S02
+    sec: 4
+    action: "Close-up: hands tamp espresso, steam rises"
+    camera: "static, shallow DOF"
+    image_prompt: null
+    video_prompt: null
+    ref_image: work/shots/S02_key.png
+    clip: work/shots/S02.mp4
+    status: pending
+    redo_count: 0
+
+  - id: S03
+    sec: 4
+    action: "Customer enters, bell on door, warm smile"
+    camera: "over-shoulder from inside"
+    image_prompt: null
+    video_prompt: null
+    ref_image: work/shots/S03_key.png
+    clip: work/shots/S03.mp4
+    status: pending
+    redo_count: 0
+
+  - id: S04
+    sec: 4
+    action: "Cup placed on wooden table near window light"
+    camera: "top-down slight angle"
+    image_prompt: null
+    video_prompt: null
+    ref_image: work/shots/S04_key.png
+    clip: work/shots/S04.mp4
+    status: pending
+    redo_count: 0
+
+  - id: S05
+    sec: 4
+    action: "Wide again: cozy cafe alive, soft bokeh, end hold"
+    camera: "slow pull out"
+    image_prompt: null
+    video_prompt: null
+    ref_image: work/shots/S05_key.png
+    clip: work/shots/S05.mp4
+    status: pending
+    redo_count: 0
+
+# status enum: pending | image_ok | video_ok | blocked | done | redo
+
+assembly:
+  master: work/assembly/master.mp4
+  final: out/final.mp4
+  edl: work/assembly/edl.yaml
+
+qc:
+  contact_sheet: work/qc/contact_sheet.png
+  checklist: work/qc/checklist.md
+  last_report: null

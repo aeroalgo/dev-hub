@@ -1,0 +1,21 @@
+---
+description: "INTEG QA gates — contract + scenario journeys (lean)"
+alwaysApply: false
+---
+# INTEG QA — gates
+
+**Артефакт:** с эпиком `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc · `.cursor/templates/qa/epic-step.yaml`
+
+## Gates
+
+1. Lean load §7: ONE eNN §Contract + implement + diff; **не** полный `plan-*.md` в `load_now`
+2. §0.11 + INTEG-CHECKLIST; contract drift = FAIL
+2a. Brownfield: leftover mock/legacy/fallback check — PASS при leftover = FAIL. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
+3. Tests: `.venv/bin/pytest` из корня + vitest + scenario (Playwright); FRONT runners **parent only**
+4. P0/P1 user-visible без scenario → **write** before PASS
+5. **fail|blocked:** `review.md` + Handoff — `finish-doc-router.md`
+
+## Abort
+
+- PASS без scenario · subagent runs vitest/playwright · голый `pytest` → reject/FAIL
+- PASS при leftover mock/legacy entrypoint / fallback → FAIL

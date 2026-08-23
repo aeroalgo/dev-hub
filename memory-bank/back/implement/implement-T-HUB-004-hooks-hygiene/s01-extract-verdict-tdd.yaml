@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-004
+title: 's01 — extract_verdict: remove short-circuit, last-match wins, TDD tests IMPLEMENT'
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-004-hooks-hygiene/s01-extract-verdict-tdd.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- python-anti-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: extract_verdict @ .claude/hooks/_lib.py:1198; short-circuit was :1202–1203;
+  test was test_extract_verdict_uses_last_match :837'
+gaps:
+  status: none
+done:
+- 'Removed short-circuit `if "VERDICT: PASS" in text: return "PASS"` from extract_verdict'
+- extract_verdict now returns last re.finditer match only (PASS|FAIL|BLOCKED)
+- Replaced test_extract_verdict_uses_last_match with parametrized test_extract_verdict_last_wins
+- Added test_extract_verdict_contract_blob_instructional_pass_final_fail (PASS in
+  CONTRACT + final FAIL → FAIL)
+- Added `import pytest` to loop/tests/test_stop_gate.py for parametrize
+files:
+- .claude/hooks/_lib.py
+- loop/tests/test_stop_gate.py
+deletes:
+- 'Short-circuit блок `if ''VERDICT: PASS'' in text` в _lib.py (A: logic, неверная
+  семантика)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k extract_verdict
+  -q --tb=short` — PASS (6 passed, 49 deselected)'
+integration_check:
+- rg short-circuit absent in _lib.py extract_verdict
+- pre-existing unrelated stop_gate failures (need_human / agent_pretool inject / projection)
+  — out_of_scope s01; deferred to later shards / known baseline
+grep_control: []
+verification_results:
+- cp1–cp5 done via flush-checkpoint
+- 'targeted extract_verdict: 7 passed'
+checkpoints:
+- id: cp1
+  criterion: 'extract_verdict удаляет short-circuit (нет `if "VERDICT: PASS" in text`)'
+  status: done
+  done_at: '2026-08-22T17:59:10Z'
+- id: cp2
+  criterion: extract_verdict использует только last regex match
+  status: done
+  done_at: '2026-08-22T17:59:10Z'
+- id: cp3
+  criterion: 'Parametrized тест last-wins добавлен: PASS→FAIL, FAIL→PASS, BLOCKED'
+  status: done
+  done_at: '2026-08-22T17:59:10Z'
+- id: cp4
+  criterion: 'Contract-blob тест: instructional PASS + final FAIL → FAIL'
+  status: done
+  done_at: '2026-08-22T17:59:10Z'
+- id: cp5
+  criterion: Тесты extract_verdict проходят (TDD red→green)
+  status: done
+  done_at: '2026-08-22T17:59:10Z'
+resume_from: cp5

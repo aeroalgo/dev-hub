@@ -1,0 +1,123 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "analyze_session_log DSH branch + record-session classify — resilience parity"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `session_resilience.py::analyze_session_log` получает ветку для DSH logs:
+  exit 0 без признака FINISH → aborted (как Claude); HTTP 4xx/5xx → transient;
+  fatal patterns → permanent. `record_abort` (context_loop.py) пробрасывает runtime.
+  Fixtures из s02 используются как тест-вход. FR-7, FR-8, NFR-3, AC+4.
+
+context:
+  consumes:
+    - .claude/hooks/session_resilience.py   # analyze_session_log, classify_abort, _PERMANENT_FAILURE_PATTERNS
+    - loop/context_loop.py                  # record_abort — вызывает analyze_session_log
+    - loop/tests/fixtures/dsh_session_completed.jsonl    # из s02
+    - loop/tests/fixtures/dsh_session_transient.jsonl    # из s02
+    - loop/tests/fixtures/dsh_session_permanent.jsonl    # из s02
+    - loop/tests/test_dsh_runtime_adapter.py             # начало тест-файла из s02
+  produces:
+    - .claude/hooks/session_resilience.py   # DSH-специфичные паттерны + ветка в analyze_session_log
+    - loop/tests/test_dsh_runtime_adapter.py  # расширить кейсами analyze_session_log DSH
+  plan_refs:
+    - FR-7
+    - FR-8
+    - NFR-3
+    - AC+4
+  files:
+    - .claude/hooks/session_resilience.py
+    - loop/tests/test_dsh_runtime_adapter.py
+
+as_built:
+  - session_resilience.py:analyze_session_log — принимает log_path, exit_code, attempt, expected_model;
+    детектирует через detect_abort_in_log → extract stream-json lines → _PERMANENT_FAILURE_PATTERNS;
+    НЕ знает о DSH JSONL формате; detect_stream_json_api_error смотрит только Claude stream-json
+  - session_resilience.py:_PERMANENT_FAILURE_PATTERNS — набор re.compile для Claude error messages
+  - session_resilience.py — нет DSH-специфичных паттернов (HTTP 429, 503)
+  - loop/context_loop.py:record_abort — вызывает analyze_session_log без runtime parameter
+
+delta:
+  - session_resilience.py: добавить _DSH_TRANSIENT_PATTERNS tuple:
+      re.compile(r"(?i)429\s*Too\s*Many\s*Requests"),
+      re.compile(r"(?i)503\s*Service\s*Unavailable"),
+      re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
+      re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
+  - session_resilience.py: добавить _DSH_PERMANENT_PATTERNS tuple:
+      re.compile(r"(?i)API\s+Error:\s*terminated"),
+      re.compile(r"(?i)API\s+Error:\s*overloaded"),
+      re.compile(r"(?i)API\s+Error:.*rate.?limit"),
+      re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
+      re.compile(r"(?i)Invalid\s+API\s+key"),
+  - session_resilience.py: добавить `def detect_dsh_abort_in_log(text: str) -> str | None`:
+      сканирует text (весь лог — не только system-lines как в Claude path);
+      проверяет _DSH_TRANSIENT_PATTERNS → "dsh_transient: <match>"
+      проверяет _DSH_PERMANENT_PATTERNS → "dsh_permanent: <match>"
+      иначе → None
+  - session_resilience.py: добавить `def _detect_dsh_session_complete(text: str) -> bool`:
+      проверяет JSONL на session_end с status="completed" ИЛИ
+      последнюю строку text (после normalize) на признаки завершения (FINISH / END)
+  - session_resilience.py: расширить `analyze_session_log`:
+      добавить kwarg `runtime: str = "claude"`;
+      при runtime=="dsh": заменить detect_abort_in_log → detect_dsh_abort_in_log;
+        при exit_code==0 и not _detect_dsh_session_complete(raw_log) → treat как abort (incomplete FINISH);
+        model_substitution detect через detect_dsh_model_mismatch (stub из s02)
+      при runtime=="claude": поведение без изменений (NFR-1)
+  - loop/context_loop.py:record_abort: добавить kwarg `runtime: str = "claude"`;
+      передать в analyze_session_log(... runtime=runtime);
+      читать runtime из load_epic_state → st.get("runtime") или "claude" (fallback)
+  - loop/tests/test_dsh_runtime_adapter.py: добавить секцию analyze_session_log DSH:
+      test_analyze_dsh_completed_exit0 — fixture dsh_session_completed.jsonl, exit=0 → outcome=="clean"
+      test_analyze_dsh_transient_http429 — fixture dsh_session_transient.jsonl → outcome contains "transient"
+      test_analyze_dsh_permanent_auth — fixture dsh_session_permanent.jsonl → retryable==False
+      test_analyze_dsh_exit0_incomplete_finish — exit=0 но нет session_end → aborted==True
+      test_analyze_claude_path_unaffected — runtime="claude", обычный Claude log → результат как до изменений
+
+deletes: []
+# Additive: analyze_session_log расширяется kwarg runtime; Claude path без изменений (NFR-1)
+
+out_of_scope:
+  - "epic_stream_filter.py — отдельный filter для DSH; Phase 1 = no-op passthrough, не меняем"
+  - "Полная detect_dsh_model_mismatch логика — stub из s02; уточняется при реальном DSH"
+  - "loop.sh record-session вызов runtime параметра через shell — s04 передаёт; record_abort читает из epic state"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # red→green на fixtures
+    - .agents/skills/python-testing-patterns/SKILL.md     # parametrize fixture-based tests
+    - .agents/skills/modern-python/SKILL.md               # typing, kwarg default
+    - .agents/skills/python-anti-patterns/SKILL.md        # не ломать Claude path
+    - .agents/skills/python-error-handling/SKILL.md       # classify_abort: fatal vs transient
+    - .agents/skills/python-resilience/SKILL.md           # S10: retry / transient / permanent classification
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_analyze_claude_path_unaffected PASS: Claude path byte-identical (NFR-1)
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'test_analyze_claude_path_unaffected' -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_analyze_dsh_completed_exit0 PASS: DSH exit=0 + completed fixture → outcome clean
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'test_analyze_dsh_completed_exit0' -q --tb=short"
+  - id: cp3
+    criterion: >
+      test_analyze_dsh_exit0_incomplete_finish PASS: exit=0 без session_end → aborted==True
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'test_analyze_dsh_exit0_incomplete_finish' -q --tb=short"
+  - id: cp4
+    criterion: >
+      Все analyze_session_log DSH тесты PASS; Claude regression pass
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+
+tdd:
+  - "test_analyze_dsh_completed_exit0 (fixture → outcome clean)"
+  - "test_analyze_dsh_transient_http429 (429 → retryable)"
+  - "test_analyze_dsh_permanent_auth (auth error → retryable==False)"
+  - "test_analyze_dsh_exit0_incomplete_finish (no session_end → aborted)"
+  - "test_analyze_claude_path_unaffected (runtime=claude → as-before)"

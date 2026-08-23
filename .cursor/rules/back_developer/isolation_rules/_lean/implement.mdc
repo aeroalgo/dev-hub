@@ -1,0 +1,43 @@
+---
+description: "IMPLEMENT gates — shards, TDD, integration (lean)"
+alwaysApply: false
+---
+# IMPLEMENT — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/back/implement/implement-<epic_id>/sNN-<slug>.yaml`  
+- без эпика: `memory-bank/back/implement/<slug>/` (не `implement-<epic_id>/`)  
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон **строго** `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role: back`, `done`/`files`/`tests`/`integration_check`/`checkpoints`)
+
+## Gates
+
+1. `load_now`: work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; **не** полный `plan-*.md`, **не** `index.md`; AC = work shard (jump `plan §N` только при нехватке)
+2. Level из step — L2 substep → L2
+3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index `yes (CR-…)` без `✅`. Канон форм: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен BACK CREATIVE <CR-ID>`); не код/`completed`. `no (… closed)` — запрещённый дрейф, трактовать как open до нормализации
+4. **Skills:** Read **целиком** только `Impl skills` из step (+ FINISH-only pre-FINISH); без `limit≤300`; **без** широкого слоя A
+5. Red: targeted `.venv/bin/pytest` из корня до кода — не полный suite
+5a. **`deletes`:** выполнить **все** пути/символы из work shard `deletes:`; на FINISH зеркалить в implement `deletes:`; пропуск / «оставим shim» вне out_of_scope = FAIL
+5b. **Purge step:** если slug `*-legacy-fallback-purge` — evidence обязана включать `rg`/entrypoint inventory (shared/workflow-legacy-fallback-cleanup.mdc §3); soft-fail misconfig не добавлять
+6. §0.11: missing counterpart = bug; после deletes — нет живых callers на удалённое
+7. Green: только затронутые; полный suite → BACK QA
+8. **FINISH:** @.cursor/rules/shared/finish-block.mdc — **порядок:** Write `implement-*/sNN-*.yaml` → Handoff → `@verify` → PASS; step+Handoff **до** decompose completed (5 точек там)
+8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
+
+## Level delta
+
+| L | Фокус |
+|---|--------|
+| L1 | targeted fix |
+| L2 | step; component TDD |
+| L3–L4 | phased; creative если flagged |
+
+## Abort
+
+- Shard/step missing · creative open · red skipped → no code/FINISH
+- Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL (дописать step или jump §N)
+- Полный pytest / голый `pytest` / не из корня → BACK QA или FAIL
+- Impl skills из step не Read · Read скиллов вне step (кроме FINISH-only) → no FINISH
+- Непустой decompose `deletes` не выполнен / не отражён в implement → no FINISH
+- Purge step без evidence `rg`/entrypoint inventory → no FINISH
+- FINISH без step/Handoff/порядка → FAIL (finish-block)
+- Step не по `templates/implement/epic-step.yaml` → FAIL

@@ -1,0 +1,161 @@
+schema: epic-audit/v1
+audit_date: "2026-08-22"
+epic_id: T-HUB-002-canon-sync
+auditor: claude-sonnet-5
+verdict: PASS
+
+summary: |
+  Все 6 шагов (s01–s06) реализованы. Gap-матрица: 0 not_implemented.
+  Единственная аномалия — ложно-позитивный MISSING в CP2/CP3 s02 (trailing backtick
+  в CLAUDE.md:38 при grep-парсинге @-ссылок). Файл .cursor/rules/graphify.mdc существует;
+  аномалия не является реальным gap.
+
+gap_matrix:
+  - step_id: s01
+    title: "CLAUDE.md canon pass — Handoff/spawn/re-read wording"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: "spawn-hard pointer в CLAUDE.md"
+        result: PASS
+        evidence: "CLAUDE.md:71 — 'pointer → .claude/instructions/spawn-hard.md (exceptions: delta_paths_exist: yes, MODEL_LOOP)'"
+      cp2:
+        criterion: "activeContext.md как место Handoff в CLAUDE.md §FINISH"
+        result: PASS
+        evidence: "CLAUDE.md:57 — '## Handoff → activeContext.md (не в implement-yaml)'"
+      cp3:
+        criterion: "Нет 'L1–L2 без spawn' как standalone правила"
+        result: PASS
+        evidence: "grep -c → 0"
+    not_implemented: []
+
+  - step_id: s02
+    title: "Create front-tests-parent-only.mdc + rg broken-refs sweep"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: ".cursor/rules/front-tests-parent-only.mdc существует"
+        result: PASS
+        evidence: "test -f → OK"
+      cp2:
+        criterion: "broken @.cursor/rules refs в CLAUDE.md"
+        result: PASS_WITH_NOTE
+        evidence: |
+          grep-парсер выдал 'MISSING: .cursor/rules/graphify.mdc`' (trailing backtick
+          артефакт строки в CLAUDE.md:38 с mdc`-форматом).
+          Реальная проверка: ls .cursor/rules/graphify.mdc → EXISTS.
+          Фактических broken refs нет.
+      cp3:
+        criterion: "broken @.cursor/rules refs в mainrule.mdc"
+        result: PASS_WITH_NOTE
+        evidence: "Та же артефактная строка про graphify.mdc — файл реально существует."
+    not_implemented: []
+
+  - step_id: s03
+    title: "role-command SoT sync + SECURITY/graphify wording align"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: "diff .claude ↔ .agents role-command SKILL.md → exit 0"
+        result: PASS
+        evidence: "diff → IDENTICAL"
+      cp2:
+        criterion: "SECURITY execute в SKILL.md Step 0"
+        result: PASS
+        evidence: "SKILL.md:27 — 'SECURITY execute (@aNN / S one-shot)'"
+      cp3:
+        criterion: "Sync note/SoT note в SKILL.md"
+        result: PASS
+        evidence: "SKILL.md:156 — 'SoT = .claude/skills/role-command/SKILL.md; .agents/... = mirror. Sync on DECOMPOSE'"
+    not_implemented: []
+
+  - step_id: s04
+    title: "mainrule.mdc archived prefix + pm/tl/content/marketing/seo FAIL preamble"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: "mainrule.mdc — нет live role paths без archived-маркера"
+        result: PASS
+        evidence: "grep → 0 live hits"
+      cp2:
+        criterion: "pm-plan.md содержит FAIL preamble"
+        result: PASS
+        evidence: "head -15 → '> ARCHIVED ROLE — FAIL-FAST' в строках 4–7"
+      cp3:
+        criterion: "tl-standup.md содержит FAIL preamble"
+        result: PASS
+        evidence: "head -15 → '> ARCHIVED ROLE — FAIL-FAST'"
+      cp4:
+        criterion: "Все 43 команды (pm/tl/content/marketing/seo) содержат ARCHIVED/FAIL"
+        result: PASS
+        evidence: "missing count: 0"
+    not_implemented: []
+
+  - step_id: s05
+    title: "graphify.mdc hub N/A protocol + INTEG PLAN inventory exception"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: "graphify.mdc содержит Hub/N/A protocol секцию"
+        result: PASS
+        evidence: "graphify.mdc:67 — '## Hub / tooling repositories (N/A protocol)'"
+      cp2:
+        criterion: "graphify.mdc содержит INTEG PLAN exception"
+        result: PASS
+        evidence: "graphify.mdc:78 — '## Plan exceptions (inventory mode)'; graphify.mdc:84 — 'INTEG PLAN'"
+      cp3:
+        criterion: "mainrule.mdc Step 0 ссылается на hub N/A + INTEG PLAN"
+        result: PASS
+        evidence: "mainrule.mdc:23 — '...Hub repos без graph.json: N/A protocol ... INTEG PLAN: inventory mode ...'"
+      cp4:
+        criterion: "'Do not skip graphify' уточнён/дополнён"
+        result: PASS_WITH_NOTE
+        evidence: |
+          graphify.mdc:51 — строка сохранена (про cross-file deps),
+          но §Plan exceptions + §Hub protocol добавлены как override/extension.
+          По духу s05: wording дополнён секциями, не удалён — acceptable.
+    not_implemented: []
+
+  - step_id: s06
+    title: "architecture SoT note + legacy-fallback-purge rg suite"
+    status: completed
+    checkpoints:
+      cp1:
+        criterion: "architecture/overview.md содержит SoT note"
+        result: PASS
+        evidence: "overview.md:56–61 — '## Rules & role-command SoT' section"
+      cp2:
+        criterion: "mainrule live role paths → 0"
+        result: PASS
+        evidence: "OK: 0 live hits"
+      cp3:
+        criterion: "'L1–L2 без spawn' purge"
+        result: PASS
+        evidence: "grep count → 0"
+      cp4:
+        criterion: "front-tests-parent-only.mdc exists"
+        result: PASS
+        evidence: "test -f → OK"
+      cp5:
+        criterion: "graphify.mdc hub N/A + INTEG PLAN count ≥1"
+        result: PASS
+        evidence: "grep -c → 5 hits"
+      cp6:
+        criterion: "pm-plan + seo-tech + tl-standup ARCHIVED/FAIL"
+        result: PASS
+        evidence: "OK: all 3 files"
+    not_implemented: []
+
+not_implemented: []
+
+notes:
+  - |
+    Trailing backtick в CLAUDE.md:38 (строка: '@.cursor/rules/graphify.mdc`') создаёт ложный
+    MISSING при grep-парсинге @-ссылок. Реального broken ref нет. Рекомендуется убрать trailing
+    backtick в следующей редакции CLAUDE.md (minor cosmetic; не блокирует QA).
+  - |
+    graphify.mdc:51 — строка 'Do not skip graphify because files are already known' сохранена
+    (s05 delta предполагал замену/дополнение). Факт: добавлены §Hub N/A + §Plan exceptions как
+    extension — поведение скорректировано, wording не удалён. Acceptable.
+
+next_phase: QA

@@ -1,0 +1,28 @@
+---
+description: "CREATIVE gates — design decisions, batch (lean)"
+alwaysApply: false
+---
+# CREATIVE — gates
+
+**Артефакт:**  
+- с эпиком: `memory-bank/back/creative/<epic_id>/creative-[feature_name].md`  
+- без эпика: `memory-bank/back/creative/creative-[feature_name].md`  
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc  
+Batch обязателен. Шаблоны phase-файлов — **нет** (удалены); формат — в `workflow-creative.mdc`.  
+Brainstorming: только секция **OVERRIDE — CREATIVE** (без one-at-a-time / wait-for-approval).  
+**Situational:** @.cursor/rules/back_developer/skills-gate-situational.mdc
+
+## Gates
+
+1. Компоненты из plan/decompose step; определить `epic_id` (есть → подпапка)
+2. **Skills gate:** Core(2) ∪ situational из `skills-gate-situational` (checklist CREATIVE); список в creative-файле; Read только его; situational ≤5
+3. Тип Architecture / Algorithm / UI-UX; 2+ варианта + pros/cons
+4. Один creative-файл по таблице paths; decompose link если от шага
+5. `tasks.md` append-only
+6. **Rewire dependents:** каждый `sNN` с этим CR-ID — ссылка на creative + канон `needs_creative: yes (CR-…) — **closed**` (или partial open) + index `yes (CR-…) ✅` (см. workflow §5a / `templates/decompose/epic-step.yaml`). Без rewire → FAIL FINISH
+
+## Abort
+
+- Блокирующие неясности → grill-me (если gate yes); не выбирать вслепую
+- Epic известен, но файл записан плоско в `creative/` без `<epic_id>/` → FAIL
+- Нет блока `## Skills gate` / Read вне списка / situational >5 / путь вне allowlist → FAIL

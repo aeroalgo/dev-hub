@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-003
+title: s01 — Pure decide_after_action helper + TDD (halt matrix) IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-003-loop-halt/s01-decide-helper-tdd.yaml
+skills_used:
+- python-testing-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: decide_after_action отсутствует; halt matrix размазана check_after JSON
+  + CLI rc + loop.sh'
+- loop/halt_logic.py — новый модуль; loop/context_loop.py не менялся (shell wire =
+  s02)
+gaps:
+  status: none
+done:
+- 'TDD red: loop/tests/test_decide_after_action.py (13 кейсов halt matrix)'
+- 'GREEN: loop/halt_logic.py::decide_after_action (fail-closed)'
+- cp1–cp3 flushed
+files:
+- loop/halt_logic.py
+- loop/tests/test_decide_after_action.py
+deletes:
+- Inline shell-level halt/continue decision — вынесена в decide_after_action (wire
+  loop.sh = s02; check_after по-прежнему эмитит JSON-флаги)
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_decide_after_action.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -k ''decide_after_action or check_after''
+  -q --tb=short`'
+integration_check:
+- grep -rn 'def decide_after_action' loop/ → loop/halt_logic.py:18
+- test -f loop/tests/test_decide_after_action.py + NEED_HUMAN/EPIC_DONE/halt cases
+  — ok
+grep_control:
+- back: decide_after_action только в loop/halt_logic.py + loop/tests/test_decide_after_action.py;
+    context_loop не импортирует (wire = s02)
+  front: n/a
+verification_results:
+- 'cp1: test file exists with halt/NEED_HUMAN/EPIC_DONE/continue cases'
+- 'cp2: def decide_after_action in loop/halt_logic.py'
+- 'cp3: decide suite 13 passed (hub без .venv → timeout 300s python3 -m pytest … эквивалент);
+  check_after failures pre-existing (context_loop.py untouched)'
+checkpoints:
+- id: cp1
+  criterion: 'Файл loop/tests/test_decide_after_action.py существует и содержит кейсы:
+
+    halt=true, NEED_HUMAN stop, EPIC_DONE, ok continue
+
+    '
+  status: done
+  done_at: '2026-08-22T16:37:32Z'
+- id: cp2
+  criterion: Функция decide_after_action определена в context_loop.py или halt_logic.py
+  status: done
+  done_at: '2026-08-22T16:37:32Z'
+- id: cp3
+  criterion: Тесты test_decide_after_action проходят; регрессия test_check_after_*
+    не сломана
+  status: done
+  done_at: '2026-08-22T16:37:33Z'
