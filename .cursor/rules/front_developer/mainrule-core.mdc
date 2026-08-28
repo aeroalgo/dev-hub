@@ -19,7 +19,7 @@ alwaysApply: false
 
 ## MEMORY BANK
 
-- `activeContext` → `load_now` first (§0.5.1); session start: context-session-economy §3
+- `activeContext` → `load_now` first (@.cursor/rules/token-economy-stub.mdc §0.5.1); session start: context-session-economy §3
 - Артефакты: `memory-bank/front/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`
 
 ## ПЕРЕХОДЫ

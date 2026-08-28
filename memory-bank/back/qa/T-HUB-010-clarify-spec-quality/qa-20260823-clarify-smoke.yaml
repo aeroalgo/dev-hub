@@ -1,0 +1,44 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-010
+plan_id: T-HUB-010-clarify-spec-quality
+epic_id: T-HUB-010-clarify-spec-quality
+date: "2026-08-23"
+reviewer: BACK QA + reviewer subagent
+verdict: pass
+
+scope:
+  - "epic: T-HUB-010-clarify-spec-quality"
+  - "steps: s01–s06; s07 remains the separate activeContext FINISH step"
+  - "docs/tooling: .cursor/rules, .cursor/templates, .claude/commands, memory-bank refs"
+  - "QA shard: memory-bank/back/plan/decompose-T-HUB-010-clarify-spec-quality/s06-qa-smoke-rg.yaml"
+
+checks:
+  - "AC+ #1: CLARIFY appears in .cursor/rules/mainrule.mdc and back_developer/mainrule.mdc — PASS"
+  - "AC+ #2: BACK/FRONT/INTEG workflow-clarify plus BACK _lean/clarify exist — PASS"
+  - "AC+ #3: clarify.md and plan.md contain Independent Test, WHAT/HOW and [НУЖНО УТОЧНИТЬ] — PASS"
+  - "AC+ #4: .claude/commands/back-clarify.md exists and delegates role-command — PASS"
+  - "AC+ #5: BACK workflow contains Completion Report and Done When structure — PASS"
+  - "AC+ #6: memory-bank-paths.mdc contains clarify paths — PASS"
+  - "AC+ #7: refs doc contains FORBIDDEN specify-cli guidance — PASS"
+  - "AC− #1: source-scoped rg for specify-cli install/specify init returned 0 matches; runtime dumps excluded — PASS"
+  - "AC− #2: root specs/ layout absent — PASS"
+  - "AC− #3: .claude/commands/ has no speckit.* slash — PASS"
+  - "AC− #4: no ANALYZE/AUDIT converge workflow requirement introduced — PASS"
+  - "AC− #5: clarify.md is adapted (72 lines), not a 291-line clone — PASS"
+  - "Dry-run: OAuth scenario with scope/data/UX ambiguity maps to sequential Q1–Q3, clarify artifact,
+    Completion Report 3 resolved / 0 deferred, and PLAN without CRITICAL markers; structure only,
+    no real PLAN execution — PASS"
+  - "Checkpoint cp1/cp2/cp3 flushed — PASS"
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations:
+  - "Отложено: реальный BACK PLAN и REFLECT выполняются отдельными шагами; этот QA проверяет только workflow structure."
+  - "Отложено: runtime/bash-dumps не являются source artifacts и исключены из AC− source-scoped rg."
+
+suite:
+  - "timeout 300s bash -lc '<source-scoped AC+ rg/ls + AC− rg/ls + clarify.md line-count smoke>' → QA smoke source suite: PASS; clarify.md=72 lines"
+  - "pytest/vitest не запускались: эпик docs/tooling-only, shard явно исключает pytest/vitest; frontend suite отсутствует."

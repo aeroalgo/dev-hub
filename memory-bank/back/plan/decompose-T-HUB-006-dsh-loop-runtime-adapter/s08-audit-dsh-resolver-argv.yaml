@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "Audit remediation: DSH resolver argv compatibility — FR-4"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F1 / source_ref FR-4: resolver должен передавать global DSH и npx fallback
+  как исполняемый argv, а не как неисполняемый multi-token path; при отсутствии DSH сохранить
+  fail-closed и запрет silent fallback в Claude.
+
+context:
+  consumes:
+    - loop/loop.sh
+    - dsh/bin/which-dsh.sh
+    - loop/tests/test_loop_dsh_dispatch.py
+    - memory-bank/back/audit/T-HUB-006-dsh-loop-runtime-adapter/audit-20260824-dsh-loop-runtime-adapter.yaml
+  produces:
+    - loop/loop.sh
+    - dsh/bin/which-dsh.sh
+    - loop/tests/test_loop_dsh_dispatch.py
+  plan_refs:
+    - FR-4
+    - AC+1
+    - AC+6
+  files:
+    - loop/loop.sh
+    - dsh/bin/which-dsh.sh
+    - loop/tests/test_loop_dsh_dispatch.py
+
+as_built:
+  - loop/loop.sh::resolve_dsh_bin получает строку resolver output и run_dsh_session помещает её целиком первым элементом command array
+  - dsh/bin/which-dsh.sh при npx fallback печатает `npx -y @deepseek-ai/dsh`
+  - такая строка не является исполняемым путем; текущий `*/ *` guard отвергает её, а прямой argv path не поддерживает command + args
+  - fake DSH и missing-binary tests покрывают dispatch, но не npx resolver branch
+
+delta:
+  - Определить единый контракт resolver→runner для path и command с аргументами; не передавать multi-token command как один executable path
+  - Исправить loop/loop.sh::resolve_dsh_bin/run_dsh_session или resolver script так, чтобы DSH_BIN, global dsh и npx fallback запускались корректным argv
+  - Добавить bounded test для npx/global resolver path с проверкой profile и prompt, а также сохранить missing-binary fail-closed
+  - Не добавлять fallback dsh→claude и не менять Claude default path
+
+deletes: []
+
+out_of_scope:
+  - Реальный сетевой вызов DeepSeek/DSH API
+  - Профили T-HUB-007 и Cordis plugins T-HUB-008
+  - Изменение session_resilience classification (s09)
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: DSH_BIN explicit path and global dsh resolver execute with --profile and prompt
+    verify: "bash -n loop/loop.sh && timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=short"
+  - id: cp2
+    criterion: npx fallback is represented and executed as argv, not as one non-executable path
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -k 'npx or resolver' -q --tb=short"
+  - id: cp3
+    criterion: missing DSH remains fail-closed and never invokes Claude fallback
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py::test_run_dsh_session_fails_closed_on_missing_dsh -q --tb=short"
+  - id: cp4
+    criterion: bounded dispatch regression remains green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=short"
+
+verify:
+  - "bash -n loop/loop.sh"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=short"
+
+tdd:
+  - Test explicit DSH_BIN path dispatches expected profile and prompt
+  - Test global resolver path dispatches expected profile and prompt
+  - Test npx resolver command is split/represented as executable argv and dispatches expected profile
+  - Test missing DSH is non-zero and does not call Claude

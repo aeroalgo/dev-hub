@@ -1,0 +1,73 @@
+schema: epic-audit/v1
+role: back
+epic_id: T-HUB-011-analyze-pre-implement
+plan_id: T-HUB-011
+date: 2026-08-23
+auditor: BACK AUDIT
+verdict: PASS
+
+summary:
+  total_steps: 4
+  implemented: 4
+  not_implemented: 0
+  deviations: 1
+
+# Gap-матрица plan/decompose step_id → implement artifact.
+gap_matrix:
+  - step_id: s01
+    plan_title: "Analyze schema template + BACK workflow/lean + core detection passes — foundational ANALYZE layer"
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s01-analyze-schema-back-workflow-lean-detection.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Шаблон epic-analyze, shared detection core, BACK workflow и lean gate созданы; checkpoints cp1–cp4 done."
+  - step_id: s02
+    plan_title: "FRONT/INTEG analyze workflows + 3 slash commands + mainrule entries — parity"
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s02-front-integ-analyze-slash-mainrule.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "FRONT/INTEG workflow и lean gates, три slash-команды и root/role mainrules созданы; checkpoints cp1–cp4 done."
+  - step_id: s03
+    plan_title: "Wire DECOMPOSE/IMPLEMENT/finish-doc-router/memory-bank-paths — ANALYZE lifecycle"
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s03-wire-decompose-implement-finish-doc-router-paths.yaml
+    status: implemented
+    mark: "⚠️"
+    evidence: "Все пять lifecycle-поверхностей wired; checkpoints cp1–cp5 done. Расхождение пути отмечено в deviations[]."
+  - step_id: s04
+    plan_title: "refs/speckit-adapt + dry-run fixture + docs + role-command parity — complete"
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s04-refs-dry-run-fixture-docs-role-command.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Refs, T-FIX-999 fixture, README и .claude/.agents role-command parity созданы/проверены; checkpoints cp1–cp4 done."
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s01-analyze-schema-back-workflow-lean-detection.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s02-front-integ-analyze-slash-mainrule.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s03-wire-decompose-implement-finish-doc-router-paths.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s04-refs-dry-run-fixture-docs-role-command.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s03
+    implement_file: implement-T-HUB-011-analyze-pre-implement/s03-wire-decompose-implement-finish-doc-router-paths.yaml
+    plan_intent: "ANALYZE artifact canon в плане указан как memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml; lifecycle должен вести к этому epic-scoped пути."
+    actual: "workflow-analyze-core.mdc содержит epic-scoped путь, но finish-doc-router.mdc, finish-doc-router.md и memory-bank-paths.mdc реализуют flat memory-bank/{role}/analyze/analyze-YYYYMMDD-<slug>.yaml без <epic_id>."
+    impact: medium
+    follow_up: "Проверить и унифицировать путь в BACK QA; при выборе epic-scoped layout обновить router/template/paths согласованно."
+
+# Greenfield режим ANALYZE не заменяет существующий runtime.
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+
+blocked_reason: ""
+next_phase: QA
+notes:
+  - "Все step_id из decompose index проверены по implement-T-HUB-011-analyze-pre-implement/*.yaml; отсутствующих implement-файлов нет."
+  - "Новые audit-shards не создавались: выявлено только отклонение ⚠️, not_implemented[] пуст."
+  - "NFR/AC spot-check: shared taxonomy и 50-cap, STRICTLY READ-ONLY/ANALYZE ≠ AUDIT, lifecycle wiring, dry-run Coverage/CRITICAL и role-command parity присутствуют."
+  - "Следующий режим: BACK QA; EPIC_DONE не выставлять до QA pass и REFLECT."

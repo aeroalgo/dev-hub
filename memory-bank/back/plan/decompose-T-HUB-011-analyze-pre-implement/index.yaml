@@ -1,0 +1,26 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-011
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-analyze-schema-back-workflow-lean-detection.yaml
+  title: Analyze schema template + BACK workflow/lean + core detection passes — foundational
+    ANALYZE layer
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-front-integ-analyze-slash-mainrule.yaml
+  title: FRONT/INTEG analyze workflows + 3 slash commands + mainrule entries — parity
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-wire-decompose-implement-finish-doc-router-paths.yaml
+  title: Wire DECOMPOSE/IMPLEMENT/finish-doc-router/memory-bank-paths — ANALYZE lifecycle
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-refs-dry-run-fixture-docs-role-command.yaml
+  title: refs/speckit-adapt + dry-run fixture + docs + role-command parity — complete
+  next_phase: BACK IMPLEMENT
+  status: completed

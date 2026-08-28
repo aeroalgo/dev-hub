@@ -1,0 +1,46 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-011
+plan_id: T-HUB-011
+epic_id: T-HUB-011-analyze-pre-implement
+date: 2026-08-27
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-011"
+  - "epic: T-HUB-011-analyze-pre-implement"
+  - "steps: s01–s04"
+  - "surfaces: ANALYZE schema/core, BACK/FRONT/INTEG workflows and lean gates, lifecycle routing, canonical paths, refs, fixture, README and role-command parity"
+
+checks:
+  - "full parent suite: PASS — 7678 passed, 181 skipped, 48 warnings"
+  - "Python syntax: PASS — py_compile for changed runtime modules"
+  - "shell syntax: PASS — bash -n loop/loop.sh"
+  - "AC+ coverage: PASS — s01–s04 evidence covers schema, detection core, role parity, lifecycle wiring, refs and T-FIX-999 fixture"
+  - "AC− boundary: PASS — ANALYZE is STRICTLY READ-ONLY and distinct from AUDIT"
+  - "§0.11 counterpart check: PASS — shared core, role lean gates, template/README, canonical paths and fixture are consistent"
+  - "canonical artifact layout: PASS — epic-scoped analyze paths are consistent across core, lean gates, router and path rules"
+  - "Spec Kit adaptation: PASS — reference-only adaptation with no runtime dependency or forbidden markers"
+  - "role-command mirror: PASS — .claude and .agents SKILL.md are identical"
+  - "reviewer gate: PASS — VERDICT: PASS; no residual AC+/AC−/§0.11 findings"
+  - "brownfield legacy/fallback cleanup: n/a — this epic adds documentation/rules and does not cut over runtime"
+  - "graphify: N/A — .venv/bin/graphify is unavailable in this hub repository"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "T-HUB-011 is docs/rules/templates/fixture scope; no product runtime code was changed by s01–s04."
+  - "Frontend test runners are not applicable."
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line — PASS: 7678 passed, 181 skipped, 48 warnings in 192.40s"
+  - "timeout 300s .venv/bin/python -m py_compile .claude/hooks/_lib.py .claude/hooks/epic/core.py .claude/hooks/epic_paths.py .claude/hooks/session_resilience.py loop/context_loop.py — PASS"
+  - "timeout 300s bash -n loop/loop.sh — PASS"
+  - "git diff --check (scoped epic artifacts and changed runtime files) — PASS"
+  - "diff -u .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md — PASS"
+  - "T-FIX-999 acceptance markers — PASS: FR-1, Coverage and CRITICAL present"

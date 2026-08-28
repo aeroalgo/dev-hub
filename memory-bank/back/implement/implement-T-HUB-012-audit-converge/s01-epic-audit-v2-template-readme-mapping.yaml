@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-012
+title: s01 — epic-audit/v2 template + README mapping — intent findings schema ready
+  IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-012-audit-converge/s01-epic-audit-v2-template-readme-mapping.yaml
+skills_used: []
+discovery:
+- graphify N/A — hub repository; узкий inventory fallback выполнен @explorer
+gaps:
+  status: none
+done:
+- 'Обновлён шаблон audit с additive schema epic-audit/v2: findings[], intent_checked
+  и converged при сохранении legacy-полей.'
+- Создан README с gap/severity/source_ref правилами, CRITICAL ordering, dual-write
+  mapping и non-delete политикой для unrequested.
+files:
+- .cursor/templates/audit/epic-audit.yaml
+- .cursor/templates/audit/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q` — PASS (docs-only step; collection smoke)'
+- '`timeout 300s bash -lc ''set -e; ls .cursor/templates/audit/epic-audit.yaml .cursor/templates/audit/README.md;
+  rg -n "schema: epic-audit/v2" .cursor/templates/audit/epic-audit.yaml; rg -n unrequested
+  .cursor/templates/audit/README.md; ! rg -n "MODE CONVERGE|specify-cli" .cursor/templates/audit/''`
+  — PASS (template smoke)'
+integration_check:
+- epic-audit/v2 additive contract сохраняет v1 arrays и brownfield leftover gates
+  для следующих AUDIT шагов
+grep_control:
+- back: rg -n 'epic-audit/v2|findings|converged|intent_checked|gap_type|source_ref'
+    .cursor/templates/audit/epic-audit.yaml — PASS
+  front: ''
+- back: rg -n 'implemented:|not_implemented:|deviations:|legacy_surfaces_remaining|fallback_remaining|purge_step_present'
+    .cursor/templates/audit/epic-audit.yaml — PASS
+  front: ''
+- back: rg -n 'unrequested|non-delete|gap_type|source_ref|example' .cursor/templates/audit/README.md
+    — PASS
+  front: ''
+- back: rg -n 'CRITICAL|constitution|P1' .cursor/templates/audit/README.md .cursor/templates/audit/epic-audit.yaml
+    — PASS
+  front: ''
+verification_results:
+- cp1–cp4 flushed через epic_resolve
+- verify smoke commands из shard — PASS; MODE CONVERGE/specify-cli matches — 0
+- 'pytest не запускался: docs/templates-only шаг'
+checkpoints:
+- id: cp1
+  criterion: epic-audit.yaml schema=epic-audit/v2 и содержит findings + converged
+    + intent_checked
+  status: done
+  done_at: '2026-08-23T13:22:55Z'
+- id: cp2
+  criterion: 'v1-поля implemented/not_implemented/deviations/leftover сохранены (AC−
+    #3 / NFR-4)'
+  status: done
+  done_at: '2026-08-23T13:23:13Z'
+- id: cp3
+  criterion: README документирует unrequested non-delete + mapping + example row
+  status: done
+  done_at: '2026-08-23T13:23:27Z'
+- id: cp4
+  criterion: CRITICAL ordering / constitution|P1 missing задокументированы
+  status: done
+  done_at: '2026-08-23T13:23:40Z'
+resume_from: cp1

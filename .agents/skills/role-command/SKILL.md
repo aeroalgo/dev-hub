@@ -10,6 +10,8 @@
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
+`ANALYZE` — однословный режим; роутинг выполняется через `workflow-analyze.mdc`, отдельная multi-word запись не нужна.
+
 | Prefix | Role dir | Core (полный путь) | Isolation |
 |--------|----------|-------------------|-----------|
 | BACK | `.cursor/rules/back_developer/` | `{role_dir}mainrule-core.mdc` | `{role_dir}isolation_rules/_lean/<mode>.mdc` |
@@ -42,9 +44,10 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 0b — session
 
-1. @.cursor/rules/shared/context-session-economy.mdc §3
-2. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). IMPLEMENT: step-файл + Handoff **до** decompose/`load_now` (не дублировать чеклист здесь)
-3. Tool unclear → recommend: **Cursor** + fast-editing (default) | **Claude Code** + premium-coding (E2E / multi-file / **any PLAN**)
+1. **Read** `.cursor/rules/token-economy-core.mdc` (full §0.0–§0.15) once per role-command session — stub already in context (@.cursor/rules/token-economy-stub.mdc)
+2. @.cursor/rules/shared/context-session-economy.mdc §3
+3. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). IMPLEMENT: step-файл + Handoff **до** decompose/`load_now` (не дублировать чеклист здесь)
+4. Tool unclear → recommend: **Cursor** + fast-editing (default) | **Claude Code** + premium-coding (E2E / multi-file / **any PLAN**)
 
 ### Если MODE = PLAN (BACK/FRONT/INTEG/PM) или SECURITY PLAN / REFACTOR PLAN
 
@@ -52,7 +55,7 @@ Fallback на Read/Grep — только после ориентации по г
 
 `SUSPENSION GUARD active — plan output unlimited`
 
-- Читай `token-economy-core.mdc` §0.0 + §0.0.1 до записи артефакта
+- Читай `.cursor/rules/token-economy-core.mdc` §0.0 + §0.0.1 до записи артефакта (stub: @.cursor/rules/token-economy-stub.mdc)
 - Lean load ≠ lean write: **не** сжимай `plan-*.md` / `gap-*.md` / `security/plan/plan-*.md` под telegraph / 200 lines / chat brief
 - Research / audit / multi-P вход → `.cursor/rules/shared/workflow-plan-multi-epic.mdc`: **N эпиков** + roadmap, не один mega-plan; объяви `MULTI-EPIC PLAN — N эпиков`
 - PLAN → recommend premium model; after PLAN → new chat for next mode (`* DECOMPOSE` первого эпика roadmap)

@@ -1,0 +1,88 @@
+---
+description: "Режим BACK CLARIFY — снятие ambiguity до PLAN (wrapper над shared-core)"
+alwaysApply: false
+---
+### Команда: BACK CLARIFY
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
+**Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**Шаблон**: @.cursor/templates/clarify.md
+
+**Скиллы (lazy):**
+- @.agents/skills/grill-me/SKILL.md — только при блокирующих неясностях / CRITICAL
+- @.agents/skills/brainstorming/SKILL.md — опционально при L3–4 / размытом scope (batch, без HARD-GATE пауз)
+
+---
+
+## Когда запускать
+
+- Рекомендуется **до** `BACK PLAN`, если scope / data / NFR / integrations размыты
+- Допустимо как **step 0 gate** в начале PLAN-сессии (не заменяет полный PLAN)
+- Повторный `BACK CLARIFY` — если появились CRITICAL после draft plan
+
+---
+
+## Вход
+
+```text
+BACK CLARIFY <feature-slug>
+```
+
+Опционально: ссылка на draft plan / brief / research. Без входа → спросить slug + 1–2 предложения цели (это не считается из квоты 5 Q таксономии, если только идентификация темы).
+
+---
+
+## Load
+
+1. `memory-bank/activeContext.md` → `load_now` only
+2. Существующий `memory-bank/back/clarify/clarify-*.md` по slug (если есть)
+3. **Не** грузить весь `plan-*.md` monolith без нужды; jump `plan §N` только если Consumes требует
+
+См. Gates (`_lean/clarify.mdc`) — NFR-3 lean load.
+
+---
+
+## Процесс
+
+1. `OK BACK CLARIFY - <slug>`
+2. Прочитай **Gates** + **Shared core**
+3. Создай/открой артефакт: `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md` по шаблону
+4. Выполни @.cursor/rules/shared/workflow-clarify-core.mdc:
+   - §Таксономия → coverage map (внутренний)
+   - §Лимиты → ≤5 Q, sequential, Recommended/Suggested
+   - после каждого A → §Q→A запись в артефакт (+ patch draft plan секций при наличии)
+5. CRITICAL → resolve или явный defer-list (severity)
+6. **Completion Report** в артефакт + кратко в чат
+
+---
+
+## Артефакт
+
+`memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md`
+
+Обязательные секции шаблона: Контекст и цель · Таксономия сканирования · Q→A log · Deferred / `[НУЖНО УТОЧНИТЬ]` · Completion Report.
+
+---
+
+## Done When
+
+- [ ] Completion Report написан
+- [ ] ≤5 Q обработаны (или early stop / «нет критичных ambiguity»)
+- [ ] Нет открытых **CRITICAL** blockers **или** они в defer-list с next/owner
+- [ ] Артефакт на диске; чат не единственный SoT
+
+---
+
+## Handoff
+
+Next (один):
+
+| Сигнал | Next |
+|--------|------|
+| Ambiguity снята / deferred OK | `BACK PLAN <slug>` |
+| Остались IMPORTANT/NICE или квота исчерпана с дырами | `continue BACK CLARIFY` (новая сессия / добор) |
+| Явный spike/exploratory | skip с **warning** (shared §skip policy) → PLAN на свой риск |
+
+FINISH CLARIFY: `code_changed: no` (docs); обновить `activeContext.md` (`load_now` → clarify artifact + next PLAN tip). Канон: @.cursor/rules/shared/finish-block.mdc / finish-doc-router (строка CLARIFY — в s04).
+
+**Верификация**: gates + shared-core checklist + Completion Report + нет silent assumption.

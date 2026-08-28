@@ -1,0 +1,115 @@
+---
+description: "CLARIFY core — shared taxonomy, ≤5 Q limits, CRITICAL markers, Completion Report (BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# CLARIFY — shared core
+
+**Роли:** BACK · FRONT · INTEG (роль-обёртки вызывают этот файл).
+**Не** клонировать `spec-kit/templates/commands/clarify.md` целиком — адаптировать таксономию и лимиты под hub workflow.
+**Артефакт сессии:** `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` (шаблон `@.cursor/templates/clarify.md`).
+
+---
+
+## Таксономия вопросов (8 категорий)
+
+Сканируй вход (draft plan / feature brief / activeContext) и помечай каждую категорию: **Clear** / **Partial** / **Missing**. Кандидаты в очередь только из Partial/Missing с материальным impact.
+
+| # | Категория | Что уточнять |
+|---|-----------|--------------|
+| 1 | **scope** | Core goals, success criteria, explicit out-of-scope, роли/персоны |
+| 2 | **data** | Сущности, атрибуты, связи, identity/uniqueness, lifecycle/state, объёмы |
+| 3 | **UX-API** | Критичные journeys / API surface, error/empty/loading, контракты запросов-ответов |
+| 4 | **NFR** | Latency/throughput, scale, reliability, observability, security/privacy, compliance |
+| 5 | **integrations** | Внешние сервисы/API, failure modes, import/export, protocol/versioning |
+| 6 | **edge** | Негативные сценарии, rate limits, конфликты concurrent, partial failure |
+| 7 | **constraints** | Технические ограничения (язык, storage, hosting), явные tradeoff / rejected alternatives |
+| 8 | **terminology** | Канонический glossary, запрещённые синонимы / deprecated terms |
+
+**Не спрашивать**, если: ответ не меняет architecture / data / decomposition / tests / UX-API / ops / compliance; или лучше отложить в PLAN (отметить Deferred).
+
+---
+
+## Лимиты и формат
+
+1. **≤5 вопросов** на всю сессию CLARIFY (не на категорию).
+2. **Sequential:** ровно **один** вопрос за ход; не раскрывать очередь заранее.
+3. Формат ответа пользователя:
+   - MC: **2–5** взаимоисключающих опций **или**
+   - short: явно «Answer in ≤5 words».
+4. Перед опциями:
+   - MC → `**Recommended:** Option [X] — <reasoning 1–2 предложения>` + таблица Option|Description
+   - short → `**Suggested:** <ответ> — <brief reasoning>`
+5. Качество вопроса:
+   - Строка `**Question:** <полный вопросительный текст>?` (опц. `(FR-…)` после `?`)
+   - Затем одно предложение **Why it matters**
+   - Нельзя подменять вопрос лейблом/ID секции
+6. После ответа: принять `yes` / `recommended` / `suggested` как выбор рекомендации; иначе проверить маппинг на опцию / ≤5 слов; при двусмысленности — disambiguation **той же** Q (счётчик не растёт).
+
+Стоп очереди: критичные ambiguity сняты · пользователь `done`/`good`/`no more` · задано 5 Q · нет валидных кандидатов → «критичных ambiguity нет».
+
+---
+
+## CRITICAL marker policy
+
+Маркер в артефактах / plan / spec:
+
+```text
+[НУЖНО УТОЧНИТЬ: CRITICAL <кратко что>]
+```
+
+Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
+
+| Severity | Правило |
+|----------|---------|
+| **CRITICAL** | `* PLAN` **не** закрывается FINISH, пока item не **resolved** или явно в **defer-list** Handoff с owner/next |
+| **IMPORTANT** | Можно в PLAN с defer; закрыть до DECOMPOSE/IMPLEMENT cutover |
+| **NICE** | Не блокирует; backlog / later |
+
+**FORBIDDEN:** снимать CRITICAL молча; писать `resolved` без Q→A или явного решения пользователя.
+
+---
+
+## Q→A запись
+
+После каждого принятого ответа:
+
+1. В `clarify-*.md` → `## Q→A log`: `- Q: … → A: …` + `resolution: resolved|deferred`
+2. Инкрементально патчить черновик plan/spec-секций, если они уже есть (FR / scope / NFR / glossary)
+3. При первой записи сессии: создать `## Clarifications` / session-дату в целевом черновике, если его правите
+
+Не копить все ответы только в чате — диск = source of truth.
+
+---
+
+## Completion Report (compact RU)
+
+В конце сессии (в clarify-артефакт + кратко в чат):
+
+```markdown
+## Completion Report
+- Asked: N/5
+- Resolved: …
+- Deferred: … (severity + next)
+- Coverage: scope=… data=… UX-API=… NFR=… integrations=… edge=… constraints=… terminology=…
+- Next: BACK|FRONT|INTEG PLAN <slug> | continue CLARIFY | spike (skip warning)
+```
+
+Если вопросов не было: явно «критичных ambiguity не найдено» + next PLAN.
+
+---
+
+## skip policy
+
+Пропуск CLARIFY **только** при явном `spike` / `exploratory` от пользователя.
+Обязателен warning: downstream rework risk ↑; рекомендовать CLARIFY до полного PLAN.
+
+---
+
+## FORBIDDEN
+
+- **silent assumption** при пустом / размытом prompt (auth, stack, multi-tenant, PII, deploy target)
+- Подставлять стек/архитектуру «по умолчанию» вместо вопроса
+- Клонировать spec-kit clarify 1:1 (291 строк) или тащить внешний CLI / init-процесс
+- Установка / вызов внешнего Spec Kit CLI в этом эпике и в shared-core
+- >5 Q за сессию; параллельный dump всей очереди; вопросы без Recommended/Suggested
+- Закрывать PLAN при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list

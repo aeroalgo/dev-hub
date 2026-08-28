@@ -1,8 +1,10 @@
 ---
-description: "Layer 0 — token economy, doc format, approval gates (always)"
-alwaysApply: true
+description: "Layer 0 full — token economy, doc format, approval gates (read on role command)"
+alwaysApply: false
 ---
-# TOKEN ECONOMY (Layer 0)
+# TOKEN ECONOMY (Layer 0 — full)
+
+Always-on stub: @.cursor/rules/token-economy-stub.mdc (§0.5.1 · §0.9 · handoff). **Read this file** on role command and before PLAN/DECOMPOSE/VAN artifact writes (§0.0).
 
 Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge cases) > economy when conflict.
 

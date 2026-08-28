@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-013
+title: s04 — Audit remediation — kill terminal status and non-PLAN next IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s04-audit-kill-terminal-status.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'workflow-idea-pipeline.mdc фиксирует kill как успешный terminal outcome: Pipeline
+  status `done/killed`, Next after kill `terminal`, без назначения или запуска PLAN/IMPLEMENT.'
+- idea-pipeline.md добавляет поля Pipeline status и Next after kill в Decision / Scorecard
+  для явной terminal-семантики kill.
+files:
+- .cursor/rules/shared/workflow-idea-pipeline.mdc
+- .cursor/templates/idea-pipeline.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -q --tb=line`'
+- '`timeout 300s rg -n ''done/killed|killed.*PLAN|PLAN/IMPLEMENT|terminal'' .cursor/rules/shared/workflow-idea-pipeline.mdc`'
+- '`timeout 300s rg -n ''Kill rationale|done/killed|Next after kill|Pipeline status''
+  .cursor/templates/idea-pipeline.md`'
+integration_check:
+- '@.cursor/templates/idea-pipeline.md → .cursor/rules/shared/workflow-idea-pipeline.mdc:
+  оба используют поля kill rationale, Pipeline status `done/killed` и terminal next
+  без PLAN/IMPLEMENT.'
+grep_control: []
+verification_results:
+- 'PASS: rg -n ''done/killed|killed.*PLAN|PLAN/IMPLEMENT|terminal'' .cursor/rules/shared/workflow-idea-pipeline.mdc'
+- 'PASS: rg -n ''Kill rationale|done/killed|Next after kill|Pipeline status'' .cursor/templates/idea-pipeline.md'
+checkpoints:
+- id: cp1
+  criterion: workflow explicitly states kill status done/killed and next is not PLAN/IMPLEMENT
+  status: done
+  done_at: '2026-08-28T00:00:00Z'
+- id: cp2
+  criterion: idea template exposes kill terminal status and rationale fields
+  status: done
+  done_at: '2026-08-28T00:00:00Z'
+resume_from: cp1

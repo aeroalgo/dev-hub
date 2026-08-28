@@ -1,0 +1,55 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-006-dsh-loop-runtime-adapter
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+epic_id: T-HUB-006-dsh-loop-runtime-adapter
+date: 2026-08-27
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "epic: T-HUB-006-dsh-loop-runtime-adapter"
+  - "steps: s01–s09"
+  - "files: loop/loop.sh, loop/context_loop.py, loop/runtime_adapters/dsh.py, .claude/hooks/_lib.py, .claude/hooks/session_resilience.py, dsh/"
+  - "tests: loop/tests/test_runtime_config.py, test_dsh_runtime_adapter.py, test_loop_dsh_dispatch.py, test_dsh_e2e_smoke.py"
+
+checks:
+  - "syntax: PASS — bash -n loop/loop.sh"
+  - "runtime/adapter targeted: PASS — timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_runtime_config.py -q --tb=line — 47 passed"
+  - "dispatch: PASS — timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=short — 6 passed"
+  - "e2e smoke: PASS — timeout 300s .venv/bin/pytest loop/tests/test_dsh_e2e_smoke.py -q --tb=short — 3 passed"
+  - "DSH resolver argv, no dsh-to-claude fallback, missing-binary fail-closed: PASS"
+  - "DSH model mismatch detection and Claude runtime guard: PASS"
+  - "§0.11 counterparts: EPIC_RUNTIME↔dispatch, resolver↔runner, mismatch↔analysis, Claude default↔regression: PASS"
+  - "legacy/fallback check: PASS — no DSH legacy consumer or silent Claude fallback found"
+  - "security spot-check: PASS — no DSH auth, crypto, secret, or external-network sink added"
+  - "reviewer gate: VERDICT PASS for DSH scope"
+  - "mandatory full regression: PASS — timeout 300s .venv/bin/pytest loop/tests/ -q --tb=short — 541 passed"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+qa_run:
+  - "Re-run after BACK BUGFIX full-suite-hook-parity: committed next_step checkpoint advancement is accepted; same-step mismatch remains fail-closed; stale-arm API/test is absent from DSH scope."
+  - "Graphify unavailable at .venv/bin/graphify (exit 127); no graph update performed because this is BACK QA with code_changed: no."
+
+next: "BACK REFLECT T-HUB-006-dsh-loop-runtime-adapter"
+
+previous_failures_resolved:
+  - "B-SUITE: full loop/tests regression is green (541 passed)."
+  - "B-SCOPE: stale-arm API/test was removed; DSH-specific runtime/dispatch/resilience scope retained."
+
+limitations:
+  - "Real DSH API/network behavior was not exercised; fake DSH and fixture-based tests were used as defined by the epic scope."
+  - "No frontend tests apply to this backend QA."
+  - "Graphify CLI is unavailable in this checkout; QA used the required narrow file scope and reviewer gate."
+
+suite:
+  - "bash -n loop/loop.sh — PASS"
+  - "env -u PROJECT_ROOT -u DEV_HUB -u HUB_ROOT -u CLAUDE_PROJECT_DIR -u EPIC_LOOP -u PROJECT_WORKFLOW_HOOKS timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_loop_dsh_dispatch.py loop/tests/test_checkpoint_next_step_advance.py loop/tests/test_identity_resolution.py -q --tb=line — 34 passed"
+  - "env -u PROJECT_ROOT -u DEV_HUB -u HUB_ROOT -u CLAUDE_PROJECT_DIR -u EPIC_LOOP -u PROJECT_WORKFLOW_HOOKS timeout 300s .venv/bin/pytest loop/tests/ -q --tb=short — 541 passed"
+  - "reviewer: VERDICT PASS"
+

@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-012
+plan_id: T-HUB-012
+epic_id: T-HUB-012-audit-converge
+date: "2026-08-27"
+reviewer: BACK QA + reviewer subagent
+verdict: pass
+
+scope:
+  - "epic: T-HUB-012-audit-converge"
+  - "steps: s01–s04"
+  - "files: audit template/README, BACK/FRONT/INTEG audit workflows and lean gates, finish router, fixture/docs"
+  - "runtime code: no new changes in this QA repeat; prior cross-cutting regression fix is documented in bugfix artifact"
+
+checks:
+  - "AC+ #1: PASS — epic-audit/v2 template contains findings[], intent_checked and converged, with legacy fields retained"
+  - "AC+ #2/#3: PASS — BACK/FRONT/INTEG workflow and lean audit gates share gap_type, severity, source_ref, Intent Inventory, Assess, leftovers and converge semantics"
+  - "AC+ #4: PASS — missing-FR fixture/docs record a missing HIGH/CRITICAL finding with source_ref and a new audit shard path"
+  - "AC+ #5/#6: PASS — unrequested is finding-only/non-delete and finish routing requires converged=true plus empty actionable/leftover arrays before QA"
+  - "AC−: PASS — no new MODE CONVERGE; no automatic unrequested deletion; legacy v1 fields remain readable; AUDIT does not require a suite; completed implement artifacts are append-only"
+  - "§0.11: PASS — BACK step_id, FRONT step_id and INTEG element_id/eNN identity plus source_ref and dual-write mappings remain traceable"
+  - "leftover gate: PASS — legacy_surfaces_remaining=[], fallback_remaining=[], purge_step_present=true in the converged audit artifact"
+  - "reviewer gate: PASS — reviewer returned VERDICT: PASS with findings: none"
+  - "parent suite: PASS — clean environment full backend suite completed with 7678 passed, 181 skipped, 48 warnings"
+  - "static checks: PASS — py_compile for affected runtime hooks/loop module and bash -n loop/loop.sh"
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations:
+  - "Frontend test runner не запускался: эпик backend docs/template/fixture-only и frontend surfaces отсутствуют в scope."
+  - "Исторический QA artifact от 2026-08-24 сохраняет verdict: fail как evidence исходного suite blocker; этот repeat artifact фиксирует свежую PASS-проверку."
+
+suite:
+  - "env -u PROJECT_ROOT -u DEV_HUB -u HUB_ROOT -u CLAUDE_PROJECT_DIR -u EPIC_LOOP -u PROJECT_WORKFLOW_HOOKS timeout 300s .venv/bin/pytest -q --tb=line — PASS: 7678 passed, 181 skipped, 48 warnings in 220.28s"
+  - "timeout 300s .venv/bin/python -m py_compile .claude/hooks/_lib.py .claude/hooks/epic/core.py .claude/hooks/epic_paths.py .claude/hooks/session_resilience.py loop/context_loop.py — PASS"
+  - "timeout 300s bash -n loop/loop.sh — PASS"

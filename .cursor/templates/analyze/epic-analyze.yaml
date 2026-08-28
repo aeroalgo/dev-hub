@@ -1,0 +1,33 @@
+schema: epic-analyze/v1
+role: back | front | integ
+plan_id: T-xxx
+slug: <epic-slug>
+date: YYYY-MM-DD
+status: draft | complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings:
+  - id: A1
+    severity: CRITICAL | HIGH | MEDIUM | LOW
+    category: Duplication | Ambiguity | Underspecification | Coverage Gaps | Inconsistency | Constitution
+    message: <concise finding>
+    plan_ref: <plan section or n/a>
+    step_ref: <sNN or n/a>
+
+coverage:
+  - requirement_id: FR-1 | NFR-1 | AC+ #1 | AC- #1 | SC-1
+    step_ids: [sNN]
+    status: covered | partial | missing
+
+metrics:
+  coverage_pct: 0
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT | fix (CLARIFY | PLAN | DECOMPOSE)
+next_actions:
+  - <required action for CRITICAL/HIGH findings; [] when none>
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

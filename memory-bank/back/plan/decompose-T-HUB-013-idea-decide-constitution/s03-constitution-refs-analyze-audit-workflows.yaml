@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-013
+title: "Wire constitution into workflow-analyze/audit — conditional patch + shared note stub"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить ссылку на constitution.md в workflow-analyze.mdc и workflow-audit.mdc:
+  «если constitution существует — MUST = CRITICAL» (severity upgrade в findings).
+  Conditional: если 011/012 уже смержены → patch workflow files; если нет → создать
+  stub paragraph в shared note (`.cursor/rules/shared/workflow-analyze-core.mdc` или
+  отдельный `.cursor/rules/shared/constitution-note.md`).
+  Закрывает: AC+4, FR-6, FR-7, FR-8.
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/workflow-analyze.mdc      # проверить есть ли constitution ref
+    - .cursor/rules/back_developer/workflow-audit.mdc        # аналогично
+    - .cursor/rules/shared/workflow-analyze-core.mdc         # shared core — fallback цель для stub
+    - memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml  # статус 011
+    - memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml         # статус 012
+  produces:
+    - .cursor/rules/back_developer/workflow-analyze.mdc      # patch (если 011/012 смержены) ИЛИ оставить
+    - .cursor/rules/back_developer/workflow-audit.mdc        # patch ИЛИ оставить (уже имеет constitution ref — см. as_built)
+    - .cursor/rules/shared/constitution-note.md              # stub (если 011/012 НЕ смержены)
+  plan_refs:
+    - FR-6
+    - FR-7
+    - FR-8
+    - AC+4
+  files:
+    - .cursor/rules/back_developer/workflow-audit.mdc
+    - .cursor/rules/back_developer/workflow-analyze.mdc
+    - .cursor/rules/shared/constitution-note.md              # создаётся только если нужен stub
+
+as_built:
+  - >-
+    workflow-audit.mdc — УЖЕ содержит constitution ref (найдено при grep:
+    "constitution MUST" → CRITICAL); точные строки: "constitution MUST или
+    P1 intent" в §Severity и "Intent Inventory" §.
+  - workflow-analyze.mdc — НЕ содержит constitution refs (grep вернул пусто)
+  - workflow-analyze-core.mdc (shared) — существует
+  - >-
+    T-HUB-011 decompose: s01..s04 shards существуют, статус шагов неизвестен
+    (проверить index.yaml)
+  - >-
+    T-HUB-012 decompose: s01..s04 shards существуют, статус шагов неизвестен
+    (проверить index.yaml)
+
+delta:
+  - >-
+    Шаг IMPLEMENT должен начать с проверки статуса 011/012:
+    `rg 'status:' memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml`
+    `rg 'status:' memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml`
+  - >-
+    CASE A (011/012 completed → workflow files финальные): Patch
+    workflow-analyze.mdc: добавить paragraph перед/после Intent Inventory:
+    «Если `memory-bank/constitution.md` существует — все нарушения MUST =
+    CRITICAL автоматически». workflow-audit.mdc уже имеет ref; проверить, что
+    ref explicit и не implicit.
+  - >-
+    CASE B (011/012 pending → workflow files ещё редактируются): CREATE
+    `.cursor/rules/shared/constitution-note.md` со stub paragraph с тем же
+    содержанием; workflow-analyze ссылается на этот файл. Когда 011/012
+    завершатся, их IMPLEMENT шаги сами включат constitution-note ref (или этот
+    эпик будет re-implemented, если 011/012 смержены уже при IMPLEMENT этого s03).
+  - >-
+    В обоих случаях: добавить в workflow-analyze.mdc строку с constitution check.
+
+deletes: []
+# нет brownfield cutover
+
+out_of_scope:
+  - Изменять 011/012 shard файлы
+  - Constitution content — в s02
+  - DECIDE gate — в s01
+  - Если workflow-audit уже корректен — не трогать его (минимальный diff)
+
+skills:
+  code_surface: docs
+  impl: []
+  # docs-only
+
+checkpoints:
+  - id: cp1
+    criterion: Проверить статус 011/012 через index.yaml (определяет CASE A vs B)
+    verify: "rg 'status:' memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml"
+  - id: cp2
+    criterion: workflow-analyze.mdc содержит constitution ref (MUST = CRITICAL) ИЛИ ссылку на constitution-note.md
+    verify: "rg -n 'constitution\\|constitution-note' .cursor/rules/back_developer/workflow-analyze.mdc"
+  - id: cp3
+    criterion: workflow-audit.mdc уже имеет constitution ref (проверить что не регрессировало)
+    verify: "rg -n 'constitution' .cursor/rules/back_developer/workflow-audit.mdc"
+  - id: cp4
+    criterion: Если CASE B — constitution-note.md существует
+    verify: "test -f .cursor/rules/shared/constitution-note.md && echo exists || echo 'CASE A - not needed'"
+
+verify: []
+tdd: []

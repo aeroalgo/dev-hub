@@ -13,7 +13,23 @@
 
 Master-план wire **всего портала** (или указанного section): каждый route, UI-элемент, API-вызов к БД. Движение — по элементам страниц, не по слоям BACK/FRONT.
 
+## Продуктовая спека (WHAT)
+
+> Компактная WHAT-секция для portal plan: фиксирует user journey goals и измеримые результаты без стека, API или деталей реализации. Portal plan остаётся element-centric, не story-centric.
+
+- **User journey goals:** <какой пользовательский результат должен быть достигнут>.
+- **Ключевые Success Criteria (SC-###):** <измеримые метрики, пороги и период измерения>.
+- **Assumptions:** <допущения, scope boundaries и зависимости>.
+
+### Clarifications
+
+- Session: <дата / участники / ссылка на `clarify-*.md` или `n/a`>.
+- Вопросы по route/element и принятые решения: <ссылка или `n/a`>.
+- [НУЖНО УТОЧНИТЬ] <неопределённость, влияющая на element registry или journey>.
+
 ## Element registry (as-built)
+
+> WHAT выше задаёт outcomes; registry ниже сохраняет element-centric wire и portal inventory без изменения его статусов и rollout.
 
 > Источник: routes `frontend/src/app/**` + components + `back/implement/` + `front/implement/` — **не** gap/, contracts/, plan/decompose shards.
 > После таблицы — **обязательны** секции `## Element eNN — …` для каждого P0/P1 (не ограничиваться одной таблицей).

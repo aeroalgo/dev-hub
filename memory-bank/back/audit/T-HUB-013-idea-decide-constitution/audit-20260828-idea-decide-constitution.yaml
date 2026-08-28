@@ -1,0 +1,312 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-013-idea-decide-constitution
+plan_id: T-HUB-013
+date: 2026-08-28
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 3
+  implemented: 3
+  not_implemented: 4
+  deviations: 3
+  findings: 7
+
+# Полный bounded intent inventory из plan, decompose coverage, implement headers/evidence и Constitution.
+intent_checked:
+  fr_total: 11
+  fr_satisfied: 4
+  sc_checked: 0
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: FR-1
+    intent: workflow-idea-pipeline.mdc имеет DECIDE с scorecard, verdict и обновлённым routing
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:83-107
+  - source_ref: FR-2
+    intent: idea-pipeline template содержит Decision/Scorecard и Handoff-on-go / kill stop
+    step_id: s01
+    assessment: partial
+    evidence: .cursor/templates/idea-pipeline.md:20-30 содержит scorecard/verdict; отдельные handoff-on-go правила отсутствуют
+  - source_ref: FR-3
+    intent: go/needs-clarification/kill имеют evidence-based правила и маршруты
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:97-107
+  - source_ref: FR-4
+    intent: kill переводит pipeline в done/killed и не направляет в PLAN/IMPLEMENT
+    step_id: s01
+    assessment: partial
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:103-107 требует rationale и stop, но не фиксирует status done/killed
+  - source_ref: FR-5
+    intent: needs-clarification создаёт blocking questions с [НУЖНО УТОЧНИТЬ] и revisit stage
+    step_id: s01
+    assessment: missing
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:102 содержит только возврат в CLARIFY; marker и blocking-questions contract отсутствуют
+  - source_ref: FR-6
+    intent: go фиксирует handoff summary (problem, approach, in/out, metrics, open Q) перед следующей role command
+    step_id: s01
+    assessment: partial
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:101 и :127-129 задают routing/Handoff, но не перечисляют обязательные поля summary
+  - source_ref: FR-7
+    intent: созданы hub constitution и шаблон .cursor/templates/constitution.md
+    step_id: s02
+    assessment: partial
+    evidence: memory-bank/constitution.md:1-60 существует; .cursor/templates/constitution.md отсутствует
+  - source_ref: FR-8
+    intent: analyze/audit ссылаются на constitution и трактуют MUST как CRITICAL с conditional coordination
+    step_id: s03
+    assessment: satisfied
+    evidence: .cursor/rules/back_developer/workflow-analyze.mdc:33-35; .cursor/rules/back_developer/workflow-audit.mdc:13-18; T-HUB-011/012 index.yaml показывают completed
+  - source_ref: FR-9
+    intent: mainrule.mdc содержит IDEA PIPELINE quick-help строку про decide gate
+    step_id: none (decompose coverage gap)
+    assessment: missing
+    evidence: .cursor/rules/mainrule.mdc:41-47 перечисляет IDEA PIPELINE, но строки про DECIDE gate нет
+  - source_ref: FR-10
+    intent: refs/speckit-adapt-013.md фиксирует адаптацию assess.decide и отклонённый full port
+    step_id: none (decompose coverage gap)
+    assessment: missing
+    evidence: refs/speckit-adapt-013.md отсутствует; в plan строка FR-10 есть, но implement evidence не заявляет artifact
+  - source_ref: FR-11
+    intent: IDEA PIPELINE CHECKLIST обновлён
+    step_id: s01 (evidence only; отсутствует в s01 plan_refs)
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:163-175 содержит DECIDE и kill checklist items; implement s01 done:18
+
+  - source_ref: NFR-1
+    intent: не добавлять пять отдельных assess-команд
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:83-107 описывает один gate; новые slash-команды не добавлены
+  - source_ref: NFR-2
+    intent: constitution остаётся компактным читаемым MUST/SHOULD списком
+    step_id: s02
+    assessment: satisfied
+    evidence: memory-bank/constitution.md:1-60 содержит 9 MUST и 3 SHOULD
+  - source_ref: NFR-3
+    intent: constitution не дублирует весь token-economy, а содержит краткое summary
+    step_id: s02
+    assessment: satisfied
+    evidence: memory-bank/constitution.md:8-60 — workflow rules без полного token-economy текста
+  - source_ref: NFR-4
+    intent: не менять Spec Kit Articles I–IX, PM archive restore и specify-cli
+    step_id: s01-s03
+    assessment: satisfied
+    evidence: implement artifacts s01-s03 files ограничены docs; no forbidden Spec Kit surfaces declared
+
+  - source_ref: AC+1
+    intent: DECIDE перед дорогими VAN/PLAN содержит scorecard и три verdict
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:83-107
+  - source_ref: AC+2
+    intent: template содержит ## Decision / Scorecard
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/templates/idea-pipeline.md:20-30
+  - source_ref: AC+3
+    intent: memory-bank/constitution.md имеет Version header и минимум 5 MUST
+    step_id: s02
+    assessment: satisfied
+    evidence: memory-bank/constitution.md:1-9, :44-56
+  - source_ref: AC+4
+    intent: kill documented stop path
+    step_id: s01
+    assessment: partial
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:103-107 документирует rationale/stop, но не status done/killed
+  - source_ref: AC+5
+    intent: references взяты из assess.decide без полного пятишагового порта
+    step_id: none (decompose coverage gap)
+    assessment: partial
+    evidence: plan:80-84 фиксирует reference intent, но refs/speckit-adapt-013.md не создан
+
+  - source_ref: AC−1
+    intent: не клонировать assess extension целиком
+    step_id: s01
+    assessment: satisfied
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:83-107 содержит один gate, а не пять команд
+  - source_ref: AC−2
+    intent: constitution не содержит Library-First или CLI Articles Spec Kit
+    step_id: s02
+    assessment: satisfied
+    evidence: memory-bank/constitution.md:1-60 содержит только правила dev-hub workflow
+  - source_ref: AC−3
+    intent: отсутствует silent fallback на constitution check
+    step_id: s02-s03
+    assessment: satisfied
+    evidence: .cursor/rules/back_developer/workflow-analyze.mdc:33-35 и workflow-audit.mdc:13-18 используют явную проверку существующего файла и severity rule
+
+# Constitution MUST inventory: every rule was checked against the bounded implementation/evidence surfaces.
+  - source_ref: Constitution MUST-1
+    intent: TDD first; docs-only changes do not bypass production-code TDD
+    step_id: s01-s03
+    assessment: satisfied (docs-only)
+    evidence: implement s01-s03 declare code_surface docs and impl []
+  - source_ref: Constitution MUST-2
+    intent: missing required path/marker/config fails closed
+    step_id: s02-s03
+    assessment: satisfied
+    evidence: workflow-analyze.mdc:33-35 and workflow-audit.mdc:13-18 make constitution authority conditional and explicit
+  - source_ref: Constitution MUST-3
+    intent: frontend runners are parent-only
+    step_id: s01-s03
+    assessment: satisfied (not applicable)
+    evidence: no frontend test runner or frontend change in bounded files; constitution.md:16-18 states rule
+  - source_ref: Constitution MUST-4
+    intent: lean load/re-read discipline
+    step_id: s01-s03
+    assessment: satisfied (process)
+    evidence: audit scope used activeContext, plan/decompose coverage, implement headers and bounded evidence only
+  - source_ref: Constitution MUST-5
+    intent: invalid/ambiguous configuration is fail-closed
+    step_id: s01-s03
+    assessment: satisfied (not exercised by docs-only change)
+    evidence: no configuration/default implementation introduced in implement s01-s03
+  - source_ref: Constitution MUST-6
+    intent: insufficient evidence preserves CLARIFY/NEED_HUMAN markers
+    step_id: s01
+    assessment: partial
+    evidence: existing needs-clarification route exists at workflow-idea-pipeline.mdc:102, but FR-5 marker contract is missing
+  - source_ref: Constitution MUST-7
+    intent: exactly one current Handoff per step
+    step_id: s01-s03
+    assessment: satisfied
+    evidence: implement artifacts contain no Handoff; activeContext remains a single navigation surface
+  - source_ref: Constitution MUST-8
+    intent: INTEG features have end-to-end parity
+    step_id: s01-s03
+    assessment: satisfied (not applicable)
+    evidence: epic is docs-only and introduces no INTEG feature
+  - source_ref: Constitution MUST-9
+    intent: ANALYZE precedes implementation and AUDIT follows it as phase authority
+    step_id: s02-s03
+    assessment: satisfied
+    evidence: memory-bank/constitution.md:41-42; workflow-analyze.mdc:33-39; workflow-audit.mdc:11-19
+
+# Legacy gap matrix: every existing decompose step is assessed, not presence-only.
+step_matrix:
+  - step_id: s01
+    status: "⚠️ deviation"
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s01-idea-pipeline-decide-gate.yaml
+    assessment: core DECIDE/scorecard is present; FR-2, FR-4, FR-5 and FR-6 remain partial/missing
+  - step_id: s02
+    status: "⚠️ deviation"
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s02-constitution-file-hub-starter.yaml
+    assessment: hub constitution is present and compliant; FR-7 template deliverable is missing
+  - step_id: s03
+    status: "✅ implemented"
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s03-constitution-refs-analyze-audit-workflows.yaml
+    assessment: both authority references are present; dependency CASE A was verified
+
+findings:
+  - id: F1
+    gap_type: missing
+    severity: HIGH
+    source_ref: FR-5
+    step_id: s01
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:102 has only CLARIFY routing; no [НУЖНО УТОЧНИТЬ] blocking-question contract or revisit-stage field
+    remaining_work: Add explicit blocking questions with [НУЖНО УТОЧНИТЬ] markers and a revisit stage for needs-clarification in the workflow and template; implement in s05-audit-clarification-contract.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s05-audit-clarification-contract.yaml
+  - id: F2
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-6
+    step_id: s01
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:101, :127-129 route go and require a generic Handoff, but omit problem/approach/in-out/metrics/open-Q summary fields
+    remaining_work: Specify the required go handoff summary fields in the workflow and idea template before the next role command; implement in s06-audit-go-handoff-summary.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s06-audit-go-handoff-summary.yaml
+  - id: F3
+    gap_type: missing
+    severity: HIGH
+    source_ref: FR-7
+    step_id: s02
+    evidence: memory-bank/constitution.md exists, but .cursor/templates/constitution.md is absent
+    remaining_work: Create the canonical constitution template with version/date/scope, MUST/SHOULD placeholders and product adaptation note; implement in s07-audit-constitution-template.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s07-audit-constitution-template.yaml
+  - id: F4
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: FR-4
+    step_id: s01
+    evidence: .cursor/rules/shared/workflow-idea-pipeline.mdc:103-107 records kill rationale and stop, but never states pipeline status done/killed or an explicit non-PLAN/IMPLEMENT next value
+    remaining_work: Add terminal done/killed status and explicit next != PLAN/IMPLEMENT semantics for kill; implement in s04-audit-kill-terminal-status.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s04-audit-kill-terminal-status.yaml
+  - id: F5
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: FR-2
+    step_id: s01
+    evidence: .cursor/templates/idea-pipeline.md:20-30 has Decision/Scorecard and Kill rationale, but no Handoff-on-go contract
+    remaining_work: Add Handoff-on-go and kill-stop fields/semantics to the idea template; implement in s06-audit-go-handoff-summary.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s06-audit-go-handoff-summary.yaml
+  - id: F6
+    gap_type: missing
+    severity: MEDIUM
+    source_ref: FR-9
+    step_id: none (decompose coverage gap)
+    evidence: .cursor/rules/mainrule.mdc:41-47 routes IDEA PIPELINE but contains no quick-help DECIDE gate line
+    remaining_work: Add one IDEA PIPELINE quick-help line that points to the DECIDE gate; implement in s08-audit-mainrule-decide-help.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s08-audit-mainrule-decide-help.yaml
+  - id: F7
+    gap_type: missing
+    severity: MEDIUM
+    source_ref: FR-10
+    step_id: none (decompose coverage gap)
+    evidence: refs/speckit-adapt-013.md is absent and no implement artifact declares the planned reference document
+    remaining_work: Create refs/speckit-adapt-013.md documenting the small assess.decide adaptation and explicitly rejected full port; implement in s09-audit-speckit-reference.yaml
+    new_shard: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s09-audit-speckit-reference.yaml
+
+converged: false
+
+implemented:
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s01-idea-pipeline-decide-gate.yaml
+  - step_id: s02
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s02-constitution-file-hub-starter.yaml
+  - step_id: s03
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s03-constitution-refs-analyze-audit-workflows.yaml
+
+not_implemented:
+  - step_id: s01
+    plan_title: needs-clarification blocking questions and revisit stage (FR-5)
+    new_shard: decompose-T-HUB-013-idea-decide-constitution/s05-audit-clarification-contract.yaml
+  - step_id: s02
+    plan_title: constitution template (FR-7)
+    new_shard: decompose-T-HUB-013-idea-decide-constitution/s07-audit-constitution-template.yaml
+  - step_id: none
+    plan_title: mainrule IDEA PIPELINE decide quick help (FR-9)
+    new_shard: decompose-T-HUB-013-idea-decide-constitution/s08-audit-mainrule-decide-help.yaml
+  - step_id: none
+    plan_title: assess adaptation reference (FR-10)
+    new_shard: decompose-T-HUB-013-idea-decide-constitution/s09-audit-speckit-reference.yaml
+
+deviations:
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s01-idea-pipeline-decide-gate.yaml
+    plan_intent: FR-2 and FR-6 require Handoff-on-go with a complete summary
+    actual: Decision/Scorecard and generic Handoff exist, but required summary fields and template contract are absent
+    impact: high
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s01-idea-pipeline-decide-gate.yaml
+    plan_intent: FR-4 requires pipeline status done/killed and no PLAN/IMPLEMENT next after kill
+    actual: kill rationale and stop are documented without explicit status or next-state wording
+    impact: medium
+  - step_id: s02
+    implement_file: back/implement/implement-T-HUB-013-idea-decide-constitution/s02-constitution-file-hub-starter.yaml
+    plan_intent: FR-7 requires hub constitution plus .cursor/templates/constitution.md
+    actual: hub constitution exists, but the template file was not created
+    impact: high
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Assess выполнен по bounded plan/decompose/index, implement headers и evidence surfaces; полный repo audit и suite не выполнялись."
+  - "Все исходные s01-s03 имеют completed implement artifacts; completed artifacts не переписывались."
+  - "FR-9 и FR-10 отсутствуют в финальном decompose coverage, поэтому remediation shards добавляются append-only как s08/s09."
+  - "Actionable findings есть; converged=false. Следующий режим BACK IMPLEMENT, начиная с s04, затем повторный BACK AUDIT."

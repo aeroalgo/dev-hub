@@ -1,0 +1,45 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-007
+plan_id: T-HUB-007-dsh-profiles-presets
+epic_id: T-HUB-007-dsh-profiles-presets
+date: 2026-08-28
+reviewer: BACK QA + @reviewer
+verdict: pass
+
+scope:
+  - "epic: T-HUB-007-dsh-profiles-presets"
+  - "steps: s01–s07"
+  - "files: dsh profiles, dsh scripts, dsh README, loop/context_loop.py, profile regression tests"
+
+checks:
+  - "Parent full suite: timeout 300s .venv/bin/pytest -q --tb=line — PASS (7705 passed, 181 skipped, 48 warnings; 262.35s)."
+  - "Targeted DSH regression suite: timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=line — PASS (53 passed; 18.92s)."
+  - "Preset synchronization: python3 dsh/scripts/sync-agent-md-to-presets.py --check — PASS по implement evidence."
+  - "All eight profile package.json manifests parse as JSON — PASS по implement evidence."
+  - "All eight DSH profiles dump-config successfully after clean installer installation with dsh-phase-models and expected phase model bridge — PASS по implement evidence."
+  - "Installer clean temporary DSH_HOME smoke installs exactly eight profiles and all eight local dsh-phase-models node modules — PASS по implement evidence."
+  - "Installer dry-run enumerates all eight profiles and completes without filesystem changes — PASS по implement evidence."
+  - "Integration rule (§0.11): profile mapping, model env bridges, credentials path, bundle dependency, prompt source mapping, and installer targets reviewed — PASS."
+  - "Reviewer gate: @reviewer completed with VERDICT: PASS; no scoped epic defects found."
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "PyYAML safe_load is not authoritative for dsh/patches/phase-models.yml because the DSH patch intentionally uses !!js tags; DSH loader dump-config and profile tests are the parser contract."
+  - "Рабочее дерево содержит pre-existing изменения вне scope эпика, включая .claude/agents/explorer.md; reviewer оценил scoped T-HUB-007 без критичных дефектов."
+  - "Graphify unavailable in this hub checkout (.venv/bin/graphify отсутствует); bounded inventory/rg review использован вместо graph update."
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line — PASS: 7705 passed, 181 skipped, 48 warnings in 262.35s"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=line — PASS: 53 passed in 18.92s"
+  - "bash -n dsh/scripts/install-profiles.sh — PASS по implement evidence"
+  - "python3 dsh/scripts/sync-agent-md-to-presets.py --check — PASS по implement evidence"
+  - "python3 -m json.tool dsh/profiles/epic-{implement,qa,decompose,plan,creative,audit,bugfix,reflect}/package.json — PASS по implement evidence"
+  - "DSH_HOME=<clean temporary home> timeout 300s bash dsh/scripts/install-profiles.sh — PASS: 8 profiles and 8 local dsh-phase-models node modules по implement evidence"
+  - "DSH_HOME=<clean temporary home> timeout 300s dsh --profile epic-{implement,qa,decompose,plan,creative,audit,bugfix,reflect} --dump-config — PASS for all eight profiles по implement evidence"
+  - "DSH_HOME=<clean temporary home> bash dsh/scripts/install-profiles.sh --dry-run — PASS по implement evidence"

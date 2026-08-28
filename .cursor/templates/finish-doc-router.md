@@ -27,6 +27,12 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 2. при epic → AUDIT/QA: `decompose-*/index.yaml` (+ qa-артефакт)
 3. опц. qa-артефакт при re-run / BUGFIX из Fix plan
 
+Канон **ANALYZE**:
+
+1. `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` — read-only findings, coverage и `metrics.critical_count`;
+2. при `critical_count = 0` → следующий `* IMPLEMENT` (первый pending shard);
+3. при `critical_count > 0` → следующий `* CLARIFY` или `* DECOMPOSE` по `next_actions`; IMPLEMENT не считать автоматически заблокированным, если команда явно выбрала soft follow-up.
+
 **FORBIDDEN в `load_now`:** полный `plan-*.md` · «acceptance context = plan» · completed shards · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` (coverage, не hot path) · `implement-*/index.md`
 **OK index в `load_now`:** только `plan/decompose-*/index.yaml`
 **AC:** в work shard / Handoff Epic QA / Fix plan — **не** в index. Jump `plan §N` только если Consumes требует и shard неполон.  
@@ -127,7 +133,7 @@ IMPLEMENT — последний шаг эпика (все строки decompos
 - **Эпик:** T-xxx — все sNN/eNN в index completed/done.
 - **Режим/шаг:** `BACK AUDIT`.
 - **Сделано:** implement queue исчерпана.
-- **Дальше:** выполнить `BACK AUDIT` (gap-матрица + audit yaml); пусто not_implemented[] → `BACK QA`.
+- **Дальше:** выполнить `BACK AUDIT` (gap-матрица + audit yaml); только `converged: true` при пустых `not_implemented[]` и leftover-массивах → `BACK QA`, иначе новые `sNN-audit-*` → `BACK IMPLEMENT` → `BACK AUDIT`.
 - **New chat:** yes → `BACK AUDIT`
 ```
 

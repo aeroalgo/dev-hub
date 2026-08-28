@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Card model + metadata v1 + stable id — step/gate type-safe foundations"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/board_sync/card_model.py` — единственный источник правды для:
+  - stable card id (step: `mb-{wsId}-{role}-{epic}-{step}`; gate: `mb-{wsId}-{role}-{epic}-gate-{phase}`;
+    project ROADMAP: `mb-{wsId}-gate-roadmap`; sha256 fallback при длине > 120)
+  - metadata serialise/parse round-trip (`mb-board-card/v1` YAML block)
+  - title/prompt builders (step → `[ROLE] epic step — title`; gate → `[GATE][ROLE] epic — phase`)
+  - prompt builders (step → `BACK IMPLEMENT`; gate → `ROLE gate_phase epic_id`)
+  Покрывает AC+ #7, FR-008, FR-012, FR-018, US-006; NFR stable-id.
+
+context:
+  consumes: []
+  produces:
+    - "loop/board_sync/card_model.py"
+    - "loop/board_sync/__init__.py"
+    - "loop/tests/test_board_sync_card_model.py"
+  plan_refs:
+    - "plan §Card identity & metadata contract"
+    - "plan §Title / prompt (014)"
+    - "plan §Зафиксированные решения — Stable task id"
+    - "FR-008, FR-012, FR-018"
+    - "AC+ #7"
+    - "US-006"
+  files:
+    - "loop/board_sync/__init__.py"
+    - "loop/board_sync/card_model.py"
+    - "loop/tests/test_board_sync_card_model.py"
+
+as_built:
+  - "loop/board_sync/ — новый подпакет, ещё не существует"
+  - "loop/__init__.py — существует (hub loop package)"
+
+delta:
+  - "CREATE loop/board_sync/__init__.py — пустой package export"
+  - "CREATE loop/board_sync/card_model.py — dataclasses CardKind, StepCard, GateCard + stable_id() + serialize_metadata() + parse_metadata() + build_title() + build_prompt()"
+  - "CREATE loop/tests/test_board_sync_card_model.py — round-trip parse/serialize, stable_id схема для step/gate/ROADMAP, sha256 fallback при >120, title/prompt строки"
+
+deletes: []
+
+out_of_scope:
+  - "workspaces.py, scan_mb.py, scan_gates.py, diff.py, sync.py, client.py — в s02–s06"
+  - "hub_dev metadata field — упоминалось в плане как optional; добавить если нужно в s05"
+  - "LedgerFileClient — s06"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "stable_id(step) и stable_id(gate) возвращают строки нужного формата; sha256 fallback при len>120"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_card_model.py::test_stable_id -q"
+  - id: cp2
+    criterion: "metadata serialize → parse round-trip для card_kind=step и card_kind=gate без потерь полей"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_card_model.py::test_metadata_roundtrip -q"
+  - id: cp3
+    criterion: "build_title/build_prompt генерирует ожидаемые строки для step и gate; ROADMAP вариант"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_card_model.py::test_title_prompt -q"
+
+verify:
+  - "from loop.board_sync.card_model import stable_id, serialize_metadata, parse_metadata"
+  - "stable_id(kind='step', ws_id='abc', role='back', epic_id='T-HUB-007', step_id='s02') начинается с 'mb-abc-back-T-HUB-007-s02'"
+  - "parse_metadata(serialize_metadata(card)) == card без потерь"
+
+tdd:
+  - "test_stable_id_step — ожидаемый формат mb-{ws}-{role}-{epic}-{step}"
+  - "test_stable_id_gate — формат mb-{ws}-{role}-{epic}-gate-{phase}"
+  - "test_stable_id_roadmap — формат mb-{ws}-gate-roadmap (без epic_id)"
+  - "test_stable_id_sha256_fallback — при длине > 120 использует sha256[:16]"
+  - "test_metadata_roundtrip_step — все поля step карточки сохранены"
+  - "test_metadata_roundtrip_gate — все поля gate карточки сохранены"
+  - "test_title_step — формат [BACK] T-HUB-007 s02 — title"
+  - "test_prompt_gate — формат BACK QA T-HUB-007-slug"
+  - "test_card_kind_enum — CardKind.STEP и CardKind.GATE"

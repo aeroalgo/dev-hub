@@ -184,6 +184,7 @@ def test_status_agent_policy_active_loop_agents(tmp_path: Path, monkeypatch) -> 
     for agent in ("explorer", "reviewer", "verify"):
         _write(tmp_path, f".claude/agents/{agent}.md", f"---\nname: {agent}\n---\nbody\n")
     monkeypatch.setenv("EPIC_LOOP", "1")
+    monkeypatch.setenv("PROJECT_AGENT_EXPLORER_MODEL_LOOP", "1")
     monkeypatch.setenv("PROJECT_AGENT_VERIFY_MODEL", "sonnet")
     monkeypatch.setenv("PROJECT_AGENT_REVIEWER_MODEL", "sonnet")
 
@@ -328,6 +329,57 @@ def test_prepare_builds_prompt_with_activecontext(tmp_path: Path) -> None:
     assert "expected_artifact" not in prompt
 
 
+def test_prepare_emits_runtime_claude_default(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.delenv("EPIC_RUNTIME", raising=False)
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out["runtime"] == "claude"
+
+
+def test_prepare_emits_runtime_dsh(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out["runtime"] == "dsh"
+
+
+def test_prepare_emits_dsh_profile(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out["dsh_profile"].startswith("epic-")
+
+
+def test_prepare_emits_dsh_workspace(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+
+    out = ctx.prepare_session(tmp_path, runtime="dsh")
+
+    assert out["dsh_workspace"] == str(tmp_path)
+
+
+def test_prepare_cli_runtime_override(tmp_path: Path, monkeypatch, capsys) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+    rc = ctx.main(["--cwd", str(tmp_path), "prepare", "--runtime", "dsh"])
+    out = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert out["runtime"] == "dsh"
+
+
 def test_prepare_rebuilds_derived_projection(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
@@ -396,6 +448,7 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
     out = ctx.prepare_session(tmp_path)
     assert out["ok"] is True
     assert out.get("delta_paths_exist") is True
+    assert out.get("delta_scope") == "exist"
     assert code_a in (out.get("delta_paths") or [])
     prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
     assert "delta_paths_exist: yes" in prompt
@@ -454,7 +507,7 @@ def test_extract_shard_resolves_bare_unique_ts(tmp_path: Path) -> None:
     assert any(p.endswith("useEventMarkers.ts") for p in paths)
 
 
-def test_detect_delta_paths_false_when_missing_files(tmp_path: Path) -> None:
+def test_detect_delta_paths_scoped_when_missing_files(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(
         tmp_path,
@@ -462,9 +515,57 @@ def test_detect_delta_paths_false_when_missing_files(tmp_path: Path) -> None:
         "files:\n- frontend/src/missing-a.ts\n- frontend/src/missing-b.ts\n",
     )
     load_now = ["memory-bank/integration/plan/decompose-x/e16-foo.yaml"]
-    ok, paths = ctx.detect_delta_paths(tmp_path, load_now)
-    assert ok is False
+    scope, paths = ctx.detect_delta_paths(tmp_path, load_now)
+    assert scope == "scoped"
     assert len(paths) == 2
+
+
+def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _write(
+        tmp_path,
+        ".claude/agents/explorer.md",
+        "---\nname: explorer\noverlay:\n  managed: true\n  mode: search\n"
+        "  default_loop: true\n  requires_model: false\n---\nbody\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/project.env",
+        "PROJECT_AGENT_EXPLORER_MODEL=fable\n"
+        "PROJECT_AGENT_EXPLORER_MODEL_LOOP=1\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml",
+        "schema: epic-decompose/v1\n"
+        "context:\n"
+        "  consumes:\n"
+        "    - dsh/scripts/sync-agent-md-to-presets.py\n"
+        "  produces:\n"
+        "    - dsh/profiles/epic-implement/package.json\n"
+        "files:\n"
+        "  - dsh/profiles/epic-implement/package.json\n"
+        "  - dsh/profiles/epic-implement/cordis.patch.yml\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        "1. [s02.yaml](back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml)\n"
+        "2. [index.yaml](back/plan/decompose-T-HUB-007/index.yaml)\n\n"
+        "## Handoff BACK IMPLEMENT\n"
+        "- **Следующий:** `BACK IMPLEMENT s02`\n",
+    )
+    out = ctx.prepare_session(tmp_path)
+    assert out["ok"] is True
+    assert out.get("delta_scope") == "scoped"
+    assert out.get("delta_paths_scoped") is True
+    prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
+    assert "delta_paths_scoped: yes" in prompt
+    assert "SKIP `@explorer`" in prompt
+    assert "search_scope" in prompt
+    assert "ALLOW" in prompt
+    assert "1× `@explorer`" not in prompt
 
 
 def test_prepare_degraded_when_load_now_empty(tmp_path: Path) -> None:

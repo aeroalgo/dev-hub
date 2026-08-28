@@ -12,3 +12,5 @@ projects/**/*.env.local
 *.env.local
 .DS_Store
 .spec-kit/
+node_modules/
+graphify-out/

@@ -1,0 +1,61 @@
+---
+description: "Layer 0 stub — doc-router, approval gate, pointers (always)"
+alwaysApply: true
+---
+# TOKEN ECONOMY STUB (Layer 0 — always)
+
+Full canon: @.cursor/rules/token-economy-core.mdc (§0.0–§0.15). **Read it** on any role command (`BACK *`, `FRONT *`, `INTEG *`, `IDEA PIPELINE *`) and **before** writing plan/gap/architecture/decompose artifacts (§0.0 + §0.0.1).
+
+Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge cases) > economy when conflict.
+
+## 0.5.1 Doc router (mandatory)
+
+**FORBIDDEN:** read full index target as monolith — indexes are tables only.
+
+**REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
+
+1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
+2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` + `decompose-*/index.yaml`
+3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
+4. AC source = **work shard** (цель / файлы / TDD / Fix plan). **Не** подставлять полный `plan-*.md` или index «как AC»
+5. Если в step `Consumes: plan §N` и AC в shard не хватает — **jump только на §N** (Read/offset), не весь plan
+6. `load_if_needed` only when task requires
+7. **NEVER** load `done — do NOT load` section files
+
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+
+**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/AUDIT coverage, не IMPLEMENT hot path.
+
+**`load_now` OK для полного plan:** только когда следующий режим **PLAN** или **DECOMPOSE** и plan — объект работы.
+
+**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + @.cursor/rules/token-economy-core.mdc §0.0.
+
+Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `decompose-*/index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
+
+## 0.7 Handoff (HARD)
+
+**activeContext ONE Handoff:** ровно один блок `## Handoff …` + ≤ один `## done` — на FINISH **Write весь файл** (не sandwich). Detail: @.cursor/rules/shared/finish-block.mdc · @.cursor/rules/shared/finish-doc-router.mdc
+
+## 0.9 Approval gate — `implement this`
+
+**Requires exact phrase `implement this`** (no typos, no translations): file create/edit/delete · git commit/push/branch · deploy/db/secrets/docker mutate · autonomous multi-file batches outside explicit role command.
+
+**Does NOT require:** role commands (`BACK IMPLEMENT`, …) · read-only ops · analysis + change plan before approval.
+
+Before requesting approval: list files, changes, commands, consequences.
+
+## 0.10 Session start / FINISH (summary)
+
+Triggers: `continue project` · role commands · `PM INIT` (архив).
+
+On start: `activeContext.md` → `load_now`; continue from current stage — do not re-run completed stages.
+
+On FINISH: @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed). Session detail: @.cursor/rules/shared/context-session-economy.mdc
+
+## 0.11 Integration verification (summary)
+
+Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in **BACK IMPLEMENT** and **BACK QA**. Detail: @.cursor/rules/token-economy-core.mdc §0.11
+
+## PLAN / gap / decompose write
+
+**Never shorten** `plan-*.md` / `decompose-*/**` / `architecture/**` under chat brevity. Full rules: @.cursor/rules/token-economy-core.mdc §0.0 + §0.0.1

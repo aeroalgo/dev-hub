@@ -1,15 +1,13 @@
 ## load_now
-1. [decompose-T-HUB-010-clarify-spec-quality/s01-shared-clarify-core-back-workflow.yaml](back/plan/decompose-T-HUB-010-clarify-spec-quality/s01-shared-clarify-core-back-workflow.yaml) — IMPLEMENT s01: shared-core + BACK workflow + lean + clarify.md template
+- [decompose-T-HUB-014-dsh-mb-board-sync/index.md](back/plan/decompose-T-HUB-014-dsh-mb-board-sync/index.md)
+- [decompose-T-HUB-014-dsh-mb-board-sync/s01-card-model-metadata-stable-id.yaml](back/plan/decompose-T-HUB-014-dsh-mb-board-sync/s01-card-model-metadata-stable-id.yaml)
 
-## Handoff — T-HUB-010 clarify-spec-quality DECOMPOSE ✓
+## Handoff BACK IMPLEMENT — T-HUB-014
 
-- **Эпик:** T-HUB-010 — CLARIFY workflow + WHAT/HOW plan templates + `[НУЖНО УТОЧНИТЬ]` markers
-- **Status:** DECOMPOSE завершён; следующший режим: **BACK IMPLEMENT s01**
-- **index:** [decompose-T-HUB-010-clarify-spec-quality/index.yaml](back/plan/decompose-T-HUB-010-clarify-spec-quality/index.yaml) (SoT)
-- **Последовательность:** s01 → s02 → s03 → s04 → s05 → s06 (QA) → s07 (FINISH)
-- **Все docs-only:** code_surface infra, impl [], нет Python, нет pytest
+- **Эпик:** T-HUB-014 — DSH Memory-bank Board Sync
+- **Статус:** active — s01 (IMPLEMENT)
+- **Дальше:** Выполнить s01-card-model-metadata-stable-id: создать `loop/board_sync/card_model.py`, `loop/board_sync/__init__.py`, `loop/tests/test_board_sync_card_model.py`.
 
-## done — do NOT load
-- PLAN artifacts slug `roadmap-speckit-workflow-boost-epics.*`
-- T-HUB-010 plan-*.md (читать только если нужна FR/AC деталь; не hot path)
-- roadmap-epics.queue.yaml (не hot path для IMPLEMENT)
+## done
+- Roadmap advance: armed DECOMPOSE for T-HUB-014.
+- DECOMPOSE T-HUB-014: создан decompose-T-HUB-014-dsh-mb-board-sync/ (index.yaml + index.md + s01…s08 shards).

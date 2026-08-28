@@ -25,13 +25,21 @@ def epic_dir(cwd: str | Path) -> Path:
     import os
 
     # Prefer PROJECT_ROOT so hooks running with Claude cwd=hub still hit the product repo.
+    hub_root = Path(__file__).resolve().parents[2]
+    cwd_p = Path(cwd).expanduser().resolve()
     proj = (os.environ.get("PROJECT_ROOT") or "").strip()
-    cwd_p = Path(proj).expanduser().resolve() if proj else Path(cwd).resolve()
+    project_p = Path(proj).expanduser().resolve() if proj else None
+    effective_cwd = project_p if project_p is not None and cwd_p == hub_root else cwd_p
     hub = (os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT") or "").strip()
-    if hub:
-        d = Path(hub).expanduser().resolve() / "runtime" / cwd_p.name / EPIC_DIRNAME
+    # An explicit temporary/test cwd must stay isolated when the inherited
+    # PROJECT_ROOT points at this hub; production products use hub runtime.
+    use_hub_runtime = bool(
+        hub and (project_p is None or project_p != hub_root)
+    )
+    if use_hub_runtime:
+        d = Path(hub).expanduser().resolve() / "runtime" / effective_cwd.name / EPIC_DIRNAME
     else:
-        d = cwd_p / ".claude" / "runtime" / EPIC_DIRNAME
+        d = effective_cwd / ".claude" / "runtime" / EPIC_DIRNAME
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -47,8 +55,10 @@ def next_prompt_path(cwd: str | Path) -> Path:
 def active_context_path(cwd: str | Path) -> Path:
     import os
 
+    cwd_p = Path(cwd).expanduser().resolve()
+    hub_root = Path(__file__).resolve().parents[2]
     proj = (os.environ.get("PROJECT_ROOT") or "").strip()
-    root = Path(proj).expanduser().resolve() if proj else Path(cwd).resolve()
+    root = Path(proj).expanduser().resolve() if proj and cwd_p == hub_root else cwd_p
     return root / "memory-bank" / "activeContext.md"
 
 

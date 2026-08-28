@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "sync-agent-md-to-presets.py + preset files (TDD) — frontmatter strip"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `dsh/scripts/sync-agent-md-to-presets.py` (TDD), который:
+  1) читает `.claude/agents/{verify,reviewer,explorer}.md`;
+  2) вырезает YAML frontmatter (до `---` + после);
+  3) пишет `dsh/presets/<id>.prompt.md` (verify.prompt.md и т.д.).
+  NFR-1: unit-тест проверяет, что байты пресета содержат AC+ секцию из agent md.
+  AC+2, FR-6.
+
+context:
+  consumes:
+    - .claude/agents/verify.md          # source of truth для verify preset
+    - .claude/agents/reviewer.md        # source of truth для reviewer preset
+    - .claude/agents/explorer.md        # source of truth для explorer preset
+    - dsh/README.md                     # текущий scaffold (для понимания структуры)
+  produces:
+    - dsh/scripts/sync-agent-md-to-presets.py   # CLI-скрипт sync
+    - dsh/presets/verify.prompt.md              # stripped body verify
+    - dsh/presets/reviewer.prompt.md            # stripped body reviewer
+    - dsh/presets/explorer.prompt.md            # stripped body explorer
+    - loop/tests/test_dsh_profile_mapping.py    # (частично) — hash-check в s06; здесь seed для sync test
+  plan_refs:
+    - FR-6
+    - NFR-1
+    - AC+2
+  files:
+    - dsh/scripts/sync-agent-md-to-presets.py
+    - dsh/presets/verify.prompt.md
+    - dsh/presets/reviewer.prompt.md
+    - dsh/presets/explorer.prompt.md
+    - loop/tests/test_dsh_profile_mapping.py
+
+as_built:
+  - "dsh/ — только scaffold из T-HUB-006: README.md, bin/which-dsh.sh, profiles/.gitkeep, profiles/stub/.gitkeep"
+  - dsh/presets/ — не существует
+  - dsh/scripts/ — не существует
+  - .claude/agents/{verify,reviewer,explorer}.md — существуют с frontmatter + body (AC+, системная дисциплина, бюджет)
+  - Нет скрипта, который бы парсил agents/*.md → dsh пресеты
+
+delta:
+  - 'dsh/scripts/sync-agent-md-to-presets.py: новый CLI-скрипт (Python)'
+  - 'dsh/scripts/sync-agent-md-to-presets.py: функция strip_frontmatter(text: str) -> str — удаляет leading YAML frontmatter (--- ... ---) и trailing --- если есть'
+  - 'dsh/scripts/sync-agent-md-to-presets.py: main() — для каждого из [verify, reviewer, explorer]: read .claude/agents/<id>.md, strip, write dsh/presets/<id>.prompt.md'
+  - 'dsh/presets/verify.prompt.md: создан (body без frontmatter)'
+  - 'dsh/presets/reviewer.prompt.md: создан (body без frontmatter)'
+  - 'dsh/presets/explorer.prompt.md: создан (body без frontmatter)'
+  - 'loop/tests/test_dsh_profile_mapping.py: test_sync_verify_preset_contains_ac_plus — читает dsh/presets/verify.prompt.md и .claude/agents/verify.md, assert "AC+" in preset и "AC+" in agent_md'
+  - 'dsh/scripts/sync-agent-md-to-presets.py: --check mode (опционально) — exit 1 если output отличается от expected (для CI)'
+
+deletes: []
+# Greenfield: нет поверхности для удаления. Stub из T-HUB-006 не содержит пресетов.
+
+out_of_scope:
+  - "Монтирование пресетов в cordis.patch.yml — s02 (epic-implement)"
+  - "Регистрация пресетов в профилях qa/decompose — s03"
+  - "install-profiles.sh — s05"
+  - "Изменение .claude/agents/*.md — AC−2 (read-only)"
+  - "spawn-hard policy enforcement — AC−1 → T-HUB-008"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # TDD: red→green для sync + hash test
+    - .agents/skills/python-testing-patterns/SKILL.md     # параметризация тестов sync
+    - .agents/skills/modern-python/SKILL.md               # pathlib, typing, чистые функции
+    - .agents/skills/python-anti-patterns/SKILL.md        # guard vs fallback; не скрывать ошибки парсинга
+    - .agents/skills/python-configuration/SKILL.md        # S08: работа с путями/окружением для locate agents/
+    - .agents/skills/python-error-handling/SKILL.md       # S03: чёткие ошибки при отсутствии agent md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_sync_verify_preset_contains_ac_plus PASS:
+      dsh/presets/verify.prompt.md содержит текст AC+ секции из .claude/agents/verify.md
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_sync_verify_preset_contains_ac_plus -q --tb=short"
+  - id: cp2
+    criterion: >
+      sync script создаёт все 3 пресета (verify, reviewer, explorer) без ошибок
+    verify: "timeout 300s python dsh/scripts/sync-agent-md-to-presets.py --check || python dsh/scripts/sync-agent-md-to-presets.py; ls dsh/presets/*.prompt.md | wc -l | grep -q 3"
+  - id: cp3
+    criterion: >
+      strip_frontmatter удаляет YAML frontmatter: вход с '---\nname: x\n---\nbody' → 'body'
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -k 'strip or frontmatter' -q --tb=short"
+  - id: cp4
+    criterion: >
+      NFR-1: при изменении .claude/agents/verify.md AC+ текст, re-run sync → preset обновляется и тест проходит
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_sync_verify_preset_tracks_agent_md -q --tb=short"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short"
+
+tdd:
+  - "test_sync_verify_preset_contains_ac_plus — preset содержит AC+ из agent md"
+  - "test_sync_reviewer_preset_contains_ac_plus — аналог для reviewer"
+  - "test_sync_explorer_preset_contains_body — explorer без frontmatter"
+  - "test_strip_frontmatter_basic — leading --- block удалён"
+  - "test_strip_frontmatter_no_frontmatter — plain text возвращается как есть"
+  - "test_sync_idempotent — повторный запуск не ломает контент"
+  - "Regression: существующие dsh-related тесты остаются зелёными"

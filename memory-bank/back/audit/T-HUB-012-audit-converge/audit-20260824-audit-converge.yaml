@@ -1,0 +1,214 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-012-audit-converge
+plan_id: T-HUB-012
+date: 2026-08-24
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 4
+  implemented: 4
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+# Полный bounded intent inventory из plan FR/NFR/AC и применимых MUST.
+# SC/US в плане не объявлены; это отражено явными метриками ниже.
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 10
+  sc_checked: 0
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: FR-1
+    intent: "epic-audit/v2 template with findings, intent_checked and converged"
+    linked_steps: [s01]
+    status: satisfied
+    evidence: ".cursor/templates/audit/epic-audit.yaml; .cursor/templates/audit/README.md"
+  - source_ref: FR-2
+    intent: "preserve implemented/not_implemented/deviations and legacy leftovers through additive dual-write"
+    linked_steps: [s01]
+    status: satisfied
+    evidence: ".cursor/templates/audit/epic-audit.yaml and README dual-write mapping"
+  - source_ref: FR-3
+    intent: "BACK, FRONT and INTEG audit workflows and lean gates implement Intent Inventory -> Assess -> Severity -> Append -> Converged/QA"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: ".cursor/rules/*_developer/workflow-audit.mdc and isolation_rules/_lean/audit.mdc"
+  - source_ref: FR-4
+    intent: "new audit remediation shard goal and plan_refs carry finding source_ref"
+    linked_steps: [s01, s02, s04]
+    status: satisfied
+    evidence: ".cursor/templates/decompose/epic-step.yaml; BACK audit append/source_ref gate; dry-run fixture"
+  - source_ref: FR-5
+    intent: "CRITICAL Constitution or P1 missing findings are ordered first"
+    linked_steps: [s01, s02]
+    status: satisfied
+    evidence: ".cursor/templates/audit/README.md severity ordering and BACK workflow severity rules"
+  - source_ref: FR-6
+    intent: "converged true routes to QA, otherwise remediation loops through IMPLEMENT and AUDIT"
+    linked_steps: [s02, s04]
+    status: satisfied
+    evidence: ".cursor/rules/shared/finish-doc-router.mdc and audit workflow converge routing"
+  - source_ref: FR-7
+    intent: "ANALYZE 011 and AUDIT 012 have an explicit boundary"
+    linked_steps: [s02, s04]
+    status: satisfied
+    evidence: "BACK/FRONT/INTEG audit workflows and refs/speckit-adapt-012.md"
+  - source_ref: FR-8
+    intent: "provide speckit-adapt-012 reference"
+    linked_steps: [s04]
+    status: satisfied
+    evidence: "memory-bank/back/plan/refs/speckit-adapt-012.md"
+  - source_ref: FR-9
+    intent: "provide a findings-row example and deterministic missing-FR fixture"
+    linked_steps: [s01, s04]
+    status: satisfied
+    evidence: ".cursor/templates/audit/README.md and fixtures/fake-missing-fr-intent/expected-audit-findings.yaml"
+  - source_ref: FR-10
+    intent: "finish-doc-router mentions the converged flag"
+    linked_steps: [s04]
+    status: satisfied
+    evidence: ".cursor/rules/shared/finish-doc-router.mdc"
+  - source_ref: "plan: NFR-1"
+    intent: "completed implement artifacts remain append-only"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "BACK/FRONT/INTEG audit workflow operating constraints"
+  - source_ref: "plan: NFR-2"
+    intent: "AUDIT does not use git-diff or branch comparison"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "audit workflow and lean gates forbid git-diff/branch comparison"
+  - source_ref: "plan: NFR-3"
+    intent: "lean inventory uses plan jumps and bounded file paths"
+    linked_steps: [s01, s02, s03]
+    status: satisfied
+    evidence: "all three lean audit gates"
+  - source_ref: "plan: NFR-4"
+    intent: "legacy leftover A/B/C gates remain required"
+    linked_steps: [s01, s02, s03]
+    status: satisfied
+    evidence: "epic-audit/v2 template and three lean audit gates"
+  - source_ref: "plan: NFR-5"
+    intent: "do not add specify-cli, MODE CONVERGE, or mutate ANALYZE read-only behavior"
+    linked_steps: [s02, s03, s04]
+    status: satisfied
+    evidence: "audit FORBIDDEN sections, ANALYZE boundary, refs and slash-command surfaces"
+  - source_ref: "plan: AC+ #1"
+    intent: "epic-audit/v2 template contains findings and converged"
+    linked_steps: [s01]
+    status: satisfied
+    evidence: ".cursor/templates/audit/epic-audit.yaml"
+  - source_ref: "plan: AC+ #2"
+    intent: "all three workflow-audit surfaces describe gap_type, severity and source_ref"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "BACK, FRONT and INTEG workflow-audit files"
+  - source_ref: "plan: AC+ #3"
+    intent: "lean audit gates are updated"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "three isolation_rules/_lean/audit.mdc files"
+  - source_ref: "plan: AC+ #4"
+    intent: "missing FR simulation produces HIGH missing finding and new shard path"
+    linked_steps: [s04]
+    status: satisfied
+    evidence: "fixtures/fake-missing-fr-intent/expected-audit-findings.yaml"
+  - source_ref: "plan: AC+ #5"
+    intent: "unrequested is documented as non-delete"
+    linked_steps: [s01, s02, s03]
+    status: satisfied
+    evidence: "audit README and workflow/lean unrequested handling"
+  - source_ref: "plan: AC+ #6"
+    intent: "converged path routes to QA without a separate Convergence mode"
+    linked_steps: [s02, s04]
+    status: satisfied
+    evidence: "finish-doc-router and audit lean converge gate"
+  - source_ref: "plan: AC- #1"
+    intent: "never auto-delete unrequested code"
+    linked_steps: [s01, s02, s03]
+    status: satisfied
+    evidence: "README mapping and FORBIDDEN/operating constraints"
+  - source_ref: "plan: AC- #2"
+    intent: "AUDIT does not require a full suite"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "audit workflow FORBIDDEN test/suite operations"
+  - source_ref: "plan: AC- #3"
+    intent: "v1 fields remain additive and readable"
+    linked_steps: [s01]
+    status: satisfied
+    evidence: "epic-audit/v2 template and v1-to-v2 README changelog"
+  - source_ref: "plan: AC- #4"
+    intent: "do not introduce MODE CONVERGE"
+    linked_steps: [s02, s03, s04]
+    status: satisfied
+    evidence: "lean gates, workflows, refs and residual-claim purge"
+
+constitution_must:
+  - source_ref: "Constitution append-only completed artifacts"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "completed implement artifacts are explicitly not rewritten"
+  - source_ref: "Constitution bounded audit scope"
+    linked_steps: [s02, s03]
+    status: satisfied
+    evidence: "lean load and bound-file constraints"
+  - source_ref: "Constitution no automatic unrequested deletion"
+    linked_steps: [s01, s02, s03]
+    status: satisfied
+    evidence: "non-delete mapping and workflow prohibitions"
+
+gap_matrix:
+  - step_id: s01
+    plan_title: "epic-audit/v2 template + README mapping — intent findings schema ready"
+    implement_file: implement-T-HUB-012-audit-converge/s01-epic-audit-v2-template-readme-mapping.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "checkpoint cp1-cp4 done; template, README and mapping evidence recorded"
+  - step_id: s02
+    plan_title: "BACK AUDIT Intent→Converged loop — FR/AC traceable remediation"
+    implement_file: implement-T-HUB-012-audit-converge/s02-back-audit-workflow-lean-converge.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "checkpoint cp1-cp4 done; workflow and lean converge gates present"
+  - step_id: s03
+    plan_title: "FRONT/INTEG AUDIT parity — same converge semantics across roles"
+    implement_file: implement-T-HUB-012-audit-converge/s03-front-integ-audit-parity.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "checkpoint cp1-cp4 done; FRONT/INTEG workflow and lean parity present"
+  - step_id: s04
+    plan_title: "converged handoff + dry-run fixture + doc-claim purge — AUDIT loop closed"
+    implement_file: implement-T-HUB-012-audit-converge/s04-finish-router-refs-fixture-doc-claim-purge.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "checkpoint cp1-cp4 done; router, refs, fixture and residual-claim purge present"
+
+findings: []
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-012-audit-converge/s01-epic-audit-v2-template-readme-mapping.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-012-audit-converge/s02-back-audit-workflow-lean-converge.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-012-audit-converge/s03-front-integ-audit-parity.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-012-audit-converge/s04-finish-router-refs-fixture-doc-claim-purge.yaml
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все s01-s04 из decompose index имеют completed implement artifact и done checkpoints."
+  - "Assess выполнен по bounded plan/decompose/index, implement headers и перечисленным evidence surfaces; полный repo audit и suite не выполнялись."
+  - "s04 содержит запись о внешнем unrelated suite failure; это docs/fixture-only evidence и не является gap данного эпика."
+  - "Actionable findings и brownfield leftovers отсутствуют; converged=true, следующий режим BACK QA. EPIC_DONE не выставляется до QA pass и REFLECT."

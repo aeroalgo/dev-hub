@@ -1,0 +1,97 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: s05 — analyze_session_log DSH branch + record-session classify — resilience
+  parity IMPLEMENT
+status: completed
+date: '2026-08-24'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-006-dsh-loop-runtime-adapter/s05-analyze-session-log-dsh-branch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- '@explorer: session_resilience.py, context_loop.py, DSH fixtures/tests — карта file:line
+  получена до правок'
+gaps:
+  status: none
+done:
+- Добавлена runtime=dsh ветка analyze_session_log с DSH transient/permanent классификацией.
+- Добавлен detector завершения DSH session_end/status=completed и incomplete FINISH
+  для exit 0.
+- record_abort принимает runtime и передаёт runtime из state/аргумента в analyzer.
+- Добавлены fixture-based analyze_session_log тесты для DSH completed, transient 429,
+  permanent auth, incomplete FINISH и Claude regression.
+files:
+- .claude/hooks/session_resilience.py
+- loop/context_loop.py
+- loop/loop.sh
+- loop/tests/test_dsh_runtime_adapter.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k ''test_analyze_claude_path_unaffected''
+  -q --tb=short` — PASS (1 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k ''test_analyze_dsh_completed_exit0''
+  -q --tb=short` — PASS (1 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k ''test_analyze_dsh_exit0_incomplete_finish''
+  -q --tb=short` — PASS (1 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short`
+  — PASS (15 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_wrapper.py loop/tests/test_context_loop.py
+  -q --tb=short` — FAIL: existing context_loop/runtime regressions; output includes
+  missing runtime/dsh fields in unrelated prepare tests and pre-existing projection/state
+  failures; no s05 DSH suite failure'
+- '`bash -n loop/loop.sh` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short`
+  after record-session runtime wiring — PASS (15 passed)'
+integration_check:
+- '`python3 -m py_compile .claude/hooks/session_resilience.py loop/context_loop.py`
+  — PASS'
+- '`git diff --check -- .claude/hooks/session_resilience.py loop/context_loop.py loop/loop.sh
+  loop/tests/test_dsh_runtime_adapter.py` — PASS'
+grep_control:
+- back: '`rg -n ''detect_dsh_abort_in_log|_detect_dsh_session_complete|runtime=.*dsh|record_abort''
+    .claude/hooks/session_resilience.py loop/context_loop.py loop/tests/test_dsh_runtime_adapter.py`
+    — PASS'
+  front: ''
+- back: ''
+  front: no frontend surface
+verification_results:
+- 'VERDICT: PASS — @verify подтвердил AC+/AC−/§0.11; runtime flow prepare → loop.sh
+  → record-session → record_abort → analyze_session_log проверен.'
+- 'Named suite: timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py
+  -q --tb=short — 15 passed.'
+- No pending checkpoints; gaps.status=none; finalize gate разрешён.
+checkpoints:
+- id: cp1
+  criterion: 'test_analyze_claude_path_unaffected PASS: Claude path byte-identical
+    (NFR-1)
+
+    '
+  status: done
+  done_at: '2026-08-23T22:42:23Z'
+- id: cp2
+  criterion: 'test_analyze_dsh_completed_exit0 PASS: DSH exit=0 + completed fixture
+    → outcome clean
+
+    '
+  status: done
+  done_at: '2026-08-23T22:42:32Z'
+- id: cp3
+  criterion: 'test_analyze_dsh_exit0_incomplete_finish PASS: exit=0 без session_end
+    → aborted==True
+
+    '
+  status: done
+  done_at: '2026-08-23T22:42:48Z'
+- id: cp4
+  criterion: 'Все analyze_session_log DSH тесты PASS; Claude regression pass
+
+    '
+  status: done
+  done_at: '2026-08-23T22:43:03Z'
+resume_from: cp1

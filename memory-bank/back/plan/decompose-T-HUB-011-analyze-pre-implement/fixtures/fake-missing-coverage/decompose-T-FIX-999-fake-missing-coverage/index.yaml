@@ -1,0 +1,11 @@
+schema: epic-decompose-index/v1
+plan_id: T-FIX-999
+source_md: plan-T-FIX-999-fake-missing-coverage.md
+status_canon: index.yaml
+steps:
+  - id: s01
+    file: s01-stub.yaml
+    title: stub without FR-1 coverage
+    status: pending
+requirements_coverage:
+  FR-1: null

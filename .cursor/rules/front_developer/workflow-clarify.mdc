@@ -1,0 +1,37 @@
+---
+description: "Режим FRONT CLARIFY — снятие UX/API ambiguity до PLAN (wrapper над shared-core)"
+alwaysApply: false
+---
+### Команда: FRONT CLARIFY
+**Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc
+**Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**Шаблон**: @.cursor/templates/clarify.md
+
+## Фокус FRONT
+
+CLARIFY охватывает UX, component tree, routes, state и API contracts. Вопросы должны снять ambiguity, влияющую на пользовательские journeys, UI states, маршрутизацию или форму API-контракта; backend implementation не реализуется в этом режиме.
+
+## Артефакт
+
+`memory-bank/front/clarify/clarify-YYYYMMDD-<slug>.md`
+
+## Процесс
+
+1. `FRONT CLARIFY <feature-slug>` → загрузить `activeContext.md` и существующий clarify-артефакт по slug.
+2. Выполнить shared core: taxonomy scan, ≤5 sequential questions, Recommended/Suggested, Q→A log на диске.
+3. Зафиксировать CRITICAL как resolved или в defer-list с owner/next.
+4. Написать Completion Report в артефакт.
+
+## Done When
+
+- [ ] Артефакт создан или обновлён на диске.
+- [ ] Completion Report написан.
+- [ ] Нет открытых CRITICAL без resolve/defer-list.
+- [ ] Backend implementation не включена в scope.
+
+## Handoff
+
+После снятия ambiguity: `FRONT PLAN <slug>`. Если остались вопросы — `continue FRONT CLARIFY`.
+
+FINISH: `code_changed: no`; обновить `activeContext.md` согласно @.cursor/rules/shared/finish-block.mdc и finish-doc-router.

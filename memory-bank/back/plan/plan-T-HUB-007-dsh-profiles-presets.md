@@ -5,11 +5,12 @@
 **Уровень:** L3  
 **Статус:** active  
 **Roadmap:** [roadmap-dsh-loop-backend-epics.md](roadmap-dsh-loop-backend-epics.md)  
-**Deps:** T-HUB-006
+**Deps:** T-HUB-006  
+**Follow-up:** [T-HUB-016](plan-T-HUB-016-dsh-cc-hooks-bridge.md) монтирует `@deepseek-ai/dsh-hooks-claude-code` в эти profiles; [T-HUB-008](plan-T-HUB-008-dsh-epic-gate-plugin.md) — только gaps bridge.
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [decompose-T-HUB-007-dsh-profiles-presets/index.md](decompose-T-HUB-007-dsh-profiles-presets/index.md) — **после DECOMPOSE**
+→ [decompose-T-HUB-007-dsh-profiles-presets/index.md](decompose-T-HUB-007-dsh-profiles-presets/index.md) — **DECOMPOSE completed** (s01–s06). PLAN revision 2026-08-27: hooks bridge **не** в этом эпике.
 
 ---
 
@@ -17,7 +18,7 @@
 
 - **req:** для каждой loop phase — bootable DSH profile с правильным LLM, tools и **presets** для subagents verify / reviewer / explorer; контент из существующих `.claude/agents/*.md`.
 - **deps:** T-HUB-006 (`run_dsh_session` вызывает `--profile epic-{phase}`).
-- **refs:** `.claude/agents/{verify,reviewer,explorer}.md`, `.claude/project.env` `PROJECT_LOOP_*_MODEL`, `.claude/hooks/agent_registry.py`, DSH profiles/bundles docs, `loop/WORKFLOW.md` phase model table.
+- **refs:** `.claude/agents/{verify,reviewer,explorer}.md`, `.claude/project.env` `PROJECT_LOOP_*_MODEL`, `.claude/hooks/agent_registry.py`, DSH profiles/bundles docs, `loop/WORKFLOW.md` phase model table; **hooks reuse → T-HUB-016**.
 
 ### Зафиксированные решения
 
@@ -31,6 +32,8 @@
 | Parent profile tools | implement: bash, fs, subagent, todo — минимальный spine; refine in DECOMPOSE |
 | Default profile | Missing phase-specific profile → **fail-closed** (not silent fallback to epic-implement) after T-HUB-007 |
 | Sync | Script `dsh/scripts/sync-agent-md-to-presets.py` — regen preset bodies on agent md change |
+| Claude hooks / settings.json | **Out of scope 007** — mount via T-HUB-016 patch fragment; profiles MUST leave a documented include slot / comment `<!-- cc-hooks-bridge -->` in `cordis.patch.yml` for 016 |
+| agents.md vs presets | Presets = **real** subagents; `dsh-claude-compat` skill-shim **не** замена (016 optional) |
 
 **CREATIVE need:** нет (mapping tables exhaustive below).
 
@@ -78,10 +81,11 @@
 
 ### AC−
 
-1. Не дублировать spawn-hard policy enforcement (→ T-HUB-008)  
+1. Не дублировать spawn-hard policy enforcement (→ T-HUB-016 bridge + T-HUB-008 gaps)  
 2. Не менять `.claude/agents/*.md` content (only consume)  
 3. Не require DSH for Claude default loop  
 4. Не commit API keys  
+5. Не монтировать `dsh-hooks-claude-code` в этом эпике (→ T-HUB-016) — только include slot в patch templates  
 
 ---
 
@@ -196,6 +200,30 @@ flowchart LR
 
 ---
 
+## Разбивка после DECOMPOSE
+
+**DECOMPOSE:** [decompose-T-HUB-007-dsh-profiles-presets/index.md](decompose-T-HUB-007-dsh-profiles-presets/index.md)  
+**Index (machine):** [decompose-T-HUB-007-dsh-profiles-presets/index.yaml](decompose-T-HUB-007-dsh-profiles-presets/index.yaml)
+
+### Очередь шагов (канон: index.yaml)
+
+| step_id | title | next_phase | status |
+| :--- | :--- | :--- | :--- |
+| **s01** | sync-agent-md-to-presets.py + preset files (TDD) — frontmatter strip | BACK IMPLEMENT | pending |
+| **s02** | epic-implement profile + dump-config smoke — package.json + cordis.patch.yml | BACK IMPLEMENT | pending |
+| **s03** | epic-qa + epic-decompose profiles — reviewer + explorer presets | BACK IMPLEMENT | pending |
+| **s04** | remaining phase profiles (stub minimum) — plan/creative/audit/bugfix/reflect | BACK IMPLEMENT | pending |
+| **s05** | install-profiles.sh + README — copy/link + 8-phase table | BACK IMPLEMENT | pending |
+| **s06** | prepare dsh_profile mapping + tests — context_loop.py + test_dsh_profile_mapping.py | BACK IMPLEMENT | pending |
+
+**Coverage gates (index.md):**
+- Requirements coverage — все AC+/AC−/FR/NFR → sNN или out_of_scope
+- Stages coverage — все этапы плана → sNN
+- Outcome map — каждый outcome → sNN
+- Replacement cleanup — stub → real (s02), README extend (s05); greenfield остальное
+
+---
+
 ## Следующий режим
 
-→ **BACK DECOMPOSE T-HUB-007** (after T-HUB-006 QA)
+→ **BACK IMPLEMENT T-HUB-007** (после DECOMPOSE QA)

@@ -1,11 +1,11 @@
 # Roadmap: dsh-loop-backend epics (единый канон)
 
-**Дата:** 2026-08-22  
+**Дата:** 2026-08-22 · **Revision:** 2026-08-27 (+T-HUB-016 CC hooks bridge)  
 **Роль:** BACK PLAN  
-**Назначение:** карта «что за чем» для опционального DSH-backend в loop; **не** заменяет полные `plan-T-HUB-006…009-*.md`.  
+**Назначение:** карта «что за чем» для опционального DSH-backend в loop; **не** заменяет полные `plan-T-HUB-006…009,016-*.md`.  
 **Machine queue (slug, источник):** [`roadmap-dsh-loop-backend-epics.queue.yaml`](roadmap-dsh-loop-backend-epics.queue.yaml)  
 **Loop canon (после MERGE):** [`roadmap-epics.queue.yaml`](roadmap-epics.queue.yaml) — @.cursor/rules/shared/workflow-roadmap-merge.mdc  
-**Research / контекст:** обсуждение 2026-08-22 (loop → DSH headless; memory-bank workflow остаётся каноном; subagents/presets/gates — в DSH)
+**Research / контекст:** обсуждение 2026-08-22 (loop → DSH); 2026-08-27 — официальный `@deepseek-ai/dsh-hooks-claude-code` + gap-fill вместо полного порта hooks.
 
 ---
 
@@ -13,10 +13,11 @@
 
 | Порядок | ID | План | Суть | In scope | Out of scope |
 |---------|-----|------|------|----------|--------------|
-| 1 | T-HUB-006 | [plan-T-HUB-006-dsh-loop-runtime-adapter.md](plan-T-HUB-006-dsh-loop-runtime-adapter.md) | `EPIC_RUNTIME=dsh`, вызов headless DSH из `loop.sh`, adapter `record-session` | runtime switch, session log parse, scaffold `dsh/` | Cordis plugins, presets, gate parity |
-| 2 | T-HUB-007 | [plan-T-HUB-007-dsh-profiles-presets.md](plan-T-HUB-007-dsh-profiles-presets.md) | Profiles per phase + presets verify/reviewer/explorer из `.claude/agents` | cordis.patch, phase→profile map, model routing | turn-stopping / stop-gate parity |
-| 3 | T-HUB-008 | [plan-T-HUB-008-dsh-epic-gate-plugin.md](plan-T-HUB-008-dsh-epic-gate-plugin.md) | Cordis plugin `dsh-epic-gate`: bridge к `epic_resolve.py`, subagent policy | pre-execute, turn-stopping, mirror verify | Замена Claude path по умолчанию |
-| 4 | T-HUB-009 | [plan-T-HUB-009-dsh-rollout-docs.md](plan-T-HUB-009-dsh-rollout-docs.md) | Runbook pilot, architecture, deps Node/DSH | docs, pilot checklist, architecture shard | Production default `EPIC_RUNTIME=dsh` |
+| 1 | T-HUB-006 | [plan-T-HUB-006-dsh-loop-runtime-adapter.md](plan-T-HUB-006-dsh-loop-runtime-adapter.md) | `EPIC_RUNTIME=dsh`, adapter | runtime switch, log parse | Cordis plugins, presets |
+| 2 | T-HUB-007 | [plan-T-HUB-007-dsh-profiles-presets.md](plan-T-HUB-007-dsh-profiles-presets.md) | Profiles + presets verify/reviewer/explorer | cordis profiles, agent.md sync | hooks bridge mount |
+| 3 | T-HUB-016 | [plan-T-HUB-016-dsh-cc-hooks-bridge.md](plan-T-HUB-016-dsh-cc-hooks-bridge.md) | Official CC hooks bridge + optional claude-compat + stop self-limit | settings.json hooks as-is | full native gate rewrite |
+| 4 | T-HUB-008 | [plan-T-HUB-008-dsh-epic-gate-plugin.md](plan-T-HUB-008-dsh-epic-gate-plugin.md) | **Gap-fill only** after bridge | updatedInput, agent_type, VERDICT mirror | full stop-gate TS port |
+| 5 | T-HUB-009 | [plan-T-HUB-009-dsh-rollout-docs.md](plan-T-HUB-009-dsh-rollout-docs.md) | Rollout docs + pilot | docs, checklist | default EPIC_RUNTIME=dsh |
 
 ---
 
@@ -24,54 +25,57 @@
 
 ```mermaid
 flowchart TB
-  H006[T-HUB-006 runtime adapter]
+  H006[T-HUB-006 runtime]
   H007[T-HUB-007 profiles presets]
-  H008[T-HUB-008 epic gate plugin]
-  H009[T-HUB-009 rollout docs]
+  H016[T-HUB-016 CC hooks bridge]
+  H008[T-HUB-008 gap epic-gate]
+  H009[T-HUB-009 rollout]
   H006 --> H007
+  H006 --> H016
+  H007 --> H016
   H006 --> H008
   H007 --> H008
+  H016 --> H008
   H006 --> H009
   H007 --> H009
   H008 --> H009
+  H016 --> H009
 ```
 
 | От | К | Тип | Почему |
 |----|---|-----|--------|
-| T-HUB-006 | T-HUB-007 | hard | profiles бессмысленны без вызова DSH из loop |
-| T-HUB-006 | T-HUB-008 | hard | gate plugin монтируется в profile, который вызывает loop |
-| T-HUB-007 | T-HUB-008 | hard | gate тестируется с presets verify/reviewer/explorer |
-| T-HUB-006 | T-HUB-009 | hard | docs описывают собранный runtime path |
-| T-HUB-007 | T-HUB-009 | hard | docs per-phase profiles |
-| T-HUB-008 | T-HUB-009 | hard | pilot runbook требует gate parity checklist |
-
-**Soft (narrative):** T-HUB-002…005 (workflow-loop-hardening) — не блокируют старт 006; рекомендуется завершить T-HUB-003 (halt parity) до production pilot DSH.
+| T-HUB-006 | T-HUB-007 | hard | profiles без invoke бессмысленны |
+| T-HUB-006 | T-HUB-016 | hard | bridge тестируется на DSH invoke |
+| T-HUB-007 | T-HUB-016 | hard | mount в epic-* profiles |
+| T-HUB-006 | T-HUB-008 | hard | |
+| T-HUB-007 | T-HUB-008 | hard | presets + typed subagents |
+| T-HUB-016 | T-HUB-008 | hard | gap-fill после bridge |
+| T-HUB-006…008,016 | T-HUB-009 | hard | docs полного path |
 
 ---
 
 ## 2. Архитектурный принцип (канон)
 
-| Слой | Владелец | Не меняется при DSH |
-|------|----------|---------------------|
-| Epic orchestration | `loop/` + `context_loop.py` | да |
-| Cursor / transitions | `memory-bank/activeContext.md` + decompose index | да |
-| FINISH / finalize | `epic_resolve.py` | да (DSH plugin **вызывает**, не заменяет) |
-| Session executor | `EPIC_RUNTIME=claude\|dsh` | **swap point** |
-| Subagent prompts | `.claude/agents/*.md` | content reuse; mount в DSH presets |
-| Subagent enforce | Claude hooks → DSH Cordis plugin | **перенос механизма** |
+| Слой | Владелец | При DSH |
+|------|----------|---------|
+| Epic orchestration | loop + memory-bank | без изменений |
+| Session executor | EPIC_RUNTIME | swap |
+| Command hooks (.py) | `.claude/hooks` via **dsh-hooks-claude-code** (016) | reuse |
+| Skills/rules | optional dsh-claude-compat (016) | reuse |
+| Real subagents | presets (007) | не skill-shim |
+| Bridge gaps | epic-gate thin (008) | только дыры |
 
-Default остаётся **`EPIC_RUNTIME=claude`**. DSH — opt-in до явного pilot sign-off в T-HUB-009.
+Default **`EPIC_RUNTIME=claude`**.
 
 ---
 
-## 3. Порядок выполнения (канon)
+## 3. Порядок выполнения
 
-1. **T-HUB-006** → QA → REFLECT  
-2. **T-HUB-007** → QA → REFLECT  
-3. **T-HUB-008** → QA → REFLECT  
-4. **T-HUB-009** → QA → REFLECT  
-
-Один эпик за раз. После MERGE slug queue в canon — `roadmap-advance` может chain при `EPIC_CHAIN_ROADMAP=1`.
+1. T-HUB-006 → QA → REFLECT  
+2. T-HUB-007 → QA → REFLECT  
+3. **T-HUB-016** → QA → REFLECT  
+4. T-HUB-008 → QA → REFLECT  
+5. T-HUB-009 → QA → REFLECT  
 
 ---
 
@@ -79,13 +83,12 @@ Default остаётся **`EPIC_RUNTIME=claude`**. DSH — opt-in до явно
 
 | Артефакт | Статус |
 |----------|--------|
-| **Этот roadmap** | active |
-| **`.queue.yaml`** | machine canon (pre-MERGE slug) |
-| plan-T-HUB-006…009 | PLAN done · next ROADMAP MERGE → DECOMPOSE 006 |
+| Этот roadmap | active (rev 2026-08-27) |
+| plan-T-HUB-016 | PLAN done · next DECOMPOSE after MERGE |
+| plan-T-HUB-008 | PLAN revised gap-fill · next DECOMPOSE after 016 |
 
 ---
 
 ## 5. Handoff
 
-- **Next:** `BACK ROADMAP MERGE` (slug `dsh-loop-backend`) → затем `BACK DECOMPOSE T-HUB-006`
-- **Параллельно:** T-HUB-002 IMPLEMENT s02 не блокируется этим roadmap (отдельная queue)
+- Next: `BACK ROADMAP MERGE` → DECOMPOSE по canon order (после текущих SpecKit/005…).

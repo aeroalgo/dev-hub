@@ -1,0 +1,62 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-011
+plan_id: T-HUB-011
+epic_id: T-HUB-011-analyze-pre-implement
+date: 2026-08-27
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-011"
+  - "epic: T-HUB-011-analyze-pre-implement"
+  - "steps: s01–s04"
+  - "surfaces: ANALYZE shared core, BACK/FRONT/INTEG workflows and lean gates, slash commands, lifecycle routing, canonical paths, refs and fixture"
+
+checks:
+  - "AC+ implementation coverage: PASS; s01–s04 evidence covers schema, role parity, lifecycle wiring, read-only boundary, refs and T-FIX-999 fixture"
+  - "AC− ANALYZE boundary: PASS; ANALYZE remains STRICTLY READ-ONLY and distinct from AUDIT"
+  - "§0.11 counterpart check: PASS for shared core ↔ role wrappers/lean gates, template ↔ README/workflows, .claude ↔ .agents role-command mirror, and canonical analyze paths ↔ router/path rules"
+  - "canonical artifact layout: PASS; epic-scoped paths are consistent across shared core, role lean gates, finish router/template and memory-bank paths"
+  - "Spec Kit adaptation: PASS; reference records adaptations and forbidden runtime actions without adding runtime dependency"
+  - "reviewer gate: VERDICT FAIL; current full suite is red in hook/parity/stop-gate/validation surfaces"
+  - "graphify: N/A — .venv/bin/graphify is unavailable in this hub repository"
+
+issues:
+  - id: QA-20260827-1
+    severity: high
+    summary: "Parent full pytest suite is not green"
+    evidence:
+      - "timeout 300s .venv/bin/pytest -q --tb=line"
+      - "18 failed tests in loop/tests/test_agent_hooks.py, loop/tests/test_shard_parity.py, loop/tests/test_stop_gate.py and loop/tests/test_validate_decompose.py"
+      - "Observed JSONDecodeError, allow/deny expectation mismatches, missing hookSpecificOutput/spawn-gate state, missing security/refactor/qa fixture YAML and projection-policy mismatches"
+    required_fix: "Restore a green project-managed suite or isolate the unrelated working-tree runtime/hook deltas, then rerun the exact full-suite command before QA PASS."
+
+blockers:
+  - "Full parent suite remains red; QA PASS is not allowed while the mandatory suite has failures."
+
+fix_plan:
+  - id: 1
+    command: "BACK BUGFIX — устранить или изолировать unrelated loop/hook/parity suite regressions before повторный BACK QA"
+    files:
+      - "loop/tests/test_agent_hooks.py"
+      - "loop/tests/test_shard_parity.py"
+      - "loop/tests/test_stop_gate.py"
+      - "loop/tests/test_validate_decompose.py"
+      - ".claude/hooks/_lib.py"
+      - ".claude/hooks/session_resilience.py"
+      - "loop/context_loop.py"
+      - "loop/loop.sh"
+    verify: "timeout 300s .venv/bin/pytest -q --tb=line"
+
+limitations:
+  - "T-HUB-011 itself is docs/rules/templates only; no product runtime code was changed by s01–s04."
+  - "No executable ANALYZE implementation exists in this epic; T-FIX-999 is a static dry-run fixture with the expected Coverage/CRITICAL result."
+  - "Frontend test runners are not applicable."
+  - "git diff --check is red only on unrelated plan whitespace outside the T-HUB-011 QA scope."
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line — FAIL: 18 failed, 7660 passed, 181 skipped, 48 warnings in 190.01s"
+  - "git diff --check — FAIL outside scope: trailing whitespace in memory-bank/back/plan/plan-T-HUB-011-analyze-pre-implement.md and plan-T-HUB-012-audit-converge.md"
+  - "python3 acceptance marker sweep over ANALYZE schema/shared core/BACK workflow/finish routing/README — PASS"
+  - "diff -u .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md — PASS"

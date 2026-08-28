@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Docs README + gate/step UX note + regression polish — FR-011 + SC coverage"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть docs + regression gap:
+  - `dsh/README.md` — новая секция «Memory-bank board sync»: что такое step vs gate карточки,
+    как фильтровать по epic_id в DSH UI, пример manual run + cron snippet; LedgerFileClient
+    documented как dev/offline only
+  - Regression polish: проверить, что итоговый pytest suite (затронутые модули) зелёный;
+    добавить edge-case тесты если SC coverage имеет пробелы (SC-001…006); опциональный make target
+  Покрывает FR-011, AC+ #10, US-006 (doc часть); финальная проверка SC-001…006.
+
+context:
+  consumes:
+    - "loop/board_sync/* — все модули s01–s07"
+    - "loop/tests/test_board_sync_*.py — весь test suite"
+  produces:
+    - "dsh/README.md (edit: добавить секцию)"
+    - "loop/tests/ (optional edge-case additions)"
+  plan_refs:
+    - "FR-011, AC+ #10"
+    - "US-006 (doc)"
+    - "SC-001, SC-002, SC-003, SC-004, SC-005, SC-006"
+  files:
+    - "dsh/README.md"
+
+as_built:
+  - "dsh/README.md — существует; добавляем секцию"
+  - "loop/tests/test_board_sync_*.py — созданы в s01–s07"
+
+delta:
+  - "EDIT dsh/README.md — добавить секцию ## Memory-bank board sync: step vs gate объяснение, поиск по epic_id в UI, manual run (hub-board sync), cron пример, LedgerFileClient note (dev/test only)"
+  - "OPTIONAL: edge-case test additions в существующих test файлах если SC gap обнаружен при запуске"
+  - "OPTIONAL: Makefile board-sync target → bin/hub-board sync"
+
+deletes: []
+
+out_of_scope:
+  - "Full test suite (polный pytest) — только BACK QA прогоняет весь suite"
+  - "Cordis TS companion — T-HUB-015"
+  - "New architecture shards — нет изменений архитектуры"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/README.md содержит секцию с step vs gate, примером hub-board sync, упоминанием epic_id фильтра"
+    verify: "grep -n 'Memory-bank board sync' dsh/README.md && grep -n 'hub-board' dsh/README.md"
+  - id: cp2
+    criterion: "затронутые тесты зелёные: .venv/bin/pytest loop/tests/test_board_sync_*.py -q --tb=short"
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_board_sync_*.py -q --tb=short"
+
+verify:
+  - "grep 'step vs gate' dsh/README.md || grep 'step-карточк' dsh/README.md"
+  - "grep 'hub-board sync' dsh/README.md"
+  - "grep 'epic_id' dsh/README.md"
+
+tdd: []

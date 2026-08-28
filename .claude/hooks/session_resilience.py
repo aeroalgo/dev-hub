@@ -16,7 +16,16 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, TypedDict
 
+# Script/import must bind THIS hub's loop/, not a shadowing PYTHONPATH entry
+# (e.g. another checkout's loop/ without runtime_adapters).
+_HUB_ROOT = Path(__file__).resolve().parents[2]
+_hub_s = str(_HUB_ROOT)
+if _hub_s in sys.path:
+    sys.path.remove(_hub_s)
+sys.path.insert(0, _hub_s)
+
 from epic_yaml import all_checkpoints_done, compute_resume_from, load_implement
+from loop.runtime_adapters.dsh import detect_dsh_model_mismatch
 
 # Match order: specific → broad. classify_abort() separates transient vs fatal.
 _FATAL_ABORT_PATTERNS = (
@@ -33,6 +42,21 @@ _PERMANENT_FAILURE_PATTERNS = (
         r"\s*Using\s+\S+\s+instead"
     ),
     re.compile(r"(?i)model_substitution:"),
+)
+
+_DSH_TRANSIENT_PATTERNS = (
+    re.compile(r"(?i)429\s*Too\s*Many\s*Requests"),
+    re.compile(r"(?i)503\s*Service\s*Unavailable"),
+    re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
+    re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
+)
+
+_DSH_PERMANENT_PATTERNS = (
+    re.compile(r"(?i)API\s+Error:\s*terminated"),
+    re.compile(r"(?i)API\s+Error:\s*overloaded"),
+    re.compile(r"(?i)API\s+Error:.*rate.?limit"),
+    re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
+    re.compile(r"(?i)Invalid\s+API\s+key"),
 )
 
 _MODEL_RESTRICTED_RE = re.compile(
@@ -279,6 +303,39 @@ def detect_abort_in_text(text: str) -> str | None:
     )
 
 
+def detect_dsh_abort_in_log(text: str) -> str | None:
+    transient = _match_patterns(text or "", _DSH_TRANSIENT_PATTERNS)
+    if transient:
+        return f"dsh_transient: {transient}"
+    permanent = _match_patterns(text or "", _DSH_PERMANENT_PATTERNS)
+    if permanent:
+        return f"dsh_permanent: {permanent}"
+    return None
+
+
+def _detect_dsh_session_complete(text: str) -> bool:
+    last_nonempty = ""
+    for line in (text or "").splitlines():
+        normalized = line.strip()
+        if not normalized:
+            continue
+        last_nonempty = normalized
+        try:
+            event = json.loads(normalized)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        candidates = [event]
+        nested = event.get("event")
+        if isinstance(nested, dict):
+            candidates.append(nested)
+        for item in candidates:
+            if item.get("type") == "session_end" and item.get("status") == "completed":
+                return True
+    return bool(re.search(r"(?i)(?:FINISH|END)\s*$", last_nonempty))
+
+
 def detect_abort_in_log(
     log_path: Path,
     *,
@@ -406,8 +463,77 @@ def analyze_session_log(
     exit_code: int | None = None,
     attempt: int = 1,
     expected_model: str | None = None,
+    runtime: str = "claude",
 ) -> SessionAnalysis:
     """Classify one process result and expose a bounded retry decision."""
+    try:
+        raw_log = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        raw_log = ""
+    is_dsh = runtime.strip().lower() == "dsh"
+    reason = (
+        detect_dsh_model_mismatch(raw_log, expected_model)
+        or detect_dsh_abort_in_log(raw_log)
+        if is_dsh
+        else detect_abort_in_log(
+            log_path, exit_code=exit_code, expected_model=expected_model
+        )
+    )
+    if is_dsh and not reason and exit_code in (0, None) and not _detect_dsh_session_complete(raw_log):
+        reason = "dsh incomplete FINISH"
+    elif is_dsh and not reason and exit_code not in (0, None):
+        reason = f"dsh process exit={exit_code}"
+    if is_dsh and reason and reason.startswith("dsh_transient:"):
+        dsh_abort_kind = "transient"
+    elif is_dsh and reason and (
+        reason.startswith("dsh_permanent:")
+        or reason.startswith("model_substitution:")
+    ):
+        dsh_abort_kind = "fatal"
+    else:
+        dsh_abort_kind = None
+
+    if is_dsh and reason and reason.startswith("model_substitution:"):
+        return {
+            "outcome": SessionOutcome.PERMANENT_FAILURE.value,
+            "aborted": True,
+            "retryable": False,
+            "abort_kind": "fatal",
+            "reason": reason,
+            "backoff_sec": 0,
+        }
+    if is_dsh and dsh_abort_kind:
+        outcome = (
+            SessionOutcome.PERMANENT_FAILURE
+            if dsh_abort_kind == "fatal"
+            else SessionOutcome.TRANSIENT_ABORT
+        )
+        return {
+            "outcome": outcome.value,
+            "aborted": True,
+            "retryable": dsh_abort_kind == "transient",
+            "abort_kind": dsh_abort_kind,
+            "reason": reason,
+            "backoff_sec": transient_backoff_sec(attempt) if dsh_abort_kind == "transient" else 0,
+        }
+    if is_dsh and reason:
+        return {
+            "outcome": SessionOutcome.UNKNOWN_FAILURE.value,
+            "aborted": True,
+            "retryable": False,
+            "abort_kind": "fatal",
+            "reason": reason,
+            "backoff_sec": 0,
+        }
+    if is_dsh:
+        return {
+            "outcome": SessionOutcome.CLEAN.value,
+            "aborted": False,
+            "retryable": False,
+            "abort_kind": None,
+            "reason": None,
+            "backoff_sec": 0,
+        }
     reason = detect_abort_in_log(
         log_path, exit_code=exit_code, expected_model=expected_model
     )
@@ -652,7 +778,7 @@ def extract_paths_from_delta(delta: list[str]) -> list[str]:
     """Best-effort path extraction from delta bullet strings."""
     paths: list[str] = []
     pat = re.compile(
-        r"(?:frontend/|apps/|tests/|memory-bank/)[^\s`'\"]+"
+        r"(?:frontend/|apps/|tests/|dsh/|loop/|\.claude/|memory-bank/)[^\s`'\"]+"
     )
     for item in delta:
         for m in pat.finditer(str(item)):

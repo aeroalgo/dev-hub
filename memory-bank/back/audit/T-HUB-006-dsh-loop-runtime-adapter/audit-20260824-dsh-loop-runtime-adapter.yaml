@@ -1,0 +1,259 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-006-dsh-loop-runtime-adapter
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+date: 2026-08-24
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 2
+  findings: 2
+
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 9
+  sc_checked: 0
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: FR-1
+    intent: EPIC_RUNTIME accepts claude|dsh; invalid values fail closed with invalid_runtime_config
+    step_id: s01
+    assessment: satisfied
+    evidence: .claude/hooks/_lib.py RuntimeConfig/resolve_runtime_config; loop/tests/test_runtime_config.py; implement s01 evidence
+  - source_ref: FR-2
+    intent: CLI --runtime claude|dsh overrides environment
+    step_id: s03
+    assessment: satisfied
+    evidence: loop/context_loop.py:2187-2255; loop/tests/test_context_loop.py; implement s03 evidence
+  - source_ref: FR-3
+    intent: loop.sh dispatches run_agent_session to Claude or DSH
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/loop.sh:489-496; loop/tests/test_loop_dsh_dispatch.py; implement s04 evidence
+  - source_ref: FR-4
+    intent: run_dsh_session invokes DSH with profile and prompt, stores session log
+    step_id: s04
+    assessment: partial
+    evidence: loop/loop.sh:451-486; runtime command uses resolved dsh path and --profile/--no-open/prompt, but implementation resolves dsh/bin/which-dsh.sh output as a single executable path while that resolver emits the multi-token string `npx -y @deepseek-ai/dsh`.
+    remaining_work: Add a compatible npx invocation contract (or make resolver return an executable plus args) and cover it with a bounded fake/resolver test; preserve fail-closed behavior.
+  - source_ref: FR-5
+    intent: prepare JSON emits runtime, dsh_profile, and dsh_workspace=PROJECT_ROOT
+    step_id: s03
+    assessment: satisfied
+    evidence: loop/context_loop.py:1281-1293; implement s03 evidence
+  - source_ref: FR-6
+    intent: dsh adapter exposes command builder and log normalizer
+    step_id: s02
+    assessment: satisfied
+    evidence: loop/runtime_adapters/dsh.py:9-39; loop/tests/test_dsh_runtime_adapter.py; implement s02 evidence
+  - source_ref: FR-7
+    intent: analyze_session_log has DSH completed/transient/permanent classification
+    step_id: s05
+    assessment: satisfied
+    evidence: .claude/hooks/session_resilience.py:451-568; DSH fixtures and tests; implement s05 evidence
+  - source_ref: FR-8
+    intent: record-session classifies DSH exit 0 with incomplete FINISH as abort
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/context_loop.py:1544-1628; test_analyze_dsh_exit0_incomplete_finish; implement s05 evidence
+  - source_ref: FR-9
+    intent: dsh README, resolver, and profile scaffold exist
+    step_id: s06
+    assessment: satisfied
+    evidence: dsh/README.md; dsh/bin/which-dsh.sh; dsh/profiles/.gitkeep; implement s06 evidence
+  - source_ref: FR-10
+    intent: unit coverage exists for builder, normalizer, and runtime validation
+    step_id: s01/s02/s07
+    assessment: satisfied
+    evidence: loop/tests/test_runtime_config.py; loop/tests/test_dsh_runtime_adapter.py; implement evidence and 538-test suite
+  - source_ref: NFR-1
+    intent: unset EPIC_RUNTIME preserves Claude default path without regression
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/tests/test_dsh_e2e_smoke.py; full loop/tests suite 538 passed; implement s07 evidence
+  - source_ref: NFR-2
+    intent: DSH uses the session resilience wrapper for timeout/retry
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/loop.sh:473-481; run_dsh_session invokes session_wrapper run-session; implement s04 evidence
+  - source_ref: NFR-3
+    intent: DSH phase has separate model-substitution detection
+    step_id: s05
+    assessment: partial
+    evidence: loop/runtime_adapters/dsh.py:42-46 is an explicit placeholder returning None; implement s05 out_of_scope says full logic remains stub, while plan NFR-3 marks this requirement covered.
+    remaining_work: Define the DSH model-mismatch signal/contract and implement detection with fixture-based coverage, or explicitly defer NFR-3 to a follow-up plan and update the intent coverage.
+  - source_ref: NFR-4
+    intent: TDD red-green on pure functions before shell wiring
+    step_id: s01/s02/s05
+    assessment: satisfied
+    evidence: implement artifacts list targeted tests and all relevant suites pass
+  - source_ref: NFR-5
+    intent: do not alter flock, roadmap advance, DAG, or prepare halt matrix
+    step_id: all
+    assessment: satisfied
+    evidence: decompose out_of_scope and bounded code surfaces; no finding from listed runtime files
+  - source_ref: AC+1
+    intent: EPIC_RUNTIME=dsh invokes mock with profile epic-implement and prompt
+    step_id: s04/s07
+    assessment: satisfied
+    evidence: loop/tests/test_loop_dsh_dispatch.py; loop/tests/test_dsh_e2e_smoke.py; implement evidence
+  - source_ref: AC+2
+    intent: Claude default path remains green
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: "env-unset full loop/tests run: 538 passed"
+  - source_ref: AC+3
+    intent: invalid runtime exits with diagnostic
+    step_id: s01
+    assessment: satisfied
+    evidence: test_runtime_config.py invalid EPIC_RUNTIME case
+  - source_ref: AC+4
+    intent: DSH log fixtures classify completed, aborted, retryable
+    step_id: s05
+    assessment: satisfied
+    evidence: DSH fixture tests and s05 evidence
+  - source_ref: AC+5
+    intent: README documents Node, DEEPSEEK_API_KEY, EPIC_RUNTIME=dsh
+    step_id: s06
+    assessment: satisfied
+    evidence: dsh/README.md and scaffold assertions
+  - source_ref: AC+6
+    intent: missing dsh binary fails closed without Claude fallback
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/tests/test_loop_dsh_dispatch.py::test_run_dsh_session_fails_closed_on_missing_dsh; s04 evidence
+  - source_ref: AC-1
+    intent: default does not change to dsh
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: RuntimeConfig default claude and full suite
+  - source_ref: AC-2
+    intent: Claude path is not deleted
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/loop.sh:368-424 retains run_claude_session
+  - source_ref: AC-3
+    intent: no Cordis plugin mounting in this epic
+    step_id: all
+    assessment: satisfied
+    evidence: bounded runtime implementation contains no Cordis mounting
+  - source_ref: AC-4
+    intent: no duplicated epic state logic in DSH adapter
+    step_id: s02
+    assessment: satisfied
+    evidence: dsh.py contains pure command/log functions only
+  - source_ref: AC-5
+    intent: Claude invocation does not require DSH
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: Claude default smoke and full suite pass with EPIC_RUNTIME unset
+
+# Legacy gap matrix: assess every decompose step against its implement artifact and evidence.
+gap_matrix:
+  - step_id: s01
+    plan_title: "EPIC_RUNTIME validation + fail-closed unit tests — runtime config guard"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s01-runtime-config-validation.yaml
+    status: implemented
+    mark: "✅"
+    evidence: completed artifact; cp1-cp4 done; runtime config suite evidence recorded
+  - step_id: s02
+    plan_title: "DSH adapter module: build_command + normalize_log — pure fn isolation"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s02-dsh-adapter-module.yaml
+    status: implemented
+    mark: "✅"
+    evidence: completed artifact; pure adapter and fixtures; 10 targeted tests passed
+  - step_id: s03
+    plan_title: "prepare runtime fields + --runtime CLI override — orchestrator contract"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s03-prepare-runtime-fields.yaml
+    status: implemented
+    mark: "✅"
+    evidence: completed artifact; fields and CLI override covered; 67 targeted tests passed
+  - step_id: s04
+    plan_title: "run_dsh_session + run_agent_session dispatch — loop.sh executor branch"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s04-run-dsh-session-loop-dispatch.yaml
+    status: implemented
+    mark: "⚠️"
+    evidence: dispatch and missing-binary paths are covered, but resolver npx output is incompatible with single-path command execution (F1)
+  - step_id: s05
+    plan_title: "analyze_session_log DSH branch + record-session classify — resilience parity"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s05-analyze-session-log-dsh-branch.yaml
+    status: implemented
+    mark: "⚠️"
+    evidence: completed/transient/permanent/incomplete classification covered; model mismatch remains placeholder (F2)
+  - step_id: s06
+    plan_title: "dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep — T-HUB-007 landing pad"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s06-dsh-scaffold.yaml
+    status: implemented
+    mark: "✅"
+    evidence: scaffold exists and shell assertions recorded
+  - step_id: s07
+    plan_title: "Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green"
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s07-regression-suite.yaml
+    status: implemented
+    mark: "✅"
+    evidence: all cp done; full suite 538 passed; DSH smoke/targeted suites passed
+
+findings:
+  - id: F1
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-4
+    evidence: loop/loop.sh:433-444, dsh/bin/which-dsh.sh:15-19, loop/loop.sh:460-481
+    remaining_work: Normalize resolver output so npx fallback is executable argv (for example return a command array or invoke via bash -lc) and add a test that exercises the npx/global resolver path. Do not add a Claude fallback; missing DSH remains fail-closed.
+  - id: F2
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: NFR-3
+    evidence: loop/runtime_adapters/dsh.py:42-46; detect_dsh_model_mismatch returns None for every input; s05 implement artifact explicitly records full logic as out_of_scope.
+    remaining_work: Specify DSH model-substitution signal and implement non-placeholder detection with a fixture/test, or record an explicit follow-up deferment in a plan that removes NFR-3 from this epic's claimed coverage.
+
+converged: false
+
+implemented:
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s01-runtime-config-validation.yaml
+  - step_id: s02
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s02-dsh-adapter-module.yaml
+  - step_id: s03
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s03-prepare-runtime-fields.yaml
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s04-run-dsh-session-loop-dispatch.yaml
+  - step_id: s05
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s05-analyze-session-log-dsh-branch.yaml
+  - step_id: s06
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s06-dsh-scaffold.yaml
+  - step_id: s07
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s07-regression-suite.yaml
+not_implemented:
+  - step_id: s04
+    plan_title: FR-4 resolver must execute configured DSH command including npx fallback
+    new_shard: n/a — audit finding F1 is tracked in audit artifact; append shard required before FINISH
+  - step_id: s05
+    plan_title: NFR-3 DSH model-substitution detection
+    new_shard: n/a — audit finding F2 is tracked in audit artifact; append shard required before FINISH
+deviations:
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s04-run-dsh-session-loop-dispatch.yaml
+    plan_intent: FR-4 requires a working DSH invoke contract for configured DSH_BIN/global/npx resolution
+    actual: Resolver output `npx -y @deepseek-ai/dsh` is treated as one executable path by run_dsh_session; this path is not executable.
+    impact: high
+  - step_id: s05
+    implement_file: back/implement/implement-T-HUB-006-dsh-loop-runtime-adapter/s05-analyze-session-log-dsh-branch.yaml
+    plan_intent: NFR-3 requires DSH-specific model substitution HALT detection
+    actual: detect_dsh_model_mismatch is an unconditional None placeholder and is not connected to analyze_session_log.
+    impact: medium
+
+legacy_surfaces_remaining: []
+fallback_remaining:
+  - loop/loop.sh:resolve_dsh_bin treats multi-token npx resolver output as one executable path
+  - loop/runtime_adapters/dsh.py:detect_dsh_model_mismatch is placeholder returning None
+purge_step_present: true
+blocked_reason: ""
+notes:
+  - "Assess выполнен по bounded plan/decompose/index, implement headers и evidence surfaces; полный repo audit и suite не выполнялись."
+  - "Graphify unavailable: .venv/bin/graphify is not executable; codebase search used only bounded named paths."
+  - "Actionable findings требуют append-only audit shards и BACK IMPLEMENT → BACK AUDIT; следующий режим BACK IMPLEMENT."

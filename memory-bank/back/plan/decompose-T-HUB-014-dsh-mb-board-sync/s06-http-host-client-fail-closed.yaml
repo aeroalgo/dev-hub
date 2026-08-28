@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "HttpHostClient + fail-closed errors — live DSH Host HTTP protocol v2"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить `HttpHostClient` в `loop/board_sync/client.py` — реализует `TaskBoardClient` Protocol
+  поверх DSH Task Board HTTP: GET /api/task-board/state + POST /api/task-board/action
+  (envelope: requestId + action {kind: create|update|archive|move|import}).
+  Fail-closed: non-2xx / lock conflict → raise BoardClientError, не silent fallback (AC− #7).
+  Proxy token: env DSH_TASK_BOARD_PROXY_TOKEN (если required по plugin docs).
+  Не патчить upstream @linxin666 source in-place (AC− #6).
+  Покрывает FR-009, NFR: fail-closed, AC− #6/7.
+
+context:
+  consumes:
+    - "loop/board_sync/client.py (TaskBoardClient, FakeClient) — s05"
+  produces:
+    - "loop/board_sync/client.py (extend: HttpHostClient)"
+    - "loop/tests/test_board_sync_http_client.py"
+  plan_refs:
+    - "plan §HTTP client notes"
+    - "plan §Board write path — Primary: HTTP Host actions"
+    - "plan §Зафиксированные решения — Fail-closed"
+    - "FR-009, AC− #6, AC− #7"
+    - "NFR: fail-closed"
+  files:
+    - "loop/board_sync/client.py"        # edit: add HttpHostClient
+    - "loop/tests/test_board_sync_http_client.py"
+
+as_built:
+  - "loop/board_sync/client.py — TaskBoardClient Protocol + FakeClient (s05)"
+  - "DSH Task Board API: GET /api/task-board/state, POST /api/task-board/action"
+
+delta:
+  - "EDIT loop/board_sync/client.py — добавить HttpHostClient(host_url, proxy_token=None): list_tasks() → GET state + parse tasks; upsert(card) → POST action create/update; archive(id) → POST action archive. Fail-closed: raise BoardClientError(status_code, body) на non-2xx; non-retryable lock conflict → BoardClientError с lock_conflict=True"
+  - "CREATE loop/tests/test_board_sync_http_client.py — httpx mock (respx или monkeypatch): 200 → tasks list parse; non-2xx → BoardClientError; lock conflict → BoardClientError(lock_conflict=True); proxy token sent in header"
+
+deletes: []
+
+out_of_scope:
+  - "LedgerFileClient concurrent safe writes — только offline/dev, без lock (documented in s08)"
+  - "retry logic — fail-closed без retry (NFR); exponential backoff не в 014"
+  - "WebSocket realtime — не используется Task Board API"
+  - "DSH auth OAuth — loopback origin rules; только proxy token env"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/async-python-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "HttpHostClient.list_tasks() парсит mock 200 ответ → корректный Task[] список"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_http_client.py::test_list_tasks_ok -q"
+  - id: cp2
+    criterion: "non-2xx в upsert → raise BoardClientError с кодом статуса; нет silent fallback"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_http_client.py::test_upsert_non2xx -q"
+  - id: cp3
+    criterion: "lock conflict ответ → BoardClientError(lock_conflict=True)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_http_client.py::test_lock_conflict -q"
+
+verify:
+  - "from loop.board_sync.client import HttpHostClient, BoardClientError"
+  - "HttpHostClient имплементирует TaskBoardClient Protocol"
+  - "не импортирует из @linxin666 пакета напрямую"
+
+tdd:
+  - "test_list_tasks_ok — GET state 200 → Task[] correct count"
+  - "test_list_tasks_404 — BoardClientError"
+  - "test_upsert_create_200 — POST action create → ok"
+  - "test_upsert_non2xx — BoardClientError(status_code=...)"
+  - "test_lock_conflict — специфичный ответ → lock_conflict=True"
+  - "test_proxy_token_header — DSH_TASK_BOARD_PROXY_TOKEN отправлен в Authorization/X-Proxy-Token"
+  - "test_archive_ok — POST action archive 200 ok"

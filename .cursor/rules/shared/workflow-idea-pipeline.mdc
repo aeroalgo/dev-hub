@@ -3,7 +3,7 @@ description: "IDEA PIPELINE — от идеи до реализации: кла�
 alwaysApply: false
 ---
 ### Команда: IDEA PIPELINE
-**Layer 0:** @.cursor/rules/token-economy-core.mdc  
+**Layer 0:** @.cursor/rules/token-economy-stub.mdc · @.cursor/rules/token-economy-core.mdc on phase command
 **Router:** @.cursor/rules/mainrule.mdc  
 **Session economy:** @.cursor/rules/shared/context-session-economy.mdc  
 **FINISH hook:** @.cursor/rules/shared/finish-doc-router.mdc
@@ -51,13 +51,14 @@ alwaysApply: false
 
 | Intent | Сигналы | Типичная цепочка |
 |--------|---------|------------------|
-| `positioning` | позиционирование, messaging, «главная идея продукта», бренд | DISCOVER MARKET → MARKETING PLAN → CREATIVE → CONTENT PLAN → IMPLEMENT |
-| `feature_full` | новая фича UI+API | PM PLAN → BACK VAN/PLAN/CREATIVE → FRONT VAN/PLAN/CREATIVE → IMPLEMENT×2 → QA |
-| `feature_ui` | страница, компонент, UX | FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
-| `feature_api` | эндпоинт, сервис, БД | BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
-| `content` | гайды, SEO-тексты, хабы | CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
-| `growth` | ads, email, retention | MARKETING PLAN → MARKETING * |
-| `initiative` | новая инициатива, multi-sprint | PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
+| `positioning` | позиционирование, messaging, «главная идея продукта», бренд | **DECIDE** → DISCOVER MARKET → MARKETING PLAN → CREATIVE → CONTENT PLAN → IMPLEMENT |
+| `feature_full` | новая фича UI+API | **DECIDE** → PM PLAN → BACK VAN/PLAN/CREATIVE → FRONT VAN/PLAN/CREATIVE → IMPLEMENT×2 → QA |
+| `feature_ui` | страница, компонент, UX | **DECIDE** → FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
+| `feature_api` | эндпоинт, сервис, БД | **DECIDE** → BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
+| `content` | гайды, SEO-тексты, хабы | **DECIDE** → CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
+| `growth` | ads, email, retention | **DECIDE** → MARKETING PLAN → MARKETING * |
+| `initiative` | новая инициатива, multi-sprint | **DECIDE** → PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
+| `decide` | явная оценка идеи без продолжения | **DECIDE** gate только (scoring + verdict, без pipeline) |
 | `bugfix` | баг, ошибка | BACK/FRONT BUGFIX (минуя pipeline) |
 | `refactor` | качество кода | BACK/FRONT REFACTOR |
 
@@ -78,6 +79,38 @@ alwaysApply: false
 **1e. Сохранить** `memory-bank/idea/idea-<slug>.md` по @.cursor/templates/idea-pipeline.md (все секции шаблона; статусы фаз: pending | active | done | skipped)
 
 **1f. Append** `memory-bank/tasks.md` — строка T-xxx + ссылка на idea-*
+
+### 1g. DECIDE — gate перед дорогими фазами
+
+Обязателен до VAN/PLAN/первого внешнего workflow. Заполняется как часть шага 1 (INTAKE).
+
+**Scorecard (все поля обязательны):**
+
+| Поле | Вопрос |
+|------|--------|
+| Problem | Какую реальную проблему решает идея? |
+| Users | Кто конкретно и в каких сценариях страдает? |
+| Success metric | Как измерим, что решение сработало? |
+| Alternatives | Что уже существует? Почему не подходит? |
+| Risks | Главные риски реализации и провала? |
+
+**Verdict** (один из трёх):
+
+| Verdict | Условие | Действие |
+|---------|---------|----------|
+| `go` | Ответы убедительны, соответствует productContext | Продолжить в intent-routing (§1b → pipeline) |
+| `needs-clarification` | Неполные ответы, непонятен scope | Сохранить scorecard и evidence, выписать blocking questions с marker `[НУЖНО УТОЧНИТЬ: CRITICAL …]`, назначить `Revisit stage: CLARIFY`, затем спросить пользователя |
+| `kill` | Нет проблемы или слабее альтернатив | Записать `Kill rationale`, установить `Pipeline status: done/killed`, пометить в tasks.md `killed: <rationale>` и завершить pipeline |
+
+**go — обязательный handoff summary перед routing:** до назначения или запуска следующей role command зафиксировать в Handoff-on-go все пять полей: `Problem`, `Approach`, `In / Out`, `Metrics`, `Open questions`. Каждое поле должно содержать значение; пустое поле означает, что go gate не пройден и routing запрещён. `In / Out` должен явно описывать входящий scope (`In`) и исключённый scope (`Out`).
+
+**kill — terminal stop связан с Decision:** при `kill` заполнить в `## Decision` `Kill rationale`, `Pipeline status: done/killed` и `Next after kill: terminal`; Handoff-on-go и следующие role commands не назначать. Это успешный terminal outcome, а не незавершённый handoff.
+
+**needs-clarification — evidence-preserving outcome:** не заменять исходные ответы или scorecard общим сообщением о возврате в CLARIFY. Сохранить уже собранные значения и явно перечислить каждое отсутствующее или неоднозначное решение в `Blocking questions`; для каждого blocking item использовать marker `[НУЖНО УТОЧНИТЬ: CRITICAL <кратко что>]`. Обязательно зафиксировать `Revisit stage: CLARIFY` (или конкретную следующую роль-команду после CLARIFY), чтобы было понятно, где возобновить pipeline после ответа пользователя.
+
+**Kill — успешный terminal outcome:** явный kill экономит все последующие фазы. В `## Decision` шаблона обязательно зафиксировать `Pipeline status: done/killed` и `Next after kill: terminal`; после этого не назначать и не запускать `PLAN` или `IMPLEMENT`. Документированный kill не является failure и не удаляется.
+
+**Интеграция с pipeline:** DECIDE не является отдельной строкой в `## Pipeline` таблице идеи — это часть INTAKE. Если verdict=`kill`, pipeline не строится, а его итоговый status — `done/killed` без следующего `PLAN`/`IMPLEMENT` шага.
 
 ### 2. EXECUTE — текущая фаза
 
@@ -138,6 +171,8 @@ alwaysApply: false
 ```
 ✓ IDEA PIPELINE CHECKLIST
 - Intent + PM-L + DEV-L определены? [ДА/НЕТ]
+- DECIDE gate пройден (Scorecard заполнен, Verdict зафиксирован)? [ДА/НЕТ]
+- Если verdict=kill: kill rationale в ## Decision + tasks.md пометка? [ДА/НЕТ]
 - idea-<slug>.md создан, фазы перечислены? [ДА/НЕТ]
 - Текущая фаза делегирована существующему workflow? [ДА/НЕТ]
 - Арtefact дочернего workflow сохранён? [ДА/НЕТ]

@@ -18,6 +18,8 @@ alwaysApply: false
 | `INTEG GAP` | @.cursor/rules/integration_developer/workflow-gap.mdc |
 | `INTEG GAP CLOSE` | @.cursor/rules/integration_developer/workflow-gap-close.mdc |
 | `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc |
+| `INTEG CLARIFY` | @.cursor/rules/integration_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc — read-only проверка wire/contract plan до IMPLEMENT |
 | `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc |
 | `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |
 | `INTEG CREATIVE` | @.cursor/rules/integration_developer/workflow-creative.mdc |

@@ -24,9 +24,9 @@ context:
     - FR-5
     - AC+1 (prep_json содержит runtime=dsh для dispatch в s04)
     - AC+2 (claude default без регрессии)
-  files:
-    - loop/context_loop.py
-    - loop/tests/test_context_loop.py
+files:
+  - loop/context_loop.py
+  - loop/tests/test_context_loop.py
 
 as_built:
   - loop/context_loop.py:prepare_session — возвращает dict с ok, load_now, prompt_file,
@@ -35,24 +35,15 @@ as_built:
   - loop/context_loop.py — импортирует resolve_runtime_config из _lib; RuntimeConfig без epic_runtime (до s01)
 
 delta:
-  - context_loop.py:prepare_session — после resolve_runtime_config(cwd_p):
-      добавить в return dict:
-        "runtime": config.epic_runtime,          # "claude" | "dsh"
-        "dsh_profile": f"epic-{loop_phase or 'implement'}",   # phase из state
-        "dsh_workspace": str(cwd_p),             # PROJECT_ROOT для cd в s04
-  - context_loop.py:main CLI parser — добавить аргумент к p_prepare:
-        p_prepare.add_argument("--runtime", choices=["claude","dsh"], default=None)
-  - context_loop.py:prepare_session signature — добавить kwarg runtime: str | None = None;
-    если runtime не None → override config.epic_runtime (CLI wins over env, как --model)
-  - context_loop.py:main — при args.cmd=="prepare": передать runtime=args.runtime в prepare_session
-  - test_context_loop.py: test_prepare_emits_runtime_claude_default — без EPIC_RUNTIME →
-    prep["runtime"] == "claude"
-  - test_context_loop.py: test_prepare_emits_runtime_dsh — EPIC_RUNTIME=dsh monkeypatch →
-    prep["runtime"] == "dsh"
-  - test_context_loop.py: test_prepare_emits_dsh_profile — runtime=dsh → dsh_profile начинается с "epic-"
-  - test_context_loop.py: test_prepare_emits_dsh_workspace — runtime=dsh → dsh_workspace == str(cwd_p)
-  - test_context_loop.py: test_prepare_cli_runtime_override — --runtime dsh CLI override →
-    prep["runtime"] == "dsh" даже без EPIC_RUNTIME env
+  - "context_loop.py:prepare_session — после resolve_runtime_config(cwd_p): добавить в return dict runtime=config.epic_runtime, dsh_profile=f'epic-{loop_phase or \"implement\"}', dsh_workspace=str(cwd_p)"
+  - "context_loop.py:main CLI parser — добавить аргумент к p_prepare: p_prepare.add_argument('--runtime', choices=['claude', 'dsh'], default=None)"
+  - "context_loop.py:prepare_session signature — добавить kwarg runtime: str | None = None; если runtime не None → override config.epic_runtime (CLI wins over env, как --model)"
+  - "context_loop.py:main — при args.cmd==\"prepare\": передать runtime=args.runtime в prepare_session"
+  - "test_context_loop.py: test_prepare_emits_runtime_claude_default — без EPIC_RUNTIME → prep[runtime] == claude"
+  - "test_context_loop.py: test_prepare_emits_runtime_dsh — EPIC_RUNTIME=dsh monkeypatch → prep[runtime] == dsh"
+  - "test_context_loop.py: test_prepare_emits_dsh_profile — runtime=dsh → dsh_profile начинается с epic-"
+  - "test_context_loop.py: test_prepare_emits_dsh_workspace — runtime=dsh → dsh_workspace == str(cwd_p)"
+  - "test_context_loop.py: test_prepare_cli_runtime_override — --runtime dsh CLI override → prep[runtime] == dsh даже без EPIC_RUNTIME env"
 
 deletes: []
 # Additive: prepare_session расширяется, не заменяется
@@ -69,8 +60,8 @@ skills:
     - .agents/skills/tdd/SKILL.md                         # TDD: red→green
     - .agents/skills/python-testing-patterns/SKILL.md     # monkeypatch env, argparse tests
     - .agents/skills/modern-python/SKILL.md               # typing, dataclass usage
-    - .agents/skills/python-anti-patterns/SKILL.md        # CLI override pattern (как --model)
-    - .agents/skills/python-error-handling/SKILL.md       # invalid runtime в prepare → fail-closed
+    - .agents/skills/python-anti-patterns/SKILL.md         # CLI override pattern (как --model)
+    - .agents/skills/python-error-handling/SKILL.md        # invalid runtime в prepare → fail-closed
 
 checkpoints:
   - id: cp1

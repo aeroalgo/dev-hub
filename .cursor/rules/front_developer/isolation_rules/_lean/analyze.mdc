@@ -1,0 +1,31 @@
+---
+description: "FRONT ANALYZE gates — lean load + STRICTLY READ-ONLY"
+alwaysApply: false
+---
+# FRONT ANALYZE — gates
+
+**Artifact:** `memory-bank/front/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`
+**Shared:** @.cursor/rules/shared/workflow-analyze-core.mdc
+**Template:** @.cursor/templates/analyze/epic-analyze.yaml
+
+## Gates
+
+1. `load_now` = `activeContext.md` + plan/decompose headers, coverage и step index; не полный текст всех shards (NFR-3).
+2. Полный plan или отдельный shard читать только при явном jump из `Consumes`; implement YAML не читать — его ещё нет (NFR-4).
+3. ANALYZE соблюдает shared detection core: шесть passes, deterministic IDs, metrics и cap 50.
+4. Для FRONT дополнительно проверяются UX journey, routes, component/state coverage и API/client boundary без выхода за общую taxonomy.
+5. **STRICTLY READ-ONLY:** не менять plan, decompose, implement или code; findings пишутся только в отдельный analyze artifact.
+6. Не запускать pytest/vitest/playwright/npm test/e2e и не превращать ANALYZE в тестовый или implementation режим.
+7. AC− #1 boundary: **ANALYZE ≠ AUDIT**; не создавать `sNN-audit-*` или `audit-shards`.
+
+## Abort
+
+- нет `epic_id` → reject, ad-hoc ANALYZE не допускается;
+- попытка править code/decompose/implement → FAIL;
+- запуск тестов → FAIL;
+- silent assumption при неполном requirement inventory → finding, а не молчаливое покрытие;
+- загрузка всех workflow/templates «на всякий случай» → FAIL NFR-3.
+
+## Boundaries
+
+NFR-3 и NFR-4 требуют progressive disclosure: сначала заголовки и registry, затем только необходимый контекст. AC− #1 запрещает смешивать ANALYZE с AUDIT; AUDIT и его shards остаются отдельным workflow.

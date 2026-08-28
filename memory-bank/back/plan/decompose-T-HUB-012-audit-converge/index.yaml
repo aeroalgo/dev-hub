@@ -1,0 +1,25 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-012
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-epic-audit-v2-template-readme-mapping.yaml
+  title: epic-audit/v2 template + README mapping — intent findings schema ready
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-back-audit-workflow-lean-converge.yaml
+  title: BACK AUDIT Intent→Converged loop — FR/AC traceable remediation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-front-integ-audit-parity.yaml
+  title: FRONT/INTEG AUDIT parity — same converge semantics across roles
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-finish-router-refs-fixture-doc-claim-purge.yaml
+  title: converged handoff + dry-run fixture + doc-claim purge — AUDIT loop closed
+  next_phase: BACK IMPLEMENT
+  status: completed

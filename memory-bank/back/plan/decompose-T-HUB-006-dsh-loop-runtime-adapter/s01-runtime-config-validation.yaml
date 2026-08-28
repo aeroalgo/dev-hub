@@ -39,20 +39,16 @@ as_built:
     нет тестов для EPIC_RUNTIME
 
 delta:
-  - _lib.py::RuntimeConfig: добавить поле `epic_runtime: str = "claude"` (frozen dataclass)
-  - _lib.py::_RUNTIME_ENUM_FIELDS: новый dict `{"EPIC_RUNTIME": frozenset({"claude","dsh"})}` —
-    проверка допустимых значений enum
-  - _lib.py::resolve_runtime_config: ветка для EPIC_RUNTIME после bounds-loop;
-    invalid value → diagnostics.append({code: "invalid_runtime_config", key: "EPIC_RUNTIME",
-    reason: "unsupported_runtime"}) → raise RuntimeConfigError
-  - _lib.py::RuntimeConfig: unset EPIC_RUNTIME → default "claude"
-  - _lib.py::runtime_config_status: добавить "EPIC_RUNTIME" в effective dict
-  - test_runtime_config.py: test_epic_runtime_defaults_to_claude (unset env → config.epic_runtime=="claude")
-  - test_runtime_config.py: test_epic_runtime_dsh (EPIC_RUNTIME=dsh → config.epic_runtime=="dsh")
-  - test_runtime_config.py: test_epic_runtime_invalid_fails_closed (EPIC_RUNTIME=foo →
-    RuntimeConfigError с code=invalid_runtime_config, key=EPIC_RUNTIME, reason=unsupported_runtime)
-  - test_runtime_config.py: test_epic_runtime_status_included (config_status["effective"]["EPIC_RUNTIME"])
-  - test_runtime_config.py: test_epic_runtime_project_env_override (EPIC_RUNTIME в project.env файле)
+  - '_lib.py::RuntimeConfig: добавить поле `epic_runtime: str = "claude"` (frozen dataclass)'
+  - '_lib.py::_RUNTIME_ENUM_FIELDS: новый dict `{"EPIC_RUNTIME": frozenset({"claude","dsh"})}` — проверка допустимых значений enum'
+  - '_lib.py::resolve_runtime_config: ветка для EPIC_RUNTIME после bounds-loop; invalid value → diagnostics.append({code: "invalid_runtime_config", key: "EPIC_RUNTIME", reason: "unsupported_runtime"}) → raise RuntimeConfigError'
+  - '_lib.py::RuntimeConfig: unset EPIC_RUNTIME → default "claude"'
+  - '_lib.py::runtime_config_status: добавить "EPIC_RUNTIME" в effective dict'
+  - 'test_runtime_config.py: test_epic_runtime_defaults_to_claude (unset env → config.epic_runtime=="claude")'
+  - 'test_runtime_config.py: test_epic_runtime_dsh (EPIC_RUNTIME=dsh → config.epic_runtime=="dsh")'
+  - 'test_runtime_config.py: test_epic_runtime_invalid_fails_closed (EPIC_RUNTIME=foo → RuntimeConfigError с code=invalid_runtime_config, key=EPIC_RUNTIME, reason=unsupported_runtime)'
+  - 'test_runtime_config.py: test_epic_runtime_status_included (config_status["effective"]["EPIC_RUNTIME"])'
+  - 'test_runtime_config.py: test_epic_runtime_project_env_override (EPIC_RUNTIME в project.env файле)'
 
 deletes: []
 # Greenfield extension: не вытесняет существующих полей; RuntimeConfig расширяется, не заменяется

@@ -1,0 +1,50 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-013
+title: "Audit remediation — constitution template for product adaptation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-7 из audit-20260828-idea-decide-constitution: добавить reusable
+  .cursor/templates/constitution.md, согласованный с hub starter и пригодный для
+  product copy/adaptation без Spec Kit Articles.
+context:
+  consumes:
+    - memory-bank/constitution.md
+    - .cursor/templates/decompose/epic-step.yaml
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - .cursor/templates/constitution.md
+  plan_refs:
+    - FR-7
+  files:
+    - .cursor/templates/constitution.md
+
+as_built:
+  - memory-bank/constitution.md — canonical hub starter exists with 9 MUST and 3 SHOULD
+  - .cursor/templates/constitution.md — missing despite FR-7 in plan
+
+delta:
+  - "CREATE .cursor/templates/constitution.md with version/date/scope, MUST/SHOULD sections, product adaptation note and fail-closed reminders"
+
+deletes: []
+out_of_scope:
+  - workflow constitution authority refs — completed s03
+  - Spec Kit Library-First/CLI Articles — forbidden by AC−2/NFR-4
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: constitution template exists with version/date/scope and at least five MUST placeholders
+    verify: "test -f .cursor/templates/constitution.md && rg -n 'version|date|scope|MUST-' .cursor/templates/constitution.md"
+  - id: cp2
+    criterion: template excludes Library-First and CLI Articles content
+    verify: "if rg -i 'library.first|CLI spec kit|library-first' .cursor/templates/constitution.md; then exit 1; else echo OK; fi"
+
+tdd: []
+verify: []

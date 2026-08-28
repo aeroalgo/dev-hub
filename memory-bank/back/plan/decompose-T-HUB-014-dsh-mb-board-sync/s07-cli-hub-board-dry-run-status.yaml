@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "CLI bin/hub-board + dry-run/status — argparse entry + bin wrapper"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать CLI entry-point для board sync:
+  - `loop/board_sync/cli.py` — argparse: subcommands `sync` (+ --dry-run / --workspace-id / --dsh-home)
+    и `status` (print last generation / counts); подключает HttpHostClient или FakeClient в тестах
+  - `bin/hub-board` — thin shell wrapper → `python -m loop.board_sync` или cli entry
+  - Dry-run: emits ops plan (print upsert/archive list), zero writes (AC+ #6, SC-003)
+  - Status: печатает последнее generation, counts upsert/archive/noop из последнего run
+  - --help: list sync/status (AC+ #11)
+  Покрывает FR-007, AC+ #6/11, SC-003, US-003.
+
+context:
+  consumes:
+    - "loop/board_sync/sync.py (run_sync) — s05"
+    - "loop/board_sync/client.py (HttpHostClient, FakeClient) — s05/s06"
+    - "loop/board_sync/workspaces.py (discover) — s02"
+  produces:
+    - "loop/board_sync/cli.py"
+    - "loop/board_sync/__main__.py"
+    - "bin/hub-board"
+    - "loop/tests/test_board_sync_cli.py"
+  plan_refs:
+    - "plan §Зафиксированные решения — FR-007"
+    - "plan §Модули — cli.py + bin/hub-board"
+    - "plan §Title / prompt (014) — footer stub до 015"
+    - "FR-007, AC+ #6, AC+ #11, SC-003"
+    - "US-003"
+  files:
+    - "loop/board_sync/cli.py"
+    - "loop/board_sync/__main__.py"
+    - "bin/hub-board"
+    - "loop/tests/test_board_sync_cli.py"
+
+as_built:
+  - "loop/board_sync/sync.py — run_sync (s05)"
+  - "loop/board_sync/client.py — HttpHostClient + FakeClient (s05/s06)"
+  - "loop/board_sync/workspaces.py — discover (s02)"
+
+delta:
+  - "CREATE loop/board_sync/cli.py — argparse entry: sync (--dry-run, --workspace-id, --dsh-home, --offline-ledger documented) + status; sys.exit(1) при BoardClientError/WorkspacesError"
+  - "CREATE loop/board_sync/__main__.py — python -m loop.board_sync вызывает cli.main()"
+  - "CREATE bin/hub-board — chmod +x shell wrapper: exec python -m loop.board_sync \"$@\""
+  - "CREATE loop/tests/test_board_sync_cli.py — --help contains sync/status; sync --dry-run → FakeClient.write_count==0 + выводит ops; corrupt workspace exit≠0"
+
+deletes: []
+
+out_of_scope:
+  - "arm/loop через board — AC− #4; зарезервировано T-HUB-015"
+  - "interactive/TUI mode — не в 014"
+  - "Makefile target — optional, упомянут в плане; если легко добавить в s08"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "bin/hub-board --help exit 0; stdout содержит 'sync' и 'status'"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_cli.py::test_help -q"
+  - id: cp2
+    criterion: "sync --dry-run: FakeClient.write_count==0; stdout содержит список ops (upsert/archive lines)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_cli.py::test_dry_run_output -q"
+  - id: cp3
+    criterion: "corrupt workspace.json → exit code ≠ 0 + diagnostic message на stderr (SC-004 через CLI)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_cli.py::test_corrupt_exit_code -q"
+
+verify:
+  - "bin/hub-board is executable (chmod +x)"
+  - "python -m loop.board_sync --help exit 0"
+  - "sync и status в --help output"
+
+tdd:
+  - "test_help — exit 0; 'sync' и 'status' в stdout"
+  - "test_dry_run_output — write_count==0; ops listed"
+  - "test_sync_workspace_filter — --workspace-id ограничивает workspace до одного"
+  - "test_corrupt_exit_code — exit≠0 + stderr diagnostic"
+  - "test_status_command — output содержит generation / counts"
+  - "test_missing_dsh_home — exit≠0"

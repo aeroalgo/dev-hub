@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "Audit remediation: wire shared phase-models.yml into every profile — FR-9"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F1 / source_ref FR-9: `dsh/patches/phase-models.yml` должен быть
+  реально подключён профилями, а не только упомянут в комментариях. Сохранить
+  phase-specific PROJECT_LOOP_*_MODEL mapping и проверяемую конфигурацию для всех
+  восьми `epic-*` профилей.
+
+context:
+  consumes:
+    - dsh/patches/phase-models.yml
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/profiles/epic-qa/cordis.patch.yml
+    - dsh/profiles/epic-decompose/cordis.patch.yml
+    - dsh/profiles/epic-plan/cordis.patch.yml
+    - dsh/profiles/epic-creative/cordis.patch.yml
+    - dsh/profiles/epic-audit/cordis.patch.yml
+    - dsh/profiles/epic-bugfix/cordis.patch.yml
+    - dsh/profiles/epic-reflect/cordis.patch.yml
+    - memory-bank/back/audit/T-HUB-007-dsh-profiles-presets/audit-20260828-dsh-profiles-presets.yaml
+  produces:
+    - dsh/patches/phase-models.yml
+    - dsh/profiles/epic-*/cordis.patch.yml
+    - loop/tests/test_dsh_profile_mapping.py
+  plan_refs:
+    - FR-9
+    - "plan:§Profile matrix"
+    - "plan:§Архитектура presets"
+  files:
+    - dsh/patches/phase-models.yml
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/profiles/epic-qa/cordis.patch.yml
+    - dsh/profiles/epic-decompose/cordis.patch.yml
+    - dsh/profiles/epic-plan/cordis.patch.yml
+    - dsh/profiles/epic-creative/cordis.patch.yml
+    - dsh/profiles/epic-audit/cordis.patch.yml
+    - dsh/profiles/epic-bugfix/cordis.patch.yml
+    - dsh/profiles/epic-reflect/cordis.patch.yml
+    - loop/tests/test_dsh_profile_mapping.py
+
+as_built:
+  - "dsh/patches/phase-models.yml содержит восемь phase env/default rows."
+  - "Все profile patches дублируют собственный llm row и упоминают shared file только комментариями; executable include/import не найден."
+  - "Implement evidence для s02–s04 подтверждает dump-config отдельных профилей, но не подтверждает фактическое потребление shared fragment."
+
+delta:
+  - "Определить поддерживаемый DSH include/merge механизм для shared phase-models.yml и применить его ко всем восьми profile patches."
+  - "Сохранить явную связь каждого профиля с соответствующим PROJECT_LOOP_<PHASE>_MODEL и default model."
+  - "Добавить bounded regression/check, который обнаруживает profile patch без рабочего shared phase-models include и сохраняет dump-config smoke."
+
+deletes: []
+
+out_of_scope:
+  - "Изменение spawn-hard policy enforcement — T-HUB-008."
+  - "Монтирование Claude hooks — T-HUB-016; remediation выполняется отдельно в s08."
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Каждый из восьми profile patches реально подключает shared phase-models.yml поддерживаемым DSH способом."
+    verify: "rg -n 'phase-models|include|import|extends' dsh/profiles/epic-*/cordis.patch.yml dsh/profiles/epic-*/cordis.yml"
+  - id: cp2
+    criterion: "Shared fragment сохраняет все восемь phase-specific PROJECT_LOOP_*_MODEL rows без расхождения с profile matrix."
+    verify: "rg -n 'IMPLEMENT|QA|DECOMPOSE|PLAN|CREATIVE|AUDIT|BUGFIX|REFLECT|PROJECT_LOOP_.*_MODEL' dsh/patches/phase-models.yml dsh/README.md"
+  - id: cp3
+    criterion: "Bounded profile mapping/config smoke подтверждает рабочее подключение после remediation."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short"
+  - "rg -n 'phase-models|include|import|extends' dsh/profiles/epic-*/cordis.patch.yml dsh/profiles/epic-*/cordis.yml"
+
+tdd:
+  - "Regression detects a profile that only comments on phase-models.yml without consuming it."
+  - "All eight phase names and env mappings remain present."
+  - "Existing DSH profile mapping tests remain green."

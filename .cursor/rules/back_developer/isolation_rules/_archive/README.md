@@ -1,6 +1,5 @@
----
-# Archived isolation (do not load)
+# Legacy isolation rules (moved)
 
-Moved from Core/ / root: command-execution, complexity-decision-tree, creative-phase-*, file-verification, platform-awareness, main.mdc.
+Канон lean gates: `isolation_rules/_lean/<mode>.mdc`.
 
-Canonical: `_lean/*.mdc` + `Core/memory-bank-paths.mdc` (VAN only).
+Архивные monolith gates перенесены в `_archive/cursor-rules/isolation_legacy/` (не индексируются Cursor rules).

@@ -1,0 +1,68 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-011
+plan_id: T-HUB-011
+epic_id: T-HUB-011-analyze-pre-implement
+date: 2026-08-23
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-011"
+  - "epic: T-HUB-011-analyze-pre-implement"
+  - "steps: s01–s04"
+  - "surfaces: ANALYZE shared core, role lean gates, finish router/template, memory-bank paths, DECOMPOSE/IMPLEMENT wiring"
+
+checks:
+  - "parent suite: FAIL during collection; missing Python modules typer and specify_cli"
+  - "integration rule (§0.11): FAIL; ANALYZE artifact path is epic-scoped in shared core and lean gate but flat in router/template/memory-bank paths"
+  - "AC+ implementation coverage: PASS; audit reports implemented=4 and not_implemented=0"
+  - "AC− ANALYZE boundary: PASS; ANALYZE remains STRICTLY READ-ONLY and distinct from AUDIT"
+  - "reviewer gate: VERDICT BLOCKED; path inconsistency and non-green parent suite confirmed"
+  - "graphify: N/A — hub repository (no graph.json)"
+
+issues:
+  - id: QA-1
+    severity: high
+    summary: "Canonical ANALYZE artifact path is inconsistent across lifecycle surfaces"
+    evidence:
+      - ".cursor/rules/shared/workflow-analyze-core.mdc:8 uses memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml"
+      - ".cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc:6 uses the epic-scoped path"
+      - ".cursor/rules/shared/finish-doc-router.mdc:24 uses the flat path without <epic_id>"
+      - ".cursor/templates/finish-doc-router.md:32 uses the flat path without <epic_id>"
+      - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc:35,54,63 use flat role paths"
+    required_fix: "Choose one canonical layout, update all role/router/template/path references consistently, and rerun the path-contract checks."
+  - id: QA-2
+    severity: high
+    summary: "Parent pytest suite cannot collect because the QA environment lacks required modules"
+    evidence:
+      - "timeout 300s .venv/bin/pytest -q --tb=line -> ModuleNotFoundError: No module named typer"
+      - "timeout 300s .venv/bin/pytest -q --tb=line -> ModuleNotFoundError: No module named specify_cli"
+    required_fix: "Restore the spec-kit test environment (install the spec-kit package and test dependencies or use the project-managed environment), then rerun the exact parent suite command."
+
+blockers:
+  - "Parent suite is not green; QA cannot pass until collection succeeds."
+
+fix_plan:
+  - id: 1
+    command: "BACK BUGFIX T-HUB-011 — унифицировать canonical ANALYZE artifact path"
+    files:
+      - ".cursor/rules/shared/finish-doc-router.mdc"
+      - ".cursor/templates/finish-doc-router.md"
+      - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc"
+      - ".cursor/rules/shared/workflow-analyze-core.mdc"
+      - ".cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc"
+    verify: "rg path-contract audit across all BACK/FRONT/INTEG ANALYZE surfaces; no flat/epic-scoped drift remains"
+  - id: 2
+    command: "BACK BUGFIX T-HUB-011 — восстановить pytest collection environment"
+    files:
+      - "spec-kit/pyproject.toml"
+      - ".venv package environment"
+    verify: "timeout 300s .venv/bin/pytest -q --tb=line"
+
+limitations:
+  - "No code or runtime files were changed during QA."
+  - "The full AC/NFR sweep is limited by the failing parent collection and the confirmed path-contract defect."
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line — FAIL during collection: ModuleNotFoundError: typer; ModuleNotFoundError: specify_cli"

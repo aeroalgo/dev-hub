@@ -171,5 +171,5 @@ DECOMPOSE done
 
 ## Следующий режим
 
-→ после MERGE: DECOMPOSE T-HUB-011 (после completed T-HUB-010)  
+→ [decompose-T-HUB-011-analyze-pre-implement/index.md](decompose-T-HUB-011-analyze-pre-implement/index.md) — **единственный трекер** (s01–s04 + coverage)  
 CREATIVE: нет  

@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Workspaces discover + eligible filter — workspace.json → WorkspaceRef[]"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/board_sync/workspaces.py` — парсит `$DSH_HOME/storages/workspace.json`,
+  фильтрует eligible проекты (path exists ∧ memory-bank/ is dir), возвращает `WorkspaceRef[]`.
+  Fail-closed при corrupt/missing workspace.json (exit non-zero + diagnostic_code).
+  Eligible filter не авто-добавляет проекты; path override `--dsh-home` поддержан.
+  Покрывает FR-001, FR-002, SC-004, AC+ #1, AC− #2, US-001.
+
+context:
+  consumes: []
+  produces:
+    - "loop/board_sync/workspaces.py"
+    - "loop/tests/fixtures/board_sync/workspace_valid.json"
+    - "loop/tests/fixtures/board_sync/workspace_corrupt.json"
+    - "loop/tests/test_board_sync_workspaces.py"
+  plan_refs:
+    - "plan §Зафиксированные решения — Источник проектов"
+    - "plan §Зафиксированные решения — Фильтр проекта"
+    - "plan §Зафиксированные решения — Fail-closed"
+    - "FR-001, FR-002, SC-004"
+    - "AC+ #1, AC− #2"
+  files:
+    - "loop/board_sync/workspaces.py"
+    - "loop/tests/fixtures/board_sync/workspace_valid.json"
+    - "loop/tests/fixtures/board_sync/workspace_corrupt.json"
+    - "loop/tests/test_board_sync_workspaces.py"
+
+as_built:
+  - "loop/board_sync/__init__.py — создан в s01"
+  - "$DSH_HOME/storages/workspace.json — внешний файл, только читаем"
+
+delta:
+  - "CREATE loop/board_sync/workspaces.py — WorkspaceRef dataclass + discover(dsh_home) → WorkspaceRef[] + is_eligible(path) heuristic"
+  - "CREATE fixtures: workspace_valid.json (≥2 entries, один ineligible), workspace_corrupt.json"
+  - "CREATE loop/tests/test_board_sync_workspaces.py — discover от valid fixture, eligible filter, corrupt → exception с diagnostic_code, missing dsh_home → fail"
+
+deletes: []
+
+out_of_scope:
+  - "scan_mb / scan_gates — s03/s04"
+  - "auto-add через hub-link — out of scope T-HUB-014 целиком (AC− #2)"
+  - "workspaceId в card — используется в s01/s05, здесь только передаём"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "discover(valid fixture) возвращает только eligible WorkspaceRef (path+memory-bank/ exists)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_discover_eligible -q"
+  - id: cp2
+    criterion: "discover(corrupt json fixture) поднимает исключение с diagnostic_code; exit non-zero в интеграции"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_corrupt_workspace -q"
+  - id: cp3
+    criterion: "missing DSH_HOME → raise WorkspacesError с понятным сообщением"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_missing_dsh_home -q"
+
+verify:
+  - "from loop.board_sync.workspaces import discover, WorkspaceRef"
+  - "discover() принимает dsh_home: Path параметр"
+  - "WorkspaceRef имеет поля path, workspace_id"
+
+tdd:
+  - "test_discover_eligible — только пути с memory-bank/ присутствуют в результате"
+  - "test_discover_ineligible_skip — путь без memory-bank/ не в результате (warning, не error)"
+  - "test_discover_missing_path_skip — несуществующий path пропускается с warning"
+  - "test_corrupt_workspace — invalid JSON → WorkspacesError, diagnostic non-zero"
+  - "test_missing_dsh_home — Path не существует → WorkspacesError"
+  - "test_workspace_ref_fields — workspaceId и path присутствуют в WorkspaceRef"

@@ -42,33 +42,13 @@ as_built:
   - Функции build_command/normalize — нигде не реализованы
 
 delta:
-  - CREATE loop/runtime_adapters/__init__.py — пустой, маркер пакета
-  - CREATE loop/runtime_adapters/dsh.py:
-      - Константа DSH_MISSING_EXIT = 127
-      - def build_dsh_command(profile: str, prompt: str, dsh_bin: str = "dsh") -> list[str]:
-          возвращает ["dsh_bin", "--profile", profile, "--no-open", prompt]
-          (prompt = содержимое prompt_file, не путь — caller передаёт текст)
-      - def build_dsh_command_from_file(profile: str, prompt_file: Path, dsh_bin: str = "dsh") -> list[str]:
-          читает prompt_file.read_text(); вызывает build_dsh_command
-      - def normalize_dsh_log(raw_log: str) -> str:
-          если raw_log содержит валидный JSONL с event.type=="session_end" или "result" → extract content
-          иначе → raw_log (passthrough); никогда не raise
-      - def detect_dsh_model_mismatch(raw_log: str, expected_model: str | None) -> str | None:
-          сканирует лог на смену модели DSH adapter (placeholder — логика уточняется в s05)
-  - CREATE loop/tests/test_dsh_runtime_adapter.py:
-      - test_build_dsh_command_default_profile — profile=epic-implement → правильный argv
-      - test_build_dsh_command_custom_bin — dsh_bin=npx → argv начинается с npx
-      - test_build_dsh_command_prompt_inline — prompt текст встраивается как последний arg
-      - test_normalize_dsh_log_passthrough — произвольный текст → тот же текст
-      - test_normalize_dsh_log_session_end_jsonl — JSONL с session_end event → извлечённый текст
-      - test_normalize_dsh_log_empty — "" → ""
-      - test_normalize_dsh_log_malformed_jsonl — невалидный JSON → passthrough без raise
-  - CREATE loop/tests/fixtures/dsh_session_completed.jsonl:
-      mock JSONL: exit_code=0 + session_end event с status=completed
-  - CREATE loop/tests/fixtures/dsh_session_transient.jsonl:
-      mock JSONL: stderr строки с "429 Too Many Requests" / "503 Service Unavailable"
-  - CREATE loop/tests/fixtures/dsh_session_permanent.jsonl:
-      mock JSONL: "API Error: terminated" или аналогичная fatal строка
+  - 'CREATE loop/runtime_adapters/__init__.py — пустой, маркер пакета'
+  - 'CREATE loop/runtime_adapters/dsh.py: DSH_MISSING_EXIT = 127; build_dsh_command(profile: str, prompt: str, dsh_bin: str = "dsh") возвращает [dsh_bin, "--profile", profile, "--no-open", prompt]; prompt — содержимое prompt_file; build_dsh_command_from_file(profile: str, prompt_file: Path, dsh_bin: str = "dsh") читает prompt_file.read_text() и вызывает build_dsh_command; normalize_dsh_log(raw_log: str) извлекает content из валидного JSONL с event.type=="session_end" или "result", иначе возвращает raw_log и никогда не raise; detect_dsh_model_mismatch(raw_log: str, expected_model: str | None) -> str | None — placeholder для s05'
+  - 'CREATE loop/tests/test_dsh_runtime_adapter.py: build_dsh_command для default/custom bin/prompt inline; normalize_dsh_log для passthrough/session_end/empty/malformed JSONL'
+  - 'CREATE loop/tests/fixtures/dsh_session_completed.jsonl: mock JSONL exit_code=0 + session_end status=completed'
+  - 'CREATE loop/tests/fixtures/dsh_session_transient.jsonl: stderr строки с "429 Too Many Requests" / "503 Service Unavailable"'
+  - 'CREATE loop/tests/fixtures/dsh_session_permanent.jsonl: "API Error: terminated" или аналогичная fatal строка'
+
 
 deletes: []
 # Greenfield: нет существующих файлов для удаления

@@ -170,6 +170,7 @@ IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `w
 5i. **FAIL** если plan sunset без таблиц A+B+C при brownfield replace (только одна таблица modules)6. Папка `memory-bank/back/plan/decompose-<plan_id>/` из `@.cursor/templates/decompose/`. `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
 7. Обнови plan: ссылка на index как единственный трекер; удали дубль-чеклисты sNN; сохрани Goal/AC/архитектуру/risks (**не** переписывай Goal плана под infra-only); при добавлении шагов — поправь §нарезка на фактический s01–sN
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.md`, status `active`
+   **Tip (soft):** рекомендуется `BACK ANALYZE <epic_id>` перед первым `BACK IMPLEMENT`, чтобы заранее проверить coverage и critical findings; это не hard gate.
 8. `tasks.md` append-only
 9. Next: `needs_creative` → CREATIVE; иначе IMPLEMENT
 10. **Новый чат** для IMPLEMENT (context-session §2)

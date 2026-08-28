@@ -1,29 +1,38 @@
 ---
-description: "INTEG AUDIT gates — plan vs implement gap, delta report, new decompose shards (lean)"
+description: "INTEG AUDIT gates — intent↔implement assessment, findings, append-only remediation и converge"
 alwaysApply: false
 ---
 # INTEG AUDIT — gates
 **Артефакт:**
 `memory-bank/integration/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
-Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v1`)
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
 
 ## Gates (обязательные — узкий путь)
-1. Lean load §7: `load_now` + `plan-<epic_id>.md` (Element registry) + заголовки `implement-*/eNN-*.yaml` + `decompose/index.md` (coverage) + `index.yaml`; **не** читать полный текст каждого shard
-2. Построить gap-матрицу по `element_id` (eNN):
-   - **✅ реализовано** — `element_id` из decompose index присутствует в `implement-<epic_id>/` как файл
-   - **❌ не реализовано** — `element_id` есть в плане/decompose, но файла implement нет
-   - **⚠️ отклонение** — файл implement есть, но contract/UI/API в нём расходится с планом (фиксируется только в delta-отчёте, без нового shard)
-3. Для каждого ❌ → новый decompose shard `eNN-audit-<slug>.yaml` в `decompose-<epic_id>/`; формат = `.cursor/templates/decompose/epic-step.yaml` (`role: integ`; заполнить `element_id`, `ui`, `contract`, `back[]`, `front[]`); обновить `index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`
-4. Артефакт audit yaml: секции `implemented[]`, `not_implemented[]`, `deviations[]`, плюс при brownfield: `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`; в `deviations` фиксировать contract drift. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §4
-5. Append в tasks log
-5a. **blocked:** `blocked_reason` в audit yaml + Handoff → `finish-doc-router.md`
-5b. Непустой leftover → новые `*-audit-*` shards
-6. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index (обновлён новыми eNN)
+1. Lean load §7: `load_now` + `plan-<epic_id>.md` (Element registry) + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard
+2. **Intent Inventory gate:** в audit artifact явно зафиксированы применимые plan FR/SC/US/AC/NFR и constitution MUST с `source_ref`; каждый intent связан с `element_id`/`eNN` или отмечен как out-of-scope
+3. **Assess gate:** для каждого intent и каждого `element_id`/`eNN` есть оценка по code/implement evidence; gap-матрица сохраняется:
+   - **✅ реализовано** — `element_id` присутствует и intent подтверждён evidence
+   - **❌ не реализовано** — `element_id` есть в плане/decompose, но implement-файла нет или evidence не подтверждает intent
+   - **⚠️ отклонение** — implement есть, но intent или contract/UI/API частично реализован либо расходится с планом; фиксируется finding с evidence и `element_id`
+4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence` и `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; contract drift в `deviations[]` обязан содержать `element_id`
+5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts` и leftover получает новый `decompose-<epic_id>/eNN-audit-<slug>.yaml`; shard append-only, а его `goal` и `plan_refs` содержат исходный `source_ref`. `unrequested` не создаёт auto-delete
+6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Непустой leftover не допускает QA как clean
+7. **Converged gate:** `converged: true` только при отсутствии actionable findings, пустых `legacy_surfaces_remaining[]`/`fallback_remaining[]` и `purge_step_present=true` для brownfield replace (либо `sunset: n/a`); тогда следующий режим INTEG QA. Иначе loop: новые audit shards → INTEG IMPLEMENT → INTEG AUDIT
+8. Append в tasks log и FINISH через finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index при добавлении `eNN`
 
 ## Abort
 - AUDIT без `epic_id` → reject (нет ad-hoc режима)
 - Артефакт в корне `audit/` без `<epic_id>/` → FAIL
 - Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
-- FINISH без gap-матрицы в артефакте → FAIL
+- FINISH без Intent Inventory, Assess, findings или полной gap-матрицы → FAIL
 - Contract drift зафиксирован без `element_id` в `deviations[]` → FAIL
 - Brownfield leftover не заполнен / purge отсутствует при sunset ≠ n/a → FAIL
+- Запуск тестов, suite, git-diff или попытка rewrite completed implement → FAIL
+- Введение MODE CONVERGE или auto-delete unrequested → FAIL
+
+## Boundary
+`INTEG ANALYZE` — pre-IMPLEMENT coverage/ambiguity без implement YAML и audit shards. `INTEG AUDIT` — post-IMPLEMENT intent↔evidence assessment и append-only remediation.
+
+## Verify
+`rg -n 'epic-audit/v2|findings|gap_type|severity|source_ref|converged' .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc`
+`rg -n 'legacy_surfaces_remaining|fallback_remaining|purge_step_present' .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc`

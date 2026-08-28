@@ -1,4 +1,4 @@
-schema: epic-audit/v1
+schema: epic-audit/v2
 role: back
 epic_id: <epic_id>
 plan_id: <plan_id>
@@ -10,6 +10,27 @@ summary:
   implemented: 0
   not_implemented: 0
   deviations: 0
+  findings: 0
+
+# Intent coverage metrics. Keep the values explicit even when a source is skipped.
+intent_checked:
+  fr_total: 0
+  fr_satisfied: 0
+  sc_checked: 0
+  constitution_checked: false
+
+# Findings are ordered CRITICAL, HIGH, MEDIUM, LOW, then by stable id.
+# Dual-write legacy mapping: actionable missing findings → not_implemented[];
+# partial/contradicts findings → deviations[]; unrequested findings stay here only.
+findings:
+  - id: F1
+    gap_type: missing | partial | contradicts | unrequested
+    severity: CRITICAL | HIGH | MEDIUM | LOW
+    source_ref: FR-###
+    evidence: <file/area observed>
+    remaining_work: <actionable remediation or review decision>
+
+converged: false
 
 implemented:
   - step_id: sNN

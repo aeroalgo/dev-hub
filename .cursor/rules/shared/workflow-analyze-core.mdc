@@ -1,0 +1,43 @@
+---
+description: "ANALYZE core — deterministic pre-IMPLEMENT detection passes"
+alwaysApply: false
+---
+# ANALYZE — shared detection core
+
+Роли BACK · FRONT · INTEG вызывают этот core из role-specific wrapper. ANALYZE — **STRICTLY READ-ONLY**: исходные plan, decompose и code не изменяются.
+
+Артефакт: `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`, шаблон `@.cursor/templates/analyze/epic-analyze.yaml`.
+
+## Detection passes
+
+Выполняй passes в фиксированном порядке. Каждый finding получает стабильный ID `A1`, `A2`, … в порядке обнаружения; при неизменном входе IDs не меняются.
+
+1. **Duplication** — повторяющиеся FR/SC/steps, дубли терминов или сущностей.
+2. **Ambiguity** — vague wording (`should`, `may`, `appropriate`, `typically`) и нерешённые `[НУЖНО УТОЧНИТЬ]` markers.
+3. **Underspecification** — FR без `sNN`, step без `plan_ref`/FR или goal-only step без delta.
+4. **Coverage Gaps** — AC+/AC−/FR/NFR/SC без `sNN` и без явного `out_of_scope`.
+5. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
+6. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки.
+
+Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
+
+## Severity heuristic
+
+- **CRITICAL** — отсутствует core P1/FR или есть нерешённый CRITICAL marker; IMPLEMENT нельзя начинать.
+- **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps или отсутствует обязательный acceptance path.
+- **MEDIUM** — non-core gap, частичное покрытие или неоднозначность, которую можно закрыть до cutover.
+- **LOW** — naming/style drift без влияния на decomposition, tests или runtime behavior.
+
+`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL; иначе `fix (CLARIFY | PLAN | DECOMPOSE)`.
+
+## 50-cap
+
+В `findings[]` допускается не более 50 строк. Если кандидатов больше, сохрани первые 50 в детерминированном порядке и добавь summary finding с количеством overflow и категориями, не скрывая наличие переполнения.
+
+## Output checklist
+
+- inventory FR/SC/stories сопоставлен с `sNN` и `plan_refs`;
+- coverage отражает `covered`, `partial` или `missing` для каждого requirement;
+- metrics пересчитаны после всех passes;
+- CRITICAL вынесены в `next_actions[]`;
+- исходные файлы, code и implement artifacts не изменены.

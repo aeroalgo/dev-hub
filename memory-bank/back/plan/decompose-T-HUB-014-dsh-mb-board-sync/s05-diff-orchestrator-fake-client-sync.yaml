@@ -1,0 +1,110 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Diff + sync orchestrator + FakeClient — desired ops → apply/archive"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать ядро sync pipeline:
+  - `loop/board_sync/diff.py` — сравнивает desired mb-* set (из step+gate WorkItems) с existing
+    board mb-* cards → ops: upsert / archive; non-mb-* карточки не трогаются
+  - `loop/board_sync/client.py` — `TaskBoardClient` Protocol + `FakeClient` (in-memory, write_count)
+    + опциональный `LedgerFileClient` (offline/test, --ledger-file mode)
+  - `loop/board_sync/sync.py` — оркестратор `run_sync(workspace_refs, board_client, dry_run)`:
+    вызывает scan_steps + scan_gates → merge WorkItems → diff → apply ops; sync_generation counter;
+    идемпотентность (skip if content equal); DONE epics → archive-all их mb-* карточек
+  - Покрывает FR-005, FR-006, FR-009, FR-010, AC+ #3/4/5, AC− #3, SC-002, NFR one-way/idempotent.
+
+context:
+  consumes:
+    - "loop/board_sync/card_model.py (stable_id, serialize_metadata, build_title/prompt) — s01"
+    - "loop/board_sync/scan_mb.py (scan_steps, WorkItem) — s03"
+    - "loop/board_sync/scan_gates.py (scan_gates, GateWorkItem) — s04"
+  produces:
+    - "loop/board_sync/diff.py"
+    - "loop/board_sync/client.py"
+    - "loop/board_sync/sync.py"
+    - "loop/tests/test_board_sync_diff.py"
+    - "loop/tests/test_board_sync_sync.py"
+  plan_refs:
+    - "plan §Зафиксированные решения — Направление sync (one-way)"
+    - "plan §Зафиксированные решения — FR-005/006/009/010"
+    - "plan §Board write path — FakeClient / LedgerFileClient"
+    - "plan §Mapping board status"
+    - "FR-005, FR-006, FR-009, FR-010"
+    - "AC+ #3, AC+ #4, AC+ #5, AC− #3"
+    - "SC-002, NFR: idempotent, NFR: one-way"
+  files:
+    - "loop/board_sync/diff.py"
+    - "loop/board_sync/client.py"
+    - "loop/board_sync/sync.py"
+    - "loop/tests/test_board_sync_diff.py"
+    - "loop/tests/test_board_sync_sync.py"
+
+as_built:
+  - "loop/board_sync/card_model.py — stable_id, serialize_metadata (s01)"
+  - "loop/board_sync/scan_mb.py — scan_steps (s03)"
+  - "loop/board_sync/scan_gates.py — scan_gates (s04)"
+
+delta:
+  - "CREATE loop/board_sync/client.py — TaskBoardClient(Protocol): list_tasks(), upsert(card), archive(task_id); FakeClient(in-memory dict, write_count); LedgerFileClient(optional, --ledger-file)"
+  - "CREATE loop/board_sync/diff.py — desired_ids = {stable_id(wi) for wi in workitems}; existing = {t.id: t for t in board.list_tasks() if t.id.startswith('mb-')}; ops = {create/update если не в existing или content changed, archive если в existing но не в desired}"
+  - "CREATE loop/board_sync/sync.py — run_sync(workspace_refs, board_client, dry_run=False, workspace_id_filter=None): scan → merge → diff → apply ops + generation bump + status return"
+  - "CREATE loop/tests/test_board_sync_diff.py — upsert/archive ops; non-mb preserved; idempotent; content-equal skip"
+  - "CREATE loop/tests/test_board_sync_sync.py — end-to-end с FakeClient; dry_run write_count==0; completed sNN → archived card; non-mb card preserved"
+
+deletes: []
+
+out_of_scope:
+  - "HttpHostClient — s06 (live DSH)"
+  - "CLI entry-point — s07"
+  - "dry-run печать ops — s07 (только client.write_count==0 здесь)"
+  - "status command — s07"
+  - "arm/loop/roadmap operations — AC− #4"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "diff ops: desired set → upsert ids; vanished mb-* → archive ids; non-mb ids untouched"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_diff.py -q"
+  - id: cp2
+    criterion: "FakeClient: list_tasks() / upsert / archive работают; write_count == кол-ву вызовов write"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_sync.py::test_fake_client -q"
+  - id: cp3
+    criterion: "run_sync(dry_run=True): FakeClient.write_count == 0 (AC+ #6 precursor; full test в s07)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_sync.py::test_dry_run_no_writes -q"
+  - id: cp4
+    criterion: "completed sNN → соответствующая mb-* карточка archived после run_sync (US-002)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_sync.py::test_completed_step_archived -q"
+  - id: cp5
+    criterion: "non-mb-* карточки не тронуты после run_sync (AC− #3, SC-002)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_sync.py::test_non_mb_preserved -q"
+
+verify:
+  - "from loop.board_sync.client import TaskBoardClient, FakeClient"
+  - "from loop.board_sync.sync import run_sync"
+  - "from loop.board_sync.diff import compute_ops"
+
+tdd:
+  - "test_diff_upsert_new — новый WorkItem → create op"
+  - "test_diff_update_changed — изменился title → update op"
+  - "test_diff_archive_vanished — нет в desired, есть в board → archive op"
+  - "test_diff_idempotent_skip — content equal → no op"
+  - "test_diff_non_mb_ignored — non-mb-* ids не попадают в archive"
+  - "test_fake_client_write_count — write_count корректен"
+  - "test_dry_run_no_writes — dry_run=True → write_count==0"
+  - "test_completed_step_archived — s01 completed → card archived"
+  - "test_non_mb_preserved — manual-1 остаётся"
+  - "test_sync_generation_increment — sync_generation в metadata увеличивается"
+  - "test_done_epic_archive_all — lifecycle DONE → все mb-* данного epic archived"

@@ -41,40 +41,26 @@ as_built:
   - loop/context_loop.py:record_abort — вызывает analyze_session_log без runtime parameter
 
 delta:
-  - session_resilience.py: добавить _DSH_TRANSIENT_PATTERNS tuple:
-      re.compile(r"(?i)429\s*Too\s*Many\s*Requests"),
-      re.compile(r"(?i)503\s*Service\s*Unavailable"),
-      re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
-      re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
-  - session_resilience.py: добавить _DSH_PERMANENT_PATTERNS tuple:
-      re.compile(r"(?i)API\s+Error:\s*terminated"),
-      re.compile(r"(?i)API\s+Error:\s*overloaded"),
-      re.compile(r"(?i)API\s+Error:.*rate.?limit"),
-      re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
-      re.compile(r"(?i)Invalid\s+API\s+key"),
-  - session_resilience.py: добавить `def detect_dsh_abort_in_log(text: str) -> str | None`:
-      сканирует text (весь лог — не только system-lines как в Claude path);
-      проверяет _DSH_TRANSIENT_PATTERNS → "dsh_transient: <match>"
-      проверяет _DSH_PERMANENT_PATTERNS → "dsh_permanent: <match>"
-      иначе → None
-  - session_resilience.py: добавить `def _detect_dsh_session_complete(text: str) -> bool`:
-      проверяет JSONL на session_end с status="completed" ИЛИ
-      последнюю строку text (после normalize) на признаки завершения (FINISH / END)
-  - session_resilience.py: расширить `analyze_session_log`:
-      добавить kwarg `runtime: str = "claude"`;
-      при runtime=="dsh": заменить detect_abort_in_log → detect_dsh_abort_in_log;
-        при exit_code==0 и not _detect_dsh_session_complete(raw_log) → treat как abort (incomplete FINISH);
-        model_substitution detect через detect_dsh_model_mismatch (stub из s02)
-      при runtime=="claude": поведение без изменений (NFR-1)
-  - loop/context_loop.py:record_abort: добавить kwarg `runtime: str = "claude"`;
-      передать в analyze_session_log(... runtime=runtime);
-      читать runtime из load_epic_state → st.get("runtime") или "claude" (fallback)
-  - loop/tests/test_dsh_runtime_adapter.py: добавить секцию analyze_session_log DSH:
-      test_analyze_dsh_completed_exit0 — fixture dsh_session_completed.jsonl, exit=0 → outcome=="clean"
-      test_analyze_dsh_transient_http429 — fixture dsh_session_transient.jsonl → outcome contains "transient"
-      test_analyze_dsh_permanent_auth — fixture dsh_session_permanent.jsonl → retryable==False
-      test_analyze_dsh_exit0_incomplete_finish — exit=0 но нет session_end → aborted==True
-      test_analyze_claude_path_unaffected — runtime="claude", обычный Claude log → результат как до изменений
+  - "session_resilience.py: добавить _DSH_TRANSIENT_PATTERNS tuple"
+  - "  re.compile(r'(?i)429\\s*Too\\s*Many\\s*Requests')"
+  - "  re.compile(r'(?i)503\\s*Service\\s*Unavailable')"
+  - "  re.compile(r'(?i)5[0-9]{2}\\s+(?:Server|Service|Gateway)\\s+Error')"
+  - "  re.compile(r'(?i)Connection\\s+(?:refused|reset|timed?\\s*out)')"
+  - "session_resilience.py: добавить _DSH_PERMANENT_PATTERNS tuple"
+  - "  re.compile(r'(?i)API\\s+Error:\\s*terminated')"
+  - "  re.compile(r'(?i)API\\s+Error:\\s*overloaded')"
+  - "  re.compile(r'(?i)API\\s+Error:.*rate.?limit')"
+  - "  re.compile(r'(?i)Authentication\\s+(?:failed|error|invalid)')"
+  - "  re.compile(r'(?i)Invalid\\s+API\\s+key')"
+  - "session_resilience.py: добавить detect_dsh_abort_in_log(text: str) -> str | None"
+  - "  Сканировать text целиком; transient → dsh_transient: <match>, permanent → dsh_permanent: <match>, иначе None"
+  - "session_resilience.py: добавить _detect_dsh_session_complete(text: str) -> bool"
+  - "  Проверять JSONL session_end со status=completed или последнюю нормализованную строку на FINISH / END"
+  - "session_resilience.py: расширить analyze_session_log runtime: str = 'claude'"
+  - "  runtime=dsh использует DSH detector; exit_code=0 без завершения трактуется как incomplete FINISH; model mismatch — через stub"
+  - "  runtime=claude сохраняет прежнее поведение (NFR-1)"
+  - "loop/context_loop.py:record_abort: добавить runtime: str = 'claude', передать его в analyze_session_log и читать st.get('runtime')"
+  - "loop/tests/test_dsh_runtime_adapter.py: добавить DSH analyze_session_log cases для completed, transient HTTP 429, permanent auth, incomplete FINISH и Claude regression"
 
 deletes: []
 # Additive: analyze_session_log расширяется kwarg runtime; Claude path без изменений (NFR-1)

@@ -13,6 +13,8 @@ alwaysApply: false
 |-------|---------|
 | `FRONT VAN` | @.cursor/rules/front_developer/workflow-van.mdc |
 | `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc |
+| `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
 | `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |

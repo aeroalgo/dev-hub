@@ -12,6 +12,7 @@ alwaysApply: false
 ## Gates
 
 1. `load_now`: work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; **не** полный `plan-*.md`, **не** `index.md`; AC = work shard (jump `plan §N` только при нехватке)
+1a. **Search scope:** loop `delta_paths_scoped` / `delta_paths_exist` → SKIP @explorer; ALLOW = shard paths + parent dirs. Другие каталоги — только по явной ссылке в shard/plan
 2. Level из step — L2 substep → L2
 3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index `yes (CR-…)` без `✅`. Канон форм: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен BACK CREATIVE <CR-ID>`); не код/`completed`. `no (… closed)` — запрещённый дрейф, трактовать как open до нормализации
 4. **Skills:** Read **целиком** только `Impl skills` из step (+ FINISH-only pre-FINISH); без `limit≤300`; **без** широкого слоя A

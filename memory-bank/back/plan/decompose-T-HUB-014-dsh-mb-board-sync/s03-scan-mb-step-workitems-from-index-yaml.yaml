@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "scan_mb step WorkItems — decompose index.yaml → pending/in_progress sNN"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/board_sync/scan_mb.py` — для каждого eligible WorkspaceRef сканирует
+  все `memory-bank/{back,front,integration}/plan/decompose-*/index.yaml`,
+  возвращает `WorkItem[]` только для шагов со status ∈ {pending, in_progress, active, blocked}.
+  Corrupt index.yaml одного проекта → skip project + добавить в error list (batch продолжается).
+  Completed/done/cancelled шаги не попадают в desired set.
+  Покрывает FR-003, AC+ #2, SC-001, AC− #1, NFR batch-skip, US-001/002.
+
+context:
+  consumes:
+    - "loop/board_sync/workspaces.py (WorkspaceRef) — s02"
+    - "loop/board_sync/card_model.py (CardKind) — s01"
+  produces:
+    - "loop/board_sync/scan_mb.py"
+    - "loop/tests/fixtures/board_sync/mini_mb_project/" # mini memory-bank с index.yaml
+    - "loop/tests/test_board_sync_scan_mb.py"
+  plan_refs:
+    - "plan §Зафиксированные решения — Гранулярность карточек (step)"
+    - "plan §Зафиксированные решения — Не класть на доску"
+    - "plan §Зафиксированные решения — Fail-closed"
+    - "FR-003, AC+ #2, SC-001, AC− #1"
+    - "NFR: batch-skip"
+  files:
+    - "loop/board_sync/scan_mb.py"
+    - "loop/tests/fixtures/board_sync/mini_mb_project/memory-bank/back/plan/decompose-T-HUB-007-test/index.yaml"
+    - "loop/tests/test_board_sync_scan_mb.py"
+
+as_built:
+  - "loop/board_sync/workspaces.py — WorkspaceRef (s02)"
+  - "loop/board_sync/card_model.py — CardKind (s01)"
+  - "decompose-*/index.yaml schema: epic-decompose-index/v1, steps[].status canon"
+
+delta:
+  - "CREATE loop/board_sync/scan_mb.py — WorkItem dataclass (role, epic_id, step_id, status, decompose_rel, title, workspace_ref) + scan_steps(workspace_refs) → WorkItem[] + _parse_index(path) → step rows"
+  - "CREATE fixtures/board_sync/mini_mb_project/ — minimal workspace с 2 pending, 1 in_progress, 1 completed sNN"
+  - "CREATE loop/tests/test_board_sync_scan_mb.py — scan от fixture, corrupt index skip с error list, multi-role scan"
+
+deletes: []
+
+out_of_scope:
+  - "gate WorkItems — s04 (scan_gates)"
+  - "status write-back к index.yaml — AC− #1 (навсегда запрещено)"
+  - "ROADMAP card — s04"
+  - "diff/apply — s05"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "scan_steps(fixture ws) возвращает только pending/in_progress/active/blocked WorkItems; completed отсутствует"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_scan_steps_filters_status -q"
+  - id: cp2
+    criterion: "corrupt index.yaml одного проекта → skip project; batch продолжается; errors list не пустой"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_corrupt_index_skip -q"
+  - id: cp3
+    criterion: "multi-role scan (back/ + front/) возвращает WorkItems с правильным role полем"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_multi_role -q"
+
+verify:
+  - "from loop.board_sync.scan_mb import scan_steps, WorkItem"
+  - "WorkItem имеет: role, epic_id, step_id, status, decompose_rel, title, workspace_ref"
+  - "scan_steps принимает workspace_refs: list[WorkspaceRef]"
+
+tdd:
+  - "test_scan_steps_filters_status — pending/in_progress → есть; completed/done/cancelled → нет"
+  - "test_scan_steps_count — N pending sNN → N WorkItems"
+  - "test_corrupt_index_skip — invalid yaml → skip project, non-empty errors"
+  - "test_missing_memory_bank_skip — workspace без memory-bank/ → пропущен (не ошибка)"
+  - "test_multi_role — back/ + front/ оба сканируются, role поле корректно"
+  - "test_workitem_fields — decompose_rel, epic_id, step_id, title присутствуют"

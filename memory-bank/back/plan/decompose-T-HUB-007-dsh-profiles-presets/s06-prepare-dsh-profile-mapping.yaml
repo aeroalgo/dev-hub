@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "prepare dsh_profile mapping + tests — context_loop.py + test_dsh_profile_mapping.py"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `loop/context_loop.py`:
+  - `prepare_session` (или `_resolve_loop_phase`) эмитит `dsh_profile=f"epic-{loop_phase_lower}"`
+  AC+4, FR-5: unit-тест `test_prepare_emits_dsh_profile_implement` (или эквивалент) проверяет phase `IMPLEMENT` → `epic-implement`.
+  Добавить/расширить `loop/tests/test_dsh_profile_mapping.py` с тестами phase→profile + sync hash (NFR-1).
+
+context:
+  consumes:
+    - loop/context_loop.py                    # prepare_session, _resolve_loop_phase, projection
+    - loop/tests/test_context_loop.py         # существующие тесты prepare (test_prepare_emits_dsh_profile)
+    - loop/tests/test_dsh_e2e_smoke.py        # test_dsh_e2e_smoke_prepare_runtime_dsh
+    - dsh/scripts/sync-agent-md-to-presets.py # s01 — для hash-check теста
+    - dsh/presets/verify.prompt.md            # для NFR-1 hash test
+    - .claude/agents/verify.md                # для NFR-1 hash test
+  produces:
+    - loop/context_loop.py                    # правка prepare (если ещё не эмитит dsh_profile по фазе)
+    - loop/tests/test_dsh_profile_mapping.py  # новые тесты: phase→profile, sync hash, regression
+  plan_refs:
+    - FR-5
+    - AC+4
+    - NFR-1
+    - AC−3 (guard: dsh_profile не обязателен при claude runtime)
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_dsh_profile_mapping.py
+
+as_built:
+  - 'loop/context_loop.py:1290: `dsh_profile: f"epic-{resolved.get(''loop_phase'') or ''implement''}"` — уже эмитит'
+  - 'test_context_loop.py:351: test_prepare_emits_dsh_profile — проверяет .startswith("epic-")'
+  - 'test_dsh_e2e_smoke.py:56: аналогичный assert'
+  - 'test_dsh_profile_mapping.py — не существует (или минимальный seed из s01)'
+
+delta:
+  - 'loop/context_loop.py: (verify) prepare эмитит точное dsh_profile по loop_phase:'
+  - '  IMPLEMENT → epic-implement'
+  - '  QA → epic-qa'
+  - '  DECOMPOSE → epic-decompose'
+  - '  ... (все 8 фаз)'
+  - 'loop/tests/test_dsh_profile_mapping.py: test_prepare_emits_dsh_profile_implement — prepare с phase IMPLEMENT → dsh_profile == "epic-implement"'
+  - 'loop/tests/test_dsh_profile_mapping.py: test_prepare_emits_dsh_profile_qa — аналог для QA'
+  - 'loop/tests/test_dsh_profile_mapping.py: test_prepare_dsh_profile_default_implement — loop_phase=None → epic-implement (backward)'
+  - 'loop/tests/test_dsh_profile_mapping.py: test_sync_verify_preset_hash_matches_agent_md — NFR-1: hash(dsh/presets/verify.prompt.md) == hash(strip(.claude/agents/verify.md)) или содержимое AC+ совпадает'
+  - 'loop/tests/test_dsh_profile_mapping.py: guard test — EPIC_RUNTIME=claude → dsh_profile может отсутствовать или быть None (AC−3)'
+  - 'context_loop.py: (опционально) комментарий/docstring про маппинг phase→profile'
+
+deletes: []
+# Нет удаления; расширение тестового покрытия.
+
+out_of_scope:
+  - "Изменение loop.sh — dsh_profile уже передаётся через prepare output"
+  - "install / profiles — s02–s05"
+  - "spawn-hard — AC−1 → T-HUB-008"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # TDD: новые тесты + regression
+    - .agents/skills/python-testing-patterns/SKILL.md     # параметризация по фазам
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md        # S08: env, projection
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      AC+4: test_prepare_emits_dsh_profile_implement PASS — phase IMPLEMENT → dsh_profile == "epic-implement"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_prepare_emits_dsh_profile_implement -q --tb=short"
+  - id: cp2
+    criterion: >
+      NFR-1: test_sync_verify_preset_hash_matches_agent_md PASS — preset bytes track agent md
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_sync_verify_preset_hash_matches_agent_md -q --tb=short"
+  - id: cp3
+    criterion: >
+      Guard: EPIC_RUNTIME=claude → prepare не требует dsh_profile (или dsh_profile is None)
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -k 'guard or claude' -q --tb=short"
+  - id: cp4
+    criterion: >
+      Все новые тесты + существующие dsh-related тесты зелёные
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_context_loop.py loop/tests/test_dsh_e2e_smoke.py loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short"
+
+tdd:
+  - "test_prepare_emits_dsh_profile_implement — IMPLEMENT → epic-implement"
+  - "test_prepare_emits_dsh_profile_qa — QA → epic-qa"
+  - "test_prepare_emits_dsh_profile_decompose — DECOMPOSE → epic-decompose"
+  - "test_prepare_dsh_profile_default_implement — None phase → epic-implement"
+  - "test_sync_verify_preset_hash_matches_agent_md — NFR-1"
+  - "test_prepare_claude_runtime_no_dsh_profile_required — AC−3 guard"
+  - "Regression: все dsh-related тесты зелёные после правки prepare (если была)"

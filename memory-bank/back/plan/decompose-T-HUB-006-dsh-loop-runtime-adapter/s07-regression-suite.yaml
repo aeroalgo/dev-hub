@@ -35,17 +35,20 @@ as_built:
   - test_dsh_e2e_smoke.py — НЕ существует
 
 delta:
-  - CREATE loop/tests/test_dsh_e2e_smoke.py:
-      Smoke test e2e: вызывает context_loop.py prepare (с monkeypatch EPIC_RUNTIME=dsh),
-        убеждается что runtime=="dsh" и dsh_profile startswith "epic-";
-      Вызывает fake_dsh.sh через run_dsh_session симуляцию (через shell subprocess),
-        проверяет что fake_dsh получил --profile;
-      Вызывает record_abort с dsh_session_completed.jsonl fixture + runtime="dsh" →
-        outcome=="clean", ok==True;
-      Проверяет что при EPIC_RUNTIME=claude (default) — fake_dsh НЕ вызван.
-  - Исправления регрессий (если найдены в s01-s06 после прогона полного suite):
-      правки минимальны и прямые (TDD: red fix → green)
-  - Запуск и документирование итога: все тесты PASS
+  - |
+      CREATE loop/tests/test_dsh_e2e_smoke.py:
+      Smoke test e2e: вызывает context_loop.py prepare (с monkeypatch
+      EPIC_RUNTIME=dsh), убеждается что runtime=="dsh" и dsh_profile
+      startswith "epic-"; вызывает fake_dsh.sh через run_dsh_session
+      симуляцию (через shell subprocess), проверяет что fake_dsh получил
+      --profile; вызывает record_abort с dsh_session_completed.jsonl fixture
+      + runtime="dsh" → outcome=="clean", ok==True; проверяет что при
+      EPIC_RUNTIME=claude (default) fake_dsh НЕ вызван.
+  - |
+      Исправления регрессий (если найдены в s01-s06 после прогона полного suite):
+      правки минимальны и прямые (TDD: red fix → green).
+  - |
+      Запуск и документирование итога: все тесты PASS.
 
 deletes: []
 

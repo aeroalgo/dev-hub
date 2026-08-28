@@ -1,0 +1,56 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-013
+title: "Audit remediation — kill terminal status and non-PLAN next"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-4 и AC+4 из audit-20260828-idea-decide-constitution: зафиксировать kill как
+  успешный terminal outcome со status done/killed и явным запретом перехода в PLAN/IMPLEMENT.
+context:
+  consumes:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+  plan_refs:
+    - FR-4
+    - AC+4
+  files:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+
+as_built:
+  - .cursor/rules/shared/workflow-idea-pipeline.mdc — kill rationale и stop описаны, terminal status не задан
+  - .cursor/templates/idea-pipeline.md — Verdict и Kill rationale есть, status done/killed отсутствует
+
+delta:
+  - "workflow: явно определить kill как status done/killed, записывать rationale и завершать pipeline без PLAN/IMPLEMENT next"
+  - "template: добавить Decision fields Pipeline status и Next after kill с terminal semantics"
+
+deletes: []
+out_of_scope:
+  - needs-clarification marker/revisit — s05
+  - go handoff summary — s06
+  - constitution template — s07
+  - mainrule quick help — s08
+  - assess adaptation reference — s09
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: workflow explicitly states kill status done/killed and next is not PLAN/IMPLEMENT
+    verify: "rg -n 'done/killed|killed.*PLAN|PLAN/IMPLEMENT|terminal' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp2
+    criterion: idea template exposes kill terminal status and rationale fields
+    verify: "rg -n 'Kill rationale|done/killed|Next.*kill|Pipeline status' .cursor/templates/idea-pipeline.md"
+
+tdd: []
+verify: []

@@ -1,28 +1,50 @@
 ---
-description: "AUDIT gates — plan vs implement gap, delta report, new decompose shards (lean)"
+description: "AUDIT gates — intent↔implement assessment, findings, append-only remediation и converge (lean)"
 alwaysApply: false
 ---
 # AUDIT — gates
 **Артефакт:**
 `memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
-Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v1`)
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
 
 ## Gates (обязательные — узкий путь)
-1. Lean load §7: `load_now` + `plan-<epic_id>.md` + заголовки `implement-*/sNN|eNN-*.yaml` + `decompose/index.md` (coverage) + `index.yaml` (status); **не** читать полный текст каждого shard
-2. Построить gap-матрицу:
-   - **✅ реализовано** — `step_id` из decompose index присутствует в `implement-<epic_id>/` как файл
-   - **❌ не реализовано** — `step_id` есть в плане/decompose, но файла implement нет
-   - **⚠️ отклонение** — файл implement есть, но цель/delta в нём расходится с планом (фиксируется только в delta-отчёте, без нового shard)
-3. Для каждого ❌ → новый decompose shard `sNN-audit-<slug>.yaml` в `decompose-<epic_id>/`; формат = `.cursor/templates/decompose/epic-step.yaml`; обновить `index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`
-4. Артефакт audit yaml: секции `implemented[]`, `not_implemented[]`, `deviations[]`, плюс при brownfield replace: `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`; путь с `<epic_id>/`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §4
-5. Append в tasks log
-5a. **blocked:** `blocked_reason` в audit yaml + Handoff → `finish-doc-router.md`
-5b. Непустой `legacy_surfaces_remaining` / `fallback_remaining` → новые `*-audit-*` shards (не пускать в QA как clean)
-6. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index (обновлён новыми sNN)
+1. Lean load §7: `load_now` + `plan-<epic_id>.md` + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/sNN|eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard.
+2. **Intent Inventory gate:** в audit artifact явно зафиксированы применимые plan FR/SC/US/AC/NFR и constitution MUST с `source_ref`; каждый intent связан с `step_id`/eNN или отмечен как out-of-scope.
+3. **Assess gate:** для каждого intent и каждого `step_id` есть оценка по code/implement evidence; legacy gap-матрица сохраняется:
+   - **✅ реализовано** — `step_id` присутствует и intent подтверждён evidence;
+   - **❌ не реализовано** — `step_id` есть в плане/decompose, но implement-файла нет или evidence не подтверждает intent;
+   - **⚠️ отклонение** — implement есть, но intent частично реализован или расходится с планом; фиксируется finding с evidence, а не presence-only оценка.
+4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence`, `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; CRITICAL constitution/P1 — первыми.
+5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts` и leftover получает новый `decompose-<epic_id>/sNN-audit-<slug>.yaml`; shard append-only, а его `goal` и `plan_refs` содержат исходный `source_ref`. `unrequested` не создаёт auto-delete.
+6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Непустой leftover не допускает QA как clean.
+7. **Converged gate:** `converged: true` только при отсутствии actionable findings, пустых `legacy_surfaces_remaining[]`/`fallback_remaining[]` и `purge_step_present=true` для brownfield replace (либо `sunset: n/a`); тогда следующий режим BACK QA. Иначе loop: новые audit shards → BACK IMPLEMENT → BACK AUDIT.
+8. Append в tasks log; blocked-случай записывается через `blocked_reason` и Handoff → `finish-doc-router.md`.
+9. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index, если добавлены sNN.
 
 ## Abort
 - AUDIT без `epic_id` → reject (нет ad-hoc режима)
 - Артефакт в корне `audit/` без `<epic_id>/` → FAIL
 - Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
-- FINISH без gap-матрицы в артефакте → FAIL
+- FINISH без Intent Inventory, Assess, findings или полной gap-матрицы в артефакте → FAIL
+- `source_ref` отсутствует в finding или goal/plan_refs нового audit shard → FAIL
 - Brownfield replace: нет полей leftover / `purge_step_present=false` при sunset ≠ n/a → FAIL
+- Запуск `pytest`, `vitest`, Playwright, полного suite, `git-diff` или попытка rewrite completed implement → FAIL
+- Введение нового MODE CONVERGE или auto-delete unrequested → FAIL
+
+## Boundary
+`BACK ANALYZE` — pre-IMPLEMENT read-only анализ plan/decompose, без implement YAML и audit shards. `BACK AUDIT` — post-IMPLEMENT intent↔code/evidence assessment и append-only remediation. `ANALYZE ≠ AUDIT`.
+
+## Gate references
+- `epic-audit/v2` → `.cursor/templates/audit/epic-audit.yaml`
+- Intent/gap contract → `.cursor/rules/back_developer/workflow-audit.mdc`
+- Legacy leftovers → `@.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc`
+
+## FORBIDDEN
+- MODE CONVERGE / `specify-cli`.
+- Full-text shard loading, full-repo audit and auto-delete of unrequested code.
+- Tests/suite or code-review; this lean gate only validates audit artifact/process.
+- Rewriting completed implement artifacts; remediation is append-only.
+
+## Verify
+`rg -n 'epic-audit/v2|Intent Inventory|findings|gap_type|severity|source_ref|converged' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc`
+`rg -n 'legacy_surfaces_remaining|purge_step_present' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc`

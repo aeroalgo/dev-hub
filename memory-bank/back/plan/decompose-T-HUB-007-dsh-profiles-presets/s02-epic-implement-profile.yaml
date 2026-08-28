@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "epic-implement profile + dump-config smoke — package.json + cordis.patch.yml"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `dsh/profiles/epic-implement/`:
+  - `package.json` с `dsh.profile.bundles` объявляющим subagent presets (verify, explorer)
+  - `cordis.patch.yml` с LLM mapping (`PROJECT_LOOP_IMPLEMENT_MODEL`) + подключением пресетов
+  FR-1, FR-8, AC+3: `dsh --profile epic-implement --dump-config` exits 0 (CI skip без API key).
+
+context:
+  consumes:
+    - dsh/scripts/sync-agent-md-to-presets.py   # s01 — пресеты уже созданы
+    - dsh/presets/verify.prompt.md              # AC+2
+    - dsh/presets/explorer.prompt.md            # для IMPLEMENT
+    - loop/WORKFLOW.md                          # PROJECT_LOOP_IMPLEMENT_MODEL, phase model table
+    - .claude/project.env                       # (опционально) override модели
+  produces:
+    - dsh/profiles/epic-implement/package.json
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/patches/phase-models.yml              # shared LLM fragments (FR-9)
+    - dsh/scripts/install-profiles.sh           # (seed; полная реализация s05)
+  plan_refs:
+    - FR-1
+    - FR-8
+    - FR-9
+    - AC+3
+    - NFR-2
+    - NFR-3
+  files:
+    - dsh/profiles/epic-implement/package.json
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/patches/phase-models.yml
+
+as_built:
+  - dsh/profiles/ — только stub/.gitkeep (T-HUB-006 scaffold)
+  - dsh/profiles/epic-implement/ — не существует
+  - Нет package.json / cordis.patch.yml для профилей
+  - dsh/patches/ — не существует
+  - '`dsh --profile epic-implement` не работает (stub)'
+
+delta:
+  - 'dsh/profiles/epic-implement/package.json: {"name": "epic-implement", "version": "0.1.0", "dsh": {"profile": {"bundles": {"subagent": {"presets": {"verify": {"id": "preset-verify"}, "explorer": {"id": "preset-explorer"}}}}}}'
+  - 'dsh/profiles/epic-implement/cordis.patch.yml: массив патчей: id=preset-verify (systemPrompt file: ../../../../presets/verify.prompt.md), id=preset-explorer, id=subagent-local (presets map)'
+  - 'dsh/profiles/epic-implement/cordis.patch.yml: LLM row с model из $PROJECT_LOOP_IMPLEMENT_MODEL (или default); env bridge documented'
+  - 'dsh/patches/phase-models.yml: shared фрагменты LLM по фазам (IMPLEMENT, QA, ...); профили include этот файл'
+  - 'dsh/scripts/install-profiles.sh: stub — mkdir -p $DSH_HOME/profiles; cp -r dsh/profiles/epic-implement $DSH_HOME/profiles/ (полная реализация s05)'
+  - 'dsh/README.md: секция "Smoke test" — dsh --profile epic-implement --dump-config (skip без API key)'
+
+deletes:
+  - 'dsh/profiles/stub/'  # Kind A: stub placeholder заменяется реальным профилем epic-implement
+# Stub содержимое (только .gitkeep) удаляется; реальный профиль кладётся на его место.
+
+out_of_scope:
+  - "Полная реализация install-profiles.sh (копирование всех профилей) — s05"
+  - "Профили qa/decompose — s03"
+  - "Остальные фазы — s04"
+  - "Изменение .claude/agents/*.md — AC−2"
+  - "spawn-hard policy — AC−1 → T-HUB-008"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # TDD: smoke + dump-config
+    - .agents/skills/python-testing-patterns/SKILL.md     # (опционально) если smoke через pytest
+    - .agents/skills/modern-python/SKILL.md               # JSON/YAML генерация, pathlib
+    - .agents/skills/python-configuration/SKILL.md        # S08: работа с $DSH_HOME, env
+    - .agents/skills/python-error-handling/SKILL.md       # чёткие ошибки при отсутствии пресетов
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      dsh/profiles/epic-implement/package.json exists and declares the ordered DSH bundle list;
+      local verify/explorer presets are wired by cordis.patch.yml, not by the bundle list
+    verify: "test -f dsh/profiles/epic-implement/package.json && python -c 'import json; d=json.load(open(\"dsh/profiles/epic-implement/package.json\")); bundles=d.get(\"dsh\",{}).get(\"profile\",{}).get(\"bundles\"); assert isinstance(bundles,list) and bundles, bundles; assert \"@deepseek-ai/dsh-base\" in bundles; print(\"OK\")'"
+  - id: cp2
+    criterion: >
+      dsh/profiles/epic-implement/cordis.patch.yml содержит preset-verify с systemPrompt.file
+    verify: "test -f dsh/profiles/epic-implement/cordis.patch.yml && grep -q 'preset-verify' dsh/profiles/epic-implement/cordis.patch.yml && grep -q 'systemPrompt' dsh/profiles/epic-implement/cordis.patch.yml"
+  - id: cp3
+    criterion: >
+      dsh --profile epic-implement --dump-config exits 0 (или skip с сообщением если нет DSH/API key)
+    verify: "timeout 300s bash -c 'if command -v dsh >/dev/null 2>&1; then dsh --profile epic-implement --dump-config; else echo \"DSH not installed — skip smoke (CI ok)\"; exit 0; fi'"
+  - id: cp4
+    criterion: >
+      AC+3: --dump-config lists subagent preset verify
+    verify: "timeout 300s bash -c 'if command -v dsh >/dev/null 2>&1; then dsh --profile epic-implement --dump-config 2>/dev/null | grep -qi verify || (echo \"no verify in dump\"; exit 1); else echo \"skip\"; exit 0; fi'"
+
+verify:
+  - "timeout 300s bash -c 'if command -v dsh >/dev/null; then dsh --profile epic-implement --dump-config; else echo skip; fi'"
+
+tdd:
+  - "package.json structure valid (dsh.profile.bundles)"
+  - "cordis.patch.yml contains preset-verify + preset-explorer"
+  - "dump-config smoke exits 0 or skips cleanly"
+  - "AC+3: dump-config lists verify preset"
+  - "NFR-2: no secrets in patch (grep -i key|token|secret → empty)"
+  - "Regression: существующие dsh тесты зелёные"

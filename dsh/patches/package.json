@@ -1,0 +1,10 @@
+{
+  "name": "dsh-phase-models",
+  "private": true,
+  "version": "0.1.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./phase-models.yml"
+    }
+  }
+}

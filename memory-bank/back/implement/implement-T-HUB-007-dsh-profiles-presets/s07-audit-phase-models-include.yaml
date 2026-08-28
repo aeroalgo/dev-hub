@@ -1,0 +1,87 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-007-dsh-profiles-presets
+title: 's07 — Audit remediation: wire shared phase-models.yml into every profile —
+  FR-9 IMPLEMENT'
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-007-dsh-profiles-presets/s07-audit-phase-models-include.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery:
+- graphify N/A — hub repository (no graph.json); inventory fallback used for DSH loader,
+  bundle manifests, profile patches, and bounded regression tests.
+- 'Verified DSH contract: profile bundles are ordered package names; each bundle exports
+  dsh.bundle.patch, and the loader applies bundle patches before the profile patch.'
+gaps:
+  status: none
+done:
+- Added dsh/patches/package.json as the local dsh-phase-models bundle manifest.
+- Converted phase-models.yml to a valid DSH top-level patch list targeting the base
+  llm row, preserving all eight PROJECT_LOOP_*_MODEL phase references.
+- Added dsh-phase-models as a file bundle dependency and ordered profile bundle for
+  all eight epic profiles; retained each profile-specific llm bridge.
+- Added bounded regression coverage for bundle declaration, profile inclusion/order,
+  patch shape, eight phase mappings, and unsupported include/import/extends keys.
+files:
+- dsh/patches/phase-models.yml
+- dsh/profiles/epic-implement/cordis.patch.yml
+- dsh/profiles/epic-qa/cordis.patch.yml
+- dsh/profiles/epic-decompose/cordis.patch.yml
+- dsh/profiles/epic-plan/cordis.patch.yml
+- dsh/profiles/epic-creative/cordis.patch.yml
+- dsh/profiles/epic-audit/cordis.patch.yml
+- dsh/profiles/epic-bugfix/cordis.patch.yml
+- dsh/profiles/epic-reflect/cordis.patch.yml
+- loop/tests/test_dsh_profile_mapping.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short`
+  — 25 passed.'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py
+  loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=short`
+  — 52 passed.'
+- '`EPIC_DSH_PROFILE=epic-implement DSH_HOME=$PWD/dsh timeout 300s dsh --profile epic-implement
+  --dump-config` — PASS; dump reports patched by dsh-phase-models.'
+- '`for phase in implement qa decompose plan creative audit bugfix reflect; do dsh
+  --profile epic-$phase --dump-config; done` — all eight profiles PASS with shared
+  bundle layer.'
+integration_check:
+- All eight profile package manifests list dsh-phase-models after the base/headless
+  bundles and resolve it from file:../../patches.
+- DSH dump-config confirms the shared bundle layer is applied before each profile-local
+  patch; local PROJECT_LOOP_<PHASE>_MODEL llm bridges remain final.
+grep_control:
+- back: rg -n "phase-models|PROJECT_LOOP_.*_MODEL|dsh.bundle|bundles" dsh/patches
+    dsh/profiles loop/tests/test_dsh_profile_mapping.py
+  front: n/a — backend/tooling-only shard.
+verification_results:
+- cp1 PASS — dsh-phase-models bundle dependency and ordered inclusion present in all
+  eight profiles.
+- cp2 PASS — all eight phase names and PROJECT_LOOP_*_MODEL references remain in shared
+  source and local bridges.
+- cp3 PASS — bounded profile mapping/config suite and all eight DSH dump-config smokes
+  are green.
+- DSH contract PASS — shared source uses the supported dsh.bundle package mechanism;
+  no unsupported include/import/extends keys are used in profile patches.
+- status remains in_progress until finalize-step after @verify PASS.
+checkpoints:
+- id: cp1
+  criterion: Каждый из восьми profile patches реально подключает shared phase-models.yml
+    поддерживаемым DSH способом.
+  status: done
+  done_at: '2026-08-28T01:12:56Z'
+- id: cp2
+  criterion: Shared fragment сохраняет все восемь phase-specific PROJECT_LOOP_*_MODEL
+    rows без расхождения с profile matrix.
+  status: done
+  done_at: '2026-08-28T01:12:56Z'
+- id: cp3
+  criterion: Bounded profile mapping/config smoke подтверждает рабочее подключение
+    после remediation.
+  status: done
+  done_at: '2026-08-28T01:12:56Z'
+resume_from: cp1

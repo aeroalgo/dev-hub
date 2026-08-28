@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "epic-qa + epic-decompose profiles — reviewer + explorer presets"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `dsh/profiles/epic-qa/` и `dsh/profiles/epic-decompose/`:
+  - epic-qa: package.json + cordis.patch.yml с reviewer preset
+  - epic-decompose: package.json + cordis.patch.yml с explorer preset (optional)
+  FR-2, FR-3, FR-9: минимальный набор профилей + shared phase-models patch.
+
+context:
+  consumes:
+    - dsh/scripts/sync-agent-md-to-presets.py   # s01 — пресеты готовы
+    - dsh/presets/reviewer.prompt.md            # для QA
+    - dsh/presets/explorer.prompt.md            # для DECOMPOSE (и AUDIT)
+    - dsh/profiles/epic-implement/              # s02 — паттерн структуры
+    - dsh/patches/phase-models.yml              # shared LLM
+    - loop/WORKFLOW.md                          # PROJECT_LOOP_QA_MODEL, PROJECT_LOOP_DECOMPOSE_MODEL
+  produces:
+    - dsh/profiles/epic-qa/package.json
+    - dsh/profiles/epic-qa/cordis.patch.yml
+    - dsh/profiles/epic-decompose/package.json
+    - dsh/profiles/epic-decompose/cordis.patch.yml
+  plan_refs:
+    - FR-2
+    - FR-3
+    - FR-9
+    - AC+2 (reviewer/explorer bodies)
+  files:
+    - dsh/profiles/epic-qa/package.json
+    - dsh/profiles/epic-qa/cordis.patch.yml
+    - dsh/profiles/epic-decompose/package.json
+    - dsh/profiles/epic-decompose/cordis.patch.yml
+
+as_built:
+  - dsh/profiles/epic-qa/ — не существует
+  - dsh/profiles/epic-decompose/ — не существует
+  - Только epic-implement из s02
+
+delta:
+  - 'dsh/profiles/epic-qa/package.json: bundles.subagent.presets.reviewer = preset-reviewer'
+  - 'dsh/profiles/epic-qa/cordis.patch.yml: preset-reviewer (systemPrompt file: ../../../../presets/reviewer.prompt.md); LLM row PROJECT_LOOP_QA_MODEL'
+  - 'dsh/profiles/epic-decompose/package.json: bundles.subagent.presets.explorer = preset-explorer (optional)'
+  - 'dsh/profiles/epic-decompose/cordis.patch.yml: preset-explorer; LLM row PROJECT_LOOP_DECOMPOSE_MODEL; include phase-models.yml'
+  - 'dsh/patches/phase-models.yml: добавить фрагменты QA и DECOMPOSE (если не было)'
+
+deletes: []
+# Greenfield: нет поверхности для удаления.
+
+out_of_scope:
+  - "Остальные фазы (plan/creative/audit/bugfix/reflect) — s04"
+  - "install-profiles.sh полная реализация — s05"
+  - "prepare dsh_profile mapping — s06"
+  - "Изменение agent md — AC−2"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      dsh/profiles/epic-qa/package.json содержит reviewer preset
+    verify: "test -f dsh/profiles/epic-qa/package.json && python -c 'import json; d=json.load(open(\"dsh/profiles/epic-qa/package.json\")); assert \"reviewer\" in str(d); print(\"OK\")'"
+  - id: cp2
+    criterion: >
+      dsh/profiles/epic-decompose/cordis.patch.yml содержит preset-explorer
+    verify: "test -f dsh/profiles/epic-decompose/cordis.patch.yml && grep -q 'preset-explorer' dsh/profiles/epic-decompose/cordis.patch.yml"
+  - id: cp3
+    criterion: >
+      phase-models.yml include не ломает parse (yaml valid)
+    verify: "python -c 'import yaml; yaml.safe_load(open(\"dsh/patches/phase-models.yml\")); print(\"OK\")'"
+
+verify:
+  - "ls dsh/profiles/epic-qa/ dsh/profiles/epic-decompose/"
+
+tdd:
+  - "epic-qa profile declares reviewer preset"
+  - "epic-decompose profile declares explorer preset (optional)"
+  - "Both profiles include phase-models.yml without syntax error"
+  - "Regression: dsh tests зелёные"

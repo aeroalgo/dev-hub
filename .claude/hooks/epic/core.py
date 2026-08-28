@@ -372,7 +372,10 @@ def resolve_checkpoint_resume(
             if material:
                 return {"ok": False, "decision": "halt", "code": "checkpoint_identity_conflict", "checkpoint": checkpoint}
         elif conflicting_keys <= {"step"}:
-            # index.yaml is cursor SoT — stale prepare checkpoint step is disposable.
+            # A committed same-step checkpoint must not hide a real step mismatch;
+            # only an active/stale prepare checkpoint is disposable.
+            if checkpoint.get("stage") == "committed":
+                return {"ok": False, "decision": "halt", "code": "checkpoint_identity_conflict", "checkpoint": checkpoint}
             checkpoint_path(cwd).unlink(missing_ok=True)
             checkpoint_lock_path(cwd).unlink(missing_ok=True)
             return {

@@ -27,7 +27,9 @@ alwaysApply: false
 **Процесс**:
 1. `OK BACK PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
 1a. Прочитай **Gates**
-1b. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
+1b. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `BACK CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
+1c. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
+1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные `T-xxx` при multi-epic)
 3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → brainstorming / architecture-patterns
 3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** (оба обязательны) → полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0 каждый файл). Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
@@ -36,6 +38,7 @@ alwaysApply: false
 6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `BACK ROADMAP MERGE` → затем `BACK DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 8. Next: L2+ обычно → **BACK DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.

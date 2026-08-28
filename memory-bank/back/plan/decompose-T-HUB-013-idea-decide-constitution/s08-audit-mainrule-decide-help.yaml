@@ -1,0 +1,48 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-013
+title: "Audit remediation — IDEA PIPELINE DECIDE quick help"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-9 из audit-20260828-idea-decide-constitution: сделать DECIDE gate
+  discoverable из корневого mainrule quick help без дублирования workflow semantics.
+context:
+  consumes:
+    - .cursor/rules/mainrule.mdc
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - .cursor/rules/mainrule.mdc
+  plan_refs:
+    - FR-9
+  files:
+    - .cursor/rules/mainrule.mdc
+
+as_built:
+  - .cursor/rules/mainrule.mdc — IDEA PIPELINE routing строка есть, DECIDE quick-help pointer отсутствует
+
+delta:
+  - "Добавить одну quick-help строку: IDEA PIPELINE проходит DECIDE scorecard/verdict до VAN/PLAN; детали остаются в shared workflow"
+
+deletes: []
+out_of_scope:
+  - DECIDE semantics and checklist — completed s01
+  - constitution refs — completed s03
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: mainrule points IDEA PIPELINE quick help to DECIDE gate before VAN/PLAN
+    verify: "rg -n 'IDEA PIPELINE|DECIDE|scorecard|VAN/PLAN' .cursor/rules/mainrule.mdc"
+  - id: cp2
+    criterion: detailed DECIDE semantics remain in shared workflow, not duplicated in mainrule
+    verify: "rg -n 'DECIDE.*workflow-idea-pipeline|workflow-idea-pipeline.*DECIDE' .cursor/rules/mainrule.mdc .cursor/rules/shared/workflow-idea-pipeline.mdc"
+
+tdd: []
+verify: []

@@ -1,0 +1,19 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s01 — card_model.py + stable_id + metadata serialize/parse (TDD) — IMPLEMENT
+status: in_progress
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/s01-card-model-metadata-stable-id.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+  - loop/board_sync/__init__.py
+  - loop/board_sync/card_model.py
+  - loop/tests/test_board_sync_card_model.py
+deletes: []
+tests: []

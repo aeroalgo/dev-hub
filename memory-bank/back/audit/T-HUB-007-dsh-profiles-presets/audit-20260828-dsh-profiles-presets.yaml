@@ -1,0 +1,210 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-007-dsh-profiles-presets
+plan_id: T-HUB-007-dsh-profiles-presets
+date: 2026-08-28
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 1
+  findings: 1
+
+# Intent Inventory: every applicable FR/NFR/AC+ and AC− is linked to a step or explicitly out of scope.
+intent_inventory:
+  - source_ref: FR-1
+    intent: epic-implement profile has package.json with dsh.profile.bundles and cordis.patch.yml
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-2
+    intent: all eight phase profiles exist; minimum implement/qa/decompose is present and remaining phases are stubs or full
+    step_id: s02-s04
+    assessment: satisfied
+  - source_ref: FR-3
+    intent: gate presets verify/reviewer/explorer are registered for profiles that need them
+    step_id: s01-s04
+    assessment: satisfied
+  - source_ref: FR-4
+    intent: installer copies or links profiles into DSH_HOME/profiles
+    step_id: s05
+    assessment: satisfied
+  - source_ref: FR-5
+    intent: prepare emits phase-derived dsh_profile
+    step_id: s06
+    assessment: satisfied
+  - source_ref: FR-6
+    intent: sync script strips frontmatter and writes generated presets
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-7
+    intent: README documents PROJECT_LOOP_* to profile patch target mapping
+    step_id: s05
+    assessment: satisfied
+  - source_ref: FR-8
+    intent: epic-implement dump-config smoke exits successfully or skips cleanly when DSH is unavailable
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-9
+    intent: shared dsh/patches/phase-models.yml fragments are included by profiles
+    step_id: s02-s04
+    assessment: partial
+  - source_ref: NFR-1
+    intent: generated preset bytes track source .claude/agents markdown after sync
+    step_id: s01,s06
+    assessment: satisfied
+  - source_ref: NFR-2
+    intent: repository patches contain no credentials; credentials resolve via DSH_HOME/.credentials.yaml
+    step_id: s02-s04
+    assessment: satisfied
+  - source_ref: NFR-3
+    intent: profiles boot independently of hub product code and use product workspace at invocation
+    step_id: s02,s05
+    assessment: satisfied
+  - source_ref: NFR-4
+    intent: README pins reviewed @deepseek-ai/dsh version guidance
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC+1
+    intent: installer produces DSH_HOME/profiles/epic-implement
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC+2
+    intent: generated verify preset contains AC+ content from verify.md
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC+3
+    intent: epic-implement dump-config lists verify preset
+    step_id: s02
+    assessment: satisfied
+  - source_ref: AC+4
+    intent: IMPLEMENT phase maps to epic-implement
+    step_id: s06
+    assessment: satisfied
+  - source_ref: AC+5
+    intent: README lists all eight phase to profile mappings
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC+6
+    intent: README documents PROJECT_LOOP_IMPLEMENT_MODEL override and patch field
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC-1
+    intent: do not duplicate spawn-hard policy enforcement
+    step_id: s01-s06
+    assessment: out_of_scope_by_plan
+  - source_ref: AC-2
+    intent: do not modify .claude/agents markdown content
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC-3
+    intent: Claude default loop does not require DSH
+    step_id: s06
+    assessment: satisfied
+  - source_ref: AC-4
+    intent: do not commit API keys
+    step_id: s02-s04
+    assessment: satisfied
+  - source_ref: Constitution SP-H01
+    intent: hub tooling and product artifacts remain separated; profiles are versioned in hub and invoked with product workspace
+    step_id: s02,s05,s06
+    assessment: satisfied
+  - source_ref: Constitution SP-H04
+    intent: malformed configuration and model substitution remain fail-closed
+    step_id: s02-s06
+    assessment: satisfied
+  - source_ref: Constitution SP-H07
+    intent: verify/reviewer/explorer remain gate subagent presets
+    step_id: s01-s04
+    assessment: satisfied
+
+# Legacy gap matrix: every decompose step is assessed against implementation artifact and bounded evidence.
+gap_matrix:
+  - step_id: s01
+    plan_title: sync-agent-md-to-presets.py + preset files (TDD) — frontmatter strip
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s01-sync-agent-md-to-presets.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Implement artifact cp1-cp4 and suite evidence; sync script lines 16-55 strips frontmatter and writes three presets."
+  - step_id: s02
+    plan_title: epic-implement profile + dump-config smoke — package.json + cordis.patch.yml
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s02-epic-implement-profile.yaml
+    status: implemented_with_deviation
+    mark: "⚠️"
+    evidence: "Profile package and patch register verify/explorer, model bridge and credentials path; shared phase-models.yml is documented only by comment, with no executable include observed in bounded profile files."
+  - step_id: s03
+    plan_title: epic-qa + epic-decompose profiles — reviewer + explorer presets
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s03-epic-qa-decompose-profiles.yaml
+    status: implemented_with_deviation
+    mark: "⚠️"
+    evidence: "QA/decompose profiles and dump-config evidence are present; their cordis.patch.yml files do not contain an executable shared phase-models include."
+  - step_id: s04
+    plan_title: remaining phase profiles (stub minimum) — plan/creative/audit/bugfix/reflect
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s04-remaining-phase-profiles.yaml
+    status: implemented_with_deviation
+    mark: "⚠️"
+    evidence: "Five profiles exist and model bridges are present; shared phase-models.yml is referenced only in comments, not consumed by an executable include."
+  - step_id: s05
+    plan_title: install-profiles.sh + README — copy/link + 8-phase table
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s05-install-profiles-readme.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Installer implementation lines 4-67 supports copy/link/dry-run; README lines 35-67 has all eight rows and env bridge; implement evidence records AC+1/5/6."
+  - step_id: s06
+    plan_title: prepare dsh_profile mapping + tests — context_loop.py + test_dsh_profile_mapping.py
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s06-prepare-dsh-profile-mapping.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "context_loop.py:1364 emits epic-<resolved phase>, defaulting to implement; bounded mapping and hash/Claude guard tests are recorded PASS."
+
+intent_checked:
+  fr_total: 9
+  fr_satisfied: 8
+  sc_checked: 0
+  constitution_checked: true
+
+findings:
+  - id: F1
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-9
+    evidence: "dsh/patches/phase-models.yml contains the eight phase env/default rows, but bounded inspection of dsh/profiles/epic-*/cordis.patch.yml found only comments such as 'Shared phase mapping' / 'Shared phase mapping: ../../patches/phase-models.yml'; no executable include/import/extends mechanism is present."
+    remaining_work: "Implement and test a supported DSH include/merge path so all eight profile patches actually consume phase-models.yml; preserve each phase-specific model bridge and dump-config behavior. Remediation shard: decompose-T-HUB-007-dsh-profiles-presets/s07-audit-phase-models-include.yaml."
+
+converged: false
+
+implemented:
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s01-sync-agent-md-to-presets.yaml
+  - step_id: s02
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s02-epic-implement-profile.yaml
+  - step_id: s03
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s03-epic-qa-decompose-profiles.yaml
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s04-remaining-phase-profiles.yaml
+  - step_id: s05
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s05-install-profiles-readme.yaml
+  - step_id: s06
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s06-prepare-dsh-profile-mapping.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s02-s04
+    implement_file: back/implement/implement-T-HUB-007-dsh-profiles-presets/s02-epic-implement-profile.yaml; s03-epic-qa-decompose-profiles.yaml; s04-remaining-phase-profiles.yaml
+    plan_intent: "FR-9 requires dsh/patches/phase-models.yml shared LLM fragments to be included by profiles."
+    actual: "The shared file exists and all rows are duplicated as per-profile llm mappings, but profile patches only comment on the shared file and do not execute an include/import/extends."
+    impact: high
+
+legacy_surfaces_remaining: []
+fallback_remaining:
+  - "dsh/profiles/epic-*/cordis.patch.yml: shared phase-models.yml is not consumed; profile-local duplicate llm rows act as fallback instead of the planned shared fragment."
+purge_step_present: true
+
+blocked_reason: ""
+notes:
+  - "Assess выполнен по bounded plan/decompose/index, implement headers и evidence; полный repo audit и suite не выполнялись."
+  - "Graphify N/A — hub repository (no root graph.json); inventory fallback used as prescribed."
+  - "All six existing step_ids are implemented/completed; remediation is append-only in s07 and requires BACK IMPLEMENT → BACK AUDIT."
+  - "Next phase: BACK IMPLEMENT for s07; do not proceed to QA while converged=false and fallback_remaining is non-empty."

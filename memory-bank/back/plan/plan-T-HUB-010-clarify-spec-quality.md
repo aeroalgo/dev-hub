@@ -195,17 +195,18 @@ PLAN templates enforce:
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## DECOMPOSE tracker
 
-1. **s01** — shared clarify-core + BACK workflow/lean + template clarify.md  
-2. **s02** — FRONT + INTEG clarify workflows/lean + slash ×3  
-3. **s03** — plan.md + integration-plan.md WHAT/HOW/FR/SC/Independent Test  
-4. **s04** — mainrule indexes + plan workflows gate + finish-doc-router + memory-bank-paths  
-5. **s05** — role-command + CLAUDE touch + refs/speckit-adapt-010.md + smoke rg AC+  
+Нарезка завершена. Единственный трекер выполнения и machine status SoT:
+
+- [index.md](decompose-T-HUB-010-clarify-spec-quality/index.md)
+- [index.yaml](decompose-T-HUB-010-clarify-spec-quality/index.yaml)
+
+Последовательность: s01 → s02 → s03 → s04 → s05 → s06 (QA) → s07 (FINISH).
 
 ---
 
 ## Следующий режим
 
-→ `BACK ROADMAP MERGE` (roadmap) → `BACK DECOMPOSE` T-HUB-010  
+→ `BACK IMPLEMENT` T-HUB-010, начиная с s01 по `index.yaml`.
 CREATIVE: нет  

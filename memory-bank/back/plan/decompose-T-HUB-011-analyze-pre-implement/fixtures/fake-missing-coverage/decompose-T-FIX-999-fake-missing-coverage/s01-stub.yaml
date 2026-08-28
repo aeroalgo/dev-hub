@@ -1,0 +1,10 @@
+schema: epic-decompose-step/v1
+role: back
+step_id: s01
+plan_id: T-FIX-999
+title: stub without FR-1 coverage
+next_phase: BACK IMPLEMENT
+goal: "Fixture stub intentionally omits FR-1 coverage."
+plan_refs: []
+requirements: []
+status: pending

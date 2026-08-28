@@ -1,0 +1,37 @@
+---
+description: "Режим INTEG CLARIFY — снятие wire и contract ambiguity до PLAN (wrapper над shared-core)"
+alwaysApply: false
+---
+### Команда: INTEG CLARIFY
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc
+**Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**Шаблон**: @.cursor/templates/clarify.md
+
+## Фокус INTEG
+
+CLARIFY фокусируется на wire/contract gaps между BACK и FRONT: API shape, auth flow, mock vs live, route/parameter ambiguity, а также method/path, request, response и DB expectations. Вопросы снимают неясность контракта, но не реализуют BACK или FRONT.
+
+## Артефакт
+
+`memory-bank/integration/clarify/clarify-YYYYMMDD-<slug>.md`
+
+## Процесс
+
+1. `INTEG CLARIFY <feature-slug>` → загрузить `activeContext.md`, существующий clarify-артефакт и `gap-*.md` только при явном указании.
+2. Выполнить shared core: taxonomy scan, ≤5 sequential questions, Recommended/Suggested, Q→A log на диске.
+3. Зафиксировать CRITICAL как resolved или в defer-list с owner/next.
+4. Написать Completion Report в артефакт.
+
+## Done When
+
+- [ ] Артефакт создан или обновлён на диске.
+- [ ] Completion Report написан.
+- [ ] Нет открытых CRITICAL без resolve/defer-list.
+- [ ] Wire/contract assumptions явно записаны или отложены.
+
+## Handoff
+
+После снятия ambiguity: `INTEG PLAN <slug>`. Если остались вопросы — `continue INTEG CLARIFY`.
+
+FINISH: `code_changed: no`; обновить `activeContext.md` согласно @.cursor/rules/shared/finish-block.mdc и finish-doc-router.

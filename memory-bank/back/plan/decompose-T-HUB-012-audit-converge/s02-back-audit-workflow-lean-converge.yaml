@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-012
+title: "BACK AUDIT Intent→Converged loop — FR/AC traceable remediation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить BACK AUDIT семантикой Spec Kit converge (без нового MODE):
+  - `.cursor/rules/back_developer/workflow-audit.mdc` — шаги:
+    Intent Inventory (FR/SC/US + constitution MUST) → Assess (code/evidence bound
+    file list) → Severity → Append `sNN-audit-*` для actionable missing/partial/
+    contradicts (+ leftover) с обязательным `source_ref` → Converged/QA.
+  - `.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc` — gates на
+    gap_type/severity/source_ref/converged; сохранить leftover gates; FORBIDDEN
+    suite/git-diff/full-repo/rewrite completed implement.
+  Outcome: AUDIT отвечает «закрыты ли FR/AC», append-only remediation с
+  traceable source_ref; `converged: true` + leftover пуст → QA.
+  Связь: FR-3/4/5/6/7, NFR-1..5, AC+ #2/#3/#5/#6, AC− #1/#2/#4; Replacement A (BACK docs).
+
+context:
+  consumes:
+    - "s01-epic-audit-v2-template-readme-mapping.yaml — schema contract"
+    - "spec-kit/templates/commands/converge.md — Intent Inventory / Assess / Append / Converged"
+    - ".cursor/rules/back_developer/workflow-audit.mdc — текущий step_id-only процесс"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/audit.mdc — текущие gates"
+    - ".cursor/rules/back_developer/workflow-analyze.mdc — граница ANALYZE≠AUDIT (цитировать)"
+    - "plan-T-HUB-012 §Архитектура / Зафиксированные решения"
+  produces:
+    - ".cursor/rules/back_developer/workflow-audit.mdc (edit)"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/audit.mdc (edit)"
+  plan_refs:
+    - "FR-3 (workflow + lean BACK)"
+    - "FR-4 (source_ref на audit shards)"
+    - "FR-5 (CRITICAL first)"
+    - "FR-6 (converged → QA else IMPLEMENT loop)"
+    - "FR-7 (ANALYZE vs AUDIT boundary)"
+    - "NFR-1..5"
+    - "AC+ #2, #3, #5, #6"
+    - "AC− #1, #2, #4"
+    - "Replacement A — docs claiming AUDIT=only step_id"
+    - "plan §До DECOMPOSE s02"
+  files:
+    - ".cursor/rules/back_developer/workflow-audit.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/audit.mdc"
+
+as_built:
+  - "workflow-audit.mdc — gap-матрица ✅❌⚠️ по step_id; append sNN-audit; leftover; next QA по пустому not_implemented; нет Intent Inventory / gap_type / severity / source_ref / converged"
+  - "_lean/audit.mdc — gates presence + leftover; schema epic-audit/v1; нет findings/converged gates"
+  - "FORBIDDEN уже: полный текст shards; тесты; code-review"
+
+delta:
+  - "EDIT workflow-audit.mdc:
+      - Процесс: (1) Intent Inventory из plan FR/SC/P1 stories + constitution MUST
+        (bound путями decompose/implement) (2) Step matrix legacy ∪ Assess evidence
+        (3) findings[gap_type,severity,source_ref,evidence,remaining_work]
+        (4) Append sNN-audit-* только actionable missing/partial/contradicts (+leftover);
+            каждый shard goal/plan_refs содержит source_ref (FR-4)
+        (5) CRITICAL constitution/P1 → начало findings/not_implemented (FR-5)
+        (6) dual-write legacy arrays из findings (FR-2)
+        (7) converged=true и leftover пуст → BACK QA; иначе IMPLEMENT → AUDIT loop (FR-6)
+        (8) unrequested → findings only, без auto-delete shard (AC+ #5 / AC− #1)
+      - Operating Constraints: APPEND-ONLY completed implement; NO git-diff; NO suite;
+        NO MODE CONVERGE; NO specify-cli (NFR-1/2/5, AC− #2/#4)
+      - Boundary table ANALYZE (011 read-only pre-impl) vs AUDIT (012 post-impl intent↔code) (FR-7)
+      - Code inspection lean: implement headers + targeted rg/graphify по file list shards
+      - Удалить/переписать claims «AUDIT = только presence step_id»"
+  - "EDIT _lean/audit.mdc:
+      - Канон template epic-audit/v2
+      - Gates: Intent Inventory loaded; findings required; source_ref на каждом append shard;
+        converged flag; leftover gates сохранены (NFR-4)
+      - Abort: git-diff attempt; suite run; rewrite completed implement; MODE CONVERGE;
+        auto-delete unrequested; artifact without findings/converged when writing v2"
+
+deletes:
+  - "Exclusive wording in BACK workflow-audit.mdc / _lean/audit.mdc that AUDIT is only step_id presence (без intent findings / gap_type / severity / source_ref / converged)"
+  # Kind A docs replace — verify no exclusive claim remains in BACK audit paths
+
+out_of_scope:
+  - "FRONT/INTEG workflow+lean — s03"
+  - "finish-doc-router / refs / fixture / final purge — s04"
+  - "epic-audit.yaml body — s01"
+  - "ANALYZE workflows — Do Not Touch (NFR-5)"
+  - "specify-cli / CONVERGE command — FORBIDDEN"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "BACK workflow описывает Intent Inventory → Assess → Severity → Append → Converged/QA"
+    verify: "rg -n 'Intent Inventory|gap_type|severity|source_ref|converged|unrequested' .cursor/rules/back_developer/workflow-audit.mdc | head -25"
+  - id: cp2
+    criterion: "_lean/audit.mdc ссылается на epic-audit/v2 + findings/converged gates"
+    verify: "rg -n 'epic-audit/v2|findings|converged|source_ref|Intent' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc | head -20"
+  - id: cp3
+    criterion: "ANALYZE≠AUDIT boundary + FORBIDDEN MODE CONVERGE/git-diff/suite documented"
+    verify: "rg -n 'ANALYZE|CONVERGE|git-diff|pytest|vitest|unrequested' .cursor/rules/back_developer/workflow-audit.mdc .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc | head -25"
+  - id: cp4
+    criterion: "deletes verify: exclusive «только step_id» / «only presence» claims отсутствуют в BACK audit paths"
+    verify: "rg -n 'только presence|only step_id|AUDIT = только' .cursor/rules/back_developer/workflow-audit.mdc .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc || true; rg -n 'Intent Inventory|gap_type' .cursor/rules/back_developer/workflow-audit.mdc | head -5"
+
+verify:
+  - "rg -n 'source_ref' .cursor/rules/back_developer/workflow-audit.mdc — FR-4"
+  - "rg -n 'converged' .cursor/rules/back_developer/workflow-audit.mdc — FR-6 / AC+ #6"
+  - "rg -n 'MODE CONVERGE' .cursor/rules/back_developer/workflow-audit.mdc — must be FORBIDDEN mention, not new mode"
+  - "rg -n 'legacy_surfaces_remaining|purge_step_present' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc — NFR-4"
+
+tdd:
+  - "Нет pytest. Smoke: rg process steps + boundary; dry-run AC+ #4 в s04"

@@ -12,7 +12,7 @@
 **soft:** T-HUB-011 (можно цитировать analyze metrics)  
 **Skills:** writing-plans · python-testing-patterns (если schema tests)  
 
-→ [decompose-T-HUB-012-audit-converge/index.md](decompose-T-HUB-012-audit-converge/index.md) — **после DECOMPOSE**
+→ [decompose-T-HUB-012-audit-converge/index.md](decompose-T-HUB-012-audit-converge/index.md) — **канон трекера** · [index.yaml](decompose-T-HUB-012-audit-converge/index.yaml)
 
 ---
 
@@ -169,16 +169,18 @@ Schema: additive — старые audit yaml без `findings` остаются 
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## Нарезка (факт после DECOMPOSE)
 
-1. **s01** — epic-audit v2 template + README + mapping rules  
-2. **s02** — BACK audit workflow + lean  
-3. **s03** — FRONT + INTEG parity  
-4. **s04** — finish-doc-router + decompose hint + refs + AC smoke  
+1. **s01** — epic-audit/v2 template + README mapping  
+2. **s02** — BACK audit workflow + lean (Intent→Converged)  
+3. **s03** — FRONT + INTEG audit parity  
+4. **s04** — finish-doc-router + epic-step source_ref hint + refs + dry-run fixture + doc-claim purge  
+
+Трекер: [decompose-T-HUB-012-audit-converge/](decompose-T-HUB-012-audit-converge/index.md) — не дублировать чеклист здесь.
 
 ---
 
 ## Следующий режим
 
-→ DECOMPOSE T-HUB-012 после T-HUB-010  
+→ `BACK ANALYZE T-HUB-012` (soft tip) или `BACK IMPLEMENT s01`  
 CREATIVE: нет  

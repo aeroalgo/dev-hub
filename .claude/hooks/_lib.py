@@ -53,9 +53,9 @@ CONTRACTS = {
         "Ответ без строки VERDICT = протокольный FAIL."
     ),
     "explorer": (
-        "CONTRACT explorer: graphify first, затем узкий Grep/rg с path=. "
+        "CONTRACT explorer: graphify first, затем узкий Grep/rg только внутри ALLOW из prompt. "
         "Budget: ≤12 Read · ≤6 Bash · re-read >1× FORBIDDEN. "
-        "FORBIDDEN: repo-wide rg/find/ls; plan-*.md / creative вне ALLOW. "
+        "FORBIDDEN: repo-wide rg/find/ls; Read/search вне ALLOW без явной ссылки в Цель/shard/plan. "
         "Не edit. Не Plan Mode — только file:line отчёт на русском. "
         "Без isolation=worktree."
     ),
@@ -305,8 +305,9 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
     if any(agent.id == "explorer" for agent in search_agents):
         search_lines.extend(
             [
-                "| Поиск «где X» | @explorer ОБЯЗАТЕЛЬНО (если нет delta_paths_exist: yes) |",
-                "| delta_paths_exist: yes в prompt | @explorer SKIP — Read только listed paths + shard |",
+                "| Поиск «где X» | @explorer ОБЯЗАТЕЛЬНО (если нет delta_paths_exist/scoped: yes) |",
+                "| delta_paths_exist: yes | @explorer SKIP — Read listed paths + shard |",
+                "| delta_paths_scoped: yes | @explorer SKIP — greenfield; shard + consumes + targets |",
                 "| После @explorer | только file:line из отчёта; FORBIDDEN rediscovery frontend|apps |",
             ]
         )
@@ -411,6 +412,7 @@ class RuntimeConfig:
     stream_idle_timeout_sec: int | None
     permission_mode: str
     sources: dict[str, str]
+    epic_runtime: str = "claude"
 
 
 class RuntimeConfigError(ValueError):
@@ -527,11 +529,14 @@ _RUNTIME_CONFIG_DEFAULTS: dict[str, int | None] = {
     "EPIC_SESSION_KILL_GRACE_SEC": 30,
     "EPIC_TRANSIENT_RETRY_MAX": 3,
     "EPIC_DEGRADED_MAX": 3,
-    "EPIC_STATUS_HEARTBEAT_SEC": None,
-    "EPIC_STREAM_IDLE_TIMEOUT_SEC": None,
+    "EPIC_STATUS_HEARTBEAT_SEC": 30,
+    "EPIC_STREAM_IDLE_TIMEOUT_SEC": 300,
 }
 _PERMISSION_MODE_DEFAULT = "dontAsk"
 _PERMISSION_MODES = frozenset({"dontAsk", "acceptEdits", "bypassPermissions", "default", "plan"})
+_RUNTIME_DEFAULT = "claude"
+_RUNTIME_MODES = frozenset({"claude", "dsh"})
+_RUNTIME_CONFIG_ENUMS: dict[str, frozenset[str]] = {"EPIC_RUNTIME": _RUNTIME_MODES}
 
 def _runtime_config_source(key: str, project: dict[str, str]) -> tuple[str | None, str]:
     if key in os.environ:
@@ -557,11 +562,15 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
     diagnostics: list[dict[str, str]] = []
     for key, default in _RUNTIME_CONFIG_DEFAULTS.items():
         raw, source = _runtime_config_source(key, project)
-        if raw is None or (
+        if raw is None:
+            values[key] = default
+            sources[key] = "default"
+            continue
+        if (
             key in {"EPIC_STATUS_HEARTBEAT_SEC", "EPIC_STREAM_IDLE_TIMEOUT_SEC"}
             and raw.strip() == ""
         ):
-            values[key] = default
+            values[key] = None
             sources[key] = source
             continue
         try:
@@ -588,6 +597,20 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
     else:
         values["EPIC_PERMISSION_MODE"] = permission_mode
         sources["EPIC_PERMISSION_MODE"] = source
+    raw, source = _runtime_config_source("EPIC_RUNTIME", project)
+    epic_runtime = raw if raw else _RUNTIME_DEFAULT
+    if raw is None:
+        source = "default"
+    if epic_runtime not in _RUNTIME_MODES:
+        diagnostics.append(
+            {
+                "code": "invalid_runtime_config",
+                "key": "EPIC_RUNTIME",
+                "reason": "unsupported_runtime",
+            }
+        )
+    else:
+        sources["EPIC_RUNTIME"] = source
     if diagnostics:
         raise RuntimeConfigError(diagnostics)
     return RuntimeConfig(
@@ -599,6 +622,7 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
         stream_idle_timeout_sec=values["EPIC_STREAM_IDLE_TIMEOUT_SEC"],
         permission_mode=values["EPIC_PERMISSION_MODE"],
         sources=sources,
+        epic_runtime=epic_runtime,
     )
 
 
@@ -612,6 +636,7 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
             "EPIC_STATUS_HEARTBEAT_SEC": config.status_heartbeat_sec,
             "EPIC_STREAM_IDLE_TIMEOUT_SEC": config.stream_idle_timeout_sec,
             "EPIC_PERMISSION_MODE": config.permission_mode,
+            "EPIC_RUNTIME": config.epic_runtime,
         },
         "sources": dict(config.sources),
     }
@@ -628,13 +653,22 @@ def hub_root() -> Path:
 
 
 def product_cwd(fallback: str | Path | None = None) -> Path:
-    """Product repo (memory-bank/). Prefers PROJECT_ROOT when Claude cwd is the hub."""
+    """Resolve hook payload cwd, redirecting only the hub to PROJECT_ROOT."""
+    hub = hub_root().resolve()
     proj = (os.environ.get("PROJECT_ROOT") or "").strip()
-    if proj:
-        return Path(proj).expanduser().resolve()
+    product = Path(proj).expanduser().resolve() if proj else None
     if fallback is not None and str(fallback).strip():
-        return Path(fallback).expanduser().resolve()
+        fallback_path = Path(fallback).expanduser().resolve()
+        if product is not None and product != hub and fallback_path == hub:
+            return product
+        return fallback_path
+    if product is not None and product != hub and Path.cwd().resolve() == hub:
+        return product
     return Path.cwd().resolve()
+
+
+# Hooks receive the target repository in their payload; use it as the source of truth.
+_original_product_cwd = product_cwd
 
 
 def resolve_cli_cwd(cli_cwd: str | Path | None = None) -> Path:
@@ -648,7 +682,7 @@ def resolve_cli_cwd(cli_cwd: str | Path | None = None) -> Path:
     prod = Path(proj).expanduser().resolve() if proj else None
 
     if cli_cwd is None or not str(cli_cwd).strip():
-        if prod is not None:
+        if prod is not None and Path.cwd().resolve() == hub:
             return prod
         return Path.cwd().resolve()
 
@@ -659,9 +693,11 @@ def resolve_cli_cwd(cli_cwd: str | Path | None = None) -> Path:
 
 
 def claude_dir(project_dir: str | Path | None = None) -> Path:
-    """Tooling .claude always from DEV_HUB (not product repo)."""
-    _ = project_dir  # retained for call-site compatibility
+    """Resolve explicit project config before the session-level tooling root."""
+    if project_dir is not None:
+        return Path(project_dir).expanduser().resolve() / ".claude"
     env_claude = os.environ.get("CLAUDE_PROJECT_DIR")
+
     if env_claude:
         p = Path(env_claude).expanduser().resolve()
         if (p / ".claude").is_dir():
@@ -813,8 +849,18 @@ def emit(obj: dict[str, Any]) -> None:
 def state_path(session_id: str, cwd: str) -> Path:
     root = product_cwd(cwd)
     hub = (os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT") or "").strip()
-    if hub:
-        d = Path(hub).expanduser().resolve() / "runtime" / root.name / "spawn-gate"
+    hub_path = Path(hub).expanduser().resolve() if hub else None
+    project = (os.environ.get("PROJECT_ROOT") or "").strip()
+    project_path = Path(project).expanduser().resolve() if project else None
+    use_hub_runtime = bool(
+        hub_path
+        and not (
+            project_path == hub_path
+            and root != hub_path
+        )
+    )
+    if use_hub_runtime:
+        d = hub_path / "runtime" / root.name / "spawn-gate"
     else:
         d = root / ".claude" / "runtime" / "spawn-gate"
     d.mkdir(parents=True, exist_ok=True)

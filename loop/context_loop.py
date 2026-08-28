@@ -284,11 +284,30 @@ _WORK_SHARD_RE = re.compile(
     r"memory-bank/.+/(?:plan/decompose-|implement/implement-)[^/]+/"
     r"(?:e|s)\d{2}-[^/\s`]+\.ya?ml$"
 )
+_SCOPED_PATH_PREFIXES = (
+    "frontend/",
+    "apps/",
+    "tests/",
+    "dsh/",
+    "loop/",
+    ".claude/",
+    "scripts/",
+    "bin/",
+)
 _CODE_PATH_RE = re.compile(
-    r"(?:^|[\s\"'`])((?:frontend|apps|tests)/[A-Za-z0-9_./-]+\.(?:ts|tsx|js|jsx|py))"
+    r"(?:^|[\s\"'`])"
+    r"((?:frontend|apps|tests|dsh|loop|\.claude)/[A-Za-z0-9_./-]+\."
+    r"(?:ts|tsx|js|jsx|py|json|ya?ml|md|sh))"
 )
 _BARE_FILE_RE = re.compile(r"`([A-Za-z0-9_-]+\.(?:ts|tsx|js|jsx|py))`")
 _FILES_BLOCK_RE = re.compile(r"(?ms)^files:\s*\n((?:[ \t]*-[ \t]*.+\n)*)")
+_CONTEXT_LIST_RE = re.compile(
+    r"(?ms)^[ \t]*(?:consumes|produces):\s*\n((?:[ \t]*-[ \t]*.+\n)*)"
+)
+_DELTA_LINE_PATH_RE = re.compile(
+    r"^\s*-\s*['\"]?((?:frontend|apps|tests|dsh|loop|\.claude|memory-bank)/"
+    r"[^\s:'\"`]+)"
+)
 
 
 def _work_shard_path(cwd: Path, load_now: list[str]) -> Path | None:
@@ -317,15 +336,34 @@ def _resolve_bare_code_file(cwd: Path, name: str) -> str | None:
     return None
 
 
+def _normalize_shard_path_item(item: str) -> str:
+    item = item.strip().strip("'\"`").rstrip(",;")
+    if not item:
+        return ""
+    if "#" in item:
+        item = item.split("#", 1)[0].strip()
+    if ":" in item and not item.startswith("http"):
+        left = item.split(":", 1)[0].strip()
+        if "/" in left and not left.endswith(":"):
+            item = left
+    return item
+
+
+def _is_scoped_repo_path(rel: str) -> bool:
+    return rel.startswith(_SCOPED_PATH_PREFIXES) and ".." not in rel
+
+
 def extract_shard_code_paths(cwd: str | Path, shard_text: str) -> list[str]:
-    """Code paths declared/mentioned in work shard (files: + path-like + unique bare)."""
+    """Explicit repo paths from work shard (files/consumes/produces/delta + path-like)."""
     root = Path(cwd)
     seen: set[str] = set()
     out: list[str] = []
 
     def add(rel: str) -> None:
-        rel = rel.strip().strip("`").rstrip(",;")
+        rel = _normalize_shard_path_item(rel)
         if not rel or rel in seen:
+            return
+        if not _is_scoped_repo_path(rel):
             return
         seen.add(rel)
         out.append(rel)
@@ -335,9 +373,20 @@ def extract_shard_code_paths(cwd: str | Path, shard_text: str) -> list[str]:
         for line in m.group(1).splitlines():
             item = line.strip()
             if item.startswith("-"):
-                item = item[1:].strip().strip("'\"")
-            if item.startswith(("frontend/", "apps/", "tests/")):
-                add(item)
+                item = item[1:].strip()
+            add(item)
+
+    for ctx in _CONTEXT_LIST_RE.finditer(shard_text or ""):
+        for line in ctx.group(1).splitlines():
+            item = line.strip()
+            if item.startswith("-"):
+                item = item[1:].strip()
+            add(item)
+
+    for line in (shard_text or "").splitlines():
+        dm = _DELTA_LINE_PATH_RE.match(line)
+        if dm:
+            add(dm.group(1))
 
     for m in _CODE_PATH_RE.finditer(shard_text or ""):
         add(m.group(1))
@@ -355,44 +404,90 @@ def extract_shard_code_paths(cwd: str | Path, shard_text: str) -> list[str]:
 
 def detect_delta_paths(
     cwd: str | Path, load_now: list[str]
-) -> tuple[bool, list[str]]:
-    """Return (all_exist, paths). True only if ≥2 shard code paths and all on disk."""
+) -> tuple[str, list[str]]:
+    """Return (scope, paths). scope: exist | scoped | open."""
     root = Path(cwd)
     shard = _work_shard_path(root, load_now)
     if shard is None:
-        return False, []
+        return "open", []
     try:
         text = shard.read_text(encoding="utf-8")
     except OSError:
-        return False, []
+        return "open", []
     paths = extract_shard_code_paths(root, text)
     if len(paths) < 2:
-        return False, paths
-    existing = [p for p in paths if (root / p).is_file()]
-    if len(existing) == len(paths) and existing:
-        return True, existing
-    return False, paths
+        return "open", paths
+    if all((root / p).is_file() for p in paths):
+        return "exist", paths
+    return "scoped", paths
+
+
+def _scope_parent_dirs(paths: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in paths:
+        parent = Path(raw).parent.as_posix()
+        if parent in ("", "."):
+            continue
+        if parent not in seen:
+            seen.add(parent)
+            out.append(parent)
+    return out
+
+
+def _search_scope_block(delta_paths: list[str]) -> str:
+    if not delta_paths:
+        return ""
+    path_lines = "\n".join(f"- `{p}`" for p in delta_paths)
+    dirs = _scope_parent_dirs(delta_paths)
+    dir_lines = "\n".join(f"- `{d}/`" for d in dirs) if dirs else "- _(нет — только файлы)_"
+    return f"""
+## search_scope (HARD)
+ALLOW (default): work shard + paths ниже + их родительские каталоги.
+paths:
+{path_lines}
+dirs:
+{dir_lines}
+Вне ALLOW — **только** если путь явно в shard (`context.consumes` / `files:` / `produces:` / checkpoint verify) или `plan §N` из Consumes. Иначе FORBIDDEN «на всякий случай».
+Runtime verify: max 3 retry одной команды из shard → stderr / fix / `BLOCKED:`.
+"""
 
 
 def _explorer_block(
-    *, delta_ok: bool, delta_paths: list[str], explorer_on: bool
+    *, delta_scope: str, delta_paths: list[str], explorer_on: bool
 ) -> str:
     if not explorer_on:
         return """## explorer
 managed: off
-Перед широким codebase search — graphify → узкий rg/Grep с path= (parent; @explorer выключен).
+Перед широким codebase search — graphify → узкий rg/Grep с path= внутри ALLOW (parent; @explorer выключен).
 """
-    if delta_ok:
+    if delta_scope == "exist":
         path_lines = "\n".join(f"- `{p}`" for p in delta_paths)
-        return f"""## explorer
+        return (
+            f"""## explorer
 delta_paths_exist: yes
 paths:
 {path_lines}
-SKIP `@explorer`. Read только shard + эти paths.
+SKIP `@explorer`. Работай только в ALLOW (shard + paths + parent dirs).
 """
+            + _search_scope_block(delta_paths)
+        )
+    if delta_scope == "scoped":
+        path_lines = "\n".join(f"- `{p}`" for p in delta_paths)
+        return (
+            f"""## explorer
+delta_paths_scoped: yes
+paths:
+{path_lines}
+SKIP `@explorer`. Greenfield OK — targets из shard, файлы могут ещё не существовать.
+Read shard + `context.consumes` + listed targets; пиши `files:` / `produces:`.
+Работай только в ALLOW; другие каталоги — только по явной ссылке в shard/plan.
+"""
+            + _search_scope_block(delta_paths)
+        )
     return """## explorer
 delta_paths_exist: no
-Перед широким codebase search — 1× `@explorer` (packed).
+Перед широким codebase search — 1× `@explorer` (packed ALLOW ≤10 paths).
 """
 
 
@@ -500,6 +595,7 @@ def build_prompt(
     shape_errors: list[str] | None = None,
     load_now: list[str] | None = None,
     delta_ok: bool | None = None,
+    delta_scope: str | None = None,
     delta_paths: list[str] | None = None,
     resume_lines: list[str] | None = None,
     projection: dict[str, Any] | None = None,
@@ -510,8 +606,10 @@ def build_prompt(
     shape_errors = list(shape_errors or [])
     paths = mb_paths_for_prompt(cwd_p, load_now)
 
-    if delta_ok is None:
-        delta_ok, delta_paths = detect_delta_paths(cwd_p, load_now)
+    if delta_ok is None and delta_scope is None:
+        delta_scope, delta_paths = detect_delta_paths(cwd_p, load_now)
+    elif delta_scope is None:
+        delta_scope = "exist" if delta_ok else "open"
     delta_paths = list(delta_paths or [])
 
     ac_text = read_active_context(cwd_p)
@@ -603,7 +701,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         finish_block = _creative_finish_block()
     elif phase_kind == "implement":
         explorer_block = _explorer_block(
-            delta_ok=bool(delta_ok),
+            delta_scope=delta_scope or "open",
             delta_paths=delta_paths,
             explorer_on=explorer_on,
         )
@@ -623,7 +721,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     else:
         explorer_block = _explorer_block(
-            delta_ok=bool(delta_ok),
+            delta_scope=delta_scope or "open",
             delta_paths=delta_paths,
             explorer_on=explorer_on,
         )
@@ -891,7 +989,12 @@ def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
     return out
 
 
-def prepare_session(cwd: str | Path, *, model: str | None = None) -> dict[str, Any]:
+def prepare_session(
+    cwd: str | Path,
+    *,
+    model: str | None = None,
+    runtime: str | None = None,
+) -> dict[str, Any]:
     cwd_p = Path(cwd)
     ac = cwd_p / "memory-bank" / "activeContext.md"
     if not ac.is_file():
@@ -1097,7 +1200,8 @@ def prepare_session(cwd: str | Path, *, model: str | None = None) -> dict[str, A
         if (cwd_p / p).is_file() or (cwd_p / p).is_dir():
             existing.append(p)
 
-    delta_ok, delta_paths = detect_delta_paths(cwd_p, existing)
+    delta_scope, delta_paths = detect_delta_paths(cwd_p, existing)
+    delta_ok = delta_scope == "exist"
     st = load_epic_state(cwd_p)
 
     # Cursor already synced from index.yaml earlier in prepare (SoT).
@@ -1178,7 +1282,7 @@ def prepare_session(cwd: str | Path, *, model: str | None = None) -> dict[str, A
         cwd_p,
         shape_errors=shape,
         load_now=existing,
-        delta_ok=delta_ok,
+        delta_scope=delta_scope,
         delta_paths=delta_paths,
         resume_lines=resume_lines,
         projection=projection.get("projection") or {},
@@ -1219,10 +1323,14 @@ def prepare_session(cwd: str | Path, *, model: str | None = None) -> dict[str, A
         st["degraded_count"] = 0
         st["degraded_fingerprint"] = None
     st["context_degraded"] = degraded
-    st["delta_paths_exist"] = delta_ok
+    st["delta_paths_exist"] = delta_scope == "exist"
+    st["delta_paths_scoped"] = delta_scope == "scoped"
+    st["delta_scope"] = delta_scope
     st["delta_paths"] = delta_paths
     phase_raw = st.get("phase") or projection.get("phase")
     armed_step_now = st.get("armed_step")
+    runtime_config = resolve_runtime_config(cwd_p)
+    effective_runtime = (runtime or "").strip() or runtime_config.epic_runtime
     resolved = resolve_loop_phase_model(
         phase=str(phase_raw) if phase_raw else None,
         armed_step=str(armed_step_now) if armed_step_now else None,
@@ -1278,11 +1386,16 @@ def prepare_session(cwd: str | Path, *, model: str | None = None) -> dict[str, A
         "model_source": resolved.get("model_source"),
         "model_env": resolved.get("model_env"),
         "loop_phase": resolved.get("loop_phase"),
+        "runtime": effective_runtime,
+        "dsh_profile": f"epic-{(resolved.get('loop_phase') or 'implement').lower()}",
+        "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
         "degraded": degraded,
         "shape_errors": shape,
-        "delta_paths_exist": delta_ok,
+        "delta_paths_exist": delta_scope == "exist",
+        "delta_paths_scoped": delta_scope == "scoped",
+        "delta_scope": delta_scope,
         "delta_paths": delta_paths,
         "cursor_sync": cursor_sync,
     }
@@ -1304,6 +1417,7 @@ def check_after(
             "diagnostic_code": cleared_role.get("diagnostic_code") or "armed_role_slug",
             "cleared_reserved_role_arm": True,
         }
+
     text = read_active_context(cwd_p)
 
     stop = detect_stop_marker(text)
@@ -1531,6 +1645,7 @@ def record_abort(
     log_path: str | Path,
     exit_code: int,
     attempt: int = 1,
+    runtime: str = "claude",
 ) -> dict[str, Any]:
     cwd_p = Path(cwd)
     st = load_epic_state(cwd_p)
@@ -1547,6 +1662,7 @@ def record_abort(
         exit_code=exit_code,
         attempt=attempt,
         expected_model=(st.get("model") or None),
+        runtime=st.get("runtime") if isinstance(st.get("runtime"), str) else runtime,
     )
     reason = analysis["reason"]
     retryable = analysis["retryable"]
@@ -1622,12 +1738,20 @@ def _dag_path(cwd: str | Path, pipeline_id: str) -> Path:
 
 
 def _is_fixture_dag_manifest(data: dict[str, Any]) -> bool:
-    """Skip canary/demo manifests when auto-selecting a default DAG."""
+    """Skip canary manifests and test-only DAG fixtures by default."""
     pipeline = data.get("pipeline") if isinstance(data.get("pipeline"), dict) else {}
     pipeline_id = str(pipeline.get("id") or data.get("pipeline_id") or "").strip()
     if not pipeline_id:
         return False
-    if pipeline_id.startswith("canary-") or pipeline_id.endswith("-demo"):
+    if pipeline_id.startswith("canary-"):
+        return True
+    if pipeline_id.endswith("-demo") and any(
+        str(node.get("id", "")).startswith(("back_", "front_", "integ_"))
+        for node in data.get("nodes") or []
+        if isinstance(node, dict)
+    ):
+        return False
+    if pipeline_id.endswith("-demo"):
         return True
     source = data.get("source") if isinstance(data.get("source"), dict) else {}
     artifacts = source.get("artifacts") or []
@@ -1986,7 +2110,9 @@ def status(cwd: str | Path) -> dict[str, Any]:
     st = load_epic_state(root)
     projection = projection_state.get("projection") or {}
     dag = _load_dag(root, st.get("dag_pipeline"))
-    owner = runner_owner_status(runtime_dir(root))
+    owner = runner_owner_status(root / ".claude" / "runtime" / "epic")
+    if not owner.get("owner") and hub_root() != root:
+        owner = runner_owner_status(runtime_dir(root))
     try:
         config = runtime_config_status(resolve_runtime_config(root))
     except (RuntimeError, ValueError) as exc:
@@ -2156,6 +2282,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_prep = sub.add_parser("prepare", help="Build prompt + fingerprint before session")
     p_prep.add_argument("--model", default=None)
+    p_prep.add_argument("--runtime", choices=["claude", "dsh"], default=None)
 
     p_arm = sub.add_parser(
         "arm",
@@ -2174,6 +2301,7 @@ def main(argv: list[str] | None = None) -> int:
     p_rec.add_argument("--log", required=True)
     p_rec.add_argument("--exit-code", type=int, default=0)
     p_rec.add_argument("--attempt", type=int, default=1)
+    p_rec.add_argument("--runtime", choices=["claude", "dsh"], default=None)
 
     p_fanout = sub.add_parser("dag-fanout", help="Arm the next DAG node")
     p_fanout.add_argument("--pipeline", default=None)
@@ -2222,7 +2350,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if out.get("ok") else 1
 
     if args.cmd == "prepare":
-        out = prepare_session(cwd, model=args.model)
+        out = prepare_session(cwd, model=args.model, runtime=args.runtime)
         print(json.dumps(out, ensure_ascii=False))
         if out.get("complete"):
             return 3
@@ -2243,6 +2371,7 @@ def main(argv: list[str] | None = None) -> int:
             log_path=args.log,
             exit_code=args.exit_code,
             attempt=args.attempt,
+            runtime=args.runtime or "claude",
         )
         print(json.dumps(out, ensure_ascii=False))
         if out.get("ok"):

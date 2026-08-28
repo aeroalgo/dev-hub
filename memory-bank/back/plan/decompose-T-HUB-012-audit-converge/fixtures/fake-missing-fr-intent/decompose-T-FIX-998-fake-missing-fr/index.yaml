@@ -1,0 +1,10 @@
+schema: epic-decompose-index/v1
+plan_id: T-FIX-998
+source_md: index.md
+status_canon: index.yaml
+steps:
+  - id: s01
+    file: s01-stub.yaml
+    title: fixture stub intentionally missing FR-1 coverage
+    next_phase: BACK IMPLEMENT
+    status: pending

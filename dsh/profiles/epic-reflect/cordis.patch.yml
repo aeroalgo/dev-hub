@@ -1,0 +1,8 @@
+# T-HUB-007 stub; refine in a future epic.
+# dsh-phase-models is applied before this profile patch.
+- id: llm
+  config:
+    model: !!js process.env.PROJECT_LOOP_REFLECT_MODEL ?? 'default'
+    env:
+      model: PROJECT_LOOP_REFLECT_MODEL
+      credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'

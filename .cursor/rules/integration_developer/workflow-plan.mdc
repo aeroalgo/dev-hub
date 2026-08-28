@@ -27,7 +27,9 @@ Gap опционален — не блокирует PLAN. Не читать as 
 **Процесс**:
 1. `OK INTEG PLAN - Создаю master-план wire портала` + SUSPENSION GUARD
 1a. Прочитай **Gates**
+1a1. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `INTEG CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
 1a2. Research / multi-axis → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
+1a3. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 1b. QueryBuilder + graphify (routes/components/endpoints)
 2. `load_now`
 2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
@@ -42,6 +44,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
 5. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
 5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `.queue.yaml` → FAIL
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `INTEG ROADMAP MERGE` → затем `INTEG DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7. → **INTEG DECOMPOSE** → IMPLEMENT e01
 
 **После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN

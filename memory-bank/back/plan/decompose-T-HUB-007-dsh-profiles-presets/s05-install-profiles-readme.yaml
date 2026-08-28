@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "install-profiles.sh + README — copy/link + 8-phase table"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать/расширить:
+  - `dsh/scripts/install-profiles.sh` — копирует/линкует `dsh/profiles/epic-*` в `$DSH_HOME/profiles/`
+  - `dsh/README.md` — таблица 8 фаз → profile name (AC+5); env bridge doc (FR-7); version pin note (NFR-4)
+  AC+1, AC+5, AC+6, FR-4, FR-7, NFR-4.
+
+context:
+  consumes:
+    - dsh/profiles/epic-implement/   # s02
+    - dsh/profiles/epic-qa/          # s03
+    - dsh/profiles/epic-decompose/   # s03
+    - dsh/profiles/epic-{plan,creative,audit,bugfix,reflect}/  # s04
+    - dsh/README.md                  # T-HUB-006 scaffold — расширить
+    - loop/WORKFLOW.md               # phase model table (для таблицы в README)
+  produces:
+    - dsh/scripts/install-profiles.sh
+    - dsh/README.md                  # extended
+  plan_refs:
+    - FR-4
+    - FR-7
+    - NFR-4
+    - AC+1
+    - AC+5
+    - AC+6
+  files:
+    - dsh/scripts/install-profiles.sh
+    - dsh/README.md
+
+as_built:
+  - dsh/scripts/install-profiles.sh — не существует
+  - 'dsh/README.md — scaffold из T-HUB-006: installation, env, profiles (stub note), running, version pinning'
+  - Нет таблицы 8 фаз
+  - Нет env bridge doc (PROJECT_LOOP_* → patch field)
+
+delta:
+  - 'dsh/scripts/install-profiles.sh: #!/usr/bin/env bash; set -euo pipefail; DSH_HOME="${DSH_HOME:-$HOME/.dsh}"; mkdir -p "$DSH_HOME/profiles"; for p in dsh/profiles/epic-*; do cp -r "$p" "$DSH_HOME/profiles/"; done; echo "Installed to $DSH_HOME/profiles"'
+  - 'dsh/scripts/install-profiles.sh: --link mode (опционально): ln -s вместо cp'
+  - 'dsh/scripts/install-profiles.sh: --dry-run mode'
+  - 'dsh/README.md: секция "Profiles" — таблица:'
+  - '  | Loop phase | Profile | Presets | Primary model env |'
+  - '  | DECOMPOSE | epic-decompose | explorer (optional) | PROJECT_LOOP_DECOMPOSE_MODEL |'
+  - '  ... (все 8 фаз)'
+  - 'dsh/README.md: секция "Env bridge" — таблица PROJECT_LOOP_* → cordis.patch.yml LLM row id'
+  - 'dsh/README.md: секция "Version pinning" — обновить note о @deepseek-ai/dsh@VERSION (NFR-4)'
+  - 'dsh/README.md: секция "Installation of profiles" — ссылка на install-profiles.sh'
+
+deletes: []
+# README расширяется, не удаляется. Старый scaffold текст остаётся как вводная часть.
+
+out_of_scope:
+  - "CI gate на install-profiles.sh (отдельный smoke в s02 уже покрывает dump-config)"
+  - "prepare mapping — s06"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md                         # TDD: smoke install
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md        # S08: DSH_HOME, paths
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      dsh/scripts/install-profiles.sh exists and is executable
+    verify: "test -x dsh/scripts/install-profiles.sh"
+  - id: cp2
+    criterion: >
+      AC+1: install-profiles.sh → $DSH_HOME/profiles/epic-implement exists (dry-run or real with temp DSH_HOME)
+    verify: "timeout 300s bash -c 'TMP=$(mktemp -d); DSH_HOME=$TMP bash dsh/scripts/install-profiles.sh --dry-run || DSH_HOME=$TMP bash dsh/scripts/install-profiles.sh; test -d $TMP/profiles/epic-implement; rm -rf $TMP'"
+  - id: cp3
+    criterion: >
+      AC+5: dsh/README.md содержит таблицу всех 8 фаз
+    verify: "grep -E 'epic-(implement|qa|decompose|plan|creative|audit|bugfix|reflect)' dsh/README.md | wc -l | grep -q 8"
+  - id: cp4
+    criterion: >
+      AC+6: README документирует PROJECT_LOOP_IMPLEMENT_MODEL → patch field
+    verify: "grep -q 'PROJECT_LOOP_IMPLEMENT_MODEL' dsh/README.md && grep -qi 'patch\\|cordis' dsh/README.md"
+
+verify:
+  - "bash -x dsh/scripts/install-profiles.sh --help || true; head -100 dsh/README.md"
+
+tdd:
+  - "install-profiles.sh --dry-run does not modify filesystem"
+  - "install-profiles.sh with DSH_HOME=/tmp/test installs all 8 profiles"
+  - "AC+1: $DSH_HOME/profiles/epic-implement exists after install"
+  - "AC+5: README has 8-phase table"
+  - "AC+6: README documents PROJECT_LOOP_* env → patch mapping"
+  - "NFR-4: README mentions pinned @deepseek-ai/dsh version"
+  - "Regression: dsh tests зелёные"

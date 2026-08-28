@@ -1,0 +1,56 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-013
+title: "Audit remediation — needs-clarification blocking questions"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-5 из audit-20260828-idea-decide-constitution: сделать needs-clarification
+  evidence-preserving результатом с обязательными blocking questions, marker
+  [НУЖНО УТОЧНИТЬ] и явно указанной revisit stage.
+context:
+  consumes:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+  plan_refs:
+    - FR-5
+  files:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+
+as_built:
+  - .cursor/rules/shared/workflow-idea-pipeline.mdc — needs-clarification возвращает в CLARIFY без marker/списка вопросов
+  - .cursor/templates/idea-pipeline.md — нет полей Blocking questions и Revisit stage
+
+delta:
+  - "workflow: при needs-clarification сохранять неполные поля как blocking questions с marker [НУЖНО УТОЧНИТЬ] и назначать revisit stage"
+  - "template: добавить обязательные Blocking questions и Revisit stage поля для needs-clarification"
+
+deletes: []
+out_of_scope:
+  - kill terminal status — s04
+  - go handoff summary — s06
+  - constitution template — s07
+  - mainrule quick help — s08
+  - assess adaptation reference — s09
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: workflow defines marker, blocking questions and revisit stage for needs-clarification
+    verify: "rg -n 'needs-clarification|НУЖНО УТОЧНИТЬ|Blocking questions|Revisit stage' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp2
+    criterion: idea template has explicit clarification fields
+    verify: "rg -n 'Blocking questions|Revisit stage|НУЖНО УТОЧНИТЬ' .cursor/templates/idea-pipeline.md"
+
+tdd: []
+verify: []

@@ -1,0 +1,40 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-FIX-998
+title: fixture stub — intentionally does not implement FR-1
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Fixture-only stub. It deliberately leaves FR-1 without implementation evidence so
+  BACK AUDIT can exercise the missing-intent path.
+
+context:
+  consumes:
+    - "plan-T-FIX-998-fake-missing-fr.md — FR-1"
+  produces: []
+  plan_refs:
+    - "FR-1"
+  files: []
+
+as_built:
+  - "No product code or implement evidence exists in this fixture."
+
+delta: []
+deletes: []
+out_of_scope:
+  - "Implementing FR-1; this fixture only exercises AUDIT detection."
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Stub remains without FR-1 implementation evidence"
+    verify: "test ! -e product-code-for-fr-1"
+
+verify: []
+tdd:
+  - "No test runner; consumed by the expected AUDIT finding fixture."

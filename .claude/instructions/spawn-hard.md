@@ -44,7 +44,11 @@ Managed agents из `.claude/agents/*.md` автоматически обнар�
 
 **Исключение (explorer не нужен):** шаг правит **только** файлы из явного file list shard’а, discovery не требуется (1–few known paths, без audit/search).
 
-**Исключение `delta_paths_exist` (HARD skip):** в prompt есть `## explorer (HARD)` + `delta_paths_exist: yes` (пути из shard `files:` / path-like / unique bare `*.ts` — все на диске, ≥2) → **`@explorer` SKIP**. Parent: Read только эти paths + shard. **FORBIDDEN:** Agent explorer / широкий search «на всякий случай».
+**Исключение `delta_paths_exist` (HARD skip):** в prompt `delta_paths_exist: yes` (пути из shard `files:` / `consumes` / `produces` — **все** на диске, ≥2) → **`@explorer` SKIP**. Parent: только ALLOW из prompt (`search_scope`).
+
+**Исключение `delta_paths_scoped` (HARD skip, greenfield):** `delta_paths_scoped: yes` (≥2 явных paths, файлы могут ещё не существовать) → **`@explorer` SKIP**. Parent: shard + `context.consumes` + listed targets; пиши `files:`/`produces:`. **ALLOW = paths + parent dirs**; вне ALLOW — только явная ссылка в shard/plan §N.
+
+**Search scope (общее):** default = текущий scope шага (ALLOW в prompt). Другие каталоги — **только если действительно нужны** и путь есть в shard/consumes/plan/checkpoint. Широкий repo search «на всякий случай» = FAIL.
 
 **Канон type:** project overlay `explorer` (не built-in `Explore`) — graphify first, затем Grep/Glob/`rg` fallback до ответа.
 

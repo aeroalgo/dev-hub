@@ -14,6 +14,8 @@ context:
   consumes: []
   produces: []
   plan_refs: []
+  # Для sNN-audit-* / eNN-audit-* обязательно указывать source_ref находки
+  # (например FR-### / SC-###) в goal и plan_refs.
   files: []
   # files = create/edit paths; удаления — только в top-level deletes (не дублировать сюда)
 

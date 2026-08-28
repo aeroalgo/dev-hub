@@ -25,7 +25,9 @@ alwaysApply: false
 **Процесс**:
 1. `OK FRONT PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
 1a. Прочитай **Gates**
-1b. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
+1b. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `FRONT CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
+1c. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
+1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные ID при multi-epic)
 3. Skills по UI (design stack + next); skills list в каждом `plan-<task_id>.md`
 3a. **Multi-epic path (HARD):**  
@@ -40,6 +42,7 @@ alwaysApply: false
 6. Сохрани: один `memory-bank/front/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `FRONT ROADMAP MERGE` → затем `FRONT DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 8. Next: L2+ → **FRONT DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
 
 **Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `.queue.yaml` при ≥2 → FAIL)

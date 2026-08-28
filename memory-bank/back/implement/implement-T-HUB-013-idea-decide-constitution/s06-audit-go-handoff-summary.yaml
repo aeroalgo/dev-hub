@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-013
+title: s06 — Audit remediation — go handoff summary contract IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-013-idea-decide-constitution/s06-audit-go-handoff-summary.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Добавлен go-gate: Handoff-on-go обязан содержать Problem, Approach, In / Out, Metrics
+  и Open questions до routing следующей role command.'
+- В шаблон idea pipeline добавлен подраздел Handoff-on-go с шестью явными полями и
+  terminal-правилом для kill.
+files:
+- .cursor/rules/shared/workflow-idea-pipeline.mdc
+- .cursor/templates/idea-pipeline.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only
+  collection smoke)'
+- '`rg -n "go|problem|approach|in/out|metrics|open questions|Handoff" .cursor/rules/shared/workflow-idea-pipeline.mdc`'
+- '`rg -n "Handoff-on-go|Problem|Approach|In|Out|Metrics|Open questions" .cursor/templates/idea-pipeline.md`'
+integration_check:
+- Workflow go routing и idea-pipeline template используют согласованные пять summary-полей;
+  counterpart references проверены через targeted rg.
+grep_control:
+- back: rg -n 'go|problem|approach|in/out|metrics|open questions|Handoff' .cursor/rules/shared/workflow-idea-pipeline.mdc
+  front: rg -n 'Handoff-on-go|Problem|Approach|In|Out|Metrics|Open questions' .cursor/templates/idea-pipeline.md
+verification_results:
+- 'cp1/cp2 flushed через epic_resolve; оба checkpoint имеют status: done.'
+- Docs-only step; targeted rg checks passed, отдельный pytest не применим.
+checkpoints:
+- id: cp1
+  criterion: workflow go path requires all five handoff summary fields before next
+    role command
+  status: done
+  done_at: '2026-08-28T09:18:13Z'
+- id: cp2
+  criterion: template exposes Handoff-on-go summary fields
+  status: done
+  done_at: '2026-08-28T09:18:13Z'
+resume_from: cp1

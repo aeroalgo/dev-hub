@@ -1,0 +1,50 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-013-idea-decide-constitution
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-idea-pipeline-decide-gate.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-idea-pipeline-decide-gate
+  status: completed
+- id: s02
+  file: s02-constitution-file-hub-starter.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-constitution-file-hub-starter
+  status: completed
+- id: s03
+  file: s03-constitution-refs-analyze-audit-workflows.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-constitution-refs-analyze-audit-workflows
+  status: completed
+- id: s04
+  file: s04-audit-kill-terminal-status.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-audit-kill-terminal-status
+  status: completed
+- id: s05
+  file: s05-audit-clarification-contract.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-audit-clarification-contract
+  status: completed
+- id: s06
+  file: s06-audit-go-handoff-summary.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-audit-go-handoff-summary
+  status: completed
+- id: s07
+  file: s07-audit-constitution-template.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-audit-constitution-template
+  status: completed
+- id: s08
+  file: s08-audit-mainrule-decide-help.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-audit-mainrule-decide-help
+  status: completed
+- id: s09
+  file: s09-audit-speckit-reference.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-audit-speckit-reference
+  status: completed

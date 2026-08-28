@@ -1,0 +1,36 @@
+# Profile patch layer: register the local gate prompts and phase model.
+# The dsh loader resolves relative file references from this profile directory.
+- insert:
+    - id: preset-verify
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        id: verify
+        systemPrompt:
+          file: ../../presets/verify.prompt.md
+    - id: preset-explorer
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        id: explorer
+        systemPrompt:
+          file: ../../presets/explorer.prompt.md
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: verify
+        roots:
+          - path: ../../presets
+            trust: system
+        includeUserRoot: false
+
+# dsh-phase-models is applied before this profile patch.
+# This profile owns only the IMPLEMENT bridge.
+# The base bundle's llm service reads the phase-selected model through this row.
+- id: llm
+  config:
+    model: !!js process.env.PROJECT_LOOP_IMPLEMENT_MODEL ?? 'default'
+    env:
+      model: PROJECT_LOOP_IMPLEMENT_MODEL
+      credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'
+
+# cc-hooks-bridge: reserved include slot for T-HUB-016
+

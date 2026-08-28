@@ -1,22 +1,24 @@
 ---
-description: "Режим FRONT AUDIT — сравнение plan vs implement, delta-отчёт, новые decompose shards"
+description: "Режим FRONT AUDIT — intent↔implement gap-анализ, append-only remediation и converge"
 alwaysApply: false
 ---
 ### Команда: FRONT AUDIT
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
-**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать vitest/playwright/npm test; делать code-review кода.
+**Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
+**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать vitest/playwright/npm test или любой frontend suite (AUDIT сам suite не запускает, frontend-тесты — только parent); делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE.
 
 **Процесс**:
-1. `OK FRONT AUDIT — начинаю gap-анализ эпика` → **Gates**
-2. Lean load §7: `load_now` → `epic_id`; читать `plan-<epic_id>.md` (список sNN из §нарезка); читать `decompose-<epic_id>/index.md` (coverage + step_id); список `implement-*/sNN-*.yaml` (заголовки status/step_id)
-3. Построить gap-матрицу (✅ / ❌ / ⚠️) — сравнение по `step_id`
-4. Для каждого ❌: создать `decompose-<epic_id>/sNN-audit-<slug>.yaml` (`role: front`; шаблон `.cursor/templates/decompose/epic-step.yaml`); обновить `decompose-<epic_id>/index.md` + `index.yaml` (`epic_resolve.py sync-index-yaml`)
-5. Записать артефакт: `memory-bank/front/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
-6. Append в tasks log
-7. **FINISH:** finish-block (`code_changed: no`) + `## Handoff FRONT AUDIT` обязателен
-   Next: `not_implemented[]` непуст → `FRONT IMPLEMENT` новых sNN → снова `FRONT AUDIT` (петля)
-         `not_implemented[]` пуст → `FRONT QA`
-         только ⚠️ (deviations, нет ❌) → `FRONT QA` (deviation фиксирован в артефакте)
+1. `OK FRONT AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до оценки.
+2. **Intent Inventory**: из `plan-<epic_id>.md` и `decompose-<epic_id>/index.md` собрать применимые FR/SC/US/AC/NFR и constitution MUST. Для каждого intent указать `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `Constitution <rule>` или `step:sNN`) и связать его с `step_id`.
+3. **Assess**: загрузить только plan/decompose coverage, заголовки implement `sNN` и evidence по bound file list; построить gap-матрицу (✅ / ❌ / ⚠️) по каждому `step_id`, затем проверить intent↔evidence, а не только наличие файла.
+4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding обязан иметь `gap_type` (`missing|partial|contradicts|unrequested`), `severity`, `source_ref`, `evidence` и `remaining_work`.
+5. **Append remediation**: для каждого actionable `missing`, `partial` или `contradicts`, а также для каждого leftover создать новый `decompose-<epic_id>/sNN-audit-<slug>.yaml` (`role: front`; шаблон epic-step); `goal` и `plan_refs` нового shard содержат исходный `source_ref`. `unrequested` не удаляется автоматически.
+6. **Dual-write и leftovers**: findings остаются канонической оценкой, а `implemented[]`, `not_implemented[]`, `deviations[]` заполняются из них. При brownfield replace проверить `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`; непустой leftover продолжает remediation loop.
+7. **Converged / loop**: `converged: true` только без actionable findings, с пустыми leftover-массивами и выполненным purge/sunset (либо `sunset: n/a`). Тогда следующий режим — `FRONT QA`; иначе новые audit shards → `FRONT IMPLEMENT` → повторный `FRONT AUDIT`. Только ⚠️ deviations без actionable gap также идут в `FRONT QA`.
+8. Для каждого нового shard обновить `decompose-<epic_id>/index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`.
+9. Записать `memory-bank/front/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`, append в tasks log и выполнить finish-block (`code_changed: no`) с обязательным `## Handoff FRONT AUDIT`.
 
-**Верификация**: gap-матрица полна (все step_id плана проверены) + audit yaml записан + новые shards в index + leftover A/B/C при replace (@.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)
+**Boundary ANALYZE ≠ AUDIT**: ANALYZE — pre-IMPLEMENT coverage/ambiguity без implement YAML и audit shards; AUDIT — post-IMPLEMENT intent↔evidence assessment, findings и append-only remediation.
+
+**Верификация**: Intent Inventory и Assess полны; все `step_id` плана проверены; audit yaml использует `epic-audit/v2`; findings имеют `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`; legacy arrays и leftover A/B/C записаны; `converged` согласован с findings и leftovers; новые shards отражены в index.

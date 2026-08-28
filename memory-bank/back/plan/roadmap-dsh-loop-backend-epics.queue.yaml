@@ -8,9 +8,12 @@ queue:
   - id: T-HUB-007
     plan: plan-T-HUB-007-dsh-profiles-presets.md
     deps: [T-HUB-006]
+  - id: T-HUB-016
+    plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
+    deps: [T-HUB-006, T-HUB-007]
   - id: T-HUB-008
     plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
-    deps: [T-HUB-006, T-HUB-007]
+    deps: [T-HUB-006, T-HUB-007, T-HUB-016]
   - id: T-HUB-009
     plan: plan-T-HUB-009-dsh-rollout-docs.md
-    deps: [T-HUB-006, T-HUB-007, T-HUB-008]
+    deps: [T-HUB-006, T-HUB-007, T-HUB-008, T-HUB-016]

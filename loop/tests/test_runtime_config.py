@@ -30,6 +30,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
     monkeypatch.delenv("EPIC_STATUS_HEARTBEAT_SEC", raising=False)
     monkeypatch.delenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", raising=False)
     monkeypatch.delenv("EPIC_PERMISSION_MODE", raising=False)
+    monkeypatch.delenv("EPIC_RUNTIME", raising=False)
 
     config = lib.resolve_runtime_config(tmp_path)
 
@@ -47,8 +48,10 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
         "EPIC_STATUS_HEARTBEAT_SEC",
         "EPIC_STREAM_IDLE_TIMEOUT_SEC",
         "EPIC_PERMISSION_MODE",
+        "EPIC_RUNTIME",
     }
-    assert set(config.sources.values()) == {"project"}
+    assert set(config.sources.values()) <= {"project", "default"}
+    assert config.sources["EPIC_RUNTIME"] == "default"
 
 
 def test_runtime_config_prefers_process_values_and_reports_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -118,6 +121,7 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     monkeypatch.setenv("EPIC_DEGRADED_MAX", "100")
     monkeypatch.setenv("EPIC_STATUS_HEARTBEAT_SEC", "")
     monkeypatch.setenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", "")
+    monkeypatch.setenv("EPIC_RUNTIME", "claude")
 
     config = lib.resolve_runtime_config(tmp_path)
 
@@ -194,3 +198,60 @@ def test_runtime_config_rejects_invalid_permission_mode(
     assert exc_info.value.diagnostics[0]["key"] == "EPIC_PERMISSION_MODE"
     assert exc_info.value.diagnostics[0]["code"] == "invalid_runtime_config"
     assert exc_info.value.diagnostics[0]["reason"] == "unsupported_permission_mode"
+
+
+def test_epic_runtime_defaults_to_claude(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    monkeypatch.delenv("EPIC_RUNTIME", raising=False)
+
+    config = lib.resolve_runtime_config(tmp_path)
+
+    assert config.epic_runtime == "claude"
+
+
+def test_epic_runtime_dsh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+
+    config = lib.resolve_runtime_config(tmp_path)
+
+    assert config.epic_runtime == "dsh"
+
+
+def test_epic_runtime_invalid_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    monkeypatch.setenv("EPIC_RUNTIME", "foo")
+
+    with pytest.raises(lib.RuntimeConfigError) as exc_info:
+        lib.resolve_runtime_config(tmp_path)
+
+    assert exc_info.value.diagnostics[0] == {
+        "code": "invalid_runtime_config",
+        "key": "EPIC_RUNTIME",
+        "reason": "unsupported_runtime",
+    }
+
+
+def test_epic_runtime_status_included(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+
+    config = lib.resolve_runtime_config(tmp_path)
+    status = lib.runtime_config_status(config)
+
+    assert status["effective"]["EPIC_RUNTIME"] == "dsh"
+    assert status["sources"]["EPIC_RUNTIME"] == "process"
+
+
+def test_epic_runtime_project_env_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    env_dir = tmp_path / ".claude"
+    env_dir.mkdir()
+    (env_dir / "project.env").write_text("EPIC_RUNTIME=dsh\n", encoding="utf-8")
+    monkeypatch.delenv("EPIC_RUNTIME", raising=False)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+
+    config = lib.resolve_runtime_config(tmp_path)
+
+    assert config.epic_runtime == "dsh"
+    assert config.sources["EPIC_RUNTIME"] == "project"

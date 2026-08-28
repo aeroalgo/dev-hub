@@ -1,0 +1,171 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-011
+title: "FRONT/INTEG analyze workflows + 3 slash commands + mainrule entries — parity"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить покрытие ANALYZE на FRONT и INTEG роли (parity с BACK):
+  - `.cursor/rules/front_developer/workflow-analyze.mdc` — FRONT-специфичный workflow wrapper поверх shared-core (если создан в s01) или inline detection
+  - `.cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc` — lean gate FRONT: load plan/decompose headers + activeContext; STRICTLY READ-ONLY
+  - `.cursor/rules/integration_developer/workflow-analyze.mdc` — INTEG-специфичный workflow wrapper: фокус на wire/contract gaps (BACK↔FRONT): API shape, mock vs live, route/param ambiguity
+  - `.cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc` — lean gate INTEG: load plan/decompose + gap-*.md если явно указан
+  - `.claude/commands/back-analyze.md`, `.claude/commands/front-analyze.md`, `.claude/commands/integ-analyze.md` — 3 slash-команды (delegation в role-command)
+  - `mainrule.mdc` + role mainrules (back/front/integration): добавить ANALYZE в таблицы команд
+  Outcome: любая из трёх ролей может запустить `* ANALYZE @epic`, получить одинаковую таксономию detection passes (Duplication/Ambiguity/…/Constitution) с role-специфичным контекстом; slash-команды делегируют в role-command.
+  Связь с Goal/NFR: FR-1 (FRONT/INTEG wrappers), FR-2 (slash + mainrule), NFR-1, NFR-3, NFR-4, AC+ #1, #5; AC− #1 (ANALYZE ≠ AUDIT boundary).
+
+context:
+  consumes:
+    - ".cursor/rules/shared/workflow-analyze-core.mdc — из s01 (optional DRY; если нет — inline в BACK workflow)"
+    - ".cursor/rules/back_developer/workflow-analyze.mdc — образец структуры (из s01)"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc — образец lean gate (из s01)"
+    - ".claude/commands/back-clarify.md — образец slash-команды (delegation pattern)"
+    - ".claude/skills/role-command/SKILL.md — multiword table + parse pattern"
+    - ".cursor/rules/mainrule.mdc — команды list (добавить ANALYZE)"
+    - ".cursor/rules/back_developer/mainrule.mdc — добавить ANALYZE в таблицу"
+    - ".cursor/rules/front_developer/mainrule.mdc — добавить ANALYZE в таблицу"
+    - ".cursor/rules/integration_developer/mainrule.mdc — добавить ANALYZE в таблицу"
+  produces:
+    - ".cursor/rules/front_developer/workflow-analyze.mdc (create)"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc (create)"
+    - ".cursor/rules/integration_developer/workflow-analyze.mdc (create)"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc (create)"
+    - ".claude/commands/back-analyze.md (create)"
+    - ".claude/commands/front-analyze.md (create)"
+    - ".claude/commands/integ-analyze.md (create)"
+    - ".cursor/rules/mainrule.mdc (edit)"
+    - ".cursor/rules/back_developer/mainrule.mdc (edit)"
+    - ".cursor/rules/front_developer/mainrule.mdc (edit)"
+    - ".cursor/rules/integration_developer/mainrule.mdc (edit)"
+  plan_refs:
+    - "FR-1 (FRONT/INTEG wrappers), FR-2 (slash + mainrule)"
+    - "NFR-1, NFR-3, NFR-4"
+    - "AC+ #1, #5"
+    - "AC− #1 (ANALYZE ≠ AUDIT)"
+    - "plan §Компоненты таблицы: front/integ workflow + lean + slash"
+    - "plan §До DECOMPOSE s02"
+  files:
+    - ".cursor/rules/front_developer/workflow-analyze.mdc"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc"
+    - ".cursor/rules/integration_developer/workflow-analyze.mdc"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc"
+    - ".claude/commands/back-analyze.md"
+    - ".claude/commands/front-analyze.md"
+    - ".claude/commands/integ-analyze.md"
+    - ".cursor/rules/mainrule.mdc"
+    - ".cursor/rules/back_developer/mainrule.mdc"
+    - ".cursor/rules/front_developer/mainrule.mdc"
+    - ".cursor/rules/integration_developer/mainrule.mdc"
+
+as_built:
+  - ".cursor/rules/front_developer/ — существует; workflow-analyze.mdc отсутствует"
+  - ".cursor/rules/front_developer/isolation_rules/_lean/ — существует; analyze.mdc отсутствует"
+  - ".cursor/rules/integration_developer/ — существует; workflow-analyze.mdc отсутствует"
+  - ".cursor/rules/integration_developer/isolation_rules/_lean/ — существует; analyze.mdc отсутствует"
+  - ".claude/commands/ — существует (есть back-clarify.md и др.); analyze-команды отсутствуют"
+  - ".cursor/rules/mainrule.mdc — содержит BACK/FRONT/INTEG команды; ANALYZE отсутствует"
+  - ".cursor/rules/back_developer/mainrule.mdc — содержит BACK команды; ANALYZE отсутствует"
+  - ".cursor/rules/front_developer/mainrule.mdc — содержит FRONT команды; ANALYZE отсутствует"
+  - ".cursor/rules/integration_developer/mainrule.mdc — содержит INTEG команды; ANALYZE отсутствует"
+
+delta:
+  - "CREATE .cursor/rules/front_developer/workflow-analyze.mdc:
+      - Frontmatter
+      - @core ref: .cursor/rules/front_developer/mainrule-core.mdc + shared/workflow-analyze-core.mdc (или inline detection если core не создан)
+      - @lean: .cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc
+      - §FRONT-специфика: ANALYZE охватывает UX/component-tree/routes/state/API-contracts; не затрагивает backend impl; detection passes те же (Duplication/Ambiguity/…); role-specific context: UI elements vs FR/SC
+      - §Артефакт: memory-bank/front/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml
+      - §Done When + §Handoff → FRONT IMPLEMENT s01 (если critical=0) | FRONT CLARIFY/PLAN/DECOMPOSE (если critical>0)
+      - §STRICTLY READ-ONLY + НЕ запускать vitest/playwright (NFR-3, NFR-4) — см. _lean"
+  - "CREATE .cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc:
+      - Frontmatter (description: 'ANALYZE gates — lean load + STRICTLY READ-ONLY (FRONT)', alwaysApply: false)
+      - §Gates:
+          - load_now = plan artifact (headers) + decompose index (coverage) + activeContext; НЕ полный текст всех shards
+          - НЕ читать implement yaml (их ещё нет)
+          - STRICTLY READ-ONLY: НЕ модифицировать decompose/implement/code
+          - НЕ запускать vitest/playwright в ANALYZE (HARD RULE из front-tests-parent-only)
+      - §Abort: попытка править код / запускать тесты → FAIL
+      - §AC− #1 documented: ANALYZE ≠ AUDIT; не создавать sNN-audit-*"
+  - "CREATE .cursor/rules/integration_developer/workflow-analyze.mdc:
+      - Frontmatter
+      - @core ref: .cursor/rules/integration_developer/mainrule-core.mdc + shared/workflow-analyze-core.mdc (или inline)
+      - @lean: .cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc
+      - §INTEG-специфика: ANALYZE фокус на wire/contract gaps (BACK↔FRONT): API shape, auth flow, mock vs live, route/param ambiguity; detection passes применяются к Element registry + gap-*.md (если указан)
+      - §Артефакт: memory-bank/integration/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml
+      - §Done When + §Handoff → INTEG IMPLEMENT e01 (если critical=0) | INTEG CLARIFY/PLAN/DECOMPOSE (если critical>0)
+      - §STRICTLY READ-ONLY + НЕ запускать тесты (NFR-3, NFR-4)"
+  - "CREATE .cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc:
+      - Frontmatter (description: 'ANALYZE gates — lean load + STRICTLY READ-ONLY (INTEG)', alwaysApply: false)
+      - §Gates:
+          - load_now = plan artifact (headers) + decompose index (coverage) + gap-*.md (опционально, если явно указан) + activeContext
+          - НЕ читать implement yaml (их ещё нет)
+          - STRICTLY READ-ONLY: НЕ модифицировать decompose/implement/code
+          - НЕ запускать тесты в ANALYZE
+      - §Abort: попытка править код / запускать тесты → FAIL
+      - §AC− #1 documented: ANALYZE ≠ AUDIT; не создавать eNN-audit-*"
+  - "CREATE .claude/commands/back-analyze.md:
+      - Frontmatter (description: 'BACK ANALYZE — read-only pre-implement analysis до IMPLEMENT')
+      - Тело: делегирует в role-command как 'BACK ANALYZE'; ссылка на .claude/skills/role-command/SKILL.md"
+  - "CREATE .claude/commands/front-analyze.md:
+      - аналогично для FRONT ANALYZE"
+  - "CREATE .claude/commands/integ-analyze.md:
+      - аналогично для INTEG ANALYZE"
+  - "EDIT .cursor/rules/mainrule.mdc:
+      - Добавить ANALYZE в списки команд:
+          **BACK:** … `CLARIFY` `ANALYZE`
+          **FRONT:** … `CLARIFY` `ANALYZE`
+          **INTEG:** … `CLARIFY` `ANALYZE`
+      - Добавить в §Быстрый выбор (опционально): `ANALYZE @epic` — pre-implement gap check"
+  - "EDIT .cursor/rules/back_developer/mainrule.mdc:
+      - Добавить строку в таблицу: | `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc |"
+  - "EDIT .cursor/rules/front_developer/mainrule.mdc:
+      - Добавить строку: | `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc |"
+  - "EDIT .cursor/rules/integration_developer/mainrule.mdc:
+      - Добавить строку: | `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc |"
+
+deletes: []
+# greenfield shard: создаём новые файлы, ничего не удаляем
+
+out_of_scope:
+  - "shared/workflow-analyze-core.mdc — уже в s01 (optional)"
+  - "BACK workflow-analyze.mdc + lean — уже в s01"
+  - "finish-doc-router ANALYZE row — в s03"
+  - "memory-bank-paths analyze/ path — в s03"
+  - "workflow-decompose.mdc FINISH tip — в s03"
+  - "workflow-implement.mdc WARN critical — в s03"
+  - "refs/speckit-adapt-011.md — в s04"
+  - "dry-run fixture + docs — в s04"
+  - "role-command SKILL.md edit — в s04"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only: нет Python. Core FORBIDDEN для docs-only.
+
+checkpoints:
+  - id: cp1
+    criterion: "FRONT workflow-analyze.mdc и lean существуют, содержат ссылку на shared-core (или inline detection) + FRONT-специфику"
+    verify: "rg -rn 'workflow-analyze-core\\|shared\\|FRONT-специфика' .cursor/rules/front_developer/workflow-analyze.mdc | head -5"
+  - id: cp2
+    criterion: "INTEG workflow-analyze.mdc и lean существуют, содержат INTEG-специфику (contract/wire gaps)"
+    verify: "rg -n 'contract\\|wire\\|INTEG-специфика' .cursor/rules/integration_developer/workflow-analyze.mdc | head -5"
+  - id: cp3
+    criterion: "Все три slash-команды существуют и содержат делегирование role-command"
+    verify: "ls .claude/commands/*-analyze.md && rg -l 'role-command\\|BACK ANALYZE\\|FRONT ANALYZE\\|INTEG ANALYZE' .claude/commands/*-analyze.md"
+  - id: cp4
+    criterion: "mainrule.mdc + 3 role mainrules содержат ANALYZE в таблицах команд"
+    verify: "rg -n 'ANALYZE' .cursor/rules/mainrule.mdc .cursor/rules/back_developer/mainrule.mdc .cursor/rules/front_developer/mainrule.mdc .cursor/rules/integration_developer/mainrule.mdc | head -20"
+
+verify:
+  - "ls .cursor/rules/front_developer/workflow-analyze.mdc .cursor/rules/front_developer/isolation_rules/_lean/analyze.mdc — оба exist"
+  - "ls .cursor/rules/integration_developer/workflow-analyze.mdc .cursor/rules/integration_developer/isolation_rules/_lean/analyze.mdc — оба exist"
+  - "ls .claude/commands/back-analyze.md .claude/commands/front-analyze.md .claude/commands/integ-analyze.md — все три exist"
+  - "rg -n 'FRONT ANALYZE\\|INTEG ANALYZE' .claude/commands/front-analyze.md .claude/commands/integ-analyze.md — делегирование есть"
+  - "rg -n 'ANALYZE' .cursor/rules/mainrule.mdc — AC+ #1: найдено ≥3 совпадений"
+  - "rg -rn 'STRICTLY READ-ONLY' .cursor/rules/front_developer/workflow-analyze.mdc .cursor/rules/integration_developer/workflow-analyze.mdc — AC+ #5"
+
+tdd:
+  - "docs-only; QA в s04: ls + rg AC+ #1 (slash exist + mainrule entries)"

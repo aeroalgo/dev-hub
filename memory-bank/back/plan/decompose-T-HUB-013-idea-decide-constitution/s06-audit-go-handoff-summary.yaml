@@ -1,0 +1,57 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-013
+title: "Audit remediation — go handoff summary contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-2 и FR-6 из audit-20260828-idea-decide-constitution: передать verdict go
+  следующей role command только вместе с обязательным handoff summary (problem, approach,
+  in/out, metrics, open questions).
+context:
+  consumes:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+  plan_refs:
+    - FR-2
+    - FR-6
+  files:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+
+as_built:
+  - .cursor/rules/shared/workflow-idea-pipeline.mdc — go routing и общий Handoff описаны без обязательной summary schema
+  - .cursor/templates/idea-pipeline.md — Handoff имеет Done/Artifact/Next, но нет go summary fields
+
+delta:
+  - "workflow: для go перед routing потребовать summary: problem, approach, in/out, metrics, open questions"
+  - "template: добавить Handoff-on-go subsection/fields и связать kill stop с Decision"
+
+deletes: []
+out_of_scope:
+  - kill terminal status — s04
+  - needs-clarification marker/revisit — s05
+  - constitution template — s07
+  - mainrule quick help — s08
+  - assess adaptation reference — s09
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: workflow go path requires all five handoff summary fields before next role command
+    verify: "rg -n 'go|problem|approach|in/out|metrics|open questions|Handoff' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp2
+    criterion: template exposes Handoff-on-go summary fields
+    verify: "rg -n 'Handoff-on-go|Problem|Approach|In|Out|Metrics|Open questions' .cursor/templates/idea-pipeline.md"
+
+tdd: []
+verify: []

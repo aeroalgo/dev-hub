@@ -3,44 +3,48 @@ plan_id: T-HUB-006-dsh-loop-runtime-adapter
 source_md: index.md
 status_canon: index.yaml
 steps:
-  - id: s01
-    file: s01-runtime-config-validation.yaml
-    title: "EPIC_RUNTIME validation + fail-closed unit tests — runtime config guard"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s02
-    file: s02-dsh-adapter-module.yaml
-    title: "DSH adapter module: build_command + normalize_log — pure fn isolation"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s03
-    file: s03-prepare-runtime-fields.yaml
-    title: "prepare runtime fields + --runtime CLI override — orchestrator contract"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s04
-    file: s04-run-dsh-session-loop-dispatch.yaml
-    title: "run_dsh_session + run_agent_session dispatch — loop.sh executor branch"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s05
-    file: s05-analyze-session-log-dsh-branch.yaml
-    title: "analyze_session_log DSH branch + record-session classify — resilience parity"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s06
-    file: s06-dsh-scaffold.yaml
-    title: "dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep — T-HUB-007 landing pad"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s07
-    file: s07-regression-suite.yaml
-    title: "Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green"
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-runtime-config-validation.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-runtime-config-validation
+  status: completed
+- id: s02
+  file: s02-dsh-adapter-module.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-dsh-adapter-module
+  status: completed
+- id: s03
+  file: s03-prepare-runtime-fields.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-prepare-runtime-fields
+  status: completed
+- id: s04
+  file: s04-run-dsh-session-loop-dispatch.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-run-dsh-session-loop-dispatch
+  status: completed
+- id: s05
+  file: s05-analyze-session-log-dsh-branch.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-analyze-session-log-dsh-branch
+  status: completed
+- id: s06
+  file: s06-dsh-scaffold.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-dsh-scaffold
+  status: completed
+- id: s07
+  file: s07-regression-suite.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-regression-suite
+  status: completed
+- id: s08
+  file: s08-audit-dsh-resolver-argv.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-audit-dsh-resolver-argv
+  status: completed
+- id: s09
+  file: s09-audit-dsh-model-mismatch.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-audit-dsh-model-mismatch
+  status: completed

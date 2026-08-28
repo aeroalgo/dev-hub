@@ -23,7 +23,7 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 ## MEMORY BANK
 
-- `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-core.mdc §0.5.1)
+- `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-stub.mdc §0.5.1)
 - Index → ONE shard; не грузить `done — do NOT load`
 - Session start: @.cursor/rules/shared/context-session-economy.mdc §3
 - Артефакты: `memory-bank/back/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — `memory-bank-paths.mdc` (VAN)

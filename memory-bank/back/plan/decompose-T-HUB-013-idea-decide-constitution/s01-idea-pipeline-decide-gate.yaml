@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-013
+title: "Decision gate in IDEA PIPELINE — scorecard + DECIDE phase in workflow + template"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить явную фазу DECIDE в workflow IDEA PIPELINE: до дорогих VAN/PLAN каждая идея
+  получает verdict go / needs-clarification / kill; kill документируется как успешный outcome.
+  Результат — экономия дорогостоящих фаз, явный evidence gate вместо неявного «перейди к PLAN».
+  Закрывает: AC+1, AC+2, AC−1, FR-1, FR-2, FR-3, NFR-3.
+
+context:
+  consumes:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc        # текущий workflow без DECIDE
+    - .cursor/templates/idea-pipeline.md                     # шаблон idea без Scorecard секции
+  produces:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc        # +DECIDE фаза + intents table update
+    - .cursor/templates/idea-pipeline.md                     # +## Decision / Scorecard секция
+  plan_refs:
+    - FR-1
+    - FR-2
+    - FR-3
+    - AC+1
+    - AC+2
+    - AC−1
+    - NFR-3
+  files:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+    - .cursor/templates/idea-pipeline.md
+
+as_built:
+  - .cursor/rules/shared/workflow-idea-pipeline.mdc — существует, содержит intents table и checklist, нет DECIDE/scorecard фазы
+  - .cursor/templates/idea-pipeline.md — существует, нет ## Decision / Scorecard
+
+delta:
+  - "workflow-idea-pipeline.mdc: добавить фазу DECIDE после intake/research/define/shape и перед первым workflow routing; Scorecard критерии: проблема, пользователи, метрика успеха, альтернативы, риски; verdict table: go → routing; needs-clarification → возврат в CLARIFY; kill → rationale + docs; intents table: добавить строку decide / обновить routing-ссылки; kill-документирование: пометить в tasks.md как «killed: <rationale>»"
+  - "idea-pipeline.md template: добавить секцию ## Decision / Scorecard; поля: Problem statement, Users, Success metric, Alternatives considered, Risks, Verdict (go/needs-clarification/kill); если kill → поле Kill rationale (required)"
+
+deletes: []
+# Нет brownfield cutover. Чистое добавление секций.
+
+out_of_scope:
+  - assess extension целиком (intake/research/define/shape команды Spec Kit) — не портировать
+  - constitution.md — создаётся в s02
+  - analyze/audit workflow refs — s03
+
+skills:
+  code_surface: docs
+  impl: []
+  # docs-only step: нет Python-кода. Core skills (tdd-python/python-error-handling/…) не применимы.
+
+checkpoints:
+  - id: cp1
+    criterion: workflow-idea-pipeline.mdc содержит секцию ## DECIDE (или Decision Gate) с полями scorecard
+    verify: "rg -n 'DECIDE\\|Decision Gate\\|scorecard\\|Scorecard' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp2
+    criterion: verdict table с тремя исходами (go / needs-clarification / kill) присутствует в workflow
+    verify: "rg -n 'needs-clarification\\|kill' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp3
+    criterion: template idea-pipeline.md содержит ## Decision / Scorecard секцию с полем Verdict
+    verify: "rg -n 'Decision.*Scorecard\\|Scorecard\\|Verdict' .cursor/templates/idea-pipeline.md"
+
+verify: []
+tdd: []
+# docs-only — pytest нет; проверка через rg cp verify

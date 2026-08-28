@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-012
+title: s02 — BACK AUDIT Intent→Converged loop — FR/AC traceable remediation IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-012-audit-converge/s02-back-audit-workflow-lean-converge.yaml
+skills_used: []
+discovery:
+- 'explorer: BACK audit workflow/lean, ANALYZE boundary, and epic-audit/v2 template
+  reviewed; existing process was step_id-presence-only and v2 already defines intent_checked/findings/converged.'
+gaps:
+  status: none
+done:
+- Added Intent Inventory, bounded Assess, severity-ordered findings, source_ref-bearing
+  append-only remediation, dual-write legacy arrays, converged/QA loop, unrequested
+  handling, and ANALYZE≠AUDIT boundary to BACK workflow.
+- Extended lean BACK AUDIT gates to epic-audit/v2, Intent Inventory, findings fields,
+  source_ref, converged/leftover checks, and forbidden operations.
+files:
+- .cursor/rules/back_developer/workflow-audit.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+deletes:
+- Exclusive wording in BACK workflow-audit.mdc / _lean/audit.mdc that AUDIT is only
+  step_id presence (без intent findings / gap_type / severity / source_ref / converged)
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+- '`timeout 300s rg -n ''Intent Inventory|gap_type|severity|source_ref|converged|unrequested''
+  .cursor/rules/back_developer/workflow-audit.mdc`'
+- '`timeout 300s rg -n ''epic-audit/v2|findings|converged|source_ref|Intent'' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc`'
+integration_check:
+- 'rg -n ''Intent Inventory|gap_type|severity|source_ref|converged|unrequested'' .cursor/rules/back_developer/workflow-audit.mdc
+  — PASS: all required workflow contract markers present.'
+- 'rg -n ''epic-audit/v2|findings|converged|source_ref|Intent'' .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+  — PASS: all required lean gate markers present.'
+- 'rg -n ''ANALYZE|CONVERGE|git-diff|pytest|vitest|unrequested'' .cursor/rules/back_developer/workflow-audit.mdc
+  .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc — PASS: boundary and
+  forbidden operations documented.'
+- 'rg -n ''только presence|only step_id|AUDIT = только'' .cursor/rules/back_developer/workflow-audit.mdc
+  .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc — PASS: exclusive claims
+  absent.'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: BACK workflow описывает Intent Inventory → Assess → Severity → Append
+    → Converged/QA
+  status: done
+  done_at: '2026-08-23T14:06:48Z'
+- id: cp2
+  criterion: _lean/audit.mdc ссылается на epic-audit/v2 + findings/converged gates
+  status: done
+  done_at: '2026-08-23T14:06:48Z'
+- id: cp3
+  criterion: ANALYZE≠AUDIT boundary + FORBIDDEN MODE CONVERGE/git-diff/suite documented
+  status: done
+  done_at: '2026-08-23T14:06:49Z'
+- id: cp4
+  criterion: 'deletes verify: exclusive «только step_id» / «only presence» claims
+    отсутствуют в BACK audit paths'
+  status: done
+  done_at: '2026-08-23T14:06:49Z'
+resume_from: cp1

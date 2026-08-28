@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-013
+title: "Constitution.md hub starter — create file + ANALYZE/AUDIT authority wire"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `memory-bank/constitution.md` — единственный authority-файл MUST/SHOULD правил нашего
+  workflow для hub. 8–15 пунктов: TDD, no silent fallback, FRONT tests parent-only, lean load,
+  fail-closed misconfig, no-guess (markers), ONE Handoff, §0.11 integration.
+  Не копировать Library-First/CLI Articles Spec Kit.
+  Закрывает: AC+3, AC−2, AC−3, FR-4, FR-5, NFR-1, NFR-2.
+
+context:
+  consumes:
+    - memory-bank/constitution.md                            # не существует (greenfield)
+    - spec-kit/templates/constitution-template.md            # референс (не копировать целиком)
+    - spec-kit/extensions/assess/commands/speckit.assess.decide.md  # референс для decide
+    - .cursor/rules/back_developer/workflow-analyze.mdc      # понять какие MUST уже есть в workflow
+    - .cursor/rules/back_developer/workflow-audit.mdc        # аналогично для audit
+  produces:
+    - memory-bank/constitution.md                            # новый файл — 8–15 MUST/SHOULD
+  plan_refs:
+    - FR-4
+    - FR-5
+    - AC+3
+    - AC−2
+    - AC−3
+    - NFR-1
+    - NFR-2
+  files:
+    - memory-bank/constitution.md
+
+as_built:
+  - memory-bank/constitution.md — не существует (проверить `ls memory-bank/constitution.md`)
+  - spec-kit/templates/constitution-template.md — референс template существует
+
+delta:
+  - 'CREATE memory-bank/constitution.md'
+  - 'Заголовок: # [dev-hub] Workflow Constitution'
+  - 'Поля: version, date, scope'
+  - 'Секция ## MUST (8–12 правил) с MUST-1…MUST-9'
+  - 'MUST-1: TDD first — тесты до кода в BACK IMPLEMENT (.venv/bin/pytest)'
+  - 'MUST-2: No silent fallback — fail-closed при misconfiguration (не угадывать defaults)'
+  - 'MUST-3: FRONT tests parent-only — vitest/playwright только parent агент, никогда subagent'
+  - 'MUST-4: Lean load — за сессию каждый workflow file читается ≤1×; re-read только при offset'
+  - 'MUST-5: Fail-closed misconfig — если env/config невалиден → ошибка, не дефолт'
+  - 'MUST-6: No-guess markers — не угадывать без evidence (CLARIFY или маркер NEED_HUMAN)'
+  - 'MUST-7: ONE Handoff per step — ровно один Handoff-блок; дублирующий = FAIL'
+  - 'MUST-8: §0.11 integration parity — каждая INTEG feature должна быть wire end-to-end'
+  - 'MUST-9: ANALYZE до IMPLEMENT и AUDIT после реализации — authority-проверки по фазам workflow'
+  - 'Секция ## SHOULD (2–4 правил)'
+  - 'SHOULD-1: Outcome-first titles — step/shard title описывает outcome, не только infra-slug'
+  - 'SHOULD-2: Kill is success — killed idea pipeline = зафиксированный rationale, не failure'
+  - 'SHOULD-3: rg/import-audit после deletes — не объявлять closed без verify'
+  - 'Секция ## Note (product usage): hub-версия — canonical starter для адаптации продуктом'
+
+deletes: []
+# greenfield create
+
+out_of_scope:
+  - Library-First / CLI Articles из Spec Kit — явно не включать
+  - ANALYZE/AUDIT workflow patch — в s03
+  - assess extension команды — в s01
+
+skills:
+  code_surface: docs
+  impl: []
+  # docs-only
+
+checkpoints:
+  - id: cp1
+    criterion: memory-bank/constitution.md создан и содержит ≥8 MUST правил
+    verify: "rg -c 'MUST-' memory-bank/constitution.md"
+  - id: cp2
+    criterion: файл НЕ содержит Library-First или CLI Spec Kit контент
+    verify: "rg -i 'library.first\\|CLI spec kit\\|library-first' memory-bank/constitution.md && echo FAIL || echo OK"
+  - id: cp3
+    criterion: MUST-7 ONE Handoff и MUST-3 FRONT tests parent-only присутствуют
+    verify: "rg -n 'ONE Handoff\\|parent.only\\|FRONT tests' memory-bank/constitution.md"
+
+verify: []
+tdd: []

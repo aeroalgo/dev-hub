@@ -1,0 +1,61 @@
+---
+description: "Режим BACK ANALYZE — read-only проверка plan/decompose до IMPLEMENT"
+alwaysApply: false
+---
+### Команда: BACK ANALYZE
+
+**Контекст:** @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+**Shared core:** @.cursor/rules/shared/workflow-analyze-core.mdc
+**Шаблон:** @.cursor/templates/analyze/epic-analyze.yaml
+
+## Когда запускать
+
+- после `BACK DECOMPOSE` FINISH и до первого `BACK IMPLEMENT`;
+- повторно после существенного rewrite plan/decompose;
+- не использовать ANALYZE вместо AUDIT после реализации.
+
+Вход: `BACK ANALYZE <epic_id>`, где `<epic_id>` — `T-xxx` или slug, разрешаемый через plan/decompose registry. Ad-hoc запуск без epic_id запрещён.
+
+## Load (lean)
+
+1. `memory-bank/activeContext.md` → только `load_now`;
+2. `memory-bank/back/plan/plan-<epic>.md` → headers и нужные FR/AC/stories sections;
+3. `memory-bank/back/plan/decompose-<epic>/index.md` → coverage map;
+4. `index.yaml` → список steps/status;
+5. несколько sample `sNN` → headers, `goal`, `delta`, `plan_refs`.
+
+Не читай полный текст всех shards без необходимости. Implement YAML на этой стадии ещё нет и не загружается. Подробнее: `_lean/analyze.mdc`.
+
+## Процесс
+
+1. Подтверди `epic_id` и read-only scope.
+2. Построй inventories: FR/SC/stories ↔ `sNN` goals/`plan_refs`, AC+/AC−/NFR ↔ checkpoints или явный `out_of_scope`.
+   Если `memory-bank/constitution.md` существует, каждое нарушение правила `MUST` автоматически получает severity `CRITICAL` в findings.
+3. Запусти шесть detection passes из `@.cursor/rules/shared/workflow-analyze-core.mdc`: **Duplication**, **Ambiguity**, **Underspecification**, **Coverage Gaps**, **Inconsistency**, **Constitution**.
+4. Назначь severity по core heuristic, присвой стабильные IDs `A1…`, ограничь findings 50 строками.
+5. Запиши `analyze-YYYYMMDD-<slug>.yaml` по шаблону: findings, coverage, metrics, recommendation, next_actions.
+6. Зафиксируй краткий Handoff в `activeContext.md` только по FINISH-канону; исходные plan/decompose не патчить.
+
+**STRICTLY READ-ONLY:** BACK ANALYZE не модифицирует decompose/implement/code, не создаёт `audit-shards` и не запускает pytest/vitest. ANALYZE ≠ AUDIT; audit-shards относятся к отдельному AUDIT workflow.
+
+## Done When
+
+- [ ] analyze artifact записан на диске;
+- [ ] findings table не превышает 50 строк и содержит deterministic IDs;
+- [ ] coverage summary и metrics согласованы;
+- [ ] recommendation соответствует `critical_count`;
+- [ ] при CRITICAL все next actions содержат путь исправления;
+- [ ] при отсутствии CRITICAL явно указан следующий `BACK IMPLEMENT sNN`.
+
+CRITICAL → **не** стартовать IMPLEMENT до fix или явного defer с owner/next. loop.sh — только внешний orchestration layer: ANALYZE не меняет его gates и не вызывает его напрямую.
+
+## Handoff
+
+| Результат | Следующий шаг |
+|---|---|
+| `critical_count = 0` | `BACK IMPLEMENT s01` (или первый pending shard) |
+| CRITICAL/coverage block | `BACK CLARIFY` → `BACK PLAN` → `BACK DECOMPOSE` по причине |
+| только HIGH/MEDIUM/LOW | `BACK IMPLEMENT` с перечисленными `next_actions` или fix до cutover |
+
+Handoff содержит artifact path, coverage %, critical/high counts, recommendation и один следующий шаг. Не переносить findings только в чат: диск — source of truth.

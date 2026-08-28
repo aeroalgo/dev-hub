@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-007-dsh-profiles-presets
+title: "remaining phase profiles (stub minimum) — plan/creative/audit/bugfix/reflect"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать stub или full профили для оставшихся фаз:
+  - epic-plan, epic-creative, epic-audit, epic-bugfix, epic-reflect
+  FR-2 (минимум): stub minimum достаточно, но без silent fallback.
+  Profile matrix из плана полностью покрыт.
+
+context:
+  consumes:
+    - dsh/profiles/epic-implement/   # s02 — паттерн
+    - dsh/profiles/epic-qa/          # s03 — паттерн
+    - dsh/profiles/epic-decompose/   # s03
+    - loop/WORKFLOW.md               # phase model table (8 фаз)
+    - dsh/patches/phase-models.yml   # shared
+  produces:
+    - dsh/profiles/epic-plan/
+    - dsh/profiles/epic-creative/
+    - dsh/profiles/epic-audit/
+    - dsh/profiles/epic-bugfix/
+    - dsh/profiles/epic-reflect/
+  plan_refs:
+    - FR-2
+    - Profile matrix (plan §88-99)
+  files:
+    - dsh/profiles/epic-plan/package.json
+    - dsh/profiles/epic-plan/cordis.patch.yml
+    - dsh/profiles/epic-creative/package.json
+    - dsh/profiles/epic-creative/cordis.patch.yml
+    - dsh/profiles/epic-audit/package.json
+    - dsh/profiles/epic-audit/cordis.patch.yml
+    - dsh/profiles/epic-bugfix/package.json
+    - dsh/profiles/epic-bugfix/cordis.patch.yml
+    - dsh/profiles/epic-reflect/package.json
+    - dsh/profiles/epic-reflect/cordis.patch.yml
+
+as_built:
+  - Только epic-implement, epic-qa, epic-decompose существуют
+  - Остальные 5 фаз — отсутствуют
+
+delta:
+  - 'dsh/profiles/epic-plan/package.json: минимальный bundle (без subagent presets или с explorer optional)'
+  - 'dsh/profiles/epic-plan/cordis.patch.yml: LLM row PROJECT_LOOP_PLAN_MODEL; include phase-models.yml'
+  - 'dsh/profiles/epic-creative/...: PROJECT_LOOP_CREATIVE_MODEL'
+  - 'dsh/profiles/epic-audit/...: PROJECT_LOOP_AUDIT_MODEL + explorer optional'
+  - 'dsh/profiles/epic-bugfix/...: PROJECT_LOOP_BUGFIX_MODEL + verify/explorer (как implement)'
+  - 'dsh/profiles/epic-reflect/...: PROJECT_LOOP_REFLECT_MODEL'
+  - 'Каждый профиль: README stub или inline comment "T-HUB-007 stub; refine in future epic"'
+
+deletes: []
+# Greenfield stubs.
+
+out_of_scope:
+  - "Полные тела пресетов для creative/reflect (нет gate subagents) — только LLM mapping"
+  - "install + README — s05"
+  - "prepare mapping — s06"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      Все 8 профилей существуют: epic-{implement,qa,decompose,plan,creative,audit,bugfix,reflect}
+    verify: "for p in implement qa decompose plan creative audit bugfix reflect; do test -d dsh/profiles/epic-$p || exit 1; done; echo OK"
+  - id: cp2
+    criterion: >
+      epic-bugfix содержит verify + explorer (как implement)
+    verify: "python -c 'import json; d=json.load(open(\"dsh/profiles/epic-bugfix/package.json\")); ps=d.get(\"dsh\",{}).get(\"profile\",{}).get(\"bundles\",{}).get(\"subagent\",{}).get(\"presets\",{}); assert \"verify\" in ps and \"explorer\" in ps; print(\"OK\")'"
+  - id: cp3
+    criterion: >
+      epic-reflect package.json существует (даже без presets)
+    verify: "test -f dsh/profiles/epic-reflect/package.json"
+
+verify:
+  - "ls dsh/profiles/"
+
+tdd:
+  - "8 profiles directory structure exists"
+  - "bugfix mirrors implement presets (verify+explorer)"
+  - "reflect/creative stubs have no subagent presets (or empty)"
+  - "All cordis.patch.yml include phase-models.yml"
+  - "Regression: dsh tests зелёные"

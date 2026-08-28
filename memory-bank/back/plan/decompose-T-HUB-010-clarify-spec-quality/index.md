@@ -127,13 +127,12 @@
 
 | step_id | title & files | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-shared-clarify-core-back-workflow.yaml](s01-shared-clarify-core-back-workflow.yaml) — shared core + BACK workflow-clarify + lean + template | no | no | BACK IMPLEMENT | pending |
-| **s02** | [s02-front-integ-clarify-slash.yaml](s02-front-integ-clarify-slash.yaml) — FRONT/INTEG wrappers + lean ×2 + slash ×3 | no | no | BACK IMPLEMENT | pending |
-| **s03** | [s03-plan-templates-what-how.yaml](s03-plan-templates-what-how.yaml) — plan.md + integration-plan.md WHAT/HOW/FR/SC/Independent Test | no | no | BACK IMPLEMENT | pending |
-| **s04** | [s04-mainrule-plan-gate-paths.yaml](s04-mainrule-plan-gate-paths.yaml) — mainrule ×3 + workflow-plan ×3 gate + finish-doc-router + memory-bank-paths | no | no | BACK IMPLEMENT | pending |
-| **s05** | [s05-role-command-refs-claude.yaml](s05-role-command-refs-claude.yaml) — role-command parity + speckit-adapt-010.md + CLAUDE.md touch | no | no | BACK IMPLEMENT | pending |
-| **s06** | [s06-qa-smoke-rg.yaml](s06-qa-smoke-rg.yaml) — QA: rg AC+ ×7 + dry-run clarify scenario | no | no | BACK QA | pending |
-| **s07** | [s07-finish-activecontext.yaml](s07-finish-activecontext.yaml) — activeContext Handoff + index status update | no | no | BACK IMPLEMENT | pending |
-
+| **s01** | [s01-shared-clarify-core-back-workflow.yaml](s01-shared-clarify-core-back-workflow.yaml) — shared core + BACK workflow-clarify + lean + template | no | no | BACK IMPLEMENT | completed |
+| **s02** | [s02-front-integ-clarify-slash.yaml](s02-front-integ-clarify-slash.yaml) — FRONT/INTEG wrappers + lean ×2 + slash ×3 | no | no | BACK IMPLEMENT | completed |
+| **s03** | [s03-plan-templates-what-how.yaml](s03-plan-templates-what-how.yaml) — plan.md + integration-plan.md WHAT/HOW/FR/SC/Independent Test | no | no | BACK IMPLEMENT | completed |
+| **s04** | [s04-mainrule-plan-gate-paths.yaml](s04-mainrule-plan-gate-paths.yaml) — mainrule ×3 + workflow-plan ×3 gate + finish-doc-router + memory-bank-paths | no | no | BACK IMPLEMENT | completed |
+| **s05** | [s05-role-command-refs-claude.yaml](s05-role-command-refs-claude.yaml) — role-command parity + speckit-adapt-010.md + CLAUDE.md touch | no | no | BACK IMPLEMENT | completed |
+| **s06** | [s06-qa-smoke-rg.yaml](s06-qa-smoke-rg.yaml) — QA: rg AC+ ×7 + dry-run clarify scenario | no | no | BACK QA | completed |
+| **s07** | [s07-finish-activecontext.yaml](s07-finish-activecontext.yaml) — activeContext Handoff + index status update | no | no | BACK IMPLEMENT | completed |
 **needs_creative:** `no` | `yes (CR-…)` | `yes (CR-…) ✅` (= shard `yes (CR-…) — **closed**`)  
 **FORBIDDEN:** `yes (done)` без CR-ID · `no (CR-… closed)`

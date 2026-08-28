@@ -5,6 +5,8 @@
 # Mode arg: optional session mode (currently implement).
 set -euo pipefail
 
+_LOOP_SOURCE_ARGS=("$@")
+
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DEV_HUB="$HUB_ROOT"
 export HUB_ROOT
@@ -45,7 +47,8 @@ export CLAUDE_CODE_ENABLE_TASKS="${CLAUDE_CODE_ENABLE_TASKS:-0}"
 CTX=(python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT")
 STATE_DIR="$HUB_ROOT/runtime/$PROJ_SLUG/epic"
 STREAM_FILTER="$HUB_ROOT/.claude/hooks/epic_stream_filter.py"
-SESSION_WRAPPER="$HUB_ROOT/.claude/hooks/session_resilience.py"
+ROOT="$HUB_ROOT"
+SESSION_WRAPPER="$ROOT/.claude/hooks/session_resilience.py"
 mkdir -p "$STATE_DIR"
 
 _runtime_config_json="$({
@@ -421,6 +424,90 @@ run_claude_session() {
   return "$rc"
 }
 
+resolve_dsh_bin() {
+  if [[ -n "${DSH_BIN:-}" && -x "$DSH_BIN" ]]; then
+    DSH_COMMAND=("$DSH_BIN")
+    return 0
+  fi
+
+  local resolver="${DSH_RESOLVER:-$HUB_ROOT/dsh/bin/which-dsh.sh}"
+  if [[ -x "$resolver" ]]; then
+    local -a resolved
+    local executable
+    mapfile -t resolved < <("$resolver")
+    if [[ ${#resolved[@]} -gt 0 ]]; then
+      executable="${resolved[0]}"
+      if [[ "$executable" != */* ]]; then
+        executable="$(command -v "$executable" || true)"
+      fi
+      if [[ -n "$executable" && -x "$executable" ]]; then
+        DSH_COMMAND=("$executable" "${resolved[@]:1}")
+        return 0
+      fi
+      echo "dsh binary not found: ${resolved[*]}" >&2
+      return 127
+    fi
+  fi
+
+  echo "dsh binary not found; set DSH_BIN or install @deepseek-ai/dsh" >&2
+  return 127
+}
+
+DSH_COMMAND=()
+
+
+run_dsh_session() {
+  local iter="$1"
+  local prompt_file="$2"
+  local log_file="$STATE_DIR/session-${iter}.log"
+  local prompt
+  local dsh_rc
+  prompt="$(cat "$prompt_file")"
+
+  if resolve_dsh_bin; then
+    dsh_rc=0
+  else
+    dsh_rc=$?
+  fi
+  if [[ $dsh_rc -ne 0 || ${#DSH_COMMAND[@]} -eq 0 ]]; then
+    echo "==> HALT: dsh binary not found; no Claude fallback" >&2
+    return 127
+  fi
+
+  local profile="${EPIC_DSH_PROFILE:-epic-implement}"
+  local -a command=("${DSH_COMMAND[@]}" --profile "$profile" --no-open "$prompt")
+  local rc
+  if (cd "$PROJECT_ROOT" && python3 "$SESSION_WRAPPER" run-session \
+    --mode headless \
+    --session-id "$iter" \
+    --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+    --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+    ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+    ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+    --log "$log_file" \
+    -- "${command[@]}"); then
+    rc=0
+  else
+    rc=$?
+  fi
+  return "$rc"
+}
+
+run_agent_session() {
+  local iter="$1"
+  local prompt_file="$2"
+  if [[ "${EPIC_RUNTIME_RESOLVED:-claude}" == "dsh" ]]; then
+    run_dsh_session "$iter" "$prompt_file"
+  else
+    run_claude_session "$iter" "$prompt_file"
+  fi
+}
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  set -- "${_LOOP_SOURCE_ARGS[@]}"
+  return 0
+fi
+
 echo "==> context-first loop cli_model=${MODEL:-default} epic=${EPIC_SPEC:-<activeContext>} max=$MAX_ITER claude=$CLAUDE"
 echo "==> phase models: PROJECT_LOOP_<PHASE>_MODEL from .claude/project.env (DECOMPOSE/IMPLEMENT/…)"
 
@@ -495,6 +582,9 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     continue
   fi
 
+  EPIC_RUNTIME_RESOLVED="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("runtime") or "claude")' 2>/dev/null || echo claude)"
+  EPIC_DSH_PROFILE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
+  export EPIC_RUNTIME_RESOLVED EPIC_DSH_PROFILE
   SESSION_MODEL="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model") or "")' 2>/dev/null || true)"
   LOOP_PHASE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("loop_phase") or "")' 2>/dev/null || true)"
   MODEL_SOURCE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model_source") or "")' 2>/dev/null || true)"
@@ -522,13 +612,14 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     [[ $transient_try -gt 1 ]] && session_tag="${iter}-t${transient_try}"
 
     set +e
-    run_claude_session "$session_tag" "$prompt_file"
-    claude_rc=$?
+    run_agent_session "$session_tag" "$prompt_file"
+    agent_rc=$?
+    claude_rc="$agent_rc"
     # Keep +e through diagnostics — echo to a broken tty must not kill retry.
     echo "==> claude exit=$claude_rc (try $transient_try/$max_transient)" || true
     session_log="$STATE_DIR/session-${session_tag}.log"
 
-    rec_json="$("${CTX[@]}" record-session --log "$session_log" --exit-code "$claude_rc" --attempt "$transient_try")"
+    rec_json="$("${CTX[@]}" record-session --log "$session_log" --exit-code "$claude_rc" --attempt "$transient_try" --runtime "$EPIC_RUNTIME_RESOLVED")"
     rec_rc=$?
     set -e
 

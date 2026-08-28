@@ -112,3 +112,17 @@
 | s05 | s05-analyze-session-log-dsh-branch.yaml | analyze_session_log DSH branch + record-session classify | BACK IMPLEMENT | pending |
 | s06 | s06-dsh-scaffold.yaml | dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep | BACK IMPLEMENT | pending |
 | s07 | s07-regression-suite.yaml | Regression suite: Claude path + end-to-end fake-dsh smoke | BACK IMPLEMENT | pending |
+
+## Очередь шагов
+
+| step_id | title & files | next_phase | status |
+| :--- | :--- | :--- | :--- |
+| **s01** | EPIC_RUNTIME validation + fail-closed unit tests — runtime config guard · [yaml](s01-runtime-config-validation.yaml) | BACK IMPLEMENT | completed |
+| **s02** | DSH adapter module: build_command + normalize_log — pure fn isolation · [yaml](s02-dsh-adapter-module.yaml) | BACK IMPLEMENT | completed |
+| **s03** | prepare runtime fields + --runtime CLI override — orchestrator contract · [yaml](s03-prepare-runtime-fields.yaml) | BACK IMPLEMENT | completed |
+| **s04** | run_dsh_session + run_agent_session dispatch — loop.sh executor branch · [yaml](s04-run-dsh-session-loop-dispatch.yaml) | BACK IMPLEMENT | completed |
+| **s05** | analyze_session_log DSH branch + record-session classify — resilience parity · [yaml](s05-analyze-session-log-dsh-branch.yaml) | BACK IMPLEMENT | completed |
+| **s06** | dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep — T-HUB-007 landing pad · [yaml](s06-dsh-scaffold.yaml) | BACK IMPLEMENT | completed |
+| **s07** | Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green · [yaml](s07-regression-suite.yaml) | BACK IMPLEMENT | completed |
+| **s08** | Audit remediation: DSH resolver argv compatibility — FR-4 · [yaml](s08-audit-dsh-resolver-argv.yaml) | BACK IMPLEMENT | completed |
+| **s09** | Audit remediation: DSH model-substitution HALT detection — NFR-3 · [yaml](s09-audit-dsh-model-mismatch.yaml) | BACK IMPLEMENT | completed |

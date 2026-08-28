@@ -1,0 +1,152 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-011
+title: "Wire DECOMPOSE/IMPLEMENT/finish-doc-router/memory-bank-paths — ANALYZE lifecycle"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Связать ANALYZE в жизненный цикл ролей:
+  - `.cursor/rules/back_developer/workflow-decompose.mdc` — в секции FINISH добавить tip: «рекомендуется `* ANALYZE <epic_id>` перед первым `* IMPLEMENT`» (soft, не hard gate)
+  - `.cursor/rules/back_developer/workflow-implement.mdc` — добавить секцию обработки: если в `load_now` присутствует analyze-*.yaml с `metrics.critical_count > 0` → вывести WARN в чат + зафиксировать в Handoff note (не блокировать автоматически)
+  - `.cursor/rules/shared/finish-doc-router.mdc` — добавить строку в таблицу By command: `* ANALYZE` → analyze-артефакт в `load_now`; next = IMPLEMENT (critical=0) | CLARIFY/DECOMPOSE (critical>0)
+  - `.cursor/templates/finish-doc-router.md` — добавить секцию шаблона для ANALYZE (пример handoff + load_now после ANALYZE)
+  - `.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc` — добавить пути analyze/ для back/, front/, integration/
+  Outcome: после DECOMPOSE FINISH агент видит рекомендацию ANALYZE; после ANALYZE — activeContext содержит analyze-артефакт; IMPLEMENT видит soft WARN при critical findings и логирует в Handoff. Полный lifecycle ANALYZE wired в канон.
+  Связь с Goal/NFR: FR-6 (Next Actions), FR-7 (finish-doc-router), FR-8 (decompose FINISH tip), FR-9 (implement WARN), FR-10 (memory-bank-paths); AC+ #3 (DECOMPOSE workflow упоминает ANALYZE).
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — текущий FINISH процесс (добавить tip)"
+    - ".cursor/rules/back_developer/workflow-implement.mdc — текущий load_now + Handoff (добавить WARN)"
+    - ".cursor/rules/shared/finish-doc-router.mdc — By command таблица (добавить ANALYZE row)"
+    - ".cursor/templates/finish-doc-router.md — шаблон заполнения activeContext (добавить ANALYZE секцию)"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc — канонические пути memory-bank (добавить analyze/)"
+    - "s01-analyze-schema-back-workflow-lean-detection.yaml — reference для Handoff/артефакта"
+    - "s02-front-integ-analyze-slash-mainrule.yaml — reference для parity (FRONT/INTEG тоже используют router/paths)"
+  produces:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc (edit)"
+    - ".cursor/rules/back_developer/workflow-implement.mdc (edit)"
+    - ".cursor/rules/shared/finish-doc-router.mdc (edit)"
+    - ".cursor/templates/finish-doc-router.md (edit)"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (edit)"
+  plan_refs:
+    - "FR-6, FR-7, FR-8, FR-9, FR-10"
+    - "AC+ #3"
+    - "plan §До DECOMPOSE s03"
+    - "plan §Компоненты таблицы: finish-doc-router, workflow-decompose/implement, paths"
+  files:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc"
+    - ".cursor/rules/back_developer/workflow-implement.mdc"
+    - ".cursor/rules/shared/finish-doc-router.mdc"
+    - ".cursor/templates/finish-doc-router.md"
+    - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc"
+
+as_built:
+  - ".cursor/rules/back_developer/workflow-decompose.mdc — существует; FINISH описан (шаги 1-10), нет упоминания ANALYZE; Handoff идёт сразу на IMPLEMENT"
+  - ".cursor/rules/back_developer/workflow-implement.mdc — существует; load_now описан, нет секции про analyze critical; нет WARN/примечания"
+  - ".cursor/rules/shared/finish-doc-router.mdc — существует; таблица By command содержит IMPLEMENT/DECOMPOSE/PLAN/CLARIFY/QA/AUDIT/..., ANALYZE отсутствует"
+  - ".cursor/templates/finish-doc-router.md — существует; шаблоны для IMPLEMENT/DECOMPOSE/PLAN/CLARIFY/QA/BUGFIX/..., секции ANALYZE нет"
+  - ".cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc — существует; перечислены пути для back/front/integration по режимам (VAN/CLARIFY/PLAN/DECOMPOSE/IMPLEMENT/...); analyze/ отсутствует"
+  - "s01/s02 shards — созданы, описывают ANALYZE артефакт и Handoff, но wiring в канон ещё не сделан"
+
+delta:
+  - "EDIT .cursor/rules/back_developer/workflow-decompose.mdc:
+      - Локация: секция FINISH (после шага 7b или в блоке Handoff/next), перед пунктом 8 или 9.
+      - Изменение: добавить bullet/примечание:
+        'Рекомендуется запустить `* ANALYZE <epic_id>` перед первым `* IMPLEMENT` (soft gate, не ломает loop).'
+      - Не добавлять hard requirement / abort. Не менять существующий порядок шагов.
+      - Цель: FR-8 (DECOMPOSE FINISH tip)."
+  - "EDIT .cursor/rules/back_developer/workflow-implement.mdc:
+      - Локация: после пункта 2 (load_now описание), перед пунктом 3 (Read Impl skills), или в отдельном параграфе после load_now.
+      - Изменение: добавить секцию:
+        'Если в `load_now` присутствует analyze-*.yaml с `metrics.critical_count > 0`:
+           - Вывести WARN в чат: «ANALYZE нашёл CRITICAL findings (N). Рекомендуется устранить или явно defer перед IMPLEMENT.»
+           - Зафиксировать в ## Handoff note (в activeContext).
+         Блокировка НЕ автоматическая; решение за агентом/пользователем (soft gate).'
+      - Не добавлять abort / hard halt / exit.
+      - Цель: FR-9 (implement WARN critical)."
+  - "EDIT .cursor/rules/shared/finish-doc-router.mdc:
+      - Локация: таблица ## By command, добавить строку (в алфавитном или логическом месте, напр. после DECOMPOSE).
+      - Изменение:
+        | `* ANALYZE` | analyze-артефакт в `load_now`; next = `* IMPLEMENT` (critical=0) или `* CLARIFY` / `* DECOMPOSE` (critical>0) |
+      - Опционально: добавить примечание в Forbidden если ANALYZE completed shard не должен оставаться в load_now (аналогично другим).
+      - Цель: FR-7 (finish-doc-router ANALYZE row)."
+  - "EDIT .cursor/templates/finish-doc-router.md:
+      - Локация: после секции DECOMPOSE или в блоке с примерами для PLAN/DECOMPOSE/CLARIFY; добавить отдельную подсекцию.
+      - Изменение: добавить шаблон:
+        '**ANALYZE done → next IMPLEMENT or fix:**
+        ```
+        ANALYZE завершён.
+        Артефакт: memory-bank/back/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml
+        Findings: N (critical: M)
+        Recommendation: IMPLEMENT | fix (CLARIFY|DECOMPOSE)
+        ...
+        Старт:
+        1. memory-bank/activeContext.md → load_now (analyze artifact + decompose index.yaml)
+        2. Если critical>0 → планировать fix (новый CLARIFY или DECOMPOSE shard)
+        3. Иначе → BACK IMPLEMENT s01
+        ```
+        '
+      - Цель: FR-7 (шаблон для ANALYZE routing)."
+  - "EDIT .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc:
+      - Локация: секция **Backend `memory-bank/back/`:** (таблица режимов), добавить строку ANALYZE.
+      - Изменение: добавить
+        | ANALYZE | `back/analyze/` | `analyze-YYYYMMDD-<slug>.yaml` |
+      - Аналогично в секциях:
+        - **Front `memory-bank/front/`** → строка ANALYZE
+        - **Integration `memory-bank/integration/`** → строка ANALYZE
+      - Формат и стиль должны соответствовать соседним строкам (CLARIFY/PLAN/DECOMPOSE/...).
+      - Цель: FR-10 (memory-bank-paths: analyze/)."
+
+deletes: []
+# greenfield wiring: правим существующие файлы, ничего не удаляем
+
+out_of_scope:
+  - "FRONT/INTEG workflow-analyze + lean + slash — уже в s02"
+  - "BACK schema + core + workflow-analyze + lean — уже в s01"
+  - "refs/speckit-adapt-011.md — в s04"
+  - "dry-run fixture + docs — в s04"
+  - "role-command SKILL.md edit — в s04"
+  - "Constitution (memory-bank/constitution.md) — T-HUB-013; до 013 — skip gracefully (NFR-5)"
+  - "AUDIT schema (012) — Do Not Touch (NFR-5)"
+  - "Clarify UX (010) — Do Not Touch (NFR-5)"
+  - "loop.sh gates — Do Not Touch (NFR-5)"
+  - "spec-kit extensions/assess/ — T-HUB-013 (partial)"
+  - "Extension hooks YAML / __SPECKIT_COMMAND_* — не портировать"
+
+skills:
+  code_surface: infra
+  # docs/rules edits — нет Python кода
+  impl: []
+  # docs-only: Core FORBIDDEN. Situational: нет.
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-decompose.mdc содержит рекомендацию ANALYZE в FINISH (soft tip)"
+    verify: "rg -n 'ANALYZE.*(перед|before).*IMPLEMENT|рекомендуется.*ANALYZE' .cursor/rules/back_developer/workflow-decompose.mdc"
+  - id: cp2
+    criterion: "workflow-implement.mdc содержит секцию WARN при critical>0 в analyze load_now (soft, Handoff note)"
+    verify: "rg -n 'critical|WARN.*ANALYZE|analyze.*critical' .cursor/rules/back_developer/workflow-implement.mdc | head -10"
+  - id: cp3
+    criterion: "finish-doc-router.mdc содержит строку `* ANALYZE` в By command таблице"
+    verify: "rg -n '\\* ANALYZE' .cursor/rules/shared/finish-doc-router.mdc"
+  - id: cp4
+    criterion: "finish-doc-router template содержит секцию/пример для ANALYZE (load_now + next)"
+    verify: "rg -n 'ANALYZE|analyze-.*yaml' .cursor/templates/finish-doc-router.md | head -10"
+  - id: cp5
+    criterion: "memory-bank-paths.mdc содержит analyze/ пути для back/front/integration"
+    verify: "rg -n 'analyze/' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc"
+
+verify:
+  - "rg -n 'ANALYZE' .cursor/rules/back_developer/workflow-decompose.mdc — FR-8 покрыт"
+  - "rg -n 'critical_count|WARN|analyze' .cursor/rules/back_developer/workflow-implement.mdc — FR-9 покрыт"
+  - "rg -n 'ANALYZE' .cursor/rules/shared/finish-doc-router.mdc — FR-7 покрыт"
+  - "rg -n 'ANALYZE|analyze-' .cursor/templates/finish-doc-router.md — FR-7 покрыт"
+  - "rg -n 'analyze/' .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc — FR-10 покрыт"
+  - "rg -n 'FR-6\\|FR-7\\|FR-8\\|FR-9\\|FR-10' memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/s03-*.yaml — AC+ #3 (coverage в decompose)"
+
+tdd:
+  - "Нет pytest (docs-only edits)."
+  - "QA в s04: rg AC+ #3 (все 5 edits присутствуют) + dry-run fixture (фиктивный epic с critical finding → Handoff note в IMPLEMENT)."

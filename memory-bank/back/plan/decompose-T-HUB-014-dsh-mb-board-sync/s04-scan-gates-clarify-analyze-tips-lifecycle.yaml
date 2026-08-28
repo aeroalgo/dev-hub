@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "scan_gates: pre-implement + post-implement gates via reduce_epic_lifecycle"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/board_sync/scan_gates.py` — генерирует gate WorkItems для каждого eligible
+  workspace/epic по правилам плана §Gate emission:
+  - Pre-implement: PLAN (plan file missing), DECOMPOSE (decompose/ missing), ANALYZE
+    (0 completed sNN + no analyze.yaml / critical_count>0), CLARIFY (CRITICAL в plan)
+  - Post-implement: reuse `epic.reduce_epic_lifecycle(cwd, role_dir, epic_id)` →
+    AUDIT/QA/BUGFIX/REFLECT; qa_failed → BUGFIX; DONE → emit archive-all signal (не gate WorkItem)
+  - ROADMAP per-project tip (≤1; select_next_epic thin wrapper, no side-effect arm)
+  - FORBIDDEN: post-implement gate + step cards одного epic_id (mutually exclusive, FR-017)
+  Покрывает FR-013…017, AC+ #8/9, SC-005/006, US-005.
+
+context:
+  consumes:
+    - "loop/board_sync/workspaces.py (WorkspaceRef) — s02"
+    - "loop/board_sync/scan_mb.py (WorkItem, scan_steps results) — s03"
+    - "loop/board_sync/card_model.py (CardKind) — s01"
+    - "loop/epic.reduce_epic_lifecycle — существующий reducer (не изменять)"
+    - "loop/roadmap_queue.select_next_epic (или thin wrapper) — для ROADMAP tip"
+  produces:
+    - "loop/board_sync/scan_gates.py"
+    - "loop/tests/fixtures/board_sync/mini_mb_project/ (extend: qa events fixture)"
+    - "loop/tests/test_board_sync_scan_gates.py"
+  plan_refs:
+    - "plan §Gate emission (канон)"
+    - "plan §Зафиксированные решения — Гранулярность карточек (gate)"
+    - "plan §Gate cards table — FORBIDDEN post-gate+step same epic"
+    - "FR-013, FR-014, FR-015, FR-016, FR-017, FR-018"
+    - "AC+ #8, AC+ #9, SC-005, SC-006"
+    - "US-005"
+  files:
+    - "loop/board_sync/scan_gates.py"
+    - "loop/tests/fixtures/board_sync/mini_mb_project/memory-bank/back/events/events_qa_fixture.jsonl"
+    - "loop/tests/test_board_sync_scan_gates.py"
+
+as_built:
+  - "loop/epic.reduce_epic_lifecycle(cwd, role_dir, epic_id) — reducer loop; не изменять"
+  - "loop/roadmap_queue.select_next_epic или эквивалент — существует; thin wrapper без arm"
+  - "scan_mb.scan_steps() — s03; возвращает step WorkItems"
+
+delta:
+  - "CREATE loop/board_sync/scan_gates.py — scan_gates(workspace_refs, step_workitems) → GateWorkItem[] используя reduce_epic_lifecycle (mock в тестах) + select_next_epic + правила §Gate emission"
+  - "EXTEND fixtures: events_qa_fixture.jsonl (all sNN completed, lifecycle=QA scenario)"
+  - "CREATE loop/tests/test_board_sync_scan_gates.py — gate ANALYZE, post-implement QA, BUGFIX qa_failed, FORBIDDEN step+gate same epic"
+
+deletes: []
+
+out_of_scope:
+  - "arm/loop/roadmap-advance — AC− #4, out of scope T-HUB-014"
+  - "companion TS UI buttons — T-HUB-015"
+  - "diff/apply step — s05"
+  - "reduce_epic_lifecycle изменения — не трогаем, только reuse"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "gate ANALYZE emitted: decompose exists, 0 completed sNN, no analyze artifact"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_gates.py::test_gate_analyze -q"
+  - id: cp2
+    criterion: "post-implement gate uses reduce_epic_lifecycle (mock); AUDIT before QA; qa_failed → BUGFIX (не QA)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_gates.py::test_post_implement_lifecycle -q"
+  - id: cp3
+    criterion: "FORBIDDEN: pending sNN present → NO post-implement gate for same epic_id (SC-006)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_gates.py::test_no_gate_when_steps_active -q"
+  - id: cp4
+    criterion: "all sNN completed + lifecycle QA → exactly one gate-QA per epic (SC-005)"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_scan_gates.py::test_exactly_one_gate_qa -q"
+
+verify:
+  - "from loop.board_sync.scan_gates import scan_gates, GateWorkItem"
+  - "scan_gates принимает workspace_refs и step_workitems"
+  - "GateWorkItem имеет: card_kind=gate, gate_phase, epic_id, role, workspace_ref"
+
+tdd:
+  - "test_gate_plan_no_plan_file — epic в queue, plan file missing → gate PLAN"
+  - "test_gate_decompose_no_decompose — plan exists, decompose/ missing → gate DECOMPOSE"
+  - "test_gate_analyze — decompose exists, 0 completed, no analyze → gate ANALYZE"
+  - "test_gate_clarify — CRITICAL метка в plan.md → gate CLARIFY"
+  - "test_gate_roadmap — нет pending work, next in queue → gate ROADMAP (≤1 per project)"
+  - "test_post_implement_lifecycle — all sNN completed, lifecycle=QA → gate QA"
+  - "test_qa_failed_bugfix — reason_code=qa_failed → gate BUGFIX (не QA)"
+  - "test_no_gate_when_steps_active — pending sNN → no post-implement gate same epic"
+  - "test_exactly_one_gate_qa — max 1 gate per phase per epic"
+  - "test_done_epic_no_gate — lifecycle DONE → ни одной gate (archive-all сигнал)"

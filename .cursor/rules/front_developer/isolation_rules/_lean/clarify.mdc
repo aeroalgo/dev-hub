@@ -1,0 +1,24 @@
+---
+description: "FRONT CLARIFY gates — lean load (clarify artifact + activeContext)"
+alwaysApply: false
+---
+# FRONT CLARIFY — gates
+
+**Артефакт:** `memory-bank/front/clarify/clarify-YYYYMMDD-<slug>.md`
+**Shared:** @.cursor/rules/shared/workflow-clarify-core.mdc
+**Шаблон:** @.cursor/templates/clarify.md
+
+## Gates
+
+1. `load_now` = только clarify artifact (если есть) + `activeContext.md`; не загружать весь frontend plan monolith без необходимости.
+2. Jump в brief или plan допустим только если ambiguity без этого контекста не снять.
+3. Соблюдать shared core: ≤5 Q, sequential, Recommended/Suggested, CRITICAL policy.
+4. Каждый принятый ответ записывать в clarify-артефакт; диск — source of truth.
+5. Completion Report обязателен перед Handoff → FRONT PLAN / continue.
+6. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list запрещает ready for PLAN FINISH.
+
+## Abort
+
+- Нет slug или цели — запросить идентификацию, не выдумывать scope.
+- Не подменять clarify советами по frontend-стеку или архитектурными решениями.
+- Не клонировать spec-kit clarify и не вызывать specify-cli.

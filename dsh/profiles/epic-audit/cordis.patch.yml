@@ -1,0 +1,23 @@
+# dsh-phase-models is applied before this profile patch.
+- insert:
+    - id: preset-explorer
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        id: explorer
+        systemPrompt:
+          file: ../../presets/explorer.prompt.md
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: explorer
+        roots:
+          - path: ../../presets
+            trust: system
+        includeUserRoot: false
+
+- id: llm
+  config:
+    model: !!js process.env.PROJECT_LOOP_AUDIT_MODEL ?? 'default'
+    env:
+      model: PROJECT_LOOP_AUDIT_MODEL
+      credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'

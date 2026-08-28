@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-012
+title: "FRONT/INTEG AUDIT parity — same converge semantics across roles"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Довести FRONT и INTEG AUDIT до parity с BACK converge-семантикой:
+  - `front_developer/workflow-audit.mdc` + `_lean/audit.mdc`
+  - `integration_developer/workflow-audit.mdc` + `_lean/audit.mdc`
+  Те же шаги Intent→Assess→Severity→Append→Converged/QA; gap_type/severity/
+  source_ref; leftover; FORBIDDEN suite (FRONT: vitest/playwright parent-only
+  неизменно — AUDIT сам suite не гоняет); без MODE CONVERGE.
+  Outcome: все три роли пишут epic-audit/v2 одинаково по смыслу; AC+ #2/#3 закрыты.
+  Связь: FR-3 (FRONT/INTEG), NFR-1..5, AC+ #2/#3/#5, AC− #1/#2/#4; Replacement A (FRONT/INTEG docs).
+
+context:
+  consumes:
+    - "s02-back-audit-workflow-lean-converge.yaml — канон процесса BACK"
+    - "s01-epic-audit-v2-template-readme-mapping.yaml — schema"
+    - ".cursor/rules/front_developer/workflow-audit.mdc"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/audit.mdc"
+    - ".cursor/rules/integration_developer/workflow-audit.mdc"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc"
+    - ".claude/rules/front-tests-parent-only.md — AUDIT не гоняет vitest (сохранить)"
+  produces:
+    - ".cursor/rules/front_developer/workflow-audit.mdc (edit)"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/audit.mdc (edit)"
+    - ".cursor/rules/integration_developer/workflow-audit.mdc (edit)"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc (edit)"
+  plan_refs:
+    - "FR-3 (FRONT + INTEG workflow + lean)"
+    - "FR-4 / FR-5 / FR-6 (parity semantics)"
+    - "NFR-1..5"
+    - "AC+ #2, #3, #5"
+    - "AC− #1, #2, #4"
+    - "Replacement A — FRONT/INTEG exclusive step_id-only claims"
+    - "plan §До DECOMPOSE s03"
+    - "plan §Зафиксированные решения FRONT tests parent-only"
+  files:
+    - ".cursor/rules/front_developer/workflow-audit.mdc"
+    - ".cursor/rules/front_developer/isolation_rules/_lean/audit.mdc"
+    - ".cursor/rules/integration_developer/workflow-audit.mdc"
+    - ".cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc"
+
+as_built:
+  - "FRONT/INTEG workflow-audit — зеркало BACK v1: step_id matrix, append audit shards, leftover; нет Intent/gap_type/severity/source_ref/converged"
+  - "FRONT FORBIDDEN: vitest/playwright/npm test — уже есть; сохранить и усилить «AUDIT не suite»"
+  - "lean ×2 — epic-audit/v1 gates"
+
+delta:
+  - "EDIT FRONT workflow-audit.mdc + lean — тот же converge pipeline что s02 (role: front; paths memory-bank/front/audit/); явно: AUDIT не запускает vitest/playwright (parent-only rule неизменна); unrequested non-delete; ANALYZE≠AUDIT; FORBIDDEN MODE CONVERGE/git-diff"
+  - "EDIT INTEG workflow-audit.mdc + lean — тот же pipeline (role: integ; eNN shards; memory-bank/integration/audit/); leftover A/B/C; source_ref на append; converged→QA"
+  - "Удалить exclusive «только step_id» claims в FRONT/INTEG audit paths"
+
+deletes:
+  - "Exclusive wording in FRONT/INTEG workflow-audit.mdc / _lean/audit.mdc that AUDIT is only step_id presence without intent findings"
+
+out_of_scope:
+  - "BACK workflow — s02"
+  - "finish-router / refs / fixture / final purge — s04"
+  - "slash *-audit.md description — только если нужно в s04 (обычно OK)"
+  - "изменение front-tests-parent-only rule — FORBIDDEN (только цитировать)"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "FRONT workflow содержит gap_type + severity + source_ref + converged"
+    verify: "rg -n 'gap_type|severity|source_ref|converged|Intent Inventory' .cursor/rules/front_developer/workflow-audit.mdc | head -20"
+  - id: cp2
+    criterion: "INTEG workflow содержит gap_type + severity + source_ref + converged"
+    verify: "rg -n 'gap_type|severity|source_ref|converged|Intent Inventory' .cursor/rules/integration_developer/workflow-audit.mdc | head -20"
+  - id: cp3
+    criterion: "оба lean ссылаются на epic-audit/v2 + findings gates"
+    verify: "rg -n 'epic-audit/v2|findings|converged' .cursor/rules/front_developer/isolation_rules/_lean/audit.mdc .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc"
+  - id: cp4
+    criterion: "deletes verify FRONT/INTEG: нет exclusive only-step_id claims; vitest FORBIDDEN сохранён в FRONT"
+    verify: "rg -n 'vitest|playwright' .cursor/rules/front_developer/workflow-audit.mdc | head -5; rg -n 'только presence|only step_id' .cursor/rules/front_developer/workflow-audit.mdc .cursor/rules/integration_developer/workflow-audit.mdc || true"
+
+verify:
+  - "rg -n 'unrequested' .cursor/rules/front_developer/workflow-audit.mdc .cursor/rules/integration_developer/workflow-audit.mdc"
+  - "rg -n 'MODE CONVERGE' .cursor/rules/front_developer/workflow-audit.mdc .cursor/rules/integration_developer/workflow-audit.mdc — FORBIDDEN mention only"
+  - "AC+ #2: все три workflow-audit содержат gap_type|severity|source_ref"
+
+tdd:
+  - "Нет pytest. Parity smoke: одинаковые ключевые маркеры в BACK/FRONT/INTEG workflow-audit"

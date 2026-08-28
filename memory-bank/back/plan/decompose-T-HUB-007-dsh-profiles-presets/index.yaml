@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-007-dsh-profiles-presets
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-sync-agent-md-to-presets.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s01-sync-agent-md-to-presets.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-sync-agent-md-to-presets
+  status: completed
+- id: s02
+  file: s02-epic-implement-profile.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s02-epic-implement-profile.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-epic-implement-profile
+  status: completed
+- id: s03
+  file: s03-epic-qa-decompose-profiles.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s03-epic-qa-decompose-profiles.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-epic-qa-decompose-profiles
+  status: completed
+- id: s04
+  file: s04-remaining-phase-profiles.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s04-remaining-phase-profiles.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-remaining-phase-profiles
+  status: completed
+- id: s05
+  file: s05-install-profiles-readme.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s05-install-profiles-readme.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-install-profiles-readme
+  status: completed
+- id: s06
+  file: s06-prepare-dsh-profile-mapping.yaml
+  implement: ../../implement/implement-T-HUB-007-dsh-profiles-presets/s06-prepare-dsh-profile-mapping.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-prepare-dsh-profile-mapping
+  status: completed
+- id: s07
+  file: s07-audit-phase-models-include.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-audit-phase-models-include
+  status: completed

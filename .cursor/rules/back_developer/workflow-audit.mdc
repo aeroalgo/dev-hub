@@ -1,22 +1,37 @@
 ---
-description: "Режим BACK AUDIT — сравнение plan vs implement, delta-отчёт, новые decompose shards"
+description: "Режим BACK AUDIT — intent↔implement gap-анализ, append-only remediation и converge"
 alwaysApply: false
 ---
 ### Команда: BACK AUDIT
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
-**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать тесты; делать code-review кода.
+**Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
+**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать suite или отдельные тесты; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE.
 
 **Процесс**:
-1. `OK BACK AUDIT — начинаю gap-анализ эпика` → **Gates**
-2. Lean load §7: `load_now` → `epic_id`; читать `plan-<epic_id>.md` (список eNN/sNN из §нарезка); читать `decompose-<epic_id>/index.md` (coverage + step_id); список `implement-*/sNN-*.yaml` (заголовки status/step_id, не полный текст)
-3. Построить gap-матрицу (✅ / ❌ / ⚠️) — сравнение по `step_id`
-4. Для каждого ❌: создать `decompose-<epic_id>/sNN-audit-<slug>.yaml` (шаблон `.cursor/templates/decompose/epic-step.yaml`); обновить `decompose-<epic_id>/index.md` + `index.yaml` (`epic_resolve.py sync-index-yaml`)
-5. Записать артефакт: `memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml` (+ leftover legacy/fallback при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)
-6. Append в tasks log
-7. **FINISH:** finish-block (`code_changed: no`) + `## Handoff BACK AUDIT` обязателен
-   Next: `not_implemented[]` непуст **или** leftover legacy/fallback → `BACK IMPLEMENT` новых sNN → снова `BACK AUDIT` (петля)
-         `not_implemented[]` пуст **и** leftover пусты → `BACK QA`
-         только ⚠️ (deviations, нет ❌/leftover) → `BACK QA` (deviation фиксирован в артефакте)
+1. `OK BACK AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до любой оценки.
+2. **Intent Inventory**: из `plan-<epic_id>.md` и `decompose-<epic_id>/index.md` собрать полный список применимых FR/SC/US/AC/NFR и constitution MUST. Для каждого intent указать `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `Constitution <rule>` или `step:sNN`) и связать его с eNN/sNN.
+   **Constitution case selection:** если `memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml` и `memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml` имеют все шаги `completed`, использовать **CASE A**: проверять canonical `memory-bank/constitution.md` и явные refs в workflow; `constitution-note.md` не создавать. Если любой из эпиков не завершён, использовать CASE B и требовать отдельный constitution note по соответствующему implement shard.
+3. **Assess**: загрузить только plan/decompose coverage, заголовки implement `sNN|eNN` и evidence по bound file list; не делать full-repo audit. Построить legacy gap-матрицу (✅ / ❌ / ⚠️) по каждому `step_id`, затем проверить intent↔code/evidence, а не только наличие файла.
+4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding обязан иметь `gap_type` (`missing|partial|contradicts|unrequested`), `severity`, `source_ref`, `evidence` и `remaining_work`. `CRITICAL` из constitution MUST или P1 intent ставить первыми среди actionable findings.
+5. **Append remediation**: для каждого actionable `missing`, `partial` или `contradicts`, а также для каждого leftover, создать новый `decompose-<epic_id>/sNN-audit-<slug>.yaml` по шаблону epic-step. Это append-only: существующий completed implement shard не переписывать. В новом shard `goal` и `plan_refs` обязаны содержать traceable `source_ref`; обновить `decompose-<epic_id>/index.md` и `index.yaml` через `epic_resolve.py sync-index-yaml`. `unrequested` остаётся только finding с решением в `remaining_work`: auto-delete shard/code запрещён.
+6. **Dual-write и leftovers**: findings остаются канонической оценкой, а legacy arrays `implemented[]`, `not_implemented[]`, `deviations[]` заполняются из них для обратной совместимости. Проверить `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present` при brownfield replace; непустой leftover всегда означает продолжение remediation loop.
+7. **Converged / loop**: `converged: true` разрешён только когда actionable findings отсутствуют, все leftover-массивы пусты и для brownfield replace выполнен `purge_step_present=true` (либо `sunset: n/a`). Тогда следующий режим — `BACK QA`; ⚠️ deviations без actionable gap тоже идут в `BACK QA`. Иначе новые audit shards → `BACK IMPLEMENT` → повторный `BACK AUDIT`.
+8. **FINISH**: записать `memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`, append в tasks log и выполнить finish-block (`code_changed: no`) с обязательным `## Handoff BACK AUDIT`.
 
-**Верификация**: gap-матрица полна (все step_id плана проверены) + audit yaml записан + новые shards в index + leftover A/B/C проверены при replace
+**Boundary ANALYZE ≠ AUDIT**:
+
+| BACK ANALYZE | BACK AUDIT |
+|---|---|
+| До IMPLEMENT, read-only plan/decompose, без implement YAML | После реализации, intent↔code/evidence и implement headers |
+| Ищет coverage/ambiguity/constitution gaps и не создаёт audit shards | Классифицирует `findings[]`, создаёт append-only `sNN-audit-*` для remediation |
+| Не оценивает фактический код и не запускает audit loop | Решает `converged` → QA либо IMPLEMENT → AUDIT |
+
+**Operating Constraints**:
+- Lean inspection ограничен plan, decompose/index, implement headers и evidence по file list; не читать полные тела всех shards и не делать full-repo search.
+- Completed implement artifacts — append-only; AUDIT не меняет их и не переписывает код.
+- AUDIT не запускает `pytest`, `vitest`, Playwright или полный suite; тесты выполняются в соответствующем IMPLEMENT/QA workflow.
+- Не вводить MODE CONVERGE и не вызывать `specify-cli`; converge — семантика текущего AUDIT.
+- Не удалять unrequested автоматически: только finding + traceable decision.
+
+**Верификация**: Intent Inventory полон; Assess покрывает каждый plan/decompose intent и `step_id`; audit yaml использует `epic-audit/v2`; findings имеют обязательные поля; каждый новый shard имеет `source_ref` в `goal`/`plan_refs`; legacy arrays и leftover A/B/C записаны; `converged` согласован с отсутствием actionable findings и leftover.

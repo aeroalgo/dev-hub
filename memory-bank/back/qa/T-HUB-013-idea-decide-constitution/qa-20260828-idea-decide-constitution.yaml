@@ -1,0 +1,35 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-013-idea-decide-constitution
+plan_id: T-HUB-013-idea-decide-constitution
+epic_id: T-HUB-013-idea-decide-constitution
+date: 2026-08-28
+reviewer: BACK QA + @reviewer
+verdict: pass
+
+scope:
+  - "epic: T-HUB-013-idea-decide-constitution"
+  - "steps: s01–s09"
+  - "files: IDEA PIPELINE workflow/template, constitution artifacts, analyze/audit rules, root router, bounded SpecKit reference"
+
+checks:
+  - "Parent full suite: timeout 300s .venv/bin/pytest -q --tb=line — PASS (7705 passed, 181 skipped, 48 warnings; 190.75s)."
+  - "AC+ s01–s09: PASS — DECIDE scorecard/verdict/terminal kill, constitution starter/template, ANALYZE/AUDIT refs and CASE A/B, clarification contract, go handoff summary, root quick help, and bounded assess.decide reference verified."
+  - "AC−: PASS — no PLAN/IMPLEMENT routing after kill, MUST violations remain CRITICAL, forbidden SpecKit content absent from bounded artifacts, no contradictory workflow/template semantics, and no fail-open/security issue found."
+  - "Integration rule (§0.11): PASS — workflow/template, root/shared workflow, constitution refs, and assess.decide source counterpart verified."
+  - "Reviewer gate: @reviewer completed with VERDICT: PASS; no scoped epic defects found."
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "Suite emitted 48 warnings, including the existing simulated codex reconciliation warning; no test failures occurred."
+  - "Рабочее дерево содержит pre-existing изменения вне scope эпика; reviewer проверил только bounded T-HUB-013 surfaces."
+  - "Graphify unavailable in this hub checkout (.venv/bin/graphify отсутствует); QA использовал bounded artifact review и suite evidence."
+
+suite:
+  - "timeout 300s .venv/bin/pytest -q --tb=line — PASS: 7705 passed, 181 skipped, 48 warnings in 190.75s"
+  - "@reviewer — PASS: AC+, AC−, §0.11 и ALLOW READ проверены; pytest reviewer не запускал"

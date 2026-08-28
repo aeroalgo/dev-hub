@@ -1,0 +1,24 @@
+# dsh-phase-models is applied before this profile patch.
+# QA profile patch layer: reviewer preset and phase model bridge.
+- insert:
+    - id: preset-reviewer
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        id: reviewer
+        systemPrompt:
+          file: ../../presets/reviewer.prompt.md
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: reviewer
+        roots:
+          - path: ../../presets
+            trust: system
+        includeUserRoot: false
+
+- id: llm
+  config:
+    model: !!js process.env.PROJECT_LOOP_QA_MODEL ?? 'default'
+    env:
+      model: PROJECT_LOOP_QA_MODEL
+      credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'

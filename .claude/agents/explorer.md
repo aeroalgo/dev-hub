@@ -37,6 +37,7 @@ ALLOW READ в prompt — старт и клетка приоритета: вне
 ## FORBIDDEN (шум)
 
 - `rg` / `grep` / `find` / `ls` **без path** или по всему репо (`rg -in X`, `find . -name "*.py"`, `ls -d */`)
+- Read/search **вне ALLOW** packed prompt, если путь не назван явно в Цель / shard / plan
 - `rg` по `*.md` / creative / `plan-*.md` «на всякий случай»
 - Re-read одного `file_path` >1×
 - Широкий listing деревьев вместо Grep с path

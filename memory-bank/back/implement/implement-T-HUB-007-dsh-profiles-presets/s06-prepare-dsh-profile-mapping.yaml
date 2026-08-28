@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-007-dsh-profiles-presets
+title: s06 — prepare dsh_profile mapping + tests — context_loop.py + test_dsh_profile_mapping.py
+  IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-007-dsh-profiles-presets/s06-prepare-dsh-profile-mapping.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'graphify N/A: .venv/bin/graphify is unavailable in this hub checkout; oriented
+  via shard and listed paths.'
+gaps:
+  status: none
+done:
+- prepare_session exposes phase-derived dsh_profile values, defaulting to epic-implement
+  when phase is unresolved.
+- Added phase mapping, Claude guard, and preset synchronization/hash regression coverage.
+- Set PROJECT_AGENT_EXPLORER_MODEL_LOOP in the active-loop regression fixture so the
+  existing policy assertion matches explicit loop enablement.
+files:
+- loop/context_loop.py
+- loop/tests/test_dsh_profile_mapping.py
+- loop/tests/test_context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_prepare_emits_dsh_profile_implement
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py::test_sync_verify_preset_hash_matches_agent_md
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -k ''guard
+  or claude'' -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_context_loop.py
+  loop/tests/test_dsh_e2e_smoke.py loop/tests/test_dsh_runtime_adapter.py -q --tb=short`'
+integration_check:
+- dsh_profile is returned by prepare_session and maps resolved loop_phase to epic-<phase>.
+- dsh/presets/verify.prompt.md matches the frontmatter-stripped .claude/agents/verify.md
+  source.
+- Claude runtime remains accepted without a DSH profile requirement.
+grep_control:
+- back: rg -n "dsh_profile|loop_phase|EPIC_RUNTIME" loop/context_loop.py loop/tests/test_dsh_profile_mapping.py
+    loop/tests/test_context_loop.py
+  front: 'rg -n "AC\\+|name: verify" .claude/agents/verify.md dsh/presets/verify.prompt.md'
+verification_results:
+- 'cp1: PASS — IMPLEMENT maps to epic-implement.'
+- 'cp2: PASS — verify preset SHA-256 matches stripped agent source.'
+- 'cp3: PASS — Claude guard passes.'
+- 'cp4: PASS — targeted DSH/context suite passes with 102 tests.'
+- 'regression: PASS — active-loop agent policy test passes after explicit explorer
+  loop enablement.'
+checkpoints:
+- id: cp1
+  criterion: 'AC+4: test_prepare_emits_dsh_profile_implement PASS — phase IMPLEMENT
+    → dsh_profile == "epic-implement"
+
+    '
+  status: done
+  done_at: '2026-08-27T23:22:27Z'
+- id: cp2
+  criterion: 'NFR-1: test_sync_verify_preset_hash_matches_agent_md PASS — preset bytes
+    track agent md
+
+    '
+  status: done
+  done_at: '2026-08-27T23:23:51Z'
+- id: cp3
+  criterion: 'Guard: EPIC_RUNTIME=claude → prepare не требует dsh_profile (или dsh_profile
+    is None)
+
+    '
+  status: done
+  done_at: '2026-08-27T23:24:01Z'
+- id: cp4
+  criterion: 'Все новые тесты + существующие dsh-related тесты зелёные
+
+    '
+  status: done
+  done_at: '2026-08-27T23:24:24Z'
+resume_from: cp1

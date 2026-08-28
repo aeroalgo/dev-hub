@@ -35,14 +35,16 @@ as_built:
   - dsh/ — директория НЕ существует в репо
 
 delta:
-  - CREATE dsh/README.md:
+  - |
+      CREATE dsh/README.md:
       Секция "Installation": Node ≥ 18; npm install -g @deepseek-ai/dsh@VERSION
       Секция "Environment": DEEPSEEK_API_KEY=sk-...; EPIC_RUNTIME=dsh; DSH_BIN (optional override)
       Секция "Profiles": dsh/profiles/<name>.json — структура описывается в T-HUB-007
       Секция "Running": PROJECT_ROOT=... EPIC_RUNTIME=dsh make loop ARGS=gpt
       Секция "Stub profile": до T-HUB-007 → epic-implement profile не загружается; loop вызывает dsh с --profile stub/epic-implement
       Секция "Version pinning": зафиксировать @deepseek-ai/dsh@VERSION в README; предупреждение об unstable CLI
-  - CREATE dsh/bin/which-dsh.sh (executable, chmod +x):
+  - |
+      CREATE dsh/bin/which-dsh.sh (executable, chmod +x):
       #!/usr/bin/env bash
       set -euo pipefail
       # 1. DSH_BIN override

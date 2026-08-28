@@ -13,7 +13,7 @@ alwaysApply: false
 | Command | load_now update |
 |---------|-----------------|
 | `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
-| `* AUDIT` | audit-артефакт в `load_now`; `not_implemented[]` непуст → next = `* IMPLEMENT` новых sNN/eNN (петля); `not_implemented[]` пуст → next = `* QA` |
+| `* AUDIT` | audit-артефакт в `load_now`; если `converged != true` или `not_implemented[]`/`legacy_surfaces_remaining[]`/`fallback_remaining[]` непусты → next = `* IMPLEMENT` новых sNN/eNN (петля); только `converged: true` при пустых actionable findings и leftover-массивах → next = `* QA` |
 | `* QA` | `## Handoff * QA` + qa link; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* REFLECT` | align post-task |
@@ -21,7 +21,9 @@ alwaysApply: false
 | `* CREATIVE` | rewire `sNN`/`eNN` канон `yes (CR-…) — **closed**` / index `yes (CR-…) ✅`; next tip по open/closed (`templates/decompose/epic-step.yaml`) |
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
+| `* ANALYZE` | `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` в `load_now`; `metrics.critical_count = 0` → next IMPLEMENT, `> 0` → next CLARIFY/DECOMPOSE |
 | `* PLAN` | plan artifact в `load_now` OK (объект работы) → next обычно DECOMPOSE; multi-epic → roadmap + **первый** plan / `* DECOMPOSE <first-epic>` |
+| `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` по шаблону `@.cursor/templates/clarify.md` → next обычно `* PLAN` |
 | `VAN` / `TASK` | init or shift focus |
 
 ## graphify update

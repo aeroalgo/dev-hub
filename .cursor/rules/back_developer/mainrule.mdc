@@ -13,6 +13,8 @@ alwaysApply: false
 |-------|---------|
 | `BACK VAN` | @.cursor/rules/back_developer/workflow-van.mdc |
 | `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc |
+| `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
 | `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |
