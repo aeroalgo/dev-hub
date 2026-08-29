@@ -1,0 +1,94 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s05 — loop_run subprocess + Fake + execution result mapping — FR-003/007 IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s05-loop-run-subprocess-execution-result.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/async-python-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- graphify query attempted; graphify executable is unavailable in this hub checkout,
+  so scoped rg/read fallback was used.
+- loop/board_launch/loop_argv.py provides LoopArgvResult.argv/env_extra and BridgeConfig.loop_bin.
+- loop/board_launch/metadata.py provides LaunchCard.project_root; loop/loop.sh uses
+  flock on the per-project runner lock and reports conflicts with exit code 1.
+gaps:
+  status: none
+done:
+- Added loop_run subprocess execution with list argv, cwd project_root, merged environment,
+  captured stdout/stderr, hard 300-second timeout, and bounded execution log.
+- Added ExecutionResult status/exit_code/log_path/diagnostic_code mapping, including
+  lock_conflict detection for the loop runner's flock diagnostic.
+- Added LoopRunError for spawn and timeout failures.
+- Added FakeLoopRunner with configurable exit_code and call recording for downstream
+  pipelines.
+- Added focused success, failure, no-shell, environment, lock, log, and project-root
+  tests.
+files:
+- loop/board_launch/loop_run.py
+- loop/tests/test_board_launch_loop_run.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_fake_loop_success
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_fake_loop_failure
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_no_shell_true
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_lock_conflict
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py loop/tests/test_board_launch_argv.py
+  loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_metadata.py -q
+  --tb=line`'
+- '`if rg -n ''shell=True'' loop/board_launch/loop_run.py; then exit 1; else printf
+  ''shell=True absent\n''; fi`'
+integration_check:
+- loop_run consumes LoopArgvResult.argv/env_extra and LaunchCard.project_root without
+  rebuilding or shell-expanding command arguments.
+- loop_bin_override replaces only argv[0], preserving model/runtime arguments for
+  callers.
+- DEV_HUB/loop/runtime/exec-<timestamp>.log is created and its path is attached to
+  ExecutionResult for Host-visible execution records.
+grep_control:
+- back: loop/loop.sh — flock remains the single runner concurrency guard; loop_run
+    maps its existing exit-1 diagnostic instead of duplicating lock ownership.
+  front: ''
+- back: ''
+  front: n/a — backend-only launch contract.
+verification_results:
+- 'cp1-cp4 targeted tests: 4 passed.'
+- 's05 module suite: 6 passed.'
+- 'board-launch regression suite: 33 passed.'
+- 'shell=True control: absent.'
+- No full repository suite run; targeted BACK suite covers this shard and preceding
+  board-launch contracts.
+- 'Graphify unavailable: .venv/bin/graphify does not exist in this hub checkout; scoped
+  source inspection used instead.'
+checkpoints:
+- id: cp1
+  criterion: FakeLoopRunner exit_code=0 → ExecutionResult status='succeeded'; exit_code
+    recorded; loop_bin called once with expected argv
+  status: done
+  done_at: '2026-08-29T00:09:12Z'
+- id: cp2
+  criterion: FakeLoopRunner exit_code=1 → ExecutionResult status='failed'; exit_code=1
+  status: done
+  done_at: '2026-08-29T00:09:13Z'
+- id: cp3
+  criterion: subprocess argv does NOT use shell=True; env_extra EPIC_RUNTIME=dsh propagated
+    to spawn env
+  status: done
+  done_at: '2026-08-29T00:09:13Z'
+- id: cp4
+  criterion: lock conflict exit code → ExecutionResult diagnostic_code='lock_conflict'
+  status: done
+  done_at: '2026-08-29T00:09:13Z'
+resume_from: cp1

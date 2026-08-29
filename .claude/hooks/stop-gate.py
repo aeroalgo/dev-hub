@@ -174,6 +174,10 @@ def main() -> None:
         )
 
     verify_active, verify_bypass, verify_invalid = _gate_status("verify", cwd)
+    armed_step_u = str(epic.get("armed_step") or "").upper() if epic_on else ""
+    if armed_step_u == "DECOMPOSE":
+        st["need_verify"] = False
+        save_state(session_id, cwd, st)
     if verify_bypass and st.get("need_verify"):
         _record_gate_bypass(st, "verify", verify_bypass)
         st["need_verify"] = False
@@ -288,32 +292,33 @@ def main() -> None:
         return
 
     if finishing and epic.get("last_verify_verdict") == "PASS":
-        integrity = validate_finish_integrity(
-            cwd,
-            decompose=epic.get("armed_decompose"),
-            step_id=str(epic.get("armed_step") or st.get("step") or ""),
-            require_verify_pass=True,
-        )
-        if not integrity["ok"]:
-            diagnostics = ", ".join(integrity["diagnostic_codes"])
-            errors = "; ".join(integrity["errors"])
-            if "mark_index_missing" in integrity["diagnostic_codes"]:
-                retries = int(st.get("mark_index_missing_blocks") or 0) + 1
-                st["mark_index_missing_blocks"] = retries
-                save_state(session_id, cwd, st)
-                if retries >= 2:
-                    _block(
-                        "NEED_HUMAN: mark_index_missing — index не синхронизирован после "
-                        "verify PASS. Выполни finalize-step и дождись JSON `ok: true`. "
-                        + errors
-                    )
-                    return
-            _block(
-                "epic-gate: finish_integrity FAIL — "
-                f"diagnostic_codes={diagnostics}; {errors}. "
-                "Вызови finalize-step, дождись JSON `ok: true`, затем повтори stop."
+        if armed_step_u != "DECOMPOSE":
+            integrity = validate_finish_integrity(
+                cwd,
+                decompose=epic.get("armed_decompose"),
+                step_id=str(epic.get("armed_step") or st.get("step") or ""),
+                require_verify_pass=True,
             )
-            return
+            if not integrity["ok"]:
+                diagnostics = ", ".join(integrity["diagnostic_codes"])
+                errors = "; ".join(integrity["errors"])
+                if "mark_index_missing" in integrity["diagnostic_codes"]:
+                    retries = int(st.get("mark_index_missing_blocks") or 0) + 1
+                    st["mark_index_missing_blocks"] = retries
+                    save_state(session_id, cwd, st)
+                    if retries >= 2:
+                        _block(
+                            "NEED_HUMAN: mark_index_missing — index не синхронизирован после "
+                            "verify PASS. Выполни finalize-step и дождись JSON `ok: true`. "
+                            + errors
+                        )
+                        return
+                _block(
+                    "epic-gate: finish_integrity FAIL — "
+                    f"diagnostic_codes={diagnostics}; {errors}. "
+                    "Вызови finalize-step, дождись JSON `ok: true`, затем повтори stop."
+                )
+                return
 
     # EPIC MODE: allow stop only when Handoff/load_now fingerprint advanced.
     progressed, _fp = _epic_progressed(cwd, epic)

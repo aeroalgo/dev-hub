@@ -1,0 +1,101 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-014
+action: BACK QA
+plan_id: T-HUB-014-dsh-mb-board-sync
+epic_id: T-HUB-014-dsh-mb-board-sync
+date: 2026-08-28
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "epic: T-HUB-014-dsh-mb-board-sync"
+  - "steps: s01-s11"
+  - "files: loop/board_sync/, bin/hub-board, loop/context_loop.py, dsh/README.md"
+  - "tests: loop/tests/test_board_sync_*.py"
+
+checks:
+  - "targeted board-sync suite: PASS — timeout 300s .venv/bin/pytest -q --tb=line loop/tests/test_board_sync_*.py — 53 passed in 0.28s"
+  - "full backend suite: PASS — timeout 300s .venv/bin/pytest -q --tb=line — 7758 passed, 181 skipped, 48 warnings in 190.83s"
+  - "lint: FAIL — timeout 300s python3 -m ruff check loop/board_sync loop/tests/test_board_sync_*.py bin/hub-board loop/context_loop.py — 58 findings; board_sync package has 17 findings"
+  - "compile check: PASS — python3 -m compileall -q loop/board_sync loop/context_loop.py bin/hub-board"
+  - "diff check: PASS — git diff --check"
+  - "integration rule (§0.11): PASS for board-sync refs — DSH_TASK_BOARD_HOST_URL, HttpHostClient, workspace registry, CLI wrapper, roadmap_queue counterpart found"
+  - "security spot-check: PASS — HTTP non-2xx/invalid JSON fail closed; registry and card metadata validation fail closed; no shell=True or subprocess in board-sync package"
+  - "leftover legacy/fallback: PASS — legacy_surfaces_remaining is empty; offline LedgerFileClient is explicitly documented as non-production fallback"
+  - "reviewer gate: BLOCKED — reviewer confirmed AC and integration paths, but lint remains red and QA cannot pass while lint is red"
+
+issues:
+  - id: QA-LINT-001
+    severity: medium
+    file: loop/board_sync/cli.py:3-11
+    summary: "Board-sync package lint reports unsorted imports, deprecated Sequence import, and unused FakeClient import."
+    evidence: "python3 -m ruff check loop/board_sync reports I001, UP035, and F401 findings."
+  - id: QA-LINT-002
+    severity: medium
+    file: loop/board_sync/sync.py:3-6
+    summary: "Board-sync package lint reports unsorted imports, unused Path import, and unnecessary list literals passed to tuple."
+    evidence: "python3 -m ruff check loop/board_sync reports I001, F401, and C409 at sync.py:60 and sync.py:95."
+  - id: QA-LINT-003
+    severity: medium
+    file: loop/board_sync/scan_mb.py:7
+    summary: "Board-sync package lint reports unused Any import and type-check exception style findings."
+    evidence: "python3 -m ruff check loop/board_sync reports F401 and TRY004 findings."
+  - id: QA-DOC-001
+    severity: low
+    file: loop/tests/test_board_sync_sync.py:12
+    summary: "Board-sync test surfaces contain unused imports and additional import-order findings."
+    evidence: "Scoped ruff check reports F401/I001 in board-sync tests and 58 findings across the requested touched scope."
+
+blockers:
+  - "Lint gate is not green: board-sync package has 17 findings and the requested touched scope has 58 findings."
+
+fix_plan:
+  - "BACK BUGFIX board-sync lint cleanup — remove unused imports, normalize imports, use collections.abc imports, replace unnecessary tuple/list constructions, and correct exception types; rerun ruff and targeted suite."
+
+review:
+  verdict: blocked
+  suite_results:
+    - "targeted board-sync suite: PASS — 53 passed"
+    - "full backend suite: PASS — 7758 passed, 181 skipped, 48 warnings"
+    - "lint: FAIL — 58 findings in scoped command; 17 in loop/board_sync"
+    - "compile: PASS"
+    - "diff check: PASS"
+  ac_plus:
+    - "Board-sync scans workspaces, memory-bank steps, and lifecycle gates; desired-set diff supports create/update/archive."
+    - "CLI sync/status and DSH_TASK_BOARD_HOST_URL / --host-url are wired; host and offline ledger behavior are documented."
+    - "Malformed workspace/index/HTTP data fails closed; roadmap errors are surfaced; no silent fallback to Claude/agent execution."
+    - "DONE lifecycle archive-all and roadmap diagnostics are covered by current implementation/tests."
+  ac_minus:
+    - "Do not treat targeted tests as a substitute for full suite."
+    - "Do not declare QA PASS while lint is red."
+    - "Preserve non-board cards and fail-closed behavior on configuration errors."
+  section_0_11:
+    - "DSH_TASK_BOARD_HOST_URL ↔ CLI parser/HttpHostClient."
+    - "Workspace registry ↔ discovery."
+    - "roadmap_queue ↔ scan_gates."
+    - "CLI wrapper ↔ loop.board_sync."
+  allow_read:
+    - ".claude/hooks/agent-pretool.py"
+    - "loop/board_sync/cli.py"
+    - "loop/board_sync/sync.py"
+    - "loop/board_sync/scan_mb.py"
+    - "loop/board_sync/scan_gates.py"
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_cli.py"
+    - "loop/tests/test_board_sync_sync.py"
+    - "memory-bank/back/qa/T-HUB-014-dsh-mb-board-sync/qa-20260828-dsh-mb-board-sync.yaml"
+    - "memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/index.yaml"
+  note: "ALLOW READ limit ≤10 was respected; reviewer was read-only and did not run test runners."
+
+limitations:
+  - "No files were changed during QA."
+  - "Ruff is available as python3 -m ruff; .venv/bin/ruff is absent."
+  - "Reviewer read-only review was bounded to the ten-file ALLOW READ list; no additional deep review was performed."
+
+suite:
+  - "timeout 300s python3 -m ruff check loop/board_sync loop/tests/test_board_sync_*.py bin/hub-board loop/context_loop.py"
+  - "timeout 300s .venv/bin/pytest -q --tb=line loop/tests/test_board_sync_*.py"
+  - "timeout 300s .venv/bin/pytest -q --tb=line"
+  - "python3 -m compileall -q loop/board_sync loop/context_loop.py bin/hub-board"
+  - "git diff --check"

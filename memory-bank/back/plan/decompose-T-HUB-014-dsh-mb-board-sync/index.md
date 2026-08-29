@@ -135,13 +135,25 @@
 
 | step_id | title & files | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-card-model-metadata-stable-id.yaml](s01-card-model-metadata-stable-id.yaml) `loop/board_sync/card_model.py` + test | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-workspaces-discover-eligible-filter.yaml](s02-workspaces-discover-eligible-filter.yaml) `loop/board_sync/workspaces.py` + test | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-scan-mb-step-workitems-from-index-yaml.yaml](s03-scan-mb-step-workitems-from-index-yaml.yaml) `loop/board_sync/scan_mb.py` + test | no | yes | BACK IMPLEMENT | pending |
-| **s04** | [s04-scan-gates-clarify-analyze-tips-lifecycle.yaml](s04-scan-gates-clarify-analyze-tips-lifecycle.yaml) `loop/board_sync/scan_gates.py` + test | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-diff-orchestrator-fake-client-sync.yaml](s05-diff-orchestrator-fake-client-sync.yaml) `loop/board_sync/diff.py` + `sync.py` + `client.py` (Fake) + test | no | yes | BACK IMPLEMENT | pending |
-| **s06** | [s06-http-host-client-fail-closed.yaml](s06-http-host-client-fail-closed.yaml) `loop/board_sync/client.py` HttpHostClient + integration test | no | yes | BACK IMPLEMENT | pending |
-| **s07** | [s07-cli-hub-board-dry-run-status.yaml](s07-cli-hub-board-dry-run-status.yaml) `loop/board_sync/cli.py` + `bin/hub-board` + test | no | yes | BACK IMPLEMENT | pending |
-| **s08** | [s08-docs-readme-regression-polish.yaml](s08-docs-readme-regression-polish.yaml) `dsh/README.md` + test polish | no | no | BACK IMPLEMENT | pending |
-
+| **s01** | [s01-card-model-metadata-stable-id.yaml](s01-card-model-metadata-stable-id.yaml) `loop/board_sync/card_model.py` + test | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-workspaces-discover-eligible-filter.yaml](s02-workspaces-discover-eligible-filter.yaml) `loop/board_sync/workspaces.py` + test | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-scan-mb-step-workitems-from-index-yaml.yaml](s03-scan-mb-step-workitems-from-index-yaml.yaml) `loop/board_sync/scan_mb.py` + test | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-scan-gates-clarify-analyze-tips-lifecycle.yaml](s04-scan-gates-clarify-analyze-tips-lifecycle.yaml) `loop/board_sync/scan_gates.py` + test | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-diff-orchestrator-fake-client-sync.yaml](s05-diff-orchestrator-fake-client-sync.yaml) `loop/board_sync/diff.py` + `sync.py` + `client.py` (Fake) + test | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-http-host-client-fail-closed.yaml](s06-http-host-client-fail-closed.yaml) `loop/board_sync/client.py` HttpHostClient + integration test | no | yes | BACK IMPLEMENT | completed |
+| **s07** | [s07-cli-hub-board-dry-run-status.yaml](s07-cli-hub-board-dry-run-status.yaml) `loop/board_sync/cli.py` + `bin/hub-board` + test | no | yes | BACK IMPLEMENT | completed |
+| **s08** | [s08-docs-readme-regression-polish.yaml](s08-docs-readme-regression-polish.yaml) `dsh/README.md` + test polish | no | no | BACK IMPLEMENT | completed |
+| **s09** | [s09-audit-archive-all.yaml](s09-audit-archive-all.yaml) `loop/board_sync/` DONE lifecycle archive-all remediation (FR-017) | no | yes | BACK IMPLEMENT | completed |
+| **s10** | [s10-audit-idempotent-generation.yaml](s10-audit-idempotent-generation.yaml) generation-only update suppression (FR-010) | no | yes | BACK IMPLEMENT | completed |
+| **s11** | [s11-audit-roadmap-error-diagnostics.yaml](s11-audit-roadmap-error-diagnostics.yaml) roadmap selector diagnostics (FR-004, MUST-2/5/6) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** все `no` — никаких открытых CR (CREATIVE не требуется).
+
+## Audit remediation coverage
+
+| Finding | Source refs | Remediation step |
+| :--- | :--- | :--- |
+| F1 | FR-017 | s09 |
+| F2 | FR-010 / NFR: idempotent sync | s10 |
+| F3 | FR-004 / FR-016 / Constitution MUST-2/5/6 | s11 |
+
+**Audit rule:** s09–s11 are append-only remediation shards from `audit-20260828-dsh-mb-board-sync.yaml`; they remain `pending` until BACK IMPLEMENT and a repeat BACK AUDIT.

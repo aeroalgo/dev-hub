@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Synchronize registered memory-bank work with the DSH task board.
+set -euo pipefail
+
+HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec python3 -m loop.board_sync "$@"

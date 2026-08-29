@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "arm_loop_from_card pipeline + syncAfterLoop opt — FR-004/011"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/board_launch/pipeline.py`:
+  `arm_loop_from_card(launch_card, config, *, preset_id=None, runtime=None,
+                      loop_runner=None, arm_fn=None) -> PipelineResult`
+  Логика (FR-004):
+    1. arm_from_card(launch_card) → ArmResult; если raises → PipelineResult(status='arm_failed', loop_invoked=False).
+    2. build_loop_argv(project_root, phase, config, preset_id, runtime) → LoopArgvResult.
+    3. loop_run(launch_card, argv_result, config, loop_runner) → ExecutionResult.
+    4. Если config.syncAfterLoop == True (default True) → spawn `hub-board sync --workspace-id <ws>`;
+       sync failure → PipelineResult.sync_warning (не override loop exit code).
+    5. Return PipelineResult(arm=ArmResult, loop=ExecutionResult, sync_warning=str|None).
+  Pokrývá: AC+5, FR-004, FR-011, NFR: fail-closed (arm fail → loop not invoked).
+
+context:
+  consumes:
+    - "loop/board_launch/arm.py (arm_from_card, ArmResult, StepMismatchError) — s04"
+    - "loop/board_launch/loop_argv.py (build_loop_argv, LoopArgvResult) — s03"
+    - "loop/board_launch/loop_run.py (loop_run, FakeLoopRunner, ExecutionResult) — s05"
+    - "plan §FR-004, FR-011"
+    - "plan §Post-loop sync"
+  produces:
+    - "loop/board_launch/pipeline.py"
+    - "loop/tests/test_board_launch_pipeline.py"
+  plan_refs:
+    - "plan §FR-004 arm_loop_from_card"
+    - "plan §Post-loop sync — syncAfterLoop"
+    - "AC+5, FR-011"
+    - "NFR: fail-closed"
+  files:
+    - "loop/board_launch/pipeline.py"
+    - "loop/tests/test_board_launch_pipeline.py"
+
+as_built:
+  - "loop/board_launch/arm.py — arm_from_card, ArmResult — created s04"
+  - "loop/board_launch/loop_argv.py — build_loop_argv, LoopArgvResult — created s03"
+  - "loop/board_launch/loop_run.py — loop_run, FakeLoopRunner, ExecutionResult — created s05"
+
+delta:
+  - "CREATE loop/board_launch/pipeline.py — PipelineResult(status, arm, loop, sync_warning); arm_loop_from_card(launch_card, config, preset_id, runtime, loop_runner, arm_fn) -> PipelineResult; _sync_after_loop(workspace_id, config) → str|None (warning)"
+  - "CREATE loop/tests/test_board_launch_pipeline.py — unit tests using FakeLoopRunner + mock arm_fn"
+
+deletes: []
+
+out_of_scope:
+  - "CLI surface — s07"
+  - "DSH plugin call site — s08"
+  - "Board UI controls — s09"
+  - "Full regression suite — s10"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "arm ok + fake loop exit 0 → PipelineResult status='succeeded'; both arm and loop fields populated"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_pipeline.py::test_arm_loop_success -q"
+  - id: cp2
+    criterion: "arm raises StepMismatchError → PipelineResult status='arm_failed'; loop_invoked=False; loop runner NOT called"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_pipeline.py::test_arm_fails_loop_not_called -q"
+  - id: cp3
+    criterion: "syncAfterLoop=True → sync command invoked after loop regardless of loop exit; sync failure → sync_warning string, not pipeline failure"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_pipeline.py::test_sync_after_loop -q"
+  - id: cp4
+    criterion: "syncAfterLoop=False → sync not invoked; sync_warning=None"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_pipeline.py::test_no_sync_after_loop -q"
+
+verify:
+  - "from loop.board_launch.pipeline import arm_loop_from_card, PipelineResult"
+  - "arm_loop_from_card(step_card, config, loop_runner=FakeLoopRunner(0)).status == 'succeeded'"
+  - "arm_loop_from_card(step_card_mismatch, config).loop_invoked == False"
+
+tdd:
+  - "test_arm_loop_success — arm ok, loop exit 0 → PipelineResult succeeded"
+  - "test_arm_fails_loop_not_called — StepMismatchError → arm_failed; no loop call"
+  - "test_loop_fails_pipeline_status_failed — arm ok, loop exit 1 → failed"
+  - "test_sync_after_loop — syncAfterLoop=True → sync called; warning on sync failure"
+  - "test_no_sync_after_loop — syncAfterLoop=False → no sync call"
+  - "test_sync_failure_is_warning — sync non-zero → PipelineResult.sync_warning populated; status from loop"

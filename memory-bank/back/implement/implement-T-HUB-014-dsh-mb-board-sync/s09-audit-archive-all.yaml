@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s09 — Audit remediation — FR-017 DONE lifecycle archives all epic cards IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/s09-audit-archive-all.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- DONE lifecycle emits a typed, workspace/role/epic-scoped archive_all signal.
+- run_sync archives every matching mb-* card, including cards absent from desired
+  active steps.
+- Archive-all preserves non-mb-* cards and mb-* cards from other epics.
+files:
+- loop/board_sync/scan_gates.py
+- loop/board_sync/sync.py
+- loop/board_sync/diff.py
+- loop/tests/test_board_sync_scan_gates.py
+- loop/tests/test_board_sync_sync.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_gates.py loop/tests/test_board_sync_sync.py
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py::test_done_epic_archive_all
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_*.py -q --tb=line`'
+integration_check:
+- GateWorkItem.archive_all is consumed by desired_cards and run_sync; metadata scope
+  is parsed via parse_metadata.
+- 'Board operations remain one-way: sync only calls board_client.upsert/archive and
+  never writes memory-bank files.'
+grep_control: []
+verification_results:
+- 'cp1: 13 passed'
+- 'cp2: 1 passed'
+- 'cp3: 7 passed'
+- 'board synchronization suite: 49 passed'
+checkpoints:
+- id: cp1
+  criterion: DONE lifecycle produces an explicit archive-all signal scoped to workspace,
+    role, and epic
+  status: done
+  done_at: '2026-08-28T15:42:48Z'
+- id: cp2
+  criterion: run_sync archives all matching mb-* cards for DONE epic, including cards
+    absent from desired active set
+  status: done
+  done_at: '2026-08-28T15:42:59Z'
+- id: cp3
+  criterion: DONE archive-all does not modify non-mb-* cards or mb-* cards belonging
+    to another epic
+  status: done
+  done_at: '2026-08-28T15:43:32Z'
+resume_from: cp1

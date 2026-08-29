@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "arm_from_card + step_mismatch + gate arm rules — FR-002/001b"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/board_launch/arm.py`:
+  `arm_from_card(launch_card: LaunchCard, cwd_override: Path | None = None) -> ArmResult`
+  Логика:
+    1. Вызвать `context_loop.arm_session(project_root, decompose_rel_or_id)` через subprocess
+       (или прямой Python import `arm_active_context_from_decompose` — выбор по импортируемости).
+    2. Получить JSON ответ: `step_id` от arm.
+    3. Для `card_kind=step`: если `arm_result.step_id != card.step_id` → `StepMismatchError` (exit 2, diagnostic_code='step_mismatch').
+    4. Для `card_kind=gate`: не проверять step_id; `allowRoadmapAdvance=false` default → если `gate_phase=ROADMAP` и нет `explicit_epic` в metadata → `RoadmapAdvanceDeniedError` (AC−3).
+    5. Return `ArmResult(step_id, armed_epic, ok=True)` on success.
+  Покрывает: AC+3, AC+4, SC-001, SC-004, FR-002, FR-001b, AC−1, AC−3, NFR: fail-closed.
+
+context:
+  consumes:
+    - "loop/board_launch/metadata.py (LaunchCard, CardMetadataError) — s02"
+    - "loop/context_loop.py (arm_session, arm_active_context_from_decompose) — T-HUB-014 dep"
+    - "plan §arm_from_card + step_mismatch rules"
+    - "plan §gate arm rules"
+    - "plan §FR-002, FR-001b"
+  produces:
+    - "loop/board_launch/arm.py"
+    - "loop/tests/test_board_launch_arm.py"
+  plan_refs:
+    - "plan §step_mismatch rules"
+    - "plan §gate arm rules (card_kind=gate)"
+    - "plan §FR-002, FR-001b"
+    - "AC+3, AC+4, SC-001, SC-004"
+    - "AC−1, AC−3"
+    - "NFR: fail-closed"
+  files:
+    - "loop/board_launch/arm.py"
+    - "loop/tests/test_board_launch_arm.py"
+
+as_built:
+  - "loop/context_loop.py — имеет arm_session(); arm_active_context_from_decompose()"
+  - "loop/board_launch/metadata.py — LaunchCard, CardMetadataError — создан s02"
+
+delta:
+  - "CREATE loop/board_launch/arm.py — StepMismatchError(RuntimeError); RoadmapAdvanceDeniedError(RuntimeError); ArmResult(step_id, armed_epic, ok); arm_from_card(launch_card, cwd_override) -> ArmResult"
+  - "CREATE loop/tests/test_board_launch_arm.py — unit tests с fixture activeContext (tmpdir)"
+
+deletes: []
+
+out_of_scope:
+  - "loop subprocess spawn — s05"
+  - "arm_loop pipeline — s06"
+  - "CLI subcommands — s07"
+  - "allow_any_pending flag — документировать как out_of_scope v1; может быть s04b если нужно"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "arm_from_card step card happy path: fixture activeContext updated; step_id matches card metadata; ArmResult.ok=True"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_arm.py::test_arm_step_happy -q"
+  - id: cp2
+    criterion: "arm_from_card step card: arm returns step_id='s03' but card.step_id='s02' → StepMismatchError; loop not called (ArmResult not returned)"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_arm.py::test_step_mismatch -q"
+  - id: cp3
+    criterion: "arm_from_card gate card: no step_id check; gate_phase=ROADMAP without explicit epic → RoadmapAdvanceDeniedError"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_arm.py::test_gate_roadmap_denied -q"
+  - id: cp4
+    criterion: "arm_from_card gate card: gate_phase=QA, has decompose_rel → arm succeeds; no step_id check"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_arm.py::test_gate_arm_happy -q"
+
+verify:
+  - "from loop.board_launch.arm import arm_from_card, ArmResult, StepMismatchError, RoadmapAdvanceDeniedError"
+  - "arm_from_card(step_card_matching, tmp_project) returns ArmResult(ok=True)"
+  - "arm_from_card(step_card_mismatched, tmp_project) raises StepMismatchError"
+  - "arm_from_card(gate_card_roadmap_no_explicit, tmp_project) raises RoadmapAdvanceDeniedError"
+
+tdd:
+  - "test_arm_step_happy — step card; arm ok; step_id matches; activeContext updated in tmpdir"
+  - "test_step_mismatch — armed step_id != card step_id → StepMismatchError; diagnostic_code"
+  - "test_gate_arm_happy — gate_phase=QA; arm succeeds; no step_mismatch check"
+  - "test_gate_roadmap_denied — gate_phase=ROADMAP; no explicit_epic → RoadmapAdvanceDeniedError"
+  - "test_arm_uses_project_root_only — arm writes only project_root/memory-bank; not dev-hub memory-bank"
+  - "test_arm_failure_propagates — arm_session fails → ArmResult raised; not swallowed"

@@ -1,0 +1,406 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-014-dsh-mb-board-sync
+plan_id: T-HUB-014-dsh-mb-board-sync
+date: 2026-08-28
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 8
+  implemented: 8
+  not_implemented: 0
+  deviations: 3
+  findings: 3
+
+# Full bounded intent inventory from plan FR/SC/US/AC/NFR and applicable constitution MUSTs.
+intent_checked:
+  fr_total: 18
+  fr_satisfied: 16
+  sc_checked: 6
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: US-001
+    intent: Registered eligible workspace pending/in_progress steps become mb-* board cards with workspace identity and project_root metadata.
+    step_id: s02/s03/s05
+    assessment: satisfied
+    evidence: loop/board_sync/workspaces.py:32-76; loop/board_sync/scan_mb.py:44-131; loop/board_sync/diff.py:41-66; s02/s03/s05 implement evidence.
+  - source_ref: US-002
+    intent: Completed steps leave active board through archive on a later sync.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/board_sync/diff.py:128-136; loop/board_sync/sync.py:59-65; loop/tests/test_board_sync_sync.py:52-74.
+  - source_ref: US-003
+    intent: Dry-run prints operations and performs no board writes.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/board_sync/cli.py:76-88,119-128; loop/tests/test_board_sync_cli.py:64-74.
+  - source_ref: US-004
+    intent: User-created non-mb-* tasks remain untouched.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/board_sync/diff.py:128-136; loop/tests/test_board_sync_sync.py:76-84.
+  - source_ref: US-005
+    intent: Empty implementation queue exposes one current post-implement gate, including QA and qa_failed→BUGFIX.
+    step_id: s04/s05
+    assessment: satisfied
+    evidence: loop/board_sync/scan_gates.py:99-138; loop/tests/test_board_sync_scan_gates.py:60-113.
+  - source_ref: US-006
+    intent: Step and gate cards share epic_id in title/metadata for board search.
+    step_id: s01/s08
+    assessment: satisfied
+    evidence: loop/board_sync/card_model.py:103-152,155-183; dsh/README.md:120-125; s01/s08 implement evidence.
+
+  - source_ref: FR-001
+    intent: Discover workspaces only from $DSH_HOME/storages/workspace.json with --dsh-home override.
+    step_id: s02/s07
+    assessment: satisfied
+    evidence: loop/board_sync/workspaces.py:32-76; loop/board_sync/cli.py:28-33,76-78.
+  - source_ref: FR-002
+    intent: Eligible workspace path exists and contains memory-bank/ directory.
+    step_id: s02
+    assessment: satisfied
+    evidence: loop/board_sync/workspaces.py:26-29,67-76.
+  - source_ref: FR-003
+    intent: Scan role-scoped decompose index.yaml files into WorkItem values and active statuses.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop/board_sync/scan_mb.py:44-131.
+  - source_ref: FR-004
+    intent: Emit a side-effect-free ROADMAP tip when no pending work exists and queue has a selectable next epic.
+    step_id: s04
+    assessment: partial
+    evidence: loop/board_sync/scan_gates.py:261-276 calls select_next_epic, returns no gate when selection is not ok at 270, and catches ImportError/OSError/ValueError/KeyError; roadmap selection errors are therefore silently suppressed instead of reported fail-closed.
+  - source_ref: FR-005
+    intent: Upsert by stable ID and map title/description/prompt/workspace/status.
+    step_id: s01/s05/s06
+    assessment: satisfied
+    evidence: loop/board_sync/card_model.py:67-112,155-183; loop/board_sync/diff.py:41-95; loop/board_sync/client.py:60-73.
+  - source_ref: FR-006
+    intent: Archive vanished mb-* cards.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/board_sync/diff.py:128-136 and sync application at loop/board_sync/sync.py:59-65.
+  - source_ref: FR-007
+    intent: CLI sync, dry-run, workspace filter, and status.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/board_sync/cli.py:17-116; loop/tests/test_board_sync_cli.py:54-127.
+  - source_ref: FR-008
+    intent: mb-board-card/v1 machine metadata and parser round-trip.
+    step_id: s01
+    assessment: satisfied
+    evidence: loop/board_sync/card_model.py:103-152; loop/tests/test_board_sync_card_model.py:78-90.
+  - source_ref: FR-009
+    intent: TaskBoardClient protocol with FakeClient, HttpHostClient, and offline LedgerFileClient.
+    step_id: s05/s06
+    assessment: satisfied
+    evidence: loop/board_sync/client.py:34-204; s05/s06 implement evidence.
+  - source_ref: FR-010
+    intent: Sync generation metadata and idempotent equal-content skip.
+    step_id: s05
+    assessment: partial
+    evidence: loop/board_sync/sync.py:50-57 increments generation every run; loop/board_sync/diff.py:133-135 compares full BoardTask including sync_generation. Thus an unchanged second sync produces an update rather than the plan's no-op/equal-content behavior; test_board_sync_sync.py:87-96 asserts generation increment but does not assert no-op.
+  - source_ref: FR-011
+    intent: README documents board sync manual/cron usage and offline-only ledger.
+    step_id: s08
+    assessment: satisfied
+    evidence: dsh/README.md:103-133.
+  - source_ref: FR-012
+    intent: card_kind step/gate metadata round-trip.
+    step_id: s01
+    assessment: satisfied
+    evidence: loop/board_sync/card_model.py:115-152; card-model tests.
+  - source_ref: FR-013
+    intent: Gate emission reuses loop lifecycle reducer rather than inventing lifecycle.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_sync/scan_gates.py:19,119-136.
+  - source_ref: FR-014
+    intent: ANALYZE gate when decompose exists, zero completed steps, and analyze missing or critical_count>0.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_sync/scan_gates.py:232-246; test_gate_analyze.
+  - source_ref: FR-015
+    intent: CLARIFY gate for unresolved critical plan marker without resolved clarify artifact.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_sync/scan_gates.py:247-257,314-329.
+  - source_ref: FR-016
+    intent: PLAN, DECOMPOSE, and ROADMAP pre-implement tips with queue/plan/decompose conditions.
+    step_id: s04
+    assessment: partial
+    evidence: PLAN/DECOMPOSE are projected by _pre_gates at loop/board_sync/scan_gates.py:206-246; ROADMAP relies on swallowed selection errors at 261-276 and no test covers PLAN, DECOMPOSE, or ROADMAP paths.
+  - source_ref: FR-017
+    intent: Post-implement gate only with empty active queue, qa_failed→BUGFIX, DONE archives all epic cards.
+    step_id: s04/s05
+    assessment: partial
+    evidence: active-step exclusion and lifecycle mapping exist at loop/board_sync/scan_gates.py:99-138; however phase DONE emits no archive-all signal and run_sync only archives mb-* cards absent from the global desired set. No bounded test or code evidence covers DONE archive-all behavior.
+  - source_ref: FR-018
+    intent: Prompt builder maps step to ROLE IMPLEMENT and gate to ROLE phase epic.
+    step_id: s01
+    assessment: satisfied
+    evidence: loop/board_sync/card_model.py:176-183 and card-model tests.
+
+  - source_ref: AC+ #1
+    intent: Workspace fixture parses to WorkspaceRef list.
+    step_id: s02
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_workspaces.py:31-39.
+  - source_ref: AC+ #2
+    intent: Scan fixture emits pending/in_progress WorkItems only.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_scan_mb.py:21-26.
+  - source_ref: AC+ #3
+    intent: Desired-set diff creates/updates/archives.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_diff.py:53-81.
+  - source_ref: AC+ #4
+    intent: Fake sync snapshot contains expected mb-* IDs.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_sync.py:45-74 and s05 evidence.
+  - source_ref: AC+ #5
+    intent: Non-mb task preserved.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_sync.py:76-84.
+  - source_ref: AC+ #6
+    intent: Dry-run emits operations with zero FakeClient writes.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_cli.py:64-74.
+  - source_ref: AC+ #7
+    intent: Step/gate metadata round-trip.
+    step_id: s01
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_card_model.py:78-90.
+  - source_ref: AC+ #8
+    intent: ANALYZE gate under specified pre-implement state.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_scan_gates.py:49-57.
+  - source_ref: AC+ #9
+    intent: Post-implement gate calls reducer and produces AUDIT before QA.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_scan_gates.py:60-73.
+  - source_ref: AC+ #10
+    intent: README explains step/gate and epic_id search.
+    step_id: s08
+    assessment: satisfied
+    evidence: dsh/README.md:103-133.
+  - source_ref: AC+ #11
+    intent: CLI help lists sync/status.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_cli.py:54-62.
+
+  - source_ref: AC- #1
+    intent: Board is not status SoT and no index write-back exists.
+    step_id: s03/s05
+    assessment: satisfied
+    evidence: scan_mb.py only reads indexes; sync.py writes only through board client.
+  - source_ref: AC- #2
+    intent: No full-disk scan or workspace auto-add.
+    step_id: s02
+    assessment: satisfied
+    evidence: discover reads only registry entries at workspaces.py:46-76.
+  - source_ref: AC- #3
+    intent: Non-mb cards are not deleted or modified.
+    step_id: s05
+    assessment: satisfied
+    evidence: diff.py:128 filters current to mb-*.
+  - source_ref: AC- #4
+    intent: No arm/loop/roadmap-advance side effects.
+    step_id: s04/s05
+    assessment: satisfied
+    evidence: bounded implementation only calls select_next_epic; no arm/loop/advance symbol in board_sync.
+  - source_ref: AC- #5
+    intent: Jira integration is absent.
+    step_id: none
+    assessment: out_of_scope
+    evidence: no Jira surface in bounded files.
+  - source_ref: AC- #6
+    intent: Upstream @linxin666 source is not patched/imported.
+    step_id: s06
+    assessment: satisfied
+    evidence: client.py uses local BoardTask and httpx only; s06 grep control.
+  - source_ref: AC- #7
+    intent: No silent fallback to Claude/agent run.
+    step_id: s06
+    assessment: satisfied
+    evidence: client.py raises BoardClientError for transport/non-2xx/invalid payload; CLI returns 1.
+
+  - source_ref: SC-001
+    intent: Pending cards equal pending steps for fixture.
+    step_id: s03/s05
+    assessment: satisfied
+    evidence: scan and sync fixture tests plus s05/s08 regression evidence.
+  - source_ref: SC-002
+    intent: Non-mb count unchanged.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_sync.py:76-84.
+  - source_ref: SC-003
+    intent: Dry-run exit 0 and zero ledger writes.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_cli.py:64-74 and s07 evidence.
+  - source_ref: SC-004
+    intent: Corrupt workspace registry exits non-zero with diagnostic.
+    step_id: s02/s07
+    assessment: satisfied
+    evidence: workspaces.py:48-63; loop/tests/test_board_sync_cli.py:99-104.
+  - source_ref: SC-005
+    intent: All steps completed plus lifecycle QA produces exactly one gate-QA.
+    step_id: s04/s05
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_scan_gates.py:102-113.
+  - source_ref: SC-006
+    intent: Active step suppresses post-implement gate for same epic.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/tests/test_board_sync_scan_gates.py:89-99.
+
+  - source_ref: "NFR: stable id"
+    intent: Stable mb-* identity with normalization and bounded hash fallback.
+    step_id: s01
+    assessment: satisfied
+    evidence: card_model.py:63-100 and stable-id tests.
+  - source_ref: "NFR: fail-closed"
+    intent: HTTP non-2xx/lock conflict produces diagnostic, no silent fallback.
+    step_id: s06
+    assessment: satisfied
+    evidence: client.py:86-114 and HTTP tests.
+  - source_ref: "NFR: batch skip"
+    intent: Corrupt one project index is skipped while errors are returned.
+    step_id: s03
+    assessment: satisfied
+    evidence: scan_mb.py:60-72 and scan tests.
+  - source_ref: "NFR: one-way"
+    intent: Memory-bank is source and board writes do not write back to memory-bank.
+    step_id: s03/s05
+    assessment: satisfied
+    evidence: scan/sync implementations and tests.
+  - source_ref: "NFR: idempotent sync"
+    intent: Unchanged repeat sync is a no-op.
+    step_id: s05
+    assessment: partial
+    evidence: compute_ops compares sync_generation-bearing BoardTask values; repeat run changes generation and schedules update.
+
+  - source_ref: Constitution MUST-1
+    intent: BACK implementation records targeted tests and evidence.
+    step_id: s01-s08
+    assessment: satisfied
+    evidence: implement shards list targeted pytest evidence; s01-s08 checkpoints done.
+  - source_ref: Constitution MUST-2
+    intent: Required dependency/path/config errors are reported rather than silently selecting alternatives.
+    step_id: s02/s06/s07
+    assessment: partial
+    evidence: workspace and HTTP paths fail closed, but scan_gates._roadmap_gate catches selection errors and returns [] at loop/board_sync/scan_gates.py:264-269.
+  - source_ref: Constitution MUST-3
+    intent: Frontend runners are parent-only.
+    step_id: none
+    assessment: n/a
+    evidence: backend-only epic; no frontend runner in bounded evidence.
+  - source_ref: Constitution MUST-4
+    intent: Lean load and routed artifacts are respected.
+    step_id: s01-s08
+    assessment: satisfied
+    evidence: role workflow and bounded shard evidence.
+  - source_ref: Constitution MUST-5
+    intent: Invalid or ambiguous configuration fails closed.
+    step_id: s02/s06/s07
+    assessment: partial
+    evidence: malformed workspace/HTTP/ledger paths fail, but roadmap selector errors are swallowed at scan_gates.py:264-269.
+  - source_ref: Constitution MUST-6
+    intent: Uncertainty is explicit, not inferred from missing state.
+    step_id: s02/s03/s04
+    assessment: partial
+    evidence: missing/corrupt index errors are explicit in scan_mb, while roadmap selector errors disappear without diagnostics.
+  - source_ref: Constitution MUST-7
+    intent: Exactly one current Handoff is maintained.
+    step_id: none
+    assessment: satisfied
+    evidence: activeContext contains one Handoff block at lines 3-8 before this audit handoff.
+  - source_ref: Constitution MUST-8
+    intent: End-to-end parity applies to integration features.
+    step_id: none
+    assessment: n/a
+    evidence: this backend-only feature has no frontend route counterpart in bounded scope.
+  - source_ref: Constitution MUST-9
+    intent: AUDIT is the post-implementation intent authority and findings are recorded here.
+    step_id: none
+    assessment: satisfied
+    evidence: this audit artifact records the complete bounded inventory and findings.
+
+implemented:
+  - step_id: s01
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s01-card-model-metadata-stable-id.yaml
+  - step_id: s02
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s02-workspaces-discover-eligible-filter.yaml
+  - step_id: s03
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s03-scan-mb-step-workitems-from-index-yaml.yaml
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
+  - step_id: s05
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s05-diff-orchestrator-fake-client-sync.yaml
+  - step_id: s06
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s06-http-host-client-fail-closed.yaml
+  - step_id: s07
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s07-cli-hub-board-dry-run-status.yaml
+  - step_id: s08
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s08-docs-readme-regression-polish.yaml
+
+findings:
+  - id: F1
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-017
+    evidence: loop/board_sync/scan_gates.py:119-138 returns no WorkItem for lifecycle phase DONE; loop/board_sync/sync.py:48-65 only computes archive for mb-* IDs absent from desired and has no epic-scoped DONE archive signal; no test covers test_done_epic_archive_all.
+    remaining_work: Add an explicit DONE/archive-all projection carrying workspace, role, and epic identity, make sync archive all matching mb-* cards for that epic while preserving non-mb cards, and add a focused regression test.
+  - id: F2
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-010
+    evidence: loop/board_sync/sync.py:50-57 increments sync_generation on every run; loop/board_sync/diff.py:133-135 compares full BoardTask including sync_generation, so unchanged repeat sync produces update operations rather than no-op.
+    remaining_work: Exclude sync_generation from equality comparison (or preserve generation on equal content) and add a regression assertion that the second unchanged sync has zero operations while retaining generation semantics required by metadata.
+  - id: F3
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: "FR-004 / Constitution MUST-2"
+    evidence: loop/board_sync/scan_gates.py:264-269 swallows ImportError/OSError/ValueError/KeyError from roadmap_queue.select_next_epic and returns an empty gate list with no error channel; malformed/missing roadmap state is indistinguishable from no ROADMAP tip.
+    remaining_work: Surface a diagnostic/error result for roadmap selection failures or define a typed fail-closed exception consumed by CLI, and add tests for invalid/missing queue behavior; do not silently suppress required configuration errors.
+
+deviations:
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
+    plan_intent: FR-017 requires lifecycle DONE to trigger archive-all for the epic.
+    actual: scan_gates deliberately returns no gate for DONE but exposes no archive-all signal consumed by sync.
+    impact: high
+  - step_id: s05
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s05-diff-orchestrator-fake-client-sync.yaml
+    plan_intent: FR-010 requires unchanged repeat sync to be a no-op/equal-content skip.
+    actual: sync_generation is embedded in BoardTask equality and changes each run, causing updates on unchanged cards.
+    impact: high
+  - step_id: s04
+    implement_file: back/implement/implement-T-HUB-014-dsh-mb-board-sync/s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
+    plan_intent: FR-004 and MUST-2/5/6 require explicit handling of invalid roadmap configuration.
+    actual: _roadmap_gate catches selector errors and returns no gate without diagnostics.
+    impact: medium
+
+not_implemented: []
+legacy_surfaces_remaining: []
+fallback_remaining:
+  - "loop/board_sync/scan_gates.py:_roadmap_gate silently suppresses roadmap_queue selector/configuration errors instead of reporting them."
+purge_step_present: true
+converged: false
+blocked_reason: ""
+notes:
+  - "Assess выполнен только по bounded plan/decompose/index, implement headers и перечисленным code/test/README surfaces; полный repo audit и suite не выполнялись."
+  - "Все s01-s08 имеют completed implement artifacts и done checkpoints; completed artifacts не переписывались."
+  - "Greenfield пакет loop/board_sync/ не имеет legacy replacement surfaces; purge_step_present=true оставлен как шаблонное поле."
+  - "Actionable findings требуют append-only audit shards и следующего BACK IMPLEMENT → BACK AUDIT; до remediation нельзя переходить в BACK QA."

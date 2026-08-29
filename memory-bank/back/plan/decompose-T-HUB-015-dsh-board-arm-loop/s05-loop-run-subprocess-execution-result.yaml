@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "loop_run subprocess + Fake + execution result mapping — FR-003/007"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/board_launch/loop_run.py`:
+  `loop_run(launch_card: LaunchCard, argv_result: LoopArgvResult, config: BridgeConfig, *,
+            loop_bin_override: Path | None = None) -> ExecutionResult`
+  Логика:
+    - Собрать subprocess argv из LoopArgvResult; env = os.environ | argv_result.env_extra.
+    - Spawn `subprocess.Popen(argv, cwd=str(project_root), env=env)` — НЕ `shell=True`.
+    - Capture stdout/stderr (pipe); stream timeout (300s hard default).
+    - exit 0 → ExecutionResult(status='succeeded', exit_code=0, log_path).
+    - exit != 0 → ExecutionResult(status='failed', exit_code=N, log_path).
+    - flock conflict (exit with specific code or EAGAIN) → ExecutionResult(status='failed', diagnostic_code='lock_conflict').
+    - Write truncated log to `DEV_HUB/loop/runtime/exec-<ts>.log`; attach log_path в result.
+    - Fake: `FakeLoopRunner` — callable accepting same signature, records calls, configurable exit_code.
+  Покрывает: AC+6, SC-002, FR-003, FR-007, NFR: security (no shell=True), NFR: concurrency (lock detection), NFR: async host.
+
+context:
+  consumes:
+    - "loop/board_launch/loop_argv.py (LoopArgvResult, BridgeConfig) — s03"
+    - "loop/board_launch/metadata.py (LaunchCard) — s02"
+    - "plan §FR-003, FR-007"
+    - "plan §Observability — loop stdout → Host-visible execution record"
+    - "plan §NFR: security — no shell=True"
+    - "plan §Risks — Long loop blocks Host"
+  produces:
+    - "loop/board_launch/loop_run.py"
+    - "loop/tests/test_board_launch_loop_run.py"
+  plan_refs:
+    - "plan §FR-003, FR-007"
+    - "plan §Argv contracts (fail-closed) — FORBIDDEN shell=True"
+    - "plan §Observability"
+    - "AC+6, SC-002"
+    - "NFR: security, NFR: concurrency, NFR: async host"
+  files:
+    - "loop/board_launch/loop_run.py"
+    - "loop/tests/test_board_launch_loop_run.py"
+
+as_built:
+  - "loop/loop.sh — flock-based; exit codes 0/non-zero"
+  - "loop/board_launch/loop_argv.py — LoopArgvResult, BridgeConfig — created s03"
+  - "loop/board_launch/metadata.py — LaunchCard — created s02"
+
+delta:
+  - "CREATE loop/board_launch/loop_run.py — ExecutionResult(status, exit_code, log_path, diagnostic_code); loop_run(launch_card, argv_result, config, loop_bin_override); FakeLoopRunner(exit_code=0) callable; LoopRunError(RuntimeError) for timeout/spawn failure"
+  - "CREATE loop/tests/test_board_launch_loop_run.py — unit tests using FakeLoopRunner"
+
+deletes: []
+
+out_of_scope:
+  - "arm_from_card — s04"
+  - "arm_loop pipeline (combine arm+loop) — s06"
+  - "syncAfterLoop — s06"
+  - "CLI — s07"
+  - "DSH plugin spawn (uses loop_run as library) — s08"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/async-python-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "FakeLoopRunner exit_code=0 → ExecutionResult status='succeeded'; exit_code recorded; loop_bin called once with expected argv"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_fake_loop_success -q"
+  - id: cp2
+    criterion: "FakeLoopRunner exit_code=1 → ExecutionResult status='failed'; exit_code=1"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_fake_loop_failure -q"
+  - id: cp3
+    criterion: "subprocess argv does NOT use shell=True; env_extra EPIC_RUNTIME=dsh propagated to spawn env"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_no_shell_true -q"
+  - id: cp4
+    criterion: "lock conflict exit code → ExecutionResult diagnostic_code='lock_conflict'"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_loop_run.py::test_lock_conflict -q"
+
+verify:
+  - "from loop.board_launch.loop_run import loop_run, FakeLoopRunner, ExecutionResult"
+  - "FakeLoopRunner(exit_code=0)(card, argv_result, config).status == 'succeeded'"
+  - "FakeLoopRunner(exit_code=1)(card, argv_result, config).status == 'failed'"
+  - "grep -r 'shell=True' loop/board_launch/loop_run.py | wc -l  # must be 0"
+
+tdd:
+  - "test_fake_loop_success — exit 0 → succeeded; argv recorded"
+  - "test_fake_loop_failure — exit 1 → failed; exit_code=1"
+  - "test_no_shell_true — spawn uses list argv; no shell=True"
+  - "test_lock_conflict — flock exit → diagnostic_code=lock_conflict"
+  - "test_env_extra_propagated — EPIC_RUNTIME=dsh in spawn env"
+  - "test_log_path_in_result — log_path set in ExecutionResult"
+  - "test_project_root_in_argv — argv[1] == str(launch_card.project_root)"

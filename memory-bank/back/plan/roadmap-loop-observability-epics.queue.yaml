@@ -1,0 +1,10 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-loop-observability-epics.md
+queue:
+  - id: T-HUB-017
+    plan: plan-T-HUB-017-loop-observability-foundation.md
+    deps: []
+  - id: T-HUB-018
+    plan: plan-T-HUB-018-loop-incident-autopilot.md
+    deps: [T-HUB-017]

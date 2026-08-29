@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s02 — board_launch package + metadata parse/validate + card_model import —
+  FR-001/001b foundation IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s02-board-launch-metadata-card-model.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'graphify unavailable: hub repository without .venv/bin/graphify; scoped source
+  inspection used'
+- canonical CardKind, StepCard, GateCard, parse_metadata imported from loop/board_sync/card_model.py
+gaps:
+  status: none
+done:
+- Added fail-closed LaunchCard metadata parser with canonical card-kind routing and
+  optional workspace_id preservation.
+- Added board_launch package exports for CardMetadataError, LaunchCard, and parse_launch_metadata.
+- Added focused unit coverage for valid step/gate cards, invalid required fields,
+  routing, and canonical import identity.
+files:
+- loop/board_launch/__init__.py
+- loop/board_launch/metadata.py
+- loop/tests/test_board_launch_metadata.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_metadata.py -q --tb=line`'
+integration_check:
+- loop/board_launch/metadata.py imports CardKind, StepCard, GateCard, and parse_metadata
+  directly from loop/board_sync/card_model.py; no duplicated card model definitions.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 10 passed in 0.04s
+- 'cp1: 1 passed; cp2: 3 passed; cp3: 1 passed'
+checkpoints:
+- id: cp1
+  criterion: parse_launch_metadata валидный mb-board-card/v1 → LaunchCard с project_root,
+    card_kind, decompose_rel; round-trip без потерь
+  status: done
+  done_at: '2026-08-28T22:50:47Z'
+- id: cp2
+  criterion: parse_launch_metadata invalid (missing card_kind, missing project_root,
+    unknown kind) → CardMetadataError, non-zero exit via caller
+  status: done
+  done_at: '2026-08-28T22:50:56Z'
+- id: cp3
+  criterion: card_kind=gate → GateCard; card_kind=step → StepCard; import от board_sync.card_model
+    без копирования
+  status: done
+  done_at: '2026-08-28T22:51:05Z'
+resume_from: cp1

@@ -1,0 +1,25 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-007-test
+source_md: index.md
+status_canon: index.yaml
+steps:
+  - id: s01
+    file: s01-first-pending.yaml
+    title: First pending
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-second-pending.yaml
+    title: Second pending
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-running.yaml
+    title: Running step
+    next_phase: BACK IMPLEMENT
+    status: in_progress
+  - id: s04
+    file: s04-completed.yaml
+    title: Completed step
+    next_phase: BACK IMPLEMENT
+    status: completed

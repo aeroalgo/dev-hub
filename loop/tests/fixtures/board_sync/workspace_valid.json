@@ -1,0 +1,30 @@
+{
+  "unit": {
+    "name": "workspace",
+    "version": 2
+  },
+  "global": {
+    "initialized": true,
+    "workspaceIds": [
+      "workspace-eligible",
+      "workspace-no-memory-bank",
+      "workspace-missing"
+    ]
+  },
+  "tables": {
+    "workspaces": {
+      "workspace-eligible": {
+        "path": "__ELIGIBLE_PATH__",
+        "title": "Eligible"
+      },
+      "workspace-no-memory-bank": {
+        "path": "__NO_MEMORY_BANK_PATH__",
+        "title": "No memory bank"
+      },
+      "workspace-missing": {
+        "path": "__MISSING_PATH__",
+        "title": "Missing"
+      }
+    }
+  }
+}

@@ -2,18 +2,6 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-012
-    plan: plan-T-HUB-012-audit-converge.md
-    deps: []
-  - id: T-HUB-013
-    plan: plan-T-HUB-013-idea-decide-constitution.md
-    deps: []
-  - id: T-HUB-005
-    plan: plan-T-HUB-005-simplify-docs.md
-    deps: []
-  - id: T-HUB-007
-    plan: plan-T-HUB-007-dsh-profiles-presets.md
-    deps: []
   - id: T-HUB-014
     plan: plan-T-HUB-014-dsh-mb-board-sync.md
     deps: []
@@ -22,10 +10,16 @@ queue:
     deps: [T-HUB-014]
   - id: T-HUB-016
     plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
-    deps: [T-HUB-007]
+    deps: []
   - id: T-HUB-008
     plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
-    deps: [T-HUB-007, T-HUB-016]
+    deps: [T-HUB-016]
   - id: T-HUB-009
     plan: plan-T-HUB-009-dsh-rollout-docs.md
-    deps: [T-HUB-007, T-HUB-008, T-HUB-016]
+    deps: [T-HUB-008, T-HUB-016]
+  - id: T-HUB-017
+    plan: plan-T-HUB-017-loop-observability-foundation.md
+    deps: []
+  - id: T-HUB-018
+    plan: plan-T-HUB-018-loop-incident-autopilot.md
+    deps: [T-HUB-017]

@@ -154,6 +154,21 @@ def main() -> None:
             "QA FINISH detected → @reviewer · qa-*.yaml (verdict) · Handoff → REFLECT."
         )
 
+    if cwd and is_epic_loop_env():
+        try:
+            armed = str(load_epic_state(cwd).get("armed_step") or "").upper()
+        except (ImportError, OSError, TypeError, ValueError):
+            armed = ""
+        if armed == "DECOMPOSE":
+            st["need_verify"] = False
+            st["need_reviewer"] = False
+            if st.get("mode") == "implement":
+                st["mode"] = None
+            ctx_parts.append(
+                "armed_step=DECOMPOSE → verify/reviewer OFF (docs-only). "
+                "FINISH после decompose/index.*; promote DECOMPOSE→IMPLEMENT на prepare."
+            )
+
     save_state(session_id, cwd, st)
     emit(
         {

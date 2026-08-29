@@ -941,26 +941,16 @@ def _role_dir_from_state_role(role: str | None) -> str:
 def _find_decompose_index_for_epic(
     cwd: Path, epic_id: str, role: str | None
 ) -> str | None:
+    from roadmap_queue import find_decompose_index
+
     role_dir = _role_dir_from_state_role(role)
-    base = cwd / "memory-bank" / role_dir / "plan" / f"decompose-{epic_id}"
-    md = base / "index.md"
-    yaml_idx = base / "index.yaml"
-    if md.is_file():
-        try:
-            return md.relative_to(cwd).as_posix()
-        except ValueError:
-            return str(md)
-    if yaml_idx.is_file():
-        try:
-            return yaml_idx.relative_to(cwd).as_posix()
-        except ValueError:
-            return str(yaml_idx)
-    if base.is_dir():
-        try:
-            return base.relative_to(cwd).as_posix()
-        except ValueError:
-            return str(base)
-    return None
+    idx = find_decompose_index(cwd, role_dir, epic_id)
+    if idx is None:
+        return None
+    try:
+        return idx.relative_to(cwd).as_posix()
+    except ValueError:
+        return str(idx)
 
 
 def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:

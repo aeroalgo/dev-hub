@@ -1,0 +1,79 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s08 — dsh plugin mb-bridge Host bridge python-spawn + intercept stock run —
+  FR-005/017 IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s08-dsh-plugin-mb-bridge-host-bridge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- graphify executable unavailable; used scoped rg/read discovery per repository fallback.
+gaps:
+  status: none
+done:
+- Fixed-argv Python bridge helpers validate action/task tokens and map mb/non-mb routing.
+- Cordis Path B plugin route, stock-run fail-closed behavior, card actions, config
+  patch, and README added.
+- Removed no existing T-HUB-015 later stub; scoped scan is clean.
+files:
+- dsh/plugins/mb-bridge/package.json
+- dsh/plugins/mb-bridge/src/index.ts
+- dsh/plugins/mb-bridge/src/python-bridge.ts
+- dsh/plugins/mb-bridge/src/intercept-run.ts
+- dsh/plugins/mb-bridge/src/card-actions.tsx
+- dsh/plugins/mb-bridge/cordis.patch.yml
+- dsh/plugins/mb-bridge/README.md
+- loop/tests/test_board_launch_bridge_unit.py
+deletes:
+- stub prompt pattern 'T-HUB-015 later' in loop/board_sync/ (если существует — rg
+  + delete)
+- stock HostExecutionRunner.launch as primary path for mb-* (intercepted; direct call
+  path removed)
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py loop/tests/test_board_sync_*.py
+  -q --tb=line`'
+integration_check:
+- dsh/plugins/mb-bridge/src/intercept-run.ts registers POST /api/mb-bridge/action
+  and routes only mb-* cards to arm-loop
+- 'dsh/plugins/mb-bridge/src/python-bridge.ts uses child_process.spawn with shell:
+  false and bounded output'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- Targeted s08 bridge tests and all board_launch tests pass
+- Board_sync aggregate command has pre-existing failures in test_board_sync_cli.py;
+  no s08 files are involved
+- UI source check confirms Arm+Run and no StockRun mb path
+checkpoints:
+- id: cp1
+  criterion: python-bridge.ts spawns hub-board with fixed argv list; no shell=True;
+    exit 0 → succeeded; exit 1 → failed
+  status: done
+  done_at: '2026-08-29T01:18:59Z'
+- id: cp2
+  criterion: 'intercept-run.ts: mb-* card run → hub-board arm-loop (or explicit error
+    mb_card_requires_loop_run); non-mb → passthrough'
+  status: done
+  done_at: '2026-08-29T01:19:04Z'
+- id: cp3
+  criterion: rg 'T-HUB-015 later' loop/board_sync/ → 0 matches (stub removed)
+  status: done
+  done_at: '2026-08-29T01:19:15Z'
+- id: cp4
+  criterion: 'card-actions.tsx: Arm+Run button exists; Stock Run NOT rendered for
+    mb-* (grep in TSX)'
+  status: done
+  done_at: '2026-08-29T01:19:24Z'
+resume_from: cp1

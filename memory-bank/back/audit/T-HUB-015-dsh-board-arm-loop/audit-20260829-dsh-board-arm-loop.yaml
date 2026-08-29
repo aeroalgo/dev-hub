@@ -1,0 +1,552 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-015-dsh-board-arm-loop
+plan_id: T-HUB-015-dsh-board-arm-loop
+date: 2026-08-29
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 10
+  implemented: 10
+  not_implemented: 1
+  deviations: 4
+  findings: 5
+
+# Полный bounded intent inventory из plan FR/SC/US/AC/NFR и применимых MUST.
+# CASE A: T-HUB-011 и T-HUB-012 имеют completed steps; проверена canonical constitution.md.
+intent_checked:
+  fr_total: 18
+  fr_satisfied: 13
+  sc_checked: 8
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: US-001
+    intent: Arm карточки шага обновляет activeContext только выбранного product_root и указывает на step.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_launch/arm.py:37-68 calls arm_session(project_root, decompose_rel); s04 implement evidence and arm fixture tests.
+  - source_ref: US-002
+    intent: Loop с доски запускает product loop с project_root и публикует execution result.
+    step_id: s05
+    assessment: missing
+    evidence: loop/board_launch/loop_run.py:20-102 returns local ExecutionResult and log_path, but no BoardTask execution update or Host/client write is performed.
+  - source_ref: US-003
+    intent: Arm+Run выполняет arm перед loop и не вызывает loop при ошибке arm.
+    step_id: s06/s07
+    assessment: satisfied
+    evidence: loop/board_launch/pipeline.py:43-74 short-circuits on arm exception; s06 and s07 implement evidence cover ordering.
+  - source_ref: US-004
+    intent: Run на mb-card не создаёт free-session agent path и либо redirect-ится в loop, либо даёт явную ошибку.
+    step_id: s08
+    assessment: partial
+    evidence: dsh/plugins/mb-bridge/src/intercept-run.ts:29-39 exports a routing helper, but dsh/plugins/mb-bridge/src/index.ts:18-24 registers only the Host route and injects a string prompt; no verified stock-run handler is wired to interceptStockRun or denyStockRun.
+  - source_ref: US-005
+    intent: Устаревшая карточка с несовпадающим step_id завершается понятной ошибкой.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_launch/arm.py:59-64 raises StepMismatchError with diagnostic_code=step_mismatch; s04 tests and evidence confirm the path.
+  - source_ref: US-006
+    intent: Workspace filter hides cards from other workspace without changing the board ledger.
+    step_id: s09
+    assessment: partial
+    evidence: dsh/plugins/mb-bridge/src/board-filter.ts:17-24 is a pure client filter, but BoardControls receives workspaces as a prop and contains no Host workspace.list integration for the required option source.
+  - source_ref: US-007
+    intent: User selects a whitelisted model preset while phase environment remains authoritative.
+    step_id: s03/s09
+    assessment: partial
+    evidence: loop/board_launch/loop_argv.py:90-117 implements env > preset > default > bare, but HostExecutionResult has no model_source and BoardControls only accepts a static modelSource prop, so the env-overrides result cannot be propagated from the launch response.
+  - source_ref: US-008
+    intent: Sync button refreshes cards, optionally scoped to selected workspace.
+    step_id: s06/s09
+    assessment: satisfied
+    evidence: dsh/plugins/mb-bridge/src/board-controls.tsx:107-120 calls spawnHubBoard('sync') with workspaceId; pipeline.py:64-68 performs optional post-loop sync.
+
+  - source_ref: AC+1
+    intent: parse_card_metadata valid/invalid cases are covered.
+    step_id: s02
+    assessment: satisfied
+    evidence: s02 cp1-cp3 and loop/tests/test_board_launch_metadata.py cover valid step/gate, missing fields, unknown kind, and canonical import.
+  - source_ref: AC+2
+    intent: build_arm_argv/build_loop_argv produce exact command lists.
+    step_id: s03/s07
+    assessment: satisfied
+    evidence: loop/board_launch/loop_argv.py:86-117 and loop/board_sync/cli.py:208-213 expose bounded argv construction; s03/s07 evidence records exact argv checks.
+  - source_ref: AC+3
+    intent: arm_from_card happy path updates fixture activeContext.
+    step_id: s04
+    assessment: satisfied
+    evidence: s04 checkpoint cp1 and arm fixture evidence confirm project-root arm path.
+  - source_ref: AC+4
+    intent: step_mismatch is a hard failure with diagnostic.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/board_launch/arm.py:61-64 raises StepMismatchError; s04 cp2/cp3 evidence confirms mismatch handling.
+  - source_ref: AC+5
+    intent: arm-loop short-circuits and never invokes loop after arm failure.
+    step_id: s06
+    assessment: satisfied
+    evidence: loop/board_launch/pipeline.py:43-53 returns arm_failed with loop_invoked=False before argv/runner.
+  - source_ref: AC+6
+    intent: Fake loop exit 0 maps to succeeded execution.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop/board_launch/loop_run.py:34-51 and s05 cp1 implement FakeLoopRunner mapping.
+  - source_ref: AC+7
+    intent: mb run is intercepted or alternate route is explicit and tested.
+    step_id: s08
+    assessment: partial
+    evidence: route and helper exist, but index.ts does not connect the helper to the stock-run event; only Python-side helper tests prove the unregistered function.
+  - source_ref: AC+8
+    intent: non-mb run remains passthrough.
+    step_id: s08
+    assessment: satisfied
+    evidence: dsh/plugins/mb-bridge/src/intercept-run.ts:34-37 and loop/board_launch/bridge.py:40-46 preserve stock handler for non-mb cards; s08 tests cover this.
+  - source_ref: AC+9
+    intent: dsh/README.md contains the Board Arm/Loop runbook.
+    step_id: s10
+    assessment: satisfied
+    evidence: dsh/README.md:135-173 contains flow, install instructions, and troubleshooting.
+  - source_ref: AC+10
+    intent: arm, loop, and arm-loop CLI subcommands are parseable and have help.
+    step_id: s07
+    assessment: satisfied
+    evidence: loop/board_sync/cli.py:88-108 defines all three parsers; s07 cp1 and verification evidence pass.
+  - source_ref: AC+11
+    intent: workspace filter selects by metadata.workspace_id and leaves source cards unchanged.
+    step_id: s09
+    assessment: satisfied
+    evidence: dsh/plugins/mb-bridge/src/board-filter.ts:17-24 uses filter() and returns a new array; s09 cp1 and source-contract test cover it.
+  - source_ref: AC+12
+    intent: model preset whitelist rejects unsafe tokens and unknown IDs.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop/board_launch/loop_argv.py:9-34,105-110 validates preset tokens; loop/board_launch/bridge.py:67-85 validates config tokens and s03 evidence passes.
+  - source_ref: AC+13
+    intent: plugin controls render and Sync invokes hub-board.
+    step_id: s09
+    assessment: satisfied
+    evidence: board-controls.tsx:123-151 renders controls and calls spawnHubBoard('sync'); s09 source-contract evidence confirms the wiring.
+  - source_ref: AC+14
+    intent: docs contain model precedence, workspace filter, and runtime toggle guidance.
+    step_id: s10
+    assessment: satisfied
+    evidence: dsh/README.md:135-173 documents the flow, precedence, filter, runtime, and troubleshooting.
+
+  - source_ref: AC−1
+    intent: Board launch must not make the board ledger the source of truth.
+    step_id: s04/s05
+    assessment: satisfied
+    evidence: arm.py writes through context_loop.arm_session and loop_run only returns execution data; no board sync client is called by arm.
+  - source_ref: AC−2
+    intent: Browser payload must not select an arbitrary shell command.
+    step_id: s08
+    assessment: satisfied
+    evidence: python-bridge.ts:60-89 validates action/task/runtime/tokens and :104-109 uses spawn with shell:false.
+  - source_ref: AC−3
+    intent: ROADMAP advance is denied from the board by default.
+    step_id: s04
+    assessment: partial
+    evidence: arm.py:45-51 denies ROADMAP without explicit epic, but the loaded BridgeConfig.allow_roadmap_advance is not passed into arm_from_card, so an explicitly enabled configuration cannot take effect.
+  - source_ref: AC−4
+    intent: Jira is not required.
+    step_id: out-of-scope
+    assessment: satisfied
+    evidence: plan §Assumptions/Out of scope excludes Jira and no implementation surface introduces it.
+  - source_ref: AC−5
+    intent: Board launch must not replace finalize-step or verify gates.
+    step_id: s05/s06
+    assessment: satisfied
+    evidence: loop_run invokes the configured loop binary and pipeline only sequences arm, loop, and optional sync; no finalize/verify implementation is duplicated.
+  - source_ref: AC−6
+    intent: Plugin must not run frontend test runners.
+    step_id: s09
+    assessment: satisfied
+    evidence: s09 implementation evidence explicitly records no frontend runner invocation; plugin source contains no test command.
+  - source_ref: AC−7
+    intent: mb cards must not silently fall back to stock agent execution.
+    step_id: s08
+    assessment: partial
+    evidence: denyStockRun exists at intercept-run.ts:41-44 but is not registered by index.ts; the live stock-run path is therefore not proven fail-closed.
+  - source_ref: AC−8
+    intent: stock task.mode must not select the mb loop model.
+    step_id: s03/s08
+    assessment: satisfied
+    evidence: loop_argv.py has no task.mode input and python-bridge validates only explicit actions/flags; s03 and s08 evidence confirm this.
+  - source_ref: AC−9
+    intent: Browser must not submit free-text model input.
+    step_id: s03/s09
+    assessment: satisfied
+    evidence: board-controls.tsx renders a select from config.modelPresets and python-bridge validates preset IDs/tokens.
+  - source_ref: AC−10
+    intent: Workspace filter is view-only and does not mutate the ledger.
+    step_id: s09
+    assessment: satisfied
+    evidence: board-filter.ts:18-24 returns filtered arrays and BoardControls only calls onCardsChange; no sync/write is triggered by filter changes.
+
+  - source_ref: FR-001
+    intent: Parse mb-board-card/v1 and fail closed on invalid metadata.
+    step_id: s02
+    assessment: satisfied
+    evidence: metadata.py:54-100 requires kind/project_root/decompose_rel and delegates to canonical parse_metadata.
+  - source_ref: FR-001b
+    intent: Gate cards use gate rules and step cards use step matching rules.
+    step_id: s02/s04
+    assessment: satisfied
+    evidence: metadata.py routes StepCard/GateCard; arm.py:61 applies step matching only to CardKind.STEP.
+  - source_ref: FR-002
+    intent: arm_from_card calls context_loop arm with card project root and verifies step_id.
+    step_id: s04
+    assessment: satisfied
+    evidence: arm.py:53-64 calls arm_session with project_root/decompose_rel and verifies returned step_id.
+  - source_ref: FR-003
+    intent: loop_from_card spawns DEV_HUB/bin/loop and captures exit code.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop_run.py:54-102 uses list argv, project cwd, merged env, captured output, timeout, and exit mapping.
+  - source_ref: FR-004
+    intent: arm_loop_from_card performs arm then loop and stops on arm failure.
+    step_id: s06
+    assessment: satisfied
+    evidence: pipeline.py:43-74 implements the ordered pipeline and arm failure short circuit.
+  - source_ref: FR-005
+    intent: mb-bridge provides Host arm/loop handlers and intercepts mb stock run.
+    step_id: s08
+    assessment: partial
+    evidence: Host route and child bridge are present, but index.ts does not wire a real stock-run deny/redirect handler.
+  - source_ref: FR-006
+    intent: bin/hub-board exposes arm, loop, and arm-loop with required flags.
+    step_id: s07
+    assessment: satisfied
+    evidence: bin/hub-board delegates to loop.board_sync and cli.py:88-108 defines task-id, dry-run, loop-args, runtime, ledger/from-state.
+  - source_ref: FR-007
+    intent: Board task execution record is updated with result and truncated log path.
+    step_id: s05
+    assessment: missing
+    evidence: loop_run.py:20-27 defines only local ExecutionResult and :89-102 attaches a filesystem path; no Host API/client execution mutation exists in the bounded launch path.
+  - source_ref: FR-008
+    intent: Config covers devHub, loopBin, allowRoadmapAdvance, default args/runtime, presets, workspace filter, sync, and enabled.
+    step_id: s03/s08/s09
+    assessment: partial
+    evidence: Python bridge.py:49-97 validates most fields, but TS index.ts:12-15 casts raw config without validation, does not honor enabled/workspaceFilterEnabled, and arm.py cannot consume allowRoadmapAdvance.
+  - source_ref: FR-009
+    intent: README runbook documents sync/filter/preset/arm+loop and troubleshooting.
+    step_id: s10
+    assessment: satisfied
+    evidence: dsh/README.md:135-173.
+  - source_ref: FR-010
+    intent: Focused tests cover arm matching, argv, plugin fake, filter, and preset validation.
+    step_id: s02-s07/s09-s10
+    assessment: satisfied
+    evidence: implement artifacts list targeted tests for each launch contract and s10 regression coverage.
+  - source_ref: FR-011
+    intent: syncAfterLoop defaults true and invokes workspace-scoped sync after loop exit.
+    step_id: s06
+    assessment: satisfied
+    evidence: loop_argv.py:43-45 default true and pipeline.py:64-68 invokes sync after execution, preserving loop status.
+  - source_ref: FR-012
+    intent: Header filter options come from Host workspace.list, use workspace_id metadata, and persist selection.
+    step_id: s09
+    assessment: partial
+    evidence: board-controls.tsx persists the selection and accepts workspaces, but no workspace.list Host call or adapter is present in the bounded plugin source.
+  - source_ref: FR-013
+    intent: Sync button calls hub-board with optional workspace-id and shows summary.
+    step_id: s09
+    assessment: satisfied
+    evidence: board-controls.tsx:107-120 passes workspaceId; :56-58 parses upsert/archive/noop summary and sends toast.
+  - source_ref: FR-014
+    intent: Presets are whitelisted, limited to eight entries, and token validated.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop_argv.py:9-10,31-50 enforces token pattern and max eight; bridge.py validates config entries.
+  - source_ref: FR-015
+    intent: build_loop_argv precedence is phase env > preset > default args > bare.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop_argv.py:102-117 implements the four branches.
+  - source_ref: FR-016
+    intent: Runtime toggle persists UI choice and passes EPIC_RUNTIME only to subprocess.
+    step_id: s03/s09
+    assessment: satisfied
+    evidence: board-controls.tsx:95-99 persists runtime and python-bridge.ts:100-103 sets EPIC_RUNTIME in a copied env.
+  - source_ref: FR-017
+    intent: mb-card detail exposes Arm+Run primary and Arm/Run secondary while stock Run is hidden/replaced.
+    step_id: s08
+    assessment: partial
+    evidence: card-actions.tsx:10-21 renders the three actions, but stock-run replacement is not connected to a live Host event in index.ts.
+  - source_ref: FR-018
+    intent: Browser raw shell, arbitrary model, and task.mode loop model are forbidden.
+    step_id: s03/s08/s09
+    assessment: satisfied
+    evidence: fixed argv validation in python-bridge.ts, select-only model UI, no task.mode reference, and shell:false spawn.
+
+  - source_ref: "NFR: fail-closed"
+    intent: Invalid metadata, step mismatch, and missing DEV_HUB return explicit non-zero diagnostics.
+    step_id: s02/s04/s07
+    assessment: satisfied
+    evidence: CardMetadataError/StepMismatchError and cli.py:112-119 plus main():242-247 report errors.
+  - source_ref: "NFR: security"
+    intent: Only fixed argv is spawned; no shell=True or user binary path.
+    step_id: s05/s08
+    assessment: satisfied
+    evidence: loop_run.py:72-77 uses Popen list without shell and python-bridge.ts:104-109 uses shell:false; s05/s08 grep evidence passes.
+  - source_ref: "NFR: concurrency"
+    intent: Per-project flock conflict is surfaced clearly.
+    step_id: s05
+    assessment: satisfied
+    evidence: loop_run.py:92-101 maps recognized exit-1 lock diagnostics to lock_conflict.
+  - source_ref: "NFR: idempotent filter"
+    intent: Workspace filtering is view-only and returns a new list.
+    step_id: s09
+    assessment: satisfied
+    evidence: board-filter.ts:18-24 uses non-mutating filter and no ledger client call.
+  - source_ref: "NFR: model precedence"
+    intent: Phase env wins over preset and effective source is visible to UI/docs.
+    step_id: s03/s09/s10
+    assessment: partial
+    evidence: precedence is implemented and documented, but model_source stops at LoopArgvResult/CLI and is not present in HostExecutionResult or updated into BoardControls.
+  - source_ref: "NFR: async host"
+    intent: Long loop does not block the Host request indefinitely.
+    step_id: s05/s08
+    assessment: satisfied
+    evidence: TS bridge uses asynchronous child_process.spawn and Promise result; Python subprocess has a bounded 300-second timeout.
+  - source_ref: "NFR: 014 schema import"
+    intent: board_launch reuses board_sync.card_model without model drift.
+    step_id: s02
+    assessment: satisfied
+    evidence: metadata.py:8 imports CardKind/StepCard/GateCard/parse_metadata from board_sync.card_model and regression test checks identity.
+
+  - source_ref: SC-001
+    intent: Arm changes activeContext only under card project_root.
+    step_id: s04
+    assessment: satisfied
+    evidence: arm.py:53-54 and s04 project-root fixture evidence.
+  - source_ref: SC-002
+    intent: Loop argv contains absolute project root and hub loop binary.
+    step_id: s03/s05
+    assessment: satisfied
+    evidence: loop_argv.py:86-87 builds loop_bin/project_root argv; s05 verifies argv[1] and s07 resolves DEV_HUB/bin/loop.
+  - source_ref: SC-003
+    intent: mb stock-run does not create ordinary agent prompt path.
+    step_id: s08
+    assessment: partial
+    evidence: deny helper exists, but no live stock-run registration is shown; ordinary path cannot be ruled out from the bounded source.
+  - source_ref: SC-004
+    intent: step_mismatch exits non-zero.
+    step_id: s04
+    assessment: satisfied
+    evidence: StepMismatchError diagnostic and s04 targeted evidence.
+  - source_ref: SC-005
+    intent: Non-mb stock run is unchanged.
+    step_id: s08
+    assessment: satisfied
+    evidence: intercept-run.ts:34-37 delegates non-mb cards to stockRun and s08 tests cover passthrough.
+  - source_ref: SC-006
+    intent: Workspace filter hides non-matching cards client-side.
+    step_id: s09
+    assessment: satisfied
+    evidence: board-filter.ts:18-24 and s09 cp1.
+  - source_ref: SC-007
+    intent: Preset argv is appended when phase env is unset.
+    step_id: s03
+    assessment: satisfied
+    evidence: loop_argv.py:105-111 and s03 cp1.
+  - source_ref: SC-008
+    intent: Phase env prevents preset append and exposes a diagnostic.
+    step_id: s03/s09
+    assessment: partial
+    evidence: loop_argv.py returns model_source=env, but the Host/plugin result contract drops that field before BoardControls can show the effective source.
+
+  - source_ref: Constitution MUST-1
+    intent: BACK IMPLEMENT uses targeted TDD before production changes.
+    step_id: s02-s10
+    assessment: satisfied
+    evidence: completed implement artifacts record targeted tests and verification results for code-producing steps.
+  - source_ref: Constitution MUST-2
+    intent: Required dependencies and paths fail closed instead of silently selecting alternatives.
+    step_id: s02/s04/s07/s08
+    assessment: partial
+    evidence: launch metadata/DEV_HUB paths fail closed, but the unregistered mb stock-run path remains an unverified silent fallback.
+  - source_ref: Constitution MUST-3
+    intent: Only parent runs frontend test runners.
+    step_id: s09
+    assessment: satisfied
+    evidence: s09 implementation evidence records no frontend runner invocation and the source-contract tests remain Python-side.
+  - source_ref: Constitution MUST-4
+    intent: Role session uses lean routed context and bounded inspection.
+    step_id: all
+    assessment: satisfied
+    evidence: this audit is bounded to plan, decompose index, implement headers, and listed evidence surfaces; no full suite or full shard rewrite was used.
+  - source_ref: Constitution MUST-5
+    intent: Invalid or ambiguous configuration is an error and is not guessed.
+    step_id: s04/s08
+    assessment: partial
+    evidence: Python config loader validates fields, but TS index.ts casts raw config and ignores enabled/allowRoadmapAdvance semantics.
+  - source_ref: Constitution MUST-6
+    intent: Insufficient evidence remains explicit rather than inferred.
+    step_id: s01/s08
+    assessment: satisfied
+    evidence: s01 documents Path B and this audit records unresolved wiring as findings instead of treating helper presence as proof.
+  - source_ref: Constitution MUST-7
+    intent: activeContext has one current Handoff.
+    step_id: workflow
+    assessment: satisfied
+    evidence: current activeContext.md contains one BACK AUDIT Handoff block.
+  - source_ref: Constitution MUST-8
+    intent: External/UI elements have matching client, backend, and persisted/external contract evidence.
+    step_id: s05/s08/s09
+    assessment: partial
+    evidence: execution result has no board execution persistence and workspace.list/stock-run counterparts are not wired end to end.
+  - source_ref: Constitution MUST-9
+    intent: AUDIT is the post-implementation intent-to-implementation authority check.
+    step_id: BACK AUDIT
+    assessment: satisfied
+    evidence: this artifact assesses each plan/decompose intent against implementation evidence and records remediation findings.
+
+# Legacy gap matrix: every decompose step is assessed against implement evidence, not presence alone.
+gap_matrix:
+  - step_id: s01
+    plan_title: Cordis intercept vs Host-route decision
+    status: "✅"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s01-spike-cordis-intercept-api-decision.yaml
+    assessment: decision and Path B evidence present; no actionable gap in the spike itself.
+  - step_id: s02
+    plan_title: board_launch metadata/card model foundation
+    status: "✅"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s02-board-launch-metadata-card-model.yaml
+    assessment: parser, canonical card-model import, and invalid-input evidence present.
+  - step_id: s03
+    plan_title: loop argv/model precedence/preset whitelist
+    status: "⚠️"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s03-loop-argv-model-precedence.yaml
+    assessment: precedence and validation are implemented; effective model source is not propagated through Host result (F4).
+  - step_id: s04
+    plan_title: arm_from_card/step mismatch/gate rules
+    status: "⚠️"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s04-arm-from-card-step-mismatch.yaml
+    assessment: default ROADMAP denial and step matching work; allowRoadmapAdvance configuration is not consumed (F5).
+  - step_id: s05
+    plan_title: loop_run subprocess/execution result
+    status: "❌"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s05-loop-run-subprocess-execution-result.yaml
+    assessment: subprocess and local result work, but FR-007 board execution persistence is absent (F1).
+  - step_id: s06
+    plan_title: arm-loop pipeline/post-loop sync
+    status: "✅"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s06-arm-loop-pipeline-sync-after-loop.yaml
+    assessment: arm-first sequencing and best-effort sync evidence present.
+  - step_id: s07
+    plan_title: hub-board arm/loop/arm-loop CLI
+    status: "✅"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s07-cli-hub-board-arm-loop-arm-loop.yaml
+    assessment: commands, flags, dry-run, and DEV_HUB diagnostics are evidenced.
+  - step_id: s08
+    plan_title: mb-bridge Host bridge/intercept
+    status: "⚠️"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s08-dsh-plugin-mb-bridge-host-bridge.yaml
+    assessment: route, fixed spawn, and UI actions exist; live stock-run deny/redirect registration is not evidenced (F2).
+  - step_id: s09
+    plan_title: workspace/runtime/model controls
+    status: "⚠️"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s09-board-controls-ui-workspace-filter-model-preset.yaml
+    assessment: pure filter and controls exist; Host workspace.list source and model-source response wiring are incomplete (F3/F4).
+  - step_id: s10
+    plan_title: installer/docs/regression suite
+    status: "✅"
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s10-docs-install-regression-suite.yaml
+    assessment: installer, runbook, and regression evidence present.
+
+findings:
+  - id: F1
+    gap_type: missing
+    severity: HIGH
+    source_ref: FR-007
+    evidence: loop/board_launch/loop_run.py:20-27,89-102 returns ExecutionResult with a local log_path; loop/board_sync/client.py has no execution-record operation and no launch caller updates a board task.
+    remaining_work: Add an explicit Host/client execution-record contract carrying status, exit_code, diagnostic_code, and bounded log_path; invoke it for success, failure, timeout, and spawn-error outcomes, with tests proving the board record is updated.
+  - id: F2
+    gap_type: contradicts
+    severity: HIGH
+    source_ref: FR-005 / AC−7 / SC-003
+    evidence: dsh/plugins/mb-bridge/src/intercept-run.ts:29-57 defines interceptStockRun/denyStockRun, while dsh/plugins/mb-bridge/src/index.ts:18-24 registers only the route and string injections; no live stock-run event handler calls either function.
+    remaining_work: Wire the Path B Host/UI stock-run surface so every mb-* stock Run is redirected to arm-loop or fails with mb_card_requires_loop_run; preserve non-mb passthrough and add an import/rg control proving no direct mb stock caller remains.
+  - id: F3
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: FR-012 / US-006
+    evidence: dsh/plugins/mb-bridge/src/board-controls.tsx:25-33 accepts workspaces as an already-populated prop; no Host workspace.list request, adapter, or error path appears in the bounded plugin source.
+    remaining_work: Implement the Host workspace.list adapter and feed its validated options into BoardControls, retaining All, localStorage persistence, metadata.workspace_id filtering, and fail-closed diagnostics for an unavailable/invalid workspace list.
+  - id: F4
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: "FR-015 / SC-008 / NFR: model precedence"
+    evidence: loop/board_launch/loop_argv.py:102-103 computes model_source=env, but dsh/plugins/mb-bridge/src/python-bridge.ts:50-56 HostExecutionResult has no model_source and board-controls.tsx:25-33 accepts modelSource without updating it from onResult.
+    remaining_work: Carry the effective model source and env key through CLI/Host execution results, update the control state after Arm+Run/Run, and render the required env-overrides warning while preserving the env > preset precedence.
+  - id: F5
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: FR-008 / AC−3 / Constitution MUST-5
+    evidence: loop/board_launch/bridge.py:90-97 loads allow_roadmap_advance, but loop/board_launch/arm.py:37-54 accepts no config and always denies a ROADMAP gate without explicit epic; dsh/plugins/mb-bridge/src/index.ts:12-15 also casts raw config without validating enabled/allowRoadmapAdvance.
+    remaining_work: Thread validated BridgeConfig into arm authorization, allow ROADMAP advancement only when the explicit config flag is true, and make the TypeScript mount honor enabled and validate the shared config fields instead of casting raw input.
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s01-spike-cordis-intercept-api-decision.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s02-board-launch-metadata-card-model.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s03-loop-argv-model-precedence.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s04-arm-from-card-step-mismatch.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s05-loop-run-subprocess-execution-result.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s06-arm-loop-pipeline-sync-after-loop.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s07-cli-hub-board-arm-loop-arm-loop.yaml
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s08-dsh-plugin-mb-bridge-host-bridge.yaml
+  - step_id: s09
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s09-board-controls-ui-workspace-filter-model-preset.yaml
+  - step_id: s10
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s10-docs-install-regression-suite.yaml
+
+not_implemented:
+  - step_id: s05
+    plan_title: loop_run subprocess + Fake + execution result mapping — FR-003/007
+    new_shard: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s11-audit-execution-recording.yaml
+
+deviations:
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s08-dsh-plugin-mb-bridge-host-bridge.yaml
+    plan_intent: FR-005/AC−7 require a live mb stock-run intercept or explicit fail-closed route.
+    actual: Helper functions and route exist, but index.ts does not register the stock-run handler.
+    impact: high
+  - step_id: s09
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s09-board-controls-ui-workspace-filter-model-preset.yaml
+    plan_intent: FR-012 requires options from Host workspace.list.
+    actual: BoardControls accepts workspaces but does not request or validate workspace.list data.
+    impact: medium
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s03-loop-argv-model-precedence.yaml
+    plan_intent: FR-015/SC-008 require effective env-vs-preset source to be visible in the launch result/UI.
+    actual: model_source ends at Python LoopArgvResult/CLI and is absent from HostExecutionResult/UI update flow.
+    impact: medium
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-015-dsh-board-arm-loop/s04-arm-from-card-step-mismatch.yaml
+    plan_intent: FR-008/AC−3 allow explicit configuration of ROADMAP advance while default remains false.
+    actual: allow_roadmap_advance is loaded but arm authorization cannot consume it; explicit true has no effect.
+    impact: medium
+
+legacy_surfaces_remaining:
+  - "dsh/plugins/mb-bridge/src/index.ts: stock-run surface is injected as a string without a registered deny/redirect handler for mb-* cards."
+fallback_remaining:
+  - "mb-* stock Run may still reach the ordinary Host runner when the unregistered Path B handler is used; fail-closed behavior is not wired end to end."
+purge_step_present: true
+blocked_reason: ""
+converged: false
+
+notes:
+  - "Assess выполнен только по bounded plan/decompose/index, implement headers и перечисленным code/test/README surfaces; тесты и полный suite не запускались по правилам BACK AUDIT."
+  - "Все s01-s10 имеют completed implement artifacts; completed artifacts и код не переписывались."
+  - "CASE A выбран потому что decompose-T-HUB-011-analyze-pre-implement и decompose-T-HUB-012-audit-converge имеют completed steps; проверена canonical memory-bank/constitution.md."
+  - "Actionable findings требуют append-only audit shards s11-s15 и следующего BACK IMPLEMENT → BACK AUDIT; до remediation нельзя переходить в BACK QA."

@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Audit remediation — FR-017 DONE lifecycle archives all epic cards"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F1 / source_ref FR-017: когда reduce_epic_lifecycle возвращает DONE,
+  sync должен явно архивировать все mb-* карточки соответствующего workspace/role/epic,
+  включая карточки, которые больше не входят в desired set, сохраняя non-mb-* карточки.
+  Реализация должна оставаться one-way и не добавлять arm/loop side effects.
+
+plan_refs:
+  - "F1"
+  - "FR-017"
+  - "US-002, US-005"
+  - "NFR: one-way"
+  - "plan §Gate emission — Lifecycle DONE → archive all mb-* эпика"
+files:
+  - "loop/board_sync/scan_gates.py"
+  - "loop/board_sync/sync.py"
+  - "loop/board_sync/diff.py"
+  - "loop/tests/test_board_sync_sync.py"
+
+context:
+  consumes:
+    - "loop/board_sync/scan_gates.py — lifecycle gate projection"
+    - "loop/board_sync/sync.py — operation orchestration"
+    - "loop/board_sync/diff.py — mb-* filtering and archive operations"
+  produces:
+    - "loop/board_sync/scan_gates.py — explicit DONE/archive-all signal or equivalent typed result"
+    - "loop/board_sync/sync.py — apply epic-scoped archive-all operations"
+    - "loop/board_sync/diff.py — archive-all matching helper if required"
+    - "loop/tests/test_board_sync_sync.py — DONE archive-all regression"
+  plan_refs:
+    - "F1"
+    - "FR-017"
+    - "US-002, US-005"
+    - "NFR: one-way"
+    - "plan §Gate emission — Lifecycle DONE → archive all mb-* эпика"
+  files:
+    - "loop/board_sync/scan_gates.py"
+    - "loop/board_sync/sync.py"
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_sync.py"
+
+as_built:
+  - "scan_gates maps AUDIT/QA/BUGFIX/REFLECT but returns no DONE archive signal"
+  - "sync applies only create/update/archive operations returned by compute_ops"
+  - "diff archives mb-* cards left over from the global desired set"
+
+delta:
+  - "EDIT scan_gates.py and/or result contract to preserve a typed, epic-scoped DONE/archive-all signal"
+  - "EDIT sync.py/diff.py to archive every matching mb-* card for DONE epic while excluding non-mb-* cards"
+  - "ADD regression coverage for multiple cards in one DONE epic plus an unrelated mb-* epic and manual non-mb card"
+
+deletes: []
+
+out_of_scope:
+  - "FR-010 unchanged-sync idempotency — s10"
+  - "FR-004 roadmap diagnostics — s11"
+  - "arm, loop launch, roadmap advance, or board-to-memory-bank write-back"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "DONE lifecycle produces an explicit archive-all signal scoped to workspace, role, and epic"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_gates.py loop/tests/test_board_sync_sync.py -q --tb=line"
+  - id: cp2
+    criterion: "run_sync archives all matching mb-* cards for DONE epic, including cards absent from desired active set"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py::test_done_epic_archive_all -q --tb=line"
+  - id: cp3
+    criterion: "DONE archive-all does not modify non-mb-* cards or mb-* cards belonging to another epic"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py -q --tb=line"
+
+verify:
+  - "DONE path is explicit and does not masquerade as a normal gate"
+  - "archive scope is matched using parsed mb-board-card/v1 metadata or an equivalent stable identity"
+  - "no board operation writes statuses back to memory-bank"
+
+tdd:
+  - "test_done_epic_archive_all — all matching epic cards are archived"
+  - "test_done_epic_preserves_unrelated_cards — other mb-* and manual cards remain untouched"

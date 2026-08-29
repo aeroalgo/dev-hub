@@ -1,0 +1,75 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-014
+action: BACK QA
+plan_id: T-HUB-014-dsh-mb-board-sync
+epic_id: T-HUB-014-dsh-mb-board-sync
+date: 2026-08-29
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "epic: T-HUB-014-dsh-mb-board-sync"
+  - "steps: s01-s11"
+  - "files: loop/board_sync/, bin/hub-board, loop/context_loop.py, dsh/README.md"
+  - "tests: loop/tests/test_board_sync_*.py"
+
+checks:
+  - "targeted board-sync suite: PASS — timeout 300s .venv/bin/pytest -q --tb=line loop/tests/test_board_sync_*.py — 53 passed in 0.29s"
+  - "full backend suite: PASS — timeout 300s .venv/bin/pytest -q --tb=line — 7758 passed, 181 skipped, 48 warnings in 189.95s"
+  - "applicable lint: PASS — timeout 300s python3 -m ruff check loop/board_sync loop/tests/test_board_sync_*.py — ruff: ok"
+  - "compile check: PASS — python3 -m compileall -q loop/board_sync loop/context_loop.py bin/hub-board"
+  - "diff check: PASS — git diff --check"
+  - "integration rule (§0.11): PASS — DSH_TASK_BOARD_HOST_URL, HttpHostClient, workspace registry, CLI wrapper, and roadmap_queue counterpart are wired"
+  - "security spot-check: PASS — registry/index/HTTP/roadmap diagnostics fail closed; no subprocess or shell=True in board-sync"
+  - "leftover legacy/fallback: PASS — legacy surfaces are empty; LedgerFileClient is explicitly documented as offline-only"
+  - "reviewer gate: PASS — reviewer confirmed AC, AC−, integration paths, security spot-check, and applicable lint scope"
+
+issues: []
+blockers: []
+fix_plan: []
+
+review:
+  verdict: pass
+  suite_results:
+    - "targeted board-sync suite: PASS — 53 passed"
+    - "full backend suite: PASS — 7758 passed, 181 skipped, 48 warnings"
+    - "board-sync package/tests lint: PASS"
+    - "compile and diff checks: PASS"
+  ac_plus:
+    - "Board-sync scans workspaces, memory-bank steps, lifecycle gates, and computes create/update/archive operations."
+    - "CLI sync/status, DSH_TASK_BOARD_HOST_URL, --host-url, and offline ledger behavior are wired and documented."
+    - "Malformed workspace/index/HTTP data and roadmap selection errors fail closed with surfaced diagnostics."
+    - "DONE archive-all, roadmap diagnostics, stable metadata, and repeated unchanged sync no-op are covered."
+  ac_minus:
+    - "Targeted tests were run in addition to, not instead of, the full backend suite."
+    - "Applicable lint is clean; the broader historical command is excluded because bin/hub-board is a shell wrapper and loop/context_loop.py has pre-existing unchanged findings outside Fix plan #2."
+    - "Non-board cards remain preserved and configuration errors do not apply partial operations."
+  section_0_11:
+    - "DSH_TASK_BOARD_HOST_URL ↔ CLI parser/HttpHostClient."
+    - "Workspace registry ↔ discovery."
+    - "roadmap_queue.select_next_epic ↔ scan_gates; no arm_roadmap_entry or roadmap_advance call."
+    - "CLI wrapper ↔ loop.board_sync."
+  allow_read:
+    - ".claude/hooks/agent-pretool.py"
+    - "loop/board_sync/cli.py"
+    - "loop/board_sync/sync.py"
+    - "loop/board_sync/scan_mb.py"
+    - "loop/board_sync/scan_gates.py"
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_cli.py"
+    - "loop/tests/test_board_sync_sync.py"
+    - "memory-bank/back/qa/T-HUB-014-dsh-mb-board-sync/qa-20260828-dsh-mb-board-sync.yaml"
+    - "memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/index.yaml"
+  findings: []
+
+limitations:
+  - "The reviewer gate was bounded to the ten-file ALLOW READ list and was read-only."
+  - "graphify query/update is unavailable because .venv/bin/graphify is absent in this hub repository; graphify N/A was recorded during the workflow."
+
+suite:
+  - "timeout 300s python3 -m ruff check loop/board_sync loop/tests/test_board_sync_*.py"
+  - "timeout 300s .venv/bin/pytest -q --tb=line loop/tests/test_board_sync_*.py"
+  - "timeout 300s .venv/bin/pytest -q --tb=line"
+  - "python3 -m compileall -q loop/board_sync loop/context_loop.py bin/hub-board"
+  - "git diff --check"

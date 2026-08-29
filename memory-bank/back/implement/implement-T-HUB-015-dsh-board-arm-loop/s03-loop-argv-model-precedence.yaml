@@ -1,0 +1,80 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s03 — build_loop_argv + model precedence + preset whitelist — FR-014/015/016
+  IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s03-loop-argv-model-precedence.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery:
+- 'graphify unavailable: hub repository without .venv/bin/graphify; scoped source
+  inspection used'
+- loop/board_launch/metadata.py is the preceding launch-card boundary; loop_argv.py
+  remains independent of card parsing
+gaps:
+  status: none
+done:
+- Added typed BridgeConfig, PresetEntry, PresetError, and LoopArgvResult launch contracts.
+- 'Implemented fail-closed model precedence: project phase env, selected preset, default
+  args, then bare argv.'
+- Added preset token whitelist and eight-entry limit, with DSH runtime represented
+  only in env_extra.
+- Added focused coverage for precedence, fallback, validation, diagnostics, task-mode
+  exclusion, and runtime override.
+files:
+- loop/board_launch/loop_argv.py
+- loop/tests/test_board_launch_argv.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py::test_preset_wins_when_env_unset
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py::test_env_wins_over_preset
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py::test_preset_whitelist_validation
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py::test_runtime_env_override
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py -q --tb=line`'
+integration_check:
+- loop_argv.py reads PROJECT_LOOP_<PHASE>_MODEL from product_root/.claude/project.env
+  and never reads task.mode.
+- loop_argv.py returns EPIC_RUNTIME=dsh through env_extra, leaving argv limited to
+  loop_bin, project_root, and selected args.
+grep_control:
+- back: loop/context_loop.py defines the same PROJECT_LOOP_<PHASE>_MODEL naming contract;
+    loop/loop.sh consumes phase model env and EPIC_RUNTIME.
+  front: not applicable — backend launch contract
+verification_results:
+- 11 passed in 0.05s
+- 'cp1: 1 passed; cp2: 1 passed; cp3: 1 passed; cp4: 1 passed'
+checkpoints:
+- id: cp1
+  criterion: build_loop_argv с preset_id='gpt' (phase env unset) → argv contains preset.args;
+    model_source='preset'
+  status: done
+  done_at: '2026-08-28T23:30:52Z'
+- id: cp2
+  criterion: PROJECT_LOOP_IMPLEMENT_MODEL set in project.env fixture → argv bare (no
+    preset token); model_source='env'
+  status: done
+  done_at: '2026-08-28T23:31:02Z'
+- id: cp3
+  criterion: unknown preset_id → PresetError; bad token pattern (spaces, shell chars)
+    → PresetError
+  status: done
+  done_at: '2026-08-28T23:31:10Z'
+- id: cp4
+  criterion: runtime='dsh' → LoopArgvResult.env_extra contains EPIC_RUNTIME=dsh; argv
+    unchanged
+  status: done
+  done_at: '2026-08-28T23:36:44Z'
+resume_from: cp1

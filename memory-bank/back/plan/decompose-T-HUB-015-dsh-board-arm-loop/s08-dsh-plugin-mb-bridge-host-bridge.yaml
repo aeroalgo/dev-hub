@@ -1,0 +1,129 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "dsh plugin mb-bridge Host bridge python-spawn + intercept stock run — FR-005/017"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать Cordis plugin `@dev-hub/dsh-mb-bridge` (TypeScript/Node):
+    - `python-bridge.ts`: spawns `hub-board arm|loop|arm-loop --task-id <id>` via Node `child_process.spawn`
+      с fixed argv (no shell=True); captures stdout/stderr; maps exit code → Host execution result.
+    - `intercept-run.ts`: на основе spike s01 (Path A или Path B):
+        Path A: Cordis hook intercepts `task-board/run` for mb-* cards → redirect to loop-run pipeline.
+        Path B: no hook → plugin registers Host route `/api/mb-bridge/action`; stock run for mb-* cards
+          disabled via empty/announce prompt; UI buttons call /api/mb-bridge/action directly.
+      Non-mb card run → passthrough unchanged (SC-005, AC+8).
+    - Card detail actions (FR-017): plugin injects Arm / Run loop / Arm+Run buttons into mb-* card detail;
+      Stock Run button hidden/replaced.
+    - Config load: read plugin config from Cordis yaml (`mb-bridge.*`); expose to python-bridge.
+    - Intercept enforces: no silent stock agent run for mb-* (AC+7, AC−7); error `mb_card_requires_loop_run`.
+  Brownfield cutover: удалить stub prompt pattern «T-HUB-015 later» из любого board_sync prompt builder
+  (rg scan + delete in-epic).
+  Покрывает: AC+7, AC+8, SC-003, SC-005, FR-005, FR-017, FR-018 (no raw shell from browser),
+  AC−2, AC−7, AC−8, NFR: security.
+
+context:
+  consumes:
+    - "dsh/plugins/mb-bridge/docs/intercept-decision.md — s01 spike result"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts skeleton — s01"
+    - "loop/board_sync/cli.py (hub-board arm/loop/arm-loop) — s07"
+    - "plan §FR-005, FR-017, FR-018"
+    - "plan §Plugin config schema"
+    - "plan §Security — fixed argv only"
+    - "plan §Observability — execution recording"
+    - "AC+7, AC+8, AC−2, AC−7, SC-003, SC-005"
+  produces:
+    - "dsh/plugins/mb-bridge/package.json"
+    - "dsh/plugins/mb-bridge/src/index.ts"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts (full implementation, was skeleton s01)"
+    - "dsh/plugins/mb-bridge/src/card-actions.tsx"
+    - "dsh/plugins/mb-bridge/cordis.patch.yml"
+    - "dsh/plugins/mb-bridge/README.md"
+    - "loop/tests/test_board_launch_bridge_unit.py"
+  plan_refs:
+    - "plan §FR-005, FR-017, FR-018"
+    - "plan §Plugin config (cordis) — full schema"
+    - "plan §Security"
+    - "plan §Observability"
+    - "plan §Replacement / sunset — A (stock run intercept), C (silent fallback)"
+    - "AC+7, AC+8, SC-003, SC-005"
+    - "NFR: security"
+  files:
+    - "dsh/plugins/mb-bridge/package.json"
+    - "dsh/plugins/mb-bridge/src/index.ts"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts"
+    - "dsh/plugins/mb-bridge/src/card-actions.tsx"
+    - "dsh/plugins/mb-bridge/cordis.patch.yml"
+    - "dsh/plugins/mb-bridge/README.md"
+    - "loop/tests/test_board_launch_bridge_unit.py"
+
+as_built:
+  - "dsh/plugins/ — не существует (greenfield)"
+  - "dsh/bin/which-dsh.sh, dsh/scripts/ — существуют"
+  - "loop/board_sync/cli.py — hub-board sync + status + arm/loop/arm-loop (s07)"
+  - "dsh/plugins/mb-bridge/docs/intercept-decision.md — создан s01"
+  - "dsh/plugins/mb-bridge/src/intercept-run.ts — skeleton s01"
+  - "Проверить rg 'T-HUB-015 later' в loop/board_sync/ — если найдено: delete in-epic"
+
+delta:
+  - "CREATE dsh/plugins/mb-bridge/package.json — @dev-hub/dsh-mb-bridge private package; cordis peer dep"
+  - "CREATE dsh/plugins/mb-bridge/src/index.ts — Cordis plugin apply(); load config; mount bridge + intercept + card-actions"
+  - "CREATE dsh/plugins/mb-bridge/src/python-bridge.ts — spawnHubBoard(subcommand, taskId, flags) using child_process.spawn fixed argv; maps exit → {succeeded|failed}; streams truncated log"
+  - "EDIT dsh/plugins/mb-bridge/src/intercept-run.ts — fill Path A or Path B implementation per s01 decision"
+  - "CREATE dsh/plugins/mb-bridge/src/card-actions.tsx — Arm / Run loop / Arm+Run buttons; Stock Run hidden on mb-* detail; calls spawnHubBoard"
+  - "CREATE dsh/plugins/mb-bridge/cordis.patch.yml — slot injection for card detail"
+  - "CREATE dsh/plugins/mb-bridge/README.md — security note: no raw shell; config schema; install"
+  - "DELETE stub prompt 'T-HUB-015 later' if found in loop/board_sync/ (rg first)"
+  - "CREATE loop/tests/test_board_launch_bridge_unit.py — Python-side tests: intercept decision logic via mock; non-mb passthrough"
+
+deletes:
+  - "stub prompt pattern 'T-HUB-015 later' in loop/board_sync/ (если существует — rg + delete)"
+  - "stock HostExecutionRunner.launch as primary path for mb-* (intercepted; direct call path removed)"
+
+out_of_scope:
+  - "Board controls UI (workspace filter, model preset dropdown) — s09"
+  - "Install script — s10"
+  - "Full regression suite — s10"
+  - "DSH profiles / T-HUB-007 profile selection — out of T-HUB-015 scope"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "python-bridge.ts spawns hub-board with fixed argv list; no shell=True; exit 0 → succeeded; exit 1 → failed"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py::test_python_bridge_fixed_argv -q"
+  - id: cp2
+    criterion: "intercept-run.ts: mb-* card run → hub-board arm-loop (or explicit error mb_card_requires_loop_run); non-mb → passthrough"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py::test_intercept_mb_vs_non_mb -q"
+  - id: cp3
+    criterion: "rg 'T-HUB-015 later' loop/board_sync/ → 0 matches (stub removed)"
+    verify: "rg 'T-HUB-015 later' loop/board_sync/ | wc -l | grep -q '^0$'"
+  - id: cp4
+    criterion: "card-actions.tsx: Arm+Run button exists; Stock Run NOT rendered for mb-* (grep in TSX)"
+    verify: "grep -q 'Arm+Run\\|ArmAndRun' dsh/plugins/mb-bridge/src/card-actions.tsx && ! grep -q 'StockRun.*mb' dsh/plugins/mb-bridge/src/card-actions.tsx"
+
+verify:
+  - "rg 'shell: true\\|shell=True' dsh/plugins/mb-bridge/src/ | wc -l  # must be 0"
+  - "rg 'T-HUB-015 later' loop/board_sync/ | wc -l  # must be 0 (stub deleted)"
+  - "test -f dsh/plugins/mb-bridge/src/python-bridge.ts"
+  - "test -f dsh/plugins/mb-bridge/src/card-actions.tsx"
+  - "grep -q 'mb_card_requires_loop_run\\|redirect\\|loop-run' dsh/plugins/mb-bridge/src/intercept-run.ts"
+
+tdd:
+  - "test_python_bridge_fixed_argv — spawn list argv; no shell; records call"
+  - "test_intercept_mb_vs_non_mb — mb card → arm-loop path; non-mb → passthrough"
+  - "test_stock_run_denied_mb — mb run → error mb_card_requires_loop_run or redirect"
+  - "test_non_mb_passthrough — non-mb card run → stock handler (not intercepted)"
+  - "test_config_load — BridgeConfig loaded from cordis plugin config"
+  - "test_stub_removed — rg 'T-HUB-015 later' returns 0 matches"

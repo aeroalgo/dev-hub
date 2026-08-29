@@ -1,0 +1,72 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s02 — Workspaces discover + eligible filter — workspace.json → WorkspaceRef[]
+  IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/s02-workspaces-discover-eligible-filter.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-error-handling
+- python-type-safety
+discovery:
+- loop/board_sync/workspaces.py — discover(), is_eligible(), WorkspaceRef, WorkspacesError
+- loop/tests/test_board_sync_workspaces.py — valid, ineligible, missing-path, corrupt-registry,
+  and missing-DSH_HOME coverage
+gaps:
+  status: none
+done:
+- Implemented fail-closed workspace registry loading from dsh_home/storages/workspace.json.
+- 'Implemented eligible filtering: registered path exists as a directory and contains
+  memory-bank/.'
+- Added diagnostic-coded WorkspacesError handling for missing/unreadable/invalid registry
+  and missing DSH_HOME.
+- Added valid/corrupt fixtures and public-interface pytest coverage.
+files:
+- loop/board_sync/workspaces.py
+- loop/tests/fixtures/board_sync/workspace_valid.json
+- loop/tests/fixtures/board_sync/workspace_corrupt.json
+- loop/tests/test_board_sync_workspaces.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_discover_eligible
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_corrupt_workspace
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_workspaces.py::test_missing_dsh_home
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_workspaces.py -q --tb=line`'
+integration_check:
+- 'workspace.json counterpart: discover() reads dsh_home/storages/workspace.json,
+  matching the DSH registry layout used by the fixture and tests.'
+- 'DSH_HOME counterpart: discover() accepts the explicit dsh_home Path override; no
+  environment lookup or auto-add behavior is introduced.'
+grep_control:
+- back: workspace.json, DSH_HOME, WorkspacesError, WorkspaceRef, and discover() references
+    resolve to loop/board_sync/workspaces.py and its tests.
+  front: not applicable — backend-only board sync workspace discovery.
+verification_results:
+- git diff --check -- loop/board_sync loop/tests/fixtures/board_sync loop/tests/test_board_sync_workspaces.py
+  — passed
+- Graph orientation attempted; .venv/bin/graphify is unavailable in this hub checkout.
+checkpoints:
+- id: cp1
+  criterion: discover(valid fixture) возвращает только eligible WorkspaceRef (path+memory-bank/
+    exists)
+  status: done
+  done_at: '2026-08-28T11:30:35Z'
+- id: cp2
+  criterion: discover(corrupt json fixture) поднимает исключение с diagnostic_code;
+    exit non-zero в интеграции
+  status: done
+  done_at: '2026-08-28T11:30:48Z'
+- id: cp3
+  criterion: missing DSH_HOME → raise WorkspacesError с понятным сообщением
+  status: done
+  done_at: '2026-08-28T11:30:59Z'
+resume_from: cp1

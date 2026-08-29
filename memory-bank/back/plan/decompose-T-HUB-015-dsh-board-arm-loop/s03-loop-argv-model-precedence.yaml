@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "build_loop_argv + model precedence + preset whitelist — FR-014/015/016"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/board_launch/loop_argv.py` — единственная функция сборки argv для `bin/loop`.
+  `build_loop_argv(project_root, phase, config, preset_id=None, runtime=None) -> list[str]`
+  Логика precedence (канон FR-015):
+    1. Читает `PROJECT_LOOP_<PHASE>_MODEL` из product `project_root/.claude/project.env`;
+       если задан → argv = [str(loop_bin), str(project_root)] (phase env wins; preset ignored);
+       diagnostic field `model_source="env"`.
+    2. Иначе preset_id → lookup `config.modelPresets` → `argv += preset.args` (validated).
+    3. Иначе `config.defaultLoopArgs` → `argv += defaultLoopArgs`.
+    4. Иначе bare argv = [str(loop_bin), str(project_root)].
+  `EPIC_RUNTIME` env-override: если runtime == "dsh" → добавить `EPIC_RUNTIME=dsh` в subprocess env dict (не argv).
+  Preset whitelist: каждый token из `preset.args` valided `^[a-zA-Z0-9._/-]+$`; max 8 presets; unknown preset_id → PresetError.
+  task.mode НЕ читается (AC−8, FR-018).
+  Покрывает: AC+2, AC+12, SC-002, SC-007, SC-008, FR-014, FR-015, FR-016, NFR: model precedence.
+
+context:
+  consumes:
+    - "loop/board_launch/metadata.py (LaunchCard) — s02"
+    - "plan §Model precedence (канон для README)"
+    - "plan §Plugin config schema (modelPresets, defaultLoopArgs, defaultRuntime)"
+    - "plan §FR-014, FR-015, FR-016"
+    - "plan §Argv contracts — Forbidden patterns"
+  produces:
+    - "loop/board_launch/loop_argv.py"
+    - "loop/tests/test_board_launch_argv.py"
+  plan_refs:
+    - "plan §Argv contracts (fail-closed)"
+    - "plan §Model precedence table"
+    - "plan §FR-014, FR-015, FR-016, FR-018"
+    - "AC+2, AC+12, SC-002, SC-007, SC-008"
+    - "AC−8, AC−9"
+  files:
+    - "loop/board_launch/loop_argv.py"
+    - "loop/tests/test_board_launch_argv.py"
+
+as_built:
+  - "loop/board_launch/__init__.py — создан в s02"
+  - "loop/board_launch/metadata.py — создан в s02"
+  - "loop/context_loop.py — имеет loop_phase_key(), build_loop_argv отсутствует"
+
+delta:
+  - "CREATE loop/board_launch/loop_argv.py — dataclass BridgeConfig(loop_bin, model_presets: list[PresetEntry], default_loop_args: list[str], default_runtime: str, allow_roadmap_advance: bool, sync_after_loop: bool); PresetEntry(id, label, args); PresetError(ValueError); LoopArgvResult(argv: list[str], env_extra: dict[str, str], model_source: str); build_loop_argv(project_root, phase, config, preset_id, runtime) -> LoopArgvResult"
+  - "CREATE loop/tests/test_board_launch_argv.py — unit tests (см. tdd)"
+
+deletes: []
+
+out_of_scope:
+  - "subprocess spawn — s05"
+  - "arm_from_card — s04"
+  - "CLI flags parsing — s07"
+  - "UI preset dropdown — s09"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "build_loop_argv с preset_id='gpt' (phase env unset) → argv contains preset.args; model_source='preset'"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py::test_preset_wins_when_env_unset -q"
+  - id: cp2
+    criterion: "PROJECT_LOOP_IMPLEMENT_MODEL set in project.env fixture → argv bare (no preset token); model_source='env'"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py::test_env_wins_over_preset -q"
+  - id: cp3
+    criterion: "unknown preset_id → PresetError; bad token pattern (spaces, shell chars) → PresetError"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py::test_preset_whitelist_validation -q"
+  - id: cp4
+    criterion: "runtime='dsh' → LoopArgvResult.env_extra contains EPIC_RUNTIME=dsh; argv unchanged"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py::test_runtime_env_override -q"
+
+verify:
+  - "from loop.board_launch.loop_argv import build_loop_argv, BridgeConfig, PresetEntry, LoopArgvResult, PresetError"
+  - "build_loop_argv('/p', 'IMPLEMENT', config_with_preset, preset_id='gpt').model_source == 'preset'"
+  - "build_loop_argv('/p', 'IMPLEMENT', config_with_preset, preset_id='gpt') — env PROJECT_LOOP_IMPLEMENT_MODEL set → model_source == 'env'"
+  - "build_loop_argv('/p', 'IMPLEMENT', config, preset_id='unknown') raises PresetError"
+  - "build_loop_argv('/p', 'IMPLEMENT', config, runtime='dsh').env_extra == {'EPIC_RUNTIME': 'dsh'}"
+
+tdd:
+  - "test_preset_wins_when_env_unset — argv contains preset.args token"
+  - "test_env_wins_over_preset — PROJECT_LOOP_IMPLEMENT_MODEL set → preset not appended"
+  - "test_default_loop_args_fallback — no preset, no env → defaultLoopArgs appended"
+  - "test_bare_argv_fallback — no preset, no env, empty defaultLoopArgs → [loop_bin, project_root]"
+  - "test_preset_whitelist_validation — bad token pattern raises PresetError"
+  - "test_unknown_preset_id_raises — PresetError"
+  - "test_runtime_env_override — runtime=dsh → env_extra EPIC_RUNTIME=dsh"
+  - "test_task_mode_not_read — task_mode field in config ignored (no effect)"
+  - "test_max_8_presets — 9 presets raises ValueError at BridgeConfig"
+  - "test_model_source_diagnostic — result carries correct model_source string"

@@ -1,0 +1,16 @@
+# Path B: mount a Host route because no public stock-run hook is available.
+- insert:
+    - id: mb-bridge
+      name: '@dev-hub/dsh-mb-bridge'
+      config:
+        mb-bridge:
+          enabled: true
+          devHub: !!js process.env.DEV_HUB
+          loopBin: hub-board
+          syncAfterLoop: true
+          allowRoadmapAdvance: false
+          interceptMbStockRun: true
+          defaultRuntime: claude
+          defaultLoopArgs: []
+          workspaceFilterEnabled: true
+          modelPresets: []

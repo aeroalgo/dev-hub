@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s14
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Audit remediation — FR-015 effective model source reaches Host UI"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+# Source: BACK AUDIT finding F4 in audit-20260829-dsh-board-arm-loop.yaml.
+goal: |
+  Закрыть finding F4 / source_ref FR-015, SC-008 и NFR model precedence:
+  phase env PROJECT_LOOP_<PHASE>_MODEL должен оставаться выше preset, а
+  effective model source должен проходить через CLI/Host execution result до
+  BoardControls. При env override UI показывает явное предупреждение
+  «env overrides»; при preset/default/bare источник также не теряется. Не
+  разрешать browser free-text model и не использовать task.mode.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-015-dsh-board-arm-loop/audit-20260829-dsh-board-arm-loop.yaml — F4 / FR-015"
+    - "loop/board_launch/loop_argv.py — LoopArgvResult.model_source and env precedence"
+    - "loop/board_sync/cli.py — launch result printing"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts — HostExecutionResult"
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx — modelSource prop and env badge"
+    - "plan §Model precedence"
+    - "plan §FR-015 / SC-008 / AC−8 / AC−9"
+  produces:
+    - "loop/board_launch/loop_run.py or CLI result contract — model_source and optional env key"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts — HostExecutionResult source fields"
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx — state update from launch result"
+    - "loop/tests/test_board_launch_argv.py and source-contract tests — propagation coverage"
+  plan_refs:
+    - "F4"
+    - "FR-015"
+    - "SC-007"
+    - "SC-008"
+    - "NFR: model precedence"
+    - "AC−8"
+    - "AC−9"
+    - "plan §Model precedence table"
+
+files:
+  - "loop/board_launch/loop_argv.py"
+  - "loop/board_launch/loop_run.py"
+  - "loop/board_sync/cli.py"
+  - "dsh/plugins/mb-bridge/src/python-bridge.ts"
+  - "dsh/plugins/mb-bridge/src/board-controls.tsx"
+  - "loop/tests/test_board_launch_argv.py"
+  - "loop/tests/test_board_launch_ui_filter.py"
+
+as_built:
+  - "build_loop_argv returns model_source=env|preset|default|bare, but CLI/HostExecutionResult does not carry it."
+  - "BoardControls accepts modelSource as a static prop and only renders the env badge from that prop."
+  - "python-bridge.ts validates preset tokens and uses a select-compatible config, but does not expose the effective source in its result."
+
+delta:
+  - "Extend the launch result contract with model_source and, where useful, the effective phase env key."
+  - "Propagate the value through CLI/Host bridge responses and update BoardControls after Arm+Run/Run completion."
+  - "Render the env override warning from actual result state while retaining preset whitelist validation and no task.mode path."
+  - "Add tests for env, preset, default, and bare source propagation without changing argv precedence."
+
+deletes: []
+
+out_of_scope:
+  - "Changing the precedence order or allowing arbitrary browser model strings."
+  - "Editing product .claude/project.env from the board."
+  - "Adding a second model resolver outside build_loop_argv."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Env > preset > default > bare remains unchanged and each branch emits model_source."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py -q --tb=line"
+  - id: cp2
+    criterion: "Host/UI result carries model_source=env and BoardControls updates the env-overrides badge after launch."
+    verify: "rg -n 'model_source|modelSource|env overrides' loop/board_launch dsh/plugins/mb-bridge/src"
+  - id: cp3
+    criterion: "No task.mode or free-text model input becomes part of the mb launch path."
+    verify: "if rg -n 'task\.mode|input type=\"text\".*model|free.*text.*model' loop/board_launch dsh/plugins/mb-bridge/src; then exit 1; fi"
+
+verify:
+  - "Effective source is not lost between Python argv construction and UI state."
+  - "Env override is visible and preset remains a whitelist selection."
+  - "Product files are never edited by runtime/model toggle handling."
+
+tdd:
+  - "test_model_source_propagates_env"
+  - "test_model_source_propagates_preset_default_bare"
+  - "test_board_controls_updates_env_badge_from_result"
+  - "test_task_mode_is_not_used"

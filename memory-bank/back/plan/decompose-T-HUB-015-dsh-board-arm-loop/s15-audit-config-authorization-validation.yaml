@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s15
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Audit remediation — FR-008 ROADMAP authorization and bridge config are enforced"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+# Source: BACK AUDIT finding F5 in audit-20260829-dsh-board-arm-loop.yaml.
+goal: |
+  Закрыть finding F5 / source_ref FR-008, AC−3 и Constitution MUST-5:
+  validated BridgeConfig.allowRoadmapAdvance должен реально участвовать в
+  авторизации arm. Значение false по умолчанию сохраняет fail-closed denial;
+  значение true разрешает ROADMAP только при явном конфигурационном opt-in и
+  корректных metadata. TypeScript mount должен валидировать/применять enabled,
+  allowRoadmapAdvance и связанные config-поля, а не делать небезопасный cast
+  сырого объекта.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-015-dsh-board-arm-loop/audit-20260829-dsh-board-arm-loop.yaml — F5 / FR-008"
+    - "loop/board_launch/arm.py — ROADMAP denial and arm_session call"
+    - "loop/board_launch/bridge.py — load_bridge_config and allowRoadmapAdvance"
+    - "loop/board_launch/pipeline.py — arm/loop composition"
+    - "dsh/plugins/mb-bridge/src/index.ts — raw config cast"
+    - "plan §gate arm rules"
+    - "plan §Plugin config — full schema"
+    - "plan §FR-008 / AC−3"
+    - "Constitution MUST-2 / MUST-5"
+  produces:
+    - "loop/board_launch/arm.py and/or pipeline.py — config-aware ROADMAP authorization"
+    - "loop/board_launch/bridge.py — shared validation contract if extended"
+    - "dsh/plugins/mb-bridge/src/index.ts — validated enabled/config mount"
+    - "loop/tests/test_board_launch_arm.py and loop/tests/test_board_launch_bridge_unit.py — opt-in/deny coverage"
+  plan_refs:
+    - "F5"
+    - "FR-008"
+    - "FR-001b"
+    - "AC−3"
+    - "NFR: fail-closed"
+    - "Constitution MUST-2"
+    - "Constitution MUST-5"
+    - "plan §gate arm rules (card_kind=gate)"
+
+files:
+  - "loop/board_launch/arm.py"
+  - "loop/board_launch/bridge.py"
+  - "loop/board_launch/pipeline.py"
+  - "dsh/plugins/mb-bridge/src/index.ts"
+  - "dsh/plugins/mb-bridge/src/intercept-run.ts"
+  - "loop/tests/test_board_launch_arm.py"
+  - "loop/tests/test_board_launch_bridge_unit.py"
+
+as_built:
+  - "bridge.py loads allow_roadmap_advance, but arm_from_card accepts no BridgeConfig and always denies a ROADMAP gate without explicit epic."
+  - "index.ts returns a raw mb-bridge section cast as BridgeConfig and does not validate enabled or authorization semantics."
+  - "Default false denial and explicit-epic checks are present in arm.py, but config behavior is not end-to-end."
+
+delta:
+  - "Thread validated BridgeConfig or an equivalent authorization object through the arm pipeline without duplicating activeContext writes."
+  - "Preserve default false and fail closed on missing, malformed, or ambiguous authorization values."
+  - "Allow ROADMAP advancement only for explicit true opt-in plus valid explicit authorization; keep non-ROADMAP gate and step behavior unchanged."
+  - "Make TypeScript mount honor disabled configuration and validate the supported config shape before registering routes/injections."
+  - "Add tests for default denial, explicit opt-in success, malformed config failure, and disabled mount."
+
+deletes: []
+
+out_of_scope:
+  - "Enabling ROADMAP advance by default."
+  - "Implementing a new roadmap queue or changing board card metadata schema."
+  - "Bypassing step_mismatch or other loop/finish gates."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Default/missing allowRoadmapAdvance denies ROADMAP; explicit true plus valid explicit authorization is the only allowed path."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_bridge_unit.py -q --tb=line"
+  - id: cp2
+    criterion: "Malformed or disabled bridge configuration fails closed and does not register an active route."
+    verify: "rg -n 'enabled|allowRoadmapAdvance|loadBridgeConfig|registerBridgeRoute' dsh/plugins/mb-bridge/src loop/board_launch/bridge.py"
+  - id: cp3
+    criterion: "Step matching and non-ROADMAP gate behavior remain unchanged; no roadmap-advance side effect is invented."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_pipeline.py -q --tb=line"
+
+verify:
+  - "Authorization config has one validated source and is consumed by arm behavior."
+  - "False, missing, malformed, and disabled states are explicit errors/denials."
+  - "The existing fail-closed default and no-roadmap-side-effect policy remain intact."
+
+tdd:
+  - "test_roadmap_advance_denied_by_default"
+  - "test_roadmap_advance_requires_explicit_opt_in"
+  - "test_bridge_config_malformed_or_disabled_fails_closed"
+  - "test_step_and_non_roadmap_gate_behavior_unchanged"

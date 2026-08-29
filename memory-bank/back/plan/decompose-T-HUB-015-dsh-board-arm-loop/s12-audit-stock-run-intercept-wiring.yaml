@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s12
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Audit remediation — FR-005 mb stock Run is wired to Path B deny/redirect"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+# Source: BACK AUDIT finding F2 in audit-20260829-dsh-board-arm-loop.yaml.
+goal: |
+  Закрыть finding F2 / source_ref FR-005, AC−7 и SC-003: Path B Host-route
+  fallback должен быть реально подключён к stock Run поверхности. Для mb-*
+  карточки stock Run обязан перенаправляться в arm-loop/loop-run или завершаться
+  явной ошибкой mb_card_requires_loop_run; обычный free-session prompt не должен
+  оставаться доступным через не подключённый обработчик. Non-mb cards должны
+  по-прежнему проходить через stock handler.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-015-dsh-board-arm-loop/audit-20260829-dsh-board-arm-loop.yaml — F2 / FR-005"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts — interceptStockRun and denyStockRun helpers"
+    - "dsh/plugins/mb-bridge/src/index.ts — current plugin mount and injections"
+    - "dsh/plugins/mb-bridge/docs/intercept-decision.md — Path B decision"
+    - "plan §Replacement / sunset — stock HostExecutionRunner.launch and silent fallback"
+    - "plan §US-004 / FR-005 / FR-017"
+  produces:
+    - "dsh/plugins/mb-bridge/src/index.ts — live stock-run registration or explicit Path B deny adapter"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts — validated mb/non-mb route contract"
+    - "loop/tests/test_board_launch_bridge_unit.py and/or source-contract coverage — live wiring regression"
+  plan_refs:
+    - "F2"
+    - "FR-005"
+    - "FR-017"
+    - "US-004"
+    - "SC-003"
+    - "SC-005"
+    - "AC−7"
+    - "plan §Replacement / sunset — A/C"
+
+files:
+  - "dsh/plugins/mb-bridge/src/index.ts"
+  - "dsh/plugins/mb-bridge/src/intercept-run.ts"
+  - "dsh/plugins/mb-bridge/src/card-actions.tsx"
+  - "loop/tests/test_board_launch_bridge_unit.py"
+
+as_built:
+  - "intercept-run.ts exports interceptStockRun and denyStockRun, but index.ts registers only the Host route and string injections."
+  - "card-actions.tsx exposes Arm+Run, Arm, and Run loop for mb-* cards."
+  - "s01 chose Path B because no public Cordis stock-run hook was confirmed."
+
+delta:
+  - "Connect the stock-run surface to a concrete Path B deny/redirect handler instead of an inert string injection."
+  - "Ensure mb-* cards route through the fixed bridge action or return mb_card_requires_loop_run when bridge handling is unavailable."
+  - "Preserve non-mb stock passthrough and document the exact Host registration contract."
+  - "Add a regression/import audit proving the live mount references the intercept/deny path and no direct mb stock caller remains."
+
+deletes:
+  - "Unbound stock-run prompt injection as the sole mb-* protection, replaced by a live deny/redirect registration."
+  - "Any direct mb-* stock-run caller introduced by the Path B adapter."
+
+out_of_scope:
+  - "Discovering a new Cordis public hook; Path B remains the selected decision."
+  - "Changing non-mb task behavior."
+  - "Changing Python loop execution semantics."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Mounted plugin has a live stock-run deny/redirect path for mb-* and it returns or invokes the explicit loop route."
+    verify: "rg -n 'interceptStockRun|denyStockRun|mb_card_requires_loop_run' dsh/plugins/mb-bridge/src/index.ts dsh/plugins/mb-bridge/src/intercept-run.ts"
+  - id: cp2
+    criterion: "Non-mb stock Run remains passthrough while mb-* never reaches the ordinary stock handler."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py -q --tb=line"
+  - id: cp3
+    criterion: "Path B replacement has an import/rg anti-fallback control with no inert-only stock-run protection."
+    verify: "rg -n 'stock-run|intercept|deny|mb_card_requires_loop_run' dsh/plugins/mb-bridge/src"
+
+verify:
+  - "Live mount references the stock-run guard/redirect rather than only injecting a string slot."
+  - "mb and non-mb routing behavior is covered independently."
+  - "No stock HostExecutionRunner.launch path remains primary for mb-* cards."
+
+tdd:
+  - "test_live_stock_run_mount_is_wired"
+  - "test_intercept_mb_cards_uses_loop_or_explicit_error"
+  - "test_non_mb_stock_passthrough"
+  - "test_no_direct_mb_stock_caller"

@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Audit remediation — FR-007 board execution record is persisted with loop result"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+# Source: BACK AUDIT finding F1 in audit-20260829-dsh-board-arm-loop.yaml.
+goal: |
+  Закрыть finding F1 / source_ref FR-007: результат запуска loop должен быть
+  не только локальным ExecutionResult/log_path, но и явной записью execution
+  для соответствующей mb-* task на Board Host/client. Контракт должен сохранять
+  succeeded|failed, exit_code, diagnostic_code и ограниченный log_path для
+  success, non-zero exit, timeout и spawn-error исходов. Запись не должна
+  превращать board в SoT и не должна выполнять arm/loop повторно.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-015-dsh-board-arm-loop/audit-20260829-dsh-board-arm-loop.yaml — F1 / FR-007"
+    - "loop/board_launch/loop_run.py — ExecutionResult and bounded log_path"
+    - "loop/board_sync/client.py — TaskBoardClient transport boundary"
+    - "loop/board_sync/cli.py — launch command result handling"
+    - "plan §FR-007 Execution recording"
+    - "plan §Observability — Host-visible execution record"
+    - "plan §AC−1 — board is not the source of truth"
+  produces:
+    - "loop/board_launch/loop_run.py or a launch execution-record adapter — explicit execution payload"
+    - "loop/board_sync/client.py — Host/client execution update operation or typed capability"
+    - "loop/board_sync/cli.py — result-to-record propagation"
+    - "loop/tests/test_board_launch_loop_run.py and/or loop/tests/test_board_launch_cli.py — persistence coverage"
+  plan_refs:
+    - "F1"
+    - "FR-007"
+    - "US-002"
+    - "SC-002"
+    - "plan §Observability"
+    - "AC−1"
+
+files:
+  - "loop/board_launch/loop_run.py"
+  - "loop/board_sync/client.py"
+  - "loop/board_sync/cli.py"
+  - "loop/tests/test_board_launch_loop_run.py"
+  - "loop/tests/test_board_launch_cli.py"
+
+as_built:
+  - "loop/board_launch/loop_run.py returns ExecutionResult(status, exit_code, log_path, diagnostic_code) but has no board-write hook."
+  - "loop/board_sync/client.py exposes list_tasks/upsert/archive only; no execution-record operation is defined."
+  - "loop/board_sync/cli.py prints launch results and returns a status code but does not persist execution outcome."
+
+delta:
+  - "Define a bounded execution-record payload and a single explicit Host/client update boundary keyed by task_id."
+  - "Propagate result status, exit_code, diagnostic_code, and truncated log_path for normal and exceptional launch outcomes."
+  - "Keep board persistence observational: no activeContext/index mutation and no duplicate arm/loop invocation."
+  - "Add FakeClient/transport tests proving success, failure, timeout or spawn error, and bounded log-path handling."
+
+deletes: []
+
+out_of_scope:
+  - "Changing loop preparation, finalize-step, verify, or activeContext ownership."
+  - "Making board execution status authoritative over product loop state."
+  - "Unbounded stdout/stderr storage or a new background job system."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "A successful loop persists one execution record with task id, succeeded status, exit_code=0, and bounded log_path."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py loop/tests/test_board_launch_cli.py -q --tb=line"
+  - id: cp2
+    criterion: "Non-zero, timeout, and spawn-error outcomes are persisted as failed/diagnostic records without being swallowed."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_loop_run.py loop/tests/test_board_launch_cli.py -q --tb=line"
+  - id: cp3
+    criterion: "Execution recording performs no arm/loop retry and does not write product memory-bank state."
+    verify: "rg -n 'arm|loop|execution' loop/tests/test_board_launch_loop_run.py loop/tests/test_board_launch_cli.py"
+
+verify:
+  - "Execution record contract is explicit at the Host/client boundary."
+  - "All failure paths retain a diagnostic and bounded log reference where available."
+  - "No board-record write is used as a replacement for loop gates or activeContext updates."
+
+tdd:
+  - "test_execution_record_success"
+  - "test_execution_record_failure_and_diagnostic"
+  - "test_execution_record_spawn_or_timeout_error"
+  - "test_execution_record_does_not_arm_or_loop_again"

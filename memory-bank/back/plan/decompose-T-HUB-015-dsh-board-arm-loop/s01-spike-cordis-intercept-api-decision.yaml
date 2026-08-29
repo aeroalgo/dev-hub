@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Cordis intercept vs Host-route decision — spike, documented, no silent defer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Выяснить точный Cordis hook API для перехвата stock `task-board` run на mb-* карточках
+  (или подтвердить его отсутствие в текущей версии DSH).
+  Результат: решение зафиксировано в shard-файле + `dsh/plugins/mb-bridge/docs/intercept-decision.md`.
+  Path A: Cordis hook работает → реализовать в s08 через hook name.
+  Path B: hook нет / нестабилен → fallback: Host-route `/api/mb-bridge/action` + UI disable stock run prompt
+  (announce in README, test in s08).
+  Покрывает: план §[НУЖНО УТОЧНИТЬ] Cordis hook name; блокирует silent defer.
+
+context:
+  consumes:
+    - "dsh/ layout (profiles, presets, scripts, bin)"
+    - "план §Зафиксированные решения — Stock Task Board kind:run"
+    - "план §Риски — Cordis cannot intercept task-board run"
+  produces:
+    - "dsh/plugins/mb-bridge/docs/intercept-decision.md"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts (skeleton decision comment)"
+  plan_refs:
+    - "план §[НУЖНО УТОЧНИТЬ]"
+    - "plan §Риски — Cordis cannot intercept"
+    - "plan §Зафиксированные решения — Stock Task Board kind:run"
+    - "FR-005"
+  files:
+    - "dsh/plugins/mb-bridge/docs/intercept-decision.md"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts"
+
+as_built:
+  - "dsh/ — существует (bin, profiles, presets, scripts, patches, README.md)"
+  - "dsh/plugins/ — не существует (greenfield)"
+  - "Cordis version: проверить dsh/package.json или dsh/scripts/; если нет — probe via docs"
+
+delta:
+  - "CREATE dsh/plugins/mb-bridge/docs/intercept-decision.md — spike findings: hook API name (если есть), fallback route, code examples; section Path A / Path B chosen"
+  - "CREATE dsh/plugins/mb-bridge/src/intercept-run.ts — skeleton with decision comment: PATH_A or PATH_B + TODO s08 implement"
+  - "Если Path A: указать hook name + Cordis `ctx.on('task-board/run', …)` или аналог"
+  - "Если Path B: указать `/api/mb-bridge/action` endpoint + announce string в plugin mount"
+
+deletes: []
+
+out_of_scope:
+  - "Полная реализация intercept — s08"
+  - "Python board_launch package — s02–s06"
+  - "CLI subcommands — s07"
+  - "Board controls UI — s09"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/plugins/mb-bridge/docs/intercept-decision.md создан; содержит раздел «Выбранный путь» (A или B) с обоснованием и ссылкой на Cordis API version"
+    verify: "test -f dsh/plugins/mb-bridge/docs/intercept-decision.md && grep -q 'Выбранный путь' dsh/plugins/mb-bridge/docs/intercept-decision.md"
+  - id: cp2
+    criterion: "dsh/plugins/mb-bridge/src/intercept-run.ts создан со skeleton + PATH_A/PATH_B комментарием; s08 TODO присутствует"
+    verify: "test -f dsh/plugins/mb-bridge/src/intercept-run.ts && grep -q 'PATH_' dsh/plugins/mb-bridge/src/intercept-run.ts"
+
+verify:
+  - "intercept-decision.md содержит: 'Выбранный путь', 'Path A' или 'Path B', версию DSH/Cordis где проверялось"
+  - "intercept-run.ts содержит decision comment; нет рабочего кода (skeleton only — реализация в s08)"
+
+tdd: []

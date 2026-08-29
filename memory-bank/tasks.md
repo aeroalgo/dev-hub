@@ -13,9 +13,11 @@
 | T-HUB-007 | DSH profiles + presets | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-007-dsh-profiles-presets.md) · QA pass · 7/7 steps completed |
 | T-HUB-008 | DSH epic-gate plugin | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-008-dsh-epic-gate-plugin.md) · deps T-HUB-006, T-HUB-007 |
 | T-HUB-009 | DSH rollout docs + pilot | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-009-dsh-rollout-docs.md) · deps T-HUB-006…008 |
-| T-HUB-014 | DSH memory-bank → Task Board sync | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-014-dsh-mb-board-sync.md) · slug dsh-mb-board |
+| T-HUB-014 | DSH memory-bank → Task Board sync | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-014-dsh-mb-board-sync.md) · QA pass · 11/11 steps completed |
 | T-HUB-015 | DSH board arm + loop launch | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-015-dsh-board-arm-loop.md) · deps T-HUB-014 |
 | T-HUB-016 | DSH Claude Code hooks bridge | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-016-dsh-cc-hooks-bridge.md) · deps T-HUB-006,007 · before 008 |
+| T-HUB-017 | Loop observability foundation | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-017-loop-observability-foundation.md) · slug loop-observability |
+| T-HUB-018 | Loop incident autopilot | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-018-loop-incident-autopilot.md) · deps T-HUB-017 |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |
@@ -29,6 +31,7 @@
 | Slug: dsh-loop-backend | [roadmap-dsh-loop-backend-epics.md](back/plan/roadmap-dsh-loop-backend-epics.md) · [queue](back/plan/roadmap-dsh-loop-backend-epics.queue.yaml) |
 | Slug: speckit-workflow-boost | [roadmap-speckit-workflow-boost-epics.md](back/plan/roadmap-speckit-workflow-boost-epics.md) · [queue](back/plan/roadmap-speckit-workflow-boost-epics.queue.yaml) |
 | Slug: dsh-mb-board | [roadmap-dsh-mb-board-epics.md](back/plan/roadmap-dsh-mb-board-epics.md) · [queue](back/plan/roadmap-dsh-mb-board-epics.queue.yaml) |
+| Slug: loop-observability | [roadmap-loop-observability-epics.md](back/plan/roadmap-loop-observability-epics.md) · [queue](back/plan/roadmap-loop-observability-epics.queue.yaml) |
 | Research | [audit/workflow-loop-20260816](audit/workflow-loop-20260816/index.md) · spec-kit/ (local) + chat analysis 2026-08-23 |
 
 ## Done (recent)
@@ -44,12 +47,16 @@
 - T-HUB-006…009: MULTI-EPIC PLAN DSH loop backend (opt-in runtime)
 - T-HUB-010…013: MULTI-EPIC PLAN SpecKit workflow boost (clarify/analyze/audit-converge/idea-decide)
 - T-HUB-014…015: MULTI-EPIC PLAN DSH memory-bank board sync + arm/loop from board
+- T-HUB-017…018: MULTI-EPIC PLAN loop observability + incident autopilot
 - T-HUB-016: PLAN CC hooks bridge; 007/008 revised (bridge-first + gap-fill)
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-08-28 | canon | BACK ROADMAP MERGE · +T-HUB-017/018 · canon queue 7 active |
+| 2026-08-28 | T-HUB-017…018 | BACK PLAN loop-observability multi-epic · next ROADMAP MERGE |
+| 2026-08-29 | T-HUB-014-dsh-mb-board-sync | BACK REFLECT → EPIC_DONE | [reflection-T-HUB-014-dsh-mb-board-sync](back/reflection/reflection-T-HUB-014-dsh-mb-board-sync.md) · PASS; QA pass, 11/11 steps completed |
 | 2026-08-28 | T-HUB-007-dsh-profiles-presets | BACK REFLECT → EPIC_DONE | [reflection-T-HUB-007-dsh-profiles-presets](back/reflection/reflection-T-HUB-007-dsh-profiles-presets.md) · QA pass, 7/7 steps completed |
 | 2026-08-27 | T-HUB-016 | BACK PLAN dsh-cc-hooks-bridge + revise 007/008 · ROADMAP MERGE |
 | 2026-08-27 | canon | BACK ROADMAP MERGE · +T-HUB-014/015 · skip done 002–004,010 · first T-HUB-011 |

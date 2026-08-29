@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "hub-board arm/loop/arm-loop CLI subcommands — FR-006"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `loop/board_sync/cli.py` и `bin/hub-board` тремя новыми subcommands:
+    `hub-board arm --task-id ID [--ledger PATH|--host-url URL] [--dry-run]`
+    `hub-board loop --task-id ID [--loop-args TOKEN] [--runtime dsh|claude] [--dry-run]`
+    `hub-board arm-loop --task-id ID [--loop-args TOKEN] [--runtime dsh|claude] [--dry-run]`
+  CLI читает task по task-id из Host API (или ledger); вызывает board_launch pipeline; print result.
+  `--dry-run`: print argv + arm plan, не выполнять.
+  `--loop-args`: один токен (validated whitelist); передаётся как preset_id=None + raw arg (или mapped preset lookup).
+  `--runtime`: dsh|claude; default claude.
+  DEV_HUB missing → fail-closed с clear message.
+  Покрывает: AC+10, FR-006, NFR: fail-closed (DEV_HUB missing).
+
+context:
+  consumes:
+    - "loop/board_sync/cli.py — existing sync/status subcommands"
+    - "loop/board_launch/pipeline.py (arm_loop_from_card) — s06"
+    - "loop/board_launch/arm.py (arm_from_card) — s04"
+    - "loop/board_launch/loop_run.py (loop_run) — s05"
+    - "loop/board_launch/metadata.py (parse_launch_metadata) — s02"
+    - "plan §FR-006, CLI flags"
+    - "plan §Argv contracts — hub-board usage examples"
+  produces:
+    - "loop/board_sync/cli.py (modified — arm/loop/arm-loop subcommands added)"
+    - "loop/tests/test_board_launch_cli.py"
+  plan_refs:
+    - "plan §FR-006"
+    - "plan §CLI parity — hub-board arm|loop|arm-loop"
+    - "plan §Argv contracts (fail-closed)"
+    - "AC+10"
+    - "NFR: fail-closed"
+  files:
+    - "loop/board_sync/cli.py"
+    - "loop/tests/test_board_launch_cli.py"
+
+as_built:
+  - "loop/board_sync/cli.py — 'sync' + 'status' subcommands exist; build_parser() defined"
+  - "bin/hub-board — exists; calls loop/board_sync/cli.py:main()"
+  - "loop/board_launch/pipeline.py — arm_loop_from_card — created s06"
+
+delta:
+  - "EDIT loop/board_sync/cli.py — add arm_parser, loop_parser, arm_loop_parser subcommands; _arm(), _loop(), _arm_loop() handlers; DEV_HUB env check in handlers; --dry-run print-and-exit"
+  - "CREATE loop/tests/test_board_launch_cli.py — unit tests with FakeLoopRunner, fake arg parser"
+
+deletes: []
+
+out_of_scope:
+  - "DSH plugin spawn — s08 (plugin calls hub-board via python-bridge)"
+  - "Board UI controls — s09"
+  - "Installation / docs — s10"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "hub-board arm --help, loop --help, arm-loop --help exit 0; all three subcommands parseable"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_cli.py::test_subcommand_help -q"
+  - id: cp2
+    criterion: "hub-board arm-loop --task-id X --dry-run: prints argv + no subprocess spawn"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_cli.py::test_dry_run_no_spawn -q"
+  - id: cp3
+    criterion: "DEV_HUB missing → cli exits 1 with clear diagnostic message (not traceback)"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_cli.py::test_dev_hub_missing -q"
+  - id: cp4
+    criterion: "--runtime dsh → LoopArgvResult.env_extra EPIC_RUNTIME=dsh (passed to pipeline)"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_cli.py::test_runtime_flag -q"
+
+verify:
+  - "python3 loop/board_sync/cli.py arm --help (exit 0)"
+  - "python3 loop/board_sync/cli.py loop --help (exit 0)"
+  - "python3 loop/board_sync/cli.py arm-loop --help (exit 0)"
+  - "grep -n 'shell=True' loop/board_sync/cli.py | wc -l  # must be 0"
+  - "DEV_HUB='' python3 loop/board_sync/cli.py arm --task-id X 2>&1 | grep 'DEV_HUB'"
+
+tdd:
+  - "test_subcommand_help — arm/loop/arm-loop --help all exit 0"
+  - "test_dry_run_no_spawn — --dry-run outputs argv; FakeLoopRunner not called"
+  - "test_dev_hub_missing — exits 1; diagnostic message contains DEV_HUB"
+  - "test_runtime_flag — --runtime dsh passed to build_loop_argv"
+  - "test_loop_args_flag — --loop-args gpt mapped to preset or raw arg"
+  - "test_arm_subcommand_calls_arm_from_card — arm_from_card invoked"
+  - "test_arm_loop_subcommand_calls_pipeline — arm_loop_from_card invoked"

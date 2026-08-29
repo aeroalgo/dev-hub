@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions below)
 
-→ [decompose-T-HUB-015-dsh-board-arm-loop/index.md](decompose-T-HUB-015-dsh-board-arm-loop/index.md) — **после DECOMPOSE**
+→ [decompose-T-HUB-015-dsh-board-arm-loop/index.md](decompose-T-HUB-015-dsh-board-arm-loop/index.md) — **единственный трекер статуса шагов**
 
 ---
 
@@ -401,18 +401,22 @@ If `syncAfterLoop=true`: invoke `hub-board sync --workspace-id <id>` after loop 
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## Нарезка (DECOMPOSE s01–s10)
 
-1. **s01 — spike Cordis intercept vs alternate API** (doc decision in shard; no silent defer)  
-2. **s02 — board_launch metadata + loop_argv builders + model precedence tests**  
-3. **s03 — arm_from_card + step_mismatch**  
-4. **s04 — loop_run subprocess + Fake + execution result mapping**  
-5. **s05 — arm_loop pipeline + syncAfterLoop opt**  
-6. **s06 — CLI hub-board arm/loop/arm-loop + --loop-args + --runtime**  
-7. **s07 — dsh plugin mb-bridge Host bridge (python spawn)**  
-8. **s08 — intercept + card detail actions (Arm/Run/Arm+Run)**  
-9. **s09 — board-controls UI: workspace filter + runtime + model presets + Sync**  
-10. **s10 — install script + docs runbook (model precedence, filter, buttons) + regression suite**
+Трекер: [decompose-T-HUB-015-dsh-board-arm-loop/index.yaml](decompose-T-HUB-015-dsh-board-arm-loop/index.yaml)
+
+| sNN | Slug | next_phase |
+|-----|------|------------|
+| s01 | spike-cordis-intercept-api-decision | BACK IMPLEMENT |
+| s02 | board-launch-metadata-card-model | BACK IMPLEMENT |
+| s03 | loop-argv-model-precedence | BACK IMPLEMENT |
+| s04 | arm-from-card-step-mismatch | BACK IMPLEMENT |
+| s05 | loop-run-subprocess-execution-result | BACK IMPLEMENT |
+| s06 | arm-loop-pipeline-sync-after-loop | BACK IMPLEMENT |
+| s07 | cli-hub-board-arm-loop-arm-loop | BACK IMPLEMENT |
+| s08 | dsh-plugin-mb-bridge-host-bridge | BACK IMPLEMENT |
+| s09 | board-controls-ui-workspace-filter-model-preset | BACK IMPLEMENT |
+| s10 | docs-install-regression-suite | BACK IMPLEMENT |
 
 ---
 

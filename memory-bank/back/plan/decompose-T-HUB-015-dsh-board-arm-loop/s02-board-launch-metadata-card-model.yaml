@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "board_launch package + metadata parse/validate + card_model import — FR-001/001b foundation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать пакет `loop/board_launch/` и `metadata.py` — единственный source-of-truth для парсинга
+  `mb-board-card/v1` метаданных в контексте T-HUB-015 (arm/loop pipeline).
+  `metadata.py` импортирует `CardKind`, `StepCard`, `GateCard` из `loop/board_sync/card_model.py` (T-HUB-014),
+  добавляет `parse_launch_metadata(task_dict) -> LaunchCard` с валидацией fail-closed:
+  `card_kind` missing → `CardMetadataError`; unknown kind → `CardMetadataError`;
+  `project_root` missing/blank → `CardMetadataError`;
+  `decompose_rel` required for step/gate → `CardMetadataError`.
+  Покрывает AC+1, FR-001, FR-001b, NFR: 014 schema import.
+
+context:
+  consumes:
+    - "loop/board_sync/card_model.py (CardKind, StepCard, GateCard, parse_metadata) — T-HUB-014"
+    - "plan §Модули — loop/board_launch/metadata.py"
+    - "plan §FR-001, FR-001b"
+  produces:
+    - "loop/board_launch/__init__.py"
+    - "loop/board_launch/metadata.py"
+    - "loop/tests/test_board_launch_metadata.py"
+  plan_refs:
+    - "plan §FR-001, FR-001b"
+    - "plan §Модули — loop/board_launch/metadata.py"
+    - "AC+1"
+    - "NFR: 014 schema import"
+    - "NFR: fail-closed"
+  files:
+    - "loop/board_launch/__init__.py"
+    - "loop/board_launch/metadata.py"
+    - "loop/tests/test_board_launch_metadata.py"
+
+as_built:
+  - "loop/board_sync/card_model.py — существует (T-HUB-014); CardKind, StepCard, GateCard, parse_metadata"
+  - "loop/board_launch/ — не существует (greenfield)"
+  - "loop/__init__.py — существует"
+  - "loop/tests/ — существует (T-HUB-014 tests)"
+
+delta:
+  - "CREATE loop/board_launch/__init__.py — пустой package export"
+  - "CREATE loop/board_launch/metadata.py — dataclass LaunchCard(project_root, decompose_rel, step_id|None, gate_phase|None, workspace_id|None, card_kind: CardKind, raw: dict); parse_launch_metadata(task_dict) -> LaunchCard (fail-closed); CardMetadataError(ValueError)"
+  - "CREATE loop/tests/test_board_launch_metadata.py — unit tests (см. tdd)"
+
+deletes: []
+
+out_of_scope:
+  - "arm_from_card, loop_argv — s03, s04"
+  - "loop_run, pipeline — s05, s06"
+  - "CLI — s07"
+  - "DSH plugin — s08–s09"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "parse_launch_metadata валидный mb-board-card/v1 → LaunchCard с project_root, card_kind, decompose_rel; round-trip без потерь"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_metadata.py::test_parse_valid_step -q"
+  - id: cp2
+    criterion: "parse_launch_metadata invalid (missing card_kind, missing project_root, unknown kind) → CardMetadataError, non-zero exit via caller"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_metadata.py::test_parse_invalid -q"
+  - id: cp3
+    criterion: "card_kind=gate → GateCard; card_kind=step → StepCard; import от board_sync.card_model без копирования"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_metadata.py::test_card_kind_routing -q"
+
+verify:
+  - "from loop.board_launch.metadata import parse_launch_metadata, CardMetadataError"
+  - "from loop.board_sync.card_model import CardKind  # реимпорт из 014, не копия"
+  - "parse_launch_metadata({'metadata': {'card_kind': 'step', 'project_root': '/p', 'decompose_rel': 'x'}}).card_kind == CardKind.STEP"
+  - "parse_launch_metadata({'metadata': {}}) raises CardMetadataError"
+
+tdd:
+  - "test_parse_valid_step — LaunchCard fields populated correctly"
+  - "test_parse_valid_gate — gate_phase populated; step_id absent"
+  - "test_parse_missing_card_kind — raises CardMetadataError"
+  - "test_parse_missing_project_root — raises CardMetadataError"
+  - "test_parse_missing_decompose_rel — raises CardMetadataError"
+  - "test_parse_unknown_card_kind — raises CardMetadataError"
+  - "test_parse_workspace_id_optional — missing workspace_id → None, no error"
+  - "test_card_kind_routing — step → StepCard attributes accessible; gate → gate_phase"
+  - "test_import_card_kind_from_board_sync — CardKind imported from board_sync.card_model (no copy)"

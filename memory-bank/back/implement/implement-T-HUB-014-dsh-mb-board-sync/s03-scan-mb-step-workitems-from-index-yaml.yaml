@@ -1,0 +1,86 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s03 — scan_mb step WorkItems — decompose index.yaml → pending/in_progress sNN
+  IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-014-dsh-mb-board-sync/s03-scan-mb-step-workitems-from-index-yaml.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-error-handling
+- python-type-safety
+discovery:
+- loop/board_sync/workspaces.py — WorkspaceRef (s02) задаёт project path и workspace
+  id
+- loop/board_sync/card_model.py — CardKind (s01); scan result остаётся независимым
+  от card model
+- memory-bank/**/plan/decompose-*/index.yaml — canon schema и шаги со status
+gaps:
+  status: none
+done:
+- Implemented WorkItem dataclass with role, epic, step, status, source index, title,
+  and workspace reference.
+- Implemented stable scan over back/front/integration decompose indexes, selecting
+  pending, in_progress, active, and blocked rows only.
+- Implemented batch-safe corrupt-index handling with per-project error diagnostics;
+  missing memory-bank paths are skipped silently.
+- Added mini memory-bank fixture and public-interface tests for filtering, counts,
+  errors, missing projects, fields, and multi-role scans.
+files:
+- loop/board_sync/scan_mb.py
+- loop/tests/fixtures/board_sync/mini_mb_project/memory-bank/back/plan/decompose-T-HUB-007-test/index.yaml
+- loop/tests/test_board_sync_scan_mb.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_scan_steps_filters_status
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_corrupt_index_skip
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_mb.py::test_multi_role
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_mb.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_workspaces.py loop/tests/test_board_sync_card_model.py
+  -q --tb=line`'
+integration_check:
+- 'WorkspaceRef counterpart: scan_steps consumes workspace_refs returned by workspaces.discover();
+  it does not rediscover or mutate registry state.'
+- 'Decompose index counterpart: scan reads memory-bank/{back,front,integration}/plan/decompose-*/index.yaml
+  and preserves each index path relative to the workspace root in decompose_rel.'
+- 'Board/card counterpart: WorkItem is a scan-layer projection; no board writes, status
+  write-back, or CardKind assumptions are introduced.'
+grep_control:
+- back: scan_steps, WorkItem, ScanResult, and _parse_index references resolve to loop/board_sync/scan_mb.py
+    and loop/tests/test_board_sync_scan_mb.py.
+  front: not applicable — backend-only board sync scan.
+- back: No status write-back is present; scan_mb.py only reads index.yaml and constructs
+    WorkItem values.
+  front: not applicable — backend-only board sync scan.
+- back: Graph orientation attempted; .venv/bin/graphify is unavailable in this hub
+    checkout.
+  front: not applicable — backend-only board sync scan.
+verification_results:
+- 'targeted scan_mb suite: 6 passed'
+- 'neighboring board_sync suites: 11 passed'
+- 'git diff --check on s03 files: passed'
+checkpoints:
+- id: cp1
+  criterion: scan_steps(fixture ws) возвращает только pending/in_progress/active/blocked
+    WorkItems; completed отсутствует
+  status: done
+  done_at: '2026-08-28T12:28:59Z'
+- id: cp2
+  criterion: corrupt index.yaml одного проекта → skip project; batch продолжается;
+    errors list не пустой
+  status: done
+  done_at: '2026-08-28T12:29:04Z'
+- id: cp3
+  criterion: multi-role scan (back/ + front/) возвращает WorkItems с правильным role
+    полем
+  status: done
+  done_at: '2026-08-28T12:29:12Z'
+resume_from: cp1

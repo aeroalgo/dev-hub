@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Install script + docs runbook + regression suite — FR-009/010"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть docs + install + regression suite для T-HUB-015:
+  1. `dsh/scripts/install-mb-bridge.sh` — устанавливает `@dev-hub/dsh-mb-bridge` в DSH plugins dir;
+     проверяет DEV_HUB env; fail-closed на missing dir.
+  2. `dsh/README.md` (modify) — раздел «Board Arm/Loop»:
+     sync → filter → preset → arm+loop flow; model precedence table; workspace filter usage;
+     troubleshooting: flock / step_mismatch / missing DEV_HUB.
+  3. Регрессионный pytest suite — убеждаемся что test_board_launch_*.py + test_board_sync_*.py
+     проходят вместе (014 + 015 не конфликтуют).
+  Покрывает: AC+9, AC+14, FR-009, FR-010.
+  Docs-only шаг (нет новых Python prod-модулей) → `impl: []`.
+
+context:
+  consumes:
+    - "dsh/README.md — существует (M в git status)"
+    - "dsh/scripts/ — существует"
+    - "loop/tests/test_board_launch_*.py — created s02–s09"
+    - "loop/tests/test_board_sync_*.py — T-HUB-014 tests"
+    - "plan §FR-009, FR-010"
+    - "plan §Model precedence table"
+    - "plan §Тест-стратегия"
+  produces:
+    - "dsh/scripts/install-mb-bridge.sh"
+    - "dsh/README.md (modified)"
+    - "loop/tests/test_board_launch_regression.py"
+  plan_refs:
+    - "plan §FR-009, FR-010"
+    - "plan §Тест-стратегия — timeout 300s pytest loop/tests/test_board_launch_*.py test_board_sync_*.py"
+    - "AC+9, AC+14"
+  files:
+    - "dsh/scripts/install-mb-bridge.sh"
+    - "dsh/README.md"
+    - "loop/tests/test_board_launch_regression.py"
+
+as_built:
+  - "dsh/README.md — существует; нет раздела Arm/Loop"
+  - "dsh/scripts/install-mb-bridge.sh — не существует"
+  - "loop/tests/test_board_launch_metadata.py, test_board_launch_argv.py, … — created s02–s09"
+  - "loop/tests/test_board_sync_*.py — T-HUB-014 (должны оставаться зелёными)"
+
+delta:
+  - "CREATE dsh/scripts/install-mb-bridge.sh — checks DEV_HUB, DSH_HOME; copies/links mb-bridge plugin; exits 1 on missing dep with message"
+  - "EDIT dsh/README.md — append section '## Board Arm/Loop (T-HUB-015)' with: flow diagram (text), model precedence table, workspace filter instructions, troubleshooting table (flock, step_mismatch, DEV_HUB)"
+  - "CREATE loop/tests/test_board_launch_regression.py — imports all board_launch modules; runs smoke assertions; verifies 014 card_model import not broken"
+
+deletes: []
+
+out_of_scope:
+  - "Внешняя публикация plugin (npm publish) — out of scope"
+  - "Jira — plan: out of scope"
+  - "CREATIVE для Cordis API — закрыто s01 spike"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/README.md содержит разделы: '## Board Arm/Loop', model precedence table, troubleshooting"
+    verify: "grep -q 'Board Arm/Loop\\|model precedence\\|step_mismatch' dsh/README.md"
+  - id: cp2
+    criterion: "regression suite: timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py loop/tests/test_board_sync_*.py -q — все зелёные"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py loop/tests/test_board_sync_*.py -q --tb=line"
+  - id: cp3
+    criterion: "install-mb-bridge.sh существует; DEV_HUB=/nonexistent ./dsh/scripts/install-mb-bridge.sh → exit 1 с сообщением"
+    verify: "test -f dsh/scripts/install-mb-bridge.sh && DEV_HUB=/nonexistent bash dsh/scripts/install-mb-bridge.sh 2>&1 | grep -q 'DEV_HUB\\|missing\\|not found'"
+
+verify:
+  - "grep -q 'Board Arm/Loop' dsh/README.md"
+  - "grep -q 'step_mismatch\\|flock\\|DEV_HUB' dsh/README.md  # troubleshooting section"
+  - "test -f dsh/scripts/install-mb-bridge.sh"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_regression.py -q --tb=short"
+
+tdd: []

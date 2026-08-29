@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s13
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Audit remediation — FR-012 workspace filter options come from Host workspace.list"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+# Source: BACK AUDIT finding F3 in audit-20260829-dsh-board-arm-loop.yaml.
+goal: |
+  Закрыть finding F3 / source_ref FR-012 и US-006: mb-bridge должен получать
+  список workspace через Host workspace.list, валидировать ответ и передавать
+  options в BoardControls. Сохранить All, localStorage key
+  mb-bridge.workspaceFilter, client-side filter по metadata.workspace_id и
+  view-only семантику. Недоступный или некорректный Host response должен быть
+  явно диагностирован, а не превращаться в молча пустой список.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-015-dsh-board-arm-loop/audit-20260829-dsh-board-arm-loop.yaml — F3 / FR-012"
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx — current prop-driven workspace options"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts — pure metadata.workspace_id filter"
+    - "dsh/plugins/mb-bridge/src/index.ts — plugin mount context"
+    - "plan §Board UI controls (mb-bridge client)"
+    - "plan §FR-012 / US-006 / AC−10"
+  produces:
+    - "dsh/plugins/mb-bridge/src/index.ts or workspace adapter — Host workspace.list request and validation"
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx — loaded options/error state integration"
+    - "loop/tests/test_board_launch_ui_filter.py or plugin source-contract coverage — workspace.list and failure cases"
+  plan_refs:
+    - "F3"
+    - "FR-012"
+    - "US-006"
+    - "SC-006"
+    - "AC−10"
+    - "NFR: idempotent filter"
+    - "plan §Board UI controls (mb-bridge client)"
+
+files:
+  - "dsh/plugins/mb-bridge/src/index.ts"
+  - "dsh/plugins/mb-bridge/src/board-controls.tsx"
+  - "dsh/plugins/mb-bridge/src/board-filter.ts"
+  - "loop/tests/test_board_launch_ui_filter.py"
+
+as_built:
+  - "BoardControls accepts workspaces as a prop and renders All plus supplied entries."
+  - "No workspace.list call, response parser, or unavailable/invalid response diagnostic appears in the bounded plugin source."
+  - "board-filter.ts returns a new filtered list and does not write the ledger."
+
+delta:
+  - "Add a Host workspace.list adapter with a typed response shape and validation of workspace id/label values."
+  - "Load or inject validated options into BoardControls while preserving All and localStorage restoration."
+  - "Expose an explicit unavailable/invalid workspace-list state without mutating cards or ledger."
+  - "Cover selected workspace, All, malformed response, and no Host capability paths."
+
+deletes: []
+
+out_of_scope:
+  - "Server-side filtering or changes to board synchronization semantics."
+  - "Replacing the existing pure filterCards implementation."
+  - "Adding a new workspace registry format."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Mounted bridge requests Host workspace.list and renders validated options plus All."
+    verify: "rg -n 'workspace\.list|workspace.list|WorkspaceOption|All' dsh/plugins/mb-bridge/src"
+  - id: cp2
+    criterion: "Unavailable or malformed workspace.list is explicit and does not silently mutate the ledger."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py -q --tb=line"
+  - id: cp3
+    criterion: "Filter selection remains persisted and client-side by metadata.workspace_id for selected workspace and All."
+    verify: "rg -n 'mb-bridge\.workspaceFilter|filterCards|workspace_id|localStorage' dsh/plugins/mb-bridge/src"
+
+verify:
+  - "Host workspace.list is a real counterpart to BoardControls workspaces, not only a caller-provided prop."
+  - "Malformed/unavailable data has an explicit UI/diagnostic path."
+  - "No filter action calls a board write or alters the source card array."
+
+tdd:
+  - "test_workspace_list_options_are_loaded"
+  - "test_workspace_list_invalid_response_is_explicit"
+  - "test_filter_all_and_selected_workspace"
+  - "test_filter_does_not_mutate_ledger"

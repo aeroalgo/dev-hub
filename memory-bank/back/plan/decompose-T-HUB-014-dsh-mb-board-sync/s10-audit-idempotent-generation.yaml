@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Audit remediation — FR-010 repeat sync is a no-op despite generation metadata"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F2 / source_ref FR-010: повторный sync без изменений должен быть
+  no-op, даже если новый sync_generation записывается в metadata для следующего
+  содержательно изменившегося upsert. Исключить generation-only updates, сохранив
+  монотонность поколения и one-way memory-bank → board контракт.
+
+plan_refs:
+  - "F2"
+  - "FR-010"
+  - "NFR: idempotent sync"
+  - "plan §Зафиксированные решения — Направление sync (one-way)"
+  - "plan §Mapping board status"
+files:
+  - "loop/board_sync/diff.py"
+  - "loop/board_sync/sync.py"
+  - "loop/tests/test_board_sync_diff.py"
+  - "loop/tests/test_board_sync_sync.py"
+
+context:
+  consumes:
+    - "loop/board_sync/diff.py — BoardTask content comparison"
+    - "loop/board_sync/sync.py — generation calculation and run_sync"
+    - "loop/board_sync/card_model.py — metadata parser"
+  produces:
+    - "loop/board_sync/diff.py and/or sync.py — generation-independent equality or preserved generation"
+    - "loop/tests/test_board_sync_sync.py — unchanged repeat no-op regression"
+    - "loop/tests/test_board_sync_diff.py — generation-only content comparison regression if needed"
+  plan_refs:
+    - "F2"
+    - "FR-010"
+    - "NFR: idempotent sync"
+    - "plan §Зафиксированные решения — Направление sync (one-way)"
+    - "plan §Mapping board status"
+  files:
+    - "loop/board_sync/diff.py"
+    - "loop/board_sync/sync.py"
+    - "loop/tests/test_board_sync_diff.py"
+    - "loop/tests/test_board_sync_sync.py"
+
+as_built:
+  - "sync.py increments generation before desired cards are materialized"
+  - "diff.py compares complete BoardTask values, including description metadata and sync_generation"
+  - "test_sync_generation_increment currently proves generation changes but not no-op behavior"
+
+delta:
+  - "EDIT comparison/materialization so unchanged semantic card content does not create an update solely because sync_generation differs"
+  - "PRESERVE generation metadata contract for actual create/update operations"
+  - "ADD tests asserting second unchanged run returns zero operations and no writes while generation behavior remains explicit"
+
+deletes: []
+
+out_of_scope:
+  - "FR-017 DONE archive-all — s09"
+  - "FR-004 roadmap selector diagnostics — s11"
+  - "Changing stable IDs, status mapping, or board SoT direction"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Repeated unchanged run produces no update operations and does not write to FakeClient"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py::test_sync_generation_increment -q --tb=line"
+  - id: cp2
+    criterion: "Changed title or status still produces an update with current generation metadata"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_diff.py::test_diff_update_changed -q --tb=line"
+  - id: cp3
+    criterion: "Stable ID, one-way filtering, and dry-run behavior remain green"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_diff.py loop/tests/test_board_sync_sync.py -q --tb=line"
+
+verify:
+  - "Equality ignores only generation metadata, not title/description/prompt/workspace/status"
+  - "Actual changed cards receive the new sync_generation"
+  - "No writes occur for an unchanged second sync"
+
+tdd:
+  - "test_sync_generation_increment — generation contract plus second-run operations/write count"
+  - "test_diff_update_changed — semantic change remains update"
+  - "test_diff_idempotent_skip — equal semantic content remains no-op"

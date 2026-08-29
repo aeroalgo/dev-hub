@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: "Board controls UI: workspace filter + runtime toggle + model preset + Sync button — FR-012/013/014/016"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `dsh/plugins/mb-bridge/src/board-controls.tsx` и `board-filter.ts`:
+  - **Workspace filter** (FR-012): dropdown «All | ws-id-1 | ws-id-2» injected в board header;
+    filter = client-side DOM hide of cards where `parse_metadata(card).workspace_id != selected`;
+    persist `localStorage` key `mb-bridge.workspaceFilter`; ledger НЕ изменяется (AC−10).
+  - **Runtime toggle** (FR-016): dropdown claude|dsh; persist `mb-bridge.runtime`;
+    sets `EPIC_RUNTIME` in subprocess env via python-bridge args.
+  - **Model preset** (FR-014): dropdown «Phase default (env) | preset1 | preset2 …»;
+    options from `config.modelPresets` (whitelist validated); persist `mb-bridge.modelPreset`;
+    badge «env overrides» when `model_source == "env"` (from python-bridge result).
+  - **Sync button** (FR-013): calls `hub-board sync --workspace-id <selected>` (or full sync if All);
+    shows toast with last sync summary counts.
+  board-filter.ts: pure function `filterCards(cards, workspaceId) → Card[]` — no mutation.
+  Покрывает: AC+11, AC+12 (validation via s03; UI enforces whitelist), AC+13, SC-006, FR-012, FR-013, FR-014, FR-016, AC−9, AC−10, NFR: idempotent filter.
+
+context:
+  consumes:
+    - "dsh/plugins/mb-bridge/src/index.ts — plugin mount — s08"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts — spawnHubBoard — s08"
+    - "loop/board_launch/loop_argv.py (BridgeConfig, modelPresets) — s03"
+    - "plan §Board UI controls (mb-bridge client)"
+    - "plan §FR-012, FR-013, FR-014, FR-016"
+    - "plan §Persistence — localStorage keys"
+    - "plan §Plugin config — workspaceFilterEnabled, modelPresets"
+  produces:
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts"
+    - "loop/tests/test_board_launch_ui_filter.py"
+  plan_refs:
+    - "plan §FR-012, FR-013, FR-014, FR-016"
+    - "plan §Board UI controls (mb-bridge client)"
+    - "AC+11, AC+12, AC+13, SC-006"
+    - "AC−9, AC−10"
+    - "NFR: idempotent filter"
+  files:
+    - "dsh/plugins/mb-bridge/src/board-controls.tsx"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts"
+    - "loop/tests/test_board_launch_ui_filter.py"
+
+as_built:
+  - "dsh/plugins/mb-bridge/src/index.ts — plugin mount — created s08"
+  - "dsh/plugins/mb-bridge/src/python-bridge.ts — spawnHubBoard — created s08"
+
+delta:
+  - "CREATE dsh/plugins/mb-bridge/src/board-controls.tsx — BoardControls React component: workspace dropdown (from Host workspace.list), runtime dropdown, model preset dropdown, Sync button; all persist localStorage; badge 'env overrides' conditional"
+  - "CREATE dsh/plugins/mb-bridge/src/board-filter.ts — filterCards(cards: Card[], workspaceId: string | null): Card[] pure function; no mutation"
+  - "CREATE loop/tests/test_board_launch_ui_filter.py — Python-side unit tests for filterCards logic (if Python mirror exists) OR document as TypeScript-only (note: TS tests = parent only per HARD rule)"
+
+deletes: []
+
+out_of_scope:
+  - "Installation script — s10"
+  - "Docs runbook — s10"
+  - "arm/loop pipeline logic — s04–s06"
+  - "Python preset validation (server-side) — s03"
+  - "TS/Vitest tests — parent runs; subagent writes test files only"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "board-filter.ts filterCards: cards with workspace_id != selected → hidden (not in return); all=null → all returned; ledger unchanged"
+    verify: "test -f dsh/plugins/mb-bridge/src/board-filter.ts && grep -q 'filterCards' dsh/plugins/mb-bridge/src/board-filter.ts"
+  - id: cp2
+    criterion: "board-controls.tsx contains workspace dropdown, runtime dropdown, model preset dropdown, Sync button (grep key identifiers)"
+    verify: "grep -q 'workspaceFilter\\|mb-bridge.runtime\\|mb-bridge.modelPreset' dsh/plugins/mb-bridge/src/board-controls.tsx"
+  - id: cp3
+    criterion: "Sync button in board-controls.tsx calls spawnHubBoard('sync', ..., workspace-id arg when filtered)"
+    verify: "grep -q 'sync' dsh/plugins/mb-bridge/src/board-controls.tsx && grep -q 'workspace-id\\|workspaceId' dsh/plugins/mb-bridge/src/board-controls.tsx"
+  - id: cp4
+    criterion: "model preset dropdown options come from config.modelPresets; no free-text input rendered"
+    verify: "grep -q 'modelPresets\\|preset' dsh/plugins/mb-bridge/src/board-controls.tsx && ! grep -q 'input type=\"text\".*model\\|free.*text.*model' dsh/plugins/mb-bridge/src/board-controls.tsx"
+
+verify:
+  - "test -f dsh/plugins/mb-bridge/src/board-controls.tsx"
+  - "test -f dsh/plugins/mb-bridge/src/board-filter.ts"
+  - "grep -q 'localStorage' dsh/plugins/mb-bridge/src/board-controls.tsx  # persist"
+  - "grep -q 'filterCards' dsh/plugins/mb-bridge/src/board-filter.ts"
+  - "grep -rq 'shell.*true\\|execSync.*string' dsh/plugins/mb-bridge/src/board-controls.tsx || true  # must NOT use shell strings"
+
+tdd:
+  - "test_filter_cards_by_workspace — filterCards hides non-matching workspace_id cards"
+  - "test_filter_cards_all_null — filterCards(cards, null) returns all"
+  - "test_filter_no_ledger_mutation — filter result is new array; input cards unchanged"
+  - "test_sync_button_sends_workspace_id — Sync click invokes sync with correct --workspace-id"
+  - "test_preset_dropdown_no_free_text — UI dropdown only (whitelist); no raw text model field"
+  - "test_env_badge_shown — model_source=env → badge visible"

@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: "Audit remediation — FR-004 roadmap selection errors are explicit and fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F3 / source_ref FR-004 и Constitution MUST-2/5/6: ошибки
+  roadmap_queue.select_next_epic не должны превращаться в отсутствие ROADMAP-карточки.
+  При corrupt/missing/ambiguous queue сохранить fail-closed поведение с явным
+  diagnostic/error channel, не выполняя arm, loop или roadmap-advance side effects.
+
+plan_refs:
+  - "F3"
+  - "FR-004"
+  - "FR-016"
+  - "AC− #4"
+  - "Constitution MUST-2"
+  - "Constitution MUST-5"
+  - "Constitution MUST-6"
+  - "plan §Gate emission — ROADMAP"
+files:
+  - "loop/board_sync/scan_gates.py"
+  - "loop/board_sync/sync.py"
+  - "loop/board_sync/cli.py"
+  - "loop/tests/test_board_sync_scan_gates.py"
+  - "loop/tests/test_board_sync_cli.py"
+
+context:
+  consumes:
+    - "loop/board_sync/scan_gates.py — _roadmap_gate"
+    - "loop/roadmap_queue.py — select_next_epic result contract"
+    - "loop/board_sync/sync.py and cli.py — diagnostics propagation"
+  produces:
+    - "loop/board_sync/scan_gates.py — explicit roadmap selection diagnostic handling"
+    - "loop/board_sync/sync.py and/or cli.py — report gate-scan diagnostics and non-zero when required"
+    - "loop/tests/test_board_sync_scan_gates.py — invalid/missing queue regression"
+    - "loop/tests/test_board_sync_cli.py — diagnostic/exit behavior if surfaced at CLI"
+  plan_refs:
+    - "F3"
+    - "FR-004"
+    - "FR-016"
+    - "AC− #4"
+    - "Constitution MUST-2"
+    - "Constitution MUST-5"
+    - "Constitution MUST-6"
+    - "plan §Gate emission — ROADMAP"
+  files:
+    - "loop/board_sync/scan_gates.py"
+    - "loop/board_sync/sync.py"
+    - "loop/board_sync/cli.py"
+    - "loop/tests/test_board_sync_scan_gates.py"
+    - "loop/tests/test_board_sync_cli.py"
+
+as_built:
+  - "_roadmap_gate calls roadmap_queue.select_next_epic and returns only GateWorkItem[]"
+  - "ImportError/OSError/ValueError/KeyError are caught and converted to []"
+  - "SyncResult carries scan_mb errors but no roadmap-gate diagnostics"
+
+delta:
+  - "EDIT gate scan result or typed exception so roadmap selector failure is retained as diagnostic"
+  - "PROPAGATE diagnostic through sync/CLI according to fail-closed contract; do not silently continue"
+  - "ADD tests for missing/corrupt queue and a valid selector path without arm side effects"
+
+deletes: []
+
+out_of_scope:
+  - "FR-017 DONE archive-all — s09"
+  - "FR-010 generation-only idempotency — s10"
+  - "Implementing arm, loop launch, or roadmap advance"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Missing/corrupt roadmap queue yields an explicit diagnostic rather than an empty indistinguishable gate list"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_gates.py -q --tb=line"
+  - id: cp2
+    criterion: "CLI/sync reports roadmap configuration failure fail-closed with non-zero status where the contract requires it"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_cli.py -q --tb=line"
+  - id: cp3
+    criterion: "Valid ROADMAP selection remains side-effect-free and does not call arm/loop/roadmap-advance"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_gates.py loop/tests/test_board_sync_sync.py -q --tb=line"
+
+verify:
+  - "No exception path silently returns [] without a diagnostic"
+  - "No arm/loop/roadmap-advance call is introduced"
+  - "Existing PLAN/DECOMPOSE/ANALYZE/CLARIFY and post-implement gate behavior remains green"
+
+tdd:
+  - "test_gate_roadmap — valid next queue entry emits at most one ROADMAP gate"
+  - "test_roadmap_invalid_queue_diagnostic — selector failure is explicit"
+  - "test_missing_dsh_home or CLI diagnostic path remains fail-closed"

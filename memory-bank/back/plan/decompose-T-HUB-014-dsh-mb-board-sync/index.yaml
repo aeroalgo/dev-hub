@@ -3,50 +3,58 @@ plan_id: T-HUB-014-dsh-mb-board-sync
 source_md: index.md
 status_canon: index.yaml
 steps:
-  - id: s01
-    file: s01-card-model-metadata-stable-id.yaml
-    title: "Card model + metadata v1 + stable id — step/gate type-safe foundations"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s02
-    file: s02-workspaces-discover-eligible-filter.yaml
-    title: "Workspaces discover + eligible filter — workspace.json → WorkspaceRef[]"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s03
-    file: s03-scan-mb-step-workitems-from-index-yaml.yaml
-    title: "scan_mb step WorkItems — decompose index.yaml → pending/in_progress sNN"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s04
-    file: s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
-    title: "scan_gates: pre-implement + post-implement via reduce_epic_lifecycle"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s05
-    file: s05-diff-orchestrator-fake-client-sync.yaml
-    title: "Diff + sync orchestrator + FakeClient — desired ops → apply/archive"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s06
-    file: s06-http-host-client-fail-closed.yaml
-    title: "HttpHostClient + fail-closed errors — live DSH Host HTTP protocol v2"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s07
-    file: s07-cli-hub-board-dry-run-status.yaml
-    title: "CLI bin/hub-board + dry-run/status — argparse entry + bin wrapper"
-    next_phase: BACK IMPLEMENT
-    status: pending
-
-  - id: s08
-    file: s08-docs-readme-regression-polish.yaml
-    title: "Docs README + gate/step UX note + regression polish — FR-011 + SC coverage"
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-card-model-metadata-stable-id.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-card-model-metadata-stable-id
+  status: completed
+- id: s02
+  file: s02-workspaces-discover-eligible-filter.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-workspaces-discover-eligible-filter
+  status: completed
+- id: s03
+  file: s03-scan-mb-step-workitems-from-index-yaml.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-scan-mb-step-workitems-from-index-yaml
+  status: completed
+- id: s04
+  file: s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-scan-gates-clarify-analyze-tips-lifecycle
+  status: completed
+- id: s05
+  file: s05-diff-orchestrator-fake-client-sync.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-diff-orchestrator-fake-client-sync
+  status: completed
+- id: s06
+  file: s06-http-host-client-fail-closed.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-http-host-client-fail-closed
+  status: completed
+- id: s07
+  file: s07-cli-hub-board-dry-run-status.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-cli-hub-board-dry-run-status
+  status: completed
+- id: s08
+  file: s08-docs-readme-regression-polish.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-docs-readme-regression-polish
+  status: completed
+- id: s09
+  file: s09-audit-archive-all.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-audit-archive-all
+  status: completed
+- id: s10
+  file: s10-audit-idempotent-generation.yaml
+  next_phase: BACK IMPLEMENT
+  title: s10-audit-idempotent-generation
+  status: completed
+- id: s11
+  file: s11-audit-roadmap-error-diagnostics.yaml
+  next_phase: BACK IMPLEMENT
+  title: s11-audit-roadmap-error-diagnostics
+  status: completed

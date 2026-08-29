@@ -1,0 +1,80 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-015-dsh-board-arm-loop
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-spike-cordis-intercept-api-decision.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-spike-cordis-intercept-api-decision
+  status: completed
+- id: s02
+  file: s02-board-launch-metadata-card-model.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-board-launch-metadata-card-model
+  status: completed
+- id: s03
+  file: s03-loop-argv-model-precedence.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-loop-argv-model-precedence
+  status: completed
+- id: s04
+  file: s04-arm-from-card-step-mismatch.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-arm-from-card-step-mismatch
+  status: completed
+- id: s05
+  file: s05-loop-run-subprocess-execution-result.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-loop-run-subprocess-execution-result
+  status: completed
+- id: s06
+  file: s06-arm-loop-pipeline-sync-after-loop.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-arm-loop-pipeline-sync-after-loop
+  status: completed
+- id: s07
+  file: s07-cli-hub-board-arm-loop-arm-loop.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-cli-hub-board-arm-loop-arm-loop
+  status: completed
+- id: s08
+  file: s08-dsh-plugin-mb-bridge-host-bridge.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-dsh-plugin-mb-bridge-host-bridge
+  status: completed
+- id: s09
+  file: s09-board-controls-ui-workspace-filter-model-preset.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-board-controls-ui-workspace-filter-model-preset
+  status: completed
+- id: s10
+  file: s10-docs-install-regression-suite.yaml
+  next_phase: BACK IMPLEMENT
+  title: s10-docs-install-regression-suite
+  status: completed
+- id: s11
+  file: s11-audit-execution-recording.yaml
+  next_phase: BACK IMPLEMENT
+  title: s11-audit-execution-recording
+  status: completed
+- id: s12
+  file: s12-audit-stock-run-intercept-wiring.yaml
+  next_phase: BACK IMPLEMENT
+  title: s12-audit-stock-run-intercept-wiring
+  status: pending
+- id: s13
+  file: s13-audit-workspace-list-adapter.yaml
+  next_phase: BACK IMPLEMENT
+  title: s13-audit-workspace-list-adapter
+  status: pending
+- id: s14
+  file: s14-audit-model-source-propagation.yaml
+  next_phase: BACK IMPLEMENT
+  title: s14-audit-model-source-propagation
+  status: pending
+- id: s15
+  file: s15-audit-config-authorization-validation.yaml
+  next_phase: BACK IMPLEMENT
+  title: s15-audit-config-authorization-validation
+  status: pending
