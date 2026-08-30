@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-015-dsh-board-arm-loop
+plan_id: T-HUB-015-dsh-board-arm-loop
+epic_id: T-HUB-015-dsh-board-arm-loop
+date: '2026-08-29'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - 'task: T-HUB-015-dsh-board-arm-loop'
+  - 'epic: T-HUB-015-dsh-board-arm-loop'
+  - 'steps: s01-s15'
+  - 'files: loop/board_launch, loop/board_sync, dsh/plugins/mb-bridge/src'
+
+checks:
+  - 'epic regression: timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py loop/tests/test_board_sync_*.py -q --tb=line — 144 passed'
+  - 'loop suite: timeout 300s .venv/bin/pytest loop/tests -q --tb=line — 712 passed in 61.53s'
+  - 'full repository suite: timeout 300s .venv/bin/pytest -q --tb=line — 7849 passed, 181 skipped, 48 warnings in 272.72s'
+  - 'integration rule (§0.11): entrypoints, model/source propagation, authorization/config validation, and phantom refs reviewed — pass'
+  - 'brownfield cleanup: stock-run intercept replacement and explicit sync warning reviewed — pass'
+  - 'reviewer gate: packed read-only reviewer report — VERDICT: PASS; no blockers'
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations:
+  - 'Full repository suite emitted 48 warnings; no test failures.'
+  - 'TypeScript package has no package scripts in dsh/plugins/mb-bridge/package.json; no frontend runner was invoked.'
+
+suite:
+  - 'timeout 300s .venv/bin/pytest loop/tests/test_board_launch_*.py loop/tests/test_board_sync_*.py -q --tb=line — 144 passed'
+  - 'timeout 300s .venv/bin/pytest loop/tests -q --tb=line — 712 passed in 61.53s'
+  - 'timeout 300s .venv/bin/pytest -q --tb=line — 7849 passed, 181 skipped, 48 warnings in 272.72s'
+  - 'git diff --check — pass'

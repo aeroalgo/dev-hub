@@ -4,7 +4,7 @@
 
 **Канон переходов:** `memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
 **Очередь эпиков (loop canon):** `memory-bank/back/plan/roadmap-epics.queue.yaml` (sibling `.md`; loop не грузит md). Opt-in: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance`. Default `0` — stop / optional DAG fanout.  
-MULTI-EPIC PLAN пишет slug `roadmap-<slug>-epics.queue.yaml`; **`BACK|FRONT|INTEG ROADMAP MERGE`** (CLI `context_loop.py roadmap-merge`) склеивает их в canon. Templates: roadmap-epics.md · roadmap-queue.yaml.  
+MULTI-EPIC PLAN пишет slug `roadmap-<slug>-epics.queue.yaml`; **`* PLAN` сам** вызывает CLI `context_loop.py roadmap-merge` в той же сессии. Ручной `BACK|FRONT|INTEG ROADMAP MERGE` — ops, если канон устарел без PLAN. Templates: roadmap-epics.md · roadmap-queue.yaml.  
 Для cross-epic journey runner использует runner-owned `loop/dag/*.yaml`: манифест `loop-dag/v2`, dependency-ready узлы выбираются последовательно и стабильно. `GAP_FANOUT` в текущем checkout запускается вручную через `./loop/loop.sh --phase GAP_FANOUT`; он не является автоматическим переходом `loop.sh`.  
 Следующий шаг и режим выбираются по activeContext; DAG только переключает эпики. Durable checkpoint cursor не принадлежит `state.json`: `state.json` — телеметрическая проекция checkpoint, а конфликт checkpoint/index останавливается fail-closed.  
 Runner владеет сессией, bounded timeout/retry и status evidence; агент владеет содержимым шага, Handoff и state mutation только через канонические артефакты.
@@ -58,6 +58,12 @@ Canary проверяет `canary-finish-integrity`: только последо
 ```bash
 ./loop/loop.sh gpt
 ./loop/loop.sh decompose-T-033-concurrent-jobs-outbox gpt implement
-./loop/loop.sh -m gpt --max 20
 ./loop/loop.sh --status
 ```
+
+## DSH Runtime (opt-in, developer preview)
+
+> **Note:** DSH Runtime is currently in developer preview and is not the production default.
+
+The system loop supports an alternative runtime execution engine powered by DSH (`EPIC_RUNTIME=dsh`). For pilot setup, configuration, and execution instructions, see [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) and [`dsh/README.md`](../dsh/README.md).
+

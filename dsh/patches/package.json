@@ -5,6 +5,11 @@
   "dsh": {
     "bundle": {
       "patch": "./phase-models.yml"
+    },
+    "hooksBridge": {
+      "package": "@deepseek-ai/dsh-hooks-claude-code",
+      "version": "0.0.1-rc.5",
+      "pin": true
     }
   }
 }

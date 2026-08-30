@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s03
+title: "epic-gate Cordis plugin — PreToolUse spawn gate wiring"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: "Добавить thin Cordis плагин epic-gate с PreToolUse spawn gate (deny-only PATH_B по ADR s01) и смонтировать его во все epic-* профили после cc-hooks-bridge."
+
+as_built:
+  - "dsh/plugins/: mb-bridge/ и (после частичной работы) epic-gate scaffold может уже существовать"
+  - "dsh/profiles/epic-*/cordis.patch.yml: содержат cc-hooks-bridge, mb-bridge, phase-models — epic-gate должен идти после cc-hooks-bridge"
+  - "spawn_validate.py: доступен после s01; ADR PATH_B — deny-only, без updatedInput rewrite"
+  - "s02: typed agent identity / preset mapping в SubagentStart"
+delta:
+  - "CREATE/ENSURE: dsh/plugins/epic-gate/ — Cordis plugin scaffold (package.json, src/index.ts, cordis.patch.yml)"
+  - "CREATE/ENSURE: dsh/plugins/epic-gate/src/pre-tool-use.ts — PreToolUse Agent hook → spawn_validate.py"
+  - "IMPLEMENT PATH_B: при non-empty deny_reasons — stop/deny с стабильным reason code (без updatedInput rewrite)"
+  - "UPDATE: dsh/profiles/epic-*/cordis.patch.yml — epic-gate row после cc-hooks-bridge (все 8 профилей)"
+  - "ADD/UPDATE: install script для монтирования epic-gate (install-epic-gate.sh или расширение install-cc-hooks.sh)"
+  - "TEST: TS/python round-trip incomplete verify spawn → deny"
+deletes:
+  - n/a
+out_of_scope:
+  - "SubagentStart typed identity (s02 — уже отдельный шаг)"
+  - "VERDICT mirror через SubagentStop (s04)"
+  - "SessionStart first-turn (s05)"
+  - "gate-check-turn.py (s06)"
+
+requirements_covered:
+  - FR-001
+  - FR-002
+  - AC+1
+  - NFR-1
+  - NFR-3
+
+context:
+  files:
+    - "dsh/plugins/epic-gate/"
+    - "dsh/plugins/epic-gate/src/pre-tool-use.ts"
+    - "dsh/plugins/epic-gate/src/index.ts"
+    - ".claude/hooks/spawn_validate.py"
+    - "dsh/profiles/epic-implement/cordis.patch.yml"
+    - "dsh/scripts/install-cc-hooks.sh"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+verify:
+  - "`rg -n 'spawn_validate|spawnValidate' dsh/plugins/epic-gate/src/pre-tool-use.ts`"
+  - "`rg -n 'epic-gate' dsh/profiles/epic-*/cordis.patch.yml`"
+
+tdd:
+  - "test: pre-tool-use вызывает spawn_validate и deny при non-empty reasons"
+  - "test: PATH_B — stop/deny при deny_reasons; updatedInput rewrite отсутствует"
+  - "test: integration epic-gate → spawn_validate → incomplete prompt → deny"
+
+checkpoints:
+  - id: cp1
+    criterion: "epic-gate scaffold: package.json, src/index.ts, cordis.patch.yml на месте"
+    verify: "`rg -n 'epic-gate|pre-tool-use|spawn_validate' dsh/plugins/epic-gate/src/index.ts dsh/plugins/epic-gate/package.json dsh/plugins/epic-gate/cordis.patch.yml`"
+  - id: cp2
+    criterion: "PreToolUse handler вызывает spawn_validate.py"
+    verify: "`rg -n 'spawn_validate|spawnValidate' dsh/plugins/epic-gate/src/pre-tool-use.ts`"
+  - id: cp3
+    criterion: "Все epic-* cordis.patch.yml содержат epic-gate после cc-hooks-bridge"
+    verify: "`rg -n 'epic-gate' dsh/profiles/epic-*/cordis.patch.yml`"
+  - id: cp4
+    criterion: "epic-gate package.json указывает build/typecheck скрипт или main entry"
+    verify: "`rg -n '\"(main|types|scripts)\"' dsh/plugins/epic-gate/package.json`"
+
+gaps:
+  status: none

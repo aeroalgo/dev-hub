@@ -1,0 +1,55 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-spawn-validate-extract.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-spawn-validate-extract
+  status: completed
+- id: s02
+  file: s02-agent-type-preset-mapping.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-agent-type-preset-mapping
+  status: completed
+- id: s03
+  file: s03-epic-gate-cordis-plugin.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-epic-gate-cordis-plugin
+  status: completed
+- id: s04
+  file: s04-verdict-mirror-subagent-stop.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-verdict-mirror-subagent-stop
+  status: completed
+- id: s05
+  file: s05-session-start-first-turn.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-session-start-first-turn
+  status: completed
+- id: s06
+  file: s06-gate-check-turn-conditional.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-gate-check-turn-conditional
+  status: completed
+- id: s07
+  file: s07-mount-parity-readme-integration.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-mount-parity-readme-integration
+  status: completed
+- id: s08
+  file: s08-audit-native-agent-type-mapping.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-audit-native-agent-type-mapping
+  status: completed
+- id: s09
+  file: s09-audit-pretool-integration-smoke.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-audit-pretool-integration-smoke
+  status: completed
+- id: s10
+  file: s10-audit-runtime-export-contract.yaml
+  next_phase: BACK IMPLEMENT
+  title: s10-audit-runtime-export-contract
+  status: completed

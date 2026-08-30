@@ -99,11 +99,24 @@ def test_lock_conflict() -> None:
 
 def test_proxy_token_header() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["origin"] == "http://dsh.test"
+        assert request.headers["sec-fetch-site"] == "same-origin"
         assert request.headers["authorization"] == "Bearer secret"
         assert request.headers["x-proxy-token"] == "secret"
+        assert request.headers["x-dsh-task-board-proxy-token"] == "secret"
         return httpx.Response(200, json={"tasks": []})
 
     _client(handler, token="secret").list_tasks()
+
+
+def test_loopback_origin_header() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["origin"] == "http://127.0.0.1:3080"
+        assert request.headers["sec-fetch-site"] == "same-origin"
+        return httpx.Response(200, json={"tasks": []})
+
+    transport = httpx.MockTransport(handler)
+    HttpHostClient("http://127.0.0.1:3080", transport=transport).list_tasks()
 
 
 def test_archive_ok() -> None:

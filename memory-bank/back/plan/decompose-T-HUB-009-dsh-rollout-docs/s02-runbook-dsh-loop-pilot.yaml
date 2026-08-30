@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-009-dsh-rollout-docs
+title: "docs/runbooks/dsh-loop-pilot.md — создание runbook + 10-шаговый pilot checklist"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать docs/runbooks/dsh-loop-pilot.md — полный pilot runbook с секциями Prerequisites,
+  Install, Environment, First Run, Troubleshooting и 10-шаговой sign-off таблицей.
+  Разработчик проходит checklist без устных инструкций и запускает EPIC_RUNTIME=dsh.
+  FR-1, FR-7, FR-8, AC+1, AC+4, AC+5, AC+6, AC−1.
+
+context:
+  consumes:
+    - dsh/scripts/install-profiles.sh       # реальная команда install
+    - dsh/scripts/sync-agent-md-to-presets.py  # шаг sync presets
+    - dsh/patches/package.json              # DSH version pin (если есть)
+    - bin/loop                              # реальный формат аргументов loop
+    - bin/hub-link                          # шаг hub-link в checklist
+    - loop/loop.sh                          # env EPIC_RUNTIME=dsh as-built
+  produces:
+    - docs/runbooks/dsh-loop-pilot.md      # новый runbook
+  plan_refs:
+    - FR-1
+    - FR-7
+    - FR-8
+    - NFR-1
+    - AC+1
+    - AC+4
+    - AC+5
+    - AC+6
+    - AC-1
+  files:
+    - docs/runbooks/dsh-loop-pilot.md
+
+as_built:
+  - "docs/runbooks/ — директория не существует"
+  - "dsh/README.md — существует; описывает install-profiles, install-cc-hooks (T-HUB-007-008); нет end-to-end pilot guide"
+  - "dsh/scripts/install-profiles.sh — существует (T-HUB-007): копирует epic-* profiles в DSH_HOME"
+  - "dsh/scripts/sync-agent-md-to-presets.py — существует (T-HUB-007): читает .claude/agents/*.md → dsh/presets/"
+  - "loop/loop.sh — поддерживает EPIC_RUNTIME=dsh (T-HUB-006 as-built)"
+  - "dsh/plugins/mb-bridge/ — epic-gate cordis plugin (T-HUB-008)"
+
+delta:
+  - "mkdir docs/runbooks/ перед созданием файла"
+  - "CREATE docs/runbooks/dsh-loop-pilot.md: # DSH Loop Pilot Runbook → developer preview banner → ## Prerequisites → ## Install → ## Environment → ## First Run → ## Troubleshooting → ## Pilot Checklist"
+  - "developer preview banner в начале: DSH runtime — developer preview. Default runtime: EPIC_RUNTIME=claude. DSH не является production default."
+  - "Prerequisites: Node ≥ 22 (node -v); npx @deepseek-ai/dsh с pinned версией из dsh/patches/package.json (если есть); DEEPSEEK_API_KEY в env или ~/.dsh/.credentials.yaml"
+  - "Install секция: шаги (1) dsh/scripts/install-profiles.sh; (2) dsh/scripts/sync-agent-md-to-presets.py; (3) bin/hub-link + .dev-hub symlink в продукте"
+  - "First Run пример: EPIC_RUNTIME=dsh bin/loop $PROJECT_ROOT decompose-<epic> <model>"
+  - "Troubleshooting таблица: dsh not found (exit 127) → install Node + npx dsh; profile not found → run install-profiles.sh; gate deny → check verify hook log; API 429 → rate limit, retry; EPIC_RUNTIME=invalid → RuntimeConfigError"
+  - "Pilot Checklist — 10-строчная sign-off таблица: колонки # | Step | Command/check | Pass criteria | Sign-off (date+operator)"
+  - "Шаг 10 checklist включает verify gate parity (step 8 IMPLEMENT + step 9 no-regression EPIC_RUNTIME=claude)"
+
+deletes: []
+
+out_of_scope:
+  - "architecture/dsh-runtime.md — s01"
+  - "loop/README.md, README.md — s03"
+  - "services.md, data-flow.md — s01, s04"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл docs/runbooks/dsh-loop-pilot.md содержит DEEPSEEK_API_KEY"
+    verify: "rg 'DEEPSEEK_API_KEY' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp2
+    criterion: "Runbook содержит пример EPIC_RUNTIME=dsh"
+    verify: "rg 'EPIC_RUNTIME=dsh' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp3
+    criterion: "Runbook содержит install-profiles.sh"
+    verify: "rg 'install-profiles.sh' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp4
+    criterion: "Runbook содержит troubleshooting с 429 и gate deny"
+    verify: "rg -i '429' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp5
+    criterion: "Runbook содержит developer preview / not production default"
+    verify: "rg -i 'developer preview' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp6
+    criterion: "Runbook содержит Pilot Checklist секцию"
+    verify: "rg 'Pilot Checklist' docs/runbooks/dsh-loop-pilot.md"
+
+verify:
+  - "rg 'EPIC_RUNTIME=dsh' docs/runbooks/dsh-loop-pilot.md"
+  - "rg 'DEEPSEEK_API_KEY' docs/runbooks/dsh-loop-pilot.md"
+  - "rg -i 'developer preview' docs/runbooks/dsh-loop-pilot.md"
+  - "rg 'Pilot Checklist' docs/runbooks/dsh-loop-pilot.md"
+
+tdd:
+  - "mkdir -p docs/runbooks/ до Write файла"
+  - "Структура: banner → Prerequisites (Node, DSH pin, API key) → Install (3 шага) → Environment (env vars) → First Run (пример команды) → Troubleshooting (таблица 5 сценариев) → Pilot Checklist (таблица 10 строк)"
+  - "Проверить реальный путь bin/loop и формат аргументов перед вставкой в runbook"
+  - "Проверить dsh/patches/package.json на наличие DSH версии для Prerequisites"
+  - "Pilot checklist: шаги 1-10 из плана §Pilot checklist; колонка Sign-off пустая (для оператора)"
+  - "Troubleshooting: каждый сценарий — symptom | cause | fix"

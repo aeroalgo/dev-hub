@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from loop.board_sync.card_model import CardKind, GateCard, StepCard, parse_metadata
@@ -31,6 +31,7 @@ _GATE_FIELDS = {
     "gate_phase",
     "phase",
     "sync_generation",
+    "reason_code",
 }
 
 
@@ -48,7 +49,8 @@ class LaunchCard:
     gate_phase: str | None
     workspace_id: str | None
     card_kind: CardKind
-    raw: dict[str, Any]
+    raw: dict[str, Any] = field(default_factory=dict)
+    reason_code: str | None = None
 
 
 def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
@@ -98,6 +100,9 @@ def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
         else None,
         card_kind=CardKind(kind),
         raw=raw,
+        reason_code=raw.get("reason_code")
+        if isinstance(raw.get("reason_code"), str)
+        else None,
     )
 
 

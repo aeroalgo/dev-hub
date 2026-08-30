@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s06 — gate-check-turn.py — conditional turn-stopping (только если bridge Stop
+  недостаточен) IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-008-dsh-epic-gate-plugin/s06-gate-check-turn-conditional.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- DSH bridge Stop already exposes the required stop event; the integration test exercises
+  the existing stop-gate self-limit.
+- The test fixture must clear inherited DEV_HUB/HUB_ROOT so temporary-project runtime
+  state remains isolated.
+gaps:
+  status: none
+done:
+- Added integration coverage for DSH FINISH stop blocking and self-limit allow behavior.
+- Confirmed bridge Stop is sufficient; gate-check-turn.py is intentionally not added.
+- Fixed DSH self-limit allow branch to return after emitting the allow decision.
+files:
+- .claude/hooks/stop-gate.py
+- loop/tests/test_dsh_epic_gate_gaps.py
+deletes:
+- n/a
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k stop -q
+  --tb=line` — PASS (4 passed, 5 deselected)'
+- '`python3 -m py_compile .claude/hooks/stop-gate.py loop/tests/test_dsh_epic_gate_gaps.py`
+  — PASS'
+integration_check:
+- '`rg -n ''test_dsh_stop_finish_blocking'' loop/tests/test_dsh_epic_gate_gaps.py`
+  — PASS; test is connected to the Stop hook helper.'
+- DSH bridge path uses .claude/hooks/stop-gate.py; no gate-check-turn.py mount is
+  required after green integration coverage.
+grep_control: []
+verification_results:
+- 'cp1 PASS: test_dsh_stop_finish_blocking exists.'
+- 'cp2 PASS: targeted DSH stop test is green; bridge Stop is sufficient, so conditional
+  gate-check-turn.py remains absent.'
+- Syntax check PASS for the changed hook and test.
+checkpoints:
+- id: cp1
+  criterion: Интеграционный тест stop-blocking написан
+  status: done
+  done_at: '2026-08-30T12:47:22Z'
+- id: cp2
+  criterion: Тест зелёный (bridge Stop достаточен) ИЛИ gate-check-turn.py создан при
+    красном тесте
+  status: done
+  done_at: '2026-08-30T12:47:27Z'
+resume_from: cp1

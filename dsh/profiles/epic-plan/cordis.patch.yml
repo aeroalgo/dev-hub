@@ -6,3 +6,17 @@
     env:
       model: PROJECT_LOOP_PLAN_MODEL
       credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'
+
+- insert:
+    - id: cc-hooks-bridge
+      name: '@deepseek-ai/cordis-plugin-include'
+      config:
+        path: ../../patches/cc-hooks-bridge.yml
+
+- insert:
+    - id: epic-gate
+      name: '@dev-hub/dsh-epic-gate'
+      config:
+        python: !!js process.env.PYTHON ?? 'python3'
+        validator: !!js process.env.DSH_SPAWN_VALIDATE ?? '.claude/hooks/spawn_validate.py'
+      required: true

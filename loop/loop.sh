@@ -10,7 +10,6 @@ _LOOP_SOURCE_ARGS=("$@")
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export DEV_HUB="$HUB_ROOT"
 export HUB_ROOT
-export CLAUDE_PROJECT_DIR="$HUB_ROOT"
 
 if [[ -z "${PROJECT_ROOT:-}" ]]; then
   echo "==> ERROR: PROJECT_ROOT required (product repo with memory-bank/)" >&2
@@ -19,9 +18,12 @@ if [[ -z "${PROJECT_ROOT:-}" ]]; then
 fi
 PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 export PROJECT_ROOT
+# Canonical contract alias for FR-009 project root compatibility
+export EPIC_PROJECT_ROOT="$PROJECT_ROOT"
 PROJ_SLUG="$(basename "$PROJECT_ROOT")"
 # Runner scripts use absolute PROJECT_ROOT; Claude session cwd = hub (agents/settings).
 cd "$HUB_ROOT"
+export CLAUDE_PROJECT_DIR="$HUB_ROOT"
 export EPIC_LOOP=1
 
 # Hub .claude/project.env[.local] (+ optional projects/<slug>/project.env*) → export
@@ -40,6 +42,18 @@ if [[ -n "${_PROJECT_ENV_EXPORTS}" ]]; then
   fi
 fi
 unset _PROJECT_ENV_EXPORTS
+
+configure_runtime_env() {
+  local runtime="${1:-${EPIC_RUNTIME:-${EPIC_RUNTIME_RESOLVED:-claude}}}"
+  if [[ "$runtime" == "dsh" ]]; then
+    export DSH_HOOKS_BRIDGE=1
+    export CLAUDE_PROJECT_DIR="$PROJECT_ROOT"
+  else
+    unset DSH_HOOKS_BRIDGE
+    export CLAUDE_PROJECT_DIR="$HUB_ROOT"
+  fi
+}
+configure_runtime_env
 
 # Extension sets CLAUDE_CODE_ENABLE_TASKS=0; without it Gemini/Omniroute often 429s.
 export CLAUDE_CODE_ENABLE_TASKS="${CLAUDE_CODE_ENABLE_TASKS:-0}"
@@ -126,7 +140,6 @@ EPIC (опционально): decompose-<id> | memory-bank/.../decompose-<id>
 Examples:
   ./loop/loop.sh gpt
   ./loop/loop.sh decompose-v1-portal gpt implement
-  ./loop/loop.sh -m gpt --max 20
 
 MODE:
   implement
@@ -135,7 +148,6 @@ MODE:
 
 Options:
   -m, --model NAME
-      --max N
       --phase GAP_FANOUT
           Arm the next dependency-ready epic from loop/dag/*.yaml.
       --dag-generate PIPELINE
@@ -181,7 +193,6 @@ MODEL=""
 EPIC_SPEC=""
 MODE=""
 PERM_MODE="${EPIC_PERMISSION_MODE:-dontAsk}"
-MAX_ITER="${MAX_ITER:-${EPIC_MAX:-40}}"
 HEADLESS=1
 INTERACTIVE=0
 VERBOSE=0
@@ -217,9 +228,6 @@ while [[ $# -gt 0 ]]; do
     --permission-mode)
       [[ $# -ge 2 ]] || { echo "missing value for $1" >&2; exit 2; }
       PERM_MODE="$2"; shift 2 ;;
-    --max)
-      [[ $# -ge 2 ]] || { echo "missing value for $1" >&2; exit 2; }
-      MAX_ITER="$2"; shift 2 ;;
     --headless) HEADLESS=1; INTERACTIVE=0; shift ;;
     --interactive) INTERACTIVE=1; HEADLESS=0; shift ;;
     --verbose) VERBOSE=1; shift ;;
@@ -508,11 +516,11 @@ if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   return 0
 fi
 
-echo "==> context-first loop cli_model=${MODEL:-default} epic=${EPIC_SPEC:-<activeContext>} max=$MAX_ITER claude=$CLAUDE"
+echo "==> context-first loop cli_model=${MODEL:-default} epic=${EPIC_SPEC:-<activeContext>} claude=$CLAUDE"
 echo "==> phase models: PROJECT_LOOP_<PHASE>_MODEL from .claude/project.env (DECOMPOSE/IMPLEMENT/…)"
 
 iter=0
-while [[ $iter -lt $MAX_ITER ]]; do
+while true; do
   iter=$((iter + 1))
   echo ""
   echo "======== SESSION $iter ========"
@@ -585,6 +593,7 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
   EPIC_RUNTIME_RESOLVED="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("runtime") or "claude")' 2>/dev/null || echo claude)"
   EPIC_DSH_PROFILE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
   export EPIC_RUNTIME_RESOLVED EPIC_DSH_PROFILE
+  configure_runtime_env "$EPIC_RUNTIME_RESOLVED"
   SESSION_MODEL="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model") or "")' 2>/dev/null || true)"
   LOOP_PHASE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("loop_phase") or "")' 2>/dev/null || true)"
   MODEL_SOURCE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model_source") or "")' 2>/dev/null || true)"
@@ -697,6 +706,7 @@ print(decide_after_action(json.load(sys.stdin)))
       sleep 2
       continue
     fi
+    continue
   fi
   if [[ "$after_action" == "halt" ]]; then
     after_stop="$(echo "$after_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("stop") or "")' 2>/dev/null || true)"
@@ -762,6 +772,3 @@ print("==> fanout:", r.get("node") or r.get("reason") or r.get("complete"))
     exit 0
   fi
 done
-
-echo "==> LOOP HALTED: max iterations ($MAX_ITER)" >&2
-exit 1

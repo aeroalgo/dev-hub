@@ -5,9 +5,11 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
 PROFILE_ROOT="$REPO_ROOT/dsh/profiles"
 PATCH_ROOT="$REPO_ROOT/dsh/patches"
+PLUGIN_ROOT="$REPO_ROOT/dsh/plugins"
 DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 DEST="$DSH_HOME/profiles"
 PATCH_DEST="$DSH_HOME/patches"
+PLUGIN_DEST="$DSH_HOME/plugins"
 MODE=copy
 DRY_RUN=0
 
@@ -58,6 +60,10 @@ else
   if [[ "$PATCH_DEST" != "$PATCH_ROOT" ]]; then
     rm -rf "$PATCH_DEST"
     cp -R "$PATCH_ROOT" "$PATCH_DEST"
+  fi
+  if [[ "$PLUGIN_DEST" != "$PLUGIN_ROOT" && -d "$PLUGIN_ROOT" ]]; then
+    rm -rf "$PLUGIN_DEST"
+    cp -R "$PLUGIN_ROOT" "$PLUGIN_DEST"
   fi
 fi
 

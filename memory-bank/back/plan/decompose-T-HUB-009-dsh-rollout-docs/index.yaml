@@ -1,0 +1,30 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-009-dsh-rollout-docs
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-arch-dsh-runtime-shard.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-arch-dsh-runtime-shard
+  status: completed
+- id: s02
+  file: s02-runbook-dsh-loop-pilot.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-runbook-dsh-loop-pilot
+  status: completed
+- id: s03
+  file: s03-loop-readme-hub-readme.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-loop-readme-hub-readme
+  status: completed
+- id: s04
+  file: s04-services-dataflow-touchup.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-services-dataflow-touchup
+  status: completed
+- id: s05
+  file: s05-audit-vs-asbuilt-006-008.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-audit-vs-asbuilt-006-008
+  status: completed

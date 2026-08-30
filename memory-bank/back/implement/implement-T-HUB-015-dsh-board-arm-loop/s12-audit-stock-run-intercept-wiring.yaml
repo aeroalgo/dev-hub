@@ -4,34 +4,66 @@ step_id: s12
 plan_id: T-HUB-015-dsh-board-arm-loop
 title: s12 — Audit remediation — FR-005 mb stock Run is wired to Path B deny/redirect
   IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-08-29'
 decompose_ref: memory-bank/back/plan/decompose-T-HUB-015-dsh-board-arm-loop/s12-audit-stock-run-intercept-wiring.yaml
-skills_used: []
-discovery: []
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'graphify N/A: hub repository has no root graphify-out/graph.json; scoped rg confirmed
+  the existing Path B helpers and inert stock-run prompt injection.'
 gaps:
   status: none
-done: []
-files: []
+done:
+- Connected the mounted plugin stock-run slot to createStockRunAdapter(config), replacing
+  the inert prompt-string injection.
+- Routed mb-* stock Run through the existing arm-loop Host bridge while preserving
+  non-mb stock passthrough.
+- Removed the malformed duplicate intercept-run declarations and added source-contract
+  regression coverage for the live mount.
+files:
+- dsh/plugins/mb-bridge/src/index.ts
+- dsh/plugins/mb-bridge/src/intercept-run.ts
+- loop/tests/test_board_launch_bridge_unit.py
 deletes:
 - Unbound stock-run prompt injection as the sole mb-* protection, replaced by a live
   deny/redirect registration.
 - Any direct mb-* stock-run caller introduced by the Path B adapter.
-tests: []
-integration_check: []
-grep_control: []
-verification_results: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py -q --tb=line`'
+integration_check:
+- index.ts imports STOCK_RUN_SLOT and createStockRunAdapter from intercept-run.ts;
+  the mount calls ctx.inject with the adapter, which invokes createBridgeAction and
+  spawnHubBoard for mb-* cards.
+- Non-mb cards remain delegated to the supplied stockRun handler in interceptStockRun;
+  no direct mb-* stock caller was introduced.
+grep_control:
+- back: '`rg -n "interceptStockRun|denyStockRun|mb_card_requires_loop_run" dsh/plugins/mb-bridge/src/index.ts
+    dsh/plugins/mb-bridge/src/intercept-run.ts` — live helper/error references present.'
+  front: ''
+- back: '`rg -n "stock-run|intercept|deny|mb_card_requires_loop_run" dsh/plugins/mb-bridge/src`
+    — stock slot and fail-closed contract present; inert task-board.stock-run-prompt
+    mount absent.'
+  front: ''
+verification_results:
+- 'Targeted bridge regression suite: 8 passed.'
+- cp1, cp2, cp3 flushed successfully by epic_resolve.
 checkpoints:
 - id: cp1
   criterion: Mounted plugin has a live stock-run deny/redirect path for mb-* and it
     returns or invokes the explicit loop route.
-  status: pending
+  status: done
+  done_at: '2026-08-29T05:32:42Z'
 - id: cp2
   criterion: Non-mb stock Run remains passthrough while mb-* never reaches the ordinary
     stock handler.
-  status: pending
+  status: done
+  done_at: '2026-08-29T05:32:47Z'
 - id: cp3
   criterion: Path B replacement has an import/rg anti-fallback control with no inert-only
     stock-run protection.
-  status: pending
+  status: done
+  done_at: '2026-08-29T05:32:53Z'
 resume_from: cp1

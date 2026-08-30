@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-016
+title: "dsh-claude-compat optional mount — skills/rules/commands access from .claude/ under DSH"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить опциональный mount `dsh-claude-compat` (или community-equivalent) в epic-implement profile
+  под feature flag `DSH_CC_COMPAT=1` (default on для epic-implement);
+  документировать fail-soft если пакет недоступен;
+  обеспечить доступность skills/rules/commands из `.claude/` в DSH без migrate.
+  Outcome: AC+US-003 закрыт; FR-005 закрыт; NFR-5 (fail soft) соблюдён.
+
+context:
+  consumes:
+    - dsh/profiles/epic-implement/cordis.patch.yml  # место добавления optional plugin
+    - dsh/patches/cc-hooks-bridge.yml               # s02 pattern для plugin mount
+    - dsh/README.md                                 # §Installation для документации
+  produces:
+    - dsh/patches/cc-claude-compat.yml              # optional compat fragment (or inline в implement patch)
+    - dsh/profiles/epic-implement/package.json      # добавить optional dsh-claude-compat dep
+    - dsh/profiles/epic-implement/cordis.patch.yml  # добавить conditional compat mount
+    - dsh/README.md                                 # §dsh-claude-compat секция
+
+  plan_refs:
+    - FR-005  # optional dsh-claude-compat mount, feature flag DSH_CC_COMPAT=1
+    - NFR-5   # compat unavailable → fail soft, не блокировать boot
+    - AC+US-003  # compat plugin lists skill из fixture .claude/skills
+    - AC−-003    # dsh-claude-compat недоступность не блокирует boot
+  files:
+    - dsh/patches/cc-claude-compat.yml
+    - dsh/profiles/epic-implement/package.json
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/README.md
+
+as_built:
+  - "dsh/profiles/epic-implement/cordis.patch.yml: нет compat plugin mount"
+  - "dsh/profiles/epic-implement/package.json: нет dsh-claude-compat dep"
+  - "dsh/patches/cc-claude-compat.yml: не существует"
+  - "dsh/README.md: нет секции про dsh-claude-compat"
+
+delta:
+  - "dsh/patches/cc-claude-compat.yml CREATE: Cordis fragment с optional plugin dsh-claude-compat; config: rootPath = $CLAUDE_PROJECT_DIR/.claude (skills/rules/commands dirs); required: false"
+  - "dsh/profiles/epic-implement/package.json EDIT: добавить `@deepseek-ai/dsh-claude-compat: *` как optional/peer dependency с комментарием 'optional — fail soft if unavailable'"
+  - "dsh/profiles/epic-implement/cordis.patch.yml EDIT: добавить conditional include cc-claude-compat.yml (через env DSH_CC_COMPAT != 0 или всегда include с required:false)"
+  - "dsh/README.md EDIT: добавить §dsh-claude-compat секцию — что даёт, как включить/выключить (DSH_CC_COMPAT=0), что происходит при недоступности пакета (warning, не fail)"
+
+deletes: []
+# Additive; только epic-implement получает compat (другие профили — out_of_scope для этого шага).
+
+out_of_scope:
+  - "Другие epic-* профили кроме epic-implement (можно добавить позже отдельным шагом)"
+  - "Полный порт commands/skills в DSH native format"
+  - "Тестирование реального dsh-claude-compat runtime (пакет может не существовать — fail soft)"
+
+skills:
+  code_surface: infra
+  impl:
+    # YAML config + docs; нет Python кода; Core не применяется
+    []
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/patches/cc-claude-compat.yml создан с required:false"
+    verify: "grep -q 'required.*false' dsh/patches/cc-claude-compat.yml"
+  - id: cp2
+    criterion: "dsh/profiles/epic-implement/cordis.patch.yml содержит ссылку на cc-claude-compat"
+    verify: "grep -q 'cc-claude-compat' dsh/profiles/epic-implement/cordis.patch.yml"
+  - id: cp3
+    criterion: "dsh/README.md содержит §dsh-claude-compat с инструкцией DSH_CC_COMPAT=0 для отключения"
+    verify: "grep -q 'DSH_CC_COMPAT' dsh/README.md"
+
+verify:
+  - "grep -q 'cc-claude-compat' dsh/profiles/epic-implement/cordis.patch.yml"
+  - "grep -q 'DSH_CC_COMPAT' dsh/README.md"
+
+tdd: []

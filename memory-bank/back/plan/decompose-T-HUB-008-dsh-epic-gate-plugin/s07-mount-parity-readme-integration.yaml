@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s07
+title: "Mount order + parity README + integration smoke"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: "Зафиксировать mount order cc-hooks-bridge→epic-gate, закрыть parity/gap matrix в README и зелёный integration smoke без регрессии Claude path."
+
+as_built:
+  - "dsh/README.md §Hooks bridge: gap matrix со строками owner=T-HUB-008"
+  - "dsh/profiles/epic-*/cordis.patch.yml: cc-hooks-bridge mounted; epic-gate добавляется в s03"
+  - "loop/tests/test_dsh_epic_gate_gaps.py: создаётся/дополняется здесь"
+  - "Claude regression: loop/tests/test_stop_gate.py и соседние suite"
+delta:
+  - "VERIFY: epic-gate ПОСЛЕ cc-hooks-bridge во всех epic-* cordis.patch.yml"
+  - "CREATE/UPDATE: dsh/plugins/epic-gate/README.md — parity matrix gaps A–D closed/deferred + owner"
+  - "UPDATE: dsh/README.md §Hooks bridge — T-HUB-008 rows → closed + epic-ref"
+  - "CREATE/ENSURE: loop/tests/test_dsh_epic_gate_gaps.py — integration smoke"
+  - "RUN: targeted Claude-path regression (stop-gate / board_launch) зелёный"
+deletes:
+  - "Маркеры T-HUB-008 (open) в dsh/README.md gap matrix → closed"
+out_of_scope:
+  - "Полный E2E DSH workflow (prod DSH CLI + API key)"
+
+requirements_covered:
+  - AC+4
+  - AC+5
+  - NFR-4
+  - SC-002
+
+context:
+  files:
+    - "dsh/plugins/epic-gate/README.md"
+    - "dsh/README.md"
+    - "dsh/profiles/epic-implement/cordis.patch.yml"
+    - "loop/tests/test_dsh_epic_gate_gaps.py"
+    - "loop/tests/test_stop_gate.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+verify:
+  - "`rg -n 'closed|deferred' dsh/plugins/epic-gate/README.md`"
+  - "`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line`"
+
+tdd:
+  - "test: epic-gate mount after cc-hooks-bridge in all epic-* profiles"
+  - "test: parity matrix ≥4 closed/deferred gap rows"
+  - "test: dsh/README.md T-HUB-008 closed markers"
+  - "test: Claude-path agent-pretool/subagent-start no regression"
+
+checkpoints:
+  - id: cp1
+    criterion: "epic-gate/README.md parity matrix: ≥4 closed/deferred с owner"
+    verify: "`rg -c 'closed|deferred' dsh/plugins/epic-gate/README.md`"
+  - id: cp2
+    criterion: "dsh/README.md gap rows T-HUB-008 помечены closed"
+    verify: "`rg -n 'T-HUB-008' dsh/README.md | rg -v 'open'`"
+  - id: cp3
+    criterion: "test_dsh_epic_gate_gaps.py зелёный"
+    verify: "`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line`"
+  - id: cp4
+    criterion: "Claude path regression targeted suite зелёный"
+    verify: "`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py loop/tests/test_board_launch_cli.py -q --tb=line`"
+
+gaps:
+  status: none

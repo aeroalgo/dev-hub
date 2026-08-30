@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -17,7 +18,9 @@ from _lib import (
     has_blocked_verify_no_verdict,  # compat: BLOCKED|NEED_HUMAN; deprecate BLOCKED в 004
     is_epic_loop_env,
     load_state,
+    merged_project_env_map,
     neutralize_state,
+    resolve_runtime_config,
     read_stdin,
     save_state,
     verify_no_verdict_exhausted,
@@ -37,6 +40,7 @@ from epic import (  # noqa: E402
     validate_active_context_shape,
     validate_finish_integrity,
 )
+from epic_yaml import validate_decompose_tree  # noqa: E402
 
 
 def _block(reason: str) -> None:
@@ -72,6 +76,57 @@ def _gate_status(agent_id: str, cwd: str) -> tuple[bool, str | None, str | None]
 def _record_gate_bypass(state: dict, agent_id: str, reason: str) -> None:
     state["gate_bypass_reason"] = reason
     state["gate_bypassed_disabled"] = int(state.get("gate_bypassed_disabled") or 0) + 1
+
+
+DSH_SELF_LIMIT_DEFAULT = 8
+DSH_SELF_LIMIT_MIN = 1
+DSH_SELF_LIMIT_MAX = 100
+
+
+def _dsh_self_limit(cwd: str) -> tuple[int | None, str | None]:
+    """Resolve the DSH stop limit and reject malformed overrides fail-closed."""
+    project = merged_project_env_map(cwd)
+    raw = os.environ.get("DSH_SELF_LIMIT_MAX")
+    source = "process"
+    if raw is None:
+        raw = project.get("DSH_SELF_LIMIT_MAX")
+        source = "project"
+    if raw is None or not str(raw).strip():
+        return DSH_SELF_LIMIT_DEFAULT, None
+    try:
+        value = int(str(raw).strip(), 10)
+    except (TypeError, ValueError):
+        return None, f"invalid DSH self-limit configuration from {source}: {raw!r}"
+    if value < DSH_SELF_LIMIT_MIN or value > DSH_SELF_LIMIT_MAX:
+        return None, f"invalid DSH self-limit configuration from {source}: {raw!r}"
+    return value, None
+
+
+def _is_dsh_runtime(cwd: str) -> bool:
+    """Detect the DSH hook bridge without changing Claude-path behavior."""
+    if str(os.environ.get("DSH_HOOKS_BRIDGE", "")).lower() in {"1", "true", "yes"}:
+        return True
+    try:
+        return resolve_runtime_config(cwd).epic_runtime == "dsh"
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def _get_consecutive_blocks(state: dict) -> int:
+    try:
+        return max(0, int(state.get("dsh_consecutive_blocks") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _increment_consecutive_blocks(state: dict) -> int:
+    blocks = _get_consecutive_blocks(state) + 1
+    state["dsh_consecutive_blocks"] = blocks
+    return blocks
+
+
+def _reset_consecutive_blocks(state: dict) -> None:
+    state["dsh_consecutive_blocks"] = 0
 
 
 def _epic_progressed(cwd: str, epic: dict) -> tuple[bool, str]:
@@ -320,9 +375,53 @@ def main() -> None:
                 )
                 return
 
+    if _is_dsh_runtime(cwd):
+        limit, config_error = _dsh_self_limit(cwd)
+        if config_error:
+            st["dsh_consecutive_blocks"] = _get_consecutive_blocks(st)
+            save_state(session_id, cwd, st)
+            _block(config_error)
+            return
+        assert limit is not None
+        progressed, _fp = _epic_progressed(cwd, epic)
+        if progressed:
+            _reset_consecutive_blocks(st)
+            st["epic_stop_blocks"] = 0
+            save_state(session_id, cwd, st)
+            return
+        blocks = _increment_consecutive_blocks(st)
+        save_state(session_id, cwd, st)
+        if blocks >= limit:
+            sys.stdout.write(
+                json.dumps(
+                    {
+                        "decision": "allow",
+                        "reason": f"DSH self-limit reached ({blocks}/{limit}); allowing stop",
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return
+        _block(f"DSH self-limit: progress required before stop ({blocks}/{limit})")
+        return
+
     # EPIC MODE: allow stop only when Handoff/load_now fingerprint advanced.
     progressed, _fp = _epic_progressed(cwd, epic)
     if progressed:
+        if armed_step_u == "DECOMPOSE":
+            shard_errs = validate_decompose_tree(cwd, epic.get("armed_decompose"))
+            if shard_errs:
+                if stop_hook_active:
+                    return
+                _block(
+                    "epic-gate: DECOMPOSE FINISH blocked — каждый sNN|eNN должен быть "
+                    "schema: epic-decompose/v1 (+ role, as_built/delta lists) по "
+                    ".cursor/templates/decompose/epic-step.yaml. "
+                    "FORBIDDEN: epic-decompose-shard/*, invented schemas, as_built dict. "
+                    "Исправь shards → validate-step / validate-decompose-tree. "
+                    + "; ".join(shard_errs[:12])
+                )
+                return
         shape_errs = validate_active_context_shape(read_active_context(cwd))
         if shape_errs:
             if stop_hook_active:

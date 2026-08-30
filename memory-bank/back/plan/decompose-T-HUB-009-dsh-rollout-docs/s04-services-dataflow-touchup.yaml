@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-009-dsh-rollout-docs
+title: "architecture/services.md mermaid + data-flow.md DSH touch-up"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Углубить services.md mermaid (добавить DSH fork из LoopSh — as-built dual-runtime);
+  добавить в data-flow.md dual-runtime ветку или явную ссылку на dsh-runtime.md.
+  s01 добавил S-DSH row в services.md; s04 уточняет диаграмму и data-flow.
+  FR-4 (углубление), NFR-1.
+
+context:
+  consumes:
+    - memory-bank/architecture/services.md      # обновить mermaid после s01
+    - memory-bank/architecture/data-flow.md     # добавить dual-runtime или ссылку
+    - memory-bank/architecture/dsh-runtime.md   # уже создан в s01 — ссылаться, не дублировать
+  produces:
+    - memory-bank/architecture/services.md      # обновлён mermaid
+    - memory-bank/architecture/data-flow.md     # обновлён или explicit ref
+  plan_refs:
+    - FR-4
+    - NFR-1
+  files:
+    - memory-bank/architecture/services.md
+    - memory-bank/architecture/data-flow.md
+
+as_built:
+  - "memory-bank/architecture/services.md — после s01: S-DSH row добавлен; mermaid ещё не содержит DSH fork"
+  - "memory-bank/architecture/data-flow.md — существует; dual-runtime diagram отсутствует; без ссылки на dsh-runtime.md"
+  - "memory-bank/architecture/dsh-runtime.md — создан в s01 с полным dual-runtime mermaid"
+
+delta:
+  - "UPDATE memory-bank/architecture/services.md mermaid: добавить DSH fork из LoopSh: LoopSh -->|EPIC_RUNTIME=dsh| DSH[DSH + epic-profile]; DSH --> SessLog[dsh session log]"
+  - "UPDATE memory-bank/architecture/data-flow.md: оценить размер → если dual-runtime diagram добавляет ≥10 строк ценного контента — добавить; иначе вставить строку '**DSH runtime data flow:** см. dsh-runtime.md'"
+  - "Не дублировать failure modes из dsh-runtime.md — только pointer"
+
+deletes: []
+
+out_of_scope:
+  - "dsh-runtime.md создание — s01"
+  - "runbook, README файлы — s02, s03"
+  - "audit pass — s05"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "services.md mermaid содержит DSH fork"
+    verify: "rg 'DSH' memory-bank/architecture/services.md"
+  - id: cp2
+    criterion: "data-flow.md содержит dsh ссылку или dual-runtime упоминание"
+    verify: "rg -i 'dsh' memory-bank/architecture/data-flow.md"
+
+verify:
+  - "rg 'DSH' memory-bank/architecture/services.md"
+  - "rg -i 'dsh' memory-bank/architecture/data-flow.md"
+
+tdd:
+  - "Читать services.md → найти mermaid блок → добавить DSH fork после LoopSh строки"
+  - "Читать data-flow.md → решить: diagram или ref; вставить минимально необходимое"
+  - "Не переписывать services.md полностью — только вставка в mermaid"
+  - "Проверить: rg 'DSH' memory-bank/architecture/services.md после edit"

@@ -51,8 +51,15 @@ def load_bridge_config(raw: dict[str, Any]) -> BridgeConfig:
     section = raw.get("mb-bridge", raw)
     if not isinstance(section, dict):
         raise ValueError("mb-bridge config must be a mapping")
-    if not bool(section.get("enabled", True)):
+    enabled = section.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise ValueError("mb-bridge.enabled must be a boolean")
+    if not enabled:
         raise ValueError("mb-bridge is disabled")
+
+    allow_roadmap_advance = section.get("allowRoadmapAdvance", False)
+    if not isinstance(allow_roadmap_advance, bool):
+        raise ValueError("mb-bridge.allowRoadmapAdvance must be a boolean")
 
     dev_hub = section.get("devHub")
     loop_bin = section.get("loopBin", "bin/loop")
@@ -87,13 +94,17 @@ def load_bridge_config(raw: dict[str, Any]) -> BridgeConfig:
     runtime = section.get("defaultRuntime", "claude")
     if runtime not in {"claude", "dsh"}:
         raise ValueError("mb-bridge.defaultRuntime must be claude or dsh")
+    sync_after_loop = section.get("syncAfterLoop", True)
+    if not isinstance(sync_after_loop, bool):
+        raise ValueError("mb-bridge.syncAfterLoop must be a boolean")
     return BridgeConfig(
         loop_bin=resolved_loop_bin,
         model_presets=presets,
         default_loop_args=default_args,
         default_runtime=runtime,
-        allow_roadmap_advance=bool(section.get("allowRoadmapAdvance", False)),
-        sync_after_loop=bool(section.get("syncAfterLoop", True)),
+        allow_roadmap_advance=allow_roadmap_advance,
+        sync_after_loop=sync_after_loop,
+        enabled=enabled,
     )
 
 

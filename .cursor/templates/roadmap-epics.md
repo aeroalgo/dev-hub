@@ -59,5 +59,5 @@ Done для loop = QA pass + REFLECT (+ queue), не текст этой таб�
 
 ## 4. Handoff
 
-- Next: `* ROADMAP MERGE` → затем `* DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+- Next: `* PLAN` **сам** merge → затем `* DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
 - Loop chain: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` читает **только** canon `.queue.yaml`

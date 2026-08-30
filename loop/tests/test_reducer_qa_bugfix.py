@@ -112,6 +112,35 @@ def test_bugfix_after_reflection_reopens_qa(tmp_path: Path) -> None:
     assert decision["reason_code"] == "bugfix_reopens_qa"
 
 
+def test_qa_pass_after_post_reflection_bugfix_advances_to_reflect(
+    tmp_path: Path,
+) -> None:
+    """Post-reflection bugfix reopens QA; a later qa_pass must not pin QA forever."""
+    lib = _load_epic_lib()
+    qa = _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
+    refl = _write(
+        tmp_path,
+        "memory-bank/back/reflection/reflection-demo.md",
+        "epic_id: demo\n",
+    )
+    lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
+    _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-late.md", "new fix\n")
+    reopened = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
+    assert reopened["phase"] == "QA"
+    assert reopened["reason_code"] == "bugfix_reopens_qa"
+
+    qa.write_text("verdict: pass\nissues: []\n", encoding="utf-8")
+    after_qa = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
+    assert after_qa["phase"] == "REFLECT"
+    assert after_qa["reason_code"] == "qa_passed_stale_reflection"
+    assert after_qa["last_event"]["kind"] == "qa_pass"
+
+    refl.write_text("epic_id: demo\nupdated after re-qa\n", encoding="utf-8")
+    done = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
+    assert done["phase"] == "DONE"
+    assert done["reason_code"] == "reflection_completed"
+
+
 def test_same_reconcile_orders_qa_after_bugfix(tmp_path: Path) -> None:
     lib = _load_epic_lib()
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-current.md", "fix\n")

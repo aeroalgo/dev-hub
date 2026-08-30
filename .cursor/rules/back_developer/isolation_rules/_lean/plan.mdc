@@ -5,7 +5,7 @@ alwaysApply: false
 # PLAN — gates
 
 **Артефакт:** `memory-bank/back/plan/plan-<task_id>.md`  
-**Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); после PLAN → `BACK ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`  
+**Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); PLAN **сам** делает `roadmap-merge --role back` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE (не отдельный MERGE)  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
 
 ## Gates
@@ -19,6 +19,7 @@ alwaysApply: false
 5. CREATIVE need (да/нет) перед next mode (per epic при multi-epic)
 6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt
 6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
+7. После записи roadmap/plan: CLI `roadmap-merge --role back` ok (или skip если нет slug+canon); next ≠ ROADMAP MERGE
 ## Level delta
 
 | L | Секции |

@@ -25,6 +25,8 @@ class ExecutionResult:
     exit_code: int | None
     log_path: Path | None = None
     diagnostic_code: str | None = None
+    model_source: str | None = None
+    model_env: str | None = None
 
 
 class LoopRunError(RuntimeError):
@@ -37,20 +39,31 @@ class LoopRunError(RuntimeError):
         diagnostic_code: str,
         exit_code: int | None = None,
         log_path: Path | None = None,
+        model_source: str | None = None,
+        model_env: str | None = None,
     ) -> None:
         super().__init__(message)
         self.diagnostic_code = diagnostic_code
         self.exit_code = exit_code
         self.log_path = log_path
+        self.model_source = model_source
+        self.model_env = model_env
 
 
-def execution_result_from_error(error: LoopRunError) -> ExecutionResult:
+def execution_result_from_error(
+    error: LoopRunError,
+    argv_result: LoopArgvResult | None = None,
+) -> ExecutionResult:
     """Convert a spawn/timeout error into the common failed result shape."""
     return ExecutionResult(
         status="failed",
         exit_code=error.exit_code,
         log_path=error.log_path,
         diagnostic_code=error.diagnostic_code,
+        model_source=(
+            argv_result.model_source if argv_result is not None else error.model_source
+        ),
+        model_env=argv_result.model_env if argv_result is not None else error.model_env,
     )
 
 
@@ -71,6 +84,8 @@ class FakeLoopRunner:
         return ExecutionResult(
             status="succeeded" if self.exit_code == 0 else "failed",
             exit_code=self.exit_code,
+            model_source=argv_result.model_source,
+            model_env=argv_result.model_env,
         )
 
 
@@ -82,6 +97,7 @@ def loop_run(
     loop_bin_override: Path | None = None,
 ) -> ExecutionResult:
     """Spawn the loop without a shell and capture its output in a bounded log."""
+    del config
     project_root = Path(launch_card.project_root)
     argv = list(argv_result.argv)
     if loop_bin_override is not None:
@@ -89,6 +105,8 @@ def loop_run(
             raise LoopRunError(
                 "loop argv is empty",
                 diagnostic_code="empty_argv",
+                model_source=argv_result.model_source,
+                model_env=argv_result.model_env,
             )
         argv[0] = str(loop_bin_override)
 
@@ -106,6 +124,8 @@ def loop_run(
         raise LoopRunError(
             f"failed to spawn loop: {exc}",
             diagnostic_code="spawn_error",
+            model_source=argv_result.model_source,
+            model_env=argv_result.model_env,
         ) from exc
 
     try:
@@ -118,20 +138,24 @@ def loop_run(
             f"loop timed out after {_DEFAULT_TIMEOUT:g}s",
             diagnostic_code="timeout",
             log_path=log_path,
+            model_source=argv_result.model_source,
+            model_env=argv_result.model_env,
         ) from exc
     except OSError as exc:
         raise LoopRunError(
             f"failed to collect loop output: {exc}",
             diagnostic_code="communicate_error",
+            model_source=argv_result.model_source,
+            model_env=argv_result.model_env,
         ) from exc
 
     if process.returncode is None:
         raise LoopRunError(
             "loop exited without a return code",
             diagnostic_code="missing_exit_code",
+            model_source=argv_result.model_source,
+            model_env=argv_result.model_env,
         )
-
-
 
     output = _as_text(stdout) + _as_text(stderr)
     log_path = _write_log(output)
@@ -146,6 +170,8 @@ def loop_run(
         exit_code=exit_code,
         log_path=log_path,
         diagnostic_code=diagnostic_code,
+        model_source=argv_result.model_source,
+        model_env=argv_result.model_env,
     )
 
 

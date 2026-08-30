@@ -1,0 +1,344 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-016-dsh-cc-hooks-bridge
+plan_id: T-HUB-016
+date: 2026-08-29
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 5
+  findings: 5
+
+# CASE A: T-HUB-011 and T-HUB-012 have all steps completed; canonical constitution.md checked.
+# Intent inventory covers plan FR/SC/US/AC/NFR and applicable constitution MUSTs.
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 7
+  sc_checked: 4
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: US-001
+    intent: Stop-gate is invoked in a DSH loop session and prevents a silent stop without FINISH evidence.
+    step_id: s05
+    assessment: partial
+    evidence: .claude/hooks/stop-gate.py:79-107,355-404 implements DSH detection and a counter; live DSH invocation is not recorded and the configured limit differs from plan AC+.
+  - source_ref: US-002
+    intent: agent-pretool and bash hooks are invoked through the bridge without copying hook logic into TypeScript.
+    step_id: s02/s04
+    assessment: satisfied
+    evidence: dsh/patches/cc-hooks-bridge.yml:1-7 mounts settings.json; dsh/README.md:193-205 maps existing Python hooks; no TypeScript hook port is listed in bounded implementation files.
+  - source_ref: US-003
+    intent: Skills, rules, and commands from the product .claude directory are available in DSH.
+    step_id: s06
+    assessment: partial
+    evidence: dsh/patches/cc-claude-compat.yml:1-11 and epic-implement/cordis.patch.yml:42-52 configure the optional mount, but no runtime fixture proves a skill is listed.
+  - source_ref: US-004
+    intent: Bridge limitations are explicit and handed to T-HUB-008.
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: dsh/README.md:191-211 contains the hook matrix, owners, and the bounded T-HUB-008 scope.
+
+  - source_ref: FR-001
+    intent: Pin and install @deepseek-ai/dsh-hooks-claude-code.
+    step_id: s01/s02/s03
+    assessment: satisfied
+    evidence: dsh/patches/package.json:10 records the bridge pin; all eight epic-* package.json files pin 0.0.1-rc.5; install-cc-hooks.sh:75-87 installs available profiles.
+  - source_ref: FR-002
+    intent: Shared bridge fragment exposes configPath and projectDir.
+    step_id: s02
+    assessment: satisfied
+    evidence: dsh/patches/cc-hooks-bridge.yml:1-7 contains the bridge plugin and both environment-derived fields.
+  - source_ref: FR-003
+    intent: Installer applies the bridge to every epic-* profile and documents headless use.
+    step_id: s03
+    assessment: satisfied
+    evidence: dsh/scripts/install-cc-hooks.sh:48-87 discovers epic-* profiles, mounts the shared fragment, installs dependencies, and dsh/README.md:34-42 documents CI usage.
+  - source_ref: FR-004
+    intent: DSH receives CLAUDE_PROJECT_DIR=$PROJECT_ROOT while DEV_HUB remains available for hub hooks.
+    step_id: s04
+    assessment: satisfied
+    evidence: loop/loop.sh:44-54 sets runtime-specific variables and loop/loop.sh:597-600 reapplies them after runtime resolution; dsh/README.md:55-61 documents the contract.
+  - source_ref: FR-005
+    intent: epic-implement has an optional dsh-claude-compat mount controlled by DSH_CC_COMPAT.
+    step_id: s06
+    assessment: satisfied
+    evidence: epic-implement/package.json declares optionalDependencies dsh-claude-compat@0.8.0; cordis.patch.yml:44-52 disables it only when DSH_CC_COMPAT=0; the fragment is required:false.
+  - source_ref: FR-006
+    intent: Gap matrix covers updatedInput, agent_type, SubagentStop transcript, stop_hook_active, and SessionStart first-turn semantics with owners.
+    step_id: s01
+    assessment: satisfied
+    evidence: dsh/README.md:197-207 has rows for all hook events and owners; dsh/README.md:207-211 names the T-HUB-008 gaps and keeps Stop self-limit in T-HUB-016.
+  - source_ref: FR-007
+    intent: stop-gate self-limits consecutive DSH blocks and resets after fingerprint progress.
+    step_id: s05
+    assessment: partial
+    evidence: .claude/hooks/stop-gate.py:79-107 and :355-404 implement detection, increment, allow-at-limit, and reset; DSH_SELF_LIMIT_MAX is hard-coded to 3 while plan AC+ requires configurable default 8.
+  - source_ref: FR-008
+    intent: dsh --profile epic-implement --dump-config visibly lists hooks-claude-code and a config smoke exists.
+    step_id: s07
+    assessment: partial
+    evidence: tests/test_cc_hooks_bridge_config.py:15-32 proves static YAML shape only; s07 explicitly records no live dsh --dump-config result.
+  - source_ref: FR-009
+    intent: Claude settings.json hooks remain unchanged and the Claude loop path stays green.
+    step_id: s07
+    assessment: partial
+    evidence: .claude/settings.json remains outside the bounded changed files, but s07's recorded command `.claude/hooks/tests/ -k not dsh_self_limit` reports 4 deselected and no executed regression tests; no Claude loop result is recorded.
+  - source_ref: FR-010
+    intent: README documents bridge behavior, pins, known gaps, and the T-HUB-008 handoff.
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: dsh/README.md:191-244 documents bridge behavior, pins, known gaps, smoke contract, and compat behavior.
+
+  - source_ref: SC-001
+    intent: hooks-claude-code appears in epic-implement dump-config.
+    step_id: s07
+    assessment: partial
+    evidence: only the static assertion in tests/test_cc_hooks_bridge_config.py:15-25 is recorded; no live dump-config output is present.
+  - source_ref: SC-002
+    intent: README has at least five gap rows with owner epics.
+    step_id: s01
+    assessment: satisfied
+    evidence: dsh/README.md:197-207 contains nine event rows with T-HUB-008 or self-limit ownership.
+  - source_ref: SC-003
+    intent: Fake consecutive DSH blocks are self-limited by a unit test.
+    step_id: s05
+    assessment: partial
+    evidence: .claude/hooks/tests/test_stop_gate_dsh_self_limit.py:107-150 covers block, increment, allow, and reset, but the plan's configurable default-8 contract is not implemented.
+  - source_ref: SC-004
+    intent: Claude-path tests remain green.
+    step_id: s07
+    assessment: partial
+    evidence: recorded regression invocation deselected all four DSH tests and reports no executed Claude-path test result.
+
+  - source_ref: AC+US-001
+    intent: DSH Stop hook block/continue behavior and hook result are captured under fake or real profile execution.
+    step_id: s05
+    assessment: partial
+    evidence: the unit fixture asserts block/allow decisions in .claude/hooks/tests/test_stop_gate_dsh_self_limit.py:107-150, but no fake/real profile bridge invocation or hook/result log is recorded.
+  - source_ref: AC+US-002
+    intent: PreToolUse matcher invokes agent-pretool in DSH without TypeScript duplication.
+    step_id: s02/s04
+    assessment: satisfied
+    evidence: bridge config points at .claude/settings.json and the settings file maps PreToolUse to agent-pretool.py; implementation evidence records the shared include in all eight profiles.
+  - source_ref: AC+US-003
+    intent: Compat plugin lists a skill from a .claude/skills fixture.
+    step_id: s06
+    assessment: partial
+    evidence: optional fragment and package pin exist, but no fixture or runtime listing test exists in the bounded files.
+  - source_ref: AC+US-004
+    intent: README gap matrix matches bridge limitations and every row has an owner.
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: dsh/README.md:197-211 provides the matrix and explicitly limits T-HUB-008 to the listed gaps.
+  - source_ref: AC+SC-001
+    intent: hooks-claude-code is present in epic-implement dump-config.
+    step_id: s07
+    assessment: partial
+    evidence: static YAML smoke passes according to the implement record; live DSH dump-config is not executed or recorded.
+  - source_ref: AC+SC-002
+    intent: Gap matrix has at least five owner-labelled rows.
+    step_id: s01
+    assessment: satisfied
+    evidence: README matrix has nine rows and owner values.
+  - source_ref: AC+SC-003
+    intent: Stop self-limit is covered by a fake consecutive-block unit test.
+    step_id: s05
+    assessment: partial
+    evidence: unit test coverage exists, but the configured limit is 3 rather than the plan AC+ configurable default 8.
+  - source_ref: AC+SC-004
+    intent: Claude-path tests are unchanged and green.
+    step_id: s07
+    assessment: partial
+    evidence: the recorded command deselected all four tests and provides no executed regression result.
+
+  - source_ref: AC−-001
+    intent: Bridge does not duplicate stop-gate or agent-pretool logic in TypeScript.
+    step_id: s02
+    assessment: satisfied
+    evidence: dsh/patches/cc-hooks-bridge.yml is a config-only mount and the bounded implementation files contain no TypeScript hook rewrite.
+  - source_ref: AC−-002
+    intent: Claude settings.json hooks are not changed by the bridge.
+    step_id: s07
+    assessment: partial
+    evidence: .claude/settings.json is not in the bounded implementation file list, but the required unchanged-path regression was not actually executed; s07 recorded 4 deselected tests.
+  - source_ref: AC−-003
+    intent: Missing dsh-claude-compat does not block profile boot.
+    step_id: s06
+    assessment: satisfied
+    evidence: optionalDependencies plus required:false in dsh/patches/cc-claude-compat.yml:3-6 and the conditional include at cordis.patch.yml:44-52 establish fail-soft configuration.
+  - source_ref: AC−-004
+    intent: Misconfigured configPath produces a loud failure rather than a silent fallback.
+    step_id: s02
+    assessment: satisfied
+    evidence: shared fragment is required:false but epic-implement overrides the bridge patch to required:true at cordis.patch.yml:34-40; README:207 documents warning/fail-closed behavior.
+  - source_ref: AC−-005
+    intent: Every gap-matrix row has an owner epic.
+    step_id: s01
+    assessment: satisfied
+    evidence: dsh/README.md:197-207 assigns T-HUB-008 or self-limit on every event row.
+
+  - source_ref: NFR-1
+    intent: Zero TypeScript hook rewrite; only a Cordis mount is added.
+    step_id: s02
+    assessment: satisfied
+    evidence: shared YAML include and profile patch are the bridge implementation; existing Python hooks remain referenced from settings.json.
+  - source_ref: NFR-2
+    intent: Additive rollout leaves the Claude path unchanged.
+    step_id: s07
+    assessment: partial
+    evidence: bounded implementation does not list settings.json, but the Claude-path regression evidence is not executable because the recorded command deselected the tests.
+  - source_ref: NFR-3
+    intent: Required bridge configuration fails closed for epic-* profiles when required=true.
+    step_id: s02
+    assessment: satisfied
+    evidence: epic-implement bridge override is required:true at cordis.patch.yml:34-40; other profiles retain the explicitly optional shared default.
+  - source_ref: NFR-4
+    intent: DSH and bridge package pins are recorded and reviewed.
+    step_id: s01/s07
+    assessment: satisfied
+    evidence: dsh/README.md:213-228 records dsh@0.1.1-rc.2 and bridge@0.0.1-rc.5 with exact-install guidance; dsh/patches/package.json records the bridge pin.
+  - source_ref: NFR-5
+    intent: Optional compat mount does not block boot when unavailable.
+    step_id: s06
+    assessment: satisfied
+    evidence: optional dependency, required:false fragment, conditional flag, and fail-soft documentation are present in the bounded files.
+
+  - source_ref: Constitution MUST-1
+    intent: BACK implementation uses targeted TDD before production code.
+    step_id: s05/s07
+    assessment: satisfied
+    evidence: s05 implement record lists dedicated tests and TDD cases before stop-gate changes; s07 adds the static configuration test.
+  - source_ref: Constitution MUST-2
+    intent: Required dependencies and configuration do not silently fall back.
+    step_id: s02/s06
+    assessment: satisfied
+    evidence: required:true bridge override, optional compat required:false semantics, and explicit README fail-soft/fail-closed behavior are recorded.
+  - source_ref: Constitution MUST-3
+    intent: Frontend test runners are parent-only.
+    step_id: n/a
+    assessment: out_of_scope
+    evidence: T-HUB-016 has no frontend implementation surface or frontend test runner requirement.
+  - source_ref: Constitution MUST-4
+    intent: Role session uses lean routed context and bounded inspection.
+    step_id: all
+    assessment: satisfied
+    evidence: this audit is limited to activeContext, plan/decompose coverage, implement headers, and listed bounded files/evidence; no suite or full shard audit was performed.
+  - source_ref: Constitution MUST-5
+    intent: Invalid environment/configuration is rejected rather than guessed.
+    step_id: s02/s04
+    assessment: satisfied
+    evidence: required bridge override and explicit runtime-specific CLAUDE_PROJECT_DIR/DSH_HOOKS_BRIDGE contract are present; README documents invalid config as warning/fail-closed.
+  - source_ref: Constitution MUST-6
+    intent: Missing evidence or ambiguous status is recorded explicitly rather than inferred.
+    step_id: all
+    assessment: satisfied
+    evidence: partial assessments below preserve missing live-runtime and regression evidence as findings instead of treating file presence as proof.
+  - source_ref: Constitution MUST-7
+    intent: activeContext has one current Handoff block.
+    step_id: all
+    assessment: satisfied
+    evidence: current activeContext.md contains one Handoff block and will be rewritten to one BACK AUDIT handoff at FINISH.
+  - source_ref: Constitution MUST-8
+    intent: Integration features have matching frontend/backend/data evidence.
+    step_id: n/a
+    assessment: out_of_scope
+    evidence: T-HUB-016 is a DSH/loop/hooks infrastructure epic, not an INTEG user-facing feature.
+  - source_ref: Constitution MUST-9
+    intent: AUDIT is the post-implementation intent-to-implementation authority check.
+    step_id: all
+    assessment: satisfied
+    evidence: this artifact compares every plan/decompose step and intent against implement evidence without rewriting completed implementation artifacts.
+
+findings:
+  - id: F1
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-008 / SC-001 / AC+SC-001
+    evidence: tests/test_cc_hooks_bridge_config.py:15-32 checks YAML fields and profile text only; s07 implement evidence explicitly records static smoke and no live `dsh --profile epic-implement --dump-config` output.
+    remaining_work: Add a bounded dump-config smoke using the installed/pinned DSH profile, assert the bridge plugin appears in the emitted configuration, and record the command/result; retain the static YAML test as a fast check.
+  - id: F2
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-009 / SC-004 / AC−-002 / NFR-2
+    evidence: s07 records `.claude/hooks/tests/ -q -k 'not dsh_self_limit'` with 4 deselected, so no Claude-path test executed; no Claude loop result or byte-stability assertion for .claude/settings.json is recorded.
+    remaining_work: Run the actual Claude-path hook regression subset (excluding only DSH-specific tests), add/assert a byte-stability or hash check for .claude/settings.json, and record non-zero executed-test evidence plus the Claude loop smoke result.
+  - id: F3
+    gap_type: partial
+    severity: MEDIUM
+    source_ref: AC+US-003 / FR-005 / NFR-5
+    evidence: dsh/patches/cc-claude-compat.yml and optionalDependencies configure the mount, but no `.claude/skills` fixture or runtime listing check proves the plugin exposes a skill.
+    remaining_work: Add an isolated compat fixture smoke that creates a representative `.claude/skills` entry, loads the epic-implement configuration, and asserts the skill is listed; separately verify missing-package behavior remains fail-soft.
+  - id: F4
+    gap_type: contradicts
+    severity: MEDIUM
+    source_ref: plan:AC+ (line 111) / FR-007 / SC-003
+    evidence: plan AC+ requires a configurable consecutive-Stop limit with default 8, while .claude/hooks/stop-gate.py:79 hard-codes DSH_SELF_LIMIT_MAX = 3 and no configuration input is implemented; s05 tests only the hard-coded threshold.
+    remaining_work: Reconcile the plan/decompose contract, expose a validated configuration value with the agreed default (8 unless the plan is explicitly revised), and add tests for default, valid override, and invalid override fail-closed behavior.
+  - id: F5
+    gap_type: partial
+    severity: LOW
+    source_ref: AC−-004 / Constitution MUST-2 / Constitution MUST-5
+    evidence: cordis.patch.yml:34-40 sets required:true for epic-implement and README:207 describes loud failure, but no bounded smoke feeds a missing/invalid configPath through the bridge to verify an observable diagnostic rather than a silent fallback.
+    remaining_work: Add a configuration-level failure smoke for the required epic-implement bridge path and record the emitted diagnostic; preserve required:false only for the intentionally optional shared/compat mounts.
+
+converged: false
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s01-pin-research-gap-matrix.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s02-cc-hooks-bridge-fragment.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s03-install-cc-hooks-script.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s04-loop-env-contract.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s05-stop-gate-self-limit-dsh.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s06-dsh-claude-compat-mount.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s07-smoke-regression-docs.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s07-smoke-regression-docs.yaml
+    plan_intent: FR-008 / SC-001 require a live dump-config smoke.
+    actual: Only a static YAML configuration smoke is recorded; live DSH output is absent.
+    impact: high
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s07-smoke-regression-docs.yaml
+    plan_intent: FR-009 / SC-004 / AC−-002 require executed Claude-path regression evidence.
+    actual: The recorded command deselected all four tests and reports no executed Claude-path result.
+    impact: high
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s06-dsh-claude-compat-mount.yaml
+    plan_intent: AC+US-003 requires a compat fixture skill listing.
+    actual: The fragment and package are configured, but runtime fixture evidence is absent.
+    impact: medium
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s05-stop-gate-self-limit-dsh.yaml
+    plan_intent: Plan AC+ requires configurable self-limit default 8.
+    actual: DSH_SELF_LIMIT_MAX is hard-coded to 3.
+    impact: medium
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s02-cc-hooks-bridge-fragment.yaml
+    plan_intent: AC−-004 requires observable loud failure for a misconfigured required configPath.
+    actual: Required configuration is declared, but the failure diagnostic is not smoke-tested.
+    impact: low
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - Assess выполнен только по bounded plan/decompose/index, implement headers и перечисленным code/test/README surfaces; pytest, dsh CLI и полный suite не запускались по правилам BACK AUDIT.
+  - Все s01-s07 имеют completed implement artifacts; completed artifacts и код не переписывались.
+  - CASE A выбран потому что decompose-T-HUB-011-analyze-pre-implement и decompose-T-HUB-012-audit-converge имеют все шаги completed; проверена canonical memory-bank/constitution.md.
+  - Findings F1-F5 требуют append-only audit shards s08-s12 и следующего BACK IMPLEMENT → BACK AUDIT; до remediation нельзя переходить в BACK QA.

@@ -1,0 +1,13 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-spec-maturity-epics.md
+queue:
+  - id: T-HUB-024
+    plan: plan-T-HUB-024-validate-traceability.md
+    deps: []
+  - id: T-HUB-025
+    plan: plan-T-HUB-025-product-constitution-bootstrap.md
+    deps: []
+  - id: T-HUB-026
+    plan: plan-T-HUB-026-spec-reconcile-workflow.md
+    deps: []

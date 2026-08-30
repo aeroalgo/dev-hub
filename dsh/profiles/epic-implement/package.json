@@ -6,7 +6,12 @@
     "@deepseek-ai/dsh-agent-presets": "^0.1.1-rc.2",
     "@deepseek-ai/dsh-base": "^0.1.1-rc.2",
     "@deepseek-ai/dsh-headless": "^0.1.1-rc.2",
-    "dsh-phase-models": "file:../../patches"
+    "dsh-phase-models": "file:../../patches",
+    "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5",
+    "@dev-hub/dsh-epic-gate": "file:../../plugins/epic-gate"
+  },
+  "optionalDependencies": {
+    "dsh-claude-compat": "0.8.0"
   },
   "dsh": {
     "profile": {

@@ -176,10 +176,10 @@
 | **s09** | [s09-board-controls-ui-workspace-filter-model-preset.yaml](s09-board-controls-ui-workspace-filter-model-preset.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s10** | [s10-docs-install-regression-suite.yaml](s10-docs-install-regression-suite.yaml) | no | no | BACK IMPLEMENT | completed |
 | **s11** | [s11-audit-execution-recording.yaml](s11-audit-execution-recording.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s12** | [s12-audit-stock-run-intercept-wiring.yaml](s12-audit-stock-run-intercept-wiring.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s13** | [s13-audit-workspace-list-adapter.yaml](s13-audit-workspace-list-adapter.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s14** | [s14-audit-model-source-propagation.yaml](s14-audit-model-source-propagation.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s15** | [s15-audit-config-authorization-validation.yaml](s15-audit-config-authorization-validation.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s12** | [s12-audit-stock-run-intercept-wiring.yaml](s12-audit-stock-run-intercept-wiring.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s13** | [s13-audit-workspace-list-adapter.yaml](s13-audit-workspace-list-adapter.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s14** | [s14-audit-model-source-propagation.yaml](s14-audit-model-source-propagation.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s15** | [s15-audit-config-authorization-validation.yaml](s15-audit-config-authorization-validation.yaml) | no | yes | BACK IMPLEMENT | completed |
 **Audit remediation:** s11–s15 are append-only shards from `audit-20260829-dsh-board-arm-loop.yaml`; they remain `pending` until BACK IMPLEMENT and a repeat BACK AUDIT.
 
 **needs_creative:** все `no`. Cordis intercept API неопределённость закрыта spike в s01 (не CREATIVE — spike = исследование + документирование + реализация решения по факту API; если API нет → alternate route + docs documented in shard). CREATIVE не требуется.

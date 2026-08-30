@@ -2,12 +2,6 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-014
-    plan: plan-T-HUB-014-dsh-mb-board-sync.md
-    deps: []
-  - id: T-HUB-015
-    plan: plan-T-HUB-015-dsh-board-arm-loop.md
-    deps: [T-HUB-014]
   - id: T-HUB-016
     plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
     deps: []
@@ -23,3 +17,27 @@ queue:
   - id: T-HUB-018
     plan: plan-T-HUB-018-loop-incident-autopilot.md
     deps: [T-HUB-017]
+  - id: T-HUB-019
+    plan: plan-T-HUB-019-dsh-board-sync-enrichments.md
+    deps: []
+  - id: T-HUB-020
+    plan: plan-T-HUB-020-dsh-board-epic-loop.md
+    deps: []
+  - id: T-HUB-021
+    plan: plan-T-HUB-021-pydantic-ai-output-cap.md
+    deps: []
+  - id: T-HUB-022
+    plan: plan-T-HUB-022-runtime-pydantic-schemas.md
+    deps: []
+  - id: T-HUB-023
+    plan: plan-T-HUB-023-hooks-llm-fallbacks.md
+    deps: [T-HUB-021]
+  - id: T-HUB-024
+    plan: plan-T-HUB-024-validate-traceability.md
+    deps: []
+  - id: T-HUB-025
+    plan: plan-T-HUB-025-product-constitution-bootstrap.md
+    deps: []
+  - id: T-HUB-026
+    plan: plan-T-HUB-026-spec-reconcile-workflow.md
+    deps: []

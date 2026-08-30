@@ -155,3 +155,48 @@ def test_non_next_step_still_conflicts_on_step_mismatch(
 
     assert result.get("ok") is False
     assert result.get("code") == "checkpoint_identity_conflict"
+
+
+def test_next_step_committed_allows_qa_to_reflect(tmp_path: Path) -> None:
+    """QA next_step → prepare REFLECT must advance (post-implement transition)."""
+    lib = _load_epic_lib()
+    cp_dir = tmp_path / ".claude" / "runtime" / "epic"
+    cp_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint = {
+        "schema": "loop-checkpoint/v1",
+        "checkpoint_seq": 2,
+        "checkpoint_id": "sess23:QA",
+        "session_id": "sess23",
+        "identity": {
+            "action": "invoke",
+            "epic": "T-HUB-015-dsh-board-arm-loop",
+            "role": "BACK",
+            "step": "QA",
+        },
+        "step_id": "QA",
+        "phase": "QA",
+        "phase_epoch": "1",
+        "stage": "committed",
+        "status": "committed",
+        "next_action": "advance",
+        "resume_policy": "next_step",
+        "retry_count": 0,
+        "degraded_count": 0,
+        "reason": None,
+        "metadata": None,
+        "updated_at": "2026-08-29T12:25:14Z",
+    }
+    (cp_dir / "checkpoint.json").write_text(json.dumps(checkpoint), encoding="utf-8")
+
+    result = lib.resolve_checkpoint_resume(
+        tmp_path,
+        identity={
+            "epic": "T-HUB-015-dsh-board-arm-loop",
+            "role": "BACK",
+            "step": "REFLECT",
+        },
+    )
+
+    assert result.get("ok") is True, f"got: {result}"
+    assert result.get("decision") == "advance"
+    assert result.get("code") is None

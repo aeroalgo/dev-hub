@@ -1,6 +1,8 @@
 # Decompose templates
 
-**Shard (BACK / FRONT / INTEG):** [epic-step.yaml](epic-step.yaml) — `schema: epic-decompose/v1`, `role: back|front|integ`
+**Shard (BACK / FRONT / INTEG):** [epic-step.yaml](epic-step.yaml) — **единственный** канон: `schema: epic-decompose/v1`, `role: back|front|integ`, `as_built`/`delta` = list.
+
+**FORBIDDEN:** invented schemas (`epic-decompose-shard/*`, `epic-decompose-step/*`, …), `as_built: {as_is, delta}` dict. DECOMPOSE FINISH: `epic_resolve.py validate-decompose-tree` (stop-gate fail-closed).
 
 | Артефакт | Путь |
 |----------|------|

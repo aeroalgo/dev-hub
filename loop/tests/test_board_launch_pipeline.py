@@ -42,6 +42,8 @@ def test_arm_loop_success(tmp_path: Path) -> None:
     assert result.arm == _arm(_card(tmp_path))
     assert result.loop is not None
     assert result.loop.exit_code == 0
+    assert result.loop.model_source == "bare"
+    assert result.model_source == "bare"
     assert result.loop_invoked is True
 
 

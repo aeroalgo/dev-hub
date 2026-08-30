@@ -1,0 +1,72 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s02 — agent_type / preset mapping — typed subagent identity in DSH bridge IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-008-dsh-epic-gate-plugin/s02-agent-type-preset-mapping.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery:
+- 'DSH bridge matrix documents SubagentStart agent_type as unavailable: dsh/README.md:205'
+- Existing hook contract and normalize_type alias live in .claude/hooks/subagent-start.py:20-35
+  and .claude/hooks/_lib.py:1156-1161
+- Preset source ids are verify/reviewer/explorer in dsh/presets and profile patches
+gaps:
+  status: none
+done:
+- SubagentStart resolves agent_type, subagent_type and type with agent_type precedence
+  and normalizes aliases
+- Added explicit verify/reviewer/explorer → preset.verify/preset.reviewer/preset.explorer
+  mapping to injected context
+- Added isolated tests for canonical/fallback fields, alias, preset mapping and unknown
+  type
+files:
+- .claude/hooks/subagent-start.py
+- .claude/hooks/tests/test_subagent_start.py
+- memory-bank/back/plan/decompose-T-HUB-008-dsh-epic-gate-plugin/s02-agent-type-preset-mapping.yaml
+deletes:
+- n/a
+tests:
+- '`timeout 300s .venv/bin/pytest .claude/hooks/tests/test_subagent_start.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest .claude/hooks/tests/test_spawn_validate.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_hooks.py -k "subagent or normalize_type"
+  -q --tb=line`'
+integration_check:
+- DSH payload gap is handled at the Python hook boundary; no TypeScript bridge rewrite
+  or SubagentStop behavior was changed
+- Unknown types remain a no-op because CONTRACTS has no contract for them
+grep_control:
+- back: '`rg -n "agent_type|subagent_type|PRESET_BY_AGENT|normalize_type" .claude/hooks/subagent-start.py`'
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- cp1 PASS — dsh/README.md:205 records SubagentStart agent_type unavailable; shard
+  documents fallback fields and rationale
+- cp2 PASS — subagent-start.py:22-35 resolves agent_type, subagent_type, type before
+  normalize_type
+- 'cp3 PASS — dedicated test file: 5 passed in 0.33s'
+- 'regression PASS — test_spawn_validate.py: 5 passed in 0.05s'
+- 'regression PASS — loop/tests/test_agent_hooks.py -k subagent or normalize_type:
+  2 passed, 25 deselected in 0.42s'
+- AC− PASS — scope excludes SubagentStop, epic-gate bootstrap and unrelated DSH runtime
+  code
+- §0.11 PASS — payload source, Python consumer and preset ids cross-checked
+checkpoints:
+- id: cp1
+  criterion: 'Shard фиксирует: agent_type field: absent/unavailable in the checked-in
+    DSH bridge matrix; fallback fields are agent_type, subagent_type, type'
+  status: done
+  notes: Evidence in decompose shard context.dsh_payload_evidence and dsh/README.md:205
+- id: cp2
+  criterion: Hook resolves agent_type, subagent_type and type before normalize_type
+  status: done
+  notes: subagent-start.py:_resolve_agent_type uses ordered fallback fields and normalize_type
+- id: cp3
+  criterion: Dedicated SubagentStart tests cover canonical fields, aliases, presets
+    and unknown types
+  status: done
+  notes: 5 targeted tests passed
+resume_from: cp1

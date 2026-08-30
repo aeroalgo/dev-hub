@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-016
+title: "install-cc-hooks.sh — idempotent installer applies bridge fragment to all profiles"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `dsh/scripts/install-cc-hooks.sh` — идемпотентный скрипт, который:
+  (1) применяет `cc-hooks-bridge.yml` к каждому `epic-*` профилю (копирует патч в $DSH_HOME/patches или inline),
+  (2) запускает `pnpm install --ignore-scripts` в каждом установленном профиле,
+  (3) поддерживает `--dry-run` и `--link` аналогично `install-profiles.sh`,
+  (4) документирует headless (CI) режим.
+  Outcome: один вызов скрипта корректно монтирует bridge во все профили; FR-003 закрыт.
+
+context:
+  consumes:
+    - dsh/scripts/install-profiles.sh  # паттерн —link/--dry-run, DSH_HOME logic
+    - dsh/patches/cc-hooks-bridge.yml  # s02 output — fragment для копирования
+    - dsh/profiles/epic-*/package.json # обновлены в s02 с новой зависимостью
+  produces:
+    - dsh/scripts/install-cc-hooks.sh  # новый скрипт
+    - dsh/README.md                    # добавить §Installation строку про install-cc-hooks.sh
+  plan_refs:
+    - FR-003  # install script applies to all epic-*
+    - NFR-2   # greenfield additive, Claude path zero-change
+  files:
+    - dsh/scripts/install-cc-hooks.sh
+    - dsh/README.md
+
+as_built:
+  - "dsh/scripts/install-profiles.sh: существует, паттерн --dry-run/--link/DSH_HOME/pnpm install"
+  - "dsh/scripts/install-mb-bridge.sh: существует, паттерн для bridge-specific installer"
+  - "dsh/scripts/install-cc-hooks.sh: не существует"
+
+delta:
+  - "dsh/scripts/install-cc-hooks.sh CREATE: bash script; копирует dsh/patches/cc-hooks-bridge.yml → $DSH_HOME/patches/; для каждого dsh/profiles/epic-* запускает pnpm install --ignore-scripts после s02-обновлённого package.json; --dry-run выводит план; --link использует symlink если возможно; выводит предупреждение если profile не установлен"
+  - "dsh/README.md EDIT: добавить в §Installation параграф 'Bridge installation' с командой `dsh/scripts/install-cc-hooks.sh` и ссылкой на --dry-run"
+
+deletes: []
+# Нет файлов для удаления — чистый additive.
+
+out_of_scope:
+  - "Изменение install-profiles.sh (отдельный скрипт)"
+  - "Запуск dsh CLI для smoke (s07)"
+  - "Env vars в loop.sh (s04)"
+
+skills:
+  code_surface: infra
+  impl:
+    # bash script + docs; нет Python кода; Core не применяется
+    []
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/scripts/install-cc-hooks.sh существует и исполняем"
+    verify: "test -x dsh/scripts/install-cc-hooks.sh && echo ok"
+  - id: cp2
+    criterion: "Скрипт поддерживает --dry-run (выводит план, не меняет FS)"
+    verify: "DSH_HOME=/tmp/dsh-test-cc bash dsh/scripts/install-cc-hooks.sh --dry-run 2>&1 | grep -q 'dry'"
+  - id: cp3
+    criterion: "dsh/README.md §Installation содержит ссылку на install-cc-hooks.sh"
+    verify: "grep -q 'install-cc-hooks' dsh/README.md"
+
+verify:
+  - "test -x dsh/scripts/install-cc-hooks.sh"
+  - "grep -q 'install-cc-hooks' dsh/README.md"
+
+tdd: []

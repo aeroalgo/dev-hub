@@ -1,0 +1,321 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-008-dsh-epic-gate-plugin
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+date: 2026-08-30
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 3
+  findings: 3
+
+# CASE A: T-HUB-011 and T-HUB-012 have all steps completed; canonical constitution.md checked.
+intent_checked:
+  fr_total: 9
+  fr_satisfied: 6
+  sc_checked: 4
+  constitution_checked: true
+
+intent_inventory:
+  - source_ref: US-001
+    intent: "Incomplete verify spawn is denied under the DSH native pre-execute path even when updatedInput rewrite is unavailable."
+    linked_steps: [s01, s03, s07]
+    status: partial
+    evidence: "s01 records ADR PATH_B and s03 implements deny-only validator invocation, but loop/tests/test_dsh_epic_gate_gaps.py covers the Python validator round-trip rather than calling preToolUse/tools/pre-execute (F2)."
+  - source_ref: US-002
+    intent: "A verify child sees its typed contract despite the bridge's general-purpose identity."
+    linked_steps: [s02, s04]
+    status: partial
+    evidence: ".claude/hooks/subagent-start.py:20-57 resolves fallback fields and emits preset text; dsh/plugins/epic-gate/src/index.ts:36-47 registers no native SubagentStart mapping (F1)."
+  - source_ref: US-003
+    intent: "Parent receives VERDICT PASS with mirrored evidence after a DSH subagent ends."
+    linked_steps: [s04, s07]
+    status: satisfied
+    evidence: "dsh/plugins/epic-gate/src/subagent-stop.ts enriches subagent/end payloads and loop/tests/test_dsh_epic_gate_gaps.py:170-189 records verify_verdict=PASS through subagent-stop.py."
+  - source_ref: US-004
+    intent: "DSH does not receive a second full TypeScript Stop gate."
+    linked_steps: [s06, s07]
+    status: satisfied
+    evidence: "s06 records the green bridge Stop/self-limit path; no gate-check-turn.py was added and the plugin remains limited to gap events."
+
+  - source_ref: FR-001
+    intent: "The @dev-hub/dsh-epic-gate package exists and is mountable."
+    linked_steps: [s03, s07]
+    status: satisfied
+    evidence: "dsh/plugins/epic-gate/package.json, src/index.ts, cordis.patch.yml and all eight profile package/patch rows are present."
+  - source_ref: FR-002
+    intent: "Reusable Python spawn validation is extracted and callable by the native gate."
+    linked_steps: [s01, s03]
+    status: satisfied
+    evidence: ".claude/hooks/spawn_validate.py:28-130 exposes validate_spawn_input and stdin JSON output; pre-tool-use.ts:43-74 invokes the configured validator subprocess."
+  - source_ref: FR-003
+    intent: "Native pre-execute denies incomplete spawn with a stable reason when rewrite is unsupported."
+    linked_steps: [s01, s03]
+    status: satisfied
+    evidence: "s01 ADR PATH_B is explicit; pre-tool-use.ts:100-116 returns deny and formats validator reasons, with s03 CLI evidence showing prompt_incomplete."
+  - source_ref: FR-004
+    intent: "Preset/tool identity maps to verify, reviewer or explorer for SubagentStart and SubagentStop paths."
+    linked_steps: [s02, s04]
+    status: partial
+    evidence: ".claude/hooks/subagent-start.py:20-57 provides Python fallback mapping and subagent-stop.ts:43-48 provides stop-side aliases, but no native SubagentStart handler or child contract injection is present (F1)."
+  - source_ref: FR-005
+    intent: "Subagent/end parses VERDICT and mirrors it through the existing Python state path."
+    linked_steps: [s04]
+    status: satisfied
+    evidence: "subagent-stop.ts:60-79 extracts the final VERDICT line; s04 and loop/tests/test_dsh_epic_gate_gaps.py:170-209 evidence the Python round-trip."
+  - source_ref: FR-006
+    intent: "A turn-stopping shim is added only if the T-HUB-016 bridge Stop path fails."
+    linked_steps: [s06]
+    status: satisfied
+    evidence: "s06 test evidence confirms bridge Stop/self-limit is sufficient; gate-check-turn.py remains intentionally absent."
+  - source_ref: FR-007
+    intent: "Parity README contains one owner/status row for each DSH gap A-D."
+    linked_steps: [s07]
+    status: satisfied
+    evidence: "dsh/plugins/epic-gate/README.md:7-19 contains four owner-tagged rows with explicit closed/deferred status."
+  - source_ref: FR-008
+    intent: "Bridge-mounted epic-gate integration proves incomplete spawn denial and VERDICT mirroring."
+    linked_steps: [s03, s04, s07]
+    status: partial
+    evidence: "The suite proves verdict round-trip and profile mount text, while no test invokes preToolUse or tools/pre-execute with an incomplete verify payload (F2)."
+  - source_ref: FR-009
+    intent: "The project-root and DEV_HUB exports from the runtime adapter/bridge are consumed by epic-gate."
+    linked_steps: [s03, s07]
+    status: missing
+    evidence: "loop/loop.sh exports DEV_HUB, PROJECT_ROOT and CLAUDE_PROJECT_DIR; rg finds EPIC_PROJECT_ROOT only in plan-T-HUB-008, and pre-tool-use.ts derives cwd from the DSH session without an explicit FR-009 contract (F3)."
+
+  - source_ref: SC-001
+    intent: "Spawn without AC+ is denied under a DSH profile."
+    linked_steps: [s03, s07]
+    status: partial
+    evidence: "Validator CLI denial and native deny implementation are evidenced, but the profile-mounted pre-execute integration call is absent from the smoke (F2)."
+  - source_ref: SC-002
+    intent: "Verify preset receives its contract despite bridge general-purpose identity."
+    linked_steps: [s02, s04]
+    status: partial
+    evidence: "Python fallback contract injection is tested, but native DSH SubagentStart contract visibility is not implemented/evidenced (F1)."
+  - source_ref: SC-003
+    intent: "VERDICT PASS is mirrored into state."
+    linked_steps: [s04]
+    status: satisfied
+    evidence: "The TypeScript extraction and Python state round-trip are covered by s04 and loop/tests/test_dsh_epic_gate_gaps.py."
+  - source_ref: SC-004
+    intent: "No full TypeScript reimplementation of stop-gate exists."
+    linked_steps: [s04, s06, s07]
+    status: satisfied
+    evidence: "The plugin invokes existing Python hooks and contains only native pre-execute, SubagentStop enrichment and SessionStart injection; no TS Stop gate body is present."
+
+  - source_ref: AC+1
+    intent: "Incomplete verify spawn is denied with a stable reason code."
+    linked_steps: [s01, s03, s07]
+    status: partial
+    evidence: "prompt_incomplete is shown by the validator CLI, but the native pre-execute call is not exercised by the integration test (F2)."
+  - source_ref: AC+2
+    intent: "verify, reviewer and explorer identity/preset mapping is covered."
+    linked_steps: [s02, s04]
+    status: partial
+    evidence: "Python mapping covers the three ids and explore alias; native SubagentStart mapping remains absent (F1)."
+  - source_ref: AC+3
+    intent: "VERDICT PASS mirror evidence is visible to stop-gate/state."
+    linked_steps: [s04]
+    status: satisfied
+    evidence: "subagent-stop.py persists verify_verdict=PASS after enriched DSH payload."
+  - source_ref: AC+4
+    intent: "Parity README lists gaps A-D as closed or deferred with owner."
+    linked_steps: [s07]
+    status: satisfied
+    evidence: "Both epic-gate README and dsh/README.md identify owners and explicit closed/deferred outcomes."
+  - source_ref: AC+5
+    intent: "Claude path has no regression."
+    linked_steps: [s07]
+    status: satisfied
+    evidence: "s07 records 68 targeted Claude-path tests passing and the Python hook sources remain authoritative."
+
+  - source_ref: AC-1
+    intent: "Python stop-gate and agent-pretool remain authoritative for Claude."
+    linked_steps: [s01, s03, s06, s07]
+    status: satisfied
+    evidence: "The plugin shells out to Python and does not replace the Claude hook entrypoints."
+  - source_ref: AC-2
+    intent: "No full bash-pretool, user-prompt or session-start Python hook port is introduced."
+    linked_steps: [s03, s05]
+    status: satisfied
+    evidence: "SessionStart code is a thin native injection adapter; the Python session-start hook remains the source of context and no bash/user-prompt port exists."
+  - source_ref: AC-3
+    intent: "The T-HUB-016 bridge is not duplicated."
+    linked_steps: [s03, s04, s07]
+    status: satisfied
+    evidence: "Profiles mount cc-hooks-bridge before epic-gate; epic-gate owns only DSH gap events."
+  - source_ref: AC-4
+    intent: "EPIC_RUNTIME does not default to dsh."
+    linked_steps: [s05, s07]
+    status: satisfied
+    evidence: "loop/loop.sh keeps Claude as the default runtime and dsh is explicit."
+  - source_ref: AC-5
+    intent: "The plugin is not expanded into all hooks."
+    linked_steps: [s03, s04, s05, s06]
+    status: satisfied
+    evidence: "The plugin surface is limited to pre-execute validation, SubagentStop enrichment and SessionStart injection."
+
+constitution_must:
+  - source_ref: "Constitution MUST-1"
+    intent: "Targeted tests are part of each implementation step."
+    linked_steps: [s01, s02, s03, s04, s05, s06, s07]
+    status: satisfied
+    evidence: "All seven implement artifacts list targeted TDD/verification evidence; AUDIT does not rerun tests."
+  - source_ref: "Constitution MUST-2"
+    intent: "Required dependencies, paths and markers fail closed rather than silently selecting alternatives."
+    linked_steps: [s01, s03, s06]
+    status: satisfied
+    evidence: "PATH_B deny-only ADR, validator subprocess failure deny and bridge Stop self-limit are explicit."
+  - source_ref: "Constitution MUST-3"
+    intent: "Frontend test runners are parent-only."
+    linked_steps: []
+    status: not_applicable
+    evidence: "This backend/tooling epic has no frontend runner or frontend implementation surface."
+  - source_ref: "Constitution MUST-4"
+    intent: "Audit inspection remains lean and bounded."
+    linked_steps: [s01, s02, s03, s04, s05, s06, s07]
+    status: satisfied
+    evidence: "Assessment used plan/decompose/index, implement headers and named code/test/README surfaces; no full shard loading or full-repo code audit was performed."
+  - source_ref: "Constitution MUST-5"
+    intent: "Invalid or ambiguous runtime/configuration values fail closed."
+    linked_steps: [s03, s06]
+    status: partial
+    evidence: "Validator and DSH Stop paths fail closed, but the unresolved project-root naming contract leaves an ambiguous FR-009 boundary (F3)."
+  - source_ref: "Constitution MUST-6"
+    intent: "Unavailable DSH semantics are documented instead of guessed."
+    linked_steps: [s01, s02, s05, s07]
+    status: satisfied
+    evidence: "PATH_B, Gap B deferred and SessionStart bridge-ok decisions are explicitly recorded in shards and parity README."
+  - source_ref: "Constitution MUST-7"
+    intent: "There is exactly one current Handoff in activeContext."
+    linked_steps: [s07]
+    status: satisfied
+    evidence: "activeContext contains one current BACK AUDIT Handoff before this FINISH rewrite."
+  - source_ref: "Constitution MUST-8"
+    intent: "End-to-end UI/API/data parity is required for INTEG features."
+    linked_steps: []
+    status: not_applicable
+    evidence: "T-HUB-008 is a backend/tooling DSH plugin epic, not an INTEG user-facing feature."
+  - source_ref: "Constitution MUST-9"
+    intent: "AUDIT is the post-implementation intent-to-implementation authority check."
+    linked_steps: [s01, s02, s03, s04, s05, s06, s07]
+    status: satisfied
+    evidence: "This artifact records intent inventory, step assessments, findings and append-only remediation shards."
+
+gap_matrix:
+  - step_id: s01
+    plan_title: "Spike + extract spawn_validate.py — updatedInput ADR + Python validation lib"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s01-spawn-validate-extract.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Completed artifact records PATH_B ADR, reusable validator, CLI contract and targeted tests."
+  - step_id: s02
+    plan_title: "agent_type / preset mapping — typed subagent identity in DSH bridge"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s02-agent-type-preset-mapping.yaml
+    status: deviation
+    mark: "⚠️"
+    evidence: "Python fallback mapping is present, but native DSH SubagentStart contract injection is not wired; finding F1, remediation s08."
+  - step_id: s03
+    plan_title: "epic-gate Cordis plugin — PreToolUse spawn gate wiring"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s03-epic-gate-cordis-plugin.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Thin plugin, fail-closed validator subprocess and all eight profile mounts are evidenced; native integration evidence is tracked separately by F2."
+  - step_id: s04
+    plan_title: "VERDICT mirror — SubagentStop transcript/verdict enrichment"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s04-verdict-mirror-subagent-stop.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Verdict extraction, Python consumer and PASS round-trip are evidenced."
+  - step_id: s05
+    plan_title: "SessionStart first-turn semantics — DSH bridge gap close"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s05-session-start-first-turn.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Bridge-ok decision and startup/resume injection smoke are documented."
+  - step_id: s06
+    plan_title: "gate-check-turn.py — conditional turn-stopping"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s06-gate-check-turn-conditional.yaml
+    status: implemented
+    mark: "✅"
+    evidence: "Bridge Stop/self-limit test is green and conditional file remains intentionally absent."
+  - step_id: s07
+    plan_title: "Mount order + parity README + integration smoke"
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s07-mount-parity-readme-integration.yaml
+    status: deviation
+    mark: "⚠️"
+    evidence: "Mount order and parity rows are present, but the claimed incomplete-spawn integration path is not exercised; findings F2 and F3, remediation s09-s10."
+
+findings:
+  - id: F1
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-004
+    evidence: "`.claude/hooks/subagent-start.py:20-57` maps fallback fields and preset ids, and `dsh/plugins/epic-gate/src/subagent-stop.ts:43-48` maps stop-side aliases; however `dsh/plugins/epic-gate/src/index.ts:36-47` registers no native SubagentStart handler or child contract injection. `dsh/README.md:205` still records agent_type unavailable."
+    remaining_work: "Implement and smoke-test native DSH preset/tool → agent_type mapping for verify/reviewer/explorer, or record a bounded supported limitation and reconcile FR-004 before QA."
+  - id: F2
+    gap_type: partial
+    severity: HIGH
+    source_ref: FR-008
+    evidence: "`dsh/plugins/epic-gate/src/pre-tool-use.ts:100-126` contains the native deny path, but `loop/tests/test_dsh_epic_gate_gaps.py` exercises validator/verdict/session/Stop helpers and does not invoke `preToolUse` or the registered `tools/pre-execute` listener with an incomplete verify spawn. The s03 CLI round-trip is not bridge-mounted integration evidence."
+    remaining_work: "Add a bounded native pre-execute smoke that proves incomplete verify spawn → stable prompt_incomplete deny while retaining the existing VERDICT mirror assertion."
+  - id: F3
+    gap_type: missing
+    severity: MEDIUM
+    source_ref: FR-009
+    evidence: "`loop/loop.sh:11,14-20,45-50` exports DEV_HUB, PROJECT_ROOT and CLAUDE_PROJECT_DIR; `dsh/README.md:55-61` documents those names. `EPIC_PROJECT_ROOT` appears only in plan-T-HUB-008, while epic-gate consumes session cwd and PYTHON/DSH_SPAWN_VALIDATE without an explicit project-root export contract."
+    remaining_work: "Choose one canonical project-root alias compatible with T-HUB-006/T-HUB-016, explicitly consume it with DEV_HUB at the bridge boundary, and add valid/missing/conflicting environment tests with fail-closed diagnostics."
+
+converged: false
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s01-spawn-validate-extract.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s02-agent-type-preset-mapping.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s03-epic-gate-cordis-plugin.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s04-verdict-mirror-subagent-stop.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s05-session-start-first-turn.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s06-gate-check-turn-conditional.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s07-mount-parity-readme-integration.yaml
+
+not_implemented: []
+
+deviations:
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s02-agent-type-preset-mapping.yaml
+    plan_intent: "FR-004 / US-002 require typed DSH SubagentStart identity and matching preset contract injection."
+    actual: "Python fallback mapping and stop-side aliases exist, but native SubagentStart mapping is absent."
+    impact: high
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s07-mount-parity-readme-integration.yaml
+    plan_intent: "FR-008 requires bridge-mounted pre-execute deny and VERDICT mirror integration evidence."
+    actual: "Profile, verdict and Stop smoke exists, but the native pre-execute deny path is not called by the bounded integration test."
+    impact: high
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-008-dsh-epic-gate-plugin/s03-epic-gate-cordis-plugin.yaml
+    plan_intent: "FR-009 requires EPIC_PROJECT_ROOT / DEV_HUB exports to be consumed."
+    actual: "Canonical runtime variables are PROJECT_ROOT / CLAUDE_PROJECT_DIR / DEV_HUB; EPIC_PROJECT_ROOT has no runtime export or consumer."
+    impact: medium
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Assess выполнен только по bounded plan/decompose/index, implement headers и перечисленным code/test/README surfaces; pytest, DSH CLI и полный suite не запускались по правилам BACK AUDIT."
+  - "Graphify N/A — hub repository (no root graph.json); inventory fallback used as prescribed."
+  - "CASE A выбран потому что decompose-T-HUB-011-analyze-pre-implement и decompose-T-HUB-012-audit-converge имеют все шаги completed; проверена canonical memory-bank/constitution.md."
+  - "Все s01-s07 имеют completed implement artifacts; completed artifacts и код не переписывались."
+  - "Actionable findings F1-F3 требуют append-only remediation shards s08-s10 и следующего BACK IMPLEMENT → BACK AUDIT; до remediation нельзя переходить в BACK QA."

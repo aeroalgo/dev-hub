@@ -43,9 +43,13 @@ Gap опционален — не блокирует PLAN. Не читать as 
 4. `contracts/` не обязателен
 5. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
 5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `.queue.yaml` → FAIL
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `INTEG ROADMAP MERGE` → затем `INTEG DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+5b. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
+    `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
+    (нет `loop/` в продукте → `dev-hub/loop/context_loop.py`).
+    `ok: false` → halt PLAN. Нет slug-источников и нет canon → skip CLI. Иначе merge **всегда**.
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon md + queue + первый plan
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
-7. → **INTEG DECOMPOSE** → IMPLEMENT e01
+7. Next: **INTEG DECOMPOSE** `queue[0]` из **canon** → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 
 **После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN
 

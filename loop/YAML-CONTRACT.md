@@ -1,11 +1,17 @@
 # YAML-CONTRACT — lint для epic shard + decompose index (opt-in)
 
-Поля `epic-decompose/v1`, `epic-implement/v1`, qa/refactor/security.  
-**Не** часть runner hot path. Opt-in:
+Поля **`epic-decompose/v1`** (единственный канон shard), `epic-implement/v1`, qa/refactor/security.  
+**FORBIDDEN** invented decompose schemas: `epic-decompose-shard/*`, `epic-decompose-step/*`, любые имена кроме template.  
+Read-time alias только `integ-decompose/v1` → нормализуется в `epic-decompose/v1` (не писать legacy в файлы).  
+Шаблон: `.cursor/templates/decompose/epic-step.yaml`.  
+**Не** часть runner hot path для одного шага. Opt-in:
 
 ```bash
 python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>
+python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <decompose-dir|index.yaml>
 ```
+
+`validate-decompose-tree` — **DECOMPOSE FINISH fail-closed** (stop-gate): schema load всех sNN|eNN (`epic-decompose/v1`). Полный lint verify — `validate-step`.
 
 Шаг YAML = ТЗ агенту (цель, файлы, tests).
 

@@ -14,6 +14,7 @@
 | Overview | [overview.md](overview.md) | current |
 | Services | [services.md](services.md) | current |
 | Data flow | [data-flow.md](data-flow.md) | current |
+| DSH runtime | [dsh-runtime.md](dsh-runtime.md) | current (developer preview) |
 | ERD | [erd.md](erd.md) | n/a (нет доменной БД) + file runtime map |
 | Workers | [workers.md](workers.md) | current (loop sessions; нет queue broker) |
 | Containers | [containers.md](containers.md) | n/a (нет compose/Dockerfile в хабе) |

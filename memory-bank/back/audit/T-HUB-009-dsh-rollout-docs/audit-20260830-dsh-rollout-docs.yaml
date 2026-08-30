@@ -1,0 +1,123 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-009-dsh-rollout-docs
+plan_id: T-HUB-009-dsh-rollout-docs
+date: 2026-08-30
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_inventory:
+  - source_ref: FR-1
+    intent: "docs/runbooks/dsh-loop-pilot.md contains prereqs, install, env, first run, troubleshooting"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-2
+    intent: "memory-bank/architecture/dsh-runtime.md contains diagram, env table, failure modes"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-3
+    intent: "memory-bank/architecture/index.md links dsh-runtime shard"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-4
+    intent: "memory-bank/architecture/services.md references DSH as optional session executor with mermaid fork"
+    step_id: s01, s04
+    assessment: satisfied
+  - source_ref: FR-5
+    intent: "loop/README.md and WORKFLOW.md contain EPIC_RUNTIME section and documentation"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-6
+    intent: "Hub root README.md contains pointer to dsh/ and pilot runbook"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-7
+    intent: "Pilot checklist with 10-step sign-off table in runbook"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-8
+    intent: "Explicit developer preview / not production default warning in documentation entry points"
+    step_id: s01, s02, s03
+    assessment: satisfied
+  - source_ref: NFR-1
+    intent: "Docs match as-built after T-HUB-006..008 without aspirational APIs"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: NFR-2
+    intent: "Russian language used for memory-bank architecture docs"
+    step_id: s01, s04
+    assessment: satisfied
+  - source_ref: NFR-3
+    intent: "No duplicate of T-HUB-005 full cheatsheet — cross-links used instead"
+    step_id: s03, s05
+    assessment: satisfied
+  - source_ref: AC+1
+    intent: "docs/runbooks/dsh-loop-pilot.md exists"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: AC+2
+    intent: "memory-bank/architecture/dsh-runtime.md exists"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC+3
+    intent: "architecture index links dsh-runtime.md"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC+4
+    intent: "Runbook covers Node version, DSH pin, DEEPSEEK_API_KEY, install-profiles, EPIC_RUNTIME=dsh"
+    step_id: s02, s05
+    assessment: satisfied
+  - source_ref: AC+5
+    intent: "Runbook troubleshooting covers missing dsh, profile not found, gate deny, API 429"
+    step_id: s02, s05
+    assessment: satisfied
+  - source_ref: AC+6
+    intent: "Pilot checklist includes sign-off row for verify gate parity"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: AC-1
+    intent: "Do not declare DSH production-ready"
+    step_id: s01, s02, s03
+    assessment: satisfied
+  - source_ref: AC-2
+    intent: "Do not remove Claude documentation"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC-3
+    intent: "Do not auto-enable EPIC_RUNTIME in Makefile"
+    step_id: s03
+    assessment: satisfied
+
+matrix:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-009-dsh-rollout-docs/s01-arch-dsh-runtime-shard.yaml
+    status: satisfied
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-009-dsh-rollout-docs/s02-runbook-dsh-loop-pilot.yaml
+    status: satisfied
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-009-dsh-rollout-docs/s03-loop-readme-hub-readme.yaml
+    status: satisfied
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-009-dsh-rollout-docs/s04-services-dataflow-touchup.yaml
+    status: satisfied
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-009-dsh-rollout-docs/s05-audit-vs-asbuilt-006-008.yaml
+    status: satisfied
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все шаги s01-s05 реализации T-HUB-009-dsh-rollout-docs выполнены без отклонений и полностью покрывают установленные требования."
+  - "Матрица not_implemented[] пуста. Следующая фаза: BACK QA."

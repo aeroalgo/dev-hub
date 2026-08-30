@@ -8,3 +8,9 @@ queue:
   - id: T-HUB-015
     plan: plan-T-HUB-015-dsh-board-arm-loop.md
     deps: [T-HUB-014]
+  - id: T-HUB-019
+    plan: plan-T-HUB-019-dsh-board-sync-enrichments.md
+    deps: [T-HUB-014, T-HUB-015]
+  - id: T-HUB-020
+    plan: plan-T-HUB-020-dsh-board-epic-loop.md
+    deps: [T-HUB-014, T-HUB-015]

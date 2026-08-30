@@ -63,10 +63,30 @@ def test_archive_reader_sorts_and_reports_sequence_collisions_and_gaps(tmp_path:
     result = read_event_log_result(event_path, expected_epic_id="demo", cwd=tmp_path)
 
     assert [event["seq"] for event in result.events] == [1, 3]
-    assert result.collision_count == 2
+    assert result.collision_count == 0
     assert result.gap_count == 1
-    assert {item.code for item in result.diagnostics} >= {"sequence_collision", "sequence_gap"}
+    assert {item.code for item in result.diagnostics} == {"sequence_gap"}
     assert not result.valid
+
+
+def test_archive_reader_reports_collision_only_for_conflicting_revisions(tmp_path: Path) -> None:
+    event_path = tmp_path / "events/demo/events.jsonl"
+    event_path.parent.mkdir(parents=True)
+    first = _event("demo", 1)
+    conflicting = _event("demo", 1)
+    conflicting = {
+        **conflicting,
+        "artifact": "memory-bank/back/qa/demo-conflict.yaml",
+        "artifact_sha256": hashlib.sha256(b"conflict").hexdigest(),
+    }
+    _write(event_path.parent / "archive-a.jsonl", [first])
+    _write(event_path.parent / "archive-b.jsonl", [conflicting])
+    _write(event_path, [_event("demo", 2)])
+
+    result = read_event_log_result(event_path, expected_epic_id="demo", cwd=tmp_path)
+
+    assert result.collision_count == 1
+    assert any(item.code == "sequence_collision" for item in result.diagnostics)
 
 
 def test_append_refuses_existing_gap_or_collision(tmp_path: Path) -> None:

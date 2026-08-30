@@ -8,7 +8,9 @@ alwaysApply: false
 2. Portal inventory: все `frontend/src/app/**/page.tsx` + UI elements
 3. Element registry: ≥400 строк или FAIL
 4. `wc -l` plan → ≥400 иначе дописать
-5. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
+5. `wc -l` plan → ≥400 иначе дописать
+5a. PLAN **сам** `roadmap-merge --role integration` если есть slug queues
+6. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
 
 → workflow: @.cursor/rules/integration_developer/workflow-plan.mdc
 → FINISH: @.cursor/rules/shared/finish-block.mdc

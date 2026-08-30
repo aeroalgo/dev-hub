@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-009-dsh-rollout-docs
+title: "architecture/dsh-runtime.md — новый shard + links в index и services"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать memory-bank/architecture/dsh-runtime.md — полноценный architecture shard с:
+  mermaid-диаграммой dual-runtime (claude vs dsh branch в loop.sh), таблицей env vars,
+  failure modes, developer preview banner. Обновить index.md (строка в таблице Shards)
+  и services.md (S-DSH row + mermaid DSH fork). FR-2, FR-3, FR-4, AC+2, AC+3, NFR-1.
+
+context:
+  consumes:
+    - memory-bank/architecture/index.md          # таблица Shards — добавить строку
+    - memory-bank/architecture/services.md       # таблица сервисов + mermaid
+    - loop/loop.sh                               # as-built: EPIC_RUNTIME ветка
+    - .claude/hooks/_lib.py                      # RuntimeConfig, resolve_runtime_config (T-HUB-006)
+  produces:
+    - memory-bank/architecture/dsh-runtime.md   # новый shard
+    - memory-bank/architecture/index.md         # строка dsh-runtime добавлена
+    - memory-bank/architecture/services.md      # S-DSH row + mermaid DSH fork
+  plan_refs:
+    - FR-2
+    - FR-3
+    - FR-4
+    - FR-8
+    - NFR-1
+    - NFR-2
+    - AC+2
+    - AC+3
+  files:
+    - memory-bank/architecture/dsh-runtime.md
+    - memory-bank/architecture/index.md
+    - memory-bank/architecture/services.md
+
+as_built:
+  - "memory-bank/architecture/index.md — таблица Shards без dsh-runtime строки"
+  - "memory-bank/architecture/services.md — нет S-DSH; mermaid описывает только Claude CLI path"
+  - "memory-bank/architecture/dsh-runtime.md — файл не существует"
+  - "loop/loop.sh — EPIC_RUNTIME ветка реализована (T-HUB-006): claude → Claude CLI, dsh → DSH session"
+  - ".claude/hooks/_lib.py — RuntimeConfig.runtime (claude|dsh), RuntimeConfigError при invalid"
+  - "dsh/profiles/epic-*/ — существуют (T-HUB-007); dsh/plugins/mb-bridge/ (T-HUB-008)"
+
+delta:
+  - "CREATE memory-bank/architecture/dsh-runtime.md: секции Overview / Dual-runtime diagram (mermaid flowchart) / Env table / Runtime selection logic / Failure modes / Не production default banner"
+  - "dsh-runtime.md mermaid: loop.sh → EPIC_RUNTIME? → claude branch (Claude CLI) | dsh branch (DSH + epic-profile); context_loop.py подключается к обоим; hooks/epic_resolve работают одинаково"
+  - "dsh-runtime.md env table: EPIC_RUNTIME (claude|dsh, default=claude), DSH_HOME (default=~/.dsh), DEEPSEEK_API_KEY (required for dsh), PROJECT_LOOP_IMPLEMENT_MODEL (optional override), NODE_VERSION (22+)"
+  - "dsh-runtime.md failure modes: missing dsh binary (exit 127) / profile not found (DSH_HOME warn) / gate deny (verify hook, same behaviour both runtimes) / API 429 (DSH session log) / EPIC_RUNTIME=invalid (RuntimeConfigError)"
+  - "dsh-runtime.md developer preview banner: '⚠️ DSH runtime — developer preview. Default: EPIC_RUNTIME=claude. Breaking changes expected.'"
+  - "UPDATE memory-bank/architecture/index.md: добавить строку 'dsh-runtime | dsh-runtime.md | current (new)' в таблицу Shards"
+  - "UPDATE memory-bank/architecture/services.md: добавить S-DSH row в таблицу (S-DSH | dsh/profiles/epic-* | DSH session executor | Опциональный runtime для loop, EPIC_RUNTIME=dsh)"
+  - "UPDATE memory-bank/architecture/services.md mermaid: добавить DSH fork из LoopSh: LoopSh -->|EPIC_RUNTIME=dsh| DSH[DSH + epic-profile]"
+
+deletes: []
+
+out_of_scope:
+  - "runbook dsh-loop-pilot.md — s02"
+  - "loop/README.md, loop/WORKFLOW.md, README.md — s03"
+  - "data-flow.md dual-runtime — s04"
+  - "audit pass vs as-built 006-008 — s05"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "memory-bank/architecture/dsh-runtime.md создан и содержит mermaid"
+    verify: "rg 'mermaid' memory-bank/architecture/dsh-runtime.md"
+  - id: cp2
+    criterion: "dsh-runtime.md содержит env vars EPIC_RUNTIME и DSH_HOME"
+    verify: "rg 'EPIC_RUNTIME' memory-bank/architecture/dsh-runtime.md && rg 'DSH_HOME' memory-bank/architecture/dsh-runtime.md"
+  - id: cp3
+    criterion: "dsh-runtime.md содержит секцию failure modes"
+    verify: "rg -i 'failure' memory-bank/architecture/dsh-runtime.md"
+  - id: cp4
+    criterion: "architecture/index.md ссылается на dsh-runtime.md"
+    verify: "rg 'dsh-runtime' memory-bank/architecture/index.md"
+  - id: cp5
+    criterion: "architecture/services.md содержит DSH упоминание (S-DSH или mermaid fork)"
+    verify: "rg 'DSH' memory-bank/architecture/services.md"
+
+verify:
+  - "rg 'mermaid' memory-bank/architecture/dsh-runtime.md"
+  - "rg 'EPIC_RUNTIME' memory-bank/architecture/dsh-runtime.md"
+  - "rg 'dsh-runtime' memory-bank/architecture/index.md"
+  - "rg 'DSH' memory-bank/architecture/services.md"
+
+tdd:
+  - "Создать dsh-runtime.md по структуре: ## Overview → ## Dual-runtime diagram → ## Env table → ## Runtime selection → ## Failure modes → ## Developer preview"
+  - "Mermaid содержит claude branch и dsh branch — оба ведут к context_loop.py и epic_resolve"
+  - "Env table: EPIC_RUNTIME / DSH_HOME / DEEPSEEK_API_KEY / PROJECT_LOOP_IMPLEMENT_MODEL / NODE_VERSION"
+  - "Failure modes: 5 сценариев из delta"
+  - "Banner developer preview: явная строка что EPIC_RUNTIME=claude — default"
+  - "architecture/index.md: rg 'dsh-runtime' до и после edit"
+  - "architecture/services.md: S-DSH row не дублирует content dsh-runtime.md — только pointer"

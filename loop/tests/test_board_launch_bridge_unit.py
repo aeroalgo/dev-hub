@@ -17,6 +17,15 @@ from loop.board_launch.loop_argv import BridgeConfig
 PLUGIN_ROOT = Path(__file__).parents[2] / "dsh" / "plugins" / "mb-bridge"
 
 
+def test_live_stock_run_mount_is_wired() -> None:
+    source = (PLUGIN_ROOT / "src" / "index.ts").read_text(encoding="utf-8")
+
+    assert "createStockRunAdapter" in source
+    assert "STOCK_RUN_SLOT" in source
+    assert "ctx.inject?.(STOCK_RUN_SLOT, createStockRunAdapter(config))" in source
+    assert "task-board.stock-run-prompt" not in source
+
+
 def test_python_bridge_fixed_argv() -> None:
     source = (PLUGIN_ROOT / "src" / "python-bridge.ts").read_text(encoding="utf-8")
 
@@ -66,6 +75,7 @@ def test_config_load() -> None:
                 "devHub": "/srv/dev-hub",
                 "loopBin": "bin/loop",
                 "syncAfterLoop": False,
+                "allowRoadmapAdvance": True,
                 "defaultRuntime": "dsh",
                 "defaultLoopArgs": ["gpt"],
             }
@@ -77,6 +87,27 @@ def test_config_load() -> None:
     assert config.default_runtime == "dsh"
     assert config.default_loop_args == ["gpt"]
     assert config.sync_after_loop is False
+    assert config.allow_roadmap_advance is True
+
+
+@pytest.mark.parametrize(
+    ("raw", "message"),
+    [
+        ({"mb-bridge": {"enabled": "yes"}}, "enabled must be a boolean"),
+        ({"mb-bridge": {"allowRoadmapAdvance": "yes"}}, "allowRoadmapAdvance must be a boolean"),
+        ({"mb-bridge": {"syncAfterLoop": "yes"}}, "syncAfterLoop must be a boolean"),
+    ],
+)
+def test_config_load_rejects_ambiguous_booleans(
+    raw: dict[str, object], message: str
+) -> None:
+    with pytest.raises((TypeError, ValueError), match=message):
+        load_bridge_config(raw)
+
+
+def test_config_load_disabled_fails_closed() -> None:
+    with pytest.raises(ValueError, match="mb-bridge is disabled"):
+        load_bridge_config({"mb-bridge": {"enabled": False}})
 
 
 def test_stub_removed() -> None:

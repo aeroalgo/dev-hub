@@ -129,6 +129,27 @@ def test_model_source_diagnostic(tmp_path: Path, config: BridgeConfig) -> None:
     )
 
 
+def test_model_source_includes_effective_phase_env_key(tmp_path: Path, config: BridgeConfig) -> None:
+    env_dir = tmp_path / ".claude"
+    env_dir.mkdir()
+    (env_dir / "project.env").write_text(
+        "PROJECT_LOOP_IMPLEMENT_MODEL=claude-sonnet\n",
+        encoding="utf-8",
+    )
+
+    result = build_loop_argv(tmp_path, "IMPLEMENT", config, preset_id="gpt")
+
+    assert result.model_source == "env"
+    assert result.model_env == "PROJECT_LOOP_IMPLEMENT_MODEL"
+
+
+def test_non_env_model_sources_have_no_phase_env_key(tmp_path: Path, config: BridgeConfig) -> None:
+    result = build_loop_argv(tmp_path, "IMPLEMENT", config, preset_id="gpt")
+
+    assert result.model_source == "preset"
+    assert result.model_env is None
+
+
 def test_empty_env_value_does_not_override(tmp_path: Path, config: BridgeConfig) -> None:
     env_dir = tmp_path / ".claude"
     env_dir.mkdir()

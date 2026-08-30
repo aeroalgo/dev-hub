@@ -13,7 +13,7 @@ def _check_after_block() -> str:
     marker = 'check-after --fingerprint-before'
     assert marker in LOOP_SH
     start = LOOP_SH.index(marker)
-    end = LOOP_SH.index("LOOP HALTED: max iterations", start)
+    end = LOOP_SH.rindex("\ndone\n") + len("\ndone\n")
     return LOOP_SH[start:end]
 
 
@@ -53,3 +53,11 @@ def test_epic_done_complete_path_retained() -> None:
     assert "roadmap-advance" in block
     assert "dag-fanout" in block
     assert "LOOP COMPLETE" in block
+
+
+def test_loop_has_no_max_iterations_cap() -> None:
+    assert "while true" in LOOP_SH
+    assert "MAX_ITER" not in LOOP_SH
+    assert "EPIC_MAX" not in LOOP_SH
+    assert "LOOP HALTED: max iterations" not in LOOP_SH
+    assert "POST_IMPLEMENT_RESERVE" not in LOOP_SH

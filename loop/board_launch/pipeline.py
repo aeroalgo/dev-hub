@@ -20,6 +20,8 @@ class PipelineResult:
     arm: ArmResult | None
     loop: ExecutionResult | None
     loop_invoked: bool
+    model_source: str | None = None
+    model_env: str | None = None
     sync_warning: str | None = None
 
 
@@ -42,7 +44,11 @@ def arm_loop_from_card(
     """
     arm_callable = arm_fn or arm_from_card
     try:
-        arm_result = arm_callable(launch_card)
+        arm_result = (
+            arm_callable(launch_card, config=config)
+            if arm_fn is None
+            else arm_callable(launch_card)
+        )
     except Exception:
         return PipelineResult(
             status="arm_failed",
@@ -71,6 +77,8 @@ def arm_loop_from_card(
         arm=arm_result,
         loop=loop_result,
         loop_invoked=True,
+        model_source=loop_result.model_source or argv_result.model_source,
+        model_env=loop_result.model_env or argv_result.model_env,
         sync_warning=sync_warning,
     )
 

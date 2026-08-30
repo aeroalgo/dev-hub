@@ -276,10 +276,10 @@ def read_event_log_result(
         seq = event["seq"]
         previous = by_seq.get(seq)
         if previous is not None:
-            collision_count += 1
-            diagnostics.append(_diagnostic("sequence_collision", f"seq[{seq}]", "multiple events use the same sequence"))
             if event_revision_key(event) == event_revision_key(previous):
                 continue
+            collision_count += 1
+            diagnostics.append(_diagnostic("sequence_collision", f"seq[{seq}]", "multiple events use the same sequence"))
             continue
         by_seq[seq] = event
     ordered = [by_seq[seq] for seq in sorted(by_seq)]

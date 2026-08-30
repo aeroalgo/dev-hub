@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-016
+title: "cc-hooks-bridge Cordis fragment — settings.json hooks wired into all epic-* profiles"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `dsh/patches/cc-hooks-bridge.yml` — Cordis patch fragment с `dsh-hooks-claude-code` plugin,
+  `configPath: $CLAUDE_PROJECT_DIR/.claude/settings.json` и `projectDir: $CLAUDE_PROJECT_DIR`;
+  добавить `@deepseek-ai/dsh-hooks-claude-code` в зависимости каждого `epic-*` profile's `package.json`;
+  заменить `reserved include slot` placeholder в cordis.patch.yml всех профилей на реальный `include` fragment.
+  Outcome: любой epic-* profile при загрузке получает bridge plugin смонтированным через settings.json;
+  zero TS rewrite hook-логики (NFR-1); fail-boot при misconfigured configPath если required=true (NFR-3).
+
+context:
+  consumes:
+    - dsh/profiles/epic-implement/cordis.patch.yml  # reserved include slot placeholder
+    - dsh/profiles/epic-implement/package.json      # deps pattern
+    - dsh/patches/phase-models.yml                  # shared patch pattern
+    - s01 gap matrix (знаем что configPath hook event работает)
+  produces:
+    - dsh/patches/cc-hooks-bridge.yml               # новый shared fragment
+    - dsh/profiles/epic-*/cordis.patch.yml           # replace reserved comment → include fragment
+    - dsh/profiles/epic-*/package.json              # добавить dsh-hooks-claude-code dep
+  plan_refs:
+    - FR-001  # install bridge package
+    - FR-002  # shared patch fragment с configPath/projectDir
+    - NFR-1   # zero TS rewrite
+    - NFR-3   # fail-closed if required=true
+    - AC+US-002  # PreToolUse matcher fires command hooks
+    - AC−-001    # no TS hooks rewrite
+    - AC−-004    # loud warning для misconfigured configPath
+  files:
+    - dsh/patches/cc-hooks-bridge.yml
+    - dsh/profiles/epic-audit/cordis.patch.yml
+    - dsh/profiles/epic-bugfix/cordis.patch.yml
+    - dsh/profiles/epic-creative/cordis.patch.yml
+    - dsh/profiles/epic-decompose/cordis.patch.yml
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/profiles/epic-plan/cordis.patch.yml
+    - dsh/profiles/epic-qa/cordis.patch.yml
+    - dsh/profiles/epic-reflect/cordis.patch.yml
+    - dsh/profiles/epic-audit/package.json
+    - dsh/profiles/epic-bugfix/package.json
+    - dsh/profiles/epic-creative/package.json
+    - dsh/profiles/epic-decompose/package.json
+    - dsh/profiles/epic-implement/package.json
+    - dsh/profiles/epic-plan/package.json
+    - dsh/profiles/epic-qa/package.json
+    - dsh/profiles/epic-reflect/package.json
+
+as_built:
+  - "dsh/patches/cc-hooks-bridge.yml: не существует"
+  - "dsh/profiles/epic-implement/cordis.patch.yml: содержит `# cc-hooks-bridge: reserved include slot for T-HUB-016` (строка 35)"
+  - "dsh/profiles/epic-*/package.json: НЕТ @deepseek-ai/dsh-hooks-claude-code в dependencies"
+  - "dsh/patches/phase-models.yml: существует — паттерн Cordis shared patch для изучения структуры"
+
+delta:
+  - "dsh/patches/cc-hooks-bridge.yml CREATE: Cordis patch fragment — вставить plugin `@deepseek-ai/dsh-hooks-claude-code` с полями configPath (env var CLAUDE_PROJECT_DIR → .claude/settings.json), projectDir (env CLAUDE_PROJECT_DIR), required: false (epic-implement override → true в своём patch)"
+  - "dsh/profiles/epic-*/cordis.patch.yml EDIT: заменить `reserved include slot` placeholder на `include: ../../patches/cc-hooks-bridge.yml`; для epic-implement добавить строку `required: true` override или patch на plugin config"
+  - "dsh/profiles/epic-*/package.json EDIT: добавить `@deepseek-ai/dsh-hooks-claude-code: ^VERSION` в dependencies (version из s01 pin)"
+
+deletes:
+  - "dsh/profiles/epic-*/cordis.patch.yml: строка `# cc-hooks-bridge: reserved include slot for T-HUB-016` — заменяется реальным include; rg verify отсутствия фразы после patch"
+  # Checkpoint rg: rg 'reserved include slot' dsh/profiles/ — must return empty
+
+out_of_scope:
+  - "Запуск pnpm install (s03 installer делает это для всех профилей)"
+  - "Env propagation из loop.sh (s04)"
+  - "Изменение Python hooks (s05)"
+  - "compat mount (s06)"
+
+skills:
+  code_surface: infra
+  impl:
+    # YAML/JSON config только — нет Python кода; Core skills не применяются
+    []
+
+checkpoints:
+  - id: cp1
+    criterion: "dsh/patches/cc-hooks-bridge.yml создан и содержит plugin id=dsh-hooks-claude-code с configPath"
+    verify: "grep -q 'dsh-hooks-claude-code' dsh/patches/cc-hooks-bridge.yml && grep -q 'configPath' dsh/patches/cc-hooks-bridge.yml"
+  - id: cp2
+    criterion: "Ни один epic-* cordis.patch.yml не содержит reserved include slot (удалён)"
+    verify: "rg 'reserved include slot' dsh/profiles/ | wc -l | grep -q '^0$'"
+  - id: cp3
+    criterion: "Каждый epic-* package.json содержит dsh-hooks-claude-code"
+    verify: "for d in dsh/profiles/epic-*/; do grep -q 'dsh-hooks-claude-code' \"$d/package.json\" || exit 1; done && echo ok"
+  - id: cp4
+    criterion: "cc-hooks-bridge fragment упоминается как include в cordis.patch.yml хотя бы одного профиля (smoke структурный)"
+    verify: "grep -rl 'cc-hooks-bridge' dsh/profiles/ | grep -q cordis.patch.yml"
+
+verify:
+  - "grep -q 'dsh-hooks-claude-code' dsh/patches/cc-hooks-bridge.yml"
+  - "rg 'reserved include slot' dsh/profiles/ | wc -l | grep -q '^0$'"
+
+tdd: []

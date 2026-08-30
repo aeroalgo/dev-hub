@@ -46,7 +46,26 @@ def main() -> None:
     st = load_state(session_id, cwd)
     if not workflow_state_active(st, cwd or None):
         return
+    # Native DSH can provide the already-extracted verdict while the CC bridge
+    # omits the assistant message. Prefer the transcript/message when present,
+    # but accept only the same canonical values from the enriched payload.
+    transcript_text = data.get("transcript")
+    if isinstance(transcript_text, str) and transcript_text.strip():
+        msg = f"{msg}\n{transcript_text}"
     verdict = extract_verdict(msg)
+    if not verdict:
+        provided_verdict = data.get("verdict")
+        if isinstance(provided_verdict, str):
+            candidate = provided_verdict.strip().upper()
+            if candidate in {"PASS", "FAIL", "BLOCKED"}:
+                verdict = candidate
+    if not verdict:
+        for field in ("output", "last_message"):
+            candidate = data.get(field)
+            if isinstance(candidate, str):
+                verdict = extract_verdict(candidate)
+                if verdict:
+                    break
 
     if agent_type in {"verify", "reviewer"} and not verdict:
         if agent_type == "verify":

@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-016
+title: "Smoke + regression + README — dump-config smoke, Claude path green, bridge docs with gap→008 pointer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  (1) Написать smoke pytest (`tests/test_cc_hooks_bridge_config.py`) — проверяет структуру Cordis fragment
+  без реального DSH CLI: поля configPath, projectDir, plugin id присутствуют в YAML.
+  (2) Убедиться что существующие Claude-path hook тесты (runtime/test_stop_gate_*) зелёные.
+  (3) Дописать `dsh/README.md` — полный раздел §Hooks bridge с ссылкой на gap matrix, pin versions,
+  T-HUB-008 pointer, §Smoke test обновить под новый bridge dump-config.
+  (4) rg verify: `reserved include slot` отсутствует во всех profile cordis.patch.yml.
+  Outcome: SC-001 (hooks-claude-code в dump-config), SC-004 (Claude path green), FR-008, FR-009, FR-010 закрыты.
+
+context:
+  consumes:
+    - dsh/patches/cc-hooks-bridge.yml   # s02 output
+    - dsh/profiles/epic-*/cordis.patch.yml  # s02 output
+    - .claude/hooks/tests/test_stop_gate_dsh_self_limit.py  # s05 output
+    - dsh/README.md                     # s01/s03/s04/s06 частично обновлён
+    - runtime/test_stop_gate_*.py       # Claude-path тесты для regression
+  produces:
+    - tests/test_cc_hooks_bridge_config.py  # новый smoke тест
+    - dsh/README.md                          # финальное дополнение §Smoke test, §Hooks bridge
+  plan_refs:
+    - FR-008  # smoke: dump-config lists hooks-claude-code; unit test fragment present
+    - FR-009  # regression: Claude settings.json hooks unchanged; Claude loop green
+    - FR-010  # docs: bridge works, pin versions, known gaps → 008
+    - SC-001  # hooks-claude-code в dump-config epic-implement
+    - SC-004  # Claude path tests unchanged green
+    - NFR-2   # greenfield additive; Claude path zero-change
+    - NFR-4   # version pinning documented
+    - AC−-002  # Claude settings.json hooks не изменены bridge
+  files:
+    - tests/test_cc_hooks_bridge_config.py
+    - dsh/README.md
+
+as_built:
+  - "dsh/README.md §Smoke test: существует, описывает dsh --dump-config без bridge"
+  - "runtime/test_stop_gate_*: существующие Claude-path тесты"
+  - "tests/test_cc_hooks_bridge_config.py: не существует"
+  - "dsh/README.md: частично обновлён в s01/s03/s04/s06; нет финального §Hooks bridge итоговой ссылки на 008"
+
+delta:
+  - "tests/test_cc_hooks_bridge_config.py CREATE: pytest smoke — (1) load dsh/patches/cc-hooks-bridge.yml as YAML; assert plugin id contains 'dsh-hooks-claude-code'; assert 'configPath' in plugin config; assert 'projectDir' in plugin config; (2) for each epic-* profile cordis.patch.yml — assert no 'reserved include slot' text; assert 'cc-hooks-bridge' referenced"
+  - "dsh/README.md §Smoke test EDIT: обновить команду dump-config — добавить упоминание что вывод должен включать dsh-hooks-claude-code plugin"
+  - "dsh/README.md §Hooks bridge EDIT (финальный): добавить subsection 'Known gaps → T-HUB-008' с ссылкой на gap matrix таблицу выше и формулировкой 'scope 008 = only gaps listed above'"
+
+deletes: []
+# Нет файлов на удаление.
+# Final rg verify: reserved include slot отсутствует — checkpoint cp3.
+
+out_of_scope:
+  - "Реальный DSH CLI запуск в CI (--dump-config требует installed DSH; smoke = YAML parse only)"
+  - "E2E тест с живым DSH session"
+
+skills:
+  code_surface: test
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    # smoke test = YAML load + assert; никаких HTTP/DB/WS
+
+checkpoints:
+  - id: cp1
+    criterion: "tests/test_cc_hooks_bridge_config.py проходит — YAML smoke: plugin id, configPath, projectDir"
+    verify: ".venv/bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=short"
+  - id: cp2
+    criterion: "Claude-path stop-gate тесты зелёные (regression)"
+    verify: "timeout 60s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line -k 'not dsh_self_limit' 2>&1 | tail -5"
+  - id: cp3
+    criterion: "Ни один epic-* cordis.patch.yml не содержит 'reserved include slot'"
+    verify: "rg 'reserved include slot' dsh/profiles/ | wc -l | grep -q '^0$'"
+  - id: cp4
+    criterion: "dsh/README.md содержит 'T-HUB-008' как owner pointer в §Hooks bridge"
+    verify: "grep -c 'T-HUB-008' dsh/README.md | grep -E '[2-9]|[1-9][0-9]'"
+
+verify:
+  - "timeout 120s .venv/bin/pytest tests/test_cc_hooks_bridge_config.py .claude/hooks/tests/test_stop_gate_dsh_self_limit.py -q --tb=line"
+  - "rg 'reserved include slot' dsh/profiles/ | wc -l | grep -q '^0$'"
+  - "grep -q 'T-HUB-008' dsh/README.md"
+
+tdd:
+  - "test_bridge_fragment_has_plugin_id: cc-hooks-bridge.yml YAML → plugin id contains dsh-hooks-claude-code"
+  - "test_bridge_fragment_has_config_path: cc-hooks-bridge.yml → configPath field present"
+  - "test_bridge_fragment_has_project_dir: cc-hooks-bridge.yml → projectDir field present"
+  - "test_profiles_no_reserved_slot: for each epic-* cordis.patch.yml — no 'reserved include slot'"
+  - "test_profiles_reference_bridge: for each epic-* cordis.patch.yml — cc-hooks-bridge referenced"

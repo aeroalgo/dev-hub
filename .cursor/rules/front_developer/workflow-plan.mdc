@@ -41,8 +41,12 @@ alwaysApply: false
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани: один `memory-bank/front/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `FRONT ROADMAP MERGE` → затем `FRONT DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+7a1. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
+    `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`
+    (нет `loop/` в продукте → `dev-hub/loop/context_loop.py`).
+    `ok: false` → halt PLAN. Нет slug-источников и нет canon → skip CLI. Иначе merge **всегда**.
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon md + queue + первый plan
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
-8. Next: L2+ → **FRONT DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
+8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]` из **canon**; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 
 **Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `.queue.yaml` при ≥2 → FAIL)

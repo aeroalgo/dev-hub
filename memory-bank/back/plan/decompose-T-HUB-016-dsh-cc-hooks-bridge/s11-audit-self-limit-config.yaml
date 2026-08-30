@@ -1,0 +1,63 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-016
+title: "Audit remediation — configurable DSH self-limit with validated default/override"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть source_ref plan:AC+ (line 111) / FR-007 / SC-003: привести DSH Stop
+  self-limit к согласованному конфигурируемому контракту, сохранить fail-closed
+  parsing и покрыть default, valid override и invalid override.
+context:
+  consumes:
+    - memory-bank/back/audit/T-HUB-016-dsh-cc-hooks-bridge/audit-20260829-dsh-cc-hooks-bridge.yaml
+    - .claude/hooks/stop-gate.py
+    - .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+  produces:
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s11-audit-self-limit-config.yaml
+  plan_refs:
+    - "plan:AC+ (line 111)"
+    - "FR-007"
+    - "SC-003"
+    - "F4: hard-coded limit 3 contradicts configurable default 8"
+  files:
+    - .claude/hooks/stop-gate.py
+    - .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s11-audit-self-limit-config.yaml
+
+as_built:
+  - "stop-gate.py uses DSH_SELF_LIMIT_MAX = 3 with no configuration input."
+delta:
+  - "Expose the agreed DSH self-limit configuration with validated default 8 (or record an explicit plan revision before implementation)."
+  - "Add tests for default behavior, valid override, and invalid override fail-closed behavior."
+deletes: []
+out_of_scope:
+  - "Changing Claude-path stop-gate behavior."
+  - "Removing the DSH self-limit."
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Default DSH self-limit matches the agreed plan value 8."
+    verify: "Targeted test asserts default threshold and diagnostic allow behavior."
+  - id: cp2
+    criterion: "A valid configured limit is honored."
+    verify: "Targeted test sets the supported configuration and asserts the threshold."
+  - id: cp3
+    criterion: "An invalid configured limit fails closed with an explicit diagnostic."
+    verify: "Targeted test supplies malformed/non-positive configuration and asserts rejection."
+
+verify:
+  - "timeout 300s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py -q --tb=line"
+  - "Record default, override, and invalid-configuration evidence."
+tdd:
+  - "Default threshold test"
+  - "Valid override test"
+  - "Invalid override fail-closed test"

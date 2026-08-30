@@ -63,6 +63,18 @@ make loop-status
 Перенос в другой репо: скопируй корневой `Makefile` + при необходимости `.dev-hub`  
 (одна строка — путь к хабу). Общие цели — `dev-hub/make/product.mk`.
 
+### DSH Runtime (opt-in)
+
+> **Note:** DSH Runtime is currently in developer preview and is not the production default.
+
+Для запуска с DSH runtime используйте переменную окружения `EPIC_RUNTIME=dsh`:
+
+```bash
+EPIC_RUNTIME=dsh /home/aero/PyProject/dev-hub/bin/loop /home/aero/PyProject/job-autopilot gpt
+```
+
+Подробности и инструкции по пилоту: [`docs/runbooks/dsh-loop-pilot.md`](docs/runbooks/dsh-loop-pilot.md) и [`dsh/README.md`](dsh/README.md).
+
 ## Новый продукт
 
 1. Открой папку продукта в Cursor; `make hub-link` из корня продукта

@@ -710,6 +710,210 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
     assert checkpoint_path(tmp_path).is_file()
 
 
+def test_prepare_clears_stale_post_implement_checkpoint(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """QA committed same_step must not halt prepare for REFLECT."""
+    ctx = _load_ctx()
+    monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("HUB_ROOT", raising=False)
+    epic = "T-HUB-015-dsh-board-arm-loop"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(
+        tmp_path,
+        f"memory-bank/back/plan/decompose-{epic}/s01-one.yaml",
+        "schema: epic-decompose/v1\nrole: back\nstep_id: s01\n",
+    )
+    _write(
+        tmp_path,
+        f"memory-bank/back/implement/implement-{epic}/s01-one.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\n"
+        f"plan_id: {epic}\ntitle: s01 — one IMPLEMENT\nstatus: completed\n"
+        f"decompose_ref: memory-bank/back/plan/decompose-{epic}/s01-one.yaml\n"
+        "date: '2026-08-29'\n",
+    )
+    _write(
+        tmp_path,
+        f"memory-bank/back/audit/{epic}/audit-20260829-demo.yaml",
+        "schema: epic-audit/v1\n",
+    )
+    _write(
+        tmp_path,
+        f"memory-bank/back/qa/{epic}/qa-20260829-board-arm-loop.yaml",
+        "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        f"1. [qa-20260829-board-arm-loop.yaml](back/qa/{epic}/qa-20260829-board-arm-loop.yaml)\n"
+        f"2. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
+        f"## Handoff BACK REFLECT — {epic}\n"
+        f"- **Эпик:** {epic}.\n"
+        "- **Режим/шаг:** `BACK REFLECT`.\n"
+        "- **Сделано:** `BACK QA` pass.\n"
+        "- **Дальше:** написать reflection-*.md.\n",
+    )
+    from epic import (
+        checkpoint_lifecycle,
+        checkpoint_path,
+        load_epic_state,
+        save_epic_state,
+    )
+
+    st = load_epic_state(tmp_path)
+    st["active"] = True
+    st["status"] = "running"
+    st["armed_epic"] = epic
+    st["armed_decompose"] = decompose
+    st["armed_step"] = "REFLECT"
+    st["role"] = "BACK"
+    st["phase"] = "REFLECT"
+    save_epic_state(tmp_path, st)
+    checkpoint_lifecycle(
+        tmp_path,
+        checkpoint_id="sess23:QA",
+        session_id="sess23",
+        identity={
+            "action": "invoke",
+            "epic": epic,
+            "role": "BACK",
+            "step": "QA",
+        },
+        step_id="QA",
+        phase="QA",
+        phase_epoch="1",
+        stage="committed",
+        status="committed",
+        next_action="resume",
+        resume_policy="same_step",
+    )
+    assert checkpoint_path(tmp_path).is_file()
+
+    out = ctx.prepare_session(tmp_path, model="gpt")
+    assert out.get("ok") is True, out
+    assert out.get("halt") is not True
+    assert checkpoint_path(tmp_path).is_file()
+    cp = json.loads(checkpoint_path(tmp_path).read_text(encoding="utf-8"))
+    assert cp.get("step_id") == "REFLECT"
+    assert cp.get("stage") == "prepared"
+
+
+def test_check_after_commits_next_step_for_post_implement_phase(
+    tmp_path: Path, monkeypatch
+) -> None:
+    ctx = _load_ctx()
+    monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
+    monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("HUB_ROOT", raising=False)
+    epic = "demo"
+    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-demo/s01-one.yaml",
+        "schema: epic-decompose/v1\nrole: back\nstep_id: s01\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\n"
+        "plan_id: demo\ntitle: s01 — one IMPLEMENT\nstatus: completed\n"
+        "decompose_ref: memory-bank/back/plan/decompose-demo/s01-one.yaml\n"
+        "date: '2026-08-29'\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/audit/demo/audit-20260829-demo.yaml",
+        "schema: epic-audit/v1\n",
+    )
+    _write(
+        tmp_path,
+        f"memory-bank/back/qa/{epic}/qa-20260829-demo.yaml",
+        "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        f"1. [qa-20260829-demo.yaml](back/qa/{epic}/qa-20260829-demo.yaml)\n"
+        f"2. [index.yaml]({decompose})\n\n"
+        "## Handoff BACK QA — demo\n"
+        "- **Эпик:** demo.\n"
+        "- **Режим/шаг:** `BACK QA` завершён, QA pass.\n"
+        "- **Дальше:** выполнить `BACK REFLECT`.\n",
+    )
+    from epic import checkpoint_lifecycle, checkpoint_path, load_epic_state, save_epic_state
+
+    st = load_epic_state(tmp_path)
+    st["active"] = True
+    st["status"] = "running"
+    st["armed_epic"] = epic
+    st["armed_decompose"] = decompose
+    st["armed_step"] = "QA"
+    st["role"] = "BACK"
+    st["phase"] = "QA"
+    save_epic_state(tmp_path, st)
+    checkpoint_lifecycle(
+        tmp_path,
+        checkpoint_id="prepare-qa:QA",
+        session_id="prepare-qa",
+        identity={
+            "action": "invoke",
+            "epic": epic,
+            "role": "BACK",
+            "step": "QA",
+        },
+        step_id="QA",
+        phase="QA",
+        phase_epoch="1",
+        stage="prepared",
+        status="active",
+        next_action="invoke",
+        resume_policy="same_step",
+        context_fingerprint="before-fp",
+    )
+    before_text = (
+        "## load_now\n"
+        f"1. [index.yaml]({decompose})\n\n"
+        "## Handoff BACK QA — demo\n"
+        "- **Режим/шаг:** `BACK QA` in progress.\n"
+    )
+    after = ctx.check_after(
+        tmp_path,
+        fingerprint_before=ctx.fingerprint_context(before_text),
+    )
+    assert after.get("ok") is True, after
+    cp = json.loads(checkpoint_path(tmp_path).read_text(encoding="utf-8"))
+    assert cp.get("resume_policy") == "next_step"
+    assert cp.get("stage") == "committed"
+    assert after.get("post_implement_phase") == "REFLECT"
+
+
 def test_arm_clears_stale_checkpoint(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))

@@ -1,0 +1,65 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-016-dsh-cc-hooks-bridge
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-pin-research-gap-matrix.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-pin-research-gap-matrix
+  status: completed
+- id: s02
+  file: s02-cc-hooks-bridge-fragment.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-cc-hooks-bridge-fragment
+  status: completed
+- id: s03
+  file: s03-install-cc-hooks-script.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-install-cc-hooks-script
+  status: completed
+- id: s04
+  file: s04-loop-env-contract.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-loop-env-contract
+  status: completed
+- id: s05
+  file: s05-stop-gate-self-limit-dsh.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-stop-gate-self-limit-dsh
+  status: completed
+- id: s06
+  file: s06-dsh-claude-compat-mount.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-dsh-claude-compat-mount
+  status: completed
+- id: s07
+  file: s07-smoke-regression-docs.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-smoke-regression-docs
+  status: completed
+- id: s08
+  file: s08-audit-live-dump-config.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-audit-live-dump-config
+  status: completed
+- id: s09
+  file: s09-audit-claude-regression.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-audit-claude-regression
+  status: completed
+- id: s10
+  file: s10-audit-compat-fixture.yaml
+  next_phase: BACK IMPLEMENT
+  title: s10-audit-compat-fixture
+  status: completed
+- id: s11
+  file: s11-audit-self-limit-config.yaml
+  next_phase: BACK IMPLEMENT
+  title: s11-audit-self-limit-config
+  status: completed
+- id: s12
+  file: s12-audit-required-config-diagnostic.yaml
+  next_phase: BACK IMPLEMENT
+  title: s12-audit-required-config-diagnostic
+  status: completed

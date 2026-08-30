@@ -28,15 +28,20 @@ flowchart TD
   B --> C[STATE_DIR = runtime/slug/epic]
   C --> D[context_loop prepare: read product activeContext + index]
   D --> E[build next-prompt / arm step]
-  E --> F[Claude session cwd=hub add-dir=product]
-  F --> G[Agent пишет memory-bank в PRODUCT_ROOT]
-  G --> H[hooks: stop-gate / epic_resolve]
-  H --> I[context_loop check-after / status]
-  I --> J{EPIC_DONE / BLOCKED / continue}
-  J -->|continue| D
-  J -->|chain opt-in| K[roadmap_queue advance]
-  J -->|halt| L[runtime state + logs]
+  E --> F{EPIC_RUNTIME}
+  F -->|claude| G1[Claude session cwd=hub add-dir=product]
+  F -->|dsh| G2[DSH runner session]
+  G1 --> H[Agent пишет memory-bank в PRODUCT_ROOT]
+  G2 --> H
+  H --> I[hooks: stop-gate / epic_resolve]
+  I --> J[context_loop check-after / status]
+  J --> K{EPIC_DONE / BLOCKED / continue}
+  K -->|continue| D
+  K -->|chain opt-in| L[roadmap_queue advance]
+  K -->|halt| M[runtime state + logs]
 ```
+
+**DSH runtime data flow:** Подробности о dual-runtime ветке (`EPIC_RUNTIME=dsh`) см. в [dsh-runtime.md](dsh-runtime.md).
 
 **Данные на стороне хаба:** только `HUB_ROOT/runtime/<slug>/` — epic STATE_DIR = `runtime/<slug>/epic/` (`state.json`, `last-session.json`, checkpoint, locks, session log, `next-prompt.txt`).  
 **Данные на стороне продукта:** `memory-bank/**` (читает/пишет агент + hooks при `PROJECT_ROOT`).  

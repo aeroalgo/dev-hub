@@ -1,0 +1,15 @@
+# Native DSH tool gate. It is mounted after cc-hooks-bridge so the
+# fail-closed native decision remains authoritative for Agent/Task calls.
+- insert:
+    - id: epic-gate
+      name: '@dev-hub/dsh-epic-gate'
+      config:
+        python: !!js process.env.PYTHON ?? 'python3'
+        validator: !!js process.env.DSH_SPAWN_VALIDATE ?? '.claude/hooks/spawn_validate.py'
+      required: true
+      inject: ['tools']
+      disabled: false
+      group: false
+      isolate: false
+      intercept: {}
+      __mount_order: 017

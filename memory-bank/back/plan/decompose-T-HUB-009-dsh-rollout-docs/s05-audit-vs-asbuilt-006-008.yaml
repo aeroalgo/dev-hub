@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-009-dsh-rollout-docs
+title: "Audit pass — сверка всех docs vs as-built T-HUB-006-008 + NFR-1 parity fix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный audit gate: проверить, что все doc файлы (dsh-runtime.md, runbook, README, WORKFLOW)
+  точно отражают as-built код T-HUB-006-008 — нет aspirational APIs, env vars совпадают
+  с loop/loop.sh и _lib.py, нет дублей T-HUB-005 cheatsheet. Inline fix при любом расхождении.
+  NFR-1, NFR-3, AC+4, AC+5, AC+6.
+
+context:
+  consumes:
+    - loop/loop.sh                               # EPIC_RUNTIME ветка — as-built
+    - .claude/hooks/_lib.py                      # RuntimeConfig, env names
+    - docs/runbooks/dsh-loop-pilot.md            # созданный s02
+    - memory-bank/architecture/dsh-runtime.md    # созданный s01
+    - loop/README.md                             # обновлён s03
+    - loop/WORKFLOW.md                           # обновлён s03
+    - README.md                                  # обновлён s03
+    - dsh/README.md                              # обновлён s03
+  produces: []
+  plan_refs:
+    - NFR-1
+    - NFR-3
+    - AC+4
+    - AC+5
+    - AC+6
+  files: []
+
+as_built:
+  - "После s01-04: все target docs созданы/обновлены"
+  - "T-HUB-006 as-built: loop/loop.sh EPIC_RUNTIME ветка; .claude/hooks/_lib.py RuntimeConfig.runtime"
+  - "T-HUB-007 as-built: dsh/profiles/epic-*/; dsh/scripts/install-profiles.sh; sync-agent-md-to-presets.py"
+  - "T-HUB-008 as-built: dsh/plugins/mb-bridge/; epic-gate cordis plugin; verdict-mirror"
+
+delta:
+  - "AUDIT loop/loop.sh: rg EPIC_RUNTIME → проверить что env name и значения (claude|dsh) совпадают с docs"
+  - "AUDIT .claude/hooks/_lib.py: rg RuntimeConfig → проверить env names в dsh-runtime.md env table"
+  - "AUDIT docs/runbooks/dsh-loop-pilot.md: AC+4 — Node, DSH pin, DEEPSEEK_API_KEY, install-profiles, EPIC_RUNTIME=dsh; AC+5 — troubleshooting 4+ сценария; AC+6 — pilot checklist 10+ строк"
+  - "AUDIT no-aspirational: убедиться что docs не упоминают функции/флаги, которых нет в коде"
+  - "AUDIT NFR-3: loop/README.md и README.md не дублируют T-HUB-005 cheatsheet"
+  - "INLINE FIX при расхождении — Edit соответствующего doc файла немедленно; не BLOCKED"
+
+deletes: []
+
+out_of_scope:
+  - "Новый функциональный код в loop/ или .claude/hooks/"
+  - "T-HUB-005 cheatsheet изменения"
+  - "Makefile, project.env"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "AC+1+2: runbook и dsh-runtime.md содержат EPIC_RUNTIME"
+    verify: "rg 'EPIC_RUNTIME=dsh' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp2
+    criterion: "AC+3: architecture/index.md ссылается на dsh-runtime"
+    verify: "rg 'dsh-runtime' memory-bank/architecture/index.md"
+  - id: cp3
+    criterion: "AC+5: runbook содержит troubleshooting с 429"
+    verify: "rg '429' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp4
+    criterion: "AC+6: runbook содержит Pilot Checklist"
+    verify: "rg 'Pilot Checklist' docs/runbooks/dsh-loop-pilot.md"
+  - id: cp5
+    criterion: "NFR-1: env vars в docs совпадают с as-built (EPIC_RUNTIME в loop.sh)"
+    verify: "rg 'EPIC_RUNTIME' loop/loop.sh"
+  - id: cp6
+    criterion: "loop/README.md содержит EPIC_RUNTIME секцию (s03 выполнен)"
+    verify: "rg 'EPIC_RUNTIME' loop/README.md"
+
+verify:
+  - "rg 'EPIC_RUNTIME=dsh' docs/runbooks/dsh-loop-pilot.md"
+  - "rg 'dsh-runtime' memory-bank/architecture/index.md"
+  - "rg 'Pilot Checklist' docs/runbooks/dsh-loop-pilot.md"
+  - "rg 'EPIC_RUNTIME' loop/loop.sh"
+
+tdd:
+  - "rg EPIC_RUNTIME loop/loop.sh → записать as-built env name → сравнить с docs"
+  - "rg RuntimeConfig .claude/hooks/_lib.py → сравнить env names с dsh-runtime.md env table"
+  - "Проверить ac+4: DEEPSEEK_API_KEY в runbook"
+  - "Проверить ac+5: troubleshooting таблица — все 4+ сценария (429, gate deny, profile not found, missing dsh)"
+  - "Проверить ac+6: Pilot Checklist в runbook содержит ≥10 строк"
+  - "Inline fix немедленно при любом несовпадении"
+  - "Финальный wc -l: runbook ≥80 строк; dsh-runtime.md ≥60 строк"

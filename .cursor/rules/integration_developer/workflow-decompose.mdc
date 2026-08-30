@@ -55,7 +55,8 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 1a. Прочитай **Gates**
 2. Source: `integration/plan/plan-<task_id>.md` — Element registry + **Replacement / sunset** + mocks
 3. Папка `integration/plan/decompose-<plan_id>/`: index + все eNN  
-   Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml  
+   Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
+   **Schema HARD:** каждый `eNN` = `epic-decompose/v1` + `role: integ`; **FORBIDDEN** invented schemas; FINISH `validate-decompose-tree` fail-closed.
    `index.yaml` обязателен: `schema: epic-decompose-index/v1`, корень `steps:`, каждый `eNN` содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.  
    Шаг: §UI · §Data · §API today · **§Contract lean** · §BACK/FRONT/DB · `deletes` · §0.11 · §Verify
 3a. Index: Requirements / Stages / Outcome map / **Replacement cleanup**

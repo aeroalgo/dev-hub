@@ -14,6 +14,7 @@
 | S-HUB-LINK | `bin/hub-link` | bash | Symlink rules/templates/agents/hooks/skills/CLAUDE.md → product |
 | S-HUB-UNLINK | `bin/hub-unlink` | bash | Снять symlinks |
 | S-MAKE | `make/product.mk` | Make include | `hub-link`, `loop`, `loop-epic`, `loop-status` для product Makefile |
+| S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |
 | S-HOOKS-CC | `.claude/hooks/*.py` | Claude hooks | pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
 | S-HOOKS-CUR | `.cursor/hooks/*.py` / `hooks.json` | Cursor hooks | unwired / N/A for epic gates; wiring = out of scope T-HUB-003 (follow-up эпик); as-built: before_submit / after_edit / on_stop |
 | S-AGENTS | `.claude/agents/{explorer,verify,reviewer}.md` | subagent defs | Gate agents для codebase search / FINISH verify / BACK QA |
@@ -27,9 +28,11 @@ flowchart LR
   Dev --> HubLink[bin/hub-link]
   HubLink --> ProdTree[PROJECT_ROOT symlinks]
   BinLoop --> LoopSh[loop/loop.sh]
-  LoopSh --> Ctx[context_loop.py]
-  LoopSh --> Sess[session_resilience + Claude CLI]
-  Ctx --> AC[PROJECT_ROOT/memory-bank/activeContext.md]
+  LoopSh -->|EPIC_RUNTIME=claude| Sess[session_resilience + Claude CLI]
+  LoopSh -->|EPIC_RUNTIME=dsh| DSH[DSH + epic-profile]
+  DSH --> SessLog[dsh session log]
+  DSH --> Ctx[context_loop.py]
+  Sess --> Ctx[context_loop.py]
   Ctx --> Idx[decompose index.yaml]
   LoopSh --> RT[runtime/slug/epic state]
   Sess --> Hooks[.claude/hooks]

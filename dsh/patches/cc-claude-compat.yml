@@ -1,0 +1,11 @@
+# Optional Claude Code compatibility mount for the IMPLEMENT profile.
+# The plugin reads project .claude/skills, .claude/rules, and .claude/commands
+# using the DSH session cwd; no files are migrated into DSH-native format.
+- id: claude-compat
+  name: 'dsh-claude-compat'
+  required: false
+  config:
+    enableSkills: true
+    enableRules: true
+    enableHooks: true
+    userClaudeDir: !!js process.env.HOME + '/.claude'

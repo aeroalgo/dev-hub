@@ -5,7 +5,7 @@ alwaysApply: false
 # INTEG PLAN — gates
 
 **Артефакт:** `memory-bank/integration/plan/plan-<task_id>.md`  
-**Multi-epic:** research multi-axis → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× plan; после PLAN → `INTEG ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`  
+**Multi-epic:** research multi-axis → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× plan; PLAN **сам** делает `roadmap-merge --role integration` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE  
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
 
 ## Gates

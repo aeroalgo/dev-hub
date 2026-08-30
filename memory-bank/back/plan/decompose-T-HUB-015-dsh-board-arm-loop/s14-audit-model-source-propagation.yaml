@@ -83,7 +83,8 @@ checkpoints:
     verify: "rg -n 'model_source|modelSource|env overrides' loop/board_launch dsh/plugins/mb-bridge/src"
   - id: cp3
     criterion: "No task.mode or free-text model input becomes part of the mb launch path."
-    verify: "if rg -n 'task\.mode|input type=\"text\".*model|free.*text.*model' loop/board_launch dsh/plugins/mb-bridge/src; then exit 1; fi"
+    verify: |
+      if rg -n 'task\.mode|input type="text".*model|free.*text.*model' loop/board_launch dsh/plugins/mb-bridge/src; then exit 1; fi
 
 verify:
   - "Effective source is not lost between Python argv construction and UI state."

@@ -15,8 +15,10 @@
 |---------|-----|------|------|----------|--------------|
 | 1 | T-HUB-014 | [plan-T-HUB-014-dsh-mb-board-sync.md](plan-T-HUB-014-dsh-mb-board-sync.md) | Discover DSH workspaces → scan `memory-bank` → upsert Task Board cards (**step** sNN + **gate** CLARIFY/ANALYZE/QA/…) | registry, scanner, gate lifecycle, board client, CLI sync, dry-run, tests | arm, loop launch, Jira |
 | 1 | T-HUB-015 | [plan-T-HUB-015-dsh-board-arm-loop.md](plan-T-HUB-015-dsh-board-arm-loop.md) | Arm + loop + **UI** (workspace filter, model presets, Sync) с доски | Cordis bridge, arm CLI, loop-run, board controls | Jira, stock free-run, upstream task-board fork |
+| 2 | T-HUB-019 | [plan-T-HUB-019-dsh-board-sync-enrichments.md](plan-T-HUB-019-dsh-board-sync-enrichments.md) | Rich descriptions (plan/shard body), column mapping (`running`, plan/decompose → **backlog**), HTTP `move` | description.py, status_map, mb-bridge metadata parse | plan FR slicing, board SoT |
+| 3 | T-HUB-020 | [plan-T-HUB-020-dsh-board-epic-loop.md](plan-T-HUB-020-dsh-board-epic-loop.md) | Epic-centric board + `resolve_epic_next_action` + `arm_epic` + `plan-next/v1`; Run = roadmap command (PLAN…IMPLEMENT) | epic_next_action, scan_epics, loop `--epic-id` | pending sNN cards; board SoT |
 
-**Cut criteria applied:** (#2) разные деревья — Python hub sync vs Cordis Host launch; (#3) разные риски — read-mostly sync vs mutate epic state + spawn process; (#4) hard-dep 015←014; (#5) sync shippable без launch.
+**Cut criteria applied:** (#2) resolver/loop arm vs board UX enrichments; (#3) 020 меняет семантику карточек (sunset step projection); (#4) 019/020 hard-dep 014+015; (#5b) 019 polish, 020 orchestration.
 
 ---
 
@@ -29,11 +31,21 @@ flowchart TB
   H015[T-HUB-015 arm+loop from board]
   H006 -.->|soft recommend| H015
   H014 --> H015
+  H014 --> H019
+  H015 --> H019
+  H014 --> H020
+  H015 --> H020
+  H019 -.->|soft| H020
 ```
 
 | От | К | Тип | Почему |
 |----|---|-----|--------|
 | T-HUB-014 | T-HUB-015 | hard | launch/arm требуют стабильный card id + metadata mapping из sync |
+| T-HUB-014 | T-HUB-019 | hard | enrichments расширяют card contract из 014 |
+| T-HUB-015 | T-HUB-019 | hard | DECOMPOSE backlog Run опирается на arm/loop pipeline |
+| T-HUB-014 | T-HUB-020 | hard | epic cards extend mb-* contract из sync |
+| T-HUB-015 | T-HUB-020 | hard | Arm+Run pipeline для arm_epic |
+| T-HUB-019 | T-HUB-020 | soft | descriptions/move желательны до epic cards |
 | T-HUB-006 | T-HUB-015 | soft | loop уже умеет `EPIC_RUNTIME=dsh`; launch работает и на `claude` default |
 
 **Soft (narrative):** T-HUB-007/008 желательны до production DSH-path с доски (presets/gates), но не блокируют CLI arm+loop на Claude.
@@ -56,8 +68,10 @@ flowchart TB
 
 1. **T-HUB-014** → QA → REFLECT  
 2. **T-HUB-015** → QA → REFLECT  
+3. **T-HUB-019** → QA → REFLECT (UX polish; deps 014+015)  
+4. **T-HUB-020** → QA → REFLECT (epic loop model; deps 014+015; soft 019)
 
-Один эпик за раз. После `BACK ROADMAP MERGE` slug queue → canon.
+Один эпик за раз (рекомендация); 019 не блокирует T-HUB-016+. После `BACK ROADMAP MERGE` slug queue → canon.
 
 ---
 

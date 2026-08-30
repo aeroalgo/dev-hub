@@ -58,7 +58,7 @@ Fallback на Read/Grep — только после ориентации по г
 - Читай `.cursor/rules/token-economy-core.mdc` §0.0 + §0.0.1 до записи артефакта (stub: @.cursor/rules/token-economy-stub.mdc)
 - Lean load ≠ lean write: **не** сжимай `plan-*.md` / `gap-*.md` / `security/plan/plan-*.md` под telegraph / 200 lines / chat brief
 - Research / audit / multi-P вход → `.cursor/rules/shared/workflow-plan-multi-epic.mdc`: **N эпиков** + roadmap, не один mega-plan; объяви `MULTI-EPIC PLAN — N эпиков`
-- PLAN → recommend premium model; after PLAN → new chat for next mode (`* DECOMPOSE` первого эпика roadmap)
+- PLAN → recommend premium model; after PLAN → inline `roadmap-merge` (same session) → new chat for `* DECOMPOSE` первого эпика **canon** queue (не `* ROADMAP MERGE`)
 ## Step 1 — role index + core
 
 Читай **полные пути** (не basename без папки роли):

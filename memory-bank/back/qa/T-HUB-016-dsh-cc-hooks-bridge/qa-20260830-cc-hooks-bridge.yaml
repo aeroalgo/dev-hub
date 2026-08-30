@@ -1,0 +1,38 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-016
+plan_id: T-HUB-016
+epic_id: T-HUB-016-dsh-cc-hooks-bridge
+date: '2026-08-30'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - 'task: T-HUB-016'
+  - 'epic: T-HUB-016-dsh-cc-hooks-bridge'
+  - 'steps: s01-s12'
+  - 'files: dsh/, loop/, .claude/hooks/stop-gate.py, loop/tests/'
+
+checks:
+  - 'full suite: timeout 300s .venv/bin/pytest -q --tb=line — PASS: 7863 passed, 181 skipped, 48 warnings'
+  - 'compileall: PASS'
+  - 'shell syntax: PASS'
+  - 'git diff --check in epic scope: PASS'
+  - 'integration rule (§0.11): PASS — stock-run, workspace.list, webServer routes, DSH_HOOKS_BRIDGE, DEV_HUB and CLAUDE_PROJECT_DIR have producer/consumer counterparts'
+  - 'reviewer gate: VERDICT PASS'
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - 'Frontend runners were not run; this QA scope is backend/repository validation and source-contract tests.'
+  - '48 suite warnings were non-blocking and had no evidence of an AC failure in the changed surfaces.'
+
+suite:
+  - 'timeout 300s .venv/bin/pytest -q --tb=line — exit 0: 7863 passed, 181 skipped, 48 warnings'
+  - 'python3 -m compileall -q .claude/hooks/stop-gate.py loop/board_launch loop/board_sync loop/context_loop.py — PASS'
+  - 'bash -n dsh/scripts/install-cc-hooks.sh dsh/scripts/install-mb-bridge.sh loop/loop.sh — PASS'
+  - 'git diff --check -- .claude/hooks/stop-gate.py dsh loop — PASS'

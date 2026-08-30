@@ -32,5 +32,47 @@
       model: PROJECT_LOOP_IMPLEMENT_MODEL
       credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'
 
-# cc-hooks-bridge: reserved include slot for T-HUB-016
+- insert:
+    - id: cc-hooks-bridge
+      name: '@deepseek-ai/cordis-plugin-include'
+      config:
+        path: ../../patches/cc-hooks-bridge.yml
+        patches:
+          - id: dsh-hooks-claude-code
+            required: true
 
+- insert:
+    - id: epic-gate
+      name: '@dev-hub/dsh-epic-gate'
+      config:
+        python: !!js process.env.PYTHON ?? 'python3'
+        validator: !!js process.env.DSH_SPAWN_VALIDATE ?? '.claude/hooks/spawn_validate.py'
+      required: true
+
+# Optional: expose the product's .claude/skills, rules, and commands in DSH.
+# Guard the include itself: cordis-plugin-include does not make a missing nested
+# package optional merely because the nested row says required:false.
+- insert:
+    - id: cc-claude-compat
+      name: '@deepseek-ai/cordis-plugin-include'
+      disabled: !!js >-
+        (() => {
+          if (process.env.DSH_CC_COMPAT === '0') return true;
+          const home = process.env.DSH_HOME ||
+            `${process.getBuiltinModule('node:os').homedir()}/.dsh`;
+          try {
+            const require = process.getBuiltinModule('node:module').createRequire(
+              `${home}/profiles/epic-implement/package.json`);
+            require.resolve('dsh-claude-compat');
+            return false;
+          } catch (error) {
+            process.stderr.write(
+              `dsh: optional dsh-claude-compat unavailable; skipping compat mount: ${error?.message ?? error}\n`);
+            return true;
+          }
+        })()
+      config:
+        path: ../../patches/cc-claude-compat.yml
+        patches:
+          - id: claude-compat
+            required: false

@@ -62,19 +62,19 @@ steps:
   file: s12-audit-stock-run-intercept-wiring.yaml
   next_phase: BACK IMPLEMENT
   title: s12-audit-stock-run-intercept-wiring
-  status: pending
+  status: completed
 - id: s13
   file: s13-audit-workspace-list-adapter.yaml
   next_phase: BACK IMPLEMENT
   title: s13-audit-workspace-list-adapter
-  status: pending
+  status: completed
 - id: s14
   file: s14-audit-model-source-propagation.yaml
   next_phase: BACK IMPLEMENT
   title: s14-audit-model-source-propagation
-  status: pending
+  status: completed
 - id: s15
   file: s15-audit-config-authorization-validation.yaml
   next_phase: BACK IMPLEMENT
   title: s15-audit-config-authorization-validation
-  status: pending
+  status: completed

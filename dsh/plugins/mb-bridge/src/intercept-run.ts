@@ -1,9 +1,4 @@
-import {
-  BoardAction,
-  BridgeConfig,
-  HostExecutionResult,
-  spawnHubBoard,
-} from './python-bridge';
+import { spawnHubBoard } from './python-bridge.ts';
 
 // s01 decision: PATH_B (Host-route fallback), not a Cordis stock-run hook.
 export const INTERCEPT_PATH = 'PATH_B' as const;
@@ -16,17 +11,18 @@ export interface BoardCard {
 }
 
 export interface BridgeActionRequest {
-  action: BoardAction;
+  action: 'arm' | 'loop' | 'arm-loop' | 'sync';
   taskId: string;
   loopArgs?: string;
   runtime?: 'claude' | 'dsh';
+  workspaceId?: string;
 }
 
-export type StockRunHandler = (card: BoardCard) => Promise<HostExecutionResult>;
+export type StockRunHandler = (card: BoardCard) => Promise<Awaited<ReturnType<typeof spawnHubBoard>>>;
 export type StockRunAdapter = (
   card: BoardCard,
   stockRun: StockRunHandler,
-) => Promise<HostExecutionResult>;
+) => Promise<Awaited<ReturnType<typeof spawnHubBoard>>>;
 
 export const STOCK_RUN_SLOT = 'task-board.stock-run';
 
@@ -34,21 +30,16 @@ export function isMbCard(card: BoardCard): boolean {
   return card.id.startsWith('mb-');
 }
 
-export function createStockRunAdapter(config: BridgeConfig): StockRunAdapter {
+export function createStockRunAdapter(config: Record<string, unknown>): StockRunAdapter {
   const bridge = createBridgeAction(config);
   return (card, stockRun) => interceptStockRun(card, bridge, stockRun);
 }
 
 export function interceptStockRun(
-export function isMbCard(card: BoardCard): boolean {
-  return card.id.startsWith('mb-');
-}
-
-export function interceptStockRun(
   card: BoardCard,
-  bridge: (request: BridgeActionRequest) => Promise<HostExecutionResult>,
-  stockRun?: (card: BoardCard) => Promise<HostExecutionResult>,
-): Promise<HostExecutionResult> {
+  bridge: (request: BridgeActionRequest) => ReturnType<typeof spawnHubBoard>,
+  stockRun?: (card: BoardCard) => ReturnType<typeof spawnHubBoard>,
+): ReturnType<typeof spawnHubBoard> {
   if (!isMbCard(card)) {
     if (!stockRun) throw new Error('stock run handler is required for non-mb cards');
     return stockRun(card);
@@ -62,14 +53,23 @@ export function denyStockRun(card: BoardCard): never {
 }
 
 export function createBridgeAction(
-  config: BridgeConfig,
-): (request: BridgeActionRequest) => Promise<HostExecutionResult> {
-  return (request) => spawnHubBoard(request.action, request.taskId, request, config);
+  config: Record<string, unknown>,
+): (request: BridgeActionRequest) => ReturnType<typeof spawnHubBoard> {
+  return (request) => spawnHubBoard(
+    request.action,
+    request.taskId,
+    {
+      loopArgs: request.loopArgs,
+      runtime: request.runtime,
+      workspaceId: request.workspaceId ?? null,
+    },
+    config,
+  );
 }
 
 export function registerBridgeRoute(
   host: { post: (path: string, handler: (request: BridgeActionRequest) => unknown) => void },
-  config: BridgeConfig,
+  config: Record<string, unknown>,
 ): void {
   host.post(MB_BRIDGE_ROUTE, createBridgeAction(config));
 }

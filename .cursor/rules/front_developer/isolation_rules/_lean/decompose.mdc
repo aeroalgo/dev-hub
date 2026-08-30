@@ -13,6 +13,7 @@ alwaysApply: false
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; goals связаны с Goal/UX плана (не scaffolding-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (FRONT) + BACK §Maximal detail / §Outcome preserve
 3. Шаг = один FRONT IMPLEMENT; `step_id`, files, `deletes`, `needs_creative`, `visible_ui`, `tdd`
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь экран); непустой `deletes` → ≥1 `rg`/import-audit cp
+3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: front` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas (`epic-decompose-shard/*`, …). FINISH: `validate-decompose-tree` fail-closed
 3b. Brownfield UI replace → sNN с `deletes` или out_of_scope+follow-up **в queue**; cleanup ≠ n/a → `*-legacy-fallback-purge`. Канон: `shared/workflow-legacy-fallback-cleanup.mdc`
 4. Каждый `sNN`: skills gate — Impl Core(6) ∪ situational из @.cursor/rules/front_developer/skills-gate-situational.mdc
 5. `visible_ui: yes` → Design Core (все 6); `no` → `**Design skills:** —` + причина

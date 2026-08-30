@@ -19,13 +19,14 @@
 | Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
 | Runner | `./loop/loop.sh` → `context_loop.py` |
-| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_CHAIN_ROADMAP` |
+| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
 
 ## Production semantics
 
-`.claude/project.env` is the checkout canon for runtime and permission values; `.claude/project.env.local` is the only local override. Do not create or synchronize values to a hypothetical example file.
+- **Runtime engine:** `EPIC_RUNTIME` selects execution engine: `claude` (default) | `dsh` (developer preview, opt-in; not production default). See [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) for runbook details.
+- `.claude/project.env` is the checkout canon for runtime and permission values; `.claude/project.env.local` is the only local override. Do not create or synchronize values to a hypothetical example file.
 
 - `activeContext.md`, the decompose index and the implement step are the source of truth for the current agent transition. The runner owns session timeout, process kill grace, bounded retry, degraded status and machine-readable diagnostics.
 - A checkpoint records the durable cursor and lifecycle. `state.json` mirrors checkpoint telemetry; it is not an agent-owned cursor. A checkpoint/index conflict, malformed selected source or missing manifest is fail-closed.
@@ -60,7 +61,7 @@ Incomplete AC текущего эпика (pending cp, `gaps.blocked`, parity FA
 hooks demote ложный `@verify` PASS → FAIL; prepare injects `## FIX INCOMPLETE` и loop чинит в том же эпике.
 `GAPS:` / `**GAPS:**` — **не** stop (часто deferred sNN/eNN notes; путают с INTEG GAP). ARCHIVE — вручную вне loop (не в DONE/REFLECT loop-сессии; finish = EPIC_DONE → chain).
 
-**Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` **после** `reflection_done` снова открывают QA. Evidence-rehash bugfix **между** `qa_pass` и reflection **не** блокирует `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).
+**Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` **после** `reflection_done` снова открывают QA **только пока нет более нового `qa_pass`**. Следующий `qa_pass` закрывает окно reopen → `REFLECT` (если reflection stale vs QA) или `DONE`. Иначе исторический `bugfix_done` после `reflection_done` навсегда пинит `phase=QA` при каждом rewrite `qa-*.yaml` (симптом: endless BACK QA при Handoff→REFLECT). Evidence-rehash bugfix **между** `qa_pass` и reflection **не** блокирует `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).
 
 ## Managed-agent gate bypass и policy
 

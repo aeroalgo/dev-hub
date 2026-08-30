@@ -162,3 +162,108 @@ def test_strict_via_cli_promotes_warnings(tmp_path: Path) -> None:
     assert r_strict.returncode == 2
     assert d_strict["ok"] is False
     assert len(d_strict["errors"]) >= 1
+
+
+def test_invented_shard_schema_rejected(tmp_path: Path) -> None:
+    from epic_yaml import validate_decompose_yaml  # noqa: E402
+
+    p = tmp_path / "s03-bad.yaml"
+    p.write_text(
+        "schema: epic-decompose-shard/v1\n"
+        "plan_id: demo\n"
+        "step_id: s03\n"
+        "title: t\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "as_built:\n"
+        "  as_is: [x]\n"
+        "  delta: [y]\n"
+        "checkpoints:\n"
+        "  - id: cp1\n"
+        "    criterion: c\n"
+        "    verify: rg -n foo src\n",
+        encoding="utf-8",
+    )
+    errs = validate_decompose_yaml(p)
+    assert errs
+    blob = " ".join(errs)
+    assert "epic-decompose/v1" in blob
+    assert "epic-decompose-shard/v1" in blob or "FORBIDDEN" in blob or "must be" in blob
+
+
+def test_as_built_dict_rejected(tmp_path: Path) -> None:
+    p = tmp_path / "s03-dict.yaml"
+    data = {
+        "schema": "epic-decompose/v1",
+        "role": "back",
+        "step_id": "s03",
+        "plan_id": "demo",
+        "title": "t",
+        "next_phase": "BACK IMPLEMENT",
+        "goal": "g",
+        "as_built": {"as_is": ["a"], "delta": ["b"]},
+        "delta": ["edit x"],
+        "out_of_scope": ["o"],
+        "checkpoints": [
+            {"id": "cp1", "criterion": "c", "verify": "rg -n a src"},
+            {"id": "cp2", "criterion": "c2", "verify": "rg -n b src"},
+        ],
+    }
+    p.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    errors, _ = validate_decompose_full(p)
+    assert errors
+    assert any("as_built" in e or "list" in e.lower() or "invalid" in e for e in errors)
+
+
+def test_validate_decompose_tree_ok_and_fail(tmp_path: Path) -> None:
+    from epic_yaml import validate_decompose_tree  # noqa: E402
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-demo"
+    dec.mkdir(parents=True)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-ok.yaml\n"
+        "  title: ok\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n"
+        "- id: s02\n"
+        "  file: s02-bad.yaml\n"
+        "  title: bad\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(dec / "s01-ok.yaml", {"step_id": "s01", "plan_id": "demo", "role": "back"})
+    (dec / "s02-bad.yaml").write_text(
+        "schema: epic-decompose-shard/v1\n"
+        "plan_id: demo\n"
+        "step_id: s02\n"
+        "title: bad\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "goal: g\n"
+        "delta: [x]\n"
+        "checkpoints:\n"
+        "  - id: cp1\n"
+        "    criterion: c\n"
+        "    verify: rg -n x src\n",
+        encoding="utf-8",
+    )
+    errs = validate_decompose_tree(tmp_path, "decompose-demo")
+    assert errs
+    assert any("s02" in e for e in errs)
+
+    # only good shard → empty after removing bad from index
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-ok.yaml\n"
+        "  title: ok\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    assert validate_decompose_tree(tmp_path, str(dec)) == []

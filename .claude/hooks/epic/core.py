@@ -710,7 +710,25 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
             }
         )
     else:
-        projection["gates"] = gates_from_phase(None)
+        armed_epic = str(state.get("armed_epic") or "").strip()
+        armed_step = str(state.get("armed_step") or "").strip().upper()
+        if armed_epic:
+            phase = armed_step or None
+            projection.update(
+                {
+                    "epic_id": armed_epic,
+                    "epic": armed_epic,
+                    "role": state.get("role"),
+                    "phase": phase,
+                    "next_step": phase
+                    if phase
+                    in {"DECOMPOSE", "AUDIT", "QA", "REFLECT", "BUGFIX"}
+                    else state.get("armed_step"),
+                    "gates": gates_from_phase(phase),
+                }
+            )
+        else:
+            projection["gates"] = gates_from_phase(None)
 
     identity = {
         key: projection[key]
@@ -925,8 +943,8 @@ def _matching_reflection_artifacts(
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        owner_epics = set(re.findall(r"(?im)^\\*\\*Эпик:\\*\\*\\s*([^\\s]+)", text[:800]))
-        owner_epics.update(re.findall(r"(?im)^epic_id:\\s*([^\\s]+)", text[:800]))
+        owner_epics = set(re.findall(r"(?im)^\*\*Эпик:\*\*\s*([^\s]+)", text[:800]))
+        owner_epics.update(re.findall(r"(?im)^epic_id:\s*([^\s]+)", text[:800]))
         if owner_epics:
             if epic_id in owner_epics:
                 result.append(path)
@@ -942,26 +960,23 @@ def _matching_reflection_artifacts(
 def _reflection_ownership_ambiguous(
     cwd: Path, role_dir: str, epic_id: str
 ) -> bool:
-    task = _task_id_from_epic(epic_id)
-    directory = cwd / "memory-bank" / role_dir / "reflection"
-    if not directory.is_dir():
+    matches = _matching_reflection_artifacts(cwd, role_dir, epic_id)
+    if len(matches) > 1:
+        return True
+    if len(matches) != 1:
         return False
-    candidates = []
-    for path in sorted(directory.glob("reflection-*.md"), key=lambda item: item.name):
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")[:800]
-        except OSError:
-            continue
-        owner_epics = set(re.findall(r"(?im)^\\*\\*Эпик:\\*\\*\\s*([^\\s]+)", text))
-        owner_epics.update(re.findall(r"(?im)^epic_id:\\s*([^\\s]+)", text))
-        if owner_epics:
-            continue
-        matches = set(re.findall(r"T-\d+", text))
-        if task and task in matches and len(matches) > 1:
-            return True
-        if epic_id in path.name or (task and task in path.name) or epic_id in text or (task and task in text):
-            candidates.append(path)
-    return len(candidates) > 1
+    path = matches[0]
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")[:800]
+    except OSError:
+        return False
+    owner_epics = set(re.findall(r"(?im)^\*\*Эпик:\*\*\s*([^\s]+)", text))
+    owner_epics.update(re.findall(r"(?im)^epic_id:\s*([^\s]+)", text))
+    if owner_epics:
+        return False
+    task = _task_id_from_epic(epic_id)
+    ids = set(re.findall(r"T-\d+", text))
+    return bool(task and task in ids and len(ids) > 1)
 
 
 def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[str, Path]]:
@@ -1080,6 +1095,53 @@ def extract_handoff_block(text: str) -> str:
     nxt = re.search(r"(?im)^##\s+", rest)
     end = m.end() + (nxt.start() if nxt else len(rest))
     return text[start:end].strip()
+
+
+_HANDOFF_PHASE_HEADING_RE = re.compile(
+    r"(?im)^##\s*Handoff\s+(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
+)
+_HANDOFF_MODE_LINE_RE = re.compile(
+    r"(?im)(?:Режим/шаг|Mode/step):\s*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)`"
+)
+_HANDOFF_NEXT_PHASE_RE = re.compile(
+    r"(?im)(?:Дальше|Next):\s*.*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    r"(AUDIT|QA|REFLECT|BUGFIX)`"
+)
+
+
+def handoff_post_implement_phase(text: str) -> str | None:
+    """Parse explicit post-implement / decompose phase from Handoff (SoT over events)."""
+    handoff = extract_handoff_block(text) or ""
+    if not handoff:
+        return None
+    for pattern in (
+        _HANDOFF_PHASE_HEADING_RE,
+        _HANDOFF_MODE_LINE_RE,
+        _HANDOFF_NEXT_PHASE_RE,
+    ):
+        match = pattern.search(handoff)
+        if match:
+            return str(match.group(1)).upper()
+    return None
+
+
+def _reflection_stale_vs_qa_pass(
+    cwd: Path,
+    latest_qa: dict[str, Any],
+    last_reflection: dict[str, Any],
+) -> bool:
+    """True when reflection artifact predates the current QA pass artifact."""
+    qa_art = str(latest_qa.get("artifact") or "").strip()
+    refl_art = str(last_reflection.get("artifact") or "").strip()
+    if not qa_art or not refl_art:
+        return False
+    qa_path = cwd / qa_art
+    refl_path = cwd / refl_art
+    if not qa_path.is_file() or not refl_path.is_file():
+        return False
+    return refl_path.stat().st_mtime < qa_path.stat().st_mtime
 
 
 def extract_load_now(text: str) -> list[str]:
@@ -2649,23 +2711,34 @@ def reduce_epic_lifecycle(
                 last_reflection = event
         if last_reflection is not None:
             refl_seq = int(last_reflection.get("seq", 0))
+            qa_seq = int(latest_qa.get("seq", 0))
             reopened = False
             for event in events:
-                if int(event.get("seq", 0)) <= refl_seq:
+                ev_seq = int(event.get("seq", 0))
+                if ev_seq <= refl_seq:
                     continue
                 # Path-moved qa/audit after ARCHIVE must not reopen REFLECT.
                 # Evidence rehash of bugfix between qa_pass and reflection also
                 # must not reopen after reflection_done (only post-reflection
                 # qa_fail/bugfix_done reopen).
-                if event.get("kind") in {"qa_fail", "bugfix_done"}:
+                # A later qa_pass closes the reopen window: without this gate,
+                # any historical bugfix_done after reflection_done would pin
+                # phase=QA forever across endless QA rewrites (T-061 loop).
+                if (
+                    event.get("kind") in {"qa_fail", "bugfix_done"}
+                    and ev_seq > qa_seq
+                ):
                     reopened = True
                     break
-            if not reopened:
-                phase = "DONE"
-                reason_code = "reflection_completed"
-            else:
+            if reopened:
                 phase = "QA"
                 reason_code = "bugfix_reopens_qa"
+            elif _reflection_stale_vs_qa_pass(cwd_p, latest_qa, last_reflection):
+                phase = "REFLECT"
+                reason_code = "qa_passed_stale_reflection"
+            else:
+                phase = "DONE"
+                reason_code = "reflection_completed"
         elif invalidator is not None:
             phase = "QA"
             reason_code = "bugfix_reopens_qa"
@@ -2830,6 +2903,24 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
 
     Without both artifacts the epic is NOT complete — never treat as DONE.
     """
+    cwd_p = Path(cwd)
+    handoff_phase = handoff_post_implement_phase(read_active_context(cwd_p))
+    if handoff_phase in {"AUDIT", "REFLECT", "BUGFIX"}:
+        info = discover_epic_for_pipeline(cwd) or {}
+        epic_id = info.get("epic_id") or (load_epic_state(cwd_p) or {}).get(
+            "armed_epic"
+        )
+        return {
+            "allowed": False,
+            "phase": handoff_phase,
+            "reason": (
+                f"EPIC_DONE запрещён: Handoff требует {handoff_phase} "
+                f"(события/артефакты не переопределяют Handoff)."
+            ),
+            **info,
+            "epic_id": epic_id,
+            "handoff_phase": handoff_phase,
+        }
     info = discover_epic_for_pipeline(cwd)
     if not info:
         logger.warning(

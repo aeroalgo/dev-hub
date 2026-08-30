@@ -15,7 +15,6 @@
 ```bash
 ./loop/loop.sh gpt
 ./loop/loop.sh decompose-v1-portal gpt
-./loop/loop.sh -m gpt --max 20
 ./loop/loop.sh --status
 ```
 
@@ -33,7 +32,6 @@ All runtime limits are bounded and non-secret. `.claude/project.env` is the chec
 | `EPIC_LOOP` | set by script |
 | `CLAUDE_BIN` | auto |
 | `EPIC_PERMISSION_MODE` | this checkout uses `bypassPermissions`, loaded from `.claude/project.env` |
-| `EPIC_MAX` / `--max` | `40` |
 | `EPIC_SESSION_TIMEOUT_SEC` | `3600` |
 | `EPIC_SESSION_KILL_GRACE_SEC` | `30` |
 | `EPIC_TRANSIENT_RETRY_MAX` | `30` |

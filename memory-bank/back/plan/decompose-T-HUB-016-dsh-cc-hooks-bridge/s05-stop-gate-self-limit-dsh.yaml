@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-016
+title: "stop-gate DSH self-limit — prevent infinite block→continue loop when stop_hook_active=false under DSH"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `stop-gate.py` минимальный self-limit счётчик: при `EPIC_RUNTIME=dsh` (или `DSH_HOOKS_BRIDGE=1`)
+  и ситуации, когда `stop_hook_active` всегда `false` (DSH не передаёт поле), stop-gate не уходит в бесконечный
+  `block→continue`-цикл; после N consecutive блоков без прогресса epic fingerprint — gate разрешает stop
+  с диагностическим сообщением.
+  Outcome: SC-003 + AC+US-001 закрыты; нет silent infinite loop под DSH (Зафиксировано в Replacement cleanup).
+
+context:
+  consumes:
+    - .claude/hooks/stop-gate.py            # основная логика, stop_hook_active чтения, state dict
+    - .claude/hooks/_lib.py                 # is_epic_loop_env(), load_state/save_state, EPIC_RUNTIME config
+    - .claude/hooks/epic/*.py               # fingerprint_context, epic state
+    - s04 output: DSH_HOOKS_BRIDGE env var  # для детекции DSH runtime
+  produces:
+    - .claude/hooks/stop-gate.py            # добавить self-limit счётчик + DSH detect branch
+    - .claude/hooks/tests/test_stop_gate_dsh_self_limit.py  # новые тесты
+  plan_refs:
+    - FR-007  # stop-gate self-limits consecutive blocks under DSH
+    - SC-003  # stop self-limit unit under fake consecutive blocks
+    - AC+US-001  # stop hook invoked; block→continue or steer continue зафиксировано
+    - Replacement/A: silent infinite Stop continue → self-limit
+
+  files:
+    - .claude/hooks/stop-gate.py
+    - .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+
+as_built:
+  - "stop-gate.py: 375 строк; читает stop_hook_active из data; использует state dict через load_state/save_state; нет DSH_HOOKS_BRIDGE / EPIC_RUNTIME branch; нет consecutive block counter"
+  - "_lib.py: is_epic_loop_env() = EPIC_LOOP=1; load_epic_config().epic_runtime = 'dsh'|'claude'"
+  - "runtime/test_stop_gate_*: существуют тесты для Claude-path (stop_hook_active=True cases)"
+  - "НЕТ теста для DSH path (stop_hook_active=False + consecutive блок)"
+
+delta:
+  - "stop-gate.py EDIT: добавить функцию _is_dsh_runtime() → bool (читает DSH_HOOKS_BRIDGE или load_epic_config().epic_runtime == 'dsh')"
+  - "stop-gate.py EDIT: добавить _get_consecutive_blocks(state) / _increment_consecutive_blocks(state) → int на основе state dict ключа 'dsh_consecutive_blocks'"
+  - "stop-gate.py EDIT: в основном ветке stop processing — если _is_dsh_runtime() AND stop_hook_active is False: проверить consecutive counter; если counter < DSH_SELF_LIMIT_MAX (default 3) → block+increment; иначе → allow stop с диагностическим предупреждением в reason (не тихий allow)"
+  - "stop-gate.py EDIT: при epic progress (fingerprint изменился) — сбрасывать dsh_consecutive_blocks counter"
+  - ".claude/hooks/tests/test_stop_gate_dsh_self_limit.py CREATE: pytest тесты — (1) fake DSH env (DSH_HOOKS_BRIDGE=1, stop_hook_active absent/false) → block при counter < 3; (2) counter = 3 → allow с предупреждением; (3) fingerprint progress → counter reset → снова block"
+
+deletes: []
+# Чистый additive к stop-gate.py; нет заменяемых файлов.
+# Logical replacement: поведение «silent infinite continue» → явный counter + diagnostic — кода для удаления нет,
+# только новая ветка поверх существующей.
+
+out_of_scope:
+  - "Полный рефактор stop-gate.py (минимальный хирург)"
+  - "updatedInput / agent_type gaps (T-HUB-008)"
+  - "dsh-claude-compat (s06)"
+  - "Claude path логика — zero-change (NFR-2)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    # S08 python-configuration — читаем env vars EPIC_RUNTIME / DSH_HOOKS_BRIDGE
+    - ".agents/skills/python-configuration/SKILL.md"
+    # Checklist: #9 config/env → S08 ✓; infra surface; нет HTTP/DB/WS
+
+checkpoints:
+  - id: cp1
+    criterion: "stop-gate.py содержит DSH detect (_is_dsh_runtime или inline check DSH_HOOKS_BRIDGE)"
+    verify: "grep -q 'DSH_HOOKS_BRIDGE\\|_is_dsh_runtime' .claude/hooks/stop-gate.py"
+  - id: cp2
+    criterion: "Тест fake DSH env + stop_hook_active=False → decision=block при counter=0"
+    verify: ".venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py::test_dsh_block_under_limit -q --tb=short"
+  - id: cp3
+    criterion: "Тест counter≥DSH_SELF_LIMIT_MAX → decision=allow с предупреждением"
+    verify: ".venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py::test_dsh_allow_at_limit -q --tb=short"
+  - id: cp4
+    criterion: "Claude path (stop_hook_active=True) не затронут — существующие тесты зелёные"
+    verify: "timeout 60s .venv/bin/pytest .claude/hooks/tests/ -q --tb=short -k 'not dsh_self_limit' 2>&1 | tail -5"
+
+verify:
+  - "timeout 120s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py -q --tb=line"
+  - "grep -q 'DSH_HOOKS_BRIDGE\\|epic_runtime.*dsh\\|_is_dsh_runtime' .claude/hooks/stop-gate.py"
+
+tdd:
+  - "test_dsh_block_under_limit: env DSH_HOOKS_BRIDGE=1, stop_hook_active absent, counter=0 → block"
+  - "test_dsh_block_counter_increments: consecutive calls increment counter in state"
+  - "test_dsh_allow_at_limit: counter=3 → allow, reason contains diagnostic warning"
+  - "test_dsh_counter_resets_on_fingerprint_progress: epic fingerprint changes → counter reset → block again"
+  - "test_claude_path_unchanged: stop_hook_active=True, no DSH env → existing behavior unchanged"

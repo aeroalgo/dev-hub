@@ -726,8 +726,10 @@ def _render_merged_roadmap_md(
         + "\n\n"
         f"## Handoff\n\n"
         f"- Loop читает **только** `{qname}` (default path).\n"
-        f"- После MULTI-EPIC PLAN → `{role_u} ROADMAP MERGE` → "
-        f"`{role_u} DECOMPOSE` первого id из queue.\n"
+        f"- `{role_u} PLAN` **сам** вызывает `roadmap-merge` в той же сессии "
+        f"(не отдельный next `{role_u} ROADMAP MERGE`).\n"
+        f"- Next: `{role_u} DECOMPOSE` первого id из queue.\n"
+        f"- Ручной `{role_u} ROADMAP MERGE` — только если канон устарел без PLAN.\n"
     )
 
 

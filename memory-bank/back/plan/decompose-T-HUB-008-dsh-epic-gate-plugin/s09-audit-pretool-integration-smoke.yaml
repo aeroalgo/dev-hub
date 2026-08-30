@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s09
+title: "AUDIT remediation — executable pre-execute deny and bridge round-trip smoke"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть partial finding по source_ref FR-008 / AC+1 / SC-001: bounded integration
+  smoke должен вызвать native epic-gate pre-execute для incomplete verify spawn,
+  проверить stable deny reason и отдельно сохранить VERDICT mirror round-trip.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-008-dsh-epic-gate-plugin/audit-20260830-dsh-epic-gate-plugin.yaml"
+    - "dsh/plugins/epic-gate/src/pre-tool-use.ts"
+    - "dsh/plugins/epic-gate/src/index.ts"
+    - "loop/tests/test_dsh_epic_gate_gaps.py"
+    - "dsh/profiles/epic-*/cordis.patch.yml"
+  produces:
+    - "executable pre-execute deny evidence"
+    - "bridge-mounted epic-gate integration coverage"
+  plan_refs:
+    - "FR-008"
+    - "AC+1"
+    - "SC-001"
+  files:
+    - "loop/tests/test_dsh_epic_gate_gaps.py"
+    - "dsh/plugins/epic-gate/README.md"
+
+as_built:
+  - "pre-tool-use.ts implements tools/pre-execute deny-only behavior and calls spawn_validate.py, but the existing bounded smoke does not call preToolUse or the registered tools/pre-execute listener."
+  - "The current test file covers SubagentStop verdict round-trip, SessionStart injection, profile mount order and Stop self-limit."
+  - "s03 records a validator CLI round-trip, which is not equivalent to native plugin pre-execute integration."
+
+delta:
+  - "Добавить test harness that invokes preToolUse or the registered tools/pre-execute listener with an incomplete verify payload."
+  - "Assert deny decision and stable prompt_incomplete reason through the configured validator path."
+  - "Keep the existing SubagentStop VERDICT PASS round-trip assertion in the same bounded DSH gap suite."
+  - "Document that the smoke is integration coverage without requiring production DSH credentials or a full E2E run."
+
+deletes: []
+
+out_of_scope:
+  - "Полный DSH CLI/API E2E и внешние credentials."
+  - "Изменение deny-only PATH_B ADR или перенос updatedInput rewrite."
+  - "Изменение Python validator contract beyond what the smoke requires."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "The integration test invokes the epic-gate pre-execute path rather than only the Python CLI."
+    verify: "rg -n 'preToolUse|tools/pre-execute|prompt_incomplete|spawn_validate' loop/tests/test_dsh_epic_gate_gaps.py"
+  - id: cp2
+    criterion: "Incomplete verify spawn is denied with the stable prompt_incomplete reason."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'pretool or incomplete or spawn' -q --tb=line"
+  - id: cp3
+    criterion: "The same bounded suite retains VERDICT mirror evidence and profile mount checks."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line"
+
+verify:
+  - "rg -n 'preToolUse|tools/pre-execute|prompt_incomplete' loop/tests/test_dsh_epic_gate_gaps.py"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'pretool or incomplete or spawn' -q --tb=line"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line"
+
+tdd:
+  - "test: incomplete verify spawn reaches native pre-execute and is denied"
+  - "test: non-Agent/Task tool remains allowed"
+  - "test: stable prompt_incomplete reason survives the bridge round-trip"
+
+requirements_covered:
+  - FR-008
+  - AC+1
+  - SC-001
+
+gaps:
+  status: open
+  source_ref: FR-008
+  resolves_at: cp1-cp3

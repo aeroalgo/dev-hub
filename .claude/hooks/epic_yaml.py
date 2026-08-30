@@ -162,7 +162,12 @@ class EpicDecomposeDoc(BaseModel):
     @classmethod
     def _schema_ok(cls, v: str) -> str:
         if v != SCHEMA_EPIC_DECOMPOSE:
-            raise ValueError(f"schema must be {SCHEMA_EPIC_DECOMPOSE!r}")
+            raise ValueError(
+                f"schema must be {SCHEMA_EPIC_DECOMPOSE!r} "
+                f"(canon: .cursor/templates/decompose/epic-step.yaml); "
+                f"FORBIDDEN invented names like epic-decompose-shard/v1 "
+                f"or epic-decompose-step/v1, got {v!r}"
+            )
         return SCHEMA_EPIC_DECOMPOSE
 
 
@@ -766,6 +771,75 @@ def validate_decompose_full(
 def validate_decompose_yaml(path: Path) -> list[str]:
     """Back-compat errors-only (FAIL) view of validate_decompose_full."""
     errors, _warnings = validate_decompose_full(path)
+    return errors
+
+
+def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> list[str]:
+    """Schema gate for every sNN|eNN in decompose index.yaml (DECOMPOSE FINISH).
+
+    Fail-closed on invented schemas / missing role / as_built not list —
+    i.e. anything EpicDecomposeDoc rejects. Full lint (verify runnable, …)
+    remains `validate-step` / `validate_decompose_full` (opt-in / IMPLEMENT).
+    """
+    from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
+
+    root = Path(cwd)
+    if decompose is None or not str(decompose).strip():
+        return ["decompose ref missing for validate_decompose_tree"]
+
+    raw = str(decompose).replace("\\", "/")
+    cand = root / raw
+    if cand.is_file() and cand.name.endswith((".yaml", ".yml")) and cand.name != "index.yaml":
+        cand = cand.parent
+    elif cand.is_file() and cand.name in ("index.md", "index.yaml"):
+        cand = cand.parent
+    elif not cand.is_dir():
+        for base in (
+            root / "memory-bank" / "back" / "plan",
+            root / "memory-bank" / "front" / "plan",
+            root / "memory-bank" / "integration" / "plan",
+        ):
+            alt = base / raw
+            if alt.is_dir():
+                cand = alt
+                break
+            alt2 = base / f"decompose-{raw}"
+            if alt2.is_dir():
+                cand = alt2
+                break
+
+    ypath = index_yaml_path(cand if cand.is_dir() else root / raw)
+    if not ypath.is_file():
+        return [f"missing decompose index.yaml: {ypath}"]
+
+    try:
+        doc = load_index_yaml(ypath)
+    except Exception as exc:
+        return [f"invalid index.yaml: {exc}"]
+    if not isinstance(doc, dict):
+        return ["invalid index.yaml: not a mapping"]
+
+    steps = steps_from_doc(doc)
+    if not steps:
+        return ["index.yaml has no steps"]
+
+    errors: list[str] = []
+    for step in steps:
+        rel = (step.get("file") or "").strip()
+        sid = (step.get("id") or "").strip()
+        if not rel:
+            errors.append(f"{sid or '?'}: missing file in index.yaml")
+            continue
+        shard = ypath.parent / Path(rel).name
+        if not shard.is_file():
+            shard = ypath.parent / rel
+        if not shard.is_file():
+            errors.append(f"{sid}: missing shard file {rel}")
+            continue
+        try:
+            load_decompose(shard)
+        except Exception as exc:
+            errors.append(f"{sid} ({shard.name}): invalid epic-decompose yaml: {exc}")
     return errors
 
 

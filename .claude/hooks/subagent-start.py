@@ -19,11 +19,25 @@ from _lib import (
 
 
 _ALWAYS_INJECT = {"verify", "reviewer"}
+_AGENT_TYPE_FIELDS = ("agent_type", "subagent_type", "type")
+PRESET_BY_AGENT = {
+    "verify": "preset.verify",
+    "reviewer": "preset.reviewer",
+    "explorer": "preset.explorer",
+}
+
+
+def _resolve_agent_type(data: dict[str, object]) -> str | None:
+    for field in _AGENT_TYPE_FIELDS:
+        raw = data.get(field)
+        if isinstance(raw, str) and raw.strip():
+            return normalize_type(raw.strip().lower())
+    return None
 
 
 def main() -> None:
     data = read_stdin()
-    agent_type = normalize_type(data.get("agent_type")) or data.get("agent_type")
+    agent_type = _resolve_agent_type(data)
     session_id = data.get("session_id") or ""
     cwd = str(product_cwd(data.get("cwd") or ""))
     contract = CONTRACTS.get(agent_type or "", "")
@@ -38,7 +52,10 @@ def main() -> None:
         {
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
-                "additionalContext": f"{contract}\n{HARD_RULE}",
+                "additionalContext": (
+                    f"agent_type={agent_type} preset={PRESET_BY_AGENT.get(agent_type, '')}\n"
+                    f"{contract}\n{HARD_RULE}"
+                ),
             }
         }
     )

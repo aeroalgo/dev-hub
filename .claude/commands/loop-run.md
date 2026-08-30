@@ -21,7 +21,7 @@ description: LOOP RUN — запуск ./loop/loop.sh снаружи сесси�
 ./loop/loop.sh decompose-T-034-loop-agent-scopes gpt implement
 
 # options
-./loop/loop.sh -m gpt --max 20
+./loop/loop.sh -m gpt
 ./loop/loop.sh --status
 ./loop/loop.sh --dag-generate portal
 ./loop/loop.sh --phase GAP_FANOUT

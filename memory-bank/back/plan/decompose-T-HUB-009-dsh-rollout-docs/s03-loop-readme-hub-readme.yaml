@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-009-dsh-rollout-docs
+title: "loop/README + loop/WORKFLOW + README.md + dsh/README — EPIC_RUNTIME секции и cross-links"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить EPIC_RUNTIME=dsh секцию в loop/README.md и loop/WORKFLOW.md;
+  pointer на dsh/ и pilot runbook в hub README.md; cross-links на architecture/dsh-runtime.md
+  и runbook в dsh/README.md. Все изменения additive — Claude-документация не удаляется.
+  FR-5, FR-6, FR-8, AC−2, AC−3, NFR-3.
+
+context:
+  consumes:
+    - loop/README.md       # additive update — EPIC_RUNTIME секция в конец
+    - loop/WORKFLOW.md     # additive update — параграф EPIC_RUNTIME
+    - README.md            # hub root — pointer на dsh/ + runbook
+    - dsh/README.md        # cross-links на arch shard и runbook
+    - docs/runbooks/dsh-loop-pilot.md   # ссылка (создан в s02)
+    - memory-bank/architecture/dsh-runtime.md  # ссылка (создан в s01)
+  produces:
+    - loop/README.md       # обновлён
+    - loop/WORKFLOW.md     # обновлён
+    - README.md            # обновлён
+    - dsh/README.md        # обновлён
+  plan_refs:
+    - FR-5
+    - FR-6
+    - FR-8
+    - NFR-3
+    - AC-2
+    - AC-3
+  files:
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - README.md
+    - dsh/README.md
+
+as_built:
+  - "loop/README.md — существует; нет упоминаний DSH / EPIC_RUNTIME (grep подтверждён)"
+  - "loop/WORKFLOW.md — существует; нет EPIC_RUNTIME секции (grep подтверждён)"
+  - "README.md (hub root) — существует; нет секции dsh/ или DSH (grep подтверждён)"
+  - "dsh/README.md — существует (T-HUB-007-008); описывает install-profiles, install-cc-hooks; нет cross-links на arch или runbook"
+
+delta:
+  - "UPDATE loop/README.md: добавить секцию '## DSH Runtime (opt-in, developer preview)' — EPIC_RUNTIME=dsh, ссылка на docs/runbooks/dsh-loop-pilot.md; developer preview note"
+  - "UPDATE loop/WORKFLOW.md: добавить параграф с EPIC_RUNTIME: claude (default) | dsh; ссылка на runbook"
+  - "UPDATE README.md: в секцию ## Loop добавить подсекцию '### DSH Runtime (opt-in)' с примером EPIC_RUNTIME=dsh и ссылками на docs/runbooks/dsh-loop-pilot.md и dsh/README.md"
+  - "UPDATE dsh/README.md: добавить cross-links на memory-bank/architecture/dsh-runtime.md + docs/runbooks/dsh-loop-pilot.md"
+  - "Все вставки: одна строка developer-preview / not-production-default per файл"
+  - "Не трогать make/product.mk, Makefile, .claude/project.env — EPIC_RUNTIME не auto-enable (AC−3)"
+  - "Не удалять и не перекрывать Claude-секции — изменения строго additive (AC−2)"
+  - "Не дублировать T-HUB-005 cheatsheet — только cross-link (NFR-3)"
+
+deletes: []
+
+out_of_scope:
+  - "architecture/dsh-runtime.md — s01"
+  - "docs/runbooks/dsh-loop-pilot.md — s02"
+  - "services.md, data-flow.md — s04"
+  - "Makefile / project.env — запрещено"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/README.md содержит EPIC_RUNTIME"
+    verify: "rg 'EPIC_RUNTIME' loop/README.md"
+  - id: cp2
+    criterion: "loop/WORKFLOW.md содержит EPIC_RUNTIME"
+    verify: "rg 'EPIC_RUNTIME' loop/WORKFLOW.md"
+  - id: cp3
+    criterion: "README.md (hub root) содержит pointer на dsh"
+    verify: "rg 'dsh' README.md"
+  - id: cp4
+    criterion: "dsh/README.md ссылается на dsh-runtime.md"
+    verify: "rg 'dsh-runtime' dsh/README.md"
+  - id: cp5
+    criterion: "dsh/README.md ссылается на dsh-loop-pilot"
+    verify: "rg 'dsh-loop-pilot' dsh/README.md"
+
+verify:
+  - "rg 'EPIC_RUNTIME' loop/README.md"
+  - "rg 'EPIC_RUNTIME' loop/WORKFLOW.md"
+  - "rg 'dsh' README.md"
+  - "rg 'dsh-loop-pilot' dsh/README.md"
+
+tdd:
+  - "Читать loop/README.md → найти конец файла → добавить секцию DSH Runtime (opt-in)"
+  - "Читать loop/WORKFLOW.md → найти Runtime/Environment зону → добавить параграф EPIC_RUNTIME"
+  - "Читать README.md → найти ## Loop секцию → добавить подсекцию ### DSH Runtime (opt-in)"
+  - "Читать dsh/README.md → добавить cross-links в Related или начало"
+  - "После каждого Edit: rg verify — убедиться что строка добавлена"
+  - "Финальный check: rg 'EPIC_RUNTIME=dsh' Makefile → должен вернуть ненулевой exit (не auto-enabled)"

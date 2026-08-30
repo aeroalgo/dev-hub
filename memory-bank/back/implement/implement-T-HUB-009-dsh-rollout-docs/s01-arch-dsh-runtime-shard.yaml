@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-009-dsh-rollout-docs
+title: s01 — architecture/dsh-runtime.md — новый shard + links в index и services
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-009-dsh-rollout-docs/s01-arch-dsh-runtime-shard.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан memory-bank/architecture/dsh-runtime.md с подробным описанием dual-runtime
+  (claude vs dsh), mermaid-схемой, таблицей env vars, failure modes и developer preview
+  баннером.
+- Обновлён memory-bank/architecture/index.md с добавлением строки dsh-runtime в таблицу
+  Shards.
+- Обновлён memory-bank/architecture/services.md с записью S-DSH и ветвлением mermaid
+  для EPIC_RUNTIME=dsh.
+files:
+- memory-bank/architecture/dsh-runtime.md
+- memory-bank/architecture/index.md
+- memory-bank/architecture/services.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests -q --tb=line`'
+integration_check:
+- Check links between architecture/index.md, architecture/services.md and architecture/dsh-runtime.md
+grep_control: []
+verification_results:
+- PASS cp1 (mermaid in dsh-runtime.md)
+- PASS cp2 (EPIC_RUNTIME & DSH_HOME in dsh-runtime.md)
+- PASS cp3 (failure modes in dsh-runtime.md)
+- PASS cp4 (dsh-runtime in architecture/index.md)
+- PASS cp5 (DSH in architecture/services.md)
+checkpoints:
+- id: cp1
+  criterion: memory-bank/architecture/dsh-runtime.md создан и содержит mermaid
+  status: done
+  done_at: '2026-08-30T16:05:58Z'
+- id: cp2
+  criterion: dsh-runtime.md содержит env vars EPIC_RUNTIME и DSH_HOME
+  status: done
+  done_at: '2026-08-30T16:05:59Z'
+- id: cp3
+  criterion: dsh-runtime.md содержит секцию failure modes
+  status: done
+  done_at: '2026-08-30T16:05:59Z'
+- id: cp4
+  criterion: architecture/index.md ссылается на dsh-runtime.md
+  status: done
+  done_at: '2026-08-30T16:05:59Z'
+- id: cp5
+  criterion: architecture/services.md содержит DSH упоминание (S-DSH или mermaid fork)
+  status: done
+  done_at: '2026-08-30T16:05:59Z'
+resume_from: cp1

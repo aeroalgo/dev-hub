@@ -94,6 +94,7 @@ IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. 
 3. В `index.md`: Requirements / Stages / Outcome map / **Replacement cleanup** + Skills note (gate, не полный каталог)
 4. Атомарные шаги: files, `deletes`, `step_id`, `needs_creative`, `visible_ui`, next (`creative`|`implement`), `tdd: true`; brownfield UI replace → явные delete/cutover sNN
 5. Каждый `sNN-<slug>.yaml` (@.cursor/templates/decompose/epic-step.yaml): skills gate + lean-интерфейсы (без полных interface/TSX), процесс, тест-кейсы, checkpoint, **`deletes`**
+5z. **FAIL** если schema ≠ `epic-decompose/v1` (+ `role: front`, list as_built/delta). **FORBIDDEN** invented schemas. FINISH: `validate-decompose-tree` → exit 0
 5a. **FAIL** без `visible_ui` / без Impl Core / `yes` без Design Core / `no` без причины / situational вне allowlist / situational >4
 5b. **FAIL** если нет Outcome map / Requirements / Stages / Replacement cleanup
 5c. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` в очереди (shared/workflow-legacy-fallback-cleanup.mdc)

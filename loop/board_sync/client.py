@@ -25,6 +25,8 @@ class ExecutionRecord:
     exit_code: int | None
     diagnostic_code: str | None = None
     log_path: str | None = None
+    model_source: str | None = None
+    model_env: str | None = None
 
     def payload(self) -> dict[str, Any]:
         return asdict(self)
@@ -44,6 +46,8 @@ def execution_record(task_id: str, result: ExecutionResult) -> ExecutionRecord:
         exit_code=result.exit_code,
         diagnostic_code=result.diagnostic_code,
         log_path=path,
+        model_source=result.model_source,
+        model_env=result.model_env,
     )
 
 
@@ -74,9 +78,10 @@ class HttpHostClient:
         *,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
+        normalized = host_url.rstrip("/")
         self._client = httpx.Client(
-            base_url=host_url.rstrip("/"),
-            headers=self._headers(proxy_token),
+            base_url=normalized,
+            headers=self._headers(normalized, proxy_token),
             transport=transport,
         )
 
@@ -91,11 +96,32 @@ class HttpHostClient:
             raise BoardClientError(None, f"invalid task-board state: {exc}") from exc
 
     def upsert(self, card: BoardTask) -> None:
-        kind = "update" if self._has_task(card.id) else "create"
+        workspace_id = card.workspace_id or None
+        if self._has_task(card.id):
+            patch: dict[str, Any] = {
+                "title": card.title,
+                "description": card.description,
+                "prompt": card.prompt,
+            }
+            if workspace_id:
+                patch["workspaceId"] = workspace_id
+            self._request(
+                "POST",
+                "/api/task-board/action",
+                {"kind": "update", "taskId": card.id, "patch": patch},
+            )
+            return
+        input_payload: dict[str, Any] = {
+            "title": card.title,
+            "description": card.description,
+            "prompt": card.prompt,
+        }
+        if workspace_id:
+            input_payload["workspaceId"] = workspace_id
         self._request(
             "POST",
             "/api/task-board/action",
-            {"kind": kind, "task": asdict(card)},
+            {"kind": "create", "id": card.id, "input": input_payload},
         )
 
     def archive(self, task_id: str) -> None:
@@ -121,11 +147,18 @@ class HttpHostClient:
         self._client.close()
 
     @staticmethod
-    def _headers(proxy_token: str | None) -> dict[str, str]:
+    def _headers(host_url: str, proxy_token: str | None) -> dict[str, str]:
+        headers = {
+            "Origin": host_url,
+            "Sec-Fetch-Site": "same-origin",
+        }
         token = proxy_token or os.getenv("DSH_TASK_BOARD_PROXY_TOKEN")
         if token is None:
-            return {}
-        return {"Authorization": f"Bearer {token}", "X-Proxy-Token": token}
+            return headers
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-Proxy-Token"] = token
+        headers["X-Dsh-Task-Board-Proxy-Token"] = token
+        return headers
 
     def _has_task(self, task_id: str) -> bool:
         """Choose create/update from the current Host state, without fallback."""
@@ -170,7 +203,7 @@ def _task_from_payload(payload: Any) -> BoardTask:
         title=str(payload.get("title", "")),
         description=str(payload.get("description", "")),
         prompt=str(payload.get("prompt", "")),
-        workspace_id=str(payload.get("workspace_id", "")),
+        workspace_id=str(payload.get("workspaceId") or payload.get("workspace_id", "")),
         status=str(payload.get("status", "todo")),
     )
 

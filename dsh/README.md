@@ -2,16 +2,22 @@
 
 Landing zone for the DSH runtime integration. Profile definitions are maintained in T-HUB-007.
 
+> **Related Architecture & Runbooks:**
+> - Architectural overview: [`memory-bank/architecture/dsh-runtime.md`](../memory-bank/architecture/dsh-runtime.md)
+> - Pilot execution runbook: [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md)
+>
+> **Note:** DSH Runtime is currently in developer preview and is not the production default.
+
 ## Installation
 
 - Node.js **18 or newer** is required.
 - Install the pinned CLI version used by this project:
 
 ```bash
-npm install -g @deepseek-ai/dsh@VERSION
+npm install -g @deepseek-ai/dsh@0.1.1-rc.2
 ```
 
-Replace `VERSION` with the reviewed project pin before installation. The DSH CLI is currently considered unstable; verify the pinned version before upgrading it. Keep the `@deepseek-ai/dsh@VERSION` placeholder pinned to the reviewed release; an unreviewed upgrade is not a compatible change (NFR-4).
+The reviewed CLI pin is `0.1.1-rc.2`; install the exact version shown above and review compatibility before upgrading it. The DSH CLI is currently considered unstable, and an unreviewed version upgrade is not a compatible change (NFR-4).
 
 To install all local profiles and their local `dsh-phase-models` bundle into `$DSH_HOME/profiles/`:
 
@@ -31,6 +37,14 @@ done
 
 The installer is the preferred path because it copies the local bundle and installs dependencies together.
 
+Mount the Claude Code command-hook bridge into the installed profiles with:
+
+```bash
+dsh/scripts/install-cc-hooks.sh
+```
+
+This copies `dsh/patches/cc-hooks-bridge.yml` to `$DSH_HOME/patches/cc-hooks-bridge.yml` and runs `pnpm install --ignore-scripts` for each installed `epic-*` profile. Use `--link` to symlink the fragment or `--dry-run` to inspect the plan without changing the filesystem; profiles missing from `$DSH_HOME/profiles/` are reported and skipped. In headless CI, set `DSH_HOME` to the job-local DSH directory and run the same non-interactive command after `install-profiles.sh`, for example `DSH_HOME="$RUNNER_TEMP/dsh" dsh/scripts/install-cc-hooks.sh`.
+
 > `--link` keeps profile directories linked to this checkout; it still installs dependencies into each profile and therefore requires a writable checkout.
 
 ## Environment
@@ -43,6 +57,14 @@ export EPIC_RUNTIME=dsh
 ```
 
 `DSH_BIN` is an optional override containing the path to an executable DSH binary. When it is not set, `dsh/bin/which-dsh.sh` resolves a globally installed `dsh`, then falls back to `npx -y @deepseek-ai/dsh` when `npx` is available.
+
+When the loop runs with `EPIC_RUNTIME=dsh`, it exports `DSH_HOOKS_BRIDGE=1`, sets `CLAUDE_PROJECT_DIR=$PROJECT_ROOT` for the mounted Claude hooks, and keeps `DEV_HUB` pointed at the dev-hub checkout. With the default Claude runtime, `CLAUDE_PROJECT_DIR` remains the hub path used by the loop runner.
+
+| Environment variable | Value under DSH | Purpose |
+|---|---|---|
+| `DSH_HOOKS_BRIDGE` | `1` | Signals that the Claude command-hook bridge is active. |
+| `CLAUDE_PROJECT_DIR` | `$PROJECT_ROOT` | Product root used by the bridge for `projectDir`, `.claude/settings.json`, and hook paths. |
+| `DEV_HUB` | hub checkout | Hub root used by hooks and board tooling. |
 
 ## Profiles
 
@@ -86,7 +108,7 @@ Without an installed DSH CLI, the smoke test is skipped in CI. After running the
 DSH_HOME=${DSH_HOME:-$HOME/.dsh} dsh --profile epic-implement --dump-config
 ```
 
-The output must include the `verify` preset and the `dsh-phase-models` bundle. Repeat the command with each `epic-*` profile to verify the complete phase matrix.
+The output must include the `@deepseek-ai/dsh-hooks-claude-code` (`dsh-hooks-claude-code`) plugin, with `configPath` pointing to `$PROJECT_ROOT/.claude/settings.json` and `projectDir` set to `$PROJECT_ROOT`. It must also include the `verify` preset and the `dsh-phase-models` bundle. Repeat the command with each `epic-*` profile to verify the complete phase matrix.
 
 If the command reports `cannot resolve profile bundle "dsh-phase-models"`, the profile dependencies have not been installed; run `dsh/scripts/install-profiles.sh` or the manual `pnpm install --ignore-scripts` loop above.
 
@@ -130,7 +152,7 @@ For a periodic development sync, keep the job scoped to the checkout and log out
 */15 * * * * cd /home/aero/PyProject/dev-hub && DSH_HOME=$HOME/.dsh ./bin/hub-board sync >>$HOME/.cache/hub-board-sync.log 2>&1
 ```
 
-The live default uses the DSH Host API at `DSH_TASK_BOARD_HOST_URL` (or `http://127.0.0.1:5173`). Use `--host-url URL` when a one-off sync needs an explicit Host endpoint; the offline ledger option should not be used as a substitute for the live Host in production automation.
+The live default uses the DSH Host API at `DSH_TASK_BOARD_HOST_URL` (or `DSH_WEB_URL`, then `http://127.0.0.1:5173`). Use `--host-url URL` when a one-off sync needs an explicit Host endpoint; the offline ledger option should not be used as a substitute for the live Host in production automation.
 
 ## Board Arm/Loop (T-HUB-015)
 
@@ -167,11 +189,78 @@ Use the workspace dropdown to select a `workspace_id`, or choose `All` to show c
 
 | Symptom | Resolution |
 |---|---|
+| `Connection refused` on sync | DSH Web is not running, or `hub-board` targets the wrong port. Start `DEV_HUB=/path/to/dev-hub dsh web --no-open` and export `DSH_WEB_URL` / `DSH_TASK_BOARD_HOST_URL` to the printed URL (often not 5173). |
+| `forbidden` on sync | Task-board API requires loopback browser markers; use a current `hub-board` build or sync from the task-board **Sync workspace** button after mb-bridge is installed. |
 | `flock` / `another loop runner is already active` | Only one loop may run for a product root. Wait for the existing run to finish, then retry; do not bypass the lock. |
 | `step_mismatch` | The arm response does not match the card `step_id`. Refresh with `Sync`, verify the card metadata and active step, then arm again. |
 | Missing `DEV_HUB` / `DEV_HUB is required` | Export `DEV_HUB` as the absolute dev-hub checkout before running `hub-board arm`, `loop`, `arm-loop`, or the installer. |
 | `mb_card_requires_loop_run` | The mb-bridge is not handling stock run. Install/enable `@dev-hub/dsh-mb-bridge`; never fall back to a free-session stock run for `mb-*` cards. |
 
-## Version pinning
+## Hooks bridge
 
-Keep `@deepseek-ai/dsh@VERSION` pinned in installation instructions and review changes deliberately. The DSH CLI is unstable during this landing phase; do not treat an unreviewed version upgrade as a compatible change.
+The DSH profiles use the official `@deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5` bridge to invoke the existing command hooks from `.claude/settings.json`. The bridge mounts the product project directory and keeps the Claude hook scripts as the source of truth; it does not port those scripts into TypeScript or replace the Claude runtime path.
+
+| Hook event | Python hook | Bridge status | Mount action | Gap owner |
+|---|---|---|---|---|
+| SessionStart | `session-start.py` | bridge-ok: native first-turn injection | mount | self |
+| UserPromptSubmit | `user-prompt.py` | ok | mount | self-limit |
+| PreToolUse (Agent\|Task) | `agent-pretool.py` | deny works; `updatedInput` unavailable | mount | T-HUB-008 (deferred, Gap A) |
+| PreToolUse (Bash) | `bash-pretool.py` | ok | mount | self-limit |
+| PostToolUse (Agent\|Task) | `agent-posttool.py` | partial | mount | T-HUB-008 (deferred, Gap B) |
+| PostToolUse (Bash) | `bash-output-cap.py` | partial | mount | T-HUB-008 (deferred, Gap B) |
+| SubagentStart | `subagent-start.py` | native `subagent/start` maps supported `agent_type`/preset values; Python hook remains authoritative | mount | T-HUB-008 (closed, Gap B) |
+| SubagentStop | `subagent-stop.py` | transcript/verdict enrichment | mount | T-HUB-008 (closed, Gap C) |
+| Stop | `stop-gate.py` | block→continue; DSH self-limit required | mount | self-limit |
+
+Known bridge limits and their executable coverage are recorded in
+`dsh/plugins/epic-gate/README.md`. T-HUB-008 closes the native SubagentStart,
+SubagentStop and SessionStart parity paths (Gaps B–D); the DSH API limitation for
+`updatedInput` remains explicitly deferred (Gap A). The official bridge
+mount, pinned versions, and DSH Stop self-limit remain owned by T-HUB-016. A
+misconfigured `configPath` must be treated as a loud bridge warning; required
+hooks must not silently fall back to a free-session run.
+
+### Known gaps → T-HUB-008
+
+The gap matrix above is closed/deferred rather than open: see
+`dsh/plugins/epic-gate/README.md` for the four-row parity matrix and owners.
+T-HUB-008 scope is limited to those rows; SessionStart first-turn semantics are
+closed as bridge-ok.
+
+
+## Version pinning
+| Package | Reviewed pin | Installation policy |
+|---|---|---|
+| `@deepseek-ai/dsh` | `0.1.1-rc.2` | install the exact version; review before upgrading |
+| `@deepseek-ai/dsh-hooks-claude-code` | `0.0.1-rc.5` | install the exact version; verify compatibility before upgrading |
+
+Install only reviewed pins, for example:
+
+```bash
+npm install -g @deepseek-ai/dsh@0.1.1-rc.2
+npm install @deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5 --save-exact
+```
+
+The DSH CLI and bridge are unstable during this landing phase; an unreviewed version upgrade is not a compatible change (NFR-4). The pinned bridge package is recorded in `dsh/patches/package.json` for profile tooling.
+
+For native `subagent/start`, the plugin resolves only explicit `verify`, `reviewer`, or `explorer` identities (including `preset.<type>` and child `agentPreset`). It forwards a canonical `agent_type` plus `preset.<type>` to `.claude/hooks/subagent-start.py`, which remains the contract source of truth. Unknown or `general-purpose` identities are ignored without injection; the adapter resolves the product hook cwd from `EPIC_PROJECT_ROOT` (FR-009 alias), `PROJECT_ROOT`, or `CLAUDE_PROJECT_DIR`, so a hub cwd cannot redirect the bridge. Conflicting project root aliases trigger a fail-closed error.
+
+> `@deepseek-ai/dsh@0.1.1-rc.2` and `@deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5` were checked with npm registry metadata on 2026-08-29; re-check engines and compatibility before changing either pin.
+
+## dsh-claude-compat
+
+The `epic-implement` profile optionally mounts the community `dsh-claude-compat@0.8.0` plugin. When enabled, it exposes the product's `.claude/skills/`, `.claude/rules/`, and `.claude/commands/` to DSH without migrating or copying them into a DSH-native layout; the plugin also keeps the existing hook bridge available.
+
+The mount is enabled by default for `epic-implement`. Set `DSH_CC_COMPAT=0` before starting DSH to disable it:
+
+```bash
+DSH_CC_COMPAT=0 dsh --profile epic-implement
+```
+
+The package is declared under `optionalDependencies`, and the Cordis entry is `required: false`. If npm cannot resolve or load `dsh-claude-compat`, DSH continues without the compatibility mount and emits a warning; skills, rules, and commands are then unavailable, but profile boot is not blocked. The hook bridge remains a separate mount.
+
+The plugin discovers the project `.claude/` from the DSH session working directory. Keep `CLAUDE_PROJECT_DIR` set to the product root when using the loop launcher so the existing Claude hook configuration continues to resolve correctly.
+
+> `dsh-claude-compat` is a community-equivalent package; verify its compatibility before changing the reviewed `0.8.0` pin.
+
+Use the profile installer after the pins have been reviewed; bridge mounting and runtime smoke checks are implemented by the following T-HUB-016 steps.

@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-009-dsh-rollout-docs
+title: s04 — architecture/services.md mermaid + data-flow.md DSH touch-up IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-009-dsh-rollout-docs/s04-services-dataflow-touchup.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated services.md mermaid with DSH fork and SessLog node
+- Updated data-flow.md with DSH dual-runtime flowchart fork and link to dsh-runtime.md
+files:
+- memory-bank/architecture/services.md
+- memory-bank/architecture/data-flow.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+integration_check:
+- services.md and data-flow.md cross-check with dsh-runtime.md
+grep_control: []
+verification_results:
+- rg 'DSH' memory-bank/architecture/services.md -> PASS
+- rg -i 'dsh' memory-bank/architecture/data-flow.md -> PASS
+checkpoints:
+- id: cp1
+  criterion: services.md mermaid содержит DSH fork
+  status: done
+  done_at: '2026-08-30T16:16:19Z'
+- id: cp2
+  criterion: data-flow.md содержит dsh ссылку или dual-runtime упоминание
+  status: done
+  done_at: '2026-08-30T16:16:28Z'
+resume_from: cp1

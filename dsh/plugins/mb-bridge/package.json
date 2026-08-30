@@ -4,6 +4,25 @@
   "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.js",
+    "./board-controls": "./src/board-controls.tsx",
+    "./card-actions": "./src/card-actions.tsx",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.1-rc.1"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1"
   }

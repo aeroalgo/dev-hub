@@ -9,27 +9,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (
     product_cwd,  # noqa: E402
     agent_enabled,
-    agent_model_env_key,
-    agent_model_from_project_env,
-    HARD_RULE,
-    VERDICT_FIRST_LINE,
-    allow_read_violations,
     emit,
-    in_flight_deny_reasons,
-    is_epic_loop_env,
     load_state,
-    merged_project_env_map,
     mark_in_flight,
-    missing_contract_sections,
-    normalize_agent_tool_input,
     normalize_type,
     read_stdin,
     resolved_spawn_model,
     save_state,
     verify_step_path_violations,
     workflow_state_active,
+    is_epic_loop_env,
     _discover_registry,
 )
+from spawn_validate import validate_spawn_input
 
 
 def main() -> None:
@@ -46,76 +38,12 @@ def main() -> None:
     if not workflow_state_active(st, cwd or None):
         return
 
-    if norm and norm != raw_type:
-        tool_input["subagent_type"] = norm
-
-    registry = _discover_registry(cwd or None)
-    definition = registry.get(norm) if norm else None
-    context = "loop" if is_epic_loop_env() else "chat"
-    env_models = merged_project_env_map(cwd or None)
-
-    prompt = tool_input.get("prompt") or ""
-    if HARD_RULE not in prompt:
-        prompt = (prompt.rstrip() + "\n\n" + HARD_RULE).lstrip()
-        tool_input["prompt"] = prompt
-
-    notes = normalize_agent_tool_input(tool_input, norm, cwd or None)
-    prompt = tool_input.get("prompt") or prompt
-
-    deny_reasons_early: list[str] = []
-
-    if norm in {"verify", "reviewer"} and VERDICT_FIRST_LINE not in prompt:
-        prompt = (prompt.rstrip() + "\n\n" + VERDICT_FIRST_LINE).lstrip()
-        tool_input["prompt"] = prompt
-
-    deny_reasons: list[str] = list(deny_reasons_early)
+    deny_reasons, notes = validate_spawn_input(tool_input, st, cwd or None)
+    norm = normalize_type(tool_input.get("subagent_type") or tool_input.get("agent_type"))
+    definition = _discover_registry(cwd or None).get(norm) if norm else None
     managed = bool(definition is not None and definition.managed)
-    is_gate = bool(definition is not None and definition.mode == "gate")
-    if definition is not None and definition.managed:
-        enabled = definition.loop_enabled if context == "loop" else definition.chat_enabled
-        if not enabled:
-            deny_reasons.append(
-                f"scope_disabled (context={context}); включи _MODEL_{context.upper()}=1"
-            )
-        else:
-            pinned = (env_models.get(agent_model_env_key(norm)) or "").strip()
-            if pinned not in (None, "", "inherit"):
-                tool_input["model"] = pinned
-            elif definition.model not in (None, "inherit"):
-                tool_input["model"] = definition.model
-        if not definition.overlay.allow_worktree:
-            tool_input.pop("isolation", None)
     spawn_model = resolved_spawn_model(tool_input, definition)
-    if spawn_model in (None, "", "inherit") and norm:
-        pinned = (env_models.get(agent_model_env_key(norm)) or "").strip()
-        if pinned not in (None, "", "inherit"):
-            spawn_model = pinned
-            if managed and not tool_input.get("model"):
-                tool_input["model"] = pinned
-    if norm and not deny_reasons:
-        deny_reasons.extend(
-            in_flight_deny_reasons(
-                st,
-                agent=norm,
-                model=spawn_model,
-                managed=managed,
-            )
-        )
-    if is_gate and agent_enabled(norm, cwd or None):
-        missing = missing_contract_sections(norm, prompt)
-        if missing:
-            deny_reasons.append(
-                f"prompt_incomplete: нет секций [{', '.join(missing)}]. "
-                "Добавь заголовки с новой строки "
-                "(ASCII `AC-` ок; Unicode `AC−` ок; `# AC+` ок). Нужны: "
-                + (
-                    "Suite results / AC+ / AC- / 0.11 / ALLOW READ"
-                    if norm == "reviewer"
-                    else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
-                )
-            )
-        for v in allow_read_violations(prompt):
-            deny_reasons.append(v)
+    prompt = tool_input.get("prompt") or ""
 
     if norm == "verify" and agent_enabled("verify", cwd or None):
         if st.get("verify_done") and (
@@ -176,9 +104,7 @@ def main() -> None:
             "В Handoff зафиксируй `NEED_HUMAN: verify_no_verdict` и остановись "
             "(не FINISH шага, не новый @verify)."
             if any("verify_no_verdict" in r for r in deny_reasons)
-            else (
-                f"Исправь prompt/blockers → retry @{norm} (не FINISH)."
-            )
+            else f"Исправь prompt/blockers → retry @{norm} (не FINISH)."
         )
         emit(
             {

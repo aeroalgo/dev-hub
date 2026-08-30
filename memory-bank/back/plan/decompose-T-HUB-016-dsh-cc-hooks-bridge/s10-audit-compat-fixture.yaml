@@ -1,0 +1,53 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-016
+title: "Audit remediation — compat skill fixture and fail-soft smoke"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть source_ref AC+US-003 / FR-005 / NFR-5: доказать на изолированном
+  `.claude/skills` fixture, что compat mount перечисляет skill, и отдельно
+  подтвердить fail-soft поведение при недоступном optional package.
+context:
+  consumes:
+    - memory-bank/back/audit/T-HUB-016-dsh-cc-hooks-bridge/audit-20260829-dsh-cc-hooks-bridge.yaml
+    - dsh/patches/cc-claude-compat.yml
+    - dsh/profiles/epic-implement/cordis.patch.yml
+  produces:
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s10-audit-compat-fixture.yaml
+  plan_refs:
+    - "AC+US-003"
+    - "FR-005"
+    - "NFR-5"
+    - "F3: compat skill listing and fail-soft runtime evidence missing"
+  files:
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s10-audit-compat-fixture.yaml
+
+as_built:
+  - "Compat fragment, optional dependency, required:false, and DSH_CC_COMPAT=0 switch exist; no fixture/runtime listing test exists."
+delta:
+  - "Add an isolated fixture smoke for a representative .claude/skills entry and assert the compat mount exposes it."
+  - "Exercise unavailable compat package behavior and record warning plus successful profile continuation."
+deletes: []
+out_of_scope:
+  - "Making compat mandatory."
+  - "Migrating skills, rules, or commands into DSH-native files."
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "A .claude/skills fixture is listed by the enabled compat mount."
+    verify: "Run the isolated compat fixture smoke against epic-implement configuration and record the listed skill."
+  - id: cp2
+    criterion: "Missing optional compat package emits a warning and does not block profile boot."
+    verify: "Run the profile with the optional package unavailable and record warning plus exit 0."
+
+verify:
+  - "Record fixture skill listing."
+  - "Record fail-soft unavailable-package result."
+tdd: []

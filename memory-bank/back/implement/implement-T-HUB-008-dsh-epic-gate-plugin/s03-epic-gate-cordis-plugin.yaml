@@ -1,0 +1,104 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s03 — epic-gate Cordis plugin — PreToolUse spawn gate wiring IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-008-dsh-epic-gate-plugin/s03-epic-gate-cordis-plugin.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- 's01 ADR PATH_B подтверждает deny-only: DSH PreToolUse не поддерживает updatedInput.'
+- DSH dsh-tools PreToolDecision предоставляет kind=allow|deny; input rewrite исключён
+  контрактом.
+gaps:
+  status: none
+done:
+- Создан thin Cordis epic-gate plugin с deny-only tools/pre-execute обработчиком Agent/Task.
+- Добавлен subprocess round-trip к .claude/hooks/spawn_validate.py с fail-closed обработкой
+  ошибки/некорректного JSON.
+- Epic-gate подключён после cc-hooks-bridge во всех 8 epic-* профилях; зависимости
+  и lockfiles синхронизированы.
+- Добавлен typecheck плагина и CLI round-trip тест неполного verify spawn.
+files:
+- dsh/plugins/epic-gate/package.json
+- dsh/plugins/epic-gate/tsconfig.json
+- dsh/plugins/epic-gate/src/index.ts
+- dsh/plugins/epic-gate/src/pre-tool-use.ts
+- dsh/plugins/epic-gate/cordis.patch.yml
+- dsh/profiles/epic-audit/cordis.patch.yml
+- dsh/profiles/epic-audit/package.json
+- dsh/profiles/epic-audit/pnpm-lock.yaml
+- dsh/profiles/epic-bugfix/cordis.patch.yml
+- dsh/profiles/epic-bugfix/package.json
+- dsh/profiles/epic-bugfix/pnpm-lock.yaml
+- dsh/profiles/epic-creative/cordis.patch.yml
+- dsh/profiles/epic-creative/package.json
+- dsh/profiles/epic-creative/pnpm-lock.yaml
+- dsh/profiles/epic-decompose/cordis.patch.yml
+- dsh/profiles/epic-decompose/package.json
+- dsh/profiles/epic-decompose/pnpm-lock.yaml
+- dsh/profiles/epic-implement/cordis.patch.yml
+- dsh/profiles/epic-implement/package.json
+- dsh/profiles/epic-implement/pnpm-lock.yaml
+- dsh/profiles/epic-plan/cordis.patch.yml
+- dsh/profiles/epic-plan/package.json
+- dsh/profiles/epic-plan/pnpm-lock.yaml
+- dsh/profiles/epic-qa/cordis.patch.yml
+- dsh/profiles/epic-qa/package.json
+- dsh/profiles/epic-qa/pnpm-lock.yaml
+- dsh/profiles/epic-reflect/cordis.patch.yml
+- dsh/profiles/epic-reflect/package.json
+- dsh/profiles/epic-reflect/pnpm-lock.yaml
+- dsh/scripts/install-cc-hooks.sh
+- .claude/hooks/tests/test_spawn_validate.py
+deletes:
+- n/a
+tests:
+- '`timeout 300s python3 -m pytest .claude/hooks/tests/test_spawn_validate.py -q --tb=line`
+  — PASS (6 passed)'
+- '`timeout 300s npm exec tsc -- --noEmit` — PASS'
+- '`timeout 300s python3 .claude/hooks/spawn_validate.py` CLI round-trip for incomplete
+  verify spawn — PASS (prompt_incomplete deny)'
+integration_check:
+- '`.claude/hooks/spawn_validate.py` exists and is invoked by epic-gate via configured
+  absolute/relative validator path.'
+- All epic-* profile patch rows reference `@dev-hub/dsh-epic-gate` after `cc-hooks-bridge`;
+  plugin peer dependencies match installed DSH packages.
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: epic-gate scaffold files exist.'
+- 'cp2 PASS: handler invokes spawn_validate subprocess and consumes deny_reasons.'
+- 'cp3 PASS: all 8 epic-* profiles include epic-gate after cc-hooks-bridge.'
+- 'cp4 PASS: `timeout 300s pnpm --dir dsh/plugins/epic-gate typecheck` exits 0.'
+- 'Python validator suite: 6 passed.'
+- 'Round-trip incomplete verify spawn: stable `prompt_incomplete` deny reason.'
+checkpoints:
+- id: cp1
+  criterion: ls dsh/plugins/epic-gate/src/index.ts dsh/plugins/epic-gate/package.json
+    → exit 0
+  status: done
+  done_at: '2026-08-30T09:28:24Z'
+- id: cp2
+  criterion: grep -n 'spawn_validate\|spawnValidate' dsh/plugins/epic-gate/src/pre-tool-use.ts
+    — непустой вывод
+  status: done
+  done_at: '2026-08-30T09:28:25Z'
+- id: cp3
+  criterion: grep -r 'epic-gate' dsh/profiles/epic-*/cordis.patch.yml | wc -l — ≥
+    8
+  status: done
+  done_at: '2026-08-30T09:28:25Z'
+- id: cp4
+  criterion: cd dsh/plugins/epic-gate && pnpm typecheck → exit 0
+  status: done
+  done_at: '2026-08-30T09:28:25Z'
+resume_from: cp1

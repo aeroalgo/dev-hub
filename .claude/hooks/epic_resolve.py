@@ -31,6 +31,7 @@ from epic_lib import (  # noqa: E402
 from epic_yaml import (  # noqa: E402
     load_implement,
     seed_implement_from_decompose,
+    validate_decompose_tree,
     validate_shard_yaml_full,
 )
 from _lib import resolve_cli_cwd  # noqa: E402
@@ -52,6 +53,16 @@ def main() -> int:
     p_val.add_argument("--path", required=True)
     p_val.add_argument("--verdict", default=None)
     p_val.add_argument("--strict", action="store_true")
+
+    p_val_tree = sub.add_parser(
+        "validate-decompose-tree",
+        help="lint all sNN|eNN shards listed in decompose index.yaml (DECOMPOSE FINISH gate)",
+    )
+    p_val_tree.add_argument(
+        "--decompose",
+        required=True,
+        help="decompose dir | index.yaml | index.md | any step shard in that dir",
+    )
 
     p_finish = sub.add_parser(
         "validate-finish-integrity",
@@ -140,6 +151,16 @@ def main() -> int:
             "path": rel,
             "errors": errors,
             "warnings": warnings,
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if payload["ok"] else 2
+
+    if args.cmd == "validate-decompose-tree":
+        errors = validate_decompose_tree(cwd, args.decompose)
+        payload = {
+            "ok": not errors,
+            "decompose": args.decompose,
+            "errors": errors,
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if payload["ok"] else 2

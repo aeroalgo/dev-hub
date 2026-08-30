@@ -1,26 +1,40 @@
-import { BridgeConfig } from './python-bridge';
-import { registerBridgeRoute } from './intercept-run';
+import type { Context } from '@deepseek-ai/cordis';
+import type {} from '@deepseek-ai/dsh-host-webserver';
 
-export interface CordisContext {
-  host?: {
-    post: (path: string, handler: (request: unknown) => unknown) => void;
-  };
-  config?: Record<string, unknown>;
-  inject?: (slot: string, component: unknown) => void;
+import { makeMbBridgeRoute, makeMbBridgeWorkspacesRoute } from './host-routes.ts';
+import {
+  createStockRunAdapter,
+  STOCK_RUN_SLOT,
+} from './intercept-run.ts';
+import { validateBridgeConfig } from './python-bridge.ts';
+import {
+  createWorkspaceListAdapter,
+  type WorkspaceListHost,
+} from './workspace-list.ts';
+
+interface BridgeContext extends Context, WorkspaceListHost {
+  inject?: (slot: string, value: unknown) => void;
 }
 
-export function loadBridgeConfig(raw: Record<string, unknown> = {}): BridgeConfig {
-  const section = raw['mb-bridge'];
-  if (!section || typeof section !== 'object') return {};
-  return section as BridgeConfig;
+export const inject = ['webServer'];
+
+export function loadBridgeConfig(raw: Record<string, unknown> = {}): Record<string, unknown> {
+  const section = raw['mb-bridge'] ?? raw;
+  if (section === undefined) return {};
+  if (typeof section !== 'object' || section === null || Array.isArray(section)) {
+    throw new Error('mb-bridge config must be a mapping');
+  }
+  return validateBridgeConfig(section as Record<string, unknown>);
 }
 
-export function apply(ctx: CordisContext): void {
-  const config = loadBridgeConfig(ctx.config);
-  if (ctx.host) registerBridgeRoute(ctx.host, config);
-  ctx.inject?.('task-board.header', 'mb-bridge/board-controls');
-  ctx.inject?.('task-board.card-detail.actions', 'mb-bridge/card-actions');
-  ctx.inject?.('task-board.stock-run-prompt', 'mb-bridge/deny-stock-run');
+export function apply(ctx: Context, rawConfig?: Record<string, unknown>): void {
+  const config = loadBridgeConfig(rawConfig ?? {});
+  if (config.enabled === false) return;
+  const bridgeContext = ctx as BridgeContext;
+  ctx.webServer.register(makeMbBridgeRoute(config));
+  ctx.webServer.register(makeMbBridgeWorkspacesRoute());
+  ctx.inject?.(STOCK_RUN_SLOT, createStockRunAdapter(config));
+  ctx.inject?.('workspace.list', createWorkspaceListAdapter(bridgeContext));
 }
 
-export default apply;
+export default { inject, apply };

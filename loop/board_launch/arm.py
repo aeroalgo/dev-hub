@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from loop.context_loop import arm_session
 
 from loop.board_sync.card_model import CardKind
 
+from .loop_argv import BridgeConfig
 from .metadata import LaunchCard
 
 
@@ -37,21 +37,32 @@ class ArmResult:
 def arm_from_card(
     launch_card: LaunchCard,
     cwd_override: str | Path | None = None,
+    config: BridgeConfig | None = None,
 ) -> ArmResult:
     """Arm the product loop and enforce card-specific launch invariants."""
     if not isinstance(launch_card, LaunchCard):
         raise TypeError("launch_card must be a LaunchCard")
 
-    if launch_card.card_kind is CardKind.GATE and (
-        (launch_card.gate_phase or "").upper() == "ROADMAP"
-        and not _has_explicit_epic(launch_card)
+    is_roadmap = (
+        launch_card.card_kind is CardKind.GATE
+        and (launch_card.gate_phase or "").upper() == "ROADMAP"
+    )
+    if is_roadmap and (
+        config is None
+        or not config.is_enabled()
+        or not config.allows_roadmap_advance()
+        or not _has_explicit_epic(launch_card)
     ):
         raise RoadmapAdvanceDeniedError(
-            "ROADMAP gate requires explicit_epic metadata when roadmap advance is disabled"
+            "ROADMAP gate requires enabled bridge, explicit allowRoadmapAdvance, and epic metadata"
         )
 
+    target = _explicit_roadmap_target(launch_card) if is_roadmap else launch_card.decompose_rel
+    if not isinstance(target, str) or not target.strip():
+        raise ValueError("launch card is missing an arm target")
+
     project_root = Path(cwd_override) if cwd_override is not None else Path(launch_card.project_root)
-    armed = arm_session(project_root, launch_card.decompose_rel)
+    armed = arm_session(project_root, target)
     if not armed.get("ok"):
         error = armed.get("error") or armed.get("reason") or "arm failed"
         raise RuntimeError(str(error))
@@ -68,11 +79,20 @@ def arm_from_card(
     return ArmResult(step_id=step_id, armed_epic=armed_epic, ok=True)
 
 
+def _explicit_roadmap_target(launch_card: LaunchCard) -> str:
+    """Return the validated explicit roadmap epic/decompose target."""
+    raw = launch_card.raw
+    for key in ("explicit_epic", "epic_id", "next_epic_id"):
+        value = raw.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise RoadmapAdvanceDeniedError("ROADMAP gate requires explicit epic metadata")
+
+
 def _has_explicit_epic(launch_card: LaunchCard) -> bool:
     """Return whether the card explicitly authorizes a roadmap epic."""
-    raw = launch_card.raw
-    return bool(
-        raw.get("explicit_epic")
-        or raw.get("epic_id")
-        or raw.get("next_epic_id")
-    )
+    try:
+        _explicit_roadmap_target(launch_card)
+    except RoadmapAdvanceDeniedError:
+        return False
+    return True

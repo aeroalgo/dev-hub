@@ -1346,9 +1346,9 @@ def missing_contract_sections(agent: str | None, prompt: str) -> list[str]:
 
 
 def _allow_section_body(prompt: str) -> str | None:
-    m = re.search(_HD + r"ALLOW READ\s*[:：]?\s*(.*)$", prompt or "")
+    m = re.search(_HD + r"ALLOW READ[ \t]*[:：]?[ \t]*(.*)$", prompt or "")
     if not m:
-        m = re.search(_HD + r"ALLOW\s*[:：]\s*(.*)$", prompt or "")
+        m = re.search(_HD + r"ALLOW[ \t]*[:：][ \t]*(.*)$", prompt or "")
     if not m:
         return None
     start = m.end()
@@ -1393,6 +1393,14 @@ def allow_read_violations(prompt: str) -> list[str]:
     viol: list[str] = []
     trees: list[str] = []
     files: list[str] = []
+    for line in body.splitlines():
+        candidate = line.strip().lstrip("-* ").strip("`").rstrip(",;")
+        if candidate.endswith("/") or re.fullmatch(r"(?:[\\w.+-]+/)+", candidate):
+            if candidate not in trees:
+                trees.append(candidate)
+
+    paths = [path for path in paths if path not in trees]
+
     for p in paths:
         name = Path(p.rstrip("/")).name
         is_file = (

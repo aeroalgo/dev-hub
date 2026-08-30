@@ -43,10 +43,26 @@ class BridgeConfig:
     default_runtime: str = "host"
     allow_roadmap_advance: bool = False
     sync_after_loop: bool = True
+    enabled: bool = True
+
+    def allows_roadmap_advance(self) -> bool:
+        """Return whether roadmap advancement was explicitly enabled."""
+        return self.allow_roadmap_advance is True
+
+    def is_enabled(self) -> bool:
+        """Return whether the bridge may launch work."""
+        return self.enabled is True
 
     def __post_init__(self) -> None:
+        if not isinstance(self.allow_roadmap_advance, bool):
+            raise TypeError("allow_roadmap_advance must be a boolean")
+        if not isinstance(self.sync_after_loop, bool):
+            raise TypeError("sync_after_loop must be a boolean")
+        if not isinstance(self.enabled, bool):
+            raise TypeError("enabled must be a boolean")
         if len(self.model_presets) > _MAX_PRESETS:
             raise ValueError("model presets must contain at most 8 entries")
+
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,17 +72,18 @@ class LoopArgvResult:
     argv: list[str]
     env_extra: dict[str, str]
     model_source: str
+    model_env: str | None = None
 
 
-def _project_env_model(project_root: Path, phase: str) -> str | None:
-    """Read the phase model override from the product checkout env file."""
+def _project_env_model(project_root: Path, phase: str) -> tuple[str | None, str]:
+    """Read the phase model override and its key from the product env file."""
+    key = f"PROJECT_LOOP_{phase.upper()}_MODEL"
     env_path = project_root / ".claude" / "project.env"
     try:
         lines = env_path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return None
+        return None, key
 
-    key = f"PROJECT_LOOP_{phase.upper()}_MODEL"
     for line in lines:
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
@@ -79,8 +96,8 @@ def _project_env_model(project_root: Path, phase: str) -> str | None:
                 or (value.startswith("'") and value.endswith("'"))
             ):
                 value = value[1:-1]
-            return value or None
-    return None
+            return value or None, key
+    return None, key
 
 
 def _base_argv(project_root: Path, config: BridgeConfig) -> list[str]:
@@ -98,9 +115,15 @@ def build_loop_argv(
     root = Path(project_root)
     argv = _base_argv(root, config)
     env_extra = {"EPIC_RUNTIME": "dsh"} if runtime == "dsh" else {}
+    env_model, env_key = _project_env_model(root, phase)
 
-    if _project_env_model(root, phase) is not None:
-        return LoopArgvResult(argv=argv, env_extra=env_extra, model_source="env")
+    if env_model is not None:
+        return LoopArgvResult(
+            argv=argv,
+            env_extra=env_extra,
+            model_source="env",
+            model_env=env_key,
+        )
 
     if preset_id is not None:
         preset = next((entry for entry in config.model_presets if entry.id == preset_id), None)

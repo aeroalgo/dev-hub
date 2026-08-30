@@ -10,6 +10,7 @@ from loop.board_launch.arm import (
     StepMismatchError,
     arm_from_card,
 )
+from loop.board_launch.loop_argv import BridgeConfig
 from loop.board_launch.metadata import LaunchCard
 from loop.board_sync.card_model import CardKind
 
@@ -127,6 +128,87 @@ def test_gate_arm_happy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     result = arm_from_card(card)
 
     assert result == ArmResult(step_id="QA", armed_epic="demo", ok=True)
+
+
+def test_gate_roadmap_explicit_opt_in_allows_arm(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    card = _card(
+        tmp_path,
+        kind=CardKind.GATE,
+        gate_phase="ROADMAP",
+        explicit_epic="T-NEXT",
+    )
+    calls: list[tuple[Path, str]] = []
+    monkeypatch.setattr(
+        "loop.board_launch.arm.arm_session",
+        lambda root, target: (
+            calls.append((Path(root), target))
+            or {"ok": True, "step_id": "s01", "epic_id": "T-NEXT"}
+        ),
+    )
+
+    result = arm_from_card(
+        card,
+        config=BridgeConfig(loop_bin="/bin/loop", allow_roadmap_advance=True),
+    )
+
+    assert result == ArmResult(step_id="s01", armed_epic="T-NEXT", ok=True)
+    assert calls == [(tmp_path, "T-NEXT")]
+
+
+def test_gate_roadmap_disabled_config_denies_before_arm(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    card = _card(
+        tmp_path,
+        kind=CardKind.GATE,
+        gate_phase="ROADMAP",
+        explicit_epic="T-NEXT",
+    )
+    called = False
+
+    def arm(*_args: object) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return {"ok": True, "step_id": "s01", "epic_id": "T-NEXT"}
+
+    monkeypatch.setattr("loop.board_launch.arm.arm_session", arm)
+
+    with pytest.raises(RoadmapAdvanceDeniedError):
+        arm_from_card(
+            card,
+            config=BridgeConfig(loop_bin="/bin/loop", allow_roadmap_advance=False),
+        )
+
+    assert called is False
+
+
+def test_gate_roadmap_reason_code_is_not_explicit_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    card = _card(
+        tmp_path,
+        kind=CardKind.GATE,
+        gate_phase="ROADMAP",
+        reason_code="needs_review",
+    )
+    called = False
+
+    def arm(*_args: object) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return {"ok": True, "step_id": "s01", "epic_id": "needs_review"}
+
+    monkeypatch.setattr("loop.board_launch.arm.arm_session", arm)
+
+    with pytest.raises(RoadmapAdvanceDeniedError):
+        arm_from_card(
+            card,
+            config=BridgeConfig(loop_bin="/bin/loop", allow_roadmap_advance=True),
+        )
+
+    assert called is False
 
 
 def test_arm_uses_project_root_override(

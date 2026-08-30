@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s08
+title: "AUDIT remediation — native DSH typed agent identity and preset contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть partial finding по source_ref FR-004 / US-002: native DSH SubagentStart
+  должен надёжно связать preset/tool с verify|reviewer|explorer и передать child
+  соответствующий contract, не дублируя Python hook bridge.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-008-dsh-epic-gate-plugin/audit-20260830-dsh-epic-gate-plugin.yaml"
+    - "dsh/plugins/epic-gate/src/index.ts"
+    - "dsh/plugins/epic-gate/src/subagent-stop.ts"
+    - ".claude/hooks/subagent-start.py"
+    - "dsh/README.md"
+  produces:
+    - "native typed SubagentStart mapping evidence"
+    - "bounded DSH contract-injection smoke"
+  plan_refs:
+    - "FR-004"
+    - "US-002"
+    - "SC-002"
+    - "AC+2"
+  files:
+    - "dsh/plugins/epic-gate/src/index.ts"
+    - "dsh/plugins/epic-gate/src/subagent-start.ts"
+    - "loop/tests/test_dsh_epic_gate_gaps.py"
+    - "dsh/plugins/epic-gate/README.md"
+
+as_built:
+  - "subagent-start.py resolves agent_type, subagent_type and type and emits preset mapping, but the native epic-gate plugin has no SubagentStart handler."
+  - "dsh/README.md:205 documents the native agent_type limitation as deferred."
+  - "subagent-stop.ts contains a preset map for stop enrichment, not child-start contract injection."
+
+delta:
+  - "Добавить thin native SubagentStart adapter или эквивалентный preset/tool mapping на доступном DSH lifecycle API."
+  - "Передавать verify/reviewer/explorer contract и canonical agent_type в child context; неизвестный тип не должен получать guessed contract."
+  - "Добавить bounded smoke для трёх preset ids и unknown type, включая доказательство отсутствия full Python hook port."
+  - "Обновить parity README: Gap B закрыт только если smoke подтверждает mapping; иначе зафиксировать явный supported limitation и согласовать FR-004 decision."
+
+deletes: []
+
+out_of_scope:
+  - "Полная реимплементация .claude/hooks/subagent-start.py в TypeScript."
+  - "Изменение официального cc-hooks-bridge или Stop self-limit из T-HUB-016."
+  - "Автоматическое удаление Python hook или preset definitions."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/typescript/SKILL.md"
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Native SubagentStart path or an explicit fail-closed supported limitation is implemented and documented."
+    verify: "rg -n 'SubagentStart|subagent/start|agent_type|preset.verify|preset.reviewer|preset.explorer' dsh/plugins/epic-gate/src dsh/plugins/epic-gate/README.md"
+  - id: cp2
+    criterion: "verify, reviewer and explorer map to their own contracts without guessing unknown types."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'agent_type or preset or subagent_start' -q --tb=line"
+  - id: cp3
+    criterion: "The DSH smoke proves child contract visibility and preserves the Python bridge as source of truth."
+    verify: "timeout 300s pnpm --dir dsh/plugins/epic-gate run typecheck"
+
+verify:
+  - "rg -n 'SubagentStart|subagent/start|agent_type|preset' dsh/plugins/epic-gate/src"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'agent_type or preset or subagent_start' -q --tb=line"
+  - "timeout 300s pnpm --dir dsh/plugins/epic-gate run typecheck"
+
+tdd:
+  - "test: verify preset injects the verify contract"
+  - "test: reviewer and explorer presets inject their matching contracts"
+  - "test: unknown or malformed type fails closed without guessed contract"
+
+requirements_covered:
+  - FR-004
+  - US-002
+  - SC-002
+  - AC+2
+
+gaps:
+  status: open
+  source_ref: FR-004
+  resolves_at: cp1-cp3

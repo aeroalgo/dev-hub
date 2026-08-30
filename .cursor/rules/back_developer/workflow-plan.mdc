@@ -37,9 +37,14 @@ alwaysApply: false
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); multi-epic → next = `BACK ROADMAP MERGE` → затем `BACK DECOMPOSE` первого из **canon** `roadmap-epics.queue.yaml`
+7a1. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
+    `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
+    (нет `loop/` в продукте → `dev-hub/loop/context_loop.py` с тем же `--cwd`).
+    Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**, покажи JSON, не FINISH.
+    Нет slug-источников и нет canon → skip CLI (single-epic без queue). Иначе merge **всегда**.
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon `roadmap-epics.md` + `roadmap-epics.queue.yaml` + первый `plan-*.md` из canon (multi-epic) **или** единственный plan (single-epic)
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
-8. Next: L2+ обычно → **BACK DECOMPOSE**; CREATIVE если дизайн; L1 → IMPLEMENT
+8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из **canon** (после merge); CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
 

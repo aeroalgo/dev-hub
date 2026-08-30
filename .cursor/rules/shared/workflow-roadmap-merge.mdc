@@ -51,13 +51,15 @@ Hub: `dev-hub/bin/loop` / `make loop` → тот же `context_loop`. Реали
 6. Обновить `tasks.md` (строка: active canon path) + `activeContext.md` load_now: canon md + queue + first plan
 7. FINISH: next = `{ROLE} DECOMPOSE <queue[0].id>` (если первый без decompose) иначе status из smart entry
 
+**PLAN inline:** тот же CLI и правила; не ждать эту команду.
+
 ## Когда вызывать
 
-- После каждого MULTI-EPIC PLAN (slug queue создан)
-- Когда появились ≥2 slug queues без актуального канона
+- **HARD внутри `* PLAN`:** после записи slug/plan артефактов агент **сам** запускает CLI `roadmap-merge` в той же сессии (см. `workflow-*-plan.mdc`). Next PLAN = DECOMPOSE, не MERGE.
+- Когда появились ≥2 slug queues без актуального канона **и** PLAN не запускался (ops / ручной ремонт)
 - Перед `EPIC_CHAIN_ROADMAP=1` loop, если канон отсутствует/устарел
 
-**Не** заменяет PLAN/DECOMPOSE. **Не** ARCHIVE.
+**Не** заменяет PLAN/DECOMPOSE. **Не** ARCHIVE. Отдельная команда `{ROLE} ROADMAP MERGE` остаётся для ops, не как обязательный шаг после PLAN.
 
 ## FAIL
 

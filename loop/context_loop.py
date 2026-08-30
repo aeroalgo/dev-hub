@@ -51,6 +51,7 @@ from epic import (  # noqa: E402
     epic_complete_allowed,
     extract_handoff_block,
     extract_load_now,
+    handoff_post_implement_phase,
     fingerprint_context,
     load_checkpoint,
     load_decompose_steps_fail_closed,
@@ -68,6 +69,7 @@ from epic import (  # noqa: E402
     verify_pass_step_blockers,
     gates_from_phase,
     discover_epic_for_pipeline,
+    post_implement_phase,
     _event_log_path,
     utc_now,
 )
@@ -248,9 +250,9 @@ def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
 
 
 def mb_paths_for_prompt(cwd: str | Path, load_now: list[str]) -> list[str]:
-    out: list[str] = ["memory-bank/activeContext.md"]
-    seen = set(out)
-    root = Path(cwd)
+    root = Path(cwd).resolve()
+    out = [str(root / "memory-bank" / "activeContext.md")]
+    seen = {out[0]}
     for raw in load_now:
         p = raw.strip()
         if not p.startswith("memory-bank/"):
@@ -258,11 +260,13 @@ def mb_paths_for_prompt(cwd: str | Path, load_now: list[str]) -> list[str]:
                 p = f"memory-bank/{p}"
             else:
                 continue
-        if p in seen:
+        abs_path = str((root / p).resolve())
+        if abs_path in seen:
             continue
-        if (root / p).is_file() or (root / p).is_dir():
-            out.append(p)
-            seen.add(p)
+        rel = root / p
+        if rel.is_file() or rel.is_dir():
+            out.append(abs_path)
+            seen.add(abs_path)
     return out
 
 
@@ -685,7 +689,7 @@ FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
         degraded_block = f"""
 ## Context degraded
 activeContext не разобран ({'; '.join(reasons)}). Не halt.
-1. Прочитай `memory-bank/activeContext.md`.
+1. Прочитай `$PROJECT_ROOT/memory-bank/activeContext.md`.
 2. Найди `memory-bank/**/plan/decompose-*/index.yaml` (pending/active).
 3. Один следующий шаг (режим + step_id).
 4. На FINISH перепиши activeContext:
@@ -770,6 +774,13 @@ def _incomplete_step_fix_blocks(cwd: Path) -> list[str]:
     ]
 
 
+_POST_IMPLEMENT_PHASES = frozenset({"AUDIT", "QA", "REFLECT", "BUGFIX"})
+
+
+def _is_post_implement_step(step_id: str | None) -> bool:
+    return str(step_id or "").strip().upper() in _POST_IMPLEMENT_PHASES
+
+
 def _index_step_is_completed(cwd: Path, step_id: str | None) -> bool:
     sid = str(step_id or "").strip()
     if not sid or not re.match(r"^[sera]\d{2}$", sid.lower()):
@@ -786,6 +797,28 @@ def _index_step_is_completed(cwd: Path, step_id: str | None) -> bool:
             continue
         return str(item.get("status") or "").lower() in {"completed", "done"}
     return False
+
+
+def _checkpoint_should_advance_after_session(cwd: Path, step_id: str | None) -> bool:
+    return _index_step_is_completed(cwd, step_id) or _is_post_implement_step(step_id)
+
+
+def _stale_post_implement_identity_conflict(
+    resume: dict[str, Any],
+    *,
+    expected_step: str | None,
+) -> bool:
+    if resume.get("code") != "checkpoint_identity_conflict":
+        return False
+    checkpoint = resume.get("checkpoint") or {}
+    if checkpoint.get("stage") != "committed" or checkpoint.get("resume_policy") != "same_step":
+        return False
+    actual = checkpoint.get("identity") or {}
+    actual_step = str(actual.get("step") or checkpoint.get("step_id") or "").strip().upper()
+    expected = str(expected_step or "").strip().upper()
+    if not actual_step or not expected or actual_step == expected:
+        return False
+    return actual_step in _POST_IMPLEMENT_PHASES and expected in _POST_IMPLEMENT_PHASES
 
 
 def _step_context_extra_blocks(cwd: Path, load_now: list[str]) -> list[str]:
@@ -1017,11 +1050,23 @@ def prepare_session(
     projection = rebuild_epic_projection(cwd_p)
     text = read_active_context(cwd_p)
     state = load_epic_state(cwd_p)
+    handoff_phase = handoff_post_implement_phase(text)
     proj = projection.get("projection") if isinstance(projection.get("projection"), dict) else {}
     proj_phase = str(
         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
     ).upper()
-    if proj_phase == "DONE":
+    if handoff_phase in {"AUDIT", "REFLECT", "BUGFIX"}:
+        state["armed_step"] = handoff_phase
+        state["phase"] = handoff_phase
+        state["active"] = True
+        state["status"] = "running"
+        save_epic_state(cwd_p, state)
+        proj_phase = handoff_phase
+    if proj_phase == "DONE" and handoff_phase not in {
+        "AUDIT",
+        "REFLECT",
+        "BUGFIX",
+    }:
         # Clear stale AUDIT/QA/REFLECT armed_step so banner/model key match DONE.
         if state.get("armed_step") not in (None, "", "DONE"):
             state["armed_step"] = None
@@ -1112,7 +1157,16 @@ def prepare_session(
         conflict_code = resume.get("code") or resume.get("decision")
         # Fingerprints drift after arm / AC rewrite. Prepare always writes a fresh
         # "prepared" checkpoint later — drop the stale file and continue.
-        if conflict_code == "checkpoint_projection_conflict":
+        if conflict_code in {
+            "checkpoint_projection_conflict",
+            "checkpoint_identity_conflict",
+        } and (
+            conflict_code == "checkpoint_projection_conflict"
+            or _stale_post_implement_identity_conflict(
+                resume,
+                expected_step=str(state.get("armed_step") or ""),
+            )
+        ):
             cleared = clear_runner_checkpoint(cwd_p)
             if not cleared.get("ok"):
                 return {
@@ -1597,10 +1651,11 @@ def check_after(
         cp = load_checkpoint(cwd_p)
         if cp:
             step_id = str(st.get("armed_step") or cp.get("step_id") or "").strip()
-            step_completed = _index_step_is_completed(cwd_p, step_id)
-            # Only advance-to-next-step when the armed step is actually finalized.
-            # Otherwise same_step — avoids committed/next_step ghosts that halt re-arm
-            # with checkpoint_projection_conflict while index still pending.
+            step_completed = _checkpoint_should_advance_after_session(cwd_p, step_id)
+            # Advance when index step finalized or post-implement phase finished
+            # (AUDIT/QA/REFLECT/BUGFIX). Otherwise same_step — avoids committed/next_step
+            # ghosts that halt re-arm with checkpoint_projection_conflict while index
+            # still pending.
             checkpoint_lifecycle(
                 cwd_p,
                 checkpoint_id=cp["checkpoint_id"],
@@ -1618,6 +1673,12 @@ def check_after(
                 next_action="advance" if step_completed else "resume",
                 resume_policy="next_step" if step_completed else "same_step",
             )
+    post_phase = None
+    epic_info = discover_epic_for_pipeline(cwd_p)
+    if epic_info:
+        post_phase, _, _ = post_implement_phase(
+            cwd_p, epic_info["role_dir"], epic_info["epic_id"]
+        )
     return {
         "ok": True,
         "complete": False,
@@ -1626,6 +1687,7 @@ def check_after(
         "shape_errors": shape,
         "degraded": degraded,
         "fingerprint_repair": fingerprint_repair,
+        "post_implement_phase": post_phase,
     }
 
 

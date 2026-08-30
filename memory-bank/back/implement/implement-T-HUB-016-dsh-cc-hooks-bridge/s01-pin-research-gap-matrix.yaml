@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-016
+title: s01 — Gap matrix doc + version pin — bridge known gaps catalogued for T-HUB-008
+  IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-016-dsh-cc-hooks-bridge/s01-pin-research-gap-matrix.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена секция Hooks bridge в dsh/README.md с матрицей всех hook-событий, статусами
+  mount и владельцами gaps.
+- Зафиксированы проверенные registry pins @deepseek-ai/dsh@0.1.1-rc.2 и @deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5
+  с pin-before-install инструкциями.
+- Pinned bridge package записан в dsh/patches/package.json в поле dsh.hooksBridge.
+files:
+- dsh/README.md
+- dsh/patches/package.json
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py -q --tb=line`'
+- '`grep -c ''T-HUB-008\|self-limit'' dsh/README.md | grep -E ''[5-9]|[1-9][0-9]''`
+  — PASS (10)'
+- '`grep -c ''SubagentStop\|SubagentStart\|UserPromptSubmit\|SessionStart\|PreToolUse\|PostToolUse\|Stop
+  '' dsh/README.md | grep -E ''[7-9]|[1-9][0-9]''` — PASS (10)'
+- '`grep -q ''dsh-hooks-claude-code'' dsh/README.md` — PASS'
+- pytest targeted command passed; docs checks passed.
+integration_check:
+- '`.claude/settings.json`: сверены 9 hook-строк (SessionStart, UserPromptSubmit,
+  PreToolUse×2, PostToolUse×2, SubagentStart, SubagentStop, Stop) с README matrix.'
+- 'npm registry metadata: @deepseek-ai/dsh = 0.1.1-rc.2; @deepseek-ai/dsh-hooks-claude-code
+  = 0.0.1-rc.5 (2026-08-29).'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: 10 owner markers; table has 9 event rows.'
+- 'cp2 PASS: 10 event markers; all settings.json events represented.'
+- 'cp3 PASS: bridge package and exact pin/install instructions present.'
+checkpoints:
+- id: cp1
+  criterion: dsh/README.md содержит §Hooks bridge с таблицей ≥ 5 строк, у каждой строки
+    — поле owner (T-HUB-008 или self-limit)
+  status: done
+- id: cp2
+  criterion: Таблица содержит все 9 hook-событий из settings.json (SessionStart, UserPromptSubmit,
+    PreToolUse×2, PostToolUse×2, SubagentStart, SubagentStop, Stop)
+  status: done
+- id: cp3
+  criterion: dsh/README.md §Version pinning упоминает dsh-hooks-claude-code с инструкцией
+    по pin
+  status: done

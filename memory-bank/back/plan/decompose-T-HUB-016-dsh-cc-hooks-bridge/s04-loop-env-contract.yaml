@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-016
+title: "Loop env contract — DSH_HOOKS_BRIDGE + CLAUDE_PROJECT_DIR propagation from loop.sh"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Прокинуть из `loop/loop.sh` (или эквивалентного loop entry) переменные окружения:
+  `CLAUDE_PROJECT_DIR=$PROJECT_ROOT` и `DSH_HOOKS_BRIDGE=1` при `EPIC_RUNTIME=dsh`;
+  обеспечить доступность `DEV_HUB` для hooks, которым нужны hub-пути (product ≠ hub);
+  обновить документацию env bridge в `dsh/README.md §Environment`.
+  Outcome: bridge plugin получает `projectDir` / `configPath` корректно из env; stop-gate может детектировать DSH среду (FR-007 prereq).
+
+context:
+  consumes:
+    - loop/loop.sh или loop/context_loop.py  # точка export env vars
+    - dsh/README.md §Environment             # существующий список env vars
+    - .claude/hooks/_lib.py                  # is_epic_loop_env(), EPIC_RUNTIME, _lib env loading
+    - dsh/patches/cc-hooks-bridge.yml        # s02 output — читает CLAUDE_PROJECT_DIR
+  produces:
+    - loop/loop.sh или loop entry point      # добавить export DSH_HOOKS_BRIDGE=1, CLAUDE_PROJECT_DIR
+    - dsh/README.md                          # обновить §Environment таблицу
+  plan_refs:
+    - FR-004  # CLAUDE_PROJECT_DIR = PROJECT_ROOT; DEV_HUB available
+    - FR-007  # stop-gate detect via EPIC_RUNTIME=dsh или DSH_HOOKS_BRIDGE=1
+  files:
+    - loop/loop.sh  # или loop/context_loop.py — уточнить на IMPLEMENT
+    - dsh/README.md
+
+as_built:
+  - "loop/loop.sh: существует; экспортирует EPIC_LOOP=1, PROJECT_ROOT, EPIC_RUNTIME; НЕТ DSH_HOOKS_BRIDGE, НЕТ CLAUDE_PROJECT_DIR как явного export"
+  - "_lib.py: is_epic_loop_env() → EPIC_LOOP=1; load_epic_config() читает EPIC_RUNTIME из .claude/project.env"
+  - "dsh/README.md §Environment: содержит DEEPSEEK_API_KEY, EPIC_RUNTIME, DSH_BIN; НЕТ CLAUDE_PROJECT_DIR, DSH_HOOKS_BRIDGE"
+
+delta:
+  - "loop/loop.sh (или wrapper) EDIT: при EPIC_RUNTIME=dsh добавить `export DSH_HOOKS_BRIDGE=1` и `export CLAUDE_PROJECT_DIR=$PROJECT_ROOT` перед вызовом DSH CLI"
+  - "loop/loop.sh EDIT: если DEV_HUB не установлен, export DEV_HUB=$(dirname «hub path») при наличии известного hub"
+  - "dsh/README.md §Environment EDIT: добавить строки DSH_HOOKS_BRIDGE (=1 when bridge active) и CLAUDE_PROJECT_DIR (= PROJECT_ROOT) в таблицу env vars"
+
+deletes: []
+# Нет файлов для удаления — только добавление export строк и docs.
+
+out_of_scope:
+  - "Изменение _lib.py detect logic (s05 читает DSH_HOOKS_BRIDGE)"
+  - "Изменение Cordis fragment (s02)"
+  - "dsh-claude-compat env (s06)"
+
+skills:
+  code_surface: infra
+  impl:
+    # bash + docs edit; нет Python кода; Core не применяется
+    []
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/loop.sh или wrapper экспортирует DSH_HOOKS_BRIDGE=1 при EPIC_RUNTIME=dsh"
+    verify: "grep -q 'DSH_HOOKS_BRIDGE' loop/loop.sh"
+  - id: cp2
+    criterion: "CLAUDE_PROJECT_DIR явно экспортируется при dsh path в loop script"
+    verify: "grep -q 'CLAUDE_PROJECT_DIR' loop/loop.sh"
+  - id: cp3
+    criterion: "dsh/README.md §Environment упоминает DSH_HOOKS_BRIDGE и CLAUDE_PROJECT_DIR"
+    verify: "grep -q 'DSH_HOOKS_BRIDGE' dsh/README.md && grep -q 'CLAUDE_PROJECT_DIR' dsh/README.md"
+
+verify:
+  - "grep -q 'DSH_HOOKS_BRIDGE' loop/loop.sh"
+  - "grep -q 'CLAUDE_PROJECT_DIR' dsh/README.md"
+
+tdd: []

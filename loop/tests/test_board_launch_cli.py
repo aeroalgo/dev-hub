@@ -97,6 +97,25 @@ def test_runtime_flag(tmp_path: Path, monkeypatch) -> None:
     assert seen[0].env_extra == {"EPIC_RUNTIME": "dsh"}
 
 
+def test_loop_result_prints_model_source_and_env_key(tmp_path: Path, monkeypatch, capsys) -> None:
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    monkeypatch.setenv("DEV_HUB", str(hub))
+    result = ExecutionResult(
+        "succeeded",
+        0,
+        model_source="env",
+        model_env="PROJECT_LOOP_IMPLEMENT_MODEL",
+    )
+    monkeypatch.setattr("loop.board_sync.cli.loop_run", lambda *_args: result)
+
+    assert main(["loop", "--task-id", "mb-demo"], client=_client(tmp_path)) == 0
+
+    output = capsys.readouterr().out
+    assert "model_source=env" in output
+    assert "model_env=PROJECT_LOOP_IMPLEMENT_MODEL" in output
+
+
 def test_loop_records_success_on_board(tmp_path: Path, monkeypatch) -> None:
     hub = tmp_path / "hub"
     hub.mkdir()
@@ -206,8 +225,9 @@ def test_arm_subcommand_calls_arm_from_card(tmp_path: Path, monkeypatch) -> None
     monkeypatch.setenv("DEV_HUB", str(hub))
     calls: list[str] = []
 
-    def fake_arm(card):
+    def fake_arm(card, *, config):
         calls.append(card.step_id or "")
+        assert config.allow_roadmap_advance is False
         return ArmResult("s01", "T-DEMO")
 
     monkeypatch.setattr("loop.board_sync.cli.arm_from_card", fake_arm)

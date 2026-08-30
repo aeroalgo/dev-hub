@@ -48,6 +48,14 @@ LoopRunner = Callable[[LaunchCard, LoopArgvResult, BridgeConfig], ExecutionResul
 _DEFAULT_HOST_URL = "http://127.0.0.1:5173"
 
 
+def _default_host_url() -> str:
+    return (
+        os.getenv("DSH_TASK_BOARD_HOST_URL")
+        or os.getenv("DSH_WEB_URL")
+        or _DEFAULT_HOST_URL
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hub-board",
@@ -72,7 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sync_parser.add_argument(
         "--host-url",
-        default=os.getenv("DSH_TASK_BOARD_HOST_URL", _DEFAULT_HOST_URL),
+        default=_default_host_url(),
         help="DSH Host base URL",
     )
 
@@ -85,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument(
         "--host-url",
-        default=os.getenv("DSH_TASK_BOARD_HOST_URL", _DEFAULT_HOST_URL),
+        default=_default_host_url(),
         help="DSH Host base URL",
     )
 
@@ -104,12 +112,17 @@ def build_parser() -> argparse.ArgumentParser:
             "--from-state", dest="offline_ledger", type=Path, metavar="PATH",
             help=argparse.SUPPRESS,
         )
-        launch_parser.add_argument("--host-url", default=os.getenv("DSH_TASK_BOARD_HOST_URL", _DEFAULT_HOST_URL))
+        launch_parser.add_argument("--host-url", default=_default_host_url())
         if command != "arm":
             launch_parser.add_argument("--loop-args", metavar="TOKEN", help="one whitelisted loop argument")
             launch_parser.add_argument(
                 "--runtime", choices=("dsh", "claude"), default=_DEFAULT_RUNTIME,
                 help="loop runtime family (default: claude)",
+            )
+        if command != "loop":
+            launch_parser.add_argument(
+                "--allow-roadmap-advance", action="store_true",
+                help="allow ROADMAP gates only with explicit epic metadata",
             )
         launch_parser.add_argument("--dry-run", action="store_true", help="print the launch plan without executing")
     return parser
@@ -162,12 +175,37 @@ def _print_result(result: Any) -> None:
         print("argv=" + shlex.join(result.argv))
         print("env=" + repr(result.env_extra))
         print("model_source=" + result.model_source)
+        if result.model_env is not None:
+            print("model_env=" + result.model_env)
+    elif isinstance(result, ExecutionResult):
+        print(f"status={result.status}")
+        print(f"exit_code={result.exit_code}")
+        if result.model_source is not None:
+            print("model_source=" + result.model_source)
+        if result.model_env is not None:
+            print("model_env=" + result.model_env)
+    elif isinstance(result, ArmResult):
+        print(f"armed step_id={result.step_id} epic_id={result.armed_epic}")
+
+def _print_result_legacy(result: Any) -> None:
+    if isinstance(result, LoopArgvResult):
+        print("argv=" + shlex.join(result.argv))
+        print("env=" + repr(result.env_extra))
+        print("model_source=" + result.model_source)
     elif isinstance(result, ArmResult):
         print(f"armed step_id={result.step_id} epic_id={result.armed_epic}")
     elif isinstance(result, PipelineResult):
         print(f"status={result.status} loop_invoked={result.loop_invoked}")
         if result.loop is not None:
             print(f"exit_code={result.loop.exit_code}")
+            if result.loop.model_source is not None:
+                print(f"model_source={result.loop.model_source}")
+            if result.loop.model_env is not None:
+                print(f"model_env={result.loop.model_env}")
+        elif result.model_source is not None:
+            print(f"model_source={result.model_source}")
+            if result.model_env is not None:
+                print(f"model_env={result.model_env}")
         if result.sync_warning:
             print(f"warning={result.sync_warning}", file=sys.stderr)
     else:
@@ -180,7 +218,7 @@ def _arm(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
     if args.dry_run:
         _print_result(_arm_plan(card, config))
         return 0
-    _print_result(arm_from_card(card))
+    _print_result(arm_from_card(card, config=config))
     return 0
 
 
@@ -200,7 +238,7 @@ def _loop(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
     try:
         result = loop_run(card, argv_result, config)
     except LoopRunError as exc:
-        result = execution_result_from_error(exc)
+        result = execution_result_from_error(exc, argv_result)
     _record_execution(client, args, result)
     _print_result(result)
     return 0 if result.status == "succeeded" else 1
@@ -210,14 +248,21 @@ def _arm_loop(args: argparse.Namespace, client: TaskBoardClient | None) -> int:
     config = _launch_config()
     card = _launch_card(_task_for(args, client))
     preset_id = _preset_id(args.loop_args)
+    argv_result = build_loop_argv(
+        card.project_root,
+        _card_phase(card),
+        config,
+        preset_id=preset_id,
+        runtime=args.runtime,
+    )
     if args.dry_run:
         _print_result(_arm_plan(card, config))
-        _print_result(build_loop_argv(card.project_root, _card_phase(card), config, preset_id=preset_id, runtime=args.runtime))
+        _print_result(argv_result)
         return 0
     try:
         result = arm_loop_from_card(card, config, preset_id=preset_id, runtime=args.runtime)
     except LoopRunError as exc:
-        loop_result = execution_result_from_error(exc)
+        loop_result = execution_result_from_error(exc, argv_result)
         _record_execution(client, args, loop_result)
         _print_result(loop_result)
         return 1

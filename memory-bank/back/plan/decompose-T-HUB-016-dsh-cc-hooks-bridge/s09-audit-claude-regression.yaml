@@ -1,0 +1,59 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-016
+title: "Audit remediation — execute Claude-path regression and settings stability check"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть source_ref FR-009 / SC-004 / AC−-002 / NFR-2: выполнить реальный
+  Claude-path regression subset, не исключая весь набор, и подтвердить byte-stability
+  `.claude/settings.json` вместе с результатом Claude loop smoke.
+context:
+  consumes:
+    - memory-bank/back/audit/T-HUB-016-dsh-cc-hooks-bridge/audit-20260829-dsh-cc-hooks-bridge.yaml
+    - .claude/settings.json
+    - .claude/hooks/tests/
+  produces:
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s09-audit-claude-regression.yaml
+  plan_refs:
+    - "FR-009"
+    - "SC-004"
+    - "AC−-002"
+    - "NFR-2"
+    - "F2: Claude regression evidence was deselected/missing"
+  files:
+    - memory-bank/back/implement/implement-T-HUB-016-dsh-cc-hooks-bridge/s09-audit-claude-regression.yaml
+
+as_built:
+  - "s07 recorded a hook test command with four deselected tests and no executed Claude-path result."
+delta:
+  - "Run the intended Claude-path tests with executed counts."
+  - "Hash settings.json before and after the smoke and record unchanged bytes."
+  - "Record a Claude loop smoke result without changing runtime behavior."
+deletes: []
+out_of_scope:
+  - "Changing Claude settings or hook implementation."
+  - "DSH-specific self-limit tests."
+
+skills:
+  code_surface: test
+  impl:
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Claude-path regression executes at least one relevant test and passes."
+    verify: "timeout 300s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line -k 'not dsh_self_limit'"
+  - id: cp2
+    criterion: "`.claude/settings.json` is byte-stable across the smoke."
+    verify: "sha256sum .claude/settings.json before and after; hashes must match."
+  - id: cp3
+    criterion: "Claude loop smoke result is recorded with exit status."
+    verify: "Run the bounded Claude-path smoke and record command/result in implement evidence."
+
+verify:
+  - "timeout 300s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line -k 'not dsh_self_limit'"
+  - "sha256sum before/after for .claude/settings.json match."
+tdd: []

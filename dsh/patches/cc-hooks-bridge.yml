@@ -1,0 +1,8 @@
+# Shared Claude Code command-hook bridge mounted by every epic-* profile.
+- id: dsh-hooks-claude-code
+  name: '@deepseek-ai/dsh-hooks-claude-code'
+  required: false
+  config:
+    configPath: !!js process.env.CLAUDE_PROJECT_DIR + '/.claude/settings.json'
+    projectDir: !!js process.env.CLAUDE_PROJECT_DIR
+

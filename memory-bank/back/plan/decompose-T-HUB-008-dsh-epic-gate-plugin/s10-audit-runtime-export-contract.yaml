@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s10
+title: "AUDIT remediation — explicit project-root and hub export contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть missing finding по source_ref FR-009: согласовать имя project-root
+  переменной между loop/006/016 и epic-gate, явно передать DEV_HUB и project root
+  в native bridge/validator и покрыть это bounded fail-closed smoke.
+
+context:
+  consumes:
+    - "memory-bank/back/audit/T-HUB-008-dsh-epic-gate-plugin/audit-20260830-dsh-epic-gate-plugin.yaml"
+    - "loop/loop.sh"
+    - "dsh/patches/cc-hooks-bridge.yml"
+    - "dsh/plugins/epic-gate/src/pre-tool-use.ts"
+    - "dsh/README.md"
+  produces:
+    - "one canonical project-root export contract"
+    - "runtime environment consumption evidence"
+  plan_refs:
+    - "FR-009"
+    - "Constitution MUST-2"
+    - "Constitution MUST-5"
+  files:
+    - "loop/loop.sh"
+    - "dsh/plugins/epic-gate/src/pre-tool-use.ts"
+    - "dsh/profiles/epic-*/cordis.patch.yml"
+    - "dsh/README.md"
+    - "loop/tests/test_dsh_epic_gate_gaps.py"
+
+as_built:
+  - "The plan names EPIC_PROJECT_ROOT, but the runtime exports PROJECT_ROOT, DEV_HUB and CLAUDE_PROJECT_DIR instead."
+  - "No bounded plugin or bridge surface explicitly consumes EPIC_PROJECT_ROOT; pre-tool-use derives validator cwd from the DSH session header."
+  - "dsh/README.md documents PROJECT_ROOT/CLAUDE_PROJECT_DIR/DEV_HUB, so the naming mismatch is visible but not reconciled with FR-009."
+
+delta:
+  - "Choose and document one canonical project-root variable, preserving compatibility with the existing 006/016 PROJECT_ROOT and CLAUDE_PROJECT_DIR contract."
+  - "Explicitly consume the canonical project root and DEV_HUB in the native bridge/validator path; malformed or absent required values must fail closed."
+  - "Add bounded environment-contract tests for valid values, missing root and conflicting aliases."
+  - "Update FR-009-facing README evidence and remove any ambiguous guessed fallback."
+
+deletes: []
+
+out_of_scope:
+  - "Changing the default EPIC_RUNTIME from Claude."
+  - "Replacing the Python hook bridge with TypeScript implementations."
+  - "Unrelated DSH profile, board or preset configuration."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "The canonical project-root and DEV_HUB contract is declared at the loop-to-DSH boundary."
+    verify: "rg -n 'EPIC_PROJECT_ROOT|PROJECT_ROOT|CLAUDE_PROJECT_DIR|DEV_HUB' loop/loop.sh dsh/patches/cc-hooks-bridge.yml dsh/plugins/epic-gate dsh/README.md"
+  - id: cp2
+    criterion: "Native bridge and validator consume the declared root without silently selecting a conflicting path."
+    verify: "rg -n 'projectRoot|projectDir|DEV_HUB|fail-closed|invalid' dsh/plugins/epic-gate/src dsh/patches/cc-hooks-bridge.yml"
+  - id: cp3
+    criterion: "Environment contract tests cover valid, missing and conflicting root values."
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'environment or project_root or dev_hub' -q --tb=line"
+
+verify:
+  - "rg -n 'EPIC_PROJECT_ROOT|PROJECT_ROOT|CLAUDE_PROJECT_DIR|DEV_HUB' loop/loop.sh dsh/patches/cc-hooks-bridge.yml dsh/plugins/epic-gate dsh/README.md"
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'environment or project_root or dev_hub' -q --tb=line"
+
+tdd:
+  - "test: valid project-root and DEV_HUB values are forwarded"
+  - "test: missing required project root fails closed"
+  - "test: conflicting aliases produce a diagnostic instead of a guessed path"
+
+requirements_covered:
+  - FR-009
+
+gaps:
+  status: open
+  source_ref: FR-009
+  resolves_at: cp1-cp3

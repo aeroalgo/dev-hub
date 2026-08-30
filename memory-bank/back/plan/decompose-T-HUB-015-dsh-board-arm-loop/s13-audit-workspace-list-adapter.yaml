@@ -71,13 +71,13 @@ skills:
 checkpoints:
   - id: cp1
     criterion: "Mounted bridge requests Host workspace.list and renders validated options plus All."
-    verify: "rg -n 'workspace\.list|workspace.list|WorkspaceOption|All' dsh/plugins/mb-bridge/src"
+    verify: 'rg -n "workspace\\.list|workspace.list|WorkspaceOption|All" dsh/plugins/mb-bridge/src'
   - id: cp2
     criterion: "Unavailable or malformed workspace.list is explicit and does not silently mutate the ledger."
     verify: "timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py -q --tb=line"
   - id: cp3
     criterion: "Filter selection remains persisted and client-side by metadata.workspace_id for selected workspace and All."
-    verify: "rg -n 'mb-bridge\.workspaceFilter|filterCards|workspace_id|localStorage' dsh/plugins/mb-bridge/src"
+    verify: 'rg -n "mb-bridge\\.workspaceFilter|filterCards|workspace_id|localStorage" dsh/plugins/mb-bridge/src'
 
 verify:
   - "Host workspace.list is a real counterpart to BoardControls workspaces, not only a caller-provided prop."

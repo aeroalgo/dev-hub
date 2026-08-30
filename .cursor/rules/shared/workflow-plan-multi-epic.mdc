@@ -23,7 +23,7 @@ alwaysApply: false
 3. **REQUIRED:** сначала **epic cut** (таблица), потом roadmap **пары** файлов, потом **полный** plan на каждый эпик (§0.0 на каждый файл)
 4. **REQUIRED при ≥2 эпиках:** оба артефакта roadmap (см. таблицу ниже). Без `.queue.yaml` = FAIL (loop/PLAN не имеют machine queue)
 5. Hygiene / мелкие хвосты (`P4`) — **внутри** ближайшего эпика или отдельный тонкий эпик; не раздувать mega-plan
-6. Один чат PLAN может создать slug roadmap + queue + все `plan-*.md` батчем; FINISH → next = `* ROADMAP MERGE` → затем `* DECOMPOSE` **первого** эпика из **canon** `roadmap-epics.queue.yaml`
+6. Один чат PLAN может создать slug roadmap + queue + все `plan-*.md` батчем; тот же чат **обязан** вызвать `roadmap-merge` (CLI) до FINISH; next = `* DECOMPOSE` **первого** эпика из **canon** `roadmap-epics.queue.yaml`. **FORBIDDEN:** откладывать merge на отдельную команду/чат.
 
 ## Критерии нарезки (epic cut)
 
@@ -56,7 +56,7 @@ alwaysApply: false
 
 **Именование пары:** один slug → `roadmap-<slug>-epics.md` + `roadmap-<slug>-epics.queue.yaml` (sibling).
 
-**Loop canon:** `roadmap-epics.queue.yaml` (default в `loop/roadmap_queue.py`). Slug-queues — источники; после PLAN обязателен `* ROADMAP MERGE` (@.cursor/rules/shared/workflow-roadmap-merge.mdc), иначе `roadmap-advance` не видит новые эпики.
+**Loop canon:** `roadmap-epics.queue.yaml` (default в `loop/roadmap_queue.py`). Slug-queues — источники; `* PLAN` **сам** вызывает `roadmap-merge` (@.cursor/rules/shared/workflow-roadmap-merge.mdc) до FINISH, иначе `roadmap-advance` не видит новые эпики. Ручной `* ROADMAP MERGE` — только если канон устарел без PLAN.
 
 ## Порядок шагов (внутри `* PLAN`)
 
@@ -66,7 +66,7 @@ alwaysApply: false
 4. Записать **roadmap.queue.yaml** (version `roadmap-queue/v1`, `role`, `roadmap:` path, `queue[]` с `id`/`plan`/`deps` hard-only) — шаблон @.cursor/templates/roadmap-queue.yaml
 5. Для **каждого** эпика — полный `plan-*.md` (§0.0; CREATIVE need; Replacement/sunset; черновик фаз без checkbox)
 6. `tasks.md` append-only: строка на roadmap + queue + строка на каждый эпик
-7. FINISH: `load_now` → slug roadmap + `.queue.yaml` + **первый** `plan-T-…`; next = `* ROADMAP MERGE` (затем DECOMPOSE first из canon)
+7. FINISH: `load_now` → **canon** `roadmap-epics.md` + `.queue.yaml` + **первый** `plan-T-…`; merge уже выполнен в шаге PLAN; next = `* DECOMPOSE` first из canon
 
 ## Chat vs files
 
@@ -85,5 +85,5 @@ alwaysApply: false
 
 ## Пример канона
 
-Аудит async-locks → slug `roadmap-async-locks-epics.*` + plans T-041…T-044 → `* ROADMAP MERGE` → canon `roadmap-epics.queue.yaml`.
-Несколько батчей PLAN → несколько slug queues → снова MERGE в один canon.
+Аудит async-locks → slug `roadmap-async-locks-epics.*` + plans T-041…T-044 → PLAN вызывает `roadmap-merge` → canon `roadmap-epics.queue.yaml`.
+Несколько батчей PLAN → несколько slug queues → каждый PLAN снова merge в один canon.
