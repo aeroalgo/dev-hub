@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+step_id: sNN
+plan_id: <plan_id>
+title: sNN — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan `## Replacement / sunset` A+B+C.
+  Нулевые prod-callers по каждой строке inventory; suite green.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan-<plan_id>.md#replacement--sunset
+  files: []
+
+as_built: []
+delta: []
+
+# HARD: каждая строка plan sunset A/B/C + index Replacement cleanup — одна запись.
+# Policy `shim+follow-up` допустим только если follow_up_epic в roadmap queue; иначе delete here.
+sunset_inventory:
+  - symbol: path/or/FunctionName
+    kind: A
+    replacement: new.module.path
+    policy: delete in-epic
+    rg_scope: loop/ .claude/
+    expect: zero prod callers
+  - symbol: docker-compose service / CLI flag / npm script
+    kind: B
+    replacement: new entrypoint
+    policy: delete in-epic
+    rg_scope: docker-compose*.yml Dockerfile* package.json Makefile bin/
+    expect: zero matches in command/CMD/scripts
+  - symbol: 'or "http://127.0.0.1:…"' # pattern from plan C
+    kind: C
+    replacement: fail-closed settings
+    policy: delete in-epic
+    rg_scope: <prod paths from plan>
+    expect: zero fallback/dual-path matches
+
+deletes: []
+# = весь остаток A+B+C, не удалённый предыдущими sNN|eNN.
+# FORBIDDEN оставлять: public shim с prod callers, router → deprecated public API, «alias period» без follow-up ID.
+
+out_of_scope: []
+
+# Mirror sunset_inventory — executable rg per row (FINISH evidence обязана).
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: path/or/FunctionName
+    command: 'rg -n "FunctionName" loop/ .claude/ --glob "*.py" | rg -v "test_|/archive/|deprecated|_legacy_warn"'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: legacy-service-cmd
+    command: 'rg -n "legacy-service" docker-compose*.yml Dockerfile* package.json Makefile bin/ || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: 'or "http://127.0.0.1'
+    command: 'rg -n "or \"http://" <prod-paths> --glob "*.py" | rg -v test_'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp-inventory-a
+    criterion: |
+      Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (не выборочно):
+      0 prod callers; допустимо только tests/archive/docs/history.
+      Shim с ≥1 prod caller = FAIL. Router импортирует deprecated public symbol = FAIL.
+    verify: |
+      for row in sunset_inventory kind=A; run grep_control command; capture output in implement evidence
+  - id: cp-inventory-b
+    criterion: |
+      Kind B — entrypoint inventory: docker-compose*/Dockerfile*/CLI/scripts из plan B —
+      нет legacy command/CMD/target.
+    verify: |
+      rg/inventory per grep_control kind=B rows
+  - id: cp-inventory-c
+    criterion: |
+      Kind C — anti-fallback rg: dual-path / soft default / silent stub patterns из plan C —
+      0 matches в prod paths.
+    verify: |
+      rg per grep_control kind=C rows
+  - id: cp-suite-regression
+    criterion: Targeted + epic regression suite green после deletes
+    verify: ".venv/bin/pytest loop/tests/ -q --tb=line -k '<epic-or-area>'"
+
+verify: []
+tdd: []

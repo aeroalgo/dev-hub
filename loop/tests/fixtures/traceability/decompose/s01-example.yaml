@@ -1,0 +1,10 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-024-test
+title: Example Step 01
+plan_refs:
+  - "plan-T-HUB-024 FR-001"
+  - "plan-T-HUB-024 FR-002"
+out_of_scope:
+  - "FR-004 is out of scope for now"

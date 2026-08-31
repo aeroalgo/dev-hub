@@ -5,9 +5,9 @@ alwaysApply: false
 # IMPLEMENT — gates
 
 **Артефакт:**  
-- с эпиком: `memory-bank/back/implement/implement-<epic_id>/sNN-<slug>.yaml`  
+- с эпиком: `memory-bank/back/implement/implement-<epic_id>/sNN-<slug>.yaml` — `<epic_id>` = stem plan **со slug** (тот же, что у `decompose-<epic_id>/`)  
 - без эпика: `memory-bank/back/implement/<slug>/` (не `implement-<epic_id>/`)  
-Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон **строго** `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role: back`, `done`/`files`/`tests`/`integration_check`/`checkpoints`)
+Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role: back`, `done`/`files`/`tests`/`integration_check`/`checkpoints`)
 
 ## Gates
 

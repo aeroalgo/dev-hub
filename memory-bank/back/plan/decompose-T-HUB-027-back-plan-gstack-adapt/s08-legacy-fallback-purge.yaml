@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: Legacy fallback purge — full-plan QA path anti-fallback rg + entrypoint inventory
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge Replacement C: убедиться что ни один workflow gate не оставляет
+  silent default «load full plan» для epic QA когда #qa-consumes существует. Anti-fallback
+  rg + inventory QA-related load rules. Outcome: fail-closed lean QA без вечного shim (AC− brownfield C).
+
+context:
+  consumes:
+    - "s05 — qa_consumes-first edits"
+    - "plan-T-HUB-027 §Replacement sunset C — delete in-epic process fallback"
+    - "shared/workflow-legacy-fallback-cleanup.mdc §2.2 purge requirements"
+    - "s07 — verification baseline"
+  produces:
+    - "Подтверждение: все QA load paths qa_consumes-first; документированный rg inventory в implement shard"
+  plan_refs:
+    - "Replacement C"
+    - "AC− brownfield #2 (additive-only, но C fallback удаляется)"
+    - "FR-009 (legacy plans valid — purge только process wording)"
+  files:
+    - ".cursor/rules/back_developer/workflow-qa.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+    - ".cursor/rules/shared/finish-doc-router.mdc"
+
+as_built:
+  - "s05 — qa_consumes-first added; возможны остаточные full-plan-default phrases в related rules"
+  - "context-session-economy — may mention plan load patterns"
+
+delta:
+  - "rg audit all .cursor/rules/** for epic QA load patterns; remove/replace any «full plan» default without qa_consumes attempt"
+  - "ADD explicit FAIL-closed: L2+ epic plan post-cutoff without #qa-consumes section → QA gate documents defer to full plan §N with reason (not silent)"
+  - "Document inventory table in implement shard: file | before | after | verify rg"
+  - "Confirm no docker-compose/Dockerfile/python -m entrypoints affected (plan B n/a)"
+
+deletes:
+  - "Any remaining prose in .cursor/rules/** recommending full plan load as first choice for epic BACK QA when plan has #qa-consumes"
+  - "lean/qa.mdc — residual «plan целиком» phrasing without qa_consumes-first qualifier"
+
+out_of_scope:
+  - "Mutating legacy plan-*.md artifacts — FR-009"
+  - "Code module sunset — Replacement A n/a"
+  - "compose/Dockerfile — Replacement B n/a"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Anti-fallback rg: no full-plan-first without qa_consumes in BACK QA rules"
+    verify: "rg -l 'полный.*plan|full plan' .cursor/rules/back_developer/workflow-qa.mdc .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc | xargs -r rg 'qa.consumes|qa-consumes|QA consumes' || true; ! rg 'plan целиком|полный plan-.*md.*перв' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+  - id: cp2
+    criterion: "Entrypoint inventory B: no compose/Dockerfile/python -m changes needed"
+    verify: "rg 'qa-consumes|reconcile' docker-compose* Dockerfile* 2>/dev/null; echo 'B n/a expected empty or unrelated'"
+  - id: cp3
+    criterion: "s05 deletes verified — old fallback wording absent"
+    verify: "rg 'plan §N только если AC неясен' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc; test $? -ne 0 || rg 'qa_consumes|qa-consumes' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+  - id: cp4
+    criterion: "pytest s07 still green after purge edits"
+    verify: ".venv/bin/pytest loop/tests/test_plan_gstack_adapt_027.py -q --tb=line"
+
+verify: []
+
+tdd:
+  - "rg_no_full_plan_first_in_qa_rules"
+  - "rg_qa_consumes_present_where_qa_load_documented"
+  - "regression_s07_tests_green_after_purge"

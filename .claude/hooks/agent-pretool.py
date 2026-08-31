@@ -38,6 +38,12 @@ def main() -> None:
     if not workflow_state_active(st, cwd or None):
         return
 
+    from epic.core import load_epic_state
+    from loop.epic_transition import get_verify_agent
+    epic = load_epic_state(cwd) if cwd else {}
+    current_phase = epic.get("phase") or st.get("mode") or ""
+    expected_verify_agent = get_verify_agent(str(current_phase)) if current_phase else None
+
     deny_reasons, notes = validate_spawn_input(tool_input, st, cwd or None)
     norm = normalize_type(tool_input.get("subagent_type") or tool_input.get("agent_type"))
     definition = _discover_registry(cwd or None).get(norm) if norm else None

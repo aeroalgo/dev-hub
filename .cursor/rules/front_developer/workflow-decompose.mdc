@@ -12,6 +12,8 @@ alwaysApply: false
 **Цель:** `plan-<id>.md` → `memory-bank/front/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
 **Вход:** `load_now` или `FRONT DECOMPOSE plan-<id>` (в одном сообщении).
 
+**Folder slug (HARD):** `plan_id` = stem plan-файла без `plan-` (со descriptive slug). **FORBIDDEN** short queue id в имени папки при `plan-<id>-<slug>.md`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+
 ---
 
 ## Outcome preserve — не ужимать контекст плана (HARD)

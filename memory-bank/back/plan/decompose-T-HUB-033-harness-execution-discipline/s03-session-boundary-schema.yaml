@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-033-harness-execution-discipline
+title: "session_boundary checkpoint field + loop.sh enforce new-session gate"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `CheckpointRecord` (loop/schemas/checkpoint.py) опциональным полем `session_boundary: bool | None`.
+  Поле выставляется в finalize_step: всегда (или только при atomic commit — согласно FR-005 «when atomic commit or always on finalize»).
+  loop.sh читает session_boundary из checkpoint → если True, печатает предупреждение/маркер принудительного нового агента.
+  Outcome: loop больше не reuse чат после finalize_step; GSD one-shard-one-session enforced на уровне runner.
+  Связь с FR-005, FR-006, US-003, AC#3, SC-003.
+
+context:
+  consumes:
+    - "loop/schemas/checkpoint.py — CheckpointRecord Pydantic v2"
+    - "loop/loop.sh — main loop, читает checkpoint YAML/JSON"
+    - ".claude/hooks/epic/core.py (finalize_step) — точка записи checkpoint"
+  produces:
+    - "loop/schemas/checkpoint.py — добавить session_boundary: bool | None = None"
+    - ".claude/hooks/epic/core.py — finalize_step записывает session_boundary=True в checkpoint/metadata"
+    - "loop/loop.sh — блок проверки session_boundary после finalize"
+    - "loop/tests/test_session_boundary.py — тесты schema + finalize write + loop.sh parsing"
+  plan_refs:
+    - "FR-005: session_boundary field on checkpoint record"
+    - "FR-006: loop.sh respects session_boundary → forces new agent invocation marker"
+    - "US-003: parent хочет checkpoint flag session_boundary after finalize"
+    - "AC#3: session_boundary checkpoint field + loop respect"
+    - "SC-003: session_boundary set"
+  files:
+    - "loop/schemas/checkpoint.py"
+    - ".claude/hooks/epic/core.py"
+    - "loop/loop.sh"
+    - "loop/tests/test_session_boundary.py"
+
+as_built:
+  - "CheckpointRecord — 100 строк, schema loop-checkpoint/v1, extra='allow', нет session_boundary поля"
+  - "CheckpointRecord.metadata — dict[str, Any], extra fields allowed — сейчас session_boundary туда не попадает явно"
+  - "loop.sh — существует в loop/, читает checkpoint YAML; детали session_boundary-ветки отсутствуют"
+  - "finalize_step — не пишет session_boundary нигде (as_built до s03)"
+
+delta:
+  - "edit: loop/schemas/checkpoint.py — добавить `session_boundary: bool | None = None` в CheckpointRecord (после retry_count/degraded_count)"
+  - "edit: .claude/hooks/epic/core.py — finalize_step: после marked['finalized']=True записать session_boundary=True в checkpoint metadata (или в отдельный state-key); включить в marked['session_boundary']=True"
+  - "edit: loop/loop.sh — после finalize_step poll: if checkpoint.session_boundary==true → print SESSION_BOUNDARY_MARKER; runner при следующем invoke не reuse session"
+  - "add: loop/tests/test_session_boundary.py — pytest: schema validates session_boundary; finalize sets it; loop.sh detects it (через subprocess или rg)"
+
+deletes: []
+
+out_of_scope:
+  - "git_discipline — s01"
+  - "finalize_step atomic_commit block — s02"
+  - "Полная смена loop runner архитектуры — отложено / follow-up"
+  - "Docs cheatsheet — s04"
+  - "Auto-kill / force-exit текущей сессии — не в scope (только маркер)"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"                          # Core
+    - ".agents/skills/python-testing-patterns/SKILL.md"      # Core
+    - ".agents/skills/modern-python/SKILL.md"                # Core
+    - ".agents/skills/python-anti-patterns/SKILL.md"         # Core
+    - ".agents/skills/python-type-safety/SKILL.md"           # S11 — schema minor extension, Pydantic field
+    - ".agents/skills/python-configuration/SKILL.md"         # S08 — loop.sh env/config read pattern
+
+checkpoints:
+  - id: cp1
+    criterion: "CheckpointRecord принимает session_boundary=True/False/None без ошибки валидации; extra='allow' не конфликтует"
+    verify: ".venv/bin/pytest loop/tests/test_session_boundary.py -q -k 'schema' --tb=line"
+
+  - id: cp2
+    criterion: "finalize_step возвращает marked['session_boundary'] == True после успешного завершения"
+    verify: ".venv/bin/pytest loop/tests/test_session_boundary.py -q -k 'finalize_sets' --tb=line"
+
+  - id: cp3
+    criterion: "loop.sh детектирует session_boundary=true в checkpoint → выводит SESSION_BOUNDARY маркер"
+    verify: ".venv/bin/pytest loop/tests/test_session_boundary.py -q -k 'loop_detect' --tb=line"
+
+  - id: cp4
+    criterion: "Полный suite + импорт checkpoint.py без ошибок; rg session_boundary в checkpoint.py выдаёт строку с полем"
+    verify: "rg 'session_boundary' loop/schemas/checkpoint.py && .venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short"
+  - "rg 'session_boundary' loop/schemas/checkpoint.py"
+
+tdd:
+  - "test_schema_session_boundary_default_none: CheckpointRecord без session_boundary → field is None"
+  - "test_schema_session_boundary_true: CheckpointRecord(session_boundary=True) → validates ok"
+  - "test_finalize_sets_session_boundary: mock finalize_step call → marked['session_boundary'] == True"
+  - "test_loop_sh_detects_boundary: shell test: checkpoint.yaml с session_boundary: true → script outputs SESSION_BOUNDARY"

@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: s07 — Epic verification — rg AC matrix, qa_consumes fixture test, clarify regression
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-027-back-plan-gstack-adapt/s07-epic-verification-suite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- pytest suite test_plan_gstack_adapt_027.py green
+- AC+
+- QA artifact created with test_matrix_coverage
+- CLARIFY regression Grill pass verified
+files:
+- loop/tests/test_plan_gstack_adapt_027.py
+- loop/tests/fixtures/gstack_adapt/plan-qa-consumes-fragment.md
+- memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/qa-20260831-gstack-adapt.yaml
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_plan_gstack_adapt_027.py -q --tb=line
+- rg 'QA consumes|Review readiness|Product probe|Eng review spine' .cursor/templates/plan.md
+  .cursor/rules/back_developer/workflow-plan.mdc .cursor/rules/shared/workflow-clarify-core.mdc
+- rg 'test_matrix_coverage' memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/qa-20260831-gstack-adapt.yaml
+- rg 'Phase 0.*Grill' .cursor/rules/shared/workflow-clarify-core.mdc
+integration_check:
+- .venv/bin/pytest loop/tests/test_plan_gstack_adapt_027.py -q --tb=line
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: pytest test_plan_gstack_adapt_027.py green
+  status: done
+  done_at: '2026-08-31T09:06:07Z'
+- id: cp2
+  criterion: 'AC+ #7: rg hits в template + workflow для 4 keyword groups'
+  status: done
+  done_at: '2026-08-31T09:06:17Z'
+- id: cp3
+  criterion: qa yaml содержит test_matrix_coverage field
+  status: done
+  done_at: '2026-08-31T09:06:31Z'
+- id: cp4
+  criterion: CLARIFY regression — Phase 0 Grill pass still present
+  status: done
+  done_at: '2026-08-31T09:06:43Z'
+resume_from: cp1

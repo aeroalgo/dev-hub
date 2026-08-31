@@ -26,6 +26,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+from epic.convergence import run_convergence_checks
 INDEX_IMPLEMENT_CONFLICT = "index_implement_conflict"
 MARK_INDEX_MISSING = "mark_index_missing"
 FINISH_INTEGRITY_DECOMPOSE_MISSING = "finish_integrity_decompose_missing"
@@ -55,7 +56,9 @@ from epic_paths import (  # noqa: E402
     _coerce_epic_shard_path,
     _normalize_mb_path,
     active_context_path,
+    canonical_epic_id_for_decompose,
     epic_id_from_decompose_path,
+    find_decompose_index_path,
     is_reserved_role_epic_id,
     role_from_decompose_path,
     state_path,
@@ -236,6 +239,7 @@ def _checkpoint_record(
     index_fingerprint: str | None = None,
     retry_count: int = 0,
     degraded_count: int = 0,
+    session_boundary: bool | None = None,
     reason: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -258,6 +262,7 @@ def _checkpoint_record(
         "index_fingerprint": _checkpoint_scalar(index_fingerprint) or None,
         "retry_count": max(0, int(retry_count)),
         "degraded_count": max(0, int(degraded_count)),
+        "session_boundary": bool(session_boundary) if session_boundary is not None else None,
         "reason": _checkpoint_scalar(reason)[:_CHECKPOINT_MAX_REASON] or None,
         "metadata": _checkpoint_metadata(metadata),
         "updated_at": utc_now(),
@@ -299,6 +304,7 @@ def commit_checkpoint(
     index_fingerprint: str | None = None,
     retry_count: int = 0,
     degraded_count: int = 0,
+    session_boundary: bool | None = None,
     reason: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -318,7 +324,8 @@ def commit_checkpoint(
                 projection_hash=projection_hash, stage=stage, status=status,
                 next_action=next_action, resume_policy=resume_policy,
                 context_fingerprint=context_fingerprint, index_fingerprint=index_fingerprint,
-                retry_count=retry_count, degraded_count=degraded_count, reason=reason,
+                retry_count=retry_count, degraded_count=degraded_count,
+                session_boundary=session_boundary, reason=reason,
                 metadata=metadata,
             )
             candidate.pop("updated_at", None)
@@ -331,7 +338,8 @@ def commit_checkpoint(
             phase_epoch=phase_epoch, projection_hash=projection_hash, stage=stage,
             status=status, next_action=next_action, resume_policy=resume_policy,
             context_fingerprint=context_fingerprint, index_fingerprint=index_fingerprint,
-            retry_count=retry_count, degraded_count=degraded_count, reason=reason,
+            retry_count=retry_count, degraded_count=degraded_count,
+            session_boundary=session_boundary, reason=reason,
             metadata=metadata,
         )
         atomic_write_text(checkpoint_path(cwd), json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
@@ -538,16 +546,27 @@ def effective_phase(
 
 def gates_from_phase(phase: object) -> dict[str, Any]:
     """Translate a runner-derived phase into spawn-gate requirements."""
-    value = str(phase or "").upper()
-    if re.search(r"\bCREATIVE\b", value):
-        return {"mode": "creative", "need_verify": False, "need_reviewer": False}
-    if re.search(r"\bIMPLEMENT\b", value):
-        return {"mode": "implement", "need_verify": True, "need_reviewer": False}
-    if re.search(r"\bQA\b", value):
-        return {"mode": "qa", "need_verify": False, "need_reviewer": True}
-    if re.search(r"\bAUDIT\b", value):
-        return {"mode": "audit", "need_verify": False, "need_reviewer": False}
-    return {"mode": None, "need_verify": False, "need_reviewer": False}
+    from loop.epic_transition import load_phase_registry
+
+    default_gates = {"mode": None, "need_verify": False, "need_reviewer": False}
+    reg = load_phase_registry()
+    val = str(phase or "").upper().strip()
+
+    matched_phase = None
+    phases = reg.get("phases", {})
+    if val in phases:
+        matched_phase = val
+    else:
+        for p in phases:
+            if re.search(r"\b" + re.escape(p) + r"\b", val):
+                matched_phase = p
+                break
+
+    if not matched_phase or matched_phase in reg.get("terminal_phases", []):
+        return default_gates
+
+    row = phases.get(matched_phase, {})
+    return dict(row.get("finish_gates_dict", default_gates))
 
 
 def _step_needs_creative(cwd: Path, idx: Path | None, step: dict[str, str]) -> object:
@@ -672,7 +691,29 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
         phase = ""
         next_step = None
         next_status = None
-        if step:
+        armed_phase = str(state.get("armed_step") or state.get("phase") or "").upper()
+        if armed_phase in {"ANALYZE", "CLARIFY", "CREATIVE", "PLAN", "DECOMPOSE"}:
+            phase = armed_phase
+            if armed_phase == "ANALYZE" and epic_id and role_dir and idx is not None:
+                from analyze_gate import analyze_required_before_implement
+
+                gate = analyze_required_before_implement(
+                    cwd_p,
+                    role_dir,
+                    epic_id,
+                    steps,
+                    index_path=idx,
+                )
+                if not gate.get("required") and step:
+                    phase = effective_phase(
+                        role=role,
+                        next_phase=step.get("next_phase"),
+                        needs_creative=_step_needs_creative(cwd_p, idx, step),
+                    )
+            if step:
+                next_step = step.get("step_id")
+                next_status = step.get("status")
+        elif step:
             phase = effective_phase(
                 role=role,
                 next_phase=step.get("next_phase"),
@@ -775,6 +816,12 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
     phase_epoch = _projection_digest(
         {"projection_hash": projection_hash, "projection_generation": generation}
     )
+    if not projection.get("next_step"):
+        armed_step = str(state.get("armed_step") or "").strip()
+        if armed_step and re.match(r"^[sera]\d+", armed_step, re.I):
+            projection["next_step"] = armed_step
+            if not projection.get("next_step_status"):
+                projection["next_step_status"] = "active"
     projection.update(
         {
             "projection_hash": projection_hash,
@@ -815,6 +862,7 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
 
 
 _EVENT_LOG_LIMIT = 20
+_EVENT_ARCHIVE_NAME = "archive-rollover.jsonl"
 
 
 def _event_log_path(cwd: str | Path, role_dir: str, epic_id: str) -> Path:
@@ -882,21 +930,28 @@ def _append_event(
     try:
         if fcntl is not None:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        stream = read_event_log_result(
-            path, expected_epic_id=epic_id, cwd=Path(cwd)
+        cwd_p = Path(cwd)
+        history = read_event_log_result(
+            path, expected_epic_id=epic_id, cwd=cwd_p, include_archives=True
         )
-        if stream.diagnostics:
+        if history.diagnostics:
             return False
-        events = list(stream.events)
+        historical = list(history.events)
+        live_stream = read_event_log_result(
+            path, expected_epic_id=epic_id, cwd=cwd_p, include_archives=False
+        )
+        if live_stream.diagnostics:
+            return False
+        live_events = list(live_stream.events)
         try:
-            artifact_rel = artifact.relative_to(Path(cwd)).as_posix()
+            artifact_rel = artifact.relative_to(cwd_p).as_posix()
         except ValueError:
             artifact_rel = artifact.as_posix()
         artifact_hash = _artifact_sha256(artifact)
         previous_hash = next(
             (
                 existing.get("artifact_sha256")
-                for existing in reversed(events)
+                for existing in reversed(historical)
                 if existing.get("kind") == kind
                 and existing.get("artifact") == artifact_rel
                 and existing.get("artifact_sha256") != artifact_hash
@@ -913,29 +968,26 @@ def _append_event(
             kind=kind,
             artifact=artifact_rel,
             artifact_sha256=artifact_hash,
-            seq=_next_event_seq(events),
+            seq=_next_event_seq(historical),
             timestamp=utc_now(),
             metadata=metadata,
         )
-        if any(event_revision_key(existing) == revision_key(event) for existing in events):
+        if any(
+            event_revision_key(existing) == revision_key(event)
+            for existing in historical
+        ):
             return False
-        events.append(event)
-        if len(events) > _EVENT_LOG_LIMIT:
-            archive_events = events[:-_EVENT_LOG_LIMIT]
-            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            archive = path.with_name(f"archive-{stamp}.jsonl")
-            suffix = 1
-            while archive.exists():
-                archive = path.with_name(f"archive-{stamp}-{suffix}.jsonl")
-                suffix += 1
-            archive.write_text(
-                "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in archive_events),
-                encoding="utf-8",
-            )
-            events = events[-_EVENT_LOG_LIMIT:]
+        live_events.append(event)
+        if len(live_events) > _EVENT_LOG_LIMIT:
+            overflow = live_events[:-_EVENT_LOG_LIMIT]
+            archive = path.with_name(_EVENT_ARCHIVE_NAME)
+            with archive.open("a", encoding="utf-8") as fh:
+                for item in overflow:
+                    fh.write(json.dumps(item, ensure_ascii=False) + "\n")
+            live_events = live_events[-_EVENT_LOG_LIMIT:]
         atomic_write_text(
             path,
-            "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in events),
+            "".join(json.dumps(e, ensure_ascii=False) + "\n" for e in live_events),
         )
         return True
     finally:
@@ -994,12 +1046,33 @@ def _reflection_ownership_ambiguous(
 
 
 def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[str, Path]]:
-    """Return artifacts in append order: audit → bugfix → qa → reflection.
+    """Return artifacts in append order: decompose → implement → audit → bugfix → qa → reflection.
 
     QA must come after audit/bugfix so a single reconcile pass that rewrites
     evidence and the QA verdict does not emit ``bugfix_done`` after ``qa_pass``.
     """
     records: list[tuple[str, Path]] = []
+    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="plan"):
+        decomp_dir = root / "plan" / f"decompose-{epic_id}"
+        if decomp_dir.is_dir():
+            for path in sorted(
+                decomp_dir.glob("s*.yaml"),
+                key=lambda item: str(item),
+            ):
+                records.append(("decompose_step_done", path))
+    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="implement"):
+        impl_dir = root / "implement" / f"implement-{epic_id}"
+        if impl_dir.is_dir():
+            for path in sorted(
+                impl_dir.glob("s*.yaml"),
+                key=lambda item: str(item),
+            ):
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                if re.search(r"(?m)^status:\s*completed\s*$", text):
+                    records.append(("implement_done", path))
     for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="audit"):
         audit_dir = root / "audit" / epic_id
         for path in sorted(
@@ -1186,6 +1259,15 @@ def extract_load_now(text: str) -> list[str]:
             line,
         ):
             add(pm.group(1))
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            raw = stripped[2:].strip()
+            if "#" in raw:
+                raw = raw.split("#", 1)[0].strip()
+            if raw.startswith(
+                ("memory-bank/", "back/", "front/", "integration/")
+            ):
+                add(raw)
     return paths
 
 
@@ -2076,8 +2158,11 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
     armed_u = armed.upper()
     if armed_u in {
         "DECOMPOSE",
+        "ANALYZE",
+        "CLARIFY",
         "AUDIT",
         "QA",
+        "BUGFIX",
         "REFLECT",
         "DONE",
         "CREATIVE",
@@ -2100,6 +2185,29 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
             "diagnostic_code": loaded.get("diagnostic_code"),
         }
     steps = loaded.get("steps") or []
+    idx_path = Path(loaded.get("index") or decompose)
+    role_dir = "back"
+    if "/front/" in decompose.replace("\\", "/"):
+        role_dir = "front"
+    elif "/integration/" in decompose.replace("\\", "/"):
+        role_dir = "integration"
+    epic_id = str(state.get("armed_epic") or "").strip()
+    if not epic_id:
+        epic_id = epic_id_from_decompose_path(decompose)
+    if epic_id:
+        from analyze_gate import analyze_required_before_implement
+
+        gate = analyze_required_before_implement(
+            cwd_p, role_dir, epic_id, steps, index_path=idx_path
+        )
+        if gate.get("required"):
+            return {
+                "ok": True,
+                "synced": False,
+                "reason": "analyze_gate_pending",
+                "analyze_reason": gate.get("reason"),
+                "armed_step": armed or None,
+            }
     next_step = find_next_step(steps)
     text = read_active_context(cwd_p)
     ac_step = _step_id_from_active_context(text)
@@ -2416,6 +2524,8 @@ def finalize_step(
     epic_id = epic_id_from_decompose_path(
         str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)
     ) or ""
+    if epic_id:
+        _append_event(cwd_p, _role_dir, epic_id, "implement_done", implement_path)
     loaded = load_decompose_steps_fail_closed(cwd_p, str(idx))
     pending = [
         s
@@ -2433,6 +2543,65 @@ def finalize_step(
     )
     if all_completed:
         marked["post_implement"] = arm_active_context_from_decompose(cwd, str(idx))
+    try:
+        from loop.epic_transition import promote_if_ready
+
+        promoted = promote_if_ready(cwd_p, epic_id, role)
+        if isinstance(promoted, dict) and promoted.get("ok"):
+            marked["promoted"] = promoted
+    except Exception:
+        pass
+    try:
+        from loop.git_discipline import maybe_atomic_commit
+
+        step_title = ""
+        for s in loaded.get("steps") or []:
+            if str(s.get("id") or "").strip().lower() == sid:
+                step_title = str(s.get("title") or "")
+                break
+        commit_res = maybe_atomic_commit(
+            cwd=cwd_p,
+            epic_id=epic_id,
+            step_id=sid,
+            title=step_title,
+        )
+        marked["atomic_commit"] = commit_res.model_dump()
+    except Exception as exc:
+        marked["atomic_commit"] = {
+            "ok": False,
+            "skipped": False,
+            "error": str(exc),
+        }
+    marked["session_boundary"] = True
+    try:
+        current_chk = load_checkpoint(cwd_p)
+        if current_chk:
+            current_meta = dict(current_chk.get("metadata") or {})
+            current_meta["session_boundary"] = True
+            commit_checkpoint(
+                cwd_p,
+                checkpoint_id=current_chk.get("checkpoint_id") or f"finalize-{sid}",
+                session_id=current_chk.get("session_id") or "finalize",
+                runner_id=current_chk.get("runner_id"),
+                identity=current_chk.get("identity"),
+                step_id=sid,
+                phase=current_chk.get("phase") or "IMPLEMENT",
+                phase_epoch=current_chk.get("phase_epoch") or 1,
+                projection_hash=current_chk.get("projection_hash"),
+                stage=current_chk.get("stage") or "committed",
+                status=current_chk.get("status") or "committed",
+                next_action=current_chk.get("next_action") or "none",
+                resume_policy=current_chk.get("resume_policy") or "next_step",
+                context_fingerprint=current_chk.get("context_fingerprint"),
+                index_fingerprint=current_chk.get("index_fingerprint"),
+                retry_count=current_chk.get("retry_count", 0),
+                degraded_count=current_chk.get("degraded_count", 0),
+                session_boundary=True,
+                reason=current_chk.get("reason"),
+                metadata=current_meta,
+            )
+    except Exception:
+        pass
     return marked
 
 
@@ -2572,6 +2741,22 @@ def validate_index_vs_implement(cwd: str | Path, decompose: str | None) -> list[
             f"{sample}{more} — use mark-index-status per step"
         )
     return errors
+
+
+def resolve_armed_decompose_for_integrity(
+    cwd: str | Path,
+    *,
+    armed_step: str,
+    armed_decompose: str | None,
+) -> str | None:
+    """Return decompose rel for index integrity, or None when pre-implement has no index yet."""
+    rel = (armed_decompose or "").strip() or None
+    if not rel:
+        return None
+    step = str(armed_step or "").upper()
+    if step == "DECOMPOSE" and not (Path(cwd) / rel).is_file():
+        return None
+    return rel
 
 
 def validate_finish_integrity(
@@ -3004,6 +3189,13 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
             r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/decompose-[A-Za-z0-9._-]+/index\.(?:yaml|md))",
             text,
         ))
+        for m in re.finditer(
+            r"(?:memory-bank/)?((?:back|front|integration)/plan/decompose-[A-Za-z0-9._-]+)/",
+            text,
+        ):
+            rel_dir = m.group(1)
+            y = rel_dir + "/index.yaml"
+            candidates.add(y)
         if not candidates:
             m_epic = re.search(r"(?:qa|plan)/([A-Za-z0-9._-]+)/", text)
             if not m_epic:
@@ -3012,6 +3204,24 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                 epic_id = m_epic.group(1).strip()
                 for p in cwd_p.glob(f"memory-bank/*/plan/decompose-{epic_id}/index.yaml"):
                     candidates.add(str(p.relative_to(cwd_p)).removeprefix("memory-bank/"))
+        if not candidates:
+            armed = (st.get("armed_epic") or "").strip()
+            role_raw = str(st.get("role") or "back").lower()
+            role_dir = (
+                "integration"
+                if role_raw in {"integ", "integration"}
+                else role_raw
+            )
+            if armed and role_dir in {"back", "front", "integration"}:
+                found = find_decompose_index_path(cwd_p, role_dir, armed)
+                if found is not None:
+                    try:
+                        rel = found.relative_to(cwd_p).as_posix()
+                    except ValueError:
+                        rel = found.as_posix()
+                    if not rel.startswith("memory-bank/"):
+                        rel = "memory-bank/" + rel
+                    candidates.add(rel.removeprefix("memory-bank/"))
     if len(candidates) > 1:
         return _index_result("ambiguous", "identity_ambiguous", message=sorted(candidates).__repr__())
     if not candidates:
@@ -3042,7 +3252,10 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
         if m_role:
             role_dir = m_role.group(1)
             role = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(role_dir, "")
-    epic_id = epic_id_from_decompose_path(decompose)
+    if role not in {"BACK", "FRONT", "INTEG"}:
+        return _index_result("invalid", "identity_invalid", idx=idx, message=decompose)
+    folder_epic_id = epic_id_from_decompose_path(decompose)
+    epic_id = canonical_epic_id_for_decompose(decompose, index_path=idx)
     if is_reserved_role_epic_id(epic_id):
         return _index_result(
             "invalid",
@@ -3051,7 +3264,7 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
             message=decompose,
         )
     armed_epic = (st.get("armed_epic") or "").strip()
-    if armed_epic and armed_epic != epic_id:
+    if armed_epic and armed_epic != epic_id and armed_epic != folder_epic_id:
         return _index_result("ambiguous", "identity_conflict", idx=idx, message=f"armed_epic={armed_epic}")
     loaded = load_decompose_steps_fail_closed(cwd_p, decompose)
     if not loaded["ok"]:
@@ -3358,6 +3571,9 @@ def arm_active_context_from_decompose(
     starts on the chosen epic's next pending/active step even if activeContext
     still points at another epic or carries BLOCKED/NEED_HUMAN from it.
     """
+    from loop.epic_transition import _legacy_warn
+    _legacy_warn("arm_active_context_from_decompose")
+
     if decompose is None or not isinstance(decompose, (str, Path)):
         return {
             "ok": False,
@@ -3588,28 +3804,39 @@ def arm_active_context_from_decompose(
     }
 
 
-def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, Any]:
+def arm_epic(
+    cwd: str | Path,
+    epic_id: str,
+    *,
+    role: str = "back",
+    require_plan: bool = True,
+) -> dict[str, Any]:
     """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
     cwd_p = Path(cwd)
     from board_sync.epic_resolver import resolve_epic_next_action
+    from epic_transition import arm_phase
 
-    action = resolve_epic_next_action(cwd_p, role, epic_id)
+    action = resolve_epic_next_action(cwd_p, role, epic_id, require_plan=require_plan)
     phase = (action.phase or "").upper()
     if phase == "DONE":
+        if action.decompose_rel:
+            return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
         return {
             "ok": True,
             "complete": True,
+            "stop": "EPIC_DONE",
             "phase": "DONE",
             "epic_id": epic_id,
             "role": role,
         }
     if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "ANALYZE", "CREATIVE"}:
-        return arm_pre_implement_context(
+        return arm_phase(
             cwd_p,
-            epic_id=epic_id,
-            role=role,
-            phase=phase,
+            epic_id,
+            phase,
+            role,
             target_rel=action.plan_rel,
+            decompose_rel=action.decompose_rel if phase == "ANALYZE" else None,
         )
     if phase == "IMPLEMENT":
         if not action.decompose_rel:
@@ -3617,7 +3844,17 @@ def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, 
                 "ok": False,
                 "error": f"cannot arm epic {epic_id} in phase {phase} without decompose index",
             }
-        return arm_active_context_from_decompose(cwd_p, action.decompose_rel)
+        if os.environ.get("EPIC_CONVERGENCE_CHECK") == "1":
+            try:
+                findings = run_convergence_checks(cwd_p, epic_id)
+                for f in findings:
+                    if str(f.severity).upper() in {"HIGH", "CRITICAL"}:
+                        logger.warning(
+                            f"[convergence] {f.severity} finding in epic {epic_id}: {f.category} - {f.message}"
+                        )
+            except Exception as exc:
+                logger.warning(f"[convergence] check failed during arm_epic: {exc}")
+        return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
     if phase in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
         qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
         ref_p = find_reflection_artifact(cwd_p, role, epic_id)
@@ -3625,8 +3862,11 @@ def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, 
         rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
         link = rel_idx.removeprefix("memory-bank/")
         hub_rel = f"memory-bank/hub/plan/plan-{epic_id}.md"
+        role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(
+            str(role or "back").lower(), str(role or "BACK").upper()
+        )
         body = build_post_implement_active_context(
-            role=role,
+            role=role_u,
             role_dir=f"memory-bank/{role}",
             epic_id=epic_id,
             tracker_rel=rel_idx,
@@ -3637,7 +3877,6 @@ def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, 
             qa_path=qa_p if qa_p and qa_p.is_file() else None,
             reflection_path=ref_p if ref_p and ref_p.is_file() else None,
             cwd=cwd_p,
-            reason_code=action.reason_code,
         )
         atomic_write_text(active_context_path(cwd_p), body)
         clear_runner_checkpoint(cwd_p)
@@ -3648,7 +3887,7 @@ def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, 
         st["armed_epic"] = epic_id
         st["armed_decompose"] = rel_idx
         st["armed_step"] = phase
-        st["role"] = role
+        st["role"] = role_u
         st["pending_fingerprint_before"] = None
         save_epic_state(cwd_p, st)
         return {
@@ -3656,7 +3895,7 @@ def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, 
             "complete": False,
             "phase": phase,
             "epic_id": epic_id,
-            "role": role,
+            "role": role_u,
             "step_id": phase,
             "status": "pending",
             "index": rel_idx,
@@ -3676,17 +3915,58 @@ def arm_pre_implement_context(
     role: str,
     phase: str,
     target_rel: str | None,
+    decompose_rel: str | None = None,
 ) -> dict[str, Any]:
     """Arm activeContext for pre-implement phases (PLAN, DECOMPOSE, CLARIFY, ANALYZE)."""
+    from loop.epic_transition import _legacy_warn
+    _legacy_warn("arm_pre_implement_context")
+
     cwd_p = Path(cwd)
     phase_u = str(phase or "").upper()
     role_u = str(role or "back").upper()
     target_rel = target_rel or f"memory-bank/{role}/plan/plan-{epic_id}.md"
     link = target_rel.removeprefix("memory-bank/")
     next_cmd = f"{role_u} {phase_u}"
+    load_now = (
+        f"1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n"
+    )
+    armed_decompose: str | None = None
+    if phase_u == "ANALYZE" and decompose_rel:
+        decomp_yaml = decompose_rel
+        if decomp_yaml.endswith("index.md"):
+            decomp_yaml = decomp_yaml[: -len("index.md")] + "index.yaml"
+        decomp_link = decomp_yaml.removeprefix("memory-bank/")
+        decomp_dir = Path(decompose_rel).parent.name
+        load_now += (
+            f"2. [`{decomp_dir}/index.yaml`]({decomp_link}) — decompose index for ANALYZE gate.\n"
+        )
+        armed_decompose = decomp_yaml
+    elif phase_u == "DECOMPOSE":
+        from epic_paths import find_decompose_index_path
+
+        role_key = str(role or "back").lower()
+        rule_dir = {
+            "back": "back_developer",
+            "front": "front_developer",
+            "integration": "integration_developer",
+        }.get(role_key, f"{role_key}_developer")
+        idx = find_decompose_index_path(cwd_p, role_key, epic_id)
+        if idx and idx.is_file():
+            decomp_yaml = idx.relative_to(cwd_p).as_posix()
+        else:
+            decomp_yaml = f"memory-bank/{role_key}/plan/decompose-{epic_id}/index.yaml"
+        decomp_link = decomp_yaml.removeprefix("memory-bank/")
+        decomp_dir = Path(decomp_yaml).parent.name
+        load_now += (
+            f"2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (канон sNN-<slug>.yaml).\n"
+            f"3. `.cursor/rules/{rule_dir}/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.\n"
+            f"4. Target decompose: [`{decomp_dir}/index.yaml`]({decomp_link}) "
+            f"(index.md + index.yaml + sNN-<slug>.yaml).\n"
+        )
+        armed_decompose = decomp_yaml if idx and idx.is_file() else None
     body = (
         f"---\nschema: loop-handoff/v1\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
-        f"## load_now\n1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n\n"
+        f"## load_now\n{load_now}\n"
         f"## Handoff {phase_u}\n"
         f"- **Эпик:** {epic_id} ({role_u}).\n"
         f"- **Режим/шаг:** `{next_cmd}`.\n"
@@ -3699,7 +3979,7 @@ def arm_pre_implement_context(
     st["status"] = "armed"
     st["halt_reason"] = None
     st["armed_epic"] = epic_id
-    st["armed_decompose"] = None
+    st["armed_decompose"] = armed_decompose
     st["armed_step"] = phase_u
     st["role"] = role
     st["pending_fingerprint_before"] = None

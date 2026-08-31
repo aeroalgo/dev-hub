@@ -1,0 +1,9 @@
+schema: epic-qa/v1
+epic_id: T-HUB-017-loop-observability-foundation
+date: '2026-08-31'
+verdict: pass
+suite_results:
+  passed: 38
+  failed: 0
+  note: All 38 dedicated T-HUB-017 unit tests passed in loop/tests (test_incidents_*.py, test_status_incidents.py, test_operational_docs.py).
+summary: All 9 ACs verified by unit test suite and @reviewer inspection. AC+ and AC- satisfied.

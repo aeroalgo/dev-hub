@@ -1632,5 +1632,80 @@ def test_stop_gate_optional_no_gate(tmp_path: Path) -> None:
     assert "обязателен @verify" in result["reason"]
 
 
+def test_stop_gate_decompose_uses_validate_decompose_tree(tmp_path: Path) -> None:
+    _write_gate_fixture(tmp_path)
+    _write(
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "active": True,
+            "status": "running",
+            "phase": "DECOMPOSE",
+            "armed_step": "DECOMPOSE",
+        }),
+        tmp_path,
+    )
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "gate-fixture",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: done",
+            "stop_hook_active": False,
+        },
+    )
+    # validate-decompose-tree is executed (or fails if executable not found in test env)
+    assert result["decision"] == "block"
+    assert "validate-decompose-tree" in result["reason"] or "finish-gate" in result["reason"]
+
+
+def test_stop_gate_implement_uses_validate_step(tmp_path: Path) -> None:
+    _write_gate_fixture(tmp_path)
+    _write(
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "active": True,
+            "status": "running",
+            "phase": "IMPLEMENT",
+            "armed_step": "s01",
+        }),
+        tmp_path,
+    )
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "gate-fixture",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: done",
+            "stop_hook_active": False,
+        },
+    )
+    assert result["decision"] == "block"
+
+
+def test_stop_gate_unknown_gate_type_fails_closed(tmp_path: Path) -> None:
+    _write_gate_fixture(tmp_path)
+    _write(
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "active": True,
+            "status": "running",
+            "phase": "BOGUS_PHASE",
+            "armed_step": "s01",
+        }),
+        tmp_path,
+    )
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "gate-fixture",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: done",
+            "stop_hook_active": False,
+        },
+    )
+    assert result["decision"] == "block"
+    assert "fail-closed" in result["reason"] or "unknown phase" in result["reason"]
+
+
 if __name__ == "__main__":
     pass

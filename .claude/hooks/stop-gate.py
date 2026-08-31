@@ -46,6 +46,7 @@ from epic import (  # noqa: E402
     validate_qa_finish_handoff,
 )
 from loop.schemas.active_context import parse_frontmatter
+from epic_paths import resolve_decompose_ref_for_gate  # noqa: E402
 from epic_yaml import validate_decompose_tree  # noqa: E402
 
 
@@ -224,6 +225,41 @@ def main() -> None:
         epic_loop and epic.get("active") and epic.get("status") == "running"
     )
     stop_hook_active = bool(data.get("stop_hook_active"))
+
+    # Validate registry finish gates if phase is present
+    current_phase = epic.get("phase") or st.get("mode") or ""
+    if current_phase:
+        from loop.epic_transition import get_phase_config
+        try:
+            cfg = get_phase_config(str(current_phase))
+            finish_gates = cfg.get("finish_gates")
+            if isinstance(finish_gates, list):
+                for g in finish_gates:
+                    g_type = g.get("type") if isinstance(g, dict) else None
+                    if g_type == "cli":
+                        cmd = g.get("cmd") or g.get("command") or g.get("name")
+                        if cmd:
+                            res = subprocess.run(
+                                [cmd, "--cwd", cwd] if cwd else [cmd],
+                                capture_output=True,
+                                text=True,
+                            )
+                            if res.returncode != 0:
+                                _block(f"finish-gate: cli gate {cmd} failed with exit code {res.returncode}")
+                                return
+                    elif g_type == "artifact":
+                        pattern = g.get("pattern") or g.get("path")
+                        if pattern:
+                            found = list(Path(cwd).glob(pattern)) if cwd else []
+                            if not found:
+                                _block(f"finish-gate: artifact gate {pattern} not found")
+                                return
+                    else:
+                        raise ValueError(f"unknown gate type {g_type!r}: fail-closed")
+        except ValueError as err:
+            if "unknown gate type" in str(err) or "unknown phase" in str(err):
+                _block(f"spawn-gate: {err}")
+                return
 
     # Default anti-loop: allow stop after a prior hook block — EXCEPT epic (need progress).
     if stop_hook_active and not epic_on:
@@ -446,16 +482,17 @@ def main() -> None:
     progressed, _fp = _epic_progressed(cwd, epic)
     if progressed:
         if armed_step_u == "DECOMPOSE":
-            shard_errs = validate_decompose_tree(cwd, epic.get("armed_decompose"))
+            decompose_ref = resolve_decompose_ref_for_gate(cwd, epic)
+            shard_errs = validate_decompose_tree(cwd, decompose_ref)
             if shard_errs:
                 if stop_hook_active:
                     return
                 _block(
-                    "epic-gate: DECOMPOSE FINISH blocked — каждый sNN|eNN должен быть "
-                    "schema: epic-decompose/v1 (+ role, as_built/delta lists) по "
-                    ".cursor/templates/decompose/epic-step.yaml. "
-                    "FORBIDDEN: epic-decompose-shard/*, invented schemas, as_built dict. "
-                    "Исправь shards → validate-step / validate-decompose-tree. "
+                    "epic-gate: DECOMPOSE FINISH blocked — index.md coverage + "
+                    "sNN-<slug>.yaml + schema epic-decompose/v1 (+ role, as_built/delta lists) "
+                    "по .cursor/templates/decompose/. "
+                    "FORBIDDEN: epic-decompose-shard/*, invented schemas, as_built dict, bare sNN.yaml. "
+                    "Исправь → validate-decompose-tree. "
                     + "; ".join(shard_errs[:12])
                 )
                 return

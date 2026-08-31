@@ -36,6 +36,7 @@ from .client import (
     execution_record,
 )
 from .diff import BoardTask
+from .host_url import default_dsh_home, default_host_url
 from .sync import SyncResult, run_sync
 from .workspaces import WorkspacesError, discover
 
@@ -44,17 +45,6 @@ _DEFAULT_RUNTIME = "claude"
 
 ArmFn = Callable[[LaunchCard], ArmResult]
 LoopRunner = Callable[[LaunchCard, LoopArgvResult, BridgeConfig], ExecutionResult]
-
-_DEFAULT_HOST_URL = "http://127.0.0.1:5173"
-
-
-def _default_host_url() -> str:
-    return (
-        os.getenv("DSH_TASK_BOARD_HOST_URL")
-        or os.getenv("DSH_WEB_URL")
-        or _DEFAULT_HOST_URL
-    )
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -69,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument(
         "--dsh-home",
         type=Path,
-        default=_default_dsh_home(),
+        default=default_dsh_home(),
         help="DSH home containing storages/workspace.json",
     )
     sync_parser.add_argument(
@@ -80,7 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sync_parser.add_argument(
         "--host-url",
-        default=_default_host_url(),
+        default=default_host_url(),
         help="DSH Host base URL",
     )
 
@@ -93,7 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument(
         "--host-url",
-        default=_default_host_url(),
+        default=default_host_url(),
         help="DSH Host base URL",
     )
 
@@ -112,7 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
             "--from-state", dest="offline_ledger", type=Path, metavar="PATH",
             help=argparse.SUPPRESS,
         )
-        launch_parser.add_argument("--host-url", default=_default_host_url())
+        launch_parser.add_argument("--host-url", default=default_host_url())
         if command != "arm":
             launch_parser.add_argument("--loop-args", metavar="TOKEN", help="one whitelisted loop argument")
             launch_parser.add_argument(
@@ -381,11 +371,6 @@ def _print_operations(result: SyncResult) -> None:
             print(f"archive {operation.task_id}")
         elif operation.card is not None:
             print(f"{operation.kind} {operation.card.id} {operation.card.title}")
-
-
-def _default_dsh_home() -> Path:
-    value = os.getenv("DSH_HOME")
-    return Path(value).expanduser() if value else Path.home() / ".dsh"
 
 
 if __name__ == "__main__":

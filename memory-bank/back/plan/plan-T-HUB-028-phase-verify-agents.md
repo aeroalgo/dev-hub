@@ -3,7 +3,7 @@
 **Дата:** 2026-08-30  
 **Режим:** BACK PLAN  
 **Уровень:** L3–L4  
-**Статус:** active  
+**Статус:** superseded → [T-HUB-029](plan-T-HUB-029-epic-phase-transition-engine.md) (merge verify registry + transition engine; CLARIFY 2026-08-31)  
 **Deps:** **hard** T-HUB-008 (DSH epic-gate preset mapping), T-HUB-007 (profiles/presets). **Soft:** T-HUB-016 (hooks bridge), T-HUB-023 (verdict extract / LLM fallback per agent_type), T-HUB-022 (gate sidecar / typed verdict mirror).
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs

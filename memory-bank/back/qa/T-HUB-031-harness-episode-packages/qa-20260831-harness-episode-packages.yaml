@@ -1,0 +1,38 @@
+schema: qa-report/v1
+epic: T-HUB-031-harness-episode-packages
+role: back
+date: '2026-08-31'
+verdict: pass
+summary: "QA pass для эпика T-HUB-031-harness-episode-packages: все 32 теста пройдены, AC+ и AC- полностью выполнены, §0.11 соблюдён."
+
+suite_results:
+  pytest: "32 passed in loop/tests/test_episode_*.py"
+
+ac_matrix:
+  - id: AC-1
+    status: pass
+    evidence: "loop/schemas/episode.py: EpisodeManifest schema & model loop-episode/v1"
+  - id: AC-2
+    status: pass
+    evidence: "loop/context_loop.py: begin_episode/finalize_episode integrated in prepare_session and check_after"
+  - id: AC-3
+    status: pass
+    evidence: "loop/episodes/bundle.py: immutable bundle artifact copies (check_after.json, checkpoint, gate_verdict, trace_tail)"
+  - id: AC-4
+    status: pass
+    evidence: "loop/incidents.py / trace logger: episode_id propagation"
+  - id: AC-5
+    status: pass
+    evidence: "loop/episodes/cli.py: episode-list and episode-show CLI commands"
+  - id: AC-6
+    status: pass
+    evidence: "loop/episodes/retention.py: retention prune policy & disk growth bounded"
+
+ac_minus_matrix:
+  - id: AC-MINUS-1
+    status: pass
+    evidence: "test_finalize_exception_does_not_block: exception in finalize_episode does not block session lifecycle"
+
+isolation_0_11: pass
+blockers: []
+next: REFLECT

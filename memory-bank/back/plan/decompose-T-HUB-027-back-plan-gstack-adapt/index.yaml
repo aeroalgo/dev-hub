@@ -1,0 +1,45 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-027-back-plan-gstack-adapt
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-clarify-product-probe.yaml
+  title: Product probe до WHAT — 6 forcing questions в CLARIFY каноне
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-plan-template-spine.yaml
+  title: Eng review spine в plan — data-flow, failures, self-check до DECOMPOSE
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-plan-template-qa-readiness.yaml
+  title: QA consumes + Review readiness — исполняемый test plan и gate к DECOMPOSE
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-workflow-plan-batch.yaml
+  title: Plan review batch в одном PLAN — step 2p и FINISH readiness gate
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-workflow-qa-consumes.yaml
+  title: BACK QA lean load — plan §QA consumes вместо monolith plan
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-refs-role-command.yaml
+  title: gstack borrowings задокументированы — refs doc и PLAN FINISH guards
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-epic-verification-suite.yaml
+  title: Epic AC+ верификация — rg matrix, fixture dry-run, clarify regression
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-legacy-fallback-purge.yaml
+  title: Purge full-plan QA fallback — anti-fallback rg и entrypoint inventory
+  next_phase: BACK IMPLEMENT
+  status: completed

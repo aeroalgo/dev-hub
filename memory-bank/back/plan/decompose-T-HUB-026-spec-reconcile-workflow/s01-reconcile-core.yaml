@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: reconcile.py core — path checks + report schema + list_active_epic_ids
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать движок проверки в `.claude/hooks/epic/reconcile.py`: парсинг
+  decompose as_built/delta/plan layout paths → проверка существования в repo →
+  findings RC-001/RC-002/RC-003 с severity HIGH/MEDIUM/LOW.
+  list_active_epic_ids разбирает tasks.md § Active, resolve_epic_bundle строит
+  путь к decompose/implement. Итог: оператор после hotfix получает bounded
+  drift report без мутации spec (AC+1,3,7; FR-001,004,006,012; SC-001,002,005).
+
+context:
+  consumes:
+    - ".claude/hooks/epic/reconcile.py — файл уже существует (partial impl из T-HUB-024 spike)"
+    - ".claude/hooks/epic_index.py — load_index_yaml"
+    - ".claude/hooks/epic_portfolio.py — _ACTIVE_HEADER_RE, _split_cells, _table_block"
+    - ".claude/hooks/epic_yaml.py — load_decompose, load_implement"
+    - "plan-T-HUB-026 §FR-004 (path checks a-d)"
+    - "plan-T-HUB-026 §FR-006 (report schema)"
+    - "plan-T-HUB-026 §FR-012 (exit codes)"
+  produces:
+    - ".claude/hooks/epic/reconcile.py — полная реализация: list_active_epic_ids, resolve_epic_bundle, reconcile_epic, reconcile_plan_id, reconcile_active_epics, format_report_text, run_reconcile_spec"
+  plan_refs:
+    - "FR-003a (SoT = tasks.md Status=active)"
+    - "FR-004 (checks a-d)"
+    - "FR-006 (reconcile-report/v1 schema)"
+    - "FR-012 (exit codes)"
+    - "SC-001 (stale as_built)"
+    - "SC-002 (active sweep)"
+    - "SC-005 (read-only)"
+  files:
+    - ".claude/hooks/epic/reconcile.py"
+
+as_built:
+  - ".claude/hooks/epic/reconcile.py — частичный spike: REPORT_SCHEMA, _PATH_EXT, _PATH_PREFIXES, _PLAN_LAYOUT_ROW, _DELTA_ADD, _BACKTICK_PATH, EpicBundle dataclass, extract_path_tokens, _collect_allowed_deletes, run_reconcile_spec stub"
+  - "list_active_epic_ids — ОТСУТСТВУЕТ"
+  - "resolve_epic_bundle — ОТСУТСТВУЕТ"
+  - "reconcile_epic — ОТСУТСТВУЕТ (только run_reconcile_spec с reconcile_plan_id/reconcile_active_epics заглушками)"
+  - "format_report_text — ОТСУТСТВУЕТ"
+
+delta:
+  - "reconcile.py ADD list_active_epic_ids(cwd: Path) -> list[str] — parse tasks.md §Active, column Status=active"
+  - "reconcile.py ADD resolve_epic_bundle(cwd, epic_id) -> EpicBundle | None — locate decompose-{slug}/index.yaml + implement dir"
+  - "reconcile.py ADD _check_as_built(cwd, bundle) -> list[Finding] — path-like tokens vs cwd; missing→RC-001 HIGH"
+  - "reconcile.py ADD _check_delta(cwd, bundle) -> list[Finding] — delta paths for completed steps; missing→RC-002 MEDIUM"
+  - "reconcile.py ADD _check_plan_layout(cwd, bundle) -> list[Finding] — plan Layout table paths; missing→RC-003 MEDIUM"
+  - "reconcile.py ADD reconcile_epic(cwd, bundle) -> dict — aggregate findings with high_count"
+  - "reconcile.py ADD reconcile_plan_id(cwd, plan_id) -> dict — single-epic path (debug); unknown → exit 2 payload"
+  - "reconcile.py ADD reconcile_active_epics(cwd) -> dict — sweep active list; empty → exit 0 payload"
+  - "reconcile.py ADD format_report_text(payload) -> str — human-readable diff of findings"
+  - "reconcile.py COMPLETE run_reconcile_spec — wire plan_id → reconcile_plan_id; else → reconcile_active_epics; apply strict flag"
+
+deletes: []
+
+out_of_scope:
+  - "CLI subcommand wiring — s02"
+  - "workflow-reconcile.mdc + mainrule — s03"
+  - "Appetite template — s04"
+  - "pytest fixtures — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "list_active_epic_ids возвращает только Status=active строки из tasks.md"
+    verify: "rg 'def list_active_epic_ids' .claude/hooks/epic/reconcile.py"
+  - id: cp2
+    criterion: "resolve_epic_bundle находит decompose-{slug}/index.yaml по epic_id"
+    verify: "rg 'def resolve_epic_bundle' .claude/hooks/epic/reconcile.py"
+  - id: cp3
+    criterion: "reconcile_epic возвращает findings + high_count для stale as_built fixture"
+    verify: "rg 'def reconcile_epic' .claude/hooks/epic/reconcile.py && rg 'high_count' .claude/hooks/epic/reconcile.py"
+  - id: cp4
+    criterion: "unknown plan_id → payload с exit_code 2 (fail-closed)"
+    verify: "rg 'exit_code.*2' .claude/hooks/epic/reconcile.py"
+
+verify: []
+
+tdd:
+  - "test_list_active_epic_ids_returns_only_active"
+  - "test_list_active_epic_ids_skips_queued"
+  - "test_resolve_epic_bundle_finds_decompose_index"
+  - "test_reconcile_epic_stale_as_built_gives_rc001_high"
+  - "test_reconcile_plan_id_unknown_exit2"
+  - "test_reconcile_active_epics_empty_tasks_exit0"

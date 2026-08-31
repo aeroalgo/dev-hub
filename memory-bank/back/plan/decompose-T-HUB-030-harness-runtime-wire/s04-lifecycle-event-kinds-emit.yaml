@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-030-harness-runtime-wire
+title: Lifecycle EVENT_KINDS + implement_done / phase_transition emit
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  events.jsonl отражает IMPLEMENT/DECOMPOSE прогресс: новые kinds в EVENT_KINDS, emit implement_done
+  из finalize_step, phase_transition на promote_if_ready arm; reconcile backfill (US-005, SC-004).
+
+context:
+  consumes:
+    - .claude/hooks/epic_events.py
+    - .claude/hooks/epic/core.py
+    - loop/context_loop.py
+  produces:
+    - .claude/hooks/epic_events.py
+    - .claude/hooks/epic/core.py
+    - loop/context_loop.py
+  plan_refs:
+    - FR-010
+    - FR-011
+    - FR-012
+    - FR-013
+    - US-005
+    - SC-004
+  files:
+    - .claude/hooks/epic_events.py
+    - .claude/hooks/epic/core.py
+    - loop/context_loop.py
+
+as_built:
+  - "epic_events.py:EVENT_KINDS — 12 kinds; implement_done/decompose_step_done/phase_transition/traceability_warn/traceability_fail отсутствуют"
+  - "finalize_step — implement_done не эмитится"
+  - "promote_if_ready arm — phase_transition stub отсутствует"
+  - "run_traceability_check_if_enabled — traceability_warn/fail events не эмитятся"
+
+delta:
+  - "EVENT_KINDS += implement_done, decompose_step_done, phase_transition, traceability_warn, traceability_fail"
+  - "epic/core.py:finalize_step — append_event implement_done on step completion"
+  - "epic_transition/promote paths — append_event phase_transition on arm promote (delegate stub OK)"
+  - "context_loop.py:run_traceability_check_if_enabled — traceability_warn (exit 1), traceability_fail (exit 2)"
+  - "reconcile_epic_events backfill rules для новых kinds; strict test только для новых kinds (FR-013)"
+  - "sync epic_stream_filter / hardcoded kind lists если есть"
+
+deletes: []
+
+out_of_scope:
+  - event router/subscriber UI
+  - traceability default ON logic (s05)
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "EVENT_KINDS содержит все 5 новых kinds"
+    verify: "rg 'implement_done|decompose_step_done|phase_transition|traceability_warn|traceability_fail' .claude/hooks/epic_events.py"
+  - id: cp2
+    criterion: "validate_event принимает новые kinds"
+    verify: ".venv/bin/pytest loop/tests/test_event_schema.py loop/tests/test_schemas_event.py -q --tb=short"
+  - id: cp3
+    criterion: "finalize_step → implement_done в events.jsonl"
+    verify: ".venv/bin/pytest loop/tests/test_event_kinds_extended.py -q --tb=short"
+
+verify:
+  - "rg 'implement_done' .claude/hooks/epic/core.py"
+  - "rg 'EVENT_KINDS' .claude/hooks/epic_events.py"
+
+tdd:
+  - loop/tests/test_event_schema.py
+  - loop/tests/test_schemas_event.py
+  - loop/tests/test_incidents_events.py
+  - loop/tests/test_event_kinds_extended.py

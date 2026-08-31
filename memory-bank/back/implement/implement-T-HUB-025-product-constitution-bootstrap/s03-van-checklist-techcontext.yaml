@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: s03 — VAN checklist bullet + techContext onboarding doc IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-025-product-constitution-bootstrap/s03-van-checklist-techcontext.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен bullet в workflow-van-brownfield.mdc для L2+ эпиков с seed-constitution
+- Добавлена сноска про seed-constitution в workflow-analyze-core.mdc pass 6
+- Добавлен параграф про seed-constitution в memory-bank/techContext.md
+files:
+- .cursor/rules/shared/workflow-van-brownfield.mdc
+- .cursor/rules/shared/workflow-analyze-core.mdc
+- memory-bank/techContext.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=short`'
+integration_check:
+- '`rg ''seed-constitution'' .cursor/rules/shared/workflow-van-brownfield.mdc .cursor/rules/shared/workflow-analyze-core.mdc
+  memory-bank/techContext.md`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: VAN workflow содержит новый checklist-пункт со словами 'seed-constitution'
+    и 'L2+'
+  status: done
+  done_at: '2026-08-31T06:59:20Z'
+- id: cp2
+  criterion: techContext.md содержит команду seed-constitution с флагами --cwd
+  status: done
+  done_at: '2026-08-31T06:59:33Z'
+- id: cp3
+  criterion: workflow-analyze-core.mdc pass 6 содержит уточняющую заметку про seed
+  status: done
+  done_at: '2026-08-31T06:59:48Z'
+resume_from: cp1

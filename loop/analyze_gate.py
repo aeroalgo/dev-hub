@@ -1,12 +1,15 @@
 """Pre-IMPLEMENT ANALYZE gate — shared by roadmap_queue and board scan."""
 from __future__ import annotations
 
+import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 COMPLETED_STATUSES = frozenset({"completed", "done"})
+_STEP_REF_RE = re.compile(r"^[sera]\d{2}$")
 
 
 def _load_yaml(path: Path) -> dict[str, Any] | None:
@@ -17,16 +20,37 @@ def _load_yaml(path: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def index_content_fingerprint(index_path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256(index_path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+    return f"sha256:{digest}"
+
+
 def latest_analyze_paths(project: Path, role: str, epic_id: str) -> list[Path]:
-    directories = [
-        project / "memory-bank" / role / "analyze" / epic_id,
-        project / "memory-bank" / role / "analyze",
-    ]
+    import sys
+
+    hooks = Path(__file__).resolve().parents[1] / ".claude" / "hooks"
+    if str(hooks) not in sys.path:
+        sys.path.insert(0, str(hooks))
+    from epic_paths import epic_lookup_ids
+
     paths: list[Path] = []
-    for directory in directories:
-        if not directory.is_dir():
-            continue
-        paths.extend(directory.glob("analyze-*.yaml"))
+    seen: set[Path] = set()
+    for lookup_id in epic_lookup_ids(epic_id):
+        directories = [
+            project / "memory-bank" / role / "analyze" / lookup_id,
+        ]
+        if lookup_id == epic_id:
+            directories.append(project / "memory-bank" / role / "analyze")
+        for directory in directories:
+            if not directory.is_dir():
+                continue
+            for path in directory.glob("analyze-*.yaml"):
+                if path not in seen:
+                    seen.add(path)
+                    paths.append(path)
     return sorted(paths, reverse=True)
 
 
@@ -65,6 +89,42 @@ def any_completed_step(steps: list[dict[str, Any]]) -> bool:
     )
 
 
+def _step_refs_from_analyze(payload: dict[str, Any]) -> set[str]:
+    refs: set[str] = set()
+    for finding in payload.get("findings") or []:
+        if not isinstance(finding, dict):
+            continue
+        ref = str(finding.get("step_ref") or "").strip()
+        if not ref or ref.lower() == "n/a":
+            continue
+        for part in ref.split(","):
+            token = part.strip().lower()
+            if _STEP_REF_RE.match(token):
+                refs.add(token)
+    for cov in payload.get("coverage") or []:
+        if not isinstance(cov, dict):
+            continue
+        for sid in cov.get("step_ids") or []:
+            token = str(sid).strip().lower()
+            if _STEP_REF_RE.match(token):
+                refs.add(token)
+    return refs
+
+
+def analyze_index_structurally_aligned(
+    payload: dict[str, Any], steps: list[dict[str, Any]]
+) -> bool:
+    step_ids = {
+        str(step.get("id") or "").strip().lower()
+        for step in steps
+        if isinstance(step, dict)
+    }
+    refs = _step_refs_from_analyze(payload)
+    if not refs:
+        return True
+    return refs <= step_ids
+
+
 def analyze_required_before_implement(
     root: Path,
     role: str,
@@ -96,7 +156,35 @@ def analyze_required_before_implement(
         and index_path.is_file()
         and analyze_path.is_file()
     ):
-        if index_path.stat().st_mtime > analyze_path.stat().st_mtime:
+        stored_fp = str(payload.get("index_fingerprint") or "").strip()
+        current_fp = index_content_fingerprint(index_path)
+        if stored_fp and current_fp and stored_fp != current_fp:
+            return {
+                "required": True,
+                "reason": "analyze_stale",
+                "analyze_path": analyze_path.as_posix(),
+            }
+
+        status = str(payload.get("status") or "").strip().lower()
+        if status and status not in {"complete", "completed", "done"}:
+            return {
+                "required": True,
+                "reason": "analyze_incomplete",
+                "analyze_path": analyze_path.as_posix(),
+            }
+
+        if not analyze_index_structurally_aligned(payload, steps):
+            return {
+                "required": True,
+                "reason": "analyze_stale",
+                "analyze_path": analyze_path.as_posix(),
+            }
+
+        if (
+            not stored_fp
+            and index_path.stat().st_mtime > analyze_path.stat().st_mtime
+            and status not in {"complete", "completed", "done"}
+        ):
             return {
                 "required": True,
                 "reason": "analyze_stale",

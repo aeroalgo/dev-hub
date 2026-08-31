@@ -23,6 +23,11 @@ EVENT_KINDS: frozenset[str] = frozenset({
     "tier1_verify_pass",
     "tier1_verify_fail",
     "tier1_escalated",
+    "implement_done",
+    "decompose_step_done",
+    "phase_transition",
+    "traceability_warn",
+    "traceability_fail",
 })
 
 

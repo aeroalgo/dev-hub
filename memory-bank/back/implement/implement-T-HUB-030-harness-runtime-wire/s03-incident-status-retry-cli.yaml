@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-030-harness-runtime-wire
+title: s03 — Incident-status and incident-retry CLI for manual ops IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-030-harness-runtime-wire/s03-incident-status-retry-cli.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added incident-status and incident-retry subparsers to context_loop.py
+files:
+- loop/context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_cli.py -q --tb=short`'
+integration_check:
+- '§0.11: incident-status and incident-retry subcommands wired in context_loop.py
+  and verified via test_incidents_cli.py'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: incident-status subcommand без invalid choice
+  status: done
+  done_at: '2026-08-31T12:36:26Z'
+- id: cp2
+  criterion: incident-retry subcommand без invalid choice
+  status: done
+  done_at: '2026-08-31T12:36:31Z'
+- id: cp3
+  criterion: test_incidents_cli.py green
+  status: done
+  done_at: '2026-08-31T12:36:36Z'
+resume_from: cp1

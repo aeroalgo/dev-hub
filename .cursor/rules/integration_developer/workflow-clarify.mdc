@@ -1,13 +1,19 @@
 ---
-description: "Режим INTEG CLARIFY — снятие wire и contract ambiguity до PLAN (wrapper над shared-core)"
+description: "Режим INTEG CLARIFY — wire/contract ambiguity (Phase 0 в PLAN или standalone)"
 alwaysApply: false
 ---
 ### Команда: INTEG CLARIFY
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc
 **Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **Шаблон**: @.cursor/templates/clarify.md
 **Grill (HARD):** @.agents/skills/grill-me/SKILL.md — Phase 0 mandatory
+
+## Когда запускать
+
+- **`INTEG PLAN`** — Phase 0 auto (orchestration); standalone не обязателен
+- **Standalone:** `continue` · CRITICAL после draft · pipeline/ANALYZE revisit · только clarify без plan в сессии
 
 ## Фокус INTEG
 
@@ -35,6 +41,6 @@ CLARIFY фокусируется на wire/contract gaps между BACK и FRON
 
 ## Handoff
 
-После снятия ambiguity: `INTEG PLAN <slug>`. Если остались вопросы — `continue INTEG CLARIFY`.
+После снятия ambiguity (standalone FINISH): `INTEG PLAN <slug>`. Внутри сессии PLAN Phase 0 → сразу Phase 1. Добор: `continue INTEG CLARIFY`.
 
 FINISH: `code_changed: no`; обновить `activeContext.md` согласно @.cursor/rules/shared/finish-block.mdc и finish-doc-router.

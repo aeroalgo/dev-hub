@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s08 — stop-gate + agent-pretool/subagent-stop registry-driven (phase gates
+  from registry) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s08-stop-gate-registry-driven.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- .claude/hooks/stop-gate.py finish gates registry-driven validation loop
+- .claude/hooks/agent-pretool.py get_verify_agent lookup per phase
+- loop/tests/test_stop_gate.py unit tests for registry gates validation & unknown
+  gate fail-closed
+files:
+- .claude/hooks/stop-gate.py
+- .claude/hooks/agent-pretool.py
+- loop/tests/test_stop_gate.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py loop/tests/test_epic_transition.py
+  -q --tb=line`'
+integration_check:
+- stop-gate.py finish gates alignment with loop/epic_transition.py get_phase_config
+- agent-pretool.py get_verify_agent lookup per phase
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'test_stop_gate_decompose_uses_validate_decompose_tree PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T11:02:47Z'
+- id: cp2
+  criterion: 'test_stop_gate_unknown_gate_type_fails_closed PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T11:03:14Z'
+- id: cp3
+  criterion: 'Регрессия: test_stop_gate.py full suite зелёный
+
+    '
+  status: done
+  done_at: '2026-08-31T11:06:57Z'
+resume_from: cp1

@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-032-harness-analyze-convergence
+title: "Cross-artifact convergence engine — convergence.py + report schema"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.claude/hooks/epic/convergence.py` с основной функцией `run_convergence_checks()`
+  и схемой отчёта `convergence-report/v1`. Цель — единый multi-source анализ: traceability
+  (orphan req/task, AC-gaps) + reconcile overlap (as_built vs repo) + stale handoff detection.
+  Reuse `traceability.run_checks` + `reconcile.run_reconcile_spec` (FR-003), дедупликация
+  findings по fingerprint. Без мутаций файлов (FR-004). Закрывает FR-001 (базовый движок),
+  FR-002 (report schema), FR-003 (reuse), FR-004 (read-only).
+
+context:
+  consumes:
+    - ".claude/hooks/epic/traceability.py — run_checks(), Finding, TraceReport"
+    - ".claude/hooks/epic/reconcile.py — run_reconcile_spec(), EpicBundle"
+    - ".claude/hooks/epic/__init__.py — импорт из core"
+  produces:
+    - ".claude/hooks/epic/convergence.py"
+    - ".claude/hooks/epic/__init__.py (добавить re-export convergence)"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "FR-003"
+    - "FR-004"
+  files:
+    - ".claude/hooks/epic/convergence.py"  # create
+    - ".claude/hooks/epic/__init__.py"     # edit — добавить импорты convergence
+
+as_built:
+  - ".claude/hooks/epic/traceability.py — run_checks(plan_reqs, decomp_refs, impl_ev, strict) → TraceReport (T-HUB-024)"
+  - ".claude/hooks/epic/reconcile.py — run_reconcile_spec(bundle) → list[Finding] (T-HUB-026)"
+  - ".claude/hooks/epic/__init__.py — re-exports core, не содержит convergence"
+
+delta:
+  - "ADD .claude/hooks/epic/convergence.py: dataclasses ConvergenceFinding, ConvergenceReport (schema convergence-report/v1)"
+  - "ADD run_convergence_checks(cwd, plan_id, *, strict, include_git_diff) → ConvergenceReport"
+  - "ADD _dedupe_findings(findings) по fingerprint = severity+category+message[:60]"
+  - "ADD _stale_handoff_check(cwd, plan_id) → list[ConvergenceFinding] — stale_handoff category"
+  - "ADD _orphan_req_check() — orphan_requirement, orphan_task wrapping traceability findings"
+  - "ADD _reconcile_overlap_check() — reconcile_overlap wrapping reconcile findings"
+  - "EDIT __init__.py — добавить ConvergenceFinding, ConvergenceReport, run_convergence_checks в __all__"
+
+deletes: []
+# Greenfield модуль — ничего не вытесняет; validate-traceability и reconcile-spec
+# остаются самостоятельными командами (convergence = aggregating wrapper, не замена)
+
+out_of_scope:
+  - "CLI subparser в epic_resolve.py — s02"
+  - "Text/JSON formatter — s02"
+  - "Loop integration EPIC_CONVERGENCE_CHECK — s03"
+  - "Pytest fixtures + тест-файл — s04"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "convergence.py импортируется без ошибок; ConvergenceReport.schema == 'convergence-report/v1'"
+    verify: "python -c \"from epic.convergence import ConvergenceReport; assert ConvergenceReport.__dataclass_fields__['schema']\" # или pytest test_convergence_schema.py::test_schema_constant -q"
+  - id: cp2
+    criterion: "run_convergence_checks() на fixture-эпике возвращает ConvergenceReport без исключений; findings list (может быть пустым)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_engine.py::test_run_convergence_smoke -q"
+  - id: cp3
+    criterion: "_dedupe_findings удаляет дублирующиеся findings по fingerprint"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_engine.py::test_dedupe_findings -q"
+  - id: cp4
+    criterion: "run_convergence_checks read-only: нет вызовов write/open(mode='w') в convergence.py"
+    verify: "rg -n 'open\\(.*[\"\\']w' .claude/hooks/epic/convergence.py || echo 'OK_NO_WRITES'"
+
+verify:
+  - "python -c \"import sys; sys.path.insert(0,'.claude/hooks'); from epic.convergence import run_convergence_checks, ConvergenceReport\""
+  - ".venv/bin/pytest loop/tests/test_convergence_engine.py -q --tb=short"
+
+tdd:
+  - "test_schema_constant: ConvergenceReport(schema=...).schema == 'convergence-report/v1'"
+  - "test_run_convergence_smoke: fixture cwd с minimal plan + decompose → returns ConvergenceReport, no exception"
+  - "test_dedupe_findings: два идентичных Finding → после dedupe остаётся один"
+  - "test_stale_handoff_category: при mode=IMPLEMENT + missing handoff block → category=='stale_handoff' в findings"
+  - "test_orphan_req_wrapping: traceability CRITICAL finding → присутствует в ConvergenceReport.findings с severity CRITICAL"

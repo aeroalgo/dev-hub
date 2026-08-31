@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-031-harness-episode-packages
+title: Wire begin_episode/finalize_episode into prepare_session + check_after — session lifecycle
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Вызвать `begin_episode(cwd)` внутри `prepare_session` (после arm/state load) и
+  `finalize_episode(cwd, check_after_result)` внутри `check_after` / `_run_tier0_check_after`
+  (перед return). Результат: каждая loop-итерация автоматически создаёт episode bundle.
+  Соответствует FR-003, AC-2, US-001.
+
+context:
+  consumes:
+    - loop/episodes/core.py  # s01
+    - loop/schemas/episode.py  # s01
+  produces:
+    - loop/context_loop.py  # edited: wire calls
+  plan_refs:
+    - FR-003
+    - AC-2
+    - US-001
+    - SC-001
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "prepare_session(cwd, model, runtime) в loop/context_loop.py:1282 — инициализирует сессию, пишет state"
+  - "check_after(cwd, fingerprint_before) в context_loop.py:1859 — финализирует, возвращает dict с decide/halt_reason"
+  - "_run_tier0_check_after(cwd_p, res) в context_loop.py:1741 — tier0 финализация"
+  - "fingerprint_context импортирован из epic — уже в context_loop.py:57"
+
+delta:
+  - "EDIT context_loop.py:prepare_session — добавить call begin_episode(cwd_p) после load state, сохранить episode_id в state (st['episode_id'])"
+  - "EDIT context_loop.py:check_after — добавить call finalize_episode(cwd_p, res) перед return (обычный путь + tier0 путь)"
+  - "EDIT context_loop.py:_run_tier0_check_after — аналогично finalize_episode(cwd_p, res)"
+  - "Обработка exception: finalize_episode failure = warning log, не блокировать check_after return"
+  - "Импорт begin_episode, finalize_episode из loop.episodes в context_loop.py"
+
+deletes: []
+
+out_of_scope:
+  - "artifact copies (check_after.json, trace_tail) — s03"
+  - "incident/trace episode_id injection — s04"
+  - "content manifest.json fields from check_after_result — уже закрыто s01 (finalize_episode)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/async-python-patterns/SKILL.md  # async paths в prepare/check_after
+    - .agents/skills/python-error-handling/SKILL.md  # exception guard не должен блокировать
+
+checkpoints:
+  - id: cp1
+    criterion: "prepare_session возвращает dict с ключом episode_id != None"
+    verify: ".venv/bin/pytest loop/tests/test_episode_wire.py::test_prepare_session_has_episode_id -q"
+  - id: cp2
+    criterion: "check_after вызывает finalize_episode — episode dir создан, manifest.json существует"
+    verify: ".venv/bin/pytest loop/tests/test_episode_wire.py::test_check_after_creates_manifest -q"
+  - id: cp3
+    criterion: "finalize_episode exception не роняет check_after (graceful degradation)"
+    verify: ".venv/bin/pytest loop/tests/test_episode_wire.py::test_finalize_exception_does_not_block -q"
+
+verify:
+  - "rg 'begin_episode|finalize_episode' loop/context_loop.py"
+  - "rg 'from loop.episodes' loop/context_loop.py"
+
+tdd:
+  - "test_prepare_session_has_episode_id — mock begin_episode, проверить что episode_id в return dict"
+  - "test_check_after_creates_manifest — tmpdir + mocked state, вызвать check_after, проверить manifest.json"
+  - "test_finalize_exception_does_not_block — finalize_episode raises Exception, check_after всё равно возвращает dict"
+  - "test_tier0_check_after_finalizes — _run_tier0_check_after тоже вызывает finalize"

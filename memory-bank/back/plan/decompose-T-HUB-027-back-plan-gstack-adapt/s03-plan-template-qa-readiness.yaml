@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: Plan template — QA consumes, Review readiness, Plan review batch log
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в plan-шаблон исполняемый test plan для BACK QA (anchor #qa-consumes),
+  таблицу Review readiness для FINISH PLAN gate и Plan review batch log для batch-review
+  в одном чате. Оператор видит готовность к DECOMPOSE одной таблицей; QA загружает
+  только test matrix без monolith plan (US-003 partial, US-004, FR-003 rest, AC+ #1 rest).
+
+context:
+  consumes:
+    - ".cursor/templates/plan.md — после s02 (Product probe + Eng spine)"
+    - "plan-T-HUB-027 §QA consumes — канон anchor #qa-consumes"
+    - "plan-T-HUB-027 §Review readiness — gate table"
+    - "plan-T-HUB-027 §Plan review batch log — batch principles"
+    - "plan-T-HUB-027 §Eng review spine Test matrix — TM-IDs link to QA consumes"
+  produces:
+    - "plan.md — ## QA consumes (test plan) с anchor #qa-consumes"
+    - "plan.md — ## Review readiness gate table"
+    - "plan.md — ## Plan review batch log"
+  plan_refs:
+    - "FR-003"
+    - "US-003"
+    - "US-004"
+    - "US-005"
+    - "AC+ #1"
+    - "SC-003 (decompose consumes TM-ids — template enables)"
+  files:
+    - ".cursor/templates/plan.md"
+
+as_built:
+  - "plan.md — после s02: Product probe + Eng spine; нет QA consumes, Review readiness, batch log"
+  - "plan.md — Test matrix в Eng spine может ссылаться на TM-IDs; отдельная QA consumes секция отсутствует"
+
+delta:
+  - "plan.md ADD ## QA consumes (test plan) — HTML anchor id qa-consumes; Scope under test; Test matrix table ID/Priority/Scenario/Command/Expected/Maps FR/AC; min ≥3 P0 L3; Regression notes"
+  - "plan.md ADD ## Review readiness — gate table CLARIFY/Product probe, Eng spine, §0.11, CREATIVE, qa_consumes, Plan review batch; FINISH PLAN rule: no pending in Required rows"
+  - "plan.md ADD ## Plan review batch log — Product/Eng phases; auto-resolved/deferred/taste columns; principles comment (completeness, patterns, reversible, defer ambiguous, CRITICAL escalate)"
+  - "plan.md ADD cross-link: Test matrix TM-IDs в Eng spine ↔ QA consumes rows"
+
+deletes: []
+
+out_of_scope:
+  - "workflow-plan FINISH gate enforcement — s04"
+  - "workflow-qa load rule — s05"
+  - "exemplar filled plan fragment — s07"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "plan.md содержит ## QA consumes с anchor qa-consumes"
+    verify: "rg '## QA consumes|#qa-consumes|qa-consumes' .cursor/templates/plan.md"
+  - id: cp2
+    criterion: "QA consumes Test matrix min ≥3 P0 documented"
+    verify: "rg 'TM-001|Test matrix' .cursor/templates/plan.md"
+  - id: cp3
+    criterion: "plan.md содержит ## Review readiness с gate rows и FINISH rule"
+    verify: "rg '## Review readiness' .cursor/templates/plan.md && rg 'FINISH PLAN allowed' .cursor/templates/plan.md"
+  - id: cp4
+    criterion: "plan.md содержит ## Plan review batch log"
+    verify: "rg '## Plan review batch log' .cursor/templates/plan.md"
+
+verify: []
+
+tdd:
+  - "rg_qa_consumes_anchor_in_plan_template"
+  - "rg_review_readiness_gate_table"
+  - "rg_plan_review_batch_log_section"
+  - "rg_test_matrix_tm_ids_documented"

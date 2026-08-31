@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-032-harness-analyze-convergence
+title: s04 — Pytest test suite — fixtures per finding category + active sweep + strict
+  exit IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-032-harness-analyze-convergence/s04-convergence-tests-fixtures.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- CREATED loop/tests/fixtures/convergence/ (6 fixture directories for category coverage)
+- CREATED loop/tests/test_convergence_categories.py with unit tests and active sweep
+files:
+- loop/tests/test_convergence_categories.py
+- loop/tests/fixtures/convergence/
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_convergence_engine.py loop/tests/test_convergence_cli.py
+  loop/tests/test_convergence_loop.py loop/tests/test_convergence_categories.py -q
+  --tb=line`'
+integration_check:
+- Convergence engine and CLI tested with category fixtures, active sweep, and strict
+  exit code validation
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_convergence_engine.py loop/tests/test_convergence_cli.py
+  loop/tests/test_convergence_loop.py loop/tests/test_convergence_categories.py -q
+  --tb=line — 22 passed in 1.05s
+checkpoints:
+- id: cp1
+  criterion: 'SC-001: каждая из 6 категорий порождает finding с правильным category
+    полем'
+  status: done
+  done_at: '2026-08-31T14:40:52Z'
+- id: cp2
+  criterion: 'SC-002: active sweep на реальный fixture не бросает исключений, возвращает
+    ConvergenceReport'
+  status: done
+  done_at: '2026-08-31T14:41:03Z'
+- id: cp3
+  criterion: 'SC-003: strict + HIGH → exit 1 (через subprocess или SystemExit)'
+  status: done
+  done_at: '2026-08-31T14:41:13Z'
+- id: cp4
+  criterion: Full suite green (все test_convergence_*.py)
+  status: done
+  done_at: '2026-08-31T14:41:24Z'
+resume_from: cp1

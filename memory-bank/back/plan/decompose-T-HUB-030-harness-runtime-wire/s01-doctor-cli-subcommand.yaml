@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-030-harness-runtime-wire
+title: Doctor subcommand — preflight blockers before autopilot
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Loop operator вызывает `bin/loop doctor` / `context_loop.py doctor` до автопилота и получает
+  DoctorReport (text/json) с exit 0/1/2; gap «subcommand отсутствует» закрыт (US-001, SC-001).
+
+context:
+  consumes:
+    - loop/incidents/doctor.py
+    - loop/incidents/store.py
+  produces:
+    - loop/context_loop.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - US-001
+    - SC-001
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "context_loop.py:2594 — sub.add_subparsers; parser doctor отсутствует"
+  - "loop/incidents/doctor.py:run_doctor — реализован, не подключён к CLI"
+  - "bin/loop — passthrough doctor уже есть; падает на missing subparser в context_loop.py"
+
+delta:
+  - "context_loop.py:parser — sub.add_parser('doctor') с --auto-repair, --format text|json, --cwd"
+  - "context_loop.py:dispatch — if args.cmd == 'doctor': lazy import run_doctor; map exit codes 0/1/2"
+  - "delegate loop.incidents.doctor.run_doctor(cwd, auto_repair=..., format=...)"
+
+deletes: []
+
+out_of_scope:
+  - loop.sh EPIC_LOOP_DOCTOR_PREFLIGHT (s06)
+  - incident-status / incident-retry (s03)
+  - tier0 wire в check_after (s02)
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - diagnosing-bugs
+
+checkpoints:
+  - id: cp1
+    criterion: "doctor subcommand доступен — нет invalid choice"
+    verify: ".venv/bin/python loop/context_loop.py --cwd /tmp doctor 2>&1 | rg -v 'invalid choice'"
+  - id: cp2
+    criterion: "corrupt activeContext → checklist fail; JSON/text output"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+  - id: cp3
+    criterion: "healthy fixture → exit 0"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_healthy_fixture -q --tb=short 2>/dev/null || .venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+
+verify:
+  - "rg '\"doctor\"' loop/context_loop.py"
+  - "rg 'run_doctor' loop/context_loop.py"
+
+tdd:
+  - loop/tests/test_incidents_doctor.py
+  - loop/tests/test_doctor_cli.py

@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: "Hub-root guard + --force overwrite protection"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `constitution_seed.py` два guard-механизма:
+  1. Hub-root detection — если `--cwd` == dev-hub root, отклонять с exit 2 если не задан
+     `DEV_HUB_CONSTITUTION_SEED=1` (anti-mix).
+  2. Idempotency guard — если `memory-bank/constitution.md` уже существует и `--force` не задан,
+     выходить с exit 2 и сообщением (не затирать адаптацию).
+  Закрывает FR-006 (fail-closed), FR-011 (anti-mix); AC+3, AC+4, AC−1; US-002; SC-002, SC-003.
+
+context:
+  consumes:
+    - "loop/constitution_seed.py"    # из s01: добавляем guard-логику
+  produces:
+    - "loop/constitution_seed.py"    # edit: guards + env check
+  plan_refs:
+    - FR-006
+    - FR-011
+    - AC+3
+    - AC+4
+    - AC-1
+    - US-002
+    - SC-002
+    - SC-003
+  files:
+    - "loop/constitution_seed.py"   # edit: hub_root_guard + idempotency_guard functions
+
+as_built:
+  - "loop/constitution_seed.py"  # после s01: seed_constitution exists; guards absent
+
+delta:
+  - "loop/constitution_seed.py"
+    # add: hub_root_guard(cwd, hub_root) → exit 2 if cwd==hub_root and env not set
+    # add: idempotency_guard(target_path, force) → exit 2 if exists and not force
+    # wire both guards before template render in seed_constitution()
+
+deletes: []  # greenfield
+
+out_of_scope:
+  - "s04 pytest для guard сценариев: тесты в s04"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"   # S03: exit 2 paths
+    - ".agents/skills/python-configuration/SKILL.md"    # S08: env var read
+    # 4 Core + 2 situational (S03, S08) — total 6
+
+checkpoints:
+  - id: cp1
+    criterion: "Второй вызов seed-constitution без --force на существующий файл → exit 2"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py::test_idempotency_guard -q"
+  - id: cp2
+    criterion: "cwd == dev-hub root без DEV_HUB_CONSTITUTION_SEED → exit 2"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py::test_hub_root_guard -q"
+  - id: cp3
+    criterion: "--force позволяет overwrite; hub env=1 позволяет hub root"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py::test_force_overwrite loop/tests/test_seed_constitution.py::test_hub_root_env_bypass -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_seed_constitution.py -q -k 'guard or force or hub'"
+
+tdd:
+  - "test_idempotency_guard: existing file + no --force → SystemExit(2)"
+  - "test_force_overwrite: existing file + --force → overwrites successfully"
+  - "test_hub_root_guard: cwd == hub_root, env unset → SystemExit(2)"
+  - "test_hub_root_env_bypass: cwd == hub_root, DEV_HUB_CONSTITUTION_SEED=1 → succeeds"

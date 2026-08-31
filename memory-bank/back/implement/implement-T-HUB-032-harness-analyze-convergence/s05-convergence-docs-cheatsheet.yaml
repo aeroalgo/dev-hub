@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-032-harness-analyze-convergence
+title: 's05 — Docs — workflow-analyze cheatsheet: analyze-convergence vs validate-traceability
+  vs reconcile-spec IMPLEMENT'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-032-harness-analyze-convergence/s05-convergence-docs-cheatsheet.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен раздел cheatsheet 'analyze-convergence vs validate-traceability vs reconcile-spec'
+  в .cursor/rules/shared/workflow-analyze-core.mdc
+files:
+- .cursor/rules/shared/workflow-analyze-core.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/ -q --tb=line`'
+integration_check:
+- Документация и cheatsheet проверены через rg и pytest suite
+grep_control: []
+verification_results:
+- rg 'analyze-convergence' .cursor/rules/shared/workflow-analyze-core.mdc -> PASS
+- rg 'validate-traceability' .cursor/rules/shared/workflow-analyze-core.mdc -> PASS
+- rg 'reconcile-spec' .cursor/rules/shared/workflow-analyze-core.mdc -> PASS
+checkpoints:
+- id: cp1
+  criterion: workflow-analyze-core.mdc содержит секцию с тремя командами
+  status: done
+  done_at: '2026-08-31T14:43:41Z'
+- id: cp2
+  criterion: Таблица сравнения присутствует (grep на 'validate-traceability' в том
+    же файле)
+  status: done
+  done_at: '2026-08-31T14:44:25Z'
+resume_from: cp1

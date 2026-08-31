@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-024-validate-traceability
+title: CLI validate-traceability — epic_resolve command + exit codes + JSON report
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать команду `epic_resolve validate-traceability --epic <plan_id> [--strict] [--json]`:
+  - Вызывает parsers из s01 (plan + decompose + implement).
+  - Запускает checker.run_checks() → список Finding с severity CRITICAL/HIGH/MEDIUM/LOW.
+  - Формирует TraceReport: coverage_pct, critical_count, findings, matrix per-requirement.
+  - Exit 0 когда CRITICAL=0; exit 1 при CRITICAL≥1; exit 2 при missing plan/decompose dir.
+  - `--strict`: HIGH → CRITICAL для exit code.
+  - `--json`: stdout JSON, иначе human-readable summary.
+  Fail-closed: отсутствующий plan.md или пустой decompose dir → exit 2 с диагностикой.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/traceability.py — parsers из s01, TraceReport, Finding"
+    - ".claude/hooks/epic_resolve.py — register_command pattern, arg parsing"
+    - ".claude/hooks/epic/core.py — paths, get_plan_path, get_decompose_dir"
+    - "plan-T-HUB-024 §FR-001–FR-009, §Exit codes, §Сигнатуры ключевых функций"
+  produces:
+    - ".claude/hooks/epic/traceability.py — run_checks(plan_reqs, decomp_refs, impl_ev) -> list[Finding]"
+    - ".claude/hooks/epic/traceability.py — format_report(report, json_mode) -> str"
+    - ".claude/hooks/epic_resolve.py — cmd_validate_traceability() + argparse subcommand"
+    - "loop/tests/test_traceability_cli.py"
+  plan_refs:
+    - "plan-T-HUB-024 FR-001"
+    - "plan-T-HUB-024 FR-004"
+    - "plan-T-HUB-024 FR-006"
+    - "plan-T-HUB-024 FR-007"
+    - "plan-T-HUB-024 FR-008"
+    - "plan-T-HUB-024 FR-009"
+    - "plan-T-HUB-024 AC+ #1"
+    - "plan-T-HUB-024 AC+ #2"
+    - "plan-T-HUB-024 AC+ #3"
+    - "plan-T-HUB-024 AC− #1"
+  files:
+    - ".claude/hooks/epic/traceability.py"
+    - ".claude/hooks/epic_resolve.py"
+    - "loop/tests/test_traceability_cli.py"
+
+as_built:
+  - "epic_resolve.py — нет subcommand validate-traceability"
+  - "run_checks — отсутствует"
+  - "format_report — отсутствует"
+
+delta:
+  - "traceability.py ADD run_checks(plan_reqs, decomp_refs, impl_ev, strict=False) -> list[Finding]: (a) FR в plan без sNN в plan_refs → CRITICAL; (b) sNN без plan_refs и не в plan out_of_scope → HIGH; (c) completed implement без tests → HIGH; (d) coverage_pct < 80% → MEDIUM"
+  - "traceability.py ADD build_report(plan_id, plan_reqs, decomp_refs, impl_ev, strict) -> TraceReport — соберёт findings через run_checks, посчитает coverage_pct"
+  - "traceability.py ADD format_report(report: TraceReport, json_mode: bool) -> str"
+  - "epic_resolve.py ADD subcommand 'validate-traceability': args --epic (plan_id), --cwd (project root), --strict, --json"
+  - "epic_resolve.py ADD cmd_validate_traceability() → resolve paths via core.py, call build_report, print format_report, sys.exit по exit-code rule"
+  - "test_traceability_cli.py ADD tests: exit 0 on clean fixtures, exit 1 on CRITICAL finding, exit 2 on missing plan, --strict elevates HIGH, --json valid JSON output"
+
+deletes: []
+
+out_of_scope:
+  - "AC marker scanner — s03"
+  - "YAML-CONTRACT docs — s04"
+  - "Loop env opt-in — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "run_checks и build_report определены в traceability.py"
+    verify: "rg 'def run_checks\\|def build_report' .claude/hooks/epic/traceability.py"
+  - id: cp2
+    criterion: "validate-traceability subcommand зарегистрирован в epic_resolve.py"
+    verify: "rg 'validate-traceability\\|validate_traceability' .claude/hooks/epic_resolve.py"
+  - id: cp3
+    criterion: "Exit 2 при отсутствующем plan dir (smoke test через subprocess)"
+    verify: "python3 .claude/hooks/epic_resolve.py validate-traceability --epic NONEXISTENT --cwd /tmp; echo exit=$?"
+  - id: cp4
+    criterion: "Unit tests зелёные (cli + checker)"
+    verify: ".venv/bin/pytest loop/tests/test_traceability_cli.py -q"
+
+verify: []
+
+tdd:
+  - "test_run_checks_critical_on_uncovered_req"
+  - "test_run_checks_high_on_shard_no_plan_refs"
+  - "test_run_checks_high_on_completed_without_tests"
+  - "test_run_checks_strict_elevates_high_to_critical"
+  - "test_build_report_coverage_pct"
+  - "test_cli_exit0_clean_fixture"
+  - "test_cli_exit1_critical_finding"
+  - "test_cli_exit2_missing_plan"
+  - "test_cli_json_output_valid"

@@ -56,6 +56,10 @@ On FINISH: @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext
 
 Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in **BACK IMPLEMENT** and **BACK QA**. Detail: @.cursor/rules/token-economy-core.mdc §0.11
 
+## 0.12 Spec-first replace (HARD)
+
+**Always-on:** @.cursor/rules/spec-first-replace-hard.mdc — as-built ≠ design; pydantic → JSON; replace-not-wrap; no regex+enum hybrid. Purge: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+
 ## PLAN / gap / decompose write
 
 **Never shorten** `plan-*.md` / `decompose-*/**` / `architecture/**` under chat brevity. Full rules: @.cursor/rules/token-economy-core.mdc §0.0 + §0.0.1

@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-031-harness-episode-packages
+title: s06 — Retention prune + integration tests + README § Episodes — disk-growth
+  bounded IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-031-harness-episode-packages/s06-retention-prune-tests-readme.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented `prune_episodes(cwd, days)` in loop/episodes/retention.py with EPIC_EPISODE_RETENTION_DAYS
+  env override support (default 30 days).
+- Added unit tests in loop/tests/test_episode_retention.py.
+- Added integration canary test `test_canary_episode_created_and_valid` in loop/tests/test_episode_schema.py.
+- Updated loop/README.md with §Episodes & Package Artifacts documenting schema, CLI
+  commands, and retention policies.
+files:
+- loop/episodes/core.py
+- loop/episodes/retention.py
+- loop/tests/test_episode_retention.py
+- loop/tests/test_episode_schema.py
+- loop/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_episode_retention.py loop/tests/test_episode_schema.py
+  -q`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_episode_*.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '.venv/bin/pytest loop/tests/test_episode_retention.py loop/tests/test_episode_schema.py
+  -q --tb=line: ALL PASSED'
+checkpoints:
+- id: cp1
+  criterion: prune_episodes удаляет dirs старше N дней, возвращает count
+  status: done
+  done_at: '2026-08-31T14:05:32Z'
+- id: cp2
+  criterion: prune_episodes с EPIC_EPISODE_RETENTION_DAYS=7 env var удаляет правильно
+  status: done
+  done_at: '2026-08-31T14:05:42Z'
+- id: cp3
+  criterion: 'Integration canary: prepare+finalize создаёт episode, manifest validates
+    SC-001/SC-002'
+  status: done
+  done_at: '2026-08-31T14:06:00Z'
+- id: cp4
+  criterion: README §Episodes существует и содержит episode-list пример
+  status: done
+  done_at: '2026-08-31T14:06:15Z'
+resume_from: cp1

@@ -9,7 +9,25 @@ from pathlib import Path
 from typing import Any, Iterable
 
 EVENT_SCHEMA = "loop-event/v2"
-EVENT_KINDS = frozenset({"audit_done", "qa_pass", "qa_fail", "bugfix_done", "reflection_done"})
+EVENT_KINDS = frozenset({
+    "audit_done",
+    "qa_pass",
+    "qa_fail",
+    "bugfix_done",
+    "reflection_done",
+    "incident_opened",
+    "incident_resolved",
+    "repair_applied",
+    "tier1_spawn",
+    "tier1_verify_pass",
+    "tier1_verify_fail",
+    "tier1_escalated",
+    "implement_done",
+    "decompose_step_done",
+    "phase_transition",
+    "traceability_warn",
+    "traceability_fail",
+})
 MAX_METADATA_KEYS = 32
 MAX_METADATA_BYTES = 2048
 MAX_METADATA_KEY_LENGTH = 64
@@ -231,14 +249,23 @@ def read_event_log_result(
     *,
     expected_epic_id: str | None = None,
     cwd: str | Path | None = None,
+    include_archives: bool = True,
 ) -> EventLogResult:
     event_path = Path(path)
-    if not event_path.exists():
+    if not event_path.exists() and not (
+        include_archives and event_path.parent.is_dir()
+    ):
         return EventLogResult(())
-    files = sorted(
-        [*event_path.parent.glob("archive-*.jsonl"), event_path],
-        key=lambda item: item.name,
-    )
+    if include_archives:
+        files = sorted(
+            [*event_path.parent.glob("archive-*.jsonl"), event_path],
+            key=lambda item: item.name,
+        )
+        files = [f for f in files if f.is_file()]
+    elif event_path.is_file():
+        files = [event_path]
+    else:
+        return EventLogResult(())
     epic = expected_epic_id or event_path.parent.name
     root = Path(cwd) if cwd is not None else None
     events: list[dict[str, Any]] = []
@@ -284,7 +311,8 @@ def read_event_log_result(
         by_seq[seq] = event
     ordered = [by_seq[seq] for seq in sorted(by_seq)]
     gap_count = 0
-    if ordered:
+    # Live-only window after rollover starts mid-sequence; gaps are expected.
+    if include_archives and ordered:
         expected = list(range(1, ordered[-1]["seq"] + 1))
         missing = sorted(set(expected) - set(by_seq))
         gap_count = len(missing)

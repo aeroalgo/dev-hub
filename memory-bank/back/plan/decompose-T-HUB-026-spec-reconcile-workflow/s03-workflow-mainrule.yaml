@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: BACK RECONCILE workflow-reconcile.mdc + lean gate + mainrule registration
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать workflow-reconcile.mdc (read-only канон, аналог workflow-analyze.mdc) +
+  lean gate _lean/reconcile.mdc, зарегистрировать `BACK RECONCILE` в mainrule.mdc
+  command table. После этого шага оператор/агент может вызвать /back-reconcile
+  как самостоятельный режим. (AC+1,2; FR-001, FR-002; SC-003).
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/workflow-analyze.mdc — эталонный read-only workflow"
+    - ".cursor/rules/back_developer/mainrule.mdc — command table для добавления строки"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/ — lean gate шаблоны"
+    - "plan-T-HUB-026 §FR-001 (STRICTLY READ-ONLY)"
+    - "plan-T-HUB-026 §FR-002 (mainrule row)"
+  produces:
+    - ".cursor/rules/back_developer/workflow-reconcile.mdc — новый файл"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/reconcile.mdc — новый файл"
+    - ".cursor/rules/back_developer/mainrule.mdc — добавлена строка BACK RECONCILE"
+  plan_refs:
+    - "FR-001 (workflow read-only)"
+    - "FR-002 (mainrule registration)"
+    - "FR-009 (FINISH writes reconcile yaml + Handoff; does NOT mutate plan/decompose/code)"
+    - "AC+ #1 (BACK RECONCILE in mainrule)"
+    - "AC+ #2 (workflow-reconcile.mdc + lean gate exist)"
+    - "SC-003 (mainrule includes RECONCILE)"
+  files:
+    - ".cursor/rules/back_developer/workflow-reconcile.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/reconcile.mdc"
+    - ".cursor/rules/back_developer/mainrule.mdc"
+
+as_built:
+  - "workflow-reconcile.mdc — ОТСУТСТВУЕТ"
+  - "_lean/reconcile.mdc — ОТСУТСТВУЕТ"
+  - "mainrule.mdc — строка BACK RECONCILE отсутствует (grep даёт 0 совпадений)"
+  - "workflow-analyze.mdc — присутствует как образец read-only workflow"
+
+delta:
+  - "CREATE workflow-reconcile.mdc: §trigger (BACK RECONCILE), §goal (drift check read-only), §steps (1. load plan 2. run reconcile-spec 3. write artifact 4. Handoff), §constraints (NO code mutations, NO plan mutations, NO audit converge)"
+  - "CREATE _lean/reconcile.mdc: stub gate для lean load (≤15 lines, trigger + ref workflow-reconcile)"
+  - "EDIT mainrule.mdc ADD row: | BACK RECONCILE | workflow-reconcile.mdc | drift check plan vs repo after hotfix |"
+
+deletes: []
+
+out_of_scope:
+  - "reconcile.py движок — s01"
+  - "CLI — s02"
+  - "Appetite шаблон — s04"
+  - "pytest — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/writing-plans/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-reconcile.mdc создан и содержит STRICTLY READ-ONLY constraint"
+    verify: "rg 'READ.ONLY' .cursor/rules/back_developer/workflow-reconcile.mdc"
+  - id: cp2
+    criterion: "_lean/reconcile.mdc содержит trigger на reconcile"
+    verify: "rg 'reconcile' .cursor/rules/back_developer/isolation_rules/_lean/reconcile.mdc"
+  - id: cp3
+    criterion: "mainrule.mdc содержит строку BACK RECONCILE"
+    verify: "rg 'RECONCILE' .cursor/rules/back_developer/mainrule.mdc"
+
+verify: []
+
+tdd:
+  - "test_workflow_reconcile_file_exists (rg / file check)"
+  - "test_mainrule_has_reconcile_entry (grep mainrule.mdc) — SC-003"

@@ -5,11 +5,13 @@ alwaysApply: false
 # PLAN — gates
 
 **Артефакт:** `memory-bank/back/plan/plan-<task_id>.md`  
+**Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — auto-clarify в той же сессии PLAN при триггерах  
 **Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); PLAN **сам** делает `roadmap-merge --role back` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE (не отдельный MERGE)  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
 
 ## Gates
 
+0. Phase 0 orchestration: при триггерах — clarify artifact + Completion Report до Phase 1; skip taxonomy-clear → `§Product probe` note
 1. `tasks.md` прочитан; level зафиксирован
 2. L2 substep → L2 scope, не L4 по умолчанию
 3. План сохранён в path выше; при research — roadmap + полный plan на **каждый** эпик (не один mega-plan)
@@ -20,6 +22,9 @@ alwaysApply: false
 6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt
 6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
 7. После записи roadmap/plan: CLI `roadmap-merge --role back` ok (или skip если нет slug+canon); next ≠ ROADMAP MERGE
+8. Eng review spine (gate 8): для L2+ plan должен быть заполнен Eng review spine (architecture, patterns, code surface) до FINISH PLAN
+9. QA consumes draft (gate 9): для L2+ секция §QA consumes draft должна содержать ≥3 TM строк
+10. Review readiness (gate 10): таблица Review readiness не должна содержать неразрешённых `pending` строк со статусом `Required` до FINISH PLAN
 ## Level delta
 
 | L | Секции |
@@ -30,4 +35,5 @@ alwaysApply: false
 ## Abort
 
 - Нет task context → VAN
-- Блокирующие неясности после skip CLARIFY → mini grill в PLAN §Product probe или `continue BACK CLARIFY`
+- Phase 0 halt (ожидается Q / CRITICAL) → не начинать Phase 1; standalone `continue * CLARIFY` или дождаться ответа
+- Блокирующие неясности после spike skip → mini grill в PLAN §Product probe или `continue * CLARIFY`

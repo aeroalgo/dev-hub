@@ -1,0 +1,147 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-026-spec-reconcile-workflow
+plan_id: T-HUB-026-spec-reconcile-workflow
+date: 2026-08-31
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_inventory:
+  - source_ref: FR-001
+    intent: "workflow-reconcile.mdc STRICTLY READ-ONLY"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-002
+    intent: "BACK RECONCILE в mainrule.mdc"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-003
+    intent: "CLI reconcile-spec (--cwd, --plan-id, --format, --strict)"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-003a
+    intent: "SoT = tasks.md Status=active list_active_epic_ids"
+    step_id: s01, s02
+    assessment: satisfied
+  - source_ref: FR-004
+    intent: "Checks: as_built (a), delta (b), plan layout (c), constitution (d)"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-005
+    intent: "Reuse traceability parsers (T-HUB-024)"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-006
+    intent: "Report schema reconcile-report/v1; RC-001…RC-003"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-007
+    intent: "Reconcile artifact template"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-008
+    intent: "Appetite: plan.md + decompose index optional"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: FR-009
+    intent: "FINISH writes reconcile yaml; does not mutate plan/decompose"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: FR-010
+    intent: "Reconcile-report/v1: findings with severity HIGH/MEDIUM/LOW"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-011
+    intent: "Категории: stale_as_built, missing_delta, missing_plan_path, constitution_missing"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-012
+    intent: "Exit: 0 default / 1 strict+HIGH / 2 unknown plan-id"
+    step_id: s01, s02
+    assessment: satisfied
+  - source_ref: AC+ #1
+    intent: "BACK RECONCILE in mainrule index"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC+ #2
+    intent: "workflow-reconcile.mdc + lean gate exist"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC+ #3
+    intent: "reconcile-spec CLI: active sweep + --plan-id"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: AC+ #4
+    intent: "Stale as_built + active sweep fixture tests pass"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC+ #5
+    intent: "plan.md Appetite section added"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: AC+ #6
+    intent: "Reconcile artifact template exists"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC+ #7
+    intent: "Read-only enforced (workflow + test)"
+    step_id: s03, s05
+    assessment: satisfied
+  - source_ref: AC- #1
+    intent: "Не мутировать plan/decompose/implement при reconcile"
+    step_id: s01, s03
+    assessment: satisfied
+  - source_ref: AC- #2
+    intent: "Не заменять AUDIT converge"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC- #3
+    intent: "Не auto-cut scope in v1"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: AC- #4
+    intent: "Не scan entire repo — bounded"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC- #5
+    intent: "unknown plan_id → exit 2"
+    step_id: s01, s02
+    assessment: satisfied
+  - source_ref: AC- #6
+    intent: "Default sweep — не требует знать epic_id"
+    step_id: s01, s02
+    assessment: satisfied
+
+gap_matrix:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-026-spec-reconcile-workflow/s01-reconcile-core.yaml
+    status: satisfied
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-026-spec-reconcile-workflow/s02-reconcile-cli.yaml
+    status: satisfied
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-026-spec-reconcile-workflow/s03-workflow-mainrule.yaml
+    status: satisfied
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-026-spec-reconcile-workflow/s04-appetite-template.yaml
+    status: satisfied
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-026-spec-reconcile-workflow/s05-tests-readonly.yaml
+    status: satisfied
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все 5 шагов реализации T-HUB-026-spec-reconcile-workflow полностью выполнены и покрывают все требования (FR-001..FR-012, AC+/AC-)."
+  - "not_implemented[] пуст. Следующий режим: BACK QA."

@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s07-verify-agents-registry-aliases.yaml
+title: "verify agents registry rows: verify-implement/bugfix/decompose/qa + aliases"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Дополнить phase_registry.yaml: добавить verify_agent строки для каждой фазы (per agent matrix плана).
+  Создать alias entries в `.agents/` (или agent_registry): `verify` → `verify-implement`,
+  `reviewer` → `verify-qa`. Реализовать `get_verify_agent(phase) -> str` в epic_transition.py.
+  Тесты: каждая phase → правильный verify_agent; alias lookup работает.
+  (Merge ex T-HUB-028 verify-per-phase scope.)
+
+context:
+  consumes:
+    - loop/schemas/phase_registry.yaml           # s06: registry с фазами (без verify_agent строк)
+    - loop/epic_transition.py                    # s06: load_phase_registry, get_phase_config
+    - .claude/hooks/agent_registry.py            # текущий agent registry (если существует)
+    - .agents/skills/                            # structure of agent definitions
+    - loop/tests/test_epic_transition.py         # regression baseline
+  produces:
+    - loop/schemas/phase_registry.yaml           # дополнить: verify_agent per phase
+    - loop/epic_transition.py                    # get_verify_agent(phase) -> str
+    - .claude/hooks/agent_registry.py            # alias entries: verify→verify-implement, reviewer→verify-qa
+    - loop/tests/test_epic_transition.py         # test_get_verify_agent_per_phase
+  plan_refs:
+    - FR-007
+    - FR-008
+    - US-004
+    - US-005
+    - NFR-1
+  files:
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - .claude/hooks/agent_registry.py
+    - loop/tests/test_epic_transition.py
+
+as_built:
+  - loop/schemas/phase_registry.yaml — создан в s06; verify_agent строки отсутствуют (или пустые)
+  - .claude/hooks/agent_registry.py — существует; aliases verify/reviewer не определены
+  - нет get_verify_agent() функции
+  - Spawn-gate использует hardcoded @verify / @reviewer (spawn-hard.md)
+
+delta:
+  - 'loop/schemas/phase_registry.yaml: verify_agent строки: DECOMPOSE→verify-decompose, ANALYZE→analyze-verify (optional), IMPLEMENT/TASK/REFACTOR→verify-implement, BUGFIX→verify-bugfix, QA→verify-qa, PLAN→n/a, CLARIFY→n/a, REFLECT→n/a'
+  - 'loop/schemas/phase_registry.yaml: verify_optional_env: ANALYZE → "PROJECT_LOOP_ANALYZE_VERIFY"'
+  - 'loop/epic_transition.py: `get_verify_agent(phase: str) -> str | None` — lookup из registry; optional phases → None; unknown → fail-closed ValueError'
+  - '.claude/hooks/agent_registry.py: alias entry "verify" → "verify-implement"; alias entry "reviewer" → "verify-qa"; backward-compat: old names still resolve'
+  - 'loop/tests/test_epic_transition.py: test_get_verify_agent_implement — get_verify_agent("IMPLEMENT") == "verify-implement"'
+  - 'loop/tests/test_epic_transition.py: test_get_verify_agent_qa — get_verify_agent("QA") == "verify-qa"'
+  - 'loop/tests/test_epic_transition.py: test_get_verify_agent_analyze_optional — get_verify_agent("ANALYZE") optional flag'
+  - 'loop/tests/test_epic_transition.py: test_get_verify_agent_unknown_fails_closed — ValueError'
+
+deletes: []
+# Aliases additive; старые прямые имена (@verify, @reviewer) не удаляются в s07 — sunset в s12
+
+out_of_scope:
+  - "stop-gate registry dispatch — s08"
+  - "DSH presets — s09"
+  - "FRONT/INTEG parity — s11"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      get_verify_agent("IMPLEMENT") == "verify-implement"
+    verify: ".venv/bin/pytest loop/tests/test_epic_transition.py -k 'test_get_verify_agent_implement' -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_get_verify_agent_per_phase PASS (IMPLEMENT/QA/DECOMPOSE/BUGFIX)
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py -k 'verify_agent' -q --tb=short"
+  - id: cp3
+    criterion: >
+      Регрессия: test_epic_transition.py + test_stop_gate.py green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py -q --tb=line"
+
+tdd:
+  - "test_get_verify_agent_implement"
+  - "test_get_verify_agent_qa"
+  - "test_get_verify_agent_analyze_optional"
+  - "test_get_verify_agent_unknown_fails_closed"
+  - "Regression: test_stop_gate.py"

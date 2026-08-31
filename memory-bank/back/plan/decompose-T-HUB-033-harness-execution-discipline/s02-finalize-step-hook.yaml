@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-033-harness-execution-discipline
+title: "finalize_step hook — вызов maybe_atomic_commit после mark-index-status success"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Встроить вызов `maybe_atomic_commit` в `finalize_step` (.claude/hooks/epic/core.py) —
+  **после** успешного `mark_index_step_status` (т.е. только когда index помечен completed).
+  Результат CommitResult пишется в возвращаемый dict (ключ `atomic_commit`).
+  Если commit fail → finalize НЕ откатывается (commit best-effort, не fail-closed для finalize).
+  Outcome: оператор с EPIC_ATOMIC_COMMIT=1 получает git-commit автоматически на каждый finalize_step.
+  Связь с FR-003, FR-004, AC#1, SC-001.
+
+context:
+  consumes:
+    - "loop/git_discipline.py (s01) — maybe_atomic_commit"
+    - ".claude/hooks/epic/core.py — finalize_step функция (строки ~2392–2544)"
+  produces:
+    - ".claude/hooks/epic/core.py — patch finalize_step: добавить блок atomic_commit после marked['finalized']"
+    - "loop/tests/test_finalize_atomic_commit.py — интеграционный тест finalize + git mock"
+  plan_refs:
+    - "FR-003: hook from finalize_step after mark-index-status success"
+    - "FR-004: commit message template {epic_id} {step_id}: {title}"
+    - "AC#1: finalize hook"
+    - "SC-001: atomic commit on finalize when enabled"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - "loop/tests/test_finalize_atomic_commit.py"
+
+as_built:
+  - ".claude/hooks/epic/core.py — finalize_step существует (line 2392), возвращает marked dict"
+  - "finalize_step — уже вызывает mark_index_step_status, sync_portfolio_after_step, promote_if_ready"
+  - "epic_id и step_id уже вычислены внутри finalize_step на строках 2514–2516"
+  - "maybe_atomic_commit — не существует до s01 (new module)"
+
+delta:
+  - "edit: .claude/hooks/epic/core.py — после строки `marked['finalized'] = True` (≈2502) добавить try/except блок: import loop.git_discipline; результат → marked['atomic_commit']"
+  - "add: loop/tests/test_finalize_atomic_commit.py — patch maybe_atomic_commit → mock; assert 'atomic_commit' in result; assert CommitResult.skipped when env=0"
+
+deletes: []
+
+out_of_scope:
+  - "loop/git_discipline.py реализация — s01"
+  - "CheckpointRecord.session_boundary — s03"
+  - "loop.sh — s03"
+  - "docs — s04"
+  - "Rollback finalize при commit failure — not in scope (commit best-effort)"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"                          # Core
+    - ".agents/skills/python-testing-patterns/SKILL.md"      # Core — monkeypatch, mock import
+    - ".agents/skills/modern-python/SKILL.md"                # Core
+    - ".agents/skills/python-anti-patterns/SKILL.md"         # Core
+    - ".agents/skills/python-error-handling/SKILL.md"        # S03 — try/except вокруг commit call
+
+checkpoints:
+  - id: cp1
+    criterion: "finalize_step с EPIC_ATOMIC_COMMIT=0 → marked['atomic_commit']['skipped'] == True, finalize ok"
+    verify: ".venv/bin/pytest loop/tests/test_finalize_atomic_commit.py -q -k 'skip' --tb=line"
+
+  - id: cp2
+    criterion: "finalize_step с EPIC_ATOMIC_COMMIT=1 + mock commit ok → marked['atomic_commit']['ok'] == True и 'commit_sha' в результате"
+    verify: ".venv/bin/pytest loop/tests/test_finalize_atomic_commit.py -q -k 'commit' --tb=line"
+
+  - id: cp3
+    criterion: "commit failure (git ошибка) → finalize всё равно возвращает ok=True (best-effort), 'atomic_commit'.ok == False"
+    verify: ".venv/bin/pytest loop/tests/test_finalize_atomic_commit.py -q -k 'commit_fail' --tb=line"
+
+  - id: cp4
+    criterion: "Полный suite зелёный"
+    verify: ".venv/bin/pytest loop/tests/test_finalize_atomic_commit.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_finalize_atomic_commit.py -q --tb=short"
+
+tdd:
+  - "test_finalize_atomic_commit_skip: env=0 → skipped=True в marked['atomic_commit']"
+  - "test_finalize_atomic_commit_ok: env=1, mock maybe_atomic_commit → ok=True, commit_sha present"
+  - "test_finalize_atomic_commit_fail_best_effort: mock maybe_atomic_commit raises → finalize ok, atomic_commit.error set"
+  - "test_finalize_no_commit_key_absent: ensure 'atomic_commit' key always present (not only when enabled)"

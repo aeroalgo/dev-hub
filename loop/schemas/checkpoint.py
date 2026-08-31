@@ -52,6 +52,7 @@ class CheckpointRecord(BaseModel):
     index_fingerprint: str | None = None
     retry_count: int = Field(default=0, ge=0)
     degraded_count: int = Field(default=0, ge=0)
+    session_boundary: bool | None = None
     reason: str | None = None
     metadata: dict[str, Any] | None = Field(default_factory=dict)
     updated_at: str | None = None

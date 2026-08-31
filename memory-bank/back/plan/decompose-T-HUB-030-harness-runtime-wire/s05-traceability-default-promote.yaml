@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-030-harness-runtime-wire
+title: Traceability fail-closed ON by default on DECOMPOSE promote
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  На promote DECOMPOSE traceability проверяется по умолчанию: unset → run (fail-closed exit 2 blocks);
+  EPIC_TRACEABILITY_CHECK=0 — явный opt-out (US-006, FR-014, SC-005).
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - .claude/project.env
+  produces:
+    - loop/context_loop.py
+    - .claude/project.env
+  plan_refs:
+    - FR-014
+    - FR-015
+    - FR-016
+    - US-006
+    - SC-005
+  files:
+    - loop/context_loop.py
+    - .claude/project.env
+
+as_built:
+  - "context_loop.py:1158 — os.getenv('EPIC_TRACEABILITY_CHECK', '0') default skip when unset"
+  - "check_after/prepare_session — run_traceability_check_if_enabled без fail_closed на DECOMPOSE promote"
+
+delta:
+  - "run_traceability_check_if_enabled(cwd, epic_id=..., fail_closed: bool=False)"
+  - "unset + fail_closed=True → run; '0' → skip; '1'/'true' → run"
+  - "DECOMPOSE promote path: run_traceability_check_if_enabled(..., fail_closed=True)"
+  - "exit 2 → check_after halt=True, diagnostic_code=traceability_fail"
+  - "project.env comment: EPIC_TRACEABILITY_CHECK=0 to disable"
+
+deletes: []
+
+out_of_scope:
+  - validate-traceability CLI changes (T-HUB-024)
+  - traceability на non-DECOMPOSE promote без явного scope
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "unset + fail_closed=True → traceability runs"
+    verify: ".venv/bin/pytest loop/tests/ -k 'traceability_default_decompose' -q --tb=short"
+  - id: cp2
+    criterion: "EPIC_TRACEABILITY_CHECK=0 → explicit skip"
+    verify: ".venv/bin/pytest loop/tests/ -k 'traceability_explicit_zero' -q --tb=short"
+  - id: cp3
+    criterion: "mock exit 2 → promote blocked halt"
+    verify: ".venv/bin/pytest loop/tests/ -k 'traceability_exit2' -q --tb=short"
+
+verify:
+  - "rg 'fail_closed' loop/context_loop.py"
+  - "rg 'EPIC_TRACEABILITY_CHECK' .claude/project.env loop/context_loop.py"
+
+tdd:
+  - loop/tests/test_traceability_promote.py

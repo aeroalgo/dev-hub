@@ -1,13 +1,19 @@
 ---
-description: "Режим FRONT CLARIFY — снятие UX/API ambiguity до PLAN (wrapper над shared-core)"
+description: "Режим FRONT CLARIFY — UX/API ambiguity (Phase 0 в PLAN или standalone)"
 alwaysApply: false
 ---
 ### Команда: FRONT CLARIFY
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc
 **Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **Шаблон**: @.cursor/templates/clarify.md
 **Grill (HARD):** @.agents/skills/grill-me/SKILL.md — Phase 0 mandatory (Read целиком до taxonomy)
+
+## Когда запускать
+
+- **`FRONT PLAN`** — Phase 0 auto (orchestration); standalone не обязателен
+- **Standalone:** `continue` · CRITICAL после draft · pipeline/ANALYZE revisit · только clarify без plan в сессии
 
 ## Фокус FRONT
 
@@ -35,6 +41,6 @@ CLARIFY охватывает UX, component tree, routes, state и API contracts.
 
 ## Handoff
 
-После снятия ambiguity: `FRONT PLAN <slug>`. Если остались вопросы — `continue FRONT CLARIFY`.
+После снятия ambiguity (standalone FINISH): `FRONT PLAN <slug>`. Внутри сессии PLAN Phase 0 → сразу Phase 1. Добор: `continue FRONT CLARIFY`.
 
 FINISH: `code_changed: no`; обновить `activeContext.md` согласно @.cursor/rules/shared/finish-block.mdc и finish-doc-router.

@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-024-validate-traceability
+title: s05 — Loop prompt opt-in EPIC_TRACEABILITY_CHECK + integration test on hub
+  fixture IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-024-validate-traceability/s05-loop-integration.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- EPIC_TRACEABILITY_CHECK=0 added to .claude/project.env
+- context_loop.py integrated with run_traceability_check_if_enabled on DECOMPOSE promote
+- pytest.ini created with ac marker definition
+- Integration tests added in loop/tests/test_traceability_integration.py
+files:
+- .claude/project.env
+- loop/context_loop.py
+- pytest.ini
+- loop/tests/test_traceability_integration.py
+- .claude/hooks/epic/traceability.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_integration.py -q`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_*.py loop/tests/test_reconcile_spec.py
+  -q`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: EPIC_TRACEABILITY_CHECK=0 присутствует в project.env
+  status: done
+  done_at: '2026-08-31T06:27:45Z'
+- id: cp2
+  criterion: context_loop.py содержит validate-traceability call
+  status: done
+  done_at: '2026-08-31T06:30:08Z'
+- id: cp3
+  criterion: 'pytest.ini содержит markers = ac:'
+  status: done
+  done_at: '2026-08-31T06:29:11Z'
+- id: cp4
+  criterion: Integration tests зелёные
+  status: done
+  done_at: '2026-08-31T06:31:11Z'
+resume_from: cp1

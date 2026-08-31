@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # FRONT IMPLEMENT — gates
 
-**Артефакт:** с эпиком `memory-bank/front/implement/implement-<epic_id>/…`; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
+**Артефакт:** с эпиком `memory-bank/front/implement/implement-<epic_id>/…` — `<epic_id>` = stem plan **со slug**; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
 
 ## Gates
 

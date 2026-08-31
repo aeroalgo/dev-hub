@@ -1,0 +1,88 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-025-product-constitution-bootstrap
+plan_id: T-HUB-025-product-constitution-bootstrap
+date: 2026-08-31
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 4
+  implemented: 4
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_inventory:
+  - source_ref: US-001
+    intent: "Product repo получает memory-bank/constitution.md за 1 команду"
+    step_id: s01, s04
+    assessment: satisfied
+  - source_ref: US-002
+    intent: "Fail-closed без --force при существующем файле"
+    step_id: s02, s04
+    assessment: satisfied
+  - source_ref: FR-001
+    intent: "CLI команду epic_resolve seed-constitution"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-002
+    intent: "Fail-closed hub root guard"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-003
+    intent: "Overwrite protection без --force (exit 2)"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-004
+    intent: "Атомарное создание/запись constitution.md"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-005
+    intent: "Pre-fill MUST-1..9 из hub starter"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: FR-006
+    intent: "Missing template / missing memory-bank handling"
+    step_id: s01, s02
+    assessment: satisfied
+  - source_ref: SC-001
+    intent: "100% test coverage для CLI и helper-функций"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: SC-002
+    intent: "VAN checklist обновлен в workflow-van-brownfield.mdc"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: SC-003
+    intent: "ANALYZE core обновлен в workflow-analyze-core.mdc"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: SC-004
+    intent: "techContext onboarding doc обнова"
+    step_id: s03
+    assessment: satisfied
+
+steps_audit:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-025-product-constitution-bootstrap/s01-constitution-seed-cli.yaml
+    status: satisfied
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-025-product-constitution-bootstrap/s02-hub-root-guard-force.yaml
+    status: satisfied
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-025-product-constitution-bootstrap/s03-van-checklist-techcontext.yaml
+    status: satisfied
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-025-product-constitution-bootstrap/s04-pytest-suite-fixtures.yaml
+    status: satisfied
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все 4 шага реализации T-HUB-025-product-constitution-bootstrap полностью выполнены и покрывают все требования (US-001..US-002, FR-001..FR-006, SC-001..SC-004)."
+  - "Список not_implemented[] пуст. Следующий шаг: BACK QA."

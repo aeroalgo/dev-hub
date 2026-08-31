@@ -4,7 +4,8 @@ alwaysApply: false
 ---
 # INTEG DECOMPOSE — gates
 
-**Артефакт:** `memory-bank/integration/plan/decompose-<plan_id>/` (`index.md` + `eNN-*.yaml`)
+**Артефакт:** `memory-bank/integration/plan/decompose-<plan_id>/` (`index.md` + `eNN-*.yaml`)  
+**`<plan_id>` HARD:** stem `plan-*.md` **со descriptive slug** (не short queue id). См. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
 ## Gates
 

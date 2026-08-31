@@ -1,0 +1,73 @@
+schema: audit-report/v1
+epic: T-HUB-031-harness-episode-packages
+role: back
+date: '2026-08-31'
+status: passed
+summary: "Gap-анализ plan vs implement для T-HUB-031-harness-episode-packages: все 6 шагов (s01-s06) полностью реализованы и протестированы."
+
+requirements_matrix:
+  - id: FR-001
+    status: implemented
+    steps: [s01]
+    evidence: "loop/schemas/episode.py: EpisodeManifest schema + Pydantic model"
+  - id: FR-002
+    status: implemented
+    steps: [s01]
+    evidence: "loop/episodes/: begin_episode, finalize_episode, get_episode_dir, list_episodes, get_episode"
+  - id: FR-003
+    status: implemented
+    steps: [s02]
+    evidence: "loop/context_loop.py: prepare_session вызывается begin_episode, check_after вызывается finalize_episode"
+  - id: FR-004
+    status: implemented
+    steps: [s03]
+    evidence: "loop/episodes/bundle.py: копирование check_after.json, checkpoint, gate_verdict, trace_tail в episode bundle"
+  - id: FR-005
+    status: implemented
+    steps: [s04]
+    evidence: "loop/trace_logger.py: append_trace принимает и сохраняет episode_id"
+  - id: FR-006
+    status: implemented
+    steps: [s04]
+    evidence: "loop/incidents.py: record_incident сохраняет episode_id в metadata"
+  - id: FR-007
+    status: implemented
+    steps: [s05]
+    evidence: "loop/cli.py / loop/episodes/cli.py: команды episode-list и episode-show"
+  - id: FR-008
+    status: implemented
+    steps: [s06]
+    evidence: "loop/episodes/retention.py: prune_episodes и EPIC_EPISODE_RETENTION_DAYS retention policy"
+  - id: FR-009
+    status: implemented
+    steps: [s01, s02, s03, s04, s05, s06]
+    evidence: "32 unit & integration теста в loop/tests/test_episode_*.py"
+
+gap_matrix:
+  - step_id: s01
+    status: implemented
+    as_built: "EpisodeManifest schema и loop/episodes/ module skeleton"
+    delta: none
+  - step_id: s02
+    status: implemented
+    as_built: "Wire begin_episode/finalize_episode в lifecycle"
+    delta: none
+  - step_id: s03
+    status: implemented
+    as_built: "Копирование артефактов в episode bundle (check_after.json, checkpoint, gate_verdict, trace_tail)"
+    delta: none
+  - step_id: s04
+    status: implemented
+    as_built: "Propagation episode_id в trace logger и incidents metadata"
+    delta: none
+  - step_id: s05
+    status: implemented
+    as_built: "CLI episode-list и episode-show"
+    delta: none
+  - step_id: s06
+    status: implemented
+    as_built: "Retention prune, integration tests, README update"
+    delta: none
+
+not_implemented: []
+next_step: QA

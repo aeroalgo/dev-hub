@@ -1,0 +1,62 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-030-harness-runtime-wire
+title: README observability + optional loop.sh doctor preflight
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Operator документирован: doctor flow, tier0→tier1 sequence, traceability default, optional preflight;
+  loop.sh может вызвать doctor при EPIC_LOOP_DOCTOR_PREFLIGHT=1 (FR-003, AC#6 plan).
+
+context:
+  consumes:
+    - loop/README.md
+    - loop/loop.sh
+    - loop/context_loop.py
+  produces:
+    - loop/README.md
+    - loop/loop.sh
+  plan_refs:
+    - FR-003
+    - AC-6
+  files:
+    - loop/README.md
+    - loop/loop.sh
+
+as_built:
+  - "loop/README.md — observability section incomplete; doctor/tier0/traceability default не описаны"
+  - "loop.sh — EPIC_LOOP_DOCTOR_PREFLIGHT не реализован (default 0)"
+
+delta:
+  - "loop/README.md: секция observability — doctor, tier0 auto-repair in check_after, incident CLI, traceability default ON, opt-out env"
+  - "loop.sh: if EPIC_LOOP_DOCTOR_PREFLIGHT=1 → context_loop.py doctor перед session; fail-closed exit propagates"
+  - "document tier0→tier1 escalation pointer to T-HUB-018"
+
+deletes: []
+
+out_of_scope:
+  - full loop architecture rewrite
+  - alert routing docs (T-HUB-018)
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "README содержит doctor + tier0 + traceability default"
+    verify: "rg 'doctor|tier0|EPIC_TRACEABILITY_CHECK' loop/README.md"
+  - id: cp2
+    criterion: "loop.sh содержит EPIC_LOOP_DOCTOR_PREFLIGHT gate"
+    verify: "rg 'EPIC_LOOP_DOCTOR_PREFLIGHT' loop/loop.sh"
+  - id: cp3
+    criterion: "full loop/tests suite green after docs-only + preflight hook"
+    verify: ".venv/bin/pytest loop/tests -q --tb=line"
+
+verify:
+  - "rg 'EPIC_LOOP_DOCTOR_PREFLIGHT' loop/loop.sh loop/README.md"
+
+tdd:
+  - loop/tests/test_check_after_tier0_wire.py

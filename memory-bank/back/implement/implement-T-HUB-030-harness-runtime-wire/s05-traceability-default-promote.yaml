@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-030-harness-runtime-wire
+title: s05 — Traceability fail-closed ON by default on DECOMPOSE promote IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-030-harness-runtime-wire/s05-traceability-default-promote.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated run_traceability_check_if_enabled to take fail_closed parameter and run
+  when unset if fail_closed=True
+- Updated promote_decompose_phase_if_ready to call run_traceability_check_if_enabled(...,
+  fail_closed=True) and return diagnostic_code=traceability_fail on exit 2
+- Added test_traceability_promote.py covering cp1, cp2, cp3
+files:
+- loop/context_loop.py
+- .claude/project.env
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_promote.py -q --tb=short`'
+integration_check:
+- rg 'fail_closed' loop/context_loop.py
+- rg 'EPIC_TRACEABILITY_CHECK' .claude/project.env loop/context_loop.py
+grep_control: []
+verification_results:
+- PYTHONPATH=.claude/hooks .venv/bin/pytest loop/tests/test_traceability_promote.py
+  -v
+checkpoints:
+- id: cp1
+  criterion: unset + fail_closed=True → traceability runs
+  status: done
+  done_at: '2026-08-31T12:49:02Z'
+- id: cp2
+  criterion: EPIC_TRACEABILITY_CHECK=0 → explicit skip
+  status: done
+  done_at: '2026-08-31T12:49:11Z'
+- id: cp3
+  criterion: mock exit 2 → promote blocked halt
+  status: done
+  done_at: '2026-08-31T12:49:22Z'
+resume_from: cp1

@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-031-harness-episode-packages
+title: Retention prune + integration tests + README § Episodes — disk-growth bounded
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `prune_episodes(cwd, days)` (default EPIC_EPISODE_RETENTION_DAYS=30),
+  написать интеграционный тест loop canary (SC-001: episode созданится за итерацию),
+  обновить loop/README.md §Episodes. Outcome: disk не растёт бесконечно,
+  operator знает о bundle из README — FR-008, FR-009, AC-5, AC-6, SC-001, US-004.
+
+context:
+  consumes:
+    - loop/episodes/core.py  # s01–s03: episode_dir + finalize
+    - loop/episodes/cli.py   # s05: scan_episodes
+    - loop/schemas/episode.py  # EpisodeManifest
+  produces:
+    - loop/episodes/retention.py  # new: prune_episodes
+    - loop/tests/test_episode_schema.py  # integration: canary + retention
+    - loop/tests/test_episode_retention.py  # retention unit tests
+    - loop/README.md  # edited: §Episodes
+  plan_refs:
+    - FR-008
+    - FR-009
+    - AC-5
+    - AC-6
+    - US-004
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+  files:
+    - loop/episodes/retention.py
+    - loop/tests/test_episode_retention.py
+    - loop/README.md
+
+as_built:
+  - "loop/README.md — уже существует, есть §Workflow, §Incidents разделы"
+  - "loop/incidents/store.py — аналогичная retention логика не реализована, но schema есть"
+  - ".venv/bin/pytest loop/tests/ — текущий test suite"
+
+delta:
+  - "CREATE loop/episodes/retention.py — prune_episodes(cwd, days:int=30)->int: сканирует episodes/, удаляет dirs старше days по manifest.json ended_at; возвращает кол-во удалённых; env EPIC_EPISODE_RETENTION_DAYS override"
+  - "CREATE loop/tests/test_episode_retention.py — unit tests prune_episodes"
+  - "EDIT loop/tests/test_episode_schema.py — добавить integration canary: prepare_session mock → finalize → проверить episode dir + manifest schema"
+  - "EDIT loop/README.md — §Episodes: dir structure, manifest fields, episode-list/show CLI examples, retention env var"
+  - "Опциональный hook: prune_episodes можно вызывать в doctor (упоминание в README, не реализация doctor — out_of_scope)"
+
+deletes: []
+
+out_of_scope:
+  - "doctor integration prune call — Deferred follow-up T-HUB-032 или по запросу"
+  - "cron-based auto-prune — документировать в README как рекомендацию, не реализовывать"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-observability/SKILL.md  # structured log при prune
+
+checkpoints:
+  - id: cp1
+    criterion: "prune_episodes удаляет dirs старше N дней, возвращает count"
+    verify: ".venv/bin/pytest loop/tests/test_episode_retention.py::test_prune_deletes_old_episodes -q"
+  - id: cp2
+    criterion: "prune_episodes с EPIC_EPISODE_RETENTION_DAYS=7 env var удаляет правильно"
+    verify: ".venv/bin/pytest loop/tests/test_episode_retention.py::test_prune_env_override -q"
+  - id: cp3
+    criterion: "Integration canary: prepare+finalize создаёт episode, manifest validates SC-001/SC-002"
+    verify: ".venv/bin/pytest loop/tests/test_episode_schema.py::test_canary_episode_created_and_valid -q"
+  - id: cp4
+    criterion: "README §Episodes существует и содержит episode-list пример"
+    verify: "rg -n 'episode-list' loop/README.md"
+
+verify:
+  - "rg 'prune_episodes' loop/episodes/retention.py"
+  - "rg 'EPIC_EPISODE_RETENTION_DAYS' loop/episodes/retention.py"
+  - "rg '§ Episodes\\|## Episodes' loop/README.md"
+  - ".venv/bin/pytest loop/tests/test_episode_retention.py loop/tests/test_episode_schema.py -q --tb=line"
+
+tdd:
+  - "test_prune_deletes_old_episodes — создать episode с ended_at 31 день назад, prune → удалён"
+  - "test_prune_keeps_recent_episodes — episode 5 дней назад, prune 30 → сохранён"
+  - "test_prune_env_override — EPIC_EPISODE_RETENTION_DAYS=7, episode 8 дней → удалён"
+  - "test_prune_missing_manifest_graceful — episode dir без manifest.json → пропускается, не падает"
+  - "test_prune_returns_count — 3 old episodes → returns 3"
+  - "test_canary_episode_created_and_valid — integration: полный цикл begin→finalize, manifest SC-001/SC-002"
+  - "test_incident_episode_id_correlation — SC-003: incident.metadata['episode_id'] присутствует"

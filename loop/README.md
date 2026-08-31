@@ -30,6 +30,7 @@ Canary проверяет `canary-finish-integrity`: только последо
 | | |
 |--|--|
 | **Курсор/переходы** | `memory-bank/activeContext.md` + decompose index |
+| **Transition Engine** | `loop/epic_transition.py` (Unified Phase API) |
 | **Гайд** | [`WORKFLOW.md`](WORKFLOW.md) |
 | **CLI** | `loop/context_loop.py` |
 | **Runner** | `./loop/loop.sh` |
@@ -56,10 +57,49 @@ graph TD
 - **Incidents Event Log (`incidents.jsonl`)**: Structured record of all reported incidents, diagnostic codes, timestamps, and Tier-0 resolution outcomes.
 - **Trace Event Stream (`events.jsonl`)**: Event stream recording state transitions, session starts, and step executions.
 - **Metrics Aggregator (`metrics.json`)**: Real-time aggregation of session durations, incident counts, and repair success rates.
-- **Loop Doctor CLI (`python3 loop/context_loop.py doctor`)**: Diagnostic command to scan system health, audit locks, verify activeContext shape, and trigger Tier-0 repairs manually or automatically (`--auto-repair`).
+- **Loop Doctor CLI (`python3 loop/context_loop.py doctor`)**: Diagnostic command to scan system health, audit locks, verify activeContext shape, check finish integrity, and trigger Tier-0 repairs manually or automatically (`--auto-repair`). Optional preflight execution in `loop.sh` is controlled via `EPIC_LOOP_DOCTOR_PREFLIGHT=1` (default 0).
+- **Tier-0 Auto-Repair Chain**: Automated diagnostic and repair routines invoked during session `check_after` or via `doctor`. Handles deterministic issues such as lock staleness, activeContext formatting, and transient runtime state cleanup. If Tier-0 repair cannot auto-resolve an incident, escalation follows the Tier-0 → Tier-1 alert and routing pipeline (see T-HUB-018 specification).
+- **Traceability Verification (`EPIC_TRACEABILITY_CHECK`)**: Traceability verification runs by default (ON) during DECOMPOSE promotion to ensure requirement coverage before execution. Set `EPIC_TRACEABILITY_CHECK=0` to opt-out.
 - **Loop Status Extensions (`python3 loop/context_loop.py status`)**: Reports active epic, current step, open incidents, and metric summaries.
 
 For incident registry specification, environment flags (`EPIC_INCIDENT_TRACE`, `EPIC_INCIDENT_METRICS`), and runbooks, see [`loop/incidents/README.md`](incidents/README.md).
+
+## Episodes & Package Artifacts
+
+Loop execution sessions publish structured episode packages under `runtime/<slug>/episodes/<episode_id>/`.
+
+```
+runtime/<slug>/episodes/<episode_id>/
+├── manifest.json         # EpisodeManifest (schema: loop-episode/v1)
+├── log.md                # Execution session log transcript
+└── artifacts/            # Copied artifact snapshot files
+```
+
+### Manifest Schema & CLI
+
+The `manifest.json` conforms to `EpisodeManifest` (`loop-episode/v1` schema) containing `episode_id`, `started_at`, `ended_at`, `epic_id`, `role`, `armed_step`, `decide`, `halt_reason`, `incident_ids`, `load_now_paths`, `load_now_sha256`, and `artifact_refs`.
+
+Inspect episodes using CLI commands:
+
+```bash
+# List recent episodes summary table
+python3 loop/context_loop.py episode-list --last 10
+
+# Show detailed manifest and artifacts bundle for an episode
+python3 loop/context_loop.py episode-show 20260831_120000_thub031_abcd
+```
+
+### Retention & Disk Growth
+
+To prevent unbounded disk growth, episodes are pruned based on retention policy:
+
+```bash
+# Set episode retention period in days (default: 30)
+export EPIC_EPISODE_RETENTION_DAYS=30
+
+# Python programmatic retention prune:
+# loop.episodes.retention.prune_episodes(cwd, days=30)
+```
 
 ## Production contract
 
@@ -80,7 +120,7 @@ For incident registry specification, environment flags (`EPIC_INCIDENT_TRACE`, `
 
   *Structured output note:* When `PROJECT_OUTPUT_SUMMARY_STRUCTURED=1`, `pydantic-ai` enforces validation of `BashCapSummary` (summary text, error signal detection, line counts) before returning output to Claude Code context.
 
-- **Runner bounds:** `EPIC_SESSION_TIMEOUT_SEC` (3600), `EPIC_SESSION_KILL_GRACE_SEC` (30), `EPIC_TRANSIENT_RETRY_MAX` (30), `EPIC_DEGRADED_MAX` (3), `EPIC_SESSION_LOG_LIMIT_BYTES` (10000000), `EPIC_STATUS_HEARTBEAT_SEC` (30; empty = disabled), `EPIC_STREAM_IDLE_TIMEOUT_SEC` (300; empty = disabled; idle = no `tool_use`/`tool_result`, not stream silence), `EPIC_CHAIN_ROADMAP` (0 = stop after EPIC_DONE; 1 = arm next from roadmap Queue). Zero/unlimited mode is not supported; invalid values fail closed with `invalid_runtime_config`.
+- **Runner bounds:** `EPIC_SESSION_TIMEOUT_SEC` (3600), `EPIC_SESSION_KILL_GRACE_SEC` (30), `EPIC_TRANSIENT_RETRY_MAX` (30), `EPIC_DEGRADED_MAX` (3), `EPIC_SESSION_LOG_LIMIT_BYTES` (10000000), `EPIC_SESSION_LOG_KEEP` (10; prune older `session-*.log` each outer iteration), `EPIC_STATUS_HEARTBEAT_SEC` (30; empty = disabled), `EPIC_STREAM_IDLE_TIMEOUT_SEC` (300; empty = disabled; idle = no `tool_use`/`tool_result`, not stream silence), `EPIC_CHAIN_ROADMAP` (0 = stop after EPIC_DONE; 1 = arm next from roadmap Queue). Zero/unlimited mode is not supported; invalid values fail closed with `invalid_runtime_config`.
 - **Checkpoint:** durable cursor, `resume_from_step`, lifecycle (`pending` → `active` → `completed`/`BLOCKED`/`NEED_HUMAN`) and the decompose index are the recovery boundary. `state.json` mirrors checkpoint telemetry and must not be edited by an agent. Checkpoint/index conflicts halt fail-closed.
 - **Recovery:** after timeout or process death, inspect `HUB_ROOT/runtime/<slug>/epic/last-session.json` (same epic dir as `state.json`); resume only from the validated `resume_from_step`. A transient retry cap is bounded; degraded status is observable and does not silently reset the cursor. Manual fallback must be labelled manual and never masquerade as autonomous projection authority. Do not auto-delete product runtime dirs.
 - **Scheduler:** dependency-ready nodes run one at a time in stable order; parallel fanout and distributed-lock claims are out of scope. One checkout is the operational limitation.

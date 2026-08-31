@@ -1,0 +1,205 @@
+schema: phase-registry/v1
+
+roles:
+  - back
+  - front
+  - integration
+
+terminal_phases:
+  - REFLECT
+  - DONE
+
+phases:
+  PLAN:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  DECOMPOSE:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: verify-decompose
+    dsh_preset: decompose
+    promotable_after_finish: true
+    skip_index_sync: false
+    board_column: In Progress
+
+  ANALYZE:
+    arm_template: pre_implement
+    finish_gates:
+      mode: analyze
+      need_verify: false
+      need_reviewer: false
+    finish_gates_dict:
+      mode: analyze
+      need_verify: false
+      need_reviewer: false
+    verify_agent: analyze-verify
+    verify_optional_env: PROJECT_LOOP_ANALYZE_VERIFY
+    dsh_preset: analyze
+    promotable_after_finish: true
+    skip_index_sync: false
+    board_column: In Progress
+
+  CREATIVE:
+    arm_template: pre_implement
+    finish_gates:
+      mode: creative
+      need_verify: false
+      need_reviewer: false
+    finish_gates_dict:
+      mode: creative
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  CLARIFY:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  IMPLEMENT:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-implement
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: true
+    board_column: In Progress
+
+  TASK:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-implement
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  REFACTOR:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-implement
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  BUGFIX:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-bugfix
+    dsh_preset: bugfix
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  AUDIT:
+    arm_template: implement
+    finish_gates:
+      mode: audit
+      need_verify: false
+      need_reviewer: false
+    finish_gates_dict:
+      mode: audit
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: epic-audit
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  QA:
+    arm_template: implement
+    finish_gates:
+      mode: qa
+      need_verify: false
+      need_reviewer: true
+    finish_gates_dict:
+      mode: qa
+      need_verify: false
+      need_reviewer: true
+    verify_agent: verify-qa
+    dsh_preset: qa
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  REFLECT:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  DONE:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: Done

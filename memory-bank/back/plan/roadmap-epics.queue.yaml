@@ -2,42 +2,39 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-016
-    plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
+  - id: T-HUB-027
+    plan: plan-T-HUB-027-back-plan-gstack-adapt.md
     deps: []
-  - id: T-HUB-008
-    plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
-    deps: [T-HUB-016]
-  - id: T-HUB-009
-    plan: plan-T-HUB-009-dsh-rollout-docs.md
-    deps: [T-HUB-008, T-HUB-016]
-  - id: T-HUB-017
-    plan: plan-T-HUB-017-loop-observability-foundation.md
+  - id: T-HUB-029
+    plan: plan-T-HUB-029-epic-phase-transition-engine.md
     deps: []
-  - id: T-HUB-018
-    plan: plan-T-HUB-018-loop-incident-autopilot.md
-    deps: [T-HUB-017]
-  - id: T-HUB-019
-    plan: plan-T-HUB-019-dsh-board-sync-enrichments.md
+  - id: T-HUB-030
+    plan: plan-T-HUB-030-harness-runtime-wire.md
     deps: []
-  - id: T-HUB-020
-    plan: plan-T-HUB-020-dsh-board-epic-loop.md
+  - id: T-HUB-031
+    plan: plan-T-HUB-031-harness-episode-packages.md
+    deps: [T-HUB-030]
+  - id: T-HUB-032
+    plan: plan-T-HUB-032-harness-analyze-convergence.md
     deps: []
-  - id: T-HUB-021
-    plan: plan-T-HUB-021-pydantic-ai-output-cap.md
-    deps: []
-  - id: T-HUB-022
-    plan: plan-T-HUB-022-runtime-pydantic-schemas.md
-    deps: []
+  - id: T-HUB-033
+    plan: plan-T-HUB-033-harness-execution-discipline.md
+    deps: [T-HUB-029]
   - id: T-HUB-023
     plan: plan-T-HUB-023-hooks-llm-fallbacks.md
-    deps: [T-HUB-021]
-  - id: T-HUB-024
-    plan: plan-T-HUB-024-validate-traceability.md
+    deps: [T-HUB-033]
+  - id: T-HUB-034
+    plan: plan-T-HUB-034-harness-janitor-gc.md
     deps: []
-  - id: T-HUB-025
-    plan: plan-T-HUB-025-product-constitution-bootstrap.md
+  - id: T-HUB-035
+    plan: plan-T-HUB-035-harness-architecture-boundaries.md
     deps: []
-  - id: T-HUB-026
-    plan: plan-T-HUB-026-spec-reconcile-workflow.md
+  - id: T-HUB-036
+    plan: plan-T-HUB-036-harness-decompose-formulas.md
     deps: []
+  - id: T-HUB-037
+    plan: plan-T-HUB-037-harness-parallel-snn.md
+    deps: [T-HUB-029]
+  - id: T-HUB-038
+    plan: plan-T-HUB-038-harness-metrics-dashboard.md
+    deps: [T-HUB-031]

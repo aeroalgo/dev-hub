@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-031-harness-episode-packages
+title: s04 — episode_id propagation — trace entries + incident metadata correlation
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-031-harness-episode-packages/s04-incident-trace-correlation.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added episode_id parameter to append_trace in loop/incidents/trace.py
+- Wired episode_id propagation into incident metadata in loop/context_loop.py
+- Wired episode_id into decide boundary trace entry in loop/loop.sh
+- Added unit tests in loop/tests/test_episode_correlation.py
+files:
+- loop/incidents/trace.py
+- loop/context_loop.py
+- loop/loop.sh
+- loop/tests/test_episode_correlation.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_episode_correlation.py loop/tests/test_incidents_trace.py
+  -q`'
+integration_check:
+- trace.py append_trace backward-compatible signature verified
+- context_loop.py IncidentRecord metadata episode_id propagation verified
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: append_trace с episode_id='ep-001' пишет episode_id в JSONL entry
+  status: done
+  done_at: '2026-08-31T13:57:07Z'
+- id: cp2
+  criterion: append_trace без episode_id (default='') не добавляет поле (backward
+    compat)
+  status: done
+  done_at: '2026-08-31T13:57:18Z'
+- id: cp3
+  criterion: open_incident в рамках сессии с episode_id в state → incident.metadata['episode_id']
+    == episode_id
+  status: done
+  done_at: '2026-08-31T13:57:47Z'
+resume_from: cp1

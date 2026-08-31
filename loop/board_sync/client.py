@@ -33,6 +33,7 @@ class ExecutionRecord:
 
 
 _MAX_EXECUTION_LOG_PATH = 1_000
+_ARCHIVABLE_STATUSES = frozenset({"done", "failed"})
 
 
 def execution_record(task_id: str, result: ExecutionResult) -> ExecutionRecord:
@@ -131,6 +132,13 @@ class HttpHostClient:
             {"kind": "archive", "taskId": task_id},
         )
 
+    def delete(self, task_id: str) -> None:
+        self._request(
+            "POST",
+            "/api/task-board/action",
+            {"kind": "delete", "taskId": task_id},
+        )
+
     def move(self, task_id: str, status: str) -> None:
         self._request(
             "POST",
@@ -215,6 +223,19 @@ def _task_from_payload(payload: Any) -> BoardTask:
     )
 
 
+def retire_board_task(client: TaskBoardClient, task_id: str, *, status: str) -> None:
+    """Remove a board card using DSH rules: archive settled tasks, delete the rest."""
+    if status in _ARCHIVABLE_STATUSES:
+        client.archive(task_id)
+        return
+    if status == "running":
+        raise BoardClientError(
+            400,
+            f"running task cannot be retired: {task_id}",
+        )
+    client.delete(task_id)
+
+
 def _is_lock_conflict(status_code: int, body: str) -> bool:
     if status_code == 409:
         return True
@@ -231,6 +252,8 @@ class TaskBoardClient(Protocol):
 
     def archive(self, task_id: str) -> None: ...
 
+    def delete(self, task_id: str) -> None: ...
+
     def move(self, task_id: str, status: str) -> None: ...
 
     def record_execution(self, record: ExecutionRecord) -> None: ...
@@ -242,6 +265,7 @@ class FakeClient:
     def __init__(self, tasks: list[BoardTask] | None = None) -> None:
         self.tasks: dict[str, BoardTask] = {task.id: task for task in tasks or []}
         self.archived: set[str] = set()
+        self.deleted: set[str] = set()
         self.moves: list[tuple[str, str]] = []
         self.execution_records: list[ExecutionRecord] = []
         self.write_count = 0
@@ -257,6 +281,12 @@ class FakeClient:
     def archive(self, task_id: str) -> None:
         if task_id in self.tasks:
             self.archived.add(task_id)
+        self.write_count += 1
+
+    def delete(self, task_id: str) -> None:
+        if task_id in self.tasks:
+            self.deleted.add(task_id)
+            del self.tasks[task_id]
         self.write_count += 1
 
     def move(self, task_id: str, status: str) -> None:
@@ -286,6 +316,7 @@ class LedgerFileClient:
         self.path = Path(path)
         self.write_count = 0
         self.archived: set[str] = set()
+        self.deleted: set[str] = set()
 
     def list_tasks(self) -> list[BoardTask]:
         if not self.path.exists():
@@ -300,6 +331,14 @@ class LedgerFileClient:
 
     def archive(self, task_id: str) -> None:
         self.archived.add(task_id)
+        self.write_count += 1
+
+    def delete(self, task_id: str) -> None:
+        tasks = {task.id: task for task in self.list_tasks()}
+        if task_id in tasks:
+            self.deleted.add(task_id)
+            del tasks[task_id]
+            self._write(list(tasks.values()))
         self.write_count += 1
 
     def move(self, task_id: str, status: str) -> None:

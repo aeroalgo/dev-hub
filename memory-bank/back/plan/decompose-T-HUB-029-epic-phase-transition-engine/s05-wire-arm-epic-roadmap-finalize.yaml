@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s05-wire-arm-epic-roadmap-finalize.yaml
+title: "wire arm_epic + roadmap_queue + finalize_step → promote_if_ready post-queue"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить Transition Engine к трём оставшимся entry points:
+  (A) `arm_epic` (epic/core.py:3623): после resolver → результат routing через arm_phase; убрать прямой вызов legacy arm функций;
+  (B) `arm_roadmap_entry` (roadmap_queue.py:440): post-arm → promote_if_ready вместо прямого arm;
+  (C) `finalize_step` (epic/core.py): post-step complete → вызов promote_if_ready (ANALYZE gate check).
+  Все три entry points теперь проходят через единый Transition Engine API.
+
+context:
+  consumes:
+    - .claude/hooks/epic/core.py:3623            # arm_epic (import resolver + dispatch)
+    - .claude/hooks/epic/core.py                 # finalize_step — post-step sync logic
+    - loop/roadmap_queue.py:440                  # arm_roadmap_entry
+    - loop/epic_transition.py                    # s02/s03: arm_phase + promote_if_ready
+    - loop/tests/test_finish_integrity.py        # finalize_step tests — regression
+    - loop/tests/test_roadmap_queue.py           # arm_roadmap_entry tests
+  produces:
+    - .claude/hooks/epic/core.py                 # arm_epic wired; finalize_step promote_if_ready
+    - loop/roadmap_queue.py                      # arm_roadmap_entry → promote_if_ready
+    - loop/tests/test_finish_integrity.py        # wire test: finalize → promote_if_ready called
+    - loop/tests/test_roadmap_queue.py           # arm_roadmap_entry → promote_if_ready
+  plan_refs:
+    - FR-005
+    - FR-006
+    - US-002
+    - NFR-1
+  files:
+    - .claude/hooks/epic/core.py
+    - loop/roadmap_queue.py
+    - loop/tests/test_finish_integrity.py
+    - loop/tests/test_roadmap_queue.py
+
+as_built:
+  - ".claude/hooks/epic/core.py:3623 — arm_epic: вызывает resolver → затем arm_active_context_from_decompose / arm_pre_implement_context напрямую; нет promote_if_ready в post-arm"
+  - ".claude/hooks/epic/core.py:finalize_step — помечает sNN completed + sync index; нет вызова promote_if_ready после last sNN"
+  - "loop/roadmap_queue.py:440 — arm_roadmap_entry: делегирует arm_epic; нет post-arm ANALYZE gate check"
+
+delta:
+  - '.claude/hooks/epic/core.py:arm_epic — заменить внутренние вызовы arm_active_context_from_decompose / arm_pre_implement_context → arm_phase(cwd, epic_id, resolved_phase, role) из epic_transition'
+  - '.claude/hooks/epic/core.py:finalize_step — после успешного mark last sNN → вызов promote_if_ready(cwd, epic_id, role); если result → включить в return dict "promoted" key'
+  - 'loop/roadmap_queue.py:arm_roadmap_entry — после arm_epic → если все sNN done (или index indicates): promote_if_ready(cwd, epic_id, role)'
+  - 'loop/tests/test_finish_integrity.py: test_finalize_step_last_snn_calls_promote_if_ready — monkeypatch promote_if_ready; last sNN → assert called'
+  - 'loop/tests/test_roadmap_queue.py: test_arm_roadmap_entry_promotes_analyze — mock promote_if_ready + gate required → entry point route via promote'
+
+deletes: []
+# Внутренние прямые вызовы arm_active_context_from_decompose/arm_pre_implement_context в arm_epic
+# заменяются на arm_phase; старые shim-тела (из s02) остаются как backward compat
+
+out_of_scope:
+  - "phase_registry.yaml — s06"
+  - "stop-gate registry — s08"
+  - "DSH presets — s09"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/architecture-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_finalize_step_last_snn_calls_promote_if_ready PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_finish_integrity.py -k 'promote_if_ready' -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_arm_roadmap_entry_promotes_analyze PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_roadmap_queue.py -k 'promotes_analyze' -q --tb=short"
+  - id: cp3
+    criterion: >
+      Регрессия: test_finish_integrity.py + test_roadmap_queue.py + test_context_loop.py green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py loop/tests/test_roadmap_queue.py loop/tests/test_context_loop.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py loop/tests/test_roadmap_queue.py loop/tests/test_context_loop.py -q --tb=line"
+
+tdd:
+  - "test_finalize_step_last_snn_calls_promote_if_ready"
+  - "test_arm_roadmap_entry_promotes_analyze"
+  - "Regression: test_finish_integrity.py + test_roadmap_queue.py + test_context_loop.py"

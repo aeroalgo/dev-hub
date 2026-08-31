@@ -1,0 +1,64 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-032-harness-analyze-convergence
+slug: harness-analyze-convergence
+date: 2026-08-31
+status: complete
+
+# Read-only pre-IMPLEMENT analysis of T-HUB-032 plan and decompose shards against target modules/code.
+findings:
+  - id: A1
+    severity: LOW
+    category: Inconsistency
+    message: "Plan ID in plan file title/refs is T-HUB-032-harness-analyze-convergence while index.yaml and shards use short ID T-HUB-032. Parsers handle prefixes cleanly."
+    plan_ref: T-HUB-032
+    step_ref: index.yaml
+
+coverage:
+  - requirement_id: US-001
+    step_ids: [s01, s02, s04]
+    status: covered
+  - requirement_id: US-002
+    step_ids: [s02, s04]
+    status: covered
+  - requirement_id: US-003
+    step_ids: [s01, s02]
+    status: covered
+  - requirement_id: FR-001
+    step_ids: [s01, s02, s05]
+    status: covered
+  - requirement_id: FR-002
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-003
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-004
+    step_ids: [s01, s02]
+    status: covered
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+  - requirement_id: FR-006
+    step_ids: [s04]
+    status: covered
+  - requirement_id: SC-001
+    step_ids: [s04]
+    status: covered
+  - requirement_id: SC-002
+    step_ids: [s04]
+    status: covered
+  - requirement_id: SC-003
+    step_ids: [s04]
+    status: covered
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 1
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

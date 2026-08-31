@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-030-harness-runtime-wire
+title: Tier0 auto-repair in check_after — self-healing halt recovery
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  check_after автоматически вызывает run_tier0_for_incident для open incidents; на success — continue,
+  на exhausted — halt с repair_exhausted и tier1_eligible (US-002, US-003, SC-002).
+
+context:
+  consumes:
+    - loop/incidents/tier0.py
+    - loop/incidents/store.py
+    - loop/incidents/registry.yaml
+    - loop/incidents/events.py
+  produces:
+    - loop/context_loop.py
+  plan_refs:
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - US-002
+    - US-003
+    - SC-002
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py:check_after — при halt возвращает dict; run_tier0_for_incident не вызывается"
+  - "loop/incidents/tier0.py:run_tier0_for_incident — реализован, не импортирован в context_loop.py"
+  - "loop/tests/test_check_after_tier0_wire.py — контракт cp1–cp3 описан, red"
+
+delta:
+  - "context_loop.py: _is_tier0_eligible(diagnostic_code) → bool через registry.yaml"
+  - "check_after: после finish_integrity/halt — для open incidents вызов run_tier0_for_incident"
+  - "response: tier0_attempted, tier0_resolved[], repair_exhausted, incidents_open_count"
+  - "resolved → ok=True, halt=False, tier0_repaired=True; exhausted → halt=True, tier1_eligible=True"
+  - "emit repair_applied / incident_resolved через loop.incidents.events"
+
+deletes: []
+
+out_of_scope:
+  - tier1 spawn (loop.sh / T-HUB-018)
+  - doctor CLI (s01)
+  - traceability promote (s05)
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - diagnosing-bugs
+
+checkpoints:
+  - id: cp1
+    criterion: "halt с active_context_shape_invalid → incident в incidents.jsonl"
+    verify: ".venv/bin/pytest loop/tests/test_check_after_tier0_wire.py::test_check_after_opens_incident_on_halt -q --tb=short"
+  - id: cp2
+    criterion: "tier0 resolved → halt=False, tier0_repaired=True"
+    verify: ".venv/bin/pytest loop/tests/test_check_after_tier0_wire.py::test_check_after_tier0_auto_continue_resolved -q --tb=short"
+  - id: cp3
+    criterion: "tier0 exhausted → halt=True, repair_exhausted=True, tier1_eligible=True"
+    verify: ".venv/bin/pytest loop/tests/test_check_after_tier0_wire.py::test_check_after_tier0_repair_exhausted_halts_with_flag -q --tb=short"
+
+verify:
+  - "rg 'run_tier0_for_incident' loop/context_loop.py"
+  - "rg 'tier0_repaired|repair_exhausted' loop/context_loop.py"
+
+tdd:
+  - loop/tests/test_check_after_tier0_wire.py

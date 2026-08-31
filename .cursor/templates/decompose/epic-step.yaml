@@ -31,8 +31,9 @@ deletes: []
 # [] только если шаг ничего не вытесняет. Replace X→Y без deletes у владельца cutover = FAIL.
 # Цепочка OK: sN add → sN+1 migrate callers → sN+2 deletes старого. Delete-шаг в очереди обязателен.
 # Checkpoint: ≥1 verify с `rg`/import-audit — старый путь/символ без живых callers.
-# Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C + anti-fallback rg + entrypoint inventory.
-# Канон: shared/workflow-legacy-fallback-cleanup.mdc
+# Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C + ПОЛНЫЙ inventory scan.
+# Шаблон purge: @.cursor/templates/decompose/legacy-purge-step.yaml (sunset_inventory + grep_control + cp-inventory-a/b/c).
+# Канон: shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
 
 out_of_scope: []
 # соседние sNN/eNN, full suite → QA, не трогать.

@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-031-harness-episode-packages
+title: s02 — Wire begin_episode/finalize_episode into prepare_session + check_after
+  — session lifecycle IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-031-harness-episode-packages/s02-wire-prepare-check-after.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Integrated begin_episode into prepare_session to attach episode_id to epic state
+  and return dict
+- Integrated finalize_episode into _run_tier0_check_after to finalize episode manifests
+  safely on check_after
+- Added exception handling around episode lifecycle calls for graceful degradation
+files:
+- loop/context_loop.py
+- loop/tests/test_episode_wire.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_episode_wire.py -q`'
+integration_check:
+- rg 'begin_episode|finalize_episode' loop/context_loop.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: prepare_session возвращает dict с ключом episode_id != None
+  status: done
+  done_at: '2026-08-31T13:48:55Z'
+- id: cp2
+  criterion: check_after вызывает finalize_episode — episode dir создан, manifest.json
+    существует
+  status: done
+  done_at: '2026-08-31T13:49:09Z'
+- id: cp3
+  criterion: finalize_episode exception не роняет check_after (graceful degradation)
+  status: done
+  done_at: '2026-08-31T13:49:25Z'
+resume_from: cp1

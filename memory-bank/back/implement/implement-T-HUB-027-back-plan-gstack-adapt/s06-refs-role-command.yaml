@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: s06 — gstack adapt refs doc + role-command PLAN FINISH guards (mirror .agents)
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-027-back-plan-gstack-adapt/s06-refs-role-command.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created memory-bank/back/plan/refs/gstack-adapt-027.md with adopted & rejected borrowings
+- Added exemplar fragment Review readiness CLEARED to refs doc
+- Updated .claude/skills/role-command/SKILL.md with Review readiness and qa_consumes
+  FINISH guards
+- Synced .agents/skills/role-command/SKILL.md mirror
+files:
+- memory-bank/back/plan/refs/gstack-adapt-027.md
+- .claude/skills/role-command/SKILL.md
+- .agents/skills/role-command/SKILL.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q`'
+integration_check:
+- test -f memory-bank/back/plan/refs/gstack-adapt-027.md
+- diff -q .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md
+grep_control: []
+verification_results:
+- 'cp1: test -f memory-bank/back/plan/refs/gstack-adapt-027.md && rg ''adopted|rejected|office-hours|qa_consumes''
+  memory-bank/back/plan/refs/gstack-adapt-027.md -> PASS'
+- 'cp2: rg ''Review readiness|CLEARED'' memory-bank/back/plan/refs/gstack-adapt-027.md
+  -> PASS'
+- 'cp3: rg ''Review readiness|qa_consumes'' .claude/skills/role-command/SKILL.md ->
+  PASS'
+- 'cp4: diff -q .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md
+  -> PASS'
+checkpoints:
+- id: cp1
+  criterion: gstack-adapt-027.md существует с adopted/rejected sections
+  status: done
+  done_at: '2026-08-31T09:02:49Z'
+- id: cp2
+  criterion: refs doc содержит exemplar Review readiness CLEARED
+  status: done
+  done_at: '2026-08-31T09:03:00Z'
+- id: cp3
+  criterion: role-command SKILL.md упоминает Review readiness + qa_consumes FINISH
+    guard
+  status: done
+  done_at: '2026-08-31T09:03:12Z'
+- id: cp4
+  criterion: .agents mirror synced (diff = 0 or overwrite)
+  status: done
+  done_at: '2026-08-31T09:03:23Z'
+resume_from: cp1

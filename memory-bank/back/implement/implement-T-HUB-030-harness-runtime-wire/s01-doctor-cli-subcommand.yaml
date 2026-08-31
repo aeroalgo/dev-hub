@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-030-harness-runtime-wire
+title: s01 — Doctor subcommand — preflight blockers before autopilot IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-030-harness-runtime-wire/s01-doctor-cli-subcommand.yaml
+skills_used:
+- python-testing-patterns
+- diagnosing-bugs
+discovery: []
+gaps:
+  status: none
+done:
+- Подключен сабпарсер doctor к CLI context_loop.py со всеми параметрами (--auto-repair,
+  --format, --cwd)
+- Обработка команды doctor в main() вызывает loop.incidents.doctor.run_doctor
+files:
+- loop/context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short`'
+integration_check:
+- .venv/bin/python loop/context_loop.py --cwd /home/aero/PyProject/dev-hub doctor
+grep_control: []
+verification_results:
+- 'cp1: PASS (.venv/bin/python loop/context_loop.py --cwd /tmp doctor)'
+- 'cp2: PASS (.venv/bin/pytest loop/tests/test_incidents_doctor.py)'
+- 'cp3: PASS (.venv/bin/pytest loop/tests/test_incidents_doctor.py)'
+checkpoints:
+- id: cp1
+  criterion: doctor subcommand доступен — нет invalid choice
+  status: done
+  done_at: '2026-08-31T12:22:19Z'
+- id: cp2
+  criterion: corrupt activeContext → checklist fail; JSON/text output
+  status: done
+  done_at: '2026-08-31T12:22:31Z'
+- id: cp3
+  criterion: healthy fixture → exit 0
+  status: done
+  done_at: '2026-08-31T12:22:36Z'
+resume_from: cp1

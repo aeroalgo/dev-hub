@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-030-harness-runtime-wire
+title: s06 — README observability + optional loop.sh doctor preflight IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-030-harness-runtime-wire/s06-readme-loop-sh-preflight-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Documented loop doctor CLI, tier0 auto-repair chain, traceability default ON, and
+  optional preflight doctor in loop/README.md
+- Added EPIC_LOOP_DOCTOR_PREFLIGHT gate in loop/loop.sh
+files:
+- loop/README.md
+- loop/loop.sh
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_check_after_tier0_wire.py loop/tests/test_traceability_promote.py
+  -q`'
+integration_check:
+- '`timeout 300s python3 loop/context_loop.py doctor`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: README содержит doctor + tier0 + traceability default
+  status: done
+  done_at: '2026-08-31T12:55:59Z'
+- id: cp2
+  criterion: loop.sh содержит EPIC_LOOP_DOCTOR_PREFLIGHT gate
+  status: done
+  done_at: '2026-08-31T12:56:04Z'
+- id: cp3
+  criterion: full loop/tests suite green after docs-only + preflight hook
+  status: done
+  done_at: '2026-08-31T12:56:08Z'
+resume_from: cp1

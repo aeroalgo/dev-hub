@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: "pytest suite + tmp_path product fixtures"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать полный pytest-suite `loop/tests/test_seed_constitution.py` со всеми сценариями
+  из tdd-листов s01 и s02. Использовать `tmp_path` для изолированных product fixtures.
+  После suite зелёный — весь эпик закрыт по AC и SC. Закрывает FR-009; SC-001..SC-004;
+  полный цикл US-001 (green), US-002 (green), AC+1..AC+6 через integ.
+
+context:
+  consumes:
+    - "loop/constitution_seed.py"    # impl из s01+s02 — импортируем в тестах
+    - ".claude/hooks/epic_resolve.py"  # seed-constitution subcommand — smoke-test
+    - ".cursor/templates/constitution.md"  # содержимое: 9 MUST sections
+  produces:
+    - "loop/tests/test_seed_constitution.py"   # NEW full suite
+  plan_refs:
+    - FR-009
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - AC+1
+    - AC+2
+    - AC+3
+    - AC+4
+  files:
+    - "loop/tests/test_seed_constitution.py"   # create
+
+as_built:
+  - "loop/tests/"   # директория существует (другие test_ файлы)
+  - "loop/constitution_seed.py"   # после s01+s02: полная impl
+
+delta:
+  - "loop/tests/test_seed_constitution.py"
+    # create: 12 test functions covering s01 + s02 TDD lists + smoke CLI
+
+deletes: []  # greenfield
+
+out_of_scope:
+  - "s03 VAN docs rg-проверки: в том же шаге s03 через cp"
+  - "E2E with real product repo: tmp_path достаточно для v1"
+
+skills:
+  code_surface: test
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"   # S03: assert exit codes
+    # 4 Core + 1 situational (S03) — total 5
+
+checkpoints:
+  - id: cp1
+    criterion: "Все tests collect без import errors"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py --collect-only -q"
+  - id: cp2
+    criterion: "Полный suite зелёный (0 failures)"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=short"
+  - id: cp3
+    criterion: "CLI subcommand зарегистрирован и виден через rg"
+    verify: "rg 'seed-constitution' .claude/hooks/epic_resolve.py"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=short"
+
+tdd:
+  # s01 scenarios
+  - "test_creates_constitution: tmp_path product dir → seed_constitution(cwd=tmp_path) → file exists"
+  - "test_creates_memory_bank_if_absent: no memory-bank dir → created + file inside"
+  - "test_placeholders_filled: output has 'MUST-1' through 'MUST-9'; no '[Product name]' literal"
+  - "test_product_name_from_arg: --product-name 'MyApp' → scope contains 'MyApp'"
+  - "test_product_name_from_dirname: no --product-name → scope contains tmp dir basename"
+  - "test_version_and_date_filled: 'version: 1.0' and ISO date in output; no '[version]' or '[YYYY'"
+  - "test_missing_template_exit2: mock hub root without template file → SystemExit(2)"
+  # s02 scenarios
+  - "test_idempotency_guard: existing file + no --force → SystemExit(2)"
+  - "test_force_overwrite: existing file + --force → file overwritten successfully"
+  - "test_hub_root_guard: cwd == hub_root, DEV_HUB_CONSTITUTION_SEED unset → SystemExit(2)"
+  - "test_hub_root_env_bypass: DEV_HUB_CONSTITUTION_SEED=1 → proceeds without exit"
+  # CLI smoke
+  - "test_cli_help_exit0: subprocess seed-constitution --help → returncode 0"

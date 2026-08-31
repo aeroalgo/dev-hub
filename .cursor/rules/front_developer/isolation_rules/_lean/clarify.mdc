@@ -6,6 +6,7 @@ alwaysApply: false
 
 **Артефакт:** `memory-bank/front/clarify/clarify-YYYYMMDD-<slug>.md`
 **Shared:** @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **Шаблон:** @.cursor/templates/clarify.md
 
 ## Gates
@@ -15,8 +16,8 @@ alwaysApply: false
 3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком; `## Grill pass` в артефакт не пустая
 4. Соблюдать shared core: ≤5 Q (grill-Q первые), sequential, Recommended/Suggested, CRITICAL policy.
 5. Каждый принятый ответ записывать в clarify-артефакт; диск — source of truth.
-6. Completion Report обязателен перед Handoff → FRONT PLAN / continue.
-7. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list запрещает ready for PLAN FINISH.
+6. Completion Report обязателен перед Handoff → PLAN Phase 1 / continue.
+7. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → не Phase 1 PLAN
 
 ## Abort
 

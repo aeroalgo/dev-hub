@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: Product probe (office-hours lite) — CLARIFY core + clarify template
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать product probe до WHAT: 6 forcing questions (RU) в shared CLARIFY каноне
+  и опциональный блок в clarify-шаблоне. Оператор при skip CLARIFY получает обязательную
+  batch-таблицу в L3+ PLAN; при CLARIFY — product Q входят в квоту ≤5 total.
+  Outcome: не планировать «calendar app» вместо реальной проблемы (US-001, FR-001, FR-002, AC+3).
+
+context:
+  consumes:
+    - ".cursor/rules/shared/workflow-clarify-core.mdc — Phase 0 Grill pass, taxonomy, ≤5 Q"
+    - ".cursor/templates/clarify.md — Grill pass table, Q→A log"
+    - "plan-T-HUB-027 §Product probe — 6 forcing questions (RU)"
+    - "plan-T-HUB-027 §Зафиксированные решения — Office-hours lite"
+  produces:
+    - "workflow-clarify-core.mdc — секция Product probe (office-hours lite)"
+    - "clarify.md — опциональная секция ## Product probe"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "US-001"
+    - "AC+ #3"
+    - "SC-001 (indirect — probe enables better plans)"
+  files:
+    - ".cursor/rules/shared/workflow-clarify-core.mdc"
+    - ".cursor/templates/clarify.md"
+
+as_built:
+  - "workflow-clarify-core.mdc — Phase 0 Grill pass mandatory; taxonomy 8 категорий; ≤5 Q sequential; нет Product probe / office-hours lite"
+  - "clarify.md — Grill pass table есть; секции Product probe (reframe, premises, narrowest wedge) нет"
+  - "workflow-plan.mdc — упоминает mini grill в §Product probe при skip CLARIFY (строка 12), но канон 6Q не в clarify-core"
+
+delta:
+  - "workflow-clarify-core ADD ## Product probe (office-hours lite) — 6 forcing questions RU (Demand reality, Status quo, Desperate specificity, Narrowest wedge, Observation & surprise, Future-fit)"
+  - "workflow-clarify-core ADD правило квоты: product Q в CLARIFY ≤5 total; batch vs sequential (CLARIFY sequential; PLAN L3+ без CLARIFY — batch-таблица в plan §Product probe)"
+  - "workflow-clarify-core ADD output contract: Reframe + Premises (3–5 falsifiable) + Recommended wedge"
+  - "clarify.md ADD опциональная секция ## Product probe после Grill pass — таблица 6 вопросов + Reframe/Premises/Wedge поля"
+  - "clarify.md ADD комментарий: секция optional; mandatory grill pass остаётся Phase 0"
+
+deletes: []
+
+out_of_scope:
+  - "plan.md Product probe секция — s02"
+  - "workflow-plan step 2p — s04"
+  - "T-HUB-010 grill-me Phase 0 — не менять, только дополнить product probe рядом"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-clarify-core содержит подсекцию Product probe (office-hours lite) с 6 forcing questions RU"
+    verify: "rg -n 'Product probe \\(office-hours lite\\)' .cursor/rules/shared/workflow-clarify-core.mdc && rg -c 'Demand reality|Status quo|Desperate specificity|Narrowest wedge|Observation|Future-fit' .cursor/rules/shared/workflow-clarify-core.mdc | awk -F: '$2>=6'"
+  - id: cp2
+    criterion: "Правило квоты CLARIFY ≤5 total с product Q documented"
+    verify: "rg '≤5' .cursor/rules/shared/workflow-clarify-core.mdc && rg 'batch' .cursor/rules/shared/workflow-clarify-core.mdc"
+  - id: cp3
+    criterion: "clarify.md содержит опциональную секцию Product probe"
+    verify: "rg '## Product probe' .cursor/templates/clarify.md"
+  - id: cp4
+    criterion: "Grill pass Phase 0 в clarify-core не удалён и не ослаблен"
+    verify: "rg 'Phase 0.*Grill pass' .cursor/rules/shared/workflow-clarify-core.mdc && rg '## Grill pass' .cursor/templates/clarify.md"
+
+verify: []
+
+tdd:
+  - "rg_product_probe_in_clarify_core"
+  - "rg_six_forcing_questions_present"
+  - "rg_clarify_template_product_probe_section"
+  - "regression_grill_pass_phase0_intact"

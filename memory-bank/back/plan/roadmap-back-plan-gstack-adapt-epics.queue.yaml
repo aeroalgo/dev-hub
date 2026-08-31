@@ -1,0 +1,7 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-back-plan-gstack-adapt-epics.md
+queue:
+  - id: T-HUB-027
+    plan: plan-T-HUB-027-back-plan-gstack-adapt.md
+    deps: []

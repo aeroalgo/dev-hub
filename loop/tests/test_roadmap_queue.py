@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -156,6 +157,11 @@ def test_smart_entry_implement_when_pending(tmp_path: Path) -> None:
     _write(tmp_path, "memory-bank/back/plan/decompose-T-Y/index.md", "# Y\n")
     _write(
         tmp_path,
+        "memory-bank/back/analyze/T-Y/analyze-20260831-pass.yaml",
+        "schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+    )
+    _write(
+        tmp_path,
         "memory-bank/back/plan/decompose-T-Y/s01-one.yaml",
         "schema: epic-decompose/v1\nstep_id: s01\n",
     )
@@ -181,6 +187,46 @@ def test_smart_entry_qa_when_all_completed(tmp_path: Path) -> None:
         tmp_path, role="back", epic_id="T-Z", plan_name="plan-T-Z.md"
     )
     assert entry["phase"] in {"AUDIT", "QA"}
+
+
+def test_roadmap_advance_arms_implement_via_arm_epic(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write_queue(tmp_path, _minimal_queue("T-IMP"))
+    _write(tmp_path, "memory-bank/back/plan/plan-T-IMP.md", "# plan\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-IMP/index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: T-IMP\nsteps:\n"
+        "- id: s01\n  file: s01-one.yaml\n  status: completed\n"
+        "- id: s02\n  file: s02-two.yaml\n  status: pending\n",
+    )
+    _write(tmp_path, "memory-bank/back/plan/decompose-T-IMP/index.md", "# imp\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-IMP/s01-one.yaml",
+        "schema: epic-decompose/v1\nstep_id: s01\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-IMP/s02-two.yaml",
+        "schema: epic-decompose/v1\nstep_id: s02\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/analyze/T-IMP/analyze-20260831-pass.yaml",
+        "schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+    )
+    sel = rq.select_next_epic(tmp_path)
+    assert sel["ok"] is True
+    assert sel["entry"]["phase"] == "IMPLEMENT"
+    out = rq.arm_roadmap_entry(tmp_path, sel)
+    assert out["ok"] is True
+    assert out["armed"] is True
+    assert out["phase"] == "IMPLEMENT"
+    assert out["step_id"] == "s02"
+    text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "s02" in text
+    assert "decompose-T-IMP" in text
 
 
 def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
@@ -238,6 +284,36 @@ def test_roadmap_advance_arms_next_after_done(tmp_path: Path) -> None:
     assert "DECOMPOSE" in text
     assert "T-013" in text
     assert "plan-T-013.md" in text
+
+
+def test_roadmap_advance_decompose_prepare_ok_without_index(tmp_path: Path) -> None:
+    rq = _load_rq()
+    ctx = _load_ctx()
+    _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
+    _write(tmp_path, "memory-bank/back/plan/plan-T-005.md", "# 5\n")
+    _write(tmp_path, "memory-bank/back/plan/plan-T-013.md", "# 13\n")
+    _mark_epic_done(tmp_path, "T-005")
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n- n/a\n\n## Handoff\nEPIC_DONE\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        '{"armed_epic":"T-005","status":"complete","active":false}\n',
+    )
+    advance = rq.roadmap_advance(tmp_path, skip_epic="T-005")
+    assert advance["ok"] is True
+    assert advance["phase"] == "DECOMPOSE"
+    assert advance["epic"] == "T-013"
+    prep = ctx.prepare_session(tmp_path)
+    assert prep.get("ok") is True, prep
+    assert prep.get("halt") is not True
+    st_path = tmp_path / ".claude/runtime/epic/state.json"
+    st = json.loads(st_path.read_text(encoding="utf-8"))
+    assert st.get("armed_step") == "DECOMPOSE"
+    assert st.get("armed_decompose") in (None, "")
 
 
 def test_epic_chain_flag_default_off(tmp_path: Path, monkeypatch) -> None:
@@ -331,6 +407,43 @@ def test_roadmap_done_when_all_complete(tmp_path: Path) -> None:
     assert out["ok"] is True
     assert out["complete"] is True
     assert out["stop"] == "ROADMAP_DONE"
+
+
+def test_arm_roadmap_entry_promotes_analyze(tmp_path: Path, monkeypatch) -> None:
+    rq = _load_rq()
+    called = []
+    def dummy_promote(cwd, epic_id, role):
+        called.append((str(cwd), epic_id, role))
+        return {
+            "ok": True,
+            "armed_step": "IMPLEMENT",
+            "phase": "IMPLEMENT",
+            "promoted_from": "ANALYZE",
+            "reason": "implement_promote",
+        }
+
+    import loop.epic_transition as et
+    monkeypatch.setattr(et, "promote_if_ready", dummy_promote)
+
+    selection = {
+        "role": "back",
+        "entry": {"epic": "T-TEST", "queue_id": "T-TEST", "plan": "plan-T-TEST.md", "phase": "ANALYZE"},
+    }
+    _write(tmp_path, "memory-bank/back/plan/plan-T-TEST.md", "# test plan\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-TEST/index.yaml",
+        "schema: epic-decompose-index/v1\nplan_id: T-TEST\nsteps:\n- id: s01\n  file: s01.yaml\n  status: pending\n",
+    )
+    _write(tmp_path, "memory-bank/back/plan/decompose-T-TEST/index.md", "# test\n")
+    _write(tmp_path, "memory-bank/back/plan/decompose-T-TEST/s01.yaml", "step_id: s01\n")
+
+    out = rq.arm_roadmap_entry(tmp_path, selection)
+    assert out["ok"] is True
+    assert out["armed"] is True
+    assert out["phase"] == "IMPLEMENT"
+    assert out.get("promoted_from") == "ANALYZE"
+    assert len(called) == 1
 
 
 def test_repo_roadmap_queue_parses() -> None:

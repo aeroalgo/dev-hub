@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-027-back-plan-gstack-adapt
+date: 2026-08-31
+verdict: pass
+
+summary:
+  ac_passed: 8
+  ac_failed: 0
+  suite_status: pass
+  reviewer: reviewer (claude-haiku)
+
+ac_matrix:
+  - id: AC+ #1
+    name: "plan.md 5 секций min rows"
+    verdict: pass
+  - id: AC+ #2
+    name: "workflow-plan 2p + FINISH gate"
+    verdict: pass
+  - id: AC+ #3
+    name: "workflow-clarify-core 6Q + квота"
+    verdict: pass
+  - id: AC+ #4
+    name: "workflow-qa + lean qa_consumes"
+    verdict: pass
+  - id: AC+ #5
+    name: "refs doc exists memory-bank/back/plan/refs/gstack-adapt-027.md"
+    verdict: pass
+  - id: AC+ #6
+    name: "exemplar Review readiness CLEARED"
+    verdict: pass
+  - id: AC+ #7
+    name: "rg hits template + workflow"
+    verdict: pass
+  - id: AC- #1
+    name: "gstack CLI инструмент не добавляет дублирующие зависимости"
+    verdict: pass
+
+blockers: []

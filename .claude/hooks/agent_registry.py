@@ -120,6 +120,10 @@ class AgentRegistry:
         return self.diagnostics
 
     def get(self, agent_id: str) -> AgentDefinition | None:
+        target = resolve_agent_alias(agent_id)
+        res = self.by_id.get(_normalize_id(target))
+        if res is not None:
+            return res
         return self.by_id.get(_normalize_id(agent_id))
 
 
@@ -138,6 +142,18 @@ def _normalize_id(value: object) -> str | None:
         return None
     normalized = value.strip().lower()
     return normalized if _NAME_RE.fullmatch(normalized) else None
+
+
+AGENT_ALIASES: dict[str, str] = {
+    "verify": "verify-implement",
+    "reviewer": "verify-qa",
+}
+
+
+def resolve_agent_alias(name: str) -> str:
+    """Resolve agent alias if registered, otherwise return original name normalized."""
+    normalized = _normalize_id(name) or name
+    return AGENT_ALIASES.get(normalized, normalized)
 
 
 def _env_token(agent_id: str) -> str:
@@ -398,4 +414,15 @@ def discover_agent_registry(*args, **kwargs) -> AgentRegistry:
 
 load_registry = discover_registry
 
-__all__ = ["AgentDefinition", "AgentOverlay", "AgentRegistry", "RegistryDiagnostic", "discover_agent_registry", "discover_registry", "load_registry", "resolve_project_root"]
+__all__ = [
+    "AGENT_ALIASES",
+    "AgentDefinition",
+    "AgentOverlay",
+    "AgentRegistry",
+    "RegistryDiagnostic",
+    "discover_agent_registry",
+    "discover_registry",
+    "load_registry",
+    "resolve_agent_alias",
+    "resolve_project_root",
+]

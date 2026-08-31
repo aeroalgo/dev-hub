@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # INTEG IMPLEMENT — gates
 
-**Артефакт:** `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml`  
+**Артефакт:** `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml` — `<plan_id>` = stem plan **со slug** (@.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
 **Шаблоны:** `@.cursor/templates/implement/epic-step.yaml` (**строго**; без вольных секций)
 
 ## Gates

@@ -1,0 +1,49 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-032
+plan_id: T-HUB-032
+epic_id: T-HUB-032
+date: '2026-08-31'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-032"
+  - "epic: T-HUB-032"
+  - "steps: s01–s05"
+  - "files: .claude/hooks/epic/convergence.py, .claude/hooks/epic_resolve.py, bin/lib/loop_lib.sh, loop/tests/test_convergence_*.py"
+
+checks:
+  - "tests green: `PYTHONPATH=.claude/hooks:bin:bin/lib .venv/bin/pytest loop/tests/test_convergence_*.py -q --tb=line` (22 passed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+ac_matrix:
+  - id: AC1
+    status: passed
+    evidence: "analyze-convergence subcommand зарегистрирован в epic_resolve.py (строки 489-501)"
+  - id: AC2
+    status: passed
+    evidence: "ConvergenceReport schema convergence-report/v1, категории CF-001..CF-006 реализованы"
+  - id: AC3
+    status: passed
+    evidence: "Форматы text/JSON и флаг --strict проверены в test_convergence_cli.py"
+  - id: AC4
+    status: passed
+    evidence: "EPIC_CONVERGENCE_CHECK=1 warn-only проверка подтверждена в test_convergence_loop.py"
+  - id: AC5
+    status: passed
+    evidence: "22 passed pytest тестов в loop/tests/test_convergence_*.py"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "None"
+
+suite:
+  - "PYTHONPATH=.claude/hooks:bin:bin/lib .venv/bin/pytest loop/tests/test_convergence_*.py -q --tb=line"

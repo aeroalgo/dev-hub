@@ -1,0 +1,30 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-026-spec-reconcile-workflow
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-reconcile-core.yaml
+  title: reconcile.py core — path checks + report schema + list_active_epic_ids
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-reconcile-cli.yaml
+  title: reconcile-spec CLI — default active sweep + --plan-id + --strict
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-workflow-mainrule.yaml
+  title: BACK RECONCILE workflow-reconcile.mdc + lean gate + mainrule registration
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-appetite-template.yaml
+  title: Appetite section in plan.md template + optional decompose index mirror keys
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-tests-readonly.yaml
+  title: pytest suite — stale as_built fixture + active sweep + read-only guard
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -10,6 +10,8 @@ alwaysApply: false
 
 **Принцип done:** новый путь — **единственный**; старый удалён из кода **и** всех entrypoints; misconfig **падает**, не деградирует в legacy/stub/fallback.
 
+**Design-time (до sunset table):** @.cursor/rules/shared/workflow-spec-first-replace.mdc — as-built не задаёт формат новой границы; technology axiom lock (pydantic → JSON, не regex+enum).
+
 ---
 
 ## 1. PLAN — `## Replacement / sunset` (три таблицы)
@@ -21,6 +23,8 @@ Brownfield replace **обязан** заполнить **A + B + C** (не од�
 ### A. Code / modules
 
 Файлы, классы, символы, пакеты, тесты, которые вытесняются.
+
+**HARD:** каждая строка A — **конкретный symbol** (`module.fn`, `ClassName`), не «старый модуль X» без имени. Symbol попадает в purge inventory и audit scan.
 
 ### B. Entrypoints / deploy
 
@@ -81,57 +85,108 @@ Inventory **всех** поверхностей запуска той же ро�
 
 Имя (slug): `*-legacy-fallback-purge` (BACK/FRONT: `sNN-…`; INTEG: отдельный `eNN-…` или последний cutover eNN с полным остатком `deletes`).
 
+**Шаблон shard:** @.cursor/templates/decompose/legacy-purge-step.yaml
+
 **Обязан:**
 
 1. Стоять **после** migrate/wire шагов (цепочка `add → migrate → delete` завершена здесь).  
 2. `deletes:` = **весь остаток** из Replacement cleanup (A+B+C), ещё не удалённый предыдущими sNN|eNN.  
-3. Checkpoints (≥2):
-   - `rg` / import-audit: символы/пути legacy **без** живых callers (кроме archive/docs history).  
-   - Anti-fallback `rg` по scope эпика: `or "http://`, `fallback`, silent stub patterns из plan C; dual `legacy`/`old_` entry в compose command.  
-   - Entrypoint inventory: все релевантные `docker-compose*.yml` / `Dockerfile*` — **нет** старого `command`/`CMD` (список из plan B).  
-4. Greenfield / `n/a` во всех sunset → purge **не** создавать; в Replacement cleanup одна строка `n/a — нет замен`.
+3. **`sunset_inventory:`** — список **каждой** строки plan sunset A/B/C (symbol, kind, replacement, policy, rg_scope, expect). Одна строка plan → одна запись inventory. **FORBIDDEN** purge-step без полного inventory.  
+4. **`grep_control:`** — executable `rg`/inventory **по каждой** записи `sunset_inventory` (mirror id → command → expect).  
+5. Checkpoints (≥4):
+   - **cp-inventory-a** — Kind A: rg **по каждой** строке inventory kind=A; 0 prod callers.  
+   - **cp-inventory-b** — Kind B: entrypoint inventory (compose/Dockerfile/CLI/scripts) из plan B.  
+   - **cp-inventory-c** — Kind C: anti-fallback rg по prod paths из plan C.  
+   - **cp-suite-regression** — targeted/epic regression suite green после deletes.  
+6. Greenfield / `n/a` во всех sunset → purge **не** создавать; в Replacement cleanup одна строка `n/a — нет замен`.
 
 ### 2.3. FORBIDDEN (дополнительно к §Replacement cleanup роли)
 
 - Закрыть эпик на «новое включено, старое рядом».  
 - `out_of_scope: оставить shim` без epic ID **в queue**.  
 - Считать rewrite модуля достаточным, если CLI/compose/CMD всё ещё зовут legacy.  
-- Оставить fallback URL/default в коде как «удобство local».
+- Оставить fallback URL/default в коде как «удобство local».  
+- Purge checkpoint только на **один** sunset symbol при нескольких строках в plan (T-HUB-029 class gap).  
+- Считать purge **done**, если остался public shim с prod callers или router импортирует deprecated public API.
+
+### 2.4. Inventory scan — что считается leftover (HARD)
+
+| Ситuation | Verdict |
+|-----------|---------|
+| Symbol удалён; matches только в `tests/`, `memory-bank/archive/`, docs/history | **OK** |
+| Public function/class остаётся; ≥1 prod caller (не test) | **FAIL** — в `legacy_surfaces_remaining` |
+| Thin shim delegates + `_legacy_warn`; prod callers ещё на shim | **FAIL** — migrate callers → delete shim |
+| New API (`arm_phase`) imports/calls **deprecated public** symbol | **FAIL** — consolidate into private `_arm_*` or inline |
+| Policy `shim+follow-up`; follow-up epic **в queue**; shim documented in inventory | **OK until follow-up**; audit must list shim in `legacy_surfaces_remaining` with `follow_up: T-…` |
+| Policy `shim+follow-up` без epic ID в queue | **FAIL** |
+
+**rg exclude (только для подсчёта prod callers):** `test_`, `/tests/`, `memory-bank/archive/`, строки с `# deprecated`, `_legacy_warn(` **не** маскируют живой symbol.
+
+**Evidence (implement purge shard):** для каждой строки `grep_control` — command + actual output (empty = pass) в `verification_results` или checkpoint `done` note.
 
 ---
 
 ## 3. IMPLEMENT
 
 - Выполнить все `deletes:` work shard (как lean implement).  
-- Если work shard = purge step — evidence **обязана** включать команды `rg`/compose inventory и их пустой (или archive-only) результат.  
+- Purge shard (`*-legacy-fallback-purge`): evidence **обязана** включать **полный** `grep_control` run (все id), не один символ.  
 - User-facing soft-fail при misconfig **не** добавлять «чтобы тесты зелёные».
 
 ---
 
-## 4. AUDIT
+## 4. AUDIT — mandatory sunset inventory scan (HARD gate)
 
-В `audit-*.yaml` (шаблон `templates/audit/epic-audit.yaml`) для brownfield replace:
+Шаблон: @.cursor/templates/audit/epic-audit.yaml
+
+Brownfield replace **обязан** содержать:
 
 ```yaml
-legacy_surfaces_remaining: []   # path/symbol ещё живы vs sunset A/B
-fallback_remaining: []          # soft-fail / dual-path ещё живы vs sunset C
+sunset_inventory_scan:
+  scanned_at: YYYY-MM-DD
+  plan_ref: plan-<epic_id>.md#replacement--sunset
+  rows:
+    - symbol: path/or/FunctionName
+      kind: A
+      command: 'rg -n "FunctionName" …'
+      result: pass | fail
+      prod_callers: []          # пути файлов при fail; [] при pass
+      notes: ""
+legacy_surfaces_remaining: []   # заполнять ТОЛЬКО после scan; каждый fail → {symbol, kind, callers[], fix: sNN-audit-…}
+fallback_remaining: []          # kind C fails
+purge_step_present: true
 ```
 
-- Непустой массив → `not_implemented` / новый `*-audit-*` shard **или** FAIL (нельзя PASS в QA с leftover).  
-- Проверить наличие purge sNN|eNN в decompose queue (или `n/a` sunset).
+**HARD gates:**
+
+1. **`sunset_inventory_scan` обязателен** при sunset ≠ n/a. Отсутствие блока → `converged: false`, audit **FAIL**.  
+2. **`legacy_surfaces_remaining: []` только если scan выполнен** и все rows `result: pass`. Пустой массив без scan = **FAIL** (ложный PASS).  
+3. **`prod_callers` non-empty** → symbol **обязан** попасть в `legacy_surfaces_remaining` или `not_implemented[]` (новый `sNN-audit-*` / purge follow-up).  
+4. **`purge_step_present: false`** при sunset ≠ n/a → **FAIL**.  
+5. **`converged: true`** только при: scan complete · все rows pass · `legacy_surfaces_remaining[]` и `fallback_remaining[]` пусты · `purge_step_present: true` (или sunset n/a).  
+6. Shim с `follow_up: T-…` **допустим** в inventory только при ID в queue; иначе → `legacy_surfaces_remaining`.
+
+**Процедура scan (AUDIT executor):**
+
+1. Прочитать plan `## Replacement / sunset` A+B+C и decompose `## Replacement cleanup`.  
+2. Для **каждой** строки — `rg`/inventory по prod paths (exclude rules §2.4).  
+3. Записать `sunset_inventory_scan.rows[]` с `command`, `result`, `prod_callers`.  
+4. Перенести все `result: fail` в `legacy_surfaces_remaining` / `fallback_remaining`.  
+5. Сверить purge implement shard: evidence содержит все `grep_control` id из decompose purge step.
 
 ---
 
 ## 5. QA
 
-Для brownfield replace / cutover эпиков — доп. checks (в qa yaml `checks:` или Issues):
+Для brownfield replace / cutover — **независимая** re-check (не доверять audit arrays без команды):
 
-1. `rg` leftover symbols из plan sunset (expect no prod callers).  
-2. Compose/Dockerfile: нет legacy service name / `command` из plan B.  
-3. Нет запрещённых fallback patterns из plan C в prod paths.  
-4. (BACK) optional: `docker compose config` / `ps` smoke — нет legacy consumer рядом с новым.
+1. Re-run `rg` по **каждому** symbol из plan sunset A (expect no prod callers).  
+2. Compose/Dockerfile/CLI: нет legacy из plan B.  
+3. Anti-fallback patterns из plan C в prod paths.  
+4. (BACK) optional: `docker compose config` / `ps` smoke.
 
-PASS при leftover A/B/C = **FAIL** (fix_plan → BUGFIX purge).
+PASS при leftover A/B/C = **FAIL** (fix_plan → BUGFIX purge или `sNN-audit-*`).
+
+**FORBIDDEN:** QA PASS только по тексту audit «legacy confirmed» без собственного rg на sunset inventory.
 
 ---
 

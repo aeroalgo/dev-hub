@@ -1,0 +1,33 @@
+schema: back-qa/v1
+epic: T-HUB-027-back-plan-gstack-adapt
+verdict: PASS
+date: "2026-08-31"
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+
+summary: |
+  Все адаптации gstack интегрированы и проверены:
+  - CLARIFY Phase 0 Grill + Product probe baseline
+  - PLAN Product probe + Eng review spine + QA consumes + Review readiness
+  - DECOMPOSE gstack alignment & Replacement cleanup rules
+  - QA verification suite & anchor extraction unit tests
+
+checks:
+  - name: AC+ #1 Clarify Phase 0 Grill
+    status: pass
+  - name: AC+ #2 Plan Product probe & Eng review spine
+    status: pass
+  - name: AC+ #3 Plan QA consumes section
+    status: pass
+  - name: AC+ #4 Plan Review readiness gate
+    status: pass
+  - name: AC+ #5 Decompose replacement cleanup & maximal detail
+    status: pass
+  - name: AC+ #6 Exemplar review readiness cleared
+    status: pass
+  - name: AC+ #7 Verification matrix & unit test
+    status: pass

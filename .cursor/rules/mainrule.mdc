@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 # WORKFLOW ROUTER
 
-**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **full:** @.cursor/rules/token-economy-core.mdc (read on role command)
+**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **full economy:** @.cursor/rules/token-economy-core.mdc (read on role command)
 
 **Test runner:** @.cursor/rules/shared/test-timeout.mdc (300s external timeout)
 

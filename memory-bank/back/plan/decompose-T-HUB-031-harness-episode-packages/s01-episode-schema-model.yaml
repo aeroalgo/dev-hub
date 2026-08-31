@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-031-harness-episode-packages
+title: EpisodeManifest schema + loop/episodes module skeleton — auditable bundle foundation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/schemas/episode.py` с Pydantic-моделью `EpisodeManifest` (schema=loop-episode/v1)
+  и модуль `loop/episodes/__init__.py` с публичным API: `begin_episode`, `finalize_episode`,
+  `episode_dir`. Все последующие шаги зависят от этих типов/функций.
+  Outcome: появляется typed contract для episode bundle — соответствует FR-001, FR-002, AC-1.
+
+context:
+  consumes: []
+  produces:
+    - loop/schemas/episode.py
+    - loop/episodes/__init__.py
+    - loop/episodes/core.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - AC-1
+    - US-001
+  files:
+    - loop/schemas/episode.py
+    - loop/episodes/__init__.py
+    - loop/episodes/core.py
+
+as_built:
+  - "loop/schemas/ — директория со схемами: checkpoint.py, gate_verdict.py, state.py, event.py"
+  - "loop/incidents/schema.py — паттерн Pydantic-модели с schema_version alias, field_validator"
+  - "loop/incidents/trace.py — паттерн JSONL append writer + is_enabled guard"
+
+delta:
+  - "CREATE loop/schemas/episode.py — EpisodeManifest(BaseModel): schema='loop-episode/v1', episode_id, started_at, ended_at, epic_id, role, armed_step, sNN, prompt_hash, fingerprint_before, fingerprint_after, decide, halt_reason, incident_ids[], event_seq_range, load_now_paths[], load_now_sha256[]"
+  - "CREATE loop/episodes/__init__.py — re-export begin_episode, finalize_episode, episode_dir"
+  - "CREATE loop/episodes/core.py — begin_episode(cwd)->str (создаёт dir, записывает manifest-stub), finalize_episode(cwd, check_after_result)->EpisodeManifest (атомарная запись manifest.json), episode_dir(cwd, episode_id)->Path"
+  - "Episode ID format: {utc_compact}_{epic_id_short}_{4hex} — sortable, deterministic prefix"
+
+deletes: []
+
+out_of_scope:
+  - "wire в prepare/check_after — s02"
+  - "artifact copies (check_after.json, checkpoint_snapshot.json) — s03"
+  - "incident/trace correlation — s04"
+  - "CLI episode-list/show — s05"
+  - "retention prune — s06"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md  # новые публичные Pydantic-типы
+
+checkpoints:
+  - id: cp1
+    criterion: "EpisodeManifest импортируется и валидируется с минимальными полями без ошибок"
+    verify: ".venv/bin/pytest loop/tests/test_episode_schema.py::test_episode_manifest_schema -q"
+  - id: cp2
+    criterion: "begin_episode создаёт episode_dir, возвращает episode_id-строку, dir содержит manifest-stub"
+    verify: ".venv/bin/pytest loop/tests/test_episode_schema.py::test_begin_episode_creates_dir -q"
+  - id: cp3
+    criterion: "finalize_episode записывает валидный manifest.json (pydantic validate_model pass)"
+    verify: ".venv/bin/pytest loop/tests/test_episode_schema.py::test_finalize_episode_writes_manifest -q"
+  - id: cp4
+    criterion: "episode_dir возвращает правильный путь runtime/<slug>/episodes/<episode_id>/"
+    verify: ".venv/bin/pytest loop/tests/test_episode_schema.py::test_episode_dir_path -q"
+
+verify:
+  - "rg 'EpisodeManifest' loop/schemas/episode.py"
+  - "rg 'begin_episode|finalize_episode|episode_dir' loop/episodes/core.py"
+  - "rg 'loop-episode/v1' loop/schemas/episode.py"
+
+tdd:
+  - "test_episode_manifest_schema — минимальные поля, schema версия, field_validator на schema_version"
+  - "test_episode_manifest_full — все поля включая lists/optionals"
+  - "test_begin_episode_creates_dir — tmpdir, проверить что dir создан и manifest-stub существует"
+  - "test_finalize_episode_writes_manifest — передать check_after_result dict, проверить manifest.json"
+  - "test_episode_dir_path — проверить формат пути runtime/<slug>/episodes/<episode_id>"
+  - "test_episode_id_format — episode_id соответствует паттерну sortable prefix + epic_id_short"

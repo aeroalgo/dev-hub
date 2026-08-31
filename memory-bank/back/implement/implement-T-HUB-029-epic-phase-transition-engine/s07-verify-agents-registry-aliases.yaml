@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: 'verify agents registry rows: verify-implement/bugfix/decompose/qa + aliases'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s07-verify-agents-registry-aliases.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added verify_agent per phase to loop/schemas/phase_registry.yaml
+- Implemented get_verify_agent(phase) in loop/epic_transition.py
+- Added AGENT_ALIASES and resolve_agent_alias in .claude/hooks/agent_registry.py
+- Added unit tests for get_verify_agent and agent registry aliases in loop/tests/test_epic_transition.py
+files:
+- loop/schemas/phase_registry.yaml
+- loop/epic_transition.py
+- .claude/hooks/agent_registry.py
+- loop/tests/test_epic_transition.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py
+  -q --tb=line`'
+integration_check:
+- python3 -c 'import loop.epic_transition as et; assert et.get_verify_agent("IMPLEMENT")
+  == "verify-implement"'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'get_verify_agent("IMPLEMENT") == "verify-implement"
+
+    '
+  status: done
+  done_at: '2026-08-31T10:51:11Z'
+- id: cp2
+  criterion: 'test_get_verify_agent_per_phase PASS (IMPLEMENT/QA/DECOMPOSE/BUGFIX)
+
+    '
+  status: done
+  done_at: '2026-08-31T10:51:26Z'
+- id: cp3
+  criterion: 'Регрессия: test_epic_transition.py + test_stop_gate.py green
+
+    '
+  status: done
+  done_at: '2026-08-31T10:53:46Z'
+resume_from: cp1

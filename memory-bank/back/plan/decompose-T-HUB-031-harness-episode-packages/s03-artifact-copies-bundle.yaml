@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-031-harness-episode-packages
+title: Artifact copies into episode bundle — immutable check_after + checkpoint + gate_verdict + trace_tail
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Внутри `finalize_episode` (loop/episodes/core.py) копировать (не symlink) артефакты текущей сессии
+  в episode dir: `check_after.json`, `checkpoint_snapshot.json`, `gate_verdict.json` (if exists),
+  `trace_tail.jsonl` (last N lines). Также snapshot load_now_paths с sha256.
+  Outcome: episode dir становится immutable self-contained bundle для postmortem/replay — FR-004, AC-2, US-001, US-003.
+
+context:
+  consumes:
+    - loop/episodes/core.py  # s01, s02
+    - loop/schemas/episode.py  # s01
+  produces:
+    - loop/episodes/core.py  # edited: artifact copy logic
+    - loop/episodes/bundle.py  # new: copy_artifacts helper
+  plan_refs:
+    - FR-004
+    - FR-001  # load_now_paths, load_now_sha256, fingerprint fields в manifest
+    - AC-2
+    - US-001
+    - US-003
+  files:
+    - loop/episodes/bundle.py
+    - loop/episodes/core.py
+
+as_built:
+  - "loop/incidents/trace.py:read_session_trace_tail — уже существует, используется в _status_trace_tail"
+  - "loop/schemas/checkpoint.py — loop-checkpoint/v1 schema, файл .claude/runtime/epic/checkpoint.yaml"
+  - "loop/schemas/gate_verdict.py — loop-gate-verdict/v1, файл обычно в runtime dir"
+  - "context_loop.py:186 runtime_dir — вычисляет runtime/<slug>/... путь"
+
+delta:
+  - "CREATE loop/episodes/bundle.py — copy_artifacts(cwd, episode_dir, check_after_result, trace_lines=50)->dict[str,str]: 1) shutil.copy2 checkpoint_snapshot.json из runtime → episode dir; 2) запись check_after.json из dict; 3) shutil.copy2 gate_verdict.json если существует; 4) read_session_trace_tail + write trace_tail.jsonl; 5) snapshot load_now_paths+sha256 из check_after_result; возвращает dict artifact→path_in_bundle"
+  - "EDIT loop/episodes/core.py:finalize_episode — вызвать copy_artifacts, добавить результаты в EpisodeManifest (artifact_refs)"
+  - "EPIC_EPISODE_INCLUDE_PROMPT env guard: если не 1, не включать сырой prompt в bundle (no secrets)"
+  - "Атомарная запись manifest.json: сначала копируем артефакты, потом пишем manifest (порядок детерминирован)"
+
+deletes: []
+
+out_of_scope:
+  - "incident/trace correlation (episode_id injection) — s04"
+  - "load_now snapshot в detail — частично через check_after_result; sha256 вычисление для load_now_paths из activeContext — s03 scope"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md  # copy failure не должен ронять finalize
+
+checkpoints:
+  - id: cp1
+    criterion: "episode dir содержит check_after.json после finalize_episode"
+    verify: ".venv/bin/pytest loop/tests/test_episode_bundle.py::test_check_after_json_in_bundle -q"
+  - id: cp2
+    criterion: "checkpoint_snapshot.json скопирован в episode dir (если существует)"
+    verify: ".venv/bin/pytest loop/tests/test_episode_bundle.py::test_checkpoint_snapshot_copied -q"
+  - id: cp3
+    criterion: "trace_tail.jsonl содержит последние N строк из session-trace.jsonl"
+    verify: ".venv/bin/pytest loop/tests/test_episode_bundle.py::test_trace_tail_in_bundle -q"
+  - id: cp4
+    criterion: "manifest.json содержит artifact_refs dict с ключами check_after, checkpoint_snapshot"
+    verify: ".venv/bin/pytest loop/tests/test_episode_bundle.py::test_manifest_has_artifact_refs -q"
+
+verify:
+  - "rg 'copy_artifacts' loop/episodes/core.py loop/episodes/bundle.py"
+  - "rg 'shutil.copy2|check_after.json|checkpoint_snapshot' loop/episodes/bundle.py"
+
+tdd:
+  - "test_check_after_json_in_bundle — tmpdir, вызвать copy_artifacts, check_after.json существует и парсится"
+  - "test_checkpoint_snapshot_copied — создать fake checkpoint, проверить копию в episode dir"
+  - "test_trace_tail_in_bundle — несколько trace entries, finalize, проверить trace_tail.jsonl"
+  - "test_manifest_has_artifact_refs — finalize_episode, проверить manifest['artifact_refs'] dict"
+  - "test_copy_failure_graceful — один artifact missing, остальные скопированы, finalize не падает"
+  - "test_load_now_sha256_snapshot — load_now_paths → sha256 dict в manifest"

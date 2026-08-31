@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-032-harness-analyze-convergence
+title: "Pytest test suite — fixtures per finding category + active sweep + strict exit"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Покрыть все finding-категории (`orphan_requirement`, `orphan_task`, `ac_conflict`,
+  `traceability_gap`, `reconcile_overlap`, `stale_handoff`) pytest-тестами с минимальными
+  файловыми fixture-директориями. Активный sweep (SC-002) — тест с реальным
+  `loop/tests/fixtures/` эпиком. Strict exit codes (SC-003). Закрывает FR-006, SC-001–SC-003.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/convergence.py — run_convergence_checks(), ConvergenceReport"
+    - "loop/tests/fixtures/ — существующие fixture-эпики (traceability)"
+    - "loop/tests/test_convergence_engine.py, test_convergence_cli.py, test_convergence_loop.py (частичные тесты из s01–s03)"
+  produces:
+    - "loop/tests/test_convergence_categories.py"
+    - "loop/tests/fixtures/convergence/ — минимальные fixture-эпики (6 директорий)"
+  plan_refs:
+    - "FR-006"
+    - "SC-001"
+    - "SC-002"
+    - "SC-003"
+  files:
+    - "loop/tests/test_convergence_categories.py"  # create
+    - "loop/tests/fixtures/convergence/"            # create — fixture dirs
+
+as_built:
+  - "loop/tests/fixtures/ — уже есть fixture-эпики для traceability (T-HUB-024)"
+  - "loop/tests/test_traceability_*.py — паттерн parametrize + fixture_path"
+
+delta:
+  - "CREATE loop/tests/test_convergence_categories.py — parametrize по 6 категориям"
+  - "CREATE loop/tests/fixtures/convergence/orphan_req/ — plan с req без decompose ref"
+  - "CREATE loop/tests/fixtures/convergence/orphan_task/ — sNN без plan_refs"
+  - "CREATE loop/tests/fixtures/convergence/ac_conflict/ — конфликтующие AC маркеры"
+  - "CREATE loop/tests/fixtures/convergence/traceability_gap/ — req без coverage"
+  - "CREATE loop/tests/fixtures/convergence/reconcile_overlap/ — as_built path не в repo"
+  - "CREATE loop/tests/fixtures/convergence/stale_handoff/ — activeContext без Handoff block"
+  - "ADD test_active_sweep: run_convergence_checks на реальный fixture из loop/tests/fixtures/"
+  - "ADD test_strict_exit_1: мокируем HIGH finding + --strict → assert exit code 1"
+
+deletes: []
+
+out_of_scope:
+  - "Интеграционный тест с реальным git репо и --include-git-diff"
+  - "Тесты arm_epic convergence hook — test_convergence_loop.py (s03)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "SC-001: каждая из 6 категорий порождает finding с правильным category полем"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_categories.py -q --tb=short -k 'category'"
+  - id: cp2
+    criterion: "SC-002: active sweep на реальный fixture не бросает исключений, возвращает ConvergenceReport"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_categories.py::test_active_sweep -q"
+  - id: cp3
+    criterion: "SC-003: strict + HIGH → exit 1 (через subprocess или SystemExit)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_categories.py::test_strict_exit -q"
+  - id: cp4
+    criterion: "Full suite green (все test_convergence_*.py)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_engine.py loop/tests/test_convergence_cli.py loop/tests/test_convergence_loop.py loop/tests/test_convergence_categories.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_convergence_categories.py -q --tb=short"
+  - ".venv/bin/pytest loop/tests/ -k 'convergence' -q --tb=line"
+
+tdd:
+  - "test_category_orphan_requirement: fixture orphan_req/ → finding.category=='orphan_requirement'"
+  - "test_category_orphan_task: fixture orphan_task/ → finding.category=='orphan_task'"
+  - "test_category_ac_conflict: fixture ac_conflict/ → 'ac_conflict' в categories"
+  - "test_category_traceability_gap: fixture traceability_gap/ → 'traceability_gap'"
+  - "test_category_reconcile_overlap: fixture reconcile_overlap/ → 'reconcile_overlap'"
+  - "test_category_stale_handoff: fixture stale_handoff/ → 'stale_handoff'"
+  - "test_active_sweep: реальный fixture → ConvergenceReport, findings list"
+  - "test_strict_exit: HIGH finding + strict → SystemExit(1) или subprocess exit 1"
+  - "test_no_findings_exit_0: clean fixture → exit 0"

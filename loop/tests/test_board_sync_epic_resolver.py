@@ -27,6 +27,25 @@ def test_resolve_plan_no_decompose_returns_decompose_command(tmp_path: Path):
     assert res.next_command == "BACK DECOMPOSE T-HUB-999"
     assert res.reason_code == "decompose_missing"
 
+def test_resolver_stale_analyze_returns_arm_analyze(tmp_path: Path):
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
+
+    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir.mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "index.yaml").write_text("""
+steps:
+  - step_id: s01
+    status: pending
+""")
+
+    res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
+    assert res.phase == "ANALYZE"
+    assert res.next_command == "BACK ANALYZE T-HUB-999"
+    assert res.reason_code == "stale_analyze_pending"
+
+
 def test_implement_next_step_returns_first_pending(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: gstack adapt refs doc + role-command PLAN FINISH guards (mirror .agents)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать telegraph refs doc что взяли/отвергли из gstack; обновить role-command SKILL
+  PLAN FINISH guards (Review readiness + qa_consumes для L2+). Sync .agents mirror.
+  Outcome: borrowings задокументированы; loop/Claude Code видят guards (FR-007, FR-008, AC+ #5).
+
+context:
+  consumes:
+    - "plan-T-HUB-027 §Зафиксированные решения — borrowings table"
+    - "plan-T-HUB-027 §out of scope — rejected gstack features"
+    - ".claude/skills/role-command/SKILL.md — PLAN/DECOMPOSE FINISH guards"
+    - ".agents/skills/role-command/SKILL.md — mirror (sync if diff)"
+    - "s03+s04 — Review readiness + qa_consumes canon"
+  produces:
+    - "memory-bank/back/plan/refs/gstack-adapt-027.md — adapt note"
+    - ".claude/skills/role-command/SKILL.md — PLAN FINISH Review readiness + qa_consumes guards"
+    - ".agents/skills/role-command/SKILL.md — mirror sync from .claude"
+  plan_refs:
+    - "FR-007"
+    - "FR-008"
+    - "AC+ #5"
+    - "AC− #1 (no gstack slash install)"
+    - "AC− #2 (no DECOMPOSE replacement)"
+  files:
+    - "memory-bank/back/plan/refs/gstack-adapt-027.md"
+    - ".claude/skills/role-command/SKILL.md"
+    - ".agents/skills/role-command/SKILL.md"
+
+as_built:
+  - "memory-bank/back/plan/refs/gstack-adapt-027.md — ОТСУТСТВУЕТ"
+  - "role-command SKILL.md — PLAN FINISH wc -l guard; нет Review readiness / qa_consumes guards для L2+"
+  - ".agents/skills/role-command/SKILL.md — mirror; same gap"
+
+delta:
+  - "CREATE gstack-adapt-027.md — telegraph: adopted (office-hours lite, eng spine, qa_consumes, review batch, readiness); rejected (gstack slash, 0–10 interactive, GSD layout, browser QA, plan=prompt)"
+  - "gstack-adapt-027.md ADD dry-run exemplar fragment: Review readiness table CLEARED sample"
+  - "role-command SKILL.md ADD PLAN FINISH guard: L2+ plans — Review readiness no pending + qa_consumes draft present"
+  - "role-command SKILL.md ADD DECOMPOSE sync note: .agents mirror overwrite from .claude on diff"
+  - ".agents/skills/role-command/SKILL.md SYNC from .claude after edit"
+
+deletes: []
+
+out_of_scope:
+  - "front_developer/workflow-plan mirror — optional, follow-up"
+  - "loop pytest validators — s07"
+  - "gstack package install — AC− #1"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "gstack-adapt-027.md существует с adopted/rejected sections"
+    verify: "test -f memory-bank/back/plan/refs/gstack-adapt-027.md && rg 'adopted|rejected|office-hours|qa_consumes' memory-bank/back/plan/refs/gstack-adapt-027.md"
+  - id: cp2
+    criterion: "refs doc содержит exemplar Review readiness CLEARED"
+    verify: "rg 'Review readiness|CLEARED' memory-bank/back/plan/refs/gstack-adapt-027.md"
+  - id: cp3
+    criterion: "role-command SKILL.md упоминает Review readiness + qa_consumes FINISH guard"
+    verify: "rg 'Review readiness|qa_consumes' .claude/skills/role-command/SKILL.md"
+  - id: cp4
+    criterion: ".agents mirror synced (diff = 0 or overwrite)"
+    verify: "diff -q .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md || echo 'sync required in implement'"
+
+verify: []
+
+tdd:
+  - "file_exists_gstack_adapt_027_refs"
+  - "rg_review_readiness_in_role_command"
+  - "rg_qa_consumes_guard_in_role_command"
+  - "agents_mirror_sync_role_command"

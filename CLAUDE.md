@@ -10,6 +10,7 @@
 |-------|------|
 | Router | @.cursor/rules/mainrule.mdc |
 | Economy stub (always) | @.cursor/rules/token-economy-stub.mdc |
+| **Spec-first replace (always HARD)** | @.cursor/rules/spec-first-replace-hard.mdc |
 | Economy full | @.cursor/rules/token-economy-core.mdc — **Read on role command**; PLAN/DECOMPOSE → §0.0 + §0.0.1 before write |
 | Session / FINISH | @.cursor/rules/shared/context-session-economy.mdc · @.cursor/rules/shared/finish-block.mdc |
 | PLAN artifact | @.claude/rules/plan-artifact.md |
@@ -27,7 +28,7 @@ Python 3.12 · FastAPI · Next.js `frontend/` · `.venv/bin/pytest` · PostgreSQ
 
 ## Conventions
 
-Русский в чате · silent tools (@.cursor/rules/silent-tools.mdc) · `implement this` gate (§0.9) · FRONT tests parent-only (@.cursor/rules/front-tests-parent-only.mdc) · коммиты/PR по запросу · не править linter без запроса
+Русский в чате · silent tools (@.cursor/rules/silent-tools.mdc) · spec-first replace HARD (@.cursor/rules/spec-first-replace-hard.mdc) · `implement this` gate (§0.9) · FRONT tests parent-only (@.cursor/rules/front-tests-parent-only.mdc) · коммиты/PR по запросу · не править linter без запроса
 
 PM, TL, CONTENT, MARKETING, SEO → `_archive/cursor-rules/`
 

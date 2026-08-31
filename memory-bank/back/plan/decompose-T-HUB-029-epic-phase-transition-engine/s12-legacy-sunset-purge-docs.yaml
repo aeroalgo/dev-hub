@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s12
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s12-legacy-sunset-purge-docs.yaml
+title: "legacy sunset purge + docs (WORKFLOW.md, README, architecture)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный slice: удалить shim-тела устаревших функций (s02/s03 делегируют, тела удалены),
+  убрать deprecated warnings (заменить на ошибки если alias-period истёк),
+  обновить WORKFLOW.md + loop/README.md: документировать единый Transition Engine контракт.
+  rg import-audit: не осталось прямых вызовов promote_decompose_phase_if_ready / arm_active_context_from_decompose за пределами shim.
+  Architecture memory-bank: обновить architecture shard transition engine.
+
+context:
+  consumes:
+    - loop/epic_transition.py                    # финальная реализация (s01-s11)
+    - loop/context_loop.py                       # shim: promote_decompose_phase_if_ready
+    - .claude/hooks/epic/core.py                 # shim: arm_active_context_from_decompose, arm_pre_implement_context
+    - loop/WORKFLOW.md                           # текущая документация
+    - loop/README.md                             # README loop
+    - memory-bank/architecture/                  # architecture shard (если существует)
+    - loop/tests/                                # все тесты — final regression
+  produces:
+    - loop/context_loop.py                       # promote_decompose_phase_if_ready: shim body deleted (или NotImplementedError redirect)
+    - .claude/hooks/epic/core.py                 # arm_active_context_from_decompose + arm_pre_implement_context: shim body deleted
+    - loop/WORKFLOW.md                           # обновлён: Transition Engine contract section
+    - loop/README.md                             # обновлён: entry points → epic_transition API
+    - memory-bank/back/architecture/             # NEW or UPDATE: epic-transition-engine shard
+  plan_refs:
+    - NFR-1
+    - NFR-2
+    - US-009
+  files:
+    - loop/context_loop.py
+    - .claude/hooks/epic/core.py
+    - loop/WORKFLOW.md
+    - loop/README.md
+    - memory-bank/back/architecture/epic-transition-engine.md
+
+as_built:
+  - loop/context_loop.py:promote_decompose_phase_if_ready — shim с _legacy_warn + delegate (s03); тело там
+  - .claude/hooks/epic/core.py:arm_active_context_from_decompose — shim + delegate (s02); тело там
+  - .claude/hooks/epic/core.py:arm_pre_implement_context — shim + delegate (s02)
+  - loop/WORKFLOW.md — старая документация без Transition Engine
+  - нет architecture shard epic-transition-engine
+
+delta:
+  - 'loop/context_loop.py:promote_decompose_phase_if_ready — тело заменяется: `raise DeprecationWarning("removed: use epic_transition.promote_if_ready")` (или полное удаление + только rg audit)'
+  - '.claude/hooks/epic/core.py:arm_active_context_from_decompose — shim body → raise / redirect only; docstring updated "deprecated: use arm_phase"'
+  - '.claude/hooks/epic/core.py:arm_pre_implement_context — то же'
+  - 'loop/WORKFLOW.md: §Transition Engine добавлен: resolve_next → arm_phase → promote_if_ready flowchart; entry points table; phase_registry.yaml reference'
+  - 'loop/README.md: §Architecture: epic_transition.py как единый API; legacy функции помечены deprecated'
+  - 'memory-bank/back/architecture/epic-transition-engine.md: NEW shard — mermaid: service interaction + data-flow (resolve_next → arm_phase → promote_if_ready → gates); phase registry table; entrypoint migration map'
+  - 'rg audit: rg "promote_decompose_phase_if_ready|arm_active_context_from_decompose" loop/ .claude/ — только shim definitions и tests; нет callers вне shim'
+
+deletes:
+  - 'loop/context_loop.py:promote_decompose_phase_if_ready: standalone implementation body (keep function signature as deprecated stub or remove entirely after alias-period)'
+  - '.claude/hooks/epic/core.py:arm_active_context_from_decompose: standalone implementation body'
+  - '.claude/hooks/epic/core.py:arm_pre_implement_context: standalone implementation body'
+  - 'loop/roadmap_queue.py:_arm_analyze_context (public): удалить или переименовать в _private (если T-HUB-029 содержит этот import)'
+
+out_of_scope:
+  - "Удаление T-HUB-024 in-flight эпиков (HALT forbidden на полумиграции)"
+  - "Product rollout документация вне dev-hub"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/diagnosing-bugs/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      rg "promote_decompose_phase_if_ready" loop/ .claude/ — только shim + tests; ноль production callers
+    verify: "rg 'promote_decompose_phase_if_ready' /home/aero/PyProject/dev-hub/loop/ /home/aero/PyProject/dev-hub/.claude/ | grep -v 'test_\\|shim\\|#\\|deprecated'"
+  - id: cp2
+    criterion: >
+      loop/WORKFLOW.md содержит секцию Transition Engine
+    verify: "rg 'Transition Engine' /home/aero/PyProject/dev-hub/loop/WORKFLOW.md"
+  - id: cp3
+    criterion: >
+      memory-bank/back/architecture/epic-transition-engine.md существует + содержит mermaid block
+    verify: "rg 'flowchart\\|graph\\|sequenceDiagram' /home/aero/PyProject/dev-hub/memory-bank/back/architecture/epic-transition-engine.md"
+  - id: cp4
+    criterion: >
+      Финальная регрессия: весь loop/tests/ зелёный
+    verify: "timeout 600s .venv/bin/pytest loop/tests/ -q --tb=line"
+
+verify:
+  - "timeout 600s .venv/bin/pytest loop/tests/ -q --tb=line"
+
+tdd:
+  - "rg import-audit: no production callers of deprecated funcs"
+  - "WORKFLOW.md §Transition Engine present"
+  - "architecture shard mermaid block exists"
+  - "Final regression: loop/tests/ full suite green"

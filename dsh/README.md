@@ -152,7 +152,7 @@ For a periodic development sync, keep the job scoped to the checkout and log out
 */15 * * * * cd /home/aero/PyProject/dev-hub && DSH_HOME=$HOME/.dsh ./bin/hub-board sync >>$HOME/.cache/hub-board-sync.log 2>&1
 ```
 
-The live default uses the DSH Host API at `DSH_TASK_BOARD_HOST_URL` (or `DSH_WEB_URL`, then `http://127.0.0.1:5173`). Use `--host-url URL` when a one-off sync needs an explicit Host endpoint; the offline ledger option should not be used as a substitute for the live Host in production automation.
+The live default uses the DSH Host API at `DSH_TASK_BOARD_HOST_URL` (or `DSH_WEB_URL`, then `$DSH_HOME/web-host-url`, then `http://127.0.0.1:3080`). Use `--host-url URL` when a one-off sync needs an explicit Host endpoint; the offline ledger option should not be used as a substitute for the live Host in production automation.
 
 ## Board Arm/Loop (T-HUB-015)
 
@@ -189,7 +189,7 @@ Use the workspace dropdown to select a `workspace_id`, or choose `All` to show c
 
 | Symptom | Resolution |
 |---|---|
-| `Connection refused` on sync | DSH Web is not running, or `hub-board` targets the wrong port. Start `DEV_HUB=/path/to/dev-hub dsh web --no-open` and export `DSH_WEB_URL` / `DSH_TASK_BOARD_HOST_URL` to the printed URL (often not 5173). |
+| `Connection refused` on sync | DSH Web is not running, or `hub-board` targets the wrong port. Start `DEV_HUB=/path/to/dev-hub dsh web --no-open` and export `DSH_WEB_URL` / `DSH_TASK_BOARD_HOST_URL` to the printed URL, or write it to `$DSH_HOME/web-host-url`. |
 | `forbidden` on sync | Task-board API requires loopback browser markers; use a current `hub-board` build or sync from the task-board **Sync workspace** button after mb-bridge is installed. |
 | `flock` / `another loop runner is already active` | Only one loop may run for a product root. Wait for the existing run to finish, then retry; do not bypass the lock. |
 | `step_mismatch` | The arm response does not match the card `step_id`. Refresh with `Sync`, verify the card metadata and active step, then arm again. |

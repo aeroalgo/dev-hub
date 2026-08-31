@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: "VAN checklist bullet + techContext onboarding doc"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `.cursor/rules/shared/workflow-van-brownfield.mdc` один checklist-пункт:
+  «L2+ epic: подтверди `memory-bank/constitution.md` или запусти seed-constitution» —
+  без нарушения существующей структуры. Дополнить `memory-bank/techContext.md` параграфом
+  про onboarding команду seed-constitution. Закрывает FR-007, FR-008, FR-010; AC+5, AC+6;
+  AC−3 (только L2+), AC−4 (warn only).
+
+context:
+  consumes:
+    - ".cursor/rules/shared/workflow-van-brownfield.mdc"    # добавляем bullet в checklist L2+
+    - ".cursor/rules/shared/workflow-analyze-core.mdc"     # уточняющая заметка pass 6
+    - "memory-bank/techContext.md"                          # добавляем параграф bootstrap
+  produces:
+    - ".cursor/rules/shared/workflow-van-brownfield.mdc"   # edit
+    - ".cursor/rules/shared/workflow-analyze-core.mdc"     # edit (minor note)
+    - "memory-bank/techContext.md"                          # edit — seed-constitution onboarding
+  plan_refs:
+    - FR-007
+    - FR-008
+    - FR-010
+    - AC+5
+    - AC+6
+    - AC-3
+    - AC-4
+    - US-003
+  files:
+    - ".cursor/rules/shared/workflow-van-brownfield.mdc"
+    - ".cursor/rules/shared/workflow-analyze-core.mdc"
+    - "memory-bank/techContext.md"
+
+as_built:
+  - ".cursor/rules/shared/workflow-van-brownfield.mdc"  # 89+ строк; Next bullet at line ~89
+  - ".cursor/rules/shared/workflow-analyze-core.mdc"    # line 20: Constitution pass spec «только если существует»
+  - "memory-bank/techContext.md"                         # нет упоминания seed-constitution
+
+delta:
+  - ".cursor/rules/shared/workflow-van-brownfield.mdc"
+    # add: в checklist секцию L2+ один bullet «Подтверди / запусти seed-constitution»
+    # место: блок Next (line ~89) или в предстартовом checklist L2+
+  - ".cursor/rules/shared/workflow-analyze-core.mdc"
+    # add: inline note в pass 6 («если файл создан seed-constitution — pass работает автоматически»)
+  - "memory-bank/techContext.md"
+    # add: §Product constitution bootstrap: python3 .claude/hooks/epic_resolve.py seed-constitution --cwd <path>
+
+deletes: []  # docs only — никаких замен символов/файлов
+
+out_of_scope:
+  - "Изменение алгоритма VAN pass beyond bullet: только один checklist-пункт"
+  - "ANALYZE authority logic: уже spec; только примечание"
+
+skills:
+  code_surface: infra
+  impl: []  # docs-only step — Core skills НЕ требуются
+
+checkpoints:
+  - id: cp1
+    criterion: "VAN workflow содержит новый checklist-пункт со словами 'seed-constitution' и 'L2+'"
+    verify: "rg -n 'seed-constitution' .cursor/rules/shared/workflow-van-brownfield.mdc"
+  - id: cp2
+    criterion: "techContext.md содержит команду seed-constitution с флагами --cwd"
+    verify: "rg -n 'seed-constitution' memory-bank/techContext.md"
+  - id: cp3
+    criterion: "workflow-analyze-core.mdc pass 6 содержит уточняющую заметку про seed"
+    verify: "rg -n 'seed' .cursor/rules/shared/workflow-analyze-core.mdc"
+
+verify:
+  - "rg 'seed-constitution' .cursor/rules/shared/workflow-van-brownfield.mdc .cursor/rules/shared/workflow-analyze-core.mdc memory-bank/techContext.md"
+
+tdd: []  # docs-only

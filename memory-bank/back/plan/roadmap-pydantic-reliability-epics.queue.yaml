@@ -2,12 +2,7 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-pydantic-reliability-epics.md
 queue:
-  - id: T-HUB-021
-    plan: plan-T-HUB-021-pydantic-ai-output-cap.md
-    deps: []
-  - id: T-HUB-022
-    plan: plan-T-HUB-022-runtime-pydantic-schemas.md
-    deps: []
   - id: T-HUB-023
     plan: plan-T-HUB-023-hooks-llm-fallbacks.md
-    deps: [T-HUB-021]
+    deps: [T-HUB-033]
+    note: "canon queue after T-HUB-033 — см. roadmap-epics.queue.yaml"

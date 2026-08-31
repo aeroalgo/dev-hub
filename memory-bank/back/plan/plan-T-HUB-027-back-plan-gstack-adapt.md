@@ -31,7 +31,9 @@
 | Multi-epic | **Out** — один эпик; FRONT plan mirror — follow-up если нужен |
 | CREATIVE | нет |
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет**
 
 ---
 
@@ -308,23 +310,15 @@ Developer -> BACK PLAN -> plan.md (WHAT+spine+qa_consumes)
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## До DECOMPOSE
 
-| Step | Slug | Delta |
-|------|------|-------|
-| s01 | clarify-product-probe | workflow-clarify-core + clarify.md template |
-| s02 | plan-template-spine | plan.md Eng spine + Product probe + anchors |
-| s03 | plan-template-qa-readiness | plan.md QA consumes + Review readiness + batch log |
-| s04 | workflow-plan-batch | workflow-plan.mdc + lean/plan.mdc gates |
-| s05 | workflow-qa-consumes | workflow-qa + lean/qa + finish-doc-router |
-| s06 | refs-role-command | gstack-adapt-027.md + role-command FINISH |
-| s07 | epic-qa-dry-run | qa yaml dry-run + AC+ rg matrix |
+→ [decompose-T-HUB-027-back-plan-gstack-adapt/index.yaml](decompose-T-HUB-027-back-plan-gstack-adapt/index.yaml) — **единственный трекер** (s01–s08). Детали шагов — только в `sNN-*.yaml`.
 
 CREATIVE: нет  
-**Next mode:** → BACK DECOMPOSE
+**Next mode:** → BACK IMPLEMENT s01
 
 ---
 
 ## Следующий режим
 
-→ **BACK DECOMPOSE** T-HUB-027
+→ **BACK IMPLEMENT** [decompose-T-HUB-027-back-plan-gstack-adapt/s01-clarify-product-probe.yaml](decompose-T-HUB-027-back-plan-gstack-adapt/s01-clarify-product-probe.yaml)

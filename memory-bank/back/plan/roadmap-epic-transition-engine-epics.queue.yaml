@@ -1,0 +1,7 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-epic-transition-engine-epics.md
+queue:
+  - id: T-HUB-029
+    plan: plan-T-HUB-029-epic-phase-transition-engine.md
+    deps: [T-HUB-008]

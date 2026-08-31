@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: reconcile-spec CLI — default active sweep + --plan-id + --strict
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зарегистрировать subcommand `reconcile-spec` в `epic_resolve.py` и подключить
+  `run_reconcile_spec` из s01. Оператор вызывает без аргументов после hotfix
+  (default: sweep tasks.md active) или с `--plan-id` для отладки; `--strict`
+  вернёт exit 1 при HIGH+ findings. JSON output совместим с reconcile-report/v1.
+  (AC+3; FR-003, FR-003a, FR-012; US-002).
+
+context:
+  consumes:
+    - ".claude/hooks/epic_resolve.py — существующий CLI с sub.add_parser pattern"
+    - ".claude/hooks/epic/reconcile.py — run_reconcile_spec (s01)"
+    - "plan-T-HUB-026 §FR-003 (CLI contract)"
+    - "plan-T-HUB-026 §FR-012 (exit codes)"
+  produces:
+    - ".claude/hooks/epic_resolve.py — reconcile-spec subparser + handler полностью подключён"
+  plan_refs:
+    - "FR-003 (CLI args: --cwd, --plan-id, --format, --strict)"
+    - "FR-003a (active SoT = tasks.md)"
+    - "FR-012 (exit 0/1/2)"
+    - "AC+ #3"
+  files:
+    - ".claude/hooks/epic_resolve.py"
+
+as_built:
+  - "epic_resolve.py — reconcile-spec stub уже зарегистрирован (import + add_parser + handler, строки 49,160-175,438)"
+  - "Stub вызывает run_reconcile_spec, но run_reconcile_spec в s01 будет дополнена — проверить совместимость подписи"
+
+delta:
+  - "epic_resolve.py VERIFY/FIX reconcile-spec handler: --cwd required, --plan-id optional, --format default 'json', --strict flag"
+  - "epic_resolve.py FIX handler: print(json.dumps(payload)) + sys.exit(payload['exit_code'])"
+  - "epic_resolve.py VERIFY import path: from epic.reconcile import run_reconcile_spec — убедиться что путь соответствует s01 local"
+
+deletes: []
+
+out_of_scope:
+  - "reconcile.py движок — s01"
+  - "workflow-reconcile.mdc — s03"
+  - "template/plan.md Appetite — s04"
+  - "pytest — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "reconcile-spec subparser зарегистрирован с --cwd/--plan-id/--format/--strict"
+    verify: "rg 'reconcile.spec' .claude/hooks/epic_resolve.py"
+  - id: cp2
+    criterion: "CLI exit codes: exit(0) без findings, exit(1) --strict + HIGH, exit(2) unknown plan-id"
+    verify: "rg 'exit_code' .claude/hooks/epic_resolve.py | head -5"
+  - id: cp3
+    criterion: "handler вызывает run_reconcile_spec и использует payload exit_code"
+    verify: "rg 'run_reconcile_spec' .claude/hooks/epic_resolve.py"
+
+verify: []
+
+tdd:
+  - "test_cli_reconcile_spec_json (уже в test_reconcile_spec.py — проверить что проходит с s01)"
+  - "test_cli_reconcile_spec_strict_exit1_on_high"
+  - "test_cli_reconcile_spec_unknown_plan_exit2"

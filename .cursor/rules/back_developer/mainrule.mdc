@@ -12,9 +12,10 @@ alwaysApply: false
 | Режим | Процесс |
 |-------|---------|
 | `BACK VAN` | @.cursor/rules/back_developer/workflow-van.mdc |
-| `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc |
-| `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc — **orchestrator:** Phase 0 auto-clarify + Phase 1 plan |
+| `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone (не обязателен перед PLAN) |
 | `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
+| `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift check plan vs repo after hotfix |
 | `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |

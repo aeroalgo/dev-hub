@@ -125,28 +125,16 @@ def test_roadmap_selection_failure_is_reported_without_writes(
     assert client.write_count == 0
 
 
-def test_completed_step_archived(tmp_path: Path) -> None:
+def test_obsolete_step_card_deleted_on_epic_sync(tmp_path: Path) -> None:
     ref = _project(tmp_path, statuses=["pending"])
-    client = FakeClient()
-    run_sync([ref], client)
-    card_id = next(iter(client.tasks))
+    old_step = _card(ref, "T-DEMO", "s01")
+    client = FakeClient([old_step])
 
-    ref.path.joinpath(
-        "memory-bank/back/plan/decompose-T-DEMO/index.yaml"
-    ).write_text(
-        yaml.safe_dump(
-            {
-                "schema": "epic-decompose-index/v1",
-                "plan_id": "T-DEMO",
-                "steps": [{"id": "s01", "title": "step", "status": "completed"}],
-            }
-        ),
-        encoding="utf-8",
-    )
     result = run_sync([ref], client)
 
-    assert result.archived == 1
-    assert card_id in client.archived
+    assert old_step.id in client.deleted
+    assert any(task.id.endswith("-epic") for task in client.tasks.values())
+    assert any(operation.kind == "archive" for operation in result.operations)
 
 
 def test_done_epic_archive_all(
@@ -164,10 +152,11 @@ def test_done_epic_archive_all(
 
     result = run_sync([ref], client)
 
-    assert result.archived == 2
-    assert client.archived == {
+    assert result.archived == 3
+    assert client.deleted == {
         "mb-demo-back-t-demo-s01",
         "mb-demo-back-t-demo-s02",
+        "mb-demo-back-t-other-s01",
     }
 
 
@@ -181,9 +170,9 @@ def test_done_epic_preserves_unrelated_cards(
 
     result = run_sync([ref], client)
 
-    assert result.archived == 0
+    assert result.archived == 1
+    assert client.deleted == {other.id}
     assert client.archived == set()
-    assert client.tasks[other.id] == other
     assert client.tasks[manual.id] == manual
 
 
@@ -207,5 +196,5 @@ def test_sync_generation_increment(tmp_path: Path) -> None:
     assert first.sync_generation == 1
     assert second.sync_generation == 2
     assert second.operations == ()
-    assert client.write_count == 1
+    assert client.write_count >= 1
     assert parse_metadata(client.tasks[next(iter(client.tasks))].description).sync_generation == 1

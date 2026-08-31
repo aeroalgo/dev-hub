@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .card_model import CardKind, parse_metadata
-from .client import TaskBoardClient
+from .client import BoardClientError, TaskBoardClient, retire_board_task
 from .diff import BoardOp, archive_all_task_ids, compute_ops
 from .scan_epics import scan_epics
 from .scan_gates import scan_gates
@@ -84,8 +84,8 @@ def run_sync(
             BoardOp("archive", task_id=task_id)
             for task_id in sorted(archive_all_ids - known_archive_ids)
         )
-    from .client import BoardClientError
     sync_errors: list[str] = list(steps.errors) + list(epics.errors) + list(gates.errors)
+    existing_by_id = {task.id: task for task in existing if task.id.startswith("mb-")}
     if not dry_run:
         for operation in operations:
             if operation.kind in {"create", "update"} and operation.card is not None:
@@ -98,7 +98,18 @@ def run_sync(
                             f"move failed for {operation.card.id}: {exc}"
                         )
             elif operation.kind == "archive" and operation.task_id is not None:
-                board_client.archive(operation.task_id)
+                task = existing_by_id.get(operation.task_id)
+                status = task.status if task is not None else "todo"
+                try:
+                    retire_board_task(
+                        board_client,
+                        operation.task_id,
+                        status=status,
+                    )
+                except BoardClientError as exc:
+                    sync_errors.append(
+                        f"retire failed for {operation.task_id}: {exc}"
+                    )
     return SyncResult(
         sync_generation=generation,
         operations=tuple(operations),

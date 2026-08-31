@@ -99,14 +99,14 @@ alwaysApply: false
 | Verdict | Условие | Действие |
 |---------|---------|----------|
 | `go` | Ответы убедительны, соответствует productContext | Продолжить в intent-routing (§1b → pipeline) |
-| `needs-clarification` | Неполные ответы, непонятен scope | Сохранить scorecard и evidence, выписать blocking questions с marker `[НУЖНО УТОЧНИТЬ: CRITICAL …]`, назначить `Revisit stage: CLARIFY`, затем спросить пользователя |
+| `needs-clarification` | Неполные ответы, непонятен scope | Сохранить scorecard и evidence, выписать blocking questions с marker `[НУЖНО УТОЧНИТЬ: CRITICAL …]`, назначить `Revisit stage: CLARIFY` (или `* PLAN` — Phase 0 auto), затем спросить пользователя |
 | `kill` | Нет проблемы или слабее альтернатив | Записать `Kill rationale`, установить `Pipeline status: done/killed`, пометить в tasks.md `killed: <rationale>` и завершить pipeline |
 
 **go — обязательный handoff summary перед routing:** до назначения или запуска следующей role command зафиксировать в Handoff-on-go все пять полей: `Problem`, `Approach`, `In / Out`, `Metrics`, `Open questions`. Каждое поле должно содержать значение; пустое поле означает, что go gate не пройден и routing запрещён. `In / Out` должен явно описывать входящий scope (`In`) и исключённый scope (`Out`).
 
 **kill — terminal stop связан с Decision:** при `kill` заполнить в `## Decision` `Kill rationale`, `Pipeline status: done/killed` и `Next after kill: terminal`; Handoff-on-go и следующие role commands не назначать. Это успешный terminal outcome, а не незавершённый handoff.
 
-**needs-clarification — evidence-preserving outcome:** не заменять исходные ответы или scorecard общим сообщением о возврате в CLARIFY. Сохранить уже собранные значения и явно перечислить каждое отсутствующее или неоднозначное решение в `Blocking questions`; для каждого blocking item использовать marker `[НУЖНО УТОЧНИТЬ: CRITICAL <кратко что>]`. Обязательно зафиксировать `Revisit stage: CLARIFY` (или конкретную следующую роль-команду после CLARIFY), чтобы было понятно, где возобновить pipeline после ответа пользователя.
+**needs-clarification — evidence-preserving outcome:** не заменять исходные ответы или scorecard общим сообщением о возврате в CLARIFY. Сохранить уже собранные значения и явно перечислить каждое отсутствующее или неоднозначное решение в `Blocking questions`; для каждого blocking item использовать marker `[НУЖНО УТОЧНИТЬ: CRITICAL <кратко что>]`. Обязательно зафиксировать `Revisit stage: CLARIFY` или `* PLAN <slug>` (orchestration Phase 0; см. @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc), чтобы было понятно, где возобновить pipeline после ответа пользователя.
 
 **Kill — успешный terminal outcome:** явный kill экономит все последующие фазы. В `## Decision` шаблона обязательно зафиксировать `Pipeline status: done/killed` и `Next after kill: terminal`; после этого не назначать и не запускать `PLAN` или `IMPLEMENT`. Документированный kill не является failure и не удаляется.
 

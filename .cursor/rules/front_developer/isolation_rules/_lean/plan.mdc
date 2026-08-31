@@ -5,11 +5,13 @@ alwaysApply: false
 # FRONT PLAN — gates
 
 **Артефакт:** `memory-bank/front/plan/plan-<task_id>.md`  
+**Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× plan; PLAN **сам** делает `roadmap-merge --role front` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0
 
 ## Gates
 
+0. Phase 0 orchestration при триггерах (см. shared orchestration)
 1. `tasks.md` + level
 2. План в path выше; при research — roadmap.md + `.queue.yaml` + полный plan на каждый эпик
 3. UI → design direction (palette, type, layout, signature) — per epic

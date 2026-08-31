@@ -52,3 +52,24 @@ python3 .claude/hooks/epic_resolve.py sync-index-yaml \
 
 `repair-index-mirror` пересобирает queue-таблицу md из yaml (не трогает yaml).  
 `sync-index-yaml` по умолчанию **сохраняет** status из yaml; `--from-md-status` — bootstrap из md (только bootstrap).
+
+## Traceability fields
+
+Поля трассируемости шагов (`epic-decompose/v1` и `epic-implement/v1`):
+
+- **`plan_refs`** (`list[str]`, required на decompose-shards): ссылки на требования/пункты плана (например `"plan-T-HUB-024 FR-011"`). Каждое requirement ID из плана должно покрываться хотя бы одним `plan_refs` или `out_of_scope`.
+- **`out_of_scope`** (`list[str]`, optional): документирует намеренный пропуск требования или вынос функционала за рамки конкретного шага/эпика.
+- **`evidence.files`** (`list[str]` в implement-шарде): список созданных или изменённых файлов реализации.
+- **`evidence.tests`** (`list[str]` в implement-шарде): список файлов тестов, подтверждающих корректность работы.
+- **`status`** (`completed`): статус завершения шага в implement-шарде. Статус `completed` требует наличие непустого `evidence.files` (или явного `n/a`) и непустого `evidence.tests`.
+
+### Валидация трассируемости (`validate-traceability`)
+
+Таблица проверяемых полей и правила CLI `epic_resolve validate-traceability`:
+
+| Поле | Тип | Проверяемое условие / Ошибка | Severity |
+|------|-----|------------------------------|----------|
+| `plan_refs` / `out_of_scope` | `list[str]` | Requirement из плана (FR-*, SC-*, US-*) не входит ни в один `plan_refs` / `out_of_scope` shard | CRITICAL |
+| `plan_refs` & `out_of_scope` | `list[str]` | Shard содержит пустые `plan_refs` и `out_of_scope` | HIGH / CRITICAL (--strict) |
+| `evidence.tests` | `list[str]` | Implement shard имеет `status: completed`, но `tests` пуст | HIGH / CRITICAL (--strict) |
+| `@pytest.mark.ac` | string marker | Требование из плана не имеет тестов с маркером `@pytest.mark.ac("...")` | MEDIUM / HIGH (--strict) |

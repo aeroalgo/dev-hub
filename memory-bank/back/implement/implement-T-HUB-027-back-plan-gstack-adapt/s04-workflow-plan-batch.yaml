@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: s04 — PLAN workflow — step 2p Plan review batch + lean gates + FINISH readiness
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-027-back-plan-gstack-adapt/s04-workflow-plan-batch.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Встроен step 2p Plan review batch в workflow-plan.mdc
+- Добавлены gates 8-10 (eng spine, qa_consumes, review readiness) в lean/plan.mdc
+- Добавлен FINISH gate 7d Review readiness в workflow-plan.mdc
+files:
+- .cursor/rules/back_developer/workflow-plan.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py loop/tests/test_roadmap_queue.py`'
+integration_check:
+- rg '2p|Plan review batch' .cursor/rules/back_developer/workflow-plan.mdc
+- rg 'Review readiness' .cursor/rules/back_developer/workflow-plan.mdc
+- rg 'gate 8|gate 9|gate 10|Eng review spine|qa_consumes|Review readiness' .cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: workflow-plan.mdc содержит step 2p Plan review batch
+  status: done
+  done_at: '2026-08-31T08:49:57Z'
+- id: cp2
+  criterion: workflow-plan.mdc FINISH gate на Review readiness
+  status: done
+  done_at: '2026-08-31T08:49:58Z'
+- id: cp3
+  criterion: lean/plan.mdc gates 8–10 eng spine + qa_consumes + readiness
+  status: done
+  done_at: '2026-08-31T08:49:59Z'
+- id: cp4
+  criterion: 'AC− #5: batch table, не mandatory AskUserQuestion one-by-one'
+  status: done
+  done_at: '2026-08-31T08:50:00Z'
+resume_from: cp1

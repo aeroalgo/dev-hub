@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: Appetite section in plan.md template + optional decompose index mirror keys
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить раздел `## Appetite` в `.cursor/templates/plan.md` с полями timebox_days,
+  max_steps, cut_list[], circuit_breaker. Добавить optional top-level `appetite:`
+  block в `.cursor/templates/decompose/index.yaml` (non-breaking). Эти поля
+  документируют scope circuit breaker для PM/TL без автоматического enforcement
+  в v1. (AC+5; FR-008; US-004; SC-004).
+
+context:
+  consumes:
+    - ".cursor/templates/plan.md — текущий шаблон без Appetite"
+    - ".cursor/templates/decompose/index.yaml — текущий шаблон index"
+    - "plan-T-HUB-026 §FR-008 + §Appetite template (канон)"
+  produces:
+    - ".cursor/templates/plan.md — добавлен ## Appetite block"
+    - ".cursor/templates/decompose/index.yaml — добавлен optional appetite: block (commented)"
+  plan_refs:
+    - "FR-008 (Appetite fields: timebox_days, max_steps, cut_list, circuit_breaker)"
+    - "AC+ #5 (plan.md Appetite section added)"
+    - "SC-004 (plan template has Appetite section)"
+    - "AC− #3 (не auto-cut в v1 — advisory only)"
+    - "Assumptions: Appetite fields not enforced by loop in v1"
+  files:
+    - ".cursor/templates/plan.md"
+    - ".cursor/templates/decompose/index.yaml"
+
+as_built:
+  - ".cursor/templates/plan.md — ## Appetite ОТСУТСТВУЕТ"
+  - ".cursor/templates/decompose/index.yaml — appetite: block ОТСУТСТВУЕТ"
+
+delta:
+  - "plan.md ADD section ## Appetite (после ## До DECOMPOSE) с таблицей: timebox_days | max_steps | circuit_breaker | cut_list — заполнено примером из плана + комментарий 'advisory in v1'"
+  - "decompose/index.yaml ADD commented optional block: # appetite: (timebox_days, max_steps, cut_list, circuit_breaker) — non-breaking; только для зеркала plan.md"
+
+deletes: []
+
+out_of_scope:
+  - "Автоматический enforcement appetite в loop — v2"
+  - "reconcile check appetite — не в v1"
+  - "workflow/CLI — s01–s03"
+  - "pytest — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/writing-plans/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "plan.md содержит ## Appetite раздел с полем timebox_days"
+    verify: "rg 'timebox_days' .cursor/templates/plan.md"
+  - id: cp2
+    criterion: "plan.md Appetite содержит cut_list и circuit_breaker"
+    verify: "rg 'cut_list' .cursor/templates/plan.md && rg 'circuit_breaker' .cursor/templates/plan.md"
+  - id: cp3
+    criterion: "decompose/index.yaml содержит appetite block (commented)"
+    verify: "rg 'appetite' .cursor/templates/decompose/index.yaml"
+
+verify: []
+
+tdd:
+  - "test_plan_template_has_appetite_section (grep/file check) — SC-004"
+  - "test_decompose_index_template_appetite_optional (rg; не обязательный)"

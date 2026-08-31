@@ -24,6 +24,7 @@ def append_trace(
     session_id: str = "",
     step_id: str = "",
     epic_id: str = "",
+    episode_id: str = "",
     action: str = "",
     detail: dict[str, Any] | None = None,
     decide: str | None = None,
@@ -54,6 +55,8 @@ def append_trace(
         "detail": detail or {},
         "decide": decide,
     }
+    if episode_id:
+        entry["episode_id"] = episode_id
 
     line = json.dumps(entry, ensure_ascii=False)
     with trace_file.open("a", encoding="utf-8") as f:

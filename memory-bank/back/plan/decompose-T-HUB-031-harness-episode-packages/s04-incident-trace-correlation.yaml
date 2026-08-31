@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-031-harness-episode-packages
+title: episode_id propagation — trace entries + incident metadata correlation
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить `episode_id` в каждую запись `session-trace.jsonl` (`append_trace` + SCHEMA_LOOP_SESSION_TRACE)
+  и в `metadata` каждого `IncidentRecord` открытого в рамках сессии.
+  Outcome: auditor может связать incident ↔ episode ↔ trace — FR-005, FR-006, AC-3, US-002.
+
+context:
+  consumes:
+    - loop/incidents/trace.py  # append_trace signature
+    - loop/incidents/store.py  # open_incident / update metadata
+    - loop/incidents/schema.py  # IncidentRecord.metadata dict
+    - loop/context_loop.py  # s02: episode_id в state после prepare_session
+  produces:
+    - loop/incidents/trace.py  # edited: episode_id parameter
+    - loop/context_loop.py  # edited: pass episode_id to append_trace + incident open
+  plan_refs:
+    - FR-005
+    - FR-006
+    - AC-3
+    - US-002
+    - SC-003
+  files:
+    - loop/incidents/trace.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/incidents/trace.py:append_trace — принимает phase, session_id, step_id, epic_id, action, detail, decide, ts; пишет в session-trace.jsonl"
+  - "loop/incidents/schema.py:IncidentRecord.metadata — dict[str,Any], already flexible"
+  - "loop/incidents/store.py:open_incident — принимает IncidentRecord напрямую; metadata обновляется через upsert_incident"
+  - "context_loop.py:_append_event — вспомогательная wrapper над append_trace"
+
+delta:
+  - "EDIT loop/incidents/trace.py:append_trace — добавить параметр episode_id:str='', включить в entry dict при non-empty"
+  - "EDIT loop/context_loop.py:_append_event — forward episode_id из state st.get('episode_id','')"
+  - "EDIT loop/context_loop.py: в местах open_incident/upsert_incident — добавить episode_id в metadata при наличии в state"
+  - "Backward-compat: episode_id='' не обязателен — старые callers без изменения (keyword-only default)"
+  - "SCHEMA_LOOP_SESSION_TRACE не меняем — episode_id = optional extra field (extra='allow' или просто dict entry)"
+
+deletes: []
+
+out_of_scope:
+  - "EpisodeManifest.incident_ids[] заполнение — реализуется в finalize_episode через query incidents store (s04 расширение или s06) — Deferred: s06 tests cover"
+  - "event_seq_range в manifest — можно добавить в finalize в s03/s04; Deferred к s03 финализации если event schema есть"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md  # signature change append_trace
+
+checkpoints:
+  - id: cp1
+    criterion: "append_trace с episode_id='ep-001' пишет episode_id в JSONL entry"
+    verify: ".venv/bin/pytest loop/tests/test_episode_correlation.py::test_trace_entry_has_episode_id -q"
+  - id: cp2
+    criterion: "append_trace без episode_id (default='') не добавляет поле (backward compat)"
+    verify: ".venv/bin/pytest loop/tests/test_episode_correlation.py::test_trace_entry_no_episode_id_backward_compat -q"
+  - id: cp3
+    criterion: "open_incident в рамках сессии с episode_id в state → incident.metadata['episode_id'] == episode_id"
+    verify: ".venv/bin/pytest loop/tests/test_episode_correlation.py::test_incident_has_episode_id -q"
+
+verify:
+  - "rg 'episode_id' loop/incidents/trace.py"
+  - "rg 'episode_id' loop/context_loop.py | head"
+
+tdd:
+  - "test_trace_entry_has_episode_id — вызвать append_trace(episode_id='ep-1'), распарсить JSONL, проверить поле"
+  - "test_trace_entry_no_episode_id_backward_compat — append_trace без episode_id, entry не содержит ключ"
+  - "test_incident_has_episode_id — open_incident, проверить metadata['episode_id']"
+  - "test_append_event_forwards_episode_id — mock state с episode_id, вызвать _append_event, проверить trace"

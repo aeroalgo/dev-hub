@@ -1,0 +1,72 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-029-epic-phase-transition-engine
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 6
+  max_steps: 12
+  circuit_breaker: Стоп если >12 шагов или тест-suite красный >2 итераций
+  cut_list:
+  - verify-audit optional agent (s07 defer)
+  - CREATIVE per-step registry row (NICE)
+steps:
+- id: s01
+  file: s01-epic-transition-skeleton.yaml
+  title: epic_transition.py skeleton + resolve_next delegate + tests
+  next_phase: BACK IMPLEMENT
+  status: done
+- id: s02
+  file: s02-arm-phase-unify-handoffs.yaml
+  title: arm_phase unify analyze/decompose/pre-implement handoffs
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-promote-if-ready-analyze-gate.yaml
+  title: promote_if_ready replace decompose promote; ANALYZE gate enforce
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-resolver-stale-analyze-sync-skip.yaml
+  title: resolver stale-analyze guard + sync_cursor registry-skip IMPLEMENT
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-wire-arm-epic-roadmap-finalize.yaml
+  title: wire arm_epic + roadmap_queue + finalize_step → promote_if_ready post-queue
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-phase-registry-yaml-loader.yaml
+  title: phase_registry.yaml + load_phase_registry() + gates_from_phase registry-driven
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-verify-agents-registry-aliases.yaml
+  title: verify agents registry rows + aliases verify→verify-implement, reviewer→verify-qa
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-stop-gate-registry-driven.yaml
+  title: stop-gate + agent-pretool/subagent-stop registry-driven
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-dsh-presets-epic-gate-mapping.yaml
+  title: DSH presets + epic-gate mapping (T-HUB-008 integration)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s10
+  file: s10-dag-adapter-arm-dag-next.yaml
+  title: DAG adapter _arm_dag_next → Transition Engine
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s11
+  file: s11-front-integ-parity-arm-paths.yaml
+  title: 'FRONT/INTEG parity: arm paths + phase registry roles'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s12
+  file: s12-legacy-sunset-purge-docs.yaml
+  title: legacy sunset purge + docs (WORKFLOW.md, README, architecture)
+  next_phase: BACK IMPLEMENT
+  status: completed

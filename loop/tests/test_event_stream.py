@@ -40,16 +40,44 @@ def test_append_allocates_after_archived_highest_sequence(tmp_path: Path) -> Non
     lib = module_from_spec(spec)
     spec.loader.exec_module(lib)
 
-    for index in range(21):
+    for index in range(45):
         artifact = tmp_path / f"memory-bank/back/qa/event-{index}.yaml"
         artifact.parent.mkdir(parents=True, exist_ok=True)
         artifact.write_text(f"verdict: pass {index}\n", encoding="utf-8")
         assert lib._append_event(tmp_path, "back", "demo", "qa_pass", artifact)
 
     event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
+    live_lines = event_path.read_text(encoding="utf-8").splitlines()
+    assert len(live_lines) == 20
+    archives = list(event_path.parent.glob("archive-*.jsonl"))
+    assert len(archives) == 1
+    assert archives[0].name == "archive-rollover.jsonl"
     result = read_event_log_result(event_path, expected_epic_id="demo", cwd=tmp_path)
-    assert [event["seq"] for event in result.events] == list(range(1, 22))
+    assert [event["seq"] for event in result.events] == list(range(1, 46))
     assert result.archive_count == 1
+
+
+def test_append_does_not_rearchive_history_prefixes(tmp_path: Path) -> None:
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location("epic_lib_event_stream2", ROOT / ".claude/hooks/epic_lib.py")
+    assert spec and spec.loader
+    lib = module_from_spec(spec)
+    spec.loader.exec_module(lib)
+
+    for index in range(25):
+        artifact = tmp_path / f"memory-bank/back/qa/rearch-{index}.yaml"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(f"verdict: pass {index}\n", encoding="utf-8")
+        assert lib._append_event(tmp_path, "back", "demo", "qa_pass", artifact)
+
+    event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
+    archive = event_path.parent / "archive-rollover.jsonl"
+    archived_seqs = [
+        json.loads(line)["seq"] for line in archive.read_text(encoding="utf-8").splitlines()
+    ]
+    assert archived_seqs == list(range(1, 6))
+    assert len(set(archived_seqs)) == len(archived_seqs)
 
 
 def test_archive_reader_sorts_and_reports_sequence_collisions_and_gaps(tmp_path: Path) -> None:

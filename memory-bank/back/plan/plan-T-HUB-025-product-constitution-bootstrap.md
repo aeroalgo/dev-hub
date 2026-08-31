@@ -10,7 +10,7 @@
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns
 
-→ [decompose-T-HUB-025-product-constitution-bootstrap/index.md](decompose-T-HUB-025-product-constitution-bootstrap/index.md) — **после DECOMPOSE**
+→ [decompose-T-HUB-025-product-constitution-bootstrap/index.md](decompose-T-HUB-025-product-constitution-bootstrap/index.md) — **DECOMPOSE done 2026-08-31**
 
 ---
 

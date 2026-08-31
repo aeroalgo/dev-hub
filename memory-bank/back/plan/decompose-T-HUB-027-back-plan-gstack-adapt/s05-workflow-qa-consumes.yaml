@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: BACK QA lean load — plan §QA consumes first; finish-doc-router hint
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  BACK QA при epic QA загружает plan §QA consumes (anchor #qa-consumes) через offset/grep,
+  не full plan monolith. Заменить process-fallback «читать plan целиком при неясном AC»
+  на qa_consumes-first path. finish-doc-router дополняет QA load_now hint.
+  Outcome: QA закрывает epic по test matrix IDs без token bloat (US-003, FR-006, AC+ #4).
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/workflow-qa.mdc — lean load step 2"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/qa.mdc — gate 1 lean load"
+    - ".cursor/rules/shared/finish-doc-router.mdc — QA row load_now"
+    - "plan-T-HUB-027 §Replacement sunset C — QA full-plan fallback"
+    - "s03 — plan.md #qa-consumes anchor"
+  produces:
+    - "workflow-qa.mdc — epic QA load rule для #qa-consumes"
+    - "lean/qa.mdc — gate 1 qa_consumes-first"
+    - "finish-doc-router.mdc — BACK QA load_now hint plan §QA consumes"
+  plan_refs:
+    - "FR-006"
+    - "US-003"
+    - "AC+ #4"
+    - "FR-009 (legacy plans без секций — valid, gate only new plans)"
+    - "Replacement C — delete full-plan-first fallback"
+  files:
+    - ".cursor/rules/back_developer/workflow-qa.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+    - ".cursor/rules/shared/finish-doc-router.mdc"
+
+as_built:
+  - "workflow-qa.mdc — lean load §7 via gates; нет explicit #qa-consumes rule"
+  - "lean/qa.mdc gate 1 — «не полный plan-*.md»; «plan §N только если AC неясен» без qa_consumes-first"
+  - "finish-doc-router.mdc — QA row: qa link; нет qa_consumes anchor hint"
+
+delta:
+  - "workflow-qa.mdc ADD step 2b: epic QA — если plan содержит #qa-consumes, load plan §QA consumes only (offset/grep); full plan §N только если TM row missing"
+  - "workflow-qa.mdc ADD qa yaml field hint: test_matrix_coverage: [TM-001, …] maps to plan Test matrix"
+  - "lean/qa.mdc EDIT gate 1: qa_consumes-first before full plan; legacy plans without section remain valid (FR-009)"
+  - "finish-doc-router.mdc ADD BACK QA hint: load_now may include plan §QA consumes anchor when epic plan L2+"
+  - "lean/qa.mdc REMOVE/replace wording implying default full-plan load without qa_consumes attempt"
+
+deletes:
+  - "lean/qa.mdc — implicit «plan §N при неясном AC» без prior qa_consumes attempt (process fallback C)"
+  - "workflow-qa.mdc — any prose defaulting to full plan load for epic QA when #qa-consumes exists"
+
+out_of_scope:
+  - "pytest fixture dry-run — s07"
+  - "anti-fallback rg purge — s08"
+  - "browser Playwright QA — AC− #3 out_of_scope"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-qa.mdc содержит load rule для #qa-consumes / QA consumes"
+    verify: "rg 'qa-consumes|QA consumes' .cursor/rules/back_developer/workflow-qa.mdc"
+  - id: cp2
+    criterion: "lean/qa.mdc gate 1 — qa_consumes-first documented"
+    verify: "rg 'qa_consumes|qa-consumes|QA consumes' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+  - id: cp3
+    criterion: "finish-doc-router.mdc содержит QA consumes hint"
+    verify: "rg 'qa.consumes|QA consumes' .cursor/rules/shared/finish-doc-router.mdc"
+  - id: cp4
+    criterion: "Старый full-plan-first fallback удалён из lean/qa gate 1 (rg audit)"
+    verify: "rg 'plan §N' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc && rg 'qa_consumes|qa-consumes' .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+
+verify: []
+
+tdd:
+  - "rg_qa_consumes_in_workflow_qa"
+  - "rg_qa_consumes_first_in_lean_qa"
+  - "rg_finish_doc_router_qa_hint"
+  - "import_audit_no_full_plan_default_when_qa_consumes_exists"

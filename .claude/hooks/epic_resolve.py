@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI helpers for agents: validate-step · mark-index-status · sync-index-yaml · flush-checkpoint · status · verify-decompose-creative.
+"""CLI helpers for agents: validate-step · mark-index-status · sync-index-yaml · flush-checkpoint · status · verify-decompose-creative · reconcile-spec.
 
 Loop orchestration = loop/context_loop.py + ./loop/loop.sh (not this file).
 """
@@ -18,10 +18,17 @@ if str(LOOP) not in sys.path:
     sys.path.insert(0, str(LOOP))
 
 from context_loop import status as operational_status  # noqa: E402
+from constitution_seed import seed_constitution  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from epic_index import sync_yaml_from_md  # noqa: E402
-from epic.core import repair_index_mirror  # noqa: E402
+from epic.traceability import (
+    parse_plan_requirements,
+    parse_decompose_refs,
+    parse_implement_evidence,
+    build_report,
+    format_report,
+)
 from epic_lib import (  # noqa: E402
     _decompose_index_path,
     arm_active_context_from_decompose,
@@ -39,6 +46,8 @@ from epic_yaml import (  # noqa: E402
     verify_decompose_creative,
 )
 from _lib import resolve_cli_cwd  # noqa: E402
+from epic.reconcile import run_reconcile_spec
+from epic.convergence import run_convergence_checks, format_text, format_json  # noqa: E402
 
 
 def main() -> int:
@@ -148,6 +157,83 @@ def main() -> int:
     p_arm.add_argument("--epic-id", default=None, help="epic id")
     p_arm.add_argument("--decompose", default=None, help="decompose dir or index")
     p_arm.add_argument("--role", default="back", help="role slug")
+
+    p_reconcile = sub.add_parser(
+        "reconcile-spec",
+        help="read-only drift check: default = all tasks.md active epics; optional --plan-id",
+    )
+    p_reconcile.add_argument(
+        "--plan-id",
+        default=None,
+        help="single epic/plan id (debug); default sweeps tasks.md Status=active",
+    )
+    p_reconcile.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="json",
+        help="output format",
+    )
+    p_reconcile.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit 1 when any HIGH finding",
+    )
+
+    p_conv = sub.add_parser(
+        "analyze-convergence",
+        help="read-only cross-artifact convergence check (traceability + reconcile + stale handoff)",
+    )
+    p_conv.add_argument(
+        "--plan-id",
+        default=None,
+        help="optional single epic plan_id; default sweeps active epics",
+    )
+    p_conv.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="json",
+        help="output format (text or json)",
+    )
+    p_conv.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit 1 when any HIGH or CRITICAL finding",
+    )
+    p_conv.add_argument(
+        "--include-git-diff",
+        action="store_true",
+        help="include git diff cross-checks (stub/reserved)",
+    )
+
+    p_vt = sub.add_parser(
+        "validate-traceability",
+        help="validate epic traceability from plan, decompose, and implement",
+    )
+    p_vt.add_argument(
+        "--epic",
+        dest="epic_id",
+        required=True,
+        help="epic plan_id (e.g. T-HUB-024)",
+    )
+    p_vt.add_argument("--strict", action="store_true", help="elevate HIGH findings to CRITICAL")
+    p_vt.add_argument("--json", action="store_true", help="output JSON format")
+    p_vt.add_argument("--tests-dir", default=None, help="path to tests directory for ac markers scan")
+    p_vt.add_argument("--ac-strict", action="store_true", help="elevate missing ac marker findings to HIGH")
+
+    p_seed_const = sub.add_parser(
+        "seed-constitution",
+        help="seed memory-bank/constitution.md for product repository",
+    )
+    p_seed_const.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite existing memory-bank/constitution.md",
+    )
+    p_seed_const.add_argument(
+        "--product-name",
+        default=None,
+        help="product name override for placeholders",
+    )
 
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
@@ -344,6 +430,16 @@ def main() -> int:
         print(json.dumps(r, ensure_ascii=False, indent=2))
         return 0 if r.get("ok") else 2
 
+    if args.cmd == "seed-constitution":
+        res = seed_constitution(
+            cwd=cwd,
+            force=bool(args.force),
+            product_name=args.product_name,
+            hub_root=ROOT,
+        )
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return 0 if res.get("ok") else 2
+
     if args.cmd == "status":
         print(json.dumps(operational_status(cwd), ensure_ascii=False, indent=2))
         return 0
@@ -358,13 +454,87 @@ def main() -> int:
         if args.epic_id:
             r = arm_epic(cwd, args.epic_id, role=role)
         elif args.decompose:
-            # Legacy path: arm_session / arm_active_context_from_decompose
-            r = arm_active_context_from_decompose(cwd, args.decompose)
+            from epic_paths import resolve_arm_epic_target
+
+            resolved = resolve_arm_epic_target(args.decompose, cwd)
+            if resolved:
+                epic_id, path_role = resolved
+                role = getattr(args, "role", None) or path_role or "back"
+                r = arm_epic(cwd, epic_id, role=role)
+                if r.get("ok"):
+                    r = dict(r)
+                    r["deprecated"] = "use --epic-id instead of --decompose"
+            else:
+                r = arm_active_context_from_decompose(cwd, args.decompose)
         else:
             print(json.dumps({"ok": False, "error": "missing --epic-id or --decompose"}, ensure_ascii=False))
             return 2
         print(json.dumps(r, ensure_ascii=False, indent=2))
         return 0 if r.get("ok") else 2
+
+    if args.cmd == "reconcile-spec":
+        payload = run_reconcile_spec(
+            cwd,
+            plan_id=args.plan_id,
+            fmt=args.format,
+            strict=bool(args.strict),
+        )
+        if args.format == "text":
+            print(payload.get("text") or "")
+        else:
+            out = {k: v for k, v in payload.items() if k not in ("text", "format")}
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+        return int(payload.get("exit_code") or 0)
+
+    if args.cmd == "analyze-convergence":
+        report = run_convergence_checks(
+            cwd,
+            plan_id=args.plan_id,
+        )
+        if args.format == "text":
+            print(format_text(report))
+        else:
+            print(format_json(report))
+
+        if args.strict and (report.critical_count > 0 or report.high_count > 0):
+            return 1
+        return 0
+
+    if args.cmd == "validate-traceability":
+        plan_id = args.epic_id
+        plan_path = Path(cwd) / "memory-bank" / "back" / "plan" / f"plan-{plan_id}.md"
+        if not plan_path.is_file():
+            print(f"Error: plan file not found: {plan_path}", file=sys.stderr)
+            return 2
+
+        decomp_dir = Path(cwd) / "memory-bank" / "back" / "plan" / f"decompose-{plan_id}"
+        if not decomp_dir.is_dir():
+            print(f"Error: decompose dir not found: {decomp_dir}", file=sys.stderr)
+            return 2
+
+        plan_reqs = parse_plan_requirements(plan_path)
+        decomp_refs = parse_decompose_refs(decomp_dir)
+
+        impl_dir = Path(cwd) / "memory-bank" / "back" / "implement" / f"implement-{plan_id}"
+        impl_ev = parse_implement_evidence(impl_dir) if impl_dir.is_dir() else {}
+
+        tests_dir = Path(cwd) / args.tests_dir if args.tests_dir else None
+
+        report = build_report(
+            plan_id,
+            plan_reqs,
+            decomp_refs,
+            impl_ev,
+            strict=bool(args.strict),
+            tests_dir=tests_dir,
+            ac_strict=bool(args.ac_strict),
+        )
+        formatted = format_report(report, json_mode=bool(args.json))
+        print(formatted)
+
+        if report.critical_count > 0:
+            return 1
+        return 0
 
     return 2
 

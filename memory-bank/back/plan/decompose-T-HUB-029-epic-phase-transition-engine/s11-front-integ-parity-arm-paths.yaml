@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s11-front-integ-parity-arm-paths.yaml
+title: "FRONT/INTEG parity: arm paths + phase registry roles=[back,front,integration]"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить Transition Engine для FRONT и INTEG ролей (Q5=B parity v1):
+  - phase_registry.yaml: убедиться roles=[back, front, integration] охвачены (или role-specific overrides)
+  - arm_phase принимает role param; FRONT IMPLEMENT → next_phase=FRONT IMPLEMENT
+  - INTEG arm path: arm_phase для role=integration → нужный Handoff
+  - Parity tests: FRONT DECOMPOSE → FRONT ANALYZE gate; INTEG IMPLEMENT → Handoff mode=INTEG IMPLEMENT
+  (HARD RULE: parity тесты пишет BACK; FRONT runner тесты запускает только parent)
+
+context:
+  consumes:
+    - loop/epic_transition.py                    # s01-s10: Transition Engine API
+    - loop/schemas/phase_registry.yaml           # s06-s09: registry (roles: [back])
+    - .claude/hooks/epic/core.py                 # arm_epic role handling
+    - loop/tests/test_epic_transition.py         # regression baseline
+  produces:
+    - loop/schemas/phase_registry.yaml           # roles: [back, front, integration] confirmed / role overrides
+    - loop/epic_transition.py                    # role-aware arm_phase + resolve_next
+    - loop/tests/test_epic_transition.py         # parity tests: FRONT + INTEG arm paths
+  plan_refs:
+    - US-008
+    - FR-002
+    - NFR-1
+    - NFR-3
+  files:
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+
+as_built:
+  - loop/epic_transition.py:arm_phase — role param передаётся в arm-функции, но phase-специфичная логика может не различать FRONT/INTEG
+  - loop/schemas/phase_registry.yaml — roles строка создана в s06 но покрытие FRONT/INTEG не верифицировано
+  - нет parity tests FRONT/INTEG transition paths
+
+delta:
+  - 'loop/schemas/phase_registry.yaml: roles: [back, front, integration] на верхнем уровне; если нужны role-specific overrides (разные verify_agent или dsh_preset) — role_overrides: front: IMPLEMENT: verify_agent: front-verify-implement'
+  - 'loop/epic_transition.py:resolve_next — при role="front" → mode prefix "FRONT "; при role="integration" → "INTEG "'
+  - 'loop/epic_transition.py:arm_phase — role propagation: Handoff mode = f"{ROLE_PREFIX} {phase}"; arm_active_context_from_decompose / arm_pre_implement_context уже принимают role — проверить что пробрасывается'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_front_decompose — role=front + DECOMPOSE → Handoff mode contains "FRONT"'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_integ_implement — role=integration + IMPLEMENT → Handoff mode "INTEG"'
+  - 'loop/tests/test_epic_transition.py: test_promote_if_ready_front_analyze_gate — FRONT epic + analyze gate → arm FRONT ANALYZE'
+  - 'loop/tests/test_epic_transition.py: test_registry_roles_covers_all — load_phase_registry()["roles"] == ["back", "front", "integration"]'
+
+deletes: []
+# Parity expansion additive only
+
+out_of_scope:
+  - "Frontend UI parity components (not back scope)"
+  - "INTEG portal scheduler"
+  - "Legacy sunset — s12"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      test_arm_phase_front_decompose PASS: role=front → Handoff mode contains FRONT
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_arm_phase_front_decompose -q --tb=short"
+  - id: cp2
+    criterion: >
+      test_arm_phase_integ_implement PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_arm_phase_integ_implement -q --tb=short"
+  - id: cp3
+    criterion: >
+      test_registry_roles_covers_all PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_registry_roles_covers_all -q --tb=short"
+  - id: cp4
+    criterion: >
+      Регрессия: test_epic_transition.py full + test_context_loop.py green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_context_loop.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_context_loop.py -q --tb=line"
+
+tdd:
+  - "test_arm_phase_front_decompose — FRONT role propagation"
+  - "test_arm_phase_integ_implement — INTEG role propagation"
+  - "test_promote_if_ready_front_analyze_gate"
+  - "test_registry_roles_covers_all"
+  - "Regression: test_epic_transition.py + test_context_loop.py"

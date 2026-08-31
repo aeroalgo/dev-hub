@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-033-harness-execution-discipline
+title: s03 — session_boundary checkpoint field + loop.sh enforce new-session gate
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-033-harness-execution-discipline/s03-session-boundary-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added session_boundary field to CheckpointRecord in loop/schemas/checkpoint.py
+- Updated finalize_step and commit_checkpoint in .claude/hooks/epic/core.py to write
+  session_boundary=True
+- Updated loop.sh to output SESSION_BOUNDARY marker when session_boundary=true
+- Added unit tests in loop/tests/test_session_boundary.py
+files:
+- loop/schemas/checkpoint.py
+- .claude/hooks/epic/core.py
+- loop/loop.sh
+- loop/tests/test_session_boundary.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short`'
+grep_control:
+- back: rg 'session_boundary' loop/schemas/checkpoint.py
+  front: ''
+verification_results:
+- 4 passed in 0.15s
+checkpoints:
+- id: cp1
+  criterion: CheckpointRecord принимает session_boundary=True/False/None без ошибки
+    валидации; extra='allow' не конфликтует
+  status: done
+  done_at: '2026-08-31T15:31:12Z'
+- id: cp2
+  criterion: finalize_step возвращает marked['session_boundary'] == True после успешного
+    завершения
+  status: done
+  done_at: '2026-08-31T15:31:59Z'
+- id: cp3
+  criterion: loop.sh детектирует session_boundary=true в checkpoint → выводит SESSION_BOUNDARY
+    маркер
+  status: done
+  done_at: '2026-08-31T15:32:35Z'
+- id: cp4
+  criterion: Полный suite + импорт checkpoint.py без ошибок; rg session_boundary в
+    checkpoint.py выдаёт строку с полем
+  status: done
+  done_at: '2026-08-31T15:32:53Z'
+resume_from: cp1

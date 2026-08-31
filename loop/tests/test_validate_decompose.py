@@ -12,6 +12,29 @@ if str(_HOOKS) not in sys.path:
 
 from epic_yaml import validate_decompose_full, validate_decompose_yaml  # noqa: E402
 
+_MINIMAL_DECOMPOSE_INDEX_MD = """\
+# decompose-demo
+
+## Requirements coverage
+| ID | sNN |
+| FR-1 | s01 |
+
+## Stages coverage
+| Stage | sNN |
+| s01 | s01 |
+
+## Outcome map
+| Outcome | sNN |
+| ok | s01 |
+
+## Replacement cleanup
+n/a — greenfield
+"""
+
+
+def _write_minimal_index_md(dec: Path) -> None:
+    (dec / "index.md").write_text(_MINIMAL_DECOMPOSE_INDEX_MD, encoding="utf-8")
+
 
 def _write(p: Path, data: dict) -> Path:
     base = {
@@ -219,6 +242,7 @@ def test_validate_decompose_tree_ok_and_fail(tmp_path: Path) -> None:
 
     dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-demo"
     dec.mkdir(parents=True)
+    _write_minimal_index_md(dec)
     (dec / "index.yaml").write_text(
         "schema: epic-decompose-index/v1\n"
         "plan_id: demo\n"
@@ -267,3 +291,80 @@ def test_validate_decompose_tree_ok_and_fail(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert validate_decompose_tree(tmp_path, str(dec)) == []
+
+
+def test_validate_decompose_tree_requires_index_md_sections(tmp_path: Path) -> None:
+    from epic_yaml import validate_decompose_tree  # noqa: E402
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-demo"
+    dec.mkdir(parents=True)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "source_md: index.md\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-ok.yaml\n"
+        "  title: ok\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(dec / "s01-ok.yaml", {"step_id": "s01", "plan_id": "demo", "role": "back"})
+    errs = validate_decompose_tree(tmp_path, str(dec))
+    assert errs
+    assert any("index.md" in e for e in errs)
+
+    _write_minimal_index_md(dec)
+    assert validate_decompose_tree(tmp_path, str(dec)) == []
+
+
+def test_validate_decompose_tree_rejects_bare_snn_filename(tmp_path: Path) -> None:
+    from epic_yaml import validate_decompose_tree  # noqa: E402
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-demo"
+    dec.mkdir(parents=True)
+    _write_minimal_index_md(dec)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01.yaml\n"
+        "  title: bad name\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(dec / "s01.yaml", {"step_id": "s01", "plan_id": "demo", "role": "back"})
+    errs = validate_decompose_tree(tmp_path, str(dec))
+    assert errs
+    assert any("s01-<slug>" in e or "s01-" in e for e in errs)
+
+
+def test_resolve_decompose_ref_for_gate_falls_back_to_find_index(tmp_path: Path) -> None:
+    from epic_paths import resolve_decompose_ref_for_gate  # noqa: E402
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-030"
+    dec.mkdir(parents=True)
+    _write_minimal_index_md(dec)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-030\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-x.yaml\n"
+        "  title: x\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(dec / "s01-x.yaml", {"step_id": "s01", "plan_id": "T-030", "role": "back"})
+    epic = {
+        "armed_step": "DECOMPOSE",
+        "armed_epic": "T-030",
+        "role": "back",
+        "armed_decompose": None,
+    }
+    ref = resolve_decompose_ref_for_gate(tmp_path, epic)
+    assert ref == "memory-bank/back/plan/decompose-T-030/index.yaml"

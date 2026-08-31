@@ -1,0 +1,10 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-024-test
+title: Example Step 01
+status: completed
+files:
+  - ".claude/hooks/epic/traceability.py"
+tests:
+  - "loop/tests/test_traceability_parsers.py"

@@ -66,6 +66,7 @@ from epic import (  # noqa: E402
     save_epic_state,
     validate_active_context_shape,
     reconcile_current_epic_events,
+    resolve_armed_decompose_for_integrity,
     validate_finish_integrity,
     validate_finish_integrity_with_repair,
     verify_pass_step_blockers,
@@ -75,6 +76,7 @@ from epic import (  # noqa: E402
     _event_log_path,
     utc_now,
 )
+from loop.episodes import begin_episode, finalize_episode
 from session_resilience import (  # noqa: E402
     analyze_session_log,
     classify_abort,
@@ -93,6 +95,8 @@ PROMPT_NAME = "next-prompt.txt"
 LOOP_PHASE_MODEL_ENV: dict[str, str] = {
     "DECOMPOSE": "PROJECT_LOOP_DECOMPOSE_MODEL",
     "PLAN": "PROJECT_LOOP_PLAN_MODEL",
+    "CLARIFY": "PROJECT_LOOP_CLARIFY_MODEL",
+    "ANALYZE": "PROJECT_LOOP_ANALYZE_MODEL",
     "CREATIVE": "PROJECT_LOOP_CREATIVE_MODEL",
     "IMPLEMENT": "PROJECT_LOOP_IMPLEMENT_MODEL",
     "AUDIT": "PROJECT_LOOP_AUDIT_MODEL",
@@ -102,6 +106,8 @@ LOOP_PHASE_MODEL_ENV: dict[str, str] = {
 }
 _LOOP_PHASE_DETECT_ORDER = (
     "DECOMPOSE",
+    "CLARIFY",
+    "ANALYZE",
     "CREATIVE",
     "IMPLEMENT",
     "BUGFIX",
@@ -243,6 +249,14 @@ def handoff_indicates_epic_archived(text: str) -> bool:
     if re.search(r"(?i)ЗАВЕРШЕНА\s+И\s+АРХИВИРОВАНА", handoff):
         return True
     return False
+
+
+def _is_tier0_eligible(diagnostic_code: str, registry_path: str | Path | None = None) -> bool:
+    """Check if diagnostic code has a registered Tier-0 repair chain in registry.yaml."""
+    from loop.incidents.registry import get_chain
+
+    chain = get_chain(diagnostic_code, registry_path=registry_path)
+    return bool(chain)
 
 
 def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
@@ -512,12 +526,51 @@ delta_paths_exist: no
 """
 
 
+def _decompose_role_rule_dir(role: str) -> str:
+    key = str(role or "back").lower()
+    return {
+        "back": "back_developer",
+        "front": "front_developer",
+        "integration": "integration_developer",
+        "integ": "integration_developer",
+    }.get(key, f"{key}_developer")
+
+
+def _decompose_work_block(role: str, epic_id: str) -> str:
+    rule_dir = _decompose_role_rule_dir(role)
+    return f"""## DECOMPOSE canon (HARD)
+1. Read `.cursor/templates/decompose/epic-step.yaml` + `index.md` + `.cursor/rules/{rule_dir}/workflow-decompose.mdc` (§Maximal detail).
+2. Output dir: `memory-bank/{role}/plan/decompose-<plan_id>/` with **index.md** + **index.yaml** + `sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`).
+3. index.md MUST contain: `## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup` (greenfield → `n/a`).
+4. Each shard: `schema: epic-decompose/v1`, `role`, `as_built`/`delta` lists, 2–4 checkpoints with runnable verify.
+5. FINISH: `validate-decompose-tree` (stop-gate) blocks promote if tree incomplete.
+Epic queue id: `{epic_id}`.
+"""
+
+
+def _decompose_finish_block() -> str:
+    return """## DECOMPOSE FINISH
+1. Создай/обнови decompose dir: index.md + index.yaml + все sNN-<slug>.yaml по плану.
+2. Self-check: `.venv/bin/python .claude/hooks/epic_resolve.py validate-decompose-tree --cwd "$PROJECT_ROOT" --decompose <path/to/index.yaml>`
+3. Перепиши activeContext: следующий режим (IMPLEMENT s01 или ANALYZE если gate), `## load_now` → work shard + index.yaml, 1× `## Handoff`, ≤1× `## done`.
+FORBIDDEN: FINISH без index.md; FORBIDDEN bare sNN.yaml; FORBIDDEN skip coverage tables in index.md.
+"""
+
+
 def _phase_kind(phase: object) -> str:
     value = str(phase or "").upper()
     if value == "DONE" or re.search(r"\bDONE\b", value):
         return "done"
     if re.search(r"\bCREATIVE\b", value):
         return "creative"
+    if re.search(r"\bANALYZE\b", value):
+        return "analyze"
+    if re.search(r"\bCLARIFY\b", value):
+        return "clarify"
+    if re.search(r"\bDECOMPOSE\b", value):
+        return "decompose"
+    if re.search(r"\bPLAN\b", value):
+        return "plan"
     if re.search(r"\bIMPLEMENT\b", value):
         return "implement"
     if re.search(r"\bQA\b", value):
@@ -527,6 +580,81 @@ def _phase_kind(phase: object) -> str:
     if re.search(r"\bAUDIT\b", value):
         return "audit"
     return "generic"
+
+
+def _projection_step_id(projection: dict[str, Any], cwd_p: Path) -> str:
+    for key in ("step", "next_step"):
+        value = projection.get(key)
+        if value:
+            return str(value)
+    st = load_epic_state(cwd_p) or {}
+    armed = str(st.get("armed_step") or "").strip()
+    if armed:
+        return armed
+    return "unknown"
+
+
+_GATE_PHASES = frozenset(
+    {
+        "ANALYZE",
+        "CLARIFY",
+        "DECOMPOSE",
+        "PLAN",
+        "CREATIVE",
+        "AUDIT",
+        "QA",
+        "BUGFIX",
+        "REFLECT",
+    }
+)
+_SHARD_STEP_RE = re.compile(r"^[sera]\d+", re.I)
+
+
+def _prompt_projection(
+    state: dict[str, Any],
+    projection_state: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge rebuilt projection + epic state for build_prompt (phase/epic/step)."""
+    proj = dict(projection_state.get("projection") or {})
+    for key in ("phase", "epic", "epic_id", "next_step", "step", "role"):
+        outer = projection_state.get(key)
+        if outer and not proj.get(key):
+            proj[key] = outer
+    armed = str(state.get("armed_step") or "").strip()
+    armed_u = armed.upper()
+    epic = state.get("armed_epic") or proj.get("epic") or proj.get("epic_id")
+    if epic and not proj.get("epic"):
+        proj["epic"] = epic
+    if armed_u in _GATE_PHASES:
+        role_t = str(state.get("role") or proj.get("role") or "BACK").upper()
+        if role_t == "INTEGRATION":
+            role_t = "INTEG"
+        return {
+            **proj,
+            "phase": f"{role_t} {armed_u}",
+            "next_step": armed_u,
+            "step": armed_u,
+            "epic": epic,
+            "role": role_t,
+        }
+    if armed and _SHARD_STEP_RE.match(armed):
+        proj.setdefault("next_step", armed)
+        proj.setdefault("step", armed)
+    elif not proj.get("next_step") and not proj.get("step"):
+        top_next = projection_state.get("next_step")
+        if top_next:
+            proj["next_step"] = top_next
+            proj.setdefault("step", top_next)
+    if not proj.get("phase"):
+        proj["phase"] = projection_state.get("phase") or state.get("phase")
+    return proj
+
+
+def _projection_for_gate_armed_step(
+    state: dict[str, Any],
+    projection: dict[str, Any],
+) -> dict[str, Any]:
+    return _prompt_projection(state, projection)
 
 
 def _done_finish_block(*, chain_on: bool) -> str:
@@ -653,11 +781,12 @@ def build_prompt(
 
     path_lines = "\n".join(f"- `{p}`" for p in paths)
     phase_kind = _phase_kind(phase)
+    step_id = _projection_step_id(projection, cwd_p)
     projection_lines = (
         "## projection\n"
         f"- phase: `{phase or 'unknown'}`\n"
         f"- epic: `{projection.get('epic') or 'unknown'}`\n"
-        f"- next_step: `{projection.get('next_step') or 'unknown'}`\n"
+        f"- step: `{step_id}`\n"
     )
     path_lines = f"{path_lines}\n\n{projection_lines}"
     degraded = bool(shape_errors) or not load_now
@@ -707,10 +836,11 @@ FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
 ## Context degraded
 activeContext не разобран ({'; '.join(reasons)}). Не halt.
 1. Прочитай `$PROJECT_ROOT/memory-bank/activeContext.md`.
-2. Найди `memory-bank/**/plan/decompose-*/index.yaml` (pending/active).
-3. Один следующий шаг (режим + step_id).
-4. На FINISH перепиши activeContext:
-   `## load_now` → 1× `## Handoff` → ≤1× `## done`.
+2. **SoT:** `memory-bank/**/plan/decompose-*/index.yaml` — первый step со status `pending`/`active`.
+3. **FORBIDDEN:** доверять Handoff step_id или `## done`, если они расходятся с index.yaml (нет implement-шарда / finalize-step).
+4. Один следующий шаг = режим + step_id **из index.yaml**, не из Handoff.
+5. На FINISH перепиши activeContext:
+   `## load_now` (пути в backticks) → 1× `## Handoff` → ≤1× `## done`.
 """
 
     explorer_block = ""
@@ -740,6 +870,22 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "not_implemented[] пуст → следующий = QA.\n"
             "FORBIDDEN: EPIC_DONE до QA pass + REFLECT.\n"
         )
+    elif phase_kind == "analyze":
+        finish_block = (
+            "## ANALYZE FINISH\n"
+            "1. Read-only: plan + decompose shards vs код/repo.\n"
+            "2. HARD: `memory-bank/<role>/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`.\n"
+            "3. `critical_count=0` → loop откроет IMPLEMENT; иначе fix plan/decompose и re-ANALYZE.\n"
+            "FORBIDDEN: IMPLEMENT / seed-implement до pass ANALYZE gate.\n"
+        )
+    elif phase_kind == "decompose":
+        finish_block = _decompose_finish_block()
+    elif phase_kind in {"clarify", "plan"}:
+        finish_block = (
+            f"## {phase_kind.upper()} FINISH\n"
+            "1. Выполни режим из Handoff activeContext.\n"
+            "2. Перепиши activeContext: `## load_now` → 1× `## Handoff` → ≤1× `## done`.\n"
+        )
     else:
         explorer_block = _explorer_block(
             delta_scope=delta_scope or "open",
@@ -750,6 +896,13 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
 
     resume_block = "\n".join(resume_lines or [])
     extra_block = "\n".join(extra_blocks or [])
+    decompose_block = ""
+    if phase_kind == "decompose":
+        role_key = str(projection.get("role") or "back").lower()
+        if role_key not in {"back", "front", "integration"}:
+            role_key = "back"
+        epic_key = str(projection.get("epic") or projection.get("epic_id") or "unknown")
+        decompose_block = _decompose_work_block(role_key, epic_key)
 
     return f"""Выполни один шаг.
 
@@ -758,7 +911,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
 Контекст:
 {path_lines}
 {degraded_block}
-## Команды
+{decompose_block}## Команды
 1. Не вызывай: loop.sh, epic_resolve after|resolve|arm|halt|complete|record-session.
 2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
    FORBIDDEN: `BLOCKED:` из‑за incomplete AC / pending cp / gaps.blocked / parity FAIL текущего эпика
@@ -816,8 +969,41 @@ def _index_step_is_completed(cwd: Path, step_id: str | None) -> bool:
     return False
 
 
+def _analyze_phase_complete(cwd: Path) -> bool:
+    from analyze_gate import analyze_required_before_implement
+    from roadmap_queue import find_decompose_index, load_steps_for_index
+
+    st = load_epic_state(cwd)
+    epic_id = str(st.get("armed_epic") or "").strip()
+    if not epic_id:
+        return False
+    role_dir = str(st.get("role") or "BACK").lower()
+    decomp = str(st.get("armed_decompose") or "").strip()
+    idx_path = cwd / decomp if decomp else None
+    if idx_path is None or not idx_path.is_file():
+        idx_path = find_decompose_index(cwd, role_dir, epic_id)
+    if idx_path is None or not idx_path.is_file():
+        return False
+    loaded = load_steps_for_index(cwd, idx_path)
+    if not loaded.get("ok"):
+        return False
+    steps = loaded.get("steps") or []
+    gate = analyze_required_before_implement(
+        cwd,
+        role_dir,
+        epic_id,
+        steps,
+        index_path=idx_path,
+    )
+    return not gate.get("required")
+
+
 def _checkpoint_should_advance_after_session(cwd: Path, step_id: str | None) -> bool:
-    return _index_step_is_completed(cwd, step_id) or _is_post_implement_step(step_id)
+    if _index_step_is_completed(cwd, step_id) or _is_post_implement_step(step_id):
+        return True
+    if str(step_id or "").upper() == "ANALYZE":
+        return _analyze_phase_complete(cwd)
+    return False
 
 
 def _stale_post_implement_identity_conflict(
@@ -883,8 +1069,24 @@ def _step_context_extra_blocks(cwd: Path, load_now: list[str]) -> list[str]:
 
 
 def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
-    """Switch epic: overwrite activeContext from decompose index (ignore old cursor)."""
-    out = arm_active_context_from_decompose(cwd, epic)
+    """Switch epic via plan-centric arm_epic (resolver picks phase); legacy decompose path delegates."""
+    from epic_paths import resolve_arm_epic_target
+
+    resolved = resolve_arm_epic_target(epic, cwd)
+    if resolved:
+        epic_id, role = resolved
+        legacy_decompose = "decompose-" in str(epic).replace("\\", "/")
+        out = arm_epic(
+            cwd,
+            epic_id,
+            role=role,
+            require_plan=not legacy_decompose,
+        )
+        if legacy_decompose:
+            out = dict(out)
+            out["deprecated"] = "arm via decompose path; prefer arm_epic(epic_id) or --epic-id"
+    else:
+        out = arm_active_context_from_decompose(cwd, epic)
     if not out.get("ok"):
         return out
     if out.get("complete"):
@@ -893,7 +1095,6 @@ def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
     out["fingerprint"] = fingerprint_context(text)
     out["load_now"] = extract_load_now(text)
     out["stop"] = detect_stop_marker(text)
-    # Patch last-session so resume_dirty in the next prepare shows the new step.
     new_step = out.get("step_id")
     if new_step:
         last = load_last_session(cwd, track="epic")
@@ -1003,29 +1204,79 @@ def _find_decompose_index_for_epic(
         return str(idx)
 
 
-def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
-    """DECOMPOSE → IMPLEMENT: when index exists, arm first pending step.
+def run_traceability_check_if_enabled(
+    cwd: str | Path,
+    epic_id: str | None = None,
+    *,
+    fail_closed: bool = False,
+) -> None:
+    val = os.getenv("EPIC_TRACEABILITY_CHECK")
+    if val in ("0", "false", "FALSE"):
+        return
+    if not fail_closed and val not in ("1", "true", "TRUE"):
+        return
+    if not epic_id:
+        st = load_epic_state(Path(cwd))
+        epic_id = st.get("armed_epic")
+    if not epic_id:
+        return
+    import subprocess
+    cmd = [
+        sys.executable,
+        str(Path(cwd) / ".claude" / "hooks" / "epic_resolve.py"),
+        "--cwd",
+        str(cwd),
+        "validate-traceability",
+        "--epic",
+        str(epic_id),
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    st = load_epic_state(Path(cwd))
+    role_dir = str(st.get("role") or "back").lower()
+    decomp = str(st.get("armed_decompose") or "").strip()
+    art_path = Path(cwd) / decomp if decomp and (Path(cwd) / decomp).is_file() else Path(cwd) / "memory-bank" / "activeContext.md"
+    if res.returncode == 2:
+        logger.error("validate-traceability error: %s", res.stderr or res.stdout)
+        try:
+            from epic import _append_event
+            if art_path.is_file():
+                _append_event(Path(cwd), role_dir, str(epic_id), "traceability_fail", art_path)
+        except Exception:
+            pass
+        raise RuntimeError(
+            f"validate-traceability failed (exit 2) for epic {epic_id}: {res.stderr or res.stdout}"
+        )
+    elif res.returncode == 1:
+        logger.warning("validate-traceability warning: %s", res.stdout)
+        try:
+            from epic import _append_event
+            if art_path.is_file():
+                _append_event(Path(cwd), role_dir, str(epic_id), "traceability_warn", art_path)
+        except Exception:
+            pass
 
-    Roadmap arms DECOMPOSE with armed_decompose=None. After the agent creates
-    decompose-<epic>/index.*, the next prepare/check_after must promote into
-    the implement queue or the runner stays stuck on step DECOMPOSE.
-    """
+
+def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
+    """Auto-advance after DECOMPOSE / ANALYZE FINISH — delegates to promote_if_ready."""
+    from loop.epic_transition import _legacy_warn, promote_if_ready
+
+    _legacy_warn("promote_decompose_phase_if_ready")
     cwd_p = Path(cwd)
     st = load_epic_state(cwd_p)
-    if str(st.get("armed_step") or "").upper() != "DECOMPOSE":
-        return None
     epic_id = st.get("armed_epic")
     if not epic_id:
         return None
-    decomp = st.get("armed_decompose") or _find_decompose_index_for_epic(
-        cwd_p, str(epic_id), st.get("role")
-    )
-    if not decomp:
-        return None
-    out = arm_active_context_from_decompose(cwd_p, str(decomp))
-    if not out.get("ok"):
-        return out
-    out["promoted_from"] = "DECOMPOSE"
+    role = str(st.get("role") or "BACK").lower()
+    out = promote_if_ready(cwd_p, str(epic_id), role)
+    if out is not None and out.get("ok"):
+        try:
+            run_traceability_check_if_enabled(cwd_p, str(epic_id), fail_closed=True)
+        except RuntimeError as err:
+            return {
+                "ok": False,
+                "error": str(err),
+                "diagnostic_code": "traceability_fail",
+            }
     return out
 
 
@@ -1055,7 +1306,7 @@ def prepare_session(
 
     promoted = promote_decompose_phase_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
-        return {
+        res = {
             "ok": False,
             "halt": True,
             "reason": promoted.get("error")
@@ -1063,10 +1314,27 @@ def prepare_session(
             or "decompose promote failed",
             "promote": promoted,
         }
+        if promoted.get("diagnostic_code"):
+            res["diagnostic_code"] = promoted["diagnostic_code"]
+        return res
 
     projection = rebuild_epic_projection(cwd_p)
     text = read_active_context(cwd_p)
     state = load_epic_state(cwd_p)
+    from loop.schemas.active_context import handoff_mode_from_text
+
+    ac_mode = (handoff_mode_from_text(text) or "").upper()
+    if (
+        ac_mode == "IMPLEMENT"
+        and str(state.get("armed_step") or "").upper() == "ANALYZE"
+        and (promoted is None or not promoted.get("ok"))
+        and _analyze_phase_complete(cwd_p)
+    ):
+        promoted = promote_decompose_phase_if_ready(cwd_p)
+        if promoted is not None and promoted.get("ok"):
+            text = read_active_context(cwd_p)
+            state = load_epic_state(cwd_p)
+            projection = rebuild_epic_projection(cwd_p)
     handoff_phase = handoff_post_implement_phase(text)
     proj = projection.get("projection") if isinstance(projection.get("projection"), dict) else {}
     proj_phase = str(
@@ -1112,7 +1380,15 @@ def prepare_session(
         state["active"] = True
         state["halt_reason"] = None
         save_epic_state(cwd_p, state)
-    decompose = state.get("armed_decompose")
+    armed_step_now = str(state.get("armed_step") or "")
+    decompose = resolve_armed_decompose_for_integrity(
+        cwd_p,
+        armed_step=armed_step_now,
+        armed_decompose=state.get("armed_decompose"),
+    )
+    if decompose != state.get("armed_decompose"):
+        state["armed_decompose"] = decompose
+        save_epic_state(cwd_p, state)
     if decompose:
         md_repair = repair_index_mirror(cwd_p, decompose)
         if not md_repair.get("ok"):
@@ -1346,7 +1622,7 @@ def prepare_session(
         delta_scope=delta_scope,
         delta_paths=delta_paths,
         resume_lines=resume_lines,
-        projection=projection.get("projection") or {},
+        projection=_projection_for_gate_armed_step(st, projection),
         extra_blocks=extra_deduped,
     )
 
@@ -1388,7 +1664,8 @@ def prepare_session(
     st["delta_paths_scoped"] = delta_scope == "scoped"
     st["delta_scope"] = delta_scope
     st["delta_paths"] = delta_paths
-    phase_raw = st.get("phase") or projection.get("phase")
+    proj_for_phase = _projection_for_gate_armed_step(st, projection)
+    phase_raw = proj_for_phase.get("phase") or st.get("phase") or projection.get("phase")
     armed_step_now = st.get("armed_step")
     runtime_config = resolve_runtime_config(cwd_p)
     effective_runtime = (runtime or "").strip() or runtime_config.epic_runtime
@@ -1411,6 +1688,17 @@ def prepare_session(
     if isinstance(proj, dict):
         proj["session_id"] = checkpoint_session
     st["updated_at"] = utc_now()
+    try:
+        ep_id = begin_episode(
+            cwd_p,
+            epic_id=str(st.get("armed_epic") or "T-HUB-031"),
+            role=str(st.get("role") or "back"),
+            armed_step=str(st.get("armed_step") or "s01"),
+        )
+        st["episode_id"] = ep_id
+    except Exception as err:
+        logger.warning("prepare: begin_episode failed: %s", err)
+        ep_id = None
     save_epic_state(cwd_p, st)
     checkpoint_lifecycle(
         cwd_p,
@@ -1452,6 +1740,7 @@ def prepare_session(
         "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
+        "episode_id": ep_id,
         "degraded": degraded,
         "shape_errors": shape,
         "delta_paths_exist": delta_scope == "exist",
@@ -1460,6 +1749,137 @@ def prepare_session(
         "delta_paths": delta_paths,
         "cursor_sync": cursor_sync,
     }
+
+
+def _run_tier0_check_after(cwd_p: Path, res: dict[str, Any]) -> dict[str, Any]:
+    from epic_paths import epic_dir
+    from loop.incidents.schema import IncidentRecord, compute_incident_id
+    from loop.incidents.store import append_incident, list_open_incidents
+    from loop.incidents.tier0 import run_tier0_for_incident
+    from loop.incidents.tier1 import is_tier1_eligible
+    from _lib import load_runner_owner, runner_pid_alive
+
+    st_ep = load_epic_state(cwd_p)
+    episode_id = st_ep.get("episode_id")
+    if episode_id:
+        try:
+            finalize_episode(cwd_p, episode_id, check_after_result=res)
+            res["episode_id"] = episode_id
+        except Exception as err:
+            logger.warning("_run_tier0_check_after: finalize_episode failed: %s", err)
+
+    edir = epic_dir(cwd_p)
+    text = read_active_context(cwd_p)
+    shape = validate_active_context_shape(text)
+    st = load_epic_state(cwd_p)
+
+    diag_codes = set(res.get("diagnostic_codes") or [])
+    if res.get("diagnostic_code"):
+        diag_codes.add(res["diagnostic_code"])
+
+    # Check stale runner owner
+    owner_file = edir / "runner.json"
+    owner_info = load_runner_owner(owner_file)
+    if owner_info and not runner_pid_alive(owner_info.pid):
+        diag_codes.add("stale_owner")
+
+    # Check active context shape
+    if shape:
+        diag_codes.add("active_context_shape_invalid")
+
+    if not diag_codes and not list_open_incidents(edir) and not res.get("halt"):
+        return res
+
+    epic_id = st.get("epic_id") or st.get("armed_epic") or "unknown"
+    step_id = st.get("armed_step") or "s00"
+    phase = st.get("phase") or "BACK IMPLEMENT"
+    session_id = st.get("session_id") or "check_after"
+    fp_now = fingerprint_context(text)
+
+    existing_open = list_open_incidents(edir)
+    existing_open_codes = {c for inc in existing_open for c in inc.diagnostic_codes}
+
+    for code in diag_codes:
+        if code not in existing_open_codes:
+            inc_id = compute_incident_id(
+                project_root=str(cwd_p),
+                epic_id=epic_id,
+                step_id=step_id,
+                session_id=session_id,
+                diagnostic_codes=[code],
+                fingerprint=fp_now,
+            )
+            inc_meta: dict[str, Any] = {}
+            if episode_id:
+                inc_meta["episode_id"] = episode_id
+            rec = IncidentRecord(
+                incident_id=inc_id,
+                status="open",
+                opened_at=datetime.now(timezone.utc).isoformat(),
+                project_root=str(cwd_p),
+                epic_id=epic_id,
+                step_id=step_id,
+                phase=phase,
+                session_id=session_id,
+                source="check_after",
+                diagnostic_codes=[code],
+                fingerprint=fp_now,
+                metadata=inc_meta,
+            )
+            append_incident(edir, rec)
+
+    open_incidents = list_open_incidents(edir)
+    tier0_attempted = False
+    tier0_resolved_ids = []
+    tier0_repaired = False
+    repair_exhausted = False
+    tier1_eligible_flag = False
+
+    if open_incidents:
+        for inc in open_incidents:
+            t0_res = run_tier0_for_incident(cwd_p, inc, decompose_path=st.get("armed_decompose"))
+            if t0_res.attempted:
+                tier0_attempted = True
+            if t0_res.resolved:
+                tier0_resolved_ids.append(inc.incident_id)
+                tier0_repaired = True
+            elif t0_res.repair_exhausted:
+                repair_exhausted = True
+                if is_tier1_eligible(inc):
+                    tier1_eligible_flag = True
+
+    remaining_open = list_open_incidents(edir)
+
+    if tier0_repaired and not remaining_open:
+        text_new = read_active_context(cwd_p)
+        shape_new = validate_active_context_shape(text_new)
+        if not shape_new:
+            res["ok"] = True
+            res["halt"] = False
+            res["tier0_attempted"] = tier0_attempted
+            res["tier0_repaired"] = True
+            res["incidents_resolved"] = tier0_resolved_ids
+            res["incidents_open_count"] = 0
+            return res
+
+    if remaining_open or repair_exhausted or res.get("halt") or shape:
+        all_codes = sorted(list({c for inc in remaining_open for c in inc.diagnostic_codes} | diag_codes))
+        res["halt"] = True
+        res["ok"] = False
+        res["diagnostic_codes"] = all_codes
+        res["tier0_attempted"] = tier0_attempted
+        res["tier0_repaired"] = tier0_repaired
+        res["repair_exhausted"] = repair_exhausted or bool(remaining_open)
+        res["tier1_eligible"] = tier1_eligible_flag or any(is_tier1_eligible(inc) for inc in remaining_open)
+        res["incidents_open_count"] = len(remaining_open)
+        return res
+
+    res["tier0_attempted"] = tier0_attempted
+    res["tier0_repaired"] = tier0_repaired
+    if tier0_resolved_ids:
+        res["incidents_resolved"] = tier0_resolved_ids
+    res["incidents_open_count"] = len(remaining_open)
+    return res
 
 
 def check_after(
@@ -1541,7 +1961,15 @@ def check_after(
         }
 
     state = load_epic_state(cwd_p)
-    decompose = state.get("armed_decompose")
+    armed_step_now = str(state.get("armed_step") or "")
+    decompose = resolve_armed_decompose_for_integrity(
+        cwd_p,
+        armed_step=armed_step_now,
+        armed_decompose=state.get("armed_decompose"),
+    )
+    if decompose != state.get("armed_decompose"):
+        state["armed_decompose"] = decompose
+        save_epic_state(cwd_p, state)
     if decompose:
         md_repair = repair_index_mirror(cwd_p, decompose)
         if not md_repair.get("ok"):
@@ -1552,14 +1980,14 @@ def check_after(
         finish_integrity = validate_finish_integrity_with_repair(
             cwd_p,
             decompose=decompose,
-            step_id=str(state.get("armed_step") or ""),
+            step_id=armed_step_now,
             require_verify_pass=True,
         )
         if not finish_integrity["ok"]:
             archived_fallback = complete_archived_armed_epic(cwd_p)
             if archived_fallback is not None:
                 return archived_fallback
-            return {
+            res = {
                 "ok": False,
                 "halt": True,
                 "diagnostic_codes": finish_integrity["diagnostic_codes"],
@@ -1567,6 +1995,7 @@ def check_after(
                 "repair": finish_integrity.get("repair"),
                 "md_repair": md_repair,
             }
+            return _run_tier0_check_after(cwd_p, res)
 
     fp_now = fingerprint_context(text)
     before = fingerprint_before
@@ -1636,7 +2065,7 @@ def check_after(
     save_epic_state(cwd_p, st)
     promoted = promote_decompose_phase_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
-        return {
+        res = {
             "ok": False,
             "halt": True,
             "reason": promoted.get("error")
@@ -1644,6 +2073,9 @@ def check_after(
             or "decompose promote failed",
             "promote": promoted,
         }
+        if promoted.get("diagnostic_code"):
+            res["diagnostic_code"] = promoted["diagnostic_code"]
+        return res
     if promoted is not None and promoted.get("ok"):
         text = read_active_context(cwd_p)
         st = load_epic_state(cwd_p)
@@ -1706,7 +2138,7 @@ def check_after(
         post_phase, _, _ = post_implement_phase(
             cwd_p, epic_info["role_dir"], epic_info["epic_id"]
         )
-    return {
+    res = {
         "ok": True,
         "complete": False,
         "load_now": extract_load_now(text),
@@ -1716,6 +2148,7 @@ def check_after(
         "fingerprint_repair": fingerprint_repair,
         "post_implement_phase": post_phase,
     }
+    return _run_tier0_check_after(cwd_p, res)
 
 
 def record_abort(
@@ -2248,7 +2681,70 @@ def status(cwd: str | Path) -> dict[str, Any]:
         "configuration": config,
         "finish_integrity": finish_integrity,
         "agent_policy": _status_agent_policy(root, st),
+        "incidents": _status_incidents(root),
+        "metrics": _status_metrics(root),
+        "trace_tail": _status_trace_tail(root),
     }
+
+
+def _status_incidents(cwd: Path) -> dict[str, Any]:
+    from epic_paths import epic_dir as get_epic_dir
+    from loop.incidents.store import CorruptIncidentError, parse_incidents_jsonl
+
+    edir = get_epic_dir(cwd)
+    try:
+        records = parse_incidents_jsonl(edir / "incidents.jsonl")
+    except CorruptIncidentError:
+        return {"open_count": 0, "last": [], "incidents_corrupt": True}
+    except Exception:
+        return {"open_count": 0, "last": []}
+
+    open_recs = [r for r in records if r.status == "open"]
+    last_recs = open_recs[:5]
+    clean_last = []
+    for r in last_recs:
+        d = r.model_dump(by_alias=True, exclude_none=True)
+        d.pop("prompt", None)
+        d.pop("secrets", None)
+        clean_last.append(d)
+    return {
+        "open_count": len(open_recs),
+        "last": clean_last,
+    }
+
+
+def _status_metrics(cwd: Path) -> dict[str, Any]:
+    from epic_paths import epic_dir as get_epic_dir
+    from loop.incidents.metrics import load_metrics
+
+    edir = get_epic_dir(cwd)
+    try:
+        m = load_metrics(edir)
+        return m.model_dump(by_alias=True, exclude_none=True)
+    except Exception:
+        return {"counters": {}, "rates": {}}
+
+
+def _status_trace_tail(cwd: Path) -> list[dict[str, Any]]:
+    from epic_paths import epic_dir as get_epic_dir
+    from loop.incidents.trace import read_session_trace_tail
+
+    edir = get_epic_dir(cwd)
+    try:
+        tail = read_session_trace_tail(edir, limit=10)
+        clean_tail = []
+        for entry in tail:
+            e = dict(entry)
+            if "detail" in e and isinstance(e["detail"], dict):
+                e["detail"] = {
+                    k: v
+                    for k, v in e["detail"].items()
+                    if k not in ("prompt", "secrets", "secret_prompt")
+                }
+            clean_tail.append(e)
+        return clean_tail
+    except Exception:
+        return []
 
 
 def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
@@ -2365,12 +2861,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p_arm = sub.add_parser(
         "arm",
-        help="Overwrite activeContext from decompose-* epic (manual epic switch)",
+        help="Arm epic via resolver (epic id, plan path, or legacy decompose path)",
     )
     p_arm.add_argument(
         "--epic",
         required=True,
-        help="decompose-<id> or memory-bank/.../decompose-<id>[/index.md]",
+        help="Epic id (T-HUB-029), plan-*.md, or decompose-<id>[/index.md] (legacy)",
     )
 
     p_after = sub.add_parser("check-after", help="Inspect activeContext after session")
@@ -2417,6 +2913,33 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     sub.add_parser("status", help="Show context cursor")
+
+    p_doc = sub.add_parser("doctor", help="Preflight check before autopilot")
+    p_doc.add_argument(
+        "--auto-repair",
+        action="store_true",
+        help="Attempt safe automatic remediation for stale locks / corrupt records",
+    )
+    p_doc.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format (text or json)",
+    )
+
+    p_istatus = sub.add_parser("incident-status", help="Show incident store status")
+    p_istatus.add_argument("--json", action="store_true", help="Output JSON format")
+
+    p_iretry = sub.add_parser("incident-retry", help="Retry a tier1 incident")
+    p_iretry.add_argument("incident_id", help="Incident ID to retry")
+
+    p_eplist = sub.add_parser("episode-list", help="List episode packages manifests")
+    p_eplist.add_argument("--last", type=int, default=None, help="Limit output to last N episodes")
+    p_eplist.add_argument("--json", action="store_true", help="Output JSON format")
+
+    p_epshow = sub.add_parser("episode-show", help="Show episode package detail")
+    p_epshow.add_argument("episode_id", help="Episode ID to show")
+    p_epshow.add_argument("--json", action="store_true", help="Output JSON format")
 
     args = parser.parse_args(argv)
     cwd = args.cwd
@@ -2501,6 +3024,100 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "status":
         print(json.dumps(status(cwd), ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == "doctor":
+        from loop.incidents.doctor import run_doctor
+
+        rep = run_doctor(cwd, auto_repair=bool(args.auto_repair), format=args.format)
+        if args.format == "json":
+            out = {
+                "ok": rep.exit_code == 0,
+                "exit_code": rep.exit_code,
+                "checklist": [
+                    {"name": c.name, "status": c.status, "detail": c.detail}
+                    for c in rep.checklist
+                ],
+                "blockers": rep.blockers,
+                "warnings": rep.warnings,
+            }
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+        else:
+            for c in rep.checklist:
+                symbol = "✓" if c.status == "pass" else ("⚠" if c.status == "warn" else ("⁃" if c.status == "skipped" else "✗"))
+                detail_str = f" ({c.detail})" if c.detail else ""
+                print(f"[{symbol}] {c.name}: {c.status}{detail_str}")
+            if rep.blockers:
+                print("\nBlockers:")
+                for b in rep.blockers:
+                    print(f"  - {b}")
+            if rep.warnings:
+                print("\nWarnings:")
+                for w in rep.warnings:
+                    print(f"  - {w}")
+        return rep.exit_code
+
+    if args.cmd == "incident-status":
+        from epic_paths import epic_dir
+        from loop.incidents.store import parse_incidents_jsonl
+        edir = epic_dir(cwd)
+        incidents_file = edir / "incidents.jsonl"
+        all_incidents = parse_incidents_jsonl(incidents_file) if incidents_file.is_file() else []
+        open_incidents = [r for r in all_incidents if r.status == "open"]
+        res = {
+            "ok": True,
+            "total_count": len(all_incidents),
+            "open_count": len(open_incidents),
+            "incidents": [inc.model_dump(by_alias=True) for inc in all_incidents],
+        }
+        if getattr(args, "json", False):
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            print(f"Found {len(open_incidents)} open incidents (total: {len(all_incidents)}):")
+            for inc in open_incidents:
+                print(f"  - {inc.incident_id}: {inc.diagnostic_codes} (attempts: {inc.tier0_attempts})")
+        return 0
+
+    if args.cmd == "incident-retry":
+        from epic_paths import epic_dir
+        from loop.incidents.store import parse_incidents_jsonl, reset_tier1_attempts
+        from loop.incidents.tier1 import is_tier1_eligible
+        edir = epic_dir(cwd)
+        incidents_file = edir / "incidents.jsonl"
+        all_incidents = parse_incidents_jsonl(incidents_file) if incidents_file.is_file() else []
+        target = next((r for r in all_incidents if r.incident_id == args.incident_id), None)
+        if not target:
+            sys.stderr.write(f"Error: incident {args.incident_id} not found\n")
+            return 1
+        if not is_tier1_eligible(target):
+            sys.stderr.write(f"Error: incident {args.incident_id} is not eligible for tier1 retry\n")
+            return 1
+        reset_tier1_attempts(edir, args.incident_id)
+        print(f"Incident {args.incident_id} reset. Ready for tier1 retry on next loop iteration.")
+        return 0
+
+    if args.cmd == "episode-list":
+        from loop.episodes.cli import episode_list, format_episode_list, scan_episodes
+
+        if getattr(args, "json", False):
+            res = episode_list(cwd, last=args.last)
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            manifests = scan_episodes(cwd)
+            if args.last is not None and args.last > 0:
+                manifests = manifests[:args.last]
+            print(format_episode_list(manifests))
+        return 0
+
+    if args.cmd == "episode-show":
+        from loop.episodes.cli import show_episode
+
+        try:
+            res = show_episode(cwd, args.episode_id)
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+            return 0
+        except FileNotFoundError as err:
+            sys.stderr.write(f"Error: {err}\n")
+            return 1
 
     return 2
 

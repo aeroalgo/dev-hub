@@ -8,7 +8,24 @@ alwaysApply: false
 
 ## Epic id
 
-`epic_id` = `plan_id` (slug латиница), напр. `v1-p1-pipeline-db-e2e`.
+`epic_id` = `plan_id` = **stem plan-файла без префикса `plan-`** (латиница), напр. `T-HUB-033-harness-execution-discipline`, `v1-p1-pipeline-db-e2e`.
+
+### Folder naming (HARD)
+
+| Артефакт | Канон имени |
+|----------|-------------|
+| Plan file | `plan-<epic_id>.md` (часто `plan-<queue_id>-<descriptive-slug>.md`) |
+| Decompose dir | `decompose-<epic_id>/` |
+| Implement dir | `implement-<epic_id>/` |
+| Analyze / audit / qa dirs | `<epic_id>/` или файлы с тем же stem |
+
+**Источник slug:** имя `plan-*.md` на диске, **не** короткий `id:` из `roadmap-*.queue.yaml`.
+
+| Queue `id:` | Plan file | Folders / `index.yaml` `plan_id` |
+|-------------|-----------|----------------------------------|
+| `T-HUB-033` | `plan-T-HUB-033-harness-execution-discipline.md` | `…-T-HUB-033-harness-execution-discipline` |
+
+**FORBIDDEN:** `decompose-T-HUB-033/` / `implement-T-HUB-033/` когда plan = `plan-T-HUB-033-<slug>.md`. Short queue id — только для roadmap deps/loop; FS-артефакты = полный stem.
 
 **Есть эпик**, если любое из:
 

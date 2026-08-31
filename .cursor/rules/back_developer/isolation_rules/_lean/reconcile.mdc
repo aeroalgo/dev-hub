@@ -1,0 +1,19 @@
+---
+description: "RECONCILE gates — lean load + STRICTLY READ-ONLY"
+alwaysApply: false
+---
+# RECONCILE — gates
+
+**Artifact:** `memory-bank/back/reconcile/<epic_id>/reconcile-YYYYMMDD-<slug>.yaml`
+
+## Gates
+
+1. `load_now` = `activeContext.md` + plan/decompose headers; не читать лишний контекст.
+2. **STRICTLY READ-ONLY:** не менять plan, decompose, implement или code; результаты пишутся только в `reconcile-YYYYMMDD-<slug>.yaml`.
+3. RECONCILE запускает cli `python3 .claude/hooks/epic/reconcile.py --epic <epic_id> --write-yaml`.
+4. Trigger command: `BACK RECONCILE` или `/back-reconcile`.
+
+## Abort
+
+- попытка править code/decompose/implement/plan → FAIL;
+- отсутствие `epic_id` → reject.

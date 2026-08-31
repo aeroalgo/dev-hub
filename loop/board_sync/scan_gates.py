@@ -213,15 +213,15 @@ def _known_epics(project: Path, role: str, steps: list[WorkItem]) -> set[str]:
 
 
 def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
-    directory = project / "memory-bank" / role / "plan"
-    for path in (
-        directory / f"decompose-{epic_id}" / "index.yaml",
-        directory / f"decompose-{epic_id}" / "index.md",
-    ):
-        if path.is_file():
-            return path
-    matches = sorted(directory.glob(f"decompose-{epic_id}-*/index.yaml"))
-    return matches[0] if matches else None
+    import sys
+    from pathlib import Path as _Path
+
+    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
+    if str(hooks) not in sys.path:
+        sys.path.insert(0, str(hooks))
+    from epic_paths import find_decompose_index_path
+
+    return find_decompose_index_path(project, role, epic_id)
 
 
 def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:

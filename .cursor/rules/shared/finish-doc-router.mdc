@@ -14,7 +14,7 @@ alwaysApply: false
 |---------|-----------------|
 | `* IMPLEMENT` | work shard `sNN\|eNN-*.yaml` + `decompose-*/index.yaml`; epic complete → `index.yaml` + §Handoff Epic AUDIT (**не** `plan-*.md`, **не** QA напрямую) |
 | `* AUDIT` | audit-артефакт в `load_now`; если `converged != true` или `not_implemented[]`/`legacy_surfaces_remaining[]`/`fallback_remaining[]` непусты → next = `* IMPLEMENT` новых sNN/eNN (петля); только `converged: true` при пустых actionable findings и leftover-массивах → next = `* QA` |
-| `* QA` | `## Handoff * QA` + qa link; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** plan |
+| `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
 | `* REFLECT` | align post-task |
 | `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; reflection остаётся; clear `load_now`; «await VAN» / next T-xxx |
@@ -22,8 +22,8 @@ alwaysApply: false
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
 | `* ANALYZE` | `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` в `load_now`; `metrics.critical_count = 0` → next IMPLEMENT, `> 0` → next CLARIFY/DECOMPOSE |
-| `* PLAN` | plan artifact OK; **inline** `roadmap-merge` до FINISH (если есть slug queues / canon); `load_now` = canon md+queue + first plan → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
-| `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` по шаблону `@.cursor/templates/clarify.md` → next обычно `* PLAN` |
+| `* PLAN` | Phase 0 clarify (orchestration) в сессии при триггерах; plan artifact OK; **inline** `roadmap-merge` до FINISH (если есть slug queues / canon); `load_now` = clarify по slug (если был) + canon md+queue + first plan → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
+| `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` → next `* PLAN` Phase 1 (или continue CLARIFY). Standalone; в сессии PLAN Phase 0 **не** отдельный FINISH CLARIFY |
 | `VAN` / `TASK` | init or shift focus |
 
 ## graphify update

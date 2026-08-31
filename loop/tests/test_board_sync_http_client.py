@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from loop.board_sync.client import BoardClientError, HttpHostClient
+from loop.board_sync.client import BoardClientError, HttpHostClient, retire_board_task
 
 
 from loop.board_sync.diff import BoardTask
@@ -131,3 +131,48 @@ def test_archive_ok() -> None:
     assert requests[0].url.path == "/api/task-board/action"
     assert b'"kind":"archive"' in requests[0].read()
     assert b'"taskId":"task-1"' in requests[0].read()
+
+
+def test_delete_ok() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    _client(handler).delete("task-1")
+
+    assert requests[0].url.path == "/api/task-board/action"
+    assert b'"kind":"delete"' in requests[0].read()
+    assert b'"taskId":"task-1"' in requests[0].read()
+
+
+def test_retire_board_task_deletes_todo() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    retire_board_task(_client(handler), "task-1", status="todo")
+
+    assert len(requests) == 1
+    assert b'"kind":"delete"' in requests[0].read()
+
+
+def test_retire_board_task_archives_done() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    retire_board_task(_client(handler), "task-1", status="done")
+
+    assert len(requests) == 1
+    assert b'"kind":"archive"' in requests[0].read()
+
+
+def test_retire_board_task_running_fail_closed() -> None:
+    with pytest.raises(BoardClientError, match="running task cannot be retired"):
+        retire_board_task(_client(lambda _: httpx.Response(200, json={})), "task-1", status="running")

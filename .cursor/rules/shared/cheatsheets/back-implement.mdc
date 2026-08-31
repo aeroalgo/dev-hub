@@ -12,3 +12,9 @@ alwaysApply: false
 
 → verify: @.cursor/rules/back_developer/workflow-implement.mdc
 → FINISH: @.cursor/rules/shared/finish-block.mdc
+
+## Execution discipline (GSD one-shard-one-session)
+
+- **One shard = one session:** `session_boundary` требует выполнять каждый шаг sNN в изоляции 1 шаг = 1 сессия. Запрещено переиспользовать чат (reuse chat) между шагами.
+- **EPIC_ATOMIC_COMMIT:** задается в `.claude/project.env`. Для хаба default: `EPIC_ATOMIC_COMMIT=0`, для продуктовых репозиториев рекомендуется выставлять `EPIC_ATOMIC_COMMIT=1` для атомарных git-коммитов на каждом шаге sNN.
+

@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: PLAN workflow — step 2p Plan review batch + lean gates + FINISH readiness
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Встроить Plan review batch (product → eng spine → auto-resolve defer) в workflow-plan
+  как step 2p после level fix; дополнить lean/plan gates readiness + eng spine для L2+;
+  FINISH PLAN блокируется при pending Review readiness rows. Outcome: compact review
+  за один PLAN-чат без 15–30 gstack пауз (US-005, FR-005, AC+ #2).
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/workflow-plan.mdc — процесс шаги 1–8"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/plan.mdc — gates 1–7"
+    - "plan-T-HUB-027 §Plan review batch log — principles"
+    - "plan-T-HUB-027 §Review readiness — FINISH gate"
+    - "s02+s03 — plan.md template sections"
+  produces:
+    - "workflow-plan.mdc — step 2p Plan review batch + FINISH Review readiness gate"
+    - "lean/plan.mdc — gates 8–10 eng spine + readiness"
+  plan_refs:
+    - "FR-005"
+    - "US-004"
+    - "US-005"
+    - "AC+ #2"
+    - "AC− #5 (batch table, не interactive one-by-one)"
+  files:
+    - ".cursor/rules/back_developer/workflow-plan.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/plan.mdc"
+
+as_built:
+  - "workflow-plan.mdc — шаги 1–8; grill-me via CLARIFY; brainstorming batch; нет step 2p Plan review batch"
+  - "workflow-plan.mdc — FINISH: finish-block + CLARIFY CRITICAL guard; нет Review readiness gate"
+  - "lean/plan.mdc — gates 1–7 + level delta; gate 33 mentions mini grill в §Product probe; нет gates 8–10 readiness/eng spine"
+
+delta:
+  - "workflow-plan.mdc ADD step 2p Plan review batch — после level fix (step 2/3): Product (brainstorming) → Eng (architecture-patterns) → auto-resolve defer; заполнить §Plan review batch log"
+  - "workflow-plan.mdc ADD skills note: architecture-patterns explicit в eng pass step 2p"
+  - "workflow-plan.mdc ADD FINISH gate 7d: Review readiness — no pending in Required rows for epic level (L2+)"
+  - "workflow-plan.mdc ADD L1 exempt note: Product probe + Eng spine optional L1"
+  - "lean/plan.mdc ADD gate 8: L2+ plan must have Eng review spine filled before FINISH"
+  - "lean/plan.mdc ADD gate 9: L2+ §QA consumes draft ≥3 TM rows"
+  - "lean/plan.mdc ADD gate 10: Review readiness table no pending Required rows"
+
+deletes: []
+
+out_of_scope:
+  - "workflow-qa load — s05"
+  - "role-command FINISH — s06"
+  - "FRONT plan mirror — out_of_scope follow-up"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-plan.mdc содержит step 2p Plan review batch"
+    verify: "rg '2p|Plan review batch' .cursor/rules/back_developer/workflow-plan.mdc"
+  - id: cp2
+    criterion: "workflow-plan.mdc FINISH gate на Review readiness"
+    verify: "rg 'Review readiness' .cursor/rules/back_developer/workflow-plan.mdc"
+  - id: cp3
+    criterion: "lean/plan.mdc gates 8–10 eng spine + qa_consumes + readiness"
+    verify: "rg 'gate 8|gate 9|gate 10|Eng review spine|qa_consumes|Review readiness' .cursor/rules/back_developer/isolation_rules/_lean/plan.mdc"
+  - id: cp4
+    criterion: "AC− #5: batch table, не mandatory AskUserQuestion one-by-one"
+    verify: "rg -i 'batch' .cursor/rules/back_developer/workflow-plan.mdc && ! rg -i 'AskUserQuestion.*mandatory' .cursor/rules/back_developer/workflow-plan.mdc"
+
+verify: []
+
+tdd:
+  - "rg_step_2p_plan_review_batch"
+  - "rg_finish_readiness_gate_workflow_plan"
+  - "rg_lean_plan_gates_8_10"
+  - "regression_existing_plan_workflow_steps_intact"

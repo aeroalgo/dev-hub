@@ -148,7 +148,7 @@ Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integr
 Если MODE=DECOMPOSE (BACK/FRONT/INTEG): сразу `SUSPENSION GUARD active — decompose output unlimited`, затем `.claude/rules/plan-artifact.md` (секция DECOMPOSE) + `workflow-decompose.mdc` §Maximal detail + §Replacement cleanup.
 Если MODE=VAN и brownfield (есть код/compose): сразу `SUSPENSION GUARD active — architecture map output unlimited`, затем `.cursor/rules/shared/workflow-van-brownfield.mdc` + `.claude/rules/plan-artifact.md` (architecture paths).
 
-Перед FINISH на PLAN / SECURITY PLAN / REFACTOR PLAN: shell `wc -l` на plan-файл; TOC-only / слишком короткий → FAIL, дописать.  
+Перед FINISH на PLAN / SECURITY PLAN / REFACTOR PLAN: shell `wc -l` на plan-файл; TOC-only / слишком короткий → FAIL, дописать. На L2+ планах зафиксирован guard: `Review readiness` не содержит pending, а секция `qa_consumes` создана.  
 Перед FINISH на brownfield VAN: architecture shards не stub-only; mermaid minimum (services + data-flow + erd|n/a).  
 Перед FINISH на IMPLEMENT: @.cursor/rules/shared/finish-block.mdc — step-файл exists + Handoff шага **до** `decompose`=`completed`.
 

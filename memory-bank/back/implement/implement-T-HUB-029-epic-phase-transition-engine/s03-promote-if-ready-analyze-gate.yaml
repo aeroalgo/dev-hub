@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s03 — promote_if_ready replace decompose promote; ANALYZE gate enforce IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s03-promote-if-ready-analyze-gate.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented promote_if_ready in loop/epic_transition.py to enforce ANALYZE gate
+  before IMPLEMENT
+- Replaced promote_decompose_phase_if_ready in loop/context_loop.py with legacy warning
+  shim delegating to promote_if_ready
+- Added unit tests in test_epic_transition.py and verified regression test suite in
+  test_context_loop.py and test_roadmap_queue.py
+files:
+- loop/epic_transition.py
+- loop/context_loop.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_context_loop.py
+deletes:
+- 'loop/context_loop.py: тело promote_decompose_phase_if_ready (кроме shim строк)
+  → перенесено в epic_transition.promote_if_ready'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_context_loop.py
+  loop/tests/test_roadmap_queue.py -q --tb=line`'
+integration_check:
+- grep promote_if_ready loop/context_loop.py loop/epic_transition.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'test_promote_if_ready_analyze_gate_required PASS: promote_if_ready →
+    ANALYZE arm когда gate required
+
+    '
+  status: done
+  done_at: '2026-08-31T10:26:38Z'
+- id: cp2
+  criterion: 'test_promote_if_ready_no_gate_goes_implement PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T10:26:50Z'
+- id: cp3
+  criterion: 'test_promote_if_ready_incomplete_index_returns_none PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T10:26:57Z'
+- id: cp4
+  criterion: 'Регрессия: test_context_loop.py + test_roadmap_queue.py зелёные
+
+    '
+  status: done
+  done_at: '2026-08-31T10:28:05Z'
+resume_from: cp1

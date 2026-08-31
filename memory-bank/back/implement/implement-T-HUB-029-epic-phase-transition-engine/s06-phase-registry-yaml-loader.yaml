@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s06 — phase_registry.yaml + load_phase_registry() + gates_from_phase registry-driven
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s06-phase-registry-yaml-loader.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан loop/schemas/phase_registry.yaml — канонический фазовый реестр
+- Реализованы load_phase_registry() и get_phase_config() в loop/epic_transition.py
+  с кэшированием и fail-closed валидацией
+- gates_from_phase() переведён на работу через фазовый реестр
+files:
+- loop/schemas/phase_registry.yaml
+- loop/epic_transition.py
+- .claude/hooks/epic/core.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_stop_gate.py
+deletes:
+- '.claude/hooks/epic/core.py:gates_from_phase: hardcoded phase→gates dict body (заменяется
+  на registry lookup)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py
+  loop/tests/test_creative_phase.py -q --tb=line`'
+integration_check:
+- 'Grep/import check: gates_from_phase корректно работает через loop.epic_transition.load_phase_registry'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'loop/schemas/phase_registry.yaml создан; load_phase_registry() возвращает
+    dict с ключом "phases"
+
+    '
+  status: done
+  done_at: '2026-08-31T10:42:38Z'
+- id: cp2
+  criterion: 'test_get_phase_config_unknown_fails_closed PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T10:42:39Z'
+- id: cp3
+  criterion: 'Регрессия: test_gates_from_phase_ignores_terminal_phases PASS (REFLECT/DONE
+    → {})
+
+    '
+  status: done
+  done_at: '2026-08-31T10:42:39Z'
+- id: cp4
+  criterion: 'Регрессия: test_stop_gate.py полный suite зелёный
+
+    '
+  status: done
+  done_at: '2026-08-31T10:42:40Z'
+resume_from: cp1

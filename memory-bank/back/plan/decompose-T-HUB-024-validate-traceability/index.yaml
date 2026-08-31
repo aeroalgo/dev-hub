@@ -1,0 +1,31 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-024-validate-traceability
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-parsers-schema.yaml
+  title: Parsers + report schema — plan/decompose/implement readers + TraceReport
+    dataclass
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-cli-validate-traceability.yaml
+  title: CLI validate-traceability — epic_resolve command + exit codes + JSON report
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-ac-marker-scanner.yaml
+  title: AC marker scanner — pytest.mark.ac collector + --ac-strict flag
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-yaml-contract-docs.yaml
+  title: YAML-CONTRACT + workflow decompose FINISH tip (docs-only)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-loop-integration.yaml
+  title: Loop prompt opt-in EPIC_TRACEABILITY_CHECK + integration test on hub fixture
+  next_phase: BACK IMPLEMENT
+  status: completed

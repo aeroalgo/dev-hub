@@ -5,11 +5,14 @@ alwaysApply: false
 ### Команда: BACK PLAN
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+**Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**CLARIFY (Phase 0 mechanics)**: @.cursor/rules/back_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md
-- @.agents/skills/grill-me/SKILL.md — **не** inline в PLAN; product challenge = **BACK CLARIFY Phase 0** (mandatory). При skip CLARIFY (spike) — mini grill (3 premises) в plan §Product probe
+- @.agents/skills/grill-me/SKILL.md — **Phase 0 only** (orchestration); **не** inline в Phase 1. Spike skip → mini grill (3 premises) в plan §Product probe
 - @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch, без HARD-GATE пауз)
 - @.agents/skills/python-testing-patterns/SKILL.md
 - @.agents/skills/fastapi-templates/SKILL.md (если FastAPI в techContext)
@@ -22,18 +25,24 @@ alwaysApply: false
 
 **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
 
-**Batch:** шаги 1–8 за один проход; grill-me только при блокерах; вопросы пакетом.
+**Batch (Phase 1 only):** шаги 2–8 за один проход; вопросы пакетом. **Phase 0** — sequential (orchestration).
+**Skills note:** при проходе Eng review (step 2p) для L2+ использовать `@.agents/skills/architecture-patterns/SKILL.md` (или профильные скиллы стека), для L1 — опционально.
 
 **Процесс**:
-1. `OK BACK PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
+0. **Phase 0 Clarify (orchestration):** прочитай **Phase 0 orchestration** + при триггерах выполни clarify mechanics (gates + shared-core). Sequential Q до Completion Report или halt. Skip → краткая запись в plan `§Product probe`. **Не** писать полный plan до Phase 0 gate OK.
+1. `OK BACK PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
 1a. Прочитай **Gates**
-1b. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `BACK CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
+1b. **Clarify link:** если clarify-артефакт есть — ссылка в шапке plan + `## Clarifications` (summary, не весь Q→A)
 1c. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные `T-xxx` при multi-epic)
+2p. **Plan review batch (после level fix):**
+    - **Product pass:** проверь product alignment / business premises (из Phase 0 или `§Product probe`).
+    - **Eng pass:** сформируй Eng review spine (architecture, patterns, code surface) — примени `@.agents/skills/architecture-patterns/SKILL.md`.
+    - **Auto-resolve defer:** вопросы/риски без вето пользователя сводятся пакетом в `## Plan review batch log` таблицы (не mandatory AskUserQuestion one-by-one). L1 — Product/Eng review pass опционален.
 3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → brainstorming / architecture-patterns
 3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** (оба обязательны) → полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0 каждый файл). Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
-4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback)
+4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback). **Technology axiom + spec-first:** @.cursor/rules/shared/workflow-spec-first-replace.mdc — WHAT/axiom до as-built design; pydantic/JSON/enums → purge старого parser in-epic
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
@@ -42,8 +51,9 @@ alwaysApply: false
     (нет `loop/` в продукте → `dev-hub/loop/context_loop.py` с тем же `--cwd`).
     Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**, покажи JSON, не FINISH.
     Нет slug-источников и нет canon → skip CLI (single-epic без queue). Иначе merge **всегда**.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon `roadmap-epics.md` + `roadmap-epics.queue.yaml` + первый `plan-*.md` из canon (multi-epic) **или** единственный plan (single-epic)
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact по slug (если был Phase 0 / существует) + canon `roadmap-epics.md` + `roadmap-epics.queue.yaml` + первый `plan-*.md` из canon (multi-epic) **или** единственный plan (single-epic)
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
+7d. **Review readiness gate:** для эпиков уровня L2+ секция `## Review readiness` в `plan-*.md` должна быть полностью заполнена без неразрешённых `pending` значений в строках со статусом `Required`.
 8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из **canon** (после merge); CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.

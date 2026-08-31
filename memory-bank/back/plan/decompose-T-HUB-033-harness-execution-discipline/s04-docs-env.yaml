@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-033-harness-execution-discipline
+title: "Cheatsheet one-shard-one-session + EPIC_ATOMIC_COMMIT в project.env"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Задокументировать GSD execution discipline:
+  1. `.cursor/rules/shared/cheatsheets/back-implement.mdc` — добавить раздел «One shard = one session» с описанием session_boundary, EPIC_ATOMIC_COMMIT, и почему reuse chat = запрещено.
+  2. `.claude/project.env` — добавить/задокументировать `EPIC_ATOMIC_COMMIT=0` (hub default) с комментарием «set 1 in product repos».
+  Outcome: разработчики видят правило в cheatsheet при каждом BACK IMPLEMENT; ops знает как включить в продукте.
+  Связь с FR-007, FR-001, AC#2, AC#4.
+
+context:
+  consumes:
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc — существующий файл, дополнить"
+    - ".claude/project.env — env-файл хаба, дополнить EPIC_ATOMIC_COMMIT"
+  produces:
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc — новая секция «## Execution discipline (GSD)»"
+    - ".claude/project.env — строка EPIC_ATOMIC_COMMIT=0 с комментарием"
+  plan_refs:
+    - "FR-001: env EPIC_ATOMIC_COMMIT default 0 in hub, document 1 for product repos"
+    - "FR-007: document one-shard-one-session in back-implement cheatsheet (align with GSD)"
+    - "AC#2: env gate EPIC_ATOMIC_COMMIT documented"
+    - "AC#4: cheatsheet update one-shard-one-session"
+  files:
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc"
+    - ".claude/project.env"
+
+as_built:
+  - ".cursor/rules/shared/cheatsheets/back-implement.mdc — существует, содержит implement workflow; нет секции GSD/session discipline"
+  - ".claude/project.env — существует, содержит env vars хаба; EPIC_ATOMIC_COMMIT отсутствует"
+
+delta:
+  - "edit: .cursor/rules/shared/cheatsheets/back-implement.mdc — append секция '## Execution discipline (GSD one-shard-one-session)': session_boundary, EPIC_ATOMIC_COMMIT, запрет reuse chat, как включить в product repo"
+  - "edit: .claude/project.env — append 'EPIC_ATOMIC_COMMIT=0  # hub default; set 1 in product repos for atomic git commits per sNN'"
+
+deletes: []
+
+out_of_scope:
+  - "git_discipline code — s01"
+  - "finalize hook — s02"
+  - "checkpoint schema — s03"
+  - "README или отдельный doc-файл — не создавать новые файлы"
+  - "Изменение workflow-decompose.mdc или mainrule — не в scope"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only шаг: нет Python-кода → impl пустой (per workflow-decompose §HARD Core rule: docs-only → impl: [])
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'EPIC_ATOMIC_COMMIT' .claude/project.env → строка найдена"
+    verify: "rg 'EPIC_ATOMIC_COMMIT' .claude/project.env"
+
+  - id: cp2
+    criterion: "rg 'one.shard\\|one-shard\\|session_boundary\\|GSD' .cursor/rules/shared/cheatsheets/back-implement.mdc → ≥1 строки"
+    verify: "rg 'one.shard|session_boundary|GSD' .cursor/rules/shared/cheatsheets/back-implement.mdc"
+
+verify:
+  - "rg 'EPIC_ATOMIC_COMMIT' .claude/project.env"
+  - "rg 'session_boundary' .cursor/rules/shared/cheatsheets/back-implement.mdc"
+
+tdd: []

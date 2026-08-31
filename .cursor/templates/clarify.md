@@ -12,7 +12,7 @@
 ## Контекст и цель
 
 - Вход: brief / draft plan / research ref …
-- Цель сессии CLARIFY: снять ambiguity до PLAN
+- Цель сессии CLARIFY: снять ambiguity (Phase 0 в `* PLAN` или standalone добор)
 - Ограничения: spike? deadline? out-of-scope hints?
 
 ---
@@ -30,6 +30,26 @@
 | **Verdict** | `auto_resolved` (с Evidence) \| `needs_user_Q` |
 
 Grill-Q → первые слоты в Q→A log (≤5 total).
+
+---
+
+## Product probe (office-hours lite, optional)
+
+> Канон: @.cursor/rules/shared/workflow-clarify-core.mdc §Product probe
+> Секция optional; mandatory Phase 0 Grill pass остаётся обязательным.
+
+| # | Вопрос | Контекст / Ответ |
+|---|--------|------------------|
+| 1 | **Demand reality** | Кто и когда запрашивал эту фичу в реале? Какой конкретно инцидент/боль привели к запросу? |
+| 2 | **Status quo** | Как пользователь/система решает эту задачу прямо сейчас без этой фичи (workaround)? |
+| 3 | **Desperate specificity** | Какой конкретный шаг в текущем процессе отнимает больше всего времени или вызывает ошибку? |
+| 4 | **Narrowest wedge** | Какая минимальная рабочая версия фичи даёт 80% ценности при 20% усилий? |
+| 5 | **Observation & surprise** | Какие неожиданные паттерны использования или граничные случаи наблюдались при исследовании? |
+| 6 | **Future-fit** | Какие предполагаемые изменения в системе или продукте могут сделать это решение бессмысленным? |
+
+- **Reframe:** …
+- **Premises (3–5 falsifiable):** …
+- **Recommended wedge:** …
 
 ---
 

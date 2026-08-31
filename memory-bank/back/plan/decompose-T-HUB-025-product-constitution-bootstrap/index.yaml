@@ -1,0 +1,25 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-025-product-constitution-bootstrap
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-constitution-seed-cli.yaml
+  title: 'Seed CLI: constitution_seed.py + epic_resolve wire'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-hub-root-guard-force.yaml
+  title: Hub-root guard + --force overwrite protection
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-van-checklist-techcontext.yaml
+  title: VAN checklist bullet + techContext onboarding doc
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-pytest-suite-fixtures.yaml
+  title: pytest suite + tmp_path product fixtures
+  next_phase: BACK IMPLEMENT
+  status: completed

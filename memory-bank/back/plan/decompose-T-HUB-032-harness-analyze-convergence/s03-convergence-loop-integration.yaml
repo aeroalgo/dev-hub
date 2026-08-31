@@ -1,0 +1,69 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-032-harness-analyze-convergence
+title: "Loop integration — EPIC_CONVERGENCE_CHECK warn-only on IMPLEMENT arm"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать analyze-convergence в arm-фазу loop: если `EPIC_CONVERGENCE_CHECK=1`,
+  на arm IMPLEMENT вызывать `run_convergence_checks()` и логировать предупреждения (warn-only v1).
+  Не блокировать arm при наличии findings. Закрывает FR-005.
+  v2-upgrade (block mode) остаётся out_of_scope с follow-up в очереди roadmap.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — arm_epic() / arm_pre_implement_context()"
+    - ".claude/hooks/epic/convergence.py — run_convergence_checks() (s01)"
+    - "Env: EPIC_CONVERGENCE_CHECK"
+  produces:
+    - ".claude/hooks/epic/core.py (edit — arm_epic hook)"
+  plan_refs:
+    - "FR-005"
+  files:
+    - ".claude/hooks/epic/core.py"   # edit
+
+as_built:
+  - "epic/core.py — arm_epic(cwd, plan_id, …) строки ~3745–3800 — нет хука convergence"
+  - "epic/core.py — нет EPIC_CONVERGENCE_CHECK обработки"
+
+delta:
+  - "EDIT arm_epic(): если os.environ.get('EPIC_CONVERGENCE_CHECK')=='1' → вызвать run_convergence_checks() → logger.warning каждый finding.severity in {HIGH, CRITICAL}"
+  - "ADD import os (если не было) + from .convergence import run_convergence_checks (lazy или top-level)"
+  - "Warn-only: не raise, не halt_epic() — просто logging"
+
+deletes: []
+
+out_of_scope:
+  - "Block mode (exit non-zero при HIGH+ в arm) — v2 follow-up, не этот эпик"
+  - "EPIC_CONVERGENCE_CHECK в CLI epic_resolve.py arm subcommand — arm уже обёртка core"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "При EPIC_CONVERGENCE_CHECK=1 и arm_epic вызов: logger.warning содержит 'convergence' (caplog)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_loop.py::test_arm_warn_on_flag -q"
+  - id: cp2
+    criterion: "Без EPIC_CONVERGENCE_CHECK=1: arm_epic не вызывает run_convergence_checks (нет лишних IO)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_loop.py::test_arm_no_call_without_flag -q"
+  - id: cp3
+    criterion: "Наличие HIGH findings не вызывает exception или halt в arm (warn-only)"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_loop.py::test_arm_warn_only_not_block -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_convergence_loop.py -q --tb=short"
+  - "rg -n 'EPIC_CONVERGENCE_CHECK' .claude/hooks/epic/core.py"
+
+tdd:
+  - "test_arm_warn_on_flag: mock run_convergence_checks → HIGH finding → caplog WARNING содержит severity"
+  - "test_arm_no_call_without_flag: env без EPIC_CONVERGENCE_CHECK → run_convergence_checks не вызван"
+  - "test_arm_warn_only_not_block: CRITICAL finding → arm_epic возвращает (не raises)"

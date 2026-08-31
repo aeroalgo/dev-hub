@@ -41,7 +41,7 @@ class DoctorReport:
     exit_code: int = 0
 
 
-def run_doctor(cwd: str | Path) -> DoctorReport:
+def run_doctor(cwd: str | Path, auto_repair: bool = False, format: str = "text") -> DoctorReport:
     cwd_p = Path(cwd)
     report = DoctorReport()
 

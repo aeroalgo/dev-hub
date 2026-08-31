@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s01 — epic_transition.py skeleton + resolve_next delegate + tests IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s01-epic-transition-skeleton.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- "Создан loop/epic_transition.py: resolve_next делегирует в resolve_epic_next_action;\
+  \ arm_phase/promote_if_ready — stubs (NotImplementedError); _legacy_warn — DeprecationWarning"
+- "Создан loop/tests/test_epic_transition.py: 4 теста — delegate, stub guards x2,\
+  \ deprecation warning"
+files:
+- loop/epic_transition.py
+- loop/tests/test_epic_transition.py
+deletes: []
+tests:
+- "`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_context_loop.py\
+  \ -q --tb=line` — 75 passed"
+integration_check:
+- "python -c 'from loop.epic_transition import resolve_next, arm_phase, promote_if_ready'\
+  \ — ok"
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'loop/epic_transition.py импортируется без ошибок; resolve_next доступен
+    публично
+
+    '
+  status: done
+- id: cp2
+  criterion: 'test_resolve_next_delegates_to_resolver PASS
+
+    '
+  status: done
+- id: cp3
+  criterion: 'test_arm_phase_stub_raises + test_promote_if_ready_stub_raises PASS
+    (stubs guard до s02/s03)
+
+    '
+  status: done
+- id: cp4
+  criterion: 'Регрессия: loop/tests/test_context_loop.py зелёный (существующий suite
+    не сломан)
+
+    '
+  status: done

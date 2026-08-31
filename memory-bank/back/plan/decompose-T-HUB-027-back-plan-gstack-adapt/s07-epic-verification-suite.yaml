@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: Epic verification — rg AC matrix, qa_consumes fixture test, clarify regression
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть AC+ #6/#7 и test-стратегию эпика: rg matrix по .cursor/; pytest fixture
+  dry-run парсинга #qa-consumes anchor; qa yaml с test_matrix_coverage; regression
+  T-HUB-010 CLARIFY flows. Outcome: измеримая верификация borrowings (SC-001, SC-002, AC+ #6, #7).
+
+context:
+  consumes:
+    - "s01–s06 — все workflow/template edits"
+    - "plan-T-HUB-027 §Тест-стратегия — rg + dry-run + clarify regression"
+    - "plan-T-HUB-027 §AC+ #6 exemplar Review readiness CLEARED"
+    - "loop/tests/test_reconcile_spec.py — pattern for plan template rg"
+  produces:
+    - "loop/tests/test_plan_gstack_adapt_027.py — fixture + anchor parse tests"
+    - "loop/tests/fixtures/gstack_adapt/plan-qa-consumes-fragment.md — exemplar plan fragment"
+    - "memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/qa-20260831-gstack-adapt.yaml — epic QA artifact"
+  plan_refs:
+    - "AC+ #6"
+    - "AC+ #7"
+    - "SC-001"
+    - "SC-002"
+    - "SC-003"
+    - "plan §Тест-стратегия"
+  files:
+    - "loop/tests/test_plan_gstack_adapt_027.py"
+    - "loop/tests/fixtures/gstack_adapt/plan-qa-consumes-fragment.md"
+    - "memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/qa-20260831-gstack-adapt.yaml"
+
+as_built:
+  - "loop/tests/test_plan_gstack_adapt_027.py — ОТСУТСТВУЕТ"
+  - "loop/tests/fixtures/gstack_adapt/ — ОТСУТСТВУЕТ"
+  - "memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/ — ОТСУТСТВУЕТ"
+
+delta:
+  - "CREATE plan-qa-consumes-fragment.md — filled QA consumes + Review readiness CLEARED exemplar"
+  - "CREATE test_plan_gstack_adapt_027.py — test_extract_qa_consumes_section_by_anchor; test_review_readiness_no_pending; test_rg_ac_matrix_hits (subprocess rg or static assert on known paths post-s01-s06)"
+  - "CREATE qa-20260831-gstack-adapt.yaml — verdict pass; test_matrix_coverage: [TM-001, TM-002, TM-003]; checks include rg AC+7 matrix"
+  - "test ADD regression: rg CLARIFY Phase 0 intact after s01"
+
+deletes: []
+
+out_of_scope:
+  - "Full pytest suite run — parent QA session"
+  - "browser Playwright — AC− #3"
+  - "legacy-fallback purge — s08"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "pytest test_plan_gstack_adapt_027.py green"
+    verify: ".venv/bin/pytest loop/tests/test_plan_gstack_adapt_027.py -q --tb=line"
+  - id: cp2
+    criterion: "AC+ #7: rg hits в template + workflow для 4 keyword groups"
+    verify: "rg 'QA consumes|Review readiness|Product probe|Eng review spine' .cursor/templates/plan.md .cursor/rules/back_developer/workflow-plan.mdc .cursor/rules/shared/workflow-clarify-core.mdc"
+  - id: cp3
+    criterion: "qa yaml содержит test_matrix_coverage field"
+    verify: "rg 'test_matrix_coverage' memory-bank/back/qa/T-HUB-027-back-plan-gstack-adapt/qa-20260831-gstack-adapt.yaml"
+  - id: cp4
+    criterion: "CLARIFY regression — Phase 0 Grill pass still present"
+    verify: "rg 'Phase 0.*Grill' .cursor/rules/shared/workflow-clarify-core.mdc"
+
+verify: []
+
+tdd:
+  - "test_extract_qa_consumes_section_by_anchor"
+  - "test_review_readiness_exemplar_no_pending_required"
+  - "test_plan_template_has_gstack_sections"
+  - "test_clarify_phase0_grill_pass_intact"

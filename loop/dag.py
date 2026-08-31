@@ -206,3 +206,32 @@ def adapt_manifest(legacy: Mapping[str, Any] | None) -> dict[str, Any]:
     result["autonomous"] = False
     result["diagnostics"].append(_diagnostic("legacy_gap_inference", "legacy v1 manifest is compatibility-only"))
     return result
+
+
+def _arm_dag_next(cwd: Any, epic_id: str, role: str) -> dict[str, Any]:
+    """Adapter connecting DAG epic scheduling to Transition Engine.
+
+    Evaluates next phase for (epic_id, role) via loop.epic_transition.resolve_next
+    and arms it via loop.epic_transition.arm_phase.
+    """
+    from pathlib import Path
+    from loop.epic_transition import arm_phase, get_phase_config, resolve_next
+
+    cwd_path = Path(cwd)
+    action = resolve_next(cwd_path, epic_id, role)
+    phase = action.phase
+    # Validate phase fail-closed via registry config lookup
+    get_phase_config(phase)
+
+    kwargs: dict[str, Any] = {}
+    if action.decompose_rel:
+        kwargs["decompose_rel"] = action.decompose_rel
+    if action.plan_rel:
+        kwargs["plan_rel"] = action.plan_rel
+
+    return arm_phase(cwd_path, epic_id, phase, role, **kwargs)
+
+
+def dag_advance_epic(cwd: Any, epic_id: str, role: str) -> dict[str, Any]:
+    """Public API for advancing an epic in DAG pipeline using _arm_dag_next."""
+    return _arm_dag_next(cwd, epic_id, role)

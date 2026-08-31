@@ -110,6 +110,113 @@ def test_identity_mismatch_is_fail_closed(tmp_path: Path) -> None:
     assert result["ok"] is False
 
 
+def test_identity_resolves_by_plan_id_when_folder_slug_differs(tmp_path: Path) -> None:
+    lib = _load_lib()
+    epic = "T-050-partner-rules-alembic-port"
+    base = f"memory-bank/back/plan/decompose-T-050"
+    _write(tmp_path, f"{base}/index.md", "| step_id | title | status |\n| **s01** | demo | pending |\n")
+    _write(
+        tmp_path,
+        f"{base}/index.yaml",
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsource_md: index.md\nstatus_canon: index.yaml\nsteps:\n- id: s01\n  file: s01-demo.yaml\n  next_phase: BACK IMPLEMENT\n  title: demo\n  status: pending\n",
+    )
+    _write(tmp_path, f"{base}/s01-demo.yaml", "schema: epic-decompose/v1\nrole: back\nstep_id: s01\ntitle: demo\ngoal: demo\nas_built: []\ndelta: []\ndeletes: []\ncheckpoints: []\n")
+    _state(tmp_path, armed_epic=epic, armed_decompose=None)
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        f"- `memory-bank/back/plan/decompose-T-050/s01-demo.yaml`\n\n"
+        "## Handoff BACK IMPLEMENT\n"
+        "- **Режим/шаг:** `BACK IMPLEMENT s01`\n",
+    )
+
+    result = lib.resolve_pipeline_identity(tmp_path)
+
+    assert result["status"] == "resolved"
+    assert result["ok"] is True
+    assert result["epic_id"] == epic
+
+
+def test_find_decompose_index_by_plan_id(tmp_path: Path) -> None:
+    import sys
+
+    hooks = str(HOOKS)
+    if hooks not in sys.path:
+        sys.path.insert(0, hooks)
+    sys.path.insert(0, str(ROOT / "loop"))
+    from epic_paths import find_decompose_index_path
+
+    epic = "T-050-partner-rules-alembic-port"
+    base = tmp_path / "memory-bank/back/plan/decompose-T-050"
+    base.mkdir(parents=True)
+    (base / "index.yaml").write_text(
+        f"schema: epic-decompose-index/v1\nplan_id: {epic}\nsteps: []\n",
+        encoding="utf-8",
+    )
+
+    found = find_decompose_index_path(tmp_path, "back", epic)
+
+    assert found is not None
+    assert found.name == "index.yaml"
+
+
+def test_find_decompose_index_plan_slug_resolves_queue_prefix_folder(tmp_path: Path) -> None:
+    import sys
+
+    hooks = str(HOOKS)
+    if hooks not in sys.path:
+        sys.path.insert(0, hooks)
+    from epic_paths import find_decompose_index_path
+
+    plan_dir = tmp_path / "memory-bank/back/plan"
+    plan_dir.mkdir(parents=True)
+    (plan_dir / "plan-T-HUB-030-harness-runtime-wire.md").write_text("# plan\n", encoding="utf-8")
+    decomp = plan_dir / "decompose-T-HUB-030"
+    decomp.mkdir()
+    (decomp / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\nplan_id: T-HUB-030\nsteps: []\n",
+        encoding="utf-8",
+    )
+
+    found = find_decompose_index_path(
+        tmp_path, "back", "T-HUB-030-harness-runtime-wire"
+    )
+
+    assert found is not None
+    assert found.parent.name == "decompose-T-HUB-030"
+
+
+def test_resolve_epic_next_action_plan_slug_finds_short_decompose(tmp_path: Path) -> None:
+    import sys
+
+    sys.path.insert(0, str(ROOT / "loop"))
+    from loop.board_sync.epic_resolver import resolve_epic_next_action
+
+    plan_dir = tmp_path / "memory-bank/back/plan"
+    analyze_dir = tmp_path / "memory-bank/back/analyze/T-HUB-030"
+    plan_dir.mkdir(parents=True)
+    analyze_dir.mkdir(parents=True)
+    (plan_dir / "plan-T-HUB-030-harness-runtime-wire.md").write_text("# plan\n", encoding="utf-8")
+    decomp = plan_dir / "decompose-T-HUB-030"
+    decomp.mkdir()
+    (decomp / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\nplan_id: T-HUB-030\nsteps:\n"
+        "  - id: s01\n    status: pending\n",
+        encoding="utf-8",
+    )
+    (analyze_dir / "analyze-20260831-harness-runtime-wire.yaml").write_text(
+        "schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+        encoding="utf-8",
+    )
+
+    res = resolve_epic_next_action(tmp_path, "back", "T-HUB-030-harness-runtime-wire")
+
+    assert res.reason_code != "decompose_missing"
+    assert res.decompose_rel == "memory-bank/back/plan/decompose-T-HUB-030/index.yaml"
+    assert res.phase == "IMPLEMENT"
+
+
 def test_role_from_decompose_integ_path() -> None:
     lib = _load_lib()
 

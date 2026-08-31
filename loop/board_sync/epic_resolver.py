@@ -142,9 +142,20 @@ def resolve_epic_next_action(
     statuses = [s.get("status") for s in steps if isinstance(s, dict)]
     has_completed = any(st in _COMPLETED_STATUSES for st in statuses)
 
-    if not has_completed:
+    if not has_completed and plan is not None:
         analyze = _latest_analyze(project_path, role, epic_id)
-        if analyze is None or _critical_count(analyze) > 0:
+        if analyze is None:
+            cmd = f"{role.upper()} ANALYZE {epic_id}"
+            return EpicNextAction(
+                epic_id=epic_id,
+                role=role,
+                next_command=cmd,
+                phase="ANALYZE",
+                plan_rel=plan_rel,
+                decompose_rel=decompose_rel,
+                reason_code="stale_analyze_pending",
+            )
+        if _critical_count(analyze) > 0:
             cmd = f"{role.upper()} ANALYZE {epic_id}"
             return EpicNextAction(
                 epic_id=epic_id,
@@ -246,15 +257,15 @@ def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:
 
 
 def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
-    directory = project / "memory-bank" / role / "plan"
-    for path in (
-        directory / f"decompose-{epic_id}" / "index.yaml",
-        directory / f"decompose-{epic_id}" / "index.md",
-    ):
-        if path.is_file():
-            return path
-    matches = sorted(directory.glob(f"decompose-{epic_id}-*/index.yaml"))
-    return matches[0] if matches else None
+    import sys
+    from pathlib import Path as _Path
+
+    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
+    if str(hooks) not in sys.path:
+        sys.path.insert(0, str(hooks))
+    from epic_paths import find_decompose_index_path
+
+    return find_decompose_index_path(project, role, epic_id)
 
 
 def _relative(path: Path | None, root: Path) -> str | None:
@@ -267,6 +278,13 @@ def _relative(path: Path | None, root: Path) -> str | None:
 
 
 def _load_decompose(path: Path) -> dict:
+    if path.suffix == ".md":
+        from epic_index import parse_steps_from_md
+        try:
+            steps = parse_steps_from_md(path.read_text(encoding="utf-8"))
+            return {"steps": steps}
+        except (OSError, UnicodeError):
+            return {}
     try:
         payload = yaml.safe_load(path.read_text(encoding="utf-8"))
         return payload if isinstance(payload, dict) else {}

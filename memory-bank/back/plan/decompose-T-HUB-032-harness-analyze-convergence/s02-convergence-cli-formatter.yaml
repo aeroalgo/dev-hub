@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-032-harness-analyze-convergence
+title: "CLI subcommand analyze-convergence + text/JSON formatters"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зарегистрировать subparser `analyze-convergence` в `epic_resolve.py` и реализовать
+  два форматтера: `--format text` (human-readable) и `--format json`.
+  Аргументы: `--cwd`, `--plan-id` (optional), `--format text|json`, `--strict`,
+  `--include-git-diff`. Exit 0 с findings (warn-only); exit 1 при `--strict` + HIGH+.
+  Закрывает FR-001 (CLI surface), FR-004 (exit codes).
+
+context:
+  consumes:
+    - ".claude/hooks/epic/convergence.py — run_convergence_checks() (s01)"
+    - ".claude/hooks/epic_resolve.py — argparse main(), add_subparsers() → sub"
+  produces:
+    - ".claude/hooks/epic_resolve.py (edit — добавить subparser + handler)"
+    - ".claude/hooks/epic/convergence.py (edit — добавить format_text(), format_json())"
+  plan_refs:
+    - "FR-001"
+    - "FR-004"
+  files:
+    - ".claude/hooks/epic_resolve.py"          # edit
+    - ".claude/hooks/epic/convergence.py"      # edit — добавить форматтеры
+
+as_built:
+  - "epic_resolve.py — main() с add_subparsers(); паттерн cmd=='validate-traceability' (строки ~181–210)"
+  - "epic_resolve.py — p_vt = sub.add_parser('validate-traceability', …) + handler"
+  - "epic/convergence.py — run_convergence_checks() из s01 (добавлен)"
+
+delta:
+  - "ADD sub.add_parser('analyze-convergence') с аргументами --cwd, --plan-id, --format, --strict, --include-git-diff"
+  - "ADD handler cmd=='analyze-convergence': вызов run_convergence_checks(), форматтер, sys.exit(1) при strict+HIGH+"
+  - "ADD format_text(report: ConvergenceReport) → str — human-readable секции по severity"
+  - "ADD format_json(report: ConvergenceReport) → str — json.dumps dict"
+
+deletes: []
+
+out_of_scope:
+  - "Loop integration (EPIC_CONVERGENCE_CHECK env) — s03"
+  - "Тест-файл CLI — s04"
+  - "Git diff внутренний анализ (stub OK в v1 — FR-005 scope)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "CLI help показывает analyze-convergence subcommand"
+    verify: "python .claude/hooks/epic_resolve.py analyze-convergence --help | grep -q 'analyze-convergence'"
+  - id: cp2
+    criterion: "analyze-convergence --format json на fixture возвращает валидный JSON с полем schema"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_cli.py::test_json_output -q"
+  - id: cp3
+    criterion: "analyze-convergence exit 0 при findings без HIGH (не strict); exit 1 при --strict + HIGH"
+    verify: ".venv/bin/pytest loop/tests/test_convergence_cli.py::test_exit_codes -q"
+
+verify:
+  - "python .claude/hooks/epic_resolve.py analyze-convergence --help"
+  - ".venv/bin/pytest loop/tests/test_convergence_cli.py -q --tb=short"
+
+tdd:
+  - "test_cli_help: 'analyze-convergence' есть в --help output"
+  - "test_json_output: --format json → json.loads succeeds, schema=='convergence-report/v1'"
+  - "test_text_output: --format text → строки 'findings' / 'CRITICAL' / 'HIGH' при непустых findings"
+  - "test_exit_codes: strict=False + HIGH → exit 0; strict=True + HIGH → exit 1; no findings → exit 0"
+  - "test_plan_id_optional: без --plan-id → sweep all active epics (или пустой отчёт без ошибки)"

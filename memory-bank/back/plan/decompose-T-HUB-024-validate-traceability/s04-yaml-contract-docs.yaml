@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-024-validate-traceability
+title: YAML-CONTRACT + workflow decompose FINISH tip (docs-only)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать контракт traceability-полей в существующей документации:
+  - `loop/YAML-CONTRACT.md` — добавить раздел §Traceability fields: описание plan_refs, out_of_scope,
+    evidence.tests, evidence.files, статус `completed`, правила для валидатора T-HUB-024.
+  - `.cursor/rules/back_developer/workflow-decompose.mdc` — добавить FINISH tip:
+    «Перед тем как закрыть DECOMPOSE, запусти `epic_resolve validate-traceability --epic <plan_id>` —
+    CRITICAL=0 требуется для promote → IMPLEMENT».
+  Только документация. Ноль кода.
+
+context:
+  consumes:
+    - "loop/YAML-CONTRACT.md — текущая схема shard полей"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — текущий FINISH checklist"
+    - "plan-T-HUB-024 §FR-011, §FR-012, §SC-004"
+    - ".claude/hooks/epic/traceability.py (s01–s03) — перечень проверяемых полей"
+  produces:
+    - "loop/YAML-CONTRACT.md — раздел §Traceability fields (новый)"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — FINISH tip (патч)"
+  plan_refs:
+    - "plan-T-HUB-024 FR-011"
+    - "plan-T-HUB-024 FR-012"
+    - "plan-T-HUB-024 SC-004"
+    - "plan-T-HUB-024 AC+ #4"
+  files:
+    - "loop/YAML-CONTRACT.md"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc"
+
+as_built:
+  - "YAML-CONTRACT.md — нет раздела Traceability fields"
+  - "workflow-decompose.mdc FINISH — нет упоминания validate-traceability"
+
+delta:
+  - "YAML-CONTRACT.md ADD §Traceability fields: plan_refs (list[str], required на decompose-shards), out_of_scope (list[str], optional — документирует намеренный пропуск req), evidence.files (list[str]), evidence.tests (list[str]), status=completed (требует evidence.files non-empty или явного n/a)"
+  - "YAML-CONTRACT.md ADD таблицу: поле / тип / где проверяется (validate-traceability check ID)"
+  - "workflow-decompose.mdc ADD FINISH tip абзац: команда validate-traceability, ожидаемый вывод CRITICAL=0, что делать при HIGH"
+
+deletes: []
+
+out_of_scope:
+  - "Код валидатора — s01–s03"
+  - "Loop env opt-in — s05"
+
+skills:
+  code_surface: docs
+  impl:
+    - .agents/skills/writing-plans/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "YAML-CONTRACT.md содержит раздел Traceability fields"
+    verify: "rg 'Traceability fields' loop/YAML-CONTRACT.md"
+  - id: cp2
+    criterion: "workflow-decompose.mdc содержит упоминание validate-traceability"
+    verify: "rg 'validate-traceability' .cursor/rules/back_developer/workflow-decompose.mdc"
+
+verify: []
+
+tdd: []

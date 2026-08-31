@@ -1,0 +1,97 @@
+---
+description: "Spec-first replace — не размазывать новые фичи об as-built; technology axiom lock (shared BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# Spec-first replace (HARD — anti legacy blur)
+
+**Когда:** `* PLAN` · `* CLARIFY` · `* DECOMPOSE` · обсуждение новой фичи/эпика · пользователь фиксирует стек (pydantic, JSON, enums, typed contracts).  
+**Роли:** BACK · FRONT · INTEG. **Purge/delete детали:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc.
+
+**Проблема:** агент читает as-built → предлагает «добавить pydantic рядом с regex» → кодовая база растёт dual-path, требования размываются.
+
+**Принцип:** новая фича проектируется **из спеки и аксиом стека**, не из «как сейчас написано». As-built — **инвентарь на удаление**, не шаблон поведения.
+
+---
+
+## 1. Spec-first (PLAN / CLARIFY)
+
+**Порядок (HARD):**
+
+1. WHAT + AC+ + зафиксированные решения / technology axiom (**§2**).
+2. HOW / sunset inventory — **что вытесняем** (symbol list для таблицы A).
+3. As-built grep/read — **только** для пунктов 2–3, не для выбора формата machine boundary.
+
+**FORBIDDEN в plan/design:**
+
+- «расширить существующий regex-path pydantic-ом»
+- «оставить VERDICT для совместимости, добавить JSON»
+- «fallback на старый код если новый не сработал» (→ legacy-fallback-cleanup §C)
+- проектировать primary path из `_lib.py` / hooks as-built без явной §Axiom
+
+**REQUIRED в plan (brownfield replace / смена контракта):**
+
+- Секция **`## Technology axiom`** или строки в **`### Зафиксированные решения`** (шаблон: @.cursor/templates/plan.md)
+- Таблица **`## Replacement / sunset` A+B+C** — старый путь = delete in-epic, не co-exist
+
+---
+
+## 2. Technology axiom lock
+
+Если plan / пользователь / clarify фиксирует технологию — **следствия обязательны**, не обсуждаются отдельным запросом.
+
+| Выбор | Machine boundary | Следствие (HARD) | FORBIDDEN |
+|-------|------------------|------------------|-----------|
+| Pydantic validate | JSON или YAML frontmatter | `model_validate` на структуре | regex prose → str → enum «validated» |
+| Enum / Literal status | одно поле typed | один SoT | параллельный raw str + normalize |
+| pydantic-ai structured output | `Agent[OutputModel]` | typed extract | free-text → regex → enum |
+| JSON schema / sidecar vN | fenced JSON или файл | validate-on-write | «human line» как machine input |
+
+**Anti-pattern (FAIL):** `re.search(VERDICT:)` → `GateVerdictValue(v.group(1))` — это **не** pydantic validation.
+
+Plan **обязан** явно записать axiom одной таблицей; DECOMPOSE **обязан** иметь purge-step на старый parser (legacy-fallback-cleanup §2.2).
+
+---
+
+## 3. Replace-not-wrap
+
+| Паттерн | Verdict |
+|---------|---------|
+| `try: new except: old` | **FAIL** |
+| `if flag: new else: legacy` после эпика | **FAIL** (flag только для rollout **внутри** эпика → delete legacy в purge) |
+| Новый модуль вызывает deprecated public API | **FAIL** — inline / private `_` |
+| «Compatibility shim» без epic ID в `.queue.yaml` | **FAIL** |
+| Два machine path на одну границу после EPIC_DONE | **FAIL** |
+
+**Default done:** один путь. Старый символ удалён; misconfig → fail-closed.
+
+---
+
+## 4. PLAN AC− (дополнение к legacy-fallback)
+
+При technology replace / structured boundary добавить в plan **AC−**:
+
+1. Нет dual machine path (regex + pydantic) на одной границе после эпика.
+2. Нет «validated» enum из неструктурированного prose.
+3. Sunset A содержит **каждый** старый parser/symbol на этой границе (не «потом»).
+4. Spawn/prompt/loop instructions не требуют формат, запрещённый axiom (напр. `VERDICT:` при JSON axiom).
+
+---
+
+## 5. DECOMPOSE / IMPLEMENT / chat
+
+- **DECOMPOSE:** каждый FR на новый structured path → строка в Replacement cleanup + финальный `*-legacy-fallback-purge`.
+- **IMPLEMENT:** shard `deletes:` выполняется в том же эпике; не добавлять fallback «чтобы green».
+- **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list.
+- **ANALYZE:** FAIL если plan обещает pydantic, а steps не содержат purge старого parser.
+
+---
+
+## 6. Связка с существующим каноном
+
+| Этап | Правило |
+|------|---------|
+| Sunset / purge / audit | @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc |
+| Plan artifact bar | @.claude/rules/plan-artifact.md |
+| Token economy §0.0 | plan/decompose не резать; axiom не выкидывать «для краткости» |
+
+**Итог для агента:** as-built смотришь **что удалить**, не **как копировать**. Pydantic выбрали → JSON на границе → regex с этой границы **исчезает** в том же эпике.

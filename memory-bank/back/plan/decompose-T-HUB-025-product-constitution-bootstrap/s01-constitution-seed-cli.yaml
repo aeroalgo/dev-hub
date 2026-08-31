@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: "Seed CLI: constitution_seed.py + epic_resolve wire"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/constitution_seed.py` с функцией `seed_constitution(cwd, force, product_name)`
+  и зарегистрировать subcommand `seed-constitution` в `epic_resolve.py`.
+  Выход: product `memory-bank/constitution.md` с заполненными placeholders (version 1.0, date
+  ISO, scope = product_name or dirname) и дефолтными формулировками MUST-1..9 из hub starter.
+  Закрывает FR-001, FR-002, FR-003, FR-004, FR-005, FR-006; AC+1, AC+2; SC-001.
+
+context:
+  consumes:
+    - ".cursor/templates/constitution.md"        # source template (hub root)
+    - ".claude/hooks/epic_resolve.py"            # добавляем subcommand
+  produces:
+    - "loop/constitution_seed.py"               # NEW — core function
+    - "$PROJECT_ROOT/memory-bank/constitution.md"  # OUTPUT — filled product file
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - AC+1
+    - AC+2
+    - SC-001
+  files:
+    - "loop/constitution_seed.py"               # create
+    - ".claude/hooks/epic_resolve.py"           # edit — add subcommand
+
+as_built:
+  - ".cursor/templates/constitution.md"  # 36 строк, 9 MUST + 3 SHOULD + footer; placeholders [Product name]/[version]/[date]/[scope]
+  - "memory-bank/constitution.md"        # hub-level constitution (filled); пример контента
+  - ".claude/hooks/epic_resolve.py"      # argparse-based CLI; subcommands seed-implement/flush-checkpoint/validate-step/…
+
+delta:
+  - "loop/constitution_seed.py"  # add: функция seed_constitution + CLI entry; resolve hub root via __file__
+  - ".claude/hooks/epic_resolve.py"  # add: subparser `seed-constitution` → вызов constitution_seed.seed_constitution
+
+deletes: []  # greenfield
+
+out_of_scope:
+  - "s02 hub-root guard и --force: не в этом шаге; s02 добавит защиту"
+  - "s04 pytest: тесты в отдельном шаге"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"   # S03: exit 2 / missing template
+    - ".agents/skills/python-configuration/SKILL.md"    # S08: path resolution / env
+    # 4 Core + 2 situational (S03, S08) — total 6
+
+checkpoints:
+  - id: cp1
+    criterion: "seed-constitution subcommand зарегистрирован в epic_resolve.py"
+    verify: "rg 'seed-constitution' .claude/hooks/epic_resolve.py"
+  - id: cp2
+    criterion: "На пустой product tmp-папке создаётся `memory-bank/constitution.md` с ≥9 MUST секциями"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py::test_creates_constitution -q"
+  - id: cp3
+    criterion: "Placeholders version/date/scope заполнены (нет «[Product name]» literal в output)"
+    verify: ".venv/bin/pytest loop/tests/test_seed_constitution.py::test_placeholders_filled -q"
+
+verify:
+  - "rg 'seed-constitution' .claude/hooks/epic_resolve.py"
+  - ".venv/bin/pytest loop/tests/test_seed_constitution.py -q -k 'creates or placeholders'"
+
+tdd:
+  - "test_creates_constitution: tmp_path product dir → seed_constitution(tmp_path) → constitution file exists"
+  - "test_placeholders_filled: output has MUST-1..9 headings; no '[Product name]' literal"
+  - "test_missing_template_exit2: fake hub root без template → sys.exit(2)"
+  - "test_missing_memory_bank_created: memory-bank absent → создаётся автоматически"

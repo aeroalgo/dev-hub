@@ -12,6 +12,8 @@ alwaysApply: false
 **Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
 **Вход:** план из `load_now` или `BACK DECOMPOSE plan-<id>` (в одном сообщении).
 
+**Folder slug (HARD):** `plan_id` = stem plan-файла без `plan-` (напр. plan `plan-T-HUB-033-harness-execution-discipline.md` → папка `decompose-T-HUB-033-harness-execution-discipline/`, `index.yaml` `plan_id:` тот же, IMPLEMENT → `implement-T-HUB-033-harness-execution-discipline/`). **FORBIDDEN** короткое `decompose-T-HUB-033/` из queue `id:` при наличии descriptive slug в имени plan. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+
 ---
 
 ## Maximal detail DECOMPOSE (HARD) — все этапы + все требования
@@ -60,7 +62,7 @@ DECOMPOSE = **максимально подробная** нарезка. Не �
 DECOMPOSE **обязан** нарезать удаление устаревшего кода, который эпик заменяет. Иначе IMPLEMENT плодит мёртвые пути/shim без владельца.
 
 **PLAN** называет поверхности (`## Replacement / sunset` **A/B/C**); **DECOMPOSE** делает их атомарными (`deletes:` + sNN + verify); **IMPLEMENT** только исполняет список из step.  
-**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · **Design axiom (не копировать as-built):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 
 ### REQUIRED
 
@@ -169,10 +171,13 @@ IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `w
 5f. **FAIL** если план/канон заменяет поверхность, а в очереди нет sNN с `deletes` на неё (и нет out_of_scope+follow-up **в queue** в Replacement cleanup)
 5g. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
 5h. **FAIL** если Replacement cleanup имеет строки ≠ n/a, а в очереди нет `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §2.2)
-5i. **FAIL** если plan sunset без таблиц A+B+C при brownfield replace (только одна таблица modules)6. Папка `memory-bank/back/plan/decompose-<plan_id>/` из `@.cursor/templates/decompose/`. `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
+5i. **FAIL** если plan sunset без таблиц A+B+C при brownfield replace (только одна таблица modules)
+5j. **FAIL** если имя `decompose-*` / `implement-*` / `plan_id` = только short queue id (`T-HUB-NNN`), а plan-файл = `plan-T-HUB-NNN-<slug>.md` (slug обязан совпадать со stem plan)
+6. Папка `memory-bank/back/plan/decompose-<plan_id>/` из `@.cursor/templates/decompose/` — `<plan_id>` = stem plan без `plan-` (со slug). `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
 7. Обнови plan: ссылка на index как единственный трекер; удали дубль-чеклисты sNN; сохрани Goal/AC/архитектуру/risks (**не** переписывай Goal плана под infra-only); при добавлении шагов — поправь §нарезка на фактический s01–sN
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.md`, status `active`
    **Tip (soft):** рекомендуется `BACK ANALYZE <epic_id>` перед первым `BACK IMPLEMENT`, чтобы заранее проверить coverage и critical findings; это не hard gate.
+   **Tip (traceability):** Перед тем как закрыть DECOMPOSE, запусти `python3 .claude/hooks/epic_resolve.py validate-traceability --epic <plan_id>` — `CRITICAL=0` требуется для promote → IMPLEMENT. При выявление `HIGH` исправь пропущенные `plan_refs` или `out_of_scope` в шардах.
 8. `tasks.md` append-only
 9. Next: `needs_creative` → CREATIVE; иначе IMPLEMENT
 10. **Новый чат** для IMPLEMENT (context-session §2)

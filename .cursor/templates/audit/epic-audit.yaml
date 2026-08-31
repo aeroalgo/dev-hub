@@ -48,10 +48,21 @@ deviations:
     actual: <what was actually done>
     impact: low | medium | high
 
-# Brownfield replace / cutover (shared/workflow-legacy-fallback-cleanup.mdc):
-# непустой массив → новый *-audit-* shard или FAIL перед QA
-legacy_surfaces_remaining: []   # path/symbol ещё живы vs plan sunset A/B
-fallback_remaining: []          # soft-fail / dual-path ещё живы vs sunset C
+# Brownfield replace / cutover (shared/workflow-legacy-fallback-cleanup.mdc §4):
+# HARD: sunset_inventory_scan обязателен при sunset ≠ n/a; legacy_surfaces_remaining: []
+# только после scan с result: pass на всех rows. Пустые массивы без scan = audit FAIL.
+sunset_inventory_scan:
+  scanned_at: YYYY-MM-DD
+  plan_ref: plan-<epic_id>.md#replacement--sunset
+  rows:
+    - symbol: path/or/FunctionName
+      kind: A
+      command: 'rg -n "FunctionName" <scope> --glob "*.py" | rg -v "test_|/archive/"'
+      result: pass | fail
+      prod_callers: []
+      notes: ""
+legacy_surfaces_remaining: []   # каждый scan row result:fail + prod callers; shim без follow-up in queue
+fallback_remaining: []          # kind C scan fails
 purge_step_present: true        # false только если sunset весь n/a (greenfield)
 
 blocked_reason: ""  # заполнить если blocked, иначе пусто

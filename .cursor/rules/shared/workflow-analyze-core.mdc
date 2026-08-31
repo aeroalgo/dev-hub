@@ -17,7 +17,7 @@ alwaysApply: false
 3. **Underspecification** — FR без `sNN`, step без `plan_ref`/FR или goal-only step без delta.
 4. **Coverage Gaps** — AC+/AC−/FR/NFR/SC без `sNN` и без явного `out_of_scope`.
 5. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
-6. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки.
+6. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
 
@@ -41,3 +41,20 @@ alwaysApply: false
 - metrics пересчитаны после всех passes;
 - CRITICAL вынесены в `next_actions[]`;
 - исходные файлы, code и implement artifacts не изменены.
+
+## analyze-convergence vs validate-traceability vs reconcile-spec
+
+Разделение ответственности команд системного анализа и проверки трассируемости:
+
+| Команда | Когда запускать | Что проверяет | Exit codes | Типичный usecase |
+|---|---|---|---|---|
+| `analyze-convergence` | Перед/после DECOMPOSE или при валидации спеки/плана | Полноту и согласованность FR/AC/NFR/SC и декомпозиции (sNN coverage, metrics) | `0` = PASS, `1` = drift/gaps | Анализ декомпозиции эпика на конвергентность |
+| `validate-traceability` | На этапах PLAN / DECOMPOSE | Сквозную трассируемость requirements → plan refs → steps | `0` = OK, `1` = orphan/broken refs | Проверка ссылок требований и шагов перед IMPLEMENT |
+| `reconcile-spec` | После изменения спек или при слиянии роадмапов | Сличение spec-first контрактов с реализацией и планом | `0` = reconciled, `1` = drift | Актуализация спек и выявление рассинхрона контрактов |
+
+### Пример запуска analyze-convergence
+
+```bash
+python .claude/hooks/epic_resolve.py analyze-convergence --plan-id T-HUB-032 --format text
+```
+

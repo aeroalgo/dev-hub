@@ -1,7 +1,17 @@
 schema: epic-decompose-index/v1
+# plan_id = stem of plan-*.md WITHOUT "plan-" prefix, WITH descriptive slug
+# (plan-T-HUB-033-harness-execution-discipline.md → T-HUB-033-harness-execution-discipline)
+# FORBIDDEN: short queue id alone (T-HUB-033) when plan has a slug suffix
 plan_id: <plan_id>
 source_md: index.md
 status_canon: index.yaml
+# Optional appetite mirror from plan.md (advisory in v1)
+# appetite:
+#   timebox_days: 3
+#   max_steps: 10
+#   circuit_breaker: "Остановка если >10 шагов или превышен timebox"
+#   cut_list:
+#     - "optional UI polish"
 steps:
   - id: s01
     file: s01-<slug>.yaml

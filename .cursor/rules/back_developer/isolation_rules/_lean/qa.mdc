@@ -11,7 +11,7 @@ alwaysApply: false
 
 ## Gates (обязательные — узкий путь)
 
-1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика** (не все sNN prose); **не** полный `plan-*.md`; `plan §N` только если AC неясен; parent гоняет suite; `epic_id` → путь артефакта
+1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика** (не все sNN prose); **не** полный `plan-*.md`; при эпике с plan L2+ — `qa_consumes`-first (читать `plan.md#qa-consumes` через offset/grep); `plan §N` — только если test matrix row missing или в legacy plan без `#qa-consumes` (FR-009); parent гоняет suite; `epic_id` → путь артефакта
 2. verification-before-completion · §0.11 · линт · типы · **полный** `.venv/bin/pytest` из корня (не голый `pytest`)
 2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B symbols; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
 3. После suite → **1× reviewer** обязателен (`Suite results` · `AC+` · `AC−` · `§0.11` · `ALLOW READ` ≤10). Claude Code: `Agent`→`reviewer`. Reviewer = основной code-review; **не** дублировать полным `code-review` skill на весь эпик.

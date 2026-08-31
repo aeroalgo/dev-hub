@@ -5,8 +5,11 @@ alwaysApply: false
 ### Команда: FRONT PLAN
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/plan.mdc
+**Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**CLARIFY (Phase 0 mechanics)**: @.cursor/rules/front_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Скиллы:**
 - @.agents/skills/grill-me/SKILL.md (только блокеры)
 - @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch)
@@ -20,12 +23,13 @@ alwaysApply: false
 - @.agents/skills/frontend-patterns/SKILL.md
 - @.agents/skills/playwright-best-practices/SKILL.md
 
-**Batch:** шаги за один проход.
+**Batch (Phase 1 only):** шаги за один проход. **Phase 0** — sequential (orchestration).
 
 **Процесс**:
-1. `OK FRONT PLAN - Создаю детальный план` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
+0. **Phase 0 Clarify (orchestration):** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — при триггерах clarify mechanics до Phase 0 gate OK.
+1. `OK FRONT PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
 1a. Прочитай **Gates**
-1b. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `FRONT CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
+1b. **Clarify link:** clarify-артефакт → шапка plan + `## Clarifications` summary
 1c. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные ID при multi-epic)
@@ -45,7 +49,7 @@ alwaysApply: false
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`
     (нет `loop/` в продукте → `dev-hub/loop/context_loop.py`).
     `ok: false` → halt PLAN. Нет slug-источников и нет canon → skip CLI. Иначе merge **всегда**.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon md + queue + первый plan
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact по slug (если был) + canon md + queue + первый plan
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]` из **canon**; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 

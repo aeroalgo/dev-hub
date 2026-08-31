@@ -1,0 +1,105 @@
+---
+description: "PLAN Phase 0 — auto-clarify orchestration (BACK/FRONT/INTEG); * CLARIFY остаётся для добора и revisit"
+alwaysApply: false
+---
+# PLAN ↔ CLARIFY orchestration
+
+**Канон:** пользователь вводит **одну** команду `* PLAN <slug>`. Агент сам решает, нужен ли Phase 0 Clarify в **той же сессии**.  
+**`* CLARIFY`** — отдельная команда для добора (квота 5/5), pipeline-revisit, CRITICAL после draft plan.
+
+**Shared clarify mechanics:** @.cursor/rules/shared/workflow-clarify-core.mdc  
+**Role wrappers:** `workflow-clarify.mdc` (back/front/integration)  
+**Шаблон:** @.cursor/templates/clarify.md
+
+---
+
+## Две фазы одной сессии PLAN
+
+| Фаза | Режим UX | Артефакт | Когда |
+|------|----------|----------|-------|
+| **Phase 0** | sequential, ≤5 Q, 1 вопрос за ход, Recommended/Suggested | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` | триггеры ниже |
+| **Phase 1** | batch, plan unlimited (§0.0) | `plan-<task_id>.md` (+ roadmap/queue) | после Phase 0 gate OK |
+
+**Объявление в чат:**
+- Phase 0: `OK * PLAN — Phase 0 Clarify (<slug>)`
+- Phase 1: `OK * PLAN — Phase 1 Plan writing (<slug>)` + `SUSPENSION GUARD active — plan output unlimited`
+
+**FORBIDDEN в Phase 0:** batch dump вопросов; писать полный plan до Completion Report Phase 0 (кроме patch секций по Q→A).  
+**FORBIDDEN в Phase 1:** повторный full Grill pass вместо ссылки на clarify-артефакт (spike skip → только mini grill §Product probe).
+
+---
+
+## Phase 0 — триггеры (любой → запустить до Phase 1)
+
+1. Нет `clarify-*-<slug>.md` в `memory-bank/{role}/clarify/` **или** последний артефакт без `status: done` / без Completion Report / с открытым CRITICAL
+2. Scope / data / NFR / integrations / wire **Partial или Missing** по taxonomy (shared-core §8 категорий) с материальным impact
+3. Вход (brief / research / draft plan / activeContext) содержит `[НУЖНО УТОЧНИТЬ` (любой severity) без resolve в существующем clarify
+4. `Revisit stage: CLARIFY` (IDEA PIPELINE) или Handoff next = `* CLARIFY`
+5. ANALYZE направил на CLARIFY (`critical_count > 0` без закрытия)
+
+## Phase 0 — skip (сразу Phase 1)
+
+1. **Свежий clarify:** `clarify-*-<slug>.md` с `status: done`, Completion Report (`Grill:`), нет открытого `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без defer-list owner/next
+2. Явный пользовательский **`spike` / `exploratory`** → warning (shared §skip policy) → Phase 1 с **mini grill** (3 premises) в plan `§Product probe` только
+3. Scope taxonomy **все Clear** по скану входа (кратко зафиксировать в plan `§Product probe`: «Phase 0 skipped — taxonomy clear»)
+
+При skip без spike: **не** создавать пустой clarify-артефакт.
+
+---
+
+## Phase 0 — исполнение (в сессии PLAN)
+
+1. Прочитать role **CLARIFY gates** (`isolation_rules/_lean/clarify.mdc`) + **shared-core**
+2. **Read** `@.agents/skills/grill-me/SKILL.md` целиком → `## Grill pass` в clarify-артефакт
+3. Taxonomy scan → coverage map (в артефакт)
+4. ≤5 sequential Q; после каждого A → Q→A log + patch draft plan секций если draft уже есть
+5. CRITICAL → resolve или defer-list (owner/next)
+6. **Completion Report** в clarify-артефакт; `status: done` если ready for Phase 1
+
+### Phase 0 halt (не переходить к Phase 1)
+
+- Ожидается ответ пользователя на текущий Q
+- Открытый CRITICAL без resolve/defer-list
+- Квота 5/5 исчерпана с material gaps → FINISH с next `continue * CLARIFY` (новая сессия)
+
+### Phase 0 → Phase 1 gate (в той же сессии, без отдельного чата)
+
+- Completion Report на диске
+- Нет открытого CRITICAL blocker
+- Затем **не** FINISH PLAN — продолжить шаги Phase 1 workflow-plan
+
+---
+
+## Phase 1 — plan writing
+
+- Ссылка на clarify в шапке plan: `**Clarify:** memory-bank/{role}/clarify/clarify-…md` (если Phase 0 был или артефакт существует)
+- Секция `## Clarifications` — session ref + краткий summary resolved/deferred (не дублировать весь Q→A)
+- Остальной процесс — role `workflow-plan.mdc` (multi-epic, merge, FINISH guards)
+
+---
+
+## Когда использовать отдельную `* CLARIFY`
+
+| Сценарий | Команда |
+|----------|---------|
+| Добор после 5/5 Q | `continue * CLARIFY <slug>` |
+| CRITICAL появились после draft plan | `* CLARIFY <slug>` (+ patch plan) |
+| IDEA PIPELINE / ANALYZE revisit | `* CLARIFY <slug>` |
+| Только снять ambiguity без plan в этой сессии | `* CLARIFY <slug>` → FINISH → позже `* PLAN` |
+
+**Не требовать** отдельный `* CLARIFY` перед `* PLAN`, если пользователь уже ввёл PLAN — orchestrator делает Phase 0 сам.
+
+---
+
+## FINISH `* PLAN`
+
+`load_now` (дополнение к finish-doc-router):
+
+- clarify-артефакт slug (если Phase 0 в сессии или существует и привязан к plan)
+- canon roadmap + queue + first plan (как сейчас)
+
+Handoff next: `* DECOMPOSE` / CREATIVE / IMPLEMENT — без промежуточного `* CLARIFY`, если Phase 0 gate пройден.
+
+## FINISH `* CLARIFY` (standalone)
+
+Без изменений: `load_now` → clarify artifact; next tip = `* PLAN <slug>` (Phase 1 в новой или той же сессии).

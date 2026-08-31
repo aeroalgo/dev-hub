@@ -5,11 +5,13 @@ alwaysApply: false
 # INTEG PLAN — gates
 
 **Артефакт:** `memory-bank/integration/plan/plan-<task_id>.md`  
+**Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research multi-axis → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× plan; PLAN **сам** делает `roadmap-merge --role integration` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE  
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
 
 ## Gates
 
+0. Phase 0 orchestration при триггерах (см. shared orchestration)
 1. Scope: portal | journey | section
 2. Inventory: routes + UI + back/front implement as-built
 3. §0.11; mocks в Element registry; brownfield replace mock/legacy → `## Replacement / sunset` **A+B+C** (DECOMPOSE → `deletes` + purge). Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc

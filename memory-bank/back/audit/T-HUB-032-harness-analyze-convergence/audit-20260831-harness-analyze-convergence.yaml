@@ -1,0 +1,57 @@
+schema: audit-report/v1
+epic: T-HUB-032-harness-analyze-convergence
+role: back
+date: '2026-08-31'
+status: passed
+summary: "Gap-анализ plan vs implement для T-HUB-032-harness-analyze-convergence: все 5 шагов (s01-s05) полностью реализованы и покрыты 22 pytest тестами."
+
+requirements_matrix:
+  - id: FR-001
+    status: implemented
+    steps: [s02]
+    evidence: ".claude/hooks/epic_resolve.py: cmd_analyze_convergence с флагами --cwd, --plan-id, --format, --strict, --include-git-diff"
+  - id: FR-002
+    status: implemented
+    steps: [s01]
+    evidence: ".claude/hooks/epic/convergence.py: schema convergence-report/v1, категории CV-001...CV-006 (orphan_requirement, orphan_task, ac_conflict, traceability_gap, reconcile_overlap, stale_handoff)"
+  - id: FR-003
+    status: implemented
+    steps: [s01]
+    evidence: ".claude/hooks/epic/convergence.py: переиспользование traceability.py и reconcile.py, дедупликация findings по fingerprint"
+  - id: FR-004
+    status: implemented
+    steps: [s01, s02]
+    evidence: ".claude/hooks/epic/convergence.py: read-only проверка без мутации файлов, exit 0 при наличии findings, strict mode экзит 1 при HIGH+"
+  - id: FR-005
+    status: implemented
+    steps: [s03]
+    evidence: ".claude/hooks/epic/core.py & epic_events.py: EPIC_CONVERGENCE_CHECK=1 warn-only проверка на IMPLEMENT arm"
+  - id: FR-006
+    status: implemented
+    steps: [s04]
+    evidence: "22 pytest теста в loop/tests/test_convergence_*.py и фикстуры в loop/tests/fixtures/convergence"
+
+gap_matrix:
+  - step_id: s01
+    status: implemented
+    as_built: ".claude/hooks/epic/convergence.py engine + convergence-report/v1 schema + finding categories CV-001..CV-006"
+    delta: none
+  - step_id: s02
+    status: implemented
+    as_built: ".claude/hooks/epic_resolve.py subcommand analyze-convergence + text/JSON formatters + strict mode"
+    delta: none
+  - step_id: s03
+    status: implemented
+    as_built: "Loop integration с EPIC_CONVERGENCE_CHECK warn-only при переходе на IMPLEMENT arm"
+    delta: none
+  - step_id: s04
+    status: implemented
+    as_built: "Pytest test suite (22 теста) с фикстурами по категориям, active sweep и проверкой strict exit codes"
+    delta: none
+  - step_id: s05
+    status: implemented
+    as_built: "Docs & cheatsheet различий analyze-convergence vs validate-traceability vs reconcile-spec"
+    delta: none
+
+not_implemented: []
+next_step: QA

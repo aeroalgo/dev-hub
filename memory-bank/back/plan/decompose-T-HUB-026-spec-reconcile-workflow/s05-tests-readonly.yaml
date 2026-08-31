@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: pytest suite — stale as_built fixture + active sweep + read-only guard
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Дополнить `loop/tests/test_reconcile_spec.py` (заготовка уже существует) до
+  полного покрытия AC: stale as_built → RC-001 HIGH (SC-001), default sweep
+  только active (SC-002), read-only guard — reconcile не мутирует tracked files
+  (SC-005). Проверить что все тесты зелёные вместе с s01–s04.
+  (AC+4,7; FR-004, FR-005; SC-001,002,005).
+
+context:
+  consumes:
+    - "loop/tests/test_reconcile_spec.py — заготовка: _write helper, _minimal_tasks, _seed_epic, test_reconcile_active_default_sweep, test_reconcile_readonly_does_not_mutate, test_cli_reconcile_spec_json"
+    - ".claude/hooks/epic/reconcile.py — полная impl из s01"
+    - ".claude/hooks/epic_resolve.py — CLI из s02"
+    - "plan-T-HUB-026 §TDD plan (5 red→green)"
+    - "plan-T-HUB-026 §FR-005 (reuse parsers from T-HUB-024)"
+  produces:
+    - "loop/tests/test_reconcile_spec.py — полный suite: stale fixture, sweep, read-only, CLI json, strict exit"
+  plan_refs:
+    - "FR-004 (checks a-d)"
+    - "FR-005 (reuse parsers)"
+    - "AC+ #4 (fixture tests pass)"
+    - "AC+ #7 (read-only enforced)"
+    - "SC-001 (stale as_built RC-001 HIGH)"
+    - "SC-002 (sweep active only)"
+    - "SC-005 (read-only git guard)"
+  files:
+    - "loop/tests/test_reconcile_spec.py"
+
+as_built:
+  - "test_reconcile_spec.py — заготовка: _write, _minimal_tasks, _seed_epic, 3 теста (active_sweep, readonly, cli_json) — импорты корректны но ряд тестов может быть неполным"
+  - "loop/tests/fixtures/traceability/ — директория существует (из T-HUB-024 / ??? - проверить)"
+
+delta:
+  - "test_reconcile_spec.py ADD test_stale_as_built_gives_rc001_high: _seed_epic с as_built='src/missing.py' (не создавать файл) → reconcile_epic → finding RC-001 HIGH"
+  - "test_reconcile_spec.py ADD test_active_sweep_skips_queued: tasks.md с одним active + одним queued → list_active_epic_ids возвращает только active"
+  - "test_reconcile_spec.py ADD test_strict_exit1_on_high: CLI --strict с HIGH finding → returncode 1"
+  - "test_reconcile_spec.py ADD test_unknown_plan_id_exit2: CLI --plan-id UNKNOWN → returncode 2"
+  - "test_reconcile_spec.py VERIFY/COMPLETE test_reconcile_readonly_does_not_mutate: plan_file before/after run_reconcile_spec — bytes equal"
+  - "test_reconcile_spec.py VERIFY test_cli_reconcile_spec_json: schema + plan_id check (уже есть)"
+
+deletes: []
+
+out_of_scope:
+  - "reconcile.py core impl — s01"
+  - "CLI subparser — s02"
+  - "workflow docs — s03"
+  - "template edits — s04"
+  - "constitution_missing (FR-004d LOW) — отдельный тест опционален в v1"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "test_stale_as_built_gives_rc001_high существует в test file"
+    verify: "rg 'test_stale_as_built' loop/tests/test_reconcile_spec.py"
+  - id: cp2
+    criterion: "Все тесты test_reconcile_spec.py зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_reconcile_spec.py -q --tb=short"
+  - id: cp3
+    criterion: "Читаем-только guard: reconcile не изменяет файлы (test_reconcile_readonly_does_not_mutate)"
+    verify: "rg 'test_reconcile_readonly' loop/tests/test_reconcile_spec.py"
+  - id: cp4
+    criterion: "Полный suite (включая s01–s04 smoke) зелёный"
+    verify: ".venv/bin/pytest loop/tests/test_reconcile_spec.py -q --tb=line"
+
+verify: []
+
+tdd:
+  - "test_stale_as_built_gives_rc001_high"
+  - "test_active_sweep_skips_queued"
+  - "test_strict_exit1_on_high"
+  - "test_unknown_plan_id_exit2"
+  - "test_reconcile_readonly_does_not_mutate"
+  - "test_cli_reconcile_spec_json"

@@ -22,6 +22,25 @@ alwaysApply: false
 
 ---
 
+## Product probe (office-hours lite)
+
+Product probe проводится до WHAT, чтобы зафиксировать реальную проблему и не планировать ложное решение.
+
+### 6 forcing questions (RU)
+1. **Demand reality** — Кто и когда запрашивал эту фичу в реале? Какой конкретно инцидент/боль привели к запросу?
+2. **Status quo** — Как пользователь/система решает эту задачу прямо сейчас без этой фичи (workaround)?
+3. **Desperate specificity** — Какой конкретный шаг в текущем процессе отнимает больше всего времени или вызывает ошибку?
+4. **Narrowest wedge** — Какая минимальная рабочая версия фичи даёт 80% ценности при 20% усилий?
+5. **Observation & surprise** — Какие неожиданные паттерны использования или граничные случаи наблюдались при исследовании?
+6. **Future-fit** — Какие предполагаемые изменения в системе или продукте могут сделать это решение бессмысленным?
+
+### Правила квоты и формата
+- **Квота CLARIFY:** продуктовые вопросы входят в общую квоту **≤5 total** за CLARIFY-сессию (задаются sequential).
+- **Batch vs sequential:** при пропуске CLARIFY в L3+ PLAN оператор заполняет обязательную **batch**-таблицу Product probe в плане; при CLARIFY — вопросы идут в Q→A log в рамках квоты.
+- **Output contract:** Reframe + Premises (3–5 falsifiable допущений) + Recommended wedge.
+
+---
+
 ## Таксономия вопросов (8 категорий)
 
 Сканируй вход (draft plan / feature brief / activeContext) и помечай каждую категорию: **Clear** / **Partial** / **Missing**. Кандидаты в очередь только из Partial/Missing с материальным impact.
@@ -104,7 +123,9 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 - Resolved: …
 - Deferred: … (severity + next)
 - Coverage: scope=… data=… UX-API=… NFR=… integrations=… edge=… constraints=… terminology=…
-- Next: BACK|FRONT|INTEG PLAN <slug> | continue CLARIFY | spike (skip warning)
+- Next: BACK|FRONT|INTEG PLAN <slug> Phase 1 | continue CLARIFY | spike (skip warning)
+
+Если Completion Report внутри сессии `* PLAN` Phase 0 — **не** FINISH CLARIFY; перейти к Phase 1 в той же сессии.
 ```
 
 Если вопросов не было: явно «критичных ambiguity не найдено» + next PLAN.
@@ -113,8 +134,9 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 
 ## skip policy
 
-Пропуск CLARIFY **только** при явном `spike` / `exploratory` от пользователя.
-Обязателен warning: downstream rework risk ↑; рекомендовать CLARIFY до полного PLAN.
+Пропуск Phase 0 **только** при явном `spike` / `exploratory` от пользователя **или** taxonomy all-Clear (orchestration §Phase 0 skip).
+Обязателен warning при spike: downstream rework risk ↑.
+Обычный вход — `* PLAN <slug>`; отдельный `* CLARIFY` перед PLAN **не требуется**.
 
 ---
 

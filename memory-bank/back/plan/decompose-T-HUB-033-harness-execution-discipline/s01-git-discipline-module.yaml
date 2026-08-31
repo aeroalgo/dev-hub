@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-033-harness-execution-discipline
+title: "git_discipline модуль — atomic commit per sNN с mock-тестами"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/git_discipline.py` с функцией `maybe_atomic_commit(cwd, epic_id, step_id, title) -> CommitResult`.
+  Функция: (1) проверяет EPIC_ATOMIC_COMMIT env (default "0" → skip, return CommitResult(skipped=True));
+  (2) проверяет чистоту git-дерева (dirty unrelated files → fail-closed, configurable allowlist);
+  (3) делает `git add -A && git commit -m "{epic_id} {step_id}: {title}"` — без push;
+  (4) возвращает CommitResult(ok, skipped, commit_sha, error).
+  Outcome: операторы с EPIC_ATOMIC_COMMIT=1 получают git-лог = epic-timeline; hub-dev остаётся на default=0.
+  Связь с FR-001, FR-002, FR-004, FR-008, AC#1.
+
+context:
+  consumes:
+    - "loop/schemas/checkpoint.py — понять паттерн Pydantic-моделей в проекте"
+  produces:
+    - "loop/git_discipline.py — новый модуль"
+    - "loop/tests/test_git_discipline.py — новый тест-файл"
+  plan_refs:
+    - "FR-001: env EPIC_ATOMIC_COMMIT default 0"
+    - "FR-002: maybe_atomic_commit signature + dirty-tree fail-closed"
+    - "FR-004: commit message template {epic_id} {step_id}: {title}"
+    - "FR-008: tests mock git; commit on success; skip env=0; fail dirty"
+    - "AC#1: git_discipline module"
+    - "SC-001: atomic commit on finalize when enabled"
+    - "SC-002: no commit when EPIC_ATOMIC_COMMIT=0"
+  files:
+    - "loop/git_discipline.py"
+    - "loop/tests/test_git_discipline.py"
+
+as_built:
+  - "loop/ — директория существует, там loop.sh, context_loop.py, schemas/, tests/"
+  - "loop/schemas/checkpoint.py — Pydantic v2 CheckpointRecord, pattern extra='allow'"
+  - "loop/tests/ — pytest-тесты, fixtures/, __init__.py"
+  - "EPIC_ATOMIC_COMMIT — не существует нигде в кодовой базе (greenfield)"
+
+delta:
+  - "add: loop/git_discipline.py — CommitResult (Pydantic BaseModel), maybe_atomic_commit(), _is_dirty_unrelated(cwd, allowlist)"
+  - "add: loop/tests/test_git_discipline.py — pytest с tmp_path git-репо (subprocess.run mock или реальный tmpdir git init)"
+
+deletes: []
+
+out_of_scope:
+  - "Интеграция с finalize_step — s02"
+  - "CheckpointRecord.session_boundary field — s03"
+  - "loop.sh изменения — s03"
+  - "Docs/env — s04"
+  - "git push / remote operations — не в scope эпика вообще"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"                          # Core — TDD red/green cycle
+    - ".agents/skills/python-testing-patterns/SKILL.md"      # Core — pytest patterns, tmp_path, fixtures
+    - ".agents/skills/modern-python/SKILL.md"                # Core — Python 3.12+, dataclass/BaseModel
+    - ".agents/skills/python-anti-patterns/SKILL.md"         # Core — избегать subprocess-injection и т.п.
+    - ".agents/skills/python-type-safety/SKILL.md"           # S11 — новый публичный тип CommitResult / Pydantic
+    - ".agents/skills/python-error-handling/SKILL.md"        # S03 — fail-closed на dirty tree / git subprocess failure
+
+checkpoints:
+  - id: cp1
+    criterion: "EPIC_ATOMIC_COMMIT=0 → maybe_atomic_commit возвращает CommitResult(skipped=True, ok=True), git не вызывается"
+    verify: ".venv/bin/pytest loop/tests/test_git_discipline.py -q -k 'skip' --tb=line"
+
+  - id: cp2
+    criterion: "EPIC_ATOMIC_COMMIT=1 + чистый tmp git repo → commit создан с message '{epic_id} {step_id}: {title}', CommitResult(ok=True, commit_sha!=None)"
+    verify: ".venv/bin/pytest loop/tests/test_git_discipline.py -q -k 'commit_on_success' --tb=line"
+
+  - id: cp3
+    criterion: "EPIC_ATOMIC_COMMIT=1 + dirty unrelated file → CommitResult(ok=False, error содержит 'dirty'), git commit не вызван"
+    verify: ".venv/bin/pytest loop/tests/test_git_discipline.py -q -k 'dirty' --tb=line"
+
+  - id: cp4
+    criterion: "Весь тест-файл зелёный, нет import-ошибок в loop/git_discipline.py"
+    verify: ".venv/bin/pytest loop/tests/test_git_discipline.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_git_discipline.py -q --tb=short"
+
+tdd:
+  - "test_skip_when_env_zero: env EPIC_ATOMIC_COMMIT=0 → skipped=True, нет subprocess.run('git')"
+  - "test_commit_on_success: tmp git init + staged file + env=1 → commit exists in git log"
+  - "test_fail_on_dirty_tree: untracked file вне allowlist + env=1 → ok=False, error~'dirty'"
+  - "test_commit_message_format: сообщение = '{epic_id} {step_id}: {title}' без AI body"
+  - "test_allowlist_passes_dirty: allowlist=['*.md'] + dirty .md file → commit proceeds"

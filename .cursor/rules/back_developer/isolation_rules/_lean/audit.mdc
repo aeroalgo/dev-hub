@@ -16,8 +16,8 @@ alwaysApply: false
    - **⚠️ отклонение** — implement есть, но intent частично реализован или расходится с планом; фиксируется finding с evidence, а не presence-only оценка.
 4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence`, `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; CRITICAL constitution/P1 — первыми.
 5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts` и leftover получает новый `decompose-<epic_id>/sNN-audit-<slug>.yaml`; shard append-only, а его `goal` и `plan_refs` содержат исходный `source_ref`. `unrequested` не создаёт auto-delete.
-6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Непустой leftover не допускает QA как clean.
-7. **Converged gate:** `converged: true` только при отсутствии actionable findings, пустых `legacy_surfaces_remaining[]`/`fallback_remaining[]` и `purge_step_present=true` для brownfield replace (либо `sunset: n/a`); тогда следующий режим BACK QA. Иначе loop: новые audit shards → BACK IMPLEMENT → BACK AUDIT.
+6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны **`sunset_inventory_scan`** (rg по **каждой** строке plan sunset A/B/C), `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Пустой `legacy_surfaces_remaining[]` без выполненного scan = FAIL. Непустой leftover не допускает QA как clean.
+7. **Converged gate:** `converged: true` только при отсутствии actionable findings, **`sunset_inventory_scan` complete** (все rows `result: pass` или sunset n/a), пустых `legacy_surfaces_remaining[]`/`fallback_remaining[]` и `purge_step_present=true` для brownfield replace (либо `sunset: n/a`); тогда следующий режим BACK QA. Иначе loop: новые audit shards → BACK IMPLEMENT → BACK AUDIT.
 8. Append в tasks log; blocked-случай записывается через `blocked_reason` и Handoff → `finish-doc-router.md`.
 9. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index, если добавлены sNN.
 
@@ -27,7 +27,7 @@ alwaysApply: false
 - Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
 - FINISH без Intent Inventory, Assess, findings или полной gap-матрицы в артефакте → FAIL
 - `source_ref` отсутствует в finding или goal/plan_refs нового audit shard → FAIL
-- Brownfield replace: нет полей leftover / `purge_step_present=false` при sunset ≠ n/a → FAIL
+- Brownfield replace: нет **`sunset_inventory_scan`** / leftover fields / `purge_step_present=false` при sunset ≠ n/a → FAIL
 - Запуск `pytest`, `vitest`, Playwright, полного suite, `git-diff` или попытка rewrite completed implement → FAIL
 - Введение нового MODE CONVERGE или auto-delete unrequested → FAIL
 

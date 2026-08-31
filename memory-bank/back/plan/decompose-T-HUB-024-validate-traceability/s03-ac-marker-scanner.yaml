@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-024-validate-traceability
+title: AC marker scanner — pytest.mark.ac collector + --ac-strict flag
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать опциональный сканер живых acceptance-критериев:
+  - scan_ac_markers(tests_dir) → dict[str, list[str]]: grep по `@pytest.mark.ac("AC+N")` / `@pytest.mark.ac("FR-NNN")`.
+  - Интеграция в build_report (s02): если tests_dir передан, findings обогащаются
+    (MEDIUM: requirement из plan без ни одного ac-marker).
+  - Флаг `--ac-strict` в CLI (s02): отсутствие ac-marker на FR/SC → HIGH.
+  - Если tests_dir не передан — scanner молчит (soft opt-in), CRITICAL/HIGH не возникают.
+  Scope ограничен scanner-logic + CLI wire; pytest.ini / conftest.py конфигурация — s05.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/traceability.py — TraceReport, Finding, build_report (s01, s02)"
+    - ".claude/hooks/epic_resolve.py — validate-traceability subcommand (s02)"
+    - "plan-T-HUB-024 §FR-010, §FR-011, §AC markers (optional), §--ac-strict"
+  produces:
+    - ".claude/hooks/epic/traceability.py — scan_ac_markers(tests_dir: Path | None) -> dict[str, list[str]]"
+    - ".claude/hooks/epic/traceability.py — enrich_with_ac(report, ac_map, strict) — добавляет findings MEDIUM/HIGH"
+    - ".claude/hooks/epic_resolve.py — args --tests-dir, --ac-strict для validate-traceability"
+    - "loop/tests/test_traceability_ac.py"
+  plan_refs:
+    - "plan-T-HUB-024 FR-010"
+    - "plan-T-HUB-024 FR-011"
+    - "plan-T-HUB-024 AC− #2"
+    - "plan-T-HUB-024 AC− #3"
+  files:
+    - ".claude/hooks/epic/traceability.py"
+    - ".claude/hooks/epic_resolve.py"
+    - "loop/tests/test_traceability_ac.py"
+    - "loop/tests/fixtures/traceability/tests/test_example_ac.py"
+
+as_built:
+  - "scan_ac_markers — отсутствует"
+  - "enrich_with_ac — отсутствует"
+  - "--ac-strict / --tests-dir — отсутствуют в subcommand"
+
+delta:
+  - "traceability.py ADD scan_ac_markers(tests_dir: Path | None) -> dict[str, list[str]]: если None → return {}; glob **/*.py; re.findall @pytest.mark.ac(\"...\"); map req_id → [test_file, ...]"
+  - "traceability.py ADD enrich_with_ac(report: TraceReport, ac_map: dict, strict: bool) -> None: для каждого req без ac_map entry → MEDIUM (или HIGH если strict)"
+  - "epic_resolve.py ADD --tests-dir (optional path) + --ac-strict flag в validate-traceability"
+  - "epic_resolve.py MODIFY cmd_validate_traceability: передаёт tests_dir → scan_ac_markers → enrich_with_ac"
+  - "fixture ADD loop/tests/fixtures/traceability/tests/test_example_ac.py — 2 dummy тест-функции с @pytest.mark.ac(\"FR-001\") / @pytest.mark.ac(\"FR-002\")"
+  - "test_traceability_ac.py ADD: scan finds markers in fixture; no-tests-dir returns {}; enrich adds MEDIUM when req uncovered; strict=True adds HIGH"
+
+deletes: []
+
+out_of_scope:
+  - "pytest.ini / conftest.py markerdefs — s05"
+  - "YAML-CONTRACT docs — s04"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "scan_ac_markers и enrich_with_ac определены"
+    verify: "rg 'def scan_ac_markers\\|def enrich_with_ac' .claude/hooks/epic/traceability.py"
+  - id: cp2
+    criterion: "--tests-dir и --ac-strict присутствуют в epic_resolve.py"
+    verify: "rg 'tests.dir\\|ac.strict' .claude/hooks/epic_resolve.py"
+  - id: cp3
+    criterion: "Unit tests зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_traceability_ac.py -q"
+
+verify: []
+
+tdd:
+  - "test_scan_ac_markers_finds_marks_in_fixture"
+  - "test_scan_ac_markers_no_dir_returns_empty"
+  - "test_enrich_with_ac_medium_on_uncovered_req"
+  - "test_enrich_with_ac_strict_elevates_to_high"
+  - "test_enrich_with_ac_noop_when_all_covered"

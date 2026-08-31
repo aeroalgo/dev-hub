@@ -78,6 +78,34 @@ hooks demote ложный `@verify` PASS → FAIL; prepare injects `## FIX INCOM
 
 `PROJECT_AGENT_<NAME>_MODEL` — модель. `PROJECT_AGENT_<NAME>_MODEL_CHAT` и `PROJECT_AGENT_<NAME>_MODEL_LOOP` — только boolean selectors (0/1), не model id. Отсутствующий selector → default `loop=1`, `chat=0`.
 
+## Transition Engine
+
+Unified phase transition contract (`loop/epic_transition.py`) orchestrates phase resolution, state arming, and readiness promotion across the loop subsystem. Driven by `loop/phase_registry.yaml`.
+
+```
+resolve_next(cwd, epic_id, role)
+       │
+       ▼
+  arm_phase(cwd, epic_id, phase, role, **kwargs)
+       │
+       ▼
+promote_if_ready(cwd, epic_id, role)
+```
+
+### Entry Points Table
+
+| Function | Description |
+|----------|-------------|
+| `resolve_next(cwd, epic_id, role)` | Resolves next action and target phase based on current epic state and decompose index. |
+| `arm_phase(cwd, epic_id, phase, role, **kwargs)` | Arms activeContext and epic state for a specified phase. |
+| `promote_if_ready(cwd, epic_id, role)` | Evaluates readiness and gates (e.g. `analyze_gate`), promoting pre-implement phases (DECOMPOSE/ANALYZE) to IMPLEMENT. |
+| `load_phase_registry(path)` | Loads phase definitions, verify agents, and DSH presets from `loop/phase_registry.yaml`. |
+
+### Legacy Deprecations
+
+Functions `promote_decompose_phase_if_ready`, `arm_active_context_from_decompose`, and `arm_pre_implement_context` are deprecated shims delegating to `epic_transition`.
+
+
 ### Loop phase models (main session `--model`)
 
 На каждой итерации `prepare` выбирает модель по `armed_step` / projection phase:

@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-029-epic-phase-transition-engine/s01-epic-transition-skeleton.yaml
+title: "epic_transition.py skeleton + resolve_next delegate + tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать новый модуль `loop/epic_transition.py` с публичным контрактом Transition Engine:
+  `resolve_next(cwd, epic_id, role)` — делегирует в `resolve_epic_next_action` (T-HUB-020);
+  `arm_phase(cwd, epic_id, phase, role)` — stub (NotImplementedError → реализуется в s02);
+  `promote_if_ready(cwd, epic_id, role)` — stub (NotImplementedError → реализуется в s03).
+  Модуль регистрирует deprecation-warning-хелпер для legacy callers.
+  Suite после шага зелёный.
+
+context:
+  consumes:
+    - loop/context_loop.py                    # arm_session, promote_decompose_phase_if_ready
+    - loop/board_sync/epic_resolver.py        # resolve_epic_next_action
+    - .claude/hooks/epic/core.py              # arm_epic, arm_active_context_from_decompose, arm_pre_implement_context
+    - loop/tests/test_context_loop.py         # regression baseline
+  produces:
+    - loop/epic_transition.py                 # NEW: public Transition Engine API
+    - loop/tests/test_epic_transition.py      # NEW: contract tests resolve_next + stub guards
+  plan_refs:
+    - FR-001
+    - FR-002
+    - NFR-1
+    - US-001
+    - US-002
+  files:
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+
+as_built:
+  - loop/context_loop.py — нет `epic_transition` модуля; переходы рассредоточены по promote_decompose_phase_if_ready, arm_session, arm_epic, arm_roadmap_entry
+  - loop/board_sync/epic_resolver.py — `resolve_epic_next_action` — SoT (T-HUB-020) но не экспортирован через общий API
+  - .claude/hooks/epic/core.py:3623 — `arm_epic`; 3716 — `arm_pre_implement_context`; 3383 — `arm_active_context_from_decompose`
+  - нет файла loop/epic_transition.py
+
+delta:
+  - 'loop/epic_transition.py: NEW module'
+  - 'loop/epic_transition.py: `resolve_next(cwd, epic_id, role) -> dict` — thin wrapper над `resolve_epic_next_action`; экспортирует результат без изменений'
+  - 'loop/epic_transition.py: `arm_phase(cwd, epic_id, phase, role, **kwargs) -> dict` — stub с `raise NotImplementedError("implement in s02")`'
+  - 'loop/epic_transition.py: `promote_if_ready(cwd, epic_id, role) -> dict | None` — stub с `raise NotImplementedError("implement in s03")`'
+  - 'loop/epic_transition.py: `_legacy_warn(caller_name) -> None` — emits warnings.warn(DeprecationWarning) для legacy callers; вызывается из шимов s02/s03'
+  - 'loop/tests/test_epic_transition.py: test_resolve_next_delegates_to_resolver — monkeypatch resolve_epic_next_action → assert вызов с правильными args'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_stub_raises — arm_phase(...) → NotImplementedError (guard до s02)'
+  - 'loop/tests/test_epic_transition.py: test_promote_if_ready_stub_raises — promote_if_ready(...) → NotImplementedError (guard до s03)'
+  - 'loop/tests/test_epic_transition.py: test_legacy_warn_emits_deprecation — _legacy_warn("x") → DeprecationWarning'
+
+deletes: []
+# s01 — greenfield новый файл; ничего не удаляется
+
+out_of_scope:
+  - "Реализация arm_phase — s02"
+  - "Реализация promote_if_ready — s03"
+  - "phase_registry.yaml loader — s06"
+  - "Подключение stop-gate — s08"
+  - "Wiring arm_epic / roadmap_queue — s05"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      loop/epic_transition.py импортируется без ошибок; resolve_next доступен публично
+    verify: "timeout 60s python -c 'from loop.epic_transition import resolve_next, arm_phase, promote_if_ready; print(\"ok\")'"
+  - id: cp2
+    criterion: >
+      test_resolve_next_delegates_to_resolver PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_resolve_next_delegates_to_resolver -q --tb=short"
+  - id: cp3
+    criterion: >
+      test_arm_phase_stub_raises + test_promote_if_ready_stub_raises PASS (stubs guard до s02/s03)
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py -k 'stub' -q --tb=short"
+  - id: cp4
+    criterion: >
+      Регрессия: loop/tests/test_context_loop.py зелёный (существующий suite не сломан)
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_context_loop.py -q --tb=line"
+
+tdd:
+  - "test_resolve_next_delegates_to_resolver — monkeypatch → assert delegate"
+  - "test_arm_phase_stub_raises — NotImplementedError guard"
+  - "test_promote_if_ready_stub_raises — NotImplementedError guard"
+  - "test_legacy_warn_emits_deprecation — DeprecationWarning"
+  - "Regression: test_context_loop.py full suite green"

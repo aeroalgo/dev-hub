@@ -5,8 +5,11 @@ alwaysApply: false
 ### Команда: INTEG PLAN
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/plan.mdc
+**Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+**CLARIFY (Phase 0 mechanics)**: @.cursor/rules/integration_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Скиллы:**
 - @.agents/skills/query-builder/SKILL.md
 - @.agents/skills/brainstorming/SKILL.md
@@ -25,9 +28,10 @@ Gap опционален — не блокирует PLAN. Не читать as 
 **Multi-epic (research):** если вход — research/audit с ≥2 независимыми wire-осями / продуктами / journey-пакетами → **не** склеивать в один portal mega-plan. Чистый `INTEG PLAN` без research и `scope=portal` → один master plan как раньше.
 
 **Процесс**:
-1. `OK INTEG PLAN - Создаю master-план wire портала` + SUSPENSION GUARD
+0. **Phase 0 Clarify (orchestration):** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — при триггерах clarify mechanics до Phase 0 gate OK.
+1. `OK INTEG PLAN - Phase 1 Plan writing` + SUSPENSION GUARD
 1a. Прочитай **Gates**
-1a1. **CLARIFY gate:** если scope размыт или есть `[НУЖНО УТОЧНИТЬ]` markers → рекомендовать `INTEG CLARIFY` или выполнить clarify-gate inline до продолжения PLAN.
+1a1. **Clarify link:** clarify-артефакт → шапка plan + `## Clarifications` summary
 1a2. Research / multi-axis → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
 1a3. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 1b. QueryBuilder + graphify (routes/components/endpoints)
@@ -47,7 +51,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
     (нет `loop/` в продукте → `dev-hub/loop/context_loop.py`).
     `ok: false` → halt PLAN. Нет slug-источников и нет canon → skip CLI. Иначе merge **всегда**.
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = canon md + queue + первый plan
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact по slug (если был) + canon md + queue + первый plan
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7. Next: **INTEG DECOMPOSE** `queue[0]` из **canon** → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 

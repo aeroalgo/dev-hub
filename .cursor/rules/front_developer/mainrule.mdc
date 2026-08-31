@@ -12,8 +12,8 @@ alwaysApply: false
 | Режим | Процесс |
 |-------|---------|
 | `FRONT VAN` | @.cursor/rules/front_developer/workflow-van.mdc |
-| `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc |
-| `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
+| `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
 | `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |

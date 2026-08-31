@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-024-validate-traceability
+title: Loop prompt opt-in EPIC_TRACEABILITY_CHECK + integration test on hub fixture
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Встроить validate-traceability в loop runtime как opt-in шаг:
+  - `EPIC_TRACEABILITY_CHECK=1` (env flag default `0`) в `.claude/project.env`.
+  - `context_loop.py` (или `loop_runner.py`): после DECOMPOSE promote или before IMPLEMENT start —
+    если флаг включён, запустить `epic_resolve validate-traceability --epic <plan_id>`;
+    exit 0 → proceed; exit 1 → log WARNING (не блокировать loop); exit 2 → log ERROR (блокировать).
+  - `pytest.ini` (или `conftest.py`): зарегистрировать маркер `pytest.mark.ac`.
+  - Integration test на hub fixture: `test_reconcile_spec.py` или отдельный `test_traceability_integration.py` —
+    запустить validate-traceability CLI на T-HUB-023 или T-HUB-024 decompose/implement fixtures,
+    проверить exit 0 и JSON report структуру.
+
+context:
+  consumes:
+    - "loop/context_loop.py (или loop_runner.py) — promote/arm flow"
+    - ".claude/project.env — env flag convention PROJECT_* default 0"
+    - ".claude/hooks/epic_resolve.py — validate-traceability subcommand (s02)"
+    - "plan-T-HUB-024 §US-001, §SC-001–SC-003, §AC+ #5"
+    - "loop/tests/fixtures/traceability/ — fixtures из s01"
+  produces:
+    - ".claude/project.env — commented EPIC_TRACEABILITY_CHECK=0"
+    - "loop/context_loop.py (или loop_runner.py) — opt-in validate call after decompose promote"
+    - "pytest.ini (или conftest.py) — markers = ac: living acceptance marker"
+    - "loop/tests/test_traceability_integration.py"
+  plan_refs:
+    - "plan-T-HUB-024 US-001"
+    - "plan-T-HUB-024 SC-001"
+    - "plan-T-HUB-024 SC-002"
+    - "plan-T-HUB-024 SC-003"
+    - "plan-T-HUB-024 AC+ #5"
+    - "plan-T-HUB-024 AC− #4"
+  files:
+    - ".claude/project.env"
+    - "loop/context_loop.py"
+    - "pytest.ini"
+    - "loop/tests/test_traceability_integration.py"
+
+as_built:
+  - "EPIC_TRACEABILITY_CHECK — отсутствует в project.env"
+  - "context_loop.py — нет вызова validate-traceability"
+  - "pytest.mark.ac — не зарегистрирован"
+
+delta:
+  - "project.env ADD commented # EPIC_TRACEABILITY_CHECK=0  # set 1 to run validate-traceability on DECOMPOSE promote"
+  - "context_loop.py ADD: после шага promote/arm decompose, если EPIC_TRACEABILITY_CHECK=1 → subprocess.run epic_resolve validate-traceability; exit 2 → raise (block); exit 1 → log warning только"
+  - "pytest.ini ADD markers section: ac: living acceptance criterion marker (links plan req to test)"
+  - "test_traceability_integration.py ADD integration test: subprocess epic_resolve validate-traceability на fixtures/traceability → exit 0, JSON парсится, critical_count=0"
+  - "test_traceability_integration.py ADD: exit 1 scenario — подменить fixture (добавить uncovered req), ожидать exit 1"
+
+deletes: []
+
+out_of_scope:
+  - "Parsers / checker — s01–s02"
+  - "AC scanner logic — s03"
+  - "Docs — s04"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "EPIC_TRACEABILITY_CHECK=0 присутствует в project.env"
+    verify: "rg 'EPIC_TRACEABILITY_CHECK' .claude/project.env"
+  - id: cp2
+    criterion: "context_loop.py содержит validate-traceability call"
+    verify: "rg 'validate.traceability\\|TRACEABILITY_CHECK' loop/context_loop.py"
+  - id: cp3
+    criterion: "pytest.ini содержит markers = ac:"
+    verify: "rg 'markers.*=.*ac' pytest.ini || rg 'ac:' pytest.ini"
+  - id: cp4
+    criterion: "Integration tests зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_traceability_integration.py -q"
+
+verify: []
+
+tdd:
+  - "test_traceability_integration_exit0_on_clean_fixture"
+  - "test_traceability_integration_exit1_on_uncovered_req"
+  - "test_traceability_integration_json_report_structure"

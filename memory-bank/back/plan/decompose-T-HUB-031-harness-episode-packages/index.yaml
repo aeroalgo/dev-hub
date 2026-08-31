@@ -1,0 +1,38 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-031-harness-episode-packages
+role: back
+date: '2026-08-31'
+steps:
+- id: s01
+  file: s01-episode-schema-model.yaml
+  title: EpisodeManifest schema + loop/episodes module skeleton — auditable bundle
+    foundation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-wire-prepare-check-after.yaml
+  title: Wire begin_episode/finalize_episode into prepare_session + check_after —
+    session lifecycle
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-artifact-copies-bundle.yaml
+  title: Artifact copies into episode bundle — immutable check_after + checkpoint
+    + gate_verdict + trace_tail
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-incident-trace-correlation.yaml
+  title: episode_id propagation — trace entries + incident metadata correlation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cli-episode-list-show.yaml
+  title: CLI episode-list + episode-show — operator inspection of episode bundles
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-retention-prune-tests-readme.yaml
+  title: Retention prune + integration tests + README § Episodes — disk-growth bounded
+  next_phase: BACK IMPLEMENT
+  status: completed

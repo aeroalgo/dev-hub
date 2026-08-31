@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-024-validate-traceability
+title: Parsers + report schema — plan/decompose/implement readers + TraceReport dataclass
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать три парсера: (1) plan-parser — извлечь FR/SC/US из plan.md (markdown таблица Requirements);
+  (2) decompose-parser — собрать все sNN.plan_refs + out_of_scope из shard YAML;
+  (3) implement-parser — собрать evidence (files, tests, status) из shard YAML.
+  Определить TraceReport dataclass (findings[], coverage_pct, critical_count, matrix[]).
+  Эта ступень — data layer без I/O кроме yaml.safe_load + re; все остальные шаги импортируют отсюда.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — get_shard_paths, load_yaml helpers"
+    - "loop/YAML-CONTRACT.md — shard schema plan_refs/out_of_scope/evidence"
+    - "plan-T-HUB-024 §FR-001–FR-004, §Сигнатуры ключевых функций"
+  produces:
+    - ".claude/hooks/epic/traceability.py — parse_plan_requirements(plan_md_path) -> list[ReqID]"
+    - ".claude/hooks/epic/traceability.py — parse_decompose_refs(decompose_dir) -> dict[sNN, ShardTrace]"
+    - ".claude/hooks/epic/traceability.py — parse_implement_evidence(implement_dir) -> dict[sNN, Evidence]"
+    - ".claude/hooks/epic/traceability.py — TraceReport, Finding, ShardTrace, Evidence dataclasses"
+    - "loop/tests/fixtures/traceability/ — minimal plan.md + shard YAMLs for unit tests"
+  plan_refs:
+    - "plan-T-HUB-024 FR-001"
+    - "plan-T-HUB-024 FR-002"
+    - "plan-T-HUB-024 FR-003"
+    - "plan-T-HUB-024 FR-004"
+    - "plan-T-HUB-024 FR-006"
+    - "plan-T-HUB-024 FR-008"
+  files:
+    - ".claude/hooks/epic/traceability.py"
+    - "loop/tests/fixtures/traceability/plan.md"
+    - "loop/tests/fixtures/traceability/decompose/s01-example.yaml"
+    - "loop/tests/fixtures/traceability/decompose/s02-example.yaml"
+    - "loop/tests/fixtures/traceability/implement/s01-example.yaml"
+    - "loop/tests/test_traceability_parsers.py"
+
+as_built:
+  - "traceability.py — отсутствует"
+  - "parse_plan_requirements — отсутствует"
+  - "TraceReport / Finding dataclasses — отсутствуют"
+  - "loop/tests/fixtures/traceability/ — отсутствует"
+
+delta:
+  - "traceability.py ADD dataclasses: ReqID(str), ShardTrace(step_id, plan_refs, out_of_scope), Evidence(step_id, status, files, tests), Finding(id, severity, message, shard), TraceReport(epic_id, requirements, shards, evidence, findings, coverage_pct, critical_count, high_count)"
+  - "traceability.py ADD parse_plan_requirements(plan_md_path: Path) -> list[str] — re.findall FR-/SC-/US- из markdown таблицы; robust to missing table (return [])"
+  - "traceability.py ADD parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace] — glob sNN-*.yaml, yaml.safe_load, collect plan_refs + out_of_scope; missing key → empty list (no crash)"
+  - "traceability.py ADD parse_implement_evidence(implement_dir: Path) -> dict[str, Evidence] — glob sNN-*.yaml; status/files/tests with defaults"
+  - "fixtures ADD plan.md with FR-001..FR-004 requirements table"
+  - "fixtures ADD s01/s02 decompose shards with plan_refs"
+  - "fixtures ADD s01 implement shard (completed, with files+tests)"
+  - "test_traceability_parsers.py ADD unit tests for all three parsers against fixtures"
+
+deletes: []
+
+out_of_scope:
+  - "CLI / exit codes — s02"
+  - "AC marker scanner — s03"
+  - "Loop integration — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "traceability.py существует и содержит parse_plan_requirements"
+    verify: "rg 'def parse_plan_requirements' .claude/hooks/epic/traceability.py"
+  - id: cp2
+    criterion: "parse_decompose_refs и parse_implement_evidence определены"
+    verify: "rg 'def parse_decompose_refs\\|def parse_implement_evidence' .claude/hooks/epic/traceability.py"
+  - id: cp3
+    criterion: "Fixtures созданы: plan.md + decompose + implement shard"
+    verify: "ls loop/tests/fixtures/traceability/plan.md loop/tests/fixtures/traceability/decompose/s01-example.yaml loop/tests/fixtures/traceability/implement/s01-example.yaml"
+  - id: cp4
+    criterion: "Unit tests зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_traceability_parsers.py -q"
+
+verify: []
+
+tdd:
+  - "test_parse_plan_requirements_extracts_fr_sc_us"
+  - "test_parse_plan_requirements_empty_on_missing_table"
+  - "test_parse_decompose_refs_collects_plan_refs"
+  - "test_parse_decompose_refs_out_of_scope_collected"
+  - "test_parse_implement_evidence_reads_status_files_tests"
+  - "test_parse_implement_evidence_defaults_on_missing_keys"

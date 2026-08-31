@@ -83,7 +83,7 @@ Brownfield FAIL если нет хотя бы:
 2. graphify orientation
 3. Inventory sources → refresh in-scope shards (Write/Edit)
 4. Update `architecture/index.md` (last refresh + role)
-5. Complexity L1–L4 (task scope user asked **or** default «map-only» → зафиксировать L для next)
+5. Complexity L1–L4 (task scope user asked **or** default «map-only» → зафиксировать L для next). L2+ epic: подтверди `memory-bank/constitution.md` или запусти seed-constitution.
 6. Session van log + `tasks.md` append
 7. FINISH → finish-block (`code_changed: no` unless agent also edited code — обычно no)
 8. Next: L1 → IMPLEMENT; L2–4 → PLAN (INTEG: L2+ may → GAP if no fresh gap)

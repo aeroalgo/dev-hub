@@ -1,0 +1,33 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-032-harness-analyze-convergence
+plan_file: ../plan-T-HUB-032-harness-analyze-convergence.md
+role: back
+date: '2026-08-31'
+steps:
+- id: s01
+  file: s01-convergence-schema-engine.yaml
+  title: Cross-artifact convergence engine — convergence.py + report schema
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-convergence-cli-formatter.yaml
+  title: CLI subcommand analyze-convergence + text/JSON formatters
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-convergence-loop-integration.yaml
+  title: Loop integration — EPIC_CONVERGENCE_CHECK warn-only on IMPLEMENT arm
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-convergence-tests-fixtures.yaml
+  title: Pytest test suite — fixtures per finding category + active sweep + strict
+    exit
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-convergence-docs-cheatsheet.yaml
+  title: 'Docs — workflow-analyze cheatsheet: analyze-convergence vs validate-traceability
+    vs reconcile-spec'
+  next_phase: BACK IMPLEMENT
+  status: completed

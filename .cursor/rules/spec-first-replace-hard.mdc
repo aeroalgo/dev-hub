@@ -1,0 +1,66 @@
+---
+description: "HARD always — spec-first replace; не размазывать фичи об as-built; pydantic → JSON, не regex+enum"
+alwaysApply: true
+---
+# SPEC-FIRST REPLACE (HARD — always)
+
+**Layer 0.** Полный канон PLAN/DECOMPOSE: @.cursor/rules/shared/workflow-spec-first-replace.mdc · purge: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+
+Cross-cutting. Ограничивает **design и код**, не формат чата.
+
+---
+
+## 1. As-built ≠ design template
+
+**FORBIDDEN:** смотреть старый код и «расширять» его новой технологией.
+
+| As-built | Роль |
+|----------|------|
+| grep/read старого кода | **sunset inventory** — что **удалить** |
+| WHAT / axiom / AC+ | **единственный** источник нового поведения |
+
+**FAIL:** «добавим pydantic рядом с regex» · «оставим VERDICT для совместимости» · `try: new except: old` · dual path после эпика.
+
+---
+
+## 2. Technology axiom lock
+
+Если в задаче/plan/чате зафиксирован стек — **следствия обязательны**, не переспрашивать.
+
+| Выбор | Machine boundary | FORBIDDEN |
+|-------|------------------|-----------|
+| **Pydantic validate** | JSON или YAML frontmatter | regex prose → str → enum «validated» |
+| **Enum / Literal** | одно typed поле | параллельный raw str + normalize |
+| **pydantic-ai structured** | `Agent[OutputModel]` | free-text → regex extract |
+| **Sidecar / schema vN** | validate-on-write | prose line (`VERDICT:`) как machine input |
+
+**Anti-pattern (FAIL):** `re.search(VERDICT:)` → `Enum(...)` — это **не** pydantic.
+
+---
+
+## 3. Replace-not-wrap (done = один путь)
+
+1. Новый контракт — **единственный** machine path после эпика.
+2. Старый parser/symbol — **delete in-epic** (purge step), не co-exist.
+3. Misconfig → **fail-closed**, не fallback на legacy.
+4. Shim «на потом» — только с epic ID **уже** в `roadmap-*.queue.yaml`.
+
+---
+
+## 4. Когда применять
+
+| Контекст | Действие |
+|----------|----------|
+| Обсуждение новой фичи (любой чат) | spec-first; не предлагать гибрид с as-built |
+| `* PLAN` / `* CLARIFY` | §Technology axiom в plan **до** HOW из кода |
+| `* DECOMPOSE` | purge-step на каждый старый symbol |
+| `* IMPLEMENT` | не добавлять fallback «чтобы green» |
+| Пользователь: pydantic / JSON / enums | JSON на границе; regex с границы **убрать** |
+
+---
+
+## 5. AC− (кратко)
+
+1. Нет dual machine path (regex + pydantic) на одной границе.
+2. Нет silent PASS через legacy parser.
+3. Кодовая база **не растёт** вторым путём — старый **удаляется**.

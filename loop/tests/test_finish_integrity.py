@@ -906,3 +906,60 @@ def test_prepare_session_repairs_mark_index_missing(tmp_path: Path) -> None:
     )
     impl_text = (tmp_path / impl).read_text(encoding="utf-8")
     assert "status: in_progress" in impl_text
+
+
+def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypatch) -> None:
+    hooks = str(ROOT / ".claude" / "hooks")
+    if hooks not in sys.path:
+        sys.path.insert(0, hooks)
+    import epic.core as epic_core
+
+    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\nplan_id: demo\nsteps:\n- id: s01\n  file: s01-a.yaml\n  status: pending\n",
+    )
+    _write(
+        tmp_path,
+        impl,
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: demo\nstatus: in_progress\nimplement_index: memory-bank/back/plan/decompose-demo/index.yaml\ndate: '2026-08-09'\n"
+        "checkpoints:\n- id: cp1\n  criterion: ok\n  status: done\n"
+        "done:\n- did work\n"
+        "files:\n- a.py\n"
+        "tests:\n- '`timeout 300s .venv/bin/pytest -q` — PASS'\n"
+        "integration_check:\n- ok\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps(
+            {
+                "active": True,
+                "armed_epic": "demo",
+                "armed_decompose": decompose,
+                "armed_step": "s01",
+                "last_verify_verdict": "PASS",
+                "last_verify_evidence": {
+                    "authority": "manual",
+                    "verdict": "PASS",
+                },
+            }
+        )
+        + "\n",
+    )
+
+    called = []
+    def dummy_promote(cwd, epic_id, role):
+        called.append((str(cwd), epic_id, role))
+        return {"ok": True, "promoted": True}
+
+    import loop.epic_transition as et
+    monkeypatch.setattr(et, "promote_if_ready", dummy_promote)
+
+    res = epic_core.finalize_step(tmp_path, decompose, "s01")
+    assert res["ok"] is True
+    assert len(called) == 1
+    assert res.get("promoted") == {"ok": True, "promoted": True}

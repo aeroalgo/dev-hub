@@ -17,6 +17,7 @@ code-review (спорный AC / крупный epic merge) · pytest-coverage (
 **Процесс**:
 1. `OK BACK QA - Выполняю техническую валидацию` → **Gates**
 2. Lean load §7; verification-before-completion; проверки — gates
+2b. Epic QA load rule: если plan содержит anchor `#qa-consumes` (планы L2+), читать только секцию `plan.md#qa-consumes` через offset/grep (не full plan); full `plan §N` — только если test matrix row missing. В qa.yaml поля: `test_matrix_coverage: [TM-001, ...]` сопоставляются с plan Test matrix.
 3. qa-артефакт: с эпиком `memory-bank/back/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — `memory-bank/back/qa/qa-YYYYMMDD-<slug>.yaml` (шаблон `.cursor/templates/qa/epic-step.yaml`). Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
 4. fail|blocked → §Fix plan (конкретные `BACK BUGFIX <subject>`, не общий BUGFIX)
 5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff BACK QA` обязателен  

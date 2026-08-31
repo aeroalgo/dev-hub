@@ -132,14 +132,16 @@ Usage: ./loop/loop.sh [EPIC] [MODEL] [MODE] [options]
 
 Context-first автоцикл. Курсор = memory-bank/activeContext.md.
 
-EPIC (опционально): decompose-<id> | memory-bank/.../decompose-<id>
-  → ПЕРЕЗАПИСЫВАЕТ activeContext из index этого эпика (первый pending|active|blocked).
-  → Прошлый activeContext (даже от другого эпика / с BLOCKED) игнорируется.
+EPIC (опционально): T-HUB-027 | plan-<epic>.md | decompose-<id> | memory-bank/.../plan/...
+  → arm via resolver (PLAN / DECOMPOSE / ANALYZE / IMPLEMENT по состоянию эпика).
+  → Прошлый activeContext игнорируется.
 Без EPIC: продолжение с текущего activeContext.
 
 Examples:
-  ./loop/loop.sh gpt
-  ./loop/loop.sh decompose-v1-portal gpt implement
+  ./bin/loop . gpt
+  ./bin/loop . --epic T-HUB-027 agy/gemini-3.6-flash-medium
+  ./bin/loop . plan-T-HUB-027-back-plan-gstack-adapt.md agy/gemini-3.6-flash-medium
+  ./bin/loop . decompose-v1-portal gpt implement
 
 MODE:
   implement
@@ -183,11 +185,16 @@ find_claude() {
 
 is_epic_spec() {
   case "$1" in
-    decompose-*) return 0 ;;
-    memory-bank/*/plan/decompose-*) return 0 ;;
-    memory-bank/*/plan/decompose-*/index.md) return 0 ;;
-    */decompose-*) return 0 ;;
-    *) return 1 ;;
+    decompose-*|plan-*|T-*)
+      return 0 ;;
+    memory-bank/*/plan/decompose-*|memory-bank/*/plan/plan-*)
+      return 0 ;;
+    memory-bank/*/plan/decompose-*/index.md)
+      return 0 ;;
+    */decompose-*|*/plan-*)
+      return 0 ;;
+    *)
+      return 1 ;;
   esac
 }
 
@@ -340,6 +347,18 @@ if [[ "$DO_FANOUT" == "1" ]]; then
   exit "$fanout_rc"
 fi
 
+if [[ "${EPIC_LOOP_DOCTOR_PREFLIGHT:-0}" == "1" ]]; then
+  echo "==> doctor preflight (EPIC_LOOP_DOCTOR_PREFLIGHT=1)"
+  set +e
+  "${CTX[@]}" doctor
+  doc_rc=$?
+  set -e
+  if [[ $doc_rc -ne 0 ]]; then
+    echo "==> ERROR: doctor preflight failed (rc=$doc_rc)" >&2
+    exit "$doc_rc"
+  fi
+fi
+
 CLAUDE="$(find_claude)"
 PERM_ARGS=(--permission-mode "$PERM_MODE")
 # MODEL_ARGS rebuilt each session from prepare (phase override → CLI MODEL).
@@ -347,9 +366,9 @@ MODEL_ARGS=()
 [[ -n "$MODEL" ]] && MODEL_ARGS=(--model "$MODEL")
 
 if [[ -n "$EPIC_ID_FLAG" ]]; then
-  echo "==> arm epic-id=$EPIC_ID_FLAG (arm_epic)"
+  echo "==> arm epic=$EPIC_ID_FLAG (arm_epic via resolver)"
   set +e
-  arm_json="$("${CTX[@]}" arm --epic-id "$EPIC_ID_FLAG")"
+  arm_json="$("${CTX[@]}" arm --epic "$EPIC_ID_FLAG")"
   arm_rc=$?
   set -e
   if [[ "$VERBOSE" == "1" ]]; then
@@ -378,7 +397,7 @@ else:
     exit "$arm_rc"
   fi
 elif [[ -n "$EPIC_SPEC" ]]; then
-  echo "==> arm epic=$EPIC_SPEC (overwrite activeContext from decompose index)"
+  echo "==> arm epic=$EPIC_SPEC (arm_epic via resolver)"
   set +e
   arm_json="$("${CTX[@]}" arm --epic "$EPIC_SPEC")"
   arm_rc=$?
@@ -562,6 +581,26 @@ while true; do
   echo ""
   echo "======== SESSION $iter ========"
 
+  # Bound session-*.log growth (newest EPIC_SESSION_LOG_KEEP kept; default 10).
+  python3 - "$STATE_DIR" "${EPIC_SESSION_LOG_KEEP:-10}" <<'PY' || true
+import sys
+from pathlib import Path
+d = Path(sys.argv[1])
+keep = max(1, int(sys.argv[2]))
+if not d.is_dir():
+    raise SystemExit(0)
+logs = sorted(d.glob("session-*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+removed = 0
+for path in logs[keep:]:
+    try:
+        path.unlink()
+        removed += 1
+    except OSError:
+        pass
+if removed:
+    print(f"==> pruned {removed} old session log(s); kept {min(keep, len(logs))}")
+PY
+
   set +e
   if [[ -n "$MODEL" ]]; then
     prep_json="$("${CTX[@]}" prepare --model "$MODEL")"
@@ -577,6 +616,10 @@ while true; do
 import json,sys
 r=json.load(sys.stdin)
 print("==> prepare:", "ok" if r.get("ok") else r.get("reason"))
+phase = r.get("phase") or r.get("loop_phase") or ""
+step = r.get("armed_step") or ""
+if phase or step:
+    print("==> working:", (phase or "?"), "step=" + (step or "?"))
 if r.get("degraded"):
     print("==> WARN: context degraded — agent chooses next step from files")
     errs=r.get("shape_errors") or []
@@ -634,6 +677,7 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
   SESSION_MODEL="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model") or "")' 2>/dev/null || true)"
   LOOP_PHASE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("loop_phase") or "")' 2>/dev/null || true)"
   MODEL_SOURCE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model_source") or "")' 2>/dev/null || true)"
+  ARMED_STEP="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("armed_step") or "")' 2>/dev/null || true)"
   MODEL_ARGS=()
   if [[ -n "$SESSION_MODEL" ]]; then
     MODEL_ARGS=(--model "$SESSION_MODEL")
@@ -641,12 +685,19 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     MODEL_ARGS=(--model "$MODEL")
     SESSION_MODEL="$MODEL"
   fi
-  echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} source=${MODEL_SOURCE:-cli}"
+  echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
 
   fp_before="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("fingerprint") or "")')"
   prompt_file="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["prompt_file"])')"
-  echo "==> prompt (head):"
-  sed -n '1,12p' "$prompt_file"
+  # Do not sed 1..N: context path count varies and used to hide "- step:" after epic.
+  echo "==> prompt (projection):"
+  awk '
+    /^## projection$/ {show=1}
+    show {print; if (/^- step:/) exit}
+  ' "$prompt_file"
+  if [[ -n "$ARMED_STEP" ]]; then
+    echo "==> armed_step: $ARMED_STEP"
+  fi
   echo "..."
 
   transient_try=0
@@ -681,8 +732,12 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
       echo "==> TRANSIENT API abort — retry after ${backoff}s"
       echo "==> reason: $reason"
       [[ "$backoff" -gt 0 ]] && sleep "$backoff"
-      echo "==> prompt (head) [retry t$((transient_try + 1))]:"
-      sed -n '1,12p' "$prompt_file"
+      echo "==> prompt (projection) [retry t$((transient_try + 1))]:"
+      awk '
+        /^## projection$/ {show=1}
+        show {print; if (/^- step:/) exit}
+      ' "$prompt_file"
+      [[ -n "$ARMED_STEP" ]] && echo "==> armed_step: $ARMED_STEP"
       echo "..."
       continue
     fi
@@ -740,7 +795,8 @@ from epic_paths import epic_dir
 from loop.incidents.trace import append_trace
 res = json.load(sys.stdin)
 action = decide_after_action(res)
-append_trace(epic_dir(r"'"$PROJECT_ROOT"'"), phase="decide", action="decide_after_action", decide=action, detail=res if isinstance(res, dict) else {})
+ep_id = res.get("episode_id", "") if isinstance(res, dict) else ""
+append_trace(epic_dir(r"'"$PROJECT_ROOT"'"), phase="decide", action="decide_after_action", decide=action, episode_id=ep_id, detail=res if isinstance(res, dict) else {})
 print(action)
 ' 2>/dev/null || echo halt)"
   if [[ "$after_action" == "continue" ]]; then
@@ -802,6 +858,10 @@ else:
     exit 1
   fi
   if [[ "$after_action" == "complete" ]]; then
+    chk_sb="$(python3 -c 'import json,pathlib; p=pathlib.Path("runtime/dev-hub/epic/checkpoint.json"); print(json.loads(p.read_text()).get("session_boundary") if p.is_file() else "")' 2>/dev/null || true)"
+    if [[ "$chk_sb" == "True" || "$chk_sb" == "true" ]]; then
+      echo "==> SESSION_BOUNDARY: step finalized with session_boundary gate"
+    fi
     if [[ "${EPIC_CHAIN_ROADMAP:-0}" == "1" ]]; then
       set +e
       advance_json="$("${CTX[@]}" roadmap-advance)"

@@ -1,0 +1,36 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-024-validate-traceability
+title: s04 — YAML-CONTRACT + workflow decompose FINISH tip (docs-only) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-024-validate-traceability/s04-yaml-contract-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added §Traceability fields to loop/YAML-CONTRACT.md
+- Added validate-traceability tip to .cursor/rules/back_developer/workflow-decompose.mdc
+files:
+- loop/YAML-CONTRACT.md
+- .cursor/rules/back_developer/workflow-decompose.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_*.py -q --tb=line`
+  PASS'
+integration_check:
+- docs verified via rg and pytest test_traceability_*.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: YAML-CONTRACT.md содержит раздел Traceability fields
+  status: done
+  done_at: '2026-08-31T06:25:01Z'
+- id: cp2
+  criterion: workflow-decompose.mdc содержит упоминание validate-traceability
+  status: done
+  done_at: '2026-08-31T06:25:18Z'
+resume_from: cp1

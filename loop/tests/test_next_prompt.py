@@ -16,6 +16,7 @@ def test_build_prompt_implement_finish_order_and_handoff():
         load_now=["memory-bank/activeContext.md"],
         projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
     )
+    assert "- step: `s01`" in text
     assert "Silent chat (HARD)" in text
     assert "no thinking aloud" in text
     finish_section = text.split("## IMPLEMENT FINISH", 1)[1]

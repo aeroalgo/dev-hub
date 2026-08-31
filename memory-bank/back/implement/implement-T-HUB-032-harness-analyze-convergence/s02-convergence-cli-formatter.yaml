@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-032-harness-analyze-convergence
+title: s02 — CLI subcommand analyze-convergence + text/JSON formatters IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-032-harness-analyze-convergence/s02-convergence-cli-formatter.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Subcommand analyze-convergence registered in epic_resolve.py
+- format_text and format_json implemented in epic/convergence.py
+- Unit tests added in loop/tests/test_convergence_cli.py
+files:
+- .claude/hooks/epic_resolve.py
+- .claude/hooks/epic/convergence.py
+- loop/tests/test_convergence_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_convergence_cli.py -q --tb=short`'
+integration_check:
+- epic_resolve.py analyze-convergence subcommand connects to convergence.py run_convergence_checks
+  and formatters
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- pytest loop/tests/test_convergence_cli.py passed
+checkpoints:
+- id: cp1
+  criterion: CLI help показывает analyze-convergence subcommand
+  status: done
+  done_at: '2026-08-31T14:31:12Z'
+- id: cp2
+  criterion: analyze-convergence --format json на fixture возвращает валидный JSON
+    с полем schema
+  status: done
+  done_at: '2026-08-31T14:32:26Z'
+- id: cp3
+  criterion: analyze-convergence exit 0 при findings без HIGH (не strict); exit 1
+    при --strict + HIGH
+  status: done
+  done_at: '2026-08-31T14:32:32Z'
+resume_from: cp1

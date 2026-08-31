@@ -1,11 +1,12 @@
 ---
-description: "Режим BACK CLARIFY — снятие ambiguity до PLAN (wrapper над shared-core)"
+description: "Режим BACK CLARIFY — снятие ambiguity (Phase 0 в PLAN или standalone добор/revisit)"
 alwaysApply: false
 ---
 ### Команда: BACK CLARIFY
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
 **Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**PLAN orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **Шаблон**: @.cursor/templates/clarify.md
 
 **Скиллы (HARD):**
@@ -16,9 +17,8 @@ alwaysApply: false
 
 ## Когда запускать
 
-- Рекомендуется **до** `BACK PLAN`, если scope / data / NFR / integrations размыты
-- Допустимо как **step 0 gate** в начале PLAN-сессии (не заменяет полный PLAN)
-- Повторный `BACK CLARIFY` — если появились CRITICAL после draft plan
+- **`BACK PLAN`** сам запускает Phase 0 Clarify при триггерах (orchestration) — отдельный `BACK CLARIFY` **не обязателен**
+- **Standalone `BACK CLARIFY`:** `continue` после 5/5 Q · CRITICAL после draft plan · IDEA PIPELINE / ANALYZE revisit · только ambiguity без plan в этой сессии
 
 ---
 
@@ -81,9 +81,10 @@ Next (один):
 
 | Сигнал | Next |
 |--------|------|
-| Ambiguity снята / deferred OK | `BACK PLAN <slug>` |
+| Ambiguity снята / deferred OK (standalone FINISH) | `BACK PLAN <slug>` (Phase 1; Phase 0 уже на диске) |
+| Внутри сессии `BACK PLAN` Phase 0 завершён | продолжить **Phase 1** в той же сессии (не FINISH CLARIFY) |
 | Остались IMPORTANT/NICE или квота исчерпана с дырами | `continue BACK CLARIFY` (новая сессия / добор) |
-| Явный spike/exploratory | skip с **warning** (shared §skip policy) → PLAN на свой риск |
+| Явный spike/exploratory | skip с **warning** (shared §skip policy) → `BACK PLAN` Phase 1 на свой риск |
 
 FINISH CLARIFY: `code_changed: no` (docs); обновить `activeContext.md` (`load_now` → clarify artifact + next PLAN tip). Канон: @.cursor/rules/shared/finish-block.mdc / finish-doc-router (строка CLARIFY — в s04).
 

@@ -1149,12 +1149,54 @@ def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> 
     }
 
 
+_DECOMPOSE_INDEX_SECTIONS = (
+    "requirements coverage",
+    "stages coverage",
+    "outcome map",
+    "replacement cleanup",
+)
+
+
+def _validate_decompose_index_md(md_path: Path) -> list[str]:
+    """Fail-closed coverage sections required for DECOMPOSE FINISH."""
+    if not md_path.is_file():
+        return [f"missing decompose index.md: {md_path}"]
+    try:
+        text = md_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return [f"cannot read index.md: {exc}"]
+    lower = text.lower()
+    missing = [label for label in _DECOMPOSE_INDEX_SECTIONS if label not in lower]
+    if missing:
+        return [
+            "index.md missing required sections: "
+            + ", ".join(f"## {s.title()}" for s in missing)
+        ]
+    return []
+
+
+def _validate_decompose_shard_filename(step_id: str, rel: str) -> str | None:
+    """Require sNN-<slug>.yaml / eNN-<slug>.yaml — not bare sNN.yaml."""
+    sid = (step_id or "").strip()
+    stem = Path(rel).stem
+    if not sid:
+        return None
+    if sid.lower().startswith("s") and not STEP_S_RE.match(stem):
+        return f"{sid}: file must be {sid}-<slug>.yaml, got {rel!r}"
+    if sid.lower().startswith("e") and not STEP_E_RE.match(stem):
+        return f"{sid}: file must be {sid}-<slug>.yaml, got {rel!r}"
+    if sid.lower().startswith("s") or sid.lower().startswith("e"):
+        if not stem.lower().startswith(sid.lower() + "-"):
+            return f"{sid}: shard stem must start with {sid}-, got {rel!r}"
+    return None
+
+
 def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> list[str]:
     """Schema gate for every sNN|eNN in decompose index.yaml (DECOMPOSE FINISH).
 
     Fail-closed on invented schemas / missing role / as_built not list —
-    i.e. anything EpicDecomposeDoc rejects. Full lint (verify runnable, …)
-    remains `validate-step` / `validate_decompose_full` (opt-in / IMPLEMENT).
+    missing index.md coverage sections / bare sNN.yaml filenames.
+    Full lint (verify runnable, …) remains validate-step / validate_decompose_full.
     """
     from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
 
@@ -1177,17 +1219,33 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
     if not isinstance(doc, dict):
         return ["invalid index.yaml: not a mapping"]
 
+    from epic_paths import epic_id_from_decompose_path
+
+    plan_id = str(doc.get("plan_id") or "").strip()
+    folder_epic = epic_id_from_decompose_path(cand)
+    if plan_id and folder_epic and folder_epic != plan_id:
+        return [
+            f"decompose folder decompose-{folder_epic} must match plan_id "
+            f"{plan_id!r} (rename to decompose-{plan_id})"
+        ]
+
     steps = steps_from_doc(doc)
     if not steps:
         return ["index.yaml has no steps"]
 
-    errors: list[str] = []
+    source_md = str(doc.get("source_md") or "index.md").strip() or "index.md"
+    md_path = ypath.parent / source_md
+    errors: list[str] = list(_validate_decompose_index_md(md_path))
+
     for step in steps:
         rel = (step.get("file") or "").strip()
         sid = (step.get("id") or "").strip()
         if not rel:
             errors.append(f"{sid or '?'}: missing file in index.yaml")
             continue
+        slug_err = _validate_decompose_shard_filename(sid, rel)
+        if slug_err:
+            errors.append(slug_err)
         shard = ypath.parent / Path(rel).name
         if not shard.is_file():
             shard = ypath.parent / rel

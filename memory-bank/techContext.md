@@ -27,6 +27,11 @@
 - Product artifacts — **не** в этом репо (`PROJECT_ROOT/memory-bank/`)
 - Доменной SQL/ORM в хабе **нет**
 
+## Product constitution bootstrap
+
+- Команда инициализации/bootstrap constitution: `python3 .claude/hooks/epic_resolve.py seed-constitution --cwd <path>`
+- Для L2+ эпиков создаёт `memory-bank/constitution.md` из seed шаблона, если он отсутствует.
+
 ## Конфиги
 
 - `.claude/project.env` — канон runtime/permission (loop)

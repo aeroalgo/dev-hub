@@ -17,8 +17,8 @@ alwaysApply: false
 | `INTEG VAN` | @.cursor/rules/integration_developer/workflow-van.mdc |
 | `INTEG GAP` | @.cursor/rules/integration_developer/workflow-gap.mdc |
 | `INTEG GAP CLOSE` | @.cursor/rules/integration_developer/workflow-gap-close.mdc |
-| `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc |
-| `INTEG CLARIFY` | @.cursor/rules/integration_developer/workflow-clarify.mdc — снять ambiguity до PLAN |
+| `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
+| `INTEG CLARIFY` | @.cursor/rules/integration_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc — read-only проверка wire/contract plan до IMPLEMENT |
 | `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc |
 | `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |

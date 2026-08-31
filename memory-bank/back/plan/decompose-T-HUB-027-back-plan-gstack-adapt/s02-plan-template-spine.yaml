@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: Plan template — Product probe + Eng review spine (data-flow, failures, self-check)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить plan-шаблон eng spine: ASCII data-flow, failure matrix, eng self-check и
+  Product probe batch-таблица для L3+ без CLARIFY. Скрытые допущения видны до DECOMPOSE;
+  L2+ обязательны data-flow + failure matrix; L3+ — полный spine.
+  Outcome: plan challenge'ит HOW assumptions (US-002, FR-003 partial, FR-004, AC+ #1 partial).
+
+context:
+  consumes:
+    - ".cursor/templates/plan.md — текущий L2/L3 scaffold без gstack секций"
+    - "plan-T-HUB-027 §Eng review spine — канон содержания"
+    - "plan-T-HUB-027 §Product probe — 6 forcing questions + output"
+    - "s01 — workflow-clarify-core Product probe (cross-ref в plan комментарии)"
+  produces:
+    - "plan.md — секции Product probe, Eng review spine с подсекциями"
+  plan_refs:
+    - "FR-003"
+    - "FR-004"
+    - "US-002"
+    - "AC+ #1"
+    - "AC− #4 (секции не telegraph-cap — комментарии min rows, не сокращать)"
+  files:
+    - ".cursor/templates/plan.md"
+
+as_built:
+  - "plan.md — WHAT/HOW/Replacement/Appetite/До DECOMPOSE; нет Product probe, Eng review spine"
+  - "plan.md — SUSPENSION GUARD implied via token-economy; новые секции должны иметь min-rows комментарии без telegraph economy"
+
+delta:
+  - "plan.md ADD ## Product probe (office-hours lite) — после Контекст или в WHAT; reframe + narrowest wedge + таблица 6 вопросов; min ≥4 answered для L3 skip-CLARIFY"
+  - "plan.md ADD ## Eng review spine — L3+ обязательно; L2 — data-flow + failure matrix"
+  - "plan.md ADD ### Data flow (ASCII) — min ≥1 diagram, ≥3 hops, async/sync границы; exemplar block"
+  - "plan.md ADD ### Failure matrix — table Component/Failure/Detection/Response/Test ID; min ≥5 rows"
+  - "plan.md ADD ### Eng spine self-check — Score 1–5 Data flow / Failure coverage / Testability"
+  - "plan.md ADD level gate comments: L1 optional; L2+ required per plan-T-HUB-027"
+
+deletes: []
+
+out_of_scope:
+  - "QA consumes, Review readiness, Plan review batch log — s03"
+  - "workflow-plan gates — s04"
+  - "anchor #qa-consumes — s03"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "plan.md содержит ## Product probe (office-hours lite) с min-rows комментарием"
+    verify: "rg '## Product probe \\(office-hours lite\\)' .cursor/templates/plan.md"
+  - id: cp2
+    criterion: "plan.md содержит ## Eng review spine с Data flow, Failure matrix, self-check"
+    verify: "rg '## Eng review spine' .cursor/templates/plan.md && rg 'Data flow \\(ASCII\\)' .cursor/templates/plan.md && rg 'Failure matrix' .cursor/templates/plan.md && rg 'Eng spine self-check' .cursor/templates/plan.md"
+  - id: cp3
+    criterion: "Min row counts documented (≥3 hops, ≥5 failure rows, L2/L3 gates)"
+    verify: "rg 'Min:' .cursor/templates/plan.md | head -5"
+  - id: cp4
+    criterion: "Существующие секции plan.md (WHAT, Replacement, Appetite) не удалены"
+    verify: "rg '## Продуктовая спека|## Replacement / sunset|## Appetite' .cursor/templates/plan.md"
+
+verify: []
+
+tdd:
+  - "rg_product_probe_section_in_plan_template"
+  - "rg_eng_review_spine_subsections"
+  - "rg_min_rows_comments_present"
+  - "regression_existing_plan_sections_intact"

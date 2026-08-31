@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-030-harness-runtime-wire
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-doctor-cli-subcommand.yaml
+  title: Doctor subcommand — preflight blockers before autopilot
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-tier0-wire-check-after.yaml
+  title: Tier0 auto-repair in check_after — self-healing halt recovery
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-incident-status-retry-cli.yaml
+  title: Incident-status and incident-retry CLI for manual ops
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-lifecycle-event-kinds-emit.yaml
+  title: Lifecycle EVENT_KINDS + implement_done / phase_transition emit
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-traceability-default-promote.yaml
+  title: Traceability fail-closed ON by default on DECOMPOSE promote
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-readme-loop-sh-preflight-docs.yaml
+  title: README observability + optional loop.sh doctor preflight
+  next_phase: BACK IMPLEMENT
+  status: completed

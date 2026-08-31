@@ -1,0 +1,35 @@
+schema: epic-qa/v1
+epic_id: T-HUB-025-product-constitution-bootstrap
+date: '2026-08-31'
+verdict: pass
+suite_results:
+  command: PYTHONPATH=.claude/hooks .venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=line
+  passed: 12
+  failed: 0
+ac_coverage:
+  ac_plus:
+    - id: AC+1
+      status: pass
+      notes: seed_constitution(cwd) создает constitution.md с version 1.0, ISO date, scope и 9 MUST секциями
+    - id: AC+2
+      status: pass
+      notes: Защита hub-root возвращает exit 2 без --force
+    - id: AC+3
+      status: pass
+      notes: Флаг --force позволяет перезаписать имеющийся constitution.md
+    - id: AC+4
+      status: pass
+      notes: Интеграция в VAN checklist и techContext.md документацию
+    - id: AC+5
+      status: pass
+      notes: Pytest suite прогоняет сценарии в изоляции через tmp_path
+  ac_minus:
+    - id: AC-1
+      status: pass
+      notes: Без --force существующий файл не перезаписывается
+    - id: AC-2
+      status: pass
+      notes: В hub-root без --force операция блокируется
+section_011:
+  no_silent_failures: pass
+  test_isolation: pass

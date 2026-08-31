@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-030-harness-runtime-wire
+title: Incident-status and incident-retry CLI for manual ops
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Operator управляет инцидентами вручную: incident-status (list open/resolved JSON/text),
+  incident-retry (--incident-id → tier1 eligibility JSON); US-004, SC-003.
+
+context:
+  consumes:
+    - loop/incidents/store.py
+    - loop/incidents/schema.py
+    - loop/incidents/tier0.py
+  produces:
+    - loop/context_loop.py
+  plan_refs:
+    - FR-008
+    - FR-009
+    - US-004
+    - SC-003
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "context_loop.py — incident-status и incident-retry subparsers отсутствуют"
+  - "loop/tests/test_incidents_cli.py — 7 тестов модулей; CLI subparser red"
+
+delta:
+  - "parser: sub.add_parser('incident-status') с --json"
+  - "parser: sub.add_parser('incident-retry') с --incident-id / --id"
+  - "dispatch incident-status: list_open_incidents + tail resolved; JSON/text output"
+  - "dispatch incident-retry: reset_tier1_attempts / eligibility check; actionable JSON (spawn остаётся loop.sh)"
+  - "loop.sh: passthrough incident-status / incident-retry без фильтрации"
+
+deletes: []
+
+out_of_scope:
+  - tier1 flock spawn из incident-retry (loop.sh / T-HUB-018)
+  - doctor subcommand (s01)
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "incident-status subcommand без invalid choice"
+    verify: ".venv/bin/python loop/context_loop.py --cwd /tmp incident-status 2>&1 | rg -v 'invalid choice'"
+  - id: cp2
+    criterion: "incident-retry subcommand без invalid choice"
+    verify: ".venv/bin/python loop/context_loop.py --cwd /tmp incident-retry --help 2>&1 | rg incident"
+  - id: cp3
+    criterion: "test_incidents_cli.py green"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_cli.py -q --tb=short"
+
+verify:
+  - "rg '\"incident-status\"' loop/context_loop.py"
+  - "rg '\"incident-retry\"' loop/context_loop.py"
+
+tdd:
+  - loop/tests/test_incidents_cli.py
