@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s07
+title: "board_launch arm_epic + loop.sh --epic-id CLI"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  board_launch/arm.py интегрирует arm_epic(cwd, epic_id) при Run на epic карточке.
+  Убрать step_mismatch проверку для epic cards (нет step_id на epic карточке).
+  context_loop.py arm --epic-id T-HUB-016 вызывает arm_epic.
+  loop.sh --epic T-HUB-016 эквивалентно context_loop arm --epic-id + loop run.
+  hub-board arm-loop --epic-id … parity (если hub-board CLI существует).
+  Legacy arm --epic decompose/path сохраняется.
+
+as_built:
+  - "loop/board_launch/arm.py: arm pipeline — читает StepCard/GateCard metadata; step_mismatch проверка"
+  - "loop/context_loop.py: arm command — принимает decompose path; нет --epic-id"
+  - "loop/loop.sh: нет --epic флага; принимает EPIC positional arg (T-HUB-015)"
+  - "board_launch/arm.py: нет EpicCard branch"
+
+delta:
+  - "EDIT loop/board_launch/arm.py: ADD EpicCard branch → arm_epic(cwd, card.epic_id, card.role)"
+  - "EDIT arm.py: для EpicCard — skip step_mismatch check (нет step_id)"
+  - "EDIT loop/context_loop.py: arm subcommand ADD --epic-id flag → arm_epic(cwd, epic_id)"
+  - "EDIT loop/loop.sh: ADD --epic flag → context_loop arm --epic-id + loop run"
+  - "KEEP legacy: arm --epic decompose/path → arm_active_context_from_decompose (не удалять)"
+  - "ADD integration smoke: loop.sh --epic T-HUB-TEST-001 → arm ok + loop dry-run ok"
+
+deletes: []
+
+out_of_scope:
+  - "mb-bridge epic Run (s08)"
+  - "board sync scan_epics (s06)"
+  - "resolver (s02–s03)"
+
+context:
+  consumes:
+    - "loop/board_launch/arm.py — arm pipeline, step_mismatch"
+    - "loop/context_loop.py — arm command handler"
+    - "loop/loop.sh — EPIC arg handling"
+    - ".claude/hooks/epic/core.py — arm_epic (s04)"
+    - "loop/board_sync/card_model.py — EpicCard (s05)"
+    - "plan-T-HUB-020 §Loop CLI: context_loop.py arm --epic-id, loop.sh --epic, hub-board arm-loop"
+    - "plan-T-HUB-020 §Run pipeline"
+  produces:
+    - "loop/board_launch/arm.py (изменён)"
+    - "loop/context_loop.py (изменён)"
+    - "loop/loop.sh (изменён)"
+  plan_refs:
+    - "plan-T-HUB-020 §Зафиксированные решения: Loop CLI"
+    - "plan-T-HUB-020 §Run pipeline"
+    - "plan-T-HUB-020 US-003 (Run → arm_epic → нет step_mismatch)"
+  files:
+    - "loop/board_launch/arm.py"
+    - "loop/context_loop.py"
+    - "loop/loop.sh"
+    - "loop/tests/test_board_launch_arm.py"
+    - "loop/tests/test_board_launch_cli.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "board_launch/arm.py: EpicCard → arm_epic вызван; нет step_mismatch KeyError"
+    verify: "`.venv/bin/pytest loop/tests/test_board_launch_arm.py -k epic_card -q --tb=line`"
+  - id: cp2
+    criterion: "context_loop arm --epic-id T-HUB-016 → arm_epic(cwd, 'T-HUB-016') → ok"
+    verify: "`.venv/bin/pytest loop/tests/test_board_launch_cli.py -k epic_id -q --tb=line`"
+  - id: cp3
+    criterion: "Legacy arm --epic decompose/path ещё работает"
+    verify: "`.venv/bin/pytest loop/tests/test_board_launch_arm.py -k legacy_decompose -q --tb=line`"
+  - id: cp4
+    criterion: "loop.sh --epic T-HUB-TEST → context_loop arm --epic-id + run (dry-run ok)"
+    verify: "`.venv/bin/pytest loop/tests/test_board_launch_arm.py -k loop_sh_epic -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_cli.py -q --tb=line`"
+
+tdd:
+  - "test_arm_epic_card_calls_arm_epic"
+  - "test_arm_epic_card_no_step_mismatch"
+  - "test_arm_legacy_decompose_path_still_works"
+  - "test_context_loop_arm_epic_id_flag"
+  - "test_loop_sh_epic_flag_runs_arm_then_loop"
+
+requirements_covered:
+  - "US-003 (Run → arm_epic → нет step_mismatch)"
+  - "FR-loop-cli-epic-id"
+  - "FR-board-launch-epic-card-arm"
+  - "NFR-legacy-arm-compat"

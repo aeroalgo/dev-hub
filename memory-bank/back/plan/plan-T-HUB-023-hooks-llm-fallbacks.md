@@ -6,19 +6,20 @@
 **Статус:** active  
 **Roadmap:** [roadmap-pydantic-reliability-epics.md](roadmap-pydantic-reliability-epics.md)  
 **Queue:** [roadmap-pydantic-reliability-epics.queue.yaml](roadmap-pydantic-reliability-epics.queue.yaml)  
-**Deps:** **hard** T-HUB-021 (`llm_structured` client). Soft: T-HUB-022 (typed state for `llm_fallback_used` counter); T-HUB-017 (incident events).
+**Deps:** **hard** T-HUB-021 (`llm_structured` client). **Soft:** T-HUB-022 (`DriftCounters`, `loop-handoff/v1`, gate sidecar — LLM fallback только после typed path miss); T-HUB-017 (incident events).
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 
-→ [decompose-T-HUB-023-hooks-llm-fallbacks/index.md](decompose-T-HUB-023-hooks-llm-fallbacks/index.md) — **после DECOMPOSE**
+→ [decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml](decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml) — **канон очереди** (coverage: [index.md](decompose-T-HUB-023-hooks-llm-fallbacks/index.md))
 
 ---
 
 ## Контекст
 
 - **req:** opt-in LLM fallbacks в hooks когда **детерминированный** парсинг не дал результата — без изменения happy path и без обязательной сети.
-- **gap:** `extract_handoff_block`, `extract_verdict`, `classify_abort` — pure regex/heuristics; при malformed agent output loop уходит в stall/retry/NEED_HUMAN.
-- **refs:** `.claude/hooks/epic/core.py`; `.claude/hooks/_lib.py` (`extract_verdict`); `.claude/hooks/session_resilience.py` (`classify_abort`); T-HUB-021 `llm_structured.py`.
+- **gap:** legacy regex/heuristics после 022 spike всё ещё fallback когда typed path пуст (no frontmatter, no sidecar).
+- **refs:** `.claude/hooks/epic/core.py`; `.claude/hooks/_lib.py` (`extract_verdict` sidecar-first since spike); `loop/schemas/**` (022); T-HUB-021 `llm_structured.py`.
+- **order:** 023 **после** 022 s09 (strict handoff) — иначе LLM маскирует отсутствие typed contracts.
 
 ### Зафиксированные решения
 
@@ -33,7 +34,8 @@
 | Abort model | `AbortClassify` — `kind: transient\|fatal`, `reason_short` |
 | Happy path | **Zero LLM calls** when regex succeeds — unit tests must assert call count 0 |
 | Timeout | Shorter than output-cap: default **30s**, `PROJECT_HOOKS_LLM_TIMEOUT` |
-| Metrics | Increment `state['llm_fallback_count']` on use (requires 022 or inline int with validation) |
+| Metrics | Increment `EpicState.drift_counters.llm_fallback_used` (022) on use |
+| Trigger order | 1) typed schema/sidecar 2) regex 3) LLM (this epic) — never skip 1–2 |
 | CREATIVE | нет |
 
 **CREATIVE need:** нет.
@@ -207,23 +209,25 @@ flowchart TB
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## Decompose (s01–s10)
 
-| Phase | Outline |
-|-------|---------|
-| s01 | Env contract + `load_hooks_llm_env` |
-| s02 | Pydantic models Handoff/Verdict/Abort |
-| s03 | Runners in `llm_structured` |
-| s04 | Handoff wire-in `epic/core` |
-| s05 | Verdict wire-in `_lib` |
-| s06 | Abort wire-in `session_resilience` |
-| s07 | `llm_fallback_count` + status exposure |
-| s08 | Fixtures + mocked tests |
-| s09 | Docs + project.env |
-| s10 | AUDIT happy-path zero-call proof |
+Трекер: [decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml](decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml)
+
+| step | outcome-first title |
+|------|---------------------|
+| s01 | Opt-in env contract — default-off hooks LLM flags |
+| s02 | Structured extract models Handoff/Verdict/Abort |
+| s03 | Fail-soft LLM runners in `llm_structured` |
+| s04 | Handoff recovery — centralized extract chain |
+| s05 | Verdict fallback — sidecar→regex→LLM |
+| s06 | Abort classify LLM fallback |
+| s07 | `llm_fallback_used` drift counter + status |
+| s08 | Golden fixtures + mocked domain tests |
+| s09 | Operator docs project.env + README |
+| s10 | AUDIT zero LLM on happy path |
 
 ---
 
 ## Следующий режим
 
-→ `BACK DECOMPOSE T-HUB-023` (after T-HUB-021 EPIC_DONE or queue position)
+→ `BACK IMPLEMENT` s01 (новый чат) · tip: `BACK ANALYZE T-HUB-023` перед первым IMPLEMENT

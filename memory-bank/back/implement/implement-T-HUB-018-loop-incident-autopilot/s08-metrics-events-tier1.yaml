@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s08 — Tier1 metrics + events — tier1_attempts/resolved/escalated + event emission
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-018-loop-incident-autopilot/s08-metrics-events-tier1.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated loop/incidents/events.py with tier1 event types and helper functions
+- Updated loop/incidents/metrics.py with tier1 metrics counters
+- Updated loop/incidents/tier1_runner.py to emit events and increment metrics
+- Created loop/tests/test_incidents_metrics_tier1.py with unit tests for tier1 events
+  and metrics
+files:
+- loop/incidents/events.py
+- loop/incidents/metrics.py
+- loop/incidents/tier1_runner.py
+- loop/tests/test_incidents_metrics_tier1.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -q --tb=line`'
+integration_check:
+- Verified event emission and metrics counter increment via test_incidents_metrics_tier1.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: tier1_spawn event → событие записано в events.jsonl с incident_id и attempt_number
+  status: done
+  done_at: '2026-08-30T20:52:02Z'
+- id: cp2
+  criterion: tier1_verify_pass → metrics tier1_resolved_total инкрементируется
+  status: done
+  done_at: '2026-08-30T20:52:07Z'
+- id: cp3
+  criterion: tier1_escalated → metrics tier1_escalated_total инкрементируется
+  status: done
+  done_at: '2026-08-30T20:52:12Z'
+- id: cp4
+  criterion: event payload не содержит prompt text, env tokens или secrets
+  status: done
+  done_at: '2026-08-30T20:52:18Z'
+resume_from: cp1

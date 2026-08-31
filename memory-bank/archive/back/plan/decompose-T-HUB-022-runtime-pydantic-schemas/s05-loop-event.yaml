@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-022
+title: "LoopEvent model + epic_events typed append"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/schemas/event.py` с `LoopEvent(BaseModel)` — поля из `epic_events.EVENT_SCHEMA`
+  (schema=loop-event/v1, type, epic_id, step_id, payload, session_id, recorded_at).
+  Перевести `build_event()` в `epic_events.py` на `LoopEvent(**kwargs).model_dump()`.
+  `append_event()` должен валидировать через LoopEvent перед записью в jsonl.
+  US-004 (schema_version на каждом артефакте), FR-005.
+
+context:
+  consumes:
+    - ".claude/hooks/epic_events.py — EVENT_SCHEMA, build_event(), append_event(), read_event_log_result()"
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md — event field list (из s01)"
+    - "plan-T-HUB-022 §LoopEvent, §loop-event/v2"
+    - "loop/schemas/state.py — паттерн (из s02)"
+  produces:
+    - "loop/schemas/event.py — LoopEvent"
+    - "loop/schemas/__init__.py EDIT — re-export LoopEvent"
+    - ".claude/hooks/epic_events.py EDIT — build_event via LoopEvent; typed append"
+    - "loop/tests/test_schemas_event.py — invalid event → ValidationError"
+  plan_refs:
+    - "plan-T-HUB-022 US-004 — schema_version на каждом persisted artifact"
+    - "plan-T-HUB-022 FR-005 — LoopEvent Pydantic"
+    - "plan-T-HUB-022 §loop-event/v2"
+  files:
+    - "loop/schemas/event.py"
+    - ".claude/hooks/epic_events.py"
+    - "loop/tests/test_schemas_event.py"
+
+as_built:
+  - "epic_events.EVENT_SCHEMA — dict schema, нет Pydantic"
+  - "build_event() — ручная сборка dict; no validation"
+  - "append_event() — jsonl append без validation"
+  - "LoopEvent — отсутствует"
+
+delta:
+  - "loop/schemas/event.py CREATE — LoopEvent(BaseModel), schema=loop-event/v1, type, epic_id, step_id, payload, session_id, recorded_at"
+  - "loop/schemas/__init__.py EDIT — добавить LoopEvent"
+  - ".claude/hooks/epic_events.py EDIT build_event — return LoopEvent(**kwargs).model_dump()"
+  - ".claude/hooks/epic_events.py EDIT append_event — validate via LoopEvent before write"
+  - "loop/tests/test_schemas_event.py CREATE — missing type → ValidationError; round-trip"
+
+deletes: []
+
+out_of_scope:
+  - "read_event_log_result() parse — FR-005 scope; migrate to LoopEvent.model_validate — s05 optional (можно в s13)"
+  - "EVENT_SCHEMA dict — удалить как fallback — s16"
+  - "loop-event/v2 payload schema evolution — future T-HUB-023"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "LoopEvent создан в loop/schemas/event.py"
+    verify: "rg 'class LoopEvent' loop/schemas/event.py"
+  - id: cp2
+    criterion: "build_event использует LoopEvent внутри"
+    verify: "rg 'LoopEvent' .claude/hooks/epic_events.py"
+  - id: cp3
+    criterion: "test_schemas_event.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_event.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: существующие event-тесты стабильны"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'event' -x"
+
+verify: []
+
+tdd:
+  - "RED: test_loop_event_missing_type → ValidationError"
+  - "RED: test_loop_event_round_trip → build_event → LoopEvent.model_validate passes"
+  - "RED: test_append_event_invalid → raises before write"
+  - "GREEN: LoopEvent + обновить build_event/append_event"

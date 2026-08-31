@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Fail-soft LLM runners — handoff/verdict/abort via llm_structured
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать три thin-runner'а в llm_structured.py: run_handoff_extract, run_verdict_extract,
+  run_abort_classify — reuse T-HUB-021 Agent factory, shorter timeout (30s default), fail-soft
+  try/except, debug stderr при PROJECT_HOOKS_LLM_DEBUG=1 (FR-001, FR-006, FR-007, AC−4, AC−5).
+
+context:
+  consumes:
+    - "s02 — HandoffExtract, VerdictExtract, AbortClassify"
+    - "s01 — load_hooks_llm_env, hooks_llm config"
+    - ".claude/hooks/llm_structured.py — make_output_cap_agent pattern"
+    - "plan-T-HUB-023 §Prompt constraints"
+  produces:
+    - ".claude/hooks/llm_structured.py — run_handoff_extract, run_verdict_extract, run_abort_classify"
+  plan_refs:
+    - "plan-T-HUB-023 FR-001"
+    - "plan-T-HUB-023 FR-006"
+    - "plan-T-HUB-023 FR-007"
+    - "plan-T-HUB-023 §Prompt constraints"
+    - "plan-T-HUB-023 AC− #4, #5, #6"
+  files:
+    - ".claude/hooks/llm_structured.py"
+    - "loop/tests/test_hooks_llm_runners.py"
+
+as_built:
+  - "run_log_summary — единственный structured runner"
+  - "run_handoff_extract / run_verdict_extract / run_abort_classify — отсутствуют"
+
+delta:
+  - "ADD make_hooks_extract_agent(output_type, model?) — reuse OpenAIProvider from output-cap env"
+  - "ADD run_handoff_extract(text) -> HandoffExtract|None — prompt канон из plan; MIN_CHARS guard; confidence gate"
+  - "ADD run_verdict_extract(text) -> VerdictExtract|None — tail-focused prompt"
+  - "ADD run_abort_classify(reason, exit_code?) -> AbortClassify|None"
+  - "Each runner: if not hooks_llm_enabled(domain): return None immediately"
+  - "Each runner: len(text) < min_chars → return None without network"
+  - "Outer try/except → None on any failure; debug log to stderr if PROJECT_HOOKS_LLM_DEBUG=1"
+  - "Timeout: PROJECT_HOOKS_LLM_TIMEOUT default 30s (shorter than output-cap)"
+
+deletes: []
+
+out_of_scope:
+  - "Wire into extract_handoff_block — s04"
+  - "increment_drift_counter — s07"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/async-python-patterns/SKILL.md  # S02 pydantic-ai async Agent.run
+    - .agents/skills/python-error-handling/SKILL.md  # S03 fail-soft try/except runners
+    - .agents/skills/python-resilience/SKILL.md  # S10 timeout/retry bounded LLM calls
+
+checkpoints:
+  - id: cp1
+    criterion: "Три runner функции экспортированы"
+    verify: "rg 'def run_(handoff_extract|verdict_extract|abort_classify)' .claude/hooks/llm_structured.py"
+  - id: cp2
+    criterion: "Mock Agent: flags off → run_handoff_extract returns None, Agent.run not called"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_runners.py::test_runners_no_call_when_disabled -q"
+  - id: cp3
+    criterion: "Short input below MIN_CHARS → no Agent.run"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_runners.py::test_runners_skip_below_min_chars -q"
+  - id: cp4
+    criterion: "Agent exception → None (fail-soft)"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_runners.py::test_runners_fail_soft_on_exception -q"
+
+verify: []
+
+tdd:
+  - "test_run_handoff_extract_mock_success"
+  - "test_run_verdict_extract_low_confidence_returns_none"
+  - "test_run_abort_classify_mock_fatal"
+  - "test_runners_no_call_when_disabled"
+  - "test_runners_skip_below_min_chars"

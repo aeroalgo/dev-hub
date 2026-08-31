@@ -1,0 +1,3 @@
+{"schema": "loop-incident/v1", "incident_id": "123", "status": "open"}
+{CORRUPT_JSON_LINE}
+{"schema": "loop-incident/v1", "incident_id": "456", "status": "open"}

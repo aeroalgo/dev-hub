@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s08
+title: "mb-bridge epic Run + roadmap column rank"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  dsh/plugins/mb-bridge: TypeScript сторона читает card-metadata epic карточки.
+  Run button на epic карточке → board filter пропускает epic card (нет step_id mismatch).
+  roadmap column rank: mb-bridge передаёт roadmap_rank в card body для DSH column filter.
+  board-filter.ts обновлён для card_kind=epic: нет валидации step_id.
+
+as_built:
+  - "dsh/plugins/mb-bridge/src/board-filter.ts: валидирует step_id на карточке → epic карточки fail"
+  - "mb-bridge card-metadata.ts: разбирает StepCard/GateCard; нет EpicCard"
+  - "Нет roadmap_rank поля в TypeScript types"
+  - "Run на epic карточке: step_id=undefined → board-filter reject"
+
+delta:
+  - "EDIT dsh/plugins/mb-bridge/src/card-metadata.ts: ADD EpicCard interface с полями из Python EpicCard"
+  - "EDIT card-metadata.ts: parseCardMetadata — ADD card_kind==='epic' branch → EpicCard"
+  - "EDIT dsh/plugins/mb-bridge/src/board-filter.ts: для card_kind==='epic' — skip step_id validation"
+  - "ADD board-filter.ts: roadmap_rank читается из EpicCard; передаётся в filter output"
+  - "EDIT board-filter.ts: epic карточка → allowRun=true если next_command не epic_done"
+  - "ADD тесты: card-metadata.test.ts epic round-trip; board-filter.test.ts epic Run allowed"
+
+deletes: []
+
+out_of_scope:
+  - "Python scan_epics / sync (s06)"
+  - "arm_epic Python (s04)"
+  - "mb-bridge Run вызов loop (s07 Python сторона)"
+
+context:
+  consumes:
+    - "dsh/plugins/mb-bridge/src/board-filter.ts — step_id validation"
+    - "dsh/plugins/mb-bridge/src/card-metadata.ts — parseCardMetadata"
+    - "loop/board_sync/card_model.py — EpicCard fields (s05, Python reference)"
+    - "plan-T-HUB-020 §Run pipeline"
+    - "plan-T-HUB-020 §Board granularity: card_kind epic"
+  produces:
+    - "dsh/plugins/mb-bridge/src/card-metadata.ts (изменён)"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts (изменён)"
+  plan_refs:
+    - "plan-T-HUB-020 §Run pipeline"
+    - "plan-T-HUB-020 §Зафиксированные решения: Run pipeline"
+    - "plan-T-HUB-020 US-003 (нет step_mismatch)"
+    - "plan-T-HUB-020 US-005 (roadmap rank → column)"
+  files:
+    - "dsh/plugins/mb-bridge/src/card-metadata.ts"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "parseCardMetadata epic → EpicCard; round-trip все поля сохранены"
+    verify: "rg -n 'EpicCard' dsh/plugins/mb-bridge/src/card-metadata.ts && echo 'type exists'"
+  - id: cp2
+    criterion: "board-filter.ts: card_kind==='epic' → step_id validation пропущена"
+    verify: "rg -n 'epic' dsh/plugins/mb-bridge/src/board-filter.ts | head -10"
+  - id: cp3
+    criterion: "board-filter.ts: epic next_command !== 'epic_done' → allowRun=true"
+    verify: "rg -n 'allowRun\\|epic_done' dsh/plugins/mb-bridge/src/board-filter.ts"
+
+verify:
+  - "rg -n 'EpicCard\\|card_kind.*epic' dsh/plugins/mb-bridge/src/ | head -20"
+  - "rg -n 'step_id' dsh/plugins/mb-bridge/src/board-filter.ts"
+
+tdd:
+  - "test_parse_card_metadata_epic_returns_epic_card"
+  - "test_parse_card_metadata_epic_round_trip"
+  - "test_board_filter_epic_skip_step_id_validation"
+  - "test_board_filter_epic_allow_run_when_not_done"
+  - "test_board_filter_epic_deny_run_when_done"
+
+requirements_covered:
+  - "US-003 (Run epic card → нет step_mismatch в TS)"
+  - "US-005 (roadmap_rank в card)"
+  - "FR-mb-bridge-epic-card-metadata"
+  - "FR-board-filter-epic-run"

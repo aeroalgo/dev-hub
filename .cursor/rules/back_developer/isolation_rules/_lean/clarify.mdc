@@ -12,15 +12,17 @@ alwaysApply: false
 
 1. `load_now` = **только** clarify artifact (если есть) + `activeContext.md`; **НЕ** plan monolith без нужды (NFR-3 lean load)
 2. Jump `plan §N` / brief — только если Consumes явно требует и ambiguity без контекста не снять
-3. Сессия соблюдает shared-core: ≤5 Q, sequential, Recommended/Suggested, CRITICAL policy
-4. Каждый принятый A записан в clarify-артефакт (диск = SoT)
-5. Completion Report обязателен перед Handoff → PLAN / continue / spike
-6. Открытый `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → **не** объявлять ready for PLAN FINISH
+3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком; `## Grill pass` в артефакт не пустая
+4. Сессия соблюдает shared-core: ≤5 Q (grill-Q первые), sequential, Recommended/Suggested, CRITICAL policy
+5. Каждый принятый A записан в clarify-артефакт (диск = SoT)
+6. Completion Report обязателен перед Handoff → PLAN / continue / spike
+7. Открытый `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list → **не** объявлять ready for PLAN FINISH
 
 ## Abort
 
 - Нет slug / цели фичи → спросить идентификацию; не выдумывать scope
 - Давать советы по стеку / архитектуре / «выбери FastAPI» **до** PLAN как «решение» вместо вопроса → **STOP**; только снимать ambiguity
 - Silent assumption при пустом prompt (auth/stack/PII/deploy) → FAIL (shared FORBIDDEN)
+- FINISH без `## Grill pass` или без `Grill:` в Completion Report → FAIL
 - Грузить все workflow/templates / полный plan «на всякий случай» → FAIL NFR-3
 - Клон spec-kit clarify / вызов specify-cli → FAIL

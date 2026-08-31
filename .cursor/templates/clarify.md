@@ -17,6 +17,22 @@
 
 ---
 
+## Grill pass (Phase 0 — mandatory)
+
+> Канон: @.agents/skills/grill-me/SKILL.md · shared-core §Phase 0
+
+| Поле | Значение |
+|------|----------|
+| **Reframe** | Что строят на самом деле (1–2 предложения) |
+| **Premises** | 3–5 утверждений · статус accepted/challenged/rejected/deferred |
+| **Weakest link** | Главное хрупкое допущение |
+| **Anti-scope** | Явный out-of-scope этой итерации |
+| **Verdict** | `auto_resolved` (с Evidence) \| `needs_user_Q` |
+
+Grill-Q → первые слоты в Q→A log (≤5 total).
+
+---
+
 ## Таксономия сканирования
 
 Отметь статус каждой категории после скана (Clear / Partial / Missing). Кандидаты Q — только Partial/Missing с impact.
@@ -65,6 +81,7 @@ CRITICAL без resolve или строки здесь → PLAN FINISH запр�
 
 ## Completion Report
 
+- **Grill:** done · verdict=… · grill_Q=N
 - **Asked:** N/5
 - **Resolved:** …
 - **Deferred:** …

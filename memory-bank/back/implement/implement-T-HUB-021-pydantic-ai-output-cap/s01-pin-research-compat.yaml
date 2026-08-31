@@ -1,0 +1,42 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-021
+title: s01 — Pin research — pydantic-ai × OmniRoute compat matrix + requirements-hub.txt
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-021-pydantic-ai-output-cap/s01-pin-research-compat.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created requirements-hub.txt with pydantic-ai, pydantic>=2.0, httpx>=0.27.0 pins
+- Verified Python version in .venv (3.12.11 >= 3.11)
+- Verified pip install dry-run for requirements-hub.txt
+- Created memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md
+files:
+- requirements-hub.txt
+- memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest -q --tb=line`'
+integration_check:
+- requirements-hub.txt dry-run pip install check pass
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: requirements-hub.txt содержит pydantic-ai и pydantic>=2
+  status: done
+  done_at: '2026-08-30T23:30:41Z'
+- id: cp2
+  criterion: hub .venv python version ≥ 3.11
+  status: done
+  done_at: '2026-08-30T23:30:45Z'
+- id: cp3
+  criterion: pydantic-ai installable без конфликтов в hub .venv (dry-run)
+  status: done
+  done_at: '2026-08-30T23:31:01Z'
+resume_from: cp1

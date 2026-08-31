@@ -2,7 +2,7 @@
 
 Каталог **`loop/`** — автоматизация ролей; **не** часть `memory-bank/`.
 
-> **Переходы (канон):** `memory-bank/activeContext.md` + decompose index; открытый `needs_creative: yes (CR-…)` или CREATIVE tip армирует CREATIVE, а closed/completed creative step возвращает тот же/следующий tip в IMPLEMENT; IMPLEMENT→QA→REFLECT→complete через context-first gates.
+> **Переходы (канон):** `memory-bank/activeContext.md` + decompose index; открытый `needs_creative: yes (CR-…)` или CREATIVE tip армирует CREATIVE, а closed/completed creative step возвращает тот же/следующий tip в IMPLEMENT; **pre-IMPLEMENT ANALYZE gate** (zero completed sNN + analyze missing/stale/critical) → ANALYZE до IMPLEMENT; IMPLEMENT→QA→REFLECT→complete через context-first gates.
 >
 > **Очередь эпиков (канон):** `memory-bank/back/plan/roadmap-epics.queue.yaml`. Slug `roadmap-<slug>-epics.queue.yaml` — источники; слияние: `* ROADMAP MERGE` / `context_loop.py roadmap-merge`. При `EPIC_CHAIN_ROADMAP=1` после `EPIC_DONE` → `roadmap-advance`. Без флага — stop.
 >
@@ -23,6 +23,17 @@
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
 
+## Epic-level board (Task Board)
+
+При синхронизации с task-board (`dsh` / `mb-bridge`):
+- **Единая карточка эпика (`card_kind: epic`):** На доске создаётся одна карточка на уровень эпика, вместо множества атомарных карточек отдельных шагов `sNN`.
+- **Arm epic & Run:** Армирование контекста выполняется через `arm_epic` (`python3 loop/context_loop.py arm-epic <epic_id>`). Запуск выполнения эпика с таскборда выполняется по кнопке **Run** на карточке эпика или через CLI `./loop/loop.sh --epic-id <epic_id>`.
+- **Column logic (Статусы колонок):**
+  - `running`: эпик в очереди на позициях активной работы (rank 0 / active) и в процессе выполнения (phase PLAN, DECOMPOSE, IMPLEMENT, QA, etc.).
+  - `backlog`: эпик находится в очереди roadmap (`roadmap-*.queue.yaml`), но ждёт своей очереди (rank > 0).
+  - `todo`: эпик завершил фазу выполнения (`phase` = `DONE` или `NEXT_EPIC`) или готов к повторному запуску/принятию.
+- **Sunset step cards:** Ранее созданные карточки шагов (`card_kind: step`) автоматически архивируются при запуске sync, уступая место единой карточке эпика.
+
 ## Production semantics
 
 - **Runtime engine:** `EPIC_RUNTIME` selects execution engine: `claude` (default) | `dsh` (developer preview, opt-in; not production default). See [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) for runbook details.
@@ -32,7 +43,7 @@
 - A checkpoint records the durable cursor and lifecycle. `state.json` mirrors checkpoint telemetry; it is not an agent-owned cursor. A checkpoint/index conflict, malformed selected source or missing manifest is fail-closed.
 - Recovery after timeout/process death reads `<hub>/runtime/<slug>/epic/last-session.json` (canon: `HUB_ROOT/runtime/<slug>/epic/` next to `state.json`) and accepts only an explicitly validated `resume_from_step`. `BLOCKED` and `NEED_HUMAN` preserve the cursor; resume must validate the checkpoint and index before scheduling. Do not auto-delete product runtime dirs.
 - The v2 scheduler executes one dependency-ready node at a time in stable order. `GAP_FANOUT` is a manual-only operational command in this checkout; parallel fanout and distributed locks are not implied.
-- FINISH order is **seed-implement → flush checkpoints during work → suite → evidence (`status` stays `in_progress`) → validate-step → Handoff → verify PASS → `finalize-step` (atomic implement+index `completed`, `ok: true`)**. `EPIC_DONE` requires QA PASS and REFLECT. T-034 policy is a boundary and never an implicit permission to mutate agent state.
+- FINISH order is **seed-implement → flush checkpoints during work → suite → evidence (`status` stays `in_progress`) → validate-step → Handoff → verify PASS → `finalize-step` (atomic implement+index `completed`, `ok: true`)**. `EPIC_DONE` requires QA PASS and REFLECT. T-034 policy is a boundary and never an implicit permission to mutate agent state. `mark-index-status` updates index state on step completion.
 - `prepare` on `mark_index_missing`: auto-rollback implement `completed`→`in_progress` (never auto-mark index), then continue; remaining integrity conflicts stay fail-closed/`NEED_HUMAN`.
 
 ## Rollout / rollback checklist
@@ -75,6 +86,7 @@ hooks demote ложный `@verify` PASS → FAIL; prepare injects `## FIX INCOM
 |-------|-----|
 | DECOMPOSE | `PROJECT_LOOP_DECOMPOSE_MODEL` |
 | PLAN | `PROJECT_LOOP_PLAN_MODEL` |
+| ANALYZE | `PROJECT_LOOP_ANALYZE_MODEL` |
 | CREATIVE | `PROJECT_LOOP_CREATIVE_MODEL` |
 | IMPLEMENT | `PROJECT_LOOP_IMPLEMENT_MODEL` |
 | AUDIT | `PROJECT_LOOP_AUDIT_MODEL` |
@@ -92,27 +104,8 @@ Disabled managed agent — это `scope_disabled`/gate bypass, а не ошиб
 
 ---
 
-## 2. Запуск
+## Incident Autopilot
 
-```bash
-./loop/loop.sh gpt
-./loop/loop.sh decompose-v1-portal gpt
-./loop/loop.sh --status
-```
+Автопилот инцидентов обеспечивает автоматическую диагностику и восстановление при ошибках оркестрации.
 
-`decompose-<id>` → `arm`: overwrite `activeContext` из index (первый pending/active/blocked). Без EPIC — текущий курсор.
-
----
-
-## 3. Агенту в сессии
-
-Порядок IMPLEMENT FINISH (HARD):
-
-1. `seed-implement` (YAML `in_progress`, cp=pending) **сразу**  
-2. по ходу: `flush-checkpoint` после каждого зелёного cp  
-3. suite parent → evidence (`done`/`files`/`tests`, cp=done) — **status остаётся `in_progress`** → `validate-step`  
-4. Handoff (`activeContext`) → `@verify` packed (если code)  
-5. `VERDICT: PASS` → `finalize-step` (атомарно implement+index `completed` через `mark-index-status`) → JSON `ok: true` → stop  
-
-**FORBIDDEN:** писать `status: completed` руками · `finalize-step` до `VERDICT: PASS` · stop без `ok: true` · игнорировать fail-closed integrity без repair · runner CLI (`epic_resolve after|resolve|arm|…`)  
-Канон detail: `.claude/instructions/spawn-hard.md` · prompt из `loop/context_loop.py`.
+### Flow (Tier-0 → Tier-1 → Escalation)

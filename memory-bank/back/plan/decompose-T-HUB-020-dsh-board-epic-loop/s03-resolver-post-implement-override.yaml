@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s03
+title: "Resolver post-implement + plan-next override validation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Resolver покрывает post-implement фазы (QA, AUDIT, REFLECT, BUGFIX).
+  После всех steps completed — reduce_epic_lifecycle определяет следующую post-impl фазу.
+  plan-next override валидируется fail-closed: конфликт (команда=DECOMPOSE, plan missing) → diagnostic, не silent.
+  Roadmap queue + post-implement = epic перемещается в todo (завершён).
+
+as_built:
+  - "loop/board_sync/scan_gates.py: post-implement gates через reduce_epic_lifecycle (только 1 GateWorkItem, нет EpicNextAction)"
+  - ".claude/hooks/epic/core.py: reduce_epic_lifecycle существует — используется в scan_gates"
+  - "Нет интеграции plan-next override в post-implement resolver"
+  - "Нет fail-closed diagnostic для override конфликта"
+
+delta:
+  - "EDIT loop/board_sync/epic_resolver.py: ADD _resolve_post_implement(project, role, epic_id, steps, override) -> EpicNextAction"
+  - "IMPL post-implement matrix: all steps completed + QA done? → REFLECT; REFLECT done? → epic done (todo)"
+  - "EDIT resolve_epic_next_action: добавить post-implement branch; делегировать reduce_epic_lifecycle"
+  - "EDIT validate_plan_next: extend для post-implement phase — conflict если post-impl команда + pending steps"
+  - "ADD _epic_done(project, role, epic_id) -> bool — нет pending post-impl gates → epic в todo"
+  - "ADD reason_code='epic_done' → board_sync mapped → todo column"
+
+deletes: []
+
+out_of_scope:
+  - "board sync column mapping (s06)"
+  - "arm_epic (s04)"
+  - "pre-implement matrix (s02)"
+
+context:
+  consumes:
+    - "loop/board_sync/epic_resolver.py — _resolve_pre_implement (s02)"
+    - ".claude/hooks/epic/core.py — reduce_epic_lifecycle"
+    - "loop/board_sync/plan_next.py — parse_plan_next, validate_plan_next (s01)"
+    - "plan-T-HUB-020 §Resolver architecture: post-implement matrix"
+  produces:
+    - "loop/board_sync/epic_resolver.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-020 §Зафиксированные решения: Единый резолвер (post-implement = reduce_epic_lifecycle)"
+    - "plan-T-HUB-020 §Roadmap → колонка: Post-implement same epic → todo"
+    - "plan-T-HUB-020 NFR: fail-closed override diagnostic"
+  files:
+    - "loop/board_sync/epic_resolver.py"
+    - "loop/tests/test_board_sync_epic_resolver.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "post-implement: all steps done, QA pending → BACK QA returned"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k post_implement_qa -q --tb=line`"
+  - id: cp2
+    criterion: "post-implement: QA + REFLECT done → epic_done True; EpicNextAction.reason_code=epic_done"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k epic_done -q --tb=line`"
+  - id: cp3
+    criterion: "validate_plan_next: override DECOMPOSE при missing plan → diagnostic string, not None"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k validate_conflict -q --tb=line`"
+  - id: cp4
+    criterion: "resolve_epic_next_action выбирает post vs pre ветку по наличию completed steps"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -q --tb=line`"
+
+tdd:
+  - "test_resolve_post_implement_all_steps_done_qa_needed"
+  - "test_resolve_post_implement_qa_done_reflect_needed"
+  - "test_resolve_post_implement_reflect_done_epic_done"
+  - "test_resolve_post_implement_bugfix_active"
+  - "test_epic_done_returns_true_when_all_post_gates_clear"
+  - "test_validate_plan_next_conflict_decompose_no_plan"
+  - "test_validate_plan_next_valid_post_implement_override"
+
+requirements_covered:
+  - "US-008 (post-implement phase arm)"
+  - "US-007 (override fail-closed)"
+  - "FR-post-implement-resolver"
+  - "NFR-fail-closed-override-conflict"

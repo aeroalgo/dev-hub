@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Abort classify LLM fallback — transient vs fatal when regex inconclusive
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить optional LLM classify в classify_abort только когда regex/heuristics inconclusive
+  (default transient) и flag on — снизить ложные transient/fatal без блокировки session
+  при недоступности LLM (FR-004, FR-006, AC−4).
+
+context:
+  consumes:
+    - "s03 — run_abort_classify"
+    - "s01 — hooks_llm_enabled(abort)"
+    - ".claude/hooks/session_resilience.py — classify_abort, _FATAL_ABORT_PATTERNS"
+  produces:
+    - ".claude/hooks/session_resilience.py — LLM branch in classify_abort"
+  plan_refs:
+    - "plan-T-HUB-023 FR-004"
+    - "plan-T-HUB-023 FR-006"
+    - "plan-T-HUB-023 AC− #4"
+  files:
+    - ".claude/hooks/session_resilience.py"
+    - "loop/tests/test_hooks_llm_abort_wire.py"
+
+as_built:
+  - "classify_abort — regex patterns only; default transient"
+  - "LLM abort classify — отсутствует"
+
+delta:
+  - "EDIT classify_abort: after pattern pass inconclusive (would return transient) AND hooks_llm_enabled(abort) AND len(reason)>=min_chars → run_abort_classify"
+  - "If confident fatal/transient → return LLM kind; else keep regex result"
+  - "Fatal patterns still win without LLM (exit 130/143, _FATAL_ABORT_PATTERNS)"
+  - "try/except around LLM — fall through to regex transient"
+
+deletes: []
+
+out_of_scope:
+  - "analyze_session_log full refactor"
+  - "Drift counter — s07"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md  # S03 session must not block on LLM error
+    - .agents/skills/python-resilience/SKILL.md  # S10 transient/fatal classify resilience
+
+checkpoints:
+  - id: cp1
+    criterion: "classify_abort references run_abort_classify behind flag"
+    verify: "rg 'run_abort_classify' .claude/hooks/session_resilience.py"
+  - id: cp2
+    criterion: "Known fatal pattern → fatal without LLM even if flag on"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_abort_wire.py::test_abort_fatal_pattern_no_llm -q"
+  - id: cp3
+    criterion: "Unknown reason + flag on + mock → reclassify"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_abort_wire.py::test_abort_fallback_unknown_reason -q"
+  - id: cp4
+    criterion: "LLM exception → transient (fail-soft)"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_abort_wire.py::test_abort_llm_fail_soft -q"
+
+verify: []
+
+tdd:
+  - "test_abort_fatal_pattern_no_llm"
+  - "test_abort_fallback_unknown_reason"
+  - "test_abort_llm_fail_soft"
+  - "test_abort_skipped_when_disabled"

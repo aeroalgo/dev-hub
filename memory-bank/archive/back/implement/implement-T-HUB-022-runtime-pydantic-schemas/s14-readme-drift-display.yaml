@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s14
+plan_id: T-HUB-022
+title: s14 — README + §0.11 integration grep + loop status drift display IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s14-readme-drift-display.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated loop/schemas/README.md with §0.11 env-key table
+- Added drift_counters display to status in loop/context_loop.py
+- Added loop/tests/test_drift_display.py
+files:
+- loop/schemas/README.md
+- loop/context_loop.py
+- loop/tests/test_drift_display.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_drift_display.py -q --tb=short`'
+integration_check:
+- rg PROJECT_LOOP_HANDOFF_STRICT|PROJECT_LOOP_REPAIR_LEGACY loop/schemas/README.md
+  -> ok
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_drift_display.py -> PASS
+checkpoints:
+- id: cp1
+  criterion: README.md содержит оба env-ключа эпика
+  status: done
+  done_at: '2026-08-31T01:53:36Z'
+- id: cp2
+  criterion: context_loop.py drift display добавлен
+  status: done
+  done_at: '2026-08-31T01:54:27Z'
+- id: cp3
+  criterion: test_drift_display.py проходит
+  status: done
+  done_at: '2026-08-31T01:54:31Z'
+- id: cp4
+  criterion: '§0.11 audit: все env-ключи эпика в README или project.env'
+  status: done
+  done_at: '2026-08-31T01:54:41Z'
+resume_from: cp1

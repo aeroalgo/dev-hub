@@ -7,6 +7,7 @@ Parent **MAY** spawn любых Agent по нужде.
 |-----------------|-------|-------------|
 | `explorer` | codebase search / discovery в code-режимах | **да**, если `MODEL_LOOP=1` (иначе parent: graphify + узкий rg) |
 | `verify` | pre-FINISH при `code_changed: yes` | **да** (если gate active в loop) |
+| `analyze-verify` | после fix plan/decompose по ANALYZE findings | нет (gate после CRITICAL fix; packed FINDINGS/COVERAGE/ALLOW) |
 | `reviewer` | BACK QA после suite | **да** (если gate active в loop) |
 | built-in / др. | когда parent считает нужным | нет |
 
@@ -16,10 +17,13 @@ Parent **MAY** spawn любых Agent по нужде.
 |-------|-----------|
 | IMPLEMENT · REFACTOR · BUGFIX · TASK (code) | перед широким поиском → **`@explorer`**, если managed search agent включён; иначе graphify + узкий rg parent |
 | Перед FINISH (`code_changed: yes`) | **`@verify` ОБЯЗАТЕЛЬНО** (packed); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
+| После ANALYZE fix (plan/decompose) | **`@analyze-verify`** (packed); FAIL → fix → retry; PASS → re-ANALYZE или IMPLEMENT gate |
 | BACK QA после suite | **`@reviewer` ОБЯЗАТЕЛЬНО** (packed); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
 
 ### Generic registry policy
+
+Agent статус → только index.yaml; index.md генерируется runner.
 
 Managed agents из `.claude/agents/*.md` автоматически обнаруживаются registry и участвуют в policy по `overlay` (frontmatter). Для нового агента: frontmatter `overlay` + `PROJECT_AGENT_<NAME>_MODEL` (+ опц. `*_MODEL_CHAT` / `*_MODEL_LOOP`). Не нужно править `.claude/settings.json`.
 

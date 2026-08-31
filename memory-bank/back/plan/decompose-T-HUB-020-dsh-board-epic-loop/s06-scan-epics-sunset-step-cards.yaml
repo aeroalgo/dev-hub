@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s06
+title: "scan_epics + sync sunset step cards + archive migration"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  scan_epics() эмитит EpicWorkItem (один на epic) вместо pending step cards.
+  Sync FORBIDDEN эмитить pending/in_progress step cards — sunset 014 step projection.
+  Существующие step cards на доске архивируются при sync (archive_all=True для step era cards).
+  Board status map: running = roadmap #1 epic с unresolved next action; остальные → backlog; epic_done → todo.
+
+as_built:
+  - "loop/board_sync/scan_mb.py: WorkItem — step projection; нет EpicWorkItem"
+  - "loop/board_sync/sync.py: эмитит step cards (pending/in_progress) в board upsert"
+  - "loop/board_sync/scan_gates.py: GateWorkItem — gate проекция; нет epic gate"
+  - "Нет scan_epics() функции"
+  - "Нет archive_all для step-era cards при sync"
+  - "board status map нет roadmap rank → column logic"
+
+delta:
+  - "ADD loop/board_sync/scan_epics.py: scan_epics(workspace_refs, steps?) -> list[EpicWorkItem]"
+  - "ADD EpicWorkItem dataclass: role, epic_id, workspace_ref, next_action: EpicNextAction, roadmap_rank: int | None"
+  - "ADD EpicWorkItem.card_kind → CardKind.EPIC"
+  - "IMPL scan_epics: per (workspace, role, epic_id) → resolve_epic_next_action → EpicWorkItem"
+  - "EDIT loop/board_sync/sync.py: ADD epic card upsert via scan_epics; заменить step upsert на epic upsert"
+  - "EDIT sync.py: при встрече step-era cards (card_kind=step) на доске → archive_all=True (send archive request)"
+  - "ADD board_status_for_epic(epic_item: EpicWorkItem, roadmap_queue) -> BoardStatus"
+  - "IMPL board_status_for_epic: rank=0 + unresolved → running; rank>0 → backlog; epic_done → todo"
+  - "EDIT sync.py: использовать board_status_for_epic для column assignment при epic upsert"
+
+deletes:
+  - "sync.py: step card upsert pipeline (заменена на epic upsert)"
+
+out_of_scope:
+  - "mb-bridge TS card-metadata (s08)"
+  - "board_launch CLI (s07)"
+  - "EpicCard model (s05, уже реализован)"
+
+context:
+  consumes:
+    - "loop/board_sync/scan_mb.py — WorkItem; нужен как source для step archive detection"
+    - "loop/board_sync/scan_epics.py (новый, этот шаг)"
+    - "loop/board_sync/sync.py — upsert pipeline"
+    - "loop/board_sync/epic_resolver.py — resolve_epic_next_action (s02–s03)"
+    - "loop/board_sync/card_model.py — EpicCard (s05)"
+    - "loop/roadmap_queue.py — roadmap queue rank"
+    - "plan-T-HUB-020 §Roadmap → колонка: running/backlog/todo logic"
+    - "plan-T-HUB-020 §Board granularity: FORBIDDEN step cards"
+  produces:
+    - "loop/board_sync/scan_epics.py (новый)"
+    - "loop/board_sync/sync.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-020 §Board granularity: FORBIDDEN step projection"
+    - "plan-T-HUB-020 §Roadmap → колонка"
+    - "plan-T-HUB-020 US-004 (12 pending → 1 epic card)"
+    - "plan-T-HUB-020 US-005 (roadmap #1 → running)"
+  files:
+    - "loop/board_sync/scan_epics.py"
+    - "loop/board_sync/sync.py"
+    - "loop/tests/test_board_sync_scan_mb.py"
+    - "loop/tests/test_board_sync_sync.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "scan_epics: fixture 3 epics → 3 EpicWorkItem, нет дубликатов"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_scan_mb.py -k scan_epics -q --tb=line`"
+  - id: cp2
+    criterion: "board_status_for_epic: rank=0 + unresolved → running; rank=1 → backlog; epic_done → todo"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k board_status_epic -q --tb=line`"
+  - id: cp3
+    criterion: "sync fixture: 12 pending steps → 1 epic card upserted, 0 step cards upserted"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k epic_replaces_steps -q --tb=line`"
+  - id: cp4
+    criterion: "step-era card на доске → archive_all True → archive request отправлен"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k archive_step_era -q --tb=line`"
+  - id: cp5
+    criterion: "Существующие sync тесты зелёные — нет регрессии gate/roadmap sync"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_board_sync_sync.py -q --tb=line`"
+
+tdd:
+  - "test_scan_epics_one_item_per_epic"
+  - "test_scan_epics_uses_resolver_for_next_action"
+  - "test_scan_epics_roadmap_rank_set_from_queue"
+  - "test_board_status_rank0_unresolved_running"
+  - "test_board_status_rank1_backlog"
+  - "test_board_status_epic_done_todo"
+  - "test_sync_epic_card_upserted_not_step_cards"
+  - "test_sync_archives_step_era_cards"
+  - "test_sync_regression_gate_upsert_unchanged"
+
+requirements_covered:
+  - "US-004 (12 pending → 1 epic card)"
+  - "US-005 (roadmap #1 → running)"
+  - "FR-scan-epics"
+  - "FR-sunset-step-cards"
+  - "FR-board-column-roadmap-rank"
+  - "NFR-archive-step-era"

@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s06
+title: "loop status без секретов — incidents + metrics + trace_tail в payload"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  loop status показывает open incidents count + last 5, metrics summary и trace_tail last 10
+  без prompt/secrets — разработчик диагностирует orchestration drift из одной команды (US-001, SC-003).
+
+as_built:
+  - "context_loop.status() возвращает loop-status/v1 без incidents/metrics/trace"
+  - "store, metrics, trace модули из s01/s04/s05 существуют"
+delta:
+  - "EDIT loop/context_loop.py status() — добавить bounded keys:"
+  - "  incidents: {open_count, last: [≤5 incident summaries без secrets]}"
+  - "  metrics: summary counters + rates из metrics.json"
+  - "  trace_tail: last 10 trace entries (phase, action, step_id, ts — no prompt)"
+  - "fail-closed: corrupt incidents.jsonl → status flag incidents_corrupt:true (не silent)"
+  - "ADD/EXTEND loop/tests/test_status_incidents.py — open_count, no prompt leak, trace_tail bounded"
+deletes: []
+out_of_scope:
+  - "doctor CLI (s07)"
+  - "новые counter increments (s05)"
+
+context:
+  consumes:
+    - "s01 store list_open"
+    - "s04 trace tail"
+    - "s05 metrics read"
+    - "plan FR-008"
+  produces:
+    - "extended status() payload"
+  plan_refs:
+    - "plan-T-HUB-017 FR-008"
+    - "plan-T-HUB-017 US-001"
+  files:
+    - "loop/context_loop.py"
+    - "loop/tests/test_status_incidents.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "status payload содержит incidents.open_count и last ≤5 entries"
+    verify: "`.venv/bin/pytest loop/tests/test_status_incidents.py -k open_count -q --tb=line`"
+  - id: cp2
+    criterion: "status payload содержит metrics summary с tier0_success_rate"
+    verify: "`.venv/bin/pytest loop/tests/test_status_incidents.py -k metrics -q --tb=line`"
+  - id: cp3
+    criterion: "trace_tail last 10 без prompt/secrets (grep audit)"
+    verify: "`.venv/bin/pytest loop/tests/test_status_incidents.py -k no_secrets -q --tb=line`"
+  - id: cp4
+    criterion: "corrupt incidents → incidents_corrupt flag в status"
+    verify: "`.venv/bin/pytest loop/tests/test_status_incidents.py -k corrupt -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_status_incidents.py -q --tb=line`"
+  - "`.venv/bin/pytest loop/tests/test_status*.py -q --tb=line`"
+
+tdd:
+  - "test_status_incidents_open_count"
+  - "test_status_metrics_summary"
+  - "test_status_trace_tail_bounded"
+  - "test_status_no_prompt_in_payload"
+  - "test_status_corrupt_incidents_flag"
+
+requirements_covered:
+  - FR-008
+  - "AC+ #5"
+  - SC-003
+  - US-001

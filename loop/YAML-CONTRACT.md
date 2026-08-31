@@ -9,9 +9,12 @@ Read-time alias только `integ-decompose/v1` → нормализуется
 ```bash
 python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>
 python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <decompose-dir|index.yaml>
+python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <decompose-dir|index.yaml>
 ```
 
 `validate-decompose-tree` — **DECOMPOSE FINISH fail-closed** (stop-gate): schema load всех sNN|eNN (`epic-decompose/v1`). Полный lint verify — `validate-step`.
+
+`verify-decompose-creative` — **advisory** (exit 0 всегда): сверка plan `CREATIVE need` ↔ shard `needs_creative` / creative-артефакты; JSON `verdict` + `gaps`/`missing`/`fix` для агента. Не блокирует stop-gate.
 
 Шаг YAML = ТЗ агенту (цель, файлы, tests).
 

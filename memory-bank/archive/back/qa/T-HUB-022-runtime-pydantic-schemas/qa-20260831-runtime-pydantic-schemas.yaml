@@ -1,0 +1,22 @@
+schema: epic-qa/v1
+epic_id: T-HUB-022-runtime-pydantic-schemas
+date: '2026-08-31'
+verdict: pass
+suite_results:
+  integration_tests: pass (9/9)
+  schema_state_tests: pass (4/4)
+  state_io_tests: pass (4/4)
+  hooks_tests: pass (18/18)
+ac_coverage:
+  US-001: pass
+  US-002: pass
+  US-003: pass
+  US-004: pass
+  US-005: pass
+  US-006: pass
+  US-007: pass
+  US-008: pass
+  US-009: pass
+notes: |
+  Runtime Pydantic schemas (EpicState, CheckpointRecord, LoopEvent, BoardCardMetadata, GateVerdictRecord, HandoffFrontmatter) fully implemented and wired into core hooks and loop runtime.
+  All integration scenarios US-001..US-009 verified and passing.

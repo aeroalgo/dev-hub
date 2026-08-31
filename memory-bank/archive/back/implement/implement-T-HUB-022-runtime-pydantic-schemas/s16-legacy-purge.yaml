@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s16
+plan_id: T-HUB-022
+title: s16 — Legacy dict-validation + repair auto-rewrite purge (final sunset) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s16-legacy-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Verified cp1: repair_index_mirror and repair_fingerprint_stall retain only diagnostic
+  logging and counter increments; auto-rewrite purged.'
+- 'Verified cp2: EVENT_SCHEMA callers audited in .claude/hooks (0 external callers
+  / legacy alias intact).'
+- 'Verified cp3: Loop test suite green and checked.'
+- 'Verified cp4: Hooks test suite green (18 passed).'
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/epic_events.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line
+- timeout 120s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line
+integration_check:
+- 'import-audit: 0 unexpected callers for purged repair auto-rewrites and EVENT_SCHEMA'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: repair_index_mirror не содержит auto md-write (mirror_status_to_md вызов
+    убран из repair)
+  status: done
+  done_at: '2026-08-31T02:01:58Z'
+- id: cp2
+  criterion: 'Import-audit: EVENT_SCHEMA — 0 callers или alias'
+  status: done
+  done_at: '2026-08-31T02:02:08Z'
+- id: cp3
+  criterion: Финальный loop suite зелёный
+  status: done
+  done_at: '2026-08-31T02:33:29Z'
+- id: cp4
+  criterion: Финальный .claude/hooks/ suite зелёный
+  status: done
+  done_at: '2026-08-31T02:33:54Z'
+resume_from: cp1

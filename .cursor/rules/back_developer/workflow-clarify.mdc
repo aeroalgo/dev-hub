@@ -8,9 +8,9 @@ alwaysApply: false
 **Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
 **Шаблон**: @.cursor/templates/clarify.md
 
-**Скиллы (lazy):**
-- @.agents/skills/grill-me/SKILL.md — только при блокирующих неясностях / CRITICAL
-- @.agents/skills/brainstorming/SKILL.md — опционально при L3–4 / размытом scope (batch, без HARD-GATE пауз)
+**Скиллы (HARD):**
+- @.agents/skills/grill-me/SKILL.md — **Phase 0, mandatory**; Read **целиком** до taxonomy
+- @.agents/skills/brainstorming/SKILL.md — опционально при L3–4 / размытом scope **после** Grill (batch, без HARD-GATE пауз)
 
 ---
 
@@ -47,12 +47,13 @@ BACK CLARIFY <feature-slug>
 1. `OK BACK CLARIFY - <slug>`
 2. Прочитай **Gates** + **Shared core**
 3. Создай/открой артефакт: `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md` по шаблону
-4. Выполни @.cursor/rules/shared/workflow-clarify-core.mdc:
+4. **Read** `@.agents/skills/grill-me/SKILL.md` → **Phase 0 Grill pass** → секция `## Grill pass` в артефакт
+5. Выполни @.cursor/rules/shared/workflow-clarify-core.mdc:
    - §Таксономия → coverage map (внутренний)
-   - §Лимиты → ≤5 Q, sequential, Recommended/Suggested
+   - §Лимиты → ≤5 Q (grill-Q первые), sequential, Recommended/Suggested
    - после каждого A → §Q→A запись в артефакт (+ patch draft plan секций при наличии)
-5. CRITICAL → resolve или явный defer-list (severity)
-6. **Completion Report** в артефакт + кратко в чат
+6. CRITICAL → resolve или явный defer-list (severity)
+7. **Completion Report** в артефакт + кратко в чат
 
 ---
 
@@ -60,12 +61,13 @@ BACK CLARIFY <feature-slug>
 
 `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md`
 
-Обязательные секции шаблона: Контекст и цель · Таксономия сканирования · Q→A log · Deferred / `[НУЖНО УТОЧНИТЬ]` · Completion Report.
+Обязательные секции шаблона: Контекст и цель · **Grill pass** · Таксономия сканирования · Q→A log · Deferred / `[НУЖНО УТОЧНИТЬ]` · Completion Report.
 
 ---
 
 ## Done When
 
+- [ ] **Grill pass** записан (verdict + premises); Completion Report содержит `Grill:`
 - [ ] Completion Report написан
 - [ ] ≤5 Q обработаны (или early stop / «нет критичных ambiguity»)
 - [ ] Нет открытых **CRITICAL** blockers **или** они в defer-list с next/owner

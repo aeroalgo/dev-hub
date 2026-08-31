@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-017-loop-observability-foundation
+title: s02 — Авто-ремонт desync — registry.yaml + tier0 runner + 7 diagnostic codes
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-017-loop-observability-foundation/s02-registry-yaml-tier0.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен loop/incidents/registry.yaml с 7 диагностическими кодами
+- Реализован loader registry.py и Tier-0 runner tier0.py
+- Все 4 checkpoint-а (cp1, cp2, cp3, cp4) выполнены
+files:
+- loop/incidents/registry.yaml
+- loop/incidents/registry.py
+- loop/incidents/tier0.py
+- loop/incidents/repairs.py
+- loop/tests/test_incidents_tier0.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_tier0.py -q --tb=line`'
+integration_check:
+- registry.yaml ↔ tier0.py ↔ epic.core integration verified
+grep_control: []
+verification_results:
+- 6 passed in loop/tests/test_incidents_tier0.py
+checkpoints:
+- id: cp1
+  criterion: registry.yaml содержит ≥7 diagnostic_codes из плана (SC-001)
+  status: done
+  done_at: '2026-08-30T17:15:44Z'
+- id: cp2
+  criterion: mark_index_missing fixture → tier0 → incident resolved, repair_fn called
+  status: done
+  done_at: '2026-08-30T17:21:17Z'
+- id: cp3
+  criterion: unknown diagnostic_code → Tier0Result no_repair, incident stays open
+  status: done
+  done_at: '2026-08-30T17:21:32Z'
+- id: cp4
+  criterion: max_attempts exceeded → repair_exhausted=True
+  status: done
+  done_at: '2026-08-30T17:21:41Z'
+resume_from: cp1

@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s04
+title: "loop.sh tier1 branch — spawn incident session + re-check_after + decide"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  loop.sh после tier0 failure вызывает tier1 gate: проверяет eligibility, лимит попыток,
+  spawn'ит incident-сессию с правильными env/flags, ждёт завершения, запускает re-check_after,
+  принимает решение continue/escalate. EPIC_INCIDENT_TIER1=0 → пропуск tier1.
+
+as_built:
+  - "loop.sh вызывает check_after; при tier0 failure уходит в halt или NEED_HUMAN"
+  - "нет ветки tier1 в loop.sh"
+  - "spawn сессии существует для основного цикла; паттерн reuse"
+  - "context_loop.py имеет check_after / decide логику"
+delta:
+  - "MODIFY loop/loop.sh — после call check_after → tier0 fail branch: if EPIC_INCIDENT_TIER1!=0 → call is_tier1_eligible_sh (python wrapper) → if eligible → call run_tier1_session → re-call check_after → call decide_after_tier1"
+  - "ADD loop/incidents/tier1_runner.py — функция run_tier1_session(incident: IncidentRecord, epic_dir: Path, project_root: Path) -> Tier1Result: записывает tier1_scope.json; выставляет EPIC_INCIDENT_SESSION=1; spawn claude CLI с tier1 prompt (--print или --input-file); возвращает Tier1Result(success, session_log_path, attempt_number)"
+  - "ADD loop/incidents/tier1_runner.py — функция get_tier1_attempts(incident_id: str, epic_dir: Path) -> int: считывает attempts из incidents.jsonl для данного incident_id"
+  - "ADD loop/incidents/tier1_runner.py — функция should_attempt_tier1(incident, epic_dir) -> bool: checks EPIC_INCIDENT_TIER1, eligibility, attempt count < EPIC_INCIDENT_TIER1_MAX (default 2)"
+  - "EPIC_INCIDENT_TIER1_MAX env var с default 2; EPIC_INCIDENT_TIER1_MAX_PER_SESSION default 1 (не более одного tier1 на итерацию loop)"
+  - "loop.sh: flock guard — не spawn tier1 если runner active (reuse existing flock pattern)"
+  - "loop.sh: после tier1 success → update incident tier0→tier1 resolved в store; после tier1 fail → increment attempt; при max → call escalate"
+  - "ADD loop/tests/test_check_after_tier1_wire.py — integration: mock claude spawn; tier0-fail + eligible → tier1 spawned; tier0-fail + not eligible → escalate directly; tier1 success → continue; tier1 fail × MAX → escalate"
+deletes: []
+out_of_scope:
+  - "verify gate внутри tier1 (s05)"
+  - "alert/escalation payload (s06)"
+  - "CLI retry subcommand (s07)"
+
+context:
+  consumes:
+    - "plan §FR-004: loop.sh branch after tier0 fail"
+    - "plan §FR-005: max attempts limit EPIC_INCIDENT_TIER1_MAX"
+    - "plan §зафиксированные решения: Concurrency flock, model env PROJECT_LOOP_BUGFIX_MODEL"
+    - "loop/loop.sh (existing spawn pattern)"
+    - "loop/incidents/tier1.py (is_tier1_eligible из s01)"
+    - "loop/incidents/tier1_prompt.py (build_tier1_prompt из s02)"
+    - "loop/incidents/scope.py (build_allowlist, write_scope_file из s03)"
+    - "loop/incidents/store.py (append/resolve из 017)"
+  produces:
+    - "loop/incidents/tier1_runner.py"
+    - "loop/loop.sh (modified)"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-004 §FR-005"
+    - "plan-T-HUB-018 §зафиксированные решения: Max attempts, Concurrency, Model"
+  files:
+    - "loop/incidents/tier1_runner.py"
+    - "loop/loop.sh"
+    - "loop/tests/test_check_after_tier1_wire.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/systematic-debugging/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "should_attempt_tier1: attempts < MAX + eligible → True; attempts >= MAX → False; EPIC_INCIDENT_TIER1=0 → False"
+    verify: "`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -k should_attempt -q --tb=line`"
+  - id: cp2
+    criterion: "tier0 fail + eligible → tier1 spawned (mock claude); re-check_after called after spawn"
+    verify: "`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -k tier1_spawned -q --tb=line`"
+  - id: cp3
+    criterion: "tier1 session success → incident resolved tier=1 в store; decide=continue"
+    verify: "`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -k tier1_success_continue -q --tb=line`"
+  - id: cp4
+    criterion: "tier1 fail × MAX → escalate called (не зациклен)"
+    verify: "`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -k max_attempts_escalate -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -q --tb=line`"
+
+tdd:
+  - "test_should_attempt_tier1_eligible_below_max"
+  - "test_should_attempt_tier1_env_zero_skip"
+  - "test_should_attempt_tier1_max_exceeded_false"
+  - "test_tier1_spawned_on_tier0_fail_eligible"
+  - "test_tier1_not_spawned_not_eligible"
+  - "test_tier1_success_resolves_incident_and_continues"
+  - "test_tier1_fail_increments_attempts"
+  - "test_tier1_max_exhausted_escalates"
+
+requirements_covered:
+  - FR-004
+  - FR-005
+  - "US-001 (full: spawn + continue)"
+  - "US-002 (full: max attempts → NEED_HUMAN)"
+  - "AC+ #1 full path"
+  - "AC+ #2: max attempts → escalate"
+  - "plan §зафиксированные решения: EPIC_INCIDENT_TIER1=0 disable"

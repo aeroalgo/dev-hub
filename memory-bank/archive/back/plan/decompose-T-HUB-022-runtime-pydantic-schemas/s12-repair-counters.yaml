@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s12
+plan_id: T-HUB-022
+title: "PROJECT_LOOP_REPAIR_LEGACY — wire drift counters on all repair_* paths"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  На каждый вызов `repair_index_mirror()`, `repair_fingerprint_stall()`, `repair_finish_desync()`
+  и regex-fallback в `extract_verdict()` (без sidecar) — вызывать `increment_drift_counter(cwd, name)`:
+  - `repair_index_mirror` → counter `index_mirror_repair`
+  - `repair_fingerprint_stall` → counter `fingerprint_stall_repair`
+  - `repair_finish_desync` → counter `handoff_projected` (deprecated name)
+  - `extract_verdict` regex-path (cwd!=None, sidecar miss) → counter `gate_verdict_regex_fallback`
+  Добавить `PROJECT_LOOP_REPAIR_LEGACY=1` env guard: если =0 → repair_* только log warning, не rewrite.
+  US-008, FR-003.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — repair_index_mirror, repair_fingerprint_stall, repair_finish_desync, repair_post_implement_handoff_drift"
+    - ".claude/hooks/_lib.py — extract_verdict() regex fallback path"
+    - ".claude/hooks/epic/core.py:increment_drift_counter() — из s03"
+    - "loop/schemas/state.py — DriftCounters (из s02)"
+    - "plan-T-HUB-022 §repair_* sunset, §DriftCounters, US-008"
+  produces:
+    - ".claude/hooks/epic/core.py EDIT — increment_drift_counter в каждом repair_*"
+    - ".claude/hooks/_lib.py EDIT — increment в extract_verdict regex-fallback"
+    - ".claude/project.env EDIT — добавить PROJECT_LOOP_REPAIR_LEGACY=1"
+    - "loop/tests/test_repair_counters.py — вызов repair_index_mirror → counter +1 в state"
+  plan_refs:
+    - "plan-T-HUB-022 US-008 — drift_counters incremented on each repair/fallback"
+    - "plan-T-HUB-022 FR-003 — DriftCounters: index_mirror_repair, fingerprint_stall_repair, ..."
+    - "plan-T-HUB-022 §repair_* sunset"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - ".claude/hooks/_lib.py"
+    - ".claude/project.env"
+    - "loop/tests/test_repair_counters.py"
+
+as_built:
+  - "repair_index_mirror() — нет counter increment"
+  - "repair_fingerprint_stall() — нет counter"
+  - "extract_verdict() — нет drift counter при regex-fallback"
+  - "PROJECT_LOOP_REPAIR_LEGACY — отсутствует"
+  - "increment_drift_counter — добавляется в s03"
+
+delta:
+  - ".claude/hooks/epic/core.py EDIT repair_index_mirror — добавить increment_drift_counter(cwd, 'index_mirror_repair')"
+  - ".claude/hooks/epic/core.py EDIT repair_fingerprint_stall — increment 'fingerprint_stall_repair'"
+  - ".claude/hooks/epic/core.py EDIT repair_finish_desync — increment 'handoff_projected'"
+  - ".claude/hooks/_lib.py EDIT extract_verdict regex-path — increment 'gate_verdict_regex_fallback'"
+  - ".claude/project.env EDIT — добавить PROJECT_LOOP_REPAIR_LEGACY=1  # 0=log-only, no auto-rewrite"
+  - "loop/tests/test_repair_counters.py CREATE — repair_index_mirror → state drift_counters.index_mirror_repair == 1"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление repair_* функций — s15/s16 (после metrics near zero)"
+  - "Изменение repair logic — только counter add + env guard"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "repair_index_mirror содержит increment_drift_counter"
+    verify: "rg 'increment_drift_counter' .claude/hooks/epic/core.py | rg 'repair_index_mirror|index_mirror_repair'"
+  - id: cp2
+    criterion: "extract_verdict содержит drift counter на regex fallback path"
+    verify: "rg 'increment_drift_counter\\|gate_verdict_regex_fallback' .claude/hooks/_lib.py"
+  - id: cp3
+    criterion: "PROJECT_LOOP_REPAIR_LEGACY в project.env"
+    verify: "rg 'PROJECT_LOOP_REPAIR_LEGACY' .claude/project.env"
+  - id: cp4
+    criterion: "test_repair_counters.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_repair_counters.py -q --tb=short"
+
+verify: []
+
+tdd:
+  - "RED: test_repair_index_mirror_increments_counter → state.drift_counters.index_mirror_repair == 1"
+  - "RED: test_extract_verdict_regex_fallback_increments → gate_verdict_regex_fallback +1"
+  - "RED: test_repair_legacy_0_env_log_only → repair_index_mirror with LEGACY=0 → no rewrite, log warning"
+  - "GREEN: wire counters в repair_* + extract_verdict"

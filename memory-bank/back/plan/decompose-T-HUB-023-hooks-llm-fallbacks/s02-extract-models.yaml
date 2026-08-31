@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Structured extract models HandoffExtract / VerdictExtract / AbortClassify
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Ввести три Pydantic v2 result-модели для structured LLM extract в hooks: HandoffExtract,
+  VerdictExtract, AbortClassify — с полями и confidence gate из плана (FR-001, FR-007, AC+3, AC+4).
+  Модели — SoT для runners s03 и wire-in s04–s06.
+
+context:
+  consumes:
+    - ".claude/hooks/llm_structured.py — LogSummary pattern (T-HUB-021)"
+    - "plan-T-HUB-023 §Handoff model / Verdict model / Abort model"
+  produces:
+    - ".claude/hooks/llm_structured.py — HandoffExtract, VerdictExtract, AbortClassify"
+  plan_refs:
+    - "plan-T-HUB-023 FR-001"
+    - "plan-T-HUB-023 FR-007"
+    - "plan-T-HUB-023 AC+ #3, #4"
+  files:
+    - ".claude/hooks/llm_structured.py"
+    - "loop/tests/test_hooks_llm_models.py"
+
+as_built:
+  - "llm_structured.py — только LogError, LogSummary, make_output_cap_agent, run_log_summary"
+  - "HandoffExtract / VerdictExtract / AbortClassify — отсутствуют"
+
+delta:
+  - "HandoffExtract: handoff_md: str, load_now_paths: list[str], phase: str|None, confidence: float (0..1)"
+  - "VerdictExtract: verdict: Literal[PASS,FAIL,BLOCKED]|None, confidence: float"
+  - "AbortClassify: kind: Literal[transient,fatal], reason_short: str, confidence: float"
+  - "ADD is_confident(result, threshold) helper using PROJECT_HOOKS_LLM_CONFIDENCE default 0.7"
+  - "Export models in __all__"
+
+deletes: []
+
+out_of_scope:
+  - "Agent runners — s03"
+  - "Prompt text — s03"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md  # S11 Pydantic public extract models
+
+checkpoints:
+  - id: cp1
+    criterion: "Три модели определены в llm_structured.py"
+    verify: "rg 'class (HandoffExtract|VerdictExtract|AbortClassify)' .claude/hooks/llm_structured.py"
+  - id: cp2
+    criterion: "VerdictExtract rejects invalid verdict literal"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_models.py::test_verdict_extract_invalid -q"
+  - id: cp3
+    criterion: "confidence field bounded 0..1"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_models.py -q"
+
+verify: []
+
+tdd:
+  - "test_handoff_extract_canonical_fixture"
+  - "test_verdict_extract_null_verdict_allowed"
+  - "test_abort_classify_transient_fatal"
+  - "test_is_confident_below_threshold"

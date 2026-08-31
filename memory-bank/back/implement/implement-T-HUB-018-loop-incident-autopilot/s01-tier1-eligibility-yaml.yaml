@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s01 — Whitelist + classifier — tier1-eligibility.yaml + is_tier1_eligible()
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-018-loop-incident-autopilot/s01-tier1-eligibility-yaml.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created tier1_eligibility.yaml whitelist with orchestration diagnostic codes
+- Implemented load_eligibility_config() with EPIC_TIER1_ELIGIBILITY_PATH env override
+- Implemented is_tier1_eligible() classifier with product_test_failed filter and fail-closed
+  handling
+- Added unit tests in test_incidents_tier1_eligibility.py
+files:
+- loop/incidents/tier1_eligibility.yaml
+- loop/incidents/tier1.py
+- loop/tests/test_incidents_tier1_eligibility.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -q
+  --tb=line`'
+integration_check:
+- is_tier1_eligible works with IncidentRecord from loop/incidents/schema.py
+grep_control: []
+verification_results:
+- 6 passed in 0.17s
+checkpoints:
+- id: cp1
+  criterion: orchestration-only diagnostic code (e.g. active_context_shape_invalid)
+    → is_tier1_eligible=True
+  status: done
+  done_at: '2026-08-30T19:53:10Z'
+- id: cp2
+  criterion: product_test_failed=true в metadata → is_tier1_eligible=False
+  status: done
+  done_at: '2026-08-30T19:53:16Z'
+- id: cp3
+  criterion: unknown diagnostic_code → is_tier1_eligible=False (fail-closed)
+  status: done
+  done_at: '2026-08-30T19:53:24Z'
+- id: cp4
+  criterion: mixed codes (одна orchestration + один product_test_failed) → False
+  status: done
+  done_at: '2026-08-30T19:53:31Z'
+resume_from: cp1

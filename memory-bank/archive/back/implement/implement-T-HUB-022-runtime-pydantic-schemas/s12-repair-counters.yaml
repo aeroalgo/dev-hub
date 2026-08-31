@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s12
+plan_id: T-HUB-022
+title: s12 — PROJECT_LOOP_REPAIR_LEGACY — wire drift counters on all repair_* paths
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s12-repair-counters.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Wired increment_drift_counter to repair_index_mirror, repair_fingerprint_stall,
+  repair_finish_desync, extract_verdict fallback path
+- Added PROJECT_LOOP_REPAIR_LEGACY=1 guard to project.env and core.py
+- Added test_repair_counters.py unit tests
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/_lib.py
+- .claude/project.env
+- loop/tests/test_repair_counters.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_repair_counters.py -q --tb=short`'
+integration_check:
+- rg increment_drift_counter .claude/hooks/epic/core.py
+grep_control: []
+verification_results:
+- 3 passed in 0.14s
+checkpoints:
+- id: cp1
+  criterion: repair_index_mirror содержит increment_drift_counter
+  status: done
+  done_at: '2026-08-31T01:38:31Z'
+- id: cp2
+  criterion: extract_verdict содержит drift counter на regex fallback path
+  status: done
+  done_at: '2026-08-31T01:38:44Z'
+- id: cp3
+  criterion: PROJECT_LOOP_REPAIR_LEGACY в project.env
+  status: done
+  done_at: '2026-08-31T01:38:54Z'
+- id: cp4
+  criterion: test_repair_counters.py проходит
+  status: done
+  done_at: '2026-08-31T01:39:05Z'
+resume_from: cp1

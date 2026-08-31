@@ -28,9 +28,15 @@ import os
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
+
+try:
+    from llm_structured import LogSummary, run_log_summary
+    _HAS_STRUCTURED = True
+except ImportError:
+    _HAS_STRUCTURED = False
+    run_log_summary = None  # type: ignore[assignment]
+    LogSummary = None  # type: ignore[assignment]
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import emit, load_output_summary_env, product_cwd, read_stdin  # noqa: E402
@@ -289,108 +295,40 @@ def _retry_settings() -> tuple[int, float, float]:
     return retries, timeout, backoff
 
 
-def _http_chat(url: str, key: str, model: str, payload: dict, timeout: float) -> str | None:
-    body = dict(payload)
-    body["model"] = model
-    req = urllib.request.Request(
-        f"{url}/chat/completions",
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {key}",
-            "Connection": "close",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        raw = resp.read().decode("utf-8", errors="replace")
-    data = json.loads(raw)
-    content = (
-        ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
-    ).strip()
-    return content or None
-
-
-def _should_retry(exc: BaseException) -> bool:
-    if isinstance(exc, TimeoutError):
-        return True
-    if isinstance(exc, urllib.error.HTTPError):
-        # 408/429/5xx — retry; 4xx client errors — no
-        return exc.code in {408, 425, 429} or exc.code >= 500
-    if isinstance(exc, urllib.error.URLError):
-        return True
-    if isinstance(exc, (ConnectionError, BrokenPipeError, OSError)):
-        return True
-    if isinstance(exc, json.JSONDecodeError):
-        return True
-    return False
-
-
-def llm_summarize(cmd: str, text: str, dump_path: Path) -> str | None:
-    if not _llm_enabled():
-        return None
-    url, model, key, fallback = _llm_config()
-    if not key:
-        return None
-
-    sample = text
-    if len(sample) > LLM_INPUT_MAX:
-        sample = (
-            sample[: LLM_INPUT_MAX // 2]
-            + "\n…\n"
-            + sample[-LLM_INPUT_MAX // 2 :]
-        )
-
-    prompt = (
-        "Сделай краткий summary лога для родительского coding-агента. "
-        "Русский. Макс 25 коротких строк/буллетов. "
-        "Только факты: exit/status, failed tests, ERROR/Exception file:line, "
-        "корневые симптомы. Не выдумывай. Не предлагай rewrite всего. "
-        f"Полный лог: {dump_path}\n"
-        f"Команда: {cmd[:400]}\n"
-        f"Лог:\n{sample}"
-    )
-    payload = {
-        "messages": [
-            {
-                "role": "system",
-                "content": "Ты сжатый суммаризатор логов. Только факты.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0,
-        "max_tokens": 700,
-        "stream": False,
+def _structured_enabled() -> bool:
+    load_output_summary_env()
+    return os.environ.get("PROJECT_OUTPUT_SUMMARY_STRUCTURED", "1").strip() not in {
+        "0",
+        "false",
+        "no",
+        "off",
     }
 
-    retries, timeout, backoff = _retry_settings()
-    models = [model]
-    if fallback and fallback != model:
-        models.append(fallback)
 
-    last_err: str | None = None
-    attempt = 0
-    for m in models:
-        for i in range(retries):
-            attempt += 1
-            try:
-                content = _http_chat(url, key, m, payload, timeout)
-                if content:
-                    return content
-                last_err = f"{m}: empty content"
-            except Exception as exc:  # noqa: BLE001 — hook must never crash parent
-                last_err = f"{m}: {type(exc).__name__}: {exc}"
-                if not _should_retry(exc) or i >= retries - 1:
-                    break
-                time.sleep(backoff * (i + 1))
-                continue
-            # empty content — retry same model
-            if i < retries - 1:
-                time.sleep(backoff * (i + 1))
-        # next fallback model
-    if last_err and os.environ.get("PROJECT_OUTPUT_SUMMARY_DEBUG"):
-        print(f"output-cap llm give-up after {attempt}: {last_err}", file=sys.stderr)
-    return None
+def build_view_structured(summary: LogSummary, dump_path: Path) -> str:
+    lines = [f"[output-cap:structured] full dump → {dump_path}"]
+    if summary.summary_bullets:
+        lines.append("=== Summary ===")
+        for bullet in summary.summary_bullets:
+            lines.append(f"• {bullet}")
+        lines.append("")
+    if summary.failed_tests:
+        lines.append("## Failed tests")
+        for test in summary.failed_tests:
+            lines.append(f"• {test}")
+        lines.append("")
+    if summary.errors:
+        lines.append("## Errors")
+        for err in summary.errors:
+            loc = f"{err.location}: " if err.location else ""
+            lines.append(f"• {loc}{err.message}")
+        lines.append("")
+    if summary.root_cause:
+        lines.append(f"Root cause: {summary.root_cause}")
+        lines.append("")
+    if os.environ.get("PROJECT_OUTPUT_SUMMARY_DEBUG") == "1":
+        lines.append(f"<!-- {summary.model_dump_json()} -->")
+    return "\n".join(lines).strip() + "\n"
 
 
 def build_view(cmd: str, combined: str, dump_path: Path) -> tuple[str, str]:
@@ -420,14 +358,10 @@ def build_view(cmd: str, combined: str, dump_path: Path) -> tuple[str, str]:
                 view += "\n=== footer ===\n" + "\n".join(footer[-8:]) + "\n"
         return view, "extract"
 
-    summary = llm_summarize(cmd, combined, dump_path)
-    if summary:
-        return (
-            f"[output-cap:llm-summary] full dump → {dump_path}\n"
-            f"cmd: {cmd[:300]}\n\n"
-            f"{summary}\n",
-            "llm",
-        )
+    if _HAS_STRUCTURED and _structured_enabled() and _llm_enabled():
+        res = run_log_summary(cmd, combined, str(dump_path))
+        if res:
+            return build_view_structured(res, dump_path), "structured"
 
     capped = _head_tail(combined)
     return (

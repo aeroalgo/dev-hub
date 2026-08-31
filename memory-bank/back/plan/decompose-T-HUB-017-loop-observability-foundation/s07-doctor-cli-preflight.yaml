@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s07
+title: "Preflight перед автозапуском — loop doctor checklist + exit codes"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  loop doctor даёт preflight checklist перед ночным автозапуском: stale lock, corrupt index,
+  corrupt incidents — exit 0 ready, 1 blockers, 2 misconfig (US-004, SC-004).
+  board_sync_stale optional если hub-board on PATH (soft T-HUB-014, AC−5).
+
+as_built:
+  - "bin/loop или context_loop.py не имеют doctor subcommand"
+  - "validate_active_context_shape, validate_finish_integrity, stale owner check разбросаны по hooks/check_after"
+delta:
+  - "ADD loop/incidents/doctor.py — run_doctor(cwd) → DoctorReport {checklist[], blockers[], warnings[], exit_code}"
+  - "Checks (plan table): active_context_shape, armed_decompose_exists, finish_integrity, stale_owner, open_incidents (warn), incidents_corrupt (blocker), board_sync_stale (optional warn if hub-board on PATH — skip if missing)"
+  - "EDIT loop/context_loop.py — argparse doctor subcommand или dedicated entry"
+  - "EDIT bin/loop — `loop doctor` delegates to context_loop doctor"
+  - "Exit codes: 0=no blockers, 1=blockers, 2=misconfig (missing PROJECT_ROOT etc.)"
+  - "ADD loop/tests/test_incidents_doctor.py — stale_owner fixture exit 1; valid project exit 0"
+  - "ADD loop/tests/fixtures/incidents/stale_owner/ — dead pid runner.json"
+deletes: []
+out_of_scope:
+  - "Tier-1 autopilot spawn (T-HUB-018)"
+  - "mandatory hub-board / DSH (AC−5)"
+
+context:
+  consumes:
+    - "s01 corrupt incidents detection"
+    - "epic.core validate_* functions"
+    - "plan §Doctor checks"
+    - "plan FR-009"
+  produces:
+    - "loop/incidents/doctor.py"
+    - "loop doctor CLI"
+  plan_refs:
+    - "plan-T-HUB-017 §Doctor checks"
+    - "plan-T-HUB-017 FR-009"
+  files:
+    - "loop/incidents/doctor.py"
+    - "loop/context_loop.py"
+    - "bin/loop"
+    - "loop/tests/test_incidents_doctor.py"
+    - "loop/tests/fixtures/incidents/stale_owner/"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "stale_owner fixture → doctor exit 1 + checklist stale_owner:fail + remediation hint"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_doctor.py -k stale_owner -q --tb=line`"
+  - id: cp2
+    criterion: "valid armed project → doctor exit 0"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_doctor.py -k valid_project -q --tb=line`"
+  - id: cp3
+    criterion: "missing PROJECT_ROOT → exit 2 misconfig"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_doctor.py -k misconfig -q --tb=line`"
+  - id: cp4
+    criterion: "corrupt incidents.jsonl → incidents_corrupt blocker"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_doctor.py -k corrupt_incidents -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=line`"
+  - "`bin/loop doctor --help` или `python loop/context_loop.py doctor --help`"
+
+tdd:
+  - "test_doctor_stale_owner_exit_one"
+  - "test_doctor_valid_project_exit_zero"
+  - "test_doctor_misconfig_exit_two"
+  - "test_doctor_corrupt_incidents_blocker"
+  - "test_doctor_open_incidents_warn_only"
+  - "test_doctor_board_sync_skipped_when_cli_missing"
+
+requirements_covered:
+  - FR-009
+  - "AC+ #6"
+  - SC-004
+  - US-004
+  - "AC−5"
+  - "AC−6 partial (doctor corrupt path)"

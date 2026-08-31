@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-017-loop-observability-foundation
+title: s03 — Loop продолжается после Tier-0 — wire tier0 в check_after + repair_exhausted
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-017-loop-observability-foundation/s03-check-after-wire-tier0.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Wired run_tier0_for_incident into check_after in loop/context_loop.py
+- Handled incident creation, auto-resolution continue payload, and repair_exhausted
+  propagation
+files:
+- loop/context_loop.py
+- loop/incidents/repairs.py
+- loop/tests/test_check_after_tier0_wire.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_check_after_tier0_wire.py loop/tests/test_decide_after_action.py
+  loop/tests/test_index_fail_closed.py -q --tb=line`'
+integration_check:
+- ok
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_check_after_tier0_wire.py loop/tests/test_decide_after_action.py
+  loop/tests/test_index_fail_closed.py -q --tb=line
+checkpoints:
+- id: cp1
+  criterion: check_after halt + repairable diagnostic → open_incident вызван
+  status: done
+  done_at: '2026-08-30T17:40:29Z'
+- id: cp2
+  criterion: tier0 resolves → check_after returns ok:true continue with incidents_resolved
+  status: done
+  done_at: '2026-08-30T17:40:48Z'
+- id: cp3
+  criterion: repair_exhausted → halt payload с repair_exhausted:true
+  status: done
+  done_at: '2026-08-30T17:41:03Z'
+- id: cp4
+  criterion: 'Regression: test_decide_after_action + existing check_after tests green'
+  status: done
+  done_at: '2026-08-30T17:41:13Z'
+resume_from: cp1

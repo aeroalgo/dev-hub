@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s15
+plan_id: T-HUB-022
+title: "AUDIT: repair_* caller purge / regex fallback metrics near zero"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Прогнать `loop status` и проверить drift counters в state — убедиться что при нормальной
+  работе loop без forced legacy: `index_mirror_repair`, `fingerprint_stall_repair`,
+  `gate_verdict_regex_fallback` остаются 0 или near-zero.
+  Провести rg-аудит: найти все call-sites `repair_index_mirror`, `repair_fingerprint_stall`,
+  `repair_finish_desync` в `context_loop.py` — пометить оставшиеся как legacy-only (комментарий).
+  Зафиксировать в `memory-bank/back/plan/refs/T-HUB-022-repair-audit.md`:
+  каждый caller → условие вызова → план sunset (удалить в s16 или defer).
+  FR-007, §repair_* sunset.
+
+context:
+  consumes:
+    - "loop/context_loop.py:1128, 1565, 1594 — call-sites repair_index_mirror, repair_fingerprint_stall"
+    - ".claude/hooks/epic/core.py — repair_* definitions"
+    - "loop/schemas/state.py + increment_drift_counter (из s02/s03)"
+    - "plan-T-HUB-022 §repair_* sunset, §Drift observability"
+  produces:
+    - "memory-bank/back/plan/refs/T-HUB-022-repair-audit.md — caller audit + sunset plan"
+    - "loop/context_loop.py EDIT — legacy-only comments на repair_* call-sites"
+  plan_refs:
+    - "plan-T-HUB-022 §repair_* sunset"
+    - "plan-T-HUB-022 §Зафиксированные решения: repair_index_mirror, repair_fingerprint_stall → log + project; удалить auto-rewrite после green migration suite"
+  files:
+    - "memory-bank/back/plan/refs/T-HUB-022-repair-audit.md"
+    - "loop/context_loop.py"
+
+as_built:
+  - "context_loop.py:1128 — repair_index_mirror в after-implement path"
+  - "context_loop.py:1565 — repair_index_mirror в rollback/resume path"
+  - "context_loop.py:1594 — repair_fingerprint_stall в stall-detection path"
+  - "repair_finish_desync — вызывается из incidents/registry.py"
+
+delta:
+  - "memory-bank/back/plan/refs/T-HUB-022-repair-audit.md CREATE — 3+ call-sites, условие, plan (s16 vs defer)"
+  - "loop/context_loop.py EDIT — добавить '#legacy-repair: T-HUB-022 s16' комментарий на repair_* вызовы"
+
+deletes: []
+
+out_of_scope:
+  - "Фактическое удаление repair_* — s16"
+  - "Изменение repair logic — только аудит + comment"
+  - "Тесты в этом шаге — только audit md + comment"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "Repair audit md создан с таблицей caller → условие → plan"
+    verify: "rg 'repair_index_mirror|repair_fingerprint_stall|repair_finish_desync' memory-bank/back/plan/refs/T-HUB-022-repair-audit.md"
+  - id: cp2
+    criterion: "context_loop.py repair_* call-sites помечены комментарием"
+    verify: "rg 'legacy-repair\\|T-HUB-022 s16' loop/context_loop.py"
+  - id: cp3
+    criterion: "drift counters из state при чистом запуске — all near zero (doc check)"
+    verify: "rg 'gate_verdict_regex_fallback\\|index_mirror_repair\\|fingerprint_stall_repair' memory-bank/back/plan/refs/T-HUB-022-repair-audit.md"
+
+verify: []
+
+tdd:
+  - "Нет unit-тестов для этого шага (read-only audit)"
+  - "cp1–cp3 верифицируют audit artifacts без тестового фреймворка"

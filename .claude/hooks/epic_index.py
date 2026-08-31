@@ -7,11 +7,14 @@ index.md is human coverage; its status column is a best-effort mirror only
 """
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 SCHEMA_DECOMPOSE_INDEX = "epic-decompose-index/v1"
 _STEP_STATUS_WORDS = ("pending", "active", "completed", "done", "blocked")
@@ -245,8 +248,13 @@ def find_next_step(steps: list[dict[str, str]]) -> dict[str, str] | None:
     return None
 
 
+def _warn_agent_md_write(context: str = "direct_md_write") -> None:
+    logger.warning("Agent status write targeting index.md is deprecated; index.yaml is canon (%s)", context)
+
+
 def set_step_status_in_doc(doc: dict[str, Any], step_id: str, status: str) -> str | None:
     """Mutate doc; return previous status or None if missing."""
+    _warn_agent_md_write("set_step_status_in_doc")
     sid = step_id.strip().lower()
     status_l = status.strip().lower()
     for item in doc.get("steps") or []:

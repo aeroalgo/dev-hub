@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s13
+plan_id: T-HUB-022
+title: s13 — Integration tests + full loop suite (pytest -q) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s13-integration-tests.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created integration test loop/tests/test_t022_integration.py with 9 scenarios matching
+  US-001..US-009
+files:
+- loop/tests/test_t022_integration.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_t022_integration.py -q --tb=short`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_t022_integration.py -q --tb=short
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_t022_integration.py -q --tb=short -> 9 passed
+checkpoints:
+- id: cp1
+  criterion: test_t022_integration.py содержит ≥9 тест-функций (по US)
+  status: done
+  done_at: '2026-08-31T01:49:44Z'
+- id: cp2
+  criterion: integration тест-файл проходит
+  status: done
+  done_at: '2026-08-31T01:49:55Z'
+- id: cp3
+  criterion: Полный loop suite зелёный
+  status: done
+  done_at: '2026-08-31T01:51:25Z'
+resume_from: cp1

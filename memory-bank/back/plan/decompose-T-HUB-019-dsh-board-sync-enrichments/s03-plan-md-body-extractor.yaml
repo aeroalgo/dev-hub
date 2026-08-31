@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+step_id: s03
+title: "Gate body: plan.md Цель+Контекст+UserStories → backlog card body"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Gate-карточки PLAN/DECOMPOSE на доске показывают читаемый контекст из plan-файла
+  (Цель, первый абзац Контекста, User Stories ≤5 строк), а не пустой description.
+  Fail-soft при отсутствии plan.md → reason_code как однострочный body.
+
+as_built:
+  - "loop/board_sync/scan_gates.py: GateWorkItem не имеет plan_rel; plan-файл не ищется"
+  - "loop/board_sync/diff.py: gate_card вызывает compose_description(None, card) — body пустой"
+  - "loop/board_sync/body_loaders.py: load_gate_body — не существует (добавляется в s02-файл)"
+
+delta:
+  - "ADD plan_rel: str | None = None в GateWorkItem dataclass"
+  - "EDIT scan_gates: при формировании GateWorkItem glob `memory-bank/{role}/plan/plan-{epic_id}-*.md`; первый hit → plan_rel"
+  - "ADD load_gate_body(plan_path: Path | None, reason_code: str | None) -> str | None в body_loaders.py"
+  - "load_gate_body: если plan_path is None → reason_code как тело или None"
+  - "load_gate_body: читает plan .md; ищет H1 `# [T-HUB-NNN...]`; секции ## Цель, ## Контекст, ## User Stories (или аналоги)"
+  - "load_gate_body: собирает: H1-строка + весь раздел Цель + первый абзац Контекст + таблица UserStories ≤5 строк"
+  - "load_gate_body: fail-soft при OSError/parse → reason_code fallback или None"
+  - "POST_PHASES (AUDIT/QA/BUGFIX/REFLECT): load_gate_body не вызывается (body=None)"
+  - "EDIT diff.gate_card: plan_path = project_root / item.plan_rel if item.plan_rel else None; calls load_gate_body для pre-impl phases"
+
+deletes: []
+
+out_of_scope:
+  - "step body — s02"
+  - "status/column mapping — s04"
+  - "HTTP move — s05"
+
+context:
+  consumes:
+    - "loop/board_sync/scan_gates.py — GateWorkItem, _POST_PHASES"
+    - "loop/board_sync/diff.py — gate_card"
+    - "loop/board_sync/body_loaders.py — добавляется load_gate_body (s02 создал файл)"
+    - "plan T-HUB-019 FR-002, §Gate body extractor"
+  produces:
+    - "loop/board_sync/body_loaders.py (дополнен load_gate_body)"
+    - "loop/board_sync/scan_gates.py (изменён)"
+    - "loop/board_sync/diff.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-019 FR-002"
+    - "plan-T-HUB-019 §Зафиксированные решения: Источник текста gate, Plan backlog"
+  files:
+    - "loop/board_sync/body_loaders.py"
+    - "loop/board_sync/scan_gates.py"
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_body_loaders.py"
+    - "loop/tests/test_board_sync_scan_gates.py"
+    - "loop/tests/test_board_sync_diff.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "GateWorkItem.plan_rel заполняется если plan-файл найден"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_scan_gates.py -k plan_rel -q --tb=line`"
+  - id: cp2
+    criterion: "load_gate_body happy path: plan.md с разделами → тело содержит Цель + Контекст"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_body_loaders.py -k load_gate_body -q --tb=line`"
+  - id: cp3
+    criterion: "load_gate_body missing plan: reason_code → однострочная строка, не исключение"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_body_loaders.py -k gate_body_missing -q --tb=line`"
+  - id: cp4
+    criterion: "gate_card для DECOMPOSE phase: description содержит body из plan + footer"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k gate_body -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_body_loaders.py loop/tests/test_board_sync_scan_gates.py loop/tests/test_board_sync_diff.py -q --tb=line`"
+
+tdd:
+  - "test_scan_gates_plan_rel_populated"
+  - "test_scan_gates_plan_rel_none_if_missing"
+  - "test_load_gate_body_sections_extracted"
+  - "test_load_gate_body_user_stories_max_5"
+  - "test_load_gate_body_missing_plan_reason_code"
+  - "test_load_gate_body_post_phase_not_called"
+  - "test_gate_card_decompose_has_plan_body"
+
+requirements_covered:
+  - "FR-002"
+  - "NFR-002 (fail-soft missing plan)"

@@ -1,0 +1,59 @@
+# Diagnostic codes registry schema version: loop-incident-registry/v1
+version: loop-incident-registry/v1
+
+repairs:
+  mark_index_missing:
+    description: "Implement shard completed but index step stays open (desync)"
+    runbook_rel: "loop/incidents/runbooks/mark_index_missing.md"
+    chain:
+      - repair_fn: "epic.core.repair_finish_desync"
+        verify_fn: "epic.core.validate_index_vs_implement"
+        max_attempts: 2
+
+  fingerprint_stall:
+    description: "Session fingerprint did not change after iteration"
+    runbook_rel: "loop/incidents/runbooks/fingerprint_stall.md"
+    chain:
+      - repair_fn: "epic.core.repair_fingerprint_stall"
+        verify_fn: ""
+        max_attempts: 1
+
+  index_mirror_drift:
+    description: "index.yaml and index.md steps drift"
+    runbook_rel: "loop/incidents/runbooks/index_mirror_drift.md"
+    chain:
+      - repair_fn: "epic.core.repair_index_mirror"
+        verify_fn: ""
+        max_attempts: 2
+
+  premature_epic_done:
+    description: "Epic status marked done when index has uncompleted steps"
+    runbook_rel: "loop/incidents/runbooks/premature_epic_done.md"
+    chain:
+      - repair_fn: "epic.core.repair_post_implement_handoff_drift"
+        verify_fn: ""
+        max_attempts: 1
+
+  stale_owner:
+    description: "Runner lock file owned by dead process"
+    runbook_rel: "loop/incidents/runbooks/stale_owner.md"
+    chain:
+      - repair_fn: "loop.incidents.repairs.clear_stale_runner_lock"
+        verify_fn: "loop.incidents.repairs.verify_runner_owner"
+        max_attempts: 1
+
+  checkpoint_drift:
+    description: "Implement checkpoints out of sync with decompose"
+    runbook_rel: "loop/incidents/runbooks/checkpoint_drift.md"
+    chain:
+      - repair_fn: "epic.core.repair_post_implement_handoff_drift"
+        verify_fn: ""
+        max_attempts: 1
+
+  active_context_shape_invalid:
+    description: "activeContext.md missing required section headers"
+    runbook_rel: "loop/incidents/runbooks/active_context_shape_invalid.md"
+    chain:
+      - repair_fn: "loop.incidents.repairs.repair_active_context_shape"
+        verify_fn: "loop.incidents.repairs.verify_active_context_shape"
+        max_attempts: 2

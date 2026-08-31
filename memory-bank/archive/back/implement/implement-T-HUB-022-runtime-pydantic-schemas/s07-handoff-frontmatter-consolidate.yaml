@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-022
+title: s07 — Consolidate HandoffFrontmatter spike — tests + schemas/README IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s07-handoff-frontmatter-consolidate.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Создан полный test suite loop/tests/test_schemas_handoff.py (8 тестов) для LoopHandoffFrontmatter
+  и active_context
+- Создана документация карт схем loop/schemas/README.md
+files:
+- loop/tests/test_schemas_handoff.py
+- loop/schemas/README.md
+- loop/schemas/handoff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_handoff.py -q --tb=short`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line` — 987 passed, 1 skipped'
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/ -q --tb=line — 987 passed, 1 skipped
+checkpoints:
+- id: cp1
+  criterion: test_schemas_handoff.py создан с ≥6 тест-функциями
+  status: done
+  done_at: '2026-08-31T01:00:19Z'
+- id: cp2
+  criterion: test_schemas_handoff.py проходит
+  status: done
+  done_at: '2026-08-31T01:00:29Z'
+- id: cp3
+  criterion: loop/schemas/README.md содержит таблицу schema → class
+  status: done
+  done_at: '2026-08-31T01:00:38Z'
+resume_from: cp1

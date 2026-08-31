@@ -1,0 +1,50 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-020-dsh-board-epic-loop
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-plan-next-parse-write.yaml
+  title: plan-next/v1 parser + BACK PLAN FINISH hook
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-epic-next-action-resolver.yaml
+  title: EpicNextAction resolver — pre-implement matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-resolver-post-implement-override.yaml
+  title: Resolver post-implement + plan-next override validation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-arm-pre-implement-orchestrator.yaml
+  title: arm_pre_implement_context + arm_epic orchestrator
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-card-kind-epic-stable-id.yaml
+  title: card_kind epic + stable_id + EpicCard metadata
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-scan-epics-sunset-step-cards.yaml
+  title: scan_epics + sync sunset step cards + archive migration
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-board-launch-loop-cli.yaml
+  title: board_launch arm_epic + loop.sh --epic-id CLI
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-mb-bridge-epic-run-roadmap-column.yaml
+  title: mb-bridge epic Run + roadmap column rank
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-integration-tests-docs.yaml
+  title: Integration tests + README/WORKFLOW docs
+  next_phase: BACK IMPLEMENT
+  status: completed

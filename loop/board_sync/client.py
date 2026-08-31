@@ -131,6 +131,13 @@ class HttpHostClient:
             {"kind": "archive", "taskId": task_id},
         )
 
+    def move(self, task_id: str, status: str) -> None:
+        self._request(
+            "POST",
+            "/api/task-board/action",
+            {"kind": "move", "taskId": task_id, "status": status},
+        )
+
     def record_execution(self, record: ExecutionRecord) -> None:
         """Persist a single observational execution result for one task."""
         self._request(
@@ -224,6 +231,8 @@ class TaskBoardClient(Protocol):
 
     def archive(self, task_id: str) -> None: ...
 
+    def move(self, task_id: str, status: str) -> None: ...
+
     def record_execution(self, record: ExecutionRecord) -> None: ...
 
 
@@ -233,6 +242,7 @@ class FakeClient:
     def __init__(self, tasks: list[BoardTask] | None = None) -> None:
         self.tasks: dict[str, BoardTask] = {task.id: task for task in tasks or []}
         self.archived: set[str] = set()
+        self.moves: list[tuple[str, str]] = []
         self.execution_records: list[ExecutionRecord] = []
         self.write_count = 0
 
@@ -247,6 +257,20 @@ class FakeClient:
     def archive(self, task_id: str) -> None:
         if task_id in self.tasks:
             self.archived.add(task_id)
+        self.write_count += 1
+
+    def move(self, task_id: str, status: str) -> None:
+        self.moves.append((task_id, status))
+        if task_id in self.tasks:
+            old_task = self.tasks[task_id]
+            self.tasks[task_id] = BoardTask(
+                id=old_task.id,
+                title=old_task.title,
+                description=old_task.description,
+                prompt=old_task.prompt,
+                workspace_id=old_task.workspace_id,
+                status=status,
+            )
         self.write_count += 1
 
     def record_execution(self, record: ExecutionRecord) -> None:
@@ -277,6 +301,20 @@ class LedgerFileClient:
     def archive(self, task_id: str) -> None:
         self.archived.add(task_id)
         self.write_count += 1
+
+    def move(self, task_id: str, status: str) -> None:
+        tasks = {task.id: task for task in self.list_tasks()}
+        if task_id in tasks:
+            old_task = tasks[task_id]
+            tasks[task_id] = BoardTask(
+                id=old_task.id,
+                title=old_task.title,
+                description=old_task.description,
+                prompt=old_task.prompt,
+                workspace_id=old_task.workspace_id,
+                status=status,
+            )
+            self._write(list(tasks.values()))
 
     def record_execution(self, record: ExecutionRecord) -> None:
         """Persist execution records without changing the task projection."""

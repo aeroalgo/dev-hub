@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-021
+title: "Unit tests — mocked agent, no network, TDD red→green"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Полный unit test suite в `loop/tests/test_llm_structured.py` и расширение
+  `loop/tests/test_bash_output_cap.py`; все тесты green без network (mock agent);
+  regression: существующие loop/tests green.
+  SC-001 (LogSummary validates 100%), SC-002 (no network when disabled), SC-004 (hub suite green).
+
+context:
+  consumes:
+    - ".claude/hooks/llm_structured.py — LogSummary, LogError, make_output_cap_agent, run_log_summary (s02/s03)"
+    - ".claude/hooks/bash-output-cap.py — build_view_structured (s04)"
+    - "loop/tests/ — существующий suite (регрессия)"
+  produces:
+    - "loop/tests/test_llm_structured.py — full unit suite"
+    - "loop/tests/test_bash_output_cap.py — extended с structured-path тестами"
+  plan_refs:
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md FR-007"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md FR-008 (integration stub/skip)"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md FR-010"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md SC-001"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md SC-002"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md SC-004"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md TDD plan"
+  files:
+    - "loop/tests/test_llm_structured.py"
+    - "loop/tests/test_bash_output_cap.py"
+
+as_built:
+  - "loop/tests/test_llm_structured.py — не существует"
+  - "loop/tests/test_bash_output_cap.py — существует (или нет; extend если есть)"
+  - "loop/tests/ — существующий suite должен оставаться green (regression)"
+
+delta:
+  - "loop/tests/test_llm_structured.py CREATE — test_log_summary_canonical_fixture, test_log_summary_max_length_rejected, test_log_error_location_empty_default, test_run_log_summary_returns_none_on_network_fail, test_run_log_summary_falls_back_to_fallback_model, test_run_log_summary_retries_on_validation_error, test_make_output_cap_agent_uses_env_url, test_summary_disabled_no_agent_call"
+  - "loop/tests/test_bash_output_cap.py CREATE/EXTEND — test_build_view_structured_mode_label, test_structured_flag_zero_uses_legacy, test_build_view_structured_failed_tests_in_view, test_structured_import_error_falls_back, test_no_network_when_summary_disabled"
+
+deletes: []
+
+out_of_scope:
+  - "Integration тест с живым OmniRoute (FR-008) — только pytest.mark.skip + comment"
+  - "Удаление legacy path — s06"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "test_llm_structured.py — все тесты PASS без network"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_llm_structured.py -q --tb=short 2>&1 | tail -10"
+  - id: cp2
+    criterion: "test_bash_output_cap.py новые тесты PASS"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_bash_output_cap.py -q --tb=short 2>&1 | tail -10"
+  - id: cp3
+    criterion: "Regression: весь hub suite loop/tests/ green (SC-004)"
+    verify: "timeout 120s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line 2>&1 | tail -15"
+
+verify: []
+
+tdd:
+  - "Шаг — TDD: write tests first (red на фоне s02–s04), затем green"
+  - "Fixture: pytest_log с 3 FAILED строками + ERROR traceback — inline или conftest"
+  - "Mock strategy: monkeypatch / unittest.mock.patch для Agent.run(), OpenAIProvider"
+  - "Каждый тест < 50 строк; no live network; parametrize где применимо"

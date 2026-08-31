@@ -1,0 +1,42 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-022
+title: s08 — Consolidate GateVerdictRecord + store strict validate IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s08-gate-verdict-strict.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added GateVerdictRecord.model_validate(data) in write_gate_verdict before saving
+  json
+- Added test_schemas_gate_verdict.py covering strict validation, sidecar PASS precedence,
+  and round-trip
+files:
+- loop/gate_verdict_store.py
+- loop/tests/test_schemas_gate_verdict.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_gate_verdict.py -q --tb=short`'
+integration_check:
+- Grep/rg verified GateVerdictRecord usage in loop/gate_verdict_store.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: write_gate_verdict содержит GateVerdictRecord validate
+  status: done
+  done_at: '2026-08-31T01:04:00Z'
+- id: cp2
+  criterion: test_schemas_gate_verdict.py проходит
+  status: done
+  done_at: '2026-08-31T01:04:05Z'
+- id: cp3
+  criterion: 'Sidecar-first: extract_verdict sidecar PASS → PASS даже при transcript
+    FAIL'
+  status: done
+  done_at: '2026-08-31T01:04:10Z'
+resume_from: cp1

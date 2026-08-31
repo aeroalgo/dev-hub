@@ -12,20 +12,22 @@
 | T-HUB-006 | DSH loop runtime adapter | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-006-dsh-loop-runtime-adapter.md) · DSH tail |
 | T-HUB-007 | DSH profiles + presets | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-007-dsh-profiles-presets.md) · QA pass · 7/7 steps completed |
 | T-HUB-008 | DSH epic-gate plugin | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-008-dsh-epic-gate-plugin.md) · deps T-HUB-006, T-HUB-007 |
-| T-HUB-009 | DSH rollout docs + pilot | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-009-dsh-rollout-docs.md) · deps T-HUB-006…008 |
+| T-HUB-009 | DSH rollout docs + pilot | L2–L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-009-dsh-rollout-docs.md) · QA pass · 5/5 steps completed |
 | T-HUB-014 | DSH memory-bank → Task Board sync | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-014-dsh-mb-board-sync.md) · QA pass · 11/11 steps completed |
 | T-HUB-015 | DSH board arm + loop launch | L4 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-015-dsh-board-arm-loop.md) · QA pass · 15/15 steps completed |
 | T-HUB-019 | DSH board sync enrichments | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-019-dsh-board-sync-enrichments.md) · deps T-HUB-014,015 · backlog+descriptions |
 | T-HUB-020 | DSH board epic loop | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-020-dsh-board-epic-loop.md) · deps T-HUB-014,015 · epic Run+resolver |
 | T-HUB-016 | DSH Claude Code hooks bridge | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-016-dsh-cc-hooks-bridge.md) · QA pass · 12/12 steps completed |
-| T-HUB-017 | Loop observability foundation | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-017-loop-observability-foundation.md) · slug loop-observability |
+| T-HUB-017 | Loop observability foundation | L3 | IMPLEMENT s04 | active | [plan](back/plan/plan-T-HUB-017-loop-observability-foundation.md) · [decompose](back/plan/decompose-T-HUB-017-loop-observability-foundation/index.yaml) · 3/9 · next IMPLEMENT s04 |
 | T-HUB-018 | Loop incident autopilot | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-018-loop-incident-autopilot.md) · deps T-HUB-017 |
 | T-HUB-021 | pydantic-ai output-cap | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-021-pydantic-ai-output-cap.md) · [roadmap](back/plan/roadmap-pydantic-reliability-epics.md) |
-| T-HUB-022 | Runtime pydantic schemas | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-022-runtime-pydantic-schemas.md) · pydantic-reliability |
-| T-HUB-023 | Hooks LLM fallbacks | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md) · deps T-HUB-021 |
+| T-HUB-022 | Runtime pydantic schemas | L3–L4 | ARCHIVE done | ЗАВЕРШЕНА И АРХИВИРОВАНА | [reflection](back/reflection/reflection-T-HUB-022-runtime-pydantic-schemas.md) · [archive](archive/back/plan/plan-T-HUB-022-runtime-pydantic-schemas.md) · QA pass · 16/16 steps completed |
+| T-HUB-023 | Hooks LLM fallbacks | L3 | DECOMPOSE done | active | [plan](back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md) · [decompose](back/plan/decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml) · 0/10 · next IMPLEMENT s01 · deps T-HUB-021 |
 | T-HUB-024 | Validate traceability CLI | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-024-validate-traceability.md) · [roadmap](back/plan/roadmap-spec-maturity-epics.md) |
 | T-HUB-025 | Product constitution bootstrap | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-025-product-constitution-bootstrap.md) · spec-maturity |
 | T-HUB-026 | Spec reconcile workflow | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-026-spec-reconcile-workflow.md) · deps soft 024 |
+| T-HUB-027 | BACK PLAN gstack adapt | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-027-back-plan-gstack-adapt.md) · next DECOMPOSE · deps soft T-HUB-010 |
+| T-HUB-028 | Phase verify agents — split gates per workflow | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-028-phase-verify-agents.md) · deps T-HUB-008 · next DECOMPOSE |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |
@@ -60,12 +62,17 @@
 - T-HUB-017…018: MULTI-EPIC PLAN loop observability + incident autopilot
 - T-HUB-021…023: MULTI-EPIC PLAN pydantic-reliability (pydantic-ai + runtime schemas + opt-in fallbacks)
 - T-HUB-024…026: MULTI-EPIC PLAN spec-maturity (validate-traceability + product constitution bootstrap + RECONCILE)
+- T-HUB-027: BACK PLAN gstack-adapt (product probe, eng spine, qa_consumes, review readiness, plan review batch)
 - T-HUB-016: PLAN CC hooks bridge; 007/008 revised (bridge-first + gap-fill)
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-08-30 | T-HUB-028-phase-verify-agents | BACK PLAN · next DECOMPOSE · deps T-HUB-008 |
+| 2026-08-30 | T-HUB-027-back-plan-gstack-adapt | BACK PLAN · next DECOMPOSE |
+| 2026-08-30 | T-HUB-009-dsh-rollout-docs | BACK REFLECT → EPIC_DONE | [reflection-T-HUB-009-dsh-rollout-docs](back/reflection/reflection-T-HUB-009-dsh-rollout-docs.md) · QA pass, 5/5 steps completed |
+| 2026-08-30 | T-HUB-009-dsh-rollout-docs | QA blocked → BACK BUGFIX | [qa-20260830-dsh-rollout-docs](back/qa/T-HUB-009-dsh-rollout-docs/qa-20260830-dsh-rollout-docs.yaml) · rollback premature REFLECT |
 | 2026-08-30 | canon | BACK ROADMAP MERGE · +T-HUB-024/025/026 · canon queue 13 active · first T-HUB-016 |
 | 2026-08-28 | canon | BACK ROADMAP MERGE · +T-HUB-017/018 · canon queue 7 active |
 | 2026-08-30 | canon | BACK ROADMAP MERGE · +T-HUB-021/022/023 · canon queue 10 active |
@@ -106,4 +113,6 @@
 - BACK REFLECT → EPIC_DONE; [reflection](back/reflection/reflection-T-HUB-006-dsh-loop-runtime-adapter.md); QA pass, 9/9 steps completed; full loop suite 541 passed.
 - Отложено: event emission, scope/ownership gate, runtime diagnostics, test-path isolation и graphify preflight.
 
+| 2026-08-31 | T-HUB-022-runtime-pydantic-schemas | BACK ARCHIVE NOW | [reflection-T-HUB-022-runtime-pydantic-schemas](back/reflection/reflection-T-HUB-022-runtime-pydantic-schemas.md) — ЗАВЕРШЕНА И АРХИВИРОВАНА в `memory-bank/archive/back/` |
+| 2026-08-31 | T-HUB-022-runtime-pydantic-schemas | BACK REFLECT | [reflection-T-HUB-022-runtime-pydantic-schemas](back/reflection/reflection-T-HUB-022-runtime-pydantic-schemas.md) — PASS; QA pass, 16/16 steps completed; next BACK ARCHIVE NOW вне текущего чата |
 | 2026-08-30 | T-HUB-016-dsh-cc-hooks-bridge | BACK REFLECT | [reflection-T-HUB-016-dsh-cc-hooks-bridge](back/reflection/reflection-T-HUB-016-dsh-cc-hooks-bridge.md) — PASS; QA pass, 12/12 steps completed; next BACK ARCHIVE NOW вне текущего чата |

@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s09
+title: "Операционный контекст — runbooks per diagnostic_code + loop README §Observability"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Human + Tier-1 agent context: runbook stub на каждый diagnostic_code из registry;
+  loop/incidents/README.md описывает registry format; loop/README.md § Observability (FR-011, FR-014, AC+ #9).
+
+as_built:
+  - "loop/incidents/runbooks/ не существует"
+  - "loop/incidents/README.md не существует"
+  - "loop/README.md без § Observability"
+delta:
+  - "ADD loop/incidents/runbooks/*.md — по одному на: mark_index_missing, fingerprint_stall, index_mirror_drift, premature_epic_done, stale_owner, checkpoint_drift, active_context_shape_invalid"
+  - "Каждый runbook: symptom, diagnostic_code, tier0 chain summary, manual remediation, link registry entry"
+  - "registry.yaml runbook_rel / runbook fields ссылаются на эти файлы"
+  - "ADD loop/incidents/README.md — registry format, extension guide, env vars EPIC_INCIDENT_TRACE/METRICS, runtime paths"
+  - "EDIT loop/README.md — § Observability: incidents, trace, metrics, doctor, status extensions; mermaid из плана (сокращённо)"
+deletes: []
+out_of_scope:
+  - "Python implementation (s01–s08)"
+  - "Tier-1 agent runbooks expansion (T-HUB-018)"
+
+context:
+  consumes:
+    - "s02 registry.yaml entries"
+    - "plan FR-011 FR-014"
+  produces:
+    - "loop/incidents/runbooks/*.md"
+    - "loop/incidents/README.md"
+    - "loop/README.md § Observability"
+  plan_refs:
+    - "plan-T-HUB-017 FR-011 FR-014"
+  files:
+    - "loop/incidents/runbooks/mark_index_missing.md"
+    - "loop/incidents/runbooks/fingerprint_stall.md"
+    - "loop/incidents/runbooks/index_mirror_drift.md"
+    - "loop/incidents/runbooks/premature_epic_done.md"
+    - "loop/incidents/runbooks/stale_owner.md"
+    - "loop/incidents/runbooks/checkpoint_drift.md"
+    - "loop/incidents/runbooks/active_context_shape_invalid.md"
+    - "loop/incidents/README.md"
+    - "loop/README.md"
+    - "loop/incidents/registry.yaml"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "≥7 runbook files exist; registry.yaml runbook paths resolve"
+    verify: "`ls loop/incidents/runbooks/*.md | wc -l` ≥ 7; `rg -l runbooks/ loop/incidents/registry.yaml`"
+  - id: cp2
+    criterion: "loop/incidents/README.md documents registry version + extension + env vars"
+    verify: "`rg -n 'loop-incident-registry|EPIC_INCIDENT' loop/incidents/README.md`"
+  - id: cp3
+    criterion: "loop/README.md содержит § Observability с incidents/trace/metrics/doctor"
+    verify: "`rg -n 'Observability|incidents\\.jsonl|loop doctor' loop/README.md`"
+
+verify:
+  - "`test -f loop/incidents/README.md && test -f loop/README.md`"
+  - "`rg -c runbooks loop/incidents/registry.yaml`"
+
+tdd: []
+
+requirements_covered:
+  - FR-011
+  - FR-014
+  - "AC+ #9"

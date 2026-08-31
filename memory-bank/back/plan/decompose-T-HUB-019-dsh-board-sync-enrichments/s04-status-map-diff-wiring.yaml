@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+step_id: s04
+title: "Status mapping: active/blocked→running, PLAN/DECOMPOSE gates→backlog"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Карточки шагов с active/blocked попадают в колонку running (не todo).
+  Gate-карточки PLAN/DECOMPOSE/CLARIFY/ANALYZE/ROADMAP попадают в backlog.
+  Маппинг вынесен в тестируемые чистые функции.
+
+as_built:
+  - "loop/board_sync/diff.py: work_item_card — status='running' only if in_progress; active/blocked → todo (bug)"
+  - "loop/board_sync/diff.py: gate_card — status='todo' всегда; backlog не используется"
+  - "_PRE_IMPL_PHASES константа отсутствует"
+
+delta:
+  - "ADD _PRE_IMPL_PHASES = frozenset({'PLAN','DECOMPOSE','CLARIFY','ANALYZE'}) в diff.py"
+  - "ADD status_for_work_item(item: WorkItem) -> str: in_progress|active|blocked→running; иначе→todo"
+  - "ADD status_for_gate(item: GateWorkItem) -> str: ROADMAP→backlog; _PRE_IMPL_PHASES→backlog; _POST_PHASES→todo; иначе→todo"
+  - "EDIT work_item_card: status=status_for_work_item(item)"
+  - "EDIT gate_card: status=status_for_gate(item)"
+
+deletes: []
+
+out_of_scope:
+  - "HTTP move для применения status на board — s05"
+  - "description body — s01/s02/s03"
+
+context:
+  consumes:
+    - "loop/board_sync/diff.py — work_item_card, gate_card"
+    - "loop/board_sync/scan_gates.py — _POST_PHASES"
+    - "plan T-HUB-019 §Status mapping (step), §Status mapping (gate)"
+  produces:
+    - "loop/board_sync/diff.py (изменён: status_for_work_item, status_for_gate)"
+  plan_refs:
+    - "plan-T-HUB-019 §Зафиксированные решения: Status mapping (step), Status mapping (gate)"
+  files:
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_diff.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "status_for_work_item: in_progress/active/blocked → running; pending → todo"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k status_for_work_item -q --tb=line`"
+  - id: cp2
+    criterion: "status_for_gate: PLAN/DECOMPOSE/CLARIFY/ANALYZE/ROADMAP → backlog; AUDIT/QA/BUGFIX/REFLECT → todo"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k status_for_gate -q --tb=line`"
+  - id: cp3
+    criterion: "work_item_card с active/blocked WorkItem → BoardTask.status == 'running'"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k work_item_card_status -q --tb=line`"
+  - id: cp4
+    criterion: "gate_card с DECOMPOSE phase → BoardTask.status == 'backlog'"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k gate_card_backlog -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -q --tb=line`"
+
+tdd:
+  - "test_status_for_work_item_in_progress_running"
+  - "test_status_for_work_item_active_running"
+  - "test_status_for_work_item_blocked_running"
+  - "test_status_for_work_item_pending_todo"
+  - "test_status_for_work_item_unknown_todo"
+  - "test_status_for_gate_decompose_backlog"
+  - "test_status_for_gate_plan_backlog"
+  - "test_status_for_gate_roadmap_backlog"
+  - "test_status_for_gate_qa_todo"
+  - "test_status_for_gate_audit_todo"
+  - "test_status_for_gate_unknown_todo"
+
+requirements_covered:
+  - "FR-004"
+  - "FR-005"
+  - "FR-006"

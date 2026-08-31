@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-description-compose-footer.yaml
+  title: Two-part description — compose_description + footer parse round-trip
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-step-shard-body-loader.yaml
+  title: 'Step body: shard goal/delta/files → markdown body, WorkItem.shard_rel'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-plan-md-body-extractor.yaml
+  title: 'Gate body: plan.md Цель+Контекст+UserStories → backlog card body'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-status-map-diff-wiring.yaml
+  title: 'Status mapping: active/blocked→running, PLAN/DECOMPOSE gates→backlog'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-http-client-move.yaml
+  title: HttpHostClient.move after upsert — fail-closed, FakeClient.moves log
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-mb-bridge-card-metadata.yaml
+  title: mb-bridge card-metadata.ts + board-filter footer YAML fix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-integration-regression-docs.yaml
+  title: Regression suite (FakeClient e2e) + README Board sync enrichments
+  next_phase: BACK IMPLEMENT
+  status: completed

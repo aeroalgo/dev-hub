@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-022
+title: "index yaml-only writes; md mirror runner-only; agent prompt touch"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрепить канон: status пишется ТОЛЬКО в `index.yaml`; `index.md` — generated mirror.
+  Аудит `epic_index.py` + `epic/core.py`: убедиться что `mark_index_step_status()` / `finalize-step`
+  пишут только в yaml; `mirror_status_to_md()` вызывается только из runner/CLI path.
+  Добавить guard: если agent-path пытается `set_step_status_in_doc()` напрямую в md →
+  log warning (не hard block — migration-safe).
+  Обновить prompt-hint в `spawn-hard.md` / `instructions/`: «агент пишет status только в index.yaml».
+  US-009, FR-007.
+
+context:
+  consumes:
+    - ".claude/hooks/epic_index.py — mark_index_step_status, mirror_status_to_md, set_step_status_in_doc, rebuild_md_queue_from_yaml"
+    - ".claude/hooks/epic/core.py — finalize_step, mark-index-status flow"
+    - ".claude/instructions/spawn-hard.md — agent instructions"
+    - "plan-T-HUB-022 §Index canon, US-009, FR-007"
+  produces:
+    - ".claude/hooks/epic_index.py EDIT — guard + log warning на agent direct md-write"
+    - ".claude/instructions/spawn-hard.md EDIT — добавить строку об index.yaml-only"
+    - "loop/tests/test_index_yaml_only.py — mark_index_step_status updates only yaml; md via mirror"
+  plan_refs:
+    - "plan-T-HUB-022 US-009 — agent writes status only in index.yaml"
+    - "plan-T-HUB-022 FR-007 — index yaml-only write path"
+    - "plan-T-HUB-022 §Index canon"
+  files:
+    - ".claude/hooks/epic_index.py"
+    - ".claude/instructions/spawn-hard.md"
+    - "loop/tests/test_index_yaml_only.py"
+
+as_built:
+  - "mark_index_step_status() — пишет в yaml; mirror_status_to_md вызывается после"
+  - "set_step_status_in_doc() — regex-правка md; доступна напрямую"
+  - "index.md — не всегда generated; иногда агент пишет status вручную в md"
+  - "spawn-hard.md — нет явного предупреждения про index.yaml-only"
+
+delta:
+  - ".claude/hooks/epic_index.py EDIT — добавить _warn_agent_md_write() guard в set_step_status_in_doc; log WARNING"
+  - ".claude/instructions/spawn-hard.md EDIT — добавить: 'Agent статус → только index.yaml; index.md генерируется runner'"
+  - "loop/tests/test_index_yaml_only.py CREATE — mark_index_step_status: yaml обновлён; md mirror via rebuild_md_queue_from_yaml"
+
+deletes: []
+
+out_of_scope:
+  - "Полная замена md-write — постепенный migration; s16 финальная чистка"
+  - "rebuild_md_queue_from_yaml редизайн — out of scope"
+  - "Изменение finalize-step CLI — only annotation"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "epic_index.py содержит guard/warning на direct md-write"
+    verify: "rg '_warn_agent_md_write\\|index.yaml.*only\\|WARNING.*md' .claude/hooks/epic_index.py"
+  - id: cp2
+    criterion: "spawn-hard.md упоминает index.yaml-only"
+    verify: "rg 'index.yaml' .claude/instructions/spawn-hard.md"
+  - id: cp3
+    criterion: "test_index_yaml_only.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_index_yaml_only.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: index fail-closed тесты стабильны"
+    verify: ".venv/bin/pytest loop/tests/test_index_fail_closed.py -q --tb=line -x"
+
+verify: []
+
+tdd:
+  - "RED: test_mark_index_step_status_writes_yaml_not_md — только yaml меняется при mark"
+  - "RED: test_rebuild_md_from_yaml — mirror корректно отражает yaml status"
+  - "GREEN: guard + тесты зелёные"

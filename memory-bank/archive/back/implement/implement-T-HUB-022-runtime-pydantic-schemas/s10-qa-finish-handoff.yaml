@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-022
+title: s10 — validate_qa_finish_handoff via frontmatter mode + epic_yaml verdict IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s10-qa-finish-handoff.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- validate_qa_finish_handoff(cwd, active_context_text) реализована в epic/core.py
+- Интегрирована с stop-gate.py для проверки QA handoff verdict
+- Создан набор тестов в loop/tests/test_qa_finish_handoff.py
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/stop-gate.py
+- loop/tests/test_qa_finish_handoff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_qa_finish_handoff.py loop/tests/test_stop_gate.py
+  -q --tb=line`'
+integration_check:
+- validate_qa_finish_handoff integrated into stop-gate.py and exported via epic package
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: validate_qa_finish_handoff определён в epic/core.py
+  status: done
+  done_at: '2026-08-31T01:26:34Z'
+- id: cp2
+  criterion: stop-gate.py вызывает validate_qa_finish_handoff
+  status: done
+  done_at: '2026-08-31T01:26:39Z'
+- id: cp3
+  criterion: test_qa_finish_handoff.py проходит
+  status: done
+  done_at: '2026-08-31T01:27:34Z'
+- id: cp4
+  criterion: 'Regression: stop-gate тесты зелёные'
+  status: done
+  done_at: '2026-08-31T01:27:39Z'
+resume_from: cp1

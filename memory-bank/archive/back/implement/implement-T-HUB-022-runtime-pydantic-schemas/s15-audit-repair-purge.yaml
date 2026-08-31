@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s15
+plan_id: T-HUB-022
+title: 's15 — AUDIT: repair_* caller purge / regex fallback metrics near zero IMPLEMENT'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s15-audit-repair-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан ref artifact T-HUB-022-repair-audit.md с таблицей аудит call-sites repair_*
+- 'Помечены `# legacy-repair: T-HUB-022 s16` call-sites repair_* в context_loop.py'
+files:
+- memory-bank/back/plan/refs/T-HUB-022-repair-audit.md
+- loop/context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_t022_integration.py loop/tests/test_repair_counters.py
+  -q --tb=line` — 12 passed'
+integration_check:
+- .venv/bin/pytest loop/tests/test_t022_integration.py loop/tests/test_repair_counters.py
+  -q --tb=line — PASS
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Repair audit md создан с таблицей caller → условие → plan
+  status: done
+  done_at: '2026-08-31T01:57:28Z'
+- id: cp2
+  criterion: context_loop.py repair_* call-sites помечены комментарием
+  status: done
+  done_at: '2026-08-31T01:57:29Z'
+- id: cp3
+  criterion: drift counters из state при чистом запуске — all near zero (doc check)
+  status: done
+  done_at: '2026-08-31T01:57:29Z'
+resume_from: cp1

@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-021
+title: s02 — LogSummary + LogError Pydantic models in llm_structured.py IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-021-pydantic-ai-output-cap/s02-log-summary-models.yaml
+skills_used:
+- python-testing-patterns
+- async-python-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created .claude/hooks/llm_structured.py with LogError and LogSummary Pydantic v2
+  models
+- Created unit tests in loop/tests/test_llm_structured.py
+files:
+- .claude/hooks/llm_structured.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_llm_structured.py -q --tb=line`'
+integration_check:
+- python3 -c "import sys; sys.path.insert(0,'.claude/hooks'); from llm_structured
+  import LogSummary, LogError; print('ok')"
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: llm_structured.py импортируется без ошибок
+  status: done
+  done_at: '2026-08-30T23:36:59Z'
+- id: cp2
+  criterion: LogSummary.failed_tests max_length=20, summary_bullets max_length=25
+  status: done
+  done_at: '2026-08-30T23:37:02Z'
+- id: cp3
+  criterion: test_log_summary_canonical_fixture и test_log_summary_max_length_rejected
+    PASS
+  status: done
+  done_at: '2026-08-30T23:37:04Z'
+resume_from: cp1

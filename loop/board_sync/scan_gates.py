@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 
 from .card_model import CardKind
+from .epic_resolver import resolve_epic_next_action
 from .scan_mb import WorkItem
 from .workspaces import WorkspaceRef
 
@@ -23,6 +24,9 @@ if str(_HOOKS) not in sys.path:
     sys.path.insert(0, str(_HOOKS))
 
 from epic import reduce_epic_lifecycle
+
+from analyze_gate import critical_count as _critical_count
+from analyze_gate import latest_analyze as _latest_analyze
 
 _ACTIVE_STATUSES = frozenset({"pending", "in_progress", "active", "blocked"})
 _COMPLETED_STATUSES = frozenset({"completed", "done"})
@@ -41,6 +45,7 @@ class GateWorkItem:
     decompose_rel: str | None = None
     reason_code: str | None = None
     archive_all: bool = False
+    plan_rel: str | None = None
 
     @property
     def card_kind(self) -> CardKind:
@@ -152,6 +157,7 @@ def scan_gates(
                             decompose_rel=_relative(decompose, project),
                             reason_code=lifecycle.get("reason_code"),
                             archive_all=phase == "DONE",
+                            plan_rel=_relative(plan, project),
                         )
                     )
         roadmap_gates, roadmap_errors = _roadmap_gate(workspace_ref, steps)
@@ -234,47 +240,19 @@ def _pre_gates(
     require_plan: bool = False,
 ) -> list[GateWorkItem]:
     project = workspace_ref.path
-    plan = _plan_path(project, role, epic_id)
-    if plan is None and require_plan:
-        return [
-            GateWorkItem(role, epic_id, "PLAN", workspace_ref, reason_code="plan_missing")
-        ]
-    if decompose is None:
+    action = resolve_epic_next_action(
+        project, role, epic_id, require_plan=require_plan
+    )
+    if action.phase in ("PLAN", "DECOMPOSE", "ANALYZE", "CLARIFY"):
         return [
             GateWorkItem(
-                role, epic_id, "DECOMPOSE", workspace_ref, reason_code="decompose_missing"
-            )
-        ]
-    if decompose is None:
-        return [
-            GateWorkItem(
-                role, epic_id, "DECOMPOSE", workspace_ref, reason_code="decompose_missing"
-            )
-        ]
-    payload = _load_decompose(decompose)
-    statuses = [step.get("status") for step in payload.get("steps", [])]
-    if not any(status in _COMPLETED_STATUSES for status in statuses):
-        analyze = _latest_analyze(project, role, epic_id)
-        if analyze is None or _critical_count(analyze) > 0:
-            return [
-                GateWorkItem(
-                    role,
-                    epic_id,
-                    "ANALYZE",
-                    workspace_ref,
-                    _relative(decompose, project),
-                    "analyze_required",
-                )
-            ]
-    if _has_unresolved_critical(plan, project, role, epic_id):
-        return [
-            GateWorkItem(
-                role,
-                epic_id,
-                "CLARIFY",
-                workspace_ref,
-                _relative(decompose, project),
-                "clarify_required",
+                role=role,
+                epic_id=epic_id,
+                gate_phase=action.phase,
+                workspace_ref=workspace_ref,
+                decompose_rel=action.decompose_rel,
+                reason_code=action.reason_code,
+                plan_rel=action.plan_rel,
             )
         ]
     return []
@@ -316,29 +294,6 @@ def _load_decompose(path: Path) -> dict[str, Any]:
     except (OSError, UnicodeError, yaml.YAMLError):
         return {}
     return payload if isinstance(payload, dict) else {}
-
-
-def _latest_analyze(project: Path, role: str, epic_id: str) -> dict[str, Any] | None:
-    directories = [
-        project / "memory-bank" / role / "analyze" / epic_id,
-        project / "memory-bank" / role / "analyze",
-    ]
-    paths = [path for directory in directories if directory.is_dir() for path in directory.glob("analyze-*.yaml")]
-    for path in sorted(paths, reverse=True):
-        payload = _load_decompose(path)
-        if payload:
-            return payload
-    return None
-
-
-def _critical_count(payload: dict[str, Any]) -> int:
-    metrics = payload.get("metrics")
-    if not isinstance(metrics, dict):
-        return 0
-    try:
-        return int(metrics.get("critical_count", 0) or 0)
-    except (TypeError, ValueError):
-        return 0
 
 
 def _has_unresolved_critical(plan: Path, project: Path, role: str, epic_id: str) -> bool:

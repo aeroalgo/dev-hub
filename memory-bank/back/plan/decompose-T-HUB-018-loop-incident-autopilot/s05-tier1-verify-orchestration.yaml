@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s05
+title: "Post-tier1 verify AC slice — orchestration invariants, не product tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  После завершения tier1 incident-сессии loop автоматически запускает @verify subagent на
+  строго ограниченном AC-slice: orchestration invariants (activeContext, index, implement shard)
+  — без product pytest. PASS → incident resolved; FAIL → tier1 failure (retried or escalated).
+
+as_built:
+  - "@verify subagent используется в основном IMPLEMENT flow (spawn-hard.md)"
+  - "нет специализированного AC-slice для post-tier1 verification"
+  - "нет функции build_tier1_verify_command()"
+delta:
+  - "ADD loop/incidents/tier1_verify.py — функция build_verify_ac_slice(incident: IncidentRecord, project_root: Path) -> list[str]: возвращает список pytest команд покрывающих orchestration invariants для данного diagnostic_code (не product tests)"
+  - "ADD loop/incidents/tier1_verify.py — функция run_tier1_verify(incident, project_root, epic_dir) -> VerifyResult(passed: bool, output: str, command: str): запускает build_verify_ac_slice команды; PASS если все exit 0; FAIL иначе"
+  - "ADD loop/incidents/tier1_verify.py — маппинг diagnostic_code → verify commands: active_context_shape_invalid → pytest loop/tests/test_incidents_schema_store.py; index_step_missing → pytest loop/tests/ -k index; generic → pytest loop/tests/ -q --tb=line (только loop/ тесты)"
+  - "MODIFY loop/incidents/tier1_runner.py — после spawn сессии: вызывать run_tier1_verify; if PASS → resolve_incident tier1; if FAIL → count failure"
+  - "ADD loop/tests/test_incidents_tier1_verify.py — unit: build_verify_ac_slice возвращает команды только в loop/; run_tier1_verify PASS/FAIL scenarios; нет product pytest"
+deletes: []
+out_of_scope:
+  - "product pytest (явно запрещено)"
+  - "alert (s06)"
+  - "metrics emission (s08)"
+  - "full regression suite (s10)"
+
+context:
+  consumes:
+    - "plan §FR-006: verify gate post-tier1; orchestration invariants only"
+    - "plan §зафиксированные решения: Verify gate — @verify subagent на orchestration invariants"
+    - "loop/incidents/tier1_runner.py (из s04)"
+    - "loop/incidents/store.py (resolve_incident из 017)"
+  produces:
+    - "loop/incidents/tier1_verify.py"
+    - "loop/incidents/tier1_runner.py (modified)"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-006"
+    - "plan-T-HUB-018 §Success path: verify PASS → resolve_incident(tier1)"
+    - "plan-T-HUB-018 §Failure path: verify FAIL → escalate"
+  files:
+    - "loop/incidents/tier1_verify.py"
+    - "loop/incidents/tier1_runner.py"
+    - "loop/tests/test_incidents_tier1_verify.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "build_verify_ac_slice для active_context_shape_invalid → commands содержат только loop/ paths (не src/, не frontend/)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -k ac_slice_no_product -q --tb=line`"
+  - id: cp2
+    criterion: "run_tier1_verify: все exit 0 → VerifyResult(passed=True)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -k verify_pass -q --tb=line`"
+  - id: cp3
+    criterion: "run_tier1_verify: один exit non-0 → VerifyResult(passed=False)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -k verify_fail -q --tb=line`"
+  - id: cp4
+    criterion: "после run_tier1_verify PASS → resolve_incident в store (tier1 resolution)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -k pass_resolves_incident -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -q --tb=line`"
+
+tdd:
+  - "test_verify_slice_contains_only_loop_tests"
+  - "test_verify_slice_no_product_paths"
+  - "test_run_verify_all_pass_returns_true"
+  - "test_run_verify_one_fail_returns_false"
+  - "test_verify_pass_triggers_resolve_incident"
+  - "test_verify_fail_increments_tier1_failures"
+
+requirements_covered:
+  - FR-006
+  - "plan §Success path: verify PASS → resolve → continue"
+  - "plan §Failure path: verify FAIL → escalate"
+  - "AC+ #1 partial (verify gate)"
+  - "AC− #5: product tests not run in verify slice"

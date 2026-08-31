@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s01
+title: "Whitelist + classifier — tier1-eligibility.yaml + is_tier1_eligible()"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Loop может корректно определить, допустимо ли запускать Tier-1 сессию для данного инцидента.
+  Orchestration-only инциденты (active_context_shape_invalid, index_step_missing и т.д.) → eligible=true.
+  Product-тесты / application-бaги → eligible=false (не запускать tier1, сразу эскалация).
+
+as_built:
+  - "loop/incidents/tier1.py не существует"
+  - "loop/incidents/ пакет создан T-HUB-017, есть schema.py + store.py"
+  - "diagnostic_codes живут в loop/incidents/registry.yaml (017)"
+  - "нет whitelist orchestration-only кодов"
+delta:
+  - "ADD loop/incidents/tier1_eligibility.yaml — YAML whitelist orchestration-only diagnostic_codes с полем tier1_eligible: true/false и rationale"
+  - "ADD loop/incidents/tier1.py — функция is_tier1_eligible(incident: IncidentRecord) -> bool: читает whitelist, проверяет все diagnostic_codes инцидента против него; product_test_failed в metadata → False; unknown code → False (fail-closed)"
+  - "ADD loop/incidents/tier1.py — функция load_eligibility_config(path=None) -> dict: загружает tier1_eligibility.yaml из loop/incidents/, override через EPIC_TIER1_ELIGIBILITY_PATH"
+  - "ADD loop/tests/test_incidents_tier1_eligibility.py — unit-тесты: orchestration code → True; product_test_failed → False; unknown code → False; mixed codes (one product + one orchestration) → False"
+  - "tier1_eligibility.yaml включает коды из 017: active_context_shape_invalid, index_step_missing, checkpoint_not_found, implement_shard_corrupt, epic_dir_missing, session_context_stale, status_payload_malformed"
+deletes: []
+out_of_scope:
+  - "prompt template (s02)"
+  - "scope guard (s03)"
+  - "loop.sh branch (s04)"
+  - "verify gate (s05)"
+  - "alert/escalation (s06)"
+
+context:
+  consumes:
+    - "plan §FR-001: eligibility check — orchestration-only whitelist"
+    - "plan §NFR: product test failures NOT tier1 eligible"
+    - "loop/incidents/schema.py (IncidentRecord из 017)"
+    - "loop/incidents/registry.yaml (diagnostic codes 017)"
+  produces:
+    - "loop/incidents/tier1_eligibility.yaml"
+    - "loop/incidents/tier1.py (is_tier1_eligible, load_eligibility_config)"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-001"
+    - "plan-T-HUB-018 §NFR"
+    - "plan-T-HUB-018 §зафиксированные решения: scope hard limit, model env"
+  files:
+    - "loop/incidents/tier1_eligibility.yaml"
+    - "loop/incidents/tier1.py"
+    - "loop/tests/test_incidents_tier1_eligibility.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "orchestration-only diagnostic code (e.g. active_context_shape_invalid) → is_tier1_eligible=True"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -k orchestration_eligible -q --tb=line`"
+  - id: cp2
+    criterion: "product_test_failed=true в metadata → is_tier1_eligible=False"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -k product_test_not_eligible -q --tb=line`"
+  - id: cp3
+    criterion: "unknown diagnostic_code → is_tier1_eligible=False (fail-closed)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -k unknown_code_false -q --tb=line`"
+  - id: cp4
+    criterion: "mixed codes (одна orchestration + один product_test_failed) → False"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -k mixed_codes_false -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_tier1_eligibility.py -q --tb=line`"
+
+tdd:
+  - "test_orchestration_code_is_eligible"
+  - "test_product_test_failed_not_eligible"
+  - "test_unknown_code_fail_closed_false"
+  - "test_mixed_codes_with_product_fail_returns_false"
+  - "test_load_eligibility_config_reads_yaml"
+  - "test_eligibility_config_override_env_path"
+
+requirements_covered:
+  - FR-001
+  - "US-001 partial (eligibility gate)"
+  - "US-002 partial (eligibility basis for max attempts)"
+  - "AC+ #1: tier1 spawned only for orchestration-only incidents"
+  - "AC− #3: product test failure → not eligible → no tier1"

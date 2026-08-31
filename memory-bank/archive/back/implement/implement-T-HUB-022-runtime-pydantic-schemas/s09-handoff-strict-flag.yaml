@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-022
+title: s09 — PROJECT_LOOP_HANDOFF_STRICT + stop-gate FINISH gate + project.env IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s09-handoff-strict-flag.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- PROJECT_LOOP_HANDOFF_STRICT flag added to stop-gate.py and .claude/project.env
+- Unit tests in test_handoff_strict_flag.py verified
+files:
+- .claude/hooks/stop-gate.py
+- .claude/project.env
+- loop/tests/test_handoff_strict_flag.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_handoff_strict_flag.py loop/tests/test_stop_gate.py
+  -q --tb=line`'
+integration_check:
+- 'Grep/call check: _is_handoff_strict integrated in stop-gate.py'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: stop-gate.py содержит PROJECT_LOOP_HANDOFF_STRICT
+  status: done
+  done_at: '2026-08-31T01:10:32Z'
+- id: cp2
+  criterion: project.env содержит флаг
+  status: done
+  done_at: '2026-08-31T01:10:47Z'
+- id: cp3
+  criterion: test_handoff_strict_flag.py проходит
+  status: done
+  done_at: '2026-08-31T01:11:00Z'
+- id: cp4
+  criterion: 'Regression: stop-gate тесты стабильны'
+  status: done
+  done_at: '2026-08-31T01:23:26Z'
+resume_from: cp1

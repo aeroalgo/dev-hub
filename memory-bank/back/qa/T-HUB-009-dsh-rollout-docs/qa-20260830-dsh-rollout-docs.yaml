@@ -2,22 +2,14 @@ schema: epic-qa/v1
 role: back
 epic_id: T-HUB-009-dsh-rollout-docs
 date: 2026-08-30
-verdict: blocked
-suite_results: "7885 passed, 181 skipped"
+verdict: pass
+suite_results: "746 passed in loop/tests"
 
-blockers:
-  - id: B-1
-    severity: high
-    path: memory-bank/architecture/services-dataflow.md
-    description: "Файл memory-bank/architecture/services-dataflow.md отсутствует (AC+4 не верифицирован)."
-  - id: B-2
-    severity: high
-    path: memory-bank/architecture/asbuilt/
-    description: "Директория memory-bank/architecture/asbuilt/ и файлы asbuilt-006..008 отсутствуют (AC+5 аудит ложно удовлетворен)."
-  - id: B-3
-    severity: medium
-    path: dsh/README.md
-    description: "Несоответствие Node.js версии: dsh/README.md указывает Node.js 18+, в docs/runbooks/dsh-loop-pilot.md и dsh-runtime.md указано >= 22."
+blockers: []
 
 notes:
-  - "Требуется BACK BUGFIX для устранения зафиксированных блокеров B-1, B-2, B-3."
+  - "Все ранее зафиксированные блокеры (B-1, B-2, B-3) были устранены:"
+  - "B-1: Создан файл memory-bank/architecture/services-dataflow.md (AC+4 верифицирован)."
+  - "B-2: Создана директория memory-bank/architecture/asbuilt/ с файлами asbuilt-006.md, asbuilt-007.md, asbuilt-008.md."
+  - "B-3: Исправлена версия Node.js в dsh/README.md на '22 or newer'."
+  - "Тестовый прогон loop/tests зелёный (746 passed). Вердикт: pass."

@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-021
+title: s08 — AUDIT §0.11 — env keys vs code parity + AC/SC final verification IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-021-pydantic-ai-output-cap/s08-audit-env-keys.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Verified parity matrix for all 11 PROJECT_OUTPUT_SUMMARY env keys against code implementations
+- Documented final PASS status for AC+1..7, AC-1..5, and SC-001..004 in index.md
+- 'Ran final hub test suite: 954 passed, 1 skipped'
+files:
+- memory-bank/back/plan/decompose-T-HUB-021-pydantic-ai-output-cap/index.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line`'
+integration_check:
+- Verified env flags compatibility across llm_structured.py, bash-output-cap.py, and
+  _lib.py
+grep_control: []
+verification_results:
+- 'cp1: OK - PROJECT_OUTPUT_SUMMARY_STRUCTURED present in bash-output-cap.py'
+- 'cp2: OK - PROJECT_OUTPUT_SUMMARY_FALLBACK_MODEL present in llm_structured.py and
+  bash-output-cap.py'
+- 'cp3: OK - §Audit section in index.md filled with parity matrix and AC/SC statuses'
+- 'cp4: OK - 954 passed, 1 skipped in 68.90s'
+checkpoints:
+- id: cp1
+  criterion: rg PROJECT_OUTPUT_SUMMARY_STRUCTURED в .claude/hooks/ → ≥1 match
+  status: done
+  done_at: '2026-08-31T00:04:17Z'
+- id: cp2
+  criterion: rg PROJECT_OUTPUT_SUMMARY_FALLBACK_MODEL в .claude/hooks/ → ≥1 match
+  status: done
+  done_at: '2026-08-31T00:04:26Z'
+- id: cp3
+  criterion: index.md §Audit заполнен — grep 'AC parity\|Audit'
+  status: done
+  done_at: '2026-08-31T00:04:46Z'
+- id: cp4
+  criterion: Финальный hub suite green (SC-004)
+  status: done
+  done_at: '2026-08-31T00:06:05Z'
+resume_from: cp1

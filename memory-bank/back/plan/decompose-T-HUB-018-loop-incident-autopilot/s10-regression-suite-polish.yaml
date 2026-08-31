@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s10
+title: "Regression suite — full tier1 fixtures + integration end-to-end"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Весь T-HUB-018 покрыт регрессионными тестами:
+  1. Фикстуры incidents/ для всех ключевых сценариев (eligibility, prompt, scope, loop branch, verify, alert, CLI, metrics).
+  2. Integration-тест: tier1 fail max → escalate + NEED_HUMAN file (AC-scenario US-002).
+  3. Integration-тест: unknown-to-tier0 orchestration incident → tier1 spawn → verify PASS → continue (US-001).
+  4. Fixture FakeBoardExecution для soft 015 tests.
+  5. Polish: убрать дублирующиеся unit-тесты между шардами; финальный pytest --tb=short зелёный.
+
+as_built:
+  - "unit-тесты s01..s09 существуют как отдельные test_incidents_*.py файлы"
+  - "нет end-to-end integration fixture покрывающей полный tier1 flow"
+  - "нет consolidation / dedup pass"
+delta:
+  - "ADD loop/tests/fixtures/incidents/ — набор YAML-фикстур: open_tier1_eligible.yaml, escalated_max_attempts.yaml, product_test_fail_not_eligible.yaml, resolved_tier1.yaml (для parametrize в integration tests)"
+  - "ADD loop/tests/test_incidents_integration.py — integration: (1) test_tier1_full_flow_resolve: FakeSpawn + FakeVerifyPass → incident resolved, no NEED_HUMAN file; (2) test_tier1_max_fail_escalate: 3× FakeVerifyFail → NEED_HUMAN file exists + tier1_escalated_total=1; (3) test_tier1_disabled_escalate_immediately: EPIC_INCIDENT_TIER1=0 → no spawn, immediate escalate"
+  - "ADD loop/tests/test_incidents_integration.py — FakeBoardExecution stub для soft 015 test (US-005): escalate → board_soft called → execution status captured"
+  - "ADD loop/tests/conftest.py (если нет) или обновить — фикстуры tmp_incident_store, tmp_epic_dir, monkeypatch EPIC_* env vars"
+  - "POLISH: rg дублирующихся assertions в test_incidents_*.py → вынести в shared conftest helpers; не удалять unit-tests, только deduplicate fixture setup"
+deletes: []
+out_of_scope:
+  - "product pytest / application tests"
+  - "frontend tests"
+  - "load / performance testing"
+  - "CI pipeline changes"
+
+context:
+  consumes:
+    - "plan §Test plan: все 4 уровня (unit, integration, e2e, fixture)"
+    - "plan §US-001 AC: fixture unknown-to-tier0 → tier1 → continue"
+    - "plan §US-002 AC: 3 failures → NEED_HUMAN"
+    - "план §US-005: FakeBoardExecution soft"
+    - "loop/tests/test_incidents_*.py (s01–s09 unit suites)"
+    - "loop/incidents/ (все модули из s01–s09)"
+  produces:
+    - "loop/tests/fixtures/incidents/ (YAML фикстуры)"
+    - "loop/tests/test_incidents_integration.py"
+    - "loop/tests/conftest.py (обновлён)"
+    - "loop/tests/test_incidents_*.py (polished)"
+  plan_refs:
+    - "plan-T-HUB-018 §Test plan"
+    - "plan-T-HUB-018 §US-001 §US-002 §US-005"
+    - "plan-T-HUB-018 §AC+ #1 #2"
+    - "plan-T-HUB-018 §AC− #3 #5"
+  files:
+    - "loop/tests/fixtures/incidents/"
+    - "loop/tests/test_incidents_integration.py"
+    - "loop/tests/conftest.py"
+    - "loop/tests/test_incidents_tier1_eligibility.py"
+    - "loop/tests/test_incidents_tier1_verify.py"
+    - "loop/tests/test_incidents_alert.py"
+    - "loop/tests/test_incidents_cli.py"
+    - "loop/tests/test_incidents_metrics_tier1.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "fixtures/incidents/ содержит минимум 4 YAML файла для parametrize"
+    verify: "rg 'incident_id:' loop/tests/fixtures/incidents/"
+  - id: cp2
+    criterion: "integration: tier1 full flow resolve → no NEED_HUMAN file, incident status resolved"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_integration.py -k tier1_full_flow_resolve -q --tb=short`"
+  - id: cp3
+    criterion: "integration: max fail 3× → NEED_HUMAN file exists + escalated counter incremented"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_integration.py -k max_fail_escalate -q --tb=short`"
+  - id: cp4
+    criterion: "EPIC_INCIDENT_TIER1=0 → immediate escalate, no tier1 spawn"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_integration.py -k tier1_disabled_escalate -q --tb=short`"
+  - id: cp5
+    criterion: "весь suite test_incidents_*.py зелёный без xfail"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_*.py loop/tests/test_incidents_integration.py -q --tb=short`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_integration.py -q --tb=short`"
+  - "`.venv/bin/pytest loop/tests/test_incidents_*.py -q --tb=short`"
+
+tdd:
+  - "test_tier1_full_flow_resolve_no_need_human"
+  - "test_tier1_max_fail_escalate_creates_need_human_file"
+  - "test_tier1_disabled_env_escalates_immediately"
+  - "test_fake_board_execution_captures_status"
+  - "test_fixtures_parametrize_eligibility"
+
+requirements_covered:
+  - "US-001 AC (full flow: spawn → verify PASS → continue)"
+  - "US-002 AC (3 failures → NEED_HUMAN)"
+  - "US-005 partial (FakeBoardExecution soft)"
+  - "AC+ #1: tier1 spawned only for orchestration-only"
+  - "AC+ #2: escalation → NEED_HUMAN + alert"
+  - "AC− #3: product test failure not eligible"
+  - "AC− #5: product tests not run in verify slice"
+  - "plan §Test plan: integration tier1 fail max → escalate + NEED_HUMAN"

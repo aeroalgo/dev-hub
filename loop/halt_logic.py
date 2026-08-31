@@ -38,6 +38,8 @@ def decide_after_action(after_json: dict) -> DecideAction:
             return "halt"
         if stop == "EPIC_DONE":
             return "complete"
+        if stop == "ARCHIVE_DONE":
+            return "complete"
 
     if after_json.get("repair_exhausted"):
         return "halt"

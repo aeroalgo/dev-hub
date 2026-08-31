@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s14
+plan_id: T-HUB-022
+title: "README + §0.11 integration grep + loop status drift display"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  1. Обновить `loop/schemas/README.md` (создан в s07) — добавить §0.11 env-key table:
+     PROJECT_LOOP_HANDOFF_STRICT, PROJECT_LOOP_REPAIR_LEGACY + все из project.env эпика.
+  2. Добавить drift display в `loop status` CLI output (context_loop.py или loop.sh):
+     при `loop status` показывать `drift_counters` из state если хоть один > 0.
+  3. §0.11 grep — audit: все env-ключи эпика упомянуты в README/project.env;
+     все schemas зарегистрированы в loop/schemas/README.md.
+  FR-007 (docs), §0.11 compliance.
+
+context:
+  consumes:
+    - "loop/schemas/README.md — создан в s07"
+    - ".claude/project.env — PROJECT_LOOP_HANDOFF_STRICT (s09), PROJECT_LOOP_REPAIR_LEGACY (s12)"
+    - "loop/context_loop.py — loop status output"
+    - "loop/loop.sh — CLI entry"
+    - "plan-T-HUB-022 §Drift observability, §loop status drift display"
+  produces:
+    - "loop/schemas/README.md EDIT — §0.11 env-key table + все schemas"
+    - "loop/context_loop.py EDIT — drift_counters display в status output (если >0)"
+    - "loop/tests/test_drift_display.py — status output contains drift when counter >0"
+  plan_refs:
+    - "plan-T-HUB-022 FR-007 — loop status drift display"
+    - "plan-T-HUB-022 §Drift observability"
+    - "plan-T-HUB-022 §0.11 compliance"
+  files:
+    - "loop/schemas/README.md"
+    - "loop/context_loop.py"
+    - "loop/tests/test_drift_display.py"
+
+as_built:
+  - "loop/schemas/README.md — schema doc-map (из s07); нет §0.11 env table"
+  - "loop status — показывает phase/step/status; нет drift_counters"
+
+delta:
+  - "loop/schemas/README.md EDIT — добавить §Env keys (PROJECT_LOOP_HANDOFF_STRICT, PROJECT_LOOP_REPAIR_LEGACY) + update schema table"
+  - "loop/context_loop.py EDIT — в status-path: if any drift_counter > 0 → print 'drift: {counters}'"
+  - "loop/tests/test_drift_display.py CREATE — state с index_mirror_repair=2 → status output содержит 'drift'"
+
+deletes: []
+
+out_of_scope:
+  - "Полный redesign loop status output — только drift append"
+  - "Web UI / board display — out of scope"
+  - "Новые env-флаги в этом шаге — только документирование"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "README.md содержит оба env-ключа эпика"
+    verify: "rg 'PROJECT_LOOP_HANDOFF_STRICT|PROJECT_LOOP_REPAIR_LEGACY' loop/schemas/README.md"
+  - id: cp2
+    criterion: "context_loop.py drift display добавлен"
+    verify: "rg 'drift' loop/context_loop.py | head -5"
+  - id: cp3
+    criterion: "test_drift_display.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_drift_display.py -q --tb=short"
+  - id: cp4
+    criterion: "§0.11 audit: все env-ключи эпика в README или project.env"
+    verify: "rg 'PROJECT_LOOP_HANDOFF_STRICT|PROJECT_LOOP_REPAIR_LEGACY' .claude/project.env loop/schemas/README.md | wc -l"
+
+verify: []
+
+tdd:
+  - "RED: test_status_shows_drift_when_nonzero → 'drift' in status output"
+  - "RED: test_status_no_drift_when_zero → drift section absent"
+  - "GREEN: добавить drift display в context_loop status"

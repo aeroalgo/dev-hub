@@ -147,6 +147,15 @@ def main() -> None:
         record_verdict(st, "reviewer", verdict, evidence)
         clear_in_flight(st, agent=agent_type)
         save_state(session_id, cwd, st)
+        try:
+            from epic_lib import mirror_gate_verdict
+
+            mirror_gate_verdict(cwd, "reviewer", verdict, evidence=evidence)
+        except Exception as exc:
+            print(
+                f"reviewer: mirror_gate_verdict failed: {exc}",
+                file=sys.stderr,
+            )
         return
 
     if agent_type:

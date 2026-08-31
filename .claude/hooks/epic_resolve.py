@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI helpers for agents: validate-step · mark-index-status · sync-index-yaml · flush-checkpoint · status.
+"""CLI helpers for agents: validate-step · mark-index-status · sync-index-yaml · flush-checkpoint · status · verify-decompose-creative.
 
 Loop orchestration = loop/context_loop.py + ./loop/loop.sh (not this file).
 """
@@ -12,6 +12,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOOP = ROOT / "loop"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(LOOP) not in sys.path:
     sys.path.insert(0, str(LOOP))
 
@@ -22,6 +24,7 @@ from epic_index import sync_yaml_from_md  # noqa: E402
 from epic.core import repair_index_mirror  # noqa: E402
 from epic_lib import (  # noqa: E402
     _decompose_index_path,
+    arm_active_context_from_decompose,
     finalize_step,
     halt_epic,
     load_epic_state,
@@ -33,6 +36,7 @@ from epic_yaml import (  # noqa: E402
     seed_implement_from_decompose,
     validate_decompose_tree,
     validate_shard_yaml_full,
+    verify_decompose_creative,
 )
 from _lib import resolve_cli_cwd  # noqa: E402
 
@@ -59,6 +63,16 @@ def main() -> int:
         help="lint all sNN|eNN shards listed in decompose index.yaml (DECOMPOSE FINISH gate)",
     )
     p_val_tree.add_argument(
+        "--decompose",
+        required=True,
+        help="decompose dir | index.yaml | index.md | any step shard in that dir",
+    )
+
+    p_verify_creative = sub.add_parser(
+        "verify-decompose-creative",
+        help="advisory plan↔decompose CREATIVE gate (verdict + gaps; exit 0 always)",
+    )
+    p_verify_creative.add_argument(
         "--decompose",
         required=True,
         help="decompose dir | index.yaml | index.md | any step shard in that dir",
@@ -130,6 +144,11 @@ def main() -> int:
     p_halt = sub.add_parser("halt", help="halt epic runtime state")
     p_halt.add_argument("--reason", required=True)
 
+    p_arm = sub.add_parser("arm", help="arm activeContext for epic or decompose")
+    p_arm.add_argument("--epic-id", default=None, help="epic id")
+    p_arm.add_argument("--decompose", default=None, help="decompose dir or index")
+    p_arm.add_argument("--role", default="back", help="role slug")
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -164,6 +183,11 @@ def main() -> int:
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if payload["ok"] else 2
+
+    if args.cmd == "verify-decompose-creative":
+        payload = verify_decompose_creative(cwd, args.decompose)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
 
     if args.cmd == "mark-index-status":
         r = mark_index_step_status(
@@ -328,6 +352,19 @@ def main() -> int:
         st = halt_epic(cwd, args.reason)
         print(json.dumps(st, ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == "arm":
+        role = getattr(args, "role", "back") or "back"
+        if args.epic_id:
+            r = arm_epic(cwd, args.epic_id, role=role)
+        elif args.decompose:
+            # Legacy path: arm_session / arm_active_context_from_decompose
+            r = arm_active_context_from_decompose(cwd, args.decompose)
+        else:
+            print(json.dumps({"ok": False, "error": "missing --epic-id or --decompose"}, ensure_ascii=False))
+            return 2
+        print(json.dumps(r, ensure_ascii=False, indent=2))
+        return 0 if r.get("ok") else 2
 
     return 2
 

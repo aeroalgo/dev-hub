@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s16
+plan_id: T-HUB-022
+title: "Legacy dict-validation + repair auto-rewrite purge (final sunset)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальная чистка legacy: удалить auto-rewrite поведение из repair_* (оставить только
+  diagnostic/log + counter); удалить dict-validation code в epic/core.py которое задублировано
+  теперь CheckpointRecord/EpicState; удалить `EVENT_SCHEMA` dict если LoopEvent полностью покрывает.
+  Import-audit: rg каждого удалённого символа → убедиться нет оставшихся callers.
+  Прогнать полный suite `pytest loop/tests/ -q --tb=line` — финальная зелёная проверка.
+  Эпик T-HUB-022 закрыт по этому шагу.
+  FR-007, §repair_* sunset полный.
+
+context:
+  consumes:
+    - "memory-bank/back/plan/refs/T-HUB-022-repair-audit.md — список caller'ов и план (из s15)"
+    - ".claude/hooks/epic/core.py — repair_* auto-rewrite code; frozenset-validation дублирующий CheckpointRecord"
+    - ".claude/hooks/epic_events.py — EVENT_SCHEMA dict"
+    - "plan-T-HUB-022 §repair_* sunset: удалить auto-rewrite после green migration suite"
+    - "plan-T-HUB-022 §Not in scope (deletes)"
+  produces:
+    - ".claude/hooks/epic/core.py EDIT — repair_* без auto-rewrite (только log+counter); frozenset dupe cleanup"
+    - ".claude/hooks/epic_events.py EDIT — удалить EVENT_SCHEMA dict (если LoopEvent полностью заменяет)"
+    - "loop/tests/ — финальный suite green"
+  plan_refs:
+    - "plan-T-HUB-022 §repair_* sunset"
+    - "plan-T-HUB-022 §Зафиксированные решения — repair_index_mirror → log + project; удалить auto-rewrite после green migration suite"
+    - "plan-T-HUB-022 §deletes (brownfield — repair auto-rewrite, dict-validation dupe)"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - ".claude/hooks/epic_events.py"
+
+as_built:
+  - "repair_index_mirror — auto-rewrite md from yaml (legacy on hot path)"
+  - "repair_fingerprint_stall — auto-clear/rewrite fingerprint"
+  - "repair_finish_desync — auto-rewrite Handoff"
+  - "_CHECKPOINT_STAGES / _CHECKPOINT_STATUSES — частично дублируют CheckpointRecord Literals"
+  - "EVENT_SCHEMA dict — дублирует LoopEvent fields"
+
+delta:
+  - ".claude/hooks/epic/core.py EDIT repair_index_mirror — убрать auto md-write; оставить diagnostic + counter"
+  - ".claude/hooks/epic/core.py EDIT repair_fingerprint_stall — убрать auto-clear; diagnostic + counter"
+  - ".claude/hooks/epic/core.py EDIT repair_finish_desync — убрать auto-Handoff-rewrite; log + counter"
+  - ".claude/hooks/epic_events.py EDIT — удалить EVENT_SCHEMA или alias на LoopEvent.model_fields"
+  - "Import-audit: rg удалённых символов → 0 callers"
+
+deletes:
+  - ".claude/hooks/epic/core.py — auto-rewrite блоки в repair_* (заменены diagnostic+counter)"
+  - ".claude/hooks/epic_events.py — EVENT_SCHEMA dict (если LoopEvent полностью заменяет)"
+  - "Frozenset-validation dupe code в validate_checkpoint (заменено CheckpointRecord)"
+
+out_of_scope:
+  - "Удаление repair_* функций целиком — они остаются как diagnostic entry points"
+  - "Изменение context_loop.py repair-call logic — только cleanup внутри repair_* bodies"
+  - "T-HUB-023 fallback — следующий эпик"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "repair_index_mirror не содержит auto md-write (mirror_status_to_md вызов убран из repair)"
+    verify: "rg 'mirror_status_to_md' .claude/hooks/epic/core.py | rg -v 'import\\|def mirror'"
+  - id: cp2
+    criterion: "Import-audit: EVENT_SCHEMA — 0 callers или alias"
+    verify: "rg 'EVENT_SCHEMA' .claude/hooks/ --type py | grep -v 'def EVENT_SCHEMA\\|#'"
+  - id: cp3
+    criterion: "Финальный loop suite зелёный"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line 2>&1 | tail -10"
+  - id: cp4
+    criterion: "Финальный .claude/hooks/ suite зелёный"
+    verify: "timeout 120s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line 2>&1 | tail -5"
+
+verify: []
+
+tdd:
+  - "Все regression тесты s02–s13 должны остаться зелёными после удаления"
+  - "RED → не нужен (удаление); GREEN = полный suite зелёный"
+  - "Import-audit вместо TDD для purge: rg → 0 stale callers"

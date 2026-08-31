@@ -1,0 +1,17 @@
+schema: epic-reflect/v1
+role: back
+epic_id: T-HUB-009-dsh-rollout-docs
+date: 2026-08-30
+status: completed
+
+summary: |
+  Эпик T-HUB-009-dsh-rollout-docs полностью завершён.
+  Все архитектурные документы, руководства (runbooks), README-файлы и ассеты as-built (asbuilt-006..008, services-dataflow.md)
+  созданы, приведены в соответствие с фактической реализацией T-HUB-006..008 и успешно прошла повторную QA проверку.
+
+key_takeaways:
+  - Документация as-built и arquitectura должны верифицироваться строго по факту существования файлов.
+  - Версии внешних зависимостей (Node.js 22+) приведены к единому стандарту во всех README и runbooks.
+
+next_steps:
+  - Перевести эпик T-HUB-009-dsh-rollout-docs в статус EPIC_DONE.

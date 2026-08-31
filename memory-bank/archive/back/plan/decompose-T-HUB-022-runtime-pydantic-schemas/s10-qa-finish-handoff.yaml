@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-022
+title: "validate_qa_finish_handoff via frontmatter mode + epic_yaml verdict"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить `validate_qa_finish_handoff(cwd)` в `epic/core.py` или `epic_yaml.py`:
+  читает frontmatter из activeContext.md через parse_frontmatter(); если mode==QA/REFLECT →
+  проверяет qa-*.yaml verdict по epic_yaml логике; возвращает (ok: bool, diagnostic: str|None).
+  Интегрировать в stop-gate FINISH path: вызывать перед finalize при QA-фазе.
+  US-005 (phase из reducer), FR-004.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — handoff_post_implement_phase(), project_handoff_from_reducer()"
+    - ".claude/hooks/epic_yaml.py — EpicDecomposeIndex, verdict parsing logic"
+    - "loop/schemas/active_context.py — parse_frontmatter()"
+    - ".claude/hooks/stop-gate.py — QA-FINISH branch"
+    - "plan-T-HUB-022 §validate_qa_finish_handoff, US-005"
+  produces:
+    - ".claude/hooks/epic/core.py ADD validate_qa_finish_handoff(cwd) → (bool, str|None)"
+    - ".claude/hooks/stop-gate.py EDIT — вызов validate_qa_finish_handoff при QA-фазе"
+    - "loop/tests/test_qa_finish_handoff.py — QA verdict present → ok; missing → diagnostic"
+  plan_refs:
+    - "plan-T-HUB-022 US-005 — phase из reducer"
+    - "plan-T-HUB-022 §validate_qa_finish_handoff"
+    - "plan-T-HUB-022 AC+8 — QA FINISH: qa-*.yaml verdict required"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - ".claude/hooks/stop-gate.py"
+    - "loop/tests/test_qa_finish_handoff.py"
+
+as_built:
+  - "handoff_post_implement_phase() — читает frontmatter; regex fallback если нет"
+  - "stop-gate QA-FINISH — нет explicit validate_qa_finish_handoff вызова"
+  - "epic_yaml — qa verdict parsing есть (для QA FINISH)"
+
+delta:
+  - ".claude/hooks/epic/core.py ADD def validate_qa_finish_handoff(cwd) — frontmatter parse + qa verdict check"
+  - ".claude/hooks/stop-gate.py EDIT — вызов validate_qa_finish_handoff при QA/REFLECT phase"
+  - "loop/tests/test_qa_finish_handoff.py CREATE — 3 сценария: QA+verdict=ok; QA+no-verdict=diagnostic; non-QA=skipped"
+
+deletes: []
+
+out_of_scope:
+  - "PROJECT_LOOP_HANDOFF_STRICT (общий флаг) — s09"
+  - "index yaml-only — s11"
+  - "repair_* counters — s12"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "validate_qa_finish_handoff определён в epic/core.py"
+    verify: "rg 'def validate_qa_finish_handoff' .claude/hooks/epic/core.py"
+  - id: cp2
+    criterion: "stop-gate.py вызывает validate_qa_finish_handoff"
+    verify: "rg 'validate_qa_finish_handoff' .claude/hooks/stop-gate.py"
+  - id: cp3
+    criterion: "test_qa_finish_handoff.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_qa_finish_handoff.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: stop-gate тесты зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_stop_gate.py -q --tb=line -x"
+
+verify: []
+
+tdd:
+  - "RED: test_qa_mode_with_verdict → (True, None)"
+  - "RED: test_qa_mode_no_verdict → (False, 'qa_verdict_missing')"
+  - "RED: test_non_qa_mode → (True, None) — skip validation"
+  - "GREEN: validate_qa_finish_handoff + wire in stop-gate"

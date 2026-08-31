@@ -8,6 +8,18 @@ alwaysApply: false
 **Не** клонировать `spec-kit/templates/commands/clarify.md` целиком — адаптировать таксономию и лимиты под hub workflow.
 **Артефакт сессии:** `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` (шаблон `@.cursor/templates/clarify.md`).
 
+**Grill (HARD):** каждая CLARIFY-сессия **обязана** выполнить Phase 0 — @.agents/skills/grill-me/SKILL.md **целиком** до taxonomy. Секция `## Grill pass` в арtefact не пустая.
+
+---
+
+## Phase 0 — Grill pass (mandatory)
+
+1. **Read** `@.agents/skills/grill-me/SKILL.md` (full file).
+2. Записать `## Grill pass` в clarify-арtefact (Reframe · Premises · Weakest link · Anti-scope · Verdict).
+3. `Verdict=auto_resolved` — только с Evidence на каждый premise из входа; иначе `needs_user_Q`.
+4. Grill-Q (0–2) — **первые** в `## Q→A log`, считаются в лимит ≤5.
+5. **FORBIDDEN:** переход к taxonomy без Grill pass на диске.
+
 ---
 
 ## Таксономия вопросов (8 категорий)
@@ -87,6 +99,7 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 
 ```markdown
 ## Completion Report
+- Grill: done · verdict=auto_resolved|needs_user_Q · grill_Q=N
 - Asked: N/5
 - Resolved: …
 - Deferred: … (severity + next)
@@ -107,6 +120,7 @@ Severity рядом: `CRITICAL` | `IMPORTANT` | `NICE`.
 
 ## FORBIDDEN
 
+- CLARIFY FINISH без непустой секции `## Grill pass` или без строки `Grill:` в Completion Report
 - **silent assumption** при пустом / размытом prompt (auth, stack, multi-tenant, PII, deploy target)
 - Подставлять стек/архитектуру «по умолчанию» вместо вопроса
 - Клонировать spec-kit clarify 1:1 (291 строк) или тащить внешний CLI / init-процесс

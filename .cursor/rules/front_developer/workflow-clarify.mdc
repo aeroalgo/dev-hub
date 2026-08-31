@@ -7,6 +7,7 @@ alwaysApply: false
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc
 **Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
 **Шаблон**: @.cursor/templates/clarify.md
+**Grill (HARD):** @.agents/skills/grill-me/SKILL.md — Phase 0 mandatory (Read целиком до taxonomy)
 
 ## Фокус FRONT
 
@@ -19,12 +20,14 @@ CLARIFY охватывает UX, component tree, routes, state и API contracts.
 ## Процесс
 
 1. `FRONT CLARIFY <feature-slug>` → загрузить `activeContext.md` и существующий clarify-артефакт по slug.
-2. Выполнить shared core: taxonomy scan, ≤5 sequential questions, Recommended/Suggested, Q→A log на диске.
-3. Зафиксировать CRITICAL как resolved или в defer-list с owner/next.
-4. Написать Completion Report в артефакт.
+2. **Read** `@.agents/skills/grill-me/SKILL.md` → Phase 0 Grill pass (G7 при UI ambiguity).
+3. Shared core: taxonomy scan, ≤5 sequential Q (grill-Q первые), Recommended/Suggested, Q→A log на диске.
+4. Зафиксировать CRITICAL как resolved или в defer-list с owner/next.
+5. Написать Completion Report в артефакт (строка `Grill:` обязательна).
 
 ## Done When
 
+- [ ] **Grill pass** записан; Completion Report содержит `Grill:`
 - [ ] Артефакт создан или обновлён на диске.
 - [ ] Completion Report написан.
 - [ ] Нет открытых CRITICAL без resolve/defer-list.

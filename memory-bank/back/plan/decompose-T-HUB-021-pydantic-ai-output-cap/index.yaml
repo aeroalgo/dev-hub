@@ -1,0 +1,45 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-021-pydantic-ai-output-cap
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-pin-research-compat.yaml
+  title: Pin research — pydantic-ai × OmniRoute compat matrix + requirements-hub.txt
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-log-summary-models.yaml
+  title: LogSummary + LogError models in llm_structured.py
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-agent-factory-sync-runner.yaml
+  title: make_output_cap_agent() + run_log_summary() sync runner with retries
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-bash-output-cap-integration.yaml
+  title: bash-output-cap.py structured path integration + build_view render
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-unit-tests-mocked.yaml
+  title: Unit tests — mocked agent, no network, TDD red→green
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-sunset-purge.yaml
+  title: Legacy urllib _http_chat + free-text llm_summarize purge + STRUCTURED=0 removal
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-env-docs.yaml
+  title: project.env flag comment + techContext.md install note + loop/README snippet
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-audit-env-keys.yaml
+  title: AUDIT §0.11 — grep env keys vs code, AC parity check
+  next_phase: BACK IMPLEMENT
+  status: completed

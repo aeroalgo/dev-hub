@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s02
+title: "EpicNextAction resolver — pre-implement matrix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Единственный источник «что дальше для эпика» — `resolve_epic_next_action(cwd, role, epic_id) -> EpicNextAction`.
+  Pre-implement matrix: нет plan → PLAN; есть plan, нет decompose → DECOMPOSE;
+  есть decompose, CLARIFY needed → CLARIFY; ANALYZE needed → ANALYZE;
+  decompose pending steps → IMPLEMENT (next_step_id).
+  Логика extracts/refactors из scan_gates._pre_gates в единый модуль.
+
+as_built:
+  - "loop/board_sync/scan_gates.py: _pre_gates() — inline логика pre-implement gate без возврата next_command"
+  - "scan_gates._pre_gates: возвращает GateWorkItem list без EpicNextAction dataclass"
+  - "epic/core.py: arm_active_context_from_decompose знает только decompose path, не resolver"
+  - "Нет единого resolve_epic_next_action API"
+
+delta:
+  - "ADD loop/board_sync/epic_resolver.py: dataclass EpicNextAction(epic_id, role, next_command, next_step_id, reason_code)"
+  - "ADD resolve_epic_next_action(cwd, role, epic_id) -> EpicNextAction"
+  - "IMPL pre-implement matrix: plan_exists? → decompose_exists? → analyze_gate? → clarify_gate? → pending_steps? → IMPLEMENT"
+  - "ADD _resolve_pre_implement(project, role, epic_id, plan, decompose, override) -> EpicNextAction"
+  - "EDIT scan_gates._pre_gates: делегировать resolve_epic_next_action → конвертировать EpicNextAction → GateWorkItem"
+  - "IMPORT plan_next.parse_plan_next в resolver для override lookup"
+
+deletes:
+  - "scan_gates._pre_gates: inline логику pre-implement (перенесена в epic_resolver)"
+
+out_of_scope:
+  - "Post-implement resolver (s03)"
+  - "arm_epic orchestrator (s04)"
+  - "board sync card_kind epic (s05)"
+
+context:
+  consumes:
+    - "loop/board_sync/scan_gates.py — _pre_gates, _queued_epics, _known_epics, GateWorkItem"
+    - "loop/board_sync/plan_next.py — parse_plan_next (s01)"
+    - ".claude/hooks/epic/core.py — reduce_epic_lifecycle (post-implement, referenced s03)"
+    - ".claude/hooks/analyze_gate.py — critical_count, latest_analyze"
+    - "plan-T-HUB-020 §Resolver architecture: pre-implement matrix таблица"
+  produces:
+    - "loop/board_sync/epic_resolver.py (новый)"
+    - "loop/board_sync/scan_gates.py (изменён — делегирует в resolver)"
+  plan_refs:
+    - "plan-T-HUB-020 §Зафиксированные решения: Единый резолвер"
+    - "plan-T-HUB-020 §Resolver architecture: pre-implement matrix"
+    - "plan-T-HUB-020 US-002 (resolver → DECOMPOSE)"
+    - "plan-T-HUB-020 US-006 (CLARIFY/ANALYZE Run до decompose)"
+    - "plan-T-HUB-020 US-008 (IMPLEMENT phase → next sNN)"
+  files:
+    - "loop/board_sync/epic_resolver.py"
+    - "loop/board_sync/scan_gates.py"
+    - "loop/tests/test_board_sync_epic_resolver.py"
+    - "loop/tests/test_board_sync_scan_gates.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "resolve_epic_next_action → PLAN если нет plan файла"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k no_plan -q --tb=line`"
+  - id: cp2
+    criterion: "resolve_epic_next_action → DECOMPOSE если plan есть, decompose нет"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k no_decompose -q --tb=line`"
+  - id: cp3
+    criterion: "IMPLEMENT phase: pending steps → next_command=BACK IMPLEMENT, next_step_id=первый pending"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k implement_next_step -q --tb=line`"
+  - id: cp4
+    criterion: "scan_gates._pre_gates делегирует resolve_epic_next_action; существующие тесты scan_gates зелёные"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_scan_gates.py -q --tb=line`"
+  - id: cp5
+    criterion: "override из plan-next/v1 respected: override DECOMPOSE при valid artifacts → result DECOMPOSE"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py -k override -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_epic_resolver.py loop/tests/test_board_sync_scan_gates.py -q --tb=line`"
+
+tdd:
+  - "test_resolve_no_plan_returns_plan_command"
+  - "test_resolve_plan_no_decompose_returns_decompose_command"
+  - "test_resolve_decompose_all_pending_returns_implement_s01"
+  - "test_resolve_decompose_first_pending_after_completed"
+  - "test_resolve_analyze_required_returns_analyze"
+  - "test_resolve_clarify_required_returns_clarify"
+  - "test_resolve_override_valid_takes_precedence"
+  - "test_resolve_override_conflict_returns_diagnostic"
+  - "test_scan_gates_delegates_to_resolver"
+
+requirements_covered:
+  - "US-002 (resolver DECOMPOSE)"
+  - "US-006 (CLARIFY/ANALYZE до decompose)"
+  - "US-007 (override respected)"
+  - "US-008 (IMPLEMENT next sNN)"
+  - "FR-resolver-single-source"
+  - "NFR-fail-closed (resolver diagnostic)"

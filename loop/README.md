@@ -36,9 +36,49 @@ Canary проверяет `canary-finish-integrity`: только последо
 | **Тесты** | `.venv/bin/pytest loop/tests -q` |
 | **FINISH** | `.cursor/rules/shared/finish-block.mdc` |
 
+## Observability & Incident Diagnostics
+
+The loop subsystem features structured telemetry, trace recording, incident management, and automated Tier-0 repairs.
+
+```mermaid
+graph TD
+    Runner[Loop Runner / CLI] -->|Events| Trace[Trace Log: trace/events.jsonl]
+    Runner -->|Errors / Anomaly| IncidentEngine[Incident Engine]
+    IncidentEngine -->|Lookup| Registry[registry.yaml]
+    IncidentEngine -->|Record| IncidentsLog[incidents.jsonl]
+    IncidentEngine -->|Trigger| Tier0[Tier-0 Repair Chain]
+    Tier0 -->|Check / Fix| Repairs[Repair & Verify Fns]
+    Runner -->|CLI Status| Doctor[loop doctor / status]
+```
+
+### Key Components
+
+- **Incidents Event Log (`incidents.jsonl`)**: Structured record of all reported incidents, diagnostic codes, timestamps, and Tier-0 resolution outcomes.
+- **Trace Event Stream (`events.jsonl`)**: Event stream recording state transitions, session starts, and step executions.
+- **Metrics Aggregator (`metrics.json`)**: Real-time aggregation of session durations, incident counts, and repair success rates.
+- **Loop Doctor CLI (`python3 loop/context_loop.py doctor`)**: Diagnostic command to scan system health, audit locks, verify activeContext shape, and trigger Tier-0 repairs manually or automatically (`--auto-repair`).
+- **Loop Status Extensions (`python3 loop/context_loop.py status`)**: Reports active epic, current step, open incidents, and metric summaries.
+
+For incident registry specification, environment flags (`EPIC_INCIDENT_TRACE`, `EPIC_INCIDENT_METRICS`), and runbooks, see [`loop/incidents/README.md`](incidents/README.md).
+
 ## Production contract
 
 `.claude/project.env` is the checkout canon for runtime and permission values; `.claude/project.env.local` is the only local override. Do not create or synchronize values to a hypothetical example file.
+
+- **Bash output cap (`.claude/hooks/bash-output-cap.py`):**
+  Summarizes large tool call outputs using an LLM summary pass. Supported env vars in `.claude/project.env`:
+  | Env Variable | Default / Description |
+  |--------------|-----------------------|
+  | `PROJECT_OUTPUT_SUMMARY` | `1` — enable summary pass (0=disabled) |
+  | `PROJECT_OUTPUT_SUMMARY_STRUCTURED` | `1` — use `pydantic-ai` structured output (`BashCapSummary` schema); `0` — legacy free-text prompt |
+  | `PROJECT_OUTPUT_SUMMARY_URL` | OpenAI-compatible API base URL (e.g. `http://localhost:20128/v1`) |
+  | `PROJECT_OUTPUT_SUMMARY_MODEL` | Primary model for output summarization |
+  | `PROJECT_OUTPUT_SUMMARY_FALLBACK_MODEL` | Fallback model if primary model fails |
+  | `PROJECT_OUTPUT_SUMMARY_TIMEOUT` | Timeout in seconds (default `120`) |
+  | `PROJECT_OUTPUT_SUMMARY_RETRIES` | Max retries (default `2`) |
+  | `PROJECT_OUTPUT_SUMMARY_BACKOFF` | Backoff delay between retries in seconds |
+
+  *Structured output note:* When `PROJECT_OUTPUT_SUMMARY_STRUCTURED=1`, `pydantic-ai` enforces validation of `BashCapSummary` (summary text, error signal detection, line counts) before returning output to Claude Code context.
 
 - **Runner bounds:** `EPIC_SESSION_TIMEOUT_SEC` (3600), `EPIC_SESSION_KILL_GRACE_SEC` (30), `EPIC_TRANSIENT_RETRY_MAX` (30), `EPIC_DEGRADED_MAX` (3), `EPIC_SESSION_LOG_LIMIT_BYTES` (10000000), `EPIC_STATUS_HEARTBEAT_SEC` (30; empty = disabled), `EPIC_STREAM_IDLE_TIMEOUT_SEC` (300; empty = disabled; idle = no `tool_use`/`tool_result`, not stream silence), `EPIC_CHAIN_ROADMAP` (0 = stop after EPIC_DONE; 1 = arm next from roadmap Queue). Zero/unlimited mode is not supported; invalid values fail closed with `invalid_runtime_config`.
 - **Checkpoint:** durable cursor, `resume_from_step`, lifecycle (`pending` → `active` → `completed`/`BLOCKED`/`NEED_HUMAN`) and the decompose index are the recovery boundary. `state.json` mirrors checkpoint telemetry and must not be edited by an agent. Checkpoint/index conflicts halt fail-closed.
@@ -67,3 +107,11 @@ Canary проверяет `canary-finish-integrity`: только последо
 
 The system loop supports an alternative runtime execution engine powered by DSH (`EPIC_RUNTIME=dsh`). For pilot setup, configuration, and execution instructions, see [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) and [`dsh/README.md`](../dsh/README.md).
 
+## Board sync enrichments & Epic-level board
+
+Board projection enriches tasks with structured card metadata, full description body loaders, phase-aware status mapping, and epic-level projection.
+
+- **Epic-level board**: Task boards project 1 epic card per epic instead of individual `sNN` step cards (`card_kind: epic`).
+- **Footer Delimiter**: Task descriptions append structured metadata after a `---` delimiter (`_FOOTER_DELIMITER`). Meta section is parsed with `parse_metadata(card.description)`.
+- **Backlog Column**: Pre-implementation phases (`PLAN`, `DECOMPOSE`, `CLARIFY`, `ANALYZE`, `ROADMAP`) or queued epics map card status to `backlog`. Active epics/steps map to `running`, completed/done epics map to `todo`.
+- **Sunset step cards**: Step cards from step-era projection are automatically archived upon sync.

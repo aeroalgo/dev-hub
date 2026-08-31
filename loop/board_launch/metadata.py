@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from loop.board_sync.card_model import CardKind, GateCard, StepCard, parse_metadata
+from loop.board_sync.card_model import CardKind, EpicCard, GateCard, StepCard, parse_metadata
 
 _METADATA_SCHEMA = "mb-board-card/v1"
 
@@ -32,6 +32,19 @@ _GATE_FIELDS = {
     "phase",
     "sync_generation",
     "reason_code",
+}
+_EPIC_FIELDS = {
+    "schema",
+    "card_kind",
+    "project_root",
+    "workspace_id",
+    "role",
+    "epic_id",
+    "next_command",
+    "next_step_id",
+    "progress_summary",
+    "roadmap_rank",
+    "sync_generation",
 }
 
 
@@ -66,14 +79,16 @@ def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
     kind = raw.get("card_kind")
     if kind is None or (isinstance(kind, str) and not kind.strip()):
         raise CardMetadataError("metadata card_kind is required")
-    if not isinstance(kind, str) or kind not in {CardKind.STEP.value, CardKind.GATE.value}:
-        raise CardMetadataError("metadata card_kind must be step or gate")
+    if not isinstance(kind, str) or kind not in {CardKind.STEP.value, CardKind.GATE.value, CardKind.EPIC.value}:
+        raise CardMetadataError("metadata card_kind must be step, gate, or epic")
 
     project_root = raw.get("project_root")
     if not isinstance(project_root, str) or not project_root.strip():
         raise CardMetadataError("metadata project_root is required")
 
     decompose_rel = raw.get("decompose_rel")
+    if kind == CardKind.EPIC.value:
+        decompose_rel = decompose_rel or f"memory-bank/{raw.get('role', 'back')}/plan/decompose-{raw.get('epic_id', '')}/index.yaml"
     if not isinstance(decompose_rel, str) or not decompose_rel.strip():
         raise CardMetadataError("metadata decompose_rel is required")
     if kind == CardKind.GATE.value and not isinstance(decompose_rel, str):
@@ -89,6 +104,8 @@ def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
         raise CardMetadataError("step metadata did not produce a StepCard")
     if kind == CardKind.GATE.value and not isinstance(parsed, GateCard):
         raise CardMetadataError("gate metadata did not produce a GateCard")
+    if kind == CardKind.EPIC.value and not isinstance(parsed, EpicCard):
+        raise CardMetadataError("epic metadata did not produce an EpicCard")
 
     return LaunchCard(
         project_root=project_root,
@@ -108,16 +125,35 @@ def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
 
 def _canonical_metadata(metadata: dict[str, Any], kind: str) -> dict[str, Any]:
     """Fill launch-only metadata defaults before using the canonical parser."""
-    fields = _STEP_FIELDS if kind == CardKind.STEP.value else _GATE_FIELDS
+    fields = (
+        _STEP_FIELDS
+        if kind == CardKind.STEP.value
+        else _GATE_FIELDS
+        if kind == CardKind.GATE.value
+        else _EPIC_FIELDS
+    )
     canonical = {key: value for key, value in metadata.items() if key in fields}
     canonical.setdefault("schema", _METADATA_SCHEMA)
     canonical.setdefault("workspace_id", "launch")
     canonical.setdefault("role", "back")
-    canonical.setdefault("phase", "IMPLEMENT" if kind == CardKind.STEP.value else "QA")
+    canonical.setdefault(
+        "phase",
+        "IMPLEMENT"
+        if kind == CardKind.STEP.value
+        else "QA"
+        if kind == CardKind.GATE.value
+        else "DECOMPOSE",
+    )
     canonical.setdefault("sync_generation", 0)
     if kind == CardKind.STEP.value:
         canonical.setdefault("epic_id", "launch")
         canonical.setdefault("step_id", "launch")
+    elif kind == CardKind.EPIC.value:
+        canonical.setdefault("epic_id", "launch")
+        canonical.setdefault("next_command", "implement")
+        canonical.setdefault("next_step_id", None)
+        canonical.setdefault("progress_summary", "")
+        canonical.setdefault("roadmap_rank", 0)
     else:
         canonical.setdefault("epic_id", None)
         canonical.setdefault("decompose_rel", None)

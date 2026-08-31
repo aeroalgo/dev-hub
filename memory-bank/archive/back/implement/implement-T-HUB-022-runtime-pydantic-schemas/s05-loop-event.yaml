@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-022
+title: s05 — LoopEvent model + epic_events typed append IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s05-loop-event.yaml
+skills_used:
+- python-design-patterns
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created LoopEvent schema in loop/schemas/event.py and re-exported in loop/schemas/__init__.py
+- Integrated LoopEvent validation into build_event() in .claude/hooks/epic_events.py
+- Added unit and round-trip tests in loop/tests/test_schemas_event.py
+files:
+- loop/schemas/event.py
+- loop/schemas/__init__.py
+- .claude/hooks/epic_events.py
+- loop/tests/test_schemas_event.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_event.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_event_*.py -q --tb=short`'
+integration_check:
+- '`rg ''LoopEvent'' .claude/hooks/epic_events.py` — verified integration of LoopEvent
+  inside epic_events.py'
+grep_control: []
+verification_results:
+- pytest loop/tests/ - 974 passed
+checkpoints:
+- id: cp1
+  criterion: LoopEvent создан в loop/schemas/event.py
+  status: done
+  done_at: '2026-08-31T00:48:17Z'
+- id: cp2
+  criterion: build_event использует LoopEvent внутри
+  status: done
+  done_at: '2026-08-31T00:49:02Z'
+- id: cp3
+  criterion: test_schemas_event.py проходит
+  status: done
+  done_at: '2026-08-31T00:49:26Z'
+- id: cp4
+  criterion: 'Regression: существующие event-тесты стабильны'
+  status: done
+  done_at: '2026-08-31T00:50:24Z'
+resume_from: cp1

@@ -18,6 +18,7 @@ alwaysApply: false
 3. Шаг = один IMPLEMENT + TDD; `step_id`, files, `deletes`, `needs_creative`, `tdd`, `code_surface`
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь goal); непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** каждый `sNN-*.yaml` = `schema: epic-decompose/v1` + `role: back` + `as_built`/`delta` как **list** — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** `epic-decompose-shard/*`, `epic-decompose-step/*`, invented schema names, `as_built: {as_is/delta}` dict. DECOMPOSE FINISH: `validate-decompose-tree` fail-closed (stop-gate)
+3a2. **CREATIVE verify (advisory):** FINISH前 `verify-decompose-creative --decompose <dir>` → exit 0; при `verdict: gaps` дописать по `gaps[].fix` / `missing`, не FINISH пока `ready: true`
 3b. Один IMPLEMENT = один prod-модуль или один test-file; атомарность — 2–4 cp, не склейка чужих модулей; test-строки плана → `tdd`/cp конкретных sNN
 3c. Purge sNN: anti-fallback `rg` + entrypoint inventory cp обязательны
 4. Каждый `sNN`: skills gate — Core(4) ∪ situational из @.cursor/rules/back_developer/skills-gate-situational.mdc (concrete paths)

@@ -4,7 +4,7 @@
 **Роль:** BACK PLAN  
 **Назначение:** повышение надёжности hub runtime через **pydantic-ai** (единственный Python LLM-call) и **Pydantic v2 schemas** (state/checkpoint/events/board) + опциональные LLM-fallback в hooks.  
 **Machine queue:** [`roadmap-pydantic-reliability-epics.queue.yaml`](roadmap-pydantic-reliability-epics.queue.yaml)  
-**Источник:** анализ as-built 2026-08-30 (chat): `bash-output-cap.py`, `epic_yaml.py`, `epic/core.py` state, `board_sync/card_model.py`.
+**Источник:** анализ as-built 2026-08-30 (chat): `bash-output-cap.py`, `epic_yaml.py`, `epic/core.py` state, `board_sync/card_model.py`, loop regex→repair anti-pattern, transition architecture spike (`loop/schemas`, `project_handoff_from_reducer`).
 
 **Skills used (PLAN):** writing-plans · architecture-patterns · python-testing-patterns · brainstorming (batch decisions, no HARD-GATE) · async-python-patterns (pydantic-ai provider)
 
@@ -15,7 +15,7 @@
 | Порядок | ID | План | Суть | In scope | Out of scope |
 |---------|-----|------|------|----------|--------------|
 | 1 | T-HUB-021 | [plan-T-HUB-021-pydantic-ai-output-cap.md](plan-T-HUB-021-pydantic-ai-output-cap.md) | Shared pydantic-ai client + structured `LogSummary` в `bash-output-cap`; pin deps; OmniRoute OpenAI-compatible | `.claude/hooks/llm_structured.py`, `bash-output-cap.py`, `requirements-hub.txt`, `loop/tests/test_llm_structured.py`, `project.env` contract | Runtime state schemas; hook fallbacks; Claude/DSH agent orchestration |
-| 2 | T-HUB-022 | [plan-T-HUB-022-runtime-pydantic-schemas.md](plan-T-HUB-022-runtime-pydantic-schemas.md) | Pydantic models для `loop-state/v2`, checkpoint, `events.jsonl`, `mb-board-card/v1`; validate on read/write | `loop/schemas/**`, `epic/core.py` load/save, `epic_events.py`, `board_sync/card_model.py`, migration helpers | pydantic-ai; LLM fallbacks |
+| 2 | T-HUB-022 | [plan-T-HUB-022-runtime-pydantic-schemas.md](plan-T-HUB-022-runtime-pydantic-schemas.md) | Pydantic для runtime JSON **+ transition contracts** (`loop-handoff/v1`, `loop-gate-verdict/v1`, reducer→render, validate-on-write, drift counters, repair sunset, index yaml-only). Spike 2026-08-30 частично в коде | `loop/schemas/**`, `gate_verdict_store`, `epic/core.py`, `stop-gate`, `context_loop`, `epic_events`, `board_sync`, `project.env` | pydantic-ai; LLM fallbacks |
 | 3 | T-HUB-023 | [plan-T-HUB-023-hooks-llm-fallbacks.md](plan-T-HUB-023-hooks-llm-fallbacks.md) | Opt-in LLM fallback когда regex/детерминизм не справился (Handoff, abort classify, VERDICT) | `epic/core.py` extractors, `session_resilience.py`, env flags, metrics hook points | Замена happy-path regex; main loop agents; board enrichments (019) |
 
 **Критерии cut (multi-epic):**
@@ -42,7 +42,7 @@ flowchart TB
 | От | К | Тип | Почему |
 |----|---|-----|--------|
 | T-HUB-021 | T-HUB-023 | hard | Shared `llm_structured` Agent + provider config |
-| T-HUB-022 | T-HUB-023 | soft | Fallback может писать `diagnostic_code` в validated state |
+| T-HUB-022 | T-HUB-023 | soft | `DriftCounters`, handoff/gate typed path must exist before LLM fallback; counter `llm_fallback_used` |
 | T-HUB-017 | T-HUB-023 | soft | Incident log может принимать `llm_fallback_used` events (если 017 уже в canon) |
 | T-HUB-019 | — | — | board descriptions — templates, не LLM; без пересечения |
 
@@ -67,7 +67,7 @@ flowchart TB
 | **Этот roadmap** | active |
 | **`.queue.yaml`** | machine canon для loop (после MERGE) |
 | plan-T-HUB-021 | PLAN done · next DECOMPOSE |
-| plan-T-HUB-022 | PLAN done · next после 021 (queue) или parallel |
+| plan-T-HUB-022 | PLAN done (rev transition contracts) · spike partial · next DECOMPOSE |
 | plan-T-HUB-023 | PLAN done · hard dep 021 |
 
 ---
@@ -75,10 +75,11 @@ flowchart TB
 ## 4. Do Not Touch (все эпики)
 
 - Epic loop orchestration (Claude Code / DSH) — не переносить в Python agents.
-- `epic_yaml.py` / `epic_shard_extra.py` shard schemas — уже Pydantic; не дублировать в 022 без need.
+- `epic_yaml.py` / `epic_shard_extra.py` shard schemas — уже Pydantic; 022 **uses** for QA FINISH validate, не дублирует implement/decompose models.
 - Parent-only front tests; §0.0 plan economy; ONE Handoff; `finalize-step` canon.
 - Не default-on LLM fallbacks на hot path (023).
-- Не заменять `extract_verdict` regex на LLM без env flag + happy-path unchanged.
+- Не заменять `extract_verdict` regex на LLM без env flag + happy-path unchanged (023).
+- **022 spike code** — IMPLEMENT extends, не revert без AUDIT.
 
 ---
 

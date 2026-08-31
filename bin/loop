@@ -18,4 +18,10 @@ fi
 export DEV_HUB="$HUB_ROOT"
 export HUB_ROOT
 export CLAUDE_PROJECT_DIR="$HUB_ROOT"
+
+if [[ "${1:-}" == "doctor" ]]; then
+  shift
+  exec python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT" doctor "$@"
+fi
+
 exec "$HUB_ROOT/loop/loop.sh" "$@"

@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-022
+title: s06 — BoardCardMetadata model + card_model integration IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s06-board-card-metadata.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создана модель BoardCardMetadata в loop/schemas/board.py
+- Добавлен export BoardCardMetadata в loop/schemas/__init__.py
+- Интегрирована модель BoardCardMetadata в loop/board_sync/card_model.py для валидации
+  YAML footer
+- Создан набор unit-тестов в loop/tests/test_schemas_board.py
+files:
+- loop/schemas/board.py
+- loop/schemas/__init__.py
+- loop/board_sync/card_model.py
+- loop/tests/test_schemas_board.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_board.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_card_model.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+integration_check:
+- '`loop/schemas/board.py` re-exported via `loop/schemas/__init__.py` and imported
+  by `loop/board_sync/card_model.py`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: BoardCardMetadata создан в loop/schemas/board.py
+  status: done
+  done_at: '2026-08-31T00:53:48Z'
+- id: cp2
+  criterion: card_model.py использует BoardCardMetadata
+  status: done
+  done_at: '2026-08-31T00:54:15Z'
+- id: cp3
+  criterion: test_schemas_board.py проходит
+  status: done
+  done_at: '2026-08-31T00:54:27Z'
+- id: cp4
+  criterion: 'Regression: board_sync тесты стабильны'
+  status: done
+  done_at: '2026-08-31T00:55:04Z'
+resume_from: cp1

@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s08
+title: "Lifecycle projection — incident/repair events в epic events.jsonl"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  repair_applied, incident_opened, incident_resolved events пишутся в memory-bank/**/events/<epic>/events.jsonl
+  через существующий build_event для lifecycle projection (US-006, SC-006).
+
+as_built:
+  - "epic_events.build_event существует в .claude/hooks/epic_events.py"
+  - "tier0/check_after не emit incident/repair events"
+delta:
+  - "ADD loop/incidents/events.py — emit_incident_opened, emit_incident_resolved, emit_repair_applied(cwd, epic_id, metadata) wrapping build_event + append to events.jsonl"
+  - "Wire call sites: s03 check_after open_incident → incident_opened; tier0 resolve → incident_resolved + repair_applied"
+  - "Event kinds: incident_opened, incident_resolved, repair_applied; metadata {repair_fn, diagnostic_code, incident_id}"
+  - "Skip emission when epic_id unknown (no events path)"
+  - "ADD loop/tests/test_incidents_events.py — tier0 repair → repair_applied in events.jsonl"
+  - "§0.11: grep build_event import path ↔ epic_events.py counterpart"
+deletes: []
+out_of_scope:
+  - "webhooks/Telegram (T-HUB-018, AC−2)"
+  - "product events outside epic scope"
+
+context:
+  consumes:
+    - "s02 tier0 resolve path"
+    - "s03 check_after open_incident"
+    - ".claude/hooks/epic_events.py build_event"
+    - "plan FR-010"
+  produces:
+    - "loop/incidents/events.py"
+    - "events in memory-bank/**/events/<epic>/events.jsonl"
+  plan_refs:
+    - "plan-T-HUB-017 FR-010"
+    - "plan-T-HUB-017 US-006"
+  files:
+    - "loop/incidents/events.py"
+    - "loop/incidents/tier0.py"
+    - "loop/context_loop.py"
+    - "loop/tests/test_incidents_events.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "tier0 repair completes → events.jsonl contains kind repair_applied with repair_fn + incident_id"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_events.py -k repair_applied -q --tb=line`"
+  - id: cp2
+    criterion: "open_incident → incident_opened event appended"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_events.py -k incident_opened -q --tb=line`"
+  - id: cp3
+    criterion: "resolve → incident_resolved event appended"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_events.py -k incident_resolved -q --tb=line`"
+  - id: cp4
+    criterion: "§0.11: build_event import resolves to epic_events.py"
+    verify: "`rg -n 'build_event' loop/incidents/events.py .claude/hooks/epic_events.py`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_events.py -q --tb=line`"
+
+tdd:
+  - "test_emit_repair_applied_appends_to_events_jsonl"
+  - "test_emit_incident_opened_metadata"
+  - "test_emit_incident_resolved_metadata"
+  - "test_skip_emission_when_epic_id_unknown"
+
+requirements_covered:
+  - FR-010
+  - "AC+ #8"
+  - SC-006
+  - US-006

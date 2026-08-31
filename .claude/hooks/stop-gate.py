@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+_HUB_ROOT = Path(__file__).resolve().parents[2]
+if _HUB_ROOT.is_dir() and str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
 from _lib import (
     product_cwd,  # noqa: E402
     FINISH_RE,
@@ -36,10 +39,13 @@ from epic import (  # noqa: E402
     index_yaml_path,
     load_epic_state,
     load_index_yaml,
+    project_handoff_from_reducer,
     read_active_context,
     validate_active_context_shape,
     validate_finish_integrity,
+    validate_qa_finish_handoff,
 )
+from loop.schemas.active_context import parse_frontmatter
 from epic_yaml import validate_decompose_tree  # noqa: E402
 
 
@@ -100,6 +106,14 @@ def _dsh_self_limit(cwd: str) -> tuple[int | None, str | None]:
     if value < DSH_SELF_LIMIT_MIN or value > DSH_SELF_LIMIT_MAX:
         return None, f"invalid DSH self-limit configuration from {source}: {raw!r}"
     return value, None
+
+
+def _is_handoff_strict(cwd: str) -> bool:
+    project = merged_project_env_map(cwd)
+    raw = os.environ.get("PROJECT_LOOP_HANDOFF_STRICT")
+    if raw is None:
+        raw = project.get("PROJECT_LOOP_HANDOFF_STRICT")
+    return str(raw or "").strip() in {"1", "true", "yes"}
 
 
 def _is_dsh_runtime(cwd: str) -> bool:
@@ -299,19 +313,23 @@ def main() -> None:
 
     if st.get("mode") == "qa" and finishing and st.get("reviewer_done"):
         ac = Path(cwd) / "memory-bank" / "activeContext.md" if cwd else None
-        handoff_ok = False
         if ac and ac.is_file():
             text = ac.read_text(encoding="utf-8", errors="replace")
-            handoff_ok = bool(
-                re.search(r"(?im)^##\s*Handoff\s+.*\bQA\b", text)
-            ) or bool(re.search(r"(?im)^##\s*Handoff\s+BACK QA\b", text))
-        if not handoff_ok:
+            qa_handoff_ok, qa_handoff_err = validate_qa_finish_handoff(cwd, text)
+            if not qa_handoff_ok:
+                if stop_hook_active:
+                    return
+                _block(
+                    f"spawn-gate: {qa_handoff_err}. "
+                    "pass → ## Handoff BACK REFLECT; blocked/fail → ## Handoff BACK BUGFIX."
+                )
+                return
+        else:
             if stop_hook_active:
                 return
             _block(
-                "spawn-gate: BACK QA FINISH без Handoff QA в memory-bank/activeContext.md. "
-                "Перепиши ## Handoff BACK QA … (pass→REFLECT; blocked→BUGFIX) + load_now, "
-                "затем остановись."
+                "spawn-gate: BACK QA FINISH без memory-bank/activeContext.md. "
+                "Перепиши Handoff (pass→REFLECT; blocked→BUGFIX) + load_now, затем остановись."
             )
             return
 
@@ -342,6 +360,25 @@ def main() -> None:
             "снова @verify до VERDICT: PASS."
         )
         return
+
+    if os.environ.get("EPIC_LOOP") == "1" and finishing and cwd:
+        ac = Path(cwd) / "memory-bank" / "activeContext.md"
+        if ac.is_file():
+            handoff = extract_handoff_block(
+                ac.read_text(encoding="utf-8", errors="replace")
+            ) or ""
+            if re.search(
+                r"(?i)(?:BACK|FRONT|INTEG)\s+ARCHIVE\s+NOW|`\s*BACK\s+ARCHIVE\s+NOW`",
+                handoff,
+            ):
+                if stop_hook_active:
+                    return
+                _block(
+                    "spawn-gate: ARCHIVE NOW запрещён в loop-сессии (EPIC_LOOP=1). "
+                    "ARCHIVE — только вручную вне loop после EPIC_DONE / stop runner. "
+                    "На FINISH: EPIC_DONE или Handoff → REFLECT/QA; не переносить артефакты в archive/."
+                )
+                return
 
     if not epic_on:
         return
@@ -422,13 +459,37 @@ def main() -> None:
                     + "; ".join(shard_errs[:12])
                 )
                 return
+        strict = _is_handoff_strict(cwd)
         shape_errs = validate_active_context_shape(read_active_context(cwd))
-        if shape_errs:
+        blocking_shape = [
+            code
+            for code in shape_errs
+            if code.startswith("handoff_frontmatter")
+            or (code == "missing_handoff_frontmatter" and strict)
+            or code in {"missing_load_now", "missing_handoff", "multiple_handoff"}
+        ]
+        if blocking_shape:
             if stop_hook_active:
                 return
             _block(
                 "epic-gate: activeContext shape FAIL — "
-                + "; ".join(shape_errs)
+                + "; ".join(blocking_shape)
+                + ". Preserve loop-handoff/v1 frontmatter from session start; "
+                "write full memory-bank/activeContext.md (load_now + Handoff)."
+            )
+            return
+        residual_shape = [
+            code
+            for code in shape_errs
+            if not code.startswith("handoff_frontmatter")
+            and code != "missing_handoff_frontmatter"
+        ]
+        if residual_shape:
+            if stop_hook_active:
+                return
+            _block(
+                "epic-gate: activeContext shape FAIL — "
+                + "; ".join(residual_shape)
                 + ". Write весь memory-bank/activeContext.md целиком: "
                 "## load_now → ровно 1× ## Handoff → ≤1× ## done. "
                 "FORBIDDEN: sandwich/append старых Handoff/done в хвосте."
@@ -439,6 +500,10 @@ def main() -> None:
             if stop_hook_active:
                 return
             _block(stale)
+            return
+
+        if not strict:
+            project_handoff_from_reducer(cwd)
             return
         st["epic_stop_blocks"] = 0
         save_state(session_id, cwd, st)

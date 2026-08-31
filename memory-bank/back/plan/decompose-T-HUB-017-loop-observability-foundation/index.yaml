@@ -1,0 +1,51 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-017-loop-observability-foundation
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-incident-schema-store.yaml
+  title: Видимые orchestration-инциденты — schema loop-incident/v1 + incidents.jsonl
+    store
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-registry-yaml-tier0.yaml
+  title: Авто-ремонт desync — registry.yaml + tier0 runner + 7 diagnostic codes
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-check-after-wire-tier0.yaml
+  title: Loop продолжается после Tier-0 — wire tier0 в check_after + repair_exhausted
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-session-trace-jsonl.yaml
+  title: Цепочка prepare→decide в trace — session-trace.jsonl + loop.sh hooks
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-metrics-rolling.yaml
+  title: Измеримый autopilot — metrics.json rolling counters + rates
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-status-incidents-metrics.yaml
+  title: loop status без секретов — incidents + metrics + trace_tail в payload
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-doctor-cli-preflight.yaml
+  title: Preflight перед автозапуском — loop doctor checklist + exit codes
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-event-emission-repair.yaml
+  title: Lifecycle projection — incident/repair events в epic events.jsonl
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-runbooks-docs-readme.yaml
+  title: Операционный контекст — runbooks per diagnostic_code + loop README §Observability
+  next_phase: BACK IMPLEMENT
+  status: completed

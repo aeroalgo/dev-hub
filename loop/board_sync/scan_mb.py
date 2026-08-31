@@ -24,6 +24,7 @@ class WorkItem:
     decompose_rel: str
     title: str
     workspace_ref: WorkspaceRef
+    shard_rel: str | None = None
 
 
 class ScanResult(list[WorkItem]):
@@ -116,6 +117,8 @@ def _parse_index(path: Path, workspace_ref: WorkspaceRef) -> list[WorkItem]:
         title = step.get("title", "")
         if not isinstance(title, str):
             raise TypeError("decompose index step title must be a string")
+        file_name = step.get("file")
+        shard_rel = f"{Path(decompose_rel).parent}/{file_name}" if isinstance(file_name, str) and file_name else None
         result.append(
             WorkItem(
                 role=role,
@@ -125,6 +128,7 @@ def _parse_index(path: Path, workspace_ref: WorkspaceRef) -> list[WorkItem]:
                 decompose_rel=decompose_rel,
                 title=title,
                 workspace_ref=workspace_ref,
+                shard_rel=shard_rel,
             )
         )
     return result

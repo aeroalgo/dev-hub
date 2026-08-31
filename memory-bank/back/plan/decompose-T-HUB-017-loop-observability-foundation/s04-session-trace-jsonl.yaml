@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s04
+title: "Цепочка prepare→decide в trace — session-trace.jsonl + loop.sh hooks"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Разработчик видит session-trace цепочку prepare→agent_start→check_after→tier0→decide
+  для диагностики N-кратных итераций на одном шаге (US-003, SC-005).
+  EPIC_INCIDENT_TRACE=0 отключает запись (FR-012).
+
+as_built:
+  - "session-trace.jsonl не существует"
+  - "loop.sh вызывает prepare, agent-session, record-session, check_after, decide — без trace hooks"
+delta:
+  - "ADD loop/incidents/trace.py — append_trace(epic_dir, entry: loop-session-trace/v1); fields: ts, session_id, step_id, epic_id, phase prepare|agent_start|check_after|tier0|decide, action, detail dict, decide nullable"
+  - "EDIT loop/loop.sh — вызовы append_trace на границах prepare / после check_after / после decide (через python -m или context_loop helper)"
+  - "EDIT loop/context_loop.py — trace hook внутри check_after/tier0 boundary если удобнее shell→python"
+  - "FR-012: env EPIC_INCIDENT_TRACE=0 → no-op writer (default on)"
+  - "ADD loop/tests/test_incidents_trace.py — append + tail read + disable env"
+deletes: []
+out_of_scope:
+  - "status trace_tail exposure (s06)"
+  - "metrics (s05)"
+
+context:
+  consumes:
+    - "s01 epic_dir path resolution pattern"
+    - "plan §Session trace entry shape"
+    - "plan FR-006 FR-012"
+  produces:
+    - "loop/incidents/trace.py"
+    - "runtime/<slug>/epic/session-trace.jsonl"
+  plan_refs:
+    - "plan-T-HUB-017 §Session trace entry shape"
+    - "plan-T-HUB-017 FR-006 FR-012"
+  files:
+    - "loop/incidents/trace.py"
+    - "loop/loop.sh"
+    - "loop/context_loop.py"
+    - "loop/tests/test_incidents_trace.py"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"  # EPIC_INCIDENT_TRACE
+    - ".agents/skills/python-observability/SKILL.md"  # session trace
+
+checkpoints:
+  - id: cp1
+    criterion: "append_trace пишет валидную loop-session-trace/v1 строку"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_trace.py -k append -q --tb=line`"
+  - id: cp2
+    criterion: "EPIC_INCIDENT_TRACE=0 → append_trace no-op, файл не растёт"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_trace.py -k disabled -q --tb=line`"
+  - id: cp3
+    criterion: "loop.sh integration smoke: одна итерация → session-trace.jsonl ≥ 3 entries с phases prepare|check_after|decide"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_trace.py -k loop_sh_smoke -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_trace.py -q --tb=line`"
+
+tdd:
+  - "test_trace_append_valid_schema"
+  - "test_trace_disabled_by_env"
+  - "test_trace_tail_last_n_entries"
+  - "test_loop_sh_writes_trace_per_iteration"
+
+requirements_covered:
+  - FR-006
+  - FR-012
+  - "AC+ #5 partial (append; tail in s06)"
+  - SC-005
+  - US-003

@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s03
+title: "Hard scope gate — scope.py + allowlist enforce + pretool hook wire"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Incident-сессия физически не может записать файлы вне allowlist (memory-bank/, activeContext.md,
+  реализуемый shard, index). Претул-guard отклоняет write/edit за пределами scope и логирует нарушение.
+  Это второй рубеж (первый — prompt scope block в s02).
+
+as_built:
+  - "нет механизма ограничения write в incident-сессии"
+  - "stop-gate.py и subagent-stop.py существуют в .claude/hooks/"
+  - "нет претул-хука специфичного для incident-сессий"
+delta:
+  - "ADD loop/incidents/scope.py — функция build_allowlist(incident: IncidentRecord, project_root: Path) -> list[str]: возвращает allowed absolute paths: memory-bank/activeContext.md, memory-bank/back/plan/decompose-<epic>/<shard>, memory-bank/back/implement/<epic>/<shard>, runtime/<slug>/epic/ для данного incident"
+  - "ADD loop/incidents/scope.py — функция check_path_allowed(path: str | Path, allowlist: list[str]) -> bool: exact match + prefix match; нормализует path"
+  - "ADD loop/incidents/scope.py — функция write_scope_file(allowlist: list[str], scope_path: Path): сериализует allowlist в JSON файл в runtime/<slug>/epic/tier1_scope.json для чтения претул-хуком"
+  - "ADD .claude/hooks/tier1-pretool-guard.py — претул-хук: читает tier1_scope.json если EPIC_INCIDENT_SESSION=1; если tool = Write/Edit/NotebookEdit — проверяет path против allowlist; OOB → log violation + exit 2 (block)"
+  - "EPIC_INCIDENT_SESSION=1 env var выставляется loop.sh при spawn tier1 сессии"
+  - "ADD loop/tests/test_incidents_scope.py — unit: path в allowlist → True; path вне → False; path traversal attempt → False; write_scope_file round-trip"
+  - "ADD loop/tests/test_tier1_pretool_guard.py — integration (subprocess): OOB path → exit 2; in-scope → exit 0"
+deletes: []
+out_of_scope:
+  - "loop.sh spawn (s04)"
+  - "verify после сессии (s05)"
+  - "alert (s06)"
+
+context:
+  consumes:
+    - "plan §FR-003: scope hard limit; §зафиксированные решения: Forbidden writes"
+    - "loop/incidents/schema.py (IncidentRecord)"
+    - ".claude/hooks/stop-gate.py (паттерн хука)"
+    - "loop/incidents/tier1_prompt.py (allowlist list из s02)"
+  produces:
+    - "loop/incidents/scope.py"
+    - ".claude/hooks/tier1-pretool-guard.py"
+    - "runtime/<slug>/epic/tier1_scope.json (runtime artifact)"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-003"
+    - "plan-T-HUB-018 §зафиксированные решения: Forbidden writes"
+  files:
+    - "loop/incidents/scope.py"
+    - ".claude/hooks/tier1-pretool-guard.py"
+    - "loop/tests/test_incidents_scope.py"
+    - "loop/tests/test_tier1_pretool_guard.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "check_path_allowed: in-scope path → True; out-of-scope → False; path traversal → False"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_scope.py -k path_allowed -q --tb=line`"
+  - id: cp2
+    criterion: "write_scope_file → tier1_scope.json readable, contains all allowlist paths"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_scope.py -k scope_file_roundtrip -q --tb=line`"
+  - id: cp3
+    criterion: "tier1-pretool-guard.py: EPIC_INCIDENT_SESSION=1 + OOB path → exit 2"
+    verify: "`.venv/bin/pytest loop/tests/test_tier1_pretool_guard.py -k oob_blocked -q --tb=line`"
+  - id: cp4
+    criterion: "tier1-pretool-guard.py: EPIC_INCIDENT_SESSION=1 + in-scope path → exit 0"
+    verify: "`.venv/bin/pytest loop/tests/test_tier1_pretool_guard.py -k in_scope_allowed -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_scope.py loop/tests/test_tier1_pretool_guard.py -q --tb=line`"
+
+tdd:
+  - "test_path_in_allowlist_returns_true"
+  - "test_path_out_of_scope_returns_false"
+  - "test_path_traversal_returns_false"
+  - "test_write_scope_file_roundtrip"
+  - "test_pretool_guard_blocks_oob_write"
+  - "test_pretool_guard_allows_in_scope_write"
+  - "test_pretool_guard_skips_when_no_incident_session_env"
+
+requirements_covered:
+  - FR-003
+  - "plan §зафиксированные решения: Forbidden writes hard limit"
+  - "AC+ #1: only orchestration artifacts modified"
+  - "AC− #4: product code / git OOB → blocked"

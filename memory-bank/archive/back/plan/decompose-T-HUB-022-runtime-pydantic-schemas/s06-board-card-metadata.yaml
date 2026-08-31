@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-022
+title: "BoardCardMetadata model + card_model integration"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/schemas/board.py` с `BoardCardMetadata(BaseModel)` — поля из
+  `loop/board_sync/card_model.py` StepCard/GateCard (dataclasses) + YAML footer metadata.
+  Интегрировать в `board_sync/card_model.py`: parse footer YAML через
+  `BoardCardMetadata.model_validate(yaml_data)` — ValidationError → sync error с field path.
+  US-003, FR-006.
+
+context:
+  consumes:
+    - "loop/board_sync/card_model.py — StepCard, GateCard, parse_card_metadata, footer YAML structure"
+    - "loop/board_sync/scan_mb.py — как используется card_model"
+    - "loop/board_sync/sync.py — upsert pipeline"
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md — board card fields (из s01)"
+    - "plan-T-HUB-022 §BoardCardMetadata, §mb-board-card/v1, US-003"
+  produces:
+    - "loop/schemas/board.py — BoardCardMetadata"
+    - "loop/schemas/__init__.py EDIT — re-export BoardCardMetadata"
+    - "loop/board_sync/card_model.py EDIT — parse via BoardCardMetadata"
+    - "loop/tests/test_schemas_board.py — invalid footer → sync error"
+  plan_refs:
+    - "plan-T-HUB-022 US-003 — board_sync validates footer YAML before upsert"
+    - "plan-T-HUB-022 AC+5 — board metadata parse raises clear error"
+    - "plan-T-HUB-022 FR-006 — BoardCardMetadata Pydantic"
+    - "plan-T-HUB-022 §mb-board-card/v1"
+  files:
+    - "loop/schemas/board.py"
+    - "loop/board_sync/card_model.py"
+    - "loop/tests/test_schemas_board.py"
+
+as_built:
+  - "StepCard, GateCard — Python dataclasses; нет Pydantic validation"
+  - "footer YAML parse — raw dict, missing fields silently ignored"
+  - "BoardCardMetadata — отсутствует"
+
+delta:
+  - "loop/schemas/board.py CREATE — BoardCardMetadata(BaseModel) с полями mb-board-card/v1"
+  - "loop/schemas/__init__.py EDIT — добавить BoardCardMetadata"
+  - "loop/board_sync/card_model.py EDIT — parse_card_metadata использует BoardCardMetadata.model_validate; ValidationError → sync error с field path"
+  - "loop/tests/test_schemas_board.py CREATE — invalid YAML footer → sync error; valid → passes"
+
+deletes: []
+
+out_of_scope:
+  - "Замена StepCard/GateCard dataclasses на Pydantic — может быть в s06 или defer (brownfield safety)"
+  - "board_sync HTTP уpsert изменения — только validation на parse"
+  - "dsh/plugins/mb-bridge/ — отдельный эпик"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "BoardCardMetadata создан в loop/schemas/board.py"
+    verify: "rg 'class BoardCardMetadata' loop/schemas/board.py"
+  - id: cp2
+    criterion: "card_model.py использует BoardCardMetadata"
+    verify: "rg 'BoardCardMetadata' loop/board_sync/card_model.py"
+  - id: cp3
+    criterion: "test_schemas_board.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_board.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: board_sync тесты стабильны"
+    verify: ".venv/bin/pytest loop/tests/test_board_sync_card_model.py -q --tb=line"
+
+verify: []
+
+tdd:
+  - "RED: test_board_card_invalid_footer → ValidationError с field path"
+  - "RED: test_board_card_valid → parse passes, fields accessible"
+  - "RED: test_board_card_missing_required → sync error raised before upsert"
+  - "GREEN: BoardCardMetadata + интеграция в card_model"

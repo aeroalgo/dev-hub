@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+step_id: s06
+title: "mb-bridge card-metadata.ts + board-filter footer YAML fix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  filterCards в mb-bridge корректно читает workspace_id из footer YAML вместо падения на JSON.parse.
+  Shared helper extractMetadata обрабатывает footer-delimiter и legacy JSON без исключений.
+
+as_built:
+  - "dsh/plugins/mb-bridge/src/board-filter.ts: parseMetadata вызывает JSON.parse(card.description) → исключение на YAML footer"
+  - "dsh/plugins/mb-bridge/src/card-metadata.ts — не существует"
+
+delta:
+  - "ADD dsh/plugins/mb-bridge/src/card-metadata.ts: FOOTER_DELIMITER = '\\n---\\nmb-board-card/v1\\n'; extractMetadata(description: string): Record<string, unknown>"
+  - "extractMetadata: split по FOOTER_DELIMITER; parse YAML-части (js-yaml); fallback JSON.parse legacy; fallback {} при ошибке — никогда не бросает"
+  - "EDIT dsh/plugins/mb-bridge/src/board-filter.ts: заменить внутренний parseMetadata → импорт extractMetadata из ./card-metadata"
+  - "EDIT dsh/README.md: добавить раздел о rebuild mb-bridge после TS-изменений (install-mb-bridge.sh)"
+
+deletes:
+  - "dsh/plugins/mb-bridge/src/board-filter.ts: удалить локальный parseMetadata (JSON.parse строка)"
+
+out_of_scope:
+  - "Python description format — s01"
+  - "HTTP move — s05"
+  - "E2E UI тесты mb-bridge — deferred"
+  - "Сборка bundle — parent запускает install-mb-bridge.sh после шага"
+
+context:
+  consumes:
+    - "dsh/plugins/mb-bridge/src/board-filter.ts — parseMetadata (JSON.parse)"
+    - "dsh/plugins/mb-bridge/src/index.ts — экспорты"
+    - "plan T-HUB-019 §mb-bridge filter, §Зафиксированные решения"
+  produces:
+    - "dsh/plugins/mb-bridge/src/card-metadata.ts (новый)"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts (изменён)"
+    - "dsh/README.md (дополнен)"
+  plan_refs:
+    - "plan-T-HUB-019 §Зафиксированные решения: mb-bridge filter"
+  files:
+    - "dsh/plugins/mb-bridge/src/card-metadata.ts"
+    - "dsh/plugins/mb-bridge/src/board-filter.ts"
+    - "dsh/README.md"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "card-metadata.ts создан; extractMetadata экспортируется"
+    verify: "`rg -n 'extractMetadata' dsh/plugins/mb-bridge/src/card-metadata.ts`"
+  - id: cp2
+    criterion: "board-filter.ts: JSON.parse(description) строка удалена; импортирует extractMetadata"
+    verify: "`rg 'JSON\\.parse' dsh/plugins/mb-bridge/src/board-filter.ts | wc -l` # → 0"
+  - id: cp3
+    criterion: "extractMetadata: fallback {} при ошибке — строка с fallback присутствует"
+    verify: "`rg -n 'catch\\|fallback\\|{}' dsh/plugins/mb-bridge/src/card-metadata.ts | head -5`"
+  - id: cp4
+    criterion: "dsh/README.md содержит описание rebuild процедуры"
+    verify: "`rg -n 'install-mb-bridge\\|mb-bridge rebuild' dsh/README.md`"
+
+verify:
+  - "`rg 'JSON\\.parse' dsh/plugins/mb-bridge/src/board-filter.ts | wc -l`"
+  - "`rg -n 'extractMetadata' dsh/plugins/mb-bridge/src/`"
+
+tdd:
+  - "Статические rg-проверки (cp1–cp4) — виtest runner недоступен в этом проекте"
+
+requirements_covered:
+  - "FR-008"

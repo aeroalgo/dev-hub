@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s06
+title: "Escalation + alert — alert.py + NEED_HUMAN file + webhook loop-alert/v1"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  При repair_exhausted (tier1 max failed или tier1 disabled + tier0 failed) loop:
+  1. Записывает NEED_HUMAN flag file в runtime/<slug>/epic/NEED_HUMAN
+  2. Выводит stderr banner с incident_id и ссылкой на runbook
+  3. Опционально: POST JSON loop-alert/v1 на EPIC_ALERT_WEBHOOK_URL (fail-closed если 4xx/5xx)
+  Payload не содержит secrets; incident escalated в store.
+
+as_built:
+  - "loop.sh пишет NEED_HUMAN при stop-gate через epic_resolve.py"
+  - "нет специализированного incident-alert пути"
+  - "нет webhook механизма"
+delta:
+  - "ADD loop/incidents/alert.py — функция escalate_incident(incident: IncidentRecord, epic_dir: Path, project_root: Path): (1) resolve_incident(store, 'escalated', tier='escalation'); (2) write_need_human_file(epic_dir, incident); (3) print_stderr_banner(incident); (4) post_webhook(incident) if EPIC_ALERT_WEBHOOK_URL"
+  - "ADD loop/incidents/alert.py — функция write_need_human_file(epic_dir, incident): пишет runtime/<slug>/epic/NEED_HUMAN с содержимым NEED_HUMAN: incident_<code> + incident_id + runbook_rel"
+  - "ADD loop/incidents/alert.py — функция post_webhook(incident, url): POST loop-alert/v1 JSON: {schema, incident_id, diagnostic_codes, epic_id, step_id, project_root, timestamp}; timeout=5s; не включает secrets (env vars, tokens); fail-closed (log error, не падать)"
+  - "ADD loop/incidents/alert.py — функция print_stderr_banner(incident): stderr multi-line banner с NEED_HUMAN marker + runbook path"
+  - "loop-alert/v1 schema зафиксирована в loop/incidents/alert_schema.py (dataclass)"
+  - "MODIFY loop/incidents/tier1_runner.py — при repair_exhausted: вызывать escalate_incident"
+  - "ADD loop/tests/test_incidents_alert.py — unit: write_need_human_file создаёт файл; post_webhook с mock httpx/urllib; fail-closed при webhook 500; banner на stderr; payload без secrets"
+deletes: []
+out_of_scope:
+  - "board failed-status (soft 015, в s09)"
+  - "CLI retry (s07)"
+  - "metrics emission tier1_escalated (s08)"
+
+context:
+  consumes:
+    - "plan §FR-007: Alert payload schema loop-alert/v1; fail-closed webhook"
+    - "plan §FR-008: NEED_HUMAN flag file + stderr banner"
+    - "plan §Alert channels: Primary write NEED_HUMAN; Optional EPIC_ALERT_WEBHOOK_URL"
+    - "loop/incidents/store.py (resolve_incident из 017)"
+    - "loop/incidents/tier1_runner.py (из s04)"
+  produces:
+    - "loop/incidents/alert.py"
+    - "loop/incidents/alert_schema.py"
+    - "loop/incidents/tier1_runner.py (modified)"
+    - "runtime/<slug>/epic/NEED_HUMAN (runtime artifact)"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-007 §FR-008"
+    - "plan-T-HUB-018 §Alert channels"
+    - "plan-T-HUB-018 §Failure path"
+  files:
+    - "loop/incidents/alert.py"
+    - "loop/incidents/alert_schema.py"
+    - "loop/incidents/tier1_runner.py"
+    - "loop/tests/test_incidents_alert.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "write_need_human_file создаёт файл runtime/<slug>/epic/NEED_HUMAN с корректным содержимым"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_alert.py -k need_human_file -q --tb=line`"
+  - id: cp2
+    criterion: "post_webhook с mock → отправляет loop-alert/v1 JSON без secrets"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_alert.py -k webhook_no_secrets -q --tb=line`"
+  - id: cp3
+    criterion: "post_webhook: 500 ответ → log error, не exception (fail-closed)"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_alert.py -k webhook_fail_closed -q --tb=line`"
+  - id: cp4
+    criterion: "escalate_incident: incident статус в store → escalated"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_alert.py -k escalate_status_in_store -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_alert.py -q --tb=line`"
+
+tdd:
+  - "test_write_need_human_file_content"
+  - "test_post_webhook_payload_no_secrets"
+  - "test_webhook_500_fail_closed"
+  - "test_webhook_no_url_no_call"
+  - "test_escalate_sets_store_status_escalated"
+  - "test_stderr_banner_contains_incident_id"
+
+requirements_covered:
+  - FR-007
+  - FR-008
+  - "US-003 (webhook alert на эскалацию)"
+  - "AC+ #2: escalation → NEED_HUMAN + alert"
+  - "AC− #7: payload without secrets"
+  - "plan §Failure path: escalate_incident → NEED_HUMAN file"

@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s11
+plan_id: T-HUB-022
+title: s11 — index yaml-only writes; md mirror runner-only; agent prompt touch IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s11-index-yaml-only.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added _warn_agent_md_write guard to set_step_status_in_doc in epic_index.py
+- Updated spawn-hard.md instruction for index.yaml-only status updates
+- Added test_index_yaml_only.py to verify yaml-only updates and md mirroring
+files:
+- .claude/hooks/epic_index.py
+- .claude/instructions/spawn-hard.md
+- loop/tests/test_index_yaml_only.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_index_yaml_only.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_index_fail_closed.py -q --tb=line
+  -x`'
+integration_check:
+- .claude/hooks/epic_index.py ↔ .claude/instructions/spawn-hard.md ↔ loop/tests/test_index_yaml_only.py
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: epic_index.py содержит guard/warning на direct md-write
+  status: done
+  done_at: '2026-08-31T01:33:09Z'
+- id: cp2
+  criterion: spawn-hard.md упоминает index.yaml-only
+  status: done
+  done_at: '2026-08-31T01:33:14Z'
+- id: cp3
+  criterion: test_index_yaml_only.py проходит
+  status: done
+  done_at: '2026-08-31T01:33:19Z'
+- id: cp4
+  criterion: 'Regression: index fail-closed тесты стабильны'
+  status: done
+  done_at: '2026-08-31T01:33:24Z'
+resume_from: cp1

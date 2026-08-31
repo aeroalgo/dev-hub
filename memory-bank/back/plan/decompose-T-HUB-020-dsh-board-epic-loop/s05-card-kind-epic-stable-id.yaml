@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-020-dsh-board-epic-loop
+step_id: s05
+title: "card_kind epic + stable_id + EpicCard metadata"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Новый тип карточки `card_kind: epic` в card_model.py.
+  EpicCard dataclass с полями: epic_id, role, next_command, next_step_id, progress_summary, roadmap_rank.
+  stable_id для epic карточки: `mb-{ws}-{role}-{epic_id}-epic`.
+  Serialization/deserialization через serialize_metadata / parse_metadata.
+  Title builder: `[BACK] T-HUB-016 — next: BACK IMPLEMENT s12 (1 pending)`.
+
+as_built:
+  - "loop/board_sync/card_model.py: CardKind.STEP и CardKind.GATE только"
+  - "stable_id: поддерживает step/gate; нет epic вариант"
+  - "Нет EpicCard dataclass"
+  - "serialize_metadata: обрабатывает StepCard и GateCard; нет EpicCard"
+
+delta:
+  - "EDIT loop/board_sync/card_model.py: ADD CardKind.EPIC = 'epic'"
+  - "ADD EpicCard dataclass: project_root, workspace_id, role, epic_id, next_command, next_step_id, progress_summary, roadmap_rank, sync_generation"
+  - "ADD EpicCard.card_kind property → CardKind.EPIC"
+  - "EDIT stable_id: ADD epic branch → 'mb-{ws}-{role}-{epic_id}-epic' (без hash fallback — id стабилен)"
+  - "EDIT serialize_metadata: ADD EpicCard branch → YAML footer"
+  - "EDIT parse_metadata: ADD CardKind.EPIC → EpicCard construction"
+  - "ADD epic_card_title(card: EpicCard) -> str → '[{ROLE}] {epic_id} — next: {next_command} {step_summary}'"
+  - "ADD pending_count(index_yaml: dict) -> int — helper для progress_summary"
+
+deletes: []
+
+out_of_scope:
+  - "scan_epics / sync (s06)"
+  - "board column mapping (s06)"
+  - "mb-bridge TS (s08)"
+
+context:
+  consumes:
+    - "loop/board_sync/card_model.py — CardKind, stable_id, serialize_metadata, parse_metadata"
+    - "plan-T-HUB-020 §Board granularity: card_kind epic, stable_id format, title format"
+    - "plan-T-HUB-020 §Зафиксированные решения: Одна карточка на epic"
+  produces:
+    - "loop/board_sync/card_model.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-020 §Зафиксированные решения: Board granularity (card_kind: epic)"
+    - "plan-T-HUB-020 §Зафиксированные решения: Одна карточка на epic"
+    - "plan-T-HUB-020 US-004 (1 epic card, 0 step cards)"
+  files:
+    - "loop/board_sync/card_model.py"
+    - "loop/tests/test_board_sync_card_model.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "EpicCard serialize → parse round-trip: все поля сохраняются"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k epic_card -q --tb=line`"
+  - id: cp2
+    criterion: "stable_id epic: возвращает 'mb-{ws}-{role}-{epic_id}-epic', уникален"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k stable_id_epic -q --tb=line`"
+  - id: cp3
+    criterion: "epic_card_title форматирует '[BACK] T-HUB-016 — next: BACK IMPLEMENT s12 (2 pending)'"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k epic_card_title -q --tb=line`"
+  - id: cp4
+    criterion: "parse_metadata с card_kind=epic возвращает EpicCard, а не StepCard/GateCard"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k parse_metadata_epic -q --tb=line`"
+  - id: cp5
+    criterion: "Существующие StepCard / GateCard тесты зелёные — нет регрессии"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -q --tb=line`"
+
+tdd:
+  - "test_epic_card_serialize_metadata_includes_card_kind_epic"
+  - "test_epic_card_round_trip_all_fields"
+  - "test_stable_id_epic_format"
+  - "test_stable_id_epic_unique_across_roles"
+  - "test_epic_card_title_with_step_pending"
+  - "test_epic_card_title_no_pending_steps"
+  - "test_parse_metadata_epic_returns_epic_card"
+  - "test_pending_count_helper_from_index_yaml"
+
+requirements_covered:
+  - "US-004 (1 epic card model)"
+  - "FR-card-kind-epic"
+  - "FR-stable-id-epic"
+  - "NFR-legacy-parse-compat (StepCard/GateCard не сломаны)"

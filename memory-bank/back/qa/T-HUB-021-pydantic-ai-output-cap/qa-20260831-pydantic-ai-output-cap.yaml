@@ -1,0 +1,18 @@
+schema: epic-qa/v1
+epic_id: T-HUB-021-pydantic-ai-output-cap
+date: 2026-08-31
+verdict: pass
+suite_summary:
+  hooks_tests: 18 passed
+  loop_tests: 954 passed, 1 skipped
+ac_results:
+  AC-001: pass
+  AC-002: pass
+  AC-003: pass
+  AC-004: pass
+  AC-005: pass
+  AC-006: pass
+  AC-007: pass
+  AC-008: pass
+notes:
+  - "BACK QA пройден успешно. VERDICT: PASS."

@@ -1,0 +1,55 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-018-loop-incident-autopilot
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-tier1-eligibility-yaml.yaml
+  title: Whitelist + classifier — tier1-eligibility.yaml + is_tier1_eligible()
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-tier1-prompt-template.yaml
+  title: Prompt + runbook injection — tier1_prompt.py + runbook context loader
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-scope-pretool-guard.yaml
+  title: Hard scope gate — scope.py + allowlist enforce + pretool hook wire
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-loop-sh-incident-branch.yaml
+  title: loop.sh tier1 branch — spawn session + re-check_after + decide
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-tier1-verify-orchestration.yaml
+  title: Post-tier1 verify AC slice — orchestration invariants, не product tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-alert-webhook-need-human.yaml
+  title: Escalation + alert — alert.py + NEED_HUMAN file + webhook loop-alert/v1
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-cli-incident-retry-status.yaml
+  title: CLI subcommands — incident-retry + incident-status в context_loop.py
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-metrics-events-tier1.yaml
+  title: Tier1 metrics + events — tier1_attempts/resolved/escalated + event emission
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-docs-workflow-board-soft.yaml
+  title: Docs + optional 015 stub — WORKFLOW.md + board soft hook + runbook update
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s10
+  file: s10-regression-suite-polish.yaml
+  title: Regression suite — full tier1 fixtures + integration end-to-end
+  next_phase: BACK IMPLEMENT
+  status: completed

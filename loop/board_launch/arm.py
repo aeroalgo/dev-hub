@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from loop.context_loop import arm_session
+from loop.context_loop import arm_epic, arm_session
 
 from loop.board_sync.card_model import CardKind
 
@@ -62,7 +62,12 @@ def arm_from_card(
         raise ValueError("launch card is missing an arm target")
 
     project_root = Path(cwd_override) if cwd_override is not None else Path(launch_card.project_root)
-    armed = arm_session(project_root, target)
+    if launch_card.card_kind is CardKind.EPIC:
+        epic_id = str(launch_card.raw.get("epic_id") or "")
+        role = str(launch_card.raw.get("role") or "back")
+        armed = arm_epic(project_root, epic_id, role=role)
+    else:
+        armed = arm_session(project_root, target)
     if not armed.get("ok"):
         error = armed.get("error") or armed.get("reason") or "arm failed"
         raise RuntimeError(str(error))
@@ -73,7 +78,7 @@ def arm_from_card(
         raise StepMismatchError(
             f"armed step {step_id!r} does not match card step {launch_card.step_id!r}"
         )
-    if not step_id or not armed_epic:
+    if launch_card.card_kind is not CardKind.EPIC and (not step_id or not armed_epic):
         raise RuntimeError("arm response is missing step_id or epic_id")
 
     return ArmResult(step_id=step_id, armed_epic=armed_epic, ok=True)

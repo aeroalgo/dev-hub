@@ -1,0 +1,143 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-020-dsh-board-epic-loop
+plan_id: T-HUB-020-dsh-board-epic-loop
+date: 2026-08-31
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 9
+  implemented: 9
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_inventory:
+  - source_ref: US-001
+    intent: "plan-next/v1 после PLAN FINISH"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: US-002
+    intent: "resolver → DECOMPOSE"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: US-003
+    intent: "Run → arm_epic → нет step_mismatch"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: US-004
+    intent: "12 pending → 1 epic card"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: US-005
+    intent: "roadmap #1 → running"
+    step_id: s06
+    assessment: satisfied
+  - source_ref: US-006
+    intent: "CLARIFY/ANALYZE arm до decompose"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: US-007
+    intent: "override plan-next/v1 respected"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: US-008
+    intent: "IMPLEMENT → next sNN"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-resolver-single-source
+    intent: "Single source of truth resolver for epic next action"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: FR-arm-epic-entrypoint
+    intent: "arm_epic orchestrator entrypoint"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: FR-arm-pre-implement-context
+    intent: "arm_pre_implement_context for early phases"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: FR-card-kind-epic
+    intent: "card_kind epic support in EpicCard model"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: FR-stable-id-epic
+    intent: "stable_id support for epic cards"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: FR-scan-epics
+    intent: "scan_epics scanner for epic cards"
+    step_id: s06
+    assessment: satisfied
+  - source_ref: FR-sunset-step-cards
+    intent: "sync sunset step cards logic"
+    step_id: s06
+    assessment: satisfied
+  - source_ref: FR-board-column-roadmap-rank
+    intent: "roadmap rank column mapping"
+    step_id: s06
+    assessment: satisfied
+  - source_ref: FR-loop-cli-epic-id
+    intent: "loop.sh --epic-id CLI parameter"
+    step_id: s07
+    assessment: satisfied
+  - source_ref: FR-board-launch-epic-card-arm
+    intent: "board_launch arm_epic support"
+    step_id: s07
+    assessment: satisfied
+  - source_ref: FR-mb-bridge-epic-card-metadata
+    intent: "mb-bridge TypeScript epic card metadata"
+    step_id: s08
+    assessment: satisfied
+  - source_ref: FR-board-filter-epic-run
+    intent: "mb-bridge board-filter epic Run handling"
+    step_id: s08
+    assessment: satisfied
+  - source_ref: FR-regression-suite
+    intent: "Integration regression test suite"
+    step_id: s09
+    assessment: satisfied
+  - source_ref: FR-docs-workflow-epic
+    intent: "README/WORKFLOW documentation for epic board loop"
+    step_id: s09
+    assessment: satisfied
+
+step_inventory:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s01-plan-next-parse-write.yaml
+    status: satisfied
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s02-epic-next-action-resolver.yaml
+    status: satisfied
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s03-resolver-post-implement-override.yaml
+    status: satisfied
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s04-arm-pre-implement-orchestrator.yaml
+    status: satisfied
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s05-card-kind-epic-stable-id.yaml
+    status: satisfied
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s06-scan-epics-sunset-step-cards.yaml
+    status: satisfied
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s07-board-launch-loop-cli.yaml
+    status: satisfied
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s08-mb-bridge-epic-run-roadmap-column.yaml
+    status: satisfied
+  - step_id: s09
+    implement_file: memory-bank/back/implement/implement-T-HUB-020-dsh-board-epic-loop/s09-integration-tests-docs.yaml
+    status: satisfied
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все 9 шагов реализации T-HUB-020-dsh-board-epic-loop полностью выполнены и покрывают установленные требования (US-001..US-008, FR-001..FR-012, NFR-001..NFR-004)."
+  - "Матрица not_implemented[] пуста. Следующий режим: BACK QA."

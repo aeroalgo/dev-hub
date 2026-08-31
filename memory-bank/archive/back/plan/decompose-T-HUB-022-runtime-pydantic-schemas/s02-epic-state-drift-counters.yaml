@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-022
+title: "EpicState + DriftCounters Pydantic model + golden fixtures"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/schemas/state.py` с двумя моделями:
+  - `DriftCounters(BaseModel)` — поля: handoff_projected, index_mirror_repair,
+    fingerprint_stall_repair, gate_verdict_regex_fallback, schema_invalid; все int default=0.
+  - `EpicState(BaseModel)` — все поля из `default_state()` + вложенный `drift_counters: DriftCounters`;
+    schema_version: Literal["loop-state/v2"]; model_config extra="allow" (backward compat).
+  Написать golden-fixture test: `loop/tests/test_schemas_state.py` — round-trip EpicState
+  через `.model_dump()`→ `EpicState(**data)`, corrupt-field → ValidationError caught, safe defaults.
+  US-001, US-004, FR-001, FR-003.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py:default_state() — полный набор ключей текущего state"
+    - ".claude/hooks/epic/core.py:save_epic_state() — runtime/dag/gate_snapshot/diagnostic_codes"
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md — итог s01 (инвентарь)"
+    - "loop/schemas/__init__.py — re-export pattern"
+    - "plan-T-HUB-022 §DriftCounters, §EpicState/DriftCounters, §loop-state/v2"
+  produces:
+    - "loop/schemas/state.py — EpicState, DriftCounters"
+    - "loop/tests/test_schemas_state.py — golden fixtures"
+  plan_refs:
+    - "plan-T-HUB-022 US-001 — state_schema_invalid diagnostic"
+    - "plan-T-HUB-022 US-004 — state_schema_version on write"
+    - "plan-T-HUB-022 FR-001 — EpicState Pydantic"
+    - "plan-T-HUB-022 FR-003 — DriftCounters"
+    - "plan-T-HUB-022 §loop-state/v2"
+  files:
+    - "loop/schemas/state.py"
+    - "loop/tests/test_schemas_state.py"
+
+as_built:
+  - "loop/schemas/ — только handoff.py, gate_verdict.py, active_context.py; state.py отсутствует"
+  - "DriftCounters — нет нигде; counters не сохраняются"
+  - "EpicState — нет; default_state() возвращает plain dict"
+
+delta:
+  - "loop/schemas/state.py CREATE — DriftCounters, EpicState с schema_version=loop-state/v2"
+  - "loop/schemas/__init__.py EDIT — добавить re-export EpicState, DriftCounters"
+  - "loop/tests/test_schemas_state.py CREATE — golden-fixture: round-trip + corrupt-field safe default"
+
+deletes: []
+
+out_of_scope:
+  - "Правка epic/core.py (load/save) — s03"
+  - "CheckpointRecord — s04"
+  - "Migrate существующего state.json — s03 (validate-on-read + coerce)"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/schemas/state.py существует, содержит DriftCounters и EpicState"
+    verify: "rg 'class DriftCounters|class EpicState' loop/schemas/state.py"
+  - id: cp2
+    criterion: "EpicState содержит drift_counters поле и schema_version Literal"
+    verify: "rg 'drift_counters|schema_version.*loop-state' loop/schemas/state.py"
+  - id: cp3
+    criterion: "test_schemas_state.py проходит: round-trip + corrupt-field"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_state.py -q --tb=short"
+
+verify: []
+
+tdd:
+  - "RED: test_epic_state_round_trip — создать EpicState из dict → model_dump → re-parse без ValidationError"
+  - "RED: test_drift_counters_defaults — все поля DriftCounters = 0 при пустом конструкторе"
+  - "RED: test_epic_state_corrupt_field_caught — неправильный тип active → ValidationError (не silent)"
+  - "GREEN: написать EpicState + DriftCounters → тесты зелёные"

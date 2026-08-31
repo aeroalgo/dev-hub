@@ -44,10 +44,12 @@ from agent_policy import AgentContext, resolve_agent_policy  # noqa: E402
 from agent_registry import discover_registry  # noqa: E402
 from epic import (  # noqa: E402
     arm_active_context_from_decompose,
+    arm_epic,
     checkpoint_lifecycle,
     checkpoint_resume,
     clear_reserved_role_arm,
     clear_runner_checkpoint,
+    complete_archived_armed_epic,
     epic_complete_allowed,
     extract_handoff_block,
     extract_load_now,
@@ -226,6 +228,21 @@ def handoff_indicates_epic_finished(text: str) -> bool:
     heading = handoff.splitlines()[0] if handoff.splitlines() else ""
     # Only ARCHIVE NOW heading — not REFLECT template line «ARCHIVE: вручную после EPIC_DONE».
     return bool(re.search(r"(?i)\bARCHIVE\s+NOW\b", heading))
+
+
+def handoff_indicates_epic_archived(text: str) -> bool:
+    """True when Handoff reports ARCHIVE NOW completed (body or heading)."""
+    handoff = extract_handoff_block(text) or ""
+    if not handoff:
+        return False
+    if re.search(
+        r"(?i)(?:BACK|FRONT|INTEG)\s+ARCHIVE\s+NOW|ARCHIVE\s+NOW\s+(?:completed|заверш)",
+        handoff,
+    ):
+        return True
+    if re.search(r"(?i)ЗАВЕРШЕНА\s+И\s+АРХИВИРОВАНА", handoff):
+        return True
+    return False
 
 
 def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
@@ -1464,6 +1481,10 @@ def check_after(
 
     text = read_active_context(cwd_p)
 
+    archived_done = complete_archived_armed_epic(cwd_p)
+    if archived_done is not None:
+        return archived_done
+
     stop = detect_stop_marker(text)
     if not stop and handoff_indicates_epic_finished(text):
         stop = "EPIC_DONE"
@@ -1496,6 +1517,9 @@ def check_after(
         if stop == "EPIC_DONE":
             gate = epic_complete_allowed(cwd_p)
             if not gate.get("allowed"):
+                archived_fallback = complete_archived_armed_epic(cwd_p)
+                if archived_fallback is not None:
+                    return archived_fallback
                 return {
                     "ok": False,
                     "complete": False,
@@ -1532,6 +1556,9 @@ def check_after(
             require_verify_pass=True,
         )
         if not finish_integrity["ok"]:
+            archived_fallback = complete_archived_armed_epic(cwd_p)
+            if archived_fallback is not None:
+                return archived_fallback
             return {
                 "ok": False,
                 "halt": True,

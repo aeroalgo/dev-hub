@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s13
+plan_id: T-HUB-022
+title: "Integration tests + full loop suite (pytest -q)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Собрать интеграционный тест-файл `loop/tests/test_t022_integration.py` — end-to-end сценарии
+  из US-001…US-009 через реальные файлы (tmp_path), без моков:
+  - US-001: corrupt state.json → load_epic_state → state_schema_invalid diagnostic
+  - US-002: invalid cp field → validate_checkpoint returns error code
+  - US-003: invalid board card → sync error with field path
+  - US-004: save_epic_state → file contains state_schema_version loop-state/v2
+  - US-005: stale Handoff BUGFIX + qa pass → project_handoff_from_reducer → mode REFLECT
+  - US-006: sidecar PASS + transcript FAIL → extract_verdict(cwd=) returns PASS
+  - US-007: STRICT=1 + legacy AC → finalize blocked
+  - US-008: repair_index_mirror call → drift_counters.index_mirror_repair +1 in state
+  - US-009: mark_index_step_status → yaml updated; md not touched directly
+  Прогнать полный loop suite: `pytest loop/tests/ -q --tb=line` — все зелёные.
+
+context:
+  consumes:
+    - "Все предыдущие шаги s01–s12 (все модели и wire)"
+    - "loop/tests/ — существующие тесты как regression baseline"
+    - "plan-T-HUB-022 §Acceptance Scenarios US-001…US-009"
+  produces:
+    - "loop/tests/test_t022_integration.py — 9+ integration scenarios"
+  plan_refs:
+    - "plan-T-HUB-022 US-001…US-009 — все acceptance scenarios"
+    - "plan-T-HUB-022 §Integration tests"
+  files:
+    - "loop/tests/test_t022_integration.py"
+
+as_built:
+  - "loop/tests/ — 50+ unit-тестов по отдельным модулям; нет сквозного T-HUB-022 integration теста"
+  - "test_handoff_projection.py — покрывает US-005/006 частично"
+
+delta:
+  - "loop/tests/test_t022_integration.py CREATE — 9 integration scenarios (US-001..US-009)"
+
+deletes: []
+
+out_of_scope:
+  - "Новые production-изменения в этом шаге — только тесты"
+  - "Playwright / frontend — out of scope"
+  - "Правка существующих тестов — только если regression fix"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "test_t022_integration.py содержит ≥9 тест-функций (по US)"
+    verify: "rg 'def test_us' loop/tests/test_t022_integration.py | wc -l"
+  - id: cp2
+    criterion: "integration тест-файл проходит"
+    verify: ".venv/bin/pytest loop/tests/test_t022_integration.py -q --tb=short"
+  - id: cp3
+    criterion: "Полный loop suite зелёный"
+    verify: "timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line 2>&1 | tail -5"
+
+verify: []
+
+tdd:
+  - "9 RED integration тестов по US-001..US-009 с tmp_path fixtures"
+  - "GREEN: все предыдущие шаги реализованы → тесты зелёные без новых production изменений"

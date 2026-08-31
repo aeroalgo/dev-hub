@@ -1,0 +1,85 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-022-runtime-pydantic-schemas
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-inventory-fields.yaml
+  title: Inventory all state/checkpoint/event/handoff/gate fields from code + tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-epic-state-drift-counters.yaml
+  title: EpicState + DriftCounters Pydantic model + golden fixtures
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-wire-state-io.yaml
+  title: Wire load_epic_state / save_epic_state + drift counter increment helper
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-checkpoint-record.yaml
+  title: CheckpointRecord Pydantic model + validate_checkpoint typed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-loop-event.yaml
+  title: LoopEvent model + epic_events typed append
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-board-card-metadata.yaml
+  title: BoardCardMetadata model + card_model integration
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-handoff-frontmatter-consolidate.yaml
+  title: Consolidate HandoffFrontmatter spike — tests + schemas/README
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-gate-verdict-strict.yaml
+  title: Consolidate GateVerdictRecord + store strict validate
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-handoff-strict-flag.yaml
+  title: PROJECT_LOOP_HANDOFF_STRICT + stop-gate FINISH gate + project.env
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s10
+  file: s10-qa-finish-handoff.yaml
+  title: validate_qa_finish_handoff via frontmatter mode + epic_yaml verdict
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s11
+  file: s11-index-yaml-only.yaml
+  title: index yaml-only writes; md mirror runner-only; agent prompt touch
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s12
+  file: s12-repair-counters.yaml
+  title: PROJECT_LOOP_REPAIR_LEGACY — wire drift counters on all repair_* paths
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s13
+  file: s13-integration-tests.yaml
+  title: Integration tests + full loop suite (pytest -q)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s14
+  file: s14-readme-drift-display.yaml
+  title: README + §0.11 integration grep + loop status drift display
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s15
+  file: s15-audit-repair-purge.yaml
+  title: 'AUDIT: repair_* caller purge / regex fallback metrics near zero'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s16
+  file: s16-legacy-purge.yaml
+  title: Legacy dict-validation + repair auto-rewrite purge (final sunset)
+  next_phase: BACK IMPLEMENT
+  status: completed

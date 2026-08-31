@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Observability — llm_fallback_used drift counter + status exposure
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить счётчик llm_fallback_used в DriftCounters (022) и инкрементировать при успешном
+  применении LLM fallback в handoff/verdict/abort paths; отобразить в loop status/diagnostics
+  для аудиторов (US-004, AC+5, plan §Metrics).
+
+context:
+  consumes:
+    - "s04, s05, s06 — successful fallback apply points"
+    - "loop/schemas/state.py — DriftCounters"
+    - ".claude/hooks/epic/core.py — increment_drift_counter"
+    - "loop/context_loop.py — status/drift display (022 s14 pattern)"
+  produces:
+    - "loop/schemas/state.py — DriftCounters.llm_fallback_used field"
+    - "Wire increment_drift_counter(cwd, 'llm_fallback_used') on successful apply in s04/s05/s06"
+    - "Status exposure in drift display if applicable"
+  plan_refs:
+    - "plan-T-HUB-023 US-004"
+    - "plan-T-HUB-023 AC+ #5"
+    - "plan-T-HUB-023 §Metrics"
+    - "roadmap-pydantic-reliability — T-HUB-022 soft dep"
+  files:
+    - "loop/schemas/state.py"
+    - ".claude/hooks/epic/core.py"
+    - ".claude/hooks/_lib.py"
+    - ".claude/hooks/session_resilience.py"
+    - "loop/tests/test_hooks_llm_counter.py"
+    - "loop/tests/test_schemas_state.py"
+
+as_built:
+  - "DriftCounters — handoff_projected, index_mirror_repair, fingerprint_stall_repair, gate_verdict_regex_fallback, schema_invalid"
+  - "llm_fallback_used — отсутствует"
+
+delta:
+  - "DriftCounters ADD llm_fallback_used: int = 0"
+  - "s04: after successful LLM handoff apply → increment_drift_counter(cwd, 'llm_fallback_used') when cwd available"
+  - "s05: after LLM verdict applied → increment (pass cwd through extract_verdict if needed)"
+  - "s06: after LLM abort reclassify applied → increment if cwd in analyze_session_log chain"
+  - "Update test_schemas_state golden for new field default 0"
+  - "Expose in _state_diagnostics or loop status output if drift_counters already displayed"
+
+deletes: []
+
+out_of_scope:
+  - "T-HUB-017 incident events for llm_fallback — follow-up if 017 canon extended"
+  - "Full README drift section — s09"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md  # S11 DriftCounters field typing
+    - .agents/skills/python-observability/SKILL.md  # S09 counter exposure in status/diagnostics
+
+checkpoints:
+  - id: cp1
+    criterion: "llm_fallback_used в DriftCounters"
+    verify: "rg 'llm_fallback_used' loop/schemas/state.py"
+  - id: cp2
+    criterion: "increment_drift_counter вызывается из verdict wire path"
+    verify: "rg \"increment_drift_counter.*llm_fallback_used\" .claude/hooks/"
+  - id: cp3
+    criterion: "Round-trip counter test"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_counter.py -q"
+
+verify: []
+
+tdd:
+  - "test_drift_counters_llm_fallback_default_zero"
+  - "test_increment_llm_fallback_used_on_verdict_apply"
+  - "test_schemas_state_llm_fallback_field"

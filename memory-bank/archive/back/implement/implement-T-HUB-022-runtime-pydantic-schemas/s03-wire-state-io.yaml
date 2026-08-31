@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-022
+title: s03 — Wire load_epic_state / save_epic_state + drift counter increment helper
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s03-wire-state-io.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- load_epic_state wired to EpicState.model_validate with fail-soft fallback logging
+  state_schema_invalid
+- save_epic_state wired to EpicState(**state).model_dump() strict write
+- increment_drift_counter added to epic/core.py
+- unit tests written and passed in loop/tests/test_state_io.py
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/epic/__init__.py
+- loop/schemas/state.py
+- loop/tests/test_state_io.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_state_io.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -x`'
+integration_check:
+- epic/core.py load_epic_state and save_epic_state exported and compatible with existing
+  context_loop
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: load_epic_state использует EpicState.model_validate (или model_construct
+    fail-soft)
+  status: done
+  done_at: '2026-08-31T00:39:10Z'
+- id: cp2
+  criterion: save_epic_state сериализует через EpicState перед json.dumps
+  status: done
+  done_at: '2026-08-31T00:40:40Z'
+- id: cp3
+  criterion: increment_drift_counter определён в epic/core.py
+  status: done
+  done_at: '2026-08-31T00:40:45Z'
+- id: cp4
+  criterion: test_state_io.py проходит
+  status: done
+  done_at: '2026-08-31T00:40:50Z'
+- id: cp5
+  criterion: Существующий suite стабилен (state-related тесты)
+  status: done
+  done_at: '2026-08-31T00:40:56Z'
+resume_from: cp1

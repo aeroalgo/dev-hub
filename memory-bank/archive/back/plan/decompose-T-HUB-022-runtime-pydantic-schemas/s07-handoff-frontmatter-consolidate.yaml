@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-022
+title: "Consolidate HandoffFrontmatter spike — tests + schemas/README"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Spike `loop/schemas/handoff.py` + `loop/schemas/active_context.py` уже существуют.
+  Задача: написать полный тестовый suite `loop/tests/test_schemas_handoff.py` для
+  LoopHandoffFrontmatter (parse_frontmatter, render_frontmatter, extract_handoff_phase),
+  покрывающий: valid frontmatter → parse; legacy AC без frontmatter → None / fallback;
+  invalid role → ValidationError; round-trip model_dump_frontmatter → parse.
+  Добавить `loop/schemas/README.md` — doc-map всех схем (v1 → file).
+  US-005, FR-004.
+
+context:
+  consumes:
+    - "loop/schemas/handoff.py — LoopHandoffFrontmatter (spike, полный)"
+    - "loop/schemas/active_context.py — parse_frontmatter, render_frontmatter, extract_handoff_phase (spike)"
+    - "loop/tests/test_handoff_projection.py — существующие тесты (reference, не дублировать)"
+    - "plan-T-HUB-022 §HandoffFrontmatter, US-005"
+  produces:
+    - "loop/tests/test_schemas_handoff.py — полный TDD suite"
+    - "loop/schemas/README.md — schema doc-map"
+  plan_refs:
+    - "plan-T-HUB-022 US-005 — phase from reducer, not regex"
+    - "plan-T-HUB-022 FR-004 — HandoffFrontmatter"
+    - "plan-T-HUB-022 §[spike] Consolidate HandoffFrontmatter"
+  files:
+    - "loop/tests/test_schemas_handoff.py"
+    - "loop/schemas/README.md"
+
+as_built:
+  - "loop/schemas/handoff.py — LoopHandoffFrontmatter: полный spike, работает"
+  - "loop/schemas/active_context.py — parse/render/extract: полный spike"
+  - "test_handoff_projection.py — базовые тесты через _lib.extract_verdict; не покрывает LoopHandoffFrontmatter напрямую"
+  - "loop/schemas/README.md — отсутствует"
+
+delta:
+  - "loop/tests/test_schemas_handoff.py CREATE — 8+ тестов: valid/invalid/legacy/round-trip/extract_handoff_phase"
+  - "loop/schemas/README.md CREATE — таблица: schema_id → class → file → since"
+
+deletes: []
+
+out_of_scope:
+  - "Правка handoff.py / active_context.py — spike уже завершён; только тесты"
+  - "STRICT flag — s09"
+  - "render_frontmatter в FINISH flow — s09/s10"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "test_schemas_handoff.py создан с ≥6 тест-функциями"
+    verify: "rg 'def test_' loop/tests/test_schemas_handoff.py | wc -l"
+  - id: cp2
+    criterion: "test_schemas_handoff.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_handoff.py -q --tb=short"
+  - id: cp3
+    criterion: "loop/schemas/README.md содержит таблицу schema → class"
+    verify: "rg 'loop-handoff|loop-gate-verdict|loop-state|loop-checkpoint|loop-event|mb-board-card' loop/schemas/README.md"
+
+verify: []
+
+tdd:
+  - "RED: test_parse_valid_frontmatter → LoopHandoffFrontmatter parsed correctly"
+  - "RED: test_parse_legacy_no_frontmatter → parse_frontmatter returns None"
+  - "RED: test_invalid_role → ValidationError"
+  - "RED: test_mode_uppercase_coercion → 'implement' → 'IMPLEMENT'"
+  - "RED: test_round_trip_dump_parse → model_dump_frontmatter → parse_frontmatter succeeds"
+  - "RED: test_extract_handoff_phase_heading → extracts DECOMPOSE from ## Handoff BACK DECOMPOSE"
+  - "GREEN: все тесты зелёные (handoff.py/active_context.py уже готовы)"

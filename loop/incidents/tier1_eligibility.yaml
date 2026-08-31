@@ -1,0 +1,43 @@
+# Tier-1 Eligibility Whitelist for Orchestration-Only Incidents
+schema: loop-incident-eligibility/v1
+
+codes:
+  active_context_shape_invalid:
+    tier1_eligible: true
+    rationale: "activeContext.md shape/headers corrupted by agent"
+  index_step_missing:
+    tier1_eligible: true
+    rationale: "Index step missing or desynced from plan/decompose"
+  checkpoint_not_found:
+    tier1_eligible: true
+    rationale: "Checkpoint state file missing or corrupted"
+  implement_shard_corrupt:
+    tier1_eligible: true
+    rationale: "Implement shard YAML file corrupted or unparseable"
+  epic_dir_missing:
+    tier1_eligible: true
+    rationale: "Epic state directory structure damaged"
+  session_context_stale:
+    tier1_eligible: true
+    rationale: "Session activeContext desynced from filesystem"
+  status_payload_malformed:
+    tier1_eligible: true
+    rationale: "Status JSON payload malformed"
+  mark_index_missing:
+    tier1_eligible: true
+    rationale: "Implement shard completed but index step stays open"
+  fingerprint_stall:
+    tier1_eligible: true
+    rationale: "Session fingerprint did not change after iteration"
+  index_mirror_drift:
+    tier1_eligible: true
+    rationale: "index.yaml and index.md steps drift"
+  premature_epic_done:
+    tier1_eligible: true
+    rationale: "Epic marked done with open steps"
+  stale_owner:
+    tier1_eligible: true
+    rationale: "Runner lock file owned by dead process"
+  checkpoint_drift:
+    tier1_eligible: true
+    rationale: "Implement checkpoints out of sync with decompose"

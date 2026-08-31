@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-022
+title: s02 — EpicState + DriftCounters Pydantic model + golden fixtures IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s02-epic-state-drift-counters.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан loop/schemas/state.py с классами DriftCounters и EpicState
+- Обновлен loop/schemas/__init__.py с re-export DriftCounters и EpicState
+- Создан loop/tests/test_schemas_state.py с golden fixture тестами
+files:
+- loop/schemas/state.py
+- loop/schemas/__init__.py
+- loop/tests/test_schemas_state.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_state.py -q --tb=short`'
+integration_check:
+- .venv/bin/pytest loop/tests/ -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 4 passed in test_schemas_state.py
+- 958 passed, 1 skipped in loop tests
+checkpoints:
+- id: cp1
+  criterion: loop/schemas/state.py существует, содержит DriftCounters и EpicState
+  status: done
+  done_at: '2026-08-31T00:34:19Z'
+- id: cp2
+  criterion: EpicState содержит drift_counters поле и schema_version Literal
+  status: done
+  done_at: '2026-08-31T00:34:28Z'
+- id: cp3
+  criterion: 'test_schemas_state.py проходит: round-trip + corrupt-field'
+  status: done
+  done_at: '2026-08-31T00:34:38Z'
+resume_from: cp1

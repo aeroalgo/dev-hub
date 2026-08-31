@@ -359,17 +359,19 @@ Greenfield extension — существующие `check_after` repairs **ост
 
 ---
 
-## До DECOMPOSE (черновик нарезки)
+## DECOMPOSE (канон)
+
+**Трекер:** [decompose-T-HUB-017-loop-observability-foundation/index.md](decompose-T-HUB-017-loop-observability-foundation/index.md) · [index.yaml](decompose-T-HUB-017-loop-observability-foundation/index.yaml)
 
 | sNN | Slug | Суть |
 |-----|------|------|
-| s01 | incident-schema-store | `loop-incident/v1` + incidents.jsonl store |
-| s02 | registry-yaml-tier0 | registry.yaml + tier0 runner + initial 6 codes |
+| s01 | incident-schema-store | `loop-incident/v1` + incidents.jsonl store + idempotency |
+| s02 | registry-yaml-tier0 | registry.yaml + tier0 runner + 7 diagnostic codes |
 | s03 | check-after-wire-tier0 | integrate tier0 in check_after + repair_exhausted |
-| s04 | session-trace-jsonl | trace.py + loop.sh hooks |
-| s05 | metrics-rolling | metrics.py + status extension |
+| s04 | session-trace-jsonl | trace.py + loop.sh hooks + EPIC_INCIDENT_TRACE |
+| s05 | metrics-rolling | metrics.py rolling counters + EPIC_INCIDENT_METRICS |
 | s06 | status-incidents-metrics | status payload incidents/metrics/trace_tail |
-| s07 | doctor-cli-preflight | doctor checks + CLI |
+| s07 | doctor-cli-preflight | doctor checks + CLI exit codes |
 | s08 | event-emission-repair | incident/repair events → events.jsonl |
 | s09 | runbooks-docs-readme | runbooks/*.md + loop README |
 
@@ -377,4 +379,4 @@ Greenfield extension — существующие `check_after` repairs **ост
 
 ## Следующий режим
 
-→ **BACK DECOMPOSE** T-HUB-017 (после ROADMAP MERGE в canon queue)
+→ **BACK IMPLEMENT** T-HUB-017 s01 (новый чат; опционально BACK ANALYZE перед стартом)

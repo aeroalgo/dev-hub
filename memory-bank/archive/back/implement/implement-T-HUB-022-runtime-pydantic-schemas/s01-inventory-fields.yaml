@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-022
+title: s01 — Inventory all state/checkpoint/event/handoff/gate fields from code +
+  tests IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s01-inventory-fields.yaml
+skills_used:
+- python-design-patterns
+discovery:
+- Inventory of machine-readable fields across core.py, epic_events.py, active_context.py,
+  gate_verdict.py, and card_model.py recorded in memory-bank/back/plan/refs/T-HUB-022-field-inventory.md.
+gaps:
+  status: none
+done:
+- Created memory-bank/back/plan/refs/T-HUB-022-field-inventory.md with full field
+  matrix for state.json, checkpoint.json, events.jsonl, handoff frontmatter, gate
+  sidecar, board cards, and decompose index.
+files:
+- memory-bank/back/plan/refs/T-HUB-022-field-inventory.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+integration_check:
+- '`rg -c ''state.json|checkpoint.json|events.jsonl|frontmatter|gate sidecar'' memory-bank/back/plan/refs/T-HUB-022-field-inventory.md`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'Inventory md создан и содержит секции: state.json, checkpoint.json,
+    events.jsonl, handoff frontmatter, gate sidecar'
+  status: done
+  done_at: '2026-08-31T00:28:29Z'
+- id: cp2
+  criterion: Все 9 US покрыты в matrix (строки US-001..US-009)
+  status: done
+  done_at: '2026-08-31T00:28:34Z'
+- id: cp3
+  criterion: drift_counters absent gap зафиксирован
+  status: done
+  done_at: '2026-08-31T00:28:38Z'
+resume_from: cp1

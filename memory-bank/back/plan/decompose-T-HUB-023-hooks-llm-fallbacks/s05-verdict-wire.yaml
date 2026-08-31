@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Verdict transcript fallback — sidecar-first then regex then opt-in LLM
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить extract_verdict: сохранить sidecar-first (022), затем regex; только при regex None
+  и flag on + agent verify/reviewer — LLM tail extract. Никогда не вызывать LLM если regex
+  или sidecar уже дали verdict (FR-003, FR-010, US-002, AC+2, AC−2, AC−3).
+
+context:
+  consumes:
+    - "s03 — run_verdict_extract"
+    - "s01 — hooks_llm_enabled(verdict)"
+    - ".claude/hooks/_lib.py — extract_verdict (sidecar-first since 022)"
+    - "loop/gate_verdict_store.py — read_gate_verdict"
+  produces:
+    - ".claude/hooks/_lib.py — LLM tail branch in extract_verdict"
+  plan_refs:
+    - "plan-T-HUB-023 FR-003"
+    - "plan-T-HUB-023 FR-010"
+    - "plan-T-HUB-023 US-002"
+    - "plan-T-HUB-023 AC+ #2"
+    - "plan-T-HUB-023 AC− #2, #3"
+  files:
+    - ".claude/hooks/_lib.py"
+    - "loop/tests/test_hooks_llm_verdict_wire.py"
+
+as_built:
+  - "extract_verdict — sidecar first, then regex VERDICT: line; gate_verdict_regex_fallback counter on regex path"
+  - "LLM verdict fallback — отсутствует"
+
+delta:
+  - "EDIT extract_verdict: after sidecar miss AND regex miss → if hooks_llm_enabled(verdict) AND agent_id in (verify, reviewer) AND len(text)>=min_chars → run_verdict_extract(tail slice)"
+  - "Apply only if confidence >= threshold and verdict non-null"
+  - "Do NOT call LLM when sidecar or regex returned verdict (FR-010)"
+  - "Do NOT change spawn-hard protocol text (AC−3) — only read transcript"
+  - "Optional param agent_type for gate restriction"
+
+deletes: []
+
+out_of_scope:
+  - "Drift counter llm_fallback_used — s07"
+  - "Full buried fixture — s08"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md  # S03 hook must not crash on LLM miss
+    - .agents/skills/python-resilience/SKILL.md  # S10 optional recovery path fail-soft
+
+checkpoints:
+  - id: cp1
+    criterion: "extract_verdict вызывает run_verdict_extract только после regex miss"
+    verify: "rg 'run_verdict_extract' .claude/hooks/_lib.py"
+  - id: cp2
+    criterion: "test_extract_verdict_regex_only_no_llm — mock call count 0"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py::test_extract_verdict_regex_only_no_llm -q"
+  - id: cp3
+    criterion: "Sidecar hit → LLM not called"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py::test_verdict_sidecar_skips_llm -q"
+  - id: cp4
+    criterion: "Buried VERDICT recovered with flag on"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py::test_verdict_fallback_buried_pass -q"
+
+verify: []
+
+tdd:
+  - "test_extract_verdict_regex_only_no_llm"
+  - "test_verdict_sidecar_skips_llm"
+  - "test_verdict_fallback_buried_pass"
+  - "test_verdict_llm_skipped_for_non_verify_agent"

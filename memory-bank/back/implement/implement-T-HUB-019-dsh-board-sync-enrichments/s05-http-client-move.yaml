@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: s05 — HttpHostClient.move after upsert — fail-closed, FakeClient.moves log
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-019-dsh-board-sync-enrichments/s05-http-client-move.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен метод move(task_id, status) в BoardClient Protocol, HttpHostClient, FakeClient,
+  LedgerFileClient
+- В sync.run_sync добавлен вызов client.move(...) после upsert для карточек со статусом
+  != todo
+- Обработка BoardClientError при move — ошибки записываются в sync result, batch продолжается
+files:
+- loop/board_sync/client.py
+- loop/board_sync/sync.py
+- loop/tests/test_board_sync_http_client.py
+- loop/tests/test_board_sync_sync.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_http_client.py loop/tests/test_board_sync_sync.py
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+integration_check:
+- verified BoardClient Protocol parity across HttpHostClient, FakeClient, LedgerFileClient
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'HttpHostClient.move: 200 → no exception; 4xx → BoardClientError; transport
+    → BoardClientError'
+  status: done
+  done_at: '2026-08-30T21:43:19Z'
+- id: cp2
+  criterion: FakeClient.moves содержит (task_id, status) после вызова move
+  status: done
+  done_at: '2026-08-30T21:43:29Z'
+- id: cp3
+  criterion: 'apply_ops: create с status=backlog → client.move вызван'
+  status: done
+  done_at: '2026-08-30T21:43:42Z'
+- id: cp4
+  criterion: 'apply_ops: move BoardClientError → failed_id в report, batch продолжается'
+  status: done
+  done_at: '2026-08-30T21:43:50Z'
+resume_from: cp1

@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-020-dsh-board-epic-loop
+title: s09 — Integration tests + README/WORKFLOW docs IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-020-dsh-board-epic-loop/s09-integration-tests-docs.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added end-to-end regression tests in loop/tests/test_board_sync_epic_regression.py
+  covering single epic card creation, arm_epic handoff, roadmap ranking column status,
+  step-era card archiving, and epic DONE status.
+- Documented Epic-level board concepts, arm_epic, Run CLI, and column logic in loop/WORKFLOW.md
+  and loop/README.md.
+- Verified all checkpoints cp1..cp5 pass.
+files:
+- loop/tests/test_board_sync_epic_regression.py
+- loop/WORKFLOW.md
+- loop/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_epic_regression.py -q
+  --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+integration_check:
+- full suite green without skips or errors
+grep_control: []
+verification_results:
+- pass
+checkpoints:
+- id: cp1
+  criterion: 'e2e: 12 pending steps → 1 epic card upserted (FakeClient.upserts count=1,
+    card_kind=epic)'
+  status: done
+  done_at: '2026-08-30T23:06:07Z'
+- id: cp2
+  criterion: 'e2e: arm_epic DECOMPOSE → activeContext Handoff contains ''BACK DECOMPOSE
+    T-HUB-TEST'''
+  status: done
+  done_at: '2026-08-30T23:06:15Z'
+- id: cp3
+  criterion: 'e2e: sync 2 epics from queue → epic#1 running, epic#2 backlog; step-era
+    archived'
+  status: done
+  done_at: '2026-08-30T23:06:21Z'
+- id: cp4
+  criterion: WORKFLOW.md содержит раздел про epic arm и Run (grep check)
+  status: done
+  done_at: '2026-08-30T23:06:34Z'
+- id: cp5
+  criterion: 'Полный suite s01–s09: pytest loop/tests/ зелёный без skip'
+  status: done
+  done_at: '2026-08-30T23:08:41Z'
+resume_from: cp1

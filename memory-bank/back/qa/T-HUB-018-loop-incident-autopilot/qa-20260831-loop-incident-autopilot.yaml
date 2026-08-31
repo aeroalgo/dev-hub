@@ -1,0 +1,68 @@
+schema: epic-qa/v1
+epic_id: T-HUB-018-loop-incident-autopilot
+date: 2026-08-31
+qa_by: BACK QA
+verdict: pass
+
+suite_results:
+  pytest: "860 passed in 50.78s"
+
+ac_checks:
+  - id: AC1
+    title: Whitelist + classifier check tier1 eligibility
+    status: pass
+    evidence: "loop/incidents/tier1.py:45-75"
+  - id: AC2
+    title: Runbook context loading & tier1 prompt formatting
+    status: pass
+    evidence: "loop/incidents/tier1_prompt.py:19-87"
+  - id: AC3
+    title: Hard scope pretool guard enforcing allowed write scope
+    status: pass
+    evidence: "loop/incidents/scope.py:45-73"
+  - id: AC4
+    title: Incident branch handling in loop execution
+    status: pass
+    evidence: "loop/incidents/tier1_runner.py:36-82"
+  - id: AC5
+    title: Verification of tier1 repairs
+    status: pass
+    evidence: "loop/incidents/tier1_verify.py:42-90"
+  - id: AC6
+    title: Escalation & alert dispatch
+    status: pass
+    evidence: "loop/incidents/alert.py:98-120"
+  - id: AC7
+    title: Metrics & event emission
+    status: pass
+    evidence: "loop/incidents/metrics.py:15-26"
+  - id: AC8
+    title: Integration test suite coverage
+    status: pass
+    evidence: "860 passed in loop/tests/"
+
+ac_negative_checks:
+  - id: AC-1
+    title: Ineligible incident types return false for tier1 eligibility
+    status: pass
+    evidence: "loop/incidents/tier1.py:60-73"
+  - id: AC-2
+    title: Out-of-scope write attempts are intercepted
+    status: pass
+    evidence: "loop/incidents/scope.py:45-73"
+  - id: AC-3
+    title: Failed verification triggers escalation alert without infinite loop
+    status: pass
+    evidence: "loop/incidents/tier1_runner.py:179-210"
+
+section_011_checks:
+  - id: 0.11.1
+    title: Security/Hardening - Pretool guard & path validation
+    status: pass
+    evidence: "loop/incidents/scope.py:66-71"
+  - id: 0.11.2
+    title: Error handling / alert fail-closed
+    status: pass
+    evidence: "loop/incidents/alert.py:57"
+
+blockers: []

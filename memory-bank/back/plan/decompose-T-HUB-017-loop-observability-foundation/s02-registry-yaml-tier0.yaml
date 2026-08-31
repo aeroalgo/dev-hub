@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-017-loop-observability-foundation
+step_id: s02
+title: "Авто-ремонт desync — registry.yaml + tier0 runner + 7 diagnostic codes"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Известные desync (mark_index_missing, fingerprint_stall, …) чинятся автоматически Tier-0
+  через thin wrappers над epic.core symbols — без дублирования repair logic (US-002, AC−7).
+  Unknown diagnostic → incident stays open, no auto-repair (AC+ #3).
+
+as_built:
+  - "epic.core уже содержит repair_finish_desync, repair_index_mirror, repair_fingerprint_stall, repair_post_implement_handoff_drift и validate_*"
+  - "check_after вызывает inline repairs напрямую — tier0 registry ещё нет"
+  - "loop/incidents/registry.yaml, registry.py, tier0.py, repairs.py не существуют"
+delta:
+  - "ADD loop/incidents/registry.yaml — version loop-incident-registry/v1; entries: mark_index_missing, fingerprint_stall, index_mirror_drift, premature_epic_done, stale_owner, checkpoint_drift, active_context_shape_invalid (last = tier0 noop + escalate after max)"
+  - "Каждая entry: runbook rel path + chain[{repair_fn import path, verify_fn, max_attempts}]"
+  - "repair_fn только epic.core symbols или loop.incidents.repairs.* — не динамический edit registry (AC−4)"
+  - "ADD loop/incidents/registry.py — load_registry(path), get_chain(diagnostic_code), resolve_callable(import_path)"
+  - "ADD loop/incidents/repairs.py — clear_stale_runner_lock, verify_runner_owner для stale_owner entry"
+  - "ADD loop/incidents/tier0.py — Tier0Result dataclass; run_tier0_for_incident(cwd, incident) → executes chain, respects max_attempts, sets repair_exhausted"
+  - "ADD loop/tests/test_incidents_tier0.py — mark_index_missing fixture → repair → resolved; unknown code → no repair"
+  - "ADD loop/tests/fixtures/incidents/mark_index_missing/ — desync index/implement fixture"
+deletes: []
+out_of_scope:
+  - "check_after integration (s03) — tier0 вызывается только из тестов"
+  - "inline repair removal (optional follow-up s10 legacy dedup — out_of_scope эпика)"
+  - "spawn agent / Tier-1 (T-HUB-018)"
+
+context:
+  consumes:
+    - "s01 store + schema"
+    - "plan §Registry entry shape"
+    - "plan FR-003 FR-004"
+  produces:
+    - "loop/incidents/registry.yaml"
+    - "loop/incidents/registry.py"
+    - "loop/incidents/tier0.py"
+    - "loop/incidents/repairs.py"
+  plan_refs:
+    - "plan-T-HUB-017 §Registry entry shape"
+    - "plan-T-HUB-017 FR-003 FR-004"
+  files:
+    - "loop/incidents/registry.yaml"
+    - "loop/incidents/registry.py"
+    - "loop/incidents/tier0.py"
+    - "loop/incidents/repairs.py"
+    - "loop/tests/test_incidents_tier0.py"
+    - "loop/tests/fixtures/incidents/mark_index_missing/"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"  # YAML registry load
+    - ".agents/skills/python-error-handling/SKILL.md"  # unknown code fail-closed
+    - ".agents/skills/python-observability/SKILL.md"  # tier0 repair telemetry
+
+checkpoints:
+  - id: cp1
+    criterion: "registry.yaml содержит ≥7 diagnostic_codes из плана (SC-001)"
+    verify: "`python3 -c \"import yaml; d=yaml.safe_load(open('loop/incidents/registry.yaml')); assert len(d['repairs'])>=7\"`"
+  - id: cp2
+    criterion: "mark_index_missing fixture → tier0 → incident resolved, repair_fn called"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier0.py -k mark_index_missing -q --tb=line`"
+  - id: cp3
+    criterion: "unknown diagnostic_code → Tier0Result no_repair, incident stays open"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier0.py -k unknown_code -q --tb=line`"
+  - id: cp4
+    criterion: "max_attempts exceeded → repair_exhausted=True"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier0.py -k repair_exhausted -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_tier0.py -q --tb=line`"
+  - "`rg -n 'epic\\.core\\.' loop/incidents/tier0.py loop/incidents/registry.yaml` — repair_fn paths"
+
+tdd:
+  - "test_registry_loads_seven_codes"
+  - "test_resolve_repair_fn_imports_epic_core_symbol"
+  - "test_tier0_mark_index_missing_resolves_incident"
+  - "test_tier0_unknown_diagnostic_no_repair_incident_stays_open"
+  - "test_tier0_max_attempts_sets_repair_exhausted"
+  - "test_stale_owner_repair_clear_lock"
+
+requirements_covered:
+  - FR-003
+  - FR-004
+  - "AC+ #2"
+  - "AC+ #3"
+  - SC-001
+  - "US-002 partial (unit; integration s03)"
+  - "AC−4"
+  - "AC−7"

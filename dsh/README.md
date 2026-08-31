@@ -263,4 +263,14 @@ The plugin discovers the project `.claude/` from the DSH session working directo
 
 > `dsh-claude-compat` is a community-equivalent package; verify its compatibility before changing the reviewed `0.8.0` pin.
 
+## Rebuilding Plugins
+
+After making TypeScript changes in `dsh/plugins/mb-bridge/`, rebuild and reinstall the plugin using `install-mb-bridge.sh` (or `dsh/install-mb-bridge.sh`):
+
+```bash
+./install-mb-bridge.sh
+```
+
+This updates the bundle so DSH picks up changes to card metadata parsing and board filtering.
+
 Use the profile installer after the pins have been reviewed; bridge mounting and runtime smoke checks are implemented by the following T-HUB-016 steps.

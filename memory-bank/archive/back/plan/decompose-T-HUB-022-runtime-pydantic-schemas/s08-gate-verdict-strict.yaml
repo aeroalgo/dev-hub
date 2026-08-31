@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-022
+title: "Consolidate GateVerdictRecord + store strict validate"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Spike `loop/schemas/gate_verdict.py` (GateVerdictRecord) + `loop/gate_verdict_store.py` уже существуют.
+  Задача: добавить strict validate в `write_gate_verdict()` (через GateVerdictRecord.model_validate
+  перед записью json), написать полный тест-suite `loop/tests/test_schemas_gate_verdict.py`.
+  Покрыть: sidecar PASS + transcript FAIL → extract_verdict returns PASS; invalid verdict → ValidationError;
+  write invalid → raises before file write.
+  US-006, FR-004 (gate sidecar typed).
+
+context:
+  consumes:
+    - "loop/schemas/gate_verdict.py — GateVerdictRecord (spike)"
+    - "loop/gate_verdict_store.py — read_gate_verdict, write_gate_verdict"
+    - ".claude/hooks/_lib.py:extract_verdict() — sidecar-first logic"
+    - "loop/tests/test_handoff_projection.py — test_extract_verdict_sidecar (reference)"
+    - "plan-T-HUB-022 §GateVerdictRecord, US-006"
+  produces:
+    - "loop/gate_verdict_store.py EDIT — strict validate перед write"
+    - "loop/tests/test_schemas_gate_verdict.py — полный suite"
+  plan_refs:
+    - "plan-T-HUB-022 US-006 — typed verdict sidecar"
+    - "plan-T-HUB-022 AC+6 — sidecar PASS overrides transcript FAIL"
+    - "plan-T-HUB-022 FR-004 — GateVerdictRecord strict"
+  files:
+    - "loop/gate_verdict_store.py"
+    - "loop/tests/test_schemas_gate_verdict.py"
+
+as_built:
+  - "loop/schemas/gate_verdict.py — GateVerdictRecord: полный spike"
+  - "loop/gate_verdict_store.py — write_gate_verdict пишет json; no strict pre-validate"
+  - "extract_verdict(_lib.py) — sidecar-first уже реализован"
+
+delta:
+  - "loop/gate_verdict_store.py EDIT write_gate_verdict — GateVerdictRecord.model_validate(data) перед json.dump; ValidationError raises"
+  - "loop/tests/test_schemas_gate_verdict.py CREATE — sidecar PASS + FAIL transcript → extract_verdict PASS; invalid verdict → raises on write"
+
+deletes: []
+
+out_of_scope:
+  - "Правка gate_verdict.py — spike завершён; только integration + strict write"
+  - "STRICT flag для FINISH — s09"
+  - "gate_verdict_regex_fallback counter — s12"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "write_gate_verdict содержит GateVerdictRecord validate"
+    verify: "rg 'GateVerdictRecord' loop/gate_verdict_store.py"
+  - id: cp2
+    criterion: "test_schemas_gate_verdict.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_gate_verdict.py -q --tb=short"
+  - id: cp3
+    criterion: "Sidecar-first: extract_verdict sidecar PASS → PASS даже при transcript FAIL"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_gate_verdict.py -q --tb=short -k 'sidecar'"
+
+verify: []
+
+tdd:
+  - "RED: test_write_invalid_verdict → ValidationError raised before file write"
+  - "RED: test_sidecar_pass_overrides_transcript_fail → extract_verdict returns PASS"
+  - "RED: test_verdict_record_round_trip → write → read → .verdict == 'PASS'"
+  - "GREEN: wire strict validate в write_gate_verdict"

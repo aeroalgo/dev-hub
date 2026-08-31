@@ -147,6 +147,8 @@ MODE:
   ./loop/loop.sh --status
 
 Options:
+  --epic EPIC_ID
+      Arm epic via arm_epic (e.g. T-HUB-016).
   -m, --model NAME
       --phase GAP_FANOUT
           Arm the next dependency-ready epic from loop/dag/*.yaml.
@@ -191,6 +193,7 @@ is_epic_spec() {
 
 MODEL=""
 EPIC_SPEC=""
+EPIC_ID_FLAG=""
 MODE=""
 PERM_MODE="${EPIC_PERMISSION_MODE:-dontAsk}"
 HEADLESS=1
@@ -222,6 +225,9 @@ while [[ $# -gt 0 ]]; do
     --dag-generate)
       [[ $# -ge 2 ]] || { echo "missing value for --dag-generate" >&2; exit 2; }
       GENERATE_DAG=1; DAG_PIPELINE="$2"; shift 2 ;;
+    --epic)
+      [[ $# -ge 2 ]] || { echo "missing value for --epic" >&2; exit 2; }
+      EPIC_ID_FLAG="$2"; shift 2 ;;
     -m|--model)
       [[ $# -ge 2 ]] || { echo "missing value for $1" >&2; exit 2; }
       MODEL="$2"; shift 2 ;;
@@ -340,7 +346,38 @@ PERM_ARGS=(--permission-mode "$PERM_MODE")
 MODEL_ARGS=()
 [[ -n "$MODEL" ]] && MODEL_ARGS=(--model "$MODEL")
 
-if [[ -n "$EPIC_SPEC" ]]; then
+if [[ -n "$EPIC_ID_FLAG" ]]; then
+  echo "==> arm epic-id=$EPIC_ID_FLAG (arm_epic)"
+  set +e
+  arm_json="$("${CTX[@]}" arm --epic-id "$EPIC_ID_FLAG")"
+  arm_rc=$?
+  set -e
+  if [[ "$VERBOSE" == "1" ]]; then
+    echo "$arm_json"
+  else
+    echo "$arm_json" | python3 -c '
+import json,sys
+r=json.load(sys.stdin)
+if r.get("ok"):
+    if r.get("complete"):
+        print("==> arm:", r.get("stop") or "complete", "epic=", r.get("epic_id"))
+    else:
+        print("==> arm ok:", r.get("role"), r.get("epic_id"),
+              "step=", r.get("step_id"), "phase=", r.get("phase"))
+        if r.get("work_shard"): print("==> work_shard:", r["work_shard"])
+else:
+    print("==> arm FAIL:", r.get("error") or r)
+' 2>/dev/null || echo "$arm_json"
+  fi
+  if [[ $arm_rc -eq 3 ]]; then
+    echo "==> LOOP COMPLETE (epic already done)"
+    exit 0
+  fi
+  if [[ $arm_rc -ne 0 ]]; then
+    echo "==> LOOP HALTED (arm)" >&2
+    exit "$arm_rc"
+  fi
+elif [[ -n "$EPIC_SPEC" ]]; then
   echo "==> arm epic=$EPIC_SPEC (overwrite activeContext from decompose index)"
   set +e
   arm_json="$("${CTX[@]}" arm --epic "$EPIC_SPEC")"
@@ -697,8 +734,14 @@ if r.get("retry_fingerprint_stall"):
   after_action="$(echo "$after_json" | python3 -c '
 import json, sys
 sys.path.insert(0, r"'"$HUB_ROOT"'/loop")
+sys.path.insert(0, r"'"$HUB_ROOT"'/.claude/hooks")
 from halt_logic import decide_after_action
-print(decide_after_action(json.load(sys.stdin)))
+from epic_paths import epic_dir
+from loop.incidents.trace import append_trace
+res = json.load(sys.stdin)
+action = decide_after_action(res)
+append_trace(epic_dir(r"'"$PROJECT_ROOT"'"), phase="decide", action="decide_after_action", decide=action, detail=res if isinstance(res, dict) else {})
+print(action)
 ' 2>/dev/null || echo halt)"
   if [[ "$after_action" == "continue" ]]; then
     if echo "$after_json" | python3 -c 'import json,sys; r=json.load(sys.stdin); raise SystemExit(0 if r.get("retry_fingerprint_stall") else 1)' 2>/dev/null; then
@@ -709,6 +752,42 @@ print(decide_after_action(json.load(sys.stdin)))
     continue
   fi
   if [[ "$after_action" == "halt" ]]; then
+    if [[ "${EPIC_INCIDENT_TIER1:-1}" != "0" ]]; then
+      set +e
+      t1_check_json="$(python3 -c '
+import sys
+sys.path.insert(0, "'"$HUB_ROOT"'")
+from pathlib import Path
+from loop.incidents.store import list_open_incidents
+from loop.incidents.tier1_runner import should_attempt_tier1, run_tier1_session
+from loop.incidents.store import resolve_incident
+from loop.epic_paths import epic_dir
+
+e_dir = epic_dir("'"$PROJECT_ROOT"'")
+p_root = Path("'"$PROJECT_ROOT"'")
+open_incs = list_open_incidents(e_dir)
+if open_incs:
+    inc = open_incs[0]
+    if should_attempt_tier1(inc, e_dir):
+        res = run_tier1_session(inc, e_dir, p_root)
+        if res.success:
+            resolve_incident(e_dir, inc.incident_id, resolution={"resolution_tier": "tier1", "resolution_action": "tier1_autofix"})
+            print("TIER1_SUCCESS")
+        else:
+            print("TIER1_FAIL")
+    else:
+        print("NOT_ELIGIBLE")
+else:
+    print("NO_OPEN_INCIDENTS")
+' 2>/dev/null || echo "TIER1_ERROR")"
+      set -e
+
+      if [[ "$t1_check_json" == "TIER1_SUCCESS" ]]; then
+        echo "==> tier1 session succeeded; retrying outer loop"
+        continue
+      fi
+    fi
+
     after_stop="$(echo "$after_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("stop") or "")' 2>/dev/null || true)"
     after_reason="$(echo "$after_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("reason") or "")' 2>/dev/null || true)"
     if [[ "$after_stop" == NEED_HUMAN* ]]; then

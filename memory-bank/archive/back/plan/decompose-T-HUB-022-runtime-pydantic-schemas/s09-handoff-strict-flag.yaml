@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-022
+title: "PROJECT_LOOP_HANDOFF_STRICT + stop-gate FINISH gate + project.env"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить `PROJECT_LOOP_HANDOFF_STRICT` env-флаг (default=0) в `stop-gate.py`:
+  при STRICT=1 блокировать `finalize-step` / FINISH-path если в activeContext.md нет
+  валидного `loop-handoff/v1` frontmatter (через `parse_frontmatter()` из loop/schemas/active_context.py).
+  При STRICT=0 (default) — auto-project через `project_handoff_from_reducer()` для legacy AC.
+  Зарегистрировать флаг в `.claude/project.env` с комментарием.
+  US-007, AC+7, FR-004.
+
+context:
+  consumes:
+    - ".claude/hooks/stop-gate.py — finalize_step(), FINISH-path logic"
+    - "loop/schemas/active_context.py — parse_frontmatter()"
+    - ".claude/hooks/epic/core.py — project_handoff_from_reducer(), handoff_post_implement_phase()"
+    - ".claude/project.env — env-флаги pattern (PROJECT_OUTPUT_SUMMARY, PROJECT_LOOP_REPAIR_LEGACY)"
+    - "plan-T-HUB-022 §PROJECT_LOOP_HANDOFF_STRICT, §Strict handoff flag"
+  produces:
+    - ".claude/hooks/stop-gate.py EDIT — STRICT check на FINISH/finalize path"
+    - ".claude/project.env EDIT — добавить PROJECT_LOOP_HANDOFF_STRICT=0 с комментарием"
+    - "loop/tests/test_handoff_strict_flag.py — legacy AC → STRICT=0 auto-project; STRICT=1 block"
+  plan_refs:
+    - "plan-T-HUB-022 US-007 — STRICT=1 blocks FINISH without frontmatter"
+    - "plan-T-HUB-022 AC+7 — legacy AC → STRICT=0 auto-project"
+    - "plan-T-HUB-022 §PROJECT_LOOP_HANDOFF_STRICT"
+  files:
+    - ".claude/hooks/stop-gate.py"
+    - ".claude/project.env"
+    - "loop/tests/test_handoff_strict_flag.py"
+
+as_built:
+  - "stop-gate.py — нет STRICT check; FINISH не валидирует frontmatter"
+  - "project.env — PROJECT_LOOP_HANDOFF_STRICT отсутствует"
+  - "project_handoff_from_reducer() — уже существует, auto-project"
+
+delta:
+  - ".claude/hooks/stop-gate.py EDIT — на FINISH/finalize: if STRICT=1 → parse_frontmatter(); invalid → block; STRICT=0 → auto-project"
+  - ".claude/project.env EDIT — добавить PROJECT_LOOP_HANDOFF_STRICT=0  # 1=block FINISH without valid loop-handoff/v1 frontmatter"
+  - "loop/tests/test_handoff_strict_flag.py CREATE — STRICT=0 + legacy AC → finalize passes; STRICT=1 + no frontmatter → blocked"
+
+deletes: []
+
+out_of_scope:
+  - "validate_qa_finish_handoff — s10"
+  - "index yaml-only — s11"
+  - "Правка агентского промпта AC generation — s11"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "stop-gate.py содержит PROJECT_LOOP_HANDOFF_STRICT"
+    verify: "rg 'PROJECT_LOOP_HANDOFF_STRICT' .claude/hooks/stop-gate.py"
+  - id: cp2
+    criterion: "project.env содержит флаг"
+    verify: "rg 'PROJECT_LOOP_HANDOFF_STRICT' .claude/project.env"
+  - id: cp3
+    criterion: "test_handoff_strict_flag.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_handoff_strict_flag.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: stop-gate тесты стабильны"
+    verify: ".venv/bin/pytest loop/tests/test_stop_gate.py -q --tb=line -x"
+
+verify: []
+
+tdd:
+  - "RED: test_strict_1_no_frontmatter_blocked → finalize returns error/block"
+  - "RED: test_strict_0_legacy_ac_autoproject → finalize passes"
+  - "RED: test_strict_1_valid_frontmatter_passes → valid loop-handoff/v1 → finalize passes"
+  - "GREEN: STRICT flag в stop-gate"

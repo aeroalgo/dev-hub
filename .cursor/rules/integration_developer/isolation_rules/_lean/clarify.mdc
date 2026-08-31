@@ -12,13 +12,15 @@ alwaysApply: false
 
 1. `load_now` = только clarify artifact (если есть) + `activeContext.md`; `gap-*.md` загружать только при явном указании.
 2. Jump в brief или plan допустим только если wire/contract ambiguity без этого контекста не снять.
-3. Соблюдать shared core: ≤5 Q, sequential, Recommended/Suggested, CRITICAL policy.
-4. Каждый принятый ответ записывать в clarify-артефакт; диск — source of truth.
-5. Completion Report обязателен перед Handoff → INTEG PLAN / continue.
-6. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list запрещает ready for PLAN FINISH.
+3. **Phase 0 Grill:** Read `grill-me/SKILL.md` целиком; `## Grill pass` в артефакт не пустая
+4. Соблюдать shared core: ≤5 Q (grill-Q первые), sequential, Recommended/Suggested, CRITICAL policy.
+5. Каждый принятый ответ записывать в clarify-артефакт; диск — source of truth.
+6. Completion Report обязателен перед Handoff → INTEG PLAN / continue.
+7. `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve/defer-list запрещает ready for PLAN FINISH.
 
 ## Abort
 
 - Нет slug или цели — запросить идентификацию, не выдумывать wire.
 - Не подменять clarify советами по API, auth или архитектуре как решением вместо вопроса.
+- FINISH без `## Grill pass` или без `Grill:` в Completion Report → FAIL
 - Не клонировать spec-kit clarify и не вызывать specify-cli.

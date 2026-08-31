@@ -774,19 +774,66 @@ def validate_decompose_yaml(path: Path) -> list[str]:
     return errors
 
 
-def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> list[str]:
-    """Schema gate for every sNN|eNN in decompose index.yaml (DECOMPOSE FINISH).
+_CREATIVE_NEED_SECTION_RE = re.compile(
+    r"(?:^|\n)#{2,3}\s+CREATIVE need\s*\n(.*?)(?=\n#{2,3}\s|\n---|\Z)",
+    re.DOTALL | re.IGNORECASE,
+)
+_CR_ID_RE = re.compile(r"CR-[A-Z0-9-]+")
 
-    Fail-closed on invented schemas / missing role / as_built not list —
-    i.e. anything EpicDecomposeDoc rejects. Full lint (verify runnable, …)
-    remains `validate-step` / `validate_decompose_full` (opt-in / IMPLEMENT).
-    """
-    from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
 
+def _classify_creative_need_section(section: str) -> str:
+    """Return yes | no | unknown from plan CREATIVE need section body."""
+    s = section.strip()
+    if not s:
+        return "unknown"
+    no_patterns = (
+        r"creative need[^\n]{0,80}\*\*?\s*(?:нет|no)\s*\*?",
+        r"итогом:\s*\*\*(?:нет|no)\*\*",
+        r"→\s*CREATIVE\s*\*\*(?:нет|no)\*\*",
+        r"default[^\n]{0,80}CREATIVE\s*\*\*(?:нет|no)\*\*",
+        r"^\s*\*\*(?:нет|no)\*\*",
+    )
+    for pat in no_patterns:
+        if re.search(pat, s, re.IGNORECASE | re.MULTILINE):
+            return "no"
+    yes_patterns = (
+        r"^\s*\*\*(?:да|yes)",
+        r"CREATIVE need[^\n]*\n\s*\*\*(?:да|yes)",
+        r"\*\*(?:да|yes)\.\*\*",
+        r"блокер\s+decompose",
+    )
+    for pat in yes_patterns:
+        if re.search(pat, s, re.IGNORECASE | re.MULTILINE):
+            return "yes"
+    return "unknown"
+
+
+def _parse_plan_creative_need(plan_text: str) -> dict[str, Any]:
+    match = _CREATIVE_NEED_SECTION_RE.search(plan_text)
+    if not match:
+        return {"need": "unknown", "cr_ids": [], "section_excerpt": ""}
+    section = match.group(1).strip()
+    excerpt = section[:240].replace("\n", " ")
+    need = _classify_creative_need_section(section)
+    cr_ids = sorted(set(_CR_ID_RE.findall(section)))
+    return {"need": need, "cr_ids": cr_ids, "section_excerpt": excerpt}
+
+
+def _shard_needs_creative_closed(value: object) -> bool:
+    text = str(value or "").strip()
+    low = text.lower()
+    return bool(text) and ("closed" in low or "✅" in text)
+
+
+def _shard_needs_creative_open(value: object) -> bool:
+    text = str(value or "").strip().lower()
+    return text.startswith("yes") and "closed" not in text and "✅" not in text
+
+
+def _resolve_decompose_dir(cwd: str | Path, decompose: str | Path | None) -> Path | None:
     root = Path(cwd)
     if decompose is None or not str(decompose).strip():
-        return ["decompose ref missing for validate_decompose_tree"]
-
+        return None
     raw = str(decompose).replace("\\", "/")
     cand = root / raw
     if cand.is_file() and cand.name.endswith((".yaml", ".yml")) and cand.name != "index.yaml":
@@ -807,8 +854,319 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
             if alt2.is_dir():
                 cand = alt2
                 break
+    if cand.is_dir():
+        return cand
+    fallback = root / raw
+    return fallback if fallback.is_dir() else None
 
-    ypath = index_yaml_path(cand if cand.is_dir() else root / raw)
+
+def _plan_path_for_decompose(root: Path, decompose_dir: Path, plan_id: str | None) -> Path | None:
+    slug = decompose_dir.name
+    candidates: list[str] = []
+    if slug.startswith("decompose-"):
+        candidates.append(f"plan-{slug[len('decompose-'):]}.md")
+    if plan_id:
+        candidates.append(f"plan-{plan_id}.md")
+    role_dirs = (
+        root / "memory-bank" / "back" / "plan",
+        root / "memory-bank" / "front" / "plan",
+        root / "memory-bank" / "integration" / "plan",
+    )
+    seen: set[str] = set()
+    for name in candidates:
+        if name in seen:
+            continue
+        seen.add(name)
+        for base in role_dirs:
+            path = base / name
+            if path.is_file():
+                return path
+    return None
+
+
+def _creative_artifact_paths(root: Path, epic_slug: str, role: str) -> list[str]:
+    role_key = role if role in {"back", "front", "integration"} else "back"
+    bases = [
+        root / "memory-bank" / role_key / "creative" / epic_slug,
+        root / "memory-bank" / role_key / "creative",
+    ]
+    found: list[str] = []
+    for base in bases:
+        if not base.is_dir():
+            continue
+        for path in sorted(base.glob("creative-*.md")):
+            try:
+                found.append(str(path.relative_to(root)))
+            except ValueError:
+                found.append(str(path))
+    return found
+
+
+def _index_has_needs_creative_column(index_md: Path) -> bool:
+    if not index_md.is_file():
+        return False
+    try:
+        text = index_md.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return "needs_creative" in text
+
+
+def verify_decompose_creative(cwd: str | Path, decompose: str | Path | None) -> dict[str, Any]:
+    """Advisory CREATIVE gate: plan ↔ decompose alignment (never fail-closed).
+
+    Returns structured verdict + gaps/fixes for the agent to complete before FINISH.
+    CLI exit code should stay 0; use payload['ready'] / payload['verdict'].
+    """
+    from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
+
+    root = Path(cwd)
+    dec_dir = _resolve_decompose_dir(root, decompose)
+    if dec_dir is None:
+        return {
+            "ready": False,
+            "verdict": "error",
+            "plan_creative_need": "unknown",
+            "plan_cr_ids": [],
+            "gaps": [
+                {
+                    "id": "CREATIVE-E1",
+                    "severity": "high",
+                    "message": "decompose directory not found",
+                    "fix": "pass valid --decompose path to verify-decompose-creative",
+                }
+            ],
+            "missing": [],
+            "found": {},
+        }
+
+    ypath = index_yaml_path(dec_dir)
+    if not ypath.is_file():
+        return {
+            "ready": False,
+            "verdict": "error",
+            "plan_creative_need": "unknown",
+            "plan_cr_ids": [],
+            "gaps": [
+                {
+                    "id": "CREATIVE-E2",
+                    "severity": "high",
+                    "message": f"missing index.yaml: {ypath}",
+                    "fix": "create decompose index.yaml before verify",
+                }
+            ],
+            "missing": [],
+            "found": {"decompose_dir": str(dec_dir.relative_to(root))},
+        }
+
+    try:
+        index_doc = load_index_yaml(ypath)
+    except Exception as exc:
+        return {
+            "ready": False,
+            "verdict": "error",
+            "plan_creative_need": "unknown",
+            "plan_cr_ids": [],
+            "gaps": [
+                {
+                    "id": "CREATIVE-E3",
+                    "severity": "high",
+                    "message": f"invalid index.yaml: {exc}",
+                    "fix": "repair decompose index.yaml schema",
+                }
+            ],
+            "missing": [],
+            "found": {},
+        }
+
+    plan_id = str((index_doc or {}).get("plan_id") or "").strip() or None
+    epic_slug = dec_dir.name.removeprefix("decompose-") if dec_dir.name.startswith("decompose-") else dec_dir.name
+    plan_path = _plan_path_for_decompose(root, dec_dir, plan_id)
+    plan_info = {"need": "unknown", "cr_ids": [], "section_excerpt": ""}
+    if plan_path and plan_path.is_file():
+        try:
+            plan_info = _parse_plan_creative_need(plan_path.read_text(encoding="utf-8"))
+        except OSError:
+            plan_info = {"need": "unknown", "cr_ids": [], "section_excerpt": ""}
+
+    steps = steps_from_doc(index_doc if isinstance(index_doc, dict) else {})
+    shard_rows: list[dict[str, Any]] = []
+    role = "back"
+    cr_in_shards_without_gate: list[str] = []
+
+    for step in steps:
+        rel = (step.get("file") or "").strip()
+        sid = (step.get("id") or "").strip()
+        if not rel:
+            continue
+        shard_path = ypath.parent / Path(rel).name
+        if not shard_path.is_file():
+            shard_path = ypath.parent / rel
+        if not shard_path.is_file():
+            continue
+        try:
+            doc = load_decompose(shard_path)
+        except Exception:
+            continue
+        role = doc.role or role
+        nc = doc.needs_creative
+        row = {
+            "step_id": sid,
+            "needs_creative": nc,
+            "closed": _shard_needs_creative_closed(nc),
+            "open": _shard_needs_creative_open(nc),
+        }
+        shard_rows.append(row)
+        blob = f"{doc.goal or ''} {' '.join(doc.delta)}"
+        for cr in _CR_ID_RE.findall(blob):
+            if not _shard_needs_creative_closed(nc) and not _shard_needs_creative_open(nc):
+                cr_in_shards_without_gate.append(f"{sid}:{cr}")
+
+    creative_files = _creative_artifact_paths(root, epic_slug, role)
+    closed_shards = [r["step_id"] for r in shard_rows if r["closed"]]
+    open_shards = [r["step_id"] for r in shard_rows if r["open"]]
+    all_no = bool(shard_rows) and all(
+        str(r.get("needs_creative") or "no").strip().lower() == "no" for r in shard_rows
+    )
+    index_md = dec_dir / "index.md"
+    index_has_nc_col = _index_has_needs_creative_column(index_md)
+
+    gaps: list[dict[str, str]] = []
+    missing: list[str] = []
+    need = plan_info["need"]
+    plan_cr_ids: list[str] = plan_info["cr_ids"]
+
+    if need == "no":
+        verdict = "pass"
+        ready = True
+    elif need == "unknown":
+        verdict = "unknown"
+        ready = False
+        gaps.append(
+            {
+                "id": "CREATIVE-U1",
+                "severity": "medium",
+                "message": "plan CREATIVE need section missing or ambiguous",
+                "fix": "add ### CREATIVE need to plan with **да** / **нет** before DECOMPOSE FINISH",
+            }
+        )
+        if not plan_path:
+            missing.append("plan markdown for decompose epic")
+    elif need == "yes":
+        has_closure = bool(closed_shards) or bool(creative_files)
+        if has_closure:
+            verdict = "pass"
+            ready = True
+            uncovered = [cr for cr in plan_cr_ids if not any(cr in (r.get("needs_creative") or "") for r in shard_rows)]
+            if uncovered and not creative_files:
+                gaps.append(
+                    {
+                        "id": "CREATIVE-W1",
+                        "severity": "low",
+                        "message": f"plan CR ids not referenced in shard needs_creative: {', '.join(uncovered)}",
+                        "fix": "mention CR ids in closed shard needs_creative or creative artifact",
+                    }
+                )
+                ready = False
+                verdict = "gaps"
+        else:
+            verdict = "gaps"
+            ready = False
+            missing.append("BACK CREATIVE session or s01 ADR shard with needs_creative: yes (CR-…) — **closed**")
+            if plan_cr_ids:
+                missing.append(f"closed CR resolution for: {', '.join(plan_cr_ids)}")
+            if creative_files:
+                missing.clear()
+                verdict = "pass"
+                ready = True
+            elif all_no:
+                gaps.append(
+                    {
+                        "id": "CREATIVE-G1",
+                        "severity": "high",
+                        "message": (
+                            f"plan CREATIVE need=да ({', '.join(plan_cr_ids) or 'CR-*'}), "
+                            "but all decompose shards have needs_creative: no"
+                        ),
+                        "fix": (
+                            f"BACK CREATIVE {plan_id or epic_slug} → creative artifact, "
+                            "or add s01 with needs_creative: yes (CR-…) — **closed** + ADR rewire"
+                        ),
+                    }
+                )
+            if open_shards:
+                gaps.append(
+                    {
+                        "id": "CREATIVE-G2",
+                        "severity": "high",
+                        "message": f"open creative gate on steps: {', '.join(open_shards)}",
+                        "fix": "run BACK CREATIVE and rewire to — **closed**, or implement ADR in s01",
+                    }
+                )
+        if cr_in_shards_without_gate:
+            gaps.append(
+                {
+                    "id": "CREATIVE-G3",
+                    "severity": "high",
+                    "message": (
+                        "CR ids mentioned in shard goal/delta but needs_creative not set: "
+                        + ", ".join(sorted(set(cr_in_shards_without_gate))[:8])
+                    ),
+                    "fix": "set needs_creative: yes (CR-…) on affected shard per workflow-decompose §4a",
+                }
+            )
+            ready = False
+            verdict = "gaps"
+        if not index_has_nc_col and shard_rows:
+            gaps.append(
+                {
+                    "id": "CREATIVE-G4",
+                    "severity": "low",
+                    "message": "index.md queue table missing needs_creative column",
+                    "fix": "add needs_creative column to ## Очередь шагов in index.md",
+                }
+            )
+    else:
+        verdict = "unknown"
+        ready = False
+
+    return {
+        "ready": ready,
+        "verdict": verdict,
+        "plan_creative_need": need,
+        "plan_cr_ids": plan_cr_ids,
+        "plan_path": str(plan_path.relative_to(root)) if plan_path else None,
+        "decompose_dir": str(dec_dir.relative_to(root)),
+        "gaps": gaps,
+        "missing": missing,
+        "found": {
+            "creative_artifacts": creative_files,
+            "closed_shards": closed_shards,
+            "open_shards": open_shards,
+            "index_needs_creative_column": index_has_nc_col,
+        },
+        "plan_excerpt": plan_info.get("section_excerpt") or "",
+    }
+
+
+def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> list[str]:
+    """Schema gate for every sNN|eNN in decompose index.yaml (DECOMPOSE FINISH).
+
+    Fail-closed on invented schemas / missing role / as_built not list —
+    i.e. anything EpicDecomposeDoc rejects. Full lint (verify runnable, …)
+    remains `validate-step` / `validate_decompose_full` (opt-in / IMPLEMENT).
+    """
+    from epic_index import index_yaml_path, load_index_yaml, steps_from_doc
+
+    root = Path(cwd)
+    if decompose is None or not str(decompose).strip():
+        return ["decompose ref missing for validate_decompose_tree"]
+
+    cand = _resolve_decompose_dir(root, decompose)
+    if cand is None:
+        return [f"decompose directory not found: {decompose}"]
+
+    ypath = index_yaml_path(cand)
     if not ypath.is_file():
         return [f"missing decompose index.yaml: {ypath}"]
 

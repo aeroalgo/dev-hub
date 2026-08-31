@@ -23,6 +23,7 @@ from epic import (  # noqa: E402
 from epic.core import active_context_path, checkpoint_lock_path, checkpoint_path, load_checkpoint  # noqa: E402
 from epic_paths import epic_id_from_decompose_path  # noqa: E402
 from _lib import merged_project_env_map  # noqa: E402
+from analyze_gate import analyze_required_before_implement  # noqa: E402
 
 QUEUE_VERSION = "roadmap-queue/v1"
 DEFAULT_ROADMAP = "memory-bank/back/plan/roadmap-epics.md"
@@ -270,7 +271,7 @@ def resolve_entry(
     epic_id: str,
     plan_name: str,
 ) -> dict[str, Any]:
-    """Smart entry: DECOMPOSE / IMPLEMENT|CREATIVE / QA / REFLECT / done."""
+    """Smart entry: DECOMPOSE / ANALYZE / IMPLEMENT|CREATIVE / QA / REFLECT / done."""
     root = Path(cwd)
     slug = resolve_epic_slug(root, role, epic_id)
     plan = plan_path(root, role, plan_name)
@@ -309,12 +310,29 @@ def resolve_entry(
     next_step = find_next_decompose_step_from_queue(steps)
     decomp_rel = idx.relative_to(root).as_posix()
     if next_step is not None:
+        gate = analyze_required_before_implement(
+            root, role, slug, steps, index_path=idx
+        )
+        plan_rel = plan.relative_to(root).as_posix()
+        if gate.get("required"):
+            return {
+                "ok": True,
+                "epic": slug,
+                "queue_id": epic_id,
+                "phase": "ANALYZE",
+                "plan": plan_rel,
+                "decompose": decomp_rel,
+                "step_id": next_step.get("step_id"),
+                "analyze_reason": gate.get("reason"),
+                "analyze_path": gate.get("analyze_path"),
+                "critical_count": gate.get("critical_count"),
+            }
         return {
             "ok": True,
             "epic": slug,
             "queue_id": epic_id,
             "phase": "IMPLEMENT",
-            "plan": plan.relative_to(root).as_posix(),
+            "plan": plan_rel,
             "decompose": decomp_rel,
             "step_id": next_step.get("step_id"),
         }
@@ -426,6 +444,84 @@ def _clear_checkpoint(cwd: Path) -> None:
     clear_runner_checkpoint(cwd)
 
 
+def _arm_analyze_context(
+    cwd: Path,
+    *,
+    role: str,
+    epic_id: str,
+    plan_rel: str,
+    decompose_rel: str,
+    analyze_reason: str,
+) -> dict[str, Any]:
+    from epic_paths import is_reserved_role_epic_id
+
+    if is_reserved_role_epic_id(epic_id):
+        return {
+            "ok": False,
+            "armed": False,
+            "reason": (
+                f"epic_id must not be a role slug: {epic_id!r} "
+                "(forbidden: back|front|integration|integ)"
+            ),
+            "diagnostic_code": "epic_id_reserved",
+            "epic": epic_id,
+        }
+    if role == "integration":
+        role_u = "INTEG"
+    elif role == "front":
+        role_u = "FRONT"
+    else:
+        role_u = "BACK"
+    plan_name = Path(plan_rel).name
+    plan_link = plan_rel.removeprefix("memory-bank/")
+    decomp_yaml = decompose_rel
+    if decomp_yaml.endswith("index.md"):
+        decomp_yaml = decomp_yaml[: -len("index.md")] + "index.yaml"
+    decomp_link = decomp_yaml.removeprefix("memory-bank/")
+    decomp_dir = Path(decompose_rel).parent.name
+    body = (
+        f"## load_now\n"
+        f"- [{plan_name}]({plan_link})\n"
+        f"- [`{decomp_dir}/index.yaml`]({decomp_link})\n"
+        f"\n"
+        f"## Handoff {role_u} ANALYZE — {epic_id}\n"
+        f"- **Эпик:** {epic_id}\n"
+        f"- **Статус:** PENDING ANALYZE (pre-IMPLEMENT gate)\n"
+        f"- **Reason:** {analyze_reason}\n"
+        f"- **Дальше:**\n"
+        f"  - `{role_u} ANALYZE` → `memory-bank/{role}/analyze/{epic_id}/analyze-*.yaml`\n"
+        f"  - При `critical_count > 0`: fix plan/decompose → `@analyze-verify` → "
+        f"re-ANALYZE или fix до `critical_count=0`\n"
+        f"  - Loop откроет IMPLEMENT когда gate pass\n"
+        f"\n"
+        f"## done\n"
+        f"- Roadmap advance: armed ANALYZE for {epic_id}.\n"
+    )
+    _clear_checkpoint(cwd)
+    atomic_write_text(active_context_path(cwd), body)
+    st = load_epic_state(cwd)
+    st["armed_epic"] = epic_id
+    st["armed_decompose"] = decomp_yaml
+    st["armed_step"] = "ANALYZE"
+    st["role"] = role_u
+    st["active"] = True
+    st["status"] = "armed"
+    st["halt_reason"] = None
+    st["pending_fingerprint_before"] = None
+    save_epic_state(cwd, st)
+    return {
+        "ok": True,
+        "armed": True,
+        "complete": False,
+        "epic": epic_id,
+        "phase": "ANALYZE",
+        "plan": plan_rel,
+        "decompose": decompose_rel,
+        "role": role_u,
+        "analyze_reason": analyze_reason,
+    }
+
+
 def _arm_decompose_context(
     cwd: Path,
     *,
@@ -504,6 +600,23 @@ def arm_roadmap_entry(cwd: str | Path, selection: dict[str, Any]) -> dict[str, A
             role=role,
             epic_id=entry.get("queue_id") or epic_id,
             plan_rel=entry["plan"],
+        )
+    if phase == "ANALYZE":
+        decompose = entry.get("decompose")
+        if not decompose:
+            return {
+                "ok": False,
+                "armed": False,
+                "reason": "missing decompose for ANALYZE",
+                "epic": epic_id,
+            }
+        return _arm_analyze_context(
+            root,
+            role=role,
+            epic_id=entry.get("queue_id") or epic_id,
+            plan_rel=entry["plan"],
+            decompose_rel=decompose,
+            analyze_reason=str(entry.get("analyze_reason") or "analyze_required"),
         )
     decompose = entry.get("decompose")
     if not decompose:

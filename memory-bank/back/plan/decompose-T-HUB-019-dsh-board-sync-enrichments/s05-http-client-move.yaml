@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+step_id: s05
+title: "HttpHostClient.move after upsert — fail-closed, FakeClient.moves log"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Карточки с status != todo попадают в правильную колонку на board сразу после create/update.
+  move(task_id, status) fail-closed при 4xx; ошибка не останавливает sync batch.
+
+as_built:
+  - "loop/board_sync/client.py: HttpHostClient не имеет метода move"
+  - "loop/board_sync/client.py: BoardClient Protocol не объявляет move"
+  - "loop/board_sync/client.py: FakeClient.upsert сохраняет card но moves не отслеживаются"
+  - "loop/board_sync/sync.py (или apply_ops): move не вызывается после upsert → карточки застревают в default column"
+
+delta:
+  - "ADD move(task_id: str, status: str) -> None в BoardClient Protocol"
+  - "ADD HttpHostClient.move: POST /tasks/{task_id}/status {'status': status}; 4xx → BoardClientError; transport error → BoardClientError"
+  - "ADD FakeClient.moves: list[tuple[str, str]] = field(default_factory=list); move() → append"
+  - "EDIT sync apply_ops: после create/update — если card.status != 'todo' → client.move(card.id, card.status); BoardClientError → append failed_id, continue batch"
+
+deletes: []
+
+out_of_scope:
+  - "description body — s01-s03"
+  - "status mapping logic — s04"
+  - "mb-bridge TS — s06"
+
+context:
+  consumes:
+    - "loop/board_sync/client.py — HttpHostClient, BoardClient Protocol, FakeClient"
+    - "loop/board_sync/sync.py — apply_ops или основной sync цикл"
+    - "plan T-HUB-019 §HTTP apply, §Fail-closed"
+  produces:
+    - "loop/board_sync/client.py (изменён)"
+    - "loop/board_sync/sync.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-019 §Зафиксированные решения: HTTP apply"
+    - "plan-T-HUB-019 AC−: Fail-closed: move 4xx → BoardClientError"
+  files:
+    - "loop/board_sync/client.py"
+    - "loop/board_sync/sync.py"
+    - "loop/tests/test_board_sync_http_client.py"
+    - "loop/tests/test_board_sync_sync.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "HttpHostClient.move: 200 → no exception; 4xx → BoardClientError; transport → BoardClientError"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_http_client.py -k move -q --tb=line`"
+  - id: cp2
+    criterion: "FakeClient.moves содержит (task_id, status) после вызова move"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k fake_client_moves -q --tb=line`"
+  - id: cp3
+    criterion: "apply_ops: create с status=backlog → client.move вызван"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k move_after_upsert -q --tb=line`"
+  - id: cp4
+    criterion: "apply_ops: move BoardClientError → failed_id в report, batch продолжается"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_sync.py -k move_fail_graceful -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_http_client.py loop/tests/test_board_sync_sync.py -q --tb=line`"
+
+tdd:
+  - "test_http_client_move_200_no_exception"
+  - "test_http_client_move_4xx_board_client_error"
+  - "test_http_client_move_transport_board_client_error"
+  - "test_fake_client_move_recorded"
+  - "test_apply_ops_move_on_create_backlog"
+  - "test_apply_ops_move_on_update_running"
+  - "test_apply_ops_no_move_for_todo"
+  - "test_apply_ops_move_error_continues_batch"
+
+requirements_covered:
+  - "FR-007"
+  - "NFR-004 (move 4xx graceful)"

@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: Handoff recovery after regex miss — centralized extract chain wire-in
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить opt-in LLM fallback для Handoff только после regex miss в extract chain:
+  `extract_handoff_block` → regex → (flag+miss) → `extract_handoff_block_llm_fallback`.
+  Централизованно — НЕ inline в `repair_fingerprint_stall` (soft clarification plan).
+  Happy path byte-stable; trigger order typed→regex→LLM never skipped (FR-002, US-001, AC+2, AC−2).
+
+context:
+  consumes:
+    - "s03 — run_handoff_extract"
+    - "s01 — hooks_llm_enabled(handoff)"
+    - ".claude/hooks/epic/core.py — extract_handoff_block, fingerprint_context, validate_active_context_shape"
+    - "plan-T-HUB-023 §Trigger order"
+  produces:
+    - ".claude/hooks/epic/core.py — extract_handoff_block_llm_fallback, wire in extract_handoff_block"
+  plan_refs:
+    - "plan-T-HUB-023 FR-002"
+    - "plan-T-HUB-023 US-001"
+    - "plan-T-HUB-023 AC+ #2"
+    - "plan-T-HUB-023 AC− #2"
+    - "plan-T-HUB-023 §НУЖНО УТОЧНИТЬ — resolve: centralized extract only"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - "loop/tests/test_hooks_llm_handoff_wire.py"
+
+as_built:
+  - "extract_handoff_block — regex only: ^## Handoff"
+  - "repair_fingerprint_stall — deterministic, No LLM docstring"
+  - "extract_handoff_block_llm_fallback — отсутствует"
+
+delta:
+  - "ADD extract_handoff_block_llm_fallback(text) -> str|None — calls run_handoff_extract; formats ## Handoff block from HandoffExtract if confident"
+  - "EDIT extract_handoff_block: after regex empty AND hooks_llm_enabled(handoff) AND len(text)>=min_chars → call llm fallback; return synthesized block or ''"
+  - "repair_fingerprint_stall — НЕ вызывать LLM напрямую (unchanged deterministic path)"
+  - "On successful LLM apply: defer counter increment to s07 (callback hook or return flag)"
+
+deletes: []
+
+out_of_scope:
+  - "increment_drift_counter call — s07"
+  - "Golden fixtures full suite — s08"
+  - "Verdict/abort wire — s05, s06"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md  # S03 hook must not crash on LLM miss
+    - .agents/skills/python-resilience/SKILL.md  # S10 optional recovery path fail-soft
+
+checkpoints:
+  - id: cp1
+    criterion: "extract_handoff_block_llm_fallback определён"
+    verify: "rg 'def extract_handoff_block_llm_fallback' .claude/hooks/epic/core.py"
+  - id: cp2
+    criterion: "Golden regex input unchanged when flags off"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_handoff_wire.py::test_handoff_regex_unchanged_flags_off -q"
+  - id: cp3
+    criterion: "Mock LLM: malformed prose → non-empty handoff when flags on"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_handoff_wire.py::test_handoff_llm_fallback_recovers -q"
+  - id: cp4
+    criterion: "repair_fingerprint_stall не импортирует llm_structured"
+    verify: "rg 'llm_structured|run_handoff' .claude/hooks/epic/core.py | rg -v 'extract_handoff_block_llm' || true; rg 'llm_structured' .claude/hooks/epic/core.py -c | awk '{exit ($1>2)}'"
+
+verify: []
+
+tdd:
+  - "test_handoff_regex_unchanged_flags_off — byte-stable golden"
+  - "test_handoff_llm_fallback_recovers — mock run_handoff_extract"
+  - "test_extract_handoff_block_skips_llm_when_regex_hits"

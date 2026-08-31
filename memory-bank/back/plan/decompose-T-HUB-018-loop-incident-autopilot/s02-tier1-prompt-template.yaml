@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s02
+title: "Prompt + runbook injection — tier1_prompt.py + runbook context loader"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Tier-1 сессия получает строго ограниченный prompt: incident context, runbook для конкретного diagnostic_code,
+  hard scope из allowlist — и ничего лишнего (no product code, no secrets).
+  Prompt детерминированный: воспроизводим при retry с тем же incident_id.
+
+as_built:
+  - "loop/incidents/tier1.py создан в s01 (eligibility only)"
+  - "loop/incidents/runbooks/<code>.md созданы в T-HUB-017 s09"
+  - "нет механизма сборки prompt для incident-сессии"
+delta:
+  - "ADD loop/incidents/tier1_prompt.py — функция build_tier1_prompt(incident: IncidentRecord, epic_dir: Path, scope_allowlist: list[str]) -> str: формирует BUGFIX-prompt: §Incident, §Runbook (inject text из runbooks/<code>.md), §Scope (allowlist), §Forbidden writes, §Goal, §Verify command"
+  - "ADD loop/incidents/tier1_prompt.py — функция load_runbook(diagnostic_code: str, runbooks_dir: Path = None) -> str: читает runbooks/<code>.md; если нет — возвращает 'No runbook for <code>' (не падает)"
+  - "ADD loop/incidents/tier1_prompt.py — функция format_scope_block(allowlist: list[str]) -> str: форматирует allowed paths как bulleted list + FORBIDDEN block"
+  - "Prompt НЕ включает: project secrets, product src/** кроме allowlist, raw logs > 20 строк"
+  - "ADD loop/tests/test_incidents_tier1_prompt.py — unit: runbook inject; missing runbook fallback; scope block contains all allowed paths; forbidden block present; prompt stable для одинакового input"
+deletes: []
+out_of_scope:
+  - "scope.py guard (s03)"
+  - "фактический spawn сессии (s04)"
+  - "verify gate (s05)"
+
+context:
+  consumes:
+    - "plan §FR-002: prompt template + runbook injection"
+    - "plan §зафиксированные решения: Forbidden writes list"
+    - "loop/incidents/runbooks/ (из T-HUB-017 s09)"
+    - "loop/incidents/tier1.py (из s01)"
+  produces:
+    - "loop/incidents/tier1_prompt.py"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-002"
+    - "plan-T-HUB-018 §зафиксированные решения: scope hard limit"
+  files:
+    - "loop/incidents/tier1_prompt.py"
+    - "loop/tests/test_incidents_tier1_prompt.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "build_tier1_prompt возвращает строку с §Runbook содержащей текст из runbooks/active_context_shape_invalid.md"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_prompt.py -k runbook_inject -q --tb=line`"
+  - id: cp2
+    criterion: "missing runbook → fallback 'No runbook for <code>' без исключения"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_prompt.py -k missing_runbook_fallback -q --tb=line`"
+  - id: cp3
+    criterion: "scope block содержит все пути из allowlist + FORBIDDEN block"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_prompt.py -k scope_block_present -q --tb=line`"
+  - id: cp4
+    criterion: "prompt детерминирован: два вызова с одинаковым incident → идентичный вывод"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_tier1_prompt.py -k prompt_deterministic -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_tier1_prompt.py -q --tb=line`"
+
+tdd:
+  - "test_prompt_contains_runbook_text"
+  - "test_missing_runbook_no_exception"
+  - "test_prompt_contains_all_allowed_paths"
+  - "test_prompt_contains_forbidden_block"
+  - "test_prompt_stable_same_input"
+  - "test_prompt_no_secrets_in_output"
+
+requirements_covered:
+  - FR-002
+  - "plan §зафиксированные решения: Forbidden writes в prompt"
+  - "AC+ #1 partial (scope in prompt)"
+  - "US-001 partial (runbook context for repair)"

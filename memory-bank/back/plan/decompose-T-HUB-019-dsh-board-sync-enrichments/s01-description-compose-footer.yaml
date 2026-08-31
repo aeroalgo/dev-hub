@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+step_id: s01
+title: "Two-part description — compose_description + footer parse round-trip"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  UI карточек на доске читает markdown body (не пустой YAML), а metadata остаётся machine-readable в footer.
+  Все последующие шаги (s02–s05) строятся поверх compose_description / parse_metadata footer-формата.
+
+as_built:
+  - "loop/board_sync/card_model.py: serialize_metadata(card) → чистый YAML без body; description в UI пустой"
+  - "loop/board_sync/card_model.py: parse_metadata(description) парсит всю строку как YAML"
+  - "loop/board_sync/diff.py: work_item_card и gate_card — description=serialize_metadata(card)"
+
+delta:
+  - "ADD константу _FOOTER_DELIMITER = '\\n---\\nmb-board-card/v1\\n' в card_model.py"
+  - "EDIT serialize_metadata → строит footer-only строку: delimiter + YAML (без body; обратная совместимость — пустой body)"
+  - "ADD compose_description(body: str | None, card) -> str → '{body or \"\"}\\n{delimiter}{yaml}'"
+  - "EDIT parse_metadata: split по delimiter; если delimiter отсутствует — пробует весь текст как YAML (legacy fallback)"
+  - "EDIT diff._without_generation: работает через parse_metadata + serialize_metadata (без изменений если footer корректен)"
+  - "EDIT diff.work_item_card и gate_card: description=compose_description(None, card) (body=None пока s02/s03)"
+
+deletes: []
+
+out_of_scope:
+  - "Фактическое наполнение body (step shard — s02, gate plan — s03)"
+  - "status/column mapping — s04"
+  - "HTTP move — s05"
+  - "mb-bridge TS — s06"
+
+context:
+  consumes:
+    - "loop/board_sync/card_model.py — serialize_metadata, parse_metadata"
+    - "loop/board_sync/diff.py — _without_generation, work_item_card, gate_card"
+    - "plan T-HUB-019 §Human description (two-part, delimiter стабилен)"
+  produces:
+    - "loop/board_sync/card_model.py (изменён)"
+    - "loop/board_sync/diff.py (изменён)"
+  plan_refs:
+    - "plan-T-HUB-019 §Зафиксированные решения: Human description, Metadata parser"
+  files:
+    - "loop/board_sync/card_model.py"
+    - "loop/board_sync/diff.py"
+    - "loop/tests/test_board_sync_card_model.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "serialize_metadata footer round-trip: serialize → parse возвращает тот же card"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k serialize_metadata -q --tb=line`"
+  - id: cp2
+    criterion: "parse_metadata legacy fallback: чистый YAML без delimiter парсится корректно"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k parse_metadata -q --tb=line`"
+  - id: cp3
+    criterion: "compose_description round-trip: body+card → parse возвращает card; body сохранён"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py -k compose_description -q --tb=line`"
+  - id: cp4
+    criterion: "_same_content в diff не ломается после изменения формата description"
+    verify: "`.venv/bin/pytest loop/tests/test_board_sync_diff.py -k same_content -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_board_sync_card_model.py loop/tests/test_board_sync_diff.py -q --tb=line`"
+
+tdd:
+  - "test_serialize_metadata_footer_contains_delimiter"
+  - "test_serialize_metadata_footer_round_trip_step_card"
+  - "test_serialize_metadata_footer_round_trip_gate_card"
+  - "test_parse_metadata_legacy_fallback_pure_yaml"
+  - "test_compose_description_body_preserved_before_delimiter"
+  - "test_compose_description_none_body_no_leading_newline"
+  - "test_without_generation_footer_format"
+
+requirements_covered:
+  - "FR-001 (two-part description)"
+  - "NFR-005 (legacy parse fallback)"

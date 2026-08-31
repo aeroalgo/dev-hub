@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-018-loop-incident-autopilot
+step_id: s08
+title: "Tier1 metrics + events — tier1_attempts/resolved/escalated + event emission"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Tier1-инциденты полностью наблюдаемы: каждое событие жизненного цикла tier1
+  (spawn, verify_pass, verify_fail, escalated) испускает события в events.jsonl (система из T-HUB-017)
+  и обновляет счётчики в metrics.json (tier1_attempts_total, tier1_resolved_total, tier1_escalated_total).
+  Без этого шага metrics.json (017) не имеет tier1-специфичных полей, что нарушает observability.
+
+as_built:
+  - "loop/incidents/events.py из T-HUB-017: emit_event(slug, event_type, payload) → events.jsonl"
+  - "loop/incidents/metrics.py из T-HUB-017: rolling window counters (tier0_attempts_total, etc.)"
+  - "tier1_runner.py (s04) вызывает spawn/verify/escalate, но не испускает события"
+  - "нет tier1_* ключей в metrics schema"
+delta:
+  - "ADD loop/incidents/events.py — новые event_type константы: 'tier1_spawn', 'tier1_verify_pass', 'tier1_verify_fail', 'tier1_escalated'; payload включает incident_id, attempt_number, diagnostic_codes"
+  - "MODIFY loop/incidents/tier1_runner.py — после каждого ключевого действия: emit_event(slug, event_type, payload); (1) перед spawn → 'tier1_spawn'; (2) verify PASS → 'tier1_verify_pass'; (3) verify FAIL → 'tier1_verify_fail'; (4) escalate → 'tier1_escalated'"
+  - "MODIFY loop/incidents/metrics.py — добавить счётчики в metrics schema: tier1_attempts_total, tier1_resolved_total, tier1_escalated_total; update_metrics() обновляет их при emit tier1_* событий"
+  - "ADD loop/tests/test_incidents_metrics_tier1.py — unit: tier1_spawn event записывается в events.jsonl; verify_pass инкрементирует tier1_resolved_total; escalated инкрементирует tier1_escalated_total; payload не содержит prompt text или secrets"
+deletes: []
+out_of_scope:
+  - "board metrics / UI (s09 soft)"
+  - "tier0 metrics (уже в 017)"
+  - "regression suite (s10)"
+  - "CLI display metrics (s07 уже отдельно)"
+
+context:
+  consumes:
+    - "plan §FR-010: Metrics: tier1_attempts_total, tier1_resolved_total, tier1_escalated_total"
+    - "plan §NFR: all metrics via existing metrics.json rolling window"
+    - "loop/incidents/events.py (emit_event из 017)"
+    - "loop/incidents/metrics.py (update_metrics, schema из 017)"
+    - "loop/incidents/tier1_runner.py (из s04)"
+  produces:
+    - "loop/incidents/events.py (modified — новые event_type)"
+    - "loop/incidents/metrics.py (modified — tier1_* counters)"
+    - "loop/incidents/tier1_runner.py (modified — emit calls)"
+    - "loop/tests/test_incidents_metrics_tier1.py"
+  plan_refs:
+    - "plan-T-HUB-018 §FR-010"
+    - "plan-T-HUB-018 §NFR: metrics observability"
+    - "plan-T-HUB-018 §зафиксированные решения: Observability stack из 017 без дублирования"
+  files:
+    - "loop/incidents/events.py"
+    - "loop/incidents/metrics.py"
+    - "loop/incidents/tier1_runner.py"
+    - "loop/tests/test_incidents_metrics_tier1.py"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "tier1_spawn event → событие записано в events.jsonl с incident_id и attempt_number"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -k tier1_spawn_event -q --tb=line`"
+  - id: cp2
+    criterion: "tier1_verify_pass → metrics tier1_resolved_total инкрементируется"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -k verify_pass_increments_resolved -q --tb=line`"
+  - id: cp3
+    criterion: "tier1_escalated → metrics tier1_escalated_total инкрементируется"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -k escalated_increments_counter -q --tb=line`"
+  - id: cp4
+    criterion: "event payload не содержит prompt text, env tokens или secrets"
+    verify: "`.venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -k payload_no_secrets -q --tb=line`"
+
+verify:
+  - "`.venv/bin/pytest loop/tests/test_incidents_metrics_tier1.py -q --tb=line`"
+
+tdd:
+  - "test_tier1_spawn_event_written_to_jsonl"
+  - "test_tier1_verify_pass_event"
+  - "test_tier1_verify_fail_event"
+  - "test_tier1_escalated_event"
+  - "test_tier1_resolved_total_increments"
+  - "test_tier1_escalated_total_increments"
+  - "test_event_payload_no_secrets_no_prompt"
+
+requirements_covered:
+  - FR-010
+  - "US-001 partial (observability via events)"
+  - "US-002 partial (escalated_total tracks exhaustion)"
+  - "plan §NFR: all metrics via rolling window"
+  - "plan §зафиксированные решения: Observability stack из 017"

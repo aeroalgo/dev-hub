@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-022
+title: "Wire load_epic_state / save_epic_state + drift counter increment helper"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать `load_epic_state()` в `epic/core.py` — parse через `EpicState.model_validate(data)`
+  в режиме fail-soft: ValidationError → log diagnostic `state_schema_invalid` + return safe default
+  (сохранить поведение сегодня, но surface ошибку в `_state_diagnostics`).
+  Переписать `save_epic_state()` — `EpicState(**state).model_dump()` → json; strict write.
+  Добавить helper `increment_drift_counter(cwd, counter_name)` — load/increment/save атомарно.
+  Убедиться что `_state_diagnostics()` корректно возвращает `state_schema_invalid` для corrupt/invalid.
+  US-001, US-004, FR-001, FR-003.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py:load_epic_state(), save_epic_state(), _state_diagnostics() — текущая impl"
+    - "loop/schemas/state.py — EpicState, DriftCounters (из s02)"
+    - "loop/tests/test_schemas_state.py — golden fixtures (из s02)"
+    - "plan-T-HUB-022 §Fail-soft read, §Strict write, §Backward compat"
+  produces:
+    - ".claude/hooks/epic/core.py — load_epic_state, save_epic_state, increment_drift_counter (EDIT)"
+    - "loop/tests/test_state_io.py — новые тесты wire"
+  plan_refs:
+    - "plan-T-HUB-022 US-001 — state_schema_invalid diagnostic"
+    - "plan-T-HUB-022 US-004 — state_schema_version"
+    - "plan-T-HUB-022 AC+1 — fail-soft read: invalid → diagnostic + safe defaults"
+    - "plan-T-HUB-022 AC+3 — save_epic_state: strict write via EpicState"
+    - "plan-T-HUB-022 FR-003 — drift_counters"
+  files:
+    - ".claude/hooks/epic/core.py"
+    - "loop/tests/test_state_io.py"
+
+as_built:
+  - "load_epic_state — plain dict merge с setdefault; no Pydantic; ValidationError impossible"
+  - "save_epic_state — ручная сборка dict; state_schema_version ставится вручную строкой"
+  - "_state_diagnostics — базовая проверка state_schema_version key; no Pydantic"
+  - "increment_drift_counter — функция отсутствует"
+
+delta:
+  - ".claude/hooks/epic/core.py EDIT load_epic_state — добавить EpicState.model_validate; fail-soft ValidationError→state_schema_invalid"
+  - ".claude/hooks/epic/core.py EDIT save_epic_state — сериализовать через EpicState(**state).model_dump() перед json.dumps"
+  - ".claude/hooks/epic/core.py ADD increment_drift_counter(cwd, counter_name: str) — atomic load/increment/save"
+  - "loop/tests/test_state_io.py CREATE — corrupt JSON → load → state_schema_invalid; increment_drift_counter round-trip"
+
+deletes: []
+
+out_of_scope:
+  - "EpicState модель — s02"
+  - "CheckpointRecord — s04"
+  - "repair_* counter wiring — s12"
+  - "Удаление dict-validation — s16"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+    - python-design-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "load_epic_state использует EpicState.model_validate (или model_construct fail-soft)"
+    verify: "rg 'EpicState|model_validate' .claude/hooks/epic/core.py | rg 'load_epic_state|EpicState'"
+  - id: cp2
+    criterion: "save_epic_state сериализует через EpicState перед json.dumps"
+    verify: "rg 'EpicState' .claude/hooks/epic/core.py | rg 'save'"
+  - id: cp3
+    criterion: "increment_drift_counter определён в epic/core.py"
+    verify: "rg 'def increment_drift_counter' .claude/hooks/epic/core.py"
+  - id: cp4
+    criterion: "test_state_io.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_state_io.py -q --tb=short"
+  - id: cp5
+    criterion: "Существующий suite стабилен (state-related тесты)"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -x"
+
+verify: []
+
+tdd:
+  - "RED: test_load_corrupt_json → state_schema_invalid in _state_diagnostics(cwd)"
+  - "RED: test_load_wrong_type_active → state_schema_invalid diagnostic + safe default returned"
+  - "RED: test_save_round_trip → json file contains state_schema_version loop-state/v2 + drift_counters"
+  - "RED: test_increment_drift_counter → counter handoff_projected goes 0→1→2 across saves"
+  - "GREEN: реализовать wire; тесты зелёные"

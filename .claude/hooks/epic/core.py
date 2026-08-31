@@ -17,7 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import sys
 import yaml
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 logger = logging.getLogger(__name__)
 
@@ -413,18 +418,18 @@ def utc_now() -> str:
 
 
 def default_state() -> dict[str, Any]:
-    return {
-        "active": False,
-        "status": "idle",
-        "started_at": None,
-        "updated_at": None,
-        "halt_reason": None,
-        "model": None,
-        "last_verify_verdict": None,
-        "last_verify_at": None,
-        "pending_fingerprint_before": None,
-        "load_now_before": None,
-    }
+    from loop.schemas.state import EpicState
+    return EpicState().model_dump()
+
+
+def increment_drift_counter(cwd: str | Path, name: str) -> None:
+    st = load_epic_state(cwd)
+    drift = st.get("drift_counters")
+    if not isinstance(drift, dict):
+        drift = {}
+    drift[name] = int(drift.get(name) or 0) + 1
+    st["drift_counters"] = drift
+    save_epic_state(cwd, st)
 
 
 def load_epic_state(cwd: str | Path) -> dict[str, Any]:
@@ -436,9 +441,12 @@ def load_epic_state(cwd: str | Path) -> dict[str, Any]:
         data = json.loads(p.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             return st
-        for k, v in st.items():
-            data.setdefault(k, v)
-        return data
+        from loop.schemas.state import EpicState
+        try:
+            validated = EpicState.model_validate(data).model_dump()
+            return validated
+        except Exception:
+            return st
     except (OSError, TypeError, ValueError):
         return st
 
@@ -453,7 +461,12 @@ def _state_diagnostics(cwd: str | Path) -> list[str]:
         return ["state_schema_invalid"]
     if not isinstance(data, dict):
         return ["state_schema_invalid"]
-    if data.get("state_schema_version") != "loop-state/v2":
+    from loop.schemas.state import EpicState
+    try:
+        EpicState.model_validate(data)
+    except Exception:
+        return ["state_schema_invalid"]
+    if data.get("state_schema_version") != "loop-state/v2" and data.get("schema_version") != "loop-state/v2":
         return ["state_migrated"]
     return []
 
@@ -483,6 +496,7 @@ def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
     state["updated_at"] = utc_now()
     projection = state.get("projection") if isinstance(state.get("projection"), dict) else {}
     state["state_schema_version"] = "loop-state/v2"
+    state["schema_version"] = "loop-state/v2"
     state["runtime"] = _runtime_snapshot(state)
     state["dag"] = {
         "pipeline_id": state.get("dag_pipeline") or state.get("pipeline_id"),
@@ -1348,6 +1362,16 @@ def mirror_verify_verdict(
     save_epic_state(cwd, st)
 
 
+def mirror_gate_verdict(
+    cwd: str | Path,
+    verdict: str | None,
+    *,
+    agent_id: str = "verify",
+    evidence: dict[str, Any] | None = None,
+) -> None:
+    return mirror_verify_verdict(cwd, verdict, evidence=evidence)
+
+
 def gate_evidence_matches(cwd: str | Path, evidence: object) -> tuple[bool, str]:
     """Match persisted verdict evidence against the current runner projection."""
     from _lib import gate_identity, match_gate_evidence
@@ -1432,6 +1456,81 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
     return None
 
 
+def remap_decompose_to_archive(
+    cwd: str | Path, decompose: str | Path | None
+) -> str | None:
+    """When live decompose index was moved to archive/, return archive rel path."""
+    if decompose is None or not isinstance(decompose, (str, Path)):
+        return None
+    raw = str(decompose).replace("\\", "/")
+    if "/archive/" in raw or raw.startswith("memory-bank/archive/"):
+        return None
+    parts = raw.split("/")
+    if len(parts) < 4 or parts[0] != "memory-bank" or parts[1] == "archive":
+        return None
+    archived = "/".join(["memory-bank", "archive", *parts[1:]])
+    idx = _decompose_index_path(cwd, archived)
+    if idx is None:
+        return None
+    ypath = index_yaml_path(idx)
+    if ypath.is_file():
+        return archived
+    return None
+
+
+def decompose_index_yaml_exists(cwd: str | Path, decompose: str | Path | None) -> bool:
+    if decompose is None or not isinstance(decompose, (str, Path)):
+        return False
+    idx = _decompose_index_path(cwd, decompose)
+    if idx is None:
+        return False
+    return index_yaml_path(idx).is_file()
+
+
+def complete_archived_armed_epic(cwd: str | Path) -> dict[str, Any] | None:
+    """Disarm runtime when armed decompose only exists under memory-bank/archive/."""
+    cwd_p = Path(cwd)
+    state = load_epic_state(cwd_p)
+    decompose = (state.get("armed_decompose") or "").strip()
+    if not decompose:
+        return None
+    if decompose_index_yaml_exists(cwd_p, decompose):
+        return None
+    archived_rel = remap_decompose_to_archive(cwd_p, decompose)
+    if not archived_rel:
+        return None
+    loaded = load_decompose_steps_fail_closed(cwd_p, archived_rel)
+    if not loaded.get("ok"):
+        return None
+    steps = loaded.get("steps") or []
+    if not steps:
+        return None
+    open_steps = [
+        s.get("id")
+        for s in steps
+        if (s.get("status") or "").lower() not in {"completed", "done"}
+    ]
+    if open_steps:
+        return None
+    state["active"] = False
+    state["status"] = "complete"
+    state["halt_reason"] = None
+    state["armed_epic"] = None
+    state["armed_decompose"] = None
+    state["armed_step"] = None
+    state["pending_fingerprint_before"] = None
+    state["load_now_before"] = []
+    save_epic_state(cwd_p, state)
+    return {
+        "ok": True,
+        "complete": True,
+        "stop": "ARCHIVE_DONE",
+        "reason": "ARCHIVE_DONE",
+        "archived_decompose": archived_rel,
+        "epic_id": epic_id_from_decompose_path(archived_rel),
+    }
+
+
 def _load_decompose_steps(
     cwd: str | Path, decompose: str | None
 ) -> tuple[Path | None, list[dict[str, str]], str]:
@@ -1482,6 +1581,11 @@ def load_decompose_steps_fail_closed(
         result["error"] = error
         return result
     idx = _decompose_index_path(cwd, decompose)
+    if idx is None:
+        archived = remap_decompose_to_archive(cwd, decompose)
+        if archived:
+            decompose = archived
+            idx = _decompose_index_path(cwd, decompose)
     if idx is None:
         return _index_result("not_found", "index_not_found", message=str(decompose or ""))
 
@@ -1895,10 +1999,12 @@ def repair_index_mirror(
     cwd: str | Path,
     decompose: str | Path | None,
 ) -> dict[str, Any]:
-    """Sync human index.md queue/status from index.yaml. Does not mutate yaml.
+    """Diagnostic logger and counter for index mirror drift. Does not write md.
 
-    If md rows are missing or drifted, rebuilds the queue table from yaml.
+    Sunset: auto md-write purged in s16.
     """
+    increment_drift_counter(cwd, "index_mirror_repair")
+    logger.warning("repair_index_mirror called: diagnostic log only (auto-rewrite purged)")
     if decompose is None or not isinstance(decompose, (str, Path)):
         return {
             "ok": False,
@@ -1906,56 +2012,16 @@ def repair_index_mirror(
         }
     idx = _decompose_index_path(cwd, decompose)
     if idx is None:
+        archived = remap_decompose_to_archive(cwd, decompose)
+        if archived:
+            decompose = archived
+            idx = _decompose_index_path(cwd, decompose)
+    if idx is None:
         return {"ok": False, "error": f"missing decompose index: {decompose}"}
     ypath = index_yaml_path(idx)
     if not ypath.is_file():
         return {"ok": False, "error": f"missing {ypath}"}
-    doc = load_index_yaml(ypath)
-    if doc is None:
-        return {"ok": False, "error": f"failed to load {ypath}"}
-    steps = steps_from_doc(doc)
-    if not steps:
-        return {"ok": False, "error": "index.yaml has no steps"}
-
     drift = md_queue_drift_from_yaml(idx)
-    rebuilt = False
-    mirrored: list[str] = []
-    mode = "unchanged"
-    if drift.get("drift"):
-        rebuild = rebuild_md_queue_from_yaml(idx)
-        if not rebuild.get("ok"):
-            return {
-                "ok": False,
-                "error": rebuild.get("error"),
-                "canon": "index.yaml",
-                "drift": drift,
-            }
-        rebuilt = True
-        mode = "rebuild_queue"
-        mirrored = list(rebuild.get("step_ids") or [s["id"] for s in steps])
-    else:
-        for step in steps:
-            result = mirror_status_to_md(
-                idx, step["id"], step["status"], sync_checklist=True
-            )
-            if not result.get("ok"):
-                rebuild = rebuild_md_queue_from_yaml(idx)
-                if not rebuild.get("ok"):
-                    return {
-                        "ok": False,
-                        "error": result.get("error") or rebuild.get("error"),
-                        "mirrored_steps": mirrored,
-                        "failed_step": step["id"],
-                        "canon": "index.yaml",
-                    }
-                rebuilt = True
-                mode = "rebuild_queue"
-                mirrored = list(rebuild.get("step_ids") or [s["id"] for s in steps])
-                break
-            if not result.get("unchanged"):
-                mirrored.append(step["id"])
-                mode = "mirror_status"
-
     loaded = load_decompose_steps_fail_closed(cwd, str(ypath))
     cwd_p = Path(cwd)
     rel_md = str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)
@@ -1965,12 +2031,12 @@ def repair_index_mirror(
         "canon": "index.yaml",
         "md_path": rel_md,
         "yaml_path": rel_y,
-        "mirrored_steps": mirrored,
-        "md_rebuilt": rebuilt,
-        "mode": mode,
+        "mirrored_steps": [],
+        "md_rebuilt": False,
+        "mode": "log_only",
         "drift": drift,
         "diagnostic_code": loaded.get("diagnostic_code"),
-        "next_step": (find_next_step(steps) or {}).get("id"),
+        "warning": "auto-rewrite purged (diagnostic log only)",
     }
 
 
@@ -2602,7 +2668,7 @@ def _task_id_from_epic(epic_id: str) -> str:
 
 
 def latest_qa_pass_artifact_for_reference(
-    cwd: str | Path, role_dir: str, epic_id: str
+    cwd: str | Path, role_dir: str = "back", epic_id: str = ""
 ) -> Path | None:
     """[REFERENCE ONLY] Latest QA pass artifact — NOT a completion test.
 
@@ -2611,10 +2677,11 @@ def latest_qa_pass_artifact_for_reference(
     cwd_p = Path(cwd)
     hits: list[Path] = []
     for root in _role_mb_roots(cwd_p, role_dir, epic_id=epic_id, kind="qa"):
-        d = root / "qa" / epic_id
+        d = root / "qa" / epic_id if epic_id else root / "qa"
         if not d.is_dir():
             continue
-        for p in sorted(d.glob("qa-*.yaml"), reverse=True):
+        glob_pattern = "qa-*.yaml" if epic_id else "**/qa-*.yaml"
+        for p in sorted(d.glob(glob_pattern), reverse=True):
             try:
                 text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -2626,7 +2693,109 @@ def latest_qa_pass_artifact_for_reference(
     return hits[0] if hits else None
 
 
+def latest_qa_any_artifact_for_reference(
+    cwd: str | Path, role_dir: str = "back", epic_id: str = ""
+) -> Path | None:
+    cwd_p = Path(cwd)
+    hits: list[Path] = []
+    for root in _role_mb_roots(cwd_p, role_dir, epic_id=epic_id, kind="qa"):
+        d = root / "qa" / epic_id if epic_id else root / "qa"
+        if not d.is_dir():
+            continue
+        glob_pattern = "qa-*.yaml" if epic_id else "**/qa-*.yaml"
+        for p in sorted(d.glob(glob_pattern), reverse=True):
+            hits.append(p)
+        if hits:
+            break
+    return hits[0] if hits else None
+
+
 find_qa_pass_artifact = latest_qa_pass_artifact_for_reference
+latest_qa_artifact = latest_qa_any_artifact_for_reference
+
+
+def parse_qa_verdict(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    m = re.search(r"(?m)^verdict:\s*(pass|fail|blocked)\s*$", text)
+    return m.group(1).lower() if m else None
+
+
+def lifecycle_arm_phase(phase: str, decision: dict[str, Any]) -> str:
+    if phase == "QA" and decision.get("reason_code") == "qa_failed":
+        return "BUGFIX"
+    return phase
+
+
+def validate_qa_finish_handoff(
+    cwd: str | Path, body: str, role_dir: str = "back", epic_id: str = ""
+) -> tuple[bool, str | None]:
+    if not epic_id:
+        m = re.search(r"(?m)^epic_id:\s*([^\s]+)", body)
+        if m:
+            epic_id = m.group(1).strip()
+    qa = latest_qa_any_artifact_for_reference(cwd, role_dir, epic_id)
+    if not qa:
+        return False, "QA FINISH без qa-*.yaml — запиши epic-qa/v1 artifact"
+    verdict = parse_qa_verdict(qa)
+    if not verdict:
+        return False, "qa-*.yaml без verdict: pass|fail|blocked"
+    if verdict in {"blocked", "fail"}:
+        if "REFLECT" in body.upper():
+            return False, "QA FINISH: verdict blocked/fail — Handoff BACK BUGFIX, не REFLECT"
+        if "BUGFIX" not in body.upper():
+            return False, "QA FINISH: verdict blocked/fail — Handoff должен быть BACK BUGFIX"
+    return True, None
+
+
+def project_handoff_from_reducer(cwd: str | Path) -> dict[str, Any]:
+    cwd_p = Path(cwd)
+    ac = cwd_p / "memory-bank" / "activeContext.md"
+    if not ac.is_file():
+        return {"ok": True, "projected": False}
+    text = ac.read_text(encoding="utf-8", errors="replace")
+    info = discover_epic_for_pipeline(cwd_p) or {}
+    epic_id = info.get("epic_id") or ""
+    role_dir = info.get("role_dir") or "back"
+
+    if not epic_id:
+        m_epic = re.search(r"decompose-([^/]+)/index\.yaml", text)
+        if not m_epic:
+            m_epic = re.search(r"Handoff\s+BACK\s+\w+\s*—\s*([^\n\s]+)", text)
+        epic_id = m_epic.group(1) if m_epic else ""
+
+    if not epic_id:
+        return {"ok": True, "projected": False}
+
+    decision = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
+    phase = decision.get("phase") or "QA"
+
+    projected = False
+    if phase == "REFLECT" and ("BUGFIX" in text or "mode: BUGFIX" in text or "mode: QA" in text):
+        text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK REFLECT", text)
+        text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK REFLECT`", text_new)
+        text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: REFLECT", text_new)
+        if "schema: loop-handoff/v1" not in text_new:
+            frontmatter = f"---\nschema: loop-handoff/v1\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
+            text_new = frontmatter + text_new
+        ac.write_text(text_new, encoding="utf-8")
+        projected = True
+    elif phase == "DONE" and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text):
+        text_new = re.sub(r"Handoff\s+BACK\s+(REFLECT|BUGFIX|QA)", "Handoff BACK DONE", text)
+        text_new = re.sub(r"`BACK (REFLECT|BUGFIX|QA)`", "`BACK DONE`", text_new)
+        text_new = re.sub(r"mode:\s*(REFLECT|BUGFIX|QA)", "mode: DONE", text_new)
+        ac.write_text(text_new, encoding="utf-8")
+        projected = True
+
+    return {"ok": True, "projected": projected, "phase": phase}
+
+
+def repair_post_implement_handoff_drift(cwd: str | Path) -> dict[str, Any]:
+    return project_handoff_from_reducer(cwd)
 
 
 def find_reflection_artifact(cwd: str | Path, role_dir: str, epic_id: str) -> Path | None:
@@ -2827,13 +2996,22 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
     # Trust armed_decompose from runtime state when present.
     # IMPLEMENT load_now lists index.yaml (canon), not index.md.
     state_decompose = (st.get("armed_decompose") or "").strip()
-    if state_decompose:
+    idx_state = _decompose_index_path(cwd_p, state_decompose) if state_decompose else None
+    if state_decompose and idx_state is not None and idx_state.is_file():
         candidates = {state_decompose.removeprefix("memory-bank/")}
     else:
         candidates = set(re.findall(
             r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/decompose-[A-Za-z0-9._-]+/index\.(?:yaml|md))",
             text,
         ))
+        if not candidates:
+            m_epic = re.search(r"(?:qa|plan)/([A-Za-z0-9._-]+)/", text)
+            if not m_epic:
+                m_epic = re.search(r"Handoff\s+[A-Za-z]+\s+[^\n]*?—\s*([A-Za-z0-9._-]+)", text)
+            if m_epic:
+                epic_id = m_epic.group(1).strip()
+                for p in cwd_p.glob(f"memory-bank/*/plan/decompose-{epic_id}/index.yaml"):
+                    candidates.add(str(p.relative_to(cwd_p)).removeprefix("memory-bank/"))
     if len(candidates) > 1:
         return _index_result("ambiguous", "identity_ambiguous", message=sorted(candidates).__repr__())
     if not candidates:
@@ -2841,7 +3019,7 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
 
     decompose = "memory-bank/" + next(iter(candidates)).removeprefix("memory-bank/")
     idx = _decompose_index_path(cwd_p, decompose)
-    if idx is None or not idx.is_file():
+    if idx is None or (not idx.is_file() and not idx.with_name("index.yaml").is_file()):
         archived = None
         parts = decompose.split("/")
         # memory-bank/<role>/plan/decompose-… → memory-bank/archive/<role>/plan/decompose-…
@@ -2854,13 +3032,16 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                 ["memory-bank", "archive", parts[1], *parts[2:]]
             )
             idx = _decompose_index_path(cwd_p, archived)
-            if idx is not None and idx.is_file():
+            if idx is not None and (idx.is_file() or idx.with_name("index.yaml").is_file()):
                 decompose = archived
-        if idx is None or not idx.is_file():
+        if idx is None or (not idx.is_file() and not idx.with_name("index.yaml").is_file()):
             return _index_result("invalid", "identity_invalid", message=decompose)
     role, role_dir = _role_dir_from_index_path(idx, cwd_p)
-    if role not in {"BACK", "FRONT", "INTEG"} or role_dir not in {"back", "front", "integration"}:
-        return _index_result("invalid", "identity_invalid", idx=idx)
+    if role not in {"BACK", "FRONT", "INTEG"}:
+        m_role = re.search(r"memory-bank/(?:archive/)?(back|front|integration)/", str(idx.as_posix()))
+        if m_role:
+            role_dir = m_role.group(1)
+            role = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(role_dir, "")
     epic_id = epic_id_from_decompose_path(decompose)
     if is_reserved_role_epic_id(epic_id):
         return _index_result(
@@ -2904,6 +3085,7 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
     Without both artifacts the epic is NOT complete — never treat as DONE.
     """
     cwd_p = Path(cwd)
+    project_handoff_from_reducer(cwd_p)
     handoff_phase = handoff_post_implement_phase(read_active_context(cwd_p))
     if handoff_phase in {"AUDIT", "REFLECT", "BUGFIX"}:
         info = discover_epic_for_pipeline(cwd) or {}
@@ -3403,4 +3585,132 @@ def arm_active_context_from_decompose(
         "implement_hub": None,
         "active_context": "memory-bank/activeContext.md",
         "checkpoint_cleared": True,
+    }
+
+
+def arm_epic(cwd: str | Path, epic_id: str, *, role: str = "back") -> dict[str, Any]:
+    """Arm activeContext for epic via resolver (pre-implement / implement / post-implement)."""
+    cwd_p = Path(cwd)
+    from board_sync.epic_resolver import resolve_epic_next_action
+
+    action = resolve_epic_next_action(cwd_p, role, epic_id)
+    phase = (action.phase or "").upper()
+    if phase == "DONE":
+        return {
+            "ok": True,
+            "complete": True,
+            "phase": "DONE",
+            "epic_id": epic_id,
+            "role": role,
+        }
+    if phase in {"PLAN", "DECOMPOSE", "CLARIFY", "ANALYZE", "CREATIVE"}:
+        return arm_pre_implement_context(
+            cwd_p,
+            epic_id=epic_id,
+            role=role,
+            phase=phase,
+            target_rel=action.plan_rel,
+        )
+    if phase == "IMPLEMENT":
+        if not action.decompose_rel:
+            return {
+                "ok": False,
+                "error": f"cannot arm epic {epic_id} in phase {phase} without decompose index",
+            }
+        return arm_active_context_from_decompose(cwd_p, action.decompose_rel)
+    if phase in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
+        qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
+        ref_p = find_reflection_artifact(cwd_p, role, epic_id)
+        rel_idx = action.decompose_rel or f"memory-bank/{role}/plan/decompose-{epic_id}/index.yaml"
+        rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
+        link = rel_idx.removeprefix("memory-bank/")
+        hub_rel = f"memory-bank/hub/plan/plan-{epic_id}.md"
+        body = build_post_implement_active_context(
+            role=role,
+            role_dir=f"memory-bank/{role}",
+            epic_id=epic_id,
+            tracker_rel=rel_idx,
+            tracker_link=link,
+            index_rel=rel_md,
+            hub_rel=hub_rel if (cwd_p / hub_rel).is_file() else None,
+            phase=phase,
+            qa_path=qa_p if qa_p and qa_p.is_file() else None,
+            reflection_path=ref_p if ref_p and ref_p.is_file() else None,
+            cwd=cwd_p,
+            reason_code=action.reason_code,
+        )
+        atomic_write_text(active_context_path(cwd_p), body)
+        clear_runner_checkpoint(cwd_p)
+        st = load_epic_state(cwd_p)
+        st["active"] = True
+        st["status"] = "armed"
+        st["halt_reason"] = None
+        st["armed_epic"] = epic_id
+        st["armed_decompose"] = rel_idx
+        st["armed_step"] = phase
+        st["role"] = role
+        st["pending_fingerprint_before"] = None
+        save_epic_state(cwd_p, st)
+        return {
+            "ok": True,
+            "complete": False,
+            "phase": phase,
+            "epic_id": epic_id,
+            "role": role,
+            "step_id": phase,
+            "status": "pending",
+            "index": rel_idx,
+            "active_context": "memory-bank/activeContext.md",
+            "qa_path": str(qa_p.relative_to(cwd_p)) if qa_p and qa_p.is_file() else None,
+        }
+    return {
+        "ok": False,
+        "error": f"unhandled phase {phase} for epic {epic_id}",
+    }
+
+
+def arm_pre_implement_context(
+    cwd: str | Path,
+    *,
+    epic_id: str,
+    role: str,
+    phase: str,
+    target_rel: str | None,
+) -> dict[str, Any]:
+    """Arm activeContext for pre-implement phases (PLAN, DECOMPOSE, CLARIFY, ANALYZE)."""
+    cwd_p = Path(cwd)
+    phase_u = str(phase or "").upper()
+    role_u = str(role or "back").upper()
+    target_rel = target_rel or f"memory-bank/{role}/plan/plan-{epic_id}.md"
+    link = target_rel.removeprefix("memory-bank/")
+    next_cmd = f"{role_u} {phase_u}"
+    body = (
+        f"---\nschema: loop-handoff/v1\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
+        f"## load_now\n1. [{Path(target_rel).name}]({link}) — source plan/artifact for pre-implement phase {phase_u}.\n\n"
+        f"## Handoff {phase_u}\n"
+        f"- **Эпик:** {epic_id} ({role_u}).\n"
+        f"- **Режим/шаг:** `{next_cmd}`.\n"
+        f"- **Дальше:** выполнить `{next_cmd}`.\n"
+    )
+    atomic_write_text(active_context_path(cwd_p), body)
+    clear_runner_checkpoint(cwd_p)
+    st = load_epic_state(cwd_p)
+    st["active"] = True
+    st["status"] = "armed"
+    st["halt_reason"] = None
+    st["armed_epic"] = epic_id
+    st["armed_decompose"] = None
+    st["armed_step"] = phase_u
+    st["role"] = role
+    st["pending_fingerprint_before"] = None
+    save_epic_state(cwd_p, st)
+    return {
+        "ok": True,
+        "complete": False,
+        "phase": phase_u,
+        "epic_id": epic_id,
+        "role": role,
+        "step_id": phase_u,
+        "target_rel": target_rel,
+        "active_context": "memory-bank/activeContext.md",
     }

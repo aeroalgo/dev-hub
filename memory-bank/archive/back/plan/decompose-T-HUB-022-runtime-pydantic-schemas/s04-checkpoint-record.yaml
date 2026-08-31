@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-022
+title: "CheckpointRecord Pydantic model + validate_checkpoint typed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/schemas/checkpoint.py` с `CheckpointRecord(BaseModel)` — поля из
+  `_CHECKPOINT_SCHEMA / _CHECKPOINT_STAGES / _CHECKPOINT_STATUSES / _CHECKPOINT_ACTIONS`
+  в `epic/core.py`. Перевести `validate_checkpoint()` с dict-inspection на
+  `CheckpointRecord.model_validate(record)` — возвращать `(True, None)` или `(False, error_msg)`.
+  Создать `write_checkpoint()` helper, который сначала валидирует через `CheckpointRecord`.
+  US-002, FR-002.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — _CHECKPOINT_SCHEMA, validate_checkpoint(), load_checkpoint(), write_checkpoint()-pattern, make_runner_checkpoint()"
+    - "loop/schemas/state.py — паттерн (из s02)"
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md — checkpoint field list (из s01)"
+    - "plan-T-HUB-022 §CheckpointRecord, AC+2"
+  produces:
+    - "loop/schemas/checkpoint.py — CheckpointRecord"
+    - "loop/schemas/__init__.py EDIT — re-export CheckpointRecord"
+    - ".claude/hooks/epic/core.py EDIT — validate_checkpoint → CheckpointRecord-based"
+    - "loop/tests/test_schemas_checkpoint.py — invalid field → error_msg"
+  plan_refs:
+    - "plan-T-HUB-022 US-002 — typed CheckpointRecord"
+    - "plan-T-HUB-022 AC+2 — validate_checkpoint: invalid → structured error"
+    - "plan-T-HUB-022 FR-002 — CheckpointRecord Pydantic"
+  files:
+    - "loop/schemas/checkpoint.py"
+    - ".claude/hooks/epic/core.py"
+    - "loop/tests/test_schemas_checkpoint.py"
+
+as_built:
+  - "validate_checkpoint() — dict inspection через frozensets _CHECKPOINT_STAGES/_STATUSES/_ACTIONS"
+  - "load_checkpoint() — raw json.loads; validate_checkpoint вызывается но не Pydantic"
+  - "make_runner_checkpoint() — ручная сборка dict"
+  - "CheckpointRecord — отсутствует в loop/schemas/"
+
+delta:
+  - "loop/schemas/checkpoint.py CREATE — CheckpointRecord с Literal fields, schema_version=loop-checkpoint/v1"
+  - "loop/schemas/__init__.py EDIT — добавить CheckpointRecord"
+  - ".claude/hooks/epic/core.py EDIT validate_checkpoint — внутри CheckpointRecord.model_validate; catch ValidationError → (False, error)"
+  - "loop/tests/test_schemas_checkpoint.py CREATE — missing field / wrong status / wrong action → error_msg"
+
+deletes: []
+
+out_of_scope:
+  - "EpicState — s02/s03"
+  - "LoopEvent — s05"
+  - "Удаление frozenset-констант — s16 или inline при реализации (если safe)"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "CheckpointRecord существует в loop/schemas/checkpoint.py"
+    verify: "rg 'class CheckpointRecord' loop/schemas/checkpoint.py"
+  - id: cp2
+    criterion: "validate_checkpoint использует CheckpointRecord внутри"
+    verify: "rg 'CheckpointRecord' .claude/hooks/epic/core.py"
+  - id: cp3
+    criterion: "test_schemas_checkpoint.py проходит"
+    verify: ".venv/bin/pytest loop/tests/test_schemas_checkpoint.py -q --tb=short"
+  - id: cp4
+    criterion: "Regression: checkpoint-dependent тесты стабильны"
+    verify: ".venv/bin/pytest loop/tests/test_checkpoint_resume.py loop/tests/test_checkpoint_next_step_advance.py -q --tb=line"
+
+verify: []
+
+tdd:
+  - "RED: test_checkpoint_missing_field → validate_checkpoint returns (False, error_msg)"
+  - "RED: test_checkpoint_wrong_status → (False, 'invalid status: …')"
+  - "RED: test_checkpoint_valid → (True, None)"
+  - "RED: test_checkpoint_round_trip → make_runner_checkpoint → CheckpointRecord.model_validate passes"
+  - "GREEN: CheckpointRecord + обновить validate_checkpoint"

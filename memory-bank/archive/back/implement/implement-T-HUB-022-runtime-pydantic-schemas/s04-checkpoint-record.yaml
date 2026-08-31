@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-022
+title: s04 — CheckpointRecord Pydantic model + validate_checkpoint typed IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-022-runtime-pydantic-schemas/s04-checkpoint-record.yaml
+skills_used:
+- python-design-patterns
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created CheckpointRecord Pydantic schema in loop/schemas/checkpoint.py with loop-checkpoint/v1
+  validation
+- Re-exported CheckpointRecord and constants in loop/schemas/__init__.py
+- Updated validate_checkpoint in .claude/hooks/epic/core.py to use CheckpointRecord.model_validate
+- Added unit tests in loop/tests/test_schemas_checkpoint.py
+files:
+- loop/schemas/checkpoint.py
+- loop/schemas/__init__.py
+- .claude/hooks/epic/core.py
+- loop/tests/test_schemas_checkpoint.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_schemas_checkpoint.py loop/tests/test_checkpoint_resume.py
+  loop/tests/test_checkpoint_next_step_advance.py -q --tb=short`'
+integration_check:
+- loop/schemas/checkpoint.py re-exported in loop/schemas/__init__.py and used by .claude/hooks/epic/core.py
+  validate_checkpoint
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: CheckpointRecord существует в loop/schemas/checkpoint.py
+  status: done
+  done_at: '2026-08-31T00:44:48Z'
+- id: cp2
+  criterion: validate_checkpoint использует CheckpointRecord внутри
+  status: done
+  done_at: '2026-08-31T00:45:10Z'
+- id: cp3
+  criterion: test_schemas_checkpoint.py проходит
+  status: done
+  done_at: '2026-08-31T00:45:28Z'
+- id: cp4
+  criterion: 'Regression: checkpoint-dependent тесты стабильны'
+  status: done
+  done_at: '2026-08-31T00:45:49Z'
+resume_from: cp4

@@ -30,4 +30,4 @@ alwaysApply: false
 ## Abort
 
 - Нет task context → VAN
-- Блокирующие неясности → grill-me (skill из workflow)
+- Блокирующие неясности после skip CLARIFY → mini grill в PLAN §Product probe или `continue BACK CLARIFY`

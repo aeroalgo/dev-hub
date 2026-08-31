@@ -468,11 +468,11 @@ def load_runner_owner(path: str | Path) -> RunnerOwner | None:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         return RunnerOwner(
             pid=int(data["pid"]),
-            host=str(data["host"]),
-            started_at=str(data["started_at"]),
-            session_id=str(data["session_id"]),
-            selected_identity=str(data["selected_identity"]),
-            mode=str(data["mode"]),
+            host=str(data.get("host", "unknown")),
+            started_at=str(data.get("started_at", "")),
+            session_id=str(data.get("session_id", "unknown")),
+            selected_identity=str(data.get("selected_identity", "unknown")),
+            mode=str(data.get("mode", "unknown")),
             model=str(data.get("model", "")),
             timeout_config=dict(data.get("timeout_config", {})),
         )
@@ -1289,12 +1289,28 @@ def record_verdict(
     return matched, diagnostic
 
 
-def extract_verdict(text: str | None) -> str | None:
-    """Last line-start VERDICT: PASS|FAIL|BLOCKED wins (agents may draft then correct).
+def extract_verdict(
+    text: str | None,
+    *,
+    cwd: str | None = None,
+    agent_id: str = "verify",
+) -> str | None:
+    """Read gate verdict from typed sidecar first; transcript regex is legacy fallback."""
+    if cwd:
+        try:
+            import sys
+            from pathlib import Path
 
-    Ignore mid-line / backtick-quoted mentions from SubagentStart contracts
-    (``VERDICT: PASS`` или ``VERDICT: FAIL``) that otherwise poison transcript tails.
-    """
+            loop_root = Path(__file__).resolve().parents[2]
+            if loop_root.is_dir() and str(loop_root) not in sys.path:
+                sys.path.insert(0, str(loop_root))
+            from loop.gate_verdict_store import read_gate_verdict
+
+            record = read_gate_verdict(cwd, agent_id)
+            if record is not None:
+                return record.verdict
+        except Exception:
+            pass
     if not text:
         return None
     matches = list(
@@ -1302,6 +1318,12 @@ def extract_verdict(text: str | None) -> str | None:
     )
     if not matches:
         return None
+    if cwd:
+        try:
+            from epic import increment_drift_counter
+            increment_drift_counter(cwd, "gate_verdict_regex_fallback")
+        except Exception:
+            pass
     return matches[-1].group(1).upper()
 
 

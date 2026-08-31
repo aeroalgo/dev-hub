@@ -9,6 +9,7 @@
 ## Зависимости
 
 - Системный / внешний `python3`; у хаба есть собственный `.venv` (pytest для loop)
+- Hub deps install: `.venv/bin/pip install -r requirements-hub.txt` (pydantic-ai + pydantic>=2)
 - Claude Code CLI (сессии loop)
 - Cursor IDE (rules / hooks)
 

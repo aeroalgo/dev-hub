@@ -9,7 +9,7 @@ alwaysApply: false
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md
-- @.agents/skills/grill-me/SKILL.md (только блокирующие неясности)
+- @.agents/skills/grill-me/SKILL.md — **не** inline в PLAN; product challenge = **BACK CLARIFY Phase 0** (mandatory). При skip CLARIFY (spike) — mini grill (3 premises) в plan §Product probe
 - @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch, без HARD-GATE пауз)
 - @.agents/skills/python-testing-patterns/SKILL.md
 - @.agents/skills/fastapi-templates/SKILL.md (если FastAPI в techContext)

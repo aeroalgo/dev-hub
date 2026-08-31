@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-021
+title: "Pin research — pydantic-ai × OmniRoute compat matrix + requirements-hub.txt"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `requirements-hub.txt` с pinned `pydantic-ai` и совместимыми зависимостями;
+  подтвердить Python ≥ 3.11 в hub .venv и совместимость pydantic-ai с OmniRoute OpenAI-compat API.
+  Зафиксировать compat matrix в research note. FR-001, AC+1.
+
+context:
+  consumes:
+    - ".claude/project.env — PROJECT_OUTPUT_SUMMARY_URL, MODEL, KEY_FILE"
+    - ".claude/hooks/_lib.py — load_output_summary_env (env contract)"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md FR-001, §Стек, §Assumptions"
+    - ".venv/bin/python — hub venv version ≥ 3.11 assumption"
+  produces:
+    - "requirements-hub.txt — pydantic-ai pin + pydantic>=2, httpx if needed"
+    - "memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md — version pins + OmniRoute note"
+  plan_refs:
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md FR-001"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md AC+1"
+    - "plan-T-HUB-021-pydantic-ai-output-cap.md §Assumptions — Python ≥ 3.11, OmniRoute base_url"
+  files:
+    - "requirements-hub.txt"
+    - "memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md"
+
+as_built:
+  - "requirements-hub.txt — отсутствует (нет файла в корне dev-hub)"
+  - ".venv — pydantic>=2 уже установлен (epic_yaml.py использует Pydantic v2)"
+  - "memory-bank/back/plan/refs/ — директория создана в T-HUB-016"
+
+delta:
+  - "requirements-hub.txt CREATE — pydantic-ai>=X.Y.Z, pydantic>=2.0, httpx>=X.Y (если нужен)"
+  - "memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md CREATE — версии, base_url compat note"
+
+deletes: []
+
+out_of_scope:
+  - "Установка в CI/CD — только note"
+  - "llm_structured.py — s02"
+  - "Изменение .venv напрямую — только requirements-hub.txt; pip install делает разработчик"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "requirements-hub.txt содержит pydantic-ai и pydantic>=2"
+    verify: "rg -E 'pydantic-ai|pydantic>=' requirements-hub.txt"
+  - id: cp2
+    criterion: "hub .venv python version ≥ 3.11"
+    verify: "rg 'Python 3\\.' memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md"
+  - id: cp3
+    criterion: "pydantic-ai installable без конфликтов в hub .venv (dry-run)"
+    verify: "rg 'pydantic-ai' memory-bank/back/plan/refs/T-HUB-021-compat-matrix.md"
+
+verify: []
+
+tdd:
+  - "Нет unit-тестов для этого шага (research + file create)"
+  - "cp1–cp3 верифицируют pin без тестового фреймворка"

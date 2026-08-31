@@ -1,0 +1,84 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-021-pydantic-ai-output-cap
+plan_id: T-HUB-021-pydantic-ai-output-cap
+date: 2026-08-31
+auditor: BACK AUDIT
+
+summary:
+  total_steps: 8
+  implemented: 8
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_inventory:
+  - source_ref: AC-001
+    intent: "pydantic-ai pin in requirements-hub.txt"
+    step_id: s01
+    assessment: satisfied
+  - source_ref: AC-002
+    intent: "LogSummary and LogError Pydantic models in llm_structured.py"
+    step_id: s02
+    assessment: satisfied
+  - source_ref: AC-003
+    intent: "make_output_cap_agent and run_log_summary sync runner with retries"
+    step_id: s03
+    assessment: satisfied
+  - source_ref: AC-004
+    intent: "bash-output-cap.py structured path integration and build_view rendering"
+    step_id: s04
+    assessment: satisfied
+  - source_ref: AC-005
+    intent: "Unit tests with mocked agent, no network, TDD red->green"
+    step_id: s05
+    assessment: satisfied
+  - source_ref: AC-006
+    intent: "Legacy urllib _http_chat and free-text llm_summarize purge + STRUCTURED=0 removal"
+    step_id: s06
+    assessment: satisfied
+  - source_ref: AC-007
+    intent: "project.env flag comment + techContext.md install note + loop/README snippet"
+    step_id: s07
+    assessment: satisfied
+  - source_ref: AC-008
+    intent: "AUDIT §0.11 env keys vs code parity check"
+    step_id: s08
+    assessment: satisfied
+
+gap_matrix:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s01-pin-research-compat.yaml
+    status: satisfied
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s02-log-summary-models.yaml
+    status: satisfied
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s03-agent-factory-sync-runner.yaml
+    status: satisfied
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s04-bash-output-cap-integration.yaml
+    status: satisfied
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s05-unit-tests-mocked.yaml
+    status: satisfied
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s06-legacy-sunset-purge.yaml
+    status: satisfied
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s07-env-docs.yaml
+    status: satisfied
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-021-pydantic-ai-output-cap/s08-audit-env-keys.yaml
+    status: satisfied
+
+not_implemented: []
+deviations: []
+legacy_surfaces_remaining: []
+fallback_remaining: []
+purge_step_present: true
+blocked_reason: ""
+
+notes:
+  - "Все 8 шагов реализации T-HUB-021-pydantic-ai-output-cap полностью выполнены и покрывают все критерии приемки."
+  - "Матрица not_implemented[] пуста. Следующий режим: BACK QA."

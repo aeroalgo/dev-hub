@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-022
+title: "Inventory all state/checkpoint/event/handoff/gate fields from code + tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Произвести полный статический инвентарь всех machine-readable границ loop:
+  поля state.json, checkpoint.json, events.jsonl, activeContext frontmatter, gate sidecar.
+  Зафиксировать as-built в `memory-bank/back/plan/refs/T-HUB-022-field-inventory.md`.
+  Вычислить расхождения между spike-schemas (loop/schemas/*.py) и реальными dict-ключами
+  в epic/core.py `default_state()`, `save_epic_state()`, `validate_checkpoint()`.
+  Итог: coverage matrix US-001…US-009 vs. конкретные файлы/функции. FR-001–FR-007.
+
+context:
+  consumes:
+    - ".claude/hooks/epic/core.py — load_epic_state, save_epic_state, validate_checkpoint, default_state, repair_*"
+    - ".claude/hooks/epic_events.py — EVENT_SCHEMA, build_event, append_event"
+    - ".claude/hooks/stop-gate.py — extract_verdict, finalize_step"
+    - "loop/schemas/handoff.py — LoopHandoffFrontmatter (spike)"
+    - "loop/schemas/gate_verdict.py — GateVerdictRecord (spike)"
+    - "loop/schemas/active_context.py — parse_frontmatter, extract_handoff_phase"
+    - "loop/gate_verdict_store.py — read_gate_verdict, write_gate_verdict"
+    - "loop/board_sync/card_model.py — StepCard, GateCard (dataclasses)"
+    - ".claude/hooks/epic_yaml.py — EpicDecomposeIndex, EpicDecomposeShard (pattern ref)"
+    - "loop/tests/test_*.py — fixture field sets"
+  produces:
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md"
+  plan_refs:
+    - "plan-T-HUB-022 §Зафиксированные решения"
+    - "plan-T-HUB-022 US-001–US-009"
+    - "plan-T-HUB-022 FR-001–FR-007"
+  files:
+    - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md"
+
+as_built:
+  - "loop/schemas/ — 3 spike files: handoff.py, gate_verdict.py, active_context.py"
+  - "epic/core.py default_state() — dict без Pydantic, ключи: active, status, phase, epic_id, step_id, ..."
+  - "validate_checkpoint() — dict schema: schema (loop-checkpoint/v1), status, action, resume_policy, ..."
+  - "save_epic_state() — вручную ставит state_schema_version=loop-state/v2, но нет Pydantic"
+  - "_state_diagnostics() — проверяет state_schema_version; при ошибке → state_schema_invalid"
+  - "epic_events.EVENT_SCHEMA — dict schema loop-event/v1"
+  - "loop/board_sync/card_model.py — StepCard/GateCard как dataclasses без Pydantic"
+  - "drift_counters — отсутствует в state (нет поля в default_state)"
+
+delta:
+  - "memory-bank/back/plan/refs/T-HUB-022-field-inventory.md CREATE — field matrix: state/cp/event/handoff/gate + gap vs spike"
+
+deletes: []
+
+out_of_scope:
+  - "Любая правка production-кода — только инвентарь"
+  - "EpicState модель — s02"
+  - "CheckpointRecord модель — s04"
+
+skills:
+  code_surface: python
+  impl:
+    - python-design-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "Inventory md создан и содержит секции: state.json, checkpoint.json, events.jsonl, handoff frontmatter, gate sidecar"
+    verify: "rg -c 'state.json|checkpoint.json|events.jsonl|frontmatter|gate sidecar' memory-bank/back/plan/refs/T-HUB-022-field-inventory.md"
+  - id: cp2
+    criterion: "Все 9 US покрыты в matrix (строки US-001..US-009)"
+    verify: "rg 'US-00[1-9]' memory-bank/back/plan/refs/T-HUB-022-field-inventory.md | wc -l"
+  - id: cp3
+    criterion: "drift_counters absent gap зафиксирован"
+    verify: "rg 'drift_counter' memory-bank/back/plan/refs/T-HUB-022-field-inventory.md"
+
+verify: []
+
+tdd:
+  - "Нет unit-тестов для этого шага (read-only inventory)"
+  - "cp1–cp3 верифицируют coverage matrix без тестового фреймворка"

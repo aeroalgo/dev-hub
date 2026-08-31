@@ -5,9 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .card_model import parse_metadata
+from .card_model import CardKind, parse_metadata
 from .client import TaskBoardClient
 from .diff import BoardOp, archive_all_task_ids, compute_ops
+from .scan_epics import scan_epics
 from .scan_gates import scan_gates
 from .scan_mb import scan_steps
 from .workspaces import WorkspaceRef
@@ -47,26 +48,27 @@ def run_sync(
         else workspace_refs
     )
     steps = scan_steps(selected)
+    epics = scan_epics(selected)
     gates = scan_gates(selected, steps)
     existing = board_client.list_tasks()
     previous_generation = _generation(existing)
-    if gates.errors:
+    if gates.errors or epics.errors:
         # Roadmap configuration errors are fail-closed: do not apply a partial
         # projection that could hide the missing or corrupt queue state.
         return SyncResult(
             sync_generation=previous_generation,
             operations=(),
-            errors=(*steps.errors, *gates.errors),
+            errors=(*steps.errors, *epics.errors, *gates.errors),
         )
     generation = previous_generation + 1
     operations = compute_ops(
-        steps,
+        epics,
         existing,
         gates,
         sync_generation=generation,
     )
-    archive_all_ids = archive_all_task_ids(existing, gates)
-    if any(gate.archive_all for gate in gates):
+    archive_all_ids = archive_all_task_ids(existing, gates, step_era_archive=True)
+    if archive_all_ids:
         operations = [
             operation
             for operation in operations
@@ -82,16 +84,25 @@ def run_sync(
             BoardOp("archive", task_id=task_id)
             for task_id in sorted(archive_all_ids - known_archive_ids)
         )
+    from .client import BoardClientError
+    sync_errors: list[str] = list(steps.errors) + list(epics.errors) + list(gates.errors)
     if not dry_run:
         for operation in operations:
             if operation.kind in {"create", "update"} and operation.card is not None:
                 board_client.upsert(operation.card)
+                if operation.card.status != "todo":
+                    try:
+                        board_client.move(operation.card.id, operation.card.status)
+                    except BoardClientError as exc:
+                        sync_errors.append(
+                            f"move failed for {operation.card.id}: {exc}"
+                        )
             elif operation.kind == "archive" and operation.task_id is not None:
                 board_client.archive(operation.task_id)
     return SyncResult(
         sync_generation=generation,
         operations=tuple(operations),
-        errors=(*steps.errors, *gates.errors),
+        errors=tuple(sync_errors),
     )
 
 

@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s09 — Docs + optional 015 stub — WORKFLOW.md + board soft hook + runbook update
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-018-loop-incident-autopilot/s09-docs-workflow-board-soft.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated loop/WORKFLOW.md with section §Incident Autopilot
+- Added loop/incidents/runbooks/tier1_recovery.md
+- Implemented loop/incidents/board_soft.py (fail-soft board metadata hook)
+- Integrated board_soft in loop/incidents/alert.py
+- Added unit tests in loop/tests/test_incidents_board_soft.py
+files:
+- loop/WORKFLOW.md
+- loop/incidents/runbooks/tier1_recovery.md
+- loop/incidents/board_soft.py
+- loop/incidents/alert.py
+- loop/tests/test_incidents_board_soft.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_board_soft.py loop/tests/test_incidents_cli.py
+  loop/tests/test_check_after_tier1_wire.py -q --tb=line`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_board_soft.py -q --tb=line`'
+grep_control: []
+verification_results:
+- 'cp1: verified via rg Incident Autopilot'
+- 'cp2: verified via rg incident-retry'
+- 'cp3: pytest test_board_soft_no_bridge_no_op pass'
+- 'cp4: pytest test_board_soft_bridge_exception_fail_soft pass'
+checkpoints:
+- id: cp1
+  criterion: loop/WORKFLOW.md содержит раздел §Incident Autopilot с env vars + CLI
+    commands
+  status: done
+  done_at: '2026-08-30T20:58:03Z'
+- id: cp2
+  criterion: tier1_recovery.md содержит шаги с incident-retry + NEED_HUMAN
+  status: done
+  done_at: '2026-08-30T20:57:53Z'
+- id: cp3
+  criterion: 'board_soft: без bridge → no-op без exception (fail-soft)'
+  status: done
+  done_at: '2026-08-30T20:57:42Z'
+- id: cp4
+  criterion: 'board_soft: bridge exception → log warning + continue (fail-soft)'
+  status: done
+  done_at: '2026-08-30T20:57:45Z'
+resume_from: cp1
