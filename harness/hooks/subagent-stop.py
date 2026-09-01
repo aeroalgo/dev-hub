@@ -10,6 +10,7 @@ from _lib import (
     product_cwd,  # noqa: E402
     clear_in_flight,
     current_gate_identity,
+    extract_repair_result,
     extract_verdict,
     load_state,
     mark_verdict_recorded,
@@ -132,12 +133,43 @@ def main() -> None:
                 )
         if verdict == "FAIL":
             print(
-                "verify VERDICT: FAIL — parent чинит blockers в ЭТОМ эпике "
-                "(pending cp / gaps / harness / parity / seed), потом снова @verify. "
-                "Не FINISH. FORBIDDEN: BLOCKED + отдельный bugfix для incomplete AC.",
+                "verify VERDICT: FAIL — parent: @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) "
+                "или чини blockers сам, затем retry @verify. "
+                "Не FINISH. FORBIDDEN: «ожидаю verify», BLOCKED + отдельный bugfix для incomplete AC.",
                 file=sys.stderr,
             )
             return
+        return
+
+    if agent_type == "gate-repair":
+        result = extract_repair_result(msg)
+        clear_in_flight(st, agent=str(agent_type))
+        st["repair_in_flight"] = False
+        if not result:
+            save_state(session_id, cwd, st)
+            print(
+                "gate-repair: обязателен JSON fence loop-repair-result/v1 "
+                "(status done|partial|fail).",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        status = str(result.get("status") or "fail").lower()
+        st["repair_done"] = True
+        st["repair_status"] = status
+        st["repair_result"] = result
+        save_state(session_id, cwd, st)
+        if status in {"done", "partial"}:
+            print(
+                f"gate-repair: status={status} — parent retry @verify с packed prompt; "
+                "FORBIDDEN FINISH до VERDICT: PASS.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "gate-repair: status=fail — parent расширь ALLOW WRITE / blockers, "
+                "затем retry @gate-repair или @verify.",
+                file=sys.stderr,
+            )
         return
 
     if agent_type in {"reviewer", "verify-qa"} and verdict:

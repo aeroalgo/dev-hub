@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-041-harness-canonical-extract
+title: "git mv .claude/{hooks,agents,instructions} → harness/ (SoT переезжает)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переместить реальные файлы поведения из `.claude/hooks`, `.claude/agents`, `.claude/instructions`
+  в `harness/hooks`, `harness/agents`, `harness/instructions` через `git mv`.
+  После шага все .py-файлы hooks и .md-файлы agents/instructions живут под harness/;
+  `.claude/{hooks,agents,instructions}` временно становятся пустыми директориями
+  (symlinks создадут s03). Это ключевой атомарный переезд без изменения поведения.
+
+context:
+  consumes:
+    - harness/hooks/__init__.py  # из s01
+    - harness/agents/__init__.py
+    - harness/instructions/__init__.py
+  produces:
+    - harness/hooks/*.py  # все .py-файлы из .claude/hooks
+    - harness/agents/*.md
+    - harness/instructions/*.md
+  plan_refs:
+    - "FR-002"
+    - "plan §Files touch matrix"
+    - "TM-005 (git mv broken imports)"
+  files:
+    - harness/hooks/  # destination
+    - harness/agents/
+    - harness/instructions/
+    - .claude/hooks/  # станет пустой (удаляется как dir в s03)
+    - .claude/agents/
+    - .claude/instructions/
+
+as_built:
+  - ".claude/hooks/ — реальная директория: stop-gate.py, epic_resolve.py, session-start.py, и ~25 других .py"
+  - ".claude/agents/ — реальная директория: analyze-verify.md, verify-*.md (6 файлов)"
+  - ".claude/instructions/ — реальная директория: spawn-hard.md, epic-loop.md, loop-state.md, program-loop.md, read-before-edit.md"
+
+delta:
+  - "git mv .claude/hooks/* harness/hooks/ (перемещение всех .py-файлов)"
+  - "git mv .claude/agents/* harness/agents/"
+  - "git mv .claude/instructions/* harness/instructions/"
+  - "rmdir .claude/hooks .claude/agents .claude/instructions (пустые dirs после mv)"
+
+deletes:
+  - ".claude/hooks/ (реальная директория — удаляется, заменяется symlink в s03)"
+  - ".claude/agents/ (реальная директория)"
+  - ".claude/instructions/ (реальная директория)"
+
+out_of_scope:
+  - "Создание symlinks (s03)"
+  - "Исправление импортов в loop/ (s04)"
+  - "Правка тестов (s05)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/hooks/ содержит перемещённые файлы (stop-gate.py присутствует)"
+    verify: "test -f harness/hooks/stop-gate.py && echo OK"
+  - id: cp2
+    criterion: ".claude/hooks не является реальной директорией (удалена)"
+    verify: "test ! -d .claude/hooks && echo 'dir removed OK' || (test -L .claude/hooks && echo 'symlink OK')"
+  - id: cp3
+    criterion: "git mv зафиксирован корректно (файлы в git status как renamed)"
+    verify: "git status --short harness/ | head -10"
+  - id: cp4
+    criterion: "Нет __pycache__ / .pyc мусора в harness/ после mv"
+    verify: "find harness/ -name '__pycache__' -o -name '*.pyc' | wc -l"
+
+verify:
+  - "test -f harness/hooks/stop-gate.py"
+  - "test -f harness/hooks/epic_resolve.py"
+  - "test -f harness/agents/verify-implement.md"
+  - "rg 'stop-gate' harness/hooks/stop-gate.py | head -3"
+
+tdd:
+  - "test: harness/hooks/stop-gate.py существует и импортируется (нет broken imports)"
+  - "test: harness/agents/*.md != [] (перемещено ≥1 файла)"

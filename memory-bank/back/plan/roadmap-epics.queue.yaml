@@ -2,18 +2,21 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-039
-    plan: plan-T-HUB-039-phase-verify-agents-runtime.md
-    deps: []
-  - id: T-HUB-036
-    plan: plan-T-HUB-036-harness-decompose-formulas.md
-    deps: []
-  - id: T-HUB-037
-    plan: plan-T-HUB-037-harness-parallel-snn.md
-    deps: []
   - id: T-HUB-038
     plan: plan-T-HUB-038-harness-metrics-dashboard.md
     deps: []
   - id: T-HUB-040
     plan: plan-T-HUB-040-harness-workflow-finish-api.md
     deps: []
+  - id: T-HUB-041
+    plan: plan-T-HUB-041-harness-canonical-extract.md
+    deps: []
+  - id: T-HUB-042
+    plan: plan-T-HUB-042-runtime-adapter-framework.md
+    deps: [T-HUB-041]
+  - id: T-HUB-043
+    plan: plan-T-HUB-043-runtime-bridge-codex.md
+    deps: [T-HUB-042]
+  - id: T-HUB-044
+    plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
+    deps: [T-HUB-043]

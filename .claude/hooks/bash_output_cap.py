@@ -1,1 +1,0 @@
-/home/aero/PyProject/dev-hub/.claude/hooks/bash-output-cap.py

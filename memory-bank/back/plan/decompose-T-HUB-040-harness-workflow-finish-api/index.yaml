@@ -1,0 +1,61 @@
+schema: decompose-index/v1
+plan_id: T-HUB-040-harness-workflow-finish-api
+role: back
+next_phase: BACK IMPLEMENT
+epic_id: T-HUB-040-harness-workflow-finish-api
+steps:
+- id: s01
+  slug: s01-schemas-render
+  file: s01-schemas-render.yaml
+  title: loop/mb_finish/ schemas + render + shape tests
+  status: completed
+- id: s02
+  slug: s02-finish-implement
+  file: s02-finish-implement.yaml
+  title: finish_implement_step + CLI mb-finish implement + rollback
+  status: completed
+- id: s03
+  slug: s03-stop-gate-fingerprint
+  file: s03-stop-gate-fingerprint.yaml
+  title: stop-gate last_finish_tool fingerprint + epic state wire
+  status: pending
+- id: s04
+  slug: s04-finish-handoff
+  file: s04-finish-handoff.yaml
+  title: finish_handoff low-level + doctor render reuse
+  status: pending
+- id: s05
+  slug: s05-finish-qa-bugfix
+  file: s05-finish-qa-bugfix.yaml
+  title: finish_qa + finish_bugfix
+  status: pending
+- id: s06
+  slug: s06-finish-decompose-plan
+  file: s06-finish-decompose-plan.yaml
+  title: finish_decompose + finish_plan + transition engine delegate
+  status: pending
+- id: s07
+  slug: s07-finish-analyze-audit
+  file: s07-finish-analyze-audit.yaml
+  title: finish_analyze + finish_audit
+  status: pending
+- id: s08
+  slug: s08-finish-creative-reflect
+  file: s08-finish-creative-reflect.yaml
+  title: finish_creative + finish_reflect (P2)
+  status: pending
+- id: s09
+  slug: s09-rules-purge-prose
+  file: s09-rules-purge-prose.yaml
+  title: workflow rules + context_loop FINISH blocks purge prose
+  status: pending
+- id: s10
+  slug: s10-mcp-wrapper
+  file: s10-mcp-wrapper.yaml
+  title: MCP thin server + parity tests (P2)
+  status: pending
+- id: s11
+  slug: s11-legacy-purge
+  file: s11-legacy-purge.yaml
+  title: 'legacy purge: prose FINISH instructions + dual handoff paths'
+  status: pending

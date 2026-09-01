@@ -1,0 +1,16 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-harness-universal-runtime-epics.md
+queue:
+  - id: T-HUB-041
+    plan: plan-T-HUB-041-harness-canonical-extract.md
+    deps: []
+  - id: T-HUB-042
+    plan: plan-T-HUB-042-runtime-adapter-framework.md
+    deps: [T-HUB-041]
+  - id: T-HUB-043
+    plan: plan-T-HUB-043-runtime-bridge-codex.md
+    deps: [T-HUB-042]
+  - id: T-HUB-044
+    plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
+    deps: [T-HUB-043]

@@ -1,7 +1,8 @@
+schema: epic-qa/v1
 date: '2026-09-01'
 epic_id: T-HUB-038-harness-metrics-dashboard
 role: back
-verdict: PASS
+verdict: pass
 reviewer_agent: verify-qa
 
 ac_results:

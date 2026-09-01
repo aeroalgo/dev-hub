@@ -35,5 +35,6 @@ class EpicState(BaseModel):
     last_verify_at: str | None = None
     pending_fingerprint_before: str | None = None
     load_now_before: str | list[str] | None = None
+    last_finish_tool: dict[str, Any] | None = None
 
     drift_counters: DriftCounters = Field(default_factory=DriftCounters)

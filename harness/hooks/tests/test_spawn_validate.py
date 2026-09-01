@@ -109,16 +109,58 @@ def test_alias_is_normalized_by_spawn_validation(tmp_path: Path, monkeypatch) ->
 def test_cli_round_trip_denies_incomplete_spawn() -> None:
     payload = {
         "tool_name": "Agent",
-        "tool_input": {"subagent_type": "verify", "prompt": "spawn"},
+        "tool_input": {"subagent_type": "verify-implement", "prompt": "spawn"},
         "session_id": "s03-round-trip",
         "cwd": str(ROOT),
     }
+    env = {**dict(__import__("os").environ), "EPIC_LOOP": "1", "PYTHONPATH": str(HOOKS)}
     completed = subprocess.run(
         [sys.executable, str(HOOKS / "spawn_validate.py")],
         input=json.dumps(payload),
         text=True,
         capture_output=True,
         check=True,
+        env=env,
     )
     result = json.loads(completed.stdout)
     assert any("prompt_incomplete" in reason for reason in result["deny_reasons"])
+
+
+def _repair_setup(tmp_path: Path) -> None:
+    _agent(
+        tmp_path,
+        "gate-repair.md",
+        "name: gate-repair\noverlay:\n  managed: true\n  mode: repair\n  default_loop: true\n  requires_model: true\n  verdict: none",
+    )
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_GATE_REPAIR_MODEL=sonnet\n", encoding="utf-8"
+    )
+
+
+def _repair_prompt() -> str:
+    return (
+        "BLOCKERS\n- diagnostic_code_mismatch\nALLOW WRITE\n"
+        "loop/mb_finish/finish_implement.py\n"
+        "VERIFY\n"
+        "timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q\n"
+    )
+
+
+def test_gate_repair_missing_sections_denied(tmp_path: Path, monkeypatch) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    tool_input = {"subagent_type": "gate-repair", "prompt": "spawn"}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert any("prompt_incomplete" in reason for reason in deny_reasons)
+
+
+def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    tool_input = {"subagent_type": "gate-repair", "prompt": _repair_prompt()}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert deny_reasons == []

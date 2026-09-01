@@ -1,0 +1,9 @@
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "verify-implement",
+  "verdict": "PASS",
+  "step_id": "s08",
+  "session_id": "87d1e875-43b2-49b9-9603-3b307a88f384",
+  "epic_id": "T-HUB-041-harness-canonical-extract",
+  "recorded_at": "2026-09-01T12:15:00Z"
+}

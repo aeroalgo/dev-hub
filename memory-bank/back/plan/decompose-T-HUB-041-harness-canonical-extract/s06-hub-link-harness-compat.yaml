@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Проверить/обновить bin/hub-link — product .claude/hooks → harness (AC-3)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Убедиться, что `bin/hub-link` создаёт корректный symlink в продукте:
+  `product/.claude/hooks` → `hub/harness/hooks` (или сохраняет цепочку `hub/.claude/hooks → hub/harness/hooks`).
+  Написать / обновить `loop/tests/test_hub_link_harness.py` (TM-004) с fixture-продуктом.
+  Outcome: AC+ #3 closed — `make hub-link` на фикстурном продукте resolves hooks.
+
+context:
+  consumes:
+    - bin/hub-link  # текущий скрипт
+    - harness/hooks/  # canonical SoT из s02
+  produces:
+    - bin/hub-link  # updated if needed
+    - loop/tests/test_hub_link_harness.py  # новый (TM-004)
+  plan_refs:
+    - "FR-005"
+    - "FR-003"
+    - "US-003"
+    - "AC+ #3 (hub-link product tree resolves hooks)"
+    - "SC-002 (integration test)"
+    - "TM-004"
+  files:
+    - bin/hub-link
+    - loop/tests/test_hub_link_harness.py
+
+as_built:
+  - "bin/hub-link — скрипт создаёт product .claude/ tree, ссылается на HUB_ROOT/.claude/hooks"
+  - "loop/tests/test_hub_link_harness.py — не существует"
+
+delta:
+  - "bin/hub-link: если ссылается на .claude/hooks напрямую — обновить на harness/hooks; если цепочка symlink достаточна — добавить только проверку"
+  - "create loop/tests/test_hub_link_harness.py: fixture tmp product dir + hub-link + assert .claude/hooks resolves"
+
+deletes: []
+# hub-link не удаляется; только patch если нужно
+
+out_of_scope:
+  - "DSH cc-hooks-bridge (TM-004 warn/defer to 043)"
+  - "Полные docs hub-link (T-HUB-044)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "TM-004: pytest loop/tests/test_hub_link_harness.py -q → PASS"
+    verify: ".venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short"
+  - id: cp2
+    criterion: "fixture product .claude/hooks resolves к harness/hooks через readlink"
+    verify: ".venv/bin/pytest loop/tests/test_hub_link_harness.py::test_product_hooks_resolve -q"
+  - id: cp3
+    criterion: "bin/hub-link синтаксически валиден (bash -n или python3 -m py_compile)"
+    verify: "bash -n bin/hub-link 2>/dev/null || python3 -m py_compile bin/hub-link && echo OK"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line"
+  - "rg 'harness' bin/hub-link | head -5"
+
+tdd:
+  - "test_hub_link_harness.py::test_product_hooks_resolve — symlinked product .claude/hooks reachable"
+  - "test_hub_link_harness.py::test_hub_link_idempotent — повторный запуск не ломает"

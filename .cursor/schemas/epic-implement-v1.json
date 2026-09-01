@@ -1,0 +1,269 @@
+{
+  "$defs": {
+    "CheckpointProgress": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "criterion": {
+          "title": "Criterion",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "done"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "done_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Done At"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "criterion"
+      ],
+      "title": "CheckpointProgress",
+      "type": "object"
+    },
+    "GrepRow": {
+      "properties": {
+        "back": {
+          "default": "",
+          "title": "Back",
+          "type": "string"
+        },
+        "front": {
+          "default": "",
+          "title": "Front",
+          "type": "string"
+        }
+      },
+      "title": "GrepRow",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema": {
+      "title": "Schema",
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "back",
+        "front",
+        "integ"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "step_id": {
+      "title": "Step Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "in_progress",
+        "completed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "implement_index": {
+      "default": "",
+      "title": "Implement Index",
+      "type": "string"
+    },
+    "date": {
+      "title": "Date",
+      "type": "string"
+    },
+    "decompose_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decompose Ref"
+    },
+    "element_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Element Ref"
+    },
+    "task_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Task Id"
+    },
+    "level": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Level"
+    },
+    "skills_used": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Skills Used",
+      "type": "array"
+    },
+    "discovery": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Discovery",
+      "type": "array"
+    },
+    "gaps": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Gaps"
+    },
+    "done": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Done",
+      "type": "array"
+    },
+    "files": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "deletes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Deletes",
+      "type": "array"
+    },
+    "tests": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tests",
+      "type": "array"
+    },
+    "integration_check": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Integration Check",
+      "type": "array"
+    },
+    "grep_control": {
+      "items": {
+        "$ref": "#/$defs/GrepRow"
+      },
+      "title": "Grep Control",
+      "type": "array"
+    },
+    "verification_results": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Verification Results",
+      "type": "array"
+    },
+    "checkpoints": {
+      "items": {
+        "$ref": "#/$defs/CheckpointProgress"
+      },
+      "title": "Checkpoints",
+      "type": "array"
+    },
+    "resume_from": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resume From"
+    }
+  },
+  "required": [
+    "schema",
+    "role",
+    "step_id",
+    "plan_id",
+    "title",
+    "status",
+    "date"
+  ],
+  "title": "epic-implement/v1",
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

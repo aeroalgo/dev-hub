@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_qa + finish_bugfix"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Реализовать `finish_qa(request)` и `finish_bugfix(request)` в `loop/mb_finish/impl.py`.
+  `finish_qa`: валидирует qa yaml artifact, вызывает `render_active_context` с mode=REFLECT Handoff,
+  вызывает `sync_tasks_index` при смене фазы, записывает fingerprint в epic state.
+  `finish_bugfix`: аналог — validate bugfix artifact + render + finalize + fingerprint.
+  TM-006 зелёный.
+
+context:
+  consumes:
+    - "s01: render_active_context"
+    - "s02: finish_implement_step pattern (шаблон оркестрации)"
+    - "s03: write_last_finish_tool fingerprint"
+    - "harness/hooks/epic/core.py — validate_qa_finish_handoff, latest_qa_pass_artifact_for_reference"
+    - "harness/hooks/epic/core.py — sync_cursor_from_index (tasks sync)"
+  produces:
+    - "loop/mb_finish/impl.py — finish_qa(req), finish_bugfix(req)"
+    - "harness/hooks/epic_resolve.py — mb-finish qa / mb-finish bugfix subcommands"
+    - "harness/hooks/tests/test_mb_finish_qa.py — TM-006"
+  plan_refs:
+    - "FR-005: finish_qa = validate qa yaml + render + sync_tasks_index"
+    - "US-004: finish_qa qa yaml + REFLECT handoff одним вызовом"
+    - "TM-006: finish_qa → REFLECT handoff"
+  files:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+
+as_built:
+  - "harness/hooks/epic/core.py — validate_qa_finish_handoff, latest_qa_pass_artifact_for_reference"
+  - "loop/context_loop.py:748 _qa_finish_block() — prose template (заменяется в s09)"
+  - "harness/hooks/epic/core.py — sync_cursor_from_index"
+
+delta:
+  - "EDIT loop/mb_finish/impl.py: добавить finish_qa(req: MbFinishRequest) -> MbFinishResult"
+  - "  1. validate qa artifact path on disk (req.qa_artifact)"
+  - "  2. validate_qa_finish_handoff(cwd) — ok/diagnostic"
+  - "  3. render_active_context(meta with mode=REFLECT, load_now, done, handoff)"
+  - "  4. write activeContext"
+  - "  5. sync_cursor_from_index(cwd) if phase_changed"
+  - "  6. write_last_finish_tool(cwd, 'mb-finish qa', fingerprint)"
+  - "  7. return MbFinishResult(ok=True, shape_errors=[])"
+  - "EDIT loop/mb_finish/impl.py: добавить finish_bugfix(req) → аналогичный оркестратор"
+  - "EDIT harness/hooks/epic_resolve.py: mb-finish qa / mb-finish bugfix subcommands"
+
+deletes: []
+
+out_of_scope:
+  - "finish_decompose/finish_plan — s06"
+  - "prose _qa_finish_block removal — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_qa happy path: qa artifact valid → MbFinishResult(ok=True), activeContext mode=REFLECT"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k test_finish_qa_happy"
+  - id: cp2
+    criterion: "finish_qa без qa artifact → ok=False, no write"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k test_finish_qa_no_artifact"
+  - id: cp3
+    criterion: "TM-006: finish_qa → REFLECT handoff"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k test_finish_qa_handoff"
+  - id: cp4
+    criterion: "finish_bugfix happy path + full suite"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line"
+
+tdd:
+  - "test_finish_qa_happy — TM-006"
+  - "test_finish_qa_no_artifact — no artifact → fail-closed"
+  - "test_finish_qa_handoff — activeContext mode=REFLECT"
+  - "test_finish_bugfix_happy"
+  - "test_finish_bugfix_fail_closed"

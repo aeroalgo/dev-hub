@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "stop-gate last_finish_tool fingerprint + epic state wire"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Добавить в epic state поле `last_finish_tool: {name, at, fingerprint}` и научить stop-gate
+  блокировать FINISH IMPLEMENT без этого fingerprint. `finish_implement_step` (s02) должен записывать
+  fingerprint после успешного finalize. TM-005 зелёный: попытка FINISH без предшествующего вызова
+  finish tool → stop-gate block.
+
+context:
+  consumes:
+    - "s02: finish_implement_step записывает fingerprint в epic state"
+    - "harness/hooks/stop-gate.py — текущий stop-gate logic"
+    - "harness/hooks/epic/core.py — load_epic_state / save_epic_state"
+  produces:
+    - "harness/hooks/epic/core.py — поле last_finish_tool в epic state schema + write path"
+    - "harness/hooks/stop-gate.py — проверка last_finish_tool на FINISH IMPLEMENT"
+    - "loop/mb_finish/impl.py — дополнение: write fingerprint после finalize"
+    - "harness/hooks/tests/test_stop_gate_fingerprint.py — TM-005"
+  plan_refs:
+    - "FR-007: epic state last_finish_tool, stop-gate read"
+    - "US-008: stop-gate без fingerprint → block"
+    - "TM-005: stop-gate without fingerprint"
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/stop-gate.py
+    - loop/mb_finish/impl.py
+    - harness/hooks/tests/test_stop_gate_fingerprint.py
+
+as_built:
+  - "harness/hooks/stop-gate.py:367 — QA BLOCKED verdict allowed logic (stop-gate pattern)"
+  - "harness/hooks/epic/core.py — load_epic_state/save_epic_state с dict state"
+  - "loop/mb_finish/impl.py (s02) — finalize succeeds but no fingerprint write yet"
+
+delta:
+  - "EDIT harness/hooks/epic/core.py: в default_state/load_epic_state добавить 'last_finish_tool': None; save helper write_last_finish_tool(cwd, name, fingerprint)"
+  - "EDIT loop/mb_finish/impl.py: после успешного finalize_step → write_last_finish_tool(cwd, 'mb-finish implement', sha256(step_id+at))"
+  - "EDIT harness/hooks/stop-gate.py: при FINISH IMPLEMENT — прочитать last_finish_tool из epic state; если None → block с diagnostic 'finish_tool_required'"
+
+deletes: []
+
+out_of_scope:
+  - "fingerprint для QA/DECOMPOSE FINISH — s05/s06 добавляют сами при интеграции"
+  - "MCP wrapper — s10"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "write_last_finish_tool пишет в epic state, load_epic_state возвращает поле"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line -k test_fingerprint_write"
+  - id: cp2
+    criterion: "stop-gate FINISH IMPLEMENT без fingerprint → block (exit non-0)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line -k test_stop_gate_no_fingerprint"
+  - id: cp3
+    criterion: "finish_implement_step happy path после s02: fingerprint записан в epic state"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line -k test_finish_writes_fingerprint"
+  - id: cp4
+    criterion: "полный stop-gate fingerprint suite зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line"
+  - "rg 'last_finish_tool' harness/hooks/epic/core.py harness/hooks/stop-gate.py"
+
+tdd:
+  - "test_fingerprint_write — write_last_finish_tool persists to epic state"
+  - "test_stop_gate_no_fingerprint — TM-005: block without fingerprint"
+  - "test_finish_writes_fingerprint — integration: finish_implement_step sets fingerprint"
+  - "test_stop_gate_with_fingerprint — allow FINISH after mb-finish implement"

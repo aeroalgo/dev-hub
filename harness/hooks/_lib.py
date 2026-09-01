@@ -22,7 +22,17 @@ from agent_policy import AgentContext, resolve_agent_policy
 from agent_registry import AGENT_ALIASES, discover_registry
 
 # Known gate/search ids used by spawn-map finish text (verify/reviewer lines).
-CUSTOM_OVERLAY = frozenset({"verify", "verify-implement", "verify-bugfix", "verify-qa", "reviewer", "explorer"})
+CUSTOM_OVERLAY = frozenset(
+    {
+        "verify",
+        "verify-implement",
+        "verify-bugfix",
+        "verify-qa",
+        "reviewer",
+        "explorer",
+        "gate-repair",
+    }
+)
 GATE_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose", "reviewer"})
 ALLOWED = CUSTOM_OVERLAY
 
@@ -88,9 +98,16 @@ CONTRACTS = {
     "explorer": (
         "CONTRACT explorer: graphify first, затем узкий Grep/rg только внутри ALLOW из prompt. "
         "Budget: ≤12 Read · ≤6 Bash · re-read >1× FORBIDDEN. "
-        "FORBIDDEN: repo-wide rg/find/ls; Read/search вне ALLOW без явной ссылки в Цель/shard/plan. "
+        "FORBIDDEN: repo-wide rg/find/ls; Read/search вне ALLOW без явной ссылки in Цель/shard/plan. "
         "Не edit. Не Plan Mode — только file:line отчёт на русском. "
         "Без isolation=worktree."
+    ),
+    "gate-repair": (
+        "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
+        "HARD: финальный ответ содержит JSON fence loop-repair-result/v1 со status done|partial|fail. "
+        "Write/Edit только ALLOW WRITE. После fix — pytest из VERIFY. "
+        "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
+        "Ответ без JSON fence = status fail."
     ),
 }
 
@@ -146,11 +163,16 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("Replacement cleanup", re.compile(_HD + r"Replacement cleanup\b")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
+    "gate-repair": [
+        ("BLOCKERS", re.compile(_HD + r"BLOCKERS\s*[:：]?")),
+        ("ALLOW WRITE", re.compile(_HD + r"ALLOW WRITE\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+    ],
 }
 
 _NEXT_SECTION = re.compile(
     _HD
-    + r"(?:Suite results|AC\+|AC[−\-]|§?\s*0\.11|VERIFY|RESULT|ALLOW READ|"
+    + r"(?:Suite results|AC\+|AC[−\-]|§?\s*0\.11|VERIFY|RESULT|ALLOW READ|ALLOW WRITE|BLOCKERS|"
     r"FORBID|CREATE/EDIT|GRAPHIFY|Цель|Цель:|Budget|Отчёт|HARD RULE|"
     r"CONTRACT|Scope:)\b"
 )
@@ -349,11 +371,12 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
     active = [definitions[agent_id] for agent_id in sorted(definitions)]
     gate_agents = [agent for agent in active if agent.mode == "gate"]
     search_agents = [agent for agent in active if agent.mode == "search"]
+    repair_agents = [agent for agent in active if agent.mode == "repair"]
     optional_agents = [agent for agent in active if agent.mode == "optional"]
 
     overlay_agents = [
         agent_id
-        for agent_id in ("explorer", "verify", "reviewer")
+        for agent_id in ("explorer", "verify", "reviewer", "gate-repair")
         if agent_id in definitions
     ]
     overlay_agents.extend(
@@ -390,6 +413,10 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
         if agent.id not in GATE_AGENTS
     ]
     agent_lines.extend(
+        f"| Repair agent | @{agent.id} после verify FAIL — чинит BLOCKERS in-scope |"
+        for agent in repair_agents
+    )
+    agent_lines.extend(
         f"| Optional agent | @{agent.id} доступен по вызову parent, не блокирует completion |"
         for agent in optional_agents
     )
@@ -401,7 +428,9 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "| Ситуация | Agent |",
             *search_lines,
             *agent_lines,
-            "| Agent running | FORBIDDEN TaskOutput mid-poll — жди completion/VERDICT |",
+            "| Agent running | FORBIDDEN TaskOutput mid-poll — жди completion (VERDICT / repair JSON) |",
+            "| verify FAIL | @gate-repair с BLOCKERS + ALLOW WRITE + VERIFY → retry @verify; "
+            "FORBIDDEN: «ожидаю verify», FINISH, новый @verify/repair пока in_flight |",
             "| Parallel spawn | DENY: второй managed пока in_flight; DENY: та же model busy |",
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
             "evidence (in_progress) → validate-step → Handoff → "
@@ -442,6 +471,7 @@ AGENT_MODEL_ENV_KEYS: dict[str, str] = {
     "verify-qa": "PROJECT_AGENT_REVIEWER_MODEL",
     "verify-decompose": "PROJECT_AGENT_VERIFY_DECOMPOSE_MODEL",
     "reviewer": "PROJECT_AGENT_REVIEWER_MODEL",
+    "gate-repair": "PROJECT_AGENT_GATE_REPAIR_MODEL",
 }
 _AGENT_MODEL_KEY_RE = re.compile(r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL$")
 _LOOP_PHASE_MODEL_KEY_RE = re.compile(r"^PROJECT_LOOP_[A-Z][A-Z0-9_]*_MODEL$")
@@ -710,11 +740,65 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
 
 
 
+def extract_json_fence(text: str) -> dict[str, Any] | None:
+    if not isinstance(text, str):
+        return None
+    match = re.search(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1))
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return None
+
+
+def parse_gate_verdict_message(
+    text: str,
+    cwd: str | Path,
+    agent_id: str,
+    *,
+    recorded_at: str,
+    step_id: str | None = None,
+    session_id: str | None = None,
+    epic_id: str | None = None,
+) -> Any | None:
+    data = extract_json_fence(text)
+    if not data or not isinstance(data, dict):
+        return None
+
+    try:
+        from loop.gate_verdict_store import write_gate_verdict
+        verdict_val = data.get("verdict")
+        if not verdict_val:
+            return None
+        rec_step = data.get("step_id") or step_id
+        rec_epic = data.get("epic_id") or epic_id
+        # Strict field check against known fields in GateVerdictRecord schema
+        allowed_keys = {"verdict", "step_id", "session_id", "epic_id", "evidence_sha256"}
+        if not set(data.keys()).issubset(allowed_keys):
+            return None
+        return write_gate_verdict(
+            cwd,
+            agent_id,
+            verdict_val,
+            step_id=rec_step,
+            session_id=data.get("session_id") or session_id,
+            epic_id=rec_epic,
+            recorded_at=recorded_at,
+            evidence_sha256=data.get("evidence_sha256"),
+        )
+    except Exception:
+        return None
+
+
 def hub_root() -> Path:
     env = (os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT") or "").strip()
     if env:
         return Path(env).expanduser().resolve()
-    # hooks live at <hub>/.claude/hooks → parents[2] = hub when file is _lib.py
+    # hooks live at <hub>/harness/hooks → parents[2] = hub when file is _lib.py
     return Path(__file__).resolve().parents[2]
 
 
@@ -1531,6 +1615,137 @@ def allow_read_violations(prompt: str) -> list[str]:
             f"ALLOW READ пуст — укажи ≤{ALLOW_READ_MAX} конкретных файлов"
         )
     return viol
+
+
+ALLOW_WRITE_MAX = 10
+
+
+def _allow_write_section_body(prompt: str) -> str | None:
+    m = re.search(_HD + r"ALLOW WRITE[ \t]*[:：]?[ \t]*(.*)$", prompt or "")
+    if not m:
+        return None
+    start = m.end()
+    first = (m.group(1) or "").strip()
+    lines = [first] if first else []
+    for line in (prompt or "")[start:].splitlines():
+        if _NEXT_SECTION.match(line) and not re.match(
+            _HD + r"ALLOW WRITE\b", line
+        ):
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def allow_write_files(prompt: str) -> list[str]:
+    body = _allow_write_section_body(prompt)
+    if body is None:
+        return []
+    paths: list[str] = []
+    seen: set[str] = set()
+    for m in _ALLOW_PATH.finditer(body):
+        t = m.group(1).strip().strip("`").rstrip(",;")
+        if not t or t in seen:
+            continue
+        seen.add(t)
+        paths.append(t)
+    return paths
+
+
+def allow_write_violations(prompt: str) -> list[str]:
+    body = _allow_write_section_body(prompt)
+    if body is None:
+        return ["ALLOW WRITE отсутствует — укажи ≤10 конкретных файлов для правки"]
+
+    paths = allow_write_files(prompt)
+    viol: list[str] = []
+    trees: list[str] = []
+    files: list[str] = []
+    for line in body.splitlines():
+        candidate = line.strip().lstrip("-* ").strip("`").rstrip(",;")
+        if candidate.endswith("/") or re.fullmatch(r"(?:[\\w.+-]+/)+", candidate):
+            if candidate not in trees:
+                trees.append(candidate)
+
+    paths = [path for path in paths if path not in trees]
+
+    for p in paths:
+        name = Path(p.rstrip("/")).name
+        is_file = (
+            not p.endswith("/")
+            and (
+                "." in name
+                or name in {"Dockerfile", "Makefile", "LICENSE"}
+            )
+        )
+        if p.endswith("/") or not is_file:
+            trees.append(p)
+        else:
+            files.append(p)
+
+    if trees:
+        viol.append(
+            f"ALLOW WRITE содержит деревья/каталоги (нужны ≤{ALLOW_WRITE_MAX} файлов): "
+            + ", ".join(trees[:8])
+        )
+    if len(files) > ALLOW_WRITE_MAX:
+        viol.append(
+            f"ALLOW WRITE: {len(files)} файлов > {ALLOW_WRITE_MAX} — урежь список"
+        )
+    if not files and not trees:
+        viol.append(
+            f"ALLOW WRITE пуст — укажи ≤{ALLOW_WRITE_MAX} конкретных файлов"
+        )
+    return viol
+
+
+_REPAIR_JSON_FENCE = re.compile(
+    r"```json\s*(\{[\s\S]*?\})\s*```",
+    re.MULTILINE,
+)
+
+
+def extract_repair_result(text: str | None) -> dict[str, Any] | None:
+    if not text:
+        return None
+    for match in reversed(list(_REPAIR_JSON_FENCE.finditer(text))):
+        raw = match.group(1)
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        schema = payload.get("schema") or payload.get("schema_version")
+        if schema != "loop-repair-result/v1":
+            continue
+        try:
+            import sys
+            from pathlib import Path
+
+            loop_root = Path(__file__).resolve().parents[2]
+            if loop_root.is_dir() and str(loop_root) not in sys.path:
+                sys.path.insert(0, str(loop_root))
+            from loop.schemas.repair_result import RepairResultRecord
+
+            record = RepairResultRecord.model_validate(payload)
+            return record.model_dump(by_alias=True)
+        except Exception:
+            status = str(payload.get("status") or "").lower()
+            if status in {"done", "partial", "fail"}:
+                return payload
+    repair_match = re.search(
+        r"(?m)^REPAIR:\s*(done|partial|fail)\b", text, re.I
+    )
+    if repair_match:
+        return {
+            "schema": "loop-repair-result/v1",
+            "agent_id": "gate-repair",
+            "status": repair_match.group(1).lower(),
+            "fixed_blockers": [],
+            "remaining_blockers": [],
+            "recorded_at": utc_now(),
+        }
+    return None
 
 
 # implement step under implement/implement-<id>/(e|s)NN-*.yaml

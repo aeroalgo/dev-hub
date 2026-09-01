@@ -265,7 +265,7 @@ def _legacy_or_default(agent_id: str, metadata: object) -> tuple[AgentOverlay | 
     max_runtime_sec = metadata.get("max_runtime_sec")
     if not all(isinstance(value, bool) for value in (managed, requires_model, default_loop, default_chat, allow_worktree)):
         return None, "overlay_field_invalid"
-    if mode not in {"gate", "optional", "search"} or verdict not in {"pass-fail", "pass-blocked-fail", "none"}:
+    if mode not in {"gate", "optional", "search", "repair"} or verdict not in {"pass-fail", "pass-blocked-fail", "none"}:
         return None, "overlay_field_invalid"
     if max_runtime_sec is not None and (isinstance(max_runtime_sec, bool) or not isinstance(max_runtime_sec, int) or max_runtime_sec <= 0):
         return None, "overlay_field_invalid"

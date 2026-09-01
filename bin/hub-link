@@ -59,6 +59,9 @@ link_one ".cursor/rules" "$DEV_HUB/.cursor/rules"
 link_one ".cursor/templates" "$DEV_HUB/.cursor/templates"
 link_one ".agents" "$DEV_HUB/.agents"
 link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
+if [[ -d "$DEV_HUB/harness" ]]; then
+  link_one "harness" "$DEV_HUB/harness"
+fi
 
 # Claude Code extension: agents/hooks/settings from hub; runtime stays local per product.
 if [[ ! -d "$DEV_HUB/.claude" ]]; then

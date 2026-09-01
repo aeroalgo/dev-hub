@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Создать symlinks .claude/{hooks,agents,instructions} → harness/* (shell thin)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать три symlinks: `.claude/hooks → ../harness/hooks`, `.claude/agents → ../harness/agents`,
+  `.claude/instructions → ../harness/instructions`. После шага Claude CLI и операторы
+  продолжают обращаться к `.claude/hooks` как раньше — symlink прозрачно перенаправляет
+  в canonical harness/. Это ключевой zero-behavior-change шаг для обратной совместимости.
+
+context:
+  consumes:
+    - harness/hooks/  # заполнен из s02
+    - harness/agents/
+    - harness/instructions/
+  produces:
+    - .claude/hooks  # symlink → ../harness/hooks
+    - .claude/agents  # symlink → ../harness/agents
+    - .claude/instructions  # symlink → ../harness/instructions
+  plan_refs:
+    - "FR-003"
+    - "AC+ #1 (.claude/hooks is symlink to harness/hooks)"
+    - "TM-001 (symlink integrity test)"
+  files:
+    - .claude/hooks
+    - .claude/agents
+    - .claude/instructions
+
+as_built:
+  - ".claude/hooks — после s02: директория удалена (или отсутствует)"
+  - ".claude/agents — после s02: директория удалена"
+  - ".claude/instructions — после s02: директория удалена"
+
+delta:
+  - "ln -sfn ../harness/hooks .claude/hooks"
+  - "ln -sfn ../harness/agents .claude/agents"
+  - "ln -sfn ../harness/instructions .claude/instructions"
+
+deletes: []
+# Физических файлов не удаляем — symlinks заменяют пустые места из s02
+
+out_of_scope:
+  - "hub-link для продуктов (s06)"
+  - "Правка импортов loop/ (s04)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: ".claude/hooks является symlink и разрешается к harness/hooks"
+    verify: "rg -g '.claude/hooks'"
+  - id: cp2
+    criterion: "Через symlink доступен stop-gate.py"
+    verify: "rg -g '.claude/hooks/stop-gate.py'"
+  - id: cp3
+    criterion: "Все три symlinks созданы корректно"
+    verify: "rg -g '.claude/hooks' && rg -g '.claude/agents' && rg -g '.claude/instructions'"
+
+verify:
+  - "readlink .claude/hooks"
+  - "readlink .claude/agents"
+  - "readlink .claude/instructions"
+  - "test -f .claude/hooks/stop-gate.py"
+
+tdd:
+  - "test_harness_paths.py::test_symlink_hooks_points_to_harness — readlink .claude/hooks == ../harness/hooks"
+  - "test_harness_paths.py::test_symlink_integrity — os.path.islink('.claude/hooks') is True"
+  - "test_harness_paths.py::test_stop_gate_reachable_via_symlink — Path('.claude/hooks/stop-gate.py').exists()"

@@ -15,9 +15,10 @@
 | S-HUB-UNLINK | `bin/hub-unlink` | bash | Снять symlinks |
 | S-MAKE | `make/product.mk` | Make include | `hub-link`, `loop`, `loop-epic`, `loop-status` для product Makefile |
 | S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |
-| S-HOOKS-CC | `.claude/hooks/*.py` | Claude hooks | pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
+| S-HARNESS-SoT | `harness/` | canonical layer | Canonical Python hooks, agents, and package harness layer (SoT); `.claude/hooks` and `.claude/agents` are symlink shells |
+| S-HOOKS-CC | `.claude/hooks/*.py` | symlink shell | Claude hooks shell (symlinks → `harness/hooks/`); pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
 | S-HOOKS-CUR | `.cursor/hooks/*.py` / `hooks.json` | Cursor hooks | unwired / N/A for epic gates; wiring = out of scope T-HUB-003 (follow-up эпик); as-built: before_submit / after_edit / on_stop |
-| S-AGENTS | `.claude/agents/{explorer,verify,reviewer,verify-implement,verify-bugfix,verify-qa,verify-decompose,analyze-verify}.md` | subagent defs | Gate agents для codebase search / phase verify / BACK QA (с алиасами @verify → verify-implement, @reviewer → verify-qa) |
+| S-AGENTS | `harness/agents/*.md` (`.claude/agents/` shell) | subagent defs | Gate agents для codebase search / phase verify / BACK QA (с алиасами @verify → verify-implement, @reviewer → verify-qa) |
 | S-RULES | `.cursor/rules/**` | workflow router | `mainrule.mdc` → role workflows |
 
 ## Взаимодействие
@@ -35,9 +36,10 @@ flowchart LR
   Sess --> Ctx[context_loop.py]
   Ctx --> Idx[decompose index.yaml]
   LoopSh --> RT[runtime/slug/epic state]
-  Sess --> Hooks[.claude/hooks]
+  Sess --> Shells[.claude/hooks & .claude/agents symlink shell]
+  Shells --> Harness[harness/ canonical layer SoT]
   Sess --> Gates[verify/reviewer/explorer]
-  Hooks --> EpicRes[epic_resolve seed/validate/finalize]
+  Harness --> EpicRes[epic_resolve seed/validate/finalize]
   EpicRes --> AC
 ```
 

@@ -1,0 +1,106 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-041-harness-canonical-extract
+slug: harness-canonical-extract
+date: "2026-09-01"
+status: complete
+
+findings:
+  - id: A1
+    severity: MEDIUM
+    category: Inconsistency
+    message: "Greenfield path harness/ layout not yet created on repo disk (prior to s01 implementation)"
+    plan_ref: "FR-001"
+    step_ref: "s01"
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-002
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-003
+    step_ids: [s03]
+    status: covered
+  - requirement_id: FR-004
+    step_ids: [s04, s05]
+    status: covered
+  - requirement_id: FR-005
+    step_ids: [s06]
+    status: covered
+  - requirement_id: FR-006
+    step_ids: [s04, s08]
+    status: covered
+  - requirement_id: FR-007
+    step_ids: [s07]
+    status: covered
+  - requirement_id: FR-008
+    step_ids: [s05]
+    status: covered
+  - requirement_id: AC-1
+    step_ids: [s01, s02, s03]
+    status: covered
+  - requirement_id: AC-2
+    step_ids: [s04]
+    status: covered
+  - requirement_id: AC-3
+    step_ids: [s06]
+    status: covered
+  - requirement_id: AC-4
+    step_ids: [s05, s08]
+    status: covered
+  - requirement_id: AC-5
+    step_ids: [s07]
+    status: covered
+  - requirement_id: AC-NEG-1
+    step_ids: [s03, s08]
+    status: covered
+  - requirement_id: AC-NEG-2
+    step_ids: [s04, s08]
+    status: covered
+  - requirement_id: AC-NEG-3
+    step_ids: [s06]
+    status: covered
+  - requirement_id: AC-NEG-4
+    step_ids: [s01, s02]
+    status: covered
+  - requirement_id: SC-001
+    step_ids: [s04, s08]
+    status: covered
+  - requirement_id: SC-002
+    step_ids: [s06]
+    status: covered
+  - requirement_id: SC-003
+    step_ids: [s05, s08]
+    status: covered
+  - requirement_id: US-001
+    step_ids: [s01, s02, s03]
+    status: covered
+  - requirement_id: US-002
+    step_ids: [s04]
+    status: covered
+  - requirement_id: US-003
+    step_ids: [s06]
+    status: covered
+  - requirement_id: US-004
+    step_ids: [s05, s08]
+    status: covered
+  - requirement_id: TM-001
+    step_ids: [s03, s05]
+    status: covered
+  - requirement_id: TM-002
+    step_ids: [s04, s08]
+    status: covered
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 1
+
+recommendation: IMPLEMENT
+next_actions:
+  - "Proceed to BACK IMPLEMENT s01"
+
+constitution_violations: []

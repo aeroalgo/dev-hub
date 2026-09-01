@@ -1,0 +1,9 @@
+{
+  "yaml.schemas": {
+    ".cursor/schemas/epic-implement-v1.json": [
+      "memory-bank/**/implement/implement-*/*.yaml",
+      "memory-bank/**/refactor/implement/implement-*/*.yaml",
+      "memory-bank/**/security/implement/implement-*/*.yaml"
+    ]
+  }
+}

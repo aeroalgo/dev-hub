@@ -1008,7 +1008,7 @@ def test_finish_rule_requires_verify_before_mark() -> None:
 def test_loop_runner_uses_bounded_session_wrapper() -> None:
     script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
     assert 'flock -n 9' in script
-    assert 'SESSION_WRAPPER="$ROOT/.claude/hooks/session_resilience.py"' in script
+    assert 'SESSION_WRAPPER="$HARNESS_HOOKS/session_resilience.py"' in script
     assert '"$SESSION_WRAPPER" run-session' in script
     assert '--kill-grace "$EPIC_SESSION_KILL_GRACE_SEC"' in script
     assert 'command=("$CLAUDE" -p' in script

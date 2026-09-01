@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from epic.reconcile import resolve_epic_bundle, reconcile_epic
-from epic.traceability import (
+from .reconcile import resolve_epic_bundle, reconcile_epic
+from .traceability import (
     parse_plan_requirements,
     parse_decompose_refs,
     parse_implement_evidence,
@@ -21,7 +21,7 @@ from epic.traceability import (
     run_checks as run_traceability_checks,
     TraceReport,
 )
-from epic_paths import is_reserved_role_epic_id
+from harness.hooks.epic_paths import is_reserved_role_epic_id
 
 
 @dataclass

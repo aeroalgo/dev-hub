@@ -68,3 +68,18 @@ def test_unknown_agent_type_is_not_injected(tmp_path: Path) -> None:
 
     assert result.returncode == 0
     assert result.stdout == ""
+
+
+def test_gate_repair_injects_contract(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    agents = tmp_path / ".claude" / "agents"
+    agents.mkdir(parents=True, exist_ok=True)
+    (ROOT / "harness" / "agents" / "gate-repair.md").read_text(encoding="utf-8")
+    (agents / "gate-repair.md").write_text(
+        (ROOT / "harness" / "agents" / "gate-repair.md").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    context = _additional_context(_run(tmp_path, {"agent_type": "gate-repair"}))
+
+    assert "agent_type=gate-repair" in context
+    assert "CONTRACT gate-repair:" in context

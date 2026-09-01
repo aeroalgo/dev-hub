@@ -10,6 +10,7 @@ from _lib import (
     product_cwd,  # noqa: E402
     clear_in_flight,
     current_gate_identity,
+    extract_repair_result,
     extract_verdict,
     load_state,
     mark_verdict_recorded,
@@ -81,6 +82,16 @@ def main() -> None:
         save_state(session_id, cwd, st)
 
     text = _text_from_response(resp)
+    if agent_type == "gate-repair":
+        result = extract_repair_result(text)
+        if result:
+            st["repair_done"] = True
+            st["repair_status"] = str(result.get("status") or "fail").lower()
+            st["repair_result"] = result
+            st["repair_in_flight"] = False
+            save_state(session_id, cwd, st)
+        return
+
     verdict = extract_verdict(text)
     if not agent_type or not verdict:
         return

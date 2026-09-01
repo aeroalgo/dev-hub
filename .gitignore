@@ -16,4 +16,3 @@ projects/**/*.env.local
 .spec-kit/
 node_modules/
 graphify-out/
-memory-bank/

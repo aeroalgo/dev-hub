@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "workflow rules + context_loop FINISH blocks purge prose → call tool"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Заменить prose FINISH instructions в workflow rules и cheatsheets на «вызови `mb-finish <phase>`».
+  В `loop/context_loop.py` убрать вызовы `_implement_finish_block()` и `_qa_finish_block()` — они
+  должны стать инструкцией агенту вызвать CLI tool. После шага: `rg "_implement_finish_block|_qa_finish_block"
+  loop/context_loop.py` → 0 вызовов как live prose injectors; validate_active_context_shape вызывается
+  только из render_active_context или stop-gate, не inline после prose write.
+
+context:
+  consumes:
+    - "s02 s05 s06 s07: все mb-finish subcommands готовы"
+    - "loop/context_loop.py:707,748 — _implement_finish_block, _qa_finish_block"
+    - "loop/context_loop.py:886,888,922 — вызовы finish blocks"
+    - ".cursor/rules/back_developer/*.mdc — workflow FINISH prose sections"
+    - "WORKFLOW.md, loop/README.md — FINISH instructions"
+  produces:
+    - "loop/context_loop.py — finish blocks inline calls заменены на 'call mb-finish <phase>'"
+    - ".cursor/rules/ FINISH sections — prose заменена на tool call instruction"
+    - "harness/hooks/tests/test_mb_finish_rules_purge.py — rg audit assertions"
+  plan_refs:
+    - "FR-002: render_active_context единственный writer"
+    - "Technology axiom: LLM Write activeContext body на FINISH = FORBIDDEN"
+  files:
+    - loop/context_loop.py
+    - harness/hooks/tests/test_mb_finish_rules_purge.py
+
+as_built:
+  - "loop/context_loop.py:707 _implement_finish_block() → str: prose template для LLM"
+  - "loop/context_loop.py:886,888,922: finish_block = _implement_finish_block() / _qa_finish_block() inlined в prompt"
+  - "loop/context_loop.py:1553,1800: validate_active_context_shape после ad-hoc write (не из render)"
+  - ".cursor/rules/ — FINISH sections с prose «перепиши activeContext так: ...»"
+
+delta:
+  - "EDIT loop/context_loop.py:886,888,922: replace finish_block = _implement_finish_block() с finish_block = '\\n> После verify PASS → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\\n'"
+  - "EDIT loop/context_loop.py:748 region: _qa_finish_block → аналогично mb-finish qa"
+  - "EDIT .cursor/rules/back_developer/workflow-*.mdc: FINISH sections → tool call instruction (не full rewrite rules файлов, только FINISH prose blocks)"
+  - "EDIT loop/WORKFLOW.md: FINISH prose sections → 'вызови mb-finish <phase>'"
+  - "EDIT loop/README.md: FINISH prose sections → 'вызови mb-finish <phase>' (если присутствует)"
+  - "CREATE harness/hooks/tests/test_mb_finish_rules_purge.py: rg-based assertions что _implement_finish_block не вызывается как injector"
+
+deletes:
+  - "_implement_finish_block() вызовы как prose injectors в loop/context_loop.py — live calls удалить (функция удаляется в s11); verify: cp1"
+  - "_qa_finish_block() вызовы как prose injectors — аналогично; verify: cp2"
+  - "inline validate_active_context_shape после free-form string write (заменено render_active_context в s04)"
+  - "LLM regex Handoff mode extract как primary path в workflow rules / loop/WORKFLOW.md — удалить prose; verify: `rg 'handoff.*regex\\|regex.*handoff' .cursor/rules/ loop/WORKFLOW.md; test $? -ne 0`"
+  - "free-form done_summary prose в rules / loop/WORKFLOW.md — заменить на typed field; verify: `rg 'напиши.*Handoff своими' .cursor/rules/ loop/WORKFLOW.md; test $? -ne 0`"
+
+out_of_scope:
+  - "MCP wrapper — s10"
+  - "Полная замена функций _*_finish_block — s11 legacy purge если функции более не нужны"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "_implement_finish_block не вызывается как live prompt injector (функция удалена или осталась только def — без вызовов)"
+    verify: "rg '_implement_finish_block\\s*(' loop/context_loop.py | grep -v '^.*def _implement_finish_block'; test $? -ne 0"
+  - id: cp2
+    criterion: "_qa_finish_block не вызывается как live prompt injector"
+    verify: "rg '_qa_finish_block\\s*(' loop/context_loop.py | grep -v '^.*def _qa_finish_block'; test $? -ne 0"
+  - id: cp3
+    criterion: "context_loop по-прежнему запускается без ошибок импорта"
+    verify: "python -c 'import loop.context_loop'"
+  - id: cp4
+    criterion: "rg audit test suite зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_rules_purge.py -q --tb=line"
+
+verify:
+  - "rg '_implement_finish_block\\s*(' loop/context_loop.py | grep -v '^.*def _implement_finish_block'; test $? -ne 0"
+  - "rg '_qa_finish_block\\s*(' loop/context_loop.py | grep -v '^.*def _qa_finish_block'; test $? -ne 0"
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_rules_purge.py -q --tb=line"
+  - "python -c 'import loop.context_loop; print(\"ok\")'"
+
+tdd:
+  - "test_no_live_implement_finish_block_calls — rg assert"
+  - "test_no_live_qa_finish_block_calls — rg assert"
+  - "test_context_loop_imports_clean"

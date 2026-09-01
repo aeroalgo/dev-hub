@@ -412,8 +412,9 @@ def main() -> None:
         if stop_hook_active:
             return
         _block(
-            "spawn-gate: verify=FAIL — нельзя FINISH. Исправь blockers, "
-            "снова @verify до VERDICT: PASS."
+            "spawn-gate: verify=FAIL — нельзя FINISH. "
+            "Запусти @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY из verify-отчёта), "
+            "затем retry @verify до VERDICT: PASS."
         )
         return
 
@@ -436,8 +437,16 @@ def main() -> None:
                 )
                 return
 
-    if not epic_on:
-        return
+    current_phase_u = str(epic.get("phase") or st.get("mode") or "").upper()
+    if finishing and current_phase_u == "IMPLEMENT":
+        lft = epic.get("last_finish_tool")
+        if not lft or not isinstance(lft, dict) or not lft.get("fingerprint"):
+            if not stop_hook_active:
+                _block(
+                    "spawn-gate: FINISH IMPLEMENT requires finish tool execution (last_finish_tool missing). "
+                    "diagnostic=finish_tool_required"
+                )
+                return
 
     if finishing and epic.get("last_verify_verdict") == "PASS":
         if armed_step_u != "DECOMPOSE":

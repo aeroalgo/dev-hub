@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=../../../../.cursor/schemas/epic-implement-v1.json
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s01 — loop/mb_finish/ schemas + render + shape tests IMPLEMENT
+status: completed
+date: "2026-09-01"
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s01-schemas-render.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - Создан модуль loop/mb_finish с pydantic-моделями (MbFinishRequest, MbFinishResult,
+    LoopHandoffMeta, LoadNowItem, HandoffBody)
+  - Реализована функция render_active_context() для генерации activeContext.md с проверкой
+    validate_active_context_shape()
+  - Написан 20-сценарный pytest suite в harness/hooks/tests/test_mb_finish_shape.py
+files:
+  - loop/mb_finish/__init__.py
+  - loop/mb_finish/schemas.py
+  - loop/mb_finish/render.py
+  - harness/hooks/tests/test_mb_finish_shape.py
+deletes: []
+tests:
+  - "`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_shape.py -q --tb=line`"
+integration_check:
+  - validate_active_context_shape из harness/hooks/epic/core.py интегрирована в render_active_context
+  - LoopHandoffFrontmatter из loop/schemas/handoff.py переиспользована
+grep_control: []
+verification_results: []
+checkpoints:
+  - id: cp1
+    criterion: модуль импортируется без ошибок
+    status: done
+    done_at: "2026-09-01T13:23:29Z"
+  - id: cp2
+    criterion:
+      render_active_context на корректном вводе возвращает строку с frontmatter
+      loop-handoff/v1 и проходит validate_active_context_shape
+    status: done
+    done_at: "2026-09-01T13:23:40Z"
+  - id: cp3
+    criterion: render_active_context бросает ValueError на bad load_now / missing handoff
+    status: done
+    done_at: "2026-09-01T13:24:03Z"
+  - id: cp4
+    criterion: полный shape suite 20 сценариев зелёный
+    status: done
+    done_at: "2026-09-01T13:24:16Z"
+resume_from: cp1

@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_analyze + finish_audit"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Реализовать `finish_analyze(request)` и `finish_audit(request)` — фазовые finish tools с тем же
+  JSON контрактом (MbFinishResult). `finish_analyze`: validate analyze artifact/gate verdict → render
+  activeContext (mode=IMPLEMENT) → promote_if_ready(IMPLEMENT) → fingerprint. `finish_audit`: аналог
+  с audit artifact validation. Uniform contract test (matrix pytest) зелёный.
+
+context:
+  consumes:
+    - "s01: render_active_context"
+    - "s06: finish_decompose pattern с promote_if_ready"
+    - "harness/hooks/epic/core.py — gate_evidence_matches, mirror_gate_verdict"
+    - "loop/epic_transition.py — promote_if_ready"
+  produces:
+    - "loop/mb_finish/impl.py — finish_analyze(req), finish_audit(req)"
+    - "harness/hooks/epic_resolve.py — mb-finish analyze / mb-finish audit"
+    - "harness/hooks/tests/test_mb_finish_analyze.py"
+  plan_refs:
+    - "US-005: все фазы — одинаковый JSON contract"
+    - "FR-006: phase-specific validators + arm via Transition Engine"
+  files:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_analyze.py
+
+as_built:
+  - "harness/hooks/epic/core.py — gate_evidence_matches, mirror_gate_verdict (analyze gate pattern)"
+  - "harness/hooks/epic/core.py — verify_pass_step_blockers (analyze PASS check)"
+
+delta:
+  - "EDIT loop/mb_finish/impl.py: finish_analyze(req) — gate_evidence_matches(cwd, 'ANALYZE') → если нет evidence: ok=False; render_active_context(mode=IMPLEMENT) → promote_if_ready(IMPLEMENT) → write_last_finish_tool"
+  - "EDIT loop/mb_finish/impl.py: finish_audit(req) — validate audit artifact path → render_active_context → promote_if_ready(next_phase) → write_last_finish_tool"
+  - "EDIT harness/hooks/epic_resolve.py: mb-finish analyze / mb-finish audit"
+
+deletes: []
+
+out_of_scope:
+  - "finish_creative/reflect — s08"
+  - "prose rules cleanup — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_analyze happy path: gate evidence present → ok=True, mode=IMPLEMENT"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_analyze.py -q --tb=line -k test_finish_analyze_happy"
+  - id: cp2
+    criterion: "finish_analyze без gate evidence → ok=False, no phase advance"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_analyze.py -q --tb=line -k test_finish_analyze_no_evidence"
+  - id: cp3
+    criterion: "finish_audit happy path"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_analyze.py -q --tb=line -k test_finish_audit_happy"
+  - id: cp4
+    criterion: "matrix test: все phase tools возвращают MbFinishResult с полями ok + diagnostic_codes"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_analyze.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_analyze.py -q --tb=line"
+
+tdd:
+  - "test_finish_analyze_happy"
+  - "test_finish_analyze_no_evidence"
+  - "test_finish_audit_happy"
+  - "test_finish_audit_no_artifact"
+  - "test_uniform_contract_matrix — parametrize all phases MbFinishResult fields"

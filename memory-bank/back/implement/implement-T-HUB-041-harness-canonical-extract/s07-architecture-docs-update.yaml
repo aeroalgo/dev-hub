@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-041-harness-canonical-extract
+title: s07 — Обновить architecture docs + systemPatterns SP-H05 (harness layer) IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-041-harness-canonical-extract/s07-architecture-docs-update.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Обновлены systemPatterns.md SP-H05 и architecture/services.md с указанием harness/
+  layer як canonical SoT
+files:
+- memory-bank/architecture/services.md
+- memory-bank/systemPatterns.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line`'
+- rg 'harness' memory-bank/architecture/services.md
+integration_check:
+- rg 'harness' memory-bank/systemPatterns.md
+- rg 'harness' memory-bank/architecture/services.md
+grep_control: []
+verification_results:
+- SP-H05 содержит harness/
+- services.md содержит S-HARNESS-SoT
+checkpoints:
+- id: cp1
+  criterion: SP-H05 содержит 'harness' и не содержит '.claude/hooks' как SoT
+  status: done
+  done_at: '2026-09-01T11:57:33Z'
+- id: cp2
+  criterion: architecture/services.md содержит 'harness' слой
+  status: done
+  done_at: '2026-09-01T11:57:56Z'
+resume_from: cp1

@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from epic_index import load_index_yaml
-from epic_portfolio import _ACTIVE_HEADER_RE, _split_cells, _table_block
-from epic_yaml import load_decompose, load_implement
+from harness.hooks.epic_index import load_index_yaml
+from harness.hooks.epic_portfolio import _ACTIVE_HEADER_RE, _split_cells, _table_block
+from harness.hooks.epic_yaml import load_decompose, load_implement
 
 REPORT_SCHEMA = "reconcile-report/v1"
 

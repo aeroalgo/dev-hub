@@ -10,6 +10,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | `verify-bugfix` | BUGFIX pre-FINISH (`code_changed: yes`) | **да** (если gate active в loop) | `@verify` |
 | `verify-qa` | BACK QA после suite | **да** (если gate active в loop) | `@reviewer` |
 | `verify-decompose` | DECOMPOSE pre-FINISH | **да** (если gate active в loop) | — |
+| `gate-repair` | после `@verify-*` VERDICT: FAIL | **да** (если enabled в loop) | — |
 | `analyze-verify` | после fix plan/decompose по ANALYZE findings | нет (gate после CRITICAL fix; packed FINDINGS/COVERAGE/ALLOW) | — |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
 | `reviewer` (alias) | BACK QA | legacy alias → `verify-qa` | `@reviewer` |
@@ -35,6 +36,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** |
+| После `@verify-*` VERDICT: FAIL | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed BLOCKERS · ALLOW WRITE · VERIFY); repair done/partial → retry @verify до PASS |
 | После ANALYZE fix (plan/decompose) | **`@analyze-verify`** (packed); FAIL → fix → retry; PASS → re-ANALYZE или IMPLEMENT gate |
 | BACK QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (packed; alias `@reviewer` поддерживается); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
@@ -50,9 +52,10 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** BACK QA FINISH без `Agent`→`verify-qa` (или alias `reviewer`).  
 **FAIL:** code-режим сделал широкий codebase search без предшествующего `Agent`→`explorer` в сессии (кроме исключения выше).  
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
-**FAIL:** spawn verify/reviewer/explorer без packed секций / ALLOW = дерево / >10 файлов / globs `**` в ALLOW.
-  ├─ FAIL → parent чинит blockers → снова @verify-implement / @verify-qa
-Hooks: `stop-gate` блокирует FINISH при FAIL; `agent-pretool` DENY `@verify-implement` если уже PASS / step missing / no-VERDICT retry исчерпан.
+**FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >10 файлов / globs `**` в ALLOW.
+  ├─ verify FAIL → parent @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) → retry @verify
+  ├─ gate-repair fail → parent расширяет ALLOW WRITE или чинит сам → retry
+Hooks: `stop-gate` блокирует FINISH при verify FAIL; `agent-pretool` DENY `@gate-repair` без prior verify FAIL; DENY `@verify` если уже PASS.
 
 **FAIL:** «проверь шаг» / QA review / search без секций.  
 **FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов, ≤10).

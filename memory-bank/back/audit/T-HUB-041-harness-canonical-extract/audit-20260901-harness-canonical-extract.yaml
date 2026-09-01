@@ -1,0 +1,66 @@
+date: '2026-09-01'
+epic_id: T-HUB-041-harness-canonical-extract
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-041-harness-canonical-extract.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-041-harness-canonical-extract/index.yaml
+
+steps:
+  - id: s01
+    title: "Создать harness/ пакет — layout + README (canonical SoT появляется)"
+    status: implemented
+    as_built: "Создан пакет harness/ с подкаталогами hooks/, agents/, instructions/ и файлом harness/README.md."
+    delta: "Создана структура harness/__init__.py, harness/hooks/__init__.py, harness/agents/__init__.py, harness/README.md."
+    gaps: []
+
+  - id: s02
+    title: "git mv .claude/{hooks,agents,instructions} → harness/ (SoT переезжает)"
+    status: implemented
+    as_built: "Перенесены файлы из .claude/{hooks,agents,instructions} в harness/{hooks,agents,instructions}."
+    delta: "Файлы хуков, агентов и инструкций перенесены в канонический пакет harness/."
+    gaps: []
+
+  - id: s03
+    title: "Создать symlinks .claude/{hooks,agents,instructions} → harness/* (shell thin)"
+    status: implemented
+    as_built: "Созданы относительные симлинки в .claude/{hooks,agents,instructions}, указывающие на harness/."
+    delta: "Директории и файлы в .claude/ преобразованы в симлинки на harness/."
+    gaps: []
+
+  - id: s04
+    title: "Purge .claude/hooks из sys.path в loop/ hot path — импорт из harness/"
+    status: implemented
+    as_built: "Очищен sys.path от элементов .claude/hooks в точках входа loop/, импорты переведены на harness.hooks."
+    delta: "Импорты хуков в loop/ перенаправлены на пакет harness.hooks."
+    gaps: []
+
+  - id: s05
+    title: "Создать test_harness_paths.py + починить loop/tests path refs (TDD green)"
+    status: implemented
+    as_built: "Создан loop/tests/test_harness_paths.py для проверки валидности симлинков и импортов harness."
+    delta: "Добавлен модуль loop/tests/test_harness_paths.py, все тесты успешно проходят."
+    gaps: []
+
+  - id: s06
+    title: "Проверить/обновить bin/hub-link — product .claude/hooks → harness (AC-3)"
+    status: implemented
+    as_built: "Скрипт bin/hub-link обновлен для поддержки линкинга harness."
+    delta: "Обновлен bin/hub-link."
+    gaps: []
+
+  - id: s07
+    title: "Обновить architecture docs + systemPatterns SP-H05 (harness layer)"
+    status: implemented
+    as_built: "Документация архитектуры в memory-bank обновлена с паттерном SP-H05 (harness layer)."
+    delta: "Обновлены файлы архитектуры в memory-bank."
+    gaps: []
+
+  - id: s08
+    title: "Legacy .claude/hooks purge — sunset inventory scan + полный pytest subset (anti-fallback)"
+    status: implemented
+    as_built: "Проведена проверка отсутствия фаллбэков на legacy .claude/hooks."
+    delta: "Подтверждена полная каноничность harness/."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 8 шагов (s01-s08) эпика T-HUB-041-harness-canonical-extract успешно реализованы. Gap-матрица пуста, все тесты harness зеленые."

@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_implement_step + CLI mb-finish implement + rollback"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Реализовать `loop/mb_finish/finish_implement.py::finish_implement_step(request)` — атомарный оркестратор:
+  validate-step → verify PASS check → backup activeContext → render_active_context → finalize_step;
+  на любом сбое после backup — rollback. Добавить CLI subcommand `epic_resolve.py mb-finish implement`.
+  Цель: US-001 (один вызов закрывает sNN) + US-002 (fail-closed без verify PASS) + TM-001..004 зелёные.
+
+context:
+  consumes:
+    - "s01: loop/mb_finish/schemas.py + render.py"
+    - "harness/hooks/epic/core.py:1786 — _verify_pass_ready_for_step(cwd, step_id) -> dict"
+    - "harness/hooks/epic/core.py:2402 — finalize_step(cwd, step_id, done_summary)"
+    - "harness/hooks/epic/core.py:2380 — validate-step path (validate_finish_integrity)"
+    - "harness/hooks/epic_resolve.py — CLI entry point, subcommand pattern"
+  produces:
+    - "loop/mb_finish/finish_implement.py — finish_implement_step(request: MbFinishRequest) -> MbFinishResult"
+    - "harness/hooks/epic_resolve.py — subcommand mb-finish implement (stdin JSON or --args)"
+    - "harness/hooks/tests/test_mb_finish_implement.py — TM-001..004"
+  plan_refs:
+    - "FR-003: CLI mb-finish implement subcommand"
+    - "FR-004: finish_implement atomic sequence"
+    - "US-001: один CLI вызов"
+    - "US-002: fail-closed без verify PASS"
+    - "AC-1, AC-2, SC-001"
+    - "TM-001..004"
+  files:
+    - loop/mb_finish/finish_implement.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_implement.py
+
+as_built:
+  - "harness/hooks/epic/core.py:1786 _verify_pass_ready_for_step — возвращает dict с ok/diagnostic_codes"
+  - "harness/hooks/epic/core.py:2402 finalize_step — атомарно пишет implement+index; уже имеет свой lock"
+  - "harness/hooks/epic_resolve.py — CLI с subcommands (validate-step, finalize-step, …)"
+  - "loop/context_loop.py:886 — вызов _implement_finish_block() inline; не typed"
+
+delta:
+  - "CREATE loop/mb_finish/finish_implement.py: finish_implement_step(req: MbFinishRequest) -> MbFinishResult"
+  - "  1. validate_finish_integrity(cwd, step_id) — если CRITICAL > 0 → MbFinishResult(ok=False, …)"
+  - "  2. _verify_pass_ready_for_step(cwd, step_id) — если not ok → MbFinishResult(ok=False, diagnostic_codes=['verify_pass_required'])"
+  - "  3. backup = read_active_context(cwd) (atomic snapshot)"
+  - "  4. rendered = render_active_context(meta, load_now, done, handoff) — raises ValueError on shape errors BEFORE any write"
+  - "  5. on ValueError: return MbFinishResult(ok=False, diagnostic_codes=['shape_invalid']) — no write"
+  - "  6. write rendered to activeContext.md"
+  - "  7. result = finalize_step(cwd, step_id, done_summary)"
+  - "  8. on finalize failure: restore backup → MbFinishResult(ok=False, diagnostic_codes=['finalize_failed'])"
+  - "ADD to harness/hooks/epic_resolve.py: subcommand 'mb-finish' with sub-sub-command 'implement' reading JSON from stdin or args, calls finish_implement_step, prints JSON result, exit 0/1/2"
+  - "CREATE harness/hooks/tests/test_mb_finish_implement.py: fixtures with tmp_path epic + decompose + verify sidecar"
+
+deletes:
+  - "pattern: silent verify skip logic in finish paths — replaced by fail-closed _verify_pass_ready_for_step check; rg audit: `rg 'skip.*verify\\|verify.*skip' loop/mb_finish/finish_implement.py; test $? -ne 0`"
+
+out_of_scope:
+  - "stop-gate fingerprint write — s03"
+  - "finish_qa/finish_bugfix — s05"
+  - "prose block removal from context_loop — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_implement_step happy path: verify sidecar PASS, finalize succeeds → MbFinishResult(ok=True)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q --tb=line -k test_finish_implement_happy"
+  - id: cp2
+    criterion: "verify sidecar missing → MbFinishResult(ok=False, diagnostic_codes=['verify_pass_required']), no status change in implement AND no status change in index (SC-001: 0 mutations)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q --tb=line -k test_finish_implement_no_verify"
+  - id: cp3
+    criterion: "finalize failure → activeContext restored from backup (rollback)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q --tb=line -k test_finish_implement_rollback"
+  - id: cp4
+    criterion: "CLI: python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step sNN → JSON stdout"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q --tb=line"
+  - "python harness/hooks/epic_resolve.py mb-finish --help | grep implement"
+
+tdd:
+  - "test_finish_implement_happy — TM-001: ok:true, completed, shape valid"
+  - "test_finish_implement_no_verify — TM-002: ok:false, in_progress"
+  - "test_finish_implement_bad_shape — TM-003 indirect: render raises before write"
+  - "test_finish_implement_rollback — TM-004: finalize fails, backup restored"
+  - "test_finish_implement_bad_cwd — TM-005 related: wrong cwd → JSON error exit 2"

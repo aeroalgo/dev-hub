@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "loop/mb_finish/ schemas + render + shape tests"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Создать модуль `loop/mb_finish/` с pydantic-моделями запроса/ответа (`MbFinishRequest/v1`,
+  `MbFinishResult/v1`) и функцией `render_active_context(meta, load_now, done, handoff_body)` —
+  единственным typed writer тела activeContext на FINISH. После шага: `from loop.mb_finish.schemas
+  import MbFinishRequest` работает; `render_active_context` воспроизводит корректный `loop-handoff/v1`
+  frontmatter + тело без shape errors; 20-сценарный pytest suite зелёный.
+
+context:
+  consumes:
+    - "loop/schemas/handoff.py — LoopHandoffFrontmatter, LoadNowItem (переиспользовать типы)"
+    - "harness/hooks/epic/core.py:1281 — validate_active_context_shape (source of truth для shape rules)"
+    - "loop/context_loop.py:707,748 — _implement_finish_block/_qa_finish_block (образцы shape)"
+  produces:
+    - "loop/mb_finish/__init__.py"
+    - "loop/mb_finish/schemas.py — MbFinishRequest, MbFinishResult, LoopHandoffMeta, LoadNowItem, HandoffBody"
+    - "loop/mb_finish/render.py — render_active_context()"
+    - "harness/hooks/tests/test_mb_finish_shape.py — 20 shape scenarios"
+  plan_refs:
+    - "FR-001: модуль loop/mb_finish/ pydantic models"
+    - "FR-002: render_active_context единственный writer"
+    - "US-003: 0 shape errors в test matrix"
+    - "SC-002: 20 FINISH scenarios"
+    - "TM-003: shape validator rejects bad load_now"
+  files:
+    - loop/mb_finish/__init__.py
+    - loop/mb_finish/schemas.py
+    - loop/mb_finish/render.py
+    - harness/hooks/tests/test_mb_finish_shape.py
+
+as_built:
+  - "loop/schemas/handoff.py — LoopHandoffFrontmatter, extract_handoff_block уже есть"
+  - "harness/hooks/epic/core.py:1281 validate_active_context_shape — list[str] errors, rules implicit"
+  - "loop/context_loop.py:707 _implement_finish_block() → str (prose template, не typed)"
+  - "loop/context_loop.py:1553,1800 — вызовы validate_active_context_shape после ad-hoc write"
+
+delta:
+  - "CREATE loop/mb_finish/__init__.py (re-export публичного API)"
+  - "CREATE loop/mb_finish/schemas.py: MbFinishRequest(phase, step_id, done_summary, cwd), MbFinishResult(ok, diagnostic_codes, shape_errors), LoopHandoffMeta(schema, role, mode, epic_id, step_id), LoadNowItem(path, description), HandoffBody(mode, next_hint)"
+  - "CREATE loop/mb_finish/render.py: render_active_context(meta: LoopHandoffMeta, load_now: list[LoadNowItem], done: list[str], handoff: HandoffBody) -> str; вызывает validate_active_context_shape — raises ValueError если shape errors > 0"
+  - "CREATE harness/hooks/tests/test_mb_finish_shape.py: 20 parametrize scenarios (valid / bad load_now / missing handoff / sandwich / multiple_handoff / completed_in_load_now)"
+
+deletes: []
+
+out_of_scope:
+  - "CLI subcommand — s02"
+  - "finalize_step integration — s02"
+  - "stop-gate fingerprint — s03"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - fastapi-templates
+
+checkpoints:
+  - id: cp1
+    criterion: "модуль импортируется без ошибок"
+    verify: "python -c 'from loop.mb_finish.schemas import MbFinishRequest, MbFinishResult; from loop.mb_finish.render import render_active_context; print(\"ok\")'"
+  - id: cp2
+    criterion: "render_active_context на корректном вводе возвращает строку с frontmatter loop-handoff/v1 и проходит validate_active_context_shape"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_shape.py -q --tb=line -k test_render_valid"
+  - id: cp3
+    criterion: "render_active_context бросает ValueError на bad load_now / missing handoff"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_shape.py -q --tb=line -k test_render_invalid"
+  - id: cp4
+    criterion: "полный shape suite 20 сценариев зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_shape.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_shape.py -q --tb=line"
+  - "python -c 'from loop.mb_finish.schemas import MbFinishRequest'"
+
+tdd:
+  - "test_render_valid_implement — frontmatter + shape valid"
+  - "test_render_valid_qa — qa handoff body"
+  - "test_render_bad_load_now_raises — ValueError"
+  - "test_render_missing_handoff_raises — ValueError"
+  - "test_render_multiple_handoff_raises — sandwich/multiple shape error"
+  - "test_render_completed_in_load_now_raises — completed_in_load_now shape error"
+  - "20 parametrize matrix covering all validate_active_context_shape rules"

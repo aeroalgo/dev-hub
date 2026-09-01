@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Purge .claude/hooks из sys.path в loop/ hot path — импорт из harness/"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `loop/loop.sh` и `loop/context_loop.py` так, чтобы все sys.path.insert
+  и прямые ссылки на `.claude/hooks` как SoT заменились на `harness/hooks`.
+  После шага `rg '\.claude/hooks' loop/loop.sh loop/context_loop.py` → 0 строк
+  кроме комментариев-шимов / backward-compat замечаний.
+  Outcome: loop runner не зависит от Claude layout — ключевой FR для US-002.
+
+context:
+  consumes:
+    - harness/hooks/  # из s02–s03 (canonical path)
+    - loop/loop.sh
+    - loop/context_loop.py
+  produces:
+    - loop/loop.sh  # sys.path → harness/hooks
+    - loop/context_loop.py  # если есть прямые import .claude/hooks
+  plan_refs:
+    - "FR-004"
+    - "FR-006"
+    - "US-002"
+    - "AC+ #2 (loop inserts harness/hooks on sys.path)"
+    - "SC-001 (0 loop hot-path imports of .claude/hooks as SoT)"
+    - "TM-002 (rg audit)"
+  files:
+    - loop/loop.sh
+    - loop/context_loop.py
+
+as_built:
+  - "loop/loop.sh line 33: sys.path.insert(0, r'$HUB_ROOT/.claude/hooks')"
+  - "loop/loop.sh line 63: STREAM_FILTER=$HUB_ROOT/.claude/hooks/epic_stream_filter.py"
+  - "loop/loop.sh line 65: SESSION_WRAPPER=$ROOT/.claude/hooks/session_resilience.py"
+  - "loop/loop.sh line 72: sys.path.insert(0, sys.argv[1] + '/.claude/hooks')"
+  - "loop/loop.sh lines 110,118–120: .claude/hooks refs in warmup/cleanup"
+  - "loop/loop.sh lines 295,320: sys.path.insert .claude/hooks"
+  - "loop/loop.sh line 811: sys.path .claude/hooks (inline python block)"
+  - "loop/context_loop.py line 581,710,712,715: .claude/hooks refs in DECOMPOSE/IMPLEMENT comments"
+
+delta:
+  - "loop/loop.sh: заменить все sys.path.insert(.claude/hooks) на harness/hooks"
+  - "loop/loop.sh: STREAM_FILTER/SESSION_WRAPPER пути → harness/ (или сохранить через symlink — если symlink в s03 достаточен, только задокументировать)"
+  - "loop/loop.sh: warmup/cleanup refs → harness/"
+  - "loop/context_loop.py: update .claude/hooks ссылки в строках-шаблонах (canon DECOMPOSE/IMPLEMENT instructions)"
+
+deletes:
+  - "все прямые sys.path.insert(0, …'/.claude/hooks') в loop/loop.sh как non-symlink SoT reference"
+  - "все прямые sys.path ссылки на .claude/hooks в loop/context_loop.py (если есть рантайм, не только комментарий)"
+
+out_of_scope:
+  - "Правка тестов loop/tests/ (s05)"
+  - "loop/incidents, loop/README.md docs (s07)"
+  - "harness/schemas/ (T-HUB-042)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "rg .claude/hooks loop/loop.sh → 0 non-comment, non-shim строк"
+    verify: "rg '\\.claude/hooks' loop/loop.sh | grep -v '#' | wc -l"
+  - id: cp2
+    criterion: "harness/hooks присутствует в sys.path insert в loop.sh"
+    verify: "rg 'harness/hooks' loop/loop.sh | head -5"
+  - id: cp3
+    criterion: "loop.sh синтаксически валиден (bash -n)"
+    verify: "bash -n loop/loop.sh && echo OK"
+  - id: cp4
+    criterion: "SC-001: rg audit loop/ → 0 raw .claude/hooks SoT refs (не шим/комментарий)"
+    verify: "rg '\\.claude/hooks' loop/loop.sh loop/context_loop.py | grep -v '#\\|comment\\|shim\\|compat' | wc -l"
+
+verify:
+  - "bash -n loop/loop.sh"
+  - "rg 'harness/hooks' loop/loop.sh | wc -l"
+
+tdd:
+  - "test: импорт epic_resolve через harness-path работает (не NameError)"
+  - "TM-002: rg '.claude/hooks' loop/ --glob '!*test*' → 0 рабочих строк"

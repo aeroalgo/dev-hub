@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-041-harness-canonical-extract
+date: '2026-09-01'
+mode: BACK DECOMPOSE
+steps:
+- id: s01
+  file: s01-harness-layout-create.yaml
+  title: Создать harness/ пакет — layout + README (canonical SoT появляется)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-git-mv-hooks-agents-instructions.yaml
+  title: git mv .claude/{hooks,agents,instructions} → harness/ (SoT переезжает)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-symlinks-claude-to-harness.yaml
+  title: Создать symlinks .claude/{hooks,agents,instructions} → harness/* (shell thin)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-loop-import-path-purge.yaml
+  title: Purge .claude/hooks из sys.path в loop/ hot path — импорт из harness/
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-test-harness-paths.yaml
+  title: Создать test_harness_paths.py + починить loop/tests path refs (TDD green)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-hub-link-harness-compat.yaml
+  title: Проверить/обновить bin/hub-link — product .claude/hooks → harness (AC-3)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-architecture-docs-update.yaml
+  title: Обновить architecture docs + systemPatterns SP-H05 (harness layer)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-legacy-fallback-purge.yaml
+  title: Legacy .claude/hooks purge — sunset inventory scan + полный pytest subset
+    (anti-fallback)
+  next_phase: BACK IMPLEMENT
+  status: completed

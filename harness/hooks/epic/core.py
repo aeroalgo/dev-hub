@@ -26,7 +26,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
-from epic.convergence import run_convergence_checks
+from .convergence import run_convergence_checks
 INDEX_IMPLEMENT_CONFLICT = "index_implement_conflict"
 MARK_INDEX_MISSING = "mark_index_missing"
 FINISH_INTEGRITY_DECOMPOSE_MISSING = "finish_integrity_decompose_missing"
@@ -520,6 +520,22 @@ def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
         state_path(cwd),
         json.dumps(state, ensure_ascii=False, indent=2) + "\n",
     )
+
+
+def write_last_finish_tool(
+    cwd: str | Path,
+    name: str,
+    fingerprint: str,
+) -> bool:
+    """Write last_finish_tool record into epic state."""
+    st = load_epic_state(cwd)
+    st["last_finish_tool"] = {
+        "name": str(name),
+        "at": utc_now(),
+        "fingerprint": str(fingerprint),
+    }
+    save_epic_state(cwd, st)
+    return True
 
 
 def _needs_creative_open(value: object) -> bool:

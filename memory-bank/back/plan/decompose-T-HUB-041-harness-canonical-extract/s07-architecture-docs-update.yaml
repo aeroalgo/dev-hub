@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Обновить architecture docs + systemPatterns SP-H05 (harness layer)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `memory-bank/architecture/services.md` и `memory-bank/systemPatterns.md` SP-H05
+  так, чтобы harness/ слой был задокументирован как canonical SoT.
+  Outcome: AC+ #5 closed — docs описывают реальную структуру после extract; PR reviewer
+  видит полную картину; T-HUB-042/T-HUB-043 имеют точный as-built baseline.
+
+context:
+  consumes:
+    - memory-bank/architecture/services.md
+    - memory-bank/systemPatterns.md
+    - harness/README.md  # из s01
+  produces:
+    - memory-bank/architecture/services.md  # обновлён: harness/ layer + symlink shell
+    - memory-bank/systemPatterns.md  # SP-H05 строка → harness
+  plan_refs:
+    - "FR-007"
+    - "AC+ #5"
+    - "plan §Files touch matrix (memory-bank/architecture/services.md, systemPatterns.md)"
+  files:
+    - memory-bank/architecture/services.md
+    - memory-bank/systemPatterns.md
+
+as_built:
+  - "memory-bank/systemPatterns.md SP-H05: ссылается на .claude/hooks как SoT (до extract)"
+  - "memory-bank/architecture/services.md: harness/ слой не упомянут"
+
+delta:
+  - "systemPatterns.md: SP-H05 строка → harness/hooks как SoT; .claude/hooks → symlink shell"
+  - "architecture/services.md: добавить harness/ layer (S-HARNESS-SoT), data-flow ASCII или mermaid, symlink chain"
+
+deletes: []
+
+out_of_scope:
+  - "Полный docs pass (T-HUB-044)"
+  - "DSH bridge docs (T-HUB-043)"
+  - "loop/README.md (s08 или T-HUB-044)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "SP-H05 содержит 'harness' и не содержит '.claude/hooks' как SoT"
+    verify: "rg 'SP-H05' memory-bank/systemPatterns.md | head -3"
+  - id: cp2
+    criterion: "architecture/services.md содержит 'harness' слой"
+    verify: "rg 'harness' memory-bank/architecture/services.md | head -5"
+
+verify:
+  - "rg 'harness' memory-bank/systemPatterns.md"
+  - "rg 'harness' memory-bank/architecture/services.md | wc -l"
+
+tdd: []
+# docs-only step: нет python кода → tdd пустой; impl: [] (docs-only)

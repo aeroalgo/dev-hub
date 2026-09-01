@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-041-harness-canonical-extract
+title: s08 — Legacy .claude/hooks purge — sunset inventory scan + полный pytest subset
+  (anti-fallback) IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-041-harness-canonical-extract/s08-legacy-fallback-purge.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+discovery:
+- 'Sunset inventory scan: .claude/hooks refs в loop/ — только symlink/compat/docs'
+gaps:
+  status: none
+done:
+- Sunset inventory scan по loop/ — 0 неразрешённых live sys.path.insert на .claude/hooks
+- Прогнан pytest subset loop/tests/test_harness_paths.py loop/tests/test_agent_hooks.py
+  loop/tests/test_hub_link_harness.py loop/tests/test_runtime_config.py — 89 passed
+files:
+- loop/incidents/runbooks/
+- loop/YAML-CONTRACT.md
+- loop/README.md
+deletes:
+- все live sys.path.insert(.claude/hooks) вне loop.sh если найдены (A-kind)
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_harness_paths.py loop/tests/test_agent_hooks.py
+  loop/tests/test_hub_link_harness.py -q --tb=line` (33 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_hooks.py loop/tests/test_runtime_config.py
+  -q --tb=line` (56 passed)'
+integration_check:
+- rg 'sys\.path.*\.claude/hooks' loop/ | grep -v '#' | wc -l -> 0
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'Sunset inventory scan: PASS — 0 live Python sys.path on .claude/hooks as SoT'
+- 'TM-001..TM-003 pytest subset: PASS — 33 passed in 19.94s'
+- 'AC+ #4 pytest subset: PASS — 56 passed in 29.37s'
+- 'Anti-fallback sys.path audit: PASS — 0 matches'
+checkpoints:
+- id: cp1
+  criterion: 'Sunset inventory scan: rg ''.claude/hooks'' loop/ Python files → только
+    compat/docs'
+  status: done
+  done_at: '2026-09-01T12:06:28Z'
+- id: cp2
+  criterion: TM-001..TM-003 полный subset зелёный
+  status: done
+  done_at: '2026-09-01T12:06:34Z'
+- id: cp3
+  criterion: 'AC+ #4: полный subset pytest зелёный'
+  status: done
+  done_at: '2026-09-01T12:06:40Z'
+- id: cp4
+  criterion: 'anti-fallback: нет живых Python sys.path на .claude/hooks как SoT'
+  status: done
+  done_at: '2026-09-01T12:06:45Z'
+resume_from: cp1

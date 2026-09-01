@@ -1,0 +1,115 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Legacy .claude/hooks purge — sunset inventory scan + полный pytest subset (anti-fallback)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge-шаг: провести sunset inventory scan всех оставшихся `.claude/hooks`-as-SoT
+  ссылок в репо (loop/tests/, loop/incidents/, loop/README.md, YAML-CONTRACT.md, docs).
+  Исправить или задокументировать каждую.
+  Запустить полный pytest subset (AC+ #4 команда) и подтвердить зелёный.
+  После шага: `rg '\.claude/hooks' . --glob '!*.md' --glob '!.git'` → только symlink сама
+  + compat комментарии/docs; нет живых Python-путей как SoT.
+
+context:
+  consumes:
+    - harness/  # готов (s01–s06)
+    - loop/tests/test_harness_paths.py  # из s05
+    - loop/tests/test_hub_link_harness.py  # из s06
+  produces:
+    - loop/incidents/*.md  # если есть .claude/hooks — patch
+    - loop/YAML-CONTRACT.md  # ссылки на epic_resolve → можно оставить (через symlink) или patch
+    - loop/README.md  # аналогично
+  plan_refs:
+    - "FR-006 (purge direct .claude/hooks sys.path)"
+    - "SC-001 (0 hot-path imports)"
+    - "SC-003 (pytest green)"
+    - "AC+ #4 (pytest loop/tests/ green)"
+    - "TM-001..TM-005 (все тесты)"
+  files:
+    - loop/incidents/runbooks/
+    - loop/YAML-CONTRACT.md
+    - loop/README.md
+
+as_built:
+  - "loop/YAML-CONTRACT.md: все epic_resolve CLI refs → .claude/hooks/epic_resolve.py"
+  - "loop/incidents/runbooks/checkpoint_drift.md: ref .claude/hooks/epic_resolve.py"
+  - "loop/incidents/runbooks/mark_index_missing.md: ref .claude/hooks/epic_resolve.py"
+  - "loop/incidents/runbooks/index_mirror_drift.md: ref .claude/hooks/epic_resolve.py"
+  - "loop/README.md: ref .claude/hooks/bash-output-cap.py, epic_resolve.py"
+  - "loop/tests/test_runner_ownership.py: .claude/hooks/_lib.py ref"
+  - "loop/tests/test_formula_integration.py: .claude/hooks/epic_resolve.py refs"
+
+sunset_inventory:
+  - path: "loop/YAML-CONTRACT.md"
+    kind: C
+    action: "docs — оставить .claude/hooks ссылки (symlink цепь корректна для операторов); добавить примечание harness/"
+  - path: "loop/incidents/runbooks/"
+    kind: C
+    action: "docs runbooks — оставить .claude/hooks (symlink корректен); purge только если есть рабочие sys.path"
+  - path: "loop/README.md"
+    kind: C
+    action: "docs — аналогично, при желании добавить harness/ note"
+  - path: "loop/tests/test_runner_ownership.py"
+    kind: A
+    action: "test: .claude/hooks/_lib.py path — patch на harness/hooks/_lib.py или verify symlink OK"
+  - path: "loop/tests/test_formula_integration.py"
+    kind: A
+    action: "test: subprocess .claude/hooks/epic_resolve.py — patch на harness/hooks/ или оставить (symlink)"
+
+grep_control:
+  - pattern: "\\.claude/hooks"
+    scope: "loop/ --glob '!*.md'"
+    expected: "0 python runtime sys.path lines (только комментарии/shim)"
+  - pattern: "\\.claude/hooks"
+    scope: "loop/loop.sh"
+    expected: "0 (после s04)"
+
+delta:
+  - "patch loop/tests если harness-path проверки падают (test_runner_ownership → harness/hooks/_lib.py)"
+  - "patch runbooks/docs если есть рабочие Python-пути (не docs)"
+  - "финальный grep audit — рапорт с результатом"
+
+deletes:
+  - "все live sys.path.insert(.claude/hooks) вне loop.sh если найдены (A-kind)"
+
+out_of_scope:
+  - "DSH cc-hooks-bridge paths (TM-004 defer to T-HUB-043)"
+  - "harness/schemas symlink (T-HUB-042)"
+  - "Full docs rewrite (T-HUB-044)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "Sunset inventory scan: rg '.claude/hooks' loop/ Python files → только compat/docs"
+    verify: "rg '\\.claude/hooks' loop/ --include='*.py' --include='*.sh' | grep -v '#\\|comment' | wc -l"
+  - id: cp2
+    criterion: "TM-001..TM-003 полный subset зелёный"
+    verify: ".venv/bin/pytest loop/tests/test_harness_paths.py loop/tests/test_agent_hooks.py loop/tests/test_hub_link_harness.py -q --tb=line 2>&1 | tail -5"
+  - id: cp3
+    criterion: "AC+ #4: полный subset pytest зелёный"
+    verify: ".venv/bin/pytest loop/tests/test_agent_hooks.py loop/tests/test_runtime_config.py -q --tb=line"
+  - id: cp4
+    criterion: "anti-fallback: нет живых Python sys.path на .claude/hooks как SoT"
+    verify: "rg 'sys\\.path.*\\.claude/hooks' loop/ | grep -v '#' | wc -l"
+
+verify:
+  - ".venv/bin/pytest loop/tests/ -q --tb=line -x 2>&1 | tail -10"
+  - "rg '\\.claude/hooks' loop/ --include='*.py' | grep -v '#' | wc -l"
+
+tdd:
+  - "TM-001: test_harness_paths.py green"
+  - "TM-002: rg audit → 0"
+  - "TM-003: hooks regression tests green"
+  - "TM-004: hub-link harness test green"
+  - "TM-005: нет broken imports после git mv"

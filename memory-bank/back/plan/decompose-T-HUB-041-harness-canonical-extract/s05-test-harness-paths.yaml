@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Создать test_harness_paths.py + починить loop/tests path refs (TDD green)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/tests/test_harness_paths.py` — integration test: symlink integrity,
+  import smoke (harness.hooks), stop-gate reachable.
+  Починить существующие тесты в `loop/tests/`, которые ссылаются на `.claude/hooks`
+  как реальную директорию (теперь это symlink — большинство тестов работают автоматически,
+  но некоторые делают os.path.isdir / os.path.realpath проверки).
+  После шага: `pytest loop/tests/test_harness_paths.py -q` green; регрессий нет.
+
+context:
+  consumes:
+    - harness/hooks/  # из s02–s03 (наполнен + symlink)
+    - loop/tests/  # существующие тесты
+  produces:
+    - loop/tests/test_harness_paths.py  # новый файл
+  plan_refs:
+    - "FR-008"
+    - "US-004"
+    - "AC+ #4 (pytest green)"
+    - "TM-001 (symlink integrity)"
+    - "TM-003 (hooks regression)"
+    - "TM-005 (git mv broken imports)"
+  files:
+    - loop/tests/test_harness_paths.py
+    - loop/tests/test_runner_ownership.py  # содержит .claude/hooks import ref
+    - loop/tests/test_formula_integration.py  # содержит .claude/hooks refs
+
+as_built:
+  - "loop/tests/test_runner_ownership.py line 16: импортирует _lib.py через ROOT / '.claude/hooks/_lib.py'"
+  - "loop/tests/test_formula_integration.py lines 20,66: .claude/hooks/epic_resolve.py как subprocess"
+  - "loop/tests/test_harness_paths.py — не существует"
+
+delta:
+  - "create loop/tests/test_harness_paths.py (symlink tests + import smoke + stop-gate reachable)"
+  - "loop/tests/test_runner_ownership.py: обновить путь к _lib.py → harness/hooks/_lib.py (или оставить если symlink достаточен)"
+  - "loop/tests/test_formula_integration.py: обновить subprocess paths → harness/hooks/epic_resolve.py (или оставить если symlink достаточен)"
+
+deletes: []
+# Тесты не удаляем; только patch paths если нужно после symlink
+
+out_of_scope:
+  - "Новые тесты для hub-link (s06)"
+  - "Тесты для loop import purge напрямую — покрывается cp4 s04"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "test_harness_paths.py существует и содержит symlink + import тесты"
+    verify: "rg 'symlink|harness|import' loop/tests/test_harness_paths.py | head -5"
+  - id: cp2
+    criterion: "TM-001: pytest loop/tests/test_harness_paths.py -q → PASS"
+    verify: ".venv/bin/pytest loop/tests/test_harness_paths.py -q --tb=short"
+  - id: cp3
+    criterion: "TM-003: hooks regression test green"
+    verify: ".venv/bin/pytest loop/tests/test_agent_hooks.py loop/tests/test_stop_gate*.py -q --tb=line 2>&1 | tail -5"
+  - id: cp4
+    criterion: "TM-005: нет broken imports в harness/hooks после git mv"
+    verify: ".venv/bin/pytest loop/tests/ -q --tb=line -x 2>&1 | tail -10"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_harness_paths.py -q --tb=short"
+  - "rg 'harness' loop/tests/test_harness_paths.py | wc -l"
+
+tdd:
+  - "RED: test_harness_paths.py написан до s02–s03; проваливается (harness не создан)"
+  - "GREEN: после s01–s03 все assertions pass"
+  - "test_symlink_hooks_points_to_harness: os.readlink('.claude/hooks') == '../harness/hooks'"
+  - "test_harness_import_smoke: import harness.hooks — не падает"
+  - "test_stop_gate_reachable_via_symlink: Path('.claude/hooks/stop-gate.py').exists()"

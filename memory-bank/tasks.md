@@ -40,6 +40,10 @@
 | T-HUB-037 | Harness parallel sNN | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-037-harness-parallel-snn.md) · deps T-HUB-029 · P2 |
 | T-HUB-038 | Harness metrics dashboard | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-038-harness-metrics-dashboard.md) · deps T-HUB-031 · P2 |
 | T-HUB-040 | Harness workflow finish API (mb-finish) | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-040-harness-workflow-finish-api.md) · deps T-HUB-029,033 · P1 |
+| T-HUB-041 | Harness canonical extract | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-041-harness-canonical-extract.md) · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) · next DECOMPOSE |
+| T-HUB-042 | Runtime adapter framework | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-042-runtime-adapter-framework.md) · deps T-HUB-041 |
+| T-HUB-043 | Runtime bridge + Codex | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-043-runtime-bridge-codex.md) · deps T-HUB-042 · soft T-HUB-039 |
+| T-HUB-044 | Runtime sync doctor docs | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · deps T-HUB-043 |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |
@@ -59,6 +63,7 @@
 | Slug: epic-transition-engine | [roadmap-epic-transition-engine-epics.md](back/plan/roadmap-epic-transition-engine-epics.md) · [queue](back/plan/roadmap-epic-transition-engine-epics.queue.yaml) |
 | Slug: harness-maturity-borrowings | [roadmap-harness-maturity-borrowings-epics.md](back/plan/roadmap-harness-maturity-borrowings-epics.md) · [queue](back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml) |
 | Slug: back-plan-gstack-adapt | [roadmap-back-plan-gstack-adapt-epics.md](back/plan/roadmap-back-plan-gstack-adapt-epics.md) · [queue](back/plan/roadmap-back-plan-gstack-adapt-epics.queue.yaml) |
+| Slug: harness-universal-runtime | [roadmap-harness-universal-runtime-epics.md](back/plan/roadmap-harness-universal-runtime-epics.md) · [queue](back/plan/roadmap-harness-universal-runtime-epics.queue.yaml) |
 | Research | [audit/workflow-loop-20260816](audit/workflow-loop-20260816/index.md) · spec-kit/ (local) + chat analysis 2026-08-23 |
 
 ## Done (recent)
@@ -80,6 +85,7 @@
 - T-HUB-023: REDO v4 — JSON-in-prompt + pydantic validate; next BACK DECOMPOSE s01–s13; canon #5 after T-HUB-031
 - T-HUB-027: BACK PLAN gstack-adapt (product probe, eng spine, qa_consumes, review readiness, plan review batch)
 - T-HUB-040: BACK PLAN mb-finish typed FINISH API (MCP-style tools); next DECOMPOSE after T-HUB-033/039
+- T-HUB-041…044: MULTI-EPIC PLAN harness universal runtime (harness/ extract → adapter framework → codex bridge → docs/doctor)
 
 ## Последние события
 

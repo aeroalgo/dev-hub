@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_decompose + finish_plan + transition engine delegate"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Реализовать `finish_decompose(request)` и `finish_plan(request)` с делегированием в Transition Engine
+  (`arm_phase` / `promote_if_ready` из T-HUB-029). `finish_decompose` должен arm ANALYZE gate через
+  Transition Engine — не дублировать legacy arm paths. TM-007 зелёный: после finish_decompose
+  epic state armed_step = ANALYZE.
+
+context:
+  consumes:
+    - "s01: render_active_context"
+    - "s02: finish_implement паттерн"
+    - "s03: write_last_finish_tool"
+    - "loop/epic_transition.py — arm_phase / promote_if_ready (T-HUB-029 Transition Engine)"
+    - "harness/hooks/epic/core.py — arm_epic, arm_active_context_from_decompose, validate-decompose-tree path"
+  produces:
+    - "loop/mb_finish/impl.py — finish_decompose(req), finish_plan(req)"
+    - "harness/hooks/epic_resolve.py — mb-finish decompose / mb-finish plan subcommands"
+    - "harness/hooks/tests/test_mb_finish_decompose.py — TM-007"
+  plan_refs:
+    - "FR-006: finish_decompose arms ANALYZE via Transition Engine"
+    - "US-005: uniform JSON contract across phases"
+    - "TM-007: finish_decompose arms ANALYZE"
+  files:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_decompose.py
+
+as_built:
+  - "loop/epic_transition.py — arm_phase(), promote_if_ready() (T-HUB-029)"
+  - "harness/hooks/epic/core.py — arm_epic, arm_active_context_from_decompose (legacy path)"
+  - "harness/hooks/epic/core.py — validate-decompose-tree logic"
+
+delta:
+  - "EDIT loop/mb_finish/impl.py: finish_decompose(req) — validate decompose tree (stop if CRITICAL>0) → render_active_context (mode=ANALYZE) → promote_if_ready(cwd, 'ANALYZE') via Transition Engine → write_last_finish_tool"
+  - "EDIT loop/mb_finish/impl.py: finish_plan(req) — validate plan artifact exists → render_active_context (mode=DECOMPOSE) → promote_if_ready(cwd, 'DECOMPOSE') → write_last_finish_tool"
+  - "EDIT harness/hooks/epic_resolve.py: mb-finish decompose / mb-finish plan subcommands"
+  - "DO NOT duplicate: не вызывать arm_epic напрямую, всё через Transition Engine promote_if_ready"
+
+deletes: []
+
+out_of_scope:
+  - "finish_analyze/audit — s07"
+  - "legacy arm path cleanup — s11 (если arm_epic > 0 callers после s06)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_decompose happy path: decompose tree valid → promote_if_ready called with ANALYZE"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line -k test_finish_decompose_arm"
+  - id: cp2
+    criterion: "finish_decompose: CRITICAL errors in tree → MbFinishResult(ok=False)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line -k test_finish_decompose_critical"
+  - id: cp3
+    criterion: "TM-007: armed_step = ANALYZE в epic state после finish_decompose"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line -k test_finish_decompose_armed_step"
+  - id: cp4
+    criterion: "finish_plan happy path + full suite зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line"
+  - "rg 'promote_if_ready' loop/mb_finish/impl.py"
+
+tdd:
+  - "test_finish_decompose_arm — TM-007"
+  - "test_finish_decompose_critical — CRITICAL errors → fail"
+  - "test_finish_decompose_armed_step — epic state has armed_step=ANALYZE"
+  - "test_finish_plan_happy"
+  - "test_finish_plan_no_artifact"

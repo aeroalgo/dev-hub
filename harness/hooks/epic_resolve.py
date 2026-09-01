@@ -220,6 +220,13 @@ def main() -> int:
     p_vt.add_argument("--tests-dir", default=None, help="path to tests directory for ac markers scan")
     p_vt.add_argument("--ac-strict", action="store_true", help="elevate missing ac marker findings to HIGH")
 
+    p_mb_finish = sub.add_parser("mb-finish", help="mb-finish subcommand dispatcher")
+    mb_sub = p_mb_finish.add_subparsers(dest="mb_cmd", required=True)
+    p_mb_impl = mb_sub.add_parser("implement", help="finish implement step atomically")
+    p_mb_impl.add_argument("--step", required=True, help="step_id (e.g. s01)")
+    p_mb_impl.add_argument("--done", default="", help="done summary string")
+    p_mb_impl.add_argument("--phase", default="BACK IMPLEMENT", help="phase string")
+
     p_seed_const = sub.add_parser(
         "seed-constitution",
         help="seed memory-bank/constitution.md for product repository",
@@ -291,6 +298,21 @@ def main() -> int:
         payload = verify_decompose_creative(cwd, args.decompose)
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
+
+    if args.cmd == "mb-finish":
+        if args.mb_cmd == "implement":
+            from loop.mb_finish.finish_implement import finish_implement_step
+            from loop.mb_finish.schemas import MbFinishRequest
+            req = MbFinishRequest(
+                phase=args.phase,
+                step_id=args.step,
+                done_summary=args.done,
+                cwd=cwd,
+            )
+            res = finish_implement_step(req)
+            out = res.model_dump()
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
 
     if args.cmd == "mark-index-status":
         r = mark_index_step_status(

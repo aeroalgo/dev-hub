@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_creative + finish_reflect (P2)"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Реализовать `finish_creative(request)` и `finish_reflect(request)` — P2 фазовые tools.
+  `finish_creative`: validate creative artifact → render_active_context → promote_if_ready(IMPLEMENT).
+  `finish_reflect`: validate reflection artifact → render_active_context (mode=next cycle).
+  Входит в cut_list для timebox риска; реализуется после s07 если timebox позволяет.
+
+context:
+  consumes:
+    - "s01: render_active_context"
+    - "s06/s07: finish_* pattern"
+    - "harness/hooks/epic/core.py — find_reflection_artifact, latest_qa_artifact"
+  produces:
+    - "loop/mb_finish/impl.py — finish_creative(req), finish_reflect(req)"
+    - "harness/hooks/epic_resolve.py — mb-finish creative / mb-finish reflect"
+    - "harness/hooks/tests/test_mb_finish_creative.py"
+  plan_refs:
+    - "FR-008: finish_creative/reflect"
+    - "US-005: uniform JSON contract"
+  files:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_creative.py
+
+as_built:
+  - "harness/hooks/epic/core.py — find_reflection_artifact, latest_qa_artifact"
+
+delta:
+  - "EDIT loop/mb_finish/impl.py: finish_creative(req) — validate artifact → render → promote_if_ready(IMPLEMENT)"
+  - "EDIT loop/mb_finish/impl.py: finish_reflect(req) — validate reflection artifact → render → write fingerprint"
+  - "EDIT harness/hooks/epic_resolve.py: mb-finish creative / mb-finish reflect"
+
+deletes: []
+
+out_of_scope:
+  - "MCP wrapper — s10"
+  - "prose rules cleanup — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_creative happy path: artifact → ok=True, mode=IMPLEMENT"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_creative.py -q --tb=line -k test_finish_creative_happy"
+  - id: cp2
+    criterion: "finish_reflect happy path: reflection artifact → ok=True"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_creative.py -q --tb=line -k test_finish_reflect_happy"
+  - id: cp3
+    criterion: "full P2 suite зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_creative.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_creative.py -q --tb=line"
+
+tdd:
+  - "test_finish_creative_happy"
+  - "test_finish_creative_no_artifact"
+  - "test_finish_reflect_happy"
+  - "test_finish_reflect_no_artifact"

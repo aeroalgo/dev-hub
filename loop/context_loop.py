@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]  # hub root (DEV_HUB)
 HUB_ROOT = ROOT
 if str(HUB_ROOT) not in sys.path:
     sys.path.insert(0, str(HUB_ROOT))
-HOOKS = HUB_ROOT / ".claude" / "hooks"
+HOOKS = HUB_ROOT / "harness" / "hooks"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 LOOP_DIR = HUB_ROOT / "loop"
@@ -33,7 +33,7 @@ if str(LOOP_DIR) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
-from _lib import (  # noqa: E402
+from harness.hooks._lib import (  # noqa: E402
     explorer_loop_enabled,
     is_epic_loop_env,
     merged_project_env_map,
@@ -42,9 +42,9 @@ from _lib import (  # noqa: E402
     runtime_config_status,
     workflow_policy,
 )
-from agent_policy import AgentContext, resolve_agent_policy  # noqa: E402
-from agent_registry import discover_registry  # noqa: E402
-from epic import (  # noqa: E402
+from harness.hooks.agent_policy import AgentContext, resolve_agent_policy  # noqa: E402
+from harness.hooks.agent_registry import discover_registry  # noqa: E402
+from harness.hooks.epic import (  # noqa: E402
     arm_active_context_from_decompose,
     arm_epic,
     checkpoint_lifecycle,
@@ -79,7 +79,7 @@ from epic import (  # noqa: E402
     utc_now,
 )
 from loop.episodes import begin_episode, finalize_episode
-from session_resilience import (  # noqa: E402
+from harness.hooks.session_resilience import (  # noqa: E402
     analyze_session_log,
     classify_abort,
     dirty_resume_prompt_lines,
@@ -578,7 +578,7 @@ Epic queue id: `{epic_id}`.
 def _decompose_finish_block() -> str:
     return """## DECOMPOSE FINISH
 1. Создай/обнови decompose dir: index.md + index.yaml + все sNN-<slug>.yaml по плану.
-2. Self-check: `.venv/bin/python .claude/hooks/epic_resolve.py validate-decompose-tree --cwd "$PROJECT_ROOT" --decompose <path/to/index.yaml>`
+2. Self-check: `.venv/bin/python harness/hooks/epic_resolve.py validate-decompose-tree --cwd "$PROJECT_ROOT" --decompose <path/to/index.yaml>`
 3. Перепиши activeContext: следующий режим (IMPLEMENT s01 или ANALYZE если gate), `## load_now` → work shard + index.yaml, 1× `## Handoff`, ≤1× `## done`.
 FORBIDDEN: FINISH без index.md; FORBIDDEN bare sNN.yaml; FORBIDDEN skip coverage tables in index.md.
 """
@@ -707,12 +707,12 @@ def _done_finish_block(*, chain_on: bool) -> str:
 def _implement_finish_block() -> str:
     return """## IMPLEMENT FINISH (по порядку)
 HARD: все `memory-bank/**` и `--cwd` = `$PROJECT_ROOT` (продукт). Claude session cwd=hub — **не** пиши артефакты в `dev-hub/memory-bank`.
-0. `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" seed-implement --decompose <decompose-shard.yaml>`
+0. `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" seed-implement --decompose <decompose-shard.yaml>`
 1. После каждого зелёного cp.verify:
-   `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" flush-checkpoint --path <implement.yaml> --cp <cp_id>`
+   `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" flush-checkpoint --path <implement.yaml> --cp <cp_id>`
 2. Suite: `timeout 300s …` (frontend-тесты — только parent).
 3. Допиши evidence в implement yaml (`done`/`files`/`tests`/…); **status оставь `in_progress`**.
-4. `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" validate-step --path <step>` → exit 0.
+4. `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" validate-step --path <step>` → exit 0.
 5. Перепиши `$PROJECT_ROOT/memory-bank/activeContext.md` (`## load_now` → 1× `## Handoff` → ≤1× `## done`).
 6. `@verify` один раз (`.claude/instructions/spawn-hard.md`) — machine SoT = fenced JSON `loop-gate-verdict/v1`.
 7. Valid gate JSON sidecar (`loop-gate-verdict/v1`, status PASS) → `finalize-step --cwd "$PROJECT_ROOT"` (он атомарно ставит implement+index `completed`) → JSON `ok: true` → stop.

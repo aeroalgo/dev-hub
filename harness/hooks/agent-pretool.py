@@ -66,6 +66,13 @@ def main() -> None:
     spawn_model = resolved_spawn_model(tool_input, definition)
     prompt = tool_input.get("prompt") or ""
 
+    if norm == "gate-repair":
+        verdict = str(st.get("verify_verdict") or "").upper()
+        if not st.get("verify_done") or verdict != "FAIL":
+            deny_reasons.append(
+                "repair_requires_verify_fail: @gate-repair только после @verify VERDICT: FAIL"
+            )
+
     if norm in {"verify", "verify-implement"} and agent_enabled("verify", cwd or None):
         if st.get("verify_done") and (
             str(st.get("verify_verdict") or "").upper() == "PASS"
@@ -168,6 +175,8 @@ def main() -> None:
                     int(st.get("verify_no_verdict_retries") or 0) + 1
                 )
                 st["verify_incomplete"] = 0
+        if norm == "gate-repair":
+            st["repair_in_flight"] = True
         if norm == "reviewer" and agent_enabled("reviewer", cwd or None):
             st["need_reviewer"] = True
     if norm:

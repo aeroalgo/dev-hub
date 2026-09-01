@@ -14,6 +14,7 @@ from _lib import (
     agent_enabled,
     agent_model_env_key,
     allow_read_violations,
+    allow_write_violations,
     in_flight_deny_reasons,
     is_epic_loop_env,
     load_state,
@@ -63,6 +64,7 @@ def validate_spawn_input(
     deny_reasons: list[str] = []
     managed = bool(definition is not None and definition.managed)
     is_gate = bool(definition is not None and definition.mode == "gate")
+    is_repair = bool(definition is not None and definition.mode == "repair")
     if definition is not None and definition.managed:
         enabled = definition.loop_enabled if context == "loop" else definition.chat_enabled
         if not enabled:
@@ -112,6 +114,21 @@ def validate_spawn_input(
                 violation = violation.replace(
                     "ALLOW READ пуст", "ALLOW READ содержит деревья/каталоги: memory-bank/"
                 )
+            deny_reasons.append(violation)
+
+    if is_repair and agent_enabled(norm, project_dir):
+        missing = missing_contract_sections(norm, prompt)
+        if missing:
+            needed_str = " / ".join([label for label, _ in _SECTION_PATTERNS.get(norm, [])])
+            deny_reasons.append(
+                f"prompt_incomplete: нет секций [{', '.join(missing)}]. "
+                "Нужны: " + (needed_str or "BLOCKERS / ALLOW WRITE / VERIFY")
+            )
+        for violation in allow_write_violations(prompt):
+            deny_reasons.append(violation)
+        for violation in allow_read_violations(prompt):
+            if "ALLOW READ пуст" in violation:
+                continue
             deny_reasons.append(violation)
 
     return deny_reasons, notes

@@ -1,0 +1,110 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "legacy purge: prose FINISH instructions + dual handoff write paths"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Финальный purge всех оставшихся legacy FINISH paths: удалить `_implement_finish_block` и
+  `_qa_finish_block` функции из context_loop.py (если нет других callers после s09), удалить
+  dual-write handoff paths (прямой Write + yaml), очистить любые оставшиеся ad-hoc `render_with_frontmatter`
+  вызовы в doctor. После шага: rg audit по sunset inventory → 0 live usage.
+
+context:
+  consumes:
+    - "s04: render_active_context заменила ad-hoc in doctor"
+    - "s09: finish blocks inline calls убраны"
+    - "s02..s08: все mb-finish tools используют render_active_context"
+  produces:
+    - "loop/context_loop.py — функции _implement_finish_block, _qa_finish_block удалены (или stub deprecated)"
+    - "harness/hooks/epic/core.py — dual handoff write path удалён"
+    - "harness/hooks/tests/test_mb_finish_legacy_purge.py — inventory scan"
+  plan_refs:
+    - "Technology axiom: FORBIDDEN LLM Write activeContext без tool"
+    - "Replacement cleanup: все строки Kind A/B/C"
+  files:
+    - loop/context_loop.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_mb_finish_legacy_purge.py
+
+as_built:
+  - "loop/context_loop.py:707 def _implement_finish_block() — функция"
+  - "loop/context_loop.py:748 def _qa_finish_block() — функция"
+  - "harness/hooks/epic/core.py:2967 — ad-hoc frontmatter string (render_with_frontmatter style)"
+  - "harness/hooks/epic/core.py:3968 — ad-hoc f-string handoff writer"
+
+delta:
+  - "EDIT loop/context_loop.py: DELETE def _implement_finish_block() и def _qa_finish_block() полностью — функции удаляются, не stub-ируются; rg post-delete audit = 0 строк"
+  - "EDIT harness/hooks/epic/core.py: удалить ad-hoc frontmatter concat строки (2967, 3968 и аналоги) — заменены render_active_context в s04"
+  - "EDIT harness/hooks/epic/core.py: удалить dual-write handoff paths не через finish_handoff"
+  - "CREATE harness/hooks/tests/test_mb_finish_legacy_purge.py: rg-based inventory scan — 0 live callers"
+
+deletes:
+  - "_implement_finish_block в loop/context_loop.py"
+  - "_qa_finish_block в loop/context_loop.py"
+  - "ad-hoc frontmatter f-string в harness/hooks/epic/core.py (audit lines)"
+  - "dual-write handoff в harness/hooks/epic/core.py"
+
+out_of_scope:
+  - "MCP (s10) — cut if not done"
+  - "Новые features"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg _implement_finish_block loop/context_loop.py → 0 строк (не def, не call)"
+    verify: "rg '_implement_finish_block' loop/context_loop.py; test $? -ne 0"
+  - id: cp2
+    criterion: "rg _qa_finish_block loop/context_loop.py → 0 строк"
+    verify: "rg '_qa_finish_block' loop/context_loop.py; test $? -ne 0"
+  - id: cp3
+    criterion: "sole-writer audit: no ad-hoc activeContext writes outside render_active_context and mb_finish tools"
+    verify: "rg 'schema: loop-handoff/v1' loop/ harness/ | grep -v 'render_active_context\\|mb_finish\\|test\\|#\\|.yaml' | wc -l | grep -q '^0$'"
+  - id: cp4
+    criterion: "inventory purge suite зелёный + full mb_finish suite не сломан"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_legacy_purge.py harness/hooks/tests/ -q --tb=line -k mb_finish"
+
+verify:
+  - "rg '_implement_finish_block|_qa_finish_block' loop/context_loop.py; test $? -ne 0"
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_legacy_purge.py -q --tb=line"
+  - ".venv/bin/pytest harness/hooks/tests/ -q --tb=line -k mb_finish"
+
+tdd:
+  - "test_no_implement_finish_block_symbol — rg → 0"
+  - "test_no_qa_finish_block_symbol — rg → 0"
+  - "test_no_adhoc_frontmatter_concat — rg pattern → 0 in epic/core.py"
+  - "test_full_mb_finish_suite_green — regression"
+
+sunset_inventory:
+  - path: loop/context_loop.py
+    symbol: _implement_finish_block
+    kind: A
+    grep_control: "rg '_implement_finish_block' loop/context_loop.py; test $? -ne 0"
+  - path: loop/context_loop.py
+    symbol: _qa_finish_block
+    kind: A
+    grep_control: "rg '_qa_finish_block' loop/context_loop.py; test $? -ne 0"
+  - path: harness/hooks/epic/core.py
+    symbol: "_try_advance_active_context ad-hoc string builds"
+    kind: A
+    grep_control: "rg '_try_advance_active_context' harness/hooks/epic/core.py | grep -v 'def _try_advance_active_context\\|render_active_context'; test $? -ne 0"
+  - path: harness/hooks/epic/core.py
+    symbol: "LLM regex Handoff mode extract as primary (raw f-string frontmatter)"
+    kind: A
+    grep_control: "rg 'schema: loop-handoff/v1.*\\\\nrole' harness/hooks/epic/core.py; test $? -ne 0"
+  - path: harness/hooks/epic/core.py
+    symbol: "ad-hoc frontmatter f-string (lines ~2967, ~3968)"
+    kind: C
+    grep_control: "rg 'f\"---\\\\nschema: loop-handoff' harness/hooks/epic/core.py; test $? -ne 0"
+  - path: harness/hooks/epic/core.py
+    symbol: "dual-write handoff paths not via finish_handoff"
+    kind: A
+    grep_control: "rg 'schema: loop-handoff' harness/hooks/epic/core.py | grep -v 'render_active_context\\|mb_finish\\|finish_handoff'; test $? -ne 0"
+  - path: loop/context_loop.py
+    symbol: "doctor ad-hoc activeContext patch strings"
+    kind: C
+    grep_control: "rg 'active_context_shape_invalid.*f\"\\|patch.*activeContext.*f\"' loop/context_loop.py | grep -v render_active_context; test $? -ne 0"

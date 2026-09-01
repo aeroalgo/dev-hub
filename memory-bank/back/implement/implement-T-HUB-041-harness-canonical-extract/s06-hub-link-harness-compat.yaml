@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-041-harness-canonical-extract
+title: s06 — Проверить/обновить bin/hub-link — product .claude/hooks → harness (AC-3)
+  IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-041-harness-canonical-extract/s06-hub-link-harness-compat.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен loop/tests/test_hub_link_harness.py (TM-004) с тестами test_hub_link_idempotent
+  и test_product_hooks_resolve.
+- Проверена валидность bin/hub-link, разрешение product .claude/hooks к harness/hooks
+  через symlink.
+files:
+- bin/hub-link
+- loop/tests/test_hub_link_harness.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=line`'
+integration_check:
+- make hub-link / bin/hub-link resolves product .claude/hooks → harness/hooks
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- pytest loop/tests/test_hub_link_harness.py -q --tb=line -> 2 passed
+checkpoints:
+- id: cp1
+  criterion: 'TM-004: pytest loop/tests/test_hub_link_harness.py -q → PASS'
+  status: done
+  done_at: '2026-09-01T11:54:08Z'
+- id: cp2
+  criterion: fixture product .claude/hooks resolves к harness/hooks через readlink
+  status: done
+  done_at: '2026-09-01T11:54:12Z'
+- id: cp3
+  criterion: bin/hub-link синтаксически валиден (bash -n или python3 -m py_compile)
+  status: done
+  done_at: '2026-09-01T11:54:17Z'
+resume_from: cp1

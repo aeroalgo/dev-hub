@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-041-harness-canonical-extract
+title: "Создать harness/ пакет — layout + README (canonical SoT появляется)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать директорию `harness/` с пустыми пакетными `__init__.py` в `hooks/`, `agents/`, `instructions/`
+  и `README.md`-индексом — это первое появление canonical SoT в дереве репо.
+  Outcome: структура принята git; `import harness.hooks` не падает NameError; README
+  документирует разграничение harness/shell.
+
+context:
+  consumes: []
+  produces:
+    - harness/__init__.py
+    - harness/hooks/__init__.py
+    - harness/agents/__init__.py
+    - harness/instructions/__init__.py
+    - harness/README.md
+  plan_refs:
+    - "FR-001"
+    - "US-001"
+    - "plan §Target layout"
+  files:
+    - harness/__init__.py
+    - harness/hooks/__init__.py
+    - harness/agents/__init__.py
+    - harness/instructions/__init__.py
+    - harness/README.md
+
+as_built:
+  - ".claude/hooks/ — реальная директория с .py-файлами (SoT сейчас)"
+  - "harness/ — отсутствует"
+
+delta:
+  - "create harness/__init__.py (package root)"
+  - "create harness/hooks/__init__.py"
+  - "create harness/agents/__init__.py"
+  - "create harness/instructions/__init__.py"
+  - "create harness/README.md (harness=behavior SoT, .claude=thin symlink shell)"
+
+deletes: []
+
+out_of_scope:
+  - "Перемещение файлов из .claude/ (s02)"
+  - "Создание symlinks (s03)"
+  - "harness/schemas/ (деferred T-HUB-042)"
+
+skills:
+  code_surface: infra
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/ пакет импортируется без ошибок"
+    verify: "python3 -c 'import harness; import harness.hooks; import harness.agents; import harness.instructions; print(\"OK\")'"
+  - id: cp2
+    criterion: "harness/README.md создан и содержит ключевые слова SoT"
+    verify: "rg 'harness.*SoT|canonical|symlink' harness/README.md"
+
+verify:
+  - "python3 -c 'import harness.hooks'"
+  - "rg 'harness' harness/README.md | head -5"
+
+tdd:
+  - "test: import harness.hooks успешен (не NameError, не ModuleNotFoundError)"

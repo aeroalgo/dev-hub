@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "finish_handoff low-level + doctor render reuse"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  Добавить `finish_handoff(meta, load_now, handoff_body, cwd)` — low-level escape-hatch для случаев,
+  когда фаза не имеет своего finish tool (hand-crafted step). Одновременно: refactor tier0 doctor
+  (incident repair `active_context_shape_invalid`) в `loop/context_loop.py` чтобы использовал
+  `render_active_context` вместо ad-hoc string format. TM-008 зелёный: doctor code path шарит рендер.
+
+context:
+  consumes:
+    - "s01: loop/mb_finish/render.py — render_active_context"
+    - "loop/context_loop.py — doctor repair paths (incident `active_context_shape_invalid`)"
+    - "harness/hooks/epic/core.py — repair_finish_desync, repair_post_implement_handoff_drift"
+  produces:
+    - "loop/mb_finish/impl.py — функция finish_handoff(meta, load_now, handoff_body, cwd) -> MbFinishResult"
+    - "harness/hooks/epic_resolve.py — subcommand mb-finish handoff"
+    - "loop/context_loop.py — doctor incident repair использует render_active_context"
+    - "harness/hooks/tests/test_mb_finish_handoff.py — TM-008"
+  plan_refs:
+    - "FR-002: render_active_context единственный writer"
+    - "FR-009: doctor repair reuses render"
+    - "US-007: doctor reuse render API"
+    - "TM-008"
+  files:
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_handoff.py
+
+as_built:
+  - "loop/context_loop.py:1882 — shape_new = validate_active_context_shape(text_new) после ad-hoc string build"
+  - "loop/context_loop.py:2688 — inline shape_errors: validate_active_context_shape(text)"
+  - "harness/hooks/epic/core.py — repair_finish_desync, repair_post_implement_handoff_drift строят context ad-hoc"
+
+delta:
+  - "EDIT loop/mb_finish/impl.py: добавить finish_handoff(meta: LoopHandoffMeta, load_now, handoff_body, cwd: str) -> MbFinishResult (write activeContext only, no finalize_step)"
+  - "EDIT harness/hooks/epic_resolve.py: subcommand mb-finish handoff"
+  - "EDIT loop/context_loop.py: repair paths active_context_shape_invalid → вызывать render_active_context вместо ad-hoc f-string"
+  - "EDIT harness/hooks/epic/core.py: repair_finish_desync / repair_post_implement_handoff_drift → render_active_context"
+
+deletes:
+  - "ad-hoc frontmatter string concat в loop/context_loop.py repair blocks (конкретные строки — определить rg при impl)"
+  - "ad-hoc f-string handoff writer в harness/hooks/epic/core.py repair paths"
+
+out_of_scope:
+  - "finish_qa/finish_bugfix — s05"
+  - "stop-gate fingerprint для handoff — s03 (fingerprint только для IMPLEMENT)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "finish_handoff writes valid activeContext via render_active_context"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py -q --tb=line -k test_finish_handoff_valid"
+  - id: cp2
+    criterion: "doctor repair path использует render_active_context (не ad-hoc)"
+    verify: "rg 'render_active_context' loop/context_loop.py | grep -v '#'"
+  - id: cp3
+    criterion: "TM-008: doctor repair code path шарит render"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py -q --tb=line -k test_doctor_repair_uses_render"
+  - id: cp4
+    criterion: "полный test suite s04 зелёный"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py -q --tb=line"
+  - "rg 'render_active_context' loop/context_loop.py harness/hooks/epic/core.py | grep -v test"
+
+tdd:
+  - "test_finish_handoff_valid — writes shape-valid activeContext"
+  - "test_finish_handoff_bad_meta — bad meta → MbFinishResult(ok=False)"
+  - "test_doctor_repair_uses_render — TM-008: shared code path confirmed"

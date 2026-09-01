@@ -1,0 +1,58 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: "MCP thin server + parity tests (P2)"
+next_phase: BACK IMPLEMENT
+
+goal: |
+  (P2 — cut_list, реализуется только при укладке в timebox) Создать MCP server как тонкую обёртку над
+  теми же pydantic models из `loop/mb_finish/`. Каждый tool = wrapper над CLI subcommand. Parity test:
+  MCP tool descriptor response == CLI JSON response. TM-009 зелёный.
+
+context:
+  consumes:
+    - "s01..s09: все mb-finish tools готовы"
+    - "loop/mb_finish/schemas.py — модели (MCP descriptors строятся из pydantic)"
+  produces:
+    - "loop/mb_finish/mcp_server.py — FastAPI/MCP thin wrapper"
+    - "harness/hooks/tests/test_mcp_parity.py — TM-009"
+  plan_refs:
+    - "FR-010: MCP parity test"
+    - "US-006: MCP server опциональный"
+    - "TM-009"
+  files:
+    - loop/mb_finish/mcp_server.py
+    - harness/hooks/tests/test_mcp_parity.py
+
+as_built:
+  - "нет — greenfield MCP wrapper"
+
+delta:
+  - "CREATE loop/mb_finish/mcp_server.py: thin FastAPI MCP server; каждый endpoint вызывает finish_* функцию из impl.py; JSON in/out через MbFinishRequest/MbFinishResult"
+  - "CREATE harness/hooks/tests/test_mcp_parity.py: assert MCP tool schema == CLI subcommand contract"
+
+deletes: []
+
+out_of_scope:
+  - "Полная Cursor MCP integration — только parity smoke"
+
+skills:
+  code_surface: api
+  impl:
+    - fastapi-templates
+
+checkpoints:
+  - id: cp1
+    criterion: "MCP server запускается без ошибок"
+    verify: "python -c 'from loop.mb_finish.mcp_server import app; print(\"ok\")'"
+  - id: cp2
+    criterion: "TM-009: MCP descriptor parity с CLI"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line"
+
+tdd:
+  - "test_mcp_parity — TM-009"
+  - "test_mcp_server_startup"

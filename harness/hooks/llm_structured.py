@@ -17,6 +17,13 @@ __all__ = [
     "LogSummary",
     "make_output_cap_agent",
     "run_log_summary",
+    "GateVerdictOutput",
+    "HandoffMetaOutput",
+    "AbortClassifyOutput",
+    "make_gate_agent",
+    "run_gate_classify",
+    "run_gate_verdict_llm",
+    "run_abort_llm",
 ]
 
 
@@ -175,3 +182,59 @@ def run_log_summary(
 
     except Exception:
         return None
+
+
+class GateVerdictOutput(BaseModel):
+    verdict: str
+    step_id: str | None = None
+    epic_id: str | None = None
+
+
+class HandoffMetaOutput(BaseModel):
+    epic_id: str | None = None
+    step_id: str | None = None
+
+
+class AbortClassifyOutput(BaseModel):
+    category: str = "transient"
+    reason: str = ""
+
+
+def make_gate_agent(domain: str = "verdict", env: dict[str, str] | None = None) -> Any:
+    out_type: Any = GateVerdictOutput
+    if domain == "handoff":
+        out_type = HandoffMetaOutput
+    elif domain == "abort":
+        out_type = AbortClassifyOutput
+
+    provider = OpenAIProvider(base_url="http://localhost:20128/v1", api_key="missing_key")
+    chat_model = OpenAIChatModel("free-stack", provider=provider)
+    return Agent(chat_model, output_type=out_type)
+
+
+def run_gate_classify(domain: str, text: str, *, env: dict[str, str] | None = None) -> Any | None:
+    return None
+
+
+def run_gate_verdict_llm(text: str, cwd: str | Path, agent_id: str = "verify", recorded_at: str | None = None) -> Any | None:
+    env = os.environ
+    if env.get("PROJECT_HOOKS_LLM_FALLBACK") == "0":
+        return None
+    output = run_gate_classify("verdict", text, env=dict(env))
+    if isinstance(output, GateVerdictOutput):
+        from harness.hooks._lib import utc_now
+        from loop.gate_verdict_store import write_gate_verdict
+        return write_gate_verdict(
+            cwd,
+            agent_id,
+            output.verdict,
+            step_id=output.step_id,
+            epic_id=output.epic_id,
+            recorded_at=recorded_at or utc_now(),
+        )
+    return None
+
+
+def run_abort_llm(reason: str, exit_code: int = 1, cwd: str | Path | None = None) -> Any | None:
+    return None
+
