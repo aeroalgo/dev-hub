@@ -1,8 +1,15 @@
-# Скопируй этот файл в корень продукта как `Makefile`.
-# Затем либо положи хаб рядом (`../dev-hub`), либо создай `.dev-hub`:
-#   echo /home/aero/PyProject/dev-hub > .dev-hub
+# Makefile продукта — тонкая обёртка над dev-hub.
 #
-# Канон целей: $(DEV_HUB)/make/product.mk
+# Установка:
+#   cp /path/to/dev-hub/make/Makefile.product.example ./Makefile
+#
+# Как хаб находится (по приоритету):
+#   1. DEV_HUB=/abs/path/to/dev-hub make …
+#   2. файл .dev-hub в корне продукта (одна строка — путь)
+#   3. соседний каталог ../dev-hub
+#
+# Не копируйте make/product.mk в продукт — только include ниже.
+# Свои цели (test, migrate, …) добавляйте ПОСЛЕ include.
 
 DEV_HUB ?= $(shell \
   if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
@@ -14,3 +21,9 @@ $(error DEV_HUB not found. Set DEV_HUB=/path/to/dev-hub, create .dev-hub, or use
 endif
 
 include $(DEV_HUB)/make/product.mk
+
+# --- опционально: product-specific targets ---
+#
+# .PHONY: test
+# test:
+# 	.venv/bin/pytest -q

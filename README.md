@@ -58,6 +58,8 @@ cp ~/PyProject/dev-hub/make/Makefile.product.example ~/PyProject/my-product/Make
 
 Makefile сам ищет хаб в порядке: файл `.dev-hub` → соседний `../dev-hub` → переменная `DEV_HUB`.
 
+Подробнее: [Makefile в продукте](#makefile-в-продукте).
+
 ### 3. Подключить rules/skills/hooks (hub-link)
 
 Из **корня продукта**:
@@ -125,6 +127,110 @@ ln -sfn ~/PyProject/dev-hub ~/.cursor/plugins/local/dev-hub
 ```
 
 Для day-to-day работы достаточно `hub-link` + открытая папка продукта.
+
+---
+
+## Makefile в продукте
+
+В git продукта хранится **только тонкий** `Makefile` (~15 строк). Вся логика hub/loop — в `dev-hub/make/product.mk` (include, не копия).
+
+### Канонический Makefile
+
+Положите в **корень продукта** (`my-product/Makefile`):
+
+```makefile
+# Makefile продукта — тонкая обёртка над dev-hub.
+#
+# Установка:
+#   cp /path/to/dev-hub/make/Makefile.product.example ./Makefile
+#
+# Как хаб находится (по приоритету):
+#   1. DEV_HUB=/abs/path/to/dev-hub make …
+#   2. файл .dev-hub в корне продукта (одна строка — путь)
+#   3. соседний каталог ../dev-hub
+#
+# Не копируйте make/product.mk в продукт — только include ниже.
+# Свои цели (test, migrate, …) добавляйте ПОСЛЕ include.
+
+DEV_HUB ?= $(shell \
+  if [ -f .dev-hub ]; then sed -n '1p' .dev-hub | tr -d '[:space:]'; \
+  elif [ -x ../dev-hub/bin/loop ]; then printf '%s' "../dev-hub"; \
+  else printf ''; fi)
+
+ifeq ($(strip $(DEV_HUB)),)
+$(error DEV_HUB not found. Set DEV_HUB=/path/to/dev-hub, create .dev-hub, or use sibling ../dev-hub)
+endif
+
+include $(DEV_HUB)/make/product.mk
+
+# --- опционально: product-specific targets ---
+#
+# .PHONY: test
+# test:
+# 	.venv/bin/pytest -q
+```
+
+Готовый файл в хабе: [`make/Makefile.product.example`](make/Makefile.product.example).
+
+### Файл `.dev-hub` (если хаб не рядом)
+
+Создаётся автоматически при `make hub-link`. Или вручную — **одна строка** в корне продукта:
+
+```bash
+# вариант A: хаб соседом (рекомендуется)
+echo '../dev-hub' > .dev-hub
+
+# вариант B: хаб где угодно на диске
+echo '/home/aero/PyProject/dev-hub' > .dev-hub
+```
+
+`.dev-hub` можно коммитить в git продукта — это не секрет, только путь к tooling.
+
+### Цели из product.mk (после include)
+
+| Команда | Назначение |
+|---------|------------|
+| `make hub-link` | Symlinks rules/skills/hooks из хаба |
+| `make hub-unlink` | Убрать symlinks |
+| `make hub-info` | Показать `DEV_HUB`, `PROJECT_ROOT`, состояние links |
+| `make loop ARGS="gpt"` | Запустить loop (перед этим делает hub-link) |
+| `make loop ARGS="decompose-T-013 gpt"` | Loop на конкретный decompose |
+| `make loop-epic EPIC=decompose-T-013 MODEL=gpt` | Loop на эпик |
+| `make loop-status` | Статус текущего epic/step |
+| `make loop-help` | Справка по loop |
+| `make cursor-workspace` | Напоминание: открывать только папку продукта |
+
+Примеры:
+
+```bash
+make hub-info
+make hub-link
+make loop ARGS="gpt"
+make loop-epic EPIC=decompose-v1-portal MODEL=gpt
+make loop-status
+```
+
+Переопределить хаб на один запуск:
+
+```bash
+DEV_HUB=/other/path/dev-hub make hub-info
+```
+
+### Свои цели продукта
+
+Добавляйте **после** `include $(DEV_HUB)/make/product.mk` — не трогайте `product.mk` в хабе:
+
+```makefile
+include $(DEV_HUB)/make/product.mk
+
+.PHONY: test run
+test:
+	.venv/bin/pytest -q
+run:
+	.venv/bin/uvicorn app.main:app --reload
+```
+
+Имена `hub-link`, `loop`, `loop-epic` уже заняты — не переопределяйте их в продукте.
 
 ---
 
