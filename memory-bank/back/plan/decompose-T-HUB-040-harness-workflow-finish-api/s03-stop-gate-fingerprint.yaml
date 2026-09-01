@@ -28,7 +28,7 @@ context:
   files:
     - harness/hooks/epic/core.py
     - harness/hooks/stop-gate.py
-    - loop/mb_finish/impl.py
+    - loop/mb_finish/finish_implement.py
     - harness/hooks/tests/test_stop_gate_fingerprint.py
 
 as_built:

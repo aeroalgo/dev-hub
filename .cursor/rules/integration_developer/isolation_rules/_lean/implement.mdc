@@ -4,6 +4,8 @@ alwaysApply: false
 ---
 # INTEG IMPLEMENT — gates
 
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
 **Артефакт:** `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml` — `<plan_id>` = stem plan **со slug** (@.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
 **Шаблоны:** `@.cursor/templates/implement/epic-step.yaml` (**строго**; без вольных секций)
 
@@ -24,6 +26,7 @@ alwaysApply: false
 ## Abort
 
 - Шире eNN · gap вместо step · Phase E skipped · mock in prod → no FINISH
+- **Scope violation** (scope lock): paths вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT + halt
 - Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
 - Flat implement для нового эпика · user-visible без scenario · «manual smoke only» → reject
 - Непустой eNN `deletes` не выполнен → no FINISH

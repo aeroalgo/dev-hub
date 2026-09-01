@@ -5,6 +5,7 @@ alwaysApply: false
 ### Команда: FRONT IMPLEMENT
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 
 **Скиллы — только step + FINISH (HARD)**
 
@@ -25,13 +26,15 @@ alwaysApply: false
 - `limit` на Read SKILL.md
 
 **Процесс**:
-1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates**
+1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock**
+1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
 2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`  
    **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.
 3. Read Impl (+ Design если есть) до prod-edit
 4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard
 5. §0.11 · pre-FINISH skills; после deletes — нет callers на удалённое
+5a. **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
 6. **FINISH:** finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)  
    Next: Handoff в `activeContext.md` + `index.yaml`
 
-**Верификация**: gates + deletes executed + FINISH/Handoff + graphify
+**Верификация**: scope lock + gates + deletes executed + FINISH/Handoff + graphify

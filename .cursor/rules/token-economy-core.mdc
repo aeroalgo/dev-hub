@@ -166,14 +166,34 @@ Minimal. WHY only, not WHAT. Max 1 line. No comments unless non-obvious.
 - git commit/push/branch ops
 - deploy, db push, secrets, docker compose up that mutates state
 - autonomous multi-file batches outside explicit role command
+- **any** Write/Delete under `.cursor/rules/**` — **including during `* IMPLEMENT`** unless current implement shard lists that exact path in `files:`
 
 **Does NOT require gate:**
 
-- role commands (`BACK IMPLEMENT`, `PM PLAN`, …) — user intent via command
+- role commands (`BACK IMPLEMENT`, `PM PLAN`, …) — user intent via command **only for prod code paths within §0.9.1 allowlist**
 - read-only: grep, read files, curl GET, diagnostics
 - analysis + change plan before approval
 
 Before requesting approval: list files, changes, commands, consequences.
+
+## 0.9.1 IMPLEMENT scope lock (HARD)
+
+Full canon: @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
+**Why:** `* IMPLEMENT` bypassed §0.9 → agents edited whole epics, `.cursor/rules/**`, deleted tests, auto-closed QA/AUDIT (T-HUB-040 class incident).
+
+| Rule | Detail |
+|------|--------|
+| Session | one `epic_id` + one `step_id` from `activeContext` / `load_now` work shard |
+| Allowlist | work shard `files:` · `context.produces.files` · current `implement-*/sNN.yaml` · tests added to shard `files:` before FINISH |
+| Rules edit | shard `files:` must list each `.cursor/rules/...` path **or** user `implement this` with path list; plan «update workflow rules» ≠ permission |
+| FINISH rules purge | replace FINISH prose with `mb-finish` call only — **FORBIDDEN** remove gates, Phase 0, coverage rubric, behavior-first, non-FINISH steps |
+| Tests/docs | **FORBIDDEN** delete/shrink tests, validators, README without shard `deletes:` |
+| Index | **FORBIDDEN** mark other steps `completed`; only `finalize-step` for current step |
+| Modes | **FORBIDDEN** run QA/AUDIT/REFLECT/EPIC_DONE without separate user role command |
+| Pre-FINISH | enumerate changed paths; out-of-scope → REVERT before Handoff |
+
+Loop sessions: same lock; no «finish whole epic» without per-step user continuation.
 
 ## 0.10 Session start
 

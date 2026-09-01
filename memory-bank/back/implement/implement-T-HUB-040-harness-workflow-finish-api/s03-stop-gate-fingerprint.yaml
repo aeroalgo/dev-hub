@@ -11,17 +11,23 @@ skills_used: []
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- cp1
+- cp2
+- cp3
+- cp4
 files:
 - harness/hooks/epic/core.py
 - harness/hooks/stop-gate.py
-- loop/mb_finish/impl.py
+- loop/mb_finish/finish_implement.py
 - harness/hooks/tests/test_stop_gate_fingerprint.py
 deletes: []
-tests: []
+tests:
+- harness/hooks/tests/test_stop_gate_fingerprint.py
 integration_check: []
 grep_control: []
-verification_results: []
+verification_results:
+- '.venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line: PASSED'
 checkpoints:
 - id: cp1
   criterion: write_last_finish_tool пишет в epic state, load_epic_state возвращает

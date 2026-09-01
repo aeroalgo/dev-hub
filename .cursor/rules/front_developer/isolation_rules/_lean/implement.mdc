@@ -4,6 +4,8 @@ alwaysApply: false
 ---
 # FRONT IMPLEMENT — gates
 
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
 **Артефакт:** с эпиком `memory-bank/front/implement/implement-<epic_id>/…` — `<epic_id>` = stem plan **со slug**; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
 
 ## Gates
@@ -30,6 +32,7 @@ alwaysApply: false
 ## Abort
 
 - Shard missing · creative open · E2E шага нет при plan requirement → no FINISH
+- **Scope violation** (scope lock): paths вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT + halt
 - Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
 - User-visible без Playwright · Handoff «manual smoke only» · visible UI без design Read → reject
 - Impl/Design из step не Read · Read вне step (кроме FINISH-only) → no FINISH

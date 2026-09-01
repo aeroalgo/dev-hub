@@ -5,6 +5,7 @@ alwaysApply: false
 ### Команда: BACK IMPLEMENT
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
 
 **Скиллы — только step + FINISH (HARD)**
@@ -26,7 +27,8 @@ alwaysApply: false
 Пути: `@.agents/skills/<name>/SKILL.md` как в step.
 
 **Процесс**:
-1. `OK BACK IMPLEMENT - Начинаю реализацию` → **Gates**
+1. `OK BACK IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock**
+1a. **Allowlist:** Write/Delete только paths из work shard `files:` / `produces.files` + `implement-*/<current-sNN>.yaml` + тесты в shard `files:`. `.cursor/rules/**` — **FORBIDDEN** без path в shard `files:` или user `implement this`.
 2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`
    **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now` / «acceptance = plan». Jump `plan §N` только из Consumes при нехватке AC.
    **Search scope (loop):** при `delta_paths_scoped` / `delta_paths_exist` — **SKIP @explorer**; ALLOW = paths из prompt + parent dirs. Вне ALLOW — только явная ссылка в shard/plan. Канон: `.claude/instructions/spawn-hard.md`.
@@ -34,7 +36,8 @@ alwaysApply: false
 3. Read **Impl skills** из step до prod-edit (после TDD red ок)
 4. TDD targeted → code → green (`.venv/bin/pytest` из корня); level delta — gates; **выполнить все `deletes:`** из work shard (не оставлять вытесненный код)
 5. §0.11 · pre-FINISH skills (verification + code-review); при непустом `deletes` — grep/import-audit: старые символы без callers
+5a. **Scope check (HARD):** changed paths ⊆ allowlist (§1a); иначе REVERT. Чат: `SCOPE CHECK: ok` или `SCOPE VIOLATION: …` → halt FINISH.
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`) — Write implement yaml → Handoff → `@verify-implement` (или legacy alias `@verify`) → PASS → `finalize-step` (index + log + load_now). Epic complete → AUDIT через хук.
    Next: Handoff в `activeContext.md` + `index.yaml`
 
-**Верификация**: gates + §0.11 + deletes executed + FINISH + `graphify update .`
+**Верификация**: scope lock + gates + §0.11 + deletes executed + FINISH + `graphify update .`

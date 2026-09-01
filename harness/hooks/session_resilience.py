@@ -41,7 +41,10 @@ _PERMANENT_FAILURE_PATTERNS = (
         r'(?i)Model\s+\\*"[^"\\]+\\*"\s+is restricted by your organization\'s settings\.'
         r"\s*Using\s+\S+\s+instead"
     ),
-    re.compile(r"(?i)model_substitution:"),
+)
+
+_STRUCTURED_MODEL_SUBSTITUTION_RE = re.compile(
+    r"(?i)model_substitution:\s*requested=\S+\s+actual=\S+"
 )
 
 _DSH_TRANSIENT_PATTERNS = (
@@ -187,6 +190,17 @@ def format_model_substitution(requested: str, actual: str) -> str:
         f"model_substitution: requested={requested} actual={actual} "
         "(org/runtime swapped --model; refuse silent downgrade)"
     )
+
+
+def is_structured_model_substitution_reason(reason: str | None) -> bool:
+    return bool(reason and _STRUCTURED_MODEL_SUBSTITUTION_RE.search(reason))
+
+
+def detect_structured_model_substitution_message(text: str) -> str | None:
+    m = _STRUCTURED_MODEL_SUBSTITUTION_RE.search(text or "")
+    if not m:
+        return None
+    return m.group(0).strip()[:200]
 
 
 def detect_model_substitution_message(text: str) -> str | None:
@@ -386,6 +400,9 @@ def detect_abort_in_log(
         sub = detect_model_substitution(data, expected_model=expected_model)
         if sub:
             return sub
+        structured = detect_structured_model_substitution_message(system_text)
+        if structured:
+            return structured
         return format_model_substitution(
             (expected_model or "?").strip() or "?", "substituted"
         )
@@ -419,7 +436,7 @@ def classify_abort(
     r = reason or ""
     if _match_patterns(r, _FATAL_ABORT_PATTERNS):
         return "fatal"
-    if _match_patterns(r, _PERMANENT_FAILURE_PATTERNS) or r.startswith("model_substitution:"):
+    if _match_patterns(r, _PERMANENT_FAILURE_PATTERNS) or is_structured_model_substitution_reason(r):
         return "fatal"
     return "transient"
 
@@ -487,13 +504,13 @@ def analyze_session_log(
         dsh_abort_kind = "transient"
     elif is_dsh and reason and (
         reason.startswith("dsh_permanent:")
-        or reason.startswith("model_substitution:")
+        or is_structured_model_substitution_reason(reason)
     ):
         dsh_abort_kind = "fatal"
     else:
         dsh_abort_kind = None
 
-    if is_dsh and reason and reason.startswith("model_substitution:"):
+    if is_dsh and reason and is_structured_model_substitution_reason(reason):
         return {
             "outcome": SessionOutcome.PERMANENT_FAILURE.value,
             "aborted": True,
@@ -541,7 +558,7 @@ def analyze_session_log(
     timeout = exit_code == 124
     model_sub = bool(
         exit_code == MODEL_SUBSTITUTION_EXIT
-        or (reason or "").startswith("model_substitution:")
+        or is_structured_model_substitution_reason(reason)
         or _match_patterns(reason or "", (_MODEL_RESTRICTED_RE,))
     )
     malformed = bool(_match_patterns(reason or "", _MALFORMED_RESULT_PATTERNS))

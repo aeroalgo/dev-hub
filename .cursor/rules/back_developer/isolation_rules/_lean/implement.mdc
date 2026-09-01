@@ -4,6 +4,8 @@ alwaysApply: false
 ---
 # IMPLEMENT — gates
 
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
 **Артефакт:**  
 - с эпиком: `memory-bank/back/implement/implement-<epic_id>/sNN-<slug>.yaml` — `<epic_id>` = stem plan **со slug** (тот же, что у `decompose-<epic_id>/`)  
 - без эпика: `memory-bank/back/implement/<slug>/` (не `implement-<epic_id>/`)  
@@ -35,6 +37,7 @@ alwaysApply: false
 ## Abort
 
 - Shard/step missing · creative open · red skipped → no code/FINISH
+- **Scope violation:** paths вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT/REFLECT → REVERT + halt
 - Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL (дописать step или jump §N)
 - Полный pytest / голый `pytest` / не из корня → BACK QA или FAIL
 - Impl skills из step не Read · Read скиллов вне step (кроме FINISH-only) → no FINISH

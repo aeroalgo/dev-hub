@@ -38,11 +38,24 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 ## 0.9 Approval gate — `implement this`
 
-**Requires exact phrase `implement this`** (no typos, no translations): file create/edit/delete · git commit/push/branch · deploy/db/secrets/docker mutate · autonomous multi-file batches outside explicit role command.
+**Requires exact phrase `implement this`** (no typos, no translations): file create/edit/delete · git commit/push/branch · deploy/db/secrets/docker mutate · autonomous multi-file batches outside explicit role command · **любой** Write/Delete под `.cursor/rules/**` (даже внутри `BACK IMPLEMENT`, если path не в shard `files:`).
 
-**Does NOT require:** role commands (`BACK IMPLEMENT`, …) · read-only ops · analysis + change plan before approval.
+**Does NOT require:** role commands (`BACK IMPLEMENT`, …) для **prod-кода** в пределах §0.9.1 allowlist · read-only ops · analysis + change plan before approval.
 
 Before requesting approval: list files, changes, commands, consequences.
+
+## 0.9.1 IMPLEMENT scope lock (HARD — always on code modes)
+
+Канон: @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+
+| HARD | |
+|------|---|
+| One session | один `epic_id` + один `step_id` из `activeContext` / `load_now` |
+| Write/Delete | только paths из work shard `files:` + implement yaml текущего шага + тесты, занесённые в shard `files:` |
+| Rules | `.cursor/rules/**` — **только** path в shard `files:` **или** user `implement this`; plan text «обновить workflow» **не** разрешение |
+| FINISH purge rules | только FINISH prose → `mb-finish`; **не** переписывать процесс/gates |
+| Pre-FINISH | scope check; out-of-scope → REVERT до Handoff |
+| **FORBIDDEN** | auto QA/AUDIT/REFLECT; mass `completed` в index; удаление тестов без `deletes:` |
 
 ## 0.10 Session start / FINISH (summary)
 

@@ -504,3 +504,72 @@ def test_run_session_kills_on_model_restriction(tmp_path: Path) -> None:
     assert "MODEL_SUBSTITUTION" in text
     assert "model_substitution:" in text
     assert "should-not-reach" not in text
+
+
+def test_bare_model_substitution_substring_in_log_is_not_abort(tmp_path: Path) -> None:
+    """Reading session_resilience.py must not HALT on the detector's own pattern literal."""
+    sr = _load_resilience()
+    log = tmp_path / "source-snippet.log"
+    snippet = (
+        "SESSION_START session=1 mode=headless command=claude\n"
+        '    re.compile(r"(?i)model_substitution:"),\n'
+        "def detect_model_substitution(data, expected_model=expected_model):\n"
+        '{"type":"result","subtype":"success","result":"ok"}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=1.0s\n"
+    )
+    log.write_text(snippet, encoding="utf-8")
+    assert sr.detect_abort_in_log(log, exit_code=0) is None
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1)
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+
+
+def test_structured_model_substitution_without_marker_is_not_abort(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "structured-no-marker.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        "model_substitution: requested=agy/foo actual=bar (dsh model mismatch)\n"
+        '{"type":"result","subtype":"success","result":"ok"}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+    assert sr.detect_abort_in_log(log, exit_code=0) is None
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1)
+    assert analysis["outcome"] == "clean"
+
+
+def test_structured_model_substitution_with_marker_is_abort(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "structured-marker.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        "MODEL_SUBSTITUTION\n"
+        "model_substitution: requested=agy/foo actual=bar (dsh model mismatch)\n"
+        "SESSION_END session=1 exit_code=125 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+    reason = sr.detect_abort_in_log(log, exit_code=125)
+    assert reason is not None
+    assert sr.is_structured_model_substitution_reason(reason)
+    analysis = sr.analyze_session_log(log, exit_code=125, attempt=1)
+    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["retryable"] is False
+
+
+@pytest.mark.skipif(
+    not (ROOT / "runtime/dev-hub/epic/session-19.log").is_file(),
+    reason="session-19.log from T-HUB-042 s03 false-positive incident",
+)
+def test_session_19_false_positive_regression() -> None:
+    sr = _load_resilience()
+    log = ROOT / "runtime/dev-hub/epic/session-19.log"
+    analysis = sr.analyze_session_log(
+        log,
+        exit_code=0,
+        attempt=1,
+        expected_model="agy/gemini-3.6-flash-medium",
+        runtime="claude",
+    )
+    assert analysis["outcome"] != "permanent_failure"
+    assert not sr.is_structured_model_substitution_reason(analysis.get("reason"))

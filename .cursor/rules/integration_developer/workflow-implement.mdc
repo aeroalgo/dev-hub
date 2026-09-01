@@ -5,13 +5,15 @@ alwaysApply: false
 ### Команда: INTEG IMPLEMENT
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+**Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
 **Скиллы:** query-builder · tdd · fastapi-templates · frontend-patterns · frontend-testing · vercel-react-best-practices · verification-before-completion
 
 **Цель:** Один UI-элемент — live API, без mock в prod path.
 
 **Процесс**:
-1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · graphify
+1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · **Scope lock** · graphify
+1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
 2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`  
    **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`. Jump `plan §N` только при нехватке.
 3. **Contract gate:** §Contract из шага — пуст → допиши до кода
@@ -24,6 +26,7 @@ alwaysApply: false
 **D** Wire: fetch + loading/error + URL sync  
 **E** §0.11 + mock удалён + все `deletes:` из eNN выполнены  
 **E2** Scenario: user-visible → Playwright **или** pytest HTTP outcome  
+**E2a** **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH  
 **F** FINISH: finish-block — Write step (в т.ч. `deletes`) → `validate-step` → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`)  
 Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
 
@@ -42,4 +45,4 @@ Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
 
 **Антипаттерны:** query-builder/references/ANTI-PATTERNS.md
 
-**Верификация**: gates + §0.11 + deletes executed + FINISH + graphify
+**Верификация**: scope lock + gates + §0.11 + deletes executed + FINISH + graphify

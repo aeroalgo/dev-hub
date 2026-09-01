@@ -1,0 +1,74 @@
+---
+description: "IMPLEMENT scope lock — one shard, file allowlist, rules-edit gate (BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# IMPLEMENT scope lock (HARD)
+
+**Инцидент-класс:** агент на `BACK IMPLEMENT` (обходит §0.9 `implement this`) меняет `.cursor/rules/**`, чужие `sNN`, удаляет тесты, закрывает весь эпик до QA — без команды пользователя.
+
+**Канон для:** `BACK|FRONT|INTEG IMPLEMENT` · loop epic code sessions · любой режим с work shard `sNN|eNN`.
+
+---
+
+## 1. One shard · one epic
+
+| HARD | |
+|------|---|
+| `epic_id` | только из `activeContext.md` (`epic_id` / Handoff) |
+| `step_id` | только текущий work shard из `load_now` (`sNN` / `eNN`) |
+| **FORBIDDEN** | IMPLEMENT других шагов «догоном» в том же чате |
+| **FORBIDDEN** | два разных `T-HUB-*` / plan_id в одной code-сессии |
+| **FORBIDDEN** | `index.yaml` / `index.md`: `completed` для шагов ≠ текущий `step_id` (кроме `finalize-step` CLI) |
+| **FORBIDDEN** | `BACK QA` · `BACK AUDIT` · `BACK REFLECT` · qa/audit/reflection артефакты — без **отдельной** user-команды режима |
+
+---
+
+## 2. File allowlist (Write / Delete)
+
+Разрешено **только**:
+
+1. Пути из work shard **`files:`** и явные пути в **`context.produces.files`** / **`delta`** (decompose)
+2. `memory-bank/{role}/implement/implement-<epic_id>/<current-step>.yaml` — артефакт **текущего** шага
+3. Новые тесты — путь **добавлен** в implement shard `files:` **до** FINISH
+4. `memory-bank/activeContext.md` — **только** `mb-finish` / typed finish tool / `finish-block` (не free-form prose Write)
+5. Статус decompose — **только** `finalize-step` / `epic_resolve.py`, не ручной mass-update
+
+Создание parent dirs для allowlist-path — OK. «Заодно поправлю соседний модуль» — **FAIL**.
+
+---
+
+## 3. Rules & platform docs — отдельный контракт
+
+| Path | Разрешение |
+|------|------------|
+| `.cursor/rules/**` | Путь **в `files:` текущего shard** + цель rules-edit; **или** user `implement this` с явным списком paths. **`BACK IMPLEMENT` сам по себе — FORBIDDEN** |
+| `.agents/skills/**` · `.claude/rules/**` · `.claude/skills/**` | То же |
+| `loop/README.md` · `loop/WORKFLOW.md` · `CLAUDE.md` | Только если путь в shard `files:` |
+| FINISH purge в rules | **Только** замена FINISH prose → `mb-finish` one-liner в **том же** FINISH-блоке. **FORBIDDEN:** удалять gates, Phase 0, coverage rubric, behavior-first, cheatsheet refs, «rules shrink», non-FINISH шаги процесса |
+
+Упоминание workflow в plan/decompose **≠** разрешение править rules из IMPLEMENT.
+
+---
+
+## 4. Tests · validators · docs — no silent delete
+
+- **FORBIDDEN** удалять/урезать тесты, `epic_yaml` validators, README/WORKFLOW — без строки в shard **`deletes:`**
+- **FORBIDDEN** «упростить для token economy» в IMPLEMENT
+
+---
+
+## 5. Pre-FINISH scope check (mandatory)
+
+Перед FINISH IMPLEMENT:
+
+1. Список изменённых путей (аналог `git diff --name-only` + untracked из §2)
+2. Каждый путь ⊆ §2 allowlist (§3 для rules)
+3. Иначе — **REVERT** out-of-scope **до** Handoff / `finalize-step`
+
+В чат — одна строка: `SCOPE CHECK: ok (N files)` или `SCOPE VIOLATION: <paths>` → **halt FINISH**.
+
+---
+
+## 6. Loop / autonomous
+
+Loop **не** расширяет allowlist. «Закрыть весь эпик за сессию» без user step-by-step — **FORBIDDEN**.
