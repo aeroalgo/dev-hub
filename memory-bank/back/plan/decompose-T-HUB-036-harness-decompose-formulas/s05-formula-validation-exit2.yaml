@@ -1,0 +1,61 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "formula validation — broken template exits 2 at render time"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Гарантировать, что formula-render и formula-list завершаются с exit code 2
+  при невалидном YAML (синтаксическая ошибка) или при нарушении schema (missing required fields).
+  load_formula() уже поднимает ValueError (s01); здесь — catch в CLI слое и exit(2).
+  Outcome: US-002 satisfied — сломанная formula не проходит молча, planner сразу видит ошибку.
+
+context:
+  consumes:
+    - "loop/schemas/formula.py — load_formula() → ValueError при ValidationError/yaml.YAMLError (s01)"
+    - ".claude/hooks/epic_resolve.py — formula-render / formula-list subcommands (s03, s04)"
+    - "loop/formula_render.py — render_formula() / list_formulas() (s03, s04)"
+  produces:
+    - ".claude/hooks/epic_resolve.py: catch ValueError/yaml.YAMLError вокруг formula-render и formula-list dispatch → sys.exit(2) с readable message"
+    - "loop/formula_render.py: load_formula вызывает yaml.safe_load + model_validate; YAMLError → raise ValueError(...)"
+  plan_refs: [FR-001, US-002]
+  files:
+    - "loop/formula_render.py"
+    - ".claude/hooks/epic_resolve.py"
+
+as_built:
+  - "load_formula() в loop/schemas/formula.py: model_validate поднимает ValidationError (s01); YAML parse — нет explicit catch для YAMLError → нужно добавить"
+  - "CLI dispatch в epic_resolve.py — нет catch вокруг formula команд (s03, s04)"
+
+delta:
+  - "loop/schemas/formula.py load_formula(): обернуть yaml.safe_load в try/except yaml.YAMLError → raise ValueError(f'YAML parse error in {path}: {e}')"
+  - ".claude/hooks/epic_resolve.py: в dispatch для formula-render / formula-list — catch ValueError → print(f'formula error: {e}', file=sys.stderr); sys.exit(2)"
+
+deletes: []
+
+out_of_scope:
+  - "s06 — тесты (включают тесты на exit 2; здесь только production code)"
+  - "validate-decompose-tree — это отдельный gate"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-error-handling # YAMLError catch, sys.exit(2)"
+    - "python-testing-patterns # exit code tests"
+
+checkpoints:
+  - id: cp1
+    criterion: "formula-render --formula <invalid_yaml_id> → stderr содержит 'formula error:' + exit code 2"
+    verify: ".venv/bin/pytest loop/tests/test_formula_validation.py::test_broken_yaml_exit2 -q"
+  - id: cp2
+    criterion: "formula-render --formula <missing_required_field_id> → exit 2"
+    verify: ".venv/bin/pytest loop/tests/test_formula_validation.py::test_missing_field_exit2 -q"
+  - id: cp3
+    criterion: "formula-list с broken formula в dir → exit 2 (не silently skip)"
+    verify: ".venv/bin/pytest loop/tests/test_formula_validation.py::test_list_broken_formula_exit2 -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_formula_validation.py — test_broken_yaml_exit2, test_missing_field_exit2, test_list_broken_formula_exit2, test_valid_formula_exit0"

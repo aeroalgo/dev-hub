@@ -1,0 +1,9 @@
+schema: analyze-verdict/v1
+epic_id: T-HUB-036-harness-decompose-formulas
+date: 2026-09-01
+verdict: PASS
+critical_count: 0
+major_count: 0
+minor_count: 0
+findings: []
+summary: "Plan and decompose shards for T-HUB-036 are fully consistent, cover all requirements (US-001..002, FR-001..006, SC-001..002, AC+ 1..5, AC- 2), have complete coverage tables, and are ready for implementation."

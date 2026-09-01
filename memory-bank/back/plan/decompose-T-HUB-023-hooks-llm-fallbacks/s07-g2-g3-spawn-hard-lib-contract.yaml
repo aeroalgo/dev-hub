@@ -1,0 +1,62 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "G2–G3 spawn-hard + _lib CONTRACT strings aligned"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `spawn-hard.md` (G2) и CONTRACT strings в `_lib.py` (G3) обновляются:
+  субагенты инструктируются посылать fenced JSON gate verdict; «VERDICT: PASS» строки в spawn-hard
+  помечены как «human summary optional» / не machine.
+  `_lib.py` CONTRACT строки (строки 39–65) вместо «первая строка VERDICT:» описывают JSON fence обязательность.
+  Outcome: SC-005 + SC-006 — rg доказывает JSON contract в spawn-hard + _lib.
+
+context:
+  consumes:
+    - ".claude/instructions/spawn-hard.md — текущий CONTRACT: первая строка VERDICT: PASS|FAIL"
+    - "_lib.py строки 39–65 — CONTRACT strings для prompt инжекции (HARD: первая строка финального = VERDICT:)"
+    - "s06: agent.md уже содержат JSON fence секции"
+  produces:
+    - ".claude/instructions/spawn-hard.md: секция JSON gate contract заменяет VERDICT-first строку"
+    - "_lib.py CONTRACT strings: JSON fence HARD вместо VERDICT-first"
+  plan_refs: [FR-011, FR-012, SC-005, SC-006]
+  files:
+    - ".claude/instructions/spawn-hard.md"
+    - ".claude/hooks/_lib.py"
+
+as_built:
+  - "spawn-hard.md: 'HARD: первая строка финального текста = ровно VERDICT: PASS или VERDICT: FAIL' (строки 146, 168)"
+  - "_lib.py:CONTRACT strings строки 39–65 — HARD VERDICT: первая строка; injected в verify/reviewer prompts"
+
+delta:
+  - "spawn-hard.md: заменить VERDICT-first инструкцию на JSON fence contract с примером payload (human summary VERDICT-строки остаются optional)"
+  - "_lib.py CONTRACT strings (~строки 39–65): заменить 'первая строка = VERDICT:' на 'финальный ответ содержит fenced ```json loop-gate-verdict/v1``` block'"
+  - "_lib.py CONTRACT strings: добавить пример минимального payload в каждую CONTRACT строку"
+
+deletes:
+  - "_lib.py строки ~39–65 — удалить HARD VERDICT-first формулировки (заменить, не оставить)"
+
+out_of_scope:
+  - "agent-pretool.py / stop-gate.py — s09"
+  - "context_loop.py — s08"
+  - "tests SC-006 rg audit — s11"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'loop-gate-verdict' в spawn-hard.md"
+    verify: "rg 'loop-gate-verdict' .claude/instructions/spawn-hard.md | head -5"
+  - id: cp2
+    criterion: "rg 'loop-gate-verdict' в _lib.py CONTRACT секции"
+    verify: "rg -n 'loop-gate-verdict' .claude/hooks/_lib.py | head -10"
+  - id: cp3
+    criterion: "rg не находит 'первая строка.*VERDICT\\|HARD.*первая строка финального' в _lib.py CONTRACT"
+    verify: "rg 'первая строка.*VERDICT' .claude/hooks/_lib.py | wc -l"
+
+verify: []
+tdd: []

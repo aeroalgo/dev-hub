@@ -1,0 +1,36 @@
+contracts:
+  - id: loop_forbids_hooks
+    layer: loop
+    forbids:
+      - .claude.hooks
+      - .cursor.hooks
+    reason: "Loop runner core (`loop/`) must not directly import Claude or Cursor CLI hooks"
+
+  - id: hooks_forbids_loop_internals
+    layer: hooks
+    forbids:
+      - loop.context_loop
+      - loop.loop_telemetry
+    reason: "Hooks (`.claude/hooks/`) must not import internal loop session management modules"
+
+  - id: loop_forbids_claude_rules
+    layer: loop
+    forbids:
+      - .claude.rules
+      - .cursor.rules
+    reason: "Loop runtime logic must be decoupled from prompt/rule files"
+
+  - id: claude_hooks_forbids_agents_skills
+    layer: claude_hooks
+    forbids:
+      - .agents.skills
+    reason: "CLI hooks should not dynamically import subagent skills"
+
+  - id: loop_forbids_product_code
+    layer: product
+    forbids:
+      - app
+      - api
+      - frontend
+      - src
+    reason: "Dev-hub harness tooling must not depend on specific product application code"

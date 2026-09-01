@@ -81,6 +81,26 @@ EPIC_RUNTIME=dsh /home/aero/PyProject/dev-hub/bin/loop /home/aero/PyProject/job-
 2. Запускай `bin/loop /path/to/product …` или `make loop` из продукта
 3. При необходимости: `projects/<slug>/project.env.local`
 
+## Dashboard
+
+Harness metrics dashboard генерирует HTML и JSON отчёты о метриках исполнения loop, инцидентах и активных эпиках.
+
+### Usage (CLI)
+
+Сгенерировать HTML/JSON отчёт в `runtime/<project>/reports/`:
+
+```bash
+python -m loop.context_loop dashboard-render [--days DAYS] [--format {html,json,both}]
+```
+
+Параметры:
+- `--days`: Окно агрегации метрик в днях (по умолчанию `7`).
+- `--format`: Формат отчёта — `html` (по умолчанию), `json` или `both`.
+
+### Environment Variables
+
+- `EPIC_DASHBOARD_HALT_WARN_RATE`: Порог коэффициента остановки loop (halt rate) для проверки `loop doctor`. По умолчанию `0.50` (50%). Если текущий halt rate превышает этот порог, `loop doctor` выдаёт предупреждение (warn).
+
 ## Команды ролей
 
 `BACK PLAN`, `BACK IMPLEMENT`, … распознаются через rules/skills хаба  

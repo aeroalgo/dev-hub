@@ -1,0 +1,55 @@
+schema: epic-decompose/v1
+role: back
+step_id: s12
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "G7 docs — README + project.env operator structured gate contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `loop/README.md` и `.claude/project.env` описывают structured gate contract для операторов:
+  какой формат JSON fence ожидается от subagents, какие флаги включают pydantic-ai secondary,
+  как проверить что gate работает. Без кода, только документация.
+  Outcome: FR-015 — оператор может настроить и отладить gate без чтения исходников.
+
+context:
+  consumes:
+    - "loop/README.md — существующий"
+    - ".claude/project.env — skeleton флагов T-HUB-023 (s01 добавил комментарии)"
+    - "loop/schemas/gate_verdict.py: GateVerdictRecord — пример payload"
+  produces:
+    - "loop/README.md: секция 'Gate Output Contract' с JSON fence примером, флагами PROJECT_HOOKS_LLM_*"
+    - ".claude/project.env: расширенные комментарии для каждого флага"
+  plan_refs: [FR-015, SC-005]
+  files:
+    - "loop/README.md"
+    - ".claude/project.env"
+
+as_built:
+  - "loop/README.md: нет секции gate structured contract"
+  - ".claude/project.env: skeleton комментарии 'Opt-in Hooks LLM Fallbacks'"
+
+delta:
+  - "loop/README.md: добавить раздел '## Structured Gate Output Contract' с JSON fence payload примером, таблицей PROJECT_HOOKS_LLM_* флагов и инструкцией отладки (PROJECT_HOOKS_LLM_DEBUG=1)"
+  - ".claude/project.env: расширить комментарии — что делает каждый флаг, когда включать"
+
+deletes: []
+
+out_of_scope:
+  - "legacy purge — s13"
+  - "frontend docs — вне scope"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'loop-gate-verdict' в loop/README.md"
+    verify: "rg 'loop-gate-verdict' loop/README.md | head -3"
+  - id: cp2
+    criterion: "rg 'PROJECT_HOOKS_LLM_' в loop/README.md (флаги задокументированы)"
+    verify: "rg 'PROJECT_HOOKS_LLM_' loop/README.md | wc -l"
+
+verify: []
+tdd: []

@@ -6,6 +6,8 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
 **Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc (allowlist + checklist DECOMPOSE)
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-decompose.mdc
+**Behavior-first / anti-dilution (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc
 **Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
@@ -13,6 +15,15 @@ alwaysApply: false
 **Вход:** план из `load_now` или `BACK DECOMPOSE plan-<id>` (в одном сообщении).
 
 **Folder slug (HARD):** `plan_id` = stem plan-файла без `plan-` (напр. plan `plan-T-HUB-033-harness-execution-discipline.md` → папка `decompose-T-HUB-033-harness-execution-discipline/`, `index.yaml` `plan_id:` тот же, IMPLEMENT → `implement-T-HUB-033-harness-execution-discipline/`). **FORBIDDEN** короткое `decompose-T-HUB-033/` из queue `id:` при наличии descriptive slug в имени plan. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+
+### Formula hint (optional)
+
+Planner может указать formula в plan header (`formula: hooks-epic`). В таком случае CLI `formula-render` генерирует черновик decompose dir:
+```bash
+python3 .claude/hooks/epic_resolve.py formula-render --formula <id> --epic-id <T-xxx> --slug <slug> --dry-run
+```
+Список доступных формул: `python3 .claude/hooks/epic_resolve.py formula-list`.
+Черновик — отправная точка; planner заполняет placeholder'ы перед commit.
 
 ---
 
@@ -34,6 +45,27 @@ DECOMPOSE = **максимально подробная** нарезка. Не �
 6. **Тест-стратегия плана:** каждая строка unit/API/celery/migration smoke из plan §тесты → checkpoint или `tdd:` у конкретного sNN (не один sNN «все тесты» без списка).
 7. **§0.11 / инварианты:** каждая строка counterpart-таблицы плана → verify/grep у sNN cutover или dedicated step.
 8. **Existing services / матрица исполнения / lifecycle:** отдельные sNN (см. Outcome preserve) — не map-only.
+
+### REQUIRED — Coverage rubric (measurable verify) + anti-dilution
+
+«Есть строка sNN в coverage» **недостаточно**. Каждая закрытая requirement/stage должна быть **проверяема** и **не размыта** до metadata.
+
+Канон: @.cursor/rules/shared/workflow-behavior-first.mdc
+
+| Kind | Минимум в закрывающем sNN | FAIL если |
+|------|---------------------------|-----------|
+| **FR / AC+ / US** | ≥1 cp: наблюдаемый результат + runnable `verify`; **plan WHAT nouns ∈ `produces`/`files`** | prose-only; nouns только в registry/alias; `verify: manual` без owner |
+| **AC− / NFR** | ≥1 `verify` через `rg` / negative test / fail-closed assert | NFR только в Outcome map |
+| **Stage / фаза канона** | sNN с непустым `delta` **и** путями в `files` (не map-only) | stage → sNN без delta/files |
+| **§0.11 counterpart** | cp `verify` = grep/import-audit на counterpart | строка в plan без cp |
+| **Replace / deletes** | непустой `deletes` + cp `rg`/import-audit | presence-only «новый файл есть» |
+| **Agent / hook / gate / CLI FR** | ≥1 **behavior** cp (file exists + discover / enforce path uses value / CLI invoke) | единственный verify = `assert get_x() == "name"` / «поле в yaml» |
+
+**FORBIDDEN:**
+- coverage `covered` без measurable `verify` у sNN
+- Stages coverage только ссылкой на Outcome map
+- **dilution:** FR «агенты/wire/CLI» → step только `verify_agent:` string · alias dict · dead assign · unit lookup без runtime surface
+- `delta` = «добавить поле в registry» без наблюдаемого поведения parent/loop/operator
 
 ### REQUIRED — granularity (как дробить)
 
@@ -168,6 +200,9 @@ IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `w
 5c. **FAIL** если execution matrix / job lifecycle / async·thread·queue в плане, а отдельных sNN boundaries/(lifecycle) нет
 5d. **FAIL** если отказ добавить sNN при дыре в coverage («в plan уже s01–sN» / «слишком много шагов»). Не FAIL: склейка двух функций одного модуля/теста.
 5e. **FAIL** если любой AC+/AC−/FR/NFR из плана без sNN и без явного out_of_scope в coverage
+5e1. **FAIL** если coverage row `covered`, а у закрывающего sNN нет measurable `verify` (Coverage rubric): FR/AC+ без runnable cp; AC−/NFR без rg/negative/fail-closed verify; stage без `delta`+`files`; §0.11 без grep cp
+5e2. **FAIL (dilution):** plan FR/US nouns (agent file, preset, hook enforce, CLI) **не** ∈ `produces`/`files` закрывающего sNN и нет `out_of_scope`+follow-up **в queue** — @.cursor/rules/shared/workflow-behavior-first.mdc §1
+5e3. **FAIL (surrogate verify):** product FR (agent/hook/gate/CLI) закрыт только unit’ом на string/field presence без behavior cp — behavior-first §2
 5f. **FAIL** если план/канон заменяет поверхность, а в очереди нет sNN с `deletes` на неё (и нет out_of_scope+follow-up **в queue** в Replacement cleanup)
 5g. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
 5h. **FAIL** если Replacement cleanup имеет строки ≠ n/a, а в очереди нет `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §2.2)
@@ -175,13 +210,16 @@ IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `w
 5j. **FAIL** если имя `decompose-*` / `implement-*` / `plan_id` = только short queue id (`T-HUB-NNN`), а plan-файл = `plan-T-HUB-NNN-<slug>.md` (slug обязан совпадать со stem plan)
 6. Папка `memory-bank/back/plan/decompose-<plan_id>/` из `@.cursor/templates/decompose/` — `<plan_id>` = stem plan без `plan-` (со slug). `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
 7. Обнови plan: ссылка на index как единственный трекер; удали дубль-чеклисты sNN; сохрани Goal/AC/архитектуру/risks (**не** переписывай Goal плана под infra-only); при добавлении шагов — поправь §нарезка на фактический s01–sN
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.md`, status `active`
-   **Tip (soft):** рекомендуется `BACK ANALYZE <epic_id>` перед первым `BACK IMPLEMENT`, чтобы заранее проверить coverage и critical findings; это не hard gate.
-   **Tip (traceability):** Перед тем как закрыть DECOMPOSE, запусти `python3 .claude/hooks/epic_resolve.py validate-traceability --epic <plan_id>` — `CRITICAL=0` требуется для promote → IMPLEMENT. При выявление `HIGH` исправь пропущенные `plan_refs` или `out_of_scope` в шардах.
+7a. **Promote gate & Verify (HARD) — до FINISH DECOMPOSE:**
+    1. `python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <dir>` → exit 0
+    2. `python3 .claude/hooks/epic_resolve.py validate-traceability --epic <plan_id>` → **CRITICAL=0** (иначе FAIL; HIGH → исправь `plan_refs` / `out_of_scope` до FINISH)
+    3. `@verify-decompose` pre-FINISH gate — верификация полного пакета decompose.
+    4. **ANALYZE promote:** либо на диске свежий `memory-bank/back/analyze/<epic_id>/analyze-*.yaml` с `metrics.critical_count = 0`, либо явный defer в Handoff (`ANALYZE deferred:` owner + next + reason). Без артефакта и без defer = FAIL. Silent skip ANALYZE = FAIL.
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.yaml`, status `active`
 8. `tasks.md` append-only
-9. Next: `needs_creative` → CREATIVE; иначе IMPLEMENT
+9. Next: `needs_creative` → CREATIVE; иначе `BACK ANALYZE` (если ещё не run / не deferred) → IMPLEMENT
 10. **Новый чат** для IMPLEMENT (context-session §2)
 
 **Границы:** нет кода/тестов реализации; нет арх-решений вне плана (`needs_creative`); не путать с TASK; **не ужимать intent и не ужимать coverage** (Maximal detail + Outcome preserve + Replacement cleanup).
 
-**Верификация**: gates (все пункты) + Maximal detail + Outcome preserve + Replacement cleanup
+**Верификация**: gates (все пункты) + Maximal detail + Coverage rubric + **anti-dilution / behavior-first** + Outcome preserve + Replacement cleanup + Promote gate

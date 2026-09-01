@@ -1,0 +1,38 @@
+date: '2026-08-31'
+epic_id: T-HUB-035-harness-architecture-boundaries
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-035-harness-architecture-boundaries.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-035-harness-architecture-boundaries/index.yaml
+
+steps:
+  - id: s01
+    title: "Enforce layer contracts — boundaries.yaml + checker module"
+    status: implemented
+    as_built: "Создан манифест tests/architecture/boundaries.yaml с 5 правилами слоёв и модуль check_boundaries.py, выполняющий AST-сканирование исходников на недопустимые импорты. Покрыто тестами в tests/architecture/test_boundary_check.py."
+    delta: "Новые файлы tests/architecture/boundaries.yaml, check_boundaries.py, test_boundary_check.py."
+    gaps: []
+
+  - id: s02
+    title: "Ratchet mechanism — ratchet.json + CI gate freezes violation count"
+    status: implemented
+    as_built: "Реализован механизм ratchet (baseline 0 нарушений в tests/architecture/ratchet.json), блокирующий увеличение числа нарушений архитетуры. Покрыто тестами в tests/architecture/test_ratchet.py."
+    delta: "Новые файлы tests/architecture/ratchet.json, test_ratchet.py, обновлён check_boundaries.py."
+    gaps: []
+
+  - id: s03
+    title: "Doctor integration — boundary check warns in loop doctor checklist"
+    status: implemented
+    as_built: "Интегрирована проверка архитектурных границ в loop doctor (loop/incidents/doctor.py) в виде предупреждения (warn) при обнаружении нарушений. Покрыто тестами в loop/tests/test_incidents_doctor.py."
+    delta: "Обновления в loop/incidents/doctor.py и loop/tests/test_incidents_doctor.py."
+    gaps: []
+
+  - id: s04
+    title: "Architecture doc — pointer to boundaries.yaml and enforcement mechanism"
+    status: implemented
+    as_built: "Обновлена документация архитектуры memory-bank/architecture/overview.md и index.md: добавлены разделы и ссылки на boundaries.yaml, ratchet.json и pytest runner."
+    delta: "Обновления в memory-bank/architecture/overview.md и memory-bank/architecture/index.md."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 4 шага (s01-s04) полностью реализованы и проверены тестами. Отклонений (gaps) не обнаружено."

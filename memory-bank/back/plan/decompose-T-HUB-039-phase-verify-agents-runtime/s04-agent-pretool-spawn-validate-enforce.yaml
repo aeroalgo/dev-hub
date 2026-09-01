@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "agent-pretool uses get_verify_agent + spawn_validate CONTRACTS для новых типов"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Устранить dead-assign `expected_verify_agent` в `agent-pretool.py` — провести реальную ветку
+  DENY/allow на mismatched phase-verify-agent.
+  Расширить `spawn_validate.py` и `_lib.py CONTRACTS` так, чтобы нормализованные типы
+  `verify-implement`, `verify-bugfix`, `verify-qa`, `verify-decompose` получали корректные
+  контрактные секции (VERDICT_FIRST_LINE inject, missing_contract_sections check).
+  User/system outcome: spawn @verify-bugfix без bugfix artifact path → DENY; spawn verify-decompose
+  без ALLOW → gate warning; агент-файл отсутствует → fail-closed DENY.
+
+context:
+  consumes:
+    - ".claude/hooks/agent-pretool.py — expected_verify_agent вычислен но не используется (dead assign)"
+    - ".claude/hooks/spawn_validate.py — norm in {'verify','reviewer'} только; новые типы не покрыты"
+    - ".claude/hooks/_lib.py — CONTRACTS dict; missing_contract_sections; ALIAS (после s01)"
+    - ".claude/hooks/agent_registry.py — AGENT_ALIASES; _discover_registry"
+    - "loop/schemas/phase_registry.yaml — verify_agent per phase"
+  produces:
+    - ".claude/hooks/agent-pretool.py (enforce branch: expected vs actual verify agent)"
+    - ".claude/hooks/spawn_validate.py (extend norm check to all verify-* types)"
+    - ".claude/hooks/_lib.py (CONTRACTS расширен: verify-bugfix, verify-qa, verify-decompose)"
+  plan_refs:
+    - "FR-005: agent-pretool uses get_verify_agent enforce"
+    - "FR-006: spawn_validate CONTRACTS/sections для verify-bugfix path"
+    - "FR-009: agent-pretool.py uses get_verify_agent(phase)"
+    - "FR-011: spawn_validate.py per-agent verdict fields"
+    - "FR-018: Verdict extract T-HUB-023 path recognizes verify-*"
+    - "US-002: spawn без bugfix path → DENY/FAIL"
+    - "US-007: Zero dead assign get_verify_agent"
+    - "SC-007: Zero dead assign of get_verify_agent in pretool"
+    - "TM-001: agent file missing → DENY spawn; FAIL closed"
+    - "TM-010: Dead assign expected_verify_agent — delete in-epic"
+    - "Failure matrix: Component Agent file missing"
+  files:
+    - ".claude/hooks/agent-pretool.py"
+    - ".claude/hooks/spawn_validate.py"
+    - ".claude/hooks/_lib.py"
+
+as_built:
+  - "agent-pretool.py line 45: expected_verify_agent = get_verify_agent(...) — вычислено но не используется в DENY/allow логике"
+  - "spawn_validate.py line 58: norm in {'verify','reviewer'} — только эти два; verify-implement/bugfix/qa/decompose не проверяются"
+  - "_lib.py CONTRACTS: 'verify' + 'reviewer' — нет verify-bugfix/verify-qa/verify-decompose"
+  - "agent-pretool.py уже проверяет verify-done/PASS через st['verify_done'] для norm=='verify'"
+
+delta:
+  - "edit agent-pretool.py: добавить enforce-branch — если spawn verify-* и expected_verify_agent != norm → note (не DENY, совместимость) или DENY при флаге; DENY если agent file missing (.claude/agents/{norm}.md); убрать dead assign"
+  - "edit spawn_validate.py: расширить norm check с {'verify','reviewer'} на {'verify','reviewer','verify-implement','verify-bugfix','verify-qa','verify-decompose'} для VERDICT inject + sections check"
+  - "edit _lib.py CONTRACTS: добавить 'verify-implement' (inherit verify), 'verify-bugfix' (добавить BUGFIX ARTIFACT required section), 'verify-qa' (inherit reviewer), 'verify-decompose' (COVERAGE секция)"
+
+deletes:
+  - ".claude/hooks/agent-pretool.py: dead `expected_verify_agent = …` dead assign без use"
+
+out_of_scope:
+  - "stop-gate DECOMPOSE двойной gate — s05"
+  - "DSH presets — s06"
+  - "unit tests для новых контрактов — s08"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns"
+    - "diagnosing-bugs"
+
+checkpoints:
+  - id: cp1
+    criterion: "dead assign удалён: expected_verify_agent не вычисляется без использования"
+    verify: "rg 'expected_verify_agent' .claude/hooks/agent-pretool.py | rg -v '\\bif\\b|deny|note|allow' | wc -l | xargs -I{} test {} -eq 0"
+  - id: cp2
+    criterion: "verify-bugfix в spawn_validate norm check"
+    verify: "rg 'verify-bugfix|verify-qa|verify-decompose|verify-implement' .claude/hooks/spawn_validate.py"
+  - id: cp3
+    criterion: "CONTRACTS в _lib.py содержит verify-bugfix"
+    verify: "rg 'verify-bugfix' .claude/hooks/_lib.py"
+  - id: cp4
+    criterion: "spawn без agent file → DENY (agent-pretool)"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'missing_file or deny_no_file' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_spawn_verify_bugfix_no_artifact_deny: spawn verify-bugfix без BUGFIX ARTIFACT path → deny reason"
+  - "test_spawn_verify_missing_agent_file_deny: agent file отсутствует → deny spawn"
+  - "test_contracts_verify_bugfix_sections: missing_contract_sections('verify-bugfix', prompt_without_bugfix) != []"
+  - "test_dead_assign_removed: rg expected_verify_agent pretool → только в if-branch"

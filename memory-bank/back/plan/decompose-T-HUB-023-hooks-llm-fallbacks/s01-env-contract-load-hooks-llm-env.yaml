@@ -1,0 +1,62 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "Env contract — structured gate flags + load_hooks_llm_env()"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Все env-переменные `PROJECT_HOOKS_LLM_*` задокументированы в `.claude/project.env` (уже есть skeleton),
+  `load_hooks_llm_env()` в `_lib.py` читает их через `merged_project_env_map()` и возвращает typed dict;
+  fail-soft: если env пустой/некорректный — hooks продолжают работу с disabled-режимом (не падают).
+  Outcome: `load_hooks_llm_env()` — единственная точка получения gate-LLM конфигурации для всех hooks.
+
+context:
+  consumes:
+    - ".claude/project.env — skeleton флагов T-HUB-023 уже есть (PROJECT_HOOKS_LLM_FALLBACK=0 и т.д.)"
+    - "_lib.py:load_output_summary_env() — аналогичный паттерн для output-cap"
+    - "_lib.py:load_project_env() / merged_project_env_map() — существующий механизм чтения env"
+  produces:
+    - "_lib.py: новая функция load_hooks_llm_env() → dict с typed ключами"
+    - "_lib.py: вспомогательные геттеры hooks_llm_flag(domain) → bool"
+  plan_refs: [FR-009]
+  files:
+    - ".claude/hooks/_lib.py"
+    - ".claude/project.env"
+
+as_built:
+  - ".claude/project.env:skeleton PROJECT_HOOKS_LLM_FALLBACK=0 + per-domain флаги (PROJECT_HOOKS_LLM_HANDOFF/VERDICT/ABORT=0)"
+  - "_lib.py:load_output_summary_env() — аналог для output-cap; паттерн: load_project_env() → list[str]"
+  - "_lib.py:merged_project_env_map() — единый map project.env + os.environ"
+
+delta:
+  - "добавить _lib.py: load_hooks_llm_env(project_dir=None) → dict — читает PROJECT_HOOKS_LLM_* через merged_project_env_map; возвращает {enabled, domains, model, timeout, min_chars, confidence, debug}"
+  - "добавить _lib.py: hooks_llm_flag(domain: str, project_dir=None) → bool — проверяет master + per-domain flag"
+  - "project.env: добавить строки-документацию (комментарии) к каждому флагу PROJECT_HOOKS_LLM_TIMEOUT/MIN_CHARS/CONFIDENCE/DEBUG"
+
+deletes: []
+
+out_of_scope:
+  - "s02–s13 — всё остальное"
+  - "llm_structured.py — не трогать в s01"
+  - "per-domain runners (handoff/verdict/abort) — s05"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "load_hooks_llm_env() возвращает dict с ключом enabled=False при PROJECT_HOOKS_LLM_FALLBACK=0"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_env.py::test_load_hooks_llm_env_disabled -q"
+  - id: cp2
+    criterion: "hooks_llm_flag('verdict') → False когда master disabled, True когда оба 1"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_env.py::test_hooks_llm_flag -q"
+  - id: cp3
+    criterion: "load_hooks_llm_env() не поднимает исключений при отсутствии project.env"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_env.py::test_load_hooks_llm_env_no_file -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_env.py — test_load_hooks_llm_env_disabled, test_load_hooks_llm_env_enabled, test_hooks_llm_flag, test_load_hooks_llm_env_no_file"

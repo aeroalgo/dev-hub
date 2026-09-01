@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: "Fixture-based tests + README §Dashboard — pytest suite + schema validation + doctor threshold"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Завершить тестовое покрытие: full fixture-based pytest suite для collect/render/CLI/doctor,
+  добавить README §Dashboard с описанием CLI и env vars. Operator имеет документированный
+  entry point и зелёный CI. Связь FR-007, AC-5, SC-001–SC-003.
+
+context:
+  consumes:
+    - "loop/dashboard/collect.py — s01"
+    - "loop/dashboard/render.py — s02"
+    - "loop/context_loop.py — dashboard-render subcommand s03"
+    - "loop/incidents/doctor.py — halt rate check s04"
+    - "tests/test_dashboard_collect.py — partial TDD stubs s01"
+    - "tests/test_dashboard_render.py — partial TDD stubs s02"
+    - "tests/test_dashboard_cli.py — partial TDD stubs s03"
+    - "tests/test_dashboard_doctor.py — partial TDD stubs s04"
+  produces:
+    - "tests/test_dashboard_collect.py — complete fixture suite"
+    - "tests/test_dashboard_render.py — complete fixture suite"
+    - "tests/test_dashboard_cli.py — complete fixture suite"
+    - "tests/test_dashboard_doctor.py — complete fixture suite"
+    - "README.md — +Dashboard section"
+  plan_refs:
+    - FR-007
+    - AC-5
+    - SC-001
+    - SC-002
+    - SC-003
+    - US-001
+    - US-002
+  files:
+    - tests/test_dashboard_collect.py
+    - tests/test_dashboard_render.py
+    - tests/test_dashboard_cli.py
+    - tests/test_dashboard_doctor.py
+    - README.md
+
+as_built:
+  - "tests/test_dashboard_*.py — partial stubs из TDD шагов s01-s04"
+  - "README.md — существует, нет раздела Dashboard"
+
+delta:
+  - "complete tests/test_dashboard_collect.py — fixture runtime dir с metrics.json + incidents.jsonl + events.jsonl + tasks.md -> collect returns DashboardReport; rates match compute_rates; events_by_kind groups; last_episodes max 20; open_incidents filtered by status=open"
+  - "complete tests/test_dashboard_render.py — render_html structure (DOCTYPE, table, sections); no external CDN; render_json valid JSON + schema_version"
+  - "complete tests/test_dashboard_cli.py — tmpdir -> _cmd_dashboard_render -> file in reports/; --format json only .json; --format both both files"
+  - "complete tests/test_dashboard_doctor.py — halt_rate warn/ok/skip scenarios"
+  - "edit README.md — добавить раздел Dashboard после существующих секций с CLI usage + env var EPIC_DASHBOARD_HALT_WARN_RATE"
+
+deletes: []
+
+out_of_scope:
+  - "реализация collect/render/CLI/doctor — s01-s04"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: полный pytest suite зелёный (все test_dashboard_*.py)
+    verify: ".venv/bin/pytest tests/test_dashboard_collect.py tests/test_dashboard_render.py tests/test_dashboard_cli.py tests/test_dashboard_doctor.py -q --tb=short"
+  - id: cp2
+    criterion: SC-001 — HTML renders without network (no external URLs in test assertion)
+    verify: ".venv/bin/pytest tests/test_dashboard_render.py::test_html_no_external_cdn -q --tb=short"
+  - id: cp3
+    criterion: README содержит раздел Dashboard с CLI usage
+    verify: "rg '## Dashboard' README.md"
+  - id: cp4
+    criterion: SC-002 schema validation test passes
+    verify: ".venv/bin/pytest tests/test_dashboard_render.py::test_json_schema_valid -q --tb=short"
+
+verify:
+  - "rg 'def test_' tests/test_dashboard_collect.py | wc -l"
+  - "rg 'def test_' tests/test_dashboard_render.py | wc -l"
+  - "rg 'EPIC_DASHBOARD_HALT_WARN_RATE' README.md"
+
+tdd:
+  - "fixture tmp_path с полным runtime/<slug>/ layout — metrics.json, incidents.jsonl, events.jsonl, tasks.md"
+  - "все test_dashboard_*.py собраны в один прогон без пропусков"

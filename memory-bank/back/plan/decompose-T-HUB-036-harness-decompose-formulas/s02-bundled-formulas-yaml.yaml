@@ -1,0 +1,71 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "3 bundled formulas — hooks-epic, loop-runtime-epic, cli-validate-epic YAML files"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать 3 formula YAML файла в `loop/formulas/` на основе паттернов из завершённых эпиков
+  T-HUB-023 (hooks), T-HUB-017 (loop runtime), T-HUB-024 (CLI validate).
+  Каждый файл — валидный `decompose-formula/v1`; описывает 4–8 sNN-шагов с goal_template,
+  typical_files_pattern (glob-подсказки) и verify_hints.
+  Outcome: planner запускает `formula-render --formula hooks-epic` и получает draft decompose
+  структуру; не нужно начинать с blank template каждый раз.
+
+context:
+  consumes:
+    - "loop/schemas/formula.py — DecomposeFormula schema (создаётся s01)"
+    - "memory-bank/back/plan/decompose-T-HUB-023-hooks-llm-fallbacks/ — exemplar hooks decompose"
+    - "memory-bank/back/plan/decompose-T-HUB-017-*/ — exemplar loop-runtime decompose"
+    - "memory-bank/back/plan/decompose-T-HUB-024-validate-traceability/ — exemplar cli-validate decompose"
+    - ".cursor/templates/decompose/epic-step.yaml — canonical sNN fields"
+  produces:
+    - "loop/formulas/hooks-epic.yaml — decompose-formula/v1 для hooks-type эпиков"
+    - "loop/formulas/loop-runtime-epic.yaml — decompose-formula/v1 для loop runtime changes"
+    - "loop/formulas/cli-validate-epic.yaml — decompose-formula/v1 для CLI validate/traceability tools"
+    - "loop/formulas/README.md — краткий guide: available formulas, когда использовать"
+  plan_refs: [FR-002, US-001]
+  files:
+    - "loop/formulas/hooks-epic.yaml"
+    - "loop/formulas/loop-runtime-epic.yaml"
+    - "loop/formulas/cli-validate-epic.yaml"
+    - "loop/formulas/README.md"
+
+as_built:
+  - "loop/formulas/ — папка отсутствует; нужно создать"
+  - ".cursor/templates/decompose/ — epic-step.yaml есть; формулы нет"
+  - "exemplar decompose T-HUB-023,024: s01=env/schema, s02=core logic, sN=tests, sLast=docs"
+
+delta:
+  - "создать loop/formulas/ + loop/formulas/hooks-epic.yaml: id=hooks-epic; steps[s01=env-contract, s02=unified-llm-models, s03=primary-parse-path, s04=fail-soft-runners, s05=gate-prompt-inventory, s06=integration-tests, s07=docs-readme, s08=legacy-purge]; каждый step с goal_template ({{placeholder}}), typical_files_pattern, verify_hints"
+  - "создать loop/formulas/loop-runtime-epic.yaml: id=loop-runtime-epic; steps[s01=schema-model, s02=core-logic-wiring, s03=runtime-state-update, s04=integration-tests, s05=docs]"
+  - "создать loop/formulas/cli-validate-epic.yaml: id=cli-validate-epic; steps[s01=pydantic-schema, s02=check-rules-impl, s03=cli-entry-point, s04=integration-tests, s05=docs-yaml-contract]"
+  - "создать loop/formulas/README.md: таблица id | title | when-to-use | exemplar-epic"
+
+deletes: []
+
+out_of_scope:
+  - "s03/s04 — CLI render/list (используют эти файлы, создаются отдельно)"
+  - "дополнительные formula variants (cut_list)"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # YAML load + DecomposeFormula.model_validate"
+
+checkpoints:
+  - id: cp1
+    criterion: "hooks-epic.yaml загружается через load_formula() без ошибок и содержит ≥5 steps"
+    verify: ".venv/bin/pytest loop/tests/test_bundled_formulas.py::test_hooks_epic_loads -q"
+  - id: cp2
+    criterion: "loop-runtime-epic.yaml и cli-validate-epic.yaml — оба валидируются schema"
+    verify: ".venv/bin/pytest loop/tests/test_bundled_formulas.py::test_all_bundled_formulas_valid -q"
+  - id: cp3
+    criterion: "каждая formula имеет ≥3 steps с непустыми goal_template и typical_files_pattern"
+    verify: ".venv/bin/pytest loop/tests/test_bundled_formulas.py::test_formulas_have_steps_with_content -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_bundled_formulas.py — test_hooks_epic_loads, test_all_bundled_formulas_valid, test_formulas_have_steps_with_content, test_formula_step_goal_template_has_placeholder"

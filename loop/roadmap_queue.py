@@ -196,14 +196,46 @@ def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
     return Path(cwd) / "memory-bank" / role / "plan" / plan_name
 
 
-def resolve_epic_slug(cwd: str | Path, role: str, queue_id: str) -> str:
-    """Map queue id (T-005) to artifact epic slug (T-005-docker-linux-runtime)."""
+def plan_stem_from_name(plan_name: str) -> str:
+    """Stem of plan-*.md without plan- prefix (FS epic_id with descriptive slug)."""
+    name = Path(str(plan_name or "").strip().replace("\\", "/")).name
+    if name.startswith("plan-"):
+        name = name[len("plan-") :]
+    if name.endswith(".md"):
+        name = name[: -len(".md")]
+    return name.strip()
+
+
+def resolve_epic_slug(
+    cwd: str | Path,
+    role: str,
+    queue_id: str,
+    plan_name: str | None = None,
+) -> str:
+    """Map queue id (T-HUB-023) to artifact epic slug (T-HUB-023-hooks-llm-fallbacks).
+
+    Source of truth for FS folders: plan file stem (queue ``plan:`` field or
+    ``plan-{queue_id}[-slug].md`` on disk). Short queue id alone is only a
+    fallback when no plan / decompose / reflection / qa artifact exists.
+    """
+    if plan_name:
+        stem = plan_stem_from_name(plan_name)
+        if stem:
+            return stem
+    root = Path(cwd)
+    plan_dir = root / "memory-bank" / role / "plan"
+    if plan_dir.is_dir():
+        exact_plan = plan_dir / f"plan-{queue_id}.md"
+        slugged = sorted(plan_dir.glob(f"plan-{queue_id}-*.md"))
+        if slugged:
+            return plan_stem_from_name(slugged[0].name)
+        if exact_plan.is_file():
+            return queue_id
     idx = find_decompose_index(cwd, role, queue_id)
     if idx is not None:
         slug = epic_id_from_decompose_path(str(idx))
         if slug:
             return slug
-    root = Path(cwd)
     refl_dir = root / "memory-bank" / role / "reflection"
     if refl_dir.is_dir():
         exact = refl_dir / f"reflection-{queue_id}.md"
@@ -254,7 +286,7 @@ def resolve_entry(
 ) -> dict[str, Any]:
     """Smart entry: DECOMPOSE / ANALYZE / IMPLEMENT|CREATIVE / QA / REFLECT / done."""
     root = Path(cwd)
-    slug = resolve_epic_slug(root, role, epic_id)
+    slug = resolve_epic_slug(root, role, epic_id, plan_name=plan_name)
     plan = plan_path(root, role, plan_name)
     if not plan.is_file():
         return {
@@ -266,7 +298,7 @@ def resolve_entry(
             "queue_id": epic_id,
             "phase": None,
         }
-    idx = find_decompose_index(root, role, epic_id)
+    idx = find_decompose_index(root, role, slug)
     if idx is None:
         return {
             "ok": True,
@@ -425,9 +457,7 @@ def arm_roadmap_entry(cwd: str | Path, selection: dict[str, Any]) -> dict[str, A
     role = selection["role"]
     entry = selection["entry"]
     slug = entry.get("epic") or entry.get("queue_id")
-    queue_id = entry.get("queue_id") or entry["epic"]
-
-    out = arm_epic(root, queue_id, role=role)
+    out = arm_epic(root, slug, role=role)
     if not out.get("ok"):
         return {
             "ok": False,
@@ -450,7 +480,7 @@ def arm_roadmap_entry(cwd: str | Path, selection: dict[str, Any]) -> dict[str, A
     try:
         from loop.epic_transition import promote_if_ready
 
-        promoted = promote_if_ready(root, queue_id, role)
+        promoted = promote_if_ready(root, slug, role)
         if isinstance(promoted, dict) and promoted.get("ok"):
             out = promoted
     except Exception:

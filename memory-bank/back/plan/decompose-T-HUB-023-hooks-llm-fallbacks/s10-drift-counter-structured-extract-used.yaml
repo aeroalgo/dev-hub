@@ -1,0 +1,57 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "Drift counter — structured_extract_used (json|pydantic-ai tag)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Drift counter `structured_extract_used` с тегом `json` или `pydantic-ai` инкрементируется
+  при каждом успешном извлечении через JSON fence или pydantic-ai secondary path.
+  Позволяет мониторить покрытие structured path vs отсутствие sidecar.
+  Outcome: FR-009 metrics — operator видит в drift log соотношение json/pydantic-ai/none.
+
+context:
+  consumes:
+    - "s03: parse_gate_verdict_message — успешный JSON fence path"
+    - "s05: run_gate_verdict_llm — pydantic-ai secondary path"
+    - "epic/_lib или epic/core.py: increment_drift_counter() — существующий helper"
+  produces:
+    - "_lib.py: parse_gate_verdict_message — добавить increment_drift_counter(cwd, 'structured_extract_used', tag='json') при success"
+    - "llm_structured.py: run_gate_verdict_llm — добавить increment_drift_counter(cwd, 'structured_extract_used', tag='pydantic-ai') при success"
+  plan_refs: [FR-009]
+  files:
+    - ".claude/hooks/_lib.py"
+    - ".claude/hooks/llm_structured.py"
+
+as_built:
+  - "_lib.py:extract_verdict() — вызывал increment_drift_counter('gate_verdict_regex_fallback') при regex path (удалён в s04)"
+  - "epic/core.py или epic/__init__.py: increment_drift_counter(cwd, key) — существует"
+
+delta:
+  - "_lib.py:parse_gate_verdict_message — при успешном GateVerdictRecord.model_validate: increment_drift_counter(cwd, 'structured_extract_used', tag='json') если cwd задан"
+  - "llm_structured.py:run_gate_verdict_llm — при успешном Agent.run: increment_drift_counter(cwd, 'structured_extract_used', tag='pydantic-ai') если cwd задан"
+  - "fail-soft: exception increment_drift_counter не блокирует основной flow"
+
+deletes: []
+
+out_of_scope:
+  - "drift dashboard UI — не в этом эпике"
+  - "тесты drift counter — s11"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'structured_extract_used' в _lib.py и llm_structured.py"
+    verify: "rg 'structured_extract_used' .claude/hooks/_lib.py .claude/hooks/llm_structured.py"
+  - id: cp2
+    criterion: "parse_gate_verdict_message success path вызывает drift counter"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_parse_gate_verdict_message_increments_drift -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_fence.py — добавить test_parse_gate_verdict_message_increments_drift"

@@ -27,6 +27,18 @@ def test_resolve_plan_no_decompose_returns_decompose_command(tmp_path: Path):
     assert res.next_command == "BACK DECOMPOSE T-HUB-999"
     assert res.reason_code == "decompose_missing"
 
+
+def test_resolve_short_queue_id_decompose_uses_plan_stem(tmp_path: Path):
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "plan-T-HUB-023-hooks-llm-fallbacks.md").write_text("# Plan\n")
+
+    res = resolve_epic_next_action(tmp_path, "back", "T-HUB-023")
+    assert res.phase == "DECOMPOSE"
+    assert res.epic_id == "T-HUB-023-hooks-llm-fallbacks"
+    assert res.next_command == "BACK DECOMPOSE T-HUB-023-hooks-llm-fallbacks"
+    assert res.reason_code == "decompose_missing"
+
 def test_resolver_stale_analyze_returns_arm_analyze(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)

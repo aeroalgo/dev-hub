@@ -1,0 +1,64 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-037-harness-parallel-snn
+title: "file overlap checker — fail-closed parallel gate by shard files intersection"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/parallel/overlap.py` с функцией `file_overlap_check(shard_a, shard_b) -> bool`.
+  Функция загружает два `sNN-*.yaml` шарда (epic-decompose/v1), извлекает `files` из `context.files`
+  + пути из `delta` и `deletes`, вычисляет пересечение. Если пересечение непустое — возвращает True
+  (parallel запрещён). Outcome: любая попытка параллельного запуска двух шагов с общими файлами
+  будет fail-closed ещё до spawn worktree.
+
+context:
+  consumes:
+    - "loop/schemas/decompose_index.py (s01) — DecomposeStep"
+    - ".cursor/templates/decompose/epic-step.yaml — структура context.files, delta, deletes"
+  produces:
+    - "loop/parallel/overlap.py — file_overlap_check(shard_a: Path, shard_b: Path) -> bool; extract_shard_files(shard: dict) -> frozenset[str]"
+  plan_refs:
+    - FR-002
+    - SC-002
+  files:
+    - "loop/parallel/overlap.py"
+
+as_built:
+  - "loop/parallel/__init__.py — пакет создан в s01"
+  - "loop/parallel/wave.py — wave compute готов; overlap функция отсутствует"
+
+delta:
+  - "создать loop/parallel/overlap.py: extract_shard_files(shard_dict: dict) -> frozenset[str] — объединяет context.files + paths из delta[] + deletes[] как frozenset нормализованных путей"
+  - "file_overlap_check(shard_a: Path | str, shard_b: Path | str) -> bool — загружает оба yaml, вызывает extract_shard_files, returns bool(intersection)"
+
+deletes: []
+
+out_of_scope:
+  - "s01 — wave compute (depends_on schema)"
+  - "s03 — worktree pool"
+  - "s04 — orchestrator (использует overlap_check)"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # pytest fixture: tmp_path shard yaml files, parametrize overlap/no-overlap"
+    - "modern-python # pathlib, frozenset, yaml.safe_load"
+    - "python-anti-patterns # no side effects in pure functions"
+    - "tdd # test-first: cp1/cp2 покрыты до impl"
+
+checkpoints:
+  - id: cp1
+    criterion: "два шарда с разными context.files → file_overlap_check returns False"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_overlap.py::test_no_overlap -q"
+  - id: cp2
+    criterion: "два шарда с одинаковым файлом в context.files → file_overlap_check returns True"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_overlap.py::test_overlap_context_files -q"
+  - id: cp3
+    criterion: "шард без context.files (пустой) и шард с files — нет пересечения → False"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_overlap.py::test_empty_shard_no_overlap -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_parallel_overlap.py — test_no_overlap, test_overlap_context_files, test_overlap_delta_path, test_overlap_deletes_path, test_empty_shard_no_overlap"

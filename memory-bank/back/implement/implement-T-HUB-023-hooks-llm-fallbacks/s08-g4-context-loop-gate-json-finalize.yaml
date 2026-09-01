@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: 's08 — G4 context_loop — gate JSON finalize steps (replace VERDICT: prose)
+  IMPLEMENT'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-023-hooks-llm-fallbacks/s08-g4-context-loop-gate-json-finalize.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Заменены VERDICT: PASS инструкционные строки в packed prompt context_loop.py на
+  gate JSON sidecar (loop-gate-verdict/v1)'
+files:
+- loop/context_loop.py
+- loop/tests/test_context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py`'
+integration_check:
+- rg 'loop-gate-verdict' loop/context_loop.py
+grep_control: []
+verification_results:
+- 'PASS: 190 test passed'
+checkpoints:
+- id: cp1
+  criterion: rg 'loop-gate-verdict' в context_loop.py (хотя бы 1 вхождение)
+  status: done
+  done_at: '2026-08-31T17:53:10Z'
+- id: cp2
+  criterion: 'rg не находит ''VERDICT: PASS'' как self-standing machine instruction
+    в packed prompts'
+  status: done
+  done_at: '2026-08-31T17:53:20Z'
+resume_from: cp1

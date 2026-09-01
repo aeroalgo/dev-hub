@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-034-harness-janitor-gc
+title: "Orphan/stale/dead/duplicate detectors — reuse reconcile+traceability"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать четыре детектора для read-only scan path:
+  orphan_implement_yaml (implement yaml без plan), stale_index_status (зеркало index.md расходится с yaml),
+  dead_plan_ref (shard plan_refs указывает на несуществующий plan), duplicate_epic_id (два плана с одним id).
+  Переиспользует epic.traceability и epic.reconcile — ноль дублирования логики (FR-003, AC-3, NFR-03).
+  Детекторы регистрируются в реестре scan.py для агрегации в JanitorReport.
+
+context:
+  consumes:
+    - .claude/hooks/epic/traceability.py  # parse_decompose_refs, parse_plan_requirements
+    - .claude/hooks/epic/reconcile.py     # run_reconcile_spec internals
+    - .claude/hooks/epic/core.py          # repair_index_mirror (read portions)
+    - loop/janitor/schema.py              # JanitorFinding, JanitorReport (s01)
+    - loop/janitor/scan.py               # detector registry (s01)
+  produces:
+    - loop/janitor/detectors/orphan.py
+    - loop/janitor/detectors/stale_index.py
+    - loop/janitor/detectors/dead_ref.py
+    - loop/janitor/detectors/duplicate_epic.py
+    - loop/janitor/detectors/__init__.py
+  plan_refs:
+    - "FR-002: Finding categories orphan_implement_yaml, stale_index_status, dead_plan_ref, duplicate_epic_id"
+    - "FR-003: Reuse reconcile + traceability + index mirror checks"
+    - "AC-3: Reuses reconcile parsers"
+    - "NFR-01: janitor-scan read-only"
+    - "NFR-03: No duplication of reconcile/traceability logic"
+    - "US-001: Weekly operator: janitor report stale decompose indexes"
+  files:
+    - loop/janitor/detectors/__init__.py
+    - loop/janitor/detectors/orphan.py
+    - loop/janitor/detectors/stale_index.py
+    - loop/janitor/detectors/dead_ref.py
+    - loop/janitor/detectors/duplicate_epic.py
+
+as_built:
+  - ".claude/hooks/epic/traceability.py — parse_decompose_refs(decompose_dir): dict[str, ShardTrace]; parse_plan_requirements(path): list[str]"
+  - ".claude/hooks/epic/core.py — repair_index_mirror reads index.yaml + index.md (reuse read portion)"
+  - ".claude/hooks/epic/reconcile.py — run_reconcile_spec cross-artifact check"
+  - "loop/janitor/detectors/ — отсутствует"
+
+delta:
+  - "CREATE loop/janitor/detectors/__init__.py — DETECTORS registry list; каждый детектор: callable(cwd: Path) -> list[JanitorFinding]"
+  - "CREATE loop/janitor/detectors/orphan.py — detect_orphan_implement_yaml(cwd): walk memory-bank/*/implement/, find yaml where matching plan not found in memory-bank/*/plan/"
+  - "CREATE loop/janitor/detectors/stale_index.py — detect_stale_index_status(cwd): для каждого decompose dir — read index.yaml steps, read index.md table, compare status; uses same field parsing as repair_index_mirror"
+  - "CREATE loop/janitor/detectors/dead_ref.py — detect_dead_plan_ref(cwd): для каждого shard yaml — load plan_refs, verify files exist on disk; uses parse_decompose_refs import from traceability"
+  - "CREATE loop/janitor/detectors/duplicate_epic.py — detect_duplicate_epic_id(cwd): scan all plan-*.yaml / index.yaml for plan_id / epic_id; report duplicates"
+
+deletes: []
+
+out_of_scope:
+  - "episode/events детекторы (s03)"
+  - "janitor-gc engine (s03)"
+  - "CLI (s04)"
+  - "Изменения в epic.traceability или epic.reconcile — только import, не fork"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # S11: новые публичные типы детекторов
+
+checkpoints:
+  - id: cp1
+    criterion: "detect_orphan_implement_yaml находит fixture orphan yaml (US-001)"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_detectors.py::test_detect_orphan_implement_yaml -q --tb=short"
+  - id: cp2
+    criterion: "detect_stale_index_status находит мисматч index.md/yaml в fixture"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_detectors.py::test_detect_stale_index -q --tb=short"
+  - id: cp3
+    criterion: "detect_dead_plan_ref находит shard с несуществующим plan_ref"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_detectors.py::test_detect_dead_plan_ref -q --tb=short"
+  - id: cp4
+    criterion: "Детекторы не вызывают никаких open() для записи (read-only, NFR-01)"
+    verify: "rg 'open\\(' loop/janitor/detectors/ | rg -v '#' | rg -v 'rb\\|r\\\"\\|r\\x27'"
+
+verify:
+  - "rg 'from epic.traceability import\\|from .claude.hooks.epic' loop/janitor/detectors/"
+  - "rg 'def detect_orphan_implement_yaml' loop/janitor/detectors/orphan.py"
+  - "rg 'def detect_stale_index_status' loop/janitor/detectors/stale_index.py"
+  - "rg 'def detect_dead_plan_ref' loop/janitor/detectors/dead_ref.py"
+  - "rg 'def detect_duplicate_epic_id' loop/janitor/detectors/duplicate_epic.py"
+  - ".venv/bin/pytest loop/tests/test_janitor_detectors.py -q --tb=short"
+
+tdd:
+  - "loop/tests/test_janitor_detectors.py — фикстуры: orphan implement yaml, stale index mirror, dead plan_ref shard, duplicate plan_id dirs; каждый детектор тест изолирован"

@@ -39,7 +39,13 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 ## ПЕРЕХОДЫ
 
-Next: Handoff в `memory-bank/activeContext.md`; следующий шаг выбирается по activeContext + decompose index.
+```text
+VAN → PLAN(+CLARIFY) → DECOMPOSE → ANALYZE|defer → CREATIVE? → IMPLEMENT* → AUDIT↻ → QA → REFLECT → ARCHIVE
+         ↑ RECONCILE (hotfix drift)                    ↑ BUGFIX from QA
+```
+
+Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.
+Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + ANALYZE ok|deferred (workflow-decompose §7a).
 Runner: `./loop/loop.sh` · context-first gates.
 
 Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.

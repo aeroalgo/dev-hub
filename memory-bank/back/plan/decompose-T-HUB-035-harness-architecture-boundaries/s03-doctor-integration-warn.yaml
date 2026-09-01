@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: "Doctor integration — boundary check warns in loop doctor checklist"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить boundary checker к `loop/incidents/doctor.py` (существующий модуль health-check):
+  добавить пункт WARN если check_boundaries() возвращает violations. Warn (не error) — чтобы
+  не блокировать loop при legacy нарушениях, но сигнализировать. FR-007 (optional) закрывается:
+  `loop doctor` / `dsh doctor` показывает WARNING: N boundary violations если violations > 0.
+
+context:
+  consumes:
+    - loop/incidents/doctor.py              # существующий health doctor
+    - tests/architecture/check_boundaries.py  # из s01 — checker API
+    - tests/architecture/boundaries.yaml      # из s01 — contracts
+  produces:
+    - loop/incidents/doctor.py              # расширен: boundary check пункт
+    - loop/tests/test_incidents_doctor.py   # расширен: test boundary warn integration
+  plan_refs:
+    - FR-007  # optional doctor integration warn
+  files:
+    - loop/incidents/doctor.py
+    - loop/tests/test_incidents_doctor.py
+
+as_built:
+  - "loop/incidents/doctor.py — существует, запускает health checks, возвращает CheckResult list"
+  - "loop/tests/test_incidents_doctor.py — существует, покрывает текущие checks"
+  - "check_boundaries() после s01: возвращает violations list (пустой на чистом дереве)"
+
+delta:
+  - "edit loop/incidents/doctor.py: добавить BoundaryCheck пункт — импортирует check_boundaries из tests.architecture.check_boundaries (или через subprocess если circular), добавляет WARN если violations, pass если []"
+  - "edit loop/tests/test_incidents_doctor.py: добавить test_doctor_boundary_check_warn (monkeypatch check_boundaries → [Violation(...)]) → result contains WARN) + test_doctor_boundary_check_pass (monkeypatch → [] → no WARN)"
+
+deletes: []
+
+out_of_scope:
+  - "Блокировка loop при нарушениях (не WARN, а ERROR) — не в этом эпике, может быть follow-up"
+  - "CI вызов doctor — это уже обеспечивается loop.sh / make"
+  - "update-ratchet CLI — отложено из s02"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/python-testing-patterns/SKILL.md"   # S06 monkeypatch, fixtures
+    - ".agents/skills/python-error-handling/SKILL.md"      # S03 import guard if circular
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/incidents/doctor.py импортирует или вызывает check_boundaries без ImportError"
+    verify: "python -c \"from loop.incidents.doctor import run_doctor; print('ok')\""
+  - id: cp2
+    criterion: "test_doctor_boundary_check_warn pass: monkeypatched violations → doctor result содержит WARNING"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_warn -q"
+  - id: cp3
+    criterion: "test_doctor_boundary_check_pass pass: monkeypatched [] → no WARN"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_pass -q"
+  - id: cp4
+    criterion: "Весь doctor suite зелёный (без регрессий)"
+    verify: ".venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+  - "rg 'boundary' loop/incidents/doctor.py"
+  - ".venv/bin/pytest tests/architecture/ -q --tb=short"
+
+tdd:
+  - "test_doctor_boundary_check_warn: monkeypatch check_boundaries возвращает [Violation(layer='loop', target='hooks', file='x.py')]; run_doctor() результат содержит entry с 'WARNING' и 'boundary'"
+  - "test_doctor_boundary_check_pass: monkeypatch check_boundaries → []; run_doctor() не содержит boundary WARN"
+  - "test_doctor_no_regression: все существующие doctor checks из pre-s03 по-прежнему pass"

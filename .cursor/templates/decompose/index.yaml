@@ -5,11 +5,9 @@ schema: epic-decompose-index/v1
 plan_id: <plan_id>
 source_md: index.md
 status_canon: index.yaml
-# Optional appetite mirror from plan.md (advisory in v1)
+# Optional appetite mirror from plan.md (timebox + cut_list only; never a step-count cap)
 # appetite:
 #   timebox_days: 3
-#   max_steps: 10
-#   circuit_breaker: "Остановка если >10 шагов или превышен timebox"
 #   cut_list:
 #     - "optional UI polish"
 steps:

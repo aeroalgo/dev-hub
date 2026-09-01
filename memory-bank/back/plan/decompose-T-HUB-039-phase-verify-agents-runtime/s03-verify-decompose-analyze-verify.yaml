@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "verify-decompose agent file + analyze-verify wire align"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.claude/agents/verify-decompose.md` — coverage-semantic agent для фазы DECOMPOSE:
+  проверяет Requirements coverage / Stages coverage / Outcome map / Replacement cleanup;
+  FORBIDDEN pytest/product code; verdict PASS/FAIL (GAPS → FAIL, stop-gate держит до PASS).
+  Выровнять `.claude/agents/analyze-verify.md` — убедиться, что он точно описывает роль
+  read-only re-check после ANALYZE-фиксов (optional gate PROJECT_LOOP_ANALYZE_VERIFY).
+  User/system outcome: parent DECOMPOSE порождает @verify-decompose после CLI schema validate;
+  семантические дыры в coverage ловятся до IMPLEMENT.
+
+context:
+  consumes:
+    - ".claude/agents/analyze-verify.md — существует, опциональный ANALYZE gate"
+    - ".claude/agents/verify.md (скоро stub after s01)"
+    - "loop/schemas/phase_registry.yaml — DECOMPOSE verify_agent: verify-decompose уже есть"
+    - ".claude/hooks/epic_resolve.py — validate-decompose-tree CLI (schema CLI, fail-closed)"
+    - ".claude/rules/plan-artifact.md — coverage table requirements"
+  produces:
+    - ".claude/agents/verify-decompose.md (new)"
+    - ".claude/agents/analyze-verify.md (review/align, min edits)"
+  plan_refs:
+    - "FR-003: Create .claude/agents/verify-decompose.md"
+    - "FR-006: Align analyze-verify.md"
+    - "US-003: verify-decompose после schema CLI"
+    - "US-005: analyze-verify agent align"
+    - "SC-001: verify-decompose and analyze-verify discoverable"
+    - "SC-004: DECOMPOSE: CLI + verify-decompose when enabled"
+    - "TM-006: DECOMPOSE semantic FAIL → stop-gate blocks"
+    - "SC-003: verify-decompose does NOT run pytest"
+    - "Behavior-first: each FR noun ∈ produces"
+  files:
+    - ".claude/agents/verify-decompose.md"
+    - ".claude/agents/analyze-verify.md"
+
+as_built:
+  - "нет .claude/agents/verify-decompose.md"
+  - ".claude/agents/analyze-verify.md — существует как read-only re-check после ANALYZE"
+  - "phase_registry.yaml DECOMPOSE verify_agent: verify-decompose — запись есть, файл отсутствует"
+  - "epic_resolve.py validate-decompose-tree — CLI schema check (fail-closed first); semantic verify отдельным агентом"
+
+delta:
+  - "add .claude/agents/verify-decompose.md: role=verify-decompose; sections: COVERAGE / PLAN EXCERPT / AC+ / AC− / ALLOW; reads index.md coverage tables; verdict PASS/FAIL; GAPS section → FAIL; FORBIDDEN: pytest, product code paths, Edit/Write"
+  - "review/align .claude/agents/analyze-verify.md: убедиться что scope ANALYZE-only; optional flag PROJECT_LOOP_ANALYZE_VERIFY упомянут; не переписывать если уже корректен"
+
+deletes: []
+
+out_of_scope:
+  - "validate-decompose-tree CLI сам по себе — уже в epic_resolve.py, не меняем"
+  - "stop-gate enforce flow DECOMPOSE — s05"
+  - "spawn_validate norm check verify-decompose — s04"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "verify-decompose.md существует и содержит COVERAGE секцию и FORBIDDEN pytest"
+    verify: "rg 'COVERAGE|FORBIDDEN.*pytest' .claude/agents/verify-decompose.md"
+  - id: cp2
+    criterion: "verify-decompose.md verdict = PASS/FAIL (не BLOCKED)"
+    verify: "rg 'PASS|FAIL' .claude/agents/verify-decompose.md && ! rg 'BLOCKED' .claude/agents/verify-decompose.md"
+  - id: cp3
+    criterion: "unit: agent file exists test"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'decompose_agent' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_agent_file_exists_verify_decompose: Path('.claude/agents/verify-decompose.md').is_file()"
+  - "test_verify_decompose_no_pytest: 'pytest' not in agent text as runnable command"
+  - "test_analyze_verify_scope_tag: 'ANALYZE' in analyze-verify.md content"

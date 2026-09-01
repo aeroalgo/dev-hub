@@ -124,7 +124,15 @@ class AgentRegistry:
         res = self.by_id.get(_normalize_id(target))
         if res is not None:
             return res
-        return self.by_id.get(_normalize_id(agent_id))
+        norm = _normalize_id(agent_id)
+        if norm is not None:
+            res = self.by_id.get(norm)
+            if res is not None:
+                return res
+            for alias, canonical in AGENT_ALIASES.items():
+                if canonical == norm and alias in self.by_id:
+                    return self.by_id[alias]
+        return None
 
 
 def resolve_project_root(

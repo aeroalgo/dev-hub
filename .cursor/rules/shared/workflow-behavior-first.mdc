@@ -1,0 +1,94 @@
+---
+description: "Behavior-first / anti-dilution — plan WHAT must ship as runtime surface, not registry metadata (shared BACK/FRONT/INTEG)"
+alwaysApply: false
+---
+# Behavior-first / anti-dilution (HARD)
+
+**Канон для:** PLAN · DECOMPOSE · ANALYZE · AUDIT · QA (BACK/FRONT/INTEG).
+
+**Проблема, которую закрываем:** FR/US в плане («агенты», «wire hooks», «CLI») закрывают шагом «строка в yaml / alias dict / unit на lookup» → IMPLEMENT `completed`, продукт не работает.
+
+---
+
+## 1. Plan WHAT noun ∈ step `produces` (anti-dilution)
+
+Из каждого **FR-### / US-### / SC-###** плана извлеки **nouns** — runtime surfaces, без которых FR мёртв:
+
+| Plan wording (пример) | Nouns (должны быть в `produces` / `files`) |
+|----------------------|--------------------------------------------|
+| agents `verify-*` | `.claude/agents/verify-*.md` (+ DSH presets если в FR) |
+| wire stop-gate / pretool | ветка кода, **использующая** `get_verify_agent` / registry (не dead assign) |
+| CLI / command X | entrypoint + runnable invoke |
+| preset / profile | реальный preset-файл + mapping, не только `dsh_preset:` string |
+
+**HARD:**
+
+1. `covered` / Outcome «закрыто» **только если** каждый noun ∈ `produces` или `files` закрывающего `sNN|eNN` **или** явный `out_of_scope` + follow-up epic **уже в** `roadmap-*.queue.yaml`.
+2. `delta` закрывающего шага = **наблюдаемое поведение** (parent/loop/operator), не «добавить поле в registry».
+3. **FORBIDDEN dilution:** FR про runtime → step только metadata/lookup/alias без surfaces из таблицы.
+
+**FAIL examples (029-class):**
+- FR «verify-implement agent» → produces только `phase_registry.yaml` + `get_verify_agent()`
+- FR «wire agent-pretool» → `expected = get_verify_agent(...)` без использования в deny/allow
+- US Independent Test = «alias map returns string» без spawn/enforce/file exists
+
+---
+
+## 2. Measurable verify — behavior, не surrogate
+
+Coverage rubric остаётся; **дополнительно**:
+
+| FR kind | Минимум `checkpoints[].verify` | **FORBIDDEN** как единственный verify |
+|---------|--------------------------------|----------------------------------------|
+| Agent / prompt / preset | path exists + registry discover / load | `assert get_x() == "name"` alone |
+| Hook / gate / FINISH enforce | test или `rg` что значение **используется** в stop-gate/pretool | import + dead local |
+| CLI / operator command | invoke exit 0 / fail-closed | «функция импортируется» |
+| Replace / wire | behavior + callers | presence-only «новый файл есть» |
+
+Surrogate unit (string equality / field present) **может** быть cp1; для product FR обязателен ≥1 **behavior** cp.
+
+---
+
+## 3. AUDIT — inventory из **plan**, presence ≠ satisfied
+
+1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan-*.md` (полный список). Decompose coverage / remapped `plan_refs` — **вторичный** индекс.
+2. Plan FR без step → finding `missing` **CRITICAL** (не «не в inventory потому что не в decompose»).
+3. Supersede/merge (эпик A → B): каждый FR superseded plan → coverage в B **или** `out_of_scope` + follow-up в queue.
+4. **`assessment: satisfied` FORBIDDEN** если evidence = только registry row / alias dict / unit lookup, а FR требует files/enforce/CLI.
+5. **Presence ≠ satisfied:** модуль/функция на диске не закрывает «агент/preset/enforce работает».
+6. `converged: true` **FORBIDDEN** при любом plan-FR без **behavior** evidence.
+
+---
+
+## 4. ANALYZE — pass **Dilution**
+
+После Coverage Gaps: сравнить plan FR nouns vs step `produces`/`delta`/`files`. Dilution → finding category `dilution`, severity **CRITICAL** (P0/P1 FR) или **HIGH**.
+
+Merge/supersede без переноса FR → CRITICAL.
+
+`recommendation: IMPLEMENT` только при `critical_count=0` **включая** Dilution.
+
+---
+
+## 5. PLAN — Independent Test = поведение
+
+В таблице User Stories колонка **Independent Test**:
+
+- **FAIL:** «alias works» · «get_* returns string» · «field in yaml» · «unit green»
+- **OK:** «файл агента существует + discover; spawn/FINISH требует нужный `subagent_type`; stop-gate PASS/FAIL по контракту»
+
+---
+
+## 6. QA — smoke на contract FR
+
+Если в plan есть agent / hook / gate / CLI FR:
+
+- suite green **недостаточен** для `verdict: pass`
+- REQUIRED smoke (parent): path exists · registry discover · один enforce-path (`rg` / targeted test) что runtime зовёт нужный agent/gate
+- PASS при «N unit tests green» и мёртвом FR = **FAIL process**
+
+---
+
+## 7. Одной фразой
+
+**Сделано = работает для operator/parent/loop.** Metadata без runtime surface — не done, не covered, не satisfied, не converged.

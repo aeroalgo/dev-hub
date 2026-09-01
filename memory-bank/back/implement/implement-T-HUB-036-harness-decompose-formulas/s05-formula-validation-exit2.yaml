@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-036-harness-decompose-formulas
+title: s05 — formula validation — broken template exits 2 at render time IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-036-harness-decompose-formulas/s05-formula-validation-exit2.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- formula validation - broken template exits 2 at render time
+files:
+- loop/formula_render.py
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_formula_validation.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_formula_validation.py -q`'
+integration_check:
+- epic_resolve.py formula-render/formula-list catch ValueError and exit 2
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: formula-render --formula <invalid_yaml_id> → stderr содержит 'formula
+    error:' + exit code 2
+  status: done
+  done_at: '2026-08-31T22:06:04Z'
+- id: cp2
+  criterion: formula-render --formula <missing_required_field_id> → exit 2
+  status: done
+  done_at: '2026-08-31T22:06:13Z'
+- id: cp3
+  criterion: formula-list с broken formula в dir → exit 2 (не silently skip)
+  status: done
+  done_at: '2026-08-31T22:06:23Z'
+resume_from: cp1

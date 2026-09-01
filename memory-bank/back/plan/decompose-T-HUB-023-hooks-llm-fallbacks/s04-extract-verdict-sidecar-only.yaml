@@ -1,0 +1,61 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "extract_verdict — sidecar-only, no regex"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `extract_verdict()` в `_lib.py` переписывается: только читает sidecar через `read_gate_verdict()`;
+  regex-fallback `re.finditer(VERDICT:...)` и `gate_verdict_regex_fallback` drift-counter call удаляются.
+  При отсутствии sidecar возвращает `None` (fail-closed, не PASS).
+  Outcome: SC-001 — нет `VERDICT:` regex в machine path. SC-002 — extract_verdict = sidecar-only.
+
+context:
+  consumes:
+    - "_lib.py:extract_verdict() — текущая impl (строки 1292–1327): читает sidecar, затем regex fallback"
+    - "loop/gate_verdict_store.py:read_gate_verdict() — существует"
+    - "s03: parse_gate_verdict_message — теперь sidecar гарантирован для valid message"
+  produces:
+    - "_lib.py: extract_verdict() без regex VERDICT блока"
+  plan_refs: [FR-004, SC-001, SC-002]
+  files:
+    - ".claude/hooks/_lib.py"
+
+as_built:
+  - "_lib.py:extract_verdict() строки 1292–1327 — сначала read_gate_verdict (sidecar), затем re.finditer regex VERDICT fallback + drift counter"
+  - "_lib.py:BLOCKED_VERIFY_NO_VERDICT_RE — отдельный паттерн, не трогать"
+
+delta:
+  - "_lib.py:extract_verdict() — удалить блок regex (matches = list(re.finditer(...)) + if not matches: return None + drift counter call)"
+  - "_lib.py:extract_verdict() — оставить только sidecar-path: read_gate_verdict → return record.verdict; если record is None → return None"
+  - "_lib.py:extract_verdict() — signature не меняется (text, *, cwd, agent_id)"
+  - "_lib.py: убрать `text` из рабочего кода extract_verdict — параметр остаётся для backward compat но не используется"
+
+deletes:
+  - "_lib.py строки ~1316–1327 — блок re.finditer + drift counter"
+
+out_of_scope:
+  - "subagent-stop.py / stop-gate.py — wire в s09"
+  - "agents/verify.md — s06"
+  - "tests — s11"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "extract_verdict с заполненным sidecar возвращает verdict"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py::test_extract_verdict_reads_sidecar -q"
+  - id: cp2
+    criterion: "extract_verdict без sidecar возвращает None (не regex PASS)"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py::test_extract_verdict_no_sidecar_returns_none -q"
+  - id: cp3
+    criterion: "rg нет regex VERDICT в extract_verdict"
+    verify: "rg 'VERDICT.*regex\\|re\\.finditer.*VERDICT\\|gate_verdict_regex_fallback' .claude/hooks/_lib.py | grep -c . || echo 0"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_verdict_wire.py — расширить: test_extract_verdict_reads_sidecar, test_extract_verdict_no_sidecar_returns_none"

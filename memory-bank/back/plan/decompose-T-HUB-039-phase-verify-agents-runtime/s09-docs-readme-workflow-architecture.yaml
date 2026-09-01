@@ -1,0 +1,63 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "docs: loop/README + WORKFLOW §Phase verify agents + architecture/services.md S-AGENTS"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `loop/README.md` и `loop/WORKFLOW.md` — добавить раздел §Phase verify agents
+  с таблицей phase → agent → verdict → notes.
+  Обновить `memory-bank/architecture/services.md` — секция S-AGENTS с verify-implement,
+  verify-bugfix, verify-qa, verify-decompose; alias migration note.
+  User/system outcome: разработчик открывает README/WORKFLOW и видит точную карту
+  phase-verify агентов; architecture doc актуален.
+
+context:
+  consumes:
+    - "loop/README.md — текущая документация loop"
+    - "loop/WORKFLOW.md (если существует)"
+    - "memory-bank/architecture/services.md — текущая architecture doc"
+  produces:
+    - "loop/README.md (§Phase verify agents section)"
+    - "loop/WORKFLOW.md (§Phase verify agents, migration note aliases)"
+    - "memory-bank/architecture/services.md (S-AGENTS section)"
+  plan_refs:
+    - "FR-015: Docs loop/README.md / WORKFLOW.md §Phase verify agents"
+    - "FR-015: memory-bank/architecture/services.md S-AGENTS"
+    - "FR-015: migration note aliases"
+    - "US-007: Docs README and architecture section"
+  files:
+    - "loop/README.md"
+    - "memory-bank/architecture/services.md"
+
+as_built:
+  - "loop/README.md — существует, нет раздела phase verify agents"
+  - "memory-bank/architecture/services.md — существует; нет S-AGENTS verify-* entries"
+
+delta:
+  - "edit loop/README.md: добавить ## Phase verify agents — таблица phase/agent/verdict/alias; migration note @verify→@verify-implement"
+  - "edit memory-bank/architecture/services.md: добавить S-AGENTS секцию verify-implement/bugfix/qa/decompose с описанием scope"
+
+deletes: []
+
+out_of_scope:
+  - "курсор rules workflow docs — s07"
+  - "architecture ERD / data-flow mermaid — не меняем"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/README.md содержит Phase verify agents раздел"
+    verify: "rg 'Phase verify agents|verify-implement' loop/README.md"
+  - id: cp2
+    criterion: "architecture/services.md содержит S-AGENTS или verify-implement"
+    verify: "rg 'S-AGENTS|verify-implement|verify-bugfix' memory-bank/architecture/services.md"
+
+verify: []
+tdd: []

@@ -1,0 +1,54 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "G4 context_loop — gate JSON finalize steps (replace VERDICT: prose)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `context_loop.py` packed prompts заменяют «`VERDICT: PASS`» шаги в finalize-step инструкциях
+  на «valid gate JSON sidecar exists → finalize-step».
+  Результат: subagent больше не инструктируется выводить VERDICT строкой — только JSON fence.
+  Outcome: SC-006 — rg в context_loop.py не находит «VERDICT: PASS» как machine instruction.
+
+context:
+  consumes:
+    - "loop/context_loop.py — packed prompts с VERDICT: PASS/FAIL machine инструкциями"
+    - "s06/s07: agent.md и spawn-hard уже обновлены"
+  produces:
+    - "loop/context_loop.py: packed prompts → JSON fence gate contract"
+  plan_refs: [FR-012, SC-006]
+  files:
+    - "loop/context_loop.py"
+
+as_built:
+  - "context_loop.py: finalize-step / seed-implement prompts содержат 'VERDICT: PASS' как machine target"
+  - "context_loop.py: subagent prompts ссылаются на 'строка VERDICT' в spawn инструкции"
+
+delta:
+  - "context_loop.py: в packed verify/finalize prompts заменить 'VERDICT: PASS/FAIL' как machine target на 'gate JSON sidecar (loop-gate-verdict/v1) exists → finalize-step'"
+  - "context_loop.py: IMPLEMENT prompt для seed-implement: указать что @verify ждёт JSON fence, не VERDICT строку"
+  - "context_loop.py: сохранить human-readable VERDICT упоминания как пояснение (не machine instruction)"
+
+deletes: []
+
+out_of_scope:
+  - "context_loop.py логика (state machine) — не трогать"
+  - "subagent-stop.py — s09"
+  - "tests — s11"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'loop-gate-verdict' в context_loop.py (хотя бы 1 вхождение)"
+    verify: "rg 'loop-gate-verdict' loop/context_loop.py | head -5"
+  - id: cp2
+    criterion: "rg не находит 'VERDICT: PASS' как self-standing machine instruction в packed prompts"
+    verify: "rg -n 'VERDICT: PASS.*machine\\|machine.*VERDICT: PASS' loop/context_loop.py | wc -l"
+
+verify: []
+tdd: []

@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: "Doctor halt-rate warn — optional check EPIC_DASHBOARD_HALT_WARN_RATE over 7d window"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать опциональный health-check в loop/incidents/doctor.py: если
+  check_after_halt / sessions_total > EPIC_DASHBOARD_HALT_WARN_RATE (env, default 0.5) за
+  последние 7 дней — doctor выводит WARN. Operator запускает loop doctor и видит предупреждение
+  если halt rate критический, без необходимости читать raw metrics.json.
+  Связь FR-006, AC-4, US-003.
+
+context:
+  consumes:
+    - "loop/incidents/doctor.py — run_doctor, DoctorReport, CheckResult — существует"
+    - "loop/incidents/metrics.py — load_metrics, MetricsRecord — существует"
+  produces:
+    - "loop/incidents/doctor.py — +_check_halt_rate в run_doctor"
+  plan_refs:
+    - FR-006
+    - AC-4
+    - US-003
+  files:
+    - loop/incidents/doctor.py
+
+as_built:
+  - "loop/incidents/doctor.py — run_doctor(cwd, auto_repair, format) -> DoctorReport; CheckResult dataclass; DoctorReport dataclass — существует"
+  - "loop/incidents/metrics.py — load_metrics(epic_dir) -> MetricsRecord; MetricsRecord.rates (dict str to float) — существует"
+  - "EPIC_DASHBOARD_HALT_WARN_RATE env var — НЕ существует"
+
+delta:
+  - "edit loop/incidents/doctor.py — добавить _check_halt_rate(cwd, threshold) -> CheckResult: читает MetricsRecord через load_metrics, вычисляет rate = counters.get('check_after_halt',0) / max(counters.get('sessions_total',1),1); если rate > threshold -> CheckResult(name='halt_rate', status='warn', message=f'halt rate > threshold'); иначе -> status='ok'; если metrics.json отсутствует -> status='skip'"
+  - "edit loop/incidents/doctor.py — в run_doctor добавить вызов _check_halt_rate с threshold = float(os.environ.get('EPIC_DASHBOARD_HALT_WARN_RATE','0.5'))"
+
+deletes: []
+
+out_of_scope:
+  - "Dashboard render/CLI — s02/s03"
+  - "тесты — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: _check_halt_rate возвращает CheckResult с status=warn при rate > threshold
+    verify: ".venv/bin/pytest tests/test_dashboard_doctor.py::test_halt_rate_warn -q --tb=short"
+  - id: cp2
+    criterion: CheckResult status=ok если rate <= threshold
+    verify: ".venv/bin/pytest tests/test_dashboard_doctor.py::test_halt_rate_ok -q --tb=short"
+  - id: cp3
+    criterion: check пропускается (status=skip) если metrics.json отсутствует — fail-closed safe
+    verify: ".venv/bin/pytest tests/test_dashboard_doctor.py::test_halt_rate_skip_no_metrics -q --tb=short"
+
+verify:
+  - "rg '_check_halt_rate' loop/incidents/doctor.py"
+  - "rg 'EPIC_DASHBOARD_HALT_WARN_RATE' loop/incidents/doctor.py"
+
+tdd:
+  - "tests/test_dashboard_doctor.py — fixture MetricsRecord с check_after_halt=6, sessions_total=10 -> rate=0.6 > 0.5 -> warn"
+  - "tests/test_dashboard_doctor.py — rate=0.3 < 0.5 -> ok"
+  - "tests/test_dashboard_doctor.py — отсутствующий metrics.json -> skip (не исключение)"

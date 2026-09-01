@@ -65,7 +65,8 @@ def resolve_epic_next_action(
     """
     project_path = Path(project).resolve()
     plan = _plan_path(project_path, role, epic_id)
-    decompose = _find_decompose(project_path, role, epic_id)
+    canonical_id = _epic_id_from_plan_path(plan) or epic_id
+    decompose = _find_decompose(project_path, role, canonical_id)
 
     plan_rel = _relative(plan, project_path)
     decompose_rel = _relative(decompose, project_path)
@@ -91,7 +92,7 @@ def resolve_epic_next_action(
             err = validate_plan_next(override, artifacts)
             if err:
                 return EpicNextAction(
-                    epic_id=epic_id,
+                    epic_id=canonical_id,
                     role=role,
                     next_command=override.next_command,
                     phase=_phase_from_command(override.next_command),
@@ -103,7 +104,7 @@ def resolve_epic_next_action(
             # Valid override
             phase = _phase_from_command(override.next_command)
             return EpicNextAction(
-                epic_id=epic_id,
+                epic_id=canonical_id,
                 role=role,
                 next_command=override.next_command,
                 phase=phase,
@@ -114,9 +115,9 @@ def resolve_epic_next_action(
 
     # 1. Plan check
     if plan is None and require_plan:
-        cmd = f"{role.upper()} PLAN {epic_id}"
+        cmd = f"{role.upper()} PLAN {canonical_id}"
         return EpicNextAction(
-            epic_id=epic_id,
+            epic_id=canonical_id,
             role=role,
             next_command=cmd,
             phase="PLAN",
@@ -127,9 +128,9 @@ def resolve_epic_next_action(
 
     # 2. Decompose check
     if decompose is None:
-        cmd = f"{role.upper()} DECOMPOSE {epic_id}"
+        cmd = f"{role.upper()} DECOMPOSE {canonical_id}"
         return EpicNextAction(
-            epic_id=epic_id,
+            epic_id=canonical_id,
             role=role,
             next_command=cmd,
             phase="DECOMPOSE",
@@ -143,11 +144,11 @@ def resolve_epic_next_action(
     has_completed = any(st in _COMPLETED_STATUSES for st in statuses)
 
     if not has_completed and plan is not None:
-        analyze = _latest_analyze(project_path, role, epic_id)
+        analyze = _latest_analyze(project_path, role, canonical_id)
         if analyze is None:
-            cmd = f"{role.upper()} ANALYZE {epic_id}"
+            cmd = f"{role.upper()} ANALYZE {canonical_id}"
             return EpicNextAction(
-                epic_id=epic_id,
+                epic_id=canonical_id,
                 role=role,
                 next_command=cmd,
                 phase="ANALYZE",
@@ -156,9 +157,9 @@ def resolve_epic_next_action(
                 reason_code="stale_analyze_pending",
             )
         if _critical_count(analyze) > 0:
-            cmd = f"{role.upper()} ANALYZE {epic_id}"
+            cmd = f"{role.upper()} ANALYZE {canonical_id}"
             return EpicNextAction(
-                epic_id=epic_id,
+                epic_id=canonical_id,
                 role=role,
                 next_command=cmd,
                 phase="ANALYZE",
@@ -167,10 +168,10 @@ def resolve_epic_next_action(
                 reason_code="analyze_required",
             )
 
-    if _has_unresolved_critical(plan, project_path, role, epic_id):
-        cmd = f"{role.upper()} CLARIFY {epic_id}"
+    if _has_unresolved_critical(plan, project_path, role, canonical_id):
+        cmd = f"{role.upper()} CLARIFY {canonical_id}"
         return EpicNextAction(
-            epic_id=epic_id,
+            epic_id=canonical_id,
             role=role,
             next_command=cmd,
             phase="CLARIFY",
@@ -184,7 +185,7 @@ def resolve_epic_next_action(
         step_id = str(first_pending.get("step_id", ""))
         cmd = f"{role.upper()} IMPLEMENT {step_id}"
         return EpicNextAction(
-            epic_id=epic_id,
+            epic_id=canonical_id,
             role=role,
             next_command=cmd,
             phase="IMPLEMENT",
@@ -195,7 +196,7 @@ def resolve_epic_next_action(
         )
 
     # 4. Post-implement lifecycle
-    return _resolve_post_implement(project_path, role, epic_id, plan_rel, decompose_rel)
+    return _resolve_post_implement(project_path, role, canonical_id, plan_rel, decompose_rel)
 
 
 def _resolve_post_implement(
@@ -254,6 +255,15 @@ def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:
     candidates = [plan_dir / f"plan-{epic_id}.md"]
     candidates.extend(sorted(plan_dir.glob(f"plan-{epic_id}-*.md")))
     return next((path for path in candidates if path.is_file()), None)
+
+
+def _epic_id_from_plan_path(plan: Path | None) -> str | None:
+    if plan is None or not plan.is_file():
+        return None
+    stem = plan.stem
+    if stem.startswith("plan-"):
+        return stem[len("plan-") :]
+    return stem or None
 
 
 def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:

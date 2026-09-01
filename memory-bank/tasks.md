@@ -22,7 +22,7 @@
 | T-HUB-018 | Loop incident autopilot | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-018-loop-incident-autopilot.md) · deps T-HUB-017 |
 | T-HUB-021 | pydantic-ai output-cap | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-021-pydantic-ai-output-cap.md) · [roadmap](back/plan/roadmap-pydantic-reliability-epics.md) |
 | T-HUB-022 | Runtime pydantic schemas | L3–L4 | ARCHIVE done | ЗАВЕРШЕНА И АРХИВИРОВАНА | [reflection](back/reflection/reflection-T-HUB-022-runtime-pydantic-schemas.md) · [archive](archive/back/plan/plan-T-HUB-022-runtime-pydantic-schemas.md) · QA pass · 16/16 steps completed |
-| T-HUB-023 | Hooks structured validation (JSON gates + pydantic-ai) | L3–L4 | PLAN v4 done | queued | [plan](back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md) · **next BACK DECOMPOSE** · canon after T-HUB-033 · REDO clean slate (artifacts purged) |
+| T-HUB-023 | Hooks structured validation (JSON gates + pydantic-ai) | L3–L4 | IMPLEMENT in progress | active | [plan](back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md) · **next BACK DECOMPOSE** · canon after T-HUB-033 · REDO clean slate (artifacts purged) |
 | T-HUB-024 | Validate traceability CLI | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-024-validate-traceability.md) · [roadmap](back/plan/roadmap-spec-maturity-epics.md) |
 | T-HUB-025 | Product constitution bootstrap | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-025-product-constitution-bootstrap.md) · spec-maturity |
 | T-HUB-026 | Spec reconcile workflow | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-026-spec-reconcile-workflow.md) · deps soft 024 |
@@ -34,10 +34,12 @@
 | T-HUB-032 | Harness analyze-convergence | L3 | IMPLEMENT done · next AUDIT | active | [plan](back/plan/plan-T-HUB-032-harness-analyze-convergence.md) · P1 |
 | T-HUB-033 | Harness execution discipline (atomic sNN) | L3 | IMPLEMENT in progress | active | [plan](back/plan/plan-T-HUB-033-harness-execution-discipline.md) · deps T-HUB-029 · P1 |
 | T-HUB-034 | Harness janitor GC | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-034-harness-janitor-gc.md) · deps T-HUB-026 · P2 |
+| T-HUB-039 | Phase verify agents runtime (wire leftover 028/029) | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-039-phase-verify-agents-runtime.md) · deps T-HUB-029 · after 035 in canon · next DECOMPOSE |
 | T-HUB-035 | Harness architecture boundaries | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-035-harness-architecture-boundaries.md) · P2 |
 | T-HUB-036 | Harness decompose formulas | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-036-harness-decompose-formulas.md) · P2 |
 | T-HUB-037 | Harness parallel sNN | L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-037-harness-parallel-snn.md) · deps T-HUB-029 · P2 |
 | T-HUB-038 | Harness metrics dashboard | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-038-harness-metrics-dashboard.md) · deps T-HUB-031 · P2 |
+| T-HUB-040 | Harness workflow finish API (mb-finish) | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-040-harness-workflow-finish-api.md) · deps T-HUB-029,033 · P1 |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |
@@ -77,17 +79,18 @@
 - T-HUB-024…026: MULTI-EPIC PLAN spec-maturity (validate-traceability + product constitution bootstrap + RECONCILE)
 - T-HUB-023: REDO v4 — JSON-in-prompt + pydantic validate; next BACK DECOMPOSE s01–s13; canon #5 after T-HUB-031
 - T-HUB-027: BACK PLAN gstack-adapt (product probe, eng spine, qa_consumes, review readiness, plan review batch)
-- T-HUB-016: PLAN CC hooks bridge; 007/008 revised (bridge-first + gap-fill)
+- T-HUB-040: BACK PLAN mb-finish typed FINISH API (MCP-style tools); next DECOMPOSE after T-HUB-033/039
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-08-31 | T-HUB-023 | BACK IMPLEMENT in progress |
 | 2026-08-31 | T-HUB-033 | BACK IMPLEMENT in progress |
 | 2026-08-31 | T-HUB-032 | BACK IMPLEMENT done · next AUDIT |
 | 2026-08-31 | T-HUB-032 | BACK IMPLEMENT in progress |
+| 2026-09-01 | T-HUB-038-harness-metrics-dashboard | BACK REFLECT | [reflection-T-HUB-038-harness-metrics-dashboard](back/reflection/reflection-T-HUB-038-harness-metrics-dashboard.md) — PASS; QA pass, 5/5 steps completed; next BACK ARCHIVE NOW вне текущего чата |
 | 2026-08-31 | T-HUB-023-hooks-llm-fallbacks | PLAN v4 · JSON-in-prompt contract · §Decompose input map s01–s13 · next BACK DECOMPOSE · canon #5 after T-HUB-031 |
-| 2026-08-31 | T-HUB-027-back-plan-gstack-adapt | BACK DECOMPOSE · s01–s08 · next IMPLEMENT s01 |
 
 ## Complexity reference
 

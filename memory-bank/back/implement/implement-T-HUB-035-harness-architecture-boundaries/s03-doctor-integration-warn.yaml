@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: s03 — Doctor integration — boundary check warns in loop doctor checklist IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-035-harness-architecture-boundaries/s03-doctor-integration-warn.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Интегрирован check_boundaries в run_doctor (loop/incidents/doctor.py)
+- Добавлены unit-тесты для предупреждений о boundary violations в loop/tests/test_incidents_doctor.py
+files:
+- loop/incidents/doctor.py
+- loop/tests/test_incidents_doctor.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest tests/architecture/ -q --tb=short`'
+integration_check:
+- run_doctor(cwd) корректно определяет наличие boundaries.yaml и возвращает status='warn'
+  / 'pass' / 'skipped'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- All 15 tests in doctor suite + architecture tests passed
+checkpoints:
+- id: cp1
+  criterion: loop/incidents/doctor.py импортирует или вызывает check_boundaries без
+    ImportError
+  status: done
+  done_at: '2026-08-31T19:25:36Z'
+- id: cp2
+  criterion: 'test_doctor_boundary_check_warn pass: monkeypatched violations → doctor
+    result содержит WARNING'
+  status: done
+  done_at: '2026-08-31T19:25:55Z'
+- id: cp3
+  criterion: 'test_doctor_boundary_check_pass pass: monkeypatched [] → no WARN'
+  status: done
+  done_at: '2026-08-31T19:26:07Z'
+- id: cp4
+  criterion: Весь doctor suite зелёный (без регрессий)
+  status: done
+  done_at: '2026-08-31T19:26:18Z'
+resume_from: cp1

@@ -18,7 +18,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
 
-**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
+**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
 
 ---
 
@@ -64,9 +64,10 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 3c. **FAIL** если `deletes` непустой без checkpoint `rg`/import-audit
 3d. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc)
 4. Обнови plan → ссылка на index; удали `- [ ] e01…`
-5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `e01-*.md`
-6. → INTEG IMPLEMENT e01 (**новый чат**)
+4a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0 + (`INTEG ANALYZE` artifact `critical_count=0` **или** Handoff `ANALYZE deferred:` owner/next/reason)
+5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `e01-*.yaml`
+6. → ANALYZE (если не run/deferred) → INTEG IMPLEMENT e01 (**новый чат**)
 
 **Границы:** нет кода реализации; batch = весь decompose; **не ужимать** Replacement cleanup.
 
-**Верификация**: gates + Maximal detail + Outcome preserve + Replacement cleanup
+**Верификация**: gates + Maximal detail + Outcome preserve + Replacement cleanup + Promote gate

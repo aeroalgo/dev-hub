@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-036-harness-decompose-formulas
+title: s06 — tests ≥10 — render dry-run, schema validation, no-overwrite guard IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-036-harness-decompose-formulas/s06-tests-render-schema-overwrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- loop/tests/test_formula_integration.py — end-to-end integration tests for render
+  dry-run, schema validation, validate-decompose-tree, and no-overwrite guard
+files:
+- loop/tests/test_formula_integration.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_formula_schema.py loop/tests/test_bundled_formulas.py
+  loop/tests/test_formula_render.py loop/tests/test_formula_list.py loop/tests/test_formula_validation.py
+  loop/tests/test_formula_integration.py -q --tb=line`'
+integration_check:
+- grep/pytest verify formula integration test suite passes without errors
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: pytest loop/tests/ -q --tb=line → ≥10 tests collected, 0 errors
+  status: done
+  done_at: '2026-08-31T22:11:07Z'
+- id: cp2
+  criterion: 'SC-001: 3 formula ids из list_formulas() → каждый render dry-run завершается
+    без exit-1/2'
+  status: done
+  done_at: '2026-08-31T22:11:18Z'
+resume_from: cp1

@@ -1,0 +1,68 @@
+schema: audit-report/v1
+epic_id: T-HUB-023-hooks-llm-fallbacks
+epic_slug: hooks-llm-fallbacks
+role: back
+date: '2026-08-31'
+status: PASS
+summary: >
+  Все 13 шагов реализации (s01–s13) полностью завершены и верифицированы.
+  Реализованы JSON fence gate contract, load_hooks_llm_env(), llm_structured factory,
+  pydantic-ai fallback/secondary runners, sidecar-only extract_verdict, обновление
+  агентов и системных инструкций, а также полная зачистка старых машин регулярных выражений.
+gap_matrix:
+  - step_id: s01
+    title: Env contract — structured gate flags + load_hooks_llm_env()
+    status: implemented
+    notes: Реализован модуль _lib.py с подгрузкой env флагов и структурированных строковых контрактов.
+  - step_id: s02
+    title: Unified llm_structured — LogSummary + enum models + factory
+    status: implemented
+    notes: Реализован llm_structured.py с фабриками валидации и структурированными схемами.
+  - step_id: s03
+    title: JSON fence parser + parse_gate_verdict_message + sidecar write
+    status: implemented
+    notes: Реализован парсинг JSON-блоков в markdown с fallback записью сайдкаров.
+  - step_id: s04
+    title: extract_verdict — sidecar-only, no regex
+    status: implemented
+    notes: Модуль subagent-stop.py обновлен для чтения вердиктов исключительно из sidecar JSON.
+  - step_id: s05
+    title: pydantic-ai secondary — verdict/handoff/abort runners fail-soft
+    status: implemented
+    notes: Интегрированы вторичные раннеры pydantic-ai с fail-soft поведением при сетевых сбоях/ошибках.
+  - step_id: s06
+    title: G1 agents — JSON fence HARD (verify/reviewer/analyze-verify.md)
+    status: implemented
+    notes: Обновлены системные промпты агентов verify, reviewer и analyze-verify на строгое использование JSON fence.
+  - step_id: s07
+    title: G2–G3 spawn-hard + _lib CONTRACT strings aligned
+    status: implemented
+    notes: Синхронизированы инструкции spawn-hard.md и контракты _lib.py.
+  - step_id: s08
+    title: G4 context_loop — gate JSON finalize steps (replace VERDICT: prose)
+    status: implemented
+    notes: В context_loop.py полностью заменена обработка прозаических вердиктов на структурированный JSON.
+  - step_id: s09
+    title: G5–G6 pretool + stop-gate JSON → sidecar wire
+    status: implemented
+    notes: Хуки agent-posttool, stop-gate и user-prompt переведены на чтение и валидацию JSON sidecar.
+  - step_id: s10
+    title: Drift counter — structured_extract_used (json|pydantic-ai tag)
+    status: implemented
+    notes: Добавлено отслеживание метрик дрифта с тегами источника извлечения (json/pydantic-ai).
+  - step_id: s11
+    title: Tests — JSON fence valid/invalid/missing; pydantic-ai mock; spawn rg audit
+    status: implemented
+    notes: Покрыты unit-тестами все сценарии валидных/невалидных JSON fence и моков pydantic-ai.
+  - step_id: s12
+    title: G7 docs — README + project.env operator structured gate contract
+    status: implemented
+    notes: Документация в README и конфигурационные файлы оператора обновлены под новый контракт.
+  - step_id: s13
+    title: Legacy purge — delete regex VERDICT/handoff/abort machine paths
+    status: implemented
+    notes: Зачищены устаревшие механизмы регулярных выражений из всех ключевых хуков и тестов.
+not_implemented: []
+conclusions:
+  gaps_found: 0
+  next_step: BACK QA

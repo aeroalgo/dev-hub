@@ -1,0 +1,61 @@
+schema: "decompose-formula/v1"
+id: "hooks-epic"
+description: "Formula for hooks and LLM fallbacks epics"
+default_level: "L2"
+steps:
+  - title: "env-contract"
+    goal_template: "Define environment contracts and settings for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/_lib.py"
+      - ".claude/project.env"
+    verify_hints:
+      - "pytest .claude/hooks/tests/test_env.py -q"
+
+  - title: "unified-llm-models"
+    goal_template: "Integrate LLM model fallbacks and schema validation for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/_lib.py"
+    verify_hints:
+      - "pytest .claude/hooks/tests/test_llm.py -q"
+
+  - title: "primary-parse-path"
+    goal_template: "Implement primary parse logic and hook entrypoints for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/*.py"
+    verify_hints:
+      - "pytest .claude/hooks/tests/test_parse.py -q"
+
+  - title: "fail-soft-runners"
+    goal_template: "Add fail-soft mechanisms and graceful error handling for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/*.py"
+    verify_hints:
+      - "pytest .claude/hooks/tests/test_fail_soft.py -q"
+
+  - title: "gate-prompt-inventory"
+    goal_template: "Update gate prompts and inventory validations for {epic_name}"
+    typical_files_pattern:
+      - ".claude/instructions/*.md"
+    verify_hints:
+      - "rg -n '{epic_name}' .claude/instructions/"
+
+  - title: "integration-tests"
+    goal_template: "Create comprehensive integration test suite for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/tests/test_integration.py"
+    verify_hints:
+      - "pytest .claude/hooks/tests/ -q"
+
+  - title: "docs-readme"
+    goal_template: "Update documentation and README for {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/README.md"
+    verify_hints:
+      - "git diff .claude/hooks/README.md"
+
+  - title: "legacy-purge"
+    goal_template: "Clean up legacy shims and deprecated functions after {epic_name}"
+    typical_files_pattern:
+      - ".claude/hooks/_lib.py"
+    verify_hints:
+      - "rg -n 'legacy' .claude/hooks/"

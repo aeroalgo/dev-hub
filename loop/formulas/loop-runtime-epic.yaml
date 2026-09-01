@@ -1,0 +1,41 @@
+schema: "decompose-formula/v1"
+id: "loop-runtime-epic"
+description: "Formula for loop runtime component and lifecycle changes"
+default_level: "L2"
+steps:
+  - title: "schema-model"
+    goal_template: "Define Pydantic schema and data models for {epic_name}"
+    typical_files_pattern:
+      - "loop/schemas/*.py"
+    verify_hints:
+      - "pytest loop/tests/test_schemas.py -q"
+
+  - title: "core-logic-wiring"
+    goal_template: "Implement core business logic and component wiring for {epic_name}"
+    typical_files_pattern:
+      - "loop/core/*.py"
+      - "loop/runtime/*.py"
+    verify_hints:
+      - "pytest loop/tests/test_core.py -q"
+
+  - title: "runtime-state-update"
+    goal_template: "Update loop runtime state management and persistence for {epic_name}"
+    typical_files_pattern:
+      - "loop/runtime/*.py"
+    verify_hints:
+      - "pytest loop/tests/test_runtime.py -q"
+
+  - title: "integration-tests"
+    goal_template: "Add end-to-end integration tests for {epic_name}"
+    typical_files_pattern:
+      - "loop/tests/test_integration.py"
+    verify_hints:
+      - "pytest loop/tests/ -q"
+
+  - title: "docs"
+    goal_template: "Document runtime changes and API usage for {epic_name}"
+    typical_files_pattern:
+      - "loop/docs/*.md"
+      - "README.md"
+    verify_hints:
+      - "git diff loop/docs/"

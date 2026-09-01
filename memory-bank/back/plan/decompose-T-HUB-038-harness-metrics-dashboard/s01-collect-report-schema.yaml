@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: "Dashboard collect + dashboard-report/v1 schema — aggregate metrics/incidents/episodes/events"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать модуль loop/dashboard/ с функцией collect(cwd), которая агрегирует данные из
+  loop/incidents/metrics.py (compute_rates), incidents.jsonl, events.jsonl, loop/episodes/core.py
+  (list_episodes + bundle summary) и tasks.md (active rows epic progress) в единый объект
+  DashboardReport (schema dashboard-report/v1). Operator получает один структурированный снимок
+  состояния без ручного jq. Связь FR-001, FR-002, AC-2, SC-003.
+
+context:
+  consumes:
+    - "loop/incidents/metrics.py — MetricsRecord, compute_rates, load_metrics"
+    - "loop/incidents/store.py — parse_incidents_jsonl -> open incidents"
+    - "loop/incidents/events.py — events.jsonl reader"
+    - "loop/episodes/core.py — list_episodes, finalize_episode summary"
+    - "loop/episodes/bundle.py — episode bundle data if available"
+  produces:
+    - loop/dashboard/__init__.py
+    - "loop/dashboard/collect.py — collect(cwd) -> DashboardReport"
+    - "loop/dashboard/schema.py — DashboardReport pydantic schema (dashboard-report/v1)"
+  plan_refs:
+    - FR-001
+    - FR-002
+    - SC-003
+    - AC-2
+  files:
+    - loop/dashboard/__init__.py
+    - loop/dashboard/collect.py
+    - loop/dashboard/schema.py
+
+as_built:
+  - "loop/incidents/metrics.py — MetricsRecord + compute_rates(counters) + load_metrics(epic_dir) — существует"
+  - "loop/incidents/store.py — parse_incidents_jsonl(path) — существует, возвращает list[IncidentRecord]"
+  - "loop/incidents/events.py — events.jsonl path = memory-bank/<role>/events/<epic_id>/events.jsonl — существует"
+  - "loop/episodes/core.py — list_episodes(cwd) -> list[str] — существует"
+  - "loop/dashboard/ — НЕ существует (новый модуль)"
+
+delta:
+  - "create loop/dashboard/__init__.py — пустой пакет"
+  - "create loop/dashboard/schema.py — DashboardReport(BaseModel) schema_version='dashboard-report/v1', поля: generated_at, cwd, days_window, metrics (MetricsRecord), open_incidents (list[IncidentRecord]), events_by_kind (dict mapping str to int), last_episodes (list[EpisodeSummary]), epic_progress (list[TaskRow])"
+  - "create loop/dashboard/collect.py — функция collect(cwd, days=7) -> DashboardReport: load_metrics, фильтр incidents по status=open, группировка events по kind за last days, list_episodes last 20, парсинг tasks.md active rows"
+
+deletes: []
+
+out_of_scope:
+  - "HTML/JSON рендер — s02"
+  - "CLI — s03"
+  - "doctor warn — s04"
+  - "тесты — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: DashboardReport schema импортируется и содержит поля metrics + open_incidents
+    verify: ".venv/bin/python -c \"from loop.dashboard.schema import DashboardReport; r=DashboardReport.model_fields; assert 'metrics' in r and 'open_incidents' in r\""
+  - id: cp2
+    criterion: collect(cwd) возвращает DashboardReport без исключений на fixture dir
+    verify: ".venv/bin/pytest tests/test_dashboard_collect.py::test_collect_returns_report -q --tb=short"
+  - id: cp3
+    criterion: events_by_kind dict агрегирован (ключи — строки kind)
+    verify: ".venv/bin/pytest tests/test_dashboard_collect.py::test_collect_events_by_kind -q --tb=short"
+
+verify:
+  - "rg 'class DashboardReport' loop/dashboard/schema.py"
+  - "rg 'dashboard-report/v1' loop/dashboard/schema.py"
+  - "rg 'def collect' loop/dashboard/collect.py"
+
+tdd:
+  - "tests/test_dashboard_collect.py — fixture tmpdir с metrics.json + incidents.jsonl + events.jsonl -> assert collect returns DashboardReport"
+  - "tests/test_dashboard_collect.py — assert rates match compute_rates output (SC-003)"
+  - "tests/test_dashboard_collect.py — events_by_kind groups correctly"

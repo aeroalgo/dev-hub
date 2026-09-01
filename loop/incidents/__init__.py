@@ -18,6 +18,7 @@ from loop.incidents.store import (
     append_incident,
     list_open_incidents,
     parse_incidents_jsonl,
+    resolve_all_open_incidents,
     resolve_incident,
 )
 from loop.incidents.trace import (
@@ -36,6 +37,7 @@ __all__ = [
     "append_incident",
     "list_open_incidents",
     "parse_incidents_jsonl",
+    "resolve_all_open_incidents",
     "resolve_incident",
     "SCHEMA_LOOP_SESSION_TRACE",
     "append_trace",

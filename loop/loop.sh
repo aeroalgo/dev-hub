@@ -575,6 +575,25 @@ fi
 echo "==> context-first loop cli_model=${MODEL:-default} epic=${EPIC_SPEC:-<activeContext>} claude=$CLAUDE"
 echo "==> phase models: PROJECT_LOOP_<PHASE>_MODEL from .claude/project.env (DECOMPOSE/IMPLEMENT/…)"
 
+# Fresh process start: drop leftover open incidents so a prior fail-closed
+# (e.g. unrepaired finish_integrity_decompose_missing) does not halt check-after.
+# Mid-run incidents still persist across sessions inside this process.
+set +e
+_clear_json="$("${CTX[@]}" incident-clear-open --json)"
+_clear_rc=$?
+set -e
+if [[ $_clear_rc -eq 0 ]]; then
+  echo "$_clear_json" | python3 -c '
+import json,sys
+r=json.load(sys.stdin)
+n=int(r.get("cleared_count") or 0)
+if n:
+    codes=",".join(r.get("diagnostic_codes") or []) or "?"
+    print(f"==> cleared {n} open incident(s) on loop start ({codes})")
+' 2>/dev/null || true
+fi
+unset _clear_json _clear_rc
+
 iter=0
 while true; do
   iter=$((iter + 1))

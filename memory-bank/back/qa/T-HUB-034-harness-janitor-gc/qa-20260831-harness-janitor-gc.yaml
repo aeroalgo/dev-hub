@@ -1,0 +1,6 @@
+schema: epic-qa/v1
+date: '2026-08-31'
+epic_id: T-HUB-034-harness-janitor-gc
+role: back
+verdict: pass
+summary: "QA проведен через subagent @reviewer. Тестовый сьют зелёный (20 passed). Требования AC+, AC- и §0.11 полностью выполнены."

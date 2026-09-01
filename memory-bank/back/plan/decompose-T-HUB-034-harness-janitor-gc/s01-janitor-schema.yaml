@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-034-harness-janitor-gc
+title: "JanitorReport schema + scan entry point — read-only scan façade"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать Pydantic-схему `JanitorReport` (`janitor-report/v1`) и публичный entry point
+  `loop/janitor/scan.py::scan(cwd) -> JanitorReport`, чтобы platform мог запустить
+  read-only entropy audit без full AUDIT. Закрывает FR-001, AC-1, SC-003.
+
+context:
+  consumes:
+    - loop/schemas/episode.py  # pattern для schema + SCHEMA const
+  produces:
+    - loop/janitor/__init__.py
+    - loop/janitor/scan.py
+    - loop/janitor/schema.py
+  plan_refs:
+    - "FR-001: Module loop/janitor/ — scan(cwd) -> JanitorReport schema janitor-report/v1"
+    - "AC-1: janitor-scan CLI + report schema"
+    - "SC-003: janitor-report schema valid"
+  files:
+    - loop/janitor/__init__.py
+    - loop/janitor/scan.py
+    - loop/janitor/schema.py
+
+as_built:
+  - "loop/schemas/episode.py — Pydantic EpisodeManifest, EPISODE_SCHEMA pattern"
+  - ".claude/hooks/epic/traceability.py — TraceReport, Finding, ShardTrace dataclasses"
+  - ".claude/hooks/epic/reconcile.py — run_reconcile_spec"
+  - "loop/janitor/ — отсутствует (нет модуля)"
+
+delta:
+  - "CREATE loop/janitor/__init__.py — пустой пакет (re-export scan)"
+  - "CREATE loop/janitor/schema.py — JanitorReport Pydantic model: schema='janitor-report/v1', cwd, generated_at, findings: list[JanitorFinding], summary counts"
+  - "CREATE loop/janitor/scan.py — scan(cwd: Path) -> JanitorReport; read-only; aggregates results from detectors (s02/s03 будут заполнять findings через registry pattern)"
+
+deletes: []
+
+out_of_scope:
+  - "Детекторы (s02, s03) — только schema + façade в этом шаге"
+  - "CLI wiring (s04)"
+  - "janitor-gc engine (s03)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # S11: новые публичные Pydantic типы
+
+checkpoints:
+  - id: cp1
+    criterion: "JanitorReport schema valid — pydantic parses empty findings list"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_schema.py -q --tb=short"
+  - id: cp2
+    criterion: "scan(cwd) returns JanitorReport with schema='janitor-report/v1'"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_scan.py::test_scan_returns_schema -q --tb=short"
+  - id: cp3
+    criterion: "loop/janitor/__init__.py + schema.py + scan.py присутствуют"
+    verify: "rg --files loop/janitor/ | sort"
+
+verify:
+  - "rg 'janitor-report/v1' loop/janitor/schema.py"
+  - "rg 'def scan' loop/janitor/scan.py"
+  - ".venv/bin/python -c 'from loop.janitor.schema import JanitorReport; JanitorReport(cwd=\".\", generated_at=\"now\", findings=[])'"
+
+tdd:
+  - "loop/tests/test_janitor_schema.py — test JanitorReport instantiation, field types, schema literal"
+  - "loop/tests/test_janitor_scan.py — test scan() returns JanitorReport instance with correct schema"

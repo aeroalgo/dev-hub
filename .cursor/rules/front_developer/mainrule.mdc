@@ -19,6 +19,7 @@ alwaysApply: false
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
+| `FRONT AUDIT` | @.cursor/rules/front_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
 | `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
 | `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |
 | `FRONT REFACTOR` | @.cursor/rules/front_developer/workflow-refactor.mdc |

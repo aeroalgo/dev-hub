@@ -20,12 +20,14 @@ alwaysApply: false
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |
 | `BACK IMPLEMENT` | @.cursor/rules/back_developer/workflow-implement.mdc |
+| `BACK AUDIT` | @.cursor/rules/back_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
 | `BACK TASK` | @.cursor/rules/back_developer/workflow-task.mdc |
 | `BACK BUGFIX` | @.cursor/rules/back_developer/workflow-bugfix.mdc |
 | `BACK REFACTOR` | @.cursor/rules/back_developer/workflow-refactor.mdc |
 | `BACK REFLECT` | @.cursor/rules/back_developer/workflow-reflect.mdc |
 | `BACK ARCHIVE NOW` | @.cursor/rules/back_developer/workflow-archive.mdc |
 | `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |
+| `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
 | `BACK SECURITY` · `BACK SECURITY PLAN` · `BACK SECURITY DECOMPOSE` | @.cursor/rules/back_developer/workflow-security.mdc |
 
 Пути артефактов: `memory-bank/back/<режим>/` — таблица в @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (грузить **только** VAN / создание структуры).  

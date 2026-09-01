@@ -1,0 +1,72 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-023-hooks-llm-fallbacks
+plan_slug: hooks-llm-fallbacks
+epic_title: hooks-structured-validation — JSON fence gate contract + pydantic-ai fallback
+role: back
+date: '2026-08-31'
+steps:
+- id: s01
+  file: s01-env-contract-load-hooks-llm-env.yaml
+  title: Env contract — structured gate flags + load_hooks_llm_env()
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-unified-llm-structured-models-factory.yaml
+  title: Unified llm_structured — LogSummary + enum models + factory
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-json-fence-parser-parse-gate-verdict-message.yaml
+  title: JSON fence parser + parse_gate_verdict_message + sidecar write
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-extract-verdict-sidecar-only.yaml
+  title: extract_verdict — sidecar-only, no regex
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-pydantic-ai-secondary-runners-fail-soft.yaml
+  title: pydantic-ai secondary — verdict/handoff/abort runners fail-soft
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-g1-agents-json-fence-hard.yaml
+  title: G1 agents — JSON fence HARD (verify/reviewer/analyze-verify.md)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-g2-g3-spawn-hard-lib-contract.yaml
+  title: G2–G3 spawn-hard + _lib CONTRACT strings aligned
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-g4-context-loop-gate-json-finalize.yaml
+  title: 'G4 context_loop — gate JSON finalize steps (replace VERDICT: prose)'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-g5-g6-pretool-stop-gate-json-sidecar-wire.yaml
+  title: G5–G6 pretool + stop-gate JSON → sidecar wire
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s10
+  file: s10-drift-counter-structured-extract-used.yaml
+  title: Drift counter — structured_extract_used (json|pydantic-ai tag)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s11
+  file: s11-tests-json-fence-secondary-mock-spawn-audit.yaml
+  title: Tests — JSON fence valid/invalid/missing; pydantic-ai mock; spawn rg audit
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s12
+  file: s12-g7-docs-operator-structured-gate-contract.yaml
+  title: G7 docs — README + project.env operator structured gate contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s13
+  file: s13-legacy-purge-regex-verdict-handoff-abort.yaml
+  title: Legacy purge — delete regex VERDICT/handoff/abort machine paths
+  next_phase: BACK IMPLEMENT
+  status: completed

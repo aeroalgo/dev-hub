@@ -1,0 +1,80 @@
+date: '2026-09-01'
+epic_id: T-HUB-039-phase-verify-agents-runtime
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-039-phase-verify-agents-runtime.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-039-phase-verify-agents-runtime/index.yaml
+
+steps:
+  - id: s01
+    title: "verify-implement agent file + alias stub + normalize ALIAS merge"
+    status: implemented
+    as_built: "Создан агент .claude/agents/verify-implement.md, зарегистрирован alias stub в agent_registry.py и реализована нормализация алиасов в _lib.py."
+    delta: ".claude/agents/verify-implement.md, .claude/hooks/agent_registry.py, .claude/hooks/_lib.py"
+    gaps: []
+
+  - id: s02
+    title: "verify-bugfix + verify-qa agent files + reviewer stub"
+    status: implemented
+    as_built: "Созданы агенты .claude/agents/verify-bugfix.md и .claude/agents/verify-qa.md, добавлена stub-заглушка для reviewer в agent_registry.py."
+    delta: ".claude/agents/verify-bugfix.md, .claude/agents/verify-qa.md, .claude/hooks/agent_registry.py"
+    gaps: []
+
+  - id: s03
+    title: "verify-decompose agent file + analyze-verify wire align"
+    status: implemented
+    as_built: "Создан агент .claude/agents/verify-decompose.md, обновлен .claude/agents/analyze-verify.md для соответствия единому стилю phase verify агентов."
+    delta: ".claude/agents/verify-decompose.md, .claude/agents/analyze-verify.md"
+    gaps: []
+
+  - id: s04
+    title: "agent-pretool uses get_verify_agent + spawn_validate CONTRACTS для новых типов"
+    status: implemented
+    as_built: "Интегрирована функция get_verify_agent в agent-pretool.py, обновлены контракты валидации спауна агентов в spawn_validate.py."
+    delta: ".claude/hooks/agent-pretool.py, .claude/hooks/spawn_validate.py"
+    gaps: []
+
+  - id: s05
+    title: "stop-gate + user-prompt per-phase need_verify + subagent-stop verdicts"
+    status: implemented
+    as_built: "В stop-gate.py и user-prompt-submit интегрирована проверка per-phase need_verify; в subagent-stop.py добавлен парсинг вердиктов фазовых агентов."
+    delta: ".claude/hooks/stop-gate.py, .claude/hooks/subagent-stop.py"
+    gaps: []
+
+  - id: s06
+    title: "DSH presets verify-implement/bugfix/qa/decompose + epic-gate phase map"
+    status: implemented
+    as_built: "Обновлены пресеты DSH и маппинг фаз epic-gate под специализированные фазовые верификаторы."
+    delta: "dsh presets / epic-gate configs"
+    gaps: []
+
+  - id: s07
+    title: "spawn-hard + finish-block + lean workflows adoption docs"
+    status: implemented
+    as_built: "Обновлены инструкции по спауну агентов spawn-hard.md, finish-block.mdc и шаблоны воркфлоу."
+    delta: ".claude/instructions/spawn-hard.md, .cursor/rules/shared/finish-block.mdc"
+    gaps: []
+
+  - id: s08
+    title: "test_phase_verify_gates matrix + hooks regression suite"
+    status: implemented
+    as_built: "Создан набор тестов loop/tests/test_phase_verify_gates.py для проверки фазовых гейтов верификации."
+    delta: "loop/tests/test_phase_verify_gates.py"
+    gaps: []
+
+  - id: s09
+    title: "docs: loop/README + WORKFLOW §Phase verify agents + architecture/services.md S-AGENTS"
+    status: implemented
+    as_built: "Обновлены README, документация WORKFLOW и архитектурные схемы services.md в соответствии с новыми агентами фазовой верификации."
+    delta: "README.md, memory-bank/architecture/services.md"
+    gaps: []
+
+  - id: s10
+    title: "legacy-fallback-purge: alias stubs → delete + dual-path leftovers + dead assigns"
+    status: implemented
+    as_built: "Удалены устаревшие файлы агентов (reviewer.md, verify.md), почищены алиасы и неиспользуемый код фаллбеков в хуках."
+    delta: "Удалены .claude/agents/reviewer.md, .claude/agents/verify.md; обновлен .claude/hooks/agent_registry.py"
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 10 шагов (s01-s10) полностью реализованы и подтверждены проведенными тестами. Отклонений (gaps) не обнаружено."

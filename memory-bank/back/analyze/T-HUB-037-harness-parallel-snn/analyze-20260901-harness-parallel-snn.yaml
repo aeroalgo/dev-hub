@@ -1,0 +1,9 @@
+schema: analyze-verdict/v1
+epic_id: T-HUB-037-harness-parallel-snn
+date: 2026-09-01
+verdict: PASS
+critical_count: 0
+major_count: 0
+minor_count: 0
+findings: []
+summary: "Plan и decompose shards для T-HUB-037-harness-parallel-snn полностью согласованы, покрывают все требования (US-001..003, FR-001..008, SC-001..003, AC 1..5), содержат полные таблицы покрытия (Requirements, Stages, Outcome map, Replacement cleanup) и готовы к реализации."

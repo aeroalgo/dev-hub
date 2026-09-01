@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "verify-bugfix + verify-qa agent files + reviewer stub"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.claude/agents/verify-bugfix.md` (BUGFIX artifact в ALLOW, pytest allowed, PASS/FAIL)
+  и `.claude/agents/verify-qa.md` (ex-reviewer; BLOCKED verdict → FINISH allowed с BUGFIX Handoff).
+  Перезаписать `.claude/agents/reviewer.md` как alias-stub → verify-qa.
+  User/system outcome: parent BUGFIX spawn `@verify-bugfix` — агент проверяет bugfix artifact в ALLOW;
+  BACK QA spawn `@reviewer` / `@verify-qa` — оба ведут к verify-qa с BLOCKED-compatible verdict.
+
+context:
+  consumes:
+    - ".claude/agents/reviewer.md — monolithic QA reviewer"
+    - ".claude/hooks/agent_registry.py — AGENT_ALIASES reviewer→verify-qa уже есть"
+    - ".claude/hooks/spawn_validate.py — norm in {'verify','reviewer'} VERDICT_FIRST_LINE inject"
+    - ".claude/hooks/_lib.py — CONTRACTS['reviewer'] секции"
+  produces:
+    - ".claude/agents/verify-bugfix.md (new)"
+    - ".claude/agents/verify-qa.md (new)"
+    - ".claude/agents/reviewer.md (rewritten as alias stub)"
+  plan_refs:
+    - "FR-002: Create .claude/agents/verify-bugfix.md"
+    - "FR-004: Create .claude/agents/verify-qa.md (ex reviewer)"
+    - "US-002: verify-bugfix с bugfix artifact в ALLOW"
+    - "US-004: verify-qa BLOCKED verdict"
+    - "SC-001: verify-bugfix and verify-qa agent files discoverable"
+    - "SC-002: Legacy @reviewer works via alias"
+    - "TM-001: agent file missing → DENY"
+  files:
+    - ".claude/agents/verify-bugfix.md"
+    - ".claude/agents/verify-qa.md"
+    - ".claude/agents/reviewer.md"
+
+as_built:
+  - ".claude/agents/reviewer.md — monolithic reviewer с Suite results / AC+ / AC− / §0.11 / ALLOW"
+  - "нет verify-bugfix.md, нет verify-qa.md"
+  - "AGENT_ALIASES reviewer→verify-qa в agent_registry.py — алиас есть, файл отсутствует"
+  - "CONTRACTS['reviewer'] в _lib.py — 'Suite results · AC+ · AC− · §0.11 · ALLOW'"
+
+delta:
+  - "add .claude/agents/verify-bugfix.md: sections AC+/AC−/§0.11/VERIFY/BUGFIX ARTIFACT/ALLOW; pytest allowed; verdict PASS/FAIL; DENY spawn без bugfix path в ALLOW"
+  - "add .claude/agents/verify-qa.md: sections Suite results/AC+/AC−/§0.11/ALLOW; BLOCKED verdict allowed; FINISH allowed + BUGFIX Handoff on BLOCKED; no pytest runs"
+  - "rewrite .claude/agents/reviewer.md: alias-stub → verify-qa"
+  - "edit .claude/hooks/_lib.py: ALIAS['reviewer'] = 'verify-qa'; CONTRACTS расширить на 'verify-bugfix'/'verify-qa' (или унаследовать от 'verify'/'reviewer')"
+
+deletes: []
+# reviewer.md alias stub ≥1 release; удаление — s10
+
+out_of_scope:
+  - "verify-implement / verify-decompose — s01/s03"
+  - "DSH presets reviewer.prompt.md update — s06"
+  - "spawn_validate norm check для verify-bugfix/verify-qa — s04"
+  - "stop-gate BLOCKED allow — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "verify-bugfix.md содержит секции BUGFIX ARTIFACT и AC+"
+    verify: "rg 'BUGFIX ARTIFACT|AC[+]' .claude/agents/verify-bugfix.md"
+  - id: cp2
+    criterion: "verify-qa.md содержит секцию Suite results и BLOCKED в verdict"
+    verify: "rg 'Suite results|BLOCKED' .claude/agents/verify-qa.md"
+  - id: cp3
+    criterion: "normalize_type('reviewer') возвращает 'verify-qa'"
+    verify: "cd /home/aero/PyProject/dev-hub && .venv/bin/python -c \"import sys; sys.path.insert(0,'.claude/hooks'); from _lib import normalize_type; assert normalize_type('reviewer')=='verify-qa'\""
+  - id: cp4
+    criterion: "unit: agent files exist + alias tests"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'bugfix or qa or reviewer_alias' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_agent_file_exists_verify_bugfix: Path('.claude/agents/verify-bugfix.md').is_file()"
+  - "test_agent_file_exists_verify_qa: Path('.claude/agents/verify-qa.md').is_file()"
+  - "test_normalize_type_reviewer_alias: normalize_type('reviewer') == 'verify-qa'"
+  - "test_verify_qa_blocked_verdict_in_file: 'BLOCKED' in Path('.claude/agents/verify-qa.md').read_text()"

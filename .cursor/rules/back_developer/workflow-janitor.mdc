@@ -1,0 +1,55 @@
+---
+description: "BACK JANITOR — janitor-scan (READ-ONLY) и janitor-gc (--dry-run / --apply) workflow"
+alwaysApply: false
+---
+# BACK JANITOR WORKFLOW
+
+Папка: `.cursor/rules/back_developer/`
+**Роутер:** @.cursor/rules/back_developer/mainrule.mdc
+**Gate:** @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+
+---
+
+## 0. Входные условия
+
+Вызывается при необходимости проведения очистки, аудита устаревших файлов и применения GC к артефактам проекта (`janitor-scan` / `janitor-gc`).
+
+- **Code surface:** `infra`
+- **Isolation / Permissions:** READ-ONLY по умолчанию в режиме сканирования (`janitor-scan`). WRITE доступен только в режиме `janitor-gc --apply` после подтверждения оператора.
+
+---
+
+## 1. Режимы работы (Paths)
+
+### Path 1: READ-ONLY scan path (Guided Mode)
+
+1. Запустить `janitor-scan`:
+   ```bash
+   python3 .claude/hooks/epic_resolve.py janitor-scan --cwd "$PROJECT_ROOT"
+   ```
+2. Вывести полученный `JanitorReport` оператору в чат (категории находок, количество устаревших файлов, общий объём дискового пространства).
+3. Завершить шаг, если очистка не требуется или если находки носят информационный характер.
+
+### Path 2: Optional GC path (Dry-Run & Apply)
+
+1. Запустить `janitor-gc` в режиме `--dry-run`:
+   ```bash
+   python3 .claude/hooks/epic_resolve.py janitor-gc --cwd "$PROJECT_ROOT" --dry-run
+   ```
+2. Показать оператору отчёт о планируемых к удалению/перемещению файлах и запросить явное подтверждение (Approval Prompt).
+3. При получении подтверждения выполнить:
+   ```bash
+   python3 .claude/hooks/epic_resolve.py janitor-gc --cwd "$PROJECT_ROOT" --apply
+   ```
+4. Вывести итоговый отчёт о количестве удалённых файлов и освобождённом месте.
+
+### Path 3: Complex Fixes / DECOMPOSE path
+
+1. Если в результате сканирования выявлены сложные инфраструктурные проблемы или зависимости, требующие планирования и декомпозиции нескольких этапов, переключиться в режим `BACK DECOMPOSE` для создания полноценного эпика на очистку.
+
+---
+
+## 2. FINISH
+
+- Отчёт выведен оператору.
+- Изменения зафиксированы (если применялся `--apply`).

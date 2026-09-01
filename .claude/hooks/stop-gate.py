@@ -283,6 +283,22 @@ def main() -> None:
     if armed_step_u == "DECOMPOSE":
         st["need_verify"] = False
         save_state(session_id, cwd, st)
+
+        # Check DECOMPOSE semantic verification if verify-decompose is enabled
+        v_dec_active, _, v_dec_invalid = _gate_status("verify-decompose", cwd)
+        if v_dec_invalid and finishing:
+            _block(f"spawn-gate: required gate verify-decompose invalid — fail-closed. diagnostic={v_dec_invalid}")
+            return
+        if v_dec_active and finishing:
+            # Check if verify-decompose verdict exists and is PASS
+            v_done = st.get("verify_done") or st.get("verify_decompose_done")
+            v_verdict = st.get("verify_verdict") or st.get("verify_decompose_verdict")
+            if not v_done or v_verdict != "PASS":
+                if not stop_hook_active:
+                    _block(
+                        "spawn-gate: DECOMPOSE phase requires verify-decompose VERDICT: PASS before FINISH."
+                    )
+                    return
     if verify_bypass and st.get("need_verify"):
         _record_gate_bypass(st, "verify", verify_bypass)
         st["need_verify"] = False
@@ -348,6 +364,10 @@ def main() -> None:
         return
 
     if st.get("mode") == "qa" and finishing and st.get("reviewer_done"):
+        # QA BLOCKED verdict allowed (stop-gate allows FINISH + expects BUGFIX handoff)
+        rev_verdict = st.get("reviewer_verdict")
+        if rev_verdict == "BLOCKED" or st.get("qa_blocked"):
+            pass  # BLOCKED allowed, validate_qa_finish_handoff will ensure BUGFIX handoff
         ac = Path(cwd) / "memory-bank" / "activeContext.md" if cwd else None
         if ac and ac.is_file():
             text = ac.read_text(encoding="utf-8", errors="replace")

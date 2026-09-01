@@ -1,0 +1,63 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "G1 agents — JSON fence HARD (verify/reviewer/analyze-verify.md)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Три агент-файла (verify.md, reviewer.md, analyze-verify.md) получают HARD-секцию вывода:
+  финальное сообщение **обязано** содержать fenced JSON блок `loop-gate-verdict/v1`.
+  Prose `VERDICT: PASS` строки — дополнительны для human summary, не machine input.
+  Существующие VERDICT-строки как machine output — sunset: перемещены в примечание «для readability».
+  Outcome: SC-005 — rg находит JSON HARD contract в agent.md файлах.
+
+context:
+  consumes:
+    - ".claude/agents/verify.md — текущий: VERDICT: PASS|FAIL как machine-first строка"
+    - ".claude/agents/reviewer.md — аналогично"
+    - ".claude/agents/analyze-verify.md — аналогично"
+    - "loop/schemas/gate_verdict.py:GateVerdictRecord — schema для payload example"
+  produces:
+    - ".claude/agents/verify.md: добавлена секция ## Gate Output (JSON fence HARD) + пример payload"
+    - ".claude/agents/reviewer.md: то же"
+    - ".claude/agents/analyze-verify.md: то же"
+  plan_refs: [FR-010, SC-005]
+  files:
+    - ".claude/agents/verify.md"
+    - ".claude/agents/reviewer.md"
+    - ".claude/agents/analyze-verify.md"
+
+as_built:
+  - "verify.md: финальная строка = VERDICT: PASS|FAIL (machine-first); нет JSON fence секции"
+  - "reviewer.md: аналогично VERDICT: PASS|BLOCKED|FAIL"
+  - "analyze-verify.md: аналогично"
+
+delta:
+  - "verify.md: добавить секцию '## Gate Output' с примером JSON fence payload loop-gate-verdict/v1 и HARD-комментарием; обозначить что VERDICT: строка — опциональный human summary (не machine)"
+  - "reviewer.md: то же"
+  - "analyze-verify.md: то же"
+  - "verify.md: пояснить что hook ищет fenced JSON (не первую строку VERDICT)"
+
+deletes: []
+
+out_of_scope:
+  - "subagent-stop.py — wire в s09"
+  - "spawn-hard.md — s07"
+  - "legacy regex в _lib.py — s04 уже удалён"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'loop-gate-verdict' в verify.md, reviewer.md, analyze-verify.md"
+    verify: "rg 'loop-gate-verdict' .claude/agents/verify.md .claude/agents/reviewer.md .claude/agents/analyze-verify.md"
+  - id: cp2
+    criterion: "rg 'json' в gate output секции каждого файла (fence example)"
+    verify: "rg -i 'fence|json.*verdict\\|gate output' .claude/agents/verify.md | head -5"
+
+verify: []
+tdd: []

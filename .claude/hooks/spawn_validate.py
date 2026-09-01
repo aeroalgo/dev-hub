@@ -10,6 +10,7 @@ from typing import Any
 from _lib import (
     HARD_RULE,
     VERDICT_FIRST_LINE,
+    _SECTION_PATTERNS,
     agent_enabled,
     agent_model_env_key,
     allow_read_violations,
@@ -55,7 +56,7 @@ def validate_spawn_input(
     notes = normalize_agent_tool_input(tool_input, norm, project_dir)
     prompt = tool_input.get("prompt") or prompt
 
-    if norm in {"verify", "reviewer"} and VERDICT_FIRST_LINE not in prompt:
+    if norm in {"verify", "reviewer", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose"} and VERDICT_FIRST_LINE not in prompt:
         prompt = (prompt.rstrip() + "\n\n" + VERDICT_FIRST_LINE).lstrip()
         tool_input["prompt"] = prompt
 
@@ -95,15 +96,16 @@ def validate_spawn_input(
     if is_gate and agent_enabled(norm, project_dir):
         missing = missing_contract_sections(norm, prompt)
         if missing:
+            needed_str = " / ".join([label for label, _ in _SECTION_PATTERNS.get(norm, [])])
             deny_reasons.append(
                 f"prompt_incomplete: нет секций [{', '.join(missing)}]. "
                 "Добавь заголовки с новой строки "
                 "(ASCII `AC-` ок; Unicode `AC−` ок; `# AC+` ок). Нужны: "
-                + (
+                + (needed_str if needed_str else (
                     "Suite results / AC+ / AC- / 0.11 / ALLOW READ"
                     if norm == "reviewer"
                     else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
-                )
+                ))
             )
         for violation in allow_read_violations(prompt):
             if "ALLOW READ пуст" in violation and "memory-bank/" in prompt:

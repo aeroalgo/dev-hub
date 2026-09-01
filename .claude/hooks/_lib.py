@@ -19,14 +19,15 @@ except ImportError:  # pragma: no cover - Windows
     fcntl = None  # type: ignore[assignment]
 
 from agent_policy import AgentContext, resolve_agent_policy
-from agent_registry import discover_registry
+from agent_registry import AGENT_ALIASES, discover_registry
 
 # Known gate/search ids used by spawn-map finish text (verify/reviewer lines).
-CUSTOM_OVERLAY = frozenset({"verify", "reviewer", "explorer"})
-GATE_AGENTS = frozenset({"verify", "reviewer"})
+CUSTOM_OVERLAY = frozenset({"verify", "verify-implement", "verify-bugfix", "verify-qa", "reviewer", "explorer"})
+GATE_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose", "reviewer"})
 ALLOWED = CUSTOM_OVERLAY
 
-ALIAS: dict[str, str] = {"explore": "explorer"}
+ALIAS: dict[str, str] = {"explore": "explorer", **AGENT_ALIASES}
+ALIAS_REVERSE: dict[str, str] = {v: k for k, v in ALIAS.items()}
 
 HARD_RULE = (
     "HARD RULE: ты subagent. НЕ запускай frontend-тесты "
@@ -42,6 +43,38 @@ CONTRACTS = {
         "Не edit. Без isolation=worktree. "
         "Канон: activeContext + decompose index.md + implement step. "
         "КРИТИЧНО: если tools исчерпаны или ты готов ответить — следующее сообщение ОБЯЗАНО начинаться с `VERDICT: PASS` или `VERDICT: FAIL`. "
+        "Ответ без строки VERDICT = протокольный FAIL."
+    ),
+    "verify-implement": (
+        "CONTRACT verify-implement: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
+        "HARD: первая строка финального текста = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
+        "Никакого текста перед VERDICT: в финальном сообщении. "
+        "После ≤6 Read — только VERDICT-отчёт, ноль tool. Re-read файла >1× FORBIDDEN. "
+        "Не edit. Без isolation=worktree. "
+        "Канон: activeContext + decompose index.md + implement step. "
+        "КРИТИЧНО: если tools исчерпаны или ты готов ответить — следующее сообщение ОБЯЗАНО начинаться с `VERDICT: PASS` или `VERDICT: FAIL`. "
+        "Ответ без строки VERDICT = протокольный FAIL."
+    ),
+    "verify-bugfix": (
+        "CONTRACT verify-bugfix: нужен AC+ · AC− · §0.11 · VERIFY · BUGFIX ARTIFACT · ALLOW. "
+        "HARD: первая строка финального текста = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
+        "Никакого текста перед VERDICT: в финальном сообщении. "
+        "После ≤6 Read — только VERDICT-отчёт, ноль tool. Re-read файла >1× FORBIDDEN. "
+        "Не edit. Без isolation=worktree. "
+        "Ответ без строки VERDICT = протокольный FAIL."
+    ),
+    "verify-qa": (
+        "CONTRACT verify-qa: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
+        "HARD: первая строка финального ответа = ровно `VERDICT: PASS`, `VERDICT: BLOCKED` или `VERDICT: FAIL`. "
+        "Никакого текста перед VERDICT: в финальном сообщении. "
+        "Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree. "
+        "Ответ без строки VERDICT = протокольный FAIL."
+    ),
+    "verify-decompose": (
+        "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · Outcome map · Replacement cleanup · ALLOW. "
+        "HARD: первая строка финального ответа = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
+        "VERDICT: строка — optional human summary. "
+        "FORBIDDEN pytest. Без isolation=worktree. "
         "Ответ без строки VERDICT = протокольный FAIL."
     ),
     "reviewer": (
@@ -77,11 +110,40 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
+    "verify-qa": [
+        ("Suite results", re.compile(_HD + r"Suite results\b")),
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
     "verify": [
         ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
         ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
         ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
         ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-implement": [
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-bugfix": [
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("BUGFIX ARTIFACT", re.compile(_HD + r"BUGFIX ARTIFACT\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-decompose": [
+        ("Requirements coverage", re.compile(_HD + r"Requirements coverage\b")),
+        ("Stages coverage", re.compile(_HD + r"Stages coverage\b")),
+        ("Outcome map", re.compile(_HD + r"Outcome map\b")),
+        ("Replacement cleanup", re.compile(_HD + r"Replacement cleanup\b")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
 }
@@ -375,6 +437,10 @@ PROJECT_ENV_BASENAMES = ("project",)
 AGENT_MODEL_ENV_KEYS: dict[str, str] = {
     "explorer": "PROJECT_AGENT_EXPLORER_MODEL",
     "verify": "PROJECT_AGENT_VERIFY_MODEL",
+    "verify-implement": "PROJECT_AGENT_VERIFY_MODEL",
+    "verify-bugfix": "PROJECT_AGENT_VERIFY_BUGFIX_MODEL",
+    "verify-qa": "PROJECT_AGENT_REVIEWER_MODEL",
+    "verify-decompose": "PROJECT_AGENT_VERIFY_DECOMPOSE_MODEL",
     "reviewer": "PROJECT_AGENT_REVIEWER_MODEL",
 }
 _AGENT_MODEL_KEY_RE = re.compile(r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL$")
@@ -1283,9 +1349,23 @@ def record_verdict(
     if matched:
         state[f"{agent_type}_done"] = True
         state[f"{agent_type}_verdict"] = evidence.get("verdict")
+        if agent_type == "verify-implement":
+            state["verify_done"] = True
+            state["verify_verdict"] = evidence.get("verdict")
+            state["verify_evidence"] = evidence
+        elif agent_type == "verify-qa":
+            state["reviewer_done"] = True
+            state["reviewer_verdict"] = evidence.get("verdict")
+            state["reviewer_evidence"] = evidence
     else:
         state[f"{agent_type}_done"] = False
         state[f"{agent_type}_verdict"] = None
+        if agent_type == "verify-implement":
+            state["verify_done"] = False
+            state["verify_verdict"] = None
+        elif agent_type == "verify-qa":
+            state["reviewer_done"] = False
+            state["reviewer_verdict"] = None
     return matched, diagnostic
 
 

@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: s05 — Fixture-based tests + README §Dashboard — pytest suite + schema validation
+  + doctor threshold IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-038-harness-metrics-dashboard/s05-tests-readme.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Fixture-based pytest suite for collect, render, cli and doctor verified
+- README.md updated with Dashboard section describing CLI usage and env vars
+files:
+- tests/test_dashboard_collect.py
+- tests/test_dashboard_render.py
+- tests/test_dashboard_cli.py
+- tests/test_dashboard_doctor.py
+- README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/test_dashboard_collect.py tests/test_dashboard_render.py
+  tests/test_dashboard_cli.py tests/test_dashboard_doctor.py -q --tb=short`'
+integration_check:
+- 'README contains ## Dashboard'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 12 passed in 0.16s
+checkpoints:
+- id: cp1
+  criterion: полный pytest suite зелёный (все test_dashboard_*.py)
+  status: done
+  done_at: '2026-08-31T23:24:25Z'
+- id: cp2
+  criterion: SC-001 — HTML renders without network (no external URLs in test assertion)
+  status: done
+  done_at: '2026-08-31T23:24:35Z'
+- id: cp3
+  criterion: README содержит раздел Dashboard с CLI usage
+  status: done
+  done_at: '2026-08-31T23:24:44Z'
+- id: cp4
+  criterion: SC-002 schema validation test passes
+  status: done
+  done_at: '2026-08-31T23:24:53Z'
+resume_from: cp1

@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: s07 — spawn-hard + finish-block + lean workflows adoption docs IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-039-phase-verify-agents-runtime/s07-spawn-hard-finish-block-workflow-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated .claude/instructions/spawn-hard.md with phase->expected verify agent map
+  and adoption guidelines
+- Updated workflow-implement.mdc to reference verify-implement
+- Updated workflow-decompose.mdc to reference verify-decompose
+- Updated workflow-bugfix.mdc to reference verify-bugfix
+- Updated workflow-qa.mdc & isolation_rules/_lean/qa.mdc to reference verify-qa
+files:
+- .claude/instructions/spawn-hard.md
+- .cursor/rules/back_developer/workflow-implement.mdc
+- .cursor/rules/back_developer/workflow-decompose.mdc
+- .cursor/rules/back_developer/workflow-bugfix.mdc
+- .cursor/rules/back_developer/workflow-qa.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/ -q --tb=line`'
+integration_check:
+- Documentation updated and verified via rg check
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- cp1 PASS
+- cp2 PASS
+- cp3 PASS
+- pytest tests/ 11 passed
+checkpoints:
+- id: cp1
+  criterion: spawn-hard.md содержит phase→agent таблицу с verify-implement
+  status: done
+  done_at: '2026-08-31T21:16:19Z'
+- id: cp2
+  criterion: 'workflow-implement.mdc обновлён: verify-implement'
+  status: done
+  done_at: '2026-08-31T21:16:30Z'
+- id: cp3
+  criterion: 'workflow-qa.mdc: @reviewer → verify-qa'
+  status: done
+  done_at: '2026-08-31T21:16:40Z'
+resume_from: cp1

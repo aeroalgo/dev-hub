@@ -1,0 +1,6 @@
+schema: epic-qa/v1
+epic_id: T-HUB-037-harness-parallel-snn
+verdict: pass
+date: '2026-09-01'
+reviewer: verify-qa
+notes: Parent suite pass, AC+ and AC- verified, code review passed.

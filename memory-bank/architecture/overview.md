@@ -60,6 +60,18 @@ flowchart TB
 - role-command SoT: `.claude/skills/role-command/SKILL.md` (зеркало: `.agents/skills/role-command/SKILL.md`)
 - Обновлять `.agents` одновременно с `.claude` (не расходиться)
 
+## Layer enforcement
+
+Контракты границ слоёв описаны в декларативной конфигурации [tests/architecture/boundaries.yaml](../../tests/architecture/boundaries.yaml).
+
+- **Инспекция & CI Gate:** Автоматическая проверка архитектурных границ выполняется через модуль `tests/architecture/test_boundaries.py`.
+- **Запуск CI-проверки:**
+  ```bash
+  .venv/bin/pytest tests/architecture/ -q
+  ```
+- **Ratchet mechanism:** Текущие нарушения и допуски зафиксированы в `tests/architecture/ratchet.json`. Механизм ratchet запрещает появление новых нарушений архитектурных границ (количественный baseline проверяется в CI).
+- **Обновление baseline:** При разрешении текущих нарушений baseline в `tests/architecture/ratchet.json` уменьшается автоматически при следующем прогоне тестов или правится вручную до нового сниженного значения.
+
 ## Источники правды
 
 - **Код:** `loop/**`, `bin/**`, `.claude/hooks/**`, `.cursor/hooks/**`

@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: "Self-contained HTML render — sections: Metrics, Incidents, Episodes, Events, Epic progress"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать render_html(report) -> str и render_json(report) -> str в модуле
+  loop/dashboard/render.py. HTML — self-contained: inline CSS, без внешних JS/CDN.
+  Разделы: Metrics (rates table), Incidents open, Episodes last 20, Events by kind (counts),
+  Epic progress (active task rows). Operator видит весь снимок без браузерных зависимостей.
+  Связь FR-002, FR-004, SC-001, SC-002, AC-1, AC-3.
+
+context:
+  consumes:
+    - "loop/dashboard/schema.py — DashboardReport (s01)"
+    - "loop/dashboard/collect.py — collect (s01)"
+  produces:
+    - "loop/dashboard/render.py — render_html(report) -> str, render_json(report) -> str"
+  plan_refs:
+    - FR-002
+    - FR-004
+    - SC-001
+    - SC-002
+    - AC-1
+    - AC-3
+  files:
+    - loop/dashboard/render.py
+
+as_built:
+  - "loop/dashboard/schema.py — DashboardReport model — создан в s01"
+  - "loop/dashboard/render.py — НЕ существует"
+
+delta:
+  - "create loop/dashboard/render.py — render_html(report: DashboardReport) -> str: строит HTML через string templates без Jinja2, inline <style> с minimal CSS (monospace, table borders, max-width), разделы Metrics, Open Incidents, Last Episodes (до 20), Events by Kind, Epic Progress; DOCTYPE + charset=utf-8"
+  - "render_json(report: DashboardReport) -> str — report.model_dump_json(indent=2)"
+  - "NO external CDN links (проверено negative test в s05)"
+
+deletes: []
+
+out_of_scope:
+  - "collect logic — s01"
+  - "CLI file output — s03"
+  - "doctor — s04"
+  - "тесты — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: render_html возвращает строку содержащую DOCTYPE и inline style тег
+    verify: ".venv/bin/pytest tests/test_dashboard_render.py::test_html_structure -q --tb=short"
+  - id: cp2
+    criterion: нет внешних CDN ссылок (no http/https src/href в HTML)
+    verify: ".venv/bin/pytest tests/test_dashboard_render.py::test_html_no_external_cdn -q --tb=short"
+  - id: cp3
+    criterion: render_json produces valid JSON with schema_version field
+    verify: ".venv/bin/pytest tests/test_dashboard_render.py::test_json_schema_valid -q --tb=short"
+
+verify:
+  - "rg 'def render_html' loop/dashboard/render.py"
+  - "rg 'def render_json' loop/dashboard/render.py"
+  - "rg 'DOCTYPE' loop/dashboard/render.py"
+
+tdd:
+  - "tests/test_dashboard_render.py — fixture DashboardReport (minimal) -> render_html contains table and rates row"
+  - "tests/test_dashboard_render.py — assert no 'cdn' or 'https://' in rendered HTML"
+  - "tests/test_dashboard_render.py — render_json -> json.loads succeeds + schema_version field present"

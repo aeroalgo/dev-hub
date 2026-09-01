@@ -22,6 +22,9 @@ export CLAUDE_PROJECT_DIR="$HUB_ROOT"
 if [[ "${1:-}" == "doctor" ]]; then
   shift
   exec python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT" doctor "$@"
+elif [[ "${1:-}" == "dashboard" ]]; then
+  shift
+  exec python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT" dashboard-render "$@"
 fi
 
 exec "$HUB_ROOT/loop/loop.sh" "$@"

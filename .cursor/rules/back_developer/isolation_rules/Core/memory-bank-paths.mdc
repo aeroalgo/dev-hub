@@ -33,6 +33,7 @@ alwaysApply: false
 | VAN | `back/van/` | `van-YYYYMMDD.md` (session; карта → `architecture/`) |
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
+| RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
 | PLAN | `back/plan/` | `plan-<epic_id>.md` + `decompose-<epic_id>/`; research multi-epic → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; templates `roadmap-epics.md` + `roadmap-queue.yaml`). Loop canon после `BACK ROADMAP MERGE`: **`roadmap-epics.queue.yaml`** |
 | ROADMAP MERGE | `back/plan/` | пишет **`roadmap-epics.queue.yaml`** + `roadmap-epics.md` из всех `roadmap-<slug>-epics.queue.yaml` (@.cursor/rules/shared/workflow-roadmap-merge.mdc) |
 | DECOMPOSE | `back/plan/decompose-<epic_id>/` | `index.md` + `sNN-<slug>.yaml` (+ `implement`). **`<epic_id>` = stem plan со descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
@@ -44,6 +45,7 @@ alwaysApply: false
 | REFLECT | `back/reflection/` | `reflection-<task_id>.md` — **не** под epic; **не** переносится ARCHIVE |
 | ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/decompose/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc |
 | QA | `back/qa/<epic_id>/` или `back/qa/` | `qa-YYYYMMDD-<slug>.yaml` — с эпиком / без |
+| AUDIT | `back/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` по `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`) |
 | SECURITY | `back/security/` | **Эпик:** `plan/{plan,decompose-<id>/}` + `implement/implement-<id>/aNN-*.yaml`. **Без эпика:** `security-audit-YYYYMMDD-<slug>.md`. Канон: @.cursor/rules/shared/workflow-security-epic.mdc |
 
 **Front `memory-bank/front/`** — та же схема, префикс `front/` + ARCHIVE → `memory-bank/archive/front/`.
@@ -52,6 +54,7 @@ alwaysApply: false
 |-------|--------|------------|
 | CLARIFY | `front/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `front/analyze/<epic_id>/` (с эпиком) · `front/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
+| AUDIT | `front/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
 | SECURITY | `front/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. @.cursor/rules/shared/workflow-security-epic.mdc |
 
 **Integration `memory-bank/integration/`:**
@@ -61,6 +64,7 @@ alwaysApply: false
 | VAN | `integration/van/` | `van-YYYYMMDD-<slug>.md` (session; полная карта → `architecture/`) |
 | CLARIFY | `integration/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `integration/analyze/<epic_id>/` (с эпиком) · `integration/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
+| AUDIT | `integration/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
 | GAP | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `close-YYYYMMDD-<slug>.md` |
 | PLAN | `integration/plan/` | `plan-<epic_id>.md` |

@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "pydantic-ai secondary — verdict/handoff/abort runners fail-soft"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Три pydantic-ai-based secondary runners для доменов verdict/handoff/abort:
+  `run_gate_verdict_llm(text, cwd, agent_id, ...)`, `run_handoff_llm(text, ...)`, `run_abort_llm(reason, ...)`.
+  Каждый: проверяет `hooks_llm_flag(domain)`, при disabled → None; при enabled → Agent.run → typed output.
+  Fail-soft: любой exception → log + return None (hooks не падают). При valid output → write sidecar / return typed.
+  Outcome: secondary path доступен если JSON fence отсутствует/невалиден и domain flag=1.
+
+context:
+  consumes:
+    - "s01: load_hooks_llm_env() / hooks_llm_flag(domain)"
+    - "s02: make_gate_agent(domain) / GateVerdictOutput, HandoffMetaOutput, AbortClassifyOutput"
+    - "s03: parse_gate_verdict_message — primary path"
+    - "loop/gate_verdict_store.py: write_gate_verdict()"
+    - "session_resilience.py:classify_abort() — существующий string-based classifier"
+  produces:
+    - "llm_structured.py: run_gate_verdict_llm(text, cwd, agent_id, recorded_at, ...) → GateVerdictRecord | None"
+    - "llm_structured.py: run_handoff_llm(text, ...) → HandoffMetaOutput | None"
+    - "llm_structured.py: run_abort_llm(reason, exit_code, ...) → AbortClassifyOutput | None"
+    - "_lib.py: вспомогательная parse_handoff_meta(text, *, cwd=None) — frontmatter-first + optional LLM secondary"
+  plan_refs: [FR-006, FR-007, FR-008]
+  files:
+    - ".claude/hooks/llm_structured.py"
+    - ".claude/hooks/_lib.py"
+    - ".claude/hooks/session_resilience.py"
+
+as_built:
+  - "llm_structured.py: LogSummary + make_output_cap_agent (T-HUB-021); s02 добавил gate models + make_gate_agent"
+  - "session_resilience.py:classify_abort() — regex/string-based, возвращает 'transient'|'fatal'"
+  - "_lib.py: parse_handoff — нет функции (handoff meta читается через прямой YAML parse в context_loop)"
+
+delta:
+  - "llm_structured.py: run_gate_verdict_llm(text, cwd, agent_id, recorded_at) → GateVerdictRecord | None — проверяет hooks_llm_flag('verdict'), запускает Agent.run, валидирует GateVerdictOutput, пишет sidecar; exception → None"
+  - "llm_structured.py: run_handoff_llm(text) → HandoffMetaOutput | None — hooks_llm_flag('handoff') guard; Agent.run HandoffMetaOutput; exception → None"
+  - "llm_structured.py: run_abort_llm(reason, exit_code) → AbortClassifyOutput | None — hooks_llm_flag('abort') guard; Agent.run AbortClassifyOutput; exception → None"
+  - "_lib.py: parse_handoff_meta(text, *, cwd=None) → dict | None — primary: YAML frontmatter parse; secondary: run_handoff_llm если flag on; fail-soft"
+  - "session_resilience.py: classify_abort_structured(reason, exit_code, ...) → str — вызывает run_abort_llm если flag on; falls back на classify_abort(); не заменяет classify_abort()"
+
+deletes: []
+
+out_of_scope:
+  - "extract_verdict — уже s04"
+  - "agent prompts G1 — s06"
+  - "context_loop prompts G4 — s08"
+  - "stop-gate / pretool wire — s09"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "run_gate_verdict_llm с disabled flag → None, без Agent.run call"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_secondary.py::test_run_gate_verdict_llm_disabled_returns_none -q"
+  - id: cp2
+    criterion: "run_gate_verdict_llm с mocked Agent.run → GateVerdictRecord"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_secondary.py::test_run_gate_verdict_llm_mocked_agent -q"
+  - id: cp3
+    criterion: "run_abort_llm exception → None (fail-soft)"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_secondary.py::test_run_abort_llm_fail_soft -q"
+  - id: cp4
+    criterion: "parse_handoff_meta с valid YAML frontmatter → dict без LLM call"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_secondary.py::test_parse_handoff_meta_yaml_primary -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_secondary.py — test_run_gate_verdict_llm_disabled_returns_none, test_run_gate_verdict_llm_mocked_agent, test_run_abort_llm_fail_soft, test_parse_handoff_meta_yaml_primary, test_parse_handoff_meta_llm_secondary_flag_off"

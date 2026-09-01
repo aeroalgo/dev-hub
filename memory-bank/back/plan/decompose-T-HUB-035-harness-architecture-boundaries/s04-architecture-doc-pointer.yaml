@@ -1,0 +1,69 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: "Architecture doc — pointer to boundaries.yaml and enforcement mechanism"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить memory-bank/architecture/overview.md и index.md: добавить раздел «Layer enforcement»
+  со ссылкой на tests/architecture/boundaries.yaml, описанием ratchet и командой запуска CI-проверки.
+  AC+4 закрыт: architecture overview updated. Без этого обновления граница между «описание» и
+  «enforcement» остаётся невидимой для следующего разработчика.
+
+context:
+  consumes:
+    - memory-bank/architecture/overview.md   # обновляем
+    - memory-bank/architecture/index.md      # добавляем shard pointer
+    - tests/architecture/boundaries.yaml     # из s01
+    - tests/architecture/ratchet.json        # из s02
+  produces:
+    - memory-bank/architecture/overview.md   # расширен: §Layer enforcement
+    - memory-bank/architecture/index.md      # обновлён: shard boundaries.md или inline pointer
+  plan_refs:
+    - AC+4    # architecture overview updated
+    - FR-001  # boundaries.yaml — ссылка для discovery
+    - FR-002  # check CLI — команда в doc
+  files:
+    - memory-bank/architecture/overview.md
+    - memory-bank/architecture/index.md
+
+as_built:
+  - "memory-bank/architecture/overview.md — описывает слои текстом, нет §Layer enforcement, нет ссылки на tests/architecture/"
+  - "memory-bank/architecture/index.md — таблица shards; нет строки для enforcement"
+
+delta:
+  - "edit memory-bank/architecture/overview.md: добавить раздел '## Layer enforcement' с: ссылкой на tests/architecture/boundaries.yaml, командой '.venv/bin/pytest tests/architecture/ -q', описанием ratchet.json + как обновлять baseline"
+  - "edit memory-bank/architecture/index.md: добавить строку в таблицу shards: 'Layer enforcement | tests/architecture/boundaries.yaml + ratchet.json | current'"
+
+deletes: []
+# Docs-only: нет runtime кода для удаления
+
+out_of_scope:
+  - "Полная переработка architecture shards — вне этого эпика"
+  - "Генерация mermaid для слоёв — не требуется, уже есть в overview.md"
+
+skills:
+  code_surface: api
+  impl: []
+  # docs-only: нет Python кода, impl пуст
+
+checkpoints:
+  - id: cp1
+    criterion: "overview.md содержит раздел '## Layer enforcement'"
+    verify: "rg '## Layer enforcement' memory-bank/architecture/overview.md"
+  - id: cp2
+    criterion: "overview.md ссылается на tests/architecture/boundaries.yaml"
+    verify: "rg 'tests/architecture/boundaries.yaml' memory-bank/architecture/overview.md"
+  - id: cp3
+    criterion: "index.md содержит строку Layer enforcement"
+    verify: "rg 'Layer enforcement' memory-bank/architecture/index.md"
+
+verify:
+  - "rg '## Layer enforcement' memory-bank/architecture/overview.md"
+  - "rg 'tests/architecture/boundaries.yaml' memory-bank/architecture/overview.md"
+  - "rg 'ratchet' memory-bank/architecture/overview.md"
+
+tdd: []
+# docs-only step, no pytest

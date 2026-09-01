@@ -11,7 +11,7 @@ alwaysApply: false
 
 ## Когда запускать
 
-- после `BACK DECOMPOSE` FINISH и до первого `BACK IMPLEMENT`;
+- после `BACK DECOMPOSE` FINISH и до первого `BACK IMPLEMENT` (**Promote gate:** artifact с `critical_count=0` или явный defer в Handoff DECOMPOSE);
 - повторно после существенного rewrite plan/decompose;
 - не использовать ANALYZE вместо AUDIT после реализации.
 

@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "spawn-hard + finish-block + lean workflows adoption docs"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить инструкции оркестрации, чтобы `@verify` → `@verify-implement` (с алиас-совместимостью),
+  `@reviewer` → `@verify-qa` в следующих файлах:
+  `.claude/instructions/spawn-hard.md`, finish-block related docs, lean workflow isolation maps.
+  Добавить таблицу phase → verify-agent в spawn-hard и context_loop finish workflow.
+  User/system outcome: документация согласована с runtime reality; in-flight epics используют
+  alias (`@verify` работает), новые чаты явно используют `@verify-implement`.
+
+context:
+  consumes:
+    - ".claude/instructions/spawn-hard.md — таблица spawn rules + verify columns"
+    - ".cursor/rules/back_developer/workflow-implement.mdc — @verify references"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — @verify-decompose reference"
+    - ".cursor/rules/back_developer/workflow-bugfix.mdc — @verify-bugfix"
+    - ".cursor/rules/back_developer/workflow-qa.mdc — @reviewer → @verify-qa"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/*.mdc — lean contexts"
+  produces:
+    - ".claude/instructions/spawn-hard.md (updated phase→agent table)"
+    - ".cursor/rules/back_developer/workflow-implement.mdc (verify-implement references)"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc (verify-decompose)"
+    - ".cursor/rules/back_developer/workflow-bugfix.mdc (verify-bugfix)"
+    - ".cursor/rules/back_developer/workflow-qa.mdc (verify-qa)"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/*.mdc (alias adoption)"
+  plan_refs:
+    - "FR-014: spawn-hard + finish-block + workflow docs"
+    - "Зафиксированные решения #4: Adoption — spawn-hard + finish-block меняют @verify → @verify-implement"
+    - "SC-002: Legacy @verify / @reviewer spawn works via alias"
+  files:
+    - ".claude/instructions/spawn-hard.md"
+    - ".cursor/rules/back_developer/workflow-implement.mdc"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc"
+    - ".cursor/rules/back_developer/workflow-bugfix.mdc"
+    - ".cursor/rules/back_developer/workflow-qa.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/audit.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/qa.mdc"
+
+as_built:
+  - ".claude/instructions/spawn-hard.md — таблица со строками @verify / @reviewer без phase specificity"
+  - "workflow-*.mdc — @verify и @reviewer без phase-specific уточнений"
+
+delta:
+  - "edit .claude/instructions/spawn-hard.md: добавить столбец/секцию phase → expected verify agent; note alias compat"
+  - "edit workflow-implement.mdc: @verify → @verify-implement (с нотой alias @verify works)"
+  - "edit workflow-decompose.mdc: добавить @verify-decompose post-CLI-schema section"
+  - "edit workflow-bugfix.mdc: @verify → @verify-bugfix; ALLOW requires bugfix artifact path"
+  - "edit workflow-qa.mdc: @reviewer → @verify-qa; BLOCKED verdict allowed"
+  - "edit _lean/*.mdc: обновить references"
+
+deletes: []
+
+out_of_scope:
+  - "README/WORKFLOW.md loop docs — s09"
+  - "architecture/services.md — s09"
+  - "Front/Integ workflow rules — не в этом эпике"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "spawn-hard.md содержит phase→agent таблицу с verify-implement"
+    verify: "rg 'verify-implement|verify-bugfix|verify-qa|verify-decompose' .claude/instructions/spawn-hard.md"
+  - id: cp2
+    criterion: "workflow-implement.mdc обновлён: verify-implement"
+    verify: "rg 'verify-implement' .cursor/rules/back_developer/workflow-implement.mdc"
+  - id: cp3
+    criterion: "workflow-qa.mdc: @reviewer → verify-qa"
+    verify: "rg 'verify-qa' .cursor/rules/back_developer/workflow-qa.mdc"
+
+verify: []
+tdd: []

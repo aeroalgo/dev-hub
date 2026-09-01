@@ -1,0 +1,16 @@
+---
+description: "Cheatsheet — BACK DECOMPOSE hot path (≤1 экран)"
+alwaysApply: false
+---
+# Hot path (BACK DECOMPOSE)
+
+1. Read plan → index: Requirements / Stages / Outcome / Replacement cleanup
+2. Нарежь `sNN`: delta layer + deletes + 2–4 cp + Core∪situational · Coverage rubric (measurable verify)
+3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files` (agent/hook/CLI = runtime, не registry string); ≥1 behavior cp
+4. `validate-decompose-tree` exit 0
+5. **Promote HARD:** `validate-traceability --epic <id>` CRITICAL=0 + ANALYZE artifact `critical_count=0` **или** Handoff `ANALYZE deferred:`
+6. FINISH → next CREATIVE | ANALYZE | IMPLEMENT (новый чат)
+
+→ full: @.cursor/rules/back_developer/workflow-decompose.mdc  
+→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc  
+→ count в plan = floor, не ceiling

@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "stop-gate + user-prompt per-phase need_verify + subagent-stop verdicts"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `stop-gate.py` так, чтобы FINISH блокировался на основе `phase_registry verify_agent`:
+  - IMPLEMENT/REFACTOR/TASK → need_verify via verify-implement (уже частично есть, унифицировать);
+  - DECOMPOSE → двойной gate: CLI validate-decompose-tree AND verify-decompose when enabled;
+  - QA → BLOCKED verdict allowed (stop-gate пропускает FINISH + ожидает BUGFIX Handoff);
+  - BUGFIX → need_verify via verify-bugfix.
+  Обновить `user-prompt.py` — need_verify/need_reviewer устанавливаются из phase_registry
+  (а не hardcoded логика); `subagent-stop.py` — BLOCKED не протокольный FAIL.
+  User/system outcome: stop-gate fail-closed по phase_registry; QA BLOCKED → FINISH проходит с handoff.
+
+context:
+  consumes:
+    - ".claude/hooks/stop-gate.py — need_verify/need_reviewer логика; import get_verify_agent (уже есть)"
+    - ".claude/hooks/user-prompt.py — need_verify установка lines 93,112,125,140,163"
+    - ".claude/hooks/subagent-stop.py — verdicts handling"
+    - "loop/schemas/phase_registry.yaml — verify_agent per phase, stop_on_finish fields"
+    - ".claude/hooks/_lib.py — workflow_state_active, load_state"
+  produces:
+    - ".claude/hooks/stop-gate.py (per-phase registry-driven FINISH block)"
+    - ".claude/hooks/user-prompt.py (need_verify from phase_registry)"
+    - ".claude/hooks/subagent-stop.py (BLOCKED не FAIL)"
+  plan_refs:
+    - "FR-008: gates_from_phase per-phase need_*"
+    - "FR-010: stop-gate FINISH blocks by registry verify_agent + need_*"
+    - "FR-010: DECOMPOSE: CLI AND verify-decompose when enabled"
+    - "FR-010: QA BLOCKED allowed"
+    - "US-004: QA BLOCKED → FINISH allowed + BUGFIX Handoff"
+    - "US-005: Optional analyze-verify gate flag"
+    - "SC-004: DECOMPOSE: CLI + verify-decompose when enabled"
+    - "SC-005: QA BLOCKED not protocol FAIL"
+    - "TM-006: DECOMPOSE semantic FAIL → stop-gate blocks"
+    - "TM-007: QA BLOCKED → allow FINISH + BUGFIX handoff"
+    - "SC-003: verify-decompose does NOT run pytest"
+  files:
+    - ".claude/hooks/stop-gate.py"
+    - ".claude/hooks/user-prompt.py"
+    - ".claude/hooks/subagent-stop.py"
+
+as_built:
+  - "stop-gate.py: get_verify_agent import есть (line 42); need_verify check через st['need_verify']"
+  - "stop-gate.py: DECOMPOSE gate — только CLI validate-decompose-tree; нет verify-decompose semantic check"
+  - "user-prompt.py lines 93,112,125,140,163: need_verify установка через projection_gates/agent_enabled/hardcode"
+  - "subagent-stop.py: verdict BLOCKED обрабатывается, но уточнить FINISH allow"
+
+delta:
+  - "edit stop-gate.py: integrate get_verify_agent(phase) → derive expected verify agent type; for DECOMPOSE add semantic verify-decompose check branch (when PROJECT_LOOP_ANALYZE_VERIFY or flag); for QA BLOCKED → allow FINISH path with handoff requirement"
+  - "edit user-prompt.py: centralise need_verify source — consult phase_registry verify_agent presence instead of scattered hardcoded branches"
+  - "edit subagent-stop.py: BLOCKED verdict from verify-qa → set st['qa_blocked'] flag; не FAIL, не stop workflow; log for stop-gate"
+
+deletes: []
+
+out_of_scope:
+  - "DSH presets — s06"
+  - "spawn-hard / finish-block doc updates — s07"
+  - "test_phase_verify_gates suite — s08"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns"
+
+checkpoints:
+  - id: cp1
+    criterion: "stop-gate DECOMPOSE branch включает verify-decompose logic"
+    verify: "rg 'verify-decompose|DECOMPOSE.*semantic|semantic.*decompose' .claude/hooks/stop-gate.py"
+  - id: cp2
+    criterion: "stop-gate QA BLOCKED allow path существует"
+    verify: "rg 'BLOCKED|qa_blocked' .claude/hooks/stop-gate.py"
+  - id: cp3
+    criterion: "subagent-stop.py не ставит FAIL на BLOCKED verdict"
+    verify: "rg 'BLOCKED' .claude/hooks/subagent-stop.py"
+  - id: cp4
+    criterion: "unit: QA BLOCKED allows FINISH; DECOMPOSE CLI-only blocks"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'qa_blocked or decompose_gate' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_stop_gate_qa_blocked_allows_finish: BLOCKED verdict → stop-gate passes FINISH"
+  - "test_stop_gate_decompose_blocks_without_verify: DECOMPOSE без CLI pass → FINISH denied"
+  - "test_subagent_stop_blocked_not_fail: BLOCKED in verdict → workflow continues"
+  - "test_need_verify_from_registry: user-prompt sets need_verify=True for IMPLEMENT phase via registry"

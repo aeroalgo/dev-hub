@@ -46,6 +46,18 @@ def format_scope_block(allowlist: list[str]) -> str:
     )
 
 
+def _implement_path_from_allowlist(allowlist: list[str]) -> str | None:
+    """Prefer an implement/*.yaml path from scope for validate-step hints."""
+    candidates: list[str] = []
+    for item in allowlist:
+        norm = str(item).replace("\\", "/")
+        if "/implement/" in norm and norm.endswith(".yaml"):
+            candidates.append(norm)
+    if not candidates:
+        return None
+    return sorted(candidates)[0]
+
+
 def build_tier1_prompt(
     incident: IncidentRecord,
     epic_dir: Path | str,
@@ -63,8 +75,22 @@ def build_tier1_prompt(
     runbooks_block = "\n\n".join(runbook_sections) if runbook_sections else "No diagnostic runbooks assigned."
     scope_block = format_scope_block(scope_allowlist)
 
-    epic_dir_path = Path(epic_dir)
     codes_str = ", ".join(sorted_codes)
+    impl_hint = _implement_path_from_allowlist(scope_allowlist)
+    if impl_hint:
+        verify_block = (
+            "## Verify command\n"
+            f"If implement yaml is in scope and you changed it, self-check:\n"
+            f"`python3 .claude/hooks/epic_resolve.py validate-step --path {impl_hint}`\n"
+            "Parent also runs orchestration pytest AC slice after the session "
+            "(not validate-step on runtime epic_dir)."
+        )
+    else:
+        verify_block = (
+            "## Verify command\n"
+            "No implement/*.yaml in scope — do not call validate-step on runtime epic_dir.\n"
+            "Parent runs orchestration pytest AC slice after the session."
+        )
 
     prompt = (
         f"# Tier-1 Incident Repair Prompt — {incident.incident_id}\n\n"
@@ -80,8 +106,7 @@ def build_tier1_prompt(
         "## Goal\n"
         "Fix the specified incident by addressing the root cause identified in the runbook.\n"
         "Ensure all changes strictly remain within the specified allowed scope.\n\n"
-        "## Verify command\n"
-        f"python3 .claude/hooks/epic_resolve.py validate-step --path {epic_dir_path}"
+        f"{verify_block}\n"
     )
 
     return prompt

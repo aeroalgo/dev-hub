@@ -36,15 +36,15 @@ def _additional_context(result: subprocess.CompletedProcess[str]) -> str:
 def test_agent_type_verify_injects_contract_and_preset(tmp_path: Path) -> None:
     context = _additional_context(_run(tmp_path, {"agent_type": "verify"}))
 
-    assert "agent_type=verify preset=preset.verify" in context
-    assert "CONTRACT verify:" in context
+    assert "agent_type=verify-implement" in context
+    assert "CONTRACT verify-implement:" in context
 
 
 def test_subagent_type_reviewer_is_fallback_field(tmp_path: Path) -> None:
     context = _additional_context(_run(tmp_path, {"subagent_type": "reviewer"}))
 
-    assert "agent_type=reviewer preset=preset.reviewer" in context
-    assert "CONTRACT reviewer:" in context
+    assert "agent_type=verify-qa" in context
+    assert "CONTRACT verify-qa:" in context
 
 
 def test_type_explorer_is_fallback_field(tmp_path: Path, monkeypatch) -> None:

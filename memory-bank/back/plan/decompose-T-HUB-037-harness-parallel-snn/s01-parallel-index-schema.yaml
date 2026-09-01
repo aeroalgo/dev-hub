@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-037-harness-parallel-snn
+title: "depends_on schema — index yaml backward-compat field + wave model"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить опциональное поле `depends_on: []` в `epic-decompose-index/v1` и Pydantic-модель
+  декомпозного индекса. Outcome: `index.yaml` может содержать `depends_on` на каждом шаге;
+  существующие индексы без поля проходят валидацию без изменений (backward-compatible).
+  Модуль `loop/parallel/wave.py` экспортирует `compute_ready_wave(index_path) -> list[str]` —
+  возвращает step_id'ы без зависимостей или с зависимостями статуса done.
+
+context:
+  consumes:
+    - "loop/schemas/ — epic-decompose-index schema (epic_index.py)"
+    - ".claude/hooks/epic_index.py — парсер decompose index yaml"
+    - ".cursor/templates/decompose/index.yaml — шаблон с полями steps[]"
+  produces:
+    - "loop/parallel/__init__.py — пустой пакет"
+    - "loop/parallel/wave.py — compute_ready_wave(index_path) -> list[str]; зависимость resolved по depends_on + status"
+    - "loop/schemas/decompose_index.py — DecomposeStep(id, file, title, next_phase, status, depends_on=[])"
+  plan_refs:
+    - FR-001
+    - SC-001
+  files:
+    - "loop/parallel/__init__.py"
+    - "loop/parallel/wave.py"
+    - "loop/schemas/decompose_index.py"
+
+as_built:
+  - ".claude/hooks/epic_index.py — читает index yaml, но не валидирует depends_on, status-only"
+  - "loop/schemas/ — handoff.py, state.py, verdict.py существуют; decompose_index отсутствует"
+  - "loop/ — нет пакета parallel/"
+
+delta:
+  - "создать loop/parallel/__init__.py (empty package)"
+  - "создать loop/schemas/decompose_index.py: DecomposeStep(id, file, title, next_phase, status, depends_on: list[str] = []) Pydantic v2; DecomposeIndex(schema, plan_id, steps: list[DecomposeStep])"
+  - "создать loop/parallel/wave.py: compute_ready_wave(index_path: Path | str) -> list[str] — загружает DecomposeIndex, фильтрует: шаг готов если depends_on == [] или все depends_on имеют status == 'done', шаг сам не 'done'/'in_progress'"
+
+deletes: []
+
+out_of_scope:
+  - "s02 — overlap checker"
+  - "s03 — worktree pool"
+  - "s04 — orchestrator"
+  - "s05 — transition engine hook"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # Pydantic v2 model_validate, pytest parametrize wave fixtures"
+    - "modern-python # pydantic v2, pathlib, type hints"
+    - "python-anti-patterns # no mutable defaults, proper Optional"
+    - "tdd # test-first: cp1/cp2/cp3 покрыты до impl"
+
+checkpoints:
+  - id: cp1
+    criterion: "DecomposeIndex.model_validate(old_index_without_depends_on) — не выбрасывает исключений (backward-compat)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_wave.py::test_index_backward_compat -q"
+  - id: cp2
+    criterion: "compute_ready_wave возвращает только шаги без depends_on (или с fulfilled deps) и статусом pending"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_wave.py::test_compute_ready_wave_basic -q"
+  - id: cp3
+    criterion: "шаг с depends_on=['s01'] и s01.status='pending' — НЕ включается в wave"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_wave.py::test_compute_ready_wave_blocked -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_parallel_wave.py — test_index_backward_compat, test_compute_ready_wave_basic, test_compute_ready_wave_blocked, test_compute_ready_wave_done_deps, test_compute_ready_wave_skip_inprogress"

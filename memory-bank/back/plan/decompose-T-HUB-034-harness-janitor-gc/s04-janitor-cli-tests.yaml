@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-034-harness-janitor-gc
+title: "CLI subcommands janitor-scan/janitor-gc + full pytest suite"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить subcommands `janitor-scan` и `janitor-gc --dry-run|--apply` в `epic_resolve.py`.
+  Написать full pytest suite: все finding categories (SC-001, SC-002, SC-003), dry-run safeguard, CLI e2e.
+  После этого шага operator может запустить `epic_resolve.py janitor-scan --cwd $PROJECT_ROOT`
+  и получить JanitorReport. Закрывает FR-004, FR-008, AC-1, AC-2, SC-001, SC-002, SC-003.
+
+context:
+  consumes:
+    - .claude/hooks/epic_resolve.py       # существующий CLI, subcommand pattern
+    - loop/janitor/scan.py               # scan(cwd) -> JanitorReport
+    - loop/janitor/gc.py                 # GcEngine
+    - loop/janitor/schema.py             # JanitorReport
+    - loop/tests/test_janitor_*.py       # существующие тесты (s01–s03)
+  produces:
+    - .claude/hooks/epic_resolve.py      # patched: +janitor-scan, +janitor-gc subcommands
+    - loop/tests/test_janitor_cli.py
+  plan_refs:
+    - "FR-004: CLI epic_resolve.py janitor-scan + janitor-gc --dry-run|--apply"
+    - "FR-008: Tests per finding category; gc apply dry-run"
+    - "AC-1: janitor-scan CLI + report schema"
+    - "AC-2: janitor-gc dry-run/apply with whitelist"
+    - "SC-001: Stale artifact detected (pytest fixture)"
+    - "SC-002: gc apply refuses non-whitelist (pytest)"
+    - "SC-003: janitor-report schema valid (pydantic test)"
+    - "US-001: Weekly operator: janitor report stale decompose indexes"
+    - "US-002: Platform: gc only whitelist paths"
+  files:
+    - .claude/hooks/epic_resolve.py
+    - loop/tests/test_janitor_cli.py
+
+as_built:
+  - "epic_resolve.py — subcommand pattern: argparse sub.add_parser(name); субкоманды: reconcile-spec, validate-traceability, repair-index-mirror, validate-decompose-tree"
+  - "loop/tests/test_janitor_detectors.py — детекторы (s02)"
+  - "loop/tests/test_janitor_gc.py — gc engine (s03)"
+
+delta:
+  - "EDIT .claude/hooks/epic_resolve.py — добавить p_jscan = sub.add_parser('janitor-scan'); args --cwd, --json; handler calls scan(cwd), prints report (text / json)"
+  - "EDIT .claude/hooks/epic_resolve.py — добавить p_jgc = sub.add_parser('janitor-gc'); args --cwd, --dry-run (default), --apply; handler instantiates GcEngine, iterates fixable findings, calls apply_repair"
+  - "CREATE loop/tests/test_janitor_cli.py — CLI e2e tests via subprocess / direct call: janitor-scan returns 0 exit, report has schema; janitor-gc --dry-run returns 0; janitor-gc --apply refuses non-whitelist path (exit nonzero)"
+
+deletes: []
+
+out_of_scope:
+  - "workflow mdc / mainrule / README (s05)"
+  - "Изменения детекторов или gc engine"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # S03: CLI error handling, exit codes
+
+checkpoints:
+  - id: cp1
+    criterion: "janitor-scan subcommand зарегистрирован и возвращает JanitorReport (SC-001, SC-003)"
+    verify: ".venv/bin/python .claude/hooks/epic_resolve.py janitor-scan --cwd . --json | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d[\"schema\"]==\"janitor-report/v1\"'"
+  - id: cp2
+    criterion: "janitor-gc --dry-run выходит 0, не пишет файлы (AC-2)"
+    verify: ".venv/bin/python .claude/hooks/epic_resolve.py janitor-gc --cwd . --dry-run"
+  - id: cp3
+    criterion: "Full pytest suite green: все finding category тесты + CLI тесты"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_schema.py loop/tests/test_janitor_scan.py loop/tests/test_janitor_detectors.py loop/tests/test_janitor_events_retention.py loop/tests/test_janitor_gc.py loop/tests/test_janitor_cli.py -q --tb=short"
+
+verify:
+  - "rg 'janitor-scan\\|janitor-gc' .claude/hooks/epic_resolve.py"
+  - "rg 'def test_' loop/tests/test_janitor_cli.py | wc -l"
+  - ".venv/bin/pytest loop/tests/test_janitor_cli.py -q --tb=short"
+
+tdd:
+  - "loop/tests/test_janitor_cli.py — test_janitor_scan_exit_zero, test_janitor_scan_schema_valid, test_janitor_scan_json_flag, test_janitor_gc_dry_run, test_janitor_gc_apply_refuses_non_whitelist"

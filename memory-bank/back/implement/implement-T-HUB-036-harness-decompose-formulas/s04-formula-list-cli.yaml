@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-036-harness-decompose-formulas
+title: s04 — formula-list CLI — enumerate available formulas with metadata IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-036-harness-decompose-formulas/s04-formula-list-cli.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added list_formulas() function in loop/formula_render.py to enumerate and load formula
+  YAML files sorted by id.
+- Added formula-list subcommand in .claude/hooks/epic_resolve.py to format and output
+  formula metadata table.
+files:
+- loop/formula_render.py
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_formula_list.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_formula_list.py -q`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_formula_list.py -q
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: formula-list → stdout содержит строки hooks-epic, loop-runtime-epic,
+    cli-validate-epic
+  status: done
+  done_at: '2026-08-31T22:03:04Z'
+- id: cp2
+  criterion: list_formulas() возвращает 3 DecomposeFormula с корректными id
+  status: done
+  done_at: '2026-08-31T22:02:48Z'
+resume_from: cp1

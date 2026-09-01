@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: "CLI dashboard-render + bin/loop alias — operator entry point with --days / --format"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить subcommand dashboard-render в context_loop.py и опциональный alias bin/loop dashboard.
+  Subcommand принимает --days 7 (default) и --format html|json|both (default html), вызывает
+  collect(cwd) -> render_html/render_json, записывает в runtime/<slug>/reports/dashboard-<date>.html
+  или .json. Operator запускает одну команду и получает файл без ручного jq.
+  Связь FR-003, FR-005, AC-1, US-001, US-002.
+
+context:
+  consumes:
+    - "loop/dashboard/collect.py — collect (s01)"
+    - "loop/dashboard/render.py — render_html, render_json (s02)"
+    - "loop/context_loop.py — existing subcommand patterns"
+    - "bin/loop — existing shell script alias mechanism"
+  produces:
+    - "loop/context_loop.py — +dashboard-render subcommand handler"
+    - "bin/loop — +dashboard alias block"
+  plan_refs:
+    - FR-003
+    - FR-005
+    - AC-1
+    - US-001
+    - US-002
+  files:
+    - loop/context_loop.py
+    - bin/loop
+
+as_built:
+  - "loop/context_loop.py — большой CLI-модуль со многими subcommands (loop status, doctor, etc.) — существует"
+  - "bin/loop — shell-скрипт с subcommand routing — существует"
+  - "runtime/<slug>/reports/ — путь для выходных файлов (создаётся mkdir -p)"
+
+delta:
+  - "edit loop/context_loop.py — добавить функцию _cmd_dashboard_render(args, cwd): вызывает collect(cwd, days=args.days), по args.format записывает html/json/both, создаёт reports dir (mkdir parents=True exist_ok=True), выводит stdout 'Dashboard written to <path>'; добавить subparser 'dashboard-render' с --days (int, default=7) и --format (choices html json both, default=html)"
+  - "edit bin/loop — добавить case 'dashboard' -> forward к context_loop.py dashboard-render"
+
+deletes: []
+
+out_of_scope:
+  - "collect/render logic — s01/s02"
+  - "doctor integration — s04"
+  - "тесты — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: CLI subcommand регистрируется и --help работает без ошибок
+    verify: ".venv/bin/python loop/context_loop.py dashboard-render --help"
+  - id: cp2
+    criterion: dashboard-render записывает HTML файл в reports/ dir
+    verify: ".venv/bin/pytest tests/test_dashboard_cli.py::test_cli_creates_html_file -q --tb=short"
+  - id: cp3
+    criterion: bin/loop dashboard alias содержит forward к dashboard-render
+    verify: "bash -c 'grep -q dashboard bin/loop && echo ok'"
+
+verify:
+  - "rg 'dashboard-render' loop/context_loop.py"
+  - "rg 'dashboard' bin/loop"
+  - "rg 'reports' loop/context_loop.py"
+
+tdd:
+  - "tests/test_dashboard_cli.py — tmpdir cwd -> call _cmd_dashboard_render(args) -> assert file created in reports/"
+  - "tests/test_dashboard_cli.py — --format json -> only .json written; --format both -> both files"

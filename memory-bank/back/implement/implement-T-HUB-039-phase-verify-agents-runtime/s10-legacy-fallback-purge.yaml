@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: 's10 — legacy-fallback-purge: alias stubs → delete + dual-path leftovers +
+  dead assigns IMPLEMENT'
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-039-phase-verify-agents-runtime/s10-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted legacy alias stubs (.claude/agents/verify.md, .claude/agents/reviewer.md,
+  dsh/presets/verify.prompt.md, dsh/presets/reviewer.prompt.md).
+- Updated regression test suite loop/tests/test_phase_verify_gates.py and .claude/hooks/tests/test_subagent_start.py.
+- Verified all checkpoints cp1..cp4 are green.
+files:
+- .claude/agents/verify.md
+- .claude/agents/reviewer.md
+- dsh/presets/verify.prompt.md
+- dsh/presets/reviewer.prompt.md
+- loop/tests/test_phase_verify_gates.py
+- .claude/hooks/tests/test_subagent_start.py
+deletes:
+- .claude/agents/verify.md
+- .claude/agents/reviewer.md
+- dsh/presets/verify.prompt.md
+- dsh/presets/reviewer.prompt.md
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_phase_verify_gates.py .claude/hooks/tests/test_subagent_start.py
+  -q --tb=line
+integration_check:
+- legacy alias stubs removed and verified with pytest suite
+grep_control: []
+verification_results:
+- cp1 verified via rg
+- cp2 verified via file non-existence check
+- cp3 verified via file non-existence check
+- cp4 verified via pytest
+checkpoints:
+- id: cp1
+  criterion: rg @verify (non-dash) = 0 в .claude/ после всех docs updates
+  status: done
+  done_at: '2026-08-31T21:28:16Z'
+- id: cp2
+  criterion: verify.md / reviewer.md удалены
+  status: done
+  done_at: '2026-08-31T21:26:58Z'
+- id: cp3
+  criterion: dsh stubs удалены
+  status: done
+  done_at: '2026-08-31T21:26:58Z'
+- id: cp4
+  criterion: hooks regression suite зелёная после purge
+  status: done
+  done_at: '2026-08-31T21:28:17Z'
+resume_from: cp1

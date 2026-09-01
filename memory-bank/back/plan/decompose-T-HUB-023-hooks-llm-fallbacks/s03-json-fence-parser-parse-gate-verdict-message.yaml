@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "JSON fence parser + parse_gate_verdict_message + sidecar write"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `_lib.py` получает функцию `extract_json_fence(text) → dict | None` — детерминированный парсер fenced
+  ````json … ``` block без regex VERDICT. Поверх него — `parse_gate_verdict_message(text, cwd, agent_id,
+  recorded_at) → GateVerdictRecord | None`: извлекает JSON fence → `GateVerdictRecord.model_validate` →
+  `write_gate_verdict`. При invalid/missing fence возвращает `None` (fail-closed, без fallback regex).
+  Outcome: gate-message hook вызывает `parse_gate_verdict_message` — sidecar гарантированно typed или None.
+
+context:
+  consumes:
+    - "_lib.py: существующий extract_verdict() с regex fallback (будет переписан в s04)"
+    - "loop/gate_verdict_store.py: write_gate_verdict() / read_gate_verdict() — существуют"
+    - "loop/schemas/gate_verdict.py: GateVerdictRecord — schema + extra=forbid"
+    - "s01: load_hooks_llm_env() / hooks_llm_flag()"
+  produces:
+    - "_lib.py: extract_json_fence(text: str) → dict | None"
+    - "_lib.py: parse_gate_verdict_message(text, cwd, agent_id, recorded_at) → GateVerdictRecord | None"
+  plan_refs: [FR-003, FR-004, FR-005]
+  files:
+    - ".claude/hooks/_lib.py"
+
+as_built:
+  - "_lib.py:extract_verdict() — читает sidecar (частично), regex VERDICT fallback на строке 1317"
+  - "_lib.py:record_verdict() / mark_verdict_recorded() — существующие state helpers"
+  - "loop/gate_verdict_store.py: write_gate_verdict() — validated atomic write"
+
+delta:
+  - "_lib.py: добавить extract_json_fence(text: str) → dict | None — ищет первый ```json … ``` block, возвращает json.loads(); если нет блока или JSONDecodeError → None"
+  - "_lib.py: добавить parse_gate_verdict_message(text, cwd, agent_id, *, recorded_at, step_id=None, session_id=None, epic_id=None) → GateVerdictRecord | None — вызывает extract_json_fence → GateVerdictRecord.model_validate → write_gate_verdict; ValidationError → log + return None"
+  - "_lib.py: parse_gate_verdict_message возвращает None (не поднимает) при любом exception"
+
+deletes: []
+
+out_of_scope:
+  - "extract_verdict() — переписывается в s04 (сейчас не трогать)"
+  - "pydantic-ai secondary runner — s05"
+  - "agent prompts — s06"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "extract_json_fence с валидным json-fence возвращает dict"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_extract_json_fence_valid -q"
+  - id: cp2
+    criterion: "extract_json_fence без fence → None; с невалидным JSON → None"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_extract_json_fence_invalid -q"
+  - id: cp3
+    criterion: "parse_gate_verdict_message с valid GateVerdictRecord JSON → record записан в sidecar"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_parse_gate_verdict_message_valid -q"
+  - id: cp4
+    criterion: "parse_gate_verdict_message с невалидным payload (extra field) → None, sidecar не записан"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_parse_gate_verdict_message_invalid_payload -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_fence.py — test_extract_json_fence_valid, test_extract_json_fence_invalid, test_parse_gate_verdict_message_valid, test_parse_gate_verdict_message_invalid_payload, test_parse_gate_verdict_message_no_fence_returns_none"
+  - "loop/tests/fixtures/llm_fallback/ — valid_gate_verdict.json, invalid_extra_field.json"

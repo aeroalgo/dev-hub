@@ -24,6 +24,7 @@ alwaysApply: false
 | `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |
 | `INTEG CREATIVE` | @.cursor/rules/integration_developer/workflow-creative.mdc |
 | `INTEG IMPLEMENT` | @.cursor/rules/integration_developer/workflow-implement.mdc |
+| `INTEG AUDIT` | @.cursor/rules/integration_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
 | `INTEG TASK` | @.cursor/rules/integration_developer/workflow-task.mdc |
 | `INTEG BUGFIX` | @.cursor/rules/integration_developer/workflow-bugfix.mdc |
 | `INTEG REFACTOR` | @.cursor/rules/integration_developer/workflow-refactor.mdc |

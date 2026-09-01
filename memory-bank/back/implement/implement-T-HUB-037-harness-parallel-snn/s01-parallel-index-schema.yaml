@@ -1,0 +1,42 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-037-harness-parallel-snn
+title: s01 — depends_on schema — index yaml backward-compat field + wave model IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-037-harness-parallel-snn/s01-parallel-index-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан DecomposeIndex и DecomposeStep в loop/schemas/decompose_index.py
+- Реализован compute_ready_wave в loop/parallel/wave.py
+files:
+- loop/parallel/__init__.py
+- loop/parallel/wave.py
+- loop/schemas/decompose_index.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_parallel_wave.py -q --tb=line`'
+integration_check:
+- DecomposeIndex & compute_ready_wave — green via pytest
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: DecomposeIndex.model_validate(old_index_without_depends_on) — не выбрасывает
+    исключений (backward-compat)
+  status: done
+  done_at: '2026-08-31T22:31:20Z'
+- id: cp2
+  criterion: compute_ready_wave возвращает только шаги без depends_on (или с fulfilled
+    deps) и статусом pending
+  status: done
+  done_at: '2026-08-31T22:31:29Z'
+- id: cp3
+  criterion: шаг с depends_on=['s01'] и s01.status='pending' — НЕ включается в wave
+  status: done
+  done_at: '2026-08-31T22:31:40Z'
+resume_from: cp1

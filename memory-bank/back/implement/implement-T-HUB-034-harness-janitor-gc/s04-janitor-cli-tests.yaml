@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-034-harness-janitor-gc
+title: s04 — CLI subcommands janitor-scan/janitor-gc + full pytest suite IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-034-harness-janitor-gc/s04-janitor-cli-tests.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлены CLI субкоманды janitor-scan и janitor-gc в epic_resolve.py
+- Создан набор CLI e2e тестов loop/tests/test_janitor_cli.py
+files:
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_janitor_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_janitor_*.py -q --tb=short`'
+integration_check:
+- .venv/bin/python .claude/hooks/epic_resolve.py --cwd . janitor-scan --json
+- .venv/bin/python .claude/hooks/epic_resolve.py --cwd . janitor-gc --dry-run
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: janitor-scan subcommand зарегистрирован и возвращает JanitorReport (SC-001,
+    SC-003)
+  status: done
+  done_at: '2026-08-31T18:56:55Z'
+- id: cp2
+  criterion: janitor-gc --dry-run выходит 0, не пишет файлы (AC-2)
+  status: done
+  done_at: '2026-08-31T18:57:35Z'
+- id: cp3
+  criterion: 'Full pytest suite green: все finding category тесты + CLI тесты'
+  status: done
+  done_at: '2026-08-31T18:58:11Z'
+resume_from: cp1

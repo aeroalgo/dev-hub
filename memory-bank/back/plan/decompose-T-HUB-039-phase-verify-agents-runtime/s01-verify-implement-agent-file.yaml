@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "verify-implement agent file + alias stub + normalize ALIAS merge"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.claude/agents/verify-implement.md` как полноценный agent-file для фазы IMPLEMENT/REFACTOR/TASK.
+  Обновить `.claude/agents/verify.md` как alias-stub, указывающий на verify-implement (алиас ≥1 release).
+  Расширить `ALIAS` в `_lib.py` так, чтобы `normalize_type("verify")` возвращал `"verify-implement"` —
+  совместимо с `AGENT_ALIASES` в `agent_registry.py` (сейчас два независимых словаря).
+  User/system outcome: parent IMPLEMENT вызывает `@verify` или `@verify-implement` — оба ведут к
+  правильному агенту с enforce контрактом IMPLEMENT; fail-closed по files missing.
+
+context:
+  consumes:
+    - ".claude/agents/verify.md — monolithic, станет alias-stub"
+    - ".claude/hooks/_lib.py — ALIAS dict только explore→explorer; normalize_type uses ALIAS"
+    - ".claude/hooks/agent_registry.py — AGENT_ALIASES: verify→verify-implement, reviewer→verify-qa"
+    - ".claude/hooks/spawn_validate.py — norm in {'verify','reviewer'} check"
+    - "dsh/presets/verify.prompt.md — DSH preset для monolithic verify"
+  produces:
+    - ".claude/agents/verify-implement.md (new)"
+    - ".claude/agents/verify.md (rewritten as alias stub)"
+    - ".claude/hooks/_lib.py (ALIAS extended: verify→verify-implement)"
+  plan_refs:
+    - "FR-001: Create .claude/agents/verify-implement.md"
+    - "FR-001: alias verify.md stub"
+    - "FR-007: normalize_type ALIAS merge AGENT_ALIASES"
+    - "US-001: normalize → verify-implement"
+    - "SC-001: verify-implement agent file discoverable"
+    - "SC-002: Legacy @verify spawn works via alias"
+    - "TM-001: agent file missing → DENY"
+  files:
+    - ".claude/agents/verify-implement.md"
+    - ".claude/agents/verify.md"
+    - ".claude/hooks/_lib.py"
+
+as_built:
+  - ".claude/agents/verify.md — monolithic verify agent с секциями AC+/AC−/§0.11/VERIFY/ALLOW"
+  - ".claude/hooks/_lib.py ALIAS = {'explore': 'explorer'} — нет verify alias"
+  - ".claude/hooks/agent_registry.py AGENT_ALIASES = {'verify': 'verify-implement', 'reviewer': 'verify-qa'} — уже есть, но не в _lib.normalize_type"
+  - "spawn_validate.py — нормализует через _lib.normalize_type, затем проверяет norm in {'verify','reviewer'} — алиас работает через AGENT_ALIASES в registry, но не через _lib ALIAS"
+  - "dsh/presets/verify.prompt.md — генерирует промпт для verify"
+
+delta:
+  - "add .claude/agents/verify-implement.md: полный agent файл (role, tools, sections AC+/AC−/§0.11/VERIFY/ALLOW, IMPLEMENT/REFACTOR/TASK scope, VERDICT JSON fence)"
+  - "rewrite .claude/agents/verify.md: alias-stub с forward → verify-implement (не дублировать instructions)"
+  - "edit .claude/hooks/_lib.py: ALIAS['verify'] = 'verify-implement' — merge с AGENT_ALIASES так чтобы normalize_type унифицирован"
+
+deletes: []
+# verify.md переписывается как stub, не удаляется — alias-compat ≥1 release. Удаление — в s10.
+
+out_of_scope:
+  - "FR-020: T-HUB-029 legacy ref out of scope"
+  - "verify-bugfix / verify-qa / verify-decompose — s02/s03"
+  - "DSH presets verify-implement.prompt.md — s06"
+  - "spawn_validate.py VERDICT_FIRST_LINE check для новых типов — s04"
+  - "stop-gate enforce — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "verify-implement.md существует и содержит секции AC+, AC−, §0.11, VERIFY, ALLOW"
+    verify: "rg 'AC[+]|AC[−-]|§0\\.11|ALLOW' .claude/agents/verify-implement.md"
+  - id: cp2
+    criterion: "normalize_type('verify') возвращает 'verify-implement'"
+    verify: "cd /home/aero/PyProject/dev-hub && .venv/bin/python -c \"import sys; sys.path.insert(0,'.claude/hooks'); from _lib import normalize_type; assert normalize_type('verify')=='verify-implement'\""
+  - id: cp3
+    criterion: "verify.md содержит alias forward и не дублирует полные instructions"
+    verify: "rg 'verify-implement|alias|forward' .claude/agents/verify.md && wc -l .claude/agents/verify.md"
+  - id: cp4
+    criterion: "unit: test_normalize_type_verify_alias passes"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'normalize' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_normalize_type_verify_alias: normalize_type('verify') == 'verify-implement'"
+  - "test_agent_file_exists_verify_implement: Path('.claude/agents/verify-implement.md').is_file()"

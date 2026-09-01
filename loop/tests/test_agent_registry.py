@@ -111,3 +111,16 @@ def test_legacy_definitions_get_compatibility_defaults(tmp_path: Path) -> None:
     assert result.get("reviewer").verdict == "pass-blocked-fail"
     assert result.get("explorer").mode == "search"
     assert all(agent.runnable for agent in result.definitions)
+
+
+def test_normalize_type_verify_alias() -> None:
+    sys.path.insert(0, str(ROOT / ".claude" / "hooks"))
+    from _lib import normalize_type
+    assert normalize_type("verify") == "verify-implement"
+    assert normalize_type("explore") == "explorer"
+    assert normalize_type("verify-implement") == "verify-implement"
+
+
+def test_agent_file_exists_verify_implement() -> None:
+    assert (ROOT / ".claude" / "agents" / "verify-implement.md").is_file()
+

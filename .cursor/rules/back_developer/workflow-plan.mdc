@@ -10,6 +10,7 @@ alwaysApply: false
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 **Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
+**Behavior-first Independent Test (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc §5
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md
 - @.agents/skills/grill-me/SKILL.md — **Phase 0 only** (orchestration); **не** inline в Phase 1. Spike skip → mini grill (3 premises) в plan §Product probe
@@ -23,7 +24,7 @@ alwaysApply: false
 - @.agents/skills/architecture-patterns/SKILL.md (L3–4)
 - @.agents/skills/python-design-patterns/SKILL.md (L3–4)
 
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-plan.mdc
 
 **Batch (Phase 1 only):** шаги 2–8 за один проход; вопросы пакетом. **Phase 0** — sequential (orchestration).
 **Skills note:** при проходе Eng review (step 2p) для L2+ использовать `@.agents/skills/architecture-patterns/SKILL.md` (или профильные скиллы стека), для L1 — опционально.
@@ -42,7 +43,7 @@ alwaysApply: false
     - **Auto-resolve defer:** вопросы/риски без вето пользователя сводятся пакетом в `## Plan review batch log` таблицы (не mandatory AskUserQuestion one-by-one). L1 — Product/Eng review pass опционален.
 3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → brainstorming / architecture-patterns
 3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** (оба обязательны) → полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0 каждый файл). Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
-4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback). **Technology axiom + spec-first:** @.cursor/rules/shared/workflow-spec-first-replace.mdc — WHAT/axiom до as-built design; pydantic/JSON/enums → purge старого parser in-epic
+4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback). **Technology axiom + spec-first:** @.cursor/rules/shared/workflow-spec-first-replace.mdc — WHAT/axiom до as-built design; pydantic/JSON/enums → purge старого parser in-epic. **Independent Test (US):** только наблюдаемое поведение (файл/spawn/enforce/CLI); **FORBIDDEN** «alias/get_* returns string / field in yaml» как единственный Independent Test — @.cursor/rules/shared/workflow-behavior-first.mdc §5
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)

@@ -20,6 +20,8 @@ from _lib import (
     workflow_state_active,
     is_epic_loop_env,
     _discover_registry,
+    CUSTOM_OVERLAY,
+    GATE_AGENTS,
 )
 from spawn_validate import validate_spawn_input
 
@@ -38,20 +40,33 @@ def main() -> None:
     if not workflow_state_active(st, cwd or None):
         return
 
+    deny_reasons, notes = validate_spawn_input(tool_input, st, cwd or None)
+    norm = normalize_type(tool_input.get("subagent_type") or tool_input.get("agent_type"))
+    definition = _discover_registry(cwd or None).get(norm) if norm else None
+    managed = bool(definition is not None and definition.managed)
+
     from epic.core import load_epic_state
     from loop.epic_transition import get_verify_agent
     epic = load_epic_state(cwd) if cwd else {}
     current_phase = epic.get("phase") or st.get("mode") or ""
     expected_verify_agent = get_verify_agent(str(current_phase)) if current_phase else None
 
-    deny_reasons, notes = validate_spawn_input(tool_input, st, cwd or None)
-    norm = normalize_type(tool_input.get("subagent_type") or tool_input.get("agent_type"))
-    definition = _discover_registry(cwd or None).get(norm) if norm else None
-    managed = bool(definition is not None and definition.managed)
+    if norm and expected_verify_agent and norm.startswith("verify") and norm != expected_verify_agent:
+        notes.append(
+            f"mismatched_verify_agent: phase '{current_phase}' expects '{expected_verify_agent}', got '{norm}'"
+        )
+
+    if norm and (managed or norm in GATE_AGENTS or norm in CUSTOM_OVERLAY):
+        agent_file = Path(cwd or ".").resolve() / ".claude" / "agents" / f"{norm}.md"
+        if not agent_file.is_file():
+            agent_file = Path(__file__).resolve().parent.parent / "agents" / f"{norm}.md"
+        if not agent_file.is_file():
+            deny_reasons.append(f"agent_file_missing: .claude/agents/{norm}.md не существует")
+
     spawn_model = resolved_spawn_model(tool_input, definition)
     prompt = tool_input.get("prompt") or ""
 
-    if norm == "verify" and agent_enabled("verify", cwd or None):
+    if norm in {"verify", "verify-implement"} and agent_enabled("verify", cwd or None):
         if st.get("verify_done") and (
             str(st.get("verify_verdict") or "").upper() == "PASS"
         ):
@@ -145,7 +160,7 @@ def main() -> None:
         spawns = st.setdefault("spawns", [])
         spawns.append(norm)
         st["spawns"] = spawns[-30:]
-        if norm == "verify" and agent_enabled("verify", cwd or None):
+        if norm in {"verify", "verify-implement"} and agent_enabled("verify", cwd or None):
             st["need_verify"] = True
             incomplete = int(st.get("verify_incomplete") or 0)
             if incomplete >= 1:

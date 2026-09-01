@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "formula-render CLI — materialize draft decompose sNN shards from formula"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  CLI `formula-render` принимает `--formula <id>`, `--epic-id T-xxx`, `--slug <slug>`,
+  `--dry-run` или `--out <dir>`. Рендерит index.yaml skeleton + sNN-<slug>.yaml (по одному
+  на каждый step формулы) путём merge с `.cursor/templates/decompose/epic-step.yaml`.
+  В dry-run — печатает в stdout; в --out — пишет файлы (не перезаписывает без --force).
+  Outcome: planner получает полный черновик decompose dir за одну команду;
+  дальше вручную заполняет placeholder'ы и коммитит.
+
+context:
+  consumes:
+    - "loop/schemas/formula.py — load_formula(), DecomposeFormula (s01)"
+    - "loop/formulas/*.yaml — bundled formula files (s02)"
+    - ".cursor/templates/decompose/epic-step.yaml — base template для sNN merge"
+    - ".cursor/templates/decompose/index.yaml — base template для index"
+  produces:
+    - "loop/formula_render.py — render_formula(formula, epic_id, slug, out_dir, dry_run, force) → list[str] (written paths)"
+    - ".claude/hooks/epic_resolve.py (или отдельный bin/formula-render) — CLI entrypoint subcommand или standalone script"
+    - "loop/formulas/ runtime: resolved formula YAML lookup по id"
+  plan_refs: [FR-003, FR-004, US-001]
+  files:
+    - "loop/formula_render.py"
+    - ".claude/hooks/epic_resolve.py"
+
+as_built:
+  - ".claude/hooks/epic_resolve.py — argparse multi-subcommand CLI (validate-decompose-tree, validate-step, arm, finalize-step…); add_parser pattern уже есть"
+  - "loop/schemas/formula.py — load_formula() готова (s01)"
+  - ".cursor/templates/decompose/epic-step.yaml — static YAML template; нужно читать как base и merge с formula step"
+  - "loop/formulas/*.yaml — formula files (s02)"
+
+delta:
+  - "создать loop/formula_render.py: find_formula_file(formula_id) → Path (ищет в loop/formulas/); render_step(formula_step, step_idx, plan_id, slug) → dict (merge epic-step.yaml base + formula step fields); render_formula(formula_id, epic_id, slug, out_dir=None, dry_run=False, force=False) → list[str]"
+  - "render_formula: загружает formula → для каждого step render_step → sNN-{slug}-{step.title_slug}.yaml; строит index.yaml из steps list; dry_run → yaml.dump в stdout; --out → записывает файлы; существующий файл без --force → exit 1 с сообщением"
+  - "добавить subcommand formula-render в .claude/hooks/epic_resolve.py (add_parser + dispatch к formula_render.render_formula); args: --formula, --epic-id, --slug, --out, --dry-run, --force"
+
+deletes: []
+
+out_of_scope:
+  - "s04 — formula-list (отдельный subcommand)"
+  - "s05 — exit-2 schema validation (вызывает load_formula, которая уже raises ValueError из s01)"
+  - "interactive wizard / TUI"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # render output structure tests"
+    - "python-error-handling # --force / overwrite guard / missing formula → exit 1"
+
+checkpoints:
+  - id: cp1
+    criterion: "formula-render --formula hooks-epic --epic-id T-HUB-999 --slug test-slug --dry-run → stdout содержит index.yaml + ≥5 sNN yaml blocks"
+    verify: ".venv/bin/pytest loop/tests/test_formula_render.py::test_dry_run_hooks_epic -q"
+  - id: cp2
+    criterion: "formula-render --out /tmp/test-decompose-dir → создаёт index.yaml + s01-*.yaml … sNN-*.yaml на диске"
+    verify: ".venv/bin/pytest loop/tests/test_formula_render.py::test_render_writes_files -q"
+  - id: cp3
+    criterion: "повторный вызов без --force → exit 1, файлы не перезаписаны"
+    verify: ".venv/bin/pytest loop/tests/test_formula_render.py::test_no_overwrite_without_force -q"
+  - id: cp4
+    criterion: "неизвестная formula → exit 1 с readable сообщением"
+    verify: ".venv/bin/pytest loop/tests/test_formula_render.py::test_unknown_formula_exit1 -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_formula_render.py — test_dry_run_hooks_epic, test_render_writes_files, test_no_overwrite_without_force, test_unknown_formula_exit1, test_rendered_index_has_steps, test_rendered_shard_has_required_fields"

@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-037-harness-parallel-snn
+title: "transition engine hook — parallel gate when armed_step=IMPLEMENT + integration tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать parallel orchestrator в loop/epic_transition.py (T-HUB-029 arm_phase integration point).
+  Когда `armed_step=IMPLEMENT` и `EPIC_PARALLEL_SNN=1` в env: вызвать run_parallel_wave; если
+  ParallelResult.spawned непустой — завершить prepare-цикл (параллельный mode взял управление).
+  Если wave пустой или env выключен — sequential path без изменений. Написать integration tests:
+  mock spawn + фиктивный index → ParallelResult корректен; sequential path не нарушен.
+  Outcome: end-to-end opt-in parallel IMPLEMENT flow работает через единую точку entry (transition engine).
+
+context:
+  consumes:
+    - "loop/epic_transition.py — arm_phase / prepare cycle (T-HUB-029)"
+    - "loop/parallel/orchestrator.py (s04) — run_parallel_wave"
+    - ".claude/hooks/epic_resolve.py — arm_phase registry allows check"
+  produces:
+    - "loop/epic_transition.py — изменён: вызов run_parallel_wave при armed_step=IMPLEMENT + EPIC_PARALLEL_SNN=1"
+    - "loop/tests/test_parallel_integration.py — integration tests wave→spawn→status mock"
+  plan_refs:
+    - FR-007
+    - FR-008
+    - SC-001
+    - SC-002
+    - SC-003
+  files:
+    - "loop/epic_transition.py"
+    - "loop/tests/test_parallel_integration.py"
+
+as_built:
+  - "loop/epic_transition.py — arm_phase + prepare cycle sequential; нет parallel hook"
+  - "loop/parallel/orchestrator.py — run_parallel_wave готов (s04)"
+  - "loop/tests/ — suite существует; test_parallel_integration отсутствует"
+
+delta:
+  - "изменить loop/epic_transition.py: в prepare/arm_phase block после armed_step=IMPLEMENT check — if EPIC_PARALLEL_SNN=='1': result = run_parallel_wave(...); if result and result.spawned: return EpicTransitionResult(parallel=True, wave=result.wave)"
+  - "создать loop/tests/test_parallel_integration.py: mock run_parallel_wave + fake index; проверить armed_step=IMPLEMENT + env=1 → parallel branch; env=0 → sequential branch; armed_step=PLAN → no parallel"
+
+deletes: []
+
+out_of_scope:
+  - "loop.sh shell integration — вызов из bash (документировано в docs/parallel-snn.md, не wire)"
+  - "automatic conflict resolution — anti-scope"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # mock run_parallel_wave, pytest monkeypatch env, integration fixture"
+    - "modern-python # pathlib, os.environ, dataclass EpicTransitionResult extension"
+    - "python-anti-patterns # no implicit env read deep in call chain, pass env dict"
+    - "tdd # test-first: cp1/cp2/cp3 покрыты до impl"
+
+checkpoints:
+  - id: cp1
+    criterion: "armed_step=IMPLEMENT + EPIC_PARALLEL_SNN=1 + non-empty wave → parallel branch aktivируется (mock)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_integration.py::test_parallel_branch_activated -q"
+  - id: cp2
+    criterion: "armed_step=IMPLEMENT + EPIC_PARALLEL_SNN=0 → sequential path, run_parallel_wave not called"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_integration.py::test_sequential_env_zero -q"
+  - id: cp3
+    criterion: "armed_step=PLAN + EPIC_PARALLEL_SNN=1 → no parallel (guard: only IMPLEMENT)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_integration.py::test_no_parallel_for_plan_step -q"
+  - id: cp4
+    criterion: "SC-001: fixture 2 steps no deps → wave=['s02','s03'] (end-to-end mock spawn count=2)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_integration.py::test_sc001_two_independent_steps -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_parallel_integration.py — test_parallel_branch_activated, test_sequential_env_zero, test_no_parallel_for_plan_step, test_sc001_two_independent_steps, test_sc002_overlap_blocks_parallel, test_sc003_epic_parallel_zero_unchanged"

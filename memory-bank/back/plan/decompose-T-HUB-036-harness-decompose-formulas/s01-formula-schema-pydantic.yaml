@@ -1,0 +1,64 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "formula schema — decompose-formula/v1 Pydantic model + YAML loader"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Определить schema `decompose-formula/v1` как Pydantic модель в `loop/schemas/formula.py`.
+  Модель описывает formula: id, description, default_level, steps[] (title, goal_template,
+  typical_files_pattern, verify_hints). YAML-файл формулы валидируется через model_validate
+  при загрузке; невалидный файл → ValueError с читаемым сообщением.
+  Outcome: единственная точка schema-validation для всех formula YAML; другие модули импортируют
+  FormulaStep / DecomposeFormula из `loop/schemas/formula.py`.
+
+context:
+  consumes:
+    - "loop/schemas/ — существующий registry Pydantic-схем (handoff.py, state.py, verdict.py)"
+    - "loop/schemas/README.md — таблица схем; нужно добавить строку decompose-formula/v1"
+    - ".cursor/templates/decompose/epic-step.yaml — поля, которые formula.steps[] задаёт шаблонами"
+  produces:
+    - "loop/schemas/formula.py — FormulaStep + DecomposeFormula Pydantic models + load_formula(path) → DecomposeFormula"
+    - "loop/schemas/README.md — строка decompose-formula/v1 в таблице схем"
+  plan_refs: [FR-001]
+  files:
+    - "loop/schemas/formula.py"
+    - "loop/schemas/README.md"
+
+as_built:
+  - "loop/schemas/ — handoff.py / state.py / verdict.py / checkpoint.py уже существуют как Pydantic v2 models"
+  - "loop/schemas/__init__.py — экспортирует schemas символы; formula отсутствует"
+
+delta:
+  - "создать loop/schemas/formula.py: FormulaStep (title, goal_template, typical_files_pattern=[], verify_hints=[]) + DecomposeFormula (schema='decompose-formula/v1', id, description, default_level='L2', steps: list[FormulaStep])"
+  - "добавить load_formula(path: str | Path) → DecomposeFormula: читает YAML через yaml.safe_load; DecomposeFormula.model_validate(data); ValueError с path если ValidationError"
+  - "обновить loop/schemas/README.md: строка decompose-formula/v1 | DecomposeFormula | loop/schemas/formula.py | Typed skeleton for reusable DECOMPOSE formula"
+
+deletes: []
+
+out_of_scope:
+  - "s02 — файлы формул"
+  - "s03/s04 — CLI render/list"
+  - "s05 — exit-2 validation (зависит от load_formula уже готового здесь)"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # Pydantic v2 model_validate + pytest fixture"
+
+checkpoints:
+  - id: cp1
+    criterion: "DecomposeFormula.model_validate({'schema':'decompose-formula/v1','id':'x','description':'y','steps':[]}) — не поднимает исключений"
+    verify: ".venv/bin/pytest loop/tests/test_formula_schema.py::test_decompose_formula_valid -q"
+  - id: cp2
+    criterion: "load_formula(invalid_path) → ValueError содержит путь к файлу"
+    verify: ".venv/bin/pytest loop/tests/test_formula_schema.py::test_load_formula_invalid_yaml -q"
+  - id: cp3
+    criterion: "FormulaStep fields доступны: title, goal_template, typical_files_pattern, verify_hints"
+    verify: ".venv/bin/pytest loop/tests/test_formula_schema.py::test_formula_step_fields -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_formula_schema.py — test_decompose_formula_valid, test_decompose_formula_missing_required, test_load_formula_valid_file, test_load_formula_invalid_yaml, test_formula_step_fields"

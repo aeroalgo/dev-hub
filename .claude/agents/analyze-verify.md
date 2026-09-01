@@ -41,6 +41,25 @@ Parent **обязан** передать секции. Нет секции → `
 3. После ≤6 Read — финальный отчёт, **ноль** дальнейших tool calls.
 4. **Первая строка текста = `VERDICT:`**
 
+## Gate Output (JSON fence HARD)
+
+Твой финальный ответ **обязан** содержать fenced JSON блок с вердиктом по схеме `loop-gate-verdict/v1`:
+
+```json
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "analyze-verify",
+  "verdict": "PASS",
+  "step_id": "s06",
+  "epic_id": "T-HUB-023",
+  "recorded_at": "2026-08-31T12:00:00Z"
+}
+```
+
+- Поле `verdict` может быть `"PASS"` или `"FAIL"`.
+- Hook / runtime парсит **именно fenced JSON** `loop-gate-verdict/v1`.
+- Текстовая строка `VERDICT: PASS|FAIL` — дополнительный human summary для удобства чтения в консоли (не machine input).
+
 ## Формат отчёта (обязательный)
 
 ```

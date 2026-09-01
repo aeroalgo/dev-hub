@@ -1,0 +1,7 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-phase-verify-agents-runtime-epics.md
+queue:
+  - id: T-HUB-039
+    plan: plan-T-HUB-039-phase-verify-agents-runtime.md
+    deps: [T-HUB-029]

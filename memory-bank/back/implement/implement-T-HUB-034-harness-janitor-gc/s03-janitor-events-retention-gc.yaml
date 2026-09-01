@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-034-harness-janitor-gc
+title: s03 — Events/episode retention detector + janitor-gc whitelist engine IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-034-harness-janitor-gc/s03-janitor-events-retention-gc.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created detect_orphan_events_dir and detect_episode_retention_exceeded detectors
+  in loop/janitor/detectors/events_retention.py
+- Registered events retention detectors in loop/janitor/detectors/__init__.py DETECTORS
+  list
+- Created GcEngine in loop/janitor/gc.py with whitelist validation, GcWhitelistError
+  fail-closed protection, and dry_run support
+- Added test coverage in loop/tests/test_janitor_events_retention.py and loop/tests/test_janitor_gc.py
+files:
+- loop/janitor/detectors/events_retention.py
+- loop/janitor/gc.py
+- loop/janitor/detectors/__init__.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_janitor_gc.py loop/tests/test_janitor_events_retention.py
+  -q --tb=short`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_janitor_gc.py loop/tests/test_janitor_events_retention.py
+  -q --tb=short
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- rg 'def detect_orphan_events_dir\|def detect_episode_retention_exceeded' loop/janitor/detectors/events_retention.py
+  -> PASS
+- rg 'GcWhitelistError\|fail.closed\|whitelist' loop/janitor/gc.py -> PASS
+- rg 'dry_run' loop/janitor/gc.py -> PASS
+- .venv/bin/pytest loop/tests/test_janitor_gc.py loop/tests/test_janitor_events_retention.py
+  -q --tb=short -> 6 passed
+checkpoints:
+- id: cp1
+  criterion: detect_orphan_events_dir находит fixture orphan events dir (без manifest)
+  status: done
+  done_at: '2026-08-31T18:51:42Z'
+- id: cp2
+  criterion: detect_episode_retention_exceeded находит fixture episode старше 30 дней
+  status: done
+  done_at: '2026-08-31T18:51:47Z'
+- id: cp3
+  criterion: GcEngine.apply_repair raises GcWhitelistError для пути вне whitelist
+    (SC-002, NFR-02)
+  status: done
+  done_at: '2026-08-31T18:52:13Z'
+- id: cp4
+  criterion: GcEngine dry_run=True не пишет на диск (read-only scan path не нарушен)
+  status: done
+  done_at: '2026-08-31T18:52:18Z'
+resume_from: cp1

@@ -1,0 +1,125 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-039-phase-verify-agents-runtime
+slug: phase-verify-agents-runtime
+date: 2026-08-31
+status: complete
+
+# Read-only pre-IMPLEMENT analysis for T-HUB-039-phase-verify-agents-runtime.
+findings: []
+
+requirements_coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-002
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-003
+    step_ids: [s03]
+    status: covered
+  - requirement_id: FR-004
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-005
+    step_ids: [s04]
+    status: covered
+  - requirement_id: FR-006
+    step_ids: [s04]
+    status: covered
+  - requirement_id: FR-007
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-008
+    step_ids: [s05]
+    status: covered
+  - requirement_id: FR-009
+    step_ids: [s04]
+    status: covered
+  - requirement_id: FR-010
+    step_ids: [s05]
+    status: covered
+  - requirement_id: FR-011
+    step_ids: [s04]
+    status: covered
+  - requirement_id: FR-012
+    step_ids: [s08]
+    status: covered
+  - requirement_id: FR-013
+    step_ids: [s06]
+    status: covered
+  - requirement_id: FR-014
+    step_ids: [s07]
+    status: covered
+  - requirement_id: FR-015
+    step_ids: [s09]
+    status: covered
+  - requirement_id: FR-016
+    step_ids: [s08]
+    status: covered
+  - requirement_id: FR-017
+    step_ids: [s08]
+    status: covered
+  - requirement_id: FR-018
+    step_ids: [s04]
+    status: covered
+  - requirement_id: FR-019
+    step_ids: [s10]
+    status: covered
+  - requirement_id: FR-020
+    step_ids: [s01]
+    status: covered
+  - requirement_id: US-001
+    step_ids: [s01, s08]
+    status: covered
+  - requirement_id: US-002
+    step_ids: [s02, s04, s08]
+    status: covered
+  - requirement_id: US-003
+    step_ids: [s03, s05, s08]
+    status: covered
+  - requirement_id: US-004
+    step_ids: [s02, s05, s08]
+    status: covered
+  - requirement_id: US-005
+    step_ids: [s03, s05]
+    status: covered
+  - requirement_id: US-006
+    step_ids: [s06]
+    status: covered
+  - requirement_id: US-007
+    step_ids: [s04, s09]
+    status: covered
+  - requirement_id: SC-001
+    step_ids: [s01, s02, s03]
+    status: covered
+  - requirement_id: SC-002
+    step_ids: [s01, s02, s07]
+    status: covered
+  - requirement_id: SC-003
+    step_ids: [s03, s05]
+    status: covered
+  - requirement_id: SC-004
+    step_ids: [s03, s05]
+    status: covered
+  - requirement_id: SC-005
+    step_ids: [s05]
+    status: covered
+  - requirement_id: SC-006
+    step_ids: [s06]
+    status: covered
+  - requirement_id: SC-007
+    step_ids: [s04]
+    status: covered
+
+metrics:
+  coverage_pct: 100.0
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: proceed (IMPLEMENT)
+next_actions:
+  - "Все требования трассированы. Переход в BACK IMPLEMENT разрешён."
+
+constitution_violations: []

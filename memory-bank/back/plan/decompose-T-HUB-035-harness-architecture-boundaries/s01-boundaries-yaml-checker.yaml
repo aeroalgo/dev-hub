@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: "Enforce layer contracts — boundaries.yaml + checker module"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `tests/architecture/boundaries.yaml` с ≥5 контрактов на слои хаба (loop / hooks /
+  memory-bank / product) и модуль `tests/architecture/check_boundaries.py`, который читает yaml
+  и возвращает pass/fail со списком нарушений. Это — механический enforcer, отсутствующий сейчас:
+  architecture/ описывает границы текстом, но ни одна CI-команда не падает на нарушение импорта.
+  Outcome: `python -m pytest tests/architecture/test_boundary_check.py` проходит на чистом коде
+  и падает с понятным сообщением о нарушителе, если добавить запрещённый импорт.
+
+context:
+  consumes:
+    - memory-bank/architecture/overview.md  # as-built map слоёв
+    - memory-bank/architecture/data-flow.md
+  produces:
+    - tests/architecture/boundaries.yaml    # контракты (≥5 правил)
+    - tests/architecture/check_boundaries.py  # читает yaml, возвращает violations list
+    - tests/architecture/test_boundary_check.py  # AC+/AC− pytest suite
+  plan_refs:
+    - FR-001  # boundary config file ≥5 contracts
+    - FR-002  # checker CLI/API reads yaml, reports violations
+    - US-001  # CI fail on new cross-layer import
+    - AC+1    # boundaries.yaml with ≥5 contracts for hub layers
+    - AC+2    # check CLI works in CI
+    - SC-001  # known-good tree stays green
+    - SC-002  # synthetic violation fails
+    - FR-006  # remediation hint in violation message
+  files:
+    - tests/architecture/boundaries.yaml
+    - tests/architecture/check_boundaries.py
+    - tests/architecture/test_boundary_check.py
+
+as_built:
+  - "tests/ — пуст / нет tests/architecture/"
+  - "memory-bank/architecture/overview.md — описывает слои (loop, hooks, .claude, .agents, bin, make); нет механического enforcer"
+  - "нет import-linter config, нет boundaries yaml, нет check_boundaries.py"
+
+delta:
+  - "create tests/architecture/ (новая директория)"
+  - "create tests/architecture/boundaries.yaml — ≥5 contracts: loop→hooks forbidden, hooks↛loop, loop↛.claude rules, .claude/hooks↛loop internals, loop↛product code"
+  - "create tests/architecture/check_boundaries.py — парсит yaml, использует ast/importlib или rg-subprocess чтобы найти нарушения, возвращает list[Violation]"
+  - "create tests/architecture/test_boundary_check.py — pytest: SC-001 (чистый код → [] violations), SC-002 (synthetic tmp-file с forbidden import → ≥1 violation)"
+
+deletes: []
+# Greenfield: нет существующих enforcer/boundary файлов для удаления
+
+out_of_scope:
+  - "ratchet.json и механизм счётчика — s02"
+  - "doctor integration — s03"
+  - "architecture doc update — s04"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/python-testing-patterns/SKILL.md"   # S06 pytest structure, fixtures
+    - ".agents/skills/architecture-patterns/SKILL.md"      # S09 layer contract design
+
+checkpoints:
+  - id: cp1
+    criterion: "boundaries.yaml создан и содержит ≥5 contracts (loop, hooks, .claude/hooks, .agents, memory-bank слои)"
+    verify: "python -c \"import yaml; d=yaml.safe_load(open('tests/architecture/boundaries.yaml')); assert len(d.get('contracts',[])) >= 5\""
+  - id: cp2
+    criterion: "SC-001 pass: check_boundaries на реальном дереве хаба возвращает 0 violations"
+    verify: ".venv/bin/pytest tests/architecture/test_boundary_check.py::test_clean_tree_no_violations -q"
+  - id: cp3
+    criterion: "SC-002 pass: синтетический файл с forbidden import → violation detected"
+    verify: ".venv/bin/pytest tests/architecture/test_boundary_check.py::test_synthetic_violation_detected -q"
+  - id: cp4
+    criterion: "Весь suite зелёный"
+    verify: ".venv/bin/pytest tests/architecture/ -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest tests/architecture/ -q --tb=short"
+  - "rg 'def check_boundaries' tests/architecture/check_boundaries.py"
+  - "python -c \"import yaml; d=yaml.safe_load(open('tests/architecture/boundaries.yaml')); assert len(d.get('contracts',[])) >= 5\""
+
+tdd:
+  - "test_clean_tree_no_violations: реальное дерево хаба → violations == []"
+  - "test_synthetic_violation_detected: tmp dir + fake_module.py с запрещённым from loop import X → violations содержит нарушение"
+  - "test_boundaries_yaml_schema_valid: yaml парсится, у каждого contract есть layer, forbids, reason"

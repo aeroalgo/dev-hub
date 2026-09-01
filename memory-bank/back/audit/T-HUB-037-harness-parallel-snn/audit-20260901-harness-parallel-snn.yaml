@@ -1,0 +1,45 @@
+date: '2026-09-01'
+epic_id: T-HUB-037-harness-parallel-snn
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-037-harness-parallel-snn.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-037-harness-parallel-snn/index.yaml
+
+steps:
+  - id: s01
+    title: "depends_on schema — index yaml backward-compat field + wave model"
+    status: implemented
+    as_built: "Реализована модель DecomposeIndex в loop/schemas/decompose_index.py с полем depends_on: list[str] = []. В loop/parallel/wave.py реализован расчёт готовой волны compute_ready_wave(). Покрыто тестами в loop/tests/test_parallel_wave.py."
+    delta: "Новые файлы loop/schemas/decompose_index.py, loop/parallel/wave.py, loop/tests/test_parallel_wave.py."
+    gaps: []
+
+  - id: s02
+    title: "file overlap checker — fail-closed parallel gate by shard files intersection"
+    status: implemented
+    as_built: "Реализованы функции extract_shard_files() и file_overlap_check() в loop/parallel/overlap.py для выявления пересечения файлов между шардами декомпозиции. Покрыто тестами в loop/tests/test_parallel_overlap.py."
+    delta: "Новые файлы loop/parallel/overlap.py, loop/tests/test_parallel_overlap.py."
+    gaps: []
+
+  - id: s03
+    title: "worktree pool — create/destroy git worktrees per sNN parallel session"
+    status: implemented
+    as_built: "Реализованы функции create_worktree(), destroy_worktree(), list_epic_worktrees() в loop/parallel/worktree.py для управления изолированными git worktrees. Покрыто тестами в loop/tests/test_parallel_worktree.py."
+    delta: "Новые файлы loop/parallel/worktree.py, loop/tests/test_parallel_worktree.py."
+    gaps: []
+
+  - id: s04
+    title: "parallel orchestrator — opt-in EPIC_PARALLEL_SNN wave spawn + flock index update"
+    status: implemented
+    as_built: "Реализован параллельный оркестратор run_parallel_wave() в loop/parallel/orchestrator.py, поддерживающий EPIC_PARALLEL_SNN=1, ограничение EPIC_PARALLEL_MAX, фильтрацию overlap-конфликтов и безопасное spawn/flock обновление. Создана документация docs/parallel-snn.md. Покрыто тестами в loop/tests/test_parallel_orchestrator.py."
+    delta: "Новые файлы loop/parallel/orchestrator.py, docs/parallel-snn.md, loop/tests/test_parallel_orchestrator.py."
+    gaps: []
+
+  - id: s05
+    title: "transition engine hook — parallel gate when armed_step=IMPLEMENT + integration tests"
+    status: implemented
+    as_built: "Интегрирован вызов run_parallel_wave() в loop/epic_transition.py (точка arm_phase/IMPLEMENT при EPIC_PARALLEL_SNN=1). Разработаны интеграционные тесты end-to-end в loop/tests/test_parallel_integration.py."
+    delta: "Обновлён файл loop/epic_transition.py, создан loop/tests/test_parallel_integration.py."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 5 шагов (s01-s05) полностью реализованы и проверены 26 модульными и интеграционными тестами. Gap-матрица пуста."

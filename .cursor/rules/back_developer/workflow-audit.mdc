@@ -5,18 +5,26 @@ alwaysApply: false
 ### Команда: BACK AUDIT
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-audit.mdc
+**Behavior-first / anti-dilution (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc
 **Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
 **FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать suite или отдельные тесты; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE.
 
 **Процесс**:
 1. `OK BACK AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до любой оценки.
-2. **Intent Inventory**: из `plan-<epic_id>.md` и `decompose-<epic_id>/index.md` собрать полный список применимых FR/SC/US/AC/NFR и constitution MUST. Для каждого intent указать `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `Constitution <rule>` или `step:sNN`) и связать его с eNN/sNN.
-   **Constitution case selection:** если `memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml` и `memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml` имеют все шаги `completed`, использовать **CASE A**: проверять canonical `memory-bank/constitution.md` и явные refs в workflow; `constitution-note.md` не создавать. Если любой из эпиков не завершён, использовать CASE B и требовать отдельный constitution note по соответствующему implement shard.
-3. **Assess**: загрузить только plan/decompose coverage, заголовки implement `sNN|eNN` и evidence по bound file list; не делать full-repo audit. Построить legacy gap-матрицу (✅ / ❌ / ⚠️) по каждому `step_id`, затем проверить intent↔code/evidence, а не только наличие файла.
-4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding обязан иметь `gap_type` (`missing|partial|contradicts|unrequested`), `severity`, `source_ref`, `evidence` и `remaining_work`. `CRITICAL` из constitution MUST или P1 intent ставить первыми среди actionable findings.
+2. **Intent Inventory (plan-first HARD):** из **`plan-<epic_id>.md`** собрать **полный** список FR/SC/US/AC±/NFR и constitution MUST. Decompose `index.md` / remapped `plan_refs` — **вторичный** индекс (не источник списка). Каждый intent: `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `Constitution <rule>`) → связать с eNN/sNN **или** finding `missing` CRITICAL. Supersede/merge: FR из superseded plan тоже в inventory.
+   **FORBIDDEN:** inventory только из схлопнутого decompose (пропуск plan FR вроде FR-020 при remap в FR-007).
+   **Constitution case selection (portable):**
+   - **CASE A** — существует `$PROJECT_ROOT/memory-bank/constitution.md`: проверять canonical constitution + явные refs в workflow/plan; `constitution-note.md` **не** создавать.
+   - **CASE B** — файла нет: требовать отдельный constitution note (или явный `constitution: n/a` в audit artifact с reason); MUST-проверки без SoT = FAIL.
+   **FORBIDDEN:** выбирать CASE по hardcoded epic ID (`T-HUB-011` / `T-HUB-012` и т.п.).
+3. **Assess (behavior evidence HARD):** загрузить plan/decompose coverage, заголовки implement `sNN|eNN` и evidence по bound file list; не делать full-repo audit. Legacy gap-матрица (✅ / ❌ / ⚠️) по каждому `step_id`, затем intent↔**runtime behavior**, не presence-only.
+   - **`satisfied` FORBIDDEN** если evidence = только registry row / alias / unit lookup / «модуль есть», а FR требует agent file / preset / hook enforce / CLI.
+   - Presence ≠ satisfied (behavior-first §3).
+4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding обязан иметь `gap_type` (`missing|partial|contradicts|unrequested`), `severity`, `source_ref`, `evidence` и `remaining_work`. `CRITICAL` из constitution MUST, P1 intent или **dilution/missing plan FR** — первыми среди actionable findings.
 5. **Append remediation**: для каждого actionable `missing`, `partial` или `contradicts`, а также для каждого leftover, создать новый `decompose-<epic_id>/sNN-audit-<slug>.yaml` по шаблону epic-step. Это append-only: существующий completed implement shard не переписывать. В новом shard `goal` и `plan_refs` обязаны содержать traceable `source_ref`; обновить `decompose-<epic_id>/index.md` и `index.yaml` через `epic_resolve.py sync-index-yaml`. `unrequested` остаётся только finding с решением в `remaining_work`: auto-delete shard/code запрещён.
 6. **Dual-write и leftovers**: findings остаются канонической оценкой, а legacy arrays `implemented[]`, `not_implemented[]`, `deviations[]` заполняются из них для обратной совместимости. Brownfield replace: выполнить **`sunset_inventory_scan`** (rg по каждой строке plan sunset A/B/C); заполнить `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Пустой leftover **без scan** = FAIL. Непустой leftover всегда означает продолжение remediation loop.
-7. **Converged / loop**: `converged: true` разрешён только когда actionable findings отсутствуют, **scan complete** (все rows pass или sunset n/a), все leftover-массивы пусты и для brownfield replace выполнен `purge_step_present=true` (либо `sunset: n/a`). Тогда следующий режим — `BACK QA`; ⚠️ deviations без actionable gap тоже идут в `BACK QA`. Иначе новые audit shards → `BACK IMPLEMENT` → повторный `BACK AUDIT`.
+7. **Converged / loop**: `converged: true` разрешён только когда actionable findings отсутствуют, **каждый plan FR имеет behavior evidence**, **scan complete** (все rows pass или sunset n/a), все leftover-массивы пусты и для brownfield replace выполнен `purge_step_present=true` (либо `sunset: n/a`). **FORBIDDEN** `converged: true` при metadata-only closes. Тогда следующий режим — `BACK QA`; ⚠️ deviations без actionable gap тоже идут в `BACK QA`. Иначе новые audit shards → `BACK IMPLEMENT` → повторный `BACK AUDIT`.
 8. **FINISH**: записать `memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`, append в tasks log и выполнить finish-block (`code_changed: no`) с обязательным `## Handoff BACK AUDIT`.
 
 **Boundary ANALYZE ≠ AUDIT**:
@@ -24,7 +32,7 @@ alwaysApply: false
 | BACK ANALYZE | BACK AUDIT |
 |---|---|
 | До IMPLEMENT, read-only plan/decompose, без implement YAML | После реализации, intent↔code/evidence и implement headers |
-| Ищет coverage/ambiguity/constitution gaps и не создаёт audit shards | Классифицирует `findings[]`, создаёт append-only `sNN-audit-*` для remediation |
+| Ищет coverage/ambiguity/**dilution**/constitution gaps и не создаёт audit shards | Классифицирует `findings[]`, создаёт append-only `sNN-audit-*` для remediation |
 | Не оценивает фактический код и не запускает audit loop | Решает `converged` → QA либо IMPLEMENT → AUDIT |
 
 **Operating Constraints**:
@@ -34,4 +42,4 @@ alwaysApply: false
 - Не вводить MODE CONVERGE и не вызывать `specify-cli`; converge — семантика текущего AUDIT.
 - Не удалять unrequested автоматически: только finding + traceable decision.
 
-**Верификация**: Intent Inventory полон; Assess покрывает каждый plan/decompose intent и `step_id`; audit yaml использует `epic-audit/v2`; findings имеют обязательные поля; каждый новый shard имеет `source_ref` в `goal`/`plan_refs`; legacy arrays и leftover A/B/C записаны; `converged` согласован с отсутствием actionable findings и leftover.
+**Верификация**: Intent Inventory **из plan** полон; Assess = behavior evidence (не presence); audit yaml `epic-audit/v2`; findings обязательные поля; новые shards с `source_ref`; leftovers A/B/C; `converged` только без dilution gaps.

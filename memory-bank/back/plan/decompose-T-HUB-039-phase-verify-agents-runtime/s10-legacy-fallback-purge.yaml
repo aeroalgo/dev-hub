@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "legacy-fallback-purge: alias stubs → delete + dual-path leftovers + dead assigns"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальная очистка после полного adoption (все s01–s09 внедрены и verified):
+  Удалить alias-stubs verify.md / reviewer.md после ≥1-release отработки алиасов.
+  Удалить alias-stubs verify.prompt.md / reviewer.prompt.md из dsh/presets.
+  Подтвердить rg что нет мёртвых callers на old paths.
+  Выполнить sunset_inventory_scan по всем A/B/C surfaces из плана.
+  User/system outcome: нет shim-файлов без callers; инвентаризация пустых legacy_surfaces_remaining.
+
+context:
+  consumes:
+    - ".claude/agents/verify.md (alias stub after s01)"
+    - ".claude/agents/reviewer.md (alias stub after s02)"
+    - "dsh/presets/verify.prompt.md (alias stub after s06)"
+    - "dsh/presets/reviewer.prompt.md (alias stub after s06)"
+    - "sunset_inventory: все A/B/C surfaces"
+  produces:
+    - "удалены: .claude/agents/verify.md (если нет callers кроме alias contract)"
+    - "удалены: .claude/agents/reviewer.md"
+    - "удалены: dsh/presets/verify.prompt.md"
+    - "удалены: dsh/presets/reviewer.prompt.md"
+    - "подтверждено: нет мёртвых assign / dual-path leftovers в hooks"
+  plan_refs:
+    - "FR-019: Purge dead expected_verify_agent unused pattern"
+    - "FR-020: Legacy T-HUB-029 surfaces purge"
+    - "TM-010: Dead assign regression — purge"
+    - "Replacement cleanup: alias stubs Kind=A"
+    - "Brownfield: финальный шаг legacy-fallback-purge"
+    - "§C. Fallbacks / soft-fail: Silent skip when agent file missing → delete in-epic"
+  files:
+    - ".claude/agents/verify.md"
+    - ".claude/agents/reviewer.md"
+    - "dsh/presets/verify.prompt.md"
+    - "dsh/presets/reviewer.prompt.md"
+
+as_built:
+  - "(after s01) .claude/agents/verify.md = alias stub"
+  - "(after s02) .claude/agents/reviewer.md = alias stub"
+  - "(after s06) dsh/presets/verify.prompt.md = alias stub"
+  - "(after s06) dsh/presets/reviewer.prompt.md = alias stub"
+
+delta:
+  - "sunset_inventory_scan: rg '@verify[^-]|\"verify\"' .claude/ .cursor/ — должно быть 0 жёстких ссылок кроме spawn-hard alias note"
+  - "rg '@reviewer[^-]|\"reviewer\"' .claude/ .cursor/ — 0 жёстких ссылок"
+  - "delete .claude/agents/verify.md if callers=0"
+  - "delete .claude/agents/reviewer.md if callers=0"
+  - "delete dsh/presets/verify.prompt.md if callers=0"
+  - "delete dsh/presets/reviewer.prompt.md if callers=0"
+  - "confirm: нет dead expected_verify_agent assign в pretool (после s04)"
+
+deletes:
+  - ".claude/agents/verify.md (alias stub — delete after scan pass)"
+  - ".claude/agents/reviewer.md (alias stub — delete after scan pass)"
+  - "dsh/presets/verify.prompt.md (alias stub)"
+  - "dsh/presets/reviewer.prompt.md (alias stub)"
+
+out_of_scope:
+  - "verify-audit / verify-plan — out_of_scope (optional future epic)"
+
+skills:
+  code_surface: api
+  impl: []
+
+sunset_inventory:
+  - surface: ".claude/agents/verify.md"
+    kind: A
+    replacement: ".claude/agents/verify-implement.md"
+    delete_step: s10
+    fallback: "yes (alias stub)"
+    grep_control: "rg '@verify[^-]|subagent_type.*verify[^-]' .claude/ .cursor/"
+  - surface: ".claude/agents/reviewer.md"
+    kind: A
+    replacement: ".claude/agents/verify-qa.md"
+    delete_step: s10
+    fallback: "yes (alias stub)"
+    grep_control: "rg '@reviewer[^-]|subagent_type.*reviewer' .claude/ .cursor/"
+  - surface: "dsh/presets/verify.prompt.md"
+    kind: B
+    replacement: "dsh/presets/verify-implement.prompt.md"
+    delete_step: s10
+    fallback: "yes (alias stub)"
+    grep_control: "rg 'verify\\.prompt' dsh/ .claude/"
+  - surface: "dsh/presets/reviewer.prompt.md"
+    kind: B
+    replacement: "dsh/presets/verify-qa.prompt.md"
+    delete_step: s10
+    fallback: "yes (alias stub)"
+    grep_control: "rg 'reviewer\\.prompt' dsh/ .claude/"
+  - surface: "agent-pretool.py dead assign expected_verify_agent"
+    kind: A
+    replacement: "enforce branch в s04"
+    delete_step: s04
+    fallback: "no"
+    grep_control: "rg 'expected_verify_agent' .claude/hooks/agent-pretool.py"
+
+checkpoints:
+  - id: cp1
+    criterion: "rg @verify (non-dash) = 0 в .claude/ после всех docs updates"
+    verify: "rg '@verify[^-]' .claude/ .cursor/ | grep -v 'alias\\|backward\\|compat\\|legacy' | wc -l"
+  - id: cp2
+    criterion: "verify.md / reviewer.md удалены"
+    verify: "test ! -f .claude/agents/verify.md && test ! -f .claude/agents/reviewer.md"
+  - id: cp3
+    criterion: "dsh stubs удалены"
+    verify: "test ! -f dsh/presets/verify.prompt.md && test ! -f dsh/presets/reviewer.prompt.md"
+  - id: cp4
+    criterion: "hooks regression suite зелёная после purge"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line"
+
+verify: []
+tdd:
+  - "test_legacy_stubs_removed: verify.md / reviewer.md / verify.prompt.md / reviewer.prompt.md absent after purge"
+  - "test_no_hard_verify_refs: rg '@verify[^-]' non-alias contexts = 0"

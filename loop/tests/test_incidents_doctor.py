@@ -103,3 +103,54 @@ def test_doctor_board_sync_skipped_when_cli_missing(tmp_path: Path) -> None:
     report = run_doctor(tmp_path)
     chk = next(c for c in report.checklist if c.name == "board_sync_stale")
     assert chk.status in ("skipped", "pass")
+
+
+def test_doctor_boundary_check_warn(tmp_path: Path, monkeypatch) -> None:
+    mb = tmp_path / "memory-bank"
+    mb.mkdir()
+    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+
+    arch_dir = tmp_path / "tests" / "architecture"
+    arch_dir.mkdir(parents=True)
+    (arch_dir / "boundaries.yaml").write_text("contracts: []\n", encoding="utf-8")
+
+    from tests.architecture.check_boundaries import Violation
+    dummy_violation = Violation(
+        contract_id="C001",
+        file_path="loop/test.py",
+        line_number=10,
+        imported_module="hooks.epic",
+        forbidden_pattern="hooks.*",
+        reason="Forbidden import",
+    )
+
+    import loop.incidents.doctor as doctor_mod
+    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, yaml_file: [dummy_violation])
+
+    report = doctor_mod.run_doctor(tmp_path)
+    assert report.exit_code == 0
+    chk = next(c for c in report.checklist if c.name == "boundary_violations")
+    assert chk.status == "warn"
+    assert "WARNING: 1 boundary violations" in chk.detail
+    assert any("boundary violations" in w for w in report.warnings)
+
+
+def test_doctor_boundary_check_pass(tmp_path: Path, monkeypatch) -> None:
+    mb = tmp_path / "memory-bank"
+    mb.mkdir()
+    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+
+    arch_dir = tmp_path / "tests" / "architecture"
+    arch_dir.mkdir(parents=True)
+    (arch_dir / "boundaries.yaml").write_text("contracts: []\n", encoding="utf-8")
+
+    import loop.incidents.doctor as doctor_mod
+    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, yaml_file: [])
+
+    report = doctor_mod.run_doctor(tmp_path)
+    assert report.exit_code == 0
+    chk = next(c for c in report.checklist if c.name == "boundary_violations")
+    assert chk.status == "pass"
+    assert "0 boundary violations" in chk.detail
+    assert not any("boundary violations" in w for w in report.warnings)
+

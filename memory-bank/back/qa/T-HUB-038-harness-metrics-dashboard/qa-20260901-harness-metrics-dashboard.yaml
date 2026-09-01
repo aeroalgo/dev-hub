@@ -1,0 +1,31 @@
+date: '2026-09-01'
+epic_id: T-HUB-038-harness-metrics-dashboard
+role: back
+verdict: PASS
+reviewer_agent: verify-qa
+
+ac_results:
+  - id: AC1
+    title: "metrics/incidents/episodes/events aggregate"
+    status: PASS
+  - id: AC2
+    title: "HTML self-contained render"
+    status: PASS
+  - id: AC3
+    title: "CLI dashboard-render operational"
+    status: PASS
+  - id: AC4
+    title: "Doctor halt-rate threshold warning"
+    status: PASS
+
+ac_minus_results:
+  - id: AC-1
+    title: "Empty or corrupted input graceful handling"
+    status: PASS
+
+section_0_11:
+  minimal_diff: PASS
+  clean_error_handling: PASS
+  type_annotations: PASS
+
+summary: "QA пройдена успешно. Все AC+ и AC- выполнены. Вердикт: PASS."

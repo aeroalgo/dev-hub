@@ -1,0 +1,46 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-036-harness-decompose-formulas
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - additional formula variants beyond 3 core
+  - formula UI/TUI browser
+steps:
+- id: s01
+  file: s01-formula-schema-pydantic.yaml
+  title: formula schema — decompose-formula/v1 Pydantic model + YAML loader
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-bundled-formulas-yaml.yaml
+  title: 3 bundled formulas — hooks-epic, loop-runtime-epic, cli-validate-epic YAML
+    files
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-formula-render-cli.yaml
+  title: formula-render CLI — materialize draft decompose sNN shards from formula
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-formula-list-cli.yaml
+  title: formula-list CLI — enumerate available formulas with metadata
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-formula-validation-exit2.yaml
+  title: formula validation — broken template exits 2 at render time
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-tests-render-schema-overwrite.yaml
+  title: tests ≥10 — render dry-run, schema validation, no-overwrite guard
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-decompose-workflow-note.yaml
+  title: DECOMPOSE workflow note — optional --formula hint documented
+  next_phase: BACK IMPLEMENT
+  status: completed

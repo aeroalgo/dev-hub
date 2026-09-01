@@ -1,0 +1,59 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "tests ≥10 — render dry-run, schema validation, no-overwrite guard"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Консолидировать и дополнить тесты по всем модулям T-HUB-036 до ≥10 тестов суммарно.
+  Включает: render dry-run output, schema validation (valid/invalid), no-overwrite guard,
+  formula-list table columns, exit-2 paths. Все тесты запускаются через pytest без LLM.
+  Outcome: AC #5 (tests ≥10) выполнен; SC-001 (3 formulas render valid yaml) покрыт.
+
+context:
+  consumes:
+    - "loop/tests/test_formula_schema.py — unit tests (s01)"
+    - "loop/tests/test_bundled_formulas.py — bundle tests (s02)"
+    - "loop/tests/test_formula_render.py — render tests (s03)"
+    - "loop/tests/test_formula_list.py — list tests (s04)"
+    - "loop/tests/test_formula_validation.py — validation exit-2 tests (s05)"
+    - "loop/schemas/formula.py, loop/formula_render.py — production code уже написан (s01-s05)"
+  produces:
+    - "loop/tests/test_formula_integration.py — end-to-end: render → validate-decompose-tree smoke"
+    - "дополнить existing test files если count < 10 total"
+  plan_refs: [FR-006, SC-001, SC-002]
+  files:
+    - "loop/tests/test_formula_integration.py"
+
+as_built:
+  - "loop/tests/ — существующие тесты (test_formula_schema.py, test_bundled_formulas.py, test_formula_render.py из s01–s05)"
+  - ".venv/bin/pytest loop/tests/ — запускает весь suite"
+
+delta:
+  - "создать loop/tests/test_formula_integration.py: test_render_then_tree_valid (render hooks-epic → tmp dir → validate-decompose-tree smoke на структуру файлов), test_render_all_formulas_dry_run (formula-list ids → каждый render dry-run → no exception)"
+  - "если суммарный count из s01–s05 test files < 10 — дополнить недостающие в test_formula_schema.py или test_formula_render.py"
+
+deletes: []
+
+out_of_scope:
+  - "s07 — docs/workflow note"
+  - "Playwright / UI тесты"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # pytest tmp_path, capsys, subprocess exit-code"
+
+checkpoints:
+  - id: cp1
+    criterion: "pytest loop/tests/ -q --tb=line → ≥10 tests collected, 0 errors"
+    verify: ".venv/bin/pytest loop/tests/test_formula_schema.py loop/tests/test_bundled_formulas.py loop/tests/test_formula_render.py loop/tests/test_formula_list.py loop/tests/test_formula_validation.py loop/tests/test_formula_integration.py -q --tb=line 2>&1 | grep -E 'passed|collected'"
+  - id: cp2
+    criterion: "SC-001: 3 formula ids из list_formulas() → каждый render dry-run завершается без exit-1/2"
+    verify: ".venv/bin/pytest loop/tests/test_formula_integration.py::test_render_all_formulas_dry_run -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_formula_integration.py — test_render_then_tree_valid, test_render_all_formulas_dry_run"

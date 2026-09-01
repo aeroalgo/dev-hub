@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-037-harness-parallel-snn
+title: "worktree pool — create/destroy git worktrees per sNN parallel session"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/parallel/worktree.py` с функциями `create_worktree(epic_id, step_id) -> Path`
+  и `destroy_worktree(path: Path)`. create_worktree запускает `git worktree add` во временной
+  директории `.claude/worktrees/<epic_id>-<step_id>-<timestamp>`, базируясь на текущем HEAD.
+  destroy_worktree выполняет `git worktree remove --force`. Outcome: orchestrator (s04) может
+  безопасно создавать и удалять изолированные рабочие деревья для каждого параллельного sNN.
+
+context:
+  consumes:
+    - "loop/parallel/__init__.py + wave.py + overlap.py (s01–s02)"
+    - "PROJECT_ROOT — корень репо для git worktree"
+  produces:
+    - "loop/parallel/worktree.py — create_worktree(epic_id, step_id, base_ref='HEAD') -> Path; destroy_worktree(path: Path) → None; list_epic_worktrees(epic_id) -> list[Path]"
+  plan_refs:
+    - FR-003
+  files:
+    - "loop/parallel/worktree.py"
+
+as_built:
+  - "loop/parallel/ — пакет с wave.py + overlap.py; worktree отсутствует"
+  - "нет существующего worktree management в loop/"
+
+delta:
+  - "создать loop/parallel/worktree.py: WORKTREE_BASE = Path('.claude/worktrees')"
+  - "create_worktree(epic_id: str, step_id: str, repo_root: Path, base_ref: str = 'HEAD') -> Path: создаёт директорию WORKTREE_BASE/<epic_id>-<step_id>-<ts>, вызывает subprocess git worktree add <path> <base_ref>"
+  - "destroy_worktree(path: Path, repo_root: Path) -> None: вызывает git worktree remove --force <path>"
+  - "list_epic_worktrees(epic_id: str, repo_root: Path) -> list[Path]: git worktree list --porcelain | parse paths matching epic_id"
+
+deletes: []
+
+out_of_scope:
+  - "s04 — orchestrator (вызывает create/destroy)"
+  - "s05 — transition engine hook"
+  - "merge policy: v1 commit-per-sNN manual merge (документировано в s04, не здесь)"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # subprocess mock, tmp_path git init, pytest fixture real worktree"
+    - "modern-python # pathlib, subprocess.run, contextmanager"
+    - "python-anti-patterns # no shell=True в subprocess, validate path before remove"
+    - "tdd # test-first: mock subprocess for cp1/cp2, integration cp3 optional"
+
+checkpoints:
+  - id: cp1
+    criterion: "create_worktree вызывает git worktree add с правильным path (subprocess mock)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_worktree.py::test_create_worktree_subprocess -q"
+  - id: cp2
+    criterion: "destroy_worktree вызывает git worktree remove --force (subprocess mock)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_worktree.py::test_destroy_worktree_subprocess -q"
+  - id: cp3
+    criterion: "create_worktree → path содержит epic_id и step_id в имени"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_worktree.py::test_worktree_path_contains_ids -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_parallel_worktree.py — test_create_worktree_subprocess, test_destroy_worktree_subprocess, test_worktree_path_contains_ids, test_list_epic_worktrees_empty"

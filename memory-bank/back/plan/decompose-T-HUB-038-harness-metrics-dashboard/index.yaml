@@ -1,0 +1,34 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-038-harness-metrics-dashboard
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-collect-report-schema.yaml
+  title: Dashboard collect + dashboard-report/v1 schema — aggregate metrics/incidents/episodes/events
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-render-html.yaml
+  title: 'Self-contained HTML render — sections: Metrics, Incidents, Episodes, Events,
+    Epic progress'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-cli-dashboard-render.yaml
+  title: CLI dashboard-render + bin/loop alias — operator entry point with --days
+    / --format
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-doctor-halt-rate-warn.yaml
+  title: Doctor halt-rate warn — optional check EPIC_DASHBOARD_HALT_WARN_RATE over
+    7d window
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-tests-readme.yaml
+  title: Fixture-based tests + README §Dashboard — pytest suite + schema validation
+    + doctor threshold
+  next_phase: BACK IMPLEMENT
+  status: completed

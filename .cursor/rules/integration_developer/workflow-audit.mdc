@@ -10,15 +10,16 @@ alwaysApply: false
 
 **Процесс**:
 1. `OK INTEG AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до оценки.
-2. **Intent Inventory**: из `plan-<epic_id>.md` и `decompose-<epic_id>/index.md` собрать применимые FR/SC/US/AC/NFR и constitution MUST. Для каждого intent указать `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `Constitution <rule>` или `step:eNN`) и связать его с `element_id` (eNN).
-3. **Assess**: загрузить только plan/decompose coverage, заголовки implement `eNN` и evidence по bound file list; построить gap-матрицу (✅ / ❌ / ⚠️) по каждому `element_id`, затем проверить intent↔evidence, contract/UI/API и contract drift, а не только наличие файла.
-4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding обязан иметь `gap_type` (`missing|partial|contradicts|unrequested`), `severity`, `source_ref`, `evidence` и `remaining_work`; в `deviations[]` указывать `element_id` для contract drift.
-5. **Append remediation**: для каждого actionable `missing`, `partial` или `contradicts`, а также для каждого leftover создать новый `decompose-<epic_id>/eNN-audit-<slug>.yaml` (`role: integ`; шаблон epic-step); `goal` и `plan_refs` нового shard содержат исходный `source_ref`, а `element_id`, `ui`, `contract`, `back[]`, `front[]` сохраняются. `unrequested` не удаляется автоматически.
-6. **Dual-write и leftovers**: findings остаются канонической оценкой, а `implemented[]`, `not_implemented[]`, `deviations[]` заполняются из них. При brownfield replace проверить `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`; непустой leftover продолжает remediation loop.
-7. **Converged / loop**: `converged: true` только без actionable findings, с пустыми leftover-массивами и выполненным purge/sunset (либо `sunset: n/a`). Тогда следующий режим INTEG QA. Иначе новые audit shards → INTEG IMPLEMENT → повторный INTEG AUDIT. Только ⚠️ deviations без actionable gap также идут в INTEG QA.
-8. Для каждого нового shard обновить `decompose-<epic_id>/index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`.
-9. Записать `memory-bank/integration/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`, append в tasks log и выполнить finish-block (`code_changed: no`) с обязательным `## Handoff INTEG AUDIT`.
+2. **Intent Inventory (plan-first HARD):** из **`plan-<epic_id>.md`** — полный FR/SC/US/AC±/NFR + constitution MUST; decompose вторичен. Plan FR без eNN → `missing` CRITICAL. `source_ref` → `element_id`. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3
+   **Constitution CASE:** `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A; нет → CASE B. **FORBIDDEN** hardcoded epic ID.
+3. **Assess (behavior):** coverage + implement headers + bound evidence; gap-матрица; intent↔contract/UI/API **runtime**, не presence. **`satisfied` FORBIDDEN** на metadata/unit-only closes.
+4. **Severity и findings**: `findings[]` CRITICAL→LOW; `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`; contract drift в `deviations[]` с `element_id`.
+5. **Append remediation**: actionable → `eNN-audit-<slug>.yaml` (`role: integ`); сохранить `element_id`/`ui`/`contract`/`back[]`/`front[]`.
+6. **Dual-write и leftovers**: legacy arrays; brownfield leftovers + purge.
+7. **Converged / loop**: `converged: true` только без actionable + **behavior evidence по каждому plan FR** + empty leftovers + purge. Иначе IMPLEMENT → AUDIT.
+8. Sync index via `epic_resolve.py sync-index-yaml`.
+9. Audit yaml + tasks log + finish-block · `## Handoff INTEG AUDIT`.
 
-**Boundary ANALYZE ≠ AUDIT**: ANALYZE — pre-IMPLEMENT coverage/ambiguity без implement YAML и audit shards; AUDIT — post-IMPLEMENT intent↔evidence assessment, findings и append-only remediation.
+**Boundary ANALYZE ≠ AUDIT**: ANALYZE — dilution/coverage pre-IMPLEMENT; AUDIT — intent↔behavior + remediation.
 
-**Верификация**: Intent Inventory и Assess полны; все `element_id`/eNN плана проверены; audit yaml использует `epic-audit/v2`; findings имеют `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`; legacy arrays и leftover A/B/C записаны; `converged` согласован с findings и leftovers; новые shards отражены в index.
+**Верификация**: plan-first inventory; behavior Assess; no metadata-only converged.

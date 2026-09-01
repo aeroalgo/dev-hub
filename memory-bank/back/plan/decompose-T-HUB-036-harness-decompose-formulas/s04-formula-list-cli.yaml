@@ -1,0 +1,58 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "formula-list CLI — enumerate available formulas with metadata"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  CLI subcommand `formula-list` перечисляет все `decompose-formula/v1` YAML файлы в
+  `loop/formulas/`, печатает: id | description | default_level | step count.
+  Формат — table (plain text, no external deps).
+  Outcome: planner видит список доступных формул и выбирает --formula <id> для render.
+
+context:
+  consumes:
+    - "loop/schemas/formula.py — load_formula(), DecomposeFormula (s01)"
+    - "loop/formulas/*.yaml — formula files (s02)"
+    - ".claude/hooks/epic_resolve.py — argparse subcommand pattern (s03 добавил formula-render)"
+  produces:
+    - ".claude/hooks/epic_resolve.py: добавить subcommand formula-list"
+    - "loop/formula_render.py: list_formulas(formulas_dir=None) → list[DecomposeFormula]"
+  plan_refs: [FR-003]
+  files:
+    - "loop/formula_render.py"
+    - ".claude/hooks/epic_resolve.py"
+
+as_built:
+  - "loop/formula_render.py — render_formula() + find_formula_file() создан в s03"
+  - ".claude/hooks/epic_resolve.py — subcommand formula-render добавлен в s03"
+  - "loop/formulas/*.yaml — 3 formula files (s02)"
+
+delta:
+  - "добавить loop/formula_render.py: list_formulas(formulas_dir: Path | None = None) → list[DecomposeFormula]: glob loop/formulas/*.yaml; load_formula(each); return sorted by id"
+  - "добавить subcommand formula-list в .claude/hooks/epic_resolve.py: args --formulas-dir (optional override); вызывает list_formulas(); форматирует таблицу id | description | default_level | steps; печатает stdout"
+
+deletes: []
+
+out_of_scope:
+  - "JSON / YAML output format (plain text достаточно)"
+  - "formula search / filter"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # list output + stdout capture"
+
+checkpoints:
+  - id: cp1
+    criterion: "formula-list → stdout содержит строки hooks-epic, loop-runtime-epic, cli-validate-epic"
+    verify: ".venv/bin/pytest loop/tests/test_formula_list.py::test_formula_list_shows_all -q"
+  - id: cp2
+    criterion: "list_formulas() возвращает 3 DecomposeFormula с корректными id"
+    verify: ".venv/bin/pytest loop/tests/test_formula_list.py::test_list_formulas_returns_all -q"
+
+verify: []
+tdd:
+  - "loop/tests/test_formula_list.py — test_formula_list_shows_all, test_list_formulas_returns_all, test_formula_list_table_columns"

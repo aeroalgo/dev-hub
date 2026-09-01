@@ -1,0 +1,8 @@
+date: '2026-09-01'
+epic_id: T-HUB-036-harness-decompose-formulas
+role: back
+verdict: pass
+agent_id: verify-qa
+suite_results: ".venv/bin/pytest loop/tests/test_formula_*.py loop/tests/test_bundled_formulas.py -q --tb=line (19 passed)"
+audit_ref: memory-bank/back/audit/T-HUB-036-harness-decompose-formulas/audit-20260901-harness-decompose-formulas.yaml
+summary: "Все 7 шагов (s01-s07) успешно прошли проверки. Набор тестов формул (19 passed) подтвердил соответствие AC+, AC- и §0.11."

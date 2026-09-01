@@ -1,0 +1,58 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-039-phase-verify-agents-runtime
+role: back
+next_phase: BACK IMPLEMENT
+steps:
+- id: s01
+  file: s01-verify-implement-agent-file.yaml
+  title: verify-implement agent file + alias stub + normalize ALIAS merge
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-verify-bugfix-qa-agent-files.yaml
+  title: verify-bugfix + verify-qa agent files + reviewer stub
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-verify-decompose-analyze-verify.yaml
+  title: verify-decompose agent file + analyze-verify wire align
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-agent-pretool-spawn-validate-enforce.yaml
+  title: agent-pretool uses get_verify_agent + spawn_validate CONTRACTS для новых
+    типов
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-stop-gate-user-prompt-per-phase.yaml
+  title: stop-gate + user-prompt per-phase need_verify + subagent-stop verdicts
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-dsh-presets-epic-gate-mapping.yaml
+  title: DSH presets verify-implement/bugfix/qa/decompose + epic-gate phase map
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-spawn-hard-finish-block-workflow-docs.yaml
+  title: spawn-hard + finish-block + lean workflows adoption docs
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-test-phase-verify-gates-suite.yaml
+  title: test_phase_verify_gates matrix + hooks regression suite
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-docs-readme-workflow-architecture.yaml
+  title: 'docs: loop/README + WORKFLOW §Phase verify agents + architecture/services.md
+    S-AGENTS'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s10
+  file: s10-legacy-fallback-purge.yaml
+  title: 'legacy-fallback-purge: alias stubs → delete + dual-path leftovers + dead
+    assigns'
+  next_phase: BACK IMPLEMENT
+  status: completed

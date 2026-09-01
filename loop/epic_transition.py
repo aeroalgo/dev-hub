@@ -11,6 +11,7 @@ Public contract:
   _legacy_warn(caller_name) -> None
 """
 from __future__ import annotations
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -115,6 +116,27 @@ def arm_phase(
 
     phase_u = (phase or "").upper()
     decompose_rel = kwargs.get("decompose") or kwargs.get("decompose_rel")
+
+    env = kwargs.get("env") or os.environ
+    if phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX") and env.get("EPIC_PARALLEL_SNN") == "1":
+        from loop.parallel.orchestrator import run_parallel_wave
+        from roadmap_queue import find_decompose_index
+        cwd_p = Path(cwd).resolve()
+        idx_path = (cwd_p / decompose_rel) if decompose_rel else find_decompose_index(cwd_p, role, epic_id)
+        if idx_path and idx_path.is_file():
+            p_res = run_parallel_wave(epic_id, idx_path, cwd_p, env=env)
+            if p_res and p_res.spawned:
+                return {
+                    "ok": True,
+                    "parallel": True,
+                    "wave": p_res.wave,
+                    "spawned": p_res.spawned,
+                    "failed": p_res.failed,
+                    "armed_step": "IMPLEMENT",
+                    "role": role,
+                    "handoff": "memory-bank/activeContext.md",
+                }
+
     if phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
         target_rel = kwargs.get("target_rel")
         res = arm_pre_implement_context(
@@ -139,8 +161,10 @@ def arm_phase(
                 decompose_rel=decompose_rel,
             )
         else:
+            kwargs.pop("env", None)
             res = arm_epic(cwd, epic_id, role=role, **kwargs)
     else:
+        kwargs.pop("env", None)
         res = arm_epic(cwd, epic_id, role=role, **kwargs)
 
     if isinstance(res, dict):

@@ -18,6 +18,7 @@
 | ERD | [erd.md](erd.md) | n/a (нет доменной БД) + file runtime map |
 | Workers | [workers.md](workers.md) | current (loop sessions; нет queue broker) |
 | Containers | [containers.md](containers.md) | n/a (нет compose/Dockerfile в хабе) |
+| Layer enforcement | [tests/architecture/boundaries.yaml](../../tests/architecture/boundaries.yaml) + ratchet.json | current |
 | Frontend | [frontend.md](frontend.md) | absent |
 
 ## Mermaid checklist

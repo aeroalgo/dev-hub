@@ -16,19 +16,20 @@ alwaysApply: false
 2. **Ambiguity** — vague wording (`should`, `may`, `appropriate`, `typically`) и нерешённые `[НУЖНО УТОЧНИТЬ]` markers.
 3. **Underspecification** — FR без `sNN`, step без `plan_ref`/FR или goal-only step без delta.
 4. **Coverage Gaps** — AC+/AC−/FR/NFR/SC без `sNN` и без явного `out_of_scope`.
-5. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
-6. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
+5. **Dilution (HARD)** — plan FR/US **nouns** (agent file, preset, hook enforce, CLI, operator surface) не входят в `produces`/`files` закрывающего step, или `delta` = только registry/alias/metadata без наблюдаемого поведения; product FR закрыт только surrogate verify (`get_x()=="name"` / «поле есть»). Supersede/merge: FR из superseded plan без coverage и без `out_of_scope`+follow-up в queue. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc. Category в finding: `dilution`. P0/P1 → CRITICAL.
+6. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
+7. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
 
 ## Severity heuristic
 
-- **CRITICAL** — отсутствует core P1/FR или есть нерешённый CRITICAL marker; IMPLEMENT нельзя начинать.
-- **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps или отсутствует обязательный acceptance path.
+- **CRITICAL** — отсутствует core P1/FR; нерешённый CRITICAL marker; **dilution** P0/P1 FR (metadata вместо runtime surface); IMPLEMENT нельзя начинать.
+- **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps, отсутствует обязательный acceptance path, или dilution non-P1.
 - **MEDIUM** — non-core gap, частичное покрытие или неоднозначность, которую можно закрыть до cutover.
 - **LOW** — naming/style drift без влияния на decomposition, tests или runtime behavior.
 
-`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL; иначе `fix (CLARIFY | PLAN | DECOMPOSE)`.
+`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`.
 
 ## 50-cap
 
@@ -38,6 +39,7 @@ alwaysApply: false
 
 - inventory FR/SC/stories сопоставлен с `sNN` и `plan_refs`;
 - coverage отражает `covered`, `partial` или `missing` для каждого requirement;
+- Dilution pass выполнен; `covered` не ставится на metadata-only closes;
 - metrics пересчитаны после всех passes;
 - CRITICAL вынесены в `next_actions[]`;
 - исходные файлы, code и implement artifacts не изменены.

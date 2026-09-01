@@ -342,6 +342,37 @@ def test_validate_decompose_tree_rejects_bare_snn_filename(tmp_path: Path) -> No
     assert any("s01-<slug>" in e or "s01-" in e for e in errs)
 
 
+def test_validate_decompose_tree_rejects_short_folder_when_plan_has_slug(
+    tmp_path: Path,
+) -> None:
+    from epic_yaml import validate_decompose_tree  # noqa: E402
+
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir.mkdir(parents=True)
+    (plan_dir / "plan-T-HUB-023-hooks-llm-fallbacks.md").write_text("# p\n", encoding="utf-8")
+    dec = plan_dir / "decompose-T-HUB-023"
+    dec.mkdir(parents=True)
+    _write_minimal_index_md(dec)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-HUB-023\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-ok.yaml\n"
+        "  title: ok\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(
+        dec / "s01-ok.yaml",
+        {"step_id": "s01", "plan_id": "T-HUB-023", "role": "back"},
+    )
+    errs = validate_decompose_tree(tmp_path, str(dec))
+    assert errs
+    assert any("short queue id" in e or "hooks-llm-fallbacks" in e for e in errs)
+
+
 def test_resolve_decompose_ref_for_gate_falls_back_to_find_index(tmp_path: Path) -> None:
     from epic_paths import resolve_decompose_ref_for_gate  # noqa: E402
 

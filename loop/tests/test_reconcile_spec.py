@@ -212,14 +212,16 @@ def test_plan_template_has_appetite_section() -> None:
     plan_template = (ROOT / ".cursor/templates/plan.md").read_text(encoding="utf-8")
     assert "## Appetite" in plan_template
     assert "timebox_days" in plan_template
-    assert "max_steps" in plan_template
-    assert "circuit_breaker" in plan_template
     assert "cut_list" in plan_template
+    assert "max_steps" not in plan_template
+    assert "circuit_breaker" not in plan_template
 
 
 def test_decompose_index_template_appetite_optional() -> None:
     index_template = (ROOT / ".cursor/templates/decompose/index.yaml").read_text(encoding="utf-8")
     assert "# appetite:" in index_template
     assert "timebox_days" in index_template
+    assert "max_steps" not in index_template
+    assert "circuit_breaker" not in index_template
 
 

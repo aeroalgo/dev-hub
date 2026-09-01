@@ -5,7 +5,7 @@ alwaysApply: false
 ### Команда: BACK TASK
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/task.mdc
-**Скиллы:** мини skills gate как в DECOMPOSE — Core (`tdd` · `python-testing-patterns` · `modern-python`) + situational по задаче (не весь каталог); список в `task-*.md`; pre-FINISH: `verification-before-completion` · `requesting-code-review` — `@.agents/skills/<name>/SKILL.md`
+**Скиллы:** мини skills gate как в DECOMPOSE — Core (`tdd` · `python-testing-patterns` · `modern-python` · `python-anti-patterns`) + situational по задаче (не весь каталог); список в `task-*.md`; pre-FINISH: `verification-before-completion` · `requesting-code-review` — `@.agents/skills/<name>/SKILL.md`
 
 **Процесс**:
 1. `OK BACK TASK - [суть]` — задача в **том же** сообщении

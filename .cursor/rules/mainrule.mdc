@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 # WORKFLOW ROUTER
 
-**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **full economy:** @.cursor/rules/token-economy-core.mdc (read on role command)
+**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc (PLAN/DECOMPOSE/ANALYZE/AUDIT/QA) · **full economy:** @.cursor/rules/token-economy-core.mdc (read on role command)
 
 **Test runner:** @.cursor/rules/shared/test-timeout.mdc (300s external timeout)
 
@@ -26,7 +26,7 @@ alwaysApply: true
 3. **Workflow** — `{role}/workflow-{mode}.mdc`
 4. **Скиллы** — только пути из шага 3; `SKILL.md` целиком
 
-Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`.
+Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK RECONCILE` → `<epic_id>`.
 
 ## Префикс → индекс → core
 

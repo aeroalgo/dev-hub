@@ -107,7 +107,7 @@ def main() -> None:
     evidence = verdict_evidence(identity, verdict)
     matched, _diagnostic = record_verdict(st, agent_type, verdict, evidence)
     mark_verdict_recorded(st, dedupe_key)
-    if agent_type == "verify" and matched:
+    if agent_type in {"verify", "verify-implement"} and matched:
         try:
             from epic_lib import mirror_verify_verdict
 

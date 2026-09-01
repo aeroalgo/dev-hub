@@ -12,6 +12,8 @@ alwaysApply: false
 1. Объект: `plan-<id>.md` или shard из `load_now`
 2. L3–L4: все shards плана (исключение ONE shard)
 2a. **Maximal detail:** index содержит `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; каждый AC+/AC−/FR/NFR → sNN или явный out_of_scope; этапы плана/канона → sNN. Артефакты decompose **без** telegraph/200-line economy. Канон: `workflow-decompose.mdc` §Maximal detail + §Outcome preserve + §Replacement cleanup
+2a1. **Coverage rubric:** covered row ⇒ measurable `verify` у sNN (FR/AC+ runnable cp; AC−/NFR rg|negative|fail-closed; stage = delta+files; §0.11 = grep cp). Map-only / goal-only без cp = incomplete
+2a2. **Anti-dilution (HARD):** plan FR/US **nouns** ∈ `produces`/`files` закрывающего sNN (agent/preset/hook enforce/CLI = runtime surface, не registry string). Surrogate-only verify (`get_x()=="name"`) для product FR = incomplete. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc
 2b. **Outcome preserve:** map ≠ замена sNN; titles outcome-first; plan step-count **advisory**
 2c. Execution matrix / lifecycle / async·thread·queue → **отдельные sNN** (не layout/celery)
 2d. Existing services wire — явный sNN с путями, не «в skeleton»
@@ -20,6 +22,7 @@ alwaysApply: false
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь goal); непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** каждый `sNN-*.yaml` = `schema: epic-decompose/v1` + `role: back` + `as_built`/`delta` как **list** — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** `epic-decompose-shard/*`, `epic-decompose-step/*`, invented schema names, `as_built: {as_is/delta}` dict. DECOMPOSE FINISH: `validate-decompose-tree` fail-closed (stop-gate)
 3a2. **CREATIVE verify (advisory):** FINISH前 `verify-decompose-creative --decompose <dir>` → exit 0; при `verdict: gaps` дописать по `gaps[].fix` / `missing`, не FINISH пока `ready: true`
+3a3. **Promote gate (HARD):** до FINISH — `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` **CRITICAL=0** + (ANALYZE artifact `critical_count=0` **или** Handoff `ANALYZE deferred:` owner/next/reason). Silent skip = incomplete
 3b. Один IMPLEMENT = один prod-модуль или один test-file; атомарность — 2–4 cp, не склейка чужих модулей; test-строки плана → `tdd`/cp конкретных sNN
 3c. Purge sNN: anti-fallback `rg` + entrypoint inventory cp обязательны
 4. Каждый `sNN`: skills gate — Core(4) ∪ situational из @.cursor/rules/back_developer/skills-gate-situational.mdc (concrete paths)
@@ -35,7 +38,10 @@ alwaysApply: false
 - Полные тела методов в `sNN` вместо lean-интерфейсов → incomplete
 - Plan всё ещё с дубль «Шаги / Результат sNN» → incomplete
 - Нет Requirements coverage / Stages coverage / Outcome map / Replacement cleanup → incomplete
+- Coverage row covered без measurable verify у sNN (rubric) → incomplete
+- Dilution: FR nouns не в produces/files; product FR только surrogate verify → incomplete
 - AC+/AC−/FR/NFR без sNN и без out_of_scope в coverage → incomplete
+- Promote: traceability CRITICAL>0 / нет ANALYZE artifact и нет defer → incomplete
 - Goals/index читаются только как scaffolding при ином Goal/NFR плана → incomplete (intent compressed)
 - Matrix/lifecycle только в Outcome map, без отдельных sNN → incomplete
 - ≥ половины titles в очереди — infra-slug without outcome → incomplete

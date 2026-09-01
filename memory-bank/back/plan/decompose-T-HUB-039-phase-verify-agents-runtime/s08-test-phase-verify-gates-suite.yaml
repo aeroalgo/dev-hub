@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "test_phase_verify_gates matrix + hooks regression suite"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/tests/test_phase_verify_gates.py` — полный тест-файл покрывающий матрицу
+  failure/success сценариев для всех phase-verify агентов: TM-001…TM-010.
+  Включает: agent file exists checks, normalize_type alias tests, contract sections,
+  stop-gate qa_blocked allow, decompose gate, bugfix deny без artifact,
+  dead assign regression, DSH preset files map.
+  Запустить `.venv/bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line` — все зелёные.
+
+context:
+  consumes:
+    - ".claude/hooks/_lib.py — normalize_type, missing_contract_sections, CONTRACTS, ALIAS"
+    - ".claude/hooks/agent_registry.py — AGENT_ALIASES, _discover_registry"
+    - ".claude/hooks/spawn_validate.py — validate_spawn_input"
+    - ".claude/hooks/stop-gate.py — (via import or invocation)"
+    - ".claude/agents/verify-*.md (all 4 after s01-s03)"
+    - "dsh/presets/verify-*.prompt.md (after s06)"
+    - "loop/schemas/phase_registry.yaml"
+  produces:
+    - "loop/tests/test_phase_verify_gates.py (new)"
+  plan_refs:
+    - "FR-016: test_phase_verify_gates matrix phase→required agent file exists"
+    - "FR-017: Extend test_agent_hooks.py"
+    - "TM-001…TM-010: failure matrix"
+    - "FR-012: test_phase_verify_gates matrix"
+    - "§Non-func: Test coverage ≥5 / matrix ≥10 rows"
+    - "US-001 / US-002 / US-003 / US-004: acceptance criteria"
+  files:
+    - "loop/tests/test_phase_verify_gates.py"
+
+as_built:
+  - "нет loop/tests/test_phase_verify_gates.py"
+  - "существующие тесты loop/tests/ — другие модули"
+
+delta:
+  - "create loop/tests/test_phase_verify_gates.py: ≥10 тест-функций покрывающих TM-001…TM-010"
+
+deletes: []
+
+out_of_scope:
+  - "hooks regression (stop-gate, user-prompt general) — отдельные test files"
+  - "Playwright / frontend tests — вне scope"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns"
+
+checkpoints:
+  - id: cp1
+    criterion: "test file создан с ≥10 тест-функциями"
+    verify: "grep -c '^def test_' loop/tests/test_phase_verify_gates.py"
+  - id: cp2
+    criterion: "все тесты зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line"
+  - id: cp3
+    criterion: "TM-001 covered: agent file missing → DENY"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'missing_file or tm001' -q --tb=line"
+  - id: cp4
+    criterion: "TM-010 covered: dead assign regression"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'dead_assign or tm010' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_tm001_agent_file_missing_deny: verify-* без agent file → pretool DENY"
+  - "test_tm002_alias_normalize_verify: normalize_type('verify')=='verify-implement'"
+  - "test_tm003_alias_normalize_reviewer: normalize_type('reviewer')=='verify-qa'"
+  - "test_tm004_contract_verify_bugfix_sections: missing_contract_sections('verify-bugfix', no_artifact_prompt) non-empty"
+  - "test_tm005_contract_verify_decompose: missing_contract_sections('verify-decompose', no_coverage_prompt) non-empty"
+  - "test_tm006_decompose_gate_blocks: stop-gate DECOMPOSE без verify → block"
+  - "test_tm007_qa_blocked_allows_finish: BLOCKED verdict → stop-gate FINISH allowed"
+  - "test_tm008_verify_qa_blocked_in_file: 'BLOCKED' in verify-qa.md"
+  - "test_tm009_dsh_preset_files_map: all 4 verify-*.prompt.md exist"
+  - "test_tm010_dead_assign_removed: rg expected_verify_agent pretool → no dead assign"

@@ -1,0 +1,45 @@
+date: '2026-09-01'
+epic_id: T-HUB-038-harness-metrics-dashboard
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-038-harness-metrics-dashboard.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-038-harness-metrics-dashboard/index.yaml
+
+steps:
+  - id: s01
+    title: "Dashboard collect + dashboard-report/v1 schema — aggregate metrics/incidents/episodes/events"
+    status: implemented
+    as_built: "Реализован модуль агрегации метрик harness в loop/dashboard/collect.py и валидация схемы в loop/dashboard/schema.py."
+    delta: "Созданы файлы loop/dashboard/collect.py и loop/dashboard/schema.py."
+    gaps: []
+
+  - id: s02
+    title: "Self-contained HTML render — sections: Metrics, Incidents, Episodes, Events, Epic progress"
+    status: implemented
+    as_built: "Реализован генератор автономного HTML-отчета в loop/dashboard/render.py с графиками и разрезными секциями metrics, incidents, episodes, events, epic progress."
+    delta: "Создан файл loop/dashboard/render.py."
+    gaps: []
+
+  - id: s03
+    title: "CLI dashboard-render + bin/loop alias — operator entry point with --days / --format"
+    status: implemented
+    as_built: "Реализован CLI интерфейс в loop/cli/dashboard.py и алиас командная строка bin/loop dashboard-render."
+    delta: "Созданы файлы loop/cli/dashboard.py и обновлен bin/loop."
+    gaps: []
+
+  - id: s04
+    title: "Doctor halt-rate warn — optional check EPIC_DASHBOARD_HALT_WARN_RATE over 7d window"
+    status: implemented
+    as_built: "Реализовано предупреждение о halt-rate в loop/doctor.py при превышении установленного порога EPIC_DASHBOARD_HALT_WARN_RATE за 7-дневное окно."
+    delta: "Обновлен модуль loop/doctor.py."
+    gaps: []
+
+  - id: s05
+    title: "Fixture-based tests + README §Dashboard — pytest suite + schema validation + doctor threshold"
+    status: implemented
+    as_built: "Разработан полный набор pytest тестов в loop/tests/test_dashboard.py и обновлена документация в README.md §Dashboard."
+    delta: "Создан loop/tests/test_dashboard.py и дополнен README.md."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 5 шагов (s01-s05) эпика T-HUB-038-harness-metrics-dashboard полностью реализованы и валидированы тестами. Gap-матрица пуста."

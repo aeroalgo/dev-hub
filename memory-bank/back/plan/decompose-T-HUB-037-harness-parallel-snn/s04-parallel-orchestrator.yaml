@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-037-harness-parallel-snn
+title: "parallel orchestrator — opt-in EPIC_PARALLEL_SNN wave spawn + flock index update"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/parallel/orchestrator.py` — основной entry point параллельного режима.
+  При `EPIC_PARALLEL_SNN=1`: compute_ready_wave → overlap_check пар → create_worktrees для
+  каждого шага в wave (max `EPIC_PARALLEL_MAX`, default 2) → spawn subprocess per worktree →
+  ждёт завершения всех → destroy_worktrees → обновляет index status через flock.
+  При `EPIC_PARALLEL_SNN=0` или отсутствии: возвращает None (sequential fallback).
+  Outcome: оператор может запустить `EPIC_PARALLEL_SNN=1 loop.sh` для ускорения independent sNN.
+
+context:
+  consumes:
+    - "loop/parallel/wave.py (s01) — compute_ready_wave"
+    - "loop/parallel/overlap.py (s02) — file_overlap_check"
+    - "loop/parallel/worktree.py (s03) — create_worktree, destroy_worktree"
+    - ".claude/hooks/epic_index.py — flock-based index status update"
+  produces:
+    - "loop/parallel/orchestrator.py — run_parallel_wave(epic_id, index_path, repo_root) -> ParallelResult | None; ParallelResult(wave, spawned, failed)"
+    - "docs/parallel-snn.md — env vars EPIC_PARALLEL_SNN, EPIC_PARALLEL_MAX; merge policy (manual commit-per-sNN)"
+  plan_refs:
+    - FR-004
+    - FR-005
+    - FR-006
+    - US-001
+    - US-002
+    - US-003
+    - SC-003
+  files:
+    - "loop/parallel/orchestrator.py"
+    - "docs/parallel-snn.md"
+
+as_built:
+  - "loop/parallel/ — wave.py + overlap.py + worktree.py готовы (s01–s03)"
+  - ".claude/hooks/epic_index.py — mark_step_status с flock существует"
+  - "loop/loop.sh — sequential only; параллельный hook отсутствует"
+
+delta:
+  - "создать loop/parallel/orchestrator.py: ParallelResult dataclass(wave: list[str], spawned: list[str], failed: list[str])"
+  - "run_parallel_wave(epic_id, index_path, repo_root, env=None) -> ParallelResult | None: если EPIC_PARALLEL_SNN != '1' в env — return None; compute wave; filter overlapping pairs → sequential fallback для конфликтов; create worktrees для non-overlapping batch (max EPIC_PARALLEL_MAX); spawn subprocess loop.sh per worktree; wait asyncio.gather; destroy worktrees; update index status flock"
+  - "создать docs/parallel-snn.md: env vars таблица + v1 merge policy (commit-per-sNN before parallel; conflicts = manual resolution) + T-HUB-029 arm_phase integration point"
+
+deletes: []
+
+out_of_scope:
+  - "loop.sh интеграция hook: вызов orchestrator из shell — это s05 (transition engine)"
+  - "automatic git merge conflict resolution — anti-scope плана"
+  - "full Bernstein DAG planner — anti-scope"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns # mock subprocess spawn, mock compute_ready_wave, mock create_worktree"
+    - "modern-python # dataclass, asyncio, subprocess, os.environ"
+    - "python-anti-patterns # EPIC_PARALLEL_SNN check early-return, no global state"
+    - "tdd # test-first: cp1/cp2/cp3 покрыты до impl"
+
+checkpoints:
+  - id: cp1
+    criterion: "EPIC_PARALLEL_SNN=0 → run_parallel_wave returns None (no spawn)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_orchestrator.py::test_sequential_fallback_env -q"
+  - id: cp2
+    criterion: "wave=['s02','s03'] без overlap → 2 worktrees created, 2 subprocesses spawned (mock)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_orchestrator.py::test_wave_spawn_count -q"
+  - id: cp3
+    criterion: "overlapping s02+s03 → только один spawned (sequential fallback для пары)"
+    verify: ".venv/bin/pytest loop/tests/test_parallel_orchestrator.py::test_overlap_sequential_fallback -q"
+  - id: cp4
+    criterion: "docs/parallel-snn.md существует и содержит EPIC_PARALLEL_SNN, EPIC_PARALLEL_MAX, arm_phase"
+    verify: "rg -l 'EPIC_PARALLEL_SNN' docs/parallel-snn.md && rg 'arm_phase' docs/parallel-snn.md"
+
+verify: []
+tdd:
+  - "loop/tests/test_parallel_orchestrator.py — test_sequential_fallback_env, test_wave_spawn_count, test_overlap_sequential_fallback, test_max_parallel_cap, test_result_dataclass_fields"

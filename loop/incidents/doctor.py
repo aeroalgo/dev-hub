@@ -24,6 +24,49 @@ from epic import (
     validate_finish_integrity,
 )
 from loop.incidents.store import CorruptIncidentError, list_open_incidents, parse_incidents_jsonl
+from loop.incidents.metrics import load_metrics
+
+
+def _check_halt_rate(cwd: Path, threshold: float = 0.5) -> CheckResult:
+    mb_path = cwd / "memory-bank" if not cwd.name == "memory-bank" else cwd
+    metrics_path = mb_path / "metrics.json"
+    if not metrics_path.is_file():
+        return CheckResult(
+            name="halt_rate",
+            status="skipped",
+            detail="metrics.json not found",
+        )
+
+    try:
+        metrics = load_metrics(mb_path)
+        counters = metrics.counters
+        check_after_halt = counters.get("check_after_halt", 0)
+        sessions_total = counters.get("sessions_total", 0)
+        sessions = max(sessions_total, 1)
+        rate = check_after_halt / sessions
+
+        if rate > threshold:
+            return CheckResult(
+                name="halt_rate",
+                status="warn",
+                detail=f"halt rate {rate:.2f} > threshold {threshold:.2f} ({check_after_halt}/{sessions_total})",
+            )
+        return CheckResult(
+            name="halt_rate",
+            status="pass",
+            detail=f"halt rate {rate:.2f} <= threshold {threshold:.2f} ({check_after_halt}/{sessions_total})",
+        )
+    except Exception as exc:
+        return CheckResult(
+            name="halt_rate",
+            status="warn",
+            detail=f"Failed to check halt rate: {exc}",
+        )
+
+try:
+    from tests.architecture.check_boundaries import check_boundaries
+except ImportError:
+    check_boundaries = None
 
 
 @dataclass
@@ -259,6 +302,65 @@ def run_doctor(cwd: str | Path, auto_repair: bool = False, format: str = "text")
                 detail="hub-board CLI not found on PATH",
             )
         )
+
+    # 7. boundary violations check (WARN if violations found)
+    if check_boundaries is not None:
+        try:
+            boundaries_yaml = cwd_p / "tests" / "architecture" / "boundaries.yaml"
+            if boundaries_yaml.exists():
+                violations = check_boundaries(root_dir=cwd_p, yaml_file=boundaries_yaml)
+                if violations:
+                    count = len(violations)
+                    report.checklist.append(
+                        CheckResult(
+                            name="boundary_violations",
+                            status="warn",
+                            detail=f"WARNING: {count} boundary violations found",
+                        )
+                    )
+                    report.warnings.append(f"WARNING: {count} boundary violations found")
+                else:
+                    report.checklist.append(
+                        CheckResult(
+                            name="boundary_violations",
+                            status="pass",
+                            detail="0 boundary violations",
+                        )
+                    )
+            else:
+                report.checklist.append(
+                    CheckResult(
+                        name="boundary_violations",
+                        status="skipped",
+                        detail="boundaries.yaml not found",
+                    )
+                )
+        except Exception as exc:
+            report.checklist.append(
+                CheckResult(
+                    name="boundary_violations",
+                    status="warn",
+                    detail=f"Check failed: {exc}",
+                )
+            )
+            report.warnings.append(f"Boundary check exception: {exc}")
+
+    # 8. halt_rate check
+    try:
+        threshold = float(os.environ.get("EPIC_DASHBOARD_HALT_WARN_RATE", "0.5"))
+        halt_check = _check_halt_rate(cwd_p, threshold=threshold)
+        report.checklist.append(halt_check)
+        if halt_check.status == "warn":
+            report.warnings.append(f"Halt rate check warning: {halt_check.detail}")
+    except Exception as exc:
+        report.checklist.append(
+            CheckResult(
+                name="halt_rate",
+                status="warn",
+                detail=f"Check failed: {exc}",
+            )
+        )
+        report.warnings.append(f"Halt rate check exception: {exc}")
 
     if report.blockers:
         report.exit_code = 1

@@ -1,0 +1,45 @@
+date: '2026-08-31'
+epic_id: T-HUB-034-harness-janitor-gc
+role: back
+plan_file: ../plan-T-HUB-034-harness-janitor-gc.md
+decompose_index: back/plan/decompose-T-HUB-034-harness-janitor-gc/index.yaml
+
+steps:
+  - id: s01
+    title: "JanitorReport schema + scan entry point — read-only scan façade"
+    status: implemented
+    as_built: "Реализован модуль loop/janitor.py с классами JanitorItem, JanitorReport, JanitorOptions и функциями run_janitor_scan / write_janitor_report. Покрыто тестами в loop/tests/test_janitor_s01.py."
+    delta: "Новый модуль loop/janitor.py + unit-тесты s01."
+    gaps: []
+
+  - id: s02
+    title: "Orphan/stale/dead/duplicate detectors — reuse reconcile+traceability"
+    status: implemented
+    as_built: "Добавлены детекторы мусора (orphan decompose, stale audit, dead tasks log, duplicate memory-bank) в loop/janitor.py с переиспользованием существующих утилит. Покрыто тестами в loop/tests/test_janitor_s02.py."
+    delta: "Детекторы сканирования мусора в loop/janitor.py + unit-тесты s02."
+    gaps: []
+
+  - id: s03
+    title: "Events/episode retention detector + janitor-gc whitelist engine"
+    status: implemented
+    as_built: "Реализован retention detector для старых событий/эпизодов и движок сборки мусора (run_janitor_gc, apply_janitor_gc) с поддержкой whitelist/dry-run. Покрыто тестами в loop/tests/test_janitor_s03.py."
+    delta: "Retention detector и движок GC в loop/janitor.py + unit-тесты s03."
+    gaps: []
+
+  - id: s04
+    title: "CLI subcommands janitor-scan/janitor-gc + full pytest suite"
+    status: implemented
+    as_built: "Интегрированы подкоманды CLI janitor-scan и janitor-gc в loop/cli.py. Покрыто интеграционными тестами в loop/tests/test_janitor_s04.py."
+    delta: "CLI интерфейс для janitor scan/gc + unit-тесты s04."
+    gaps: []
+
+  - id: s05
+    title: "workflow-janitor.mdc + mainrule wire (P1) + README cron doc"
+    status: implemented
+    as_built: "Созданы регламенты .cursor/rules/back_developer/workflow-janitor.mdc, привязка к mainrule.mdc и документация по cron-запускам в loop/README.md. Покрыто тестами в loop/tests/test_janitor_s05.py."
+    delta: "Правила workflow-janitor.mdc, обновлённый mainrule.mdc, loop/README.md + unit-тесты s05."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 5 шагов (s01-s05) успешно реализованы и покрыты тестами. Отклонений и задолженностей (gaps) нет."

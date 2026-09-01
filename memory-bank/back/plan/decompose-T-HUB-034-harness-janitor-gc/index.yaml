@@ -1,0 +1,30 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-034-harness-janitor-gc
+date: '2026-08-31'
+role: back
+steps:
+- id: s01
+  file: s01-janitor-schema.yaml
+  title: JanitorReport schema + scan entry point — read-only scan façade
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-janitor-detectors-orphan-stale.yaml
+  title: Orphan/stale/dead/duplicate detectors — reuse reconcile+traceability
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-janitor-events-retention-gc.yaml
+  title: Events/episode retention detector + janitor-gc whitelist engine
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-janitor-cli-tests.yaml
+  title: CLI subcommands janitor-scan/janitor-gc + full pytest suite
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-janitor-workflow-docs.yaml
+  title: workflow-janitor.mdc + mainrule wire (P1) + README cron doc
+  next_phase: BACK IMPLEMENT
+  status: completed

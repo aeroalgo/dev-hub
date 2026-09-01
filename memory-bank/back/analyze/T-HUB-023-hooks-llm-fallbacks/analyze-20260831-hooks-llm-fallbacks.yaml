@@ -1,0 +1,37 @@
+schema: analyze-report/v1
+epic_id: T-HUB-023
+date: "2026-08-31"
+status: PASS
+critical_count: 0
+major_count: 0
+minor_count: 0
+
+summary:
+  plan_file: "memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md"
+  decompose_dir: "memory-bank/back/plan/decompose-T-HUB-023-hooks-llm-fallbacks"
+  shards_count: 13
+  coverage_status: "COMPLETE"
+  replacement_cleanup_status: "VERIFIED"
+
+checks:
+  - id: CHK-01
+    title: "Plan vs Decompose shard alignment"
+    status: PASS
+    details: "All 13 steps s01..s13 defined in plan-T-HUB-023 correspond 1:1 to decompose shards s01..s13."
+
+  - id: CHK-02
+    title: "Requirements and SC Coverage"
+    status: PASS
+    details: "All FR-001..FR-017, SC-001..SC-008, US-001..US-003, AC+ and AC- requirements are mapped to steps s01..s13 in decompose-T-HUB-023-hooks-llm-fallbacks/index.md."
+
+  - id: CHK-03
+    title: "Replacement cleanup and drift counters"
+    status: PASS
+    details: "Brownfield replace targets (Items A..F) are cleanly mapped to s04, s07, s08, s10 with complete regex purge in s13."
+
+  - id: CHK-04
+    title: "Codebase pre-check"
+    status: PASS
+    details: "Target files .claude/hooks/_lib.py, llm_structured.py, context_loop.py, and agent templates exist and are ready for implementation."
+
+findings: []

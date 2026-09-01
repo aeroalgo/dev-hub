@@ -16,6 +16,7 @@ from loop.schemas.checkpoint import (
     CheckpointRecord,
 )
 from loop.schemas.event import EVENT_KINDS, EVENT_SCHEMA, LoopEvent
+from loop.schemas.formula import DecomposeFormula, FormulaStep, load_formula
 from loop.schemas.gate_verdict import GateVerdictRecord, GateVerdictValue
 from loop.schemas.handoff import LoopHandoffFrontmatter, LoopHandoffRole
 from loop.schemas.state import DriftCounters, EpicState
@@ -27,15 +28,18 @@ __all__ = [
     "CHECKPOINT_STATUSES",
     "BoardCardMetadata",
     "CheckpointRecord",
+    "DecomposeFormula",
     "DriftCounters",
     "EVENT_KINDS",
     "EVENT_SCHEMA",
     "EpicState",
+    "FormulaStep",
     "GateVerdictRecord",
     "GateVerdictValue",
     "LoopEvent",
     "LoopHandoffFrontmatter",
     "LoopHandoffRole",
+    "load_formula",
     "handoff_mode_from_text",
     "parse_handoff_meta",
     "render_with_frontmatter",

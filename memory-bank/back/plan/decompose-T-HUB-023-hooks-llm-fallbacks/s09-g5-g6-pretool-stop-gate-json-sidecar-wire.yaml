@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "G5–G6 pretool + stop-gate JSON → sidecar wire"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `subagent-stop.py` (G5) и `stop-gate.py` (G6) вызывают `parse_gate_verdict_message()` из `_lib.py`
+  при SubagentStop для verify/reviewer — JSON fence → sidecar до extract_verdict.
+  `agent-pretool.py` (G5) при spawn @verify инжектирует JSON contract hint в packed prompt.
+  Outcome: AC-plus-5 — G5–G6 wire JSON → sidecar on SubagentStop.
+
+context:
+  consumes:
+    - "s03: parse_gate_verdict_message(text, cwd, agent_id, recorded_at) → GateVerdictRecord | None"
+    - "s04: extract_verdict() — sidecar-only"
+    - "subagent-stop.py строки 1–150 — текущий: extract_verdict(msg) → regex/sidecar"
+    - "stop-gate.py — FINISH gate; использует extract_verdict()"
+    - "agent-pretool.py — spawn guard; инжектирует prompts"
+  produces:
+    - "subagent-stop.py: перед extract_verdict — вызов parse_gate_verdict_message(raw, cwd, agent_id, recorded_at)"
+    - "stop-gate.py: при FINISH gate — читает sidecar через extract_verdict (уже sidecar-only)"
+    - "agent-pretool.py: inject JSON contract hint при spawn @verify/@reviewer"
+  plan_refs: [FR-013, AC-plus-5]
+  files:
+    - ".claude/hooks/subagent-stop.py"
+    - ".claude/hooks/stop-gate.py"
+    - ".claude/hooks/agent-pretool.py"
+
+as_built:
+  - "subagent-stop.py: extract_verdict(msg) — после s04 = sidecar-only; parse_gate_verdict_message ещё не вызывается"
+  - "stop-gate.py: extract_verdict(cwd=cwd) при FINISH check"
+  - "agent-pretool.py: inject CONTRACT strings из _lib.py (после s07 = JSON fence)"
+
+delta:
+  - "subagent-stop.py: в блоке verify/reviewer — добавить вызов parse_gate_verdict_message(raw, cwd, agent_id, recorded_at=now_utc()) ПЕРЕД extract_verdict; если возвращает None и extract_verdict тоже None → block (incomplete)"
+  - "subagent-stop.py: импортировать parse_gate_verdict_message из _lib"
+  - "stop-gate.py: убедиться что extract_verdict вызывается с cwd (должно быть уже — проверить и поправить если нет)"
+  - "agent-pretool.py: при inject_contract для verify/reviewer — использовать обновлённые CONTRACT strings (s07) — уже подхватит через _lib import"
+
+deletes: []
+
+out_of_scope:
+  - "reviewer пути в subagent-stop — по аналогии с verify"
+  - "тесты — s11"
+  - "drift counter — s10"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "subagent-stop вызывает parse_gate_verdict_message для verify агента"
+    verify: "rg 'parse_gate_verdict_message' .claude/hooks/subagent-stop.py | head -5"
+  - id: cp2
+    criterion: "stop-gate вызывает extract_verdict с cwd"
+    verify: "rg 'extract_verdict.*cwd\\|cwd.*extract_verdict' .claude/hooks/stop-gate.py | head -5"
+  - id: cp3
+    criterion: "test_hooks_llm_wire — parse_gate_verdict_message вызван при SubagentStop с valid JSON"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_wire.py -q --tb=line"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_wire.py — test_subagent_stop_calls_parse_gate_verdict, test_subagent_stop_valid_json_sidecar_written"

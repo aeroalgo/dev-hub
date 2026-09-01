@@ -1,0 +1,30 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-035-harness-architecture-boundaries
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - update-ratchet CLI (FR-005 optional)
+  - full architecture shard rewrite
+steps:
+- id: s01
+  file: s01-boundaries-yaml-checker.yaml
+  title: Enforce layer contracts — boundaries.yaml + checker module
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-ratchet-ci-test.yaml
+  title: Ratchet mechanism — ratchet.json + CI gate freezes violation count
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-doctor-integration-warn.yaml
+  title: Doctor integration — boundary check warns in loop doctor checklist
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-architecture-doc-pointer.yaml
+  title: Architecture doc — pointer to boundaries.yaml and enforcement mechanism
+  next_phase: BACK IMPLEMENT
+  status: completed

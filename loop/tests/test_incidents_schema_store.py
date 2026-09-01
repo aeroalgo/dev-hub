@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import pytest
 
 from loop.incidents import (
@@ -185,3 +186,61 @@ def test_corrupt_jsonl_raises_or_returns_fail_closed(tmp_path: Path):
         parse_incidents_jsonl(fixture_path)
 
     assert "Line content" in str(exc_info.value) or "invalid JSON" in str(exc_info.value)
+
+
+def test_resolve_all_open_incidents(tmp_path: Path):
+    from loop.incidents.store import resolve_all_open_incidents
+
+    epic_dir = tmp_path / "epic"
+    epic_dir.mkdir()
+    open_a = IncidentRecord(
+        incident_id="aaa",
+        status="open",
+        opened_at="2026-08-31T10:00:00Z",
+        project_root="/tmp/proj",
+        epic_id="T-HUB-033",
+        step_id="s04",
+        phase="AUDIT",
+        session_id="sess-1",
+        source="check_after",
+        diagnostic_codes=["finish_integrity_decompose_missing"],
+        fingerprint="fp-a",
+    )
+    closed_b = {
+        "schema": "loop-incident/v1",
+        "incident_id": "bbb",
+        "status": "resolved",
+        "opened_at": "2026-08-31T09:00:00Z",
+        "resolved_at": "2026-08-31T09:30:00Z",
+        "project_root": "/tmp/proj",
+        "epic_id": "T-HUB-033",
+        "step_id": "s01",
+        "phase": "IMPLEMENT",
+        "session_id": "sess-0",
+        "source": "check_after",
+        "diagnostic_codes": ["stale_owner"],
+        "fingerprint": "fp-b",
+        "tier0_attempts": 0,
+        "tier0_repair_log": [],
+        "resolution_tier": "tier0",
+        "resolution_action": "clear_stale_runner_lock",
+        "metadata": {},
+    }
+    append_incident(epic_dir, open_a)
+    path = epic_dir / "incidents.jsonl"
+    path.write_text(
+        path.read_text(encoding="utf-8") + json.dumps(closed_b, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    cleared = resolve_all_open_incidents(epic_dir)
+    assert len(cleared) == 1
+    assert cleared[0].incident_id == "aaa"
+    assert cleared[0].status == "resolved"
+    assert cleared[0].resolution_tier == "loop_restart"
+    assert cleared[0].resolved_at
+
+    assert list_open_incidents(epic_dir) == []
+    all_recs = parse_incidents_jsonl(path)
+    assert len(all_recs) == 2
+    assert {r.status for r in all_recs} == {"resolved"}

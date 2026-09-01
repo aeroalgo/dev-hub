@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s10 — Drift counter — structured_extract_used (json|pydantic-ai tag) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-023-hooks-llm-fallbacks/s10-drift-counter-structured-extract-used.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added tag parameter to increment_drift_counter in core.py and extra allow in DriftCounters
+  schema
+- Added increment_drift_counter(cwd, 'structured_extract_used', tag='json') in parse_gate_verdict_message
+- Added increment_drift_counter(target_cwd, 'structured_extract_used', tag='pydantic-ai')
+  in run_gate_verdict_llm
+- Added unit test test_parse_gate_verdict_message_increments_drift
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/_lib.py
+- .claude/hooks/llm_structured.py
+- loop/schemas/state.py
+- loop/tests/test_hooks_llm_fence.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_parse_gate_verdict_message_increments_drift
+  -q`'
+integration_check:
+- '_lib.py -> epic/core.py: increment_drift_counter'
+grep_control: []
+verification_results:
+- rg 'structured_extract_used' .claude/hooks/_lib.py .claude/hooks/llm_structured.py
+  PASS
+- .venv/bin/pytest loop/tests/test_hooks_llm_fence.py::test_parse_gate_verdict_message_increments_drift
+  PASS
+checkpoints:
+- id: cp1
+  criterion: rg 'structured_extract_used' в _lib.py и llm_structured.py
+  status: done
+  done_at: '2026-08-31T18:08:20Z'
+- id: cp2
+  criterion: parse_gate_verdict_message success path вызывает drift counter
+  status: done
+  done_at: '2026-08-31T18:08:26Z'
+resume_from: cp1

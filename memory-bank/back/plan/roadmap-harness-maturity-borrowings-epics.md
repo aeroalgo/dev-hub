@@ -19,13 +19,14 @@
 | **P1** | 4 | T-HUB-031 | [plan-T-HUB-031-harness-episode-packages.md](plan-T-HUB-031-harness-episode-packages.md) | Episode package per loop session (auditable bundle) | arXiv Harness H3 |
 | **P1** | 5 | T-HUB-032 | [plan-T-HUB-032-harness-analyze-convergence.md](plan-T-HUB-032-harness-analyze-convergence.md) | `analyze-convergence` cross-artifact CLI | GitHub spec-kit `/speckit.analyze` |
 | **P1** | 6 | T-HUB-033 | [plan-T-HUB-033-harness-execution-discipline.md](plan-T-HUB-033-harness-execution-discipline.md) | GSD-style atomic commit per sNN + one-shard-one-session | GSD execution |
-| **P2** | 7 | T-HUB-034 | [plan-T-HUB-034-harness-janitor-gc.md](plan-T-HUB-034-harness-janitor-gc.md) | Doc gardening / stale artifact janitor | OpenAI harness GC |
-| **P2** | 8 | T-HUB-035 | [plan-T-HUB-035-harness-architecture-boundaries.md](plan-T-HUB-035-harness-architecture-boundaries.md) | Architecture boundary tests (import-linter) | OpenAI harness ratchet |
-| **P2** | 9 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | Reusable decompose formula templates | Gas Town formulas |
-| **P2** | 10 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | Parallel independent sNN (worktree pool) | Bernstein / GSD waves |
-| **P2** | 11 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | Metrics + events HTML/JSON dashboard | OpenHands / SRE |
+| **P1** | 7 | T-HUB-040 | [plan-T-HUB-040-harness-workflow-finish-api.md](plan-T-HUB-040-harness-workflow-finish-api.md) | Typed mb-finish API — atomic FINISH без prose activeContext | MCP-style harness tools |
+| **P2** | 8 | T-HUB-034 | [plan-T-HUB-034-harness-janitor-gc.md](plan-T-HUB-034-harness-janitor-gc.md) | Doc gardening / stale artifact janitor | OpenAI harness GC |
+| **P2** | 9 | T-HUB-035 | [plan-T-HUB-035-harness-architecture-boundaries.md](plan-T-HUB-035-harness-architecture-boundaries.md) | Architecture boundary tests (import-linter) | OpenAI harness ratchet |
+| **P2** | 10 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | Reusable decompose formula templates | Gas Town formulas |
+| **P2** | 11 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | Parallel independent sNN (worktree pool) | Bernstein / GSD waves |
+| **P2** | 12 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | Metrics + events HTML/JSON dashboard | OpenHands / SRE |
 
-**Cut criteria:** (#1) P0≠P1≠P2 bands; (#2) runtime wire vs transition engine vs observability vs hygiene — разные деревья; (#4) hard-deps 031←030, 033←029, 034←026, 037←029, 038←031; (#5) каждый эпик — independent QA deliverable.
+**Cut criteria:** (#1) P0≠P1≠P2 bands; (#2) runtime wire vs transition engine vs observability vs hygiene — разные деревья; (#4) hard-deps 031←030, 033←029, 034←026, 037←029, 038←031, 040←029+033; (#5) каждый эпик — independent QA deliverable.
 
 **Existing plans (не переписываются):** T-HUB-029, T-HUB-026 — включены в slug queue для ordering и MERGE.
 
@@ -41,6 +42,7 @@ flowchart TB
   H031[T-HUB-031 episode packages P1]
   H032[T-HUB-032 analyze-convergence P1]
   H033[T-HUB-033 execution discipline P1]
+  H040[T-HUB-040 mb-finish API P1]
   H034[T-HUB-034 janitor GC P2]
   H035[T-HUB-035 arch boundaries P2]
   H036[T-HUB-036 decompose formulas P2]
@@ -49,6 +51,8 @@ flowchart TB
   H030 --> H031
   H030 --> H029
   H029 --> H033
+  H029 --> H040
+  H033 --> H040
   H029 --> H037
   H026 --> H034
   H031 --> H038
@@ -61,6 +65,8 @@ flowchart TB
 | T-HUB-030 | T-HUB-031 | hard | episode bundle требует wired trace/events/tier0 |
 | T-HUB-030 | T-HUB-029 | soft | transition engine стабильнее после doctor/tier0 wire |
 | T-HUB-029 | T-HUB-033 | hard | atomic commit hook в `finalize_step` / transition API |
+| T-HUB-029 | T-HUB-040 | hard | finish tools delegate `arm_phase` / transition engine |
+| T-HUB-033 | T-HUB-040 | hard | `finish_implement` wraps stable `finalize_step` + session boundary |
 | T-HUB-029 | T-HUB-037 | hard | parallel sNN требует единый `arm_phase` + cursor sync |
 | T-HUB-026 | T-HUB-034 | hard | janitor reuse reconcile parsers |
 | T-HUB-031 | T-HUB-038 | hard | dashboard агрегирует episode + metrics |

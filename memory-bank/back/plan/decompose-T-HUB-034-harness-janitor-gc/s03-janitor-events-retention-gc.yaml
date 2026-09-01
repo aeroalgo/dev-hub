@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-034-harness-janitor-gc
+title: "Events/episode retention detector + janitor-gc whitelist engine"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Дополнить scan двумя детекторами: orphan_events_dir (events/ директории без matching episode manifest)
+  и episode_retention_exceeded (episodes старше retention window). Реализовать janitor-gc engine:
+  whitelist-only bounded repairs (index mirror patch + episode prune) с dry-run / apply modes (tier-0 style).
+  Platform может делать bounded repair без ручного вмешательства. Закрывает FR-002 (events/retention),
+  AC-2, NFR-02.
+
+context:
+  consumes:
+    - loop/schemas/episode.py             # EpisodeManifest, EPISODE_SCHEMA
+    - loop/episodes/                      # runtime episodes storage pattern
+    - loop/janitor/schema.py              # JanitorFinding, JanitorReport (s01)
+    - loop/janitor/scan.py               # detector registry (s01)
+    - loop/janitor/detectors/__init__.py  # DETECTORS registry (s02)
+    - .claude/hooks/epic/core.py          # repair_index_mirror (для gc index repair)
+  produces:
+    - loop/janitor/detectors/events_retention.py
+    - loop/janitor/gc.py
+  plan_refs:
+    - "FR-002: Finding categories orphan_events_dir, episode_retention_exceeded"
+    - "AC-2: janitor-gc dry-run/apply with whitelist"
+    - "NFR-01: janitor-scan read-only"
+    - "NFR-02: janitor-gc apply restricted to whitelist paths only"
+    - "US-002: Platform: gc only whitelist paths (tier0)"
+    - "SC-002: gc apply refuses non-whitelist"
+  files:
+    - loop/janitor/detectors/events_retention.py
+    - loop/janitor/gc.py
+
+as_built:
+  - "loop/schemas/episode.py — EpisodeManifest with episode_id, schema='loop-episode/v1'"
+  - "loop/episodes/ — runtime episode packages (если существуют в PROJECT_ROOT/runtime/episodes/)"
+  - ".claude/hooks/epic/core.py — repair_index_mirror(cwd, decompose) реализован"
+  - "loop/janitor/gc.py — отсутствует"
+  - "loop/janitor/detectors/events_retention.py — отсутствует"
+
+delta:
+  - "CREATE loop/janitor/detectors/events_retention.py — detect_orphan_events_dir(cwd): walk runtime/events/, find dirs без matching episode manifest; detect_episode_retention_exceeded(cwd, max_age_days=30): walk runtime/episodes/, load manifest, check age vs threshold"
+  - "CREATE loop/janitor/gc.py — GcEngine: whitelist=('memory-bank/*/plan/decompose-*/index.md', 'runtime/episodes/'); apply_repair(finding, dry_run) -> GcResult; fail-closed: path not in whitelist → raise GcWhitelistError; repairs: index_mirror_patch (calls repair_index_mirror read-then-write), episode_prune (deletes episode dir if retention_exceeded)"
+
+deletes: []
+
+out_of_scope:
+  - "Детекторы orphan/stale/dead/duplicate (s02)"
+  - "CLI wiring (s04)"
+  - "Изменения логики repair_index_mirror в epic.core — только вызов"
+  - "Full AUDIT / reconcile-spec rewrites"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"   # S11: GcEngine, GcResult public types
+    - ".agents/skills/python-error-handling/SKILL.md" # S03: GcWhitelistError, fail-closed
+
+checkpoints:
+  - id: cp1
+    criterion: "detect_orphan_events_dir находит fixture orphan events dir (без manifest)"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_events_retention.py::test_detect_orphan_events -q --tb=short"
+  - id: cp2
+    criterion: "detect_episode_retention_exceeded находит fixture episode старше 30 дней"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_events_retention.py::test_detect_retention_exceeded -q --tb=short"
+  - id: cp3
+    criterion: "GcEngine.apply_repair raises GcWhitelistError для пути вне whitelist (SC-002, NFR-02)"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_gc.py::test_gc_refuses_non_whitelist -q --tb=short"
+  - id: cp4
+    criterion: "GcEngine dry_run=True не пишет на диск (read-only scan path не нарушен)"
+    verify: ".venv/bin/pytest loop/tests/test_janitor_gc.py::test_gc_dry_run_no_writes -q --tb=short"
+
+verify:
+  - "rg 'def detect_orphan_events_dir\\|def detect_episode_retention_exceeded' loop/janitor/detectors/events_retention.py"
+  - "rg 'GcWhitelistError\\|fail.closed\\|whitelist' loop/janitor/gc.py"
+  - "rg 'dry_run' loop/janitor/gc.py"
+  - ".venv/bin/pytest loop/tests/test_janitor_gc.py loop/tests/test_janitor_events_retention.py -q --tb=short"
+
+tdd:
+  - "loop/tests/test_janitor_events_retention.py — fixtures: orphan events dir (no manifest yaml), episode dir с mtime > 30 days"
+  - "loop/tests/test_janitor_gc.py — test_gc_refuses_non_whitelist, test_gc_dry_run_no_writes, test_gc_apply_index_mirror_patch, test_gc_apply_episode_prune"

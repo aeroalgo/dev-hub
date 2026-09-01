@@ -115,6 +115,8 @@ def resolve_incident(
     **kwargs: Any,
 ) -> IncidentRecord | None:
     """Resolve an open incident by ID."""
+    from datetime import datetime, timezone
+
     epic_path = Path(epic_dir)
     incidents_path = epic_path / "incidents.jsonl"
 
@@ -141,8 +143,7 @@ def resolve_incident(
     existing = records[target_index]
     data = existing.model_dump(by_alias=True)
     data["status"] = res_data.get("status", "resolved")
-    if "resolved_at" in res_data:
-        data["resolved_at"] = res_data["resolved_at"]
+    data["resolved_at"] = res_data.get("resolved_at") or datetime.now(timezone.utc).isoformat()
     if "resolution_tier" in res_data:
         data["resolution_tier"] = res_data["resolution_tier"]
     if "resolution_action" in res_data:
@@ -154,6 +155,33 @@ def resolve_incident(
     records[target_index] = updated
     _write_incidents_jsonl(incidents_path, records)
     return updated
+
+
+def resolve_all_open_incidents(
+    epic_dir: Path | str,
+    *,
+    resolution_tier: str = "loop_restart",
+    resolution_action: str = "clear_open_on_loop_start",
+) -> list[IncidentRecord]:
+    """Resolve every open incident (manual loop restart / operator clear)."""
+    from datetime import datetime, timezone
+
+    open_recs = list_open_incidents(epic_dir)
+    resolved_at = datetime.now(timezone.utc).isoformat()
+    out: list[IncidentRecord] = []
+    for rec in open_recs:
+        updated = resolve_incident(
+            epic_dir,
+            rec.incident_id,
+            resolution={
+                "resolution_tier": resolution_tier,
+                "resolution_action": resolution_action,
+                "resolved_at": resolved_at,
+            },
+        )
+        if updated is not None:
+            out.append(updated)
+    return out
 
 
 def list_open_incidents(epic_dir: Path | str) -> list[IncidentRecord]:

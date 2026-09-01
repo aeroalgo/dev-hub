@@ -113,7 +113,7 @@ Min: для L3+ — минимум 4 заполненных вопроса.
 
 ## Eng review spine
 
-> L3+ обязательно. L2 — data-flow + failure matrix; test matrix может ссылаться на plan §тест-стратегия. L1 — optional.  
+> **L2+ обязательно** (согласовано с PLAN lean gates 8–10): data-flow + failure matrix + Review readiness. L3+ — полный spine. L1 — optional.  
 > Секции не подлежат сокращению ради token-economy.
 
 ### Data flow (ASCII)
@@ -222,14 +222,14 @@ Brownfield: в конце очереди заложить `sNN-legacy-fallback-p
 
 ## Appetite
 
-> Границы ресурсов и отсечки для эпика (advisory in v1 — не форсируется loop автоматически).
+> Бюджет эпика (Shape Up): **время** и **что вырезать первым**, не потолок числа `sNN`.  
+> **FORBIDDEN:** лимит/circuit-breaker на число шагов decompose («стоп если >N sNN») — конфликтует с Maximal detail (дырка в coverage → добавить sNN; count в §нарезка — advisory floor).  
+> Loop не форсирует эти поля.
 
 | Поле | Значение / пример | Описание |
 | :--- | :--- | :--- |
-| `timebox_days` | `3` | Максимальный срок разработки в днях |
-| `max_steps` | `10` | Лимит шагов в decompose |
-| `circuit_breaker` | `Остановка если >10 шагов или превышен timebox` | Правило принудительной остановки |
-| `cut_list` | `['optional UI polish', 'extra metrics']` | Фичи для первого отсечения при превышении бюджета |
+| `timebox_days` | `3` | Желаемый timebox (календарь), не cap нарезки |
+| `cut_list` | `['optional UI polish', 'extra metrics']` | Что вырезать первым при превышении бюджета (scope), не «меньше sNN» |
 
 ## Следующий режим
 

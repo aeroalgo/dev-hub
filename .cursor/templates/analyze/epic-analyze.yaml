@@ -9,7 +9,7 @@ status: draft | complete
 findings:
   - id: A1
     severity: CRITICAL | HIGH | MEDIUM | LOW
-    category: Duplication | Ambiguity | Underspecification | Coverage Gaps | Inconsistency | Constitution
+    category: Duplication | Ambiguity | Underspecification | Coverage Gaps | Dilution | Inconsistency | Constitution
     message: <concise finding>
     plan_ref: <plan section or n/a>
     step_ref: <sNN or n/a>

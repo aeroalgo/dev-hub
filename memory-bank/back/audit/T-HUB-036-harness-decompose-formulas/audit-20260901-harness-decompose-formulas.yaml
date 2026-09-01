@@ -1,0 +1,59 @@
+date: '2026-09-01'
+epic_id: T-HUB-036-harness-decompose-formulas
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-036-harness-decompose-formulas.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-036-harness-decompose-formulas/index.yaml
+
+steps:
+  - id: s01
+    title: "formula schema — decompose-formula/v1 Pydantic model + YAML loader"
+    status: implemented
+    as_built: "Реализованы Pydantic-модели FormulaStep и DecomposeFormula в loop/schemas/formula.py, а также загрузка и валидация load_formula(). Покрыто тестами в loop/tests/test_formula_schema.py."
+    delta: "Новые файлы loop/schemas/formula.py, loop/tests/test_formula_schema.py."
+    gaps: []
+
+  - id: s02
+    title: "3 bundled formulas — hooks-epic, loop-runtime-epic, cli-validate-epic YAML files"
+    status: implemented
+    as_built: "Созданы 3 базовые формулы decompose в loop/formulas/ (hooks-epic.yaml, loop-runtime-epic.yaml, cli-validate-epic.yaml). Покрыто тестами в loop/tests/test_bundled_formulas.py."
+    delta: "Новые файлы loop/formulas/hooks-epic.yaml, loop/formulas/loop-runtime-epic.yaml, loop/formulas/cli-validate-epic.yaml, loop/tests/test_bundled_formulas.py."
+    gaps: []
+
+  - id: s03
+    title: "formula-render CLI — materialize draft decompose sNN shards from formula"
+    status: implemented
+    as_built: "Реализован генератор шардов render_formula() в loop/formula_render.py и подкоманда CLI formula-render в epic_resolve.py. Создает index.yaml и sNN шарды по шаблону."
+    delta: "Новый файл loop/formula_render.py, обновлён .claude/hooks/epic_resolve.py, добавлен loop/tests/test_formula_render.py."
+    gaps: []
+
+  - id: s04
+    title: "formula-list CLI — enumerate available formulas with metadata"
+    status: implemented
+    as_built: "Реализованы перечисление формул list_formulas() и подкоманда CLI formula-list в epic_resolve.py. Выводит доступные формулы и метаданные."
+    delta: "Обновлены loop/formula_render.py и .claude/hooks/epic_resolve.py, добавлен loop/tests/test_formula_list.py."
+    gaps: []
+
+  - id: s05
+    title: "formula validation — broken template exits 2 at render time"
+    status: implemented
+    as_built: "Реализована валидация шаблонов с выходом exit 2 при некорректной структуре YAML/Pydantic, а также защита от случайной перезаписи без --force."
+    delta: "Обновлены loop/formula_render.py и .claude/hooks/epic_resolve.py, добавлен loop/tests/test_formula_validation.py."
+    gaps: []
+
+  - id: s06
+    title: "tests ≥10 — render dry-run, schema validation, no-overwrite guard"
+    status: implemented
+    as_built: "Разработан комплексный набор тестов (23 теста), проверяющий dry-run, валидацию схем, генерацию и интеграцию с validate-decompose-tree."
+    delta: "Новый файл loop/tests/test_formula_integration.py."
+    gaps: []
+
+  - id: s07
+    title: "DECOMPOSE workflow note — optional --formula hint documented"
+    status: implemented
+    as_built: "Документирована поддержка --formula и вызовы formula-render/formula-list в каноне workflow DECOMPOSE."
+    delta: "Обновлён файл .cursor/rules/back_developer/workflow-decompose.mdc."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 7 шагов (s01-s07) полностью реализованы и проверены тестами (23 passing). Gap-матрица пуста."

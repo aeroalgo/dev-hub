@@ -67,25 +67,25 @@ def main() -> None:
                 if verdict:
                     break
 
-    if agent_type in {"verify", "reviewer"} and not verdict:
-        if agent_type == "verify":
+    if agent_type in {"verify", "verify-implement", "reviewer", "verify-qa"} and not verdict:
+        if agent_type in {"verify", "verify-implement"}:
             st["verify_incomplete"] = int(st.get("verify_incomplete") or 0) + 1
             save_state(session_id, cwd, st)
         print(
             f"{agent_type}: в финале обязателен VERDICT: PASS|FAIL"
-            + ("|BLOCKED" if agent_type == "reviewer" else "")
+            + ("|BLOCKED" if agent_type in {"reviewer", "verify-qa"} else "")
             + ". Допиши отчёт в формате агента, затем остановись."
             + (
                 " Parent: макс. 1 retry @verify без VERDICT, иначе "
                 "NEED_HUMAN: verify_no_verdict."
-                if agent_type == "verify"
+                if agent_type in {"verify", "verify-implement"}
                 else ""
             ),
             file=sys.stderr,
         )
         sys.exit(2)
 
-    if agent_type == "verify" and verdict:
+    if agent_type in {"verify", "verify-implement"} and verdict:
         identity = current_gate_identity(cwd, session_id)
         sync_gate_identity(st, identity)
         try:
@@ -140,9 +140,11 @@ def main() -> None:
             return
         return
 
-    if agent_type == "reviewer" and verdict:
+    if agent_type in {"reviewer", "verify-qa"} and verdict:
         identity = current_gate_identity(cwd, session_id)
         sync_gate_identity(st, identity)
+        if verdict == "BLOCKED":
+            st["qa_blocked"] = True
         evidence = verdict_evidence(identity, verdict)
         record_verdict(st, "reviewer", verdict, evidence)
         clear_in_flight(st, agent=agent_type)

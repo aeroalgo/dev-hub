@@ -1,6 +1,6 @@
 # YAML-CONTRACT — lint для epic shard + decompose index (opt-in)
 
-Поля **`epic-decompose/v1`** (единственный канон shard), `epic-implement/v1`, qa/refactor/security.  
+Поля **`epic-decompose/v1`** (единственный канон shard), `epic-implement/v1`, `decompose-formula/v1` (`loop/schemas/formula.py`), qa/refactor/security.  
 **FORBIDDEN** invented decompose schemas: `epic-decompose-shard/*`, `epic-decompose-step/*`, любые имена кроме template.  
 Read-time alias только `integ-decompose/v1` → нормализуется в `epic-decompose/v1` (не писать legacy в файлы).  
 Шаблон: `.cursor/templates/decompose/epic-step.yaml`.  

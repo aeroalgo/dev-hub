@@ -35,3 +35,6 @@ queue:
   - id: T-HUB-038
     plan: plan-T-HUB-038-harness-metrics-dashboard.md
     deps: [T-HUB-031]
+  - id: T-HUB-040
+    plan: plan-T-HUB-040-harness-workflow-finish-api.md
+    deps: [T-HUB-029, T-HUB-033]

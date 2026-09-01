@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s13
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "Legacy purge — delete regex VERDICT/handoff/abort machine paths"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Полный inventory scan и удаление оставшихся legacy regex VERDICT / prose handoff / abort machine paths
+  из всех hooks, agents, spawn-hard, context_loop. После этого шага `rg 'VERDICT:'` в machine paths
+  не находит ни одного вхождения (только human-summary комментарии). SC-001 финально верифицирован rg.
+  Outcome: FR-016 — нет regex VERDICT в machine path по всей кодовой базе hooks.
+
+context:
+  consumes:
+    - "s04: extract_verdict без regex (machine path)"
+    - "s06–s08: agents + spawn-hard + context_loop обновлены"
+    - "s07: _lib.py CONTRACT strings обновлены"
+    - "s09: subagent-stop + stop-gate wire"
+    - "все предыдущие шаги s01–s12 завершены"
+  produces:
+    - "финальный grep_control pass по .claude/hooks/ + .claude/agents/ + .claude/instructions/ + loop/"
+    - "удалены все оставшиеся regex VERDICT machine dependencies"
+  plan_refs: [FR-016, SC-001, sunset-A]
+  files:
+    - ".claude/hooks/_lib.py"
+    - ".claude/hooks/subagent-stop.py"
+    - ".claude/hooks/stop-gate.py"
+    - ".claude/hooks/agent-pretool.py"
+    - ".claude/agents/verify.md"
+    - ".claude/agents/reviewer.md"
+    - ".claude/agents/analyze-verify.md"
+    - ".claude/instructions/spawn-hard.md"
+    - "loop/context_loop.py"
+
+as_built:
+  - "sunset_inventory (T-HUB-023 legacy items):"
+  - "  A: _lib.py:extract_verdict() regex block — удалён в s04"
+  - "  B: _lib.py CONTRACT strings VERDICT-first — заменены в s07"
+  - "  C: subagent-stop.py VERDICT-first check — wire добавлен в s09"
+  - "  D: agents/*.md VERDICT machine-first строка — обновлено в s06"
+  - "  E: spawn-hard.md VERDICT machine instruction — обновлено в s07"
+  - "  F: context_loop.py VERDICT machine instruction — обновлено в s08"
+  - "  G: gate_verdict_regex_fallback drift counter — удалён с s04"
+
+delta:
+  - "rg sweep: rg -rn 'VERDICT.*regex\\|gate_verdict_regex_fallback\\|re\\.finditer.*VERDICT' .claude/hooks/ — ожидаем 0 вхождений"
+  - "rg sweep: rg -n 'первая строка.*VERDICT\\|VERDICT.*первая строка' .claude/hooks/_lib.py .claude/instructions/ — ожидаем 0"
+  - "если найдены остатки — удалить/заменить в этом шаге"
+  - "финальный import audit: rg 'gate_verdict_regex_fallback' . — ожидаем 0"
+
+deletes:
+  - "любые оставшиеся regex VERDICT machine paths найденные sweep'ом"
+  - "gate_verdict_regex_fallback drift counter calls (кроме теста purge)"
+
+out_of_scope:
+  - "human-summary VERDICT строки в agents (optional for readability) — оставить"
+  - "тесты SC-001 (test_gate_structured_purge.py) — уже созданы в s11, здесь только run"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "SC-001 final: rg 'gate_verdict_regex_fallback' .claude/hooks/ — 0 вхождений"
+    verify: "rg 'gate_verdict_regex_fallback' .claude/hooks/ | wc -l"
+  - id: cp2
+    criterion: "SC-001 final: rg 're.finditer.*VERDICT' .claude/hooks/ — 0 вхождений"
+    verify: "rg 're\\.finditer.*VERDICT' .claude/hooks/ | wc -l"
+  - id: cp3
+    criterion: "test_gate_structured_purge.py — все SC-001, SC-005, SC-006 тесты зелёные"
+    verify: ".venv/bin/pytest loop/tests/test_gate_structured_purge.py -q --tb=line"
+  - id: cp4
+    criterion: "полный suite loop/tests/ зелёный (без сети)"
+    verify: ".venv/bin/pytest loop/tests/ -q --tb=short -k 'not integration and not network'"
+
+grep_control:
+  - pattern: "gate_verdict_regex_fallback"
+    scope: ".claude/hooks/"
+    expected_count: 0
+  - pattern: "re.finditer.*VERDICT"
+    scope: ".claude/hooks/"
+    expected_count: 0
+  - pattern: "loop-gate-verdict"
+    scope: ".claude/agents/"
+    expected_count_min: 3
+
+verify: []
+tdd: []

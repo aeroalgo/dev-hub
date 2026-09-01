@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-034-harness-janitor-gc
+title: "workflow-janitor.mdc + mainrule wire (P1) + README cron doc"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать workflow-janitor.mdc (READ-ONLY scan path guided mode) для BACK JANITOR,
+  обновить mainrule.mdc (P1: регистрация BACK JANITOR в router), добавить weekly cron пример
+  в loop/README.md. После шага operator знает как запускать janitor из Cursor/Claude Code
+  и как автоматизировать через cron. Закрывает FR-005, FR-006 (P1), FR-007, AC-4, AC-5, US-003.
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/mainrule.mdc      # существующий router
+    - .cursor/rules/back_developer/mainrule-core.mdc
+    - loop/README.md                                  # existing README
+    - .claude/hooks/epic_resolve.py                   # CLI reference для документации
+  produces:
+    - .cursor/rules/back_developer/workflow-janitor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc       # patched: +BACK JANITOR route
+    - loop/README.md                                  # patched: +weekly cron section
+  plan_refs:
+    - "FR-005: Workflow workflow-janitor.mdc + lean gate (READ-ONLY scan path)"
+    - "FR-006: Register BACK JANITOR in mainrule (P1)"
+    - "FR-007: Document weekly cron example in loop/README.md"
+    - "AC-4: README cron doc"
+    - "AC-5: Optional BACK JANITOR workflow"
+    - "US-003: Operator: BACK JANITOR mode in router"
+  files:
+    - .cursor/rules/back_developer/workflow-janitor.mdc
+    - .cursor/rules/back_developer/mainrule.mdc
+    - loop/README.md
+
+as_built:
+  - ".cursor/rules/back_developer/mainrule.mdc — существующий router; routes: BACK PLAN|DECOMPOSE|IMPLEMENT|QA|AUDIT|RECONCILE|..."
+  - "loop/README.md — существует, содержит loop usage"
+  - ".cursor/rules/back_developer/workflow-janitor.mdc — отсутствует"
+
+delta:
+  - "CREATE .cursor/rules/back_developer/workflow-janitor.mdc — lean gate: 1) READ-ONLY scan path: запускает janitor-scan, печатает JanitorReport; 2) optional gc path: janitor-gc --dry-run → show report → подтверждение → --apply; 3) BACK JANITOR DECOMPOSE если нашли сложные fixes требующие эпика"
+  - "EDIT .cursor/rules/back_developer/mainrule.mdc — добавить route: 'BACK JANITOR' → workflow-janitor.mdc (P1 entry)"
+  - "EDIT loop/README.md — добавить section '## Weekly janitor cron' с примером: `0 9 * * 1 cd $PROJECT_ROOT && python .claude/hooks/epic_resolve.py janitor-scan --cwd . > /tmp/janitor-report.txt`"
+
+deletes: []
+
+out_of_scope:
+  - "Изменения в CLI, детекторах, schema (s01–s04)"
+  - "Full AUDIT workflow"
+  - "Создание dedicated Cursor command — вне scope v1"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step: нет Python-кода, impl пустой (канон: docs-only → impl: [])
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-janitor.mdc создан и содержит READ-ONLY scan path секцию"
+    verify: "rg 'READ-ONLY\\|janitor-scan' .cursor/rules/back_developer/workflow-janitor.mdc"
+  - id: cp2
+    criterion: "mainrule.mdc содержит BACK JANITOR route"
+    verify: "rg 'BACK JANITOR\\|janitor' .cursor/rules/back_developer/mainrule.mdc"
+  - id: cp3
+    criterion: "loop/README.md содержит weekly cron section (FR-007, AC-4)"
+    verify: "rg 'Weekly janitor\\|janitor-scan\\|janitor cron' loop/README.md"
+
+verify:
+  - "rg 'workflow-janitor' .cursor/rules/back_developer/mainrule.mdc"
+  - "rg 'janitor-scan' loop/README.md"
+  - "test -f .cursor/rules/back_developer/workflow-janitor.mdc && echo OK"
+
+tdd: []

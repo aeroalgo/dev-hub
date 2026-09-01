@@ -1,0 +1,33 @@
+---
+schema: epic-qa/v1
+epic_id: T-HUB-035-harness-architecture-boundaries
+recorded_at: "2026-08-31T12:00:00Z"
+verdict: pass
+suite:
+  total: 11
+  passed: 11
+  failed: 0
+ac_results:
+  ac_plus:
+  - id: AC+1
+    status: pass
+    evidence: tests/architecture/boundaries.yaml contains 5 layer contracts
+  - id: AC+2
+    status: pass
+    evidence: check_boundaries.py AST checker detects synthetic violations in test_boundary_check.py
+  - id: AC+3
+    status: pass
+    evidence: ratchet.json baseline checked and enforced via test_ratchet.py
+  - id: AC+4
+    status: pass
+    evidence: overview.md and index.md updated with layer enforcement pointers
+  ac_minus:
+  - id: AC-1
+    status: pass
+    evidence: test_clean_tree_no_violations passes on current repo tree
+  - id: AC-2
+    status: pass
+    evidence: test_ratchet_increase_blocked confirms ratchet increase failure and hint message
+code_quality:
+  section_0_11: pass
+notes: All tests green, @reviewer gate verdict PASS.

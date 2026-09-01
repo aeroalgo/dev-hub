@@ -466,10 +466,40 @@ def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> Non
     st = load_epic_state(tmp_path)
     assert st.get("armed_decompose") is None
     assert st.get("armed_step") == "DECOMPOSE"
+    assert st.get("armed_epic") == "T-030-demo"
     ac = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
     assert "workflow-decompose.mdc" in ac
     assert "sNN-<slug>.yaml" in ac
     assert "decompose-T-030-demo/index.yaml" in ac
+
+
+def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None:
+    from epic.core import arm_pre_implement_context, load_epic_state  # noqa: PLC0415
+
+    plan = (
+        tmp_path
+        / "memory-bank"
+        / "back"
+        / "plan"
+        / "plan-T-HUB-023-hooks-llm-fallbacks.md"
+    )
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
+    res = arm_pre_implement_context(
+        tmp_path,
+        epic_id="T-HUB-023",
+        role="back",
+        phase="DECOMPOSE",
+        target_rel="memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+    )
+    assert res.get("ok") is True
+    assert res.get("epic_id") == "T-HUB-023-hooks-llm-fallbacks"
+    st = load_epic_state(tmp_path)
+    assert st.get("armed_epic") == "T-HUB-023-hooks-llm-fallbacks"
+    ac = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
+    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" in ac
+    assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
+    assert "NOT short queue id" in ac
 
 
 def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: Path) -> None:

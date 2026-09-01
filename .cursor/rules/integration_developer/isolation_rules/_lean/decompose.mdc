@@ -12,6 +12,7 @@ alwaysApply: false
 1. Source: `plan-<task_id>.md` Element registry
 2. Folder: все eNN из plan
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; eNN.goal = user-visible outcome из plan registry (не wire-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (INTEG) + BACK §Maximal detail / §Outcome preserve
+2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify = incomplete. @.cursor/rules/shared/workflow-behavior-first.mdc
 3. Step: §UI, §Data, §API today, §Contract lean, §BACK/FRONT/DB, `deletes`, §0.11, §Verify
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify`; непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: integ` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas. FINISH: `validate-decompose-tree` fail-closed
@@ -27,6 +28,7 @@ alwaysApply: false
 - Layer-first нарезка → wrong
 - §Contract пуст или с полным TS/Pydantic → incomplete
 - Нет Requirements/Stages coverage / Outcome map / Replacement cleanup / intent compressed до «подключить API» → incomplete
+- Dilution: FR nouns не в produces/files → incomplete
 - Element/AC из registry без eNN → incomplete
 - Replace без `deletes`/follow-up в queue → incomplete
 - Replace без purge при cleanup ≠ n/a → incomplete

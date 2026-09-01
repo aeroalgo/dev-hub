@@ -27,12 +27,14 @@ When creating or editing files matching these paths:
 ## Minimum bar (DECOMPOSE — `decompose-*/`)
 
 - **Maximal detail:** все этапы плана/канона + все AC+/AC−/FR/NFR → покрытия в index (`## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup`)
+- **Coverage rubric:** covered row ⇒ measurable `verify` у sNN/eNN (runnable pytest/`rg`/CLI; stage = delta+files; NFR/AC− не map-only). Канон: `workflow-*-decompose.mdc` §Coverage rubric
+- **Promote gate:** `validate-decompose-tree` + `validate-traceability` CRITICAL=0 + ANALYZE artifact/`ANALYZE deferred` до FINISH DECOMPOSE
 - Предпочитать больше атомарных `sNN|eNN`, чем склейка; черновик count в plan — advisory
 - Каждый shard: полный delta layer (`as_built` · `delta` · `deletes` · `out_of_scope`) + 2–4 checkpoints + tdd list; **без** полных тел кода
 - **Replacement cleanup:** brownfield replace → непустой `deletes` у cutover-шага + `rg`/import-audit cp; greenfield → строка `n/a`; вечный shim без follow-up = FAIL
 - **Spec-first replace:** technology axiom в plan; as-built = sunset inventory, не design template; pydantic/JSON → purge regex in-epic (@.cursor/rules/shared/workflow-spec-first-replace.mdc)
-- FAIL: scaffolding-only очередь; requirement без sNN; этап канона «растворился» в layout/skeleton; replace без deletes
-- Канон процесса: `.cursor/rules/*_developer/workflow-decompose.mdc` §Maximal detail + §Replacement cleanup
+- FAIL: scaffolding-only очередь; requirement без sNN; этап канона «растворился» в layout/skeleton; replace без deletes; covered без measurable verify
+- Канон процесса: `.cursor/rules/*_developer/workflow-decompose.mdc` §Maximal detail + §Replacement cleanup + §Coverage rubric
 
 ## Minimum bar (architecture — `memory-bank/architecture/**`)
 

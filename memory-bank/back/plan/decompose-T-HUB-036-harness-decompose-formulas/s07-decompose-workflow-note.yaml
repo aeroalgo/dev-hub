@@ -1,0 +1,55 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-036-harness-decompose-formulas
+title: "DECOMPOSE workflow note — optional --formula hint documented"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Задокументировать optional `--formula <id>` hint в DECOMPOSE workflow:
+  в `.cursor/rules/back_developer/workflow-decompose.mdc` добавить абзац о том, что planner
+  может указать formula в plan header (`formula: hooks-epic`) и CLI `formula-render`
+  генерирует черновик decompose dir.
+  Outcome: AC #4 (DECOMPOSE workflow note) выполнен; FR-005 закрыт.
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — source docs; нужно добавить §Formula hint"
+    - "loop/formulas/README.md — краткий guide (s02)"
+    - "loop/formula_render.py — CLI usage (s03)"
+  produces:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — §Formula hint абзац"
+    - "loop/YAML-CONTRACT.md или docs/formula-render.md — usage examples (опционально)"
+  plan_refs: [FR-005]
+  files:
+    - ".cursor/rules/back_developer/workflow-decompose.mdc"
+
+as_built:
+  - ".cursor/rules/back_developer/workflow-decompose.mdc — существует; описывает DECOMPOSE workflow; нет упоминания formula"
+  - "loop/YAML-CONTRACT.md — schema registry docs; нет formula-render раздела"
+
+delta:
+  - "добавить в workflow-decompose.mdc раздел §Formula hint (после §Maximal detail или в начале flow): «Опционально: укажи `formula: <id>` в plan header. Запусти `python3 .claude/hooks/epic_resolve.py formula-render --formula <id> --epic-id <T-xxx> --slug <slug> --dry-run` для черновика decompose. Список формул: `formula-list`. Черновик — отправная точка; planner заполняет placeholder'ы перед commit.»"
+  - "добавить строку в loop/YAML-CONTRACT.md §schemas: decompose-formula/v1 | loop/schemas/formula.py | formula render skeleton"
+
+deletes: []
+
+out_of_scope:
+  - "front-end docs / user-facing README"
+  - "formula-render man page"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'formula-render' .cursor/rules/back_developer/workflow-decompose.mdc → ≥1 match"
+    verify: "rg 'formula-render' .cursor/rules/back_developer/workflow-decompose.mdc | wc -l | awk '$1>=1{exit 0}; {exit 1}'"
+  - id: cp2
+    criterion: "rg 'decompose-formula' loop/YAML-CONTRACT.md → ≥1 match"
+    verify: "rg 'decompose-formula' loop/YAML-CONTRACT.md | wc -l | awk '$1>=1{exit 0}; {exit 1}'"
+
+verify: []
+tdd: []

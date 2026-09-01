@@ -34,7 +34,7 @@ alwaysApply: false
 3. Read **Impl skills** из step до prod-edit (после TDD red ок)
 4. TDD targeted → code → green (`.venv/bin/pytest` из корня); level delta — gates; **выполнить все `deletes:`** из work shard (не оставлять вытесненный код)
 5. §0.11 · pre-FINISH skills (verification + code-review); при непустом `deletes` — grep/import-audit: старые символы без callers
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`) — Write implement yaml → Handoff → `@verify` → PASS → `finalize-step` (index + log + load_now). Epic complete → AUDIT через хук.  
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`) — Write implement yaml → Handoff → `@verify-implement` (или legacy alias `@verify`) → PASS → `finalize-step` (index + log + load_now). Epic complete → AUDIT через хук.
    Next: Handoff в `activeContext.md` + `index.yaml`
 
 **Верификация**: gates + §0.11 + deletes executed + FINISH + `graphify update .`

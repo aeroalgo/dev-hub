@@ -1,0 +1,76 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-035-harness-architecture-boundaries
+slug: harness-architecture-boundaries
+date: 2026-08-31
+status: complete
+
+# Read-only pre-IMPLEMENT analysis of T-HUB-035 plan and decompose shards against target modules/code.
+findings: []
+
+coverage:
+  - requirement_id: US-001
+    step_ids: [s01, s02]
+    status: covered
+  - requirement_id: US-002
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-002
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-003
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-004
+    step_ids: [s02]
+    status: covered
+  - requirement_id: FR-005
+    step_ids: []
+    status: out_of_scope
+  - requirement_id: FR-006
+    step_ids: [s01]
+    status: covered
+  - requirement_id: FR-007
+    step_ids: [s03]
+    status: covered
+  - requirement_id: SC-001
+    step_ids: [s01]
+    status: covered
+  - requirement_id: SC-002
+    step_ids: [s01]
+    status: covered
+  - requirement_id: SC-003
+    step_ids: [s02]
+    status: covered
+  - requirement_id: AC-1
+    step_ids: [s01]
+    status: covered
+  - requirement_id: AC-2
+    step_ids: [s01]
+    status: covered
+  - requirement_id: AC-3
+    step_ids: [s02]
+    status: covered
+  - requirement_id: AC-4
+    step_ids: [s04]
+    status: covered
+  - requirement_id: NFR-001
+    step_ids: [s01]
+    status: covered
+  - requirement_id: NFR-002
+    step_ids: [s01]
+    status: covered
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

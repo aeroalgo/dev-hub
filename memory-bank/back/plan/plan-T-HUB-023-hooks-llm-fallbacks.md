@@ -458,4 +458,4 @@ flowchart TB
 
 ## Следующий режим
 
-→ **BACK DECOMPOSE T-HUB-023** (re-run из §Decompose input map) · затем `BACK IMPLEMENT s01` **после T-HUB-031** (canon queue #5) · `BACK ANALYZE T-HUB-023` рекомендуется перед IMPLEMENT
+→ **BACK DECOMPOSE T-HUB-023-hooks-llm-fallbacks** (re-run из §Decompose input map; `plan_id` = stem plan со slug) · затем `BACK IMPLEMENT s01` **после T-HUB-031** (canon queue #5) · `BACK ANALYZE T-HUB-023-hooks-llm-fallbacks` рекомендуется перед IMPLEMENT

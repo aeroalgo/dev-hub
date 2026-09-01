@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s09 — G5–G6 pretool + stop-gate JSON → sidecar wire IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-023-hooks-llm-fallbacks/s09-g5-g6-pretool-stop-gate-json-sidecar-wire.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- SubagentStop now calls parse_gate_verdict_message for verify/reviewer gates before
+  extract_verdict
+- Stop-gate uses extract_verdict with cwd to read sidecar verdict
+- Agent-pretool injects JSON fence prompt contract hint
+- Added tests in test_hooks_llm_wire.py
+files:
+- .claude/hooks/subagent-stop.py
+- .claude/hooks/stop-gate.py
+- .claude/hooks/agent-pretool.py
+- loop/tests/test_hooks_llm_wire.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_wire.py loop/tests/test_hooks_llm_fence.py
+  -q --tb=line`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_hooks_llm_wire.py loop/tests/test_hooks_llm_fence.py
+  -q --tb=line PASS
+grep_control: []
+verification_results:
+- 8 passed in test_hooks_llm_wire.py and test_hooks_llm_fence.py
+- verify gate returned PASS
+checkpoints:
+- id: cp1
+  criterion: subagent-stop вызывает parse_gate_verdict_message для verify агента
+  status: done
+  done_at: '2026-08-31T18:01:53Z'
+- id: cp2
+  criterion: stop-gate вызывает extract_verdict с cwd
+  status: done
+  done_at: '2026-08-31T18:02:02Z'
+- id: cp3
+  criterion: test_hooks_llm_wire — parse_gate_verdict_message вызван при SubagentStop
+    с valid JSON
+  status: done
+  done_at: '2026-08-31T18:02:08Z'
+resume_from: cp1

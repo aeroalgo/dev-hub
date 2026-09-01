@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-037-harness-parallel-snn
+title: s02 — file overlap checker — fail-closed parallel gate by shard files intersection
+  IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-037-harness-parallel-snn/s02-parallel-overlap-checker.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован loop/parallel/overlap.py с функциями extract_shard_files и file_overlap_check
+files:
+- loop/parallel/overlap.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_parallel_overlap.py -q`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_parallel_overlap.py -q
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_parallel_overlap.py loop/tests/test_parallel_wave.py
+  -q — PASS (10 passed)
+checkpoints:
+- id: cp1
+  criterion: два шарда с разными context.files → file_overlap_check returns False
+  status: done
+  done_at: '2026-08-31T22:33:47Z'
+- id: cp2
+  criterion: два шарда с одинаковым файлом в context.files → file_overlap_check returns
+    True
+  status: done
+  done_at: '2026-08-31T22:33:57Z'
+- id: cp3
+  criterion: шард без context.files (пустой) и шард с files — нет пересечения → False
+  status: done
+  done_at: '2026-08-31T22:34:06Z'
+resume_from: cp1

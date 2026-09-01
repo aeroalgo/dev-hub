@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: s02 — Ratchet mechanism — ratchet.json + CI gate freezes violation count IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-035-harness-architecture-boundaries/s02-ratchet-ci-test.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Created tests/architecture/ratchet.json baseline violation count (violations: 0)'
+- Implemented check_ratchet and RatchetResult in tests/architecture/check_boundaries.py
+- Created tests/architecture/test_ratchet.py covering ratchet pass, ratchet increase
+  fail with RATCHET EXCEEDED message, ratchet decrease pass
+files:
+- tests/architecture/ratchet.json
+- tests/architecture/check_boundaries.py
+- tests/architecture/test_ratchet.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/architecture/ -q --tb=short`'
+integration_check:
+- Ran pytest architecture suite, 7/7 tests passed cleanly
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'ratchet.json создан, violations: 0 (чистое дерево)'
+  status: done
+  done_at: '2026-08-31T19:22:25Z'
+- id: cp2
+  criterion: 'SC-003: violations count unchanged (0) → ratchet pass'
+  status: done
+  done_at: '2026-08-31T19:22:55Z'
+- id: cp3
+  criterion: Ratchet increase → fail with hint message
+  status: done
+  done_at: '2026-08-31T19:23:05Z'
+- id: cp4
+  criterion: Весь boundary+ratchet suite зелёный
+  status: done
+  done_at: '2026-08-31T19:23:18Z'
+resume_from: cp1

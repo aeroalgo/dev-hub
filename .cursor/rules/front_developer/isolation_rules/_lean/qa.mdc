@@ -11,6 +11,7 @@ alwaysApply: false
 1. Lean load §7: `load_now` + qa/bugfix; **не** полный `plan-*.md`
 2. Suite: lint · types · unit/component · UX/a11y · **Playwright** — **parent only**
 2a. Brownfield replace: leftover check (sunset A/B/C) — PASS при leftover = FAIL. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
+2b. **Behavior smoke** при agent/hook/gate FR в plan — suite alone недостаточен. @.cursor/rules/shared/workflow-behavior-first.mdc §6
 3. Scenario P0/P1; дыры → дописать Playwright до PASS
 4. Exploratory browser если live app; иначе `skip: no live app`
 5. **fail|blocked:** `review.md` (§Fix plan, §Epic QA) + Handoff — `finish-doc-router.md`
@@ -19,3 +20,4 @@ alwaysApply: false
 
 - PASS без scenario на user-visible AC · subagent runs tests → reject/FAIL
 - PASS при leftover legacy/fallback из plan sunset → FAIL
+- PASS при agent/hook/gate FR без behavior smoke → FAIL

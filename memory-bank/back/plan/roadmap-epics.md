@@ -15,17 +15,25 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 - `memory-bank/back/plan/roadmap-speckit-workflow-boost-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-loop-observability-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-dsh-mb-board-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-pydantic-reliability-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-epic-transition-engine-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-spec-maturity-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-dsh-loop-backend-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-back-plan-gstack-adapt-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-pydantic-reliability-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-phase-verify-agents-runtime-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml`
 
 ## Пропущены (done)
 
-- `T-HUB-025`
-- `T-HUB-026`
+- `T-HUB-027`
+- `T-HUB-029`
+- `T-HUB-030`
+- `T-HUB-031`
+- `T-HUB-032`
+- `T-HUB-033`
+- `T-HUB-023`
+- `T-HUB-034`
+- `T-HUB-035`
 - `T-HUB-002`
 - `T-HUB-003`
 - `T-HUB-004`
@@ -40,9 +48,9 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 - `T-HUB-015`
 - `T-HUB-019`
 - `T-HUB-020`
-- `T-HUB-021`
-- `T-HUB-022`
 - `T-HUB-024`
+- `T-HUB-025`
+- `T-HUB-026`
 - `T-HUB-006`
 - `T-HUB-007`
 - `T-HUB-016`
@@ -53,18 +61,11 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 
 | # | ID | План | Hard deps |
 |---|----|------|-----------|
-| 1 | T-HUB-027 | [plan-T-HUB-027-back-plan-gstack-adapt.md](plan-T-HUB-027-back-plan-gstack-adapt.md) | — |
-| 2 | T-HUB-029 | [plan-T-HUB-029-epic-phase-transition-engine.md](plan-T-HUB-029-epic-phase-transition-engine.md) | — |
-| 3 | T-HUB-030 | [plan-T-HUB-030-harness-runtime-wire.md](plan-T-HUB-030-harness-runtime-wire.md) | — |
-| 4 | T-HUB-031 | [plan-T-HUB-031-harness-episode-packages.md](plan-T-HUB-031-harness-episode-packages.md) | T-HUB-030 |
-| 5 | T-HUB-032 | [plan-T-HUB-032-harness-analyze-convergence.md](plan-T-HUB-032-harness-analyze-convergence.md) | — |
-| 6 | T-HUB-033 | [plan-T-HUB-033-harness-execution-discipline.md](plan-T-HUB-033-harness-execution-discipline.md) | T-HUB-029 |
-| 7 | T-HUB-023 | [plan-T-HUB-023-hooks-llm-fallbacks.md](plan-T-HUB-023-hooks-llm-fallbacks.md) | T-HUB-033 |
-| 8 | T-HUB-034 | [plan-T-HUB-034-harness-janitor-gc.md](plan-T-HUB-034-harness-janitor-gc.md) | — |
-| 9 | T-HUB-035 | [plan-T-HUB-035-harness-architecture-boundaries.md](plan-T-HUB-035-harness-architecture-boundaries.md) | — |
-| 10 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | — |
-| 11 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | T-HUB-029 |
-| 12 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | T-HUB-031 |
+| 1 | T-HUB-039 | [plan-T-HUB-039-phase-verify-agents-runtime.md](plan-T-HUB-039-phase-verify-agents-runtime.md) | — |
+| 2 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | — |
+| 3 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | — |
+| 4 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | — |
+| 5 | T-HUB-040 | [plan-T-HUB-040-harness-workflow-finish-api.md](plan-T-HUB-040-harness-workflow-finish-api.md) | — |
 
 ## Handoff
 

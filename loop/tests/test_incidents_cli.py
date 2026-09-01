@@ -84,6 +84,28 @@ def test_incident_status_json_flag(tmp_path: Path, capsys: pytest.CaptureFixture
     assert data["incidents"][0]["incident_id"] == "inc-12345"
 
 
+def test_incident_clear_open(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    records = [
+        _valid_record("inc-open-1", ["finish_integrity_decompose_missing"]),
+        _valid_record("inc-open-2", ["stale_owner"]),
+        _valid_record("inc-closed", ["active_context_shape_invalid"], status="resolved"),
+    ]
+    _create_epic_dir(tmp_path, records)
+
+    code = main(["--cwd", str(tmp_path), "incident-clear-open", "--json"])
+    assert code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["ok"] is True
+    assert data["cleared_count"] == 2
+    assert set(data["incident_ids"]) == {"inc-open-1", "inc-open-2"}
+
+    code2 = main(["--cwd", str(tmp_path), "incident-status", "--json"])
+    assert code2 == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["open_count"] == 0
+    assert status["total_count"] == 3
+
+
 def test_reset_tier1_attempts_updates_store(tmp_path: Path) -> None:
     record = _valid_record("inc-999", ["active_context_shape_invalid"], tier1_attempts=3, status="escalated")
     epic_dir = _create_epic_dir(tmp_path, [record])

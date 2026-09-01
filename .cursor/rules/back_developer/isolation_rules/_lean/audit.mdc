@@ -9,23 +9,29 @@ alwaysApply: false
 
 ## Gates (обязательные — узкий путь)
 1. Lean load §7: `load_now` + `plan-<epic_id>.md` + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/sNN|eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard.
-2. **Intent Inventory gate:** в audit artifact явно зафиксированы применимые plan FR/SC/US/AC/NFR и constitution MUST с `source_ref`; каждый intent связан с `step_id`/eNN или отмечен как out-of-scope.
-3. **Assess gate:** для каждого intent и каждого `step_id` есть оценка по code/implement evidence; legacy gap-матрица сохраняется:
-   - **✅ реализовано** — `step_id` присутствует и intent подтверждён evidence;
-   - **❌ не реализовано** — `step_id` есть в плане/decompose, но implement-файла нет или evidence не подтверждает intent;
-   - **⚠️ отклонение** — implement есть, но intent частично реализован или расходится с планом; фиксируется finding с evidence, а не presence-only оценка.
-4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence`, `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; CRITICAL constitution/P1 — первыми.
+2. **Intent Inventory gate (plan-first):** в audit artifact — **все** plan FR/SC/US/AC±/NFR + constitution MUST с `source_ref`; каждый → `step_id`/eNN или finding `missing` CRITICAL. Decompose coverage вторичен. **FORBIDDEN** inventory только из remapped decompose FR.
+2a. **Constitution CASE:** файл `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A (canonical); нет → CASE B (note или `constitution: n/a` + reason). **FORBIDDEN** выбор CASE по hardcoded epic ID.
+3. **Assess gate (behavior):** для каждого **plan** intent и каждого `step_id` — оценка по runtime evidence; legacy gap-матрица:
+   - **✅ реализовано** — intent подтверждён **behavior** evidence (не presence-only / не surrogate lookup);
+   - **❌ не реализовано** — нет implement или evidence не подтверждает plan WHAT;
+   - **⚠️ отклонение** — partial / dilution (metadata вместо nouns) → finding, не ✅.
+   **`satisfied` FORBIDDEN** на registry/alias/unit-only closes. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc
+4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence`, `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; CRITICAL constitution/P1/dilution — первыми.
 5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts` и leftover получает новый `decompose-<epic_id>/sNN-audit-<slug>.yaml`; shard append-only, а его `goal` и `plan_refs` содержат исходный `source_ref`. `unrequested` не создаёт auto-delete.
 6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны **`sunset_inventory_scan`** (rg по **каждой** строке plan sunset A/B/C), `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Пустой `legacy_surfaces_remaining[]` без выполненного scan = FAIL. Непустой leftover не допускает QA как clean.
-7. **Converged gate:** `converged: true` только при отсутствии actionable findings, **`sunset_inventory_scan` complete** (все rows `result: pass` или sunset n/a), пустых `legacy_surfaces_remaining[]`/`fallback_remaining[]` и `purge_step_present=true` для brownfield replace (либо `sunset: n/a`); тогда следующий режим BACK QA. Иначе loop: новые audit shards → BACK IMPLEMENT → BACK AUDIT.
+7. **Converged gate:** `converged: true` только при отсутствии actionable findings, **каждом plan FR с behavior evidence**, **`sunset_inventory_scan` complete**, пустых leftovers и `purge_step_present=true` (либо `sunset: n/a`). Metadata-only closes → не converged. Тогда BACK QA; иначе audit shards → IMPLEMENT → AUDIT.
 8. Append в tasks log; blocked-случай записывается через `blocked_reason` и Handoff → `finish-doc-router.md`.
 9. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index, если добавлены sNN.
 
 ## Abort
 - AUDIT без `epic_id` → reject (нет ad-hoc режима)
+- Constitution CASE выбран по hardcoded epic ID → FAIL
 - Артефакт в корне `audit/` без `<epic_id>/` → FAIL
 - Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
 - FINISH без Intent Inventory, Assess, findings или полной gap-матрицы в артефакте → FAIL
+- Intent Inventory без plan FR (только decompose remap) → FAIL
+- `satisfied` / ✅ на registry/alias/unit-only при agent/hook/CLI FR → FAIL
+- `converged: true` при plan FR без behavior evidence → FAIL
 - `source_ref` отсутствует в finding или goal/plan_refs нового audit shard → FAIL
 - Brownfield replace: нет **`sunset_inventory_scan`** / leftover fields / `purge_step_present=false` при sunset ≠ n/a → FAIL
 - Запуск `pytest`, `vitest`, Playwright, полного suite, `git-diff` или попытка rewrite completed implement → FAIL

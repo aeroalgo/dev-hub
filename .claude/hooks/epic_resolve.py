@@ -235,6 +235,23 @@ def main() -> int:
         help="product name override for placeholders",
     )
 
+    p_formula_render = sub.add_parser(
+        "formula-render",
+        help="render decompose directory draft from formula",
+    )
+    p_formula_render.add_argument("--formula", required=True, help="formula id (e.g. hooks-epic)")
+    p_formula_render.add_argument("--epic-id", required=True, help="epic id (e.g. T-HUB-999)")
+    p_formula_render.add_argument("--slug", required=True, help="descriptive slug")
+    p_formula_render.add_argument("--out", default=None, help="output directory path")
+    p_formula_render.add_argument("--dry-run", action="store_true", help="print draft to stdout instead of writing files")
+    p_formula_render.add_argument("--force", action="store_true", help="overwrite existing files")
+
+    p_formula_list = sub.add_parser(
+        "formula-list",
+        help="enumerate available decompose formulas",
+    )
+    p_formula_list.add_argument("--formulas-dir", default=None, help="optional directory override for formula files")
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -535,6 +552,59 @@ def main() -> int:
         if report.critical_count > 0:
             return 1
         return 0
+
+    if args.cmd == "formula-render":
+        try:
+            from formula_render import render_formula
+            render_formula(
+                formula_id=args.formula,
+                epic_id=args.epic_id,
+                slug=args.slug,
+                out_dir=args.out,
+                dry_run=args.dry_run,
+                force=args.force,
+            )
+            return 0
+        except ValueError as exc:
+            print(f"formula error: {exc}", file=sys.stderr)
+            return 2
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+
+    if args.cmd == "formula-list":
+        try:
+            from formula_render import list_formulas
+            formulas_dir = Path(args.formulas_dir) if args.formulas_dir else None
+            formulas = list_formulas(formulas_dir=formulas_dir)
+            headers = ("ID", "DESCRIPTION", "LEVEL", "STEPS")
+            rows = [
+                (
+                    f.id,
+                    f.description or "",
+                    f.default_level or "",
+                    str(len(f.steps)),
+                )
+                for f in formulas
+            ]
+            col_widths = [
+                max(len(headers[i]), max((len(r[i]) for r in rows), default=0))
+                for i in range(4)
+            ]
+            header_str = "  ".join(
+                headers[i].ljust(col_widths[i]) for i in range(4)
+            )
+            print(header_str)
+            print("  ".join("-" * w for w in col_widths))
+            for r in rows:
+                print("  ".join(r[i].ljust(col_widths[i]) for i in range(4)))
+            return 0
+        except ValueError as exc:
+            print(f"formula error: {exc}", file=sys.stderr)
+            return 2
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
 
     return 2
 

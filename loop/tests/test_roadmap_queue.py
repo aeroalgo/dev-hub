@@ -581,3 +581,79 @@ def test_is_source_queue_name() -> None:
     rq = _load_rq()
     assert rq.is_source_queue_name("roadmap-foo-epics.queue.yaml") is True
     assert rq.is_source_queue_name("roadmap-epics.queue.yaml") is False
+
+
+def test_plan_stem_from_name() -> None:
+    rq = _load_rq()
+    assert rq.plan_stem_from_name("plan-T-HUB-023-hooks-llm-fallbacks.md") == (
+        "T-HUB-023-hooks-llm-fallbacks"
+    )
+    assert rq.plan_stem_from_name("memory-bank/back/plan/plan-T-1.md") == "T-1"
+
+
+def test_resolve_epic_slug_prefers_plan_name_and_disk_slug(tmp_path: Path) -> None:
+    rq = _load_rq()
+    assert (
+        rq.resolve_epic_slug(
+            tmp_path,
+            "back",
+            "T-HUB-023",
+            plan_name="plan-T-HUB-023-hooks-llm-fallbacks.md",
+        )
+        == "T-HUB-023-hooks-llm-fallbacks"
+    )
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir.mkdir(parents=True)
+    (plan_dir / "plan-T-HUB-023-hooks-llm-fallbacks.md").write_text("# p\n", encoding="utf-8")
+    assert rq.resolve_epic_slug(tmp_path, "back", "T-HUB-023") == (
+        "T-HUB-023-hooks-llm-fallbacks"
+    )
+
+
+def test_resolve_entry_decompose_uses_plan_stem(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+        "# plan\n",
+    )
+    entry = rq.resolve_entry(
+        tmp_path,
+        role="back",
+        epic_id="T-HUB-023",
+        plan_name="plan-T-HUB-023-hooks-llm-fallbacks.md",
+    )
+    assert entry["ok"] is True
+    assert entry["phase"] == "DECOMPOSE"
+    assert entry["epic"] == "T-HUB-023-hooks-llm-fallbacks"
+    assert entry["queue_id"] == "T-HUB-023"
+
+
+def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write_queue(
+        tmp_path,
+        "version: roadmap-queue/v1\n"
+        "role: back\n"
+        "roadmap: memory-bank/back/plan/roadmap-epics.md\n"
+        "queue:\n"
+        "  - id: T-HUB-023\n"
+        "    plan: plan-T-HUB-023-hooks-llm-fallbacks.md\n"
+        "    deps: []\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/plan-T-HUB-023-hooks-llm-fallbacks.md",
+        "# plan\n",
+    )
+    sel = rq.select_next_epic(tmp_path)
+    assert sel["ok"] is True
+    assert sel["entry"]["phase"] == "DECOMPOSE"
+    assert sel["entry"]["epic"] == "T-HUB-023-hooks-llm-fallbacks"
+    out = rq.arm_roadmap_entry(tmp_path, sel)
+    assert out["ok"] is True
+    assert out["epic"] == "T-HUB-023-hooks-llm-fallbacks"
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" in ac
+    assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
+    assert "decompose-T-HUB-023/" not in ac

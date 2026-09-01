@@ -1,0 +1,38 @@
+date: '2026-08-31'
+epic_id: T-HUB-033-harness-execution-discipline
+role: back
+plan_file: ../plan-T-HUB-033-harness-execution-discipline.md
+decompose_index: back/plan/decompose-T-HUB-033-harness-execution-discipline/index.yaml
+
+steps:
+  - id: s01
+    title: "git_discipline модуль — atomic commit per sNN с mock-тестами"
+    status: implemented
+    as_built: "Добавлены loop/git_discipline.py (CommitResult, maybe_atomic_commit) и loop/tests/test_git_discipline.py."
+    delta: "Новый модуль git_discipline.py + 5 unit-тестов."
+    gaps: []
+
+  - id: s02
+    title: "finalize_step hook — вызов maybe_atomic_commit после mark-index-status success"
+    status: implemented
+    as_built: "В .claude/hooks/epic/core.py вызов maybe_atomic_commit интегрирован в finalize_step. Написаны тесты в loop/tests/test_finalize_atomic_commit.py."
+    delta: "finalize_step вызывает maybe_atomic_commit и записывает результат в marked['atomic_commit']."
+    gaps: []
+
+  - id: s03
+    title: "session_boundary checkpoint field + loop.sh enforce new-session gate"
+    status: implemented
+    as_built: "Добавлено session_boundary поле в CheckpointRecord (loop/schemas/checkpoint.py), выставляется в finalize_step и отслеживается в loop.sh."
+    delta: "session_boundary поле в схеме чекпоинта + обработка маркера в loop.sh + test_session_boundary.py."
+    gaps: []
+
+  - id: s04
+    title: "Cheatsheet one-shard-one-session + EPIC_ATOMIC_COMMIT в project.env"
+    status: implemented
+    as_built: "Документация об обновлении .cursor/rules/shared/cheatsheets/back-implement.mdc и настройка EPIC_ATOMIC_COMMIT=0 в .claude/project.env."
+    delta: "Обновлена документация и project.env."
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 4 шага (s01-s04) реализованы и покрыты тестами. Отклонений и задолженностей (gaps) нет."

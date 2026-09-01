@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: "Unified llm_structured — LogSummary + enum models + factory"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `llm_structured.py` расширяется: к существующему `LogSummary` добавляются typed output-модели для gate
+  (`GateVerdictOutput`, `HandoffMetaOutput`, `AbortClassifyOutput`) и фабрика `make_gate_agent(domain, env)`.
+  Единый модуль — единый import для bash-output-cap (021) и gate runners (023).
+  Outcome: `from llm_structured import make_gate_agent` — рабочий, zero-regression по output-cap тестам.
+
+context:
+  consumes:
+    - "llm_structured.py: LogSummary, make_output_cap_agent(), run_log_summary() — существующие (T-HUB-021)"
+    - "_lib.py: load_hooks_llm_env() — добавлена в s01"
+    - "loop/schemas/gate_verdict.py: GateVerdictRecord, GateVerdictValue — существуют"
+  produces:
+    - "llm_structured.py: GateVerdictOutput(BaseModel), HandoffMetaOutput(BaseModel), AbortClassifyOutput(BaseModel)"
+    - "llm_structured.py: make_gate_agent(domain, *, env=None) → Agent[<OutputModel>]"
+    - "llm_structured.py: run_gate_classify(domain, text, *, env=None) → <OutputModel> | None"
+  plan_refs: [FR-001, FR-002, FR-017]
+  files:
+    - ".claude/hooks/llm_structured.py"
+
+as_built:
+  - "llm_structured.py:LogSummary, LogError — существующие модели для output-cap"
+  - "llm_structured.py:make_output_cap_agent(model, env) → Agent[LogSummary]"
+  - "llm_structured.py:run_log_summary(cmd, sample, dump_path, ...) — sync runner"
+  - "loop/schemas/gate_verdict.py:GateVerdictRecord — pydantic BaseModel с extra=forbid"
+
+delta:
+  - "llm_structured.py: добавить GateVerdictOutput(BaseModel): verdict: GateVerdictValue, step_id: str|None, epic_id: str|None — output-только модель для pydantic-ai (не сidecar)"
+  - "llm_structured.py: добавить HandoffMetaOutput(BaseModel): mode: str, epic_id: str|None, step_id: str|None"
+  - "llm_structured.py: добавить AbortClassifyOutput(BaseModel): kind: Literal['transient','fatal'], confidence: float"
+  - "llm_structured.py: добавить _GATE_OUTPUT_MODELS dict[str, type[BaseModel]] — domain → OutputModel"
+  - "llm_structured.py: добавить make_gate_agent(domain, *, env=None) → Agent — аналог make_output_cap_agent, но для gate domains"
+  - "llm_structured.py: добавить run_gate_classify(domain, text, *, env=None) → BaseModel | None — sync runner, возвращает None при exception/disabled"
+  - "__all__ расширить: GateVerdictOutput, HandoffMetaOutput, AbortClassifyOutput, make_gate_agent, run_gate_classify"
+
+deletes: []
+
+out_of_scope:
+  - "LogSummary / output-cap — не трогать"
+  - "gate runners в hooks — s05 (только модели здесь)"
+  - "parse_gate_verdict_message — s03"
+
+skills:
+  code_surface: api
+  impl: [python-testing-patterns]
+
+checkpoints:
+  - id: cp1
+    criterion: "GateVerdictOutput.model_validate({'verdict':'PASS'}) работает без error"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_models.py::test_gate_verdict_output_model -q"
+  - id: cp2
+    criterion: "make_gate_agent('verdict') возвращает Agent[GateVerdictOutput] без exception"
+    verify: ".venv/bin/pytest loop/tests/test_hooks_llm_models.py::test_make_gate_agent_returns_agent -q"
+  - id: cp3
+    criterion: "output-cap регрессия: test_bash_output_cap зелёный"
+    verify: ".venv/bin/pytest loop/tests/test_bash_output_cap.py -q --tb=line"
+
+verify: []
+tdd:
+  - "loop/tests/test_hooks_llm_models.py — test_gate_verdict_output_model, test_make_gate_agent_returns_agent, test_run_gate_classify_disabled_returns_none"

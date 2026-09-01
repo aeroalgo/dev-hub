@@ -17,7 +17,7 @@
 | S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |
 | S-HOOKS-CC | `.claude/hooks/*.py` | Claude hooks | pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
 | S-HOOKS-CUR | `.cursor/hooks/*.py` / `hooks.json` | Cursor hooks | unwired / N/A for epic gates; wiring = out of scope T-HUB-003 (follow-up эпик); as-built: before_submit / after_edit / on_stop |
-| S-AGENTS | `.claude/agents/{explorer,verify,reviewer}.md` | subagent defs | Gate agents для codebase search / FINISH verify / BACK QA |
+| S-AGENTS | `.claude/agents/{explorer,verify,reviewer,verify-implement,verify-bugfix,verify-qa,verify-decompose,analyze-verify}.md` | subagent defs | Gate agents для codebase search / phase verify / BACK QA (с алиасами @verify → verify-implement, @reviewer → verify-qa) |
 | S-RULES | `.cursor/rules/**` | workflow router | `mainrule.mdc` → role workflows |
 
 ## Взаимодействие

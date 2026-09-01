@@ -1,0 +1,41 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-037-harness-parallel-snn
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-parallel-index-schema.yaml
+  title: depends_on schema — index yaml backward-compat field + wave model
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-parallel-overlap-checker.yaml
+  title: file overlap checker — fail-closed parallel gate by shard files intersection
+  next_phase: BACK IMPLEMENT
+  status: completed
+  depends_on:
+  - s01
+- id: s03
+  file: s03-worktree-pool.yaml
+  title: worktree pool — create/destroy git worktrees per sNN parallel session
+  next_phase: BACK IMPLEMENT
+  status: completed
+  depends_on:
+  - s01
+- id: s04
+  file: s04-parallel-orchestrator.yaml
+  title: parallel orchestrator — opt-in EPIC_PARALLEL_SNN wave spawn + flock index
+    update
+  next_phase: BACK IMPLEMENT
+  status: completed
+  depends_on:
+  - s02
+  - s03
+- id: s05
+  file: s05-transition-engine-hook.yaml
+  title: transition engine hook — parallel gate when armed_step=IMPLEMENT + integration
+    tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+  depends_on:
+  - s04

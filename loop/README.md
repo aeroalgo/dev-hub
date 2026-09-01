@@ -120,6 +120,38 @@ export EPIC_EPISODE_RETENTION_DAYS=30
 
   *Structured output note:* When `PROJECT_OUTPUT_SUMMARY_STRUCTURED=1`, `pydantic-ai` enforces validation of `BashCapSummary` (summary text, error signal detection, line counts) before returning output to Claude Code context.
 
+- **Structured Gate Output Contract (`loop-gate-verdict/v1`):**
+  Subagents (such as `@verify` and `@reviewer`) emit gate decisions as fenced JSON blocks. Gate validation hooks expect a valid JSON object wrapped in ```json block matching the `loop-gate-verdict/v1` schema:
+  ```json
+  {
+    "schema": "loop-gate-verdict/v1",
+    "agent_id": "verify",
+    "verdict": "PASS",
+    "step_id": "s12",
+    "session_id": "session-12345",
+    "epic_id": "T-HUB-023",
+    "recorded_at": "2026-08-31T12:00:00Z",
+    "evidence_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+  ```
+  Valid `verdict` values are `PASS`, `FAIL`, or `BLOCKED`.
+
+- **Hooks LLM Fallbacks Configuration:**
+  Opt-in LLM fallback parsing for hooks when regex parsing encounters malformed or complex agent output. Configured in `.claude/project.env`:
+  | Env Variable | Default / Description |
+  |--------------|-----------------------|
+  | `PROJECT_HOOKS_LLM_FALLBACK` | `0` — Master switch for hook LLM fallbacks (1=enabled, 0=disabled) |
+  | `PROJECT_HOOKS_LLM_HANDOFF` | `0` — Enable LLM fallback parsing for `activeContext.md` Handoff section |
+  | `PROJECT_HOOKS_LLM_VERDICT` | `0` — Enable LLM fallback parsing for subagent gate verdicts (`loop-gate-verdict/v1`) |
+  | `PROJECT_HOOKS_LLM_ABORT` | `0` — Enable LLM fallback analysis for subagent abort signals |
+  | `PROJECT_HOOKS_LLM_MODEL` | `antigravity/gemini-3.1-flash-lite` — Model used for LLM fallback calls |
+  | `PROJECT_HOOKS_LLM_TIMEOUT` | `30` — Timeout in seconds for LLM fallback requests |
+  | `PROJECT_HOOKS_LLM_MIN_CHARS` | `200` — Minimum prompt length required to trigger fallback |
+  | `PROJECT_HOOKS_LLM_CONFIDENCE` | `0.7` — Minimum confidence threshold score (0.0 to 1.0) required to accept verdict |
+  | `PROJECT_HOOKS_LLM_DEBUG` | `0` — Set to `1` to enable detailed debug logging for fallback executions |
+
+  *Debugging gate & fallback hooks:* Set `PROJECT_HOOKS_LLM_DEBUG=1` in `.claude/project.env` or export it in your shell session to inspect fallback triggers, LLM prompts, structured parsing attempts, and confidence score evaluations in stderr/logs.
+
 - **Runner bounds:** `EPIC_SESSION_TIMEOUT_SEC` (3600), `EPIC_SESSION_KILL_GRACE_SEC` (30), `EPIC_TRANSIENT_RETRY_MAX` (30), `EPIC_DEGRADED_MAX` (3), `EPIC_SESSION_LOG_LIMIT_BYTES` (10000000), `EPIC_SESSION_LOG_KEEP` (10; prune older `session-*.log` each outer iteration), `EPIC_STATUS_HEARTBEAT_SEC` (30; empty = disabled), `EPIC_STREAM_IDLE_TIMEOUT_SEC` (300; empty = disabled; idle = no `tool_use`/`tool_result`, not stream silence), `EPIC_CHAIN_ROADMAP` (0 = stop after EPIC_DONE; 1 = arm next from roadmap Queue). Zero/unlimited mode is not supported; invalid values fail closed with `invalid_runtime_config`.
 - **Checkpoint:** durable cursor, `resume_from_step`, lifecycle (`pending` → `active` → `completed`/`BLOCKED`/`NEED_HUMAN`) and the decompose index are the recovery boundary. `state.json` mirrors checkpoint telemetry and must not be edited by an agent. Checkpoint/index conflicts halt fail-closed.
 - **Recovery:** after timeout or process death, inspect `HUB_ROOT/runtime/<slug>/epic/last-session.json` (same epic dir as `state.json`); resume only from the validated `resume_from_step`. A transient retry cap is bounded; degraded status is observable and does not silently reset the cursor. Manual fallback must be labelled manual and never masquerade as autonomous projection authority. Do not auto-delete product runtime dirs.
@@ -139,6 +171,29 @@ export EPIC_EPISODE_RETENTION_DAYS=30
 ./loop/loop.sh gpt
 ./loop/loop.sh decompose-T-033-concurrent-jobs-outbox gpt implement
 ./loop/loop.sh --status
+```
+
+## Phase verify agents
+
+Таблица взаимодействия автоцикла с специализированными агентами проверки (`phase → agent → verdict → notes`):
+
+| Phase | Agent | Verdict | Alias / Notes |
+|-------|-------|---------|---------------|
+| IMPLEMENT | `verify-implement` | `PASS` / `FAIL` | Canonical verifier for IMPLEMENT phase (pre-FINISH gate). Legacy `@verify` is an alias mapping to `verify-implement`. |
+| BUGFIX | `verify-bugfix` | `PASS` / `FAIL` | Mandatory pre-FINISH verify gate for BUGFIX when code changed. |
+| QA | `verify-qa` | `PASS` / `FAIL` | Reviewer gate for BACK QA. Legacy `@reviewer` is an alias mapping to `verify-qa`. |
+| DECOMPOSE | `verify-decompose` | `PASS` / `FAIL` | Coverage-semantic verifier for DECOMPOSE phase. |
+
+### Migration Note
+Алиасы `@verify` и `@reviewer` мигрированы на специализированные типы агентов `@verify-implement` и `@verify-qa` соответственно. Вызовы устаревших алиасов автоматически нормализуются в соответствующие canonical verify agents.
+
+## Weekly janitor cron
+
+Автоматический запуск периодического сканирования мусора/устаревших артефактов (`janitor-scan`):
+
+```bash
+# Weekly janitor scan cron example (every Monday at 9:00 AM)
+0 9 * * 1 cd $PROJECT_ROOT && python3 .claude/hooks/epic_resolve.py janitor-scan --cwd . > /tmp/janitor-report.txt
 ```
 
 ## DSH Runtime (opt-in, developer preview)

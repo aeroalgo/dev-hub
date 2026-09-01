@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: "DSH presets verify-implement/bugfix/qa/decompose + epic-gate phase map"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать DSH preset-файлы для каждого нового verify agent:
+  `dsh/presets/verify-implement.prompt.md`, `verify-bugfix.prompt.md`,
+  `verify-qa.prompt.md`, `verify-decompose.prompt.md`.
+  Обновить `verify.prompt.md` как alias-stub (как verify.md в s01).
+  Обновить `reviewer.prompt.md` как alias-stub → verify-qa.prompt.md.
+  Убедиться, что epic-gate mapping (dsh/presets/) правильно ссылается на новые файлы.
+  User/system outcome: DSH при spawn verify-* поднимает правильный preset с phase-specific секциями;
+  fail-closed если preset file missing (TM-009).
+
+context:
+  consumes:
+    - "dsh/presets/verify.prompt.md — текущий monolithic preset"
+    - "dsh/presets/reviewer.prompt.md — текущий reviewer preset"
+    - "dsh/presets/ directory — explorer.prompt.md как образец"
+    - ".claude/agents/verify-implement.md (after s01) — source of sections"
+    - ".claude/agents/verify-bugfix.md (after s02)"
+    - ".claude/agents/verify-qa.md (after s02)"
+    - ".claude/agents/verify-decompose.md (after s03)"
+  produces:
+    - "dsh/presets/verify-implement.prompt.md (new)"
+    - "dsh/presets/verify-bugfix.prompt.md (new)"
+    - "dsh/presets/verify-qa.prompt.md (new)"
+    - "dsh/presets/verify-decompose.prompt.md (new)"
+    - "dsh/presets/verify.prompt.md (rewritten alias stub)"
+    - "dsh/presets/reviewer.prompt.md (rewritten alias stub)"
+  plan_refs:
+    - "FR-013: DSH presets on disk"
+    - "US-006: Presets for all verify-*"
+    - "SC-006: DSH presets exist for all verify-*"
+    - "TM-009: DSH preset missing → fail-closed map"
+    - "Зафиксированные решения: DSH presets"
+    - "§Supersedes: DSH presets: T-HUB-007/008 as-built"
+  files:
+    - "dsh/presets/verify-implement.prompt.md"
+    - "dsh/presets/verify-bugfix.prompt.md"
+    - "dsh/presets/verify-qa.prompt.md"
+    - "dsh/presets/verify-decompose.prompt.md"
+    - "dsh/presets/verify.prompt.md"
+    - "dsh/presets/reviewer.prompt.md"
+
+as_built:
+  - "dsh/presets/verify.prompt.md — существует, monolithic верификация"
+  - "dsh/presets/reviewer.prompt.md — существует, QA reviewer"
+  - "dsh/presets/explorer.prompt.md — существует, образец для новых"
+  - "нет: verify-implement.prompt.md, verify-bugfix.prompt.md, verify-qa.prompt.md, verify-decompose.prompt.md"
+
+delta:
+  - "add dsh/presets/verify-implement.prompt.md: prompt template для verify-implement (IMPLEMENT/REFACTOR/TASK scope, AC+/AC−/§0.11/VERIFY/ALLOW sections)"
+  - "add dsh/presets/verify-bugfix.prompt.md: prompt с BUGFIX ARTIFACT required section"
+  - "add dsh/presets/verify-qa.prompt.md: prompt с Suite results + BLOCKED verdict doc"
+  - "add dsh/presets/verify-decompose.prompt.md: prompt с COVERAGE / PLAN EXCERPT / GAPS → FAIL"
+  - "rewrite dsh/presets/verify.prompt.md: alias stub → verify-implement.prompt.md"
+  - "rewrite dsh/presets/reviewer.prompt.md: alias stub → verify-qa.prompt.md"
+
+deletes: []
+# verify.prompt.md / reviewer.prompt.md переписываются как stubs — удаление в s10
+
+out_of_scope:
+  - "dsh/presets/explorer.prompt.md — не трогать"
+  - "epic-gate Python code — только preset files"
+  - "spawn-hard / workflow docs — s07"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "все 4 новых preset файла существуют"
+    verify: "ls dsh/presets/verify-implement.prompt.md dsh/presets/verify-bugfix.prompt.md dsh/presets/verify-qa.prompt.md dsh/presets/verify-decompose.prompt.md"
+  - id: cp2
+    criterion: "verify.prompt.md содержит alias forward (не полный content)"
+    verify: "rg 'verify-implement|alias' dsh/presets/verify.prompt.md && test $(wc -l < dsh/presets/verify.prompt.md) -lt 20"
+  - id: cp3
+    criterion: "unit: preset files exist map"
+    verify: ".venv/bin/pytest loop/tests/test_phase_verify_gates.py -k 'preset' -q --tb=line"
+
+verify: []
+tdd:
+  - "test_dsh_preset_exists_verify_implement: Path('dsh/presets/verify-implement.prompt.md').is_file()"
+  - "test_dsh_preset_exists_verify_bugfix: Path('dsh/presets/verify-bugfix.prompt.md').is_file()"
+  - "test_dsh_preset_exists_verify_qa: Path('dsh/presets/verify-qa.prompt.md').is_file()"
+  - "test_dsh_preset_exists_verify_decompose: Path('dsh/presets/verify-decompose.prompt.md').is_file()"

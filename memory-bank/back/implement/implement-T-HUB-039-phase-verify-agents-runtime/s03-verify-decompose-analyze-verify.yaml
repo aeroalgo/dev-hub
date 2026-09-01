@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: s03 — verify-decompose agent file + analyze-verify wire align IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-039-phase-verify-agents-runtime/s03-verify-decompose-analyze-verify.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created .claude/agents/verify-decompose.md with COVERAGE sections and FORBIDDEN
+  pytest constraint
+- Aligned .claude/agents/analyze-verify.md scope
+- Added unit tests for verify-decompose and analyze-verify in test_phase_verify_gates.py
+files:
+- .claude/agents/verify-decompose.md
+- .claude/agents/analyze-verify.md
+- loop/tests/test_phase_verify_gates.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line`'
+integration_check:
+- verified verify-decompose agent file and tests align with epic_resolve runtime schema
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- cp1, cp2, cp3 flushed, pytest 6 passed
+checkpoints:
+- id: cp1
+  criterion: verify-decompose.md существует и содержит COVERAGE секцию и FORBIDDEN
+    pytest
+  status: done
+  done_at: '2026-08-31T20:23:51Z'
+- id: cp2
+  criterion: verify-decompose.md verdict = PASS/FAIL (не BLOCKED)
+  status: done
+  done_at: '2026-08-31T20:24:00Z'
+- id: cp3
+  criterion: 'unit: agent file exists test'
+  status: done
+  done_at: '2026-08-31T20:24:18Z'
+resume_from: cp1

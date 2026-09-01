@@ -20,16 +20,18 @@ from typing import Any
 
 import yaml
 
-logger = logging.getLogger(__name__)
-
 ROOT = Path(__file__).resolve().parents[1]  # hub root (DEV_HUB)
 HUB_ROOT = ROOT
+if str(HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(HUB_ROOT))
 HOOKS = HUB_ROOT / ".claude" / "hooks"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 LOOP_DIR = HUB_ROOT / "loop"
 if str(LOOP_DIR) not in sys.path:
     sys.path.insert(0, str(LOOP_DIR))
+
+logger = logging.getLogger(__name__)
 
 from _lib import (  # noqa: E402
     explorer_loop_enabled,
@@ -526,6 +528,31 @@ delta_paths_exist: no
 """
 
 
+def _cmd_dashboard_render(args: argparse.Namespace, cwd: Path) -> int:
+    from loop.dashboard.collect import collect
+    from loop.dashboard.render import render_html, render_json
+
+    report = collect(cwd, days=args.days)
+    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    reports_dir = cwd / "runtime" / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    written_paths: list[Path] = []
+    if args.format in ("html", "both"):
+        html_path = reports_dir / f"dashboard-{date_str}.html"
+        html_path.write_text(render_html(report), encoding="utf-8")
+        written_paths.append(html_path)
+
+    if args.format in ("json", "both"):
+        json_path = reports_dir / f"dashboard-{date_str}.json"
+        json_path.write_text(render_json(report), encoding="utf-8")
+        written_paths.append(json_path)
+
+    for p in written_paths:
+        print(f"Dashboard written to {p}")
+    return 0
+
+
 def _decompose_role_rule_dir(role: str) -> str:
     key = str(role or "back").lower()
     return {
@@ -687,10 +714,10 @@ HARD: все `memory-bank/**` и `--cwd` = `$PROJECT_ROOT` (продукт). Cla
 3. Допиши evidence в implement yaml (`done`/`files`/`tests`/…); **status оставь `in_progress`**.
 4. `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" validate-step --path <step>` → exit 0.
 5. Перепиши `$PROJECT_ROOT/memory-bank/activeContext.md` (`## load_now` → 1× `## Handoff` → ≤1× `## done`).
-6. `@verify` один раз (`.claude/instructions/spawn-hard.md`).
-7. `VERDICT: PASS` → `finalize-step --cwd "$PROJECT_ROOT"` (он атомарно ставит implement+index `completed`) → JSON `ok: true` → stop.
+6. `@verify` один раз (`.claude/instructions/spawn-hard.md`) — machine SoT = fenced JSON `loop-gate-verdict/v1`.
+7. Valid gate JSON sidecar (`loop-gate-verdict/v1`, status PASS) → `finalize-step --cwd "$PROJECT_ROOT"` (он атомарно ставит implement+index `completed`) → JSON `ok: true` → stop.
    FAIL/DENY → **исправь причину в этом же эпике** (pending cp, gaps, неполный harness/parity, seed) → снова 6.
-   без `VERDICT:` → макс. 1 retry шага 6; иначе Handoff `NEED_HUMAN: verify_no_verdict`.
+   без gate JSON fence/sidecar → макс. 1 retry шага 6; иначе Handoff `NEED_HUMAN: verify_no_verdict`.
 
 HARD incomplete (обязательно):
 - Шаг не закрыт, пока все `checkpoints[].status=done` и `gaps` не `blocked`.
@@ -699,7 +726,7 @@ HARD incomplete (обязательно):
 - FORBIDDEN: `BLOCKED:` / «consistent blocked-state PASS» / «нужен BACK BUGFIX» из‑за incomplete AC текущего эпика.
 - `BLOCKED:` / `NEED_HUMAN:` — только внешний стоп (секреты, prod access, policy, ручное решение человека).
 
-FORBIDDEN: писать `status: completed` руками (только `finalize-step`); `finalize-step` до `VERDICT: PASS`; писать product-эпики в `dev-hub/memory-bank` или hub `T-HUB-*` в product `memory-bank`.
+FORBIDDEN: писать `status: completed` руками (только `finalize-step`); `finalize-step` до gate JSON sidecar (`loop-gate-verdict/v1`); писать product-эпики в `dev-hub/memory-bank` или hub `T-HUB-*` в product `memory-bank`.
 """
 
 
@@ -2941,6 +2968,15 @@ def main(argv: list[str] | None = None) -> int:
     p_epshow.add_argument("episode_id", help="Episode ID to show")
     p_epshow.add_argument("--json", action="store_true", help="Output JSON format")
 
+    p_drender = sub.add_parser("dashboard-render", help="Render metrics dashboard HTML/JSON report")
+    p_drender.add_argument("--days", type=int, default=7, help="Days window for metrics (default: 7)")
+    p_drender.add_argument(
+        "--format",
+        choices=["html", "json", "both"],
+        default="html",
+        help="Output format (html, json, both; default: html)",
+    )
+
     args = parser.parse_args(argv)
     cwd = args.cwd
 
@@ -3118,6 +3154,9 @@ def main(argv: list[str] | None = None) -> int:
         except FileNotFoundError as err:
             sys.stderr.write(f"Error: {err}\n")
             return 1
+
+    if args.cmd == "dashboard-render":
+        return _cmd_dashboard_render(args, cwd)
 
     return 2
 

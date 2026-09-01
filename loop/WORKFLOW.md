@@ -132,6 +132,23 @@ Disabled managed agent — это `scope_disabled`/gate bypass, а не ошиб
 
 ---
 
+## Phase verify agents
+
+Автоцикл использует специализированные гейт-агенты для валидации результатов на разных фазах:
+
+| Phase | Dedicated Agent | Verdict Contract | Alias / Notes |
+|-------|-----------------|------------------|---------------|
+| IMPLEMENT | `verify-implement` | `loop-gate-verdict/v1` (`PASS`/`FAIL`) | Pre-FINISH code verification gate. Alias `@verify` → `verify-implement` |
+| BUGFIX | `verify-bugfix` | `loop-gate-verdict/v1` (`PASS`/`FAIL`) | Pre-FINISH bugfix verification gate |
+| QA | `verify-qa` | `loop-gate-verdict/v1` (`PASS`/`FAIL`) | Post-suite QA review gate. Alias `@reviewer` → `verify-qa` |
+| DECOMPOSE | `verify-decompose` | `loop-gate-verdict/v1` (`PASS`/`FAIL`) | Decompose coverage & traceability verify gate |
+| ANALYZE | `analyze-verify` | Read-only re-check | Post-analyze fixes verification before re-ANALYZE/IMPLEMENT |
+
+### Migration Note
+Исторические алиасы `@verify` и `@reviewer` поддерживаются через автоматическую нормализацию алиасов на фазовые типы `verify-implement` и `verify-qa`.
+
+---
+
 ## Incident Autopilot
 
 Автопилот инцидентов обеспечивает автоматическую диагностику и восстановление при ошибках оркестрации.

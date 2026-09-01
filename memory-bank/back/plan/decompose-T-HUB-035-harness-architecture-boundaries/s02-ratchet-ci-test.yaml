@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: "Ratchet mechanism — ratchet.json + CI gate freezes violation count"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать ratchet.json с текущим счётчиком нарушений (snapshot baseline) и расширить
+  test_boundary_check.py тестами ratchet-семантики: если violations_count > ratchet_count → fail CI;
+  если ≤ ratchet_count → pass (legacy tolerated). Outcome: US-002 (developer может постепенно
+  ужесточать), SC-003 (ratchet blocks increase) — механически проверяются; AC+3 закрыт.
+
+context:
+  consumes:
+    - tests/architecture/boundaries.yaml   # из s01
+    - tests/architecture/check_boundaries.py  # из s01
+    - tests/architecture/test_boundary_check.py  # из s01, расширяется
+  produces:
+    - tests/architecture/ratchet.json          # baseline violation count per contract
+    - tests/architecture/test_ratchet.py       # pytest: SC-003 + ratchet-increase-fail
+  plan_refs:
+    - FR-003  # ratchet: store current count, fail if new count > stored
+    - FR-004  # clear error message with ratchet hint
+    - US-002  # ratchet tolerated legacy, gradual tightening
+    - AC+3    # ratchet mechanism tested
+    - SC-003  # ratchet blocks increase
+  files:
+    - tests/architecture/ratchet.json
+    - tests/architecture/test_ratchet.py
+
+as_built:
+  - "tests/architecture/check_boundaries.py — после s01: check_boundaries() returns violations list"
+  - "нет ratchet.json, нет ratchet-aware gate"
+
+delta:
+  - "create tests/architecture/ratchet.json — {'violations': N} (N = count из реального scan на момент создания, ожидается 0 на чистой базе)"
+  - "extend check_boundaries.py: add check_ratchet(violations: list, ratchet_path) → RatchetResult(ok, delta, message) — сравнивает len(violations) с ratchet.json"
+  - "create tests/architecture/test_ratchet.py — pytest: SC-003 (unchanged count → pass), ratchet_increase_blocked (injected extra violation > stored count → fail), ratchet_decrease_allowed (violations < stored → pass)"
+  - "extend error message в check_boundaries.py: если ratchet exceeded — вывод 'RATCHET EXCEEDED: found N, allowed M; run update-ratchet to freeze new baseline'"
+
+deletes: []
+# Нет legacy файлов для удаления; greenfield ratchet
+
+out_of_scope:
+  - "CLI команда update-ratchet для обновления baseline вручную — FR-005 optional, откладывается в follow-up"
+  - "doctor integration — s03"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/python-testing-patterns/SKILL.md"   # S06 pytest parametrize, fixtures
+    - ".agents/skills/python-error-handling/SKILL.md"      # S03 fail-closed ratchet logic
+
+checkpoints:
+  - id: cp1
+    criterion: "ratchet.json создан, violations: 0 (чистое дерево)"
+    verify: "python -c \"import json; d=json.load(open('tests/architecture/ratchet.json')); assert isinstance(d['violations'], int)\""
+  - id: cp2
+    criterion: "SC-003: violations count unchanged (0) → ratchet pass"
+    verify: ".venv/bin/pytest tests/architecture/test_ratchet.py::test_ratchet_unchanged_count_passes -q"
+  - id: cp3
+    criterion: "Ratchet increase → fail with hint message"
+    verify: ".venv/bin/pytest tests/architecture/test_ratchet.py::test_ratchet_increase_blocked -q"
+  - id: cp4
+    criterion: "Весь boundary+ratchet suite зелёный"
+    verify: ".venv/bin/pytest tests/architecture/ -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest tests/architecture/ -q --tb=short"
+  - "rg 'def check_ratchet' tests/architecture/check_boundaries.py"
+  - "rg 'RATCHET EXCEEDED' tests/architecture/check_boundaries.py"
+  - "python -c \"import json; json.load(open('tests/architecture/ratchet.json'))\""
+
+tdd:
+  - "test_ratchet_unchanged_count_passes: violations=[] (count=0), ratchet={'violations':0} → RatchetResult(ok=True)"
+  - "test_ratchet_increase_blocked: violations=[Violation(...)]*3, ratchet={'violations':0} → RatchetResult(ok=False, message contains 'RATCHET EXCEEDED')"
+  - "test_ratchet_decrease_allowed: violations=[], ratchet={'violations':2} → RatchetResult(ok=True)"
+  - "test_ratchet_hint_message_format: fail message содержит found count, allowed count, и слово 'update-ratchet'"

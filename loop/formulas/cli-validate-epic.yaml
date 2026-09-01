@@ -1,0 +1,40 @@
+schema: "decompose-formula/v1"
+id: "cli-validate-epic"
+description: "Formula for CLI validation, audit, and traceability tools"
+default_level: "L2"
+steps:
+  - title: "pydantic-schema"
+    goal_template: "Define validation rules schema and models for {epic_name}"
+    typical_files_pattern:
+      - "loop/schemas/*.py"
+    verify_hints:
+      - "pytest loop/tests/test_schemas.py -q"
+
+  - title: "check-rules-impl"
+    goal_template: "Implement validation rule checkers and audit logic for {epic_name}"
+    typical_files_pattern:
+      - "loop/tools/*.py"
+      - "loop/core/validate.py"
+    verify_hints:
+      - "pytest loop/tests/test_validate.py -q"
+
+  - title: "cli-entry-point"
+    goal_template: "Add CLI commands and argument parser for {epic_name}"
+    typical_files_pattern:
+      - "loop/cli/*.py"
+    verify_hints:
+      - "pytest loop/tests/test_cli.py -q"
+
+  - title: "integration-tests"
+    goal_template: "Test CLI execution, exit codes, and output formatting for {epic_name}"
+    typical_files_pattern:
+      - "loop/tests/test_cli_integration.py"
+    verify_hints:
+      - "pytest loop/tests/ -q"
+
+  - title: "docs-yaml-contract"
+    goal_template: "Document CLI validation rules and YAML contract for {epic_name}"
+    typical_files_pattern:
+      - "loop/docs/validation.md"
+    verify_hints:
+      - "git diff loop/docs/"
