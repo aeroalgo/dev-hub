@@ -5,6 +5,8 @@ runtime/**
 .pytest_cache/
 .venv/
 venv/
+.claude/settings.local.json
+=*
 agent_trace/
 .claude/runtime/
 projects/**/*.env.local
@@ -14,3 +16,4 @@ projects/**/*.env.local
 .spec-kit/
 node_modules/
 graphify-out/
+memory-bank/

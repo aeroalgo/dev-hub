@@ -6,6 +6,29 @@
 
 ---
 
+## Требования
+
+| Компонент | Версия |
+|-----------|--------|
+| **Python** | **3.12+** (код loop/hooks использует синтаксис 3.10+; канон — 3.12) |
+| **jq** | для shell-скриптов security-auditor |
+| **git** | для loop и hub-link |
+
+### Окружение для разработки и тестов хаба
+
+Из корня **dev-hub** (не продукта):
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest
+```
+
+`requirements-dev.txt` подтягивает `requirements-hub.txt` (pydantic, httpx, pydantic-ai) и pytest/PyYAML.
+
+---
+
 ## Рекомендуемая структура на диске
 
 Самый простой и предсказуемый вариант — **соседние папки** в одном родителе:

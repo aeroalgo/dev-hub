@@ -42,6 +42,9 @@ add_finding() {
 }
 
 # Skip patterns for files we shouldn't scan
+API_KEY_GREP_RE='(api[_-]?key|apikey)[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9_-]{20,}["'"'"']'
+PASSWORD_GREP_RE='password[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{8,}["'"'"']'
+
 SKIP_PATTERNS=(
     "node_modules"
     ".git"
@@ -109,7 +112,7 @@ while IFS=: read -r file line content; do
             ((HIGH_COUNT++))
         fi
     fi
-done < <(eval "find '$TARGET_DIR' -type f $FIND_EXCLUDES -exec grep -HinE '(api[_-]?key|apikey)[[:space:]]*[:=][[:space:]]*[\"'"'"'][A-Za-z0-9_-]{20,}[\"'"'"']' {} \; 2>/dev/null" || true)
+done < <(eval "find '$TARGET_DIR' -type f $FIND_EXCLUDES -exec grep -HinE \"$API_KEY_GREP_RE\" {} \; 2>/dev/null" || true)
 
 # JWT tokens
 while IFS=: read -r file line content; do
@@ -144,27 +147,19 @@ while IFS=: read -r file line content; do
             ((MEDIUM_COUNT++))
         fi
     fi
-done < <(eval "find '$TARGET_DIR' -type f $FIND_EXCLUDES -exec grep -HinE 'password[[:space:]]*[:=][[:space:]]*[\"'"'"'][^\"'"'"']{8,}[\"'"'"']' {} \; 2>/dev/null" || true)
+done < <(eval "find '$TARGET_DIR' -type f $FIND_EXCLUDES -exec grep -HinE \"$PASSWORD_GREP_RE\" {} \; 2>/dev/null" || true)
 
 # Generate report
+TOTAL_COUNT=$((CRITICAL_COUNT + HIGH_COUNT + MEDIUM_COUNT))
 REPORT=$(jq -n \
     --arg target "$TARGET_DIR" \
     --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --argjson critical "$CRITICAL_COUNT" \
     --argjson high "$HIGH_COUNT" \
     --argjson medium "$MEDIUM_COUNT" \
+    --argjson total "$TOTAL_COUNT" \
     --argjson findings "$FINDINGS" \
-    '{
-        scan_target: $target,
-        scan_date: $date,
-        summary: {
-            critical: $critical,
-            high: $high,
-            medium: $medium,
-            total: ($critical + $high + $medium)
-        },
-        findings: $findings
-    }')
+    '{scan_target: $target, scan_date: $date, summary: {critical: $critical, high: $high, medium: $medium, total: $total}, findings: $findings}')
 
 echo "$REPORT" > "$OUTPUT_FILE"
 
