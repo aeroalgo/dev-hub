@@ -26,6 +26,9 @@ if str(_REPO_ROOT) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+_LOOP_HANDOFF_SCHEMA = "loop-handoff/v1"
+_LOOP_HANDOFF_SCHEMA_LINE = f"schema: {_LOOP_HANDOFF_SCHEMA}"
+
 from .convergence import run_convergence_checks
 INDEX_IMPLEMENT_CONFLICT = "index_implement_conflict"
 MARK_INDEX_MISSING = "mark_index_missing"
@@ -1292,6 +1295,13 @@ def validate_active_context_shape(text: str) -> list[str]:
         return ["missing_load_now", "missing_handoff"]
 
     errors: list[str] = []
+    try:
+        from loop.schemas.active_context import validate_handoff_frontmatter
+
+        _fm, fm_errors = validate_handoff_frontmatter(value)
+        errors.extend(fm_errors)
+    except Exception:
+        pass
     handoffs = re.findall(r"(?im)^##\s*Handoff\b", value)
     dones = re.findall(r"(?im)^##\s*done\b", value)
     load_now = re.findall(r"(?im)^##\s*load_now\b", value)
@@ -1895,22 +1905,34 @@ def _try_advance_active_context(
         yaml_path = index_yaml_path(idx)
         yaml_rel = yaml_path.relative_to(cwd).as_posix()
         phase = str(next_step.get("next_phase") or "BACK IMPLEMENT")
-        load = _implement_load_now_lines(
-            shard_rel=shard,
-            yaml_rel=yaml_rel,
-            step_id=step_id,
-            phase=phase,
-        )
-        handoff = (
-            "## Handoff\n"
-            f"- **Эпик:** {epic_id_from_decompose_path(yaml_rel) or 'unknown'}.\n"
-            f"- **Режим/шаг:** следующий {phase} `{step_id}`.\n"
-            f"- **Сделано:** предыдущий шаг отмечен `{completed_status}`.\n"
-            f"- **Дальше:** продолжить с work shard `{shard}`.\n"
-        )
+        epic_id = epic_id_from_decompose_path(yaml_rel) or "unknown"
+        role_token, _role_dir = _role_dir_from_index_path(idx, cwd)
+        shard_link = shard.removeprefix("memory-bank/")
+        yaml_link = yaml_rel.removeprefix("memory-bank/")
         atomic_write_text(
             active_context_path(cwd),
-            "## load_now\n" + "\n".join(load) + "\n\n" + handoff,
+            _render_loop_active_context(
+                role=role_token or "BACK",
+                mode=phase,
+                epic_id=epic_id,
+                step_id=step_id,
+                load_now=[
+                    (
+                        shard_link,
+                        f"текущий work shard ({phase} {step_id})",
+                    ),
+                    (
+                        yaml_link,
+                        "очередь/status (canon=yaml)",
+                    ),
+                ],
+                custom_lines=[
+                    f"- **Эпик:** {epic_id}.",
+                    f"- **Режим/шаг:** следующий {phase} `{step_id}`.",
+                    f"- **Сделано:** предыдущий шаг отмечен `{completed_status}`.",
+                ],
+                next_hint=f"продолжить с work shard `{shard}`",
+            ),
         )
         result["next_step"] = step_id
         result["activeContext_rewritten"] = True
@@ -3179,9 +3201,9 @@ def project_handoff_from_reducer(
         text_new = re.sub(r"Handoff\s+BACK\s+(AUDIT|QA)", "Handoff BACK BUGFIX", text)
         text_new = re.sub(r"`BACK (AUDIT|QA)`", "`BACK BUGFIX`", text_new)
         text_new = re.sub(r"mode:\s*(AUDIT|QA)", "mode: BUGFIX", text_new)
-        if "schema: loop-handoff/v1" not in text_new:
+        if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
             frontmatter = (
-                f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\n"
+                f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\n"
                 f"mode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
             )
             text_new = frontmatter + text_new
@@ -3194,9 +3216,9 @@ def project_handoff_from_reducer(
         text_new = re.sub(r"Handoff\s+BACK\s+AUDIT", "Handoff BACK QA", text)
         text_new = re.sub(r"`BACK AUDIT`", "`BACK QA`", text_new)
         text_new = re.sub(r"mode:\s*AUDIT", "mode: QA", text_new)
-        if "schema: loop-handoff/v1" not in text_new:
+        if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
             frontmatter = (
-                f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\n"
+                f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\n"
                 f"mode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
             )
             text_new = frontmatter + text_new
@@ -3206,8 +3228,8 @@ def project_handoff_from_reducer(
         text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK REFLECT", text)
         text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK REFLECT`", text_new)
         text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: REFLECT", text_new)
-        if "schema: loop-handoff/v1" not in text_new:  # handoff
-            frontmatter = f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"  # handoff
+        if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:  # handoff
+            frontmatter = f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"  # handoff
             text_new = frontmatter + text_new
         ac.write_text(text_new, encoding="utf-8")
         projected = True
@@ -3308,7 +3330,19 @@ def reduce_epic_lifecycle(
     if diagnostics:
         reason_code = "event_stream_invalid"
     elif latest_qa is not None and latest_qa.get("kind") == "qa_fail":
-        reason_code = "qa_failed"
+        qa_seq = int(latest_qa.get("seq", 0))
+        bugfix_after_fail = None
+        for event in events:
+            if (
+                event.get("kind") == "bugfix_done"
+                and int(event.get("seq", 0)) > qa_seq
+            ):
+                bugfix_after_fail = event
+        if bugfix_after_fail is not None:
+            phase = "QA"
+            reason_code = "bugfix_reopens_qa"
+        else:
+            reason_code = "qa_failed"
     elif latest_qa is not None and latest_qa.get("kind") == "qa_pass":
         last_reflection: dict[str, Any] | None = None
         for event in events:
@@ -3474,6 +3508,25 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                         rel = "memory-bank/" + rel
                     candidates.add(rel.removeprefix("memory-bank/"))
     if len(candidates) > 1:
+        # Collapse index.md + index.yaml of the same decompose folder into one canon.
+        by_dir: dict[str, set[str]] = {}
+        for cand in candidates:
+            rel = cand.removeprefix("memory-bank/")
+            parent = str(Path(rel).parent).replace("\\", "/")
+            by_dir.setdefault(parent, set()).add(rel)
+        collapsed: set[str] = set()
+        for parent, rels in by_dir.items():
+            yaml_rel = f"{parent}/index.yaml"
+            if yaml_rel in rels or any(r.endswith("/index.yaml") for r in rels):
+                collapsed.add(yaml_rel if yaml_rel in rels else next(
+                    r for r in rels if r.endswith("/index.yaml")
+                ))
+            elif len(rels) == 1:
+                collapsed.add(next(iter(rels)))
+            else:
+                collapsed.update(rels)
+        candidates = collapsed
+    if len(candidates) > 1:
         return _index_result("ambiguous", "identity_ambiguous", message=sorted(candidates).__repr__())
     if not candidates:
         return _index_result("not_found", "identity_not_found")
@@ -3632,6 +3685,46 @@ def post_implement_handoff_violates_epic_done(phase: str, body: str) -> bool:
     return bool(_EPIC_DONE_LINE_RE.search(body or ""))
 
 
+def _render_loop_active_context(
+    *,
+    role: str,
+    mode: str,
+    epic_id: str,
+    step_id: str | None,
+    load_now: list[tuple[str, str]],
+    custom_lines: list[str],
+    next_hint: str | None = None,
+    done: list[str] | None = None,
+) -> str:
+    """Sole writer path for arm/repair — always emits loop-handoff/v1 frontmatter."""
+    from loop.mb_finish.render import render_active_context
+    from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta
+    from loop.schemas.active_context import normalize_gate_mode
+
+    role_u = str(role or "BACK").upper()
+    if role_u == "INTEGRATION":
+        role_u = "INTEG"
+    mode_u = normalize_gate_mode(mode, role_u) or str(mode or "").upper()
+    meta = LoopHandoffMeta(
+        role=role_u,
+        mode=mode_u,
+        epic_id=epic_id,
+        step_id=step_id,
+    )
+    items = [
+        LoadNowItem(path=path, description=desc.rstrip("."))
+        for path, desc in load_now
+    ]
+    handoff = HandoffBody(
+        mode=mode_u,
+        step_id=step_id,
+        epic_id=epic_id,
+        next_hint=next_hint,
+        custom_lines=custom_lines,
+    )
+    return render_active_context(meta, items, done or [], handoff)
+
+
 def build_post_implement_active_context(
     *,
     role: str,
@@ -3647,87 +3740,102 @@ def build_post_implement_active_context(
     cwd: Path,
 ) -> str:
     """Full Handoff for post-implement pipeline — not a one-line EPIC_DONE stub."""
-    load: list[str] = [
-        f"1. [{Path(tracker_rel).name}]({tracker_link}) — decompose index.yaml "
-        f"(implement queue исчерпана; эпик {epic_id}).",
+    del role_dir, index_rel, hub_rel
+    load_now: list[tuple[str, str]] = [
+        (
+            tracker_link,
+            f"decompose index.yaml (implement queue исчерпана; эпик {epic_id})",
+        ),
     ]
-    n = 2
     if qa_path is not None and qa_path.is_file():
         try:
             qa_rel = qa_path.relative_to(cwd).as_posix()
         except ValueError:
             qa_rel = str(qa_path)
         qa_link = qa_rel.removeprefix("memory-bank/")
-        load.append(f"{n}. [{qa_path.name}]({qa_link}) — QA pass artifact.")
-        n += 1
+        load_now.append((qa_link, "QA pass artifact"))
     if reflection_path is not None and reflection_path.is_file():
         try:
             r_rel = reflection_path.relative_to(cwd).as_posix()
         except ValueError:
             r_rel = str(reflection_path)
         r_link = r_rel.removeprefix("memory-bank/")
-        load.append(f"{n}. [{reflection_path.name}]({r_link}) — reflection.")
+        load_now.append((r_link, "reflection"))
 
     phase_u = str(phase or "").upper()
+    role_u = str(role or "BACK").upper()
+    if role_u == "INTEGRATION":
+        role_u = "INTEG"
+
     if phase_u == "AUDIT":
-        handoff = (
-            f"## Handoff {role} AUDIT — {epic_id}\n"
-            f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.\n"
-            f"- **Режим/шаг:** `{role} AUDIT`.\n"
-            f"- **Сделано:** implement queue исчерпана.\n"
-            f"- **Дальше:** выполнить `{role} AUDIT` (gap-матрица + audit yaml); "
-            f"пусто not_implemented[] → `{role} QA`. "
-            f"НЕ ставить EPIC_DONE до QA pass + REFLECT.\n"
-            f"- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA/REFLECT сессии).\n"
+        next_hint = (
+            f"выполнить `{role_u} AUDIT` (gap-матрица + audit yaml); "
+            f"пусто not_implemented[] → `{role_u} QA`. "
+            f"НЕ ставить EPIC_DONE до QA pass + REFLECT"
         )
+        custom_lines = [
+            f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.",
+            f"- **Режим/шаг:** `{role_u} AUDIT`.",
+            "- **Сделано:** implement queue исчерпана.",
+            "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA/REFLECT сессии).",
+        ]
     elif phase_u == "QA":
-        handoff = (
-            f"## Handoff {role} QA — {epic_id}\n"
-            f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.\n"
-            f"- **Режим/шаг:** `{role} QA`.\n"
-            f"- **Сделано:** implement queue исчерпана.\n"
-            f"- **Дальше:** выполнить `{role} QA` (suite + reviewer); "
-            f"в Handoff следующий = `{role} REFLECT`. "
-            f"НЕ ставить EPIC_DONE до QA pass + REFLECT.\n"
-            f"- **ARCHIVE:** вне loop после EPIC_DONE (не в QA/REFLECT сессии).\n"
+        next_hint = (
+            f"выполнить `{role_u} QA` (suite + reviewer); "
+            f"в Handoff следующий = `{role_u} REFLECT`. "
+            f"НЕ ставить EPIC_DONE до QA pass + REFLECT"
         )
+        custom_lines = [
+            f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.",
+            f"- **Режим/шаг:** `{role_u} QA`.",
+            "- **Сделано:** implement queue исчерпана.",
+            "- **ARCHIVE:** вне loop после EPIC_DONE (не в QA/REFLECT сессии).",
+        ]
     elif phase_u == "REFLECT":
         qa_note = qa_path.name if qa_path else "qa pass"
-        handoff = (
-            f"## Handoff {role} REFLECT — {epic_id}\n"
-            f"- **Эпик:** {epic_id}.\n"
-            f"- **Режим/шаг:** `{role} REFLECT`.\n"
-            f"- **Сделано:** `{role} QA` pass ({qa_note}).\n"
-            f"- **Дальше:** написать reflection-*.md; после FINISH REFLECT — "
-            f"отдельная строка EPIC_DONE и stop (без inline-code backticks).\n"
-            f"- **Loop:** при EPIC_CHAIN_ROADMAP=1 runner сам армит следующий эпик; "
-            f"FORBIDDEN: ARCHIVE NOW / VAN в этой сессии.\n"
-            f"- **ARCHIVE:** только вручную вне loop после stop runner.\n"
-            f"FORBIDDEN: EPIC_DONE до существования reflection артефакта.\n"
+        next_hint = (
+            "написать reflection-*.md; после FINISH REFLECT — "
+            "отдельная строка EPIC_DONE и stop (без inline-code backticks)"
         )
+        custom_lines = [
+            f"- **Эпик:** {epic_id}.",
+            f"- **Режим/шаг:** `{role_u} REFLECT`.",
+            f"- **Сделано:** `{role_u} QA` pass ({qa_note}).",
+            "- **Loop:** при EPIC_CHAIN_ROADMAP=1 runner сам армит следующий эпик; "
+            "FORBIDDEN: ARCHIVE NOW / VAN в этой сессии.",
+            "- **ARCHIVE:** только вручную вне loop после stop runner.",
+            "FORBIDDEN: EPIC_DONE до существования reflection артефакта.",
+        ]
     elif phase_u == "DONE":
-        handoff = (
-            f"## Handoff {role} — {epic_id}\n"
-            f"EPIC_DONE\n"
-            f"- **Эпик:** {epic_id} — implement + AUDIT + QA pass + REFLECT "
-            f"завершены.\n"
-            f"- **Дальше:** stop на EPIC_DONE; при EPIC_CHAIN_ROADMAP=1 runner "
-            f"возьмёт следующий эпик из roadmap Queue.\n"
-            f"- **FORBIDDEN:** ARCHIVE NOW / VAN в loop-сессии.\n"
-            f"- **ARCHIVE:** только вручную вне loop после stop / исчерпания queue.\n"
-        )
+        next_hint = None
+        custom_lines = [
+            "EPIC_DONE",
+            f"- **Эпик:** {epic_id} — implement + AUDIT + QA pass + REFLECT завершены.",
+            "- **Дальше:** stop на EPIC_DONE; при EPIC_CHAIN_ROADMAP=1 runner "
+            "возьмёт следующий эпик из roadmap Queue.",
+            "- **FORBIDDEN:** ARCHIVE NOW / VAN в loop-сессии.",
+            "- **ARCHIVE:** только вручную вне loop после stop / исчерпания queue.",
+        ]
     else:
-        handoff = (
-            f"## Handoff {role} {phase} — {epic_id}\n"
-            f"- **Эпик:** {epic_id} — implement queue исчерпана; "
-            f"фаза `{phase}`.\n"
-            f"- **Режим/шаг:** `{role} {phase}`.\n"
-            f"- **Дальше:** выполнить `{role} {phase}`. "
-            f"НЕ ставить EPIC_DONE: фаза `{phase}` не терминальная "
-            f"(канон: {POST_IMPLEMENT_CHAIN}).\n"
+        next_hint = (
+            f"выполнить `{role_u} {phase_u}`. "
+            f"НЕ ставить EPIC_DONE: фаза `{phase_u}` не терминальная "
+            f"(канон: {POST_IMPLEMENT_CHAIN})"
         )
+        custom_lines = [
+            f"- **Эпик:** {epic_id} — implement queue исчерпана; фаза `{phase_u}`.",
+            f"- **Режим/шаг:** `{role_u} {phase_u}`.",
+        ]
 
-    return "## load_now\n" + "\n".join(load) + "\n\n" + handoff
+    return _render_loop_active_context(
+        role=role_u,
+        mode=phase_u,
+        epic_id=epic_id,
+        step_id=None if phase_u == "DONE" else epic_id,
+        load_now=load_now,
+        custom_lines=custom_lines,
+        next_hint=next_hint,
+    )
 
 
 def _resolve_href(base_dir: Path, href: str, cwd: Path) -> str | None:
@@ -3979,36 +4087,47 @@ def arm_active_context_from_decompose(
         needs_creative=_step_needs_creative(cwd_p, idx, step),
     )
     title = step["title"] or step["step_id"]
-    load_lines = _implement_load_now_lines(
-        shard_rel=shard_rel,
-        yaml_rel=tracker_rel if tracker_rel.endswith(".yaml") else yaml_rel or tracker_rel,
-        step_id=step["step_id"],
-        phase=phase,
+    yaml_for_load = (
+        tracker_rel if tracker_rel.endswith(".yaml") else yaml_rel or tracker_rel
     )
-
-    done_note = ""
+    shard_link = shard_rel.removeprefix("memory-bank/")
+    yaml_link = yaml_for_load.removeprefix("memory-bank/")
+    done_items: list[str] = []
     completed = [s["id"] for s in steps if s.get("status") in {"completed", "done"}]
     if completed:
-        done_note = (
-            f"\n## done — do NOT load\n"
-            f"- {completed[0]}–{completed[-1]} completed в `{tracker_link}` "
-            f"({len(completed)} шагов).\n"
+        done_items.append(
+            f"{completed[0]}–{completed[-1]} completed в `{tracker_link}` "
+            f"({len(completed)} шагов)"
         )
 
-    body = (
-        "## load_now\n"
-        + "\n".join(load_lines)
-        + "\n\n"
-        + f"## Handoff {phase} — {step['step_id']}\n"
-        + f"- **Эпик:** {epic_id} ({role}); armed из `{tracker_link}` "
-        f"(прошлый activeContext игнорирован).\n"
-        + f"- **Текущий шаг:** {step['step_id']} — {title} "
-        f"(status={step['status']} в index.yaml).\n"
-        + f"- **Команда:** `{phase} @{step['step_id']}`\n"
-        + f"- **Дальше:** выполнить atomic шаг → FINISH "
-        f"(seed-implement → flush cp → suite → evidence in_progress → "
-        f"validate-step → Handoff → @verify → finalize-step).\n"
-        + done_note
+    body = _render_loop_active_context(
+        role=role,
+        mode=phase,
+        epic_id=epic_id or "unknown",
+        step_id=step["step_id"],
+        load_now=[
+            (
+                shard_link,
+                f"текущий work shard ({phase} {step['step_id']})",
+            ),
+            (
+                yaml_link,
+                "очередь/status (canon=yaml)",
+            ),
+        ],
+        custom_lines=[
+            f"- **Эпик:** {epic_id} ({role}); armed из `{tracker_link}` "
+            f"(прошлый activeContext игнорирован).",
+            f"- **Текущий шаг:** {step['step_id']} — {title} "
+            f"(status={step['status']} в index.yaml).",
+            f"- **Команда:** `{phase} @{step['step_id']}`",
+        ],
+        next_hint=(
+            "выполнить atomic шаг → FINISH "
+            "(seed-implement → flush cp → suite → evidence in_progress → "
+            "validate-step → Handoff → @verify → finalize-step)"
+        ),
+        done=done_items,
     )
     atomic_write_text(active_context_path(cwd_p), body)
 
@@ -4216,7 +4335,7 @@ def arm_pre_implement_context(
         )
         armed_decompose = decomp_yaml if idx and idx.is_file() else None
     body = (
-        f"---\nschema: loop-handoff/v1 # handoff\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
+        f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
         f"## load_now\n{load_now}\n"
         f"## Handoff {phase_u}\n"
         f"- **Эпик:** {epic_id} ({role_u}).\n"

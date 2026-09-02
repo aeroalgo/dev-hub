@@ -173,26 +173,34 @@ def test_direct_validate_shape_rules():
 
 def test_shape_rules_scenarios_count():
     # Ensuring 20 distinct shape validation assertion tests/scenarios
+    fm = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-TEST\n"
+        "---\n\n"
+    )
     test_cases = [
-        ("valid_1", "## load_now\n1. [a](a)\n## Handoff BACK IMPLEMENT\n", []),
-        ("valid_2", "## load_now\n1. [a](a)\n## Handoff FRONT QA\n## done\n- item\n", []),
+        ("valid_1", fm + "## load_now\n1. [a](a)\n## Handoff BACK IMPLEMENT\n", []),
+        ("valid_2", fm + "## load_now\n1. [a](a)\n## Handoff FRONT QA\n## done\n- item\n", []),
         ("empty", "", ["missing_load_now", "missing_handoff"]),
-        ("no_load", "## Handoff BACK IMPLEMENT\n", ["missing_load_now"]),
-        ("no_handoff", "## load_now\n1. [a](a)\n", ["missing_handoff"]),
-        ("multi_load", "## load_now\n## load_now\n## Handoff BACK IMPLEMENT\n", ["multiple_load_now"]),
-        ("multi_handoff", "## load_now\n## Handoff A\n## Handoff B\n", ["multiple_handoff"]),
-        ("multi_done", "## load_now\n## Handoff A\n## done\n## done\n", ["multiple_done"]),
-        ("completed_in_load_1", "## load_now\n1. [a](a) - status: completed\n## Handoff A\n", ["completed_in_load_now"]),
-        ("completed_in_load_2", "## load_now\n1. [a](a) - status: done\n## Handoff A\n", ["completed_in_load_now"]),
-        ("completed_in_load_3", "## load_now\n1. [a](a) completed step\n## Handoff A\n", ["completed_in_load_now"]),
-        ("plan_after_impl", "## load_now\n1. [impl](memory-bank/back/implement/s01.yaml)\n2. [plan](memory-bank/back/plan/s02.yaml)\n## Handoff A\n", ["plan_loaded_after_implement"]),
-        ("malformed_blocked", "## load_now\n1. [a](a)\n## Handoff A\nBLOCKED test bad\n", ["malformed_marker"]),
-        ("malformed_epic_done", "## load_now\n1. [a](a)\n## Handoff A\nEPIC_DONE extra text\n", ["malformed_marker"]),
-        ("malformed_need_human", "## load_now\n1. [a](a)\n## Handoff A\nNEED_HUMAN bad text\n", ["malformed_marker"]),
-        ("valid_blocked_colon", "## load_now\n1. [a](a)\n## Handoff A\nBLOCKED: reason\n", []),
-        ("valid_epic_done_standalone", "## load_now\n1. [a](a)\n## Handoff A\nEPIC_DONE\n", []),
-        ("valid_need_human_colon", "## load_now\n1. [a](a)\n## Handoff A\nNEED_HUMAN: reason\n", []),
-        ("combo_errors", "## load_now\n## load_now\n## Handoff A\n## Handoff B\n", ["multiple_load_now", "multiple_handoff"]),
+        ("no_load", fm + "## Handoff BACK IMPLEMENT\n", ["missing_load_now"]),
+        ("no_handoff", fm + "## load_now\n1. [a](a)\n", ["missing_handoff"]),
+        ("multi_load", fm + "## load_now\n## load_now\n## Handoff BACK IMPLEMENT\n", ["multiple_load_now"]),
+        ("multi_handoff", fm + "## load_now\n## Handoff A\n## Handoff B\n", ["multiple_handoff"]),
+        ("multi_done", fm + "## load_now\n## Handoff A\n## done\n## done\n", ["multiple_done"]),
+        ("completed_in_load_1", fm + "## load_now\n1. [a](a) - status: completed\n## Handoff A\n", ["completed_in_load_now"]),
+        ("completed_in_load_2", fm + "## load_now\n1. [a](a) - status: done\n## Handoff A\n", ["completed_in_load_now"]),
+        ("completed_in_load_3", fm + "## load_now\n1. [a](a) completed step\n## Handoff A\n", ["completed_in_load_now"]),
+        ("plan_after_impl", fm + "## load_now\n1. [impl](memory-bank/back/implement/s01.yaml)\n2. [plan](memory-bank/back/plan/s02.yaml)\n## Handoff A\n", ["plan_loaded_after_implement"]),
+        ("malformed_blocked", fm + "## load_now\n1. [a](a)\n## Handoff A\nBLOCKED test bad\n", ["malformed_marker"]),
+        ("malformed_epic_done", fm + "## load_now\n1. [a](a)\n## Handoff A\nEPIC_DONE extra text\n", ["malformed_marker"]),
+        ("malformed_need_human", fm + "## load_now\n1. [a](a)\n## Handoff A\nNEED_HUMAN bad text\n", ["malformed_marker"]),
+        ("valid_blocked_colon", fm + "## load_now\n1. [a](a)\n## Handoff A\nBLOCKED: reason\n", []),
+        ("valid_epic_done_standalone", fm + "## load_now\n1. [a](a)\n## Handoff A\nEPIC_DONE\n", []),
+        ("valid_need_human_colon", fm + "## load_now\n1. [a](a)\n## Handoff A\nNEED_HUMAN: reason\n", []),
+        ("combo_errors", fm + "## load_now\n## load_now\n## Handoff A\n## Handoff B\n", ["multiple_load_now", "multiple_handoff"]),
         ("all_missing", "   \n\t\n", ["missing_load_now", "missing_handoff"]),
     ]
     assert len(test_cases) == 20

@@ -103,9 +103,9 @@ DECOMPOSE **обязан** нарезать удаление устаревше�
 3. Greenfield / нет замен → одна строка `n/a — нет замен` (не оставляй секцию пустой).
 4. У каждого `sNN`: поле **`deletes:`** (список; `[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
 5. Цепочка допустима: `add → migrate callers → delete`. Delete-шаг **в очереди обязателен**, если замена есть; нельзя закрыть эпик на «новое + вечный shim» без follow-up в cleanup-таблице.
-6. Если `deletes` непустой → ≥1 checkpoint с `verify` через `rg` / import-audit: старый путь/символ **без живых callers** (и тесты переведены на новое).
+6. Если `deletes` непустой → ≥1 checkpoint с `verify` через `rg` / import-audit: старый путь/символ **без живых callers**; тесты на старый контракт — **в `deletes:` или rewrite** (не оставлять red asserts, которые вернут legacy).
 7. `out_of_scope: оставить shim` — только с follow-up epic ID **в queue**; иначе FAIL.
-8. **Финальный purge:** любая строка cleanup ≠ `n/a` → последний (или явный late) `sNN-*-legacy-fallback-purge` с остатком `deletes` A+B+C + cp: anti-fallback `rg` + inventory `docker-compose*`/`Dockerfile*`/`python -m` из plan B. Нет purge при replace = FAIL.
+8. **Финальный purge:** любая строка cleanup ≠ `n/a` → последний (или явный late) `sNN-*-legacy-fallback-purge` с остатком `deletes` A+B+C (**включая obsolete tests**) + cp: anti-fallback `rg` + inventory `docker-compose*`/`Dockerfile*`/`python -m` из plan B. Нет purge при replace = FAIL.
 9. Plan B «уже отдельный» без follow-up ID в queue = FAIL (см. shared §1.B / §6).
 
 ### FORBIDDEN
@@ -116,6 +116,7 @@ DECOMPOSE **обязан** нарезать удаление устаревше�
 - Растворить cleanup только в Outcome map без sNN/`deletes`.
 - Soft default URL / silent return / user stub при misconfig как «временный DX».
 - Rewrite модуля при живом legacy CLI/compose/CMD без строки B + deletes.
+- Drop prod без `deletes:`/rewrite тестов, которые assert'ят старый machine path.
 ---
 
 ## Outcome preserve — не ужимать контекст плана (HARD)

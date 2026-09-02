@@ -137,7 +137,7 @@ def test_status_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> N
 
     output = capsys.readouterr().out
     assert "generation=1" in output
-    assert "upsert=2" in output
+    assert "upsert=3" in output
     assert "archive=0" in output
     assert "noop=0" in output
 

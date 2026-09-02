@@ -38,9 +38,9 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 3. Greenfield / нет замен → одна строка `n/a — нет замен`.
 4. У каждого `sNN`: поле **`deletes:`** (`[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
 5. Цепочка OK: `add новый UI → migrate imports → delete старый`. Delete-шаг **в очереди обязателен**, если замена есть.
-6. Непустой `deletes` → ≥1 checkpoint `verify` через `rg` / import-audit: старый путь/символ **без живых callers** (и Vitest/Playwright переведены на новое).
+6. Непустой `deletes` → ≥1 checkpoint `verify` через `rg` / import-audit: старый путь/символ **без живых callers**; Vitest/Playwright на старый контракт — **в `deletes:` или rewrite**.
 7. `out_of_scope: оставить shim/mock` — только с follow-up epic ID **в queue**; иначе FAIL.
-8. **Финальный purge:** cleanup ≠ n/a → `sNN-*-legacy-fallback-purge` (остаток A+B+C + anti-fallback rg + routes/scripts inventory из plan B). Нет purge = FAIL.
+8. **Финальный purge:** cleanup ≠ n/a → `sNN-*-legacy-fallback-purge` (остаток A+B+C **включая obsolete tests** + anti-fallback rg + routes/scripts inventory из plan B). Нет purge = FAIL.
 
 ### FORBIDDEN
 
@@ -49,6 +49,7 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 - Считать `files:` достаточным для удаления.
 - Растворить cleanup только в Outcome map без sNN/`deletes`.
 - Soft mock/default в prod path «для DX».
+- Drop UI/контракт без delete/rewrite тестов, которые требуют старое поведение.
 
 ---
 

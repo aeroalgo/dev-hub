@@ -1262,6 +1262,28 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
             f"{plan_id!r} (rename to decompose-{plan_id})"
         ]
 
+    if folder_epic:
+        plan_dir = ypath.parent.parent
+        slug_matches = sorted(
+            (
+                p.stem[len("plan-") :]
+                for p in plan_dir.glob(f"plan-{folder_epic}*.md")
+                if p.stem.startswith("plan-")
+            ),
+            key=len,
+            reverse=True,
+        )
+        if (
+            slug_matches
+            and slug_matches[0] != folder_epic
+            and slug_matches[0].startswith(folder_epic + "-")
+        ):
+            return [
+                f"decompose folder uses short queue id {folder_epic!r}; "
+                f"expected decompose-{slug_matches[0]} "
+                f"(plan stem {slug_matches[0]!r})"
+            ]
+
     steps = steps_from_doc(doc)
     if not steps:
         return ["index.yaml has no steps"]

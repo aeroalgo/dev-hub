@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Codex hooks schema probe + extend EVENT_MAPPING
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Probe Codex CLI hooks schema (nested vs flat) via small TDD fixture; document minimum required CLI version;
+  extend EVENT_MAPPING in hooks_json.py to cover all FR-002 events (SessionStart, UserPromptSubmit,
+  PreToolUse, PostToolUse, SubagentStart, SubagentStop, Stop). Outcome: unambiguous schema contract
+  for generator (s03), version pin for doctor (s05).
+
+context:
+  consumes:
+    - loop/runtime_materializers/hooks_json.py  # EVENT_MAPPING dict
+    - .codex/hooks.json                         # current generated output
+    - harness/manifest.yaml                     # hooks runtimes.codex config
+  produces:
+    - loop/runtime_materializers/hooks_json.py  # EVENT_MAPPING extended
+    - loop/tests/test_codex_hooks_parity_matrix.py  # TDD red → green for new events
+    - docs/runbooks/codex-loop-pilot.md         # min CLI version note (stub; full in s07)
+  plan_refs:
+    - FR-001
+    - FR-002
+    - NFR-003
+    - TM-007
+
+  files:
+    - loop/runtime_materializers/hooks_json.py
+    - loop/tests/test_codex_hooks_parity_matrix.py
+    - docs/runbooks/codex-loop-pilot.md
+
+as_built:
+  - "loop/runtime_materializers/hooks_json.py: EVENT_MAPPING covers Stop, SubagentStop, PreToolUse, UserPromptSubmit, SessionStart — 5 events; PostToolUse variants and SubagentStart absent"
+  - ".codex/hooks.json: generated with Stop, SubagentStop, PreToolUse only (3 events)"
+
+delta:
+  - "Add PostToolUse (Agent|Task), PostToolUse (Bash), SubagentStart to EVENT_MAPPING"
+  - "Add CODEX_MIN_VERSION constant (probed from CLI --version or env CODEX_MIN_VERSION)"
+  - "Write test_codex_hooks_parity_matrix.py: asserts EVENT_MAPPING keys ⊇ FR-002 required set"
+  - "Document min CLI version probe result as inline comment + runbook stub"
+
+deletes: []
+
+out_of_scope:
+  - "Generator template changes (s03)"
+  - "Doctor --check logic (s05)"
+  - "Manifest edits (s02)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: EVENT_MAPPING в hooks_json.py содержит все 8 FR-002 event keys
+    verify: "python3 -c \"from loop.runtime_materializers.hooks_json import EVENT_MAPPING; required={'Stop','SubagentStop','PreToolUse','UserPromptSubmit','SessionStart','SubagentStart','PostToolUse:agent','PostToolUse:bash'}; missing=required-set(EVENT_MAPPING.values()); assert not missing, missing\""
+  - id: cp2
+    criterion: test_codex_hooks_parity_matrix.py pytest green (TDD red→green)
+    verify: "bin/pytest loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short"
+  - id: cp3
+    criterion: CODEX_MIN_VERSION присутствует в hooks_json.py или _lib
+    verify: "rg 'CODEX_MIN_VERSION' loop/runtime_materializers/hooks_json.py loop/runtime_materializers/_lib.py 2>/dev/null || rg 'CODEX_MIN_VERSION' harness/hooks/_lib.py"
+
+verify:
+  - "bin/pytest loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short"
+tdd:
+  - "Write test asserting EVENT_MAPPING ⊇ FR-002 set BEFORE extending map (red)"
+  - "Extend EVENT_MAPPING (green)"

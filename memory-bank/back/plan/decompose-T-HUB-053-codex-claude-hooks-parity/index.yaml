@@ -2,30 +2,37 @@ schema: epic-decompose/v1
 plan_id: T-HUB-053-codex-claude-hooks-parity
 role: back
 next_phase: BACK IMPLEMENT
-total_shards: 8
 
-shards:
+steps:
   - id: s01
     file: s01-codex-schema-probe-event-mapping.yaml
     title: Codex hooks schema probe + extend EVENT_MAPPING
+    status: pending
   - id: s02
     file: s02-manifest-codex-hooks-enable.yaml
     title: Manifest enable all missing codex hooks
+    status: pending
   - id: s03
     file: s03-generator-nested-matchers-timeouts.yaml
     title: Generator nested matchers + timeouts + regenerate hooks.json
+    status: pending
   - id: s04
     file: s04-payload-normalize-tool-name-aliases.yaml
     title: Payload normalize tool_name aliases fail-closed
+    status: pending
   - id: s05
     file: s05-parity-matrix-runtime-sync-check.yaml
     title: Parity matrix module + runtime-sync --check + doctor
+    status: pending
   - id: s06
     file: s06-behavior-bridge-tests.yaml
     title: Behavior bridge tests all events + regression
+    status: pending
   - id: s07
     file: s07-docs-runbook-matrix.yaml
     title: Docs runbook architecture matrix update
+    status: pending
   - id: s08
     file: s08-legacy-partial-parity-purge.yaml
     title: Legacy purge partial-parity docs comments + forbid hand-edit
+    status: pending

@@ -315,6 +315,33 @@ def main() -> int:
     )
     p_formula_list.add_argument("--formulas-dir", default=None, help="optional directory override for formula files")
 
+    p_janitor_scan = sub.add_parser(
+        "janitor-scan",
+        help="read-only entropy audit of memory-bank / runtime artifacts",
+    )
+    p_janitor_scan.add_argument(
+        "--json",
+        action="store_true",
+        help="emit janitor-report/v1 JSON on stdout",
+    )
+
+    p_janitor_gc = sub.add_parser(
+        "janitor-gc",
+        help="whitelist-only janitor repairs (dry-run by default)",
+    )
+    p_janitor_gc_mode = p_janitor_gc.add_mutually_exclusive_group()
+    p_janitor_gc_mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="report planned repairs without writing (default)",
+    )
+    p_janitor_gc_mode.add_argument(
+        "--apply",
+        action="store_true",
+        help="apply whitelist repairs",
+    )
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -759,6 +786,44 @@ def main() -> int:
         except Exception as exc:
             print(f"Error: {exc}", file=sys.stderr)
             return 1
+
+    if args.cmd == "janitor-scan":
+        from loop.janitor import scan as janitor_scan
+
+        report = janitor_scan(cwd=cwd)
+        if args.json:
+            print(report.model_dump_json(indent=2))
+        else:
+            print(
+                f"Janitor scan: {report.summary.total_findings} findings "
+                f"across {len(report.summary.categories_count)} categories"
+            )
+            for finding in report.findings[:50]:
+                print(f"- [{finding.category}] {finding.target_path}: {finding.description}")
+        return 0
+
+    if args.cmd == "janitor-gc":
+        from loop.janitor import scan as janitor_scan
+        from loop.janitor.gc import GcEngine, GcWhitelistError
+
+        apply = bool(getattr(args, "apply", False))
+        dry_run = not apply
+        report = janitor_scan(cwd=cwd)
+        engine = GcEngine(cwd)
+        print(f"Janitor GC ({'apply' if apply else 'dry-run'}): {report.summary.total_findings} findings")
+        for finding in report.findings:
+            if not finding.actionable:
+                continue
+            try:
+                result = engine.apply_repair(finding, dry_run=dry_run)
+            except GcWhitelistError as exc:
+                print(f"- skip {finding.target_path}: {exc}")
+                continue
+            print(
+                f"- {result.action} {result.target_path} "
+                f"success={result.success} dry_run={result.dry_run}"
+            )
+        return 0
 
     return 2
 

@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Legacy purge partial-parity docs comments + forbid hand-edit instructions
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Remove all remaining claims of «partial parity», «Codex hooks subset», «bash-output-cap not on Codex»,
+  «manual hooks.json» from code comments, docs, and any instruction files. Ensure no surviving shim
+  or workaround that implies partial-parity as acceptable. Add or confirm meta hash check in
+  runtime-sync --check to detect hand-edits. Outcome: codebase reflects full parity; grep for
+  partial-parity patterns returns zero results.
+
+context:
+  consumes:
+    - harness/manifest.yaml
+    - loop/runtime_materializers/hooks_json.py
+    - docs/runbooks/codex-loop-pilot.md          # updated in s07
+    - .codex/hooks.json                          # generated (s03)
+    - CLAUDE.md, AGENTS.md, GEMINI.md            # instruction files
+    - memory-bank/architecture/services.md
+  produces:
+    - "Cleaned files: comments/docs removed (no new files)"
+  plan_refs:
+    - TM-008
+    - AC-4
+    - NFR-001
+
+  files: []
+
+sunset_inventory:
+  - path: harness/manifest.yaml
+    pattern: "subset|partial|not on codex|hand.edit"
+    action: delete_or_reword
+  - path: loop/runtime_materializers/hooks_json.py
+    pattern: "# TODO.*codex|partial|subset"
+    action: delete
+  - path: docs/runbooks/codex-loop-pilot.md
+    pattern: "partial|subset|bash-output-cap.*not"
+    action: delete_or_reword
+  - path: CLAUDE.md
+    pattern: "codex.*subset|partial parity"
+    action: delete
+  - path: AGENTS.md
+    pattern: "codex.*subset|partial parity"
+    action: delete
+  - path: memory-bank/architecture/services.md
+    pattern: "partial|subset.*codex"
+    action: delete_or_reword
+
+as_built:
+  - "Scattered comments/docs claiming Codex hooks = subset of Claude hooks; bash-output-cap noted as Claude-only"
+
+delta:
+  - "Delete or reword all comments matching partial-parity patterns (see sunset_inventory)"
+  - "Verify meta hash check in runtime-sync --check detects hand-edit (TM-008)"
+  - "Add/confirm doctor warning: if .codex/hooks.json meta hash missing → fail-closed"
+
+deletes:
+  - "Inline comments claiming 'Codex subset', 'not registered on Codex', 'bash-output-cap claude only'"
+  - "Any instruction in docs claiming 'you may hand-edit .codex/hooks.json'"
+
+out_of_scope:
+  - "session-end / permission-request hooks (FR-012 — out of scope per plan)"
+
+skills:
+  code_surface: api
+  impl: []
+
+grep_control:
+  - pattern: "partial.*parity|subset.*codex|bash.output.cap.*not.*codex|hand.edit.*hooks"
+    paths: ["harness/", "loop/", "docs/", "CLAUDE.md", "AGENTS.md", "memory-bank/architecture/"]
+    expect: 0 matches after purge
+
+checkpoints:
+  - id: cp1
+    criterion: "rg по partial-parity patterns возвращает 0 результатов"
+    verify: "rg -i 'partial.*parity|subset.*codex|bash.output.cap.*not.*codex|hand.edit.*hooks' harness/ loop/ docs/ CLAUDE.md AGENTS.md memory-bank/architecture/ 2>/dev/null | grep -v Binary && echo FAIL || echo OK_zero_matches"
+  - id: cp2
+    criterion: "runtime-sync --check обнаруживает hand-edit (meta hash mismatch → exit 1)"
+    verify: "python3 -c \"import json; h=json.load(open('.codex/hooks.json')); h['_hand_edit_marker']=True; open('/tmp/hand_hooks.json','w').write(json.dumps(h)); import subprocess; r=subprocess.run(['python3','-m','loop.cli.runtime_sync','--check','--hooks-json','/tmp/hand_hooks.json'],capture_output=True); assert r.returncode!=0,'expected non-zero on hash mismatch'\""
+  - id: cp3
+    criterion: "Inventory scan: нет упоминаний 'you may hand-edit' в docs/"
+    verify: "rg -i 'may hand.edit|can hand.edit|manually edit.*hooks.json' docs/ && echo FAIL || echo OK"
+
+verify:
+  - "rg -i 'partial.*parity|subset.*codex' harness/ loop/ docs/ CLAUDE.md AGENTS.md 2>/dev/null | grep -c . || echo 0"
+tdd: []

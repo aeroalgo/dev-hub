@@ -82,7 +82,7 @@ for profile in "${profiles[@]}"; do
   else
     cp -R "$profile" "$target"
   fi
-  (cd "$target" && pnpm install --ignore-scripts)
+  (cd "$target" && CI=true pnpm install --ignore-scripts)
 done
 
 if ((DRY_RUN)); then

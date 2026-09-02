@@ -36,9 +36,9 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 3. Нет замен по эпику → одна строка `n/a — нет замен`.
 4. У каждого `eNN`: поле **`deletes:`** (`[]` только если элемент ничего не вытесняет).
 5. Типичная цепочка: `wire live API → migrate callers → delete mock`. Delete в том же eNN или отдельный late eNN — не «вечный mock».
-6. Непустой `deletes` → ≥1 checkpoint `rg` / import-audit (+ `grep_control`).
+6. Непустой `deletes` → ≥1 checkpoint `rg` / import-audit (+ `grep_control`); тесты/контракт-кейсы на mock/legacy — **в `deletes:` или rewrite**.
 7. `out_of_scope: оставить mock` — только с follow-up epic/eNN ID **в queue**; иначе FAIL.
-8. **Финальный purge:** cleanup ≠ n/a → `eNN-*-legacy-fallback-purge` (или последний cutover eNN с полным остатком A+B+C + anti-fallback rg). Нет purge = FAIL.
+8. **Финальный purge:** cleanup ≠ n/a → `eNN-*-legacy-fallback-purge` (или последний cutover eNN с полным остатком A+B+C **включая obsolete tests** + anti-fallback rg). Нет purge = FAIL.
 
 ### FORBIDDEN
 
@@ -47,6 +47,7 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 - Считать `front:`/`back:` списками удаления (удаление = `deletes:`).
 - Растворить cleanup только в Outcome map без eNN/`deletes`.
 - Soft default / dual client в prod path.
+- Drop mock/legacy без delete/rewrite тестов, которые assert'ят старый wire.
 
 ---
 

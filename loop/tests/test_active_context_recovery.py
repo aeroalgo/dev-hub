@@ -29,9 +29,16 @@ def _seed(cwd: Path) -> None:
     _write(
         cwd,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: x\n"
+        "step_id: s01\n"
+        "---\n\n"
         "## load_now\n"
-        "- `memory-bank/back/plan/decompose-x/s01.yaml`\n\n"
-        "## Handoff BACK IMPLEMENT\n"
+        "1. [s01.yaml](back/plan/decompose-x/s01.yaml) — work shard.\n\n"
+        "## Handoff BACK IMPLEMENT — s01\n"
         "- **Следующий:** `BACK IMPLEMENT @s01`\n",
     )
     _write(cwd, "memory-bank/back/plan/decompose-x/s01.yaml", "step_id: s01\n")
@@ -43,7 +50,7 @@ def test_shape_diagnostics_are_stable_codes() -> None:
 
     errors = validate_active_context_shape("## Handoff\n- EPIC_DONE\n")
 
-    assert errors == ["missing_load_now"]
+    assert errors == ["missing_handoff_frontmatter", "missing_load_now"]
 
 
 def test_shape_diagnostics_distinguish_duplicate_sections() -> None:
@@ -56,6 +63,7 @@ def test_shape_diagnostics_distinguish_duplicate_sections() -> None:
     )
 
     assert errors == [
+        "missing_handoff_frontmatter",
         "multiple_load_now",
         "multiple_handoff",
         "multiple_done",

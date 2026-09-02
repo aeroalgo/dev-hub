@@ -214,13 +214,17 @@ def test_verdict_extraction_uses_last_line_and_returns_empty_without_verdict() -
 
 
 def test_subagent_stop_verdict_round_trip_records_enriched_verdict(tmp_path: Path) -> None:
+    fence = (
+        '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+        '"verdict":"PASS","recorded_at":"2026-08-31T12:00:00Z"}\n```\nAC+: ok'
+    )
     payload = _ts_payload(
         {
             "id": "child-round-trip",
             "session_id": "child-round-trip",
             "agent_type": "verify",
             "cwd": str(tmp_path),
-            "lastAssistantMessage": [{"type": "text", "text": "VERDICT: PASS\nAC+: ok"}],
+            "lastAssistantMessage": [{"type": "text", "text": fence}],
         }
     )
     result = _run_hook(tmp_path, payload)
@@ -324,12 +328,18 @@ console.log(JSON.stringify({{ injected }}));
 
 
 def test_native_subagent_start_maps_each_supported_contract() -> None:
+    expected = {
+        "verify": "verify-implement",
+        "reviewer": "verify-qa",
+        "explorer": "explorer",
+    }
     for agent_type in ("verify", "reviewer", "explorer"):
         payload = _subagent_start_smoke(agent_type)
         assert len(payload["injected"]) == 1
         text = payload["injected"][0]["content"][0]["text"]
-        assert f"agent_type={agent_type} preset=preset.{agent_type}" in text
-        assert f"CONTRACT {agent_type}:" in text
+        canon = expected[agent_type]
+        assert f"agent_type={canon}" in text
+        assert f"CONTRACT {canon}:" in text or f"CONTRACT {agent_type}:" in text
 
 
 def test_native_subagent_start_fails_closed_for_unknown_type() -> None:

@@ -209,10 +209,10 @@ def test_prepare_claude_runtime_no_dsh_profile_required(tmp_path: Path, monkeypa
 #
 
 
-def test_sync_verify_preset_contains_ac_plus() -> None:
+def test_sync_verify_implement_preset_contains_ac_plus() -> None:
     module = _load_sync()
-    agent_md = (ROOT / ".claude" / "agents" / "verify.md").read_text(encoding="utf-8")
-    preset = (ROOT / "dsh" / "presets" / "verify.prompt.md").read_text(encoding="utf-8")
+    agent_md = (ROOT / ".claude" / "agents" / "verify-implement.md").read_text(encoding="utf-8")
+    preset = (ROOT / "dsh" / "presets" / "verify-implement.prompt.md").read_text(encoding="utf-8")
 
     assert "AC+" in agent_md
     assert "AC+" in preset
@@ -222,10 +222,10 @@ def test_sync_verify_preset_contains_ac_plus() -> None:
 #
 
 
-def test_sync_reviewer_preset_contains_ac_plus() -> None:
+def test_sync_verify_qa_preset_contains_ac_plus() -> None:
     module = _load_sync()
-    agent_md = (ROOT / ".claude" / "agents" / "reviewer.md").read_text(encoding="utf-8")
-    preset = (ROOT / "dsh" / "presets" / "reviewer.prompt.md").read_text(encoding="utf-8")
+    agent_md = (ROOT / ".claude" / "agents" / "verify-qa.md").read_text(encoding="utf-8")
+    preset = (ROOT / "dsh" / "presets" / "verify-qa.prompt.md").read_text(encoding="utf-8")
 
     assert "AC+" in agent_md
     assert "AC+" in preset
@@ -286,19 +286,19 @@ def test_sync_idempotent() -> None:
 #
 
 
-def test_sync_verify_preset_hash_matches_agent_md() -> None:
+def test_sync_verify_implement_preset_hash_matches_agent_md() -> None:
     module = _load_sync()
     expected = module.strip_frontmatter(
-        (ROOT / ".claude" / "agents" / "verify.md").read_text(encoding="utf-8")
+        (ROOT / ".claude" / "agents" / "verify-implement.md").read_text(encoding="utf-8")
     ).encode("utf-8")
-    actual = (ROOT / "dsh" / "presets" / "verify.prompt.md").read_bytes()
+    actual = (ROOT / "dsh" / "presets" / "verify-implement.prompt.md").read_bytes()
     assert hashlib.sha256(actual).digest() == hashlib.sha256(expected).digest()
 
 
 #
 
 
-def test_sync_verify_preset_tracks_agent_md(tmp_path: Path, monkeypatch) -> None:
+def test_sync_verify_implement_preset_tracks_agent_md(tmp_path: Path, monkeypatch) -> None:
     module = _load_sync()
     agents_dir = tmp_path / "agents"
     presets_dir = tmp_path / "presets"
@@ -312,12 +312,12 @@ def test_sync_verify_preset_tracks_agent_md(tmp_path: Path, monkeypatch) -> None
     monkeypatch.setattr(module, "PRESETS_DIR", presets_dir)
 
     assert module.sync() == 0
-    (agents_dir / "verify.md").write_text(
+    (agents_dir / "verify-implement.md").write_text(
         "---\nname: verify\n---\nAC+ changed\n", encoding="utf-8"
     )
 
     assert module.sync() == 0
-    assert (presets_dir / "verify.prompt.md").read_text(encoding="utf-8") == "AC+ changed\n"
+    assert (presets_dir / "verify-implement.prompt.md").read_text(encoding="utf-8") == "AC+ changed\n"
     assert module.sync(check=True) == 0
 
 
@@ -381,118 +381,3 @@ def test_phase_model_package_has_no_runtime_code() -> None:
     assert not (ROOT / "dsh" / "patches" / "index.ts").exists()
 
 
-def test_prepare_emits_dsh_profile_implement(tmp_path: Path, monkeypatch) -> None:
-    out = _prepare_for_phase(tmp_path, monkeypatch, "BACK IMPLEMENT")
-    assert out["dsh_profile"] == "epic-implement"
-
-
-def test_prepare_emits_dsh_profile_qa(tmp_path: Path, monkeypatch) -> None:
-    out = _prepare_for_phase(tmp_path, monkeypatch, "BACK QA")
-    assert out["dsh_profile"] == "epic-qa"
-
-
-def test_prepare_emits_dsh_profile_decompose(tmp_path: Path, monkeypatch) -> None:
-    out = _prepare_for_phase(tmp_path, monkeypatch, "BACK DECOMPOSE")
-    assert out["dsh_profile"] == "epic-decompose"
-
-
-def test_prepare_dsh_profile_default_implement(tmp_path: Path, monkeypatch) -> None:
-    out = _prepare_for_phase(tmp_path, monkeypatch, None)
-    assert out["dsh_profile"] == "epic-implement"
-
-
-def test_prepare_claude_runtime_no_dsh_profile_required(tmp_path: Path, monkeypatch) -> None:
-    out = _prepare_for_phase(tmp_path, monkeypatch, "BACK IMPLEMENT", runtime="claude")
-    assert out["runtime"] == "claude"
-    assert out.get("dsh_profile") in {None, "epic-implement"}
-
-
-def test_sync_verify_preset_contains_ac_plus() -> None:
-    module = _load_sync()
-    agent_md = (ROOT / ".claude" / "agents" / "verify.md").read_text(encoding="utf-8")
-    preset = (ROOT / "dsh" / "presets" / "verify.prompt.md").read_text(encoding="utf-8")
-
-    assert "AC+" in agent_md
-    assert "AC+" in preset
-    assert preset == module.strip_frontmatter(agent_md)
-
-
-def test_sync_reviewer_preset_contains_ac_plus() -> None:
-    module = _load_sync()
-    agent_md = (ROOT / ".claude" / "agents" / "reviewer.md").read_text(encoding="utf-8")
-    preset = (ROOT / "dsh" / "presets" / "reviewer.prompt.md").read_text(encoding="utf-8")
-
-    assert "AC+" in agent_md
-    assert "AC+" in preset
-    assert preset == module.strip_frontmatter(agent_md)
-
-
-def test_sync_explorer_preset_contains_body() -> None:
-    module = _load_sync()
-    agent_md = (ROOT / ".claude" / "agents" / "explorer.md").read_text(encoding="utf-8")
-    preset = (ROOT / "dsh" / "presets" / "explorer.prompt.md").read_text(encoding="utf-8")
-
-    assert "name: explorer" not in preset
-    assert preset == module.strip_frontmatter(agent_md)
-
-
-def test_strip_frontmatter_basic() -> None:
-    module = _load_sync()
-
-    assert module.strip_frontmatter("---\nname: x\n---\nbody") == "body"
-
-
-def test_strip_frontmatter_no_frontmatter() -> None:
-    module = _load_sync()
-    text = "plain markdown\n---\nbody"
-
-    assert module.strip_frontmatter(text) == text
-
-
-def test_sync_idempotent() -> None:
-    module = _load_sync()
-
-    assert module.sync() == 0
-    first = {
-        path: path.read_bytes()
-        for path in (ROOT / "dsh" / "presets").glob("*.prompt.md")
-    }
-    assert module.sync() == 0
-    second = {
-        path: path.read_bytes()
-        for path in (ROOT / "dsh" / "presets").glob("*.prompt.md")
-    }
-
-    assert first == second
-
-
-def test_sync_verify_preset_hash_matches_agent_md() -> None:
-    module = _load_sync()
-    expected = module.strip_frontmatter(
-        (ROOT / ".claude" / "agents" / "verify.md").read_text(encoding="utf-8")
-    ).encode("utf-8")
-    actual = (ROOT / "dsh" / "presets" / "verify.prompt.md").read_bytes()
-    assert hashlib.sha256(actual).digest() == hashlib.sha256(expected).digest()
-
-
-def test_sync_verify_preset_tracks_agent_md(tmp_path: Path, monkeypatch) -> None:
-    module = _load_sync()
-    agents_dir = tmp_path / "agents"
-    presets_dir = tmp_path / "presets"
-    agents_dir.mkdir()
-    for agent_id in module.AGENT_IDS:
-        (agents_dir / f"{agent_id}.md").write_text(
-            f"---\nname: {agent_id}\n---\n{agent_id} body\n",
-            encoding="utf-8",
-        )
-    monkeypatch.setattr(module, "AGENTS_DIR", agents_dir)
-    monkeypatch.setattr(module, "PRESETS_DIR", presets_dir)
-
-    assert module.sync() == 0
-    (agents_dir / "verify.md").write_text(
-        "---\nname: verify\n---\nAC+ changed\n", encoding="utf-8"
-    )
-
-    assert module.sync() == 0
-    assert (presets_dir / "verify.prompt.md").read_text(encoding="utf-8") == "AC+ changed\n"
-    assert module.sync(check=True) == 0

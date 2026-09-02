@@ -83,6 +83,17 @@ _MALFORMED_RESULT_PATTERNS = (
 MODEL_SUBSTITUTION_EXIT = 125
 _MODEL_SUBSTITUTION_MARKER = "MODEL_SUBSTITUTION\n"
 
+
+def _safe_killpg(pid: int, sig: int) -> None:
+    try:
+        os.killpg(pid, sig)
+    except OSError:
+        try:
+            os.kill(pid, sig)
+        except OSError:
+            pass
+
+
 _TRANSIENT_ABORT_PATTERNS = (
     re.compile(r"(?i)timeout: sending signal TERM to command"),
     re.compile(r"(?i)timed out|timeout expired|command timed out"),
@@ -408,6 +419,10 @@ def detect_abort_in_log(
             obj_type = obj.get("type")
             if obj_type == "result":
                 has_result_event = True
+                for key in ("result", "error", "message"):
+                    val = obj.get(key)
+                    if isinstance(val, str) and val.strip():
+                        system_lines.append(val.strip())
                 continue
             # Skip assistant/user content — only look at system/error events.
             if obj_type in ("assistant", "user"):
@@ -987,11 +1002,23 @@ def run_session(
                 if remaining <= 0:
                     timed_out = process.poll() is None
                     if timed_out:
-                        os.killpg(process.pid, signal.SIGTERM)
+                        try:
+                            _safe_killpg(process.pid, signal.SIGTERM)
+                        except OSError:
+                            try:
+                                process.terminate()
+                            except OSError:
+                                pass
                         try:
                             process.wait(timeout=kill_grace)
                         except subprocess.TimeoutExpired:
-                            os.killpg(process.pid, signal.SIGKILL)
+                            try:
+                                _safe_killpg(process.pid, signal.SIGKILL)
+                            except OSError:
+                                try:
+                                    process.kill()
+                                except OSError:
+                                    pass
                             process.wait()
                     break
                 events = selector.select(min(remaining, 0.1))
@@ -1025,11 +1052,11 @@ def run_session(
                         f"==> idle timeout: session={session_id} "
                         f"idle_for={now - last_activity:.1f}s limit={idle_timeout:g}s\n"
                     )
-                    os.killpg(process.pid, signal.SIGTERM)
+                    _safe_killpg(process.pid, signal.SIGTERM)
                     try:
                         process.wait(timeout=kill_grace)
                     except subprocess.TimeoutExpired:
-                        os.killpg(process.pid, signal.SIGKILL)
+                        _safe_killpg(process.pid, signal.SIGKILL)
                         process.wait()
                     break
                 for key, _ in events:
@@ -1067,11 +1094,11 @@ def run_session(
                                 log.flush()
                                 _write_status(f"\n==> HALT: {sub}\n")
                                 if process.poll() is None:
-                                    os.killpg(process.pid, signal.SIGTERM)
+                                    _safe_killpg(process.pid, signal.SIGTERM)
                                     try:
                                         process.wait(timeout=kill_grace)
                                     except subprocess.TimeoutExpired:
-                                        os.killpg(process.pid, signal.SIGKILL)
+                                        _safe_killpg(process.pid, signal.SIGKILL)
                                         process.wait()
                     else:
                         selector.unregister(key.fileobj)
@@ -1084,7 +1111,7 @@ def run_session(
         finally:
             selector.close()
             if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
+                _safe_killpg(process.pid, signal.SIGKILL)
                 process.wait()
 
         if model_substituted:

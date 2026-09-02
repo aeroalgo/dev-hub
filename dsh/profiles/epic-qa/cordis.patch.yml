@@ -4,13 +4,13 @@
     - id: preset-reviewer
       name: '@deepseek-ai/dsh-agent-presets'
       config:
-        id: reviewer
+        id: verify-qa
         systemPrompt:
-          file: ../../presets/reviewer.prompt.md
+          file: ../../presets/verify-qa.prompt.md
     - id: agent-presets
       name: '@deepseek-ai/dsh-agent-presets'
       config:
-        default: reviewer
+        default: verify-qa
         roots:
           - path: ../../presets
             trust: system

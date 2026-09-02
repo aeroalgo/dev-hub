@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Payload normalize tool_name aliases fail-closed
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Add thin payload normalization in harness/hooks/_lib.py (or per-hook where stdin is parsed):
+  tool_name aliases map {"bash": "Bash", "shell": "Bash", "agent": "Agent", "task": "Task"} so
+  matchers fire correctly regardless of Codex stdin casing. Fail-closed: unknown tool_name → log +
+  deny (not silent pass). Dual business path FORBIDDEN — shared normalize function, not codex-fork.
+  Outcome: matcher fires on Codex payload with same semantics as Claude (FR-005, TM-006).
+
+context:
+  consumes:
+    - harness/hooks/_lib.py         # shared hook library
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/bash-pretool.py
+    - harness/hooks/agent-posttool.py
+    - harness/hooks/bash-output-cap.py
+  produces:
+    - harness/hooks/_lib.py         # normalize_tool_name() added
+  plan_refs:
+    - FR-004
+    - FR-005
+    - TM-006
+    - NFR-001
+
+  files:
+    - harness/hooks/_lib.py
+
+as_built:
+  - "harness/hooks/_lib.py: tool_name read raw from stdin; no normalization; Codex may send lowercase or alternative casing"
+
+delta:
+  - "Add normalize_tool_name(raw: str) -> str in _lib.py: applies alias map, fail-closed on unknown (log + return raw with warning; assertion in test)"
+  - "Wire normalize_tool_name in hook entrypoints that parse tool_name from stdin"
+  - "Add pytest fixtures: Codex-style payload with 'bash' / 'shell' → normalized to 'Bash'; unknown → warning logged"
+
+deletes: []
+
+out_of_scope:
+  - "Separate codex-specific entrypoint — FR-004 forbids; _lib.py only"
+  - "Behavior bridge tests (s06)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "normalize_tool_name существует в _lib.py"
+    verify: "rg 'def normalize_tool_name' harness/hooks/_lib.py"
+  - id: cp2
+    criterion: "alias 'bash' → 'Bash', 'shell' → 'Bash' проверены pytest"
+    verify: "bin/pytest harness/hooks/tests/ -q -k 'normalize' --tb=short"
+  - id: cp3
+    criterion: "Нет дублирующего codex-fork entrypoint"
+    verify: "rg 'codex' harness/hooks/*.py | rg -v '#' | rg 'def ' && echo FAIL || echo OK_no_fork"
+
+verify:
+  - "bin/pytest harness/hooks/tests/ -q -k 'normalize' --tb=short"
+tdd:
+  - "Write test: normalize_tool_name('bash') == 'Bash' BEFORE implementation (red)"
+  - "Implement normalize_tool_name (green)"

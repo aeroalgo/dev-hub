@@ -34,9 +34,10 @@ timeout 300s make test
 
 ## Единый scope
 
-- **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд;
-- **suite:** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
-- если scope не указан, применяется targeted-команда с лимитом 300 секунд.
+- **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд; канон для IMPLEMENT / BUGFIX / TASK / verify-implement.
+- **full suite (QA HARD):** `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` — весь default collection репозитория. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
+- **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
+- если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full**.
 
 ## Parity
 

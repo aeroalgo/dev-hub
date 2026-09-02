@@ -387,7 +387,7 @@ def main() -> None:
                 return
 
     current_phase_u = str(epic.get("phase") or st.get("mode") or "").upper()
-    if finishing and current_phase_u == "IMPLEMENT":
+    if finishing and current_phase_u == "IMPLEMENT" and not st.get("gate_bypass_reason"):
         lft = epic.get("last_finish_tool")
         if not lft or not isinstance(lft, dict) or not lft.get("fingerprint"):
             if not stop_hook_active:
@@ -445,7 +445,16 @@ def main() -> None:
                 )
                 return
         strict = _is_handoff_strict(cwd)
-        shape_errs = validate_active_context_shape(read_active_context(cwd))
+        ac_text = read_active_context(cwd)
+        shape_errs = validate_active_context_shape(ac_text)
+        if strict:
+            try:
+                from loop.schemas.active_context import validate_handoff_frontmatter
+
+                _fm, fm_errors = validate_handoff_frontmatter(ac_text)
+                shape_errs = list(dict.fromkeys([*shape_errs, *fm_errors]))
+            except Exception:
+                pass
         blocking_shape = [
             code
             for code in shape_errs

@@ -152,9 +152,11 @@ def test_post_implement_audit_handoff_has_no_standalone_epic_done(tmp_path) -> N
         cwd=tmp_path,
     )
     assert "## Handoff BACK AUDIT" in body
-    from epic.core import post_implement_handoff_violates_epic_done
+    from epic.core import post_implement_handoff_violates_epic_done, validate_active_context_shape
 
     assert post_implement_handoff_violates_epic_done("AUDIT", body) is False
+    assert "schema: loop-handoff/v1" in body
+    assert validate_active_context_shape(body) == []
 
 
 def test_post_implement_unknown_phase_has_no_standalone_epic_done(tmp_path) -> None:

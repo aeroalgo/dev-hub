@@ -53,6 +53,7 @@ alwaysApply: false
 ## 4. Tests · validators · docs — no silent delete
 
 - **FORBIDDEN** удалять/урезать тесты, `epic_yaml` validators, README/WORKFLOW — без строки в shard **`deletes:`**
+- **REQUIRED** при sunset/drop: obsolete tests на старый контракт — **в `deletes:`** (или rewrite в том же шаге); чинить prod под такие asserts = **FAIL**
 - **FORBIDDEN** «упростить для token economy» в IMPLEMENT
 
 ---

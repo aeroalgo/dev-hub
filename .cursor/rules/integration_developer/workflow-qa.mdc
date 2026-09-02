@@ -9,7 +9,7 @@ alwaysApply: false
 
 **Процесс**:
 1. `OK INTEG QA - Верификация интеграции` → **Gates**
-2. §Contract + §0.11 + INTEG-CHECKLIST; tests — gates (`.venv/bin/pytest` из корня)
+2. §Contract + §0.11 + INTEG-CHECKLIST; tests — gates (**full** `bin/pytest -q --tb=line` без path/`-k`; epic-scoped = FAIL)
 3. `memory-bank/integration/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
 4. fail|blocked → §Fix plan (`INTEG|BACK|FRONT BUGFIX <subject>`)
 5. **FINISH:** finish-block (`code_changed: no`|`yes` если дописали тесты) + Handoff  

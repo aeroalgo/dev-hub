@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Docs runbook architecture matrix update
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Update docs/runbooks/codex-loop-pilot.md and memory-bank/architecture/services.md:
+  (1) Add parity matrix table (Claude event ↔ Codex event, present/absent);
+  (2) Document min Codex CLI version requirement;
+  (3) Update architecture/services.md row for hooks_json materializer;
+  (4) Add note: hand-editing .codex/hooks.json is FORBIDDEN (auto-generated, meta hash drift detected).
+  Outcome: SC-005 satisfied; next operator can verify parity status from docs alone.
+
+context:
+  consumes:
+    - docs/runbooks/codex-loop-pilot.md
+    - memory-bank/architecture/services.md
+  produces:
+    - docs/runbooks/codex-loop-pilot.md          # parity matrix + min version + hand-edit warning
+    - memory-bank/architecture/services.md        # hooks_json row updated
+  plan_refs:
+    - FR-010
+    - SC-005
+    - TM-007
+
+  files:
+    - docs/runbooks/codex-loop-pilot.md
+    - memory-bank/architecture/services.md
+
+as_built:
+  - "docs/runbooks/codex-loop-pilot.md: partial hooks coverage; no parity matrix; no min CLI version; no hand-edit warning"
+  - "memory-bank/architecture/services.md: hooks_json row incomplete or absent"
+
+delta:
+  - "Add ## Hooks parity matrix section in codex-loop-pilot.md: table Claude event | Codex event | Status | Owner script"
+  - "Add ## Minimum Codex CLI version section with CODEX_MIN_VERSION value and probe instructions"
+  - "Add ## hand-edit policy: .codex/hooks.json is generated; hand-edit → meta hash drift → --check fails"
+  - "Update memory-bank/architecture/services.md: hooks_json row with materializer + parity check path"
+
+deletes: []
+
+out_of_scope:
+  - "Legacy partial-parity comment removal (s08)"
+  - "Any code changes"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "codex-loop-pilot.md содержит секцию parity matrix"
+    verify: "rg 'parity matrix' docs/runbooks/codex-loop-pilot.md"
+  - id: cp2
+    criterion: "Упоминание CODEX_MIN_VERSION или min.*version в runbook"
+    verify: "rg -i 'min.*version|codex_min_version' docs/runbooks/codex-loop-pilot.md"
+  - id: cp3
+    criterion: "Предупреждение о hand-edit присутствует"
+    verify: "rg -i 'hand.edit|generated|auto.generat' docs/runbooks/codex-loop-pilot.md"
+  - id: cp4
+    criterion: "architecture/services.md обновлён (hooks_json упомянут)"
+    verify: "rg 'hooks_json\\|hooks.json' memory-bank/architecture/services.md"
+
+verify:
+  - "rg 'parity matrix' docs/runbooks/codex-loop-pilot.md"
+  - "rg 'hooks_json' memory-bank/architecture/services.md"
+tdd: []

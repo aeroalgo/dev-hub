@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Parity matrix module + runtime-sync --check + doctor assertion
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Implement parity matrix check: (1) loop/runtime_materializers/parity.py (or extend hooks_json.py)
+  defines REQUIRED_CODEX_EVENTS set from FR-002; (2) runtime-sync --check subcommand reads
+  .codex/hooks.json + manifest, computes missing events, exits non-zero + lists gaps (fail-closed,
+  FR-008); (3) doctor assertion test verifies --check fails on synthetic missing event; (4) CODEX_MIN_VERSION
+  probe/pin: doctor test asserts CLI version ≥ minimum. Outcome: automated parity guard that blocks drift.
+
+context:
+  consumes:
+    - loop/runtime_materializers/hooks_json.py    # materialize_hooks_json, EVENT_MAPPING
+    - .codex/hooks.json                           # generated (after s03)
+    - harness/manifest.yaml                       # source of truth
+    - loop/tests/test_codex_hooks_parity_matrix.py  # existing parity test from s01
+  produces:
+    - loop/runtime_materializers/parity.py        # or extend hooks_json.py with check_codex_parity()
+    - bin/runtime-sync (or loop/cli/runtime_sync.py)  # --check subcommand
+    - loop/tests/test_runtime_sync_check.py       # doctor + drift tests
+  plan_refs:
+    - FR-007
+    - FR-008
+    - SC-004
+    - TM-001
+    - TM-007
+    - TM-008
+    - NFR-002
+
+  files:
+    - loop/runtime_materializers/parity.py
+    - loop/tests/test_runtime_sync_check.py
+
+as_built:
+  - "No parity matrix check command exists; no runtime-sync --check; drift undetected until manual review"
+
+delta:
+  - "Add REQUIRED_CODEX_EVENTS = frozenset({...}) with all FR-002 events"
+  - "Add check_codex_parity(hooks_json_path, manifest_path) -> list[str]: returns missing event names"
+  - "Add runtime-sync --check CLI entrypoint: calls check_codex_parity, exits 1 if non-empty, prints gap list"
+  - "Add runtime-sync --apply CLI entrypoint alias (or wire existing materialize call)"
+  - "Add test_runtime_sync_check.py: (a) remove event from json → --check exit 1; (b) full set → exit 0; (c) CODEX_MIN_VERSION doctor assertion"
+  - "Add agent set parity check: REQUIRED_CODEX_AGENTS ⊇ Claude managed agents list (FR-007)"
+
+deletes: []
+
+out_of_scope:
+  - "Behavioral bridge tests (s06)"
+  - "Docs update (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - diagnosing-bugs
+
+checkpoints:
+  - id: cp1
+    criterion: "runtime-sync --check exits 1 при удалённом событии из .codex/hooks.json"
+    verify: "python3 -c \"import json,copy,tempfile,subprocess,os; h=json.load(open('.codex/hooks.json')); h2=copy.deepcopy(h); h2['hooks'].pop('Stop',None); f=tempfile.NamedTemporaryFile(suffix='.json',delete=False,mode='w'); json.dump(h2,f); f.close(); r=subprocess.run(['python3','-m','loop.cli.runtime_sync','--check','--hooks-json',f.name],capture_output=True); os.unlink(f.name); assert r.returncode!=0, 'expected non-zero on missing Stop'\""
+  - id: cp2
+    criterion: "runtime-sync --check exits 0 при полном наборе событий"
+    verify: "python3 -m loop.cli.runtime_sync --check --hooks-json .codex/hooks.json; echo exit=$?"
+  - id: cp3
+    criterion: "test_runtime_sync_check.py green"
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=short"
+  - id: cp4
+    criterion: "REQUIRED_CODEX_EVENTS определён и содержит ≥7 событий"
+    verify: "python3 -c \"from loop.runtime_materializers.parity import REQUIRED_CODEX_EVENTS; assert len(REQUIRED_CODEX_EVENTS)>=7, len(REQUIRED_CODEX_EVENTS)\""
+
+verify:
+  - "bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short"
+tdd:
+  - "Write test: --check non-zero on missing Stop BEFORE implementing check (red)"
+  - "Implement check_codex_parity + CLI (green)"

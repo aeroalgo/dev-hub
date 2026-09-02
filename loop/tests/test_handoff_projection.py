@@ -237,6 +237,100 @@ def test_project_handoff_from_reducer_syncs_stale_audit_to_qa(tmp_path: Path) ->
     assert handoff_post_implement_phase(ac) == "QA"
 
 
+def test_project_handoff_from_reducer_qa_failed_stays_bugfix(
+    tmp_path: Path,
+) -> None:
+    from epic import handoff_post_implement_phase, project_handoff_from_reducer
+
+    epic = "T-qa-fail-bugfix"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    audit = f"memory-bank/back/audit/{epic}/audit-20260902-demo.yaml"
+    qa = f"memory-bank/back/qa/{epic}/qa-20260902-demo.yaml"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(tmp_path / audit, "not_implemented: []\nqa_ready: true\n")
+    _write(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: AUDIT\n"
+        f"epic_id: {epic}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{decompose}]({decompose})\n\n"
+        f"## Handoff BACK AUDIT — {epic}\n"
+        "- **Дальше:** `BACK AUDIT`.\n",
+    )
+
+    out = project_handoff_from_reducer(tmp_path)
+    assert out.get("projected") is True, out
+    assert out.get("phase") == "BUGFIX", out
+    assert out.get("reason_code") == "qa_failed", out
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "mode: BUGFIX" in ac
+    assert "## Handoff BACK BUGFIX" in ac
+    assert handoff_post_implement_phase(ac) == "BUGFIX"
+
+
+def test_project_handoff_from_reducer_qa_failed_rewrites_premature_qa(
+    tmp_path: Path,
+) -> None:
+    from epic import handoff_post_implement_phase, project_handoff_from_reducer
+
+    epic = "T-qa-fail-premature-qa"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    audit = f"memory-bank/back/audit/{epic}/audit-20260902-demo.yaml"
+    qa = f"memory-bank/back/qa/{epic}/qa-20260902-demo.yaml"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(tmp_path / audit, "not_implemented: []\nqa_ready: true\n")
+    _write(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        f"epic_id: {epic}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{decompose}]({decompose})\n\n"
+        f"## Handoff BACK QA — {epic}\n"
+        "- **Фаза:** BUGFIX завершена.\n"
+        "- **Дальше:** `BACK QA`.\n",
+    )
+
+    out = project_handoff_from_reducer(tmp_path)
+    assert out.get("projected") is True, out
+    assert out.get("phase") == "BUGFIX", out
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "mode: BUGFIX" in ac
+    assert "## Handoff BACK BUGFIX" in ac
+    assert handoff_post_implement_phase(ac) == "BUGFIX"
+
+
 def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -> None:
     from epic import project_handoff_from_reducer
 

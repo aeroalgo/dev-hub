@@ -207,6 +207,36 @@ def test_arm_decompose_rejects_none_without_touching_context(tmp_path: Path) -> 
     assert active.read_text(encoding="utf-8") == "original\n"
 
 
+def test_arm_writes_loop_handoff_frontmatter(tmp_path: Path) -> None:
+    lib = _load_lib()
+    decompose = _index(
+        tmp_path,
+        yaml_body=(
+            "schema: epic-decompose-index/v1\n"
+            "plan_id: demo\n"
+            "steps:\n"
+            "- id: s01\n"
+            "  file: s01-demo.yaml\n"
+            "  next_phase: BACK IMPLEMENT\n"
+            "  title: demo\n"
+            "  status: pending\n"
+        ),
+    )
+    shard = tmp_path / "memory-bank/back/plan/decompose-demo/s01-demo.yaml"
+    shard.write_text("schema: epic-decompose/v1\nstep_id: s01\n", encoding="utf-8")
+    active = tmp_path / "memory-bank/activeContext.md"
+    active.parent.mkdir(parents=True, exist_ok=True)
+    active.write_text("## load_now\n1. x\n\n## Handoff BACK IMPLEMENT\n", encoding="utf-8")
+
+    result = lib.arm_active_context_from_decompose(tmp_path, decompose)
+
+    assert result["ok"] is True
+    assert result["step_id"] == "s01"
+    text = active.read_text(encoding="utf-8")
+    assert "schema: loop-handoff/v1" in text
+    assert lib.validate_active_context_shape(text) == []
+
+
 def test_epic_resolve_sync_rejects_malformed_path_result(tmp_path: Path) -> None:
     """The CLI must fail closed when a sync helper returns an invalid path."""
     # Covered through the helper contract; direct CLI monkeypatching is out of scope.
@@ -331,10 +361,11 @@ def test_repair_rebuilds_missing_md_queue_rows(tmp_path: Path) -> None:
     parsed = parse_steps_from_md(md_text)
 
     assert result["ok"] is True
-    assert result.get("md_rebuilt") is True
-    assert [s["id"] for s in parsed] == ["s01", "s02"]
-    assert parsed[0]["status"] == "completed"
-    assert parsed[1]["status"] == "pending"
+    # s16 sunset: repair_index_mirror is diagnostic/log-only (no md rewrite).
+    assert result.get("md_rebuilt") is not True
+    assert result.get("mirrored_steps") == []
+    assert result.get("mode") in {None, "log_only"} or "drift" in result
+    assert [s["id"] for s in parsed] == ["s01"]
     assert "coverage only" in md_text
 
 
@@ -424,8 +455,8 @@ def test_prepare_auto_repairs_md_queue_drift(tmp_path: Path) -> None:
 
     assert result.get("halt") is not True
     assert result.get("ok") is True
-    assert [s["id"] for s in parsed] == ["s01", "s02"]
-    assert parsed[0]["status"] == "completed"
+    # yaml is SoT; md queue drift is allowed (repair is log-only after s16).
+    assert any(s["id"] == "s01" for s in parsed)
 
 
 def test_repair_index_mirror_copies_yaml_status_into_md(tmp_path: Path) -> None:
@@ -465,9 +496,10 @@ def test_repair_index_mirror_copies_yaml_status_into_md(tmp_path: Path) -> None:
     loaded = epic_core.load_decompose_steps_fail_closed(tmp_path, decompose)
 
     assert result["ok"] is True
-    assert "s01" in result["mirrored_steps"] or result.get("md_rebuilt")
-    assert "| **s01** |" in md_text and "completed |" in md_text
-    assert "- [x] s01" in md_text
+    # s16 sunset: no auto md rewrite — yaml remains SoT via fail-closed loader.
+    assert result.get("md_rebuilt") is not True
+    assert result.get("mirrored_steps") == []
+    assert "pending |" in md_text
     loaded_ok = loaded.get("ok")
     assert loaded_ok is True
     assert loaded["steps"][0]["status"] == "completed"

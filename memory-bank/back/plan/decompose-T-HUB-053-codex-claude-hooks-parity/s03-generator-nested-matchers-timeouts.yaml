@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Generator nested matchers + timeouts + regenerate .codex/hooks.json
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Extend hooks_json.py generator to emit nested Claude-shaped .codex/hooks.json:
+  (1) multi-hook merge for PostToolUse Bash vs Agent|Task matchers,
+  (2) timeout field ≥ 45s on Bash PostToolUse (FR-011),
+  (3) emit all events from updated EVENT_MAPPING (s01) for all manifest-enabled hooks (s02).
+  Regenerate .codex/hooks.json via runtime-sync --apply (or direct generate call).
+  Outcome: .codex/hooks.json contains all 8+ FR-002 events with correct matchers.
+
+context:
+  consumes:
+    - loop/runtime_materializers/hooks_json.py   # materialize_hooks_json function
+    - harness/manifest.yaml                      # updated after s02
+    - loop/tests/test_codex_hooks_parity_matrix.py  # TDD assertions from s01
+  produces:
+    - loop/runtime_materializers/hooks_json.py   # extended generator
+    - .codex/hooks.json                          # regenerated with full event set
+    - .codex/hooks.meta.json                     # updated manifest hash
+  plan_refs:
+    - FR-002
+    - FR-003
+    - FR-011
+    - SC-001
+    - TM-001
+    - TM-005
+
+  files:
+    - loop/runtime_materializers/hooks_json.py
+    - .codex/hooks.json
+    - .codex/hooks.meta.json
+
+as_built:
+  - "loop/runtime_materializers/hooks_json.py: materialize_hooks_json emits flat single-command dict; no multi-hook merge; no timeout field; PostToolUse not split by matcher"
+  - ".codex/hooks.json: contains Stop, SubagentStop, PreToolUse — 3 events; no PostToolUse, no SubagentStart, no SessionStart, no UserPromptSubmit"
+
+delta:
+  - "Add multi-hook merge: PostToolUse list can have multiple entries (Bash matcher + Agent|Task matcher)"
+  - "Add timeout_ms field on Bash PostToolUse entry (≥45000 ms, matching Claude settings.json)"
+  - "Generator iterates all manifest hooks with codex entry, not just hardcoded EVENT_MAPPING subset"
+  - "Regenerate .codex/hooks.json: must contain SessionStart, UserPromptSubmit, PreToolUse, PostToolUse (Bash), PostToolUse (Agent|Task), SubagentStart, SubagentStop, Stop"
+  - "Update .codex/hooks.meta.json with new manifest_hash"
+
+deletes: []
+
+out_of_scope:
+  - "Payload normalize logic (s04)"
+  - "Parity matrix check command (s05)"
+  - "Test suite for bridge behaviors (s06)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: ".codex/hooks.json после генерации содержит все 8 FR-002 event keys"
+    verify: "python3 -c \"import json; h=json.load(open('.codex/hooks.json')); required={'Stop','SubagentStop','PreToolUse','UserPromptSubmit','SessionStart','SubagentStart'}; hooks_keys=set(h.get('hooks',{}).keys()); missing=required-hooks_keys; assert not missing, f'missing: {missing}'\""
+  - id: cp2
+    criterion: "PostToolUse Bash entry содержит timeout_ms ≥ 45000"
+    verify: "python3 -c \"import json; h=json.load(open('.codex/hooks.json')); entries=h.get('hooks',{}).get('PostToolUse',[]); bash_entries=[e for e in entries if e.get('matcher','').lower() in ('bash','shell')]; assert bash_entries and bash_entries[0].get('timeout_ms',0)>=45000, f'bash timeout missing or <45s: {bash_entries}'\""
+  - id: cp3
+    criterion: "test_codex_hooks_parity_matrix.py green (пройден после regenerate)"
+    verify: "bin/pytest loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short"
+  - id: cp4
+    criterion: ".codex/hooks.meta.json существует и содержит manifest_hash"
+    verify: "python3 -c \"import json; m=json.load(open('.codex/hooks.meta.json')); assert m.get('manifest_hash'), 'no manifest_hash'\""
+
+verify:
+  - "bin/pytest loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short"
+tdd:
+  - "Add tests asserting PostToolUse in generated json + timeout field BEFORE generator change (red)"
+  - "Extend generator (green)"

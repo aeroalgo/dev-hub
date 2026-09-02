@@ -4,9 +4,9 @@
     - id: preset-verify
       name: '@deepseek-ai/dsh-agent-presets'
       config:
-        id: verify
+        id: verify-implement
         systemPrompt:
-          file: ../../presets/verify.prompt.md
+          file: ../../presets/verify-implement.prompt.md
     - id: preset-explorer
       name: '@deepseek-ai/dsh-agent-presets'
       config:
@@ -16,7 +16,7 @@
     - id: agent-presets
       name: '@deepseek-ai/dsh-agent-presets'
       config:
-        default: verify
+        default: verify-implement
         roots:
           - path: ../../presets
             trust: system

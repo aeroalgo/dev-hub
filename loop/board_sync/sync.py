@@ -62,7 +62,7 @@ def run_sync(
         )
     generation = previous_generation + 1
     operations = compute_ops(
-        epics,
+        [*epics, *steps],
         existing,
         gates,
         sync_generation=generation,

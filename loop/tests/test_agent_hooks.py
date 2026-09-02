@@ -57,13 +57,24 @@ def _run_pretool(
     return json.loads(result.stdout)
 
 
+def _gate_fence(verdict: str = "PASS", agent: str = "verify") -> str:
+    return (
+        f"```json\n"
+        f'{{"schema":"loop-gate-verdict/v1","agent_id":"{agent}",'
+        f'"verdict":"{verdict}","recorded_at":"2026-08-31T12:00:00Z"}}\n'
+        f"```\n"
+    )
+
+
 def _run_subagent_stop(
     tmp_path: Path,
     *,
     agent: str,
     session_id: str,
-    message: str = "VERDICT: PASS\nok",
+    message: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    if message is None:
+        message = _gate_fence("PASS", agent) + "ok"
     payload = {
         "agent_type": agent,
         "session_id": session_id,
@@ -579,7 +590,7 @@ def test_posttool_fail_then_pass_mirrors_epic_last_verify(
         agent="verify",
         session_id=sid,
         tool_use_id="call_fail",
-        message="VERDICT: FAIL\nAC+: status=in_progress\n",
+        message=_gate_fence("FAIL") + "AC+: status=in_progress\n",
     )
     assert fail.returncode == 0, fail.stderr
     after_fail = json.loads((epic_dir / "state.json").read_text(encoding="utf-8"))
@@ -596,7 +607,7 @@ def test_posttool_fail_then_pass_mirrors_epic_last_verify(
         agent="verify",
         session_id=sid,
         tool_use_id="call_pass",
-        message="VERDICT: PASS\nAC+: all good\n",
+        message=_gate_fence("PASS") + "AC+: all good\n",
     )
     assert ok.returncode == 0, ok.stderr
     after_pass = json.loads((epic_dir / "state.json").read_text(encoding="utf-8"))
@@ -631,7 +642,7 @@ def test_subagent_lifecycle_legacy_agents(tmp_path: Path) -> None:
             tmp_path,
             agent=agent,
             session_id=f"stop-{agent}",
-            message="VERDICT: PASS\nok" if agent in {"verify", "reviewer"} else "done",
+            message=_gate_fence("PASS", agent) if agent in {"verify", "reviewer"} else "done",
         )
         assert stopped.returncode == 0
 
@@ -738,7 +749,7 @@ def test_posttool_mirror_error_logs_stderr_and_saves_state(
         "tool_use_id": "call_boom",
         "tool_input": {"subagent_type": "verify", "prompt": "verify"},
         "tool_response": {
-            "content": [{"type": "text", "text": "VERDICT: PASS\nok"}]
+            "content": [{"type": "text", "text": _gate_fence("PASS") + "ok"}]
         },
     }
     env = os.environ.copy()

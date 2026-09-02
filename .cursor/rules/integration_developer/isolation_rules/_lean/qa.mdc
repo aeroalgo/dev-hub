@@ -12,12 +12,13 @@ alwaysApply: false
 2. §0.11 + INTEG-CHECKLIST; contract drift = FAIL
 2a. Brownfield: leftover mock/legacy/fallback check — PASS при leftover = FAIL. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
 2b. **Behavior smoke** при agent/hook/gate/CLI FR — suite alone недостаточен. @.cursor/rules/shared/workflow-behavior-first.mdc §6
-3. Tests: `.venv/bin/pytest` из корня + vitest + scenario (Playwright); FRONT runners **parent only**
+3. Tests (HARD): **полный pytest репозитория** `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` + vitest + scenario (Playwright). Epic-scoped pytest **не** заменяет full. FRONT runners **parent only**
 4. P0/P1 user-visible без scenario → **write** before PASS
 5. **fail|blocked:** `review.md` + Handoff — `finish-doc-router.md`
 
 ## Abort
 
 - PASS без scenario · subagent runs vitest/playwright · голый `pytest` → reject/FAIL
+- PASS при **только** epic-scoped / path / `-k` pytest (нет full-repo команды) → **FAIL** (`suite_not_full`)
 - PASS при leftover mock/legacy entrypoint / fallback → FAIL
 - PASS при agent/hook/gate/CLI FR без behavior smoke → FAIL

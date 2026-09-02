@@ -14,7 +14,7 @@ scope:
   - "files: apps/…"
 
 checks:
-  - "tests green: `.venv/bin/pytest …`"
+  - "full suite green: `bin/pytest -q --tb=line`"
   - "integration rule (§0.11)"
   - "no phantom refs"
   - "reviewer gate: VERDICT PASS"
@@ -29,4 +29,4 @@ limitations:
   - "optional QA caveats"
 
 suite:
-  - ".venv/bin/pytest tests/storage/ -q --tb=line"
+  - "bin/pytest -q --tb=line"

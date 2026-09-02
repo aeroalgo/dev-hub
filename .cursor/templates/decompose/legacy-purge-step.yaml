@@ -8,7 +8,8 @@ needs_creative: "no"
 
 goal: |
   Финальный cutover purge: удалить весь остаток plan `## Replacement / sunset` A+B+C.
-  Нулевые prod-callers по каждой строке inventory; suite green.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт —
+  delete или rewrite; suite green без restore legacy.
   Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
 
 context:
@@ -17,6 +18,7 @@ context:
     - decompose index §Replacement cleanup (все строки)
   produces:
     - удалённые символы/entrypoints/fallbacks
+    - удалённые/переписанные obsolete tests
     - evidence rg/inventory в implement shard
   plan_refs:
     - plan-<plan_id>.md#replacement--sunset
@@ -27,13 +29,20 @@ delta: []
 
 # HARD: каждая строка plan sunset A/B/C + index Replacement cleanup — одна запись.
 # Policy `shim+follow-up` допустим только если follow_up_epic в roadmap queue; иначе delete here.
+# Obsolete tests (assert старый контракт) — отдельные строки kind=A или entries в deletes:.
 sunset_inventory:
   - symbol: path/or/FunctionName
     kind: A
     replacement: new.module.path
     policy: delete in-epic
     rg_scope: loop/ .claude/
-    expect: zero prod callers
+    expect: zero prod callers; no live asserts on old contract
+  - symbol: tests/.../test_legacy_contract.py::test_old_behavior
+    kind: A
+    replacement: tests on new contract / delete case
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
   - symbol: docker-compose service / CLI flag / npm script
     kind: B
     replacement: new entrypoint
@@ -48,8 +57,9 @@ sunset_inventory:
     expect: zero fallback/dual-path matches
 
 deletes: []
-# = весь остаток A+B+C, не удалённый предыдущими sNN|eNN.
-# FORBIDDEN оставлять: public shim с prod callers, router → deprecated public API, «alias period» без follow-up ID.
+# = весь остаток A+B+C + obsolete test paths/nodeids, не удалённый предыдущими sNN|eNN.
+# FORBIDDEN оставлять: public shim с prod callers, router → deprecated public API,
+# «alias period» без follow-up ID, тесты которые чинятся только restore legacy.
 
 out_of_scope: []
 
@@ -58,8 +68,13 @@ grep_control:
   - id: inv-a-01
     kind: A
     symbol: path/or/FunctionName
-    command: 'rg -n "FunctionName" loop/ .claude/ --glob "*.py" | rg -v "test_|/archive/|deprecated|_legacy_warn"'
-    expect: no output
+    command: 'rg -n "FunctionName" loop/ .claude/ --glob "*.py" | rg -v "/archive/|deprecated|_legacy_warn"'
+    expect: no prod callers; test hits only if rewritten to new contract
+  - id: inv-a-tests-01
+    kind: A
+    symbol: test_old_behavior / legacy assert pattern
+    command: 'rg -n "assert extract_verdict\\(\\\"VERDICT:|legacy_regex_fallback" loop/tests/ harness/hooks/tests/ || true'
+    expect: no output (obsolete cases deleted/rewritten)
   - id: inv-b-01
     kind: B
     symbol: legacy-service-cmd
@@ -68,8 +83,8 @@ grep_control:
   - id: inv-c-01
     kind: C
     symbol: 'or "http://127.0.0.1'
-    command: 'rg -n "or \"http://" <prod-paths> --glob "*.py" | rg -v test_'
-    expect: no output
+    command: 'rg -n "or \"http://" <prod-paths> --glob "*.py"'
+    expect: no fallback/dual-path in prod (tests on old fallback also purged)
 
 skills:
   code_surface: api
@@ -79,7 +94,8 @@ checkpoints:
   - id: cp-inventory-a
     criterion: |
       Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (не выборочно):
-      0 prod callers; допустимо только tests/archive/docs/history.
+      0 prod callers. Matches в tests/ допустимы ТОЛЬКО если кейс уже на новом контракте.
+      Asserts на sunset-поведение / импорт удалённого API = FAIL (deletes/rewrite).
       Shim с ≥1 prod caller = FAIL. Router импортирует deprecated public symbol = FAIL.
     verify: |
       for row in sunset_inventory kind=A; run grep_control command; capture output in implement evidence
@@ -92,12 +108,17 @@ checkpoints:
   - id: cp-inventory-c
     criterion: |
       Kind C — anti-fallback rg: dual-path / soft default / silent stub patterns из plan C —
-      0 matches в prod paths.
+      0 matches в prod paths; obsolete fallback tests purged.
     verify: |
       rg per grep_control kind=C rows
+  - id: cp-obsolete-tests
+    criterion: |
+      Obsolete tests на старый контракт удалены или переписаны; suite green без restore legacy.
+    verify: |
+      rg per grep_control inv-a-tests-* ; then targeted pytest green
   - id: cp-suite-regression
-    criterion: Targeted + epic regression suite green после deletes
-    verify: ".venv/bin/pytest loop/tests/ -q --tb=line -k '<epic-or-area>'"
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/ -q --tb=line -k '<epic-or-area>'"
 
 verify: []
 tdd: []

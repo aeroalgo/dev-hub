@@ -6,7 +6,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-AGENT_IDS = ("verify", "reviewer", "explorer")
+AGENT_IDS = (
+    "verify-implement",
+    "verify-bugfix",
+    "verify-qa",
+    "verify-decompose",
+    "explorer",
+)
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 AGENTS_DIR = REPO_ROOT / ".claude" / "agents"

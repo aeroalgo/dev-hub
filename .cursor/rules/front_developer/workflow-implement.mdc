@@ -31,8 +31,8 @@ alwaysApply: false
 2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`  
    **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.
 3. Read Impl (+ Design если есть) до prod-edit
-4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard
-5. §0.11 · pre-FINISH skills; после deletes — нет callers на удалённое
+4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard (код **и** obsolete tests; **FORBIDDEN** restore legacy «чтобы green»)
+5. §0.11 · pre-FINISH skills; после deletes — нет callers на удалённое и нет asserts на sunset-контракт
 5a. **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
 6. **FINISH:** finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)  
    Next: Handoff в `activeContext.md` + `index.yaml`

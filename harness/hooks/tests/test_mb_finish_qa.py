@@ -78,18 +78,19 @@ def test_finish_qa_handoff(tmp_path: Path):
 
 
 def test_finish_bugfix_happy(tmp_path: Path):
-    """cp4: finish_bugfix happy path with valid bugfix decompose artifact -> ok=True."""
-    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-040"
-    decomp_dir.mkdir(parents=True, exist_ok=True)
-    shard = decomp_dir / "s01.yaml"
-    shard.write_text("step_id: s01\n", encoding="utf-8")
+    """cp4: finish_bugfix happy path with valid bugfix artifact -> ok=True."""
+    bugfix_dir = tmp_path / "memory-bank" / "back" / "bugfix" / "T-HUB-040"
+    bugfix_dir.mkdir(parents=True, exist_ok=True)
+    (bugfix_dir / "bugfix-001.md").write_text(
+        "# Bugfix\n\nRoot cause fixed.\n",
+        encoding="utf-8",
+    )
 
     save_epic_state(
         tmp_path,
         {
             "armed_epic": "T-HUB-040",
             "armed_role": "BACK",
-            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-040/s01.yaml",
         },
     )
 

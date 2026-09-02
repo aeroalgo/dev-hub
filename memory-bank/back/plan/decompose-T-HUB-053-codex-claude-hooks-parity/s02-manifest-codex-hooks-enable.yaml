@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Manifest enable all missing codex hooks for runtimes.codex
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Edit harness/manifest.yaml: ensure every hook entry that has a Claude settings_key also declares
+  runtimes.codex.hooks_json_entry: true (or explicit out_of_scope per FR-012).
+  Hooks in scope: session-start, subagent-start, bash-output-cap, agent-posttool, bash-pretool,
+  user-prompt (spawn-validate). Out of scope (FR-012): session-end, permission-request,
+  pre/post-compact — explicitly marked out_of_scope in manifest comment, not added.
+  Outcome: manifest is single source of truth; generator (s03) can enumerate without guesswork.
+
+context:
+  consumes:
+    - harness/manifest.yaml           # current hooks registry
+    - .claude/settings.json           # authoritative Claude hooks set
+  produces:
+    - harness/manifest.yaml           # updated: all in-scope hooks have codex entry
+  plan_refs:
+    - FR-001
+    - FR-004
+    - FR-012
+    - TM-004
+
+  files:
+    - harness/manifest.yaml
+
+as_built:
+  - "harness/manifest.yaml: stop-gate, subagent-stop, agent-pretool have hooks_json_entry: true; session-start, subagent-start, bash-output-cap, agent-posttool, bash-pretool, user-prompt missing or not declared for codex"
+
+delta:
+  - "Add runtimes.codex.hooks_json_entry: true to session-start hook entry"
+  - "Add runtimes.codex.hooks_json_entry: true to subagent-start hook entry"
+  - "Add runtimes.codex.hooks_json_entry: true to bash-output-cap hook entry"
+  - "Add runtimes.codex.hooks_json_entry: true to agent-posttool hook entry"
+  - "Add runtimes.codex.hooks_json_entry: true to bash-pretool hook entry"
+  - "Add runtimes.codex.hooks_json_entry: true to user-prompt (spawn-validate) hook entry"
+  - "Add out_of_scope: codex comment for session-end, permission-request, pre/post-compact (FR-012 compliance)"
+
+deletes: []
+
+out_of_scope:
+  - "Generator changes (s03)"
+  - "Actual .codex/hooks.json regeneration (s03)"
+  - "session-end / permission-request / pre/post-compact hooks — FR-012 forbids"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Все in-scope hooks имеют codex entry в manifest (≥9 hooks)"
+    verify: "python3 -c \"import yaml; m=yaml.safe_load(open('harness/manifest.yaml')); hooks=m.get('hooks',{}); missing=[k for k,v in hooks.items() if 'claude' in v.get('runtimes',{}) and 'codex' not in v.get('runtimes',{}) and k not in ('session-end','permission-request','pre-compact','post-compact')]; print('missing:',missing); assert not missing\""
+  - id: cp2
+    criterion: "Out-of-scope hooks (SessionEnd, PermissionRequest) отсутствуют в runtimes.codex"
+    verify: "rg 'session-end|permission-request|pre-compact|post-compact' harness/manifest.yaml | rg 'codex' && echo FAIL || echo OK"
+  - id: cp3
+    criterion: "harness/manifest.yaml parses without error"
+    verify: "python3 -c \"import yaml; yaml.safe_load(open('harness/manifest.yaml')); print('ok')\""
+
+verify:
+  - "python3 -c \"import yaml; m=yaml.safe_load(open('harness/manifest.yaml')); hooks=m.get('hooks',{}); missing=[k for k,v in hooks.items() if 'claude' in v.get('runtimes',{}) and 'codex' not in v.get('runtimes',{}) and k not in ('session-end','permission-request','pre-compact','post-compact')]; assert not missing, f'missing codex entry: {missing}'\""
+tdd: []

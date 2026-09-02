@@ -516,7 +516,11 @@ def test_subagent_stop_increments_incomplete_without_verdict(tmp_path: Path) -> 
     assert st.get("verify_incomplete") == 1
     assert st.get("verify_done") is False
 
-    payload["last_assistant_message"] = "VERDICT: FAIL\nBLOCKERS: x"
+    payload["last_assistant_message"] = (
+        '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+        '"verdict":"FAIL","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+        "BLOCKERS: x"
+    )
     proc2 = subprocess.run(
         [sys.executable, str(stop)],
         input=json.dumps(payload),
@@ -849,10 +853,32 @@ def test_bash_pretool_skips_outside_epic_loop(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("VERDICT: FAIL\n…\nVERDICT: PASS", "PASS"),
-        ("draft VERDICT: FAIL then fix\nVERDICT: PASS\nok", "PASS"),
-        ("VERDICT: PASS\n…\nVERDICT: FAIL", "FAIL"),
-        ("VERDICT: BLOCKED\n…\nVERDICT: PASS", "PASS"),
+        (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"FAIL",'
+            '"recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"PASS",'
+            '"recorded_at":"2026-09-02T00:00:01Z"}\n```',
+            "PASS",
+        ),
+        (
+            'draft\n```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"PASS",'
+            '"recorded_at":"2026-09-02T00:00:00Z"}\n```\nok',
+            "PASS",
+        ),
+        (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"PASS",'
+            '"recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"FAIL",'
+            '"recorded_at":"2026-09-02T00:00:01Z"}\n```',
+            "FAIL",
+        ),
+        (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"BLOCKED",'
+            '"recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify","verdict":"PASS",'
+            '"recorded_at":"2026-09-02T00:00:01Z"}\n```',
+            "PASS",
+        ),
         ("no verdict here", None),
     ],
 )
@@ -863,7 +889,7 @@ def test_extract_verdict_last_wins(text: str, expected: str | None) -> None:
 
 
 def test_extract_verdict_contract_blob_instructional_pass_final_fail() -> None:
-    """Instructional VERDICT: PASS in CONTRACT must not beat final FAIL (last-wins)."""
+    """Instructional prose VERDICT must not beat final JSON fence."""
     from _lib import extract_verdict
 
     blob = (
@@ -871,18 +897,20 @@ def test_extract_verdict_contract_blob_instructional_pass_final_fail() -> None:
         "When done emit VERDICT: PASS on the last line.\n"
         "## Agent reply\n"
         "blocked by AC\n"
-        "VERDICT: FAIL\n"
+        '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+        '"verdict":"FAIL","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
     )
     assert extract_verdict(blob) == "FAIL"
 
 
 def test_extract_verdict_ignores_backtick_midline_fail_after_pass() -> None:
-    """SubagentStart contract mid-line `VERDICT: FAIL` must not poison a PASS final."""
+    """SubagentStart contract mid-line `VERDICT: FAIL` prose must not poison JSON PASS."""
     from _lib import extract_verdict
 
     blob = (
         "CONTRACT: первая строка = ровно `VERDICT: PASS` или `VERDICT: FAIL`.\n"
-        "VERDICT: PASS\n"
+        '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+        '"verdict":"PASS","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
         "AC+: ok\n"
     )
     assert extract_verdict(blob) == "PASS"

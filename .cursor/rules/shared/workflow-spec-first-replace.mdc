@@ -61,8 +61,9 @@ Plan **обязан** явно записать axiom одной таблице�
 | Новый модуль вызывает deprecated public API | **FAIL** — inline / private `_` |
 | «Compatibility shim» без epic ID в `.queue.yaml` | **FAIL** |
 | Два machine path на одну границу после EPIC_DONE | **FAIL** |
+| Тесты assert'ят старый контракт после drop prod | **FAIL** — delete/rewrite tests в том же эпике |
 
-**Default done:** один путь. Старый символ удалён; misconfig → fail-closed.
+**Default done:** один путь. Старый символ **и** obsolete tests удалены; misconfig → fail-closed.
 
 ---
 
@@ -74,15 +75,16 @@ Plan **обязан** явно записать axiom одной таблице�
 2. Нет «validated» enum из неструктурированного prose.
 3. Sunset A содержит **каждый** старый parser/symbol на этой границе (не «потом»).
 4. Spawn/prompt/loop instructions не требуют формат, запрещённый axiom (напр. `VERDICT:` при JSON axiom).
+5. Sunset A / `deletes:` покрывают obsolete tests на старый machine path (не оставлять asserts, которые вернут regex).
 
 ---
 
 ## 5. DECOMPOSE / IMPLEMENT / chat
 
-- **DECOMPOSE:** каждый FR на новый structured path → строка в Replacement cleanup + финальный `*-legacy-fallback-purge`.
-- **IMPLEMENT:** shard `deletes:` выполняется в том же эпике; не добавлять fallback «чтобы green».
-- **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list.
-- **ANALYZE:** FAIL если plan обещает pydantic, а steps не содержат purge старого parser.
+- **DECOMPOSE:** каждый FR на новый structured path → строка в Replacement cleanup + финальный `*-legacy-fallback-purge`; `deletes:` включает obsolete test paths/cases на старый parser.
+- **IMPLEMENT:** shard `deletes:` выполняется в том же эпике (prod **и** obsolete tests); не добавлять fallback «чтобы green»; не restore legacy под красные старые asserts.
+- **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list (код + тесты).
+- **ANALYZE:** FAIL если plan обещает pydantic, а steps не содержат purge старого parser **и** тестов на него.
 
 ---
 
@@ -94,4 +96,4 @@ Plan **обязан** явно записать axiom одной таблице�
 | Plan artifact bar | @.claude/rules/plan-artifact.md |
 | Token economy §0.0 | plan/decompose не резать; axiom не выкидывать «для краткости» |
 
-**Итог для агента:** as-built смотришь **что удалить**, не **как копировать**. Pydantic выбрали → JSON на границе → regex с этой границы **исчезает** в том же эпике.
+**Итог для агента:** as-built смотришь **что удалить**, не **как копировать**. Pydantic выбрали → JSON на границе → regex с этой границы **исчезает** в том же эпике — **вместе** с тестами, которые его требовали.

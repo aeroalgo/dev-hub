@@ -39,11 +39,17 @@ def test_qa_fail_and_bugfix_done_reopen_current_qa(tmp_path: Path) -> None:
     assert failed["diagnostics"] == []
     assert failed["event_digest"].startswith("sha256:")
 
+    _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-after-fail.md", "fixed\n")
+    reopened_after_fail = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
+    assert reopened_after_fail["phase"] == "QA"
+    assert reopened_after_fail["reason_code"] == "bugfix_reopens_qa"
+    assert reopened_after_fail["last_event"]["kind"] == "bugfix_done"
+
     qa.write_text("verdict: pass\n", encoding="utf-8")
     passed = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     assert passed["phase"] == "REFLECT"
     assert passed["last_event"]["kind"] == "qa_pass"
-    assert passed["last_seq"] == 2
+    assert passed["last_seq"] == 3
 
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-current.md", "done\n")
     reopened = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
@@ -51,7 +57,7 @@ def test_qa_fail_and_bugfix_done_reopen_current_qa(tmp_path: Path) -> None:
     assert reopened["phase"] == "QA"
     assert reopened["reason_code"] == "bugfix_reopens_qa"
     assert reopened["last_event"]["kind"] == "bugfix_done"
-    assert reopened["last_seq"] == 3
+    assert reopened["last_seq"] == 4
     assert reopened["expected_artifact"] == "memory-bank/back/qa/demo/qa-*.yaml"
 
 

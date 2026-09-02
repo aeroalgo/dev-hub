@@ -62,9 +62,9 @@
 ## Replacement cleanup (plan → steps)
 
 > **HARD (brownfield replace):** каждая поверхность plan sunset **A/B/C** → ≥1 `sNN|eNN` с непустым `deletes:` (или out_of_scope + follow-up epic **уже в** roadmap `.queue.yaml`).  
-> Add без delete-шага в очереди = FAIL. Любая строка ≠ n/a → финальный `*-legacy-fallback-purge` в очереди с **`sunset_inventory` + `grep_control` по каждой строке** (шаблон: `legacy-purge-step.yaml`). Greenfield → одна строка `n/a — нет замен`.  
+> Add без delete-шага в очереди = FAIL. Drop prod/контракта → `deletes:` **обязан** включать obsolete tests (assert старого поведения) или их rewrite. Любая строка ≠ n/a → финальный `*-legacy-fallback-purge` в очереди с **`sunset_inventory` + `grep_control` по каждой строке** (шаблон: `legacy-purge-step.yaml`). Greenfield → одна строка `n/a — нет замен`.  
 > `Kind`: A=code · B=entrypoint/deploy · C=fallback. `Fallback?=yes` → deletes in-epic (не откладывать).  
-> AUDIT: обязателен `sunset_inventory_scan`; пустой `legacy_surfaces_remaining[]` только после scan pass на всех rows.  
+> AUDIT: обязателен `sunset_inventory_scan`; пустой `legacy_surfaces_remaining[]` только после scan pass на всех rows. Leftover asserts на sunset-контракт в tests = FAIL.  
 > Канон: `workflow-*-decompose.mdc` §Replacement cleanup · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 
 | Устаревает (path / symbol) | Kind (A\|B\|C) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |

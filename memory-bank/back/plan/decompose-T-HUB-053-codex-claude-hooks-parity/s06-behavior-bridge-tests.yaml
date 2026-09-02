@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Behavior bridge tests all events + stop/spawn regression
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Extend loop/tests/test_codex_hooks_bridge.py with behavior-level fixtures for all FR-002 events:
+  (1) SessionStart fires harness script on session open;
+  (2) SubagentStart fired before subagent call, SubagentStop after;
+  (3) bash-output-cap in PostToolUse Bash — oversized stdout → capped view;
+  (4) stop-gate deny without verify PASS on Codex path (same as Claude);
+  (5) agent-pretool DENY on incomplete HARD RULE spawn;
+  (6) Claude settings regression: snapshot test asserts settings.json unchanged.
+  Outcome: full behavior parity proven by green pytest suite.
+
+context:
+  consumes:
+    - loop/tests/test_codex_hooks_bridge.py      # existing bridge tests
+    - harness/hooks/stop-gate.py
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/bash-output-cap.py
+    - harness/hooks/agent-pretool.py
+    - .codex/hooks.json                          # regenerated (after s03)
+  produces:
+    - loop/tests/test_codex_hooks_bridge.py      # extended with all behaviors
+    - loop/tests/test_session_resilience_codex.py  # SubagentStart/Stop smoke if not covered
+  plan_refs:
+    - FR-006
+    - FR-009
+    - SC-002
+    - SC-003
+    - TM-002
+    - TM-003
+    - TM-004
+    - TM-005
+    - TM-009
+
+  files:
+    - loop/tests/test_codex_hooks_bridge.py
+    - loop/tests/test_session_resilience_codex.py
+
+as_built:
+  - "loop/tests/test_codex_hooks_bridge.py: stop-gate FINISH deny + spawn-gate parity fixtures; SubagentStart/Stop not covered; bash-output-cap Codex path not covered; SessionStart not covered"
+  - "loop/tests/test_session_resilience_codex.py: partial coverage; no SubagentStart explicit fixture"
+
+delta:
+  - "Add fixture: SessionStart fires session-start.py (simulate Codex SessionStart event payload)"
+  - "Add fixture: SubagentStart + SubagentStop invoked in correct sequence (TM-004)"
+  - "Add fixture: PostToolUse Bash with oversized stdout → bash-output-cap caps output (TM-005)"
+  - "Add fixture: stop-gate deny without verify PASS on Codex path identical to Claude (TM-002)"
+  - "Add fixture: agent-pretool DENY on incomplete HARD RULE prompt (TM-003)"
+  - "Add snapshot test: .claude/settings.json hooks unchanged after full codex sync run (TM-009, AC-5)"
+  - "Ensure all fixtures use Codex-style stdin payloads (not Claude stdin format)"
+
+deletes: []
+
+out_of_scope:
+  - "Actual Codex CLI invocation in tests (mocked/fixture only)"
+  - "Docs (s07)"
+  - "Legacy purge (s08)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "test_codex_hooks_bridge.py содержит ≥6 test functions (TM-002..005 + SessionStart + snapshot)"
+    verify: "rg 'def test_' loop/tests/test_codex_hooks_bridge.py | wc -l"
+  - id: cp2
+    criterion: "Полный bridge suite green"
+    verify: "bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=short"
+  - id: cp3
+    criterion: "session_resilience_codex SubagentStart smoke green"
+    verify: "bin/pytest loop/tests/test_session_resilience_codex.py -q --tb=short"
+  - id: cp4
+    criterion: "Claude settings.json snapshot test не упал (регрессия AC-5)"
+    verify: "bin/pytest loop/tests/test_codex_hooks_bridge.py -q -k 'settings' --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_codex_hooks_bridge.py loop/tests/test_session_resilience_codex.py -q --tb=short"
+tdd:
+  - "Add test stubs for TM-002..005 BEFORE hook wiring (red)"
+  - "Wire hooks in generated json (green via s03) → tests pass"

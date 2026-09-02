@@ -54,56 +54,48 @@ HARD_RULE = (
     "(vitest/playwright/npm test/e2e). Отчёт parent — на русском."
 )
 
+_GATE_JSON_HARD = (
+    "HARD: финальный ответ содержит fenced ```json loop-gate-verdict/v1``` "
+    '({"schema":"loop-gate-verdict/v1","agent_id":"<id>","verdict":"PASS|FAIL|BLOCKED",'
+    '"recorded_at":"<iso8601>"}). '
+    "Строка VERDICT: — optional human summary, не machine input. "
+    "После ≤6 Read — только финальный отчёт, ноль tool. "
+    "Ответ без valid JSON fence = протокольный FAIL."
+)
+
 CONTRACTS = {
     "verify": (
         "CONTRACT verify: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
-        "HARD: первая строка финального текста = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "Никакого текста перед VERDICT: в финальном сообщении. "
-        "После ≤6 Read — только VERDICT-отчёт, ноль tool. Re-read файла >1× FORBIDDEN. "
-        "Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.md + implement step. "
-        "КРИТИЧНО: если tools исчерпаны или ты готов ответить — следующее сообщение ОБЯЗАНО начинаться с `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        + _GATE_JSON_HARD
+        + " Не edit. Без isolation=worktree. "
+        "Канон: activeContext + decompose index.yaml + implement step."
     ),
     "verify-implement": (
         "CONTRACT verify-implement: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
-        "HARD: первая строка финального текста = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "Никакого текста перед VERDICT: в финальном сообщении. "
-        "После ≤6 Read — только VERDICT-отчёт, ноль tool. Re-read файла >1× FORBIDDEN. "
-        "Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.md + implement step. "
-        "КРИТИЧНО: если tools исчерпаны или ты готов ответить — следующее сообщение ОБЯЗАНО начинаться с `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        + _GATE_JSON_HARD
+        + " Не edit. Без isolation=worktree. "
+        "Канон: activeContext + decompose index.yaml + implement step."
     ),
     "verify-bugfix": (
         "CONTRACT verify-bugfix: нужен AC+ · AC− · §0.11 · VERIFY · BUGFIX ARTIFACT · ALLOW. "
-        "HARD: первая строка финального текста = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "Никакого текста перед VERDICT: в финальном сообщении. "
-        "После ≤6 Read — только VERDICT-отчёт, ноль tool. Re-read файла >1× FORBIDDEN. "
-        "Не edit. Без isolation=worktree. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        + _GATE_JSON_HARD
+        + " Не edit. Без isolation=worktree."
     ),
     "verify-qa": (
         "CONTRACT verify-qa: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
-        "HARD: первая строка финального ответа = ровно `VERDICT: PASS`, `VERDICT: BLOCKED` или `VERDICT: FAIL`. "
-        "Никакого текста перед VERDICT: в финальном сообщении. "
-        "Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        + _GATE_JSON_HARD
+        + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
     ),
     "verify-decompose": (
-        "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · Outcome map · Replacement cleanup · ALLOW. "
-        "HARD: первая строка финального ответа = ровно `VERDICT: PASS` или `VERDICT: FAIL`. "
-        "VERDICT: строка — optional human summary. "
-        "FORBIDDEN pytest. Без isolation=worktree. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · "
+        "Outcome map · Replacement cleanup · ALLOW. "
+        + _GATE_JSON_HARD
+        + " FORBIDDEN pytest. Без isolation=worktree."
     ),
     "reviewer": (
         "CONTRACT reviewer: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
-        "HARD: первая строка финального ответа = ровно `VERDICT: PASS`, `VERDICT: BLOCKED` или `VERDICT: FAIL`. "
-        "Никакого текста перед VERDICT: в финальном сообщении. "
-        "Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree. "
-        "КРИТИЧНО: если tools исчерпаны или ты готов ответить — следующее сообщение ОБЯЗАНО начинаться с `VERDICT: PASS`, `VERDICT: BLOCKED` или `VERDICT: FAIL`. "
-        "Ответ без строки VERDICT = протокольный FAIL."
+        + _GATE_JSON_HARD
+        + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
     ),
     "explorer": (
         "CONTRACT explorer: graphify first, затем узкий Grep/rg только внутри ALLOW из prompt. "
@@ -122,8 +114,9 @@ CONTRACTS = {
 }
 
 VERDICT_FIRST_LINE = (
-    "HARD: первая строка финального ответа = `VERDICT: PASS` или `VERDICT: FAIL`. "
-    "После ≤6 Read — сразу VERDICT-отчёт без tool."
+    "HARD: финальный ответ содержит fenced ```json loop-gate-verdict/v1```. "
+    "После ≤6 Read — сразу JSON fence + optional summary, без tool. "
+    "VERDICT: prose — не machine input."
 )
 
 # Optional ATX heading prefix: agents often write `# AC+` / `## VERIFY`.
@@ -758,16 +751,15 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
 def extract_json_fence(text: str) -> dict[str, Any] | None:
     if not isinstance(text, str):
         return None
-    match = re.search(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        data = json.loads(match.group(1))
+    last: dict[str, Any] | None = None
+    for match in re.finditer(r"```json\s*\n(.*?)\n```", text, re.DOTALL):
+        try:
+            data = json.loads(match.group(1))
+        except Exception:
+            continue
         if isinstance(data, dict):
-            return data
-    except Exception:
-        pass
-    return None
+            last = data
+    return last
 
 
 def parse_gate_verdict_message(
@@ -926,6 +918,38 @@ def merged_project_env_map(
         for key, val in _parse_env_assignments(path):
             merged[key] = val
     return merged
+
+
+_HOOKS_LLM_DOMAINS = frozenset({"fallback", "verdict", "handoff", "abort"})
+
+
+def load_hooks_llm_env(
+    project_dir: str | Path | None = None,
+) -> dict[str, str]:
+    """Return PROJECT_HOOKS_LLM_* values (process env overrides project.env)."""
+    merged = dict(merged_project_env_map(project_dir))
+    out: dict[str, str] = {}
+    for key, val in merged.items():
+        if key.startswith("PROJECT_HOOKS_LLM_"):
+            out[key] = val
+    for key, val in os.environ.items():
+        if key.startswith("PROJECT_HOOKS_LLM_"):
+            out[key] = val
+    return out
+
+
+def hooks_llm_flag(
+    domain: str,
+    *,
+    project_dir: str | Path | None = None,
+) -> bool:
+    """True when PROJECT_HOOKS_LLM_<DOMAIN> is enabled (1/true/yes/on)."""
+    token = str(domain or "").strip().lower()
+    if token not in _HOOKS_LLM_DOMAINS:
+        return False
+    values = load_hooks_llm_env(project_dir=project_dir)
+    raw = (values.get(f"PROJECT_HOOKS_LLM_{token.upper()}") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 def iter_project_env(
@@ -1481,7 +1505,17 @@ def extract_verdict(
     cwd: str | None = None,
     agent_id: str = "verify",
 ) -> str | None:
-    """Read gate verdict from typed sidecar first; transcript regex is legacy fallback."""
+    """Read gate verdict from JSON fence (machine SoT), then optional sidecar."""
+    if text:
+        data = extract_json_fence(text)
+        if isinstance(data, dict):
+            schema = data.get("schema")
+            if schema in (None, "loop-gate-verdict/v1"):
+                verdict_val = data.get("verdict")
+                if isinstance(verdict_val, str):
+                    candidate = verdict_val.strip().upper()
+                    if candidate in {"PASS", "FAIL", "BLOCKED"}:
+                        return candidate
     if cwd:
         try:
             import sys
@@ -1497,20 +1531,7 @@ def extract_verdict(
                 return record.verdict
         except Exception:
             pass
-    if not text:
-        return None
-    matches = list(
-        re.finditer(r"(?m)^VERDICT:\s*(PASS|FAIL|BLOCKED)\b", text, re.I)
-    )
-    if not matches:
-        return None
-    if cwd:
-        try:
-            from epic import increment_drift_counter
-            increment_drift_counter(cwd, "gate_verdict_regex_fallback")
-        except Exception:
-            pass
-    return matches[-1].group(1).upper()
+    return None
 
 
 # compat: принимает BLOCKED и NEED_HUMAN; deprecate BLOCKED в 004 (канон = NEED_HUMAN)

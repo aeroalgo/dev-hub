@@ -50,6 +50,8 @@ def _queue(project: Path, epic: str) -> None:
 def test_gate_analyze(tmp_path: Path) -> None:
     project, workspace = _project(tmp_path)
     _index(project, "T-DEMO", ["pending"])
+    _queue(project, "T-DEMO")
+    (project / "memory-bank/back/plan/plan-T-DEMO.md").write_text("# plan\n", encoding="utf-8")
     gates = scan_gates([workspace], [])
 
     assert any(

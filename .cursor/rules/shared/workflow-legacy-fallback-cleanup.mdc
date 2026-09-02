@@ -22,9 +22,11 @@ Brownfield replace **обязан** заполнить **A + B + C** (не од�
 
 ### A. Code / modules
 
-Файлы, классы, символы, пакеты, тесты, которые вытесняются.
+Файлы, классы, символы, пакеты, **и тесты**, которые вытесняются.
 
 **HARD:** каждая строка A — **конкретный symbol** (`module.fn`, `ClassName`), не «старый модуль X» без имени. Symbol попадает в purge inventory и audit scan.
+
+**HARD (obsolete tests):** drop prod-символа / старого контракта → в sunset A и `deletes:` обязаны попасть тесты/кейсы, которые **закрепляют старое поведение** (assert regex-VERDICT, dual-path, legacy parser). **FORBIDDEN:** оставить такие тесты «пока зелёные» или чинить prod под них. Rewrite на новый контракт **или** delete — в том же эпике.
 
 ### B. Entrypoints / deploy
 
@@ -62,7 +64,8 @@ Inventory **всех** поверхностей запуска той же ро�
 1. Нет второго entrypoint на ту же роль (тот же bot token / тот же user-facing route group / тот же job consumer role).  
 2. Нет soft default URL/host/path на чужой сервис.  
 3. Misconfig → fail at start (non-zero / raise), не stub пользователю и не silent success.  
-4. Нет prod-path dual: new + legacy рядом после эпика (без follow-up ID в queue).
+4. Нет prod-path dual: new + legacy рядом после эпика (без follow-up ID в queue).  
+5. Нет исполняемых тестов, которые требуют удалённый контракт (после эпика suite не тянет restore legacy).
 
 ---
 
@@ -107,20 +110,23 @@ Inventory **всех** поверхностей запуска той же ро�
 - Считать rewrite модуля достаточным, если CLI/compose/CMD всё ещё зовут legacy.  
 - Оставить fallback URL/default в коде как «удобство local».  
 - Purge checkpoint только на **один** sunset symbol при нескольких строках в plan (T-HUB-029 class gap).  
-- Считать purge **done**, если остался public shim с prod callers или router импортирует deprecated public API.
+- Считать purge **done**, если остался public shim с prod callers или router импортирует deprecated public API.  
+- Удалить prod-символ / сменить machine boundary, но **оставить** тесты, которые требуют старый контракт (regex, last-wins prose, dual-path asserts) — они тянут legacy обратно при «починке suite».
 
 ### 2.4. Inventory scan — что считается leftover (HARD)
 
-| Ситuation | Verdict |
+| Situation | Verdict |
 |-----------|---------|
-| Symbol удалён; matches только в `tests/`, `memory-bank/archive/`, docs/history | **OK** |
+| Symbol удалён; упоминания только в `memory-bank/archive/`, docs/history (не исполняемые asserts) | **OK** |
+| Symbol удалён; в `tests/` остались кейсы, которые **assert'ят старое поведение** / импортируют удалённый API / краснеют без legacy path | **FAIL** — `deletes:` или rewrite на новый контракт в том же эпике |
 | Public function/class остаётся; ≥1 prod caller (не test) | **FAIL** — в `legacy_surfaces_remaining` |
 | Thin shim delegates + `_legacy_warn`; prod callers ещё на shim | **FAIL** — migrate callers → delete shim |
 | New API (`arm_phase`) imports/calls **deprecated public** symbol | **FAIL** — consolidate into private `_arm_*` or inline |
 | Policy `shim+follow-up`; follow-up epic **в queue**; shim documented in inventory | **OK until follow-up**; audit must list shim in `legacy_surfaces_remaining` with `follow_up: T-…` |
 | Policy `shim+follow-up` без epic ID в queue | **FAIL** |
 
-**rg exclude (только для подсчёта prod callers):** `test_`, `/tests/`, `memory-bank/archive/`, строки с `# deprecated`, `_legacy_warn(` **не** маскируют живой symbol.
+**rg exclude (только для подсчёта prod callers):** `memory-bank/archive/`, строки с `# deprecated`, `_legacy_warn(`.  
+**Tests не «маска»:** `test_` / `/tests/` **не** делают leftover OK, если кейс закрепляет sunset-контракт. Purge inventory обязан включать obsolete test paths/nodeids в `deletes:` или `grep_control` (expect: rewritten или absent).
 
 **Evidence (implement purge shard):** для каждой строки `grep_control` — command + actual output (empty = pass) в `verification_results` или checkpoint `done` note.
 
@@ -128,9 +134,10 @@ Inventory **всех** поверхностей запуска той же ро�
 
 ## 3. IMPLEMENT
 
-- Выполнить все `deletes:` work shard (как lean implement).  
+- Выполнить все `deletes:` work shard (как lean implement) — **включая** obsolete test files/cases из sunset A.  
 - Purge shard (`*-legacy-fallback-purge`): evidence **обязана** включать **полный** `grep_control` run (все id), не один символ.  
-- User-facing soft-fail при misconfig **не** добавлять «чтобы тесты зелёные».
+- User-facing soft-fail при misconfig **не** добавлять «чтобы тесты зелёные».  
+- **FORBIDDEN:** восстанавливать удалённый regex/legacy path, чтобы починить красные тесты на старый контракт — сначала delete/rewrite тесты, потом suite.
 
 ---
 
@@ -179,14 +186,16 @@ purge_step_present: true
 
 Для brownfield replace / cutover — **независимая** re-check (не доверять audit arrays без команды):
 
-1. Re-run `rg` по **каждому** symbol из plan sunset A (expect no prod callers).  
+1. Re-run `rg` по **каждому** symbol из plan sunset A (expect no prod callers **и** нет asserts на старый контракт в живых tests).  
 2. Compose/Dockerfile/CLI: нет legacy из plan B.  
 3. Anti-fallback patterns из plan C в prod paths.  
-4. (BACK) optional: `docker compose config` / `ps` smoke.
+4. (BACK) optional: `docker compose config` / `ps` smoke.  
+5. Suite: нет red tests, которые чинятся только restore legacy; obsolete cases удалены/переписаны.
 
 PASS при leftover A/B/C = **FAIL** (fix_plan → BUGFIX purge или `sNN-audit-*`).
 
-**FORBIDDEN:** QA PASS только по тексту audit «legacy confirmed» без собственного rg на sunset inventory.
+**FORBIDDEN:** QA PASS только по тексту audit «legacy confirmed» без собственного rg на sunset inventory.  
+**FORBIDDEN:** QA PASS при green suite, достигнутом через возврат sunset-кода под obsolete tests.
 
 ---
 

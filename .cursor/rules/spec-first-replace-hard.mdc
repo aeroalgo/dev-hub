@@ -42,8 +42,9 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 
 1. Новый контракт — **единственный** machine path после эпика.
 2. Старый parser/symbol — **delete in-epic** (purge step), не co-exist.
-3. Misconfig → **fail-closed**, не fallback на legacy.
-4. Shim «на потом» — только с epic ID **уже** в `roadmap-*.queue.yaml`.
+3. Obsolete tests на старый контракт — **delete/rewrite in-epic** (не чинить prod под них).
+4. Misconfig → **fail-closed**, не fallback на legacy.
+5. Shim «на потом» — только с epic ID **уже** в `roadmap-*.queue.yaml`.
 
 ---
 
@@ -53,8 +54,8 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 |----------|----------|
 | Обсуждение новой фичи (любой чат) | spec-first; не предлагать гибрид с as-built |
 | `* PLAN` / `* CLARIFY` | §Technology axiom в plan **до** HOW из кода |
-| `* DECOMPOSE` | purge-step на каждый старый symbol |
-| `* IMPLEMENT` | не добавлять fallback «чтобы green» |
+| `* DECOMPOSE` | purge-step на каждый старый symbol **и** obsolete tests |
+| `* IMPLEMENT` | не добавлять fallback «чтобы green»; не restore legacy под старые asserts |
 | Пользователь: pydantic / JSON / enums | JSON на границе; regex с границы **убрать** |
 
 ---
@@ -64,3 +65,4 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 1. Нет dual machine path (regex + pydantic) на одной границе.
 2. Нет silent PASS через legacy parser.
 3. Кодовая база **не растёт** вторым путём — старый **удаляется**.
+4. Нет живых тестов, которые требуют удалённый контракт.

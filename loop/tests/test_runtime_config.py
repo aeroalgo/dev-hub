@@ -220,7 +220,7 @@ def test_epic_runtime_dsh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_epic_runtime_invalid_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
-    monkeypatch.setenv("EPIC_RUNTIME", "codex")
+    monkeypatch.setenv("EPIC_RUNTIME", "nope")
 
     with pytest.raises(lib.RuntimeConfigError) as exc_info:
         lib.resolve_runtime_config(tmp_path)
