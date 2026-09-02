@@ -8,8 +8,9 @@ alwaysApply: false
 
 Все тестовые команды, запускаемые workflow, loop или агентом, обязаны иметь внешний лимит **300 секунд (5 минут)** на процесс.
 
-- POSIX-команды запускаются через `timeout 300s <команда>`.
-- pytest дополнительно использует `pytest-timeout` и `timeout = 300` в `pyproject.toml`; это лимит отдельного pytest item, поэтому внешний `timeout 300s` всё равно обязателен для всего процесса.
+- **pytest (hub):** канонический runner — `bin/pytest …` из корня репо; wrapper уже содержит `timeout 300s`.
+- Альтернатива: `timeout 300s .venv/bin/pytest …` (если wrapper недоступен).
+- pytest дополнительно использует `pytest-timeout` и `timeout = 300` в `pytest.ini` — лимит отдельного item; внешний лимит процесса всё равно обязателен.
 - `timeout=` у HTTP-клиента, fixture или бизнес-логики не заменяет runner timeout.
 - Для suite из нескольких команд лимит применяется к каждой команде, если workflow явно не указал один внешний `timeout 300s` на весь suite.
 - При истечении лимита команда считается failed/blocked, а не passed; timeout нельзя скрывать как успешный skip.
@@ -17,6 +18,7 @@ alwaysApply: false
 ## Обязательная форма
 
 ```text
+bin/pytest ...
 timeout 300s .venv/bin/pytest ...
 timeout 300s npm --prefix frontend exec vitest ...
 timeout 300s npm --prefix frontend exec tsc ...
@@ -25,6 +27,8 @@ timeout 300s python tests/test_*.py
 timeout 300s npm test
 timeout 300s make test
 ```
+
+**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита.
 
 В implement/QA step поле `tests:` содержит исполняемую команду в backticks, а результат записывается отдельно в `verification_results`.
 

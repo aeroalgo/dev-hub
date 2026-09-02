@@ -91,3 +91,31 @@ def test_dispatch_exit_code_passthrough(tmp_path, monkeypatch):
         dry_run=False,
     )
     assert code == 42
+
+
+def test_codex_dispatch_pipes_prompt_on_stdin(tmp_path, monkeypatch):
+    prompt_file = tmp_path / "prompt.txt"
+    prompt_file.write_text("hello codex", encoding="utf-8")
+    captured: dict[str, object] = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+
+        class DummyCompletedProcess:
+            returncode = 0
+
+        return DummyCompletedProcess()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    code = run_session(
+        runtime_id="codex",
+        prompt_file=prompt_file,
+        phase="IMPLEMENT",
+        extras={"project_root": str(tmp_path)},
+        dry_run=False,
+    )
+    assert code == 0
+    assert captured["kwargs"]["input"] == b"hello codex"
+    assert "exec" in captured["cmd"]

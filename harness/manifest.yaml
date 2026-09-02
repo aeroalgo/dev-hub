@@ -1,0 +1,33 @@
+schema_version: "harness-manifest/v1"
+agents:
+  verify-implement:
+    description: "Pre-FINISH verify gate for IMPLEMENT"
+    source: "harness/agents/verify-implement.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-implement.md"
+      dsh:
+        profile_preset: "verify-implement"  # NOTE: full automation deferred to follow-up epic
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-implement.toml"
+hooks:
+  stop-gate:
+    source: "harness/hooks/stop-gate.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.StopGate"
+      dsh:
+        adapter_hook: true  # NOTE: full automation deferred to follow-up epic
+      codex:
+        hooks_json_entry: true
+instructions:
+  main:
+    source: "harness/instructions/main.md"
+    runtimes:
+      claude:
+        target: "CLAUDE.md"
+      dsh:
+        target: "DSH.md"
+      codex:
+        target: "AGENTS.md"

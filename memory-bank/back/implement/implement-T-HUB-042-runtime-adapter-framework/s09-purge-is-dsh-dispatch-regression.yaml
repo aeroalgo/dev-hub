@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s09 — purge is_dsh/EPIC_DSH_PROFILE remaining callers + regression suite green
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-042-runtime-adapter-framework/s09-purge-is-dsh-dispatch-regression.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - "harness/hooks/stop-gate.py: _is_dsh_runtime removed, relies on generic gate / adapter"
+  - "loop/loop.sh: EPIC_DSH_PROFILE export purged, extras_json passed to dispatch print-argv via EXTRAS_JSON"
+  - "loop/board_launch/loop_argv.py: hardcoded EPIC_RUNTIME=dsh env_extra purged"
+  - "loop/tests/test_loop_dsh_dispatch.py: tests updated for dsh dispatch without EPIC_DSH_PROFILE"
+files:
+  - harness/hooks/stop-gate.py
+  - loop/loop.sh
+  - loop/board_launch/loop_argv.py
+  - loop/tests/test_loop_dsh_dispatch.py
+deletes:
+  - "harness/hooks/stop-gate.py:120-121 — _is_dsh_runtime function definition"
+  - "harness/hooks/stop-gate.py:480 — if _is_dsh_runtime(cwd): branch"
+  - "loop/loop.sh:694 — EPIC_DSH_PROFILE=$(python3 ...) line"
+  - "loop/loop.sh:695 — EPIC_DSH_PROFILE from export line"
+  - "loop/board_launch/loop_argv.py:117 — env_extra = {'EPIC_RUNTIME': 'dsh'} if runtime == 'dsh' else {}"
+tests:
+  - loop/tests/test_loop_dsh_dispatch.py
+  - loop/tests/test_board_launch_argv.py
+  - loop/tests/test_board_launch_cli.py
+integration_check: []
+grep_control:
+  - pattern: "is_dsh"
+    path: "harness/hooks/stop-gate.py"
+    count: 0
+  - pattern: "EPIC_DSH_PROFILE"
+    path: "loop/loop.sh"
+    count: 0
+verification_results:
+  - cp1: PASS
+  - cp2: PASS
+  - cp3: PASS
+  - cp4: PASS
+checkpoints:
+  - id: cp1
+    criterion: is_dsh not present in any prod file (excluding tests)
+    status: done
+  - id: cp2
+    criterion: EPIC_DSH_PROFILE not exported in loop.sh
+    status: done
+  - id: cp3
+    criterion: board_launch existing tests green; env_extra no longer contains EPIC_RUNTIME=dsh hardcode
+    status: done
+  - id: cp4
+    criterion: TM-005 dsh dispatch shell test green
+    status: done

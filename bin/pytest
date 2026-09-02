@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Canonical pytest runner — external 300s process limit (test-timeout.mdc).
+# Usage: bin/pytest [pytest args…]
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTEST="$ROOT/.venv/bin/pytest"
+if [[ ! -x "$PYTEST" ]]; then
+  echo "error: $PYTEST not found; run: .venv/bin/pip install -r requirements-dev.txt" >&2
+  exit 127
+fi
+exec timeout 300s "$PYTEST" "$@"

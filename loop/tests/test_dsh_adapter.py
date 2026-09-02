@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
-from loop.runtime_adapters.dsh import DshAdapter, build_dsh_command
+from loop.runtime_adapters.dsh import DshAdapter
 
 
 def test_dsh_adapter_implements_protocol():
@@ -47,7 +47,8 @@ def test_build_command_wraps_build_dsh_command():
     assert cmd_default == ["dsh", "--profile", "epic-implement", "--no-open", "do work"]
 
 
-def test_existing_dsh_profile_mapping_regression():
-    # Verify build_dsh_command directly
-    cmd = build_dsh_command("epic-implement", "hello")
-    assert cmd == ["dsh", "--profile", "epic-implement", "--no-open", "hello"]
+def test_dsh_adapter_does_not_depend_on_standalone_functions():
+    adapter = DshAdapter()
+    ctx = SessionContext(prompt="hello", phase="implement")
+    assert adapter.build_command(ctx) == ["dsh", "--profile", "epic-implement", "--no-open", "hello"]
+

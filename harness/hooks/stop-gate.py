@@ -85,63 +85,12 @@ def _record_gate_bypass(state: dict, agent_id: str, reason: str) -> None:
     state["gate_bypassed_disabled"] = int(state.get("gate_bypassed_disabled") or 0) + 1
 
 
-DSH_SELF_LIMIT_DEFAULT = 8
-DSH_SELF_LIMIT_MIN = 1
-DSH_SELF_LIMIT_MAX = 100
-
-
-def _dsh_self_limit(cwd: str) -> tuple[int | None, str | None]:
-    """Resolve the DSH stop limit and reject malformed overrides fail-closed."""
-    project = merged_project_env_map(cwd)
-    raw = os.environ.get("DSH_SELF_LIMIT_MAX")
-    source = "process"
-    if raw is None:
-        raw = project.get("DSH_SELF_LIMIT_MAX")
-        source = "project"
-    if raw is None or not str(raw).strip():
-        return DSH_SELF_LIMIT_DEFAULT, None
-    try:
-        value = int(str(raw).strip(), 10)
-    except (TypeError, ValueError):
-        return None, f"invalid DSH self-limit configuration from {source}: {raw!r}"
-    if value < DSH_SELF_LIMIT_MIN or value > DSH_SELF_LIMIT_MAX:
-        return None, f"invalid DSH self-limit configuration from {source}: {raw!r}"
-    return value, None
-
-
 def _is_handoff_strict(cwd: str) -> bool:
     project = merged_project_env_map(cwd)
     raw = os.environ.get("PROJECT_LOOP_HANDOFF_STRICT")
     if raw is None:
         raw = project.get("PROJECT_LOOP_HANDOFF_STRICT")
     return str(raw or "").strip() in {"1", "true", "yes"}
-
-
-def _is_dsh_runtime(cwd: str) -> bool:
-    """Detect the DSH hook bridge without changing Claude-path behavior."""
-    if str(os.environ.get("DSH_HOOKS_BRIDGE", "")).lower() in {"1", "true", "yes"}:
-        return True
-    try:
-        return resolve_runtime_config(cwd).epic_runtime == "dsh"
-    except (OSError, TypeError, ValueError):
-        return False
-
-
-def _get_consecutive_blocks(state: dict) -> int:
-    try:
-        return max(0, int(state.get("dsh_consecutive_blocks") or 0))
-    except (TypeError, ValueError):
-        return 0
-
-
-def _increment_consecutive_blocks(state: dict) -> int:
-    blocks = _get_consecutive_blocks(state) + 1
-    state["dsh_consecutive_blocks"] = blocks
-    return blocks
-
-
-def _reset_consecutive_blocks(state: dict) -> None:
-    state["dsh_consecutive_blocks"] = 0
 
 
 def _epic_progressed(cwd: str, epic: dict) -> tuple[bool, str]:
@@ -476,36 +425,6 @@ def main() -> None:
                     "Вызови finalize-step, дождись JSON `ok: true`, затем повтори stop."
                 )
                 return
-
-    if _is_dsh_runtime(cwd):
-        limit, config_error = _dsh_self_limit(cwd)
-        if config_error:
-            st["dsh_consecutive_blocks"] = _get_consecutive_blocks(st)
-            save_state(session_id, cwd, st)
-            _block(config_error)
-            return
-        assert limit is not None
-        progressed, _fp = _epic_progressed(cwd, epic)
-        if progressed:
-            _reset_consecutive_blocks(st)
-            st["epic_stop_blocks"] = 0
-            save_state(session_id, cwd, st)
-            return
-        blocks = _increment_consecutive_blocks(st)
-        save_state(session_id, cwd, st)
-        if blocks >= limit:
-            sys.stdout.write(
-                json.dumps(
-                    {
-                        "decision": "allow",
-                        "reason": f"DSH self-limit reached ({blocks}/{limit}); allowing stop",
-                    },
-                    ensure_ascii=False,
-                )
-            )
-            return
-        _block(f"DSH self-limit: progress required before stop ({blocks}/{limit})")
-        return
 
     # EPIC MODE: allow stop only when Handoff/load_now fingerprint advanced.
     progressed, _fp = _epic_progressed(cwd, epic)

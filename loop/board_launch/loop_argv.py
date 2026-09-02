@@ -114,7 +114,9 @@ def build_loop_argv(
     """Build a fail-closed launch command following model precedence rules."""
     root = Path(project_root)
     argv = _base_argv(root, config)
-    env_extra = {"EPIC_RUNTIME": "dsh"} if runtime == "dsh" else {}
+    env_extra = {}
+    if runtime:
+        env_extra["EPIC_RUNTIME"] = runtime
     env_model, env_key = _project_env_model(root, phase)
 
     if env_model is not None:

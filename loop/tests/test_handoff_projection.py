@@ -19,7 +19,11 @@ def _write(path: Path, text: str) -> None:
 
 
 def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
-    from loop.schemas.active_context import handoff_mode_from_text, parse_handoff_meta
+    from loop.schemas.active_context import (
+        handoff_gate_phase_from_text,
+        handoff_mode_from_text,
+        parse_handoff_meta,
+    )
 
     text = (
         "---\n"
@@ -37,6 +41,23 @@ def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
     assert meta is not None
     assert meta.mode == "REFLECT"
     assert handoff_mode_from_text(text) == "REFLECT"
+    assert handoff_gate_phase_from_text(text) == "REFLECT"
+
+
+def test_handoff_mode_back_reflect_normalizes(tmp_path: Path) -> None:
+    from loop.schemas.active_context import handoff_gate_phase_from_text, handoff_mode_from_text
+
+    text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: BACK REFLECT\n"
+        "epic_id: demo\n"
+        "---\n\n"
+        "## Handoff BACK BACK REFLECT\n"
+    )
+    assert handoff_mode_from_text(text) == "REFLECT"
+    assert handoff_gate_phase_from_text(text) == "REFLECT"
 
 
 def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> None:

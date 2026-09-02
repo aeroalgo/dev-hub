@@ -59,8 +59,10 @@ def detect_and_run_tests(root: Path) -> tuple[str, int]:
     if (root / "pyproject.toml").is_file() or (root / "pytest.ini").is_file() or (root / "setup.cfg").is_file():
         tests_dir = root / "tests"
         if tests_dir.is_dir() or list(root.glob("test_*.py")):
+            bin_pytest = root / "bin" / "pytest"
+            cmd = [str(bin_pytest), "-q"] if bin_pytest.is_file() else [sys.executable, "-m", "pytest", "-q"]
             r = subprocess.run(
-                [sys.executable, "-m", "pytest", "-q"],
+                cmd,
                 cwd=str(root),
                 capture_output=True,
                 text=True,

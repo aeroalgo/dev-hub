@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "CodexAdapter implements RuntimeAdapter + which-codex.sh + exit-127 fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/runtime_adapters/codex.py` (CodexAdapter) и `codex/bin/which-codex.sh`.
+  build_command() собирает codex exec argv headless; analyze_log() детектирует completed/aborted.
+  Missing binary → exit 127, no fallback (AC+ #4, AC− #3, NFR fail-closed, TM-006).
+  Outcome: EPIC_RUNTIME=codex → loop инвоцирует codex с prompt на stdin (US-001, AC+ #1 partial).
+
+context:
+  consumes:
+    - "plan §Codex invoke, §FR-006, §FR-009, §Technology axiom, §Failure matrix TM-002/TM-006"
+    - "loop/runtime_adapters/base.py: RuntimeAdapter Protocol, SessionContext, SessionAnalysis"
+    - ".agents/skills/impeccable/scripts/live-copy-edit-agent.mjs — образец codex exec argv"
+    - "loop/runtime_adapters/dsh.py — образец analyze_log pattern"
+  produces:
+    - "loop/runtime_adapters/codex.py"
+    - "codex/bin/which-codex.sh"
+    - "codex/README.md (stub install/auth contract)"
+  plan_refs:
+    - "FR-006"
+    - "FR-009"
+    - "US-001"
+    - "AC+ #1 (partial — adapter side)"
+    - "AC+ #4"
+    - "AC− #3"
+    - "TM-002"
+    - "TM-006"
+    - "§0.11"
+  files:
+    - "loop/runtime_adapters/codex.py"
+    - "codex/bin/which-codex.sh"
+    - "codex/README.md"
+
+as_built:
+  - "loop/runtime_adapters/base.py: RuntimeAdapter Protocol с build_command/analyze_log/prepare_extras"
+  - "loop/runtime_adapters/claude.py, dsh.py: образцы реализаций"
+  - "loop/runtime_registry.yaml: claude + dsh; codex ещё не зарегистрирован (s07)"
+
+delta:
+  - "create loop/runtime_adapters/codex.py: class CodexAdapter(RuntimeAdapter)"
+  - "  build_command(ctx): codex exec --cd $PROJECT_ROOT --ephemeral --dangerously-bypass-approvals-and-sandbox [-  {--model MODEL}]; prompt via stdin"
+  - "  _resolve_binary(): PATH через which-codex.sh; если не найден → raise SystemExit(127)"
+  - "  analyze_log(raw_log, ctx) → SessionAnalysis: detect FINISH marker / exit code / auth error; reason field set"
+  - "  prepare_extras(ctx) → {}: no extras v1"
+  - "create codex/bin/which-codex.sh: проверяет $CODEX_BIN, потом PATH which codex; exit 127 если не найден"
+  - "create codex/README.md: install (npm i -g @openai/codex), auth (codex auth), CODEX_BIN env var override"
+
+deletes: []
+
+out_of_scope:
+  - "регистрация в registry.yaml (s07)"
+  - "analyze_log fixtures (отдельные в s08)"
+  - "interactive codex (out_of_scope в плане)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # CodexAdapter typed; SessionAnalysis dataclass
+    - ".agents/skills/python-error-handling/SKILL.md"  # SystemExit(127) fail-closed; auth error detection
+    - ".agents/skills/python-resilience/SKILL.md"  # binary resolve; timeout consideration for headless
+
+checkpoints:
+  - id: cp1
+    criterion: "build_command returns list starting with 'codex' with --ephemeral --dangerously-bypass-approvals-and-sandbox"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k build_command -q --tb=short"
+  - id: cp2
+    criterion: "missing codex binary → SystemExit(127), не fallback на claude (AC+ #4, AC− #3)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k missing_binary -q --tb=short"
+  - id: cp3
+    criterion: "analyze_log с auth-error fixture → SessionAnalysis(retry=False, reason='auth_failed') (TM-002)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k analyze_auth_error -q --tb=short"
+  - id: cp4
+    criterion: "which-codex.sh exit 0 когда codex в PATH; exit 127 когда не найден"
+    verify: "bash codex/bin/which-codex.sh && echo OK || test $? -eq 127"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -q --tb=short"
+
+tdd:
+  - "test_codex_runtime_adapter.py::test_build_command_contains_exec"
+  - "test_codex_runtime_adapter.py::test_build_command_no_model_when_none"
+  - "test_codex_runtime_adapter.py::test_build_command_with_model"
+  - "test_codex_runtime_adapter.py::test_missing_binary_raises_exit127"
+  - "test_codex_runtime_adapter.py::test_no_silent_claude_fallback"
+  - "test_codex_runtime_adapter.py::test_analyze_log_auth_error"
+  - "test_codex_runtime_adapter.py::test_analyze_log_completed"
+  - "test_codex_runtime_adapter.py::test_analyze_log_aborted"

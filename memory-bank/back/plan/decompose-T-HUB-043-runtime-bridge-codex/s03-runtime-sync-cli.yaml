@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "bin/runtime-sync CLI --check / --apply + drift detection"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `bin/runtime-sync` — CLI-обёртка над ManifestSync для CI и оператора.
+  `--check` → exit 1 при drift (TM-003, US-004, SC-002).
+  `--apply` → генерирует/обновляет targets.
+  Soft preflight warn в session-start hook при EPIC_RUNTIME=codex и --check drift (FR-012, v1 = warn, не fail).
+
+context:
+  consumes:
+    - "s02: ManifestSync, SyncTarget, DriftItem"
+    - "plan §Sync CLI, FR-003, FR-012"
+  produces:
+    - "bin/runtime-sync"
+    - "loop/tests/test_runtime_sync_cli.py (CLI layer tests)"
+  plan_refs:
+    - "FR-003"
+    - "FR-012"
+    - "US-004"
+    - "SC-002"
+    - "TM-003"
+  files:
+    - "bin/runtime-sync"
+    - "loop/tests/test_runtime_sync_cli.py"
+
+as_built:
+  - "loop/runtime_materializers/sync.py: ManifestSync.check() / .apply() (s02)"
+  - "harness/hooks/session-start.py: существует — интеграция soft warn как отдельный вызов"
+
+delta:
+  - "create bin/runtime-sync: argparse --runtime codex|dsh|all --check|--apply --manifest=PATH (default harness/manifest.yaml)"
+  - "  --check: print drift items, exit 1 if len(drift) > 0; exit 0 if clean"
+  - "  --apply: вызывает hooks.json generator (s04) и agent materializer (s05) через plugin-вызов (dynamically import); exit 0"
+  - "  --runtime all: итерирует все runtimes из manifest"
+  - "soft warn in session-start: если EPIC_RUNTIME=codex → subprocess runtime-sync --check --runtime codex; если exit 1 — print WARNING drift; не прерывать сессию (v1)"
+  - "create loop/tests/test_runtime_sync_cli.py: subprocess/argparse tests"
+
+deletes: []
+
+out_of_scope:
+  - "hard fail preflight v2 (cut_list)"
+  - "hooks.json rendering logic (s04)"
+  - "agent copy logic (s05)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # exit codes + error messages
+    - ".agents/skills/python-configuration/SKILL.md"  # argparse + env EPIC_RUNTIME
+
+checkpoints:
+  - id: cp1
+    criterion: "bin/runtime-sync --check exit 1 при stale .codex/hooks.json (SC-002)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -k check_exit1 -q --tb=short"
+  - id: cp2
+    criterion: "bin/runtime-sync --check exit 0 при актуальном состоянии"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -k check_exit0 -q --tb=short"
+  - id: cp3
+    criterion: "--runtime all итерирует все runtimes без падения (smoke)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -k all_runtimes -q --tb=short"
+  - id: cp4
+    criterion: "EPIC_RUNTIME=codex + drift → session-start выводит WARNING (не abort)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -k preflight_warn -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -q --tb=short"
+
+tdd:
+  - "test_runtime_sync_cli.py::test_check_mode_exit1_on_drift"
+  - "test_runtime_sync_cli.py::test_check_mode_exit0_no_drift"
+  - "test_runtime_sync_cli.py::test_apply_mode_calls_generators"
+  - "test_runtime_sync_cli.py::test_runtime_all_iterates"
+  - "test_runtime_sync_cli.py::test_preflight_warn_no_abort"

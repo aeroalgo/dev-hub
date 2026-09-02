@@ -12,10 +12,22 @@ from loop.schemas.handoff import LoopHandoffFrontmatter, SCHEMA_LOOP_HANDOFF
 
 _FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
 
+_ROLE_TOKEN = r"(?:BACK|FRONT|INTEG(?:RATION)?)"
 _HANDOFF_PHASE_HEADING_RE = re.compile(
-    r"(?im)^##\s*Handoff\s+(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    rf"(?im)^##\s*Handoff\s+{_ROLE_TOKEN}\s+"
+    rf"(?:{_ROLE_TOKEN}\s+)?"
     r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
 )
+_POST_IMPLEMENT_GATE_PHASES = frozenset(
+    {"AUDIT", "QA", "BUGFIX", "REFLECT", "DECOMPOSE"}
+)
+_POST_IMPLEMENT_PHASE_RANK = {
+    "AUDIT": 0,
+    "QA": 1,
+    "BUGFIX": 1,
+    "REFLECT": 2,
+    "DONE": 3,
+}
 _HANDOFF_MODE_LINE_RE = re.compile(
     r"(?im)(?:[-*]\s*)?(?:\*\*)?(?:Режим/шаг|Mode/step):(?:\*\*)?\s*"
     r"`?(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
@@ -90,10 +102,50 @@ def render_with_frontmatter(body: str, meta: LoopHandoffFrontmatter) -> str:
     return f"---\n{front}\n---\n\n{content}"
 
 
+def normalize_gate_mode(mode: str, role: str | None = None) -> str:
+    value = (mode or "").strip().upper()
+    if not value:
+        return value
+    if role:
+        role_u = role.upper()
+        if role_u == "INTEGRATION":
+            role_u = "INTEG"
+        prefix = f"{role_u} "
+        if value.startswith(prefix):
+            value = value[len(prefix) :].strip()
+    else:
+        value = re.sub(rf"^{_ROLE_TOKEN}\s+", "", value, count=1, flags=re.I).strip()
+    return value
+
+
+def handoff_gate_phase_from_text(text: str) -> str | None:
+    """Post-implement gate phase from Handoff markdown, then frontmatter."""
+    handoff = _extract_handoff_block(text) or ""
+    if handoff:
+        for pattern in (
+            _HANDOFF_MODE_LINE_RE,
+            _HANDOFF_PHASE_HEADING_RE,
+            _HANDOFF_NEXT_PHASE_RE,
+        ):
+            match = pattern.search(handoff)
+            if match:
+                return str(match.group(1)).upper()
+    meta = parse_handoff_meta(text)
+    if meta is not None:
+        token = normalize_gate_mode(meta.mode, meta.role)
+        if token in _POST_IMPLEMENT_GATE_PHASES:
+            return token
+    return None
+
+
+def post_implement_phase_rank(phase: str | None) -> int:
+    return _POST_IMPLEMENT_PHASE_RANK.get(str(phase or "").upper(), -1)
+
+
 def handoff_mode_from_text(text: str) -> str | None:
     meta = parse_handoff_meta(text)
     if meta is not None:
-        return meta.mode
+        return normalize_gate_mode(meta.mode, meta.role)
     handoff = _extract_handoff_block(text) or ""
     if not handoff:
         return None

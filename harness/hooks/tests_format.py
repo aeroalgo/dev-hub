@@ -111,7 +111,8 @@ def validate_tests_entries(
         if not cmds:
             errors.append(
                 "tests: need ≥1 executable command with timeout 300s "
-                "(timeout 300s .venv/bin/pytest … | "
+                "(bin/pytest … | "
+                "timeout 300s .venv/bin/pytest … | "
                 "timeout 300s npm exec vitest … | "
                 "timeout 300s npm exec tsc …); wrap cmd in `backticks`"
             )

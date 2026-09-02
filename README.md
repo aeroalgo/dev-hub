@@ -55,25 +55,18 @@ pytest
 
 ---
 
-## Поддерживаемые агенты (Cursor / Codex / Claude Code)
+## Поддерживаемые агенты (Cursor / Codex / Claude Code / DSH)
 
-Один workflow (rules + `memory-bank/`) рассчитан на три среды. **Подключение продукта одинаковое** — `make hub-link`, открыть папку продукта.
+Один workflow (rules + `memory-bank/`) рассчитан на различные среды и runtimes. **Подключение продукта одинаковое** — `make hub-link`, открыть папку продукта.
 
-| Среда | Ручные команды (`BACK PLAN`, …) | Loop (`make loop`) | Hooks / subagents (verify, explorer) |
-|-------|--------------------------------|--------------------|--------------------------------------|
-| **Cursor** (любой агент, в т.ч. **Codex**) | ✅ через `.cursor/rules` | ❌ loop не запускает Codex | ⚠️ Cursor subagents — свои; `.claude/hooks` не участвуют |
-| **Claude Code** (CLI `claude`) | ✅ rules + skills | ✅ **default** runtime | ✅ `.claude/hooks`, `.claude/agents` |
-| **DSH** | ✅ | ✅ opt-in (`EPIC_RUNTIME=dsh`) | через DSH bridge |
+| Runtime ID | Loop support | Prerequisites | Runbook |
+|------------|--------------|---------------|---------|
+| **claude** | ✅ **default** | Claude CLI (`claude`), auth | [`loop/README.md`](loop/README.md) |
+| **dsh** | ✅ opt-in (`EPIC_RUNTIME=dsh`) | DSH CLI / environment | [`docs/runbooks/dsh-loop-pilot.md`](docs/runbooks/dsh-loop-pilot.md) |
+| **codex** | ✅ opt-in (`EPIC_RUNTIME=codex`) | `codex login`, `bin/runtime-sync --apply --runtime codex` | [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md) |
 
-**Codex в Cursor — поддерживается** для обычной работы по workflow: после `hub-link` агент видит те же rules и пишет артефакты в `memory-bank/` продукта. Команды вида `BACK IMPLEMENT`, `FRONT PLAN` работают так же, как в Cursor с другими моделями.
-
-**Чего у Codex нет сейчас:**
-
-- **`make loop`** — автоцикл дергает **Claude Code CLI** (`claude`) или **DSH**, не Codex CLI. Для headless/epic-loop нужен `claude` (или DSH pilot).
-- **Claude hooks** (`stop-gate`, `epic_resolve`, verify-gates) — только в сессиях **Claude Code**; в чате Cursor/Codex они не исполняются автоматически.
-- **Subagents** `verify-implement`, `explorer` — канон для Claude Code; в Cursor используйте встроенные Task/subagent или parent вручную.
-
-Итого: **Codex + Cursor = да для design/implement/QA вручную**; **loop и machine-gates = Claude Code (или DSH)**.
+**Codex CLI — поддерживается в loop:**
+Запуск через `EPIC_RUNTIME=codex make loop` или `bin/loop --runtime codex`. Подробный гайд по настройке, авторизации и синхронизации: [`docs/runbooks/codex-loop-pilot.md`](docs/runbooks/codex-loop-pilot.md).
 
 ---
 

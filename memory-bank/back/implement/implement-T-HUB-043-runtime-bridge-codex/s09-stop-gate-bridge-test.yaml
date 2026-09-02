@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-043-runtime-bridge-codex
+title: s09 — Stop-gate / spawn-gate bridge integration test — codex semantics unchanged
+  IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-043-runtime-bridge-codex/s09-stop-gate-bridge-test.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- cp1
+- cp2
+- cp3
+files:
+- loop/tests/test_codex_hooks_bridge.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=short`'
+integration_check:
+- Verified stop-gate and spawn-gate hooks integration for codex runtime via unit/integration
+  tests
+grep_control: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''status'': ''PASS'', ''output'': ''1 passed in 0.58s''}'
+- '{''checkpoint'': ''cp2'', ''status'': ''PASS'', ''output'': ''1 passed in 0.11s''}'
+- '{''checkpoint'': ''cp3'', ''status'': ''PASS'', ''output'': ''1 passed in 0.05s''}'
+checkpoints:
+- id: cp1
+  criterion: stop-gate denies codex FINISH without verify PASS (same semantics as
+    claude)
+  status: done
+- id: cp2
+  criterion: 'spawn-gate policy for codex == spawn-hard (no separate policy AC− #2)'
+  status: done
+- id: cp3
+  criterion: hooks.json Stop event wired to stop-gate entrypoint
+  status: done
+resume_from: done

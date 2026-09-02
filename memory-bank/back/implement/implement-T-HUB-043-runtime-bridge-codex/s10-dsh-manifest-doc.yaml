@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-043-runtime-bridge-codex
+title: s10 — dsh manifest bridge doc + README codex runtime section (docs-only) IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-043-runtime-bridge-codex/s10-dsh-manifest-doc.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- cp1
+- cp2
+files:
+- README.md
+- codex/README.md
+- harness/manifest.yaml
+deletes: []
+tests:
+- '`rg -n "EPIC_RUNTIME=codex" README.md`'
+- '`rg -n "loop не запускает Codex" README.md`'
+integration_check:
+- Updated documentation for codex runtime support in README.md and codex/README.md
+grep_control: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''status'': ''PASS'', ''output'': ''OK''}'
+- '{''checkpoint'': ''cp2'', ''status'': ''PASS'', ''output'': ''OK''}'
+checkpoints:
+- id: cp1
+  criterion: README.md содержит codex в разделе runtimes/agents (rg)
+  status: done
+- id: cp2
+  criterion: README.md не содержит устаревшую фразу 'loop не запускает Codex'
+  status: done
+resume_from: done

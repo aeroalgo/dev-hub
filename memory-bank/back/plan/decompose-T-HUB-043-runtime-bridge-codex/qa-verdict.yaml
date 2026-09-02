@@ -1,0 +1,11 @@
+verdict: PASS
+epic: T-HUB-043-runtime-bridge-codex
+date: 2026-09-02
+suite_results:
+  total: 28
+  passed: 28
+  failed: 0
+summary:
+  ac_plus: Codex adapter, manifest schema, sync core, hooks JSON generator, materializers, and legacy purge verified.
+  ac_minus: No legacy code leaks or broken dependencies found.
+  code_standards: §0.11 fully respected.

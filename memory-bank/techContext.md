@@ -15,9 +15,10 @@
 
 ## Тесты (hub)
 
-- Тесты loop: из `dev-hub/` → `.venv/bin/pytest loop/tests/ -q --tb=short`
+- Тесты loop: из `dev-hub/` → `bin/pytest loop/tests/ -q --tb=short` (300s встроен в wrapper)
+- Альтернатива: `timeout 300s .venv/bin/pytest …`
 - Не из product venv; hub имеет собственный `.venv` с pytest
-- Внешний timeout: `timeout 300s` (см. `test-timeout.mdc`)
+- Per-item timeout: `pytest-timeout` в `requirements-dev.txt`, `timeout = 300` в `pytest.ini`
 - Targeted T-HUB-003: `-k 'check_after or decide_after_action or last_session or halt'`
 
 ## Persistence

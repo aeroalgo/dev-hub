@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "medusa-security": {
+      "command": "medusa",
+      "args": [
+        "mcp-server"
+      ]
+    }
+  }
+}

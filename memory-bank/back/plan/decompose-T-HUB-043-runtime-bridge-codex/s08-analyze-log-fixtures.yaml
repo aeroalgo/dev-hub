@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "analyze_log codex fixtures: completed / aborted / auth-fail detection"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать fixtures `loop/tests/fixtures/codex_session_*.log` и расширить тесты CodexAdapter.analyze_log
+  для всех сценариев failure matrix (TM-001..TM-006). Также расширить session_resilience тесты
+  с codex-специфичными логами.
+  Outcome: AC+ #5: codex log fixture → SessionAnalysis(completed vs aborted) с точным reason.
+
+context:
+  consumes:
+    - "s06: CodexAdapter.analyze_log (skeleton)"
+    - "plan §FR-008, §Failure matrix TM-001..TM-006, §QA consumes TM-001 TM-002"
+    - "loop/tests/fixtures/ — паттерн существующих log fixtures (dsh/claude)"
+    - "harness/hooks/session_resilience.py — образец analyze_log usage"
+  produces:
+    - "loop/tests/fixtures/codex_session_completed.log"
+    - "loop/tests/fixtures/codex_session_aborted.log"
+    - "loop/tests/fixtures/codex_session_auth_fail.log"
+    - "loop/tests/fixtures/codex_session_binary_missing.log"
+    - "loop/tests/test_codex_runtime_adapter.py (expand analyze_log tests)"
+    - "loop/tests/test_session_resilience_codex.py (new)"
+  plan_refs:
+    - "FR-008"
+    - "FR-010"
+    - "TM-001"
+    - "TM-002"
+    - "TM-005"
+    - "TM-006"
+    - "AC+ #5"
+  files:
+    - "loop/tests/fixtures/codex_session_completed.log"
+    - "loop/tests/fixtures/codex_session_aborted.log"
+    - "loop/tests/fixtures/codex_session_auth_fail.log"
+    - "loop/tests/fixtures/codex_session_binary_missing.log"
+    - "loop/tests/test_codex_runtime_adapter.py"
+    - "loop/tests/test_session_resilience_codex.py"
+
+as_built:
+  - "loop/runtime_adapters/codex.py: CodexAdapter.analyze_log skeleton (s06)"
+  - "loop/tests/test_codex_runtime_adapter.py: build_command tests (s06)"
+  - "harness/hooks/session_resilience.py: analyze patterns для claude/dsh"
+
+delta:
+  - "create loop/tests/fixtures/codex_session_completed.log: realistic codex output с FINISH marker + exit 0"
+  - "create loop/tests/fixtures/codex_session_aborted.log: codex output без FINISH + exit non-0"
+  - "create loop/tests/fixtures/codex_session_auth_fail.log: 'Not authenticated' / auth error stderr"
+  - "create loop/tests/fixtures/codex_session_binary_missing.log: 'codex: command not found' / exit 127"
+  - "expand loop/tests/test_codex_runtime_adapter.py: parametrize analyze_log over all fixtures → expected SessionAnalysis"
+  - "create loop/tests/test_session_resilience_codex.py: session_resilience.analyze_with_adapter(codex_fixture) → correct SessionAnalysis (TM-001/TM-002)"
+
+deletes: []
+
+out_of_scope:
+  - "stop-gate integration (s09)"
+  - "live codex binary (tests mock subprocess)"
+
+skills:
+  code_surface: test
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "analyze_log(completed_fixture) → SessionAnalysis(retry=False, reason=None or 'completed')"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k analyze_completed -q --tb=short"
+  - id: cp2
+    criterion: "analyze_log(aborted_fixture) → SessionAnalysis(retry=True)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k analyze_aborted -q --tb=short"
+  - id: cp3
+    criterion: "analyze_log(auth_fail_fixture) → SessionAnalysis(retry=False, reason='auth_failed') (TM-002)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py -k analyze_auth -q --tb=short"
+  - id: cp4
+    criterion: "test_session_resilience_codex проходит для всех 4 fixture scenarios"
+    verify: ".venv/bin/pytest loop/tests/test_session_resilience_codex.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_codex_runtime_adapter.py loop/tests/test_session_resilience_codex.py -q --tb=short"
+
+tdd:
+  - "test_codex_runtime_adapter.py::test_analyze_log_completed_fixture"
+  - "test_codex_runtime_adapter.py::test_analyze_log_aborted_fixture"
+  - "test_codex_runtime_adapter.py::test_analyze_log_auth_fail_fixture"
+  - "test_session_resilience_codex.py::test_session_resilience_codex_completed"
+  - "test_session_resilience_codex.py::test_session_resilience_codex_auth_fail"

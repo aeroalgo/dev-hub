@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "Board launch --runtime choices from registry (add codex)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить loop/board_sync/cli.py — choices для --runtime брать из runtime_registry.yaml
+  (сейчас hardcoded: choices=("dsh", "claude")).
+  Добавить codex в список: choices=("claude", "dsh", "codex").
+  Опционально: загружать dynamic из registry через load_runtime_registry().
+  Добавить EPIC_RUNTIME=<runtime> в env_extra в build_loop_argv / arm_loop_from_card
+  когда runtime передан.
+
+context:
+  consumes:
+    - "loop/board_sync/cli.py (--runtime choices hardcoded)"
+    - "loop/board_launch/loop_argv.py (build_loop_argv, BridgeConfig, env_extra)"
+    - "loop/runtime_registry.yaml (claude, dsh, codex ids)"
+    - "loop/tests/test_board_launch_cli.py (test_runtime_flag)"
+    - "loop/tests/test_board_launch_argv.py"
+  produces:
+    - "loop/board_sync/cli.py — --runtime codex принимается"
+    - "loop/board_launch/loop_argv.py — env_extra['EPIC_RUNTIME'] = runtime когда runtime передан"
+  plan_refs:
+    - "FR-006 (board_sync/cli.py + board_launch/loop_argv.py runtime choices from registry)"
+    - "US-004 (board user arm loop with --runtime codex)"
+    - "AC+ #4 (board --runtime codex accepted)"
+    - "TM-002 (board codex runtime pytest)"
+  files:
+    - "loop/board_sync/cli.py"
+    - "loop/board_launch/loop_argv.py"
+
+as_built:
+  - "loop/board_sync/cli.py: choices=('dsh', 'claude'), default=_DEFAULT_RUNTIME"
+  - "loop/board_launch/loop_argv.py: build_loop_argv(runtime=None) — runtime param не используется в env_extra"
+  - "loop/runtime_registry.yaml: ids: claude, dsh, codex"
+
+delta:
+  - "loop/board_sync/cli.py: choices=('claude', 'dsh', 'codex') — добавлен codex"
+  - "loop/board_launch/loop_argv.py: build_loop_argv — если runtime передан, env_extra['EPIC_RUNTIME'] = runtime"
+  - "loop/board_launch/loop_argv.py: LoopArgvResult.env_extra обогащается EPIC_RUNTIME"
+
+deletes:
+  - "loop/board_sync/cli.py: hardcoded choices=('dsh', 'claude') → заменить расширенным tuple (статически, v1 — не dynamic registry load)"
+
+out_of_scope:
+  - "Dynamic choices загрузка из registry (cut_list: board codex UI filter)"
+  - "loop/board_launch/loop_run.py env_extra passthrough (проверить что уже работает или is_noop)"
+  - "doctor — s03"
+  - "runbook — s02"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "loop/board_sync/cli.py содержит 'codex' в choices --runtime"
+    verify: "rg 'codex' loop/board_sync/cli.py"
+  - id: cp2
+    criterion: "build_loop_argv c runtime='codex' возвращает env_extra['EPIC_RUNTIME']='codex'"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py -q --tb=line -k codex"
+  - id: cp3
+    criterion: "test_board_launch_cli.py -k codex проходит"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_cli.py -q --tb=line -k codex"
+
+verify: []
+tdd:
+  - "test: build_loop_argv(runtime='codex') → env_extra['EPIC_RUNTIME']='codex'"
+  - "test: board CLI arm --runtime codex не выбрасывает argparse error"
+  - "test: board CLI arm --runtime unknown_xyz — ошибка (choices guard)"

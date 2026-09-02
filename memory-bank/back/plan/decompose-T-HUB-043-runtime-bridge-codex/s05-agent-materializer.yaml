@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "Materialize .codex/agents/ from harness/agents/ (copy policy)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/runtime_materializers/agents.py`: копирует agent-файлы из `harness/agents/`
+  в `.codex/agents/` согласно manifest agents-секции (type=materialize).
+  Outcome: AC+ #6: .codex/agents/verify-implement.md materialized; harness/agents/ — единственный SoT.
+
+context:
+  consumes:
+    - "s01: HarnessManifest (agents секция, type=materialize)"
+    - "s02: ManifestSync (agents SyncTarget kind=agent)"
+    - "plan §Agent materialize / FR-005 / AC+ #6"
+    - "harness/agents/: verify-implement.md, verify-bugfix.md, verify-decompose.md, verify-qa.md, explorer.md, analyze-verify.md"
+  produces:
+    - "loop/runtime_materializers/agents.py"
+    - ".codex/agents/.gitkeep"
+  plan_refs:
+    - "FR-005"
+    - "AC+ #6"
+    - "TM-005"
+  files:
+    - "loop/runtime_materializers/agents.py"
+    - ".codex/agents/.gitkeep"
+
+as_built:
+  - "harness/agents/: verify-implement.md, verify-bugfix.md и др. существуют"
+  - "loop/runtime_materializers/manifest_schema.py: ManifestAgent с runtimes[codex].type=materialize (s01)"
+
+delta:
+  - "create loop/runtime_materializers/agents.py: materialize_agents(manifest: HarnessManifest, runtime: str, dest_root: Path) → list[str]"
+  - "  итерирует manifest.agents; для runtimes[runtime].type == 'materialize' → shutil.copy2(source, dest)"
+  - "  missing source → MaterializationError (fail-closed, TM-005)"
+  - "  returns list of materialized dest paths"
+  - "create .codex/agents/.gitkeep: пустой файл для трекинга директории"
+
+deletes: []
+
+out_of_scope:
+  - "symlink policy (план зафиксировал copy for portability)"
+  - "dsh presets regen (cut_list)"
+  - "T-HUB-039 agent files (soft dep; materialize работает с тем, что есть в harness/agents/)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # MaterializationError on missing source (TM-005)
+
+checkpoints:
+  - id: cp1
+    criterion: "materialize_agents копирует verify-implement.md в .codex/agents/ (AC+ #6)"
+    verify: ".venv/bin/pytest loop/tests/test_agent_materializer.py -k materialize_copy -q --tb=short"
+  - id: cp2
+    criterion: "missing source файл → MaterializationError (TM-005)"
+    verify: ".venv/bin/pytest loop/tests/test_agent_materializer.py -k missing_source -q --tb=short"
+  - id: cp3
+    criterion: "type=native агенты (claude) пропускаются, не копируются"
+    verify: ".venv/bin/pytest loop/tests/test_agent_materializer.py -k native_skipped -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_agent_materializer.py -q --tb=short"
+
+tdd:
+  - "test_agent_materializer.py::test_materialize_copies_agent_file"
+  - "test_agent_materializer.py::test_materialize_returns_dest_paths"
+  - "test_agent_materializer.py::test_missing_source_raises_materialization_error"
+  - "test_agent_materializer.py::test_native_type_skipped"
+  - "test_agent_materializer.py::test_materialize_idempotent"

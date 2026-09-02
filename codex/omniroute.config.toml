@@ -1,0 +1,11 @@
+# OmniRoute provider for Codex CLI (user-level: ~/.codex/config.toml)
+# Install: codex/bin/setup-omniroute.sh
+
+model = "cx/gpt-5.6-luna-xhigh"
+model_provider = "omniroute"
+
+[model_providers.omniroute]
+name = "OmniRoute"
+base_url = "http://localhost:20128/v1"
+env_key = "OMNIROUTE_API_KEY"
+wire_api = "responses"

@@ -27,6 +27,101 @@ from loop.incidents.store import CorruptIncidentError, list_open_incidents, pars
 from loop.incidents.metrics import load_metrics
 
 
+def _check_runtime_registry_valid(cwd: Path) -> CheckResult:
+    try:
+        from loop.runtime.registry import load_registry, InvalidRuntimeConfig
+        reg_path = cwd / "loop" / "runtime_registry.yaml" if (cwd / "loop" / "runtime_registry.yaml").exists() else Path(__file__).resolve().parents[1] / "runtime_registry.yaml"
+        load_registry(reg_path)
+        return CheckResult(
+            name="runtime_registry_valid",
+            status="pass",
+            detail=f"valid registry at {reg_path.name}",
+        )
+    except Exception as exc:
+        return CheckResult(
+            name="runtime_registry_valid",
+            status="fail",
+            detail=f"Failed to load runtime_registry.yaml: {exc}",
+        )
+
+
+def _check_runtime_sync_drift(cwd: Path) -> CheckResult:
+    sync_bin = cwd / "bin" / "runtime-sync"
+    if not sync_bin.exists():
+        sync_bin = Path(__file__).resolve().parents[2] / "bin" / "runtime-sync"
+
+    if not sync_bin.exists() or not os.access(sync_bin, os.X_OK):
+        # Fallback using python script if executable not found directly or not executable
+        sync_script = sync_bin
+    else:
+        sync_script = sync_bin
+
+    import subprocess
+    cmd = [sys.executable, str(sync_script), "--check", "--runtime", "all"]
+    try:
+        res = subprocess.run(
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if res.returncode == 0:
+            return CheckResult(
+                name="runtime_sync_drift",
+                status="pass",
+                detail="no runtime sync drift",
+            )
+        else:
+            detail_msg = res.stdout.strip() or res.stderr.strip() or "runtime-sync drift detected"
+            return CheckResult(
+                name="runtime_sync_drift",
+                status="warn",
+                detail=detail_msg,
+            )
+    except Exception as exc:
+        return CheckResult(
+            name="runtime_sync_drift",
+            status="warn",
+            detail=f"runtime-sync check error: {exc}",
+        )
+
+
+def _check_runtime_binary_ok(runtime_id: str, cwd: Path) -> CheckResult:
+    check_name = f"runtime_binary_{runtime_id}"
+    try:
+        from loop.runtime.registry import load_registry
+        reg_path = cwd / "loop" / "runtime_registry.yaml" if (cwd / "loop" / "runtime_registry.yaml").exists() else Path(__file__).resolve().parents[1] / "runtime_registry.yaml"
+        reg = load_registry(reg_path)
+        runtime_info = reg.get_runtime(runtime_id)
+    except Exception as exc:
+        return CheckResult(
+            name=check_name,
+            status="fail",
+            detail=f"Failed to load registry for {runtime_id}: {exc}",
+        )
+
+    # Determine binary name/env
+    binary_env = runtime_info.get("binary_env")
+    env_bin = os.environ.get(binary_env) if binary_env else None
+
+    binary_name = env_bin or runtime_id
+    binary_path = shutil.which(binary_name)
+
+    if binary_path:
+        return CheckResult(
+            name=check_name,
+            status="pass",
+            detail=f"binary '{binary_name}' found at {binary_path}",
+        )
+    else:
+        return CheckResult(
+            name=check_name,
+            status="fail",
+            detail=f"binary '{binary_name}' not found in PATH",
+        )
+
+
 def _check_halt_rate(cwd: Path, threshold: float = 0.5) -> CheckResult:
     mb_path = cwd / "memory-bank" if not cwd.name == "memory-bank" else cwd
     metrics_path = mb_path / "metrics.json"
@@ -361,6 +456,25 @@ def run_doctor(cwd: str | Path, auto_repair: bool = False, format: str = "text")
             )
         )
         report.warnings.append(f"Halt rate check exception: {exc}")
+
+    # 9. runtime_registry_valid check
+    reg_valid_check = _check_runtime_registry_valid(cwd_p)
+    report.checklist.append(reg_valid_check)
+    if reg_valid_check.status == "fail":
+        report.blockers.append(f"runtime_registry_valid failed: {reg_valid_check.detail}")
+
+    # 10. runtime_sync_drift check
+    sync_drift_check = _check_runtime_sync_drift(cwd_p)
+    report.checklist.append(sync_drift_check)
+    if sync_drift_check.status == "warn":
+        report.warnings.append(f"runtime_sync_drift warning: {sync_drift_check.detail}")
+
+    # 11. runtime_binary check for EPIC_RUNTIME (or active/default runtime)
+    active_runtime = os.environ.get("EPIC_RUNTIME", "claude")
+    binary_check = _check_runtime_binary_ok(active_runtime, cwd_p)
+    report.checklist.append(binary_check)
+    if binary_check.status == "fail":
+        report.blockers.append(f"{binary_check.name} failed: {binary_check.detail}")
 
     if report.blockers:
         report.exit_code = 1

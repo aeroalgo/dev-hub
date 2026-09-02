@@ -1,0 +1,60 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-043-runtime-bridge-codex
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-manifest-schema.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-manifest-schema
+  status: completed
+- id: s02
+  file: s02-sync-core.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-sync-core
+  status: completed
+- id: s03
+  file: s03-runtime-sync-cli.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-runtime-sync-cli
+  status: completed
+- id: s04
+  file: s04-hooks-json-generator.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-hooks-json-generator
+  status: completed
+- id: s05
+  file: s05-agent-materializer.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-agent-materializer
+  status: completed
+- id: s06
+  file: s06-codex-adapter.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-codex-adapter
+  status: completed
+- id: s07
+  file: s07-registry-dispatch-wiring.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-registry-dispatch-wiring
+  status: completed
+- id: s08
+  file: s08-analyze-log-fixtures.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-analyze-log-fixtures
+  status: completed
+- id: s09
+  file: s09-stop-gate-bridge-test.yaml
+  next_phase: BACK IMPLEMENT
+  title: s09-stop-gate-bridge-test
+  status: completed
+- id: s10
+  file: s10-dsh-manifest-doc.yaml
+  next_phase: BACK IMPLEMENT
+  title: s10-dsh-manifest-doc
+  status: completed
+- id: s11
+  file: s11-legacy-purge.yaml
+  next_phase: BACK IMPLEMENT
+  title: s11-legacy-purge
+  status: completed

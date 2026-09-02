@@ -61,3 +61,15 @@ def test_loop_has_no_max_iterations_cap() -> None:
     assert "EPIC_MAX" not in LOOP_SH
     assert "LOOP HALTED: max iterations" not in LOOP_SH
     assert "POST_IMPLEMENT_RESERVE" not in LOOP_SH
+
+
+def test_loop_user_interrupt_exits_not_resume_outer() -> None:
+    assert "_exit_loop_user_interrupt" in LOOP_SH
+    assert "LOOP STOPPED (Ctrl+C)" in LOOP_SH
+    assert "trap _on_user_interrupt INT" in LOOP_SH
+    assert "trap _cleanup_runner_owner EXIT HUP TERM" in LOOP_SH
+    assert "INT TERM" not in LOOP_SH.split("trap _cleanup_runner_owner")[1].split("\n")[0]
+    session_block = LOOP_SH.split("run_agent_session", 1)[1].split("record-session", 1)[0]
+    assert "agent_rc -eq 130" in session_block
+    assert "agent_rc -eq 143" in session_block
+    assert "_exit_loop_user_interrupt" in session_block

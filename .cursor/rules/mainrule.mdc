@@ -6,7 +6,7 @@ alwaysApply: true
 
 **Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc (PLAN/DECOMPOSE/ANALYZE/AUDIT/QA) · **full economy:** @.cursor/rules/token-economy-core.mdc (read on role command)
 
-**Test runner:** @.cursor/rules/shared/test-timeout.mdc (300s external timeout)
+**Test runner:** `bin/pytest …` (300s built-in) · @.cursor/rules/shared/test-timeout.mdc
 
 `memory-bank/` — канон. **Router:** `activeContext.md` → `load_now`. Index-only: `tasks.md`, `systemPatterns.md`, `plan-*`, `architecture/index.md`. Plan/gap/architecture не резать. Скиллы — `@.agents/skills/` по цепочке workflow, не весь каталог.
 

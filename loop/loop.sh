@@ -62,6 +62,7 @@ HARNESS_HOOKS="$HUB_ROOT/harness/hooks"
 CTX=(python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT")
 STATE_DIR="$HUB_ROOT/runtime/$PROJ_SLUG/epic"
 STREAM_FILTER="$HARNESS_HOOKS/epic_stream_filter.py"
+CODEX_STREAM_FILTER="$HARNESS_HOOKS/epic_codex_stream_filter.py"
 ROOT="$HUB_ROOT"
 SESSION_WRAPPER="$HARNESS_HOOKS/session_resilience.py"
 mkdir -p "$STATE_DIR"
@@ -327,7 +328,15 @@ remove_runner_owner_if_owned(
 )
 PY
 }
-trap _cleanup_runner_owner EXIT HUP INT TERM
+_exit_loop_user_interrupt() {
+  echo "==> LOOP STOPPED (Ctrl+C)" >&2
+  exit 130
+}
+_on_user_interrupt() {
+  _exit_loop_user_interrupt
+}
+trap _on_user_interrupt INT
+trap _cleanup_runner_owner EXIT HUP TERM
 
 if [[ "$DO_STATUS" == "1" ]]; then
   "${CTX[@]}" status
@@ -539,7 +548,9 @@ run_dsh_session() {
     return 127
   fi
 
-  local profile="${EPIC_DSH_PROFILE:-epic-implement}"
+  local profile_override
+  profile_override="$(echo "${EXTRAS_JSON:-{}}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
+  local profile="$profile_override"
   local -a command=("${DSH_COMMAND[@]}" --profile "$profile" --no-open "$prompt")
   local rc
   if (cd "$PROJECT_ROOT" && python3 "$SESSION_WRAPPER" run-session \
@@ -569,7 +580,10 @@ run_agent_session() {
   local session_cwd="$HUB_ROOT"
 
   if [[ "$runtime_id" == "dsh" ]]; then
-    extras_json="{\"dsh_profile\":\"${EPIC_DSH_PROFILE:-epic-implement}\"}"
+    extras_json="${EXTRAS_JSON:-{}}"
+    session_cwd="$PROJECT_ROOT"
+  elif [[ "$runtime_id" == "codex" ]]; then
+    extras_json="$(PROJECT_ROOT="$PROJECT_ROOT" python3 -c 'import json,os; print(json.dumps({"project_root": os.environ["PROJECT_ROOT"]}))')"
     session_cwd="$PROJECT_ROOT"
   fi
 
@@ -605,6 +619,13 @@ for part in json.load(sys.stdin):
     command=("${DSH_COMMAND[@]}" "${command[@]:1}")
   fi
 
+  local -a stdin_file_args=()
+  local progress_mode="tool_json"
+  if [[ "$runtime_id" == "codex" ]]; then
+    stdin_file_args=(--stdin-file "$prompt_file")
+    progress_mode="codex_json"
+  fi
+
   set +e
   if [[ "$HEADLESS" == "1" ]]; then
     echo "==> headless → $log_file (runtime=$runtime_id cwd=$session_cwd)"
@@ -616,9 +637,24 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
         -- "${command[@]}") | python3 "$STREAM_FILTER"
+      rc="${PIPESTATUS[0]}"
+    elif [[ "$runtime_id" == "codex" ]]; then
+      (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
+        --mode headless \
+        --session-id "$iter" \
+        --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+        --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+        ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+        ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --progress-mode "$progress_mode" \
+        --log "$log_file" \
+        ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+        "${stdin_file_args[@]}" \
+        -- "${command[@]}") | python3 "$CODEX_STREAM_FILTER"
       rc="${PIPESTATUS[0]}"
     else
       (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
@@ -628,8 +664,10 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+        "${stdin_file_args[@]}" \
         -- "${command[@]}")
       rc=$?
     fi
@@ -642,8 +680,10 @@ for part in json.load(sys.stdin):
       --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
       ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
       ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+      --progress-mode "$progress_mode" \
       --log "$log_file" \
       ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+      "${stdin_file_args[@]}" \
       -- "${command[@]}")
     rc=$?
   fi
@@ -654,6 +694,119 @@ if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   set -- "${_LOOP_SOURCE_ARGS[@]}"
   return 0
 fi
+
+_print_prepare_summary() {
+  local prep_json="$1"
+  if [[ "$VERBOSE" == "1" ]]; then
+    echo "$prep_json"
+  else
+    echo "$prep_json" | python3 -c '
+import json,sys
+r=json.load(sys.stdin)
+print("==> prepare:", "ok" if r.get("ok") else r.get("reason"))
+phase = r.get("phase") or r.get("loop_phase") or ""
+step = r.get("armed_step") or ""
+if phase or step:
+    print("==> working:", (phase or "?"), "step=" + (step or "?"))
+if r.get("degraded"):
+    print("==> WARN: context degraded — agent chooses next step from files")
+    errs=r.get("shape_errors") or []
+    if errs: print("==> shape:", "; ".join(errs)[:200])
+if r.get("load_now"): print("==> load_now:", ", ".join(r["load_now"][:4]))
+' 2>/dev/null || echo "$prep_json"
+  fi
+}
+
+_apply_prepare_session_vars() {
+  local prep_json="$1"
+  EPIC_RUNTIME_RESOLVED="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("runtime") or "claude")' 2>/dev/null || echo claude)"
+  EXTRAS_JSON="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin).get("runtime_extras") or {}))' 2>/dev/null || echo '{}')"
+  export EPIC_RUNTIME_RESOLVED EXTRAS_JSON
+  configure_runtime_env "$EPIC_RUNTIME_RESOLVED"
+  SESSION_MODEL="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model") or "")' 2>/dev/null || true)"
+  LOOP_PHASE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("loop_phase") or "")' 2>/dev/null || true)"
+  MODEL_SOURCE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model_source") or "")' 2>/dev/null || true)"
+  ARMED_STEP="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("armed_step") or "")' 2>/dev/null || true)"
+  MODEL_ARGS=()
+  if [[ -n "$SESSION_MODEL" ]]; then
+    MODEL_ARGS=(--model "$SESSION_MODEL")
+  elif [[ -n "${MODEL:-}" ]]; then
+    MODEL_ARGS=(--model "$MODEL")
+    SESSION_MODEL="$MODEL"
+  fi
+  fp_before="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("fingerprint") or "")')"
+  prompt_file="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["prompt_file"])')"
+}
+
+_run_context_prepare() {
+  set +e
+  if [[ -n "${MODEL:-}" ]]; then
+    PREP_JSON="$("${CTX[@]}" prepare --model "$MODEL")"
+  else
+    PREP_JSON="$("${CTX[@]}" prepare)"
+  fi
+  PREP_RC=$?
+  set -e
+}
+
+_print_projection_banner() {
+  local label="${1:-}"
+  if [[ -n "$label" ]]; then
+    echo "==> prompt (projection) [$label]:"
+  else
+    echo "==> prompt (projection):"
+  fi
+  awk '
+    /^## projection$/ {show=1}
+    show {print; if (/^- step:/) exit}
+  ' "$prompt_file"
+  if [[ -n "$ARMED_STEP" ]]; then
+    echo "==> armed_step: $ARMED_STEP"
+  fi
+  echo "..."
+}
+
+# Transient API retry must re-prepare: memory-bank may advance during try 1 while
+# armed_step/prompt_file were frozen at outer prepare (index.yaml SoT).
+# Returns: 0=ok | 1=resume outer loop | 2=epic done (skip stale retry)
+_reprepare_for_transient_retry() {
+  local prev_step="${ARMED_STEP:-}"
+  local next_try="$1"
+  _run_context_prepare
+  _print_prepare_summary "$PREP_JSON"
+  if [[ $PREP_RC -eq 3 ]]; then
+    local prep_stop
+    prep_stop="$(echo "$PREP_JSON" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r.get("stop") or "")' 2>/dev/null || true)"
+    if [[ "$prep_stop" == "EPIC_DONE" ]]; then
+      echo "==> transient retry: epic complete — skip stale armed_step=${prev_step:-?} retry"
+      return 2
+    fi
+    echo "==> WARN: transient retry prepare stopped (rc=3 stop=${prep_stop:-?}) — resume outer loop" >&2
+    return 1
+  fi
+  if [[ $PREP_RC -ne 0 ]]; then
+    local prep_halt prep_reason
+    prep_halt="$(echo "$PREP_JSON" | python3 -c 'import json,sys; print("1" if json.load(sys.stdin).get("halt") else "0")' 2>/dev/null || echo 0)"
+    prep_reason="$(echo "$PREP_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("reason") or "")' 2>/dev/null || true)"
+    if [[ "$prep_halt" == "1" ]]; then
+      echo "==> HALT: transient retry prepare fail-closed" >&2
+      [[ -n "$prep_reason" ]] && echo "==> reason: $prep_reason" >&2
+      exit "$PREP_RC"
+    fi
+    echo "==> WARN: transient retry prepare failed (rc=$PREP_RC) — resume outer loop" >&2
+    [[ -n "$prep_reason" ]] && echo "==> reason: $prep_reason" >&2
+    return 1
+  fi
+  _apply_prepare_session_vars "$PREP_JSON"
+  echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
+  if [[ -n "$prev_step" && "$ARMED_STEP" != "$prev_step" ]]; then
+    echo "==> transient retry: armed_step resynced ${prev_step} → ${ARMED_STEP:-?}"
+  else
+    echo "==> transient retry: re-prepared (step=${ARMED_STEP:-?})"
+  fi
+  _print_projection_banner "retry t${next_try}"
+  return 0
+}
 
 echo "==> context-first loop cli_model=${MODEL:-default} epic=${EPIC_SPEC:-<activeContext>} claude=$CLAUDE"
 echo "==> phase models: PROJECT_LOOP_<PHASE>_MODEL from .claude/project.env (DECOMPOSE/IMPLEMENT/…)"
@@ -703,32 +856,10 @@ if removed:
     print(f"==> pruned {removed} old session log(s); kept {min(keep, len(logs))}")
 PY
 
-  set +e
-  if [[ -n "$MODEL" ]]; then
-    prep_json="$("${CTX[@]}" prepare --model "$MODEL")"
-  else
-    prep_json="$("${CTX[@]}" prepare)"
-  fi
-  prep_rc=$?
-  set -e
-  if [[ "$VERBOSE" == "1" ]]; then
-    echo "$prep_json"
-  else
-    echo "$prep_json" | python3 -c '
-import json,sys
-r=json.load(sys.stdin)
-print("==> prepare:", "ok" if r.get("ok") else r.get("reason"))
-phase = r.get("phase") or r.get("loop_phase") or ""
-step = r.get("armed_step") or ""
-if phase or step:
-    print("==> working:", (phase or "?"), "step=" + (step or "?"))
-if r.get("degraded"):
-    print("==> WARN: context degraded — agent chooses next step from files")
-    errs=r.get("shape_errors") or []
-    if errs: print("==> shape:", "; ".join(errs)[:200])
-if r.get("load_now"): print("==> load_now:", ", ".join(r["load_now"][:4]))
-' 2>/dev/null || echo "$prep_json"
-  fi
+  _run_context_prepare
+  prep_json="$PREP_JSON"
+  prep_rc=$PREP_RC
+  _print_prepare_summary "$prep_json"
   if [[ $prep_rc -eq 3 ]]; then
     prep_stop="$(echo "$prep_json" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r.get("stop") or "")' 2>/dev/null || true)"
     if [[ "$prep_stop" == "EPIC_DONE" && "${EPIC_CHAIN_ROADMAP:-0}" == "1" ]]; then
@@ -772,35 +903,10 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     continue
   fi
 
-  EPIC_RUNTIME_RESOLVED="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("runtime") or "claude")' 2>/dev/null || echo claude)"
-  EPIC_DSH_PROFILE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
-  export EPIC_RUNTIME_RESOLVED EPIC_DSH_PROFILE
-  configure_runtime_env "$EPIC_RUNTIME_RESOLVED"
-  SESSION_MODEL="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model") or "")' 2>/dev/null || true)"
-  LOOP_PHASE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("loop_phase") or "")' 2>/dev/null || true)"
-  MODEL_SOURCE="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("model_source") or "")' 2>/dev/null || true)"
-  ARMED_STEP="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("armed_step") or "")' 2>/dev/null || true)"
-  MODEL_ARGS=()
-  if [[ -n "$SESSION_MODEL" ]]; then
-    MODEL_ARGS=(--model "$SESSION_MODEL")
-  elif [[ -n "$MODEL" ]]; then
-    MODEL_ARGS=(--model "$MODEL")
-    SESSION_MODEL="$MODEL"
-  fi
+  _apply_prepare_session_vars "$prep_json"
   echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
 
-  fp_before="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("fingerprint") or "")')"
-  prompt_file="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["prompt_file"])')"
-  # Do not sed 1..N: context path count varies and used to hide "- step:" after epic.
-  echo "==> prompt (projection):"
-  awk '
-    /^## projection$/ {show=1}
-    show {print; if (/^- step:/) exit}
-  ' "$prompt_file"
-  if [[ -n "$ARMED_STEP" ]]; then
-    echo "==> armed_step: $ARMED_STEP"
-  fi
-  echo "..."
+  _print_projection_banner
 
   transient_try=0
   max_transient="${EPIC_TRANSIENT_RETRY_MAX:-3}"
@@ -814,6 +920,9 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     run_agent_session "$session_tag" "$prompt_file"
     agent_rc=$?
     claude_rc="$agent_rc"
+    if [[ $agent_rc -eq 130 || $agent_rc -eq 143 ]]; then
+      _exit_loop_user_interrupt
+    fi
     # Keep +e through diagnostics — echo to a broken tty must not kill retry.
     echo "==> claude exit=$claude_rc (try $transient_try/$max_transient)" || true
     session_log="$STATE_DIR/session-${session_tag}.log"
@@ -834,13 +943,18 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
       echo "==> TRANSIENT API abort — retry after ${backoff}s"
       echo "==> reason: $reason"
       [[ "$backoff" -gt 0 ]] && sleep "$backoff"
-      echo "==> prompt (projection) [retry t$((transient_try + 1))]:"
-      awk '
-        /^## projection$/ {show=1}
-        show {print; if (/^- step:/) exit}
-      ' "$prompt_file"
-      [[ -n "$ARMED_STEP" ]] && echo "==> armed_step: $ARMED_STEP"
-      echo "..."
+      set +e
+      _reprepare_for_transient_retry "$((transient_try + 1))"
+      reprep_rc=$?
+      set -e
+      if [[ $reprep_rc -eq 2 ]]; then
+        rec_rc=0
+        break
+      fi
+      if [[ $reprep_rc -ne 0 ]]; then
+        resume_outer=1
+        break
+      fi
       continue
     fi
 
@@ -853,9 +967,16 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
 
     outcome="$(echo "$rec_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("outcome") or "")' 2>/dev/null || true)"
     if [[ "$outcome" == "permanent_failure" ]] || [[ "$reason" == model_substitution* ]]; then
-      echo "==> HALT: model/config fail-closed (no silent downgrade)" >&2
       echo "==> reason: $reason" >&2
-      echo "==> fix: allow requested model in org/OmniRoute, or unset PROJECT_LOOP_<PHASE>_MODEL / pass a reachable CLI MODEL" >&2
+      if [[ "$reason" == model_substitution* ]]; then
+        echo "==> HALT: model/config fail-closed (no silent downgrade)" >&2
+        echo "==> fix: allow requested model in org/OmniRoute, or unset PROJECT_LOOP_<PHASE>_MODEL / pass a reachable CLI MODEL" >&2
+      elif [[ "$reason" == "command not found" ]]; then
+        echo "==> HALT: runtime binary missing (fail-closed)" >&2
+        echo "==> fix: install runtime CLI or set CODEX_BIN / CLAUDE_PATH / DSH_PATH" >&2
+      else
+        echo "==> HALT: permanent session failure (fail-closed)" >&2
+      fi
       exit 1
     fi
 

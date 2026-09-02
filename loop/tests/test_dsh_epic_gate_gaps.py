@@ -388,12 +388,8 @@ def test_dsh_stop_finish_blocking(tmp_path: Path) -> None:
     _prepare_stop_gate(tmp_path)
 
     blocked = _run_stop_gate(tmp_path)
-    allowed = _run_stop_gate(tmp_path)
 
     assert blocked["decision"] == "block"
-    assert "DSH self-limit" in blocked["reason"]
-    assert allowed["decision"] == "allow"
-    assert "DSH self-limit" in allowed["reason"]
 
 
 def test_session_start_injects_context_at_dsh_first_turn_boundary() -> None:

@@ -1,0 +1,64 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "codex-loop-pilot runbook — install/auth/sync/EPIC_RUNTIME=codex"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать docs/runbooks/codex-loop-pilot.md по структуре dsh-loop-pilot.md.
+  Runbook обеспечивает оператора полным путём: установка codex CLI → авторизация →
+  runtime-sync → запуск EPIC_RUNTIME=codex → troubleshooting.
+  После runbook оператор может запустить headless loop без чата.
+
+context:
+  consumes:
+    - "docs/runbooks/dsh-loop-pilot.md (структурный эталон)"
+    - "loop/runtime_registry.yaml (runtime: codex запись)"
+    - "README.md s01 (ссылка из таблицы)"
+  produces:
+    - "docs/runbooks/codex-loop-pilot.md — полный операторский runbook"
+  plan_refs:
+    - "FR-003 (codex-loop-pilot runbook)"
+    - "US-001 (operator runbook codex loop)"
+    - "AC+ #2 (runbook exists with EPIC_RUNTIME=codex + runtime-sync steps)"
+    - "TM-003 (runbook exists — file path fixture)"
+  files:
+    - "docs/runbooks/codex-loop-pilot.md"
+
+as_built:
+  - "docs/runbooks/dsh-loop-pilot.md: install/EPIC_RUNTIME=dsh/troubleshooting pattern"
+  - "docs/runbooks/: только dsh pilot, codex отсутствует"
+
+delta:
+  - "docs/runbooks/codex-loop-pilot.md: новый файл — §Prerequisites, §Install, §Auth (codex login), §Runtime sync, §Launch, §EPIC_RUNTIME=codex, §Troubleshooting"
+  - "Секция §Prerequisites: codex binary, runtime-sync, EPIC_RUNTIME"
+  - "Секция §Runtime sync: команда python3 loop/runtime_adapters/runtime_sync.py --check + expected output"
+  - "Секция §Launch: make loop EPIC_RUNTIME=codex или bin/loop --runtime codex"
+  - "Секция §Troubleshooting: binary not found / runtime-sync drift / doctor preflight"
+
+deletes: []
+
+out_of_scope:
+  - "codex/README.md extend (from 043) — отдельный epic 043"
+  - "doctor checks — s03"
+  - "board launch codex — s04"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл docs/runbooks/codex-loop-pilot.md существует"
+    verify: "test -f docs/runbooks/codex-loop-pilot.md && echo OK"
+  - id: cp2
+    criterion: "Runbook содержит ключевые секции: EPIC_RUNTIME=codex, runtime-sync, troubleshooting"
+    verify: "rg 'EPIC_RUNTIME=codex' docs/runbooks/codex-loop-pilot.md && rg 'runtime.sync' docs/runbooks/codex-loop-pilot.md && rg '[Tt]roubleshooting' docs/runbooks/codex-loop-pilot.md"
+  - id: cp3
+    criterion: "README.md ссылается на codex-loop-pilot.md (после s01)"
+    verify: "rg 'codex-loop-pilot' README.md"
+
+verify: []
+tdd: []

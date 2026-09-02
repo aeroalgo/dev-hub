@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-043-runtime-bridge-codex
+title: s03 — bin/runtime-sync CLI --check / --apply + drift detection IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-043-runtime-bridge-codex/s03-runtime-sync-cli.yaml
+skills_used:
+  - ".agents/skills/tdd/SKILL.md"
+  - ".agents/skills/python-testing-patterns/SKILL.md"
+  - ".agents/skills/modern-python/SKILL.md"
+discovery: []
+gaps:
+  status: none
+done:
+  - "Создан CLI bin/runtime-sync (--check, --apply, --runtime, --manifest)"
+  - "Интегрирован soft preflight warn в harness/hooks/session-start.py для EPIC_RUNTIME=codex"
+  - "Созданы тесты в loop/tests/test_runtime_sync_cli.py"
+files:
+  - bin/runtime-sync
+  - harness/hooks/session-start.py
+  - loop/tests/test_runtime_sync_cli.py
+deletes: []
+tests:
+  - "`timeout 300s .venv/bin/pytest loop/tests/test_runtime_sync_cli.py -q --tb=short`"
+integration_check:
+  - "bin/runtime-sync --check exit 1 при дрифте и exit 0 без дрифта"
+grep_control: []
+verification_results:
+  - command: ".venv/bin/pytest loop/tests/test_runtime_sync_cli.py -q --tb=short"
+    status: PASS
+checkpoints:
+  - id: cp1
+    criterion: bin/runtime-sync --check exit 1 при stale .codex/hooks.json (SC-002)
+    status: done
+  - id: cp2
+    criterion: bin/runtime-sync --check exit 0 при актуальном состоянии
+    status: done
+  - id: cp3
+    criterion: --runtime all итерирует все runtimes без падения (smoke)
+    status: done
+  - id: cp4
+    criterion: EPIC_RUNTIME=codex + drift → session-start выводит WARNING (не abort)
+    status: done
+resume_from: cp1

@@ -92,7 +92,7 @@ def test_doctor_open_incidents_warn_only(tmp_path: Path) -> None:
     assert report.exit_code == 0
     chk = next(c for c in report.checklist if c.name == "open_incidents")
     assert chk.status == "warn"
-    assert len(report.warnings) == 1
+    assert any("open incidents pending resolution" in w for w in report.warnings)
 
 
 def test_doctor_board_sync_skipped_when_cli_missing(tmp_path: Path) -> None:

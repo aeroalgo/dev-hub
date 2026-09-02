@@ -46,6 +46,11 @@
 | T-HUB-044 | Runtime sync doctor docs | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · deps T-HUB-043 |
 | T-HUB-046 | Harness alongside install (non-destructive hub-link) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-046-harness-alongside-install.md) · deps T-HUB-041 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) |
 | T-HUB-047 | Harness mb-scaffold + epic layout v2 | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) · deps T-HUB-036,040 · [roadmap](back/plan/roadmap-harness-maturity-borrowings-epics.md) · next DECOMPOSE |
+| T-HUB-048 | Workflow pack registry | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-048-workflow-pack-registry.md) · [roadmap](back/plan/roadmap-workflow-pack-framework-epics.md) · next DECOMPOSE |
+| T-HUB-049 | Workflow pack phase router | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-049-workflow-pack-phase-router.md) · deps T-HUB-048 |
+| T-HUB-050 | Workflow pack memory-bank paths | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-050-workflow-pack-memory-bank-paths.md) · deps T-HUB-048 |
+| T-HUB-051 | Workflow pack reference video | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-051-workflow-pack-reference-video.md) · deps T-HUB-049,050 · CREATIVE before s05 |
+| T-HUB-052 | Workflow pack adoption docs | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-052-workflow-pack-adoption-docs.md) · deps T-HUB-051 |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |
@@ -66,6 +71,7 @@
 | Slug: harness-maturity-borrowings | [roadmap-harness-maturity-borrowings-epics.md](back/plan/roadmap-harness-maturity-borrowings-epics.md) · [queue](back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml) |
 | Slug: back-plan-gstack-adapt | [roadmap-back-plan-gstack-adapt-epics.md](back/plan/roadmap-back-plan-gstack-adapt-epics.md) · [queue](back/plan/roadmap-back-plan-gstack-adapt-epics.queue.yaml) |
 | Slug: harness-universal-runtime | [roadmap-harness-universal-runtime-epics.md](back/plan/roadmap-harness-universal-runtime-epics.md) · [queue](back/plan/roadmap-harness-universal-runtime-epics.queue.yaml) |
+| Slug: workflow-pack-framework | [roadmap-workflow-pack-framework-epics.md](back/plan/roadmap-workflow-pack-framework-epics.md) · [queue](back/plan/roadmap-workflow-pack-framework-epics.queue.yaml) |
 | Research | [audit/workflow-loop-20260816](audit/workflow-loop-20260816/index.md) · spec-kit/ (local) + chat analysis 2026-08-23 |
 
 ## Done (recent)
@@ -88,6 +94,7 @@
 - T-HUB-027: BACK PLAN gstack-adapt (product probe, eng spine, qa_consumes, review readiness, plan review batch)
 - T-HUB-040: BACK PLAN mb-finish typed FINISH API (MCP-style tools); next DECOMPOSE after T-HUB-033/039
 - T-HUB-041…044: MULTI-EPIC PLAN harness universal runtime (harness/ extract → adapter framework → codex bridge → docs/doctor)
+- T-HUB-048…052: MULTI-EPIC PLAN workflow-pack-framework (registry → phase router → mb paths → video reference → adoption/docs)
 
 ## Последние события
 

@@ -18,7 +18,7 @@ User-visible flow → scenario test до FINISH; QA прогон + дыры. Pla
 
 Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
 
-cwd = корень репо; `timeout 300s .venv/bin/pytest …`; **FORBIDDEN** голый `pytest` и запуск без внешнего timeout.
+cwd = корень репо; **предпочтительно** `bin/pytest …`; альтернатива `timeout 300s .venv/bin/pytest …`; **FORBIDDEN** голый `pytest` без внешнего timeout.
 
 ## QUERY BUILDER
 

@@ -1,0 +1,69 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "README runtime table + WORKFLOW.md registry pointer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить README.md — добавить/актуализировать таблицу runtimes (claude/dsh/codex),
+  строку «Codex CLI — поддерживается в loop» заменить на ✅ + ссылку на runbook,
+  убрать антипаттерн «loop не запускает Codex».
+  Обновить loop/WORKFLOW.md — добавить pointer на runtime_registry.yaml и harness/
+  как слой конфигурации, чтобы операторы видели точку входа для настройки runtime.
+
+context:
+  consumes:
+    - "README.md (§Поддерживаемые агенты, §Codex CLI)"
+    - "loop/WORKFLOW.md (transitions table)"
+    - "loop/runtime_registry.yaml"
+  produces:
+    - "README.md — актуальная runtime matrix с codex loop ✅ + ссылка на runbook"
+    - "loop/WORKFLOW.md — секция «Runtime registry» с pointer"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "US-003"
+    - "AC+ #1 (README runtime table includes codex loop)"
+    - "AC− #1 (Stale README «loop не запускает Codex»)"
+  files:
+    - "README.md"
+    - "loop/WORKFLOW.md"
+
+as_built:
+  - "README.md: таблица агентов с Codex CLI ✅ rules+AGENTS.md / ✅ opt-in EPIC_RUNTIME=codex / ✅ .codex/hooks.json"
+  - "README.md: блок «Codex CLI — поддерживается в loop» — формулировка без doctor/runbook"
+  - "loop/WORKFLOW.md: упоминает activeContext.md + decompose index; нет явного pointer на registry"
+
+delta:
+  - "README.md: таблица runtimes расширена — 3 строки (claude / dsh / codex), колонки: id, loop support, prerequisites, runbook"
+  - "README.md: фраза «loop не запускает Codex» — удалена/заменена на ✅ + ссылка на docs/runbooks/codex-loop-pilot.md"
+  - "README.md: добавлена строка prerequisites: codex login, runtime-sync (FR-001)"
+  - "loop/WORKFLOW.md: добавлена секция «## Runtime registry» — ссылка на loop/runtime_registry.yaml + harness/ layer"
+
+deletes:
+  - "README.md: любые упоминания «loop не запускает Codex» / устаревший статус ❌ codex loop"
+
+out_of_scope:
+  - "docs/runbooks/codex-loop-pilot.md — создаётся в s02"
+  - "harness/README.md — s05 или отдельный epic 041"
+  - "board launch codex — s04"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "README.md не содержит «loop не запускает Codex» или ❌ codex loop"
+    verify: "rg 'не запускает Codex|loop.*не.*запускает' README.md; echo exit=$?"
+  - id: cp2
+    criterion: "README.md содержит строку codex в runtime matrix с ✅ loop"
+    verify: "rg -c 'codex-loop-pilot' README.md"
+  - id: cp3
+    criterion: "loop/WORKFLOW.md содержит pointer на runtime_registry.yaml"
+    verify: "rg 'runtime_registry' loop/WORKFLOW.md"
+
+verify: []
+tdd: []

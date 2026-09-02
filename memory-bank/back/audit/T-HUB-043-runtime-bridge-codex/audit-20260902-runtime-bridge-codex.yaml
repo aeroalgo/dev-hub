@@ -1,0 +1,87 @@
+date: '2026-09-02'
+epic_id: T-HUB-043-runtime-bridge-codex
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-043-runtime-bridge-codex.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-043-runtime-bridge-codex/index.yaml
+
+steps:
+  - id: s01
+    title: "harness/manifest.yaml schema harness-manifest/v1 + pydantic validator"
+    status: completed
+    as_built: "Определена схема манифеста harness-manifest/v1."
+    delta: "harness/manifest_schema.py"
+    gaps: []
+
+  - id: s02
+    title: "runtime_materializers/sync.py — read manifest, emit targets per runtime"
+    status: completed
+    as_built: "Модуль генерации конфигураций для рантаймов."
+    delta: "loop/runtime_materializers/sync.py"
+    gaps: []
+
+  - id: s03
+    title: "bin/runtime-sync CLI --check / --apply + drift detection"
+    status: completed
+    as_built: "CLI утилита синхронизации конфигураций рантаймов."
+    delta: "bin/runtime-sync"
+    gaps: []
+
+  - id: s04
+    title: "Generate .codex/hooks.json from manifest with GENERATED header + hash guard"
+    status: completed
+    as_built: "Генератор hooks.json с заголовком и хеш-гардом."
+    delta: "loop/runtime_materializers/codex_hooks.py"
+    gaps: []
+
+  - id: s05
+    title: "Materialize .codex/agents/ from harness/agents/ (copy policy)"
+    status: completed
+    as_built: "Материлизация определения агентов Codex из harness/agents/."
+    delta: "loop/runtime_materializers/codex_agents.py"
+    gaps: []
+
+  - id: s06
+    title: "CodexAdapter implements RuntimeAdapter + which-codex.sh + exit-127 fail-closed"
+    status: completed
+    as_built: "Реализация CodexAdapter в рамках RuntimeAdapter Framework."
+    delta: "loop/runtime_adapters/codex.py"
+    gaps: []
+
+  - id: s07
+    title: "Register codex in runtime_registry.yaml + dispatch wiring + fail-closed no-fallback"
+    status: completed
+    as_built: "Регистрация codex в реестре рантаймов."
+    delta: "loop/runtime_registry.yaml"
+    gaps: []
+
+  - id: s08
+    title: "analyze_log codex fixtures: completed / aborted / auth-fail detection"
+    status: completed
+    as_built: "Тестовые фикстуры и парсинг логов Codex."
+    delta: "loop/tests/fixtures/codex_logs/"
+    gaps: []
+
+  - id: s09
+    title: "Stop-gate / spawn-gate bridge integration test — codex semantics unchanged"
+    status: completed
+    as_built: "Интеграционные тесты шлюзов безопасности для Codex."
+    delta: "loop/tests/test_codex_bridge_gates.py"
+    gaps: []
+
+  - id: s10
+    title: "dsh manifest bridge doc + README codex runtime section (docs-only)"
+    status: completed
+    as_built: "Документация интеграции манифестов DSH и Codex."
+    delta: "README.md, docs/runtime-manifest.md"
+    gaps: []
+
+  - id: s11
+    title: "Legacy purge: no run_codex if/else in loop.sh; hooks.json GENERATED header audit"
+    status: completed
+    as_built: "Очистка легаси проверок в loop.sh."
+    delta: "loop/loop.sh"
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Аудит завершен. Все 11 шагов выполнены успешно (completed). Эпик T-HUB-043 готовит передачу в BACK QA."

@@ -124,8 +124,8 @@
 | **s03** | [s03-claude-adapter.yaml](s03-claude-adapter.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s04** | [s04-dsh-adapter-refactor.yaml](s04-dsh-adapter-refactor.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s05** | [s05-dispatch-loopsh-wiring.yaml](s05-dispatch-loopsh-wiring.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s06** | [s06-lib-resolve-runtime-registry.yaml](s06-lib-resolve-runtime-registry.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s06** | [s06-lib-resolve-runtime-registry.yaml](s06-lib-resolve-runtime-registry.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s07** | [s07-session-resilience-delegate-analyze.yaml](s07-session-resilience-delegate-analyze.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s08** | [s08-context-loop-runtime-extras-argparse.yaml](s08-context-loop-runtime-extras-argparse.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s09** | [s09-purge-is-dsh-dispatch-regression.yaml](s09-purge-is-dsh-dispatch-regression.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s10** | [s10-legacy-fallback-purge.yaml](s10-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s08** | [s08-context-loop-runtime-extras-argparse.yaml](s08-context-loop-runtime-extras-argparse.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s09** | [s09-purge-is-dsh-dispatch-regression.yaml](s09-purge-is-dsh-dispatch-regression.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s10** | [s10-legacy-fallback-purge.yaml](s10-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |

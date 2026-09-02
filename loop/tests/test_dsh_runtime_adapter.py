@@ -23,16 +23,17 @@ def _load_resilience():
     return module
 
 
+from loop.runtime_adapters.base import SessionContext
 from loop.runtime_adapters.dsh import (
-    build_dsh_command,
-    build_dsh_command_from_file,
-    detect_dsh_model_mismatch,
-    normalize_dsh_log,
+    DshAdapter,
+    _build_dsh_command,
+    _detect_dsh_model_mismatch,
+    _normalize_dsh_log,
 )
 
 
 def test_build_dsh_command_default_profile() -> None:
-    assert build_dsh_command("epic-implement", "do the work") == [
+    assert _build_dsh_command("epic-implement", "do the work") == [
         "dsh",
         "--profile",
         "epic-implement",
@@ -42,7 +43,7 @@ def test_build_dsh_command_default_profile() -> None:
 
 
 def test_build_dsh_command_custom_bin() -> None:
-    assert build_dsh_command("custom", "prompt", dsh_bin="npx") == [
+    assert _build_dsh_command("custom", "prompt", dsh_bin="npx") == [
         "npx",
         "--profile",
         "custom",
@@ -53,44 +54,31 @@ def test_build_dsh_command_custom_bin() -> None:
 
 def test_build_dsh_command_prompt_inline() -> None:
     prompt = "line one\nline two"
-    assert build_dsh_command("profile", prompt)[-1] == prompt
-
-
-def test_build_dsh_command_from_file(tmp_path: Path) -> None:
-    prompt_file = tmp_path / "prompt.md"
-    prompt_file.write_text("prompt from file", encoding="utf-8")
-
-    assert build_dsh_command_from_file("profile", prompt_file) == [
-        "dsh",
-        "--profile",
-        "profile",
-        "--no-open",
-        "prompt from file",
-    ]
+    assert _build_dsh_command("profile", prompt)[-1] == prompt
 
 
 def test_normalize_dsh_log_passthrough() -> None:
     raw_log = "plain dsh output\n"
-    assert normalize_dsh_log(raw_log) == raw_log
+    assert _normalize_dsh_log(raw_log) == raw_log
 
 
 def test_normalize_dsh_log_session_end_jsonl() -> None:
     raw_log = json.dumps({"event": {"type": "session_end", "content": "done"}})
-    assert normalize_dsh_log(raw_log) == "done"
+    assert _normalize_dsh_log(raw_log) == "done"
 
 
 def test_normalize_dsh_log_result_jsonl() -> None:
     raw_log = json.dumps({"type": "result", "result": "completed"})
-    assert normalize_dsh_log(raw_log) == "completed"
+    assert _normalize_dsh_log(raw_log) == "completed"
 
 
 def test_normalize_dsh_log_empty() -> None:
-    assert normalize_dsh_log("") == ""
+    assert _normalize_dsh_log("") == ""
 
 
 @pytest.mark.parametrize("raw_log", ["{not-json}\n", '{"type": "result"}\n'])
 def test_normalize_dsh_log_malformed_jsonl(raw_log: str) -> None:
-    assert normalize_dsh_log(raw_log) == raw_log
+    assert _normalize_dsh_log(raw_log) == raw_log
 
 
 def _fixture(name: str) -> Path:
@@ -106,7 +94,7 @@ def test_dsh_model_mismatch_detected_from_jsonl_mapping() -> None:
         }
     )
 
-    reason = detect_dsh_model_mismatch(raw_log, "provider/alpha")
+    reason = _detect_dsh_model_mismatch(raw_log, "provider/alpha")
 
     assert reason is not None
     assert reason.startswith("model_substitution:")
@@ -124,9 +112,9 @@ def test_dsh_model_mismatch_ignores_unverified_or_equivalent_models() -> None:
     )
     unrelated_log = json.dumps({"type": "result", "result": "completed"})
 
-    assert detect_dsh_model_mismatch(ordinary_log, "provider/alpha") is None
-    assert detect_dsh_model_mismatch(unrelated_log, "provider/alpha") is None
-    assert detect_dsh_model_mismatch(
+    assert _detect_dsh_model_mismatch(ordinary_log, "provider/alpha") is None
+    assert _detect_dsh_model_mismatch(unrelated_log, "provider/alpha") is None
+    assert _detect_dsh_model_mismatch(
         json.dumps(
             {
                 "type": "result",

@@ -1248,11 +1248,10 @@ def run_traceability_check_if_enabled(
             pass
 
 
-def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
+def _promote_if_ready(cwd: str | Path) -> dict[str, Any] | None:
     """Auto-advance after DECOMPOSE / ANALYZE FINISH — delegates to promote_if_ready."""
-    from loop.epic_transition import _legacy_warn, promote_if_ready
+    from loop.epic_transition import promote_if_ready
 
-    _legacy_warn("promote_decompose_phase_if_ready")
     cwd_p = Path(cwd)
     st = load_epic_state(cwd_p)
     epic_id = st.get("armed_epic")
@@ -1270,6 +1269,14 @@ def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
                 "diagnostic_code": "traceability_fail",
             }
     return out
+
+
+def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
+    """Deprecated shim — use ``_promote_if_ready`` / ``epic_transition.promote_if_ready``."""
+    from loop.epic_transition import _legacy_warn
+
+    _legacy_warn("promote_decompose_phase_if_ready")
+    return _promote_if_ready(cwd)
 
 
 def prepare_session(
@@ -1296,7 +1303,7 @@ def prepare_session(
             "cleared_reserved_role_arm": True,
         }
 
-    promoted = promote_decompose_phase_if_ready(cwd_p)
+    promoted = _promote_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -1322,7 +1329,7 @@ def prepare_session(
         and (promoted is None or not promoted.get("ok"))
         and _analyze_phase_complete(cwd_p)
     ):
-        promoted = promote_decompose_phase_if_ready(cwd_p)
+        promoted = _promote_if_ready(cwd_p)
         if promoted is not None and promoted.get("ok"):
             text = read_active_context(cwd_p)
             state = load_epic_state(cwd_p)
@@ -1720,7 +1727,15 @@ def prepare_session(
         degraded_count=int(st.get("degraded_count") or 0),
     )
 
-    return {
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+    from loop.runtime_adapters.base import SessionContext
+
+    adapter = get_adapter_for_runtime(effective_runtime)
+    loop_phase = resolved.get("loop_phase") or "implement"
+    runtime_ctx = SessionContext(prompt="", phase=loop_phase, model=effective_model, runtime_id=effective_runtime)
+    runtime_extras = adapter.prepare_extras(runtime_ctx)
+
+    res_dict = {
         "ok": True,
         "prompt_file": str(pp),
         "checkpoint": checkpoint_session,
@@ -1731,7 +1746,7 @@ def prepare_session(
         "model_env": resolved.get("model_env"),
         "loop_phase": resolved.get("loop_phase"),
         "runtime": effective_runtime,
-        "dsh_profile": f"epic-{(resolved.get('loop_phase') or 'implement').lower()}",
+        "runtime_extras": runtime_extras,
         "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
@@ -1744,6 +1759,9 @@ def prepare_session(
         "delta_paths": delta_paths,
         "cursor_sync": cursor_sync,
     }
+    if "dsh_profile" in runtime_extras:
+        res_dict["dsh_profile"] = runtime_extras["dsh_profile"]
+    return res_dict
 
 
 def _run_tier0_check_after(cwd_p: Path, res: dict[str, Any]) -> dict[str, Any]:
@@ -2058,7 +2076,7 @@ def check_after(
     st["fingerprint_stall_count"] = 0
     st["fingerprint_stall_fingerprint"] = None
     save_epic_state(cwd_p, st)
-    promoted = promote_decompose_phase_if_ready(cwd_p)
+    promoted = _promote_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -2174,6 +2192,13 @@ def record_abort(
     reason = analysis["reason"]
     retryable = analysis["retryable"]
     kind = analysis["abort_kind"]
+    cursor_sync: dict[str, Any] | None = None
+    if retryable and st.get("armed_decompose"):
+        cursor_sync = sync_cursor_from_index(cwd_p)
+        if cursor_sync.get("synced"):
+            st = load_epic_state(cwd_p)
+            step_id = st.get("armed_step")
+            resume_from = step_id or resume_from
     if not analysis["aborted"]:
         marker = write_last_session(
             cwd_p,
@@ -2231,6 +2256,7 @@ def record_abort(
         "halted": not retryable,
         "backoff_sec": analysis["backoff_sec"],
         "last_session": str(marker),
+        "cursor_sync": cursor_sync,
     }
 
 
@@ -2850,9 +2876,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    from loop.runtime.registry import list_ids
+    runtime_choices = list_ids()
+
     p_prep = sub.add_parser("prepare", help="Build prompt + fingerprint before session")
     p_prep.add_argument("--model", default=None)
-    p_prep.add_argument("--runtime", choices=["claude", "dsh"], default=None)
+    p_prep.add_argument("--runtime", choices=runtime_choices, default=None)
 
     p_arm = sub.add_parser(
         "arm",
@@ -2871,7 +2900,7 @@ def main(argv: list[str] | None = None) -> int:
     p_rec.add_argument("--log", required=True)
     p_rec.add_argument("--exit-code", type=int, default=0)
     p_rec.add_argument("--attempt", type=int, default=1)
-    p_rec.add_argument("--runtime", choices=["claude", "dsh"], default=None)
+    p_rec.add_argument("--runtime", choices=runtime_choices, default=None)
 
     p_fanout = sub.add_parser("dag-fanout", help="Arm the next DAG node")
     p_fanout.add_argument("--pipeline", default=None)

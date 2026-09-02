@@ -376,7 +376,7 @@ def main() -> int:
                 role=args.role,
                 mode=args.mode,
                 epic_id=args.epic_id,
-                step=args.step,
+                step_id=args.step,
             )
             load_now = []
             if args.load_now_path and args.load_now_desc:

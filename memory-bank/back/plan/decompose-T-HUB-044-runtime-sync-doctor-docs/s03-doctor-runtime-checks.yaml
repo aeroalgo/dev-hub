@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "Doctor runtime checks: registry_valid, sync_drift, binary_codex"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить loop/incidents/doctor.py тремя новыми check-функциями:
+  1. runtime_registry_valid — registry yaml загружается без ошибок (severity: error)
+  2. runtime_sync_drift — runtime-sync --check не возвращает ненулевой exit (severity: warn v1)
+  3. runtime_binary_ok(runtime_id) — бинарник runtime в PATH если EPIC_RUNTIME=<runtime_id> (severity: error)
+  Интегрировать чеки в run_doctor() так, чтобы python3 loop/context_loop.py doctor --json
+  возвращал поля runtime_registry_valid, runtime_sync_drift, runtime_binary_codex.
+
+context:
+  consumes:
+    - "loop/incidents/doctor.py (run_doctor, CheckResult, DoctorReport)"
+    - "loop/runtime_registry.yaml (путь к registry)"
+    - "loop/runtime_adapters/ (runtime_sync.py --check pattern)"
+    - "loop/incidents/tests/test_incidents_doctor.py (существующий паттерн тестов)"
+  produces:
+    - "loop/incidents/doctor.py — расширен тремя runtime checks"
+  plan_refs:
+    - "FR-005 (extend doctor: runtime_registry_ok, runtime_sync_ok, runtime_binary_ok)"
+    - "US-002 (doctor preflight — drift/missing binary)"
+    - "AC+ #3 (doctor --json includes runtime sync/registry diagnostics)"
+    - "AC− #2 (Doctor silent pass when runtime-sync drift)"
+    - "TM-001 (doctor runtime json)"
+  files:
+    - "loop/incidents/doctor.py"
+
+as_built:
+  - "loop/incidents/doctor.py: run_doctor() с чеками project_root_valid, active_context, finish_integrity, boundary_violations, halt_rate"
+  - "loop/incidents/doctor.py: CheckResult(name, status, detail) dataclass"
+  - "loop/runtime_registry.yaml: загружается через yaml в других модулях"
+  - "EPIC_RUNTIME env var: используется в loop/context_loop.py"
+
+delta:
+  - "loop/incidents/doctor.py: _check_runtime_registry_valid(cwd) → CheckResult(name='runtime_registry_valid')"
+  - "loop/incidents/doctor.py: _check_runtime_sync_drift(cwd) → CheckResult(name='runtime_sync_drift') — subprocess runtime_sync --check или shutil.which fallback"
+  - "loop/incidents/doctor.py: _check_runtime_binary_ok(runtime_id) → CheckResult(name='runtime_binary_<id>') — shutil.which(binary) из registry entry"
+  - "loop/incidents/doctor.py: run_doctor() вызывает все три чека, добавляет в report.checklist"
+  - "loop/incidents/doctor.py: runtime_sync_drift status='warn' при non-zero exit (не 'fail' — v1 plan cut)"
+
+deletes: []
+
+out_of_scope:
+  - "doctor --hard-fail-on-drift (cut_list из плана)"
+  - "test_doctor_runtime.py — s06"
+  - "board launch — s04"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "doctor.py содержит _check_runtime_registry_valid"
+    verify: "rg '_check_runtime_registry_valid' loop/incidents/doctor.py"
+  - id: cp2
+    criterion: "doctor.py содержит _check_runtime_sync_drift"
+    verify: "rg '_check_runtime_sync_drift' loop/incidents/doctor.py"
+  - id: cp3
+    criterion: "doctor.py содержит _check_runtime_binary_ok"
+    verify: "rg '_check_runtime_binary_ok' loop/incidents/doctor.py"
+  - id: cp4
+    criterion: "run_doctor() вызывает все три чека — поля присутствуют в JSON output"
+    verify: ".venv/bin/python loop/context_loop.py doctor --format json 2>/dev/null | python3 -c \"import sys,json; d=json.load(sys.stdin); names=[c['name'] for c in d['checklist']]; assert 'runtime_registry_valid' in names, names\""
+
+verify: []
+tdd:
+  - "test: _check_runtime_registry_valid → pass когда registry yaml ok"
+  - "test: _check_runtime_registry_valid → fail когда yaml отсутствует"
+  - "test: _check_runtime_sync_drift → warn когда subprocess exit != 0"
+  - "test: _check_runtime_sync_drift → pass когда exit 0"
+  - "test: _check_runtime_binary_ok('codex') → error когда not in PATH"
+  - "test: _check_runtime_binary_ok('claude') → pass когда which claude найден"

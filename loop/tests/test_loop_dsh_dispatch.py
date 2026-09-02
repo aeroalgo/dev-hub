@@ -142,8 +142,13 @@ def test_run_agent_session_dispatches_npx_resolver_as_argv(tmp_path: Path) -> No
 
 def test_run_agent_session_defaults_to_claude(tmp_path: Path) -> None:
     script = LOOP_SH.read_text(encoding="utf-8")
-    assert '"${EPIC_RUNTIME_RESOLVED:-claude}" == "dsh"' in script
-    assert 'run_claude_session "$iter" "$prompt_file"' in script
+    assert 'local runtime_id="${EPIC_RUNTIME_RESOLVED:-claude}"' in script
+    assert "EPIC_DSH_PROFILE" not in script
+
+
+def test_loop_dsh_dispatch_no_epic_dsh_profile_env(tmp_path: Path) -> None:
+    script = LOOP_SH.read_text(encoding="utf-8")
+    assert "EPIC_DSH_PROFILE" not in script
 
 
 def test_run_dsh_session_fails_closed_on_missing_dsh(tmp_path: Path) -> None:

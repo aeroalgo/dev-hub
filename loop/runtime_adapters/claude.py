@@ -15,7 +15,16 @@ class ClaudeAdapter(RuntimeAdapter):
         return cmd
 
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
-        return SessionAnalysis(reason=None)
+        exit_code = ctx.extras.get("exit_code")
+        log_path = ctx.extras.get("log_path")
+        expected_model = ctx.model
+        reason = None
+        if log_path is not None:
+            from harness.hooks.session_resilience import detect_abort_in_log
+            reason = detect_abort_in_log(
+                log_path, exit_code=exit_code, expected_model=expected_model
+            )
+        return SessionAnalysis(reason=reason)
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {}

@@ -6,10 +6,13 @@ from harness.hooks.epic.core import (
     atomic_write_text,
     epic_id_from_decompose_path,
     gate_evidence_matches,
+    handoff_post_implement_phase,
     latest_audit_artifact_for_reference,
     latest_qa_any_artifact_for_reference,
     load_epic_state,
     read_active_context,
+    reconcile_epic_events,
+    save_epic_state,
     sync_cursor_from_index,
     utc_now,
     validate_qa_finish_handoff,
@@ -67,6 +70,16 @@ def finish_handoff(
             diagnostic_codes=["active_context_write_failed"],
             shape_errors=[str(exc)],
         )
+
+    gate = handoff_post_implement_phase(rendered)
+    if gate:
+        st = load_epic_state(cwd_p)
+        st["armed_step"] = gate
+        st["phase"] = gate
+        st["active"] = True
+        st["status"] = "armed"
+        st["halt_reason"] = None
+        save_epic_state(cwd_p, st)
 
     return MbFinishResult(
         ok=True,
@@ -166,7 +179,21 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
+    role_dir = role.lower()
+    if role_dir == "integ":
+        role_dir = "integration"
+    if epic_id:
+        reconcile_epic_events(cwd, role_dir, epic_id)
+
     sync_cursor_from_index(cwd)
+
+    st = load_epic_state(cwd)
+    st["armed_step"] = "REFLECT"
+    st["phase"] = "REFLECT"
+    st["active"] = True
+    st["status"] = "armed"
+    st["halt_reason"] = None
+    save_epic_state(cwd, st)
 
     fp_data = f"qa:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()

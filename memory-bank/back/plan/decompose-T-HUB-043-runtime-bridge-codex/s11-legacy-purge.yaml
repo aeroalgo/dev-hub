@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s11
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "Legacy purge: no run_codex if/else in loop.sh; hooks.json GENERATED header audit"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge: убедиться, что в loop.sh нет if/else run_codex_session (AC− #4);
+  в .codex/hooks.json есть GENERATED header (AC− #1); нет других stale codex shim.
+  Sunset inventory scan по всем Replacement cleanup строкам.
+
+context:
+  consumes:
+    - "plan §Replacement cleanup A/C, §AC− #4, §AC− #1"
+    - "loop/loop.sh — scan target"
+    - "loop/context_loop.py — scan target"
+    - ".codex/hooks.json — header check"
+    - "harness/manifest.yaml — source of truth check"
+  produces:
+    - "Нет новых файлов — только подтверждение чистоты (verify-only шаг)"
+    - "(опционально) удаление найденных stale patterns если присутствуют"
+  plan_refs:
+    - "AC− #4"
+    - "AC− #1"
+    - "Replacement cleanup A: run_codex_session if/else"
+    - "Replacement cleanup C: hooks.json without GENERATED header"
+  files: []
+  # files: пустой — шаг audit/purge, правит только если stale найдено
+
+as_built:
+  - "loop/loop.sh: существует; codex dispatch через adapter (s07) — без if/else"
+  - ".codex/hooks.json: GENERATED header добавлен в s04"
+  - "loop/context_loop.py: dispatch через get_adapter_for_runtime (s07)"
+
+delta:
+  - "scan + verify: rg 'run_codex_session' loop/loop.sh loop/context_loop.py → 0 matches"
+  - "scan + verify: head -3 .codex/hooks.json содержит GENERATED comment"
+  - "scan + verify: rg 'run_codex' loop/ --include='*.py' --include='*.sh' → 0 matches вне test fixtures"
+  - "scan + verify: harness/manifest.yaml не содержит shim-only entries без delta"
+  - "если найдены stale patterns → удалить in-epic (не откладывать)"
+
+deletes:
+  - "любой `run_codex_session` if/else в loop.sh / context_loop.py (если присутствует)"
+  - "любой `.codex/hooks.json` без GENERATED header (пересоздать через s04 generator)"
+
+out_of_scope:
+  - "DSH preset stale cleanup (cut_list — follow-up)"
+  - "README stale phrases (s10)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'run_codex_session' loop/loop.sh loop/context_loop.py → 0 matches (AC− #4)"
+    verify: "! rg -qn 'run_codex_session' loop/loop.sh loop/context_loop.py"
+  - id: cp2
+    criterion: ".codex/hooks.json первые 3 строки содержат GENERATED (AC− #1)"
+    verify: "head -3 .codex/hooks.json | grep -qi GENERATED"
+  - id: cp3
+    criterion: "rg 'run_codex' loop/ --include='*.py' → только test fixtures, не prod code"
+    verify: "! rg -qn 'run_codex' loop/ --include='*.py' -l | grep -v 'tests/'"
+  - id: cp4
+    criterion: "sunset_inventory_scan: пустой legacy_surfaces_remaining (все строки Replacement cleanup закрыты)"
+    verify: ".venv/bin/pytest loop/tests/test_legacy_purge_T043.py -q --tb=short"
+
+verify:
+  - "! rg -qn 'run_codex_session' loop/loop.sh loop/context_loop.py"
+  - "head -3 .codex/hooks.json | grep -qi GENERATED"
+  - "! rg -qn 'run_codex' loop/ --include='*.py' -l | grep -v 'tests/'"
+  - ".venv/bin/pytest loop/tests/test_legacy_purge_T043.py -q --tb=short"
+
+tdd:
+  - "test_legacy_purge_T043.py::test_no_run_codex_session_in_prod_code"
+  - "test_legacy_purge_T043.py::test_hooks_json_has_generated_header"
+  - "test_legacy_purge_T043.py::test_sunset_inventory_empty"

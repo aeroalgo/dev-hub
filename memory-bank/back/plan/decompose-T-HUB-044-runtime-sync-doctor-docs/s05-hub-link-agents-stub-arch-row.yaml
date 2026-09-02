@@ -1,0 +1,58 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "hub-link AGENTS.md stub + architecture services.md runtime-sync row"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить bin/hub-link — AGENTS.md stub текст: добавить harness/ и EPIC_RUNTIME values.
+  Создать/дополнить memory-bank/architecture/services.md — добавить строку сервиса
+  S-HUB-RUNTIME-SYNC (runtime-sync CLI, registry, doctor runtime checks).
+
+context:
+  consumes:
+    - "bin/hub-link (AGENTS stub generator)"
+    - "memory-bank/architecture/services.md (если существует)"
+    - "loop/runtime_registry.yaml (сервисы)"
+  produces:
+    - "bin/hub-link — AGENTS.md stub с harness/ + EPIC_RUNTIME"
+    - "memory-bank/architecture/services.md — row S-HUB-RUNTIME-SYNC"
+  plan_refs:
+    - "FR-004"
+    - "FR-007 (bin/hub-link AGENTS stub)"
+    - "FR-008 (memory-bank/architecture/services.md row)"
+  files:
+    - "bin/hub-link"
+    - "memory-bank/architecture/services.md"
+
+as_built:
+  - "bin/hub-link: AGENTS stub содержит DEV_HUB, workflow commands, Claude Code extension, Skills, Artifacts, Autoloop"
+  - "memory-bank/architecture/: директория может не содержать services.md"
+
+delta:
+  - "bin/hub-link: AGENTS stub дополнен — добавлены строки '- **Harness:** harness/ layer (hooks, epic_resolve)' и '- **EPIC_RUNTIME values:** claude (default), dsh, codex'"
+  - "memory-bank/architecture/services.md: добавлена строка | S-HUB-RUNTIME-SYNC | loop/runtime_adapters/runtime_sync.py | registry load, --check drift, doctor runtime | loop/runtime_registry.yaml |"
+
+deletes: []
+
+out_of_scope:
+  - "harness/README.md (возможно в epic 041)"
+  - "codex/README.md"
+  - "Full architecture VAN (отдельный epic)"
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "bin/hub-link AGENTS stub содержит harness/ и EPIC_RUNTIME"
+    verify: "rg 'harness|EPIC_RUNTIME' bin/hub-link"
+  - id: cp2
+    criterion: "memory-bank/architecture/services.md содержит S-HUB-RUNTIME-SYNC"
+    verify: "rg 'S-HUB-RUNTIME-SYNC' memory-bank/architecture/services.md"
+
+verify: []
+tdd: []

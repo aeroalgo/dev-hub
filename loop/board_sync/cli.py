@@ -106,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
         if command != "arm":
             launch_parser.add_argument("--loop-args", metavar="TOKEN", help="one whitelisted loop argument")
             launch_parser.add_argument(
-                "--runtime", choices=("dsh", "claude"), default=_DEFAULT_RUNTIME,
+                "--runtime", choices=("claude", "dsh", "codex"), default=_DEFAULT_RUNTIME,
                 help="loop runtime family (default: claude)",
             )
         if command != "loop":

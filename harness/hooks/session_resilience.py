@@ -25,6 +25,8 @@ if _hub_s in sys.path:
 sys.path.insert(0, _hub_s)
 
 from epic_yaml import all_checkpoints_done, compute_resume_from, load_implement
+from loop.runtime_adapters.base import SessionContext
+from loop.runtime_adapters.common import get_adapter_for_runtime
 from loop.runtime_adapters.dsh import detect_dsh_model_mismatch
 
 # Match order: specific → broad. classify_abort() separates transient vs fatal.
@@ -32,10 +34,15 @@ _FATAL_ABORT_PATTERNS = (
     re.compile(r"(?i)KeyboardInterrupt"),
 )
 
+_SHELL_COMMAND_NOT_FOUND_RE = re.compile(
+    r"(?i)(?:^|\n)(?:[\w/.~-]+:\s*)?(?:line \d+:\s*)?[\w/.~-]+: command not found"
+)
+
 _PERMANENT_FAILURE_PATTERNS = (
     re.compile(r"(?i)(?:CLI|command) error:[^\\n]*"),
     re.compile(r"(?i)invalid (?:config|option|argument)"),
-    re.compile(r"(?i)command not found"),
+    re.compile(r"(?i)auth_failed"),
+    re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
     # Claude Code / org allowlist silently swaps --model; never treat as success.
     re.compile(
         r'(?i)Model\s+\\*"[^"\\]+\\*"\s+is restricted by your organization\'s settings\.'
@@ -105,16 +112,29 @@ DEFAULT_IDLE_BACKOFF_SEC = 60
 
 # Idle watchdog counts only real tool progress, not stream noise (deltas/thinking/status).
 _TOOL_PROGRESS_RE = re.compile(r'"type"\s*:\s*"(?:tool_use|tool_result)"')
+_CODEX_PROGRESS_RE = re.compile(
+    r'"type"\s*:\s*"(?:command_execution|agent_message)"'
+)
 _TOOL_PROGRESS_TAIL = 64
+_PROGRESS_MODES = frozenset({"tool_json", "stream_bytes", "codex_json"})
 
 
-def _tool_progress_seen(tail: str, chunk: str) -> tuple[bool, str]:
-    """Return whether chunk completes a new tool_use/tool_result token; update overlap tail."""
+def _write_status(text: str) -> None:
+    try:
+        sys.stderr.write(text)
+        sys.stderr.flush()
+    except BrokenPipeError:
+        pass
+
+
+def _tool_progress_seen(tail: str, chunk: str, *, progress_mode: str = "tool_json") -> tuple[bool, str]:
+    """Return whether chunk completes a new progress token; update overlap tail."""
     if not chunk:
         return False, tail
     combined = tail + chunk
+    pattern = _CODEX_PROGRESS_RE if progress_mode == "codex_json" else _TOOL_PROGRESS_RE
     found = False
-    for match in _TOOL_PROGRESS_RE.finditer(combined):
+    for match in pattern.finditer(combined):
         if match.end() > len(tail):
             found = True
     return found, combined[-_TOOL_PROGRESS_TAIL:]
@@ -302,6 +322,14 @@ def detect_stream_json_api_error(text: str) -> str | None:
     return None
 
 
+def detect_shell_command_not_found(text: str) -> str | None:
+    """Shell stderr only — not agent prose quoting fixture paths."""
+    m = _SHELL_COMMAND_NOT_FOUND_RE.search(text or "")
+    if m:
+        return m.group(0).strip()[:200]
+    return None
+
+
 def detect_abort_in_text(text: str) -> str | None:
     fatal = _match_patterns(text or "", _FATAL_ABORT_PATTERNS)
     if fatal:
@@ -309,6 +337,9 @@ def detect_abort_in_text(text: str) -> str | None:
     stream = detect_stream_json_api_error(text or "")
     if stream:
         return stream
+    shell_missing = detect_shell_command_not_found(text or "")
+    if shell_missing:
+        return "command not found"
     return _match_patterns(
         text or "",
         _MALFORMED_RESULT_PATTERNS
@@ -366,26 +397,33 @@ def detect_abort_in_log(
         data = data[-200_000:]
     # Extract only system/error lines from JSONL to avoid matching agent response text.
     system_lines: list[str] = []
+    has_stream_events = False
+    has_result_event = False
     for line in data.splitlines():
         line = line.strip()
         if not line:
             continue
         try:
             obj = json.loads(line)
-            # Skip assistant message content — only look at system/error events.
-            if obj.get("type") in ("assistant", "user"):
+            obj_type = obj.get("type")
+            if obj_type == "result":
+                has_result_event = True
+                continue
+            # Skip assistant/user content — only look at system/error events.
+            if obj_type in ("assistant", "user"):
                 continue
             # Surface human-readable system/informational content for pattern match.
-            if obj.get("type") == "system":
+            if obj_type == "system":
                 content = obj.get("content")
                 if isinstance(content, str) and content.strip():
                     system_lines.append(content.strip())
             # For stream events, skip content_block_delta with text/thinking.
-            if obj.get("type") == "stream_event":
+            if obj_type == "stream_event":
                 ev = obj.get("event") or {}
                 delta = ev.get("delta") or {}
                 if delta.get("type") in ("text_delta", "thinking_delta"):
                     continue
+                has_stream_events = True
             system_lines.append(line)
         except (json.JSONDecodeError, AttributeError):
             # Non-JSON line (SESSION_START/END markers, plain stderr) — keep as-is.
@@ -393,6 +431,10 @@ def detect_abort_in_log(
             # content — skip those to avoid false abort detection from tool_result text.
             if '"type":"user"' in line or '"type":"assistant"' in line:
                 continue
+            if '"type":"result"' in line:
+                has_result_event = True
+            if '"type":"stream_event"' in line:
+                has_stream_events = True
             system_lines.append(line)
     system_text = "\n".join(system_lines)
     # Explicit kill marker from run_session (may arrive before JSONL parses cleanly).
@@ -412,14 +454,14 @@ def detect_abort_in_log(
     # Log-cap truncation: tail is missing, so any non-zero exit is a transient abort.
     if _LOG_TRUNCATED_MARKER.strip() in system_lines and exit_code not in (0, None):
         return "log truncated — session output exceeded cap; exit_code indicates abort"
+    if exit_code == 127:
+        return "command not found"
     text_result = detect_abort_in_text(system_text)
     if text_result:
         return text_result
     # stream-json success always ends with type=result. Missing result = abrupt cut
     # (incl. exit 0 + balanced message_start/stop — Claude often exits 0 after
     # "API Error: Server error mid-response" without leaving that text in the log).
-    has_stream_events = any('"type":"stream_event"' in l or '"type":"result"' in l for l in system_lines)
-    has_result_event = any('"type":"result"' in l for l in system_lines)
     if has_stream_events and not has_result_event:
         return "abrupt stream termination (no result event in JSONL)"
     return None
@@ -431,9 +473,11 @@ def classify_abort(
     exit_code: int | None = None,
 ) -> str:
     """Return 'transient' | 'fatal' for an abort reason / process exit."""
-    if exit_code in (130, 143, MODEL_SUBSTITUTION_EXIT):
+    if exit_code in (130, 143, MODEL_SUBSTITUTION_EXIT, 127):
         return "fatal"
     r = reason or ""
+    if r == "command not found":
+        return "fatal"
     if _match_patterns(r, _FATAL_ABORT_PATTERNS):
         return "fatal"
     if _match_patterns(r, _PERMANENT_FAILURE_PATTERNS) or is_structured_model_substitution_reason(r):
@@ -487,30 +531,19 @@ def analyze_session_log(
         raw_log = log_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         raw_log = ""
-    is_dsh = runtime.strip().lower() == "dsh"
-    reason = (
-        detect_dsh_model_mismatch(raw_log, expected_model)
-        or detect_dsh_abort_in_log(raw_log)
-        if is_dsh
-        else detect_abort_in_log(
-            log_path, exit_code=exit_code, expected_model=expected_model
-        )
+    adapter = get_adapter_for_runtime(runtime)
+    ctx = SessionContext(
+        prompt="",
+        phase="",
+        model=expected_model,
+        runtime_id=runtime,
+        extras={"exit_code": exit_code, "attempt": attempt, "log_path": log_path},
     )
-    if is_dsh and not reason and exit_code in (0, None) and not _detect_dsh_session_complete(raw_log):
-        reason = "dsh incomplete FINISH"
-    elif is_dsh and not reason and exit_code not in (0, None):
-        reason = f"dsh process exit={exit_code}"
-    if is_dsh and reason and reason.startswith("dsh_transient:"):
-        dsh_abort_kind = "transient"
-    elif is_dsh and reason and (
-        reason.startswith("dsh_permanent:")
-        or is_structured_model_substitution_reason(reason)
-    ):
-        dsh_abort_kind = "fatal"
-    else:
-        dsh_abort_kind = None
+    analysis = adapter.analyze_log(raw_log, ctx)
+    reason = analysis.reason
+    dsh_abort_kind = analysis.dsh_abort_kind
 
-    if is_dsh and reason and is_structured_model_substitution_reason(reason):
+    if reason and is_structured_model_substitution_reason(reason):
         return {
             "outcome": SessionOutcome.PERMANENT_FAILURE.value,
             "aborted": True,
@@ -519,41 +552,22 @@ def analyze_session_log(
             "reason": reason,
             "backoff_sec": 0,
         }
-    if is_dsh and dsh_abort_kind:
+    if dsh_abort_kind:
         outcome = (
             SessionOutcome.PERMANENT_FAILURE
-            if dsh_abort_kind == "fatal"
+            if dsh_abort_kind in ("fatal", "unknown")
             else SessionOutcome.TRANSIENT_ABORT
         )
+        abort_kind = "fatal" if dsh_abort_kind in ("fatal", "unknown") else dsh_abort_kind
         return {
             "outcome": outcome.value,
             "aborted": True,
             "retryable": dsh_abort_kind == "transient",
-            "abort_kind": dsh_abort_kind,
+            "abort_kind": abort_kind,
             "reason": reason,
             "backoff_sec": transient_backoff_sec(attempt) if dsh_abort_kind == "transient" else 0,
         }
-    if is_dsh and reason:
-        return {
-            "outcome": SessionOutcome.UNKNOWN_FAILURE.value,
-            "aborted": True,
-            "retryable": False,
-            "abort_kind": "fatal",
-            "reason": reason,
-            "backoff_sec": 0,
-        }
-    if is_dsh:
-        return {
-            "outcome": SessionOutcome.CLEAN.value,
-            "aborted": False,
-            "retryable": False,
-            "abort_kind": None,
-            "reason": None,
-            "backoff_sec": 0,
-        }
-    reason = detect_abort_in_log(
-        log_path, exit_code=exit_code, expected_model=expected_model
-    )
+
     interrupted = exit_code in (130, 143)
     timeout = exit_code == 124
     model_sub = bool(
@@ -564,7 +578,7 @@ def analyze_session_log(
     malformed = bool(_match_patterns(reason or "", _MALFORMED_RESULT_PATTERNS))
     permanent = model_sub or bool(
         _match_patterns(reason or "", _PERMANENT_FAILURE_PATTERNS)
-    )
+    ) or reason == "command not found" or exit_code == 127
     if not reason and not interrupted and not timeout and exit_code in (0, None):
         return {
             "outcome": SessionOutcome.CLEAN.value,
@@ -912,6 +926,8 @@ def run_session(
     expected_model: str | None = None,
     heartbeat_sec: float | None = None,
     idle_timeout: float | None = None,
+    stdin_text: str | None = None,
+    progress_mode: str = "tool_json",
 ) -> int:
     """Run one Claude session with bounded output and process-group cleanup."""
     if mode not in {"headless", "interactive"}:
@@ -924,6 +940,8 @@ def run_session(
         raise ValueError("heartbeat_sec must be positive when provided")
     if idle_timeout is not None and idle_timeout <= 0:
         raise ValueError("idle_timeout must be positive when provided")
+    if progress_mode not in _PROGRESS_MODES:
+        raise ValueError(f"progress_mode must be one of {sorted(_PROGRESS_MODES)}")
 
     expected = (expected_model or "").strip() or expected_model_from_command(command)
     path = Path(log_path)
@@ -935,7 +953,7 @@ def run_session(
     total = 0
     scan_buf = ""
     tool_tail = ""
-    # Idle = time since last tool_use/tool_result (not since last stdout byte).
+    # Idle: tool_json = last tool_use/tool_result; stream_bytes = last stdout chunk (Codex).
     last_activity = started
     last_heartbeat = started
     with path.open("w", encoding="utf-8") as log:
@@ -943,13 +961,23 @@ def run_session(
         if expected:
             log.write(f"EXPECTED_MODEL {expected}\n")
         log.flush()
+        stdin_handle = None
+        if mode == "interactive":
+            stdin_handle = None
+        elif stdin_text is not None:
+            stdin_handle = subprocess.PIPE
+        else:
+            stdin_handle = subprocess.DEVNULL
         process = subprocess.Popen(
             command,
-            stdin=None if mode == "interactive" else subprocess.DEVNULL,
+            stdin=stdin_handle,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
+        if stdin_text is not None and process.stdin is not None:
+            process.stdin.write(stdin_text.encode("utf-8"))
+            process.stdin.close()
         assert process.stdout is not None
         selector = selectors.DefaultSelector()
         selector.register(process.stdout, selectors.EVENT_READ)
@@ -978,11 +1006,10 @@ def run_session(
                     )
                     log.write(hb)
                     log.flush()
-                    try:
-                        sys.stdout.write(f"==> heartbeat: session={session_id} elapsed={elapsed:.1f}s idle_for={idle_for:.1f}s state={state}\n")
-                        sys.stdout.flush()
-                    except BrokenPipeError:
-                        pass
+                    _write_status(
+                        f"==> heartbeat: session={session_id} elapsed={elapsed:.1f}s "
+                        f"idle_for={idle_for:.1f}s state={state}\n"
+                    )
                     last_heartbeat = now
                 if (
                     idle_timeout is not None
@@ -994,13 +1021,10 @@ def run_session(
                         f"SESSION_IDLE_TIMEOUT session={session_id} idle_timeout={idle_timeout:g}s idle_for={now - last_activity:.1f}s cwd={os.getcwd()}\n"
                     )
                     log.flush()
-                    try:
-                        sys.stdout.write(
-                            f"==> idle timeout: session={session_id} idle_for={now - last_activity:.1f}s limit={idle_timeout:g}s\n"
-                        )
-                        sys.stdout.flush()
-                    except BrokenPipeError:
-                        pass
+                    _write_status(
+                        f"==> idle timeout: session={session_id} "
+                        f"idle_for={now - last_activity:.1f}s limit={idle_timeout:g}s\n"
+                    )
                     os.killpg(process.pid, signal.SIGTERM)
                     try:
                         process.wait(timeout=kill_grace)
@@ -1023,9 +1047,14 @@ def run_session(
                             chunk_txt = data.decode("utf-8", errors="replace")
                         except Exception:
                             chunk_txt = ""
-                        progressed, tool_tail = _tool_progress_seen(tool_tail, chunk_txt)
-                        if progressed:
+                        if progress_mode == "stream_bytes":
                             last_activity = time.monotonic()
+                        elif progress_mode in {"tool_json", "codex_json"}:
+                            progressed, tool_tail = _tool_progress_seen(
+                                tool_tail, chunk_txt, progress_mode=progress_mode
+                            )
+                            if progressed:
+                                last_activity = time.monotonic()
                         if not model_substituted:
                             scan_buf = (scan_buf + chunk_txt)[-50_000:]
                             sub = detect_model_substitution(
@@ -1036,13 +1065,7 @@ def run_session(
                                 log.write(_MODEL_SUBSTITUTION_MARKER)
                                 log.write(sub + "\n")
                                 log.flush()
-                                try:
-                                    sys.stdout.write(
-                                        f"\n==> HALT: {sub}\n"
-                                    )
-                                    sys.stdout.flush()
-                                except BrokenPipeError:
-                                    pass
+                                _write_status(f"\n==> HALT: {sub}\n")
                                 if process.poll() is None:
                                     os.killpg(process.pid, signal.SIGTERM)
                                     try:
@@ -1105,15 +1128,33 @@ def _session_cli(argv: list[str]) -> int:
     run_parser.add_argument("--kill-grace", type=float, required=True)
     run_parser.add_argument("--heartbeat-sec", type=float, default=0.0)
     run_parser.add_argument("--idle-timeout", type=float, default=0.0)
+    run_parser.add_argument(
+        "--progress-mode",
+        choices=sorted(_PROGRESS_MODES),
+        default="tool_json",
+        help="tool_json=Claude/DSH tool_use idle; stream_bytes=any stdout; codex_json=codex --json events",
+    )
     run_parser.add_argument("--log", type=Path, required=True)
     run_parser.add_argument(
         "--expected-model",
         default="",
         help="Requested --model; mismatch/org swap → exit 125 fail-closed",
     )
+    run_parser.add_argument(
+        "--stdin-file",
+        type=Path,
+        default=None,
+        help="Prompt payload written to subprocess stdin (headless runtimes e.g. codex exec)",
+    )
     run_parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
+    stdin_text = None
+    if args.stdin_file is not None:
+        try:
+            stdin_text = args.stdin_file.read_text(encoding="utf-8")
+        except OSError as exc:
+            parser.error(f"cannot read stdin-file {args.stdin_file}: {exc}")
     try:
         return run_session(
             command,
@@ -1125,6 +1166,8 @@ def _session_cli(argv: list[str]) -> int:
             expected_model=(args.expected_model or "").strip() or None,
             heartbeat_sec=args.heartbeat_sec or None,
             idle_timeout=args.idle_timeout or None,
+            stdin_text=stdin_text,
+            progress_mode=args.progress_mode,
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))

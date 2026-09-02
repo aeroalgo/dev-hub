@@ -1,0 +1,24 @@
+date: '2026-09-02'
+epic_id: T-HUB-042-runtime-adapter-framework
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-042-runtime-adapter-framework.md
+audit_file: memory-bank/back/audit/T-HUB-042-runtime-adapter-framework/audit-20260902-runtime-adapter-framework.yaml
+
+verdict: PASS
+summary: "Все 10 шагов (s01-s10) эпика T-HUB-042-runtime-adapter-framework полностью реализованы, тесты пройдены, аудит завершён успешно."
+
+suite_results:
+  - command: ".venv/bin/pytest loop/tests/test_runtime_registry.py loop/tests/test_runtime_adapter_protocol.py loop/tests/test_claude_adapter.py loop/tests/test_dsh_adapter.py loop/tests/test_loop_dsh_dispatch.py loop/tests/test_session_resilience_adapter.py loop/tests/test_dsh_runtime_adapter.py -q --tb=line"
+    passed: 45
+    failed: 0
+
+ac_plus:
+  - "Все 10 шагов (s01-s10) эпика T-HUB-042-runtime-adapter-framework реализованы и протестированы."
+  - "Рантайм-адаптеры (ClaudeAdapter, DshAdapter) соответствуют протоколу RuntimeAdapter."
+  - "Загрузка реестра из YAML работает корректно."
+
+ac_minus:
+  - "Нет прямого обращения к is_dsh / EPIC_DSH_PROFILE в основном коде."
+  - "Нет дублирования логики формирования argv."
+
+gaps: []

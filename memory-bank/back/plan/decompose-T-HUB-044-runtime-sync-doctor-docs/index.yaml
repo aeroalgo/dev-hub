@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - board codex UI filter
+  - doctor hard fail on sync drift
+steps:
+- id: s01
+  file: s01-readme-workflow-updates.yaml
+  title: README runtime table + WORKFLOW.md registry pointer
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-codex-loop-pilot-runbook.yaml
+  title: codex-loop-pilot runbook — install/auth/sync/EPIC_RUNTIME=codex
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-doctor-runtime-checks.yaml
+  title: 'Doctor runtime checks: registry_valid, sync_drift, binary_codex'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-board-launch-registry-runtime.yaml
+  title: Board launch --runtime choices from registry (add codex)
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-hub-link-agents-stub-arch-row.yaml
+  title: hub-link AGENTS.md stub + architecture services.md runtime-sync row
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-tests-doc-link-audit.yaml
+  title: Tests test_doctor_runtime.py + doc link audit
+  next_phase: BACK IMPLEMENT
+  status: pending

@@ -133,7 +133,11 @@ def run_session(
         print(shlex.join(cmd))
         return 0
 
-    res = subprocess.run(cmd)
+    run_kwargs: dict[str, Any] = {}
+    if runtime_id == "codex":
+        run_kwargs["input"] = prompt.encode("utf-8")
+
+    res = subprocess.run(cmd, **run_kwargs)
     return res.returncode
 
 

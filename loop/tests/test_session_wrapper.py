@@ -143,6 +143,78 @@ def test_tool_progress_resets_idle_timeout(tmp_path: Path) -> None:
     assert elapsed < 2.5
 
 
+def test_heartbeat_writes_to_stderr_not_stdout(tmp_path: Path) -> None:
+    log = tmp_path / "heartbeat-stderr.log"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(RESILIENCE),
+            "run-session",
+            "--mode",
+            "headless",
+            "--session-id",
+            "hb-stderr",
+            "--timeout",
+            "2",
+            "--kill-grace",
+            "0.2",
+            "--heartbeat-sec",
+            "0.15",
+            "--log",
+            str(log),
+            "--",
+            sys.executable,
+            str(FIXTURE),
+            "hang",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert "==> heartbeat:" in proc.stderr
+    assert "==> heartbeat:" not in proc.stdout
+
+
+def test_stream_bytes_progress_resets_idle_on_any_output(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "stream-bytes-idle.log"
+    started = time.monotonic()
+    rc = sr.run_session(
+        [sys.executable, str(FIXTURE), "noise"],
+        mode="headless",
+        session_id="stream-bytes",
+        timeout=2,
+        kill_grace=0.2,
+        idle_timeout=0.5,
+        progress_mode="stream_bytes",
+        log_path=log,
+    )
+    elapsed = time.monotonic() - started
+    text = log.read_text(encoding="utf-8")
+    assert rc == 124
+    assert "SESSION_TIMEOUT session=stream-bytes" in text
+    assert "SESSION_IDLE_TIMEOUT" not in text
+    assert elapsed >= 1.5
+
+
+def test_stream_bytes_idle_when_output_stops(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "stream-bytes-hang.log"
+    rc = sr.run_session(
+        [sys.executable, str(FIXTURE), "hang"],
+        mode="headless",
+        session_id="stream-bytes-hang",
+        timeout=5,
+        kill_grace=0.2,
+        idle_timeout=0.5,
+        progress_mode="stream_bytes",
+        log_path=log,
+    )
+    text = log.read_text(encoding="utf-8")
+    assert rc == 124
+    assert "SESSION_IDLE_TIMEOUT session=stream-bytes-hang" in text
+
+
 def test_timeout_kills_process_group_and_releases_runner_lock(tmp_path: Path) -> None:
     resilience = _load_resilience()
     lock_path = tmp_path / "runner.lock"
@@ -554,6 +626,59 @@ def test_structured_model_substitution_with_marker_is_abort(tmp_path: Path) -> N
     assert sr.is_structured_model_substitution_reason(reason)
     analysis = sr.analyze_session_log(log, exit_code=125, attempt=1)
     assert analysis["outcome"] == "permanent_failure"
+    assert analysis["retryable"] is False
+
+
+def test_command_not_found_in_result_json_is_not_abort(tmp_path: Path) -> None:
+    """Agent prose quoting codex fixture must not HALT loop on exit 0."""
+    sr = _load_resilience()
+    log = tmp_path / "fixture-quote.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        '{"type":"result","subtype":"success","result":"Created codex_session_binary_missing.log with bash: line 1: codex: command not found"}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+    assert sr.detect_abort_in_log(log, exit_code=0) is None
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1, runtime="claude")
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+    analysis_codex = sr.analyze_session_log(log, exit_code=0, attempt=1, runtime="codex")
+    assert analysis_codex["outcome"] == "clean"
+    assert analysis_codex["aborted"] is False
+
+
+def test_run_session_writes_stdin_payload(tmp_path: Path, monkeypatch) -> None:
+    sr = _load_resilience()
+    fake_codex = ROOT / "loop" / "tests" / "fixtures" / "fake_codex.sh"
+    record = tmp_path / "fake-codex.txt"
+    monkeypatch.setenv("FAKE_CODEX_RECORD_FILE", str(record))
+    log = tmp_path / "stdin.log"
+    rc = sr.run_session(
+        ["bash", str(fake_codex), "exec"],
+        mode="headless",
+        session_id="codex-stdin",
+        timeout=5,
+        kill_grace=0.2,
+        log_path=log,
+        stdin_text="prompt from file",
+    )
+    assert rc == 0
+    assert "prompt: prompt from file" in record.read_text(encoding="utf-8")
+
+
+def test_shell_command_not_found_still_aborts_on_exit127(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "binary-missing.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=codex\n"
+        "bash: line 1: codex: command not found\n"
+        "SESSION_END session=1 exit_code=127 elapsed=0.1s\n",
+        encoding="utf-8",
+    )
+    analysis = sr.analyze_session_log(log, exit_code=127, attempt=1, runtime="codex")
+    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["reason"] == "command not found"
     assert analysis["retryable"] is False
 
 

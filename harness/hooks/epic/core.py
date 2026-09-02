@@ -1216,18 +1216,9 @@ _HANDOFF_NEXT_PHASE_RE = re.compile(
 
 def handoff_post_implement_phase(text: str) -> str | None:
     """Parse explicit post-implement / decompose phase from Handoff (SoT over events)."""
-    handoff = extract_handoff_block(text) or ""
-    if not handoff:
-        return None
-    for pattern in (
-        _HANDOFF_PHASE_HEADING_RE,
-        _HANDOFF_MODE_LINE_RE,
-        _HANDOFF_NEXT_PHASE_RE,
-    ):
-        match = pattern.search(handoff)
-        if match:
-            return str(match.group(1)).upper()
-    return None
+    from loop.schemas.active_context import handoff_gate_phase_from_text
+
+    return handoff_gate_phase_from_text(text)
 
 
 def _reflection_stale_vs_qa_pass(
@@ -2262,6 +2253,39 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
     ac_step = _step_id_from_active_context(text)
 
     if next_step is None:
+        text = read_active_context(cwd_p)
+        handoff_phase = handoff_post_implement_phase(text)
+        if handoff_phase in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
+            if not epic_id:
+                epic_id = epic_id_from_decompose_path(decompose) or ""
+            if epic_id:
+                from loop.schemas.active_context import post_implement_phase_rank
+
+                decision = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
+                lifecycle_phase = str(decision.get("phase") or "QA").upper()
+                handoff_rank = post_implement_phase_rank(handoff_phase)
+                lifecycle_rank = post_implement_phase_rank(lifecycle_phase)
+                if handoff_rank > lifecycle_rank:
+                    return {
+                        "ok": False,
+                        "halt": True,
+                        "synced": False,
+                        "reason": (
+                            f"Handoff указывает {handoff_phase}, lifecycle — "
+                            f"{lifecycle_phase}; завершай фазу через "
+                            f"mb-finish {lifecycle_phase.lower()} (не mb-finish handoff)"
+                        ),
+                        "diagnostic_code": "handoff_ahead_of_lifecycle",
+                        "handoff_phase": handoff_phase,
+                        "lifecycle_phase": lifecycle_phase,
+                    }
+                if handoff_rank == lifecycle_rank:
+                    return {
+                        "ok": True,
+                        "synced": False,
+                        "reason": "handoff_aligned",
+                        "armed_step": handoff_phase,
+                    }
         # Queue exhausted — arm may promote to AUDIT/QA/REFLECT/DONE.
         arm = arm_active_context_from_decompose(cwd_p, decompose)
         return {
@@ -3128,7 +3152,22 @@ def project_handoff_from_reducer(
     phase = decision.get("phase") or "QA"
 
     projected = False
-    if phase == "REFLECT" and ("BUGFIX" in text or "mode: BUGFIX" in text or "mode: QA" in text):
+    if phase == "QA" and (
+        "mode: AUDIT" in text
+        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+AUDIT\b", text)
+    ):
+        text_new = re.sub(r"Handoff\s+BACK\s+AUDIT", "Handoff BACK QA", text)
+        text_new = re.sub(r"`BACK AUDIT`", "`BACK QA`", text_new)
+        text_new = re.sub(r"mode:\s*AUDIT", "mode: QA", text_new)
+        if "schema: loop-handoff/v1" not in text_new:
+            frontmatter = (
+                f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\n"
+                f"mode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
+            )
+            text_new = frontmatter + text_new
+        ac.write_text(text_new, encoding="utf-8")
+        projected = True
+    elif phase == "REFLECT" and ("BUGFIX" in text or "mode: BUGFIX" in text or "mode: QA" in text):
         text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK REFLECT", text)
         text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK REFLECT`", text_new)
         text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: REFLECT", text_new)

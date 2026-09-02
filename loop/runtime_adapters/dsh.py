@@ -99,19 +99,13 @@ def _dsh_model_pairs(raw_log: str) -> list[tuple[str, str]]:
 DSH_MISSING_EXIT = 127
 
 
-def build_dsh_command(
+def _build_dsh_command(
     profile: str, prompt: str, dsh_bin: str = "dsh"
 ) -> list[str]:
     return [dsh_bin, "--profile", profile, "--no-open", prompt]
 
 
-def build_dsh_command_from_file(
-    profile: str, prompt_file: Path, dsh_bin: str = "dsh"
-) -> list[str]:
-    return build_dsh_command(profile, prompt_file.read_text(encoding="utf-8"), dsh_bin)
-
-
-def normalize_dsh_log(raw_log: str) -> str:
+def _normalize_dsh_log(raw_log: str) -> str:
     extracted: list[str] = []
     for line in raw_log.splitlines():
         try:
@@ -132,6 +126,71 @@ def normalize_dsh_log(raw_log: str) -> str:
     return "\n".join(extracted) if extracted else raw_log
 
 
+_DSH_TRANSIENT_PATTERNS = (
+    re.compile(r"(?i)429\s*Too\s*Many\s*Requests"),
+    re.compile(r"(?i)503\s*Service\s*Unavailable"),
+    re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
+    re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
+)
+
+_DSH_PERMANENT_PATTERNS = (
+    re.compile(r"(?i)API\s+Error:\s*terminated"),
+    re.compile(r"(?i)API\s+Error:\s*overloaded"),
+    re.compile(r"(?i)API\s+Error:.*rate.?limit"),
+    re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
+    re.compile(r"(?i)Invalid\s+API\s+key"),
+)
+
+_STRUCTURED_MODEL_SUBSTITUTION_RE = re.compile(
+    r"(?i)model_substitution:\s*requested=\S+\s+actual=\S+"
+)
+
+
+def is_structured_model_substitution_reason(reason: str | None) -> bool:
+    return bool(reason and _STRUCTURED_MODEL_SUBSTITUTION_RE.search(reason))
+
+
+def _match_patterns(text: str, patterns: tuple[re.Pattern, ...]) -> str | None:
+    for pat in patterns:
+        m = pat.search(text)
+        if m:
+            return m.group(0)
+    return None
+
+
+def detect_dsh_abort_in_log(text: str) -> str | None:
+    transient = _match_patterns(text or "", _DSH_TRANSIENT_PATTERNS)
+    if transient:
+        return f"dsh_transient: {transient}"
+    permanent = _match_patterns(text or "", _DSH_PERMANENT_PATTERNS)
+    if permanent:
+        return f"dsh_permanent: {permanent}"
+    return None
+
+
+def _detect_dsh_session_complete(text: str) -> bool:
+    last_nonempty = ""
+    for line in (text or "").splitlines():
+        normalized = line.strip()
+        if not normalized:
+            continue
+        last_nonempty = normalized
+        try:
+            event = json.loads(normalized)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        candidates = [event]
+        nested = event.get("event")
+        if isinstance(nested, dict):
+            candidates.append(nested)
+        for item in candidates:
+            if item.get("type") == "session_end" and item.get("status") == "completed":
+                return True
+    return bool(re.search(r"(?i)(?:FINISH|END)\s*$", last_nonempty))
+
+
 def detect_dsh_model_mismatch(
     raw_log: str, expected_model: str | None
 ) -> str | None:
@@ -149,20 +208,46 @@ def detect_dsh_model_mismatch(
             )
     return None
 
+_detect_dsh_model_mismatch = detect_dsh_model_mismatch
+
 
 class DshAdapter(RuntimeAdapter):
     """RuntimeAdapter implementation wrapping existing DSH functions."""
 
     def build_command(self, ctx: SessionContext) -> list[str]:
         profile = ctx.extras.get("dsh_profile") or f"epic-{ctx.phase.lower()}"
-        return build_dsh_command(profile=profile, prompt=ctx.prompt)
+        return _build_dsh_command(profile=profile, prompt=ctx.prompt)
 
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
-        normalized = normalize_dsh_log(raw_log)
-        mismatch_reason = detect_dsh_model_mismatch(raw_log, ctx.model)
+        reason = (
+            _detect_dsh_model_mismatch(raw_log, ctx.model)
+            or detect_dsh_abort_in_log(raw_log)
+        )
+        if "exit_code" in ctx.extras:
+            exit_code = ctx.extras["exit_code"]
+            if not reason and exit_code in (0, None) and not _detect_dsh_session_complete(raw_log):
+                reason = "dsh incomplete FINISH"
+            elif not reason and exit_code not in (0, None):
+                reason = f"dsh process exit={exit_code}"
+
+        dsh_abort_kind = None
+        if reason and reason.startswith("dsh_transient:"):
+            dsh_abort_kind = "transient"
+        elif reason and (
+            reason.startswith("dsh_permanent:")
+            or is_structured_model_substitution_reason(reason)
+        ):
+            dsh_abort_kind = "fatal"
+        elif reason:
+            dsh_abort_kind = "unknown"
+
+        normalized = _normalize_dsh_log(raw_log)
+        struct_out = {"log": normalized} if normalized != raw_log else None
+
         return SessionAnalysis(
-            reason=mismatch_reason,
-            structured_output={"log": normalized} if normalized != raw_log else None,
+            reason=reason,
+            dsh_abort_kind=dsh_abort_kind,
+            structured_output=struct_out,
         )
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:

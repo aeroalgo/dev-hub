@@ -34,6 +34,11 @@
   - `todo`: эпик завершил фазу выполнения (`phase` = `DONE` или `NEXT_EPIC`) или готов к повторному запуску/принятию.
 - **Sunset step cards:** Ранее созданные карточки шагов (`card_kind: step`) автоматически архивируются при запуске sync, уступая место единой карточке эпика.
 
+## Runtime registry
+
+Конфигурация доступных runtimes автоцикла (`claude`, `dsh`, `codex`, …) и их адаптеров определяется в [`loop/runtime_registry.yaml`](runtime_registry.yaml).
+Слой конфигурации и правил под каждую платформу подключается через каталог `harness/` и переключается переменной окружения `EPIC_RUNTIME` или флагом `--runtime`.
+
 ## Production semantics
 
 - **Runtime engine:** `EPIC_RUNTIME` selects execution engine: `claude` (default) | `dsh` (developer preview, opt-in; not production default). See [`docs/runbooks/dsh-loop-pilot.md`](../docs/runbooks/dsh-loop-pilot.md) for runbook details.

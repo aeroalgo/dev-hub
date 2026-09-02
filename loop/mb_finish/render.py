@@ -3,6 +3,7 @@
 import yaml
 from harness.hooks.epic.core import validate_active_context_shape
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta
+from loop.schemas.active_context import normalize_gate_mode
 
 
 def render_active_context(
@@ -12,6 +13,9 @@ def render_active_context(
     handoff: HandoffBody,
 ) -> str:
     """Render activeContext.md string and validate shape rules."""
+    mode = normalize_gate_mode(handoff.mode, meta.role)
+    meta = meta.model_copy(update={"mode": normalize_gate_mode(meta.mode, meta.role)})
+    handoff = handoff.model_copy(update={"mode": mode})
     fm_dict = meta.model_dump_frontmatter()
     fm_yaml = yaml.safe_dump(fm_dict, sort_keys=False).strip()
 

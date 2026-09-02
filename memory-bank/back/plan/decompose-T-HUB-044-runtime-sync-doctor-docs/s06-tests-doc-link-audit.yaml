@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: "Tests test_doctor_runtime.py + doc link audit"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать loop/tests/test_doctor_runtime.py — pytest-покрытие всех трёх runtime doctor
+  checks (из s03) с mocker/monkeypatch.
+  Провести doc link audit: проверить что README ссылается на codex-loop-pilot.md и файл
+  существует; что WORKFLOW.md ссылается на runtime_registry.yaml.
+  Гарантировать green suite: pytest loop/tests/test_doctor_runtime.py.
+
+context:
+  consumes:
+    - "loop/incidents/doctor.py (s03 результат: _check_runtime_registry_valid, _check_runtime_sync_drift, _check_runtime_binary_ok)"
+    - "loop/tests/test_incidents_doctor.py (паттерн тестов)"
+    - "docs/runbooks/codex-loop-pilot.md (s02 результат)"
+    - "README.md (s01 результат)"
+    - "loop/WORKFLOW.md (s01 результат)"
+  produces:
+    - "loop/tests/test_doctor_runtime.py — 6+ pytest cases, все зелёные"
+  plan_refs:
+    - "FR-009 (pytest: doctor runtime checks with mocks)"
+    - "AC+ #5 (loop/tests/test_doctor_runtime.py green)"
+    - "TM-001 (doctor runtime json pytest)"
+    - "TM-003 (runbook exists — file path fixture)"
+    - "TM-004 (README not stale — grep no «не запускает Codex»)"
+  files:
+    - "loop/tests/test_doctor_runtime.py"
+
+as_built:
+  - "loop/tests/test_incidents_doctor.py: существует, паттерн monkeypatch на _check_* функции"
+  - "loop/tests/: test_runtime_registry.py, test_runtime_sync_cli.py — смежные тесты"
+
+delta:
+  - "loop/tests/test_doctor_runtime.py: новый файл с тестами:"
+  - "  test_runtime_registry_valid_pass — yaml ok"
+  - "  test_runtime_registry_valid_fail — yaml missing"
+  - "  test_runtime_sync_drift_warn — subprocess exit 1 → warn"
+  - "  test_runtime_sync_drift_pass — subprocess exit 0 → pass"
+  - "  test_runtime_binary_ok_error — shutil.which returns None → error"
+  - "  test_runtime_binary_ok_pass — shutil.which returns path → pass"
+  - "  test_runbook_codex_pilot_exists — pathlib assert file exists"
+  - "  test_readme_no_stale_codex_message — rg / open README assert"
+
+deletes: []
+
+out_of_scope:
+  - "Integration тесты с реальным codex binary"
+  - "E2E doctor run с реальной registry"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "Файл loop/tests/test_doctor_runtime.py существует"
+    verify: "test -f loop/tests/test_doctor_runtime.py && echo OK"
+  - id: cp2
+    criterion: "test_doctor_runtime.py содержит ≥6 test_ функций"
+    verify: "rg '^def test_' loop/tests/test_doctor_runtime.py | wc -l"
+  - id: cp3
+    criterion: "pytest test_doctor_runtime.py green"
+    verify: ".venv/bin/pytest loop/tests/test_doctor_runtime.py -q --tb=line"
+  - id: cp4
+    criterion: "README не содержит «не запускает Codex» / устаревший ❌"
+    verify: "rg 'не запускает Codex' README.md; echo exit=$?"
+
+verify: []
+tdd:
+  - "test: _check_runtime_registry_valid(cwd) pass/fail (mock yaml)"
+  - "test: _check_runtime_sync_drift(cwd) warn/pass (mock subprocess)"
+  - "test: _check_runtime_binary_ok('codex') error/pass (mock shutil.which)"
+  - "test: runbook file exists (pathlib)"
+  - "test: README не содержит stale строки"

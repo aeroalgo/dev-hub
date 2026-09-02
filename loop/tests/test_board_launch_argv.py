@@ -161,3 +161,9 @@ def test_empty_env_value_does_not_override(tmp_path: Path, config: BridgeConfig)
     result = build_loop_argv(tmp_path, "IMPLEMENT", config, preset_id="gpt")
 
     assert result.model_source == "preset"
+
+
+def test_build_loop_argv_sets_epic_runtime_codex(tmp_path: Path, config: BridgeConfig) -> None:
+    result = build_loop_argv(tmp_path, "IMPLEMENT", config, runtime="codex")
+
+    assert result.env_extra.get("EPIC_RUNTIME") == "codex"

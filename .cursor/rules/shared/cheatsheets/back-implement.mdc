@@ -7,7 +7,7 @@ alwaysApply: false
 1. `load_now` → work shard `sNN` + `decompose-*/index.yaml` (AC = shard; не полный plan)
 2. graphify query codebase (cwd=repo root; hub без graph.json → inventory fallback)
 3. Read **Impl skills** из `sNN` целиком **до** prod-edit (docs-only: skip)
-4. TDD: red → code → `timeout 300s .venv/bin/pytest …` → green; выполнить все `deletes:`
+4. TDD: red → code → `bin/pytest …` → green; выполнить все `deletes:`
 5. FINISH 5 точек: seed → flush cp → suite → evidence (`in_progress`) → validate-step → Handoff → `@verify` → PASS → `finalize-step`
 
 → verify: @.cursor/rules/back_developer/workflow-implement.mdc

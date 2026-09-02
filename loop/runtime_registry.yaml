@@ -16,3 +16,10 @@ runtimes:
       - stream_json
       - profile_override
       - session_resilience
+  codex:
+    id: codex
+    adapter_module: "loop.runtime_adapters.codex"
+    binary_env: "CODEX_BIN"
+    capabilities:
+      - headless
+      - bridge_subagents

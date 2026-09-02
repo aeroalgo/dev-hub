@@ -82,7 +82,7 @@ def test_runtime_flag(tmp_path: Path, monkeypatch) -> None:
         seen.append(
             LoopArgvResult(
                 argv=["loop"],
-                env_extra={"EPIC_RUNTIME": runtime} if runtime == "dsh" else {},
+                env_extra={},
                 model_source="bare",
             )
         )
@@ -94,7 +94,7 @@ def test_runtime_flag(tmp_path: Path, monkeypatch) -> None:
         ["arm-loop", "--task-id", "mb-demo", "--runtime", "dsh"],
         client=_client(tmp_path),
     ) == 0
-    assert seen[0].env_extra == {"EPIC_RUNTIME": "dsh"}
+    assert seen[0].env_extra == {}
 
 
 def test_loop_result_prints_model_source_and_env_key(tmp_path: Path, monkeypatch, capsys) -> None:
@@ -236,17 +236,28 @@ def test_arm_subcommand_calls_arm_from_card(tmp_path: Path, monkeypatch) -> None
     assert calls == ["s01"]
 
 
-def test_arm_loop_subcommand_calls_pipeline(tmp_path: Path, monkeypatch) -> None:
+def test_arm_loop_subcommand_calls_pipeline_codex(tmp_path: Path, monkeypatch) -> None:
     hub = tmp_path / "hub"
     hub.mkdir()
     monkeypatch.setenv("DEV_HUB", str(hub))
     calls: list[str] = []
+    runtimes: list[str | None] = []
 
     def fake_pipeline(card, config, *, preset_id=None, runtime=None):
         calls.append(card.step_id or "")
+        runtimes.append(runtime)
         return type("Result", (), {"status": "succeeded", "loop_invoked": True, "loop": None, "sync_warning": None})()
 
     monkeypatch.setattr("loop.board_sync.cli.arm_loop_from_card", fake_pipeline)
 
-    assert main(["arm-loop", "--task-id", "mb-demo"], client=_client(tmp_path)) == 0
+    assert main(["arm-loop", "--task-id", "mb-demo", "--runtime", "codex"], client=_client(tmp_path)) == 0
     assert calls == ["s01"]
+    assert runtimes == ["codex"]
+
+
+def test_arm_loop_subcommand_invalid_runtime_rejected(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("sys.stderr", open("/dev/null", "w"))
+    res = main(["arm-loop", "--task-id", "mb-demo", "--runtime", "unknown_xyz"], client=_client(tmp_path))
+    assert res != 0
+
+

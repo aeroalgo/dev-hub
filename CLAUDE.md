@@ -25,7 +25,7 @@
 
 ## Stack
 
-Python 3.12 · FastAPI · Next.js `frontend/` · `.venv/bin/pytest` · PostgreSQL 16 · Redis 7. Детали: `memory-bank/techContext.md`
+Python 3.12 · FastAPI · Next.js `frontend/` · `bin/pytest` · PostgreSQL 16 · Redis 7. Детали: `memory-bank/techContext.md`
 
 ## Conventions
 

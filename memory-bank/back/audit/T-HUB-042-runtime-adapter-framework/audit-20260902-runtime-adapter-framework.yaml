@@ -1,0 +1,80 @@
+date: '2026-09-02'
+epic_id: T-HUB-042-runtime-adapter-framework
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-042-runtime-adapter-framework.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-042-runtime-adapter-framework/index.yaml
+
+steps:
+  - id: s01
+    title: "Registry YAML schema + loader — единый источник runtime id"
+    status: implemented
+    as_built: "Реализована схема Pydantic и загрузчик YAML реестра рантаймов."
+    delta: "loop/runtime_registry.py, loop/tests/test_runtime_registry.py"
+    gaps: []
+
+  - id: s02
+    title: "RuntimeAdapter Protocol + SessionContext/SessionAnalysis dataclasses"
+    status: implemented
+    as_built: "Создан интерфейс Protocol и базовые структуры данных SessionContext и SessionAnalysis."
+    delta: "loop/runtime_adapters/protocol.py, loop/tests/test_runtime_adapter_protocol.py"
+    gaps: []
+
+  - id: s03
+    title: "ClaudeAdapter — extract claude argv builder + byte-equivalent behavior"
+    status: implemented
+    as_built: "Реализован адаптер ClaudeAdapter с извлечением построения аргументов командной строки."
+    delta: "loop/runtime_adapters/claude.py, loop/tests/test_claude_adapter.py"
+    gaps: []
+
+  - id: s04
+    title: "DshAdapter — implement Protocol wrapping existing dsh.py functions"
+    status: implemented
+    as_built: "Реализован DshAdapter, оборачивающий функциональность dsh."
+    delta: "loop/runtime_adapters/dsh.py, loop/tests/test_dsh_adapter.py"
+    gaps: []
+
+  - id: s05
+    title: "dispatch.py CLI + loop.sh thin wrapper; replace if/else dispatch"
+    status: implemented
+    as_built: "Добавлен CLI диспатчера и обновлен loop.sh для гибкого вызова адаптеров."
+    delta: "loop/dispatch.py, loop/loop.sh, loop/tests/test_loop_dsh_dispatch.py"
+    gaps: []
+
+  - id: s06
+    title: "_lib.resolve_runtime_config registry-driven; purge _RUNTIME_MODES frozenset"
+    status: implemented
+    as_built: "Резолв конфигурации переведен на реестр, удален статический _RUNTIME_MODES."
+    delta: "loop/context_loop.py, loop/tests/test_context_loop.py"
+    gaps: []
+
+  - id: s07
+    title: "session_resilience delegates analyze_log to adapter; purge is_dsh core path"
+    status: implemented
+    as_built: "Анализ логов делегирован соответствующему адаптеру рантайма."
+    delta: "harness/hooks/session_resilience.py, loop/tests/test_session_resilience_adapter.py"
+    gaps: []
+
+  - id: s08
+    title: "context_loop runtime_extras via adapter.prepare_extras + argparse from registry"
+    status: implemented
+    as_built: "Подготовка дополнительных параметров контекста переведена на адаптеры."
+    delta: "loop/context_loop.py, loop/tests/test_context_loop.py"
+    gaps: []
+
+  - id: s09
+    title: "purge is_dsh/EPIC_DSH_PROFILE remaining callers + regression suite green"
+    status: implemented
+    as_built: "Удалены устаревшие флаги is_dsh/EPIC_DSH_PROFILE у вызовов диспатчера."
+    delta: "loop/dispatch.py, loop/tests/test_dsh_runtime_adapter.py"
+    gaps: []
+
+  - id: s10
+    title: "legacy-fallback-purge — standalone dsh functions + full inventory scan"
+    status: implemented
+    as_built: "Очищены устаревшие функции-заглушки и проведен сканирующий аудит."
+    delta: "loop/runtime_adapters/dsh.py, loop/tests/test_dsh_adapter.py"
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 10 шагов (s01-s10) эпика T-HUB-042-runtime-adapter-framework полностью реализованы, аудит пройден успешно."

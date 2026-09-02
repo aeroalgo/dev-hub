@@ -2,9 +2,6 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-045
-    plan: plan-T-HUB-045-harness-workflow-session-load-api.md
-    deps: []
   - id: T-HUB-042
     plan: plan-T-HUB-042-runtime-adapter-framework.md
     deps: []
@@ -20,3 +17,18 @@ queue:
   - id: T-HUB-047
     plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
     deps: []
+  - id: T-HUB-048
+    plan: plan-T-HUB-048-workflow-pack-registry.md
+    deps: []
+  - id: T-HUB-049
+    plan: plan-T-HUB-049-workflow-pack-phase-router.md
+    deps: [T-HUB-048]
+  - id: T-HUB-050
+    plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
+    deps: [T-HUB-048]
+  - id: T-HUB-051
+    plan: plan-T-HUB-051-workflow-pack-reference-video.md
+    deps: [T-HUB-049, T-HUB-050]
+  - id: T-HUB-052
+    plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
+    deps: [T-HUB-051]

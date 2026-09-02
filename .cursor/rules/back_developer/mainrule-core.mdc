@@ -16,10 +16,11 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
 
-1. Shell **cwd** = корень репо (где `.venv/` и `pyproject.toml`)
-2. Всегда: `timeout 300s .venv/bin/pytest …` (или `timeout 300s .venv/bin/python -m pytest …`)
-3. **FORBIDDEN:** голый `pytest` / system PATH и запуск без внешнего timeout
-4. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
+1. Shell **cwd** = корень репо (где `.venv/` и `bin/pytest`)
+2. **Предпочтительно:** `bin/pytest …` (300s встроен в wrapper)
+3. Альтернатива: `timeout 300s .venv/bin/pytest …` (или `timeout 300s .venv/bin/python -m pytest …`)
+4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` / system PATH без внешнего timeout
+5. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
 
 ## MEMORY BANK
 

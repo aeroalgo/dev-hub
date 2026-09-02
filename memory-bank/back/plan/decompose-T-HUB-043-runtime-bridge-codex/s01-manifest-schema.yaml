@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "harness/manifest.yaml schema harness-manifest/v1 + pydantic validator"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `harness/manifest.yaml` как SoT для agents/hooks/instructions → runtime bindings,
+  и pydantic-модель `loop/runtime_materializers/manifest_schema.py` валидирующую его при загрузке.
+  Outcome: единый yaml описывает все рантаймы; невалидный manifest → exit 2 (TM-001).
+
+context:
+  consumes:
+    - "plan §manifest.yaml sketch (FR-001)"
+    - "loop/runtime_registry.yaml — образец schema_version pattern"
+  produces:
+    - "harness/manifest.yaml"
+    - "loop/runtime_materializers/__init__.py"
+    - "loop/runtime_materializers/manifest_schema.py"
+  plan_refs:
+    - "FR-001"
+    - "TM-001"
+  files:
+    - "harness/manifest.yaml"
+    - "loop/runtime_materializers/__init__.py"
+    - "loop/runtime_materializers/manifest_schema.py"
+
+as_built:
+  - "loop/runtime_registry.yaml существует: schema_version: runtime-registry/v1, runtimes: claude/dsh"
+  - "loop/runtime_adapters/base.py: RuntimeAdapter Protocol, SessionContext, SessionAnalysis"
+  - "harness/ dir существует: hooks/, agents/, instructions/"
+
+delta:
+  - "create harness/manifest.yaml: schema harness-manifest/v1 с секциями agents/hooks/instructions; stub entries для verify-implement (3 runtimes)"
+  - "create loop/runtime_materializers/__init__.py: пустой пакет"
+  - "create loop/runtime_materializers/manifest_schema.py: pydantic-модели ManifestAgent, ManifestHook, HarnessManifest; load_manifest(path) → HarnessManifest; invalid → ManifestValidationError (exit 2)"
+
+deletes: []
+
+out_of_scope:
+  - "runtime-sync CLI (s03)"
+  - "hooks.json generator (s04)"
+  - "agent materializer (s05)"
+  - "полная библиотека agents и hooks секций (добавляется при IMPLEMENT по реальным файлам harness/)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # новые публичные pydantic-модели ManifestAgent/HarnessManifest
+    - ".agents/skills/python-error-handling/SKILL.md"  # ManifestValidationError → exit 2
+
+checkpoints:
+  - id: cp1
+    criterion: "HarnessManifest.model_validate() принимает корректный manifest.yaml без exception"
+    verify: ".venv/bin/pytest loop/tests/test_manifest_schema.py -q --tb=short"
+  - id: cp2
+    criterion: "Invalid manifest (отсутствует schema: harness-manifest/v1) → ManifestValidationError"
+    verify: ".venv/bin/pytest loop/tests/test_manifest_schema.py -k invalid -q --tb=short"
+  - id: cp3
+    criterion: "harness/manifest.yaml загружается через load_manifest без ошибок (smoke)"
+    verify: ".venv/bin/python -c \"from loop.runtime_materializers.manifest_schema import load_manifest; load_manifest('harness/manifest.yaml')\""
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_manifest_schema.py -q --tb=short"
+
+tdd:
+  - "test_manifest_schema.py::test_load_valid_manifest"
+  - "test_manifest_schema.py::test_invalid_schema_version_raises"
+  - "test_manifest_schema.py::test_missing_required_section_raises"
+  - "test_manifest_schema.py::test_agent_entry_codex_materialize"
+  - "test_manifest_schema.py::test_hook_entry_claude_settings_path"

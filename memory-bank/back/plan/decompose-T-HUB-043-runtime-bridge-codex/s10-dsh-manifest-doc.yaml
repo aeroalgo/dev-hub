@@ -1,0 +1,63 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "dsh manifest bridge doc + README codex runtime section (docs-only)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить документацию: README раздел «Supported agents» → добавить codex runtime;
+  закрыть Replacement cleanup строку «README loop не запускает Codex».
+  Опциональный doc-stub для dsh manifest rows (FR-011, cut_list — автоматизация отложена).
+  Это docs-only шаг; impl: [] (нет Python-кода).
+
+context:
+  consumes:
+    - "plan §FR-011, §Replacement cleanup A (README), §Plan review batch log (DSH deferred)"
+    - "README.md §Supported agents — current text «loop не запускает Codex» (if present)"
+  produces:
+    - "README.md (edit: codex runtime section)"
+    - "codex/README.md (расширить: auth + usage с loop)"
+    - "harness/manifest.yaml (edit: add dsh preset stub rows с NOTE: manual step)"
+  plan_refs:
+    - "FR-011"
+    - "Replacement cleanup A: README"
+    - "cut_list: DSH preset auto-regen"
+  files:
+    - "README.md"
+    - "codex/README.md"
+
+as_built:
+  - "codex/README.md: stub created in s06 with install/auth"
+  - "harness/manifest.yaml: agents + hooks sections (s01)"
+
+delta:
+  - "edit README.md: добавить codex в §Supported agents / Runtimes; убрать 'loop не запускает Codex' если есть; добавить EPIC_RUNTIME=codex usage"
+  - "edit codex/README.md: расширить — EPIC_RUNTIME=codex loop invocation; runtime-sync --apply --runtime codex; примеры"
+  - "edit harness/manifest.yaml: добавить NOTE comment для dsh preset rows: 'full automation deferred to follow-up epic'"
+
+deletes: []
+# README "loop не запускает Codex" удаляется in-edit выше
+
+out_of_scope:
+  - "automated dsh preset regen (cut_list — follow-up epic)"
+  - "full dsh bridge automation"
+
+skills:
+  code_surface: infra
+  impl: []  # docs-only; нет Python-кода
+
+checkpoints:
+  - id: cp1
+    criterion: "README.md содержит codex в разделе runtimes/agents (rg)"
+    verify: "rg -n 'codex' README.md | grep -i 'runtime\\|EPIC_RUNTIME' && echo OK"
+  - id: cp2
+    criterion: "README.md не содержит устаревшую фразу 'loop не запускает Codex'"
+    verify: "rg -n 'loop не запускает Codex' README.md && exit 1 || exit 0"
+
+verify:
+  - "rg -n 'EPIC_RUNTIME=codex' README.md && echo OK"
+  - "rg -n 'loop не запускает Codex' README.md && exit 1 || exit 0"
+
+tdd: []

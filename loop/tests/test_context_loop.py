@@ -397,6 +397,47 @@ def test_prepare_emits_dsh_profile(tmp_path: Path, monkeypatch) -> None:
     out = ctx.prepare_session(tmp_path)
 
     assert out["dsh_profile"].startswith("epic-")
+    assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
+
+
+def test_prepare_runtime_extras_via_adapter(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.setenv("EPIC_RUNTIME", "dsh")
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
+
+
+def test_prepare_runtime_extras_claude(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out["runtime_extras"] == {}
+
+
+def test_argparse_choices_runtime_from_registry() -> None:
+    from loop.runtime.registry import list_ids
+    import argparse
+    from loop.context_loop import main
+
+    choices = list_ids()
+    assert "claude" in choices
+    assert "dsh" in choices
+
+
+def test_context_loop_runtime_extras_generic_key(tmp_path: Path, monkeypatch) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+
+    out = ctx.prepare_session(tmp_path, runtime="dsh")
+
+    assert "runtime_extras" in out
+    assert isinstance(out["runtime_extras"], dict)
 
 
 def test_prepare_emits_dsh_workspace(tmp_path: Path) -> None:
@@ -2310,6 +2351,106 @@ def test_loop_shell_skips_check_after_on_retry_cap() -> None:
     assert "resume_outer=1" in script
     assert 'if [[ "$resume_outer" -eq 1 ]]; then' in script
     assert "continue" in script
+
+
+def test_loop_shell_reprepares_on_transient_retry() -> None:
+    """Transient retry must call prepare again so armed_step matches index.yaml SoT."""
+    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
+    assert "_reprepare_for_transient_retry" in script
+    transient_block = script.split("TRANSIENT API abort — retry after", 1)[1].split(
+        "if [[ \"$retryable\" == \"1\" ]]; then", 1
+    )[0]
+    assert "_reprepare_for_transient_retry" in transient_block
+    assert "armed_step resynced" in script
+
+
+def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> None:
+    """Retryable abort syncs armed_step from index before resume marker."""
+    ctx = _load_ctx()
+    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-demo/index.md",
+        "| step_id | title | next_phase | status |\n"
+        "| :--- | :--- | :--- | :--- |\n"
+        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | completed |\n"
+        "| **s02** | two · [yaml](s02-two.yaml) | BACK IMPLEMENT | pending |\n",
+    )
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n"
+        "- id: s02\n"
+        "  file: s02-two.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: two\n"
+        "  status: pending\n",
+    )
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-one.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s02-two.yaml", "step_id: s02\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: one\nstatus: completed\ndate: '2026-08-16'\n"
+        "done: [x]\nfiles: [a.py]\ntests: ['timeout 300s .venv/bin/pytest -q']\n"
+        "integration_check: [ok]\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: done\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        "1. [s01-one.yaml](back/plan/decompose-demo/s01-one.yaml)\n"
+        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "## Handoff\n- stuck on s01\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps(
+            {
+                "armed_decompose": decompose,
+                "armed_step": "s01",
+                "armed_epic": "demo",
+                "status": "running",
+                "active": True,
+                "role": "BACK",
+            }
+        )
+        + "\n",
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        '{"type":"stream_event","event":{"type":"message_start"}}\n'
+        '{"type":"stream_event","event":{"type":"message_stop"}}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=12.0s\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0)
+
+    assert out["retryable"] is True
+    sync = out.get("cursor_sync") or {}
+    assert sync.get("synced") is True
+    assert sync.get("step_id") == "s02"
+    st = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert st.get("armed_step") == "s02"
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker.get("step_id") == "s02"
+    assert marker.get("resume_from") == "s02"
 
 
 def test_prepare_keeps_analyze_when_gate_pending(tmp_path: Path, monkeypatch) -> None:

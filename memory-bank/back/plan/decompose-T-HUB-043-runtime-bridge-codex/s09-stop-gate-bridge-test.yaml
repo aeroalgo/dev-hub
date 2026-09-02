@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "Stop-gate / spawn-gate bridge integration test — codex semantics unchanged"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать интеграционный тест `loop/tests/test_codex_hooks_bridge.py` проверяющий, что
+  stop-gate и spawn-gate дают те же вердикты при codex runtime, что и при claude.
+  AC− #2: нет отдельного spawn policy для codex. US-003: semantics unchanged.
+  Outcome: SC-004 (stop-gate integration smoke), TM-004.
+
+context:
+  consumes:
+    - "s07: codex registered in registry"
+    - "s06: CodexAdapter"
+    - "harness/hooks/stop-gate.py: логика gate"
+    - "harness/hooks/spawn_validate.py: spawn policy"
+    - "plan AC− #2, US-003, SC-004, TM-004"
+    - ".codex/hooks.json: Stop event → stop-gate (s04)"
+  produces:
+    - "loop/tests/test_codex_hooks_bridge.py"
+  plan_refs:
+    - "AC− #2"
+    - "US-003"
+    - "SC-004"
+    - "TM-004"
+  files:
+    - "loop/tests/test_codex_hooks_bridge.py"
+
+as_built:
+  - "harness/hooks/stop-gate.py: stop-gate logic, FINISH verdict check"
+  - "harness/hooks/spawn_validate.py: spawn policy enforcement"
+  - ".codex/hooks.json: Stop → stop-gate.py (s04)"
+  - "loop/runtime_registry.yaml: codex entry (s07)"
+
+delta:
+  - "create loop/tests/test_codex_hooks_bridge.py:"
+  - "  test_stop_gate_codex_denies_without_verify: simulate codex session FINISH without verify PASS → stop-gate denies (same verdict as claude)"
+  - "  test_spawn_gate_codex_uses_spawn_hard: spawn-gate policy for codex == claude (no extra rules)"
+  - "  test_hooks_json_stop_event_wired: .codex/hooks.json contains Stop event pointing to stop-gate entrypoint"
+  - "  smoke: instantiate CodexAdapter, build fake codex FINISH log, run through stop-gate → DENY"
+
+deletes: []
+
+out_of_scope:
+  - "live codex binary (all mocked)"
+  - "performance/load tests"
+  - "all other TM tests (distributed to s06–s08)"
+
+skills:
+  code_surface: test
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "stop-gate denies codex FINISH without verify PASS (same semantics as claude)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_hooks_bridge.py -k stop_gate_deny -q --tb=short"
+  - id: cp2
+    criterion: "spawn-gate policy for codex == spawn-hard (no separate policy AC− #2)"
+    verify: ".venv/bin/pytest loop/tests/test_codex_hooks_bridge.py -k spawn_gate_parity -q --tb=short"
+  - id: cp3
+    criterion: "hooks.json Stop event wired to stop-gate entrypoint"
+    verify: ".venv/bin/pytest loop/tests/test_codex_hooks_bridge.py -k hooks_json_stop_event -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=short"
+
+tdd:
+  - "test_codex_hooks_bridge.py::test_stop_gate_denies_without_verify"
+  - "test_codex_hooks_bridge.py::test_spawn_gate_codex_uses_spawn_hard"
+  - "test_codex_hooks_bridge.py::test_hooks_json_stop_event_wired"

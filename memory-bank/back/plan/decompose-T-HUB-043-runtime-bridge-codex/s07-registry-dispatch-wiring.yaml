@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "Register codex in runtime_registry.yaml + dispatch wiring + fail-closed no-fallback"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зарегистрировать codex в `loop/runtime_registry.yaml` и убедиться, что dispatch в context_loop
+  корректно разрешает CodexAdapter без fallback.
+  AC+ #1 полностью: EPIC_RUNTIME=codex → loop invokes codex with prompt on stdin.
+  AC− #3/#4: нет fallback, нет if/else в loop.sh (SC-001, SC-003, TM-004 registry).
+
+context:
+  consumes:
+    - "s06: CodexAdapter (loop/runtime_adapters/codex.py)"
+    - "s02: common.py get_adapter_for_runtime"
+    - "loop/runtime_registry.yaml: claude + dsh entries"
+    - "loop/context_loop.py — dispatch point"
+    - "plan FR-007, AC+ #1, AC− #3/#4, SC-001, SC-003, TM-004"
+  produces:
+    - "loop/runtime_registry.yaml (edit: add codex entry)"
+    - "loop/tests/test_runtime_registry.py (edit/create codex assertions)"
+  plan_refs:
+    - "FR-007"
+    - "AC+ #1"
+    - "AC− #3"
+    - "AC��� #4"
+    - "SC-001"
+    - "SC-003"
+    - "TM-004"
+  files:
+    - "loop/runtime_registry.yaml"
+    - "loop/tests/test_runtime_registry.py"
+
+as_built:
+  - "loop/runtime_registry.yaml: schema_version runtime-registry/v1; runtimes: claude, dsh"
+  - "loop/runtime_adapters/common.py: get_adapter_for_runtime(runtime_id) → RuntimeAdapter"
+  - "loop/context_loop.py: dispatch point where runtime_id is resolved"
+
+delta:
+  - "edit loop/runtime_registry.yaml: добавить codex entry: id, adapter_module: 'loop.runtime_adapters.codex', binary_env: 'CODEX_BIN', capabilities: [headless, bridge_subagents]"
+  - "edit/create loop/tests/test_runtime_registry.py: test codex entry loaded; get_adapter_for_runtime('codex') → CodexAdapter; get_adapter_for_runtime('foo') → ValueError fail-closed (SC-003)"
+  - "verify context_loop uses get_adapter_for_runtime — no new if/else needed (AC− #4)"
+
+deletes: []
+
+out_of_scope:
+  - "loop.sh changes (s11 will purge if any run_codex if/else crept in)"
+  - "session resilience adapter tests (s08–s09)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # fail-closed unknown runtime (SC-003)
+
+checkpoints:
+  - id: cp1
+    criterion: "get_adapter_for_runtime('codex') returns CodexAdapter instance (SC-001)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -k codex_adapter -q --tb=short"
+  - id: cp2
+    criterion: "get_adapter_for_runtime('foo') raises ValueError (SC-003, fail-closed)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -k foo_fail_closed -q --tb=short"
+  - id: cp3
+    criterion: "codex entry in registry has capabilities headless + bridge_subagents"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -k codex_capabilities -q --tb=short"
+  - id: cp4
+    criterion: "context_loop dispatch не содержит if/else codex (rg check)"
+    verify: "rg -n 'run_codex|if.*codex' loop/context_loop.py && exit 1 || exit 0"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_runtime_registry.py -q --tb=short"
+  - "rg -n 'run_codex_session' loop/context_loop.py loop/loop.sh 2>/dev/null | grep -v '^Binary' && exit 1 || exit 0"
+
+tdd:
+  - "test_runtime_registry.py::test_codex_entry_exists"
+  - "test_runtime_registry.py::test_codex_adapter_instantiated"
+  - "test_runtime_registry.py::test_codex_capabilities"
+  - "test_runtime_registry.py::test_unknown_runtime_fail_closed"

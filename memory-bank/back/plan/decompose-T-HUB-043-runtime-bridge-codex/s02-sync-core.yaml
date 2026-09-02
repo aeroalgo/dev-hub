@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-043-runtime-bridge-codex
+title: "runtime_materializers/sync.py — read manifest, emit targets per runtime"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать ядро синхронизатора `loop/runtime_materializers/sync.py`: загружает manifest,
+  перебирает runtimes, возвращает список `SyncTarget` (source, dest, kind=hook|agent|instruction).
+  Outcome: sync-логика независима от CLI и от генераторов — testable in isolation.
+
+context:
+  consumes:
+    - "s01: HarnessManifest pydantic model + load_manifest"
+    - "plan §FR-002: read manifest, emit targets per runtime"
+  produces:
+    - "loop/runtime_materializers/sync.py"
+  plan_refs:
+    - "FR-002"
+    - "US-002"
+    - "TM-003 (drift detection basis)"
+  files:
+    - "loop/runtime_materializers/sync.py"
+
+as_built:
+  - "loop/runtime_materializers/__init__.py: пустой (s01)"
+  - "loop/runtime_materializers/manifest_schema.py: load_manifest, HarnessManifest (s01)"
+
+delta:
+  - "create loop/runtime_materializers/sync.py: dataclass SyncTarget(source, dest, kind); class ManifestSync; .collect_targets(runtime) → list[SyncTarget]; .check(runtime) → list[DriftItem]; .apply(runtime) → ApplyResult (dry-run + live)"
+  - "ManifestSync.check: compute hash of source, compare with dest content hash; DriftItem(target, reason)"
+  - "ApplyResult: created/updated/skipped counts; no file I/O here for hooks.json (delegated to s04 generator)"
+
+deletes: []
+
+out_of_scope:
+  - "CLI entrypoint (s03)"
+  - "hooks.json rendering (s04) — sync.py только сообщает, что нужно regenerate"
+  - "agent copy (s05)"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # SyncTarget / DriftItem dataclasses
+    - ".agents/skills/python-error-handling/SKILL.md"  # manifest load errors propagate
+
+checkpoints:
+  - id: cp1
+    criterion: "ManifestSync.collect_targets('codex') возвращает SyncTarget для каждого агента с type=materialize"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync.py -k collect_targets -q --tb=short"
+  - id: cp2
+    criterion: "check() возвращает DriftItem когда dest не существует или hash mismatch (TM-003)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync.py -k drift -q --tb=short"
+  - id: cp3
+    criterion: "check() возвращает пустой список когда все targets актуальны"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_sync.py -k no_drift -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_runtime_sync.py -q --tb=short"
+
+tdd:
+  - "test_runtime_sync.py::test_collect_targets_codex_returns_materialize"
+  - "test_runtime_sync.py::test_collect_targets_claude_native_skipped"
+  - "test_runtime_sync.py::test_check_drift_missing_dest"
+  - "test_runtime_sync.py::test_check_drift_hash_mismatch"
+  - "test_runtime_sync.py::test_check_no_drift_when_up_to_date"
+  - "test_runtime_sync.py::test_apply_returns_apply_result"
