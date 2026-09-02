@@ -2,7 +2,7 @@
 
 ## Security Requirements
 
-This project uses MEDUSA for security scanning. All code must pass security checks.
+All code must follow secure coding practices.
 
 ## Before Suggesting Code
 
@@ -12,43 +12,10 @@ This project uses MEDUSA for security scanning. All code must pass security chec
 - Avoid hardcoded secrets: use environment variables
 - Avoid unsafe file operations: validate paths, prevent traversal
 
-## After Code Changes
-
-Remind users to run security scans:
-- `medusa scan .` for full scan
-- `medusa scan . --quick` for cached results
-- `medusa scan . -e archive/` to exclude directories
-
 ## Code Standards
 
-- All new code must pass `medusa scan .` with no CRITICAL findings
-- HIGH severity issues should be fixed before merge
+- Fix CRITICAL and HIGH severity security issues before merge
 - MEDIUM issues should be documented if not fixed
-
-## Intelligent False Positive Handling
-
-When reviewing MEDUSA scan results, distinguish real issues from false positives:
-
-### False Positives (Don't report as issues)
-- B404/B603/B607: subprocess in CLI tools, installers, build scripts
-- B602: shell=variable where variable is not literal True
-- B101: assert in test files (pytest standard)
-- Secrets in .env.example with placeholder values
-
-### Real Issues (Must fix)
-- shell=True with user input
-- High-entropy strings matching real API key patterns
-- SQL with string concatenation
-- eval/exec with external data
-
-### Handling FPs
-Create .bandit config:
-```yaml
-skips:
-  - B404  # import subprocess
-  - B603  # subprocess call
-  - B101  # assert in tests
-```
 
 ## Security Patterns by Language
 
@@ -71,10 +38,6 @@ Docker:
 - Never run as root in production (use USER directive)
 - Pin base image versions
 - Don't copy secrets into images
-
-## Configuration
-
-Security settings are in `.medusa.yml`. For false positives, create `.bandit` config.
 
 ## Severity Levels
 

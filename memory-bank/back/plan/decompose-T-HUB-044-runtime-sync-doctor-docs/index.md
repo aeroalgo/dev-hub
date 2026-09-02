@@ -102,8 +102,8 @@ Brownfield touchpoints: `loop/incidents/doctor.py` (extend), `loop/board_sync/cl
 | step_id | title & files | next_phase | status |
 | :--- | :--- | :--- | :--- |
 | **s01** | README runtime table + WORKFLOW.md registry pointer · [yaml](s01-readme-workflow-updates.yaml) | BACK IMPLEMENT | completed |
-| **s02** | codex-loop-pilot runbook — install/auth/sync/EPIC_RUNTIME=codex · [yaml](s02-codex-loop-pilot-runbook.yaml) | BACK IMPLEMENT | pending |
+| **s02** | codex-loop-pilot runbook — install/auth/sync/EPIC_RUNTIME=codex · [yaml](s02-codex-loop-pilot-runbook.yaml) | BACK IMPLEMENT | completed |
 | **s03** | Doctor runtime checks: registry_valid, sync_drift, binary_codex · [yaml](s03-doctor-runtime-checks.yaml) | BACK IMPLEMENT | completed |
-| **s04** | Board launch --runtime choices from registry (add codex) · [yaml](s04-board-launch-registry-runtime.yaml) | BACK IMPLEMENT | pending |
-| **s05** | hub-link AGENTS.md stub + architecture services.md runtime-sync row · [yaml](s05-hub-link-agents-stub-arch-row.yaml) | BACK IMPLEMENT | pending |
-| **s06** | Tests test_doctor_runtime.py + doc link audit · [yaml](s06-tests-doc-link-audit.yaml) | BACK IMPLEMENT | pending |
+| **s04** | Board launch --runtime choices from registry (add codex) · [yaml](s04-board-launch-registry-runtime.yaml) | BACK IMPLEMENT | completed |
+| **s05** | hub-link AGENTS.md stub + architecture services.md runtime-sync row · [yaml](s05-hub-link-agents-stub-arch-row.yaml) | BACK IMPLEMENT | completed |
+| **s06** | Tests test_doctor_runtime.py + doc link audit · [yaml](s06-tests-doc-link-audit.yaml) | BACK IMPLEMENT | completed |

@@ -36,7 +36,6 @@ When activated, this skill helps Claude:
 | Tool | Platform | Description |
 |------|----------|-------------|
 | Echidna | EVM/Solidity | Property-based fuzzer |
-| Medusa | EVM/Solidity | Next-gen parallel fuzzer |
 
 See [secure-contracts.com](https://secure-contracts.com) for tutorials.
 

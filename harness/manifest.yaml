@@ -6,11 +6,63 @@ agents:
     runtimes:
       claude:
         copy_to: ".claude/agents/verify-implement.md"
-      dsh:
-        profile_preset: "verify-implement"  # NOTE: full automation deferred to follow-up epic
       codex:
         materialize: true
         target: ".codex/agents/verify-implement.toml"
+  gate-repair:
+    description: "Fix verify FAIL blockers in-scope (write-only)"
+    source: "harness/agents/gate-repair.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/gate-repair.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/gate-repair.toml"
+  verify-bugfix:
+    description: "Pre-FINISH verify gate for BUGFIX"
+    source: "harness/agents/verify-bugfix.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-bugfix.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-bugfix.toml"
+  verify-qa:
+    description: "QA/review gate after parent suite"
+    source: "harness/agents/verify-qa.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-qa.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-qa.toml"
+  verify-decompose:
+    description: "Pre-FINISH verify gate for DECOMPOSE"
+    source: "harness/agents/verify-decompose.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-decompose.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-decompose.toml"
+  analyze-verify:
+    description: "Post-ANALYZE fix verify gate"
+    source: "harness/agents/analyze-verify.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/analyze-verify.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/analyze-verify.toml"
+  explorer:
+    description: "Mandatory codebase search subagent"
+    source: "harness/agents/explorer.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/explorer.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/explorer.toml"
 hooks:
   stop-gate:
     source: "harness/hooks/stop-gate.py"
@@ -18,7 +70,21 @@ hooks:
       claude:
         settings_key: "hooks.StopGate"
       dsh:
-        adapter_hook: true  # NOTE: full automation deferred to follow-up epic
+        adapter_hook: true
+      codex:
+        hooks_json_entry: true
+  subagent-stop:
+    source: "harness/hooks/subagent-stop.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.SubagentStop"
+      codex:
+        hooks_json_entry: true
+  agent-pretool:
+    source: "harness/hooks/agent-pretool.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PreToolUse"
       codex:
         hooks_json_entry: true
 instructions:

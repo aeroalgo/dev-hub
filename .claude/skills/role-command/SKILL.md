@@ -1,3 +1,8 @@
+---
+name: role-command
+description: "Role command parity chain — BACK/FRONT/INTEG workflow router (graphify, isolation, FINISH gates)"
+---
+
 # Role Command — Cursor parity chain
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».

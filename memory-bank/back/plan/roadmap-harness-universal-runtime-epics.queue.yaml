@@ -17,3 +17,6 @@ queue:
   - id: T-HUB-044
     plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
     deps: [T-HUB-043]
+  - id: T-HUB-053
+    plan: plan-T-HUB-053-codex-claude-hooks-parity.md
+    deps: [T-HUB-043]

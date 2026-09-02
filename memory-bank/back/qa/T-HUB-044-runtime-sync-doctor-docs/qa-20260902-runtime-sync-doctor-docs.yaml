@@ -1,0 +1,32 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-044-runtime-sync-doctor-docs
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+epic_id: T-HUB-044-runtime-sync-doctor-docs
+date: '2026-09-02'
+reviewer: verify-qa
+verdict: pass
+
+scope:
+  - 'epic: T-HUB-044-runtime-sync-doctor-docs'
+  - 'steps: s01-s06'
+  - 'runtime sync docs, doctor diagnostics, board codex runtime, hub-link, architecture catalog'
+
+checks:
+  - 'Targeted epic suite: .venv/bin/pytest loop/tests/test_doctor_runtime.py loop/tests/test_codex_runtime_adapter.py loop/tests/test_codex_hooks_bridge.py loop/tests/test_codex_collab_verdict.py loop/tests/test_session_resilience_codex.py -q --tb=line — 36 passed'
+  - 'Behavior smoke: EPIC_RUNTIME=codex .venv/bin/python loop/context_loop.py --cwd /home/aero/PyProject/dev-hub doctor --json — exit 0; registry and Codex binary pass; sync drift is warning-only'
+  - 'Codex runtime sync: bin/runtime-sync --check --runtime codex — No drift detected, exit 0'
+  - 'Decompose tree validation — ok true; all six implementation shards have completed checkpoints'
+  - 'AC+ and AC- checks: README/runbook/WORKFLOW/doctor/board/hub-link/services/test evidence present; stale Codex text absent'
+  - '§0.11 counterpart audit: manifest instruction source exists; README/runbook, runtime registry, runtime sync, doctor, board argv, hub-link, and services references resolve'
+  - 'Static checks: bash -n bin/hub-link, .venv/bin/python -m compileall on touched Python scope, and git diff --check — pass'
+  - 'Reviewer gate: verify-qa re-review — PASS'
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - 'bin/pytest — FAIL: 59 failed, 1501 passed, 2 skipped, exit 1'
+  - 'bin/pytest loop/tests/test_doctor_runtime.py loop/tests/test_incidents_doctor.py loop/tests/test_runtime_sync_cli.py loop/tests/test_board_launch_argv.py loop/tests/test_board_launch_cli.py loop/tests/test_hub_link_harness.py -q --tb=line — PASS: 56 passed'

@@ -2,15 +2,12 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-042
-    plan: plan-T-HUB-042-runtime-adapter-framework.md
-    deps: []
-  - id: T-HUB-043
-    plan: plan-T-HUB-043-runtime-bridge-codex.md
-    deps: [T-HUB-042]
   - id: T-HUB-044
     plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
-    deps: [T-HUB-043]
+    deps: []
+  - id: T-HUB-053
+    plan: plan-T-HUB-053-codex-claude-hooks-parity.md
+    deps: []
   - id: T-HUB-046
     plan: plan-T-HUB-046-harness-alongside-install.md
     deps: []

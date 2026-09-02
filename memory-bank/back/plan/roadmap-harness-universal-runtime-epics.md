@@ -18,6 +18,9 @@
 | 2 | T-HUB-042 | [plan-T-HUB-042-runtime-adapter-framework.md](plan-T-HUB-042-runtime-adapter-framework.md) | RuntimeAdapter protocol + registry + dispatch refactor | claude/dsh via adapters; generic analyze_log | codex headless |
 | 3 | T-HUB-043 | [plan-T-HUB-043-runtime-bridge-codex.md](plan-T-HUB-043-runtime-bridge-codex.md) | manifest + runtime-sync + CodexAdapter + hooks bridge | codex exec; materialize agents/hooks | Cursor IDE subagents |
 | 4 | T-HUB-044 | [plan-T-HUB-044-runtime-sync-doctor-docs.md](plan-T-HUB-044-runtime-sync-doctor-docs.md) | hub-link, doctor, README/runbook | operator docs; preflight checks | new runtime beyond codex |
+| 4b | T-HUB-053 | [plan-T-HUB-053-codex-claude-hooks-parity.md](plan-T-HUB-053-codex-claude-hooks-parity.md) | Codex ≡ Claude hooks/agents/gates full parity | SessionStart, SubagentStart, PostToolUse Bash cap, matchers, doctor matrix | Cursor IDE Codex; DSH Gap A |
+
+> **Queue note:** T-HUB-053 ставится **после T-HUB-045** (mb-load/session inject done) и после 044 в universal-runtime line; soft deps: 044, 045, 021.
 
 ---
 
@@ -30,13 +33,20 @@ flowchart TB
   H042[T-HUB-042 adapter framework]
   H043[T-HUB-043 bridge + codex]
   H044[T-HUB-044 docs doctor]
+  H045[T-HUB-045 mb-load soft]
+  H053[T-HUB-053 codex hooks parity]
   H039[T-HUB-039 verify agents soft]
   H016[T-HUB-016 cc hooks soft]
+  H021[T-HUB-021 output-cap soft]
   H041 --> H046
   H041 --> H042
   H046 -.-> H042
   H042 --> H043
   H043 --> H044
+  H043 --> H053
+  H045 -.-> H053
+  H044 -.-> H053
+  H021 -.-> H053
   H039 -.-> H043
   H016 -.-> H043
 ```
@@ -48,6 +58,10 @@ flowchart TB
 | T-HUB-046 | T-HUB-042 | soft | full cursor rules path in harness helps manifest materialize |
 | T-HUB-042 | T-HUB-043 | hard | codex adapter plugs into registry |
 | T-HUB-043 | T-HUB-044 | hard | docs describe shipped surface |
+| T-HUB-043 | T-HUB-053 | hard | parity extends generated hooks / bridge from 043 |
+| T-HUB-044 | T-HUB-053 | soft | runbook/doctor surface to extend |
+| T-HUB-045 | T-HUB-053 | soft | SessionStart inject / mb-load path |
+| T-HUB-021 | T-HUB-053 | soft | bash-output-cap structured LLM path |
 | T-HUB-039 | T-HUB-043 | soft | materializer needs verify-* agent files on disk |
 | T-HUB-016 | T-HUB-043 | soft | DSH bridge pattern reuse for codex hooks |
 | T-HUB-035 | T-HUB-041 | soft | boundaries.yaml should list `harness/` layer after extract |
@@ -76,6 +90,7 @@ Default **`EPIC_RUNTIME=claude`**. Unknown runtime / missing binary → **fail-c
 3. T-HUB-042 → QA → REFLECT  
 4. T-HUB-043 → QA → REFLECT  
 5. T-HUB-044 → QA → REFLECT  
+6. T-HUB-053 → QA → REFLECT (**после 045**; full Codex≡Claude hooks parity)  
 
 ---
 
@@ -84,7 +99,7 @@ Default **`EPIC_RUNTIME=claude`**. Unknown runtime / missing binary → **fail-c
 | Артефакт | Статус |
 |----------|--------|
 | Этот roadmap | active (2026-09-01) |
-| plan-T-HUB-041…044,046 | PLAN done (046 2026-09-02) · next DECOMPOSE |
+| plan-T-HUB-041…044,046,053 | PLAN done (053 2026-09-02) · 053 next DECOMPOSE after 044/045 |
 
 ---
 

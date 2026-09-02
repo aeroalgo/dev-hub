@@ -12,6 +12,8 @@ EVENT_MAPPING: dict[str, str] = {
     "stop-gate": "Stop",
     "spawn-validate": "UserPromptSubmit",
     "session-start": "SessionStart",
+    "subagent-stop": "SubagentStop",
+    "agent-pretool": "PreToolUse",
 }
 
 

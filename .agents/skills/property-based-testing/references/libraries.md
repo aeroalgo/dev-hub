@@ -32,7 +32,6 @@
 | Tool | Type | Description |
 |------|------|-------------|
 | Echidna | Fuzzer | Property-based fuzzer for EVM contracts |
-| Medusa | Fuzzer | Next-gen fuzzer with parallel execution |
 
 ```solidity
 // Echidna property example
@@ -46,9 +45,6 @@ function echidna_balance_invariant() public returns (bool) {
 # Echidna (via crytic toolchain)
 pip install crytic-compile
 # Download binary from https://github.com/crytic/echidna
-
-# Medusa
-go install github.com/crytic/medusa@latest
 ```
 
 See [secure-contracts.com](https://secure-contracts.com) for tutorials.

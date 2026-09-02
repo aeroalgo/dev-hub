@@ -66,7 +66,7 @@
 - **FR-005:** `docs/runbooks/workflow-pack-operator.md` — env vars, loop flags, troubleshooting.
 - **FR-006:** hub-link extension `--pack <id>` (046 integration or standalone patch markers).
 - **FR-007:** `loop/context_loop.py` — `--workflow-pack` CLI flag sets env for session (document parity with WORKFLOW_PACK).
-- **FR-008:** AGENTS.md + CLAUDE.md section «Workflow Packs» with medusa-style concise table.
+- **FR-008:** AGENTS.md + CLAUDE.md section «Workflow Packs» with concise table.
 - **FR-009:** pytest doctor workflow-pack matrix (ok pack, missing rules, invalid pack).
 - **FR-010:** Update roadmap-harness-universal-runtime §2 table with Workflow Pack layer row.
 

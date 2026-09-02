@@ -31,6 +31,24 @@ def test_session_resilience_codex_aborted(tmp_path: Path):
     assert analysis["abort_kind"] == "transient"
 
 
+def test_session_resilience_codex_exit0_aborted_prose_not_abort(tmp_path: Path) -> None:
+    log_file = tmp_path / "codex-exit0-prose.log"
+    log_file.write_text(
+        "SESSION_START session=1 mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"prev_session: aborted — retry"}}\n'
+        '{"type":"item.completed","item":{"type":"command_execution","aggregated_output":'
+        '"==> TRANSIENT API abort — retry after 20s\\n","exit_code":0,"status":"completed"}}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=100.0s\n",
+        encoding="utf-8",
+    )
+    analysis = analyze_session_log(log_file, exit_code=0, runtime="codex")
+
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+    assert analysis["reason"] is None
+    assert analysis["retryable"] is False
+
+
 def test_session_resilience_codex_auth_fail(tmp_path: Path):
     log_file = FIXTURES_DIR / "codex_session_auth_fail.log"
     analysis = analyze_session_log(log_file, exit_code=1, runtime="codex")

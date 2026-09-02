@@ -25,9 +25,9 @@ from _lib import (
     workflow_state_active,
 )
 
-_LOOP = Path(__file__).resolve().parents[2] / "loop"
-if str(_LOOP) not in sys.path:
-    sys.path.insert(0, str(_LOOP))
+_HUB_ROOT = Path(__file__).resolve().parents[2]
+if str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
 
 from loop.mb_finish.verify_hint import (  # noqa: E402
     BLOCKED_VERDICT_AGENTS,
@@ -130,7 +130,9 @@ def _handle_verify_finish_agent(
             elif agent_type in REVIEWER_MIRROR_AGENTS:
                 from epic_lib import mirror_gate_verdict
 
-                mirror_gate_verdict(cwd, "reviewer", verdict, evidence=evidence)
+                mirror_gate_verdict(
+                    cwd, verdict, agent_id="reviewer", evidence=evidence
+                )
         except Exception as exc:
             print(
                 f"{agent_type}: mirror verdict failed: {exc}",

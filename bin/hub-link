@@ -100,6 +100,8 @@ if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null;
 - **Skills:** \`.agents/skills/*/SKILL.md\` (symlink → hub)
 - **Artifacts:** only this repo — \`memory-bank/\`
 - **Autoloop:** \`make loop ARGS="gpt"\` / \`make loop-epic EPIC=decompose-…\`
+- **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
+- **EPIC_RUNTIME values:** \`claude\` (default), \`dsh\`, \`codex\`.
 
 On role command: read hub router \`.cursor/rules/mainrule.mdc\` first, then role workflow.
 EOF

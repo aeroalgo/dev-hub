@@ -19,7 +19,7 @@ Parent **обязан** передать секции. Если нет или в
 1. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 2. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 3. Пройди `§0.11` checklist по пунктам. Orphan / missing counterpart → `FAIL`.
-4. Bash только: `.venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. Red → `FAIL`.
+4. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Red → `FAIL`.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 

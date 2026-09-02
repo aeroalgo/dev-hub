@@ -2,41 +2,41 @@ schema: epic-implement/v1
 role: back
 step_id: s03
 plan_id: T-HUB-044-runtime-sync-doctor-docs
-title: 's03 — Doctor runtime checks: registry_valid, sync_drift, binary_codex IMPLEMENT'
+title: "s03 — Doctor runtime checks: registry_valid, sync_drift, binary_codex IMPLEMENT"
 status: completed
-date: '2026-09-02'
+date: "2026-09-02"
 decompose_ref: memory-bank/back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/s03-doctor-runtime-checks.yaml
 skills_used: []
 discovery: []
 gaps:
   status: none
 done:
-- cp1
-- cp2
-- cp3
-- cp4
+  - cp1
+  - cp2
+  - cp3
+  - cp4
 files:
-- loop/incidents/doctor.py
-- loop/tests/test_incidents_doctor.py
+  - loop/incidents/doctor.py
+  - loop/tests/test_incidents_doctor.py
 deletes: []
 tests:
-- loop/tests/test_incidents_doctor.py
+  - loop/tests/test_incidents_doctor.py
 integration_check: []
 grep_control: []
 verification_results:
-- verdict: PASS
-  agent_id: a193ec83ca83ec00d
+  - verdict: PASS
+  - agent_id: a193ec83ca83ec00d
 checkpoints:
-- id: cp1
-  criterion: doctor.py содержит _check_runtime_registry_valid
-  status: done
-- id: cp2
-  criterion: doctor.py содержит _check_runtime_sync_drift
-  status: done
-- id: cp3
-  criterion: doctor.py содержит _check_runtime_binary_ok
-  status: done
-- id: cp4
-  criterion: run_doctor() вызывает все три чека — поля присутствуют в JSON output
-  status: done
+  - id: cp1
+    criterion: doctor.py содержит _check_runtime_registry_valid
+    status: done
+  - id: cp2
+    criterion: doctor.py содержит _check_runtime_sync_drift
+    status: done
+  - id: cp3
+    criterion: doctor.py содержит _check_runtime_binary_ok
+    status: done
+  - id: cp4
+    criterion: run_doctor() вызывает все три чека — поля присутствуют в JSON output
+    status: done
 resume_from: cp4

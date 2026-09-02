@@ -27,14 +27,14 @@ steps:
   file: s04-board-launch-registry-runtime.yaml
   title: Board launch --runtime choices from registry (add codex)
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-hub-link-agents-stub-arch-row.yaml
   title: hub-link AGENTS.md stub + architecture services.md runtime-sync row
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-tests-doc-link-audit.yaml
   title: Tests test_doctor_runtime.py + doc link audit
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

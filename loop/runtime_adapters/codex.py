@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -6,6 +8,31 @@ from typing import Any
 
 from harness.hooks.session_resilience import detect_shell_command_not_found
 from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
+
+_CODEX_ABORT_RE = re.compile(
+    r"(?i)(?:session aborted(?:\s+by\b|\s*$)|codex session aborted)"
+)
+
+
+def _detect_codex_runtime_abort(raw_log: str) -> bool:
+    for line in raw_log.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            obj = json.loads(stripped)
+        except json.JSONDecodeError:
+            if _CODEX_ABORT_RE.search(stripped):
+                return True
+            continue
+        if not isinstance(obj, dict):
+            continue
+        item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
+        if obj.get("type") == "item.completed" and item.get("type") == "error":
+            message = str(item.get("message") or "")
+            if _CODEX_ABORT_RE.search(message):
+                return True
+    return False
 
 
 def _resolve_codex_binary() -> str:
@@ -88,13 +115,11 @@ class CodexAdapter(RuntimeAdapter):
         if exit_code == 127:
             return SessionAnalysis(reason="command not found", retry=False)
 
-        if "aborted" in log_lower or "session aborted" in log_lower:
-            return SessionAnalysis(reason="aborted", retry=True)
-
         if exit_code in (0, None):
-            if "finish" in log_lower or "completed" in log_lower:
-                return SessionAnalysis(reason=None, retry=False)
             return SessionAnalysis(reason=None, retry=False)
+
+        if _detect_codex_runtime_abort(raw_log):
+            return SessionAnalysis(reason="aborted", retry=True)
 
         if detect_shell_command_not_found(raw_log):
             return SessionAnalysis(reason="command not found", retry=False)

@@ -43,7 +43,8 @@
 | T-HUB-041 | Harness canonical extract | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-041-harness-canonical-extract.md) · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) · next DECOMPOSE |
 | T-HUB-042 | Runtime adapter framework | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-042-runtime-adapter-framework.md) · deps T-HUB-041 |
 | T-HUB-043 | Runtime bridge + Codex | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-043-runtime-bridge-codex.md) · deps T-HUB-042 · soft T-HUB-039 |
-| T-HUB-044 | Runtime sync doctor docs | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · deps T-HUB-043 |
+| T-HUB-044 | Runtime sync doctor docs | L2–L3 | QA fail → BUGFIX | active | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · [QA](back/qa/T-HUB-044-runtime-sync-doctor-docs/qa-20260902-runtime-sync-doctor-docs.yaml) · QA-1 full suite |
+| T-HUB-053 | Codex ≡ Claude hooks/agents/gates parity | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) · deps T-HUB-043 · soft 044/045/021 · after 045 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) · next DECOMPOSE |
 | T-HUB-046 | Harness alongside install (non-destructive hub-link) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-046-harness-alongside-install.md) · deps T-HUB-041 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) |
 | T-HUB-047 | Harness mb-scaffold + epic layout v2 | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) · deps T-HUB-036,040 · [roadmap](back/plan/roadmap-harness-maturity-borrowings-epics.md) · next DECOMPOSE |
 | T-HUB-048 | Workflow pack registry | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-048-workflow-pack-registry.md) · [roadmap](back/plan/roadmap-workflow-pack-framework-epics.md) · next DECOMPOSE |
@@ -93,13 +94,14 @@
 - T-HUB-023: REDO v4 — JSON-in-prompt + pydantic validate; next BACK DECOMPOSE s01–s13; canon #5 after T-HUB-031
 - T-HUB-027: BACK PLAN gstack-adapt (product probe, eng spine, qa_consumes, review readiness, plan review batch)
 - T-HUB-040: BACK PLAN mb-finish typed FINISH API (MCP-style tools); next DECOMPOSE after T-HUB-033/039
-- T-HUB-041…044: MULTI-EPIC PLAN harness universal runtime (harness/ extract → adapter framework → codex bridge → docs/doctor)
+- T-HUB-041…044 +053: MULTI-EPIC PLAN harness universal runtime (… → docs/doctor → **Codex≡Claude hooks parity**)
 - T-HUB-048…052: MULTI-EPIC PLAN workflow-pack-framework (registry → phase router → mb paths → video reference → adoption/docs)
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-09-02 | T-HUB-053-codex-claude-hooks-parity | BACK PLAN done · after 045 · [plan](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) · next DECOMPOSE · canon merge |
 | 2026-08-31 | T-HUB-023 | BACK IMPLEMENT in progress |
 | 2026-08-31 | T-HUB-033 | BACK IMPLEMENT in progress |
 | 2026-08-31 | T-HUB-032 | BACK IMPLEMENT done · next AUDIT |

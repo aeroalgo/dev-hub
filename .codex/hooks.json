@@ -5,6 +5,18 @@
         "type": "command",
         "command": "python3 harness/hooks/stop-gate.py"
       }
+    ],
+    "SubagentStop": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/subagent-stop.py"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/agent-pretool.py"
+      }
     ]
   }
 }

@@ -1,12 +1,18 @@
+---
+schema: loop-handoff/v1 # handoff
+role: BACK
+mode: DECOMPOSE
+epic_id: T-HUB-053-codex-claude-hooks-parity
+step_id: DECOMPOSE
+---
+
 ## load_now
-1. [s04-board-launch-registry-runtime.yaml](back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/s04-board-launch-registry-runtime.yaml) — текущий work shard (BACK IMPLEMENT s04).
-2. [index.yaml](back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/index.yaml) — очередь/status (canon=yaml).
+1. [plan-T-HUB-053-codex-claude-hooks-parity.md](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) — source plan/artifact for pre-implement phase DECOMPOSE.
+2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (канон sNN-<slug>.yaml).
+3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
+4. Target decompose: [`decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml`](back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml) (index.md + index.yaml + sNN-<slug>.yaml).
 
-## Handoff BACK IMPLEMENT — s04
-- **Эпик:** T-HUB-044-runtime-sync-doctor-docs (BACK); armed из `back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/index.yaml` (прошлый activeContext игнорирован).
-- **Текущий шаг:** s04 — Board launch --runtime choices from registry (add codex) (status=pending в index.yaml).
-- **Команда:** `BACK IMPLEMENT @s04`
-- **Дальше:** выполнить atomic шаг → FINISH (seed-implement → flush cp → suite → evidence in_progress → validate-step → Handoff → @verify → finalize-step).
-
-## done — do NOT load
-- s01–s03 completed в `back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/index.yaml` (3 шагов).
+## Handoff DECOMPOSE
+- **Эпик:** T-HUB-053-codex-claude-hooks-parity (BACK).
+- **Режим/шаг:** `BACK DECOMPOSE`.
+- **Дальше:** выполнить `BACK DECOMPOSE`.

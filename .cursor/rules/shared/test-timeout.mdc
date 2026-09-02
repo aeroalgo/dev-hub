@@ -1,6 +1,6 @@
 ---
 description: "Единая политика таймаута тестовых команд для Cursor, Claude Code и loop"
-alwaysApply: false
+alwaysApply: true
 ---
 # TEST TIMEOUT — общий workflow-контракт
 

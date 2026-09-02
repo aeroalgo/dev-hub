@@ -3083,6 +3083,23 @@ def latest_qa_any_artifact_for_reference(
     return hits[0] if hits else None
 
 
+def latest_bugfix_artifact_for_reference(
+    cwd: str | Path, role_dir: str = "back", epic_id: str = ""
+) -> Path | None:
+    cwd_p = Path(cwd)
+    hits: list[Path] = []
+    for root in _role_mb_roots(cwd_p, role_dir, epic_id=epic_id, kind="bugfix"):
+        d = root / "bugfix" / epic_id if epic_id else root / "bugfix"
+        if not d.is_dir():
+            continue
+        glob_pattern = "bugfix-*.md" if epic_id else "**/bugfix-*.md"
+        for p in sorted(d.glob(glob_pattern), reverse=True):
+            hits.append(p)
+        if hits:
+            break
+    return hits[0] if hits else None
+
+
 find_qa_pass_artifact = latest_qa_pass_artifact_for_reference
 latest_qa_artifact = latest_qa_any_artifact_for_reference
 
@@ -3149,10 +3166,28 @@ def project_handoff_from_reducer(
         return {"ok": True, "projected": False}
 
     decision = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
-    phase = decision.get("phase") or "QA"
+    raw_phase = str(decision.get("phase") or "QA")
+    phase = lifecycle_arm_phase(raw_phase, decision)
+    reason_code = str(decision.get("reason_code") or "")
 
     projected = False
-    if phase == "QA" and (
+    if phase == "BUGFIX" and (
+        "mode: AUDIT" in text
+        or "mode: QA" in text
+        or re.search(r"(?im)^##\s*Handoff\s+BACK\s+(AUDIT|QA)\b", text)
+    ):
+        text_new = re.sub(r"Handoff\s+BACK\s+(AUDIT|QA)", "Handoff BACK BUGFIX", text)
+        text_new = re.sub(r"`BACK (AUDIT|QA)`", "`BACK BUGFIX`", text_new)
+        text_new = re.sub(r"mode:\s*(AUDIT|QA)", "mode: BUGFIX", text_new)
+        if "schema: loop-handoff/v1" not in text_new:
+            frontmatter = (
+                f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\n"
+                f"mode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
+            )
+            text_new = frontmatter + text_new
+        ac.write_text(text_new, encoding="utf-8")
+        projected = True
+    elif phase == "QA" and (
         "mode: AUDIT" in text
         or re.search(r"(?im)^##\s*Handoff\s+BACK\s+AUDIT\b", text)
     ):
@@ -3187,7 +3222,12 @@ def project_handoff_from_reducer(
         ac.write_text(text_new, encoding="utf-8")
         projected = True
 
-    return {"ok": True, "projected": projected, "phase": phase}
+    return {
+        "ok": True,
+        "projected": projected,
+        "phase": phase,
+        "reason_code": reason_code,
+    }
 
 
 def repair_post_implement_handoff_drift(cwd: str | Path) -> dict[str, Any]:

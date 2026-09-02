@@ -14,7 +14,7 @@ Parent **обязан** передать секции. Если нет — ср�
 | `AC+` | да (≥1 bullet) |
 | `AC−` (negative) | да (≥1 bullet: что не трогать / не ломать) |
 | `§0.11` | да (≥1 checklist пункт под шаг) |
-| `VERIFY` | да (точные `.venv/bin/pytest …` с **именами** тестов/файлов) |
+| `VERIFY` | да (точные `bin/pytest …` или `timeout 300s .venv/bin/pytest …` с **именами** тестов/файлов) |
 | `ALLOW READ` | да |
 
 Пустой `AC−: —` / `§0.11: —` **запрещён**, если `code_changed: yes`.
@@ -53,7 +53,7 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `.venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. Не выдумывай suite. Red → `FAIL`.
+5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
 6. Diff вне ALLOW / scope step → blocker (лишние файлы).
 7. Step-файл implement из ALLOW / prompt — **существует на диске** под `implement/implement-*` (не `plan/decompose-*`). Шаблон **по роли** (канон = `epic_lib.validate_implement_step_format`):
    - **INTEG `eNN-*`** (`memory-bank/integration/implement/…/*.yaml`): `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`; обязательны `grep_control` · `verification_results` · `gaps` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard для eNN.

@@ -157,3 +157,39 @@ def test_hooks_json_stop_event_wired(tmp_path: Path) -> None:
     hooks = data["hooks"]
     assert "Stop" in hooks
     assert any("harness/hooks/stop-gate.py" in str(item.get("command", "")) for item in hooks["Stop"])
+    assert "SubagentStop" in hooks
+    assert any(
+        "harness/hooks/subagent-stop.py" in str(item.get("command", ""))
+        for item in hooks["SubagentStop"]
+    )
+    assert "PreToolUse" in hooks
+    assert any(
+        "harness/hooks/agent-pretool.py" in str(item.get("command", ""))
+        for item in hooks["PreToolUse"]
+    )
+
+
+def test_agent_registry_discovers_harness_agents_without_claude_copy(tmp_path: Path) -> None:
+    """gate-repair and other harness agents resolve when .claude/agents is empty."""
+    harness_agents = tmp_path / "harness" / "agents"
+    harness_agents.mkdir(parents=True)
+    (harness_agents / "gate-repair.md").write_text(
+        "---\n"
+        "name: gate-repair\n"
+        "description: repair\n"
+        "overlay:\n"
+        "  managed: true\n"
+        "  mode: repair\n"
+        "  requires_model: true\n"
+        "  default_loop: true\n"
+        "  default_chat: false\n"
+        "  verdict: none\n"
+        "  allow_worktree: false\n"
+        "---\nbody\n",
+        encoding="utf-8",
+    )
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "harness" / "hooks"))
+    from agent_registry import discover_registry
+
+    reg = discover_registry(tmp_path)
+    assert reg.get("gate-repair") is not None

@@ -312,7 +312,16 @@ def discover_registry(
     entries = _env_entries(process, local, project)
     diagnostics: list[RegistryDiagnostic] = []
     agents_dir = root / ".claude" / "agents"
-    paths = sorted(agents_dir.glob("*.md"), key=lambda path: path.name)
+    paths = sorted(agents_dir.glob("*.md"), key=lambda path: path.name) if agents_dir.is_dir() else []
+    harness_dir = root / "harness" / "agents"
+    if harness_dir.is_dir():
+        seen_stems = {p.stem.lower() for p in paths}
+        for harness_path in sorted(harness_dir.glob("*.md"), key=lambda path: path.name):
+            stem = harness_path.stem.lower()
+            if stem not in seen_stems:
+                paths.append(harness_path)
+                seen_stems.add(stem)
+    paths = sorted(paths, key=lambda path: path.name)
     if len(paths) > _MAX_DEFINITIONS:
         paths = paths[:_MAX_DEFINITIONS]
         diagnostics.append(RegistryDiagnostic("definitions_truncated"))

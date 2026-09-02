@@ -109,6 +109,21 @@ def test_analyze_aborted_fixture():
     assert analysis.reason == "aborted"
 
 
+def test_analyze_exit0_aborted_in_agent_prose_not_abort():
+    adapter = CodexAdapter()
+    raw_log = (
+        "SESSION_START session=1 mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"prev_session: aborted — retry"}}\n'
+        '{"type":"item.completed","item":{"type":"command_execution","aggregated_output":'
+        '"if last.get(\\"status\\") == \\"aborted\\":\\n","exit_code":0,"status":"completed"}}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=100.0s\n"
+    )
+    ctx = SessionContext(prompt="do task", phase="implement", extras={"exit_code": 0})
+    analysis = adapter.analyze_log(raw_log, ctx)
+    assert analysis.reason is None
+    assert analysis.retry is False
+
+
 def test_analyze_auth_fail_fixture():
     adapter = CodexAdapter()
     raw_log = (FIXTURES_DIR / "codex_session_auth_fail.log").read_text(encoding="utf-8")

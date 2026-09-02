@@ -46,17 +46,21 @@ Before launching the loop with Codex, perform a runtime sync check to verify con
 1. **Check Sync Drift**:
    Run the runtime sync verification tool:
    ```bash
-   python3 loop/runtime_adapters/runtime_sync.py --check
+   bin/runtime-sync --check --runtime codex
    ```
    Expected Output:
    ```
-   [OK] Runtime configuration in sync across registry and adapters.
+   No drift detected
    ```
 
 2. **Synchronize Registry / Adapters (if drift detected)**:
    ```bash
-   python3 loop/runtime_adapters/runtime_sync.py
+   bin/runtime-sync --apply --runtime codex
    ```
+
+   A clean checkout prints `No drift detected` and exits with status `0`. If
+   drift is reported, the check exits non-zero by design; apply the sync and
+   repeat the check before launching the pilot.
 
 ---
 
@@ -89,7 +93,7 @@ export EPIC_RUNTIME=codex
 Or via Make target:
 
 ```bash
-make loop EPIC_RUNTIME=codex
+EPIC_RUNTIME=codex make loop
 ```
 
 ---
@@ -99,8 +103,8 @@ make loop EPIC_RUNTIME=codex
 | Symptom / Error | Cause | Solution |
 | :--- | :--- | :--- |
 | `codex: command not found` (exit 127) | Codex binary missing or not in `$PATH` | Install `codex` binary and ensure `$PATH` includes its location. |
-| `Runtime sync drift detected` | Registry and runtime adapter definitions out of sync | Run `python3 loop/runtime_adapters/runtime_sync.py` to resync. |
-| `Doctor preflight failure` | Doctor runtime checks failed during startup | Run `python3 loop/doctor.py` to inspect failed runtime assertions. |
+| `Runtime sync drift detected` | Registry and runtime adapter definitions out of sync | Run `bin/runtime-sync --apply --runtime codex` to resync. |
+| `Doctor preflight failure` | Doctor runtime checks failed during startup | Run `python3 loop/context_loop.py --cwd "$PROJECT_ROOT" doctor --json` to inspect failed runtime assertions. |
 | `Authentication error / Token expired` | Codex session unauthenticated or expired | Execute `codex login` or refresh `CODEX_API_KEY`. |
 | `RuntimeConfigError: EPIC_RUNTIME=invalid` | Invalid runtime specified | Ensure `EPIC_RUNTIME` is set to `codex`, `dsh`, or `claude`. |
 
@@ -114,8 +118,8 @@ Complete the sign-off checklist below prior to certifying a Codex rollout pilot:
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | Verify Codex Binary | `which codex` | Output points to valid executable | |
 | 2 | Check Auth | `codex login` / `echo $CODEX_API_KEY` | Valid active session or key present | |
-| 3 | Hub Link Setup | `./bin/hub-link /path/to/target-project` | `.dev-hub` symlink created in target project | |
-| 4 | Runtime Sync Check | `python3 loop/runtime_adapters/runtime_sync.py --check` | Reports sync OK without drift | |
+| 3 | Hub Link Setup | `./bin/hub-link /path/to/target-project` | `.dev-hub` path file created in target project | |
+| 4 | Runtime Sync Check | `bin/runtime-sync --check --runtime codex` | Reports sync OK without drift | |
 | 5 | Active Pilot Loop Run | `EPIC_RUNTIME=codex ./bin/loop /path/to/target-project` | Loop executes target epic steps using Codex runtime | |
 | 6 | Verify Gate Parity Check | Check step implementation & verify output | Verify gate executes and reports PASS on step completion | |
 | 7 | Fallback Parity Check | `EPIC_RUNTIME=claude ./bin/loop /path/to/target-project` | Fallback to default `claude` runtime runs without regression | |

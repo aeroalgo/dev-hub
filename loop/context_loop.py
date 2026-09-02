@@ -1342,6 +1342,10 @@ def prepare_session(
     proj_phase = str(
         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
     ).upper()
+    # Reducer arm wins over stale AC handoff: qa_failed → BUGFIX must not be
+    # overwritten by a premature Handoff BACK QA / BACK AUDIT.
+    if proj_phase == "BUGFIX" and handoff_phase in {"AUDIT", "QA", None}:
+        handoff_phase = "BUGFIX"
     if handoff_phase in {"AUDIT", "QA", "REFLECT", "BUGFIX"}:
         state["armed_step"] = handoff_phase
         state["phase"] = handoff_phase
@@ -2189,6 +2193,23 @@ def record_abort(
         expected_model=(st.get("model") or None),
         runtime=st.get("runtime") if isinstance(st.get("runtime"), str) else runtime,
     )
+    runtime_id = (
+        st.get("runtime") if isinstance(st.get("runtime"), str) else runtime
+    )
+    if runtime_id == "codex" and Path(log_path).is_file():
+        try:
+            from loop.codex_collab_verdict import mirror_codex_collab_verdicts_from_log
+
+            mirror_codex_collab_verdicts_from_log(
+                cwd_p,
+                log_path,
+                session_id=str(st.get("session_id") or ""),
+            )
+        except Exception as exc:
+            print(
+                f"codex collab verdict mirror failed: {exc}",
+                file=sys.stderr,
+            )
     reason = analysis["reason"]
     retryable = analysis["retryable"]
     kind = analysis["abort_kind"]
@@ -2950,6 +2971,11 @@ def main(argv: list[str] | None = None) -> int:
         default="text",
         help="Output format (text or json)",
     )
+    p_doc.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON format (alias for --format json)",
+    )
 
     p_istatus = sub.add_parser("incident-status", help="Show incident store status")
     p_istatus.add_argument("--json", action="store_true", help="Output JSON format")
@@ -3067,8 +3093,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "doctor":
         from loop.incidents.doctor import run_doctor
 
-        rep = run_doctor(cwd, auto_repair=bool(args.auto_repair), format=args.format)
-        if args.format == "json":
+        doctor_format = "json" if args.json else args.format
+        rep = run_doctor(cwd, auto_repair=bool(args.auto_repair), format=doctor_format)
+        if doctor_format == "json":
             out = {
                 "ok": rep.exit_code == 0,
                 "exit_code": rep.exit_code,

@@ -1,0 +1,105 @@
+date: '2026-09-02'
+epic_id: T-HUB-044-runtime-sync-doctor-docs
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-044-runtime-sync-doctor-docs/index.yaml
+
+gap_analysis:
+  - requirement_id: FR-001
+    status: pass
+    evidence: README.md contains the codex runtime row, prerequisites, and runbook link.
+  - requirement_id: FR-002
+    status: pass
+    evidence: loop/WORKFLOW.md points to loop/runtime_registry.yaml and harness/.
+  - requirement_id: FR-003
+    status: pass
+    evidence: docs/runbooks/codex-loop-pilot.md exists with install, auth, sync, launch, and troubleshooting sections.
+  - requirement_id: FR-004
+    status: deferred
+    evidence: harness/README.md already exists; plan assigns any missing harness README work to T-HUB-041.
+  - requirement_id: FR-005
+    status: pass
+    evidence: doctor.py exposes registry, sync-drift, and active-runtime binary checks; doctor --json returns their checklist entries.
+  - requirement_id: FR-006
+    status: pass
+    evidence: board runtime CLI accepts codex and build_loop_argv forwards EPIC_RUNTIME=codex.
+  - requirement_id: FR-007
+    status: pass
+    evidence: bin/hub-link generated AGENTS stub contains harness/ and EPIC_RUNTIME values.
+  - requirement_id: FR-008
+    status: pass
+    evidence: services.md contains the S-HUB-RUNTIME-SYNC row pointing to bin/runtime-sync.
+  - requirement_id: FR-009
+    status: pass
+    evidence: loop/tests/test_doctor_runtime.py passes all 9 tests.
+  - requirement_id: AC-plus
+    status: pass
+    evidence: README/runbook, doctor JSON, board codex, and runtime doctor tests verified.
+  - requirement_id: AC-minus
+    status: pass
+    evidence: stale README text is absent; mocked runtime-sync drift is reported as warn rather than silently passing.
+
+audit_fixes:
+  - runbook_commands
+  - services_catalog_entrypoint
+  - doctor_json_alias
+
+steps:
+  - id: s01
+    title: README runtime table + WORKFLOW.md registry pointer
+    status: implemented
+    as_built: README has the codex runtime matrix row and WORKFLOW has the runtime registry/harness pointer.
+    delta: README.md, loop/WORKFLOW.md
+    gaps: []
+  - id: s02
+    title: codex-loop-pilot runbook
+    status: implemented
+    as_built: Runbook covers install, authentication, bin/runtime-sync, EPIC_RUNTIME=codex launch, and troubleshooting.
+    delta: docs/runbooks/codex-loop-pilot.md
+    gaps: []
+  - id: s03
+    title: Doctor runtime checks
+    status: implemented
+    as_built: Doctor reports runtime_registry_valid, runtime_sync_drift, and runtime_binary_<runtime>; --json is accepted as an alias for --format json.
+    delta: loop/incidents/doctor.py, loop/context_loop.py
+    gaps: []
+  - id: s04
+    title: Board launch runtime selection
+    status: implemented
+    as_built: Board arm-loop accepts codex and forwards EPIC_RUNTIME=codex to loop argv.
+    delta: loop/board_sync/cli.py, loop/board_launch/loop_argv.py
+    gaps: []
+  - id: s05
+    title: hub-link AGENTS stub and architecture row
+    status: implemented
+    as_built: hub-link documents harness/runtime values and services catalog records runtime-sync.
+    delta: bin/hub-link, memory-bank/architecture/services.md
+    gaps: []
+  - id: s06
+    title: runtime doctor tests and documentation link audit
+    status: implemented
+    as_built: Nine runtime doctor and documentation assertions pass.
+    delta: loop/tests/test_doctor_runtime.py
+    gaps: []
+
+verification:
+  - command: bin/pytest loop/tests/test_doctor_runtime.py -q --tb=line
+    result: PASS (9 passed)
+  - command: bin/pytest loop/tests/test_board_launch_cli.py -q -k codex --tb=line
+    result: PASS (1 passed)
+  - command: bin/pytest loop/tests/test_doctor_runtime.py loop/tests/test_incidents_doctor.py loop/tests/test_runtime_sync_cli.py loop/tests/test_board_launch_argv.py loop/tests/test_board_launch_cli.py loop/tests/test_hub_link_harness.py -q --tb=line
+    result: PASS (56 passed)
+  - command: EPIC_RUNTIME=codex python3 loop/context_loop.py --cwd /home/aero/PyProject/dev-hub doctor --json
+    result: PASS; JSON includes runtime_registry_valid, runtime_sync_drift, and runtime_binary_codex
+  - command: bin/runtime-sync --check --runtime codex
+    result: EXPECTED WARN; drift is surfaced for the existing missing manifest instruction source
+  - command: bash -n bin/hub-link plus README/WORKFLOW/service grep audit
+    result: PASS
+
+observations:
+  - runtime-sync drift remains a warning in the current checkout because harness/manifest.yaml references the pre-existing missing harness/instructions/main.md; this is visible in doctor JSON and is consistent with the epic cut-list (no hard-fail on drift).
+  - Pytest emitted two existing unknown-config-option warnings for timeout/timeout_method; all selected tests passed.
+
+not_implemented: []
+qa_ready: true
+summary: All six implementation steps are complete. Audit gaps were closed for broken runbook commands, the service catalog entrypoint, and the doctor --json contract; the epic is ready for BACK QA.

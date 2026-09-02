@@ -8,6 +8,7 @@ from harness.hooks.epic.core import (
     gate_evidence_matches,
     handoff_post_implement_phase,
     latest_audit_artifact_for_reference,
+    latest_bugfix_artifact_for_reference,
     latest_qa_any_artifact_for_reference,
     load_epic_state,
     read_active_context,
@@ -214,23 +215,41 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     epic_id = state.get("armed_epic") or ""
     role = (state.get("armed_role") or "BACK").upper()
     role_dir = role.lower()
+    if role_dir == "integ":
+        role_dir = "integration"
 
     if not epic_id:
         decompose = state.get("armed_decompose") or ""
         if decompose:
             epic_id = epic_id_from_decompose_path(decompose)
 
-    # Validate bugfix artifact or decompose
-    decompose_rel = state.get("armed_decompose") or ""
-    if not decompose_rel or not (cwd / decompose_rel).exists():
+    if not epic_id:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_epic_missing"],
+            shape_errors=["Bugfix finish requires armed epic_id"],
+        )
+
+    bugfix_art = latest_bugfix_artifact_for_reference(
+        cwd, role_dir, epic_id=epic_id
+    )
+    if not bugfix_art or not bugfix_art.is_file():
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["bugfix_artifact_missing"],
-            shape_errors=["Bugfix decompose artifact missing"],
+            shape_errors=[
+                f"Bugfix artifact missing: memory-bank/{role_dir}/bugfix/"
+                f"{epic_id}/bugfix-*.md"
+            ],
         )
 
+    try:
+        bugfix_rel = bugfix_art.relative_to(cwd).as_posix()
+    except ValueError:
+        bugfix_rel = str(bugfix_art)
+
     load_now = [
-        LoadNowItem(path=decompose_rel, description="Bugfix decompose shard"),
+        LoadNowItem(path=bugfix_rel, description="Bugfix artifact"),
     ]
 
     meta = LoopHandoffMeta(
@@ -284,6 +303,16 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             diagnostic_codes=["active_context_write_failed"],
             shape_errors=[str(exc)],
         )
+
+    reconcile_epic_events(cwd, role_dir, epic_id)
+
+    st = load_epic_state(cwd)
+    st["armed_step"] = "QA"
+    st["phase"] = "QA"
+    st["active"] = True
+    st["status"] = "armed"
+    st["halt_reason"] = None
+    save_epic_state(cwd, st)
 
     sync_cursor_from_index(cwd)
 

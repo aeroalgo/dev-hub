@@ -25,7 +25,7 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `.venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. Не выдумывай suite. Red → `FAIL`.
+5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
 6. Сверь шаблон implement step YAML:
    - **QA:** `.cursor/templates/qa/epic-step.yaml` — `schema: epic-qa/v1`.
    - Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`.
