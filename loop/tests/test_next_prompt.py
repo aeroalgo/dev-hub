@@ -19,15 +19,9 @@ def test_build_prompt_implement_finish_order_and_handoff():
     assert "- step: `s01`" in text
     assert "Silent chat (HARD)" in text
     assert "no thinking aloud" in text
-    finish_section = text.split("## IMPLEMENT FINISH", 1)[1]
-
-    assert "seed-implement" in finish_section
-    assert "flush-checkpoint" in finish_section
-    assert "Перепиши" in finish_section
-    assert "memory-bank/activeContext.md" in finish_section
-    assert "## Handoff" in finish_section
-    assert "NEED_HUMAN: verify_no_verdict" in finish_section
-    assert "BLOCKED: verify_no_verdict" not in finish_section
+    assert "mb-finish implement" in text
+    assert "## IMPLEMENT FINISH" not in text
+    assert "seed-implement" not in text
 
 
 def test_build_prompt_qa_phase_omits_implement_finish():
@@ -39,10 +33,8 @@ def test_build_prompt_qa_phase_omits_implement_finish():
         projection={"phase": "BACK QA", "epic": "T-test", "next_step": "QA"},
     )
     assert "## IMPLEMENT FINISH" not in text
-    assert "## QA FINISH" in text
-    assert "@reviewer" in text
-    assert "qa-YYYYMMDD-<slug>.yaml" in text
-    assert "verdict: pass|fail|blocked" in text
+    assert "## QA FINISH" not in text
+    assert "mb-finish qa" in text
 
 
 def test_build_prompt_creative_omits_verify():
@@ -58,3 +50,40 @@ def test_build_prompt_creative_omits_verify():
     assert "FORBIDDEN: `@verify` для CREATIVE." in text
     assert "FORBIDDEN: `mark-index-status --status completed` на CREATIVE" in text
     assert "## IMPLEMENT FINISH" not in text
+
+
+def test_build_prompt_audit_phase_uses_mb_finish():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        load_now=["memory-bank/activeContext.md"],
+        projection={"phase": "BACK AUDIT", "epic": "T-test", "next_step": "AUDIT"},
+    )
+    assert "mb-finish audit" in text
+    assert "FORBIDDEN: ручной Write activeContext" in text
+    assert "## AUDIT FINISH" not in text
+
+
+def test_build_prompt_decompose_phase_uses_mb_finish():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        load_now=["memory-bank/activeContext.md"],
+        projection={"phase": "BACK DECOMPOSE", "epic": "T-test", "next_step": "DECOMPOSE"},
+    )
+    assert "mb-finish decompose" in text
+    assert "## DECOMPOSE FINISH" not in text
+
+
+def test_build_prompt_analyze_phase_uses_mb_finish():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        load_now=["memory-bank/activeContext.md"],
+        projection={"phase": "BACK ANALYZE", "epic": "T-test", "next_step": "ANALYZE"},
+    )
+    assert "mb-finish analyze" in text
+    assert "## ANALYZE FINISH" not in text

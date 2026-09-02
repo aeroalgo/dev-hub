@@ -18,44 +18,44 @@ steps:
   slug: s03-stop-gate-fingerprint
   file: s03-stop-gate-fingerprint.yaml
   title: stop-gate last_finish_tool fingerprint + epic state wire
-  status: pending
+  status: completed
 - id: s04
   slug: s04-finish-handoff
   file: s04-finish-handoff.yaml
   title: finish_handoff low-level + doctor render reuse
-  status: pending
+  status: completed
 - id: s05
   slug: s05-finish-qa-bugfix
   file: s05-finish-qa-bugfix.yaml
   title: finish_qa + finish_bugfix
-  status: pending
+  status: completed
 - id: s06
   slug: s06-finish-decompose-plan
   file: s06-finish-decompose-plan.yaml
   title: finish_decompose + finish_plan + transition engine delegate
-  status: pending
+  status: completed
 - id: s07
   slug: s07-finish-analyze-audit
   file: s07-finish-analyze-audit.yaml
   title: finish_analyze + finish_audit
-  status: pending
+  status: completed
 - id: s08
   slug: s08-finish-creative-reflect
   file: s08-finish-creative-reflect.yaml
   title: finish_creative + finish_reflect (P2)
-  status: pending
+  status: completed
 - id: s09
   slug: s09-rules-purge-prose
   file: s09-rules-purge-prose.yaml
   title: workflow rules + context_loop FINISH blocks purge prose
-  status: pending
+  status: completed
 - id: s10
   slug: s10-mcp-wrapper
   file: s10-mcp-wrapper.yaml
   title: MCP thin server + parity tests (P2)
-  status: pending
+  status: completed
 - id: s11
   slug: s11-legacy-purge
   file: s11-legacy-purge.yaml
   title: 'legacy purge: prose FINISH instructions + dual handoff paths'
-  status: pending
+  status: completed

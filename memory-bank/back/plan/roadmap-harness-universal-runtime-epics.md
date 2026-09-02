@@ -14,6 +14,7 @@
 | Порядок | ID | План | Суть | In scope | Out of scope |
 |---------|-----|------|------|----------|--------------|
 | 1 | T-HUB-041 | [plan-T-HUB-041-harness-canonical-extract.md](plan-T-HUB-041-harness-canonical-extract.md) | Canonical `harness/` + symlinks + loop imports | move hooks/agents/instructions; `.claude/*` thin shell | runtime adapters |
+| 1b | T-HUB-046 | [plan-T-HUB-046-harness-alongside-install.md](plan-T-HUB-046-harness-alongside-install.md) | Non-destructive product install (`hub-link --mode=alongside`) | `harness/cursor/` + patch markers + opt-in router | Codex manifest |
 | 2 | T-HUB-042 | [plan-T-HUB-042-runtime-adapter-framework.md](plan-T-HUB-042-runtime-adapter-framework.md) | RuntimeAdapter protocol + registry + dispatch refactor | claude/dsh via adapters; generic analyze_log | codex headless |
 | 3 | T-HUB-043 | [plan-T-HUB-043-runtime-bridge-codex.md](plan-T-HUB-043-runtime-bridge-codex.md) | manifest + runtime-sync + CodexAdapter + hooks bridge | codex exec; materialize agents/hooks | Cursor IDE subagents |
 | 4 | T-HUB-044 | [plan-T-HUB-044-runtime-sync-doctor-docs.md](plan-T-HUB-044-runtime-sync-doctor-docs.md) | hub-link, doctor, README/runbook | operator docs; preflight checks | new runtime beyond codex |
@@ -25,12 +26,15 @@
 ```mermaid
 flowchart TB
   H041[T-HUB-041 harness extract]
+  H046[T-HUB-046 alongside install]
   H042[T-HUB-042 adapter framework]
   H043[T-HUB-043 bridge + codex]
   H044[T-HUB-044 docs doctor]
   H039[T-HUB-039 verify agents soft]
   H016[T-HUB-016 cc hooks soft]
+  H041 --> H046
   H041 --> H042
+  H046 -.-> H042
   H042 --> H043
   H043 --> H044
   H039 -.-> H043
@@ -39,7 +43,9 @@ flowchart TB
 
 | От | К | Тип | Почему |
 |----|---|-----|--------|
+| T-HUB-041 | T-HUB-046 | hard | alongside install requires canonical `harness/` package |
 | T-HUB-041 | T-HUB-042 | hard | adapters import `harness/`, not `.claude/hooks` |
+| T-HUB-046 | T-HUB-042 | soft | full cursor rules path in harness helps manifest materialize |
 | T-HUB-042 | T-HUB-043 | hard | codex adapter plugs into registry |
 | T-HUB-043 | T-HUB-044 | hard | docs describe shipped surface |
 | T-HUB-039 | T-HUB-043 | soft | materializer needs verify-* agent files on disk |
@@ -66,9 +72,10 @@ Default **`EPIC_RUNTIME=claude`**. Unknown runtime / missing binary → **fail-c
 ## 3. Порядок выполнения
 
 1. T-HUB-041 → QA → REFLECT  
-2. T-HUB-042 → QA → REFLECT  
-3. T-HUB-043 → QA → REFLECT  
-4. T-HUB-044 → QA → REFLECT  
+2. T-HUB-046 → QA → REFLECT (может идти параллельно с 042 после 041)  
+3. T-HUB-042 → QA → REFLECT  
+4. T-HUB-043 → QA → REFLECT  
+5. T-HUB-044 → QA → REFLECT  
 
 ---
 
@@ -77,7 +84,7 @@ Default **`EPIC_RUNTIME=claude`**. Unknown runtime / missing binary → **fail-c
 | Артефакт | Статус |
 |----------|--------|
 | Этот roadmap | active (2026-09-01) |
-| plan-T-HUB-041…044 | PLAN done · next DECOMPOSE after MERGE |
+| plan-T-HUB-041…044,046 | PLAN done (046 2026-09-02) · next DECOMPOSE |
 
 ---
 

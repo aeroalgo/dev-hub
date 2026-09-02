@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s02 — RuntimeAdapter Protocol + SessionContext/SessionAnalysis dataclasses IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-042-runtime-adapter-framework/s02-runtime-adapter-protocol.yaml
+skills_used:
+- python-testing-patterns
+- async-python-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- loop/runtime_adapters/base.py created with RuntimeAdapter Protocol and frozen dataclasses (SessionContext, SessionAnalysis, RuntimeCapabilities)
+- loop/tests/test_runtime_adapter_protocol.py unit tests passing
+files:
+- loop/runtime_adapters/base.py
+- loop/tests/test_runtime_adapter_protocol.py
+deletes: []
+tests:
+- '`.venv/bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line`'
+integration_check:
+- "rg 'class RuntimeAdapter' loop/runtime_adapters/base.py"
+- "rg 'class SessionContext' loop/runtime_adapters/base.py"
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line -> 4 passed in 0.05s
+checkpoints:
+- id: cp1
+  criterion: RuntimeAdapter @runtime_checkable Protocol; SessionContext/SessionAnalysis frozen dataclasses; importable
+  status: done
+- id: cp2
+  criterion: stub-class implementing all 3 methods passes isinstance(stub, RuntimeAdapter)
+  status: done
+- id: cp3
+  criterion: stub missing method raises TypeError при instantiation/check
+  status: done
+resume_from: done

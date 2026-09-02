@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "(P2) MCP thin wrapper — load_session + load_plan_section tools + parity test"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать MCP-сервер loop/mb_load/mcp_server.py: тонкая обёртка над load_session()
+  и load_plan_section() — ноль дублирования логики, только транспорт. Добавить parity
+  test CLI vs MCP JSON. Outcome: Cursor user получает MCP-вызов load_session с тем же
+  JSON что и CLI (US-007, FR-010); parity test ловит schema drift в CI.
+
+context:
+  consumes:
+    - loop/mb_load/session.py       # load_session() из s01
+    - loop/mb_load/plan_section.py  # load_plan_section() из s04
+    - loop/mb_load/schemas.py       # MbLoadResult
+    - loop/mb_finish/mcp_server.py  # паттерн MCP wrapper (T-HUB-040)
+  produces:
+    - loop/mb_load/mcp_server.py
+    - harness/hooks/tests/test_mcp_load_parity.py  # TM-009
+  plan_refs:
+    - "FR-010: (P2) MCP server tools load_session, load_plan_section — thin wrapper, zero duplicate logic"
+    - "US-007: Cursor user — MCP load_session с CLI parity"
+    - "TM-009: MCP parity CLI — same JSON"
+    - "§Failure matrix: MCP wrapper schema drift → parity test → CI fail"
+    - "§cut_list: MCP P2 — реализовать только если T-HUB-040 stable"
+  files:
+    - loop/mb_load/mcp_server.py
+    - harness/hooks/tests/test_mcp_load_parity.py
+
+as_built:
+  - "loop/mb_finish/mcp_server.py — паттерн MCP thin wrapper (от T-HUB-040)"
+  - "loop/mb_load/session.py load_session() — из s01"
+  - "loop/mb_load/plan_section.py load_plan_section() — из s04"
+  - "НЕТ mb_load MCP wrapper — создаём"
+
+delta:
+  - "CREATE loop/mb_load/mcp_server.py — MCP tool definitions load_session(cwd, plan_section=None), load_plan_section(cwd, section): вызов соответствующих Python functions, schema: mb-load-result/v1 в ответе; zero business logic — только marshal/unmarshal"
+  - "CREATE harness/hooks/tests/test_mcp_load_parity.py — TM-009: вызов CLI subprocess → JSON; вызов MCP function → JSON; сравнение структуры ключей и schema"
+
+deletes: []
+
+out_of_scope:
+  - "MCP transport configuration / server registration (деталь deploy, вне эпика)"
+  - "Cursor live integration test (smoke only в parity)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/fastapi-templates/SKILL.md"  # S01: MCP/HTTP transport layer (аналогично mb_finish MCP)
+
+checkpoints:
+  - id: cp1
+    criterion: "TM-009: MCP load_session returns same schema fields as CLI (ok, meta, files, fingerprint)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_load_parity.py::test_mcp_cli_parity -q"
+  - id: cp2
+    criterion: "rg дублирующей логики: validate_active_context_shape / extract_load_now не вызываются напрямую из mcp_server.py (только через session.py)"
+    verify: "rg 'validate_active_context_shape\\|extract_load_now' loop/mb_load/mcp_server.py || echo OK_no_dup"
+  - id: cp3
+    criterion: "schema drift test: если MbLoadResult field добавлен → parity test падает (намеренный regression guard)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_load_parity.py -q --tb=short"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_mcp_load_parity.py -q --tb=short"
+tdd:
+  - "test_mcp_cli_parity: TM-009 same JSON structure"
+  - "test_mcp_zero_dup_logic: mcp_server imports only session/plan_section, not core"
+  - "test_mcp_schema_field_guard: known required fields present in MCP response"

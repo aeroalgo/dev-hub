@@ -22,7 +22,7 @@ AC met · next substep differs · role switch · long debug trace · user confus
 
 ## 3. Session start
 
-1. `activeContext.md` → `load_now` only (PLAN/DECOMPOSE: plan as work object; иначе — **без** полного `plan-*.md`)
+1. **Загрузка контекста:** вызови: `python3 harness/hooks/epic_resolve.py mb-load session --cwd $PROJECT_ROOT` (PLAN/DECOMPOSE: plan as work object; иначе — **без** полного `plan-*.md`)
 2. **§Handoff** — единственный канон навигации: в `activeContext.md` **ровно один** блок `## Handoff` (на FINISH — **Write весь файл**; стопка / ≥2 done = FAIL/halt)
 3. Не опираться на transcript
 4. **IMPLEMENT (эпик):** work shard `sNN|eNN` + `decompose-*/index.yaml`. Иначе ONE work shard (task/bugfix/qa). **AC = work shard**, не index; **не** полный `plan-*.md` и **не** `index.md`

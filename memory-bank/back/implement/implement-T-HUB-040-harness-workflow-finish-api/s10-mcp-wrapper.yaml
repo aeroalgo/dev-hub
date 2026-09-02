@@ -1,0 +1,34 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s10 — MCP thin server + parity tests (P2) IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s10-mcp-wrapper.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- cp1
+- cp2
+files:
+- loop/mb_finish/mcp_server.py
+- harness/hooks/tests/test_mcp_parity.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line`'
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/test_mcp_parity.py
+grep_control: []
+verification_results:
+- 'cp1: pass'
+- 'cp2: pass'
+checkpoints:
+- id: cp1
+  criterion: MCP server запускается без ошибок
+  status: done
+- id: cp2
+  criterion: 'TM-009: MCP descriptor parity с CLI'
+  status: done

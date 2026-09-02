@@ -1,0 +1,18 @@
+schema_version: "runtime-registry/v1"
+runtimes:
+  claude:
+    id: claude
+    adapter_module: "loop.runtime_adapters.claude"
+    binary_env: "CLAUDE_PATH"
+    capabilities:
+      - stream_json
+      - session_resume
+      - raw_exec
+  dsh:
+    id: dsh
+    adapter_module: "loop.runtime_adapters.dsh"
+    binary_env: "DSH_PATH"
+    capabilities:
+      - stream_json
+      - profile_override
+      - session_resilience

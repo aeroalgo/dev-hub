@@ -8,6 +8,7 @@ import pytest
 
 from harness.hooks.epic.core import (
     atomic_write_text,
+    default_state,
     read_active_context,
     save_epic_state,
 )
@@ -97,6 +98,20 @@ def setup_epic_env(tmp_path):
         "- test initial\n"
     )
     act_path.write_text(act_content, encoding="utf-8")
+
+    state = default_state()
+    state.update(
+        {
+            "active": True,
+            "status": "running",
+            "armed_epic": "T-HUB-TEST",
+            "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-TEST/index.yaml",
+            "armed_step": "s01",
+            "armed_role": "BACK",
+            "role": "BACK",
+        }
+    )
+    save_epic_state(tmp_path, state)
 
     return tmp_path
 
@@ -195,3 +210,59 @@ def test_finish_implement_rollback(setup_epic_env):
         # Verify activeContext restored
         restored_act = read_active_context(tmp_path)
         assert restored_act == original_act
+
+
+def test_finish_implement_uses_armed_decompose_not_first_glob(setup_epic_env):
+    """Regression: must not finalize the first decompose-* on disk (wrong epic)."""
+    tmp_path = setup_epic_env
+
+    stale_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-STALE"
+    stale_dir.mkdir(parents=True, exist_ok=True)
+    (stale_dir / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-HUB-STALE\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01-stale.yaml\n"
+        "    status: completed\n",
+        encoding="utf-8",
+    )
+    (stale_dir / "s01-stale.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\n",
+        encoding="utf-8",
+    )
+
+    req = MbFinishRequest(
+        phase="BACK IMPLEMENT",
+        step_id="s01",
+        done_summary="finish armed epic only",
+        cwd=str(tmp_path),
+    )
+
+    with patch("loop.mb_finish.finish_implement._verify_pass_ready_for_step") as mock_verify, \
+         patch("loop.mb_finish.finish_implement.finalize_step") as mock_fin, \
+         patch("loop.mb_finish.finish_implement.sync_cursor_from_index") as mock_sync:
+        mock_verify.return_value = {"ok": True, "diagnostic": "verify_pass"}
+        mock_fin.return_value = {"ok": True}
+        mock_sync.return_value = {"ok": True, "synced": False}
+
+        res = finish_implement_step(req)
+
+    assert res.ok is True
+    assert mock_fin.call_count == 1
+    decompose_arg = str(mock_fin.call_args.kwargs.get("decompose") or mock_fin.call_args.args[1])
+    assert "T-HUB-TEST" in decompose_arg
+    assert "T-HUB-STALE" not in decompose_arg
+
+
+def test_finish_implement_missing_armed_decompose(tmp_path):
+    """Fail-closed when epic state has no armed_decompose."""
+    req = MbFinishRequest(
+        phase="BACK IMPLEMENT",
+        step_id="s01",
+        done_summary="",
+        cwd=str(tmp_path),
+    )
+    res = finish_implement_step(req)
+    assert res.ok is False
+    assert "armed_decompose_missing" in res.diagnostic_codes

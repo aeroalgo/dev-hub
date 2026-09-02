@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "CLI mb-load session — JSON stdout + cwd guard + missing-file policy"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить subcommand `mb-load session` в epic_resolve.py: принимает --cwd, вызывает
+  load_session(), пишет JSON stdout, exit 0 только ok:true. Реализовать cwd path guard
+  (hub vs product) и explicit missing-file policy (partial vs fail-closed). Outcome:
+  оператор/loop получает машиночитаемый bundle одним CLI-вызовом; misconfigured cwd
+  → fail-closed JSON без silent partial load.
+
+context:
+  consumes:
+    - loop/mb_load/session.py         # load_session() из s01
+    - loop/mb_load/schemas.py         # MbLoadResult
+    - harness/hooks/epic_resolve.py   # паттерн subcommand (mb-finish уже есть)
+    - harness/hooks/epic_paths.py     # cwd resolution pattern
+  produces:
+    - harness/hooks/epic_resolve.py   # extend: mb-load subcommand
+    - loop/tests/test_mb_load_cli.py  # TM-001 CLI path, TM-006 cwd guard
+  plan_refs:
+    - "FR-004: CLI epic_resolve.py mb-load session [--cwd] [--plan-section N] [--json]"
+    - "US-001: один CLI-вызов → JSON ok:true, files[]"
+    - "US-002: fail-closed bad shape via CLI"
+    - "TM-006: wrong cwd → fail-closed JSON"
+    - "FR-011: hub vs product cwd guard (same as mb-finish)"
+    - "§Failure matrix: wrong cwd → path guard → fail-closed JSON"
+    - "§Failure matrix: load_now path missing → diagnostic missing_artifact, ok:false or partial"
+  files:
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_mb_load_cli.py
+
+as_built:
+  - "harness/hooks/epic_resolve.py: mb-finish subcommand реализован (паттерн argparse subparsers)"
+  - "harness/hooks/epic_resolve.py:374 load_now args уже парсятся для finish"
+  - "harness/hooks/epic_paths.py: cwd resolution utilities (basis)"
+  - "НЕТ mb-load subcommand — добавляем"
+
+delta:
+  - "EDIT harness/hooks/epic_resolve.py — добавить subparser 'mb-load' → 'session' sub-subcommand; --cwd (default PWD); --plan-section N (optional int); --json flag; вызов load_session(); JSON stdout; sys.exit(0/2)"
+  - "EDIT harness/hooks/epic_resolve.py — cwd guard: если resolved cwd == dev-hub root а PROJECT_ROOT != dev-hub → warn или fail; реиспользовать паттерн из mb-finish cwd logic"
+  - "ADD missing-file policy: если load_now path не существует → diagnostic 'missing_artifact'; ok:false (fail-closed) если ни один файл не загружен"
+  - "CREATE loop/tests/test_mb_load_cli.py — subprocess вызов CLI, TM-001 CLI happy, TM-006 wrong cwd"
+
+deletes: []
+
+out_of_scope:
+  - "implement yaml auto-resolve в CLI (s03 обеспечивает resolver, s02 только вызывает)"
+  - "session-start inject (s05)"
+  - "MCP wrapper (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # S03: exit codes, Pydantic error pipeline
+
+checkpoints:
+  - id: cp1
+    criterion: "CLI smoke: python harness/hooks/epic_resolve.py mb-load --help показывает session subcommand без ошибки"
+    verify: "python3 harness/hooks/epic_resolve.py mb-load --help"
+  - id: cp2
+    criterion: "TM-001 CLI: mb-load session --cwd $PROJECT_ROOT → exit 0, stdout JSON ok:true"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_cli.py::test_cli_happy -q"
+  - id: cp3
+    criterion: "TM-006: wrong cwd (hub root != product) → JSON ok:false, exit 2"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_cli.py::test_cli_wrong_cwd -q"
+  - id: cp4
+    criterion: "missing-file policy: load_now с несуществующим path → diagnostic missing_artifact в JSON"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_cli.py::test_cli_missing_file -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_mb_load_cli.py -q --tb=short"
+tdd:
+  - "test_cli_happy: subprocess run mb-load session, check JSON structure"
+  - "test_cli_wrong_cwd: wrong cwd → exit code 2, ok:false"
+  - "test_cli_missing_file: load_now path not found → diagnostic missing_artifact"
+  - "test_cli_exit_codes: exit 0 ok:true / exit 2 ok:false"

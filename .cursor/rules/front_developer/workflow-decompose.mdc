@@ -73,7 +73,7 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 
 1. **Read** @.cursor/rules/front_developer/skills-gate-situational.mdc
 2. Прогони **Checklist — DECOMPOSE** (`visible_ui`, playwright, …)
-3. `visible_ui: yes` → скопировать **Design Core** (все 6) в блок Design skills  
+3. `visible_ui: yes` → скопировать **Design Core** (весь пакет Base 4 + Taste 13) в блок Design skills  
    `visible_ui: no` → `**Design skills:** —` + причина
 4. Cap situational ≤ **4** (+ 6 Impl Core; Design Core не в cap situational)
 5. В step — только итоговые пути + `#`-комментарий почему (silent = FAIL). **FORBIDDEN:** скиллы вне allowlist/пакетов; копировать весь checklist в `sNN`; skill без обоснования

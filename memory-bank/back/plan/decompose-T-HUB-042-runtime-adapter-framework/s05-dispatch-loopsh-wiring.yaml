@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s05 — dispatch.py CLI + loop.sh thin wrapper (replace if/else dispatch)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать loop/runtime/dispatch.py — CLI-модуль python -m loop.runtime.dispatch run_session.
+  Заменить if [[ EPIC_RUNTIME_RESOLVED == dsh ]] в loop.sh тонкой оберткой вызова dispatch.
+  Orchestration semantics loop.sh (retry/record-session shell loop) не меняются.
+  Outcome: loop.sh не знает конкретных runtime — только dispatch CLI.
+
+context:
+  consumes:
+    - "plan §FR-006, §FR-010, §Dispatch решение"
+    - "loop/loop.sh:564 — if dsh/claude if/else (as-built, будет удалено)"
+    - "loop/runtime/registry.py (s01)"
+    - "loop/runtime_adapters/claude.py (s03), loop/runtime_adapters/dsh.py (s04)"
+  produces:
+    - loop/runtime/dispatch.py
+    - loop/tests/test_runtime_dispatch.py
+    - "loop/loop.sh (изменён: replace if/else block)"
+  plan_refs:
+    - "FR-006: dispatch.py build_command + run_session subprocess wrapper"
+    - "FR-010: loop.sh replace if dsh/claude with dispatch CLI"
+    - "US-001: add runtime without loop.sh if/else edit"
+  files:
+    - loop/runtime/dispatch.py
+    - loop/tests/test_runtime_dispatch.py
+    - loop/loop.sh
+
+as_built:
+  - "loop/loop.sh:564 — if [[ EPIC_RUNTIME_RESOLVED == dsh ]]; then ... else ... fi"
+  - "loop/loop.sh:693-695 — EPIC_DSH_PROFILE из prep_json; configure_runtime_env"
+  - "нет dispatch.py"
+
+delta:
+  - "add loop/runtime/dispatch.py — main() argparse subcommands: run_session --runtime ID --prompt-file PATH --extras-json JSON; --dry-run flag prints argv without subprocess (AC+ #2); unknown runtime exit 2 + JSON diagnostic (AC+ #4); pass-through exit code otherwise"
+  - "add loop/tests/test_runtime_dispatch.py — TM-003/TM-004: --dry-run claude prints argv; --dry-run dsh prints argv; unknown runtime exit 2 + JSON stderr"
+  - "edit loop/loop.sh:564 — replace if/else dsh/claude block with python3 -m loop.runtime.dispatch run_session; preserve retry/record-session loop"
+
+deletes:
+  - "loop/loop.sh — секция if [[ EPIC_RUNTIME_RESOLVED == dsh ]] ... else ... fi (hard dispatch block ~line 564)"
+
+out_of_scope:
+  - "EPIC_DSH_PROFILE env var purge — s09, s10"
+  - "session_resilience delegate — s07"
+  - "context_loop runtime_extras — s08"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "dispatch --dry-run --runtime claude prints argv начинающийся с claude binary (AC+ #2); exit 0"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_dispatch.py -q --tb=line -k 'claude_dispatch'"
+  - id: cp2
+    criterion: "dispatch --dry-run --runtime dsh prints argv containing dsh --profile epic-implement (AC+ #3)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_dispatch.py -q --tb=line -k 'dsh_dispatch'"
+  - id: cp3
+    criterion: "dispatch unknown runtime — stderr JSON diagnostic, exit 2 (AC+ #4)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_dispatch.py -q --tb=line -k 'unknown_runtime'"
+  - id: cp4
+    criterion: "loop.sh — rg не находит старый if/else dsh-block"
+    verify: "rg -n 'if.*EPIC_RUNTIME_RESOLVED.*dsh' loop/loop.sh | wc -l | grep -E '^0$'"
+
+verify:
+  - "rg 'def main' loop/runtime/dispatch.py"
+  - "rg -c 'python3 -m loop.runtime.dispatch' loop/loop.sh"
+  - ".venv/bin/pytest loop/tests/test_runtime_dispatch.py -q --tb=line"
+  - "rg 'if.*EPIC_RUNTIME_RESOLVED.*==.*dsh' loop/loop.sh | wc -l | grep '^0$'"
+
+tdd:
+  - test_dispatch_dry_run_claude_prints_argv
+  - test_dispatch_dry_run_dsh_prints_argv
+  - test_dispatch_unknown_runtime_exit2_json_diagnostic
+  - test_dispatch_exit_code_passthrough

@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s04 — DshAdapter — implement RuntimeAdapter protocol wrapping existing functions
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-042-runtime-adapter-framework/s04-dsh-adapter-refactor.yaml
+skills_used:
+- python-testing-patterns
+- python-error-handling
+discovery: []
+gaps:
+  status: none
+done:
+- "Added DshAdapter(RuntimeAdapter) class to loop/runtime_adapters/dsh.py"
+- "Added unit tests in loop/tests/test_dsh_adapter.py"
+files:
+- loop/runtime_adapters/dsh.py
+- loop/tests/test_dsh_adapter.py
+deletes: []
+tests:
+- "`timeout 300s .venv/bin/pytest loop/tests/test_dsh_adapter.py loop/tests/test_dsh_e2e_smoke.py -q --tb=line`"
+- "`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -k 'not test_sync_' -q --tb=line`"
+integration_check:
+- "verified DshAdapter implements RuntimeAdapter protocol and wraps build_dsh_command, normalize_dsh_log, and detect_dsh_model_mismatch"
+grep_control: []
+verification_results:
+- "cp1: PASS"
+- "cp2: PASS"
+- "cp3: PASS"
+- "cp4: PASS"
+checkpoints:
+- id: cp1
+  criterion: DshAdapter() isinstance(RuntimeAdapter) is True; существующие тесты dsh_e2e_smoke не сломаны
+  status: done
+- id: cp2
+  criterion: 'prepare_extras(''implement'') == {''dsh_profile'': ''epic-implement''}'
+  status: done
+- id: cp3
+  criterion: analyze_log с model-mismatch raw_log returns SessionAnalysis(reason='model_substitution:...')
+  status: done
+- id: cp4
+  criterion: test_dsh_profile_mapping existing suite green
+  status: done
+resume_from: done

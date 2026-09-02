@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: s05 — session-start.py inject — bundle fingerprint + file list при EPIC_LOOP=1
+  IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-045-harness-workflow-session-load-api/s05-session-start-inject-epic-loop.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Extended session_start_payload in harness/hooks/epic/core.py to inject load_session
+  summary/fingerprint when EPIC_LOOP=1
+- Created unit tests in harness/hooks/tests/test_session_start_inject.py
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_session_start_inject.py
+  -q --tb=short`'
+integration_check:
+- session_start_payload returns bundle fingerprint and paths when EPIC_LOOP=1
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- PYTHONPATH=. .venv/bin/pytest harness/hooks/tests/test_session_start_inject.py -q
+  --tb=short (PASS)
+checkpoints:
+- id: cp1
+  criterion: 'TM-007: EPIC_LOOP=1, mock load_session ok:true → additionalContext dict
+    имеет ключ fingerprint'
+  status: done
+  done_at: '2026-09-02T03:51:31Z'
+- id: cp2
+  criterion: load_session ok:false → session_start_payload не падает, возвращает payload
+    с diagnostic warning
+  status: done
+  done_at: '2026-09-02T03:51:37Z'
+- id: cp3
+  criterion: EPIC_LOOP=0 (or unset) → session_start_payload не вызывает load_session
+    (нет regression)
+  status: done
+  done_at: '2026-09-02T03:51:41Z'
+resume_from: cp1

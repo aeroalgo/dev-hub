@@ -1,0 +1,66 @@
+date: '2026-09-02'
+epic_id: T-HUB-045-harness-workflow-session-load-api
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-045-harness-workflow-session-load-api.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-045-harness-workflow-session-load-api/index.yaml
+
+steps:
+  - id: s01
+    title: "loop/mb_load package — Pydantic schemas + load_session core"
+    status: implemented
+    as_built: "Реализован пакет loop/mb_load со схемами Pydantic и функцией load_session."
+    delta: "loop/mb_load/schemas.py, loop/mb_load/session.py"
+    gaps: []
+
+  - id: s02
+    title: "CLI mb-load session — JSON stdout + cwd guard + missing-file policy"
+    status: implemented
+    as_built: "Добавлена поддержка CLI команды mb-load session с выводом JSON, проверкой cwd и обработкой отсутствующих файлов."
+    delta: "harness/hooks/epic_resolve.py"
+    gaps: []
+
+  - id: s03
+    title: "loop/mb_load/resolver.py — implement yaml auto-resolve + mode matrix"
+    status: implemented
+    as_built: "Реализован модуль resolver.py для автоматического определения файлов сессии по матрице режимов."
+    delta: "loop/mb_load/resolver.py"
+    gaps: []
+
+  - id: s04
+    title: "load_plan_section — §N parser + CLI --plan-section flag"
+    status: implemented
+    as_built: "Реализован парсинг секций плана (§N) и поддержка флага --plan-section в CLI."
+    delta: "loop/mb_load/plan_section.py, harness/hooks/epic_resolve.py"
+    gaps: []
+
+  - id: s05
+    title: "session-start.py inject — bundle fingerprint + file list при EPIC_LOOP=1"
+    status: implemented
+    as_built: "Обновлена инъекция в session-start.py для интеграции fingerprint и списка файлов бандла при EPIC_LOOP=1."
+    delta: "harness/hooks/session-start.py"
+    gaps: []
+
+  - id: s06
+    title: "Workflow rules + context-session-economy.mdc — заменить prose START на mb-load вызов"
+    status: implemented
+    as_built: "Заменены старые прозаические START инструкции в правилах workflow на использование mb-load."
+    delta: "harness/hooks/tests/test_rules_purge.py"
+    gaps: []
+
+  - id: s07
+    title: "(P2) MCP thin wrapper — load_session + load_plan_section tools + parity test"
+    status: implemented
+    as_built: "Реализован MCP обертка для инструментов load_session и load_plan_section, проверен паритет."
+    delta: "loop/mb_load/mcp_server.py, harness/hooks/tests/test_mcp_load_parity.py"
+    gaps: []
+
+  - id: s08
+    title: "Legacy purge — удалить manual Read load_now инструкции из rules + context_loop"
+    status: implemented
+    as_built: "Удалены устаревшие manual Read инструкции из контекстного цикла и правил."
+    delta: "loop/context_loop.py"
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 8 шагов (s01-s08) эпика T-HUB-045-harness-workflow-session-load-api успешно реализованы и проверены audit-анализом."

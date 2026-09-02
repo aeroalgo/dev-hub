@@ -16,14 +16,30 @@ alwaysApply: false
 
 ## Design Core (пакет — all-or-nothing)
 
-Когда `visible_ui: yes` **или** FRONT CREATIVE (UI batch) — копировать **все 6** путей. Не дробить пакет.
+Когда `visible_ui: yes` **или** FRONT CREATIVE (UI batch) — копировать **весь пакет** (Base 4 + Taste 13 = 17 путей). Не дробить пакет.
+
+### Base (4)
 
 - `.agents/skills/frontend-design/SKILL.md`
-- `.agents/skills/design-taste-frontend/SKILL.md`
 - `.agents/skills/emil-design-eng/SKILL.md`
 - `.agents/skills/impeccable/SKILL.md`
-- `.agents/skills/high-end-visual-design/SKILL.md`
 - `.agents/skills/ui-ux-pro-max/SKILL.md`
+
+### Taste Skill — Leonxlnx/taste-skill (13)
+
+- `.agents/skills/design-taste-frontend/SKILL.md` — default v2
+- `.agents/skills/design-taste-frontend-v1/SKILL.md` — v1 pin
+- `.agents/skills/gpt-taste/SKILL.md`
+- `.agents/skills/image-to-code/SKILL.md`
+- `.agents/skills/redesign-existing-projects/SKILL.md`
+- `.agents/skills/high-end-visual-design/SKILL.md`
+- `.agents/skills/full-output-enforcement/SKILL.md`
+- `.agents/skills/minimalist-ui/SKILL.md`
+- `.agents/skills/industrial-brutalist-ui/SKILL.md`
+- `.agents/skills/stitch-design-taste/SKILL.md`
+- `.agents/skills/imagegen-frontend-web/SKILL.md`
+- `.agents/skills/imagegen-frontend-mobile/SKILL.md`
+- `.agents/skills/brandkit/SKILL.md`
 
 `visible_ui: no` → `**Design skills:** —` + причина; пакет **не** копировать.
 

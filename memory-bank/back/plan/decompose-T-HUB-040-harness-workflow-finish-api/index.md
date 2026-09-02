@@ -131,12 +131,12 @@ grep_control (anti-fallback): `rg "_implement_finish_block\|_qa_finish_block\|_t
 | :--- | :--- | :--- | :--- |
 | **s01** | loop/mb_finish/ schemas + render + shape tests · [yaml](s01-schemas-render.yaml) |  | completed |
 | **s02** | finish_implement_step + CLI mb-finish implement + rollback · [yaml](s02-finish-implement.yaml) |  | completed |
-| **s03** | stop-gate last_finish_tool fingerprint + epic state wire · [yaml](s03-stop-gate-fingerprint.yaml) |  | pending |
-| **s04** | finish_handoff low-level + doctor render reuse · [yaml](s04-finish-handoff.yaml) |  | pending |
-| **s05** | finish_qa + finish_bugfix · [yaml](s05-finish-qa-bugfix.yaml) |  | pending |
-| **s06** | finish_decompose + finish_plan + transition engine delegate · [yaml](s06-finish-decompose-plan.yaml) |  | pending |
-| **s07** | finish_analyze + finish_audit · [yaml](s07-finish-analyze-audit.yaml) |  | pending |
-| **s08** | finish_creative + finish_reflect (P2) · [yaml](s08-finish-creative-reflect.yaml) |  | pending |
-| **s09** | workflow rules + context_loop FINISH blocks purge prose · [yaml](s09-rules-purge-prose.yaml) |  | pending |
-| **s10** | MCP thin server + parity tests (P2) · [yaml](s10-mcp-wrapper.yaml) |  | pending |
-| **s11** | legacy purge: prose FINISH instructions + dual handoff paths · [yaml](s11-legacy-purge.yaml) |  | pending |
+| **s03** | stop-gate last_finish_tool fingerprint + epic state wire · [yaml](s03-stop-gate-fingerprint.yaml) |  | completed |
+| **s04** | finish_handoff low-level + doctor render reuse · [yaml](s04-finish-handoff.yaml) |  | completed |
+| **s05** | finish_qa + finish_bugfix · [yaml](s05-finish-qa-bugfix.yaml) |  | completed |
+| **s06** | finish_decompose + finish_plan + transition engine delegate · [yaml](s06-finish-decompose-plan.yaml) |  | completed |
+| **s07** | finish_analyze + finish_audit · [yaml](s07-finish-analyze-audit.yaml) |  | completed |
+| **s08** | finish_creative + finish_reflect (P2) · [yaml](s08-finish-creative-reflect.yaml) |  | completed |
+| **s09** | workflow rules + context_loop FINISH blocks purge prose · [yaml](s09-rules-purge-prose.yaml) |  | completed |
+| **s10** | MCP thin server + parity tests (P2) · [yaml](s10-mcp-wrapper.yaml) |  | completed |
+| **s11** | legacy purge: prose FINISH instructions + dual handoff paths · [yaml](s11-legacy-purge.yaml) |  | completed |

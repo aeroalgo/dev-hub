@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "Workflow rules + context-session-economy.mdc — заменить prose START на mb-load вызов"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Заменить prose-инструкции «читай activeContext → load_now → Read ×N» в workflow rules
+  и context-session-economy.mdc на «вызови mb-load session». Удалить дублирующие
+  multi-Read инструкции из context-session-economy.mdc §3 START секции и аналогичные
+  prose-блоки из context_loop.py prompt generation. Outcome: LLM видит одну машинную
+  инструкцию вместо prose-списка, FR-009 закрыт.
+
+context:
+  consumes:
+    - .cursor/rules/shared/context-session-economy.mdc     # §3 START — prose multi-Read
+    - loop/context_loop.py                                  # mb_paths_for_prompt prose
+    - .cursor/rules/back_developer/workflow-*.mdc          # session start prose (если есть)
+  produces:
+    - .cursor/rules/shared/context-session-economy.mdc
+    - loop/context_loop.py
+  plan_refs:
+    - "FR-009: workflow rules + context-session-economy.mdc — session start → вызови mb-load session; purge prose multi-Read"
+    - "§Technology axiom: FORBIDDEN после эпика — LLM сам парсит load_now как primary path"
+    - "SC-001: Session start без prose 'прочитай load_now' в workflow-implement — rg check"
+    - "§Replacement cleanup A: Prose-only session start in rules → mb-load session one-liner"
+    - "§Replacement cleanup B: Manual Read load_now chain → epic_resolve.py mb-load session"
+  files:
+    - .cursor/rules/shared/context-session-economy.mdc
+    - loop/context_loop.py
+
+as_built:
+  - ".cursor/rules/shared/context-session-economy.mdc §3: prose 'activeContext → load_now only' + 'Read once per file' — текущие prose-инструкции"
+  - "loop/context_loop.py:824 reasons.append('load_now пуст') — prompt logic uses load_now prose"
+  - "loop/context_loop.py:522 'Read shard + context.consumes + listed targets' — prose prompt"
+
+delta:
+  - "EDIT .cursor/rules/shared/context-session-economy.mdc — §START (или §3 Session once): заменить prose 'читай activeContext, потом files из load_now' на 'вызови: python3 harness/hooks/epic_resolve.py mb-load session --cwd $PROJECT_ROOT'; сохранить остальные §§ нетронутыми"
+  - "EDIT loop/context_loop.py — убрать/сократить prose-инструкции ручного Read load_now из prompt sections; заменить на ссылку на mb-load; НЕ трогать логику mb_paths_for_prompt (используется как fallback)"
+  - "rg-audit после edit: rg 'Read.*load_now|прочитай.*load_now|читай.*activeContext.*потом.*файлы' .cursor/rules/ — ожидать 0 hits на старые prose"
+
+deletes:
+  - "prose: 'читай activeContext → load_now → Read ×N' из context-session-economy.mdc §START"
+  - "prose: 'Read shard + context.consumes + listed targets' из context_loop.py prompt (если дублирует mb-load)"
+
+out_of_scope:
+  - "context_loop.py fallback logic mb_paths_for_prompt (остаётся как fallback)"
+  - "изменения в другие workflow .mdc вне context-session-economy (deferred)"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc — ≥1 hit"
+    verify: "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc | head -5"
+  - id: cp2
+    criterion: "старые prose отсутствуют: rg 'Read.*load_now' .cursor/rules/ — 0 hits на удалённые строки"
+    verify: "rg -c 'вручную.*Read.*load_now\\|load_now.*файлы.*Read' .cursor/rules/ || echo 0"
+  - id: cp3
+    criterion: "loop/context_loop.py: probe mb_paths_for_prompt всё ещё реферирована (fallback не сломан)"
+    verify: "rg 'mb_paths_for_prompt' loop/context_loop.py | head -3"
+
+verify:
+  - "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc"
+  - "rg -c 'вручную.*Read.*load_now' .cursor/rules/ || true"
+tdd: []
+# docs-only + рефакторинг rules; тест через rg-verify checkpoints

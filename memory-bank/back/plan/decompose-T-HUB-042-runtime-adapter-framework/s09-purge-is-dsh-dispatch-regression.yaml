@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s09 — purge is_dsh/EPIC_DSH_PROFILE remaining callers + regression suite green
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить оставшиеся is_dsh/EPIC_DSH_PROFILE/env_extra is_dsh паттерны вне session_resilience
+  (stop-gate, loop_argv, loop.sh EPIC_DSH_PROFILE переменная).
+  Запустить полный regression suite — TM-005 + board_launch tests.
+  Outcome: ни один prod-путь не содержит is_dsh conditional; dispatch через adapter везде.
+
+context:
+  consumes:
+    - "plan §FR-010 purge"
+    - "harness/hooks/stop-gate.py:120 _is_dsh_runtime helper (as-built)"
+    - "loop/loop.sh:694 EPIC_DSH_PROFILE variable (as-built)"
+    - "loop/board_launch/loop_argv.py:117 env_extra if runtime == 'dsh' (as-built)"
+    - "loop/runtime/dispatch.py (s05)"
+  produces:
+    - "harness/hooks/stop-gate.py (изменён: _is_dsh_runtime removed)"
+    - "loop/loop.sh (изменён: EPIC_DSH_PROFILE removed)"
+    - "loop/board_launch/loop_argv.py (изменён: is_dsh env_extra removed)"
+    - loop/tests/test_loop_dsh_dispatch.py
+  plan_refs:
+    - "FR-010: loop.sh replace if dsh/claude with dispatch CLI; purge EPIC_DSH_PROFILE"
+    - "US-004: zero regression on EPIC_RUNTIME=dsh"
+    - "SC-004: no is_dsh in main path"
+  files:
+    - harness/hooks/stop-gate.py
+    - loop/loop.sh
+    - loop/board_launch/loop_argv.py
+    - loop/tests/test_loop_dsh_dispatch.py
+
+as_built:
+  - "harness/hooks/stop-gate.py:120 — _is_dsh_runtime(cwd)->bool hardcoded check"
+  - "harness/hooks/stop-gate.py:480 — if _is_dsh_runtime(cwd): branch"
+  - "loop/loop.sh:694 — EPIC_DSH_PROFILE=$(python3 -c ... 'dsh_profile' ...)"
+  - "loop/loop.sh:695 — export EPIC_RUNTIME_RESOLVED EPIC_DSH_PROFILE"
+  - "loop/board_launch/loop_argv.py:117 — env_extra = {'EPIC_RUNTIME': 'dsh'} if runtime == 'dsh' else {}"
+
+delta:
+  - "edit harness/hooks/stop-gate.py — replace _is_dsh_runtime with registry.has_capability check or remove if-gate entirely (stop-gate gets runtime from prep_json runtime_extras)"
+  - "edit loop/loop.sh — remove EPIC_DSH_PROFILE export; dispatch gets extras via --extras-json prep_json"
+  - "edit loop/board_launch/loop_argv.py — remove env_extra if runtime == 'dsh'; extras via --extras-json in dispatch"
+  - "add loop/tests/test_loop_dsh_dispatch.py — TM-005: loop.sh dsh dispatch calls dispatch CLI; EPIC_DSH_PROFILE not in env"
+
+deletes:
+  - "harness/hooks/stop-gate.py:120-121 — _is_dsh_runtime function definition"
+  - "harness/hooks/stop-gate.py:480 — if _is_dsh_runtime(cwd): branch"
+  - "loop/loop.sh:694 — EPIC_DSH_PROFILE=$(python3 ...) line"
+  - "loop/loop.sh:695 — EPIC_DSH_PROFILE from export line"
+  - "loop/board_launch/loop_argv.py:117 — env_extra = {'EPIC_RUNTIME': 'dsh'} if runtime == 'dsh' else {}"
+
+out_of_scope:
+  - "standalone functions normalize_dsh_log, detect_dsh_model_mismatch in dsh.py — s10"
+  - "re-export in common.py — s10"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "is_dsh not present in any prod file (excluding tests)"
+    verify: "rg -n 'is_dsh' harness/ loop/ -g '*.py' | rg -v 'test_|archive' | wc -l | grep '^0$'"
+  - id: cp2
+    criterion: "EPIC_DSH_PROFILE not exported in loop.sh"
+    verify: "rg 'EPIC_DSH_PROFILE' loop/loop.sh | wc -l | grep '^0$'"
+  - id: cp3
+    criterion: "board_launch existing tests green; env_extra no longer contains EPIC_RUNTIME=dsh hardcode"
+    verify: ".venv/bin/pytest loop/tests/test_board_launch_argv.py loop/tests/test_board_launch_cli.py -q --tb=line"
+  - id: cp4
+    criterion: "TM-005 dsh dispatch shell test green"
+    verify: ".venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=line"
+
+verify:
+  - "rg 'is_dsh' harness/ loop/ -g '*.py' | rg -v test_ | wc -l | grep '^0$'"
+  - "rg 'EPIC_DSH_PROFILE' loop/loop.sh | wc -l | grep '^0$'"
+  - ".venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py loop/tests/test_board_launch_argv.py -q --tb=line"
+
+tdd:
+  - test_loop_dsh_dispatch_no_epic_dsh_profile_env
+  - test_board_launch_no_is_dsh_env_extra
+  - test_stopgate_no_is_dsh_runtime_function

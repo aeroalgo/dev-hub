@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s02 — RuntimeAdapter Protocol + SessionContext/SessionAnalysis dataclasses
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать loop/runtime_adapters/base.py с Protocol RuntimeAdapter и dataclasses SessionContext,
+  SessionAnalysis, RuntimeCapabilities. Это контракт: все адаптеры (claude, dsh, будущий codex)
+  реализуют один интерфейс без изменения orchestration semantics.
+
+context:
+  consumes:
+    - "plan §FR-002, §Protocol section"
+    - "loop/runtime_adapters/dsh.py — существующие функции (as-built)"
+  produces:
+    - loop/runtime_adapters/base.py
+    - loop/tests/test_runtime_adapter_protocol.py
+  plan_refs:
+    - "FR-002: RuntimeAdapter Protocol + SessionContext/SessionAnalysis/RuntimeCapabilities dataclasses"
+    - "US-002: единый SessionAnalysis для retry policy"
+    - "US-003: ClaudeAdapter extracted, claude path testable in isolation"
+    - "FR-012: unit tests protocol check"
+  files:
+    - loop/runtime_adapters/base.py
+    - loop/tests/test_runtime_adapter_protocol.py
+
+as_built:
+  - "loop/runtime_adapters/dsh.py — build_dsh_command, normalize_dsh_log, detect_dsh_model_mismatch standalone functions (без Protocol)"
+  - "loop/runtime_adapters/__init__.py — пустой"
+  - "нет base.py, нет SessionContext/SessionAnalysis"
+
+delta:
+  - "add loop/runtime_adapters/base.py — dataclass SessionContext (prompt, phase, model, runtime_id, extras), dataclass SessionAnalysis (reason, retry, dsh_abort_kind, structured_output), dataclass RuntimeCapabilities (stream_json, model_check), Protocol RuntimeAdapter with build_command/analyze_log/prepare_extras"
+  - "add loop/tests/test_runtime_adapter_protocol.py — stub adapter implements protocol (runtime_checkable), wrong signature raises TypeError"
+
+deletes: []
+
+out_of_scope:
+  - "claude.py adapter — s03"
+  - "dsh.py refactor — s04"
+  - "common.py helpers — s07 (session_resilience cutover)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - async-python-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "RuntimeAdapter @runtime_checkable Protocol; SessionContext/SessionAnalysis frozen dataclasses; importable"
+    verify: "python3 -c 'from loop.runtime_adapters.base import RuntimeAdapter, SessionContext, SessionAnalysis; print(\"ok\")'"
+  - id: cp2
+    criterion: "stub-class implementing all 3 methods passes isinstance(stub, RuntimeAdapter)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line -k 'protocol_check'"
+  - id: cp3
+    criterion: "stub missing method raises TypeError при instantiation/check"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line -k 'missing_method'"
+
+verify:
+  - "rg 'class RuntimeAdapter' loop/runtime_adapters/base.py"
+  - "rg 'class SessionContext' loop/runtime_adapters/base.py"
+  - ".venv/bin/pytest loop/tests/test_runtime_adapter_protocol.py -q --tb=line"
+
+tdd:
+  - test_stub_adapter_passes_isinstance_check
+  - test_stub_missing_method_fails_type_check
+  - test_session_context_frozen_dataclass
+  - test_session_analysis_fields

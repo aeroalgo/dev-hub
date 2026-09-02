@@ -27,6 +27,34 @@ _EPIC_MD_ARTIFACT = re.compile(
 )
 
 
+def format_verification_result(item: Any) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        verdict = str(item.get("verdict") or item.get("result") or "").strip()
+        step_id = str(item.get("step_id") or "").strip()
+        agent = str(item.get("agent_id") or item.get("agent") or "").strip()
+        recorded = str(item.get("recorded_at") or "").strip()
+        if step_id and verdict:
+            base = f"{step_id}: {verdict}"
+        elif verdict:
+            base = verdict
+        else:
+            base = ""
+        suffix_parts = []
+        if agent:
+            suffix_parts.append(agent)
+        if recorded:
+            suffix_parts.append(f"@{recorded}")
+        if base and suffix_parts:
+            return f"{base} ({' '.join(suffix_parts)})"
+        if base:
+            return base
+        if suffix_parts:
+            return " ".join(suffix_parts)
+    return str(item).strip()
+
+
 class GrepRow(BaseModel):
     back: str = ""
     front: str = ""
@@ -103,6 +131,11 @@ class EpicImplementDoc(BaseModel):
         if schema == SCHEMA_IMPLEMENT_LEGACY and "decompose_ref" not in out:
             if out.get("element_ref"):
                 out["decompose_ref"] = out["element_ref"]
+        vr = out.get("verification_results")
+        if isinstance(vr, list):
+            out["verification_results"] = [
+                format_verification_result(x) for x in vr
+            ]
         return out
 
     @field_validator("schema_version")
@@ -1543,12 +1576,33 @@ def implement_ready_for_finalize(cwd: str | Path, rel: str) -> bool:
         return False
 
 
-def implement_completed(cwd: str | Path, rel: str) -> bool:
+def implement_load_state(cwd: str | Path, rel: str) -> dict[str, Any]:
     p = Path(cwd) / rel
     if not p.is_file() or p.suffix.lower() not in {".yaml", ".yml"}:
-        return False
+        return {
+            "ok": False,
+            "load_error": f"missing implement shard: {rel}",
+            "completed": False,
+            "path": rel,
+        }
     try:
         doc = load_implement(p)
-        return doc.status == "completed" and all_checkpoints_done(doc.checkpoints)
-    except Exception:
-        return False
+    except Exception as exc:
+        return {
+            "ok": False,
+            "load_error": str(exc),
+            "completed": False,
+            "path": rel,
+        }
+    completed = doc.status == "completed" and all_checkpoints_done(doc.checkpoints)
+    return {
+        "ok": True,
+        "load_error": None,
+        "completed": completed,
+        "path": rel,
+        "status": doc.status,
+    }
+
+
+def implement_completed(cwd: str | Path, rel: str) -> bool:
+    return bool(implement_load_state(cwd, rel).get("completed"))

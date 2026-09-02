@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s11
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: 's11 — legacy purge: prose FINISH instructions + dual handoff write paths IMPLEMENT'
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s11-legacy-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Purged dual handoff write path in core.py
+- Purged ad-hoc frontmatter concat imports in core.py
+- Added inventory purge suite test_mb_finish_legacy_purge.py
+files:
+- loop/context_loop.py
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_mb_finish_legacy_purge.py
+deletes:
+- _implement_finish_block в loop/context_loop.py
+- _qa_finish_block в loop/context_loop.py
+- ad-hoc frontmatter f-string в harness/hooks/epic/core.py (audit lines)
+- dual-write handoff в harness/hooks/epic/core.py
+tests:
+- timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_legacy_purge.py
+  -q --tb=line
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/ -q --tb=line -k mb_finish
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- All 4 legacy purge tests passed
+checkpoints:
+- id: cp1
+  criterion: rg _implement_finish_block loop/context_loop.py → 0 строк (не def, не
+    call)
+  status: done
+- id: cp2
+  criterion: rg _qa_finish_block loop/context_loop.py → 0 строк
+  status: done
+- id: cp3
+  criterion: 'sole-writer audit: no ad-hoc activeContext writes outside render_active_context
+    and mb_finish tools'
+  status: done
+- id: cp4
+  criterion: inventory purge suite зелёный + full mb_finish suite не сломан
+  status: done
+resume_from: cp4

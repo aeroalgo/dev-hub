@@ -44,6 +44,8 @@
 | T-HUB-042 | Runtime adapter framework | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-042-runtime-adapter-framework.md) · deps T-HUB-041 |
 | T-HUB-043 | Runtime bridge + Codex | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-043-runtime-bridge-codex.md) · deps T-HUB-042 · soft T-HUB-039 |
 | T-HUB-044 | Runtime sync doctor docs | L2–L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · deps T-HUB-043 |
+| T-HUB-046 | Harness alongside install (non-destructive hub-link) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-046-harness-alongside-install.md) · deps T-HUB-041 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) |
+| T-HUB-047 | Harness mb-scaffold + epic layout v2 | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) · deps T-HUB-036,040 · [roadmap](back/plan/roadmap-harness-maturity-borrowings-epics.md) · next DECOMPOSE |
 | T-HUB-002 | Canon sync — CLAUDE/role-command/archive/graphify | L3 | skipped done (merge) | EPIC_DONE* | merge skipped · verify if true DONE |
 | T-HUB-003 | Loop halt + runtime root | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-003-loop-halt.md) |
 | T-HUB-004 | Hooks hygiene — verdict/NEED_HUMAN/dead re-exports | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-004-hooks-hygiene.md) |

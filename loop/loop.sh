@@ -561,11 +561,93 @@ run_dsh_session() {
 run_agent_session() {
   local iter="$1"
   local prompt_file="$2"
-  if [[ "${EPIC_RUNTIME_RESOLVED:-claude}" == "dsh" ]]; then
-    run_dsh_session "$iter" "$prompt_file"
-  else
-    run_claude_session "$iter" "$prompt_file"
+  local log_file="$STATE_DIR/session-${iter}.log"
+  local runtime_id="${EPIC_RUNTIME_RESOLVED:-claude}"
+  local extras_json="{}"
+  local -a command=()
+  local rc=0
+  local session_cwd="$HUB_ROOT"
+
+  if [[ "$runtime_id" == "dsh" ]]; then
+    extras_json="{\"dsh_profile\":\"${EPIC_DSH_PROFILE:-epic-implement}\"}"
+    session_cwd="$PROJECT_ROOT"
   fi
+
+  local argv_json=""
+  argv_json="$(python3 -m loop.runtime.dispatch print-argv \
+    --runtime "$runtime_id" \
+    --prompt-file "$prompt_file" \
+    --phase "${LOOP_PHASE:-IMPLEMENT}" \
+    ${SESSION_MODEL:+--model "$SESSION_MODEL"} \
+    --extras-json "$extras_json")" || {
+    echo "==> HALT: dispatch print-argv failed for runtime=$runtime_id" >&2
+    return 2
+  }
+  if [[ -z "$argv_json" ]]; then
+    echo "==> HALT: dispatch print-argv empty for runtime=$runtime_id" >&2
+    return 2
+  fi
+  mapfile -d '' -t command < <(printf '%s' "$argv_json" | python3 -c '
+import json, sys
+for part in json.load(sys.stdin):
+    sys.stdout.buffer.write(part.encode("utf-8") + b"\0")
+')
+
+  if [[ "$runtime_id" == "claude" ]]; then
+    command[0]="$CLAUDE"
+    command+=("--add-dir" "$PROJECT_ROOT")
+    command+=("${PERM_ARGS[@]}" "${EXTRA_ARGS[@]}")
+  elif [[ "$runtime_id" == "dsh" ]]; then
+    if ! resolve_dsh_bin; then
+      echo "==> HALT: dsh binary not found; no Claude fallback" >&2
+      return 127
+    fi
+    command=("${DSH_COMMAND[@]}" "${command[@]:1}")
+  fi
+
+  set +e
+  if [[ "$HEADLESS" == "1" ]]; then
+    echo "==> headless → $log_file (runtime=$runtime_id cwd=$session_cwd)"
+    if [[ "$runtime_id" == "claude" ]]; then
+      (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
+        --mode headless \
+        --session-id "$iter" \
+        --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+        --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+        ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+        ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --log "$log_file" \
+        ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+        -- "${command[@]}") | python3 "$STREAM_FILTER"
+      rc="${PIPESTATUS[0]}"
+    else
+      (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
+        --mode headless \
+        --session-id "$iter" \
+        --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+        --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+        ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+        ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --log "$log_file" \
+        ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+        -- "${command[@]}")
+      rc=$?
+    fi
+  else
+    echo "==> interactive — /exit after FINISH (runtime=$runtime_id cwd=$session_cwd)"
+    (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
+      --mode interactive \
+      --session-id "$iter" \
+      --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+      --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+      ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+      ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+      --log "$log_file" \
+      ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+      -- "${command[@]}")
+    rc=$?
+  fi
+  return "$rc"
 }
 
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then

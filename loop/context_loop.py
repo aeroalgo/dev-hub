@@ -33,6 +33,7 @@ if str(LOOP_DIR) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+from loop.mb_finish.render import render_active_context
 from harness.hooks._lib import (  # noqa: E402
     explorer_loop_enabled,
     is_epic_loop_env,
@@ -60,6 +61,7 @@ from harness.hooks.epic import (  # noqa: E402
     load_checkpoint,
     load_decompose_steps_fail_closed,
     load_epic_state,
+    project_handoff_from_reducer,
     read_active_context,
     rebuild_epic_projection,
     repair_index_mirror,
@@ -576,12 +578,11 @@ Epic queue id: `{epic_id}`.
 
 
 def _decompose_finish_block() -> str:
-    return """## DECOMPOSE FINISH
-1. Создай/обнови decompose dir: index.md + index.yaml + все sNN-<slug>.yaml по плану.
-2. Self-check: `.venv/bin/python harness/hooks/epic_resolve.py validate-decompose-tree --cwd "$PROJECT_ROOT" --decompose <path/to/index.yaml>`
-3. Перепиши activeContext: следующий режим (IMPLEMENT s01 или ANALYZE если gate), `## load_now` → work shard + index.yaml, 1× `## Handoff`, ≤1× `## done`.
-FORBIDDEN: FINISH без index.md; FORBIDDEN bare sNN.yaml; FORBIDDEN skip coverage tables in index.md.
-"""
+    return (
+        "\n> После `validate-decompose-tree` exit 0 и verify-decompose PASS → вызови: "
+        "`python harness/hooks/epic_resolve.py mb-finish decompose --cwd $PROJECT_ROOT`\n"
+        "FORBIDDEN: ручной Write activeContext на FINISH DECOMPOSE.\n"
+    )
 
 
 def _phase_kind(phase: object) -> str:
@@ -704,32 +705,6 @@ def _done_finish_block(*, chain_on: bool) -> str:
     )
 
 
-def _implement_finish_block() -> str:
-    return """## IMPLEMENT FINISH (по порядку)
-HARD: все `memory-bank/**` и `--cwd` = `$PROJECT_ROOT` (продукт). Claude session cwd=hub — **не** пиши артефакты в `dev-hub/memory-bank`.
-0. `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" seed-implement --decompose <decompose-shard.yaml>`
-1. После каждого зелёного cp.verify:
-   `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" flush-checkpoint --path <implement.yaml> --cp <cp_id>`
-2. Suite: `timeout 300s …` (frontend-тесты — только parent).
-3. Допиши evidence в implement yaml (`done`/`files`/`tests`/…); **status оставь `in_progress`**.
-4. `python3 harness/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" validate-step --path <step>` → exit 0.
-5. Перепиши `$PROJECT_ROOT/memory-bank/activeContext.md` (`## load_now` → 1× `## Handoff` → ≤1× `## done`).
-6. `@verify` один раз (`.claude/instructions/spawn-hard.md`) — machine SoT = fenced JSON `loop-gate-verdict/v1`.
-7. Valid gate JSON sidecar (`loop-gate-verdict/v1`, status PASS) → `finalize-step --cwd "$PROJECT_ROOT"` (он атомарно ставит implement+index `completed`) → JSON `ok: true` → stop.
-   FAIL/DENY → **исправь причину в этом же эпике** (pending cp, gaps, неполный harness/parity, seed) → снова 6.
-   без gate JSON fence/sidecar → макс. 1 retry шага 6; иначе Handoff `NEED_HUMAN: verify_no_verdict`.
-
-HARD incomplete (обязательно):
-- Шаг не закрыт, пока все `checkpoints[].status=done` и `gaps` не `blocked`.
-- `@verify` PASS при pending cp / `gaps.status=blocked` = ложный PASS; hooks demote → FAIL. Считай это FAIL и чини.
-- Gate шага (parity PASS, seed coverage, missing samples) не выполнен → добей в этом эпике (в т.ч. правкой prior sNN harness/docs), затем re-verify. Не «отдельный bugfix».
-- FORBIDDEN: `BLOCKED:` / «consistent blocked-state PASS» / «нужен BACK BUGFIX» из‑за incomplete AC текущего эпика.
-- `BLOCKED:` / `NEED_HUMAN:` — только внешний стоп (секреты, prod access, policy, ручное решение человека).
-
-FORBIDDEN: писать `status: completed` руками (только `finalize-step`); `finalize-step` до gate JSON sidecar (`loop-gate-verdict/v1`); писать product-эпики в `dev-hub/memory-bank` или hub `T-HUB-*` в product `memory-bank`.
-"""
-
-
 def _creative_finish_block() -> str:
     return """## CREATIVE FINISH
 1. Запиши creative artifact и закрой gate в work shard:
@@ -742,17 +717,6 @@ def _creative_finish_block() -> str:
 4. stop.
 
 FORBIDDEN: `@verify` для CREATIVE.
-"""
-
-
-def _qa_finish_block() -> str:
-    return """## QA FINISH
-1. Parent suite зелёный (`timeout 300s …`).
-2. `@reviewer` packed (Suite results · AC+ · AC− · §0.11 · ALLOW ≤10).
-3. **HARD:** запиши `memory-bank/<role>/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
-   (`schema: epic-qa/v1`, `verdict: pass|fail|blocked`). Без файла фаза QA не закрывается.
-4. Перепиши `activeContext.md` (Handoff → REFLECT при pass; не EPIC_DONE).
-5. stop. FORBIDDEN: pytest внутри reviewer.
 """
 
 
@@ -883,27 +847,26 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             delta_paths=delta_paths,
             explorer_on=explorer_on,
         )
-        finish_block = _implement_finish_block()
+        finish_block = (
+            "\n> После verify PASS → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+        )
     elif phase_kind == "qa":
-        finish_block = _qa_finish_block()
+        finish_block = (
+            "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py mb-finish qa --cwd $PROJECT_ROOT`\n"
+        )
     elif phase_kind == "reflect":
         finish_block = _reflect_finish_block()
     elif phase_kind == "audit":
         finish_block = (
-            "## AUDIT FINISH\n"
-            "1. Gap-матрица plan vs implement (все step_id).\n"
-            "2. HARD: запиши `memory-bank/<role>/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`.\n"
-            "3. Перепиши activeContext (`## Handoff … AUDIT`). "
-            "not_implemented[] пуст → следующий = QA.\n"
-            "FORBIDDEN: EPIC_DONE до QA pass + REFLECT.\n"
+            "\n> После gap-анализа и audit yaml на диске → вызови: "
+            "`python harness/hooks/epic_resolve.py mb-finish audit --cwd $PROJECT_ROOT`\n"
+            "FORBIDDEN: ручной Write activeContext на FINISH AUDIT.\n"
         )
     elif phase_kind == "analyze":
         finish_block = (
-            "## ANALYZE FINISH\n"
-            "1. Read-only: plan + decompose shards vs код/repo.\n"
-            "2. HARD: `memory-bank/<role>/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`.\n"
-            "3. `critical_count=0` → loop откроет IMPLEMENT; иначе fix plan/decompose и re-ANALYZE.\n"
-            "FORBIDDEN: IMPLEMENT / seed-implement до pass ANALYZE gate.\n"
+            "\n> После analyze yaml на диске и analyze-verify PASS → вызови: "
+            "`python harness/hooks/epic_resolve.py mb-finish analyze --cwd $PROJECT_ROOT`\n"
+            "FORBIDDEN: ручной Write activeContext на FINISH ANALYZE.\n"
         )
     elif phase_kind == "decompose":
         finish_block = _decompose_finish_block()
@@ -919,7 +882,9 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             delta_paths=delta_paths,
             explorer_on=explorer_on,
         )
-        finish_block = _implement_finish_block()
+        finish_block = (
+            "\n> После verify PASS → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+        )
 
     resume_block = "\n".join(resume_lines or [])
     extra_block = "\n".join(extra_blocks or [])
@@ -1362,12 +1327,15 @@ def prepare_session(
             text = read_active_context(cwd_p)
             state = load_epic_state(cwd_p)
             projection = rebuild_epic_projection(cwd_p)
+            projection = rebuild_epic_projection(cwd_p)
+    project_handoff_from_reducer(cwd_p, allow_terminal_done_projection=False)
+    text = read_active_context(cwd_p)
     handoff_phase = handoff_post_implement_phase(text)
     proj = projection.get("projection") if isinstance(projection.get("projection"), dict) else {}
     proj_phase = str(
         proj.get("phase") or projection.get("phase") or state.get("phase") or ""
     ).upper()
-    if handoff_phase in {"AUDIT", "REFLECT", "BUGFIX"}:
+    if handoff_phase in {"AUDIT", "QA", "REFLECT", "BUGFIX"}:
         state["armed_step"] = handoff_phase
         state["phase"] = handoff_phase
         state["active"] = True
@@ -2960,6 +2928,12 @@ def main(argv: list[str] | None = None) -> int:
     p_iretry = sub.add_parser("incident-retry", help="Retry a tier1 incident")
     p_iretry.add_argument("incident_id", help="Incident ID to retry")
 
+    p_iclear = sub.add_parser(
+        "incident-clear-open",
+        help="Resolve all open incidents (loop process start)",
+    )
+    p_iclear.add_argument("--json", action="store_true", help="Output JSON format")
+
     p_eplist = sub.add_parser("episode-list", help="List episode packages manifests")
     p_eplist.add_argument("--last", type=int, default=None, help="Limit output to last N episodes")
     p_eplist.add_argument("--json", action="store_true", help="Output JSON format")
@@ -3129,6 +3103,27 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         reset_tier1_attempts(edir, args.incident_id)
         print(f"Incident {args.incident_id} reset. Ready for tier1 retry on next loop iteration.")
+        return 0
+
+    if args.cmd == "incident-clear-open":
+        from epic_paths import epic_dir
+        from loop.incidents.store import resolve_all_open_incidents
+
+        edir = epic_dir(cwd)
+        cleared = resolve_all_open_incidents(edir)
+        codes: set[str] = set()
+        for rec in cleared:
+            codes.update(rec.diagnostic_codes or [])
+        res = {
+            "ok": True,
+            "cleared_count": len(cleared),
+            "incident_ids": [rec.incident_id for rec in cleared],
+            "diagnostic_codes": sorted(codes),
+        }
+        if getattr(args, "json", False):
+            print(json.dumps(res, ensure_ascii=False, indent=2))
+        else:
+            print(f"Cleared {len(cleared)} open incident(s)")
         return 0
 
     if args.cmd == "episode-list":

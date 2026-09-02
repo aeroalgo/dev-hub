@@ -1,0 +1,44 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-045-harness-workflow-session-load-api
+steps:
+- id: s01
+  file: s01-mb-load-schemas-core.yaml
+  title: loop/mb_load package — Pydantic schemas + load_session core
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-mb-load-cli-cwd-guard.yaml
+  title: CLI mb-load session — JSON stdout + cwd guard + missing-file policy
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-mb-load-resolver-mode-matrix.yaml
+  title: loop/mb_load/resolver.py — implement yaml auto-resolve + mode matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-load-plan-section.yaml
+  title: load_plan_section — §N parser + CLI --plan-section flag
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-session-start-inject-epic-loop.yaml
+  title: session-start.py inject — bundle fingerprint + file list при EPIC_LOOP=1
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-rules-purge-prose-start.yaml
+  title: Workflow rules + context-session-economy.mdc — заменить prose START на mb-load
+    вызов
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-mcp-wrapper-parity.yaml
+  title: (P2) MCP thin wrapper — load_session + load_plan_section tools + parity test
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-legacy-purge-manual-read-instructions.yaml
+  title: Legacy purge — удалить manual Read load_now инструкции из rules + context_loop
+  next_phase: BACK IMPLEMENT
+  status: completed

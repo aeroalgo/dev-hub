@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s06 — _lib.resolve_runtime_config registry-driven; purge _RUNTIME_MODES frozenset
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить harness/hooks/_lib.py: resolve_runtime_config берёт допустимые runtime id из
+  loop/runtime/registry.py вместо захардкоженного _RUNTIME_MODES frozenset.
+  Fail-closed: неизвестный runtime → invalid_runtime_config как раньше, но через registry.
+  Outcome: добавление нового runtime в yaml автоматически принимается _lib без правки хука.
+
+context:
+  consumes:
+    - "plan §FR-007, §Invalid runtime решение"
+    - "harness/hooks/_lib.py:644 _RUNTIME_MODES frozenset (as-built, заменяем)"
+    - "harness/hooks/_lib.py:706-719 resolve_runtime_config (as-built, расширяем)"
+    - "loop/runtime/registry.py (s01 produces)"
+  produces:
+    - "harness/hooks/_lib.py (изменён)"
+    - "loop/tests/test_runtime_config.py (расширен: TM-002)"
+  plan_refs:
+    - "FR-007: _lib.resolve_runtime_config load runtime id from registry, not frozenset"
+    - "US-001: EPIC_RUNTIME from registry, not hardcoded set"
+    - "SC-001: EPIC_RUNTIME unset defaults to claude"
+    - "SC-002: EPIC_RUNTIME=foo → invalid_runtime_config"
+  files:
+    - harness/hooks/_lib.py
+    - loop/tests/test_runtime_config.py
+
+as_built:
+  - "harness/hooks/_lib.py:644 — _RUNTIME_MODES = frozenset({'claude', 'dsh'})"
+  - "harness/hooks/_lib.py:645 — _RUNTIME_CONFIG_ENUMS dict with EPIC_RUNTIME frozenset"
+  - "harness/hooks/_lib.py:710 — if epic_runtime not in _RUNTIME_MODES: invalid_runtime_config"
+
+delta:
+  - "edit harness/hooks/_lib.py — replace _RUNTIME_MODES static frozenset; _RUNTIME_CONFIG_ENUMS EPIC_RUNTIME entry uses lazy call to list_ids() from loop.runtime.registry; fallback frozenset on ImportError"
+  - "edit loop/tests/test_runtime_config.py — add TM-002: invalid runtime 'codex' raises invalid_runtime_config; valid 'claude' passes (registry-driven)"
+
+deletes:
+  - "harness/hooks/_lib.py:644 — _RUNTIME_MODES = frozenset({'claude', 'dsh'}) line"
+  - "harness/hooks/_lib.py:645 — _RUNTIME_CONFIG_ENUMS static EPIC_RUNTIME frozenset entry (replaced by registry call)"
+
+out_of_scope:
+  - "harness/hooks/session_resilience.py is_dsh branches — s07"
+  - "context_loop argparse choices — s08"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "resolve_runtime_config('codex') returns error dict with invalid_runtime_config; TM-002 green"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_config.py -q --tb=line -k 'invalid'"
+  - id: cp2
+    criterion: "resolve_runtime_config('claude') and resolve_runtime_config('dsh') pass; existing tests green"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_config.py -q --tb=line"
+  - id: cp3
+    criterion: "_RUNTIME_MODES frozenset not present as static object in _lib.py"
+    verify: "rg '_RUNTIME_MODES' harness/hooks/_lib.py | wc -l | grep '^0$'"
+
+verify:
+  - "rg '_RUNTIME_MODES' harness/hooks/_lib.py | wc -l | grep '^0$'"
+  - "rg 'list_ids' harness/hooks/_lib.py | head -5"
+  - ".venv/bin/pytest loop/tests/test_runtime_config.py -q --tb=line"
+
+tdd:
+  - test_resolve_runtime_invalid_registry_driven
+  - test_resolve_runtime_claude_passes_registry
+  - test_resolve_runtime_importerror_fail_closed

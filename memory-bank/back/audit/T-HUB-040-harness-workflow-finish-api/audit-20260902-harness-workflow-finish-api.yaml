@@ -1,0 +1,87 @@
+date: '2026-09-02'
+epic_id: T-HUB-040-harness-workflow-finish-api
+role: back
+plan_file: memory-bank/back/plan/plan-T-HUB-040-harness-workflow-finish-api.md
+decompose_index: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/index.yaml
+
+steps:
+  - id: s01
+    title: "loop/mb_finish/ schemas + render + shape tests"
+    status: implemented
+    as_built: "Реализованы типы данных, схемы Pydantic и шаблонизатор вывода для библиотеки mb_finish."
+    delta: "loop/mb_finish/schemas.py, loop/mb_finish/render.py, loop/tests/test_mb_finish_schemas.py"
+    gaps: []
+
+  - id: s02
+    title: "finish_implement_step + CLI mb-finish implement + rollback"
+    status: implemented
+    as_built: "Реализована обработка завершения шагов реализации `finish_implement_step`, интеграция CLI команд `mb-finish implement` и откат при ошибках."
+    delta: "loop/mb_finish/impl.py, harness/hooks/epic_resolve.py"
+    gaps: []
+
+  - id: s03
+    title: "stop-gate last_finish_tool fingerprint + epic state wire"
+    status: implemented
+    as_built: "Добавлена проверка fingerprint от `last_finish_tool` в stop-gate и вызов методов обновления состояния эпика."
+    delta: "harness/hooks/epic/core.py, harness/hooks/stop_gate.py"
+    gaps: []
+
+  - id: s04
+    title: "finish_handoff low-level + doctor render reuse"
+    status: implemented
+    as_built: "Реализован `finish_handoff` низкого уровня и переиспользован генератор отчетов для Handoff."
+    delta: "loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_handoff.py"
+    gaps: []
+
+  - id: s05
+    title: "finish_qa + finish_bugfix"
+    status: implemented
+    as_built: "Реализована обработка завершения QA и BUGFIX сессий через модуль `mb_finish`."
+    delta: "loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_qa.py"
+    gaps: []
+
+  - id: s06
+    title: "finish_decompose + finish_plan + transition engine delegate"
+    status: implemented
+    as_built: "Реализованы методы завершения `finish_decompose` и `finish_plan`, с делегированием переходов состояний в epic transition engine."
+    delta: "loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_decompose.py"
+    gaps: []
+
+  - id: s07
+    title: "finish_analyze + finish_audit"
+    status: implemented
+    as_built: "Добавлена функциональность для завершения шагов ANALYZE и AUDIT."
+    delta: "loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_analyze.py"
+    gaps: []
+
+  - id: s08
+    title: "finish_creative + finish_reflect (P2)"
+    status: implemented
+    as_built: "Реализовано завершение шагов CREATIVE и REFLECT."
+    delta: "loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_creative.py"
+    gaps: []
+
+  - id: s09
+    title: "workflow rules + context_loop FINISH blocks purge prose"
+    status: implemented
+    as_built: "Очищены устаревшие текстовые FINISH инструкции из workflow rules и context_loop."
+    delta: "loop/context_loop.py, harness/hooks/tests/test_mb_finish_rules_purge.py"
+    gaps: []
+
+  - id: s10
+    title: "MCP thin server + parity tests (P2)"
+    status: implemented
+    as_built: "Реализован тонкий MCP сервер поверх `mb_finish` API и тесты паритета с CLI/Python API."
+    delta: "loop/mb_finish/mcp_server.py, harness/hooks/tests/test_mcp_parity.py"
+    gaps: []
+
+  - id: s11
+    title: "legacy purge: prose FINISH instructions + dual handoff paths"
+    status: implemented
+    as_built: "Завершен процесс удаления устаревших прозаических инструкций и дублирующих путей handoff."
+    delta: "harness/hooks/tests/test_mb_finish_legacy_purge.py"
+    gaps: []
+
+not_implemented: []
+qa_ready: true
+summary: "Все 11 шагов (s01-s11) эпика T-HUB-040-harness-workflow-finish-api полностью реализованы, тесты прошли успешно."

@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "Legacy purge — удалить manual Read load_now инструкции из rules + context_loop"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge: удалить оставшиеся prose-инструкции «ручного Read load_now» из всех
+  .mdc-правил и context_loop.py после того как s06 заменил основные секции. Провести
+  sunset_inventory_scan по всему репо (rules/, loop/, harness/), убедиться что старые
+  fallback-prose не остались. Outcome: нет живых callers ручного multi-Read session
+  pattern; технический долг закрыт, FORBIDDEN paths из §Technology axiom соблюдены.
+
+context:
+  consumes:
+    - .cursor/rules/shared/context-session-economy.mdc  # после s06 — проверяем остатки
+    - loop/context_loop.py                              # после s06 — финальный audit
+    - .cursor/rules/back_developer/                     # все .mdc
+    - .cursor/rules/shared/                             # все .mdc
+  produces:
+    - .cursor/rules/ (edits if remnants found)
+    - loop/context_loop.py (edits if remnants found)
+  plan_refs:
+    - "§Replacement cleanup A: Prose-only session start in rules → delete in-epic"
+    - "§Replacement cleanup B: Manual Read load_now chain → delete in-epic"
+    - "§Replacement cleanup C: 'если неясно — прочитай весь plan' → load_plan_section → delete in-epic"
+    - "§Technology axiom FORBIDDEN: LLM сам парсит load_now как primary path"
+    - "§Plan §До DECOMPOSE s08: legacy purge dual manual Read instructions in rules/context_loop"
+  files:
+    - .cursor/rules/shared/context-session-economy.mdc
+    - loop/context_loop.py
+
+as_built:
+  - "context-session-economy.mdc §3: prose Start (после s06 — основная замена сделана)"
+  - "loop/context_loop.py: mb_paths_for_prompt используется как fallback (НЕ удалять)"
+  - "Возможные остатки в других .mdc: workflow-back-decompose.mdc, mainrule-core.mdc"
+  - "§Replacement cleanup: 3 строки sunset — все с policy 'delete in-epic'"
+
+delta:
+  - "RUN sunset_inventory_scan: rg -rn 'read.*activeContext.*load_now|load_now.*файлы.*ручн|Manual Read load_now|читай activeContext затем' .cursor/rules/ loop/ harness/ — собрать все hits"
+  - "EDIT все найденные файлы — удалить/заменить остаточные prose-инструкции ручного Read; заменить на 'mb-load session' ссылку или '(устарело — см. mb-load)'"
+  - "VERIFY: rg -c 'load_now.*Read\\|Manual.*Read.*load_now' .cursor/rules/ → 0 hits на удалённые паттерны (не считая s06-обновлённых)"
+  - "VERIFY fallback: rg 'mb_paths_for_prompt' loop/context_loop.py — функция ещё есть (fallback цел)"
+
+deletes:
+  - "prose 'LLM читает load_now самостоятельно' из .mdc-правил (везде где найдено в inventory scan)"
+  - "prose 'Read N файлов из load_now' из context_loop.py prompt generation (где не fallback)"
+  - "prose 'если неясно прочитай весь plan' из workflow rules (заменено load_plan_section ref)"
+
+out_of_scope:
+  - "mb_paths_for_prompt function в context_loop.py (fallback — оставить)"
+  - "другие session economy правила не связанные с manual Read load_now"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+sunset_inventory:
+  scan_targets:
+    - ".cursor/rules/**/*.mdc"
+    - "loop/context_loop.py"
+    - "harness/hooks/**/*.py"
+  grep_patterns:
+    - "Manual Read load_now"
+    - "читай activeContext.*load_now"
+    - "Read.*load_now.*вручную"
+    - "если неясно.*прочитай.*план"
+  expected_after_purge: 0
+
+checkpoints:
+  - id: cp1
+    criterion: "sunset_inventory_scan: rg 'Manual Read load_now\\|читай.*load_now' .cursor/rules/ → 0 hits"
+    verify: "rg -rn 'Manual Read load_now' .cursor/rules/ || echo CLEAN"
+  - id: cp2
+    criterion: "mb_paths_for_prompt fallback цел: rg 'def mb_paths_for_prompt' loop/context_loop.py → 1 hit"
+    verify: "rg 'def mb_paths_for_prompt' loop/context_loop.py"
+  - id: cp3
+    criterion: "context-session-economy.mdc: содержит 'mb-load session', не содержит старый prose-блок Read×N"
+    verify: "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc && echo OK"
+  - id: cp4
+    criterion: "import audit: rg в .mdc 'прочитай план целиком\\|load full plan' → 0 hits (кроме FORBIDDEN-упоминания)"
+    verify: "rg -rn 'прочитай план целиком' .cursor/rules/ || echo CLEAN"
+
+verify:
+  - "rg -rn 'Manual Read load_now' .cursor/rules/ || echo CLEAN"
+  - "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc"
+  - "rg 'def mb_paths_for_prompt' loop/context_loop.py"
+tdd: []
+# infra/docs purge — верификация через rg checkpoints

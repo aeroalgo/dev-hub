@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "loop/mb_load package — Pydantic schemas + load_session core"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать пакет loop/mb_load/ с Pydantic-моделями MbLoadRequest/MbLoadResult и ядром
+  load_session(): читает activeContext, парсит load_now, проверяет shape, загружает файлы
+  с per-file size cap и формирует fingerprint bundle. Outcome: агент вместо 3–6 ручных
+  Read вызывает один CLI-команду и получает готовый JSON-bundle с sha256-слепком.
+
+context:
+  consumes:
+    - loop/mb_finish/schemas.py  # LoopHandoffMeta, LoadNowItem — импортировать, не дублировать
+    - harness/hooks/epic/core.py  # extract_load_now, validate_active_context_shape, fingerprint_context
+    - loop/mb_finish/impl.py     # паттерн реализации finish
+  produces:
+    - loop/mb_load/__init__.py
+    - loop/mb_load/schemas.py
+    - loop/mb_load/session.py
+    - loop/tests/test_mb_load_session.py  # TM-001, TM-002, TM-004
+  plan_refs:
+    - "FR-001: loop/mb_load/ pydantic request/response schemas"
+    - "FR-002: load_session() — read activeContext, parse, validate, load files with cap"
+    - "FR-003: forbidden policy engine"
+    - "FR-005: response fields meta/handoff/files/fingerprint/forbidden_skipped/diagnostic_codes"
+    - "US-001: parent IMPLEMENT — один CLI-вызов"
+    - "US-002: fail-closed при invalid shape"
+    - "US-003: denylist forbidden paths"
+    - "US-008: fingerprint bundle в ответе для аудита/stop-gate/episode package"
+    - "SC-002: 0 false loads of full plan in IMPLEMENT matrix — pytest forbidden policy"
+    - "SC-003: Bundle fingerprint stable — pytest same cwd twice"
+    - "FR-012: pytest matrix IMPLEMENT/QA/BUGFIX/shape_invalid/forbidden/plan_section (test_mb_load_session.py)"
+    - "TM-001: happy path load_session IMPLEMENT"
+    - "TM-002: shape invalid → ok:false"
+    - "TM-004: forbidden path skipped"
+  files:
+    - loop/mb_load/__init__.py
+    - loop/mb_load/schemas.py
+    - loop/mb_load/session.py
+    - loop/tests/test_mb_load_session.py
+
+as_built:
+  - "loop/mb_finish/schemas.py: LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult — реиспользуем"
+  - "harness/hooks/epic/core.py:1267 extract_load_now(text) → list[str]"
+  - "harness/hooks/epic/core.py:1307 fingerprint_context(text) → str"
+  - "harness/hooks/epic/core.py:1314 validate_active_context_shape(text) → list[str]"
+  - "loop/context_loop.py:287 mb_paths_for_prompt() — отдельная утилита, не пересекать"
+  - "НЕТ loop/mb_load/ пакета — создаём с нуля"
+  - "НЕТ единого bundle API — агент делает Read×N вручную"
+
+delta:
+  - "CREATE loop/mb_load/__init__.py — re-export load_session, MbLoadRequest, MbLoadResult"
+  - "CREATE loop/mb_load/schemas.py — MbLoadRequest (schema mb-load-request/v1), MbLoadResult (schema mb-load-result/v1), MbLoadFile; импорт LoopHandoffMeta/LoadNowItem из loop.mb_finish.schemas"
+  - "CREATE loop/mb_load/session.py — load_session(cwd, plan_section=None): read activeContext.md → validate shape (fail-closed) → extract_load_now → forbidden policy → load files с size cap → fingerprint → MbLoadResult"
+  - "CREATE loop/tests/test_mb_load_session.py — fixtures: tmp_path activeContext IMPLEMENT/QA; параметризовано TM-001 happy, TM-002 bad shape, TM-004 forbidden plan path"
+
+deletes: []
+# greenfield пакет — замены кода нет; prose-инструкции удаляем в s06/s08
+
+out_of_scope:
+  - "CLI subcommand (s02)"
+  - "implement yaml auto-resolve (s03)"
+  - "load_plan_section (s04)"
+  - "session-start inject (s05)"
+  - "rules prose purge (s06)"
+  - "MCP wrapper (s07)"
+  - "legacy purge (s08)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # S11: новые публичные Pydantic-типы
+    - ".agents/skills/python-error-handling/SKILL.md"  # S03: fail-closed, ValidationError
+
+checkpoints:
+  - id: cp1
+    criterion: "MbLoadResult.schema == 'mb-load-result/v1'; MbLoadRequest.schema == 'mb-load-request/v1'; импорт LoopHandoffMeta из mb_finish проходит без дубля"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_session.py::test_schemas_contract -q"
+  - id: cp2
+    criterion: "TM-001: load_session IMPLEMENT happy — ok:true, files содержит sNN yaml + index.yaml, fingerprint непустой"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_session.py::test_load_session_happy -q"
+  - id: cp3
+    criterion: "TM-002: activeContext shape invalid → ok:false, diagnostic_codes непустой"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_session.py::test_load_session_invalid_shape -q"
+  - id: cp4
+    criterion: "TM-004: forbidden path (plan-*.md в IMPLEMENT) → в forbidden_skipped[], не в files[]"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_session.py::test_load_session_forbidden_path -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_mb_load_session.py -q --tb=short"
+tdd:
+  - "test_schemas_contract: MbLoadRequest/MbLoadResult field names + schema literals"
+  - "test_load_session_happy: tmp activeContext IMPLEMENT, sNN yaml, index.yaml — ok:true"
+  - "test_load_session_invalid_shape: bad frontmatter → ok:false + diagnostic_codes"
+  - "test_load_session_forbidden_path: load_now содержит plan-*.md в IMPLEMENT → skipped"
+  - "test_load_session_missing_file: load_now path не существует → diagnostic missing_artifact"
+  - "test_fingerprint_stable: 2x вызов на same inputs → same fingerprint (TM-006 basis)"

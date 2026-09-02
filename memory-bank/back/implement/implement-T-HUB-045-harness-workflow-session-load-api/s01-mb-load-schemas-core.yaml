@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: s01 — loop/mb_load package — Pydantic schemas + load_session core IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-045-harness-workflow-session-load-api/s01-mb-load-schemas-core.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-type-safety
+- python-error-handling
+discovery: []
+gaps:
+  status: none
+done:
+- Создан пакет loop/mb_load с Pydantic схемами MbLoadRequest и MbLoadResult
+- Реализовано ядро load_session() с проверкой shape, загрузкой файлов с size cap,
+  forbidden policy и fingerprint bundle
+- Добавлен набор pytest-тестов loop/tests/test_mb_load_session.py
+files:
+- loop/mb_load/__init__.py
+- loop/mb_load/schemas.py
+- loop/mb_load/session.py
+- loop/tests/test_mb_load_session.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_mb_load_session.py -q --tb=short`'
+integration_check:
+- Импорт LoopHandoffMeta из loop.mb_finish.schemas корректно реиспользуется в loop.mb_load.schemas
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: MbLoadResult.schema == 'mb-load-result/v1'; MbLoadRequest.schema == 'mb-load-request/v1';
+    импорт LoopHandoffMeta из mb_finish проходит без дубля
+  status: done
+- id: cp2
+  criterion: 'TM-001: load_session IMPLEMENT happy — ok:true, files содержит sNN yaml
+    + index.yaml, fingerprint непустой'
+  status: done
+- id: cp3
+  criterion: 'TM-002: activeContext shape invalid → ok:false, diagnostic_codes непустой'
+  status: done
+- id: cp4
+  criterion: 'TM-004: forbidden path (plan-*.md в IMPLEMENT) → в forbidden_skipped[],
+    не в files[]'
+  status: done
+resume_from: done

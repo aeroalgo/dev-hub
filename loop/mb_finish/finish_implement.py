@@ -5,16 +5,19 @@ from pathlib import Path
 from typing import Any
 
 from harness.hooks.epic.core import (
-    _decompose_index_path,
     _verify_pass_ready_for_step,
     atomic_write_text,
     epic_id_from_decompose_path,
     finalize_step,
+    load_decompose_steps_fail_closed,
+    load_epic_state,
     read_active_context,
+    sync_cursor_from_index,
     utc_now,
     validate_finish_integrity,
     write_last_finish_tool,
 )
+from harness.hooks.epic_paths import role_from_decompose_path
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import (
     HandoffBody,
@@ -25,19 +28,68 @@ from loop.mb_finish.schemas import (
 )
 
 
-def _find_decompose_index(cwd: Path) -> Path | None:
-    """Find active decompose index in memory-bank."""
-    for role_dir in ("back", "front", "integration"):
-        plan_dir = cwd / "memory-bank" / role_dir / "plan"
-        if not plan_dir.exists():
+def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any]]:
+    """Resolve armed decompose from loop epic state. Fail-closed when missing."""
+    state = load_epic_state(cwd)
+    decompose_rel = str(state.get("armed_decompose") or "").strip()
+    if not decompose_rel:
+        return None, state
+
+    loaded = load_decompose_steps_fail_closed(cwd, decompose_rel)
+    if not loaded.get("ok"):
+        cand = Path(decompose_rel)
+        if not cand.is_absolute():
+            cand = cwd / cand
+        parent = cand.parent if cand.is_file() else cand
+        if parent.name.startswith("decompose-"):
+            for name in ("index.yaml", "index.yml", "index.md"):
+                alt = parent / name
+                if alt.is_file():
+                    alt_rel = alt.relative_to(cwd).as_posix()
+                    loaded = load_decompose_steps_fail_closed(cwd, alt_rel)
+                    if loaded.get("ok"):
+                        break
+
+    if not loaded.get("ok"):
+        return None, state
+    index_ref = str(loaded.get("index") or decompose_rel).strip()
+    return index_ref or decompose_rel, state
+
+
+def _resolve_work_shard_rel(cwd: Path, decompose_rel: str, step_id: str) -> str | None:
+    """Resolve implement work shard path for step_id under armed decompose."""
+    sid = step_id.strip().lower()
+    loaded = load_decompose_steps_fail_closed(cwd, decompose_rel)
+    if not loaded.get("ok"):
+        return None
+    idx_raw = loaded.get("index") or decompose_rel
+    idx_path = Path(idx_raw)
+    dec_dir = idx_path.parent if idx_path.is_file() else idx_path
+    if not dec_dir.is_absolute():
+        dec_dir = cwd / dec_dir
+    for step in loaded.get("steps") or []:
+        if str(step.get("id") or "").strip().lower() != sid:
             continue
-        for item in plan_dir.glob("decompose-*"):
-            idx_yaml = item / "index.yaml"
-            if idx_yaml.exists():
-                return item / "index.md"
-            idx_md = item / "index.md"
-            if idx_md.exists():
-                return idx_md
+        fname = str(step.get("file") or "").strip()
+        if fname:
+            shard = dec_dir / fname
+            if shard.is_file():
+                try:
+                    return shard.relative_to(cwd).as_posix()
+                except ValueError:
+                    return str(shard)
+    hits = sorted(dec_dir.glob(f"{sid}-*.yaml"))
+    if hits:
+        try:
+            return hits[0].relative_to(cwd).as_posix()
+        except ValueError:
+            return str(hits[0])
+    guess = dec_dir / f"{sid}.yaml"
+    if guess.is_file():
+        try:
+            return guess.relative_to(cwd).as_posix()
+        except ValueError:
+            return str(guess)
     return None
 
 
@@ -46,13 +98,30 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     cwd = Path(req.cwd).resolve()
     step_id = req.step_id.strip().lower()
 
-    # Find decompose index path
-    idx_path = _find_decompose_index(cwd)
+    idx_ref, state = _resolve_armed_decompose_index(cwd)
+    decompose_rel = str(state.get("armed_decompose") or "").strip()
+    if not decompose_rel or not idx_ref:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["armed_decompose_missing"],
+            shape_errors=[
+                "armed_decompose missing or invalid in epic state; arm epic via loop prepare/arm"
+            ],
+        )
+    role_str = (
+        str(state.get("armed_role") or state.get("role") or "").strip().upper()
+        or role_from_decompose_path(decompose_rel)
+        or "BACK"
+    )
+    mode_str = req.phase.upper()
+    epic_id = str(state.get("armed_epic") or "").strip()
+    if not epic_id:
+        epic_id = epic_id_from_decompose_path(decompose_rel) or "unknown"
 
     # 1. validate_finish_integrity(cwd, step_id)
     integrity = validate_finish_integrity(
         cwd=cwd,
-        decompose=idx_path,
+        decompose=idx_ref,
         step_id=step_id,
         require_verify_pass=False,
     )
@@ -86,12 +155,6 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
-    role_str = "BACK"
-    mode_str = req.phase.upper()
-    epic_id = "unknown"
-    if idx_path:
-        epic_id = epic_id_from_decompose_path(str(idx_path)) or epic_id
-
     meta = LoopHandoffMeta(
         role=role_str,
         mode=mode_str,
@@ -99,9 +162,11 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         step_id=step_id,
     )
 
+    shard_rel = _resolve_work_shard_rel(cwd, decompose_rel, step_id)
+    load_now_path = shard_rel or decompose_rel
     load_now = [
         LoadNowItem(
-            path=f"back/plan/decompose-{epic_id}/{step_id}.yaml",
+            path=load_now_path,
             description=f"work shard ({role_str} {mode_str} {step_id})",
         )
     ]
@@ -143,7 +208,7 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     # 7. finalize_step(cwd, step_id, done_summary)
     fin_res = finalize_step(
         cwd=cwd,
-        decompose=idx_path,
+        decompose=idx_ref,
         step_id=step_id,
         require_verify=True,
     )
@@ -167,7 +232,13 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
     write_last_finish_tool(cwd, "mb-finish implement", fp)
 
+    sync_cursor_from_index(cwd)
+    try:
+        active_context = read_active_context(cwd)
+    except Exception:
+        active_context = rendered
+
     return MbFinishResult(
         ok=True,
-        active_context=rendered,
+        active_context=active_context,
     )

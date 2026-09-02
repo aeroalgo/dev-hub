@@ -45,10 +45,10 @@ skills:
 checkpoints:
   - id: cp1
     criterion: "MCP server запускается без ошибок"
-    verify: "python -c 'from loop.mb_finish.mcp_server import app; print(\"ok\")'"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line -k test_mcp_server_startup"
   - id: cp2
     criterion: "TM-009: MCP descriptor parity с CLI"
-    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line -k test_mcp_descriptors_parity"
 
 verify:
   - ".venv/bin/pytest harness/hooks/tests/test_mcp_parity.py -q --tb=line"

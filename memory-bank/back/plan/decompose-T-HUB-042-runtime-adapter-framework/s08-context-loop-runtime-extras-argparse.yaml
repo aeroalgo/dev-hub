@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s08 — context_loop.prepare_session runtime_extras + argparse choices from registry
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Рефакторить loop/context_loop.py: prepare_session эмитит runtime_extras через
+  adapter.prepare_extras(loop_phase) вместо захардкоженного 'dsh_profile'.
+  argparse --runtime choices генерируются из registry.list_ids() (FR-011).
+  Outcome: добавление нового runtime в yaml автоматически появляется в CLI.
+
+context:
+  consumes:
+    - "plan §FR-009, §FR-011, §prepare JSON решение"
+    - "loop/context_loop.py:1734 — hardcoded 'dsh_profile' f-string (as-built)"
+    - "loop/runtime_adapters/common.py get_adapter_for_runtime (s07)"
+    - "loop/runtime/registry.py list_ids (s01)"
+  produces:
+    - "loop/context_loop.py (изменён)"
+    - "loop/tests/test_context_loop.py (расширен: -k 'runtime')"
+  plan_refs:
+    - "FR-009: context_loop.prepare_session emit runtime_extras via adapter.prepare_extras"
+    - "FR-011: --runtime CLI choices generated from registry"
+    - "US-001: add runtime in yaml → auto-appears in CLI"
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_context_loop.py
+
+as_built:
+  - "loop/context_loop.py:1734 — hardcoded 'dsh_profile': f'epic-{phase}'"
+  - "loop/board_launch/loop_argv.py:117 — env_extra = {'EPIC_RUNTIME': 'dsh'} if runtime == 'dsh'"
+
+delta:
+  - "edit loop/context_loop.py — prepare_session: replace hardcoded dsh_profile with adapter.prepare_extras(loop_phase); emit {'runtime_extras': extras} generic dict"
+  - "edit loop/context_loop.py — argparse --runtime: choices=list_ids() from registry (fallback ['claude','dsh'] on ImportError)"
+  - "edit loop/tests/test_context_loop.py — add TM-006: test_prepare_runtime_extras_via_adapter; test_argparse_runtime_choices_from_registry"
+
+deletes:
+  - "loop/context_loop.py:1734 — hardcoded 'dsh_profile' f-string line (replaced by adapter.prepare_extras)"
+
+out_of_scope:
+  - "loop_argv.py env_extra is_dsh pattern — s09"
+  - "loop.sh EPIC_DSH_PROFILE variable — s09, s10"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - async-python-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "prepare_session with runtime='dsh', phase='implement' returns runtime_extras={'dsh_profile': 'epic-implement'}"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'runtime_extras'"
+  - id: cp2
+    criterion: "prepare_session with runtime='claude' returns runtime_extras={} (empty)"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'runtime_extras_claude'"
+  - id: cp3
+    criterion: "argparse --runtime choices contains 'claude' and 'dsh'; not hardcoded in source"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'argparse_choices'"
+  - id: cp4
+    criterion: "hardcoded dsh_profile f-string not present in prepare_session"
+    verify: "rg -n '\"dsh_profile\".*epic-' loop/context_loop.py | wc -l | grep '^0$'"
+
+verify:
+  - "rg '\"dsh_profile\".*epic-' loop/context_loop.py | wc -l | grep '^0$'"
+  - "rg 'runtime_extras' loop/context_loop.py | head"
+  - ".venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'runtime'"
+
+tdd:
+  - test_prepare_extras_dsh_implement
+  - test_prepare_extras_claude_empty
+  - test_argparse_runtime_choices_registry_driven
+  - test_context_loop_runtime_extras_generic_key

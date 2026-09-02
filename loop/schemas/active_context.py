@@ -17,11 +17,12 @@ _HANDOFF_PHASE_HEADING_RE = re.compile(
     r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
 )
 _HANDOFF_MODE_LINE_RE = re.compile(
-    r"(?im)(?:Режим/шаг|Mode/step):\s*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)`"
+    r"(?im)(?:[-*]\s*)?(?:\*\*)?(?:Режим/шаг|Mode/step):(?:\*\*)?\s*"
+    r"`?(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)`?"
 )
 _HANDOFF_NEXT_PHASE_RE = re.compile(
-    r"(?im)(?:Дальше|Next):\s*.*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
+    r"(?im)(?:\*\*)?(?:Дальше|Next)(?:\*\*)?:\s*.*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
     r"(AUDIT|QA|REFLECT|BUGFIX)`"
 )
 _IMPLEMENT_HANDOFF_RE = re.compile(
@@ -93,24 +94,22 @@ def handoff_mode_from_text(text: str) -> str | None:
     meta = parse_handoff_meta(text)
     if meta is not None:
         return meta.mode
-    return _handoff_mode_from_legacy_markdown(text)
-
-
-def _handoff_mode_from_legacy_markdown(text: str) -> str | None:
     handoff = _extract_handoff_block(text) or ""
     if not handoff:
         return None
     if _IMPLEMENT_HANDOFF_RE.search(handoff):
         return "IMPLEMENT"
-    for pattern in (
-        _HANDOFF_PHASE_HEADING_RE,
-        _HANDOFF_MODE_LINE_RE,
-        _HANDOFF_NEXT_PHASE_RE,
-    ):
-        match = pattern.search(handoff)
-        if match:
-            return str(match.group(1)).upper()
+    match = _HANDOFF_MODE_LINE_RE.search(handoff)
+    if match:
+        return str(match.group(1)).upper()
+    match = _HANDOFF_PHASE_HEADING_RE.search(handoff)
+    if match:
+        return str(match.group(1)).upper()
     return None
+
+
+def _handoff_mode_from_legacy_markdown(text: str) -> str | None:
+    return handoff_mode_from_text(text)
 
 
 def _extract_handoff_block(text: str) -> str:

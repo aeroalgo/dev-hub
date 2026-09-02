@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s07 — session_resilience.analyze_session_log delegates to adapter; common.py helpers
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Рефакторить harness/hooks/session_resilience.py: вынести shared helpers в
+  loop/runtime_adapters/common.py; analyze_session_log делегирует adapter.analyze_log(raw, ctx).
+  Убрать все is_dsh branches из core path анализа.
+  Outcome: session_resilience не содержит runtime-specific if/else в логике analyze.
+
+context:
+  consumes:
+    - "plan §FR-008, §analyze_log решение"
+    - "harness/hooks/session_resilience.py:490 — is_dsh branch (as-built)"
+    - "loop/runtime_adapters/dsh.py — normalize_dsh_log, detect_dsh_model_mismatch (as-built)"
+    - "loop/runtime_adapters/base.py SessionAnalysis (s02)"
+    - "loop/runtime_adapters/dsh.py DshAdapter (s04)"
+    - "loop/runtime_adapters/claude.py ClaudeAdapter (s03)"
+  produces:
+    - "loop/runtime_adapters/common.py (новый)"
+    - "harness/hooks/session_resilience.py (изменён: is_dsh branches removed)"
+    - loop/tests/test_session_resilience_adapter.py
+  plan_refs:
+    - "FR-008: session_resilience.analyze_session_log delegate to adapter"
+    - "US-002: единый SessionAnalysis, retry policy одинакова для всех runtime"
+    - "US-004: zero regression on EPIC_RUNTIME=dsh"
+    - "SC-003: DSH fixtures same SessionAnalysis as before"
+    - "SC-004: no is_dsh in analyze_session_log main path"
+  files:
+    - loop/runtime_adapters/common.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_session_resilience_adapter.py
+
+as_built:
+  - "harness/hooks/session_resilience.py:490 — is_dsh = runtime.strip().lower() == 'dsh'"
+  - "harness/hooks/session_resilience.py:494-545 — multiple if is_dsh branches in analyze_session_log"
+  - "normalize_dsh_log, detect_dsh_model_mismatch in dsh.py (used directly)"
+
+delta:
+  - "add loop/runtime_adapters/common.py — get_adapter_for_runtime(runtime_id)->RuntimeAdapter factory using registry; re-export normalize_dsh_log/detect_dsh_model_mismatch from dsh.py (temporary, purge in s10)"
+  - "edit harness/hooks/session_resilience.py — analyze_session_log: replace is_dsh if/else branches with adapter = get_adapter_for_runtime(runtime_id); analysis = adapter.analyze_log(raw_log, ctx); use analysis fields"
+  - "add loop/tests/test_session_resilience_adapter.py — TM-007: claude path byte-equivalent; dsh model-mismatch reason; no is_dsh branch"
+
+deletes:
+  - "harness/hooks/session_resilience.py — is_dsh = ... line (~490) and all is_dsh conditional branches (~494-545)"
+
+out_of_scope:
+  - "stop-gate.py _is_dsh_runtime helper — s09"
+  - "standalone functions in dsh.py — s10"
+  - "re-export in common.py — purge in s10"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "is_dsh not present in analyze_session_log core path; rg = 0 prod matches"
+    verify: "rg -n 'is_dsh' harness/hooks/session_resilience.py | wc -l | grep '^0$'"
+  - id: cp2
+    criterion: "claude path TM-007: analyze returns reason=None for clean exit log"
+    verify: ".venv/bin/pytest loop/tests/test_session_resilience_adapter.py -q --tb=line -k 'claude_clean'"
+  - id: cp3
+    criterion: "dsh model-mismatch: analyze returns reason='model_substitution:...'"
+    verify: ".venv/bin/pytest loop/tests/test_session_resilience_adapter.py -q --tb=line -k 'dsh_mismatch'"
+  - id: cp4
+    criterion: "existing session_resilience tests not regressed"
+    verify: ".venv/bin/pytest harness/hooks/tests/ -q --tb=line -k 'resilience'"
+
+verify:
+  - "rg 'is_dsh' harness/hooks/session_resilience.py | wc -l | grep '^0$'"
+  - "rg 'analyze_log' harness/hooks/session_resilience.py | head"
+  - ".venv/bin/pytest loop/tests/test_session_resilience_adapter.py -q --tb=line"
+  - ".venv/bin/pytest harness/hooks/tests/ -q --tb=line"
+
+tdd:
+  - test_session_resilience_claude_clean_exit_no_reason
+  - test_session_resilience_dsh_mismatch_sets_reason
+  - test_session_resilience_delegates_to_adapter_not_is_dsh
+  - test_common_get_adapter_for_runtime_factory

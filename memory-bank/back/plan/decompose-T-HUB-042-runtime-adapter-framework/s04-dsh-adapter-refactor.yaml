@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s04 — DshAdapter — implement RuntimeAdapter protocol wrapping existing functions
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Рефакторить loop/runtime_adapters/dsh.py: добавить класс DshAdapter(RuntimeAdapter).
+  build_command() — обёртка build_dsh_command; analyze_log() — normalize_dsh_log +
+  detect_dsh_model_mismatch; prepare_extras(phase) — {'dsh_profile': 'epic-{phase}'}.
+  Существующие standalone-функции остаются до s10.
+
+context:
+  consumes:
+    - "plan §FR-004"
+    - "loop/runtime_adapters/dsh.py — build_dsh_command, normalize_dsh_log, detect_dsh_model_mismatch (as-built)"
+    - "loop/runtime_adapters/base.py (s02)"
+  produces:
+    - "loop/runtime_adapters/dsh.py (изменён: +DshAdapter class)"
+    - loop/tests/test_dsh_adapter.py
+  plan_refs:
+    - "FR-004: DshAdapter implements RuntimeAdapter (existing functions wrap)"
+    - "US-004: zero regression on EPIC_RUNTIME=dsh"
+    - "FR-012: unit tests command builders"
+    - "SC-003: DSH fixtures same SessionAnalysis as before"
+  files:
+    - loop/runtime_adapters/dsh.py
+    - loop/tests/test_dsh_adapter.py
+
+as_built:
+  - "loop/runtime_adapters/dsh.py — build_dsh_command(), normalize_dsh_log(), detect_dsh_model_mismatch() standalone functions"
+  - "нет DshAdapter класса"
+  - "loop/tests/test_dsh_e2e_smoke.py, test_dsh_profile_mapping.py — тесты существующих функций"
+
+delta:
+  - "edit loop/runtime_adapters/dsh.py — add DshAdapter(RuntimeAdapter) class with build_command, analyze_log, prepare_extras methods"
+  - "add loop/tests/test_dsh_adapter.py — TM-004 dry-run; protocol isinstance; prepare_extras mapping; analyze_log mismatch"
+
+deletes: []
+
+out_of_scope:
+  - "session_resilience.is_dsh branch — s07"
+  - "purge standalone functions — s10"
+  - "loop.sh dispatch — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "DshAdapter() isinstance(RuntimeAdapter) is True; существующие тесты dsh_e2e_smoke не сломаны"
+    verify: ".venv/bin/pytest loop/tests/test_dsh_e2e_smoke.py loop/tests/test_dsh_adapter.py -q --tb=line"
+  - id: cp2
+    criterion: "prepare_extras('implement') == {'dsh_profile': 'epic-implement'}"
+    verify: ".venv/bin/pytest loop/tests/test_dsh_adapter.py -q --tb=line -k 'prepare_extras'"
+  - id: cp3
+    criterion: "analyze_log с model-mismatch raw_log returns SessionAnalysis(reason='model_substitution:...')"
+    verify: ".venv/bin/pytest loop/tests/test_dsh_adapter.py -q --tb=line -k 'analyze_mismatch'"
+  - id: cp4
+    criterion: "test_dsh_profile_mapping existing suite green"
+    verify: ".venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=line"
+
+verify:
+  - "rg 'class DshAdapter' loop/runtime_adapters/dsh.py"
+  - "rg 'def build_dsh_command' loop/runtime_adapters/dsh.py"
+  - ".venv/bin/pytest loop/tests/test_dsh_adapter.py loop/tests/test_dsh_e2e_smoke.py -q --tb=line"
+
+tdd:
+  - test_dsh_adapter_implements_protocol
+  - test_prepare_extras_phase_mapping
+  - test_analyze_log_mismatch_sets_reason
+  - test_build_command_wraps_build_dsh_command
+  - test_existing_dsh_profile_mapping_regression

@@ -5,6 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
+
 
 _REQUESTED_MODEL_RE = re.compile(
     r"\brequested[ _-]model\s*[:=]\s*[\"']?([^\s,;|\"']+)",
@@ -146,3 +148,23 @@ def detect_dsh_model_mismatch(
                 "(dsh model mismatch; refuse silent downgrade)"
             )
     return None
+
+
+class DshAdapter(RuntimeAdapter):
+    """RuntimeAdapter implementation wrapping existing DSH functions."""
+
+    def build_command(self, ctx: SessionContext) -> list[str]:
+        profile = ctx.extras.get("dsh_profile") or f"epic-{ctx.phase.lower()}"
+        return build_dsh_command(profile=profile, prompt=ctx.prompt)
+
+    def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
+        normalized = normalize_dsh_log(raw_log)
+        mismatch_reason = detect_dsh_model_mismatch(raw_log, ctx.model)
+        return SessionAnalysis(
+            reason=mismatch_reason,
+            structured_output={"log": normalized} if normalized != raw_log else None,
+        )
+
+    def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
+        return {"dsh_profile": f"epic-{ctx.phase.lower()}"}
+

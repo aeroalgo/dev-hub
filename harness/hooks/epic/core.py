@@ -1367,6 +1367,27 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
         "Режим/шаг — по activeContext + load_now.\n"
         "Не вызывай /clear."
     )
+    try:
+        from loop.mb_load.session import load_session
+
+        res = load_session(cwd)
+        if res.ok:
+            fp = res.fingerprint or ""
+            file_paths = [f.path for f in res.files]
+            total_size = sum(len(f.content or "") for f in res.files)
+
+            lines = [f"\nFingerprint: {fp}", "Bundle files: " + ", ".join(file_paths)]
+            if total_size <= 16 * 1024:
+                for f in res.files:
+                    if f.content:
+                        lines.append(f"\n--- {f.path} ---\n{f.content}")
+            ctx += "\n".join(lines)
+        else:
+            diag = ", ".join(res.diagnostic_codes or res.shape_errors or ["load_session_failed"])
+            ctx += f"\nWarning: bundle load failed ({diag})"
+    except Exception as exc:
+        ctx += f"\nWarning: load_session exception ({exc})"
+
     return {
         "additionalContext": ctx,
         "sessionTitle": "epic:context",
@@ -1993,10 +2014,22 @@ def mark_index_step_status(
             try:
                 import epic_yaml as ey
 
-                impl_done = ey.implement_completed(cwd_p, impl_rel)
-            except Exception:
-                impl_done = False
-            if not impl_done:
+                state = ey.implement_load_state(cwd_p, impl_rel)
+            except Exception as exc:
+                state = {"completed": False, "load_error": str(exc)}
+            if state.get("load_error"):
+                return {
+                    "ok": False,
+                    "error": (
+                        f"refuse mark-index-status {status_l} for {sid}: "
+                        f"implement yaml invalid — {state['load_error']}; "
+                        "fix shard (validate-step) then use finalize-step"
+                    ),
+                    "diagnostic": INDEX_IMPLEMENT_CONFLICT,
+                    "implement_path": impl_rel,
+                    "step_id": sid,
+                }
+            if not state.get("completed"):
                 return {
                     "ok": False,
                     "error": (
@@ -2679,6 +2712,68 @@ def repair_finish_desync(
     }
 
 
+def repair_false_index_completed(
+    cwd: str | Path,
+    decompose: str | Path | None,
+) -> dict[str, Any]:
+    """Roll index completed → pending when implement shard is not machine-completed.
+
+    Clears hand-edited or premature index completed without a matching implement shard.
+    """
+    loaded = load_decompose_steps_fail_closed(cwd, decompose)
+    if not loaded["ok"]:
+        return {
+            "ok": False,
+            "repaired": [],
+            "error": str(loaded.get("message") or loaded.get("error") or decompose),
+        }
+    idx = Path(loaded["index"])
+    cwd_p = Path(cwd)
+    epic_id = epic_id_from_decompose_path(str(idx)) or ""
+    _role, role_dir = _role_dir_from_index_path(idx, cwd_p)
+    plan_id = _index_plan_id(idx)
+    import epic_yaml as ey
+
+    repaired: list[str] = []
+    details: list[dict[str, Any]] = []
+    for step in loaded["steps"]:
+        sid = str(step.get("id") or "").strip().lower()
+        status = str(step.get("status") or "").lower()
+        if not sid or status not in {"completed", "done"}:
+            continue
+        impl_rel = ""
+        try:
+            impl_rel = ey.resolve_implement_path(
+                cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
+            )
+            state = ey.implement_load_state(cwd_p, impl_rel)
+        except Exception as exc:
+            state = {"completed": False, "load_error": str(exc)}
+        if state.get("completed"):
+            details.append(
+                {"step_id": sid, "ok": True, "skipped": True, "reason": "implement completed"}
+            )
+            continue
+        marked = mark_index_step_status(
+            cwd_p, str(idx), sid, "pending", sync_checklist=False
+        )
+        entry: dict[str, Any] = {
+            "step_id": sid,
+            "implement_path": impl_rel or None,
+            "load_error": state.get("load_error"),
+            **marked,
+        }
+        details.append(entry)
+        if marked.get("ok"):
+            repaired.append(sid)
+    return {
+        "ok": True,
+        "repaired": repaired,
+        "details": details,
+        "index": str(idx),
+    }
+
+
 def validate_finish_integrity_with_repair(
     cwd: str | Path,
     *,
@@ -2696,9 +2791,21 @@ def validate_finish_integrity_with_repair(
     codes = list(result.get("diagnostic_codes") or [])
     if result.get("ok"):
         return result
-    if MARK_INDEX_MISSING not in codes:
-        return result
     if INDEX_IMPLEMENT_CONFLICT in codes:
+        repair = repair_false_index_completed(cwd, decompose)
+        result["repair"] = repair
+        if repair.get("repaired"):
+            repaired_result = validate_finish_integrity(
+                cwd,
+                decompose=decompose,
+                step_id=step_id,
+                require_verify_pass=require_verify_pass,
+            )
+            repaired_result["repaired_false_index"] = repair.get("repaired")
+            repaired_result["repair"] = repair
+            return repaired_result
+        return result
+    if MARK_INDEX_MISSING not in codes:
         return result
     repair = repair_finish_desync(cwd, decompose)
     if not repair.get("repaired"):
@@ -2741,20 +2848,42 @@ def validate_index_vs_implement(cwd: str | Path, decompose: str | None) -> list[
         role = "back"
     plan_id = _index_plan_id(idx)
     false_completed: list[str] = []
+    load_errors: dict[str, str] = {}
+    import epic_yaml as ey
+
     for s in steps:
         st = s.get("status") or ""
         if st not in {"completed", "done"}:
             continue
-        if not _implement_yaml_completed(
-            cwd, role, epic_id, s["id"], plan_id=plan_id or None
-        ):
-            false_completed.append(s["id"])
+        sid = str(s["id"]).strip().lower()
+        try:
+            impl_rel = ey.resolve_implement_path(
+                cwd, role, epic_id, sid, plan_id=plan_id or None
+            )
+            state = ey.implement_load_state(cwd, impl_rel)
+        except Exception as exc:
+            state = {"completed": False, "load_error": str(exc)}
+        if state.get("completed"):
+            continue
+        false_completed.append(sid)
+        if state.get("load_error"):
+            load_errors[sid] = str(state["load_error"])
     if false_completed:
-        sample = ", ".join(false_completed[:8])
+        parts: list[str] = []
+        for sid in false_completed[:8]:
+            if sid in load_errors:
+                err = load_errors[sid]
+                if len(err) > 160:
+                    err = err[:157] + "..."
+                parts.append(f"{sid} (implement invalid: {err})")
+            else:
+                parts.append(f"{sid} (implement not completed)")
+        sample = ", ".join(parts)
         more = f" (+{len(false_completed) - 8})" if len(false_completed) - 8 > 0 else ""
         errors.append(
             "decompose index: status=completed без implement yaml completed: "
-            f"{sample}{more} — use mark-index-status per step"
+            f"{sample}{more} — use finalize-step per step; "
+            "FORBIDDEN ручной index completed"
         )
     return errors
 
@@ -2861,8 +2990,10 @@ def _role_dir_from_index_path(idx: Path, cwd: Path) -> tuple[str, str]:
 
 
 def _task_id_from_epic(epic_id: str) -> str:
-    """T-031-perf-log-decorator → T-031; demo → demo."""
+    """T-031-perf-log-decorator → T-031; T-HUB-040-xxx → T-HUB-040; demo → demo."""
     parts = (epic_id or "").split("-")
+    if len(parts) >= 3 and parts[0].upper() == "T" and parts[2].isdigit():
+        return f"{parts[0]}-{parts[1]}-{parts[2]}"
     if len(parts) >= 2 and parts[0].upper() == "T" and parts[1].isdigit():
         return f"T-{parts[1]}"
     return epic_id
@@ -2889,6 +3020,23 @@ def latest_qa_pass_artifact_for_reference(
                 continue
             if re.search(r"(?m)^verdict:\s*pass\s*$", text):
                 hits.append(p)
+        if hits:
+            break
+    return hits[0] if hits else None
+
+
+def latest_audit_artifact_for_reference(
+    cwd: str | Path, role_dir: str = "back", epic_id: str = ""
+) -> Path | None:
+    cwd_p = Path(cwd)
+    hits: list[Path] = []
+    for root in _role_mb_roots(cwd_p, role_dir, epic_id=epic_id, kind="audit"):
+        d = root / "audit" / epic_id if epic_id else root / "audit"
+        if not d.is_dir():
+            continue
+        glob_pattern = "audit-*.yaml" if epic_id else "**/audit-*.yaml"
+        for p in sorted(d.glob(glob_pattern), reverse=True):
+            hits.append(p)
         if hits:
             break
     return hits[0] if hits else None
@@ -2953,7 +3101,11 @@ def validate_qa_finish_handoff(
     return True, None
 
 
-def project_handoff_from_reducer(cwd: str | Path) -> dict[str, Any]:
+def project_handoff_from_reducer(
+    cwd: str | Path,
+    *,
+    allow_terminal_done_projection: bool = True,
+) -> dict[str, Any]:
     cwd_p = Path(cwd)
     ac = cwd_p / "memory-bank" / "activeContext.md"
     if not ac.is_file():
@@ -2980,12 +3132,16 @@ def project_handoff_from_reducer(cwd: str | Path) -> dict[str, Any]:
         text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK REFLECT", text)
         text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK REFLECT`", text_new)
         text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: REFLECT", text_new)
-        if "schema: loop-handoff/v1" not in text_new:
-            frontmatter = f"---\nschema: loop-handoff/v1\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"
+        if "schema: loop-handoff/v1" not in text_new:  # handoff
+            frontmatter = f"---\nschema: loop-handoff/v1 # handoff\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"  # handoff
             text_new = frontmatter + text_new
         ac.write_text(text_new, encoding="utf-8")
         projected = True
-    elif phase == "DONE" and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text):
+    elif (
+        allow_terminal_done_projection
+        and phase == "DONE"
+        and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text)
+    ):
         text_new = re.sub(r"Handoff\s+BACK\s+(REFLECT|BUGFIX|QA)", "Handoff BACK DONE", text)
         text_new = re.sub(r"`BACK (REFLECT|BUGFIX|QA)`", "`BACK DONE`", text_new)
         text_new = re.sub(r"mode:\s*(REFLECT|BUGFIX|QA)", "mode: DONE", text_new)
@@ -3981,7 +4137,7 @@ def arm_pre_implement_context(
         )
         armed_decompose = decomp_yaml if idx and idx.is_file() else None
     body = (
-        f"---\nschema: loop-handoff/v1\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
+        f"---\nschema: loop-handoff/v1 # handoff\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
         f"## load_now\n{load_now}\n"
         f"## Handoff {phase_u}\n"
         f"- **Эпик:** {epic_id} ({role_u}).\n"

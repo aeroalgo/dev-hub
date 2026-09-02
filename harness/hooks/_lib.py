@@ -33,7 +33,17 @@ CUSTOM_OVERLAY = frozenset(
         "gate-repair",
     }
 )
-GATE_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose", "reviewer"})
+GATE_AGENTS = frozenset(
+    {
+        "verify",
+        "verify-implement",
+        "verify-bugfix",
+        "verify-qa",
+        "verify-decompose",
+        "analyze-verify",
+        "reviewer",
+    }
+)
 ALLOWED = CUSTOM_OVERLAY
 
 ALIAS: dict[str, str] = {"explore": "explorer", **AGENT_ALIASES}
@@ -631,8 +641,13 @@ _RUNTIME_CONFIG_DEFAULTS: dict[str, int | None] = {
 _PERMISSION_MODE_DEFAULT = "dontAsk"
 _PERMISSION_MODES = frozenset({"dontAsk", "acceptEdits", "bypassPermissions", "default", "plan"})
 _RUNTIME_DEFAULT = "claude"
-_RUNTIME_MODES = frozenset({"claude", "dsh"})
-_RUNTIME_CONFIG_ENUMS: dict[str, frozenset[str]] = {"EPIC_RUNTIME": _RUNTIME_MODES}
+
+def _get_supported_runtimes() -> set[str] | frozenset[str] | list[str]:
+    try:
+        from loop.runtime.registry import list_ids
+        return list_ids()
+    except Exception:
+        return frozenset({"claude", "dsh"})
 
 def _runtime_config_source(key: str, project: dict[str, str]) -> tuple[str | None, str]:
     if key in os.environ:
@@ -697,7 +712,7 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
     epic_runtime = raw if raw else _RUNTIME_DEFAULT
     if raw is None:
         source = "default"
-    if epic_runtime not in _RUNTIME_MODES:
+    if epic_runtime not in _get_supported_runtimes():
         diagnostics.append(
             {
                 "code": "invalid_runtime_config",
@@ -1441,6 +1456,10 @@ def record_verdict(
             state["reviewer_done"] = True
             state["reviewer_verdict"] = evidence.get("verdict")
             state["reviewer_evidence"] = evidence
+        elif agent_type == "verify-decompose":
+            state["verify_decompose_done"] = True
+            state["verify_decompose_verdict"] = evidence.get("verdict")
+            state["verify_decompose_evidence"] = evidence
     else:
         state[f"{agent_type}_done"] = False
         state[f"{agent_type}_verdict"] = None
@@ -1450,6 +1469,9 @@ def record_verdict(
         elif agent_type == "verify-qa":
             state["reviewer_done"] = False
             state["reviewer_verdict"] = None
+        elif agent_type == "verify-decompose":
+            state["verify_decompose_done"] = False
+            state["verify_decompose_verdict"] = None
     return matched, diagnostic
 
 

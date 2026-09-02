@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: s02 — CLI mb-load session — JSON stdout + cwd guard + missing-file policy IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-045-harness-workflow-session-load-api/s02-mb-load-cli-cwd-guard.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена subcommand `mb-load session` в harness/hooks/epic_resolve.py с поддержкой
+  --cwd, --plan-section и --json
+- 'Реализована missing-file policy: если ни один файл не загрузился из-за несуществующих
+  путей, ok=False и exit code 2'
+- Создан тест loop/tests/test_mb_load_cli.py для проверки happy path, wrong cwd и
+  missing file policy
+files:
+- harness/hooks/epic_resolve.py
+- loop/tests/test_mb_load_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_mb_load_cli.py -q --tb=short`'
+integration_check:
+- python3 harness/hooks/epic_resolve.py mb-load session --cwd $PROJECT_ROOT
+grep_control: []
+verification_results:
+- 'PASS: .venv/bin/pytest loop/tests/test_mb_load_cli.py -q --tb=short'
+checkpoints:
+- id: cp1
+  criterion: 'CLI smoke: python harness/hooks/epic_resolve.py mb-load --help показывает
+    session subcommand без ошибки'
+  status: done
+  done_at: '2026-09-02T03:18:15Z'
+- id: cp2
+  criterion: 'TM-001 CLI: mb-load session --cwd $PROJECT_ROOT → exit 0, stdout JSON
+    ok:true'
+  status: done
+  done_at: '2026-09-02T03:18:20Z'
+- id: cp3
+  criterion: 'TM-006: wrong cwd (hub root != product) → JSON ok:false, exit 2'
+  status: done
+  done_at: '2026-09-02T03:18:25Z'
+- id: cp4
+  criterion: 'missing-file policy: load_now с несуществующим path → diagnostic missing_artifact
+    в JSON'
+  status: done
+  done_at: '2026-09-02T03:18:30Z'
+resume_from: cp1

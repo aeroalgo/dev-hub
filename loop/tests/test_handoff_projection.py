@@ -31,7 +31,7 @@ def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
         "## load_now\n"
         "- qa.yaml\n\n"
         "## Handoff BACK REFLECT — demo\n"
-        "- **Режим/шаг:** `BACK BUGFIX`.\n"
+        "- **Дальше:** выполнить REFLECT.\n"
     )
     meta = parse_handoff_meta(text)
     assert meta is not None
@@ -135,3 +135,134 @@ def test_epic_complete_allowed_uses_reducer_not_stale_handoff(tmp_path: Path) ->
 
     gate = epic_complete_allowed(tmp_path)
     assert gate.get("allowed") is True, gate
+
+
+def test_handoff_mode_line_wins_over_stale_audit_heading() -> None:
+    from epic import handoff_post_implement_phase
+
+    text = (
+        "## load_now\n"
+        "1. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "## Handoff BACK AUDIT — demo\n"
+        "- **Режим/шаг:** `BACK QA`.\n"
+        "- **Дальше:** переход к `BACK QA`.\n"
+    )
+    assert handoff_post_implement_phase(text) == "QA"
+
+
+def test_handoff_qa_not_demoted_by_dalshe_reflect() -> None:
+    from epic import handoff_post_implement_phase
+
+    text = (
+        "## load_now\n"
+        "1. [index.yaml](back/plan/decompose-T-HUB-040/index.yaml)\n\n"
+        "## Handoff BACK QA — T-HUB-040\n"
+        "- **Эпик:** T-HUB-040 — все sNN completed.\n"
+        "- **Режим/шаг:** `BACK QA`.\n"
+        "- **Дальше:** выполнить `BACK QA`; в Handoff следующий = `BACK REFLECT`.\n"
+    )
+    assert handoff_post_implement_phase(text) == "QA"
+
+
+def test_project_handoff_from_reducer_syncs_stale_audit_to_qa(tmp_path: Path) -> None:
+    from epic import handoff_post_implement_phase, project_handoff_from_reducer
+
+    epic = "T-audit-qa-demo"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    audit = f"memory-bank/back/audit/{epic}/audit-20260902-demo.yaml"
+    events = f"memory-bank/back/events/{epic}/events.jsonl"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(tmp_path / audit, "not_implemented: []\nqa_ready: true\n")
+    _write(
+        tmp_path / events,
+        '{"schema":"loop-event/v2","seq":1,"kind":"audit_done","artifact":"'
+        + audit
+        + '","epic_id":"'
+        + epic
+        + '"}\n',
+    )
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: AUDIT\n"
+        f"epic_id: {epic}\n"
+        "step_id: AUDIT\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{decompose}]({decompose})\n\n"
+        f"## Handoff BACK AUDIT — {epic}\n"
+        "- **Режим/шаг:** `BACK QA`.\n",
+    )
+
+    out = project_handoff_from_reducer(tmp_path)
+    assert out.get("projected") is True, out
+    assert out.get("phase") == "QA", out
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "mode: QA" in ac
+    assert "## Handoff BACK QA" in ac
+    assert handoff_post_implement_phase(ac) == "QA"
+
+
+def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -> None:
+    from epic import project_handoff_from_reducer
+
+    epic = "T-done-skip-demo"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(
+        tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-demo.yaml",
+        "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
+    )
+    _write(
+        tmp_path / f"memory-bank/back/reflection/reflection-{epic}.md",
+        "---\n"
+        f"epic_id: {epic}\n"
+        "date: '2026-08-30'\n"
+        "---\n\n"
+        "# reflection\n",
+    )
+    ac_path = tmp_path / "memory-bank/activeContext.md"
+    _write(
+        ac_path,
+        "## load_now\n"
+        f"1. [qa](back/qa/{epic}/qa-20260830-demo.yaml)\n\n"
+        f"## Handoff BACK REFLECT — {epic}\n"
+        "- **Режим/шаг:** `BACK REFLECT`.\n",
+    )
+
+    out = project_handoff_from_reducer(tmp_path, allow_terminal_done_projection=False)
+    assert out.get("ok") is True, out
+    assert out.get("phase") == "DONE", out
+    assert out.get("projected") is False, out
+
+    ac = ac_path.read_text(encoding="utf-8")
+    assert "Handoff BACK REFLECT" in ac
+    assert "Handoff BACK DONE" not in ac
+
+    out_enabled = project_handoff_from_reducer(tmp_path, allow_terminal_done_projection=True)
+    assert out_enabled.get("projected") is True, out_enabled
+    ac_done = ac_path.read_text(encoding="utf-8")
+    assert "Handoff BACK DONE" in ac_done

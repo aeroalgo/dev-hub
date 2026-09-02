@@ -20,13 +20,15 @@
 | **P1** | 5 | T-HUB-032 | [plan-T-HUB-032-harness-analyze-convergence.md](plan-T-HUB-032-harness-analyze-convergence.md) | `analyze-convergence` cross-artifact CLI | GitHub spec-kit `/speckit.analyze` |
 | **P1** | 6 | T-HUB-033 | [plan-T-HUB-033-harness-execution-discipline.md](plan-T-HUB-033-harness-execution-discipline.md) | GSD-style atomic commit per sNN + one-shard-one-session | GSD execution |
 | **P1** | 7 | T-HUB-040 | [plan-T-HUB-040-harness-workflow-finish-api.md](plan-T-HUB-040-harness-workflow-finish-api.md) | Typed mb-finish API — atomic FINISH без prose activeContext | MCP-style harness tools |
-| **P2** | 8 | T-HUB-034 | [plan-T-HUB-034-harness-janitor-gc.md](plan-T-HUB-034-harness-janitor-gc.md) | Doc gardening / stale artifact janitor | OpenAI harness GC |
-| **P2** | 9 | T-HUB-035 | [plan-T-HUB-035-harness-architecture-boundaries.md](plan-T-HUB-035-harness-architecture-boundaries.md) | Architecture boundary tests (import-linter) | OpenAI harness ratchet |
-| **P2** | 10 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | Reusable decompose formula templates | Gas Town formulas |
-| **P2** | 11 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | Parallel independent sNN (worktree pool) | Bernstein / GSD waves |
-| **P2** | 12 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | Metrics + events HTML/JSON dashboard | OpenHands / SRE |
+| **P1** | 8 | T-HUB-045 | [plan-T-HUB-045-harness-workflow-session-load-api.md](plan-T-HUB-045-harness-workflow-session-load-api.md) | Typed mb-load API — deterministic session START bundle | Symmetric query to mb-finish |
+| **P2** | 9 | T-HUB-034 | [plan-T-HUB-034-harness-janitor-gc.md](plan-T-HUB-034-harness-janitor-gc.md) | Doc gardening / stale artifact janitor | OpenAI harness GC |
+| **P2** | 10 | T-HUB-035 | [plan-T-HUB-035-harness-architecture-boundaries.md](plan-T-HUB-035-harness-architecture-boundaries.md) | Architecture boundary tests (import-linter) | OpenAI harness ratchet |
+| **P2** | 11 | T-HUB-036 | [plan-T-HUB-036-harness-decompose-formulas.md](plan-T-HUB-036-harness-decompose-formulas.md) | Reusable decompose formula templates | Gas Town formulas |
+| **P2** | 12 | T-HUB-037 | [plan-T-HUB-037-harness-parallel-snn.md](plan-T-HUB-037-harness-parallel-snn.md) | Parallel independent sNN (worktree pool) | Bernstein / GSD waves |
+| **P2** | 13 | T-HUB-038 | [plan-T-HUB-038-harness-metrics-dashboard.md](plan-T-HUB-038-harness-metrics-dashboard.md) | Metrics + events HTML/JSON dashboard | OpenHands / SRE |
+| **P1** | 14 | T-HUB-047 | [plan-T-HUB-047-harness-mb-scaffold-epic-layout.md](plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) | mb-scaffold skeletons + epic layout v2 + path resolver | Symmetric to mb-finish/mb-load; token economy |
 
-**Cut criteria:** (#1) P0≠P1≠P2 bands; (#2) runtime wire vs transition engine vs observability vs hygiene — разные деревья; (#4) hard-deps 031←030, 033←029, 034←026, 037←029, 038←031, 040←029+033; (#5) каждый эпик — independent QA deliverable.
+**Cut criteria:** (#1) P0≠P1≠P2 bands; (#2) runtime wire vs transition engine vs observability vs hygiene — разные деревья; (#4) hard-deps 031←030, 033←029, 034←026, 037←029, 038←031, 040←029+033, 045←040; (#5) каждый эпик — independent QA deliverable.
 
 **Existing plans (не переписываются):** T-HUB-029, T-HUB-026 — включены в slug queue для ordering и MERGE.
 
@@ -43,6 +45,8 @@ flowchart TB
   H032[T-HUB-032 analyze-convergence P1]
   H033[T-HUB-033 execution discipline P1]
   H040[T-HUB-040 mb-finish API P1]
+  H045[T-HUB-045 mb-load API P1]
+  H047[T-HUB-047 mb-scaffold layout P1]
   H034[T-HUB-034 janitor GC P2]
   H035[T-HUB-035 arch boundaries P2]
   H036[T-HUB-036 decompose formulas P2]
@@ -53,6 +57,10 @@ flowchart TB
   H029 --> H033
   H029 --> H040
   H033 --> H040
+  H040 --> H045
+  H036 --> H047
+  H040 --> H047
+  H045 -.-> H047
   H029 --> H037
   H026 --> H034
   H031 --> H038
@@ -67,6 +75,10 @@ flowchart TB
 | T-HUB-029 | T-HUB-033 | hard | atomic commit hook в `finalize_step` / transition API |
 | T-HUB-029 | T-HUB-040 | hard | finish tools delegate `arm_phase` / transition engine |
 | T-HUB-033 | T-HUB-040 | hard | `finish_implement` wraps stable `finalize_step` + session boundary |
+| T-HUB-040 | T-HUB-045 | hard | mb-load reuses mb_finish schemas + CLI/MCP pattern; symmetric START after FINISH ships |
+| T-HUB-036 | T-HUB-047 | hard | formula-render merges into mb-scaffold decompose |
+| T-HUB-040 | T-HUB-047 | hard | mb-finish/mb-load path refs via shared resolver |
+| T-HUB-045 | T-HUB-047 | soft | mb-load bundle paths align with layout v2 |
 | T-HUB-029 | T-HUB-037 | hard | parallel sNN требует единый `arm_phase` + cursor sync |
 | T-HUB-026 | T-HUB-034 | hard | janitor reuse reconcile parsers |
 | T-HUB-031 | T-HUB-038 | hard | dashboard агрегирует episode + metrics |

@@ -1,0 +1,146 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s10 — legacy-fallback-purge — standalone dsh functions + full inventory scan
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить standalone dsh.py functions (normalize_dsh_log,
+  detect_dsh_model_mismatch, build_dsh_command, build_dsh_command_from_file — если callers=0),
+  re-export заглушки в common.py, остатки frozenset _RUNTIME_MODES если остались.
+  Полный inventory scan: нулевые prod-callers по каждой строке sunset_inventory.
+  Suite green после deletes.
+
+context:
+  consumes:
+    - "plan §Replacement / sunset (таблицы A/B/C)"
+    - "decompose index §Replacement cleanup"
+    - "loop/runtime_adapters/dsh.py standalone functions (as-built, callers via s04 DshAdapter)"
+    - "loop/runtime_adapters/common.py re-export (s07, purge re-export here)"
+    - "harness/hooks/_lib.py — verify _RUNTIME_MODES absent (s06 cutover)"
+  produces:
+    - "loop/runtime_adapters/dsh.py (изменён: standalone functions removed)"
+    - "loop/runtime_adapters/common.py (изменён: re-export stubs removed)"
+    - "evidence rg/inventory in implement shard"
+  plan_refs:
+    - "FR-012: unit tests registry load, invalid runtime, claude+dsh command builders"
+    - "US-004: zero regression on EPIC_RUNTIME=dsh after standalone purge"
+    - "SC-001: EPIC_RUNTIME unset → claude (regression after purge)"
+    - "SC-002: EPIC_RUNTIME=foo → invalid_runtime_config (regression after purge)"
+  files:
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime_adapters/common.py
+
+as_built:
+  - "loop/runtime_adapters/dsh.py — normalize_dsh_log, detect_dsh_model_mismatch, build_dsh_command, build_dsh_command_from_file standalone public functions"
+  - "loop/runtime_adapters/common.py — re-export stubs for backward compat (s07)"
+  - "harness/hooks/_lib.py — _RUNTIME_MODES should be absent (s06); verify here"
+
+delta:
+  - "edit loop/runtime_adapters/dsh.py — delete standalone functions after import-audit zero callers (test callers in test_dsh_*.py OK)"
+  - "edit loop/runtime_adapters/common.py — remove re-export stubs normalize_dsh_log/detect_dsh_model_mismatch; DshAdapter uses internals directly"
+  - "verify harness/hooks/_lib.py — _RUNTIME_MODES absent (safety net from s06)"
+
+deletes:
+  - "loop/runtime_adapters/dsh.py::normalize_dsh_log (standalone, callers=0)"
+  - "loop/runtime_adapters/dsh.py::detect_dsh_model_mismatch (standalone, callers=0)"
+  - "loop/runtime_adapters/dsh.py::build_dsh_command (standalone, callers=0)"
+  - "loop/runtime_adapters/dsh.py::build_dsh_command_from_file (standalone, callers=0)"
+  - "loop/runtime_adapters/common.py — re-export normalize/detect lines"
+
+out_of_scope:
+  - "DshAdapter class — remains (not purge)"
+  - "test_dsh_*.py callers — update assertions to use DshAdapter, not delete files"
+
+sunset_inventory:
+  - symbol: "loop/runtime_adapters/dsh.py::normalize_dsh_log"
+    kind: A
+    replacement: "DshAdapter.analyze_log (s04)"
+    policy: delete in-epic
+    rg_scope: "loop/ harness/"
+    expect: zero prod callers
+  - symbol: "loop/runtime_adapters/dsh.py::detect_dsh_model_mismatch"
+    kind: A
+    replacement: "DshAdapter.analyze_log (s04)"
+    policy: delete in-epic
+    rg_scope: "loop/ harness/"
+    expect: zero prod callers
+  - symbol: "loop/runtime_adapters/dsh.py::build_dsh_command"
+    kind: A
+    replacement: "DshAdapter.build_command (s04)"
+    policy: delete in-epic
+    rg_scope: "loop/ harness/"
+    expect: zero prod callers
+  - symbol: "loop/runtime_adapters/dsh.py::build_dsh_command_from_file"
+    kind: A
+    replacement: "DshAdapter.build_command (s04)"
+    policy: delete in-epic
+    rg_scope: "loop/ harness/"
+    expect: zero prod callers
+  - symbol: "harness/hooks/_lib.py::_RUNTIME_MODES frozenset"
+    kind: A
+    replacement: "loop.runtime.registry.list_ids() (s06)"
+    policy: delete in-epic
+    rg_scope: "harness/"
+    expect: zero matches
+  - symbol: "loop/loop.sh EPIC_DSH_PROFILE export"
+    kind: B
+    replacement: "dispatch --extras-json (s05, s09)"
+    policy: delete in-epic
+    rg_scope: "loop/loop.sh"
+    expect: zero matches
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: normalize_dsh_log
+    command: "rg -n 'normalize_dsh_log' loop/ harness/ -g '*.py' | rg -v 'test_|archive|deprecated'"
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: detect_dsh_model_mismatch
+    command: "rg -n 'detect_dsh_model_mismatch' loop/ harness/ -g '*.py' | rg -v 'test_|archive'"
+    expect: no output
+  - id: inv-a-03
+    kind: A
+    symbol: build_dsh_command
+    command: "rg -n 'build_dsh_command' loop/ harness/ -g '*.py' | rg -v 'test_|class DshAdapter'"
+    expect: no output (DshAdapter internal OK)
+  - id: inv-a-04
+    kind: A
+    symbol: _RUNTIME_MODES
+    command: "rg -n '_RUNTIME_MODES' harness/hooks/_lib.py"
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: EPIC_DSH_PROFILE
+    command: "rg -n 'EPIC_DSH_PROFILE' loop/loop.sh"
+    expect: no output
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — rg per each sunset_inventory row: normalize_dsh_log, detect_dsh_model_mismatch, build_dsh_command, _RUNTIME_MODES — 0 prod callers"
+    verify: "run each grep_control kind=A command; expect no output (test callers OK)"
+  - id: cp2
+    criterion: "Kind B — EPIC_DSH_PROFILE not in loop.sh"
+    verify: "rg 'EPIC_DSH_PROFILE' loop/loop.sh | wc -l | grep '^0$'"
+  - id: cp3
+    criterion: "Full epic regression suite green after deletes"
+    verify: ".venv/bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line"
+
+verify:
+  - "rg 'normalize_dsh_log' loop/ harness/ -g '*.py' | rg -v test_ | wc -l | grep '^0$'"
+  - "rg '_RUNTIME_MODES' harness/hooks/_lib.py | wc -l | grep '^0$'"
+  - "rg 'EPIC_DSH_PROFILE' loop/loop.sh | wc -l | grep '^0$'"
+  - ".venv/bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line"
+
+tdd:
+  - test_dsh_adapter_does_not_depend_on_standalone_functions
+  - test_full_regression_suite_green_after_purge

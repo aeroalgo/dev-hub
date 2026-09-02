@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "session-start.py inject — bundle fingerprint + file list при EPIC_LOOP=1"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить session_start_payload() / harness/hooks/session-start.py: при EPIC_LOOP=1
+  вызывать load_session() и добавлять в additionalContext fingerprint + список файлов
+  (без полного content если bundle крупный — ссылка + fingerprint + paths list).
+  Outcome: первый LLM-turn в loop-сессии «warm» — агент видит fingerprint bundle
+  и не тратит tool-calls на базовый session init (US-006).
+
+context:
+  consumes:
+    - harness/hooks/session-start.py   # session_start_payload вызывает epic_lib.session_start_payload
+    - harness/hooks/epic/core.py:1373  # def session_start_payload(cwd, source) — extends
+    - loop/mb_load/session.py          # load_session() из s01
+    - loop/mb_load/schemas.py          # MbLoadResult.fingerprint, MbLoadResult.files
+  produces:
+    - harness/hooks/epic/core.py       # extend session_start_payload
+    - harness/hooks/tests/test_session_start_inject.py  # TM-007
+  plan_refs:
+    - "FR-008: Extend session_start_payload() — EPIC_LOOP=1 → append bundle summary + fingerprint"
+    - "US-006: loop runner — session-start inject bundle fingerprint, first turn warm"
+    - "TM-007: session-start inject EPIC_LOOP — additionalContext has fingerprint"
+    - "SC-004: session-start inject when EPIC_LOOP — pytest session_start"
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "harness/hooks/session-start.py:10 вызывает session_start_payload(cwd, source)"
+  - "harness/hooks/epic/core.py:1373 def session_start_payload() — if EPIC_LOOP=1 возвращает payload dict"
+  - "session_start_payload() сейчас только short hint, без файлов bundle"
+  - "EPIC_LOOP env var проверяется: epic/core.py:1376"
+
+delta:
+  - "EDIT harness/hooks/epic/core.py — session_start_payload(): при EPIC_LOOP=1 вызвать load_session(cwd); если ok:true → добавить в payload['additionalContext'] секцию с fingerprint + file paths list; если content total > 16KiB → только paths + fingerprint (не dump контент); если load_session ok:false → добавить diagnostic в payload как warning, не падать"
+  - "CREATE harness/hooks/tests/test_session_start_inject.py — TM-007: EPIC_LOOP=1, mock load_session → additionalContext contains fingerprint key"
+
+deletes: []
+
+out_of_scope:
+  - "full content injection в additionalContext (ограничено cap 16KiB)"
+  - "subagent spawn auto-inject (за пределами FR этого эпика)"
+  - "MCP (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # S03: graceful fail при load_session error
+
+checkpoints:
+  - id: cp1
+    criterion: "TM-007: EPIC_LOOP=1, mock load_session ok:true → additionalContext dict имеет ключ fingerprint"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_session_start_inject.py::test_inject_fingerprint -q"
+  - id: cp2
+    criterion: "load_session ok:false → session_start_payload не падает, возвращает payload с diagnostic warning"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_session_start_inject.py::test_inject_load_fail_graceful -q"
+  - id: cp3
+    criterion: "EPIC_LOOP=0 (or unset) → session_start_payload не вызывает load_session (нет regression)"
+    verify: ".venv/bin/pytest harness/hooks/tests/test_session_start_inject.py::test_no_inject_without_epic_loop -q"
+
+verify:
+  - ".venv/bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=short"
+tdd:
+  - "test_inject_fingerprint: EPIC_LOOP=1, mock load_session → fingerprint in additionalContext"
+  - "test_inject_load_fail_graceful: load_session raises → payload still returned (no crash)"
+  - "test_no_inject_without_epic_loop: EPIC_LOOP unset → no load_session call"
+  - "test_inject_large_bundle_no_content: mock bundle >16KiB → only paths listed, no content blob"

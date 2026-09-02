@@ -232,7 +232,7 @@ def test_validate_finish_integrity_index_implement_conflict(tmp_path: Path) -> N
     assert result["diagnostic_codes"] == [lib.INDEX_IMPLEMENT_CONFLICT]
 
 
-def test_prepare_session_halts_on_index_implement_conflict(tmp_path: Path) -> None:
+def test_prepare_session_repairs_false_index_completed(tmp_path: Path) -> None:
     ctx = _load_ctx()
     decompose = "memory-bank/back/plan/decompose-demo/index.md"
     _write(
@@ -249,9 +249,10 @@ def test_prepare_session_halts_on_index_implement_conflict(tmp_path: Path) -> No
 
     result = ctx.prepare_session(tmp_path)
 
-    assert result["ok"] is False
-    assert result["halt"] is True
-    assert result["diagnostic_codes"] == ["index_implement_conflict"]
+    assert result["ok"] is True
+    assert result.get("halt") is not True
+    idx_text = (tmp_path / decompose).read_text(encoding="utf-8")
+    assert "completed" not in idx_text.lower() or "pending" in idx_text.lower()
 
 
 def test_validate_finish_integrity_returns_diagnostic_codes_list(tmp_path: Path) -> None:
@@ -963,3 +964,62 @@ def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypat
     assert res["ok"] is True
     assert len(called) == 1
     assert res.get("promoted") == {"ok": True, "promoted": True}
+
+
+def test_implement_verification_results_dict_coercion(tmp_path: Path) -> None:
+    import sys
+
+    hooks = str(ROOT / ".claude" / "hooks")
+    if hooks not in sys.path:
+        sys.path.insert(0, hooks)
+    import epic_yaml as ey
+
+    impl = tmp_path / "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    impl.parent.mkdir(parents=True)
+    impl.write_text(
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: demo\nstatus: completed\ndate: '2026-09-02'\n"
+        "done:\n- x\nfiles:\n- a.py\nintegration_check:\n- ok\n"
+        "verification_results:\n"
+        "- verdict: PASS\n  agent_id: verify-implement\n  step_id: s01\n"
+        "  recorded_at: '2026-09-02T00:00:00Z'\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: done\n",
+        encoding="utf-8",
+    )
+
+    doc = ey.load_implement(impl)
+    assert doc.verification_results == ["s01: PASS (verify-implement @2026-09-02T00:00:00Z)"]
+    assert ey.implement_completed(tmp_path, str(impl.relative_to(tmp_path)))
+
+
+def test_validate_finish_integrity_with_repair_false_index(tmp_path: Path) -> None:
+    lib = _load_lib()
+    decompose = "memory-bank/back/plan/decompose-demo/index.md"
+    impl = "memory-bank/back/implement/implement-demo/s01-a.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "| **s01** | a | BACK IMPLEMENT | completed |\n",
+    )
+    _write(
+        tmp_path,
+        impl,
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: demo\nstatus: in_progress\ndate: '2026-09-02'\n"
+        "done:\n- x\nfiles:\n- a.py\nintegration_check:\n- ok\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: done\n",
+    )
+
+    first = lib.validate_finish_integrity(
+        tmp_path, decompose=decompose, step_id="s01", require_verify_pass=True
+    )
+    assert first["ok"] is False
+    assert lib.INDEX_IMPLEMENT_CONFLICT in first["diagnostic_codes"]
+
+    repaired = lib.validate_finish_integrity_with_repair(
+        tmp_path, decompose=decompose, step_id="s01", require_verify_pass=True
+    )
+    assert repaired["ok"] is True
+    assert repaired.get("repaired_false_index") == ["s01"]
+    idx_text = (tmp_path / decompose).read_text(encoding="utf-8")
+    assert "| **s01** | a | BACK IMPLEMENT | pending |" in idx_text

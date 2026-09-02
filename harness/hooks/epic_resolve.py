@@ -227,6 +227,62 @@ def main() -> int:
     p_mb_impl.add_argument("--done", default="", help="done summary string")
     p_mb_impl.add_argument("--phase", default="BACK IMPLEMENT", help="phase string")
 
+    p_mb_handoff = mb_sub.add_parser("handoff", help="low-level finish handoff escape hatch")
+    p_mb_handoff.add_argument("--role", default="BACK", help="role slug")
+    p_mb_handoff.add_argument("--mode", required=True, help="handoff mode (e.g. IMPLEMENT, QA)")
+    p_mb_handoff.add_argument("--epic-id", default=None, help="epic id")
+    p_mb_handoff.add_argument("--step", default=None, help="step id")
+    p_mb_handoff.add_argument("--next-hint", default=None, help="next hint")
+    p_mb_handoff.add_argument("--load-now-path", default=None, help="load now item path")
+    p_mb_handoff.add_argument("--load-now-desc", default=None, help="load now item description")
+
+    p_mb_qa = mb_sub.add_parser("qa", help="finish qa phase atomically")
+    p_mb_qa.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_qa.add_argument("--done", default="", help="done summary string")
+    p_mb_qa.add_argument("--phase", default="BACK QA", help="phase string")
+
+    p_mb_bugfix = mb_sub.add_parser("bugfix", help="finish bugfix phase atomically")
+    p_mb_bugfix.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_bugfix.add_argument("--done", default="", help="done summary string")
+    p_mb_bugfix.add_argument("--phase", default="BACK BUGFIX", help="phase string")
+
+    p_mb_decompose = mb_sub.add_parser("decompose", help="finish decompose phase atomically")
+    p_mb_decompose.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_decompose.add_argument("--done", default="", help="done summary string")
+    p_mb_decompose.add_argument("--phase", default="BACK DECOMPOSE", help="phase string")
+
+    p_mb_plan = mb_sub.add_parser("plan", help="finish plan phase atomically")
+    p_mb_plan.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_plan.add_argument("--done", default="", help="done summary string")
+    p_mb_plan.add_argument("--phase", default="BACK PLAN", help="phase string")
+
+    p_mb_analyze = mb_sub.add_parser("analyze", help="finish analyze phase atomically")
+    p_mb_analyze.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_analyze.add_argument("--done", default="", help="done summary string")
+    p_mb_analyze.add_argument("--phase", default="BACK ANALYZE", help="phase string")
+
+    p_mb_audit = mb_sub.add_parser("audit", help="finish audit phase atomically")
+    p_mb_audit.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_audit.add_argument("--done", default="", help="done summary string")
+    p_mb_audit.add_argument("--phase", default="BACK AUDIT", help="phase string")
+
+    p_mb_creative = mb_sub.add_parser("creative", help="finish creative phase atomically")
+    p_mb_creative.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_creative.add_argument("--done", default="", help="done summary string")
+    p_mb_creative.add_argument("--phase", default="BACK CREATIVE", help="phase string")
+
+    p_mb_reflect = mb_sub.add_parser("reflect", help="finish reflect phase atomically")
+    p_mb_reflect.add_argument("--step", default="", help="step_id (optional)")
+    p_mb_reflect.add_argument("--done", default="", help="done summary string")
+    p_mb_reflect.add_argument("--phase", default="BACK REFLECT", help="phase string")
+
+    p_mb_load = sub.add_parser("mb-load", help="mb-load subcommand dispatcher")
+    mb_load_sub = p_mb_load.add_subparsers(dest="mb_load_cmd", required=True)
+    p_mb_load_sess = mb_load_sub.add_parser("session", help="load activeContext session bundle")
+    p_mb_load_sess.add_argument("--cwd", default=None, help="product repo root")
+    p_mb_load_sess.add_argument("--plan-section", default=None, help="plan section number (optional)")
+    p_mb_load_sess.add_argument("--json", action="store_true", help="output JSON format (default True)")
+
     p_seed_const = sub.add_parser(
         "seed-constitution",
         help="seed memory-bank/constitution.md for product repository",
@@ -311,6 +367,82 @@ def main() -> int:
             )
             res = finish_implement_step(req)
             out = res.model_dump()
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
+        if args.mb_cmd == "handoff":
+            from loop.mb_finish.impl import finish_handoff
+            from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta
+            meta = LoopHandoffMeta(
+                role=args.role,
+                mode=args.mode,
+                epic_id=args.epic_id,
+                step=args.step,
+            )
+            load_now = []
+            if args.load_now_path and args.load_now_desc:
+                load_now.append(LoadNowItem(path=args.load_now_path, description=args.load_now_desc))
+            body = HandoffBody(
+                mode=args.mode,
+                next_hint=args.next_hint,
+                epic_id=args.epic_id,
+                step_id=args.step,
+            )
+            res = finish_handoff(meta, load_now, body, cwd=cwd)
+            out = res.model_dump()
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
+        if args.mb_cmd in ("qa", "bugfix", "decompose", "plan", "analyze", "audit", "creative", "reflect"):
+            from loop.mb_finish.impl import (
+                finish_analyze,
+                finish_audit,
+                finish_bugfix,
+                finish_creative,
+                finish_decompose,
+                finish_plan,
+                finish_qa,
+                finish_reflect,
+            )
+            from loop.mb_finish.schemas import MbFinishRequest
+            req = MbFinishRequest(
+                phase=args.phase,
+                step_id=args.step,
+                done_summary=args.done,
+                cwd=cwd,
+            )
+            if args.mb_cmd == "qa":
+                fn = finish_qa
+            elif args.mb_cmd == "bugfix":
+                fn = finish_bugfix
+            elif args.mb_cmd == "decompose":
+                fn = finish_decompose
+            elif args.mb_cmd == "plan":
+                fn = finish_plan
+            elif args.mb_cmd == "analyze":
+                fn = finish_analyze
+            elif args.mb_cmd == "audit":
+                fn = finish_audit
+            elif args.mb_cmd == "creative":
+                fn = finish_creative
+            else:
+                fn = finish_reflect
+            res = fn(req)
+            out = res.model_dump()
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
+
+    if args.cmd == "mb-load":
+        if args.mb_load_cmd == "session":
+            from loop.mb_load.session import load_session
+            cmd_cwd = str(resolve_cli_cwd(getattr(args, "cwd", None)))
+            plan_sec = int(args.plan_section) if args.plan_section is not None else None
+            res = load_session(cwd=cmd_cwd, plan_section=plan_sec)
+
+            # missing-file policy / missing_active_context check:
+            # If ok is True but no files were loaded because load_now paths were missing, or ok is False:
+            if not res.files and any("missing_file:" in d for d in res.diagnostic_codes):
+                res.ok = False
+
+            out = res.model_dump(mode="json")
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
 

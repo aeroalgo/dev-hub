@@ -18,7 +18,7 @@ alwaysApply: false
 3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: front` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas (`epic-decompose-shard/*`, …). FINISH: `validate-decompose-tree` fail-closed
 3b. Brownfield UI replace → sNN с `deletes` или out_of_scope+follow-up **в queue**; cleanup ≠ n/a → `*-legacy-fallback-purge`. Канон: `shared/workflow-legacy-fallback-cleanup.mdc`
 4. Каждый `sNN`: skills gate — Impl Core(6) ∪ situational из @.cursor/rules/front_developer/skills-gate-situational.mdc
-5. `visible_ui: yes` → Design Core (все 6); `no` → `**Design skills:** —` + причина
+5. `visible_ui: yes` → Design Core (весь пакет Base 4 + Taste 13); `no` → `**Design skills:** —` + причина
 6. Папка создана
 7. Plan: index = единственный трекер; нет sNN-чеклистов
 7a. **Promote gate (HARD):** `validate-decompose-tree` + `validate-traceability` CRITICAL=0 + (ANALYZE artifact critical_count=0 **или** `ANALYZE deferred:` in Handoff)
@@ -40,7 +40,7 @@ alwaysApply: false
 - Plan с дубль-чеклистом sNN → incomplete
 - `sNN` без Impl Core (6) → incomplete
 - `sNN` без `visible_ui` → incomplete
-- `visible_ui: yes` без Design Core (6) → incomplete
+- `visible_ui: yes` без Design Core (весь пакет) → incomplete
 - `visible_ui: no` без причины в Design skills → incomplete
 - situational > 4 / путь вне allowlist → incomplete
 - User-visible scenario без `playwright-best-practices` (+ generate если новый E2E) → incomplete

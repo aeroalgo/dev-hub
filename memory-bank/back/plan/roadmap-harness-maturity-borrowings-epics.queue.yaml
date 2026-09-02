@@ -38,3 +38,9 @@ queue:
   - id: T-HUB-040
     plan: plan-T-HUB-040-harness-workflow-finish-api.md
     deps: [T-HUB-029, T-HUB-033]
+  - id: T-HUB-045
+    plan: plan-T-HUB-045-harness-workflow-session-load-api.md
+    deps: [T-HUB-040]
+  - id: T-HUB-047
+    plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
+    deps: [T-HUB-036, T-HUB-040]

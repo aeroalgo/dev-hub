@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "loop/mb_load/resolver.py — implement yaml auto-resolve + mode matrix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать resolver.py внутри loop/mb_load/: mode matrix helpers, которые авто-резолвят
+  implement-yaml по step_id если он отсутствует в load_now (IMPLEMENT mode), обеспечивают
+  per-mode bundle policies (QA/BUGFIX/DECOMPOSE vs IMPLEMENT denylist). Outcome: агент
+  получает корректный bundle не зависимо от того, указал ли автор Handoff implement-yaml
+  явно — система подхватывает нужный shard автоматически.
+
+context:
+  consumes:
+    - loop/mb_load/session.py       # load_session вызывает resolver из s01
+    - loop/mb_load/schemas.py       # MbLoadResult, MbLoadRequest
+    - harness/hooks/epic/core.py    # extract_load_now, validate_active_context_shape
+    - harness/hooks/epic_lib.py     # load_decompose_steps_fail_closed, _work_shard_path pattern
+    - loop/context_loop.py:352      # _work_shard_path паттерн резолвинга shard
+  produces:
+    - loop/mb_load/resolver.py
+    - loop/tests/test_mb_load_resolver.py  # TM-008 implement yaml auto-resolve, TM-004 QA mode
+  plan_refs:
+    - "FR-007: mode matrix helpers — IMPLEMENT auto-resolve implement yaml by step_id"
+    - "US-004: parent QA/BUGFIX — mode-specific bundle"
+    - "TM-004: QA mode bundle — qa shard loaded"
+    - "TM-008: implement yaml auto-resolve если missing from load_now"
+    - "§Failure matrix: forbidden path plan-*.md IMPLEMENT → policy engine"
+  files:
+    - loop/mb_load/resolver.py
+    - loop/tests/test_mb_load_resolver.py
+
+as_built:
+  - "loop/context_loop.py:352 _work_shard_path(cwd, load_now) → Path|None — паттерн поиска shard по load_now"
+  - "loop/context_loop.py:445 detect_delta_paths() — паттерн mode detection"
+  - "harness/hooks/epic_lib.py: load_decompose_steps_fail_closed — паттерн загрузки steps"
+  - "НЕТ mode matrix в mb_load — добавляем"
+
+delta:
+  - "CREATE loop/mb_load/resolver.py — класс/функции: resolve_bundle_paths(cwd, mode, step_id, load_now_paths) → (resolved_paths, auto_added, forbidden_skipped, diagnostics); implement yaml auto-resolve по step_id если mode=IMPLEMENT и implement-yaml не в load_now; QA/BUGFIX mode: добавить qa/bugfix shard из known path pattern; DECOMPOSE: разрешить plan-*.md; IMPLEMENT: plan-*.md → forbidden"
+  - "EDIT loop/mb_load/session.py — вызов resolve_bundle_paths() перед file load loop"
+  - "CREATE loop/tests/test_mb_load_resolver.py — TM-008 auto-resolve, TM-004 QA mode bundle, IMPLEMENT forbidden"
+
+deletes: []
+
+out_of_scope:
+  - "load_plan_section subcommand (s04)"
+  - "size cap logic (в session.py из s01)"
+  - "CLI wiring (s02)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # S11: typed resolver API
+
+checkpoints:
+  - id: cp1
+    criterion: "IMPLEMENT mode: load_now без implement-yaml → resolver добавляет его по step_id; auto_added непустой"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_resolver.py::test_auto_resolve_implement_yaml -q"
+  - id: cp2
+    criterion: "TM-004/TM-008: QA mode → qa shard в resolved; IMPLEMENT plan-*.md → forbidden_skipped"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_resolver.py::test_mode_matrix -q"
+  - id: cp3
+    criterion: "DECOMPOSE mode: plan-*.md разрешён, не попадает в forbidden_skipped"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_resolver.py::test_decompose_plan_allowed -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_mb_load_resolver.py -q --tb=short"
+tdd:
+  - "test_auto_resolve_implement_yaml: step_id=s05 → implement/s05-*.yaml добавлен"
+  - "test_mode_matrix: QA mode → qa shard; IMPLEMENT plan → forbidden"
+  - "test_decompose_plan_allowed: DECOMPOSE mode → plan-*.md в resolved, не forbidden"
+  - "test_resolver_idempotent: 2x resolve → same paths"

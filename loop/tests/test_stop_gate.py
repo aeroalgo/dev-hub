@@ -800,7 +800,7 @@ def test_validate_index_vs_implement_false_completed(tmp_path: Path) -> None:
     errs = epic_lib.validate_index_vs_implement(tmp_path, dec)
     assert errs
     assert "e01" in errs[0] or "e02" in errs[0]
-    assert "bulk sed" in errs[0] or "mark-index-status" in errs[0]
+    assert "finalize-step" in errs[0]
 
 
 def test_bash_pretool_denies_after_in_epic_loop(tmp_path: Path) -> None:

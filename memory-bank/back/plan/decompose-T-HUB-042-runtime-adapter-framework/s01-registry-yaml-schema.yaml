@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s01 — Registry YAML schema + loader unit tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать loop/runtime_registry.yaml (schema runtime-registry/v1) с записями claude + dsh
+  и loop/runtime/registry.py — load/validate + get_runtime_adapter(id) + capability check.
+  Outcome: единый источник истины для допустимых runtime id; downstream _lib и dispatch читают реестр,
+  а не захардкоженный frozenset.
+
+context:
+  consumes:
+    - "plan §FR-001, §FR-005, §Technology axiom"
+    - "harness/hooks/_lib.py _RUNTIME_MODES frozenset (as-built for replacement)"
+  produces:
+    - loop/runtime_registry.yaml
+    - loop/runtime/__init__.py
+    - loop/runtime/registry.py
+    - loop/tests/test_runtime_registry.py
+  plan_refs:
+    - "FR-001: loop/runtime_registry.yaml schema runtime-registry/v1"
+    - "FR-005: registry.py load + get_runtime_adapter + capability check"
+    - "US-001: EPIC_RUNTIME from registry, add runtime without loop.sh edit"
+    - "SC-002: EPIC_RUNTIME=foo → invalid_runtime_config"
+  files:
+    - loop/runtime_registry.yaml
+    - loop/runtime/__init__.py
+    - loop/runtime/registry.py
+    - loop/tests/test_runtime_registry.py
+
+as_built:
+  - "harness/hooks/_lib.py:644 — _RUNTIME_MODES = frozenset({'claude', 'dsh'}) — захардкожено"
+  - "loop/runtime_adapters/__init__.py — пакет пустой, только dsh.py есть"
+  - "loop/runtime/ — не существует"
+
+delta:
+  - "add loop/runtime_registry.yaml — schema runtime-registry/v1; fields: id, adapter_module, capabilities, binary_env"
+  - "add loop/runtime/__init__.py — пустой init пакет"
+  - "add loop/runtime/registry.py — load_registry(path), validate_schema, get_runtime_adapter(id)->RuntimeAdapter, get_runtime_adapter_module(id)->str, list_ids()->list[str], has_capability(id, cap)->bool; fail-closed InvalidRuntimeConfig + exit 2 при отсутствии id"
+  - "add loop/tests/test_runtime_registry.py — TM-001: load valid, TM-002-partial: unknown id raises InvalidRuntimeConfig"
+
+deletes: []
+
+out_of_scope:
+  - "dispatch.py — s05"
+  - "adapter классы — s02, s03, s04"
+  - "_lib.resolve_runtime_config refactor — s06"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: "registry YAML parses без ошибок; оба id (claude, dsh) присутствуют; capabilities list непустой"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -q --tb=line -k 'load_valid'"
+  - id: cp2
+    criterion: "get_runtime_adapter('codex') и get_runtime_adapter_module('codex') кидают InvalidRuntimeConfig; exit 2 на CLI (fail-closed, AC+ #4)"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -q --tb=line -k 'invalid_id'"
+  - id: cp3
+    criterion: "has_capability('dsh', 'stream_json') возвращает bool согласно yaml; CapabilityError на отсутствующий runtime"
+    verify: ".venv/bin/pytest loop/tests/test_runtime_registry.py -q --tb=line -k 'capability'"
+
+verify:
+  - "rg 'runtime-registry/v1' loop/runtime_registry.yaml"
+  - "rg 'get_runtime_adapter_module' loop/runtime/registry.py"
+  - ".venv/bin/pytest loop/tests/test_runtime_registry.py -q --tb=line"
+
+tdd:
+  - test_registry_load_valid_returns_both_runtimes
+  - test_registry_unknown_id_raises_invalid_runtime_config
+  - test_registry_capability_check_true_false
+  - test_registry_malformed_yaml_raises

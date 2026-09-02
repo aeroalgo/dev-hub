@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s08 — finish_creative + finish_reflect (P2) IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s08-finish-creative-reflect.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented finish_creative in loop/mb_finish/impl.py
+- Implemented finish_reflect in loop/mb_finish/impl.py
+- Exposed mb-finish creative and mb-finish reflect in harness/hooks/epic_resolve.py
+- Added test suite harness/hooks/tests/test_mb_finish_creative.py
+files:
+- loop/mb_finish/impl.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_finish_creative.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_creative.py -q
+  --tb=line`'
+integration_check:
+- finish_creative and finish_reflect atomic activeContext render verified
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'finish_creative happy path: artifact → ok=True, mode=IMPLEMENT'
+  status: done
+  done_at: '2026-09-01T18:47:23Z'
+- id: cp2
+  criterion: 'finish_reflect happy path: reflection artifact → ok=True'
+  status: done
+  done_at: '2026-09-01T18:47:28Z'
+- id: cp3
+  criterion: full P2 suite зелёный
+  status: done
+  done_at: '2026-09-01T18:47:33Z'
+resume_from: cp1

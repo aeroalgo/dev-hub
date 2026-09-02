@@ -3,8 +3,7 @@ role: back
 step_id: s03
 plan_id: T-HUB-040-harness-workflow-finish-api
 title: s03 — stop-gate last_finish_tool fingerprint + epic state wire IMPLEMENT
-status: in_progress
-implement_index: ''
+status: completed
 date: '2026-09-01'
 decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s03-stop-gate-fingerprint.yaml
 skills_used: []
@@ -23,11 +22,15 @@ files:
 - harness/hooks/tests/test_stop_gate_fingerprint.py
 deletes: []
 tests:
-- harness/hooks/tests/test_stop_gate_fingerprint.py
-integration_check: []
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py
+  -q --tb=line`'
+integration_check:
+- 'PYTHONPATH=. .venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py
+  -q --tb=line: PASSED'
 grep_control: []
 verification_results:
-- '.venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line: PASSED'
+- '.venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line:
+  PASSED'
 checkpoints:
 - id: cp1
   criterion: write_last_finish_tool пишет в epic state, load_epic_state возвращает

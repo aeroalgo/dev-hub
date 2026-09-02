@@ -2,21 +2,21 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-038
-    plan: plan-T-HUB-038-harness-metrics-dashboard.md
-    deps: []
-  - id: T-HUB-040
-    plan: plan-T-HUB-040-harness-workflow-finish-api.md
-    deps: []
-  - id: T-HUB-041
-    plan: plan-T-HUB-041-harness-canonical-extract.md
+  - id: T-HUB-045
+    plan: plan-T-HUB-045-harness-workflow-session-load-api.md
     deps: []
   - id: T-HUB-042
     plan: plan-T-HUB-042-runtime-adapter-framework.md
-    deps: [T-HUB-041]
+    deps: []
   - id: T-HUB-043
     plan: plan-T-HUB-043-runtime-bridge-codex.md
     deps: [T-HUB-042]
   - id: T-HUB-044
     plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
     deps: [T-HUB-043]
+  - id: T-HUB-046
+    plan: plan-T-HUB-046-harness-alongside-install.md
+    deps: []
+  - id: T-HUB-047
+    plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
+    deps: []

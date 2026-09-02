@@ -1,0 +1,60 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-042-runtime-adapter-framework
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 7
+  cut_list:
+  - capability preflight CLI
+  - interactive mode registry flags
+steps:
+- id: s01
+  file: s01-registry-yaml-schema.yaml
+  title: Registry YAML schema + loader — единый источник runtime id
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-runtime-adapter-protocol.yaml
+  title: RuntimeAdapter Protocol + SessionContext/SessionAnalysis dataclasses
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-claude-adapter.yaml
+  title: ClaudeAdapter — extract claude argv builder + byte-equivalent behavior
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-dsh-adapter-refactor.yaml
+  title: DshAdapter — implement Protocol wrapping existing dsh.py functions
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-dispatch-loopsh-wiring.yaml
+  title: dispatch.py CLI + loop.sh thin wrapper; replace if/else dispatch
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-lib-resolve-runtime-registry.yaml
+  title: _lib.resolve_runtime_config registry-driven; purge _RUNTIME_MODES frozenset
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s07
+  file: s07-session-resilience-delegate-analyze.yaml
+  title: session_resilience delegates analyze_log to adapter; purge is_dsh core path
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s08
+  file: s08-context-loop-runtime-extras-argparse.yaml
+  title: context_loop runtime_extras via adapter.prepare_extras + argparse from registry
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s09
+  file: s09-purge-is-dsh-dispatch-regression.yaml
+  title: purge is_dsh/EPIC_DSH_PROFILE remaining callers + regression suite green
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s10
+  file: s10-legacy-fallback-purge.yaml
+  title: legacy-fallback-purge — standalone dsh functions + full inventory scan
+  next_phase: BACK IMPLEMENT
+  status: pending

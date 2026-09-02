@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: "load_plan_section — §N parser + CLI --plan-section flag"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать load_plan_section(cwd, section: int): извлекает единственный ##-раздел из
+  plan-*.md по epic_id в activeContext frontmatter. Подключить к CLI mb-load session
+  --plan-section N. Outcome: агент загружает только нужный §N плана (AC/FR) вместо
+  полного file, token cap не нарушается, US-005 закрыт.
+
+context:
+  consumes:
+    - loop/mb_load/session.py     # load_session вызывает load_plan_section если plan_section!=None
+    - loop/mb_load/schemas.py     # MbLoadResult — поле content для section body
+    - harness/hooks/epic/core.py  # read_active_context pattern
+    - harness/hooks/epic_resolve.py  # --plan-section N CLI arg (wired в s02 stub)
+  produces:
+    - loop/mb_load/plan_section.py
+    - loop/tests/test_mb_load_plan_section.py  # TM-005, TM-007
+  plan_refs:
+    - "FR-006: load_plan_section(cwd, section: int) — extract single ## section from plan by epic_id in meta"
+    - "US-005: parent — optional plan_section jump; only §N body"
+    - "TM-005: plan_section extract — §N only returned"
+    - "TM-007: plan_section invalid N → ok:false"
+  files:
+    - loop/mb_load/plan_section.py
+    - loop/tests/test_mb_load_plan_section.py
+
+as_built:
+  - "harness/hooks/epic/core.py:read_active_context — читает activeContext, возвращает text"
+  - "loop/mb_finish/schemas.py: LoopHandoffMeta.epic_id — откуда берём epic_id"
+  - "context-session-economy.mdc §3: 'jump plan §N из Consumes' — prose rule, заменяем API"
+  - "НЕТ load_plan_section — создаём"
+
+delta:
+  - "CREATE loop/mb_load/plan_section.py — load_plan_section(cwd, section: int) → str | None: читает activeContext → извлекает epic_id → finds plan-<epic_id>*.md → regex split по ^## → возвращает §N body; fail с кодом plan_missing / section_not_found если нет файла или N вне диапазона"
+  - "EDIT loop/mb_load/session.py — если plan_section != None → вызвать load_plan_section и добавить в files[] как виртуальный entry с synthetic path"
+  - "EDIT harness/hooks/epic_resolve.py — --plan-section N arg уже stubbed в s02 → wire к load_session(plan_section=N)"
+  - "CREATE loop/tests/test_mb_load_plan_section.py — TM-005 happy §3, TM-007 invalid N, plan_missing"
+
+deletes: []
+
+out_of_scope:
+  - "multi-section load (не в FR)"
+  - "section caching"
+  - "MCP wrapper (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"  # S03: fail-closed section parser
+
+checkpoints:
+  - id: cp1
+    criterion: "TM-005: load_plan_section cwd §3 → returns only §3 body, no other sections"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_plan_section.py::test_load_section_happy -q"
+  - id: cp2
+    criterion: "TM-007: invalid N (> total sections) → raises / returns error code section_not_found"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_plan_section.py::test_load_section_invalid_n -q"
+  - id: cp3
+    criterion: "plan_missing: нет plan-*.md для epic_id → diagnostic plan_missing, ok:false в CLI"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_plan_section.py::test_load_section_plan_missing -q"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_mb_load_plan_section.py -q --tb=short"
+tdd:
+  - "test_load_section_happy: tmp plan.md с 5 разделами → §3 body returned"
+  - "test_load_section_invalid_n: N=99 → error"
+  - "test_load_section_plan_missing: no plan file → plan_missing error"
+  - "test_section_content_no_bleed: §3 не включает текст §4"

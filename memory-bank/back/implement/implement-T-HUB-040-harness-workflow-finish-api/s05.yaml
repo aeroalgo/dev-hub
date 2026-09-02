@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s05 — finish_qa + finish_bugfix IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-040-harness-workflow-finish-api/s05-finish-qa-bugfix.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован finish_qa(req) в loop/mb_finish/impl.py с валидацией QA artifact и переходом
+  в REFLECT
+- Реализован finish_bugfix(req) в loop/mb_finish/impl.py с валидацией bugfix decompose
+  и переходом в QA
+- Добавлены подкоманды mb-finish qa и mb-finish bugfix в harness/hooks/epic_resolve.py
+- Добавлены тесты в harness/hooks/tests/test_mb_finish_qa.py (TM-006)
+files:
+- loop/mb_finish/impl.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_finish_qa.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line`'
+integration_check:
+- '`python3 harness/hooks/epic_resolve.py --cwd /home/aero/PyProject/dev-hub status`'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line — PASS
+checkpoints:
+- id: cp1
+  criterion: 'finish_qa happy path: qa artifact valid → MbFinishResult(ok=True), activeContext
+    mode=REFLECT'
+  status: done
+  done_at: '2026-09-01T18:08:33Z'
+- id: cp2
+  criterion: finish_qa без qa artifact → ok=False, no write
+  status: done
+  done_at: '2026-09-01T18:08:39Z'
+- id: cp3
+  criterion: 'TM-006: finish_qa → REFLECT handoff'
+  status: done
+  done_at: '2026-09-01T18:08:44Z'
+- id: cp4
+  criterion: finish_bugfix happy path + full suite
+  status: done
+  done_at: '2026-09-01T18:08:50Z'
+resume_from: cp1

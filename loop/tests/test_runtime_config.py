@@ -220,7 +220,22 @@ def test_epic_runtime_dsh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_epic_runtime_invalid_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
-    monkeypatch.setenv("EPIC_RUNTIME", "foo")
+    monkeypatch.setenv("EPIC_RUNTIME", "codex")
+
+    with pytest.raises(lib.RuntimeConfigError) as exc_info:
+        lib.resolve_runtime_config(tmp_path)
+
+    assert exc_info.value.diagnostics[0] == {
+        "code": "invalid_runtime_config",
+        "key": "EPIC_RUNTIME",
+        "reason": "unsupported_runtime",
+    }
+
+
+def test_resolve_runtime_importerror_fail_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    lib = _load_lib()
+    monkeypatch.setattr(lib, "_get_supported_runtimes", lambda: frozenset({"claude", "dsh"}))
+    monkeypatch.setenv("EPIC_RUNTIME", "codex")
 
     with pytest.raises(lib.RuntimeConfigError) as exc_info:
         lib.resolve_runtime_config(tmp_path)

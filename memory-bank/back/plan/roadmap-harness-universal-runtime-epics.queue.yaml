@@ -5,6 +5,9 @@ queue:
   - id: T-HUB-041
     plan: plan-T-HUB-041-harness-canonical-extract.md
     deps: []
+  - id: T-HUB-046
+    plan: plan-T-HUB-046-harness-alongside-install.md
+    deps: [T-HUB-041]
   - id: T-HUB-042
     plan: plan-T-HUB-042-runtime-adapter-framework.md
     deps: [T-HUB-041]
