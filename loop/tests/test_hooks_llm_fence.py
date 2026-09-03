@@ -21,6 +21,25 @@ Some text after"""
     assert isinstance(res, dict)
     assert res.get("verdict") == "PASS"
 
+
+def test_extract_json_fence_info_string_schema_id():
+    """Models often emit ```json loop-gate-verdict/v1 — must still parse."""
+    text = """```json loop-gate-verdict/v1
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "verify-implement",
+  "verdict": "PASS",
+  "step_id": "s01",
+  "epic_id": "T-HUB-047-harness-mb-scaffold-epic-layout",
+  "recorded_at": "2026-09-03T00:00:00Z"
+}
+```"""
+    res = extract_json_fence(text)
+    assert isinstance(res, dict)
+    assert res.get("verdict") == "PASS"
+    assert res.get("schema") == "loop-gate-verdict/v1"
+
+
 def test_extract_json_fence_no_block():
     text = "Just plain text without json fence."
     assert extract_json_fence(text) is None

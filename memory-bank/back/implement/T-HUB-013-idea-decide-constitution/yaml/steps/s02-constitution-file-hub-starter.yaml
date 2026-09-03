@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-013
+title: s02 — Constitution.md hub starter — create file + ANALYZE/AUDIT authority wire
+  IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-013-idea-decide-constitution/yaml/steps/s02-constitution-file-hub-starter.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан canonical hub constitution с version/date/scope и 9 MUST правилами workflow.
+- Добавлены 3 SHOULD-рекомендации и Note о product adaptation без Library-First/CLI
+  Spec Kit контента.
+files:
+- memory-bank/constitution.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --collect-only -q`'
+- '`timeout 300s .venv/bin/python -c "from pathlib import Path; p=Path(\"memory-bank/constitution.md\");
+  t=p.read_text(); assert t.count(\"MUST-\") >= 8; assert \"ONE Handoff\" in t; assert
+  \"FRONT tests parent-only\" in t"`'
+- '`rg -c ''MUST-'' memory-bank/constitution.md`'
+- '`if rg -i ''library.first|CLI spec kit|library-first'' memory-bank/constitution.md;
+  then exit 1; else echo OK; fi`'
+- '`rg -n ''ONE Handoff|parent.only|FRONT tests'' memory-bank/constitution.md`'
+integration_check:
+- Docs-only authority artifact; references existing workflow conventions for TDD,
+  frontend parent-only, ANALYZE/AUDIT, Handoff, and §0.11 parity.
+grep_control: []
+verification_results:
+- 'cp1: 9 MUST rules present'
+- 'cp2: forbidden Spec Kit content absent'
+- 'cp3: MUST-3 and MUST-7 markers present'
+checkpoints:
+- id: cp1
+  criterion: memory-bank/constitution.md создан и содержит ≥8 MUST правил
+  status: done
+  done_at: '2026-08-28T08:06:36Z'
+- id: cp2
+  criterion: файл НЕ содержит Library-First или CLI Spec Kit контент
+  status: done
+  done_at: '2026-08-28T08:06:36Z'
+- id: cp3
+  criterion: MUST-7 ONE Handoff и MUST-3 FRONT tests parent-only присутствуют
+  status: done
+  done_at: '2026-08-28T08:06:37Z'
+resume_from: cp1

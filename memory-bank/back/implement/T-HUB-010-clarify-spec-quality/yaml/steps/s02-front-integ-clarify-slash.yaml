@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-010
+title: s02 — FRONT + INTEG workflow-clarify stubs + lean gates × 2 + slash commands
+  × 3 — clarify parity layer IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/s02-front-integ-clarify-slash.yaml
+skills_used: []
+discovery:
+- 'explorer: shared core and BACK clarify patterns confirmed; target FRONT/INTEG paths
+  and slash commands were absent before implementation'
+gaps:
+  status: none
+done:
+- Created thin FRONT workflow and lean gate wrappers over shared clarify-core with
+  UX/component/routes/state/API-contract scope
+- Created thin INTEG workflow and lean gate wrappers over shared clarify-core with
+  BACK↔FRONT wire/contract scope
+- Created back, front, and integ clarify slash command delegates to role-command
+files:
+- .cursor/rules/front_developer/workflow-clarify.mdc
+- .cursor/rules/front_developer/isolation_rules/_lean/clarify.mdc
+- .cursor/rules/integration_developer/workflow-clarify.mdc
+- .cursor/rules/integration_developer/isolation_rules/_lean/clarify.mdc
+- .claude/commands/back-clarify.md
+- .claude/commands/front-clarify.md
+- .claude/commands/integ-clarify.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_operational_docs.py -q --tb=line`'
+integration_check:
+- FRONT and INTEG wrappers reference shared workflow-clarify-core and their role-specific
+  lean gates
+- All three slash commands delegate to .claude/skills/role-command/SKILL.md
+grep_control:
+- back: rg -n 'workflow-clarify-core|shared' .cursor/rules/front_developer/workflow-clarify.mdc
+  front: rg -n 'contract|wire|INTEG' .cursor/rules/integration_developer/workflow-clarify.mdc
+- back: rg -n 'role-command|BACK CLARIFY' .claude/commands/back-clarify.md
+  front: rg -n 'role-command|FRONT CLARIFY|INTEG CLARIFY' .claude/commands/front-clarify.md
+    .claude/commands/integ-clarify.md
+verification_results:
+- 'cp1 done: FRONT workflow and lean reference shared-core'
+- 'cp2 done: INTEG workflow and lean contain contract/wire specificity'
+- 'cp3 done: all three clarify slash commands exist and delegate role-command'
+checkpoints:
+- id: cp1
+  criterion: FRONT workflow-clarify.mdc и lean существуют, содержат ссылку на shared-core
+  status: done
+  done_at: '2026-08-23T06:58:22Z'
+- id: cp2
+  criterion: INTEG workflow-clarify.mdc и lean существуют, содержат INTEG-специфику
+    (contract/wire)
+  status: done
+  done_at: '2026-08-23T07:02:20Z'
+- id: cp3
+  criterion: Все три slash-команды существуют и содержат делегирование role-command
+  status: done
+  done_at: '2026-08-23T07:02:21Z'
+resume_from: cp1

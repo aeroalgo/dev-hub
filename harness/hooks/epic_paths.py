@@ -1,14 +1,24 @@
-"""Epic loop path/state utilities — leaf module (zone A).
+"""Epic loop path/state utilities — thin wrapper and compat layer over loop.paths.epic_layout.
 
-Pure path normalization, decompose-path inference, and step-basename helpers.
-No dependency on epic_lib / orchestration — only stdlib. Extracted from the
-epic_lib god-module (BACK REFACTOR r01). Behavior frozen 1-в-1.
+Re-exports resolver API and maintains public helper functions for backwards compatibility.
+Emits layout_v1_deprecated diagnostics when falling back to legacy v1 paths.
 """
 from __future__ import annotations
 
+import logging
 import re
+import sys
 from pathlib import Path
 from typing import Any
+
+# Ensure project root is available for loop imports
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from loop.paths.epic_layout import resolve, resolve_request, EpicLayoutKind
+
+logger = logging.getLogger(__name__)
 
 EPIC_DIRNAME = "epic"
 STATE_NAME = "state.json"
@@ -21,19 +31,30 @@ STEP_BASENAME_RE = re.compile(
     r"(?i)((?:s|e)\d{2}-[a-z0-9][a-z0-9-]*)(?:\.(md|ya?ml))?$"
 )
 
+# Role directory slugs must never be used as epic_id (→ phantom role folders).
+RESERVED_ROLE_EPIC_IDS = frozenset({"back", "front", "integration", "integ"})
+_EPIC_ID_RE = re.compile(r"^T-[\w-]+$")
+_HUB_EPIC_PREFIX_RE = re.compile(r"^(T-HUB-\d+)")
+_LEGACY_DECOMPOSE_PREFIX = "decompose-"  # layout_v1_deprecated prefix marker
+
+
+def _warn_layout_v1_deprecated(feature: str, details: str = "") -> None:
+    """Log structured warning for legacy layout v1 usage."""
+    msg = f"layout_v1_deprecated: {feature}"
+    if details:
+        msg = f"{msg} ({details})"
+    logger.warning(msg)
+
 
 def epic_dir(cwd: str | Path) -> Path:
     import os
 
-    # Prefer PROJECT_ROOT so hooks running with Claude cwd=hub still hit the product repo.
     hub_root = Path(__file__).resolve().parents[2]
     cwd_p = Path(cwd).expanduser().resolve()
     proj = (os.environ.get("PROJECT_ROOT") or "").strip()
     project_p = Path(proj).expanduser().resolve() if proj else None
     effective_cwd = project_p if project_p is not None and cwd_p == hub_root else cwd_p
     hub = (os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT") or "").strip()
-    # An explicit temporary/test cwd must stay isolated when the inherited
-    # PROJECT_ROOT points at this hub; production products use hub runtime.
     use_hub_runtime = bool(
         hub and (project_p is None or project_p != hub_root)
     )
@@ -152,33 +173,40 @@ def role_from_decompose_path(decompose: str | Path) -> str | None:
     return None
 
 
-# Role directory slugs must never be used as epic_id (→ phantom decompose-back/).
-RESERVED_ROLE_EPIC_IDS = frozenset({"back", "front", "integration", "integ"})
-
-
 def is_reserved_role_epic_id(epic_id: str | None) -> bool:
     return bool(epic_id) and str(epic_id).strip().lower() in RESERVED_ROLE_EPIC_IDS
 
 
 def epic_id_from_decompose_path(decompose: str | Path) -> str:
+    """Extract epic_id from a decompose or plan path (v2 or v1)."""
     if not isinstance(decompose, (str, Path)):
         return ""
     raw = str(decompose).strip()
     if not raw:
         return ""
     path = Path(raw.replace("\\", "/"))
-    for part in reversed(path.parts):
-        if part.startswith("decompose-"):
-            return part[len("decompose-") :]
+    parts = list(path.parts)
+    for idx, part in enumerate(parts):
+        # Layout v2: memory-bank/<role>/plan/<epic_id>/...
+        if part == "plan" and idx + 1 < len(parts):
+            next_part = parts[idx + 1]
+            if next_part.startswith(_LEGACY_DECOMPOSE_PREFIX):
+                _warn_layout_v1_deprecated("decompose_folder_v1", next_part)
+                return next_part[len(_LEGACY_DECOMPOSE_PREFIX) :]
+            elif next_part not in {"md", "yaml", "steps"}:
+                return next_part
+        if part.startswith(_LEGACY_DECOMPOSE_PREFIX):
+            _warn_layout_v1_deprecated("decompose_folder_v1", part)
+            return part[len(_LEGACY_DECOMPOSE_PREFIX) :]
     name = path.stem
-    return name if name not in {".", "..", "", "index"} else ""
+    return name if name not in {".", "..", "", "index", "decompose-index"} else ""  # layout_v1_deprecated index stem
 
 
 def plan_id_from_decompose_index(index_path: Path) -> str | None:
     """Read plan_id from decompose index.yaml when present."""
     path = index_path
-    if path.name == "index.md":
-        yaml_sibling = path.with_name("index.yaml")
+    if path.name in {"index.md", "decompose-index.md"}:  # layout_v1_deprecated index filename
+        yaml_sibling = path.with_name(path.name.replace(".md", ".yaml"))
         if yaml_sibling.is_file():
             path = yaml_sibling
     if not path.is_file():
@@ -198,14 +226,12 @@ def canonical_epic_id_for_decompose(decompose: str | Path, *, index_path: Path |
     idx = index_path
     if idx is None:
         raw = str(decompose).strip().replace("\\", "/")
-        if raw.endswith(".md"):
-            idx = Path(raw)
-        elif raw.endswith(".yaml") or raw.endswith(".yml"):
+        if raw.endswith(".md") or raw.endswith(".yaml") or raw.endswith(".yml"):
             idx = Path(raw)
         else:
             idx = Path(raw) / "index.yaml"
-    if idx.name == "index.md":
-        yaml_sibling = idx.with_name("index.yaml")
+    if idx.name in {"index.md", "decompose-index.md"}:  # layout_v1_deprecated index filename
+        yaml_sibling = idx.with_name(idx.name.replace(".md", ".yaml"))
         if yaml_sibling.is_file():
             idx = yaml_sibling
     plan_id = plan_id_from_decompose_index(idx)
@@ -219,38 +245,130 @@ def find_decompose_index_path(
     role: str,
     epic_id: str,
 ) -> Path | None:
-    """Resolve decompose index.yaml|.md by folder name or index plan_id."""
+    """Resolve decompose index path via resolver (v2) with legacy v1 fallback."""
     if not epic_id:
         return None
     root = Path(cwd)
-    plan_dir = root / "memory-bank" / role / "plan"
+    role_norm = role.lower()
+    if role_norm == "integ":
+        role_norm = "integration"
+
+    # Try resolver (v2) first
+    try:
+        v2_yaml = resolve(role_norm, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+        if v2_yaml.is_file():
+            return v2_yaml
+        v2_md = resolve(role_norm, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=root)
+        if v2_md.is_file():
+            return v2_md
+    except Exception:
+        pass
+
+    # Legacy v1 fallback with deprecation warning
+    plan_dir = root / "memory-bank" / role_norm / "plan"
     if not plan_dir.is_dir():
         return None
+
     lookup = epic_lookup_ids(epic_id)
     for lookup_id in lookup:
-        found = _find_decompose_index_in_plan_dir(plan_dir, lookup_id)
+        # Check v2 lookup candidate
+        try:
+            cand_v2 = resolve(role_norm, lookup_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+            if cand_v2.is_file():
+                return cand_v2
+        except Exception:
+            pass
+
+        found = _find_layout_v1_deprecated_decompose_index(plan_dir, lookup_id)
         if found is not None:
+            _warn_layout_v1_deprecated("decompose_index_path", str(found))
             return found
+
     lookup_set = set(lookup)
-    for ypath in sorted(plan_dir.glob("decompose-*/index.yaml")):
+    for ypath in sorted(plan_dir.glob("*/yaml/decompose-index.yaml")):  # layout_v2 glob
         plan_id = plan_id_from_decompose_index(ypath)
         if plan_id and plan_id in lookup_set:
             return ypath
-    for mdpath in sorted(plan_dir.glob("decompose-*/index.md")):
+
+    # Legacy v1 glob fallback (layout_v1_deprecated)
+    for ypath in sorted(plan_dir.glob(f"{_LEGACY_DECOMPOSE_PREFIX}*/index.yaml")):
+        plan_id = plan_id_from_decompose_index(ypath)
+        if plan_id and plan_id in lookup_set:
+            _warn_layout_v1_deprecated("decompose_glob_v1", str(ypath))
+            return ypath
+    for mdpath in sorted(plan_dir.glob(f"{_LEGACY_DECOMPOSE_PREFIX}*/index.md")):
         ypath = mdpath.with_name("index.yaml")
         if ypath.is_file() and plan_id_from_decompose_index(ypath) in lookup_set:
+            _warn_layout_v1_deprecated("decompose_glob_v1", str(ypath))
             return ypath
         if plan_id_from_decompose_index(mdpath) in lookup_set:
+            _warn_layout_v1_deprecated("decompose_glob_v1", str(mdpath))
             return mdpath
     return None
 
 
-def resolve_decompose_ref_for_gate(cwd: str | Path, epic: dict[str, Any]) -> str | None:
-    """Resolve decompose index path for DECOMPOSE FINISH gate.
+def epic_id_from_plan_path(plan: str | Path | None) -> str | None:
+    """Extract epic_id from v2 ``…/{epic_id}/md/plan.md`` or legacy ``plan-{epic_id}.md``."""
+    if plan is None:
+        return None
+    path = Path(plan)
+    if not path.name:
+        return None
+    if path.name == "plan.md" and path.parent.name == "md":
+        return path.parent.parent.name or None
+    stem = path.stem
+    if stem.startswith("plan-"):
+        return stem[len("plan-") :] or None
+    return stem or None
 
-    Uses armed_decompose when set; otherwise finds index by armed_epic + role
-    (headless DECOMPOSE often arms with armed_decompose=None until tree exists).
-    """
+
+def find_plan_md_path(
+    cwd: str | Path,
+    role: str,
+    epic_id: str,
+) -> Path | None:
+    """Resolve plan.md via layout v2 first, then legacy ``plan-{id}.md`` (deprecated)."""
+    if not epic_id:
+        return None
+    root = Path(cwd)
+    role_norm = role.lower()
+    if role_norm == "integ":
+        role_norm = "integration"
+
+    plan_dir = root / "memory-bank" / role_norm / "plan"
+    lookup = epic_lookup_ids(epic_id)
+
+    for lookup_id in lookup:
+        try:
+            v2_plan = resolve(role_norm, lookup_id, EpicLayoutKind.PLAN_MD, project_root=root)
+            if v2_plan.is_file():
+                return v2_plan
+        except Exception:
+            pass
+
+    if plan_dir.is_dir():
+        for lookup_id in lookup:
+            for cand in sorted(plan_dir.glob(f"{lookup_id}-*/md/plan.md")):
+                if cand.is_file():
+                    return cand
+            exact = plan_dir / lookup_id / "md" / "plan.md"
+            if exact.is_file():
+                return exact
+
+        for lookup_id in lookup:
+            exact_v1 = plan_dir / f"plan-{lookup_id}.md"
+            if exact_v1.is_file():
+                _warn_layout_v1_deprecated("plan_md_v1", str(exact_v1))
+                return exact_v1
+            matches = sorted(plan_dir.glob(f"plan-{lookup_id}-*.md"))
+            if matches:
+                _warn_layout_v1_deprecated("plan_md_v1", str(matches[0]))
+                return matches[0]
+    return None
+
+
+def resolve_decompose_ref_for_gate(cwd: str | Path, epic: dict[str, Any]) -> str | None:
+    """Resolve decompose index path for DECOMPOSE FINISH gate."""
     raw = str(epic.get("armed_decompose") or "").strip()
     if raw:
         return raw.replace("\\", "/")
@@ -261,6 +379,8 @@ def resolve_decompose_ref_for_gate(cwd: str | Path, epic: dict[str, Any]) -> str
     if not epic_id:
         return None
     role = str(epic.get("role") or "back").lower()
+    if role == "integ":
+        role = "integration"
     root = Path(cwd)
     idx = find_decompose_index_path(root, role, epic_id)
     if idx and idx.is_file():
@@ -268,26 +388,22 @@ def resolve_decompose_ref_for_gate(cwd: str | Path, epic: dict[str, Any]) -> str
             return idx.relative_to(root).as_posix()
         except ValueError:
             return str(idx).replace("\\", "/")
-    expected = root / "memory-bank" / role / "plan" / f"decompose-{epic_id}" / "index.yaml"
-    if expected.is_file():
-        try:
-            return expected.relative_to(root).as_posix()
-        except ValueError:
-            return str(expected).replace("\\", "/")
+
+    # Resolver v2 expected path
+    try:
+        v2_path = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+        if v2_path.is_file():
+            try:
+                return v2_path.relative_to(root).as_posix()
+            except ValueError:
+                return str(v2_path).replace("\\", "/")
+    except Exception:
+        pass
+
     return None
 
 
-_EPIC_ID_RE = re.compile(r"^T-[\w-]+$")
-_HUB_EPIC_PREFIX_RE = re.compile(r"^(T-HUB-\d+)")
-
-
 def epic_lookup_ids(epic_id: str) -> tuple[str, ...]:
-    """Ordered epic ids for artifact lookup (exact slug, then roadmap queue prefix).
-
-    Roadmap queue uses short ids (T-HUB-030) while plan files often carry a
-    descriptive slug (T-HUB-030-harness-runtime-wire). Decompose folders may
-    exist under either form; try both without collapsing the caller's epic_id.
-    """
     out: list[str] = []
     seen: set[str] = set()
 
@@ -304,13 +420,14 @@ def epic_lookup_ids(epic_id: str) -> tuple[str, ...]:
     return tuple(out)
 
 
-def _find_decompose_index_in_plan_dir(plan_dir: Path, epic_id: str) -> Path | None:
-    exact_dir = plan_dir / f"decompose-{epic_id}"
+def _find_layout_v1_deprecated_decompose_index(plan_dir: Path, epic_id: str) -> Path | None:
+    """Legacy v1 decompose finder (layout_v1_deprecated)."""
+    exact_dir = plan_dir / f"{_LEGACY_DECOMPOSE_PREFIX}{epic_id}"
     for name in ("index.yaml", "index.md"):
         candidate = exact_dir / name
         if candidate.is_file():
             return candidate
-    for d in sorted(plan_dir.glob(f"decompose-{epic_id}-*")):
+    for d in sorted(plan_dir.glob(f"{_LEGACY_DECOMPOSE_PREFIX}{epic_id}-*")):
         if not d.is_dir():
             continue
         for name in ("index.yaml", "index.md"):
@@ -331,16 +448,33 @@ def discover_epic_role(cwd: str | Path, epic_id: str) -> str | None:
         if not plan_dir.is_dir():
             continue
         for lookup_id in epic_lookup_ids(epic_id):
+            # v2 checks
+            try:
+                v2_plan = resolve(role, lookup_id, EpicLayoutKind.PLAN_MD, project_root=root)
+                if v2_plan.is_file():
+                    return role
+                v2_idx = resolve(role, lookup_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+                if v2_idx.is_file():
+                    return role
+            except Exception:
+                pass
+
+            # Legacy v1 checks with warning (layout_v1_deprecated)
             if (plan_dir / f"plan-{lookup_id}.md").is_file():
+                _warn_layout_v1_deprecated("plan_md_v1", f"plan-{lookup_id}.md")
                 return role
             if any(plan_dir.glob(f"plan-{lookup_id}-*.md")):
+                _warn_layout_v1_deprecated("plan_md_v1", f"plan-{lookup_id}-*.md")
                 return role
-            decomp = plan_dir / f"decompose-{lookup_id}"
+            decomp = plan_dir / f"{_LEGACY_DECOMPOSE_PREFIX}{lookup_id}"
             if (decomp / "index.yaml").is_file() or (decomp / "index.md").is_file():
+                _warn_layout_v1_deprecated("decompose_dir_v1", str(decomp))
                 return role
-            if any(plan_dir.glob(f"decompose-{lookup_id}-*/index.yaml")):
+            if any(plan_dir.glob(f"{_LEGACY_DECOMPOSE_PREFIX}{lookup_id}-*/index.yaml")):
+                _warn_layout_v1_deprecated("decompose_dir_v1", f"{_LEGACY_DECOMPOSE_PREFIX}{lookup_id}-*/index.yaml")
                 return role
-            if any(plan_dir.glob(f"decompose-{lookup_id}-*/index.md")):
+            if any(plan_dir.glob(f"{_LEGACY_DECOMPOSE_PREFIX}{lookup_id}-*/index.md")):
+                _warn_layout_v1_deprecated("decompose_dir_v1", f"{_LEGACY_DECOMPOSE_PREFIX}{lookup_id}-*/index.md")
                 return role
     return None
 
@@ -365,7 +499,7 @@ def resolve_arm_epic_target(
         return None
     role = role_from_memory_bank_path(raw)
     epic_id = ""
-    if "decompose-" in raw:
+    if _LEGACY_DECOMPOSE_PREFIX in raw or "/plan/" in raw:  # layout_v1_deprecated compat
         epic_id = epic_id_from_decompose_path(raw)
     else:
         name = Path(raw.rstrip("/")).name

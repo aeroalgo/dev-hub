@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s03 — JSON fence parser + parse_gate_verdict_message + sidecar write IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/yaml/steps/s03-json-fence-parser-parse-gate-verdict-message.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован extract_json_fence(text) в _lib.py для получения dict из ```json ...
+  ``` блока
+- Реализован parse_gate_verdict_message(text, cwd, agent_id, ...) с вызовом write_gate_verdict
+  в sidecar
+- Создан набор тестов loop/tests/test_hooks_llm_fence.py и фикстуры
+files:
+- .claude/hooks/_lib.py
+- loop/tests/test_hooks_llm_fence.py
+- loop/tests/fixtures/llm_fallback/valid_gate_verdict.json
+- loop/tests/fixtures/llm_fallback/invalid_extra_field.json
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_fence.py -q`'
+integration_check:
+- '_lib.py: extract_json_fence and parse_gate_verdict_message exported and callable
+  by gate-message hooks'
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_hooks_llm_fence.py -q (5 passed)
+checkpoints:
+- id: cp1
+  criterion: extract_json_fence с валидным json-fence возвращает dict
+  status: done
+  done_at: '2026-08-31T17:22:48Z'
+- id: cp2
+  criterion: extract_json_fence без fence → None; с невалидным JSON → None
+  status: done
+  done_at: '2026-08-31T17:22:57Z'
+- id: cp3
+  criterion: parse_gate_verdict_message с valid GateVerdictRecord JSON → record записан
+    в sidecar
+  status: done
+  done_at: '2026-08-31T17:23:06Z'
+- id: cp4
+  criterion: parse_gate_verdict_message с невалидным payload (extra field) → None,
+    sidecar не записан
+  status: done
+  done_at: '2026-08-31T17:23:17Z'
+resume_from: cp1

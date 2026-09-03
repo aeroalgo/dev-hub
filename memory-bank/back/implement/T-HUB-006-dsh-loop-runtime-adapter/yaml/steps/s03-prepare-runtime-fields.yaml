@@ -1,0 +1,93 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: s03 — prepare runtime fields + --runtime CLI override — orchestrator contract
+  IMPLEMENT
+status: completed
+implement_index: memory-bank/back/implement/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/index.yaml
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s03-prepare-runtime-fields.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'loop/context_loop.py: prepare_session is the JSON preparation contract and resolves
+  RuntimeConfig.'
+- '.claude/hooks/_lib.py: RuntimeConfig.epic_runtime defaults to claude and accepts
+  claude|dsh.'
+- 'loop/tests/test_runtime_config.py: runtime default and EPIC_RUNTIME=dsh are covered
+  at config level.'
+gaps:
+  status: none
+done:
+- prepare_session accepts an optional runtime override and emits runtime, dsh_profile,
+  and dsh_workspace in the preparation JSON.
+- EPIC_RUNTIME is used when no CLI override is supplied, preserving the claude default.
+- prepare CLI accepts --runtime claude|dsh and passes the value to prepare_session,
+  so CLI dsh wins over the environment.
+- Added regression coverage for default runtime, environment runtime, DSH metadata,
+  and CLI override.
+files:
+- loop/context_loop.py
+- loop/tests/test_context_loop.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k "test_prepare_emits_runtime_claude_default"
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k "test_prepare_emits_runtime_dsh"
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k "test_prepare_cli_runtime_override"
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=short`'
+integration_check:
+- prepare_session JSON exposes runtime for the next loop dispatch without an additional
+  environment read.
+- CLI choices constrain --runtime to claude or dsh; environment resolution remains
+  fail-closed in RuntimeConfig.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: 1 passed, 66 deselected.'
+- 'cp2 PASS: 1 passed, 66 deselected.'
+- 'cp3 PASS: 1 passed, 66 deselected.'
+- 'cp4 PASS: 67 passed.'
+- Targeted tests were run with PROJECT_ROOT, DEV_HUB, and HUB_ROOT unset to isolate
+  temporary repository state paths.
+- The ambient shell environment defines PROJECT_ROOT=dev-hub; without unsetting it,
+  temporary tests reuse the hub runtime state and fail for unrelated stale state.
+- git diff --check was not clean because pre-existing trailing whitespace exists in
+  unrelated memory-bank/back/plan files.
+- No deletes are declared for this additive change.
+- No frontend tests were run.
+- No full repository suite was run; the shard verify command is loop/tests/test_context_loop.py.
+checkpoints:
+- id: cp1
+  criterion: 'test_prepare_emits_runtime_claude_default PASS: unset → runtime=="claude"
+
+    '
+  status: done
+  done_at: '2026-08-23T16:48:03Z'
+- id: cp2
+  criterion: 'test_prepare_emits_runtime_dsh PASS: EPIC_RUNTIME=dsh → runtime=="dsh"
+
+    '
+  status: done
+  done_at: '2026-08-23T16:48:19Z'
+- id: cp3
+  criterion: 'test_prepare_cli_runtime_override PASS: --runtime dsh beats env
+
+    '
+  status: done
+  done_at: '2026-08-23T16:48:33Z'
+- id: cp4
+  criterion: 'Существующие test_context_loop.py тесты регрессия — все зелёные
+
+    '
+  status: done
+  done_at: '2026-08-23T16:48:49Z'
+resume_from: cp1

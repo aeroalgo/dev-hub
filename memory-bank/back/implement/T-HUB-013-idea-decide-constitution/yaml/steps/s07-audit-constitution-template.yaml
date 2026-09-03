@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-013
+title: s07 — Audit remediation — constitution template for product adaptation IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-013-idea-decide-constitution/yaml/steps/s07-audit-constitution-template.yaml
+skills_used: []
+discovery:
+- memory-bank/constitution.md confirms the hub starter's version/date/scope and MUST/SHOULD
+  structure
+gaps:
+  status: none
+done:
+- Created reusable .cursor/templates/constitution.md with version/date/scope placeholders,
+  nine MUST placeholders, three SHOULD placeholders, product adaptation guidance,
+  and fail-closed reminders.
+files:
+- .cursor/templates/constitution.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --collect-only -q` (docs-only; no test changes)'
+- '`timeout 300s test -f .cursor/templates/constitution.md`'
+- '`timeout 300s rg -n "version|date|scope|MUST-" .cursor/templates/constitution.md`'
+integration_check:
+- 'Docs-only template: product repositories can copy the starter; no API/UI counterpart
+  is required.'
+grep_control:
+- back: .cursor/templates/constitution.md
+  front: No forbidden Library-First or CLI Articles wording found
+verification_results:
+- 'cp1 PASS: template exists and includes version/date/scope plus nine MUST placeholders'
+- 'cp2 PASS: forbidden Spec Kit content absent'
+checkpoints:
+- id: cp1
+  criterion: constitution template exists with version/date/scope and at least five
+    MUST placeholders
+  status: done
+  done_at: '2026-08-28T09:22:43Z'
+- id: cp2
+  criterion: template excludes Library-First and CLI Articles content
+  status: done
+  done_at: '2026-08-28T09:22:49Z'

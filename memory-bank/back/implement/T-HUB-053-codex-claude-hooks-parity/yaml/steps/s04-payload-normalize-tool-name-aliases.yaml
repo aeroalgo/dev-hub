@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: s04 — Payload normalize tool_name aliases fail-closed IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-053-codex-claude-hooks-parity/yaml/steps/s04-payload-normalize-tool-name-aliases.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+- tdd
+discovery: []
+gaps:
+  status: none
+done:
+- Реализована функция normalize_tool_name в harness/hooks/_lib.py с алиасами и fail-closed
+  логированием
+- Подключена нормализация tool_name в read_stdin() и spawn_validate.py
+- Добавлены unit-тесты в harness/hooks/tests/test_tool_name_normalize.py
+files:
+- harness/hooks/_lib.py
+- harness/hooks/spawn_validate.py
+- harness/hooks/tests/test_tool_name_normalize.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_tool_name_normalize.py -q
+- bin/pytest harness/hooks/tests/ -q -k 'normalize' --tb=short
+integration_check:
+- rg 'def normalize_tool_name' harness/hooks/_lib.py
+- bin/pytest harness/hooks/tests/ -q -k 'normalize' --tb=short
+- rg 'codex' harness/hooks/*.py | rg -v '#' | rg 'def ' && echo FAIL || echo OK_no_fork
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: normalize_tool_name существует в _lib.py
+  status: done
+  done_at: '2026-09-03T07:22:00Z'
+- id: cp2
+  criterion: alias 'bash' → 'Bash', 'shell' → 'Bash' проверены pytest
+  status: done
+  done_at: '2026-09-03T07:22:00Z'
+- id: cp3
+  criterion: Нет дублирующего codex-fork entrypoint
+  status: done
+  done_at: '2026-09-03T07:22:00Z'
+resume_from: cp1

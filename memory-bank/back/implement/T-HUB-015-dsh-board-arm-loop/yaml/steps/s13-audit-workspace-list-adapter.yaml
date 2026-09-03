@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s13
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s13 — Audit remediation — FR-012 workspace filter options come from Host workspace.list
+  IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s13-audit-workspace-list-adapter.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'graphify executable unavailable in the hub checkout; scoped source and installed
+  Host API contract inspection confirmed workspace.list returns RpcResponse<{items:
+  WorkspaceView[]}>.'
+gaps:
+  status: none
+done:
+- Added a Host workspace.list adapter that unwraps the RPC result, validates workspaceId/title
+  values, rejects duplicates, and returns explicit ready/invalid/unavailable states.
+- Mounted the adapter through the task-board workspace-list slot and kept BoardControls
+  compatible with injected state plus the existing prop fallback.
+- Added explicit workspace error rendering while preserving All, localStorage persistence,
+  client-side metadata.workspace_id filtering, and non-mutating board behavior.
+files:
+- dsh/plugins/mb-bridge/src/workspace-list.ts
+- dsh/plugins/mb-bridge/src/index.ts
+- dsh/plugins/mb-bridge/src/board-controls.tsx
+- dsh/plugins/mb-bridge/src/board-filter.ts
+- loop/tests/test_board_launch_ui_filter.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py -q --tb=line
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py loop/tests/test_board_launch_bridge_unit.py
+  loop/tests/test_board_launch_argv.py -q --tb=line
+integration_check:
+- index.ts mounts createWorkspaceListAdapter(ctx.host) at task-board.workspace-list;
+  the adapter invokes host.workspace.list({}) and maps WorkspaceView.workspaceId/title
+  to BoardControls WorkspaceOption id/label.
+- RPC failures and schema failures remain explicit states; the adapter never calls
+  spawnHubBoard or mutates cards/ledger.
+- board-controls.tsx retains the mb-bridge.workspaceFilter localStorage key and filterCards(cards,
+  workspaceFilter || null); board-filter.ts returns a new filtered list.
+grep_control:
+- back: rg -n "workspace\\.list|workspace.list|WorkspaceOption|All" dsh/plugins/mb-bridge/src
+  front: ''
+- back: rg -n "mb-bridge\\.workspaceFilter|filterCards|workspace_id|localStorage"
+    dsh/plugins/mb-bridge/src
+  front: ''
+- back: ''
+  front: n/a — UI is a TypeScript plugin surface; parent-only TS tests
+verification_results:
+- 'Targeted UI/filter/bridge/argv suite: 26 passed.'
+- cp1, cp2, cp3 flushed green via epic_resolve.py.
+- No frontend runner invoked; TypeScript tests remain parent-only per shard.
+- git diff --check passed.
+checkpoints:
+- id: cp1
+  criterion: Mounted bridge requests Host workspace.list and renders validated options
+    plus All.
+  status: done
+  done_at: '2026-08-29T06:09:50Z'
+- id: cp2
+  criterion: Unavailable or malformed workspace.list is explicit and does not silently
+    mutate the ledger.
+  status: done
+  done_at: '2026-08-29T06:09:55Z'
+- id: cp3
+  criterion: Filter selection remains persisted and client-side by metadata.workspace_id
+    for selected workspace and All.
+  status: done
+  done_at: '2026-08-29T06:10:04Z'
+resume_from: cp1

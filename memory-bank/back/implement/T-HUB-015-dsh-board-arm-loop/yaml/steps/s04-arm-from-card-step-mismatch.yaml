@@ -1,0 +1,89 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s04 — arm_from_card + step_mismatch + gate arm rules — FR-002/001b IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s04-arm-from-card-step-mismatch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- graphify query attempted; .venv/bin/graphify unavailable in this hub checkout, used
+  scoped rg/read fallback
+- loop/context_loop.py exposes arm_session(cwd, epic), returning ok, step_id, and
+  epic_id
+- loop/board_launch/metadata.py provides validated LaunchCard and preserves raw metadata
+  for gate authorization
+gaps:
+  status: none
+done:
+- Implemented arm_from_card with project-root override and fail-closed arm response
+  handling.
+- Added step-card step_id mismatch detection with diagnostic_code='step_mismatch'.
+- Added ROADMAP gate denial unless explicit epic metadata is present; non-ROADMAP
+  gates skip step matching.
+- Added focused tests for step happy path, mismatch, gate denial/happy path, project-root
+  usage, and arm failure propagation.
+files:
+- loop/board_launch/arm.py
+- loop/tests/test_board_launch_arm.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py::test_arm_step_happy
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py::test_step_mismatch
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py::test_gate_roadmap_denied
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py::test_gate_arm_happy
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_metadata.py
+  loop/tests/test_board_launch_argv.py -q --tb=line`'
+integration_check:
+- arm.py imports LaunchCard and CardKind from the existing board-launch/card-model
+  boundary and calls context_loop.arm_session with project_root plus card.decompose_rel.
+- ArmResult normalizes arm_session step_id and epic_id; gate cards intentionally do
+  not compare step_id.
+grep_control:
+- back: loop/context_loop.py — arm_session remains the sole arm implementation; no
+    duplicate activeContext writer added.
+  front: ''
+- back: ''
+  front: n/a — backend-only launch contract.
+verification_results:
+- 'cp1-cp4 targeted tests: 4 passed.'
+- 'arm module suite: 6 passed.'
+- 'board-launch regression suite: 27 passed.'
+- 'Graphify unavailable: .venv/bin/graphify does not exist in this hub checkout; scoped
+  source inspection used instead.'
+- No full repository suite run; targeted BACK suite covers this shard and its preceding
+  launch contracts.
+checkpoints:
+- id: cp1
+  criterion: 'arm_from_card step card happy path: fixture activeContext updated; step_id
+    matches card metadata; ArmResult.ok=True'
+  status: done
+  done_at: '2026-08-28T23:48:37Z'
+- id: cp2
+  criterion: 'arm_from_card step card: arm returns step_id=''s03'' but card.step_id=''s02''
+    → StepMismatchError; loop not called (ArmResult not returned)'
+  status: done
+  done_at: '2026-08-28T23:48:42Z'
+- id: cp3
+  criterion: 'arm_from_card gate card: no step_id check; gate_phase=ROADMAP without
+    explicit epic → RoadmapAdvanceDeniedError'
+  status: done
+  done_at: '2026-08-28T23:48:47Z'
+- id: cp4
+  criterion: 'arm_from_card gate card: gate_phase=QA, has decompose_rel → arm succeeds;
+    no step_id check'
+  status: done
+  done_at: '2026-08-28T23:48:52Z'
+resume_from: cp1

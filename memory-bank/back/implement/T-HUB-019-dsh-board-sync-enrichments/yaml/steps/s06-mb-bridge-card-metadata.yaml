@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: s06 — mb-bridge card-metadata.ts + board-filter footer YAML fix IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-019-dsh-board-sync-enrichments/yaml/steps/s06-mb-bridge-card-metadata.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Создан dsh/plugins/mb-bridge/src/card-metadata.ts с экспортом extractMetadata и
+  константы FOOTER_DELIMITER
+- extractMetadata реализует парсинг YAML footer через yaml package, fallback на JSON.parse
+  и fallback {} при ошибках
+- dsh/plugins/mb-bridge/src/board-filter.ts переведён на использование extractMetadata
+  из card-metadata.js
+- Добавлен раздел 'Rebuilding Plugins' в dsh/README.md
+files:
+- dsh/plugins/mb-bridge/src/card-metadata.ts
+- dsh/plugins/mb-bridge/src/board-filter.ts
+- dsh/README.md
+deletes:
+- 'dsh/plugins/mb-bridge/src/board-filter.ts: удалить локальный parseMetadata (JSON.parse
+  строка)'
+tests:
+- '`timeout 300s .venv/bin/pytest -q --tb=line loop/tests/`'
+integration_check:
+- dsh/plugins/mb-bridge/src/board-filter.ts импортирует extractMetadata из ./card-metadata.js
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- All 4 checkpoints marked done and verified
+- Pytest suite passed (888 passed)
+checkpoints:
+- id: cp1
+  criterion: card-metadata.ts создан; extractMetadata экспортируется
+  status: done
+  done_at: '2026-08-30T21:47:28Z'
+- id: cp2
+  criterion: 'board-filter.ts: JSON.parse(description) строка удалена; импортирует
+    extractMetadata'
+  status: done
+  done_at: '2026-08-30T21:47:35Z'
+- id: cp3
+  criterion: 'extractMetadata: fallback {} при ошибке — строка с fallback присутствует'
+  status: done
+  done_at: '2026-08-30T21:47:42Z'
+- id: cp4
+  criterion: dsh/README.md содержит описание rebuild процедуры
+  status: done
+  done_at: '2026-08-30T21:47:52Z'
+resume_from: cp1

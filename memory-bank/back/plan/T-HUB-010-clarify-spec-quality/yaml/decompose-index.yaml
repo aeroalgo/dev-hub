@@ -1,0 +1,137 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-010
+epic_title: clarify-spec-quality — CLARIFY workflow + plan templates + ambiguity markers
+role: back
+created: '2026-08-23'
+decompose_dir: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/
+plan_file: memory-bank/back/plan/plan/T-HUB-010-clarify-spec-quality/md/plan.md
+steps:
+- id: s01
+  file: s01-shared-clarify-core-back-workflow.yaml
+  title: Shared clarify-core + BACK workflow + lean + clarify.md template
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr:
+    - FR-1
+    - FR-4
+    - FR-5
+    nfr:
+    - NFR-1
+    - NFR-3
+    - NFR-4
+    ac_plus:
+    - '#2'
+    - '#3'
+    - '#5'
+    ac_minus:
+    - '#5'
+    - bf#2
+- id: s02
+  file: s02-front-integ-clarify-slash.yaml
+  title: FRONT/INTEG wrapper workflows + lean ×2 + slash ×3
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr:
+    - FR-1
+    - FR-3
+    nfr: []
+    ac_plus:
+    - '#2'
+    - '#4'
+    ac_minus: []
+- id: s03
+  file: s03-plan-templates-what-how.yaml
+  title: plan.md + integration-plan.md — WHAT/HOW sections, User Stories, clarifications
+    stub
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr:
+    - FR-7
+    - FR-8
+    nfr:
+    - NFR-2
+    - NFR-4
+    ac_plus:
+    - '#3'
+    ac_minus:
+    - bf#1
+- id: s04
+  file: s04-mainrule-plan-gate-paths.yaml
+  title: mainrule ×3 + workflow-plan gate + finish-doc-router + memory-bank-paths
+    + Kind C cleanup
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr:
+    - FR-2
+    - FR-6
+    - FR-9
+    - FR-10
+    nfr: []
+    ac_plus:
+    - '#1'
+    - '#6'
+    ac_minus:
+    - bf#2
+    replacement: Kind C behavioral
+- id: s05
+  file: s05-role-command-refs-claude.yaml
+  title: role-command parity + speckit-adapt-010.md refs + CLAUDE.md optional touch
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr:
+    - FR-11
+    - FR-12
+    nfr: []
+    ac_plus:
+    - '#7'
+    ac_minus: []
+- id: s06
+  file: s06-qa-smoke-rg.yaml
+  title: QA smoke — rg AC+ ×7 + AC− ×3 + dry-run clarify completion-report
+  next_phase: BACK QA
+  code_surface: infra
+  status: completed
+  covers:
+    fr: []
+    nfr:
+    - NFR-5
+    ac_plus:
+    - '#1'
+    - '#2'
+    - '#3'
+    - '#4'
+    - '#5'
+    - '#6'
+    - '#7'
+    ac_minus:
+    - '#1'
+    - '#2'
+    - '#3'
+    - '#4'
+    - '#5'
+- id: s07
+  file: s07-finish-activecontext.yaml
+  title: activeContext Handoff + index status update — FINISH эпика
+  next_phase: BACK IMPLEMENT
+  code_surface: infra
+  status: completed
+  covers:
+    fr: []
+    nfr:
+    - NFR-5
+    ac_plus: []
+    ac_minus: []
+sequence: s01 → s02 → s03 → s04 → s05 → s06 → s07
+load_now_first: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/s01-shared-clarify-core-back-workflow.yaml
+replacement_cleanup: greenfield; Kind C behavioral (silent→[НУЖНО УТОЧНИТЬ]) closed
+  in s04; no purge shard

@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+step_id: s01
+title: "Spike + extract spawn_validate.py — updatedInput ADR + Python validation lib"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: "Зафиксировать updatedInput ADR и вынести общую spawn-валидацию в тестируемую Python-библиотеку."
+
+as_built:
+  - "agent-pretool.py содержит inline валидацию spawn: normalize_type, missing_contract_sections, allow_read_violations, in_flight_deny_reasons — всё в main()"
+  - "Cordis updatedInput: в bridge 016 PreToolUse не выполняет rewrite — только deny; updatedInput возможность не исследована"
+  - "spawn_validate.py не существует"
+delta:
+  - "SPIKE: grep Cordis dsh-hooks-claude-code PreToolUse handler для updatedInput support; проверить DSH changelog/types"
+  - "ADR записать в shard: rewrite (PATH_A) vs deny-only (PATH_B) — выбор с обоснованием"
+  - "EXTRACT: создать `.claude/hooks/spawn_validate.py` с функцией validate_spawn_input(tool_input, state, cwd) → (deny_reasons, notes); нормализация type; contract gate; in_flight_deny; allow_read_violations"
+  - "EDIT: agent-pretool.py — импортировать из spawn_validate; убрать дублирование inline-валидации; TS не трогать"
+  - "ADD: `.claude/hooks/tests/test_spawn_validate.py` — unit-тесты валидации"
+deletes:
+  - "Inline копия валидации в agent-pretool.py main() заменяется вызовом spawn_validate.validate_spawn_input()"
+out_of_scope:
+  - "Cordis epic-gate плагин (s03)"
+  - "agent_type preset mapping для DSH (s04)"
+  - "VERDICT mirror (s05)"
+  - "gate-check-turn.py (s06)"
+
+verify:
+  - "`python3 -c 'from spawn_validate import validate_spawn_input'` из `.claude/hooks`"
+  - "`.venv/bin/pytest .claude/hooks/tests/test_spawn_validate.py -q --tb=line`"
+
+tdd:
+  - "test: deny reasons when prompt missing contract sections (verify agent)"
+  - "test: deny reasons when allow_read violations present"
+  - "test: deny reasons when managed in_flight"
+  - "test: no deny when prompt well-formed and no in_flight"
+  - "test: normalize_type roundtrip through spawn_validate"
+
+context:
+  files:
+    - ".claude/hooks/spawn_validate.py"
+    - ".claude/hooks/agent-pretool.py"
+    - ".claude/hooks/tests/test_spawn_validate.py"
+    - "dsh/plugins/mb-bridge/src/intercept-run.ts"
+    - "dsh/plugins/mb-bridge/src/python-bridge.ts"
+    - "dsh/README.md"
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-error-handling/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Shard содержит ADR: PATH_A или ADR: PATH_B с обоснованием по DSH PreToolUse updatedInput"
+    verify: "`rg -n 'ADR: PATH_[AB]' memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s01-spawn-validate-extract.yaml`"
+  - id: cp2
+    criterion: "spawn_validate.py создан; импортирует validate_spawn_input без ошибок"
+    verify: "`cd .claude/hooks && python3 -c 'from spawn_validate import validate_spawn_input'`"
+  - id: cp3
+    criterion: "Unit-тесты spawn_validate проходят зелёными"
+    verify: "`.venv/bin/pytest .claude/hooks/tests/test_spawn_validate.py -q --tb=line`"
+
+requirements_covered:
+  - FR-001
+  - FR-002
+  - NFR-1
+  - NFR-2
+
+ADR: PATH_B — deny-only. В установленном `@deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5` bridge перехватывает PreToolUse и использует только `permissionDecision`/`permissionDecisionReason`; `updatedInput` не передаётся обратно в host-runner. Репозиторные DSH-артефакты также фиксируют `updatedInput unavailable`. Поэтому rewrite через Cordis для s01 недоступен; безопасный контракт — отклонять неподходящий spawn до запуска и оставлять нормализацию в Python hook.

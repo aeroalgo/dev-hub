@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s06 — G1 agents — JSON fence HARD (verify/reviewer/analyze-verify.md) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/yaml/steps/s06-g1-agents-json-fence-hard.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added
+- Verified loop-gate-verdict/v1 JSON schema example present in all three gate agent
+  specs
+files:
+- .claude/agents/verify.md
+- .claude/agents/reviewer.md
+- .claude/agents/analyze-verify.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_verdict_wire.py -q --tb=line`'
+integration_check:
+- rg 'loop-gate-verdict' .claude/agents/verify.md .claude/agents/reviewer.md .claude/agents/analyze-verify.md
+grep_control: []
+verification_results:
+- 'PASS: rg ''loop-gate-verdict'' matches all 3 agent files'
+- 'PASS: pytest loop/tests/test_hooks_llm_verdict_wire.py (3 passed)'
+checkpoints:
+- id: cp1
+  criterion: rg 'loop-gate-verdict' в verify.md, reviewer.md, analyze-verify.md
+  status: done
+  done_at: '2026-08-31T17:40:54Z'
+- id: cp2
+  criterion: rg 'json' в gate output секции каждого файла (fence example)
+  status: done
+  done_at: '2026-08-31T17:40:59Z'
+resume_from: cp1

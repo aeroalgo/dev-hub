@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s05 — Post-tier1 verify AC slice — orchestration invariants, не product tests
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-018-loop-incident-autopilot/yaml/steps/s05-tier1-verify-orchestration.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/incidents/tier1_verify.py with build_verify_ac_slice and run_tier1_verify
+  functions
+- Updated loop/incidents/tier1_runner.py to execute run_tier1_verify after tier1 session
+  completion
+- Added unit tests in loop/tests/test_incidents_tier1_verify.py
+files:
+- loop/incidents/tier1_verify.py
+- loop/incidents/tier1_runner.py
+- loop/tests/test_incidents_tier1_verify.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -q --tb=line`'
+integration_check:
+- tier1_verify verified with tier1_runner and incidents store
+grep_control: []
+verification_results:
+- '.venv/bin/pytest loop/tests/test_incidents_tier1_verify.py -q --tb=line: PASSED'
+- '.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -q --tb=line: PASSED'
+checkpoints:
+- id: cp1
+  criterion: build_verify_ac_slice для active_context_shape_invalid → commands содержат
+    только loop/ paths (не src/, не frontend/)
+  status: done
+  done_at: '2026-08-30T20:07:10Z'
+- id: cp2
+  criterion: 'run_tier1_verify: все exit 0 → VerifyResult(passed=True)'
+  status: done
+  done_at: '2026-08-30T20:07:16Z'
+- id: cp3
+  criterion: 'run_tier1_verify: один exit non-0 → VerifyResult(passed=False)'
+  status: done
+  done_at: '2026-08-30T20:07:23Z'
+- id: cp4
+  criterion: после run_tier1_verify PASS → resolve_incident в store (tier1 resolution)
+  status: done
+  done_at: '2026-08-30T20:07:28Z'
+resume_from: cp1

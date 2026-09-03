@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-021
+title: s03 — make_output_cap_agent() + run_log_summary() sync runner with retries/fallback
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/steps/s03-agent-factory-sync-runner.yaml
+skills_used:
+- async-python-patterns
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован make_output_cap_agent() для создания Pydantic AI Agent[LogSummary] через
+  OpenAIProvider
+- Реализован run_log_summary() sync runner с asyncio, retries, fallback-цепочкой моделей
+  и fail-soft поведением
+- Добавлены unit-тесты в loop/tests/test_llm_structured.py
+files:
+- .claude/hooks/llm_structured.py
+- loop/tests/test_llm_structured.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_llm_structured.py -q --tb=short`'
+integration_check:
+- grep -rn 'make_output_cap_agent' .claude/hooks/
+- grep -rn 'run_log_summary' .claude/hooks/
+grep_control: []
+verification_results:
+- pytest loop/tests/test_llm_structured.py — 6 passed
+checkpoints:
+- id: cp1
+  criterion: run_log_summary и make_output_cap_agent importable без ошибок
+  status: done
+  done_at: '2026-08-30T23:43:02Z'
+- id: cp2
+  criterion: test_run_log_summary_returns_none_on_network_fail PASS (mock → ConnectionError)
+  status: done
+  done_at: '2026-08-30T23:43:14Z'
+- id: cp3
+  criterion: test_run_log_summary_falls_back_to_fallback_model PASS
+  status: done
+  done_at: '2026-08-30T23:43:23Z'
+resume_from: cp1

@@ -20,6 +20,7 @@ def _ensure_gate_agents(cwd: Path) -> None:
     agents.mkdir(parents=True, exist_ok=True)
     specs = (
         ("verify", "gate", "pass-fail", True),
+        ("verify-implement", "gate", "pass-fail", True),
         ("reviewer", "gate", "pass-blocked-fail", True),
         ("explorer", "search", "none", False),
     )
@@ -47,6 +48,12 @@ def _ensure_gate_agents(cwd: Path) -> None:
         "PROJECT_AGENT_EXPLORER_MODEL=fable\n",
         encoding="utf-8",
     )
+
+
+def _loop_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["EPIC_LOOP"] = "1"
+    return env
 
 
 def test_stop_gate_deny_codex_without_verify(tmp_path: Path) -> None:
@@ -242,6 +249,7 @@ def test_subagent_start_and_stop_lifecycle_codex(tmp_path: Path) -> None:
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        env=_loop_env(),
     )
     assert start_res.returncode == 0, f"stderr: {start_res.stderr}"
     assert start_res.stdout.strip(), "Expected contract injected on SubagentStart"
@@ -262,6 +270,7 @@ def test_subagent_start_and_stop_lifecycle_codex(tmp_path: Path) -> None:
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        env=_loop_env(),
     )
     assert stop_res_invalid.returncode == 2, f"Expected returncode 2, got {stop_res_invalid.returncode}"
     assert "schema validation failed" in stop_res_invalid.stderr or "re-emit valid" in stop_res_invalid.stderr
@@ -285,6 +294,7 @@ def test_subagent_start_and_stop_lifecycle_codex(tmp_path: Path) -> None:
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        env=_loop_env(),
     )
     assert stop_res_valid.returncode == 0, f"stderr: {stop_res_valid.stderr}"
 
@@ -353,6 +363,7 @@ def test_agent_pretool_deny_incomplete_hard_rule_spawn(tmp_path: Path) -> None:
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        env=_loop_env(),
     )
     assert res.returncode == 0, f"stderr: {res.stderr}"
     data = json.loads(res.stdout)

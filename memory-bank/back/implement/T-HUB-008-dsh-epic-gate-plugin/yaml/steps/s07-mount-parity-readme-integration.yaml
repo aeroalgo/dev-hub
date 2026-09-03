@@ -1,0 +1,86 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s07 — Mount order + parity README + integration smoke IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s07-mount-parity-readme-integration.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/verification-before-completion/SKILL.md
+- .agents/skills/requesting-code-review/SKILL.md
+discovery:
+- All 8 epic-* cordis.patch.yml profiles already mount cc-hooks-bridge before epic-gate.
+- DSH exposes deny-only PreToolUse and lacks stable updatedInput/typed agent_type
+  parity; those rows are explicitly deferred.
+gaps:
+  status: none
+done:
+- 'Added dsh/plugins/epic-gate/README.md with four owner-tagged parity rows: Gaps
+  A-B deferred and Gaps C-D closed.'
+- Updated dsh/README.md Hooks bridge matrix so every T-HUB-008 row is explicitly closed
+  or deferred with an epic-gate reference.
+- Added integration smoke coverage for all profile mount order, parity documentation,
+  and DSH/Claude hook behavior.
+- Fixed the existing agent-pretool import regression exposed by the targeted Claude-path
+  suite.
+files:
+- dsh/plugins/epic-gate/README.md
+- dsh/README.md
+- dsh/profiles/epic-audit/cordis.patch.yml
+- dsh/profiles/epic-bugfix/cordis.patch.yml
+- dsh/profiles/epic-creative/cordis.patch.yml
+- dsh/profiles/epic-decompose/cordis.patch.yml
+- dsh/profiles/epic-implement/cordis.patch.yml
+- dsh/profiles/epic-plan/cordis.patch.yml
+- dsh/profiles/epic-qa/cordis.patch.yml
+- dsh/profiles/epic-reflect/cordis.patch.yml
+- loop/tests/test_dsh_epic_gate_gaps.py
+- .claude/hooks/agent-pretool.py
+deletes:
+- Маркеры T-HUB-008 (open) в dsh/README.md gap matrix → closed/deferred
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py loop/tests/test_board_launch_cli.py
+  -q --tb=line`'
+- '`python3 -m py_compile .claude/hooks/agent-pretool.py loop/tests/test_dsh_epic_gate_gaps.py`'
+integration_check:
+- All 8 epic-* profiles contain cc-hooks-bridge before epic-gate.
+- The parity README rows connect DSH limitations and closed native paths to T-HUB-008
+  owners.
+- The smoke test exercises TypeScript SessionStart/SubagentStop bridges and Python
+  hook round-trips.
+grep_control:
+- back: '`rg -c ''closed|deferred'' dsh/plugins/epic-gate/README.md` → 6; `rg -n ''T-HUB-008''
+    dsh/README.md | rg -v ''open''` → all rows non-open'
+  front: n/a
+verification_results:
+- 'cp1 PASS: parity README contains four Gap A-D rows, owner T-HUB-008, and 6 closed/deferred
+  markers.'
+- 'cp2 PASS: dsh/README.md T-HUB-008 rows contain only closed/deferred status and
+  epic-gate reference.'
+- 'cp3 PASS: DSH parity smoke — 12 passed.'
+- 'cp4 PASS: Claude-path regression — 68 passed.'
+- Python syntax check PASS for agent-pretool.py and integration smoke test.
+checkpoints:
+- id: cp1
+  criterion: 'epic-gate/README.md parity matrix: ≥4 closed/deferred с owner'
+  status: done
+  done_at: '2026-08-30T13:06:08Z'
+- id: cp2
+  criterion: dsh/README.md gap rows T-HUB-008 помечены closed
+  status: done
+  done_at: '2026-08-30T13:06:08Z'
+- id: cp3
+  criterion: test_dsh_epic_gate_gaps.py зелёный
+  status: done
+  done_at: '2026-08-30T13:06:09Z'
+- id: cp4
+  criterion: Claude path regression targeted suite зелёный
+  status: done
+  done_at: '2026-08-30T13:06:09Z'
+resume_from: cp1

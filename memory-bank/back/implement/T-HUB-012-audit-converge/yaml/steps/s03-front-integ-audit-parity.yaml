@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-012
+title: s03 — FRONT/INTEG AUDIT parity — same converge semantics across roles IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/s03-front-integ-audit-parity.yaml
+skills_used: []
+discovery:
+- '@explorer: graphify N/A для hub-репозитория; подтверждён канон BACK audit и bounded
+  file list'
+gaps:
+  status: none
+done:
+- 'Синхронизированы FRONT и INTEG workflow-audit с BACK converge-пайплайном: Intent
+  Inventory → Assess → Severity/findings → Append → Converged/QA'
+- Добавлены epic-audit/v2, findings contract, source_ref, severity, leftover и MODE
+  CONVERGE запреты в оба lean audit-gate
+- 'Сохранено FRONT parent-only ограничение: AUDIT не запускает vitest/playwright/frontend
+  suite'
+files:
+- .cursor/rules/front_developer/workflow-audit.mdc
+- .cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
+- .cursor/rules/integration_developer/workflow-audit.mdc
+- .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc
+deletes:
+- Exclusive wording in FRONT/INTEG workflow-audit.mdc / _lean/audit.mdc that AUDIT
+  is only step_id presence without intent findings
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q --tb=line` — PASS: docs-only step, collection
+  smoke; runtime suite не запускался'
+- '`rg -n ''gap_type|severity|source_ref|converged|Intent Inventory'' .cursor/rules/front_developer/workflow-audit.mdc
+  | head -20` — PASS'
+- '`rg -n ''gap_type|severity|source_ref|converged|Intent Inventory'' .cursor/rules/integration_developer/workflow-audit.mdc
+  | head -20` — PASS'
+- '`rg -n ''epic-audit/v2|findings|converged'' .cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
+  .cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc` — PASS'
+- '`rg -n ''vitest|playwright'' .cursor/rules/front_developer/workflow-audit.mdc |
+  head -5` — PASS'
+integration_check:
+- FRONT и INTEG audit workflow/lean используют одинаковый epic-audit/v2 converge contract;
+  INTEG сохраняет eNN/element_id, FRONT — sNN/step_id
+- Exclusive presence-only wording удалена; unrequested не удаляется автоматически;
+  leftover A/B/C и purge/sunset gates сохранены
+grep_control:
+- back: '`rg -n ''только presence|only step_id'' .cursor/rules/front_developer/workflow-audit.mdc
+    .cursor/rules/integration_developer/workflow-audit.mdc || true` — PASS: совпадений
+    нет'
+  front: n/a
+verification_results:
+- cp1–cp4 flushed через epic_resolve.py; все четыре checkpoint status=done
+- 'validate-step перед evidence: FAIL только из-за пустых done/integration_check;
+  заполнено этим FINISH evidence'
+- 'Тестовый suite не запускался: шаг docs-only, audit suite запрещён workflow; выполнены
+  targeted parity smoke-команды'
+checkpoints:
+- id: cp1
+  criterion: FRONT workflow содержит gap_type + severity + source_ref + converged
+  status: done
+  done_at: '2026-08-23T14:40:08Z'
+- id: cp2
+  criterion: INTEG workflow содержит gap_type + severity + source_ref + converged
+  status: done
+  done_at: '2026-08-23T14:40:17Z'
+- id: cp3
+  criterion: оба lean ссылаются на epic-audit/v2 + findings gates
+  status: done
+  done_at: '2026-08-23T14:40:23Z'
+- id: cp4
+  criterion: 'deletes verify FRONT/INTEG: нет exclusive only-step_id claims; vitest
+    FORBIDDEN сохранён в FRONT'
+  status: done
+  done_at: '2026-08-23T14:40:29Z'
+resume_from: cp1

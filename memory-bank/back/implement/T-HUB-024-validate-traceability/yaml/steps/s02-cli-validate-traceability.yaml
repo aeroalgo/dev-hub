@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-024-validate-traceability
+title: s02 — CLI validate-traceability — epic_resolve command + exit codes + JSON
+  report IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-024-validate-traceability/yaml/steps/s02-cli-validate-traceability.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented run_checks, build_report, format_report in .claude/hooks/epic/traceability.py
+- Registered validate-traceability subcommand in .claude/hooks/epic_resolve.py
+- Added comprehensive unit tests in loop/tests/test_traceability_cli.py
+files:
+- .claude/hooks/epic/traceability.py
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_traceability_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_cli.py -q`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_parsers.py -q`'
+integration_check:
+- .claude/hooks/epic_resolve.py ↔ epic.traceability
+grep_control: []
+verification_results:
+- All unit tests in loop/tests/test_traceability_cli.py pass
+checkpoints:
+- id: cp1
+  criterion: run_checks и build_report определены в traceability.py
+  status: done
+  done_at: '2026-08-31T06:16:20Z'
+- id: cp2
+  criterion: validate-traceability subcommand зарегистрирован в epic_resolve.py
+  status: done
+  done_at: '2026-08-31T06:16:36Z'
+- id: cp3
+  criterion: Exit 2 при отсутствующем plan dir (smoke test через subprocess)
+  status: done
+  done_at: '2026-08-31T06:16:59Z'
+- id: cp4
+  criterion: Unit tests зелёные (cli + checker)
+  status: done
+  done_at: '2026-08-31T06:17:15Z'
+resume_from: cp1

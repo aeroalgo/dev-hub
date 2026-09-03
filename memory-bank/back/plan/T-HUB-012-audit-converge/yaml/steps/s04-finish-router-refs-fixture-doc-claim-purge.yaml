@@ -1,0 +1,135 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-012
+title: "converged handoff + dry-run fixture + doc-claim purge — AUDIT loop closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть lifecycle и acceptance smoke AUDIT converge:
+  - finish-doc-router.mdc + templates/finish-doc-router.md: `* AUDIT` next =
+    QA при `converged: true` (+ leftover пуст); иначе IMPLEMENT audit sNN → AUDIT;
+    упомянуть converged flag (FR-10 / AC+ #6).
+  - `.cursor/templates/decompose/epic-step.yaml` — comment/hint: audit shards
+    обязаны нести `source_ref` в goal/plan_refs (FR-4).
+  - `memory-bank/back/plan/refs/speckit-adapt-012.md` — что взяли/отвергли из
+    converge.md; граница ANALYZE vs AUDIT; FORBIDDEN MODE CONVERGE/specify-cli (FR-7/8).
+  - Dry-run fixture: FR без кода → finding `missing` HIGH/CRITICAL + new shard path (AC+ #4 / FR-9).
+  - Final `*-doc-claim-purge`: rg по audit workflows/finish-router — нет exclusive
+    «AUDIT=только step_id» и нет next=QA без converged (Replacement A residual).
+  Outcome: handoff канон знает converged; refs+fixture готовы; doc claims вычищены.
+  Связь: FR-4/6/7/8/9/10, AC+ #4/#6, AC− #4, Replacement A purge.
+
+context:
+  consumes:
+    - "s01 — schema/README"
+    - "s02/s03 — workflows обновлены"
+    - ".cursor/rules/shared/finish-doc-router.mdc — текущий AUDIT row (not_implemented only)"
+    - ".cursor/templates/finish-doc-router.md — Handoff BACK AUDIT sample"
+    - ".cursor/templates/decompose/epic-step.yaml"
+    - "memory-bank/back/plan/refs/speckit-adapt-011.md — образец telegraph"
+    - "spec-kit/templates/commands/converge.md — reference"
+  produces:
+    - ".cursor/rules/shared/finish-doc-router.mdc (edit)"
+    - ".cursor/templates/finish-doc-router.md (edit)"
+    - ".cursor/templates/decompose/epic-step.yaml (edit comment/hint)"
+    - "memory-bank/back/plan/refs/speckit-adapt-012.md (create)"
+    - "fixtures/fake-missing-fr-intent/* (create)"
+    - "optional: .claude/commands/*-audit.md description tweak"
+  plan_refs:
+    - "FR-4 (epic-step source_ref hint)"
+    - "FR-6 / FR-10 (finish-doc-router converged)"
+    - "FR-7 / FR-8 (boundary + refs)"
+    - "FR-9 / AC+ #4 (fixture)"
+    - "AC+ #6 (converged → QA)"
+    - "AC− #4 (no MODE CONVERGE)"
+    - "NFR-5"
+    - "Replacement A — residual doc-claim purge"
+    - "plan §До DECOMPOSE s04"
+  files:
+    - ".cursor/rules/shared/finish-doc-router.mdc"
+    - ".cursor/templates/finish-doc-router.md"
+    - ".cursor/templates/decompose/epic-step.yaml"
+    - "memory-bank/back/plan/refs/speckit-adapt-012.md"
+    - "memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/plan-T-FIX-998-fake-missing-fr.md"
+    - "memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/index.md"
+    - "memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/index.yaml"
+    - "memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/s01-stub.yaml"
+    - "memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/expected-audit-findings.yaml"
+    - ".claude/commands/back-audit.md"
+    - ".claude/commands/front-audit.md"
+    - ".claude/commands/integ-audit.md"
+
+as_built:
+  - "finish-doc-router.mdc AUDIT row: not_implemented[] → IMPLEMENT; empty → QA; нет converged"
+  - "finish-doc-router.md Handoff sample: «пусто not_implemented[] → BACK QA» без converged"
+  - "epic-step.yaml — нет audit source_ref hint"
+  - "refs/ — есть 010/011; нет speckit-adapt-012.md"
+  - "fixtures/fake-missing-fr-intent/ — каталог создан пустым на DECOMPOSE"
+  - "slash *-audit.md — краткие description без converge"
+
+delta:
+  - "EDIT finish-doc-router.mdc By command `* AUDIT`:
+      audit-артефакт в load_now; if converged!=true OR not_implemented/leftover непусты
+      → next IMPLEMENT audit sNN → AUDIT loop; if converged:true AND leftover пуст → * QA;
+      упомянуть dual-write: empty not_implemented alone недостаточно без converged flag"
+  - "EDIT finish-doc-router.md Handoff BACK AUDIT sample + user message:
+      Дальше: converged:true → QA; иначе IMPLEMENT новых sNN-audit → AUDIT"
+  - "EDIT epic-step.yaml: комментарий — для sNN-audit-* goal/plan_refs MUST include
+      source_ref from audit finding (FR-### / SC-### / …)"
+  - "CREATE refs/speckit-adapt-012.md (telegraph как 011):
+      ## Что взяли: gap types, severity, source-ref, append-only, constitution CRITICAL,
+      Intent Inventory, no git, Converged report
+      ## Что отвергли: Phase N Convergence в tasks.md; __SPECKIT_*; extension hooks;
+      отдельный CONVERGE command; FEATURE_DIR
+      ## ANALYZE vs AUDIT boundary table
+      ## FORBIDDEN: specify-cli, MODE CONVERGE, auto-delete unrequested, suite in AUDIT
+      ## Refs: converge.md, epic-audit.yaml v2, workflow-audit×3"
+  - "CREATE fixture fake-missing-fr-intent:
+      plan with FR-1 (P1) without code/implement evidence; decompose s01-stub not covering FR-1;
+      expected-audit-findings.yaml: gap_type=missing, severity=HIGH|CRITICAL, source_ref=FR-1,
+      remaining_work → new_shard path sNN-audit-*"
+  - "OPTIONAL edit slash *-audit.md descriptions: mention converge/intent findings (не новый MODE)"
+  - "PURGE: rg across workflow-*-audit, lean audit, finish-doc-router — remove residual
+      exclusive step_id-only claims and QA-next without converged"
+
+deletes:
+  - "Residual exclusive claims «AUDIT = только presence step_id» anywhere under .cursor/rules/**/workflow-audit.mdc, **/isolation_rules/_lean/audit.mdc after s02/s03"
+  - "finish-doc-router wording that next=* QA depends only on empty not_implemented[] without converged:true"
+  # Kind A final purge — anti-claim rg required
+
+out_of_scope:
+  - "Изменение ANALYZE workflows/schema — FORBIDDEN"
+  - "Новый slash /converge или MODE CONVERGE — FORBIDDEN"
+  - "Автоудаление unrequested кода — FORBIDDEN"
+  - "pytest validator schema — optional, не блокер (plan §Тест-стратегия)"
+  - "T-HUB-013 constitution articles — follow-up"
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "finish-doc-router.mdc упоминает converged для AUDIT routing"
+    verify: "rg -n 'converged' .cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md | head -15"
+  - id: cp2
+    criterion: "refs/speckit-adapt-012.md существует; граница ANALYZE vs AUDIT + FORBIDDEN CONVERGE"
+    verify: "rg -n 'ANALYZE|AUDIT|CONVERGE|gap_type|source_ref|unrequested' memory-bank/back/plan/refs/speckit-adapt-012.md | head -25"
+  - id: cp3
+    criterion: "fixture expected finding missing + source_ref FR-1 + new_shard path"
+    verify: "rg -n 'missing|FR-1|source_ref|sNN-audit|CRITICAL|HIGH' memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/expected-audit-findings.yaml"
+  - id: cp4
+    criterion: "doc-claim purge: нет exclusive only-step_id; epic-step hint source_ref; QA path requires converged"
+    verify: "rg -n 'source_ref' .cursor/templates/decompose/epic-step.yaml | head -5; rg -n 'только presence|only step_id|AUDIT = только' .cursor/rules --glob '*audit*' || true; rg -n 'converged' .cursor/rules/shared/finish-doc-router.mdc"
+
+verify:
+  - "ls memory-bank/back/plan/refs/speckit-adapt-012.md"
+  - "ls memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/expected-audit-findings.yaml"
+  - "rg -n 'MODE CONVERGE' memory-bank/back/plan/refs/speckit-adapt-012.md — FORBIDDEN section"
+  - "AC+ #4 dry-run path documented in fixture README or expected yaml"
+  - "AC+ #6: finish-router + workflows mention converged→QA"
+
+tdd:
+  - "Нет pytest. AC smoke: fixture expected finding + rg purge across audit surfaces"

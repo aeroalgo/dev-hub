@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-020-dsh-board-epic-loop
+title: s07 — board_launch arm_epic + loop.sh --epic-id CLI IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-020-dsh-board-epic-loop/yaml/steps/s07-board-launch-loop-cli.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Интегрирован arm_epic в board_launch/arm.py для EpicCard без step_mismatch
+- Поддержан флаг --epic-id в context_loop.py arm и loop.sh --epic
+- Добавлены unit-тесты для launch/arm и context_loop
+files:
+- loop/board_launch/arm.py
+- loop/board_launch/metadata.py
+- loop/context_loop.py
+- loop/loop.sh
+- loop/tests/test_board_launch_arm.py
+- loop/tests/test_board_launch_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_cli.py
+  -q --tb=line`'
+integration_check:
+- 'loop/board_launch/arm.py: import arm_epic from loop.context_loop'
+- 'loop/context_loop.py: import arm_epic from epic'
+- 'loop/loop.sh: calls context_loop arm --epic-id'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'board_launch/arm.py: EpicCard → arm_epic вызван; нет step_mismatch KeyError'
+  status: done
+  done_at: '2026-08-30T22:58:27Z'
+- id: cp2
+  criterion: context_loop arm --epic-id T-HUB-016 → arm_epic(cwd, 'T-HUB-016') → ok
+  status: done
+  done_at: '2026-08-30T22:58:34Z'
+- id: cp3
+  criterion: Legacy arm --epic decompose/path ещё работает
+  status: done
+  done_at: '2026-08-30T22:58:52Z'
+- id: cp4
+  criterion: loop.sh --epic T-HUB-TEST → context_loop arm --epic-id + run (dry-run
+    ok)
+  status: done
+  done_at: '2026-08-30T22:59:21Z'
+resume_from: cp1

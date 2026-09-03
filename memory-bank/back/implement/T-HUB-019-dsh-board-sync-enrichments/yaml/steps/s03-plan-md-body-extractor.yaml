@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: 's03 — Gate body: plan.md Цель+Контекст+UserStories → backlog card body IMPLEMENT'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-019-dsh-board-sync-enrichments/yaml/steps/s03-plan-md-body-extractor.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added plan_rel attribute to GateWorkItem dataclass and populated it in scan_gates.
+- Implemented load_gate_body in body_loaders.py to extract goal, context, and user
+  stories table from plan markdown files.
+- Updated gate_card in diff.py to load plan gate body text for pre-implement gate
+  cards.
+files:
+- loop/board_sync/body_loaders.py
+- loop/board_sync/scan_gates.py
+- loop/board_sync/diff.py
+- loop/tests/test_board_sync_body_loaders.py
+- loop/tests/test_board_sync_scan_gates.py
+- loop/tests/test_board_sync_diff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_body_loaders.py loop/tests/test_board_sync_scan_gates.py
+  loop/tests/test_board_sync_diff.py -q --tb=line`'
+integration_check:
+- load_gate_body caller diff.gate_card verified against GateWorkItem.plan_rel projection
+grep_control: []
+verification_results:
+- '.venv/bin/pytest loop/tests/test_board_sync_body_loaders.py loop/tests/test_board_sync_scan_gates.py
+  loop/tests/test_board_sync_diff.py -q --tb=line: 24 passed'
+- '.venv/bin/pytest loop/tests/ -q --tb=line: 878 passed'
+checkpoints:
+- id: cp1
+  criterion: GateWorkItem.plan_rel заполняется если plan-файл найден
+  status: done
+  done_at: '2026-08-30T21:36:29Z'
+- id: cp2
+  criterion: 'load_gate_body happy path: plan.md с разделами → тело содержит Цель
+    + Контекст'
+  status: done
+  done_at: '2026-08-30T21:36:45Z'
+- id: cp3
+  criterion: 'load_gate_body missing plan: reason_code → однострочная строка, не исключение'
+  status: done
+  done_at: '2026-08-30T21:36:50Z'
+- id: cp4
+  criterion: 'gate_card для DECOMPOSE phase: description содержит body из plan + footer'
+  status: done
+  done_at: '2026-08-30T21:37:22Z'
+resume_from: cp1

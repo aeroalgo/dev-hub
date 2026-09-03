@@ -37,6 +37,7 @@ class GcResult(BaseModel):
 
 DEFAULT_WHITELIST_PATTERNS = [
     "memory-bank/*/plan/decompose-*/index.md",
+    "memory-bank/*/plan/*/md/decompose-index.md",
     "runtime/episodes/*",
     "runtime/episodes",
     "episodes/*",

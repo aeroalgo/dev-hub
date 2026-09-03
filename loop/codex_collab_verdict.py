@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from loop.schemas.gate_verdict import SCHEMA_LOOP_GATE_VERDICT, GateVerdictValue
 
-_JSON_FENCE_RE = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
+_JSON_FENCE_RE = re.compile(r"```json[^\n`]*\n(.*?)\n```", re.DOTALL)
 _AT_AGENT_RE = re.compile(r"@([\w-]+)")
 _GATE_REPAIR_HINT_RE = re.compile(r"(?i)gate-repair|@gate-repair")
 

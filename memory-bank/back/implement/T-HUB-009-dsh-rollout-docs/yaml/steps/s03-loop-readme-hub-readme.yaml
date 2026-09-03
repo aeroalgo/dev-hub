@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-009-dsh-rollout-docs
+title: s03 — loop/README + loop/WORKFLOW + README.md + dsh/README — EPIC_RUNTIME секции
+  и cross-links IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-009-dsh-rollout-docs/yaml/steps/s03-loop-readme-hub-readme.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'loop/README.md — добавлена секция ## DSH Runtime (opt-in, developer preview)'
+- loop/WORKFLOW.md — добавлен параграф Runtime engine EPIC_RUNTIME
+- 'README.md — добавлена подсекция ### DSH Runtime (opt-in)'
+- dsh/README.md — добавлены cross-links на dsh-runtime.md и dsh-loop-pilot.md
+files:
+- loop/README.md
+- loop/WORKFLOW.md
+- README.md
+- dsh/README.md
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests -q
+integration_check:
+- EPIC_RUNTIME documentation cross-links verified across loop/README.md, loop/WORKFLOW.md,
+  README.md, dsh/README.md
+grep_control: []
+verification_results:
+- rg 'EPIC_RUNTIME' loop/README.md -> PASS
+- rg 'EPIC_RUNTIME' loop/WORKFLOW.md -> PASS
+- rg 'dsh' README.md -> PASS
+- rg 'dsh-runtime' dsh/README.md -> PASS
+- rg 'dsh-loop-pilot' dsh/README.md -> PASS
+checkpoints:
+- id: cp1
+  criterion: loop/README.md содержит EPIC_RUNTIME
+  status: done
+  done_at: '2026-08-30T16:12:01Z'
+- id: cp2
+  criterion: loop/WORKFLOW.md содержит EPIC_RUNTIME
+  status: done
+  done_at: '2026-08-30T16:12:12Z'
+- id: cp3
+  criterion: README.md (hub root) содержит pointer на dsh
+  status: done
+  done_at: '2026-08-30T16:12:20Z'
+- id: cp4
+  criterion: dsh/README.md ссылается на dsh-runtime.md
+  status: done
+  done_at: '2026-08-30T16:12:28Z'
+- id: cp5
+  criterion: dsh/README.md ссылается на dsh-loop-pilot
+  status: done
+  done_at: '2026-08-30T16:12:33Z'
+resume_from: cp1

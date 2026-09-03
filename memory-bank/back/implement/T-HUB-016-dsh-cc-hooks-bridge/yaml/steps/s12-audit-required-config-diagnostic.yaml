@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s12
+plan_id: T-HUB-016
+title: s12 — Audit remediation — required bridge config failure diagnostic smoke IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s12-audit-required-config-diagnostic.yaml
+skills_used: []
+discovery:
+- 'graphify N/A: hub repository has no .venv/bin/graphify; bounded bridge package
+  and profile surfaces inspected directly.'
+gaps:
+  status: none
+done:
+- Запущен прямой smoke pinned @deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5 с malformed
+  JSON configPath=/tmp/dsh-s12-invalid-settings.json; apply завершился без исключения
+  и выдал ровно один warning с SyntaxError, путём configPath и маркером "no hooks
+  registered".
+- 'Smoke зафиксировал отсутствие fallback: JSON evidence содержит fallback:false,
+  а diagnostic не содержит free-session, free session или stock run.'
+files:
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s12-audit-required-config-diagnostic.yaml
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line`
+  — 4 passed.'
+- '`timeout 300s node /tmp/dsh-s12-direct-smoke.mjs` — exit 0; JSON {exit_code:0,
+  fallback:false}, diagnostic includes SyntaxError, configPath and no hooks registered.'
+- '`printf ''{not-json}\n'' >/tmp/dsh-s12-invalid-settings.json; node /tmp/dsh-s12-direct-smoke.mjs`
+  — exit 0; JSON {exit_code:0, fallback:false}, diagnostic includes SyntaxError, configPath
+  and no hooks registered.'
+- '`PROJECT_LOOP_VERIFY_MODEL=default PROJECT_LOOP_EXPLORER_MODEL=default PROJECT_LOOP_IMPLEMENT_MODEL=default
+  DSH_HOME=$(mktemp -d) bash dsh/scripts/install-profiles.sh; DSH_HOME=<fixture> CLAUDE_PROJECT_DIR=/tmp/dsh-s12-no-settings
+  dsh --profile epic-implement --dump-config` — exit 0; emitted cc-hooks-bridge with
+  required:true, configPath and projectDir (bounded output captured in /tmp/dsh-s12-cli-dump.out).'
+integration_check:
+- 'The malformed config is handled inside the required bridge implementation: the
+  bridge emits an explicit warning and registers no hooks; no profile runner or free
+  session fallback is invoked.'
+grep_control:
+- back: '`rg -n -i "hooks-claude-code|settings.json|could not load|no hooks registered|fallback|free.?session|stock"
+    /tmp/dsh-s12-direct-smoke.out /tmp/dsh-s12-direct-smoke.err` — diagnostic matched
+    hooks-claude-code, SyntaxError, configPath and no hooks registered; fallback:false
+    asserted and forbidden markers rejected.'
+  front: n/a
+verification_results:
+- 'cp1 PASS: direct pinned bridge malformed-config smoke exit 0; captured diagnostic
+  identifies SyntaxError and configPath and includes no hooks registered.'
+- 'cp2 PASS: smoke assertion returned fallback:false and rejected free-session/free
+  session/stock run markers; required bridge path did not select a free-session runner.'
+checkpoints:
+- id: cp1
+  criterion: Invalid required bridge config produces an explicit diagnostic and non-zero
+    result.
+  status: done
+  done_at: '2026-08-29T21:28:09Z'
+- id: cp2
+  criterion: The failed required bridge path does not silently fall back to a free-session
+    run.
+  status: done
+  done_at: '2026-08-29T21:28:09Z'
+resume_from: cp1

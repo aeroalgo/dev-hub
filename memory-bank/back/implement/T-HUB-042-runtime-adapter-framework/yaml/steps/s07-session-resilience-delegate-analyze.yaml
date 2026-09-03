@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s07 — session_resilience.analyze_session_log delegates to adapter; common.py helpers IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-042-runtime-adapter-framework/yaml/steps/s07-session-resilience-delegate-analyze.yaml
+skills_used:
+- python-testing-patterns
+- python-error-handling
+discovery: []
+gaps:
+  status: none
+done:
+- "Added loop/runtime_adapters/common.py with get_adapter_for_runtime factory and temporary re-exports."
+- "Updated harness/hooks/session_resilience.py: replace is_dsh if/else branches with adapter.analyze_log(raw_log, ctx)."
+- "Created loop/tests/test_session_resilience_adapter.py verifying claude clean exit, dsh model-mismatch, and adapter delegation."
+files:
+- loop/runtime_adapters/common.py
+- harness/hooks/session_resilience.py
+- loop/tests/test_session_resilience_adapter.py
+deletes:
+- harness/hooks/session_resilience.py — is_dsh = ... line and conditional branches
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_resilience_adapter.py -q --tb=line`'
+integration_check:
+- "is_dsh completely purged from harness/hooks/session_resilience.py (rg count 0)."
+- "all adapter tests and resilience tests green."
+grep_control:
+- back: rg -n 'is_dsh' harness/hooks/session_resilience.py returns 0 matches
+  front: ''
+verification_results:
+- "cp1: PASS - rg -n 'is_dsh' harness/hooks/session_resilience.py returns 0 matches."
+- "cp2: PASS - pytest test_session_resilience_adapter.py -k claude_clean passed."
+- "cp3: PASS - pytest test_session_resilience_adapter.py -k dsh_mismatch passed."
+- "cp4: PASS - pytest test_dsh_adapter.py test_claude_adapter.py test_session_wrapper.py passed."
+checkpoints:
+- id: cp1
+  criterion: is_dsh not present in analyze_session_log core path; rg = 0 prod matches
+  status: done
+- id: cp2
+  criterion: 'claude path TM-007: analyze returns reason=None for clean exit log'
+  status: done
+- id: cp3
+  criterion: 'dsh model-mismatch: analyze returns reason=''model_substitution:...'''
+  status: done
+- id: cp4
+  criterion: existing session_resilience tests not regressed
+  status: done
+resume_from: done

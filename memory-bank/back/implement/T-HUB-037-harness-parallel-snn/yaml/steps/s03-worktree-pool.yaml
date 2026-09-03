@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-037-harness-parallel-snn
+title: s03 — worktree pool — create/destroy git worktrees per sNN parallel session
+  IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-037-harness-parallel-snn/yaml/steps/s03-worktree-pool.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/parallel/worktree.py для создания, удаления и листинга git worktree
+files:
+- loop/parallel/worktree.py
+- loop/tests/test_parallel_worktree.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_parallel_worktree.py -q`'
+integration_check:
+- Module loop/parallel/worktree.py integrates seamlessly into loop.parallel package
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: create_worktree вызывает git worktree add с правильным path (subprocess
+    mock)
+  status: done
+  done_at: '2026-08-31T22:36:13Z'
+- id: cp2
+  criterion: destroy_worktree вызывает git worktree remove --force (subprocess mock)
+  status: done
+  done_at: '2026-08-31T22:36:23Z'
+- id: cp3
+  criterion: create_worktree → path содержит epic_id и step_id в имени
+  status: done
+  done_at: '2026-08-31T22:36:32Z'
+resume_from: cp1

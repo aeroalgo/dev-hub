@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-017-loop-observability-foundation
+title: s07 — Preflight перед автозапуском — loop doctor checklist + exit codes IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s07-doctor-cli-preflight.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- ADD loop/incidents/doctor.py — run_doctor(cwd) implementation
+- EDIT loop/context_loop.py & bin/loop — add doctor subcommand
+- ADD loop/tests/test_incidents_doctor.py — 6 tests passed
+files:
+- loop/incidents/doctor.py
+- loop/context_loop.py
+- bin/loop
+- loop/tests/test_incidents_doctor.py
+- loop/tests/fixtures/incidents/stale_owner/
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_doctor.py -q --tb=line`'
+integration_check:
+- bin/loop doctor --help
+grep_control: []
+verification_results:
+- 6 passed in 0.17s
+checkpoints:
+- id: cp1
+  criterion: stale_owner fixture → doctor exit 1 + checklist stale_owner:fail + remediation
+    hint
+  status: done
+  done_at: '2026-08-30T18:34:00Z'
+- id: cp2
+  criterion: valid armed project → doctor exit 0
+  status: done
+  done_at: '2026-08-30T18:34:07Z'
+- id: cp3
+  criterion: missing PROJECT_ROOT → exit 2 misconfig
+  status: done
+  done_at: '2026-08-30T18:34:13Z'
+- id: cp4
+  criterion: corrupt incidents.jsonl → incidents_corrupt blocker
+  status: done
+  done_at: '2026-08-30T18:34:21Z'
+resume_from: cp1

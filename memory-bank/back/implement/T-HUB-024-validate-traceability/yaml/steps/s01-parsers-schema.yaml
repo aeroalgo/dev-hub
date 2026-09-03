@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-024-validate-traceability
+title: Parsers + report schema — plan/decompose/implement readers + TraceReport dataclass
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-024-validate-traceability/yaml/steps/s01-parsers-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- traceability.py dataclasses added
+- parse_plan_requirements, parse_decompose_refs, parse_implement_evidence added
+- fixtures created under loop/tests/fixtures/traceability
+- unit tests green in loop/tests/test_traceability_parsers.py
+files:
+- .claude/hooks/epic/traceability.py
+- loop/tests/fixtures/traceability/plan.md
+- loop/tests/fixtures/traceability/decompose/s01-example.yaml
+- loop/tests/fixtures/traceability/decompose/s02-example.yaml
+- loop/tests/fixtures/traceability/implement/s01-example.yaml
+- loop/tests/test_traceability_parsers.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_parsers.py -q`'
+integration_check:
+- unit tests for traceability parsers run green
+grep_control: []
+verification_results:
+- '.venv/bin/pytest loop/tests/test_traceability_parsers.py -q: 6 passed'
+checkpoints:
+- id: cp1
+  criterion: traceability.py существует и содержит parse_plan_requirements
+  status: done
+  done_at: '2026-08-31T06:09:37Z'
+- id: cp2
+  criterion: parse_decompose_refs и parse_implement_evidence определены
+  status: done
+  done_at: '2026-08-31T06:09:49Z'
+- id: cp3
+  criterion: 'Fixtures созданы: plan.md + decompose + implement shard'
+  status: done
+  done_at: '2026-08-31T06:10:13Z'
+- id: cp4
+  criterion: Unit tests зелёные
+  status: done
+  done_at: '2026-08-31T06:10:51Z'
+resume_from: cp1

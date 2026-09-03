@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-005
+title: s07 — IDEA PIPELINE archive gate — verify presence + add cheatsheet link if
+  absent IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-005-simplify-docs/yaml/steps/s07-idea-pipeline-gate-verify.yaml
+skills_used:
+- verification-before-completion
+- requesting-code-review
+discovery: []
+gaps:
+  status: none
+done:
+- 'cp1: archive gate absent (only soft REFLECT/ARCHIVE + approval gate) — Step 2a'
+- 'cp2: added explicit BACK/FRONT ARCHIVE NOW endpoint + workflow-archive.mdc link'
+- 'cp3: §Распознавание intact (L23)'
+- Fixed decompose as_built/delta YAML so seed-implement validates
+files:
+- .cursor/rules/shared/workflow-idea-pipeline.mdc
+- memory-bank/back/plan/T-HUB-005-simplify-docs/yaml/steps/s07-idea-pipeline-gate-verify.yaml
+deletes: []
+tests:
+- '`rg -n ''ARCHIVE NOW|workflow-archive'' .cursor/rules/shared/workflow-idea-pipeline.mdc`
+  — hits L110-111'
+- '`rg -n ''Распознавание|Классификация'' .cursor/rules/shared/workflow-idea-pipeline.mdc`
+  — hit L23'
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- docs-only FR-7 — IDEA PIPELINE archive endpoint; no API/UI counterpart
+- T-HUB-002 s04 completed but did not add IDEA archive gate (Step 2a path)
+grep_control: []
+verification_results:
+- 'cp1 PASS: no ARCHIVE NOW/workflow-archive before edit; soft REFLECT/ARCHIVE only'
+- 'cp2 PASS: ARCHIVE NOW + workflow-archive present after edit'
+- 'cp3 PASS: ## Распознавание at L23'
+checkpoints:
+- id: cp1
+  criterion: 'Прочитан workflow-idea-pipeline.mdc; зафиксирован вывод: archive gate
+    присутствует или нет'
+  status: done
+  done_at: '2026-08-22T19:55:36Z'
+- id: cp2
+  criterion: 'После правки (или без правки если 002 уже добавил): файл содержит явный
+    ARCHIVE-endpoint'
+  status: done
+  done_at: '2026-08-22T19:55:36Z'
+- id: cp3
+  criterion: 'Semantic gate не сломан: секция §Распознавание по-прежнему существует'
+  status: done
+  done_at: '2026-08-22T19:55:36Z'
+resume_from: cp1

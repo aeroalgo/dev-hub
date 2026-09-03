@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-010
+title: s04 — mainrule registration + workflow-plan clarify gates + finish-doc-router
+  + memory-bank-paths — CLARIFY canon wiring IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/s04-mainrule-plan-gate-paths.yaml
+skills_used: []
+discovery:
+- '@explorer: точечная карта s04; graphify unavailable, fallback rg/Read'
+gaps:
+  status: none
+done:
+- Зарегистрированы BACK/FRONT/INTEG CLARIFY в root и role mainrule indexes.
+- В BACK/FRONT/INTEG PLAN добавлены clarify gate и CRITICAL FINISH guard.
+- Добавлен CLARIFY row в finish-doc-router с canonical artifact path и template.
+- Добавлены back/front/integration clarify paths в memory-bank-paths.
+- Silent assumption оставлен только в запретительных правилах, не как допустимый fallback.
+files:
+- .cursor/rules/mainrule.mdc
+- .cursor/rules/back_developer/mainrule.mdc
+- .cursor/rules/front_developer/mainrule.mdc
+- .cursor/rules/integration_developer/mainrule.mdc
+- .cursor/rules/back_developer/workflow-plan.mdc
+- .cursor/rules/front_developer/workflow-plan.mdc
+- .cursor/rules/integration_developer/workflow-plan.mdc
+- .cursor/rules/shared/finish-doc-router.mdc
+- .cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+deletes:
+- 'Поведение ''silent assumption при пустом prompt / размытом scope'' устраняется
+  через edit workflow-plan.mdc ×3: добавляется FAIL/warn при CRITICAL markers + clarify
+  gate. Не физическое удаление файла. Kind C: Fallback? yes → сделано в этом шаге.'
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only;
+  no runtime tests required)'
+- '`rg -n CLARIFY .cursor/rules/mainrule.mdc .cursor/rules/*_developer/mainrule.mdc
+  .cursor/rules/shared/finish-doc-router.mdc` — PASS'
+- '`rg -n НУЖНО УТОЧНИТЬ|clarify|CRITICAL .cursor/rules/*_developer/workflow-plan.mdc`
+  — PASS'
+integration_check:
+- CLARIFY command → role workflow → clarify artifact path согласованы для BACK/FRONT/INTEG.
+grep_control: []
+verification_results:
+- 'cp1: PASS — root mainrule содержит CLARIFY для BACK/FRONT/INTEG.'
+- 'cp2: PASS — BACK PLAN содержит clarify gate и CRITICAL FINISH guard; аналог добавлен
+  FRONT/INTEG.'
+- 'cp3: PASS — finish-doc-router содержит CLARIFY artifact row.'
+- 'cp4: PASS — memory-bank-paths содержит три role paths.'
+- 'suite: PASS — timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true.'
+- 'graphify: unavailable at .venv/bin/graphify; docs-only fallback inventory used.'
+- 'verify sweep: PASS — all s04 rg criteria green; silent assumption matches only
+  prohibitive/verification rules.'
+- 'validate-step: PASS — epic_resolve validate-step exit 0.'
+- No runtime source changes; docs-only rule wiring.
+checkpoints:
+- id: cp1
+  criterion: 'CLARIFY зарегистрирована в mainrule.mdc (root): rg ''CLARIFY'' → ≥3
+    совпадений (BACK/FRONT/INTEG)'
+  status: done
+  done_at: '2026-08-23T07:21:18Z'
+- id: cp2
+  criterion: workflow-back-plan.mdc содержит clarify gate и CRITICAL marker FINISH
+    guard
+  status: done
+  done_at: '2026-08-23T07:21:24Z'
+- id: cp3
+  criterion: finish-doc-router.mdc содержит CLARIFY row с путём артефакта
+  status: done
+  done_at: '2026-08-23T07:21:32Z'
+- id: cp4
+  criterion: memory-bank-paths.mdc содержит clarify paths для back + front + integration
+  status: done
+  done_at: '2026-08-23T07:21:40Z'
+resume_from: cp1

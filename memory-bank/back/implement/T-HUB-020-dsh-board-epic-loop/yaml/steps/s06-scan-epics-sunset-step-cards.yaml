@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-020-dsh-board-epic-loop
+title: s06 — scan_epics + sync sunset step cards + archive migration IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-020-dsh-board-epic-loop/yaml/steps/s06-scan-epics-sunset-step-cards.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- scan_epics scanner implementation
+- board_status_for_epic status mapping
+- sync epic cards upsert & step era archive
+files:
+- loop/board_sync/scan_epics.py
+- loop/board_sync/board_status.py
+- loop/board_sync/diff.py
+- loop/board_sync/sync.py
+- loop/tests/test_board_sync_scan_mb.py
+- loop/tests/test_board_sync_sync.py
+- loop/tests/test_board_status_epic.py
+- loop/tests/test_board_sync_cli.py
+deletes:
+- 'sync.py: step card upsert pipeline (заменена на epic upsert)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_board_sync_sync.py
+  loop/tests/test_board_status_epic.py -q --tb=line`'
+integration_check:
+- '`loop/board_sync/scan_epics.py` ↔ `loop/board_sync/sync.py` scan_epics integration
+  verified'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'scan_epics: fixture 3 epics → 3 EpicWorkItem, нет дубликатов'
+  status: done
+  done_at: '2026-08-30T22:45:08Z'
+- id: cp2
+  criterion: 'board_status_for_epic: rank=0 + unresolved → running; rank=1 → backlog;
+    epic_done → todo'
+  status: done
+  done_at: '2026-08-30T22:45:20Z'
+- id: cp3
+  criterion: 'sync fixture: 12 pending steps → 1 epic card upserted, 0 step cards
+    upserted'
+  status: done
+  done_at: '2026-08-30T22:48:55Z'
+- id: cp4
+  criterion: step-era card на доске → archive_all True → archive request отправлен
+  status: done
+  done_at: '2026-08-30T22:48:59Z'
+- id: cp5
+  criterion: Существующие sync тесты зелёные — нет регрессии gate/roadmap sync
+  status: done
+  done_at: '2026-08-30T22:49:06Z'
+resume_from: cp1

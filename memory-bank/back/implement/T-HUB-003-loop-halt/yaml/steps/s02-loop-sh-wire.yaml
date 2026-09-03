@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-003
+title: s02 — loop.sh halt-parity branches after check-after IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-003-loop-halt/yaml/steps/s02-loop-sh-wire.yaml
+skills_used:
+- python-testing-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: check-after block loop.sh:578–655; NEED_HUMAN/after_rc!=0 → sleep+continue
+  (bug)'
+- decide_after_action в loop/halt_logic.py (s01); CLI отсутствует — wire через python3
+  -c + sys.path
+- prepare fail-closed :484–495 — DoNotTouch (NFR-1)
+gaps:
+  status: none
+done:
+- 'TDD: loop/tests/test_loop_shell_halt_parity.py (static shell wiring)'
+- 'loop.sh: check-after → decide_after_action; halt/NEED_HUMAN → exit 1; complete
+  → roadmap/dag; continue → next iter'
+- Удалена ветка NEED_HUMAN/after_rc retry+sleep
+- cp1–cp4 flushed; suite 18 passed (decide + shell halt parity)
+files:
+- loop/loop.sh
+- loop/tests/test_loop_shell_halt_parity.py
+deletes:
+- Ветка else continue / outer-sleep после NEED_HUMAN в check-after block
+- WARN check-after stop not EPIC_DONE retrying outer loop + sleep 20
+- WARN check-after failed rc retrying outer loop + sleep 20
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_loop_shell_halt_parity.py loop/tests/test_decide_after_action.py
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -k ''halt or check_after or loop_shell''
+  -q --tb=short`'
+integration_check:
+- grep -n NEED_HUMAN loop/loop.sh → exit 1 path (строки 604–612)
+- from halt_logic import decide_after_action в loop.sh после check-after
+- prepare fail-closed block сохранён (HALT prepare fail-closed)
+grep_control:
+- back: decide_after_action wired в loop/loop.sh + halt_logic.py + tests; старый outer-retry
+    NEED_HUMAN удалён
+  front: n/a
+verification_results:
+- 'cp1: NEED_HUMAN + exit 1 в check-after halt branch'
+- 'cp2: нет безусловного outer retry/sleep на NEED_HUMAN после check-after'
+- 'cp3: prepare fail-closed block intact'
+- 'cp4: 18 passed (test_loop_shell_halt_parity + test_decide_after_action)'
+checkpoints:
+- id: cp1
+  criterion: grep -n 'NEED_HUMAN' loop/loop.sh содержит exit 1 (не только continue)
+  status: done
+  done_at: '2026-08-22T17:04:07Z'
+- id: cp2
+  criterion: loop.sh после check-after block не содержит безусловного outer retry
+    / sleep на NEED_HUMAN
+  status: done
+  done_at: '2026-08-22T17:04:07Z'
+- id: cp3
+  criterion: 'Регрессия prepare halt — не сломана: grep prepare-halt block существует
+    и содержит exit/halt
+
+    '
+  status: done
+  done_at: '2026-08-22T17:04:07Z'
+- id: cp4
+  criterion: Тесты покрывающие shell halt parity проходят (s01 + s02 combined)
+  status: done
+  done_at: '2026-08-22T17:04:14Z'
+resume_from: cp1

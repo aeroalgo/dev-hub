@@ -26,12 +26,20 @@ Parent **обязан** передать секции. Нет секции → `
 0. **Первый Read** = latest `analyze-*.yaml` из ALLOW (если указан) или путь из prompt.
 1. Для каждого CRITICAL id из FINDINGS: Read plan/decompose refs → доказательство fix **или** blocker `finding_open:<id>`.
 2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Без pytest, без implement shards.
-3. После ≤6 Read — финальный отчёт, **ноль** дальнейших tool calls.
+3. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 4. **Первая строка текста = `VERDICT:`**
+
+## Pre-emit validate-boundary (HARD)
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+```
+
+Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
 
 ## Gate Output (JSON fence HARD)
 
-Твой финальный ответ **обязан** содержать fenced JSON блок с вердиктом по схеме `loop-gate-verdict/v1`:
+Твой финальный ответ **обязан** содержать fenced JSON блок. Открывающая строка = ` ```json `:
 
 ```json
 {
@@ -45,7 +53,7 @@ Parent **обязан** передать секции. Нет секции → `
 ```
 
 - Поле `verdict` может быть `"PASS"` или `"FAIL"`.
-- Hook / runtime парсит **именно fenced JSON** `loop-gate-verdict/v1`.
+- Hook / runtime парсит **именно fenced JSON** с полем `"schema":"loop-gate-verdict/v1"`.
 - Текстовая строка `VERDICT: PASS|FAIL` — дополнительный human summary для удобства чтения в консоли (не machine input).
 
 ## Формат отчёта (обязательный)

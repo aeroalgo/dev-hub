@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "git mv .claude/commands → harness/claude/commands + symlink (SoT commands)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перенести `.claude/commands` в `harness/claude/commands` как единственный SoT;
+  заменить `.claude/commands` на symlink `../harness/claude/commands`.
+  После шага maintainer правит файлы команд только в `harness/claude/commands`,
+  IDE shell `.claude/commands` остаётся рабочим symlink.
+
+plan_contract:
+  fr_ids: [FR-001, US-001, SC-001, SC-002]
+  nouns: [".claude/commands", "harness/claude/commands", "symlink"]
+  layout_paths:
+    - "harness/claude/commands/"
+    - ".claude/commands"
+  ac_quotes:
+    - "IDE shell .claude/commands — symlink; readlink -f → …/harness/claude/commands"
+    - "Target layout hub 046: harness/claude/commands существует и является SoT"
+  plan_jumps:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:102-102"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:163-202"
+
+context:
+  consumes: []
+  produces:
+    - "harness/claude/commands/ (SoT directory, moved from .claude/commands)"
+    - ".claude/commands -> ../harness/claude/commands (symlink)"
+  plan_refs:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §FR-001"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §US-001"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §SC-001 SC-002"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §Target layout (hub)"
+  files:
+    - "harness/claude/commands/"
+    - ".claude/commands"
+
+as_built:
+  - ".claude/commands — real directory (SoT), содержит hub command markdown files"
+  - "harness/claude/ — существует; CLAUDE.harness.md + settings.harness.json в нём (s046)"
+
+delta:
+  - "git mv .claude/commands harness/claude/commands"
+  - "rm -rf .claude/commands (если git mv не убрал real dir)"
+  - "ln -s ../harness/claude/commands .claude/commands"
+
+deletes:
+  - ".claude/commands (real dir — replaced by symlink; content moved to harness/claude/commands)"
+
+out_of_scope:
+  - "s02: .claude/skills mv (следующий шаг)"
+  - "s03: .claude/rules mv"
+  - "full pytest suite (s07)"
+
+skills:
+  code_surface: shell
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: harness/claude/commands существует и содержит перенесённые файлы
+    verify: "test -d harness/claude/commands && ls harness/claude/commands | head -3"
+  - id: cp2
+    criterion: .claude/commands — symlink, разрешается в harness/claude/commands
+    verify: "test -L .claude/commands && readlink -f .claude/commands | grep harness/claude/commands"
+  - id: cp3
+    criterion: нет dual SoT — .claude/commands не является real dir
+    verify: "test ! -d .claude/commands -o -L .claude/commands"
+  - id: cp4
+    criterion: rg — нет callers, ссылающихся на .claude/commands как real SoT после mv
+    verify: "rg -l 'mkdir.*\\.claude/commands' bin/ loop/ harness/ || true"
+
+verify: []
+tdd:
+  - "loop/tests/test_harness_paths.py: assert test -L .claude/commands + readlink → harness/claude/commands"

@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-044-runtime-sync-doctor-docs
+title: s06 — Tests test_doctor_runtime.py + doc link audit IMPLEMENT
+status: completed
+date: "2026-09-02"
+decompose_ref: memory-bank/back/plan/T-HUB-044-runtime-sync-doctor-docs/yaml/steps/s06-tests-doc-link-audit.yaml
+skills_used:
+  - python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+  - Добавлен loop/tests/test_doctor_runtime.py с девятью unit-тестами runtime doctor
+    checks и аудитом ссылок README/runbook.
+files:
+  - loop/tests/test_doctor_runtime.py
+deletes: []
+tests:
+  - "`timeout 300s .venv/bin/pytest loop/tests/test_doctor_runtime.py -q --tb=line`
+    — 9 passed"
+  - "`test -f loop/tests/test_doctor_runtime.py` — OK"
+  - "`rg '^def test_' loop/tests/test_doctor_runtime.py | wc -l` — 9"
+  - "`rg 'не запускает Codex' README.md; echo exit=$?` — exit=1"
+integration_check:
+  - README links to docs/runbooks/codex-loop-pilot.md and the runbook exists.
+  - loop/WORKFLOW.md links to loop/runtime_registry.yaml.
+grep_control: []
+verification_results:
+  - "PASS: 9 tests passed in test_doctor_runtime.py"
+  - "PASS: README → Codex pilot runbook link and WORKFLOW → runtime registry link verified"
+checkpoints:
+  - id: cp1
+    criterion: Файл loop/tests/test_doctor_runtime.py существует
+    status: done
+    done_at: "2026-09-02T14:23:22Z"
+  - id: cp2
+    criterion: test_doctor_runtime.py содержит ≥6 test_ функций
+    status: done
+    done_at: "2026-09-02T14:23:33Z"
+  - id: cp3
+    criterion: pytest test_doctor_runtime.py green
+    status: done
+    done_at: "2026-09-02T14:23:45Z"
+  - id: cp4
+    criterion: README не содержит «не запускает Codex» / устаревший ❌
+    status: done
+    done_at: "2026-09-02T14:23:56Z"
+resume_from: done

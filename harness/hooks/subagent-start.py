@@ -18,12 +18,27 @@ from _lib import (
 )
 
 
-_ALWAYS_INJECT = {"verify", "reviewer"}
+_ALWAYS_INJECT = {
+    "verify",
+    "verify-implement",
+    "verify-bugfix",
+    "verify-qa",
+    "verify-decompose",
+    "analyze-verify",
+    "reviewer",
+    "gate-repair",
+}
 _AGENT_TYPE_FIELDS = ("agent_type", "subagent_type", "type")
 PRESET_BY_AGENT = {
     "verify": "preset.verify",
+    "verify-implement": "preset.verify",
+    "verify-bugfix": "preset.verify",
+    "verify-qa": "preset.reviewer",
+    "verify-decompose": "preset.verify",
+    "analyze-verify": "preset.verify",
     "reviewer": "preset.reviewer",
     "explorer": "preset.explorer",
+    "gate-repair": "preset.repair",
 }
 
 

@@ -605,7 +605,11 @@ def gates_from_phase(phase: object) -> dict[str, Any]:
 def _step_needs_creative(cwd: Path, idx: Path | None, step: dict[str, str]) -> object:
     if idx is None:
         return None
-    shard = _resolve_href(idx.parent, step.get("shard_href") or step.get("file") or "", cwd)
+    shard = _resolve_href(
+        _decompose_step_shards_dir(idx),
+        step.get("shard_href") or step.get("file") or "",
+        cwd,
+    )
     if not shard:
         return None
     try:
@@ -1546,11 +1550,37 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
     root = Path(cwd)
     raw = str(decompose).replace("\\", "/")
     decompose = raw
+
+    # Handle layout v2 decompose-index.yaml / decompose-index.md
+    if raw.endswith("decompose-index.yaml"):
+        md_cand = root / (raw[: -len("decompose-index.yaml")] + "decompose-index.md")
+        if md_cand.is_file():
+            return md_cand
+        md_parent = root / raw[: -len("yaml/decompose-index.yaml")] / "md" / "decompose-index.md"
+        if md_parent.is_file():
+            return md_parent
+        return root / raw
+
+    if raw.endswith("decompose-index.md"):
+        if (root / raw).is_file():
+            return root / raw
+        y_cand = root / (raw[: -len("decompose-index.md")] + "decompose-index.yaml")
+        if y_cand.is_file():
+            return y_cand
+        y_parent = root / raw[: -len("md/decompose-index.md")] / "yaml" / "decompose-index.yaml"
+        if y_parent.is_file():
+            return y_parent
+        return root / raw
+
     if raw.endswith("index.yaml"):
         raw = raw[: -len("index.yaml")] + "index.md"
         decompose = raw
     idx = root / decompose
     if idx.is_dir():
+        if (idx / "md" / "decompose-index.md").is_file():
+            return idx / "md" / "decompose-index.md"
+        if (idx / "yaml" / "decompose-index.yaml").is_file():
+            return idx / "yaml" / "decompose-index.yaml"
         idx = idx / _INDEX_MD_NAME
     elif idx.name in _INDEX_YAML_NAMES:
         idx = idx.with_name(_INDEX_MD_NAME)
@@ -1558,12 +1588,46 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
         sibling = _sibling_decompose_index_md(idx)
         if sibling is not None:
             return sibling
+        # v2 step in yaml/steps/
+        if idx.parent.name == "steps" and idx.parent.parent.name == "yaml":
+            v2_md = idx.parent.parent.parent / "md" / "decompose-index.md"
+            if v2_md.is_file():
+                return v2_md
+            v2_yaml = idx.parent.parent / "decompose-index.yaml"
+            if v2_yaml.is_file():
+                return v2_yaml
         return None
     if idx.is_file():
         return idx
     # yaml-only tree: return md path even when md is absent (canon lives in yaml)
     if idx.name == _INDEX_MD_NAME and idx.with_name("index.yaml").is_file():
         return idx
+
+    # If decompose is an epic path in v1 or v2 that is missing or relocated:
+    for base in (
+        root / "memory-bank" / "back" / "plan",
+        root / "memory-bank" / "front" / "plan",
+        root / "memory-bank" / "integration" / "plan",
+    ):
+        # check if it is an epic directory in v2
+        cand_v2 = base / decompose / "md" / "decompose-index.md"
+        if cand_v2.is_file():
+            return cand_v2
+        cand_v2_y = base / decompose / "yaml" / "decompose-index.yaml"
+        if cand_v2_y.is_file():
+            return cand_v2_y
+        # if decompose is decompose-<epic_id> or decompose-<epic_id>/index.yaml, check migrated <epic_id>
+        parts = Path(decompose).parts
+        for p in parts:
+            if p.startswith("decompose-"):
+                epic_slug = p[len("decompose-"):]
+                migrated_md = base / epic_slug / "md" / "decompose-index.md"
+                if migrated_md.is_file():
+                    return migrated_md
+                migrated_y = base / epic_slug / "yaml" / "decompose-index.yaml"
+                if migrated_y.is_file():
+                    return migrated_y
+
     if str(decompose).endswith((".md", ".yaml", ".yml")):
         return None
     for base in (
@@ -1903,7 +1967,11 @@ def _try_advance_active_context(
         if not next_step:
             return result
         step_id = str(next_step.get("id") or next_step.get("step_id") or "").strip()
-        shard = _resolve_href(idx.parent, str(next_step.get("file") or ""), cwd)
+        shard = _resolve_href(
+            _decompose_step_shards_dir(idx),
+            str(next_step.get("file") or ""),
+            cwd,
+        )
         if not step_id or not shard:
             raise FileNotFoundError(
                 f"next step shard not found: {next_step.get('file')!r}"
@@ -3894,6 +3962,19 @@ def build_post_implement_active_context(
     )
 
 
+def _decompose_step_shards_dir(idx: Path) -> Path:
+    """Directory with sNN-*.yaml shards (v2: ``yaml/steps/``, v1: beside index)."""
+    ypath = index_yaml_path(idx)
+    if ypath.name in {"decompose-index.yaml", "decompose-index.yml"} and ypath.parent.name == "yaml":
+        steps = ypath.parent / "steps"
+        if steps.is_dir():
+            return steps
+        return ypath.parent
+    if ypath.is_file():
+        return ypath.parent
+    return idx.parent if idx.suffix else idx
+
+
 def _resolve_href(base_dir: Path, href: str, cwd: Path) -> str | None:
     href = (href or "").strip()
     if not href:
@@ -4122,11 +4203,12 @@ def arm_active_context_from_decompose(
             "qa_path": str(qa_p.relative_to(cwd_p)) if qa_p else None,
         }
 
-    shard_rel = _resolve_href(idx.parent, step["shard_href"], cwd_p)
+    shard_rel = _resolve_href(_decompose_step_shards_dir(idx), step["shard_href"], cwd_p)
     if not shard_rel:
-        guess = idx.parent / f"{step['step_id']}.yaml"
+        steps_dir = _decompose_step_shards_dir(idx)
+        guess = steps_dir / f"{step['step_id']}.yaml"
         if not guess.is_file():
-            hits = sorted(idx.parent.glob(f"{step['step_id']}-*.yaml"))
+            hits = sorted(steps_dir.glob(f"{step['step_id']}-*.yaml"))
             guess = hits[0] if hits else guess
         if guess.is_file():
             shard_rel = guess.relative_to(cwd_p).as_posix()
@@ -4134,7 +4216,7 @@ def arm_active_context_from_decompose(
             return {
                 "ok": False,
                 "error": (
-                    f"work shard for {step['step_id']} not found under {idx.parent}"
+                    f"work shard for {step['step_id']} not found under {steps_dir}"
                 ),
                 "step_id": step["step_id"],
             }
@@ -4352,19 +4434,29 @@ def arm_pre_implement_context(
 
     cwd_p = Path(cwd)
     role_key = str(role or "back").lower()
-    # Resolve short queue id (e.g. T-HUB-023) to full plan stem if descriptive plan file exists
-    plan_dir = cwd_p / "memory-bank" / role_key / "plan"
-    if plan_dir.is_dir():
-        # Check if epic_id is short (no descriptive slug after prefix/number)
-        matches = sorted(plan_dir.glob(f"plan-{epic_id}-*.md"))
-        if matches:
-            full_stem = matches[0].stem.removeprefix("plan-")
-            if full_stem:
-                epic_id = full_stem
+    from epic_paths import epic_id_from_plan_path, find_plan_md_path
+
+    resolved_plan = find_plan_md_path(cwd_p, role_key, epic_id)
+    if resolved_plan is not None:
+        full_id = epic_id_from_plan_path(resolved_plan)
+        if full_id:
+            epic_id = full_id
 
     phase_u = str(phase or "").upper()
     role_u = str(role or "back").upper()
-    target_rel = target_rel or f"memory-bank/{role}/plan/plan-{epic_id}.md"
+    if target_rel:
+        pass
+    elif resolved_plan is not None:
+        try:
+            target_rel = resolved_plan.relative_to(cwd_p).as_posix()
+        except ValueError:
+            target_rel = str(resolved_plan).replace("\\", "/")
+    else:
+        from loop.paths.epic_layout import EpicLayoutKind, resolve as layout_resolve
+
+        target_rel = layout_resolve(
+            role_key, epic_id, EpicLayoutKind.PLAN_MD, project_root=cwd_p
+        ).relative_to(cwd_p).as_posix()
     link = target_rel.removeprefix("memory-bank/")
     next_cmd = f"{role_u} {phase_u}"
     load_now = (

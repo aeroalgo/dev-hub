@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s01 — arm short queue id → plan stem resolve — epic_id = full descriptive slug
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-056-suite-green-loop-identity/yaml/steps/s01-epic-transition-plan-stem-resolve.yaml
+skills_used:
+- systematic-debugging
+discovery:
+- '.claude/hooks/epic/core.py: arm_pre_implement_context разрешает короткий queue
+  id в полный stem плана'
+gaps:
+  status: none
+done:
+- Разрешение short queue id в полный stem описательного плана в arm_pre_implement_context
+  (.claude/hooks/epic/core.py)
+- 'Добавление строки ''# epic_id: {stem} — NOT short queue id'' в Handoff секцию activeContext'
+files:
+- .claude/hooks/epic/core.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_epic_transition.py::test_arm_pre_implement_short_queue_id_uses_plan_stem
+  -q --tb=short`'
+- '`bin/pytest loop/tests/test_epic_transition.py -q --tb=line`'
+integration_check:
+- 'bin/pytest loop/tests/test_epic_transition.py -q --tb=line: PASS'
+grep_control: []
+verification_results:
+- 'test_arm_pre_implement_short_queue_id_uses_plan_stem: PASS'
+- 'test_epic_transition.py suite: PASS'
+checkpoints:
+- id: cp1
+  criterion: arm_pre_implement_context при epic_id=T-HUB-023 + plan-T-HUB-023-hooks-llm-fallbacks.md
+    → res['epic_id'] == 'T-HUB-023-hooks-llm-fallbacks'
+  status: done
+  done_at: '2026-09-03T01:14:15Z'
+- id: cp2
+  criterion: armed_epic в state.json == полный stem, AC содержит 'NOT short queue
+    id'
+  status: done
+  done_at: '2026-09-03T01:14:15Z'
+- id: cp3
+  criterion: рядом стоящие тесты epic_transition не регрессировали
+  status: done
+  done_at: '2026-09-03T01:14:16Z'
+resume_from: cp1

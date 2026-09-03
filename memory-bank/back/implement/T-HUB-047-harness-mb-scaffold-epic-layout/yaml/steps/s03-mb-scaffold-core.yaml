@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: loop/mb_scaffold/ — scaffold_plan, scaffold_decompose, scaffold_implement_all,
+  scaffold_qa, scaffold_analyze, scaffold_audit
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s03-mb-scaffold-core.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Создан пакет loop/mb_scaffold/ с Pydantic моделями ScaffoldRequest/ScaffoldResult
+- Реализованы scaffold_plan, scaffold_decompose, scaffold_implement/scaffold_implement_all,
+  scaffold_qa, scaffold_analyze, scaffold_audit
+- Реализован skeleton contract с защитой от перезаписи заполненных файлов (force guard)
+- Написаны тесты test_mb_scaffold_decompose.py, test_mb_scaffold_plan.py, test_mb_scaffold_implement.py
+files:
+- loop/mb_scaffold/__init__.py
+- loop/mb_scaffold/models.py
+- loop/mb_scaffold/scaffold_plan.py
+- loop/mb_scaffold/scaffold_decompose.py
+- loop/mb_scaffold/scaffold_implement.py
+- loop/mb_scaffold/scaffold_phase.py
+- harness/hooks/tests/test_mb_scaffold_decompose.py
+- harness/hooks/tests/test_mb_scaffold_plan.py
+- harness/hooks/tests/test_mb_scaffold_implement.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py harness/hooks/tests/test_mb_scaffold_plan.py
+  harness/hooks/tests/test_mb_scaffold_implement.py -q --tb=short`'
+integration_check:
+- Модули loop.mb_scaffold интегрированы с loop.paths.epic_layout и loop.schemas.plan_spec
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'scaffold_decompose(epic_id=''T-HUB-047-test'', role=''back'', plan_spec=spec_with_5_steps)
+    → создаёт s01..s05 skeleton yaml + index.md; delta: [] в каждом'
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp2
+  criterion: scaffold_plan → создаёт md/plan.md с section headers + yaml/plan.yaml
+    valid PlanSpec skeleton; не перезаписывает без --force
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp3
+  criterion: scaffold_implement_all из 5-step decompose index → 5 implement yaml in_progress
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp4
+  criterion: Scaffold на уже заполненный файл (goal != '') → error без --force
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+resume_from: cp1

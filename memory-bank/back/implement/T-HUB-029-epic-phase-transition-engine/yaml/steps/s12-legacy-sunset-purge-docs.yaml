@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s12
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s12 — legacy sunset purge + docs (WORKFLOW.md, README, architecture) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s12-legacy-sunset-purge-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Purged legacy bodies and kept shims delegating to epic_transition
+- Updated loop/WORKFLOW.md and loop/README.md with Transition Engine contract details
+- Created architecture shard memory-bank/back/architecture/epic-transition-engine.md
+- Verified transition engine tests suite green
+files:
+- loop/context_loop.py
+- .claude/hooks/epic/core.py
+- loop/WORKFLOW.md
+- loop/README.md
+- memory-bank/back/architecture/epic-transition-engine.md
+deletes:
+- 'loop/context_loop.py:promote_decompose_phase_if_ready: standalone implementation
+  body (keep function signature as deprecated stub or remove entirely after alias-period)'
+- '.claude/hooks/epic/core.py:arm_active_context_from_decompose: standalone implementation
+  body'
+- '.claude/hooks/epic/core.py:arm_pre_implement_context: standalone implementation
+  body'
+- 'loop/roadmap_queue.py:_arm_analyze_context (public): удалить или переименовать
+  в _private (если T-HUB-029 содержит этот import)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py -q --tb=line`'
+integration_check:
+- rg 'promote_decompose_phase_if_ready' loop/ .claude/ | grep -v 'test_\|shim\|#\|deprecated'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'rg "promote_decompose_phase_if_ready" loop/ .claude/ — только shim +
+    tests; ноль production callers
+
+    '
+  status: done
+  done_at: '2026-08-31T11:31:35Z'
+- id: cp2
+  criterion: 'loop/WORKFLOW.md содержит секцию Transition Engine
+
+    '
+  status: done
+  done_at: '2026-08-31T11:31:49Z'
+- id: cp3
+  criterion: 'memory-bank/back/architecture/epic-transition-engine.md существует +
+    содержит mermaid block
+
+    '
+  status: done
+  done_at: '2026-08-31T11:32:10Z'
+- id: cp4
+  criterion: 'Финальная регрессия: весь loop/tests/ зелёный
+
+    '
+  status: done
+  done_at: '2026-08-31T11:36:50Z'
+resume_from: cp1

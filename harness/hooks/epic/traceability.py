@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import logging
 from pathlib import Path
 import re
 from typing import Any
+import warnings
 import yaml
+
+from loop.schemas.plan_spec import PlanSpec
+
+logger = logging.getLogger(__name__)
 
 
 class ReqID(str):
@@ -50,16 +56,57 @@ class TraceReport:
     high_count: int = 0
 
 
-def parse_plan_requirements(plan_md_path: Path) -> list[str]:
-    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.md.
+def parse_plan_requirements(plan_path: Path) -> list[str]:
+    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.yaml (primary) or plan.md (fallback).
 
-    Robust to missing file or missing requirements table/sections (returns []).
+    If plan_path is a yaml file or if a corresponding plan.yaml exists, parse PlanSpec.requirements.
+    If only markdown exists, emit DeprecationWarning('layout_v1_deprecated') and fallback to regex.
+    Robust to missing file or missing requirements (returns []).
     """
-    if not plan_md_path.exists() or not plan_md_path.is_file():
+    if not plan_path.exists() or not plan_path.is_file():
         return []
 
+    # If plan_path is YAML, read via PlanSpec / YAML directly
+    if plan_path.suffix in (".yaml", ".yml"):
+        try:
+            with open(plan_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            if isinstance(data, dict):
+                reqs_raw = data.get("requirements", [])
+                requirements: list[str] = []
+                seen: set[str] = set()
+                for r in reqs_raw:
+                    if isinstance(r, dict) and "id" in r:
+                        r_id = str(r["id"]).strip()
+                        if r_id and r_id not in seen:
+                            seen.add(r_id)
+                            requirements.append(ReqID(r_id))
+                    elif isinstance(r, str):
+                        r_id = r.strip()
+                        if r_id and r_id not in seen:
+                            seen.add(r_id)
+                            requirements.append(ReqID(r_id))
+                return requirements
+        except Exception:
+            return []
+
+    # Check if a sibling / equivalent plan.yaml exists
+    # e.g., plan.md in md/ -> check ../yaml/plan.yaml
+    if plan_path.name == "plan.md" and plan_path.parent.name == "md":
+        sibling_yaml = plan_path.parent.parent / "yaml" / "plan.yaml"
+        if sibling_yaml.is_file():
+            return parse_plan_requirements(sibling_yaml)
+
+    # Md fallback: emit DeprecationWarning and parse via regex
+    warnings.warn(
+        f"layout_v1_deprecated: regex parsing markdown plan {plan_path.name} is deprecated; use plan.yaml",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    logger.warning("layout_v1_deprecated: parsing plan.md fallback for %s", plan_path)
+
     try:
-        content = plan_md_path.read_text(encoding="utf-8")
+        content = plan_path.read_text(encoding="utf-8")
     except Exception:
         return []
 
@@ -77,7 +124,7 @@ def parse_plan_requirements(plan_md_path: Path) -> list[str]:
 
 
 def parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace]:
-    """Parse all sNN*.yaml shards in decompose_dir and extract plan_refs & out_of_scope.
+    """Parse all sNN*.yaml shards in decompose_dir and extract plan_refs, plan_contract.fr_ids & out_of_scope.
 
     Robust to missing directory, invalid YAML, or missing keys.
     """
@@ -85,39 +132,56 @@ def parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace]:
     if not decompose_dir.exists() or not decompose_dir.is_dir():
         return result
 
-    for shard_path in sorted(decompose_dir.glob("s*.yaml")):
-        if shard_path.name == "index.yaml":
-            continue
-        try:
-            with open(shard_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
-        except Exception:
-            data = {}
+    # Check if steps subdirectory exists (layout v2)
+    search_dirs = [decompose_dir]
+    steps_sub = decompose_dir / "steps"
+    if steps_sub.is_dir():
+        search_dirs.append(steps_sub)
 
-        if not isinstance(data, dict):
-            data = {}
+    for s_dir in search_dirs:
+        for shard_path in sorted(s_dir.glob("s*.yaml")):
+            if shard_path.name in ("index.yaml", "decompose-index.yaml"):
+                continue
+            try:
+                with open(shard_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+            except Exception:
+                data = {}
 
-        step_id = str(data.get("step_id") or shard_path.stem.split("-")[0])
+            if not isinstance(data, dict):
+                data = {}
 
-        plan_refs_raw = data.get("plan_refs")
-        if plan_refs_raw is None and isinstance(data.get("context"), dict):
-            plan_refs_raw = data.get("context", {}).get("plan_refs")
-        if isinstance(plan_refs_raw, list):
-            plan_refs = [str(x) for x in plan_refs_raw if x is not None]
-        else:
-            plan_refs = []
+            step_id = str(data.get("step_id") or shard_path.stem.split("-")[0])
 
-        out_of_scope_raw = data.get("out_of_scope")
-        if isinstance(out_of_scope_raw, list):
-            out_of_scope = [str(x) for x in out_of_scope_raw if x is not None]
-        else:
-            out_of_scope = []
+            plan_refs_raw = data.get("plan_refs")
+            if plan_refs_raw is None and isinstance(data.get("context"), dict):
+                plan_refs_raw = data.get("context", {}).get("plan_refs")
+            if isinstance(plan_refs_raw, list):
+                plan_refs = [str(x) for x in plan_refs_raw if x is not None]
+            else:
+                plan_refs = []
 
-        result[step_id] = ShardTrace(
-            step_id=step_id,
-            plan_refs=plan_refs,
-            out_of_scope=out_of_scope,
-        )
+            # Also collect fr_ids from plan_contract if present
+            contract = data.get("plan_contract")
+            if isinstance(contract, dict):
+                fr_ids = contract.get("fr_ids")
+                if isinstance(fr_ids, list):
+                    for fid in fr_ids:
+                        fid_str = str(fid).strip()
+                        if fid_str and fid_str not in plan_refs:
+                            plan_refs.append(fid_str)
+
+            out_of_scope_raw = data.get("out_of_scope")
+            if isinstance(out_of_scope_raw, list):
+                out_of_scope = [str(x) for x in out_of_scope_raw if x is not None]
+            else:
+                out_of_scope = []
+
+            result[step_id] = ShardTrace(
+                step_id=step_id,
+                plan_refs=plan_refs,
+                out_of_scope=out_of_scope,
+            )
 
     return result
 

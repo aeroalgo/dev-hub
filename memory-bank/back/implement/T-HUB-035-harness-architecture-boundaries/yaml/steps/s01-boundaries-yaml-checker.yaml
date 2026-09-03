@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-035-harness-architecture-boundaries
+title: s01 — Enforce layer contracts — boundaries.yaml + checker module IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-035-harness-architecture-boundaries/yaml/steps/s01-boundaries-yaml-checker.yaml
+skills_used:
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created boundaries.yaml with 5 layer contracts
+- Created check_boundaries.py module that parses yaml and AST-scans codebase
+- Created test_boundary_check.py with clean tree and synthetic violation tests
+files:
+- tests/__init__.py
+- tests/architecture/__init__.py
+- tests/architecture/boundaries.yaml
+- tests/architecture/check_boundaries.py
+- tests/architecture/test_boundary_check.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/architecture/ -q --tb=short`'
+integration_check:
+- .venv/bin/pytest tests/architecture/ -q --tb=short
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- .venv/bin/pytest tests/architecture/ -q --tb=short -> 3 passed
+checkpoints:
+- id: cp1
+  criterion: boundaries.yaml создан и содержит ≥5 contracts (loop, hooks, .claude/hooks,
+    .agents, memory-bank слои)
+  status: done
+  done_at: '2026-08-31T19:18:41Z'
+- id: cp2
+  criterion: 'SC-001 pass: check_boundaries на реальном дереве хаба возвращает 0 violations'
+  status: done
+  done_at: '2026-08-31T19:19:24Z'
+- id: cp3
+  criterion: 'SC-002 pass: синтетический файл с forbidden import → violation detected'
+  status: done
+  done_at: '2026-08-31T19:19:35Z'
+- id: cp4
+  criterion: Весь suite зелёный
+  status: done
+  done_at: '2026-08-31T19:19:47Z'
+resume_from: cp1

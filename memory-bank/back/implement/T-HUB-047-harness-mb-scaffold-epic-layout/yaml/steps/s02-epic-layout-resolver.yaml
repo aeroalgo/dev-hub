@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s02 — loop/paths/epic_layout.py resolver — единственный path API IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s02-epic-layout-resolver.yaml
+skills_used:
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Создан пакет loop/paths/ с loop/paths/__init__.py
+- Реализован loop/paths/epic_layout.py с функцией resolve(role, epic_id, kind, step_id?, step_slug?, ext?, project_root?)
+- Покрыт тестами в harness/hooks/tests/test_epic_layout_resolver.py (9 passed)
+files:
+- loop/paths/epic_layout.py
+- loop/paths/__init__.py
+- harness/hooks/tests/test_epic_layout_resolver.py
+- pytest.ini
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_epic_layout_resolver.py -q --tb=short
+integration_check:
+- bin/pytest harness/hooks/tests/test_epic_layout_resolver.py -q --tb=short
+grep_control: []
+verification_results:
+- bin/pytest harness/hooks/tests/test_epic_layout_resolver.py -q --tb=short — 9 passed
+checkpoints:
+- id: cp1
+  criterion: resolve('back', 'T-HUB-047-...', 'plan_md') → Path('memory-bank/back/plan/T-HUB-047-.../md/plan.md')
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp2
+  criterion: resolve('back', id, 'decompose_step', 's03') → …/yaml/steps/s03.yaml
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp3
+  criterion: resolve с unknown kind → ValueError
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp4
+  criterion: pytest resolver matrix green (smoke)
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+resume_from: null

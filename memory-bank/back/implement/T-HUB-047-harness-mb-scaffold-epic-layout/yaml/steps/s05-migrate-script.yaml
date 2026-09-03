@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s05 — loop/migrate/epic_layout_v1_to_v2.py — flat→v2 migrate (--dry-run/--apply)
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s05-migrate-script.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/migrate/__init__.py and loop/migrate/epic_layout_v1_to_v2.py with discover_v1_epics,
+  is_migrated, update_refs, check_active_implement, migrate_epic, migrate_all and
+  CLI interface
+- Added unit and fixture tests in harness/hooks/tests/test_epic_layout_migrate.py
+  covering dry-run, apply idempotency, internal ref replacement, and active implement
+  guard
+files:
+- loop/migrate/__init__.py
+- loop/migrate/epic_layout_v1_to_v2.py
+- harness/hooks/tests/test_epic_layout_migrate.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_epic_layout_migrate.py -q --tb=short
+integration_check:
+- loop/migrate/epic_layout_v1_to_v2.py runs CLI --dry-run / --apply and returns JSON
+grep_control: []
+verification_results:
+- bin/pytest harness/hooks/tests/test_epic_layout_migrate.py -q --tb=short — 4 passed
+checkpoints:
+- id: cp1
+  criterion: --dry-run на fixture v1 memory-bank → JSON с planned moves, exit 0, ни
+    один файл не тронут
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp2
+  criterion: --apply на fixture v1 → файлы перемещены; --apply повторно → idempotent,
+    0 changes
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp3
+  criterion: 'internal refs updated: ''decompose-T-HUB-047-...'' → ''T-HUB-047-.../yaml/steps/''
+    в yaml'
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+- id: cp4
+  criterion: 'active IMPLEMENT guard: in_progress шаги + --apply без --force → exit
+    non-zero + warning'
+  status: done
+  done_at: '2026-09-03T16:20:00Z'
+resume_from: cp1

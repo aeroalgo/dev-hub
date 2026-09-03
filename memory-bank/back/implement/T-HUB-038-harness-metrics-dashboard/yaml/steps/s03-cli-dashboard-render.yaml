@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: s03 — CLI dashboard-render + bin/loop alias — operator entry point with --days
+  / --format IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-038-harness-metrics-dashboard/yaml/steps/s03-cli-dashboard-render.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена подкоманда dashboard-render в loop/context_loop.py с параметрами --days
+  и --format
+- Добавлен alias dashboard в bin/loop
+- Создан юнит-тест tests/test_dashboard_cli.py
+files:
+- loop/context_loop.py
+- bin/loop
+- tests/test_dashboard_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/test_dashboard_cli.py -q --tb=short`'
+integration_check:
+- .venv/bin/python loop/context_loop.py dashboard-render --help
+grep_control: []
+verification_results:
+- pytest tests/ -q --tb=short -> 20 passed
+checkpoints:
+- id: cp1
+  criterion: CLI subcommand регистрируется и --help работает без ошибок
+  status: done
+  done_at: '2026-08-31T23:15:20Z'
+- id: cp2
+  criterion: dashboard-render записывает HTML файл в reports/ dir
+  status: done
+  done_at: '2026-08-31T23:15:41Z'
+- id: cp3
+  criterion: bin/loop dashboard alias содержит forward к dashboard-render
+  status: done
+  done_at: '2026-08-31T23:15:50Z'
+resume_from: cp1

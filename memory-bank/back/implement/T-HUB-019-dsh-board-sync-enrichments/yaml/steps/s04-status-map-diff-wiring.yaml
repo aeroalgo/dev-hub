@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: 's04 — Status mapping: active/blocked→running, PLAN/DECOMPOSE gates→backlog
+  IMPLEMENT'
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-019-dsh-board-sync-enrichments/yaml/steps/s04-status-map-diff-wiring.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Добавлен status_for_work_item: in_progress, active, blocked маппятся в running,
+  остальные в todo'
+- 'Добавлен status_for_gate: PLAN, DECOMPOSE, CLARIFY, ANALYZE, ROADMAP маппятся в
+  backlog, остальные в todo'
+- Интегрирован status_for_work_item в work_item_card
+- Интегрирован status_for_gate в gate_card
+files:
+- loop/board_sync/diff.py
+- loop/tests/test_board_sync_diff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_diff.py -q --tb=line`'
+integration_check:
+- diff.py status_for_work_item / status_for_gate verified against card_model and scan_gates
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'status_for_work_item: in_progress/active/blocked → running; pending
+    → todo'
+  status: done
+  done_at: '2026-08-30T21:40:52Z'
+- id: cp2
+  criterion: 'status_for_gate: PLAN/DECOMPOSE/CLARIFY/ANALYZE/ROADMAP → backlog; AUDIT/QA/BUGFIX/REFLECT
+    → todo'
+  status: done
+  done_at: '2026-08-30T21:40:59Z'
+- id: cp3
+  criterion: work_item_card с active/blocked WorkItem → BoardTask.status == 'running'
+  status: done
+  done_at: '2026-08-30T21:41:06Z'
+- id: cp4
+  criterion: gate_card с DECOMPOSE phase → BoardTask.status == 'backlog'
+  status: done
+  done_at: '2026-08-30T21:41:11Z'
+resume_from: cp1

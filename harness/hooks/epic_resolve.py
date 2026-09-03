@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,6 +23,11 @@ from constitution_seed import seed_constitution  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from epic_index import sync_yaml_from_md  # noqa: E402
+from epic_paths import (
+    discover_epic_role,
+    resolve,
+    EpicLayoutKind,
+)
 from epic.traceability import (
     parse_plan_requirements,
     parse_decompose_refs,
@@ -276,6 +282,59 @@ def main() -> int:
     p_mb_reflect.add_argument("--done", default="", help="done summary string")
     p_mb_reflect.add_argument("--phase", default="BACK REFLECT", help="phase string")
 
+    p_mb_scaffold = sub.add_parser("mb-scaffold", help="mb-scaffold subcommand dispatcher")
+    mb_scaffold_sub = p_mb_scaffold.add_subparsers(dest="mb_scaffold_cmd", required=True)
+
+    # plan
+    p_scaff_plan = mb_scaffold_sub.add_parser("plan", help="scaffold plan artifacts (layout v2)")
+    p_scaff_plan.add_argument("--epic-id", required=True, help="epic id (e.g. T-HUB-047)")
+    p_scaff_plan.add_argument("--role", default="back", help="role (back/front/integ)")
+    p_scaff_plan.add_argument("--title", default=None, help="epic title")
+    p_scaff_plan.add_argument("--level", default="epic", help="plan level (epic/task)")
+    p_scaff_plan.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_plan.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
+    # decompose
+    p_scaff_decomp = mb_scaffold_sub.add_parser("decompose", help="scaffold decompose artifacts (layout v2)")
+    p_scaff_decomp.add_argument("--epic-id", required=True, help="epic id")
+    p_scaff_decomp.add_argument("--role", default="back", help="role")
+    p_scaff_decomp.add_argument("--from-plan", action="store_true", help="read steps outline from plan.yaml")
+    p_scaff_decomp.add_argument("--formula", default=None, help="formula id to merge/use for steps outline floor")
+    p_scaff_decomp.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_decomp.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
+    # implement
+    p_scaff_impl = mb_scaffold_sub.add_parser("implement", help="scaffold implement step artifacts (layout v2)")
+    p_scaff_impl.add_argument("--epic-id", required=True, help="epic id")
+    p_scaff_impl.add_argument("--role", default="back", help="role")
+    p_scaff_impl.add_argument("--step-id", default=None, help="single step id (e.g. s01)")
+    p_scaff_impl.add_argument("--step-slug", default=None, help="step slug (optional)")
+    p_scaff_impl.add_argument("--title", default=None, help="step title (optional)")
+    p_scaff_impl.add_argument("--all", action="store_true", help="scaffold all steps from decompose-index.yaml")
+    p_scaff_impl.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_impl.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
+    # qa
+    p_scaff_qa = mb_scaffold_sub.add_parser("qa", help="scaffold qa artifacts (layout v2)")
+    p_scaff_qa.add_argument("--epic-id", required=True, help="epic id")
+    p_scaff_qa.add_argument("--role", default="back", help="role")
+    p_scaff_qa.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_qa.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
+    # analyze
+    p_scaff_ana = mb_scaffold_sub.add_parser("analyze", help="scaffold analyze artifacts (layout v2)")
+    p_scaff_ana.add_argument("--epic-id", required=True, help="epic id")
+    p_scaff_ana.add_argument("--role", default="back", help="role")
+    p_scaff_ana.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_ana.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
+    # audit
+    p_scaff_aud = mb_scaffold_sub.add_parser("audit", help="scaffold audit artifacts (layout v2)")
+    p_scaff_aud.add_argument("--epic-id", required=True, help="epic id")
+    p_scaff_aud.add_argument("--role", default="back", help="role")
+    p_scaff_aud.add_argument("--force", action="store_true", help="force overwrite existing files")
+    p_scaff_aud.add_argument("--dry-run", action="store_true", help="dry run without writing files")
+
     p_mb_load = sub.add_parser("mb-load", help="mb-load subcommand dispatcher")
     mb_load_sub = p_mb_load.add_subparsers(dest="mb_load_cmd", required=True)
     p_mb_load_sess = mb_load_sub.add_parser("session", help="load activeContext session bundle")
@@ -341,6 +400,26 @@ def main() -> int:
         action="store_true",
         help="apply whitelist repairs",
     )
+
+    p_mb_migrate = sub.add_parser(
+        "mb-migrate",
+        help="migrate memory-bank layout v1 to v2",
+    )
+    p_mb_migrate_mode = p_mb_migrate.add_mutually_exclusive_group()
+    p_mb_migrate_mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="report planned migrations without writing (default)",
+    )
+    p_mb_migrate_mode.add_argument(
+        "--apply",
+        action="store_true",
+        help="apply v1 to v2 migration",
+    )
+    p_mb_migrate.add_argument("--epic", default=None, help="specific epic_id to migrate")
+    p_mb_migrate.add_argument("--role", default="back", help="role for specific epic")
+    p_mb_migrate.add_argument("--force", action="store_true", help="force migration even if steps in_progress")
 
     p_val_boundary = sub.add_parser(
         "validate-boundary",
@@ -479,6 +558,156 @@ def main() -> int:
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
 
+    if args.cmd == "mb-scaffold":
+        from loop.mb_scaffold import (
+            scaffold_plan,
+            scaffold_decompose,
+            scaffold_implement,
+            scaffold_implement_all,
+            scaffold_qa,
+            scaffold_analyze,
+            scaffold_audit,
+        )
+        from _lib import hub_root
+
+        # FR-018: cwd guard: ensure cwd = PROJECT_ROOT or DEV_HUB / hub_root
+        hub = hub_root().resolve()
+        proj = (os.environ.get("PROJECT_ROOT") or "").strip()
+        proj_root = Path(proj).expanduser().resolve() if proj else None
+
+        # Check explicit --cwd if provided, else resolved cwd
+        resolved_p = Path(cwd).resolve()
+        allowed_roots = [hub]
+        if proj_root:
+            allowed_roots.append(proj_root)
+
+        if not any(resolved_p == r or resolved_p in r.parents or r in resolved_p.parents for r in allowed_roots) and (proj_root and resolved_p != proj_root):
+            pass
+
+        # Strict check according to FR-018 and s04 delta:
+        # Check that cwd matches PROJECT_ROOT or DEV_HUB (not an arbitrary directory without PROJECT_ROOT/DEV_HUB context)
+        # Specifically: if cwd is not within hub and not within PROJECT_ROOT, exit 2
+        is_valid_cwd = False
+        for root_cand in allowed_roots:
+            try:
+                resolved_p.relative_to(root_cand)
+                is_valid_cwd = True
+                break
+            except ValueError:
+                pass
+            if resolved_p == root_cand:
+                is_valid_cwd = True
+                break
+
+        if not is_valid_cwd:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "created": [],
+                        "skipped": [],
+                        "dry_run": getattr(args, "dry_run", False),
+                        "error": f"cwd guard violation: '{resolved_p}' is neither PROJECT_ROOT nor DEV_HUB",
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 2
+
+        try:
+            if args.mb_scaffold_cmd == "plan":
+                res = scaffold_plan(
+                    epic_id=args.epic_id,
+                    role=args.role,
+                    title=args.title,
+                    level=args.level,
+                    force=args.force,
+                    dry_run=args.dry_run,
+                    project_root=resolved_p,
+                )
+            elif args.mb_scaffold_cmd == "decompose":
+                res = scaffold_decompose(
+                    epic_id=args.epic_id,
+                    role=args.role,
+                    formula_id=args.formula,
+                    force=args.force,
+                    dry_run=args.dry_run,
+                    project_root=resolved_p,
+                )
+            elif args.mb_scaffold_cmd == "implement":
+                if args.all or not args.step_id:
+                    res = scaffold_implement_all(
+                        epic_id=args.epic_id,
+                        role=args.role,
+                        force=args.force,
+                        dry_run=args.dry_run,
+                        project_root=resolved_p,
+                    )
+                else:
+                    res = scaffold_implement(
+                        epic_id=args.epic_id,
+                        step_id=args.step_id,
+                        step_slug=args.step_slug,
+                        role=args.role,
+                        title=args.title,
+                        force=args.force,
+                        dry_run=args.dry_run,
+                        project_root=resolved_p,
+                    )
+            elif args.mb_scaffold_cmd == "qa":
+                res = scaffold_qa(
+                    epic_id=args.epic_id,
+                    role=args.role,
+                    force=args.force,
+                    dry_run=args.dry_run,
+                    project_root=resolved_p,
+                )
+            elif args.mb_scaffold_cmd == "analyze":
+                res = scaffold_analyze(
+                    epic_id=args.epic_id,
+                    role=args.role,
+                    force=args.force,
+                    dry_run=args.dry_run,
+                    project_root=resolved_p,
+                )
+            elif args.mb_scaffold_cmd == "audit":
+                res = scaffold_audit(
+                    epic_id=args.epic_id,
+                    role=args.role,
+                    force=args.force,
+                    dry_run=args.dry_run,
+                    project_root=resolved_p,
+                )
+            else:
+                print(
+                    json.dumps(
+                        {"ok": False, "error": f"Unknown mb-scaffold subcmd: {args.mb_scaffold_cmd}"},
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                )
+                return 2
+
+            out = res.model_dump(by_alias=True)
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
+        except Exception as exc:
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "created": [],
+                        "skipped": [],
+                        "dry_run": getattr(args, "dry_run", False),
+                        "error": str(exc),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            )
+            return 2
+
     if args.cmd == "mb-load":
         if args.mb_load_cmd == "session":
             from loop.mb_load.session import load_session
@@ -522,6 +751,30 @@ def main() -> int:
         val_res = validate_boundary(args.schema_id, raw)
         print(json.dumps(val_res.model_dump(by_alias=True), ensure_ascii=False, indent=2))
         return 0 if val_res.valid else 1
+
+    if args.cmd == "mb-migrate":
+        from loop.migrate.epic_layout_v1_to_v2 import migrate_all, migrate_epic
+
+        is_apply = bool(getattr(args, "apply", False))
+        dry_run = not is_apply
+        force = bool(getattr(args, "force", False))
+        if args.epic:
+            try:
+                res = migrate_epic(
+                    epic_id=args.epic,
+                    role=args.role,
+                    cwd=cwd,
+                    dry_run=dry_run,
+                    force=force,
+                )
+                payload = {"ok": True, "dry_run": dry_run, "result": res}
+            except Exception as e:
+                payload = {"ok": False, "dry_run": dry_run, "error": str(e)}
+        else:
+            payload = migrate_all(cwd=cwd, dry_run=dry_run, force=force)
+
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if payload.get("ok") else 2
 
     if args.cmd == "mark-index-status":
         r = mark_index_step_status(
@@ -750,21 +1003,85 @@ def main() -> int:
 
     if args.cmd == "validate-traceability":
         plan_id = args.epic_id
-        plan_path = Path(cwd) / "memory-bank" / "back" / "plan" / f"plan-{plan_id}.md"
-        if not plan_path.is_file():
-            print(f"Error: plan file not found: {plan_path}", file=sys.stderr)
+        role = getattr(args, "role", None) or discover_epic_role(cwd, plan_id) or "back"
+
+        # Primary: layout v2 plan.yaml
+        plan_path = None
+        try:
+            v2_plan_yaml = resolve(role, plan_id, EpicLayoutKind.PLAN_YAML, project_root=cwd)
+            if v2_plan_yaml.is_file():
+                plan_path = v2_plan_yaml
+        except Exception:
+            pass
+
+        # Fallback 1: layout v2 plan.md
+        if plan_path is None:
+            try:
+                v2_plan_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
+                if v2_plan_md.is_file():
+                    plan_path = v2_plan_md
+            except Exception:
+                pass
+
+        # Fallback 2: legacy v1 layout plan.md
+        if plan_path is None:
+            v1_plan = Path(cwd) / "memory-bank" / role / "plan" / f"plan-{plan_id}.md"
+            if v1_plan.is_file():
+                plan_path = v1_plan
+            else:
+                # check if plan_id matches any plan-*.md
+                matches = list((Path(cwd) / "memory-bank" / role / "plan").glob(f"plan-{plan_id}-*.md"))
+                if matches:
+                    plan_path = matches[0]
+
+        if plan_path is None or not plan_path.is_file():
+            print(f"Error: plan file not found for epic {plan_id}", file=sys.stderr)
             return 2
 
-        decomp_dir = Path(cwd) / "memory-bank" / "back" / "plan" / f"decompose-{plan_id}"
-        if not decomp_dir.is_dir():
-            print(f"Error: decompose dir not found: {decomp_dir}", file=sys.stderr)
+        # Decompose directory resolution (v2 steps/ or v2 yaml/ or v1 decompose-<id>)
+        decomp_dir = None
+        try:
+            v2_decomp_yaml = resolve(role, plan_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
+            if v2_decomp_yaml.is_file() or v2_decomp_yaml.parent.is_dir():
+                decomp_dir = v2_decomp_yaml.parent
+        except Exception:
+            pass
+
+        if decomp_dir is None or not decomp_dir.is_dir():
+            v1_decomp = Path(cwd) / "memory-bank" / role / "plan" / f"decompose-{plan_id}"
+            if v1_decomp.is_dir():
+                decomp_dir = v1_decomp
+            else:
+                matches = list((Path(cwd) / "memory-bank" / role / "plan").glob(f"decompose-{plan_id}-*"))
+                if matches and matches[0].is_dir():
+                    decomp_dir = matches[0]
+
+        if decomp_dir is None or not decomp_dir.is_dir():
+            print(f"Error: decompose dir not found for epic {plan_id}", file=sys.stderr)
             return 2
 
         plan_reqs = parse_plan_requirements(plan_path)
         decomp_refs = parse_decompose_refs(decomp_dir)
 
-        impl_dir = Path(cwd) / "memory-bank" / "back" / "implement" / f"implement-{plan_id}"
-        impl_ev = parse_implement_evidence(impl_dir) if impl_dir.is_dir() else {}
+        # Implement evidence resolution
+        impl_dir = None
+        try:
+            v2_impl_step = resolve(role, plan_id, EpicLayoutKind.IMPLEMENT_STEP, step_id="s01", project_root=cwd)
+            if v2_impl_step.parent.is_dir():
+                impl_dir = v2_impl_step.parent
+        except Exception:
+            pass
+
+        if impl_dir is None or not impl_dir.is_dir():
+            v1_impl = Path(cwd) / "memory-bank" / role / "implement" / f"implement-{plan_id}"
+            if v1_impl.is_dir():
+                impl_dir = v1_impl
+            else:
+                matches = list((Path(cwd) / "memory-bank" / role / "implement").glob(f"implement-{plan_id}-*"))
+                if matches and matches[0].is_dir():
+                    impl_dir = matches[0]
+
+        impl_ev = parse_implement_evidence(impl_dir) if impl_dir and impl_dir.is_dir() else {}
 
         tests_dir = Path(cwd) / args.tests_dir if args.tests_dir else None
 

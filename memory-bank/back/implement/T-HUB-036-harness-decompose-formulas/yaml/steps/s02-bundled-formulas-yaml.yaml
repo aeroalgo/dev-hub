@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-036-harness-decompose-formulas
+title: s02 — 3 bundled formulas — hooks-epic, loop-runtime-epic, cli-validate-epic
+  YAML files IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-036-harness-decompose-formulas/yaml/steps/s02-bundled-formulas-yaml.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Created 3 bundled decompose formulas (hooks-epic.yaml, loop-runtime-epic.yaml, cli-validate-epic.yaml)
+  in loop/formulas/
+- Added loop/formulas/README.md guide
+- Created unit/integration tests in loop/tests/test_bundled_formulas.py
+files:
+- loop/formulas/hooks-epic.yaml
+- loop/formulas/loop-runtime-epic.yaml
+- loop/formulas/cli-validate-epic.yaml
+- loop/formulas/README.md
+- loop/tests/test_bundled_formulas.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_bundled_formulas.py -q`'
+integration_check:
+- loop/formulas/*.yaml schema validation passing via loop/tests/test_bundled_formulas.py
+grep_control: []
+verification_results:
+- cp1 PASS (.venv/bin/pytest loop/tests/test_bundled_formulas.py::test_hooks_epic_loads
+  -q)
+- cp2 PASS (.venv/bin/pytest loop/tests/test_bundled_formulas.py::test_all_bundled_formulas_valid
+  -q)
+- cp3 PASS (.venv/bin/pytest loop/tests/test_bundled_formulas.py::test_formulas_have_steps_with_content
+  -q)
+checkpoints:
+- id: cp1
+  criterion: hooks-epic.yaml загружается через load_formula() без ошибок и содержит
+    ≥5 steps
+  status: done
+  done_at: '2026-08-31T21:52:47Z'
+- id: cp2
+  criterion: loop-runtime-epic.yaml и cli-validate-epic.yaml — оба валидируются schema
+  status: done
+  done_at: '2026-08-31T21:52:57Z'
+- id: cp3
+  criterion: каждая formula имеет ≥3 steps с непустыми goal_template и typical_files_pattern
+  status: done
+  done_at: '2026-08-31T21:53:08Z'
+resume_from: cp1

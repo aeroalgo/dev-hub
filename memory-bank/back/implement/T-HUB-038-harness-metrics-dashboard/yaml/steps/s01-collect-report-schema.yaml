@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: s01 — Dashboard collect + dashboard-report/v1 schema — aggregate metrics/incidents/episodes/events
+  IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-038-harness-metrics-dashboard/yaml/steps/s01-collect-report-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/dashboard/__init__.py, loop/dashboard/schema.py, loop/dashboard/collect.py
+- Created tests/test_dashboard_collect.py
+files:
+- loop/dashboard/__init__.py
+- loop/dashboard/collect.py
+- loop/dashboard/schema.py
+- tests/test_dashboard_collect.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/test_dashboard_collect.py -q --tb=short`'
+integration_check:
+- collect(cwd) produces DashboardReport (dashboard-report/v1) with metrics, open_incidents,
+  events_by_kind, last_episodes, epic_progress
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: DashboardReport schema импортируется и содержит поля metrics + open_incidents
+  status: done
+  done_at: '2026-08-31T23:08:28Z'
+- id: cp2
+  criterion: collect(cwd) возвращает DashboardReport без исключений на fixture dir
+  status: done
+  done_at: '2026-08-31T23:08:59Z'
+- id: cp3
+  criterion: events_by_kind dict агрегирован (ключи — строки kind)
+  status: done
+  done_at: '2026-08-31T23:09:03Z'
+resume_from: cp1

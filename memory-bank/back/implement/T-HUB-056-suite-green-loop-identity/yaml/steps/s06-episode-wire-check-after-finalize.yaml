@@ -1,0 +1,42 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s06 — episode_wire — check_after ok=True + manifest.json создаётся при frontmatter
+  AC IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-056-suite-green-loop-identity/yaml/steps/s06-episode-wire-check-after-finalize.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added loop-handoff/v1 frontmatter to activeContext.md fixtures in loop/tests/test_episode_wire.py
+- Ensured check_after passes without degraded state in episode wire tests
+files:
+- loop/tests/test_episode_wire.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_episode_wire.py -q --tb=short
+integration_check:
+- bin/pytest loop/tests/test_episode_wire.py -> 4 passed
+grep_control: []
+verification_results:
+- 'cp1 PASS: test_check_after_creates_manifest -> ca_res[ok]=True, manifest.json exists'
+- 'cp2 PASS: test_finalize_exception_does_not_block -> ca_res[ok]=True on RuntimeError
+  in finalize'
+- 'cp3 PASS: all 4 test_episode_wire.py tests green'
+checkpoints:
+- id: cp1
+  criterion: test_check_after_creates_manifest → ca_res['ok']=True, manifest.json
+    существует
+  status: done
+- id: cp2
+  criterion: test_finalize_exception_does_not_block → ca_res['ok']=True при RuntimeError
+    в finalize
+  status: done
+- id: cp3
+  criterion: все episode_wire тесты зелёные
+  status: done
+resume_from: cp1

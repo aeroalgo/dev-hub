@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-017-loop-observability-foundation
+title: s08 — Lifecycle projection — incident/repair events в epic events.jsonl IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s08-event-emission-repair.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Lifecycle projection incident and repair events emitted to memory-bank/<role>/events/<epic_id>/events.jsonl
+  via build_event.
+- Added emit_incident_opened, emit_incident_resolved, and emit_repair_applied in loop/incidents/events.py.
+- Wired event emission into tier0 repair completion and check_after incident opening.
+files:
+- loop/incidents/events.py
+- loop/incidents/tier0.py
+- loop/context_loop.py
+- loop/tests/test_incidents_events.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_events.py -q --tb=line`'
+integration_check:
+- build_event import resolved in loop/incidents/events.py to .claude/hooks/epic_events.py
+grep_control: []
+verification_results:
+- '.venv/bin/pytest loop/tests/test_incidents_events.py -q --tb=line: 4 passed'
+checkpoints:
+- id: cp1
+  criterion: tier0 repair completes → events.jsonl contains kind repair_applied with
+    repair_fn + incident_id
+  status: done
+  done_at: '2026-08-30T18:58:18Z'
+- id: cp2
+  criterion: open_incident → incident_opened event appended
+  status: done
+  done_at: '2026-08-30T18:58:25Z'
+- id: cp3
+  criterion: resolve → incident_resolved event appended
+  status: done
+  done_at: '2026-08-30T18:58:29Z'
+- id: cp4
+  criterion: '§0.11: build_event import resolves to epic_events.py'
+  status: done
+  done_at: '2026-08-30T19:00:37Z'
+resume_from: cp1

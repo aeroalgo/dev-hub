@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-058-sunset-inventory-agent
+title: 'Lean IMPLEMENT + behavior-first + spec-first: spawn sunset-inventory как обязательный
+  gate на required scope'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-058-sunset-inventory-agent/yaml/steps/s04-workflow-lean-pointer.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Обновлен .cursor/rules/back_developer/isolation_rules/_lean/implement.mdc с добавлением
+  sunset_scope gate (HARD)
+- Обновлен .cursor/rules/shared/workflow-behavior-first.mdc §3 с добавлением pointer
+  inventory executor @sunset-inventory
+- Обновлен .cursor/rules/shared/workflow-spec-first-replace.mdc с указанием spawn
+  sunset-inventory перед prod Write нового SoT
+- Обновлен .cursor/rules/shared/cheatsheets/back-implement.mdc с one-liner sunset
+  spawn
+files:
+- .cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+- .cursor/rules/shared/workflow-behavior-first.mdc
+- .cursor/rules/shared/workflow-spec-first-replace.mdc
+- .cursor/rules/shared/cheatsheets/back-implement.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py
+  -q`'
+integration_check:
+- rg 'sunset_scope' .cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+- rg 'sunset-inventory' .cursor/rules/shared/cheatsheets/back-implement.mdc
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: lean/implement.mdc содержит sunset-inventory spawn gate
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp2
+  criterion: workflow-behavior-first.mdc §3 упоминает spawn sunset-inventory inventory
+    executor
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp3
+  criterion: workflow-spec-first-replace.mdc содержит pointer sunset spawn
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp4
+  criterion: cheatsheets/back-implement.mdc содержит one-liner sunset
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+resume_from: cp1

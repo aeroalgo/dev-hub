@@ -225,10 +225,15 @@ def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
 
 
 def _plan_path(project: Path, role: str, epic_id: str) -> Path | None:
-    plan_dir = project / "memory-bank" / role / "plan"
-    candidates = [plan_dir / f"plan-{epic_id}.md"]
-    candidates.extend(sorted(plan_dir.glob(f"plan-{epic_id}-*.md")))
-    return next((path for path in candidates if path.is_file()), None)
+    import sys
+    from pathlib import Path as _Path
+
+    hooks = _Path(__file__).resolve().parents[2] / ".claude" / "hooks"
+    if str(hooks) not in sys.path:
+        sys.path.insert(0, str(hooks))
+    from epic_paths import find_plan_md_path
+
+    return find_plan_md_path(project, role, epic_id)
 
 
 def _pre_gates(

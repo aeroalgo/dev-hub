@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s06 — arm_loop_from_card pipeline + syncAfterLoop opt — FR-004/011 IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s06-arm-loop-pipeline-sync-after-loop.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- graphify N/A — hub repository (no graph.json); inspected board_launch and board_sync
+  modules with rg/read fallback.
+gaps:
+  status: none
+done:
+- Implemented arm_loop_from_card with fail-closed arm sequencing, argv construction,
+  loop execution, and normalized PipelineResult.
+- Implemented best-effort post-loop hub-board sync with workspace filtering and non-fatal
+  sync_warning diagnostics.
+- Added unit coverage for success, arm failure, loop failure, sync enabled/disabled,
+  and sync start failure.
+- Set BridgeConfig.sync_after_loop default to true per FR-011.
+files:
+- loop/board_launch/pipeline.py
+- loop/board_launch/loop_argv.py
+- loop/tests/test_board_launch_pipeline.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_pipeline.py -q --tb=line
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py loop/tests/test_board_launch_arm.py
+  loop/tests/test_board_launch_loop_run.py loop/tests/test_board_launch_pipeline.py
+  -q --tb=line
+integration_check:
+- hub-board sync --workspace-id <workspace_id> maps to loop/board_sync/cli.py sync
+  parser and _sync workspace_id_filter.
+- sync subprocess is invoked without shell=True and non-zero exit is retained as sync_warning
+  only.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 — PASS: test_arm_loop_success; targeted pipeline suite 6 passed.'
+- 'cp2 — PASS: test_arm_fails_loop_not_called; targeted pipeline suite 6 passed.'
+- 'cp3 — PASS: test_sync_after_loop; sync runs after failed loop and returns warning.'
+- 'cp4 — PASS: test_no_sync_after_loop; sync is skipped and warning is None.'
+checkpoints:
+- id: cp1
+  criterion: arm ok + fake loop exit 0 → PipelineResult status='succeeded'; both arm
+    and loop fields populated
+  status: done
+- id: cp2
+  criterion: arm raises StepMismatchError → PipelineResult status='arm_failed'; loop_invoked=False;
+    loop runner NOT called
+  status: done
+- id: cp3
+  criterion: syncAfterLoop=True → sync command invoked after loop regardless of loop
+    exit; sync failure → sync_warning string, not pipeline failure
+  status: done
+- id: cp4
+  criterion: syncAfterLoop=False → sync not invoked; sync_warning=None
+  status: done
+resume_from: cp1

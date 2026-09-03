@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: epic_resolve.py mb-scaffold subparser — plan/decompose/implement/qa/analyze/audit
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s04-mb-scaffold-cli.yaml
+skills_used:
+- modern-python
+- tdd
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен subparser mb-scaffold в epic_resolve.py с субкомандами plan, decompose,
+  implement, qa, analyze, audit
+- Реализован cwd guard на mb-scaffold субкомандах с exit 2 при вызове вне PROJECT_ROOT
+  / DEV_HUB
+- Покрыты все субкоманды, флаги и guard тестами в harness/hooks/tests/test_mb_scaffold_cli.py
+files:
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_scaffold_cli.py
+- loop/mb_scaffold/scaffold_decompose.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_mb_scaffold_cli.py -q
+integration_check:
+- python harness/hooks/epic_resolve.py mb-scaffold --help
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: python harness/hooks/epic_resolve.py mb-scaffold --help показывает plan,
+    decompose, implement, qa, analyze, audit
+  status: done
+  done_at: '2026-09-03T18:43:20Z'
+- id: cp2
+  criterion: 'mb-scaffold plan --epic-id T-HUB-TEST --dry-run → JSON {ok: true, dry_run:
+    true, created: [...]}'
+  status: done
+  done_at: '2026-09-03T18:43:28Z'
+- id: cp3
+  criterion: 'cwd guard: вызов из произвольной директории без PROJECT_ROOT → exit
+    2'
+  status: done
+  done_at: '2026-09-03T18:43:34Z'
+resume_from: cp1

@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-041-harness-canonical-extract
+title: s02 — git mv .claude/{hooks,agents,instructions} → harness/ (SoT переезжает)
+  IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-041-harness-canonical-extract/yaml/steps/s02-git-mv-hooks-agents-instructions.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- git mv .claude/hooks/* harness/hooks/
+- git mv .claude/agents/* harness/agents/
+- git mv .claude/instructions/* harness/instructions/
+- removed .claude/hooks, .claude/agents, .claude/instructions
+files:
+- harness/hooks/
+- harness/agents/
+- harness/instructions/
+- .claude/settings.json
+deletes:
+- .claude/hooks/
+- .claude/agents/
+- .claude/instructions/
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/ -q --tb=line`'
+integration_check:
+- '`timeout 300s test -f harness/hooks/stop-gate.py`'
+grep_control: []
+verification_results:
+- '`test -f harness/hooks/stop-gate.py && echo OK` -> PASS'
+- '`test -f harness/hooks/epic_resolve.py && echo OK` -> PASS'
+- '`test -f harness/agents/verify-implement.md && echo OK` -> PASS'
+- '`find harness/ -name __pycache__ -o -name *.pyc | wc -l` -> 0 PASS'
+- '`.venv/bin/pytest harness/hooks/tests/ -q --tb=line` -> 18 passed PASS'
+checkpoints:
+- id: cp1
+  criterion: harness/hooks/ содержит перемещённые файлы (stop-gate.py присутствует)
+  status: done
+  done_at: '2026-09-01T11:01:29Z'
+- id: cp2
+  criterion: .claude/hooks не является реальной директорией (удалена)
+  status: done
+  done_at: '2026-09-01T11:01:38Z'
+- id: cp3
+  criterion: git mv зафиксирован корректно (файлы в git status как renamed)
+  status: done
+  done_at: '2026-09-01T11:01:48Z'
+- id: cp4
+  criterion: Нет __pycache__ / .pyc мусора в harness/ после mv
+  status: done
+  done_at: '2026-09-01T11:02:33Z'
+resume_from: cp1

@@ -1,0 +1,83 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-012
+title: s04 — converged handoff + dry-run fixture + doc-claim purge — AUDIT loop closed
+  IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/s04-finish-router-refs-fixture-doc-claim-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- AUDIT routing now requires converged:true and empty actionable/leftover arrays before
+  QA
+- Added Spec Kit adaptation boundary reference and deterministic missing-FR dry-run
+  fixture
+- Added source_ref hint and purged residual step_id-only audit claims
+files:
+- .cursor/rules/shared/finish-doc-router.mdc
+- .cursor/templates/finish-doc-router.md
+- .cursor/templates/decompose/epic-step.yaml
+- memory-bank/back/plan/refs/speckit-adapt-012.md
+- memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/plan-T-FIX-998-fake-missing-fr.md
+- memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/index.md
+- memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/index.yaml
+- memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/decompose-T-FIX-998-fake-missing-fr/s01-stub.yaml
+- memory-bank/back/plan/T-HUB-012-audit-converge/yaml/steps/fixtures/fake-missing-fr-intent/expected-audit-findings.yaml
+- .claude/commands/back-audit.md
+- .claude/commands/front-audit.md
+- .claude/commands/integ-audit.md
+deletes:
+- Residual exclusive claims «AUDIT = только presence step_id» anywhere under .cursor/rules/**/workflow-audit.mdc,
+  **/isolation_rules/_lean/audit.mdc after s02/s03
+- finish-doc-router wording that next=* QA depends only on empty not_implemented[]
+  without converged:true
+tests:
+- 'AC smoke: `timeout 300s .venv/bin/pytest -q --tb=line` (pytest suite is not required
+  for this documentation/fixture-only step)'
+- 'AC smoke: rg converged .cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md'
+- 'AC smoke: rg missing|FR-1|source_ref|sNN-audit|HIGH|CRITICAL expected-audit-findings.yaml'
+- 'AC smoke: residual exclusive audit-claim rg exits clean'
+integration_check:
+- 'AUDIT routing is parity-safe: converged:true plus empty actionable/leftover arrays
+  is required before QA'
+- Fixture preserves source_ref FR-1 and appends a new sNN-audit remediation path
+grep_control:
+- back: source_ref hint present in .cursor/templates/decompose/epic-step.yaml
+  front: n/a
+- back: No residual only-presence/only-step_id audit claim under .cursor/rules
+  front: n/a
+- back: finish-doc-router.mdc includes converged-aware QA routing
+  front: n/a
+verification_results:
+- cp1-cp4 already flushed green via epic_resolve.py
+- 'No pytest required for this documentation/fixture-only shard: tdd defines documentation/rg
+  AC smoke'
+- Parent suite run failed in unrelated loop/tests/test_context_loop.py lines 1112,
+  1152, 1196, 1234, 1266, 1342, 1373, 1396; failure is outside this shard's scope
+- No frontend test runner invoked
+- validate-step returned ok=true with errors=[] and warnings=[]
+- '@verify returned VERDICT: PASS; step acceptance passed'
+checkpoints:
+- id: cp1
+  criterion: finish-doc-router.mdc упоминает converged для AUDIT routing
+  status: done
+  done_at: '2026-08-23T14:50:39Z'
+- id: cp2
+  criterion: refs/speckit-adapt-012.md существует; граница ANALYZE vs AUDIT + FORBIDDEN
+    CONVERGE
+  status: done
+  done_at: '2026-08-23T14:50:45Z'
+- id: cp3
+  criterion: fixture expected finding missing + source_ref FR-1 + new_shard path
+  status: done
+  done_at: '2026-08-23T14:50:54Z'
+- id: cp4
+  criterion: 'doc-claim purge: нет exclusive only-step_id; epic-step hint source_ref;
+    QA path requires converged'
+  status: done
+  done_at: '2026-08-23T14:51:11Z'
+resume_from: cp1

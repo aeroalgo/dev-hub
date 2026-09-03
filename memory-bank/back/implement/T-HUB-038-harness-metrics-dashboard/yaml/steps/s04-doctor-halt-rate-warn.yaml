@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-038-harness-metrics-dashboard
+title: s04 — Doctor halt-rate warn — optional check EPIC_DASHBOARD_HALT_WARN_RATE
+  over 7d window IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-038-harness-metrics-dashboard/yaml/steps/s04-doctor-halt-rate-warn.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен _check_halt_rate в loop/incidents/doctor.py
+- Интегрирован вызов _check_halt_rate с порогом EPIC_DASHBOARD_HALT_WARN_RATE (default
+  0.5) в run_doctor
+files:
+- loop/incidents/doctor.py
+- tests/test_dashboard_doctor.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest tests/test_dashboard_doctor.py -q --tb=short`'
+integration_check:
+- rg '_check_halt_rate' loop/incidents/doctor.py
+grep_control:
+- back: rg '_check_halt_rate' loop/incidents/doctor.py
+  front: ''
+- back: rg 'EPIC_DASHBOARD_HALT_WARN_RATE' loop/incidents/doctor.py
+  front: ''
+verification_results:
+- 'rg _check_halt_rate: PASS'
+- 'rg EPIC_DASHBOARD_HALT_WARN_RATE: PASS'
+checkpoints:
+- id: cp1
+  criterion: _check_halt_rate возвращает CheckResult с status=warn при rate > threshold
+  status: done
+  done_at: '2026-08-31T23:18:31Z'
+- id: cp2
+  criterion: CheckResult status=ok если rate <= threshold
+  status: done
+  done_at: '2026-08-31T23:18:42Z'
+- id: cp3
+  criterion: check пропускается (status=skip) если metrics.json отсутствует — fail-closed
+    safe
+  status: done
+  done_at: '2026-08-31T23:18:51Z'
+resume_from: cp1

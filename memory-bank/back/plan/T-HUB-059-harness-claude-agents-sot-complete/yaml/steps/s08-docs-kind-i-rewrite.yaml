@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "harness/README + architecture/services.md + Kind I instruction rewrite"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить docs/instruction surfaces, чтобы отразить harness SoT:
+  - `harness/README.md`: полный Target layout section (все 4 SoT дерева)
+  - `memory-bank/architecture/services.md`: shells table update (commands/skills/rules → harness paths)
+  - Kind I: AGENTS.md stub в hub-link, test comments, другие runtime instructions — rewrite на harness paths
+  Нет prod-кода. Шаг docs-only, impl: [].
+
+plan_contract:
+  fr_ids: [FR-008, FR-009, AC+6]
+  nouns:
+    - "harness/README.md"
+    - "memory-bank/architecture/services.md"
+    - "harness/skills"
+    - "harness/claude/commands"
+    - "harness/claude/skills"
+    - "harness/claude/rules"
+    - "AGENTS.md stub"
+    - "Kind I"
+  layout_paths:
+    - "harness/README.md"
+    - "memory-bank/architecture/services.md"
+  ac_quotes:
+    - "Docs/architecture отражают harness SoT; Kind I runtime instructions rewritten"
+    - "README/AGENTS stub «Skills: harness/skills/*/SKILL.md» (+ shell note)"
+    - "architecture/services.md: update shells table"
+  plan_jumps:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:109-110"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:324-331"
+
+context:
+  consumes:
+    - "s01–s04 done (target layout established)"
+  produces:
+    - "harness/README.md (full Target layout section)"
+    - "memory-bank/architecture/services.md (shells table updated)"
+    - "bin/hub-link AGENTS.md stub text (updated to harness/skills)"
+  plan_refs:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §FR-008"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §FR-009"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §Replacement/sunset §I"
+  files:
+    - "harness/README.md"
+    - "memory-bank/architecture/services.md"
+    - "bin/hub-link"
+
+as_built:
+  - "harness/README.md — существует; не содержит полного Target layout с 4 SoT деревьями"
+  - "memory-bank/architecture/services.md — существует; shells table может не иметь .claude/commands → harness строк"
+  - "bin/hub-link alongside: AGENTS.md stub (строки 182-200) говорит Skills: harness/skills/ (уже частично) — проверить точность"
+
+delta:
+  - "harness/README.md: добавить/обновить Target layout section с harness/claude/commands|skills|rules + harness/skills; отметить SoT + shell symlinks"
+  - "memory-bank/architecture/services.md: shells table — добавить строки harness/claude/commands|skills|rules + harness/skills как SoT; .claude/* и .agents/skills — как shell symlinks"
+  - "bin/hub-link AGENTS.md stub: убедиться что Skills: → harness/skills/*/SKILL.md (не .agents/skills как SoT)"
+  - "Kind I: rg найти runtime instruction surfaces с .claude/commands или .agents/skills как SoT — rewrite на harness"
+
+deletes:
+  - "harness/README.md: устаревший incomplete tree без claude/commands|skills|rules"
+  - "architecture/services.md: строки/описания с .agents/skills как SoT"
+  - "AGENTS.md stub: упоминания .agents/skills как editable tree (только shell note)"
+
+out_of_scope:
+  - "Исторические archive/memory-bank prose (не runtime) — не переписывать"
+  - "Content correctness SKILL.md bodies"
+  - "purge obsolete tests (s09)"
+
+skills:
+  code_surface: shell
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: harness/README.md содержит Target layout с harness/claude/commands
+    verify: "rg 'harness/claude/commands' harness/README.md"
+  - id: cp2
+    criterion: architecture/services.md обновлён — harness/skills как SoT
+    verify: "rg 'harness/skills' memory-bank/architecture/services.md"
+  - id: cp3
+    criterion: rg — нет runtime instructions говорящих .agents/skills как SoT (не shell)
+    verify: "rg -l '\\.agents/skills.*SoT\\|SoT.*\\.agents/skills' harness/ bin/ loop/ || true"
+  - id: cp4
+    criterion: Kind I grep — нет mentions .claude/commands as real SoT dir в runtime docs
+    verify: "rg '\\.claude/commands' harness/README.md bin/hub-link | grep -v 'symlink\\|shell\\|harness' || true"
+
+verify: []
+tdd: []

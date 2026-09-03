@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-016
+title: s05 — stop-gate DSH self-limit — prevent infinite block→continue loop when
+  stop_hook_active=false under DSH IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s05-stop-gate-self-limit-dsh.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery:
+- graphify query + узкий rg подтвердили stop-gate state/fingerprint flow и DSH_HOOKS_BRIDGE
+  propagation из loop.sh.
+gaps:
+  status: none
+done:
+- Добавлен DSH runtime detection через DSH_HOOKS_BRIDGE или EPIC_RUNTIME=dsh.
+- 'Добавлен persistent dsh_consecutive_blocks counter: block до лимита 3, затем диагностический
+  allow.'
+- Counter сбрасывается при изменении activeContext fingerprint; Claude path не изменён.
+- Добавлены unit tests для block/increment/allow/reset сценариев.
+files:
+- .claude/hooks/stop-gate.py
+- .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -q --tb=line`'
+integration_check:
+- rg -n 'DSH_HOOKS_BRIDGE|_is_dsh_runtime|dsh_consecutive_blocks' .claude/hooks/stop-gate.py
+  .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+grep_control:
+- back: DSH_HOOKS_BRIDGE is read only for DSH detection; no Claude-path branch changes
+    when bridge is absent.
+  front: n/a
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: stop-gate.py содержит DSH detect (_is_dsh_runtime или inline check DSH_HOOKS_BRIDGE)
+  status: done
+  done_at: '2026-08-29T15:17:02Z'
+- id: cp2
+  criterion: Тест fake DSH env + stop_hook_active=False → decision=block при counter=0
+  status: done
+  done_at: '2026-08-29T15:17:03Z'
+- id: cp3
+  criterion: Тест counter≥DSH_SELF_LIMIT_MAX → decision=allow с предупреждением
+  status: done
+  done_at: '2026-08-29T15:17:03Z'
+- id: cp4
+  criterion: Claude path (stop_hook_active=True) не затронут — существующие тесты
+    зелёные
+  status: done
+  done_at: '2026-08-29T15:17:03Z'
+resume_from: cp1

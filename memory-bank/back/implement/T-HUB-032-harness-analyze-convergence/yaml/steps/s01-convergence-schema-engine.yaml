@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-032-harness-analyze-convergence
+title: s01 — Cross-artifact convergence engine — convergence.py + report schema IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-032-harness-analyze-convergence/yaml/steps/s01-convergence-schema-engine.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created .claude/hooks/epic/convergence.py with run_convergence_checks and ConvergenceReport
+  schema convergence-report/v1
+- Added deduplication of findings by fingerprint
+- Re-exported ConvergenceFinding, ConvergenceReport, run_convergence_checks in .claude/hooks/epic/__init__.py
+- Added test suite in loop/tests/test_convergence_engine.py
+files:
+- .claude/hooks/epic/convergence.py
+- .claude/hooks/epic/__init__.py
+- loop/tests/test_convergence_engine.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_convergence_engine.py -q --tb=short`'
+integration_check:
+- import epic.convergence and verify run_convergence_checks importable via .claude/hooks
+  facade
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: convergence.py импортируется без ошибок; ConvergenceReport.schema ==
+    'convergence-report/v1'
+  status: done
+  done_at: '2026-08-31T14:26:45Z'
+- id: cp2
+  criterion: run_convergence_checks() на fixture-эпике возвращает ConvergenceReport
+    без исключений; findings list (может быть пустым)
+  status: done
+  done_at: '2026-08-31T14:26:56Z'
+- id: cp3
+  criterion: _dedupe_findings удаляет дублирующиеся findings по fingerprint
+  status: done
+  done_at: '2026-08-31T14:27:07Z'
+- id: cp4
+  criterion: 'run_convergence_checks read-only: нет вызовов write/open(mode=''w'')
+    в convergence.py'
+  status: done
+  done_at: '2026-08-31T14:27:24Z'
+resume_from: cp1

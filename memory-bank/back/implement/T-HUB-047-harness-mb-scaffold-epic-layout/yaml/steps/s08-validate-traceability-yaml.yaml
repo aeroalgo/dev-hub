@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s08 — validate-traceability primary inventory from plan.yaml (удалить md fallback)
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s08-validate-traceability-yaml.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery:
+- Traceability logic implemented in harness/hooks/epic/traceability.py with CLI interface
+  in harness/hooks/epic_resolve.py
+- PlanSpec.requirements (loop/schemas/plan_spec.py) and layout v2 resolver (loop/paths/epic_layout.py)
+  integrated as primary source
+gaps:
+  status: none
+done:
+- parse_plan_requirements in harness/hooks/epic/traceability.py updated to read plan.yaml
+  requirements[] as primary inventory
+- Deprecated markdown fallback emits DeprecationWarning('layout_v1_deprecated') and
+  logger.warning
+- parse_decompose_refs updated to collect plan_contract.fr_ids and support v2 layout
+  steps/ folder
+- epic_resolve.py validate-traceability subcommand updated to resolve v2 plan.yaml
+  and decompose steps using discover_epic_role and epic_layout resolver
+- Added test suite harness/hooks/tests/test_validate_traceability.py covering missing
+  FR, matching FR pass, and DeprecationWarning on markdown fallback
+files:
+- harness/hooks/epic/traceability.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_validate_traceability.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_validate_traceability.py::test_yaml_primary_missing_fr
+  -q --tb=short` — PASS'
+- '`bin/pytest harness/hooks/tests/test_validate_traceability.py::test_yaml_primary_pass
+  -q --tb=short` — PASS'
+- '`bin/pytest harness/hooks/tests/test_validate_traceability.py::test_md_fallback_deprecated
+  -q --tb=short` — PASS'
+- '`bin/pytest harness/hooks/tests/test_validate_traceability.py loop/tests/test_traceability*.py
+  -q --tb=short` — PASS (31 passed)'
+integration_check:
+- cli validate-traceability works with both layout v2 and legacy v1 with deprecation
+  warnings
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: fixture: plan.yaml с requirements [FR-001, FR-002]; decompose shard с
+  fr_ids: [FR-001] → CRITICAL=''FR-002 uncovered'''
+- 'cp2 PASS: fixture: plan.yaml FR-001; decompose fr_ids: [FR-001] → CRITICAL=0, PASS'
+- 'cp3 PASS: no plan.yaml → DeprecationWarning(''layout_v1_deprecated'') + fallback;
+  no crash'
+checkpoints:
+- id: cp1
+  criterion: 'fixture: plan.yaml с requirements [FR-001, FR-002]; decompose shard
+    с fr_ids: [FR-001] → CRITICAL=''FR-002 uncovered'''
+  status: done
+  done_at: '2026-09-03T20:08:29Z'
+- id: cp2
+  criterion: 'fixture: plan.yaml FR-001; decompose fr_ids: [FR-001] → CRITICAL=0,
+    PASS'
+  status: done
+  done_at: '2026-09-03T20:08:30Z'
+- id: cp3
+  criterion: no plan.yaml → DeprecationWarning('layout_v1_deprecated') + fallback;
+    no crash
+  status: done
+  done_at: '2026-09-03T20:08:30Z'
+resume_from: cp1

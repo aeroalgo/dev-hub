@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-010
+title: s03 — plan.md + integration-plan.md — WHAT/HOW, User Stories, Independent Test,
+  FR-###, SC-### sections IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/s03-plan-templates-what-how.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Добавлены WHAT/HOW секции в plan.md: User Stories, Acceptance Scenarios Given/When/Then,
+  FR-###, SC-###, Assumptions, Clarifications и [НУЖНО УТОЧНИТЬ].'
+- Добавлена компактная WHAT/Clarifications секция в integration-plan.md без изменения
+  element registry, API inventory и rollout.
+files:
+- .cursor/templates/plan.md
+- .cursor/templates/integration-plan.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only;
+  no runtime tests required)'
+- '`rg -n ''Продуктовая спека|WHAT|Техника.*HOW'' .cursor/templates/plan.md` — PASS'
+- '`rg -n ''Independent Test|SC-0|Given.*When.*Then'' .cursor/templates/plan.md` —
+  PASS'
+- '`rg -n ''Clarifications|НУЖНО УТОЧНИТЬ'' .cursor/templates/plan.md` — PASS'
+- '`rg -n ''Продуктовая спека|Clarifications|element'' .cursor/templates/integration-plan.md`
+  — PASS'
+integration_check:
+- Legacy plan-файлы не изменялись; новые поля добавлены только в шаблоны.
+- 'Portal inventory сохранён: element registry, API today, rollout и element-first
+  sections присутствуют.'
+grep_control:
+- back: WHAT/HOW, User Stories, Independent Test, FR-###, SC-### и Clarifications
+    добавлены в .cursor/templates/plan.md
+  front: n/a
+- back: WHAT и Clarifications добавлены в .cursor/templates/integration-plan.md; element
+    registry/API today/rollout сохранены
+  front: n/a
+verification_results:
+- 'cp1 done: plan.md содержит отдельные WHAT и HOW блоки.'
+- 'cp2 done: User Stories содержит Independent Test и SC-001/SC-002, Given/When/Then.'
+- 'cp3 done: plan.md содержит Clarifications и [НУЖНО УТОЧНИТЬ].'
+- 'cp4 done: integration-plan.md содержит компактный WHAT, Clarifications и portal
+  inventory.'
+checkpoints:
+- id: cp1
+  criterion: plan.md содержит секцию 'Продуктовая спека (WHAT)' и 'Техника / архитектура
+    (HOW)' отдельными блоками
+  status: done
+  done_at: '2026-08-23T07:10:17Z'
+- id: cp2
+  criterion: plan.md содержит User Stories таблицу с колонкой 'Independent Test' и
+    SC-### секцию
+  status: done
+  done_at: '2026-08-23T07:10:21Z'
+- id: cp3
+  criterion: plan.md содержит Clarifications stub и [НУЖНО УТОЧНИТЬ] placeholder
+  status: done
+  done_at: '2026-08-23T07:10:41Z'
+- id: cp4
+  criterion: integration-plan.md содержит WHAT блок (compact) и Clarifications stub,
+    portal inventory не сломан
+  status: done
+  done_at: '2026-08-23T07:10:45Z'
+resume_from: cp1

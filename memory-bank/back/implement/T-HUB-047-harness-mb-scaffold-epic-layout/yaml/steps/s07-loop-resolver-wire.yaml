@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s07 — Loop integration — context_loop/arm_phase/finalize_step/janitor → resolver
+  only (zero hardcoded paths) IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s07-loop-resolver-wire.yaml
+skills_used:
+- modern-python
+discovery:
+- 'loop/context_loop.py: removed legacy fallback globs and hardcoded decompose regex'
+- 'loop/tests/test_arm_phase_smoke.py: tested v2 layout arm_phase with state_path'
+gaps:
+  status: none
+done:
+- Wired loop hot paths to epic_layout resolver
+- Removed hardcoded decompose-* regex & globs from context_loop.py
+- Verified test_arm_phase_smoke and test_epic_layout_resolver_loop_smoke
+files:
+- loop/context_loop.py
+- loop/epic_transition.py
+- loop/tests/test_arm_phase_smoke.py
+deletes:
+- loop/context_loop.py:324 — glob '**/plan/decompose-*/index.md'
+- loop/context_loop.py:336 — regex 'plan/decompose-|implement/implement-'
+tests:
+- '`bin/pytest loop/tests/test_arm_phase_smoke.py harness/hooks/tests/test_epic_layout_resolver_loop_smoke.py
+  -q`'
+integration_check:
+- bin/pytest loop/tests/test_arm_phase_smoke.py harness/hooks/tests/test_epic_layout_resolver_loop_smoke.py
+  -q
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: rg 'decompose-' loop/context_loop.py | grep -v '#\|test\|layout_v1' →
+    0 строк
+  status: done
+  done_at: '2026-09-03T19:30:00Z'
+- id: cp2
+  criterion: rg 'decompose-' loop/epic_transition.py | grep -v '#\|test' → 0 строк
+  status: done
+  done_at: '2026-09-03T19:30:00Z'
+- id: cp3
+  criterion: 'pytest loop/tests/ arm_phase smoke: arm на v2 layout epic → state.json
+    updated'
+  status: done
+  done_at: '2026-09-03T19:30:00Z'
+- id: cp4
+  criterion: pytest resolver loop smoke (SC-001)
+  status: done
+  done_at: '2026-09-03T19:30:00Z'
+resume_from: none

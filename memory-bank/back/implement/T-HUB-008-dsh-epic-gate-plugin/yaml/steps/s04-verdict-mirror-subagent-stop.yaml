@@ -1,0 +1,81 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s04 — VERDICT mirror — SubagentStop transcript/verdict enrichment IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s04-verdict-mirror-subagent-stop.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- DSH SubagentStop output uses lastAssistantMessage; native enrichment also accepts
+  last_assistant_message, last_message, output, and the child assistant/message event.
+- epic-gate src/index.ts registers applySubagentStop and merges the agents injection.
+gaps:
+  status: none
+done:
+- Added dsh/plugins/epic-gate/src/subagent-stop.ts to normalize DSH subagent/end output
+  into the Claude hook payload.
+- 'Extracted the last VERDICT: PASS|FAIL|BLOCKED line and forwarded last_assistant_message,
+  transcript, and verdict when available.'
+- Registered the SubagentStop handler from dsh/plugins/epic-gate/src/index.ts.
+- Extended .claude/hooks/subagent-stop.py to consume enriched transcript, output,
+  last_message, and direct canonical verdict values without crashing when absent.
+- Added verdict extraction and Python round-trip coverage in loop/tests/test_dsh_epic_gate_gaps.py.
+files:
+- dsh/plugins/epic-gate/src/subagent-stop.ts
+- dsh/plugins/epic-gate/src/index.ts
+- .claude/hooks/subagent-stop.py
+- loop/tests/test_dsh_epic_gate_gaps.py
+- dsh/README.md
+deletes:
+- n/a
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k verdict
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k subagent_stop_verdict
+  -q --tb=line`'
+- '`timeout 300s pnpm --dir dsh/plugins/epic-gate run typecheck`'
+- '`test -f dsh/plugins/epic-gate/src/subagent-stop.ts`'
+integration_check:
+- '`rg -n "lastAssistantMessage|last_assistant_message|last_message|output|verdict"
+  dsh/plugins/epic-gate/src/subagent-stop.ts .claude/hooks/subagent-stop.py loop/tests/test_dsh_epic_gate_gaps.py`
+  — DSH output fields connect to the Python consumer and round-trip tests.'
+- '`rg -n "applySubagentStop|subagentStopInject" dsh/plugins/epic-gate/src/index.ts
+  dsh/plugins/epic-gate/src/subagent-stop.ts` — handler registration and agents injection
+  are connected.'
+grep_control:
+- back: '`rg -n "lastAssistantMessage|last_assistant_message|VERDICT|verdict" dsh/plugins/epic-gate/src/subagent-stop.ts
+    .claude/hooks/subagent-stop.py loop/tests/test_dsh_epic_gate_gaps.py`'
+  front: ''
+verification_results:
+- 'cp1 PASS: shard documents lastAssistantMessage from DSH subagent/end.'
+- 'cp2 PASS: SubagentStop handler and index registration are present.'
+- 'cp3 PASS: targeted verdict suite — 5 passed, 4 deselected.'
+- 'cp4 PASS: targeted subagent_stop_verdict round-trip — 1 passed, 4 deselected.'
+- TypeScript typecheck PASS via pnpm --dir dsh/plugins/epic-gate run typecheck.
+checkpoints:
+- id: cp1
+  criterion: 'DSH SubagentStop payload shape исследован: output field documented в
+    shard'
+  status: done
+  done_at: '2026-08-30T10:04:43Z'
+- id: cp2
+  criterion: SubagentStop handler создан в epic-gate
+  status: done
+  done_at: '2026-08-30T10:05:19Z'
+- id: cp3
+  criterion: VERDICT extraction unit/integration тесты зелёные
+  status: done
+  done_at: '2026-08-30T10:05:20Z'
+- id: cp4
+  criterion: subagent-stop.py получает verdict при DSH round-trip
+  status: done
+  done_at: '2026-08-30T10:05:21Z'
+resume_from: cp1

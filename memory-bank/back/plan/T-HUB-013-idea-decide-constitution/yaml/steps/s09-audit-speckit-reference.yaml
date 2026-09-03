@@ -1,0 +1,51 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-013
+title: "Audit remediation — assess adaptation reference"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть FR-10 и AC+5 из audit-20260828-idea-decide-constitution: сохранить traceable
+  reference note о выбранной адаптации assess.decide и явно зафиксировать отклонённый
+  полный пятикомандный порт.
+context:
+  consumes:
+    - spec-kit/extensions/assess/commands/speckit.assess.decide.md
+    - memory-bank/back/plan/plan/T-HUB-013-idea-decide-constitution/md/plan.md
+    - memory-bank/back/audit/T-HUB-013-idea-decide-constitution/audit-20260828-idea-decide-constitution.yaml
+  produces:
+    - refs/speckit-adapt-013.md
+  plan_refs:
+    - FR-10
+    - AC+5
+  files:
+    - refs/speckit-adapt-013.md
+
+as_built:
+  - plan/T-HUB-013-idea-decide-constitution/md/plan.md — assess.decide указан как research/ref
+  - refs/speckit-adapt-013.md — отсутствует
+
+delta:
+  - "CREATE refs/speckit-adapt-013.md with source path, adopted scorecard/verdict/kill semantics, and rejected full five-command assess scope"
+
+deletes: []
+out_of_scope:
+  - Spec Kit Articles I–IX and Library-First/CLI Articles
+  - .specify/assessments tree
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: reference note exists and names assess.decide source and adopted concepts
+    verify: "test -f refs/speckit-adapt-013.md && rg -n 'assess.decide|scorecard|verdict|kill' refs/speckit-adapt-013.md"
+  - id: cp2
+    criterion: note explicitly rejects full five-command assess port
+    verify: "rg -n 'не.*порт|not.*port|five|5.*command|пять' refs/speckit-adapt-013.md"
+
+tdd: []
+verify: []

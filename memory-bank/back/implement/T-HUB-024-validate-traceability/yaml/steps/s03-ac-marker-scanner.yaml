@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-024-validate-traceability
+title: s03 — AC marker scanner — pytest.mark.ac collector + --ac-strict flag IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-024-validate-traceability/yaml/steps/s03-ac-marker-scanner.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented scan_ac_markers and enrich_with_ac in traceability.py
+- Added --tests-dir and --ac-strict arguments to epic_resolve.py validate-traceability
+  subcommand
+- Created unit tests in test_traceability_ac.py and fixture file
+files:
+- .claude/hooks/epic/traceability.py
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_traceability_ac.py
+- loop/tests/fixtures/traceability/tests/test_example_ac.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_ac.py -q`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_parsers.py -q`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_traceability_cli.py -q`'
+integration_check:
+- .claude/hooks/epic_resolve.py validate-traceability --epic T-HUB-024 --tests-dir
+  loop/tests/fixtures/traceability/tests
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: scan_ac_markers и enrich_with_ac определены
+  status: done
+  done_at: '2026-08-31T06:20:47Z'
+- id: cp2
+  criterion: --tests-dir и --ac-strict присутствуют в epic_resolve.py
+  status: done
+  done_at: '2026-08-31T06:21:07Z'
+- id: cp3
+  criterion: Unit tests зелёные
+  status: done
+  done_at: '2026-08-31T06:21:28Z'
+resume_from: cp1

@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-021
+title: "Legacy urllib _http_chat + free-text llm_summarize purge — brownfield cutover"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить `_http_chat()` и `llm_summarize()` из `bash-output-cap.py` после green suite из s05;
+  удалить `urllib.request` import если нет других потребителей в файле;
+  rg-audit: zero живых callers на удалённые символы; suite остаётся green.
+  SC-003 (legacy urllib path removed).
+
+context:
+  consumes:
+    - ".claude/hooks/bash-output-cap.py — _http_chat(), llm_summarize() (заменены в s04)"
+    - "loop/tests/ — suite green из s05 (regression anchor)"
+  produces:
+    - ".claude/hooks/bash-output-cap.py — без _http_chat, без llm_summarize, без urllib.request import"
+  plan_refs:
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md §Replacement/sunset A — delete in-epic"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md SC-003"
+  files:
+    - ".claude/hooks/bash-output-cap.py"
+
+as_built:
+  - ".claude/hooks/bash-output-cap.py — _http_chat() и llm_summarize() живут (legacy; не вызываются при STRUCTURED=1)"
+  - ".claude/hooks/bash-output-cap.py — urllib.request import присутствует"
+  - "loop/tests/ — suite green из s05"
+
+delta:
+  - ".claude/hooks/bash-output-cap.py DELETE — def _http_chat(...) весь блок"
+  - ".claude/hooks/bash-output-cap.py DELETE — def llm_summarize(...) весь блок"
+  - ".claude/hooks/bash-output-cap.py DELETE — import urllib.request (если нет других потребителей в файле)"
+  - ".claude/hooks/bash-output-cap.py MODIFY — убрать все вызовы _http_chat/llm_summarize"
+
+deletes:
+  - ".claude/hooks/bash-output-cap.py :: def _http_chat (весь блок)"
+  - ".claude/hooks/bash-output-cap.py :: def llm_summarize (весь блок)"
+  - ".claude/hooks/bash-output-cap.py :: import urllib.request (если нет других потребителей)"
+
+out_of_scope:
+  - "_lib.py urllib — не трогаем (_lib.py используется другими hooks)"
+  - "PROJECT_OUTPUT_SUMMARY_STRUCTURED=0 guard — оставить deprecated comment (AC+7)"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'def _http_chat' в bash-output-cap.py → 0 строк"
+    verify: "rg -n 'def _http_chat' /home/aero/PyProject/dev-hub/.claude/hooks/bash-output-cap.py | wc -l | grep '^0$'"
+  - id: cp2
+    criterion: "rg 'def llm_summarize' в bash-output-cap.py → 0 строк"
+    verify: "rg -n 'def llm_summarize' /home/aero/PyProject/dev-hub/.claude/hooks/bash-output-cap.py | wc -l | grep '^0$'"
+  - id: cp3
+    criterion: "rg 'urllib.request' в bash-output-cap.py → 0 строк"
+    verify: "rg -n 'urllib\\.request' /home/aero/PyProject/dev-hub/.claude/hooks/bash-output-cap.py | wc -l | grep '^0$'"
+  - id: cp4
+    criterion: "Regression suite loop/tests/ green после удаления"
+    verify: "timeout 120s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line 2>&1 | tail -10"
+
+verify: []
+
+tdd:
+  - "Нет новых тестов — шаг = cleanup; тесты из s05 должны оставаться green (cp4)"
+  - "Специфический rg-audit достаточен для доказательства корректности удаления"

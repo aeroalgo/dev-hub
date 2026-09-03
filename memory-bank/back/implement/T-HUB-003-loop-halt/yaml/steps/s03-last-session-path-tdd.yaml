@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-003
+title: s03 — last_session_path → epic_dir alignment (TDD) IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-003-loop-halt/yaml/steps/s03-last-session-path-tdd.yaml
+skills_used:
+- python-testing-patterns
+- verification-before-completion
+- requesting-code-review
+discovery:
+- session_resilience.py:121 — last_session_path был cwd/.claude/runtime/{track}/last-session.json
+- epic_paths.py:24 — epic_dir учитывает DEV_HUB|HUB_ROOT → hub/runtime/<slug>/epic
+- test_last_session_path.py отсутствовал; legacy assertions в test_checkpoint_resume
+  / test_context_loop без HUB env
+gaps:
+  status: none
+done:
+- 'TDD red: loop/tests/test_last_session_path.py (HUB_ROOT/DEV_HUB/no-hub/AC−2/import)'
+- last_session_path → epic_dir(cwd) / LAST_SESSION_NAME; удалён hardcoded PROJECT_ROOT/.claude/runtime
+- 'pytest green: test_last_session_path.py (5) + test_checkpoint_resume.py regression'
+files:
+- .claude/hooks/session_resilience.py
+- loop/tests/test_last_session_path.py
+deletes:
+- Hardcoded cwd/.claude/runtime/{track}/ путь из session_resilience.py::last_session_path
+- n/a — dedicated test_session_resilience.py с legacy path assertions не найден
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_last_session_path.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_last_session_path.py loop/tests/test_checkpoint_resume.py
+  -q --tb=short`'
+integration_check:
+- grep epic_dir in session_resilience.last_session_path — yes
+- write/load_last_session callers pass track=epic; path now co-located with state.json
+  via epic_dir
+grep_control:
+- back: last_session_path → epic_dir(cwd)/last-session.json; hardcoded cwd/.claude/runtime
+    удалён
+  front: n/a
+verification_results:
+- 'cp1: test file exists'
+- 'cp2: last_session_path uses epic_dir'
+- 'cp3: HUB_ROOT+slug unit tests pass'
+- pytest test_last_session_path.py → 5 passed
+- pytest + test_checkpoint_resume.py → 20 passed
+checkpoints:
+- id: cp1
+  criterion: test_last_session_path.py написан с HUB_ROOT env mock (TDD red до правки
+    кода)
+  status: done
+  done_at: '2026-08-22T17:16:05Z'
+- id: cp2
+  criterion: last_session_path в session_resilience.py или epic_paths.py содержит
+    epic_dir (не hardcoded PROJECT_ROOT)
+  status: done
+  done_at: '2026-08-22T17:16:13Z'
+- id: cp3
+  criterion: 'AC+ 4: unit тест last_session_path с HUB_ROOT+slug → правильный путь
+    проходит'
+  status: done
+  done_at: '2026-08-22T17:16:14Z'

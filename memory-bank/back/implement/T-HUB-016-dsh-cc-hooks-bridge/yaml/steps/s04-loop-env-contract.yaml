@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-016
+title: s04 — Loop env contract — DSH_HOOKS_BRIDGE + CLAUDE_PROJECT_DIR propagation
+  from loop.sh IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s04-loop-env-contract.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- loop.sh exports DSH_HOOKS_BRIDGE=1 and CLAUDE_PROJECT_DIR=$PROJECT_ROOT for the
+  DSH runtime, while retaining the hub path for the default Claude runtime.
+- loop.sh re-applies the runtime-specific environment after prepare resolves EPIC_RUNTIME_RESOLVED,
+  and DEV_HUB remains the absolute hub checkout for hooks and board tooling.
+- dsh/README.md documents DSH_HOOKS_BRIDGE, CLAUDE_PROJECT_DIR, and DEV_HUB under
+  Environment.
+files:
+- loop/loop.sh
+- dsh/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py
+  loop/tests/test_runtime_config.py -q --tb=line`'
+- '`bash -n loop/loop.sh`'
+- '`git diff --check`'
+integration_check:
+- '`loop/loop.sh: DSH_HOOKS_BRIDGE=1` is consumed by the DSH stop-gate prerequisite
+  and documented in `dsh/README.md`.'
+- '`loop/loop.sh: CLAUDE_PROJECT_DIR=$PROJECT_ROOT` matches `dsh/patches/cc-hooks-bridge.yml`
+  projectDir/configPath and `.claude/settings.json` hook paths.'
+- '`loop/loop.sh: DEV_HUB=$HUB_ROOT` remains available to `dsh/plugins/mb-bridge/cordis.patch.yml`
+  and board tooling.'
+grep_control:
+- back: '`grep -q ''DSH_HOOKS_BRIDGE'' loop/loop.sh` — PASS'
+  front: ''
+- back: '`grep -q ''CLAUDE_PROJECT_DIR'' loop/loop.sh` — PASS'
+  front: ''
+- back: '`grep -q ''DSH_HOOKS_BRIDGE'' dsh/README.md && grep -q ''CLAUDE_PROJECT_DIR''
+    dsh/README.md` — PASS'
+  front: ''
+verification_results:
+- 'Targeted DSH/runtime tests: 38 passed in 3.77s.'
+- 'Runtime smoke: sourcing loop.sh with EPIC_RUNTIME=dsh exported DSH_HOOKS_BRIDGE=1,
+  CLAUDE_PROJECT_DIR=$PROJECT_ROOT, and DEV_HUB=$HUB_ROOT.'
+- Shell syntax and diff checks passed.
+checkpoints:
+- id: cp1
+  criterion: loop.sh или wrapper экспортирует DSH_HOOKS_BRIDGE=1 при EPIC_RUNTIME=dsh
+  status: done
+  done_at: '2026-08-29T14:59:27Z'
+- id: cp2
+  criterion: CLAUDE_PROJECT_DIR явно экспортируется при dsh path в loop script
+  status: done
+  done_at: '2026-08-29T14:59:27Z'
+- id: cp3
+  criterion: dsh/README.md §Environment упоминает DSH_HOOKS_BRIDGE и CLAUDE_PROJECT_DIR
+  status: done
+  done_at: '2026-08-29T14:59:27Z'
+resume_from: cp1

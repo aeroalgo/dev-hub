@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-005
+title: s06 — projects/README.md — optional per-slug env overrides; currently unused
+  IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-005-simplify-docs/yaml/steps/s06-projects-readme.yaml
+skills_used:
+- verification-before-completion
+- requesting-code-review
+discovery: []
+gaps:
+  status: none
+done:
+- Created projects/README.md (FR-6, AC+
+- Fixed decompose delta to string block so seed-implement validates
+files:
+- projects/README.md
+- memory-bank/back/plan/T-HUB-005-simplify-docs/yaml/steps/s06-projects-readme.yaml
+deletes: []
+tests:
+- '`test -f projects/README.md` — exit 0'
+- '`rg -n ''per-slug|currently unused'' projects/README.md` — hits'
+- '`rg -n ''project-slug|override'' projects/README.md` — hits'
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- test -f projects/README.md
+- test -f README.md
+- 'docs-only FR-6 / AC+ #4 — no API/UI counterpart; README documents optional projects/<slug>
+  overrides'
+grep_control: []
+verification_results:
+- 'cp1 PASS: test -f projects/README.md'
+- 'cp2 PASS: per-slug + currently unused present'
+- 'cp3 PASS: project-slug + override in snippet'
+checkpoints:
+- id: cp1
+  criterion: 'test -f projects/README.md → exit 0 (AC+ #4)'
+  status: done
+  done_at: '2026-08-22T19:51:08Z'
+- id: cp2
+  criterion: README содержит слова 'per-slug' и 'currently unused'
+  status: done
+  done_at: '2026-08-22T19:51:08Z'
+- id: cp3
+  criterion: README содержит example snippet (backtick block)
+  status: done
+  done_at: '2026-08-22T19:51:08Z'
+resume_from: cp1

@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-020-dsh-board-epic-loop
+title: s08 — mb-bridge epic Run + roadmap column rank IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-020-dsh-board-epic-loop/yaml/steps/s08-mb-bridge-epic-run-roadmap-column.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- ADD EpicCard interface and parseCardMetadata helper in dsh/plugins/mb-bridge/src/card-metadata.ts
+- EDIT filterBoardCard in dsh/plugins/mb-bridge/src/board-filter.ts to support epic
+  cards without step_id validation and extract roadmap_rank and allowRun
+- ADD test_mb_bridge_ts_epic_support_contract in loop/tests/test_board_launch_bridge_unit.py
+files:
+- dsh/plugins/mb-bridge/src/card-metadata.ts
+- dsh/plugins/mb-bridge/src/board-filter.ts
+- loop/tests/test_board_launch_bridge_unit.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_bridge_unit.py -q --tb=line`'
+integration_check:
+- rg -n 'EpicCard|card_kind.*epic' dsh/plugins/mb-bridge/src/ | head -20
+- rg -n 'step_id' dsh/plugins/mb-bridge/src/board-filter.ts
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: parseCardMetadata epic → EpicCard; round-trip все поля сохранены
+  status: done
+  done_at: '2026-08-30T23:01:54Z'
+- id: cp2
+  criterion: 'board-filter.ts: card_kind===''epic'' → step_id validation пропущена'
+  status: done
+  done_at: '2026-08-30T23:02:04Z'
+- id: cp3
+  criterion: 'board-filter.ts: epic next_command !== ''epic_done'' → allowRun=true'
+  status: done
+  done_at: '2026-08-30T23:02:14Z'
+resume_from: cp1

@@ -1,0 +1,89 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-004
+title: 's05 — Delete dead epic re-exports: rm 6 stubs, rm unused import, verify rg=0
+  IMPLEMENT'
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-004-hooks-hygiene/yaml/steps/s05-delete-epic-reexports.yaml
+skills_used:
+- verification-before-completion
+- requesting-code-review
+discovery:
+- 'explorer: from epic.(checkpoint|context|events|index|io|state) = 0 callers; stubs
+  only from .core; epic/__init__.py → .core; epic_lib.py:8 import epic as _epic unused;
+  safe to delete: yes'
+gaps:
+  status: none
+done:
+- rm .claude/hooks/epic/{checkpoint,context,events,index,io,state}.py
+- 'epic_lib.py: removed unused `import epic as _epic`'
+- 'AC+ 4: stubs absent + rg from epic.X = 0'
+- 'Smoke: from epic import finalize_step, mirror_verify_verdict, load_index_yaml OK;
+  epic.__file__ → epic/__init__.py; submodules=[core] only'
+- 'Smoke suite slice: pytest test_finish_integrity -k "not finalize_step and not prepare_session
+  and not check_after" → 10 passed (0 ImportError)'
+- 'Отложено: ambient finalize/prepare failures (verify_pass_missing / active epic
+  identity T-HUB-004) — не связаны с stubs; полный suite → s07'
+files:
+- .claude/hooks/epic/checkpoint.py
+- .claude/hooks/epic/context.py
+- .claude/hooks/epic/events.py
+- .claude/hooks/epic/index.py
+- .claude/hooks/epic/io.py
+- .claude/hooks/epic/state.py
+- .claude/hooks/epic_lib.py
+- .claude/hooks/epic/__init__.py
+- .claude/hooks/epic/core.py (DoNotTouch)
+deletes:
+- '.claude/hooks/epic/checkpoint.py (A: code, re-export stub)'
+- '.claude/hooks/epic/context.py (A: code, re-export stub)'
+- '.claude/hooks/epic/events.py (A: code, re-export stub)'
+- '.claude/hooks/epic/index.py (A: code, re-export stub)'
+- '.claude/hooks/epic/io.py (A: code, re-export stub)'
+- '.claude/hooks/epic/state.py (A: code, re-export stub)'
+- 'import epic as _epic в epic_lib.py:8 (A: code, unused import)'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -k ''not finalize_step
+  and not prepare_session and not check_after'' -q --tb=line` — 10 passed, 9 deselected'
+- '`timeout 300s .venv/bin/python -c ''from epic import finalize_step, mirror_verify_verdict,
+  load_index_yaml; print("epic import OK")''` — OK'
+integration_check:
+- '§0.11: no callers of stub modules; facade epic/__init__.py and epic_lib still export
+  via .core'
+grep_control: []
+verification_results:
+- 'cp1: stubs deleted (ls grep empty)'
+- 'cp2: rg from epic.(checkpoint|context|events|index|io|state) → count=0'
+- 'cp3: unused import removed'
+- 'cp4: all 6 DELETED + rg=0'
+- 'cp5: epic import OK; epic.__file__=__init__.py; pkgutil=[core]'
+- 'cp6: import-smoke 10 passed; ambient finalize_step failures = verify_pass_missing
+  (Отложено → s07)'
+checkpoints:
+- id: cp1
+  criterion: 6 epic stub файлов удалены (checkpoint, context, events, index, io, state)
+  status: done
+  done_at: '2026-08-22T18:46:46Z'
+- id: cp2
+  criterion: rg -n 'from epic\.(checkpoint|context|events|index|io|state)' → 0
+  status: done
+  done_at: '2026-08-22T18:46:46Z'
+- id: cp3
+  criterion: epic_lib.py не содержит `import epic as _epic`
+  status: done
+  done_at: '2026-08-22T18:46:47Z'
+- id: cp4
+  criterion: 'AC+ 4: файлы отсутствуют + rg=0'
+  status: done
+  done_at: '2026-08-22T18:46:47Z'
+- id: cp5
+  criterion: 'Smoke: import epic package работает после delete'
+  status: done
+  done_at: '2026-08-22T18:46:47Z'
+- id: cp6
+  criterion: 'Smoke: from epic import ... в тестах finish_integrity не сломан'
+  status: done
+  done_at: '2026-08-22T18:48:50Z'
+resume_from: cp1

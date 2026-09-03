@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-034-harness-janitor-gc
+title: s05 — workflow-janitor.mdc + mainrule wire (P1) + README cron doc IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-034-harness-janitor-gc/yaml/steps/s05-janitor-workflow-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created workflow-janitor.mdc for BACK JANITOR guided scan & gc paths
+- Updated mainrule.mdc router with BACK JANITOR entry
+- Added Weekly janitor cron documentation to loop/README.md
+files:
+- .cursor/rules/back_developer/workflow-janitor.mdc
+- .cursor/rules/back_developer/mainrule.mdc
+- loop/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/ -k janitor -q --tb=line`'
+integration_check:
+- rg 'BACK JANITOR' .cursor/rules/back_developer/mainrule.mdc
+grep_control: []
+verification_results:
+- rg 'READ-ONLY|janitor-scan' .cursor/rules/back_developer/workflow-janitor.mdc ->
+  OK
+- rg 'BACK JANITOR|janitor' .cursor/rules/back_developer/mainrule.mdc -> OK
+- rg 'Weekly janitor|janitor-scan|janitor cron' loop/README.md -> OK
+checkpoints:
+- id: cp1
+  criterion: workflow-janitor.mdc создан и содержит READ-ONLY scan path секцию
+  status: done
+  done_at: '2026-08-31T19:00:32Z'
+- id: cp2
+  criterion: mainrule.mdc содержит BACK JANITOR route
+  status: done
+  done_at: '2026-08-31T19:00:42Z'
+- id: cp3
+  criterion: loop/README.md содержит weekly cron section (FR-007, AC-4)
+  status: done
+  done_at: '2026-08-31T19:00:50Z'
+resume_from: cp1

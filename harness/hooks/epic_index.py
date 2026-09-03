@@ -40,13 +40,36 @@ _ROW_RE = re.compile(
 def index_md_path(dir_or_md: Path) -> Path:
     p = Path(dir_or_md)
     if p.is_dir():
+        if (p / "md" / "decompose-index.md").is_file():
+            return p / "md" / "decompose-index.md"
+        if (p / "decompose-index.md").is_file():
+            return p / "decompose-index.md"
         return p / "index.md"
     if p.name == "index.yaml":
         return p.with_name("index.md")
+    if p.name == "decompose-index.yaml":
+        md_cand = p.parent.parent / "md" / "decompose-index.md"
+        if md_cand.is_file():
+            return md_cand
+        return p.with_name("decompose-index.md")
     return p
 
 
 def index_yaml_path(dir_or_md: Path) -> Path:
+    p = Path(dir_or_md)
+    if p.is_dir():
+        if (p / "yaml" / "decompose-index.yaml").is_file():
+            return p / "yaml" / "decompose-index.yaml"
+        if (p / "decompose-index.yaml").is_file():
+            return p / "decompose-index.yaml"
+        return p / "index.yaml"
+    if p.name in ("decompose-index.yaml", "decompose-index.yml"):
+        return p
+    if p.name in ("decompose-index.md",):
+        yaml_cand = p.parent.parent / "yaml" / "decompose-index.yaml"
+        if yaml_cand.is_file():
+            return yaml_cand
+        return p.with_name("decompose-index.yaml")
     md = index_md_path(dir_or_md)
     return md.with_name("index.yaml")
 

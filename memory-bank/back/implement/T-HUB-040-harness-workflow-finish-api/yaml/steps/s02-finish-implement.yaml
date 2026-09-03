@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: finish_implement_step + CLI mb-finish implement + rollback
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/steps/s02-finish-implement.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован атомарный оркестратор `finish_implement_step` в `loop/mb_finish/finish_implement.py`
+  с поддержкой fail-closed проверки verify PASS и rollback activeContext при сбое
+  finalize.
+- Добавлена CLI подкоманда `epic_resolve.py mb-finish implement`.
+- Создан и успешно пройден набор тестов TM-001..004 в `harness/hooks/tests/test_mb_finish_implement.py`.
+files:
+- loop/mb_finish/finish_implement.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_finish_implement.py
+deletes:
+- 'pattern: silent verify skip logic in finish paths — replaced by fail-closed _verify_pass_ready_for_step
+  check; rg audit: `rg ''skip.*verify\|verify.*skip'' loop/mb_finish/finish_implement.py;
+  test $? -ne 0`'
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py
+  -q --tb=line`'
+integration_check:
+- ok
+grep_control: []
+verification_results:
+- 4 passed in test_mb_finish_implement.py
+checkpoints:
+- id: cp1
+  criterion: 'finish_implement_step happy path: verify sidecar PASS, finalize succeeds
+    → MbFinishResult(ok=True)'
+  status: done
+  done_at: '2026-09-01T13:34:48Z'
+- id: cp2
+  criterion: 'verify sidecar missing → MbFinishResult(ok=False, diagnostic_codes=[''verify_pass_missing'']),
+    no status change in implement AND no status change in index (SC-001: 0 mutations)'
+  status: done
+  done_at: '2026-09-01T13:34:54Z'
+- id: cp3
+  criterion: finalize failure → activeContext restored from backup (rollback)
+  status: done
+  done_at: '2026-09-01T13:35:03Z'
+- id: cp4
+  criterion: 'CLI: python harness/hooks/epic_resolve.py mb-finish implement --cwd
+    $PROJECT_ROOT --step sNN → JSON stdout'
+  status: done
+  done_at: '2026-09-01T13:35:11Z'
+resume_from: cp1

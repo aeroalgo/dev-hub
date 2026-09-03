@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-043-runtime-bridge-codex
+title: s02 — runtime_materializers/sync.py — read manifest, emit targets per runtime IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-043-runtime-bridge-codex/yaml/steps/s02-sync-core.yaml
+skills_used:
+  - ".agents/skills/tdd/SKILL.md"
+  - ".agents/skills/python-type-safety/SKILL.md"
+discovery: []
+gaps:
+  status: none
+done:
+  - "Created SyncTarget, DriftItem, ApplyResult dataclasses and ManifestSync class in loop/runtime_materializers/sync.py"
+  - "Implemented collect_targets, check, and apply methods for runtime sync core logic"
+files:
+  - loop/runtime_materializers/sync.py
+  - loop/tests/test_runtime_sync.py
+deletes: []
+tests:
+  - ".venv/bin/pytest loop/tests/test_runtime_sync.py -q --tb=short"
+integration_check:
+  - ".venv/bin/pytest loop/tests/test_runtime_sync.py -q --tb=short"
+grep_control: []
+verification_results:
+  - "6 passed in loop/tests/test_runtime_sync.py"
+checkpoints:
+  - id: cp1
+    criterion: ManifestSync.collect_targets('codex') возвращает SyncTarget для каждого агента с type=materialize
+    status: done
+  - id: cp2
+    criterion: check() возвращает DriftItem когда dest не существует или hash mismatch (TM-003)
+    status: done
+  - id: cp3
+    criterion: check() возвращает пустой список когда все targets актуальны
+    status: done

@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-043-runtime-bridge-codex
+title: s05 — Materialize .codex/agents/ from harness/agents/ (copy policy) IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-043-runtime-bridge-codex/yaml/steps/s05-agent-materializer.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/runtime_materializers/agents.py with materialize_agents and MaterializationError
+- Created .codex/agents/.gitkeep
+- Added loop/tests/test_agent_materializer.py covering copy policy, MaterializationError,
+  and skipping native types
+files:
+- loop/runtime_materializers/agents.py
+- .codex/agents/.gitkeep
+- loop/tests/test_agent_materializer.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_materializer.py -q --tb=short`'
+integration_check:
+- Verified materialize_agents copies verify-implement.md into .codex/agents/ correctly.
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_agent_materializer.py -q --tb=short -> 5 passed
+checkpoints:
+- id: cp1
+  criterion: 'materialize_agents копирует verify-implement.md в .codex/agents/ (AC+
+    #6)'
+  status: done
+- id: cp2
+  criterion: missing source файл → MaterializationError (TM-005)
+  status: done
+- id: cp3
+  criterion: type=native агенты (claude) пропускаются, не копируются
+  status: done
+resume_from: completed

@@ -1,0 +1,57 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-032-harness-analyze-convergence
+title: "Docs — workflow-analyze cheatsheet: analyze-convergence vs validate-traceability vs reconcile-spec"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать или расширить `.cursor/rules/shared/workflow-analyze-core.mdc` (или отдельный
+  cheatsheet) разделом «когда запускать analyze-convergence vs validate-traceability vs
+  reconcile-spec». Документ для разработчиков/workflow, не код.
+  Закрывает план-пункт 5 (Document in workflow-analyze).
+
+context:
+  consumes:
+    - ".cursor/rules/shared/workflow-analyze-core.mdc — существующий файл (если есть)"
+    - "memory-bank/back/plan/plan/T-HUB-032-harness-analyze-convergence/md/plan.md §5"
+  produces:
+    - ".cursor/rules/shared/workflow-analyze-core.mdc (edit или create)"
+  plan_refs:
+    - "FR-001"  # FR-001 упоминает «когда запускать» как часть CLI doc
+  files:
+    - ".cursor/rules/shared/workflow-analyze-core.mdc"   # edit/create
+
+as_built:
+  - ".cursor/rules/shared/ — содержит workflow-analyze-core.mdc (проверить наличие перед edit)"
+
+delta:
+  - "ADD/EDIT раздел '## analyze-convergence vs validate-traceability vs reconcile-spec'"
+  - "Таблица: команда | когда | что проверяет | exit codes | типичный usecase"
+  - "ADD пример запуска: python epic_resolve.py analyze-convergence --plan-id T-HUB-032 --format text"
+
+deletes: []
+
+out_of_scope:
+  - "IMPLEMENT-code изменения — этот шаг docs-only"
+  - "Автогенерация doc из кода"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only — Core не применяется (нет Python-кода)
+
+checkpoints:
+  - id: cp1
+    criterion: "workflow-analyze-core.mdc содержит секцию с тремя командами"
+    verify: "rg -l 'analyze-convergence' .cursor/rules/shared/"
+  - id: cp2
+    criterion: "Таблица сравнения присутствует (grep на 'validate-traceability' в том же файле)"
+    verify: "rg 'validate-traceability' .cursor/rules/shared/workflow-analyze-core.mdc"
+
+verify:
+  - "rg 'analyze-convergence' .cursor/rules/shared/workflow-analyze-core.mdc"
+  - "rg 'reconcile-spec' .cursor/rules/shared/workflow-analyze-core.mdc"
+
+tdd: []

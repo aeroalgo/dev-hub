@@ -50,8 +50,8 @@ def test_finish_qa_happy(tmp_path: Path):
     assert res.active_context is not None
 
     written = read_active_context(tmp_path)
-    assert "mode: REFLECT" in written
-    assert "## Handoff BACK REFLECT" in written
+    assert "mode: DONE" in written
+    assert "## Handoff BACK DONE" in written
 
 
 def test_finish_qa_handoff(tmp_path: Path):
@@ -73,8 +73,8 @@ def test_finish_qa_handoff(tmp_path: Path):
     assert res.ok is True
 
     written = read_active_context(tmp_path)
-    assert "mode: REFLECT" in written
-    assert "## Handoff BACK REFLECT" in written
+    assert "mode: DONE" in written
+    assert "## Handoff BACK DONE" in written
 
 
 def test_finish_bugfix_happy(tmp_path: Path):

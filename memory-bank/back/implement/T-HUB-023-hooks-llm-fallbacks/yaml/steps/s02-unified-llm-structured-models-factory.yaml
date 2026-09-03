@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s02 — Unified llm_structured — LogSummary + enum models + factory IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/yaml/steps/s02-unified-llm-structured-models-factory.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added GateVerdictOutput, HandoffMetaOutput, AbortClassifyOutput to llm_structured.py
+- Added _GATE_OUTPUT_MODELS dict mapping domain to output model
+- Added make_gate_agent(domain, *, env=None) factory returning Agent[BaseModel]
+- Added run_gate_classify(domain, text, *, env=None) sync fail-soft runner
+- Updated loop/tests/test_hooks_llm_models.py to test new models and factory
+files:
+- .claude/hooks/llm_structured.py
+- loop/tests/test_hooks_llm_models.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_models.py loop/tests/test_bash_output_cap.py
+  -q`'
+integration_check:
+- llm_structured.py imports load_hooks_llm_env and hooks_llm_flag from _lib.py correctly
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_hooks_llm_models.py loop/tests/test_bash_output_cap.py
+  -q — 7 passed
+checkpoints:
+- id: cp1
+  criterion: GateVerdictOutput.model_validate({'verdict':'PASS'}) работает без error
+  status: done
+  done_at: '2026-08-31T17:19:35Z'
+- id: cp2
+  criterion: make_gate_agent('verdict') возвращает Agent[GateVerdictOutput] без exception
+  status: done
+  done_at: '2026-08-31T17:19:46Z'
+- id: cp3
+  criterion: 'output-cap регрессия: test_bash_output_cap зелёный'
+  status: done
+  done_at: '2026-08-31T17:19:58Z'
+resume_from: cp1

@@ -25,9 +25,19 @@ Parent **обязан** передать секции. Если нет — ср�
 5. После правок — **один** прогон команды из VERIFY (parent suite). Red → `status: fail`.
 6. **FORBIDDEN:** spawn Agent/verify, FINISH, правки memory-bank кроме implement shard если явно в ALLOW WRITE, frontend tests.
 
+## Pre-emit validate-boundary (HARD)
+
+Перед финальным текстом — **один** Bash:
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-repair-result/v1 --raw-json '{"schema":"loop-repair-result/v1","agent_id":"gate-repair","status":"done|partial|fail","fixed_blockers":[],"remaining_blockers":[],"recorded_at":"<iso8601>"}'
+```
+
+Emit только после `valid: true`. Fence language: **только** `json`.
+
 ## Output (JSON fence HARD) — machine SoT
 
-Финальный ответ **обязан** содержать fenced JSON:
+Финальный ответ **обязан** содержать fenced JSON. Открывающая строка = ` ```json `:
 
 ```json
 {

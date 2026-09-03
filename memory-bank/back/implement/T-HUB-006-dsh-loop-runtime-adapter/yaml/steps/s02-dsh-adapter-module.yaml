@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: 's02 — DSH adapter module: build_command + normalize_log — pure fn isolation
+  IMPLEMENT'
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s02-dsh-adapter-module.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'explorer: подтвердил владельца DSH adapter и границы s02; import/loop dispatch
+  остаются в out_of_scope s04/s05'
+gaps:
+  status: none
+done:
+- Создан пакет loop/runtime_adapters/ и чистые DSH adapter-функции без сайд-эффектов.
+- Добавлены unit-тесты для построения argv и безопасной нормализации plain/JSONL/пустого/malformed
+  log.
+- Добавлены completed/transient/permanent JSONL fixtures для последующего s05.
+files:
+- loop/runtime_adapters/__init__.py
+- loop/runtime_adapters/dsh.py
+- loop/tests/test_dsh_runtime_adapter.py
+- loop/tests/fixtures/dsh_session_completed.jsonl
+- loop/tests/fixtures/dsh_session_transient.jsonl
+- loop/tests/fixtures/dsh_session_permanent.jsonl
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short`'
+- '`python3 -c fixture JSON smoke`'
+integration_check:
+- 'graphify update .: skipped; .venv/bin/graphify is unavailable in this environment'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'pytest loop/tests/test_dsh_runtime_adapter.py: PASS — 10 passed in 0.03s'
+- 'fixture JSON smoke: PASS — ok'
+- 'git diff --check: unrelated pre-existing trailing whitespace only in T-HUB-011/T-HUB-012
+  plan files'
+- 'graphify update .: unavailable — .venv/bin/graphify does not exist'
+checkpoints:
+- id: cp1
+  criterion: 'test_build_dsh_command_* все варианты PASS: argv верный при разных bin
+    и profile
+
+    '
+  status: done
+  done_at: '2026-08-23T15:36:35Z'
+- id: cp2
+  criterion: 'test_normalize_dsh_log_* все варианты PASS: passthrough, JSONL, empty,
+    malformed
+
+    '
+  status: done
+  done_at: '2026-08-23T15:36:35Z'
+- id: cp3
+  criterion: 'Весь test_dsh_runtime_adapter.py зелёный
+
+    '
+  status: done
+  done_at: '2026-08-23T15:36:35Z'
+- id: cp4
+  criterion: 'Fixtures существуют и парсятся без ошибок (smoke json check)
+
+    '
+  status: done
+  done_at: '2026-08-23T15:36:35Z'
+resume_from: cp1

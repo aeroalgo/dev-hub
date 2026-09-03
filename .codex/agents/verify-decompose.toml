@@ -27,12 +27,20 @@ Parent **обязан** передать секции. Если нет — ср�
 2. GAPS секция в декомпозиции с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
 3. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW.
 4. **FORBIDDEN pytest / product code paths / test runners.** Только проверка макетов и декомпозиционных yaml/md файлов.
-5. После ≤6 Read — финальный отчёт, **ноль** дальнейших tool calls.
+5. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 6. **Первая строка текста = `VERDICT:`**
+
+## Pre-emit validate-boundary (HARD)
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+```
+
+Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
 
 ## Gate Output (JSON fence HARD)
 
-Твой финальный ответ **обязан** содержать fenced JSON блок с вердиктом по схеме `loop-gate-verdict/v1`:
+Твой финальный ответ **обязан** содержать fenced JSON блок. Открывающая строка = ` ```json `:
 
 ```json
 {
@@ -46,7 +54,7 @@ Parent **обязан** передать секции. Если нет — ср�
 ```
 
 - Поле `verdict` может быть `"PASS"` или `"FAIL"`.
-- Hook / runtime парсит **именно fenced JSON** `loop-gate-verdict/v1`.
+- Hook / runtime парсит **именно fenced JSON** с полем `"schema":"loop-gate-verdict/v1"`.
 
 ## Формат отчёта (обязательный)
 

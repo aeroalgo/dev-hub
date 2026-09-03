@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s01 — Env contract — structured gate flags + load_hooks_llm_env() IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/yaml/steps/s01-env-contract-load-hooks-llm-env.yaml
+skills_used: [python-testing-patterns]
+discovery: []
+gaps:
+  status: none
+done:
+  - "Added load_hooks_llm_env(), hooks_llm_flag(), hooks_llm_config(), hooks_llm_enabled() to .claude/hooks/_lib.py"
+  - "Updated loop/tests/test_hooks_llm_env.py unit tests covering all cp criteria"
+files:
+- .claude/hooks/_lib.py
+- .claude/project.env
+deletes: []
+tests:
+  - "`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_env.py -q --tb=line`"
+integration_check:
+  - "load_hooks_llm_env() exported in _lib.py and aligned with .claude/project.env keys"
+grep_control: []
+verification_results:
+  - "cp1: PASS"
+  - "cp2: PASS"
+  - "cp3: PASS"
+checkpoints:
+- id: cp1
+  criterion: load_hooks_llm_env() возвращает dict с ключом enabled=False при PROJECT_HOOKS_LLM_FALLBACK=0
+  status: done
+- id: cp2
+  criterion: hooks_llm_flag('verdict') → False когда master disabled, True когда оба 1
+  status: done
+- id: cp3
+  criterion: load_hooks_llm_env() не поднимает исключений при отсутствии project.env
+  status: done
+resume_from: null

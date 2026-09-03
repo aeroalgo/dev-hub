@@ -127,9 +127,14 @@ def arm_phase(
     env = kwargs.get("env") or os.environ
     if phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX") and env.get("EPIC_PARALLEL_SNN") == "1":
         from loop.parallel.orchestrator import run_parallel_wave
-        from roadmap_queue import find_decompose_index
+        from loop.paths.epic_layout import resolve, EpicLayoutKind
         cwd_p = Path(cwd).resolve()
-        idx_path = (cwd_p / decompose_rel) if decompose_rel else find_decompose_index(cwd_p, role, epic_id)
+        if decompose_rel:
+            idx_path = cwd_p / decompose_rel
+        else:
+            idx_path = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
+            if not idx_path.is_file():
+                idx_path = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
         if idx_path and idx_path.is_file():
             p_res = run_parallel_wave(epic_id, idx_path, cwd_p, env=env)
             if p_res and p_res.spawned:
@@ -238,7 +243,8 @@ def promote_if_ready(
     """
     from analyze_gate import analyze_required_before_implement
     from epic.core import load_epic_state
-    from roadmap_queue import find_decompose_index, load_steps_for_index
+    from roadmap_queue import load_steps_for_index
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
 
     cwd_p = Path(cwd).resolve()
     st = load_epic_state(cwd_p)
@@ -258,7 +264,13 @@ def promote_if_ready(
     else:
         idx_path = None
     if idx_path is None:
-        idx_path = find_decompose_index(cwd_p, role_dir, epic)
+        v2_idx = resolve(role_dir, epic, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
+        if v2_idx.is_file():
+            idx_path = v2_idx
+        else:
+            v2_md = resolve(role_dir, epic, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
+            if v2_md.is_file():
+                idx_path = v2_md
     if idx_path is None or not idx_path.is_file():
         return None
 

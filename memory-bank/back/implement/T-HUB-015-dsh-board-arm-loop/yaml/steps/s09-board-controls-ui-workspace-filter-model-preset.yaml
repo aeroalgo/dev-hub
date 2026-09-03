@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: 's09 — Board controls UI: workspace filter + runtime toggle + model preset
+  + Sync button — FR-012/013/014/016 IMPLEMENT'
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s09-board-controls-ui-workspace-filter-model-preset.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- Inventory confirmed existing Cordis bridge in dsh/plugins/mb-bridge/src and sync
+  CLI --workspace-id support in loop/board_sync/cli.py.
+gaps:
+  status: none
+done:
+- Added pure filterCards<T> with null=All behavior and defensive metadata parsing
+  without mutating the input array.
+- Added BoardControls with persisted workspace/runtime/model controls, model preset
+  whitelist rendering, env override badge, and Sync action.
+- Extended bridge argv support for sync and workspace-id while retaining fixed non-shell
+  spawn and EPIC_RUNTIME=dsh.
+- Added targeted source-contract tests for TypeScript-only UI/filter behavior.
+files:
+- dsh/plugins/mb-bridge/src/board-controls.tsx
+- dsh/plugins/mb-bridge/src/board-filter.ts
+- dsh/plugins/mb-bridge/src/index.ts
+- dsh/plugins/mb-bridge/src/python-bridge.ts
+- loop/tests/test_board_launch_ui_filter.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py -q --tb=line
+- timeout 300s .venv/bin/pytest loop/tests/test_board_launch_ui_filter.py loop/tests/test_board_launch_bridge_unit.py
+  loop/tests/test_board_launch_argv.py -q --tb=line
+integration_check:
+- 'board-controls.tsx → python-bridge.ts: Sync passes workspaceId; bridge emits --workspace-id.'
+- 'board-controls.tsx → python-bridge.ts: runtime dsh maps to EPIC_RUNTIME=dsh.'
+- 'board-controls.tsx → loop/board_sync/cli.py: sync command accepts --workspace-id
+  and prints upsert/archive summary.'
+grep_control:
+- back: rg -n 'spawnHubBoard|workspaceId|EPIC_RUNTIME|modelPresets|localStorage' dsh/plugins/mb-bridge/src
+  front: n/a — UI is a TypeScript plugin surface; parent-only TS tests
+- back: rg -n 'workspace-id|upsert=|archive=' loop/board_sync/cli.py
+  front: n/a — UI is a TypeScript plugin surface; parent-only TS tests
+verification_results:
+- cp1–cp4 flushed green via epic_resolve.py.
+- 'Targeted suite: 21 passed.'
+- No frontend runner invoked; TypeScript tests remain parent-only per shard.
+- 'No shell execution string introduced; spawn uses shell: false.'
+checkpoints:
+- id: cp1
+  criterion: 'board-filter.ts filterCards: cards with workspace_id != selected → hidden
+    (not in return); all=null → all returned; ledger unchanged'
+  status: done
+  done_at: '2026-08-29T01:34:31Z'
+- id: cp2
+  criterion: board-controls.tsx contains workspace dropdown, runtime dropdown, model
+    preset dropdown, Sync button (grep key identifiers)
+  status: done
+  done_at: '2026-08-29T01:34:55Z'
+- id: cp3
+  criterion: Sync button in board-controls.tsx calls spawnHubBoard('sync', ..., workspace-id
+    arg when filtered)
+  status: done
+  done_at: '2026-08-29T01:35:01Z'
+- id: cp4
+  criterion: model preset dropdown options come from config.modelPresets; no free-text
+    input rendered
+  status: done
+  done_at: '2026-08-29T01:35:07Z'
+resume_from: cp1

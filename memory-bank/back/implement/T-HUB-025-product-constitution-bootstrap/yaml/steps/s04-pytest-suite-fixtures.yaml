@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-025-product-constitution-bootstrap
+title: s04 — pytest suite + tmp_path product fixtures IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-025-product-constitution-bootstrap/yaml/steps/s04-pytest-suite-fixtures.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Создан полный набор из 12 тестов в loop/tests/test_seed_constitution.py
+- Все тесты s01, s02 и CLI smoke зелёные
+files:
+- loop/tests/test_seed_constitution.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=short`'
+integration_check:
+- seed_constitution importable and works with tmp_path in pytest suite
+grep_control: []
+verification_results:
+- timeout 300s .venv/bin/pytest loop/tests/test_seed_constitution.py -q --tb=short
+  -> 12 passed
+checkpoints:
+- id: cp1
+  criterion: Все tests collect без import errors
+  status: done
+  done_at: '2026-08-31T07:02:17Z'
+- id: cp2
+  criterion: Полный suite зелёный (0 failures)
+  status: done
+  done_at: '2026-08-31T07:02:38Z'
+- id: cp3
+  criterion: CLI subcommand зарегистрирован и виден через rg
+  status: done
+  done_at: '2026-08-31T07:02:52Z'
+resume_from: cp1

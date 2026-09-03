@@ -1,0 +1,74 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-005
+title: "IDEA PIPELINE archive gate — verify presence + add cheatsheet link if absent"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  workflow-idea-pipeline.mdc содержит явную ссылку на archive gate (ARCHIVE NOW / BACK ARCHIVE NOW
+  как завершение pipeline). Если T-HUB-002 уже добавил — здесь только cheatsheet-ссылка.
+  Если нет — добавить. Закрывает FR-7.
+
+context:
+  consumes:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc       # READ + conditionally EDIT
+    - memory-bank/back/plan/decompose-T-HUB-002-canon-sync/index.yaml  # verify completed
+  produces:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc       # EDIT (если gate не добавлен 002)
+  plan_refs:
+    - plan/T-HUB-005-simplify-docs/md/plan.md §FR-7 §Зафиксированные решения (IDEA gate)
+    - plan-T-HUB-002-canon-sync.md (hard dep — canon уже выровнен)
+  files:
+    - .cursor/rules/shared/workflow-idea-pipeline.mdc
+
+as_built:
+  - >
+    workflow-idea-pipeline.mdc существует; grep 'archive|ARCHIVE|gate' → упоминает 'approval gate'
+    в маршрутизации (строка 71, 99, 109) но НЕ как явный IDEA → ARCHIVE NOW endpoint
+  - >
+    T-HUB-002 index.yaml — s04-mainrule-archive-fail.yaml present; context: archived prefix + FAIL
+
+delta:
+  - >
+    Шаг 1 (verify): проверить workflow-idea-pipeline.mdc на наличие явного ARCHIVE NOW / BACK ARCHIVE NOW
+    в pipeline цепочке (не просто «approval gate» слово).
+  - >
+    Шаг 2a (если нет явного archive gate):
+    В секцию §Примеры или §Распознавание / цепочку добавить строку:
+    "Завершение: `BACK/FRONT ARCHIVE NOW` — финальная фаза pipeline после REFLECT."
+    И ссылку: "@.cursor/rules/back_developer/workflow-archive.mdc"
+  - >
+    Шаг 2b (если есть от T-HUB-002):
+    Только добавить cheatsheet cross-link (ссылку на back-implement.mdc cheatsheet если релевантно)
+    или ничего (если уже полный).
+  - >
+    В любом случае: добавить ссылку/упоминание cheatsheets в описание IDEA PIPELINE START если имеет смысл.
+
+deletes: []
+# Только добавление или no-op
+
+out_of_scope:
+  - Переписывать структуру IDEA PIPELINE — не scope
+  - Менять чёрный ход routing (gate approval) — не scope
+  - Создавать archive-gate как Python код — AC− #2
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step
+
+checkpoints:
+  - id: cp1
+    criterion: "Прочитан workflow-idea-pipeline.mdc; зафиксирован вывод: archive gate присутствует или нет"
+    verify: "rg -n 'ARCHIVE NOW|workflow-archive|archive gate' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp2
+    criterion: "После правки (или без правки если 002 уже добавил): файл содержит явный ARCHIVE-endpoint"
+    verify: "rg -n 'ARCHIVE NOW|workflow-archive' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp3
+    criterion: "Semantic gate не сломан: секция §Распознавание по-прежнему существует"
+    verify: "rg -n 'Распознавание|Классификация' .cursor/rules/shared/workflow-idea-pipeline.mdc"
+
+verify: []
+tdd: []

@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-017-loop-observability-foundation
+title: s05 — Измеримый autopilot — metrics.json rolling counters + rates IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s05-metrics-rolling.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- ADD loop/incidents/metrics.py с поддержкой 8 счётчиков и rates (tier0_success_rate,
+  auto_continue_rate)
+- Implement rolling window prune (default 7d) и atomic write (tmp + rename)
+- 'Wire increment hooks: tier0 (attempt/success/fail), check_after (halt/continue),
+  open_incident (incidents_opened)'
+- EPIC_INCIDENT_METRICS=0 no-op guard
+files:
+- loop/incidents/metrics.py
+- loop/incidents/tier0.py
+- loop/context_loop.py
+- loop/tests/test_incidents_metrics.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_metrics.py -q --tb=line`'
+integration_check:
+- python3 .claude/hooks/epic_resolve.py validate-step --path memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s05-metrics-rolling.yaml
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: increment tier0_success + tier0_attempts → tier0_success_rate вычисляется
+    корректно
+  status: done
+  done_at: '2026-08-30T18:01:39Z'
+- id: cp2
+  criterion: rolling window prune удаляет записи старше window_days
+  status: done
+  done_at: '2026-08-30T18:01:48Z'
+- id: cp3
+  criterion: 'atomic write: metrics.json всегда валидный JSON после crash simulation'
+  status: done
+  done_at: '2026-08-30T18:01:57Z'
+- id: cp4
+  criterion: EPIC_INCIDENT_METRICS=0 → increment no-op
+  status: done
+  done_at: '2026-08-30T18:02:04Z'
+resume_from: cp1

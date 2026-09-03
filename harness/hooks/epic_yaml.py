@@ -532,19 +532,28 @@ def resolve_implement_path(
     *,
     plan_id: str | None = None,
 ) -> str:
-    """Resolve implement yaml. Prefer folder epic hub, then plan_id alias hub."""
+    """Resolve implement yaml. Prefer layout v2, then folder epic hub, then plan_id alias hub."""
+    root = Path(cwd)
+    role_norm = role_dir(role)
+    # Check v2 layout: memory-bank/<role>/implement/<epic_id>/yaml/steps/<step_id>.yaml
     for hub_id in implement_hub_ids(epic_id, plan_id):
-        rel_dir = f"memory-bank/{role_dir(role)}/implement/implement-{hub_id}"
+        v2_steps_dir = f"memory-bank/{role_norm}/implement/{hub_id}/yaml/steps"
+        found = _find_shard_file(cwd, v2_steps_dir, step_id)
+        if found:
+            return str(found.relative_to(root)).replace("\\", "/")
+
+    for hub_id in implement_hub_ids(epic_id, plan_id):
+        rel_dir = f"memory-bank/{role_norm}/implement/implement-{hub_id}"
         found = _find_shard_file(cwd, rel_dir, step_id)
         if found:
-            return str(found.relative_to(Path(cwd))).replace("\\", "/")
+            return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
     p = (
-        Path(cwd)
-        / f"memory-bank/{role_dir(role)}/implement/implement-{epic_id}"
+        root
+        / f"memory-bank/{role_norm}/implement/{epic_id}/yaml/steps"
         / f"{stem}.yaml"
     )
-    return str(p.relative_to(Path(cwd))).replace("\\", "/")
+    return str(p.relative_to(root)).replace("\\", "/")
 
 
 def resolve_decompose_path(
@@ -553,14 +562,21 @@ def resolve_decompose_path(
     epic_id: str,
     step_id: str,
 ) -> str:
-    sub = "plan" if role != "integ" else "plan"
-    rel_dir = f"memory-bank/{role_dir(role)}/{sub}/decompose-{epic_id}"
+    root = Path(cwd)
+    role_norm = role_dir(role)
+    # Check v2 layout: memory-bank/<role>/plan/<epic_id>/yaml/steps/<step_id>.yaml
+    v2_steps_dir = f"memory-bank/{role_norm}/plan/{epic_id}/yaml/steps"
+    found = _find_shard_file(cwd, v2_steps_dir, step_id)
+    if found:
+        return str(found.relative_to(root)).replace("\\", "/")
+
+    rel_dir = f"memory-bank/{role_norm}/plan/decompose-{epic_id}"
     found = _find_shard_file(cwd, rel_dir, step_id)
     if found:
-        return str(found.relative_to(Path(cwd))).replace("\\", "/")
+        return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
-    p = Path(cwd) / rel_dir / f"{stem}.yaml"
-    return str(p.relative_to(Path(cwd))).replace("\\", "/")
+    p = root / v2_steps_dir / f"{stem}.yaml"
+    return str(p.relative_to(root)).replace("\\", "/")
 
 
 def find_implement_doc(cwd: str | Path, rel_or_abs: str) -> EpicImplementDoc | None:
@@ -1342,10 +1358,16 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
     if not steps:
         return ["index.yaml has no steps"]
 
-    source_md = str(doc.get("source_md") or "index.md").strip() or "index.md"
-    md_path = ypath.parent / source_md
+    from epic_index import index_md_path
+    md_path = index_md_path(ypath)
+    if not md_path.is_file():
+        source_md = str(doc.get("source_md") or "index.md").strip() or "index.md"
+        cand_md = ypath.parent / source_md
+        if cand_md.is_file():
+            md_path = cand_md
     errors: list[str] = list(_validate_decompose_index_md(md_path))
 
+    steps_dir = ypath.parent / "steps"
     for step in steps:
         rel = (step.get("file") or "").strip()
         sid = (step.get("id") or "").strip()
@@ -1355,7 +1377,9 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
         slug_err = _validate_decompose_shard_filename(sid, rel)
         if slug_err:
             errors.append(slug_err)
-        shard = ypath.parent / Path(rel).name
+        shard = steps_dir / Path(rel).name if steps_dir.is_dir() else ypath.parent / Path(rel).name
+        if not shard.is_file():
+            shard = ypath.parent / Path(rel).name
         if not shard.is_file():
             shard = ypath.parent / rel
         if not shard.is_file():

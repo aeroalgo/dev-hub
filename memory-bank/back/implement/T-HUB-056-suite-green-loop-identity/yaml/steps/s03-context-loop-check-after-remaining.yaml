@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s03 — context_loop check_after — commits next step + continues when handoff
+  advanced IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-056-suite-green-loop-identity/yaml/steps/s03-context-loop-check-after-remaining.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Обновлены fixtures activeContext.md в test_check_after_commits_next_step_for_post_implement_phase
+  и test_check_after_continues_when_handoff_advanced с валидным YAML frontmatter (loop-handoff/v1)
+- Верифицировано прохождение тестов check_after в test_context_loop.py
+files:
+- loop/tests/test_context_loop.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_context_loop.py::test_check_after_commits_next_step_for_post_implement_phase
+- bin/pytest loop/tests/test_context_loop.py::test_check_after_continues_when_handoff_advanced
+- bin/pytest loop/tests/test_context_loop.py -k 'check_after'
+integration_check:
+- check_after корректно валидирует AC shape и продвигает checkpoint для post_implement_phase
+  и advanced handoff
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: test_check_after_commits_next_step_for_post_implement_phase → ok=True,
+    post_implement_phase='REFLECT'
+  status: done
+  done_at: '2026-09-03T01:36:19Z'
+- id: cp2
+  criterion: test_check_after_continues_when_handoff_advanced → ok=True, complete=False
+  status: done
+  done_at: '2026-09-03T01:36:20Z'
+- id: cp3
+  criterion: выборка check_after тестов не регрессировала
+  status: done
+  done_at: '2026-09-03T01:36:20Z'
+resume_from: cp1

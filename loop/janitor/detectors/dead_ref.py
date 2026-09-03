@@ -12,6 +12,7 @@ if str(_HOOKS_DIR) not in sys.path:
 
 from epic.traceability import parse_plan_requirements
 from loop.janitor.schema import JanitorFinding
+from loop.paths.epic_layout import resolve, EpicLayoutKind
 
 
 def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
@@ -21,8 +22,13 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
     if not mb.is_dir():
         return findings
 
-    for shard_file in mb.glob("**/decompose-*/*s[0-9][0-9]*.yaml"):
-        if shard_file.name == "index.yaml":
+    # Check both v2 (yaml/steps/*.yaml) and legacy v1 (decompose-*/*sNN*.yaml)
+    shard_files = list(mb.glob("**/yaml/steps/*s[0-9][0-9]*.yaml")) + list(
+        mb.glob("**/decompose-*/*s[0-9][0-9]*.yaml")
+    )
+
+    for shard_file in shard_files:
+        if shard_file.name in ("index.yaml", "decompose-index.yaml"):
             continue
 
         try:
@@ -39,7 +45,11 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
 
         plan_id = data.get("plan_id")
         role = data.get("role") or "back"
-        plan_file = mb / role / "plan" / f"plan-{plan_id}.md"
+
+        # Check plan file in v2 or v1 layout
+        plan_file_v2_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd) if plan_id else None
+        plan_file_v2_yaml = resolve(role, plan_id, EpicLayoutKind.PLAN_YAML, project_root=cwd) if plan_id else None
+        plan_file_v1 = mb / role / "plan" / f"plan-{plan_id}.md" if plan_id else None
 
         # Check if plan_refs contain explicit file references or check plan file
         for ref in plan_refs:
@@ -67,18 +77,24 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
                             )
                         )
 
-        if plan_id and not plan_file.is_file():
+        has_plan = (
+            (plan_file_v2_md and plan_file_v2_md.is_file())
+            or (plan_file_v2_yaml and plan_file_v2_yaml.is_file())
+            or (plan_file_v1 and plan_file_v1.is_file())
+        )
+        if plan_id and not has_plan:
             rel_shard = shard_file.relative_to(cwd)
+            missing_target = plan_file_v2_md or plan_file_v1
             findings.append(
                 JanitorFinding(
                     category="dead_plan_ref",
-                    description=f"Shard '{shard_file.name}' references plan_id '{plan_id}' but '{plan_file}' does not exist",
+                    description=f"Shard '{shard_file.name}' references plan_id '{plan_id}' but plan file does not exist",
                     target_path=str(rel_shard),
                     actionable=True,
                     metadata={
                         "shard": str(rel_shard),
                         "plan_id": plan_id,
-                        "missing_plan": str(plan_file.relative_to(cwd) if plan_file.is_relative_to(cwd) else plan_file),
+                        "missing_plan": str(missing_target.relative_to(cwd) if missing_target.is_relative_to(cwd) else missing_target),
                     },
                 )
             )

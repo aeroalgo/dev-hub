@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s09 — formula-render merged into mb-scaffold decompose --formula (deprecate
+  standalone) IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s09-formula-render-merge.yaml
+skills_used:
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Integrated formula steps merge into loop/mb_scaffold/scaffold_decompose.py with --formula support and outline floor expansion.
+- Added DeprecationWarning upon standalone loading of loop/formula_render.py.
+- Switched default output target of formula_render.py to resolver paths (layout v2).
+files:
+- loop/formula_render.py
+- loop/mb_scaffold/scaffold_decompose.py
+- harness/hooks/tests/test_mb_scaffold_decompose.py
+- harness/hooks/tests/test_formula_render_deprecated.py
+deletes:
+- 'loop/formula_render.py: output к flat decompose-<id>/'
+tests:
+- bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py::test_formula_merge -q --tb=short
+- bin/pytest harness/hooks/tests/test_formula_render_deprecated.py -q --tb=short
+- bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py harness/hooks/tests/test_formula_render_deprecated.py loop/tests/test_formula_render.py loop/tests/test_formula_list.py loop/tests/test_formula_integration.py -q --tb=short
+integration_check:
+- pass
+grep_control: []
+verification_results:
+- cp1 bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py::test_formula_merge -q --tb=short -> PASS
+- cp2 python -W error::DeprecationWarning -c "import warnings; warnings.filterwarnings('error'); import loop.formula_render" 2>&1 | grep -q 'layout_v1_deprecated' || bin/pytest harness/hooks/tests/test_formula_render_deprecated.py -q --tb=short -> PASS
+- cp3 rg "f'decompose-" loop/formula_render.py | wc -l | grep -E '^0$' -> PASS
+checkpoints:
+- id: cp1
+  criterion: mb-scaffold decompose --formula → skeleton yaml с formula titles в title
+    поле совпадающих шагов
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp2
+  criterion: formula_render.py standalone → DeprecationWarning в stderr; output path
+    = v2
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp3
+  criterion: 'formula_render output path: rg ''decompose-{id}'' output target → 0
+    (v2 только)'
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+resume_from: cp1

@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: s01 — Product probe (office-hours lite) — CLARIFY core + clarify template IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-027-back-plan-gstack-adapt/yaml/steps/s01-clarify-product-probe.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added Product probe (office-hours lite) section with 6 forcing questions RU to workflow-clarify-core.mdc
+- Added quota rules (CLARIFY <=5 total; PLAN L3+ batch table) to workflow-clarify-core.mdc
+- Added optional
+- Verified Phase 0 Grill pass remains mandatory in both files
+files:
+- .cursor/rules/shared/workflow-clarify-core.mdc
+- .cursor/templates/clarify.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py loop/tests/test_roadmap_queue.py
+  -q --tb=line`'
+integration_check:
+- rg -n 'Product probe \(office-hours lite\)' .cursor/rules/shared/workflow-clarify-core.mdc
+- rg '## Product probe' .cursor/templates/clarify.md
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: workflow-clarify-core содержит подсекцию Product probe (office-hours
+    lite) с 6 forcing questions RU
+  status: done
+  done_at: '2026-08-31T08:30:19Z'
+- id: cp2
+  criterion: Правило квоты CLARIFY ≤5 total с product Q documented
+  status: done
+  done_at: '2026-08-31T08:30:19Z'
+- id: cp3
+  criterion: clarify.md содержит опциональную секцию Product probe
+  status: done
+  done_at: '2026-08-31T08:30:20Z'
+- id: cp4
+  criterion: Grill pass Phase 0 в clarify-core не удалён и не ослаблен
+  status: done
+  done_at: '2026-08-31T08:30:21Z'
+resume_from: cp1

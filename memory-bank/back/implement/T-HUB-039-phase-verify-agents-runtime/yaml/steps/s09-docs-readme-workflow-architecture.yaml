@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: 's09 — docs: loop/README + WORKFLOW §Phase verify agents + architecture/services.md
+  S-AGENTS IMPLEMENT'
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-039-phase-verify-agents-runtime/yaml/steps/s09-docs-readme-workflow-architecture.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated loop/README.md with §Phase verify agents section, table of phases/agents/verdicts/notes,
+  and migration note for aliases.
+- Updated loop/WORKFLOW.md with §Phase verify agents section and alias migration notes.
+- Updated memory-bank/architecture/services.md S-AGENTS entry with phase verify agents
+  and alias migration notes.
+files:
+- loop/README.md
+- loop/WORKFLOW.md
+- memory-bank/architecture/services.md
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_integrity.py
+  -q
+- rg 'Phase verify agents|verify-implement' loop/README.md
+- rg 'S-AGENTS|verify-implement|verify-bugfix' memory-bank/architecture/services.md
+integration_check:
+- loop/README.md and WORKFLOW.md verified rendering phase verify agents
+grep_control: []
+verification_results:
+- cp1 verified via rg in loop/README.md
+- cp2 verified via rg in memory-bank/architecture/services.md
+checkpoints:
+- id: cp1
+  criterion: loop/README.md содержит Phase verify agents раздел
+  status: done
+  done_at: '2026-08-31T21:24:11Z'
+- id: cp2
+  criterion: architecture/services.md содержит S-AGENTS или verify-implement
+  status: done
+  done_at: '2026-08-31T21:24:12Z'
+resume_from: cp1

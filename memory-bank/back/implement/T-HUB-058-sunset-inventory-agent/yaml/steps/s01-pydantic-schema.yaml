@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-058-sunset-inventory-agent
+title: s01 — Pydantic schema loop-sunset-inventory/v1 + unit tests IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-058-sunset-inventory-agent/yaml/steps/s01-pydantic-schema.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Созданы Pydantic модели SunsetItem и SunsetReport в loop/schemas/sunset_inventory.py
+- Экспортированы модели в loop/schemas/__init__.py
+- Реализован unit test suite loop/tests/test_sunset_inventory_schema.py
+files:
+- loop/schemas/sunset_inventory.py
+- loop/schemas/__init__.py
+- loop/tests/test_sunset_inventory_schema.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_sunset_inventory_schema.py -q --tb=line
+integration_check:
+- SunsetReport & SunsetItem pydantic parsing and validation green via pytest
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: SunsetReport pydantic parse ok — valid REPLACE report без design fields
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp2
+  criterion: Schema rejects missing mark=REPLACE → ValidationError
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp3
+  criterion: Schema rejects design-advice fields (e.g. 'how_to_replace', 'recommendation')
+    → ValidationError
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp4
+  criterion: Full schema test file green
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+resume_from: cp1

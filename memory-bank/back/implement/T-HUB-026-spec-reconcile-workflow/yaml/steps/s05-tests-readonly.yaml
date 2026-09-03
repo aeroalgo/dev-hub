@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: s05 — pytest suite — stale as_built fixture + active sweep + read-only guard
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-026-spec-reconcile-workflow/yaml/steps/s05-tests-readonly.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Дополнены alias-тесты test_stale_as_built_gives_rc001_high и test_reconcile_readonly_does_not_mutate
+  в loop/tests/test_reconcile_spec.py
+files:
+- loop/tests/test_reconcile_spec.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_reconcile_spec.py -q --tb=line`'
+integration_check:
+- verified all 14 tests in loop/tests/test_reconcile_spec.py pass
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: test_stale_as_built_gives_rc001_high существует в test file
+  status: done
+  done_at: '2026-08-31T07:36:29Z'
+- id: cp2
+  criterion: Все тесты test_reconcile_spec.py зелёные
+  status: done
+  done_at: '2026-08-31T07:36:40Z'
+- id: cp3
+  criterion: 'Читаем-только guard: reconcile не изменяет файлы (test_reconcile_readonly_does_not_mutate)'
+  status: done
+  done_at: '2026-08-31T07:36:48Z'
+- id: cp4
+  criterion: Полный suite (включая s01–s04 smoke) зелёный
+  status: done
+  done_at: '2026-08-31T07:36:58Z'
+resume_from: cp1

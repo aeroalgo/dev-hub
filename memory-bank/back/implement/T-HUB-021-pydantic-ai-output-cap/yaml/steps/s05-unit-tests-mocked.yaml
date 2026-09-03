@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-021
+title: s05 — Unit tests — mocked agent, no network, TDD red→green IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-021-pydantic-ai-output-cap/yaml/steps/s05-unit-tests-mocked.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Added unit test suite for llm_structured in loop/tests/test_llm_structured.py
+- Verified bash_output_cap unit tests in loop/tests/test_bash_output_cap.py
+- Verified regression suite across loop/tests/ (954 passed, 1 skipped)
+files:
+- loop/tests/test_llm_structured.py
+- loop/tests/test_bash_output_cap.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_llm_structured.py
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_bash_output_cap.py
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/ -q --tb=line`'
+integration_check:
+- unit tests mock pydantic_ai Agent without network calls
+grep_control: []
+verification_results:
+- cp1 PASS
+- cp2 PASS
+- cp3 PASS
+checkpoints:
+- id: cp1
+  criterion: test_llm_structured.py — все тесты PASS без network
+  status: done
+  done_at: '2026-08-30T23:50:49Z'
+- id: cp2
+  criterion: test_bash_output_cap.py новые тесты PASS
+  status: done
+  done_at: '2026-08-30T23:51:00Z'
+- id: cp3
+  criterion: 'Regression: весь hub suite loop/tests/ green (SC-004)'
+  status: done
+  done_at: '2026-08-30T23:52:20Z'
+resume_from: cp1

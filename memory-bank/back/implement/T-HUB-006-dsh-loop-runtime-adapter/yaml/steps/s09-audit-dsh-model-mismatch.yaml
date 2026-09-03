@@ -1,0 +1,72 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: 's09 — Audit remediation: DSH model-substitution HALT detection — NFR-3 IMPLEMENT'
+status: completed
+date: '2026-08-27'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s09-audit-dsh-model-mismatch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- '@explorer: loop/runtime_adapters/dsh.py; .claude/hooks/session_resilience.py; loop/tests/test_dsh_runtime_adapter.py'
+gaps:
+  status: none
+done:
+- Implemented DSH requested/actual model-pair extraction and stable model_substitution
+  reason for verified mismatches.
+- Connected DSH mismatch detection before transient/permanent classification and made
+  the reason non-retryable fail-closed.
+- Added fixture-style tests for mismatch, no-match/equivalent models, permanent classification,
+  and unchanged Claude path.
+files:
+- loop/runtime_adapters/dsh.py
+- .claude/hooks/session_resilience.py
+- loop/tests/test_dsh_runtime_adapter.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k "model_mismatch"
+  -q --tb=short
+- timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k "model_substitution
+  or mismatch" -q --tb=short
+- timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short
+integration_check:
+- session_resilience.analyze_session_log(runtime="dsh") calls detect_dsh_model_mismatch
+  before DSH abort classification.
+- model_substitution:* is returned as permanent_failure, abort_kind=fatal, retryable=false,
+  and backoff_sec=0.
+grep_control:
+- back: detect_dsh_model_mismatch is imported and called only in the DSH runtime branch.
+  front: n/a
+- back: No DSH-to-Claude fallback or alternate model selection was added.
+  front: n/a
+verification_results:
+- 'cp1 targeted mismatch/no-match tests: 3 passed.'
+- 'cp2 targeted permanent classification test: passed.'
+- 'cp3 full DSH adapter suite: 18 passed.'
+- 'cp4 bounded rg audit: detector, model_substitution, and runtime=dsh surfaces present;
+  no silent fallback added.'
+checkpoints:
+- id: cp1
+  criterion: DSH mismatch detector returns stable model_substitution reason for verified
+    mismatch and None for ordinary logs
+  status: done
+  done_at: '2026-08-27T08:12:13Z'
+- id: cp2
+  criterion: analyze_session_log(runtime=dsh) classifies mismatch as non-retryable
+    permanent failure
+  status: done
+  done_at: '2026-08-27T08:12:20Z'
+- id: cp3
+  criterion: DSH completed/transient/permanent/incomplete and Claude regression tests
+    remain green
+  status: done
+  done_at: '2026-08-27T08:12:36Z'
+- id: cp4
+  criterion: bounded implementation contains no silent model fallback
+  status: done
+  done_at: '2026-08-27T08:12:48Z'
+resume_from: cp1

@@ -307,20 +307,22 @@ def mb_paths_for_prompt(cwd: str | Path, load_now: list[str]) -> list[str]:
 
 def discover_decompose_indexes(cwd: str | Path, *, limit: int = 5) -> list[str]:
     """Best-effort hint paths when load_now empty — not a next-step parser."""
-    root = Path(cwd) / "memory-bank"
-    if not root.is_dir():
-        return []
+    from loop.paths.epic_layout import discover_v2_epics, resolve, EpicLayoutKind
+    root = Path(cwd)
     found: list[str] = []
-    for p in sorted(root.glob("**/plan/decompose-*/index.md")):
-        rel = p.relative_to(cwd).as_posix()
-        found.append(rel)
-        if len(found) >= limit:
-            break
+    # Discover v2 epics first
+    for role, epic_id in discover_v2_epics(root):
+        idx_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=root)
+        if idx_md.is_file():
+            found.append(idx_md.relative_to(root).as_posix())
+            if len(found) >= limit:
+                return found
+
     return found
 
 
 _WORK_SHARD_RE = re.compile(
-    r"memory-bank/.+/(?:plan/decompose-|implement/implement-)[^/]+/"
+    r"memory-bank/[^/]+/(?:plan|implement)/[^/]+/(?:yaml/steps/)?"
     r"(?:e|s)\d{2}-[^/\s`]+\.ya?ml$"
 )
 _SCOPED_PATH_PREFIXES = (
@@ -530,13 +532,14 @@ delta_paths_exist: no
 """
 
 
-def _cmd_dashboard_render(args: argparse.Namespace, cwd: Path) -> int:
+def _cmd_dashboard_render(args: argparse.Namespace, cwd: Path | str) -> int:
     from loop.dashboard.collect import collect
     from loop.dashboard.render import render_html, render_json
 
-    report = collect(cwd, days=args.days)
+    cwd_p = Path(cwd)
+    report = collect(cwd_p, days=args.days)
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    reports_dir = cwd / "runtime" / "reports"
+    reports_dir = cwd_p / "runtime" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     written_paths: list[Path] = []
@@ -569,8 +572,8 @@ def _decompose_work_block(role: str, epic_id: str) -> str:
     rule_dir = _decompose_role_rule_dir(role)
     return f"""## DECOMPOSE canon (HARD)
 1. Read `.cursor/templates/decompose/epic-step.yaml` + `index.md` + `.cursor/rules/{rule_dir}/workflow-decompose.mdc` (§Maximal detail).
-2. Output dir: `memory-bank/{role}/plan/decompose-<plan_id>/` with **index.md** + **index.yaml** + `sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`).
-3. index.md MUST contain: `## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup` (greenfield → `n/a`).
+2. Output dir: `memory-bank/{role}/plan/{epic_id}/yaml/steps/` with **decompose-index.md** + **decompose-index.yaml** + `sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`).
+3. decompose-index.md MUST contain: `## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup` (greenfield → `n/a`).
 4. Each shard: `schema: epic-decompose/v1`, `role`, `as_built`/`delta` lists, 2–4 checkpoints with runnable verify.
 5. FINISH: `validate-decompose-tree` (stop-gate) blocks promote if tree incomplete.
 Epic queue id: `{epic_id}`.
@@ -815,7 +818,7 @@ FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
 ## Context degraded
 activeContext не разобран ({'; '.join(reasons)}). Не halt.
 1. Прочитай `$PROJECT_ROOT/memory-bank/activeContext.md`.
-2. **SoT:** `memory-bank/**/plan/decompose-*/index.yaml` — первый step со status `pending`/`active`.
+2. **SoT:** Decompose index (YAML) — первый step со status `pending`/`active`.
 3. **FORBIDDEN:** доверять Handoff step_id или `## done`, если они расходятся с index.yaml (нет implement-шарда / finalize-step).
 4. Один следующий шаг = режим + step_id **из index.yaml**, не из Handoff.
 5. На FINISH перепиши activeContext:
@@ -949,7 +952,8 @@ def _index_step_is_completed(cwd: Path, step_id: str | None) -> bool:
 
 def _analyze_phase_complete(cwd: Path) -> bool:
     from analyze_gate import analyze_required_before_implement
-    from roadmap_queue import find_decompose_index, load_steps_for_index
+    from roadmap_queue import load_steps_for_index
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
 
     st = load_epic_state(cwd)
     epic_id = str(st.get("armed_epic") or "").strip()
@@ -959,7 +963,13 @@ def _analyze_phase_complete(cwd: Path) -> bool:
     decomp = str(st.get("armed_decompose") or "").strip()
     idx_path = cwd / decomp if decomp else None
     if idx_path is None or not idx_path.is_file():
-        idx_path = find_decompose_index(cwd, role_dir, epic_id)
+        v2_idx = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
+        if v2_idx.is_file():
+            idx_path = v2_idx
+        else:
+            v2_md = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
+            if v2_md.is_file():
+                idx_path = v2_md
     if idx_path is None or not idx_path.is_file():
         return False
     loaded = load_steps_for_index(cwd, idx_path)
@@ -1008,8 +1018,6 @@ def _step_context_extra_blocks(cwd: Path, load_now: list[str]) -> list[str]:
     if work is None:
         return []
     rel = str(work.relative_to(cwd)).replace("\\", "/")
-    if "decompose-" not in rel.replace("\\", "/"):
-        return []
     try:
         from epic_paths import epic_id_from_decompose_path
         from epic_yaml import (
@@ -1053,7 +1061,7 @@ def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
     resolved = resolve_arm_epic_target(epic, cwd)
     if resolved:
         epic_id, role = resolved
-        legacy_decompose = "decompose-" in str(epic).replace("\\", "/")
+        legacy_decompose = "decompose-" in str(epic).replace("\\", "/")  # layout_v1 legacy check
         out = arm_epic(
             cwd,
             epic_id,
@@ -1170,16 +1178,16 @@ def _role_dir_from_state_role(role: str | None) -> str:
 def _find_decompose_index_for_epic(
     cwd: Path, epic_id: str, role: str | None
 ) -> str | None:
-    from roadmap_queue import find_decompose_index
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
 
     role_dir = _role_dir_from_state_role(role)
-    idx = find_decompose_index(cwd, role_dir, epic_id)
-    if idx is None:
-        return None
-    try:
-        return idx.relative_to(cwd).as_posix()
-    except ValueError:
-        return str(idx)
+    v2_idx = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
+    if v2_idx.is_file():
+        return v2_idx.relative_to(cwd).as_posix()
+    v2_md = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
+    if v2_md.is_file():
+        return v2_md.relative_to(cwd).as_posix()
+    return None
 
 
 def run_traceability_check_if_enabled(

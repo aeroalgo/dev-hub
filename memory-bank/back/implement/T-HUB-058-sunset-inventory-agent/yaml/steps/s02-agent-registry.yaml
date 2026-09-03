@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-058-sunset-inventory-agent
+title: s02 — Agent card + DSH preset + manifest + registry alias sunset→sunset-inventory
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-058-sunset-inventory-agent/yaml/steps/s02-agent-registry.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Создан agent card harness/agents/sunset-inventory.md с overlay mode=search, verdict=none,
+  READ-ONLY tools и HARD no-design prompt
+- Создан DSH preset dsh/presets/sunset-inventory.prompt.md
+- Добавлен sunset-inventory entry в harness/manifest.yaml
+- Добавлен CONTRACT sunset-inventory в harness/hooks/_lib.py и CUSTOM_OVERLAY
+- Добавлен alias sunset -> sunset-inventory в harness/hooks/agent_registry.py и _LEGACY_OVERLAYS
+- Написаны unit тесты в loop/tests/test_agent_registry.py
+files:
+- harness/agents/sunset-inventory.md
+- dsh/presets/sunset-inventory.prompt.md
+- harness/manifest.yaml
+- harness/hooks/_lib.py
+- harness/hooks/agent_registry.py
+- loop/tests/test_agent_registry.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_agent_registry.py -q --tb=short`'
+integration_check:
+- bin/pytest loop/tests/test_agent_registry.py -q
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_agent_registry.py -q --tb=short — PASS (9 passed)
+checkpoints:
+- id: cp1
+  criterion: harness/agents/sunset-inventory.md существует; overlay.mode=search; overlay.verdict=none
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp2
+  criterion: manifest.yaml содержит sunset-inventory source entry
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp3
+  criterion: AGENT_ALIASES содержит 'sunset' → 'sunset-inventory'; discover_registry
+    returns entry
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+- id: cp4
+  criterion: CONTRACT sunset-inventory присутствует в _lib.py
+  status: done
+  done_at: '2026-09-03T18:00:00Z'
+resume_from: cp1

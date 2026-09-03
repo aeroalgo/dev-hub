@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: s08 — harness/README + architecture/services.md + Kind I instruction rewrite
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-059-harness-claude-agents-sot-complete/yaml/steps/s08-docs-kind-i-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated harness/README.md with complete Target Layout table including all 4 SoT
+  trees (harness/claude/{commands,skills,rules}, harness/skills).
+- Updated memory-bank/architecture/services.md shells table with harness SoT paths
+  and .claude/commands, .claude/skills, .claude/rules, .agents/skills as symlink shells.
+- Verified and confirmed bin/hub-link AGENTS.md stub points to harness/skills/*/SKILL.md.
+- Rewrote role-command SKILL.md Sync note and commands note to harness canonical SoT
+  paths.
+files:
+- harness/README.md
+- memory-bank/architecture/services.md
+- harness/claude/skills/role-command/SKILL.md
+- harness/skills/skills/role-command/SKILL.md
+deletes:
+- 'harness/README.md: устаревший incomplete tree без claude/commands|skills|rules'
+- 'architecture/services.md: строки/описания с .agents/skills как SoT'
+- 'AGENTS.md stub: упоминания .agents/skills как editable tree (только shell note)'
+tests:
+- '`bin/pytest loop/tests/test_harness_paths.py loop/tests/test_hub_link_harness.py
+  loop/tests/test_hub_link_alongside.py -q --tb=line`'
+integration_check:
+- rg "harness/claude/commands" harness/README.md — PASS
+- rg "harness/skills" memory-bank/architecture/services.md — PASS
+- rg -l "\\.agents/skills.*SoT" harness/ bin/ loop/ — verified only test descriptions
+  / shells remain
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1: PASS (harness/README.md has full Target layout with harness/claude/commands)'
+- 'cp2: PASS (architecture/services.md has harness/skills as canonical SoT in shells
+  table)'
+- 'cp3: PASS (no runtime instructions claiming .agents/skills is non-shell SoT)'
+- 'cp4: PASS (no mentions of .claude/commands as real SoT dir)'
+checkpoints:
+- id: cp1
+  criterion: harness/README.md содержит Target layout с harness/claude/commands
+  status: done
+  done_at: '2026-09-03T18:50:00Z'
+- id: cp2
+  criterion: architecture/services.md обновлён — harness/skills как SoT
+  status: done
+  done_at: '2026-09-03T18:50:00Z'
+- id: cp3
+  criterion: rg — нет runtime instructions говорящих .agents/skills как SoT (не shell)
+  status: done
+  done_at: '2026-09-03T18:50:00Z'
+- id: cp4
+  criterion: Kind I grep — нет mentions .claude/commands as real SoT dir в runtime
+    docs
+  status: done
+  done_at: '2026-09-03T18:50:00Z'
+resume_from: cp1

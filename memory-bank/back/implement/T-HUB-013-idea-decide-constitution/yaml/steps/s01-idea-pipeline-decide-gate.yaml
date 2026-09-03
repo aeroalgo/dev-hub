@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-013
+title: s01 — Decision gate in IDEA PIPELINE — scorecard + DECIDE phase in workflow
+  + template IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-013-idea-decide-constitution/yaml/steps/s01-idea-pipeline-decide-gate.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'workflow-idea-pipeline.mdc: добавлена фаза ### 1g. DECIDE с Scorecard таблицей
+  (5 полей), verdict table (go/needs-clarification/kill), kill-документирование'
+- 'intents routing table: все intents обновлены — DECIDE → ... в начале каждой цепочки;
+  добавлен intent decide (gate only)'
+- 'CHECKLIST: добавлены 2 новых пункта — DECIDE gate + kill rationale'
+- 'idea-pipeline.md template: добавлена секция ## Decision / Scorecard с 5 полями
+  + Verdict + Kill rationale'
+files:
+- .cursor/rules/shared/workflow-idea-pipeline.mdc
+- .cursor/templates/idea-pipeline.md
+deletes: []
+tests:
+- 'docs-only: workflow+template parity check: `timeout 300s .venv/bin/pytest --co
+  -q 2>/dev/null; grep -q ''DECIDE'' .cursor/rules/shared/workflow-idea-pipeline.mdc
+  && grep -q ''Decision / Scorecard'' .cursor/templates/idea-pipeline.md && echo PASS`'
+integration_check:
+- 'docs-only: workflow change is self-contained in .cursor/rules/shared/; no API or
+  service integration required; parity: Cursor и Claude Code оба читают один файл
+  workflow-idea-pipeline.mdc'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: workflow-idea-pipeline.mdc содержит секцию
+  status: done
+  done_at: '2026-08-28T07:46:44Z'
+- id: cp2
+  criterion: verdict table с тремя исходами (go / needs-clarification / kill) присутствует
+    в workflow
+  status: done
+  done_at: '2026-08-28T07:47:00Z'
+- id: cp3
+  criterion: template idea-pipeline.md содержит
+  status: done
+  done_at: '2026-08-28T07:48:11Z'
+resume_from: cp1

@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-036-harness-decompose-formulas
+title: s01 — formula schema — decompose-formula/v1 Pydantic model + YAML loader IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-036-harness-decompose-formulas/yaml/steps/s01-formula-schema-pydantic.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/schemas/formula.py с классами FormulaStep, DecomposeFormula и
+  функцией load_formula
+- Схема экспортирована в loop/schemas/__init__.py
+- Обновлён файл loop/schemas/README.md
+files:
+- loop/schemas/formula.py
+- loop/schemas/README.md
+- loop/schemas/__init__.py
+- loop/tests/test_formula_schema.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_formula_schema.py -q --tb=line`'
+integration_check:
+- import loop.schemas.formula works as expected
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: DecomposeFormula.model_validate({'schema':'decompose-formula/v1','id':'x','description':'y','steps':[]})
+    — не поднимает исключений
+  status: done
+  done_at: '2026-08-31T21:50:00Z'
+- id: cp2
+  criterion: load_formula(invalid_path) → ValueError содержит путь к файлу
+  status: done
+  done_at: '2026-08-31T21:50:11Z'
+- id: cp3
+  criterion: 'FormulaStep fields доступны: title, goal_template, typical_files_pattern,
+    verify_hints'
+  status: done
+  done_at: '2026-08-31T21:50:22Z'
+resume_from: cp1

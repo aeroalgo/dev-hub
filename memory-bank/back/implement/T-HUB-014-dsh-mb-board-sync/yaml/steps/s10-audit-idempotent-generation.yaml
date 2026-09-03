@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s10 — Audit remediation — FR-010 repeat sync is a no-op despite generation
+  metadata IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-014-dsh-mb-board-sync/yaml/steps/s10-audit-idempotent-generation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- graphify query located the board-sync diff, sync, card metadata, client, and regression
+  tests.
+gaps:
+  status: none
+done:
+- Generation metadata is ignored only for semantic equality, so repeated unchanged
+  syncs produce no update.
+- Actual content changes still produce updates with the current generation metadata.
+- Regression coverage asserts no second-run writes while preserving stable IDs, filtering,
+  and dry-run behavior.
+files:
+- loop/board_sync/diff.py
+- loop/board_sync/sync.py
+- loop/tests/test_board_sync_diff.py
+- loop/tests/test_board_sync_sync.py
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py::test_sync_generation_increment
+  -q --tb=line (passed)
+- timeout 300s .venv/bin/pytest loop/tests/test_board_sync_diff.py::test_diff_update_changed
+  -q --tb=line (passed)
+- timeout 300s .venv/bin/pytest loop/tests/test_board_sync_diff.py loop/tests/test_board_sync_sync.py
+  -q --tb=line (12 passed)
+integration_check:
+- Generation remains monotonic in SyncResult while persisted card metadata remains
+  at the last written generation on a no-op.
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Repeated unchanged run produces no update operations and does not write
+    to FakeClient
+  status: done
+  done_at: '2026-08-28T15:56:14Z'
+- id: cp2
+  criterion: Changed title or status still produces an update with current generation
+    metadata
+  status: done
+  done_at: '2026-08-28T15:56:14Z'
+- id: cp3
+  criterion: Stable ID, one-way filtering, and dry-run behavior remain green
+  status: done
+  done_at: '2026-08-28T15:56:14Z'
+resume_from: cp1

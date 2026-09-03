@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: 's06 — dsh/ scaffold: README + which-dsh.sh + profiles/.gitkeep — T-HUB-007
+  landing pad IMPLEMENT'
+status: completed
+date: '2026-08-24'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s06-dsh-scaffold.yaml
+skills_used: []
+discovery:
+- loop/loop.sh:426-477 — существующий DSH resolver и dispatch contract
+- dsh/bin/which-dsh.sh — новый resolver для DSH_BIN/global dsh/npx
+- dsh/README.md — runtime installation and environment contract
+gaps:
+  status: none
+done:
+- dsh/README.md создан с Installation, Environment, Profiles, Running, Stub profile
+  и Version pinning
+- dsh/bin/which-dsh.sh создан и сделан executable; приоритет DSH_BIN → global dsh
+  → npx
+- dsh/profiles/.gitkeep и dsh/profiles/stub/.gitkeep созданы как landing pads
+files:
+- dsh/README.md
+- dsh/bin/which-dsh.sh
+- dsh/profiles/.gitkeep
+- dsh/profiles/stub/.gitkeep
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short`
+  — PASS (existing DSH regression suite)'
+- test -f dsh/README.md && grep -q 'DEEPSEEK_API_KEY' dsh/README.md && grep -q 'EPIC_RUNTIME=dsh'
+  dsh/README.md && grep -q 'Node' dsh/README.md
+- test -x dsh/bin/which-dsh.sh && bash -n dsh/bin/which-dsh.sh
+- test -f dsh/profiles/.gitkeep && test -f dsh/profiles/stub/.gitkeep
+integration_check:
+- Resolver contract matches loop/loop.sh resolve_dsh_bin expectations
+grep_control:
+- back: rg -n 'DEEPSEEK_API_KEY|EPIC_RUNTIME=dsh|DSH_BIN|Version pinning' dsh/README.md
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: README content assertion'
+- 'cp2 PASS: executable and bash syntax assertion'
+- 'cp3 PASS: profile placeholder assertion'
+- No Python/frontend suite required for docs-only shell scaffold
+checkpoints:
+- id: cp1
+  criterion: 'dsh/README.md существует и содержит секции: DEEPSEEK_API_KEY, EPIC_RUNTIME=dsh,
+    Node version
+
+    '
+  status: done
+  done_at: '2026-08-23T23:02:58Z'
+- id: cp2
+  criterion: 'dsh/bin/which-dsh.sh исполняем; bash -n проходит
+
+    '
+  status: done
+  done_at: '2026-08-23T23:02:58Z'
+- id: cp3
+  criterion: 'dsh/profiles/.gitkeep и dsh/profiles/stub/.gitkeep существуют
+
+    '
+  status: done
+  done_at: '2026-08-23T23:02:59Z'
+resume_from: cp1

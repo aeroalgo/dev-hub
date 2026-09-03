@@ -1,0 +1,80 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-007-dsh-profiles-presets
+title: epic-implement profile + dump-config smoke — package.json + cordis.patch.yml
+status: completed
+date: '2026-08-27'
+decompose_ref: memory-bank/back/plan/T-HUB-007-dsh-profiles-presets/yaml/steps/s02-epic-implement-profile.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан профиль dsh/profiles/epic-implement с упорядоченным bundle list для dsh-base
+  и dsh-headless.
+- Подключены локальные verify/explorer presets через cordis.patch.yml с systemPrompt.file
+  и bridge PROJECT_LOOP_IMPLEMENT_MODEL.
+- Добавлен shared phase-models.yml; удалён placeholder dsh/profiles/stub/.
+files:
+- dsh/profiles/epic-implement/package.json
+- dsh/profiles/epic-implement/cordis.yml
+- dsh/profiles/epic-implement/cordis.patch.yml
+- dsh/patches/phase-models.yml
+- dsh/presets/explorer.prompt.md
+- dsh/README.md
+deletes:
+- dsh/profiles/stub/
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py
+  loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=line`
+  — 34 passed'
+- '`python3 dsh/scripts/sync-agent-md-to-presets.py --check` — PASS'
+- '`DSH_HOME=/home/aero/PyProject/dev-hub/dsh timeout 300s dsh --profile epic-implement
+  --dump-config` — exit 0; verify/explorer listed'
+- '`test ! -e dsh/profiles/stub` — PASS'
+integration_check:
+- package.json bundle order is consumed by dsh; cordis.patch.yml supplies preset-verify/preset-explorer
+  and llm model bridge; repository DSH_HOME smoke confirms composed config
+grep_control:
+- back: No secret-like literals in dsh/profiles/epic-implement/cordis.patch.yml or
+    dsh/patches/phase-models.yml
+  front: n/a
+verification_results:
+- cp1 PASS — ordered bundle list contains @deepseek-ai/dsh-base
+- cp2 PASS — cordis.patch.yml contains preset-verify and systemPrompt.file
+- cp3 PASS — repository DSH dump-config exits 0
+- cp4 PASS — dump-config lists verify preset
+- suite PASS — 34 passed in 3.74s
+- AC− PASS — no secret-like literals; stub profile removed
+- Regression fix PASS — regenerated explorer preset from .claude/agents/explorer.md;
+  mapping suite 7 passed
+checkpoints:
+- id: cp1
+  criterion: 'dsh/profiles/epic-implement/package.json exists and declares the ordered
+    DSH bundle list; local verify/explorer presets are wired by cordis.patch.yml
+
+    '
+  status: done
+  done_at: '2026-08-28T00:25:00Z'
+- id: cp2
+  criterion: 'dsh/profiles/epic-implement/cordis.patch.yml содержит preset-verify
+    с systemPrompt.file
+
+    '
+  status: done
+  done_at: '2026-08-27T20:14:21Z'
+- id: cp3
+  criterion: 'dsh --profile epic-implement --dump-config exits 0 (или skip с сообщением
+    если нет DSH/API key)
+
+    '
+  status: done
+  done_at: '2026-08-27T20:14:21Z'
+- id: cp4
+  criterion: 'AC+3: --dump-config lists subagent preset verify
+
+    '
+  status: done
+  done_at: '2026-08-27T20:14:21Z'
+resume_from: cp1

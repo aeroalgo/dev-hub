@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-039-phase-verify-agents-runtime
+title: s04 — agent-pretool uses get_verify_agent + spawn_validate CONTRACTS для новых
+  типов IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-039-phase-verify-agents-runtime/yaml/steps/s04-agent-pretool-spawn-validate-enforce.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удален dead assign expected_verify_agent в agent-pretool.py и добавлена проверка
+  соответствия фазы и verify-агента в notes
+- Расширен spawn_validate.py для валидации всех типов verify-* (VERDICT_FIRST_LINE
+  inject и missing_contract_sections check)
+- Расширен CONTRACTS и _SECTION_PATTERNS в _lib.py для verify-implement, verify-bugfix,
+  verify-qa, verify-decompose
+- Добавлена проверка существования файла агента в agent-pretool.py (agent_file_missing
+  → DENY)
+files:
+- .claude/hooks/agent-pretool.py
+- .claude/hooks/spawn_validate.py
+- .claude/hooks/_lib.py
+- .claude/hooks/subagent-stop.py
+- .claude/hooks/agent_registry.py
+- .claude/hooks/agent-posttool.py
+- loop/tests/test_phase_verify_gates.py
+deletes:
+- '.claude/hooks/agent-pretool.py: dead `expected_verify_agent = …` dead assign без
+  use'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_phase_verify_gates.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_agent_hooks.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -q --tb=line`'
+integration_check:
+- verify-implement, verify-bugfix, verify-qa, verify-decompose корректно отрабатывают
+  во всех hook'ах spawn-gate
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'dead assign удалён: expected_verify_agent не вычисляется без использования'
+  status: done
+  done_at: '2026-08-31T20:27:45Z'
+- id: cp2
+  criterion: verify-bugfix в spawn_validate norm check
+  status: done
+  done_at: '2026-08-31T20:27:54Z'
+- id: cp3
+  criterion: CONTRACTS в _lib.py содержит verify-bugfix
+  status: done
+  done_at: '2026-08-31T20:28:03Z'
+- id: cp4
+  criterion: spawn без agent file → DENY (agent-pretool)
+  status: done
+  done_at: '2026-08-31T20:28:34Z'
+resume_from: cp1

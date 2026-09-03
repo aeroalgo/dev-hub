@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: s04 — run_dsh_session + run_agent_session dispatch — loop.sh executor branch
+  IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s04-run-dsh-session-loop-dispatch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- loop/loop.sh:365-482 — existing Claude runner plus new DSH resolver/session/dispatcher
+  surface
+- loop/runtime_adapters/dsh.py:9-18 — DSH argv contract and prompt-file contract
+- loop/tests/test_dsh_runtime_adapter.py:14-49 — existing command-builder assertion
+  pattern
+gaps:
+  status: none
+done:
+- Added fail-closed DSH binary resolution through DSH_BIN or the hub resolver, with
+  no Claude fallback.
+- Added headless run_dsh_session wrapper and runtime-based run_agent_session dispatch
+  while preserving run_claude_session.
+- Exported runtime/profile values from prepare JSON and switched the main session
+  loop to the dispatcher.
+- Added executable fake DSH fixture and integration coverage for argv/prompt, Claude
+  default, and missing-binary behavior.
+files:
+- loop/loop.sh
+- loop/tests/fixtures/fake_dsh.sh
+- loop/tests/test_loop_dsh_dispatch.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py -q --tb=line`
+  — 4 passed'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py::test_run_dsh_session_fails_closed_on_missing_dsh
+  -q --tb=short` — 1 passed'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_loop_dsh_dispatch.py::test_run_agent_session_dispatches_dsh
+  -q --tb=short` — 1 passed'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py loop/tests/test_runtime_config.py
+  -q --tb=line` — не запускался: регрессия ранее зафиксирована вне файлов s04'
+integration_check:
+- bash -n loop/loop.sh — PASS (syntax ok)
+- FAKE_DSH_RECORD_FILE=/tmp/fake_dsh_test.txt bash loop/tests/fixtures/fake_dsh.sh
+  --profile epic-implement hello; grep -q epic-implement /tmp/fake_dsh_test.txt —
+  PASS (fake_dsh ok)
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- cp1, cp2, cp3, cp4 flushed successfully
+- validate-step pending until FINISH evidence is complete
+checkpoints:
+- id: cp1
+  criterion: 'loop.sh компилируется без синтаксических ошибок (bash -n)
+
+    '
+  status: done
+  done_at: '2026-08-23T21:37:00Z'
+- id: cp2
+  criterion: 'fake_dsh.sh исполняем и записывает argv в файл при вызове
+
+    '
+  status: done
+  done_at: '2026-08-23T21:37:00Z'
+- id: cp3
+  criterion: 'test_run_dsh_session_fails_closed_on_missing_dsh PASS: нет fallback,
+    exit non-zero
+
+    '
+  status: done
+  done_at: '2026-08-23T21:37:00Z'
+- id: cp4
+  criterion: 'test_run_agent_session_dispatches_dsh PASS: fake_dsh получает --profile
+    epic-implement
+
+    '
+  status: done
+  done_at: '2026-08-23T21:37:00Z'
+resume_from: cp1

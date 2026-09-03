@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-057-loop-session-json-contract
+title: s01 — Inventory as-built gaps vs FR — registry schema map draft IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-057-loop-session-json-contract/yaml/steps/s01-inventory-gaps-registry-draft.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-type-safety
+discovery: []
+gaps:
+  status: none
+done:
+- Создан ValidateResult и SCHEMA_LOOP_VALIDATE_RESULT в loop/schemas/validate_result.py
+- Добавлена константа SCHEMA_LOOP_MB_LOAD в loop/mb_load/schemas.py
+- Создан BOUNDARY_REGISTRY в loop/schemas/boundary_registry.py с маппингом 4 схем границ
+- Добавлены unit-тесты loop/tests/test_boundary_registry.py
+files:
+- loop/mb_load/schemas.py
+- loop/schemas/validate_result.py
+- loop/schemas/boundary_registry.py
+- loop/tests/test_boundary_registry.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_boundary_registry.py -q --tb=short
+integration_check:
+- boundary_registry contains all 4 managed boundary schemas mapped to Pydantic classes
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'boundary_registry.py contains all 4 managed boundary schema_id entries
+    (mb-load-result/v1, loop-gate-verdict/v1, loop-repair-result/v1, loop-validate-result/v1)
+    each mapped to a pydantic class'
+  status: done
+  done_at: '2026-09-03T13:40:00Z'
+- id: cp2
+  criterion: 'rg confirms no duplicate schema_id in boundary_registry; all 4 SCHEMA
+    constants imported from respective modules'
+  status: done
+  done_at: '2026-09-03T13:40:05Z'
+resume_from: cp1

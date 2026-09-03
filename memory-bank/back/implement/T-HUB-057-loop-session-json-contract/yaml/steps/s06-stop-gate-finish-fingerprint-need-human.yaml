@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-057-loop-session-json-contract
+title: s06 — stop-gate last_finish_tool fingerprint + NEED_HUMAN schema exhausted
+  escalation IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-057-loop-session-json-contract/yaml/steps/s06-stop-gate-finish-fingerprint-need-human.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-resilience
+- python-error-handling
+discovery:
+- stop-gate checks last_finish_tool presence and fingerprint on PASS before finishing.
+- schema_retry_count persisting keyed by session_id and tool_use_id enables NEED_HUMAN
+  schema_retry_exhausted escalation.
+gaps:
+  status: none
+done:
+- Updated stop-gate.py to require last_finish_tool fingerprint on PASS and emit NEED_HUMAN
+  finish_tool_missing if absent.
+- Updated stop-gate.py to emit NEED_HUMAN schema_retry_exhausted when schema retries
+  exceed maximum.
+- Updated _lib.py to persist schema retry counters with composite session_id/tool_use_id
+  keys.
+- Updated epic/core.py write_last_finish_tool to populate default SHA-256 fingerprint
+  if omitted.
+- Added tests verifying finish_tool_missing, schema_retry_exhausted, and verify_hint
+  PASS paths.
+files:
+- harness/hooks/stop-gate.py
+- harness/hooks/_lib.py
+- harness/hooks/epic/core.py
+- harness/hooks/subagent-stop.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_mb_finish_analyze.py
+- harness/hooks/tests/test_mb_finish_analyze.py
+- harness/hooks/tests/test_stop_gate_fingerprint.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_stop_gate.py loop/tests/test_mb_finish_analyze.py harness/hooks/tests/test_stop_gate_fingerprint.py
+  loop/tests/test_mb_finish_verify_hint.py -q --tb=short` — PASS'
+integration_check:
+- '`bin/pytest loop/tests/test_stop_gate.py -k "finish_tool_missing or need_human"
+  -q --tb=short` — PASS'
+- '`bin/pytest loop/tests/test_stop_gate.py -k "schema_exhausted or retry_exhausted"
+  -q --tb=short` — PASS'
+- '`bin/pytest loop/tests/test_mb_finish_analyze.py -k "pass_hint" -q --tb=short`
+  — PASS'
+grep_control: []
+verification_results:
+- 'cp1 PASS: stop-gate after PASS without last_finish_tool emits NEED_HUMAN finish_tool_missing'
+- 'cp2 PASS: schema_retry_count > N emits NEED_HUMAN schema_retry_exhausted'
+- 'cp3 PASS: verify_hint PASS path confirmed with green tests'
+checkpoints:
+- id: cp1
+  criterion: 'SC-004 / TM-007: stop-gate after PASS without last_finish_tool emits
+    NEED_HUMAN with code finish_tool_missing; PASS does not proceed without fingerprint'
+  status: done
+  done_at: '2026-09-03T03:56:59Z'
+- id: cp2
+  criterion: 'TM-008: schema_retry_count > N emits NEED_HUMAN schema_retry_exhausted;
+    test with patched counter > default N'
+  status: done
+  done_at: '2026-09-03T03:56:59Z'
+- id: cp3
+  criterion: 'verify_hint: PASS emits hint; rg confirms mb_finish_hint_after_verdict
+    called on PASS path'
+  status: done
+  done_at: '2026-09-03T03:57:00Z'
+resume_from: cp1

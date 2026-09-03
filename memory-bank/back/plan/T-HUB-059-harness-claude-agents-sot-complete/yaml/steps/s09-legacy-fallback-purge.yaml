@@ -1,0 +1,234 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "legacy-fallback-purge: dual SoT deletes + obsolete tests + Kind A/B/C/I sweep"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement/sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт —
+  delete или rewrite; Kind I instructions переписаны (кроме s08); suite green без restore legacy.
+  SC-005: нет dual SoT (real + harness) после эпика.
+
+plan_contract:
+  fr_ids: [FR-010, SC-005]
+  nouns:
+    - ".claude/commands (real dir leftover)"
+    - ".claude/skills (real dir leftover)"
+    - ".claude/rules (real dir leftover)"
+    - ".agents/skills (real dir leftover)"
+    - "hub-link full link_one .agents SoT assumption"
+    - "tests asserting .agents/.claude/commands must be real SoT dirs"
+    - "test comments requiring real .claude/commands SoT"
+  layout_paths:
+    - "loop/tests/"
+    - "bin/hub-link"
+  ac_quotes:
+    - "Нет dual writable SoT; obsolete tests на «.agents must be real dir SoT» — delete/rewrite"
+    - "test_hub_link_harness.py / path tests green"
+    - "Real editable .claude/commands|skills|rules или .agents/skills в hub — FORBIDDEN"
+  plan_jumps:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:111-111"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:295-331"
+
+context:
+  consumes:
+    - "s01–s08 done (все mv + symlinks + hub-link + docs)"
+    - "decompose index §Replacement cleanup (все строки A+B+C+I)"
+  produces:
+    - "удалённые/переписанные obsolete tests на real-dir SoT"
+    - "финальный rg/inventory evidence"
+    - "suite green после purge"
+  plan_refs:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §FR-010"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §SC-005"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §Replacement / sunset"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §AC−"
+  files:
+    - "loop/tests/test_harness_paths.py"
+    - "loop/tests/test_hub_link_harness.py"
+    - "loop/tests/test_hub_link_alongside.py"
+    - "bin/hub-link"
+
+as_built:
+  - "s01–s08 done: hub shells symlinks, hub-link updated, docs rewritten"
+  - "Возможны остатки: test comments с .claude/commands как real SoT; assertions на .agents реальный dir"
+
+delta:
+  - "rg sweep: найти и удалить/переписать тесты, asserting real-dir SoT .claude/commands|skills|rules или .agents/skills"
+  - "rg sweep Kind A: нет prod callers к реальным dirs как SoT"
+  - "rg sweep Kind B: нет entrypoints/Makefile/docs говорящих .agents tree = SoT"
+  - "rg sweep Kind C: нет dual-path fallback или silent skip при mv"
+  - "rg sweep Kind I: нет runtime instructions (не archive) с .claude/commands или .agents/skills как SoT"
+
+deletes:
+  - ".claude/commands (real dir — если не удалён s01; последний assert отсутствия)"
+  - ".claude/skills (real dir — если не удалён s02)"
+  - ".claude/rules (real dir — если не удалён s03)"
+  - ".agents/skills (real dir — если не удалён s04)"
+  - "obsolete test code: asserts на real-dir SoT в loop/tests/ (не реписать if already handled s07)"
+  - "bin/hub-link: остатки SoT assumptions на .agents целиком (если не удалены s05)"
+
+out_of_scope:
+  - "Исторические archive/memory-bank prose (вне runtime) — не переписывать"
+  - "FR-011 doctor (T-HUB-044)"
+
+sunset_inventory:
+  - symbol: ".claude/commands (real directory SoT)"
+    kind: A
+    replacement: "harness/claude/commands + symlink"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/ harness/"
+    expect: "test -L .claude/commands passes; real dir absent"
+  - symbol: ".claude/skills (real directory SoT)"
+    kind: A
+    replacement: "harness/claude/skills + symlink"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/ harness/"
+    expect: "test -L .claude/skills passes; real dir absent"
+  - symbol: ".claude/rules (real directory SoT)"
+    kind: A
+    replacement: "harness/claude/rules + symlink"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/ harness/"
+    expect: "test -L .claude/rules passes; real dir absent"
+  - symbol: ".agents/skills (real directory SoT)"
+    kind: A
+    replacement: "harness/skills + symlink"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/ harness/"
+    expect: "test -L .agents/skills passes; real dir absent"
+  - symbol: "tests asserting .agents/.claude/commands must be real SoT dirs"
+    kind: A
+    replacement: "tests asserting symlink + harness resolve"
+    policy: delete/rewrite in-epic
+    rg_scope: "loop/tests/"
+    expect: "no assert requiring real dir SoT at shell path"
+  - symbol: "hub-link full link_one \".agents\" $DEV_HUB/.agents (whole .agents as SoT)"
+    kind: B
+    replacement: "link_one \".agents/skills\" $DEV_HUB/harness/skills"
+    policy: delete in-epic
+    rg_scope: "bin/"
+    expect: "no match for link_one .agents without /skills suffix in full mode"
+  - symbol: "hub-link full product links to hub real .claude/commands (not harness)"
+    kind: B
+    replacement: "links to $DEV_HUB/harness/claude/commands"
+    policy: delete in-epic
+    rg_scope: "bin/"
+    expect: "harness/claude path present in full mode logic"
+  - symbol: "Makefile/docs implying .agents tree SoT"
+    kind: B
+    replacement: "harness/skills wording"
+    policy: delete in-epic
+    rg_scope: "bin/ harness/ docs/"
+    expect: "no .agents SoT wording in entrypoint docs"
+  - symbol: "«skills stay in .agents if mv hard» silent skip"
+    kind: C
+    replacement: "fail-closed / complete mv"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/"
+    expect: "no silent skip on mv failure"
+  - symbol: "dual keep copy in .claude and harness"
+    kind: C
+    replacement: "sole harness + symlink"
+    policy: delete in-epic
+    rg_scope: "bin/ loop/"
+    expect: "no dual-path fallback"
+  - symbol: "alongside auto full skills on conflict (no exit 2)"
+    kind: C
+    replacement: "exit 2 fail-closed"
+    policy: delete in-epic
+    rg_scope: "bin/hub-link"
+    expect: "conflict → exit 2 (s06)"
+  - symbol: "README/AGENTS stub «Skills: .agents/skills» as SoT"
+    kind: I
+    replacement: "harness/skills/*/SKILL.md (+ shell note)"
+    policy: delete in-epic
+    rg_scope: "harness/ bin/"
+    expect: "no .agents/skills SoT mention in AGENTS stub or README"
+  - symbol: "architecture/services.md shells omitting claude commands/rules"
+    kind: I
+    replacement: "update shells table"
+    policy: delete in-epic
+    rg_scope: "memory-bank/architecture/"
+    expect: "harness/claude/commands present in shells table (s08)"
+  - symbol: "test comments requiring real .claude/commands SoT"
+    kind: I
+    replacement: "harness paths"
+    policy: delete in-epic
+    rg_scope: "loop/tests/"
+    expect: "no comments asserting .claude/commands = real SoT"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: ".claude/commands real dir"
+    command: "test -L .claude/commands && echo 'OK symlink' || echo 'FAIL: real dir or missing'"
+    expect: "OK symlink"
+  - id: inv-a-02
+    kind: A
+    symbol: ".claude/skills real dir"
+    command: "test -L .claude/skills && echo 'OK symlink' || echo 'FAIL'"
+    expect: "OK symlink"
+  - id: inv-a-03
+    kind: A
+    symbol: ".claude/rules real dir"
+    command: "test -L .claude/rules && echo 'OK symlink' || echo 'FAIL'"
+    expect: "OK symlink"
+  - id: inv-a-04
+    kind: A
+    symbol: ".agents/skills real dir"
+    command: "test -L .agents/skills && echo 'OK symlink' || echo 'FAIL'"
+    expect: "OK symlink"
+  - id: inv-a-tests-01
+    kind: A
+    symbol: "obsolete test asserting .claude/commands real dir SoT"
+    command: "rg -n 'assert.*\\.claude/commands.*real\\|isdir.*\\.claude/commands' loop/tests/ || true"
+    expect: "no output (cases rewritten)"
+  - id: inv-b-01
+    kind: B
+    symbol: "link_one .agents without /skills in full mode"
+    command: "rg -n 'link_one \".agents\"' bin/hub-link || true"
+    expect: "no output or only .agents/skills variant"
+  - id: inv-c-01
+    kind: C
+    symbol: "silent skip on mv failure"
+    command: "rg -n 'skip\\|silently.*skip\\|if.*mv.*fail' bin/hub-link || true"
+    expect: "no silent skip"
+  - id: inv-i-01
+    kind: I
+    symbol: ".agents/skills as SoT in runtime docs"
+    command: "rg -rn '\\.agents/skills' harness/README.md bin/hub-link | grep -v 'symlink\\|shell\\|→' || true"
+    expect: "no SoT wording; only shell/symlink context"
+
+skills:
+  code_surface: shell
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — все 4 real dirs replaced by symlinks; no obsolete test asserts on real SoT
+    verify: |
+      test -L .claude/commands && test -L .claude/skills && test -L .claude/rules && test -L .agents/skills && echo "ALL SYMLINKS OK"
+  - id: cp2
+    criterion: Kind B — hub-link full не содержит link_one .agents как целого; docs обновлены (s08)
+    verify: "rg 'link_one \".agents\"' bin/hub-link || echo 'OK: no whole-agents link'"
+  - id: cp3
+    criterion: Kind C — нет dual-path fallback; alongside conflict → exit 2
+    verify: "rg 'skip\\|dual.*copy\\|both.*claude.*harness' bin/hub-link || echo 'OK: no fallback'"
+  - id: cp4
+    criterion: Kind I — runtime docs/instructions используют harness paths; нет .agents/skills SoT wording
+    verify: "rg '\\.agents/skills' harness/README.md bin/hub-link | grep -v 'symlink\\|shell\\|→' || echo 'OK'"
+  - id: cp5
+    criterion: Suite green после всех purge deletes
+    verify: "bin/pytest loop/tests/test_harness_paths.py loop/tests/test_hub_link_harness.py loop/tests/test_hub_link_alongside.py -q --tb=line 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "Regression: bin/pytest loop/tests/ -q -k 'harness_paths or hub_link' — green после purge"

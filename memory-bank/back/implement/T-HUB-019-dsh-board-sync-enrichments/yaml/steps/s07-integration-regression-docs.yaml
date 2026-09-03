@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: s07 — Regression suite (FakeClient e2e) + README Board sync enrichments IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-019-dsh-board-sync-enrichments/yaml/steps/s07-integration-regression-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлены сквозные регрессионные тесты в loop/tests/test_board_sync_sync.py
+- Документирован раздел Board sync enrichments в loop/README.md
+files:
+- loop/tests/test_board_sync_sync.py
+- loop/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_sync.py -q --tb=line`'
+integration_check:
+- 'Grep delimiter and section in README: rg -n ''Board sync enrichments'' loop/README.md'
+grep_control: []
+verification_results:
+- All 86 board sync tests passed
+checkpoints:
+- id: cp1
+  criterion: test_full_sync_step_running и test_full_sync_description_footer_roundtrip
+    зелёные
+  status: done
+  done_at: '2026-08-30T21:53:54Z'
+- id: cp2
+  criterion: test_full_sync_gate_backlog_move зелёный; FakeClient.moves проверен
+  status: done
+  done_at: '2026-08-30T21:54:33Z'
+- id: cp3
+  criterion: test_full_sync_gate_post_phase_todo зелёный
+  status: done
+  done_at: '2026-08-30T21:54:51Z'
+- id: cp4
+  criterion: README содержит раздел Board sync enrichments
+  status: done
+  done_at: '2026-08-30T21:55:02Z'
+resume_from: cp1

@@ -1,0 +1,26 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-033-harness-execution-discipline
+plan_file: ../plan/T-HUB-033-harness-execution-discipline/md/plan.md
+role: back
+date: '2026-08-31'
+steps:
+- id: s01
+  file: s01-git-discipline-module.yaml
+  title: git_discipline модуль — atomic commit per sNN с mock-тестами
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-finalize-step-hook.yaml
+  title: finalize_step hook — вызов maybe_atomic_commit после mark-index-status
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-session-boundary-schema.yaml
+  title: session_boundary checkpoint field + loop.sh enforce new-session gate
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-docs-env.yaml
+  title: Cheatsheet one-shard-one-session + EPIC_ATOMIC_COMMIT в project.env
+  next_phase: BACK IMPLEMENT
+  status: completed

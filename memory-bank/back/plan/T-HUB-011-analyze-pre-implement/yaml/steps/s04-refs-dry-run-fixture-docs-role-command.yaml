@@ -1,0 +1,176 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-011
+title: "refs/speckit-adapt + dry-run fixture + docs + role-command parity — complete"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Завершить покрытие ANALYZE:
+  - `memory-bank/back/plan/refs/speckit-adapt-011.md` — telegraph-нота: что взяли из spec-kit analyze.md (detection passes, severity, 50-cap, constitution authority, read-only output); что отвергли/адаптировали (FEATURE_DIR/specs → memory-bank, {SCRIPT}/check-prerequisites → rules, extension hooks → не портировать, __SPECKIT_COMMAND_* → не портировать); FORBIDDEN hooks/scripts; Refs.
+  - Dry-run fixture: фиктивный epic (например T-FIX-999-fake-missing-coverage) с FR-1 без sNN и без out_of_scope → после симуляции ANALYZE → finding Category=Coverage, severity=CRITICAL, message указывает на FR-1 без шага.
+  - Docs: краткая инструкция (в README или inline в workflow-analyze.mdc) как запускать ANALYZE + как читать результат (findings + coverage + metrics + recommendation).
+  - `.claude/skills/role-command/SKILL.md` — проверить parity: ANALYZE в multi-word table (если требуется) или просто workflow-*.mdc lookup работает; sync `.agents/skills/role-command/SKILL.md` если diff != 0 (как для T-HUB-010).
+  Outcome: ANALYZE полностью задокументирован (refs + fixture + docs), parity role-command обеспечена; AC+ #4 (dry-run CRITICAL) и AC+ #6 (refs) покрыты.
+  Связь с Goal/NFR: FR-11 (refs), FR-12 (role-command parity), AC+ #4, #6; AC− #2 (не требовать FEATURE_DIR).
+
+context:
+  consumes:
+    - "spec-kit/templates/commands/analyze.md — reference (read-only, для сравнения)"
+    - "memory-bank/back/plan/refs/speckit-adapt-010.md — образец telegraph формата"
+    - ".claude/skills/role-command/SKILL.md — проверить multi-word table + sync note"
+    - "s01-analyze-schema-back-workflow-lean-detection.yaml — reference для ARTEFACT path + detection passes"
+    - "s02-front-integ-analyze-slash-mainrule.yaml — reference для slash + mainrule parity"
+    - "s03-wire-decompose-implement-finish-doc-router-paths.yaml — reference для routing"
+  produces:
+    - "memory-bank/back/plan/refs/speckit-adapt-011.md (create)"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/plan-T-FIX-999-fake-missing-coverage.md (create)"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.md (create)"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.yaml (create)"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/s01-stub.yaml (create)"
+    - ".cursor/templates/analyze/README.md (create или расширить если уже в s01)"
+    - ".claude/skills/role-command/SKILL.md (edit, если требуется)"
+    - ".agents/skills/role-command/SKILL.md (sync если diff)"
+  plan_refs:
+    - "FR-11 (refs/speckit-adapt-011)"
+    - "FR-12 (role-command parity)"
+    - "AC+ #4 (dry-run CRITICAL)"
+    - "AC+ #6 (refs-doc)"
+    - "AC− #2 (не требовать FEATURE_DIR)"
+    - "plan §До DECOMPOSE s04"
+    - "plan §Компоненты таблицы: refs + dry-run + docs + role-command"
+  files:
+    - "memory-bank/back/plan/refs/speckit-adapt-011.md"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/plan-T-FIX-999-fake-missing-coverage.md"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.md"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.yaml"
+    - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/s01-stub.yaml"
+    - ".cursor/templates/analyze/README.md"
+    - ".claude/skills/role-command/SKILL.md"
+    - ".agents/skills/role-command/SKILL.md"
+
+as_built:
+  - "spec-kit/templates/commands/analyze.md — существует (reference)"
+  - "memory-bank/back/plan/refs/ — существует; speckit-adapt-010.md есть; speckit-adapt-011.md отсутствует"
+  - "memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/ — существует; fixtures/ отсутствует"
+  - ".cursor/templates/analyze/ — существует (создана в s01); README.md может отсутствовать или быть минимальным"
+  - ".claude/skills/role-command/SKILL.md — существует; ANALYZE не в multi-word table (не требуется, lookup по workflow)"
+  - ".agents/skills/role-command/ — существует; SKILL.md может отсутствовать или быть устаревшим"
+  - "T-HUB-010 refs pattern — speckit-adapt-010.md существует как образец"
+
+delta:
+  - "CREATE memory-bank/back/plan/refs/speckit-adapt-011.md:
+      - Формат: telegraph (как speckit-adapt-010.md)
+      - ## Что взяли из Spec Kit
+        - Detection passes taxonomy (Duplication, Ambiguity, Underspecification, Coverage Gaps, Inconsistency, Constitution)
+        - Severity heuristic (CRITICAL/HIGH/MEDIUM/LOW) с CRITICAL → не стартовать IMPLEMENT без fix/defer
+        - 50-cap findings + overflow summary
+        - Constitution authority: MUST violations → CRITICAL (если constitution.md существует)
+        - STRICTLY READ-ONLY: не модифицировать; только output report + optional remediation plan (user approve)
+        - Progressive disclosure load (headers + sample shards, не dump всего)
+      - ## Что отвергли / адаптировали
+        - FEATURE_DIR/specs/###-feature/ → memory-bank/{role}/analyze/<epic_id>/
+        - {SCRIPT}/check-prerequisites.sh → не портировать; prerequisites проверяются в workflow/lean (наличие plan + decompose index)
+        - Extension hooks YAML (.specify/extensions.yml) → не портировать (AC− #2, FORBIDDEN)
+        - __SPECKIT_COMMAND_ANALYZE__ placeholders → не портировать (workflow-driven, не macro)
+        - spec-kit analyze → ANALYZE (не SPECKIT); артефакт yaml (не markdown по умолчанию)
+        - Pre-hook execution в analyze → не портировать (ANALYZE не выполняет команды)
+      - ## FORBIDDEN
+        - install specify-cli / specify init / создавать .specify/ / заменять memory-bank/ на specs/
+        - Extension hooks before_analyze / after_analyze
+        - __SPECKIT_COMMAND_* macros
+      - ## Refs
+        - spec-kit/templates/commands/analyze.md — локальный reference (read-only)
+        - spec-kit/templates/spec-template.md — для Independent Test / SC (если нужно cross-ref)
+      - Цель: FR-11, AC+ #6."
+  - "CREATE memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/plan-T-FIX-999-fake-missing-coverage.md:
+      - Минимальный фиктивный план для демонстрации Coverage CRITICAL:
+        - FR-1: 'Система должна делать X' (без sNN)
+        - NFR-1: 'Latency < 100ms' (опционально)
+        - AC+ #1: 'FR-1 покрыт'
+        - Нет s01, нет decompose index с FR-1 → sNN mapping
+      - Формат: сокращённый plan.md (только FR/AC, без полного Goal/Architecture)"
+  - "CREATE memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.md:
+      - Минимальный decompose index:
+        - FR-1 без sNN (дыра)
+        - s01-stub.yaml существует, но goal/plan_refs не покрывают FR-1
+      - Цель: симулировать missing coverage для dry-run."
+  - "CREATE memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.yaml:
+      - schema: epic-decompose-index/v1
+      - plan_id: T-FIX-999
+      - steps: [s01-stub только]
+      - Цель: индекс без покрытия FR-1."
+  - "CREATE memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/s01-stub.yaml:
+      - Минимальный s01: goal не содержит FR-1, plan_refs пустой или не включает FR-1
+      - Цель: step существует, но не покрывает FR-1 → Coverage finding."
+  - "CREATE или EDIT .cursor/templates/analyze/README.md:
+      - Кратко: что такое ANALYZE; отличие от AUDIT (ANALYZE до кода, AUDIT после)
+      - Когда запускать: после DECOMPOSE, до IMPLEMENT; re-run после rewrite
+      - Как запускать: BACK ANALYZE @epic | FRONT ANALYZE @epic | INTEG ANALYZE @epic
+      - Как читать: findings table (≤50) + coverage summary + metrics (coverage_pct, critical_count) + recommendation
+      - Что делать при CRITICAL: fix (CLARIFY/PLAN/DECOMPOSE) → re-run ANALYZE → IMPLEMENT
+      - Ссылка на workflow-analyze.mdc + шаблон epic-analyze.yaml
+      - Если README уже создан в s01 — расширить этим содержимым."
+  - "EDIT .claude/skills/role-command/SKILL.md (если требуется):
+      - Проверить: ANALYZE не multi-word (как CLARIFY); lookup по workflow-{mode}.mdc работает без доп. таблицы.
+      - Если нужно — добавить комментарий/пример в таблице workflow или в Step 2.
+      - Sync note: после DECOMPOSE FINISH этого эпика (или сейчас) проверить .agents/skills/role-command/SKILL.md diff и синхронизировать если != 0.
+      - Цель: FR-12 (parity)."
+  - "SYNC .agents/skills/role-command/SKILL.md (если diff != 0):
+      - Копировать .claude/skills/role-command/SKILL.md → .agents/skills/role-command/SKILL.md
+      - Цель: parity (как в T-HUB-010)."
+
+deletes: []
+# greenfield: создаём новые файлы (refs, fixtures, docs), не удаляем
+
+out_of_scope:
+  - "BACK/FRONT/INTEG workflow-analyze + lean — уже в s01/s02"
+  - "slash + mainrule edits — уже в s02"
+  - "finish-doc-router + paths + decompose/implement wiring — уже в s03"
+  - "Constitution (memory-bank/constitution.md) — T-HUB-013; до 013 — skip gracefully (NFR-5)"
+  - "AUDIT schema (012) — Do Not Touch (NFR-5)"
+  - "Clarify UX (010) — Do Not Touch (NFR-5)"
+  - "loop.sh gates — Do Not Touch (NFR-5)"
+  - "spec-kit extensions/assess/ — T-HUB-013 (partial)"
+  - "Extension hooks YAML / __SPECKIT_COMMAND_* — не портировать (AC− #2)"
+  - "Реальный запуск ANALYZE на fixture в этом шаге — QA в verify (rg + dry-run логика); IMPLEMENT не выполняет fixture (docs-only)"
+
+skills:
+  code_surface: infra
+  # docs-only + refs + fixtures
+  impl: []
+  # Core FORBIDDEN (нет Python). Situational: нет.
+
+checkpoints:
+  - id: cp1
+    criterion: "speckit-adapt-011.md создан и содержит telegraph: что взяли / что отвергли / FORBIDDEN / Refs"
+    verify: "rg -n 'Что взяли|Что отвергли|FORBIDDEN|Refs' memory-bank/back/plan/refs/speckit-adapt-011.md | head -10"
+  - id: cp2
+    criterion: "fixture T-FIX-999 создан: plan с FR-1 без sNN; decompose index с s01-stub без покрытия FR-1"
+    verify: "ls memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/plan-T-FIX-999-*.md && ls memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-*/index.{md,yaml} && ls memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-*/s01-stub.yaml"
+  - id: cp3
+    criterion: "README.md в .cursor/templates/analyze/ существует и содержит: когда запускать, как читать, что делать при CRITICAL"
+    verify: "rg -n 'ANALYZE.*(запус|когда)|как читать|CRITICAL|рекомендац' .cursor/templates/analyze/README.md | head -10"
+  - id: cp4
+    criterion: "role-command SKILL.md проверен (ANALYZE не multi-word, lookup по workflow); .agents синхронизирован если diff"
+    verify: "rg -n 'ANALYZE' .claude/skills/role-command/SKILL.md | head -5; diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md 2>/dev/null || echo 'no agents mirror or identical'"
+
+verify:
+  - "rg -n 'Extension hooks|__SPECKIT_COMMAND|FEATURE_DIR' memory-bank/back/plan/refs/speckit-adapt-011.md — 0 matches (AC− #2)"
+  - "rg -n 'T-FIX-999|FR-1.*без|missing coverage|Coverage.*CRITICAL' memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/ — AC+ #4 (fixture)"
+  - "rg -n 'Что взяли из Spec Kit|detection passes|50-cap|STRICTLY READ-ONLY' memory-bank/back/plan/refs/speckit-adapt-011.md — AC+ #6 (refs)"
+  - "rg -n 'README|как запускать|как читать' .cursor/templates/analyze/README.md — docs присутствуют"
+  - "rg -n 'FR-11\\|FR-12\\|AC\\+ #4\\|AC\\+ #6' memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/s04-*.yaml — coverage в decompose"
+  - "diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md 2>/dev/null | wc -l — 0 (parity после sync, если mirror существовал)"
+
+tdd:
+  - "Нет pytest (docs-only + fixtures + refs)."
+  - "QA (в этом шаге + после):"
+  - "  1. rg AC+ #4: fixture T-FIX-999 с FR-1 без sNN → Coverage CRITICAL (симуляция)"
+  - "  2. rg AC+ #6: speckit-adapt-011 содержит detection/severity/50-cap/constitution/read-only + FORBIDDEN hooks"
+  - "  3. rg AC− #2: 0 matches для FEATURE_DIR/specs / specify-cli в refs + workflow"
+  - "  4. rg AC+ #1 (финал): mainrule + slash + workflow/lean/template существуют (из s01/s02)"
+  - "  5. rg AC+ #5 (финал): STRICTLY READ-ONLY в workflow-analyze (s01/s02)"
+  - "  6. rg AC+ #3 (финал): decompose workflow содержит ANALYZE tip (s03)"
+  - "  7. rg AC+ #2 (финал): schema epic-analyze.yaml содержит findings/coverage/metrics/recommendation (s01)"

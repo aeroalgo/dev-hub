@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-042-runtime-adapter-framework
+title: s03 — ClaudeAdapter — extract from loop.sh + tests; byte-equivalent behavior
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-042-runtime-adapter-framework/yaml/steps/s03-claude-adapter.yaml
+skills_used:
+- python-testing-patterns
+- python-error-handling
+discovery: []
+gaps:
+  status: none
+done:
+- "Created loop/runtime_adapters/claude.py implementing RuntimeAdapter Protocol"
+- "Created loop/tests/test_claude_adapter.py verifying build_command, analyze_log, prepare_extras"
+files:
+- loop/runtime_adapters/claude.py
+- loop/tests/test_claude_adapter.py
+deletes: []
+tests:
+- "`timeout 300s .venv/bin/pytest loop/tests/test_claude_adapter.py -q --tb=line`"
+integration_check:
+- "python3 -c 'from loop.runtime_adapters.claude import ClaudeAdapter; from loop.runtime_adapters.base import RuntimeAdapter; assert isinstance(ClaudeAdapter(), RuntimeAdapter)'"
+grep_control: []
+verification_results:
+- "4 passed in 0.05s"
+checkpoints:
+- id: cp1
+  criterion: ClaudeAdapter() instantiates; isinstance(adapter, RuntimeAdapter) is True
+  status: done
+- id: cp2
+  criterion: build_command возвращает список начинающийся с claude-binary; model flag присутствует
+  status: done
+- id: cp3
+  criterion: prepare_extras('implement') == {}; analyze_log('any') returns SessionAnalysis(reason=None)
+  status: done
+resume_from: done

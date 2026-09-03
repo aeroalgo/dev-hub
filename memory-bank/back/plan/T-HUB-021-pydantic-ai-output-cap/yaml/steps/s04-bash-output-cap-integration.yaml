@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-021
+title: "bash-output-cap.py structured path integration + build_view_structured render"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать `run_log_summary` в `bash-output-cap.py`: structured path вызывается когда
+  PROJECT_OUTPUT_SUMMARY_STRUCTURED=1 и extract_signals вернул good=False;
+  `build_view_structured(summary)` рендерит LogSummary в markdown bullets;
+  mode label в additionalContext = "output-cap:structured"; STRUCTURED=0 → legacy free-text.
+  FR-005, FR-006, AC+3, AC+4, AC+7, US-001.
+
+context:
+  consumes:
+    - ".claude/hooks/llm_structured.py — run_log_summary, LogSummary (из s02/s03)"
+    - ".claude/hooks/bash-output-cap.py — extract_signals(), build_view(), llm_summarize() (текущий)"
+    - ".claude/hooks/_lib.py — load_output_summary_env, PROJECT_OUTPUT_SUMMARY check"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md §Архитектура flowchart"
+  produces:
+    - ".claude/hooks/bash-output-cap.py — try-import guard + structured branch + build_view_structured"
+  plan_refs:
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md FR-005"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md FR-006"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md AC+3"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md AC+4"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md AC+7"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md US-001"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md AC−4 (fail-closed on ImportError)"
+  files:
+    - ".claude/hooks/bash-output-cap.py"
+
+as_built:
+  - ".claude/hooks/bash-output-cap.py — llm_summarize() через urllib (free-text только; нет structured)"
+  - ".claude/hooks/bash-output-cap.py — mode label: 'llm' в additionalContext"
+  - ".claude/hooks/bash-output-cap.py — PROJECT_OUTPUT_SUMMARY_STRUCTURED — не читается"
+
+delta:
+  - ".claude/hooks/bash-output-cap.py ADD top — try: from llm_structured import run_log_summary, LogSummary; _HAS_STRUCTURED=True; except ImportError: _HAS_STRUCTURED=False (log once stderr)"
+  - ".claude/hooks/bash-output-cap.py ADD — parse PROJECT_OUTPUT_SUMMARY_STRUCTURED из env (0/1/false/true)"
+  - ".claude/hooks/bash-output-cap.py WIRE — в main pipeline после extract_signals: if not good and _HAS_STRUCTURED and structured_flag: summary=run_log_summary(...); view=build_view_structured(summary)"
+  - ".claude/hooks/bash-output-cap.py ADD — def build_view_structured(summary: LogSummary) -> str: bullets от summary_bullets, ## Failed tests, ## Errors, root_cause line, JSON footer if DEBUG=1"
+  - ".claude/hooks/bash-output-cap.py MODIFY — additionalContext mode label: 'output-cap:structured' когда structured path"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление _http_chat / llm_summarize — s06 (legacy free-text path остаётся в STRUCTURED=0 ветке)"
+  - "Unit tests — s05"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "_HAS_STRUCTURED=True после pip install pydantic-ai; ImportError → False без краша"
+    verify: "python3 -c \"import sys; sys.path.insert(0,'/home/aero/PyProject/dev-hub/.claude/hooks'); import bash_output_cap; print('ok')\""
+  - id: cp2
+    criterion: "test_build_view_structured_mode_label PASS"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_bash_output_cap.py::test_build_view_structured_mode_label -q --tb=short 2>&1 | tail -5"
+  - id: cp3
+    criterion: "test_structured_flag_zero_uses_legacy PASS (STRUCTURED=0 → run_log_summary not called)"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_bash_output_cap.py::test_structured_flag_zero_uses_legacy -q --tb=short 2>&1 | tail -5"
+  - id: cp4
+    criterion: "test_build_view_structured_failed_tests_in_view PASS"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_bash_output_cap.py -k 'failed_tests' -q --tb=short 2>&1 | tail -5"
+
+verify: []
+
+tdd:
+  - "Red: test_build_view_structured_mode_label — mock run_log_summary→LogSummary, проверить 'output-cap:structured' в context"
+  - "Red: test_structured_flag_zero_uses_legacy — PROJECT_OUTPUT_SUMMARY_STRUCTURED=0 → run_log_summary не вызван"
+  - "Red: test_build_view_structured_failed_tests_in_view — LogSummary(failed_tests=['x::y']) → view contains '## Failed tests'"
+  - "Red: test_structured_import_error_falls_back — ImportError на import → hook работает без краша"
+  - "Green: реализовать интеграцию"
+  - "Тесты: loop/tests/test_bash_output_cap.py"

@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s10-dag-adapter-arm-dag-next.yaml
+title: "DAG adapter _arm_dag_next → Transition Engine (epic graph adapter)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить DAG-based epic scheduling (loop/dag/) к Transition Engine:
+  `_arm_dag_next(cwd, epic_id, role)` в `loop/dag/` (или dag.py) — adapter → вызывает
+  `resolve_next(cwd, epic_id, role)` из epic_transition для определения следующей фазы,
+  затем `arm_phase(cwd, epic_id, phase, role)`.
+  DAG scheduler не переписывается (Q4=B: adapter, not rewrite).
+  Тесты: DAG next → resolver + arm_phase вызваны; DAG edge with ANALYZE gate → ANALYZE arm.
+
+context:
+  consumes:
+    - loop/dag/                                  # DAG scheduler module (T-HUB-024 или base)
+    - loop/dag.py                                # если единый файл
+    - loop/epic_transition.py                    # s01-s09: resolve_next + arm_phase
+    - loop/tests/                                # DAG tests (если есть)
+  produces:
+    - loop/dag/                                  # _arm_dag_next adapter (новый или дополненный)
+    - loop/tests/test_dag_transition.py          # NEW: DAG adapter tests
+  plan_refs:
+    - US-007
+    - FR-006
+    - NFR-1
+  files:
+    - loop/dag/
+    - loop/tests/test_dag_transition.py
+
+as_built:
+  - loop/dag/ — директория существует; точная структура неизвестна до read
+  - нет _arm_dag_next функции (по результатам rg)
+  - DAG scheduler определяет порядок эпиков; phase переходы не через Transition Engine
+
+delta:
+  - 'loop/dag/ (или loop/dag.py): `_arm_dag_next(cwd: Path, epic_id: str, role: str) -> dict` — adapter: (1) вызывает resolve_next(cwd, epic_id, role); (2) из result определяет target phase; (3) вызывает arm_phase(cwd, epic_id, phase, role); (4) возвращает arm result'
+  - 'loop/dag/ или loop/dag.py: публичный API dag_advance_epic(cwd, epic_id, role) → использует _arm_dag_next (если нет такого — создать; если есть next_epic_action → wrapper)'
+  - 'loop/tests/test_dag_transition.py: test_dag_arm_dag_next_calls_resolve_and_arm — monkeypatch resolve_next + arm_phase; _arm_dag_next → assert both called'
+  - 'loop/tests/test_dag_transition.py: test_dag_arm_dag_next_analyze_gate — monkeypatch resolve_next returns ANALYZE; assert arm_phase("ANALYZE") called'
+  - 'loop/tests/test_dag_transition.py: test_dag_arm_dag_next_fail_closed_unknown — resolve_next returns unknown phase → ValueError propagated'
+
+deletes: []
+# adapter additive; DAG scheduler internals не затрагиваются
+
+out_of_scope:
+  - "Rewrite DAG scheduler (anti-scope Q4=B)"
+  - "Portal scheduler internals"
+  - "FRONT/INTEG DAG — s11"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/architecture-patterns/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      _arm_dag_next importable без ошибок
+    verify: "timeout 60s python -c 'from loop.dag import _arm_dag_next; print(\"ok\")' 2>/dev/null || python -c 'from loop.dag.transition import _arm_dag_next; print(\"ok\")'"
+  - id: cp2
+    criterion: >
+      test_dag_arm_dag_next_calls_resolve_and_arm PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_dag_transition.py::test_dag_arm_dag_next_calls_resolve_and_arm -q --tb=short"
+  - id: cp3
+    criterion: >
+      Регрессия: loop/tests/ (все) green (no DAG regressions)
+    verify: "timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dag_transition.py loop/tests/ -q --tb=line"
+
+tdd:
+  - "test_dag_arm_dag_next_calls_resolve_and_arm"
+  - "test_dag_arm_dag_next_analyze_gate"
+  - "test_dag_arm_dag_next_fail_closed_unknown"
+  - "Regression: loop/tests/ full"

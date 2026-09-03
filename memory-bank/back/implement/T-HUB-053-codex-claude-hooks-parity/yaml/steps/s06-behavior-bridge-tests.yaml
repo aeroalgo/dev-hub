@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: s06 — Behavior bridge tests all events + stop/spawn regression IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-053-codex-claude-hooks-parity/yaml/steps/s06-behavior-bridge-tests.yaml
+skills_used: []
+discovery:
+- Bridge tests loop/tests/test_codex_hooks_bridge.py extended with SessionStart, SubagentStart/Stop,
+  bash-output-cap, agent-pretool, settings snapshot
+- Resilience smoke loop/tests/test_session_resilience_codex.py extended with SubagentStart
+  contract test
+gaps:
+  status: none
+done:
+- 'Add fixture: SessionStart fires session-start.py on Codex session open'
+- 'Add fixture: SubagentStart + SubagentStop lifecycle and verdict enforcement (TM-004)'
+- 'Add fixture: PostToolUse Bash output-cap on oversized stdout (TM-005)'
+- 'Add fixture: stop-gate deny without verify PASS on Codex path (TM-002)'
+- 'Add fixture: agent-pretool DENY on incomplete HARD RULE prompt (TM-003)'
+- 'Add snapshot test: .claude/settings.json hooks unchanged after codex sync (TM-009,
+  AC-5)'
+files:
+- loop/tests/test_codex_hooks_bridge.py
+- loop/tests/test_session_resilience_codex.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_codex_hooks_bridge.py loop/tests/test_session_resilience_codex.py
+  -q --tb=short
+integration_check:
+- bin/pytest loop/tests/test_codex_hooks_bridge.py -q --tb=short
+grep_control: []
+verification_results:
+- 'cp1: PASS (9 test functions >= 6)'
+- 'cp2: PASS (9 passed in 4.30s)'
+- 'cp3: PASS (6 passed in 0.13s)'
+- 'cp4: PASS (1 passed in 0.43s)'
+checkpoints:
+- id: cp1
+  criterion: test_codex_hooks_bridge.py содержит ≥6 test functions (TM-002..005 +
+    SessionStart + snapshot)
+  status: done
+- id: cp2
+  criterion: Полный bridge suite green
+  status: done
+- id: cp3
+  criterion: session_resilience_codex SubagentStart smoke green
+  status: done
+- id: cp4
+  criterion: Claude settings.json snapshot test не упал (регрессия AC-5)
+  status: done
+resume_from: cp1

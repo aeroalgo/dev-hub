@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-033-harness-execution-discipline
+title: s04 — Cheatsheet one-shard-one-session + EPIC_ATOMIC_COMMIT в project.env IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-033-harness-execution-discipline/yaml/steps/s04-docs-env.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added EPIC_ATOMIC_COMMIT=0 to .claude/project.env
+- Added Execution discipline (GSD one-shard-one-session) section to .cursor/rules/shared/cheatsheets/back-implement.mdc
+files:
+- .cursor/rules/shared/cheatsheets/back-implement.mdc
+- .claude/project.env
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_session_boundary.py -q --tb=short`'
+grep_control: []
+verification_results:
+- PASS
+checkpoints:
+- id: cp1
+  criterion: rg 'EPIC_ATOMIC_COMMIT' .claude/project.env → строка найдена
+  status: done
+  done_at: '2026-08-31T16:02:04Z'
+- id: cp2
+  criterion: rg 'one.shard\|one-shard\|session_boundary\|GSD' .cursor/rules/shared/cheatsheets/back-implement.mdc
+    → ≥1 строки
+  status: done
+  done_at: '2026-08-31T16:02:13Z'
+resume_from: cp1

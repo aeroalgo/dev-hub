@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s08 — AUDIT remediation — native DSH typed agent identity and preset contract
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s08-audit-native-agent-type-mapping.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery:
+- graphify N/A — hub repository (no graph.json); inventory fallback used.
+gaps:
+  status: none
+done:
+- Native `subagent/start` adapter resolves explicit `agent_type`/`subagent_type`,
+  preset metadata, and child `agentPreset` only to `verify`, `reviewer`, or `explorer`
+  (including `explore` alias); unknown and `general-purpose` values fail closed.
+- Adapter forwards canonical `SubagentStart` payload to `.claude/hooks/subagent-start.py`,
+  preserving the Python hook as contract source of truth and injecting the returned
+  child message.
+- Native bridge selects `PROJECT_ROOT` then `CLAUDE_PROJECT_DIR` for hook cwd, preventing
+  a hub session cwd from redirecting product hooks.
+- Bounded smoke covers all supported mappings, unknown type, and product-root selection;
+  DSH epic-gate README and hub bridge documentation record the closed Gap B contract.
+files:
+- dsh/plugins/epic-gate/src/index.ts
+- dsh/plugins/epic-gate/src/subagent-start.ts
+- loop/tests/test_dsh_epic_gate_gaps.py
+- dsh/plugins/epic-gate/README.md
+- dsh/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k "agent_type
+  or preset or subagent_start" -q --tb=line` — PASS (3 passed, 12 deselected)'
+- '`timeout 300s pnpm --dir dsh/plugins/epic-gate run typecheck` — PASS'
+integration_check:
+- '`rg -n "SubagentStart|subagent/start|agent_type|preset.verify|preset.reviewer|preset.explorer"
+  dsh/plugins/epic-gate/src dsh/plugins/epic-gate/README.md` — PASS; native adapter,
+  all mappings, and docs present.'
+- Python bridge counterpart `.claude/hooks/subagent-start.py` consumes `hook_event_name`,
+  canonical `agent_type`, `preset.<type>`, and emits the authoritative contract; no
+  TypeScript contract copy added.
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: native `subagent/start` path is registered in `dsh/plugins/epic-gate/src/subagent-start.ts`,
+  wired by `src/index.ts`, and documented in both READMEs.'
+- 'cp2 PASS: targeted smoke reports 3 passed; verify/reviewer/explorer receive matching
+  `CONTRACT <type>`, while general-purpose remains empty.'
+- 'cp3 PASS: targeted smoke confirms child message visibility; typecheck PASS; Python
+  `.claude/hooks/subagent-start.py` remains the contract source of truth.'
+checkpoints:
+- id: cp1
+  criterion: Native SubagentStart path or an explicit fail-closed supported limitation
+    is implemented and documented.
+  status: done
+  done_at: '2026-08-30T14:30:18Z'
+- id: cp2
+  criterion: verify, reviewer and explorer map to their own contracts without guessing
+    unknown types.
+  status: done
+  done_at: '2026-08-30T14:30:24Z'
+- id: cp3
+  criterion: The DSH smoke proves child contract visibility and preserves the Python
+    bridge as source of truth.
+  status: done
+  done_at: '2026-08-30T14:30:32Z'
+resume_from: cp1

@@ -1,0 +1,84 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: "Audit remediation: DSH model-substitution HALT detection — NFR-3"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть finding F2 / source_ref NFR-3: определить DSH-specific model-substitution contract,
+  подключить detection к analyze_session_log(runtime=dsh) и вернуть fail-closed reason,
+  совместимый с loop HALT branch, без ложного применения Claude org-message detection.
+
+context:
+  consumes:
+    - loop/runtime_adapters/dsh.py
+    - .claude/hooks/session_resilience.py
+    - loop/tests/test_dsh_runtime_adapter.py
+    - memory-bank/back/plan/plan/T-HUB-006-dsh-loop-runtime-adapter/md/plan.md
+    - memory-bank/back/audit/T-HUB-006-dsh-loop-runtime-adapter/audit-20260824-dsh-loop-runtime-adapter.yaml
+  produces:
+    - loop/runtime_adapters/dsh.py
+    - .claude/hooks/session_resilience.py
+    - loop/tests/test_dsh_runtime_adapter.py
+  plan_refs:
+    - NFR-3
+    - AC+4
+    - AC-2
+  files:
+    - loop/runtime_adapters/dsh.py
+    - .claude/hooks/session_resilience.py
+    - loop/tests/test_dsh_runtime_adapter.py
+
+as_built:
+  - loop/runtime_adapters/dsh.py::detect_dsh_model_mismatch принимает raw_log/expected_model, но всегда возвращает None
+  - .claude/hooks/session_resilience.py::analyze_session_log runtime=dsh не вызывает DSH model mismatch detector
+  - loop.sh treats reason beginning with model_substitution as fail-closed, but no DSH path can emit that reason
+  - existing DSH tests cover completed/transient/permanent/incomplete logs, not model substitution
+
+delta:
+  - Зафиксировать минимальный DSH log signal contract для requested/actual model mismatch и безопасно ограничить detection runtime=dsh
+  - Реализовать detect_dsh_model_mismatch без side effects; вернуть стабильный reason prefix `model_substitution:` only for a verified mismatch, otherwise None
+  - Подключить detector в analyze_session_log before ordinary DSH transient/permanent classification; mismatch must be non-retryable fail-closed
+  - Add fixture-based tests for mismatch detection, no-match, and Claude path unchanged; avoid reusing Claude org allowlist text as a DSH signal
+
+deletes: []
+
+out_of_scope:
+  - DSH provider API/network behavior
+  - Cordis/profile/model routing from T-HUB-007/T-HUB-008
+  - Rewriting existing Claude model substitution detection
+  - Silent downgrade to another model or Claude runtime
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: DSH mismatch detector returns stable model_substitution reason for verified mismatch and None for ordinary logs
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'model_mismatch' -q --tb=short"
+  - id: cp2
+    criterion: analyze_session_log(runtime=dsh) classifies mismatch as non-retryable permanent failure
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -k 'model_substitution or mismatch' -q --tb=short"
+  - id: cp3
+    criterion: DSH completed/transient/permanent/incomplete and Claude regression tests remain green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+  - id: cp4
+    criterion: bounded implementation contains no silent model fallback
+    verify: "rg -n 'detect_dsh_model_mismatch|model_substitution|runtime.*dsh' loop/runtime_adapters/dsh.py .claude/hooks/session_resilience.py loop/tests/test_dsh_runtime_adapter.py"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py -q --tb=short"
+  - "rg -n 'detect_dsh_model_mismatch|model_substitution' loop/runtime_adapters/dsh.py .claude/hooks/session_resilience.py loop/tests/test_dsh_runtime_adapter.py"
+
+tdd:
+  - Test verified DSH requested/actual model mismatch returns model_substitution reason
+  - Test ordinary DSH completed/transient/permanent logs return no mismatch
+  - Test analyze_session_log mismatch is permanent/non-retryable
+  - Test Claude runtime path remains unchanged

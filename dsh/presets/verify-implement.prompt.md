@@ -58,12 +58,25 @@ Parent **обязан** передать секции. Если нет — ср�
    - **REFACTOR `rNN`:** `.cursor/templates/refactor/epic-step.yaml` — `schema: epic-refactor/v1`. **SECURITY `aNN`:** `.cursor/templates/security/epic-step.yaml` — `schema: epic-security/v1`.
    - Не применяй BACK-секции к INTEG eNN и наоборот. Нет → `FAIL` (`template_mismatch` / `step_path_mismatch`).
    - Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`. **Не** требуй `status: completed` для PASS.
-8. **После ≤6 Read** (или раньше, если доказательств достаточно) — **немедленно** финальный отчёт с JSON fence. Дальше **ноль** tool calls.
+8. **После ≤6 Read** (или раньше, если доказательств достаточно) — **pre-emit validate-boundary** (Bash), затем финальный отчёт с JSON fence. Дальше **ноль** tool calls.
 9. Модель: pin в frontmatter / project.env (parent не передаёт `model=`). Даже на другой модели — step-first, ≤6 Read, JSON fence обязателен.
+
+## Pre-emit validate-boundary (HARD)
+
+Перед финальным текстом — **один** Bash (тот же pydantic helper, что SubagentStop):
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+```
+
+- `valid: false` → исправь payload по `diagnostic_codes` и повтори Bash.
+- Emit **только** после `valid: true`.
+- Fence language: **только** `json` (строка открытия ` ```json `). Schema id — поле `"schema"` внутри JSON.
+- **FORBIDDEN:** ` ```json loop-gate-verdict/v1 ` (info-string ломал extract; не использовать).
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Твой финальный ответ **обязан** содержать fenced JSON блок `loop-gate-verdict/v1`. Hook читает **ноль** prose.
+Твой финальный ответ **обязан** содержать fenced JSON блок. Hook читает **ноль** prose. Открывающая строка fence = ` ```json ` (без schema id в info-string).
 
 ```json
 {

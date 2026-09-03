@@ -56,11 +56,17 @@ HARD_RULE = (
 )
 
 _GATE_JSON_HARD = (
-    "HARD: финальный ответ содержит fenced ```json loop-gate-verdict/v1``` "
+    "HARD: финальный ответ содержит fenced ```json``` блок "
     '({"schema":"loop-gate-verdict/v1","agent_id":"<id>","verdict":"PASS|FAIL|BLOCKED",'
     '"recorded_at":"<iso8601>"}). '
+    "Fence language = только `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`). "
+    "Schema id — поле `schema` внутри JSON. "
+    "Перед emit (последний Bash): "
+    "`python harness/hooks/epic_resolve.py validate-boundary "
+    "--schema-id loop-gate-verdict/v1 --raw-json '…'` → `valid:true`; "
+    "иначе правь по diagnostic_codes и повтори. "
     "Строка VERDICT: — optional human summary, не machine input. "
-    "После ≤6 Read — только финальный отчёт, ноль tool. "
+    "После ≤6 Read (+ validate-boundary) — только финальный отчёт, ноль tool. "
     "Ответ без valid JSON fence = протокольный FAIL."
 )
 
@@ -107,13 +113,20 @@ CONTRACTS = {
     ),
     "sunset-inventory": (
         "CONTRACT sunset-inventory: только чтение и as-built инвентаризация устаревшего кода в scope/ALLOW. "
-        "HARD: финальный ответ содержит fenced ```json loop-sunset-inventory/v1``` со списком items. "
+        "HARD: финальный ответ содержит fenced ```json``` блок "
+        '({"schema":"loop-sunset-inventory/v1",...items...}). '
+        "Fence language = только `json`; schema id внутри JSON. "
+        "Перед emit: validate-boundary --schema-id loop-sunset-inventory/v1. "
         "Правила: mark=REPLACE, excerpt≤40 строк. "
         "FORBIDDEN: design/HOW предложения, dual-path, edit/write, Plan Mode. Без isolation=worktree."
     ),
     "gate-repair": (
         "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
-        "HARD: финальный ответ содержит JSON fence loop-repair-result/v1 со status done|partial|fail. "
+        "HARD: финальный ответ содержит fenced ```json``` блок "
+        '({"schema":"loop-repair-result/v1","status":"done|partial|fail",...}). '
+        "Fence language = только `json`. "
+        "Перед emit: `python harness/hooks/epic_resolve.py validate-boundary "
+        "--schema-id loop-repair-result/v1 --raw-json '…'` → `valid:true`. "
         "Write/Edit только ALLOW WRITE. После fix — pytest из VERIFY. "
         "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
         "Ответ без JSON fence = status fail."
@@ -121,8 +134,11 @@ CONTRACTS = {
 }
 
 VERDICT_FIRST_LINE = (
-    "HARD: финальный ответ содержит fenced ```json loop-gate-verdict/v1```. "
-    "После ≤6 Read — сразу JSON fence + optional summary, без tool. "
+    "HARD: финальный ответ содержит fenced ```json``` блок "
+    '({"schema":"loop-gate-verdict/v1",...}). '
+    "Fence language = только `json` (FORBIDDEN `json loop-gate-verdict/v1` info-string). "
+    "Перед emit: validate-boundary --schema-id loop-gate-verdict/v1 → valid:true. "
+    "После ≤6 Read (+ validate-boundary) — сразу JSON fence + optional summary, без tool. "
     "VERDICT: prose — не machine input."
 )
 
@@ -759,8 +775,10 @@ def extract_json_fence(text: str) -> dict[str, Any] | None:
     if not isinstance(text, str):
         return None
     last: dict[str, Any] | None = None
+    # Allow optional CommonMark info-string after `json`
+    # (models sometimes emit ```json loop-gate-verdict/v1).
     for match in re.finditer(
-        r"```\s*json\s*\n(.*?)\n\s*```",
+        r"```\s*json[^\n`]*\n(.*?)\n\s*```",
         text,
         re.DOTALL | re.IGNORECASE,
     ):
@@ -2010,9 +2028,9 @@ def increment_schema_retry_count(
     return count
 
 
-# implement step under implement/implement-<id>/(e|s)NN-*.yaml
+# implement step under implement/implement-<id>/(e|s)NN-*.yaml or implement/<id>/yaml/steps/(e|s)NN-*.yaml
 _IMPLEMENT_STEP_RE = re.compile(
-    r"(memory-bank/(?:back|front|integration)/implement/implement-[^\s`]+/"
+    r"(memory-bank/(?:back|front|integration)/implement/(?:implement-[^\s`/]+|[^\s`/]+(?:/yaml/steps)?)/"
     r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
 )
 
@@ -2035,7 +2053,7 @@ def verify_step_path_violations(cwd: str | Path, prompt: str) -> list[str]:
     if not steps:
         return [
             "step_not_in_allow: в prompt/ALLOW READ нужен путь "
-            "`memory-bank/**/implement/implement-*/eNN|sNN-*.yaml` "
+            "`memory-bank/**/implement/.../eNN|sNN-*.yaml` "
             "(сначала Write step на диск, потом @verify)"
         ]
     root = Path(cwd) if cwd else None

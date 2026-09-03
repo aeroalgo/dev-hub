@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-004
+title: "Targeted suite + import smoke: pytest on affected + import epic after delete"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Запустить targeted pytest на hooks/loop tests затронутых (extract_verdict, registry, alias, posttool, spawn-state).
+  AC+ 7: `timeout 300s … pytest` на hooks/loop tests затронутых — зелёный.
+  Smoke: import package `epic` после delete stubs (s05) — работает.
+  Smoke: import epic facade + from epic import ... в тестах finish_integrity — не сломан.
+
+context:
+  consumes:
+    - "s01–s06 — все изменения hygiene"
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md AC+ 7"
+    - "loop/tests/test_stop_gate.py — extract_verdict, need_human"
+    - "loop/tests/test_agent_registry.py — discover_registry"
+    - "loop/tests/test_hook_epoch_gates.py — verdict, spawn-state"
+    - "loop/tests/test_finish_integrity.py — epic facade import"
+  produces:
+    - "CI evidence: pytest output (зелёный) на затронутых тестах"
+    - "Smoke evidence: python -c 'import epic; from epic import ...' OK"
+  plan_refs:
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md AC+ 7"
+  files:
+    - "loop/tests/test_stop_gate.py"
+    - "loop/tests/test_agent_registry.py"
+    - "loop/tests/test_hook_epoch_gates.py"
+    - "loop/tests/test_finish_integrity.py"
+    - ".claude/hooks/epic/__init__.py (facade)"
+
+as_built:
+  - "test_stop_gate.py:837–842 — test_extract_verdict_uses_last_match"
+  - "test_stop_gate.py:845–878 — test_stop_gate_allows_need_human_verify_no_verdict"
+  - "test_agent_registry.py:27–114 — discover_registry tests (4-layer)"
+  - "test_hook_epoch_gates.py:20–200+ — verdict dedupe, identity, spawn-state"
+  - "test_finish_integrity.py — from epic import ... smoke"
+
+delta:
+  - "Запустить: `timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k 'extract_verdict or need_human' -q --tb=line`"
+  - "Запустить: `timeout 300s .venv/bin/pytest loop/tests/test_agent_registry.py -q --tb=line`"
+  - "Запустить: `timeout 300s .venv/bin/pytest loop/tests/test_hook_epoch_gates.py -k 'verdict or spawn' -q --tb=line`"
+  - "Запустить: `timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -q --tb=line`"
+  - "Smoke: `python3 -c 'import epic; from epic import finalize_step, mirror_verify_verdict, load_index_yaml; print(\"epic OK\")'`"
+  - "Smoke: `python3 -c 'from epic_lib import mirror_verify_verdict, finalize_step; print(\"epic_lib OK\")'`"
+  - "Записать вывод в task log или как комментарий в FINISH"
+  - "Если какой-то тест красный — починить (или отметить known gap, если out_of_scope)"
+
+deletes:
+  - "n/a — только запуск тестов"
+
+out_of_scope:
+  - "Полный suite (все loop/tests) — targeted только"
+  - "Frontend тесты (vitest/playwright) — не запускать (FRONT rule)"
+  - "Изменения кода — сделаны в s01–s06; s07 только verify"
+  - "loop.sh / context_loop.py — T-HUB-003, не трогать"
+
+skills:
+  code_surface: test
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "test_stop_gate.py extract_verdict + need_human — зелёный"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k ''extract_verdict or need_human'' -q --tb=line 2>&1 | tail -20'
+  - id: cp2
+    criterion: "test_agent_registry.py — зелёный"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/test_agent_registry.py -q --tb=line 2>&1 | tail -15'
+  - id: cp3
+    criterion: "test_hook_epoch_gates.py verdict/spawn — зелёный"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/test_hook_epoch_gates.py -k ''verdict or spawn'' -q --tb=line 2>&1 | tail -15'
+  - id: cp4
+    criterion: "test_finish_integrity.py — зелёный (epic facade smoke)"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -q --tb=line 2>&1 | tail -10'
+  - id: cp5
+    criterion: "AC+ 7: targeted pytest на hooks/loop tests затронутых — зелёный"
+    verify: 'echo ''''See cp1–cp4 outputs above'''''
+  - id: cp6
+    criterion: "Smoke: import epic + from epic import ... работает"
+    verify: 'cd /home/aero/PyProject/dev-hub && python3 -c ''''import epic; from epic import finalize_step, mirror_verify_verdict, load_index_yaml; print(\"epic package OK\")'''''''' && python3 -c ''''''''from epic_lib import mirror_verify_verdict, finalize_step; print(\"epic_lib OK\")'''''''''''''
+  - id: cp7
+    criterion: "Smoke: import epic после delete 6 stubs не сломан"
+    verify: 'ls /home/aero/PyProject/dev-hub/.claude/hooks/epic/*.py 2>/dev/null | wc -l; python3 -c ''''import epic; print(\"stubs deleted, facade OK\")'''''''''''''
+
+verify: []
+
+tdd:
+  - "Pre-s07: s01–s06 завершены, тесты на момент red (до green фиксов)"
+  - "s07: запустить targeted → если красный, починить (или откатить если out_of_scope)"
+  - "s07: smoke import epic → OK"
+  - "s07: AC+ 7 evidence записан"

@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-016
+title: s06 — dsh-claude-compat optional mount — skills/rules/commands access from
+  .claude/ under DSH IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s06-dsh-claude-compat-mount.yaml
+skills_used: []
+discovery:
+- npm registry подтвердил community-пакет dsh-claude-compat@0.8.0; штатный cordis.patch.yml
+  использует entry dsh-claude-compat с enableSkills/enableRules.
+gaps:
+  status: none
+done:
+- Создан optional compat Cordis fragment с required:false, доступом к проектному .claude/
+  через session cwd и user ~/.claude.
+- В epic-implement добавлены optionalDependencies и conditional include через DSH_CC_COMPAT=0.
+- README документирует default-on mount, отключение и fail-soft при недоступном пакете.
+files:
+- dsh/patches/cc-claude-compat.yml
+- dsh/profiles/epic-implement/package.json
+- dsh/profiles/epic-implement/pnpm-lock.yaml
+- dsh/profiles/epic-implement/cordis.patch.yml
+- dsh/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest -q --tb=line`'
+- grep -q 'required.*false' dsh/patches/cc-claude-compat.yml
+- grep -q 'cc-claude-compat' dsh/profiles/epic-implement/cordis.patch.yml
+- grep -q 'DSH_CC_COMPAT' dsh/README.md
+- cd dsh/profiles/epic-implement && pnpm install --lockfile-only --ignore-scripts
+integration_check:
+- dsh-claude-compat@0.8.0 is present in epic-implement pnpm-lock.yaml as optional
+  dependency
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: required:false present in cc-claude-compat.yml'
+- 'cp2 PASS: cc-claude-compat referenced by epic-implement Cordis patch'
+- 'cp3 PASS: DSH_CC_COMPAT documented in README'
+checkpoints:
+- id: cp1
+  criterion: dsh/patches/cc-claude-compat.yml создан с required:false
+  status: done
+- id: cp2
+  criterion: dsh/profiles/epic-implement/cordis.patch.yml содержит ссылку на cc-claude-compat
+  status: done
+- id: cp3
+  criterion: dsh/README.md содержит §dsh-claude-compat с инструкцией DSH_CC_COMPAT=0
+    для отключения
+  status: done

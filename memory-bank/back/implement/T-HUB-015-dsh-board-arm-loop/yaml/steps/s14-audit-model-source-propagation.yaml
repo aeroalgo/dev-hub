@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s14
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s14 — Audit remediation — FR-015 effective model source reaches Host UI IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s14-audit-model-source-propagation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Существующий LoopArgvResult уже вычислял model_source/model_env; потеря происходила
+  на CLI arm-loop exception path и между текстовым CLI результатом и HostExecutionResult.
+- BoardControls принимал статический modelSource; launch result должен обновлять effective
+  source и env key после завершения bridge-вызова.
+gaps:
+  status: none
+done:
+- Сохранена precedence env > preset > default > bare с диагностикой model_source и
+  optional model_env.
+- ExecutionResult, PipelineResult и CLI печать/ошибочный arm-loop path сохраняют effective
+  model source до Host bridge.
+- HostExecutionResult парсит model_source/model_env из bounded stdout/stderr; BoardControls
+  обновляет badge/state из фактического launch result.
+- 'Модель остаётся whitelist select: browser free-text и task.mode в launch path отсутствуют.'
+files:
+- loop/board_launch/loop_argv.py
+- loop/board_launch/loop_run.py
+- loop/board_launch/pipeline.py
+- loop/board_sync/cli.py
+- loop/board_sync/client.py
+- dsh/plugins/mb-bridge/src/python-bridge.ts
+- dsh/plugins/mb-bridge/src/board-controls.tsx
+- loop/tests/test_board_launch_argv.py
+- loop/tests/test_board_launch_cli.py
+- loop/tests/test_board_launch_ui_filter.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py loop/tests/test_board_launch_bridge_unit.py
+  loop/tests/test_board_launch_cli.py loop/tests/test_board_launch_pipeline.py loop/tests/test_board_launch_ui_filter.py
+  -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_argv.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_cli.py -q --tb=line`'
+integration_check:
+- loop CLI prints model_source/model_env; dsh python-bridge parses the same keys into
+  HostExecutionResult.modelSource/modelEnv.
+- BoardControls consumes result.modelSource/result.modelEnv in the launch completion
+  callback and renders env overrides or source label.
+- execution_record retains model_source/model_env for Host task-board recording without
+  editing product configuration.
+grep_control:
+- back: rg -n 'model_source|modelSource|env overrides' loop/board_launch dsh/plugins/mb-bridge/src
+  front: ''
+- back: if rg -n 'task\.mode|input type="text".*model|free.?text.*model' loop/board_launch
+    dsh/plugins/mb-bridge/src; then exit 1; else printf 'no forbidden model paths\n';
+    fi
+  front: ''
+verification_results:
+- 'cp1 flushed: Env > preset > default > bare remains unchanged and each branch emits
+  model_source.'
+- 'cp2 flushed: Host/UI contract includes model_source/modelSource, model_env/modelEnv,
+  and BoardControls result-state badge update.'
+- 'cp3 flushed: no task.mode or free-text model input found in launch path.'
+checkpoints:
+- id: cp1
+  criterion: Env > preset > default > bare remains unchanged and each branch emits
+    model_source.
+  status: done
+  done_at: '2026-08-29T07:01:53Z'
+- id: cp2
+  criterion: Host/UI result carries model_source=env and BoardControls updates the
+    env-overrides badge after launch.
+  status: done
+  done_at: '2026-08-29T07:01:59Z'
+- id: cp3
+  criterion: No task.mode or free-text model input becomes part of the mb launch path.
+  status: done
+  done_at: '2026-08-29T07:02:14Z'
+resume_from: cp1

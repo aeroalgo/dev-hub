@@ -1,0 +1,68 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-003
+title: "last_session_path → epic_dir alignment (TDD)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: |
+  Исправить `last_session_path` в `session_resilience.py`: вместо hardcoded `PROJECT_ROOT/.claude/runtime/...`
+  использовать `epic_dir()` из `epic_paths.py`, чтобы last-session.json лежало рядом со state.json
+  в `HUB_ROOT/runtime/<slug>/epic/`.
+  TDD: unit тест с tmp_path + env override перед правкой кода.
+context:
+  consumes:
+    - ".claude/hooks/session_resilience.py — функция last_session_path (текущая реализация)"
+    - ".claude/hooks/epic_paths.py — функция epic_dir (target root)"
+    - "plan/T-HUB-003-loop-halt/md/plan.md §Архитектура runtime (target) mermaid"
+    - "plan/T-HUB-003-loop-halt/md/plan.md FR-5, AC+ 4"
+  produces:
+    - ".claude/hooks/session_resilience.py — last_session_path использует epic_dir()"
+    - "loop/tests/test_last_session_path.py — unit тест HUB_ROOT+slug сценарий"
+  plan_refs:
+    - "plan/T-HUB-003-loop-halt/md/plan.md FR-5, AC+ 4"
+    - "plan/T-HUB-003-loop-halt/md/plan.md §Риски — тесты закрепляли legacy path"
+  files:
+    - ".claude/hooks/session_resilience.py"
+    - ".claude/hooks/epic_paths.py"
+    - "loop/tests/test_last_session_path.py"
+as_built:
+  - ".claude/hooks/session_resilience.py::last_session_path — текущий путь (вероятно PROJECT_ROOT/.claude/runtime/epic/...)"
+  - ".claude/hooks/epic_paths.py::epic_dir — как строится путь при HUB_ROOT/DEV_HUB + slug"
+  - "loop/tests/ — есть ли уже test_session_resilience.py с legacy path assertions"
+delta:
+  - |
+    session_resilience.py: заменить вычисление пути last-session.json на:
+      from .epic_paths import epic_dir   # или relative import если hooks не package
+      def last_session_path(slug: str, project_root: str = None) -> Path:
+          return epic_dir(slug) / 'last-session.json'
+  - "Если epic_paths.py уже имеет helper — использовать; иначе добавить last_session_path туда, session_resilience импортирует"
+  - "Написать loop/tests/test_last_session_path.py: HUB_ROOT env set → epic_dir/last-session.json (tmp_path)"
+  - "Обновить существующие тесты что закрепляли product path (не два source of truth)"
+deletes:
+  - "Hardcoded PROJECT_ROOT/.claude/runtime/... путь из session_resilience.py::last_session_path"
+  - "Legacy path assertions в test_session_resilience.py если они закрепляли неверный path"
+out_of_scope:
+  - "Массовое удаление product .claude/runtime dirs — AC− 2"
+  - "loop.sh wiring — s02"
+  - "docs — s04"
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+checkpoints:
+  - id: cp1
+    criterion: "test_last_session_path.py написан с HUB_ROOT env mock (TDD red до правки кода)"
+    verify: "test -f /home/aero/PyProject/dev-hub/loop/tests/test_last_session_path.py"
+  - id: cp2
+    criterion: "last_session_path в session_resilience.py или epic_paths.py содержит epic_dir (не hardcoded PROJECT_ROOT)"
+    verify: "grep -n 'epic_dir\\|last.session' /home/aero/PyProject/dev-hub/.claude/hooks/session_resilience.py | head -10"
+  - id: cp3
+    criterion: "AC+ 4: unit тест last_session_path с HUB_ROOT+slug → правильный путь проходит"
+    verify: "cd /home/aero/PyProject/dev-hub && timeout 60s .venv/bin/pytest loop/tests/test_last_session_path.py -q --tb=short 2>&1 | tail -10"
+verify: []
+tdd:
+  - "AC+ 4: HUB_ROOT=/tmp/fakehub, slug='my-epic' → last_session_path() == /tmp/fakehub/runtime/my-epic/epic/last-session.json"
+  - "AC+ 4 variant: DEV_HUB env → same hub routing"
+  - "Regression: AC− 2: last_session_path не удаляет директории, только строит путь"
+  - "Import test: from session_resilience import last_session_path работает без env"

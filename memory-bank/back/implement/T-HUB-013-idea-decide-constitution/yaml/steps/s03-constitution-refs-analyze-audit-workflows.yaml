@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-013
+title: s03 — Wire constitution into workflow-analyze/audit — conditional patch + shared
+  note stub IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-013-idea-decide-constitution/yaml/steps/s03-constitution-refs-analyze-audit-workflows.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проверены статусы T-HUB-011 и T-HUB-012: все s01..s04 имеют status completed; выбран
+  CASE A.'
+- 'В workflow-analyze добавлено правило: существующие constitution MUST-нарушения
+  получают severity CRITICAL.'
+- Проверено, что workflow-audit сохраняет явные constitution refs; constitution-note.md
+  не требуется.
+files:
+- .cursor/rules/back_developer/workflow-analyze.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py -q --tb=line`'
+- '`rg -n ''status:'' memory-bank/back/plan/decompose-T-HUB-011-analyze-pre-implement/index.yaml
+  memory-bank/back/plan/decompose-T-HUB-012-audit-converge/index.yaml`'
+- '`rg -n ''constitution|constitution-note'' .cursor/rules/back_developer/workflow-analyze.mdc`'
+- '`rg -n ''constitution'' .cursor/rules/back_developer/workflow-audit.mdc`'
+integration_check:
+- '@.cursor/rules/shared/workflow-analyze-core.mdc → .cursor/rules/shared/workflow-analyze-core.mdc:
+  exists; Constitution pass assigns CRITICAL to MUST violations'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- '19 passed in 4.73s: timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py
+  -q --tb=line'
+checkpoints:
+- id: cp1
+  criterion: Проверить статус 011/012 через index.yaml (определяет CASE A vs B)
+  status: done
+  done_at: '2026-08-28T08:13:50Z'
+- id: cp2
+  criterion: workflow-analyze.mdc содержит constitution ref (MUST = CRITICAL) ИЛИ
+    ссылку на constitution-note.md
+  status: done
+  done_at: '2026-08-28T08:13:58Z'
+- id: cp3
+  criterion: workflow-audit.mdc уже имеет constitution ref (проверить что не регрессировало)
+  status: done
+  done_at: '2026-08-28T08:13:58Z'
+- id: cp4
+  criterion: Если CASE B — constitution-note.md существует
+  status: done
+  done_at: '2026-08-28T08:13:58Z'
+resume_from: cp1

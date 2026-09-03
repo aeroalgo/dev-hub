@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: Harness integration — epic_paths.py thin wrapper + _lib.py/reconcile.py/seed_implement/mb_finish
+  resolver wire
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s06-harness-resolver-wire.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- 'Переписан harness/hooks/epic_paths.py: подключен loop.paths.epic_layout.resolve,
+  функции вычисляют пути через resolver, добавлен compat alias для legacy layout_v1
+  с warning layout_v1_deprecated.'
+- 'Проверен harness/hooks/_lib.py и loop/mb_finish: отсутствие hardcoded decompose-/implement-
+  путей.'
+- Все harness тесты (harness/hooks/tests/) и ключевые loop тесты green.
+files:
+- harness/hooks/epic_paths.py
+- harness/hooks/_lib.py
+- harness/hooks/epic/core.py
+- harness/hooks/epic/reconcile.py
+- harness/hooks/session_resilience.py
+- loop/mb_finish/finish_implement.py
+deletes:
+- harness/hooks/epic_paths.py — direct glob 'decompose-*/index.yaml'
+- harness/hooks/epic_paths.py — direct glob 'decompose-*/index.md'
+- harness/hooks/epic_paths.py — direct expected = ... / f'decompose-{epic_id}' / 'index.yaml'
+- harness/hooks/epic_paths.py — direct plan_dir / f'decompose-{epic_id}'
+tests:
+- '`bin/pytest harness/hooks/tests/ -q --tb=short -x`'
+integration_check:
+- bin/pytest harness/hooks/tests/ -q --tb=short -x
+- bin/pytest loop/tests/test_stop_gate.py loop/tests/test_identity_resolution.py loop/tests/test_validate_decompose.py
+  -q --tb=short
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'harness/hooks/epic_paths.py: rg ''decompose-'' epic_paths.py | grep
+    -v ''layout_v1_deprecated\|#\|test'' → 0 строк hardcoded'
+  status: done
+  done_at: '2026-09-03T19:13:57Z'
+- id: cp2
+  criterion: 'harness/hooks/_lib.py: rg ''decompose-'' _lib.py → 0 строк'
+  status: done
+  done_at: '2026-09-03T19:13:57Z'
+- id: cp3
+  criterion: 'mb_finish/finish_implement.py: rg hardcoded ''implement-'' → 0'
+  status: done
+  done_at: '2026-09-03T19:13:58Z'
+- id: cp4
+  criterion: harness tests green после rewire
+  status: done
+  done_at: '2026-09-03T19:13:58Z'
+resume_from: cp1

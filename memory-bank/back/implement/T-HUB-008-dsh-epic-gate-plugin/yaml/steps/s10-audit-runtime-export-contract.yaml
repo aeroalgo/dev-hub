@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s10 — AUDIT remediation — explicit project-root and hub export contract IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s10-audit-runtime-export-contract.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Exported EPIC_PROJECT_ROOT in loop/loop.sh as canonical project root alias.
+- Added resolveProjectRoot helper in subagent-start.ts resolving EPIC_PROJECT_ROOT,
+  PROJECT_ROOT, or CLAUDE_PROJECT_DIR and throwing on conflict.
+- Updated pre-tool-use.ts, subagent-start.ts, subagent-stop.ts and test_dsh_epic_gate_gaps.py
+  for project root resolution.
+files:
+- loop/loop.sh
+- dsh/plugins/epic-gate/src/subagent-start.ts
+- dsh/plugins/epic-gate/src/subagent-stop.ts
+- dsh/plugins/epic-gate/src/pre-tool-use.ts
+- dsh/README.md
+- loop/tests/test_dsh_epic_gate_gaps.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k ''environment
+  or project_root or dev_hub'' -q --tb=line`'
+integration_check:
+- rg -n 'EPIC_PROJECT_ROOT|PROJECT_ROOT|CLAUDE_PROJECT_DIR|DEV_HUB' loop/loop.sh dsh/patches/cc-hooks-bridge.yml
+  dsh/plugins/epic-gate dsh/README.md
+grep_control:
+- back: rg -n 'projectRoot|projectDir|DEV_HUB|fail-closed|invalid' dsh/plugins/epic-gate/src
+    dsh/patches/cc-hooks-bridge.yml
+  front: ''
+verification_results:
+- 18 passed in test_dsh_epic_gate_gaps.py
+checkpoints:
+- id: cp1
+  criterion: The canonical project-root and DEV_HUB contract is declared at the loop-to-DSH
+    boundary.
+  status: done
+  done_at: '2026-08-30T15:40:43Z'
+- id: cp2
+  criterion: Native bridge and validator consume the declared root without silently
+    selecting a conflicting path.
+  status: done
+  done_at: '2026-08-30T15:40:46Z'
+- id: cp3
+  criterion: Environment contract tests cover valid, missing and conflicting root
+    values.
+  status: done
+  done_at: '2026-08-30T15:40:49Z'
+resume_from: cp1

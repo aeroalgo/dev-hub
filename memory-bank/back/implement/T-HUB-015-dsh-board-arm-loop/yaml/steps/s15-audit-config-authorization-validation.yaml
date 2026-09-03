@@ -1,0 +1,96 @@
+schema: epic-implement/v1
+role: back
+step_id: s15
+plan_id: T-HUB-015-dsh-board-arm-loop
+title: s15 — Audit remediation — FR-008 ROADMAP authorization and bridge config are
+  enforced IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-015-dsh-board-arm-loop/yaml/steps/s15-audit-config-authorization-validation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Existing Python BridgeConfig already carries fail-closed allow_roadmap_advance/enabled
+  fields, but the CLI arm command discarded config and the TypeScript mount used a
+  raw cast.
+- ROADMAP cards use explicit epic metadata (reason_code is the generated roadmap target),
+  while arm_session remains the sole activeContext writer.
+gaps:
+  status: none
+done:
+- Passed BridgeConfig from the board CLI into arm_from_card, so ROADMAP authorization
+  now requires enabled=true, allowRoadmapAdvance=true, and explicit epic metadata
+  before arm_session.
+- Preserved default false denial and non-ROADMAP/step mismatch behavior; explicit
+  roadmap targets are passed to arm_session without inventing a roadmap queue side
+  effect.
+- Made Python syncAfterLoop validation strict and added focused malformed/disabled
+  config coverage.
+- Added TypeScript BridgeConfig validation for supported booleans, runtime, safe args,
+  and model presets; disabled config returns before route or injection registration.
+files:
+- loop/board_launch/arm.py
+- loop/board_launch/bridge.py
+- loop/board_launch/metadata.py
+- loop/board_sync/cli.py
+- dsh/plugins/mb-bridge/src/index.ts
+- dsh/plugins/mb-bridge/src/python-bridge.ts
+- loop/tests/test_board_launch_arm.py
+- loop/tests/test_board_launch_bridge_unit.py
+- loop/tests/test_board_launch_cli.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py loop/tests/test_board_launch_bridge_unit.py
+  loop/tests/test_board_launch_pipeline.py -q --tb=line`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_launch_arm.py::test_gate_roadmap_denied
+  loop/tests/test_board_launch_arm.py::test_gate_roadmap_explicit_opt_in_allows_arm
+  loop/tests/test_board_launch_bridge_unit.py::test_config_load_rejects_ambiguous_booleans
+  loop/tests/test_board_launch_bridge_unit.py::test_config_load_disabled_fails_closed
+  -q --tb=line`'
+- '`rg -n "enabled|allowRoadmapAdvance|loadBridgeConfig|registerBridgeRoute" dsh/plugins/mb-bridge/src
+  loop/board_launch/bridge.py`'
+- '`if rg -n "task\\.mode|input type=\\"text\\".*model|free.?text.*model" loop/board_launch
+  dsh/plugins/mb-bridge/src; then exit 1; else printf ''no forbidden model paths\\n'';
+  fi`'
+integration_check:
+- board_sync CLI builds one BridgeConfig and passes it into arm_from_card; pipeline
+  already passes the same config into arm_from_card, argv construction, loop runner,
+  and optional sync.
+- Python and TypeScript config boundaries reject ambiguous booleans and unsafe model
+  arguments; apply returns before registerBridgeRoute/injections when enabled is explicitly
+  false.
+- TypeScript mount and stock-run adapter consume the validated config object rather
+  than a raw cast.
+grep_control:
+- back: rg -n 'enabled|allowRoadmapAdvance|loadBridgeConfig|registerBridgeRoute' dsh/plugins/mb-bridge/src
+    loop/board_launch/bridge.py
+  front: ''
+- back: if rg -n 'task\\.mode|input type="text".*model|free.?text.*model' loop/board_launch
+    dsh/plugins/mb-bridge/src; then exit 1; else printf 'no forbidden model paths\\n';
+    fi
+  front: ''
+verification_results:
+- 'Targeted arm/bridge/pipeline suite: 26 passed.'
+- 'Focused authorization and malformed/disabled configuration tests: 6 passed.'
+- Config key and route registration scan passed; no forbidden task.mode/free-text
+  model path found.
+checkpoints:
+- id: cp1
+  criterion: Default/missing allowRoadmapAdvance denies ROADMAP; explicit true plus
+    valid explicit authorization is the only allowed path.
+  status: done
+  done_at: '2026-08-29T00:00:00Z'
+- id: cp2
+  criterion: Malformed or disabled bridge configuration fails closed and does not
+    register an active route.
+  status: done
+  done_at: '2026-08-29T00:00:00Z'
+- id: cp3
+  criterion: Step matching and non-ROADMAP gate behavior remain unchanged; no roadmap-advance
+    side effect is invented.
+  status: done
+  done_at: '2026-08-29T00:00:00Z'
+resume_from: cp1

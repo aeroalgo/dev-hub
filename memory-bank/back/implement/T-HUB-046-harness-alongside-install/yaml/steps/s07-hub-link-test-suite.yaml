@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-046-harness-alongside-install
+title: 's07 — loop/tests/test_hub_link_alongside.py: full suite + extend test_hub_link_harness.py IMPLEMENT'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-046-harness-alongside-install/yaml/steps/s07-hub-link-test-suite.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/verification-before-completion/SKILL.md
+discovery:
+- test_hub_link_alongside.py covers all TM-001, TM-002, TM-005, TM-006, TM-007 scenarios in isolated tmpdir fixtures.
+- test_hub_link_harness.py explicitly passes --mode=full covering TM-003 full mode regression.
+gaps:
+  status: none
+done:
+- Finalized loop/tests/test_hub_link_alongside.py covering clean fixture, CLAUDE.md preservation, custom .cursor/rules preservation, conflict guards, unlink behavior, and patch marker mechanics.
+- Extended test_hub_link_harness.py with explicit --mode=full invocations for idempotent installation and symlink resolution.
+- Verified all tests execute in temporary isolated directories with zero modifications to dev-hub root.
+files:
+- loop/tests/test_hub_link_alongside.py
+- loop/tests/test_hub_link_harness.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_hub_link_alongside.py loop/tests/test_hub_link_harness.py -q --tb=short
+integration_check:
+- All 14 alongside and full mode link integration tests pass cleanly without root leakage.
+grep_control:
+- back: "bin/pytest loop/tests/test_hub_link_alongside.py loop/tests/test_hub_link_harness.py -q"
+  front: n/a
+verification_results:
+- cp1 PASS: all TM-001, TM-002, TM-005 alongside scenarios green.
+- cp2 PASS: full mode regression tests pass with --mode=full.
+- cp3 PASS: zero side-effects on dev-hub root, all tempdir isolated.
+checkpoints:
+- id: cp1
+  criterion: all TM-001, TM-002, TM-005 scenarios green in alongside suite
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp2
+  criterion: full mode regression test passes with --mode=full explicit fixture
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+- id: cp3
+  criterion: no test modifies dev-hub root (all ops in tmpdir)
+  status: done
+  done_at: '2026-09-03T00:00:00Z'
+resume_from: cp1

@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-017-loop-observability-foundation
+title: s01 — Видимые orchestration-инциденты — schema loop-incident/v1 + incidents.jsonl
+  store IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s01-incident-schema-store.yaml
+skills_used:
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Created loop/incidents package with loop-incident/v1 schema and fail-closed store
+  API
+gaps:
+  status: none
+done:
+- ADD loop/incidents/__init__.py, schema.py, store.py
+- ADD loop/tests/test_incidents_schema_store.py and corrupt fixture
+- Implemented loop-incident/v1 schema with sha256 incident_id
+- Implemented append_incident, resolve_incident, list_open_incidents, parse_incidents_jsonl
+- Implemented FR-013 idempotency & fail-closed parsing on corrupt lines
+files:
+- loop/incidents/__init__.py
+- loop/incidents/schema.py
+- loop/incidents/store.py
+- loop/tests/test_incidents_schema_store.py
+- loop/tests/fixtures/incidents/corrupt_incidents.jsonl
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=line`'
+grep_control: []
+verification_results:
+- '.venv/bin/pytest loop/tests/test_incidents_schema_store.py -q --tb=line: 5 passed'
+checkpoints:
+- id: cp1
+  criterion: loop-incident/v1 round-trip parse → serialize → parse без потери полей
+  status: done
+  done_at: '2026-08-30T17:11:55Z'
+- id: cp2
+  criterion: append_incident + list_open_incidents возвращает open; resolve меняет
+    status + resolution fields
+  status: done
+  done_at: '2026-08-30T17:12:02Z'
+- id: cp3
+  criterion: 'idempotency: повторный open с тем же fingerprint+session обновляет incident,
+    не создаёт дубликат'
+  status: done
+  done_at: '2026-08-30T17:12:09Z'
+- id: cp4
+  criterion: corrupt JSONL line → parse fail-closed с понятной ошибкой (не silent
+    skip)
+  status: done
+  done_at: '2026-08-30T17:12:15Z'
+resume_from: cp1

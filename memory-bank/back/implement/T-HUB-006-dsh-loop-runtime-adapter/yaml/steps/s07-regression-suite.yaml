@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: 's07 — Regression suite: Claude path + end-to-end fake-dsh smoke — NFR-1 green
+  IMPLEMENT'
+status: completed
+date: '2026-08-24'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s07-regression-suite.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен end-to-end smoke harness для prepare_session, fake DSH dispatch, record_abort
+  и Claude default path.
+- Исправлены минимальные регрессии resolver DSH, project-env resolution, checkpoint
+  identity, DAG discovery и product-local owner diagnostics.
+files:
+- loop/tests/test_dsh_e2e_smoke.py
+- loop/tests/
+deletes: []
+tests:
+- '`env -u EPIC_RUNTIME -u EPIC_LOOP -u PROJECT_ROOT -u DEV_HUB -u HUB_ROOT -u CLAUDE_PROJECT_DIR
+  EPIC_PERMISSION_MODE=bypassPermissions timeout 300s .venv/bin/pytest loop/tests/
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_e2e_smoke.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_loop_dsh_dispatch.py
+  -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_runtime_config.py
+  -q --tb=line`'
+integration_check:
+- Runtime selection flows from EPIC_RUNTIME to prepare_session, loop.sh dispatch,
+  and record-session.
+- Claude default path is selected when EPIC_RUNTIME is unset; fake DSH remains uncalled.
+- DSH adapter classification and shell dispatch are covered by executable tests.
+- Full loop/tests regression suite passes with runtime variables unset.
+grep_control: []
+verification_results:
+- 'cp1: 538 passed'
+- 'cp2: 3 passed'
+- 'cp3: 19 passed'
+- 'cp4: 44 passed'
+checkpoints:
+- id: cp1
+  criterion: 'Полный suite loop/tests/ с EPIC_RUNTIME unset — все тесты PASS (0 failed)
+
+    '
+  status: done
+  done_at: '2026-08-24T00:25:45Z'
+- id: cp2
+  criterion: 'test_dsh_e2e_smoke.py все тесты PASS: e2e smoke с fake_dsh
+
+    '
+  status: done
+  done_at: '2026-08-24T00:22:28Z'
+- id: cp3
+  criterion: 'DSH-специфичные тесты (test_dsh_runtime_adapter + test_loop_dsh_dispatch)
+    PASS
+
+    '
+  status: done
+  done_at: '2026-08-24T00:22:29Z'
+- id: cp4
+  criterion: 'plan AC-command: все тесты вместе зелёные
+
+    '
+  status: done
+  done_at: '2026-08-24T00:23:14Z'
+resume_from: cp1

@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-019-dsh-board-sync-enrichments
+title: s01 — Two-part description — compose_description + footer parse round-trip
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-019-dsh-board-sync-enrichments/yaml/steps/s01-description-compose-footer.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена константа _FOOTER_DELIMITER и функция compose_description
+- parse_metadata поддерживает разделение по footer delimiter и fallback для legacy
+  YAML
+- serialize_metadata использует compose_description для форматирования
+- diff._without_generation адаптирован под разбор body и footer
+files:
+- loop/board_sync/card_model.py
+- loop/board_sync/diff.py
+- loop/tests/test_board_sync_card_model.py
+- loop/tests/test_board_sync_diff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_card_model.py loop/tests/test_board_sync_diff.py
+  -q --tb=line`'
+integration_check:
+- compose_description + parse_metadata backward compatible with existing diff operations
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'serialize_metadata footer round-trip: serialize → parse возвращает тот
+    же card'
+  status: done
+  done_at: '2026-08-30T21:30:41Z'
+- id: cp2
+  criterion: 'parse_metadata legacy fallback: чистый YAML без delimiter парсится корректно'
+  status: done
+  done_at: '2026-08-30T21:30:44Z'
+- id: cp3
+  criterion: 'compose_description round-trip: body+card → parse возвращает card; body
+    сохранён'
+  status: done
+  done_at: '2026-08-30T21:30:47Z'
+- id: cp4
+  criterion: _same_content в diff не ломается после изменения формата description
+  status: done
+  done_at: '2026-08-30T21:30:49Z'
+resume_from: cp1

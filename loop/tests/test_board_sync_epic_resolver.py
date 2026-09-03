@@ -79,6 +79,37 @@ steps:
     assert res.next_step_id == "s02"
     assert res.reason_code == "implement_pending"
 
+
+def test_resolve_v2_layout_plan_implements_pending_id_field(tmp_path: Path):
+    from loop.paths.epic_layout import EpicLayoutKind, resolve
+
+    epic_id = "T-HUB-047-harness-mb-scaffold-epic-layout"
+    plan_md = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
+    plan_md.parent.mkdir(parents=True, exist_ok=True)
+    plan_md.write_text("# Plan v2\n", encoding="utf-8")
+
+    idx = resolve("back", epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
+    idx.parent.mkdir(parents=True, exist_ok=True)
+    idx.write_text(
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic_id}\n"
+        "steps:\n"
+        "  - id: s09\n"
+        "    status: completed\n"
+        "  - id: s10\n"
+        "    file: s10-migrate-apply-dev-hub.yaml\n"
+        "    status: pending\n",
+        encoding="utf-8",
+    )
+
+    res = resolve_epic_next_action(tmp_path, "back", epic_id)
+    assert res.phase == "IMPLEMENT"
+    assert res.next_step_id == "s10"
+    assert res.next_command == "BACK IMPLEMENT s10"
+    assert res.reason_code == "implement_pending"
+    assert res.plan_rel.endswith(f"{epic_id}/md/plan.md")
+    assert res.decompose_rel.endswith(f"{epic_id}/yaml/decompose-index.yaml")
+
 def test_resolve_clarify_required(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)

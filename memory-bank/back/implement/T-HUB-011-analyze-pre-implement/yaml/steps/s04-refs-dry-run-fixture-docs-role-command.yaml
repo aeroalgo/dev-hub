@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-011
+title: s04 — refs/speckit-adapt + dry-run fixture + docs + role-command parity — complete
+  IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/s04-refs-dry-run-fixture-docs-role-command.yaml
+skills_used: []
+discovery:
+- '@explorer: inventory confirmed missing s04 ref/fixture and partial README; role-command
+  mirror parity checked.'
+gaps:
+  status: none
+done:
+- Создана telegraph ref-нота speckit-adapt-011 с detection passes, severity, 50-cap,
+  constitution authority, read-only boundary и FORBIDDEN runtime actions.
+- 'Создан dry-run fixture T-FIX-999: FR-1 намеренно не сопоставлен с sNN; ожидаемая
+  находка Coverage/CRITICAL зафиксирована в fixture.'
+- README ANALYZE дополнен командами запуска, описанием findings/coverage/metrics/recommendation
+  и CRITICAL remediation flow.
+- Проверен однословный routing ANALYZE в role-command и синхронизирован .agents mirror;
+  diff равен нулю.
+files:
+- memory-bank/back/plan/refs/speckit-adapt-011.md
+- memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/plan-T-FIX-999-fake-missing-coverage.md
+- memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.md
+- memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/index.yaml
+- memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/decompose-T-FIX-999-fake-missing-coverage/s01-stub.yaml
+- .cursor/templates/analyze/README.md
+- .claude/skills/role-command/SKILL.md
+- .agents/skills/role-command/SKILL.md
+deletes: []
+tests:
+- 'Docs-only: pytest не требуется.'
+- 'Acceptance rg: ref sections and Spec Kit adaptation markers present.'
+- 'Acceptance rg: T-FIX-999 fixture contains FR-1 without sNN and Coverage/CRITICAL
+  expected finding.'
+- 'Acceptance diff: .claude and .agents role-command SKILL.md are identical.'
+- 'Validation command: `timeout 300s rg -n Coverage.*CRITICAL memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/fixtures/fake-missing-coverage/`'
+- 'Dry-run simulation: fixture plan FR-1 + index `FR-1: null` + empty step requirements
+  produce `category=Coverage`, `severity=CRITICAL`, message `FR-1 без sNN/decompose
+  mapping`; fixture has no `out_of_scope` declaration.'
+- 'Unrelated targeted suite: `timeout 300s .venv/bin/pytest loop/tests/test_active_context_recovery.py
+  -q --tb=line` (2 pre-existing failures: KeyError degraded).'
+- 'No frontend test runner applies: docs-only BACK shard.'
+integration_check:
+- ANALYZE docs point to shared and BACK workflow, epic-analyze schema, and dry-run
+  fixture.
+grep_control:
+- back: 'AC− #2: ref contains no literal FEATURE_DIR, Extension hooks, or __SPECKIT_COMMAND
+    markers.'
+  front: n/a
+- back: 'AC+ #4: fixture contains explicit Coverage/CRITICAL dry-run expectation.'
+  front: n/a
+verification_results:
+- 'cp1: pass — speckit-adapt-011 sections created.'
+- 'cp2: pass — all four fixture artifacts created.'
+- 'cp3: pass — README documents launch/read/CRITICAL flow.'
+- 'cp4: pass — ANALYZE is single-word workflow lookup; mirror diff 0.'
+- 'Acceptance sweep: pass — forbidden markers absent from ref; fixture/docs/coverage/parity
+  evidence present.'
+checkpoints:
+- id: cp1
+  criterion: 'speckit-adapt-011.md создан и содержит telegraph: что взяли / что отвергли
+    / FORBIDDEN / Refs'
+  status: done
+  done_at: '2026-08-23T09:21:53Z'
+- id: cp2
+  criterion: 'fixture T-FIX-999 создан: plan с FR-1 без sNN; decompose index с s01-stub
+    без покрытия FR-1'
+  status: done
+  done_at: '2026-08-23T09:22:07Z'
+- id: cp3
+  criterion: 'README.md в .cursor/templates/analyze/ существует и содержит: когда
+    запускать, как читать, что делать при CRITICAL'
+  status: done
+  done_at: '2026-08-23T09:22:45Z'
+- id: cp4
+  criterion: role-command SKILL.md проверен (ANALYZE не multi-word, lookup по workflow);
+    .agents синхронизирован если diff
+  status: done
+  done_at: '2026-08-23T09:22:45Z'
+resume_from: ''

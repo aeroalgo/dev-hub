@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s04 — finish_handoff low-level + doctor render reuse IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/steps/s04-finish-handoff.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализована функция finish_handoff в loop/mb_finish/impl.py
+- Добавлен CLI subcommand `mb-finish handoff` в harness/hooks/epic_resolve.py
+- Добавлены unit-тесты TM-008 в harness/hooks/tests/test_mb_finish_handoff.py
+files:
+- loop/mb_finish/impl.py
+- loop/mb_finish/__init__.py
+- loop/context_loop.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_finish_handoff.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py -q
+  --tb=line`'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py
+  -q --tb=line`'
+integration_check:
+- finish_handoff и CLI mb-finish handoff согласованы со всеми тестами
+grep_control: []
+verification_results:
+- 'PYTHONPATH=. .venv/bin/pytest harness/hooks/tests/test_mb_finish_handoff.py harness/hooks/tests/test_mb_finish_implement.py
+  -q --tb=line: 7 passed'
+- 'rg "render_active_context" loop/context_loop.py | grep -v "#": PASSED'
+checkpoints:
+- id: cp1
+  criterion: finish_handoff writes valid activeContext via render_active_context
+  status: done
+  done_at: '2026-09-01T17:42:48Z'
+- id: cp2
+  criterion: doctor repair path использует render_active_context (не ad-hoc)
+  status: done
+  done_at: '2026-09-01T17:45:48Z'
+- id: cp3
+  criterion: 'TM-008: doctor repair code path шарит render'
+  status: done
+  done_at: '2026-09-01T17:46:26Z'
+- id: cp4
+  criterion: полный test suite s04 зелёный
+  status: done
+  done_at: '2026-09-01T17:47:00Z'
+resume_from: cp1

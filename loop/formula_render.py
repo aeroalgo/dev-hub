@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from pathlib import Path
 import yaml
 
 from loop.schemas.formula import load_formula, DecomposeFormula, FormulaStep
+
+warnings.warn(
+    "layout_v1_deprecated: use mb-scaffold decompose --formula",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = ROOT / ".cursor" / "templates" / "decompose"
@@ -122,6 +129,13 @@ def render_step(
     return res
 
 
+def _get_formula_steps(formula_id: str, custom_formulas_dir: Path | None = None) -> list[FormulaStep]:
+    """Retrieve formula steps by formula_id."""
+    formula_path = find_formula_file(formula_id, custom_formulas_dir)
+    formula = load_formula(formula_path)
+    return formula.steps
+
+
 def render_formula(
     formula_id: str,
     epic_id: str,
@@ -130,6 +144,8 @@ def render_formula(
     dry_run: bool = False,
     force: bool = False,
     custom_formulas_dir: Path | None = None,
+    role: str = "back",
+    project_root: Path | None = None,
 ) -> list[str]:
     """Render full formula into index.yaml + step shards.
 
@@ -149,13 +165,13 @@ def render_formula(
         "steps": [],
     }
 
-    step_files_content: list[tuple[str, dict]] = []
+    step_files_content: list[tuple[str, str, str, dict]] = []
     for idx, f_step in enumerate(formula.steps, start=1):
         step_id = f"s{idx:02d}"
         title_slug = f_step.title.lower().replace(" ", "-")
         filename = f"{step_id}-{title_slug}.yaml"
         step_dict = render_step(f_step, idx, epic_id, slug)
-        step_files_content.append((filename, step_dict))
+        step_files_content.append((step_id, title_slug, filename, step_dict))
 
         index_data["steps"].append(
             {
@@ -171,32 +187,54 @@ def render_formula(
 
     if dry_run:
         out_str = f"# --- index.yaml ---\n{yaml.safe_dump(index_data, sort_keys=False)}\n"
-        for filename, step_dict in step_files_content:
+        for _, _, filename, step_dict in step_files_content:
             out_str += f"# --- {filename} ---\n{yaml.safe_dump(step_dict, sort_keys=False)}\n"
         print(out_str, end="")
-        return ["index.yaml"] + [fn for fn, _ in step_files_content]
+        return ["index.yaml"] + [fn for _, _, fn, _ in step_files_content]
 
-    if not out_dir:
-        raise ValueError("out_dir must be specified when dry_run=False")
+    if out_dir:
+        target_dir = Path(out_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+        index_path = target_dir / "index.yaml"
+        target_step_paths = [(target_dir / filename, step_dict) for _, _, filename, step_dict in step_files_content]
+    else:
+        from loop.paths.epic_layout import resolve, EpicLayoutKind
 
-    target_dir = Path(out_dir)
-    target_dir.mkdir(parents=True, exist_ok=True)
+        index_path = resolve(
+            role=role,
+            epic_id=epic_id,
+            kind=EpicLayoutKind.DECOMPOSE_INDEX_YAML,
+            project_root=project_root,
+        )
+        target_step_paths = [
+            (
+                resolve(
+                    role=role,
+                    epic_id=epic_id,
+                    kind=EpicLayoutKind.DECOMPOSE_STEP,
+                    step_id=step_id,
+                    step_slug=title_slug,
+                    project_root=project_root,
+                ),
+                step_dict,
+            )
+            for step_id, title_slug, _, step_dict in step_files_content
+        ]
 
-    index_path = target_dir / "index.yaml"
     if index_path.exists() and not force:
         raise ValueError(f"File {index_path} already exists. Use --force to overwrite.")
 
-    for filename, _ in step_files_content:
-        p = target_dir / filename
+    for p, _ in target_step_paths:
         if p.exists() and not force:
             raise ValueError(f"File {p} already exists. Use --force to overwrite.")
 
+    index_path.parent.mkdir(parents=True, exist_ok=True)
     with open(index_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(index_data, f, sort_keys=False)
     written_paths.append(str(index_path))
 
-    for filename, step_dict in step_files_content:
-        p = target_dir / filename
+    for p, step_dict in target_step_paths:
+        p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, "w", encoding="utf-8") as f:
             yaml.safe_dump(step_dict, f, sort_keys=False)
         written_paths.append(str(p))

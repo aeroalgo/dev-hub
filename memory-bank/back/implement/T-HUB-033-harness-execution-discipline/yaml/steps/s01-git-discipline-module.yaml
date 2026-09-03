@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-033-harness-execution-discipline
+title: s01 — git_discipline модуль — atomic commit per sNN с mock-тестами IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-033-harness-execution-discipline/yaml/steps/s01-git-discipline-module.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/git_discipline.py с CommitResult и maybe_atomic_commit
+- Созданы unit-тесты loop/tests/test_git_discipline.py
+files:
+- loop/git_discipline.py
+- loop/tests/test_git_discipline.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_git_discipline.py -q --tb=short`'
+integration_check:
+- loop/git_discipline.py imports CommitResult and maybe_atomic_commit successfully
+- pytest loop/tests/test_git_discipline.py passes with 5/5 green tests
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_git_discipline.py -q --tb=short -> 5 passed
+checkpoints:
+- id: cp1
+  criterion: EPIC_ATOMIC_COMMIT=0 → maybe_atomic_commit возвращает CommitResult(skipped=True,
+    ok=True), git не вызывается
+  status: done
+  done_at: '2026-08-31T15:21:26Z'
+- id: cp2
+  criterion: 'EPIC_ATOMIC_COMMIT=1 + чистый tmp git repo → commit создан с message
+    ''{epic_id} {step_id}: {title}'', CommitResult(ok=True, commit_sha!=None)'
+  status: done
+  done_at: '2026-08-31T15:22:08Z'
+- id: cp3
+  criterion: EPIC_ATOMIC_COMMIT=1 + dirty unrelated file → CommitResult(ok=False,
+    error содержит 'dirty'), git commit не вызван
+  status: done
+  done_at: '2026-08-31T15:22:22Z'
+- id: cp4
+  criterion: Весь тест-файл зелёный, нет import-ошибок в loop/git_discipline.py
+  status: done
+  done_at: '2026-08-31T15:22:33Z'
+resume_from: cp1

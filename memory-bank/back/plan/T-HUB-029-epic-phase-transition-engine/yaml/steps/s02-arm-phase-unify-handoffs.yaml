@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s02-arm-phase-unify-handoffs.yaml
+title: "arm_phase unify analyze/decompose/pre-implement handoffs"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `arm_phase(cwd, epic_id, phase, role, **kwargs) -> dict` в `loop/epic_transition.py`:
+  маршрутизирует по phase → вызывает нужный arm (arm_active_context_from_decompose /
+  arm_pre_implement_context / arm_analyze / arm_epic) и нормализует результат в единый Handoff dict.
+  Добавить шимы-делегаты в старых функциях (arm_active_context_from_decompose, arm_pre_implement_context)
+  с _legacy_warn. Тесты arm_phase для DECOMPOSE, ANALYZE, IMPLEMENT.
+
+context:
+  consumes:
+    - loop/epic_transition.py                    # s01: skeleton + _legacy_warn
+    - .claude/hooks/epic/core.py                 # arm_active_context_from_decompose:3383, arm_pre_implement_context:3716, arm_epic:3623
+    - loop/roadmap_queue.py                      # arm_roadmap_entry (ANALYZE arm)
+    - loop/tests/test_epic_transition.py         # s01 tests — regression baseline
+    - loop/tests/test_finish_integrity.py        # arm paths used in finalize_step — regression
+  produces:
+    - loop/epic_transition.py                    # arm_phase реализован; _legacy_warn used
+    - .claude/hooks/epic/core.py                 # arm_active_context_from_decompose + arm_pre_implement_context → shim delegates
+    - loop/tests/test_epic_transition.py         # расширить: arm_phase tests (DECOMPOSE/ANALYZE/IMPLEMENT)
+  plan_refs:
+    - FR-002
+    - FR-003
+    - NFR-1
+    - US-001
+    - US-002
+  files:
+    - loop/epic_transition.py
+    - .claude/hooks/epic/core.py
+    - loop/tests/test_epic_transition.py
+
+as_built:
+  - .claude/hooks/epic/core.py:3383 — `arm_active_context_from_decompose` — формирует Handoff DECOMPOSE; нет deprecated warning
+  - .claude/hooks/epic/core.py:3716 — `arm_pre_implement_context` — формирует Handoff IMPLEMENT; нет unified API
+  - loop/roadmap_queue.py:440 — `arm_roadmap_entry` — формирует ANALYZE arm; не унифицирован
+  - loop/epic_transition.py — `arm_phase` stub (NotImplementedError) после s01
+  - Нет единого места маршрутизации по phase
+
+delta:
+  - 'loop/epic_transition.py: `arm_phase` — реализован: if phase == "DECOMPOSE" → arm_active_context_from_decompose; if phase == "ANALYZE" → arm_analyze_context (extracted); if phase in ("IMPLEMENT","TASK","REFACTOR","BUGFIX","QA") → arm_pre_implement_context; else → arm_epic fallback'
+  - 'loop/epic_transition.py: `_arm_analyze_context(cwd, epic_id, role) -> dict` — private: extracted из roadmap_queue._arm_analyze_context (если публичен) или inline аналог; формирует Handoff с mode=ANALYZE'
+  - 'loop/epic_transition.py: result нормализация: ensure keys armed_step, handoff, role присутствуют в dict'
+  - '.claude/hooks/epic/core.py:arm_active_context_from_decompose — добавить в тело: `_legacy_warn("arm_active_context_from_decompose")` + import epic_transition; delegate → `epic_transition.arm_phase(cwd, epic_id, "DECOMPOSE", role)`'
+  - '.claude/hooks/epic/core.py:arm_pre_implement_context — добавить: `_legacy_warn("arm_pre_implement_context")` + delegate → `epic_transition.arm_phase(cwd, epic_id, "IMPLEMENT", role, **kwargs)`'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_decompose — monkeypatch arm_active_context_from_decompose → assert arm_phase("DECOMPOSE") delegates'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_analyze — monkeypatch _arm_analyze_context → assert arm_phase("ANALYZE") delegates'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_implement — monkeypatch arm_pre_implement_context → assert arm_phase("IMPLEMENT") delegates'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_unknown_falls_back_to_arm_epic — arm_phase("UNKNOWN_PHASE") → arm_epic called'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_deprecation_warn_from_legacy — вызов arm_active_context_from_decompose → DeprecationWarning'
+
+deletes:
+  - '.claude/hooks/epic/core.py: standalone body arm_active_context_from_decompose (заменяется shim+delegate; тело переносится в epic_transition._arm_decompose или inline в arm_phase DECOMPOSE ветку)'
+  # Shim оставляется в epic/core.py для backward compat; внутренняя логика мигрирует
+  # Полный delete shim — только в s12 (sunset purge)
+
+out_of_scope:
+  - "promote_if_ready — s03"
+  - "phase_registry.yaml loader — s06"
+  - "Изменение stop-gate — s08"
+  - "roadmap_queue wiring — s05"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/architecture-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      arm_phase("DECOMPOSE", ...) не бросает NotImplementedError; возвращает dict с armed_step
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_arm_phase_decompose -q --tb=short"
+  - id: cp2
+    criterion: >
+      arm_phase("IMPLEMENT", ...) делегирует arm_pre_implement_context или arm_epic
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_arm_phase_implement -q --tb=short"
+  - id: cp3
+    criterion: >
+      DeprecationWarning при вызове arm_active_context_from_decompose через shim
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py::test_arm_phase_deprecation_warn_from_legacy -q --tb=short"
+  - id: cp4
+    criterion: >
+      Регрессия: test_finish_integrity.py + test_context_loop.py зелёные
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_finish_integrity.py loop/tests/test_context_loop.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py loop/tests/test_finish_integrity.py loop/tests/test_context_loop.py -q --tb=line"
+
+tdd:
+  - "test_arm_phase_decompose — delegate DECOMPOSE"
+  - "test_arm_phase_analyze — delegate ANALYZE"
+  - "test_arm_phase_implement — delegate IMPLEMENT"
+  - "test_arm_phase_unknown_falls_back_to_arm_epic"
+  - "test_arm_phase_deprecation_warn_from_legacy — DeprecationWarning"
+  - "Regression: test_finish_integrity.py + test_context_loop.py green"

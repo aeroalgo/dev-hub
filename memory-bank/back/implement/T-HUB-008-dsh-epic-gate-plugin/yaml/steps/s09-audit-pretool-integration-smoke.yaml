@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-008-dsh-epic-gate-plugin
+title: s09 — AUDIT remediation — executable pre-execute deny and bridge round-trip
+  smoke IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-008-dsh-epic-gate-plugin/yaml/steps/s09-audit-pretool-integration-smoke.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added native preToolUse integration test asserting prompt_incomplete deny for incomplete
+  verify spawn.
+- Updated install-profiles.sh to copy local plugins directory so relative file:../../plugins/epic-gate
+  dependency resolves cleanly.
+- Verified bounded gap suite and full 747 pytest suite pass cleanly.
+files:
+- loop/tests/test_dsh_epic_gate_gaps.py
+- dsh/scripts/install-profiles.sh
+- dsh/plugins/epic-gate/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line`'
+integration_check:
+- pass
+grep_control: []
+verification_results:
+- rg -n 'preToolUse|tools/pre-execute|prompt_incomplete' loop/tests/test_dsh_epic_gate_gaps.py
+  -> PASS
+- timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -k 'pretool
+  or incomplete or spawn' -q --tb=line -> PASS
+- timeout 300s .venv/bin/pytest loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line
+  -> PASS
+- timeout 300s .venv/bin/pytest tests/ loop/tests/ -q --tb=line -> PASS
+checkpoints:
+- id: cp1
+  criterion: The integration test invokes the epic-gate pre-execute path rather than
+    only the Python CLI.
+  status: done
+  done_at: '2026-08-30T15:28:38Z'
+- id: cp2
+  criterion: Incomplete verify spawn is denied with the stable prompt_incomplete reason.
+  status: done
+  done_at: '2026-08-30T15:28:40Z'
+- id: cp3
+  criterion: The same bounded suite retains VERDICT mirror evidence and profile mount
+    checks.
+  status: done
+  done_at: '2026-08-30T15:29:16Z'
+resume_from: cp1

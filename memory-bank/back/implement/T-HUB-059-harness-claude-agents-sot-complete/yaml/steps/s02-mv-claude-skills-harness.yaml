@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: s02 — git mv .claude/skills → harness/claude/skills + symlink (SoT skills/role-command)
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-059-harness-claude-agents-sot-complete/yaml/steps/s02-mv-claude-skills-harness.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- git mv .claude/skills harness/claude/skills (SoT moved)
+- ln -s ../harness/claude/skills .claude/skills
+- Добавлен unit-тест test_symlink_skills_points_to_harness в loop/tests/test_harness_paths.py
+files:
+- harness/claude/skills/
+- .claude/skills
+- loop/tests/test_harness_paths.py
+deletes:
+- .claude/skills (real dir — replaced by symlink; content moved to harness/claude/skills)
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_harness_paths.py -q`'
+integration_check:
+- .venv/bin/pytest loop/tests/test_harness_paths.py -q
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_harness_paths.py -q — 4 passed in 0.05s
+checkpoints:
+- id: cp1
+  criterion: harness/claude/skills существует; role-command subdir внутри
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp2
+  criterion: .claude/skills — symlink, разрешается в harness/claude/skills
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp3
+  criterion: нет dual SoT — .claude/skills не real dir
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp4
+  criterion: rg — нет import/references на .claude/skills как real SoT
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+resume_from: cp1

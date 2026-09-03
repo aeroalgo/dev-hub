@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-026-spec-reconcile-workflow
+title: s01 — reconcile.py core — path checks + report schema + list_active_epic_ids
+  IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-026-spec-reconcile-workflow/yaml/steps/s01-reconcile-core.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- list_active_epic_ids implemented and verified
+- resolve_epic_bundle implemented and verified
+- reconcile_epic and run_reconcile_spec implemented and verified
+files:
+- .claude/hooks/epic/reconcile.py
+- loop/tests/test_reconcile_spec.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_reconcile_spec.py -q --tb=line`'
+integration_check:
+- .claude/hooks/epic/reconcile.py imported in test_reconcile_spec.py
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_reconcile_spec.py -q --tb=line (PASS)
+checkpoints:
+- id: cp1
+  criterion: list_active_epic_ids возвращает только Status=active строки из tasks.md
+  status: done
+  done_at: '2026-08-31T07:26:17Z'
+- id: cp2
+  criterion: resolve_epic_bundle находит decompose-{slug}/index.yaml по epic_id
+  status: done
+  done_at: '2026-08-31T07:26:21Z'
+- id: cp3
+  criterion: reconcile_epic возвращает findings + high_count для stale as_built fixture
+  status: done
+  done_at: '2026-08-31T07:26:22Z'
+- id: cp4
+  criterion: unknown plan_id → payload с exit_code 2 (fail-closed)
+  status: done
+  done_at: '2026-08-31T07:26:22Z'
+resume_from: cp1

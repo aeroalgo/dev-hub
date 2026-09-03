@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s10 — Migrate apply на dev-hub memory-bank + validate-decompose-tree green
+  IMPLEMENT
+status: in_progress
+implement_index: ''
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s10-migrate-apply-dev-hub.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Applied migrate script (loop/migrate/epic_layout_v1_to_v2.py) across dev-hub memory-bank with --apply --force.
+- Added mb-migrate subparser in harness/hooks/epic_resolve.py for CLI execution.
+- Verified all 58 epics migrated to layout v2 without errors.
+- Confirmed validate-decompose-tree and harness/hooks/tests suite green.
+files:
+- harness/hooks/epic_resolve.py
+- harness/hooks/epic_yaml.py
+- harness/hooks/epic_index.py
+- harness/hooks/epic/core.py
+- memory-bank/back/plan/
+- memory-bank/back/implement/
+- memory-bank/activeContext.md
+deletes:
+- memory-bank/back/plan/plan-T-HUB-*.md
+- memory-bank/back/plan/decompose-T-HUB-*/
+tests:
+- bin/pytest harness/hooks/tests/ -q
+- python3 harness/hooks/epic_resolve.py mb-migrate --dry-run
+- python3 harness/hooks/epic_resolve.py validate-decompose-tree --decompose memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml
+integration_check:
+- python3 harness/hooks/epic_resolve.py validate-decompose-tree --decompose memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml
+grep_control:
+- back: python3 harness/hooks/epic_resolve.py mb-migrate --dry-run
+  front: ''
+verification_results:
+- cp1 done dry-run on dev-hub memory-bank 0 errors before apply, 0 unmigrated after apply
+- cp2 done T-HUB-047/yaml/steps/ exists
+- cp3 done validate-decompose-tree exit 0 on migrated epics
+- cp4 done harness/hooks/tests/ green (7 passed)
+checkpoints:
+- id: cp1
+  criterion: 'dry-run на dev-hub memory-bank → JSON {errors: [], planned_moves: N}
+    exit 0'
+  status: done
+  done_at: '2026-09-03T20:44:49Z'
+- id: cp2
+  criterion: 'после apply: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/
+    существует'
+  status: done
+  done_at: '2026-09-03T20:44:55Z'
+- id: cp3
+  criterion: validate-decompose-tree на мигрированных эпиках exit 0
+  status: done
+  done_at: '2026-09-03T20:45:02Z'
+- id: cp4
+  criterion: harness/hooks/tests/ green после migrate apply (пути изменились)
+  status: done
+  done_at: '2026-09-03T20:45:09Z'
+resume_from: cp1

@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s10 — DAG adapter _arm_dag_next → Transition Engine (epic graph adapter) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s10-dag-adapter-arm-dag-next.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented _arm_dag_next and dag_advance_epic adapter in loop/dag.py connecting
+  DAG scheduler to Transition Engine
+- Added loop/tests/test_dag_transition.py with unit tests for resolve_next, arm_phase,
+  analyze gate, and fail-closed unknown phase
+files:
+- loop/dag.py
+- loop/tests/test_dag_transition.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dag_transition.py -q --tb=line`'
+integration_check:
+- Verified _arm_dag_next importable and dag_advance_epic routes to Transition Engine
+grep_control: []
+verification_results:
+- CP1, CP2, CP3 passed green
+checkpoints:
+- id: cp1
+  criterion: '_arm_dag_next importable без ошибок
+
+    '
+  status: done
+  done_at: '2026-08-31T11:16:46Z'
+- id: cp2
+  criterion: 'test_dag_arm_dag_next_calls_resolve_and_arm PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T11:17:05Z'
+- id: cp3
+  criterion: 'Регрессия: loop/tests/ (все) green (no DAG regressions)
+
+    '
+  status: done
+  done_at: '2026-08-31T11:19:57Z'
+resume_from: cp1

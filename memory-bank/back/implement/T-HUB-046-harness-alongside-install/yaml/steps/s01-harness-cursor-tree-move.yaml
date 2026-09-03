@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-046-harness-alongside-install
+title: s01 — git mv .cursor/rules + .cursor/templates → harness/cursor/; replace hub
+  symlinks IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-046-harness-alongside-install/yaml/steps/s01-harness-cursor-tree-move.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Перенесены .cursor/rules и .cursor/templates в harness/cursor/ через git mv
+- Созданы symlink в корне .cursor/rules -> ../harness/cursor/rules и .cursor/templates
+  -> ../harness/cursor/templates
+- Проверена целостность ссылок и SoT (SC-003)
+files:
+- harness/cursor/rules/
+- harness/cursor/templates/
+- .cursor/rules
+- .cursor/templates
+deletes: []
+tests:
+- test -d harness/cursor/rules && test -L .cursor/rules && test -L .cursor/templates
+- bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+integration_check:
+- readlink -f .cursor/rules | grep harness/cursor/rules
+- rg --no-filename '.cursor/rules' harness/cursor/rules/ | head -5
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: git mv executed; harness/cursor/rules/ contains rules files
+  status: done
+  done_at: '2026-09-03T11:10:12Z'
+- id: cp2
+  criterion: .cursor/rules is now a symlink pointing to ../harness/cursor/rules
+  status: done
+  done_at: '2026-09-03T11:10:12Z'
+- id: cp3
+  criterion: SC-003 — SoT test passes; existing rules load from harness path
+  status: done
+  done_at: '2026-09-03T11:10:13Z'
+resume_from: cp1

@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: s06 — Workflow rules + context-session-economy.mdc — заменить prose START на
+  mb-load вызов IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s06-rules-purge-prose-start.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- ".cursor/rules/shared/context-session-economy.mdc updated with mb-load session call"
+files:
+- .cursor/rules/shared/context-session-economy.mdc
+- loop/context_loop.py
+deletes:
+- 'prose: ''читай activeContext → load_now → Read ×N'' из context-session-economy.mdc
+  §START'
+- 'prose: ''Read shard + context.consumes + listed targets'' из context_loop.py prompt
+  (если дублирует mb-load)'
+tests:
+- "`timeout 300s .venv/bin/pytest loop/tests/test_mb_load_cli.py -q --tb=line`"
+integration_check:
+- "rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc verified"
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: rg 'mb-load session' .cursor/rules/shared/context-session-economy.mdc
+    — ≥1 hit
+  status: done
+- id: cp2
+  criterion: 'старые prose отсутствуют: rg ''Read.*load_now'' .cursor/rules/ — 0 hits
+    на удалённые строки'
+  status: done
+- id: cp3
+  criterion: 'loop/context_loop.py: probe mb_paths_for_prompt всё ещё реферирована
+    (fallback не сломан)'
+  status: done
+resume_from: cp1

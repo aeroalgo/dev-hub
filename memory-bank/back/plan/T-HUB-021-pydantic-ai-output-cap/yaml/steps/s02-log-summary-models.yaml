@@ -1,0 +1,69 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-021
+title: "LogSummary + LogError Pydantic models in llm_structured.py"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `.claude/hooks/llm_structured.py` с Pydantic v2 моделями `LogError` и `LogSummary`
+  точно по канону плана; модуль импортируется без ошибок; exported API задокументирован.
+  Основа для agent factory (s03) и standalone import (US-003, T-HUB-023).
+
+context:
+  consumes:
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md §LogSummary schema (канон)"
+    - "requirements-hub.txt — pydantic-ai и pydantic>=2 (из s01)"
+    - ".venv — pydantic v2 уже используется в epic_yaml.py"
+  produces:
+    - ".claude/hooks/llm_structured.py — models section: LogError, LogSummary"
+  plan_refs:
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md FR-002"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md AC+2"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md §LogSummary schema"
+    - "plan/T-HUB-021-pydantic-ai-output-cap/md/plan.md US-003"
+  files:
+    - ".claude/hooks/llm_structured.py"
+
+as_built:
+  - ".claude/hooks/llm_structured.py — не существует"
+  - ".claude/hooks/ — _lib.py, bash-output-cap.py, epic_yaml.py (Pydantic v2 уже используется)"
+
+delta:
+  - ".claude/hooks/llm_structured.py CREATE — class LogError(BaseModel): location: str = '', message: str"
+  - ".claude/hooks/llm_structured.py — class LogSummary(BaseModel): exit_code: int|None=None, failed_tests: list[str]=[] max_length=20, errors: list[LogError]=[] max_length=30, root_cause: str='', summary_bullets: list[str]=[] max_length=25"
+  - ".claude/hooks/llm_structured.py — module docstring + __all__ = ['LogError','LogSummary']"
+
+deletes: []
+
+out_of_scope:
+  - "Agent factory make_output_cap_agent() — s03"
+  - "run_log_summary() runner — s03"
+  - "bash-output-cap.py интеграция — s04"
+
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+    - async-python-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "llm_structured.py импортируется без ошибок"
+    verify: "python3 -c \"import sys; sys.path.insert(0,'/home/aero/PyProject/dev-hub/.claude/hooks'); from llm_structured import LogSummary, LogError; print('ok')\""
+  - id: cp2
+    criterion: "LogSummary.failed_tests max_length=20, summary_bullets max_length=25"
+    verify: "grep -E 'max_length=20|max_length=25|max_length=30' /home/aero/PyProject/dev-hub/.claude/hooks/llm_structured.py"
+  - id: cp3
+    criterion: "test_log_summary_canonical_fixture и test_log_summary_max_length_rejected PASS"
+    verify: ".venv/bin/pytest /home/aero/PyProject/dev-hub/loop/tests/test_llm_structured.py -k 'canonical_fixture or max_length' -q --tb=short 2>&1 | tail -5"
+
+verify: []
+
+tdd:
+  - "Red: test_log_summary_canonical_fixture — LogSummary(**fixture_dict) без ValidationError"
+  - "Red: test_log_error_location_empty_default — LogError(message='err') → location==''"
+  - "Red: test_log_summary_max_length_rejected — failed_tests list с 21 элементом → ValidationError"
+  - "Green: реализовать модели по канону плана"
+  - "Тесты живут в loop/tests/test_llm_structured.py"

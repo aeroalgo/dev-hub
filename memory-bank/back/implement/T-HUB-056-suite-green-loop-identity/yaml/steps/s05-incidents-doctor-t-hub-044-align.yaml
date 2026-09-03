@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s05 — incidents doctor — exit codes align T-HUB-044 contract (valid=0, warn=0,
+  boundary=warn) IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-056-suite-green-loop-identity/yaml/steps/s05-incidents-doctor-t-hub-044-align.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added valid loop-handoff/v1 frontmatter to activeContext fixtures in 4 tests of
+  test_incidents_doctor.py to align with T-HUB-044 contract
+files:
+- loop/tests/test_incidents_doctor.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short
+integration_check:
+- Doctor exit-code contracts verified across clean projects, warnings, and shape errors
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short — 8 passed
+checkpoints:
+- id: cp1
+  criterion: test_doctor_valid_project_exit_zero → exit_code=0, no blockers
+  status: done
+  done_at: '2026-09-03T01:47:16Z'
+- id: cp2
+  criterion: test_doctor_open_incidents_warn_only → exit_code=0, warn присутствует
+  status: done
+  done_at: '2026-09-03T01:47:16Z'
+- id: cp3
+  criterion: test_doctor_boundary_check_warn + test_doctor_boundary_check_pass PASS
+  status: done
+  done_at: '2026-09-03T01:47:17Z'
+- id: cp4
+  criterion: exit_code=1 тесты не регрессировали (AC− guard)
+  status: done
+  done_at: '2026-09-03T01:47:17Z'
+resume_from: cp1

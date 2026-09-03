@@ -38,9 +38,19 @@ Parent **обязан** передать секции. Если нет или в
 3. Пройди `§0.11` checklist по пунктам. Orphan / missing counterpart → `FAIL`.
 4. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Red → `FAIL`.
 
+## Pre-emit validate-boundary (HARD)
+
+Перед финальным текстом — **один** Bash:
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","recorded_at":"<iso8601>"}'
+```
+
+Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
+
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Твой финальный ответ **обязан** содержать fenced JSON блок `loop-gate-verdict/v1`. Hook читает **только** его.
+Твой финальный ответ **обязан** содержать fenced JSON блок. Hook читает **только** его. Открывающая строка = ` ```json `.
 
 ```json
 {

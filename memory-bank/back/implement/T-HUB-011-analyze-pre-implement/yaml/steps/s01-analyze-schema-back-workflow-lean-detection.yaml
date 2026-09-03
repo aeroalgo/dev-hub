@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-011
+title: s01 — Analyze schema template + BACK workflow/lean + core detection passes
+  — foundational ANALYZE layer IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-011-analyze-pre-implement/yaml/steps/s01-analyze-schema-back-workflow-lean-detection.yaml
+skills_used: []
+discovery:
+- 'explorer: target ANALYZE files absent; existing CLARIFY and IMPLEMENT rules supplied
+  structure patterns'
+gaps:
+  status: none
+done:
+- CREATE .cursor/templates/analyze/epic-analyze.yaml — epic-analyze/v1 report schema
+  with findings, coverage, metrics, recommendation, next_actions and optional constitution_violations
+- CREATE .cursor/templates/analyze/README.md — ANALYZE purpose, AUDIT boundary, invocation
+  timing and critical recommendation gate
+- CREATE .cursor/rules/shared/workflow-analyze-core.mdc — six deterministic detection
+  passes, severity heuristic, stable IDs and 50-cap
+- CREATE .cursor/rules/back_developer/workflow-analyze.mdc — BACK invocation, lean
+  load, read-only process, Done When and Handoff
+- CREATE .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc — NFR-3/NFR-4
+  progressive disclosure, read-only and ANALYZE/AUDIT boundary gates
+files:
+- .cursor/templates/analyze/epic-analyze.yaml
+- .cursor/templates/analyze/README.md
+- .cursor/rules/shared/workflow-analyze-core.mdc
+- .cursor/rules/back_developer/workflow-analyze.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- 'out_of_scope preserved: FRONT/INTEG wrappers and slash commands → s02; lifecycle/mainrule/finish-doc-router/path
+  wiring → s03; refs, fixture, docs and role-command parity → s04'
+grep_control: []
+verification_results:
+- 'cp1 flushed done: epic-analyze.yaml contains findings, coverage, metrics and recommendation'
+- 'cp2 flushed done: BACK workflow contains shared-core reference, Process, Done When,
+  Handoff and STRICTLY READ-ONLY'
+- 'cp3 flushed done: lean gate contains NFR-3, NFR-4, STRICTLY READ-ONLY and ANALYZE
+  ≠ AUDIT boundary'
+- 'cp4 flushed done: shared core contains Duplication, Ambiguity, Underspecification,
+  Coverage Gaps, Inconsistency, Constitution, severity heuristic and 50-cap'
+- 'verify: both template files and both BACK rule files exist'
+- 'verify: workflow contains ANALYZE ≠ AUDIT and audit-shards boundary'
+- 'verify: workflow contains loop.sh documentation without hard-block'
+- 'verify: workflow has no specify-cli or FEATURE_DIR references'
+checkpoints:
+- id: cp1
+  criterion: epic-analyze.yaml шаблон создан и содержит findings[] + coverage[] +
+    metrics + recommendation
+  status: done
+  done_at: '2026-08-23T08:46:34Z'
+- id: cp2
+  criterion: workflow-analyze.mdc (BACK) содержит §Процесс, §Done When, §Handoff и
+    ссылается на shared-core
+  status: done
+  done_at: '2026-08-23T08:46:40Z'
+- id: cp3
+  criterion: '_lean/analyze.mdc gate создан: содержит NFR-3/NFR-4 + STRICTLY READ-ONLY
+    + AC− #1 boundary'
+  status: done
+  done_at: '2026-08-23T08:46:47Z'
+- id: cp4
+  criterion: workflow-analyze-core.mdc (optional) или inline в BACK workflow содержит
+    6 detection passes + severity heuristic + 50-cap
+  status: done
+  done_at: '2026-08-23T08:46:54Z'
+resume_from: cp1

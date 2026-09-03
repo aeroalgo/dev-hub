@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-003
+title: "Pure decide_after_action helper + TDD (halt matrix)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: |
+  Вынести логику «что делать shell после check-after» в чистую Python-функцию
+  `decide_after_action(after_json: dict) -> Literal["halt", "complete", "continue"]`
+  в `loop/context_loop.py` (или новый `loop/halt_logic.py`).
+  TDD: написать тест-кейсы покрывающие halt matrix до реализации (red), затем реализовать (green).
+  Функция не вызывает shell-специфичные вещи — только принимает parsed JSON, возвращает строку.
+context:
+  consumes:
+    - "loop/context_loop.py — функция check_after, текущая логика continue/halt/complete"
+    - "loop/loop.sh — 641–647, outer retry behaviour"
+    - "plan/T-HUB-003-loop-halt/md/plan.md §Halt matrix (канон)"
+    - "plan/T-HUB-003-loop-halt/md/plan.md §Strategies тестирования"
+  produces:
+    - "loop/context_loop.py или loop/halt_logic.py — функция decide_after_action"
+    - "loop/tests/test_decide_after_action.py — TDD кейсы"
+  plan_refs:
+    - "plan/T-HUB-003-loop-halt/md/plan.md FR-2, FR-3, FR-4, NFR-2, NFR-4"
+    - "plan/T-HUB-003-loop-halt/md/plan.md AC+ 1, AC+ 2, AC+ 3, AC− 1"
+  files:
+    - "loop/context_loop.py"
+    - "loop/tests/test_decide_after_action.py"
+as_built:
+  - "loop/context_loop.py — inspect check_after: где и как принимается решение halt vs continue"
+  - "loop/tests/ — наличие test_check_after_* файлов (регрессия)"
+delta:
+  - |
+    Добавить `decide_after_action(after_json: dict) -> str` с логикой:
+      - `halt=true` (любой формат: bool/int/string '1') → return 'halt'
+      - `stop` starts with 'NEED_HUMAN' → return 'halt'
+      - `stop` == 'EPIC_DONE' → return 'complete'
+      - `ok` + continue / fingerprint advanced → return 'continue'
+      - integrity fail-closed (non-retryable) → return 'halt'  (проверить repair_exhausted flag)
+      - default (unknown) → return 'halt'  (fail-closed)
+  - "Написать loop/tests/test_decide_after_action.py с кейсами до реализации (TDD red)"
+  - "Реализовать функцию → тесты зелёные"
+  - "check_after в context_loop.py делегирует decide_after_action (если это не разрушает shell-contract)"
+deletes:
+  - "Inline логика halt/continue внутри check_after — инкапсулируется в decide_after_action"
+out_of_scope:
+  - "loop.sh wiring — это s02"
+  - "last_session_path — это s03"
+  - "Docs — это s04"
+  - "extract_verdict — DoNotTouch (T-HUB-004)"
+skills:
+  code_surface: python
+  impl:
+    - python-testing-patterns
+checkpoints:
+  - id: cp1
+    criterion: |
+      Файл loop/tests/test_decide_after_action.py существует и содержит кейсы:
+      halt=true, NEED_HUMAN stop, EPIC_DONE, ok continue
+    verify: "test -f /home/aero/PyProject/dev-hub/loop/tests/test_decide_after_action.py && grep -c 'NEED_HUMAN\\|EPIC_DONE\\|halt.*true' /home/aero/PyProject/dev-hub/loop/tests/test_decide_after_action.py"
+  - id: cp2
+    criterion: "Функция decide_after_action определена в context_loop.py или halt_logic.py"
+    verify: "grep -rn 'def decide_after_action' /home/aero/PyProject/dev-hub/loop/"
+  - id: cp3
+    criterion: "Тесты test_decide_after_action проходят; регрессия test_check_after_* не сломана"
+    verify: "cd /home/aero/PyProject/dev-hub && timeout 120s .venv/bin/pytest loop/tests/ -k 'decide_after_action or check_after' -q --tb=short 2>&1 | tail -20"
+verify: []
+tdd:
+  - "test halt=true (bool) → 'halt'"
+  - "test halt='1' (string) → 'halt'"
+  - "test stop='NEED_HUMAN: verify_no_verdict' → 'halt'"
+  - "test stop='NEED_HUMAN: manual review' → 'halt'"
+  - "test stop='EPIC_DONE' → 'complete'"
+  - "test ok+continue fingerprint → 'continue'"
+  - "test ok+unchanged (normal step) → 'continue'"
+  - "test unknown payload → 'halt' (fail-closed default)"
+  - "test repair_exhausted integrity → 'halt'"
+  - "test no regression: existing check_after tests still pass"

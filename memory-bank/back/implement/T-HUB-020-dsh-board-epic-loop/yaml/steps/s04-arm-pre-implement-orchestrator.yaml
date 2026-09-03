@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-020-dsh-board-epic-loop
+title: arm_pre_implement_context + arm_epic orchestrator
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-020-dsh-board-epic-loop/yaml/steps/s04-arm-pre-implement-orchestrator.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Realized arm_epic orchestrator function in .claude/hooks/epic/core.py.
+- Realized arm_pre_implement_context for PLAN, DECOMPOSE, CLARIFY, ANALYZE phases.
+- Updated epic_resolve.py arm CLI subparser to support --epic-id flag.
+- Added comprehensive unit and smoke tests in loop/tests/test_context_loop.py.
+files:
+- .claude/hooks/epic/core.py
+- .claude/hooks/epic_resolve.py
+- loop/tests/test_context_loop.py
+deletes:
+- 'epic_resolve.py arm --epic: старый путь arm_session(decompose) — deprecated, но
+  legacy сохранить'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -k "arm_epic_pre_implement
+  or arm_epic_implement or arm_epic_post or arm_epic_cli or arm_pre_implement_prepare"
+  -q --tb=line`'
+integration_check:
+- arm_epic delegates cleanly to resolve_epic_next_action and arm_pre_implement_context
+  / arm_active_context_from_decompose
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'arm_epic → pre-implement (DECOMPOSE): activeContext load_now=plan, Handoff=BACK
+    DECOMPOSE'
+  status: done
+  done_at: '2026-08-30T22:36:14Z'
+- id: cp2
+  criterion: 'arm_epic → IMPLEMENT: arm_active_context_from_decompose вызван с правильным
+    decompose path'
+  status: done
+  done_at: '2026-08-30T22:36:18Z'
+- id: cp3
+  criterion: 'arm_epic → post-implement: build_post_implement_active_context вызван'
+  status: done
+  done_at: '2026-08-30T22:36:18Z'
+- id: cp4
+  criterion: epic_resolve.py arm --epic-id T-HUB-016 → arm_epic(cwd, 'T-HUB-016')
+    → ok
+  status: done
+  done_at: '2026-08-30T22:36:18Z'
+- id: cp5
+  criterion: 'arm_pre_implement DECOMPOSE armed → prepare_session smoke: нет index
+    sync error'
+  status: done
+  done_at: '2026-08-30T22:36:18Z'
+resume_from: cp1

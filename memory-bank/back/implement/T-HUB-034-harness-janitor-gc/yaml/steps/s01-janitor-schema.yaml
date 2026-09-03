@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-034-harness-janitor-gc
+title: s01 — JanitorReport schema + scan entry point — read-only scan façade IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-034-harness-janitor-gc/yaml/steps/s01-janitor-schema.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/janitor/schema.py with JanitorReport, JanitorFinding, JanitorSummary
+  pydantic models
+- Created loop/janitor/__init__.py re-exporting scan and models
+- Created loop/janitor/scan.py scan entry point
+files:
+- loop/janitor/__init__.py
+- loop/janitor/scan.py
+- loop/janitor/schema.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_janitor_schema.py loop/tests/test_janitor_scan.py
+  -q --tb=short`'
+integration_check:
+- Imported JanitorReport and scan, verified execution via pytest
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '.venv/bin/pytest loop/tests/test_janitor_schema.py loop/tests/test_janitor_scan.py
+  -q --tb=short: 4 passed'
+checkpoints:
+- id: cp1
+  criterion: JanitorReport schema valid — pydantic parses empty findings list
+  status: done
+  done_at: '2026-08-31T18:44:12Z'
+- id: cp2
+  criterion: scan(cwd) returns JanitorReport with schema='janitor-report/v1'
+  status: done
+  done_at: '2026-08-31T18:44:25Z'
+- id: cp3
+  criterion: loop/janitor/__init__.py + schema.py + scan.py присутствуют
+  status: done
+  done_at: '2026-08-31T18:44:35Z'
+resume_from: cp1

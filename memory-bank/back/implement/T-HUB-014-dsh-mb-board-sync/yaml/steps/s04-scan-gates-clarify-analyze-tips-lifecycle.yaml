@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: 'scan_gates: pre-implement + post-implement gates via reduce_epic_lifecycle'
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-014-dsh-mb-board-sync/yaml/steps/s04-scan-gates-clarify-analyze-tips-lifecycle.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery:
+- graphify query + targeted rg confirmed scan_mb.WorkItem, WorkspaceRef, CardKind,
+  epic.reduce_epic_lifecycle, and roadmap_queue.select_next_epic APIs.
+gaps:
+  status: none
+done:
+- Added GateWorkItem and scan_gates pre/post lifecycle projection.
+- Added queued-epic discovery for PLAN gate emission and preserved step/post-gate
+  exclusivity.
+- Reused reduce_epic_lifecycle and mapped qa_failed to BUGFIX.
+files:
+- loop/board_sync/scan_gates.py
+- loop/tests/fixtures/board_sync/mini_mb_project/memory-bank/back/events/events_qa_fixture.jsonl
+- loop/tests/test_board_sync_scan_gates.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_scan_gates.py -q --tb=line`
+  (5 passed)'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_card_model.py loop/tests/test_board_sync_scan_mb.py
+  loop/tests/test_board_sync_workspaces.py loop/tests/test_board_sync_scan_gates.py
+  -q --tb=line` (22 passed)'
+integration_check:
+- scan_gates imports and calls epic.reduce_epic_lifecycle(project, role, epic_id).
+- ROADMAP lookup delegates to roadmap_queue.select_next_epic without arm side effects.
+grep_control:
+- back: 'loop/board_sync/scan_gates.py: queued epic discovery, lifecycle reducer reuse,
+    and roadmap selection delegation'
+  front: not applicable — backend-only board sync gate scanner
+verification_results:
+- 'cp1–cp4 targeted tests: 4 passed'
+- 'board sync regression suite: 22 passed'
+- 'VERDICT: PASS — @verify подтвердил AC+, AC-, §0.11, cp1–cp4 и suite'
+checkpoints:
+- id: cp1
+  criterion: 'gate ANALYZE emitted: decompose exists, 0 completed sNN, no analyze
+    artifact'
+  status: done
+  done_at: '2026-08-28T13:44:27Z'
+- id: cp2
+  criterion: post-implement gate uses reduce_epic_lifecycle (mock); AUDIT before QA;
+    qa_failed → BUGFIX (не QA)
+  status: done
+  done_at: '2026-08-28T13:44:33Z'
+- id: cp3
+  criterion: 'FORBIDDEN: pending sNN present → NO post-implement gate for same epic_id
+    (SC-006)'
+  status: done
+  done_at: '2026-08-28T13:44:48Z'
+- id: cp4
+  criterion: all sNN completed + lifecycle QA → exactly one gate-QA per epic (SC-005)
+  status: done
+  done_at: '2026-08-28T13:44:49Z'
+resume_from: cp1

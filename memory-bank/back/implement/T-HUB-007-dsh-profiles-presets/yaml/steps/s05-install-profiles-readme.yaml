@@ -1,0 +1,79 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-007-dsh-profiles-presets
+title: s05 — install-profiles.sh + README — copy/link + 8-phase table IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-007-dsh-profiles-presets/yaml/steps/s05-install-profiles-readme.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery:
+- Graphify unavailable in this hub checkout; targeted rg/read inventory used for dsh
+  profiles, phase model mapping, README, and loop workflow.
+gaps:
+  status: none
+done:
+- Создан исполняемый dsh/scripts/install-profiles.sh с copy, --link, --dry-run и --help
+  режимами.
+- Инсталлятор разрешает пути от собственного расположения, устанавливает все dsh/profiles/epic-*
+  в $DSH_HOME/profiles и заменяет одноимённый target.
+- dsh/README.md расширен таблицей всех восьми фаз и профилей, ссылкой на инсталлятор,
+  env bridge PROJECT_LOOP_*_MODEL → llm.config.model и pinned DSH version note.
+files:
+- dsh/scripts/install-profiles.sh
+- dsh/README.md
+deletes: []
+tests:
+- '`test -x dsh/scripts/install-profiles.sh` — PASS'
+- '`TMP=$(mktemp -d); DSH_HOME="$TMP" bash dsh/scripts/install-profiles.sh --dry-run;
+  test ! -e "$TMP/profiles"; rm -rf "$TMP"` — PASS'
+- '`TMP=$(mktemp -d); DSH_HOME="$TMP" bash dsh/scripts/install-profiles.sh; test -d
+  "$TMP/profiles/epic-implement"; test "$(find "$TMP/profiles" -mindepth 1 -maxdepth
+  1 -type d | wc -l)" -eq 8; rm -rf "$TMP"` — PASS'
+- '`grep -E ''epic-(implement|qa|decompose|plan|creative|audit|bugfix|reflect)'' dsh/README.md
+  | wc -l | grep -q 8` — PASS'
+- '`grep -q ''PROJECT_LOOP_IMPLEMENT_MODEL'' dsh/README.md && grep -qi ''patch\\|cordis''
+  dsh/README.md` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py
+  loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=line`
+  — 34 passed'
+integration_check:
+- Все восемь профилей копируются в единый DSH_HOME и доступны loop runtime через EPIC_DSH_PROFILE.
+- README mapping согласован с dsh/patches/phase-models.yml и phase-specific cordis.patch.yml.
+grep_control:
+- back: No secret-like literals added; README keeps the existing DEEPSEEK_API_KEY
+    example and VERSION placeholder.
+  front: ''
+- back: ''
+  front: n/a
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'dsh/scripts/install-profiles.sh exists and is executable
+
+    '
+  status: done
+  done_at: '2026-08-27T22:58:56Z'
+- id: cp2
+  criterion: 'AC+1: install-profiles.sh → $DSH_HOME/profiles/epic-implement exists
+    (dry-run or real with temp DSH_HOME)
+
+    '
+  status: done
+  done_at: '2026-08-27T22:59:02Z'
+- id: cp3
+  criterion: 'AC+5: dsh/README.md содержит таблицу всех 8 фаз
+
+    '
+  status: done
+  done_at: '2026-08-27T22:59:15Z'
+- id: cp4
+  criterion: 'AC+6: README документирует PROJECT_LOOP_IMPLEMENT_MODEL → patch field
+
+    '
+  status: done
+  done_at: '2026-08-27T22:59:15Z'
+resume_from: cp1

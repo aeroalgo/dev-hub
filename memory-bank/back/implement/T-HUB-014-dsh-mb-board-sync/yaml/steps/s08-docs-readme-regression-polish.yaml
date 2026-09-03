@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-014-dsh-mb-board-sync
+title: s08 — Docs README + gate/step UX note + regression polish — FR-011 + SC coverage
+  IMPLEMENT
+status: completed
+date: '2026-08-28'
+decompose_ref: memory-bank/back/plan/T-HUB-014-dsh-mb-board-sync/yaml/steps/s08-docs-readme-regression-polish.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Добавлена секция `Memory-bank board sync` в `dsh/README.md`: step/gate карточки,
+  фильтр `epic_id`, manual run, cron и offline-only LedgerFileClient.'
+files:
+- dsh/README.md
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_board_sync_*.py -q --tb=short`'
+integration_check:
+- Документация CLI сверена с `bin/hub-board` и опциями `sync --dry-run`, `--workspace-id`,
+  `--offline-ledger`, `--host-url`.
+grep_control:
+- back: grep -n 'Memory-bank board sync|hub-board sync|epic_id' dsh/README.md
+  front: ''
+verification_results:
+- 'cp1 — PASS: README содержит step vs gate, hub-board sync и epic_id.'
+- 'cp2 — PASS: board sync regression suite: 46 passed.'
+- SC-001…006 — regression suite зелёный; документация покрывает ручной запуск и эксплуатационный
+  cron-сценарий.
+checkpoints:
+- id: cp1
+  criterion: dsh/README.md содержит секцию с step vs gate, примером hub-board sync,
+    упоминанием epic_id фильтра
+  status: done
+  done_at: '2026-08-28T14:37:52Z'
+- id: cp2
+  criterion: 'затронутые тесты зелёные: .venv/bin/pytest loop/tests/test_board_sync_*.py
+    -q --tb=short'
+  status: done
+  done_at: '2026-08-28T14:38:01Z'
+resume_from: cp1

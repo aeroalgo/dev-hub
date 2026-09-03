@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-029-epic-phase-transition-engine
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s09-dsh-presets-epic-gate-mapping.yaml
+title: "DSH presets + epic-gate mapping (T-HUB-008 integration)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать T-HUB-008 DSH epic-gate preset mapping в phase_registry:
+  добавить `dsh_preset` строку в каждую фазу registry (или отдельный `dsh_gate_mapping.yaml`).
+  `arm_phase` при EPIC_RUNTIME=dsh → подставляет `dsh_preset` из registry в DSH session args.
+  Проверка: если preset not found для phase → fail-closed (не silent skip).
+  Тесты: IMPLEMENT + DECOMPOSE → правильные DSH presets.
+
+context:
+  consumes:
+    - loop/schemas/phase_registry.yaml           # s06/s07: registry
+    - loop/epic_transition.py                    # s02: arm_phase + s06: get_phase_config
+    - .claude/hooks/_lib.py                      # epic_runtime field (T-HUB-006/s01)
+    - memory-bank/back/plan/plan-T-HUB-008-*.md # DSH preset mapping spec (если доступен)
+    - loop/runtime_adapters/                     # DSH adapter модуль (T-HUB-006)
+  produces:
+    - loop/schemas/phase_registry.yaml           # dsh_preset строки per phase
+    - loop/epic_transition.py                    # arm_phase DSH preset injection
+    - loop/tests/test_epic_transition.py         # test DSH preset per phase
+  plan_refs:
+    - US-006
+    - FR-002
+    - NFR-1
+  files:
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+
+as_built:
+  - loop/schemas/phase_registry.yaml — нет dsh_preset строк (после s06/s07)
+  - loop/epic_transition.py:arm_phase — нет DSH runtime branch
+  - .claude/hooks/_lib.py:RuntimeConfig.epic_runtime — поле "claude" | "dsh" (T-HUB-006)
+  - loop/runtime_adapters/dsh.py — build_command (T-HUB-006); нет phase→preset lookup
+
+delta:
+  - 'loop/schemas/phase_registry.yaml: добавить `dsh_preset: <preset_name>` per phase; DECOMPOSE→"decompose", ANALYZE→"analyze", IMPLEMENT→"implement", BUGFIX→"bugfix", QA→"qa"; PLAN/CLARIFY/REFLECT→null (skip DSH)'
+  - 'loop/epic_transition.py:arm_phase — добавить branch: if epic_runtime == "dsh": phase_config = get_phase_config(phase); dsh_preset = phase_config.get("dsh_preset"); if dsh_preset is None → fail-closed ValueError("no DSH preset for phase {phase!r}"); inject preset в kwargs передаваемый DSH adapter'
+  - 'loop/epic_transition.py: `get_dsh_preset(phase: str) -> str | None` — публичный helper (None для terminal phases)'
+  - 'loop/tests/test_epic_transition.py: test_get_dsh_preset_implement — get_dsh_preset("IMPLEMENT") == "implement"'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_dsh_injects_preset — monkeypatch epic_runtime=dsh; arm_phase("IMPLEMENT") → DSH builder called with preset'
+  - 'loop/tests/test_epic_transition.py: test_arm_phase_dsh_missing_preset_fails_closed — phase without preset + runtime=dsh → ValueError'
+
+deletes: []
+# Только аддитивные изменения; нет legacy paths для удаления
+
+out_of_scope:
+  - "DSH session logging — T-HUB-006 as-built"
+  - "DAG adapter — s10"
+  - "FRONT/INTEG parity — s11"
+
+skills:
+  code_surface: backend-core
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      get_dsh_preset("IMPLEMENT") == "implement"
+    verify: "timeout 60s python -c 'from loop.epic_transition import get_dsh_preset; assert get_dsh_preset(\"IMPLEMENT\") == \"implement\"; print(\"ok\")'"
+  - id: cp2
+    criterion: >
+      test_arm_phase_dsh_injects_preset PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py -k 'dsh_injects' -q --tb=short"
+  - id: cp3
+    criterion: >
+      test_arm_phase_dsh_missing_preset_fails_closed PASS
+    verify: "timeout 120s .venv/bin/pytest loop/tests/test_epic_transition.py -k 'missing_preset' -q --tb=short"
+  - id: cp4
+    criterion: >
+      Регрессия: test_epic_transition.py full suite green
+    verify: "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py -q --tb=line"
+
+verify:
+  - "timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py -q --tb=line"
+
+tdd:
+  - "test_get_dsh_preset_implement"
+  - "test_arm_phase_dsh_injects_preset"
+  - "test_arm_phase_dsh_missing_preset_fails_closed"
+  - "Regression: test_epic_transition.py"

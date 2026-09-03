@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-017-loop-observability-foundation
+title: s04 — Цепочка prepare→decide в trace — session-trace.jsonl + loop.sh hooks
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s04-session-trace-jsonl.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализован модуль loop/incidents/trace.py для работы с session-trace.jsonl (loop-session-trace/v1)
+- Интегрированы вызовы append_trace в context_loop.py (prepare, check_after) и loop.sh
+  (decide)
+- 'Добавлен флаг EPIC_INCIDENT_TRACE (default: 1, 0 — no-op)'
+- Добавлен набор unit/smoke тестов loop/tests/test_incidents_trace.py
+files:
+- loop/incidents/trace.py
+- loop/incidents/__init__.py
+- loop/loop.sh
+- loop/context_loop.py
+- loop/tests/test_incidents_trace.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_trace.py -q --tb=line`'
+integration_check:
+- grep -n append_trace loop/context_loop.py loop/loop.sh
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: append_trace пишет валидную loop-session-trace/v1 строку
+  status: done
+  done_at: '2026-08-30T17:57:10Z'
+- id: cp2
+  criterion: EPIC_INCIDENT_TRACE=0 → append_trace no-op, файл не растёт
+  status: done
+  done_at: '2026-08-30T17:57:14Z'
+- id: cp3
+  criterion: 'loop.sh integration smoke: одна итерация → session-trace.jsonl ≥ 3 entries
+    с phases prepare|check_after|decide'
+  status: done
+  done_at: '2026-08-30T17:57:18Z'
+resume_from: cp1

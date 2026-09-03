@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-010
+title: s05 — role-command parity check + speckit-adapt-010.md refs + CLAUDE.md optional
+  touch — finalization layer IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-010-clarify-spec-quality/yaml/steps/s05-role-command-refs-claude.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан memory-bank/back/plan/refs/speckit-adapt-010.md с разделами «Что взяли из
+  Spec Kit», «Что отвергли / адаптировали», FORBIDDEN specify-cli и локальными refs.
+- Подтверждена идентичность .claude/skills/role-command/SKILL.md и .agents/skills/role-command/SKILL.md;
+  sync не потребовался.
+- В CLAUDE.md добавлено упоминание BACK|FRONT|INTEG CLARIFY в существующую строку
+  Slash-команды; отдельной Quick Commands секции нет.
+files:
+- memory-bank/back/plan/refs/speckit-adapt-010.md
+- .claude/skills/role-command/SKILL.md
+- .agents/skills/role-command/SKILL.md
+- CLAUDE.md
+deletes: []
+tests:
+- '`rg -n ''specify-cli|Что взяли|Что отвергли|FORBIDDEN'' memory-bank/back/plan/refs/speckit-adapt-010.md`
+  — PASS'
+- '`diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md`
+  — PASS'
+- '`rg -n ''CLARIFY'' CLAUDE.md` — PASS'
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- Docs-only step; refs-doc, role-command mirror and CLAUDE.md slash-command note are
+  aligned.
+grep_control:
+- back: '`rg -n ''specify-cli|Что взяли|Что отвергли|FORBIDDEN'' memory-bank/back/plan/refs/speckit-adapt-010.md`
+    — PASS'
+  front: '`rg -n ''CLARIFY'' CLAUDE.md` — PASS; no frontend surface'
+- back: '`diff .claude/skills/role-command/SKILL.md .agents/skills/role-command/SKILL.md`
+    — IN SYNC'
+  front: mirror parity confirmed
+verification_results:
+- cp1, cp2, cp3 flushed successfully; all checkpoint statuses are done.
+- Role-command mirror remains byte-identical; refs-doc contains the required FORBIDDEN
+  specify-cli line.
+- 'git diff --check: PASS for CLAUDE.md and the new refs document.'
+checkpoints:
+- id: cp1
+  criterion: 'speckit-adapt-010.md создан: содержит §Что взяли, §Что отвергли, §FORBIDDEN
+    specify-cli'
+  status: done
+  done_at: '2026-08-23T07:52:34Z'
+- id: cp2
+  criterion: .agents/skills/role-command/SKILL.md идентичен .claude/skills/role-command/SKILL.md
+    (or diff == 0)
+  status: done
+  done_at: '2026-08-23T07:52:40Z'
+- id: cp3
+  criterion: CLAUDE.md содержит CLARIFY упоминание (если quick commands секция существует)
+  status: done
+  done_at: '2026-08-23T07:52:45Z'
+resume_from: cp1

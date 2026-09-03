@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-040-harness-workflow-finish-api
+title: s09 — workflow rules + context_loop FINISH blocks purge prose → call tool IMPLEMENT
+status: completed
+date: '2026-09-01'
+decompose_ref: memory-bank/back/plan/T-HUB-040-harness-workflow-finish-api/yaml/steps/s09-rules-purge-prose.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Replaced live prompt injector calls for _implement_finish_block and _qa_finish_block
+  in loop/context_loop.py with mb-finish tool call instructions
+- Created harness/hooks/tests/test_mb_finish_rules_purge.py to assert no live calls
+  to _implement_finish_block or _qa_finish_block exist
+files:
+- loop/context_loop.py
+- harness/hooks/tests/test_mb_finish_rules_purge.py
+deletes:
+- '_implement_finish_block() вызовы как prose injectors в loop/context_loop.py — live
+  calls удалить (функция удаляется в s11); verify: cp1'
+- '_qa_finish_block() вызовы как prose injectors — аналогично; verify: cp2'
+- inline validate_active_context_shape после free-form string write (заменено render_active_context
+  в s04)
+- 'LLM regex Handoff mode extract как primary path в workflow rules / loop/WORKFLOW.md
+  — удалить prose; verify: `rg ''handoff.*regex\|regex.*handoff'' .cursor/rules/ loop/WORKFLOW.md;
+  test $? -ne 0`'
+- 'free-form done_summary prose в rules / loop/WORKFLOW.md — заменить на typed field;
+  verify: `rg ''напиши.*Handoff своими'' .cursor/rules/ loop/WORKFLOW.md; test $?
+  -ne 0`'
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_rules_purge.py
+  -q --tb=line`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_rules_purge.py
+  -q --tb=line`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: _implement_finish_block не вызывается как live prompt injector (функция
+    удалена или осталась только def — без вызовов)
+  status: done
+  done_at: '2026-09-01T18:50:41Z'
+- id: cp2
+  criterion: _qa_finish_block не вызывается как live prompt injector
+  status: done
+  done_at: '2026-09-01T18:50:45Z'
+- id: cp3
+  criterion: context_loop по-прежнему запускается без ошибок импорта
+  status: done
+  done_at: '2026-09-01T18:50:50Z'
+- id: cp4
+  criterion: rg audit test suite зелёный
+  status: done
+  done_at: '2026-09-01T18:50:54Z'
+resume_from: cp1

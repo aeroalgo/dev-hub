@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-005
+title: "Trim SUSPENSION GUARD duplicates — back/front workflow-plan.mdc → one-liner + §0.0 link"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  В каждом plan-workflow (back, front) SUSPENSION GUARD упоминается ровно 1 раз: строка с объявлением
+  при OK + линк на §0.0. Лишние параграфы-повторы убраны. Агент не видит 3 разных формулировок
+  одного правила. Закрывает FR-4, NFR-2, AC+ #6.
+  Dep: s03 (cheatsheet links уже добавлены — не теряем новый pointer).
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/workflow-plan.mdc        # 2 строки SUSPENSION сейчас
+    - .cursor/rules/front_developer/workflow-plan.mdc       # 1 строка SUSPENSION сейчас
+    - .cursor/rules/token-economy-core.mdc                  # авторитетный §0.0 — НЕ трогать
+  produces:
+    - .cursor/rules/back_developer/workflow-plan.mdc        # EDIT — trim дубль «Важно» строки
+    - .cursor/rules/front_developer/workflow-plan.mdc       # EDIT — verify + trim если есть дубль
+  plan_refs:
+    - plan/T-HUB-005-simplify-docs/md/plan.md §FR-4 §NFR-2 §AC+ #6
+  files:
+    - .cursor/rules/back_developer/workflow-plan.mdc
+    - .cursor/rules/front_developer/workflow-plan.mdc
+
+as_built:
+  - 'back/workflow-plan.mdc line 23: "**Важно:** §0.0 SUSPENSION GUARD — plan максимально детальный; lean load ≠ lean write."'
+  - 'back/workflow-plan.mdc line 28: строка в шаге 1 с "SUSPENSION GUARD active"'
+  - 'front/workflow-plan.mdc line 23: "**Важно:** §0.0 — plan без telegraph / 200-line cap."'
+  - 'front/workflow-plan.mdc line 26: строка в шаге 1 с "SUSPENSION GUARD active"'
+  - "Количество упоминаний: back=2, front=1 (front уже ок по смыслу, но стиль разный)"
+
+delta:
+  - |
+    back/workflow-plan.mdc — убрать строку 23 "**Важно:** §0.0 SUSPENSION GUARD…" как дубль;
+    оставить только строку в шаге 1 (`OK BACK PLAN…` + SUSPENSION GUARD active).
+    Результат: 1 строка "§0.0 SUSPENSION GUARD" вместо 2.
+    Добавить link после SUSPENSION line: "(→ @.cursor/rules/token-economy-core.mdc §0.0)"
+    HARD: не убирать саму строку в шаге 1 — это объявление при OK, его обязан видеть агент.
+  - |
+    front/workflow-plan.mdc — проверить: если осталась только одна строка с §0.0, оставить как есть;
+    если есть "**Важно:** §0.0 …" отдельной строкой + SUSPENSION в шаге 1 → trim дубль.
+    Стиль: "§0.0 — plan без telegraph" → заменить на "SUSPENSION GUARD active — plan output unlimited".
+  - |
+    integ/workflow-plan.mdc — уже ок (1 строка §0.0 + 1 строка в шаге 1 = естественный паттерн,
+    не дубль). Не трогать.
+  - "HARD: token-economy-core.mdc НЕ ТРОГАТЬ (авторитет §0.0)."
+
+deletes:
+  - |
+    Строка "**Важно:** §0.0 SUSPENSION GUARD — plan максимально детальный; lean load ≠ lean write."
+    из .cursor/rules/back_developer/workflow-plan.mdc (trim pointer-дубль, согласно NFR-2)
+  # Это Kind A docs — удаление лишней строки-дубликата из файла
+
+out_of_scope:
+  - token-economy-core.mdc — не трогать (авторитет)
+  - workflow-plan.mdc (integ) — уже без дублей
+  - workflow-decompose / workflow-implement / mainrule — вне scope FR-4
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only step
+
+checkpoints:
+  - id: cp1
+    criterion: "back/workflow-plan.mdc: rg SUSPENSION → ровно 1 уникальная строка (а не 2)"
+    verify: "rg -c 'SUSPENSION' .cursor/rules/back_developer/workflow-plan.mdc"
+  - id: cp2
+    criterion: "§0.0 не урезан в token-economy-core (регрессия AC+ #6)"
+    verify: "rg -n '§0.0' .cursor/rules/token-economy-core.mdc | head -5"
+  - id: cp3
+    criterion: "front/workflow-plan.mdc всё ещё содержит SUSPENSION GUARD active в шаге 1"
+    verify: "rg -n 'SUSPENSION GUARD active' .cursor/rules/front_developer/workflow-plan.mdc"
+  - id: cp4
+    criterion: "Cheatsheet link из s03 не потерян в back/workflow-plan.mdc после Edit"
+    verify: "rg -n 'cheatsheet' .cursor/rules/back_developer/workflow-plan.mdc"
+
+verify: []
+tdd: []

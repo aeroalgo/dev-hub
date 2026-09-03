@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-055-suite-green-board-sync
+title: s03 — Purge step-upsert SoT leftovers — антидот step-era upsert pipeline IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-055-suite-green-board-sync/yaml/steps/s03-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проведён аудит loop/board_sync/sync.py: нет compute_ops с steps в desired'
+- Очищены устаревшие step-upsert asserts в loop/tests/test_board_sync_sync.py и loop/tests/test_board_sync_cli.py
+- 'Board sync cluster тесты (sync, cli, epic_regression) зелёные: 22 passed'
+files:
+- loop/board_sync/cli.py
+- loop/tests/test_board_sync_cli.py
+- loop/tests/test_board_sync_sync.py
+deletes:
+- Удалены устаревшие test assert patterns со step-upsert SoT в test_board_sync_cli.py
+  и test_board_sync_sync.py
+tests:
+- bin/pytest loop/tests/test_board_sync_sync.py loop/tests/test_board_sync_cli.py
+  loop/tests/test_board_sync_epic_regression.py -q
+integration_check:
+- Все board_sync тесты green, step-era archive корректно регистрируется
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: нет compute_ops с steps в desired
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+- id: cp2
+  criterion: нет тестов с step-id как единственный upsert SoT без archive context
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+- id: cp3
+  criterion: полный baseline cluster green
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+- id: cp4
+  criterion: 'CLI test: нет s01 как upsert target; epic stable-id (…-epic)'
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+- id: cp5
+  criterion: 'FR-005: CLI dry-run/status использует epic stable-id, не …-s01'
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+- id: cp6
+  criterion: 'SC-002: full hub suite без board regressions'
+  status: done
+  done_at: '2026-09-02T09:00:00Z'
+resume_from: cp1

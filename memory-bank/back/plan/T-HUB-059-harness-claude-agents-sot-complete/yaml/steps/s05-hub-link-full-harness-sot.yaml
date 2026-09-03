@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "hub-link --mode=full → product links на harness SoT"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `bin/hub-link --mode=full` так, чтобы product `.claude/{commands,skills,rules}` и `.agents/skills`
+  резолвили в `$DEV_HUB/harness/claude/…` и `$DEV_HUB/harness/skills` (напрямую или через hub shell symlink).
+  Убрать старые assumptions: `link_one ".agents" "$DEV_HUB/.agents"` (весь .agents как SoT),
+  `link_one ".claude/commands" "$DEV_HUB/.claude/commands"` (real dir hub).
+  Refresh idempotent для installer symlinks (hub shells уже → harness → корректная цепочка).
+
+plan_contract:
+  fr_ids: [FR-005, US-003, SC-003]
+  nouns: ["bin/hub-link", "harness/claude/commands", "harness/claude/skills", "harness/claude/rules", "harness/skills", "link_one", ".agents/skills"]
+  layout_paths:
+    - "bin/hub-link"
+    - "harness/claude/commands/"
+    - "harness/claude/skills/"
+    - "harness/claude/rules/"
+    - "harness/skills/"
+  ac_quotes:
+    - "fixture full-link: product .claude/commands и .agents/skills resolve в hub harness/…; pytest green"
+    - "hub-link --mode=full линкует product на harness SoT (прямо или через hub shell symlink)"
+  plan_jumps:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:106-106"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:204-212"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md:299-306"
+
+context:
+  consumes:
+    - "s01–s04 done (hub shells .claude/* и .agents/skills — symlinks → harness)"
+  produces:
+    - "bin/hub-link (updated full mode: link to harness SoT, not old real dirs)"
+  plan_refs:
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §FR-005"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §US-003"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §SC-003"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §Target layout (product full)"
+    - "plan/T-HUB-059-harness-claude-agents-sot-complete/md/plan.md §Replacement/sunset §B"
+  files:
+    - "bin/hub-link"
+
+as_built:
+  - "bin/hub-link full: строка 216 `link_one \".agents\" \"$DEV_HUB/.agents\"` — links весь .agents как SoT"
+  - "bin/hub-link full: строки 227-231 loop `for sub in agents hooks skills commands instructions rules` — link .claude/$sub → hub .claude/$sub (real dir)"
+  - "hub .claude/commands, .claude/skills, .claude/rules — будут symlinks (s01–s03), поэтому цепочка станет корректной после s01–s03"
+
+delta:
+  - "bin/hub-link: full mode: заменить `link_one \".agents\" \"$DEV_HUB/.agents\"` на `link_one \".agents/skills\" \"$DEV_HUB/harness/skills\"` (строка 216 `link_one \".agents\" \"$DEV_HUB/.agents\"` заменяется на skills-only link)"
+  - "bin/hub-link: assumptions что hub .claude/* = real SoT dirs: loop sub-links для commands/skills/rules теперь ведут на hub shell symlinks → harness (через цепочку после s01–s03); убедиться что link target корректен (hub .claude/$sub — symlink, product link → тот же harness)"
+  - "bin/hub-link: Добавить guard: если hub .claude/$sub — symlink → harness, product link резолвит в harness; если real dir (до s01–s03) — skip с warn"
+  - "bin/hub-link: Идемпотентность: refresh (ln -sfn) при уже существующем symlink"
+
+deletes:
+  - "bin/hub-link: строка 216 `link_one \".agents\" \"$DEV_HUB/.agents\"` — заменяется на skills-only link"
+  - "bin/hub-link: assumptions что hub .claude/* = real SoT dirs"
+
+out_of_scope:
+  - "s06: alongside --with-skills (следующий шаг)"
+  - "hub-unlink (s06)"
+  - "full pytest coverage (s07)"
+
+skills:
+  code_surface: shell
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: rg — убедиться что старая строка `link_one ".agents"` без "/skills" удалена из full mode
+    verify: "rg 'link_one \".agents\"' bin/hub-link || true"
+  - id: cp2
+    criterion: full mode содержит link .agents/skills → harness/skills
+    verify: "rg 'harness/skills' bin/hub-link"
+  - id: cp3
+    criterion: в тестовой fixture full mode resolve .agents/skills → harness/skills (не .agents как целое)
+    verify: ".venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short"
+  - id: cp4
+    criterion: rg — нет callers в bin/ предполагающих .agents как real SoT dir целиком
+    verify: "rg 'DEV_HUB/\\.agents[^/]' bin/ || true"
+
+verify: []
+tdd:
+  - "loop/tests/test_hub_link_harness.py: product .agents/skills resolve → hub harness/skills"
+  - "loop/tests/test_hub_link_harness.py: product .claude/commands resolve → hub harness/claude/commands"

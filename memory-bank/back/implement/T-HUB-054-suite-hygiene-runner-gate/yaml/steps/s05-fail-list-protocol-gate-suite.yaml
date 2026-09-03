@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: s05 — Fail-list protocol note + full suite gate-nodeids absent verify IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-054-suite-hygiene-runner-gate/yaml/steps/s05-fail-list-protocol-gate-suite.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Documented fail-list protocol and failure classes (LEGACY/REGRESSION/PROD) in loop/README.md
+- Verified targeted gate cluster suite passes completely (5 passed)
+- Verified that gate nodeids are absent in full suite fail-list (0 matching failures)
+files:
+- loop/README.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed
+  -q
+- bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|test_agent_pretool_injects'
+  | wc -l
+integration_check:
+- Fail-list protocol is accessible in loop/README.md
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed
+  -q -> 5 passed
+- Gate nodeids in fail-list -> 0 matches
+checkpoints:
+- id: cp1
+  criterion: SC-002 gate cluster 0 failed (test_sc006 + test_legacy_stubs_removed;
+    test_agent_pretool deleted)
+  status: done
+  done_at: '2026-09-02T19:12:13Z'
+- id: cp2
+  criterion: SC-003 gate nodeids absent в full suite fail-list
+  status: done
+  done_at: '2026-09-02T19:12:19Z'
+- id: cp3
+  criterion: fail-list protocol раздел существует в loop/README.md
+  status: done
+  done_at: '2026-09-02T19:12:24Z'
+resume_from: cp1

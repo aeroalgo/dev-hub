@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-058-sunset-inventory-agent
+title: 's05 — Cursor/Task spawn documentation: subagent_type=sunset-inventory в Cursor mirror или enum sync'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/T-HUB-058-sunset-inventory-agent/yaml/steps/s05-cursor-task-sync.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Verified harness/manifest.yaml contains sunset-inventory agent definition and runtime targets
+- Documented subagent_type=sunset-inventory and alias sunset in .claude/instructions/spawn-hard.md for agent spawn gates
+files:
+- harness/manifest.yaml
+- .claude/instructions/spawn-hard.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_agent_registry.py harness/hooks/tests/ -q
+integration_check:
+- rg 'sunset-inventory' harness/manifest.yaml
+- rg 'sunset-inventory' .claude/instructions/spawn-hard.md
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_agent_registry.py harness/hooks/tests/ -q (101 passed)
+checkpoints:
+- id: cp1
+  criterion: Cursor/Claude path для sunset-inventory задокументирован или materialize path существует
+  status: done
+  done_at: '2026-09-03T10:25:00Z'
+- id: cp2
+  criterion: subagent_type=sunset-inventory упомянут в spawn doc или Cursor-facing rule
+  status: done
+  done_at: '2026-09-03T10:25:00Z'
+resume_from: cp1

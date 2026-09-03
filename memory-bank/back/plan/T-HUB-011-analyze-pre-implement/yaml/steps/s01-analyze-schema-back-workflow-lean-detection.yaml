@@ -1,0 +1,159 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-011
+title: "Analyze schema template + BACK workflow/lean + core detection passes — foundational ANALYZE layer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать foundational слой команды ANALYZE (read-only pre-implement analysis):
+  - `.cursor/templates/analyze/epic-analyze.yaml` — шаблон артефакта `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` со schema `epic-analyze/v1`
+  - `.cursor/rules/shared/workflow-analyze-core.mdc` — optional DRY core detection passes (Duplication, Ambiguity, Underspecification, Coverage Gaps, Inconsistency, Constitution)
+  - `.cursor/rules/back_developer/workflow-analyze.mdc` — BACK-специфичный workflow wrapper: когда запускать, gates (STRICTLY READ-ONLY), Handoff → IMPLEMENT или fix (CLARIFY/PLAN/DECOMPOSE)
+  - `.cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc` — lean gate: load plan/decompose headers + activeContext; НЕ полный текст всех shards; НЕ читать implement (их ещё нет)
+  Outcome: после DECOMPOSE агент может запустить `BACK ANALYZE @epic`, получить детерминированный отчёт (findings ≤50 строк + coverage % + critical count), CRITICAL → не стартовать IMPLEMENT без fix/defer.
+  Связь с Goal/NFR: FR-1, FR-3, FR-4, FR-5, NFR-1, NFR-2, NFR-3, NFR-4, NFR-5, AC+ #2, #5; AC− #1, #2, #3, #4.
+
+context:
+  consumes:
+    - "spec-kit/templates/commands/analyze.md — reference (read-only, не clone)"
+    - "spec-kit/templates/spec-template.md — паттерны Independent Test, SC (read-only ref)"
+    - ".cursor/rules/back_developer/workflow-decompose.mdc — как стыкуется FINISH tip"
+    - ".cursor/rules/back_developer/workflow-implement.mdc — как стыкуется WARN critical"
+    - ".cursor/rules/shared/finish-doc-router.mdc — routing ANALYZE → load_now"
+    - "memory-bank/activeContext.md — load_now только"
+    - "memory-bank/back/plan/plan/T-HUB-011-analyze-pre-implement/md/plan.md — план (L3: все shards)"
+  produces:
+    - ".cursor/templates/analyze/epic-analyze.yaml (create)"
+    - ".cursor/templates/analyze/README.md (create)"
+    - ".cursor/rules/shared/workflow-analyze-core.mdc (create optional)"
+    - ".cursor/rules/back_developer/workflow-analyze.mdc (create)"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc (create)"
+  plan_refs:
+    - "FR-1, FR-3, FR-4, FR-5"
+    - "NFR-1, NFR-2, NFR-3, NFR-4, NFR-5"
+    - "AC+ #2, #5"
+    - "AC− #1, #2, #3, #4"
+    - "plan §Архитектура §Зафиксированные решения"
+    - "plan §До DECOMPOSE s01"
+  files:
+    - ".cursor/templates/analyze/epic-analyze.yaml"
+    - ".cursor/templates/analyze/README.md"
+    - ".cursor/rules/shared/workflow-analyze-core.mdc"
+    - ".cursor/rules/back_developer/workflow-analyze.mdc"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc"
+
+as_built:
+  - "spec-kit/templates/commands/analyze.md — reference (read-only, ~N строк)"
+  - ".cursor/rules/back_developer/ — существует; workflow-analyze.mdc отсутствует"
+  - ".cursor/rules/back_developer/isolation_rules/_lean/ — существует; analyze.mdc отсутствует"
+  - ".cursor/rules/shared/ — существует; workflow-analyze-core.mdc отсутствует"
+  - ".cursor/templates/ — существует; analyze/ директория отсутствует"
+  - "memory-bank-paths: analyze/ отсутствует (будет в s03)"
+
+delta:
+  - "CREATE .cursor/templates/analyze/epic-analyze.yaml:
+      - Frontmatter (schema: epic-analyze/v1)
+      - `findings[]`: {id, severity (CRITICAL|HIGH|MEDIUM|LOW), category, message, plan_ref?, step_ref?}
+      - `coverage[]`: {requirement_id, step_ids[], status (covered|partial|missing)}
+      - `metrics`: {coverage_pct, critical_count, high_count, findings_total}
+      - `recommendation`: IMPLEMENT | fix (CLARIFY|PLAN|DECOMPOSE)
+      - `next_actions[]`: CRITICAL → fix list; else empty
+      - Optional: `constitution_violations[]` если constitution.md exists"
+  - "CREATE .cursor/templates/analyze/README.md:
+      - Кратко: что такое ANALYZE; отличие от AUDIT; когда запускать
+      - Ссылка на workflow-analyze.mdc + шаблон"
+  - "CREATE .cursor/rules/shared/workflow-analyze-core.mdc (optional DRY):
+      - Frontmatter (description, alwaysApply: false)
+      - §Detection passes (6 категорий):
+          - Duplication: дублирующиеся FR/SC/steps (terminology/entities)
+          - Ambiguity: vague adj (should, may, appropriate, typically) + unresolved [НУЖНО УТОЧНИТЬ] markers
+          - Underspecification: FR без sNN; step без plan_ref/FR; goal-only без delta
+          - Coverage Gaps: AC+/AC−/FR/NFR/SC без sNN и без out_of_scope
+          - Inconsistency: terminology drift (FR vs step title); entity names differ; order mismatch
+          - Constitution (если файл есть): MUST violations → CRITICAL
+      - §Severity heuristic: CRITICAL (P1/FR core missing + unresolved CRITICAL markers); HIGH (coverage <80% или >3 HIGH); MEDIUM (gaps non-core); LOW (naming/style)
+      - §Deterministic IDs: A1, A2… (category prefix) — stable при повторном прогоне без изменений
+      - §50-cap: findings table ≤50 строк; overflow → summary"
+  - "CREATE .cursor/rules/back_developer/workflow-analyze.mdc:
+      - Frontmatter
+      - @core ref: .cursor/rules/back_developer/mainrule-core.mdc + shared/workflow-analyze-core.mdc
+      - @lean: .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+      - §Когда запускать: после `* DECOMPOSE` FINISH, **до** первого `* IMPLEMENT`; re-run после существенного rewrite plan/decompose
+      - §Вход: 'BACK ANALYZE <epic_id>' (epic_id = T-xxx или slug из plan)
+      - §Load (lean, NFR-1): plan-<epic>.md (headers: FR/AC/stories jump), decompose-*/index.md (coverage), index.yaml (step list), sample sNN headers/`goal`/`plan_refs` — **не** полный текст всех shards без нужды
+      - §Процесс:
+          1) Build inventories: FR/SC/stories vs sNN plan_refs/goals
+          2) Run detection passes (core) → assign severity
+          3) Write analyze-*.yaml (read-only else)
+          4) If critical>0: Next = fix (CLARIFY/PLAN/DECOMPOSE); else: Next = IMPLEMENT s01
+      - §Артефакт: memory-bank/back/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml
+      - §STRICTLY READ-ONLY: НЕ модифицировать decompose/implement/code; НЕ запускать pytest/vitest (NFR-3, NFR-4)
+      - §Done When: analyze artifact written; findings table + coverage summary + metrics + recommendation; CRITICAL → не стартовать IMPLEMENT без fix/defer
+      - §Handoff: next BACK IMPLEMENT s01 | BACK CLARIFY/PLAN/DECOMPOSE (если critical>0)"
+  - "CREATE .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc:
+      - Frontmatter (description: 'ANALYZE gates — lean load + STRICTLY READ-ONLY', alwaysApply: false)
+      - §Gates:
+          - load_now = plan artifact (headers) + decompose index (coverage) + activeContext; НЕ полный текст всех shards
+          - НЕ читать implement yaml (их ещё нет)
+          - STRICTLY READ-ONLY: НЕ модифицировать decompose/implement/code
+          - НЕ запускать pytest/vitest в ANALYZE
+      - §Abort:
+          - ANALYZE без epic_id → reject (нет ad-hoc режима)
+          - Попытка править код → FAIL
+          - Запуск тестов → FAIL
+      - §NFR-5 boundary: Do Not Touch AUDIT schema (012), clarify UX (010), loop.sh gates
+      - §AC− #1 documented: ANALYZE ≠ AUDIT; не создавать sNN-audit-*"
+
+deletes: []
+# greenfield shard: нет удалений. ANALYZE — новый режим, не заменяет существующий.
+
+out_of_scope:
+  - "FRONT/INTEG workflow-analyze.mdc + lean + slash — в s02"
+  - "mainrule.mdc ANALYZE entries — в s02"
+  - "finish-doc-router ANALYZE row — в s03"
+  - "memory-bank-paths analyze/ path — в s03"
+  - "workflow-decompose.mdc FINISH tip — в s03"
+  - "workflow-implement.mdc WARN critical — в s03"
+  - "refs/speckit-adapt-011.md — в s04"
+  - "dry-run fixture + docs — в s04"
+  - "role-command SKILL.md edit — в s04"
+  - "Constitution (memory-bank/constitution.md) — T-HUB-013; до 013 — skip gracefully"
+  - "AUDIT schema (012) — Do Not Touch (NFR-5)"
+  - "Clarify UX (010) — Do Not Touch (NFR-5)"
+  - "loop.sh gates — Do Not Touch (NFR-5)"
+  - "Constitution Articles I–IX — T-HUB-013"
+  - "spec-kit extensions/assess/ — T-HUB-013 (partial)"
+  - "Extension hooks YAML / __SPECKIT_COMMAND_* — не портировать"
+
+skills:
+  code_surface: infra
+  # docs/rules/templates — нет Python кода
+  impl: []
+  # docs-only: Core FORBIDDEN (нет Python). Situational: нет.
+
+checkpoints:
+  - id: cp1
+    criterion: "epic-analyze.yaml шаблон создан и содержит findings[] + coverage[] + metrics + recommendation"
+    verify: "rg -n 'findings\\|coverage\\|metrics\\|recommendation' .cursor/templates/analyze/epic-analyze.yaml | head -10"
+  - id: cp2
+    criterion: "workflow-analyze.mdc (BACK) содержит §Процесс, §Done When, §Handoff и ссылается на shared-core"
+    verify: "rg -n 'shared/workflow-analyze-core\\|Done When\\|Handoff\\|STRICTLY READ-ONLY' .cursor/rules/back_developer/workflow-analyze.mdc | head -10"
+  - id: cp3
+    criterion: "_lean/analyze.mdc gate создан: содержит NFR-3/NFR-4 + STRICTLY READ-ONLY + AC− #1 boundary"
+    verify: "rg -n 'STRICTLY READ-ONLY\\|NFR-3\\|NFR-4\\|ANALYZE ≠ AUDIT' .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc"
+  - id: cp4
+    criterion: "workflow-analyze-core.mdc (optional) или inline в BACK workflow содержит 6 detection passes + severity heuristic + 50-cap"
+    verify: "rg -n 'Duplication\\|Ambiguity\\|Underspecification\\|Coverage Gaps\\|Inconsistency\\|Constitution' .cursor/rules/back_developer/workflow-analyze.mdc | head -10"
+
+verify:
+  - "ls .cursor/templates/analyze/epic-analyze.yaml .cursor/templates/analyze/README.md — оба exist"
+  - "ls .cursor/rules/back_developer/workflow-analyze.mdc .cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc — оба exist"
+  - "rg -rn 'STRICTLY READ-ONLY' .cursor/rules/back_developer/workflow-analyze.mdc — AC+ #5"
+  - "rg -rn 'ANALYZE ≠ AUDIT\\|audit-shards' .cursor/rules/back_developer/workflow-analyze.mdc — AC− #1"
+  - "rg -rn 'specify-cli\\|FEATURE_DIR' .cursor/rules/back_developer/workflow-analyze.mdc — 0 matches (AC− #2)"
+  - "rg -n 'loop.sh' .cursor/rules/back_developer/workflow-analyze.mdc — NFR-5 documented (no hard-block)"
+
+tdd:
+  - "Нет pytest (docs-only). QA-проверка в s04: rg AC+ #2, #5 + dry-run fixture (фиктивный epic с FR без sNN → finding Coverage CRITICAL)"

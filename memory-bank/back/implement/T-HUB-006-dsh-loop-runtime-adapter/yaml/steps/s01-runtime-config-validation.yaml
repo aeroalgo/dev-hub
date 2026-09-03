@@ -1,0 +1,79 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-006-dsh-loop-runtime-adapter
+title: s01 — EPIC_RUNTIME validation + fail-closed unit tests — runtime config guard
+  IMPLEMENT
+status: completed
+date: '2026-08-23'
+decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s01-runtime-config-validation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- .claude/hooks/_lib.py:404-621
+- loop/tests/test_runtime_config.py:24-250
+gaps:
+  status: none
+done:
+- Added RuntimeConfig.epic_runtime with claude default.
+- Added fail-closed EPIC_RUNTIME validation for claude and dsh.
+- Added effective/source status reporting and project.env resolution.
+- Added targeted EPIC_RUNTIME tests and updated source expectations.
+files:
+- .claude/hooks/_lib.py
+- loop/tests/test_runtime_config.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py::test_epic_runtime_defaults_to_claude
+  -q --tb=short` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py::test_epic_runtime_dsh
+  -q --tb=short` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py::test_epic_runtime_invalid_fails_closed
+  -q --tb=short` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py::test_epic_runtime_status_included
+  -q --tb=short` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py::test_epic_runtime_project_env_override
+  -q --tb=short` — PASS'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_runtime_config.py -q --tb=short`
+  — PASS (29 passed)'
+integration_check:
+- 'EPIC_RUNTIME source precedence: process → project → default'
+- runtime_config_status exposes effective and source values
+grep_control: []
+verification_results:
+- 29 passed in 0.15s
+checkpoints:
+- id: cp1
+  criterion: 'test_epic_runtime_defaults_to_claude PASS: unset env → config.epic_runtime
+    == "claude"
+
+    '
+  status: done
+  done_at: '2026-08-23T15:08:32Z'
+- id: cp2
+  criterion: 'test_epic_runtime_invalid_fails_closed PASS: EPIC_RUNTIME=foo → RuntimeConfigError
+    с code=invalid_runtime_config и reason=unsupported_runtime
+
+    '
+  status: done
+  done_at: '2026-08-23T15:08:36Z'
+- id: cp3
+  criterion: 'Полный test_runtime_config.py зелёный (регрессия старых кейсов): все
+    тесты PASS
+
+    '
+  status: done
+  done_at: '2026-08-23T15:08:42Z'
+- id: cp4
+  criterion: 'runtime_config_status["effective"]["EPIC_RUNTIME"] присутствует при
+    claude и dsh
+
+    '
+  status: done
+  done_at: '2026-08-23T15:08:48Z'
+resume_from: cp1

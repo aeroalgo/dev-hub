@@ -35,9 +35,19 @@ Parent **обязан** передать секции. Нет секции → `
 5. При наличии непреодолимых дефектов допускается verdict `BLOCKED` (FINISH разрешён с BUGFIX Handoff).
 6. Итог machine SoT = JSON fence (`verdict` PASS|BLOCKED|FAIL).
 
+## Pre-emit validate-boundary (HARD)
+
+Перед финальным текстом — **один** Bash:
+
+```bash
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","recorded_at":"<iso8601>"}'
+```
+
+Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
+
 ## Gate Output (JSON fence HARD) — machine SoT
 
-Твой финальный ответ **обязан** содержать fenced JSON блок `loop-gate-verdict/v1`. Hook читает **только** его.
+Твой финальный ответ **обязан** содержать fenced JSON блок. Hook читает **только** его. Открывающая строка = ` ```json `.
 
 ```json
 {

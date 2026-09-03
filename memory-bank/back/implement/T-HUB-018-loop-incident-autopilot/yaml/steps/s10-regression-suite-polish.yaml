@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s10
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s10 — Regression suite — full tier1 fixtures + integration end-to-end IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-018-loop-incident-autopilot/yaml/steps/s10-regression-suite-polish.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/tests/fixtures/incidents/ YAML fixtures (open_tier1_eligible.yaml,
+  escalated_max_attempts.yaml, product_test_fail_not_eligible.yaml, resolved_tier1.yaml)
+- Created loop/tests/test_incidents_integration.py end-to-end integration suite for
+  tier1 full flow, max failures escalation, disabled env mode, and FakeBoardExecution
+  status tracking
+- All 85 incident suite tests and 860 total loop tests passing green
+files:
+- loop/tests/fixtures/incidents/open_tier1_eligible.yaml
+- loop/tests/fixtures/incidents/escalated_max_attempts.yaml
+- loop/tests/fixtures/incidents/product_test_fail_not_eligible.yaml
+- loop/tests/fixtures/incidents/resolved_tier1.yaml
+- loop/tests/test_incidents_integration.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_integration.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_incidents_*.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/ -q --tb=short`'
+integration_check:
+- '`.venv/bin/pytest loop/tests/test_incidents_integration.py -q --tb=short` → PASS'
+grep_control: []
+verification_results:
+- 85 passed in test_incidents_*.py & test_incidents_integration.py; 860 passed in
+  full loop/tests/
+checkpoints:
+- id: cp1
+  criterion: fixtures/incidents/ содержит минимум 4 YAML файла для parametrize
+  status: done
+  done_at: '2026-08-30T21:07:06Z'
+- id: cp2
+  criterion: 'integration: tier1 full flow resolve → no NEED_HUMAN file, incident
+    status resolved'
+  status: done
+  done_at: '2026-08-30T21:08:06Z'
+- id: cp3
+  criterion: 'integration: max fail 3× → NEED_HUMAN file exists + escalated counter
+    incremented'
+  status: done
+  done_at: '2026-08-30T21:08:19Z'
+- id: cp4
+  criterion: EPIC_INCIDENT_TIER1=0 → immediate escalate, no tier1 spawn
+  status: done
+  done_at: '2026-08-30T21:08:26Z'
+- id: cp5
+  criterion: весь suite test_incidents_*.py зелёный без xfail
+  status: done
+  done_at: '2026-08-30T21:08:34Z'
+resume_from: cp1

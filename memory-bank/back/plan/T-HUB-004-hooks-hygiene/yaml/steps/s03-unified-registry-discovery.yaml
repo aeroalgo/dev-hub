@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-004
+title: "Unified registry discovery: all hooks use _discover_registry (file-wins)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Унифицировать registry discovery: все entry hooks (pretool, posttool, user-prompt, stop-gate) используют `_lib._discover_registry` (file-wins семантика).
+  Убрать прямые вызовы `discover_registry` из hooks, которые могут приводить к process-env drift.
+  AC+ 5: тест — process env `PROJECT_AGENT_VERIFY_MODEL_LOOP=0` + file `=1` → file wins во всех entry hooks.
+
+context:
+  consumes:
+    - ".claude/hooks/_lib.py — _discover_registry ~151–158 (strips PROJECT_AGENT_*, calls discover_registry)"
+    - ".claude/hooks/agent_registry.py — discover_registry ~278–392 (4-layer: process|local|project|legacy)"
+    - ".claude/hooks/agent-pretool.py — вызовы registry (через _lib или напрямую)"
+    - ".claude/hooks/agent-posttool.py — registry не напрямую (через _lib)"
+    - ".claude/hooks/user-prompt.py — discover_registry напрямую ~63"
+    - ".claude/hooks/stop-gate.py — discover_registry напрямую ~50"
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md FR-6, AC+ 5"
+    - "loop/tests/test_agent_registry.py — тесты discover_registry с process_env/project_env"
+  produces:
+    - ".claude/hooks/_lib.py — helper _discover_registry экспортирован/документирован"
+    - ".claude/hooks/user-prompt.py — использует _discover_registry из _lib"
+    - ".claude/hooks/stop-gate.py — использует _discover_registry из _lib"
+    - "loop/tests/ — тест file-wins через _lib helper (один тест)"
+  plan_refs:
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md FR-6, AC+ 5"
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md NFR-1 (не менять settings.json)"
+  files:
+    - ".claude/hooks/_lib.py"
+    - ".claude/hooks/user-prompt.py"
+    - ".claude/hooks/stop-gate.py"
+    - "loop/tests/test_agent_registry.py (или новый test_registry_file_wins.py)"
+
+as_built:
+  - "_lib.py:151–158 — _discover_registry: process_env без PROJECT_AGENT_*, discover_registry(project_dir, process_env=...)"
+  - "_lib.py:16 — from agent_registry import discover_registry (используется в _discover_registry)"
+  - "_lib.py:166,185 — _discover_registry вызывается из _managed_definition, registry_active_agents"
+  - "user-prompt.py:22,63 — from agent_registry import discover_registry; registry = discover_registry(cwd)"
+  - "stop-gate.py:26,50 — from agent_registry import discover_registry; registry = discover_registry(cwd)"
+  - "agent-pretool.py: не импортирует discover_registry напрямую (через _lib helpers)"
+  - "agent-posttool.py: не импортирует registry (только verdict helpers)"
+
+delta:
+  - "user-prompt.py:22 — заменить `from agent_registry import discover_registry` → `from _lib import _discover_registry`"
+  - "user-prompt.py:63 — заменить `discover_registry(cwd)` → `_discover_registry(cwd)`"
+  - "stop-gate.py:26 — заменить `from agent_registry import discover_registry` → `from _lib import _discover_registry`"
+  - "stop-gate.py:50 — заменить `discover_registry(cwd)` → `_discover_registry(cwd)`"
+  - "_lib.py — добавить `_discover_registry` в __all__ если нужно (или оставить приватным с _)"
+  - "Добавить тест: process_env `PROJECT_AGENT_VERIFY_MODEL_LOOP=0` + file project.env `=1` → file wins"
+  - "Тест вызывает _discover_registry (не discover_registry напрямую) — проверяет что все entry hooks используют helper"
+
+deletes:
+  - "Прямые импорты `from agent_registry import discover_registry` в user-prompt.py и stop-gate.py (замена на _lib)"
+
+out_of_scope:
+  - "extract_verdict — это s01"
+  - "NEED_HUMAN messaging — это s02"
+  - "Alias explore — это s04"
+  - "Epic re-exports delete — это s05"
+  - "Posttool mirror/lock — это s06"
+  - "Suite smoke — это s07"
+  - "agent_registry.py внутренняя логика 4-layer — не менять, только путь вызова"
+  - "loop/context_loop.py — использует discover_registry, но не entry hook spawn-gate (не трогать)"
+
+skills:
+  code_surface: python
+  impl:
+    - tdd
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "user-prompt.py использует _discover_registry из _lib, не discover_registry напрямую"
+    verify: 'grep -n "from _lib import.*_discover_registry\\\\|_discover_registry" /home/aero/PyProject/dev-hub/.claude/hooks/user-prompt.py'
+  - id: cp2
+    criterion: "stop-gate.py использует _discover_registry из _lib, не discover_registry напрямую"
+    verify: 'grep -n "from _lib import.*_discover_registry\\\\|_discover_registry" /home/aero/PyProject/dev-hub/.claude/hooks/stop-gate.py'
+  - id: cp3
+    criterion: "agent-pretool.py и agent-posttool.py уже используют _lib helpers (не прямой import)"
+    verify: 'grep -c ''''from agent_registry import discover_registry'''' /home/aero/PyProject/dev-hub/.claude/hooks/agent-pretool.py /home/aero/PyProject/dev-hub/.claude/hooks/agent-posttool.py || echo ''''no direct imports (good)'''''
+  - id: cp4
+    criterion: "Тест file-wins через _discover_registry: process_env=0 + file=1 → file wins"
+    verify: 'grep -c ''''PROJECT_AGENT.*MODEL_LOOP.*file.wins\\\\\|_discover_registry.*file'''''''' /home/aero/PyProject/dev-hub/loop/tests/ || find /home/aero/PyProject/dev-hub/loop/tests -name ''''''''*registry*file*'''''''' -o -name ''''''''*file*wins*'''''''''''''
+  - id: cp5
+    criterion: "AC+ 5: тест проходит (file wins во всех entry hooks)"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/ -k ''registry or file_wins or discover'' -q --tb=short 2>&1 | tail -20'
+
+verify: []
+
+tdd:
+  - "Red: написать тест — process_env LOOP=0 + project.env LOOP=1 → _discover_registry возвращает loop_enabled=True (file wins)"
+  - "Red: тест проверяет что user-prompt + stop-gate через _lib дают file wins"
+  - "Green: заменить прямые вызовы → тесты зелёные"
+  - "Green: существующие тесты test_agent_registry.py не сломаны"

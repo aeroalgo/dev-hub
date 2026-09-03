@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-002
+title: s02 — Create front-tests-parent-only.mdc + rg broken-refs sweep in CLAUDE.md
+  and rules IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-002-canon-sync/yaml/steps/s02-front-tests-mdc-link-sweep.yaml
+skills_used: []
+discovery:
+- .cursor/rules/front-tests-parent-only.mdc already existed (created in s01) with
+  correct content — no rewrite needed
+- 'CLAUDE.md @.cursor/rules refs: all 6 paths exist (graphify.mdc, mainrule.mdc, shared/finish-block.mdc,
+  shared/finish-doc-router.mdc, shared/workflow-plan-multi-epic.mdc, token-economy-core.mdc)'
+- 'mainrule.mdc @.cursor/rules refs: 8 MISSING (content_growth, marketing_growth,
+  project_manager, seo_ops, team_lead directories) — archived roles, fix deferred
+  to s04 per out_of_scope'
+gaps:
+  status: deferred_s04
+done:
+- 'cp1: .cursor/rules/front-tests-parent-only.mdc exists with frontmatter + rule text'
+- 'cp2: CLAUDE.md @.cursor/rules sweep — 0 broken refs'
+- 'cp3: mainrule.mdc @.cursor/rules sweep — 8 broken refs for archived roles documented,
+  defer to s04'
+files:
+- .cursor/rules/front-tests-parent-only.mdc
+- CLAUDE.md
+- .cursor/rules/mainrule.mdc
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest -q --tb=line -k ''not test_'' --co -q 2>&1 | head
+  -5 || true`'
+- 'cp1 result: .cursor/rules/front-tests-parent-only.mdc exists — OK'
+- 'cp2 result: CLAUDE.md refs sweep — 0 broken'
+- 'cp3 result: mainrule.mdc sweep — 8 broken (archived roles) deferred to s04'
+integration_check:
+- CLAUDE.md refs intact — no edits needed (0 broken)
+- mainrule.mdc archived-role broken refs → documented, will be fixed in s04
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Файл .cursor/rules/front-tests-parent-only.mdc существует и содержит
+    frontmatter + rule text
+  status: done
+  done_at: '2026-08-22T09:32:53Z'
+- id: cp2
+  criterion: 'rg sweep CLAUDE.md: все @.cursor/rules/-пути существуют (нет 404)'
+  status: done
+  done_at: '2026-08-22T09:32:59Z'
+- id: cp3
+  criterion: 'rg sweep mainrule.mdc: все @.cursor/rules/-пути существуют'
+  status: done
+  done_at: '2026-08-22T09:33:21Z'
+resume_from: cp1

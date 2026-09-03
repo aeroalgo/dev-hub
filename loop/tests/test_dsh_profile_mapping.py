@@ -92,23 +92,63 @@ PROFILE_PHASES = {
 
 def test_install_profiles_provisions_local_bundle(tmp_path: Path) -> None:
     import os
+    import stat
     import subprocess
 
+    dsh_home = tmp_path / "dsh"
+    fakebin = tmp_path / "bin"
+    fakebin.mkdir()
+    pnpm_log = tmp_path / "pnpm.log"
+    pnpm = fakebin / "pnpm"
+    pnpm.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'printf "%s\\t%s\\n" "$PWD" "$*" >>"${PNPM_LOG}"\n'
+        'if [[ "${1:-}" != "install" ]]; then\n'
+        '  printf "unexpected pnpm args: %s\\n" "$*" >&2\n'
+        "  exit 2\n"
+        "fi\n"
+        "mkdir -p node_modules/dsh-phase-models\n"
+        "cp ../../patches/package.json node_modules/dsh-phase-models/package.json\n",
+        encoding="utf-8",
+    )
+    pnpm.chmod(pnpm.stat().st_mode | stat.S_IEXEC)
+
     env = os.environ.copy()
-    env["DSH_HOME"] = str(tmp_path)
+    env["DSH_HOME"] = str(dsh_home)
+    env["PATH"] = f"{fakebin}{os.pathsep}{env['PATH']}"
+    env["PNPM_LOG"] = str(pnpm_log)
+
     result = subprocess.run(
         ["bash", str(INSTALL_PATH)],
         cwd=ROOT,
         env=env,
         capture_output=True,
         text=True,
-        timeout=300,
+        timeout=60,
         check=False,
     )
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert (dsh_home / "patches" / "package.json").is_file()
+    assert (dsh_home / "patches" / "phase-models.yml").is_file()
+
+    log_lines = pnpm_log.read_text(encoding="utf-8").strip().splitlines()
+    assert len(log_lines) == len(PROFILE_PHASES), log_lines
+
     for profile in PROFILE_PHASES:
-        assert (tmp_path / "profiles" / profile / "node_modules" / "dsh-phase-models" / "package.json").is_file()
+        profile_dir = dsh_home / "profiles" / profile
+        assert (profile_dir / "package.json").is_file()
+        assert not (profile_dir / "node_modules" / ".pnpm").exists()
+        bundle = profile_dir / "node_modules" / "dsh-phase-models" / "package.json"
+        assert bundle.is_file()
+        assert '"name": "dsh-phase-models"' in bundle.read_text(encoding="utf-8")
+        matched = [
+            line
+            for line in log_lines
+            if str(profile_dir) in line and "install --ignore-scripts" in line
+        ]
+        assert matched, log_lines
 
 
 def test_shared_phase_models_is_a_dsh_bundle() -> None:

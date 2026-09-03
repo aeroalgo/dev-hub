@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-027-back-plan-gstack-adapt
+title: s05 — BACK QA lean load — plan §QA consumes first; finish-doc-router hint IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-027-back-plan-gstack-adapt/yaml/steps/s05-workflow-qa-consumes.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'workflow-qa.mdc ADD step 2b: epic QA — #qa-consumes load rule'
+- 'lean/qa.mdc EDIT gate 1: qa_consumes-first before full plan'
+- finish-doc-router.mdc ADD BACK QA hint
+files:
+- .cursor/rules/back_developer/workflow-qa.mdc
+- .cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+- .cursor/rules/shared/finish-doc-router.mdc
+deletes:
+- lean/qa.mdc — implicit «plan §N при неясном AC» без prior qa_consumes attempt
+- 'workflow-qa.mdc — prose defaulting to full plan load for epic QA when #qa-consumes
+  exists'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py -q --tb=line`'
+integration_check:
+- rg audit workflow-qa.mdc lean/qa.mdc finish-doc-router.mdc
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'workflow-qa.mdc содержит load rule для #qa-consumes / QA consumes'
+  status: done
+  done_at: '2026-08-31T08:53:27Z'
+- id: cp2
+  criterion: lean/qa.mdc gate 1 — qa_consumes-first documented
+  status: done
+  done_at: '2026-08-31T08:53:28Z'
+- id: cp3
+  criterion: finish-doc-router.mdc содержит QA consumes hint
+  status: done
+  done_at: '2026-08-31T08:53:29Z'
+- id: cp4
+  criterion: Старый full-plan-first fallback удалён из lean/qa gate 1 (rg audit)
+  status: done
+  done_at: '2026-08-31T08:53:30Z'
+resume_from: cp4

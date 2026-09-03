@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-045-harness-workflow-session-load-api
+title: s08 — Legacy purge — удалить manual Read load_now инструкции из rules + context_loop
+  IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/T-HUB-045-harness-workflow-session-load-api/yaml/steps/s08-legacy-purge-manual-read-instructions.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Verified sunset inventory scan: 0 hits for manual Read load_now instructions across
+  .cursor/rules, loop, harness'
+- Verified mb_paths_for_prompt fallback remains present in loop/context_loop.py
+- Verified context-session-economy.mdc references mb-load session
+files:
+- .cursor/rules/shared/context-session-economy.mdc
+- loop/context_loop.py
+deletes:
+- prose 'LLM читает load_now самостоятельно' из .mdc-правил (везде где найдено в inventory
+  scan)
+- prose 'Read N файлов из load_now' из context_loop.py prompt generation (где не fallback)
+- prose 'если неясно прочитай весь plan' из workflow rules (заменено load_plan_section
+  ref)
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_legacy_purge.py
+  -q --tb=line`'
+integration_check:
+- rg -rn 'Manual Read load_now' .cursor/rules/ || echo CLEAN
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'sunset_inventory_scan: rg ''Manual Read load_now\|читай.*load_now''
+    .cursor/rules/ → 0 hits'
+  status: done
+  done_at: '2026-09-02T04:45:45Z'
+- id: cp2
+  criterion: 'mb_paths_for_prompt fallback цел: rg ''def mb_paths_for_prompt'' loop/context_loop.py
+    → 1 hit'
+  status: done
+  done_at: '2026-09-02T04:45:45Z'
+- id: cp3
+  criterion: 'context-session-economy.mdc: содержит ''mb-load session'', не содержит
+    старый prose-блок Read×N'
+  status: done
+  done_at: '2026-09-02T04:45:45Z'
+- id: cp4
+  criterion: 'import audit: rg в .mdc ''прочитай план целиком\|load full plan'' →
+    0 hits (кроме FORBIDDEN-упоминания)'
+  status: done
+  done_at: '2026-09-02T04:45:46Z'
+resume_from: cp1

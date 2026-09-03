@@ -41,14 +41,13 @@ def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any
         if not cand.is_absolute():
             cand = cwd / cand
         parent = cand.parent if cand.is_file() else cand
-        if parent.name.startswith("decompose-"):
-            for name in ("index.yaml", "index.yml", "index.md"):
-                alt = parent / name
-                if alt.is_file():
-                    alt_rel = alt.relative_to(cwd).as_posix()
-                    loaded = load_decompose_steps_fail_closed(cwd, alt_rel)
-                    if loaded.get("ok"):
-                        break
+        for name in ("index.yaml", "index.yml", "index.md", "decompose-index.yaml", "decompose-index.md"):
+            alt = parent / name
+            if alt.is_file():
+                alt_rel = alt.relative_to(cwd).as_posix()
+                loaded = load_decompose_steps_fail_closed(cwd, alt_rel)
+                if loaded.get("ok"):
+                    break
 
     if not loaded.get("ok"):
         return None, state

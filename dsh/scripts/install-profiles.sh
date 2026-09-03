@@ -80,7 +80,8 @@ for profile in "${profiles[@]}"; do
   if [[ "$MODE" == link ]]; then
     ln -s "$profile" "$target"
   else
-    cp -R "$profile" "$target"
+    mkdir -p "$target"
+    tar -C "$profile" --exclude=node_modules -cf - . | tar -C "$target" -xf -
   fi
   (cd "$target" && CI=true pnpm install --ignore-scripts)
 done

@@ -1,0 +1,62 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-002
+title: "CLAUDE.md canon pass — Handoff/spawn/re-read wording"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Привести CLAUDE.md к каноническому состоянию: Handoff пишется только в activeContext.md
+  (не в implement-yaml), spawn указывает на spawn-hard.md как pointer с exceptions (не абсолютный
+  «L1–L2 без spawn»), TodoWrite ≤2 и re-read rules сформулированы корректно. Цель — агент
+  читает один источник истины и не путает artifact placement.
+
+context:
+  consumes:
+    - "CLAUDE.md — §Session start, §FINISH, §Context economy — IMPLEMENT/TASK/BUGFIX"
+  produces:
+    - "CLAUDE.md (edited) — исправлены §session, §finish, §spawn pointer, §re-read"
+  plan_refs:
+    - "plan/T-HUB-002-canon-sync/md/plan.md §Зафиксированные решения (FR-1, FR-2)"
+    - "plan/T-HUB-002-canon-sync/md/plan.md §AC+ #1, AC+ #2, AC− #1"
+  files:
+    - "CLAUDE.md"
+
+as_built:
+  - "CLAUDE.md:48–57 — §Session start: читай load_now; §FINISH: 5 пунктов + Handoff в activeContext"
+  - "CLAUDE.md:67–71 — §Context economy: Silent chat, TodoWrite ≤2, re-read rules, spawn L1–L2 без spawn (абсолюдная формулировка)"
+  - "CLAUDE.md:57 — '5 точек + FAIL в finish-block' — wording не связывает Handoff явно с activeContext.md"
+  - "CLAUDE.md:71 — 'IMPLEMENT L1–L2 без spawn если shard + paths уже известны parent'у' — нет pointer на spawn-hard.md"
+
+delta:
+  - "CLAUDE.md §FINISH п.1: добавить явное '→ activeContext.md ## Handoff' (не implement-yaml)"
+  - "CLAUDE.md §Context economy spawn строка: заменить 'IMPLEMENT L1–L2 без spawn ...' на 'pointer: .claude/instructions/spawn-hard.md (exceptions: delta_paths_exist, MODEL_LOOP)'"
+  - "CLAUDE.md §Session start п.3: уточнить 'ONE task shard + ONE plan shard' что это для load, не Handoff"
+  - "CLAUDE.md §Context economy re-read: убедиться что activeContext.md re-read policy корректна (1× start + 1× before FINISH)"
+
+deletes:
+  - "CLAUDE.md:71 — строка 'IMPLEMENT L1–L2 без spawn если shard + paths уже известны parent'у' как самостоятельная политика (→ заменяется pointer)"
+
+out_of_scope:
+  - "Другие файлы (mainrule.mdc, spawn-hard.md) — s04, s06"
+  - "Архив ролей PM/TL vendor — out_of_scope эпика"
+
+skills:
+  code_surface: docs
+  impl: []
+  # docs-only шаг — Core (tdd/python-*) не применяется
+
+checkpoints:
+  - id: cp1
+    criterion: "Строка spawn в CLAUDE.md содержит pointer 'spawn-hard.md' и не является абсолютным запретом L1–L2"
+    verify: "grep -n 'spawn-hard' /home/aero/PyProject/dev-hub/CLAUDE.md | head -5"
+  - id: cp2
+    criterion: "CLAUDE.md §FINISH или §Session содержит 'activeContext.md' как место Handoff (не только 'implement-*.md')"
+    verify: "grep -n 'activeContext\\|Handoff' /home/aero/PyProject/dev-hub/CLAUDE.md | head -10"
+  - id: cp3
+    criterion: "Нет строки 'L1–L2 без spawn' как standalone правило (удалена или преобразована в pointer)"
+    verify: "grep -c 'L1–L2 без spawn' /home/aero/PyProject/dev-hub/CLAUDE.md || true"
+
+verify: []
+tdd: []

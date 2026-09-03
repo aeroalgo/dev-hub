@@ -1,0 +1,89 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-007-dsh-profiles-presets
+title: s01 — sync-agent-md-to-presets.py + preset files (TDD) — frontmatter strip
+  IMPLEMENT
+status: completed
+date: '2026-08-27'
+decompose_ref: memory-bank/back/plan/T-HUB-007-dsh-profiles-presets/yaml/steps/s01-sync-agent-md-to-presets.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'explorer: dsh scaffold and dynamic-import test pattern — loop/tests/test_agent_registry.py:7-17'
+- 'explorer: source agent definitions — .claude/agents/{verify,reviewer,explorer}.md'
+gaps:
+  status: none
+done:
+- Добавлен dsh/scripts/sync-agent-md-to-presets.py с typed strip_frontmatter, генерацией
+  трёх пресетов и --check.
+- Сгенерированы dsh/presets/verify.prompt.md, reviewer.prompt.md и explorer.prompt.md
+  из .claude/agents/*.md без YAML frontmatter.
+- Добавлен loop/tests/test_dsh_profile_mapping.py с AC+, frontmatter, idempotency
+  и source-tracking проверками.
+files:
+- dsh/scripts/sync-agent-md-to-presets.py
+- dsh/presets/verify.prompt.md
+- dsh/presets/reviewer.prompt.md
+- dsh/presets/explorer.prompt.md
+- loop/tests/test_dsh_profile_mapping.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -k "strip
+  or frontmatter" -q --tb=short`'
+- '`python3 dsh/scripts/sync-agent-md-to-presets.py --check`'
+integration_check:
+- Каждый preset строится напрямую из соответствующего .claude/agents/{verify,reviewer,explorer}.md;
+  монтирование в cordis.patch.yml отложено в s02.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- cp1 PASS — test_sync_verify_preset_contains_ac_plus
+- cp2 PASS — --check успешно завершён, в dsh/presets ровно 3 *.prompt.md
+- cp3 PASS — два targeted frontmatter-теста зелёные
+- cp4 PASS — test_sync_verify_preset_tracks_agent_md
+- suite PASS — 7 passed in 3.67s
+- red→green PASS — первый AC+ тест был красным до добавления sync-скрипта и зелёным
+  после
+- idempotency PASS — test_sync_idempotent
+- AC− PASS — .claude/agents/*.md не изменялись; cordis.patch.yml и runtime dispatch
+  не затрагивались
+- §0.11 PASS — source/preset mapping проверен тестами и rg
+- No deletes — decompose deletes пуст
+- No gaps — gaps.status=none
+checkpoints:
+- id: cp1
+  criterion: 'test_sync_verify_preset_contains_ac_plus PASS: dsh/presets/verify.prompt.md
+    содержит текст AC+ секции из .claude/agents/verify.md
+
+    '
+  status: done
+  done_at: '2026-08-27T17:40:43Z'
+- id: cp2
+  criterion: 'sync script создаёт все 3 пресета (verify, reviewer, explorer) без ошибок
+
+    '
+  status: done
+  done_at: '2026-08-27T17:40:53Z'
+- id: cp3
+  criterion: 'strip_frontmatter удаляет YAML frontmatter: вход с ''---\nname: x\n---\nbody''
+    → ''body''
+
+    '
+  status: done
+  done_at: '2026-08-27T17:41:03Z'
+- id: cp4
+  criterion: 'NFR-1: при изменении .claude/agents/verify.md AC+ текст, re-run sync
+    → preset обновляется и тест проходит
+
+    '
+  status: done
+  done_at: '2026-08-27T17:41:19Z'
+resume_from: cp1

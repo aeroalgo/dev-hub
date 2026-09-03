@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-017-loop-observability-foundation
+title: s09 — Операционный контекст — runbooks per diagnostic_code + loop README §Observability
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-017-loop-observability-foundation/yaml/steps/s09-runbooks-docs-readme.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Созданы 7 runbook файлов в loop/incidents/runbooks/
+- Создан loop/incidents/README.md с описанием формата реестра и переменных окружения
+- Добавлен § Observability & Incident Diagnostics в loop/README.md
+files:
+- loop/incidents/runbooks/mark_index_missing.md
+- loop/incidents/runbooks/fingerprint_stall.md
+- loop/incidents/runbooks/index_mirror_drift.md
+- loop/incidents/runbooks/premature_epic_done.md
+- loop/incidents/runbooks/stale_owner.md
+- loop/incidents/runbooks/checkpoint_drift.md
+- loop/incidents/runbooks/active_context_shape_invalid.md
+- loop/incidents/README.md
+- loop/README.md
+- loop/incidents/registry.yaml
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest loop/tests -q --tb=line
+integration_check:
+- ls loop/incidents/runbooks/*.md | wc -l >= 7
+- rg -n 'Observability' loop/README.md
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: ≥7 runbook files exist; registry.yaml runbook paths resolve
+  status: done
+  done_at: '2026-08-30T19:16:07Z'
+- id: cp2
+  criterion: loop/incidents/README.md documents registry version + extension + env
+    vars
+  status: done
+  done_at: '2026-08-30T19:16:15Z'
+- id: cp3
+  criterion: loop/README.md содержит § Observability с incidents/trace/metrics/doctor
+  status: done
+  done_at: '2026-08-30T19:16:26Z'
+resume_from: cp1

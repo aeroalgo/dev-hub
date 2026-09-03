@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-018-loop-incident-autopilot
+title: s04 — loop.sh tier1 branch — spawn incident session + re-check_after + decide
+  IMPLEMENT
+status: completed
+date: '2026-08-30'
+decompose_ref: memory-bank/back/plan/T-HUB-018-loop-incident-autopilot/yaml/steps/s04-loop-sh-incident-branch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented loop/incidents/tier1_runner.py with get_tier1_attempts, should_attempt_tier1,
+  and run_tier1_session
+- Integrated tier1 incident branch into loop/loop.sh
+- Added full test suite in loop/tests/test_check_after_tier1_wire.py
+files:
+- loop/incidents/tier1_runner.py
+- loop/loop.sh
+- loop/tests/test_check_after_tier1_wire.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -q --tb=line`'
+integration_check:
+- '`.venv/bin/pytest loop/tests/test_check_after_tier1_wire.py -q --tb=line` passes
+  8/8'
+- Full pytest suite 822 passed
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'should_attempt_tier1: attempts < MAX + eligible → True; attempts >=
+    MAX → False; EPIC_INCIDENT_TIER1=0 → False'
+  status: done
+  done_at: '2026-08-30T20:02:18Z'
+- id: cp2
+  criterion: tier0 fail + eligible → tier1 spawned (mock claude); re-check_after called
+    after spawn
+  status: done
+  done_at: '2026-08-30T20:02:38Z'
+- id: cp3
+  criterion: tier1 session success → incident resolved tier=1 в store; decide=continue
+  status: done
+  done_at: '2026-08-30T20:03:05Z'
+- id: cp4
+  criterion: tier1 fail × MAX → escalate called (не зациклен)
+  status: done
+  done_at: '2026-08-30T20:03:17Z'
+resume_from: cp1

@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-003
+title: "Docs: epic-loop.md / WORKFLOW.md / architecture data-flow canon"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+goal: |
+  Привести документацию к as-built: runtime root = `HUB_ROOT/runtime/<slug>/epic/`, не `PROJECT_ROOT/.claude/runtime/`.
+  epic-loop.md: убрать или пометить legacy `.claude/runtime/epic/` как "старый путь / HUB_* only legacy".
+  WORKFLOW.md: recovery path использует hub runtime.
+  architecture/data-flow.md: runtime paths правдивые.
+  AC− 2: нигде не вводить автоматическое удаление product dirs.
+context:
+  consumes:
+    - ".claude/instructions/epic-loop.md — текущий canonic runtime path"
+    - "loop/WORKFLOW.md — recovery section"
+    - "loop/README.md — если есть runtime section"
+    - "memory-bank/architecture/data-flow.md — runtime flow"
+    - "plan/T-HUB-003-loop-halt/md/plan.md FR-7, AC+ 5, AC− 2, AC− 3"
+  produces:
+    - ".claude/instructions/epic-loop.md — runtime canon hub path"
+    - "loop/WORKFLOW.md — recovery path обновлён"
+    - "memory-bank/architecture/data-flow.md — runtime paths честные"
+  plan_refs:
+    - "plan/T-HUB-003-loop-halt/md/plan.md FR-7, AC+ 5"
+    - "plan/T-HUB-003-loop-halt/md/plan.md §Replacement/sunset row 3"
+  files:
+    - ".claude/instructions/epic-loop.md"
+    - "loop/WORKFLOW.md"
+    - "loop/README.md"
+    - "memory-bank/architecture/data-flow.md"
+as_built:
+  - ".claude/instructions/epic-loop.md — найти строки с '.claude/runtime' / 'epic/' / 'last-session'"
+  - "loop/WORKFLOW.md — найти recovery/restart section"
+  - "memory-bank/architecture/data-flow.md — runtime flow entries"
+delta:
+  - |
+    epic-loop.md: заменить `.claude/runtime/epic/` на `runtime/<slug>/epic/` (hub-rooted);
+    если упоминается как legacy — добавить комментарий "legacy path (product cwd); канон: HUB_ROOT/runtime/<slug>/epic/"
+  - "WORKFLOW.md recovery section: указать `<hub>/runtime/<slug>/epic/state.json` + `last-session.json`"
+  - "architecture/data-flow.md: добавить/исправить путь last-session.json → тот же epic_dir"
+  - "README.md если содержит recovery steps: синхронизировать"
+  - "Нигде не писать 'rm -rf' или 'delete' product runtime dirs"
+deletes:
+  - "Строки в epic-loop.md где PROJECT_ROOT/.claude/runtime/epic/ фигурирует как primary канон"
+out_of_scope:
+  - "workers.md — s05"
+  - "Cursor-hooks note — s06"
+  - "Реальный код epic_paths / loop.sh — s02, s03"
+skills:
+  code_surface: docs
+  impl: []
+checkpoints:
+  - id: cp1
+    criterion: "AC+ 5: rg '.claude/runtime/epic' epic-loop.md — строк 0 или помечены legacy"
+    verify: "rg -n '\\.claude/runtime/epic' /home/aero/PyProject/dev-hub/.claude/instructions/epic-loop.md || echo 'clean'"
+  - id: cp2
+    criterion: "WORKFLOW.md recovery section содержит 'runtime/<slug>/epic' или 'HUB_ROOT/runtime'"
+    verify: "rg -n 'runtime.*slug\\|HUB_ROOT.*runtime\\|recovery' /home/aero/PyProject/dev-hub/loop/WORKFLOW.md | head -10"
+  - id: cp3
+    criterion: "architecture/data-flow.md runtime paths обновлены (нет противоречия с code)"
+    verify: "rg -n 'runtime\\|last.session\\|epic_dir' /home/aero/PyProject/dev-hub/memory-bank/architecture/data-flow.md | head -15"
+verify: []
+tdd: []

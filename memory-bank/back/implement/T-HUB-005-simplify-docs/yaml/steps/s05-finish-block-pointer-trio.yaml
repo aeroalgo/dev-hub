@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-005
+title: s05 — finish-block.mdc header pointer trio — block/doc-router/template routing
+  index in header IMPLEMENT
+status: completed
+date: '2026-08-22'
+decompose_ref: memory-bank/back/plan/T-HUB-005-simplify-docs/yaml/steps/s05-finish-block-pointer-trio.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added pointer-trio index stub after YAML frontmatter in finish-block.mdc
+- Trio lines — Порядок → finish-block; Routing load_now → finish-doc-router.mdc; Fill-in
+  → finish-doc-router.md
+- Left body/§Порядок/§5 точек and existing fill-in links (lines ~14-15) unchanged
+- wc -l grew 79 → 83 (additions only)
+files:
+- .cursor/rules/shared/finish-block.mdc
+deletes: []
+tests:
+- '`head -15 .cursor/rules/shared/finish-block.mdc | rg ''Порядок|Routing|Fill-in|doc-router''`
+  — present'
+- '`rg -n ''finish-doc-router|finish-doc-router.md'' .cursor/rules/shared/finish-block.mdc
+  | head -5` — present'
+- '`wc -l .cursor/rules/shared/finish-block.mdc` — 83 (≥79)'
+- '`rg -n ''## Порядок|## 5 точек'' .cursor/rules/shared/finish-block.mdc` — both
+  present'
+- '`timeout 300s .venv/bin/pytest --co -q 2>/dev/null | head -1 || true` (docs-only)'
+integration_check:
+- test -f .cursor/rules/shared/finish-doc-router.mdc
+- test -f .cursor/templates/finish-doc-router.md
+- head -15 .cursor/rules/shared/finish-block.mdc | rg 'Порядок|Routing|Fill-in'
+grep_control: []
+verification_results:
+- 'cp1: pointer trio present immediately after frontmatter'
+- 'cp2: finish-doc-router refs in header + body'
+- 'cp3: wc -l = 83 (was 79)'
+- 'cp4: ## Порядок and ## 5 точек intact'
+- 'counterparts_ok: finish-doc-router.mdc and template untouched'
+checkpoints:
+- id: cp1
+  criterion: finish-block.mdc начинается с pointer trio (или содержит его сразу после
+    frontmatter)
+  status: done
+  done_at: '2026-08-22T19:48:12Z'
+- id: cp2
+  criterion: 'AC+ #5: finish-block начинается с pointer на doc-router + template'
+  status: done
+  done_at: '2026-08-22T19:48:12Z'
+- id: cp3
+  criterion: wc -l finish-block.mdc не уменьшился (только добавления)
+  status: done
+  done_at: '2026-08-22T19:48:12Z'
+- id: cp4
+  criterion: 'Семантика §Порядок / 5 точек не изменена: строка ''## Порядок'' всё
+    ещё есть'
+  status: done
+  done_at: '2026-08-22T19:48:12Z'
+resume_from: cp1

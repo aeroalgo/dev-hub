@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s11
+plan_id: T-HUB-016
+title: s11 — Audit remediation — configurable DSH self-limit with validated default/override
+  IMPLEMENT
+status: completed
+date: '2026-08-29'
+decompose_ref: memory-bank/back/plan/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s11-audit-self-limit-config.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery:
+- graphify N/A — hub repository; inventory scoped to stop-gate.py and its DSH tests.
+gaps:
+  status: none
+done:
+- Exposed DSH_SELF_LIMIT_MAX with validated default 8, process-env precedence, project.env
+  fallback, and bounds 1..100.
+- Preserved fail-closed behavior for malformed or non-positive/out-of-range configuration
+  with an explicit diagnostic.
+- Added DSH self-limit tests for default threshold, valid override, invalid override,
+  counter behavior, reset, and diagnostic allow.
+files:
+- .claude/hooks/stop-gate.py
+- .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s11-audit-self-limit-config.yaml
+deletes: []
+tests:
+- timeout 300s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+  -q --tb=line (7 passed)
+- timeout 300s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py::test_dsh_block_under_limit
+  -q --tb=short (1 passed)
+- timeout 300s .venv/bin/pytest .claude/hooks/tests/test_stop_gate_dsh_self_limit.py::test_dsh_allow_at_limit
+  -q --tb=short (1 passed)
+- python3 -m py_compile .claude/hooks/stop-gate.py .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+  (passed)
+integration_check:
+- DSH_HOOKS_BRIDGE and EPIC_RUNTIME=dsh select the DSH-only branch; Claude-path stop
+  handling remains outside it.
+- DSH_SELF_LIMIT_MAX is resolved from process environment first, then merged project
+  environment, with explicit validation.
+grep_control:
+- back: rg -n "DSH_SELF_LIMIT_DEFAULT|DSH_SELF_LIMIT_MAX|_dsh_self_limit|_is_dsh_runtime|dsh_consecutive_blocks"
+    .claude/hooks/stop-gate.py .claude/hooks/tests/test_stop_gate_dsh_self_limit.py
+    — all expected references present.
+  front: n/a
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Default DSH self-limit matches the agreed plan value 8.
+  status: done
+  done_at: '2026-08-29T20:46:03Z'
+- id: cp2
+  criterion: A valid configured limit is honored.
+  status: done
+  done_at: '2026-08-29T20:46:04Z'
+- id: cp3
+  criterion: An invalid configured limit fails closed with an explicit diagnostic.
+  status: done
+  done_at: '2026-08-29T20:46:04Z'
+resume_from: cp1

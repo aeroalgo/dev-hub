@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-029-epic-phase-transition-engine
+title: s09 — DSH presets + epic-gate mapping (T-HUB-008 integration) IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-029-epic-phase-transition-engine/yaml/steps/s09-dsh-presets-epic-gate-mapping.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added dsh_preset fields per phase in loop/schemas/phase_registry.yaml
+- Added get_dsh_preset public function in loop/epic_transition.py
+- Updated arm_phase to validate and inject dsh_preset when EPIC_RUNTIME=dsh
+- Added tests test_get_dsh_preset_implement, test_arm_phase_dsh_injects_preset, test_arm_phase_dsh_missing_preset_fails_closed
+files:
+- loop/schemas/phase_registry.yaml
+- loop/epic_transition.py
+- loop/tests/test_epic_transition.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_epic_transition.py -q --tb=line`'
+integration_check:
+- get_dsh_preset and arm_phase DSH integration verified via pytest
+grep_control: []
+verification_results:
+- all 4 checkpoints green and test_epic_transition.py full suite passed (22 passed)
+checkpoints:
+- id: cp1
+  criterion: 'get_dsh_preset("IMPLEMENT") == "implement"
+
+    '
+  status: done
+  done_at: '2026-08-31T11:11:49Z'
+- id: cp2
+  criterion: 'test_arm_phase_dsh_injects_preset PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T11:12:16Z'
+- id: cp3
+  criterion: 'test_arm_phase_dsh_missing_preset_fails_closed PASS
+
+    '
+  status: done
+  done_at: '2026-08-31T11:12:33Z'
+- id: cp4
+  criterion: 'Регрессия: test_epic_transition.py full suite green
+
+    '
+  status: done
+  done_at: '2026-08-31T11:12:46Z'
+resume_from: cp1

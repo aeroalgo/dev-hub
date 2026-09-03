@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-023-hooks-llm-fallbacks
+title: s05 — pydantic-ai secondary — verdict/handoff/abort runners fail-soft IMPLEMENT
+status: completed
+date: '2026-08-31'
+decompose_ref: memory-bank/back/plan/T-HUB-023-hooks-llm-fallbacks/yaml/steps/s05-pydantic-ai-secondary-runners-fail-soft.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented run_gate_verdict_llm, run_handoff_llm, run_abort_llm in llm_structured.py
+  with fail-soft handling
+- Implemented parse_handoff_meta in _lib.py with YAML frontmatter primary and LLM
+  secondary fallback
+- Implemented classify_abort_structured in session_resilience.py
+files:
+- .claude/hooks/llm_structured.py
+- .claude/hooks/_lib.py
+- .claude/hooks/session_resilience.py
+- loop/tests/test_hooks_llm_secondary.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hooks_llm_secondary.py -q`'
+integration_check:
+- Verified run_gate_verdict_llm, run_handoff_llm, run_abort_llm, parse_handoff_meta,
+  classify_abort_structured integration
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: run_gate_verdict_llm с disabled flag → None, без Agent.run call
+  status: done
+  done_at: '2026-08-31T17:35:00Z'
+- id: cp2
+  criterion: run_gate_verdict_llm с mocked Agent.run → GateVerdictRecord
+  status: done
+  done_at: '2026-08-31T17:35:07Z'
+- id: cp3
+  criterion: run_abort_llm exception → None (fail-soft)
+  status: done
+  done_at: '2026-08-31T17:35:08Z'
+- id: cp4
+  criterion: parse_handoff_meta с valid YAML frontmatter → dict без LLM call
+  status: done
+  done_at: '2026-08-31T17:35:08Z'
+resume_from: cp1

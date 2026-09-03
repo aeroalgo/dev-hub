@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-004
+title: "NEED_HUMAN messaging: pretool BLOCKED→NEED_HUMAN, spawn-hard sync"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Заменить все `BLOCKED: verify_no_verdict` в `agent-pretool.py` на `NEED_HUMAN: verify_no_verdict`.
+  Обновить `spawn-hard.md` и `stop-gate.py` messaging для согласованности (NEED_HUMAN only).
+  Regex `has_blocked_verify_no_verdict` может временно принимать оба (compat), с комментарием deprecate BLOCKED.
+  AC+ 3: rg -n 'BLOCKED: verify_no_verdict' .claude/hooks/agent-pretool.py → 0.
+
+context:
+  consumes:
+    - ".claude/hooks/agent-pretool.py — строки с BLOCKED: verify_no_verdict (deny_reasons)"
+    - ".claude/hooks/stop-gate.py — has_blocked_verify_no_verdict, verify_no_verdict_exhausted"
+    - ".claude/instructions/spawn-hard.md — messaging NEED_HUMAN / BLOCKED"
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md FR-4, FR-5, AC+ 3, NFR-2"
+    - "memory-bank/audit/workflow-loop-20260816/hooks-legacy.md — противоречие BLOCKED vs NEED_HUMAN"
+  produces:
+    - ".claude/hooks/agent-pretool.py — только NEED_HUMAN: verify_no_verdict"
+    - ".claude/instructions/spawn-hard.md — messaging sync (NEED_HUMAN)"
+    - "stop-gate.py — compat regex с комментарием deprecate BLOCKED"
+  plan_refs:
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md FR-4, FR-5, AC+ 3"
+    - "plan/T-HUB-004-hooks-hygiene/md/plan.md NFR-2 (не ослаблять stop-gate)"
+  files:
+    - ".claude/hooks/agent-pretool.py"
+    - ".claude/hooks/stop-gate.py"
+    - ".claude/instructions/spawn-hard.md"
+
+as_built:
+  - "agent-pretool.py:141–145 — deny_reasons: `BLOCKED: verify_no_verdict` при incomplete≥1 && retries≥1"
+  - "stop-gate.py:1210–1212 — BLOCKED_VERIFY_NO_VERDICT_RE = (BLOCKED|NEED_HUMAN): verify_no_verdict"
+  - "stop-gate.py:845–878 — test_stop_gate_allows_need_human_verify_no_verdict: Handoff с NEED_HUMAN"
+  - "spawn-hard.md:179 — 'Handoff `NEED_HUMAN: verify_no_verdict` → allow stop'"
+  - "loop/context_loop.py:446 — Handoff `NEED_HUMAN: verify_no_verdict`"
+
+delta:
+  - "agent-pretool.py:142–144 — заменить `BLOCKED: verify_no_verdict` → `NEED_HUMAN: verify_no_verdict` в deny_reasons"
+  - "agent-pretool.py:143 — убрать упоминание `BLOCKED:` из комментария"
+  - "spawn-hard.md:179 — подтвердить NEED_HUMAN (уже корректно; проверить consistency)"
+  - "stop-gate.py:1210–1212 — добавить комментарий: `# compat: принимает BLOCKED и NEED_HUMAN; deprecate BLOCKED в 004`"
+  - "stop-gate.py:1221 — has_blocked_verify_no_verdict: regex уже compat, не менять логику"
+  - "Проверить loop/context_loop.py, test_*.py — они уже используют NEED_HUMAN (не трогать)"
+
+deletes:
+  - "Строка `BLOCKED: verify_no_verdict` в agent-pretool.py (замена на NEED_HUMAN)"
+
+out_of_scope:
+  - "extract_verdict — это s01"
+  - "Registry discovery — это s03"
+  - "Alias explore — это s04"
+  - "Epic re-exports delete — это s05"
+  - "Posttool mirror/lock — это s06"
+  - "Suite smoke — это s07"
+  - "loop.sh halt (T-HUB-003) — DoNotTouch AC− 2"
+  - "session_resilience / agents overlay — DoNotTouch NFR-4"
+  - "loop/context_loop.py messaging — уже NEED_HUMAN, не трогать"
+
+skills:
+  code_surface: python
+  impl:
+    - tdd
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "agent-pretool.py не содержит `BLOCKED: verify_no_verdict`"
+    verify: 'rg -n ''''BLOCKED: verify_no_verdict'''' /home/aero/PyProject/dev-hub/.claude/hooks/agent-pretool.py || echo ''''BLOCKED removed from pretool'''''
+  - id: cp2
+    criterion: "agent-pretool.py содержит `NEED_HUMAN: verify_no_verdict` в deny_reasons"
+    verify: 'grep -n ''''NEED_HUMAN: verify_no_verdict'''' /home/aero/PyProject/dev-hub/.claude/hooks/agent-pretool.py'
+  - id: cp3
+    criterion: "spawn-hard.md messaging согласован (NEED_HUMAN)"
+    verify: 'grep -n ''''NEED_HUMAN.*verify_no_verdict'''' /home/aero/PyProject/dev-hub/.claude/instructions/spawn-hard.md'
+  - id: cp4
+    criterion: "stop-gate.py regex compat с комментарием deprecate"
+    verify: 'grep -n "deprecate BLOCKED\\|compat.*BLOCKED" /home/aero/PyProject/dev-hub/.claude/hooks/stop-gate.py"'
+  - id: cp5
+    criterion: "AC+ 3: rg BLOCKED в pretool → 0"
+    verify: 'rg -c ''''BLOCKED: verify_no_verdict'''' /home/aero/PyProject/dev-hub/.claude/hooks/agent-pretool.py; echo ''''count should be 0'''''
+  - id: cp6
+    criterion: "Регрессия: test_stop_gate_allows_need_human_verify_no_verdict всё ещё проходит"
+    verify: 'cd /home/aero/PyProject/dev-hub && timeout 300s .venv/bin/pytest loop/tests/test_stop_gate.py -k ''need_human'' -q --tb=short 2>&1 | tail -10'
+
+verify: []
+
+tdd:
+  - "Red: после замены BLOCKED→NEED_HUMAN в pretool, проверить что deny срабатывает корректно"
+  - "Green: тест test_stop_gate_allows_need_human_verify_no_verdict использует NEED_HUMAN в Handoff — ожидается pass"
+  - "Green: AC+ 3: rg -n 'BLOCKED: verify_no_verdict' agent-pretool.py → 0"
+  - "Regression: stop-gate / verify_no_verdict exhausted paths не сломаны"

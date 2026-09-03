@@ -1,0 +1,52 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-016
+title: "Audit remediation — live DSH dump-config evidence"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть source_ref FR-008 / SC-001 / AC+SC-001: выполнить реальный
+  `dsh --profile epic-implement --dump-config` на установленном pinned profile и
+  доказать, что runtime-конфигурация содержит dsh-hooks-claude-code.
+context:
+  consumes:
+    - memory-bank/back/audit/T-HUB-016-dsh-cc-hooks-bridge/audit-20260829-dsh-cc-hooks-bridge.yaml
+    - dsh/profiles/epic-implement/cordis.patch.yml
+    - dsh/patches/cc-hooks-bridge.yml
+  produces:
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s08-audit-live-dump-config.yaml
+  plan_refs:
+    - "FR-008"
+    - "SC-001"
+    - "AC+SC-001"
+    - "F1: live dump-config evidence missing"
+  files:
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s08-audit-live-dump-config.yaml
+
+as_built:
+  - "Static YAML smoke exists in tests/test_cc_hooks_bridge_config.py, but no live DSH dump-config result is recorded."
+delta:
+  - "Run the pinned DSH profile dump-config smoke and capture an assertion/result that the bridge plugin is emitted."
+deletes: []
+out_of_scope:
+  - "Changing the bridge fragment or profile wiring."
+  - "Full DSH session E2E."
+
+skills:
+  code_surface: infra
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Installed pinned epic-implement profile dump-config emits dsh-hooks-claude-code."
+    verify: "timeout 300s dsh --profile epic-implement --dump-config | grep -q 'dsh-hooks-claude-code'"
+  - id: cp2
+    criterion: "The captured result records configPath and projectDir in the emitted bridge configuration."
+    verify: "Record the exact command, exit code, and bounded output excerpt in implement evidence."
+
+verify:
+  - "timeout 300s dsh --profile epic-implement --dump-config | grep -q 'dsh-hooks-claude-code'"
+  - "Record non-zero executed output and bridge fields."
+tdd: []
