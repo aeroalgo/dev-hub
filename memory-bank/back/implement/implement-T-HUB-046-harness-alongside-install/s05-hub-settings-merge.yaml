@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-046-harness-alongside-install
+title: 's05 — loop/hub_settings_merge.py: settings.json hooks merge (preserve user permissions) IMPLEMENT'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-046-harness-alongside-install/s05-hub-settings-merge.yaml
+skills_used:
+  - writing-plans
+discovery: []
+gaps:
+  status: none
+done:
+  - Created loop/hub_settings_merge.py with merge_settings and merge_hooks functions
+  - Preserved user permissions and deep-merged hooks sections without duplicate commands
+  - Created automatic .claude/settings.json.hub-backup snapshot prior to modification
+  - Handled missing user settings by copying harness settings template
+  - Added unit test suite in loop/tests/test_hub_settings_merge.py covering all scenarios
+files:
+  - loop/hub_settings_merge.py
+  - loop/tests/test_hub_settings_merge.py
+deletes: []
+tests:
+  - bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line
+integration_check:
+  - bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line
+grep_control: []
+verification_results:
+  - "5 passed in 0.06s"
+checkpoints:
+  - id: cp1
+    criterion: merge preserves user permissions.deny
+    status: done
+    done_at: '2026-09-03T00:00:00Z'
+  - id: cp2
+    criterion: merge adds harness hooks; no duplicate entries on re-run
+    status: done
+    done_at: '2026-09-03T00:00:00Z'
+  - id: cp3
+    criterion: backup file created before modification
+    status: done
+    done_at: '2026-09-03T00:00:00Z'
+resume_from: cp1

@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-046-harness-alongside-install
+title: "loop/tests/test_hub_link_alongside.py: full suite + extend test_hub_link_harness.py"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать полный `loop/tests/test_hub_link_alongside.py` (TM-001, TM-002, TM-005, TM-006, TM-007)
+  и расширить `test_hub_link_harness.py` для coverage TM-003 (full mode regression).
+  Все P0 test scenarios из plan §Test matrix — green.
+  Outcome: CI gate `test_hub_link_alongside.py` PASS = FR-010, SC-001, SC-004.
+
+context:
+  consumes:
+    - "bin/hub-link (s03 output)"
+    - "loop/hub_claude_patch.py (s04 output)"
+    - "bin/hub-unlink (s06 output)"
+    - "plan §Test matrix"
+    - "FR-010"
+  produces:
+    - "loop/tests/test_hub_link_alongside.py (complete)"
+    - "loop/tests/test_hub_link_harness.py (extended)"
+  plan_refs:
+    - "FR-010"
+    - "TM-001"
+    - "TM-002"
+    - "TM-003"
+    - "TM-005"
+    - "TM-006"
+    - "TM-007"
+    - "SC-001"
+    - "SC-004"
+    - "US-006"
+  files:
+    - "loop/tests/test_hub_link_alongside.py"
+    - "loop/tests/test_hub_link_harness.py"
+
+as_built:
+  - "loop/tests/test_hub_link_harness.py — tests full-mode hub-link (exists)"
+  - "loop/tests/test_hub_link_alongside.py — not yet created (partial stubs from s03/s04/s06)"
+
+delta:
+  - "finalize test_hub_link_alongside.py: all TM-00x scenarios, temp dir fixtures, no side effects on dev-hub root"
+  - "test_alongside_clean_fixture: harness symlink + router stub + CLAUDE.harness.md created"
+  - "test_alongside_preserves_claude (TM-001): pre-existing CLAUDE.md body unchanged after install"
+  - "test_alongside_skips_cursor_rules (TM-002): pre-existing .cursor/rules not touched"
+  - "test_alongside_fails_on_conflict (TM-005): alongside fails if installer would overwrite non-stub"
+  - "test_alongside_unlink: unlink removes artifacts, originals intact"
+  - "extend test_hub_link_harness.py: add explicit --mode=full fixture (TM-003)"
+
+deletes: []
+
+out_of_scope:
+  - "test_hub_settings_merge.py — separate test file (s05 owns it)"
+  - "TM-004 (harness symlink resolve) — covered by test_harness_paths.py if exists, else add to alongside suite"
+  - "Playwright / UI tests — not applicable (CLI tool)"
+
+skills:
+  code_surface: api
+  impl:
+    - "python-testing-patterns"
+
+checkpoints:
+  - id: cp1
+    criterion: "all TM-001, TM-002, TM-005 scenarios green in alongside suite"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py -q --tb=short"
+  - id: cp2
+    criterion: "full mode regression test passes with --mode=full explicit fixture"
+    verify: "bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short"
+  - id: cp3
+    criterion: "no test modifies dev-hub root (all ops in tmpdir)"
+    verify: "rg 'DEV_HUB.*=.*\\.' loop/tests/test_hub_link_alongside.py | wc -l  # should be 0 for root-targeting patterns"
+
+verify:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py loop/tests/test_hub_link_harness.py -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_link_alongside.py"
+  - "loop/tests/test_hub_link_harness.py"

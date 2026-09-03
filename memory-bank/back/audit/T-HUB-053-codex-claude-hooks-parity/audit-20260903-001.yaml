@@ -1,0 +1,18 @@
+schema: epic-audit/v1
+epic_id: T-HUB-053-codex-claude-hooks-parity
+date: "2026-09-03"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements FR-001 through FR-010 of T-HUB-053 (codex-claude-hooks-parity) are fully implemented and verified.
+  All decompose steps s01 through s08 are completed in index.yaml.
+  Full Codex/Claude hooks parity achieved: probe schema validation, extended EVENT_MAPPING, manifest codex runtime
+  hooks enablement, generator nested matchers & timeouts, payload normalize tool_name aliases fail-closed, parity
+  matrix module + runtime-sync --check, behavior bridge tests, docs/runbook updates, and legacy partial-parity purge.

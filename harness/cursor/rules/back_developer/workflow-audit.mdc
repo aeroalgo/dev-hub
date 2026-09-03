@@ -1,0 +1,47 @@
+---
+description: "Режим BACK AUDIT — PLAN vs IMPLEMENT gap-анализ, append-only remediation и converge"
+alwaysApply: false
+---
+### Команда: BACK AUDIT
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
+**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-audit.mdc
+**Behavior-first / anti-dilution (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc
+**Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
+**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать suite или отдельные тесты; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE; **remap / перенумерация plan FR** под sNN titles.
+
+**Процесс**:
+1. `OK BACK AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до любой оценки.
+2. **Intent Inventory (plan-first HARD):** из **`plan-<epic_id>.md`** собрать **полный** список FR/SC/US/AC±/NFR и constitution MUST **+ path nodes из Target layout** (behavior-first §1a). Decompose `index.md` / remapped `plan_refs` / урезанное «Кратко» — **вторичный** индекс (не источник списка). Каждый intent: `source_ref` (`FR-###`, `SC-###`, `US#/AC#`, `plan:<section>`, `layout:<path>`, `Constitution <rule>`) → связать с eNN/sNN **или** finding `missing` CRITICAL. Supersede/merge: FR из superseded plan тоже в inventory.
+   **FORBIDDEN:** inventory только из схлопнутого decompose; **FORBIDDEN** audit `id: FR-00N` с title ≠ plan FR-00N; **FORBIDDEN** ✅ / `satisfied` на «файл есть», если Target layout path ещё не ship'нут и нет `follow_up`+queue.
+   **Constitution case selection (portable):**
+   - **CASE A** — существует `$PROJECT_ROOT/memory-bank/constitution.md`: проверять canonical constitution + явные refs в workflow/plan; `constitution-note.md` **не** создавать.
+   - **CASE B** — файла нет: требовать отдельный constitution note (или явный `constitution: n/a` в audit artifact с reason); MUST-проверки без SoT = FAIL.
+   **FORBIDDEN:** выбирать CASE по hardcoded epic ID.
+3. **Triple Assess (HARD) — три слоя, не один:**
+   - **A. PLAN vs runtime (главный):** каждый plan FR/US/AC/layout → `plan_vs_runtime[]` status `satisfied|partial|missing|deferred` по **behavior** evidence в repo (не presence-only; не «sNN completed»).
+   - **B. Step matrix:** каждый `sNN|eNN` ✅/❌/⚠️ vs implement headers + evidence (как раньше).
+   - **C. Architecture parity:** Target layout / HOW target tree vs фактические paths → `architecture_parity[]`. Subset layout ≠ satisfied.
+   **`satisfied` FORBIDDEN** если evidence = только registry row / alias / unit lookup / «модуль есть», а FR требует agent file / preset / hook enforce / CLI.
+   Appetite `cut_list` ∩ живой plan FR/layout без queue ID → finding `layout_dilution` CRITICAL.
+4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding: `gap_type` (`missing|partial|contradicts|unrequested|layout_dilution|dilution`), `severity`, `source_ref`, `evidence`, `remaining_work`. CRITICAL из constitution MUST, P1 intent, dilution/missing plan FR, layout gaps — первыми.
+5. **Append remediation**: для каждого actionable `missing`, `partial` или `contradicts`, а также leftover, создать новый `decompose-<epic_id>/sNN-audit-<slug>.yaml` по шаблону epic-step (**с `plan_contract`**). Append-only: completed implement shard не переписывать. В новом shard `goal`/`plan_refs`/`plan_contract.fr_ids` содержат traceable `source_ref`; обновить `index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`. `unrequested` — только finding + decision в `remaining_work`.
+6. **Dual-write и leftovers**: findings → legacy `implemented[]`, `not_implemented[]`, `deviations[]`. Brownfield: **`sunset_inventory_scan`** (rg по каждой строке plan sunset A/B/C); `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Пустой leftover **без scan** = FAIL.
+7. **Converged / loop**: `converged: true` только когда actionable findings отсутствуют, **каждый plan FR имеет behavior evidence**, **каждый Target layout path закрыт step или follow_up+queue**, **architecture_parity без missing**, **scan complete**, leftovers пусты, `purge_step_present=true` (либо `sunset: n/a`). **FORBIDDEN** `converged: true` при metadata-only / layout_dilution / remapped FR matrix. Тогда `BACK QA`; иначе audit shards → `BACK DECOMPOSE` (если нужны новые slices) / `BACK IMPLEMENT` → повторный `BACK AUDIT`.
+8. **FINISH**: `memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`, tasks log, finish-block (`code_changed: no`) · `## Handoff BACK AUDIT`.
+
+**Boundary ANALYZE ≠ AUDIT**:
+
+| BACK ANALYZE | BACK AUDIT |
+|---|---|
+| До IMPLEMENT, read-only plan/decompose, без implement YAML | После реализации: **PLAN↔runtime** + step matrix + architecture parity |
+| Ловит coverage/ambiguity/**dilution**/FR remap; не создаёт audit shards | `findings[]` + append-only `sNN-audit-*` |
+| `critical_count=0` — hard gate в IMPLEMENT | `converged` → QA либо IMPLEMENT → AUDIT |
+
+**Operating Constraints**:
+- Lean inspection: plan, decompose/index, implement headers, evidence по file list; не full-text всех shards / full-repo.
+- Completed implement — append-only; AUDIT не меняет код.
+- AUDIT не запускает pytest/vitest/Playwright/suite.
+- Не MODE CONVERGE; не auto-delete unrequested.
+
+**Верификация**: Intent Inventory **из plan** полон и **без FR remap**; Triple Assess заполнен; `epic-audit/v2` + `plan_vs_runtime` + `architecture_parity`; findings обязательные поля; remediation shards с `plan_contract`; leftovers A/B/C; `converged` только при plan parity.

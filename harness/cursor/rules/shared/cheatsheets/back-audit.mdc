@@ -4,12 +4,13 @@ alwaysApply: false
 ---
 # Hot path (BACK AUDIT)
 
-1. Intent Inventory **из plan** (все FR/US — не только remapped decompose) + constitution CASE A/B
-2. Assess = **behavior** evidence (presence/registry/alias ≠ satisfied)
-3. Append-only `sNN-audit-*` для actionable gaps + sync index
+1. Intent Inventory **из plan** (все FR/US + Target layout — **verbatim IDs**, не remapped decompose)
+2. **Triple Assess:** PLAN↔runtime · step ✅/❌/⚠️ · architecture_parity (layout tree)
+   - presence/registry ≠ satisfied · deferred Notes без queue → `layout_dilution` CRITICAL
+3. Append-only `sNN-audit-*` (+ `plan_contract`) для gaps → sync index
 4. Brownfield: `sunset_inventory_scan` + leftovers + `purge_step_present`
-5. `converged: true` только без actionable + с behavior evidence по каждому plan FR → QA; иначе IMPLEMENT → AUDIT ↻
+5. `converged: true` только при полном plan parity → QA; иначе IMPLEMENT → AUDIT ↻
 
 → full: @.cursor/rules/back_developer/workflow-audit.mdc  
 → behavior-first: @.cursor/rules/shared/workflow-behavior-first.mdc  
-→ ANALYZE ≠ AUDIT · no pytest · no MODE CONVERGE
+→ ANALYZE ≠ AUDIT · no pytest · no MODE CONVERGE · no FR remap

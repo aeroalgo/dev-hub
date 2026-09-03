@@ -547,6 +547,8 @@ def write_last_finish_tool(
     }
     if finished_step is not None:
         st["last_finished_step"] = str(finished_step)
+        finished_epic = str(st.get("armed_epic") or "").strip()
+        st["last_finished_epic"] = finished_epic or None
     if armed_after_finish is not None:
         st["armed_after_finish"] = str(armed_after_finish)
     save_epic_state(cwd, st)

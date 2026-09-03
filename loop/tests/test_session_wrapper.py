@@ -648,6 +648,69 @@ def test_command_not_found_in_result_json_is_not_abort(tmp_path: Path) -> None:
     assert analysis_codex["aborted"] is False
 
 
+def test_permanent_auth_phrase_in_tool_prose_exit0_is_not_abort(tmp_path: Path) -> None:
+    """Runbook/doc prose with 'Authentication error' must not HALT on clean exit 0."""
+    sr = _load_resilience()
+    log = tmp_path / "auth-prose.log"
+    stream = {
+        "type": "stream_event",
+        "event": {
+            "type": "content_block_delta",
+            "delta": {
+                "type": "input_json_delta",
+                "partial_json": (
+                    '| `Authentication error / Token expired` | '
+                    "Codex session unauthenticated |"
+                ),
+            },
+        },
+    }
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        + json.dumps(stream)
+        + "\n"
+        '{"type":"result","subtype":"success","is_error":false,'
+        '"result":"s07 done; troubleshooting mentions Authentication error"}\n'
+        "SESSION_END session=1 exit_code=0 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+    assert sr.detect_abort_in_log(log, exit_code=0) is None
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1, runtime="claude")
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+    assert analysis["reason"] is None
+
+
+def test_permanent_auth_phrase_still_aborts_on_nonzero_exit(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "auth-real.log"
+    log.write_text(
+        "SESSION_START session=1 mode=headless command=claude\n"
+        "Authentication error\n"
+        "SESSION_END session=1 exit_code=1 elapsed=0.2s\n",
+        encoding="utf-8",
+    )
+    reason = sr.detect_abort_in_log(log, exit_code=1)
+    assert reason == "Authentication error"
+    analysis = sr.analyze_session_log(log, exit_code=1, attempt=1, runtime="claude")
+    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["aborted"] is True
+    assert analysis["retryable"] is False
+
+
+@pytest.mark.skipif(
+    not (ROOT / "runtime/dev-hub/epic/session-53.log").is_file(),
+    reason="session-53.log from T-HUB-053 s07 false-positive incident",
+)
+def test_session_53_auth_prose_false_positive_regression() -> None:
+    sr = _load_resilience()
+    log = ROOT / "runtime/dev-hub/epic/session-53.log"
+    assert sr.detect_abort_in_log(log, exit_code=0) is None
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1, runtime="claude")
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+
+
 def test_run_session_writes_stdin_payload(tmp_path: Path, monkeypatch) -> None:
     sr = _load_resilience()
     fake_codex = ROOT / "loop" / "tests" / "fixtures" / "fake_codex.sh"

@@ -1,0 +1,52 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-046-harness-alongside-install
+role: back
+next_phase: BACK IMPLEMENT
+steps:
+- id: s01
+  file: s01-harness-cursor-tree-move.yaml
+  title: git mv .cursor/rules + .cursor/templates → harness/cursor/; replace hub symlinks
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-harness-claude-tree.yaml
+  title: Create harness/claude/ (CLAUDE.harness.md, settings.harness.json, router
+    stub)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-hub-link-alongside-mode.yaml
+  title: 'bin/hub-link: --mode alongside|full flag; alongside core install logic'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-claude-md-patch.yaml
+  title: 'loop/hub_claude_patch.py: CLAUDE.md marker-block patch logic'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-hub-settings-merge.yaml
+  title: 'loop/hub_settings_merge.py: settings.json hooks merge (preserve user permissions)'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-hub-unlink-alongside.yaml
+  title: 'bin/hub-unlink: --mode alongside — remove installer artifacts only'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-hub-link-test-suite.yaml
+  title: 'loop/tests/test_hub_link_alongside.py: full suite + extend test_hub_link_harness.py'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-legacy-hub-link-full-purge.yaml
+  title: 'Delete in-epic: purge implicit full-replace paths (hub-link no-mode = alongside
+    now)'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-harness-readme-docs.yaml
+  title: 'harness/README.md: alongside vs full install modes documentation'
+  next_phase: BACK IMPLEMENT
+  status: completed

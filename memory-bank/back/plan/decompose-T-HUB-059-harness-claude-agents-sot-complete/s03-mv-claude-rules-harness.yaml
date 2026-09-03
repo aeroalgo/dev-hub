@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "git mv .claude/rules → harness/claude/rules + symlink (SoT rules)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перенести `.claude/rules` в `harness/claude/rules` как единственный SoT;
+  заменить `.claude/rules` на symlink `../harness/claude/rules`.
+  После шага все rule markdown-файлы редактируются только в harness.
+
+plan_contract:
+  fr_ids: [FR-003, US-001, SC-001, SC-002]
+  nouns: [".claude/rules", "harness/claude/rules", "symlink"]
+  layout_paths:
+    - "harness/claude/rules/"
+    - ".claude/rules"
+  ac_quotes:
+    - ".claude/rules — symlink; readlink -f → …/harness/claude/rules"
+    - "harness/claude/rules — SoT"
+  plan_jumps:
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:104-104"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:163-202"
+
+context:
+  consumes:
+    - "s01, s02 done (harness/claude/commands + skills exist)"
+  produces:
+    - "harness/claude/rules/ (SoT directory, moved from .claude/rules)"
+    - ".claude/rules -> ../harness/claude/rules (symlink)"
+  plan_refs:
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §FR-003"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §US-001"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §SC-001 SC-002"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §Target layout"
+  files:
+    - "harness/claude/rules/"
+    - ".claude/rules"
+
+as_built:
+  - ".claude/rules — real directory; содержит markdown rule files"
+  - "harness/claude/ — существует (s01–s02)"
+
+delta:
+  - "git mv .claude/rules harness/claude/rules"
+  - "rm -rf .claude/rules (если остался как real dir)"
+  - "ln -s ../harness/claude/rules .claude/rules"
+
+deletes:
+  - ".claude/rules (real dir — replaced by symlink; content moved to harness/claude/rules)"
+
+out_of_scope:
+  - "s01–s02: commands/skills mv (done)"
+  - "s04: .agents/skills mv (следующий шаг)"
+  - "full pytest suite (s07)"
+
+skills:
+  code_surface: shell
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: harness/claude/rules существует и содержит rule files
+    verify: "test -d harness/claude/rules && ls harness/claude/rules | head -3"
+  - id: cp2
+    criterion: .claude/rules — symlink, разрешается в harness/claude/rules
+    verify: "test -L .claude/rules && readlink -f .claude/rules | grep harness/claude/rules"
+  - id: cp3
+    criterion: нет dual SoT — .claude/rules не real dir
+    verify: "test ! -d .claude/rules -o -L .claude/rules"
+  - id: cp4
+    criterion: rg — нет мест, создающих .claude/rules как real dir
+    verify: "rg -l 'mkdir.*\\.claude/rules' bin/ loop/ harness/ || true"
+
+verify: []
+tdd:
+  - "loop/tests/test_harness_paths.py: assert test -L .claude/rules + readlink → harness/claude/rules"

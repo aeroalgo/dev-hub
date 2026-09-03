@@ -578,6 +578,7 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
             "armed_role": "BACK",
             "armed_step": "s01",
             "last_finished_step": "s01",
+            "last_finished_epic": "T-TEST-001",
             "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
         },
     )
@@ -615,4 +616,103 @@ def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
     assert res.get("last_finished_step") == "s01"
     assert res.get("armed_step") == "s01"
 
+
+def test_arm_phase_allows_same_phase_on_different_epic(tmp_path: Path) -> None:
+    """Cross-epic DECOMPOSE after another epic finished DECOMPOSE must not step_loop_forbidden."""
+    from loop.epic_transition import arm_phase
+    from harness.hooks.epic.core import load_epic_state, save_epic_state
+
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": "T-HUB-047-prev",
+            "armed_role": "BACK",
+            "armed_step": "ANALYZE",
+            "last_finished_step": "DECOMPOSE",
+            "last_finished_epic": "T-HUB-047-prev",
+            "armed_after_finish": "ANALYZE",
+        },
+    )
+
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    plan_rel = "memory-bank/back/plan/plan-T-HUB-059-next.md"
+    (tmp_path / plan_rel).write_text("# plan\n", encoding="utf-8")
+
+    res = arm_phase(
+        tmp_path,
+        "T-HUB-059-next",
+        "DECOMPOSE",
+        "back",
+        target_rel=plan_rel,
+    )
+
+    assert res.get("ok") is True
+    assert res.get("diagnostic_code") is None
+    assert str(res.get("armed_step") or "").upper() == "DECOMPOSE"
+    assert res.get("epic_id") == "T-HUB-059-next"
+
+    st = load_epic_state(tmp_path)
+    assert st.get("armed_epic") == "T-HUB-059-next"
+    assert st.get("armed_step") == "DECOMPOSE"
+    assert st.get("last_finished_step") is None
+    assert st.get("last_finished_epic") is None
+
+
+def test_arm_phase_allows_same_phase_on_different_epic_legacy_without_finished_epic(
+    tmp_path: Path,
+) -> None:
+    """Legacy state: only last_finished_step + armed_epic — still allow other epic."""
+    from loop.epic_transition import arm_phase
+    from harness.hooks.epic.core import load_epic_state, save_epic_state
+
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": "T-HUB-047-prev",
+            "armed_role": "BACK",
+            "armed_step": "ANALYZE",
+            "last_finished_step": "DECOMPOSE",
+        },
+    )
+    plan_rel = "memory-bank/back/plan/plan-T-HUB-059-next.md"
+    (tmp_path / plan_rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / plan_rel).write_text("# plan\n", encoding="utf-8")
+
+    res = arm_phase(
+        tmp_path,
+        "T-HUB-059-next",
+        "DECOMPOSE",
+        "back",
+        target_rel=plan_rel,
+    )
+    assert res.get("ok") is True
+    st = load_epic_state(tmp_path)
+    assert st.get("armed_epic") == "T-HUB-059-next"
+    assert st.get("last_finished_step") is None
+
+
+def test_write_last_finish_tool_records_last_finished_epic(tmp_path: Path) -> None:
+    from harness.hooks.epic.core import load_epic_state, save_epic_state, write_last_finish_tool
+
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": "T-HUB-047-prev",
+            "armed_step": "DECOMPOSE",
+        },
+    )
+    assert write_last_finish_tool(
+        tmp_path,
+        "mb-finish decompose",
+        finished_step="DECOMPOSE",
+        armed_after_finish="ANALYZE",
+    )
+    st = load_epic_state(tmp_path)
+    assert st.get("last_finished_step") == "DECOMPOSE"
+    assert st.get("last_finished_epic") == "T-HUB-047-prev"
+    assert st.get("armed_after_finish") == "ANALYZE"
 

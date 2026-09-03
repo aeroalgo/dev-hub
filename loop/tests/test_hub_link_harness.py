@@ -16,7 +16,7 @@ def test_hub_link_idempotent(tmp_path: Path):
     hub_link_bin = hub_dir / "bin" / "hub-link"
 
     # First run
-    res1 = subprocess.run([str(hub_link_bin), str(product_dir)], env=env, capture_output=True, text=True)
+    res1 = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
     assert res1.returncode == 0, f"First hub-link failed: {res1.stderr}"
 
     # Verify .claude/hooks exists in product
@@ -24,7 +24,7 @@ def test_hub_link_idempotent(tmp_path: Path):
     assert product_hooks.exists()
 
     # Second run (idempotent)
-    res2 = subprocess.run([str(hub_link_bin), str(product_dir)], env=env, capture_output=True, text=True)
+    res2 = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
     assert res2.returncode == 0, f"Second hub-link failed: {res2.stderr}"
 
 
@@ -37,7 +37,7 @@ def test_product_hooks_resolve(tmp_path: Path):
     env = dict(os.environ, DEV_HUB=str(hub_dir))
     hub_link_bin = hub_dir / "bin" / "hub-link"
 
-    res = subprocess.run([str(hub_link_bin), str(product_dir)], env=env, capture_output=True, text=True)
+    res = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
     assert res.returncode == 0
 
     product_hooks = product_dir / ".claude" / "hooks"
@@ -56,7 +56,7 @@ def test_product_settings_hook_paths_resolve(tmp_path: Path):
     env = dict(os.environ, DEV_HUB=str(hub_dir))
     hub_link_bin = hub_dir / "bin" / "hub-link"
 
-    res = subprocess.run([str(hub_link_bin), str(product_dir)], env=env, capture_output=True, text=True)
+    res = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
     assert res.returncode == 0
 
     settings_path = product_dir / ".claude" / "settings.json"

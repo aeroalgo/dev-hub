@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-046-harness-alongside-install
+title: "bin/hub-link: --mode alongside|full flag; alongside core install logic"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `bin/hub-link` флагом `--mode alongside|full` (default `alongside`).
+  `alongside` install: symlink `harness/` → $DEV_HUB/harness; write `.dev-hub` pointer;
+  write `.cursor/rules.d/dev-hub-harness-router.mdc` из stub шаблона;
+  symlink `CLAUDE.harness.md` → harness/claude/CLAUDE.harness.md;
+  создать `AGENTS.md` stub если отсутствует; **не трогать** pre-existing regular files.
+  Outcome: `hub-link --mode=alongside` на чужом репо = exit 0 без перезаписи user файлов.
+
+context:
+  consumes:
+    - "bin/hub-link (current full-replace logic)"
+    - "harness/cursor/stubs/dev-hub-harness-router.mdc (s02 output)"
+    - "plan §Target layout (product repo, alongside)"
+    - "plan §FR-004, FR-005"
+  produces:
+    - "bin/hub-link — --mode flag + alongside branch"
+  plan_refs:
+    - "FR-004"
+    - "FR-005"
+    - "US-001 (preserve CLAUDE.md)"
+    - "US-002 (router stub)"
+    - "AC #2"
+    - "SC-001"
+  files:
+    - "bin/hub-link"
+
+as_built:
+  - "bin/hub-link — installs full symlink tree (no --mode flag, exits 2 on conflict)"
+  - "uses link_one / rel_or_abs helpers"
+
+delta:
+  - "add --mode alongside|full argparse option (default alongside)"
+  - "alongside branch: link_one harness/ → $DEV_HUB/harness"
+  - "alongside branch: write .dev-hub file with DEV_HUB path"
+  - "alongside branch: mkdir .cursor/rules.d/; copy/symlink router stub from harness/cursor/stubs/"
+  - "alongside branch: symlink CLAUDE.harness.md → harness/claude/CLAUDE.harness.md"
+  - "alongside branch: create AGENTS.md stub only if missing"
+  - "alongside branch: fail-closed if target is regular file (not installer-owned stub)"
+  - "full branch: current hub-link behavior unchanged (guard: assert mode=='full')"
+
+deletes: []
+
+out_of_scope:
+  - "CLAUDE.md patch (marker block) — separate module, covered in s04"
+  - "settings.json merge — covered in s05"
+  - "hub-unlink --mode alongside — covered in s06"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "hub-link --help shows --mode alongside|full"
+    verify: "python3 bin/hub-link --help | grep 'mode'"
+  - id: cp2
+    criterion: "alongside on clean product fixture: harness/ symlink + .dev-hub + router stub created; CLAUDE.md absent = no CLAUDE.md created"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_clean_fixture -q --tb=short"
+  - id: cp3
+    criterion: "alongside on fixture with existing regular file: exit non-zero, file untouched"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_fails_on_conflict -q --tb=short"
+  - id: cp4
+    criterion: "full mode regression: existing test_hub_link_harness.py still passes"
+    verify: "bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_link_alongside.py (new file, covers alongside core)"

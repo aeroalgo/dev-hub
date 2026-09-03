@@ -227,6 +227,38 @@ def enrich_with_ac(report: TraceReport, ac_map: dict[str, list[str]], strict: bo
     report.high_count = sum(1 for f in report.findings if f.severity == "HIGH")
 
 
+_DEFER_CLAIM_RE = re.compile(
+    r"\bdeferred\b|\bpartial\b|leave for later|follow[\s-]?up|если не нужно",
+    re.IGNORECASE,
+)
+_FOLLOW_UP_ID_RE = re.compile(
+    r"follow_up:\s*(T-[\w-]+)|(?<![\w-])(T-(?:HUB|FRONT|INTEG)-[\w-]+)",
+    re.IGNORECASE,
+)
+
+
+def oos_has_valid_follow_up(text: str) -> bool:
+    """True when out_of_scope line names a follow-up epic ID."""
+    return bool(_FOLLOW_UP_ID_RE.search(text or ""))
+
+
+def oos_is_invalid_deferral(text: str) -> bool:
+    """Deferral/partial claim without follow_up epic ID → invalid escape hatch."""
+    raw = text or ""
+    if not _DEFER_CLAIM_RE.search(raw):
+        return False
+    return not oos_has_valid_follow_up(raw)
+
+
+def oos_covers_requirement(text: str, req: str) -> bool:
+    """Count OOS as coverage only if it mentions req and is not an invalid deferral."""
+    if req not in (text or ""):
+        return False
+    if oos_is_invalid_deferral(text):
+        return False
+    return True
+
+
 def run_checks(
     plan_reqs: list[str],
     decomp_refs: dict[str, ShardTrace],
@@ -236,10 +268,11 @@ def run_checks(
     """Run traceability rules on parsed requirements, decompose refs, and implement evidence.
 
     Rules:
-    (a) FR/SC/US in plan without any sNN covering it in plan_refs or out_of_scope -> CRITICAL
+    (a) FR/SC/US in plan without any sNN covering it in plan_refs or valid out_of_scope -> CRITICAL
     (b) sNN without plan_refs and not out_of_scope -> HIGH (or CRITICAL if strict)
     (c) completed implement without tests -> HIGH (or CRITICAL if strict)
     (d) coverage_pct < 80% -> MEDIUM
+    (e) out_of_scope deferral/partial without follow_up:T-… epic ID -> CRITICAL (not coverage)
     """
     findings: list[Finding] = []
     finding_idx = 1
@@ -257,9 +290,9 @@ def run_checks(
                     break
             if is_covered:
                 break
-            # Check out_of_scope
+            # Check out_of_scope (valid deferral with follow_up ID counts; bare deferred does not)
             for oos in shard.out_of_scope:
-                if req in oos:
+                if oos_covers_requirement(oos, req):
                     is_covered = True
                     break
             if is_covered:
@@ -290,6 +323,21 @@ def run_checks(
                 )
             )
             finding_idx += 1
+
+        for oos in shard.out_of_scope:
+            if oos_is_invalid_deferral(oos):
+                findings.append(
+                    Finding(
+                        id=f"TR-{finding_idx:03d}",
+                        severity="CRITICAL",
+                        message=(
+                            f"Shard {shard_id} out_of_scope deferral without follow_up epic ID "
+                            f"in queue form (need `follow_up: T-…`): {oos[:120]}"
+                        ),
+                        shard=shard_id,
+                    )
+                )
+                finding_idx += 1
 
     # Check implement evidence
     for shard_id, ev in impl_ev.items():
@@ -339,7 +387,7 @@ def build_report(
             is_covered = False
             for shard in decomp_refs.values():
                 if any(req in ref for ref in shard.plan_refs) or any(
-                    req in oos for oos in shard.out_of_scope
+                    oos_covers_requirement(oos, req) for oos in shard.out_of_scope
                 ):
                     is_covered = True
                     break
@@ -379,7 +427,7 @@ def format_report(report: TraceReport, json_mode: bool = False) -> str:
                 step_id
                 for step_id, shard in report.shards.items()
                 if any(req in ref for ref in shard.plan_refs)
-                or any(req in oos for oos in shard.out_of_scope)
+                or any(oos_covers_requirement(oos, req) for oos in shard.out_of_scope)
             ]
             matrix.append(
                 {

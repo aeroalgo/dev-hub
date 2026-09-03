@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-046-harness-alongside-install
+title: "Delete in-epic: purge implicit full-replace paths (hub-link no-mode = alongside now)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить / заблокировать legacy full-replace behavior из hub-link: после s03 default=alongside,
+  значит вызов `hub-link` без флага больше не делает full-replace.
+  Провести import-audit: убедиться, что нет скриптов/CI, вызывающих hub-link без --mode=full
+  и ожидающих full-replace поведения (кроме явного --mode=full).
+  Outcome: AC- #2 enforced — default install остаётся alongside; implicit full-replace невозможен.
+
+context:
+  consumes:
+    - "bin/hub-link (s03 output — mode flag added)"
+    - "plan §Technology axiom (FORBIDDEN: implicit full-replace без флага)"
+    - "plan §Replacement cleanup column"
+  produces:
+    - "bin/hub-link (no legacy default-full path)"
+    - "import audit evidence (grep clean)"
+  plan_refs:
+    - "AC- #2"
+    - "SC-004"
+    - "plan §Technology axiom"
+  files:
+    - "bin/hub-link"
+
+as_built:
+  - "bin/hub-link — no --mode flag, always full-replace (legacy behavior)"
+  - "bin/hub-link: exit 2 on conflict without alongside option"
+
+delta:
+  - "confirm s03 default=alongside is correct; no separate code change if s03 already done"
+  - "grep hub-link callers in Makefile, CI scripts, docs for implicit full usage"
+  - "update any callers that must stay full to explicitly pass --mode=full"
+  - "add assertion / comment in hub-link: default='alongside' is intentional (no silent fallback)"
+
+deletes:
+  - "implicit default full-replace code path in bin/hub-link (replaced by alongside default in s03)"
+
+sunset_scope:
+  required: true
+  boundary_id: "hub-link-full-implicit"
+  new_sot: "bin/hub-link --mode alongside (default)"
+  allow_read:
+    - "bin/hub-link"
+    - "bin/hub-unlink"
+    - "Makefile"
+    - ".github/**"
+    - "docs/**"
+    - "memory-bank/**/*.md"
+  kind_hint:
+    - B
+    - C
+
+out_of_scope:
+  - "harness/README.md documentation update — covered in s09"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "grep hub-link callers: no calls without --mode flag that expect full-replace behavior"
+    verify: "rg 'hub-link' Makefile .github/ bin/ --no-heading | grep -v 'mode' | grep -v '#'"
+  - id: cp2
+    criterion: "hub-link without --mode on clean fixture performs alongside (not full-replace)"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_is_default -q --tb=short"
+  - id: cp3
+    criterion: "SC-004 — no silent fallback alongside→full in error path"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_fails_on_conflict -q --tb=short"
+
+verify:
+  - "rg 'hub-link' Makefile .github/ bin/ | grep -v 'mode\\|#\\|test' || true"
+  - "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_is_default -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_link_alongside.py (add test_alongside_is_default)"

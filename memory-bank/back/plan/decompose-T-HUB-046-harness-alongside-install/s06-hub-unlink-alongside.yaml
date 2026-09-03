@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-046-harness-alongside-install
+title: "bin/hub-unlink: --mode alongside — remove installer artifacts only"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `bin/hub-unlink` флагом `--mode alongside|full`.
+  `alongside` unlink: удалить только installer-owned artifacts:
+    - harness/ symlink, CLAUDE.harness.md symlink, .dev-hub file,
+    - .cursor/rules.d/dev-hub-harness-router.mdc stub,
+    - strip marker block из CLAUDE.md (content outside markers preserved),
+    - restore .claude/settings.json из .hub-backup если backup существует.
+  Не удалять user-authored CLAUDE.md, user .cursor/rules, user settings.
+  Outcome: US-004 — unlink removes harness; user originals intact.
+
+context:
+  consumes:
+    - "bin/hub-unlink (current full-unlink logic)"
+    - "loop/hub_claude_patch.py (s04) — strip_claude_md_block function"
+    - "plan §FR-008"
+  produces:
+    - "bin/hub-unlink — --mode flag + alongside branch"
+  plan_refs:
+    - "FR-008"
+    - "US-004"
+    - "AC #5"
+    - "AC- #5 (user CLAUDE.md content preserved)"
+  files:
+    - "bin/hub-unlink"
+
+as_built:
+  - "bin/hub-unlink — removes full symlink tree (no mode distinction)"
+
+delta:
+  - "add --mode alongside|full argparse option (default alongside)"
+  - "alongside branch: remove harness/ symlink if installer-owned (check .dev-hub)"
+  - "alongside branch: remove CLAUDE.harness.md symlink"
+  - "alongside branch: remove .dev-hub file"
+  - "alongside branch: remove .cursor/rules.d/dev-hub-harness-router.mdc"
+  - "alongside branch: call hub_claude_patch.strip_block(CLAUDE.md) → remove marker block, preserve rest"
+  - "alongside branch: restore settings.json from .hub-backup if exists; delete backup"
+  - "full branch: current hub-unlink behavior unchanged"
+
+deletes: []
+
+out_of_scope:
+  - "multi-generation backup history — one backup only (plan spec)"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "alongside unlink removes harness/ symlink and .dev-hub; CLAUDE.md user content intact"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_unlink -q --tb=short"
+  - id: cp2
+    criterion: "unlink strips marker block; user lines outside markers preserved"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_unlink_preserves_claude_body -q --tb=short"
+  - id: cp3
+    criterion: "settings backup restored on unlink"
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py::test_unlink_restores_settings -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py -k unlink -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_link_alongside.py (add test_alongside_unlink, test_alongside_unlink_preserves_claude_body)"
+  - "loop/tests/test_hub_settings_merge.py (add test_unlink_restores_settings)"

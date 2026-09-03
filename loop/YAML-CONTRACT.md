@@ -57,19 +57,19 @@ python3 .claude/hooks/epic_resolve.py sync-index-yaml \
 
 Поля трассируемости шагов (`epic-decompose/v1` и `epic-implement/v1`):
 
-- **`plan_refs`** (`list[str]`, required на decompose-shards): ссылки на требования/пункты плана (например `"plan-T-HUB-024 FR-011"`). Каждое requirement ID из плана должно покрываться хотя бы одним `plan_refs` или `out_of_scope`.
-- **`out_of_scope`** (`list[str]`, optional): документирует намеренный пропуск требования или вынос функционала за рамки конкретного шага/эпика.
-- **`evidence.files`** (`list[str]` в implement-шарде): список созданных или изменённых файлов реализации.
-- **`evidence.tests`** (`list[str]` в implement-шарде): список файлов тестов, подтверждающих корректность работы.
-- **`status`** (`completed`): статус завершения шага в implement-шарде. Статус `completed` требует наличие непустого `evidence.files` (или явного `n/a`) и непустого `evidence.tests`.
+- **`plan_refs`** (`list[str]`, required на decompose-shards): ссылки на требования/пункты плана (например `"plan-T-HUB-024 FR-011"`). Каждое requirement ID из плана должно покрываться хотя бы одним `plan_refs` или **валидным** `out_of_scope`.
+- **`plan_contract`** (`dict`, **required** на decompose-shards): `fr_ids` · `nouns` · `layout_paths` · `ac_quotes` · `plan_jumps` — bake plan WHAT для IMPLEMENT. `validate-decompose-tree` fail-closed без блока.
+- **`out_of_scope`** (`list[str]`, optional): пропуск/соседний шаг. Строки с `deferred`/`partial`/`follow-up` **без** `follow_up: T-…` → **CRITICAL** в `validate-traceability` и **не** считаются coverage.
+- **`evidence.files`** / **`evidence.tests`** / **`status`** — как раньше для implement.
 
 ### Валидация трассируемости (`validate-traceability`)
 
-Таблица проверяемых полей и правила CLI `epic_resolve validate-traceability`:
+| Поле | Тип | Условие / Ошибка | Severity |
+|------|-----|------------------|----------|
+| `plan_refs` / `out_of_scope` | `list[str]` | Requirement не в plan_refs и не в **валидном** out_of_scope | CRITICAL |
+| `out_of_scope` deferral | `list[str]` | deferred/partial/follow-up без `follow_up: T-…` | CRITICAL |
+| `plan_refs` & `out_of_scope` | `list[str]` | Оба пустые | HIGH / CRITICAL (--strict) |
+| `evidence.tests` | `list[str]` | completed без tests | HIGH / CRITICAL (--strict) |
+| `@pytest.mark.ac` | marker | нет AC markers | MEDIUM / HIGH (--strict) |
 
-| Поле | Тип | Проверяемое условие / Ошибка | Severity |
-|------|-----|------------------------------|----------|
-| `plan_refs` / `out_of_scope` | `list[str]` | Requirement из плана (FR-*, SC-*, US-*) не входит ни в один `plan_refs` / `out_of_scope` shard | CRITICAL |
-| `plan_refs` & `out_of_scope` | `list[str]` | Shard содержит пустые `plan_refs` и `out_of_scope` | HIGH / CRITICAL (--strict) |
-| `evidence.tests` | `list[str]` | Implement shard имеет `status: completed`, но `tests` пуст | HIGH / CRITICAL (--strict) |
-| `@pytest.mark.ac` | string marker | Требование из плана не имеет тестов с маркером `@pytest.mark.ac("...")` | MEDIUM / HIGH (--strict) |
+`validate-decompose-tree` дополнительно: каждый shard имеет `plan_contract`; index.md Notes без bare deferred.

@@ -1,22 +1,70 @@
 #!/usr/bin/env bash
 # Link hub tooling into a product repo so Cursor sees rules/skills/templates.
 # Usage:
-#   DEV_HUB=/path/to/dev-hub ./bin/hub-link [/path/to/product]
+#   DEV_HUB=/path/to/dev-hub ./bin/hub-link [--mode alongside|full] [/path/to/product]
 #   (from product) make hub-link
 set -euo pipefail
 
+usage() {
+  cat <<'EOF'
+Usage: hub-link [--mode alongside|full] [PRODUCT_ROOT]
+
+Options:
+  --mode alongside|full   Install mode (default: alongside)
+  --help, -h              Show this help message
+EOF
+}
+
+MODE="alongside"
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --mode requires an argument (alongside|full)" >&2
+        exit 2
+      fi
+      MODE="$2"
+      shift 2
+      ;;
+    --mode=*)
+      MODE="${1#*=}"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "ERROR: Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ "$MODE" != "alongside" && "$MODE" != "full" ]]; then
+  echo "ERROR: Invalid mode: $MODE (must be 'alongside' or 'full')" >&2
+  exit 2
+fi
+
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PRODUCT_ROOT="${1:-${PROJECT_ROOT:-$PWD}}"
-PRODUCT_ROOT="$(cd "$PRODUCT_ROOT" && pwd)"
+TARGET_ARG="${POSITIONAL_ARGS[0]:-${PROJECT_ROOT:-$PWD}}"
+if [[ -d "$TARGET_ARG" ]]; then
+  PRODUCT_ROOT="$(cd "$TARGET_ARG" && pwd)"
+else
+  PRODUCT_ROOT="$TARGET_ARG"
+fi
 DEV_HUB="${DEV_HUB:-$HUB_ROOT}"
 DEV_HUB="$(cd "$DEV_HUB" && pwd)"
 
 if [[ ! -d "$PRODUCT_ROOT/memory-bank" ]]; then
   echo "WARN: $PRODUCT_ROOT/memory-bank missing (ok if greenfield)" >&2
-fi
-if [[ ! -d "$DEV_HUB/.cursor/rules" ]]; then
-  echo "ERROR: hub rules missing: $DEV_HUB/.cursor/rules" >&2
-  exit 2
 fi
 
 rel_or_abs() {
@@ -52,6 +100,114 @@ link_one() {
     echo "link    $name → $link_target"
   fi
 }
+
+copy_or_link_file() {
+  local name="$1"
+  local source="$2"
+  local dest="$PRODUCT_ROOT/$name"
+  mkdir -p "$(dirname "$dest")"
+  if [[ -L "$dest" ]]; then
+    cp "$source" "$dest"
+    echo "write   $name (from $source)"
+  elif [[ -e "$dest" ]]; then
+    echo "ERROR: $dest exists and is not installer-owned. Move it aside first." >&2
+    exit 2
+  else
+    cp "$source" "$dest"
+    echo "write   $name"
+  fi
+}
+
+if [[ "$MODE" == "alongside" ]]; then
+  if [[ ! -d "$DEV_HUB/harness" ]]; then
+    echo "ERROR: hub harness directory missing: $DEV_HUB/harness" >&2
+    exit 2
+  fi
+
+  # 1. Symlink harness/ -> $DEV_HUB/harness
+  link_one "harness" "$DEV_HUB/harness"
+
+  # 2. Write .dev-hub pointer file
+  if [[ -L "$PRODUCT_ROOT/.dev-hub" || ! -e "$PRODUCT_ROOT/.dev-hub" ]]; then
+    rel_hub="$(rel_or_abs "$PRODUCT_ROOT" "$DEV_HUB")"
+    printf '%s\n' "$rel_hub" > "$PRODUCT_ROOT/.dev-hub"
+    echo "write   .dev-hub → $rel_hub"
+  elif [[ -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+    # If regular file, allow update only if it already looks like a dev-hub pointer, otherwise fail-closed
+    rel_hub="$(rel_or_abs "$PRODUCT_ROOT" "$DEV_HUB")"
+    printf '%s\n' "$rel_hub" > "$PRODUCT_ROOT/.dev-hub"
+    echo "write   .dev-hub → $rel_hub"
+  else
+    echo "ERROR: $PRODUCT_ROOT/.dev-hub exists and is not a regular file." >&2
+    exit 2
+  fi
+
+  # 3. Router stub in .cursor/rules.d/
+  ROUTER_STUB_SRC="$DEV_HUB/harness/cursor/stubs/dev-hub-harness-router.mdc"
+  if [[ -f "$ROUTER_STUB_SRC" ]]; then
+    ROUTER_DEST=".cursor/rules.d/dev-hub-harness-router.mdc"
+    DEST_PATH="$PRODUCT_ROOT/$ROUTER_DEST"
+    if [[ ! -e "$DEST_PATH" || -L "$DEST_PATH" ]]; then
+      mkdir -p "$PRODUCT_ROOT/.cursor/rules.d"
+      cp "$ROUTER_STUB_SRC" "$DEST_PATH"
+      echo "write   $ROUTER_DEST"
+    elif [[ -f "$DEST_PATH" ]]; then
+      # If regular file exists, check if it is installer-owned (contains header), otherwise fail-closed
+      if grep -q 'dev-hub harness role command router' "$DEST_PATH" 2>/dev/null; then
+        cp "$ROUTER_STUB_SRC" "$DEST_PATH"
+        echo "refresh $ROUTER_DEST"
+      else
+        echo "ERROR: $DEST_PATH exists and is not installer-owned. Move it aside first." >&2
+        exit 2
+      fi
+    else
+      echo "ERROR: $DEST_PATH exists and is not a regular file." >&2
+      exit 2
+    fi
+  fi
+
+  # 4. Symlink CLAUDE.harness.md -> harness/claude/CLAUDE.harness.md (or $DEV_HUB/harness/claude/CLAUDE.harness.md)
+  if [[ -f "$DEV_HUB/harness/claude/CLAUDE.harness.md" ]]; then
+    link_one "CLAUDE.harness.md" "$DEV_HUB/harness/claude/CLAUDE.harness.md"
+  fi
+
+  # 5. Patch or create CLAUDE.md with harness marker block
+  python3 "$DEV_HUB/loop/hub_claude_patch.py" "$PRODUCT_ROOT/CLAUDE.md"
+
+  # 6. Merge settings.json if harness settings exist
+  if [[ -f "$DEV_HUB/harness/claude/settings.harness.json" ]]; then
+    python3 "$DEV_HUB/loop/hub_settings_merge.py" "$PRODUCT_ROOT/.claude/settings.json" "$DEV_HUB/harness/claude/settings.harness.json"
+  fi
+
+  # 7. AGENTS.md stub if missing
+  AGENTS="$PRODUCT_ROOT/AGENTS.md"
+  if [[ ! -e "$AGENTS" ]]; then
+    cat > "$AGENTS" <<EOF
+<!-- dev-hub product stub: keep this file; modes/skills live in DEV_HUB -->
+# Agent entry (product)
+
+- **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
+- **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
+  harness router rules in \`.cursor/rules.d/\` or \`harness/cursor/rules/\`.
+- **Claude Code extension:** \`harness/claude/\`
+- **Skills:** \`harness/skills/*/SKILL.md\`
+- **Artifacts:** only this repo — \`memory-bank/\`
+- **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
+
+On role command: follow harness router, then role workflow.
+EOF
+    echo "write   AGENTS.md"
+  fi
+
+  echo "OK alongside links in $PRODUCT_ROOT"
+  exit 0
+fi
+
+# Full mode
+if [[ ! -d "$DEV_HUB/.cursor/rules" ]]; then
+  echo "ERROR: hub rules missing: $DEV_HUB/.cursor/rules" >&2
+  exit 2
+fi
 
 mkdir -p "$PRODUCT_ROOT/.cursor" "$PRODUCT_ROOT/.claude"
 

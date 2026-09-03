@@ -1,8 +1,131 @@
 #!/usr/bin/env bash
-# Remove hub symlinks from a product repo (keeps AGENTS.md / .dev-hub).
+# Unlink hub tooling from a product repo.
+# Usage:
+#   DEV_HUB=/path/to/dev-hub ./bin/hub-unlink [--mode alongside|full] [/path/to/product]
 set -euo pipefail
-PRODUCT_ROOT="${1:-${PROJECT_ROOT:-$PWD}}"
+
+usage() {
+  cat <<'EOF'
+Usage: hub-unlink [--mode alongside|full] [PRODUCT_ROOT]
+
+Options:
+  --mode alongside|full   Unlink mode (default: alongside)
+  --help, -h              Show this help message
+EOF
+}
+
+MODE="alongside"
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --mode)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --mode requires an argument (alongside|full)" >&2
+        usage
+        exit 1
+      fi
+      MODE="$2"
+      shift 2
+      ;;
+    --mode=*)
+      MODE="${1#*=}"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "ERROR: Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ "$MODE" != "alongside" && "$MODE" != "full" ]]; then
+  echo "ERROR: Invalid mode: $MODE (must be 'alongside' or 'full')" >&2
+  usage
+  exit 1
+fi
+
+PRODUCT_ROOT="${POSITIONAL_ARGS[0]:-${PROJECT_ROOT:-$PWD}}"
 PRODUCT_ROOT="$(cd "$PRODUCT_ROOT" && pwd)"
+
+DEV_HUB="${DEV_HUB:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+if [[ "$MODE" == "alongside" ]]; then
+  # 1. Remove harness/ symlink if installer-owned
+  if [[ -L "$PRODUCT_ROOT/harness" ]]; then
+    target_link="$(readlink "$PRODUCT_ROOT/harness" || true)"
+    if [[ "$target_link" == *"harness"* ]] || [[ -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+      rm "$PRODUCT_ROOT/harness"
+      echo "removed harness"
+    fi
+  fi
+
+  # 2. Remove CLAUDE.harness.md symlink if present and installer-owned
+  if [[ -L "$PRODUCT_ROOT/CLAUDE.harness.md" ]]; then
+    target_link="$(readlink "$PRODUCT_ROOT/CLAUDE.harness.md" || true)"
+    if [[ "$target_link" == *"CLAUDE.harness.md"* ]] || [[ -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+      rm "$PRODUCT_ROOT/CLAUDE.harness.md"
+      echo "removed CLAUDE.harness.md"
+    fi
+  fi
+
+  # 3. Remove .dev-hub file if installer-owned (or matches pointer)
+  if [[ -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+    rm "$PRODUCT_ROOT/.dev-hub"
+    echo "removed .dev-hub"
+  fi
+
+  # 4. Remove .cursor/rules.d/dev-hub-harness-router.mdc stub if installer-owned
+  ROUTER_STUB="$PRODUCT_ROOT/.cursor/rules.d/dev-hub-harness-router.mdc"
+  if [[ -f "$ROUTER_STUB" ]]; then
+    if grep -iq "dev-hub harness" "$ROUTER_STUB" 2>/dev/null || [[ -f "$PRODUCT_ROOT/.dev-hub" ]]; then
+      rm "$ROUTER_STUB"
+      echo "removed .cursor/rules.d/dev-hub-harness-router.mdc"
+      # drop empty rules.d if empty
+      if [[ -d "$PRODUCT_ROOT/.cursor/rules.d" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/.cursor/rules.d" 2>/dev/null)" ]]; then
+        rmdir "$PRODUCT_ROOT/.cursor/rules.d" 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  # 5. Strip marker block from CLAUDE.md (preserve user content)
+  if [[ -f "$PRODUCT_ROOT/CLAUDE.md" ]]; then
+    python3 -c "
+import sys
+sys.path.insert(0, '$DEV_HUB')
+from loop.hub_claude_patch import strip_claude_md_block
+strip_claude_md_block('$PRODUCT_ROOT/CLAUDE.md')
+" 2>/dev/null || true
+  fi
+
+  # 6. Restore settings.json from .hub-backup if exists
+  BACKUP_SETTINGS="$PRODUCT_ROOT/.claude/settings.json.hub-backup"
+  if [[ -f "$BACKUP_SETTINGS" ]]; then
+    mv "$BACKUP_SETTINGS" "$PRODUCT_ROOT/.claude/settings.json"
+    echo "restored .claude/settings.json from backup"
+  fi
+
+  # drop empty dirs (.cursor, .claude) if empty
+  for d in .cursor .claude; do
+    if [[ -d "$PRODUCT_ROOT/$d" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/$d" 2>/dev/null)" ]]; then
+      rmdir "$PRODUCT_ROOT/$d" 2>/dev/null || true
+    fi
+  done
+
+  echo "OK hub-unlink (alongside) $PRODUCT_ROOT"
+  exit 0
+fi
+
+# Full mode: removes legacy full symlinks tree
 for name in \
   .cursor/rules .cursor/templates .agents CLAUDE.md \
   .claude/agents .claude/hooks .claude/skills .claude/commands \

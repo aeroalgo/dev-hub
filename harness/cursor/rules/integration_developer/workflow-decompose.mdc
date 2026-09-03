@@ -67,7 +67,7 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 3c. **FAIL** если `deletes` непустой без checkpoint `rg`/import-audit
 3d. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc)
 4. Обнови plan → ссылка на index; удали `- [ ] e01…`
-4a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0 + (`INTEG ANALYZE` artifact `critical_count=0` **или** Handoff `ANALYZE deferred:` owner/next/reason)
+4a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0. Next = **INTEG ANALYZE** (обязателен). **FORBIDDEN** `ANALYZE deferred:` → IMPLEMENT.
 5. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `e01-*.yaml`
 6. → ANALYZE (если не run/deferred) → INTEG IMPLEMENT e01 (**новый чат**)
 

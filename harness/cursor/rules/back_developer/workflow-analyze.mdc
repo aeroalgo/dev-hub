@@ -1,0 +1,62 @@
+---
+description: "Режим BACK ANALYZE — read-only проверка plan/decompose до IMPLEMENT (hard gate)"
+alwaysApply: false
+---
+### Команда: BACK ANALYZE
+
+**Контекст:** @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+**Shared core:** @.cursor/rules/shared/workflow-analyze-core.mdc
+**Шаблон:** @.cursor/templates/analyze/epic-analyze.yaml
+
+## Когда запускать
+
+- **обязательно** после `BACK DECOMPOSE` FINISH и **до** первого `BACK IMPLEMENT` (**hard gate:** artifact с `metrics.critical_count = 0`);
+- повторно после существенного rewrite plan/decompose;
+- не использовать ANALYZE вместо AUDIT после реализации.
+
+**FORBIDDEN promote loophole:** `ANALYZE deferred:` в Handoff **больше не** разрешает вход в IMPLEMENT. Без analyze artifact с `critical_count=0` → IMPLEMENT REJECT.
+
+Вход: `BACK ANALYZE <epic_id>`. Ad-hoc без epic_id запрещён.
+
+## Load (lean)
+
+1. `memory-bank/activeContext.md` → только `load_now`;
+2. `memory-bank/back/plan/plan-<epic>.md` → headers + **полные** FR/AC/Target layout sections;
+3. `memory-bank/back/plan/decompose-<epic>/index.md` → coverage map (**сверить verbatim FR**);
+4. `index.yaml` → steps/status;
+5. sample `sNN` → headers, `goal`, `delta`, `plan_refs`, **`plan_contract`**.
+
+Implement YAML не загружается. Подробнее: `_lean/analyze.mdc`.
+
+## Процесс
+
+1. Подтверди `epic_id` и read-only scope.
+2. Inventories: plan FR/SC/US/AC±/NFR/layout **verbatim** ↔ `sNN` `plan_refs`/`plan_contract`/`produces`/`files`; Notes `deferred` без `follow_up: T-…`+queue → CRITICAL `layout_dilution`.
+3. Запусти detection passes из `@.cursor/rules/shared/workflow-analyze-core.mdc` (включая Dilution, Optional-SoT, **Layout dilution**, **FR remap**).
+4. Severity + IDs `A1…`; cap 50.
+5. Запиши `analyze-YYYYMMDD-<slug>.yaml`; coverage rows с `plan_text_verbatim`.
+6. Handoff только по FINISH-канону; plan/decompose не патчить.
+
+**STRICTLY READ-ONLY.** ANALYZE ≠ AUDIT.
+
+## Done When
+
+- [ ] analyze artifact на диске;
+- [ ] findings ≤50, deterministic IDs;
+- [ ] coverage + metrics согласованы; Dilution / Layout / FR remap пройдены;
+- [ ] `recommendation` = `IMPLEMENT` **только** при `critical_count=0`;
+- [ ] при CRITICAL — `next_actions` с путём исправления (обычно `BACK DECOMPOSE`);
+- [ ] при `critical_count=0` — следующий `BACK IMPLEMENT sNN`.
+
+CRITICAL → **не** стартовать IMPLEMENT. Нет soft-defer.
+
+## Handoff
+
+| Результат | Следующий шаг |
+|---|---|
+| `critical_count = 0` | `BACK IMPLEMENT s01` (или первый pending) |
+| CRITICAL (dilution/layout/remap/coverage) | `BACK DECOMPOSE` (или CLARIFY/PLAN по причине) |
+| только HIGH/MEDIUM/LOW | IMPLEMENT разрешён; перечислить `next_actions` |
+
+Handoff: artifact path, coverage %, critical/high, recommendation, один next step.

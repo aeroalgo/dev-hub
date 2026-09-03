@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-046-harness-alongside-install
+title: "loop/hub_settings_merge.py: settings.json hooks merge (preserve user permissions)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/hub_settings_merge.py` — модуль merge_settings(user_path, harness_path, backup=True).
+  Логика: deep-merge `hooks` секции из harness settings в user settings.json;
+  preserve user `permissions` (не перезаписывать без --force-merge);
+  сохранить snapshot `.claude/settings.json.hub-backup` перед изменением;
+  если user settings.json отсутствует → copy/symlink harness settings целиком.
+  Вызывается из hub-link alongside.
+  Outcome: merge hooks без потери user permissions; rollback возможен через backup.
+
+context:
+  consumes:
+    - "harness/claude/settings.harness.json (s02 output)"
+    - "plan §Settings merge (Python module)"
+    - "plan §Files touch matrix"
+    - "FR-006"
+  produces:
+    - "loop/hub_settings_merge.py"
+    - "loop/tests/test_hub_settings_merge.py"
+  plan_refs:
+    - "FR-006"
+    - "US-005"
+    - "AC #2"
+    - "AC- #4 (permissions not overwritten)"
+  files:
+    - "loop/hub_settings_merge.py"
+    - "loop/tests/test_hub_settings_merge.py"
+
+as_built:
+  - "bin/hub-link symlinks entire .claude/settings.json (full-replace, no merge)"
+
+delta:
+  - "create loop/hub_settings_merge.py"
+  - "merge_settings(user_path, harness_path, backup=True, force_permissions=False)"
+  - "deep-merge only 'hooks' key; append hook commands if not duplicate path"
+  - "preserve 'permissions' key unchanged (no force_permissions default)"
+  - "write .hub-backup before modify"
+  - "create loop/tests/test_hub_settings_merge.py"
+
+deletes: []
+
+out_of_scope:
+  - "--force-merge flag implementation deferred (not P0); raise NotImplementedError for now"
+  - "hub-unlink settings rollback — covered in s06"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "merge preserves user permissions.deny"
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py::test_merge_preserves_permissions -q --tb=short"
+  - id: cp2
+    criterion: "merge adds harness hooks; no duplicate entries on re-run"
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py::test_merge_adds_hooks_idempotent -q --tb=short"
+  - id: cp3
+    criterion: "backup file created before modification"
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py::test_merge_creates_backup -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_settings_merge.py (new file, all scenarios)"

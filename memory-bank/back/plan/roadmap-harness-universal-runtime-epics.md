@@ -15,6 +15,7 @@
 |---------|-----|------|------|----------|--------------|
 | 1 | T-HUB-041 | [plan-T-HUB-041-harness-canonical-extract.md](plan-T-HUB-041-harness-canonical-extract.md) | Canonical `harness/` + symlinks + loop imports | move hooks/agents/instructions; `.claude/*` thin shell | runtime adapters |
 | 1b | T-HUB-046 | [plan-T-HUB-046-harness-alongside-install.md](plan-T-HUB-046-harness-alongside-install.md) | Non-destructive product install (`hub-link --mode=alongside`) | `harness/cursor/` + patch markers + opt-in router | Codex manifest |
+| 1c | T-HUB-059 | [plan-T-HUB-059-harness-claude-agents-sot-complete.md](plan-T-HUB-059-harness-claude-agents-sot-complete.md) | Complete hub SoT: `harness/claude/{commands,skills,rules}` + `harness/skills` | git mv leftovers 046 + hub-link full → harness | doctor FR-011 (044); Codex |
 | 2 | T-HUB-042 | [plan-T-HUB-042-runtime-adapter-framework.md](plan-T-HUB-042-runtime-adapter-framework.md) | RuntimeAdapter protocol + registry + dispatch refactor | claude/dsh via adapters; generic analyze_log | codex headless |
 | 3 | T-HUB-043 | [plan-T-HUB-043-runtime-bridge-codex.md](plan-T-HUB-043-runtime-bridge-codex.md) | manifest + runtime-sync + CodexAdapter + hooks bridge | codex exec; materialize agents/hooks | Cursor IDE subagents |
 | 4 | T-HUB-044 | [plan-T-HUB-044-runtime-sync-doctor-docs.md](plan-T-HUB-044-runtime-sync-doctor-docs.md) | hub-link, doctor, README/runbook | operator docs; preflight checks | new runtime beyond codex |
@@ -30,6 +31,7 @@
 flowchart TB
   H041[T-HUB-041 harness extract]
   H046[T-HUB-046 alongside install]
+  H059[T-HUB-059 claude+agents SoT complete]
   H042[T-HUB-042 adapter framework]
   H043[T-HUB-043 bridge + codex]
   H044[T-HUB-044 docs doctor]
@@ -38,7 +40,9 @@ flowchart TB
   H039[T-HUB-039 verify agents soft]
   H016[T-HUB-016 cc hooks soft]
   H021[T-HUB-021 output-cap soft]
+
   H041 --> H046
+  H046 --> H059
   H041 --> H042
   H046 -.-> H042
   H042 --> H043
@@ -54,6 +58,7 @@ flowchart TB
 | От | К | Тип | Почему |
 |----|---|-----|--------|
 | T-HUB-041 | T-HUB-046 | hard | alongside install requires canonical `harness/` package |
+| T-HUB-046 | T-HUB-059 | hard | complete leftover Target layout (`claude/*` + `harness/skills`) |
 | T-HUB-041 | T-HUB-042 | hard | adapters import `harness/`, not `.claude/hooks` |
 | T-HUB-046 | T-HUB-042 | soft | full cursor rules path in harness helps manifest materialize |
 | T-HUB-042 | T-HUB-043 | hard | codex adapter plugs into registry |

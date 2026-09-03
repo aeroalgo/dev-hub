@@ -33,6 +33,35 @@ def test_run_checks_critical_on_uncovered_req():
     assert any("FR-002" in f.message for f in criticals)
 
 
+def test_run_checks_critical_on_deferred_oos_without_follow_up():
+    plan_reqs = ["FR-011"]
+    decomp_refs = {
+        "s01": ShardTrace(
+            step_id="s01",
+            plan_refs=[],
+            out_of_scope=["FR-011 loop doctor — deferred follow-up"],
+        ),
+    }
+    findings = run_checks(plan_reqs, decomp_refs, {})
+    criticals = [f for f in findings if f.severity == "CRITICAL"]
+    assert any("follow_up" in f.message for f in criticals)
+    assert any("FR-011" in f.message for f in criticals)
+
+
+def test_run_checks_valid_follow_up_oos_covers_req():
+    plan_reqs = ["FR-011"]
+    decomp_refs = {
+        "s01": ShardTrace(
+            step_id="s01",
+            plan_refs=[],
+            out_of_scope=["FR-011 deferred; follow_up: T-HUB-044-runtime-sync-doctor-docs"],
+        ),
+    }
+    findings = run_checks(plan_reqs, decomp_refs, {})
+    assert not any("FR-011 has no coverage" in f.message for f in findings)
+    assert not any("without follow_up" in f.message for f in findings)
+
+
 def test_run_checks_high_on_shard_no_plan_refs():
     plan_reqs = ["FR-001"]
     decomp_refs = {

@@ -1,0 +1,11 @@
+---
+description: dev-hub harness role command router (opt-in)
+globs:
+alwaysApply: true
+---
+
+# Dev-Hub Harness Router
+
+When the user command starts with a harness role command prefix (`BACK `, `FRONT `, `INTEG `):
+- Follow the corresponding workflow rules in `harness/cursor/rules/`.
+- Maintain role isolation and memory-bank conventions.

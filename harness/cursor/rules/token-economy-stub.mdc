@@ -15,18 +15,20 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 **REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
 
 1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
-2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` + `decompose-*/index.yaml`
+2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` (**включая `plan_contract`**) + `decompose-*/index.yaml` + analyze artifact path если в load_now
 3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
-4. AC source = **work shard** (цель / файлы / TDD / Fix plan). **Не** подставлять полный `plan-*.md` или index «как AC»
-5. Если в step `Consumes: plan §N` и AC в shard не хватает — **jump только на §N** (Read/offset), не весь plan
+4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan-*.md` как monolith AC
+5. **Plan jumps (IMPLEMENT HARD):** Read строки из `plan_contract.plan_jumps` и/или `Consumes: plan §FR-00N` — объём ≈ **≥30%** scope FR/layout nouns шага; не весь plan
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
 
-**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/AUDIT coverage, не IMPLEMENT hot path.
+**`load_now` OK partial plan:** `plan_jumps` line ranges / `plan §FR-00N` / Consumes §N (не весь файл)
 
-**`load_now` OK для полного plan:** только когда следующий режим **PLAN** или **DECOMPOSE** и plan — объект работы.
+**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/AUDIT/ANALYZE coverage, не IMPLEMENT hot path.
+
+**`load_now` OK для полного plan:** когда следующий режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 
 **PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + @.cursor/rules/token-economy-core.mdc §0.0.
 
@@ -73,7 +75,7 @@ Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in
 
 **Always-on:** @.cursor/rules/spec-first-replace-hard.mdc — as-built is not spec; pydantic → JSON; replace-not-wrap; **wire-complete** (add→wire→enforce→purge); no optional SoT; no regex+enum hybrid. Purge + Kind I: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 
-**Behavior-first (role modes):** @.cursor/rules/shared/workflow-behavior-first.mdc — plan nouns ∈ produces; no dilution; **anti-minimal**; AUDIT plan-first; QA smoke + `sot_enforce_scan` на gate/agent FR
+**Behavior-first (role modes):** @.cursor/rules/shared/workflow-behavior-first.mdc — plan nouns ∈ produces; no dilution; **layout_dilution** (Target layout / deferred Notes / Appetite Cut); **anti-minimal**; AUDIT **PLAN↔runtime** + architecture parity; ANALYZE hard gate (no deferred); QA smoke + `sot_enforce_scan` на gate/agent FR
 
 ## PLAN / gap / decompose write
 

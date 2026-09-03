@@ -1,0 +1,72 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-046-harness-alongside-install
+title: "Create harness/claude/ (CLAUDE.harness.md, settings.harness.json, router stub)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `harness/claude/` с `CLAUDE.harness.md`, `settings.harness.json` и
+  `harness/cursor/stubs/dev-hub-harness-router.mdc` (opt-in router template).
+  Outcome: harness/claude/ — единый SoT Claude-специфических файлов install;
+  stub template готов для `alongside` installer.
+
+context:
+  consumes:
+    - "harness/cursor/rules/ (s01 output — SoT)"
+    - "plan §CLAUDE.md patch contract"
+    - "plan §Router stub (sketch)"
+    - "plan §Settings merge policy"
+  produces:
+    - "harness/claude/CLAUDE.harness.md"
+    - "harness/claude/settings.harness.json"
+    - "harness/cursor/stubs/dev-hub-harness-router.mdc"
+  plan_refs:
+    - "FR-002"
+    - "FR-005 (stub template)"
+    - "plan §Target layout (hub)"
+  files:
+    - "harness/claude/CLAUDE.harness.md"
+    - "harness/claude/settings.harness.json"
+    - "harness/cursor/stubs/dev-hub-harness-router.mdc"
+
+as_built:
+  - "harness/cursor/rules/ — now exists after s01"
+  - ".claude/settings.json — hub full settings (not harness subset)"
+
+delta:
+  - "create harness/claude/ directory"
+  - "write harness/claude/CLAUDE.harness.md with pointer to role commands and harness/cursor/rules"
+  - "write harness/claude/settings.harness.json with hooks section only (SessionStart, SessionStop)"
+  - "create harness/cursor/stubs/ directory"
+  - "write harness/cursor/stubs/dev-hub-harness-router.mdc with opt-in role-command trigger"
+
+deletes: []
+
+out_of_scope:
+  - "git mv from .claude/commands, .claude/skills — potential FR-002 partial; leave as follow-up if not needed for alongside install"
+  - "harness/skills/ (.agents content) — covered by s03"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/claude/CLAUDE.harness.md exists with role command pointers"
+    verify: "test -f harness/claude/CLAUDE.harness.md && grep 'BACK\\|FRONT\\|INTEG' harness/claude/CLAUDE.harness.md"
+  - id: cp2
+    criterion: "settings.harness.json contains only hooks section, no permissions override"
+    verify: "python3 -c \"import json; d=json.load(open('harness/claude/settings.harness.json')); assert 'hooks' in d; assert 'permissions' not in d\""
+  - id: cp3
+    criterion: "router stub exists with alwaysApply trigger and narrow role-command condition"
+    verify: "test -f harness/cursor/stubs/dev-hub-harness-router.mdc && grep 'alwaysApply' harness/cursor/stubs/dev-hub-harness-router.mdc"
+
+verify:
+  - "test -f harness/claude/CLAUDE.harness.md"
+  - "test -f harness/claude/settings.harness.json"
+  - "test -f harness/cursor/stubs/dev-hub-harness-router.mdc"
+
+tdd: []

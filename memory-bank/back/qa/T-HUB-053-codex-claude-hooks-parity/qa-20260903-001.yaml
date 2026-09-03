@@ -1,0 +1,21 @@
+schema: epic-qa/v1
+epic_id: T-HUB-053-codex-claude-hooks-parity
+date: "2026-09-03"
+role: BACK
+status: PASS
+verdict: pass
+plan_ref: memory-bank/back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml
+audit_ref: memory-bank/back/audit/T-HUB-053-codex-claude-hooks-parity/audit-20260903-001.yaml
+
+suite_results:
+  full_suite: "bin/pytest -q --tb=line (1639 passed, 2 skipped, 61 warnings)"
+  targeted_suite: "bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_session_wrapper.py harness/hooks/tests/ -q --tb=line (135 passed, 1 skipped)"
+
+agent_id: verify-qa
+recorded_at: "2026-09-03T00:00:00Z"
+
+summary: |
+  QA acceptance verification for T-HUB-053 (codex-claude-hooks-parity) completed with PASS.
+  All requirements FR-001 through FR-010 verified against implementation and test coverage.
+  Full pytest suite passed cleanly with zero regressions.

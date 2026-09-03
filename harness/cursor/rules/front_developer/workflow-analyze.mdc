@@ -11,9 +11,11 @@ alwaysApply: false
 
 ## Когда запускать
 
-- после `FRONT DECOMPOSE` FINISH и до первого `FRONT IMPLEMENT`;
+- **обязательно** после `FRONT DECOMPOSE` FINISH и до первого `FRONT IMPLEMENT` (**hard gate:** `critical_count=0`);
 - повторно после существенного rewrite plan/decompose;
 - не использовать ANALYZE вместо AUDIT после реализации.
+
+**FORBIDDEN:** `ANALYZE deferred:` как skip в IMPLEMENT.
 
 Вход: `FRONT ANALYZE <epic_id>`, где `<epic_id>` — `T-xxx` или slug, разрешаемый через plan/decompose registry. Ad-hoc запуск без epic_id запрещён.
 

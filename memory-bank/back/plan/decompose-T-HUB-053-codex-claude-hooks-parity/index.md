@@ -118,4 +118,4 @@
 | **s05** | Parity matrix module + runtime-sync --check + doctor · [yaml](s05-parity-matrix-runtime-sync-check.yaml) |  | completed |
 | **s06** | Behavior bridge tests all events + regression · [yaml](s06-behavior-bridge-tests.yaml) |  | completed |
 | **s07** | Docs runbook architecture matrix update · [yaml](s07-docs-runbook-matrix.yaml) |  | completed |
-| **s08** | Legacy purge partial-parity docs comments + forbid hand-edit · [yaml](s08-legacy-partial-parity-purge.yaml) |  | pending |
+| **s08** | Legacy purge partial-parity docs comments + forbid hand-edit · [yaml](s08-legacy-partial-parity-purge.yaml) |  | completed |

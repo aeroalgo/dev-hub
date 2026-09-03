@@ -1,0 +1,29 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-046-harness-alongside-install
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-03'
+index_fingerprint: sha256:aa529cb29853550e3e0df57dfb960d92fadd9d615eeb7d77bd4c1c226efc0d67
+
+metrics:
+  critical_count: 0
+  high_count: 0
+  medium_count: 0
+  low_count: 0
+
+summary: >
+  Review of plan and decompose artifacts for T-HUB-046-harness-alongside-install.
+  All 9 decompose shards s01-s09 comprehensively cover requirements FR-001..FR-010,
+  US-001..US-006, SC-001..SC-004, AC+/AC-, and failure matrix items TM-001..TM-007.
+  Technology axiom (non-destructive alongside mode as default, fail-closed on conflict,
+  single SoT under harness/cursor/rules, explicit --mode=full for legacy full-replace) is fully maintained.
+  No blocking or critical issues identified.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 9

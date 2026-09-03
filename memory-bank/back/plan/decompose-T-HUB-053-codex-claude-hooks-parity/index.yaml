@@ -34,4 +34,4 @@ steps:
 - id: s08
   file: s08-legacy-partial-parity-purge.yaml
   title: Legacy purge partial-parity docs comments + forbid hand-edit
-  status: pending
+  status: completed

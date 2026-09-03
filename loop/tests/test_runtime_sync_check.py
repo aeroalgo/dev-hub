@@ -15,14 +15,14 @@ from loop.runtime_materializers.parity import (
 
 def test_required_codex_events_defined():
     assert len(REQUIRED_CODEX_EVENTS) >= 7
-    expected = {"Stop", "SubagentStop", "PreToolUse", "PostToolUse", "UserPromptSubmit", "SessionStart", "SubagentStart"}
-    assert expected.issubset(REQUIRED_CODEX_EVENTS)
+    expected_events = {"Stop", "SubagentStop", "PreToolUse", "PostToolUse", "UserPromptSubmit", "SessionStart", "SubagentStart"}
+    assert expected_events <= REQUIRED_CODEX_EVENTS
 
 
 def test_required_codex_agents_covers_claude():
     assert len(REQUIRED_CODEX_AGENTS) >= 7
-    expected = {"verify-implement", "gate-repair", "verify-bugfix", "verify-decompose", "verify-qa", "analyze-verify", "sunset-inventory"}
-    assert expected.issubset(REQUIRED_CODEX_AGENTS)
+    expected_agents = {"verify-implement", "gate-repair", "verify-bugfix", "verify-decompose", "verify-qa", "analyze-verify", "sunset-inventory"}
+    assert expected_agents <= REQUIRED_CODEX_AGENTS
 
 
 def test_codex_min_version_doctor():

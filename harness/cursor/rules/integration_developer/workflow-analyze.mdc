@@ -11,9 +11,11 @@ alwaysApply: false
 
 ## Когда запускать
 
-- после `INTEG DECOMPOSE` FINISH и до первого `INTEG IMPLEMENT`;
+- **обязательно** после `INTEG DECOMPOSE` FINISH и до первого `INTEG IMPLEMENT` (**hard gate:** `critical_count=0`);
 - повторно после существенного rewrite plan/decompose или contract/gap assumptions;
 - не использовать ANALYZE вместо AUDIT или INTEG GAP после реализации.
+
+**FORBIDDEN:** `ANALYZE deferred:` как skip в IMPLEMENT.
 
 Вход: `INTEG ANALYZE <epic_id>`, где `<epic_id>` — `T-xxx` или slug, разрешаемый через plan/decompose registry. Ad-hoc запуск без epic_id запрещён.
 

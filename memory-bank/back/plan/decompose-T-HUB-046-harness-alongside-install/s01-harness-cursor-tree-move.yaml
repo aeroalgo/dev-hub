@@ -1,0 +1,75 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-046-harness-alongside-install
+title: "git mv .cursor/rules + .cursor/templates → harness/cursor/; replace hub symlinks"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  git mv `.cursor/rules` → `harness/cursor/rules` и `.cursor/templates` → `harness/cursor/templates`;
+  установить `.cursor/rules → ../harness/cursor/rules` и `.cursor/templates → ../harness/cursor/templates`
+  symlink в корне dev-hub, чтобы `@.cursor/rules/...` cross-refs внутри harness не ломались.
+  Outcome: единственный SoT workflow rules = `harness/cursor/rules/`; hub dogfood работает через symlink.
+
+context:
+  consumes:
+    - "harness/ (T-HUB-041 layout)"
+    - ".cursor/rules/** (current SoT)"
+    - ".cursor/templates/**"
+  produces:
+    - "harness/cursor/rules/ (new SoT)"
+    - "harness/cursor/templates/"
+    - ".cursor/rules → symlink harness/cursor/rules"
+    - ".cursor/templates → symlink harness/cursor/templates"
+  plan_refs:
+    - "FR-001"
+    - "SC-003"
+    - "plan §Target layout (hub = dev-hub repo)"
+  files:
+    - "harness/cursor/rules/"
+    - "harness/cursor/templates/"
+    - ".cursor/rules (→ symlink)"
+    - ".cursor/templates (→ symlink)"
+
+as_built:
+  - ".cursor/rules/ — current SoT for harness workflow rules (real directory)"
+  - ".cursor/templates/ — current SoT for decompose/implement templates (real directory)"
+  - "harness/ — T-HUB-041: hooks, agents, instructions already under harness/"
+
+delta:
+  - "git mv .cursor/rules harness/cursor/rules"
+  - "git mv .cursor/templates harness/cursor/templates"
+  - "ln -s ../harness/cursor/rules .cursor/rules"
+  - "ln -s ../harness/cursor/templates .cursor/templates"
+  - "create harness/cursor/ directory (parent)"
+
+deletes:
+  - ".cursor/rules (real directory) — replaced by symlink in same step"
+  - ".cursor/templates (real directory) — replaced by symlink in same step"
+
+out_of_scope:
+  - "harness/cursor/stubs/ — new stub file created in s02"
+  - "cross-ref audit inside mdc files — FR-009 deferred to s08 if needed (symlink chain covers refs unchanged)"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "git mv executed; harness/cursor/rules/ contains rules files"
+    verify: "test -d harness/cursor/rules && ls harness/cursor/rules | head -3"
+  - id: cp2
+    criterion: ".cursor/rules is now a symlink pointing to ../harness/cursor/rules"
+    verify: "test -L .cursor/rules && readlink .cursor/rules | grep harness"
+  - id: cp3
+    criterion: "SC-003 — SoT test passes; existing rules load from harness path"
+    verify: "test -L .cursor/rules && readlink -f .cursor/rules | grep harness/cursor/rules"
+
+verify:
+  - "test -L .cursor/rules && readlink .cursor/rules"
+  - "rg --no-filename '.cursor/rules' harness/cursor/rules/ | head -5 # cross-refs still resolve via symlink"
+
+tdd: []

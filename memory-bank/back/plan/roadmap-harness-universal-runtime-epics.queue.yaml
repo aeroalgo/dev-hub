@@ -8,6 +8,9 @@ queue:
   - id: T-HUB-046
     plan: plan-T-HUB-046-harness-alongside-install.md
     deps: [T-HUB-041]
+  - id: T-HUB-059
+    plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
+    deps: [T-HUB-046]
   - id: T-HUB-042
     plan: plan-T-HUB-042-runtime-adapter-framework.md
     deps: [T-HUB-041]

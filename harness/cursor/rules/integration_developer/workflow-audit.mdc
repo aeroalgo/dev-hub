@@ -1,25 +1,22 @@
 ---
-description: "Режим INTEG AUDIT — intent↔implement gap-анализ, append-only remediation и converge"
+description: "Режим INTEG AUDIT — PLAN vs IMPLEMENT gap-анализ, append-only remediation и converge"
 alwaysApply: false
 ---
 ### Команда: INTEG AUDIT
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/audit.mdc
+**Behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc
 **Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
-**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать тесты или suite; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE.
+**FORBIDDEN:** полный текст всех shards; suite; code-review; git-diff; MODE CONVERGE; **FR remap**.
 
 **Процесс**:
-1. `OK INTEG AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до оценки.
-2. **Intent Inventory (plan-first HARD):** из **`plan-<epic_id>.md`** — полный FR/SC/US/AC±/NFR + constitution MUST; decompose вторичен. Plan FR без eNN → `missing` CRITICAL. `source_ref` → `element_id`. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3
-   **Constitution CASE:** `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A; нет → CASE B. **FORBIDDEN** hardcoded epic ID.
-3. **Assess (behavior):** coverage + implement headers + bound evidence; gap-матрица; intent↔contract/UI/API **runtime**, не presence. **`satisfied` FORBIDDEN** на metadata/unit-only closes.
-4. **Severity и findings**: `findings[]` CRITICAL→LOW; `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`; contract drift в `deviations[]` с `element_id`.
-5. **Append remediation**: actionable → `eNN-audit-<slug>.yaml` (`role: integ`); сохранить `element_id`/`ui`/`contract`/`back[]`/`front[]`.
-6. **Dual-write и leftovers**: legacy arrays; brownfield leftovers + purge.
-7. **Converged / loop**: `converged: true` только без actionable + **behavior evidence по каждому plan FR** + empty leftovers + purge. Иначе IMPLEMENT → AUDIT.
-8. Sync index via `epic_resolve.py sync-index-yaml`.
-9. Audit yaml + tasks log + finish-block · `## Handoff INTEG AUDIT`.
+1. `OK INTEG AUDIT` → Gates · `epic_id` · bound file list.
+2. **Intent Inventory (plan-first):** все plan FR/SC/US/AC±/NFR + layout **verbatim**; missing → CRITICAL.
+3. **Triple Assess:** PLAN↔runtime (contract/UI/API) · eNN matrix · architecture_parity.
+4. Findings + contract drift in `deviations[]`.
+5. Append `eNN-audit-*` (`role: integ`) + **`plan_contract`**; sync index.
+6. Dual-write + leftovers / purge.
+7. `converged: true` только при plan parity → QA; иначе IMPLEMENT → AUDIT.
+8–9. Audit yaml · finish-block · `## Handoff INTEG AUDIT`.
 
-**Boundary ANALYZE ≠ AUDIT**: ANALYZE — dilution/coverage pre-IMPLEMENT; AUDIT — intent↔behavior + remediation.
-
-**Верификация**: plan-first inventory; behavior Assess; no metadata-only converged.
+**Верификация**: plan-first + Triple Assess; no FR remap / metadata-only converged.

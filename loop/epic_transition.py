@@ -108,6 +108,9 @@ def arm_phase(
 
     st_before = load_epic_state(cwd)
     last_finished = str(st_before.get("last_finished_step") or "").strip().lower()
+    last_finished_epic = str(
+        st_before.get("last_finished_epic") or st_before.get("armed_epic") or ""
+    ).strip()
 
     runtime_cfg = resolve_runtime_config(cwd)
     epic_runtime = kwargs.get("epic_runtime") or runtime_cfg.epic_runtime
@@ -179,10 +182,15 @@ def arm_phase(
         if "role" not in res:
             res["role"] = role
 
-        # Anti-loop guard: re-arming the same step that was just finished is forbidden
+        # Anti-loop: same epic + same step only. Cross-epic phase reuse (DECOMPOSE/PLAN/…) is allowed.
         armed_step_val = str(res.get("armed_step") or res.get("step_id") or "").strip().lower()
+        armed_epic_val = str(res.get("epic_id") or epic_id or "").strip()
+        same_epic = (not last_finished_epic) or (not armed_epic_val) or (
+            last_finished_epic == armed_epic_val
+        )
         if (
-            last_finished
+            same_epic
+            and last_finished
             and armed_step_val
             and armed_step_val == last_finished
             and not res.get("complete")
@@ -190,12 +198,30 @@ def arm_phase(
         ):
             return {
                 "ok": False,
-                "error": f"step_loop_forbidden: next step {armed_step_val} equals last finished step {last_finished}",
+                "error": (
+                    f"step_loop_forbidden: next step {armed_step_val} equals last finished step "
+                    f"{last_finished} on epic {last_finished_epic or armed_epic_val}"
+                ),
                 "diagnostic_code": "step_loop_forbidden",
                 "diagnostic_codes": ["step_loop_forbidden"],
                 "last_finished_step": last_finished,
+                "last_finished_epic": last_finished_epic or None,
                 "armed_step": armed_step_val,
             }
+        if (
+            res.get("ok") is not False
+            and last_finished_epic
+            and armed_epic_val
+            and last_finished_epic != armed_epic_val
+        ):
+            from epic.core import load_epic_state as _load, save_epic_state as _save
+
+            st_after = _load(cwd)
+            if st_after.get("last_finished_step") or st_after.get("last_finished_epic"):
+                st_after["last_finished_step"] = None
+                st_after["last_finished_epic"] = None
+                st_after["armed_after_finish"] = None
+                _save(cwd, st_after)
     return res
 
 

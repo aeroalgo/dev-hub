@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-046-harness-alongside-install
+title: "loop/hub_claude_patch.py: CLAUDE.md marker-block patch logic"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/hub_claude_patch.py` — модуль с функцией patch_claude_md(path, block_content).
+  Логика: если файл существует → replace inner content между markers (preserve user content outside);
+  если маркеры отсутствуют → append marker block в конец файла;
+  если файл отсутствует → create с marker block.
+  Вызывается из `hub-link --mode=alongside` (s03 интегрирует вызов после s04 готов).
+  Outcome: CLAUDE.md user content never lost; idempotent (re-run = same result).
+
+context:
+  consumes:
+    - "plan §CLAUDE.md patch contract (markers spec)"
+    - "FR-005 (alongside creates / patches CLAUDE.md)"
+  produces:
+    - "loop/hub_claude_patch.py"
+  plan_refs:
+    - "FR-005"
+    - "US-001"
+    - "AC #2"
+    - "AC- #1 (silent overwrite forbidden)"
+  files:
+    - "loop/hub_claude_patch.py"
+
+as_built:
+  - "bin/hub-link directly writes CLAUDE.md symlink (destructive, full-replace only)"
+
+delta:
+  - "create loop/hub_claude_patch.py with patch_claude_md(path, harness_block_content: str) -> None"
+  - "markers: <!-- dev-hub:harness:begin --> / <!-- dev-hub:harness:end -->"
+  - "idempotent: second run same file → no change (verify via hash)"
+  - "wire call from hub-link alongside branch (s03 update for alongside)"
+
+deletes: []
+
+out_of_scope:
+  - "CLAUDE.md symlink in full mode — full mode uses existing hub-link behavior"
+  - "CLAUDE.harness.md content — covered by s02"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "patch on missing CLAUDE.md creates file with marker block"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_creates_claude_md -q --tb=short"
+  - id: cp2
+    criterion: "patch on existing CLAUDE.md preserves user content outside markers"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_preserves_claude -q --tb=short"
+  - id: cp3
+    criterion: "patch is idempotent (second call: file hash unchanged)"
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py::test_alongside_patch_idempotent -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py -k claude -q --tb=line"
+
+tdd:
+  - "loop/tests/test_hub_link_alongside.py (add test_alongside_creates_claude_md, test_alongside_preserves_claude, test_alongside_patch_idempotent)"

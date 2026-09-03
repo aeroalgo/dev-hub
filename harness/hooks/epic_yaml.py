@@ -173,6 +173,7 @@ class EpicDecomposeDoc(BaseModel):
     delta: list[str] = Field(default_factory=list)
     deletes: list[str] = Field(default_factory=list)
     out_of_scope: list[str] = Field(default_factory=list)
+    plan_contract: dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"populate_by_name": True}
 
@@ -1200,12 +1201,65 @@ def _validate_decompose_index_md(md_path: Path) -> list[str]:
         return [f"cannot read index.md: {exc}"]
     lower = text.lower()
     missing = [label for label in _DECOMPOSE_INDEX_SECTIONS if label not in lower]
+    errors: list[str] = []
     if missing:
-        return [
+        errors.append(
             "index.md missing required sections: "
             + ", ".join(f"## {s.title()}" for s in missing)
+        )
+    # Notes / coverage rows: deferred|partial without follow_up epic ID
+    defer_row = re.compile(
+        r"^\|[^|\n]*\|[^|\n]*\|[^|\n]*\|[^|\n]*"
+        r"(deferred|partial|leave for later|follow[\s-]?up)[^|\n]*\|",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    follow_id = re.compile(
+        r"follow_up:\s*T-[\w-]+|(?<![\w-])T-(?:HUB|FRONT|INTEG)-[\w-]+",
+        re.IGNORECASE,
+    )
+    for m in defer_row.finditer(text):
+        row = m.group(0)
+        if not follow_id.search(row):
+            errors.append(
+                "index.md Requirements Notes: deferred/partial/follow-up without "
+                f"`follow_up: T-…` epic ID: {row.strip()[:160]}"
+            )
+            break
+    return errors
+
+
+def _validate_shard_plan_contract(sid: str, shard_path: Path) -> list[str]:
+    """Require plan_contract bake-in (FR ids + nouns) on every decompose shard."""
+    try:
+        data = yaml.safe_load(shard_path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:
+        return [f"{sid}: cannot read shard for plan_contract: {exc}"]
+    if not isinstance(data, dict):
+        return [f"{sid}: shard YAML must be a mapping"]
+    pc = data.get("plan_contract")
+    if not isinstance(pc, dict):
+        return [
+            f"{sid}: missing plan_contract "
+            "(required: fr_ids, nouns, layout_paths, ac_quotes, plan_jumps)"
         ]
-    return []
+    errors: list[str] = []
+    for key in ("fr_ids", "nouns", "layout_paths", "ac_quotes", "plan_jumps"):
+        if key not in pc:
+            errors.append(f"{sid}: plan_contract missing key {key!r}")
+        elif not isinstance(pc[key], list):
+            errors.append(f"{sid}: plan_contract.{key} must be a list")
+    fr_ids = pc.get("fr_ids") if isinstance(pc, dict) else None
+    if isinstance(fr_ids, list) and not fr_ids:
+        # empty fr_ids only OK if shard is pure meta with explicit note — still warn as error
+        # require at least one fr/sc/us OR layout_paths non-empty OR plan_jumps non-empty
+        layout = pc.get("layout_paths") if isinstance(pc.get("layout_paths"), list) else []
+        jumps = pc.get("plan_jumps") if isinstance(pc.get("plan_jumps"), list) else []
+        if not layout and not jumps:
+            errors.append(
+                f"{sid}: plan_contract.fr_ids empty and no layout_paths/plan_jumps "
+                "(bake plan FR or layout nouns into shard)"
+            )
+    return errors
 
 
 def _validate_decompose_shard_filename(step_id: str, rel: str) -> str | None:
@@ -1311,6 +1365,8 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
             load_decompose(shard)
         except Exception as exc:
             errors.append(f"{sid} ({shard.name}): invalid epic-decompose yaml: {exc}")
+            continue
+        errors.extend(_validate_shard_plan_contract(sid, shard))
     return errors
 
 

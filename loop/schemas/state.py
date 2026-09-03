@@ -37,6 +37,7 @@ class EpicState(BaseModel):
     load_now_before: str | list[str] | None = None
     last_finish_tool: dict[str, Any] | None = None
     last_finished_step: str | None = None
+    last_finished_epic: str | None = None
     armed_after_finish: str | None = None
 
     drift_counters: DriftCounters = Field(default_factory=DriftCounters)

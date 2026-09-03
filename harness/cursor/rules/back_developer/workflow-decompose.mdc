@@ -37,7 +37,11 @@ DECOMPOSE = **максимально подробная** нарезка. Не �
 
 Перед FINISH построй и держи в `index.md` секции:
 
-1. **`## Requirements coverage (plan → steps)`** — таблица: каждый **AC+**, каждый **AC−**, каждый **FR-***, каждый **NFR-*** → ≥1 `sNN` (или явный out_of_scope со ссылкой на follow-up). Пустая ячейка / «закрыто layout» без delta = FAIL.
+1. **`## Requirements coverage (plan → steps)`** — таблица: каждый **AC+**, каждый **AC−**, каждый **FR-***, каждый **NFR-*** → ≥1 `sNN` (или явный `out_of_scope` + `follow_up: <epic_id>` **уже в** `roadmap-*.queue.yaml`). Пустая ячейка / «закрыто layout» без delta = FAIL.
+   - **Notes column HARD:** `deferred` / `partial` / `leave for later` / «если не нужно для MVP» **без** `follow_up: T-…` + ID в queue = **FAIL** (не coverage). Канон: behavior-first §1a.
+   - **FR remap HARD:** колонка «Кратко» / Plan FR text не имеет права отбрасывать nouns полного plan FR / Target layout (пример FAIL: FR про `commands/`+`skills/` → «два файла»). Verbatim plan text обязателен.
+   - **Target layout HARD:** каждый NEW/SoT/`git mv` path из plan Target layout → sNN `produces`/`files`/`deletes` или `out_of_scope`+queue ID.
+1b. **`plan_contract` (HARD) на каждом sNN:** блок `fr_ids` · `nouns` · `layout_paths` · `ac_quotes` · `plan_jumps` (шаблон epic-step). `validate-decompose-tree` fail-closed без блока.
 2. **`## Stages coverage`** — каждый этап/фаза из плана и канон-доков, на которые план ссылается (напр. async-architecture §11 этапы 1…N, plan §миграции, §тест-стратегия группы) → sNN. Этап «зафиксировать границы» / «перенести длинные пути» / «sync через run_sync_io» **нельзя** растворить в package-layout.
 3. **`## Outcome map`** — как ниже (intent). Coverage-таблицы **дополнительно**, не вместо Outcome map.
 4. **`## Replacement cleanup (plan → steps)`** — см. §Replacement cleanup ниже. Brownfield replace → строки на каждую устаревшую поверхность; greenfield → одна строка `n/a`.
@@ -219,11 +223,11 @@ IMPLEMENT: Read **только** Impl skills из step (+ FINISH-only). См. `w
     1. `python3 .claude/hooks/epic_resolve.py validate-decompose-tree --decompose <dir>` → exit 0
     2. `python3 .claude/hooks/epic_resolve.py validate-traceability --epic <plan_id>` → **CRITICAL=0** (иначе FAIL; HIGH → исправь `plan_refs` / `out_of_scope` до FINISH)
     3. `@verify-decompose` pre-FINISH gate — верификация полного пакета decompose.
-    4. **ANALYZE promote:** либо на диске свежий `memory-bank/back/analyze/<epic_id>/analyze-*.yaml` с `metrics.critical_count = 0`, либо явный defer в Handoff (`ANALYZE deferred:` owner + next + reason). Без артефакта и без defer = FAIL. Silent skip ANALYZE = FAIL.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → `s01-*.yaml`, status `active`
+    4. **Next = ANALYZE (HARD):** после DECOMPOSE FINISH следующий режим **только** `BACK ANALYZE`. **FORBIDDEN** `ANALYZE deferred:` как skip в IMPLEMENT. IMPLEMENT стартует только при analyze artifact `metrics.critical_count = 0`.
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`) — `load_now` → analyze/plan pointers; next `BACK ANALYZE`
 8. `tasks.md` append-only
-9. Next: `needs_creative` → CREATIVE; иначе `BACK ANALYZE` (если ещё не run / не deferred) → IMPLEMENT
-10. **Новый чат** для IMPLEMENT (context-session §2)
+9. Next: `needs_creative` → CREATIVE; иначе **`BACK ANALYZE`** (обязателен) → IMPLEMENT только после `critical_count=0`
+10. **Новый чат** для ANALYZE/IMPLEMENT (context-session §2)
 
 **Границы:** нет кода/тестов реализации; нет арх-решений вне плана (`needs_creative`); не путать с TASK; **не ужимать intent и не ужимать coverage** (Maximal detail + Outcome preserve + Replacement cleanup).
 

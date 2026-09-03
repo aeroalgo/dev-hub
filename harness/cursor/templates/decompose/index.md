@@ -26,14 +26,17 @@
 
 ## Requirements coverage (plan → steps)
 
-> **HARD:** каждый AC+ / AC− / FR / NFR (или UI AC для FRONT/INTEG) → ≥1 шаг, иначе явный out_of_scope.  
-> Канон: `workflow-*-decompose.mdc` §Maximal detail.
+> **HARD:** каждый AC+ / AC− / FR / NFR (или UI AC для FRONT/INTEG) → ≥1 шаг, иначе явный `out_of_scope` + `follow_up: T-…` **уже в** `roadmap-*.queue.yaml`.  
+> **FR verbatim (HARD):** колонка **Plan FR text** = дословный текст / nouns из `plan-*.md` (не «Кратко: два файла»). Remap FR = FAIL ANALYZE (`layout_dilution`).  
+> Notes `deferred`/`partial` без `follow_up: T-…` = FAIL (`validate-decompose-tree`).  
+> Канон: `workflow-*-decompose.mdc` §Maximal detail · behavior-first §1a.
 
-| Req ID | Кратко | sNN\|eNN | Notes |
+| Req ID | Plan FR text (verbatim) | sNN\|eNN | Notes |
 | :--- | :--- | :--- | :--- |
-| AC+ #1 | … | s0N | |
-| NFR-01 | … | s0N | |
-| Out of scope | … | — | follow-up |
+| FR-001 | <дословно из plan> | s0N | |
+| AC+ #1 | <дословно> | s0N | |
+| NFR-01 | <дословно> | s0N | |
+| Out of scope | <дословно> | — | follow_up: T-HUB-0NN-… |
 
 ## Stages coverage (plan/canon → steps)
 

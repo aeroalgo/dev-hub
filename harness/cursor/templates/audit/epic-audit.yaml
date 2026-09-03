@@ -12,21 +12,38 @@ summary:
   deviations: 0
   findings: 0
 
-# Intent coverage metrics. Keep the values explicit even when a source is skipped.
+# Intent coverage — IDs MUST match plan-*.md FR/SC/US verbatim (no remapped audit FR-00N).
 intent_checked:
   fr_total: 0
   fr_satisfied: 0
   sc_checked: 0
+  layout_paths_total: 0
+  layout_paths_closed: 0
   constitution_checked: false
 
-# Findings are ordered CRITICAL, HIGH, MEDIUM, LOW, then by stable id.
-# Dual-write legacy mapping: actionable missing findings → not_implemented[];
-# partial/contradicts findings → deviations[]; unrequested findings stay here only.
+# Triple assess (HARD):
+# 1) plan_vs_runtime — каждый plan FR/US/AC/layout vs runtime evidence
+# 2) step_matrix — каждый sNN|eNN ✅/❌/⚠️ vs implement
+# 3) architecture_parity — Target layout / HOW target vs as-built tree
+plan_vs_runtime:
+  - source_ref: FR-###
+    status: satisfied | partial | missing | deferred
+    evidence: <behavior evidence or path>
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/example/
+    status: present | missing | deferred
+    follow_up: ""   # required if deferred; ID must be in roadmap-*.queue.yaml
+    evidence: ""
+
+# Findings ordered CRITICAL, HIGH, MEDIUM, LOW, then by stable id.
+# Dual-write: actionable missing → not_implemented[]; partial/contradicts → deviations[].
 findings:
   - id: F1
-    gap_type: missing | partial | contradicts | unrequested
+    gap_type: missing | partial | contradicts | unrequested | layout_dilution | dilution
     severity: CRITICAL | HIGH | MEDIUM | LOW
-    source_ref: FR-###
+    source_ref: FR-### | layout:<path> | plan:<section>
     evidence: <file/area observed>
     remaining_work: <actionable remediation or review decision>
 
@@ -38,7 +55,7 @@ implemented:
 
 not_implemented:
   - step_id: sNN
-    plan_title: <title from plan>
+    plan_title: <title from plan — not remapped>
     new_shard: decompose-<epic_id>/sNN-audit-<slug>.yaml
 
 deviations:
@@ -49,8 +66,6 @@ deviations:
     impact: low | medium | high
 
 # Brownfield replace / cutover (shared/workflow-legacy-fallback-cleanup.mdc §4):
-# HARD: sunset_inventory_scan обязателен при sunset ≠ n/a; legacy_surfaces_remaining: []
-# только после scan с result: pass на всех rows. Пустые массивы без scan = audit FAIL.
 sunset_inventory_scan:
   scanned_at: YYYY-MM-DD
   plan_ref: plan-<epic_id>.md#replacement--sunset
@@ -61,11 +76,10 @@ sunset_inventory_scan:
       result: pass | fail
       prod_callers: []
       notes: ""
-legacy_surfaces_remaining: []   # каждый scan row result:fail + prod callers; shim без follow-up in queue
-fallback_remaining: []          # kind C scan fails
-instruction_remaining: []       # kind I scan fails
-purge_step_present: true        # false только если sunset весь n/a (greenfield)
-# Boundary FR: sole SoT enforce (shared/workflow-legacy-fallback-cleanup.mdc §4–§5)
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
 sot_enforce_scan:
   scanned_at: YYYY-MM-DD
   rows:
@@ -74,4 +88,4 @@ sot_enforce_scan:
       result: pass | fail
       notes: ""
 
-blocked_reason: ""  # заполнить если blocked, иначе пусто
+blocked_reason: ""

@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: "hub-link alongside --with-skills fail-closed + hub-unlink skills"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `bin/hub-link --mode=alongside` флаг `--with-skills` (fail-closed на conflict):
+  создаёт только installer-owned link `.agents/skills` → `harness/skills` без overwrite user regular tree.
+  Default alongside — не трогает `.agents` и `.claude/commands|skills|rules`.
+  Обновить `bin/hub-unlink` — снять installer-owned skills link если добавлен.
+
+plan_contract:
+  fr_ids: [FR-006, US-004, SC-004]
+  nouns: ["bin/hub-link", "--with-skills", ".agents/skills", "harness/skills", "fail-closed", "bin/hub-unlink"]
+  layout_paths:
+    - "bin/hub-link"
+    - "bin/hub-unlink"
+  ac_quotes:
+    - "alongside без флага: user .agents не тронут; с --with-skills: только installer-owned link/fail-closed, без overwrite regular dir"
+    - "exit ≠0 fail-closed; user tree not replaced"
+    - "hub-link --mode=alongside default не трогает user .agents / Claude command trees"
+  plan_jumps:
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:107-107"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:92-98"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:214-217"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md:320-322"
+
+context:
+  consumes:
+    - "s04 done (harness/skills exists)"
+    - "s05 done (full mode updated)"
+  produces:
+    - "bin/hub-link (alongside --with-skills flag + fail-closed guard)"
+    - "bin/hub-unlink (unlink installer-owned .agents/skills if present)"
+  plan_refs:
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §FR-006"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §US-004"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §SC-004"
+    - "plan-T-HUB-059-harness-claude-agents-sot-complete.md §Target layout (product alongside)"
+  files:
+    - "bin/hub-link"
+    - "bin/hub-unlink"
+
+as_built:
+  - "bin/hub-link alongside: не имеет --with-skills флага; не трогает .agents по дизайну"
+  - "bin/hub-unlink: не имеет логики для .agents/skills installer link"
+
+delta:
+  - "bin/hub-link: добавить --with-skills в arg parser (alongside mode only)"
+  - "bin/hub-link alongside --with-skills: если .agents/skills существует как regular dir → exit 2 (fail-closed, tree intact)"
+  - "bin/hub-link alongside --with-skills: если .agents/skills отсутствует или уже symlink → ln -sfn harness/skills .agents/skills"
+  - "bin/hub-link alongside (default): убедиться что .agents не трогается (явный skip/guard)"
+  - "bin/hub-unlink: добавить unlink .agents/skills если он является installer-owned symlink → harness/skills"
+
+deletes:
+  - "bin/hub-link: любые существующие silent defaults на .agents (Makefile/AGENTS.md stub — s08)"
+
+out_of_scope:
+  - "s05: full mode (done)"
+  - ".claude/commands|skills|rules в alongside — не трогаем (дизайн 046)"
+  - "full pytest (s07)"
+
+skills:
+  code_surface: shell
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: alongside без --with-skills не трогает .agents (negative assert)
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py -k 'agents and not with_skills' -q --tb=short 2>&1 | tail -5"
+  - id: cp2
+    criterion: --with-skills + conflict (regular dir) → exit 2, tree intact
+    verify: "bin/pytest loop/tests/test_hub_link_alongside.py -k with_skills -q --tb=short 2>&1 | tail -5"
+  - id: cp3
+    criterion: rg — --with-skills flag присутствует в bin/hub-link
+    verify: "rg 'with.skills' bin/hub-link"
+  - id: cp4
+    criterion: hub-unlink содержит логику unlink .agents/skills installer-owned link
+    verify: "rg 'agents/skills' bin/hub-unlink"
+
+verify: []
+tdd:
+  - "loop/tests/test_hub_link_alongside.py: alongside default → .agents unchanged (TM-004)"
+  - "loop/tests/test_hub_link_alongside.py: --with-skills + conflict regular dir → exit 2 (TM-005)"
+  - "loop/tests/test_hub_link_alongside.py: --with-skills + no existing .agents/skills → symlink created"

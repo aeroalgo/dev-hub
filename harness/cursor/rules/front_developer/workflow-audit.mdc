@@ -1,25 +1,23 @@
 ---
-description: "Режим FRONT AUDIT — intent↔implement gap-анализ, append-only remediation и converge"
+description: "Режим FRONT AUDIT — PLAN vs IMPLEMENT gap-анализ, append-only remediation и converge"
 alwaysApply: false
 ---
 ### Команда: FRONT AUDIT
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/audit.mdc
+**Behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc
 **Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
-**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать vitest/playwright/npm test или любой frontend suite (AUDIT сам suite не запускает, frontend-тесты — только parent); делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE.
+**FORBIDDEN:** полный текст всех shards; frontend suite в AUDIT; code-review; git-diff; MODE CONVERGE; **FR remap**.
 
 **Процесс**:
-1. `OK FRONT AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до оценки.
-2. **Intent Inventory (plan-first HARD):** из **`plan-<epic_id>.md`** — полный список FR/SC/US/AC±/NFR + constitution MUST; decompose вторичен. Plan FR без step → `missing` CRITICAL. Для каждого: `source_ref` → `step_id`. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3
-   **Constitution CASE:** `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A (canonical); нет → CASE B (note или `constitution: n/a` + reason). **FORBIDDEN** hardcoded epic ID.
-3. **Assess (behavior):** plan/decompose coverage + implement headers + bound evidence; gap-матрица (✅ / ❌ / ⚠️); intent↔**runtime**, не presence. **`satisfied` FORBIDDEN** на registry/alias/unit-only closes.
-4. **Severity и findings**: `findings[]` CRITICAL→LOW; каждый: `gap_type`, `severity`, `source_ref`, `evidence`, `remaining_work`.
-5. **Append remediation**: actionable → `sNN-audit-<slug>.yaml` (`role: front`); `goal`/`plan_refs` с `source_ref`. `unrequested` не auto-delete.
-6. **Dual-write и leftovers**: legacy arrays из findings; brownfield → leftovers + purge.
-7. **Converged / loop**: `converged: true` только без actionable + **behavior evidence по каждому plan FR** + empty leftovers + purge/sunset. Иначе IMPLEMENT → AUDIT. Только ⚠️ без actionable → `FRONT QA`.
-8. Sync `index.md` + `index.yaml` через `epic_resolve.py sync-index-yaml`.
-9. Записать audit yaml, tasks log, finish-block (`code_changed: no`) · `## Handoff FRONT AUDIT`.
+1. `OK FRONT AUDIT` → Gates · `epic_id` · bound file list.
+2. **Intent Inventory (plan-first):** все plan FR/SC/US/AC±/NFR + layout paths **verbatim**; decompose вторичен. Missing → CRITICAL. **FORBIDDEN** remapped-only.
+   Constitution CASE A/B — без hardcoded epic ID.
+3. **Triple Assess:** PLAN↔runtime · step matrix · architecture_parity. Presence ≠ satisfied.
+4. Findings CRITICAL→LOW; `gap_type` включает `layout_dilution|dilution`.
+5. Append `sNN-audit-*` (`role: front`) + **`plan_contract`**; sync index.
+6. Dual-write + leftovers / purge.
+7. `converged: true` только при полном plan parity → `FRONT QA`; иначе IMPLEMENT → AUDIT.
+8–9. Audit yaml · tasks log · finish-block · `## Handoff FRONT AUDIT`.
 
-**Boundary ANALYZE ≠ AUDIT**: ANALYZE — pre-IMPLEMENT coverage/ambiguity/**dilution**; AUDIT — post-IMPLEMENT intent↔behavior + remediation.
-
-**Верификация**: plan-first inventory; behavior Assess; `epic-audit/v2`; no metadata-only converged.
+**Верификация**: plan-first + Triple Assess; no metadata-only converged; no FR remap.

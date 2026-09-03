@@ -47,6 +47,13 @@ def _write(p: Path, data: dict) -> Path:
         "goal": "g",
         "delta": ["frontend/src/x.ts"],
         "out_of_scope": ["o"],
+        "plan_contract": {
+            "fr_ids": ["FR-001"],
+            "nouns": ["surface"],
+            "layout_paths": [],
+            "ac_quotes": [],
+            "plan_jumps": [],
+        },
         "checkpoints": [
             {"id": "cp1", "criterion": "c", "verify": "rg -n 'foo-cp1' src"},
             {"id": "cp2", "criterion": "c2", "verify": "rg -n 'bar-cp2' src"},

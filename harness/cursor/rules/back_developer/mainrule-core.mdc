@@ -46,7 +46,7 @@ VAN → PLAN(+CLARIFY) → DECOMPOSE → ANALYZE|defer → CREATIVE? → IMPLEME
 ```
 
 Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.
-Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + ANALYZE ok|deferred (workflow-decompose §7a).
+Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + **ANALYZE artifact critical_count=0** (workflow-decompose §7a). **FORBIDDEN** ANALYZE deferred skip.
 Runner: `./loop/loop.sh` · context-first gates.
 
 Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.

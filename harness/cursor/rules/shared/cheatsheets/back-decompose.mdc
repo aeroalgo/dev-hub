@@ -4,13 +4,14 @@ alwaysApply: false
 ---
 # Hot path (BACK DECOMPOSE)
 
-1. Read plan → index: Requirements / Stages / Outcome / Replacement cleanup
-2. Нарежь `sNN`: delta layer + deletes + 2–4 cp + Core∪situational · Coverage rubric (measurable verify)
-3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files` (agent/hook/CLI = runtime, не registry string); ≥1 behavior cp
-4. `validate-decompose-tree` exit 0
-5. **Promote HARD:** `validate-traceability --epic <id>` CRITICAL=0 + ANALYZE artifact `critical_count=0` **или** Handoff `ANALYZE deferred:`
-6. FINISH → next CREATIVE | ANALYZE | IMPLEMENT (новый чат)
+1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
+2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
+3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
+3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
+4. `validate-decompose-tree` exit 0 (+ plan_contract machine)
+5. `validate-traceability` CRITICAL=0 (deferred OOS без follow_up = CRITICAL)
+6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
 
 → full: @.cursor/rules/back_developer/workflow-decompose.mdc  
-→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc  
+→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc §1 · §1a  
 → count в plan = floor, не ceiling

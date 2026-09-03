@@ -25,11 +25,15 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 - `memory-bank/back/plan/roadmap-workflow-pack-framework-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-suite-hygiene-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-sunset-inventory-agent-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-harness-universal-runtime-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-loop-session-contract-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-harness-universal-runtime-epics.queue.yaml`
 
 ## Пропущены (done)
 
+- `T-HUB-057`
+- `T-HUB-058`
+- `T-HUB-053`
+- `T-HUB-046`
 - `T-HUB-002`
 - `T-HUB-003`
 - `T-HUB-004`
@@ -79,16 +83,13 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 
 | # | ID | План | Hard deps |
 |---|----|------|-----------|
-| 1 | T-HUB-057 | [plan-T-HUB-057-loop-session-json-contract.md](plan-T-HUB-057-loop-session-json-contract.md) | — |
-| 2 | T-HUB-058 | [plan-T-HUB-058-sunset-inventory-agent.md](plan-T-HUB-058-sunset-inventory-agent.md) | T-HUB-057 |
-| 3 | T-HUB-053 | [plan-T-HUB-053-codex-claude-hooks-parity.md](plan-T-HUB-053-codex-claude-hooks-parity.md) | T-HUB-057, T-HUB-058 |
-| 4 | T-HUB-046 | [plan-T-HUB-046-harness-alongside-install.md](plan-T-HUB-046-harness-alongside-install.md) | — |
-| 5 | T-HUB-047 | [plan-T-HUB-047-harness-mb-scaffold-epic-layout.md](plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) | — |
-| 6 | T-HUB-048 | [plan-T-HUB-048-workflow-pack-registry.md](plan-T-HUB-048-workflow-pack-registry.md) | — |
-| 7 | T-HUB-049 | [plan-T-HUB-049-workflow-pack-phase-router.md](plan-T-HUB-049-workflow-pack-phase-router.md) | T-HUB-048 |
-| 8 | T-HUB-050 | [plan-T-HUB-050-workflow-pack-memory-bank-paths.md](plan-T-HUB-050-workflow-pack-memory-bank-paths.md) | T-HUB-048 |
-| 9 | T-HUB-051 | [plan-T-HUB-051-workflow-pack-reference-video.md](plan-T-HUB-051-workflow-pack-reference-video.md) | T-HUB-049, T-HUB-050 |
-| 10 | T-HUB-052 | [plan-T-HUB-052-workflow-pack-adoption-docs.md](plan-T-HUB-052-workflow-pack-adoption-docs.md) | T-HUB-051 |
+| 1 | T-HUB-047 | [plan-T-HUB-047-harness-mb-scaffold-epic-layout.md](plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) | — |
+| 2 | T-HUB-048 | [plan-T-HUB-048-workflow-pack-registry.md](plan-T-HUB-048-workflow-pack-registry.md) | — |
+| 3 | T-HUB-049 | [plan-T-HUB-049-workflow-pack-phase-router.md](plan-T-HUB-049-workflow-pack-phase-router.md) | T-HUB-048 |
+| 4 | T-HUB-050 | [plan-T-HUB-050-workflow-pack-memory-bank-paths.md](plan-T-HUB-050-workflow-pack-memory-bank-paths.md) | T-HUB-048 |
+| 5 | T-HUB-051 | [plan-T-HUB-051-workflow-pack-reference-video.md](plan-T-HUB-051-workflow-pack-reference-video.md) | T-HUB-049, T-HUB-050 |
+| 6 | T-HUB-052 | [plan-T-HUB-052-workflow-pack-adoption-docs.md](plan-T-HUB-052-workflow-pack-adoption-docs.md) | T-HUB-051 |
+| 7 | T-HUB-059 | [plan-T-HUB-059-harness-claude-agents-sot-complete.md](plan-T-HUB-059-harness-claude-agents-sot-complete.md) | — |
 
 ## Handoff
 

@@ -1,0 +1,45 @@
+schema: loop-qa/v1
+epic_id: T-HUB-046-harness-alongside-install
+role: BACK
+timestamp: "2026-09-03"
+verdict: pass
+
+summary: |
+  Все требования эпика T-HUB-046 успешно верифицированы.
+  Alongside установка harness, изоляция правил Cursor, слияние настроек claude,
+  патчинг/анпатчинг CLAUDE.md и откат через hub-unlink протестированы и зелёные.
+
+matrix:
+  - id: FR-001
+    status: verified
+    evidence: "harness/cursor tree isolated; .cursor/rules symlink points to harness"
+  - id: FR-002
+    status: verified
+    evidence: "harness/claude templates and settings verified"
+  - id: FR-003
+    status: verified
+    evidence: "bin/hub-link default mode is alongside; tests pass"
+  - id: FR-004
+    status: verified
+    evidence: "CLAUDE.md patch / unpatch marker lifecycle verified"
+  - id: FR-005
+    status: verified
+    evidence: "settings.json merging preserves user settings; test_hub_settings_merge.py passed"
+  - id: FR-006
+    status: verified
+    evidence: "bin/hub-unlink unlinks cleanly without collateral damage"
+  - id: FR-007
+    status: verified
+    evidence: "All 24 unit/integration tests in test_hub_*.py and test_harness_*.py passed"
+  - id: FR-008
+    status: verified
+    evidence: "Legacy implicit full-replace behavior purged"
+  - id: FR-009
+    status: verified
+    evidence: "harness/README.md documentation up to date"
+
+suite:
+  total: 24
+  passed: 24
+  failed: 0
+  skipped: 0

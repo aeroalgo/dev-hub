@@ -341,7 +341,7 @@ def detect_shell_command_not_found(text: str) -> str | None:
     return None
 
 
-def detect_abort_in_text(text: str) -> str | None:
+def detect_abort_in_text(text: str, *, exit_code: int | None = None) -> str | None:
     fatal = _match_patterns(text or "", _FATAL_ABORT_PATTERNS)
     if fatal:
         return fatal
@@ -351,12 +351,16 @@ def detect_abort_in_text(text: str) -> str | None:
     shell_missing = detect_shell_command_not_found(text or "")
     if shell_missing:
         return "command not found"
-    return _match_patterns(
-        text or "",
-        _MALFORMED_RESULT_PATTERNS
-        + _PERMANENT_FAILURE_PATTERNS
-        + _TRANSIENT_ABORT_PATTERNS,
-    )
+    # exit 0/None: process finished cleanly — permanent phrases in tool/doc prose
+    # (e.g. runbook "Authentication error") must not HALT the loop.
+    patterns: tuple[re.Pattern[str], ...] = _MALFORMED_RESULT_PATTERNS + _TRANSIENT_ABORT_PATTERNS
+    if exit_code not in (0, None):
+        patterns = (
+            _MALFORMED_RESULT_PATTERNS
+            + _PERMANENT_FAILURE_PATTERNS
+            + _TRANSIENT_ABORT_PATTERNS
+        )
+    return _match_patterns(text or "", patterns)
 
 
 def detect_dsh_abort_in_log(text: str) -> str | None:
@@ -471,7 +475,7 @@ def detect_abort_in_log(
         return "log truncated — session output exceeded cap; exit_code indicates abort"
     if exit_code == 127:
         return "command not found"
-    text_result = detect_abort_in_text(system_text)
+    text_result = detect_abort_in_text(system_text, exit_code=exit_code)
     if text_result:
         return text_result
     # stream-json success always ends with type=result. Missing result = abrupt cut

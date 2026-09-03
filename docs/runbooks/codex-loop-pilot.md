@@ -50,13 +50,13 @@ The Codex runtime achieves hook parity with the Claude Code harness. Hooks are m
 
 ---
 
-## 4. Hand-Edit Policy for `.codex/hooks.json`
+## 4. Manual Edit Policy for `.codex/hooks.json`
 
 > **⚠️ FORBIDDEN: Do not edit `.codex/hooks.json` directly!**
 
 `.codex/hooks.json` is **auto-generated** from `harness/manifest.yaml` by `bin/runtime-sync` (using `loop.runtime_materializers.hooks_json`).
 
-- Hand-editing `.codex/hooks.json` causes a mismatch with `.codex/hooks.meta.json` (hash drift).
+- Manual modifications to `.codex/hooks.json` cause a mismatch with `.codex/hooks.meta.json` (hash drift).
 - `bin/runtime-sync --check --runtime codex` will fail immediately upon detecting any drift.
 - Always update `harness/manifest.yaml` and regenerate the hooks config using:
   ```bash

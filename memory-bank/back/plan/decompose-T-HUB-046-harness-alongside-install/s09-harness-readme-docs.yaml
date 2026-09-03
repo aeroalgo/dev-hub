@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-046-harness-alongside-install
+title: "harness/README.md: alongside vs full install modes documentation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать/обновить `harness/README.md` с документацией двух режимов install:
+  `alongside` (default, non-destructive) и `full` (dev-hub dogfood).
+  Покрыть: команды hub-link/hub-unlink, target layouts, patch markers, settings merge,
+  router stub behavior, uninstall steps.
+  Outcome: FR-007 (full mode documented); operator может выбрать режим без чтения кода.
+
+context:
+  consumes:
+    - "harness/README.md (current if exists)"
+    - "plan §Target layout (product repo, alongside)"
+    - "plan §Target layout (hub = dev-hub repo)"
+    - "FR-007"
+  produces:
+    - "harness/README.md (updated)"
+  plan_refs:
+    - "FR-007"
+    - "FR-009 (cross-ref note)"
+    - "plan §Regression notes"
+  files:
+    - "harness/README.md"
+
+as_built:
+  - "harness/README.md — T-HUB-041 basic README (may not cover install modes)"
+
+delta:
+  - "document alongside mode: what it does, what it doesn't touch"
+  - "document full mode: dev-hub dogfood, explicit --mode=full required"
+  - "add hub-link / hub-unlink command examples for both modes"
+  - "note: CI / tests must use --mode=full fixture explicitly (plan §Regression notes)"
+  - "note: harness/cursor/rules is now SoT (post s01); @.cursor/rules refs still work via symlink"
+
+deletes: []
+
+out_of_scope:
+  - "loop doctor warn (FR-011) — separate user-facing feature; deferred"
+  - "T-HUB-044 operator docs update — soft dep; add pointer only"
+
+skills:
+  code_surface: api
+  impl:
+    - "writing-plans"
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/README.md contains both 'alongside' and 'full' mode sections"
+    verify: "grep -c 'alongside\\|full' harness/README.md | grep -v '^0'"
+  - id: cp2
+    criterion: "README includes hub-link and hub-unlink example commands"
+    verify: "grep 'hub-link\\|hub-unlink' harness/README.md"
+  - id: cp3
+    criterion: "README notes: 'never run alongside against dev-hub root'"
+    verify: "grep -i 'dev-hub root\\|alongside.*dev-hub' harness/README.md"
+
+verify:
+  - "grep 'alongside' harness/README.md | head -5"
+  - "grep 'hub-link' harness/README.md | head -3"
+
+tdd: []
