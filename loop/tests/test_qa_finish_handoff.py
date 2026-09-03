@@ -16,11 +16,12 @@ def test_qa_mode_with_verdict_pass(tmp_path: Path):
         "---\n"
         "schema: loop-handoff/v1\n"
         "role: BACK\n"
-        "mode: REFLECT\n"
+        "mode: DONE\n"
         "epic_id: T-HUB-999-test-epic\n"
         "step_id: s10\n"
         "---\n\n"
-        "## Handoff BACK REFLECT\n"
+        "## Handoff BACK DONE\n"
+        "EPIC_DONE\n"
     )
     qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-999-test-epic"
     qa_dir.mkdir(parents=True, exist_ok=True)
@@ -35,11 +36,11 @@ def test_qa_mode_no_verdict(tmp_path: Path):
         "---\n"
         "schema: loop-handoff/v1\n"
         "role: BACK\n"
-        "mode: REFLECT\n"
+        "mode: DONE\n"
         "epic_id: T-HUB-999-test-epic\n"
         "step_id: s10\n"
         "---\n\n"
-        "## Handoff BACK REFLECT\n"
+        "## Handoff BACK DONE\n"
     )
     ok, diagnostic = validate_qa_finish_handoff(tmp_path, active_context)
     assert ok is False

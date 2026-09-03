@@ -6,7 +6,6 @@ roles:
   - integration
 
 terminal_phases:
-  - REFLECT
   - DONE
 
 phases:
@@ -174,19 +173,6 @@ phases:
       need_reviewer: true
     verify_agent: verify-qa
     dsh_preset: qa
-    promotable_after_finish: false
-    skip_index_sync: false
-    board_column: In Progress
-
-  REFLECT:
-    arm_template: pre_implement
-    finish_gates: {}
-    finish_gates_dict:
-      mode: null
-      need_verify: false
-      need_reviewer: false
-    verify_agent: null
-    dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
     board_column: In Progress

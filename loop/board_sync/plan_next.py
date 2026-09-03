@@ -98,7 +98,7 @@ def validate_plan_next(override: EpicNextOverride, artifacts: dict[str, bool]) -
         return f"Invalid plan-next override '{cmd}': decompose shard index does not exist for epic {override.epic_id}"
 
     pending_steps = bool(artifacts.get("pending_steps") or artifacts.get("has_pending_steps", False))
-    if phase in {"QA", "AUDIT", "REFLECT", "BUGFIX"} and pending_steps:
+    if phase in {"QA", "AUDIT", "BUGFIX"} and pending_steps:
         return f"Invalid plan-next override '{cmd}': cannot override to post-implement phase while implement steps pending for epic {override.epic_id}"
 
     return None

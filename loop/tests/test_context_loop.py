@@ -828,7 +828,7 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
 def test_prepare_clears_stale_post_implement_checkpoint(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """QA committed same_step must not halt prepare for REFLECT."""
+    """QA committed same_step must not halt prepare when lifecycle is DONE."""
     ctx = _load_ctx()
     monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
@@ -876,11 +876,9 @@ def test_prepare_clears_stale_post_implement_checkpoint(
         "## load_now\n"
         f"1. [qa-20260829-board-arm-loop.yaml](back/qa/{epic}/qa-20260829-board-arm-loop.yaml)\n"
         f"2. [index.yaml](back/plan/decompose-{epic}/index.yaml)\n\n"
-        f"## Handoff BACK REFLECT — {epic}\n"
+        f"## Handoff BACK QA — {epic}\n"
         f"- **Эпик:** {epic}.\n"
-        "- **Режим/шаг:** `BACK REFLECT`.\n"
-        "- **Сделано:** `BACK QA` pass.\n"
-        "- **Дальше:** написать reflection-*.md.\n",
+        "- **Режим/шаг:** `BACK QA`.\n",
     )
     from epic import (
         checkpoint_lifecycle,
@@ -894,9 +892,9 @@ def test_prepare_clears_stale_post_implement_checkpoint(
     st["status"] = "running"
     st["armed_epic"] = epic
     st["armed_decompose"] = decompose
-    st["armed_step"] = "REFLECT"
+    st["armed_step"] = "QA"
     st["role"] = "BACK"
-    st["phase"] = "REFLECT"
+    st["phase"] = "QA"
     save_epic_state(tmp_path, st)
     checkpoint_lifecycle(
         tmp_path,
@@ -919,12 +917,8 @@ def test_prepare_clears_stale_post_implement_checkpoint(
     assert checkpoint_path(tmp_path).is_file()
 
     out = ctx.prepare_session(tmp_path, model="gpt")
-    assert out.get("ok") is True, out
-    assert out.get("halt") is not True
-    assert checkpoint_path(tmp_path).is_file()
-    cp = json.loads(checkpoint_path(tmp_path).read_text(encoding="utf-8"))
-    assert cp.get("step_id") == "REFLECT"
-    assert cp.get("stage") == "prepared"
+    assert out.get("complete") is True, out
+    assert out.get("stop") == "EPIC_DONE"
 
 
 def test_check_after_commits_next_step_for_post_implement_phase(
@@ -1040,7 +1034,7 @@ def test_check_after_commits_next_step_for_post_implement_phase(
     cp = json.loads(checkpoint_path(tmp_path).read_text(encoding="utf-8"))
     assert cp.get("resume_policy") == "next_step"
     assert cp.get("stage") == "committed"
-    assert after.get("post_implement_phase") == "REFLECT"
+    assert after.get("post_implement_phase") == "DONE"
 
 
 def test_arm_clears_stale_checkpoint(tmp_path: Path, monkeypatch) -> None:
@@ -1626,8 +1620,8 @@ def test_check_after_epic_done_with_backticks(tmp_path: Path) -> None:
     assert after.get("stop") == "EPIC_DONE"
 
 
-def test_epic_done_rejected_without_qa_and_reflect(tmp_path: Path) -> None:
-    """HARD: EPIC_DONE without QA+REFLECT must not complete the loop."""
+def test_epic_done_rejected_without_qa_pass(tmp_path: Path) -> None:
+    """HARD: EPIC_DONE without QA pass must not complete the loop."""
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
     _write(
@@ -1872,7 +1866,7 @@ def test_audit_to_qa_transition(tmp_path: Path) -> None:
     assert out_with_audit["phase"] == "QA"
 
 
-def test_arm_reflect_when_qa_pass_exists(tmp_path: Path) -> None:
+def test_arm_done_when_qa_pass_exists(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
     _write(
@@ -1891,14 +1885,14 @@ def test_arm_reflect_when_qa_pass_exists(tmp_path: Path) -> None:
     _mark_all_decompose_steps_done(tmp_path)
     out = ctx.arm_session(tmp_path, "decompose-demo")
     assert out["ok"] is True
-    assert out.get("complete") is not True
-    assert out.get("phase") == "REFLECT"
+    assert out.get("complete") is True
+    assert out.get("stop") == "EPIC_DONE"
+    assert out.get("phase") == "DONE"
     text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
-    assert ctx.detect_stop_marker(text) is None
-    assert "REFLECT" in text
+    assert "EPIC_DONE" in text
 
 
-def test_arm_epic_done_only_after_qa_and_reflect(tmp_path: Path) -> None:
+def test_arm_epic_done_after_qa_pass(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_decompose_epic(tmp_path)
     _write(
@@ -2028,7 +2022,7 @@ def test_prepare_stale_complete_status_without_artifacts_does_not_finish(
     assert "AUDIT" in text
 
 
-def test_degraded_prompt_epic_finished_only_after_qa_and_reflect(
+def test_degraded_prompt_epic_finished_only_after_qa_pass(
     tmp_path: Path,
 ) -> None:
     ctx = _load_ctx()
@@ -2077,7 +2071,7 @@ def test_bugfix_reopens_qa_after_prior_pass(tmp_path: Path) -> None:
     phase, qa, reflection = __import__(
         "epic", fromlist=["post_implement_phase"]
     ).post_implement_phase(tmp_path, "integration", "demo")
-    assert phase == "REFLECT"
+    assert phase == "DONE"
     assert qa is not None
     assert reflection is None
 

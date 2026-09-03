@@ -316,7 +316,8 @@ def test_load_phase_registry_returns_all_phases():
     assert "phases" in reg
     assert len(reg["phases"]) >= 10
     assert "IMPLEMENT" in reg["phases"]
-    assert "REFLECT" in reg["terminal_phases"]
+    assert "REFLECT" not in reg["terminal_phases"]
+    assert "DONE" in reg["terminal_phases"]
 
 
 def test_get_phase_config_unknown_fails_closed():
@@ -378,7 +379,10 @@ def test_get_dsh_preset_implement():
     assert get_dsh_preset("QA") == "qa"
     assert get_dsh_preset("PLAN") is None
     assert get_dsh_preset("CLARIFY") is None
-    assert get_dsh_preset("REFLECT") is None
+    import pytest
+
+    with pytest.raises(ValueError, match="unknown phase"):
+        get_dsh_preset("REFLECT")
 
 
 def test_arm_phase_dsh_injects_preset(tmp_path, monkeypatch):

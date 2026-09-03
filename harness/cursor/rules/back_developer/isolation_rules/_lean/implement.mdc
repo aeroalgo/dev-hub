@@ -13,7 +13,7 @@ alwaysApply: false
 
 ## Gates
 
-1. `load_now`: work shard `decompose-*/sNN-*.yaml` (**+ plan_contract**) + `decompose-*/index.yaml`; **не** полный `plan-*.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR (≥~30% scope)
+1. `load_now`: work shard `decompose-*/sNN-*.yaml` (**+ plan_contract**) + `decompose-*/index.yaml`; **не** полный `plan-*.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR — формула: `L=end−start`; `L′=L×2`; jump=`start..(start+L′)` (ex `120–160`→`120–200`)
 1a. **ANALYZE hard gate:** analyze artifact `critical_count=0` иначе REJECT (нет deferred / soft WARN)
 1b. **Search scope:** loop `delta_paths_scoped` / `delta_paths_exist` → SKIP @explorer; ALLOW = shard paths + parent dirs
 1c. **Last sNN / pre-AUDIT:** `plan_parity_scan` (все plan FR + Target layout) в implement yaml / Handoff
@@ -27,7 +27,7 @@ alwaysApply: false
 5d. **`wire_complete` (HARD):** если step закрывает machine boundary / смену SoT / cutover контракта (slug/FR про wire|enforce|replace boundary) — в implement yaml блок `wire_complete` (call_sites, enforce_path, dual_path_rg, instruction_rg) green до `completed`. Канон: shared/workflow-behavior-first.mdc §9. Optional SoT / «модуль есть» без DENY old = FAIL
 6. §0.11: missing counterpart = bug; после deletes — нет живых callers на удалённое
 7. Green: только затронутые; полный suite → BACK QA
-8. **FINISH:** @.cursor/rules/shared/finish-block.mdc — **порядок:** Write `implement-*/sNN-*.yaml` → Handoff → `@verify` → PASS; step+Handoff **до** decompose completed (5 точек там)
+8. **FINISH:** @.cursor/rules/shared/finish-block.mdc — **порядок:** Write `implement-*/sNN-*.yaml` → Handoff → `@verify-implement` (legacy alias `@verify`) → PASS; step+Handoff **до** decompose completed (5 точек там)
 8a. **Epic complete:** `finalize-step` → `* AUDIT` (хук пишет Handoff; не QA напрямую)
 
 ## Level delta
@@ -42,7 +42,7 @@ alwaysApply: false
 
 - Shard/step missing · creative open · red skipped → no code/FINISH
 - Нет analyze artifact / `critical_count>0` → REJECT IMPLEMENT
-- **Scope violation:** paths вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT/REFLECT → REVERT + halt
+- **Scope violation:** paths вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT → REVERT + halt
 - Полный `plan-*.md` в `load_now` как monolith AC **без** plan_jumps → FAIL; отсутствие plan_jumps при непустых fr_ids → FAIL
 - Полный pytest / голый `pytest` / не из корня → BACK QA или FAIL
 - Impl skills из step не Read · Read скиллов вне step (кроме FINISH-only) → no FINISH

@@ -80,4 +80,4 @@ seed → flush cp → suite → evidence (in_progress) → validate-step → Han
 ## code_changed
 
 | yes | IMPLEMENT, TASK, BUGFIX, REFACTOR |
-| no | VAN, PLAN, DECOMPOSE, CREATIVE, QA, REFLECT, ARCHIVE NOW, SECURITY |
+| no | VAN, PLAN, DECOMPOSE, CREATIVE, QA, ARCHIVE NOW, SECURITY |

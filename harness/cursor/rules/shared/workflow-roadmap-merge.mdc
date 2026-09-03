@@ -22,7 +22,7 @@ alwaysApply: false
 
 1. **Discover:** все `roadmap-*-epics.queue.yaml` в plan-dir роли, **кроме** `roadmap-epics.queue.yaml`.
 2. **Existing canon:** если канон уже есть — его active ids сохраняют относительный порядок (база preferred order).
-3. **Skip done:** эпик с QA pass + REFLECT (`is_epic_done` / phase DONE) → не в канон; deps на done снимаются.
+3. **Skip done:** эпик с QA pass / phase DONE (`is_epic_done`) → не в канон; deps на done снимаются.
 4. **Dedup `id`:** один id один раз. Разные `plan` path → **FAIL** `roadmap_merge_plan_conflict` (human).
 5. **Deps:** hard-only; union при повторе id; неизвестный dep (не active и не done) → **FAIL** `roadmap_merge_unknown_deps`.
 6. **Order:** topo-sort по hard deps; среди ready — порядок preferred (canon → источники по mtime → хвост).

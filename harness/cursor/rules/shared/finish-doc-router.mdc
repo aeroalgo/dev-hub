@@ -16,8 +16,9 @@ alwaysApply: false
 | `* AUDIT` | audit-артефакт в `load_now`; Triple Assess (PLAN↔runtime · steps · architecture_parity); если `converged != true` или `not_implemented[]`/`legacy_surfaces_remaining[]`/`fallback_remaining[]` непусты → next = `* IMPLEMENT` новых sNN/eNN (петля); только `converged: true` при пустых actionable findings и leftover-массивах → next = `* QA` |
 | `* QA` | `## Handoff * QA` + qa link; при L2+ epic plan может включать plan §QA consumes (`plan.md#qa-consumes`) в `load_now` через offset/grep; fail/blocked → Fix plan #1 bugfix subject в `load_now` (qa-артефакт); **не** full plan |
 | `* BUGFIX` | bugfix-artifact (+ qa link если нужен Fix plan row); next → `* QA` пока pass |
-| `* REFLECT` | align post-task |
-| `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; reflection остаётся; clear `load_now`; «await VAN» / next T-xxx |
+| `* QA` | align after suite |
+| `* ARCHIVE NOW` | clear epic load_now |
+| `ARCHIVE NOW` | move epic → `memory-bank/archive/{role}/` via `scripts/mb-archive-epic.py`; reflection артефакты остаются (не gate); clear `load_now`; «await VAN» / next T-xxx |
 | `* CREATIVE` | rewire `sNN`/`eNN` канон `yes (CR-…) — **closed**` / index `yes (CR-…) ✅`; next tip по open/closed (`templates/decompose/epic-step.yaml`) |
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
@@ -28,12 +29,12 @@ alwaysApply: false
 
 ## graphify update
 
-После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/REFLECT/ARCHIVE.
+После code_changed (IMPLEMENT/BUGFIX/REFACTOR/TASK): cwd=корень → `.venv/bin/graphify update .`; `--force` только если узлов меньше. Пропуск: PLAN/DECOMPOSE/VAN/QA/ARCHIVE.
 
 ## Forbidden at FINISH
 
 - Completed work в `load_now`
-- **Полный `plan-*.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK / REFLECT (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
+- **Полный `plan-*.md` в `load_now`** после IMPLEMENT / QA / BUGFIX / TASK (и после DECOMPOSE FINISH — tip = `s01|e01` + decompose index, не plan)
 - `tasks.md` / `systemPatterns.md` / `decompose-*/index.md` / `implement-*/index.md` в IMPLEMENT `load_now` (разрешён только `decompose-*/index.yaml`)
 - `decompose=completed` / next `load_now` **до** step-файл + `## Handoff`
 - IMPLEMENT done без step-файл

@@ -14,7 +14,7 @@ alwaysApply: false
 1. Lean load §7: `load_now` + ONE shard (qa/bugfix) + **diff эпика** (не все sNN prose); **не** полный `plan-*.md`; при эпике с plan L2+ — `qa_consumes`-first (читать `plan.md#qa-consumes` через offset/grep); `plan §N` — только если test matrix row missing или в legacy plan без `#qa-consumes` (FR-009); parent гоняет **full** suite; `epic_id` → путь артефакта
 2. verification-before-completion · §0.11 · линт · типы · **полный pytest репозитория (HARD)** — parent **обязан** прогнать из корня:
    - канон: `bin/pytest -q --tb=line`
-   - альтернатива: `timeout 300s .venv/bin/pytest -q --tb=line`
+   - альтернатива: `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`
    - **без** path/nodeid/`-k` (и без иных фильтров collection). Epic-scoped / targeted suite **не** заменяет full.
    - Почему: IMPLEMENT крутит только scope шага; QA — единственный gate regression «сломали ли вокруг».
 2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B/C/**I**; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C; нет старых machine-format instructions (Kind I); **`sot_enforce_scan`** — старый SoT DENY/HALT. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8

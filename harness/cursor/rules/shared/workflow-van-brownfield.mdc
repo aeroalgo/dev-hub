@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Канон карты:** `memory-bank/architecture/`  
 **Шаблоны:** `.cursor/templates/architecture/`  
-**Paths:** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc  
+**Paths:** @.cursor/rules/shared/memory-bank-paths.mdc  
 **Economy:** architecture shards = **§0.0 SUSPENSION GUARD** (как plan/gap) — деталь без telegraph / 200-line cap.
 
 ## Detect mode

@@ -5,60 +5,56 @@ alwaysApply: false
 ### Команда: BACK PLAN
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+**Default hot path:** @.cursor/rules/shared/cheatsheets/back-plan.mdc — читать **первым**; full workflow ниже — только при FAIL / неясности.
 **Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/back_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
-**Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
-**Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
-**Behavior-first Independent Test (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc §5
-**Скиллы:**
-- @.agents/skills/writing-plans/SKILL.md
-- @.agents/skills/grill-me/SKILL.md — **Phase 0 only** (orchestration); **не** inline в Phase 1. Spike skip → mini grill (3 premises) в plan §Product probe
-- @.agents/skills/brainstorming/SKILL.md (L3–4 / размытая — batch, без HARD-GATE пауз)
-- @.agents/skills/python-testing-patterns/SKILL.md
-- @.agents/skills/fastapi-templates/SKILL.md (если FastAPI в techContext)
-- @.agents/skills/sqlalchemy-postgres/SKILL.md (если SQLAlchemy / Alembic)
-- @.agents/skills/supabase-postgres-best-practices/SKILL.md (если Postgres)
-- @.agents/skills/async-python-patterns/SKILL.md (если async / WS в scope)
-- @.agents/skills/websocket-engineer/SKILL.md (если realtime / WS)
-- @.agents/skills/architecture-patterns/SKILL.md (L3–4)
-- @.agents/skills/python-design-patterns/SKILL.md (L3–4)
+**Policy (по триггеру, не всегда целиком):** brownfield replace → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc; axiom/stack lock → @.cursor/rules/shared/workflow-spec-first-replace.mdc; Independent Test → @.cursor/rules/shared/workflow-behavior-first.mdc §5
 
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-plan.mdc
+**Скиллы — core (Phase 1):**
+- @.agents/skills/writing-plans/SKILL.md
+- @.agents/skills/grill-me/SKILL.md — **Phase 0 only**; Spike skip → mini grill в plan §Product probe
+- @.agents/skills/python-testing-patterns/SKILL.md
+
+**Скиллы — situational (только при триггере; 1–3 за сессию):**
+- brainstorming · architecture-patterns · python-design-patterns — L3–4 / размытая
+- fastapi-templates — FastAPI в techContext
+- sqlalchemy-postgres — SQLAlchemy / Alembic
+- supabase-postgres-best-practices — Postgres
+- async-python-patterns — async / WS в scope
+- websocket-engineer — realtime / WS
 
 **Batch (Phase 1 only):** шаги 2–8 за один проход; вопросы пакетом. **Phase 0** — sequential (orchestration).
-**Skills note:** при проходе Eng review (step 2p) для L2+ использовать `@.agents/skills/architecture-patterns/SKILL.md` (или профильные скиллы стека), для L1 — опционально.
 
 **Процесс**:
 0. **Phase 0 Clarify (orchestration):** прочитай **Phase 0 orchestration** + при триггерах выполни clarify mechanics (gates + shared-core). Sequential Q до Completion Report или halt. Skip → краткая запись в plan `§Product probe`. **Не** писать полный plan до Phase 0 gate OK.
 1. `OK BACK PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
-1a. Прочитай **Gates**
+1a. Прочитай **Gates** (+ cheatsheet если ещё не)
 1b. **Clarify link:** если clarify-артефакт есть — ссылка в шапке plan + `## Clarifications` (summary, не весь Q→A)
 1c. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные `T-xxx` при multi-epic)
 2p. **Plan review batch (после level fix):**
-    - **Product pass:** проверь product alignment / business premises (из Phase 0 или `§Product probe`).
-    - **Eng pass:** сформируй Eng review spine (architecture, patterns, code surface) — примени `@.agents/skills/architecture-patterns/SKILL.md`.
-    - **Auto-resolve defer:** вопросы/риски без вето пользователя сводятся пакетом в `## Plan review batch log` таблицы (не mandatory AskUserQuestion one-by-one). L1 — Product/Eng review pass опционален.
-3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → brainstorming / architecture-patterns
-3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** (оба обязательны) → полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0 каждый файл). Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
-4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield replace → sunset **A+B+C** + AC− fail-closed (shared legacy-fallback). **Technology axiom + spec-first:** @.cursor/rules/shared/workflow-spec-first-replace.mdc — WHAT/axiom до as-built spec; pydantic/JSON/enums → purge старого parser in-epic. **Independent Test (US):** только наблюдаемое поведение (файл/spawn/enforce/CLI); **FORBIDDEN** «alias/get_* returns string / field in yaml» как единственный Independent Test — @.cursor/rules/shared/workflow-behavior-first.mdc §5
+    - **Product pass:** product alignment / premises (Phase 0 или `§Product probe`).
+    - **Eng pass:** Eng review spine — situational `architecture-patterns` при L2+.
+    - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
+3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → situational brainstorming / architecture-patterns
+3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** → полный `plan-<epic_id>-*.md` на **каждый** эпик. Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
+4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
 6. Сохрани артефакт(ы): один `memory-bank/back/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
 7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
 7a1. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
-    (нет `loop/` в продукте → `dev-hub/loop/context_loop.py` с тем же `--cwd`).
     Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**, покажи JSON, не FINISH.
     Нет slug-источников и нет canon → skip CLI (single-epic без queue). Иначе merge **всегда**.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact по slug (если был Phase 0 / существует) + canon `roadmap-epics.md` + `roadmap-epics.queue.yaml` + первый `plan-*.md` из canon (multi-epic) **или** единственный plan (single-epic)
-7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
-7d. **Review readiness gate:** для эпиков уровня L2+ секция `## Review readiness` в `plan-*.md` должна быть полностью заполнена без неразрешённых `pending` значений в строках со статусом `Required`.
-8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из **canon** (после merge); CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + canon roadmap + first/sole plan
+7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом CRITICAL без resolve/defer-list.
+7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
+8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из **canon**; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
 
-**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `decompose-*/index.md`, **не** меняет колонку status/чеклист, **не** перезаписывает `activeContext.md` Handoff этого эпика. Roadmap-ссылку в шапке index можно StrReplace одной строкой. Status только `epic_resolve.py mark-index-status` / `finalize-step`. Рассинхрон yaml↔md → `repair-index-mirror`, не руками и не `sync-index-yaml --from-md-status`.
+**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `decompose-*/index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 
-**Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks (если research) + brownfield sunset A/B/C (если replace)
+**Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks + brownfield sunset (если replace)

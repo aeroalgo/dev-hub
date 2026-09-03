@@ -11,7 +11,7 @@ alwaysApply: false
 ## Gates
 
 1. Inventory всех `roadmap-*-epics.queue.yaml` (кроме canon) + existing canon
-2. Skip done (QA+REFLECT); dedup id; plan conflict → halt
+2. Skip done (QA pass / DONE); dedup id; plan conflict → halt
 3. Topo hard deps; soft только в slug md
 4. Canon + md записаны; slug sources не удалены
 5. `activeContext` / `tasks.md` указывают на canon; next = DECOMPOSE first active

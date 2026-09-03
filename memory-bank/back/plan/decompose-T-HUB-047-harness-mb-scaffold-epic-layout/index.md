@@ -94,3 +94,20 @@
 | `loop/mb_finish/*` — hardcoded decompose/implement path строки | resolver | s06 | `rg "'decompose-\|'implement-" loop/mb_finish/ \| grep -v "#\|deprecated" \| wc -l \| grep "^0"` |
 | `.cursor/rules/ workflow-*.mdc` + `epic-scoped-paths.mdc` — v1 path refs `decompose-{id}/`, `plan-{id}.md` | layout v2 docs | s11 | `rg 'decompose-\{id\}\|plan-\{id\}' .cursor/rules/ \| wc -l \| grep "^0"` |
 | `memory-bank-paths.mdc` + `plan-artifact.md` — v1 path refs `decompose-<id>/`, `plan-<id>.md` | layout v2 docs | s11 | `rg 'decompose-[A-Za-z0-9]' .cursor/rules/shared/memory-bank-paths.mdc harness/claude/rules/plan-artifact.md \| wc -l \| grep "^0"` |
+
+## Очередь шагов
+
+| step_id | title & files | next_phase | status |
+| :--- | :--- | :--- | :--- |
+| **s01** | epic-plan/v1 schema + epic-layout/v2 schema (loop/schemas/) · [yaml](s01-plan-spec-schema.yaml) | BACK IMPLEMENT | completed |
+| **s02** | loop/paths/epic_layout.py resolver — единственный path API · [yaml](s02-epic-layout-resolver.yaml) | BACK IMPLEMENT | pending |
+| **s03** | loop/mb_scaffold/ — scaffold_plan, scaffold_decompose, scaffold_implement_all, scaffold_qa, scaffold_analyze, scaffold_audit · [yaml](s03-mb-scaffold-core.yaml) | BACK IMPLEMENT | pending |
+| **s04** | epic_resolve.py mb-scaffold subparser — plan/decompose/implement/qa/analyze/audit · [yaml](s04-mb-scaffold-cli.yaml) | BACK IMPLEMENT | pending |
+| **s05** | loop/migrate/epic_layout_v1_to_v2.py — flat→v2 migrate (--dry-run/--apply) · [yaml](s05-migrate-script.yaml) | BACK IMPLEMENT | pending |
+| **s06** | Harness integration — epic_paths.py thin wrapper + _lib.py/reconcile.py/seed_implement/mb_finish resolver wire · [yaml](s06-harness-resolver-wire.yaml) | BACK IMPLEMENT | pending |
+| **s07** | Loop integration — context_loop/arm_phase/finalize_step/janitor → resolver only (zero hardcoded paths) · [yaml](s07-loop-resolver-wire.yaml) | BACK IMPLEMENT | pending |
+| **s08** | validate-traceability primary inventory from plan.yaml (удалить md fallback) · [yaml](s08-validate-traceability-yaml.yaml) | BACK IMPLEMENT | pending |
+| **s09** | formula-render merged into mb-scaffold decompose --formula (deprecate standalone) · [yaml](s09-formula-render-merge.yaml) | BACK IMPLEMENT | pending |
+| **s10** | Migrate apply на dev-hub memory-bank + validate-decompose-tree green · [yaml](s10-migrate-apply-dev-hub.yaml) | BACK IMPLEMENT | pending |
+| **s11** | Legacy path purge — удалить hardcoded decompose-*/plan-*.md glob в loop/ + harness/ + workflow rules update · [yaml](s11-legacy-path-purge.yaml) | BACK IMPLEMENT | pending |
+| **s12** | ≥25 pytest + session-start arm_phase auto-scaffold + FR-017 coverage · [yaml](s12-tests-session-start-wire.yaml) | BACK IMPLEMENT | pending |

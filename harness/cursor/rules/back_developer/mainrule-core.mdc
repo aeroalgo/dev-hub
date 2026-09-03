@@ -18,8 +18,8 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 
 1. Shell **cwd** = корень репо (где `.venv/` и `bin/pytest`)
 2. **Предпочтительно:** `bin/pytest …` (300s встроен в wrapper)
-3. Альтернатива: `timeout 300s .venv/bin/pytest …` (или `timeout 300s .venv/bin/python -m pytest …`)
-4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` / system PATH без внешнего timeout
+3. Альтернатива: `timeout -k 10s 300s .venv/bin/pytest …` (или `timeout -k 10s 300s .venv/bin/python -m pytest …`)
+4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` / `timeout 300s` без `-k` / system PATH без внешнего timeout
 5. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
 
 ## MEMORY BANK
@@ -27,7 +27,7 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 - `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-stub.mdc §0.5.1)
 - Index → ONE shard; не грузить `done — do NOT load`
 - Session start: @.cursor/rules/shared/context-session-economy.mdc §3
-- Артефакты: `memory-bank/back/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — `memory-bank-paths.mdc` (VAN)
+- Артефакты: `memory-bank/back/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — @.cursor/rules/shared/memory-bank-paths.mdc (VAN)
 
 ## УРОВНИ
 
@@ -41,13 +41,13 @@ Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дубл�
 ## ПЕРЕХОДЫ
 
 ```text
-VAN → PLAN(+CLARIFY) → DECOMPOSE → ANALYZE|defer → CREATIVE? → IMPLEMENT* → AUDIT↻ → QA → REFLECT → ARCHIVE
+VAN → PLAN(+CLARIFY) → DECOMPOSE → ANALYZE → CREATIVE? → IMPLEMENT* → AUDIT↻ → QA → DONE → ARCHIVE
          ↑ RECONCILE (hotfix drift)                    ↑ BUGFIX from QA
 ```
 
 Next: Handoff в `memory-bank/activeContext.md`; следующий шаг — activeContext + decompose index.
 Promote DECOMPOSE→IMPLEMENT: traceability CRITICAL=0 + **ANALYZE artifact critical_count=0** (workflow-decompose §7a). **FORBIDDEN** ANALYZE deferred skip.
-Runner: `./loop/loop.sh` · context-first gates.
+Post-QA: lifecycle **DONE** (REFLECT не gate). Runner: `./loop/loop.sh` · context-first gates.
 
 Не дублировать таблицы «после QA → …» здесь — только FINISH sync ledger.
 

@@ -139,8 +139,8 @@ alwaysApply: false
 - Таблица фаз: done / active / pending
 - % прогресса
 - Блокеры / open questions
-- Рекомендация: `<NEXT COMMAND>` или «pipeline complete → REFLECT → ARCHIVE»
-- **Завершение:** `BACK/FRONT ARCHIVE NOW` — финальная фаза pipeline после REFLECT.
+- Рекомендация: `<NEXT COMMAND>` или «pipeline complete → ARCHIVE»
+- **Завершение:** `BACK/FRONT ARCHIVE NOW` — финальная фаза pipeline после QA DONE (REFLECT не gate).
   Канон: @.cursor/rules/back_developer/workflow-archive.mdc (FRONT: `front_developer/workflow-archive.mdc`)
 
 ---

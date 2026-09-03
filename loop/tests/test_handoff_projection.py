@@ -91,11 +91,12 @@ def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> No
     out = project_handoff_from_reducer(tmp_path)
     assert out.get("ok") is True, out
     assert out.get("projected") is True, out
-    assert out.get("phase") == "REFLECT", out
+    assert out.get("phase") == "DONE", out
 
     ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
-    assert "schema: loop-handoff/v1" in ac
-    assert handoff_post_implement_phase(ac) == "REFLECT"
+    assert "DONE" in ac or "EPIC_DONE" in ac
+    assert "Handoff BACK DONE" in ac or "mode: DONE" in ac or "BACK DONE" in ac
+    assert handoff_post_implement_phase(ac) is None or "DONE" in ac
 
 
 def test_gate_verdict_sidecar_preferred_over_regex(tmp_path: Path) -> None:

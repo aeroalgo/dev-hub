@@ -7,7 +7,7 @@ description: "Role command parity chain — BACK/FRONT/INTEG workflow router (gr
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».
 
-**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: pytest — `bin/pytest …` (300s встроен) или `timeout 300s .venv/bin/pytest …`.
+**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: pytest — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
 
 **FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 

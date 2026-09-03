@@ -2,17 +2,17 @@
 description: "Cheatsheet — BACK IMPLEMENT hot path (≤1 экран)"
 alwaysApply: false
 ---
-# Hot path (BACK IMPLEMENT)
+# Hot path (BACK IMPLEMENT) — default first; full workflow только при FAIL
 
 1. **ANALYZE gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
 2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
 3. Read **`plan_jumps`** / plan §FR (line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200)
 4. graphify · Impl skills · sunset-inventory если required · TDD red→green · `deletes:` · `wire_complete`
 5. Последний sNN → **`plan_parity_scan`** (FR+layout checklist)
-6. FINISH 5 точек → `@verify` → PASS → `finalize-step` → epic done → AUDIT
+6. FINISH 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
 
 → full: @.cursor/rules/back_developer/workflow-implement.mdc  
-→ wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9
+→ wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
 
 ## Execution discipline
 

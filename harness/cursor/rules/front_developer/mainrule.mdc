@@ -15,7 +15,7 @@ alwaysApply: false
 | `FRONT PLAN` | @.cursor/rules/front_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
 | `FRONT CLARIFY` | @.cursor/rules/front_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `FRONT ANALYZE` | @.cursor/rules/front_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
-| `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc |
+| `FRONT ROADMAP MERGE` | @.cursor/rules/front_developer/workflow-roadmap-merge.mdc — recovery-only (PLAN делает merge inline) |
 | `FRONT DECOMPOSE` | @.cursor/rules/front_developer/workflow-decompose.mdc |
 | `FRONT CREATIVE` | @.cursor/rules/front_developer/workflow-creative.mdc |
 | `FRONT IMPLEMENT` | @.cursor/rules/front_developer/workflow-implement.mdc |
@@ -23,12 +23,13 @@ alwaysApply: false
 | `FRONT TASK` | @.cursor/rules/front_developer/workflow-task.mdc |
 | `FRONT BUGFIX` | @.cursor/rules/front_developer/workflow-bugfix.mdc |
 | `FRONT REFACTOR` | @.cursor/rules/front_developer/workflow-refactor.mdc |
-| `FRONT REFLECT` | @.cursor/rules/front_developer/workflow-reflect.mdc |
 | `FRONT ARCHIVE NOW` | @.cursor/rules/front_developer/workflow-archive.mdc |
 | `FRONT QA` | @.cursor/rules/front_developer/workflow-qa.mdc |
 | `FRONT SECURITY` · `FRONT SECURITY PLAN` · `FRONT SECURITY DECOMPOSE` | @.cursor/rules/front_developer/workflow-security.mdc |
 
-Пути: `memory-bank/front/<режим>/` — таблица в @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (**только VAN** / создание структуры).  
+**Archive (не gate):** `workflow-reflect.mdc` — не hot path; после QA = DONE.
+
+Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / создание структуры).  
 As-built UI: `memory-bank/architecture/frontend.md` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
 FINISH: @.cursor/rules/shared/finish-block.mdc  
 

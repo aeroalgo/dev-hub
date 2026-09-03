@@ -21,7 +21,7 @@ alwaysApply: false
 5. `visible_ui: yes` → Design Core (весь пакет Base 4 + Taste 13); `no` → `**Design skills:** —` + причина
 6. Папка создана
 7. Plan: index = единственный трекер; нет sNN-чеклистов
-7a. **Promote gate (HARD):** `validate-decompose-tree` + `validate-traceability` CRITICAL=0 + (ANALYZE artifact critical_count=0 **или** `ANALYZE deferred:` in Handoff)
+7a. **Promote gate (HARD):** `validate-decompose-tree` + `validate-traceability` CRITICAL=0. Next = **FRONT ANALYZE**. **FORBIDDEN** `ANALYZE deferred:` → IMPLEMENT
 8. `load_now` → `s01-*.yaml`
 
 ## Abort
@@ -31,7 +31,7 @@ alwaysApply: false
 - Полные interface/TSX в `sNN` → incomplete
 - Нет Requirements/Stages coverage / Outcome map / Replacement cleanup / intent compressed до «создать файлы» → incomplete
 - Dilution: FR nouns не в produces/files; product FR только surrogate verify → incomplete
-- Promote: CRITICAL>0 / нет ANALYZE и нет defer → incomplete
+- Promote: CRITICAL>0 · `ANALYZE deferred` → incomplete
 - AC/NFR/этап UX без sNN → incomplete
 - Replace UI без `deletes`/follow-up в queue → incomplete
 - Replace без `*-legacy-fallback-purge` при cleanup ≠ n/a → incomplete

@@ -9,29 +9,37 @@ alwaysApply: false
 **Core:** @.cursor/rules/back_developer/mainrule-core.mdc  
 **Процесс:** `workflow-*.mdc` → gates `isolation_rules/_lean/<mode>.mdc`. Скиллы — только из workflow.
 
+## Happy path
+
 | Режим | Процесс |
 |-------|---------|
 | `BACK VAN` | @.cursor/rules/back_developer/workflow-van.mdc |
-| `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc — **orchestrator:** Phase 0 auto-clarify + Phase 1 plan |
-| `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone (не обязателен перед PLAN) |
-| `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc — read-only проверка plan/decompose до IMPLEMENT |
-| `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift check plan vs repo after hotfix |
-| `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc |
+| `BACK PLAN` | @.cursor/rules/back_developer/workflow-plan.mdc — Phase 0 auto-clarify + Phase 1 (+ inline roadmap-merge) |
+| `BACK CLARIFY` | @.cursor/rules/back_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `BACK DECOMPOSE` | @.cursor/rules/back_developer/workflow-decompose.mdc |
+| `BACK ANALYZE` | @.cursor/rules/back_developer/workflow-analyze.mdc |
 | `BACK CREATIVE` | @.cursor/rules/back_developer/workflow-creative.mdc |
 | `BACK IMPLEMENT` | @.cursor/rules/back_developer/workflow-implement.mdc |
-| `BACK AUDIT` | @.cursor/rules/back_developer/workflow-audit.mdc — post-IMPLEMENT intent↔evidence + remediation loop |
+| `BACK AUDIT` | @.cursor/rules/back_developer/workflow-audit.mdc |
+| `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |
+| `BACK ARCHIVE NOW` | @.cursor/rules/back_developer/workflow-archive.mdc |
 | `BACK TASK` | @.cursor/rules/back_developer/workflow-task.mdc |
 | `BACK BUGFIX` | @.cursor/rules/back_developer/workflow-bugfix.mdc |
 | `BACK REFACTOR` | @.cursor/rules/back_developer/workflow-refactor.mdc |
-| `BACK REFLECT` | @.cursor/rules/back_developer/workflow-reflect.mdc |
-| `BACK ARCHIVE NOW` | @.cursor/rules/back_developer/workflow-archive.mdc |
-| `BACK QA` | @.cursor/rules/back_developer/workflow-qa.mdc |
-| `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
 | `BACK SECURITY` · `BACK SECURITY PLAN` · `BACK SECURITY DECOMPOSE` | @.cursor/rules/back_developer/workflow-security.mdc |
 
-Пути артефактов: `memory-bank/back/<режим>/` — таблица в @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (грузить **только** VAN / создание структуры).  
-As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
+## Recovery / ad-hoc (не next после PLAN)
+
+| Режим | Процесс |
+|-------|---------|
+| `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
+| `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift после hotfix |
+| `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
+
+**Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.
+
+Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / структура).  
+As-built: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc.  
 FINISH: @.cursor/rules/shared/finish-block.mdc  
 
 UI → `FRONT *`. Сквозной wire → `INTEG *`.

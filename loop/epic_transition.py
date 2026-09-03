@@ -29,7 +29,7 @@ if str(_LOOP) not in sys.path:
     sys.path.insert(0, str(_LOOP))
 
 _PROMOTABLE_PHASES = frozenset({"DECOMPOSE", "ANALYZE"})
-_POST_IMPLEMENT_ARMED = frozenset({"AUDIT", "QA", "REFLECT", "BUGFIX", "DONE"})
+_POST_IMPLEMENT_ARMED = frozenset({"AUDIT", "QA", "BUGFIX", "DONE"})
 _ROLE_PREFIXES = ("BACK ", "FRONT ", "INTEG ", "INTEGRATION ")
 _PHASE_REGISTRY_CACHE: dict[str, Any] | None = None
 _DEFAULT_REGISTRY_PATH = _LOOP / "schemas" / "phase_registry.yaml"

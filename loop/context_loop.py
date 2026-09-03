@@ -108,7 +108,6 @@ LOOP_PHASE_MODEL_ENV: dict[str, str] = {
     "AUDIT": "PROJECT_LOOP_AUDIT_MODEL",
     "QA": "PROJECT_LOOP_QA_MODEL",
     "BUGFIX": "PROJECT_LOOP_BUGFIX_MODEL",
-    "REFLECT": "PROJECT_LOOP_REFLECT_MODEL",
 }
 _LOOP_PHASE_DETECT_ORDER = (
     "DECOMPOSE",
@@ -119,7 +118,6 @@ _LOOP_PHASE_DETECT_ORDER = (
     "BUGFIX",
     "AUDIT",
     "QA",
-    "REFLECT",
     "PLAN",
 )
 
@@ -129,7 +127,7 @@ def loop_phase_key(
 ) -> str | None:
     """Normalize armed_step / projection.phase → LOOP_PHASE_MODEL_ENV key."""
     ph = str(phase or "").strip().upper()
-    # Terminal DONE must win over stale armed_step (AUDIT/QA/REFLECT left after REFLECT).
+    # Terminal DONE must win over stale armed_step (AUDIT/QA left after QA).
     if ph == "DONE" or re.search(r"\bDONE\b", ph):
         return None
     step = str(armed_step or "").strip().upper()
@@ -266,7 +264,7 @@ def _is_tier0_eligible(diagnostic_code: str, registry_path: str | Path | None = 
 
 
 def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
-    """Complete only when QA+REFLECT exist; otherwise halt (never silent DONE)."""
+    """Complete only when QA pass exists; otherwise halt (never silent DONE)."""
     gate = epic_complete_allowed(cwd)
     if gate.get("allowed"):
         return {
@@ -282,7 +280,7 @@ def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
         "reject_epic_done": True,
         "phase": gate.get("phase"),
         "reason": gate.get("reason")
-        or "EPIC_DONE запрещён: нет AUDIT/QA pass и/или REFLECT",
+        or "EPIC_DONE запрещён: нет AUDIT/QA pass",
     }
 
 
@@ -605,8 +603,6 @@ def _phase_kind(phase: object) -> str:
         return "implement"
     if re.search(r"\bQA\b", value):
         return "qa"
-    if re.search(r"\bREFLECT\b", value):
-        return "reflect"
     if re.search(r"\bAUDIT\b", value):
         return "audit"
     return "generic"
@@ -634,7 +630,6 @@ _GATE_PHASES = frozenset(
         "AUDIT",
         "QA",
         "BUGFIX",
-        "REFLECT",
     }
 )
 _SHARD_STEP_RE = re.compile(r"^[sera]\d+", re.I)
@@ -696,7 +691,7 @@ def _done_finish_block(*, chain_on: bool) -> str:
     )
     return (
         "## DONE FINISH\n"
-        "Эпик уже закрыт (projection.phase=DONE: QA pass + REFLECT).\n"
+        "Эпик уже закрыт (projection.phase=DONE: QA pass).\n"
         "1. Перепиши `activeContext.md`: `## load_now` пуст → 1× `## Handoff` со "
         "строкой `EPIC_DONE` (без префикса Стоп:) → stop.\n"
         "2. FORBIDDEN: `BACK|FRONT|INTEG ARCHIVE NOW`, skill `*-archive`, VAN, "
@@ -719,15 +714,6 @@ def _creative_finish_block() -> str:
 4. stop.
 
 FORBIDDEN: `@verify` для CREATIVE.
-"""
-
-
-def _reflect_finish_block() -> str:
-    return """## REFLECT FINISH
-1. Write `memory-bank/**/reflection/reflection-<epic>.md`.
-2. Handoff в activeContext; после PASS — отдельная строка `EPIC_DONE` и stop.
-3. FORBIDDEN в этой сессии: ARCHIVE NOW / VAN / следующий эпик.
-4. ARCHIVE — только вручную вне loop (после stop runner / исчерпания queue).
 """
 
 
@@ -792,7 +778,7 @@ def build_prompt(
         if chain_on:
             degraded_block = """
 ## Context degraded (epic finished)
-Эпик закрыт (QA pass + REFLECT). Не начинай VAN/ARCHIVE и не выбирай другой decompose/эпик.
+Эпик закрыт (QA pass). Не начинай VAN/ARCHIVE и не выбирай другой decompose/эпик.
 FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
 Runner при EPIC_CHAIN_ROADMAP=1 сам возьмёт следующий эпик из roadmap Queue.
 На FINISH оставь в Handoff отдельную строку `EPIC_DONE` (без префикса Стоп:) и stop.
@@ -807,9 +793,9 @@ FORBIDDEN: ARCHIVE NOW в loop-сессии (только вручную вне 
     elif degraded and marker_finished and not phase_done:
         degraded_block = """
 ## Context degraded (premature EPIC_DONE)
-Handoff содержит EPIC_DONE, но AUDIT/QA pass/REFLECT ещё нет. Эпик НЕ закрыт.
+Handoff содержит EPIC_DONE, но AUDIT/QA pass ещё нет. Эпик НЕ закрыт.
 Не начинай VAN и не выбирай другой decompose.
-Выполни текущую фазу из projection (AUDIT → QA → REFLECT).
+Выполни текущую фазу из projection (AUDIT → QA).
 На FINISH НЕ оставляй EPIC_DONE.
 """
     elif degraded and phase_done:
@@ -856,8 +842,6 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         finish_block = (
             "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py mb-finish qa --cwd $PROJECT_ROOT`\n"
         )
-    elif phase_kind == "reflect":
-        finish_block = _reflect_finish_block()
     elif phase_kind == "audit":
         finish_block = (
             "\n> После gap-анализа и audit yaml на диске → вызови: "
@@ -938,7 +922,7 @@ def _incomplete_step_fix_blocks(cwd: Path) -> list[str]:
     ]
 
 
-_POST_IMPLEMENT_PHASES = frozenset({"AUDIT", "QA", "REFLECT", "BUGFIX"})
+_POST_IMPLEMENT_PHASES = frozenset({"AUDIT", "QA", "BUGFIX"})
 
 
 def _is_post_implement_step(step_id: str | None) -> bool:
@@ -1104,11 +1088,11 @@ def arm_session(cwd: str | Path, epic: str) -> dict[str, Any]:
 
 
 def resolve_premature_epic_done(cwd: str | Path) -> dict[str, Any] | None:
-    """Reject EPIC_DONE unless QA pass + reflection exist; rewrite to next phase.
+    """Reject EPIC_DONE unless QA pass exists; rewrite to next phase.
 
     Returns:
       None — EPIC_DONE allowed (true complete) or marker absent
-      dict with rewrote_premature_epic_done — context rewritten to AUDIT/QA/REFLECT
+      dict with rewrote_premature_epic_done — context rewritten to AUDIT/QA/BUGFIX
       dict with reject_epic_done — cannot rewrite; caller must NOT complete
     """
     cwd_p = Path(cwd)
@@ -1122,7 +1106,7 @@ def resolve_premature_epic_done(cwd: str | Path) -> dict[str, Any] | None:
     if gate.get("allowed"):
         return None
 
-    # ARCHIVE NOW Handoff already closed the epic — never rewrite back to QA/REFLECT.
+    # ARCHIVE NOW Handoff already closed the epic — never rewrite back to QA.
     handoff = extract_handoff_block(text) or ""
     heading = handoff.splitlines()[0] if handoff.splitlines() else ""
     if re.search(r"(?i)\bARCHIVE\s+NOW\b", heading):
@@ -1133,7 +1117,7 @@ def resolve_premature_epic_done(cwd: str | Path) -> dict[str, Any] | None:
             "rewrote_premature_epic_done": False,
             "phase": gate.get("phase"),
             "reason": gate.get("reason")
-            or "EPIC_DONE запрещён: нет QA pass и/или REFLECT",
+            or "EPIC_DONE запрещён: нет QA pass",
         }
 
     decompose = gate.get("decompose") or (load_epic_state(cwd_p) or {}).get(
@@ -1169,7 +1153,7 @@ def resolve_premature_epic_done(cwd: str | Path) -> dict[str, Any] | None:
         "rewrote_premature_epic_done": False,
         "phase": gate.get("phase"),
         "reason": gate.get("reason")
-        or "EPIC_DONE запрещён: нет QA pass и/или REFLECT",
+        or "EPIC_DONE запрещён: нет QA pass",
     }
 
 
@@ -1374,7 +1358,10 @@ def prepare_session(
     # overwritten by a premature Handoff BACK QA / BACK AUDIT.
     if proj_phase == "BUGFIX" and handoff_phase in {"AUDIT", "QA", None}:
         handoff_phase = "BUGFIX"
-    if handoff_phase in {"AUDIT", "QA", "REFLECT", "BUGFIX"}:
+    if (
+        handoff_phase in {"AUDIT", "QA", "BUGFIX"}
+        and proj_phase != "DONE"
+    ):
         state["armed_step"] = handoff_phase
         state["phase"] = handoff_phase
         state["active"] = True
@@ -1383,10 +1370,9 @@ def prepare_session(
         proj_phase = handoff_phase
     if proj_phase == "DONE" and handoff_phase not in {
         "AUDIT",
-        "REFLECT",
         "BUGFIX",
     }:
-        # Clear stale AUDIT/QA/REFLECT armed_step so banner/model key match DONE.
+        # Clear stale AUDIT/QA armed_step so banner/model key match DONE.
         if state.get("armed_step") not in (None, "", "DONE"):
             state["armed_step"] = None
             state["phase"] = "DONE"
@@ -1992,7 +1978,7 @@ def check_after(
                 "fingerprint": fingerprint_context(text),
                 "reason": (
                     f"преждевременный EPIC_DONE сброшен → {fixed.get('phase')} "
-                    f"(эпик DONE только после QA + REFLECT)"
+                    f"(эпик DONE только после QA pass)"
                 ),
             }
         if fixed is not None and fixed.get("reject_epic_done"):
@@ -2183,7 +2169,7 @@ def check_after(
             step_id = str(st.get("armed_step") or cp.get("step_id") or "").strip()
             step_completed = _checkpoint_should_advance_after_session(cwd_p, step_id)
             # Advance when index step finalized or post-implement phase finished
-            # (AUDIT/QA/REFLECT/BUGFIX). Otherwise same_step — avoids committed/next_step
+            # (AUDIT/QA/BUGFIX). Otherwise same_step — avoids committed/next_step
             # ghosts that halt re-arm with checkpoint_projection_conflict while index
             # still pending.
             checkpoint_lifecycle(

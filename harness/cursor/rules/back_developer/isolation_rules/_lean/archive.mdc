@@ -9,7 +9,7 @@ alwaysApply: false
 
 ## Gates
 
-1. `reflection-[task_id].md` exists — **не** переносить
+1. Epic QA pass / lifecycle DONE — reflection **не** обязателен (T-HUB-060)
 2. `epic_id` известен (Handoff / load_now / arg)
 3. Move: агент переносит дерево + rewrite ссылок (опционально хелпер `scripts/mb-archive-epic.py --role <back|front|integration> --epic <epic_id>`): plan, decompose, implement, creative/qa/bugfix под epic
 4. Внешние ссылки rewritten; внутри archive-дерева relative валидны
@@ -26,6 +26,6 @@ alwaysApply: false
 
 ## Abort
 
-- Reflection missing → BACK REFLECT first
 - `epic_id` неизвестен → FAIL (уточнить plan_id)
 - Move без rewrite ссылок → FAIL
+- Epic не DONE (нет QA pass) → FAIL / сначала QA

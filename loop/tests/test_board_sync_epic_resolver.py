@@ -164,7 +164,6 @@ steps:
 """)
     _add_event(tmp_path, "T-HUB-999", "audit_done")
     _add_event(tmp_path, "T-HUB-999", "qa_pass")
-    _add_event(tmp_path, "T-HUB-999", "reflection_done")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
     assert res.phase == "DONE"
@@ -181,7 +180,7 @@ def test_validate_conflict_decompose_missing_plan():
     assert diag is not None
     assert "plan file does not exist" in diag
 
-def test_resolve_post_implement_qa_done_reflect_needed(tmp_path: Path):
+def test_resolve_post_implement_qa_pass_is_done(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"
     plan_dir.mkdir(parents=True, exist_ok=True)
     (plan_dir / "plan-T-HUB-999.md").write_text("# Plan T-HUB-999\n")
@@ -197,9 +196,9 @@ steps:
     _add_event(tmp_path, "T-HUB-999", "qa_pass")
 
     res = resolve_epic_next_action(tmp_path, "back", "T-HUB-999")
-    assert res.phase == "REFLECT"
-    assert res.next_command == "BACK REFLECT T-HUB-999"
-    assert res.reason_code == "qa_passed"
+    assert res.phase == "DONE"
+    assert res.next_command == "BACK DONE T-HUB-999"
+    assert res.reason_code == "epic_done"
 
 def test_resolve_post_implement_bugfix_active(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"

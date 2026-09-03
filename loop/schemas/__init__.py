@@ -15,10 +15,21 @@ from loop.schemas.checkpoint import (
     CHECKPOINT_STATUSES,
     CheckpointRecord,
 )
+from loop.schemas.epic_layout_schema import EpicLayoutKind, EpicLayoutResolveRequest
 from loop.schemas.event import EVENT_KINDS, EVENT_SCHEMA, LoopEvent
 from loop.schemas.formula import DecomposeFormula, FormulaStep, load_formula
 from loop.schemas.gate_verdict import GateVerdictRecord, GateVerdictValue
 from loop.schemas.handoff import LoopHandoffFrontmatter, LoopHandoffRole
+from loop.schemas.plan_spec import (
+    FormulaRef,
+    OutlineStep,
+    PlanSpec,
+    PlanSummary,
+    Requirement,
+    StageSummary,
+    SunsetRef,
+    TechnologyAxiom,
+)
 from loop.schemas.state import DriftCounters, EpicState
 from loop.schemas.sunset_inventory import (
     SCHEMA_LOOP_SUNSET_INVENTORY,
@@ -39,18 +50,28 @@ __all__ = [
     "DriftCounters",
     "EVENT_KINDS",
     "EVENT_SCHEMA",
+    "EpicLayoutKind",
+    "EpicLayoutResolveRequest",
     "EpicState",
+    "FormulaRef",
     "FormulaStep",
     "GateVerdictRecord",
     "GateVerdictValue",
     "LoopEvent",
     "LoopHandoffFrontmatter",
     "LoopHandoffRole",
+    "OutlineStep",
+    "PlanSpec",
+    "PlanSummary",
+    "Requirement",
     "SCHEMA_LOOP_SUNSET_INVENTORY",
+    "StageSummary",
     "SunsetItem",
     "SunsetKind",
     "SunsetMark",
+    "SunsetRef",
     "SunsetReport",
+    "TechnologyAxiom",
     "load_formula",
     "handoff_mode_from_text",
     "parse_handoff_meta",

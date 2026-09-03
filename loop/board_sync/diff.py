@@ -141,7 +141,7 @@ def gate_card(item: GateWorkItem, sync_generation: int) -> BoardTask:
         reason_code=item.reason_code,
     )
     body: str | None = None
-    if item.gate_phase.upper() not in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
+    if item.gate_phase.upper() not in {"AUDIT", "QA", "BUGFIX"}:
         plan_path = item.workspace_ref.path / item.plan_rel if item.plan_rel else None
         body = load_gate_body(plan_path, item.reason_code)
 

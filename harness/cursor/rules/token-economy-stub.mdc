@@ -22,7 +22,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
 
 **`load_now` OK partial plan:** `plan_jumps` line ranges / `plan §FR-00N` / Consumes §N (не весь файл)
 
@@ -57,7 +57,7 @@ Before requesting approval: list files, changes, commands, consequences.
 | Rules | `.cursor/rules/**` — **только** path в shard `files:` **или** user `implement this`; plan text «обновить workflow» **не** разрешение |
 | FINISH purge rules | только FINISH prose → `mb-finish`; **не** переписывать процесс/gates |
 | Pre-FINISH | scope check; out-of-scope → REVERT до Handoff |
-| **FORBIDDEN** | auto QA/AUDIT/REFLECT; mass `completed` в index; удаление тестов без `deletes:` |
+| **FORBIDDEN** | auto QA/AUDIT; mass `completed` в index; удаление тестов без `deletes:` |
 
 ## 0.10 Session start / FINISH (summary)
 

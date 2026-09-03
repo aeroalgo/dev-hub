@@ -7,7 +7,7 @@ alwaysApply: false
 **Артефакт (session):** `memory-bank/back/van/van-YYYYMMDD.md`  
 **Карта (brownfield):** `memory-bank/architecture/`  
 **Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
-**Пути:** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+**Пути:** @.cursor/rules/shared/memory-bank-paths.mdc
 
 ## Gates
 

@@ -22,7 +22,7 @@ graph TD
     Update --> More{"Ещё фазы?"}
     More -->|да| NewChat["New chat<br>NEXT COMMAND"]
     NewChat --> Exec
-    More -->|нет| Done["REFLECT / ARCHIVE<br>pipeline complete"]
+    More -->|нет| Done["QA DONE / ARCHIVE<br>pipeline complete"]
     Finish -->|continue| Exec
 ```
 

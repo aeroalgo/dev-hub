@@ -104,7 +104,7 @@ def test_us005_stale_handoff_reflect(tmp_path: Path):
     out = project_handoff_from_reducer(tmp_path)
     assert out.get("ok") is True
     assert out.get("projected") is True
-    assert out.get("phase") == "REFLECT"
+    assert out.get("phase") == "DONE"
 
 
 def test_us006_sidecar_pass_transcript_fail(tmp_path: Path):

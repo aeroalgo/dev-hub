@@ -9,11 +9,11 @@ alwaysApply: false
 
 ## Gates
 
-1. Reflection exists — не переносить
+1. Epic QA pass / DONE — reflection **не** обязателен
 2. `epic_id` + move/rewrite агентом (хелпер `mb-archive-epic.py --role integration` опционально)
 3. Rewrite внешних ссылок
 4. FINISH clear `load_now`
 
 ## Abort
 
-- Reflection missing · epic_id unknown · move без rewrite
+- epic_id unknown · move без rewrite · epic не DONE

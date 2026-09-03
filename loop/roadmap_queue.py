@@ -284,7 +284,7 @@ def resolve_entry(
     epic_id: str,
     plan_name: str,
 ) -> dict[str, Any]:
-    """Smart entry: DECOMPOSE / ANALYZE / IMPLEMENT|CREATIVE / QA / REFLECT / done."""
+    """Smart entry: DECOMPOSE / ANALYZE / IMPLEMENT|CREATIVE / QA / done."""
     root = Path(cwd)
     slug = resolve_epic_slug(root, role, epic_id, plan_name=plan_name)
     plan = plan_path(root, role, plan_name)
@@ -349,7 +349,7 @@ def resolve_entry(
             "decompose": decomp_rel,
             "step_id": next_step.get("step_id"),
         }
-    phase, qa, refl = post_implement_phase(root, role, slug)
+    phase, qa, _refl = post_implement_phase(root, role, slug)
     if phase == "DONE":
         return {
             "ok": True,
@@ -368,7 +368,6 @@ def resolve_entry(
         "plan": plan.relative_to(root).as_posix(),
         "decompose": decomp_rel,
         "qa_path": str(qa) if qa else None,
-        "reflection_path": str(refl) if refl else None,
     }
 
 

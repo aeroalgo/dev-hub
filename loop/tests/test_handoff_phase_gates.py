@@ -28,7 +28,7 @@ def _load_ctx():
     return mod
 
 
-def test_handoff_reflect_blocks_epic_done_despite_stale_reflection(tmp_path: Path) -> None:
+def test_legacy_handoff_reflect_does_not_block_epic_done(tmp_path: Path) -> None:
     from epic import epic_complete_allowed, handoff_post_implement_phase, reduce_epic_lifecycle
 
     epic = "T-059-bot-graph-test-harness"
@@ -45,23 +45,7 @@ def test_handoff_reflect_blocks_epic_done_despite_stale_reflection(tmp_path: Pat
         "  status: completed\n",
     )
     qa = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-bot-graph-test-harness.yaml"
-    refl = tmp_path / f"memory-bank/back/reflection/reflection-{epic}.md"
     _write(qa, "schema: epic-qa/v1\nverdict: pass\nissues: []\n")
-    _write(
-        refl,
-        "---\n"
-        f"epic_id: {epic}\n"
-        "date: '2026-08-29'\n"
-        "---\n\n"
-        "# old reflection\n",
-    )
-    qa.touch()
-    import os
-    import time
-
-    old = qa.stat().st_mtime
-    os.utime(refl, (old - 3600, old - 3600))
-    time.sleep(0.01)
 
     handoff_text = (
         "## load_now\n"
@@ -73,19 +57,18 @@ def test_handoff_reflect_blocks_epic_done_despite_stale_reflection(tmp_path: Pat
     _write(tmp_path / "memory-bank/activeContext.md", handoff_text)
     assert handoff_post_implement_phase(handoff_text) == "REFLECT"
 
-    gate = epic_complete_allowed(tmp_path)
-    assert gate.get("allowed") is False
-    assert gate.get("phase") == "REFLECT"
-
     decision = reduce_epic_lifecycle(tmp_path, "back", epic)
-    assert decision.get("phase") == "REFLECT"
-    assert decision.get("reason_code") in {
-        "qa_passed",
-        "qa_passed_stale_reflection",
-    }
+    assert decision.get("phase") == "DONE"
+    assert decision.get("reason_code") == "qa_passed"
+
+    gate = epic_complete_allowed(tmp_path)
+    assert gate.get("allowed") is True
+    assert gate.get("phase") == "DONE"
 
 
-def test_prepare_skips_epic_done_when_handoff_reflect(tmp_path: Path, monkeypatch) -> None:
+def test_prepare_completes_when_qa_pass_despite_legacy_reflect_handoff(
+    tmp_path: Path, monkeypatch
+) -> None:
     ctx = _load_ctx()
     monkeypatch.setenv("DEV_HUB", str(tmp_path / "hub"))
     monkeypatch.setenv("PROJECT_ROOT", str(tmp_path))
@@ -120,10 +103,6 @@ def test_prepare_skips_epic_done_when_handoff_reflect(tmp_path: Path, monkeypatc
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )
     _write(
-        tmp_path / f"memory-bank/back/reflection/reflection-{epic}.md",
-        f"---\nepic_id: {epic}\n---\n# reflection\n",
-    )
-    _write(
         tmp_path / "memory-bank/activeContext.md",
         "## load_now\n1. x\n\n"
         f"## Handoff BACK REFLECT — {epic}\n"
@@ -145,9 +124,8 @@ def test_prepare_skips_epic_done_when_handoff_reflect(tmp_path: Path, monkeypatc
     save_epic_state(tmp_path, st)
 
     out = ctx.prepare_session(tmp_path)
-    assert out.get("complete") is not True, out
-    assert out.get("stop") != "EPIC_DONE"
-    assert out.get("ok") is True
+    assert out.get("complete") is True, out
+    assert out.get("stop") == "EPIC_DONE"
 
 
 def test_mb_paths_for_prompt_are_absolute(tmp_path: Path) -> None:

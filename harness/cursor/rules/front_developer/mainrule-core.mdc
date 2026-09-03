@@ -6,7 +6,7 @@ alwaysApply: false
 
 ## ТЕСТИРОВАНИЕ
 
-Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`; pytest — `bin/pytest …` (300s встроен) или `timeout 300s .venv/bin/pytest …`.
+Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`; pytest — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
 
 - **HARD:** Vitest/RTL/Playwright — **только parent** (never subagent): `.cursor/rules/front-tests-parent-only.mdc`.
 - TDD targeted в IMPLEMENT/TASK; полный suite/Playwright → **FRONT QA**

@@ -27,7 +27,7 @@ from analyze_gate import latest_analyze as _latest_analyze
 from .plan_next import parse_plan_next, validate_plan_next
 
 _COMPLETED_STATUSES = frozenset({"completed", "done"})
-_POST_PHASES = frozenset({"AUDIT", "QA", "BUGFIX", "REFLECT"})
+_POST_PHASES = frozenset({"AUDIT", "QA", "BUGFIX"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,7 +61,7 @@ def resolve_epic_next_action(
          - Analyze needed? -> ANALYZE
          - Clarify needed? -> CLARIFY
          - Pending steps? -> IMPLEMENT (next_step_id)
-      4. Post-implement lifecycle -> AUDIT / QA / BUGFIX / REFLECT / DONE
+      4. Post-implement lifecycle -> AUDIT / QA / BUGFIX / DONE
     """
     project_path = Path(project).resolve()
     plan = _plan_path(project_path, role, epic_id)
@@ -210,7 +210,7 @@ def _resolve_post_implement(
     phase = str(lifecycle.get("phase", "")).upper()
     reason_code = str(lifecycle.get("reason_code", ""))
 
-    if phase == "DONE" or reason_code == "reflection_completed":
+    if phase == "DONE":
         cmd = f"{role.upper()} DONE {epic_id}"
         return EpicNextAction(
             epic_id=epic_id,
@@ -239,8 +239,7 @@ def _epic_done(project: Path | str, role: str, epic_id: str) -> bool:
     """Return True if epic post-implement lifecycle is complete (no pending post-impl gates)."""
     lifecycle = reduce_epic_lifecycle(Path(project), role, epic_id)
     phase = str(lifecycle.get("phase", "")).upper()
-    reason_code = str(lifecycle.get("reason_code", ""))
-    return phase == "DONE" or reason_code == "reflection_completed"
+    return phase == "DONE"
 
 
 def _phase_from_command(command: str) -> str:

@@ -11,15 +11,15 @@ alwaysApply: false
 1. Lean load §7: `load_now` + `plan-<epic_id>.md` + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/sNN|eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard.
 2. **Intent Inventory gate (plan-first):** в audit artifact — **все** plan FR/SC/US/AC±/NFR + constitution MUST с `source_ref`; каждый → `step_id`/eNN или finding `missing` CRITICAL. Decompose coverage вторичен. **FORBIDDEN** inventory только из remapped decompose FR.
 2a. **Constitution CASE:** файл `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A (canonical); нет → CASE B (note или `constitution: n/a` + reason). **FORBIDDEN** выбор CASE по hardcoded epic ID.
-3. **Assess gate (behavior):** для каждого **plan** intent и каждого `step_id` — оценка по runtime evidence; legacy gap-матрица:
-   - **✅ реализовано** — intent подтверждён **behavior** evidence (не presence-only / не surrogate lookup);
-   - **❌ не реализовано** — нет implement или evidence не подтверждает plan WHAT;
-   - **⚠️ отклонение** — partial / dilution (metadata вместо nouns) → finding, не ✅.
-   **`satisfied` FORBIDDEN** на registry/alias/unit-only closes. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc
-4. **Findings gate:** при записи `epic-audit/v2` обязателен `findings[]`; каждый finding содержит `gap_type` (`missing|partial|contradicts|unrequested`), `severity` (`CRITICAL|HIGH|MEDIUM|LOW`), `source_ref`, `evidence`, `remaining_work`. Findings сортируются CRITICAL → HIGH → MEDIUM → LOW → stable id; CRITICAL constitution/P1/dilution — первыми.
-5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts` и leftover получает новый `decompose-<epic_id>/sNN-audit-<slug>.yaml`; shard append-only, а его `goal` и `plan_refs` содержат исходный `source_ref`. `unrequested` не создаёт auto-delete.
-6. **Dual-write/leftover gate:** findings отображаются в legacy `implemented[]`, `not_implemented[]`, `deviations[]`; при brownfield replace обязательны **`sunset_inventory_scan`** (rg по **каждой** строке plan sunset A/B/C), `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `purge_step_present`. Пустой `legacy_surfaces_remaining[]` без выполненного scan = FAIL. Непустой leftover не допускает QA как clean.
-7. **Converged gate:** `converged: true` только при отсутствии actionable findings, **каждом plan FR с behavior evidence**, **`sunset_inventory_scan` complete**, пустых leftovers и `purge_step_present=true` (либо `sunset: n/a`). Metadata-only closes → не converged. Тогда BACK QA; иначе audit shards → IMPLEMENT → AUDIT.
+3. **Triple Assess (HARD):**
+   - **A. PLAN vs runtime:** каждый plan FR/US/AC/layout → `plan_vs_runtime[]` по **behavior** evidence
+   - **B. Step matrix:** каждый `sNN|eNN` ✅/❌/⚠️ vs implement headers + evidence
+   - **C. Architecture parity:** Target layout paths → `architecture_parity[]` (subset ≠ satisfied)
+   **`satisfied` FORBIDDEN** на registry/alias/unit-only. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc
+4. **Findings gate:** `findings[]` с `gap_type` (`missing|partial|contradicts|unrequested|layout_dilution|dilution`), `severity`, `source_ref`, `evidence`, `remaining_work`. CRITICAL constitution/P1/dilution/layout — первыми.
+5. **Append/source_ref gate:** каждый actionable `missing|partial|contradicts|layout_dilution` и leftover → новый `sNN-audit-*.yaml` + `plan_contract`; `unrequested` без auto-delete.
+6. **Dual-write/leftover gate:** dual-write legacy arrays; brownfield → **`sunset_inventory_scan`** (A/B/C/**I**), leftovers, `purge_step_present`. Пустой leftover без scan = FAIL.
+7. **Converged gate:** `converged: true` только без actionable findings, **каждый plan FR + Target layout** закрыт behavior/follow_up+queue, **architecture_parity** без missing, scan complete, leftovers empty, purge ok. Metadata-only / layout_dilution → не converged. Тогда BACK QA; иначе IMPLEMENT → AUDIT.
 8. Append в tasks log; blocked-случай записывается через `blocked_reason` и Handoff → `finish-doc-router.md`.
 9. FINISH: finish-block (`code_changed: no`); Handoff в `memory-bank/activeContext.md` + decompose index, если добавлены sNN.
 
@@ -31,7 +31,8 @@ alwaysApply: false
 - FINISH без Intent Inventory, Assess, findings или полной gap-матрицы в артефакте → FAIL
 - Intent Inventory без plan FR (только decompose remap) → FAIL
 - `satisfied` / ✅ на registry/alias/unit-only при agent/hook/CLI FR → FAIL
-- `converged: true` при plan FR без behavior evidence → FAIL
+- `converged: true` при plan FR без behavior evidence / layout_dilution / architecture_parity missing → FAIL
+- Intent Inventory без Target layout nodes (при наличии Target layout в plan) → FAIL
 - `source_ref` отсутствует в finding или goal/plan_refs нового audit shard → FAIL
 - Brownfield replace: нет **`sunset_inventory_scan`** / leftover fields / `purge_step_present=false` при sunset ≠ n/a → FAIL
 - Запуск `pytest`, `vitest`, Playwright, полного suite, `git-diff` или попытка rewrite completed implement → FAIL

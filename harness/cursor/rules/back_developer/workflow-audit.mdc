@@ -5,10 +5,10 @@ alwaysApply: false
 ### Команда: BACK AUDIT
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/audit.mdc
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-audit.mdc
-**Behavior-first / anti-dilution (HARD):** @.cursor/rules/shared/workflow-behavior-first.mdc
+**Cheatsheet hot path (default first):** @.cursor/rules/shared/cheatsheets/back-audit.mdc  
+**Full contract:** этот файл + Gates. Behavior-first — @.cursor/rules/shared/workflow-behavior-first.mdc (по dilution/layout findings, не всегда monolith).
 **Шаблон**: `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
-**FORBIDDEN:** читать весь текст каждого shard implement/decompose; запускать suite или отдельные тесты; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE; **remap / перенумерация plan FR** под sNN titles.
+**FORBIDDEN:** запускать suite или отдельные тесты; делать code-review кода; использовать git-diff; создавать новый MODE CONVERGE; **remap / перенумерация plan FR** под sNN titles; читать весь текст всех implement/decompose шардов сразу (full-repo scan запрещён — только по конкретному sNN при assess).
 
 **Процесс**:
 1. `OK BACK AUDIT — начинаю gap-анализ эпика` → **Gates**. Подтвердить `epic_id` и bounded file list до любой оценки.
@@ -18,10 +18,11 @@ alwaysApply: false
    - **CASE A** — существует `$PROJECT_ROOT/memory-bank/constitution.md`: проверять canonical constitution + явные refs в workflow/plan; `constitution-note.md` **не** создавать.
    - **CASE B** — файла нет: требовать отдельный constitution note (или явный `constitution: n/a` в audit artifact с reason); MUST-проверки без SoT = FAIL.
    **FORBIDDEN:** выбирать CASE по hardcoded epic ID.
-3. **Triple Assess (HARD) — три слоя, не один:**
+3. **Triple Assess (HARD) — четыре слоя, не один:**
    - **A. PLAN vs runtime (главный):** каждый plan FR/US/AC/layout → `plan_vs_runtime[]` status `satisfied|partial|missing|deferred` по **behavior** evidence в repo (не presence-only; не «sNN completed»).
    - **B. Step matrix:** каждый `sNN|eNN` ✅/❌/⚠️ vs implement headers + evidence (как раньше).
    - **C. Architecture parity:** Target layout / HOW target tree vs фактические paths → `architecture_parity[]`. Subset layout ≠ satisfied.
+   - **D. PLAN↔IMPLEMENT semantic (HARD):** для каждого completed `sNN` — прочитать полный implement шард (`implement-<epic_id>/sNN-*.yaml`) и сопоставить с decompose шардом (`decompose-<epic_id>/sNN-*.yaml`): `done[]`/`checkpoints[]` vs `goal`/`plan_contract`/`delta`/`acceptance_criteria`. Если `done` покрывает только структуру/регистрацию но не поведение из `goal` → `contradicts` или `partial`. Если `gaps.status` ≠ none в implement шарде → автоматический candidate finding. NFR из `plan_contract.nfr` проверяются отдельно: если implement не упоминает NFR-enforcement — finding `partial`.
    **`satisfied` FORBIDDEN** если evidence = только registry row / alias / unit lookup / «модуль есть», а FR требует agent file / preset / hook enforce / CLI.
    Appetite `cut_list` ∩ живой plan FR/layout без queue ID → finding `layout_dilution` CRITICAL.
 4. **Severity и findings**: записать в audit artifact `findings[]` в порядке `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, затем по стабильному `id`. Каждый finding: `gap_type` (`missing|partial|contradicts|unrequested|layout_dilution|dilution`), `severity`, `source_ref`, `evidence`, `remaining_work`. CRITICAL из constitution MUST, P1 intent, dilution/missing plan FR, layout gaps — первыми.
@@ -39,7 +40,7 @@ alwaysApply: false
 | `critical_count=0` — hard gate в IMPLEMENT | `converged` → QA либо IMPLEMENT → AUDIT |
 
 **Operating Constraints**:
-- Lean inspection: plan, decompose/index, implement headers, evidence по file list; не full-text всех shards / full-repo.
+- Lean inspection: plan, decompose/index, implement headers — первичный проход. Полный текст implement + decompose шарда читается **per-step** при Assess D (не все сразу).
 - Completed implement — append-only; AUDIT не меняет код.
 - AUDIT не запускает pytest/vitest/Playwright/suite.
 - Не MODE CONVERGE; не auto-delete unrequested.

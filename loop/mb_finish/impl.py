@@ -129,8 +129,8 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         next_mode = "BUGFIX"
         default_hint = "fix QA blockers via BUGFIX"
     else:
-        next_mode = "REFLECT"
-        default_hint = "reflection"
+        next_mode = "DONE"
+        default_hint = "EPIC_DONE"
 
     meta = LoopHandoffMeta(
         role=role,
@@ -201,8 +201,8 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     st = load_epic_state(cwd)
     st["armed_step"] = next_mode
     st["phase"] = next_mode
-    st["active"] = True
-    st["status"] = "armed"
+    st["active"] = next_mode != "DONE"
+    st["status"] = "complete" if next_mode == "DONE" else "armed"
     st["halt_reason"] = None
     save_epic_state(cwd, st)
 
@@ -222,7 +222,7 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         finished_step="QA",
         next_step=next_mode,
         next_phase=next_mode,
-        epic_done=False,
+        epic_done=next_mode == "DONE",
     )
 
 

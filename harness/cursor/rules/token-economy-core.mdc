@@ -121,7 +121,7 @@ Applies when **создаёшь/правишь** non-plan artifacts. **Does NOT*
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK / REFLECT):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
 
 **`load_now` OK partial plan:** line-range jumps / §FR / Consumes §N
 
@@ -192,7 +192,7 @@ Full canon: @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 | FINISH rules purge | replace FINISH prose with `mb-finish` call only — **FORBIDDEN** remove gates, Phase 0, coverage rubric, behavior-first, non-FINISH steps |
 | Tests/docs | **FORBIDDEN** delete/shrink tests, validators, README without shard `deletes:` |
 | Index | **FORBIDDEN** mark other steps `completed`; only `finalize-step` for current step |
-| Modes | **FORBIDDEN** run QA/AUDIT/REFLECT/EPIC_DONE without separate user role command |
+| Modes | **FORBIDDEN** run QA/AUDIT/EPIC_DONE without separate user role command |
 | Pre-FINISH | enumerate changed paths; out-of-scope → REVERT before Handoff |
 
 Loop sessions: same lock; no «finish whole epic» without per-step user continuation.
@@ -203,7 +203,7 @@ Triggers: `continue project <name>` · role command (`BACK IMPLEMENT`, …) · `
 
 On start: (1) read `memory-bank/activeContext.md`; (2) load ONLY current role docs (§0.3) unless PLAN workflow expands inventory; (3) continue from current stage — do NOT re-execute completed stages.
 
-**On FINISH** (end of IMPLEMENT, QA pass, PLAN, VAN, REFLECT, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed).
+**On FINISH** (end of IMPLEMENT, QA pass, PLAN, VAN, ARCHIVE NOW, TASK, BUGFIX): run @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed).
 
 ## 0.11 Integration verification (connection rule)
 

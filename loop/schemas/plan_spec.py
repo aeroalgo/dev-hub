@@ -1,7 +1,7 @@
 """Pydantic schema for epic-plan/v1 specifications."""
 
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Requirement(BaseModel):
@@ -40,6 +40,8 @@ class TechnologyAxiom(BaseModel):
 
 
 class PlanSpec(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     schema_version: str = Field(default="epic-plan/v1", alias="schema")
     plan_id: str
     level: str
@@ -51,6 +53,3 @@ class PlanSpec(BaseModel):
     stages: List[StageSummary] = Field(default_factory=list)
     sunset_refs: List[SunsetRef] = Field(default_factory=list)
     technology_axiom: Optional[TechnologyAxiom] = None
-
-    class Config:
-        populate_by_name = True

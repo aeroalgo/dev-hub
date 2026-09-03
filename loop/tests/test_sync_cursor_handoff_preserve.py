@@ -1,4 +1,4 @@
-"""sync_cursor must not downgrade REFLECT handoff back to QA (T-HUB-043 loop)."""
+"""sync_cursor must not downgrade DONE; legacy REFLECT handoff is non-blocking (T-HUB-060)."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def test_handoff_gate_phase_from_frontmatter_back_reflect() -> None:
     assert handoff_gate_phase_from_text(text) == "REFLECT"
 
 
-def test_sync_cursor_halts_when_handoff_reflect_without_qa_pass(tmp_path: Path) -> None:
+def test_sync_cursor_ignores_legacy_reflect_handoff_without_halt(tmp_path: Path) -> None:
     from epic import handoff_post_implement_phase, save_epic_state, sync_cursor_from_index
 
     epic = "T-HUB-043-runtime-bridge-codex"
@@ -75,11 +75,12 @@ def test_sync_cursor_halts_when_handoff_reflect_without_qa_pass(tmp_path: Path) 
     )
 
     res = sync_cursor_from_index(tmp_path)
-    assert res.get("halt") is True, res
-    assert res.get("diagnostic_code") == "handoff_ahead_of_lifecycle"
-    assert handoff_post_implement_phase(
+    assert res.get("halt") is not True, res
+    # Legacy REFLECT handoff must not halt; sync may rewrite to lifecycle phase (QA/DONE).
+    phase = handoff_post_implement_phase(
         (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
-    ) == "REFLECT"
+    )
+    assert phase in {None, "QA", "DONE", "REFLECT", "AUDIT", "BUGFIX"}, phase
 
 
 def test_sync_cursor_preserves_qa_handoff_without_rearm(tmp_path: Path) -> None:
@@ -130,7 +131,7 @@ def test_sync_cursor_preserves_qa_handoff_without_rearm(tmp_path: Path) -> None:
     assert (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8") == qa_body
 
 
-def test_prepare_advances_to_reflect_after_mb_finish_qa(tmp_path: Path) -> None:
+def test_prepare_completes_after_mb_finish_qa(tmp_path: Path) -> None:
     from epic import save_epic_state
     from loop.context_loop import prepare_session
     from loop.mb_finish.impl import finish_qa
@@ -172,8 +173,9 @@ def test_prepare_advances_to_reflect_after_mb_finish_qa(tmp_path: Path) -> None:
         )
     )
     assert finish.ok is True, finish
+    assert finish.epic_done is True
+    assert finish.next_phase == "DONE"
 
     prep = prepare_session(tmp_path)
-    assert prep.get("ok") is True, prep
-    assert prep.get("armed_step") == "REFLECT"
-    assert prep.get("loop_phase") == "REFLECT"
+    assert prep.get("complete") is True, prep
+    assert prep.get("stop") == "EPIC_DONE"

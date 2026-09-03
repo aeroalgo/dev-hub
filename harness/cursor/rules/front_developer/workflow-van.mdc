@@ -6,7 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc  
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/van.mdc  
 **Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
-**Paths**: @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+**Paths**: @.cursor/rules/shared/memory-bank-paths.mdc
 
 **Процесс**:
 1. `OK FRONT VAN - Запускаю инициализацию / карту frontend`

@@ -7,7 +7,7 @@ alwaysApply: false
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/van.mdc  
 **Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
 **Скиллы:** @.agents/skills/architecture-patterns/SKILL.md  
-**Paths**: @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc
+**Paths**: @.cursor/rules/shared/memory-bank-paths.mdc
 
 **Процесс**:
 1. `OK INTEG VAN - Оцениваю интеграцию / полную карту`

@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # SECURITY epic — shared
 
-**Paths (канон):** @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc  
+**Paths (канон):** @.cursor/rules/shared/memory-bank-paths.mdc  
 **Epic detect:** @.cursor/rules/shared/epic-scoped-paths.mdc  
 **FINISH:** @.cursor/rules/shared/finish-block.mdc  
 **Шаблоны:** `.cursor/templates/security/`
@@ -108,4 +108,4 @@ Required в step (`templates/security/step.md`):
 1. Read step (эпик) или scope (S)
 2. Load **только** Audit skills из step (эпик) или workflow list (S)
 3. Graphify orient (execute only) → audit → write findings artifact
-4. FINISH: `code_changed: no`; next = следующий `aNN` или REFLECT / BUGFIX по findings
+4. FINISH: `code_changed: no`; next = следующий `aNN` или BUGFIX / ARCHIVE по findings

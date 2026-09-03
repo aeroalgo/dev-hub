@@ -2,7 +2,7 @@
 description: "Cheatsheet — BACK DECOMPOSE hot path (≤1 экран)"
 alwaysApply: false
 ---
-# Hot path (BACK DECOMPOSE)
+# Hot path (BACK DECOMPOSE) — default first; full workflow только при FAIL
 
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
 2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp

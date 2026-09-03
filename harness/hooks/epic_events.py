@@ -14,7 +14,6 @@ EVENT_KINDS = frozenset({
     "qa_pass",
     "qa_fail",
     "bugfix_done",
-    "reflection_done",
     "incident_opened",
     "incident_resolved",
     "repair_applied",
@@ -28,6 +27,9 @@ EVENT_KINDS = frozenset({
     "traceability_warn",
     "traceability_fail",
 })
+# Historical event.log rows — parse for seq continuity; reducer ignores these kinds.
+LEGACY_DEAD_EVENT_KINDS = frozenset({"reflection_done"})
+_VALIDATABLE_EVENT_KINDS = EVENT_KINDS | LEGACY_DEAD_EVENT_KINDS
 MAX_METADATA_KEYS = 32
 MAX_METADATA_BYTES = 2048
 MAX_METADATA_KEY_LENGTH = 64
@@ -152,7 +154,7 @@ def validate_event(
     if isinstance(seq, bool) or not isinstance(seq, int) or seq < 1:
         errors.append(_diagnostic("seq", "seq", "seq must be a positive integer"))
     kind = record.get("kind")
-    if kind not in EVENT_KINDS:
+    if kind not in _VALIDATABLE_EVENT_KINDS:
         errors.append(_diagnostic("kind", "kind", f"kind must be one of {sorted(EVENT_KINDS)}"))
     artifact, artifact_errors = normalize_artifact_path(record.get("artifact"))
     errors.extend(artifact_errors)
@@ -218,7 +220,7 @@ def adapt_v1_event(
     if not isinstance(record, dict):
         return EventValidation(None, (_diagnostic("event_type", "event", "legacy event must be an object"),))
     kind = record.get("kind")
-    if kind not in EVENT_KINDS:
+    if kind not in _VALIDATABLE_EVENT_KINDS:
         return EventValidation(None, (_diagnostic("kind", "kind", "legacy event has an unsupported kind"),))
     artifact, path_errors = normalize_artifact_path(record.get("artifact"))
     if path_errors or artifact is None:
@@ -448,6 +450,8 @@ def build_event(
     timestamp: str,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if kind not in EVENT_KINDS:
+        raise ValueError(f"kind must be one of {sorted(EVENT_KINDS)}")
     artifact_path, errors = normalize_artifact_path(artifact)
     if errors or artifact_path is None:
         raise ValueError(errors[0].message if errors else "invalid artifact")

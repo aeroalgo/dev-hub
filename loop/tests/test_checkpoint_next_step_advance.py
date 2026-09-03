@@ -157,8 +157,8 @@ def test_non_next_step_still_conflicts_on_step_mismatch(
     assert result.get("code") == "checkpoint_identity_conflict"
 
 
-def test_next_step_committed_allows_qa_to_reflect(tmp_path: Path) -> None:
-    """QA next_step → prepare REFLECT must advance (post-implement transition)."""
+def test_next_step_committed_allows_qa_to_done(tmp_path: Path) -> None:
+    """QA next_step → prepare DONE must advance (post-implement transition)."""
     lib = _load_epic_lib()
     cp_dir = tmp_path / ".claude" / "runtime" / "epic"
     cp_dir.mkdir(parents=True, exist_ok=True)
@@ -193,7 +193,7 @@ def test_next_step_committed_allows_qa_to_reflect(tmp_path: Path) -> None:
         identity={
             "epic": "T-HUB-015-dsh-board-arm-loop",
             "role": "BACK",
-            "step": "REFLECT",
+            "step": "DONE",
         },
     )
 

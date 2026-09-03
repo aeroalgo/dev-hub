@@ -94,12 +94,27 @@ def test_loop_event_round_trip() -> None:
     assert validated.artifact == "memory-bank/back/qa.md"
 
 
-def test_append_event_invalid_raises() -> None:
-    with pytest.raises(ValueError):
+def test_loop_event_accepts_legacy_reflection_done() -> None:
+    event = LoopEvent(
+        event_id="a" * 32,
+        seq=1,
+        kind="reflection_done",
+        artifact="memory-bank/back/reflection/reflection-demo.md",
+        artifact_sha256="b" * 64,
+        epic_id="demo",
+        epoch=0,
+        t="2026-08-31T00:00:00Z",
+    )
+    assert event.kind == "reflection_done"
+    assert "reflection_done" not in EVENT_KINDS
+
+
+def test_build_event_rejects_reflection_done() -> None:
+    with pytest.raises(ValueError, match="kind must be one of"):
         build_event(
-            epic_id="T-HUB-022",
-            kind="invalid_kind_foo",
-            artifact="memory-bank/back/qa.md",
+            epic_id="demo",
+            kind="reflection_done",
+            artifact="memory-bank/back/reflection/reflection-demo.md",
             artifact_sha256="c" * 64,
             seq=1,
             timestamp="2026-08-31T12:00:00Z",

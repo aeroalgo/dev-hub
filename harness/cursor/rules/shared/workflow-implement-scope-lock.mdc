@@ -19,7 +19,7 @@ alwaysApply: false
 | **FORBIDDEN** | IMPLEMENT других шагов «догоном» в том же чате |
 | **FORBIDDEN** | два разных `T-HUB-*` / plan_id в одной code-сессии |
 | **FORBIDDEN** | `index.yaml` / `index.md`: `completed` для шагов ≠ текущий `step_id` (кроме `finalize-step` CLI) |
-| **FORBIDDEN** | `BACK QA` · `BACK AUDIT` · `BACK REFLECT` · qa/audit/reflection артефакты — без **отдельной** user-команды режима |
+| **FORBIDDEN** | `BACK QA` · `BACK AUDIT` · qa/audit артефакты — без **отдельной** user-команды режима |
 
 ---
 

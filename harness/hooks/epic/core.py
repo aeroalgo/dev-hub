@@ -771,8 +771,6 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
             expected = f"memory-bank/{role_dir}/qa/{epic_id}/qa-*.yaml"
         elif "AUDIT" in phase_upper:
             expected = f"memory-bank/{role_dir}/audit/{epic_id}/audit-*.yaml"
-        elif "REFLECT" in phase_upper:
-            expected = f"memory-bank/{role_dir}/reflection/reflection-*.md"
         elif "IMPLEMENT" in phase_upper and next_step:
             expected = f"decompose step {next_step} artifact"
         event_digest, last_seq, event_diagnostics = _event_evidence(
@@ -810,7 +808,7 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                     "phase": phase,
                     "next_step": phase
                     if phase
-                    in {"DECOMPOSE", "AUDIT", "QA", "REFLECT", "BUGFIX"}
+                    in {"DECOMPOSE", "AUDIT", "QA", "BUGFIX"}
                     else state.get("armed_step"),
                     "gates": gates_from_phase(phase),
                 }
@@ -868,12 +866,12 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
     # Keep armed_step aligned with projection: terminal DONE must not keep stale AUDIT/QA.
     if phase_u == "DONE":
         state["armed_step"] = None
-    elif phase_u in {"AUDIT", "QA", "REFLECT", "BUGFIX"} and not projection.get("next_step"):
+    elif phase_u in {"AUDIT", "QA", "BUGFIX"} and not projection.get("next_step"):
         armed = str(state.get("armed_step") or "").strip()
         if armed.upper() != phase_u:
             # Stale sNN/eNN or previous post-implement phase → sync to current phase name.
             if (not armed) or armed.upper() in {
-                "AUDIT", "QA", "REFLECT", "BUGFIX", "DONE"
+                "AUDIT", "QA", "BUGFIX", "DONE", "REFLECT"
             } or re.match(r"^[se]\d+", armed, re.I):
                 state["armed_step"] = phase_u
     state.update(
@@ -1134,11 +1132,6 @@ def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[st
             if verdict:
                 v = verdict.group(1)
                 records.append((f"qa_{'fail' if v == 'blocked' else v}", path))
-    if not _reflection_ownership_ambiguous(cwd, role_dir, epic_id):
-        records.extend(
-            ("reflection_done", path)
-            for path in _matching_reflection_artifacts(cwd, role_dir, epic_id)
-        )
     return records
 
 
@@ -2317,7 +2310,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
     if next_step is None:
         text = read_active_context(cwd_p)
         handoff_phase = handoff_post_implement_phase(text)
-        if handoff_phase in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
+        if handoff_phase in {"AUDIT", "QA", "BUGFIX"}:
             if not epic_id:
                 epic_id = epic_id_from_decompose_path(decompose) or ""
             if epic_id:
@@ -3198,7 +3191,7 @@ def validate_qa_finish_handoff(
         return False, "qa-*.yaml без verdict: pass|fail|blocked"
     if verdict in {"blocked", "fail"}:
         if "REFLECT" in body.upper():
-            return False, "QA FINISH: verdict blocked/fail — Handoff BACK BUGFIX, не REFLECT"
+            return False, "QA FINISH: verdict blocked/fail — Handoff BACK BUGFIX, не REFLECT/DONE"
         if "BUGFIX" not in body.upper():
             return False, "QA FINISH: verdict blocked/fail — Handoff должен быть BACK BUGFIX"
     return True, None
@@ -3251,7 +3244,7 @@ def clear_stale_verify_no_verdict_handoff(cwd: str | Path) -> dict[str, Any]:
 
     phase, _, _ = post_implement_phase(cwd_p, info["role_dir"], info["epic_id"])
     handoff_mode = (handoff_mode_from_text(text) or "").upper()
-    post_modes = {"AUDIT", "QA", "REFLECT", "BUGFIX", "DONE"}
+    post_modes = {"AUDIT", "QA", "BUGFIX", "DONE"}
     if phase not in post_modes and handoff_mode not in post_modes:
         return {"ok": True, "cleared": False}
 
@@ -3357,19 +3350,10 @@ def project_handoff_from_reducer(
             text_new = frontmatter + text_new
         ac.write_text(text_new, encoding="utf-8")
         projected = True
-    elif phase == "REFLECT" and ("BUGFIX" in text or "mode: BUGFIX" in text or "mode: QA" in text):
-        text_new = re.sub(r"Handoff\s+BACK\s+(BUGFIX|QA)", "Handoff BACK REFLECT", text)
-        text_new = re.sub(r"`BACK (BUGFIX|QA)`", "`BACK REFLECT`", text_new)
-        text_new = re.sub(r"mode:\s*(BUGFIX|QA)", "mode: REFLECT", text_new)
-        if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:  # handoff
-            frontmatter = f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: BACK\nmode: {phase}\nepic_id: {epic_id}\nstep: null\n---\n"  # handoff
-            text_new = frontmatter + text_new
-        ac.write_text(text_new, encoding="utf-8")
-        projected = True
     elif (
         allow_terminal_done_projection
         and phase == "DONE"
-        and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text)
+        and ("REFLECT" in text or "mode: REFLECT" in text or "BUGFIX" in text or "mode: QA" in text)
     ):
         text_new = re.sub(r"Handoff\s+BACK\s+(REFLECT|BUGFIX|QA)", "Handoff BACK DONE", text)
         text_new = re.sub(r"`BACK (REFLECT|BUGFIX|QA)`", "`BACK DONE`", text_new)
@@ -3412,7 +3396,7 @@ def find_reflection_artifact(cwd: str | Path, role_dir: str, epic_id: str) -> Pa
 def reduce_epic_lifecycle(
     cwd: str | Path, role_dir: str, epic_id: str
 ) -> dict[str, Any]:
-    """Return the current QA → BUGFIX → REFLECT lifecycle decision."""
+    """Return the current AUDIT → QA → BUGFIX → DONE lifecycle decision."""
     cwd_p = Path(cwd)
     event_path = _event_log_path(cwd_p, role_dir, epic_id)
     reconcile_epic_events(cwd_p, role_dir, epic_id)
@@ -3430,14 +3414,6 @@ def reduce_epic_lifecycle(
         }
         for item in result.diagnostics
     ]
-    if _reflection_ownership_ambiguous(cwd_p, role_dir, epic_id):
-        diagnostics.append(
-            {
-                "code": "reflection_ownership_ambiguous",
-                "field": "reflection",
-                "message": "reflection artifact ownership is ambiguous",
-            }
-        )
 
     latest_event = events[-1] if events else None
     latest_qa: dict[str, Any] | None = None
@@ -3477,53 +3453,17 @@ def reduce_epic_lifecycle(
         else:
             reason_code = "qa_failed"
     elif latest_qa is not None and latest_qa.get("kind") == "qa_pass":
-        last_reflection: dict[str, Any] | None = None
-        for event in events:
-            if event.get("kind") == "reflection_done":
-                last_reflection = event
-        if last_reflection is not None:
-            refl_seq = int(last_reflection.get("seq", 0))
-            qa_seq = int(latest_qa.get("seq", 0))
-            reopened = False
-            for event in events:
-                ev_seq = int(event.get("seq", 0))
-                if ev_seq <= refl_seq:
-                    continue
-                # Path-moved qa/audit after ARCHIVE must not reopen REFLECT.
-                # Evidence rehash of bugfix between qa_pass and reflection also
-                # must not reopen after reflection_done (only post-reflection
-                # qa_fail/bugfix_done reopen).
-                # A later qa_pass closes the reopen window: without this gate,
-                # any historical bugfix_done after reflection_done would pin
-                # phase=QA forever across endless QA rewrites (T-061 loop).
-                if (
-                    event.get("kind") in {"qa_fail", "bugfix_done"}
-                    and ev_seq > qa_seq
-                ):
-                    reopened = True
-                    break
-            if reopened:
-                phase = "QA"
-                reason_code = "bugfix_reopens_qa"
-            elif _reflection_stale_vs_qa_pass(cwd_p, latest_qa, last_reflection):
-                phase = "REFLECT"
-                reason_code = "qa_passed_stale_reflection"
-            else:
-                phase = "DONE"
-                reason_code = "reflection_completed"
-        elif invalidator is not None:
+        if invalidator is not None:
             phase = "QA"
             reason_code = "bugfix_reopens_qa"
         else:
-            phase = "REFLECT"
+            phase = "DONE"
             reason_code = "qa_passed"
     elif latest_audit is None:
         phase = "AUDIT"
         reason_code = "audit_required"
 
-    if phase == "REFLECT":
-        expected_artifact = f"memory-bank/{role_dir}/reflection/reflection-*.md"
-    elif phase == "DONE":
+    if phase == "DONE":
         expected_artifact = None
     elif phase == "AUDIT":
         expected_artifact = (
@@ -3575,12 +3515,10 @@ def reduce_epic_lifecycle(
 def post_implement_phase(
     cwd: str | Path, role_dir: str, epic_id: str
 ) -> tuple[str, Path | None, Path | None]:
-    """Reduce the ordered artifact events to AUDIT, QA, REFLECT, or DONE."""
+    """Reduce the ordered artifact events to AUDIT, QA, BUGFIX, or DONE."""
     decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
     phase = str(decision["phase"])
     qa = find_qa_pass_artifact(cwd, role_dir, epic_id)
-    if phase == "REFLECT":
-        return phase, qa, None
     if phase == "DONE":
         return phase, qa, find_reflection_artifact(cwd, role_dir, epic_id)
     return phase, None, None
@@ -3730,14 +3668,15 @@ def discover_epic_for_pipeline(cwd: str | Path) -> dict[str, Any] | None:
 
 
 def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
-    """HARD gate: EPIC_DONE only after QA pass + reflection.
+    """HARD gate: EPIC_DONE only after QA pass (AUDIT → QA → DONE).
 
-    Without both artifacts the epic is NOT complete — never treat as DONE.
+    Legacy Handoff REFLECT is ignored (not blocking). Without QA pass the epic
+    is NOT complete — never treat as DONE.
     """
     cwd_p = Path(cwd)
     project_handoff_from_reducer(cwd_p)
     handoff_phase = handoff_post_implement_phase(read_active_context(cwd_p))
-    if handoff_phase in {"AUDIT", "REFLECT", "BUGFIX"}:
+    if handoff_phase in {"AUDIT", "BUGFIX"}:
         info = discover_epic_for_pipeline(cwd) or {}
         epic_id = info.get("epic_id") or (load_epic_state(cwd_p) or {}).get(
             "armed_epic"
@@ -3764,7 +3703,7 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
             "phase": None,
             "reason": (
                 "EPIC_DONE отклонён: не удалось определить эпик "
-                "(нужны AUDIT + QA + REFLECT)"
+                "(нужны AUDIT + QA pass)"
             ),
         }
     phase, qa, refl = post_implement_phase(
@@ -3793,7 +3732,7 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
     }
 
 
-POST_IMPLEMENT_CHAIN = "IMPLEMENT → AUDIT → QA → REFLECT → EPIC_DONE"
+POST_IMPLEMENT_CHAIN = "IMPLEMENT → AUDIT → QA → EPIC_DONE"
 # Keep in sync with loop/context_loop.py STOP_EPIC_DONE_RE (standalone line only).
 _EPIC_DONE_LINE_RE = re.compile(
     r"(?m)^\s*(?:[-*]\s*)?(?:\*\*)?`?EPIC_DONE`?(?:\*\*)?\s*$"
@@ -3801,7 +3740,6 @@ _EPIC_DONE_LINE_RE = re.compile(
 _POST_IMPLEMENT_NEED = {
     "AUDIT": "AUDIT (audit-*.yaml)",
     "QA": "QA pass",
-    "REFLECT": "REFLECT (reflection-*.md)",
     "BUGFIX": "BUGFIX (после qa_fail)",
 }
 
@@ -3904,46 +3842,31 @@ def build_post_implement_active_context(
         next_hint = (
             f"выполнить `{role_u} AUDIT` (gap-матрица + audit yaml); "
             f"пусто not_implemented[] → `{role_u} QA`. "
-            f"НЕ ставить EPIC_DONE до QA pass + REFLECT"
+            f"НЕ ставить EPIC_DONE до QA pass"
         )
         custom_lines = [
             f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.",
             f"- **Режим/шаг:** `{role_u} AUDIT`.",
             "- **Сделано:** implement queue исчерпана.",
-            "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA/REFLECT сессии).",
+            "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA сессии).",
         ]
     elif phase_u == "QA":
         next_hint = (
             f"выполнить `{role_u} QA` (suite + reviewer); "
-            f"в Handoff следующий = `{role_u} REFLECT`. "
-            f"НЕ ставить EPIC_DONE до QA pass + REFLECT"
+            f"после QA pass — EPIC_DONE. "
+            f"НЕ ставить EPIC_DONE до QA pass"
         )
         custom_lines = [
             f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.",
             f"- **Режим/шаг:** `{role_u} QA`.",
             "- **Сделано:** implement queue исчерпана.",
-            "- **ARCHIVE:** вне loop после EPIC_DONE (не в QA/REFLECT сессии).",
-        ]
-    elif phase_u == "REFLECT":
-        qa_note = qa_path.name if qa_path else "qa pass"
-        next_hint = (
-            "написать reflection-*.md; после FINISH REFLECT — "
-            "отдельная строка EPIC_DONE и stop (без inline-code backticks)"
-        )
-        custom_lines = [
-            f"- **Эпик:** {epic_id}.",
-            f"- **Режим/шаг:** `{role_u} REFLECT`.",
-            f"- **Сделано:** `{role_u} QA` pass ({qa_note}).",
-            "- **Loop:** при EPIC_CHAIN_ROADMAP=1 runner сам армит следующий эпик; "
-            "FORBIDDEN: ARCHIVE NOW / VAN в этой сессии.",
-            "- **ARCHIVE:** только вручную вне loop после stop runner.",
-            "FORBIDDEN: EPIC_DONE до существования reflection артефакта.",
+            "- **ARCHIVE:** вне loop после EPIC_DONE (не в QA сессии).",
         ]
     elif phase_u == "DONE":
         next_hint = None
         custom_lines = [
             "EPIC_DONE",
-            f"- **Эпик:** {epic_id} — implement + AUDIT + QA pass + REFLECT завершены.",
+            f"- **Эпик:** {epic_id} — implement + AUDIT + QA pass завершены.",
             "- **Дальше:** stop на EPIC_DONE; при EPIC_CHAIN_ROADMAP=1 runner "
             "возьмёт следующий эпик из roadmap Queue.",
             "- **FORBIDDEN:** ARCHIVE NOW / VAN в loop-сессии.",
@@ -4361,7 +4284,7 @@ def arm_epic(
             except Exception as exc:
                 logger.warning(f"[convergence] check failed during arm_epic: {exc}")
         return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
-    if phase in {"AUDIT", "QA", "BUGFIX", "REFLECT"}:
+    if phase in {"AUDIT", "QA", "BUGFIX"}:
         qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
         ref_p = find_reflection_artifact(cwd_p, role, epic_id)
         rel_idx = action.decompose_rel or f"memory-bank/{role}/plan/decompose-{epic_id}/index.yaml"

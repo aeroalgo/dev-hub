@@ -6,11 +6,14 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
+**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — читать **первым**; full ниже — при FAIL.
+
+**Policy lazy (не грузить целиком без триггера):**
+- boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
+- непустой `deletes` / purge slug → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §3
+- always-on stub уже покрывает axiom; не читать full `workflow-spec-first-replace` без PLAN/design спора
 
 **Скиллы — только step + FINISH (HARD)**
-
-Канон скиллов задаёт **DECOMPOSE skills gate** в `sNN` (`Impl skills`).
 
 | Что | Когда |
 |-----|--------|
@@ -18,29 +21,20 @@ alwaysApply: false
 | `verification-before-completion` | pre-FINISH |
 | `requesting-code-review` | pre-FINISH |
 
-**FORBIDDEN:**
-- широкий слой A / угадывание скиллов по предикату
-- Read скиллов, которых **нет** в `Impl skills` step (кроме FINISH-only)
-- пропуск пути из `Impl skills`
-- `limit` на Read SKILL.md
-
-Пути: `@.agents/skills/<name>/SKILL.md` как в step.
+**FORBIDDEN:** широкий слой A · Read скиллов вне step · `limit` на SKILL.md
 
 **Процесс**:
-1. `OK BACK IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock**
-1a. **Allowlist:** Write/Delete только paths из work shard `files:` / `produces.files` + `implement-*/<current-sNN>.yaml` + тесты в shard `files:`. `.cursor/rules/**` — **FORBIDDEN** без path в shard `files:` или user `implement this`.
-1b. **ANALYZE hard gate:** на диске свежий `memory-bank/back/analyze/<epic_id>/analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT IMPLEMENT** (нет soft WARN / нет `ANALYZE deferred`).
-2. `load_now` → work shard `decompose-*/sNN-*.yaml` (+ **`plan_contract`**) + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`
-   **AC = work shard + `plan_contract`.** **FORBIDDEN** полный `plan-*.md` в `load_now` / «acceptance = весь plan».
-   **Plan context (HARD soft lookback):**
-   - (a) Если `plan_refs` / `plan_contract.fr_ids` непустые — **обязан** Read `plan_jumps` (строки файла) **или** jump `plan §FR-00N` / Consumes; объём jumps ≈ **≥100%** scope FR/layout nouns шага (не один заголовок). **Формула:** `L = end − start`; `L′ = L × 2`; jump = `start .. (start + L′)` (пример `120–160` → `120–200`).
-   - (b) На **последнем** sNN эпика (или pre-AUDIT) — **`plan_parity_scan`**: checklist всех plan FR + Target layout paths → status present/missing/deferred(+queue); результат в implement yaml / Handoff. Gaps → не `completed` без follow_up ID или audit shard.
-   **Search scope (loop):** при `delta_paths_scoped` / `delta_paths_exist` — **SKIP @explorer**; ALLOW = paths из prompt + parent dirs. Вне ALLOW — только явная ссылка в shard/plan. Канон: `.claude/instructions/spawn-hard.md`.
+1. `OK BACK IMPLEMENT` → **Gates** · **Scope lock** · cheatsheet
+1a. **Allowlist:** Write/Delete только shard `files:`/`produces.files` + implement yaml + тесты в shard. `.cursor/rules/**` — **FORBIDDEN** без path в shard / `implement this`.
+1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT** (нет `ANALYZE deferred`).
+2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.
+   **Plan jumps:** формула `L=end−start`; `L′=L×2`; jump=`start..(start+L′)`.
+   Last sNN / pre-AUDIT → **`plan_parity_scan`**.
+   Search scope: `delta_paths_*` → SKIP @explorer.
 3. Read **Impl skills** из step до prod-edit (после TDD red ок)
-4. TDD targeted → code → green (`bin/pytest` из корня); level delta — gates; **выполнить все `deletes:`** из work shard (вытесненный код **и** obsolete tests на старый контракт; **FORBIDDEN** restore legacy «чтобы green»)
-5. §0.11 · pre-FINISH skills (verification + code-review); при непустом `deletes` — grep/import-audit: старые символы без callers
-5a. **Scope check (HARD):** changed paths ⊆ allowlist (§1a); иначе REVERT. Чат: `SCOPE CHECK: ok` или `SCOPE VIOLATION: …` → halt FINISH.
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: yes`) — Write implement yaml → Handoff → `@verify-implement` (или legacy alias `@verify`) → PASS → `finalize-step` (index + log + load_now). Epic complete → AUDIT через хук.
-   Next: Handoff в `activeContext.md` + `index.yaml`
+4. TDD targeted → code → green (`bin/pytest`); выполнить все `deletes:`; **FORBIDDEN** restore legacy
+5. §0.11 · pre-FINISH skills; при deletes — callers gone
+5a. **Scope check** → `SCOPE CHECK: ok` или halt
+6. **FINISH:** finish-block (`code_changed: yes`) — Write implement yaml → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
 
-**Верификация**: ANALYZE gate + scope lock + plan_contract jumps + gates + §0.11 + deletes + FINISH + `graphify update .`
+**Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`

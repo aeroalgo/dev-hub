@@ -20,7 +20,7 @@ alwaysApply: false
 | `INTEG PLAN` | @.cursor/rules/integration_developer/workflow-plan.mdc — orchestrator: Phase 0 + Phase 1 |
 | `INTEG CLARIFY` | @.cursor/rules/integration_developer/workflow-clarify.mdc — добор / revisit / standalone |
 | `INTEG ANALYZE` | @.cursor/rules/integration_developer/workflow-analyze.mdc — read-only проверка wire/contract plan до IMPLEMENT |
-| `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc |
+| `INTEG ROADMAP MERGE` | @.cursor/rules/integration_developer/workflow-roadmap-merge.mdc — recovery-only |
 | `INTEG DECOMPOSE` | @.cursor/rules/integration_developer/workflow-decompose.mdc |
 | `INTEG CREATIVE` | @.cursor/rules/integration_developer/workflow-creative.mdc |
 | `INTEG IMPLEMENT` | @.cursor/rules/integration_developer/workflow-implement.mdc |
@@ -28,12 +28,13 @@ alwaysApply: false
 | `INTEG TASK` | @.cursor/rules/integration_developer/workflow-task.mdc |
 | `INTEG BUGFIX` | @.cursor/rules/integration_developer/workflow-bugfix.mdc |
 | `INTEG REFACTOR` | @.cursor/rules/integration_developer/workflow-refactor.mdc |
-| `INTEG REFLECT` | @.cursor/rules/integration_developer/workflow-reflect.mdc |
 | `INTEG ARCHIVE NOW` | @.cursor/rules/integration_developer/workflow-archive.mdc |
 | `INTEG QA` | @.cursor/rules/integration_developer/workflow-qa.mdc |
 | `INTEG SECURITY` · `INTEG SECURITY PLAN` · `INTEG SECURITY DECOMPOSE` | @.cursor/rules/integration_developer/workflow-security.mdc |
 
-Пути: `memory-bank/integration/<режим>/` — @.cursor/rules/back_developer/isolation_rules/Core/memory-bank-paths.mdc (**только VAN** / create).  
+**Archive (не gate):** `workflow-reflect.mdc` — не hot path; после QA = DONE.
+
+Пути: @.cursor/rules/shared/memory-bank-paths.mdc (**только VAN** / create).  
 As-built карта: `memory-bank/architecture/` — @.cursor/rules/shared/workflow-van-brownfield.mdc (`INTEG VAN` = все shards).  
 Контракт: **inline** §Contract в `decompose-*/eNN-*.yaml` (`integration/contracts/` опц.).  
 FINISH: @.cursor/rules/shared/finish-block.mdc  

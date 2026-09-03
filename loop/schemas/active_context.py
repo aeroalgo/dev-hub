@@ -19,14 +19,13 @@ _HANDOFF_PHASE_HEADING_RE = re.compile(
     r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
 )
 _POST_IMPLEMENT_GATE_PHASES = frozenset(
-    {"AUDIT", "QA", "BUGFIX", "REFLECT", "DECOMPOSE"}
+    {"AUDIT", "QA", "BUGFIX", "DECOMPOSE"}
 )
 _POST_IMPLEMENT_PHASE_RANK = {
     "AUDIT": 0,
     "QA": 1,
     "BUGFIX": 1,
-    "REFLECT": 2,
-    "DONE": 3,
+    "DONE": 2,
 }
 _HANDOFF_MODE_LINE_RE = re.compile(
     r"(?im)(?:[-*]\s*)?(?:\*\*)?(?:Режим/шаг|Mode/step):(?:\*\*)?\s*"

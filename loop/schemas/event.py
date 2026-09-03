@@ -15,7 +15,6 @@ EVENT_KINDS: frozenset[str] = frozenset({
     "qa_pass",
     "qa_fail",
     "bugfix_done",
-    "reflection_done",
     "incident_opened",
     "incident_resolved",
     "repair_applied",
@@ -29,6 +28,8 @@ EVENT_KINDS: frozenset[str] = frozenset({
     "traceability_warn",
     "traceability_fail",
 })
+LEGACY_DEAD_EVENT_KINDS: frozenset[str] = frozenset({"reflection_done"})
+_VALIDATABLE_EVENT_KINDS = EVENT_KINDS | LEGACY_DEAD_EVENT_KINDS
 
 
 class LoopEvent(BaseModel):
@@ -57,7 +58,7 @@ class LoopEvent(BaseModel):
     @field_validator("kind")
     @classmethod
     def validate_kind(cls, v: str) -> str:
-        if v not in EVENT_KINDS:
+        if v not in _VALIDATABLE_EVENT_KINDS:
             raise ValueError(f"kind must be one of {sorted(EVENT_KINDS)}")
         return v
 

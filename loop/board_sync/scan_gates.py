@@ -30,7 +30,7 @@ from analyze_gate import latest_analyze as _latest_analyze
 
 _ACTIVE_STATUSES = frozenset({"pending", "in_progress", "active", "blocked"})
 _COMPLETED_STATUSES = frozenset({"completed", "done"})
-_POST_PHASES = frozenset({"AUDIT", "QA", "BUGFIX", "REFLECT"})
+_POST_PHASES = frozenset({"AUDIT", "QA", "BUGFIX"})
 _ROLES = ("back", "front", "integration")
 
 
