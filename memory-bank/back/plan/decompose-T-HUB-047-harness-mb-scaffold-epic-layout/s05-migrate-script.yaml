@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: loop/migrate/epic_layout_v1_to_v2.py — flat→v2 migrate (--dry-run/--apply)
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Создать loop/migrate/epic_layout_v1_to_v2.py — идемпотентный скрипт миграции
+
+  memory-bank из flat layout (plan-<id>.md + decompose-<id>/) в v2 (plan/<id>/md/
+  + yaml/steps/).
+
+  --dry-run: печатает план без изменений. --apply: выполняет mv + обновляет internal
+  refs в yaml/md.
+
+  Защита от premature purge: проверяет что все active IMPLEMENT эпики мигрированы
+  до apply.
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-010
+  - SC-002
+  - US-004
+  nouns:
+  - loop/migrate/epic_layout_v1_to_v2.py
+  - --dry-run
+  - --apply
+  - plan-<id>.md → plan/<id>/md/plan.md
+  - decompose-<id>/ → plan/<id>/yaml/steps/
+  - idempotent
+  - internal refs update
+  layout_paths:
+  - loop/migrate/__init__.py
+  - loop/migrate/epic_layout_v1_to_v2.py
+  ac_quotes:
+  - 'AC-5: Migrate script v1→v2 + apply on dev-hub memory-bank'
+  - 'SC-002: Migrate all active hub epics dry-run 0 errors | CLI migrate dry-run on
+    dev-hub memory-bank'
+  - 'FR-010: moves plan-<id>.md, decompose-<id>/ → plan/<id>/…; updates internal refs;
+    idempotent'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:97-98
+context:
+  consumes:
+  - loop/paths/epic_layout.py (s02)
+  - loop/schemas/epic_layout_schema.py (s01)
+  produces:
+  - loop/migrate/epic_layout_v1_to_v2.py
+  plan_refs:
+  - FR-010
+  - SC-002
+  - US-004
+  files:
+  - loop/migrate/__init__.py
+  - loop/migrate/epic_layout_v1_to_v2.py
+as_built:
+- loop/migrate/ — не существует
+- harness/hooks/epic_paths.py — поддерживает discovery v1 paths через glob 'decompose-*/index.yaml'
+- 'memory-bank/back/plan/ — flat layout: plan-*.md + decompose-<id>/ директории (текущий
+  стандарт)'
+delta:
+- Создать loop/migrate/__init__.py
+- 'Создать loop/migrate/epic_layout_v1_to_v2.py: discover_v1_epics(), migrate_epic(epic_id,
+  role, cwd, dry_run), update_refs(path, old_prefix, new_prefix), is_migrated(epic_id,
+  role, cwd)'
+- 'discover_v1_epics: glob ''memory-bank/*/plan/plan-*.md'' + ''memory-bank/*/plan/decompose-*/''
+  → список (role, epic_id)'
+- 'migrate_epic --apply: создаёт plan/<id>/md/ + yaml/steps/; move файлов; update
+  hrefs в yaml/md (regex replace ''plan-{id}.md'' → ''plan/{id}/md/plan.md'', ''decompose-{id}/''
+  → ''plan/{id}/yaml/steps/'')'
+- 'Idempotency: уже мигрированный эпик → skip без ошибки'
+- 'Active IMPLEMENT guard: если decompose index.yaml содержит шаги in_progress и --apply
+  → предупреждение + требует --force'
+- 'JSON output per epic: {''epic_id'': ..., ''status'': ''migrated''/''skipped''/''dry_run'',
+  ''moved'': [...]}'
+deletes: []
+out_of_scope:
+- apply на dev-hub memory-bank (→ s10)
+- purge v1 legacy paths в loop/ (→ s11)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+  - python-testing-patterns
+checkpoints:
+- id: cp1
+  criterion: --dry-run на fixture v1 memory-bank → JSON с planned moves, exit 0, ни
+    один файл не тронут
+  verify: bin/pytest harness/hooks/tests/test_epic_layout_migrate.py::test_dry_run_no_changes
+    -q --tb=short
+- id: cp2
+  criterion: --apply на fixture v1 → файлы перемещены; --apply повторно → idempotent,
+    0 changes
+  verify: bin/pytest harness/hooks/tests/test_epic_layout_migrate.py::test_apply_idempotent
+    -q --tb=short
+- id: cp3
+  criterion: 'internal refs updated: ''decompose-T-HUB-047-...'' → ''T-HUB-047-.../yaml/steps/''
+    в yaml'
+  verify: bin/pytest harness/hooks/tests/test_epic_layout_migrate.py::test_ref_update
+    -q --tb=short
+- id: cp4
+  criterion: 'active IMPLEMENT guard: in_progress шаги + --apply без --force → exit
+    non-zero + warning'
+  verify: bin/pytest harness/hooks/tests/test_epic_layout_migrate.py::test_active_implement_guard
+    -q --tb=short
+verify: []
+tdd: []

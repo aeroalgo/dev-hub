@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: epic_resolve.py mb-scaffold subparser — plan/decompose/implement/qa/analyze/audit
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Добавить subparser `mb-scaffold` в epic_resolve.py с subcmd plan/decompose/implement/qa/analyze/audit.
+
+  Флаги: --epic-id, --force, --dry-run; decompose: --from-plan, --formula.
+
+  Hub self-test cwd guard на всех субкомандах.
+
+  JSON output: {"ok": true/false, "created": [...], "error": "..."}.
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-005
+  - FR-018
+  - AC-3
+  - US-002
+  - US-005
+  - US-006
+  nouns:
+  - epic_resolve.py
+  - mb-scaffold subparser
+  - --epic-id
+  - --force
+  - --dry-run
+  - --from-plan
+  - --formula
+  - cwd guard
+  layout_paths:
+  - harness/hooks/epic_resolve.py
+  ac_quotes:
+  - 'AC-3: mb-scaffold CLI: plan, decompose, implement (--all), qa, analyze, audit'
+  - 'FR-005: CLI epic_resolve.py mb-scaffold <subcmd>: plan, decompose, implement,
+    qa, analyze, audit; flags --epic-id, --force, --dry-run, decompose: --from-plan,
+    --formula'
+  - 'FR-018: Hub self-test cwd guard on all mb-scaffold subcommands'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:92-93
+context:
+  consumes:
+  - loop/mb_scaffold/ (s03)
+  - loop/paths/epic_layout.py (s02)
+  produces:
+  - harness/hooks/epic_resolve.py (updated)
+  plan_refs:
+  - FR-005
+  - FR-018
+  files:
+  - harness/hooks/epic_resolve.py
+as_built:
+- 'harness/hooks/epic_resolve.py — существует с subparser: mb-finish, mb-load, mb-scaffold
+  (decompose-only через formula_render)'
+- epic_resolve.py mb-scaffold — уже есть базовый stub; не покрывает plan/implement/qa/analyze/audit
+delta:
+- 'Расширить mb-scaffold subparser: добавить субкоманды plan, implement, qa, analyze,
+  audit'
+- 'decompose субкоманда: добавить --from-plan флаг (reads plan.yaml outline), --formula
+  флаг (merge formula titles)'
+- 'implement субкоманда: --all флаг (scaffold всех sNN из decompose index)'
+- 'cwd guard: проверить что cwd = $PROJECT_ROOT или $DEV_HUB (не произвольный путь);
+  exit 2 при несоответствии'
+- 'JSON output: {''ok'': bool, ''created'': [...], ''skipped'': [...], ''dry_run'':
+  bool, ''error'': str?}'
+deletes: []
+out_of_scope:
+- formula_render standalone (→ s09)
+- migrate subcommand (→ s05)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+checkpoints:
+- id: cp1
+  criterion: python harness/hooks/epic_resolve.py mb-scaffold --help показывает plan,
+    decompose, implement, qa, analyze, audit
+  verify: python harness/hooks/epic_resolve.py mb-scaffold --help | grep -E 'plan|decompose|implement|qa|analyze|audit'
+- id: cp2
+  criterion: 'mb-scaffold plan --epic-id T-HUB-TEST --dry-run → JSON {ok: true, dry_run:
+    true, created: [...]}'
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_cli.py::test_cli_plan_dry_run
+    -q --tb=short
+- id: cp3
+  criterion: 'cwd guard: вызов из произвольной директории без PROJECT_ROOT → exit
+    2'
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_cli.py::test_cwd_guard -q
+    --tb=short
+verify: []
+tdd: []

@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: formula-render merged into mb-scaffold decompose --formula (deprecate standalone)
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Переключить formula_render.py на resolver paths (output → plan/<id>/yaml/steps/)
+  и
+
+  интегрировать как --formula флаг в mb-scaffold decompose.
+
+  Standalone invocation formula_render.py добавляет DeprecationWarning.
+
+  AC-8: formula-render merged into mb-scaffold decompose (--formula).
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-008
+  - FR-009
+  - AC-8
+  nouns:
+  - loop/formula_render.py
+  - mb-scaffold decompose --formula
+  - formula step titles merge
+  - outline floor
+  - DeprecationWarning standalone
+  layout_paths:
+  - loop/formula_render.py (update output target + deprecation)
+  - loop/mb_scaffold/scaffold_decompose.py (--formula merge logic)
+  ac_quotes:
+  - 'AC-8: formula-render merged into mb-scaffold decompose (--formula)'
+  - 'FR-008: mb-scaffold decompose reads plan.yaml outline → steps; optional --formula
+    merges formula step titles into outline floor only'
+  - 'FR-009: Migrate formula_render.py output target → resolver paths; deprecate flat
+    decompose-<id>/ output'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:96-97
+context:
+  consumes:
+  - loop/formula_render.py (as-built)
+  - loop/mb_scaffold/scaffold_decompose.py (s03)
+  - loop/paths/epic_layout.py (s02)
+  produces:
+  - loop/formula_render.py (updated)
+  - loop/mb_scaffold/scaffold_decompose.py (updated with merge)
+  plan_refs:
+  - FR-008
+  - FR-009
+  - AC-8
+  files:
+  - loop/formula_render.py
+  - loop/mb_scaffold/scaffold_decompose.py
+as_built:
+- loop/formula_render.py — создаёт sNN yaml в flat 'decompose-<id>/' (v1 paths)
+- 'formula_render.py: нет --from-plan, нет --formula, нет index.md coverage rows'
+- 'epic_resolve.py mb-scaffold decompose: вызывает formula_render напрямую (legacy)'
+delta:
+- 'loop/formula_render.py: изменить output target → resolve(role, epic_id, ''decompose_step'',
+  step_id) (v2 paths)'
+- 'Добавить в loop/formula_render.py: если вызывается standalone (не через mb_scaffold)
+  → warnings.warn(''layout_v1_deprecated: use mb-scaffold decompose --formula'', DeprecationWarning)'
+- 'loop/mb_scaffold/scaffold_decompose.py: добавить --formula merge: читает formula
+  titles для совпадающих outline_steps.maps_to id → подставляет в skeleton title;
+  outline floor не перезаписывается (добавляем только, не заменяем)'
+- 'mb-scaffold decompose --formula: вызывает formula_render._get_formula_steps(epic_id)
+  + merge в scaffold'
+deletes:
+- 'loop/formula_render.py: output к flat ''decompose-<id>/'' (заменяется resolver)'
+- 'epic_resolve.py mb-scaffold: прямой вызов formula_render без --formula gate'
+out_of_scope:
+- полное удаление formula_render.py standalone (→ s11 — до применения migrate)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+checkpoints:
+- id: cp1
+  criterion: mb-scaffold decompose --formula → skeleton yaml с formula titles в title
+    поле совпадающих шагов
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py::test_formula_merge
+    -q --tb=short
+- id: cp2
+  criterion: formula_render.py standalone → DeprecationWarning в stderr; output path
+    = v2
+  verify: python -W error::DeprecationWarning -c "import warnings; warnings.filterwarnings('error');
+    import loop.formula_render" 2>&1 | grep -q 'layout_v1_deprecated' || bin/pytest
+    harness/hooks/tests/test_formula_render_deprecated.py -q --tb=short
+- id: cp3
+  criterion: 'formula_render output path: rg ''decompose-{id}'' output target → 0
+    (v2 только)'
+  verify: rg "f'decompose-" loop/formula_render.py | wc -l | grep -E '^0$'
+verify: []
+tdd: []

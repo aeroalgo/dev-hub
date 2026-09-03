@@ -1,0 +1,20 @@
+schema: epic-audit/v1
+epic_id: T-HUB-059-harness-claude-agents-sot-complete
+date: "2026-09-03"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/plan-T-HUB-059-harness-claude-agents-sot-complete.md
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-059-harness-claude-agents-sot-complete/index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements FR-001 through FR-011 and US-001 through US-005 of T-HUB-059 are fully implemented and verified.
+  All decompose steps s01 through s09 are marked completed in index.yaml and verified by unit/integration test suites.
+  Target layout migration:
+  - SoT trees harness/claude/{commands,skills,rules} and harness/skills established.
+  - Hub top-level .claude/{commands,skills,rules} and .agents/skills replaced by symlinks.
+  - hub-link full/alongside modes updated with --with-skills fail-closed support and verified with TM-001..TM-006 test matrix.
+  - Full pytest test suite (1674 passed) is 100% green.

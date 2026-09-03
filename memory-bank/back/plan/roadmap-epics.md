@@ -22,18 +22,14 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 - `memory-bank/back/plan/roadmap-dsh-loop-backend-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-spec-maturity-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-workflow-pack-framework-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-harness-universal-runtime-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-loop-session-contract-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-suite-hygiene-epics.queue.yaml`
 - `memory-bank/back/plan/roadmap-sunset-inventory-agent-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-loop-session-contract-epics.queue.yaml`
-- `memory-bank/back/plan/roadmap-harness-universal-runtime-epics.queue.yaml`
+- `memory-bank/back/plan/roadmap-workflow-pack-framework-epics.queue.yaml`
 
 ## Пропущены (done)
 
-- `T-HUB-057`
-- `T-HUB-058`
-- `T-HUB-053`
-- `T-HUB-046`
 - `T-HUB-002`
 - `T-HUB-003`
 - `T-HUB-004`
@@ -71,13 +67,17 @@ Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот фай�
 - `T-HUB-038`
 - `T-HUB-040`
 - `T-HUB-045`
-- `T-HUB-054`
-- `T-HUB-055`
-- `T-HUB-056`
 - `T-HUB-041`
+- `T-HUB-046`
 - `T-HUB-042`
 - `T-HUB-043`
 - `T-HUB-044`
+- `T-HUB-053`
+- `T-HUB-057`
+- `T-HUB-058`
+- `T-HUB-054`
+- `T-HUB-055`
+- `T-HUB-056`
 
 ## Очередь
 

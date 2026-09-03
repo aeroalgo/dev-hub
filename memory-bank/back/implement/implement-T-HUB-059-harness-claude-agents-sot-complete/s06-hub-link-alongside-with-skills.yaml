@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: s06 — hub-link alongside --with-skills fail-closed + hub-unlink skills IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-059-harness-claude-agents-sot-complete/s06-hub-link-alongside-with-skills.yaml
+skills_used: []
+discovery:
+  - "bin/hub-link alongside now accepts --with-skills option"
+  - "bin/hub-unlink handles installer-owned .agents/skills removal"
+gaps:
+  status: none
+done:
+  - Added --with-skills flag to bin/hub-link with fail-closed conflict handling
+  - Ensured default alongside does not touch .agents
+  - Added installer-owned .agents/skills unlink logic to bin/hub-unlink
+  - Added alongside test cases covering TM-004 and TM-005
+files:
+  - bin/hub-link
+  - bin/hub-unlink
+  - loop/tests/test_hub_link_alongside.py
+deletes:
+  - 'bin/hub-link: silent default linking of .agents in alongside'
+tests:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py -q --tb=short"
+integration_check:
+  - "bin/pytest loop/tests/test_hub_link_alongside.py -k with_skills -q --tb=short"
+grep_control:
+  - back: "rg 'with.skills' bin/hub-link"
+    front: ""
+  - back: "rg 'agents/skills' bin/hub-unlink"
+    front: ""
+verification_results:
+  - "cp1: PASS (alongside without --with-skills does not touch .agents)"
+  - "cp2: PASS (--with-skills on conflict exits 2 fail-closed)"
+  - "cp3: PASS (rg shows --with-skills in bin/hub-link)"
+  - "cp4: PASS (rg shows agents/skills in bin/hub-unlink)"
+checkpoints:
+  - id: cp1
+    criterion: alongside без --with-skills не трогает .agents (negative assert)
+    status: done
+  - id: cp2
+    criterion: --with-skills + conflict (regular dir) → exit 2, tree intact
+    status: done
+  - id: cp3
+    criterion: rg — --with-skills flag присутствует в bin/hub-link
+    status: done
+  - id: cp4
+    criterion: hub-unlink содержит логику unlink .agents/skills installer-owned link
+    status: done
+resume_from: cp1

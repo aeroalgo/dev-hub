@@ -50,10 +50,10 @@ as_built:
   - "hub .claude/commands, .claude/skills, .claude/rules — будут symlinks (s01–s03), поэтому цепочка станет корректной после s01–s03"
 
 delta:
-  - "full mode: заменить `link_one \".agents\" \"$DEV_HUB/.agents\"` на `link_one \".agents/skills\" \"$DEV_HUB/harness/skills\"`"
-  - "full mode: loop sub-links для commands/skills/rules теперь ведут на hub shell symlinks → harness (через цепочку после s01–s03); убедиться что link target корректен (hub .claude/$sub — symlink, product link → тот же harness)"
-  - "Добавить guard: если hub .claude/$sub — symlink → harness, product link резолвит в harness; если real dir (до s01–s03) — skip с warn"
-  - "Идемпотентность: refresh (ln -sfn) при уже существующем symlink"
+  - "bin/hub-link: full mode: заменить `link_one \".agents\" \"$DEV_HUB/.agents\"` на `link_one \".agents/skills\" \"$DEV_HUB/harness/skills\"` (строка 216 `link_one \".agents\" \"$DEV_HUB/.agents\"` заменяется на skills-only link)"
+  - "bin/hub-link: assumptions что hub .claude/* = real SoT dirs: loop sub-links для commands/skills/rules теперь ведут на hub shell symlinks → harness (через цепочку после s01–s03); убедиться что link target корректен (hub .claude/$sub — symlink, product link → тот же harness)"
+  - "bin/hub-link: Добавить guard: если hub .claude/$sub — symlink → harness, product link резолвит в harness; если real dir (до s01–s03) — skip с warn"
+  - "bin/hub-link: Идемпотентность: refresh (ln -sfn) при уже существующем symlink"
 
 deletes:
   - "bin/hub-link: строка 216 `link_one \".agents\" \"$DEV_HUB/.agents\"` — заменяется на skills-only link"
@@ -81,7 +81,7 @@ checkpoints:
     verify: "rg 'harness/skills' bin/hub-link"
   - id: cp3
     criterion: в тестовой fixture full mode resolve .agents/skills → harness/skills (не .agents как целое)
-    verify: "bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short 2>&1 | tail -5"
+    verify: ".venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short"
   - id: cp4
     criterion: rg — нет callers в bin/ предполагающих .agents как real SoT dir целиком
     verify: "rg 'DEV_HUB/\\.agents[^/]' bin/ || true"

@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s01 — epic-plan/v1 schema + epic-layout/v2 schema (loop/schemas/) IMPLEMENT
+status: in_progress
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-047-harness-mb-scaffold-epic-layout/s01-plan-spec-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- loop/schemas/plan_spec.py
+- loop/schemas/epic_layout_schema.py
+- loop/schemas/__init__.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'PlanSpec.model_validate({''plan_id'': ''T-HUB-047-...'', ''level'':
+    ''L3'', ''requirements'': [{''id'': ''FR-001'', ''text'': ''Schema...''}], ''outline_steps'':
+    [{''step_id'': ''s01'', ''title'': ''Schema'', ''maps_to'': []}], ''stages'':
+    [], ''summary'': {''step_count_floor'': 1, ''requirement_count'': 1}}) → no exception'
+  status: pending
+- id: cp2
+  criterion: 'EpicLayoutKind enum содержит все 9 kind: plan_md, plan_yaml, decompose_index_md,
+    decompose_index_yaml, decompose_step, implement_step, qa_yaml, analyze_yaml, audit_yaml'
+  status: pending
+- id: cp3
+  criterion: Невалидный PlanSpec (нет plan_id) → pydantic ValidationError
+  status: pending
+resume_from: cp1

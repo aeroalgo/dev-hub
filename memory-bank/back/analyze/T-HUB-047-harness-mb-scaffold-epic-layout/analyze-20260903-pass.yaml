@@ -1,0 +1,28 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-03'
+index_fingerprint: sha256:9fe6c9c58d73ad570317704da2e08136aea98ff85dda4c2560c9a2882c608fb4
+
+metrics:
+  critical_count: 0
+  high_count: 0
+  medium_count: 0
+  low_count: 0
+
+summary: >
+  Pre-implement review of plan and decompose artifacts for T-HUB-047-harness-mb-scaffold-epic-layout.
+  All 12 decompose shards (s01-s12) comprehensively cover requirements FR-001..FR-018,
+  US-001..US-008, SC-001..SC-005, and AC-1..AC-9 with zero traceability findings.
+  Technology axioms (fail-closed scaffold missing, no dual glob paths post-purge, spec-first plan.yaml)
+  are strictly maintained across stages.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 12

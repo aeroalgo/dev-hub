@@ -7,15 +7,17 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: hub-link [--mode alongside|full] [PRODUCT_ROOT]
+Usage: hub-link [--mode alongside|full] [--with-skills] [PRODUCT_ROOT]
 
 Options:
   --mode alongside|full   Install mode (default: alongside)
+  --with-skills           In alongside mode, install .agents/skills link (fail-closed if exists as regular dir)
   --help, -h              Show this help message
 EOF
 }
 
 MODE="alongside"
+WITH_SKILLS=0
 POSITIONAL_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -30,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --mode=*)
       MODE="${1#*=}"
+      shift
+      ;;
+    --with-skills)
+      WITH_SKILLS=1
       shift
       ;;
     -h|--help)
@@ -179,7 +185,25 @@ if [[ "$MODE" == "alongside" ]]; then
     python3 "$DEV_HUB/loop/hub_settings_merge.py" "$PRODUCT_ROOT/.claude/settings.json" "$DEV_HUB/harness/claude/settings.harness.json"
   fi
 
-  # 7. AGENTS.md stub if missing
+  # 7. Optional --with-skills: install .agents/skills link to harness/skills (fail-closed if regular dir exists)
+  if [[ "$WITH_SKILLS" -eq 1 ]]; then
+    target_skills="$DEV_HUB/harness/skills"
+    if [[ ! -d "$target_skills" ]]; then
+      echo "ERROR: hub harness skills missing: $target_skills" >&2
+      exit 2
+    fi
+    dest_skills="$PRODUCT_ROOT/.agents/skills"
+    if [[ -L "$dest_skills" ]]; then
+      link_one ".agents/skills" "$target_skills"
+    elif [[ -d "$dest_skills" || -e "$dest_skills" ]]; then
+      echo "ERROR: $dest_skills exists and is not a symlink. Move it aside first." >&2
+      exit 2
+    else
+      link_one ".agents/skills" "$target_skills"
+    fi
+  fi
+
+  # 8. AGENTS.md stub if missing
   AGENTS="$PRODUCT_ROOT/AGENTS.md"
   if [[ ! -e "$AGENTS" ]]; then
     cat > "$AGENTS" <<EOF
@@ -213,7 +237,9 @@ mkdir -p "$PRODUCT_ROOT/.cursor" "$PRODUCT_ROOT/.claude"
 
 link_one ".cursor/rules" "$DEV_HUB/.cursor/rules"
 link_one ".cursor/templates" "$DEV_HUB/.cursor/templates"
-link_one ".agents" "$DEV_HUB/.agents"
+if [[ -d "$DEV_HUB/harness/skills" ]]; then
+  link_one ".agents/skills" "$DEV_HUB/harness/skills"
+fi
 link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
 if [[ -d "$DEV_HUB/harness" ]]; then
   link_one "harness" "$DEV_HUB/harness"
@@ -253,7 +279,7 @@ if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null;
 - **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
   \`.cursor/rules/mainrule.mdc\` (symlinked from hub).
 - **Claude Code extension:** \`.claude/agents\` (\`verify\`/\`reviewer\`/\`explorer\`), hooks, settings — symlinks → hub; \`runtime/\` local to this product.
-- **Skills:** \`.agents/skills/*/SKILL.md\` (symlink → hub)
+- **Skills:** \`harness/skills/*/SKILL.md\`
 - **Artifacts:** only this repo — \`memory-bank/\`
 - **Autoloop:** \`make loop ARGS="gpt"\` / \`make loop-epic EPIC=decompose-…\`
 - **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).

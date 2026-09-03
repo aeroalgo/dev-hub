@@ -72,6 +72,13 @@ def render_step(
     res["next_phase"] = "BACK IMPLEMENT"
     res["needs_creative"] = "no"
     res["goal"] = goal
+    res["plan_contract"] = {
+        "fr_ids": [f"FR-{step_idx:03d}"],
+        "nouns": [formula_step.title],
+        "layout_paths": [f.format(epic_name=plan_id, epic_id=epic_id, slug=slug) if "{" in f else f for f in formula_step.typical_files_pattern],
+        "ac_quotes": [f"Verify {formula_step.title}"],
+        "plan_jumps": [f"plan-{plan_id}.md:1-50"],
+    }
 
     if "context" not in res or not isinstance(res["context"], dict):
         res["context"] = {"consumes": [], "produces": [], "plan_refs": [], "files": []}

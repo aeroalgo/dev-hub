@@ -79,3 +79,53 @@ def test_product_settings_hook_paths_resolve(tmp_path: Path):
         rel = cmd.split('"$CLAUDE_PROJECT_DIR/')[1].split('"')[0]
         hook_file = product_dir / rel
         assert hook_file.exists(), f"Product hook missing: {hook_file} (from {cmd})"
+
+
+def test_product_full_links_resolve_to_harness_sot(tmp_path: Path):
+    """Verify full mode links .agents/skills and .claude/{commands,skills,rules} to canonical harness SoT."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "fake_product"
+    product_dir.mkdir()
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_link_bin = hub_dir / "bin" / "hub-link"
+
+    res = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res.returncode == 0, f"hub-link failed: {res.stderr}"
+
+    # .agents/skills resolves to harness/skills
+    prod_skills = product_dir / ".agents" / "skills"
+    assert prod_skills.exists(), "Product .agents/skills must exist"
+    assert prod_skills.is_symlink(), "Product .agents/skills must be a symlink"
+    assert prod_skills.resolve() == (hub_dir / "harness" / "skills").resolve()
+
+    # Whole .agents must NOT be linked directly as a single symlink
+    assert not (product_dir / ".agents").is_symlink(), ".agents itself should be a dir containing symlinks, not a symlink itself"
+
+    # .claude/commands resolves to harness/claude/commands
+    prod_commands = product_dir / ".claude" / "commands"
+    assert prod_commands.exists()
+    assert prod_commands.resolve() == (hub_dir / "harness" / "claude" / "commands").resolve()
+
+    # .claude/skills resolves to harness/claude/skills
+    prod_claude_skills = product_dir / ".claude" / "skills"
+    assert prod_claude_skills.exists()
+    assert prod_claude_skills.resolve() == (hub_dir / "harness" / "claude" / "skills").resolve()
+
+    # .claude/rules resolves to harness/claude/rules
+    prod_claude_rules = product_dir / ".claude" / "rules"
+    assert prod_claude_rules.exists()
+    assert prod_claude_rules.resolve() == (hub_dir / "harness" / "claude" / "rules").resolve()
+
+
+def test_no_dual_sot_in_hub_layout():
+    """TM-006: Hub layout has single SoT in harness/ — .claude and .agents are symlinks, not duplicate directories."""
+    hub_dir = Path(__file__).resolve().parents[2]
+
+    # .claude/commands, skills, rules must be symlinks
+    for rel in [".claude/commands", ".claude/skills", ".claude/rules", ".agents/skills"]:
+        p = hub_dir / rel
+        assert p.is_symlink(), f"{rel} must be a symlink in hub layout"
+        # resolved target must be within harness/
+        resolved = p.resolve()
+        assert str(resolved).startswith(str((hub_dir / "harness").resolve())), f"{rel} must resolve into harness/"

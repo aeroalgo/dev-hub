@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s10
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: Migrate apply на dev-hub memory-bank + validate-decompose-tree green
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Применить migrate script (s05) на dev-hub memory-bank — переместить все активные
+  эпики
+
+  из flat v1 layout в v2. После apply: validate-decompose-tree exit 0 на всех мигрированных
+  эпиках.
+
+  SC-002: dry-run 0 errors на активных hub-эпиках.
+
+  '
+plan_contract:
+  fr_ids:
+  - SC-002
+  - AC-5
+  nouns:
+  - loop/migrate/epic_layout_v1_to_v2.py --apply
+  - dev-hub memory-bank
+  - validate-decompose-tree
+  - active hub epics
+  - dry-run 0 errors
+  layout_paths:
+  - memory-bank/back/plan/<epic_id>/md/ (migrated)
+  - memory-bank/back/plan/<epic_id>/yaml/steps/ (migrated)
+  ac_quotes:
+  - 'AC-5: Migrate script v1→v2 + apply on dev-hub memory-bank'
+  - 'SC-002: Migrate all active hub epics dry-run 0 errors | CLI migrate dry-run on
+    dev-hub memory-bank'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:119-121
+context:
+  consumes:
+  - loop/migrate/epic_layout_v1_to_v2.py (s05)
+  - memory-bank/back/plan/ (текущий flat layout)
+  produces:
+  - memory-bank/back/plan/<epic_id>/ (v2 layout для каждого мигрированного эпика)
+  plan_refs:
+  - SC-002
+  - AC-5
+  files:
+  - memory-bank/back/plan/ (все активные эпики)
+as_built:
+- 'memory-bank/back/plan/ — flat layout: plan-T-HUB-*.md + decompose-T-HUB-*/ директории'
+- 'Активные эпики: T-HUB-033, T-HUB-040 (IMPLEMENT in-progress); T-HUB-047 (DECOMPOSE,
+  текущий)'
+- 'validate-decompose-tree: существует как stop-gate; проверяет index.yaml + sNN.yaml
+  tree'
+delta:
+- 'Запустить dry-run: python harness/hooks/epic_resolve.py mb-migrate --dry-run --cwd
+  $PROJECT_ROOT → JSON 0 errors'
+- 'Запустить apply: python harness/hooks/epic_resolve.py mb-migrate --apply --cwd
+  $PROJECT_ROOT (IMPLEMENT-active эпики — с --force после проверки что migrate guard
+  ОК)'
+- 'После apply: validate-decompose-tree на каждый мигрированный эпик → exit 0'
+- Обновить activeContext.md если epic_id refs изменились (arm target paths)
+- Добавить mb-migrate как subparser в epic_resolve.py (wrapper над migrate script)
+deletes:
+- memory-bank/back/plan/plan-T-HUB-*.md → перемещены в memory-bank/back/plan/<id>/md/plan.md
+- memory-bank/back/plan/decompose-T-HUB-*/ → перемещены в memory-bank/back/plan/<id>/yaml/steps/
+out_of_scope:
+- purge hardcoded paths из loop/ (→ s11)
+- product $PROJECT_ROOT rollout (anti-scope)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+checkpoints:
+- id: cp1
+  criterion: 'dry-run на dev-hub memory-bank → JSON {errors: [], planned_moves: N}
+    exit 0'
+  verify: python harness/hooks/epic_resolve.py mb-migrate --dry-run --cwd $PROJECT_ROOT
+    | python -c "import sys,json; d=json.load(sys.stdin); assert d['ok'] and not d.get('errors'),
+    d"
+- id: cp2
+  criterion: 'после apply: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/
+    существует'
+  verify: ls memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/
+    | head -3
+- id: cp3
+  criterion: validate-decompose-tree на мигрированных эпиках exit 0
+  verify: python harness/hooks/epic_resolve.py validate-decompose-tree --epic-id T-HUB-047-harness-mb-scaffold-epic-layout
+    --cwd $PROJECT_ROOT; echo exit=$?
+- id: cp4
+  criterion: harness/hooks/tests/ green после migrate apply (пути изменились)
+  verify: bin/pytest harness/hooks/tests/ -q --tb=short -x
+verify: []
+tdd: []

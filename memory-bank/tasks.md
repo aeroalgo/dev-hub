@@ -2,6 +2,8 @@
 
 ## Active
 
+| T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | PLAN | in_progress | [plan](back/plan/plan-T-HUB-060-remove-reflect-phase.md) · next BACK DECOMPOSE |
+
 | ID | Title | Level | Step | Status | Progress |
 |----|-------|-------|------|--------|----------|
 | T-HUB-010 | SpecKit adapt — CLARIFY + spec quality | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-010-clarify-spec-quality.md) · QA pass · 7/7 steps completed |

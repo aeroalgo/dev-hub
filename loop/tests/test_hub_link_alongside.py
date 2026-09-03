@@ -355,3 +355,117 @@ def test_alongside_unlink_preserves_claude_body(tmp_path: Path):
     assert "<!-- dev-hub:harness:end -->" not in final_text
 
 
+def test_alongside_default_does_not_touch_agents(tmp_path: Path):
+    """TM-004: alongside default does not touch .agents."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "agents_default_product"
+    product_dir.mkdir()
+
+    agents_dir = product_dir / ".agents"
+    agents_dir.mkdir()
+    user_skill = agents_dir / "my-skill.md"
+    user_skill.write_text("user custom skill")
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_link_bin = hub_dir / "bin" / "hub-link"
+
+    res = subprocess.run([str(hub_link_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res.returncode == 0, f"hub-link failed: {res.stderr}"
+
+    assert not (product_dir / ".agents" / "skills").exists()
+    assert not (product_dir / ".agents").is_symlink()
+    assert user_skill.read_text() == "user custom skill"
+
+
+def test_alongside_with_skills_success_and_unlink(tmp_path: Path):
+    """TM-004/TM-005: alongside --with-skills links .agents/skills to harness/skills, unlink removes it."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "agents_skills_product"
+    product_dir.mkdir()
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_link_bin = hub_dir / "bin" / "hub-link"
+    hub_unlink_bin = hub_dir / "bin" / "hub-unlink"
+
+    # Link with --with-skills
+    res = subprocess.run([str(hub_link_bin), "--mode=alongside", "--with-skills", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res.returncode == 0, f"hub-link failed: {res.stderr}"
+
+    skills_link = product_dir / ".agents" / "skills"
+    assert skills_link.is_symlink()
+    assert (skills_link / "role-command").is_dir() or (skills_link / "explore").is_dir() or skills_link.exists()
+
+    # Unlink
+    res_u = subprocess.run([str(hub_unlink_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res_u.returncode == 0, f"hub-unlink failed: {res_u.stderr}"
+    assert not skills_link.exists()
+
+
+def test_alongside_with_skills_conflict_fail_closed(tmp_path: Path):
+    """TM-005: alongside --with-skills fail-closed if .agents/skills is regular directory."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "agents_conflict_product"
+    product_dir.mkdir()
+
+    skills_dir = product_dir / ".agents" / "skills"
+    skills_dir.mkdir(parents=True)
+    custom_skill = skills_dir / "custom.md"
+    custom_skill.write_text("custom user skill content")
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_link_bin = hub_dir / "bin" / "hub-link"
+
+    res = subprocess.run([str(hub_link_bin), "--mode=alongside", "--with-skills", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res.returncode == 2, f"expected exit 2, got {res.returncode}"
+    assert "ERROR:" in res.stderr
+    assert custom_skill.is_file()
+    assert custom_skill.read_text() == "custom user skill content"
+    assert not skills_dir.is_symlink()
+
+
+def test_alongside_unlink_preserves_foreign_skills_symlink(tmp_path: Path):
+    """AC- N3: unlink alongside must not remove non-installer-owned .agents/skills symlink."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "foreign_skills_product"
+    product_dir.mkdir()
+
+    foreign_skills_dir = tmp_path / "custom_user_skills"
+    foreign_skills_dir.mkdir()
+    (foreign_skills_dir / "my_custom.md").write_text("custom")
+
+    agents_dir = product_dir / ".agents"
+    agents_dir.mkdir()
+    skills_link = agents_dir / "skills"
+    skills_link.symlink_to(foreign_skills_dir)
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_unlink_bin = hub_dir / "bin" / "hub-unlink"
+
+    res_u = subprocess.run([str(hub_unlink_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res_u.returncode == 0, f"hub-unlink failed: {res_u.stderr}"
+    assert skills_link.is_symlink()
+    assert (skills_link / "my_custom.md").is_file()
+
+
+def test_alongside_unlink_preserves_custom_harness_substring_skills_symlink(tmp_path: Path):
+    """AC- N3: unlink alongside must not remove custom symlink even if target path has substring 'harness/skills'."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "custom_substring_product"
+    product_dir.mkdir()
+
+    custom_dir = tmp_path / "custom-harness" / "skills"
+    custom_dir.mkdir(parents=True)
+    (custom_dir / "custom_rule.md").write_text("content")
+
+    agents_dir = product_dir / ".agents"
+    agents_dir.mkdir()
+    skills_link = agents_dir / "skills"
+    skills_link.symlink_to(custom_dir)
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_unlink_bin = hub_dir / "bin" / "hub-unlink"
+
+    res_u = subprocess.run([str(hub_unlink_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res_u.returncode == 0, f"hub-unlink failed: {res_u.stderr}"
+    assert skills_link.is_symlink()
+    assert (skills_link / "custom_rule.md").is_file()

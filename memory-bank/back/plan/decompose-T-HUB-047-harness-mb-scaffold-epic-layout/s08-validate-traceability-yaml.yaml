@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: validate-traceability primary inventory from plan.yaml (удалить md fallback)
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Переключить validate-traceability на primary inventory из plan.yaml requirements[].
+
+  Md fallback (regex парсинг plan.md) заменяется guard-behind-flag (DeprecationWarning).
+
+  Fixture: missing FR в yaml → CRITICAL; FR в yaml present → PASS. SC-005 green.
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-014
+  - SC-005
+  - AC-7
+  - US-007
+  nouns:
+  - validate-traceability
+  - plan.yaml
+  - requirements[]
+  - md fallback
+  - CRITICAL
+  - DeprecationWarning
+  layout_paths:
+  - harness/hooks/epic_resolve.py (или отдельный validate_traceability.py)
+  - loop/schemas/plan_spec.py (PlanSpec.requirements)
+  ac_quotes:
+  - 'AC-7: validate-traceability plan.yaml primary'
+  - 'FR-014: primary inventory from plan.yaml requirements[]; md fallback удалить
+    in purge step'
+  - 'SC-005: validate-traceability reads plan.yaml | pytest FR coverage'
+  - 'US-007: validate-traceability читал plan.yaml requirements без regex md'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:101
+context:
+  consumes:
+  - loop/schemas/plan_spec.py (s01)
+  - loop/paths/epic_layout.py (s02)
+  produces:
+  - harness/hooks/validate_traceability.py (updated) or inline in epic_resolve.py
+  plan_refs:
+  - FR-014
+  - SC-005
+  - US-007
+  files:
+  - harness/hooks/validate_traceability.py
+as_built:
+- 'validate-traceability — существует; primary source: regex парсинг plan-<id>.md
+  заголовков FR-###'
+- plan.yaml — ещё не существует как стандарт (создаётся в s01 схема, s03 scaffold)
+- 'Md fallback полностью: если plan.yaml нет → парсит md; нет guard'
+delta:
+- 'Обновить validate-traceability: (1) читать plan/<epic_id>/yaml/plan.yaml requirements[]
+  как primary; (2) если plan.yaml не найден → DeprecationWarning(''layout_v1_deprecated'')
+  + fallback md regex (не удалять fallback здесь — только в s11)'
+- FR в plan.yaml present + FR covered в decompose shard → PASS
+- FR в plan.yaml отсутствует + FR в decompose shard присутствует → CRITICAL (unknown
+  requirement)
+- FR в plan.yaml present + не покрыт shard → CRITICAL (uncovered requirement)
+- 'Добавить pytest fixtures: plan.yaml с FR-001..FR-003; decompose с FR-001 пропущен
+  → CRITICAL'
+deletes:
+- 'Md fallback guard: добавить DeprecationWarning на fallback (не удалять — в s11)'
+out_of_scope:
+- md fallback полный delete (→ s11 purge)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+  - python-testing-patterns
+checkpoints:
+- id: cp1
+  criterion: 'fixture: plan.yaml с requirements [FR-001, FR-002]; decompose shard
+    с fr_ids: [FR-001] → CRITICAL=''FR-002 uncovered'''
+  verify: bin/pytest harness/hooks/tests/test_validate_traceability.py::test_yaml_primary_missing_fr
+    -q --tb=short
+- id: cp2
+  criterion: 'fixture: plan.yaml FR-001; decompose fr_ids: [FR-001] → CRITICAL=0,
+    PASS'
+  verify: bin/pytest harness/hooks/tests/test_validate_traceability.py::test_yaml_primary_pass
+    -q --tb=short
+- id: cp3
+  criterion: no plan.yaml → DeprecationWarning('layout_v1_deprecated') + fallback;
+    no crash
+  verify: bin/pytest harness/hooks/tests/test_validate_traceability.py::test_md_fallback_deprecated
+    -q --tb=short
+verify: []
+tdd: []

@@ -1,0 +1,129 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: loop/mb_scaffold/ — scaffold_plan, scaffold_decompose, scaffold_implement_all,
+  scaffold_qa, scaffold_analyze, scaffold_audit
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Создать пакет loop/mb_scaffold/ с функциями scaffold_plan, scaffold_decompose,
+
+  scaffold_implement_all, scaffold_qa, scaffold_analyze, scaffold_audit.
+
+  Skeleton contract: создаёт schema-valid yaml с пустыми семантическими полями (goal:
+  "", delta: []).
+
+  Агент только edit-fill после scaffold. Pydantic request/result models (mb-scaffold-result/v1).
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-004
+  - FR-006
+  - FR-007
+  - FR-008
+  - SC-003
+  - US-002
+  - US-005
+  - US-006
+  - US-008
+  nouns:
+  - loop/mb_scaffold/
+  - scaffold_plan
+  - scaffold_decompose
+  - scaffold_implement_all
+  - scaffold_qa
+  - scaffold_analyze
+  - scaffold_audit
+  - ScaffoldRequest
+  - ScaffoldResult (mb-scaffold-result/v1)
+  - skeleton contract
+  - outline_steps.maps_to
+  layout_paths:
+  - loop/mb_scaffold/__init__.py
+  - loop/mb_scaffold/scaffold_plan.py
+  - loop/mb_scaffold/scaffold_decompose.py
+  - loop/mb_scaffold/scaffold_implement.py
+  - loop/mb_scaffold/scaffold_phase.py
+  - loop/mb_scaffold/models.py
+  ac_quotes:
+  - 'AC-3: mb-scaffold CLI: plan, decompose, implement (--all), qa, analyze, audit'
+  - 'AC-4: Skeleton contract documented; workflow FORBIDDEN full Write on scaffolded
+    paths'
+  - 'FR-006: semantic fields empty; schema + step_id + plan_refs pre-filled from outline_steps.maps_to'
+  - 'SC-003: DECOMPOSE scaffold 5-step epic: agent edit-only'
+  - 'US-008: agent may add sNN beyond outline floor; validate-traceability still green'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:91-96
+context:
+  consumes:
+  - loop/schemas/plan_spec.py
+  - loop/paths/epic_layout.py
+  produces:
+  - loop/mb_scaffold/
+  plan_refs:
+  - FR-004
+  - FR-006
+  - FR-007
+  - FR-008
+  - SC-003
+  - US-002
+  - US-005
+  - US-006
+  - US-008
+  files:
+  - loop/mb_scaffold/__init__.py
+  - loop/mb_scaffold/models.py
+  - loop/mb_scaffold/scaffold_plan.py
+  - loop/mb_scaffold/scaffold_decompose.py
+  - loop/mb_scaffold/scaffold_implement.py
+  - loop/mb_scaffold/scaffold_phase.py
+as_built:
+- loop/mb_scaffold/ — не существует
+- loop/formula_render.py — создаёт sNN yaml но не skeleton, нет --from-plan, нет index.md
+  coverage rows
+- loop/mb_finish/ — читает и финализирует шаги (не создаёт skeleton)
+delta:
+- 'Создать loop/mb_scaffold/models.py: ScaffoldRequest (epic_id, role, phase, from_plan?,
+  force?, dry_run?), ScaffoldResult (ok, created[], skipped[], dry_run), mb-scaffold-result/v1'
+- 'scaffold_plan: создаёт plan/<epic_id>/md/plan.md (section headers) + yaml/plan.yaml
+  (minimal PlanSpec); fail-closed если уже есть и не --force'
+- 'scaffold_decompose: читает plan.yaml outline_steps → sNN-<slug>.yaml skeleton (delta:[],
+  as_built:[], goal: placeholder) + md/decompose-index.md coverage rows (пустой sNN
+  column)'
+- 'scaffold_implement_all: из decompose index.yaml → implement/<epic_id>/yaml/steps/sNN.yaml
+  in_progress'
+- 'scaffold_qa/scaffold_analyze/scaffold_audit: schema-valid empty findings yaml из
+  epic context'
+- 'Forbidden Write guard: scaffold проверяет что файл не заполнен агентом (non-skeleton)
+  → ValueError/error if goal != '''' и не --force'
+deletes: []
+out_of_scope:
+- CLI subparser wiring (→ s04)
+- formula merge --formula flag (→ s09)
+- cwd guard (→ s04)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+  - python-testing-patterns
+checkpoints:
+- id: cp1
+  criterion: 'scaffold_decompose(epic_id=''T-HUB-047-test'', role=''back'', plan_spec=spec_with_5_steps)
+    → создаёт s01..s05 skeleton yaml + index.md; delta: [] в каждом'
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py::test_scaffold_decompose_5steps
+    -q --tb=short
+- id: cp2
+  criterion: scaffold_plan → создаёт md/plan.md с section headers + yaml/plan.yaml
+    valid PlanSpec skeleton; не перезаписывает без --force
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_plan.py -q --tb=short
+- id: cp3
+  criterion: scaffold_implement_all из 5-step decompose index → 5 implement yaml in_progress
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_implement.py::test_scaffold_all
+    -q --tb=short
+- id: cp4
+  criterion: Scaffold на уже заполненный файл (goal != '') → error без --force
+  verify: bin/pytest harness/hooks/tests/test_mb_scaffold_decompose.py::test_scaffold_guard_nooverwrite
+    -q --tb=short
+verify: []
+tdd: []

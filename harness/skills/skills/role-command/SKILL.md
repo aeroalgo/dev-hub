@@ -157,8 +157,8 @@ Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integr
 Перед FINISH на brownfield VAN: architecture shards не stub-only; mermaid minimum (services + data-flow + erd|n/a).  
 Перед FINISH на IMPLEMENT: @.cursor/rules/shared/finish-block.mdc — step-файл exists + Handoff шага **до** `decompose`=`completed`.
 
-Slash-команды: `.claude/commands/` (см. `.claude/README.md`). Для portal wire предпочтительно **`/integ-plan`**. Полная as-built карта — **`/integ-van`**.
+Slash-команды: `harness/claude/commands/` (shell: `.claude/commands/`). Для portal wire предпочтительно **`/integ-plan`**. Полная as-built карта — **`/integ-van`**.
 
 ## Sync note
 
-SoT = `.claude/skills/role-command/SKILL.md`; `.agents/skills/role-command/SKILL.md` = mirror. Sync on DECOMPOSE (overwrite .agents from .claude if diff != 0).
+SoT = `harness/claude/skills/role-command/SKILL.md` (shells: `.claude/skills/role-command/SKILL.md` and `.agents/skills/role-command/SKILL.md`).

@@ -17,11 +17,15 @@
 | S-HUB-UNLINK | `bin/hub-unlink` | bash | Снять symlinks |
 | S-MAKE | `make/product.mk` | Make include | `hub-link`, `loop`, `loop-epic`, `loop-status` для product Makefile |
 | S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |
-| S-HARNESS-SoT | `harness/` | canonical layer | Canonical Python hooks, agents, and package harness layer (SoT); `.claude/hooks` and `.claude/agents` are symlink shells |
+| S-HARNESS-SoT | `harness/` | canonical layer | Canonical Python hooks, agents, skills (`harness/skills`), commands (`harness/claude/commands`), rules (`harness/claude/rules`), and package harness layer (SoT); `.claude/*` and `.agents/skills` are symlink shells |
 | S-HOOKS-CC | `.claude/hooks/*.py` | symlink shell | Claude hooks shell (symlinks → `harness/hooks/`); pre/post tool, stop-gate, session, epic_resolve, stream filter, … |
+| S-COMMANDS-CC | `.claude/commands/` | symlink shell | Claude commands shell (symlinks → `harness/claude/commands/`) |
+| S-SKILLS-CC | `.claude/skills/` | symlink shell | Claude skills shell (symlinks → `harness/claude/skills/`) |
+| S-RULES-CC | `.claude/rules/` | symlink shell | Claude rules shell (symlinks → `harness/claude/rules/`) |
 | S-HOOKS-CUR | `.cursor/hooks/*.py` / `hooks.json` | Cursor hooks | unwired / N/A for epic gates; wiring = out of scope T-HUB-003 (follow-up эпик); as-built: before_submit / after_edit / on_stop |
 | S-AGENTS | `harness/agents/*.md` (`.claude/agents/` shell) | subagent defs | Gate agents для codebase search / phase verify / BACK QA (с алиасами @verify → verify-implement, @reviewer → verify-qa) |
-| S-RULES | `.cursor/rules/**` | workflow router | `mainrule.mdc` → role workflows |
+| S-AGENT-SKILLS | `harness/skills/` (`.agents/skills` shell) | agent skills | Canonical agent skills catalog (SoT in `harness/skills/`, `.agents/skills` is symlink shell) |
+| S-RULES | `.cursor/rules/**` (`harness/cursor/rules/` SoT) | workflow router | `mainrule.mdc` → role workflows |
 
 ## Взаимодействие
 

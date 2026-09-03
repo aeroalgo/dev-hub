@@ -109,11 +109,11 @@
 | step_id | title & files | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :---: | :---: | :--- | :--- |
 | **s01** | [s01-mv-claude-commands-harness.yaml](s01-mv-claude-commands-harness.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-mv-claude-skills-harness.yaml](s02-mv-claude-skills-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-mv-claude-rules-harness.yaml](s03-mv-claude-rules-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s04** | [s04-mv-agents-skills-harness.yaml](s04-mv-agents-skills-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-hub-link-full-harness-sot.yaml](s05-hub-link-full-harness-sot.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s06** | [s06-hub-link-alongside-with-skills.yaml](s06-hub-link-alongside-with-skills.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s07** | [s07-pytest-layout-hub-link-suites.yaml](s07-pytest-layout-hub-link-suites.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s08** | [s08-docs-kind-i-rewrite.yaml](s08-docs-kind-i-rewrite.yaml) | no | no | BACK IMPLEMENT | pending |
-| **s09** | [s09-legacy-fallback-purge.yaml](s09-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s02** | [s02-mv-claude-skills-harness.yaml](s02-mv-claude-skills-harness.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-mv-claude-rules-harness.yaml](s03-mv-claude-rules-harness.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-mv-agents-skills-harness.yaml](s04-mv-agents-skills-harness.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-hub-link-full-harness-sot.yaml](s05-hub-link-full-harness-sot.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-hub-link-alongside-with-skills.yaml](s06-hub-link-alongside-with-skills.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s07** | [s07-pytest-layout-hub-link-suites.yaml](s07-pytest-layout-hub-link-suites.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s08** | [s08-docs-kind-i-rewrite.yaml](s08-docs-kind-i-rewrite.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s09** | [s09-legacy-fallback-purge.yaml](s09-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |

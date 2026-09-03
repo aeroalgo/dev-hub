@@ -114,8 +114,23 @@ strip_claude_md_block('$PRODUCT_ROOT/CLAUDE.md')
     echo "restored .claude/settings.json from backup"
   fi
 
-  # drop empty dirs (.cursor, .claude) if empty
-  for d in .cursor .claude; do
+  # 7. Remove installer-owned .agents/skills link if created by --with-skills
+  if [[ -L "$PRODUCT_ROOT/.agents/skills" ]]; then
+    target_link="$(readlink "$PRODUCT_ROOT/.agents/skills" || true)"
+    canonical_harness_skills="$(cd "$DEV_HUB/harness/skills" 2>/dev/null && pwd || true)"
+    canonical_product_harness_skills="$(cd "$PRODUCT_ROOT/harness/skills" 2>/dev/null && pwd || true)"
+    resolved_target="$(cd "$(dirname "$PRODUCT_ROOT/.agents/skills")" && cd "$target_link" 2>/dev/null && pwd || true)"
+    if [[ (-n "$canonical_harness_skills" && "$resolved_target" == "$canonical_harness_skills") || (-n "$canonical_product_harness_skills" && "$resolved_target" == "$canonical_product_harness_skills") ]]; then
+      rm "$PRODUCT_ROOT/.agents/skills"
+      echo "removed .agents/skills"
+      if [[ -d "$PRODUCT_ROOT/.agents" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/.agents" 2>/dev/null)" ]]; then
+        rmdir "$PRODUCT_ROOT/.agents" 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  # drop empty dirs (.cursor, .claude, .agents) if empty
+  for d in .cursor .claude .agents; do
     if [[ -d "$PRODUCT_ROOT/$d" ]] && [[ -z "$(ls -A "$PRODUCT_ROOT/$d" 2>/dev/null)" ]]; then
       rmdir "$PRODUCT_ROOT/$d" 2>/dev/null || true
     fi

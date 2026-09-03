@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: s03 — git mv .claude/rules → harness/claude/rules + symlink (SoT rules) IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-059-harness-claude-agents-sot-complete/s03-mv-claude-rules-harness.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- git mv .claude/rules harness/claude/rules
+- ln -s ../harness/claude/rules .claude/rules
+- добавлен unit test test_symlink_rules_points_to_harness в loop/tests/test_harness_paths.py
+files:
+- harness/claude/rules/
+- .claude/rules
+- loop/tests/test_harness_paths.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_harness_paths.py -q --tb=line
+integration_check:
+- test -d harness/claude/rules
+- test -L .claude/rules
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: harness/claude/rules существует и содержит rule files
+  status: done
+  done_at: '2026-09-03T18:56:00Z'
+- id: cp2
+  criterion: .claude/rules — symlink, разрешается в harness/claude/rules
+  status: done
+  done_at: '2026-09-03T18:56:00Z'
+- id: cp3
+  criterion: нет dual SoT — .claude/rules не real dir
+  status: done
+  done_at: '2026-09-03T18:56:00Z'
+- id: cp4
+  criterion: rg — нет мест, создающих .claude/rules как real dir
+  status: done
+  done_at: '2026-09-03T18:56:00Z'
+resume_from: cp1

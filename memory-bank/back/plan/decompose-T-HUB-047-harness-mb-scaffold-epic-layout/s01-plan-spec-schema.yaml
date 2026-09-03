@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: epic-plan/v1 schema + epic-layout/v2 schema (loop/schemas/)
+next_phase: BACK IMPLEMENT
+needs_creative: 'no'
+goal: 'Создать pydantic-модели epic-plan/v1 (plan_spec.py) и epic-layout/v2 (epic_layout_schema.py)
+
+  в loop/schemas/ — единственный source of truth для структур данных планов и путей.
+
+  Эти схемы потребляют все последующие шаги (resolver, scaffold, validate-traceability).
+
+  '
+plan_contract:
+  fr_ids:
+  - FR-001
+  - FR-002
+  - US-001
+  nouns:
+  - loop/schemas/plan_spec.py
+  - loop/schemas/epic_layout_schema.py
+  - epic-plan/v1
+  - epic-layout/v2
+  - PlanSpec
+  - EpicLayoutKind
+  - OutlineStep
+  - Requirement
+  layout_paths:
+  - loop/schemas/plan_spec.py
+  - loop/schemas/epic_layout_schema.py
+  - loop/schemas/__init__.py (re-export)
+  ac_quotes:
+  - 'AC-1: epic-plan/v1 + epic-layout/v2 pydantic schemas validated on write'
+  - 'FR-001: plan_id, level, formula?, summary{step_count_floor, requirement_count},
+    requirements[], outline_steps[], stages[], sunset_refs[], technology_axiom'
+  - 'FR-002: path kinds: plan_md, plan_yaml, decompose_index_md, decompose_index_yaml,
+    decompose_step, implement_step, qa_yaml, analyze_yaml, audit_yaml'
+  plan_jumps:
+  - plan-T-HUB-047-harness-mb-scaffold-epic-layout.md:86-106
+context:
+  consumes: []
+  produces:
+  - loop/schemas/plan_spec.py
+  - loop/schemas/epic_layout_schema.py
+  plan_refs:
+  - FR-001
+  - FR-002
+  - US-001
+  files:
+  - loop/schemas/plan_spec.py
+  - loop/schemas/epic_layout_schema.py
+  - loop/schemas/__init__.py
+as_built:
+- 'loop/schemas/ существует: active_context.py, board.py, checkpoint.py, decompose_index.py,
+  formula.py, handoff.py, state.py и др.'
+- loop/schemas/__init__.py — уже есть
+- epic-plan/v1 schema отсутствует (только decompose_index.py → epic-decompose-index/v1)
+- epic-layout/v2 schema отсутствует (пути хранятся только в epic_paths.py как строки)
+delta:
+- 'Создать loop/schemas/plan_spec.py: PlanSpec (epic-plan/v1), OutlineStep, Requirement,
+  StageSummary, FormulaRef, SunsetRef, TechnologyAxiom'
+- 'Создать loop/schemas/epic_layout_schema.py: EpicLayoutKind enum (plan_md/plan_yaml/decompose_index_md/decompose_index_yaml/decompose_step/implement_step/qa_yaml/analyze_yaml/audit_yaml),
+  EpicLayoutResolveRequest'
+- Обновить loop/schemas/__init__.py — добавить re-export PlanSpec, EpicLayoutKind
+- pydantic ValidationError на невалидном input — exit 2 в CLI
+deletes: []
+out_of_scope:
+- resolver logic (→ s02)
+- scaffold module (→ s03)
+- CLI (→ s04)
+skills:
+  code_surface: api
+  impl:
+  - modern-python
+  - python-testing-patterns
+checkpoints:
+- id: cp1
+  criterion: 'PlanSpec.model_validate({''plan_id'': ''T-HUB-047-...'', ''level'':
+    ''L3'', ''requirements'': [{''id'': ''FR-001'', ''text'': ''Schema...''}], ''outline_steps'':
+    [{''step_id'': ''s01'', ''title'': ''Schema'', ''maps_to'': []}], ''stages'':
+    [], ''summary'': {''step_count_floor'': 1, ''requirement_count'': 1}}) → no exception'
+  verify: python -c "from loop.schemas.plan_spec import PlanSpec; PlanSpec.model_validate({'plan_id':'T-HUB-047','level':'L3','requirements':[{'id':'FR-001','text':'x'}],'outline_steps':[{'step_id':'s01','title':'t','maps_to':[]}],'stages':[],'summary':{'step_count_floor':1,'requirement_count':1}});
+    print('ok')"
+- id: cp2
+  criterion: 'EpicLayoutKind enum содержит все 9 kind: plan_md, plan_yaml, decompose_index_md,
+    decompose_index_yaml, decompose_step, implement_step, qa_yaml, analyze_yaml, audit_yaml'
+  verify: python -c "from loop.schemas.epic_layout_schema import EpicLayoutKind; assert
+    len(EpicLayoutKind) == 9; print('ok')"
+- id: cp3
+  criterion: Невалидный PlanSpec (нет plan_id) → pydantic ValidationError
+  verify: "python -c \"from loop.schemas.plan_spec import PlanSpec; from pydantic\
+    \ import ValidationError; \nexc=None\ntry: PlanSpec.model_validate({})\nexcept\
+    \ ValidationError as e: exc=e\nassert exc is not None, 'expected error'; print('ok')\""
+verify: []
+tdd: []

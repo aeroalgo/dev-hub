@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-059-harness-claude-agents-sot-complete
+title: s05 — hub-link --mode=full → product links на harness SoT IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-059-harness-claude-agents-sot-complete/s05-hub-link-full-harness-sot.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Updated bin/hub-link in full mode to link .agents/skills directly to harness/skills
+  (or fallback .agents/skills) instead of linking whole .agents dir
+- Verified product links for .claude/{commands,skills,rules} and .agents/skills resolve
+  to harness SoT
+- Added and verified test_product_full_links_resolve_to_harness_sot in loop/tests/test_hub_link_harness.py
+files:
+- bin/hub-link
+- loop/tests/test_hub_link_harness.py
+deletes:
+- 'bin/hub-link: строка 216 `link_one ".agents" "$DEV_HUB/.agents"` — заменяется на
+  skills-only link'
+- 'bin/hub-link: assumptions что hub .claude/* = real SoT dirs'
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_hub_link*.py -q --tb=short`'
+integration_check:
+- .agents/skills resolves to harness/skills in product fixture
+- .claude/commands resolves to harness/claude/commands in product fixture
+- .claude/skills resolves to harness/claude/skills in product fixture
+- .claude/rules resolves to harness/claude/rules in product fixture
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_hub_link_harness.py -q --tb=short -> 4 passed
+- .venv/bin/pytest loop/tests/test_hub_link*.py -q --tb=short -> 17 passed
+checkpoints:
+- id: cp1
+  criterion: rg — убедиться что старая строка `link_one ".agents"` без "/skills" удалена
+    из full mode
+  status: done
+  done_at: '2026-09-03T19:22:00Z'
+- id: cp2
+  criterion: full mode содержит link .agents/skills → harness/skills
+  status: done
+  done_at: '2026-09-03T19:22:00Z'
+- id: cp3
+  criterion: в тестовой fixture full mode resolve .agents/skills → harness/skills
+    (не .agents как целое)
+  status: done
+  done_at: '2026-09-03T19:22:00Z'
+- id: cp4
+  criterion: rg — нет callers в bin/ предполагающих .agents как real SoT dir целиком
+  status: done
+  done_at: '2026-09-03T19:22:00Z'
+resume_from: cp1

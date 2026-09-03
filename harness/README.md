@@ -1,10 +1,24 @@
 # Harness
 
-`harness/` is the canonical Source of Truth (SoT) for repo hooks, agents, instructions, and rules.
+`harness/` is the canonical Source of Truth (SoT) for repo hooks, agents, instructions, skills, commands, and rules.
 
 - `harness/` contains the behavior and business logic of execution rules.
-- `.claude/` in dev-hub acts as a thin symlink shell referencing `harness/`.
+- `.claude/` in dev-hub acts as a thin symlink shell referencing `harness/` (`harness/agents/`, `harness/hooks/`, `harness/claude/commands/`, `harness/claude/skills/`, `harness/claude/rules/`).
+- `.agents/skills` in dev-hub is a thin symlink shell referencing `harness/skills/`.
 - `harness/cursor/rules/` is the canonical Source of Truth for cursor rules; `@.cursor/rules` references remain functional via symlinks.
+
+## Target Layout
+
+| Component | Source of Truth (SoT) | Shell / Consumer symlink (dev-hub & product) |
+|---|---|---|
+| Claude Commands | `harness/claude/commands/` | `.claude/commands` -> `harness/claude/commands` |
+| Claude Skills | `harness/claude/skills/` | `.claude/skills` -> `harness/claude/skills` |
+| Claude Rules | `harness/claude/rules/` | `.claude/rules` -> `harness/claude/rules` |
+| Agent Skills | `harness/skills/` | `.agents/skills` -> `harness/skills` |
+| Claude Agents | `harness/agents/` | `.claude/agents` -> `harness/agents` |
+| Claude Hooks | `harness/hooks/` | `.claude/hooks` -> `harness/hooks` |
+| Cursor Rules | `harness/cursor/rules/` | `.cursor/rules` -> `harness/cursor/rules` |
+| Cursor Templates | `harness/cursor/templates/` | `.cursor/templates` -> `harness/cursor/templates` |
 
 ## Install Modes
 
