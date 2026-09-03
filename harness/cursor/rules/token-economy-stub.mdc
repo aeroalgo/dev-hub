@@ -18,7 +18,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` (**включая `plan_contract`**) + `decompose-*/index.yaml` + analyze artifact path если в load_now
 3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
 4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan-*.md` как monolith AC
-5. **Plan jumps (IMPLEMENT HARD):** Read строки из `plan_contract.plan_jumps` и/или `Consumes: plan §FR-00N` — объём ≈ **≥30%** scope FR/layout nouns шага; не весь plan
+5. **Plan jumps (IMPLEMENT HARD):** Read строки из `plan_contract.plan_jumps` и/или `Consumes: plan §FR-00N` — объём jumps = (end-start)*2 = 100% к изначальному scope (line 120-160 = 160-120 = 40 * 2 => jump 120-200); не весь plan
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 

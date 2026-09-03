@@ -17,7 +17,7 @@ plan_contract:
   nouns: [] # runtime surfaces из plan FR (agent file, CLI, hook, layout path…)
   layout_paths: [] # Target layout paths, которые этот шаг создаёт/трогает
   ac_quotes: [] # короткие цитаты AC± / Independent Test (1–3 строки)
-  plan_jumps: [] # "plan-<id>.md:120-160" — Read offset; ≥ ~30% scope FR/layout шага
+  plan_jumps: [] # "plan-<id>.md:120-160" — Read offset; line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200
 
 context:
   consumes: []

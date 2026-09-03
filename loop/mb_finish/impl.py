@@ -5,6 +5,7 @@ from pathlib import Path
 from harness.hooks.epic.core import (
     atomic_write_text,
     epic_id_from_decompose_path,
+    extract_load_now,
     gate_evidence_matches,
     handoff_post_implement_phase,
     latest_audit_artifact_for_reference,
@@ -369,8 +370,52 @@ def finish_decompose(
     role = (state.get("armed_role") or "BACK").upper()
     decompose_rel = state.get("armed_decompose") or ""
 
+    if not decompose_rel:
+        ctx = ""
+        try:
+            ctx = read_active_context(cwd)
+        except OSError:
+            ctx = ""
+
+        if ctx.strip():
+            candidates = extract_load_now(ctx)
+            preferred = [
+                c
+                for c in candidates
+                if "/plan/decompose-" in c.replace("\\", "/")
+                and c.endswith(("index.yaml", "index.yml", "index.md"))
+            ]
+            if not preferred:
+                preferred = [
+                    c
+                    for c in candidates
+                    if "/plan/decompose-" in c.replace("\\", "/")
+                ]
+            if preferred:
+                decompose_rel = preferred[0]
+
+        if decompose_rel:
+            # Derive role from decompose path when armed_role is missing.
+            decompose_p = decompose_rel.replace("\\", "/")
+            if not state.get("armed_role"):
+                if "/front/" in decompose_p:
+                    role = "FRONT"
+                elif "/integration/" in decompose_p:
+                    role = "INTEG"
+                else:
+                    role = "BACK"
+
     if not epic_id and decompose_rel:
         epic_id = epic_id_from_decompose_path(decompose_rel)
+
+    if decompose_rel and not state.get("armed_decompose"):
+        # Keep runtime state consistent for downstream transition/projection steps.
+        state["armed_decompose"] = decompose_rel
+        if epic_id and not state.get("armed_epic"):
+            state["armed_epic"] = epic_id
+        if role and not state.get("armed_role"):
+            state["armed_role"] = role
+        save_epic_state(cwd, state)
 
     if not decompose_rel:
         return MbFinishResult(

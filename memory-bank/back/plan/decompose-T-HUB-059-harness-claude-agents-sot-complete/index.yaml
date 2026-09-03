@@ -3,48 +3,49 @@ plan_id: T-HUB-059-harness-claude-agents-sot-complete
 source_md: index.md
 status_canon: index.yaml
 steps:
-  - id: s01
-    file: s01-mv-claude-commands-harness.yaml
-    title: "git mv .claude/commands → harness/claude/commands + symlink (SoT commands)"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02-mv-claude-skills-harness.yaml
-    title: "git mv .claude/skills → harness/claude/skills + symlink (SoT skills/role-command)"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s03
-    file: s03-mv-claude-rules-harness.yaml
-    title: "git mv .claude/rules → harness/claude/rules + symlink (SoT rules)"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s04
-    file: s04-mv-agents-skills-harness.yaml
-    title: "git mv .agents/skills → harness/skills + symlink (SoT agent skills)"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s05
-    file: s05-hub-link-full-harness-sot.yaml
-    title: "hub-link --mode=full → product links на harness SoT"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s06
-    file: s06-hub-link-alongside-with-skills.yaml
-    title: "hub-link alongside --with-skills fail-closed + hub-unlink skills"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s07
-    file: s07-pytest-layout-hub-link-suites.yaml
-    title: "pytest layout symlinks + hub-link full/alongside suites (TM-001..006)"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s08
-    file: s08-docs-kind-i-rewrite.yaml
-    title: "harness/README + architecture/services.md + Kind I instruction rewrite"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s09
-    file: s09-legacy-fallback-purge.yaml
-    title: "legacy-fallback-purge: dual SoT deletes + obsolete tests + Kind I/A/B/C sweep"
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-mv-claude-commands-harness.yaml
+  title: git mv .claude/commands → harness/claude/commands + symlink (SoT commands)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-mv-claude-skills-harness.yaml
+  title: git mv .claude/skills → harness/claude/skills + symlink (SoT skills/role-command)
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s03
+  file: s03-mv-claude-rules-harness.yaml
+  title: git mv .claude/rules → harness/claude/rules + symlink (SoT rules)
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-mv-agents-skills-harness.yaml
+  title: git mv .agents/skills → harness/skills + symlink (SoT agent skills)
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-hub-link-full-harness-sot.yaml
+  title: hub-link --mode=full → product links на harness SoT
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-hub-link-alongside-with-skills.yaml
+  title: hub-link alongside --with-skills fail-closed + hub-unlink skills
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s07
+  file: s07-pytest-layout-hub-link-suites.yaml
+  title: pytest layout symlinks + hub-link full/alongside suites (TM-001..006)
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s08
+  file: s08-docs-kind-i-rewrite.yaml
+  title: harness/README + architecture/services.md + Kind I instruction rewrite
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s09
+  file: s09-legacy-fallback-purge.yaml
+  title: 'legacy-fallback-purge: dual SoT deletes + obsolete tests + Kind I/A/B/C
+    sweep'
+  next_phase: BACK IMPLEMENT
+  status: pending

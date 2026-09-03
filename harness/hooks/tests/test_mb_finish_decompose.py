@@ -27,7 +27,22 @@ def test_finish_decompose_arm(tmp_path: Path):
     )
 
     s01_yaml = mb_dir / "s01-step.yaml"
-    s01_yaml.write_text("schema: epic-decompose/v1\nstep_id: s01\nplan_id: T-TEST-001\nrole: back\ntitle: Step 1\nnext_phase: BACK IMPLEMENT\nas_built: []\n", encoding="utf-8")
+    s01_yaml.write_text(
+        "schema: epic-decompose/v1\n"
+        "step_id: s01\n"
+        "plan_id: T-TEST-001\n"
+        "role: back\n"
+        "title: Step 1\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "as_built: []\n"
+        "plan_contract:\n"
+        "  fr_ids: [FR-01]\n"
+        "  nouns: [noun-1]\n"
+        "  layout_paths: [memory-bank/back/activeContext.md]\n"
+        "  ac_quotes: [quote-1]\n"
+        "  plan_jumps: [jump-1]\n",
+        encoding="utf-8",
+    )
 
     index_yaml = mb_dir / "index.yaml"
     index_yaml.write_text(
@@ -103,7 +118,22 @@ def test_finish_decompose_armed_step(tmp_path: Path):
     )
 
     s01_yaml = mb_dir / "s01-step.yaml"
-    s01_yaml.write_text("schema: epic-decompose/v1\nstep_id: s01\nplan_id: T-TEST-001\nrole: back\ntitle: Step 1\nnext_phase: BACK IMPLEMENT\nas_built: []\n", encoding="utf-8")
+    s01_yaml.write_text(
+        "schema: epic-decompose/v1\n"
+        "step_id: s01\n"
+        "plan_id: T-TEST-001\n"
+        "role: back\n"
+        "title: Step 1\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "as_built: []\n"
+        "plan_contract:\n"
+        "  fr_ids: [FR-01]\n"
+        "  nouns: [noun-1]\n"
+        "  layout_paths: [memory-bank/back/activeContext.md]\n"
+        "  ac_quotes: [quote-1]\n"
+        "  plan_jumps: [jump-1]\n",
+        encoding="utf-8",
+    )
 
     index_yaml = mb_dir / "index.yaml"
     index_yaml.write_text(
@@ -137,6 +167,92 @@ def test_finish_decompose_armed_step(tmp_path: Path):
 
     state = load_epic_state(tmp_path)
     assert state.get("armed_step") == "ANALYZE" or state.get("armed_mode") == "ANALYZE" or "ANALYZE" in str(state)
+
+
+def test_finish_decompose_infers_decompose_from_active_context_when_state_missing(
+    tmp_path: Path,
+):
+    """finish_decompose should succeed when armed_decompose is missing but activeContext load_now has decompose index."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+
+    index_md = mb_dir / "index.md"
+    index_md.write_text(
+        "## Requirements coverage\n- REQ-01: covered\n\n"
+        "## Stages coverage\n- s01: covered\n\n"
+        "## Outcome map\n- OUT-01: covered\n\n"
+        "## Replacement cleanup\n- CLEAN-01: covered\n",
+        encoding="utf-8",
+    )
+
+    s01_yaml = mb_dir / "s01-step.yaml"
+    s01_yaml.write_text(
+        "schema: epic-decompose/v1\n"
+        "step_id: s01\n"
+        "plan_id: T-TEST-001\n"
+        "role: back\n"
+        "title: Step 1\n"
+        "next_phase: BACK IMPLEMENT\n"
+        "as_built: []\n"
+        "plan_contract:\n"
+        "  fr_ids: [FR-01]\n"
+        "  nouns: [noun-1]\n"
+        "  layout_paths: [memory-bank/back/activeContext.md]\n"
+        "  ac_quotes: [quote-1]\n"
+        "  plan_jumps: [jump-1]\n",
+        encoding="utf-8",
+    )
+
+    index_yaml = mb_dir / "index.yaml"
+    index_yaml.write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-TEST-001\n"
+        "role: back\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    title: step 1\n"
+        "    file: s01-step.yaml\n"
+        "    status: pending\n",
+        encoding="utf-8",
+    )
+
+    act_path = tmp_path / "memory-bank" / "activeContext.md"
+    act_path.parent.mkdir(parents=True, exist_ok=True)
+    act_path.write_text(
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: ANALYZE\n"
+        "epic_id: T-TEST-001\n"
+        "step_id: ANALYZE\n"
+        "\n"
+        "## load_now\n"
+        "- `back/plan/decompose-T-TEST-001/index.yaml`\n"
+        "\n"
+        "## Handoff ANALYZE\n"
+        "- # epic_id: T-TEST-001\n"
+        "- **Режим/шаг:** `BACK ANALYZE`.\n"
+        "- **Дальше:** выполнить `BACK ANALYZE`.\n",
+        encoding="utf-8",
+    )
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "T-TEST-001",
+            "armed_role": "BACK",
+            "armed_step": "DECOMPOSE",
+        },
+    )
+
+    req = MbFinishRequest(
+        phase="BACK DECOMPOSE",
+        step_id="s06",
+        done_summary="decompose ready",
+        cwd=str(tmp_path),
+    )
+    res = finish_decompose(req)
+    assert res.ok is True, f"Expected ok=True, got errors: {res.shape_errors} {res.diagnostic_codes}"
+    assert res.active_context is not None
 
 
 def test_finish_plan_happy(tmp_path: Path):

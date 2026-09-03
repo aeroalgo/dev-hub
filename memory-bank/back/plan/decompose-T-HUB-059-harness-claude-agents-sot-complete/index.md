@@ -108,7 +108,7 @@
 
 | step_id | title & files | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-mv-claude-commands-harness.yaml](s01-mv-claude-commands-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s01** | [s01-mv-claude-commands-harness.yaml](s01-mv-claude-commands-harness.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s02** | [s02-mv-claude-skills-harness.yaml](s02-mv-claude-skills-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s03** | [s03-mv-claude-rules-harness.yaml](s03-mv-claude-rules-harness.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s04** | [s04-mv-agents-skills-harness.yaml](s04-mv-agents-skills-harness.yaml) | no | yes | BACK IMPLEMENT | pending |

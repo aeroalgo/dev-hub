@@ -45,39 +45,6 @@ alwaysApply: false
 
 ---
 
-## 1a. Target layout · Appetite Cut · deferred Notes (HARD)
-
-**Проблема (T-HUB-046 class):** plan рисует Target layout / FR с полным деревом (`harness/claude/commands/`, `harness/skills/`, …); DECOMPOSE пишет `Notes: deferred` / урезает FR в coverage до «два файла»; AUDIT PASS по presence — layout мёртв, follow-up epic в queue нет.
-
-### Binding surfaces
-
-Если в `plan-*.md` есть **Target layout** / tree diagram / path list под HOW/архитектурой — каждый **path/dir node**, помеченный как NEW / SoT / `git mv` destination / install surface, = **noun** наравне с FR (категория finding: `layout_dilution`).
-
-**HARD:**
-1. Каждый такой path ∈ `produces`/`files`/`deletes` закрывающего `sNN|eNN` **или** явный `out_of_scope` с **`follow_up: <epic_id>`** и этот ID **уже** в `roadmap-*.queue.yaml` (или canon `roadmap-epics.queue.yaml`).
-2. **FORBIDDEN** считать FR закрытым, если coverage/index **переписывает** plan FR, отбрасывая nouns (пример FAIL: plan FR-002 = `CLAUDE.harness.md` + `settings.harness.json` + `commands/` + `skills/` + `rules/` → index «FR-002 = два файла»).
-3. Inventory для ANALYZE/AUDIT = **полный текст plan FR + layout paths**, не remapped `Кратко` из `index.md`.
-
-### Appetite Cut vs Target layout
-
-| Ситуация | Verdict |
-|----------|---------|
-| Product probe / Appetite: «Cut: X», и X **остаётся** в Target layout / FR / AC+ | **FAIL PLAN** — либо убери X из Target/FR/AC, либо оставь X in-epic (нет «Cut» при живом layout) |
-| Cut оформлен как отдельный epic ID **уже в** queue + layout/FR очищены от X | OK |
-| Cut только в prose Appetite, FR/layout не тронуты | **FAIL** (`layout_dilution` / process) |
-
-### Requirements coverage Notes
-
-| Notes / wording | Verdict |
-|-----------------|---------|
-| `deferred` · `partial` · `follow-up` · `out_of_scope` · `leave for later` **без** `follow_up: T-…` + ID ∈ queue | **FAIL** — не coverage |
-| `out_of_scope` + `follow_up: T-HUB-0NN-…` + `rg` ID в queue | OK |
-| `s02 partial` / «если не нужно для MVP» без queue ID | **FAIL** |
-
-**FORBIDDEN как закрытие:** «достаточно для alongside / installer / dogfood» при живых layout nouns вне `produces`.
-
----
-
 ## 2. Measurable verify — behavior, не surrogate
 
 Coverage rubric остаётся; **дополнительно**:
@@ -142,31 +109,27 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 ---
 
-## 5. AUDIT — PLAN↔runtime + step matrix + architecture parity
+## 5. AUDIT — inventory из **plan**, presence ≠ satisfied
 
-1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan-*.md` **verbatim** **+ path nodes из Target layout** (§1a). Decompose coverage / remapped «Кратко» — **вторичный** индекс. **FORBIDDEN** audit FR id/title ≠ plan FR.
-2. Plan FR без step → finding `missing` **CRITICAL**.
-3. Supersede/merge: каждый FR superseded plan → coverage в B **или** `out_of_scope` + follow-up в queue.
-4. **Triple Assess:** `plan_vs_runtime[]` · step ✅/❌/⚠️ · `architecture_parity[]` (Target layout vs repo).
-5. **`assessment: satisfied` FORBIDDEN** если evidence = только registry/alias/unit lookup.
-6. **Presence ≠ satisfied:** модуль на диске ≠ «агент/enforce работает»; subset layout ≠ tree satisfied.
-7. **Add without enforce ≠ satisfied** на sole-path FR → CRITICAL для P0/P1.
-8. `converged: true` **FORBIDDEN** при plan-FR без behavior evidence, leftover Kind I, layout path без step/`follow_up`+queue, или FR remap matrix.
-9. Coverage Notes `deferred`/`partial` без queue ID → `layout_dilution` **CRITICAL**.
+1. Intent Inventory = **все** FR/US/SC/AC±/NFR из `plan-*.md` (полный список). Decompose coverage / remapped `plan_refs` — **вторичный** индекс.
+2. Plan FR без step → finding `missing` **CRITICAL** (не «не в inventory потому что не в decompose»).
+3. Supersede/merge (эпик A → B): каждый FR superseded plan → coverage в B **или** `out_of_scope` + follow-up в queue.
+4. **`assessment: satisfied` FORBIDDEN** если evidence = только registry row / alias dict / unit lookup, а FR требует files/enforce/CLI.
+5. **Presence ≠ satisfied:** модуль/функция на диске не закрывает «агент/preset/enforce работает».
+6. **Add without enforce ≠ satisfied:** артефакт без deny старого SoT при FR «единый path» → `not_implemented` / `partial` (**CRITICAL** для P0/P1).
+7. `converged: true` **FORBIDDEN** при любом plan-FR без **behavior + enforce** evidence (для boundary FR) или при leftover Kind I instructions.
 
 ---
 
-## 6. ANALYZE — pass **Dilution** + **Optional-SoT** + **Layout** + **FR remap**
+## 6. ANALYZE — pass **Dilution** + **Optional-SoT**
 
 После Coverage Gaps:
 
 1. **Dilution** — plan FR nouns vs step `produces`/`delta`/`files`. Category `dilution`. P0/P1 → CRITICAL.
-2. **Optional-SoT / ladder gaps** — sole path / boundary без wire+enforce или optional без follow-up. Category `optional_sot`.
-3. **Layout dilution (HARD)** — Target layout / Appetite Cut / deferred Notes (§1a). Category `layout_dilution`. → CRITICAL.
-4. **FR remap (HARD)** — coverage «Кратко» отбрасывает plan nouns / перенумеровывает FR. → CRITICAL.
-5. Merge/supersede без переноса FR → CRITICAL.
+2. **Optional-SoT / ladder gaps** — FR обещает единый/sole path или смену machine boundary, а в очереди только add (нет wire и/или enforce), или wording optional/soft без follow-up ID, или нет Kind I / instruction rewrite при смене формата границы. Category `optional_sot`. P0/P1 → CRITICAL; иначе HIGH.
+3. Merge/supersede без переноса FR → CRITICAL.
 
-`recommendation: IMPLEMENT` только при `critical_count=0`. **`ANALYZE deferred` FORBIDDEN** как promote в IMPLEMENT.
+`recommendation: IMPLEMENT` только при `critical_count=0` **включая** Dilution **и** Optional-SoT.
 
 Канон detection order: @.cursor/rules/shared/workflow-analyze-core.mdc
 
@@ -178,8 +141,6 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 - **FAIL:** «alias works» · «get_* returns string» · «field in yaml» · «unit green» · «module imports» · «CLI exists»
 - **OK:** «runtime surface существует + discover; enforce-путь требует новый контракт; **старый SoT → DENY/HALT**»
-
-**Appetite / Product probe Cut:** «Cut: X» при X в Target layout / FR / AC = **FAIL** (§1a) — либо вычеркни X из FR/layout/AC, либо оставь in-epic, либо follow-up epic **уже в** queue и очисти layout. Не сеять deferred в DECOMPOSE.
 
 ---
 
@@ -195,7 +156,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 ---
 
-## 9. IMPLEMENT — `wire_complete` + plan context
+## 9. IMPLEMENT — `wire_complete` (boundary / SoT steps)
 
 Если work shard закрывает FR про machine boundary / смену SoT / API-tool на границе сессии или gate (или slug явно про wire / enforce / cutover контракта):
 
@@ -209,10 +170,7 @@ wire_complete:
   instruction_rg: ""      # command; expect 0 hits старых инструкций (Kind I scope)
 ```
 
-Нет блока / rg не green → шаг **не** completed.
-
-**Plan context (HARD):** AC = shard + `plan_contract`; Read `plan_jumps` (≥~30% scope); last sNN → `plan_parity_scan`. ANALYZE artifact `critical_count=0` обязателен (нет deferred).
-
+Нет блока / rg не green → шаг **не** completed (как scope-lock / deletes gate).  
 Канон lean: role `isolation_rules/_lean/implement.mdc`.
 
 ---
@@ -220,4 +178,4 @@ wire_complete:
 ## 10. Одной фразой
 
 **Сделано = работает для operator/parent/loop как единственный SoT.**  
-Metadata / optional API / dual path / «новый рядом со старым» / remapped FR PASS — не done, не covered, не satisfied, не converged.
+Metadata / optional API / dual path / «новый рядом со старым» — не done, не covered, не satisfied, не converged.
