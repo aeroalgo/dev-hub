@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-057-loop-session-json-contract
+title: "Semantic FAIL -> repair path + error taxonomy enforcement in pretool/stop"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать и протестировать полный путь semantic FAIL: verdict FAIL + blockers
+  gate-repair allow; ветка НЕ вызывает schema-retry. agent-pretool DENY repair без prior
+  FAIL verdict (FR-006 baseline усилить). Taxonomy classifiers из s03 (is_schema_error /
+  is_semantic_error) применяются в subagent-stop и agent-pretool для ветвления.
+  Outcome: SC-003 (semantic FAIL repair not schema-retry); TM-005/006.
+  System: чёткий fork после SubagentStop — schema путь и semantic путь не пересекаются.
+
+context:
+  consumes:
+    - loop/validate_boundary.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+  produces:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-pretool.py
+  plan_refs:
+    - FR-005
+    - FR-006
+    - SC-003
+    - TM-005
+    - TM-006
+    - US-005
+  files:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-pretool.py
+
+as_built:
+  - "harness/hooks/subagent-stop.py — _fail_hint() emits repair hint on VERDICT FAIL; no explicit fork by taxonomy"
+  - "harness/hooks/agent-pretool.py — DENY repair without FAIL exists; no taxonomy check"
+  - "harness/hooks/_lib.py — extract_verdict / extract_repair_result extract; no taxonomy routing"
+
+delta:
+  - "harness/hooks/subagent-stop.py: after validate_boundary() if is_schema_error schema-retry path; elif is_semantic_error repair hint (not schema-retry); explicit fork"
+  - "harness/hooks/agent-pretool.py: DENY checks last_verdict_was_fail(cwd, session_id); if not DENY with diagnostic semantic_repair_without_fail"
+  - "harness/hooks/_lib.py: last_verdict_was_fail(cwd, session_id) -> bool reads epic state last gate verdict"
+
+deletes: []
+
+out_of_scope:
+  - "schema-retry counter wiring (s03)"
+  - "mb-finish next_* (s05)"
+  - "stop-gate (s06)"
+  - "PASS mb-finish hint wiring (s06/verify_hint)"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      TM-005: verdict FAIL + blockers emits repair hint; schema-retry NOT called
+      (assert schema_retry_count does not grow on semantic FAIL)
+    verify: "bin/pytest loop/tests/test_stop_gate.py -k 'semantic_fail' -q --tb=short"
+  - id: cp2
+    criterion: >
+      TM-006: repair without prior FAIL DENY with code semantic_repair_without_fail
+    verify: "bin/pytest loop/tests/test_hooks_llm_fence.py -k 'repair_without_fail' -q --tb=short"
+  - id: cp3
+    criterion: "rg confirms taxonomy classifiers in both files; no schema-retry call in semantic branch"
+    verify: "rg 'is_semantic_error|is_schema_error' harness/hooks/subagent-stop.py harness/hooks/agent-pretool.py"
+
+verify:
+  - "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_hooks_llm_fence.py -q --tb=short -k 'semantic or taxonomy or repair_without'"
+tdd:
+  - loop/tests/test_stop_gate.py
+  - loop/tests/test_hooks_llm_fence.py

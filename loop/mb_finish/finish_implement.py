@@ -230,7 +230,6 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
 
     fp_data = f"{step_id}:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish implement", fp)
 
     sync_cursor_from_index(cwd)
     try:
@@ -238,7 +237,25 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     except Exception:
         active_context = rendered
 
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish implement",
+        fp,
+        finished_step=step_id,
+        armed_after_finish=str(next_step) if next_step else None,
+    )
+
     return MbFinishResult(
         ok=True,
         active_context=active_context,
+        finished_step=step_id,
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+

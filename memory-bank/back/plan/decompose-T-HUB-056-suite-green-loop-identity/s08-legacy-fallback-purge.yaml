@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "legacy-fallback-purge — sunset inventory: short-id dual path, missing-resolve skip"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge после s01–s07. Sunset inventory из плана:
+  A: short queue id как armed_epic / handoff epic_id при наличии plan stem → запрещено после s01.
+  B: hardcode pre-041 hook entrypoint paths в fixture без provision → удалить/заменить.
+  C: missing epic_resolve → skip validate (fail-open) → заменить на fail-closed fixture provision.
+  Проверить через rg что нет живых callers старых паттернов. Obsolete assert на sunset-контракт — удалить.
+
+context:
+  consumes:
+    - loop/tests/test_epic_transition.py   # старые assert на armed_epic = short id
+    - loop/tests/test_context_loop.py      # missing epic_resolve skip паттерн
+    - .claude/hooks/epic/core.py           # arm_pre_implement_context старая ветка short-id
+  produces:
+    - loop/tests/test_epic_transition.py   # удалить/обновить obsolete asserts
+    - .claude/hooks/epic/core.py           # удалить старую short-id ветку если осталась
+  plan_refs: [FR-001, FR-002, SC-001, TM-001]
+  files:
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_context_loop.py
+    - .claude/hooks/epic/core.py
+
+as_built:
+  - "После s01: arm_pre_implement_context резолвит план stem"
+  - "Могут остаться тесты/assert-ы ожидающие short id в armed_epic"
+  - "Паттерн missing epic_resolve → skip: EPIC_TRACEABILITY_CHECK=0 env var используется, это OK"
+
+delta:
+  - "rg 'armed_epic.*T-HUB-[0-9]+[^-]' loop/ .claude/hooks/ — найти short-id asserts"
+  - "rg 'skip.*epic_resolve|epic_resolve.*skip' loop/ — найти fail-open паттерн"
+  - "Удалить или обновить найденные obsolete asserts"
+  - "sunset_inventory_scan: проверить нет pre-041 hook paths в активных fixture"
+
+sunset_inventory:
+  - kind: A
+    surface: "armed_epic / handoff epic_id = short queue id (без slug)"
+    replacement: "plan stem (T-HUB-NNN-slug)"
+    status: "after s01 — закрыто в logic; purge test-asserts"
+  - kind: B
+    surface: "pre-041 hardcode .claude/hooks/ paths без provision в test fixture"
+    replacement: "harness/hooks/ + symlink или EPIC_TRACEABILITY_CHECK=0"
+    status: "проверить rg по tests/"
+  - kind: C
+    surface: "on missing epic_resolve → skip validate (fail-open)"
+    replacement: "fail-closed или fixture provision"
+    status: "EPIC_TRACEABILITY_CHECK=0 — легитимный обход; fail-open bypass — удалить"
+
+deletes:
+  - "obsolete test asserts ожидающие short-id в armed_epic (если найдены rg)"
+  - "fail-open skip-validate паттерны без явного env gate"
+
+out_of_scope:
+  - "Полный inventory pre-041 paths — T-HUB-041 уже закрыт; purge только если в fail-list"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03
+
+checkpoints:
+  - id: cp1
+    criterion: "rg 'armed_epic.*T-HUB-[0-9]+\b' loop/ .claude/hooks/ → 0 matches (или только в comments)"
+    verify: "rg 'armed_epic.*T-HUB-[0-9]+[^-]' loop/ .claude/hooks/ --include='*.py' | grep -v '#' | wc -l"
+  - id: cp2
+    criterion: "rg fail-open skip-validate → 0 (кроме EPIC_TRACEABILITY_CHECK=0)"
+    verify: "rg 'skip.*validate|validate.*skip' loop/ .claude/hooks/ --include='*.py' | grep -v TRACEABILITY | wc -l"
+  - id: cp3
+    criterion: "bin/pytest -q --tb=no после purge → 0 failed"
+    verify: "bin/pytest -q --tb=no 2>&1 | tail -3"
+
+verify: []
+tdd: []

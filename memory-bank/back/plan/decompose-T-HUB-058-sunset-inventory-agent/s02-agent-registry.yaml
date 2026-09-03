@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-058-sunset-inventory-agent
+title: "Agent card + DSH preset + manifest + registry alias sunset→sunset-inventory"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Materialize sunset-inventory agent: agent card `harness/agents/sunset-inventory.md` (overlay mode=search,
+  verdict=none, READ-ONLY tools, HARD no-design prompt), DSH preset `dsh/presets/sunset-inventory.prompt.md`,
+  manifest.yaml entry, registry alias `sunset`→`sunset-inventory`, CONTRACT string в _lib.py.
+  После шага: discover_registry находит агент; alias нормализуется; spawn через managed path возможен.
+  Связь с FR-001, FR-002, FR-010, AC+1, SC-001, TM-003, TM-007.
+
+context:
+  consumes:
+    - "loop/schemas/sunset_inventory.py (s01 — SoT report schema)"
+    - "plan §FR-001/002/010, §AC+1, §SC-001"
+    - "harness/agents/explorer.md — as-built pattern для overlay"
+    - "harness/manifest.yaml — as-built structure для materialize entry"
+    - "harness/hooks/_lib.py — as-built CONTRACT pattern"
+    - "harness/hooks/agent_registry.py — AGENT_ALIASES dict"
+    - "dsh/presets/explorer.prompt.md — as-built preset format"
+  produces:
+    - "harness/agents/sunset-inventory.md — agent card"
+    - "dsh/presets/sunset-inventory.prompt.md — DSH preset"
+    - "harness/manifest.yaml — новый entry (edit)"
+    - "harness/hooks/_lib.py — CONTRACT string (edit)"
+    - "harness/hooks/agent_registry.py — alias sunset → sunset-inventory (edit)"
+  plan_refs:
+    - "FR-001"
+    - "FR-002"
+    - "FR-006"
+    - "FR-010"
+    - "FR-012"
+    - "SC-001"
+    - "US-004"
+  files:
+    - "harness/agents/sunset-inventory.md"
+    - "dsh/presets/sunset-inventory.prompt.md"
+    - "harness/manifest.yaml"
+    - "harness/hooks/_lib.py"
+    - "harness/hooks/agent_registry.py"
+
+as_built:
+  - "harness/agents/explorer.md — существует, overlay mode=search verdict=none, READ-ONLY tools; шаблон"
+  - "harness/manifest.yaml — explorer entry, materialize claude+codex path"
+  - "harness/hooks/_lib.py — CONTRACT explorer строка ln≈101; ALIAS dict"
+  - "harness/hooks/agent_registry.py — AGENT_ALIASES dict; discover_registry fn"
+  - "dsh/presets/explorer.prompt.md — preset format"
+  - "Нет sunset-inventory.md, нет preset, нет manifest entry, нет alias sunset"
+
+delta:
+  - "add: harness/agents/sunset-inventory.md — frontmatter overlay (mode=search, verdict=none, disallowedTools: Write/Edit/Agent/…); prompt HARD: READ-ONLY, report JSON schema loop-sunset-inventory/v1, mark=REPLACE, excerpt≤40, FORBIDDEN HOW/dual-path/edit; alias: sunset"
+  - "add: dsh/presets/sunset-inventory.prompt.md — DSH preset mirror агента (scope={allow_read}, new_sot=, boundary_id=)"
+  - "edit: harness/manifest.yaml — добавить sunset-inventory entry (source: harness/agents/sunset-inventory.md; claude copy_to: .claude/agents/sunset-inventory.md; codex target: .codex/agents/sunset-inventory.toml)"
+  - "edit: harness/hooks/_lib.py — добавить CONTRACT sunset-inventory строку рядом с explorer CONTRACT"
+  - "edit: harness/hooks/agent_registry.py — добавить 'sunset': 'sunset-inventory' в AGENT_ALIASES"
+
+deletes: []
+
+out_of_scope:
+  - "Pydantic schema — s01"
+  - "decompose template field — s03"
+  - "Workflow lean rules pointer — s04"
+  - "Cursor subagent_type enum sync — s05"
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/agents/sunset-inventory.md существует; overlay.mode=search; overlay.verdict=none"
+    verify: "rg 'mode: search' harness/agents/sunset-inventory.md && rg 'verdict: none' harness/agents/sunset-inventory.md"
+  - id: cp2
+    criterion: "manifest.yaml содержит sunset-inventory source entry"
+    verify: "rg 'sunset-inventory' harness/manifest.yaml"
+  - id: cp3
+    criterion: "AGENT_ALIASES содержит 'sunset' → 'sunset-inventory'; discover_registry returns entry"
+    verify: "bin/pytest loop/tests/test_agent_registry.py -k sunset -q --tb=short"
+  - id: cp4
+    criterion: "CONTRACT sunset-inventory присутствует в _lib.py"
+    verify: "rg 'CONTRACT sunset-inventory' harness/hooks/_lib.py"
+
+verify: []
+tdd:
+  - "cp3 — write test_agent_registry.py::test_sunset_alias и test_sunset_discovered перед edit agent_registry.py"

@@ -1,0 +1,69 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "incidents doctor — exit codes align T-HUB-044 contract (valid=0, warn=0, boundary=warn)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  4 теста incidents_doctor падают с exit_code=1 вместо 0:
+  - test_doctor_valid_project_exit_zero: fixture AC без frontmatter → doctor вызывает
+    validate_active_context_shape → 'missing_handoff_frontmatter' → blockers → exit_code=1.
+    По контракту T-HUB-044: valid project (корректный MB, нет incidents) → exit_code=0.
+  - test_doctor_open_incidents_warn_only: аналогично, exit=1 из-за shape error (не из-за incidents).
+  - test_doctor_boundary_check_warn / _pass: аналогично.
+  Фикс: добавить frontmatter в AC-fixture каждого теста (все 4). Не ослаблять doctor exit-code logic
+  (exit_code=1 при real shape error остаётся). Проверить что doctor не блокирует при warn-only (open incidents, boundary warn).
+
+context:
+  consumes:
+    - loop/tests/test_incidents_doctor.py  # test_doctor_valid_project_exit_zero @ 35; open_incidents @ 69; boundary_check @ 108,138
+    - loop/incidents/doctor.py             # run_doctor @ line ~207; check active_context_shape
+  produces:
+    - loop/tests/test_incidents_doctor.py  # frontmatter в 4 fixture AC
+  plan_refs: [US-004, FR-005, SC-005, TM-005]
+  files:
+    - loop/tests/test_incidents_doctor.py
+
+as_built:
+  - "loop/incidents/doctor.py: validate_active_context_shape вызывается в run_doctor; shape errors → blockers → exit_code=1"
+  - "loop/tests/test_incidents_doctor.py: 4 теста пишут activeContext.md с ## load_now / ## Handoff, без YAML frontmatter"
+  - "T-HUB-044 контракт: valid project exit 0; open incidents → warn only (exit 0); boundary warn → exit 0"
+
+delta:
+  - "test_doctor_valid_project_exit_zero: activeContext.write_text добавить frontmatter loop-handoff/v1 (role: BACK, mode: IMPLEMENT, etc.)"
+  - "test_doctor_open_incidents_warn_only: аналогично"
+  - "test_doctor_boundary_check_warn: аналогично"
+  - "test_doctor_boundary_check_pass: аналогично"
+
+deletes: []
+
+out_of_scope:
+  - "doctor exit_code=1 при настоящем shape error — не трогать"
+  - "test_doctor_stale_owner_exit_one, test_doctor_misconfig_exit_two — не в baseline fail-list"
+
+skills:
+  code_surface: api
+  impl: []  # docs-only change (test fixtures, no Python logic)
+
+checkpoints:
+  - id: cp1
+    criterion: "test_doctor_valid_project_exit_zero → exit_code=0, no blockers"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_valid_project_exit_zero -q --tb=short"
+  - id: cp2
+    criterion: "test_doctor_open_incidents_warn_only → exit_code=0, warn присутствует"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_open_incidents_warn_only -q --tb=short"
+  - id: cp3
+    criterion: "test_doctor_boundary_check_warn + test_doctor_boundary_check_pass PASS"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_warn loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_pass -q --tb=short"
+  - id: cp4
+    criterion: "exit_code=1 тесты не регрессировали (AC− guard)"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=line 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "loop/tests/test_incidents_doctor.py::test_doctor_valid_project_exit_zero"
+  - "loop/tests/test_incidents_doctor.py::test_doctor_open_incidents_warn_only"
+  - "loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_warn"
+  - "loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_pass"

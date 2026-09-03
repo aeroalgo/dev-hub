@@ -101,7 +101,7 @@ def test_stop_gate_no_fingerprint(tmp_path: Path, monkeypatch):
     )
     out = res.stdout
     assert "block" in out
-    assert "finish_tool_required" in out
+    assert "finish_tool_missing" in out
 
 
 def test_finish_writes_fingerprint(tmp_path: Path):

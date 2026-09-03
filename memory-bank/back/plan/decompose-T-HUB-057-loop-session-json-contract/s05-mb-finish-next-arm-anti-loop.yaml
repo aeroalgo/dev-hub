@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-057-loop-session-json-contract
+title: "mb-finish-result/v1 typed next_* + arm anti-loop guard next != finished"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  MbFinishResult расширить: добавить typed поля finished_step, next_step, next_phase,
+  epic_done (discriminant). arm_phase / seed-implement: перед cursor update проверить
+  next_identity != finished_step; при равенстве fail-closed с diagnostic step_loop_forbidden.
+  Epic state: добавить last_finished_step, armed_after_finish для traceability.
+  Outcome: SC-005 (finish next != finished); SC-006 (re-arm same step fail-closed);
+  TM-009 (arm same step loop_* fail).
+
+context:
+  consumes:
+    - loop/mb_finish/schemas.py
+    - loop/mb_finish/impl.py
+    - loop/epic_transition.py
+    - harness/hooks/epic/core.py
+  produces:
+    - loop/mb_finish/schemas.py
+    - loop/mb_finish/impl.py
+    - loop/epic_transition.py
+    - harness/hooks/epic/core.py
+  plan_refs:
+    - FR-008
+    - FR-009
+    - FR-011
+    - SC-005
+    - SC-006
+    - TM-009
+    - US-008
+  files:
+    - loop/mb_finish/schemas.py
+    - loop/mb_finish/impl.py
+    - loop/epic_transition.py
+    - harness/hooks/epic/core.py
+
+as_built:
+  - "loop/mb_finish/schemas.py — MbFinishResult has ok, diagnostic_codes, shape_errors, active_context; no finished_step/next_step/next_phase/epic_done"
+  - "loop/mb_finish/impl.py — finish_handoff writes last_finish_tool partially; no last_finished_step / armed_after_finish"
+  - "loop/epic_transition.py — arm_phase exists; no guard next==finished"
+  - "harness/hooks/epic/core.py — write_last_finish_tool records step; no last_finished_step / armed_after_finish fields"
+
+delta:
+  - "loop/mb_finish/schemas.py: add Optional[str] finished_step; Optional[str] next_step; Optional[str] next_phase; Optional[bool] epic_done"
+  - "loop/mb_finish/impl.py: populate finished_step from current step id; next_step/next_phase from arm result; epic_done flag"
+  - "loop/mb_finish/impl.py: write last_finished_step into epic state after successful finish"
+  - "loop/epic_transition.py: arm_phase checks if next_step == last_finished_step; return fail_closed with loop_* diagnostic if equal"
+  - "harness/hooks/epic/core.py: _default_state / load/save add last_finished_step, armed_after_finish fields"
+
+deletes: []
+
+out_of_scope:
+  - "stop-gate PASS fingerprint check (s06)"
+  - "NEED_HUMAN schema exhausted (s06)"
+  - "validate_boundary (s03)"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+    - python-type-safety
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      MbFinishResult contains finished_step + next_step fields;
+      on normal finish next_step != finished_step
+    verify: "bin/pytest loop/tests/test_mb_finish_analyze.py -k 'next_typed or finished_step' -q --tb=short"
+  - id: cp2
+    criterion: >
+      TM-009: arm_phase with next_step == last_finished_step returns loop_* diagnostic fail-closed;
+      index step not active after S_done
+    verify: "bin/pytest loop/tests/test_epic_transition.py -k 'loop_forbidden or anti_loop' -q --tb=short"
+  - id: cp3
+    criterion: "epic state after finish contains last_finished_step + armed_after_finish fields in _default_state"
+    verify: "rg 'last_finished_step|armed_after_finish' harness/hooks/epic/core.py"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_analyze.py loop/tests/test_epic_transition.py -q --tb=short"
+tdd:
+  - loop/tests/test_mb_finish_analyze.py
+  - loop/tests/test_epic_transition.py

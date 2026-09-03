@@ -549,7 +549,7 @@ run_dsh_session() {
   fi
 
   local profile_override
-  profile_override="$(echo "${EXTRAS_JSON:-{}}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
+  profile_override="$(echo "${EXTRAS_JSON:-{\}}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
   local profile="$profile_override"
   local -a command=("${DSH_COMMAND[@]}" --profile "$profile" --no-open "$prompt")
   local rc
@@ -580,7 +580,7 @@ run_agent_session() {
   local session_cwd="$HUB_ROOT"
 
   if [[ "$runtime_id" == "dsh" ]]; then
-    extras_json="${EXTRAS_JSON:-{}}"
+    extras_json="${EXTRAS_JSON:-{\}}"
     session_cwd="$PROJECT_ROOT"
   elif [[ "$runtime_id" == "codex" ]]; then
     extras_json="$(PROJECT_ROOT="$PROJECT_ROOT" python3 -c 'import json,os; print(json.dumps({"project_root": os.environ["PROJECT_ROOT"]}))')"

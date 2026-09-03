@@ -110,8 +110,9 @@ response…
 
 ## Replacement / sunset (brownfield)
 
-> Mock/legacy clients, stub fetch, дублирующие wire-пути, entrypoints, soft-fail. DECOMPOSE → `deletes` + финальный purge. Нет замен → `n/a` во всех трёх.  
+> Mock/legacy clients, stub fetch, дублирующие wire-пути, entrypoints, soft-fail, **instruction surfaces**. DECOMPOSE → ladder add→wire→enforce→purge + `deletes` + финальный purge. Нет замен → `n/a` во всех четырёх.  
 > Policy: `delete in-epic` (default) | `shim+follow-up` (только epic ID в `.queue.yaml`) | `keep` (+ADR). **`fallback` FORBIDDEN.**  
+> Wire-complete: sole SoT (@.cursor/rules/shared/workflow-behavior-first.mdc §3).  
 > Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 
 ### A. Code / modules / mocks
@@ -133,6 +134,13 @@ response…
 | Устаревает (mock branch / default) | Element(s) | Замена (fail-closed) | Policy |
 | :--- | :--- | :--- | :--- |
 | prod mock рядом с live | e0N | delete mock | delete in-epic |
+| n/a | — | — | greenfield |
+
+### I. Instruction surfaces
+
+| Устаревает (prompt / rule / agent text) | Element(s) | Замена | Policy |
+| :--- | :--- | :--- | :--- |
+| … | e0N | live SoT instruction | delete in-epic |
 | n/a | — | — | greenfield |
 
 ## Handoff

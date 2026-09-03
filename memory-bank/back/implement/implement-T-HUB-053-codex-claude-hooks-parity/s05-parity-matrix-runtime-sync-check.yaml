@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: Parity matrix module + runtime-sync --check + doctor assertion
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s05-parity-matrix-runtime-sync-check.yaml
+skills_used:
+- python-testing-patterns
+- diagnosing-bugs
+discovery: []
+gaps:
+  status: none
+done:
+- Added REQUIRED_CODEX_EVENTS and REQUIRED_CODEX_AGENTS in loop/runtime_materializers/parity.py
+- Added check_codex_parity to validate .codex/hooks.json events and agents coverage
+- Implemented loop/cli/runtime_sync.py and bin/runtime-sync supporting --check and
+  --apply
+- Added loop/tests/test_runtime_sync_check.py verifying missing event failure, doctor
+  assertions, full-set success
+files:
+- loop/runtime_materializers/parity.py
+- loop/cli/runtime_sync.py
+- loop/cli/__init__.py
+- loop/cli/__main__.py
+- bin/runtime-sync
+- loop/tests/test_runtime_sync_check.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_codex_hooks_parity_matrix.py
+  -q --tb=short
+integration_check:
+- python3 -m loop.cli.runtime_sync --check --hooks-json .codex/hooks.json
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_codex_hooks_parity_matrix.py
+  -q --tb=short (10 passed)
+checkpoints:
+- id: cp1
+  criterion: runtime-sync --check exits 1 при удалённом событии из .codex/hooks.json
+  status: done
+  done_at: '2026-09-03T04:22:00Z'
+- id: cp2
+  criterion: runtime-sync --check exits 0 при полном наборе событий
+  status: done
+  done_at: '2026-09-03T04:22:05Z'
+- id: cp3
+  criterion: test_runtime_sync_check.py green
+  status: done
+  done_at: '2026-09-03T04:22:10Z'
+- id: cp4
+  criterion: REQUIRED_CODEX_EVENTS определён и содержит ≥7 событий
+  status: done
+  done_at: '2026-09-03T04:22:15Z'
+resume_from: cp1

@@ -1,0 +1,9 @@
+schema: back-qa/v1
+epic_id: T-HUB-056-suite-green-loop-identity
+verdict: pass
+summary: Full test suite passes 100% cleanly (1577 passed, 2 skipped, 0 failed). Zero regressions across loop identity and session resilience modules.
+checks:
+  suite_green: pass
+  ac_positive: pass
+  ac_negative: pass
+  parity_invariants: pass

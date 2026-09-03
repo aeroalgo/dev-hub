@@ -44,7 +44,12 @@
 | T-HUB-042 | Runtime adapter framework | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-042-runtime-adapter-framework.md) · deps T-HUB-041 |
 | T-HUB-043 | Runtime bridge + Codex | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-043-runtime-bridge-codex.md) · deps T-HUB-042 · soft T-HUB-039 |
 | T-HUB-044 | Runtime sync doctor docs | L2–L3 | QA fail → BUGFIX | active | [plan](back/plan/plan-T-HUB-044-runtime-sync-doctor-docs.md) · [QA](back/qa/T-HUB-044-runtime-sync-doctor-docs/qa-20260902-runtime-sync-doctor-docs.yaml) · QA-1 full suite |
-| T-HUB-053 | Codex ≡ Claude hooks/agents/gates parity | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) · deps T-HUB-043 · soft 044/045/021 · after 045 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) · next DECOMPOSE |
+| T-HUB-053 | Codex ≡ Claude hooks/agents/gates parity | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) · deps T-HUB-043 · **hard T-HUB-057** · soft 044/021 · after 057 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) · next DECOMPOSE |
+| T-HUB-054 | Suite hygiene — runner + gate contract leftovers | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-054-suite-hygiene-runner-gate.md) · [roadmap](back/plan/roadmap-suite-hygiene-epics.md) · next DECOMPOSE · P0 after suite red |
+| T-HUB-055 | Suite green — board sync epic-card sunset | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-055-suite-green-board-sync.md) · deps T-HUB-054 · suite-hygiene |
+| T-HUB-056 | Suite green — loop identity / doctor / episode | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-056-suite-green-loop-identity.md) · deps T-HUB-054 · suite-hygiene · SC full suite 0 failed |
+| T-HUB-057 | Loop session JSON contract (mb-load → verify/repair → mb-finish) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-057-loop-session-json-contract.md) · deps T-HUB-056 · [roadmap](back/plan/roadmap-loop-session-contract-epics.md) · next DECOMPOSE · after 056 before 053 |
+| T-HUB-058 | Sunset-inventory subagent (as-built → REPLACE JSON) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-058-sunset-inventory-agent.md) · **hard after T-HUB-057** · before 053 · [roadmap](back/plan/roadmap-sunset-inventory-agent-epics.md) · next DECOMPOSE |
 | T-HUB-046 | Harness alongside install (non-destructive hub-link) | L3 | PLAN done | queued | [plan](back/plan/plan-T-HUB-046-harness-alongside-install.md) · deps T-HUB-041 · [roadmap](back/plan/roadmap-harness-universal-runtime-epics.md) |
 | T-HUB-047 | Harness mb-scaffold + epic layout v2 | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-047-harness-mb-scaffold-epic-layout.md) · deps T-HUB-036,040 · [roadmap](back/plan/roadmap-harness-maturity-borrowings-epics.md) · next DECOMPOSE |
 | T-HUB-048 | Workflow pack registry | L3–L4 | PLAN done | queued | [plan](back/plan/plan-T-HUB-048-workflow-pack-registry.md) · [roadmap](back/plan/roadmap-workflow-pack-framework-epics.md) · next DECOMPOSE |
@@ -72,6 +77,8 @@
 | Slug: harness-maturity-borrowings | [roadmap-harness-maturity-borrowings-epics.md](back/plan/roadmap-harness-maturity-borrowings-epics.md) · [queue](back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml) |
 | Slug: back-plan-gstack-adapt | [roadmap-back-plan-gstack-adapt-epics.md](back/plan/roadmap-back-plan-gstack-adapt-epics.md) · [queue](back/plan/roadmap-back-plan-gstack-adapt-epics.queue.yaml) |
 | Slug: harness-universal-runtime | [roadmap-harness-universal-runtime-epics.md](back/plan/roadmap-harness-universal-runtime-epics.md) · [queue](back/plan/roadmap-harness-universal-runtime-epics.queue.yaml) |
+| Slug: loop-session-contract | [roadmap-loop-session-contract-epics.md](back/plan/roadmap-loop-session-contract-epics.md) · [queue](back/plan/roadmap-loop-session-contract-epics.queue.yaml) |
+| Slug: sunset-inventory-agent | [roadmap-sunset-inventory-agent-epics.md](back/plan/roadmap-sunset-inventory-agent-epics.md) · [queue](back/plan/roadmap-sunset-inventory-agent-epics.queue.yaml) |
 | Slug: workflow-pack-framework | [roadmap-workflow-pack-framework-epics.md](back/plan/roadmap-workflow-pack-framework-epics.md) · [queue](back/plan/roadmap-workflow-pack-framework-epics.queue.yaml) |
 | Research | [audit/workflow-loop-20260816](audit/workflow-loop-20260816/index.md) · spec-kit/ (local) + chat analysis 2026-08-23 |
 
@@ -96,11 +103,17 @@
 - T-HUB-040: BACK PLAN mb-finish typed FINISH API (MCP-style tools); next DECOMPOSE after T-HUB-033/039
 - T-HUB-041…044 +053: MULTI-EPIC PLAN harness universal runtime (… → docs/doctor → **Codex≡Claude hooks parity**)
 - T-HUB-048…052: MULTI-EPIC PLAN workflow-pack-framework (registry → phase router → mb paths → video reference → adoption/docs)
+- T-HUB-054…056: MULTI-EPIC PLAN suite-hygiene (runner+gate → board-sync → loop-identity; baseline 19 failed → 0)
+- T-HUB-057: BACK PLAN loop-session-json-contract (mb-load → JSON gates → repair → mb-finish); canon after 056 before 053
+- T-HUB-058: BACK PLAN sunset-inventory agent (READ-ONLY REPLACE JSON; sunset_scope in decompose)
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-09-03 | T-HUB-058-sunset-inventory-agent | BACK PLAN done · [plan](back/plan/plan-T-HUB-058-sunset-inventory-agent.md) · [roadmap](back/plan/roadmap-sunset-inventory-agent-epics.md) · merge ok · next DECOMPOSE |
+| 2026-09-02 | T-HUB-057-loop-session-json-contract | BACK PLAN done · after 056 · [plan](back/plan/plan-T-HUB-057-loop-session-json-contract.md) · [roadmap](back/plan/roadmap-loop-session-contract-epics.md) · next DECOMPOSE after 054–056 · 053 deps→057 |
+| 2026-09-02 | T-HUB-054…056 suite-hygiene | BACK PLAN MULTI-EPIC · [roadmap](back/plan/roadmap-suite-hygiene-epics.md) · queue · next DECOMPOSE T-HUB-054 · baseline 19 failed / 1551 passed |
 | 2026-09-02 | T-HUB-053-codex-claude-hooks-parity | BACK PLAN done · after 045 · [plan](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) · next DECOMPOSE · canon merge |
 | 2026-08-31 | T-HUB-023 | BACK IMPLEMENT in progress |
 | 2026-08-31 | T-HUB-033 | BACK IMPLEMENT in progress |

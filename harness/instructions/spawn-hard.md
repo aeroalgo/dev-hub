@@ -11,6 +11,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | `verify-qa` | BACK QA после suite | **да** (если gate active в loop) | `@reviewer` |
 | `verify-decompose` | DECOMPOSE pre-FINISH | **да** (если gate active в loop) | — |
 | `gate-repair` | после `@verify-*` VERDICT: FAIL | **да** (если enabled в loop) | — |
+| `sunset-inventory` | discovery / scan sunset targets (legacy fallbacks, dual-paths, shims) | **да** (если shard `sunset_scope.required: true`) | `@sunset-inventory`, `sunset` |
 | `analyze-verify` | после fix plan/decompose по ANALYZE findings | нет (gate после CRITICAL fix; packed FINDINGS/COVERAGE/ALLOW) | — |
 | `verify` (alias) | pre-FINISH IMPLEMENT / BUGFIX | legacy alias → `verify-implement` / `verify-bugfix` | `@verify` |
 | `reviewer` (alias) | BACK QA | legacy alias → `verify-qa` | `@reviewer` |
@@ -33,6 +34,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | Режим | Поведение |
 |-------|-----------|
 | IMPLEMENT · REFACTOR · BUGFIX · TASK (code) | перед широким поиском → **`@explorer`**, если managed search agent включён; иначе graphify + узкий rg parent |
+| Shard с `sunset_scope.required: true` | перед первым prod Write нового SoT → **`@sunset-inventory`** (`subagent_type=sunset-inventory` или alias `sunset`), scan sunset targets → fenced JSON `loop-sunset-inventory/v1` |
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** |

@@ -13,6 +13,7 @@
 | S-RQ | `loop/roadmap_queue.py` | Python | roadmap queue advance (opt-in `EPIC_CHAIN_ROADMAP`) |
 | S-HUB-LINK | `bin/hub-link` | bash | Symlink rules/templates/agents/hooks/skills/CLAUDE.md → product |
 | S-HUB-RUNTIME-SYNC | `bin/runtime-sync` | Python CLI | registry-backed runtime materialization and `--check` drift; consumed by doctor runtime checks; registry: `loop/runtime_registry.yaml` |
+| S-HOOKS-CODEX-JSON | `.codex/hooks.json` | generated config | Codex hooks schema materialized by `loop.runtime_materializers.hooks_json` with parity validation in `loop.runtime_materializers.parity` and meta hash drift detection (`.codex/hooks.meta.json`) |
 | S-HUB-UNLINK | `bin/hub-unlink` | bash | Снять symlinks |
 | S-MAKE | `make/product.mk` | Make include | `hub-link`, `loop`, `loop-epic`, `loop-status` для product Makefile |
 | S-DSH | `dsh/profiles/epic-*` | DSH profile | Опциональный DSH session executor для loop (`EPIC_RUNTIME=dsh`), подробности в [dsh-runtime.md](dsh-runtime.md) |

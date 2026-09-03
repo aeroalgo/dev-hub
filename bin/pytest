@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Canonical pytest runner — external 300s process limit (test-timeout.mdc).
 # Usage: bin/pytest [pytest args…]
+# -k/--kill-after: if pytest ignores SIGTERM (hung child), escalate to SIGKILL.
+# Without -k, GNU timeout waits forever when the command ignores TERM.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTEST="$ROOT/.venv/bin/pytest"
@@ -8,4 +10,4 @@ if [[ ! -x "$PYTEST" ]]; then
   echo "error: $PYTEST not found; run: .venv/bin/pip install -r requirements-dev.txt" >&2
   exit 127
 fi
-exec timeout 300s "$PYTEST" "$@"
+exec timeout -k 10s 300s "$PYTEST" "$@"

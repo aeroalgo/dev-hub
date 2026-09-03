@@ -1,0 +1,20 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-056-suite-green-loop-identity
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-03'
+index_fingerprint: sha256:fc6d4151d43b1538da01cba51ec62be4a05f51af7b9c36db9f5bb48d94b727d2
+
+summary: >
+  Pre-implement analysis and plan/decompose verification for T-HUB-056-suite-green-loop-identity.
+  All requirements (US-001..US-005, FR-001..FR-007, AC+, AC-, SC-001..SC-006, NFR-001) and failure scenarios (TM-001..TM-007) are fully mapped across shards s01-s08.
+  Technology axioms (plan stem resolution, post-041 fixtures and paths, doctor contract alignment, fail-closed validate, clean legacy sunset) respected.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 8

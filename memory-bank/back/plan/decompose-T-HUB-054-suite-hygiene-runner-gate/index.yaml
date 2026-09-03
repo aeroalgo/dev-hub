@@ -1,0 +1,37 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+date: '2026-09-02'
+mode: BACK DECOMPOSE
+steps:
+- id: s01
+  file: s01-pytest-timeout-install.yaml
+  title: pytest-timeout plugin installed and active — no PytestConfigWarning
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-context-loop-verdict-schema-restore.yaml
+  title: Restore loop-gate-verdict/v1 schema instruction in context_loop.py — sc006
+    green
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-pretool-verdict-first-delete.yaml
+  title: Delete test_agent_pretool_injects_verdict_first_line — prose first-line contract
+    removed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-legacy-stubs-delete.yaml
+  title: Delete dsh/presets/reviewer.prompt.md stub — test_legacy_stubs_removed green
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-fail-list-protocol-gate-suite.yaml
+  title: Fail-list protocol note + full suite gate-nodeids absent verify
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: Legacy fallback purge — anti-regex-VERDICT audit + sunset inventory scan
+  next_phase: BACK IMPLEMENT
+  status: completed

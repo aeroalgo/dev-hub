@@ -1,0 +1,21 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-057-loop-session-json-contract
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-03'
+index_fingerprint: sha256:a64e465996a6aa1e7278496e4a162a22a724930fec770daa777e9a32067a145a
+
+summary: >
+  Pre-implement analysis and plan/decompose verification for T-HUB-057-loop-session-json-contract.
+  All requirements (US-001..US-008, FR-001..FR-015, AC+ SC-001..SC-007, AC- prose dual path/dual checker, NFR latency/traceability)
+  and failure scenarios (TM-001..TM-011) are fully mapped across shards s01-s08.
+  Technology axioms (boundary pydantic models, single validate helper, schema vs semantic taxonomy, fail-closed loop anti-arm, prose legacy sunset) respected.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 8

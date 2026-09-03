@@ -37,7 +37,7 @@ Finding-ы записываются в порядке `CRITICAL`, `HIGH`, `MEDIU
 
 `intent_checked` фиксирует покрытие проверки: `fr_total`, `fr_satisfied`, `sc_checked` и `constitution_checked`. Даже при пропуске Constitution поле остаётся явным (`false`), а причина отражается в audit evidence или handoff.
 
-`converged: true` допустим только при отсутствии actionable findings и leftover-поверхностей. При brownfield replace дополнительно: **`sunset_inventory_scan` выполнен**, все rows `result: pass`, `legacy_surfaces_remaining[]` и `fallback_remaining[]` пусты. При наличии хотя бы одного actionable finding или scan fail значение должно быть `false`.
+`converged: true` допустим только при отсутствии actionable findings и leftover-поверхностей. При brownfield replace дополнительно: **`sunset_inventory_scan` выполнен**, все rows `result: pass`, `legacy_surfaces_remaining[]` / `fallback_remaining[]` / `instruction_remaining[]` пусты, **`sot_enforce_scan` pass** на boundary FR. При наличии хотя бы одного actionable finding или scan fail значение должно быть `false`.
 
 ## Source references
 
@@ -82,4 +82,4 @@ findings:
 - `unrequested` — finding only (non-delete): converge не удаляет код автоматически.
 - CRITICAL findings идут первыми и требуют remediation до закрытия соответствующего эпика.
 - AUDIT не запускает suite; frontend-тесты (Vitest/Playwright/npm test/e2e) неизменно запускает только parent-агент.
-- Legacy `legacy_surfaces_remaining`, `fallback_remaining`, `purge_step_present` и **`sunset_inventory_scan`** сохраняются для brownfield cleanup gates. Пустой leftover без scan = audit FAIL (см. `workflow-legacy-fallback-cleanup.mdc` §4).
+- Legacy `legacy_surfaces_remaining`, `fallback_remaining`, `instruction_remaining`, `purge_step_present`, **`sunset_inventory_scan`**, **`sot_enforce_scan`** сохраняются для brownfield cleanup gates. Пустой leftover без scan = audit FAIL (см. `workflow-legacy-fallback-cleanup.mdc` §4–§5).

@@ -61,17 +61,19 @@
 
 ## Replacement cleanup (plan → steps)
 
-> **HARD (brownfield replace):** каждая поверхность plan sunset **A/B/C** → ≥1 `sNN|eNN` с непустым `deletes:` (или out_of_scope + follow-up epic **уже в** roadmap `.queue.yaml`).  
-> Add без delete-шага в очереди = FAIL. Drop prod/контракта → `deletes:` **обязан** включать obsolete tests (assert старого поведения) или их rewrite. Любая строка ≠ n/a → финальный `*-legacy-fallback-purge` в очереди с **`sunset_inventory` + `grep_control` по каждой строке** (шаблон: `legacy-purge-step.yaml`). Greenfield → одна строка `n/a — нет замен`.  
-> `Kind`: A=code · B=entrypoint/deploy · C=fallback. `Fallback?=yes` → deletes in-epic (не откладывать).  
-> AUDIT: обязателен `sunset_inventory_scan`; пустой `legacy_surfaces_remaining[]` только после scan pass на всех rows. Leftover asserts на sunset-контракт в tests = FAIL.  
-> Канон: `workflow-*-decompose.mdc` §Replacement cleanup · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+> **HARD (brownfield replace):** каждая поверхность plan sunset **A/B/C/I** → ≥1 `sNN|eNN` с непустым `deletes:` (или out_of_scope + follow-up epic **уже в** roadmap `.queue.yaml`).  
+> Completeness ladder: **add → wire → enforce → purge** (behavior-first §3). Add-only на sole-path FR = FAIL (`optional_sot`).  
+> Drop prod/контракта → `deletes:` **обязан** включать obsolete tests **и** Kind I instruction rewrites. Любая строка ≠ n/a → финальный `*-legacy-fallback-purge` в очереди с **`sunset_inventory` + `grep_control` по каждой строке** (шаблон: `legacy-purge-step.yaml`). Greenfield → одна строка `n/a — нет замен`.  
+> `Kind`: A=code · B=entrypoint/deploy · C=fallback · **I=instruction surface**. `Fallback?=yes` → deletes in-epic (не откладывать).  
+> AUDIT: обязателен `sunset_inventory_scan` + `sot_enforce_scan` на boundary FR; пустой leftover только после scan pass. Leftover asserts / instructions на sunset-контракт = FAIL.  
+> Канон: `workflow-*-decompose.mdc` §Replacement cleanup · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-behavior-first.mdc
 
-| Устаревает (path / symbol) | Kind (A\|B\|C) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |
+| Устаревает (path / symbol) | Kind (A\|B\|C\|I) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |
 | :--- | :---: | :--- | :--- | :---: | :--- |
 | `path/or/Symbol` | A | новое API/модуль | s0N | no | или follow-up ID |
 | compose `legacy-svc` command | B | новый service | s0N-purge | no | |
 | `or "http://127.0.0.1:…"` | C | fail-closed settings | s0N-purge | yes | |
+| инструкция старого machine format | I | инструкция нового SoT | s0N-purge | no | |
 | n/a — нет замен | — | — | — | — | greenfield |
 
 ## Очередь шагов (BACK / FRONT)

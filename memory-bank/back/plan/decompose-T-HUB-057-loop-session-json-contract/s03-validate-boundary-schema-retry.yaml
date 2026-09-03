@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-057-loop-session-json-contract
+title: "validate_boundary unified helper + schema-retry gate/repair + pre-emit CLI"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать validate_boundary(schema_id, payload) -> ValidateResult (loop-validate-result/v1)
+  как единственный helper для pre-emit самопроверки И для boundary hook accept.
+  SubagentStop при schema fail: same-agent schema-retry count <=N (default gate N=2, repair N=1),
+  после исчерпания NEED_HUMAN. Pre-emit: epic_resolve.py validate-boundary CLI доступен агенту.
+  FR-003b: один helper — dual checker FORBIDDEN.
+  Outcome: SC-002 (schema-invalid не PASS; retry then NEED_HUMAN); TM-003/004.
+  Error taxonomy: schema class schema-retry; semantic class repair path (не смешивать).
+
+context:
+  consumes:
+    - loop/schemas/boundary_registry.py
+    - loop/schemas/gate_verdict.py
+    - loop/schemas/repair_result.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - harness/hooks/agent-pretool.py
+    - loop/epic_transition.py
+    - harness/hooks/epic/core.py
+  produces:
+    - loop/schemas/validate_result.py
+    - loop/validate_boundary.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - loop/schemas/boundary_registry.py
+  plan_refs:
+    - FR-003
+    - FR-003a
+    - FR-003b
+    - FR-004
+    - FR-005
+    - SC-002
+    - TM-003
+    - TM-004
+    - US-003b
+  files:
+    - loop/schemas/validate_result.py
+    - loop/validate_boundary.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+
+as_built:
+  - "harness/hooks/subagent-stop.py — extract_verdict / parse_gate_verdict_message validates GateVerdictRecord; no schema-retry counter"
+  - "harness/hooks/_lib.py — extract_verdict / extract_repair_result per-module helpers; no unified validate_boundary"
+  - "harness/hooks/agent-pretool.py — DENY repair without FAIL exists (FR-006 baseline)"
+  - "loop/schemas/gate_verdict.py — GateVerdictRecord.model_validate as-built; no common entry"
+  - "harness/hooks/epic/core.py — load/save_epic_state exists; no schema_retry counters in state"
+
+delta:
+  - "loop/schemas/validate_result.py: pydantic ValidateResult with schema_id, valid, errors, diagnostic_codes; SCHEMA loop-validate-result/v1"
+  - "loop/validate_boundary.py: validate_boundary(schema_id, raw_json) -> ValidateResult; uses boundary_registry; single entry point"
+  - "harness/hooks/subagent-stop.py: on schema fail increment schema_retry_count(tool_use_id); if count<=N emit re-emit message; if >N NEED_HUMAN escalate"
+  - "harness/hooks/_lib.py: schema_retry_count(cwd, tool_use_id) load/save in epic state"
+  - "harness/hooks/_lib.py: is_schema_error(codes) and is_semantic_error(codes) taxonomy classifiers"
+  - "CLI: epic_resolve.py validate-boundary --schema-id X --payload file.json returns exit 0/1"
+
+deletes: []
+
+out_of_scope:
+  - "MCP wrapper (FR-003a optional MCP) cut_list; CLI is sufficient"
+  - "semantic FAIL repair full path (s04/s06 agent-pretool side)"
+  - "mb-finish next_* (s05)"
+  - "stop-gate (s06)"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+    - python-type-safety
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      validate_boundary("loop-gate-verdict/v1", valid_json) returns ValidateResult.valid=True;
+      validate_boundary("loop-gate-verdict/v1", bad_json) returns valid=False + errors non-empty
+    verify: "bin/pytest loop/tests/test_validate_boundary.py::test_valid_gate_verdict_passes -q --tb=short"
+  - id: cp2
+    criterion: >
+      SubagentStop on schema fail NEED_HUMAN when retry > N;
+      TM-003 (schema invalid no PASS); TM-004 (pre-emit ok + tampered emit still schema fail)
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -q --tb=short"
+  - id: cp3
+    criterion: >
+      rg confirms no two different validate helpers; single validate_boundary import path in subagent-stop.py
+    verify: "rg 'validate_boundary' harness/hooks/subagent-stop.py loop/validate_boundary.py"
+  - id: cp4
+    criterion: "is_schema_error / is_semantic_error classifiers distinguish schema_* vs semantic_* codes without overlap"
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -k 'taxonomy' -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_validate_boundary.py -q --tb=short"
+tdd:
+  - loop/tests/test_validate_boundary.py

@@ -1,0 +1,58 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "arm short queue id → plan stem resolve — epic_id = full descriptive slug"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  arm_pre_implement_context (в .claude/hooks/epic/core.py) при получении короткого queue id
+  (напр. T-HUB-023) и наличии plan-файла с описательным slug (plan-T-HUB-023-hooks-llm-fallbacks.md)
+  должна: (1) разрешить полный stem T-HUB-023-hooks-llm-fallbacks, (2) сохранить его в armed_epic /
+  activeContext epic_id, (3) вставить в AC фразу "NOT short queue id".
+  Outcome: test_arm_pre_implement_short_queue_id_uses_plan_stem PASS.
+
+context:
+  consumes:
+    - .claude/hooks/epic/core.py  # arm_pre_implement_context @ line 4399
+    - .claude/hooks/epic_paths.py  # find_plan_stem_for_id
+  produces:
+    - .claude/hooks/epic/core.py  # патч arm_pre_implement_context
+  plan_refs: [US-001, AC+ arm-stem, FR-001, SC-001, TM-001]
+  files:
+    - .claude/hooks/epic/core.py
+
+as_built:
+  - ".claude/hooks/epic/core.py: arm_pre_implement_context принимает epic_id и target_rel, пишет epic_id as-is в activeContext"
+  - "epic_paths.py: есть discover_epic_role + find_plan_stem_for_id-like helpers"
+
+delta:
+  - "arm_pre_implement_context: если epic_id = short queue id (нет '-' после 3-го сегмента), искать plan-{epic_id}-*.md в соответствующем role plan dir"
+  - "при нахождении → stem = имя файла без plan- и .md; обновить epic_id, armed_epic, AC frontmatter epic_id"
+  - "AC body: добавить строку '# epic_id: {stem} — NOT short queue id' в ## Handoff секцию"
+
+deletes: []
+
+out_of_scope:
+  - "Другие вызовы arm (arm_active_context_from_decompose, arm_phase) — не трогать в этом шаге"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03: разобрать flow arm_pre_implement_context
+
+checkpoints:
+  - id: cp1
+    criterion: "arm_pre_implement_context при epic_id=T-HUB-023 + plan-T-HUB-023-hooks-llm-fallbacks.md → res['epic_id'] == 'T-HUB-023-hooks-llm-fallbacks'"
+    verify: "bin/pytest loop/tests/test_epic_transition.py::test_arm_pre_implement_short_queue_id_uses_plan_stem -q --tb=short"
+  - id: cp2
+    criterion: "armed_epic в state.json == полный stem, AC содержит 'NOT short queue id'"
+    verify: "bin/pytest loop/tests/test_epic_transition.py::test_arm_pre_implement_short_queue_id_uses_plan_stem -q --tb=short"
+  - id: cp3
+    criterion: "рядом стоящие тесты epic_transition не регрессировали"
+    verify: "bin/pytest loop/tests/test_epic_transition.py -q --tb=line 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "loop/tests/test_epic_transition.py::test_arm_pre_implement_short_queue_id_uses_plan_stem"

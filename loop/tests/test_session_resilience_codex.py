@@ -69,3 +69,15 @@ def test_session_resilience_codex_binary_missing(tmp_path: Path):
     assert analysis["reason"] == "command not found"
     assert analysis["retryable"] is False
     assert analysis["abort_kind"] == "fatal"
+
+
+def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
+    """Smoke test for SubagentStart hook under session resilience codex context."""
+    from harness.hooks._lib import CONTRACTS, HARD_RULE, normalize_type
+
+    assert "verify" in CONTRACTS
+    assert "reviewer" in CONTRACTS
+    assert normalize_type("verify-implement") == "verify-implement"
+    assert "HARD RULE" in HARD_RULE
+
+

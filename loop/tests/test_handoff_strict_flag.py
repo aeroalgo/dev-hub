@@ -65,6 +65,7 @@ def _setup_epic_env(cwd: Path) -> None:
         "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-022-test/index.yaml",
         "pending_fingerprint_before": "old_fp",
         "last_verify_verdict": "PASS",
+        "last_finish_tool": {"tool": "mb-finish", "fingerprint": "fp123"},
     }
     state_path = cwd / ".claude" / "runtime" / "epic" / "state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)

@@ -14,6 +14,23 @@ from epic_paths import epic_dir
 from loop.incidents.doctor import run_doctor
 
 
+VALID_AC = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-017
+step_id: s07
+---
+
+## load_now
+some_file.py
+
+## Handoff BACK IMPLEMENT
+- **Следующий:** `BACK IMPLEMENT s08`
+- **Gaps:** none.
+"""
+
+
 def test_doctor_stale_owner_exit_one(tmp_path: Path) -> None:
     mb = tmp_path / "memory-bank"
     mb.mkdir()
@@ -35,7 +52,7 @@ def test_doctor_stale_owner_exit_one(tmp_path: Path) -> None:
 def test_doctor_valid_project_exit_zero(tmp_path: Path) -> None:
     mb = tmp_path / "memory-bank"
     mb.mkdir()
-    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+    (mb / "activeContext.md").write_text(VALID_AC, encoding="utf-8")
     (mb / "tasks.md").write_text("# Tasks\n", encoding="utf-8")
 
     report = run_doctor(tmp_path)
@@ -69,7 +86,7 @@ def test_doctor_corrupt_incidents_blocker(tmp_path: Path) -> None:
 def test_doctor_open_incidents_warn_only(tmp_path: Path) -> None:
     mb = tmp_path / "memory-bank"
     mb.mkdir()
-    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+    (mb / "activeContext.md").write_text(VALID_AC, encoding="utf-8")
 
     ep_dir = epic_dir(tmp_path)
     incidents_file = ep_dir / "incidents.jsonl"
@@ -108,7 +125,7 @@ def test_doctor_board_sync_skipped_when_cli_missing(tmp_path: Path) -> None:
 def test_doctor_boundary_check_warn(tmp_path: Path, monkeypatch) -> None:
     mb = tmp_path / "memory-bank"
     mb.mkdir()
-    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+    (mb / "activeContext.md").write_text(VALID_AC, encoding="utf-8")
 
     arch_dir = tmp_path / "tests" / "architecture"
     arch_dir.mkdir(parents=True)
@@ -138,7 +155,7 @@ def test_doctor_boundary_check_warn(tmp_path: Path, monkeypatch) -> None:
 def test_doctor_boundary_check_pass(tmp_path: Path, monkeypatch) -> None:
     mb = tmp_path / "memory-bank"
     mb.mkdir()
-    (mb / "activeContext.md").write_text("## load_now\nsome_file.py\n## Handoff\nDone\n", encoding="utf-8")
+    (mb / "activeContext.md").write_text(VALID_AC, encoding="utf-8")
 
     arch_dir = tmp_path / "tests" / "architecture"
     arch_dir.mkdir(parents=True)

@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-057-loop-session-json-contract
+title: "Purge prose START/FINISH instructions + dual-checker sunset — legacy fallback purge"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить из loop prompts / loop.sh / context_loop.py инструкции prose START / prose FINISH
+  (AC- FR-013): убрать шаблонные блоки multi-Read load_now как primary и FINISH вручную.
+  Удалить любой dual-checker helper если был shim (FR-003b). Финальный inventory scan:
+  нет живых callers на sunset поверхности. Тесты на старый prose-path (anti-fallback rg).
+
+context:
+  consumes:
+    - loop/loop.sh
+    - loop/context_loop.py
+    - loop/mb_load/session.py
+    - loop/validate_boundary.py
+    - loop/schemas/boundary_registry.py
+  produces:
+    - loop/loop.sh
+    - loop/context_loop.py
+  plan_refs:
+    - FR-013
+    - FR-015
+  files:
+    - loop/loop.sh
+    - loop/context_loop.py
+
+as_built:
+  - "loop/loop.sh — contains prose SESSION START / FINISH instructions in prompt inject section"
+  - "loop/context_loop.py — build_prompt has prose path instructions for load_now as primary SoT"
+  - "loop/validate_boundary.py — single unified helper after s03; no shim candidates expected"
+
+delta:
+  - "loop/loop.sh: remove blocks describing multi-Read load_now as primary SoT; replace with mb-load session MbLoadResult reference"
+  - "loop/context_loop.py: remove prose instructions for write AC manually on FINISH; replace with mb-finish phase reference"
+  - "inventory scan: rg prose primary or prose FINISH references returns 0 hits after cleanup"
+
+deletes:
+  - "loop/loop.sh prose SESSION START/FINISH blocks (inline deletion)"
+  - "loop/context_loop.py prose-path instructions in build_prompt (inline deletion)"
+  - "any dual validate helper shim created during s03 (rg confirms single validate_boundary entry)"
+
+out_of_scope:
+  - "Codex prompt parity (T-HUB-053)"
+  - "board prompts (FR-015)"
+  - "DSH bridge prompts"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      rg for prose primary path or manually write activeContext in loop/loop.sh and
+      loop/context_loop.py returns 0 results
+    verify: "rg 'multi-Read.*primary|write.*manually|prose.*FINISH' loop/loop.sh loop/context_loop.py || echo CLEAN"
+  - id: cp2
+    criterion: "existing context_loop tests still green after purge"
+    verify: "bin/pytest loop/tests/test_context_loop.py -q --tb=short"
+  - id: cp3
+    criterion: >
+      rg confirms no dual-checker (two different validate functions); only validate_boundary imported
+    verify: "rg 'def validate_boundary|import.*validate_boundary' loop/ harness/ | grep -v __pycache__"
+
+verify:
+  - "rg 'multi-Read.*primary|prose.*FINISH' loop/loop.sh loop/context_loop.py || echo CLEAN"
+  - "bin/pytest loop/tests/test_context_loop.py -q --tb=short"
+tdd:
+  - loop/tests/test_context_loop.py

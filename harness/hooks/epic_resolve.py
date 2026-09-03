@@ -342,6 +342,28 @@ def main() -> int:
         help="apply whitelist repairs",
     )
 
+    p_val_boundary = sub.add_parser(
+        "validate-boundary",
+        help="pre-emit validate boundary payload against registry schema",
+    )
+    p_val_boundary.add_argument(
+        "--schema-id",
+        "--schema",
+        dest="schema_id",
+        required=True,
+        help="boundary schema id (e.g. loop-gate-verdict/v1)",
+    )
+    p_val_boundary_input = p_val_boundary.add_mutually_exclusive_group(required=False)
+    p_val_boundary_input.add_argument(
+        "--payload",
+        help="path to json file with payload",
+    )
+    p_val_boundary_input.add_argument(
+        "--json",
+        dest="raw_json",
+        help="raw inline JSON payload string",
+    )
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -472,6 +494,34 @@ def main() -> int:
             out = res.model_dump(mode="json")
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
+
+    if args.cmd == "validate-boundary":
+        from loop.validate_boundary import validate_boundary
+        raw = args.raw_json
+        if args.payload:
+            payload_path = Path(cwd) / args.payload
+            if not payload_path.is_file():
+                payload_path = Path(args.payload)
+            if not payload_path.is_file():
+                res_err = {
+                    "schema": "loop-validate-result/v1",
+                    "schema_id": args.schema_id,
+                    "valid": False,
+                    "errors": [f"Payload file not found: {args.payload}"],
+                    "diagnostic_codes": ["schema_payload_file_not_found"],
+                }
+                print(json.dumps(res_err, ensure_ascii=False, indent=2))
+                return 1
+            raw = payload_path.read_text(encoding="utf-8")
+        elif not raw:
+            if not sys.stdin.isatty():
+                raw = sys.stdin.read()
+            else:
+                raw = "{}"
+
+        val_res = validate_boundary(args.schema_id, raw)
+        print(json.dumps(val_res.model_dump(by_alias=True), ensure_ascii=False, indent=2))
+        return 0 if val_res.valid else 1
 
     if args.cmd == "mark-index-status":
         r = mark_index_step_status(

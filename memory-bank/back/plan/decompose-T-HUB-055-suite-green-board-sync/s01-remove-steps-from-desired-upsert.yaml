@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-055-suite-green-board-sync
+title: "Epic-only desired set — убрать step WorkItems из compute_ops upsert"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  run_sync передаёт в compute_ops только epic WorkItems (EpicWorkItem) как upsert SoT.
+  step WorkItems (WorkItem) из scan_steps остаются только для gates input (scan_gates).
+  Закрывает FR-001, AC+ 2 (run_sync не upsert'ит новые step-era cards).
+
+context:
+  consumes:
+    - loop/board_sync/sync.py (run_sync, строка 64-65: compute_ops([*epics, *steps], ...))
+  produces:
+    - loop/board_sync/sync.py (compute_ops([*epics], existing, gates, ...))
+  plan_refs:
+    - FR-001
+    - AC+ 2 (run_sync не upsert'ит step-era)
+    - AC- 4 (misconfig queue -> fail-closed; не ослаблять)
+    - TM-001, TM-002, TM-003
+  files:
+    - loop/board_sync/sync.py
+
+as_built:
+  - "loop/board_sync/sync.py:64-65 — compute_ops([*epics, *steps], ...) — steps передаются как desired upsert SoT"
+  - "loop/board_sync/diff.py:176-186 — desired_cards() итерирует WorkItem → step_cards список"
+
+delta:
+  - "loop/board_sync/sync.py:64 — compute_ops([*epics], ...) вместо ([*epics, *steps], ...)"
+  - "scan_steps по-прежнему вызывается (нужен для scan_gates), но результат не передаётся в compute_ops"
+
+deletes:
+  - "loop/board_sync/sync.py: `*steps` argument in compute_ops([*epics, *steps], ...) — удалить передачу step WorkItems как desired upsert SoT"
+
+out_of_scope:
+  - "desired_cards() в diff.py — не трогать WorkItem branch; он нужен если compute_ops вызывается напрямую с WorkItem в других контекстах"
+  - "archive logic в sync.py — в s02"
+  - "тесты — в s02"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "compute_ops вызывается без steps в desired"
+    verify: "grep -n 'compute_ops' loop/board_sync/sync.py"
+  - id: cp2
+    criterion: "scan_steps результат не попадает в compute_ops"
+    verify: "rg -n 'epics.*steps|steps.*epics' loop/board_sync/sync.py || echo 'OK: no combined desired'"
+  - id: cp3
+    criterion: "baseline test_e2e_pending_steps_emit_single_epic_card — len(steps)==0"
+    verify: "bin/pytest loop/tests/test_board_sync_epic_regression.py::test_e2e_pending_steps_emit_single_epic_card_pending_to_epic -q --tb=short"
+  - id: cp4
+    criterion: "AC- 4: scan_queue_gates и error handling остаются fail-closed при queue errors"
+    verify: "rg -n 'scan_queue_gates|scan_steps|errors' loop/board_sync/sync.py"
+
+verify:
+  - "grep -n 'compute_ops' loop/board_sync/sync.py | grep -v steps"
+tdd: []

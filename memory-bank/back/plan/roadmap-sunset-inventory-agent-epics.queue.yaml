@@ -1,0 +1,7 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-sunset-inventory-agent-epics.md
+queue:
+  - id: T-HUB-058
+    plan: plan-T-HUB-058-sunset-inventory-agent.md
+    deps: [T-HUB-057]

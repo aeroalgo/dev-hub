@@ -29,6 +29,7 @@ if str(_LOOP) not in sys.path:
     sys.path.insert(0, str(_LOOP))
 
 _PROMOTABLE_PHASES = frozenset({"DECOMPOSE", "ANALYZE"})
+_POST_IMPLEMENT_ARMED = frozenset({"AUDIT", "QA", "REFLECT", "BUGFIX", "DONE"})
 _ROLE_PREFIXES = ("BACK ", "FRONT ", "INTEG ", "INTEGRATION ")
 _PHASE_REGISTRY_CACHE: dict[str, Any] | None = None
 _DEFAULT_REGISTRY_PATH = _LOOP / "schemas" / "phase_registry.yaml"
@@ -102,8 +103,11 @@ def arm_phase(
     **kwargs: Any,
 ) -> dict:
     """Arm an epic phase context by routing to appropriate arm function."""
-    from epic.core import arm_active_context_from_decompose, arm_epic, arm_pre_implement_context
+    from epic.core import arm_active_context_from_decompose, arm_epic, arm_pre_implement_context, load_epic_state
     from _lib import resolve_runtime_config
+
+    st_before = load_epic_state(cwd)
+    last_finished = str(st_before.get("last_finished_step") or "").strip().lower()
 
     runtime_cfg = resolve_runtime_config(cwd)
     epic_runtime = kwargs.get("epic_runtime") or runtime_cfg.epic_runtime
@@ -174,7 +178,26 @@ def arm_phase(
             res["handoff"] = res.get("active_context") or "memory-bank/activeContext.md"
         if "role" not in res:
             res["role"] = role
+
+        # Anti-loop guard: re-arming the same step that was just finished is forbidden
+        armed_step_val = str(res.get("armed_step") or res.get("step_id") or "").strip().lower()
+        if (
+            last_finished
+            and armed_step_val
+            and armed_step_val == last_finished
+            and not res.get("complete")
+            and not res.get("stop")
+        ):
+            return {
+                "ok": False,
+                "error": f"step_loop_forbidden: next step {armed_step_val} equals last finished step {last_finished}",
+                "diagnostic_code": "step_loop_forbidden",
+                "diagnostic_codes": ["step_loop_forbidden"],
+                "last_finished_step": last_finished,
+                "armed_step": armed_step_val,
+            }
     return res
+
 
 
 def promote_if_ready(
@@ -194,8 +217,6 @@ def promote_if_ready(
     cwd_p = Path(cwd).resolve()
     st = load_epic_state(cwd_p)
     armed_step = str(st.get("armed_step") or "").upper()
-    if armed_step not in _PROMOTABLE_PHASES:
-        return None
 
     role_dir = (role or st.get("role") or "back").lower()
     epic = str(epic_id or st.get("armed_epic") or "").strip()
@@ -227,9 +248,53 @@ def promote_if_ready(
         if idx_path.is_relative_to(cwd_p)
         else str(idx_path)
     )
-    arm_decompose = decompose_rel
-    if arm_decompose.endswith("/index.yaml") or arm_decompose.endswith("/index.md"):
-        arm_decompose = str(Path(arm_decompose).parent).replace("\\", "/")
+    arm_decompose_dir = decompose_rel
+    if arm_decompose_dir.endswith(
+        ("/index.yaml", "/index.yml", "/index.md")
+    ):
+        arm_decompose_dir = str(Path(arm_decompose_dir).parent).replace("\\", "/")
+    arm_decompose_index = decompose_rel
+    if not arm_decompose_index.endswith(
+        ("/index.yaml", "/index.yml", "/index.md")
+    ):
+        yaml_cand = cwd_p / arm_decompose_index / "index.yaml"
+        md_cand = cwd_p / arm_decompose_index / "index.md"
+        if yaml_cand.is_file():
+            arm_decompose_index = str(yaml_cand.relative_to(cwd_p)).replace("\\", "/")
+        elif md_cand.is_file():
+            arm_decompose_index = str(md_cand.relative_to(cwd_p)).replace("\\", "/")
+
+    pending = [
+        s
+        for s in steps
+        if str(s.get("status") or "").lower() not in {"completed", "done"}
+    ]
+    if not pending and armed_step not in _POST_IMPLEMENT_ARMED:
+        from epic.core import post_implement_phase
+
+        post_phase, _, _ = post_implement_phase(cwd_p, role_dir, epic)
+        if post_phase == "AUDIT":
+            res = arm_phase(
+                cwd_p,
+                epic,
+                "AUDIT",
+                role_dir,
+                decompose_rel=arm_decompose_index,
+            )
+            if isinstance(res, dict) and res.get("ok"):
+                res["promoted_from"] = armed_step or "IMPLEMENT"
+                res["reason"] = "audit_promote"
+                try:
+                    from epic import _append_event
+                    if idx_path and idx_path.is_file():
+                        _append_event(cwd_p, role_dir, epic, "phase_transition", idx_path)
+                except Exception:
+                    pass
+            return res if isinstance(res, dict) and res.get("ok") else None
+
+    if armed_step not in _PROMOTABLE_PHASES:
+        return None
+
     gate = analyze_required_before_implement(
         cwd_p,
         role_dir,
@@ -245,7 +310,7 @@ def promote_if_ready(
                 epic,
                 "ANALYZE",
                 role_dir,
-                decompose_rel=arm_decompose,
+                decompose_rel=arm_decompose_dir,
             )
             reason = "analyze_gate"
         else:
@@ -254,7 +319,7 @@ def promote_if_ready(
                 epic,
                 "IMPLEMENT",
                 role_dir,
-                decompose_rel=arm_decompose,
+                decompose_rel=arm_decompose_index,
             )
             reason = "implement_promote"
         if isinstance(res, dict) and res.get("ok"):
@@ -276,7 +341,7 @@ def promote_if_ready(
             epic,
             "IMPLEMENT",
             role_dir,
-            decompose_rel=arm_decompose,
+            decompose_rel=arm_decompose_index,
         )
         if isinstance(res, dict) and res.get("ok"):
             res["promoted_from"] = "ANALYZE"

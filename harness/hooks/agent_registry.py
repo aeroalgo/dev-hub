@@ -33,6 +33,15 @@ _LEGACY_OVERLAYS = {
         "verdict": "none",
         "allow_worktree": False,
     },
+    "sunset-inventory": {
+        "managed": True,
+        "mode": "search",
+        "requires_model": False,
+        "default_loop": True,
+        "default_chat": False,
+        "verdict": "none",
+        "allow_worktree": False,
+    },
     "verify": {
         "managed": True,
         "mode": "gate",
@@ -153,6 +162,7 @@ def _normalize_id(value: object) -> str | None:
 
 
 AGENT_ALIASES: dict[str, str] = {
+    "sunset": "sunset-inventory",
     "verify": "verify-implement",
     "reviewer": "verify-qa",
 }

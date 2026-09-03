@@ -2,12 +2,15 @@ version: roadmap-queue/v1
 role: back
 roadmap: memory-bank/back/plan/roadmap-epics.md
 queue:
-  - id: T-HUB-044
-    plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
+  - id: T-HUB-057
+    plan: plan-T-HUB-057-loop-session-json-contract.md
     deps: []
+  - id: T-HUB-058
+    plan: plan-T-HUB-058-sunset-inventory-agent.md
+    deps: [T-HUB-057]
   - id: T-HUB-053
     plan: plan-T-HUB-053-codex-claude-hooks-parity.md
-    deps: []
+    deps: [T-HUB-057, T-HUB-058]
   - id: T-HUB-046
     plan: plan-T-HUB-046-harness-alongside-install.md
     deps: []

@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-056-suite-green-loop-identity
+title: 's08 — legacy-fallback-purge — sunset inventory: short-id dual path, missing-resolve
+  skip IMPLEMENT'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-056-suite-green-loop-identity/s08-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/systematic-debugging/SKILL.md
+discovery:
+- 'Grep/rg scan completed across loop/ and harness/hooks/: no live obsolete short-id
+  armed_epic dual paths or fail-open skip-validate bypasses without env gates found.'
+gaps:
+  status: none
+done:
+- Verified sunset inventory (short-id dual path, missing-resolve skip-validate bypasses).
+- Verified full test suite is green (1577 passed, 0 failed).
+files:
+- loop/tests/test_epic_transition.py
+- loop/tests/test_context_loop.py
+- harness/hooks/epic/core.py
+deletes: []
+tests:
+- '`bin/pytest -q --tb=no` — 1577 passed, 2 skipped in 131.57s'
+integration_check:
+- rg 'armed_epic.*T-HUB-[0-9]+[^-]' loop/ harness/hooks/ — verified clean
+grep_control: []
+verification_results:
+- 'cp1 PASS: rg scan shows no obsolete short-id armed_epic matches'
+- 'cp2 PASS: rg scan shows no fail-open skip-validate bypasses'
+- 'cp3 PASS: full test suite passes with 0 failures'
+checkpoints:
+- id: cp1
+  criterion: "rg 'armed_epic.*T-HUB-[0-9]+\b' loop/ .claude/hooks/ → 0 matches (или\
+    \ только в comments)"
+  status: done
+  done_at: '2026-09-03T02:14:28Z'
+- id: cp2
+  criterion: rg fail-open skip-validate → 0 (кроме EPIC_TRACEABILITY_CHECK=0)
+  status: done
+  done_at: '2026-09-03T02:14:28Z'
+- id: cp3
+  criterion: bin/pytest -q --tb=no после purge → 0 failed
+  status: done
+  done_at: '2026-09-03T02:14:29Z'
+resume_from: cp1

@@ -62,7 +62,7 @@ def run_sync(
         )
     generation = previous_generation + 1
     operations = compute_ops(
-        [*epics, *steps],
+        [*epics],
         existing,
         gates,
         sync_generation=generation,
@@ -100,16 +100,24 @@ def run_sync(
             elif operation.kind == "archive" and operation.task_id is not None:
                 task = existing_by_id.get(operation.task_id)
                 status = task.status if task is not None else "todo"
-                try:
-                    retire_board_task(
-                        board_client,
-                        operation.task_id,
-                        status=status,
-                    )
-                except BoardClientError as exc:
-                    sync_errors.append(
-                        f"retire failed for {operation.task_id}: {exc}"
-                    )
+                if operation.task_id in archive_all_ids:
+                    try:
+                        board_client.archive(operation.task_id)
+                    except BoardClientError as exc:
+                        sync_errors.append(
+                            f"archive failed for {operation.task_id}: {exc}"
+                        )
+                else:
+                    try:
+                        retire_board_task(
+                            board_client,
+                            operation.task_id,
+                            status=status,
+                        )
+                    except BoardClientError as exc:
+                        sync_errors.append(
+                            f"retire failed for {operation.task_id}: {exc}"
+                        )
     return SyncResult(
         sync_generation=generation,
         operations=tuple(operations),

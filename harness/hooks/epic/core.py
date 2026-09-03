@@ -528,15 +528,27 @@ def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
 def write_last_finish_tool(
     cwd: str | Path,
     name: str,
-    fingerprint: str,
+    fingerprint: str | None = None,
+    *,
+    finished_step: str | None = None,
+    armed_after_finish: str | None = None,
 ) -> bool:
     """Write last_finish_tool record into epic state."""
     st = load_epic_state(cwd)
+    ts = utc_now()
+    if not fingerprint:
+        step_val = finished_step or st.get("armed_step") or name
+        raw_fp = f"{step_val}:{ts}"
+        fingerprint = hashlib.sha256(raw_fp.encode("utf-8")).hexdigest()
     st["last_finish_tool"] = {
         "name": str(name),
-        "at": utc_now(),
+        "at": ts,
         "fingerprint": str(fingerprint),
     }
+    if finished_step is not None:
+        st["last_finished_step"] = str(finished_step)
+    if armed_after_finish is not None:
+        st["armed_after_finish"] = str(armed_after_finish)
     save_epic_state(cwd, st)
     return True
 
@@ -2258,11 +2270,37 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
         epic_id = epic_id_from_decompose_path(decompose)
     if epic_id:
         from analyze_gate import analyze_required_before_implement
+        from epic_index import index_yaml_path
 
+        gate_index = index_yaml_path(idx_path)
+        if not gate_index.is_file():
+            gate_index = idx_path
         gate = analyze_required_before_implement(
-            cwd_p, role_dir, epic_id, steps, index_path=idx_path
+            cwd_p, role_dir, epic_id, steps, index_path=gate_index
         )
         if gate.get("required"):
+            from loop.epic_transition import arm_phase
+
+            arm_decomp = decompose
+            if arm_decomp.endswith(("/index.yaml", "/index.yml", "/index.md")):
+                arm_decomp = str(Path(arm_decomp).parent).replace("\\", "/")
+            arm_res = arm_phase(
+                cwd_p,
+                epic_id,
+                "ANALYZE",
+                role_dir,
+                decompose_rel=arm_decomp,
+            )
+            if isinstance(arm_res, dict) and arm_res.get("ok"):
+                return {
+                    "ok": True,
+                    "synced": True,
+                    "reason": "analyze_gate_rearm",
+                    "analyze_reason": gate.get("reason"),
+                    "previous_armed": armed or None,
+                    "step_id": "ANALYZE",
+                    "armed_step": "ANALYZE",
+                }
             return {
                 "ok": True,
                 "synced": False,
@@ -2637,7 +2675,7 @@ def finalize_step(
         all_completed=all_completed,
     )
     if all_completed:
-        marked["post_implement"] = arm_active_context_from_decompose(cwd, str(idx))
+        marked["post_implement"] = arm_epic(cwd_p, epic_id, role=_role_dir)
     try:
         from loop.epic_transition import promote_if_ready
 
@@ -3164,6 +3202,75 @@ def validate_qa_finish_handoff(
     return True, None
 
 
+_VERIFY_NO_VERDICT_LINE_RE = re.compile(
+    r"(?im)(?:BLOCKED|NEED_HUMAN).*verify_no_verdict"
+)
+
+
+def _strip_verify_no_verdict_lines(text: str) -> str:
+    lines = [
+        line
+        for line in (text or "").splitlines()
+        if not _VERIFY_NO_VERDICT_LINE_RE.search(line)
+    ]
+    cleaned = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", cleaned).strip() + "\n"
+
+
+def _implement_queue_exhausted(cwd_p: Path, decompose: str) -> bool:
+    loaded = load_decompose_steps_fail_closed(cwd_p, decompose)
+    if not loaded.get("ok"):
+        return False
+    pending = [
+        s
+        for s in (loaded.get("steps") or [])
+        if str(s.get("status") or "").lower() not in {"completed", "done"}
+    ]
+    return not pending
+
+
+def clear_stale_verify_no_verdict_handoff(cwd: str | Path) -> dict[str, Any]:
+    """Drop verify_no_verdict halt when implement queue is done and post-implement is next."""
+    from loop.schemas.active_context import handoff_mode_from_text
+
+    cwd_p = Path(cwd)
+    ac = active_context_path(cwd_p)
+    if not ac.is_file():
+        return {"ok": True, "cleared": False}
+    text = ac.read_text(encoding="utf-8", errors="replace")
+    if not _VERIFY_NO_VERDICT_LINE_RE.search(text):
+        return {"ok": True, "cleared": False}
+
+    info = discover_epic_for_pipeline(cwd_p)
+    if not info or not info.get("decompose"):
+        return {"ok": True, "cleared": False}
+    if not _implement_queue_exhausted(cwd_p, info["decompose"]):
+        return {"ok": True, "cleared": False}
+
+    phase, _, _ = post_implement_phase(cwd_p, info["role_dir"], info["epic_id"])
+    handoff_mode = (handoff_mode_from_text(text) or "").upper()
+    post_modes = {"AUDIT", "QA", "REFLECT", "BUGFIX", "DONE"}
+    if phase not in post_modes and handoff_mode not in post_modes:
+        return {"ok": True, "cleared": False}
+
+    cleaned = _strip_verify_no_verdict_lines(text)
+    if cleaned == text:
+        return {"ok": True, "cleared": False}
+    atomic_write_text(ac, cleaned)
+    st = load_epic_state(cwd_p)
+    st["last_verify_verdict"] = None
+    st["last_verify_at"] = None
+    st["last_verify_evidence"] = None
+    save_epic_state(cwd_p, st)
+    return {
+        "ok": True,
+        "cleared": True,
+        "phase": phase,
+        "handoff_mode": handoff_mode or phase,
+        "epic_id": info.get("epic_id"),
+    }
+
+
 def project_handoff_from_reducer(
     cwd: str | Path,
     *,
@@ -3187,13 +3294,37 @@ def project_handoff_from_reducer(
     if not epic_id:
         return {"ok": True, "projected": False}
 
+    if info.get("decompose") and not _implement_queue_exhausted(cwd_p, info["decompose"]):
+        return {"ok": True, "projected": False}
+
     decision = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
     raw_phase = str(decision.get("phase") or "QA")
     phase = lifecycle_arm_phase(raw_phase, decision)
     reason_code = str(decision.get("reason_code") or "")
+    role_u = str(info.get("role") or role_dir or "back").upper()
+    if role_u == "INTEGRATION":
+        role_u = "INTEG"
 
     projected = False
-    if phase == "BUGFIX" and (
+    if phase == "AUDIT" and (
+        "mode: IMPLEMENT" in text
+        or re.search(rf"(?im)^##\s*Handoff\s+{role_u}\s+IMPLEMENT\b", text)
+    ):
+        text_new = re.sub(
+            rf"Handoff\s+{role_u}\s+IMPLEMENT", f"Handoff {role_u} AUDIT", text
+        )
+        text_new = re.sub(rf"`{role_u} IMPLEMENT`", f"`{role_u} AUDIT`", text_new)
+        text_new = re.sub(r"mode:\s*IMPLEMENT", "mode: AUDIT", text_new)
+        if _LOOP_HANDOFF_SCHEMA_LINE not in text_new:
+            frontmatter = (
+                f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: {role_u}\n"
+                f"mode: {phase}\nepic_id: {epic_id}\nstep_id: {epic_id}\n---\n"
+            )
+            text_new = frontmatter + text_new
+        text_new = _strip_verify_no_verdict_lines(text_new)
+        ac.write_text(text_new, encoding="utf-8")
+        projected = True
+    elif phase == "BUGFIX" and (
         "mode: AUDIT" in text
         or "mode: QA" in text
         or re.search(r"(?im)^##\s*Handoff\s+BACK\s+(AUDIT|QA)\b", text)
@@ -3940,7 +4071,10 @@ def arm_active_context_from_decompose(
         }
     cwd_p = Path(cwd)
     idx = _decompose_index_path(cwd_p, decompose)
-    if idx is None or not idx.is_file():
+    ypath = index_yaml_path(idx) if idx is not None else None
+    if idx is None or (
+        not idx.is_file() and not (ypath is not None and ypath.is_file())
+    ):
         return {
             "ok": False,
             "error": f"decompose index not found: {decompose!r}",
@@ -3949,7 +4083,6 @@ def arm_active_context_from_decompose(
     loaded = load_decompose_steps_fail_closed(cwd_p, str(idx))
     if not loaded["ok"]:
         return loaded
-    text = idx.read_text(encoding="utf-8", errors="replace")
     steps = loaded["steps"]
     if not index_yaml_path(idx).is_file():
         steps = [
@@ -4152,6 +4285,7 @@ def arm_active_context_from_decompose(
     st["armed_epic"] = epic_id
     st["armed_decompose"] = tracker_rel
     st["armed_step"] = step["step_id"]
+    st["phase"] = phase
     st["role"] = role
     st["pending_fingerprint_before"] = None
     save_epic_state(cwd_p, st)
@@ -4292,6 +4426,17 @@ def arm_pre_implement_context(
     _legacy_warn("arm_pre_implement_context")
 
     cwd_p = Path(cwd)
+    role_key = str(role or "back").lower()
+    # Resolve short queue id (e.g. T-HUB-023) to full plan stem if descriptive plan file exists
+    plan_dir = cwd_p / "memory-bank" / role_key / "plan"
+    if plan_dir.is_dir():
+        # Check if epic_id is short (no descriptive slug after prefix/number)
+        matches = sorted(plan_dir.glob(f"plan-{epic_id}-*.md"))
+        if matches:
+            full_stem = matches[0].stem.removeprefix("plan-")
+            if full_stem:
+                epic_id = full_stem
+
     phase_u = str(phase or "").upper()
     role_u = str(role or "back").upper()
     target_rel = target_rel or f"memory-bank/{role}/plan/plan-{epic_id}.md"
@@ -4314,7 +4459,6 @@ def arm_pre_implement_context(
     elif phase_u == "DECOMPOSE":
         from epic_paths import find_decompose_index_path
 
-        role_key = str(role or "back").lower()
         rule_dir = {
             "back": "back_developer",
             "front": "front_developer",
@@ -4338,6 +4482,7 @@ def arm_pre_implement_context(
         f"---\n{_LOOP_HANDOFF_SCHEMA_LINE} # handoff\nrole: {role_u}\nmode: {phase_u}\nepic_id: {epic_id}\nstep_id: {phase_u}\n---\n\n"
         f"## load_now\n{load_now}\n"
         f"## Handoff {phase_u}\n"
+        f"- # epic_id: {epic_id} — NOT short queue id\n"
         f"- **Эпик:** {epic_id} ({role_u}).\n"
         f"- **Режим/шаг:** `{next_cmd}`.\n"
         f"- **Дальше:** выполнить `{next_cmd}`.\n"

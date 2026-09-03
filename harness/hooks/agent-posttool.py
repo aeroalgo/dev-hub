@@ -15,16 +15,24 @@ from _lib import (
     load_state,
     mark_verdict_recorded,
     normalize_type,
+    parse_gate_verdict_message,
     record_verdict,
     read_stdin,
     save_state,
     should_skip_verdict_record,
     sync_gate_identity,
+    utc_now,
     verdict_dedupe_key,
     verdict_evidence,
     workflow_state_active,
     _discover_registry,
 )
+
+_HUB_ROOT = Path(__file__).resolve().parents[2]
+if str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
+
+from loop.mb_finish.verify_hint import record_agent_key, VERIFY_FINISH_AGENTS  # noqa: E402
 
 
 def _text_from_response(resp: object) -> str:
@@ -82,6 +90,19 @@ def main() -> None:
         save_state(session_id, cwd, st)
 
     text = _text_from_response(resp)
+
+    sidecar_agent = (
+        record_agent_key(str(agent_type)) if agent_type in VERIFY_FINISH_AGENTS else None
+    )
+    if sidecar_agent:
+        parse_gate_verdict_message(
+            text,
+            cwd,
+            sidecar_agent,
+            recorded_at=utc_now(),
+            session_id=session_id or None,
+        )
+
     if agent_type == "gate-repair":
         result = extract_repair_result(text)
         if result:
@@ -92,7 +113,11 @@ def main() -> None:
             save_state(session_id, cwd, st)
         return
 
-    verdict = extract_verdict(text)
+    verdict = extract_verdict(
+        text,
+        cwd=cwd,
+        agent_id=sidecar_agent or "verify",
+    )
     if not agent_type or not verdict:
         return
 
@@ -116,9 +141,10 @@ def main() -> None:
     identity = current_gate_identity(cwd, session_id)
     sync_gate_identity(st, identity)
     evidence = verdict_evidence(identity, verdict)
-    matched, _diagnostic = record_verdict(st, agent_type, verdict, evidence)
+    record_key = sidecar_agent if sidecar_agent else agent_type
+    matched, _diagnostic = record_verdict(st, record_key, verdict, evidence)
     mark_verdict_recorded(st, dedupe_key)
-    if agent_type in {"verify", "verify-implement"} and matched:
+    if record_key == "verify" and matched:
         try:
             from epic_lib import mirror_verify_verdict
 

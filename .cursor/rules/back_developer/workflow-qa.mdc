@@ -25,4 +25,4 @@ code-review (спорный AC / крупный epic merge) · pytest-coverage (
    Next: Handoff в `memory-bank/activeContext.md` + decompose index
    **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь
 
-**Верификация**: gates + verify-qa (reviewer) + Handoff (+ leftover legacy/fallback check при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc)
+**Верификация**: gates + verify-qa (reviewer) + Handoff (+ leftover legacy/fallback/Kind I + `sot_enforce_scan` при brownfield; @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8)

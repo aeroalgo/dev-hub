@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: Legacy fallback purge — anti-regex-VERDICT audit + sunset inventory scan
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge-шаг: инвентаризация и audit всего sunset A/B/C из plan.
+  Убедиться что нет prose VERDICT machine path в extract_verdict / context_loop,
+  нет verify.md/reviewer.md assert в scope тронутых тестов, нет оставшихся stubs.
+  AC- закрывается через rg-verify. Закрывает AC- #1-#5 / FR-005 (method lock complete).
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_phase_verify_gates.py
+    - dsh/presets/
+  produces: []
+  plan_refs:
+    - "AC- #1 нет regex VERDICT в extract_verdict"
+    - "AC- #2 нет dual assert JSON|VERDICT"
+    - "AC- #3 нет misconfig silent ignore"
+    - "AC- #4 нет verify.md/reviewer.md SoT asserts"
+    - "AC- #5 нет skip на broken gate tests без deletes"
+    - FR-005
+  files:
+    - loop/context_loop.py        # audit: нет regex VERDICT machine path
+    - loop/tests/test_stop_gate.py  # audit: нет prose VERDICT asserts
+    - loop/tests/test_phase_verify_gates.py  # audit: нет verify.md/reviewer.md asserts
+
+as_built:
+  - "extract_verdict: sidecar-only (T-HUB-023); regex VERDICT = deleted/absent — verify only"
+  - "session_resilience.py: M в git (baseline) — audit на prose VERDICT"
+  - "test_stop_gate.py: s03 удалил prose assert; остальные ссылки — JSON fence (строки 520, 857)"
+  - "dsh/presets/reviewer.prompt.md: удалён в s04"
+
+delta:
+  - "Если rg находит re.*VERDICT|VERDICT machine path в extract_verdict/context_loop — удалить"
+  - "Если rg находит assert на verify.md/reviewer.md в тронутых тестах — удалить или rewrite"
+  - "Если находит skip без deletes — удалить skip + fix or delete тест"
+
+deletes:
+  - "Любые остатки prose VERDICT machine path в scope эпика (по rg audit)"
+  - "Любые stubs dsh/presets/verify.prompt.md или reviewer.prompt.md если появятся снова"
+
+out_of_scope:
+  - "board/doctor/epic_id stem T-HUB-055/056"
+  - "extended hang catalog cut_list"
+  - "ghost nodeids вне scope (уже gone)"
+
+sunset_inventory:
+  scan_pass: required
+  legacy_surfaces_remaining: []
+  tables:
+    - kind: A
+      surface: "regex VERDICT machine path in extract_verdict / context_loop"
+      expected_after: absent
+      grep: "rg 'finditer.*VERDICT|re\\..*VERDICT.*machine' loop/ harness/"
+    - kind: A
+      surface: "prose VERDICT-first inject assert in test_stop_gate (deleted in s03)"
+      expected_after: absent
+      grep: "rg 'первая строка финального ответа' loop/tests/test_stop_gate.py"
+    - kind: A
+      surface: "verify.md / reviewer.md SoT asserts in touched tests"
+      expected_after: absent
+      grep: "rg 'assert.*verify\\.md|assert.*reviewer\\.md' loop/tests/"
+    - kind: B
+      surface: "pytest.ini empty timeout false-protection (replaced in s01)"
+      expected_after: real timeout option active
+      grep: "bin/pytest --help | rg timeout"
+    - kind: C
+      surface: "try JSON except regex VERDICT fallback"
+      expected_after: absent
+      grep: "rg 'except.*VERDICT|VERDICT.*except' harness/ loop/"
+    - kind: C
+      surface: "skip gate test без deletes"
+      expected_after: absent
+      grep: "rg '@pytest.mark.skip' loop/tests/test_stop_gate.py loop/tests/test_phase_verify_gates.py loop/tests/test_gate_structured_purge.py"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "нет regex VERDICT machine path в scope"
+    verify: "rg 'finditer.*VERDICT|re\\..*VERDICT.*machine' loop/ harness/ 2>/dev/null | wc -l"
+  - id: cp2
+    criterion: "нет verify.md/reviewer.md SoT asserts в тронутых тестах"
+    verify: "rg 'assert.*verify\\.md|assert.*reviewer\\.md' loop/tests/ | wc -l"
+  - id: cp3
+    criterion: "sunset_inventory scan pass — probe strings absent"
+    verify: "rg 'первая строка финального ответа|finditer.*VERDICT' loop/ harness/ | wc -l"
+  - id: cp4
+    criterion: "full gate cluster PASS (SC-002 финальная)"
+    verify: "bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed -q"
+
+verify:
+  - "rg 'finditer.*VERDICT|VERDICT.*regex' loop/ harness/ | wc -l"
+  - "bin/pytest loop/tests/ -q --tb=line 2>&1 | tail -5"
+
+tdd:
+  - "AC- #1: rg regex VERDICT in loop/ harness/ → 0 matches"
+  - "AC- #4: rg assert verify.md/reviewer.md in loop/tests/ → 0 matches"

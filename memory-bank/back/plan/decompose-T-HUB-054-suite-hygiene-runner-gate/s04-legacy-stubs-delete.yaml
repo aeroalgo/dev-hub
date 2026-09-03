@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: Delete dsh/presets/reviewer.prompt.md stub — test_legacy_stubs_removed green
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить пустой файл dsh/presets/reviewer.prompt.md (0 байт, создан 2026-09-02) —
+  последний существующий stub из sunset T-HUB-039. Тест test_legacy_stubs_removed
+  assertит not exists() для 6 путей; 5 из 6 уже absent; остался только reviewer.prompt.md.
+  Закрывает FR-004 / AC #4 / TM-004 / SC-002 (gate cluster green).
+
+context:
+  consumes:
+    - dsh/presets/reviewer.prompt.md
+    - "loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed"
+  produces: []
+  plan_refs:
+    - FR-004
+    - "AC #4"
+    - SC-002
+    - TM-004
+    - "T-HUB-039 s10"
+  files:
+    - dsh/presets/reviewer.prompt.md  # удалить
+
+as_built:
+  - "dsh/presets/reviewer.prompt.md: существует 0 байт — test_legacy_stubs_removed FAIL"
+  - "dsh/presets/verify-implement/bugfix/qa/decompose.prompt.md: существуют (OK другой тест)"
+  - ".claude/agents/verify.md reviewer.md: absent (OK)"
+  - "harness/agents/verify.md reviewer.md: absent (OK)"
+  - "dsh/presets/verify.prompt.md: absent (OK)"
+
+delta:
+  - "dsh/presets/reviewer.prompt.md: удалить файл"
+
+deletes:
+  - "dsh/presets/reviewer.prompt.md"
+
+out_of_scope:
+  - "dsh/presets/verify-*.prompt.md — не трогать (тест test_verify_agent_presets проверяет их наличие)"
+  - "harness/agents/ и .claude/agents/ — уже корректны"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "reviewer.prompt.md удалён из dsh/presets/"
+    verify: "ls dsh/presets/ | rg reviewer | wc -l"
+  - id: cp2
+    criterion: "test_legacy_stubs_removed PASS"
+    verify: "bin/pytest loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed -q"
+  - id: cp3
+    criterion: "соседний тест test_verify_agent_presets не сломан"
+    verify: "bin/pytest loop/tests/test_phase_verify_gates.py -q"
+
+verify:
+  - "ls dsh/presets/ | rg reviewer | wc -l"
+  - "bin/pytest loop/tests/test_phase_verify_gates.py -q"
+
+tdd:
+  - "TM-004: bin/pytest test_phase_verify_gates.py::test_legacy_stubs_removed → PASS"

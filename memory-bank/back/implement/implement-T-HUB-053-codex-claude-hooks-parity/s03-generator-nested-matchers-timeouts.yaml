@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: s03 — Generator nested matchers + timeouts + regenerate .codex/hooks.json IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s03-generator-nested-matchers-timeouts.yaml
+skills_used:
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Расширен генератор hooks_json.py поддержкой объединения нескольких хуков на одно
+  событие (multi-hook merge)
+- Добавлены matchers ("Agent|Task", "Bash") и timeout_ms (≥45000) для PostToolUse
+  Bash хука
+- Регенерирован .codex/hooks.json и .codex/hooks.meta.json со всеми событиями FR-002
+files:
+- loop/runtime_materializers/hooks_json.py
+- loop/tests/test_codex_hooks_parity_matrix.py
+- .codex/hooks.json
+- .codex/hooks.meta.json
+deletes: []
+tests:
+- bin/pytest loop/tests/test_codex_hooks_parity_matrix.py -q --tb=short
+integration_check:
+- .codex/hooks.json conforms to Codex CLI hooks structure and matches Claude settings.json
+  parity
+grep_control: []
+verification_results:
+- '{''cp1'': ''python3 -c "import json; h=json.load(open(\''.codex/hooks.json\''));
+  required={\''Stop\'',\''SubagentStop\'',\''PreToolUse\'',\''UserPromptSubmit\'',\''SessionStart\'',\''SubagentStart\''};
+  hooks_keys=set(h.get(\''hooks\'',{}).keys()); missing=required-hooks_keys; assert
+  not missing" -> OK''}'
+- '{''cp2'': ''bash timeout_ms >= 45000 verified in .codex/hooks.json -> OK''}'
+- '{''cp3'': ''bin/pytest loop/tests/test_codex_hooks_parity_matrix.py passed -> OK''}'
+- '{''cp4'': ''.codex/hooks.meta.json manifest_hash verified -> OK''}'
+checkpoints:
+- id: cp1
+  criterion: .codex/hooks.json после генерации содержит все 8 FR-002 event keys
+  status: done
+  done_at: '2026-09-03T10:30:00Z'
+- id: cp2
+  criterion: PostToolUse Bash entry содержит timeout_ms ≥ 45000
+  status: done
+  done_at: '2026-09-03T10:30:05Z'
+- id: cp3
+  criterion: test_codex_hooks_parity_matrix.py green (пройден после regenerate)
+  status: done
+  done_at: '2026-09-03T10:30:10Z'
+- id: cp4
+  criterion: .codex/hooks.meta.json существует и содержит manifest_hash
+  status: done
+  done_at: '2026-09-03T10:30:15Z'
+resume_from: cp1

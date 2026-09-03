@@ -1,0 +1,62 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "episode_wire — check_after ok=True + manifest.json создаётся при frontmatter AC"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  test_check_after_creates_manifest и test_finalize_exception_does_not_block падают:
+  check_after возвращает ok=False. Причина: AC fixture в тест-файле пишет Handoff без frontmatter
+  loop-handoff/v1 → validate_active_context_shape → shape errors → degraded=True →
+  при достижении max_degraded возвращается ok=False, или если degraded_count не накапливается —
+  check_after возвращает ok=False из другой ветки.
+  Фикс: добавить YAML frontmatter в AC fixture обоих тестов. После фикса:
+  - check_after(ok=True), episode_dir создаётся, manifest.json есть.
+  - При патче finalize_episode → RuntimeError check_after всё равно ok=True (graceful degradation).
+
+context:
+  consumes:
+    - loop/tests/test_episode_wire.py  # тесты @ 29, 59
+    - loop/context_loop.py             # check_after degraded gate @ 2147
+    - loop/episodes/core.py            # finalize_episode @ 82
+  produces:
+    - loop/tests/test_episode_wire.py  # frontmatter в AC fixture
+  plan_refs: [US-002, FR-003, SC-003, TM-003]
+  files:
+    - loop/tests/test_episode_wire.py
+
+as_built:
+  - "loop/tests/test_episode_wire.py: ac_file.write_text без YAML frontmatter (## load_now / ## Handoff only)"
+  - "loop/context_loop.py: check_after → degraded=True при shape errors → ok=False при max_degraded"
+  - "loop/episodes/core.py: finalize_episode требует episode_dir в state; state должен иметь episode_id"
+
+delta:
+  - "test_check_after_creates_manifest: ac_file.write_text — добавить frontmatter loop-handoff/v1 (role: BACK, mode: IMPLEMENT, step_id: s01)"
+  - "test_finalize_exception_does_not_block: аналогично для обоих write_text вызовов"
+
+deletes: []
+
+out_of_scope:
+  - "test_prepare_session_has_episode_id, test_tier0_check_after_finalizes — не в baseline fail-list"
+
+skills:
+  code_surface: api
+  impl: []  # docs-only change (test fixtures)
+
+checkpoints:
+  - id: cp1
+    criterion: "test_check_after_creates_manifest → ca_res['ok']=True, manifest.json существует"
+    verify: "bin/pytest loop/tests/test_episode_wire.py::test_check_after_creates_manifest -q --tb=short"
+  - id: cp2
+    criterion: "test_finalize_exception_does_not_block → ca_res['ok']=True при RuntimeError в finalize"
+    verify: "bin/pytest loop/tests/test_episode_wire.py::test_finalize_exception_does_not_block -q --tb=short"
+  - id: cp3
+    criterion: "все episode_wire тесты зелёные"
+    verify: "bin/pytest loop/tests/test_episode_wire.py -q --tb=line 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "loop/tests/test_episode_wire.py::test_check_after_creates_manifest"
+  - "loop/tests/test_episode_wire.py::test_finalize_exception_does_not_block"

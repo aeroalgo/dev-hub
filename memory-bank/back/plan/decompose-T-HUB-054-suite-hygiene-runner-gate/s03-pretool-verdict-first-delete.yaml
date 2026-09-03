@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: Delete test_agent_pretool_injects_verdict_first_line — prose first-line contract removed
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить тест test_agent_pretool_injects_verdict_first_line из test_stop_gate.py, т.к.
+  он assertит prose VERDICT-first injection в prompt — контракт запрещённый technology axiom
+  (sidecar-only; prose VERDICT как machine path = FORBIDDEN). Pretool не инжектит эту фразу и не должен.
+  Закрывает FR-003 / AC #3 / TM-003 / AC- #2 (нет dual assert JSON|VERDICT).
+
+context:
+  consumes:
+    - loop/tests/test_stop_gate.py
+    - harness/hooks/agent-pretool.py
+  produces:
+    - loop/tests/test_stop_gate.py
+  plan_refs:
+    - FR-003
+    - "AC #3"
+    - TM-003
+    - "AC- #2"
+    - US-003
+  files:
+    - loop/tests/test_stop_gate.py
+
+as_built:
+  - "loop/tests/test_stop_gate.py:960: test_agent_pretool_injects_verdict_first_line assertит prose first-line VERDICT"
+  - "harness/hooks/agent-pretool.py: updatedInput = tool_input as-is (нет inject первая строка)"
+  - "technology axiom: prose VERDICT как machine-first = FORBIDDEN; только sidecar JSON"
+
+delta:
+  - "loop/tests/test_stop_gate.py: удалить функцию test_agent_pretool_injects_verdict_first_line (строки 960-979)"
+
+deletes:
+  - "loop/tests/test_stop_gate.py::test_agent_pretool_injects_verdict_first_line"
+
+out_of_scope:
+  - "agent-pretool.py логика — не менять; тест проверял несуществующее поведение"
+  - "другие тесты в test_stop_gate.py — не трогать"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "функция удалена из файла"
+    verify: "rg 'test_agent_pretool_injects_verdict_first_line' loop/tests/test_stop_gate.py | wc -l"
+  - id: cp2
+    criterion: "нет prose VERDICT inject assert в оставшемся коде"
+    verify: "rg 'первая строка финального ответа' loop/tests/test_stop_gate.py | wc -l"
+  - id: cp3
+    criterion: "остальные тесты в test_stop_gate.py не сломаны"
+    verify: "bin/pytest loop/tests/test_stop_gate.py -q --tb=short"
+
+verify:
+  - "rg 'test_agent_pretool_injects_verdict_first_line' loop/tests/test_stop_gate.py | wc -l"
+  - "bin/pytest loop/tests/test_stop_gate.py -q"
+
+tdd:
+  - "TM-003: after delete — collected=0 for this nodeid; rest of test_stop_gate PASS"

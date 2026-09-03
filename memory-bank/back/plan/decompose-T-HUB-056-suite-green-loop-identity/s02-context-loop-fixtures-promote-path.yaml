@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "context_loop prepare/promote fixtures — epic_resolve provision + degraded=False"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  test_prepare_builds_prompt_with_activecontext падает: prepare_session возвращает degraded=True
+  при fixture без frontmatter loop-handoff/v1. Тест ожидает degraded=False.
+  _seed_context создаёт AC без YAML frontmatter — validate_active_context_shape даёт shape errors.
+  Нужно: либо (1) _seed_context в тесте добавить frontmatter, либо (2) prepare_session не
+  считать degraded при наличии валидных load_now + Handoff секций (мягкий shape gate).
+  Приоритет: выяснить что сломалось относительно предыдущего состояния (T-HUB-029 path move /
+  T-HUB-044) и починить минимальным изменением — не ослаблять gate, а обновить _seed_context /
+  fixture. Outcome: test_prepare_builds_prompt_with_activecontext PASS (degraded=False).
+
+context:
+  consumes:
+    - loop/tests/test_context_loop.py   # _seed_context @ line 32; тест @ 427
+    - loop/context_loop.py              # prepare_session @ 1283; validate_active_context_shape
+    - loop/schemas/active_context.py    # validate_active_context_shape
+  produces:
+    - loop/tests/test_context_loop.py   # _seed_context обновлён с frontmatter (если это правка теста)
+    - loop/context_loop.py              # или patch prepare_session shape gate (если там bug)
+  plan_refs: [US-002, FR-002, SC-002, TM-002]
+  files:
+    - loop/tests/test_context_loop.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/tests/test_context_loop.py: _seed_context пишет AC без YAML frontmatter (## load_now / ## Handoff только)"
+  - "loop/context_loop.py: prepare_session считает degraded=True при validate_active_context_shape != []"
+  - "validate_active_context_shape требует frontmatter schema: loop-handoff/v1 (после T-HUB-022/T-HUB-041)"
+
+delta:
+  - "loop/tests/test_context_loop.py: _seed_context — добавить YAML frontmatter loop-handoff/v1 в activeContext fixture (mode: IMPLEMENT / role: INTEG / epic_id: x / step_id: e16)"
+  - "loop/context_loop.py: safe path check для epic_resolve.py в run_traceability_check_if_enabled"
+  - "harness/hooks/epic/core.py: project_handoff_from_reducer не переводит в AUDIT если decompose implement очередь не пуста"
+
+deletes: []
+
+out_of_scope:
+  - "Правка validate_active_context_shape — shape gate не ослаблять"
+  - "check_after тесты — в s03"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03
+
+checkpoints:
+  - id: cp1
+    criterion: "test_prepare_builds_prompt_with_activecontext PASS (degraded=False, ok=True)"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py::test_prepare_builds_prompt_with_activecontext"
+  - id: cp2
+    criterion: "test_prepare_promotes_analyze_to_implement_when_gate_passes PASS"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py::test_prepare_promotes_analyze_to_implement_when_gate_passes"
+  - id: cp3
+    criterion: "смежные prepare тесты не регрессировали (выборка)"
+    verify: ".venv/bin/pytest loop/tests/test_context_loop.py -k prepare"
+
+verify: []
+tdd:
+  - "loop/tests/test_context_loop.py::test_prepare_builds_prompt_with_activecontext"
+  - "loop/tests/test_context_loop.py::test_prepare_promotes_analyze_to_implement_when_gate_passes"

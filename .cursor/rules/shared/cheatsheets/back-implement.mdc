@@ -7,14 +7,18 @@ alwaysApply: false
 1. `load_now` → work shard `sNN` + `decompose-*/index.yaml` (AC = shard; не полный plan)
 2. graphify query codebase (cwd=repo root; hub без graph.json → inventory fallback)
 3. Read **Impl skills** из `sNN` целиком **до** prod-edit (docs-only: skip)
-4. TDD: red → code → `bin/pytest …` → green; выполнить все `deletes:`
-5. FINISH 5 точек: seed → flush cp → suite → evidence (`in_progress`) → validate-step → Handoff → `@verify` → PASS → `finalize-step`
+4. Replace step + `sunset_scope.required` → spawn `@sunset-inventory` → fenced JSON → new SoT
+5. TDD: red → code → `bin/pytest …` → green; выполнить все `deletes:`
+6. Boundary/SoT step → `wire_complete` green (call_sites + enforce DENY old + dual/instruction rg)
+7. FINISH 5 точек: seed → flush cp → suite → evidence (`in_progress`) → validate-step → Handoff → `@verify` → PASS → `finalize-step`
 
 → verify: @.cursor/rules/back_developer/workflow-implement.mdc
 → FINISH: @.cursor/rules/shared/finish-block.mdc
+→ wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9
 
 ## Execution discipline (GSD one-shard-one-session)
 
 - **One shard = one session:** `session_boundary` требует выполнять каждый шаг sNN в изоляции 1 шаг = 1 сессия. Запрещено переиспользовать чат (reuse chat) между шагами.
 - **EPIC_ATOMIC_COMMIT:** задается в `.claude/project.env`. Для хаба default: `EPIC_ATOMIC_COMMIT=0`, для продуктовых репозиториев рекомендуется выставлять `EPIC_ATOMIC_COMMIT=1` для атомарных git-коммитов на каждом шаге sNN.
+- **Анти-минимализм:** «модуль есть / optional call» ≠ done; sole SoT + DENY old или follow-up ID в queue.
 

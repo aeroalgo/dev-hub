@@ -1,0 +1,25 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-055-suite-green-board-sync
+source_md: index.md
+status_canon: index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - CLI UX copy
+  - extra board docs
+steps:
+- id: s01
+  file: s01-remove-steps-from-desired-upsert.yaml
+  title: Epic-only desired set — убрать step WorkItems из compute_ops upsert
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-fix-archive-apply-order-and-fakeclient.yaml
+  title: Step-era archive применяется до upsert — FakeClient и apply loop
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-legacy-fallback-purge.yaml
+  title: Purge step-upsert SoT leftovers — антидот step-era upsert pipeline
+  next_phase: BACK IMPLEMENT
+  status: completed

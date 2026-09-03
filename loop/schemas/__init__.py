@@ -20,6 +20,13 @@ from loop.schemas.formula import DecomposeFormula, FormulaStep, load_formula
 from loop.schemas.gate_verdict import GateVerdictRecord, GateVerdictValue
 from loop.schemas.handoff import LoopHandoffFrontmatter, LoopHandoffRole
 from loop.schemas.state import DriftCounters, EpicState
+from loop.schemas.sunset_inventory import (
+    SCHEMA_LOOP_SUNSET_INVENTORY,
+    SunsetItem,
+    SunsetKind,
+    SunsetMark,
+    SunsetReport,
+)
 
 __all__ = [
     "CHECKPOINT_ACTIONS",
@@ -39,6 +46,11 @@ __all__ = [
     "LoopEvent",
     "LoopHandoffFrontmatter",
     "LoopHandoffRole",
+    "SCHEMA_LOOP_SUNSET_INVENTORY",
+    "SunsetItem",
+    "SunsetKind",
+    "SunsetMark",
+    "SunsetReport",
     "load_formula",
     "handoff_mode_from_text",
     "parse_handoff_meta",

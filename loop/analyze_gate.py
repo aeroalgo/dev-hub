@@ -28,6 +28,21 @@ def index_content_fingerprint(index_path: Path) -> str | None:
     return f"sha256:{digest}"
 
 
+def canon_index_yaml_path(index_path: Path | None) -> Path | None:
+    """Fingerprint/mtime SoT is index.yaml when present (md is mirror only)."""
+    if index_path is None:
+        return None
+    path = Path(index_path)
+    if path.is_dir():
+        yaml = path / "index.yaml"
+        return yaml if yaml.is_file() else path
+    if path.name in {"index.md", "index.yml"}:
+        yaml = path.with_name("index.yaml")
+        if yaml.is_file():
+            return yaml
+    return path
+
+
 def latest_analyze_paths(project: Path, role: str, epic_id: str) -> list[Path]:
     import sys
 
@@ -150,46 +165,43 @@ def analyze_required_before_implement(
             "analyze_path": analyze_path.as_posix() if analyze_path else None,
         }
 
-    if (
-        index_path
-        and analyze_path
-        and index_path.is_file()
-        and analyze_path.is_file()
-    ):
-        stored_fp = str(payload.get("index_fingerprint") or "").strip()
-        current_fp = index_content_fingerprint(index_path)
-        if stored_fp and current_fp and stored_fp != current_fp:
-            return {
-                "required": True,
-                "reason": "analyze_stale",
-                "analyze_path": analyze_path.as_posix(),
-            }
+    if analyze_path and analyze_path.is_file() and index_path is not None:
+        fp_path = canon_index_yaml_path(Path(index_path))
+        if fp_path is not None and fp_path.is_file():
+            stored_fp = str(payload.get("index_fingerprint") or "").strip()
+            current_fp = index_content_fingerprint(fp_path)
+            if stored_fp and current_fp and stored_fp != current_fp:
+                return {
+                    "required": True,
+                    "reason": "analyze_stale",
+                    "analyze_path": analyze_path.as_posix(),
+                }
 
-        status = str(payload.get("status") or "").strip().lower()
-        if status and status not in {"complete", "completed", "done"}:
-            return {
-                "required": True,
-                "reason": "analyze_incomplete",
-                "analyze_path": analyze_path.as_posix(),
-            }
+            status = str(payload.get("status") or "").strip().lower()
+            if status and status not in {"complete", "completed", "done"}:
+                return {
+                    "required": True,
+                    "reason": "analyze_incomplete",
+                    "analyze_path": analyze_path.as_posix(),
+                }
 
-        if not analyze_index_structurally_aligned(payload, steps):
-            return {
-                "required": True,
-                "reason": "analyze_stale",
-                "analyze_path": analyze_path.as_posix(),
-            }
+            if not analyze_index_structurally_aligned(payload, steps):
+                return {
+                    "required": True,
+                    "reason": "analyze_stale",
+                    "analyze_path": analyze_path.as_posix(),
+                }
 
-        if (
-            not stored_fp
-            and index_path.stat().st_mtime > analyze_path.stat().st_mtime
-            and status not in {"complete", "completed", "done"}
-        ):
-            return {
-                "required": True,
-                "reason": "analyze_stale",
-                "analyze_path": analyze_path.as_posix(),
-            }
+            if (
+                not stored_fp
+                and fp_path.stat().st_mtime > analyze_path.stat().st_mtime
+                and status not in {"complete", "completed", "done"}
+            ):
+                return {
+                    "required": True,
+                    "reason": "analyze_stale",
+                    "analyze_path": analyze_path.as_posix(),
+                }
 
     return {
         "required": False,

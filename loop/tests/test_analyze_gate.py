@@ -102,3 +102,39 @@ def test_analyze_stale_when_step_refs_missing_from_index(tmp_path: Path) -> None
     )
     assert out["required"] is True
     assert out["reason"] == "analyze_stale"
+
+
+def test_analyze_pass_when_fingerprint_checked_via_index_md(tmp_path: Path) -> None:
+    """index.md path must fingerprint index.yaml SoT — not md bytes."""
+    gate = _load_gate()
+    yaml_body = (
+        "schema: epic-decompose-index/v1\nplan_id: T-Y\nsteps:\n"
+        "- id: s01\n  status: pending\n"
+    )
+    idx_yaml = _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-Y/index.yaml",
+        yaml_body,
+    )
+    idx_md = _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-T-Y/index.md",
+        "| step_id | status |\n| s01 | pending |\n",
+    )
+    fp = gate.index_content_fingerprint(idx_yaml)
+    _write(
+        tmp_path,
+        "memory-bank/back/analyze/T-Y/analyze-20260830-pass.yaml",
+        "schema: epic-analyze/v1\nstatus: complete\n"
+        f"index_fingerprint: {fp}\n"
+        "metrics:\n  critical_count: 0\n",
+    )
+    out = gate.analyze_required_before_implement(
+        tmp_path,
+        "back",
+        "T-Y",
+        [{"id": "s01", "status": "pending"}],
+        index_path=idx_md,
+    )
+    assert out["required"] is False, out
+    assert out["reason"] == "analyze_pass"

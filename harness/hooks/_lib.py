@@ -30,6 +30,7 @@ CUSTOM_OVERLAY = frozenset(
         "verify-qa",
         "reviewer",
         "explorer",
+        "sunset-inventory",
         "gate-repair",
     }
 )
@@ -103,6 +104,12 @@ CONTRACTS = {
         "FORBIDDEN: repo-wide rg/find/ls; Read/search вне ALLOW без явной ссылки in Цель/shard/plan. "
         "Не edit. Не Plan Mode — только file:line отчёт на русском. "
         "Без isolation=worktree."
+    ),
+    "sunset-inventory": (
+        "CONTRACT sunset-inventory: только чтение и as-built инвентаризация устаревшего кода в scope/ALLOW. "
+        "HARD: финальный ответ содержит fenced ```json loop-sunset-inventory/v1``` со списком items. "
+        "Правила: mark=REPLACE, excerpt≤40 строк. "
+        "FORBIDDEN: design/HOW предложения, dual-path, edit/write, Plan Mode. Без isolation=worktree."
     ),
     "gate-repair": (
         "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
@@ -752,7 +759,11 @@ def extract_json_fence(text: str) -> dict[str, Any] | None:
     if not isinstance(text, str):
         return None
     last: dict[str, Any] | None = None
-    for match in re.finditer(r"```json\s*\n(.*?)\n```", text, re.DOTALL):
+    for match in re.finditer(
+        r"```\s*json\s*\n(.*?)\n\s*```",
+        text,
+        re.DOTALL | re.IGNORECASE,
+    ):
         try:
             data = json.loads(match.group(1))
         except Exception:
@@ -778,13 +789,38 @@ def parse_gate_verdict_message(
 
     try:
         from loop.gate_verdict_store import write_gate_verdict
+        from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDICT
+
         verdict_val = data.get("verdict")
         if not verdict_val:
             return None
+
+        schema = str(data.get("schema") or data.get("schema_version") or "").strip()
+        if schema == SCHEMA_LOOP_GATE_VERDICT:
+            payload = dict(data)
+            payload.setdefault("agent_id", agent_id)
+            payload.setdefault("recorded_at", recorded_at)
+            record = GateVerdictRecord.model_validate(payload)
+            return write_gate_verdict(
+                cwd,
+                record.agent_id,
+                record.verdict,
+                step_id=record.step_id or step_id,
+                session_id=record.session_id or session_id,
+                epic_id=record.epic_id or epic_id,
+                recorded_at=record.recorded_at or recorded_at,
+                evidence_sha256=record.evidence_sha256,
+            )
+
         rec_step = data.get("step_id") or step_id
         rec_epic = data.get("epic_id") or epic_id
-        # Strict field check against known fields in GateVerdictRecord schema
-        allowed_keys = {"verdict", "step_id", "session_id", "epic_id", "evidence_sha256"}
+        allowed_keys = {
+            "verdict",
+            "step_id",
+            "session_id",
+            "epic_id",
+            "evidence_sha256",
+        }
         if not set(data.keys()).issubset(allowed_keys):
             return None
         return write_gate_verdict(
@@ -1024,11 +1060,97 @@ def agent_model_pin(norm: str | None, project_dir: str | Path | None = None) -> 
     return agent_model_from_project_env(norm, project_dir)
 
 
+TOOL_NAME_ALIASES: dict[str, str] = {
+    "bash": "Bash",
+    "shell": "Bash",
+    "bash_20241022": "Bash",
+    "bash_20250124": "Bash",
+    "bash_tool": "Bash",
+    "agent": "Agent",
+    "task": "Task",
+    "taskcreate": "TaskCreate",
+    "todowrite": "TodoWrite",
+    "todoread": "TodoRead",
+    "read": "Read",
+    "write": "Write",
+    "edit": "Edit",
+    "multiedit": "MultiEdit",
+    "notebookedit": "NotebookEdit",
+    "glob": "Glob",
+    "grep": "Grep",
+    "skill": "Skill",
+    "webfetch": "WebFetch",
+    "websearch": "WebSearch",
+    "askquestion": "AskQuestion",
+    "enterplanmode": "EnterPlanMode",
+    "exitplanmode": "ExitPlanMode",
+}
+
+_KNOWN_CANONICAL_TOOLS: frozenset[str] = frozenset(
+    set(TOOL_NAME_ALIASES.values())
+    | {
+        "Bash",
+        "Agent",
+        "Task",
+        "TaskCreate",
+        "TodoWrite",
+        "TodoRead",
+        "Read",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "NotebookEdit",
+        "Glob",
+        "Grep",
+        "Skill",
+        "WebFetch",
+        "WebSearch",
+        "AskQuestion",
+        "EnterPlanMode",
+        "ExitPlanMode",
+        "EnterWorktree",
+        "ExitWorktree",
+        "ScheduleWakeup",
+        "SendMessage",
+        "TaskOutput",
+        "TaskStop",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "Workflow",
+    }
+)
+
+
+def normalize_tool_name(raw: str | None) -> str:
+    """Normalize tool_name casing and aliases fail-closed."""
+    if not raw or not str(raw).strip():
+        return ""
+    stripped = str(raw).strip()
+    # Check exact canonical match
+    if stripped in _KNOWN_CANONICAL_TOOLS:
+        return stripped
+    # Check alias / lowercase map
+    lower = stripped.lower()
+    if lower in TOOL_NAME_ALIASES:
+        return TOOL_NAME_ALIASES[lower]
+    # Check case-insensitive against canonical tools
+    for canon in _KNOWN_CANONICAL_TOOLS:
+        if canon.lower() == lower:
+            return canon
+    import logging
+    logging.getLogger("harness.hooks").warning("unknown tool_name: %s", raw)
+    return stripped
+
+
 def read_stdin() -> dict[str, Any]:
     raw = sys.stdin.read()
     if not raw.strip():
         return {}
-    return json.loads(raw)
+    data = json.loads(raw)
+    if isinstance(data, dict) and "tool_name" in data and isinstance(data["tool_name"], str):
+        data["tool_name"] = normalize_tool_name(data["tool_name"])
+    return data
 
 
 def emit(obj: dict[str, Any]) -> None:
@@ -1789,6 +1911,103 @@ def extract_repair_result(text: str | None) -> dict[str, Any] | None:
             "recorded_at": utc_now(),
         }
     return None
+
+
+def is_schema_error(codes: list[str] | None) -> bool:
+    """True if any error code belongs to the schema error taxonomy (prefix schema_)."""
+    if not codes:
+        return False
+    return any(isinstance(c, str) and c.startswith("schema_") for c in codes)
+
+
+def is_semantic_error(codes: list[str] | None) -> bool:
+    """True if any error code belongs to the semantic error taxonomy (prefix semantic_)."""
+    if not codes:
+        return False
+    return any(isinstance(c, str) and c.startswith("semantic_") for c in codes)
+
+
+def last_verdict_was_fail(cwd: str | Path | None = None, session_id: str | None = None) -> bool:
+    """Return True if the last recorded gate verdict in spawn state or sidecar was FAIL."""
+    if session_id and cwd:
+        st = load_state(session_id, str(cwd))
+        verdict = str(st.get("verify_verdict") or "").upper()
+        if st.get("verify_done") and verdict == "FAIL":
+            return True
+    if cwd:
+        try:
+            import sys
+            from pathlib import Path
+
+            loop_root = Path(__file__).resolve().parents[2]
+            if loop_root.is_dir() and str(loop_root) not in sys.path:
+                sys.path.insert(0, str(loop_root))
+            from loop.gate_verdict_store import read_gate_verdict
+
+            record = read_gate_verdict(cwd, "verify")
+            if record is not None and str(record.verdict).upper() == "FAIL":
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _schema_retry_key(tool_use_id: str, session_id: str | None = None) -> str:
+    tid = str(tool_use_id or "").strip()
+    sid = str(session_id or "").strip()
+    if tid and sid and not tid.startswith(f"{sid}:"):
+        return f"{sid}:{tid}"
+    return tid or sid or "default"
+
+
+def get_schema_retry_count(
+    cwd: str | Path, tool_use_id: str, session_id: str | None = None
+) -> int:
+    """Get same-agent schema-retry count for tool_use_id + session_id from epic state."""
+    from epic.core import load_epic_state
+
+    st = load_epic_state(cwd)
+    counters = st.get("schema_retry_counts") or {}
+    key = _schema_retry_key(tool_use_id, session_id)
+    val = counters.get(key)
+    if val is None:
+        val = counters.get(tool_use_id, 0)
+    return int(val)
+
+
+def clear_schema_retry_count(
+    cwd: str | Path, tool_use_id: str, session_id: str | None = None
+) -> None:
+    """Clear same-agent schema-retry count for tool_use_id + session_id in epic state."""
+    from epic.core import load_epic_state, save_epic_state
+
+    st = load_epic_state(cwd)
+    counters = dict(st.get("schema_retry_counts") or {})
+    key = _schema_retry_key(tool_use_id, session_id)
+    counters.pop(key, None)
+    counters.pop(tool_use_id, None)
+    st["schema_retry_counts"] = counters
+    save_epic_state(cwd, st)
+
+
+def increment_schema_retry_count(
+    cwd: str | Path, tool_use_id: str, session_id: str | None = None
+) -> int:
+    """Increment and save same-agent schema-retry count for tool_use_id + session_id in epic state."""
+    from epic.core import load_epic_state, save_epic_state
+
+    st = load_epic_state(cwd)
+    counters = dict(st.get("schema_retry_counts") or {})
+    key = _schema_retry_key(tool_use_id, session_id)
+    prev = counters.get(key)
+    if prev is None:
+        prev = counters.get(tool_use_id, 0)
+    count = int(prev) + 1
+    counters[key] = count
+    counters[tool_use_id] = count
+    st["schema_retry_counts"] = counters
+    save_epic_state(cwd, st)
+    return count
 
 
 # implement step under implement/implement-<id>/(e|s)NN-*.yaml

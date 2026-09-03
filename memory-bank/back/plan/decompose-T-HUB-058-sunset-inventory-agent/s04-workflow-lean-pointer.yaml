@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-058-sunset-inventory-agent
+title: "Lean IMPLEMENT + behavior-first + spec-first: spawn sunset-inventory как обязательный gate на required scope"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Вписать spawn `@sunset-inventory` как обязательный gate в workflow rules: lean implement mdc
+  (brownfield replace с `sunset_scope.required: true` → FINISH заблокирован без report evidence),
+  behavior-first mdc (pointer §3–§4 inventory executor), spec-first-replace mdc (pointer before
+  prod Write нового SoT), cheatsheet back-implement.mdc (one-liner). После шага parent на replace
+  step не может написать новый SoT не получив JSON inventory — process contamination исключена.
+  Связь с FR-008, FR-009, AC+4, AC−4, SC-004, TM-005, US-003.
+
+context:
+  consumes:
+    - "plan §FR-008/009, §AC+4, §AC−4, §SC-004"
+    - ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc — as-built"
+    - ".cursor/rules/shared/workflow-behavior-first.mdc — as-built"
+    - ".cursor/rules/shared/workflow-spec-first-replace.mdc — as-built"
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc — as-built"
+  produces:
+    - ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc — edit: sunset spawn gate"
+    - ".cursor/rules/shared/workflow-behavior-first.mdc — edit: pointer inventory executor §3"
+    - ".cursor/rules/shared/workflow-spec-first-replace.mdc — edit: pointer before prod Write"
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc — edit: one-liner sunset spawn"
+  plan_refs:
+    - "FR-008"
+    - "FR-009"
+    - "SC-004"
+    - "US-003"
+  files:
+    - ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc"
+    - ".cursor/rules/shared/workflow-behavior-first.mdc"
+    - ".cursor/rules/shared/workflow-spec-first-replace.mdc"
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc"
+
+as_built:
+  - ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc — нет упоминания sunset-inventory"
+  - ".cursor/rules/shared/workflow-behavior-first.mdc — §3–§4 inventory executor = parent (contamination)"
+  - ".cursor/rules/shared/workflow-spec-first-replace.mdc — нет spawn gate перед prod Write"
+  - ".cursor/rules/shared/cheatsheets/back-implement.mdc — нет one-liner sunset"
+
+delta:
+  - "edit: lean/implement.mdc — добавить блок: если shard.sunset_scope.required=true → spawn @sunset-inventory с allow_read из scope → await JSON fence loop-sunset-inventory/v1 → attach as evidence → только после PASS → prod Write нового SoT; без report = FINISH DENIED"
+  - "edit: workflow-behavior-first.mdc §3 — заменить 'parent читает as-built' на 'parent spawns @sunset-inventory → получает JSON REPLACE inventory → проектирует SoT по marks, не по тексту'"
+  - "edit: workflow-spec-first-replace.mdc — добавить pointer: before first prod Write on replace FR → spawn sunset-inventory if sunset_scope present"
+  - "edit: cheatsheets/back-implement.mdc — one-liner: 'replace step + sunset_scope.required → @sunset-inventory → JSON → new SoT'"
+
+deletes: []
+# Kind I instruction surfaces удаляются в s06-legacy-fallback-purge (финальный purge)
+
+out_of_scope:
+  - "Kind I purge старых инструкций — s06"
+  - "Cursor Task enum — s05"
+  - "Schema/agent — s01/s02"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only edits (mdc rules, no Python code)
+
+checkpoints:
+  - id: cp1
+    criterion: "lean/implement.mdc содержит sunset-inventory spawn gate"
+    verify: "rg 'sunset-inventory' .cursor/rules/back_developer/isolation_rules/_lean/implement.mdc"
+  - id: cp2
+    criterion: "workflow-behavior-first.mdc §3 упоминает spawn sunset-inventory inventory executor"
+    verify: "rg 'sunset-inventory' .cursor/rules/shared/workflow-behavior-first.mdc"
+  - id: cp3
+    criterion: "workflow-spec-first-replace.mdc содержит pointer sunset spawn"
+    verify: "rg 'sunset-inventory' .cursor/rules/shared/workflow-spec-first-replace.mdc"
+  - id: cp4
+    criterion: "cheatsheets/back-implement.mdc содержит one-liner sunset"
+    verify: "rg 'sunset-inventory' .cursor/rules/shared/cheatsheets/back-implement.mdc"
+
+verify: []
+tdd: []

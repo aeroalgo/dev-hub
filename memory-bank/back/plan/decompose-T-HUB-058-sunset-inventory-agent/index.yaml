@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-058-sunset-inventory-agent
+role: back
+date: '2026-09-03'
+steps:
+- id: s01
+  file: s01-pydantic-schema.yaml
+  title: Pydantic schema loop-sunset-inventory/v1 + unit tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-agent-registry.yaml
+  title: Agent card + DSH preset + manifest + registry alias sunset→sunset-inventory
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-decompose-template-scope.yaml
+  title: sunset_scope field в decompose template epic-step.yaml
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-workflow-lean-pointer.yaml
+  title: 'Lean IMPLEMENT + behavior-first + spec-first: spawn sunset-inventory gate'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cursor-task-sync.yaml
+  title: 'Cursor/Task spawn documentation: subagent_type=sunset-inventory'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: legacy-fallback-purge — Kind A/B/C/I остаток + instruction rewrites
+  next_phase: BACK IMPLEMENT
+  status: completed

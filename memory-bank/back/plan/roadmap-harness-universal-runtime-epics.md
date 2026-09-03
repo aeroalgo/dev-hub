@@ -20,7 +20,7 @@
 | 4 | T-HUB-044 | [plan-T-HUB-044-runtime-sync-doctor-docs.md](plan-T-HUB-044-runtime-sync-doctor-docs.md) | hub-link, doctor, README/runbook | operator docs; preflight checks | new runtime beyond codex |
 | 4b | T-HUB-053 | [plan-T-HUB-053-codex-claude-hooks-parity.md](plan-T-HUB-053-codex-claude-hooks-parity.md) | Codex ≡ Claude hooks/agents/gates full parity | SessionStart, SubagentStart, PostToolUse Bash cap, matchers, doctor matrix | Cursor IDE Codex; DSH Gap A |
 
-> **Queue note:** T-HUB-053 ставится **после T-HUB-045** (mb-load/session inject done) и после 044 в universal-runtime line; soft deps: 044, 045, 021.
+> **Queue note:** T-HUB-053 ставится **после T-HUB-057** и **T-HUB-058** (session JSON contract → sunset-inventory agent → Codex parity); soft deps: 044, 021.
 
 ---
 
@@ -59,8 +59,9 @@ flowchart TB
 | T-HUB-042 | T-HUB-043 | hard | codex adapter plugs into registry |
 | T-HUB-043 | T-HUB-044 | hard | docs describe shipped surface |
 | T-HUB-043 | T-HUB-053 | hard | parity extends generated hooks / bridge from 043 |
+| T-HUB-057 | T-HUB-053 | hard | session mb-load/finish + JSON gate contract до Codex parity |
+| T-HUB-058 | T-HUB-053 | hard | sunset-inventory agent materialize до Codex parity |
 | T-HUB-044 | T-HUB-053 | soft | runbook/doctor surface to extend |
-| T-HUB-045 | T-HUB-053 | soft | SessionStart inject / mb-load path |
 | T-HUB-021 | T-HUB-053 | soft | bash-output-cap structured LLM path |
 | T-HUB-039 | T-HUB-043 | soft | materializer needs verify-* agent files on disk |
 | T-HUB-016 | T-HUB-043 | soft | DSH bridge pattern reuse for codex hooks |

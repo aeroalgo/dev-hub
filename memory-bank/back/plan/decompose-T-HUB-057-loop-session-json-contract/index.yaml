@@ -1,0 +1,48 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-057-loop-session-json-contract
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-inventory-gaps-registry-draft.yaml
+  title: Inventory as-built gaps vs FR — registry schema map draft
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-session-start-mb-load-primary.yaml
+  title: 'B-START: mb-load primary SoT + prepare wiring — session start canonical
+    path'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-validate-boundary-schema-retry.yaml
+  title: validate_boundary unified helper + schema-retry gate/repair + pre-emit CLI
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-semantic-fail-repair-taxonomy.yaml
+  title: Semantic FAIL → repair path + error taxonomy enforcement in pretool/stop
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-mb-finish-next-arm-anti-loop.yaml
+  title: mb-finish-result/v1 typed next_* + arm anti-loop guard next≠finished
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-stop-gate-finish-fingerprint-need-human.yaml
+  title: stop-gate last_finish_tool fingerprint + NEED_HUMAN schema exhausted escalation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-pytest-tm-matrix.yaml
+  title: pytest TM-001…011 suite — full coverage schema-retry, taxonomy, anti-loop,
+    load, finish
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-prose-path-legacy-fallback-purge.yaml
+  title: Purge prose START/FINISH instructions + dual-checker sunset — legacy fallback
+    purge
+  next_phase: BACK IMPLEMENT
+  status: completed

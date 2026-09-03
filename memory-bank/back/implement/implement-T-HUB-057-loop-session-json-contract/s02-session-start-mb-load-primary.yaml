@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-057-loop-session-json-contract
+title: 's02 — B-START: mb-load primary SoT + prepare wiring — session start canonical
+  path IMPLEMENT'
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-057-loop-session-json-contract/s02-session-start-mb-load-primary.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Внедрен вызов load_session() в loop/context_loop.py prepare_session() как канонический
+  первичный machine entry point
+- Добавлен fail-closed halt с diagnostic_codes и shape_errors при MbLoadResult.ok=False
+- Покрыты тестами TM-001 (load ok), TM-002 (missing shard diagnostic) и prepare primary
+  fail-closed в loop/tests/test_mb_load_session.py
+files:
+- loop/mb_load/session.py
+- loop/context_loop.py
+- loop/tests/test_mb_load_session.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=short
+integration_check:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=short
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=short — 9 passed
+checkpoints:
+- id: cp1
+  criterion: 'prepare calls load_session() and on MbLoadResult.ok=False stops with
+    diagnostic; test asserts prepare does NOT continue when shape is invalid
+
+    '
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp2
+  criterion: 'TM-001 mb-load ok path passes; TM-002 missing shard diagnostic halt
+
+    '
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+- id: cp3
+  criterion: rg confirms load_session import in context_loop.py prepare path
+  status: done
+  done_at: '2026-09-03T12:00:00Z'
+resume_from: cp1

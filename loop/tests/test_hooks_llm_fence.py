@@ -53,7 +53,70 @@ def test_parse_gate_verdict_message_invalid_payload(tmp_path):
     rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
     assert rec is None
 
+def test_parse_gate_verdict_message_canonical_loop_gate_verdict(tmp_path):
+    text = """
+```json
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "verify-implement",
+  "verdict": "PASS",
+  "step_id": "s03",
+  "epic_id": "T-HUB-055",
+  "recorded_at": "2026-09-03T00:00:00Z"
+}
+```
+"""
+    rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    assert rec is not None
+    assert rec.verdict == "PASS"
+    assert rec.step_id == "s03"
+    assert rec.epic_id == "T-HUB-055"
+
+
 def test_parse_gate_verdict_message_no_fence_returns_none(tmp_path):
     text = "VERDICT: PASS"
     rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
     assert rec is None
+
+
+def test_agent_pretool_denies_repair_without_fail(tmp_path):
+    """TM-006: repair without prior FAIL is denied with semantic_repair_without_fail code."""
+    import json
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    agent_pretool = root / ".claude" / "hooks" / "agent-pretool.py"
+    agents = tmp_path / ".claude" / "agents"
+    agents.mkdir(parents=True, exist_ok=True)
+    (agents / "gate-repair.md").write_text("---\nname: gate-repair\noverlay:\n  managed: true\n---\n", encoding="utf-8")
+    env_path = tmp_path / ".claude" / "project.env"
+    env_path.write_text("PROJECT_WORKFLOW_HOOKS=loop\nPROJECT_AGENT_GATE_REPAIR_MODEL=sonnet\n", encoding="utf-8")
+
+    payload = {
+        "tool_name": "Agent",
+        "session_id": "test-repair-without-fail",
+        "cwd": str(tmp_path),
+        "tool_input": {
+            "subagent_type": "gate-repair",
+            "prompt": "BLOCKERS: fix x\nALLOW WRITE:\n1. foo.py\nVERIFY:\n- pytest\n",
+        },
+    }
+    env = os.environ.copy()
+    env["EPIC_LOOP"] = "1"
+    proc = subprocess.run(
+        [sys.executable, str(agent_pretool)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        env=env,
+        check=False,
+    )
+    assert proc.returncode == 0
+    out = json.loads(proc.stdout)
+    assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
+    reason = out.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+    assert "semantic_repair_without_fail" in reason

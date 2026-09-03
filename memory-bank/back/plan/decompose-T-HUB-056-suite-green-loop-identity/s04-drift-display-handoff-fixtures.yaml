@@ -1,0 +1,63 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "drift display — status() возвращает drift_counters при валидном handoff shape"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  test_status_shows_drift_when_nonzero: status(tmp_path) должен вернуть 'drift_counters' в результате,
+  но сейчас возвращает shape_errors=['missing_handoff_frontmatter', 'missing_handoff'] вместо
+  drift_counters — потому что тест пишет AC без frontmatter (только ## load_now).
+  Фикс: тест должен писать корректный AC с frontmatter loop-handoff/v1 (или status() должен
+  читать drift_counters из state.json при valid shape). Обе ветки одновременно:
+  (1) fixture в тесте — добавить frontmatter; (2) status() — добавить 'drift_counters' в
+  возвращаемый dict из state.json (nonzero drift_counters из state).
+  Outcome: test_status_shows_drift_when_nonzero PASS (drift_counters присутствует и == {index_mirror_repair: 2}).
+
+context:
+  consumes:
+    - loop/tests/test_drift_display.py  # тест @ line 31; пишет state.json с drift_counters
+    - loop/context_loop.py              # status() @ 2706 — не возвращает drift_counters
+  produces:
+    - loop/tests/test_drift_display.py  # fixture с frontmatter
+    - loop/context_loop.py              # status() добавляет drift_counters из state.json (nonzero only)
+  plan_refs: [US-003, FR-004, SC-004, TM-004]
+  files:
+    - loop/tests/test_drift_display.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py: status() не включает drift_counters в ответ (отсутствует ключ)"
+  - "loop/tests/test_drift_display.py: fixture пишет AC без frontmatter → shape_errors блокируют"
+  - "state.json schema-loop-state/v2 содержит drift_counters dict"
+
+delta:
+  - "loop/tests/test_drift_display.py: _write(..., activeContext.md) добавить YAML frontmatter loop-handoff/v1"
+  - "loop/context_loop.py: status() читать st.get('drift_counters') из load_epic_state; фильтровать 0-values; добавить в return dict как 'drift_counters' если nonzero"
+
+deletes: []
+
+out_of_scope:
+  - "test_status_no_drift_when_zero — должен по-прежнему не иметь drift_counters в ответе"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03
+
+checkpoints:
+  - id: cp1
+    criterion: "test_status_shows_drift_when_nonzero → 'drift_counters' в res и res['drift_counters'] == {'index_mirror_repair': 2}"
+    verify: "bin/pytest loop/tests/test_drift_display.py::test_status_shows_drift_when_nonzero -q --tb=short"
+  - id: cp2
+    criterion: "test_status_no_drift_when_zero → 'drift_counters' отсутствует в res"
+    verify: "bin/pytest loop/tests/test_drift_display.py::test_status_no_drift_when_zero -q --tb=short"
+  - id: cp3
+    criterion: "shape_errors по-прежнему присутствуют при невалидном AC (AC− тест-guard)"
+    verify: "rg 'shape_errors' loop/context_loop.py | grep 'validate_active_context_shape'"
+
+verify: []
+tdd:
+  - "loop/tests/test_drift_display.py::test_status_shows_drift_when_nonzero"

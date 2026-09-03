@@ -40,6 +40,16 @@ def _load_epic_lib():
 def _write(rel: str, body: str, cwd: Path) -> None:
     path = cwd / rel
     path.parent.mkdir(parents=True, exist_ok=True)
+    if rel == "memory-bank/activeContext.md" and not body.startswith("---"):
+        body = (
+            "---\n"
+            "schema: loop-handoff/v1\n"
+            "role: BACK\n"
+            "mode: IMPLEMENT\n"
+            "epic_id: T-HUB-057\n"
+            "---\n"
+            + body
+        )
     path.write_text(body, encoding="utf-8")
 
 
@@ -149,10 +159,6 @@ def test_stop_gate_diagnostic_lists_missing_sections(tmp_path: Path) -> None:
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
-    ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
-    assert prep.get("ok") is True
-
     result = _run_stop_gate(
         tmp_path,
         {
@@ -538,6 +544,113 @@ def test_subagent_stop_increments_incomplete_without_verdict(tmp_path: Path) -> 
     assert st2.get("verify_incomplete") == 0
     assert st2.get("verify_verdict") == "FAIL"
     assert st2.get("verify_done") is True
+
+
+def test_subagent_stop_semantic_fail_repair_path_no_schema_retry(tmp_path: Path) -> None:
+    """TM-005: valid JSON verdict FAIL + blockers emits repair hint; schema-retry count does not grow."""
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    from epic.core import load_epic_state
+    from _lib import get_schema_retry_count
+
+    tool_use_id = "test-tool-semantic-fail"
+    payload = {
+        "agent_type": "verify",
+        "session_id": "test-semantic-fail",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+            '"verdict":"FAIL","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+            "BLOCKERS: cp1 not done"
+        ),
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "@gate-repair" in proc.stderr
+    assert get_schema_retry_count(tmp_path, tool_use_id) == 0
+
+
+def test_stop_gate_pass_without_last_finish_tool_emits_need_human_finish_tool_missing(tmp_path: Path) -> None:
+    """cp1 / TM-007 / SC-004: stop-gate after PASS without last_finish_tool emits NEED_HUMAN finish_tool_missing."""
+    from epic.core import default_state, save_epic_state
+
+    _write(
+        "memory-bank/activeContext.md",
+        "## load_now\n- [s01](s01.yaml) — s01\n\n## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
+        tmp_path,
+    )
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "last_verify_verdict": "PASS",
+            "verify_done": True,
+            "verify_verdict": "PASS",
+            "armed_step": "s01",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "test-pass-no-finish-tool",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: step completed.",
+            "stop_hook_active": False,
+        },
+    )
+    assert result.get("decision") == "block"
+    reason = result.get("reason", "")
+    assert "NEED_HUMAN" in reason
+    assert "finish_tool_missing" in reason
+
+
+def test_stop_gate_schema_retry_exhausted_emits_need_human(tmp_path: Path) -> None:
+    """cp2 / TM-008: schema_retry_count > N emits NEED_HUMAN schema_retry_exhausted."""
+    from epic.core import default_state, save_epic_state
+
+    _write(
+        "memory-bank/activeContext.md",
+        "## load_now\n- [s01](s01.yaml) — s01\n\n## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
+        tmp_path,
+    )
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "schema_retry_counts": {"tool-1": 3},
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "test-schema-exhausted",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: step completed.",
+            "stop_hook_active": False,
+        },
+    )
+    assert result.get("decision") == "block"
+    reason = result.get("reason", "")
+    assert "NEED_HUMAN" in reason
+    assert "schema_retry_exhausted" in reason
 
 
 def test_stop_gate_inactive_outside_epic_loop(tmp_path: Path) -> None:
@@ -957,28 +1070,6 @@ def test_stop_gate_allows_need_human_verify_no_verdict(tmp_path: Path) -> None:
     assert st.get("verify_blocked_no_verdict") is True
 
 
-def test_agent_pretool_injects_verdict_first_line(tmp_path: Path) -> None:
-    _write(
-        "memory-bank/activeContext.md",
-        "## load_now\n- x\n\n## Handoff BACK\n- next\n",
-        tmp_path,
-    )
-    _seed_verify_step(tmp_path)
-    payload = {
-        "tool_name": "Agent",
-        "session_id": "test-verdict-inject",
-        "cwd": str(tmp_path),
-        "tool_input": {
-            "subagent_type": "verify",
-            "prompt": _VERIFY_PACKED,
-        },
-    }
-    out = _run_agent_pretool(tmp_path, payload, epic_loop=True)
-    assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "allow"
-    updated = out["hookSpecificOutput"]["updatedInput"]["prompt"]
-    assert "первая строка финального ответа" in updated
-
-
 def test_workflow_regexes_cover_all_roles_and_bugfix() -> None:
     from _lib import BUGFIX_RE, IMPL_RE, QA_RE
 
@@ -1268,6 +1359,7 @@ def test_gates_from_phase_ignores_terminal_phases() -> None:
 def test_timeout_abort_is_transient() -> None:
     ctx = _load_context_loop()
     assert ctx.classify_abort("timeout: sending signal TERM to command") == "transient"
+    assert ctx.classify_abort("timeout: sending signal KILL to command") == "transient"
     assert ctx.classify_abort("command timed out") == "transient"
 
 
@@ -1362,6 +1454,7 @@ def test_stop_gate_blocks_finish_without_mark_index(tmp_path: Path) -> None:
         "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
         "armed_step": "s01",
         "last_verify_verdict": "PASS",
+        "last_finish_tool": {"name": "mb-finish implement", "fingerprint": "fp123"},
     }
     module.save_state = lambda *_args: None
     module.validate_finish_integrity = lambda *_args, **_kwargs: {

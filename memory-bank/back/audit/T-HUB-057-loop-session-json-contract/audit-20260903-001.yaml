@@ -1,0 +1,17 @@
+schema: epic-audit/v1
+epic_id: T-HUB-057-loop-session-json-contract
+date: "2026-09-03"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/plan-T-HUB-057-loop-session-json-contract.md
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-057-loop-session-json-contract/index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements FR-001 through FR-014 of T-HUB-057 are fully implemented and verified.
+  All decompose steps s01 through s08 are marked completed in index.yaml.
+  Machine boundaries B-START, B-GATE, B-REPAIR, B-FINISH, and B-ARM operate under strict
+  schema validation and anti-loop guards.

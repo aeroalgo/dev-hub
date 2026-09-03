@@ -1,0 +1,45 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-056-suite-green-loop-identity
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-epic-transition-plan-stem-resolve.yaml
+  next_phase: BACK IMPLEMENT
+  title: s01-epic-transition-plan-stem-resolve
+  status: completed
+- id: s02
+  file: s02-context-loop-fixtures-promote-path.yaml
+  next_phase: BACK IMPLEMENT
+  title: s02-context-loop-fixtures-promote-path
+  status: completed
+- id: s03
+  file: s03-context-loop-check-after-remaining.yaml
+  next_phase: BACK IMPLEMENT
+  title: s03-context-loop-check-after-remaining
+  status: completed
+- id: s04
+  file: s04-drift-display-handoff-fixtures.yaml
+  next_phase: BACK IMPLEMENT
+  title: s04-drift-display-handoff-fixtures
+  status: completed
+- id: s05
+  file: s05-incidents-doctor-t-hub-044-align.yaml
+  next_phase: BACK IMPLEMENT
+  title: s05-incidents-doctor-t-hub-044-align
+  status: completed
+- id: s06
+  file: s06-episode-wire-check-after-finalize.yaml
+  next_phase: BACK IMPLEMENT
+  title: s06-episode-wire-check-after-finalize
+  status: completed
+- id: s07
+  file: s07-full-suite-green-gate.yaml
+  next_phase: BACK IMPLEMENT
+  title: s07-full-suite-green-gate
+  status: completed
+- id: s08
+  file: s08-legacy-fallback-purge.yaml
+  next_phase: BACK IMPLEMENT
+  title: s08-legacy-fallback-purge
+  status: completed

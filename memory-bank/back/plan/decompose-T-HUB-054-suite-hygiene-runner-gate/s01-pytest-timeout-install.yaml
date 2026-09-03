@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: pytest-timeout plugin installed and active — no PytestConfigWarning
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Установить pytest-timeout как реальную зависимость и активировать item-timeout в pytest.ini,
+  чтобы зависший тест убивался по истечении item-timeout, а не блокировал весь suite.
+  Закрывает FR-001 / US-001 / SC-001 / TM-001: нет PytestConfigWarning Unknown config option timeout.
+
+context:
+  consumes:
+    - requirements-dev.txt
+    - pytest.ini
+    - bin/pytest
+  produces:
+    - pytest.ini
+  plan_refs:
+    - FR-001
+    - US-001
+    - SC-001
+    - TM-001
+    - "AC #1"
+  files:
+    - pytest.ini
+    - requirements-dev.txt
+
+as_built:
+  - "requirements-dev.txt: pytest-timeout>=2.3.0 присутствует; plugin установлен (.venv v2.4.0)"
+  - "pytest.ini: секция [pytest] пуста — опция timeout не задана → PytestConfigWarning Unknown config option"
+
+delta:
+  - "pytest.ini: добавить timeout = 120 (item-level; 300s process-level в bin/pytest уже есть)"
+  - "requirements-dev.txt: pin >=2.3.0 уже есть — проверить, не трогать если корректен"
+
+deletes:
+  - "pytest.ini [pytest] empty-timeout false-protection state — заменяется реальным timeout = 120"
+
+out_of_scope:
+  - "bin/pytest process-timeout 300s — уже есть; не трогать"
+  - "hang-smoke тест — cut_list, не создавать"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "pytest-timeout plugin подхватывается при запуске"
+    verify: "bin/pytest --help 2>&1 | rg 'timeout'"
+  - id: cp2
+    criterion: "нет PytestConfigWarning Unknown config option timeout"
+    verify: "bin/pytest loop/tests/test_gate_structured_purge.py -q 2>&1 | rg 'PytestConfigWarning' | wc -l"
+  - id: cp3
+    criterion: "SC-001 — suite run без Unknown config option: timeout"
+    verify: "bin/pytest -q --tb=no 2>&1 | rg 'Unknown config option: timeout' | wc -l"
+
+verify:
+  - "bin/pytest --help | rg timeout"
+  - "bin/pytest loop/tests/ -q --tb=no 2>&1 | tail -3"
+
+tdd:
+  - "TM-001: bin/pytest --help | rg timeout → вывод содержит timeout option"

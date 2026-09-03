@@ -63,6 +63,15 @@ sunset_inventory_scan:
       notes: ""
 legacy_surfaces_remaining: []   # каждый scan row result:fail + prod callers; shim без follow-up in queue
 fallback_remaining: []          # kind C scan fails
+instruction_remaining: []       # kind I scan fails
 purge_step_present: true        # false только если sunset весь n/a (greenfield)
+# Boundary FR: sole SoT enforce (shared/workflow-legacy-fallback-cleanup.mdc §4–§5)
+sot_enforce_scan:
+  scanned_at: YYYY-MM-DD
+  rows:
+    - boundary: <boundary-id>
+      enforce_evidence: 'rg / test command…'
+      result: pass | fail
+      notes: ""
 
 blocked_reason: ""  # заполнить если blocked, иначе пусто

@@ -1,0 +1,59 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-058-sunset-inventory-agent
+title: "Cursor/Task spawn documentation: subagent_type=sunset-inventory в Cursor mirror или enum sync"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить Cursor path для spawn sunset-inventory: проверить где Cursor читает subagent_type enum
+  (harness materialize → .cursor/agents/ или статичный список в rules), добавить документацию
+  spawn `subagent_type=sunset-inventory` в Cursor-facing rule/agent doc. После шага Cursor Task
+  может spawn sunset-inventory через известный type без «invalid subagent_type» ошибки.
+  Связь с FR-011, US-004, §Plan Cursor row.
+
+context:
+  consumes:
+    - "harness/manifest.yaml — as-built, проверить Cursor materialize path"
+    - "harness/agents/sunset-inventory.md (s02 produces)"
+    - "plan §FR-011, §Review batch Cursor row"
+  produces:
+    - ".cursor/agents/sunset-inventory.md или аналог — Cursor mirror (если materialize из manifest)"
+    - "или: edit rules/spawn doc с explicit subagent_type=sunset-inventory"
+  plan_refs:
+    - "FR-011"
+  files:
+    - "harness/manifest.yaml"
+    - ".cursor/agents/sunset-inventory.md"
+
+as_built:
+  - "harness/manifest.yaml materialize: explorer.md → .claude/agents/explorer.md + .codex/agents/explorer.toml; нет .cursor/agents/"
+  - ".cursor/agents/ — отсутствует (Cursor читает .claude/agents/ или .cursor/rules/)"
+  - "manifest copy_to path для Cursor не установлен; Cursor spawn через subagent_type=<name>"
+
+delta:
+  - "edit: harness/manifest.yaml — добавить Cursor mirror path для sunset-inventory если manifest поддерживает (copy_to: .cursor/agents/sunset-inventory.md); иначе edit rules/spawn-hard.md с doc entry"
+  - "verify: rg materialize pattern → если .cursor/agents/ не поддерживается manifest, добавить explicit doc в .claude/instructions/spawn-hard.md или Cursor-facing rule"
+
+deletes: []
+
+out_of_scope:
+  - "Полная Codex parity behavior (→ T-HUB-053)"
+  - "Изменение Cursor enum источника если не в manifest — follow-up 053"
+
+skills:
+  code_surface: infra
+  impl: []
+  # docs-only / manifest edit
+
+checkpoints:
+  - id: cp1
+    criterion: "Cursor/Claude path для sunset-inventory задокументирован или materialize path существует"
+    verify: "rg 'sunset-inventory' harness/manifest.yaml && echo OK"
+  - id: cp2
+    criterion: "subagent_type=sunset-inventory упомянут в spawn doc или Cursor-facing rule"
+    verify: "rg 'sunset-inventory' .claude/instructions/spawn-hard.md 2>/dev/null || rg 'subagent_type.*sunset' .cursor/rules/shared/ -r | head"
+
+verify: []
+tdd: []

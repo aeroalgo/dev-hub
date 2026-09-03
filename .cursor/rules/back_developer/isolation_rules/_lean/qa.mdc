@@ -17,7 +17,7 @@ alwaysApply: false
    - альтернатива: `timeout 300s .venv/bin/pytest -q --tb=line`
    - **без** path/nodeid/`-k` (и без иных фильтров collection). Epic-scoped / targeted suite **не** заменяет full.
    - Почему: IMPLEMENT крутит только scope шага; QA — единственный gate regression «сломали ли вокруг».
-2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B symbols; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
+2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B/C/**I**; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C; нет старых machine-format instructions (Kind I); **`sot_enforce_scan`** — старый SoT DENY/HALT. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8
 2b. **Behavior smoke (HARD) при agent/hook/gate/CLI FR в plan:** full suite green **недостаточен**. Parent обязан: path exists (agent/preset/CLI) · registry discover · один enforce-path (`rg` / targeted test) что runtime использует нужный surface. PASS при «N unit green» и мёртвом FR = FAIL. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §6
 3. После **full** suite → **1× verify-qa** обязателен (или legacy alias `reviewer`) (`Suite results` с командой full pytest · `AC+` · `AC−` · `§0.11` · `ALLOW READ` ≤10). Claude Code: `Agent`→`verify-qa`. Reviewer = основной code-review; **не** дублировать полным `code-review` skill на весь эпик.
 4. Security spot-check: OWASP checklist на auth/API в diff (коротко). `semgrep` / `differential-review` — только если в diff есть auth, crypto, external I/O, secrets/config.
@@ -47,5 +47,5 @@ alwaysApply: false
 - BACK QA без reviewer после suite → FAIL
 - Epic известен, qa-файл в корне `qa/` без `<epic_id>/` → FAIL
 - FINISH qa shard `.md` вместо `.yaml` → FAIL
-- PASS при leftover legacy entrypoint / fallback из plan sunset → FAIL
+- PASS при leftover legacy entrypoint / fallback / Kind I instruction / fail `sot_enforce_scan` из plan sunset → FAIL
 - PASS при agent/hook/gate/CLI FR без behavior smoke (только unit suite) → FAIL

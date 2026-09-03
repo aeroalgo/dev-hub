@@ -10,14 +10,62 @@
 
 Before running the Codex pilot loop, ensure your environment meets the following requirements:
 
-- **Codex CLI**: `codex` binary installed and accessible in `$PATH`.
+- **Codex CLI**: `codex` binary installed and accessible in `$PATH` (minimum required version: `≥ 0.152.0` / `CODEX_MIN_VERSION="0.152.0"` for full hooks parity).
 - **Python**: `≥ 3.12` (for runtime sync and doctor checks).
 - **API Credentials / Auth**: Active Codex session / login via `codex login` or `CODEX_API_KEY` set in your environment.
 - **Runtime Registry**: `loop/runtime_registry.yaml` containing the `codex` runtime entry.
 
 ---
 
-## 2. Install & Auth
+## 2. Minimum Codex CLI Version & Version Probe
+
+The Codex runtime requires features and hook event semantics available starting from `CODEX_MIN_VERSION = "0.152.0"`.
+
+To probe your installed Codex CLI version:
+```bash
+codex --version
+```
+
+If your installed version is below `0.152.0`, update the Codex CLI before proceeding. The runtime sync and doctor checks (`loop/context_loop.py ... doctor`) enforce this minimum version constraint.
+
+---
+
+## 3. Hooks parity matrix
+
+The Codex runtime achieves hook parity with the Claude Code harness. Hooks are mapped from `harness/manifest.yaml` to `.codex/hooks.json` via `loop.runtime_materializers.hooks_json`.
+
+| Claude Event | Codex Event | Status | Owner Script / Handler | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `SessionStart` | `SessionStart` | Supported | `harness/hooks/session-start.py` | Environment validation & context seeding |
+| `UserPromptSubmit` | `UserPromptSubmit` | Supported | `harness/hooks/user-prompt.py` | Prompt submission gate & validation |
+| `PreToolUse` (agent) | `PreToolUse` | Supported | `harness/hooks/agent-pretool.py` | Pre-tool permission & argument checks |
+| `PreToolUse` (bash) | `PreToolUse` | Supported | `harness/hooks/bash-pretool.py` | Pre-bash execution safety checks |
+| `PostToolUse` (agent) | `PostToolUse` | Supported | `harness/hooks/agent-posttool.py` | Post-tool telemetry & artifact capture |
+| `PostToolUse` (bash) | `PostToolUse` | Supported | `harness/hooks/bash-output-cap.py` | Bash output truncation & buffer capping |
+| `SubagentStart` | `SubagentStart` | Supported | `harness/hooks/subagent-start.py` | Subagent lifecycle initialization |
+| `SubagentStop` | `SubagentStop` | Supported | `harness/hooks/subagent-stop.py` | Subagent result verification & cleanup |
+| `StopGate` / `Stop` | `Stop` | Supported | `harness/hooks/stop-gate.py` | Exit gate validation & status enforcement |
+
+*Out-of-scope events per FR-012:* `session-end`, `permission-request`, `pre-compact`, `post-compact`.
+
+---
+
+## 4. Hand-Edit Policy for `.codex/hooks.json`
+
+> **⚠️ FORBIDDEN: Do not edit `.codex/hooks.json` directly!**
+
+`.codex/hooks.json` is **auto-generated** from `harness/manifest.yaml` by `bin/runtime-sync` (using `loop.runtime_materializers.hooks_json`).
+
+- Hand-editing `.codex/hooks.json` causes a mismatch with `.codex/hooks.meta.json` (hash drift).
+- `bin/runtime-sync --check --runtime codex` will fail immediately upon detecting any drift.
+- Always update `harness/manifest.yaml` and regenerate the hooks config using:
+  ```bash
+  bin/runtime-sync --apply --runtime codex
+  ```
+
+---
+
+## 5. Install & Auth
 
 Follow these steps to set up Codex CLI and authenticate:
 
@@ -39,7 +87,7 @@ Follow these steps to set up Codex CLI and authenticate:
 
 ---
 
-## 3. Runtime Sync
+## 6. Runtime Sync
 
 Before launching the loop with Codex, perform a runtime sync check to verify configuration alignment:
 
@@ -64,7 +112,7 @@ Before launching the loop with Codex, perform a runtime sync check to verify con
 
 ---
 
-## 4. Environment
+## 7. Environment
 
 Configure environment variables governing Codex execution:
 
@@ -74,7 +122,7 @@ Configure environment variables governing Codex execution:
 
 ---
 
-## 5. Launch
+## 8. Launch
 
 Execute the loop runner with `EPIC_RUNTIME=codex`:
 
@@ -98,7 +146,7 @@ EPIC_RUNTIME=codex make loop
 
 ---
 
-## 6. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom / Error | Cause | Solution |
 | :--- | :--- | :--- |
@@ -110,7 +158,7 @@ EPIC_RUNTIME=codex make loop
 
 ---
 
-## 7. Pilot Checklist
+## 10. Pilot Checklist
 
 Complete the sign-off checklist below prior to certifying a Codex rollout pilot:
 

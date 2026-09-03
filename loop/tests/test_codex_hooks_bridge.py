@@ -193,3 +193,195 @@ def test_agent_registry_discovers_harness_agents_without_claude_copy(tmp_path: P
 
     reg = discover_registry(tmp_path)
     assert reg.get("gate-repair") is not None
+
+
+def test_session_start_fires_session_start_hook(tmp_path: Path) -> None:
+    """SessionStart fires harness script on session open with Codex event payload (TM-002/FR-002)."""
+    session_start_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "session-start.py"
+    assert session_start_script.exists()
+
+    payload = {
+        "session_id": "test-codex-session",
+        "cwd": str(tmp_path),
+        "source": "startup",
+    }
+
+    res = subprocess.run(
+        [sys.executable, str(session_start_script)],
+        input=json.dumps(payload),
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, f"stderr: {res.stderr}"
+    # When no active state, SessionStart exits cleanly without fatal error
+    if res.stdout.strip():
+        data = json.loads(res.stdout)
+        assert "hookSpecificOutput" in data
+
+
+def test_subagent_start_and_stop_lifecycle_codex(tmp_path: Path) -> None:
+    """SubagentStart injects contract, SubagentStop enforces gate policy (TM-004)."""
+    subagent_start_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "subagent-start.py"
+    subagent_stop_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "subagent-stop.py"
+    assert subagent_start_script.exists()
+    assert subagent_stop_script.exists()
+
+    _ensure_gate_agents(tmp_path)
+
+    # 1. SubagentStart
+    start_payload = {
+        "agent_type": "verify",
+        "subagent_type": "verify-implement",
+        "session_id": "test-session-subagent",
+        "cwd": str(tmp_path),
+    }
+    start_res = subprocess.run(
+        [sys.executable, str(subagent_start_script)],
+        input=json.dumps(start_payload),
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert start_res.returncode == 0, f"stderr: {start_res.stderr}"
+    assert start_res.stdout.strip(), "Expected contract injected on SubagentStart"
+    start_data = json.loads(start_res.stdout)
+    assert "additionalContext" in start_data.get("hookSpecificOutput", {})
+
+    # 2. SubagentStop without verdict -> exits with returncode 2 (schema validation failed)
+    stop_payload_invalid = {
+        "agent_type": "verify",
+        "subagent_type": "verify-implement",
+        "session_id": "test-session-subagent",
+        "cwd": str(tmp_path),
+        "last_assistant_message": "Some text without verdict",
+    }
+    stop_res_invalid = subprocess.run(
+        [sys.executable, str(subagent_stop_script)],
+        input=json.dumps(stop_payload_invalid),
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert stop_res_invalid.returncode == 2, f"Expected returncode 2, got {stop_res_invalid.returncode}"
+    assert "schema validation failed" in stop_res_invalid.stderr or "re-emit valid" in stop_res_invalid.stderr
+
+    # 3. SubagentStop with valid loop-gate-verdict/v1 JSON fence -> exits with returncode 0
+    stop_payload_valid = {
+        "agent_type": "verify",
+        "subagent_type": "verify-implement",
+        "session_id": "test-session-subagent",
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            "```json\n"
+            '{"schema": "loop-gate-verdict/v1", "agent_id": "verify", "verdict": "PASS", "recorded_at": "2026-09-03T12:00:00Z"}\n'
+            "```\n"
+            "VERDICT: PASS"
+        ),
+    }
+    stop_res_valid = subprocess.run(
+        [sys.executable, str(subagent_stop_script)],
+        input=json.dumps(stop_payload_valid),
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert stop_res_valid.returncode == 0, f"stderr: {stop_res_valid.stderr}"
+
+
+def test_bash_output_cap_codex_post_tool_use(tmp_path: Path) -> None:
+    """PostToolUse Bash caps oversized stdout on Codex path (TM-005)."""
+    bash_cap_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "bash-output-cap.py"
+    assert bash_cap_script.exists()
+
+    oversized_stdout = "line output with noisy data\n" * 1000  # > 12KB
+    payload = {
+        "tool_name": "Bash",
+        "tool_input": {
+            "command": "pytest -vv",
+        },
+        "tool_response": {
+            "stdout": oversized_stdout,
+            "stderr": "",
+            "exit_code": 0,
+        },
+        "cwd": str(tmp_path),
+        "session_id": "test-session-bash-cap",
+    }
+
+    env = os.environ.copy()
+    env["PROJECT_OUTPUT_SUMMARY"] = "0"  # deterministic mode without network LLM
+
+    res = subprocess.run(
+        [sys.executable, str(bash_cap_script)],
+        input=json.dumps(payload),
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, f"stderr: {res.stderr}"
+    assert res.stdout.strip(), "Expected output-cap emit"
+    data = json.loads(res.stdout)
+    hook_out = data.get("hookSpecificOutput", {})
+    assert "updatedToolOutput" in hook_out
+    capped_stdout = hook_out["updatedToolOutput"].get("stdout", "")
+    assert len(capped_stdout) < len(oversized_stdout)
+
+
+def test_agent_pretool_deny_incomplete_hard_rule_spawn(tmp_path: Path) -> None:
+    """agent-pretool DENYs incomplete HARD RULE / invalid gate spawn (TM-003)."""
+    agent_pretool_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "agent-pretool.py"
+    assert agent_pretool_script.exists()
+
+    _ensure_gate_agents(tmp_path)
+
+    # Incomplete verify prompt without required sections
+    payload = {
+        "tool_name": "Agent",
+        "tool_input": {
+            "subagent_type": "verify-implement",
+            "prompt": "Just do verify please",
+        },
+        "cwd": str(tmp_path),
+        "session_id": "test-session-pretool",
+    }
+
+    res = subprocess.run(
+        [sys.executable, str(agent_pretool_script)],
+        input=json.dumps(payload),
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, f"stderr: {res.stderr}"
+    data = json.loads(res.stdout)
+    hook_out = data.get("hookSpecificOutput", {})
+    assert hook_out.get("permissionDecision") == "deny"
+
+
+def test_claude_settings_snapshot_unchanged_after_sync(tmp_path: Path) -> None:
+    """Claude settings.json hooks remain unchanged after codex sync run (TM-009, AC-5)."""
+    repo_root = Path(__file__).resolve().parents[2]
+    claude_settings_path = repo_root / ".claude" / "settings.json"
+    assert claude_settings_path.exists()
+
+    settings_content = claude_settings_path.read_text(encoding="utf-8")
+    settings_data = json.loads(settings_content)
+
+    # Run runtime-sync --runtime codex
+    sync_bin = repo_root / "bin" / "runtime-sync"
+    manifest_path = repo_root / "harness" / "manifest.yaml"
+
+    res = subprocess.run(
+        [sys.executable, str(sync_bin), "--manifest", str(manifest_path), "--runtime", "codex", "--check"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, f"runtime-sync check failed: {res.stderr}\n{res.stdout}"
+
+    # Assert claude settings.json content is intact
+    current_content = claude_settings_path.read_text(encoding="utf-8")
+    assert json.loads(current_content) == settings_data
+

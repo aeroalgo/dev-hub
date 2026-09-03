@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-057-loop-session-json-contract
+title: "pytest TM-001..011 suite — full coverage schema-retry, taxonomy, anti-loop, load, finish"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать / дополнить тесты покрывающие весь TM matrix плана (TM-001..TM-011, P0 и P1).
+  Каждый TM = отдельный pytest test (или параметризованный) с fixture.
+  Тесты behavior (не только field presence); проверяют outcome (SC-001..SC-007).
+  FR-014: полный pytest suite зелёный. Тесты в loop/tests/ и harness/hooks/tests/
+  согласно TM-matrix таблице плана.
+
+context:
+  consumes:
+    - loop/validate_boundary.py
+    - loop/schemas/validate_result.py
+    - loop/schemas/boundary_registry.py
+    - loop/mb_finish/schemas.py
+    - loop/mb_finish/impl.py
+    - loop/epic_transition.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/stop-gate.py
+    - loop/mb_finish/verify_hint.py
+    - loop/mb_load/session.py
+    - loop/context_loop.py
+  produces:
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_mb_finish_analyze.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_hooks_llm_fence.py
+  plan_refs:
+    - FR-014
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - SC-005
+    - SC-006
+    - SC-007
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-004
+    - TM-005
+    - TM-006
+    - TM-007
+    - TM-008
+    - TM-009
+    - TM-010
+    - TM-011
+    - US-001
+    - US-003b
+    - US-005
+    - US-008
+  files:
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_mb_finish_analyze.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_hooks_llm_fence.py
+
+as_built:
+  - "loop/tests/test_mb_load_session.py — exists; no TM-001/002 prepare primary SoT tests"
+  - "loop/tests/test_mb_finish_analyze.py — exists; no typed next_* tests"
+  - "loop/tests/test_epic_transition.py — exists; no anti-loop TM-009"
+  - "loop/tests/test_stop_gate.py — exists; no TM-007/008 NEED_HUMAN tests"
+  - "loop/tests/test_hooks_llm_fence.py — exists; no TM-006 repair-without-fail behavior test"
+  - "loop/tests/test_boundary_registry.py — does not exist"
+  - "loop/tests/test_validate_boundary.py — does not exist"
+
+delta:
+  - "loop/tests/test_boundary_registry.py: TM-001 registry complete, TM-010 no prose VERDICT path"
+  - "loop/tests/test_validate_boundary.py: TM-003 schema invalid no PASS, TM-004 pre-emit ok + tamper still fail, TM-011 taxonomy schema vs semantic split"
+  - "loop/tests/test_mb_load_session.py: TM-001 load ok, TM-002 missing shard fail-closed"
+  - "loop/tests/test_mb_finish_analyze.py: TM-007 PASS finish required, SC-005 next != finished"
+  - "loop/tests/test_epic_transition.py: TM-009 next == finished loop_* fail-closed"
+  - "loop/tests/test_stop_gate.py: TM-007 finish_tool_missing NEED_HUMAN, TM-008 schema_retry_exhausted"
+  - "loop/tests/test_hooks_llm_fence.py: TM-006 repair without FAIL DENY with code, TM-005 semantic FAIL repair"
+
+deletes: []
+
+out_of_scope:
+  - "Codex runtime tests (FR-015 / T-HUB-053)"
+  - "board/pack tests (FR-015)"
+  - "mid-turn JSON every message coverage (cut_list)"
+
+skills:
+  code_surface: test
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      TM-001..TM-011 all represented in suite by test_ function names;
+      test_validate_boundary.py + test_boundary_registry.py green
+    verify: ".venv/bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_boundary_registry.py -q --tb=short"
+  - id: cp2
+    criterion: "all extended test files green; TM coverage >= P0 items TM-001..009"
+    verify: ".venv/bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_mb_finish_analyze.py loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py loop/tests/test_hooks_llm_fence.py -q --tb=short"
+  - id: cp3
+    criterion: "rg: each TM-00N mentioned in at least one test docstring or comment"
+    verify: "rg 'TM-0' loop/tests/ harness/hooks/tests/"
+
+verify:
+  - ".venv/bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_boundary_registry.py loop/tests/test_mb_load_session.py loop/tests/test_mb_finish_analyze.py loop/tests/test_epic_transition.py loop/tests/test_stop_gate.py loop/tests/test_hooks_llm_fence.py -q --tb=short"
+tdd:
+  - loop/tests/test_boundary_registry.py
+  - loop/tests/test_validate_boundary.py
+  - loop/tests/test_mb_load_session.py
+  - loop/tests/test_mb_finish_analyze.py
+  - loop/tests/test_epic_transition.py
+  - loop/tests/test_stop_gate.py
+  - loop/tests/test_hooks_llm_fence.py

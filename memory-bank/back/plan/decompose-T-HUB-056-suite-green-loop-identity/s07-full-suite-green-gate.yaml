@@ -1,0 +1,50 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "full suite green gate — bin/pytest 0 failed (совместно с 054+055+056)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  После закрытия s01–s06: запустить bin/pytest -q --tb=no и проверить 0 failed.
+  Если остались красные — идентифицировать, добавить sNN-mop или исправить inline.
+  SC-006 / FR-007 / TM-007: bin/pytest = 0 failed.
+  Cutover: этот шаг = финальная проверка перед QA.
+
+context:
+  consumes:
+    - loop/tests/  # весь suite
+    - harness/hooks/tests/
+  produces: []  # только диагностика; правки — по новым sNN или inline mop
+  plan_refs: [US-005, FR-007, SC-006, TM-007]
+  files: []
+
+as_built:
+  - "Baseline: 12 FAILED (из плана); после 054+055: часть закрыта"
+  - "Данный шаг: последний моп после s01–s06"
+
+delta:
+  - "bin/pytest -q --tb=no → если failed > 0: rg по именам; inline fix если ≤ 2 строки; иначе sNN-mop"
+  - "Зафиксировать итог в implement-артефакте"
+
+deletes: []
+
+out_of_scope:
+  - "session_wrapper deep hang — cut_list, не добавлять sNN если не реапендился после 054"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03
+
+checkpoints:
+  - id: cp1
+    criterion: "bin/pytest -q --tb=no → 0 failed"
+    verify: "bin/pytest -q --tb=no 2>&1 | tail -3"
+  - id: cp2
+    criterion: "baseline 12 тестов (из плана) зелёные"
+    verify: "bin/pytest loop/tests/test_epic_transition.py::test_arm_pre_implement_short_queue_id_uses_plan_stem loop/tests/test_context_loop.py::test_prepare_builds_prompt_with_activecontext loop/tests/test_context_loop.py::test_check_after_commits_next_step_for_post_implement_phase loop/tests/test_context_loop.py::test_check_after_continues_when_handoff_advanced loop/tests/test_context_loop.py::test_prepare_promotes_analyze_to_implement_when_gate_passes loop/tests/test_drift_display.py::test_status_shows_drift_when_nonzero loop/tests/test_episode_wire.py::test_check_after_creates_manifest loop/tests/test_episode_wire.py::test_finalize_exception_does_not_block loop/tests/test_incidents_doctor.py::test_doctor_valid_project_exit_zero loop/tests/test_incidents_doctor.py::test_doctor_open_incidents_warn_only loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_warn loop/tests/test_incidents_doctor.py::test_doctor_boundary_check_pass -q --tb=line 2>&1 | tail -3"
+
+verify: []
+tdd: []

@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s04 — drift display — status() возвращает drift_counters при валидном handoff
+  shape IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-056-suite-green-loop-identity/s04-drift-display-handoff-fixtures.yaml
+skills_used:
+- systematic-debugging
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен валидный handoff frontmatter loop-handoff/v1 в фикстуру VALID_AC в loop/tests/test_drift_display.py
+- status() в loop/context_loop.py теперь возвращает drift_counters из state.json при
+  наличии nonzero счетчиков
+files:
+- loop/tests/test_drift_display.py
+- loop/context_loop.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_drift_display.py -q --tb=short
+integration_check:
+- bin/pytest loop/tests/test_drift_display.py -q --tb=short -> 2 passed
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'test_status_shows_drift_when_nonzero → ''drift_counters'' в res и res[''drift_counters'']
+    == {''index_mirror_repair'': 2}'
+  status: done
+- id: cp2
+  criterion: test_status_no_drift_when_zero → 'drift_counters' отсутствует в res
+  status: done
+- id: cp3
+  criterion: shape_errors по-прежнему присутствуют при невалидном AC (AC− тест-guard)
+  status: done
+resume_from: cp1

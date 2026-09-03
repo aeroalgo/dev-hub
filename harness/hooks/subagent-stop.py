@@ -9,17 +9,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (
     product_cwd,  # noqa: E402
     clear_in_flight,
+    clear_schema_retry_count,
     current_gate_identity,
+    extract_json_fence,
     extract_repair_result,
     extract_verdict,
+    get_schema_retry_count,
+    increment_schema_retry_count,
+    is_schema_error,
+    is_semantic_error,
     load_state,
     mark_verdict_recorded,
     normalize_type,
+    parse_gate_verdict_message,
     read_stdin,
     record_verdict,
     save_state,
     should_skip_verdict_record,
     sync_gate_identity,
+    utc_now,
     verdict_dedupe_key,
     verdict_evidence,
     workflow_state_active,
@@ -37,6 +45,7 @@ from loop.mb_finish.verify_hint import (  # noqa: E402
     mb_finish_hint_after_verdict,
     record_agent_key,
 )
+from loop.validate_boundary import validate_boundary  # noqa: E402
 
 
 def _require_verdict_message(agent_type: str) -> str:
@@ -118,6 +127,11 @@ def _handle_verify_finish_agent(
         st["verify_incomplete"] = 0
         st["verify_no_verdict_retries"] = 0
 
+    tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
+    clear_schema_retry_count(cwd, tool_use_id, session_id=session_id)
+    if "need_human" in st and st["need_human"] == "schema_retry_exhausted:B-GATE":
+        st.pop("need_human", None)
+
     clear_in_flight(st, agent=agent_type)
     save_state(session_id, cwd, st)
 
@@ -172,7 +186,24 @@ def main() -> None:
     transcript_text = data.get("transcript")
     if isinstance(transcript_text, str) and transcript_text.strip():
         msg = f"{msg}\n{transcript_text}"
-    verdict = extract_verdict(msg)
+
+    sidecar_agent = (
+        record_agent_key(str(agent_type)) if agent_type in VERIFY_FINISH_AGENTS else None
+    )
+    if sidecar_agent and agent_type in VERIFY_FINISH_AGENTS:
+        parse_gate_verdict_message(
+            msg,
+            cwd,
+            sidecar_agent,
+            recorded_at=utc_now(),
+            session_id=session_id or None,
+        )
+
+    verdict = extract_verdict(
+        msg,
+        cwd=cwd,
+        agent_id=sidecar_agent or "verify",
+    )
     if not verdict:
         provided_verdict = data.get("verdict")
         if isinstance(provided_verdict, str):
@@ -187,36 +218,69 @@ def main() -> None:
                 if verdict:
                     break
 
-    if agent_type in VERIFY_FINISH_AGENTS and not verdict:
-        if agent_type in COERCE_VERIFY_AGENTS:
-            st["verify_incomplete"] = int(st.get("verify_incomplete") or 0) + 1
-            save_state(session_id, cwd, st)
-        print(_require_verdict_message(str(agent_type)), file=sys.stderr)
-        sys.exit(2)
+    fence_data = extract_json_fence(msg)
+    if agent_type in VERIFY_FINISH_AGENTS:
+        if fence_data is not None or not data.get("verdict"):
+            val_res = validate_boundary("loop-gate-verdict/v1", fence_data if fence_data is not None else {})
+            if not val_res.valid and is_schema_error(val_res.diagnostic_codes):
+                tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
+                retry_count = increment_schema_retry_count(cwd, tool_use_id, session_id=session_id)
+                if retry_count <= 2:
+                    diag_str = ", ".join(val_res.diagnostic_codes or ["schema_verdict_missing"])
+                    if agent_type in COERCE_VERIFY_AGENTS:
+                        st["verify_incomplete"] = int(st.get("verify_incomplete") or 0) + 1
+                        save_state(session_id, cwd, st)
+                    print(
+                        f"{agent_type}: schema validation failed ({diag_str}). "
+                        f"MUST re-emit valid loop-gate-verdict/v1 JSON fence (retry {retry_count}/2).",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+                else:
+                    print(
+                        f"NEED_HUMAN: schema_retry_exhausted:B-GATE ({agent_type} invalid schema after {retry_count - 1} retries)",
+                        file=sys.stderr,
+                    )
+                    st["need_human"] = "schema_retry_exhausted:B-GATE"
+                    save_state(session_id, cwd, st)
+                    sys.exit(2)
 
-    if agent_type in VERIFY_FINISH_AGENTS and verdict:
-        _handle_verify_finish_agent(
-            agent_type=str(agent_type),
-            verdict=verdict,
-            cwd=cwd,
-            session_id=session_id,
-            st=st,
-            data=data,
-        )
-        return
+        if verdict:
+            _handle_verify_finish_agent(
+                agent_type=str(agent_type),
+                verdict=verdict,
+                cwd=cwd,
+                session_id=session_id,
+                st=st,
+                data=data,
+            )
+            return
 
     if agent_type == "gate-repair":
+        val_res = validate_boundary("loop-repair-result/v1", fence_data if fence_data is not None else {})
         result = extract_repair_result(msg)
         clear_in_flight(st, agent=str(agent_type))
         st["repair_in_flight"] = False
-        if not result:
-            save_state(session_id, cwd, st)
-            print(
-                "gate-repair: обязателен JSON fence loop-repair-result/v1 "
-                "(status done|partial|fail).",
-                file=sys.stderr,
-            )
-            sys.exit(2)
+        if not result or (not val_res.valid and is_schema_error(val_res.diagnostic_codes)):
+            tool_use_id = str(data.get("tool_use_id") or session_id or "gate-repair")
+            retry_count = increment_schema_retry_count(cwd, tool_use_id)
+            if retry_count <= 1:
+                diag_str = ", ".join(val_res.diagnostic_codes or ["schema_repair_missing"])
+                print(
+                    f"gate-repair: schema validation failed ({diag_str}). "
+                    f"MUST re-emit valid loop-repair-result/v1 JSON fence (retry {retry_count}/1).",
+                    file=sys.stderr,
+                )
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+            else:
+                print(
+                    "NEED_HUMAN: schema_retry_exhausted:B-REPAIR (gate-repair invalid schema after retry)",
+                    file=sys.stderr,
+                )
+                st["need_human"] = "schema_retry_exhausted:B-REPAIR"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
         status = str(result.get("status") or "fail").lower()
         st["repair_done"] = True
         st["repair_status"] = status

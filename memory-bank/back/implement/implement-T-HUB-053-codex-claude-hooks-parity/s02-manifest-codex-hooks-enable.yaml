@@ -1,0 +1,41 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-053-codex-claude-hooks-parity
+title: s02 — Manifest enable all missing codex hooks for runtimes.codex IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s02-manifest-codex-hooks-enable.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- "Обновлен harness/manifest.yaml: добавлены 6 недостающих in-scope хуков (session-start, user-prompt, bash-pretool, agent-posttool, bash-output-cap, subagent-start) с runtimes.codex.hooks_json_entry: true"
+- "Добавлен комментарий об out_of_scope хуках согласно FR-012"
+files:
+- harness/manifest.yaml
+deletes: []
+tests:
+- bin/pytest loop/tests/test_manifest_schema.py loop/tests/test_hooks_json_generator.py loop/tests/test_codex_hooks_parity_matrix.py -q
+integration_check:
+- python3 -c "import yaml; m=yaml.safe_load(open('harness/manifest.yaml')); hooks=m.get('hooks',{}); missing=[k for k,v in hooks.items() if 'claude' in v.get('runtimes',{}) and 'codex' not in v.get('runtimes',{}) and k not in ('session-end','permission-request','pre-compact','post-compact')]; assert not missing; assert len(hooks) >= 9"
+grep_control: []
+verification_results:
+- "cp1 PASS: 9 hooks in manifest with codex entry"
+- "cp2 PASS: Out-of-scope hooks отсутствуют в runtimes.codex"
+- "cp3 PASS: manifest.yaml parses cleanly"
+checkpoints:
+- id: cp1
+  criterion: Все in-scope hooks имеют codex entry в manifest (≥9 hooks)
+  status: done
+  done_at: '2026-09-03T07:15:00Z'
+- id: cp2
+  criterion: Out-of-scope hooks (SessionEnd, PermissionRequest) отсутствуют в runtimes.codex
+  status: done
+  done_at: '2026-09-03T07:15:00Z'
+- id: cp3
+  criterion: harness/manifest.yaml parses without error
+  status: done
+  done_at: '2026-09-03T07:15:00Z'
+resume_from: cp1

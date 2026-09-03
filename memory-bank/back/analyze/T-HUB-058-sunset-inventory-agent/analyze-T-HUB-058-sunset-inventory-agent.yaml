@@ -1,0 +1,22 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-058-sunset-inventory-agent
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-03'
+index_fingerprint: sha256:acba396ed51241f5b54f2c96e6503dec1b6e749b95f8bea7643ec282352662e3
+
+summary: >
+  Pre-implement analysis and plan/decompose verification for T-HUB-058-sunset-inventory-agent.
+  All requirements (US-001..US-004, FR-001..FR-013, AC+ SC-001..SC-005, AC-1..AC-5, NFR-001..NFR-004)
+  and failure scenarios (TM-001..TM-004) are fully mapped across shards s01-s06.
+  Technology axioms (boundary pydantic models, JSON SoT, subagent isolation, no design advice/how fields,
+  bounded excerpts ≤40 lines, mark=REPLACE literal, purge legacy fallback/prose) respected.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 6

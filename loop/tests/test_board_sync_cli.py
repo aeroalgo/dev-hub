@@ -85,7 +85,7 @@ def test_dry_run_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> N
 
     output = capsys.readouterr().out
     assert "upsert" in output
-    assert "mb-demo-back-t-demo-s01" in output
+    assert "mb-demo-back-t-demo-epic" in output
     assert "archive mb-" not in output
     assert client.write_count == 0
 
@@ -137,7 +137,7 @@ def test_status_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> N
 
     output = capsys.readouterr().out
     assert "generation=1" in output
-    assert "upsert=3" in output
+    assert "upsert=1" in output
     assert "archive=0" in output
     assert "noop=0" in output
 

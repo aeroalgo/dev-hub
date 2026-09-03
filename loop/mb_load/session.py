@@ -59,6 +59,7 @@ def load_session(
     files: list[MbLoadFile] = []
     forbidden_skipped: list[str] = list(resolved_bundle.forbidden_skipped)
     diagnostic_codes: list[str] = list(resolved_bundle.diagnostics)
+    ok_status = True
 
     for path_str in resolved_bundle.resolved_paths:
         file_path = cwd_path / path_str

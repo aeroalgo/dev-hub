@@ -28,9 +28,23 @@ def _write(cwd: Path, rel: str, body: str) -> None:
     p.write_text(body, encoding="utf-8")
 
 
+VALID_AC = """---
+schema: loop-handoff/v1
+step_id: s01
+plan_id: T-HUB-001
+role: back
+phase: BACK PLAN
+status: in_progress
+---
+
+## load_now
+1. foo
+"""
+
+
 def test_status_shows_drift_when_nonzero(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. foo\n")
+    _write(tmp_path, "memory-bank/activeContext.md", VALID_AC)
     state = {
         "schema_version": "loop-state/v2",
         "active": True,
@@ -52,7 +66,7 @@ def test_status_shows_drift_when_nonzero(tmp_path: Path) -> None:
 
 def test_status_no_drift_when_zero(tmp_path: Path) -> None:
     ctx = _load_ctx()
-    _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. foo\n")
+    _write(tmp_path, "memory-bank/activeContext.md", VALID_AC)
     state = {
         "schema_version": "loop-state/v2",
         "active": True,

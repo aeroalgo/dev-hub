@@ -5,6 +5,9 @@ from pydantic import BaseModel, Field
 
 from loop.mb_finish.schemas import LoadNowItem, LoopHandoffMeta
 
+SCHEMA_LOOP_MB_LOAD = "mb-load-result/v1"
+
+
 
 class MbLoadFile(BaseModel):
     path: str

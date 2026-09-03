@@ -106,3 +106,16 @@
 | Hand-edit instructions for .codex/hooks.json | Generated-only + meta hash drift check | n/a | no | s08 |
 
 > Финальный purge: s08-legacy-partial-parity-purge — inventory scan + rg anti-fallback.
+
+## Очередь шагов
+
+| step_id | title & files | next_phase | status |
+| :--- | :--- | :--- | :--- |
+| **s01** | Codex hooks schema probe + extend EVENT_MAPPING · [yaml](s01-codex-schema-probe-event-mapping.yaml) |  | completed |
+| **s02** | Manifest enable all missing codex hooks · [yaml](s02-manifest-codex-hooks-enable.yaml) |  | completed |
+| **s03** | Generator nested matchers + timeouts + regenerate hooks.json · [yaml](s03-generator-nested-matchers-timeouts.yaml) |  | completed |
+| **s04** | Payload normalize tool_name aliases fail-closed · [yaml](s04-payload-normalize-tool-name-aliases.yaml) |  | completed |
+| **s05** | Parity matrix module + runtime-sync --check + doctor · [yaml](s05-parity-matrix-runtime-sync-check.yaml) |  | completed |
+| **s06** | Behavior bridge tests all events + regression · [yaml](s06-behavior-bridge-tests.yaml) |  | completed |
+| **s07** | Docs runbook architecture matrix update · [yaml](s07-docs-runbook-matrix.yaml) |  | completed |
+| **s08** | Legacy purge partial-parity docs comments + forbid hand-edit · [yaml](s08-legacy-partial-parity-purge.yaml) |  | pending |

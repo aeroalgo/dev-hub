@@ -1,0 +1,73 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-055-suite-green-board-sync
+title: "Step-era archive применяется до upsert — FakeClient.upsert не дискардит archived id"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  archive_all_task_ids(step_era_archive=True) отрабатывает корректно и archived.discard в FakeClient
+  не перебивает результат archive при upsert epic card с тем же id.
+  Step-era cards: archive вызывается через retire_board_task/client.archive, и id попадает в client.archived.
+  Закрывает FR-002, AC+ 3 (step-era existing → archive), TM-001, TM-004.
+
+context:
+  consumes:
+    - loop/board_sync/sync.py (run_sync строки 70-86 — archive_all_ids, operations merge)
+    - loop/board_sync/client.py (FakeClient.upsert строка 278 — archived.discard(card.id))
+    - loop/board_sync/diff.py (archive_all_task_ids строки 189-216)
+  produces:
+    - loop/board_sync/sync.py (корректный порядок: archive step-ids BEFORE или separate от epic upsert)
+    - loop/board_sync/client.py (FakeClient.upsert — не discardит из archived если card.id != archived step)
+  plan_refs:
+    - FR-002
+    - FR-003 (test_sync_generation_increment — second.operations == ())
+    - AC+ 3
+    - TM-001
+    - TM-004 (test_sync_generation_increment — second.operations == ())
+  files:
+    - loop/board_sync/sync.py
+    - loop/board_sync/client.py
+
+as_built:
+  - "sync.py:70 — archive_all_task_ids(..., step_era_archive=True) вычисляет step ids"
+  - "sync.py:72-86 — operations merge: фильтр + extend архивными ops"
+  - "client.py:278 — FakeClient.upsert: archived.discard(card.id) — при upsert карта удаляется из archived"
+  - "sync.py:90-116 — apply loop: при обработке op kind=='archive' необходим явный вызов archive на клиенте/retire_board_task"
+
+delta:
+  - "sync.py / client.py: обеспечить явный вызов archive для step archive ops в apply loop и корректное сохранение archived state"
+  - "FakeClient.upsert: проверить и скорректировать взаимодействие upsert и archived для раздельных step/epic IDs"
+  - "sync.py: гарантировать fail-closed поведение без soft-skip при archive errors"
+
+deletes:
+  - "loop/board_sync/sync.py: любой код-путь «молчаливого пропуска» archive step-era (soft-skip fallback) — удалить; archive должен быть fail-closed (error in result.errors)"
+
+out_of_scope:
+  - "FakeClient.upsert discard behaviour для epic ids — не менять (корректное поведение для epic upsert)"
+  - "LedgerFileClient — не трогать"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "client.archive вызывается для step-era ids в apply loop"
+    verify: "grep -n 'client.archive\\|board_client.archive' loop/board_sync/sync.py"
+  - id: cp2
+    criterion: "test_e2e_step_era_cards_archived_on_sync PASS"
+    verify: "bin/pytest loop/tests/test_board_sync_epic_regression.py::test_e2e_step_era_cards_archived_on_sync -q --tb=short"
+  - id: cp3
+    criterion: "test_e2e_sync_roadmap_rank_column PASS — step archived, epic cards created"
+    verify: "bin/pytest loop/tests/test_board_sync_epic_regression.py::test_e2e_sync_roadmap_rank_column_running_backlog_roadmap_column -q --tb=short"
+  - id: cp4
+    criterion: "test_sync_generation_increment PASS — second.operations == ()"
+    verify: "bin/pytest loop/tests/test_board_sync_sync.py::test_sync_generation_increment -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_board_sync_epic_regression.py loop/tests/test_board_sync_sync.py::test_sync_generation_increment -q --tb=short"
+tdd: []

@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: Fail-list protocol note + full suite gate-nodeids absent verify
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Задокументировать fail-list protocol в loop/README (секция как снимать fresh fail-list),
+  запустить targeted gate suite (SC-002) и full suite (SC-003), убедиться что 3 gate nodeids
+  из baseline отсутствуют в fail-list. Закрывает FR-005 (method lock), FR-006 (документ),
+  SC-002, SC-003, TM-005.
+
+context:
+  consumes:
+    - loop/README.md
+    - "результаты s01-s04 (gate cluster должен быть green)"
+  produces:
+    - loop/README.md
+  plan_refs:
+    - FR-005
+    - FR-006
+    - SC-002
+    - SC-003
+    - TM-005
+    - "AC #5"
+    - "AC #6"
+  files:
+    - loop/README.md
+
+as_built:
+  - "loop/README.md: существует; раздел fail-list protocol отсутствует"
+  - "targeted gate suite: 3 nodeids FAIL до s01-s04 fixes"
+
+delta:
+  - "loop/README.md: добавить секцию Fail-list protocol с командами bin/pytest -q --tb=no + rg FAILED и описанием классов LEGACY/REGRESSION/PROD"
+  - "verify: targeted gate suite → 0 failed; rg fail-list → gate nodeids absent"
+
+deletes: []
+
+out_of_scope:
+  - "board_sync / doctor — T-HUB-055/056"
+  - "расширенный hang catalog — cut_list"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "SC-002 gate cluster 0 failed (test_sc006 + test_legacy_stubs_removed; test_agent_pretool deleted)"
+    verify: "bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed -q 2>&1 | tail -3"
+  - id: cp2
+    criterion: "SC-003 gate nodeids absent в full suite fail-list"
+    verify: "bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006_context_loop_no_verdict_machine_instruction|test_agent_pretool_injects_verdict_first_line|test_legacy_stubs_removed' | wc -l"
+  - id: cp3
+    criterion: "fail-list protocol раздел существует в loop/README.md"
+    verify: "rg 'fail-list|bin/pytest.*--tb=no' loop/README.md | wc -l"
+
+verify:
+  - "bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py::test_legacy_stubs_removed -q"
+  - "bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|test_agent_pretool_injects' | wc -l"
+
+tdd:
+  - "TM-005: rg fail-list → gate nodeids absent (0 matches in fail output)"

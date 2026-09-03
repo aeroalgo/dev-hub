@@ -1,0 +1,64 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: Restore loop-gate-verdict/v1 schema instruction in context_loop.py — sc006 green
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Восстановить явную ссылку на loop-gate-verdict/v1 в operator/prompt packing внутри
+  loop/context_loop.py (AC T-HUB-023 s08), чтобы subagent получал machine-readable
+  инструкцию по формату JSON fence. Закрывает FR-002 / AC #2 / SC-002 (test_sc006) / TM-002.
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - "loop/tests/test_gate_structured_purge.py::test_sc006_context_loop_no_verdict_machine_instruction"
+  produces:
+    - loop/context_loop.py
+  plan_refs:
+    - FR-002
+    - "AC #2"
+    - SC-002
+    - TM-002
+    - "T-HUB-023 s08 restore"
+    - US-002
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py: строка loop-gate-verdict/v1 отсутствует — test_sc006 FAIL"
+  - "extract_verdict: sidecar-only уже; без regex VERDICT — не трогать"
+
+delta:
+  - "loop/context_loop.py: добавить/восстановить строку с loop-gate-verdict/v1 в месте pack prompt для subagent per T-HUB-023 s08 AC"
+
+deletes: []
+
+out_of_scope:
+  - "extract_verdict function — sidecar-only уже; не трогать regex"
+  - "gate agents prompts (.claude/agents/verify-*.md) — не в scope s02"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+
+checkpoints:
+  - id: cp1
+    criterion: "строка loop-gate-verdict/v1 присутствует в context_loop.py"
+    verify: "rg 'loop-gate-verdict/v1' loop/context_loop.py"
+  - id: cp2
+    criterion: "нет prose VERDICT machine instruction в context_loop.py"
+    verify: "rg 'VERDICT: PASS|VERDICT: FAIL' loop/context_loop.py | wc -l"
+  - id: cp3
+    criterion: "test_sc006 PASS"
+    verify: "bin/pytest loop/tests/test_gate_structured_purge.py::test_sc006_context_loop_no_verdict_machine_instruction -q"
+
+verify:
+  - "rg 'loop-gate-verdict/v1' loop/context_loop.py"
+  - "bin/pytest loop/tests/test_gate_structured_purge.py -q"
+
+tdd:
+  - "TM-002: bin/pytest test_gate_structured_purge.py::test_sc006 → PASS"

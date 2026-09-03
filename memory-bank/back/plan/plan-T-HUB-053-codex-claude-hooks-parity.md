@@ -7,7 +7,7 @@
 **Clarify:** Phase 0 skipped — taxonomy clear (chat 2026-09-02 зафиксировал axiom Codex ≡ Claude Code по hooks/agents/gates; inventory Claude vs Codex выполнен)  
 **Roadmap:** [roadmap-harness-universal-runtime-epics.md](roadmap-harness-universal-runtime-epics.md)  
 **Queue (slug):** [roadmap-harness-universal-runtime-epics.queue.yaml](roadmap-harness-universal-runtime-epics.queue.yaml)  
-**Deps:** **hard** T-HUB-043 (manifest + CodexAdapter + hooks generator). **Soft:** T-HUB-044 (doctor/runbook surface), T-HUB-045 (session-start inject / mb-load path), T-HUB-021 (bash-output-cap structured LLM).
+**Deps:** **hard** T-HUB-043 (manifest + CodexAdapter + hooks generator; done), **T-HUB-057** (loop session JSON contract), **T-HUB-058** (sunset-inventory agent — canon: 054→…→057→058→053). **Soft:** T-HUB-044 (doctor/runbook surface), T-HUB-021 (bash-output-cap structured LLM).
 
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns · diagnosing-bugs
 

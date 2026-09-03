@@ -1,9 +1,46 @@
 {
   "hooks": {
-    "Stop": [
+    "SessionStart": [
       {
         "type": "command",
-        "command": "python3 harness/hooks/stop-gate.py"
+        "command": "python3 harness/hooks/session-start.py"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/user-prompt.py"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/agent-pretool.py",
+        "matcher": "Agent|Task"
+      },
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/bash-pretool.py",
+        "matcher": "Bash"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/agent-posttool.py",
+        "matcher": "Agent|Task"
+      },
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/bash-output-cap.py",
+        "matcher": "Bash",
+        "timeout_ms": 45000
+      }
+    ],
+    "SubagentStart": [
+      {
+        "type": "command",
+        "command": "python3 harness/hooks/subagent-start.py"
       }
     ],
     "SubagentStop": [
@@ -12,10 +49,10 @@
         "command": "python3 harness/hooks/subagent-stop.py"
       }
     ],
-    "PreToolUse": [
+    "Stop": [
       {
         "type": "command",
-        "command": "python3 harness/hooks/agent-pretool.py"
+        "command": "python3 harness/hooks/stop-gate.py"
       }
     ]
   }

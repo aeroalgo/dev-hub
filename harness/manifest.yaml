@@ -63,21 +63,28 @@ agents:
       codex:
         materialize: true
         target: ".codex/agents/explorer.toml"
-hooks:
-  stop-gate:
-    source: "harness/hooks/stop-gate.py"
+  sunset-inventory:
+    description: "Sunset inventory extraction agent"
+    source: "harness/agents/sunset-inventory.md"
     runtimes:
       claude:
-        settings_key: "hooks.StopGate"
-      dsh:
-        adapter_hook: true
+        copy_to: ".claude/agents/sunset-inventory.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/sunset-inventory.toml"
+hooks:
+  session-start:
+    source: "harness/hooks/session-start.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.SessionStart"
       codex:
         hooks_json_entry: true
-  subagent-stop:
-    source: "harness/hooks/subagent-stop.py"
+  user-prompt:
+    source: "harness/hooks/user-prompt.py"
     runtimes:
       claude:
-        settings_key: "hooks.SubagentStop"
+        settings_key: "hooks.UserPromptSubmit"
       codex:
         hooks_json_entry: true
   agent-pretool:
@@ -87,6 +94,51 @@ hooks:
         settings_key: "hooks.PreToolUse"
       codex:
         hooks_json_entry: true
+  bash-pretool:
+    source: "harness/hooks/bash-pretool.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PreToolUse"
+      codex:
+        hooks_json_entry: true
+  agent-posttool:
+    source: "harness/hooks/agent-posttool.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PostToolUse"
+      codex:
+        hooks_json_entry: true
+  bash-output-cap:
+    source: "harness/hooks/bash-output-cap.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PostToolUse"
+      codex:
+        hooks_json_entry: true
+  subagent-start:
+    source: "harness/hooks/subagent-start.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.SubagentStart"
+      codex:
+        hooks_json_entry: true
+  subagent-stop:
+    source: "harness/hooks/subagent-stop.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.SubagentStop"
+      codex:
+        hooks_json_entry: true
+  stop-gate:
+    source: "harness/hooks/stop-gate.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.StopGate"
+      dsh:
+        adapter_hook: true
+      codex:
+        hooks_json_entry: true
+  # Out of scope (FR-012 compliance): session-end, permission-request, pre-compact, post-compact
 instructions:
   main:
     source: "harness/instructions/main.md"

@@ -15,7 +15,8 @@ alwaysApply: false
 2. §Contract из шага; пуст → допиши до кода
 3. Phases A→F = один UI-элемент; QueryBuilder для list/filter
 4. §0.11; mock убран из prod path; **`deletes`** из eNN выполнены (legacy/mock client не висит)
-4a. Purge eNN: evidence `rg`/inventory при slug `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §3)
+4a. Purge eNN: evidence `rg`/inventory/Kind I при slug `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §3)
+4b. **`wire_complete`:** contract/SoT boundary eNN → блок green до `completed` (shared/workflow-behavior-first.mdc §9)
 5. TDD targeted `.venv/bin/pytest` из корня → полный suite в QA
 6. **Scenario:** user-visible → Playwright **или** `.venv/bin/pytest` HTTP outcome; путь в step
 7. Step yaml; `gaps`; INTEG — `epic-step.yaml` (`role: integ`); implement `deletes:` = факт удаления
@@ -31,5 +32,6 @@ alwaysApply: false
 - Flat implement для нового эпика · user-visible без scenario · «manual smoke only» → reject
 - Непустой eNN `deletes` не выполнен → no FINISH
 - Purge без evidence `rg`/inventory → no FINISH
+- Boundary eNN без green `wire_complete` → no FINISH
 - FINISH без step/Handoff → FAIL (finish-block)
 - INTEG eNN `.md` shard или step не по `templates/implement/epic-step.yaml` → FAIL

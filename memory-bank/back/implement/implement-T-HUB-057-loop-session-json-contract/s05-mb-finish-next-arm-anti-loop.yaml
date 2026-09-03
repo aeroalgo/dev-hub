@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-057-loop-session-json-contract
+title: s05 — mb-finish-result/v1 typed next_* + arm anti-loop guard next != finished
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-057-loop-session-json-contract/s05-mb-finish-next-arm-anti-loop.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-type-safety
+discovery:
+- MbFinishResult schema extended with typed next_* and finished_step fields
+- epic state updated with last_finished_step and armed_after_finish
+- arm_phase guarded against re-arming same step as last_finished_step
+gaps:
+  status: none
+done:
+- Added finished_step, next_step, next_phase, epic_done to MbFinishResult schema
+- Populated typed finish result fields and updated last_finished_step in epic state
+  across mb-finish phase tools
+- Added step_loop_forbidden fail-closed anti-loop guard in arm_phase
+- Added tests verifying next_* fields in MbFinishResult and anti-loop guard in arm_phase
+files:
+- loop/mb_finish/schemas.py
+- loop/mb_finish/impl.py
+- loop/mb_finish/finish_implement.py
+- loop/schemas/state.py
+- loop/epic_transition.py
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_mb_finish_analyze.py
+- loop/tests/test_epic_transition.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_mb_finish_analyze.py loop/tests/test_epic_transition.py
+  -q --tb=short
+integration_check:
+- bin/pytest harness/hooks/tests/test_mb_finish_*.py loop/tests/test_epic_transition.py
+  -q --tb=short
+grep_control: []
+verification_results:
+- bin/pytest harness/hooks/tests/test_mb_finish_analyze.py loop/tests/test_epic_transition.py
+  -q --tb=short — PASS
+checkpoints:
+- id: cp1
+  criterion: 'MbFinishResult contains finished_step + next_step fields; on normal
+    finish next_step != finished_step
+
+    '
+  status: done
+  done_at: '2026-09-03T03:44:55Z'
+- id: cp2
+  criterion: 'TM-009: arm_phase with next_step == last_finished_step returns loop_*
+    diagnostic fail-closed; index step not active after S_done
+
+    '
+  status: done
+  done_at: '2026-09-03T03:45:01Z'
+- id: cp3
+  criterion: epic state after finish contains last_finished_step + armed_after_finish
+    fields in _default_state
+  status: done
+  done_at: '2026-09-03T03:45:07Z'
+resume_from: cp1

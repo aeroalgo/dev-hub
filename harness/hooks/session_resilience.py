@@ -95,7 +95,7 @@ def _safe_killpg(pid: int, sig: int) -> None:
 
 
 _TRANSIENT_ABORT_PATTERNS = (
-    re.compile(r"(?i)timeout: sending signal TERM to command"),
+    re.compile(r"(?i)timeout: sending signal (?:TERM|KILL) to command"),
     re.compile(r"(?i)timed out|timeout expired|command timed out"),
     re.compile(r"(?i)API Error:\s*terminated"),
     re.compile(r"(?i)API Error:\s*overloaded"),

@@ -1,0 +1,30 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-057
+plan_id: T-HUB-057-loop-session-json-contract
+epic_id: T-HUB-057-loop-session-json-contract
+date: "2026-09-03"
+reviewer: verify-qa
+verdict: pass
+
+scope:
+  - "task: T-HUB-057"
+  - "epic: T-HUB-057-loop-session-json-contract"
+  - "steps: s01–s08"
+  - "files: loop/ harness/hooks/"
+
+checks:
+  - "full suite: `bin/pytest -q --tb=line` (1611 passed, 2 skipped, 0 failed)"
+  - "reviewer gate: VERDICT PASS"
+  - "integration rule (§0.11)"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

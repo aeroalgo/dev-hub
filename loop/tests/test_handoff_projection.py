@@ -381,3 +381,99 @@ def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -
     assert out_enabled.get("projected") is True, out_enabled
     ac_done = ac_path.read_text(encoding="utf-8")
     assert "Handoff BACK DONE" in ac_done
+
+
+def test_project_handoff_implement_to_audit_when_queue_done(tmp_path: Path) -> None:
+    from epic import handoff_post_implement_phase, project_handoff_from_reducer
+
+    epic = "T-implement-to-audit"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        f"epic_id: {epic}\n"
+        "step_id: s01\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{decompose}]({decompose})\n\n"
+        f"## Handoff BACK IMPLEMENT — {epic}\n"
+        "- **Режим/шаг:** `BACK IMPLEMENT s01`.\n"
+        "- NEED_HUMAN: verify_no_verdict\n",
+    )
+
+    out = project_handoff_from_reducer(tmp_path)
+    assert out.get("projected") is True, out
+    assert out.get("phase") == "AUDIT", out
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "mode: AUDIT" in ac
+    assert "## Handoff BACK AUDIT" in ac
+    assert "verify_no_verdict" not in ac
+    assert handoff_post_implement_phase(ac) == "AUDIT"
+
+
+def test_clear_stale_verify_no_verdict_at_audit(tmp_path: Path) -> None:
+    from epic import clear_stale_verify_no_verdict_handoff, load_epic_state, save_epic_state
+
+    epic = "T-stale-verify-audit"
+    decompose = f"memory-bank/back/plan/decompose-{epic}/index.yaml"
+    _write(
+        tmp_path / decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": decompose,
+            "armed_step": "AUDIT",
+            "role": "BACK",
+        },
+    )
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: AUDIT\n"
+        f"epic_id: {epic}\n"
+        f"step_id: {epic}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{decompose}]({decompose})\n\n"
+        f"## Handoff BACK AUDIT — {epic}\n"
+        "- **Режим/шаг:** `BACK AUDIT`.\n"
+        "- **NEED_HUMAN:** verify_no_verdict\n",
+    )
+
+    out = clear_stale_verify_no_verdict_handoff(tmp_path)
+    assert out.get("cleared") is True, out
+
+    ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
+    assert "verify_no_verdict" not in ac
+
+    ctx = __import__("loop.context_loop", fromlist=["prepare_session"])
+    prep = ctx.prepare_session(tmp_path)
+    assert prep.get("ok") is True
+    assert not (prep.get("stop") or "").startswith("NEED_HUMAN")

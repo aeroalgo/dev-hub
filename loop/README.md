@@ -101,6 +101,28 @@ export EPIC_EPISODE_RETENTION_DAYS=30
 # loop.episodes.retention.prune_episodes(cwd, days=30)
 ```
 
+## Fail-list protocol
+
+Снятие fresh fail-list и классификация сбоев в тестовом наборе:
+
+```bash
+# Снять свежий список сбойных тестов (fail-list)
+bin/pytest -q --tb=no 2>&1 | rg '^FAILED'
+```
+
+### Классы сбоев (Failure Classes)
+
+- **LEGACY**: тесты, ссылающиеся на удаленные артефакты, устаревшие stubs, старые промпты или исторические форматы, не соответствующие актуальной спецификации.
+- **REGRESSION**: регрессионные падения ранее работавшего функционала, вызванные недавними изменениями кода или несовместимостью интерфейсов.
+- **PROD**: сбои в продакшен-логике, контрактных проверках ядра или системных шлюзах (gate tests).
+
+### Gate Nodeids Hygiene
+
+Шлюзовые тесты (gate nodeids) должны всегда оставаться чистыми (0 failed) и отсутствовать в fail-list:
+```bash
+bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|test_agent_pretool_injects'
+```
+
 ## Production contract
 
 `.claude/project.env` is the checkout canon for runtime and permission values; `.claude/project.env.local` is the only local override. Do not create or synchronize values to a hypothetical example file.

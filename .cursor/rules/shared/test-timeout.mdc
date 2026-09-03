@@ -8,34 +8,34 @@ alwaysApply: true
 
 Все тестовые команды, запускаемые workflow, loop или агентом, обязаны иметь внешний лимит **300 секунд (5 минут)** на процесс.
 
-- **pytest (hub):** канонический runner — `bin/pytest …` из корня репо; wrapper уже содержит `timeout 300s`.
-- Альтернатива: `timeout 300s .venv/bin/pytest …` (если wrapper недоступен).
-- pytest дополнительно использует `pytest-timeout` и `timeout = 300` в `pytest.ini` — лимит отдельного item; внешний лимит процесса всё равно обязателен.
+- **pytest (hub):** канонический runner — `bin/pytest …` из корня репо; wrapper = `timeout -k 10s 300s` (TERM, затем SIGKILL через 10s). Без `-k` GNU timeout **висит вечно**, если команда игнорирует TERM.
+- Альтернатива: `timeout -k 10s 300s .venv/bin/pytest …` (если wrapper недоступен).
+- pytest дополнительно использует `pytest-timeout` и `timeout = 300` / `timeout_method = signal` в `pytest.ini` — лимит отдельного item; внешний лимит процесса всё равно обязателен.
 - `timeout=` у HTTP-клиента, fixture или бизнес-логики не заменяет runner timeout.
-- Для suite из нескольких команд лимит применяется к каждой команде, если workflow явно не указал один внешний `timeout 300s` на весь suite.
+- Для suite из нескольких команд лимит применяется к каждой команде, если workflow явно не указал один внешний `timeout -k 10s 300s` на весь suite.
 - При истечении лимита команда считается failed/blocked, а не passed; timeout нельзя скрывать как успешный skip.
 
 ## Обязательная форма
 
 ```text
 bin/pytest ...
-timeout 300s .venv/bin/pytest ...
-timeout 300s npm --prefix frontend exec vitest ...
-timeout 300s npm --prefix frontend exec tsc ...
-timeout 300s npx playwright test ...
-timeout 300s python tests/test_*.py
-timeout 300s npm test
-timeout 300s make test
+timeout -k 10s 300s .venv/bin/pytest ...
+timeout -k 10s 300s npm --prefix frontend exec vitest ...
+timeout -k 10s 300s npm --prefix frontend exec tsc ...
+timeout -k 10s 300s npx playwright test ...
+timeout -k 10s 300s python tests/test_*.py
+timeout -k 10s 300s npm test
+timeout -k 10s 300s make test
 ```
 
-**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита.
+**FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего лимита; `timeout 300s` **без** `-k`/`--kill-after` (не добивает hang).
 
 В implement/QA step поле `tests:` содержит исполняемую команду в backticks, а результат записывается отдельно в `verification_results`.
 
 ## Единый scope
 
 - **targeted:** одна команда/один файл/один `-k` — максимум 300 секунд; канон для IMPLEMENT / BUGFIX / TASK / verify-implement.
-- **full suite (QA HARD):** `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` — весь default collection репозитория. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
+- **full suite (QA HARD):** `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` — весь default collection репозитория. Epic-scoped / targeted pytest в BACK|INTEG QA = **FAIL** (`suite_not_full`).
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
 - если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full**.
 

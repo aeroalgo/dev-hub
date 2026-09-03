@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: s04 — Delete dsh/presets/reviewer.prompt.md stub — test_legacy_stubs_removed green IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-054-suite-hygiene-runner-gate/s04-legacy-stubs-delete.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - Удалён пустой legacy stub dsh/presets/reviewer.prompt.md
+  - Тесты loop/tests/test_phase_verify_gates.py успешно прошли (12 passed)
+files:
+  - dsh/presets/reviewer.prompt.md
+deletes:
+  - dsh/presets/reviewer.prompt.md
+tests:
+  - bin/pytest loop/tests/test_phase_verify_gates.py -q
+integration_check:
+  - ls dsh/presets/ | rg reviewer | wc -l
+grep_control: []
+verification_results:
+  - 12 passed in 1.31s
+checkpoints:
+  - id: cp1
+    criterion: reviewer.prompt.md удалён из dsh/presets/
+    status: done
+    done_at: '2026-09-02T12:00:00Z'
+  - id: cp2
+    criterion: test_legacy_stubs_removed PASS
+    status: done
+    done_at: '2026-09-02T12:00:00Z'
+  - id: cp3
+    criterion: соседний тест test_verify_agent_presets не сломан
+    status: done
+    done_at: '2026-09-02T12:00:00Z'
+resume_from: cp1

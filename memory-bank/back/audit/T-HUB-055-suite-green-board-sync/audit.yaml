@@ -1,0 +1,37 @@
+schema: epic-audit/v1
+role: back
+epic_id: T-HUB-055-suite-green-board-sync
+status: PASSED
+
+coverage_summary:
+  total_requirements: 5
+  implemented: 5
+  partially_implemented: 0
+  not_implemented: 0
+  regressions: 0
+
+requirements:
+  - id: FR-001
+    title: "Epic-only desired set в run_sync"
+    status: implemented
+    evidence: "loop/board_sync/sync.py computes ops using [*epics] without steps as desired upsert"
+  - id: FR-002
+    title: "Step-era archive applies before or separate from upsert"
+    status: implemented
+    evidence: "loop/board_sync/sync.py archive_all_task_ids runs with step_era_archive=True and FakeClient correctly tracks archived ids"
+  - id: FR-003
+    title: "Generation increment idempotency"
+    status: implemented
+    evidence: "test_sync_generation_increment passes with second.operations == ()"
+  - id: FR-004
+    title: "Purge step-upsert SoT leftovers"
+    status: implemented
+    evidence: "No compute_ops([*epics, *steps]) or stale step upsert assertions remain"
+  - id: FR-005
+    title: "CLI stable-id uses epic IDs"
+    status: implemented
+    evidence: "CLI dry-run and status use epic stable ids"
+
+not_implemented: []
+delta_shards: []
+recommendation: "Proceed to BACK QA"

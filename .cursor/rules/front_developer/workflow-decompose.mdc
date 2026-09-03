@@ -28,19 +28,20 @@ alwaysApply: false
 
 FRONT DECOMPOSE **обязан** нарезать удаление устаревших компонентов/hooks/clients/styles, которые эпик заменяет. Иначе IMPLEMENT плодит мёртвые модули и mock-ветки.
 
-**PLAN** называет поверхности (`## Replacement / sunset` **A/B/C**); **DECOMPOSE** делает их атомарными (`deletes:` + sNN + verify); **IMPLEMENT** только исполняет список из step.  
-**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**PLAN** называет поверхности (`## Replacement / sunset` **A/B/C/I**); **DECOMPOSE** делает их атомарными (`deletes:` + sNN + verify); **IMPLEMENT** только исполняет список из step.  
+**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · **Wire-complete:** @.cursor/rules/shared/workflow-behavior-first.mdc §3
 
 ### REQUIRED
 
-1. В `index.md` — секция **`## Replacement cleanup (plan → steps)`** (Kind A|B|C + Fallback?). Нет секции = FAIL.
-2. Каждая строка плана sunset A/B/C → ≥1 `sNN` с **непустым** `deletes:` (пути `.tsx`/`.ts`/hooks/utils **и/или** export-символы), **или** out_of_scope + follow-up epic **в queue**.
+1. В `index.md` — секция **`## Replacement cleanup (plan → steps)`** (Kind A|B|C|I + Fallback?). Нет секции = FAIL.
+2. Каждая строка плана sunset A/B/C/**I** → ≥1 `sNN` с **непустым** `deletes:` (пути `.tsx`/`.ts`/hooks/utils **и/или** export-символы / instruction rewrites), **или** out_of_scope + follow-up epic **в queue**.
 3. Greenfield / нет замен → одна строка `n/a — нет замен`.
 4. У каждого `sNN`: поле **`deletes:`** (`[]` только если шаг ничего не вытесняет). Удаления **не** прятать только в `delta`/`files`.
-5. Цепочка OK: `add новый UI → migrate imports → delete старый`. Delete-шаг **в очереди обязателен**, если замена есть.
-6. Непустой `deletes` → ≥1 checkpoint `verify` через `rg` / import-audit: старый путь/символ **без живых callers**; Vitest/Playwright на старый контракт — **в `deletes:` или rewrite**.
-7. `out_of_scope: оставить shim/mock` — только с follow-up epic ID **в queue**; иначе FAIL.
-8. **Финальный purge:** cleanup ≠ n/a → `sNN-*-legacy-fallback-purge` (остаток A+B+C **включая obsolete tests** + anti-fallback rg + routes/scripts inventory из plan B). Нет purge = FAIL.
+5. **Ladder:** machine-boundary / contract FR → `add → wire → enforce → purge`. Add-only / optional SoT = FAIL.
+6. Цепочка OK: `add новый UI → migrate imports → enforce → delete старый`. Delete-шаг **в очереди обязателен**, если замена есть.
+7. Непустой `deletes` → ≥1 checkpoint `verify` через `rg` / import-audit: старый путь/символ **без живых callers**; Vitest/Playwright на старый контракт — **в `deletes:` или rewrite**; Kind I instructions rewritten.
+8. `out_of_scope: оставить shim/mock` — только с follow-up epic ID **в queue**; иначе FAIL.
+9. **Финальный purge:** cleanup ≠ n/a → `sNN-*-legacy-fallback-purge` (остаток A+B+C+**I** **включая obsolete tests** + anti-fallback rg + routes/scripts inventory из plan B + Kind I rg). Нет purge = FAIL.
 
 ### FORBIDDEN
 
@@ -50,6 +51,7 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 - Растворить cleanup только в Outcome map без sNN/`deletes`.
 - Soft mock/default в prod path «для DX».
 - Drop UI/контракт без delete/rewrite тестов, которые требуют старое поведение.
+- Add-only / optional SoT как закрытие sole-path FR.
 
 ---
 

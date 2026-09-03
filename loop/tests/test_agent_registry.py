@@ -124,3 +124,25 @@ def test_normalize_type_verify_alias() -> None:
 def test_agent_file_exists_verify_implement() -> None:
     assert (ROOT / ".claude" / "agents" / "verify-implement.md").is_file()
 
+
+def test_sunset_alias() -> None:
+    registry = _load()
+    assert registry.AGENT_ALIASES.get("sunset") == "sunset-inventory"
+    assert registry.resolve_agent_alias("sunset") == "sunset-inventory"
+
+
+def test_sunset_discovered(tmp_path: Path) -> None:
+    registry = _load()
+    _agent(
+        tmp_path,
+        "sunset-inventory.md",
+        "name: sunset-inventory\noverlay:\n  managed: true\n  mode: search\n  verdict: none",
+    )
+    result = registry.discover_registry(tmp_path, process_env={}, project_env_local={}, project_env={})
+    agent = result.get("sunset-inventory")
+    assert agent is not None
+    assert agent.mode == "search"
+    assert agent.verdict == "none"
+    assert agent.runnable is True
+
+

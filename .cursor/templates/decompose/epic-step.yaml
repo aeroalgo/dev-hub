@@ -31,9 +31,21 @@ deletes: []
 # [] только если шаг ничего не вытесняет. Replace X→Y без deletes у владельца cutover = FAIL.
 # Цепочка OK: sN add → sN+1 migrate callers → sN+2 deletes старого. Delete-шаг в очереди обязателен.
 # Checkpoint: ≥1 verify с `rg`/import-audit — старый путь/символ без живых callers.
-# Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C + ПОЛНЫЙ inventory scan.
-# Шаблон purge: @.cursor/templates/decompose/legacy-purge-step.yaml (sunset_inventory + grep_control + cp-inventory-a/b/c).
+# Brownfield: финальный шаг slug *-legacy-fallback-purge — остаток A+B+C+I + ПОЛНЫЙ inventory scan.
+# Шаблон purge: @.cursor/templates/decompose/legacy-purge-step.yaml (sunset_inventory + grep_control + cp-inventory-a/b/c/i).
+# Machine-boundary steps: ladder add→wire→enforce→purge; implement `wire_complete` (behavior-first §9).
 # Канон: shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+# Sunset Scope (optional — для шагов, требующих bounded sunset-inventory scan)
+# sunset_scope:
+#   required: false              # true если шаг требует явного запуска sunset-inventory
+#   boundary_id: <boundary_id>   # идентификатор границы / подсистемы
+#   new_sot: <new_sot_path>      # новый Single Source of Truth
+#   allow_read:                  # glob-список разрешенных для чтения путей
+#     - "path/to/files/**"
+#   kind_hint:                   # optional: A | B | C | I
+#     - A
+#     - B
 
 out_of_scope: []
 # соседние sNN/eNN, full suite → QA, не трогать.

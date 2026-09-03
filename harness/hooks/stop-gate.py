@@ -214,6 +214,15 @@ def main() -> None:
     if stop_hook_active and not epic_on:
         return
 
+    counters = epic.get("schema_retry_counts") or {}
+    max_schema_retries = int(os.environ.get("EPIC_SCHEMA_RETRY_MAX", "2"))
+    if any(int(c) > max_schema_retries for c in counters.values()) or st.get("need_human") == "schema_retry_exhausted:B-GATE":
+        _block(
+            "NEED_HUMAN: schema_retry_exhausted — subagent schema validation retry limit exceeded. "
+            "diagnostic=schema_retry_exhausted"
+        )
+        return
+
     finishing = bool(FINISH_RE.search(msg))
     if not finishing and st.get("mode") == "qa":
         finishing = bool(
@@ -392,12 +401,20 @@ def main() -> None:
         if not lft or not isinstance(lft, dict) or not lft.get("fingerprint"):
             if not stop_hook_active:
                 _block(
-                    "spawn-gate: FINISH IMPLEMENT requires finish tool execution (last_finish_tool missing). "
-                    "diagnostic=finish_tool_required"
+                    "NEED_HUMAN: finish_tool_missing — FINISH IMPLEMENT requires finish tool execution (last_finish_tool fingerprint missing). "
+                    "diagnostic=finish_tool_missing"
                 )
                 return
 
     if finishing and epic.get("last_verify_verdict") == "PASS":
+        lft = epic.get("last_finish_tool")
+        if not lft or not isinstance(lft, dict) or not lft.get("fingerprint"):
+            if not stop_hook_active:
+                _block(
+                    "NEED_HUMAN: finish_tool_missing — verify PASS requires mb-finish tool execution (last_finish_tool fingerprint missing). "
+                    "diagnostic=finish_tool_missing"
+                )
+                return
         if armed_step_u != "DECOMPOSE":
             integrity = validate_finish_integrity(
                 cwd,

@@ -1,16 +1,16 @@
 ---
-description: "HARD always — spec-first replace; не размазывать фичи об as-built; pydantic → JSON, не regex+enum"
+description: "HARD always — spec-first replace; wire-complete; не размазывать фичи об as-built; pydantic → JSON, не regex+enum"
 alwaysApply: true
 ---
 # SPEC-FIRST REPLACE (HARD — always)
 
-**Layer 0.** Полный канон PLAN/DECOMPOSE: @.cursor/rules/shared/workflow-spec-first-replace.mdc · purge: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Layer 0.** Полный канон PLAN/DECOMPOSE: @.cursor/rules/shared/workflow-spec-first-replace.mdc · purge: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc
 
 Cross-cutting. Ограничивает **design и код**, не формат чата.
 
 ---
 
-## 1. As-built ≠ design template
+## 1. As-built is not spec template
 
 **FORBIDDEN:** смотреть старый код и «расширять» его новой технологией.
 
@@ -19,7 +19,7 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 | grep/read старого кода | **sunset inventory** — что **удалить** |
 | WHAT / axiom / AC+ | **единственный** источник нового поведения |
 
-**FAIL:** «добавим pydantic рядом с regex» · «оставим VERDICT для совместимости» · `try: new except: old` · dual path после эпика.
+**FAIL:** «добавим новый стек рядом со старым parser» · «оставим старый формат для совместимости» · `try: new except: old` · dual path после эпика.
 
 ---
 
@@ -32,9 +32,9 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 | **Pydantic validate** | JSON или YAML frontmatter | regex prose → str → enum «validated» |
 | **Enum / Literal** | одно typed поле | параллельный raw str + normalize |
 | **pydantic-ai structured** | `Agent[OutputModel]` | free-text → regex extract |
-| **Sidecar / schema vN** | validate-on-write | prose line (`VERDICT:`) как machine input |
+| **Sidecar / schema vN** | validate-on-write | free-text / prose line как machine input |
 
-**Anti-pattern (FAIL):** `re.search(VERDICT:)` → `Enum(...)` — это **не** pydantic.
+**Anti-pattern (FAIL):** regex extract prose → `Enum(...)` без schema validate — это **не** pydantic.
 
 ---
 
@@ -48,21 +48,37 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 
 ---
 
-## 4. Когда применять
+## 4. Wire-complete / анти-минимализм (HARD)
+
+**Сделано = старый путь нельзя использовать без ошибки.** «Модуль есть / optional call / preferred new» — **не** done.
+
+Для machine boundary / API / tool в одном эпике (или follow-up ID в queue на каждый пропуск):
+
+**Add → Wire → Enforce (DENY old) → Purge** (код + obsolete tests + instruction surfaces).
+
+**FORBIDDEN:** optional SoT · soft flag default off после эпика · add без enforce · prompts/rules всё ещё учат старый формат.
+
+Полный канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3–§4 · §9 (`wire_complete`).
+
+---
+
+## 5. Когда применять
 
 | Контекст | Действие |
 |----------|----------|
 | Обсуждение новой фичи (любой чат) | spec-first; не предлагать гибрид с as-built |
 | `* PLAN` / `* CLARIFY` | §Technology axiom в plan **до** HOW из кода |
-| `* DECOMPOSE` | purge-step на каждый старый symbol **и** obsolete tests |
-| `* IMPLEMENT` | не добавлять fallback «чтобы green»; не restore legacy под старые asserts |
+| `* DECOMPOSE` | ladder add→wire→enforce→purge; Kind I instructions; obsolete tests |
+| `* IMPLEMENT` | не optional wire; `wire_complete` на boundary steps; не restore legacy |
 | Пользователь: pydantic / JSON / enums | JSON на границе; regex с границы **убрать** |
 
 ---
 
-## 5. AC− (кратко)
+## 6. AC− (кратко)
 
 1. Нет dual machine path (regex + pydantic) на одной границе.
 2. Нет silent PASS через legacy parser.
 3. Кодовая база **не растёт** вторым путём — старый **удаляется**.
 4. Нет живых тестов, которые требуют удалённый контракт.
+5. Нет «available but optional» SoT без follow-up epic в queue.
+6. Нет старых инструкций (prompts/rules/finish-blocks), требующих запрещённый axiom формат.

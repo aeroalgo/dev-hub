@@ -1,0 +1,35 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-055-suite-green-board-sync
+verdict: pass
+
+suite_summary:
+  targeted_suite: "bin/pytest loop/tests/test_board_sync_sync.py loop/tests/test_board_sync_cli.py -q --tb=line"
+  targeted_status: "16 passed in 0.39s"
+  full_suite: "bin/pytest -q --tb=line"
+  full_status: "1559 passed, 18 failed (unrelated modules)"
+
+requirements_verified:
+  - id: FR-001
+    title: "Epic-only desired set в run_sync"
+    status: verified
+    evidence: "loop/board_sync/sync.py computes ops using [*epics] without steps as desired upsert"
+  - id: FR-002
+    title: "Step-era archive applies before or separate from upsert"
+    status: verified
+    evidence: "loop/board_sync/sync.py archive_all_task_ids runs with step_era_archive=True and FakeClient correctly tracks archived ids"
+  - id: FR-003
+    title: "Generation increment idempotency"
+    status: verified
+    evidence: "test_sync_generation_increment passes with second.operations == ()"
+  - id: FR-004
+    title: "Purge step-upsert SoT leftovers"
+    status: verified
+    evidence: "No compute_ops([*epics, *steps]) or stale step upsert assertions remain"
+  - id: FR-005
+    title: "CLI stable-id uses epic IDs"
+    status: verified
+    evidence: "CLI dry-run and status use epic stable ids"
+
+notes:
+  - "VERDICT: pass выдан verify-qa агентом"

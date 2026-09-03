@@ -355,6 +355,7 @@ console.log(JSON.stringify(nativeSubagentStartPayload({ id: 'child-1', cwd: '/wr
 """
     env = os.environ.copy()
     env["PROJECT_ROOT"] = "/product/root"
+    env.pop("EPIC_PROJECT_ROOT", None)
     result = subprocess.run(
         ["node", "--experimental-strip-types", "--input-type=module", "-e", script],
         cwd=ROOT / "dsh" / "plugins" / "epic-gate",

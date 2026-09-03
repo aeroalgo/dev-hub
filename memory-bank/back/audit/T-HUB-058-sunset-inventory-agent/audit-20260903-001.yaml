@@ -1,0 +1,18 @@
+schema: epic-audit/v1
+epic_id: T-HUB-058-sunset-inventory-agent
+date: "2026-09-03"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/plan-T-HUB-058-sunset-inventory-agent.md
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-058-sunset-inventory-agent/index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements FR-001 through FR-013 of T-HUB-058 are fully implemented and verified.
+  All decompose steps s01 through s06 are marked completed in index.yaml.
+  Pydantic schema loop-sunset-inventory/v1, agent sunset-inventory definition, preset, manifest,
+  registry alias/contract, decompose template sunset_scope, workflow lean/behavior-first/spec-first
+  gates, and legacy fallback purge have been successfully verified with green tests.

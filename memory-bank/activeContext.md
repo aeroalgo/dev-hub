@@ -1,16 +1,17 @@
 ---
-schema: loop-handoff/v1 # handoff
+schema: loop-handoff/v1
 role: BACK
-mode: ANALYZE
+mode: IMPLEMENT
 epic_id: T-HUB-053-codex-claude-hooks-parity
-step_id: ANALYZE
+step_id: s08
 ---
 
 ## load_now
-1. [plan-T-HUB-053-codex-claude-hooks-parity.md](back/plan/plan-T-HUB-053-codex-claude-hooks-parity.md) — source plan/artifact for pre-implement phase ANALYZE.
-2. [`decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml`](back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml) — decompose index for ANALYZE gate.
+1. [back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s08-legacy-partial-parity-purge.yaml](back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s08-legacy-partial-parity-purge.yaml) — текущий work shard (BACK IMPLEMENT s08).
+2. [back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml](back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/index.yaml) — очередь/status (canon=yaml).
 
-## Handoff ANALYZE
-- **Эпик:** T-HUB-053-codex-claude-hooks-parity (BACK).
-- **Режим/шаг:** `BACK ANALYZE`.
-- **Дальше:** выполнить `BACK ANALYZE`.
+## Handoff BACK IMPLEMENT — s08
+- **Дальше:** продолжить с work shard `memory-bank/back/plan/decompose-T-HUB-053-codex-claude-hooks-parity/s08-legacy-partial-parity-purge.yaml`
+- **Эпик:** T-HUB-053-codex-claude-hooks-parity.
+- **Режим/шаг:** следующий BACK IMPLEMENT `s08`.
+- **Сделано:** предыдущий шаг отмечен `completed`.

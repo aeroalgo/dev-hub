@@ -132,7 +132,7 @@ def test_obsolete_step_card_deleted_on_epic_sync(tmp_path: Path) -> None:
 
     result = run_sync([ref], client)
 
-    assert old_step.id in client.deleted
+    assert old_step.id in client.archived
     assert any(task.id.endswith("-epic") for task in client.tasks.values())
     assert any(operation.kind == "archive" for operation in result.operations)
 
@@ -153,7 +153,7 @@ def test_done_epic_archive_all(
     result = run_sync([ref], client)
 
     assert result.archived == 3
-    assert client.deleted == {
+    assert client.archived == {
         "mb-demo-back-t-demo-s01",
         "mb-demo-back-t-demo-s02",
         "mb-demo-back-t-other-s01",
@@ -171,8 +171,7 @@ def test_done_epic_preserves_unrelated_cards(
     result = run_sync([ref], client)
 
     assert result.archived == 1
-    assert client.deleted == {other.id}
-    assert client.archived == set()
+    assert client.archived == {other.id}
     assert client.tasks[manual.id] == manual
 
 

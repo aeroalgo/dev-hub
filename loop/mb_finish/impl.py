@@ -11,6 +11,7 @@ from harness.hooks.epic.core import (
     latest_bugfix_artifact_for_reference,
     latest_qa_any_artifact_for_reference,
     load_epic_state,
+    parse_qa_verdict,
     read_active_context,
     reconcile_epic_events,
     save_epic_state,
@@ -122,14 +123,22 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         LoadNowItem(path=qa_rel, description="QA pass artifact"),
     ]
 
+    qa_verdict = parse_qa_verdict(qa_art) if qa_art else "pass"
+    if qa_verdict in {"fail", "blocked"}:
+        next_mode = "BUGFIX"
+        default_hint = "fix QA blockers via BUGFIX"
+    else:
+        next_mode = "REFLECT"
+        default_hint = "reflection"
+
     meta = LoopHandoffMeta(
         role=role,
-        mode="REFLECT",
+        mode=next_mode,
         epic_id=epic_id or None,
     )
     handoff_body = HandoffBody(
-        mode="REFLECT",
-        next_hint=req.done_summary or "reflection",
+        mode=next_mode,
+        next_hint=req.done_summary or default_hint,
         epic_id=epic_id or None,
     )
 
@@ -189,8 +198,8 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     sync_cursor_from_index(cwd)
 
     st = load_epic_state(cwd)
-    st["armed_step"] = "REFLECT"
-    st["phase"] = "REFLECT"
+    st["armed_step"] = next_mode
+    st["phase"] = next_mode
     st["active"] = True
     st["status"] = "armed"
     st["halt_reason"] = None
@@ -198,12 +207,23 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
 
     fp_data = f"qa:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish qa", fp)
+    write_last_finish_tool(
+        cwd,
+        "mb-finish qa",
+        fp,
+        finished_step="QA",
+        armed_after_finish=next_mode,
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="QA",
+        next_step=next_mode,
+        next_phase=next_mode,
+        epic_done=False,
     )
+
 
 
 def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
@@ -318,12 +338,23 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
 
     fp_data = f"bugfix:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish bugfix", fp)
+    write_last_finish_tool(
+        cwd,
+        "mb-finish bugfix",
+        fp,
+        finished_step="BUGFIX",
+        armed_after_finish="QA",
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="BUGFIX",
+        next_step="QA",
+        next_phase="QA",
+        epic_done=False,
     )
+
 
 
 def finish_decompose(
@@ -423,12 +454,29 @@ def finish_decompose(
 
     fp_data = f"decompose:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish decompose", fp)
+
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish decompose",
+        fp,
+        finished_step="DECOMPOSE",
+        armed_after_finish=str(next_step) if next_step else None,
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="DECOMPOSE",
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+
 
 
 def finish_plan(
@@ -521,28 +569,56 @@ def finish_plan(
 
     fp_data = f"plan:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish plan", fp)
+
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish plan",
+        fp,
+        finished_step="PLAN",
+        armed_after_finish=str(next_step) if next_step else None,
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="PLAN",
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+
 
 
 def finish_analyze(
     req: MbFinishRequest,
 ) -> MbFinishResult:
-    """Orchestrate ANALYZE phase finish atomically."""
+    """Orchestrate ANALYZE phase finish atomically.
+
+    Fail-closed: analyze yaml + gate pass + promote to IMPLEMENT required.
+    Never write IMPLEMENT activeContext while analyze_gate is still open.
+    """
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
     role = (state.get("armed_role") or "BACK").upper()
+    role_dir = role.lower()
     decompose_rel = state.get("armed_decompose") or ""
 
     if not epic_id and decompose_rel:
         epic_id = epic_id_from_decompose_path(decompose_rel)
+
+    if not epic_id:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["epic_id_missing"],
+            shape_errors=["armed_epic missing — cannot finish ANALYZE"],
+        )
 
     evidence = state.get("last_verify_evidence")
     matched, diagnostic = gate_evidence_matches(cwd, evidence) if evidence else (False, "gate_evidence_missing")
@@ -553,77 +629,90 @@ def finish_analyze(
             shape_errors=[f"Gate evidence invalid or missing: {diagnostic}"],
         )
 
-    load_now = []
+    from analyze_gate import analyze_required_before_implement
+    from roadmap_queue import find_decompose_index, load_steps_for_index
+
+    idx_path = None
     if decompose_rel:
-        load_now.append(LoadNowItem(path=decompose_rel, description="Decompose index"))
+        cand = cwd / decompose_rel
+        if cand.is_dir():
+            cand = cand / "index.yaml"
+        elif cand.name in {"index.md", "index.yml"}:
+            cand = cand.with_name("index.yaml")
+        if cand.is_file():
+            idx_path = cand
+    if idx_path is None:
+        idx_path = find_decompose_index(cwd, role_dir, epic_id)
+    if idx_path is None or not idx_path.is_file():
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["decompose_index_missing"],
+            shape_errors=["decompose index.yaml missing — cannot finish ANALYZE"],
+        )
 
-    meta = LoopHandoffMeta(
-        role=role,
-        mode="IMPLEMENT",
-        epic_id=epic_id or None,
-        step_id=req.step_id or None,
+    loaded = load_steps_for_index(cwd, idx_path)
+    if not loaded.get("ok"):
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["decompose_index_invalid"],
+            shape_errors=[str(loaded.get("error") or "decompose index load failed")],
+        )
+    steps = loaded.get("steps") or []
+    gate = analyze_required_before_implement(
+        cwd,
+        role_dir,
+        epic_id,
+        steps,
+        index_path=idx_path,
     )
-    handoff_body = HandoffBody(
-        mode="IMPLEMENT",
-        next_hint=req.done_summary or "implement first step",
-        epic_id=epic_id or None,
-        step_id=req.step_id or None,
-    )
-
-    try:
-        rendered = render_active_context(
-            meta=meta,
-            load_now=load_now,
-            done=[],
-            handoff=handoff_body,
-        )
-    except ValueError as exc:
+    if gate.get("required"):
+        reason = str(gate.get("reason") or "analyze_required")
         return MbFinishResult(
             ok=False,
-            diagnostic_codes=["rendered_shape_invalid"],
-            shape_errors=[str(exc)],
-        )
-    except Exception as exc:
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["render_failed"],
-            shape_errors=[str(exc)],
-        )
-
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
-
-    try:
-        atomic_write_text(act_path, rendered)
-    except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["active_context_write_failed"],
-            shape_errors=[str(exc)],
+            diagnostic_codes=["analyze_gate_pending", reason],
+            shape_errors=[f"ANALYZE gate still open: {reason}"],
         )
 
     from loop.epic_transition import promote_if_ready
-    promote_if_ready(cwd, epic_id, role)
+
+    promoted = promote_if_ready(cwd, epic_id, role_dir)
+    if not (isinstance(promoted, dict) and promoted.get("ok")):
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["analyze_promote_failed"],
+            shape_errors=[
+                "ANALYZE finish refused: promote to IMPLEMENT failed "
+                "(gate open, empty steps, or arm error)"
+            ],
+        )
 
     sync_cursor_from_index(cwd)
 
     fp_data = f"analyze:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish analyze", fp)
+
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish analyze",
+        fp,
+        finished_step="ANALYZE",
+        armed_after_finish=str(next_step) if next_step else None,
+    )
 
     return MbFinishResult(
         ok=True,
-        active_context=rendered,
+        active_context=read_active_context(cwd),
+        finished_step="ANALYZE",
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+
 
 
 def finish_audit(
@@ -733,12 +822,29 @@ def finish_audit(
 
     fp_data = f"audit:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish audit", fp)
+
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish audit",
+        fp,
+        finished_step="AUDIT",
+        armed_after_finish=str(next_step) if next_step else None,
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="AUDIT",
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+
 
 
 def finish_creative(
@@ -854,12 +960,29 @@ def finish_creative(
 
     fp_data = f"creative:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish creative", fp)
+
+    st_after = load_epic_state(cwd)
+    next_step = st_after.get("armed_step")
+    next_phase = st_after.get("phase")
+    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
+
+    write_last_finish_tool(
+        cwd,
+        "mb-finish creative",
+        fp,
+        finished_step="CREATIVE",
+        armed_after_finish=str(next_step) if next_step else None,
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="CREATIVE",
+        next_step=next_step,
+        next_phase=next_phase,
+        epic_done=epic_done,
     )
+
 
 
 def finish_reflect(
@@ -954,10 +1077,21 @@ def finish_reflect(
 
     fp_data = f"reflect:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(cwd, "mb-finish reflect", fp)
+    write_last_finish_tool(
+        cwd,
+        "mb-finish reflect",
+        fp,
+        finished_step="REFLECT",
+        armed_after_finish="NEXT_CYCLE",
+    )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
+        finished_step="REFLECT",
+        next_step="NEXT_CYCLE",
+        next_phase="NEXT_CYCLE",
+        epic_done=True,
     )
+
 

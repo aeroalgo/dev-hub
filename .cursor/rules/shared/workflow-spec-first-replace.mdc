@@ -23,10 +23,10 @@ alwaysApply: false
 
 **FORBIDDEN в plan/design:**
 
-- «расширить существующий regex-path pydantic-ом»
-- «оставить VERDICT для совместимости, добавить JSON»
+- «расширить существующий legacy-path новым стеком»
+- «оставить старый machine format для совместимости, добавить новый рядом»
 - «fallback на старый код если новый не сработал» (→ legacy-fallback-cleanup §C)
-- проектировать primary path из `_lib.py` / hooks as-built без явной §Axiom
+- проектировать primary path из as-built без явной §Axiom
 
 **REQUIRED в plan (brownfield replace / смена контракта):**
 
@@ -46,7 +46,7 @@ alwaysApply: false
 | pydantic-ai structured output | `Agent[OutputModel]` | typed extract | free-text → regex → enum |
 | JSON schema / sidecar vN | fenced JSON или файл | validate-on-write | «human line» как machine input |
 
-**Anti-pattern (FAIL):** `re.search(VERDICT:)` → `GateVerdictValue(v.group(1))` — это **не** pydantic validation.
+**Anti-pattern (FAIL):** regex/prose extract → enum/typed field «как validated» без schema validate на структуре — это **не** typed validation.
 
 Plan **обязан** явно записать axiom одной таблицей; DECOMPOSE **обязан** иметь purge-step на старый parser (legacy-fallback-cleanup §2.2).
 
@@ -65,6 +65,10 @@ Plan **обязан** явно записать axiom одной таблице�
 
 **Default done:** один путь. Старый символ **и** obsolete tests удалены; misconfig → fail-closed.
 
+**Wire-complete (анти-минимализм):** Add → Wire → Enforce (DENY old) → Purge. «Модуль есть / optional call» ≠ done. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3–§4.
+
+**SoT uniqueness:** optional / soft / preferred / enforce-off flag default после эпика = **FAIL** без follow-up epic ID в queue.
+
 ---
 
 ## 4. PLAN AC− (дополнение к legacy-fallback)
@@ -74,17 +78,19 @@ Plan **обязан** явно записать axiom одной таблице�
 1. Нет dual machine path (regex + pydantic) на одной границе после эпика.
 2. Нет «validated» enum из неструктурированного prose.
 3. Sunset A содержит **каждый** старый parser/symbol на этой границе (не «потом»).
-4. Spawn/prompt/loop instructions не требуют формат, запрещённый axiom (напр. `VERDICT:` при JSON axiom).
+4. Spawn/prompt/loop instructions не требуют формат, запрещённый axiom — sunset **Kind I**.
 5. Sunset A / `deletes:` покрывают obsolete tests на старый machine path (не оставлять asserts, которые вернут regex).
+6. Нет «available but optional» SoT; старый путь → DENY/HALT или follow-up ID в queue.
+7. AC+ формулирует **единственный** SoT + diagnostic при попытке старого пути.
 
 ---
 
 ## 5. DECOMPOSE / IMPLEMENT / chat
 
-- **DECOMPOSE:** каждый FR на новый structured path → строка в Replacement cleanup + финальный `*-legacy-fallback-purge`; `deletes:` включает obsolete test paths/cases на старый parser.
-- **IMPLEMENT:** shard `deletes:` выполняется в том же эпике (prod **и** obsolete tests); не добавлять fallback «чтобы green»; не restore legacy под красные старые asserts.
-- **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list (код + тесты).
-- **ANALYZE:** FAIL если plan обещает pydantic, а steps не содержат purge старого parser **и** тестов на него.
+- **DECOMPOSE:** каждый FR на новый structured path → ladder add→wire→enforce→purge; Replacement cleanup A+B+C+**I**; `deletes:` включает obsolete tests **и** instruction rewrites; при наличии brownfield replace — добавить `sunset_scope: {required: true, allow_read: [...]}`.
+- **IMPLEMENT:** перед первым prod Write нового SoT на replace FR при `sunset_scope.required: true` — обязательный spawn `@sunset-inventory` для получения структурированного JSON; shard `deletes:` в том же эпике; на boundary steps — блок `wire_complete` (behavior-first §9); не fallback «чтобы green»; не restore legacy.
+- **Обычный чат (без role command):** если пользователь говорит «pydantic / JSON / enums» — **не** предлагать гибрид с as-built regex; предложить replace + sunset list (код + тесты + instructions).
+- **ANALYZE:** FAIL если plan обещает pydantic/sole path, а steps без purge **или** без wire/enforce (Optional-SoT).
 
 ---
 
@@ -92,8 +98,9 @@ Plan **обязан** явно записать axiom одной таблице�
 
 | Этап | Правило |
 |------|---------|
-| Sunset / purge / audit | @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc |
+| Sunset / purge / audit / Kind I / QA sot_enforce | @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc |
+| Wire-complete / anti-dilution / optional SoT | @.cursor/rules/shared/workflow-behavior-first.mdc |
 | Plan artifact bar | @.claude/rules/plan-artifact.md |
 | Token economy §0.0 | plan/decompose не резать; axiom не выкидывать «для краткости» |
 
-**Итог для агента:** as-built смотришь **что удалить**, не **как копировать**. Pydantic выбрали → JSON на границе → regex с этой границы **исчезает** в том же эпике — **вместе** с тестами, которые его требовали.
+**Итог для агента:** as-built смотришь **что удалить**, не **как копировать**. Pydantic выбрали → JSON на границе → regex с этой границы **исчезает** в том же эпике — **вместе** с тестами и инструкциями, которые его требовали. Новый модуль без enforce — не done.

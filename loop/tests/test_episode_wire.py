@@ -8,12 +8,42 @@ from loop.context_loop import prepare_session, check_after
 from loop.episodes import episode_dir
 
 
+AC_VALID_CONTENT_1 = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-001
+step_id: s01
+---
+## load_now
+1. [foo.md](memory-bank/foo.md)
+
+## Handoff BACK IMPLEMENT s01
+- next: s01
+"""
+
+AC_VALID_CONTENT_2 = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-001
+step_id: s01
+---
+## load_now
+1. [foo.md](memory-bank/foo.md)
+
+## Handoff BACK IMPLEMENT s01
+- next: s01
+- done step
+"""
+
+
 def test_prepare_session_has_episode_id(tmp_path: Path):
     """cp1: prepare_session returns dict with episode_id != None when activeContext exists."""
     ac_file = tmp_path / "memory-bank" / "activeContext.md"
     ac_file.parent.mkdir(parents=True, exist_ok=True)
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n",
+        AC_VALID_CONTENT_1,
         encoding="utf-8",
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
@@ -31,7 +61,7 @@ def test_check_after_creates_manifest(tmp_path: Path):
     ac_file = tmp_path / "memory-bank" / "activeContext.md"
     ac_file.parent.mkdir(parents=True, exist_ok=True)
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n",
+        AC_VALID_CONTENT_1,
         encoding="utf-8",
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
@@ -42,7 +72,7 @@ def test_check_after_creates_manifest(tmp_path: Path):
 
     # change activeContext slightly so fingerprint changes and check_after proceeds
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n- done step\n",
+        AC_VALID_CONTENT_2,
         encoding="utf-8",
     )
 
@@ -61,7 +91,7 @@ def test_finalize_exception_does_not_block(tmp_path: Path):
     ac_file = tmp_path / "memory-bank" / "activeContext.md"
     ac_file.parent.mkdir(parents=True, exist_ok=True)
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n",
+        AC_VALID_CONTENT_1,
         encoding="utf-8",
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
@@ -70,7 +100,7 @@ def test_finalize_exception_does_not_block(tmp_path: Path):
     assert prep_res.get("ok") is True
 
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n- updated\n",
+        AC_VALID_CONTENT_2,
         encoding="utf-8",
     )
 
@@ -86,7 +116,7 @@ def test_tier0_check_after_finalizes(tmp_path: Path):
     ac_file = tmp_path / "memory-bank" / "activeContext.md"
     ac_file.parent.mkdir(parents=True, exist_ok=True)
     ac_file.write_text(
-        "## load_now\n1. [foo.md](memory-bank/foo.md)\n\n## Handoff BACK IMPLEMENT s01\n- next: s01\n",
+        AC_VALID_CONTENT_1,
         encoding="utf-8",
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")

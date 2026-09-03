@@ -1,0 +1,13 @@
+version: roadmap-queue/v1
+role: back
+roadmap: memory-bank/back/plan/roadmap-suite-hygiene-epics.md
+queue:
+  - id: T-HUB-054
+    plan: plan-T-HUB-054-suite-hygiene-runner-gate.md
+    deps: []
+  - id: T-HUB-055
+    plan: plan-T-HUB-055-suite-green-board-sync.md
+    deps: [T-HUB-054]
+  - id: T-HUB-056
+    plan: plan-T-HUB-056-suite-green-loop-identity.md
+    deps: [T-HUB-055]

@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-057-loop-session-json-contract
+title: "B-START: mb-load primary SoT + prepare wiring — session start canonical path"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сделать mb-load session единственным machine entry для session start: prepare/build_prompt
+  вызывает load_session() проверяет MbLoadResult.ok; при ok=False / shape invalid fail-closed
+  halt. Prose path (multi-Read load_now) остаётся для manual/fallback, но не является primary
+  SoT. Outcome: SC-001 (mb-load primary START); TM-001 (load ok).
+  System: B-START boundary всегда проходит через MbLoadResult.
+
+context:
+  consumes:
+    - loop/mb_load/session.py
+    - loop/mb_load/schemas.py
+    - loop/context_loop.py
+    - harness/hooks/epic/core.py
+  produces:
+    - loop/mb_load/session.py
+    - loop/context_loop.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - SC-001
+    - TM-001
+    - TM-002
+    - US-001
+  files:
+    - loop/mb_load/session.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/mb_load/session.py — load_session implemented; returns MbLoadResult; shape fail-closed; prepare not required to call it"
+  - "loop/context_loop.py — prepare / build_prompt uses prose load_now list as primary (FR-002 gap)"
+  - "loop/mb_load/schemas.py — MbLoadResult.ok / shape_errors already present"
+
+delta:
+  - "loop/context_loop.py prepare: calls load_session(); on ok=False emit diagnostic + halt (not fallback-prose)"
+  - "loop/mb_load/session.py: verify shape invalid consistently sets ok=False + diagnostic_codes"
+  - "loop/context_loop.py: logs MbLoadResult.diagnostic_codes on fail"
+
+deletes: []
+
+out_of_scope:
+  - "validate_boundary unified helper (s03)"
+  - "SubagentStop wiring (s03)"
+  - "schema-retry (s03)"
+  - "mb-finish next_* (s05)"
+  - "stop-gate (s06)"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      prepare calls load_session() and on MbLoadResult.ok=False stops with diagnostic;
+      test asserts prepare does NOT continue when shape is invalid
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=short -k 'primary or prepare or fail_closed'"
+  - id: cp2
+    criterion: >
+      TM-001 mb-load ok path passes; TM-002 missing shard diagnostic halt
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=short"
+  - id: cp3
+    criterion: "rg confirms load_session import in context_loop.py prepare path"
+    verify: "rg 'load_session' loop/context_loop.py"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_load_session.py -q --tb=short"
+tdd:
+  - loop/tests/test_mb_load_session.py

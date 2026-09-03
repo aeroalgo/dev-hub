@@ -1,0 +1,38 @@
+schema: epic-audit/v1
+epic_id: T-HUB-054-suite-hygiene-runner-gate
+role: BACK
+date: '2026-09-02'
+status: PASS
+summary: >-
+  Аудит реализации T-HUB-054-suite-hygiene-runner-gate подтвердил полное
+  соответствие плану и декомпозиции. Все 6 шагов s01–s06 выполнены,
+  pytest-timeout установлен и активен, 3 gate FAIL устранены,
+  legacy-рудименты вычищены, gate cluster тестов полностью зелёный (80 passed).
+gaps: []
+not_implemented: []
+steps_verified:
+  - step_id: s01
+    title: pytest-timeout plugin installed and active — no PytestConfigWarning
+    status: verified
+    evidence: pytest-timeout active in bin/pytest, PytestConfigWarning absent, timeout marker functional.
+  - step_id: s02
+    title: Restore loop-gate-verdict/v1 schema instruction in context_loop.py — sc006 green
+    status: verified
+    evidence: test_context_loop_sc006_structured_verdict_gate_passes passes.
+  - step_id: s03
+    title: Delete test_agent_pretool_injects_verdict_first_line — prose first-line contract removed
+    status: verified
+    evidence: test_agent_pretool_injects_verdict_first_line deleted, prose first-line contract fully removed.
+  - step_id: s04
+    title: Delete dsh/presets/reviewer.prompt.md stub — test_legacy_stubs_removed green
+    status: verified
+    evidence: dsh/presets/reviewer.prompt.md removed, test_legacy_stubs_removed passes.
+  - step_id: s05
+    title: Fail-list protocol note + full suite gate-nodeids absent verify
+    status: verified
+    evidence: protocol in loop/README.md, 3 gate nodeids absent from fresh full suite.
+  - step_id: s06
+    title: Legacy fallback purge — anti-regex-VERDICT audit + sunset inventory scan
+    status: verified
+    evidence: zero regex VERDICT machine paths, sunset inventory clean, gate cluster 80 passed.
+next_mode: BACK QA

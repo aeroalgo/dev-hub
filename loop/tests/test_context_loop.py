@@ -32,6 +32,11 @@ def _write(cwd: Path, rel: str, body: str) -> None:
 def _seed_context(cwd: Path, *, next_line: str = "INTEG IMPLEMENT e16") -> None:
     _write(
         cwd,
+        "memory-bank/integration/analyze/x/analyze-20260901-pass.yaml",
+        "schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\nstatus: complete\n",
+    )
+    _write(
+        cwd,
         "memory-bank/integration/plan/decompose-x/e16-foo.yaml",
         "schema: epic-decompose/v1\nstep_id: e16\n",
     )
@@ -43,6 +48,13 @@ def _seed_context(cwd: Path, *, next_line: str = "INTEG IMPLEMENT e16") -> None:
     _write(
         cwd,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: x\n"
+        "step_id: e16\n"
+        "---\n\n"
         "## load_now\n"
         "1. [e16-foo.yaml](integration/plan/decompose-x/e16-foo.yaml)\n"
         "2. [index.md](integration/implement/implement-x/index.md)\n\n"
@@ -93,8 +105,9 @@ def test_sync_cursor_skips_implement_when_analyze_pending(tmp_path: Path) -> Non
     )
     res = sync_cursor_from_index(tmp_path)
     assert res["ok"] is True
-    assert res["synced"] is False
-    assert res["reason"] == "analyze_gate_pending"
+    assert res["synced"] is True
+    assert res["reason"] == "analyze_gate_rearm"
+    assert res["armed_step"] == "ANALYZE"
 
 
 def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
@@ -617,6 +630,20 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
     )
     _write(
         tmp_path,
+        "memory-bank/back/plan/decompose-T-HUB-007/index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "epic_id: T-HUB-007\n"
+        "steps:\n"
+        "  - step_id: s02\n"
+        "    status: pending\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/back/analyze/T-HUB-007/analyze-20260901-pass.yaml",
+        "schema: epic-analyze/v1\nepic_id: T-HUB-007\nmetrics:\n  critical_count: 0\nstatus: complete\n",
+    )
+    _write(
+        tmp_path,
         "memory-bank/back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml",
         "schema: epic-decompose/v1\n"
         "context:\n"
@@ -631,6 +658,13 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-HUB-007\n"
+        "step_id: s02\n"
+        "---\n\n"
         "## load_now\n"
         "1. [s02.yaml](back/plan/decompose-T-HUB-007/s02-epic-implement-profile.yaml)\n"
         "2. [index.yaml](back/plan/decompose-T-HUB-007/index.yaml)\n\n"
@@ -940,6 +974,13 @@ def test_check_after_commits_next_step_for_post_implement_phase(
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        "epic_id: demo\n"
+        "step_id: QA\n"
+        "---\n\n"
         "## load_now\n"
         f"1. [qa-20260829-demo.yaml](back/qa/{epic}/qa-20260829-demo.yaml)\n"
         f"2. [index.yaml]({decompose})\n\n"
@@ -979,6 +1020,13 @@ def test_check_after_commits_next_step_for_post_implement_phase(
         context_fingerprint="before-fp",
     )
     before_text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        "epic_id: demo\n"
+        "step_id: QA\n"
+        "---\n\n"
         "## load_now\n"
         f"1. [index.yaml]({decompose})\n\n"
         "## Handoff BACK QA — demo\n"
@@ -1421,6 +1469,13 @@ def test_check_after_continues_when_handoff_advanced(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INTEG\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: x\n"
+        "step_id: e17\n"
+        "---\n\n"
         "## load_now\n"
         "1. [e17.yaml](integration/plan/decompose-x/e17.yaml)\n"
         "2. [index.md](integration/implement/implement-x/index.md)\n\n"

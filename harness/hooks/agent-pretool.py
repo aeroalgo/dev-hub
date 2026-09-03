@@ -10,6 +10,9 @@ from _lib import (
     product_cwd,  # noqa: E402
     agent_enabled,
     emit,
+    is_schema_error,
+    is_semantic_error,
+    last_verdict_was_fail,
     load_state,
     mark_in_flight,
     normalize_type,
@@ -67,10 +70,9 @@ def main() -> None:
     prompt = tool_input.get("prompt") or ""
 
     if norm == "gate-repair":
-        verdict = str(st.get("verify_verdict") or "").upper()
-        if not st.get("verify_done") or verdict != "FAIL":
+        if not last_verdict_was_fail(cwd, session_id):
             deny_reasons.append(
-                "repair_requires_verify_fail: @gate-repair только после @verify VERDICT: FAIL"
+                "semantic_repair_without_fail: @gate-repair только после @verify VERDICT: FAIL"
             )
 
     if norm in {"verify", "verify-implement"} and agent_enabled("verify", cwd or None):

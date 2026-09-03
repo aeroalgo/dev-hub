@@ -145,8 +145,9 @@ Min: самооценка 1–5 по трем измерениям engineering s
 
 ## Replacement / sunset (brownfield)
 
-> Эпик **заменяет** runtime → заполнить **A + B + C**. DECOMPOSE → `deletes` + финальный `*-legacy-fallback-purge`. Greenfield → `n/a` во всех трёх.  
+> Эпик **заменяет** runtime → заполнить **A + B + C + I**. DECOMPOSE → ladder add→wire→enforce→purge + `deletes` + финальный `*-legacy-fallback-purge`. Greenfield → `n/a` во всех четырёх.  
 > Policy: `delete in-epic` (default) | `shim+follow-up` (**только** с epic ID уже в `.queue.yaml`) | `keep` (только с ADR). **`fallback` как policy — FORBIDDEN.**  
+> **Wire-complete:** sole SoT + DENY old; «модуль есть / optional» ≠ done (@.cursor/rules/shared/workflow-behavior-first.mdc §3).  
 > Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 
 ### A. Code / modules
@@ -168,6 +169,13 @@ Min: самооценка 1–5 по трем измерениям engineering s
 | Устаревает (pattern / default / stub) | Замена (fail-closed) | Policy |
 | :--- | :--- | :--- |
 | … | raise / non-zero exit | delete in-epic |
+| n/a | — | greenfield |
+
+### I. Instruction surfaces
+
+| Устаревает (prompt / rule / finish-block / spawn text) | Замена (инструкция нового SoT) | Policy |
+| :--- | :--- | :--- |
+| … | … | delete in-epic |
 | n/a | — | greenfield |
 
 <a id="qa-consumes"></a>

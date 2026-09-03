@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-058-sunset-inventory-agent
+title: "Pydantic schema loop-sunset-inventory/v1 + unit tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать машинный контракт отчёта sunset-inventory: Pydantic модели в `loop/schemas/sunset_inventory.py`
+  (schema id `loop-sunset-inventory/v1`), fields kind/symbol/path/mark/excerpt/forbidden_for_parent,
+  unit tests schema-validate + reject-design-fields. Это SoT для parent/hooks — parent читает report
+  через схему, не через сырой JSON, что исключает design contamination.
+  Связь с FR-003, FR-004, FR-005, FR-006, AC+2, AC−1, AC−3, TM-001, TM-002.
+
+context:
+  consumes:
+    - "plan §FR-003/004/005/006 (item fields, excerpt budget, forbidden design)"
+    - "plan §AC− 1,3,5 (no HOW, no optional mark, no design from excerpt)"
+  produces:
+    - "loop/schemas/sunset_inventory.py — Pydantic models SoT"
+    - "loop/schemas/__init__.py — re-export если нет"
+    - "loop/tests/test_sunset_inventory_schema.py — unit tests"
+  plan_refs:
+    - "FR-003"
+    - "FR-004"
+    - "FR-005"
+    - "FR-006"
+    - "FR-012"
+    - "SC-002"
+    - "SC-005"
+    - "US-001"
+  files:
+    - "loop/schemas/sunset_inventory.py"
+    - "loop/schemas/__init__.py"
+    - "loop/tests/test_sunset_inventory_schema.py"
+
+as_built:
+  - "loop/schemas/ — существует, содержит state.py, episode.py и др."
+  - "loop/schemas/__init__.py — есть"
+  - "loop/tests/ — есть, нет test_sunset_inventory_schema.py"
+  - "Нет loop/schemas/sunset_inventory.py"
+
+delta:
+  - "add: loop/schemas/sunset_inventory.py — модели SunsetItem (kind A|B|C|I, symbol, path, start_line, end_line, excerpt≤40 строк, mark=REPLACE literal, role, notes?), SunsetReport (schema_id='loop-sunset-inventory/v1', boundary_id, new_sot, forbidden_for_parent[], diagnostic_codes[], ok, items[])"
+  - "add: loop/tests/test_sunset_inventory_schema.py — happy path valid REPLACE report; reject missing mark; reject design-advice fields; excerpt truncation sentinel"
+  - "edit: loop/schemas/__init__.py — re-export SunsetItem, SunsetReport если нужно"
+
+deletes: []
+
+out_of_scope:
+  - "Agent MD, preset, manifest — s02"
+  - "decompose template field sunset_scope — s03"
+  - "Workflow/lean pointer — s04"
+
+skills:
+  code_surface: model
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"  # S11: новые Pydantic публичные типы
+
+checkpoints:
+  - id: cp1
+    criterion: "SunsetReport pydantic parse ok — valid REPLACE report без design fields"
+    verify: "bin/pytest loop/tests/test_sunset_inventory_schema.py::test_valid_report -q --tb=short"
+  - id: cp2
+    criterion: "Schema rejects missing mark=REPLACE → ValidationError"
+    verify: "bin/pytest loop/tests/test_sunset_inventory_schema.py::test_missing_mark_rejected -q --tb=short"
+  - id: cp3
+    criterion: "Schema rejects design-advice fields (e.g. 'how_to_replace', 'recommendation') → ValidationError"
+    verify: "bin/pytest loop/tests/test_sunset_inventory_schema.py::test_design_fields_rejected -q --tb=short"
+  - id: cp4
+    criterion: "Full schema test file green"
+    verify: "bin/pytest loop/tests/test_sunset_inventory_schema.py -q --tb=line"
+
+verify: []
+tdd:
+  - "cp1 — write test_valid_report first (expect PASS after model created)"
+  - "cp2 — write test_missing_mark_rejected (expect ValidationError)"
+  - "cp3 — write test_design_fields_rejected (extra fields mode=forbid)"

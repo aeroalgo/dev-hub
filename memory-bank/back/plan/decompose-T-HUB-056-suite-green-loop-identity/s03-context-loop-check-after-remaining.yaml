@@ -1,0 +1,67 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-056-suite-green-loop-identity
+title: "context_loop check_after — commits next step + continues when handoff advanced"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Два теста check_after падают:
+  1. test_check_after_commits_next_step_for_post_implement_phase — тест создаёт fixture с
+     Handoff-заголовком без frontmatter; после s02 (frontmatter в _seed_context) нужно аналогично
+     обновить этот тест.
+  2. test_check_after_continues_when_handoff_advanced — использует _seed_context (уже исправлен в s02),
+     плюс проверяет что check_after возвращает ok=True / complete=False при продвинутом handoff.
+  Outcome: оба теста PASS; метод check_after корректно обрабатывает post-implement QA→REFLECT transition
+  и возобновление при advanced handoff.
+
+context:
+  consumes:
+    - loop/tests/test_context_loop.py   # test_check_after_commits @ 973; test_check_after_continues @ 1494
+    - loop/context_loop.py              # check_after @ 1948
+  produces:
+    - loop/tests/test_context_loop.py   # fixture frontmatter если требуется; или patch logic
+    - loop/context_loop.py              # patch check_after если method-lock issue (implement→action)
+  plan_refs: [US-002, FR-006, SC-003, TM-003]
+  files:
+    - loop/tests/test_context_loop.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/tests/test_context_loop.py: test_check_after_commits пишет AC Handoff без frontmatter"
+  - "loop/context_loop.py: check_after при degraded AC — degraded gate, может не дойти до commit_next_step"
+  - "FR-006 в плане: method lock implement→action — check_after может не отдавать post_implement_phase"
+
+delta:
+  - "test_check_after_commits: добавить frontmatter в AC fixture (QA mode / BACK role)"
+  - "test_check_after_continues: зависит от s02 _seed_context fix — верифицировать что достаточно"
+  - "check_after: если check_after не доходит до commit step при валидном AC — исправить logic (implement→action gate)"
+
+deletes: []
+
+out_of_scope:
+  - "episode fixtures — в s06"
+  - "drift display — в s04"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging  # S03
+    - tdd  # S09
+
+checkpoints:
+  - id: cp1
+    criterion: "test_check_after_commits_next_step_for_post_implement_phase → ok=True, post_implement_phase='REFLECT'"
+    verify: "bin/pytest loop/tests/test_context_loop.py::test_check_after_commits_next_step_for_post_implement_phase -q --tb=short"
+  - id: cp2
+    criterion: "test_check_after_continues_when_handoff_advanced → ok=True, complete=False"
+    verify: "bin/pytest loop/tests/test_context_loop.py::test_check_after_continues_when_handoff_advanced -q --tb=short"
+  - id: cp3
+    criterion: "выборка check_after тестов не регрессировала"
+    verify: "bin/pytest loop/tests/test_context_loop.py -k 'check_after' -q --tb=line 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "loop/tests/test_context_loop.py::test_check_after_commits_next_step_for_post_implement_phase"
+  - "loop/tests/test_context_loop.py::test_check_after_continues_when_handoff_advanced"

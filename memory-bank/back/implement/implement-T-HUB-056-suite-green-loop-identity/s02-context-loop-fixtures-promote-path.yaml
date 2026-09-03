@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-056-suite-green-loop-identity
+title: s02 — context_loop prepare/promote fixtures — epic_resolve provision + degraded=False
+  IMPLEMENT
+status: completed
+date: '2026-09-03'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-056-suite-green-loop-identity/s02-context-loop-fixtures-promote-path.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- _seed_context в test_context_loop.py обновлён с loop-handoff/v1 frontmatter
+- project_handoff_from_reducer защищён от ложного AUDIT promote при неисчерпанной
+  очереди decompose implement
+- run_traceability_check_if_enabled использует safe check для epic_resolve.py
+files:
+- loop/tests/test_context_loop.py
+- loop/context_loop.py
+- harness/hooks/epic/core.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_context_loop.py::test_prepare_builds_prompt_with_activecontext
+  loop/tests/test_context_loop.py::test_prepare_promotes_analyze_to_implement_when_gate_passes
+  -q --tb=short
+- bin/pytest loop/tests/test_context_loop.py -k prepare -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_handoff_projection.py -q --tb=short
+- bin/pytest loop/tests/test_dsh_e2e_smoke.py -q --tb=short
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: test_prepare_builds_prompt_with_activecontext PASS (degraded=False, ok=True)
+  status: done
+- id: cp2
+  criterion: test_prepare_promotes_analyze_to_implement_when_gate_passes PASS
+  status: done
+- id: cp3
+  criterion: смежные prepare тесты не регрессировали (выборка)
+  status: done
+resume_from: cp3

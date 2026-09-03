@@ -64,6 +64,7 @@ from harness.hooks.epic import (  # noqa: E402
     project_handoff_from_reducer,
     read_active_context,
     rebuild_epic_projection,
+    clear_stale_verify_no_verdict_handoff,
     repair_index_mirror,
     repair_fingerprint_stall,
     sync_cursor_from_index,
@@ -80,6 +81,7 @@ from harness.hooks.epic import (  # noqa: E402
     _event_log_path,
     utc_now,
 )
+from loop.mb_load.session import load_session
 from loop.episodes import begin_episode, finalize_episode
 from harness.hooks.session_resilience import (  # noqa: E402
     analyze_session_log,
@@ -848,7 +850,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
         )
     elif phase_kind == "qa":
         finish_block = (
@@ -883,7 +885,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
         )
 
     resume_block = "\n".join(resume_lines or [])
@@ -1213,9 +1215,15 @@ def run_traceability_check_if_enabled(
     if not epic_id:
         return
     import subprocess
+    hub_root = Path(__file__).resolve().parents[1]
+    script = Path(cwd) / ".claude" / "hooks" / "epic_resolve.py"
+    if not script.is_file():
+        script = hub_root / "harness" / "hooks" / "epic_resolve.py"
+    if not script.is_file():
+        return
     cmd = [
         sys.executable,
-        str(Path(cwd) / ".claude" / "hooks" / "epic_resolve.py"),
+        str(script),
         "--cwd",
         str(cwd),
         "validate-traceability",
@@ -1327,14 +1335,34 @@ def prepare_session(
         ac_mode == "IMPLEMENT"
         and str(state.get("armed_step") or "").upper() == "ANALYZE"
         and (promoted is None or not promoted.get("ok"))
-        and _analyze_phase_complete(cwd_p)
     ):
-        promoted = _promote_if_ready(cwd_p)
-        if promoted is not None and promoted.get("ok"):
-            text = read_active_context(cwd_p)
-            state = load_epic_state(cwd_p)
-            projection = rebuild_epic_projection(cwd_p)
-            projection = rebuild_epic_projection(cwd_p)
+        if _analyze_phase_complete(cwd_p):
+            promoted = _promote_if_ready(cwd_p)
+            if promoted is not None and promoted.get("ok"):
+                text = read_active_context(cwd_p)
+                state = load_epic_state(cwd_p)
+                projection = rebuild_epic_projection(cwd_p)
+        else:
+            # Heal premature AC IMPLEMENT while ANALYZE gate still open.
+            from loop.epic_transition import arm_phase
+
+            epic_id = str(state.get("armed_epic") or "").strip()
+            role_dir = str(
+                state.get("role") or state.get("armed_role") or "BACK"
+            ).lower()
+            decomp = str(state.get("armed_decompose") or "").strip()
+            if epic_id:
+                arm_res = arm_phase(
+                    cwd_p,
+                    epic_id,
+                    "ANALYZE",
+                    role_dir,
+                    decompose_rel=decomp or None,
+                )
+                if isinstance(arm_res, dict) and arm_res.get("ok"):
+                    text = read_active_context(cwd_p)
+                    state = load_epic_state(cwd_p)
+                    projection = rebuild_epic_projection(cwd_p)
     project_handoff_from_reducer(cwd_p, allow_terminal_done_projection=False)
     text = read_active_context(cwd_p)
     handoff_phase = handoff_post_implement_phase(text)
@@ -1413,6 +1441,25 @@ def prepare_session(
                 cursor_sync.get("previous_armed"),
                 cursor_sync.get("step_id"),
             )
+            # After analyze_gate_rearm (or any sync to ANALYZE), promote if gate now passes.
+            if str(state.get("armed_step") or "").upper() == "ANALYZE":
+                promoted_after = _promote_if_ready(cwd_p)
+                if promoted_after is not None and not promoted_after.get("ok"):
+                    res = {
+                        "ok": False,
+                        "halt": True,
+                        "reason": promoted_after.get("error")
+                        or promoted_after.get("reason")
+                        or "analyze promote after cursor sync failed",
+                        "promote": promoted_after,
+                    }
+                    if promoted_after.get("diagnostic_code"):
+                        res["diagnostic_code"] = promoted_after["diagnostic_code"]
+                    return res
+                if promoted_after is not None and promoted_after.get("ok"):
+                    text = read_active_context(cwd_p)
+                    state = load_epic_state(cwd_p)
+                    projection = rebuild_epic_projection(cwd_p)
         if cursor_sync.get("ok") is False:
             return {
                 "ok": False,
@@ -1511,6 +1558,12 @@ def prepare_session(
             }
         elif fixed is None and stop == "EPIC_DONE":
             return _epic_done_stop_result(cwd_p)
+    stale_verify = clear_stale_verify_no_verdict_handoff(cwd_p)
+    if stale_verify.get("cleared"):
+        text = read_active_context(cwd_p)
+        stop = detect_stop_marker(text)
+        if not stop and handoff_indicates_epic_finished(text):
+            stop = "EPIC_DONE"
     if stop:
         if stop == "EPIC_DONE":
             return _epic_done_stop_result(cwd_p)
@@ -1529,19 +1582,20 @@ def prepare_session(
         text = cleaned
         stripped_blocked = True
 
-    shape = validate_active_context_shape(text)
-    load_now = extract_load_now(text)
-    # Keep only paths that exist — broken links = soft degrade, not halt
-    existing: list[str] = []
-    for raw in load_now:
-        p = raw.strip()
-        if not p.startswith("memory-bank/"):
-            if p.startswith(("back/", "front/", "integration/")):
-                p = f"memory-bank/{p}"
-            else:
-                continue
-        if (cwd_p / p).is_file() or (cwd_p / p).is_dir():
-            existing.append(p)
+    mb_load_res = load_session(cwd_p)
+    shape = mb_load_res.shape_errors or validate_active_context_shape(text)
+    load_now = [item.path for item in mb_load_res.load_now] if mb_load_res.ok else extract_load_now(text)
+    existing: list[str] = [f.path for f in mb_load_res.files] if mb_load_res.ok else []
+    if not existing:
+        for raw in load_now:
+            p = raw.strip()
+            if not p.startswith("memory-bank/"):
+                if p.startswith(("back/", "front/", "integration/")):
+                    p = f"memory-bank/{p}"
+                else:
+                    continue
+            if (cwd_p / p).is_file() or (cwd_p / p).is_dir():
+                existing.append(p)
 
     delta_scope, delta_paths = detect_delta_paths(cwd_p, existing)
     delta_ok = delta_scope == "exist"
@@ -2697,7 +2751,8 @@ def status(cwd: str | Path) -> dict[str, Any]:
             errors=integrity["errors"],
             diagnostic_codes=integrity["diagnostic_codes"],
         )
-    return {
+    drift = {k: v for k, v in (st.get("drift_counters") or {}).items() if isinstance(v, (int, float)) and v > 0}
+    out = {
         "ok": True,
         "schema": "loop-status/v1",
         "shape_errors": validate_active_context_shape(text),
@@ -2727,6 +2782,9 @@ def status(cwd: str | Path) -> dict[str, Any]:
         "metrics": _status_metrics(root),
         "trace_tail": _status_trace_tail(root),
     }
+    if drift:
+        out["drift_counters"] = drift
+    return out
 
 
 def _status_incidents(cwd: Path) -> dict[str, Any]:

@@ -207,6 +207,42 @@ def test_promote_if_ready_no_gate_goes_implement(tmp_path):
     assert mock_arm.call_args[0][2] == "IMPLEMENT"
 
 
+def test_promote_if_ready_implement_done_goes_audit(tmp_path):
+    from epic.core import save_epic_state  # noqa: PLC0415
+    from loop.epic_transition import promote_if_ready  # noqa: PLC0415
+
+    epic = "T-TEST-004"
+    decomp = _seed_decompose_index(
+        tmp_path,
+        epic,
+        analyze_yaml="schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+    )
+    idx = tmp_path / decomp / "index.yaml"
+    idx.write_text(
+        idx.read_text(encoding="utf-8").replace("status: pending", "status: completed"),
+        encoding="utf-8",
+    )
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "s01",
+            "role": "BACK",
+        },
+    )
+
+    with patch("loop.epic_transition.arm_phase") as mock_arm:
+        mock_arm.return_value = {"ok": True, "armed_step": "AUDIT", "phase": "AUDIT"}
+        res = promote_if_ready(tmp_path, epic, "back")
+
+    assert res is not None
+    assert res.get("reason") == "audit_promote"
+    assert res.get("armed_step") == "AUDIT"
+    mock_arm.assert_called_once()
+    assert mock_arm.call_args[0][2] == "AUDIT"
+
+
 def test_promote_if_ready_incomplete_index_returns_none(tmp_path):
     from epic.core import save_epic_state  # noqa: PLC0415
     from loop.epic_transition import promote_if_ready  # noqa: PLC0415
@@ -526,4 +562,57 @@ def test_arm_pre_implement_decompose_with_index_sets_armed_decompose(tmp_path: P
     assert st.get("armed_decompose") == (
         "memory-bank/back/plan/decompose-T-030-demo/index.yaml"
     )
+
+
+def test_arm_phase_anti_loop_forbidden_when_same_step(tmp_path: Path) -> None:
+    """TM-009 / cp2: arm_phase with next_step == last_finished_step returns loop_* diagnostic fail-closed."""
+    from loop.epic_transition import arm_phase
+    from harness.hooks.epic.core import save_epic_state
+
+    # Setup epic state with last_finished_step = s01
+    save_epic_state(
+        tmp_path,
+        {
+            "active": True,
+            "armed_epic": "T-TEST-001",
+            "armed_role": "BACK",
+            "armed_step": "s01",
+            "last_finished_step": "s01",
+            "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        },
+    )
+
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    index_yaml = mb_dir / "index.yaml"
+    index_yaml.write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: T-TEST-001\n"
+        "role: back\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-env.yaml\n"
+        "  status: pending\n"
+        "  next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+    (mb_dir / "s01-env.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s01\nneeds_creative: 'no'\n",
+        encoding="utf-8",
+    )
+
+    res = arm_phase(
+        tmp_path,
+        "T-TEST-001",
+        "IMPLEMENT",
+        "back",
+        decompose_rel="memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+    )
+
+    assert res.get("ok") is False
+    assert res.get("diagnostic_code") == "step_loop_forbidden"
+    assert "step_loop_forbidden" in (res.get("diagnostic_codes") or [])
+    assert res.get("last_finished_step") == "s01"
+    assert res.get("armed_step") == "s01"
+
 

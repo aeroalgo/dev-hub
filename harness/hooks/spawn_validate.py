@@ -22,6 +22,7 @@ from _lib import (
     missing_contract_sections,
     normalize_agent_tool_input,
     normalize_type,
+    read_stdin,
     resolved_spawn_model,
     _discover_registry,
 )
@@ -135,7 +136,7 @@ def validate_spawn_input(
 
 
 def main() -> None:
-    payload = json.load(sys.stdin)
+    payload = read_stdin()
     tool_name = payload.get("tool_name")
     if tool_name not in {"Agent", "Task"}:
         return

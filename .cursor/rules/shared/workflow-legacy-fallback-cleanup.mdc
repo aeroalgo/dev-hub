@@ -1,5 +1,5 @@
 ---
-description: "Legacy + fallback cleanup — PLAN sunset A/B/C, DECOMPOSE purge sNN, AUDIT/QA leftover (shared BACK/FRONT/INTEG)"
+description: "Legacy + fallback cleanup — PLAN sunset A/B/C/I, DECOMPOSE purge sNN, AUDIT/QA leftover + sot_enforce (shared BACK/FRONT/INTEG)"
 alwaysApply: false
 ---
 # Legacy / fallback cleanup (HARD — brownfield replace)
@@ -8,17 +8,18 @@ alwaysApply: false
 **Greenfield:** таблицы sunset = `n/a`; purge sNN не обязателен.  
 **Роли:** BACK · FRONT · INTEG. Детали роли — в `workflow-*-decompose.mdc` §Replacement cleanup; этот файл = **канон policy**.
 
-**Принцип done:** новый путь — **единственный**; старый удалён из кода **и** всех entrypoints; misconfig **падает**, не деградирует в legacy/stub/fallback.
+**Принцип done:** новый путь — **единственный**; старый удалён из кода, entrypoints, **instruction surfaces** и fallbacks; misconfig **падает**, не деградирует в legacy/stub/fallback.
 
-**Design-time (до sunset table):** @.cursor/rules/shared/workflow-spec-first-replace.mdc — as-built не задаёт формат новой границы; technology axiom lock (pydantic → JSON, не regex+enum).
+**Design-time (до sunset table):** @.cursor/rules/shared/workflow-spec-first-replace.mdc — as-built не задаёт формат новой границы; technology axiom lock (pydantic → JSON, не regex+enum).  
+**Wire-complete:** @.cursor/rules/shared/workflow-behavior-first.mdc §3–§4 — add без enforce ≠ done.
 
 ---
 
-## 1. PLAN — `## Replacement / sunset` (три таблицы)
+## 1. PLAN — `## Replacement / sunset` (четыре таблицы: A + B + C + I)
 
 Шаблон: @.cursor/templates/plan.md · @.cursor/templates/integration-plan.md
 
-Brownfield replace **обязан** заполнить **A + B + C** (не одну строку «модуль X»). Greenfield → одна строка `n/a` во всех трёх.
+Brownfield replace **обязан** заполнить **A + B + C + I** (не одну строку «модуль X»). Greenfield → одна строка `n/a` во всех четырёх.
 
 ### A. Code / modules
 
@@ -26,7 +27,7 @@ Brownfield replace **обязан** заполнить **A + B + C** (не од�
 
 **HARD:** каждая строка A — **конкретный symbol** (`module.fn`, `ClassName`), не «старый модуль X» без имени. Symbol попадает в purge inventory и audit scan.
 
-**HARD (obsolete tests):** drop prod-символа / старого контракта → в sunset A и `deletes:` обязаны попасть тесты/кейсы, которые **закрепляют старое поведение** (assert regex-VERDICT, dual-path, legacy parser). **FORBIDDEN:** оставить такие тесты «пока зелёные» или чинить prod под них. Rewrite на новый контракт **или** delete — в том же эпике.
+**HARD (obsolete tests):** drop prod-символа / старого контракта → в sunset A и `deletes:` обязаны попасть тесты/кейсы, которые **закрепляют старое поведение** (assert старого формата, dual-path, legacy parser). **FORBIDDEN:** оставить такие тесты «пока зелёные» или чинить prod под них. Rewrite на новый контракт **или** delete — в том же эпике.
 
 ### B. Entrypoints / deploy
 
@@ -49,12 +50,27 @@ Inventory **всех** поверхностей запуска той же ро�
 - user-safe stub reply при **misconfig** (нет port, нет URL) вместо fail-at-start
 - dual path: `if legacy_enabled … else new`
 - try/except, глотающий отсутствие нового пути и уходящий в старый
+- soft migration / enforce-off flag, оставленный default после эпика без follow-up ID
 
-**Policy для строк A/B/C:**
+### I. Instruction surfaces (HARD)
+
+Любая **инструкция**, которая учит агента/оператора **старому** machine path после смены Technology axiom / контракта границы:
+
+- packed prompts / start-finish blocks в runtime/loop коде
+- workflow / role rules (session start, finish, load, handoff)
+- agent / preset / skill prompt files
+- spawn / pretool / parent packing text
+- cheatsheets и operator prose, требующие старый формат границы как SoT
+
+**HARD:** смена machine boundary → каждая инструкция, требующая старый формат, ∈ sunset I + rewrite/`deletes` в том же эпике (или `shim+follow-up` + epic ID в queue).
+
+**FORBIDDEN:** считать эпик done при новом коде и старых prompts/rules («агент сам разберётся»).
+
+**Policy для строк A/B/C/I:**
 
 | Policy | Когда |
 |--------|--------|
-| `delete in-epic` | **Default** для cutover/replace |
+| `delete in-epic` | **Default** для cutover/replace (для I: rewrite текст на новый SoT = delete старой инструкции) |
 | `shim+follow-up` | Только если follow-up **epic ID** уже в `roadmap-*.queue.yaml` (не «потом») |
 | `keep` | Только non-cutover обоснование + ADR; для architecture-replace **запрещён** без явного ADR в плане |
 | `fallback` | **FORBIDDEN** как policy; fallback → строка в C с `delete in-epic` |
@@ -65,7 +81,9 @@ Inventory **всех** поверхностей запуска той же ро�
 2. Нет soft default URL/host/path на чужой сервис.  
 3. Misconfig → fail at start (non-zero / raise), не stub пользователю и не silent success.  
 4. Нет prod-path dual: new + legacy рядом после эпика (без follow-up ID в queue).  
-5. Нет исполняемых тестов, которые требуют удалённый контракт (после эпика suite не тянет restore legacy).
+5. Нет исполняемых тестов, которые требуют удалённый контракт (после эпика suite не тянет restore legacy).  
+6. Нет instruction surfaces (Kind I), требующих старый machine format.  
+7. Нет optional/soft SoT на границе Technology axiom без follow-up ID.
 
 ---
 
@@ -77,12 +95,20 @@ Inventory **всех** поверхностей запуска той же ро�
 
 Колонки:
 
-| Устаревает | Kind (A\|B\|C) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |
-|------------|----------------|--------|---------------------|-----------|-------|
+| Устаревает | Kind (A\|B\|C\|I) | Замена | sNN\|eNN (deletes) | Fallback? | Notes |
+|------------|-------------------|--------|---------------------|-----------|-------|
 
-- `Kind`: A=code · B=entrypoint/deploy · C=fallback/soft-fail  
+- `Kind`: A=code · B=entrypoint/deploy · C=fallback/soft-fail · **I=instruction surface**  
 - `Fallback?`: `yes` → обязан `deletes` в этом эпике (не follow-up «на потом» без ID)  
-- Каждая строка plan sunset A/B/C → строка здесь
+- Каждая строка plan sunset A/B/C/I → строка здесь
+
+### 2.1a. Completeness ladder (REQUIRED при machine-boundary FR)
+
+Очередь **обязана** отражать слои (behavior-first §3):
+
+`add → wire-call-sites → enforce-deny-old → *-legacy-fallback-purge`
+
+Схлоп wire+enforce в один sNN допустим только с явными checkpoints на оба слоя. Add-only закрытие FR «единый path» = FAIL (ANALYZE `optional_sot`).
 
 ### 2.2. Финальный шаг очереди (REQUIRED при любой строке ≠ n/a)
 
@@ -92,14 +118,15 @@ Inventory **всех** поверхностей запуска той же ро�
 
 **Обязан:**
 
-1. Стоять **после** migrate/wire шагов (цепочка `add → migrate → delete` завершена здесь).  
-2. `deletes:` = **весь остаток** из Replacement cleanup (A+B+C), ещё не удалённый предыдущими sNN|eNN.  
-3. **`sunset_inventory:`** — список **каждой** строки plan sunset A/B/C (symbol, kind, replacement, policy, rg_scope, expect). Одна строка plan → одна запись inventory. **FORBIDDEN** purge-step без полного inventory.  
+1. Стоять **после** migrate/wire/**enforce** шагов (цепочка `add → wire → enforce → delete` завершена здесь).  
+2. `deletes:` = **весь остаток** из Replacement cleanup (A+B+C+**I**), ещё не удалённый предыдущими sNN|eNN.  
+3. **`sunset_inventory:`** — список **каждой** строки plan sunset A/B/C/I (symbol, kind, replacement, policy, rg_scope, expect). Одна строка plan → одна запись inventory. **FORBIDDEN** purge-step без полного inventory.  
 4. **`grep_control:`** — executable `rg`/inventory **по каждой** записи `sunset_inventory` (mirror id → command → expect).  
-5. Checkpoints (≥4):
+5. Checkpoints (≥5):
    - **cp-inventory-a** — Kind A: rg **по каждой** строке inventory kind=A; 0 prod callers.  
    - **cp-inventory-b** — Kind B: entrypoint inventory (compose/Dockerfile/CLI/scripts) из plan B.  
    - **cp-inventory-c** — Kind C: anti-fallback rg по prod paths из plan C.  
+   - **cp-inventory-i** — Kind I: rg по instruction surfaces из plan I — 0 hits старого machine format.  
    - **cp-suite-regression** — targeted/epic regression suite green после deletes.  
 6. Greenfield / `n/a` во всех sunset → purge **не** создавать; в Replacement cleanup одна строка `n/a — нет замен`.
 
@@ -108,10 +135,11 @@ Inventory **всех** поверхностей запуска той же ро�
 - Закрыть эпик на «новое включено, старое рядом».  
 - `out_of_scope: оставить shim` без epic ID **в queue**.  
 - Считать rewrite модуля достаточным, если CLI/compose/CMD всё ещё зовут legacy.  
-- Оставить fallback URL/default в коде как «удобство local».  
-- Purge checkpoint только на **один** sunset symbol при нескольких строках в plan (T-HUB-029 class gap).  
+- Считать код done, если prompts/rules/finish-blocks всё ещё учат старый SoT (Kind I leftover).  
+- Оставить fallback URL/default / soft enforce-off flag в коде как «удобство local».  
+- Purge checkpoint только на **один** sunset symbol при нескольких строках в plan.  
 - Считать purge **done**, если остался public shim с prod callers или router импортирует deprecated public API.  
-- Удалить prod-символ / сменить machine boundary, но **оставить** тесты, которые требуют старый контракт (regex, last-wins prose, dual-path asserts) — они тянут legacy обратно при «починке suite».
+- Удалить prod-символ / сменить machine boundary, но **оставить** тесты, которые требуют старый контракт — они тянут legacy обратно при «починке suite».
 
 ### 2.4. Inventory scan — что считается leftover (HARD)
 
@@ -122,6 +150,7 @@ Inventory **всех** поверхностей запуска той же ро�
 | Public function/class остаётся; ≥1 prod caller (не test) | **FAIL** — в `legacy_surfaces_remaining` |
 | Thin shim delegates + `_legacy_warn`; prod callers ещё на shim | **FAIL** — migrate callers → delete shim |
 | New API (`arm_phase`) imports/calls **deprecated public** symbol | **FAIL** — consolidate into private `_arm_*` or inline |
+| Instruction (Kind I) всё ещё требует старый machine format при новом SoT | **FAIL** — rewrite/delete в том же эпике |
 | Policy `shim+follow-up`; follow-up epic **в queue**; shim documented in inventory | **OK until follow-up**; audit must list shim in `legacy_surfaces_remaining` with `follow_up: T-…` |
 | Policy `shim+follow-up` без epic ID в queue | **FAIL** |
 
@@ -134,8 +163,9 @@ Inventory **всех** поверхностей запуска той же ро�
 
 ## 3. IMPLEMENT
 
-- Выполнить все `deletes:` work shard (как lean implement) — **включая** obsolete test files/cases из sunset A.  
-- Purge shard (`*-legacy-fallback-purge`): evidence **обязана** включать **полный** `grep_control` run (все id), не один символ.  
+- Выполнить все `deletes:` work shard (как lean implement) — **включая** obsolete test files/cases из sunset A **и** Kind I rewrites.  
+- Boundary / SoT steps: блок `wire_complete` (behavior-first §9) — иначе не `completed`.  
+- Purge shard (`*-legacy-fallback-purge`): evidence **обязана** включать **полный** `grep_control` run (все id, включая kind=I), не один символ.  
 - User-facing soft-fail при misconfig **не** добавлять «чтобы тесты зелёные».  
 - **FORBIDDEN:** восстанавливать удалённый regex/legacy path, чтобы починить красные тесты на старый контракт — сначала delete/rewrite тесты, потом suite.
 
@@ -153,32 +183,42 @@ sunset_inventory_scan:
   plan_ref: plan-<epic_id>.md#replacement--sunset
   rows:
     - symbol: path/or/FunctionName
-      kind: A
-      command: 'rg -n "FunctionName" …'
+      kind: A   # A | B | C | I
+      command: 'rg -n "<symbol>" <scope> …'
       result: pass | fail
       prod_callers: []          # пути файлов при fail; [] при pass
       notes: ""
 legacy_surfaces_remaining: []   # заполнять ТОЛЬКО после scan; каждый fail → {symbol, kind, callers[], fix: sNN-audit-…}
 fallback_remaining: []          # kind C fails
+instruction_remaining: []       # kind I fails
 purge_step_present: true
+sot_enforce_scan:
+  scanned_at: YYYY-MM-DD
+  rows:
+    - boundary: <boundary-id>
+      enforce_evidence: 'rg / test …'
+      result: pass | fail
+      notes: ""
 ```
 
 **HARD gates:**
 
 1. **`sunset_inventory_scan` обязателен** при sunset ≠ n/a. Отсутствие блока → `converged: false`, audit **FAIL**.  
 2. **`legacy_surfaces_remaining: []` только если scan выполнен** и все rows `result: pass`. Пустой массив без scan = **FAIL** (ложный PASS).  
-3. **`prod_callers` non-empty** → symbol **обязан** попасть в `legacy_surfaces_remaining` или `not_implemented[]` (новый `sNN-audit-*` / purge follow-up).  
+3. **`prod_callers` non-empty** → symbol **обязан** попасть в `legacy_surfaces_remaining` / `instruction_remaining` или `not_implemented[]` (новый `sNN-audit-*` / purge follow-up).  
 4. **`purge_step_present: false`** при sunset ≠ n/a → **FAIL**.  
-5. **`converged: true`** только при: scan complete · все rows pass · `legacy_surfaces_remaining[]` и `fallback_remaining[]` пусты · `purge_step_present: true` (или sunset n/a).  
-6. Shim с `follow_up: T-…` **допустим** в inventory только при ID в queue; иначе → `legacy_surfaces_remaining`.
+5. **`converged: true`** только при: scan complete · все rows pass · `legacy_surfaces_remaining[]`, `fallback_remaining[]`, `instruction_remaining[]` пусты · `purge_step_present: true` · `sot_enforce_scan` pass на boundary FR (или sunset n/a).  
+6. Shim с `follow_up: T-…` **допустим** в inventory только при ID в queue; иначе → `legacy_surfaces_remaining`.  
+7. FR «единый path» при evidence только add/presence → **не** converged (`optional_sot` / `not_implemented`).
 
 **Процедура scan (AUDIT executor):**
 
-1. Прочитать plan `## Replacement / sunset` A+B+C и decompose `## Replacement cleanup`.  
-2. Для **каждой** строки — `rg`/inventory по prod paths (exclude rules §2.4).  
+1. Прочитать plan `## Replacement / sunset` A+B+C+I и decompose `## Replacement cleanup`.  
+2. Для **каждой** строки — `rg`/inventory по prod / instruction paths (exclude rules §2.4).  
 3. Записать `sunset_inventory_scan.rows[]` с `command`, `result`, `prod_callers`.  
-4. Перенести все `result: fail` в `legacy_surfaces_remaining` / `fallback_remaining`.  
-5. Сверить purge implement shard: evidence содержит все `grep_control` id из decompose purge step.
+4. Перенести все `result: fail` в `legacy_surfaces_remaining` / `fallback_remaining` / `instruction_remaining`.  
+5. Сверить purge implement shard: evidence содержит все `grep_control` id из decompose purge step.  
+6. Для каждого machine-boundary FR — `sot_enforce_scan` (deny/halt evidence).
 
 ---
 
@@ -189,13 +229,28 @@ purge_step_present: true
 1. Re-run `rg` по **каждому** symbol из plan sunset A (expect no prod callers **и** нет asserts на старый контракт в живых tests).  
 2. Compose/Dockerfile/CLI: нет legacy из plan B.  
 3. Anti-fallback patterns из plan C в prod paths.  
-4. (BACK) optional: `docker compose config` / `ps` smoke.  
-5. Suite: нет red tests, которые чинятся только restore legacy; obsolete cases удалены/переписаны.
+4. **Kind I:** `rg` по instruction surfaces из plan I — нет старого machine format как SoT.  
+5. **`sot_enforce_scan`:** для каждого boundary FR — evidence, что старый SoT → DENY/HALT/fail-closed (не только что новый путь существует).  
+6. (BACK) optional: `docker compose config` / `ps` smoke.  
+7. Suite: нет red tests, которые чинятся только restore legacy; obsolete cases удалены/переписаны.
 
-PASS при leftover A/B/C = **FAIL** (fix_plan → BUGFIX purge или `sNN-audit-*`).
+PASS при leftover A/B/C/**I** или fail `sot_enforce_scan` = **FAIL** (fix_plan → BUGFIX purge или `sNN-audit-*`).
 
 **FORBIDDEN:** QA PASS только по тексту audit «legacy confirmed» без собственного rg на sunset inventory.  
-**FORBIDDEN:** QA PASS при green suite, достигнутом через возврат sunset-кода под obsolete tests.
+**FORBIDDEN:** QA PASS при green suite, достигнутом через возврат sunset-кода под obsolete tests.  
+**FORBIDDEN:** QA/reflection PASS «полностью удалён legacy» при живых `rg` hits (honesty gate).
+
+Пример блока в qa yaml:
+
+```yaml
+sot_enforce_scan:
+  scanned_at: YYYY-MM-DD
+  rows:
+    - boundary: <boundary-id>
+      command: 'rg -n "<new-sot-symbol>" <scope> …'
+      deny_old: 'rg -n "<old-sot-pattern>" <instruction-scope> …'
+      result: pass | fail
+```
 
 ---
 

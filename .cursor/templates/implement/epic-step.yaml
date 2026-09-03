@@ -18,6 +18,14 @@ files: []
 # deletes: из decompose.deletes — пути/символы, удалённые в этом шаге (FINISH: полный список выполнен).
 deletes: []
 
+# wire_complete: REQUIRED на machine-boundary / SoT cutover / wire|enforce steps
+# (shared/workflow-behavior-first.mdc §9). Иначе не status: completed.
+# wire_complete:
+#   call_sites: []
+#   enforce_path: ""
+#   dual_path_rg: ""
+#   instruction_rg: ""
+
 # tests: HARD — только executable cmds (loop after запускает как shell).
 # OK:  - '`.venv/bin/pytest path -q` — PASS'
 # OK:  - '`npm exec tsc -- --noEmit`'

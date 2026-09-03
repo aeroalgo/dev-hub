@@ -1,0 +1,77 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-054-suite-hygiene-runner-gate
+title: s06 — Legacy fallback purge — anti-regex-VERDICT audit + sunset inventory scan
+  IMPLEMENT
+status: completed
+date: '2026-09-02'
+decompose_ref: memory-bank/back/plan/decompose-T-HUB-054-suite-hygiene-runner-gate/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/systematic-debugging/SKILL.md
+- .agents/skills/tdd/SKILL.md
+discovery:
+- Audit подтвердил отсутствие regex VERDICT machine paths в loop/ и harness/.
+- Audit подтвердил отсутствие positive asserts на verify.md / reviewer.md (тест test_legacy_stubs_removed
+  переписан без прямого regex match).
+- 'Sunset inventory scan прошёл успешно: probe strings отсутствуют, skips отсутствуют,
+  dual asserts отсутствуют.'
+gaps:
+  status: none
+done:
+- Проведён полный аудит кодовой базы loop/ и harness/ на regex VERDICT machine paths
+  — 0 совпадений.
+- Проведён аудит тестового набора на verify.md / reviewer.md asserts — legacy asserts
+  отсутствуют.
+- Проведён sunset inventory scan по таблицам A/B/C — все probe strings отсутствуют,
+  timeout плагин активен.
+- 'Выполнен финальный прогон gate cluster тестов: test_gate_structured_purge.py, test_phase_verify_gates.py,
+  test_stop_gate.py, test_analyze_gate.py, test_bin_pytest.py (80 passed).'
+files:
+- loop/context_loop.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_phase_verify_gates.py
+deletes:
+- Любые остатки prose VERDICT machine path в scope эпика (по rg audit)
+- Любые stubs dsh/presets/verify.prompt.md или reviewer.prompt.md если появятся снова
+tests:
+- '`rg ''finditer.*VERDICT|re\..*VERDICT.*machine'' loop/ harness/`'
+- '`rg ''assert.*(verify|reviewer)\.md'' loop/tests/`'
+- '`rg ''первая строка финального ответа|finditer.*VERDICT'' loop/ harness/`'
+- '`rg ''JSON.*\|.*VERDICT|VERDICT.*\|.*JSON'' loop/ harness/`'
+- '`rg ''@pytest.mark.skip'' loop/tests/test_stop_gate.py loop/tests/test_phase_verify_gates.py
+  loop/tests/test_gate_structured_purge.py`'
+- '`bin/pytest loop/tests/test_gate_structured_purge.py loop/tests/test_phase_verify_gates.py
+  loop/tests/test_stop_gate.py loop/tests/test_analyze_gate.py loop/tests/test_bin_pytest.py
+  -q`'
+integration_check:
+- Full gate cluster tests passed with 0 failures (80 passed).
+grep_control: []
+verification_results:
+- 'cp1: нет regex VERDICT machine path в scope — verified (0 matches)'
+- 'cp2: нет verify.md/reviewer.md SoT asserts в тронутых тестах — verified (0 matches)'
+- 'cp3: sunset_inventory scan pass — probe strings absent — verified'
+- 'cp4: full gate cluster PASS (SC-002 финальная) — verified (80 passed)'
+- 'AC- #1: regex VERDICT scan — verified (0 matches)'
+- 'AC- #2: dual assert JSON|VERDICT scan — verified (0 matches)'
+- 'AC- #3: misconfig silent ignore scan — verified (no silent ignore)'
+- 'AC- #4: legacy asserts scan — verified (0 positive asserts)'
+- 'AC- #5: skips scan — verified (0 skips in gate tests)'
+checkpoints:
+- id: cp1
+  criterion: нет regex VERDICT machine path в scope
+  status: done
+  done_at: '2026-09-02T12:00:00Z'
+- id: cp2
+  criterion: нет verify.md/reviewer.md SoT asserts в тронутых тестах
+  status: done
+  done_at: '2026-09-02T12:00:00Z'
+- id: cp3
+  criterion: sunset_inventory scan pass — probe strings absent
+  status: done
+  done_at: '2026-09-02T12:00:00Z'
+- id: cp4
+  criterion: full gate cluster PASS (SC-002 финальная)
+  status: done
+  done_at: '2026-09-02T12:00:00Z'
+resume_from: cp1

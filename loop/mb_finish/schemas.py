@@ -46,3 +46,8 @@ class MbFinishResult(BaseModel):
     diagnostic_codes: list[str] = Field(default_factory=list)
     shape_errors: list[str] = Field(default_factory=list)
     active_context: str | None = None
+    finished_step: str | None = None
+    next_step: str | None = None
+    next_phase: str | None = None
+    epic_done: bool | None = None
+

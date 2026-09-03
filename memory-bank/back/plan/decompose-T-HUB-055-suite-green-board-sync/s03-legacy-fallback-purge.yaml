@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-055-suite-green-board-sync
+title: "Purge step-upsert SoT leftovers — антидот step-era upsert pipeline"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный purge: убедиться что нет кода/тестов, требующих step WorkItem как upsert desired SoT.
+  rg-audit: нет `compute_ops([*epics, *steps]` pattern. Нет тестов asserting `…-s01` как единственный upsert target.
+  Закрывает FR-004, SC-003, AC+ 4 (sunset A закрыт в purge step), AC− 1 (нет dual desired).
+
+context:
+  consumes:
+    - loop/board_sync/sync.py (после s01/s02 fix)
+    - loop/tests/test_board_sync_*.py (все тесты — проверка отсутствия step-upsert assert)
+  produces:
+    - Подтверждение: rg не находит step-upsert SoT паттернов
+  plan_refs:
+    - FR-004
+    - FR-005
+    - SC-003
+    - AC+ 4
+    - AC− 1 (нет dual desired)
+    - AC− 2 (нет soft-skip archive)
+    - AC− 3 (нет тестов на step-card как единственный SoT)
+  files:
+    - loop/board_sync/cli.py
+    - loop/tests/test_board_sync_cli.py
+
+sunset_inventory:
+  - kind: A
+    surface: "sync.py compute_ops([*epics, *steps], ...) — step desired upsert"
+    replaced_by: "compute_ops([*epics], ...) — epic-only desired (s01)"
+    status: deleted_in_s01
+  - kind: A
+    surface: "test asserts на step card upsert как SoT (…-s01 as only upsert target)"
+    replaced_by: "тесты asserting epic ids / archived step ids"
+    status: audit_in_s03
+  - kind: C
+    surface: "dual desired: epic+step upsert SoT одновременно"
+    replaced_by: "single epic desired path"
+    status: deleted_in_s01
+  - kind: C
+    surface: "keep step cards if archive fails silently — молчаливый пропуск archive"
+    replaced_by: "fail-closed: error in result.errors или hard archive (s02)"
+    status: deleted_in_s02
+
+as_built:
+  - "После s01+s02: sync.py передаёт только epics в compute_ops"
+  - "После s01+s02: 4 baseline tests green"
+
+delta:
+  - "rg audit: нет `compute_ops.*steps` в sync.py как desired"
+  - "rg audit: нет тестов с assert на step-card upsert (…-sNN-epic pattern не должен быть upsert target)"
+  - "Проверить test_board_sync_cli.py: нет ссылок на s01 как единственный board upsert"
+
+deletes:
+  - "Любые dead test assert-паттерны вида `client.tasks['mb-…-s01']` как upsert-only SoT без archive context — rewrite в s02 или delete здесь если обнаружены"
+
+out_of_scope:
+  - "Рефактор desired_cards() в diff.py — WorkItem branch нужен для потенциального прямого вызова"
+  - "CLI UX copy — из cut_list плана"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "нет compute_ops с steps в desired"
+    verify: "rg 'compute_ops.*steps|\\*steps.*compute_ops' loop/board_sync/sync.py || echo 'OK: no step desired'"
+  - id: cp2
+    criterion: "нет тестов с step-id как единственный upsert SoT без archive context"
+    verify: "rg 'tasks\\[.*-s0[0-9]' loop/tests/test_board_sync_*.py | grep -v archived | grep -v 'step_card\\|work_item_card' || echo 'OK: no stale step-upsert asserts'"
+  - id: cp3
+    criterion: "полный baseline cluster green"
+    verify: "bin/pytest loop/tests/test_board_sync_epic_regression.py loop/tests/test_board_sync_sync.py -q --tb=no"
+  - id: cp4
+    criterion: "CLI test: нет s01 как upsert target; epic stable-id (…-epic)"
+    verify: "rg 'mb-.*-s0[0-9].*upsert\\|stable_id.*s0[0-9]' loop/tests/test_board_sync_cli.py || echo 'OK: no s0N upsert assert in CLI tests'"
+  - id: cp5
+    criterion: "FR-005: CLI dry-run/status использует epic stable-id, не …-s01"
+    verify: "rg 'mb-.*-s0[0-9]' loop/board_sync/cli.py || echo 'OK: no s0N in cli.py'"
+  - id: cp6
+    criterion: "SC-002: full hub suite без board regressions"
+    verify: "bin/pytest -q --tb=no 2>&1 | tail -5"
+
+grep_control:
+  - pattern: "compute_ops.*\\*steps"
+    files: "loop/board_sync/sync.py"
+    expected: no_match
+  - pattern: "client\\.tasks\\[.*-s0\\d"
+    files: "loop/tests/test_board_sync_*.py"
+    note: "matches acceptable only in archive-assertion context"
+
+verify:
+  - "rg 'compute_ops.*steps' loop/board_sync/sync.py || echo OK"
+  - "bin/pytest loop/tests/test_board_sync_epic_regression.py loop/tests/test_board_sync_sync.py -q --tb=no"
+  - "bin/pytest -q --tb=no 2>&1 | tail -5"
+tdd: []

@@ -71,9 +71,9 @@ Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in
 
 ## 0.12 Spec-first replace (HARD)
 
-**Always-on:** @.cursor/rules/spec-first-replace-hard.mdc — as-built ≠ design; pydantic → JSON; replace-not-wrap; no regex+enum hybrid. Purge: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Always-on:** @.cursor/rules/spec-first-replace-hard.mdc — as-built is not spec; pydantic → JSON; replace-not-wrap; **wire-complete** (add→wire→enforce→purge); no optional SoT; no regex+enum hybrid. Purge + Kind I: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 
-**Behavior-first (role modes):** @.cursor/rules/shared/workflow-behavior-first.mdc — plan nouns ∈ produces; no dilution; AUDIT plan-first; QA smoke на gate/agent FR
+**Behavior-first (role modes):** @.cursor/rules/shared/workflow-behavior-first.mdc — plan nouns ∈ produces; no dilution; **anti-minimal**; AUDIT plan-first; QA smoke + `sot_enforce_scan` на gate/agent FR
 
 ## PLAN / gap / decompose write
 

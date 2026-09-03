@@ -1,0 +1,123 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-058-sunset-inventory-agent
+title: "legacy-fallback-purge — purge instruction dual «explorer for sunset», prose inventory pattern, Kind A/B/C/I остаток"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge всех замен из plan §Replacement/sunset A+B+C+I:
+  удалить/переписать Kind I инструкции «сам прочитай as-built», «можно explorer вместо sunset»,
+  «prose inventory без schema»; подтвердить нулевой остаток Kind C anti-fallback паттернов;
+  подтвердить нет Kind A code module (greenfield — scan clean); suite green без sunset-кода.
+  Связь с FR-013, AC−2, AC−4, AC−5, §Replacement cleanup все строки.
+  Канон: workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+context:
+  consumes:
+    - "plan §Replacement/sunset A (code — greenfield); B (entrypoint — greenfield); C (fallbacks: explorer-instead, prose-inventory); I (instructions: deep-read, behavior-first без executor)"
+    - "decompose index §Replacement cleanup — все строки"
+    - "s04 (lean/behavior-first/spec-first pointers — уже добавлены)"
+    - "s02 (agent materialized)"
+  produces:
+    - "zero Kind I 'сам прочитай as-built' hits в rules (удалено/переписано)"
+    - "zero Kind C 'explorer вместо sunset' hits (удалено)"
+    - "zero Kind C 'prose inventory без schema' hits (удалено)"
+    - "Kind A — подтверждение отсутствия старого code module (не было, scan pass)"
+    - "Kind B — подтверждение greenfield (не было, scan pass)"
+  plan_refs:
+    - "FR-013"
+    - "SC-005"
+  files:
+    - ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc"
+    - ".cursor/rules/shared/workflow-behavior-first.mdc"
+    - ".cursor/rules/shared/workflow-spec-first-replace.mdc"
+    - ".cursor/rules/shared/cheatsheets/back-implement.mdc"
+
+as_built:
+  - "Kind I: lean/implement.mdc — 'читай as-built как шаблон' (до s04); behavior-first — parent-as-inventory-executor (до s04)"
+  - "Kind C: нет явного 'explorer вместо sunset' — greenfield agent, но паттерн возможен в старых cheatsheet"
+  - "Kind A: нет кода — greenfield; Kind B: нет entrypoint — greenfield"
+
+delta:
+  - "rg: 'read.*as.built.*design\\|as-built.*template\\|изучи.*старый' в .cursor/rules/ → удалить/переписать каждый hit"
+  - "rg: 'explorer.*replace\\|вместо sunset' → 0 hits"
+  - "rg: 'prose inventory\\|без schema.*inventory' → 0 hits"
+  - "rg: sunset_inventory kind=A (нет кода-предшественника) → scan pass log в implement shard"
+  - "rg: manifest/registry kind=B (greenfield) → scan pass"
+  - "Obsolete tests на старый контракт: нет (greenfield agent — tests созданы в s01; нет удалённых тестов)"
+
+deletes:
+  - "Kind I instruction: 'сам прочитай as-built и пойми' (hits в rules → inline rewrite, не delete файла)"
+  - "Kind I instruction: 'behavior-first без inventory executor' (already replaced in s04)"
+  - "Kind C: 'можно вызвать explorer вместо sunset на replace' (if found → remove)"
+  - "Kind C: 'prose inventory без schema' (if found → remove)"
+
+sunset_inventory:
+  kind_A:
+    - symbol: "parent-deep-read-as-built (process)"
+      path: "process / rules"
+      mark: REPLACE
+      replacement: "@sunset-inventory spawn + JSON report"
+      grep_control: "rg 'as-built.*design\\|template.*design' .cursor/rules/ -r"
+  kind_B:
+    - symbol: "n/a — greenfield"
+      path: "n/a"
+      mark: REPLACE
+      grep_control: "rg 'sunset-inventory' harness/manifest.yaml"
+  kind_C:
+    - symbol: "explorer-instead-of-sunset fallback"
+      path: ".cursor/rules/"
+      mark: REPLACE
+      grep_control: "rg 'explorer.*вместо sunset\\|можно.*explorer.*replace' .cursor/rules/ -r"
+    - symbol: "prose-inventory-without-schema"
+      path: ".cursor/rules/"
+      mark: REPLACE
+      grep_control: "rg 'prose inventory\\|без schema.*inventory' .cursor/rules/ -r"
+  kind_I:
+    - symbol: "читай as-built как шаблон дизайна"
+      path: ".cursor/rules/back_developer/isolation_rules/_lean/implement.mdc"
+      mark: REPLACE
+      grep_control: "rg 'as-built.*шаблон\\|прочитай.*as.built' .cursor/rules/ -r"
+    - symbol: "behavior-first без inventory executor pointer"
+      path: ".cursor/rules/shared/workflow-behavior-first.mdc"
+      mark: REPLACE
+      grep_control: "rg 'inventory.*executor\\|parent.*читает.*as.built' .cursor/rules/shared/workflow-behavior-first.mdc"
+
+grep_control:
+  - back: "rg 'as-built.*design\\|template.*design\\|прочитай.*as.built' .cursor/rules/ -r"
+  - back: "rg 'explorer.*вместо.*sunset\\|prose inventory' .cursor/rules/ -r"
+  - back: "rg 'sunset-inventory' harness/manifest.yaml harness/agents/sunset-inventory.md .claude/agents/sunset-inventory.md"
+
+out_of_scope:
+  - "Cursor parity (T-HUB-053)"
+  - "Новые test files — только scan на obsolete"
+
+skills:
+  code_surface: infra
+  impl: []
+  # scan + targeted rewrite in rules; no new Python code
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A scan pass — нет 'parent reads as-built as design template' prod callers в rules"
+    verify: "rg 'as-built.*design\\|template.*design' .cursor/rules/ -r --count || echo 0_HITS_OK"
+  - id: cp2
+    criterion: "Kind B — manifest содержит sunset-inventory entry (greenfield materialize)"
+    verify: "rg 'sunset-inventory' harness/manifest.yaml"
+  - id: cp3
+    criterion: "Kind C — 0 hits anti-fallback: explorer-instead, prose-inventory без schema"
+    verify: "rg 'explorer.*вместо.*sunset\\|prose inventory без schema' .cursor/rules/ -r || echo 0_HITS_OK"
+  - id: cp4
+    criterion: "Kind I — 0 hits старого instruction format 'сам прочитай as-built'"
+    verify: "rg 'сам прочитай as-built\\|читай.*as.built.*шаблон' .cursor/rules/ -r || echo 0_HITS_OK"
+  - id: cp5
+    criterion: "Нет obsolete tests на sunset-контракт (greenfield); test_sunset_inventory_schema.py green"
+    verify: "bin/pytest loop/tests/test_sunset_inventory_schema.py loop/tests/test_agent_registry.py -k 'sunset' -q --tb=line"
+  - id: cp6
+    criterion: "Epic regression suite green после всех deletes"
+    verify: "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line -k 'sunset or registry'"
+
+verify: []
+tdd: []

@@ -19,4 +19,4 @@ queue:
     deps: [T-HUB-043]
   - id: T-HUB-053
     plan: plan-T-HUB-053-codex-claude-hooks-parity.md
-    deps: [T-HUB-043]
+    deps: [T-HUB-043, T-HUB-057, T-HUB-058]

@@ -147,12 +147,13 @@ def test_tm009_dsh_preset_files_map() -> None:
 
 def test_legacy_stubs_removed() -> None:
     # T-HUB-039 s10: alias stubs deleted — not symlinks, not regenerated presets.
-    assert not (ROOT / ".claude" / "agents" / "verify.md").exists()
-    assert not (ROOT / ".claude" / "agents" / "reviewer.md").exists()
-    assert not (ROOT / "harness" / "agents" / "verify.md").exists()
-    assert not (ROOT / "harness" / "agents" / "reviewer.md").exists()
-    assert not (ROOT / "dsh" / "presets" / "verify.prompt.md").exists()
-    assert not (ROOT / "dsh" / "presets" / "reviewer.prompt.md").exists()
+    legacy_files = ["verify.md", "reviewer.md"]
+    legacy_presets = ["verify.prompt.md", "reviewer.prompt.md"]
+    for stub in legacy_files:
+        assert not (ROOT / ".claude" / "agents" / stub).exists()
+        assert not (ROOT / "harness" / "agents" / stub).exists()
+    for preset in legacy_presets:
+        assert not (ROOT / "dsh" / "presets" / preset).exists()
 
 
 def test_tm010_dead_assign_regression() -> None:

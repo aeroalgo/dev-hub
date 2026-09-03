@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-057-loop-session-json-contract
+title: "stop-gate last_finish_tool fingerprint + NEED_HUMAN schema exhausted escalation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  stop-gate.py: требовать last_finish_tool fingerprint после PASS; при отсутствии
+  NEED_HUMAN с диагностикой finish_tool_missing. Schema exhausted (retry > N в subagent-stop)
+  NEED_HUMAN вместо silent accept / soft-fail. verify_hint: PASS mb-finish hint обязателен
+  (FR-007). Epic state: schema_retry counters + fingerprint persist across spawns (FR-011).
+  Outcome: SC-004 (PASS mb-finish required); TM-007/008.
+
+context:
+  consumes:
+    - harness/hooks/stop-gate.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+  produces:
+    - harness/hooks/stop-gate.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/_lib.py
+  plan_refs:
+    - FR-004
+    - FR-007
+    - FR-011
+    - SC-004
+    - TM-007
+    - TM-008
+  files:
+    - harness/hooks/stop-gate.py
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/_lib.py
+
+as_built:
+  - "harness/hooks/stop-gate.py — last_finish_tool recorded by write_last_finish_tool; stop-gate checks partially; no NEED_HUMAN on missing"
+  - "loop/mb_finish/verify_hint.py — mb_finish_hint_after_verdict hint present; no hard guarantee PASS emits hint"
+  - "harness/hooks/_lib.py — schema_retry_count added in s03; persist via epic state"
+  - "harness/hooks/epic/core.py — write_last_finish_tool records step + ts; no fingerprint field"
+
+delta:
+  - "harness/hooks/stop-gate.py: on PASS verify check last_finish_tool presence in epic state; if absent emit NEED_HUMAN finish_tool_missing"
+  - "harness/hooks/stop-gate.py: if schema_retry_count > N from epic state emit NEED_HUMAN schema_retry_exhausted; not silent accept"
+  - "loop/mb_finish/verify_hint.py: assert PASS path always calls mb_finish_hint; test covers"
+  - "harness/hooks/_lib.py: schema_retry_count persists keyed by tool_use_id + session_id (FR-011 fingerprint)"
+  - "harness/hooks/epic/core.py: write_last_finish_tool adds fingerprint field (hash of step+ts)"
+
+deletes: []
+
+out_of_scope:
+  - "arm anti-loop guard (s05)"
+  - "validate_boundary (s03)"
+  - "prose purge (s08)"
+
+skills:
+  code_surface: api
+  impl:
+    - tdd
+    - python-testing-patterns
+    - modern-python
+    - python-anti-patterns
+    - python-resilience
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      SC-004 / TM-007: stop-gate after PASS without last_finish_tool emits NEED_HUMAN
+      with code finish_tool_missing; PASS does not proceed without fingerprint
+    verify: "bin/pytest loop/tests/test_stop_gate.py -k 'finish_tool_missing or need_human' -q --tb=short"
+  - id: cp2
+    criterion: >
+      TM-008: schema_retry_count > N emits NEED_HUMAN schema_retry_exhausted;
+      test with patched counter > default N
+    verify: "bin/pytest loop/tests/test_stop_gate.py -k 'schema_exhausted or retry_exhausted' -q --tb=short"
+  - id: cp3
+    criterion: "verify_hint: PASS emits hint; rg confirms mb_finish_hint_after_verdict called on PASS path"
+    verify: "bin/pytest loop/tests/test_mb_finish_analyze.py -k 'pass_hint' -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_mb_finish_analyze.py -q --tb=short -k 'finish_tool or schema_exhaust or pass_hint'"
+tdd:
+  - loop/tests/test_stop_gate.py
+  - loop/tests/test_mb_finish_analyze.py
