@@ -44,7 +44,7 @@ def main() -> None:
             projection = epic_state.get("projection") or {}
             projection_phase = projection.get("phase") or epic_state.get("phase")
             if projection_phase:
-                projection_gates = gates_from_phase(projection_phase)
+                projection_gates = gates_from_phase(projection_phase, cwd=cwd)
         except Exception:
             projection_phase = None
     projection_authoritative = bool(projection_phase)

@@ -106,5 +106,5 @@
 | **s04** | [s04-resolve-path-validation.yaml](../yaml/steps/s04-resolve-path-validation.yaml) — loop/workflow/resolve.py (validate_pack_paths, full_resolve) | no | yes | BACK IMPLEMENT | completed |
 | **s05** | [s05-cli-workflow-resolve.yaml](../yaml/steps/s05-cli-workflow-resolve.yaml) — epic_resolve.py workflow resolve CLI | no | no | BACK IMPLEMENT | completed |
 | **s06** | [s06-lib-prepare-session.yaml](../yaml/steps/s06-lib-prepare-session.yaml) — _lib.py WorkflowConfig + context_loop.prepare_session | no | yes | BACK IMPLEMENT | completed |
-| **s07** | [s07-pytest-suite.yaml](../yaml/steps/s07-pytest-suite.yaml) — loop/tests/test_workflow_pack_registry.py (TM-001..006) | no | yes | BACK IMPLEMENT | pending |
-| **s08** | [s08-purge-hardcoded-domain-assumptions.yaml](../yaml/steps/s08-purge-hardcoded-domain-assumptions.yaml) — rg audit + instruction rewrites (Kind A/I) | no | no | BACK IMPLEMENT | pending |
+| **s07** | [s07-pytest-suite.yaml](../yaml/steps/s07-pytest-suite.yaml) — loop/tests/test_workflow_pack_registry.py (TM-001..006) | no | yes | BACK IMPLEMENT | completed |
+| **s08** | [s08-purge-hardcoded-domain-assumptions.yaml](../yaml/steps/s08-purge-hardcoded-domain-assumptions.yaml) — rg audit + instruction rewrites (Kind A/I) | no | no | BACK IMPLEMENT | completed |

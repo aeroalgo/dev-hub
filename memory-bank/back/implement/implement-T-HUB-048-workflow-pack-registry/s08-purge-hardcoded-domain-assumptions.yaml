@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-048-workflow-pack-registry
+title: s08 — Purge implicit single-domain assumptions (rg audit + doc + instruction
+  rewrites) IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s08-purge-hardcoded-domain-assumptions.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проведен rg audit: нет hardcoded frozenset pack ids в harness/hooks/_lib.py'
+- 'Проведен rg audit: loop/loop.sh не содержит pack-specific if/else веток'
+- Проверен instruction surface в harness/claude/rules/ и harness/
+files:
+- harness/hooks/_lib.py
+- loop/loop.sh
+- harness/claude/rules/
+deletes: []
+tests:
+- bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=line
+integration_check:
+- rg 'frozenset' harness/hooks/_lib.py
+- rg 'dev-hub-software|WORKFLOW_PACK.*=.*dev' loop/loop.sh
+grep_control: []
+verification_results:
+- 'PASS: 6 passed in loop/tests/test_workflow_pack_registry.py'
+- 'PASS: cp1 rg audit clean'
+- 'PASS: cp2 loop.sh clean'
+- 'PASS: cp3 instruction surface clean'
+- 'PASS: cp4 no implicit single software domain assumptions'
+checkpoints:
+- id: cp1
+  criterion: rg audit — нет frozenset pack ids в _lib.py (кроме ROLE_PREFIXES)
+  status: done
+  done_at: '2026-09-04T07:22:00Z'
+- id: cp2
+  criterion: loop.sh не содержит if/else с hardcoded pack id strings
+  status: done
+  done_at: '2026-09-04T07:22:00Z'
+- id: cp3
+  criterion: instruction prose updated - Kind I rewrite если применимо
+  status: done
+  done_at: '2026-09-04T07:22:00Z'
+- id: cp4
+  criterion: rg по 'implicit.*software.*domain' в harness/ пусто
+  status: done
+  done_at: '2026-09-04T07:22:00Z'
+resume_from: cp1

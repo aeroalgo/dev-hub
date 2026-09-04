@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s01 — pack-aware load_phase_registry(registry_path, *, pack_id) — path from pack manifest via FR-001 IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s01-pack-aware-load-phase-registry.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - "Расширена сигнатура load_phase_registry(registry_path=None, *, pack_id=None, cwd=None)"
+  - "pack_id разрешает phase_registry через resolve_workflow_pack / load_registry / get_pack"
+  - "Кэш _PHASE_REGISTRY_CACHE изолирован per-pack / per-path"
+  - "Fail-closed: если оба None → ValueError; если missing phase_registry yaml → ValueError"
+files:
+  - loop/epic_transition.py
+  - loop/tests/test_workflow_pack_phase_router.py
+deletes:
+  - loop/epic_transition._DEFAULT_REGISTRY_PATH — удаляется в s06 после wire всех callers
+tests:
+  - "`bin/pytest loop/tests/test_workflow_pack_phase_router.py -xq`"
+integration_check:
+  - "load_phase_registry(registry_path=...) и load_phase_registry(pack_id=..., cwd=...) протестированы unit-тестами"
+grep_control: []
+verification_results:
+  - command: "bin/pytest loop/tests/test_workflow_pack_phase_router.py -xq"
+    status: pass
+checkpoints:
+  - id: cp1
+    criterion: load_phase_registry(pack_id='dev-hub-software', cwd=tmp) читает yaml из pack.phase_registry
+    status: done
+  - id: cp2
+    criterion: load_phase_registry() без аргументов → ValueError fail-closed (TM-001 aspect)
+    status: done
+  - id: cp3
+    criterion: pack_id с missing phase_registry path → ValueError (TM-001)
+    status: done
+  - id: cp4
+    criterion: 'кэш per-pack-id: два разных pack_id → независимые entries'
+    status: done
+resume_from: none

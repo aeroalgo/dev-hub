@@ -2774,7 +2774,7 @@ def status(cwd: str | Path) -> dict[str, Any]:
         config = runtime_config_status(resolve_runtime_config(root))
     except (RuntimeError, ValueError) as exc:
         config = {"effective": None, "sources": {}, "diagnostics": [{"code": "invalid_runtime_config", "reason": str(exc)}]}
-    gates = projection.get("gates") or gates_from_phase(projection.get("phase"))
+    gates = projection.get("gates") or gates_from_phase(projection.get("phase"), cwd=root)
     raw_diagnostics = projection.get("diagnostic_codes") or []
     diagnostics = sorted({code for code in raw_diagnostics if isinstance(code, str)})
     if any(not isinstance(code, str) for code in raw_diagnostics):

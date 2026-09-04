@@ -1,11 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-048
-  epic_id: T-HUB-048-workflow-pack-registry
-  plan: plan-T-HUB-048-workflow-pack-registry.md
-  deps: []
-  batch: workflow-pack-framework
 - id: T-HUB-049
   epic_id: T-HUB-049-workflow-pack-phase-router
   plan: plan-T-HUB-049-workflow-pack-phase-router.md
@@ -232,6 +227,10 @@ done:
   epic_id: T-HUB-059-harness-claude-agents-sot-complete
   plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
   batch: harness-universal-runtime
+- id: T-HUB-048
+  epic_id: T-HUB-048-workflow-pack-registry
+  plan: plan-T-HUB-048-workflow-pack-registry.md
+  batch: workflow-pack-framework
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

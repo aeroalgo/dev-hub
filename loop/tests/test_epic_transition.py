@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -311,7 +312,7 @@ def test_legacy_warn_emits_deprecation():
 def test_load_phase_registry_returns_all_phases():
     from loop.epic_transition import load_phase_registry  # noqa: PLC0415
 
-    reg = load_phase_registry()
+    reg = load_phase_registry(pack_id="dev-hub-software", cwd=ROOT)
     assert isinstance(reg, dict)
     assert "phases" in reg
     assert len(reg["phases"]) >= 10
@@ -388,6 +389,17 @@ def test_get_dsh_preset_implement():
 def test_arm_phase_dsh_injects_preset(tmp_path, monkeypatch):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
+    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
+    schema_dir = tmp_path / "loop" / "schemas"
+    schema_dir.mkdir(parents=True, exist_ok=True)
+    custom_yaml = {
+        "schema": "phase-registry/v1",
+        "phases": {
+            "IMPLEMENT": {"verify_agent": "verify-implement", "dsh_preset": "implement"},
+        },
+    }
+    (schema_dir / "phase_registry.yaml").write_text(yaml.dump(custom_yaml), encoding="utf-8")
+
     def mock_arm_epic(cwd, epic_id, **kwargs):
         return {"ok": True, "armed_epic": epic_id, "kwargs": kwargs}
 
@@ -402,6 +414,17 @@ def test_arm_phase_dsh_injects_preset(tmp_path, monkeypatch):
 def test_arm_phase_dsh_missing_preset_fails_closed(tmp_path, monkeypatch):
     from loop.epic_transition import arm_phase  # noqa: PLC0415
 
+    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
+    schema_dir = tmp_path / "loop" / "schemas"
+    schema_dir.mkdir(parents=True, exist_ok=True)
+    custom_yaml = {
+        "schema": "phase-registry/v1",
+        "phases": {
+            "PLAN": {"verify_agent": None, "dsh_preset": None},
+        },
+    }
+    (schema_dir / "phase_registry.yaml").write_text(yaml.dump(custom_yaml), encoding="utf-8")
+
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
     with pytest.raises(ValueError, match="no DSH preset for phase 'PLAN'"):
@@ -411,7 +434,7 @@ def test_arm_phase_dsh_missing_preset_fails_closed(tmp_path, monkeypatch):
 def test_registry_roles_covers_all():
     from loop.epic_transition import load_phase_registry  # noqa: PLC0415
 
-    reg = load_phase_registry()
+    reg = load_phase_registry(pack_id="dev-hub-software", cwd=ROOT)
     assert reg.get("roles") == ["back", "front", "integration"]
 
 
@@ -476,17 +499,20 @@ def test_promote_if_ready_front_analyze_gate(tmp_path, monkeypatch):
 def test_load_phase_registry_invalid_yaml_raises(tmp_path):
     from loop.epic_transition import load_phase_registry  # noqa: PLC0415
 
-    bad_file = tmp_path / "bad.yaml"
+    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
+    schema_dir = tmp_path / "loop" / "schemas"
+    schema_dir.mkdir(parents=True, exist_ok=True)
+
+    bad_file = schema_dir / "phase_registry.yaml"
     bad_file.write_text("phases: [this is not a dict structure", encoding="utf-8")
 
     with pytest.raises(ValueError, match="Invalid YAML"):
-        load_phase_registry(bad_file)
+        load_phase_registry(pack_id="dev-hub-software", cwd=tmp_path)
 
-    bad_schema = tmp_path / "bad_schema.yaml"
-    bad_schema.write_text("wrong_key: 123", encoding="utf-8")
+    bad_file.write_text("wrong_key: 123", encoding="utf-8")
 
     with pytest.raises(ValueError, match="missing 'phases' key"):
-        load_phase_registry(bad_schema)
+        load_phase_registry(pack_id="dev-hub-software", cwd=tmp_path)
 
 
 def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> None:

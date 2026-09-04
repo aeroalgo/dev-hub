@@ -22,6 +22,57 @@ from loop.mb_finish.impl import (
 from loop.mb_finish.schemas import MbFinishRequest, MbFinishResult
 
 
+def _valid_audit_v2_yaml(*, epic_id: str, fr_ids: list[str] | None = None) -> str:
+    frs = fr_ids or ["FR-001"]
+    rows = "\n".join(
+        f"  - source_ref: {fid}\n"
+        f"    status: satisfied\n"
+        f"    evidence: runtime behavior evidence for {fid} path\n"
+        f"    remaining_work: \"\"\n"
+        for fid in frs
+    )
+    return (
+        "schema: epic-audit/v2\n"
+        f"epic_id: {epic_id}\n"
+        "plan_intent:\n"
+        "  epic_goal: Deliver workflow pack registry so harness is domain-agnostic\n"
+        "  source: plan.md#WHAT\n"
+        "intent_checked:\n"
+        f"  fr_total: {len(frs)}\n"
+        f"  fr_satisfied: {len(frs)}\n"
+        "  sc_checked: 0\n"
+        "  layout_paths_total: 0\n"
+        "  layout_paths_closed: 0\n"
+        "  constitution_checked: false\n"
+        "plan_vs_runtime:\n"
+        f"{rows}"
+        "architecture_parity: []\n"
+        "findings: []\n"
+        "converged: true\n"
+        "implemented: []\n"
+        "not_implemented: []\n"
+        "deviations: []\n"
+        "sunset_inventory_scan:\n"
+        "  scanned_at: '2026-09-04'\n"
+        "  plan_ref: n/a\n"
+        "  rows: []\n"
+        "legacy_surfaces_remaining: []\n"
+        "fallback_remaining: []\n"
+        "instruction_remaining: []\n"
+        "purge_step_present: true\n"
+    )
+
+
+def _write_plan_with_frs(tmp_path: Path, epic_id: str, fr_ids: list[str] | None = None) -> Path:
+    frs = fr_ids or ["FR-001"]
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    body = "# Plan\n\n## WHAT\n\n" + "\n".join(f"- **{fid}:** requirement {fid}" for fid in frs) + "\n"
+    path = plan_dir / "plan.md"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
 def test_finish_analyze_happy(tmp_path: Path):
     """cp1: finish_analyze happy path: analyze yaml + gate evidence → ok=True, mode=IMPLEMENT."""
     mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-TEST-001"
@@ -177,15 +228,17 @@ def test_finish_analyze_missing_artifact(tmp_path: Path):
 
 def test_finish_audit_happy(tmp_path: Path):
     """cp3: finish_audit happy path with valid audit artifact -> ok=True."""
-    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-TEST-001"
+    epic = "T-TEST-001"
+    _write_plan_with_frs(tmp_path, epic, ["FR-001"])
+    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / epic
     audit_dir.mkdir(parents=True, exist_ok=True)
     audit_file = audit_dir / "audit-001.yaml"
-    audit_file.write_text("epic_id: T-TEST-001\nfindings: []\n", encoding="utf-8")
+    audit_file.write_text(_valid_audit_v2_yaml(epic_id=epic), encoding="utf-8")
 
     save_epic_state(
         tmp_path,
         {
-            "armed_epic": "T-TEST-001",
+            "armed_epic": epic,
             "armed_role": "BACK",
         },
     )
@@ -211,7 +264,7 @@ def test_finish_audit_happy(tmp_path: Path):
         / "memory-bank"
         / "back"
         / "events"
-        / "T-TEST-001"
+        / epic
         / "events.jsonl"
     )
     assert events.is_file()
@@ -224,19 +277,21 @@ def test_finish_audit_happy(tmp_path: Path):
     assert st.get("phase") == "QA"
     assert st.get("armed_step") == "QA"
     assert st.get("last_finished_step") == "AUDIT"
-    life = reduce_epic_lifecycle(tmp_path, "back", "T-TEST-001")
+    life = reduce_epic_lifecycle(tmp_path, "back", epic)
     assert life.get("phase") == "QA"
 
 
 def test_finish_audit_v2_layout_path_emits_audit_done(tmp_path: Path):
     """finish_audit finds yaml/audit.yaml and emits audit_done without touching _declared_artifacts."""
-    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-TEST-V2" / "yaml"
+    epic = "T-TEST-V2"
+    _write_plan_with_frs(tmp_path, epic, ["FR-001"])
+    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / epic / "yaml"
     audit_dir.mkdir(parents=True, exist_ok=True)
     (audit_dir / "audit.yaml").write_text(
-        "epic_id: T-TEST-V2\nstatus: PASS\nfindings: []\n",
+        _valid_audit_v2_yaml(epic_id=epic),
         encoding="utf-8",
     )
-    save_epic_state(tmp_path, {"armed_epic": "T-TEST-V2", "armed_role": "BACK"})
+    save_epic_state(tmp_path, {"armed_epic": epic, "armed_role": "BACK"})
 
     res = finish_audit(
         MbFinishRequest(
@@ -247,11 +302,41 @@ def test_finish_audit_v2_layout_path_emits_audit_done(tmp_path: Path):
         )
     )
     assert res.ok is True, res.diagnostic_codes
-    events = tmp_path / "memory-bank" / "back" / "events" / "T-TEST-V2" / "events.jsonl"
+    events = tmp_path / "memory-bank" / "back" / "events" / epic / "events.jsonl"
     assert events.is_file()
     body = events.read_text(encoding="utf-8")
     assert "audit_done" in body
     assert "yaml/audit.yaml" in body
+
+
+def test_finish_audit_rejects_shallow_v1(tmp_path: Path):
+    """Shallow status:PASS / empty not_implemented without plan_vs_runtime must fail."""
+    epic = "T-TEST-SHALLOW"
+    _write_plan_with_frs(tmp_path, epic, ["FR-001", "FR-002"])
+    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / epic
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    (audit_dir / "audit.yaml").write_text(
+        "schema: epic-audit/v1\n"
+        f"epic_id: {epic}\n"
+        "status: PASS\n"
+        "not_implemented: []\n"
+        "drift: []\n"
+        "blockers: []\n"
+        "summary: all done\n",
+        encoding="utf-8",
+    )
+    save_epic_state(tmp_path, {"armed_epic": epic, "armed_role": "BACK"})
+    res = finish_audit(
+        MbFinishRequest(
+            phase="BACK AUDIT",
+            step_id="AUDIT",
+            done_summary="shallow",
+            cwd=str(tmp_path),
+        )
+    )
+    assert res.ok is False
+    assert "audit_plan_parity_failed" in res.diagnostic_codes
+    assert any("audit_schema_not_v2" in e for e in res.shape_errors)
 
 
 def test_finish_audit_no_artifact(tmp_path: Path):

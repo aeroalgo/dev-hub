@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "loop/workflow/command_router.py — route_command(pack, cmd) → CommandRoute(phase, rules_mdc_rel)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/workflow/command_router.py` с `route_command(pack: WorkflowPack, raw_command: str) -> CommandRoute`:
+  1. Нормализует raw_command через pack.command_prefixes → canonical phase key.
+  2. Резолвит rules_mdc_rel = pack.rules_root / role_subdir / workflow-{phase}.mdc.
+  CommandRoute = NamedTuple('CommandRoute', [('normalized_phase', str), ('rules_mdc_rel', str | None)]).
+  Нет hardcoded prefix table — все prefixes из pack.command_prefixes; rules_root из pack.rules_root.
+  Единая точка входа (pack, raw_command) → phase + rules mdc path для EPIC_LOOP routing.
+  Outcomes: FR-006, US-002 (command routing аспект).
+
+plan_contract:
+  fr_ids: [FR-006, US-002]
+  nouns:
+    - "loop/workflow/command_router.py"
+    - "route_command(pack, raw_command) -> CommandRoute"
+    - "CommandRoute: normalized_phase + rules_mdc_rel_path"
+    - "pack.rules_root + role subdir map → mdc path"
+  layout_paths:
+    - "loop/workflow/command_router.py"
+  ac_quotes:
+    - "AC+1: route_command(software_pack, 'BACK IMPLEMENT') → CommandRoute(phase='IMPLEMENT', rules_mdc_rel='.cursor/rules/back_developer/workflow-implement.mdc')"
+    - "AC+2: route_command(video_pack, 'SCRIPT PLAN') → CommandRoute(phase='PLAN', rules_mdc_rel='{rules_root}/script/workflow-plan.mdc')"
+    - "AC−1: route_command(pack, 'UNKNOWN') → CommandRoute(phase='UNKNOWN', rules_mdc_rel=None) (pass-through, no crash)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:43-55"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:32-40"
+
+context:
+  consumes:
+    - "s02 результат: normalize_registry_phase(phase, pack) в loop/epic_transition.py"
+    - "loop/workflow/schemas.py:WorkflowPack — .rules_root, .command_prefixes"
+    - "loop/epic_transition.py — normalize_registry_phase"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:128-153 §Command router + §Files"
+  produces:
+    - "loop/workflow/command_router.py — route_command(pack, raw_command) → CommandRoute"
+    - "loop/workflow/command_router.py — CommandRoute dataclass/NamedTuple: normalized_phase, rules_mdc_rel"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:128-153"
+  files:
+    - "loop/workflow/command_router.py"
+
+as_built:
+  - "нет loop/workflow/command_router.py — routing inline через _ROLE_PREFIXES"
+  - "harness/hooks/epic/core.py:560-577 — inline phase detection без pack context"
+
+delta:
+  - "loop/workflow/command_router.py CREATE: CommandRoute = NamedTuple('CommandRoute', [('normalized_phase', str), ('rules_mdc_rel', str | None)])"
+  - "loop/workflow/command_router.py: route_command(pack, raw_command) → normalize via pack.command_prefixes, resolve rules_root/role_subdir/workflow-{phase}.mdc"
+  - "harness/hooks/epic/core.py:560-577 — update inline phase detection → import route_command from loop.workflow.command_router"
+
+deletes: []
+
+out_of_scope:
+  - "session-start inject (s05)"
+  - "_ROLE_PREFIXES purge (s06)"
+  - "pytest matrix (s07)"
+  - "MCP command resolve (appetite cut_list)"
+  - "generated mainrule stub (appetite cut_list)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "route_command software pack → CommandRoute с normalized_phase='IMPLEMENT' и rules_mdc_rel"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_software -xq"
+  - id: cp2
+    criterion: "route_command video pack SCRIPT PLAN → phase='PLAN', rules_mdc_rel содержит rules_root"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_custom_prefix -xq"
+  - id: cp3
+    criterion: "route_command неизвестная команда → pass-through, rules_mdc_rel=None"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_passthrough -xq"
+
+verify: []
+tdd:
+  - "test_route_command_software: route_command(software_pack, 'BACK IMPLEMENT') → CommandRoute(phase='IMPLEMENT', rules_mdc_rel=...)"
+  - "test_route_command_custom_prefix: route_command(video_pack, 'SCRIPT PLAN') → CommandRoute(phase='PLAN', ...)"
+  - "test_route_command_passthrough: route_command(pack, 'IMPLEMENT') → CommandRoute(phase='IMPLEMENT', rules_mdc_rel=None or valid)"
+  - "test_route_command_case: route_command(pack, 'back implement') → phase='IMPLEMENT'"

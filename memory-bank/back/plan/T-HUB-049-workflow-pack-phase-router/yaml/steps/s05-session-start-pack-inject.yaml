@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "session-start injects pack command index into additionalContext payload"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `session_start_payload(cwd)` в `harness/hooks/epic/core.py`:
+  при `EPIC_LOOP=1` вызвать `full_resolve(cwd)` и если `ok=True`,
+  добавить в `additionalContext` секцию с `pack_id` и `command_prefixes` list.
+  Это даёт Claude Code в каждой сессии актуальный prefix list без чтения манифеста.
+  Outcomes: FR-005, US-005, TM-005.
+
+plan_contract:
+  fr_ids: [FR-005, US-005, TM-005]
+  nouns:
+    - "session_start_payload(cwd) — additionalContext injection"
+    - "WorkflowConfig.resolve(cwd).pack — command_prefixes"
+    - "pack_id + command_prefixes в ctx строке"
+  layout_paths:
+    - "harness/hooks/epic/core.py"
+  ac_quotes:
+    - "AC+1: EPIC_LOOP=1 + valid project pack → additionalContext содержит pack_id + command_prefixes list"
+    - "AC+2: EPIC_LOOP=1 + full_resolve ok=False → payload корректен, без pack секции (не crash)"
+    - "AC−1: EPIC_LOOP=0 → session_start_payload returns None (не меняется)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:62-65"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:159-175"
+
+context:
+  consumes:
+    - "harness/hooks/epic/core.py:1368-1406 — session_start_payload — текущий ctx без pack info"
+    - "_lib.py:554 — WorkflowConfig.resolve(cwd) → PackResolveResult"
+    - "loop/workflow/schemas.py:WorkflowPack.command_prefixes, .id"
+  produces:
+    - "harness/hooks/epic/core.py — session_start_payload: + pack_id + command_prefixes в ctx"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §US-005"
+  files:
+    - "harness/hooks/epic/core.py"
+
+as_built:
+  - "harness/hooks/epic/core.py:1368 — session_start_payload без pack inject"
+  - "harness/hooks/epic/core.py:1376-1381 — ctx строка без command_prefixes"
+
+delta:
+  - "harness/hooks/epic/core.py:1376-1406: после основного ctx — вызвать full_resolve(cwd)"
+  - "если res.ok: ctx += f'\\nPack: {res.pack_id} | Prefixes: {res.pack.command_prefixes}'"
+  - "если not res.ok: ctx += f'\\nWarning: pack resolve failed ({res.diagnostic_codes})'"
+  - "import full_resolve внутри функции (lazy) — не на уровне модуля"
+
+deletes: []
+
+out_of_scope:
+  - "_ROLE_PREFIXES purge (s06)"
+  - "pytest matrix (s07)"
+  - "command_router routing (s04)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "EPIC_LOOP=1 + valid pack → additionalContext содержит pack_id и prefixes (TM-005)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_pack_inject -xq"
+  - id: cp2
+    criterion: "EPIC_LOOP=1 + full_resolve fails → ctx без pack секции, нет исключения"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_pack_inject_fail_safe -xq"
+  - id: cp3
+    criterion: "EPIC_LOOP=0 → None (без изменений)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_no_loop -xq"
+
+verify: []
+tdd:
+  - "test_session_start_pack_inject: monkeypatch EPIC_LOOP=1 + tmp project.yaml → payload['additionalContext'] содержит pack_id (TM-005)"
+  - "test_session_start_pack_inject_fail_safe: full_resolve returns ok=False → нет KeyError, ctx без pack строки"
+  - "test_session_start_no_loop: EPIC_LOOP='' → returns None"

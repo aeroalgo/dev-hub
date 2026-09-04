@@ -800,13 +800,36 @@ def finish_audit(
             shape_errors=[f"Audit artifact invalid: {exc}"],
         )
 
+    from harness.hooks.epic.audit_validate import validate_audit_artifact
+
+    role_norm = role_dir
+    if role_norm == "integ":
+        role_norm = "integration"
+    shape_errs = validate_audit_artifact(
+        cwd, role_dir=role_norm, epic_id=str(epic_id or ""), audit_path=audit_art
+    )
+    if shape_errs:
+        codes = ["audit_artifact_invalid", "audit_plan_parity_failed"]
+        for err in shape_errs:
+            code = err.split(":", 1)[0]
+            if code and code not in codes:
+                codes.append(code)
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=codes,
+            shape_errors=shape_errs,
+        )
+
     try:
         audit_rel = audit_art.relative_to(cwd).as_posix()
     except ValueError:
         audit_rel = str(audit_art)
 
     load_now = [
-        LoadNowItem(path=audit_rel, description="Audit artifact"),
+        LoadNowItem(
+            path=audit_rel,
+            description="Audit artifact (epic-audit/v2 plan↔runtime)",
+        ),
     ]
 
     meta = LoopHandoffMeta(

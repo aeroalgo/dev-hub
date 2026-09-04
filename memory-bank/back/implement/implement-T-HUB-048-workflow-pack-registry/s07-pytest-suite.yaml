@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-048-workflow-pack-registry
+title: s07 — loop/tests/test_workflow_pack_registry.py — TM-001..006 matrix IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s07-pytest-suite.yaml
+skills_used:
+  - python-testing-patterns
+  - modern-python
+discovery:
+  - "Test matrix TM-001..TM-006 created in loop/tests/test_workflow_pack_registry.py"
+gaps:
+  status: none
+done:
+  - "Created loop/tests/test_workflow_pack_registry.py covering TM-001 (unknown pack), TM-002 (default pack), TM-003 (corrupt registry), TM-004 (prepare session field), TM-005 (project.yaml override), and TM-006 (smoke / zero regression)"
+files:
+  - loop/tests/test_workflow_pack_registry.py
+  - harness/hooks/_lib.py
+  - harness/hooks/epic/core.py
+deletes: []
+tests:
+  - "`bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short`"
+  - "`bin/pytest harness/hooks/tests/ -q --tb=line -x`"
+integration_check:
+  - "Checked WorkflowConfig resolution and full_resolve integration"
+grep_control: []
+verification_results:
+  - command: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short"
+    verdict: PASS
+  - command: ".venv/bin/pytest harness/hooks/tests/ -q --tb=line -x"
+    verdict: PASS
+checkpoints:
+  - id: cp1
+    criterion: TM-001 + TM-002 проходят
+    status: done
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -k 'unknown_pack or default_pack' -q --tb=short"
+  - id: cp2
+    criterion: TM-003 + TM-004 проходят
+    status: done
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -k 'corrupt_registry or prepare_workflow_pack' -q --tb=short"
+  - id: cp3
+    criterion: Весь suite зелёный
+    status: done
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short"
+  - id: cp4
+    criterion: Zero regression - existing tests не сломаны
+    status: done
+    verify: ".venv/bin/pytest harness/hooks/tests/ -q --tb=line -x"
+resume_from: null

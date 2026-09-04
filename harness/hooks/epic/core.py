@@ -514,7 +514,7 @@ def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
         "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
         "done": sorted({str(item) for item in state.get("dag_done") or []}),
     }
-    state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"))
+    state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
     state["diagnostic_codes"] = sorted(
         set(state.get("diagnostic_codes") or [])
         | set(projection.get("diagnostic_codes") or [])
@@ -577,17 +577,53 @@ def effective_phase(
     return phase
 
 
-def gates_from_phase(phase: object) -> dict[str, Any]:
+def gates_from_phase(
+    phase: object,
+    *,
+    pack: object | None = None,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> dict[str, Any]:
     """Translate a runner-derived phase into spawn-gate requirements."""
-    from loop.epic_transition import load_phase_registry
+    from loop.epic_transition import load_phase_registry, normalize_registry_phase
+    from loop.workflow.resolve import full_resolve
+    from loop.workflow.registry import load_registry, get_pack
+    from loop.workflow.schemas import WorkflowPack
 
     default_gates = {"mode": None, "need_verify": False, "need_reviewer": False}
-    reg = load_phase_registry()
+    resolved_pack: WorkflowPack | None = None
+
+    if isinstance(pack, WorkflowPack):
+        resolved_pack = pack
+        target_pack_id = pack.id
+    elif pack_id is not None:
+        target_pack_id = pack_id
+        try:
+            reg_obj = load_registry()
+            resolved_pack = get_pack(reg_obj, pack_id)
+        except Exception:
+            resolved_pack = None
+    else:
+        try:
+            resolve_res = full_resolve(cwd)
+            resolved_pack = resolve_res.pack
+            target_pack_id = resolved_pack.id
+        except Exception:
+            target_pack_id = "dev-hub-software"
+
+    try:
+        reg = load_phase_registry(pack_id=target_pack_id, cwd=cwd)
+    except Exception:
+        return default_gates
+
     val = str(phase or "").upper().strip()
+    normalized_val = normalize_registry_phase(val, resolved_pack)
 
     matched_phase = None
     phases = reg.get("phases", {})
-    if val in phases:
+    if normalized_val in phases:
+        matched_phase = normalized_val
+    elif val in phases:
         matched_phase = val
     else:
         for p in phases:
@@ -796,7 +832,7 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                 "last_event_seq": last_seq,
                 "event_digest": event_digest,
                 "diagnostic_codes": projection["diagnostic_codes"],
-                "gates": gates_from_phase(phase),
+                "gates": gates_from_phase(phase, cwd=cwd_p),
             }
         )
     else:
@@ -814,11 +850,11 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                     if phase
                     in {"DECOMPOSE", "AUDIT", "QA", "BUGFIX"}
                     else state.get("armed_step"),
-                    "gates": gates_from_phase(phase),
+                    "gates": gates_from_phase(phase, cwd=cwd_p),
                 }
             )
         else:
-            projection["gates"] = gates_from_phase(None)
+            projection["gates"] = gates_from_phase(None, cwd=cwd_p)
 
     identity = {
         key: projection[key]
@@ -1399,6 +1435,17 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
             ctx += f"\nWarning: bundle load failed ({diag})"
     except Exception as exc:
         ctx += f"\nWarning: load_session exception ({exc})"
+
+    try:
+        from loop.workflow.resolve import full_resolve
+
+        pack_res = full_resolve(cwd=cwd)
+        if pack_res.ok and pack_res.pack is not None:
+            ctx += f"\nPack: {pack_res.pack_id} | Prefixes: {pack_res.pack.command_prefixes}"
+        elif not pack_res.ok:
+            ctx += f"\nWarning: pack resolve failed ({pack_res.diagnostic_codes})"
+    except Exception as exc:
+        ctx += f"\nWarning: pack resolve exception ({exc})"
 
     return {
         "additionalContext": ctx,
@@ -3192,6 +3239,9 @@ def latest_audit_artifact_for_reference(
         canon = d / "audit.yaml"
         if canon.is_file():
             hits.append(canon)
+        canon_yaml = d / "yaml" / "audit.yaml"
+        if canon_yaml.is_file():
+            hits.append(canon_yaml)
         glob_pattern = "audit-*.yaml" if epic_id else "**/audit-*.yaml"
         for p in sorted(d.glob(glob_pattern), reverse=True):
             if p not in hits:
@@ -3895,13 +3945,51 @@ def build_post_implement_active_context(
     cwd: Path,
 ) -> str:
     """Full Handoff for post-implement pipeline — not a one-line EPIC_DONE stub."""
-    del role_dir, index_rel, hub_rel
-    load_now: list[tuple[str, str]] = [
-        (
-            tracker_link,
-            f"decompose index.yaml (implement queue исчерпана; эпик {epic_id})",
-        ),
-    ]
+    del index_rel, hub_rel
+    phase_u = str(phase or "").upper()
+    role_u = str(role or "BACK").upper()
+    if role_u == "INTEGRATION":
+        role_u = "INTEG"
+
+    load_now: list[tuple[str, str]] = []
+    if phase_u == "AUDIT":
+        from harness.hooks.epic_paths import find_plan_md_path
+
+        role_norm = str(role_dir or "back").strip().lower()
+        if role_norm == "integ":
+            role_norm = "integration"
+        plan_p = find_plan_md_path(cwd, role_norm, epic_id)
+        if plan_p is not None and plan_p.is_file():
+            try:
+                plan_rel = plan_p.relative_to(cwd).as_posix()
+            except ValueError:
+                plan_rel = str(plan_p)
+            plan_link = plan_rel.removeprefix("memory-bank/")
+            load_now.append(
+                (
+                    plan_link,
+                    "plan.md — Intent Inventory + epic goal (SoT for AUDIT PLAN↔runtime)",
+                )
+            )
+        load_now.append(
+            (
+                tracker_link,
+                f"decompose index.yaml (status only; secondary to plan; эпик {epic_id})",
+            )
+        )
+        load_now.append(
+            (
+                ".cursor/templates/audit/epic-audit.yaml",
+                "epic-audit/v2 template — plan_intent + plan_vs_runtime required",
+            )
+        )
+    else:
+        load_now.append(
+            (
+                tracker_link,
+                f"decompose index.yaml (implement queue исчерпана; эпик {epic_id})",
+            )
+        )
     if qa_path is not None and qa_path.is_file():
         try:
             qa_rel = qa_path.relative_to(cwd).as_posix()
@@ -3917,21 +4005,20 @@ def build_post_implement_active_context(
         r_link = r_rel.removeprefix("memory-bank/")
         load_now.append((r_link, "reflection"))
 
-    phase_u = str(phase or "").upper()
-    role_u = str(role or "BACK").upper()
-    if role_u == "INTEGRATION":
-        role_u = "INTEG"
-
     if phase_u == "AUDIT":
         next_hint = (
-            f"выполнить `{role_u} AUDIT` (gap-матрица + audit yaml); "
-            f"пусто not_implemented[] → `{role_u} QA`. "
+            f"выполнить `{role_u} AUDIT`: из plan.md вывести цель эпика + все FR/US/SC/layout; "
+            f"Triple Assess plan_vs_runtime vs runtime (behavior, не sNN completed); "
+            f"записать epic-audit/v2 (plan_intent, findings, converged); "
+            f"mb-finish audit отклонит v1/shallow. "
+            f"FORBIDDEN: pytest как единственная проверка; PASS по пустому not_implemented[]. "
             f"НЕ ставить EPIC_DONE до QA pass"
         )
         custom_lines = [
-            f"- **Эпик:** {epic_id} — все sNN/eNN в index completed/done.",
+            f"- **Эпик:** {epic_id} — implement queue исчерпана; AUDIT = PLAN↔IMPLEMENT parity.",
             f"- **Режим/шаг:** `{role_u} AUDIT`.",
-            "- **Сделано:** implement queue исчерпана.",
+            "- **SoT:** plan.md (цели/FR); decompose index — только статус шагов.",
+            "- **Артефакт:** memory-bank/<role>/audit/<epic_id>/audit.yaml (epic-audit/v2).",
             "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA сессии).",
         ]
     elif phase_u == "QA":

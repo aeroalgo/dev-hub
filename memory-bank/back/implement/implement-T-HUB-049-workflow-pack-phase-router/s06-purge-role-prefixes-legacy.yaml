@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s06 — purge _ROLE_PREFIXES hardcode + rg audit — replace with pack-scoped prefixes
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s06-purge-role-prefixes-legacy.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery:
+- _ROLE_PREFIXES and _DEFAULT_REGISTRY_PATH removed from loop/epic_transition.py
+- load_phase_registry now requires pack_id keyword argument and fails closed with
+  TypeError when called without arguments
+- get_verify_agent and get_dsh_preset signatures modernized to pack-aware API
+gaps:
+  status: none
+done:
+- Deleted _ROLE_PREFIXES and _DEFAULT_REGISTRY_PATH literals from loop/epic_transition.py
+- Removed registry_path compatibility shim parameter from get_verify_agent, get_dsh_preset,
+  get_phase_config
+- Updated test suites in test_workflow_pack_phase_router.py and test_epic_transition.py
+files:
+- loop/epic_transition.py
+- loop/tests/test_epic_transition.py
+- loop/tests/test_workflow_pack_phase_router.py
+deletes:
+- loop/epic_transition._ROLE_PREFIXES — frozenset literal
+- loop/epic_transition._DEFAULT_REGISTRY_PATH — Path literal
+- registry_path parameter в get_verify_agent / get_dsh_preset / get_phase_config
+tests:
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py loop/tests/test_epic_transition.py
+  loop/tests/test_workflow_pack_registry.py -q
+integration_check:
+- rg '_ROLE_PREFIXES' loop/ harness/ -> 0 hits
+- rg '_DEFAULT_REGISTRY_PATH' loop/ harness/ -> 0 hits
+- rg 'def get_verify_agent.*registry_path|def get_dsh_preset.*registry_path' loop/
+  -> 0 hits
+grep_control: []
+verification_results:
+- All 4 checkpoints verified and passed
+checkpoints:
+- id: cp1
+  criterion: rg '_ROLE_PREFIXES' → 0 hits в loop/ harness/ (не считая test snapshots)
+  status: done
+  done_at: '2026-09-04T11:48:18Z'
+- id: cp2
+  criterion: rg '_DEFAULT_REGISTRY_PATH' → 0 hits
+  status: done
+  done_at: '2026-09-04T11:48:19Z'
+- id: cp3
+  criterion: load_phase_registry() без args → TypeError (no silent fallback)
+  status: done
+  done_at: '2026-09-04T11:48:20Z'
+- id: cp4
+  criterion: 'import audit: нет живых callers registry_path kwarg'
+  status: done
+  done_at: '2026-09-04T11:48:20Z'
+resume_from: cp1

@@ -1,0 +1,24 @@
+schema: epic-audit/v1
+epic_id: T-HUB-048-workflow-pack-registry
+date: "2026-09-04"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/decompose-index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements (FR-001..FR-015) and test matrix scenarios (TM-001..TM-006) of T-HUB-048-workflow-pack-registry are fully implemented and verified.
+  All decompose steps s01 through s08 are marked completed in decompose-index.yaml.
+  Target achievements:
+  - workflow_pack_registry.yaml and schema specification in place.
+  - Pydantic models (WorkflowPack, WorkflowPackRegistry, PackResolveResult) implemented in loop/workflow/schemas.py.
+  - Registry loader and resolution logic implemented in loop/workflow/registry.py.
+  - Validation and fail-closed exit code 2 handling in loop/workflow/resolve.py.
+  - CLI subcommand 'workflow resolve' added to epic_resolve.py with strict JSON contract.
+  - WorkflowConfig integrated into harness/hooks/_lib.py and context_loop.prepare_session.
+  - Full pytest test suite (6 tests covering TM-001..TM-006) passing green.
+  - Implicit single-domain hardcodes purged across codebase and docs.

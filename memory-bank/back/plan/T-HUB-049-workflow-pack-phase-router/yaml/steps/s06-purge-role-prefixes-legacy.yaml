@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "purge _ROLE_PREFIXES hardcode + rg audit — replace with pack-scoped prefixes"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Физически удалить `_ROLE_PREFIXES` frozenset и `_DEFAULT_REGISTRY_PATH` из
+  `loop/epic_transition.py` после того как s01-s03 мигрировали все callers.
+  Провести `rg` audit: убедиться, что `_ROLE_PREFIXES` и bare `load_phase_registry()`
+  без pack не остались живыми callers (0 hits вне тестов на старые сигнатуры).
+  Удалить compatibility shim `registry_path` параметр из get_verify_agent/get_dsh_preset.
+  Outcomes: FR-004, US-004.
+
+plan_contract:
+  fr_ids: [FR-004, US-004]
+  nouns:
+    - "_ROLE_PREFIXES frozenset"
+    - "_DEFAULT_REGISTRY_PATH"
+    - "registry_path parameter (legacy) в get_verify_agent, get_dsh_preset"
+  layout_paths:
+    - "loop/epic_transition.py"
+  ac_quotes:
+    - "AC+1: rg '_ROLE_PREFIXES' --include='*.py' → 0 hits вне тестов"
+    - "AC+2: rg '_DEFAULT_REGISTRY_PATH' --include='*.py' → 0 hits"
+    - "AC−1: load_phase_registry() без аргументов → TypeError (нет default)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:32-40"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:159-175"
+
+context:
+  consumes:
+    - "s01-s03 результаты: все callers мигрированы на pack-aware API"
+    - "loop/epic_transition.py:33 — _ROLE_PREFIXES = (...)"
+    - "loop/epic_transition.py:35 — _DEFAULT_REGISTRY_PATH = ..."
+    - "loop/epic_transition.py:81,87 — registry_path kwargs"
+  produces:
+    - "loop/epic_transition.py — без _ROLE_PREFIXES, _DEFAULT_REGISTRY_PATH"
+    - "loop/epic_transition.py — get_verify_agent(phase, pack, cwd=None) без registry_path"
+    - "loop/epic_transition.py — get_dsh_preset(phase, pack, cwd=None) без registry_path"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §Replacement cleanup"
+  files:
+    - "loop/epic_transition.py"
+
+as_built:
+  - "loop/epic_transition.py:33 — _ROLE_PREFIXES = ('BACK ', 'FRONT ', 'INTEG ', 'INTEGRATION ')"
+  - "loop/epic_transition.py:35 — _DEFAULT_REGISTRY_PATH = _LOOP / 'schemas' / 'phase_registry.yaml'"
+  - "loop/epic_transition.py:81,87 — registry_path: Path | str | None параметр (legacy)"
+
+delta:
+  - "loop/epic_transition.py: удалить строку _ROLE_PREFIXES = (...)"
+  - "loop/epic_transition.py: удалить строку _DEFAULT_REGISTRY_PATH = ..."
+  - "loop/epic_transition.py: удалить registry_path param из get_verify_agent, get_dsh_preset сигнатур"
+  - "loop/epic_transition.py: убедиться что _PHASE_REGISTRY_CACHE теперь dict[str, dict]"
+
+deletes:
+  - "loop/epic_transition._ROLE_PREFIXES — frozenset literal"
+  - "loop/epic_transition._DEFAULT_REGISTRY_PATH — Path literal"
+  - "registry_path parameter в get_verify_agent / get_dsh_preset / get_phase_config"
+
+out_of_scope:
+  - "pytest suite (s07)"
+  - "session-start inject (s05) — уже done"
+  - "command_router (s04) — уже done"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "rg '_ROLE_PREFIXES' → 0 hits в loop/ harness/ (не считая test snapshots)"
+    verify: "rg '_ROLE_PREFIXES' loop/ harness/ --include='*.py' | grep -v 'test_' | wc -l | grep '^0$'"
+  - id: cp2
+    criterion: "rg '_DEFAULT_REGISTRY_PATH' → 0 hits"
+    verify: "rg '_DEFAULT_REGISTRY_PATH' loop/ harness/ --include='*.py' | wc -l | grep '^0$'"
+  - id: cp3
+    criterion: "load_phase_registry() без args → TypeError (no silent fallback)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_no_bare_load_phase_registry -xq"
+  - id: cp4
+    criterion: "import audit: нет живых callers registry_path kwarg"
+    verify: "rg 'registry_path' loop/ harness/ --include='*.py' | grep -v 'test_' | wc -l | grep '^0$'"
+
+verify:
+  - "rg '_ROLE_PREFIXES' loop/ harness/ --include='*.py' | grep -v 'test_' | wc -l | grep '^0$'"
+  - "rg '_DEFAULT_REGISTRY_PATH' loop/ harness/ --include='*.py' | wc -l | grep '^0$'"
+  - "rg 'def get_verify_agent.*registry_path\\|def get_dsh_preset.*registry_path\\|def get_phase_config.*registry_path' loop/ --include='*.py' | wc -l | grep '^0$'"
+tdd:
+  - "test_no_bare_load_phase_registry: load_phase_registry() → TypeError (both args None)"
+  - "test_role_prefixes_gone: import loop.epic_transition; assert not hasattr(module, '_ROLE_PREFIXES')"
+  - "test_default_registry_path_gone: assert not hasattr(module, '_DEFAULT_REGISTRY_PATH')"

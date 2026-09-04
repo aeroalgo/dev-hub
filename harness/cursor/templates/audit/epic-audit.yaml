@@ -5,6 +5,11 @@ plan_id: <plan_id>
 date: YYYY-MM-DD
 auditor: BACK AUDIT
 
+# HARD: derive from plan.md (WHAT / Product probe Reframe / Контекст) — not from decompose titles.
+plan_intent:
+  epic_goal: <verbatim epic goal from plan — what success looks like>
+  source: plan.md#WHAT
+
 summary:
   total_steps: 0
   implemented: 0

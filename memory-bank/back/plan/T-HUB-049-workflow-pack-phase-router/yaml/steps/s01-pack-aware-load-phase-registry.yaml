@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "pack-aware load_phase_registry(registry_path, *, pack_id) — path from pack manifest via FR-001"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `load_phase_registry` в `loop/epic_transition.py` согласно FR-001:
+  сигнатура `load_phase_registry(registry_path=None, *, pack_id: str | None = None, cwd=None)`.
+  Если `pack_id` set → resolve path через `resolve_workflow_pack(cwd).pack.phase_registry`;
+  если `registry_path` set → использовать напрямую; оба None → fail-closed ValueError.
+  Отдельный кэш per-pack-id; `_PHASE_REGISTRY_CACHE` конвертируется в dict[str, dict].
+  Outcomes: FR-001, TM-001, TM-002 — fail-closed start при missing yaml или unknown phase.
+
+plan_contract:
+  fr_ids: [FR-001, TM-001, TM-002, US-001]
+  nouns:
+    - "load_phase_registry(registry_path=None, *, pack_id=None, cwd=None) API"
+    - "_PHASE_REGISTRY_CACHE per-pack-id dict"
+    - "pack_id → resolve_workflow_pack(cwd).pack.phase_registry path"
+    - "fail-closed ValueError when both registry_path and pack_id are None"
+  layout_paths:
+    - "loop/epic_transition.py"
+  ac_quotes:
+    - "AC+1: load_phase_registry(pack_id='dev-hub-software', cwd=tmp) → phases dict from pack yaml"
+    - "AC+2: load_phase_registry(pack_id='missing-pack', cwd=tmp) → ValueError pack_path_missing (TM-001)"
+    - "AC−1: load_phase_registry() без аргументов → ValueError fail-closed (no silent default)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:48-90"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:159-175"
+
+context:
+  consumes:
+    - "loop/epic_transition.py — current load_phase_registry(registry_path=None)"
+    - "loop/workflow/schemas.py — WorkflowPack.phase_registry: str"
+    - "loop/workflow/resolve.py — full_resolve(cwd) -> PackResolveResult"
+    - "loop/workflow_pack_registry.yaml — dev-hub-software pack definition"
+  produces:
+    - "loop/epic_transition.py — updated load_phase_registry(registry_path=None, *, pack_id=None, cwd=None)"
+    - "_PHASE_REGISTRY_CACHE: dict[str, dict] (keyed by pack_id or registry_path str)"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §Failure matrix"
+  files:
+    - "loop/epic_transition.py"
+
+as_built:
+  - "loop/epic_transition.py:48 — load_phase_registry(registry_path=None), defaults to _DEFAULT_REGISTRY_PATH"
+  - "loop/epic_transition.py:34 — _PHASE_REGISTRY_CACHE: dict | None (single slot, not per-pack)"
+  - "loop/epic_transition.py:35 — _DEFAULT_REGISTRY_PATH = _LOOP / 'schemas' / 'phase_registry.yaml'"
+  - "loop/epic_transition.py:52-53 — caches only when registry_path is None"
+
+delta:
+  - "loop/epic_transition.py: расширить сигнатуру load_phase_registry(registry_path=None, *, pack_id: str | None = None, cwd=None)"
+  - "loop/epic_transition.py: если pack_id → resolve_workflow_pack(cwd).pack.phase_registry → path"
+  - "loop/epic_transition.py: если оба None → raise ValueError fail-closed"
+  - "loop/epic_transition.py: _PHASE_REGISTRY_CACHE → dict[str, dict] keyed by pack_id или registry_path str"
+  - "loop/epic_transition.py: _DEFAULT_REGISTRY_PATH перестаёт быть дефолтом (готово к purge s06)"
+
+deletes:
+  - "loop/epic_transition._DEFAULT_REGISTRY_PATH — удаляется в s06 после wire всех callers"
+
+out_of_scope:
+  - "normalize_registry_phase (s02)"
+  - "gates_from_phase / arm_phase threading (s03)"
+  - "_ROLE_PREFIXES purge (s06)"
+  - "pytest suite (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "load_phase_registry(pack_id='dev-hub-software', cwd=tmp) читает yaml из pack.phase_registry"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_load_phase_registry_uses_pack_id -xq"
+  - id: cp2
+    criterion: "load_phase_registry() без аргументов → ValueError fail-closed (TM-001 aspect)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_load_phase_registry_no_args_fails -xq"
+  - id: cp3
+    criterion: "pack_id с missing phase_registry path → ValueError (TM-001)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_load_phase_registry_missing_yaml -xq"
+  - id: cp4
+    criterion: "кэш per-pack-id: два разных pack_id → независимые entries"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_registry_cache_per_pack_id -xq"
+
+verify: []
+tdd:
+  - "test_load_phase_registry_uses_pack_id: pack_id='dev-hub-software', tmp cwd → loads phases from pack yaml"
+  - "test_load_phase_registry_no_args_fails: load_phase_registry() → ValueError (both None)"
+  - "test_load_phase_registry_missing_yaml: pack_id resolves to missing file → ValueError (TM-001)"
+  - "test_registry_cache_per_pack_id: два pack_id → независимые cache entries"

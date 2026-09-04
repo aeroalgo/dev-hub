@@ -18,6 +18,10 @@ try:
 except ImportError:  # pragma: no cover - Windows
     fcntl = None  # type: ignore[assignment]
 
+_HUB_ROOT = Path(__file__).resolve().parents[2]
+if str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
+
 from agent_policy import AgentContext, resolve_agent_policy
 from agent_registry import AGENT_ALIASES, discover_registry
 from loop.workflow.resolve import full_resolve

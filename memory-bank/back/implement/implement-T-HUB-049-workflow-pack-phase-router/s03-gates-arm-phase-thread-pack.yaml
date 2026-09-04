@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s03 — gates_from_phase + arm_phase thread pack context via resolve_workflow_pack
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s03-gates-arm-phase-thread-pack.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Threaded pack_id + cwd into gates_from_phase, arm_phase, get_phase_config, get_verify_agent,
+  get_dsh_preset
+- Auto-resolved pack_id via full_resolve(cwd) across phase resolution callsites
+files:
+- harness/hooks/epic/core.py
+- loop/epic_transition.py
+- harness/hooks/user-prompt.py
+- loop/context_loop.py
+- loop/tests/test_workflow_pack_phase_router.py
+- loop/tests/test_epic_transition.py
+deletes:
+- 'legacy registry_path: Path | str | None параметр из get_verify_agent, get_dsh_preset,
+  get_phase_config — заменяется на pack_id + cwd (после migrate всех callers в s06)'
+tests:
+- '`bin/pytest loop/tests/test_workflow_pack_phase_router.py -xq`'
+- '`bin/pytest loop/tests/test_epic_transition.py -xq`'
+integration_check:
+- 'harness/hooks/epic/core.py: gates_from_phase called with cwd=cwd_p'
+- 'loop/context_loop.py: gates_from_phase called with cwd=root'
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py -xq -> PASS
+- bin/pytest loop/tests/test_epic_transition.py -xq -> PASS
+checkpoints:
+- id: cp1
+  criterion: gates_from_phase с явным video pack → gates из video registry (не software)
+  status: done
+- id: cp2
+  criterion: gates_from_phase без pack → full_resolve auto → gates из resolved pack
+  status: done
+- id: cp3
+  criterion: arm_phase dsh + video pack → dsh_preset из video phase_registry (TM-004)
+  status: done
+- id: cp4
+  criterion: нет bare gates_from_phase() без cwd context в production callsites
+  status: done

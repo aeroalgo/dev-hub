@@ -4,10 +4,10 @@ Public contract:
   resolve_next(cwd, epic_id, role) -> EpicNextAction
   arm_phase(cwd, epic_id, phase, role, **kwargs) -> dict
   promote_if_ready(cwd, epic_id, role) -> dict | None
-  load_phase_registry(registry_path=None) -> dict
-  get_phase_config(phase: str) -> dict
-  get_verify_agent(phase: str) -> str | None
-  get_dsh_preset(phase: str) -> str | None
+  load_phase_registry(*, pack_id=None, cwd=None) -> dict
+  get_phase_config(phase: str, *, pack_id=None, cwd=None) -> dict
+  get_verify_agent(phase: str, *, pack_id=None, cwd=None) -> str | None
+  get_dsh_preset(phase: str, *, pack_id=None, cwd=None) -> str | None
   _legacy_warn(caller_name) -> None
 """
 from __future__ import annotations
@@ -20,6 +20,20 @@ import yaml
 
 from loop.board_sync.epic_resolver import EpicNextAction, resolve_epic_next_action
 
+
+def gates_from_phase(
+    phase: object,
+    *,
+    pack: object | None = None,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> dict[str, Any]:
+    """Expose gates_from_phase in epic_transition for convenience."""
+    from epic.core import gates_from_phase as _gates_from_phase
+
+    return _gates_from_phase(phase, pack=pack, pack_id=pack_id, cwd=cwd)
+
+
 _HOOKS = Path(__file__).resolve().parents[1] / ".claude" / "hooks"
 if str(_HOOKS) not in sys.path:
     sys.path.insert(0, str(_HOOKS))
@@ -30,63 +44,124 @@ if str(_LOOP) not in sys.path:
 
 _PROMOTABLE_PHASES = frozenset({"DECOMPOSE", "ANALYZE"})
 _POST_IMPLEMENT_ARMED = frozenset({"AUDIT", "QA", "BUGFIX", "DONE"})
-_ROLE_PREFIXES = ("BACK ", "FRONT ", "INTEG ", "INTEGRATION ")
-_PHASE_REGISTRY_CACHE: dict[str, Any] | None = None
-_DEFAULT_REGISTRY_PATH = _LOOP / "schemas" / "phase_registry.yaml"
+_PHASE_REGISTRY_CACHE: dict[str, dict[str, Any]] = {}
 
 
-def normalize_registry_phase(phase: str) -> str:
-    """Map role-prefixed phase labels to registry keys (BACK IMPLEMENT → IMPLEMENT)."""
+def normalize_registry_phase(phase: str, pack: Any = None) -> str:
+    """Map role-prefixed phase labels to registry keys (BACK IMPLEMENT → IMPLEMENT).
+
+    If pack (WorkflowPack) is provided, uses pack.command_prefixes.
+    Otherwise, if pack is None, falls back to resolving default software pack or empty.
+    """
     normalized = str(phase or "").strip().upper()
-    for prefix in _ROLE_PREFIXES:
+    if pack is not None and hasattr(pack, "command_prefixes"):
+        prefixes = [p.rstrip().upper() + " " for p in pack.command_prefixes]
+    else:
+        try:
+            from loop.workflow.registry import load_registry, get_pack
+            reg = load_registry()
+            default_pack = get_pack(reg, reg.default)
+            prefixes = [p.rstrip().upper() + " " for p in default_pack.command_prefixes] if default_pack else []
+        except Exception:
+            prefixes = []
+
+    for prefix in prefixes:
         if normalized.startswith(prefix):
             normalized = normalized[len(prefix) :].strip()
             break
     return normalized
 
 
-def load_phase_registry(registry_path: Path | str | None = None) -> dict[str, Any]:
+def load_phase_registry(
+    *,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> dict[str, Any]:
     """Load canonical phase registry yaml and cache in module state."""
     global _PHASE_REGISTRY_CACHE
-    path = Path(registry_path) if registry_path else _DEFAULT_REGISTRY_PATH
-    if registry_path is None and _PHASE_REGISTRY_CACHE is not None:
-        return _PHASE_REGISTRY_CACHE
 
-    if not path.exists():
-        raise ValueError(f"Phase registry yaml file not found: {path}")
+    if pack_id is None:
+        raise TypeError("load_phase_registry requires pack_id: fail-closed")
+
+    cache_key = f"pack:{pack_id}"
+    from loop.workflow.registry import load_registry, get_pack
+    try:
+        reg = load_registry()
+        pack = get_pack(reg, pack_id)
+    except Exception as err:
+        raise ValueError(f"Failed to resolve pack {pack_id!r}: {err}") from err
+
+    if pack is None:
+        raise ValueError(f"Workflow pack not found: {pack_id!r} (pack_path_missing)")
+
+    cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
+    resolved_path = cwd_path / pack.phase_registry
+    cache_key = f"pack:{pack_id}:{str(cwd_path)}"
+
+    if cache_key in _PHASE_REGISTRY_CACHE:
+        return _PHASE_REGISTRY_CACHE[cache_key]
+
+    if not resolved_path.exists():
+        raise ValueError(f"Phase registry yaml file not found: {resolved_path} (pack_path_missing)")
 
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = yaml.safe_load(resolved_path.read_text(encoding="utf-8"))
     except Exception as err:
-        raise ValueError(f"Invalid YAML in phase registry at {path}: {err}") from err
+        raise ValueError(f"Invalid YAML in phase registry at {resolved_path}: {err}") from err
 
     if not isinstance(data, dict) or "phases" not in data:
-        raise ValueError(f"Invalid phase registry schema at {path}: missing 'phases' key")
+        raise ValueError(f"Invalid phase registry schema at {resolved_path}: missing 'phases' key")
 
-    if registry_path is None:
-        _PHASE_REGISTRY_CACHE = data
+    _PHASE_REGISTRY_CACHE[cache_key] = data
     return data
 
 
-def get_phase_config(phase: str, registry_path: Path | str | None = None) -> dict[str, Any]:
+def get_phase_config(
+    phase: str,
+    *,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> dict[str, Any]:
     """Lookup phase config from registry; unknown phase raises ValueError fail-closed."""
-    registry = load_phase_registry(registry_path)
+    from loop.workflow.resolve import full_resolve
+    from loop.workflow.registry import load_registry, get_pack
+
+    resolved_pack = None
+    if pack_id is not None:
+        reg_obj = load_registry()
+        resolved_pack = get_pack(reg_obj, pack_id)
+        registry = load_phase_registry(pack_id=pack_id, cwd=cwd)
+    else:
+        resolve_res = full_resolve(cwd)
+        resolved_pack = resolve_res.pack
+        registry = load_phase_registry(pack_id=resolved_pack.id, cwd=cwd)
+
     phases = registry.get("phases", {})
-    normalized_phase = normalize_registry_phase(phase)
+    normalized_phase = normalize_registry_phase(phase, resolved_pack)
     if normalized_phase not in phases:
         raise ValueError(f"unknown phase {phase!r}: fail-closed")
     return phases[normalized_phase]
 
 
-def get_verify_agent(phase: str, registry_path: Path | str | None = None) -> str | None:
+def get_verify_agent(
+    phase: str,
+    *,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> str | None:
     """Lookup verify_agent for a phase from registry; unknown phase raises ValueError fail-closed."""
-    cfg = get_phase_config(phase, registry_path=registry_path)
+    cfg = get_phase_config(phase, pack_id=pack_id, cwd=cwd)
     return cfg.get("verify_agent")
 
 
-def get_dsh_preset(phase: str, registry_path: Path | str | None = None) -> str | None:
+def get_dsh_preset(
+    phase: str,
+    *,
+    pack_id: str | None = None,
+    cwd: Path | str | None = None,
+) -> str | None:
     """Lookup dsh_preset for a phase from registry; unknown phase raises ValueError fail-closed."""
-    cfg = get_phase_config(phase, registry_path=registry_path)
+    cfg = get_phase_config(phase, pack_id=pack_id, cwd=cwd)
     return cfg.get("dsh_preset")
 
 
@@ -100,11 +175,14 @@ def arm_phase(
     epic_id: str,
     phase: str,
     role: str,
+    *,
+    pack_id: str | None = None,
     **kwargs: Any,
 ) -> dict:
     """Arm an epic phase context by routing to appropriate arm function."""
     from epic.core import arm_active_context_from_decompose, arm_epic, arm_pre_implement_context, load_epic_state
     from _lib import resolve_runtime_config
+    from loop.workflow.resolve import full_resolve
 
     st_before = load_epic_state(cwd)
     last_finished = str(st_before.get("last_finished_step") or "").strip().lower()
@@ -112,10 +190,17 @@ def arm_phase(
         st_before.get("last_finished_epic") or st_before.get("armed_epic") or ""
     ).strip()
 
+    if pack_id is None:
+        try:
+            resolve_res = full_resolve(cwd)
+            pack_id = resolve_res.pack.id
+        except Exception:
+            pack_id = None
+
     runtime_cfg = resolve_runtime_config(cwd)
     epic_runtime = kwargs.get("epic_runtime") or runtime_cfg.epic_runtime
     if epic_runtime == "dsh":
-        phase_config = get_phase_config(phase)
+        phase_config = get_phase_config(phase, pack_id=pack_id, cwd=cwd)
         dsh_preset = phase_config.get("dsh_preset")
         if dsh_preset is None:
             raise ValueError(f"no DSH preset for phase {phase!r}: fail-closed")
@@ -184,9 +269,11 @@ def arm_phase(
             )
         else:
             kwargs.pop("env", None)
+            kwargs.pop("epic_runtime", None)
             res = arm_epic(cwd, epic_id, role=role, **kwargs)
     else:
         kwargs.pop("env", None)
+        kwargs.pop("epic_runtime", None)
         res = arm_epic(cwd, epic_id, role=role, **kwargs)
 
     if isinstance(res, dict):

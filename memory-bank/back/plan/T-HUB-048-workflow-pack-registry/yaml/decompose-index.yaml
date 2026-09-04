@@ -37,9 +37,9 @@ steps:
   file: s07-pytest-suite.yaml
   title: loop/tests/test_workflow_pack_registry.py — TM-001..006 matrix
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s08
   file: s08-purge-hardcoded-domain-assumptions.yaml
   title: Purge implicit single-domain assumptions (rg audit + doc + instruction rewrites)
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

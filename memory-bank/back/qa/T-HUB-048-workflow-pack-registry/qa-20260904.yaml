@@ -1,0 +1,45 @@
+schema: epic-qa/v1
+epic_id: T-HUB-048-workflow-pack-registry
+date: "2026-09-04"
+role: back
+verdict: pass
+reviewer: verify-qa
+scope:
+  - loop/workflow/schemas.py
+  - loop/workflow/registry.py
+  - loop/workflow/resolve.py
+  - harness/hooks/epic_resolve.py
+  - harness/hooks/_lib.py
+  - loop/tests/test_workflow_pack_registry.py
+checks:
+  - "Pydantic schemas and schema literal verification: PASS"
+  - "YAML loading and pack precedence resolution: PASS"
+  - "CLI workflow resolve exit code and JSON output: PASS"
+  - "Full repo test suite and targeted tests: PASS"
+audit_ref: memory-bank/back/audit/T-HUB-048-workflow-pack-registry/audit.yaml
+plan_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md
+
+suite_results:
+  full_suite: "bin/pytest -q --tb=line: 1739 passed, 3 skipped, 72 warnings"
+  targeted_suite: "bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=line: 7 passed"
+
+ac_validation:
+  ac_plus:
+    - "Pydantic schemas with extra='forbid' and mandatory fields: loop/workflow/schemas.py:8-29 (PASS)"
+    - "YAML load, project.yaml > env > default precedence, package & metadata return: loop/workflow/registry.py:16-45, 68-113 (PASS)"
+    - "CLI resolve command exit 0 & exit 2 scenarios tested: loop/tests/test_workflow_pack_registry.py:145-156 (PASS)"
+    - "Bootstrap root in _lib.py & WorkflowConfig smoke: harness/hooks/_lib.py:21-23, loop/tests/test_workflow_pack_registry.py:159-168 (PASS)"
+    - "TM scenarios covered: loop/tests/test_workflow_pack_registry.py:1, 18-168 (PASS)"
+  ac_minus:
+    - "Registry failures ok=False, unknown pack invalid_workflow_pack: loop/workflow/registry.py:76-84, 99-106 (PASS)"
+    - "Pack selection via registry identifier without single domain hardcodes: loop/workflow/registry.py:43-45, 86-113 (PASS)"
+    - "Full repository suite clean: 1739 passed, 3 skipped (PASS)"
+
+section_0_11:
+  - "Schema-first contract fixed with literal schema & strict Pydantic models (PASS)"
+  - "No regressions across harness/hooks & loop in full suite (PASS)"
+  - "Safe bootstrap _lib.py confirmed (PASS)"
+
+summary: |
+  QA verification completed with PASS verdict. Full suite green (1739 passed).
+  All AC+, AC-, and §0.11 requirements verified.

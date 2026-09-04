@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "pytest matrix: TM-001..005 failure coverage + pack-router regression suite"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/tests/test_workflow_pack_phase_router.py` с полным покрытием failure matrix
+  TM-001..005 и регрессионными тестами для pack-router API (s01–s05).
+  Дополнить существующий `loop/tests/test_workflow_pack_registry.py` если нужно.
+  Все тесты используют tmp_path fixtures (не modifying prod yaml).
+  Финальный `bin/pytest loop/tests/test_workflow_pack_phase_router.py -q` должен завершиться exit 0.
+
+plan_contract:
+  fr_ids: [TM-001, TM-002, TM-003, TM-004, TM-005]
+  nouns:
+    - "loop/tests/test_workflow_pack_phase_router.py"
+    - "TM-001..005 test ids"
+    - "tmp_path WorkflowPack fixtures"
+    - "bin/pytest entry point"
+  layout_paths:
+    - "loop/tests/test_workflow_pack_phase_router.py"
+  ac_quotes:
+    - "AC+1: TM-001 — pack yaml missing → ValueError (fail-closed start)"
+    - "AC+2: TM-002 — unknown phase in pack → ValueError"
+    - "AC+3: TM-003 — normalize 'SCRIPT IMPLEMENT' + video_pack → 'IMPLEMENT'"
+    - "AC+4: TM-004 — arm_phase video pack dsh → dsh_preset из video registry"
+    - "AC+5: TM-005 — session-start EPIC_LOOP=1 → prefix list in payload"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:159-175"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:56-130"
+
+context:
+  consumes:
+    - "loop/tests/test_workflow_pack_registry.py — existing registry tests (не дублировать)"
+    - "s01-s06 результаты: все API на месте"
+    - "loop/epic_transition.py — pack-aware load_phase_registry, normalize_registry_phase"
+    - "harness/hooks/epic/core.py — gates_from_phase, session_start_payload"
+    - "loop/workflow/command_router.py — route_command"
+  produces:
+    - "loop/tests/test_workflow_pack_phase_router.py — TM-001..005 + regression"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §Failure matrix"
+  files:
+    - "loop/tests/test_workflow_pack_phase_router.py"
+
+as_built:
+  - "loop/tests/test_workflow_pack_registry.py — существующие TM-001..005 из T-HUB-048"
+  - "нет test_workflow_pack_phase_router.py — новый файл"
+
+delta:
+  - "loop/tests/test_workflow_pack_phase_router.py CREATE: TM-001 load_phase_registry missing yaml → ValueError"
+  - "loop/tests/test_workflow_pack_phase_router.py: TM-002 get_phase_config unknown phase → ValueError"
+  - "loop/tests/test_workflow_pack_phase_router.py: TM-003 normalize 'SCRIPT IMPLEMENT' → 'IMPLEMENT'"
+  - "loop/tests/test_workflow_pack_phase_router.py: TM-004 arm_phase dsh + custom phase_registry → correct dsh_preset"
+  - "loop/tests/test_workflow_pack_phase_router.py: TM-005 session_start_payload EPIC_LOOP=1 → command_prefixes in ctx"
+  - "loop/tests/test_workflow_pack_phase_router.py: regression — load_phase_registry cache per-pack"
+  - "loop/tests/test_workflow_pack_phase_router.py: regression — gates_from_phase auto-resolve"
+  - "loop/tests/test_workflow_pack_phase_router.py: regression — route_command passthrough"
+
+deletes: []
+
+out_of_scope:
+  - "T-HUB-048 registry tests (уже в test_workflow_pack_registry.py)"
+  - "E2E EPIC_LOOP integration (отложено, follow_up: T-HUB-052)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "TM-001..002 failure tests зелёные"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py -k 'TM_001 or TM_002 or missing or unknown' -xq"
+  - id: cp2
+    criterion: "TM-003..005 behavioral tests зелёные"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py -k 'TM_003 or TM_004 or TM_005 or normalize or session_start' -xq"
+  - id: cp3
+    criterion: "Весь новый suite exit 0 за ≤15s"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py -q --timeout=15"
+  - id: cp4
+    criterion: "Полный hub pytest без новых fails"
+    verify: "bin/pytest loop/tests/ -q --tb=line -x --timeout=60 2>&1 | tail -5"
+
+verify: []
+tdd:
+  - "TM-001: tmp pack (phase_registry='nonexistent.yaml') → load_phase_registry raises ValueError"
+  - "TM-002: tmp pack + yaml без фазы 'BADPHASE' → get_phase_config raises ValueError"
+  - "TM-003: video_pack(command_prefixes=['SCRIPT','VIDEO']) + 'SCRIPT IMPLEMENT' → normalize → 'IMPLEMENT'"
+  - "TM-004: tmp phase_registry yaml с dsh_preset='video-edit' → arm_phase dsh → dsh_preset='video-edit'"
+  - "TM-005: monkeypatch EPIC_LOOP=1 + tmp cwd with project.yaml + running epic state → payload ctx contains pack_id"

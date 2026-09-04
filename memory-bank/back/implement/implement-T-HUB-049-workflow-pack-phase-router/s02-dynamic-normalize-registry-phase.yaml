@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s02 — dynamic normalize_registry_phase uses pack.command_prefixes (drop _ROLE_PREFIXES)
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s02-dynamic-normalize-registry-phase.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Переписана normalize_registry_phase(phase, pack) в loop/epic_transition.py для динамического использования pack.command_prefixes.
+- Добавлены unit-тесты test_normalize_software_pack, test_normalize_custom_prefix, test_normalize_no_prefix в loop/tests/test_workflow_pack_phase_router.py.
+files:
+- loop/epic_transition.py
+- loop/tests/test_workflow_pack_phase_router.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py -q
+integration_check:
+- normalize_registry_phase корректно работает как с WorkflowPack инстансом, так и fallback default pack при pack=None
+grep_control: []
+verification_results:
+- cp1 PASS — normalize_registry_phase('BACK IMPLEMENT', software_pack) → 'IMPLEMENT'
+- cp2 PASS — normalize_registry_phase('SCRIPT IMPLEMENT', video_pack) → 'IMPLEMENT'
+- cp3 PASS — normalize_registry_phase('IMPLEMENT', pack) → 'IMPLEMENT'
+checkpoints:
+- id: cp1
+  criterion: normalize_registry_phase('BACK IMPLEMENT', software_pack) → 'IMPLEMENT'
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: normalize_registry_phase('SCRIPT IMPLEMENT', video_pack) → 'IMPLEMENT'
+    (TM-003)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: normalize без matching prefix → phase без изменений (не падает)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp1

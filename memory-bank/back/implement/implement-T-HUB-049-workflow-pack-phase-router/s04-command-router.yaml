@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s04 — loop/workflow/command_router.py — route_command(pack, cmd) → CommandRoute(phase,
+  rules_mdc_rel) IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s04-command-router.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- 'loop/workflow/command_router.py: route_command(pack, raw_command) -> CommandRoute'
+files:
+- loop/workflow/command_router.py
+- loop/tests/test_workflow_pack_phase_router.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_software
+  -xq
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_custom_prefix
+  -xq
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_passthrough
+  -xq
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_route_command_case
+  -xq
+integration_check:
+- 'AC+1: route_command software pack -> CommandRoute(phase=''IMPLEMENT'', rules_mdc_rel=''.cursor/rules/back_developer/workflow-implement.mdc'')'
+- 'AC+2: route_command video pack SCRIPT PLAN -> CommandRoute(phase=''PLAN'', rules_mdc_rel=''packs/video/rules/script_developer/workflow-plan.mdc'')'
+- 'AC-1: route_command unknown -> CommandRoute(phase=''UNKNOWN'', rules_mdc_rel=None)'
+grep_control: []
+verification_results:
+- pass
+checkpoints:
+- id: cp1
+  criterion: route_command software pack → CommandRoute с normalized_phase='IMPLEMENT'
+    и rules_mdc_rel
+  status: done
+  done_at: '2026-09-04T11:28:01Z'
+- id: cp2
+  criterion: route_command video pack SCRIPT PLAN → phase='PLAN', rules_mdc_rel содержит
+    rules_root
+  status: done
+  done_at: '2026-09-04T11:28:02Z'
+- id: cp3
+  criterion: route_command неизвестная команда → pass-through, rules_mdc_rel=None
+  status: done
+  done_at: '2026-09-04T11:28:03Z'
+resume_from: cp1

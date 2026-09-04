@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "gates_from_phase + arm_phase thread pack context via resolve_workflow_pack"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Прокинуть `pack: WorkflowPack` через `gates_from_phase(phase, pack)` и
+  `arm_phase(cwd, epic_id, phase, role, pack=None, **kwargs)` в `harness/hooks/epic/core.py`
+  и `loop/epic_transition.py`.
+  `gates_from_phase` использует `load_phase_registry(pack, cwd)` вместо дефолтного yaml.
+  `arm_phase` при dsh-runtime: `get_phase_config(phase, pack, cwd)` вместо глобального кэша.
+  pack резолвится через `full_resolve(cwd)` если не передан явно.
+  Outcomes: FR-001, FR-003, US-001, US-003, TM-004.
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, US-001, US-003, TM-004]
+  nouns:
+    - "gates_from_phase(phase, *, cwd=None, pack_id=None) — cwd по FR-004"
+    - "arm_phase(...): auto-resolve pack_id из cwd"
+    - "get_phase_config(phase, *, pack_id=None, cwd=None)"
+    - "get_verify_agent(phase, *, pack_id=None, cwd=None)"
+    - "get_dsh_preset(phase, *, pack_id=None, cwd=None)"
+    - "full_resolve(cwd) → PackResolveResult.pack.id → pack_id"
+  layout_paths:
+    - "harness/hooks/epic/core.py"
+    - "loop/epic_transition.py"
+  ac_quotes:
+    - "AC+1: gates_from_phase('IMPLEMENT', pack=video_pack, cwd=tmp) → gates from video phase_registry"
+    - "AC+2: arm_phase(cwd, epic_id, 'IMPLEMENT', 'back', pack=video_pack) → dsh_preset from video registry"
+    - "AC−1: gates_from_phase без pack → full_resolve(cwd) вызывается автоматически (не None propagation)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:59-68"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:98-125"
+
+context:
+  consumes:
+    - "harness/hooks/epic/core.py:580-602 — gates_from_phase без pack context"
+    - "loop/epic_transition.py:98-122 — arm_phase вызывает get_phase_config(phase) без pack"
+    - "loop/epic_transition.py:81-90 — get_verify_agent/get_dsh_preset с registry_path=None"
+    - "_lib.py:554 — WorkflowConfig.resolve(cwd) → PackResolveResult"
+    - "s01 результат: load_phase_registry(pack, cwd)"
+    - "s02 результат: normalize_registry_phase(phase, pack)"
+  produces:
+    - "harness/hooks/epic/core.py — gates_from_phase(phase, pack=None, cwd=None)"
+    - "loop/epic_transition.py — arm_phase, get_phase_config, get_verify_agent, get_dsh_preset — все принимают pack"
+    - "loop/epic_transition.py — auto-resolve: if pack is None: pack = full_resolve(cwd).pack"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §Failure matrix TM-004"
+  files:
+    - "harness/hooks/epic/core.py"
+    - "loop/epic_transition.py"
+
+as_built:
+  - "harness/hooks/epic/core.py:580 — gates_from_phase(phase: object) без pack"
+  - "harness/hooks/epic/core.py:585 — reg = load_phase_registry() (no args)"
+  - "loop/epic_transition.py:98-122 — arm_phase: при dsh вызывает get_phase_config(phase) без pack"
+  - "loop/epic_transition.py:81,87 — get_verify_agent/get_dsh_preset принимают registry_path: Path | str | None"
+
+delta:
+  - "harness/hooks/epic/core.py: gates_from_phase(phase, *, cwd=None, pack_id=None) — cwd matches FR-004; pack_id keyword-only для explicit override"
+  - "harness/hooks/epic/core.py: res = full_resolve(cwd); pack = res.pack → pack_id = pack.id если pack_id не задан"
+  - "harness/hooks/epic/core.py: reg = load_phase_registry(pack_id=pack_id, cwd=cwd) — FR-001 contract"
+  - "harness/hooks/epic/core.py: normalize_registry_phase(val, pack) — pack объект нужен для command_prefixes"
+  - "loop/epic_transition.py: get_phase_config(phase, *, pack_id=None, cwd=None)"
+  - "loop/epic_transition.py: get_verify_agent(phase, *, pack_id=None, cwd=None)"
+  - "loop/epic_transition.py: get_dsh_preset(phase, *, pack_id=None, cwd=None)"
+  - "loop/epic_transition.py: arm_phase(...): auto-resolve pack_id из cwd; передавать pack_id в get_phase_config"
+  - "loop/epic_transition.py: callers arm_phase в epic/core.py → передают cwd для auto-resolve"
+
+deletes:
+  - "legacy registry_path: Path | str | None параметр из get_verify_agent, get_dsh_preset, get_phase_config — заменяется на pack_id + cwd (после migrate всех callers в s06)"
+
+out_of_scope:
+  - "command_router.py (s04)"
+  - "session-start inject (s05)"
+  - "_ROLE_PREFIXES физическое удаление (s06)"
+  - "pytest suite (s07)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "gates_from_phase с явным video pack → gates из video registry (не software)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_gates_from_phase_video_pack -xq"
+  - id: cp2
+    criterion: "gates_from_phase без pack → full_resolve auto → gates из resolved pack"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_gates_from_phase_auto_resolve -xq"
+  - id: cp3
+    criterion: "arm_phase dsh + video pack → dsh_preset из video phase_registry (TM-004)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_arm_phase_dsh_video_pack -xq"
+  - id: cp4
+    criterion: "нет bare gates_from_phase() без cwd context в production callsites"
+    verify: "rg 'gates_from_phase(' harness/ loop/ --include='*.py' | grep -v 'test_' | grep -v 'def gates_from_phase' | grep -v 'cwd' | wc -l | grep '^0$'"
+
+verify:
+  - "rg 'gates_from_phase(' harness/hooks/epic/core.py | grep -v 'def gates_from_phase' | grep 'cwd' | wc -l"
+  - "rg 'get_phase_config(' loop/epic_transition.py | grep -v 'def get_phase_config' | grep 'pack_id' | wc -l"
+tdd:
+  - "test_gates_from_phase_video_pack: video pack с custom phase yaml → разные gates vs software"
+  - "test_gates_from_phase_auto_resolve: cwd=tmp_with_project_yaml → auto-resolve pack"
+  - "test_arm_phase_dsh_video_pack: arm_phase + cwd → dsh_preset из video registry (TM-004)"
+  - "test_get_verify_agent_pack_id: get_verify_agent('IMPLEMENT', pack_id='dev-hub-software', cwd=tmp) → 'verify-implement'"

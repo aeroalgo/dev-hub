@@ -97,13 +97,48 @@ def scaffold_audit(
     _check_overwrite(path, force)
 
     content = {
-        "schema": "epic-audit/v1",
+        "schema": "epic-audit/v2",
         "role": role,
+        "epic_id": epic_id,
         "plan_id": epic_id,
-        "verdict": "pending",
-        "summary": "",
-        "gaps": [],
-        "recommendations": [],
+        "date": "YYYY-MM-DD",
+        "auditor": f"{str(role).upper()} AUDIT",
+        "plan_intent": {
+            "epic_goal": "",
+            "source": "plan.md#WHAT",
+        },
+        "summary": {
+            "total_steps": 0,
+            "implemented": 0,
+            "not_implemented": 0,
+            "deviations": 0,
+            "findings": 0,
+        },
+        "intent_checked": {
+            "fr_total": 0,
+            "fr_satisfied": 0,
+            "sc_checked": 0,
+            "layout_paths_total": 0,
+            "layout_paths_closed": 0,
+            "constitution_checked": False,
+        },
+        "plan_vs_runtime": [],
+        "architecture_parity": [],
+        "findings": [],
+        "converged": False,
+        "implemented": [],
+        "not_implemented": [],
+        "deviations": [],
+        "sunset_inventory_scan": {
+            "scanned_at": "YYYY-MM-DD",
+            "plan_ref": "plan.md#replacement--sunset",
+            "rows": [],
+        },
+        "legacy_surfaces_remaining": [],
+        "fallback_remaining": [],
+        "instruction_remaining": [],
+        "purge_step_present": False,
+        "blocked_reason": "",
     }
     yaml_content = yaml.dump(content, sort_keys=False)
     created = [str(path)]

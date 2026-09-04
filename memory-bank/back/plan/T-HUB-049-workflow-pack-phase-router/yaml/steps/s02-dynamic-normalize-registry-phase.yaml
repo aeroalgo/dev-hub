@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: "dynamic normalize_registry_phase uses pack.command_prefixes (drop _ROLE_PREFIXES)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать `normalize_registry_phase(phase, pack)` в `loop/epic_transition.py`:
+  принимает `pack: WorkflowPack` и строит prefix list из `pack.command_prefixes`
+  (каждый с пробелом: `["BACK", "FRONT"] → ["BACK ", "FRONT "]`).
+  Удаляет зависимость от `_ROLE_PREFIXES` frozenset (сам frozenset будет удалён в s06).
+  Outcomes: FR-002, US-002, TM-003 — `SCRIPT IMPLEMENT` → `IMPLEMENT` via video pack prefixes.
+
+plan_contract:
+  fr_ids: [FR-002, US-002, TM-003]
+  nouns:
+    - "normalize_registry_phase(phase, pack) API"
+    - "pack.command_prefixes dynamic prefix list"
+    - "_ROLE_PREFIXES removal preparation"
+  layout_paths:
+    - "loop/epic_transition.py"
+  ac_quotes:
+    - "AC+1: normalize_registry_phase('BACK IMPLEMENT', software_pack) → 'IMPLEMENT'"
+    - "AC+2: normalize_registry_phase('SCRIPT IMPLEMENT', video_pack_with_SCRIPT_prefix) → 'IMPLEMENT'"
+    - "AC−1: normalize_registry_phase('IMPLEMENT', pack) → 'IMPLEMENT' (no prefix to strip)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:56-65"
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md:32-40"
+
+context:
+  consumes:
+    - "loop/epic_transition.py:33 — _ROLE_PREFIXES = ('BACK ', 'FRONT ', 'INTEG ', 'INTEGRATION ')"
+    - "loop/epic_transition.py:38-45 — normalize_registry_phase(phase: str) без pack"
+    - "loop/workflow/schemas.py:WorkflowPack.command_prefixes: List[str]"
+  produces:
+    - "loop/epic_transition.py — normalize_registry_phase(phase, pack) с pack.command_prefixes"
+    - "_ROLE_PREFIXES уже не используется в normalize (готово к purge s06)"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/md/plan.md §Technology axiom"
+  files:
+    - "loop/epic_transition.py"
+
+as_built:
+  - "loop/epic_transition.py:33 — _ROLE_PREFIXES = ('BACK ', 'FRONT ', 'INTEG ', 'INTEGRATION ') frozenset"
+  - "loop/epic_transition.py:38-45 — normalize_registry_phase(phase: str) итерирует по _ROLE_PREFIXES"
+  - "loop/epic_transition.py:41 — for prefix in _ROLE_PREFIXES: if normalized.startswith(prefix): strip"
+
+delta:
+  - "loop/epic_transition.py: сигнатура → normalize_registry_phase(phase: str, pack: WorkflowPack) -> str"
+  - "loop/epic_transition.py: prefixes = [p.rstrip() + ' ' for p in pack.command_prefixes]"
+  - "loop/epic_transition.py: итерация по prefixes вместо _ROLE_PREFIXES"
+  - "loop/epic_transition.py: _ROLE_PREFIXES больше не читается этой функцией (s06 его удалит)"
+  - "loop/epic_transition.py: обновить все callsites normalize_registry_phase → передавать pack"
+
+deletes:
+  - "_ROLE_PREFIXES frozenset — удаляется в s06 после проверки rg 0 callers"
+
+out_of_scope:
+  - "load_phase_registry pack-aware (s01)"
+  - "gates_from_phase / arm_phase (s03)"
+  - "_ROLE_PREFIXES физическое удаление из файла (s06)"
+  - "command_router (s04)"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "normalize_registry_phase('BACK IMPLEMENT', software_pack) → 'IMPLEMENT'"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_normalize_software_pack -xq"
+  - id: cp2
+    criterion: "normalize_registry_phase('SCRIPT IMPLEMENT', video_pack) → 'IMPLEMENT' (TM-003)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_normalize_custom_prefix -xq"
+  - id: cp3
+    criterion: "normalize без matching prefix → phase без изменений (не падает)"
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_normalize_no_prefix -xq"
+
+verify: []
+tdd:
+  - "test_normalize_software_pack: pack.command_prefixes=['BACK','FRONT','INTEG'] → strip BACK"
+  - "test_normalize_custom_prefix: pack.command_prefixes=['SCRIPT','VIDEO'] → strip SCRIPT"
+  - "test_normalize_no_prefix: phase='IMPLEMENT' → 'IMPLEMENT' unchanged"
+  - "test_normalize_case_insensitive: 'back implement' → 'IMPLEMENT'"

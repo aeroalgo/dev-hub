@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: s05 — session-start injects pack command index into additionalContext payload
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s05-session-start-pack-inject.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery:
+- Targeted reading of session_start_payload in harness/hooks/epic/core.py and test_workflow_pack_phase_router.py
+gaps:
+  status: none
+done:
+- Extended session_start_payload(cwd) in harness/hooks/epic/core.py to call full_resolve(cwd)
+  and append pack_id + command_prefixes if ok.
+- Handled error/unresolved pack gracefully without crashing session_start_payload.
+- Added test coverage in loop/tests/test_workflow_pack_phase_router.py for pack inject,
+  fail safe, and no-loop cases.
+files:
+- harness/hooks/epic/core.py
+- loop/tests/test_workflow_pack_phase_router.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_pack_inject
+  -xq` — PASS'
+- '`bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_pack_inject_fail_safe
+  -xq` — PASS'
+- '`bin/pytest loop/tests/test_workflow_pack_phase_router.py::test_session_start_no_loop
+  -xq` — PASS'
+integration_check:
+- session_start_payload injects Pack metadata into additionalContext seamlessly for
+  Claude Code runner sessions.
+grep_control:
+- back: no hardcoded prefixes added
+  front: n/a
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: EPIC_LOOP=1 + valid pack → additionalContext содержит pack_id и prefixes
+    (TM-005)
+  status: done
+  done_at: '2026-09-04T11:36:20Z'
+- id: cp2
+  criterion: EPIC_LOOP=1 + full_resolve fails → ctx без pack секции, нет исключения
+  status: done
+  done_at: '2026-09-04T11:36:21Z'
+- id: cp3
+  criterion: EPIC_LOOP=0 → None (без изменений)
+  status: done
+  done_at: '2026-09-04T11:36:21Z'
+resume_from: cp1

@@ -1,0 +1,50 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-049-workflow-pack-phase-router
+role: back
+next_phase: BACK IMPLEMENT
+appetite:
+  timebox_days: 5
+  cut_list:
+  - generated mainrule stub
+  - MCP command resolve
+deferred:
+- fr_id: FR-009
+  reason: 'mainrule.mdc §Workflow Pack — appetite cut_list; follow_up: T-HUB-052'
+steps:
+- id: s01
+  file: s01-pack-aware-load-phase-registry.yaml
+  title: pack-aware load_phase_registry(registry_path, *, pack_id) — path from pack
+    manifest
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-dynamic-normalize-registry-phase.yaml
+  title: dynamic normalize_registry_phase uses pack.command_prefixes (drop _ROLE_PREFIXES)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-gates-arm-phase-thread-pack.yaml
+  title: gates_from_phase + arm_phase thread pack context via resolve_workflow_pack
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-command-router.yaml
+  title: loop/workflow/command_router.py — route_command(pack, cmd) → CommandRoute(phase,
+    rules_mdc_rel)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-session-start-pack-inject.yaml
+  title: session-start injects pack command index into additionalContext payload
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-purge-role-prefixes-legacy.yaml
+  title: purge _ROLE_PREFIXES hardcode + rg audit — replace with pack-scoped prefixes
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-pytest-matrix-regression.yaml
+  title: 'pytest matrix: TM-001..005 failure coverage + pack-router regression suite'
+  next_phase: BACK IMPLEMENT
+  status: pending
