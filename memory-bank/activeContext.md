@@ -1,20 +1,19 @@
 ---
-schema: loop-handoff/v1
+schema: loop-handoff/v1 # handoff
 role: BACK
-mode: IMPLEMENT
-epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
-step_id: s10
+mode: DECOMPOSE
+epic_id: T-HUB-048-workflow-pack-registry
+step_id: DECOMPOSE
 ---
 
 ## load_now
-1. [back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s10-migrate-apply-dev-hub.yaml](back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s10-migrate-apply-dev-hub.yaml) — текущий work shard (BACK IMPLEMENT s10).
-2. [back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml](back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
+1. [plan.md](back/plan/T-HUB-048-workflow-pack-registry/md/plan.md) — source plan/artifact for pre-implement phase DECOMPOSE.
+2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (канон sNN-<slug>.yaml).
+3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
+4. Target decompose: [`decompose-T-HUB-048-workflow-pack-registry/index.yaml`](back/plan/decompose-T-HUB-048-workflow-pack-registry/index.yaml) (index.md + index.yaml + sNN-<slug>.yaml).
 
-## Handoff BACK IMPLEMENT — s10
-- **Дальше:** выполнить atomic шаг → FINISH (seed-implement → flush cp → suite → evidence in_progress → validate-step → Handoff → @verify → finalize-step)
-- **Эпик:** T-HUB-047-harness-mb-scaffold-epic-layout (BACK); armed из `back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml` (прошлый activeContext игнорирован).
-- **Текущий шаг:** s10 — Migrate apply на dev-hub memory-bank + validate-decompose-tree green (status=pending в index.yaml).
-- **Команда:** `BACK IMPLEMENT @s10`
-
-## done
-- s01–s09 completed в `back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml` (9 шагов)
+## Handoff DECOMPOSE
+- # epic_id: T-HUB-048-workflow-pack-registry — NOT short queue id
+- **Эпик:** T-HUB-048-workflow-pack-registry (BACK).
+- **Режим/шаг:** `BACK DECOMPOSE`.
+- **Дальше:** выполнить `BACK DECOMPOSE`.

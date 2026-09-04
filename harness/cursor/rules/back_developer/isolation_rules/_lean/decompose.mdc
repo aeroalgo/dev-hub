@@ -5,8 +5,8 @@ alwaysApply: false
 # DECOMPOSE — gates (checklist)
 
 **Канон (проза/таблицы):** `workflow-decompose.mdc` · behavior-first · legacy-fallback-cleanup  
-**Артефакт:** `memory-bank/back/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`)  
-**`<plan_id>` HARD:** stem `plan-*.md` **со descriptive slug** — @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Артефакт:** `memory-bank/back/plan/<plan_id>/yaml/decompose-index.yaml` + `yaml/steps/sNN-*.yaml` (+ `md/decompose-index.md`)  
+**`<plan_id>` HARD:** stem plan **со descriptive slug** (`plan/<plan_id>/md/plan.md`) — @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
 ## PASS checklist
 
@@ -14,7 +14,8 @@ alwaysApply: false
 2. Index: Requirements coverage · Stages coverage · Outcome map · Replacement cleanup (A|B|C|**I**)
 3. Каждый AC+/AC−/FR/NFR → sNN или `out_of_scope`+`follow_up` **в queue**; FR nouns verbatim ∈ `produces`/`files`
 4. Covered row ⇒ measurable `verify` (не map-only / не surrogate-only для product FR)
-5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN
+5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN **только при отдельном outcome** (не micro-ladder schema→CLI→wire)
+5a. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; audit-хвост / docs+Kind I / core+CLI — сливать. @.cursor/rules/shared/workflow-behavior-first.mdc §3a
 6. Каждый `sNN`: `epic-decompose/v1` + `role: back` + list `as_built`/`delta` + `deletes` + `plan_contract` + `code_surface` + Core(4) ∪ situational ≤6
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
 8. CLI: `validate-decompose-tree` exit 0 · `validate-traceability` **CRITICAL=0**
@@ -24,6 +25,8 @@ alwaysApply: false
 ## Abort (incomplete)
 
 - Нет Requirements/Stages/Outcome/Replacement · dilution · optional_sot ladder gap
+- Micro-ladder / `>9` sNN без justification · audit-* как пачка отдельных sNN без outcome
+- Отказ добавить sNN «слишком много шагов» при непокрытом FR/AC → incomplete (coverage > band)
 - CRITICAL>0 · schema ≠ `epic-decompose/v1` · Core partial · situational >6 / вне allowlist
 - `ANALYZE deferred` · short `plan_id` без slug · код/тесты реализации
 - `needs_creative` open CR без hard-stop · `impl:` с session skills (writing-plans/…)

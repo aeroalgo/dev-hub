@@ -11,13 +11,13 @@ goal: |
   # Outcome preserve: см. workflow-*-decompose.mdc — intent плана не ужимать до scaffolding
 
 # Plan contract (HARD) — bake plan WHAT into shard so IMPLEMENT не слеп
-# IMPLEMENT читает ЭТО (+ plan_jumps), не весь plan-*.md.
+# IMPLEMENT читает ЭТО (+ plan_jumps), не весь plan.
 plan_contract:
   fr_ids: [] # FR-### / SC-### / US-### закрываемые этим sNN
   nouns: [] # runtime surfaces из plan FR (agent file, CLI, hook, layout path…)
-  layout_paths: [] # Target layout paths, которые этот шаг создаёт/трогает
+  layout_paths: [] # Target layout paths, которые этот шаг создаёт/трогает (например: plan/<epic_id>/yaml/, implement/<epic_id>/yaml/steps/sNN-*.yaml)
   ac_quotes: [] # короткие цитаты AC± / Independent Test (1–3 строки)
-  plan_jumps: [] # "plan-<id>.md:120-160" — Read offset; line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200
+  plan_jumps: [] # "plan/<epic_id>/md/plan.md:120-160" — Read offset; line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200
 
 context:
   consumes: []

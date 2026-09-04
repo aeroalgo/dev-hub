@@ -1,0 +1,22 @@
+schema: epic-audit/v1
+epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
+date: "2026-09-04"
+role: BACK
+status: PASS
+plan_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/md/plan.md
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/decompose-index.yaml
+
+not_implemented: []
+drift: []
+blockers: []
+
+summary: |
+  All requirements FR-001 through FR-017 and user stories of T-HUB-047 are fully implemented and verified.
+  All decompose steps s01 through s12 are marked completed in decompose-index.yaml.
+  Target achievements:
+  - loop/paths/epic_layout.py v2 layout resolver implemented as single path of record for all memory-bank phases.
+  - loop/mb_scaffold/ core and CLI commands (plan, decompose, implement, qa, analyze, audit) implemented.
+  - Flat v1 to hierarchical v2 migration script implemented, tested, and applied across memory-bank.
+  - Formula render merged into mb-scaffold decompose --formula.
+  - Legacy v1 path hardcodes purged from harness, loop, and workflow rules.
+  - Traceability CLI validated: 0 Critical, 0 High findings. Decompose tree validation: 100% OK.

@@ -33,7 +33,7 @@ def scaffold_qa(
     dry_run: bool = False,
     project_root: Optional[Union[str, Path]] = None,
 ) -> ScaffoldResult:
-    """Scaffold qa/<epic_id>/yaml/qa.yaml."""
+    """Scaffold qa/<epic_id>/qa.yaml (no yaml/md split outside plan/decompose)."""
     path = resolve(role=role, epic_id=epic_id, kind=EpicLayoutKind.QA_YAML, project_root=project_root)
     _check_overwrite(path, force)
 
@@ -63,7 +63,7 @@ def scaffold_analyze(
     dry_run: bool = False,
     project_root: Optional[Union[str, Path]] = None,
 ) -> ScaffoldResult:
-    """Scaffold analyze/<epic_id>/yaml/analyze.yaml."""
+    """Scaffold analyze/<epic_id>/analyze.yaml (no yaml/md split outside plan/decompose)."""
     path = resolve(role=role, epic_id=epic_id, kind=EpicLayoutKind.ANALYZE_YAML, project_root=project_root)
     _check_overwrite(path, force)
 
@@ -92,7 +92,7 @@ def scaffold_audit(
     dry_run: bool = False,
     project_root: Optional[Union[str, Path]] = None,
 ) -> ScaffoldResult:
-    """Scaffold audit/<epic_id>/yaml/audit.yaml."""
+    """Scaffold audit/<epic_id>/audit.yaml (no yaml/md split outside plan/decompose)."""
     path = resolve(role=role, epic_id=epic_id, kind=EpicLayoutKind.AUDIT_YAML, project_root=project_root)
     _check_overwrite(path, force)
 

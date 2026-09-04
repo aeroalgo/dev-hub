@@ -10,28 +10,36 @@ alwaysApply: false
 
 `epic_id` = `plan_id` = **stem plan-файла без префикса `plan-`** (латиница), напр. `T-HUB-033-harness-execution-discipline`, `v1-p1-pipeline-db-e2e`.
 
-### Folder naming (HARD)
+### Folder naming (HARD) — Layout v2
 
-| Артефакт | Канон имени |
+| Артефакт | Канон имени (v2) |
 |----------|-------------|
-| Plan file | `plan-<epic_id>.md` (часто `plan-<queue_id>-<descriptive-slug>.md`) |
-| Decompose dir | `decompose-<epic_id>/` |
-| Implement dir | `implement-<epic_id>/` |
-| Analyze / audit / qa dirs | `<epic_id>/` или файлы с тем же stem |
+| Plan dir | `plan/<epic_id>/` (`yaml/plan.yaml` + `md/plan.md`) |
+| Decompose dir | `plan/<epic_id>/yaml/` (`decompose-index.yaml` + `steps/sNN-*.yaml`) + `md/decompose-index.md` |
+| Implement dir | `implement/<epic_id>/` (`sNN-*.yaml` **прямо здесь**; **FORBIDDEN** `yaml/`/`md/` split) |
+| Analyze / audit / qa | `<phase>/<epic_id>/<phase>-*.yaml` или `<phase>.yaml` **прямо в папке** (**FORBIDDEN** `yaml/`/`md/` split) |
 
-**Источник slug:** имя `plan-*.md` на диске, **не** короткий `id:` из `roadmap-*.queue.yaml`.
+**HARD:** разделение `md/` + `yaml/` — **только** для `plan/` / decompose. QA, AUDIT, ANALYZE, IMPLEMENT, CREATIVE — без вложенного `yaml/` или `md/`.
 
-| Queue `id:` | Plan file | Folders / `index.yaml` `plan_id` |
+**Scaffold contract (HARD):**
+- Plan: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`
+- Decompose: `python3 .claude/hooks/epic_resolve.py mb-scaffold decompose --epic-id <id>`
+- Implement: `python3 .claude/hooks/epic_resolve.py mb-scaffold implement --epic-id <id>` (or `seed-implement`)
+- **FORBIDDEN:** Write scaffolded paths from scratch (Edit only).
+
+**Источник slug:** `<epic_id>` = stem plan со descriptive slug, **не** короткий `id:` из `roadmap-*.queue.yaml`.
+
+| Queue `id:` | Plan path | Folders / `index.yaml` `plan_id` |
 |-------------|-----------|----------------------------------|
-| `T-HUB-033` | `plan-T-HUB-033-harness-execution-discipline.md` | `…-T-HUB-033-harness-execution-discipline` |
+| `T-HUB-033` | `plan/T-HUB-033-harness-…/md/plan.md` | `…-T-HUB-033-harness-execution-discipline` |
 
-**FORBIDDEN:** `decompose-T-HUB-033/` / `implement-T-HUB-033/` когда plan = `plan-T-HUB-033-<slug>.md`. Short queue id — только для roadmap deps/loop; FS-артефакты = полный stem.
+**FORBIDDEN:** `decompose-T-HUB-033/` / `implement-T-HUB-033/` / `qa/…/yaml/` когда канон = layout v2 выше. Short queue id — только для roadmap deps/loop; FS-артефакты = полный stem.
 
 **Есть эпик**, если любое из:
 
-1. `activeContext` `load_now` / единственный `## Handoff` содержит `plan-<id>`, `decompose-<id>`, `implement-<id>`, или явный `epic_id` / `plan_id`
+1. `activeContext` `load_now` / единственный `## Handoff` содержит `plan/<id>/`, `implement/<id>/`, или явный `epic_id` / `plan_id`
 2. Команда с явным id: `BACK QA v1-p1-pipeline-db-e2e`, `BACK BUGFIX …` из qa §Fix plan эпика
-3. Текущий шаг из `decompose-<id>/`
+3. Текущий шаг из `plan/<id>/yaml/steps/` или `implement/<id>/`
 
 **Нет эпика** (ad-hoc TASK / голый BUGFIX / голый QA без plan): артефакт → **плоская** папка режима.
 
@@ -41,21 +49,22 @@ alwaysApply: false
 
 | Режим | С эпиком | Без эпика |
 |-------|----------|-----------|
-| PLAN | `plan/plan-<epic_id>.md` + `plan/decompose-<epic_id>/` | — (PLAN всегда с id) |
-| IMPLEMENT | `implement/implement-<epic_id>/` | `implement/<slug>/` или `implement/task-YYYYMMDD-<slug>.md` (без `implement-<epic>/`) |
-| REFACTOR | `refactor/plan/decompose-<epic_id>/` + execute `refactor/implement/implement-<epic_id>/rNN-*.yaml` | `refactor/session-YYYYMMDD-<slug>.md` (корень `refactor/`) |
-| SECURITY | `security/plan/decompose-<epic_id>/` + execute `security/implement/implement-<epic_id>/aNN-*.yaml` | `security/security-audit-YYYYMMDD-<slug>.md` (корень `security/`) |
+| PLAN | `plan/<epic_id>/md/plan.md` + `yaml/plan.yaml` | — (PLAN всегда с id) |
+| DECOMPOSE | `plan/<epic_id>/yaml/decompose-index.yaml` + `steps/` | — |
+| IMPLEMENT | `implement/<epic_id>/sNN-*.yaml` | `implement/<slug>/` или `implement/task-YYYYMMDD-<slug>.md` |
+| REFACTOR | `refactor/plan/<epic_id>/` + execute `refactor/implement/<epic_id>/rNN-*.yaml` | `refactor/session-YYYYMMDD-<slug>.md` (корень `refactor/`) |
+| SECURITY | `security/plan/<epic_id>/` + execute `security/implement/<epic_id>/aNN-*.yaml` | `security/security-audit-YYYYMMDD-<slug>.md` (корень `security/`) |
 | CREATIVE | `creative/<epic_id>/creative-<feature>.md` | `creative/creative-<feature>.md` |
-| QA | `qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` | `qa/qa-YYYYMMDD-<slug>.yaml` |
+| QA | `qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml` (или `qa.yaml`) | `qa/qa-YYYYMMDD-<slug>.yaml` |
 | BUGFIX | `bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md` | `bugfix/bugfix-YYYYMMDD-<slug>.md` |
 | GAP (INTEG) | `gap/<epic_id>/gap-YYYYMMDD-<slug>.md` | `gap/gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE (INTEG) | `gap/<epic_id>/close-YYYYMMDD-<slug>.md` | `gap/close-YYYYMMDD-<slug>.md` |
 | REFLECT | `reflection/reflection-<task_id>-….md` | то же — **не** под `<epic_id>/` |
 | TASK | — | `task/task-YYYYMMDD-<slug>.md` |
 
-**FORBIDDEN:** писать epic-артефакт CREATIVE/QA/BUGFIX/GAP в корень `creative/` / `qa/` / `bugfix/` / `gap/` без `<epic_id>/`, если эпик известен.
+**FORBIDDEN:** писать epic-артефакт CREATIVE/QA/BUGFIX/GAP в корень `creative/` / `qa/` / `bugfix/` / `gap/` без `<epic_id>/`, если эпик известен. **FORBIDDEN:** `qa|audit|analyze|implement/<epic_id>/yaml/`.
 
-**Rewire CREATIVE:** ссылки из `decompose-<epic_id>/sNN` → `../../creative/<epic_id>/creative-….md` (с эпиком) или `../../creative/creative-….md` (без).
+**Rewire CREATIVE:** ссылки из `plan/<epic_id>/yaml/steps/sNN` → `../../creative/<epic_id>/creative-….md` (с эпиком) или `../../creative/creative-….md` (без).
 
 ## ARCHIVE NOW — перенос
 
@@ -63,15 +72,15 @@ alwaysApply: false
 
 ### Переносить (всё, что относится к `epic_id`)
 
-- `plan/plan-<epic_id>.md`
-- `plan/decompose-<epic_id>/` (целиком)
-- `implement/implement-<epic_id>/` (целиком)
-- `refactor/plan/{analysis,plan}-<epic_id>.md`, `refactor/plan/decompose-<epic_id>/`, `refactor/implement/implement-<epic_id>/` (целиком)
-- `security/plan/plan-<epic_id>.md`, `security/plan/decompose-<epic_id>/`, `security/implement/implement-<epic_id>/` (целиком)
+- `plan/<epic_id>/` (целиком: md + yaml)
+- `implement/<epic_id>/` (целиком)
+- `refactor/plan/<epic_id>/`, `refactor/implement/<epic_id>/` (целиком)
+- `security/plan/<epic_id>/`, `security/implement/<epic_id>/` (целиком)
 - `creative/<epic_id>/` (целиком)
 - `qa/<epic_id>/` (целиком)
 - `bugfix/<epic_id>/` (целиком)
 - `gap/<epic_id>/` (целиком; INTEG: gap-*.md + close-*.md)
+- `audit/<epic_id>/`, `analyze/<epic_id>/` (целиком)
 - Legacy flat-файлы с этим epic slug в имени, если ещё не в `<epic_id>/`:  
   `qa/qa-*-<epic_id>*.yaml`, `bugfix/*<epic_id>*`, `creative/*`, `gap/gap-*` / `gap/close-*` явно связанные с эпиком — перенести **в** `archive/.../qa|bugfix|creative|gap/<epic_id>/`
 

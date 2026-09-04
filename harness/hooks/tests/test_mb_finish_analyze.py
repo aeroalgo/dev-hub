@@ -1,5 +1,6 @@
 """Tests for finish_analyze and finish_audit (s07 / TM-008)."""
 
+import json
 import sys
 from pathlib import Path
 import pytest
@@ -199,9 +200,58 @@ def test_finish_audit_happy(tmp_path: Path):
     res = finish_audit(req)
     assert res.ok is True, f"Expected ok=True, got errors: {res.shape_errors} {res.diagnostic_codes}"
     assert res.active_context is not None
+    assert res.next_phase == "QA"
 
     written = read_active_context(tmp_path)
     assert "mode: QA" in written
+    assert "## Handoff BACK QA" in written
+
+    events = (
+        tmp_path
+        / "memory-bank"
+        / "back"
+        / "events"
+        / "T-TEST-001"
+        / "events.jsonl"
+    )
+    assert events.is_file()
+    lines = [json.loads(line) for line in events.read_text(encoding="utf-8").splitlines() if line.strip()]
+    assert any(e.get("kind") == "audit_done" for e in lines)
+
+    from harness.hooks.epic.core import load_epic_state, reduce_epic_lifecycle
+
+    st = load_epic_state(tmp_path)
+    assert st.get("phase") == "QA"
+    assert st.get("armed_step") == "QA"
+    assert st.get("last_finished_step") == "AUDIT"
+    life = reduce_epic_lifecycle(tmp_path, "back", "T-TEST-001")
+    assert life.get("phase") == "QA"
+
+
+def test_finish_audit_v2_layout_path_emits_audit_done(tmp_path: Path):
+    """finish_audit finds yaml/audit.yaml and emits audit_done without touching _declared_artifacts."""
+    audit_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-TEST-V2" / "yaml"
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    (audit_dir / "audit.yaml").write_text(
+        "epic_id: T-TEST-V2\nstatus: PASS\nfindings: []\n",
+        encoding="utf-8",
+    )
+    save_epic_state(tmp_path, {"armed_epic": "T-TEST-V2", "armed_role": "BACK"})
+
+    res = finish_audit(
+        MbFinishRequest(
+            phase="BACK AUDIT",
+            step_id="s07",
+            done_summary="audit v2",
+            cwd=str(tmp_path),
+        )
+    )
+    assert res.ok is True, res.diagnostic_codes
+    events = tmp_path / "memory-bank" / "back" / "events" / "T-TEST-V2" / "events.jsonl"
+    assert events.is_file()
+    body = events.read_text(encoding="utf-8")
+    assert "audit_done" in body
+    assert "yaml/audit.yaml" in body
 
 
 def test_finish_audit_no_artifact(tmp_path: Path):

@@ -30,18 +30,18 @@ def test_resolve_decompose_step():
 
 def test_resolve_implement_step():
     p = resolve("back", "T-HUB-047-test", "implement_step", "s03")
-    assert str(p).endswith("memory-bank/back/implement/T-HUB-047-test/yaml/steps/s03.yaml")
+    assert str(p).endswith("memory-bank/back/implement/T-HUB-047-test/s03.yaml")
 
 
 def test_resolve_phase_yamls():
     qa = resolve("back", "T-HUB-047-test", "qa_yaml")
-    assert str(qa).endswith("memory-bank/back/qa/T-HUB-047-test/yaml/qa.yaml")
+    assert str(qa).endswith("memory-bank/back/qa/T-HUB-047-test/qa.yaml")
 
     analyze = resolve("back", "T-HUB-047-test", "analyze_yaml")
-    assert str(analyze).endswith("memory-bank/back/analyze/T-HUB-047-test/yaml/analyze.yaml")
+    assert str(analyze).endswith("memory-bank/back/analyze/T-HUB-047-test/analyze.yaml")
 
     audit = resolve("back", "T-HUB-047-test", "audit_yaml")
-    assert str(audit).endswith("memory-bank/back/audit/T-HUB-047-test/yaml/audit.yaml")
+    assert str(audit).endswith("memory-bank/back/audit/T-HUB-047-test/audit.yaml")
 
 
 def test_resolve_unknown_kind():
@@ -57,3 +57,18 @@ def test_resolve_missing_step_id():
 def test_resolve_custom_root(tmp_path):
     p = resolve("back", "T-HUB-047-test", "plan_md", project_root=tmp_path)
     assert p == tmp_path / "memory-bank/back/plan/T-HUB-047-test/md/plan.md"
+
+
+def test_resolve_normalizes_uppercase_role(tmp_path):
+    from loop.paths.epic_layout import normalize_role_dir
+
+    assert normalize_role_dir("BACK") == "back"
+    assert normalize_role_dir("INTEG") == "integration"
+    p = resolve("BACK", "T-HUB-047-test", "qa_yaml", project_root=tmp_path)
+    assert p == tmp_path / "memory-bank/back/qa/T-HUB-047-test/qa.yaml"
+    assert "memory-bank/BACK/" not in str(p)
+
+
+def test_resolve_rejects_unknown_role():
+    with pytest.raises(ValueError, match="Unknown role dir"):
+        resolve("ops", "T-X", "qa_yaml")

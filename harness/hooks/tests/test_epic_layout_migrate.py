@@ -97,8 +97,8 @@ def test_apply_idempotent(v1_fixture: Path):
     v2_plan_md = v1_fixture / "memory-bank" / "back" / "plan" / epic_id / "md" / "plan.md"
     v2_decomp_idx = v1_fixture / "memory-bank" / "back" / "plan" / epic_id / "yaml" / "decompose-index.yaml"
     v2_decomp_step = v1_fixture / "memory-bank" / "back" / "plan" / epic_id / "yaml" / "steps" / "s01-step.yaml"
-    v2_impl_step = v1_fixture / "memory-bank" / "back" / "implement" / epic_id / "yaml" / "steps" / "s01-step.yaml"
-    v2_qa_yaml = v1_fixture / "memory-bank" / "back" / "qa" / epic_id / "yaml" / "qa.yaml"
+    v2_impl_step = v1_fixture / "memory-bank" / "back" / "implement" / epic_id / "s01-step.yaml"
+    v2_qa_yaml = v1_fixture / "memory-bank" / "back" / "qa" / epic_id / "qa.yaml"
 
     assert v2_plan_md.exists()
     assert v2_decomp_idx.exists()
@@ -126,10 +126,10 @@ def test_ref_update(v1_fixture: Path):
     assert f"decompose-{epic_id}/" not in content
 
     # Check updated implement step
-    v2_impl_step = v1_fixture / "memory-bank" / "back" / "implement" / epic_id / "yaml" / "steps" / "s01-step.yaml"
+    v2_impl_step = v1_fixture / "memory-bank" / "back" / "implement" / epic_id / "s01-step.yaml"
     impl_content = v2_impl_step.read_text(encoding="utf-8")
     assert f"decompose-{epic_id}/" not in impl_content
-    assert f"{epic_id}/yaml/steps/" in impl_content
+    assert f"{epic_id}/yaml/steps/" in impl_content or f"plan/{epic_id}/yaml/steps/" in impl_content
 
 
 def test_active_implement_guard(v1_fixture: Path):

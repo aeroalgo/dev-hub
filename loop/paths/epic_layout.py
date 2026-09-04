@@ -14,6 +14,20 @@ def get_project_root() -> Path:
     return Path.cwd()
 
 
+def normalize_role_dir(role: str) -> str:
+    """Canonical FS role under memory-bank/ (lowercase; integ → integration)."""
+    value = str(role or "").strip().lower()
+    if not value:
+        raise ValueError("role is required")
+    if value == "integ":
+        return "integration"
+    if value not in {"back", "front", "integration"}:
+        raise ValueError(
+            f"Unknown role dir {role!r}: expected back|front|integ|integration"
+        )
+    return value
+
+
 def resolve(
     role: str,
     epic_id: str,
@@ -25,16 +39,16 @@ def resolve(
 ) -> Path:
     """Resolve a memory-bank path according to epic-layout v2.
 
-    Layout v2 structure:
+    Layout v2 structure (yaml/md split ONLY under plan/decompose):
       memory-bank/{role}/plan/{epic_id}/md/plan.md
       memory-bank/{role}/plan/{epic_id}/yaml/plan.yaml
       memory-bank/{role}/plan/{epic_id}/md/decompose-index.md
       memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml
       memory-bank/{role}/plan/{epic_id}/yaml/steps/{step_filename}
-      memory-bank/{role}/implement/{epic_id}/yaml/steps/{step_filename}
-      memory-bank/{role}/qa/{epic_id}/yaml/qa.yaml
-      memory-bank/{role}/analyze/{epic_id}/yaml/analyze.yaml
-      memory-bank/{role}/audit/{epic_id}/yaml/audit.yaml
+      memory-bank/{role}/implement/{epic_id}/{step_filename}
+      memory-bank/{role}/qa/{epic_id}/qa.yaml
+      memory-bank/{role}/analyze/{epic_id}/analyze.yaml
+      memory-bank/{role}/audit/{epic_id}/audit.yaml
     """
     if isinstance(kind, str):
         try:
@@ -46,8 +60,21 @@ def resolve(
     else:
         raise ValueError(f"Unknown EpicLayoutKind: {kind!r}")
 
+    def _validate_segment(name: str, val: Optional[str]) -> None:
+        if val is None:
+            return
+        if "/" in val or "\\" in val or ".." in val:
+            raise ValueError(f"Invalid characters in {name}: {val!r}")
+
+    role_dir = normalize_role_dir(role)
+    _validate_segment("role", role_dir)
+    _validate_segment("epic_id", epic_id)
+    _validate_segment("step_id", step_id)
+    _validate_segment("step_slug", step_slug)
+    _validate_segment("ext", ext)
+
     root = Path(project_root) if project_root is not None else get_project_root()
-    base = root / "memory-bank" / role
+    base = root / "memory-bank" / role_dir
 
     def format_step_file(s_id: Optional[str], s_slug: Optional[str], default_ext: str = "yaml") -> str:
         if not s_id:
@@ -70,13 +97,13 @@ def resolve(
         return base / "plan" / epic_id / "yaml" / "steps" / step_filename
     elif kind_enum == EpicLayoutKind.IMPLEMENT_STEP:
         step_filename = format_step_file(step_id, step_slug, default_ext="yaml")
-        return base / "implement" / epic_id / "yaml" / "steps" / step_filename
+        return base / "implement" / epic_id / step_filename
     elif kind_enum == EpicLayoutKind.QA_YAML:
-        return base / "qa" / epic_id / "yaml" / "qa.yaml"
+        return base / "qa" / epic_id / "qa.yaml"
     elif kind_enum == EpicLayoutKind.ANALYZE_YAML:
-        return base / "analyze" / epic_id / "yaml" / "analyze.yaml"
+        return base / "analyze" / epic_id / "analyze.yaml"
     elif kind_enum == EpicLayoutKind.AUDIT_YAML:
-        return base / "audit" / epic_id / "yaml" / "audit.yaml"
+        return base / "audit" / epic_id / "audit.yaml"
     else:
         raise ValueError(f"Unhandled EpicLayoutKind: {kind_enum}")
 
@@ -104,7 +131,12 @@ def discover_v2_epics(cwd: Optional[Union[str, Path]] = None) -> list[tuple[str,
     for role_dir in sorted(mb.iterdir()):
         if not role_dir.is_dir() or role_dir.name.startswith("."):
             continue
-        role = role_dir.name
+        try:
+            role = normalize_role_dir(role_dir.name)
+        except ValueError:
+            continue
+        if role_dir.name != role:
+            continue
         plan_dir = role_dir / "plan"
         if not plan_dir.exists() or not plan_dir.is_dir():
             continue

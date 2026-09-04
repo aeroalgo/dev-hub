@@ -3,7 +3,7 @@
 **Дата:** 2026-09-02  
 **Режим:** BACK PLAN  
 **Уровень:** L3–L4  
-**Статус:** active  
+**Статус:** completed  
 **Roadmap:** [roadmap-harness-maturity-borrowings-epics.md](roadmap-harness-maturity-borrowings-epics.md)  
 **Queue:** [roadmap-harness-maturity-borrowings-epics.queue.yaml](roadmap-harness-maturity-borrowings-epics.queue.yaml)  
 **Deps:** **hard** T-HUB-036 (`formula-render` → merge в `mb-scaffold decompose`), T-HUB-040 (`mb-finish` path refs + FINISH). **Soft:** T-HUB-045 (`mb-load` bundle paths), T-HUB-024 (`validate-traceability` → `plan.yaml` first), T-HUB-029 (session arm / transition), T-HUB-034 (janitor globs).

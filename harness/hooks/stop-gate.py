@@ -350,19 +350,38 @@ def main() -> None:
     if st.get("mode") == "audit" and finishing:
         ac = Path(cwd) / "memory-bank" / "activeContext.md" if cwd else None
         handoff_ok = False
+        finished_via_tool = False
         if ac and ac.is_file():
             text = ac.read_text(encoding="utf-8", errors="replace")
-            handoff_ok = bool(
+            handoff_audit = bool(
                 re.search(r"(?im)^##\s*Handoff\s+.*\bAUDIT\b", text)
             )
+            handoff_qa = bool(
+                re.search(r"(?im)^##\s*Handoff\s+.*\bQA\b", text)
+            )
+            lft = epic.get("last_finish_tool") if isinstance(epic, dict) else None
+            if not isinstance(lft, dict):
+                lft = {}
+            lft_name = str(lft.get("name") or "")
+            finished_via_tool = (
+                "mb-finish audit" in lft_name
+                or str(epic.get("last_finished_step") or "").upper() == "AUDIT"
+            )
+            if finished_via_tool and handoff_qa:
+                st["mode"] = "qa"
+                save_state(session_id, cwd, st)
+                handoff_ok = True
+            elif handoff_audit:
+                handoff_ok = True
         if not handoff_ok:
             if stop_hook_active:
                 return
             _block(
                 "spawn-gate: BACK AUDIT FINISH без ## Handoff BACK AUDIT "
+                "или mb-finish audit → ## Handoff … QA "
                 "в memory-bank/activeContext.md. "
-                "Перепиши Handoff: gap-матрица + next (IMPLEMENT новых sNN | BACK QA). "
-                "затем остановись."
+                "Сначала `mb-finish audit` (sole-writer → QA), либо "
+                "Handoff AUDIT с gap-матрицей; не откатывай Handoff QA вручную."
             )
             return
 

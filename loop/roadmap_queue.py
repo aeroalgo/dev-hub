@@ -193,7 +193,31 @@ def load_steps_for_index(cwd: str | Path, idx: Path) -> dict[str, Any]:
 
 
 def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
-    return Path(cwd) / "memory-bank" / role / "plan" / plan_name
+    """Resolve plan file: flat v1 ``plan-*.md`` or layout v2 ``{slug}/md/plan.md``."""
+    root = Path(cwd)
+    role_dir = str(role or "back").strip().lower()
+    if role_dir == "integ":
+        role_dir = "integration"
+    flat = root / "memory-bank" / role_dir / "plan" / plan_name
+    if flat.is_file():
+        return flat
+    stem = plan_stem_from_name(plan_name)
+    if stem:
+        v2 = root / "memory-bank" / role_dir / "plan" / stem / "md" / "plan.md"
+        if v2.is_file():
+            return v2
+        try:
+            from loop.paths.epic_layout import EpicLayoutKind, resolve
+
+            resolved = resolve(
+                role_dir, stem, EpicLayoutKind.PLAN_MD, project_root=root
+            )
+            if resolved.is_file():
+                return resolved
+            return resolved
+        except Exception:
+            return v2
+    return flat
 
 
 def plan_stem_from_name(plan_name: str) -> str:

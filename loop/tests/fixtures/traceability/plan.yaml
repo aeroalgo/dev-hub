@@ -1,0 +1,12 @@
+schema: epic-plan/v1
+epic_id: T-HUB-024
+title: Traceability Test Fixture
+requirements:
+  - id: FR-001
+    title: Feature 1 description
+  - id: FR-002
+    title: Feature 2 description
+  - id: FR-003
+    title: Feature 3 description
+  - id: FR-004
+    title: Feature 4 description

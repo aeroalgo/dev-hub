@@ -1828,5 +1828,133 @@ def test_stop_gate_unknown_gate_type_fails_closed(tmp_path: Path) -> None:
     assert "fail-closed" in result["reason"] or "unknown phase" in result["reason"]
 
 
+def test_stop_gate_audit_accepts_qa_handoff_after_mb_finish_audit(tmp_path: Path) -> None:
+    """mb-finish audit writes Handoff QA; session mode may still be audit — allow stop."""
+    from epic.core import default_state, fingerprint_context, save_epic_state, write_last_finish_tool
+
+    before = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: AUDIT\n"
+        "epic_id: T-AUDIT-SG\n"
+        "---\n\n"
+        "## load_now\n"
+        "- `memory-bank/back/audit/T-AUDIT-SG/audit-001.yaml`\n\n"
+        "## Handoff BACK AUDIT\n"
+        "- **Дальше:** BACK QA\n"
+    )
+    after = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        "epic_id: T-AUDIT-SG\n"
+        "---\n\n"
+        "## load_now\n"
+        "- `memory-bank/back/audit/T-AUDIT-SG/audit-001.yaml`\n\n"
+        "## Handoff BACK QA\n"
+        "- **Дальше:** run qa phase\n"
+    )
+    _write("memory-bank/activeContext.md", after, tmp_path)
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "QA",
+            "armed_step": "QA",
+            "armed_epic": "T-AUDIT-SG",
+            "pending_fingerprint_before": fingerprint_context(before),
+        }
+    )
+    save_epic_state(tmp_path, st)
+    write_last_finish_tool(
+        tmp_path,
+        "mb-finish audit",
+        fingerprint="deadbeef",
+        finished_step="AUDIT",
+        armed_after_finish="QA",
+    )
+    _write(
+        ".claude/runtime/spawn-gate/audit-qa-ok.json",
+        json.dumps({"mode": "audit", "need_verify": False, "need_reviewer": False}),
+        tmp_path,
+    )
+
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "audit-qa-ok",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH AUDIT: mb-finish audit done, Handoff QA.",
+            "stop_hook_active": False,
+        },
+    )
+    assert result.get("decision") != "block", result
+    assert "Handoff BACK AUDIT" not in str(result.get("reason") or "")
+
+
+def test_stop_gate_audit_blocks_qa_handoff_without_finish_tool(tmp_path: Path) -> None:
+    from epic.core import default_state, fingerprint_context, save_epic_state
+
+    before = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: AUDIT\n"
+        "epic_id: T-AUDIT-SG2\n"
+        "---\n\n"
+        "## load_now\n"
+        "- `memory-bank/back/audit/T-AUDIT-SG2/audit-001.yaml`\n\n"
+        "## Handoff BACK AUDIT\n"
+        "- gap\n"
+    )
+    after = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: QA\n"
+        "epic_id: T-AUDIT-SG2\n"
+        "---\n\n"
+        "## load_now\n"
+        "- `memory-bank/back/audit/T-AUDIT-SG2/audit-001.yaml`\n\n"
+        "## Handoff BACK QA\n"
+        "- **Дальше:** run qa\n"
+    )
+    _write("memory-bank/activeContext.md", after, tmp_path)
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "AUDIT",
+            "armed_step": "AUDIT",
+            "armed_epic": "T-AUDIT-SG2",
+            "pending_fingerprint_before": fingerprint_context(before),
+        }
+    )
+    save_epic_state(tmp_path, st)
+    _write(
+        ".claude/runtime/spawn-gate/audit-qa-block.json",
+        json.dumps({"mode": "audit"}),
+        tmp_path,
+    )
+
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "audit-qa-block",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH AUDIT without tool",
+            "stop_hook_active": False,
+        },
+    )
+    assert result.get("decision") == "block"
+    assert "mb-finish audit" in result.get("reason", "") or "Handoff BACK AUDIT" in result.get(
+        "reason", ""
+    )
+
+
 if __name__ == "__main__":
     pass

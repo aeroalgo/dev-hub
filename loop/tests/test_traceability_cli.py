@@ -123,13 +123,13 @@ def test_build_report_coverage_pct():
 def test_cli_exit0_clean_fixture(tmp_path: Path, monkeypatch):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
     plan_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-TEST.md").write_text(
-        "# Plan T-TEST\n\n| ID | Desc |\n| FR-001 | Test |\n"
+    (plan_dir / "plan.yaml").write_text(
+        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n"
     )
 
-    decomp_dir = plan_dir / "decompose-T-TEST"
+    decomp_dir = plan_dir / "steps"
     decomp_dir.mkdir()
     (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
 
@@ -140,13 +140,13 @@ def test_cli_exit0_clean_fixture(tmp_path: Path, monkeypatch):
 def test_cli_exit1_critical_finding(tmp_path: Path, monkeypatch):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
     plan_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-TEST.md").write_text(
-        "# Plan T-TEST\n\n| ID | Desc |\n| FR-001 | Test 1 |\n| FR-002 | Test 2 |\n"
+    (plan_dir / "plan.yaml").write_text(
+        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n  - id: FR-002\n"
     )
 
-    decomp_dir = plan_dir / "decompose-T-TEST"
+    decomp_dir = plan_dir / "steps"
     decomp_dir.mkdir()
     (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
 
@@ -164,13 +164,13 @@ def test_cli_exit2_missing_plan(tmp_path: Path, monkeypatch):
 def test_cli_json_output_valid(tmp_path: Path, monkeypatch, capsys):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
     plan_dir.mkdir(parents=True)
-    (plan_dir / "plan-T-TEST.md").write_text(
-        "# Plan T-TEST\n\n| ID | Desc |\n| FR-001 | Test 1 |\n"
+    (plan_dir / "plan.yaml").write_text(
+        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n"
     )
 
-    decomp_dir = plan_dir / "decompose-T-TEST"
+    decomp_dir = plan_dir / "steps"
     decomp_dir.mkdir()
     (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
 

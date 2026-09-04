@@ -55,15 +55,15 @@ steps:
   file: s10-migrate-apply-dev-hub.yaml
   title: Migrate apply на dev-hub memory-bank + validate-decompose-tree green
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s11
   file: s11-legacy-path-purge.yaml
   title: Legacy path purge — удалить hardcoded decompose-*/plan-*.md glob в loop/
     + harness/ + workflow rules update
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s12
   file: s12-tests-session-start-wire.yaml
   title: ≥25 pytest + session-start arm_phase auto-scaffold + FR-017 coverage
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

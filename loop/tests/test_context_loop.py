@@ -687,7 +687,7 @@ def test_prepare_degraded_when_load_now_empty(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(
         tmp_path,
-        "memory-bank/integration/plan/decompose-x/index.md",
+        "memory-bank/integration/plan/x/md/decompose-index.md",
         "| Step | Status |\n| **e16** | pending |\n",
     )
     _write(
@@ -700,7 +700,7 @@ def test_prepare_degraded_when_load_now_empty(tmp_path: Path) -> None:
     assert out.get("degraded") is True
     prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
     assert "Context degraded" in prompt
-    assert "decompose-x/index.md" in prompt
+    assert "decompose-index.md" in prompt
 
 
 def test_prepare_degraded_when_shape_broken(tmp_path: Path) -> None:

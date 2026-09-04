@@ -4,8 +4,7 @@ step_id: s10
 plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
 title: s10 — Migrate apply на dev-hub memory-bank + validate-decompose-tree green
   IMPLEMENT
-status: in_progress
-implement_index: ''
+status: completed
 date: '2026-09-03'
 decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s10-migrate-apply-dev-hub.yaml
 skills_used: []
@@ -13,7 +12,8 @@ discovery: []
 gaps:
   status: none
 done:
-- Applied migrate script (loop/migrate/epic_layout_v1_to_v2.py) across dev-hub memory-bank with --apply --force.
+- Applied migrate script (loop/migrate/epic_layout_v1_to_v2.py) across dev-hub memory-bank
+  with --apply --force.
 - Added mb-migrate subparser in harness/hooks/epic_resolve.py for CLI execution.
 - Verified all 58 epics migrated to layout v2 without errors.
 - Confirmed validate-decompose-tree and harness/hooks/tests suite green.
@@ -38,7 +38,8 @@ grep_control:
 - back: python3 harness/hooks/epic_resolve.py mb-migrate --dry-run
   front: ''
 verification_results:
-- cp1 done dry-run on dev-hub memory-bank 0 errors before apply, 0 unmigrated after apply
+- cp1 done dry-run on dev-hub memory-bank 0 errors before apply, 0 unmigrated after
+  apply
 - cp2 done T-HUB-047/yaml/steps/ exists
 - cp3 done validate-decompose-tree exit 0 on migrated epics
 - cp4 done harness/hooks/tests/ green (7 passed)

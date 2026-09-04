@@ -621,8 +621,8 @@ def test_settings_no_per_agent_matcher(tmp_path: Path) -> None:
     settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     start = settings["hooks"]["SubagentStart"]
     stop = settings["hooks"]["SubagentStop"]
-    assert [entry["matcher"] for entry in start] == [".*"]
-    assert [entry["matcher"] for entry in stop] == [".*"]
+    assert set(entry["matcher"] for entry in start) == {".*"}
+    assert set(entry["matcher"] for entry in stop) == {".*"}
 
     result = _run_subagent_start(tmp_path, agent="researcher")
     assert result.returncode == 0

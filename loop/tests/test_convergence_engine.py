@@ -88,6 +88,7 @@ def test_orphan_req_wrapping(tmp_path: Path):
     decomp_dir.mkdir(parents=True)
 
     (plan_dir / "plan-T-HUB-TEST.md").write_text("Requirement FR-999 is uncovered", encoding="utf-8")
+    (plan_dir / "plan-T-HUB-TEST.yaml").write_text("schema: epic-plan/v1\nplan_id: T-HUB-TEST\nrequirements:\n  - id: FR-999\n", encoding="utf-8")
     (decomp_dir / "index.yaml").write_text("plan_id: T-HUB-TEST\nsteps:\n  - id: s01\n    file: s01.yaml\n", encoding="utf-8")
     (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: []\n", encoding="utf-8")
 

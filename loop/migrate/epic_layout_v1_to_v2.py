@@ -16,10 +16,13 @@ Layout v2:
   memory-bank/{role}/plan/{epic_id}/md/decompose-index.md
   memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml
   memory-bank/{role}/plan/{epic_id}/yaml/steps/sNN-*.yaml
-  memory-bank/{role}/implement/{epic_id}/yaml/steps/sNN-*.yaml
-  memory-bank/{role}/qa/{epic_id}/yaml/qa.yaml
-  memory-bank/{role}/analyze/{epic_id}/yaml/analyze.yaml
-  memory-bank/{role}/audit/{epic_id}/yaml/audit.yaml
+  memory-bank/{role}/implement/{epic_id}/sNN-*.yaml
+  memory-bank/{role}/qa/{epic_id}/qa.yaml
+  memory-bank/{role}/analyze/{epic_id}/analyze.yaml
+  memory-bank/{role}/audit/{epic_id}/audit.yaml
+
+Note: yaml/md split applies ONLY to plan/decompose. Other phases keep files
+directly under ``{phase}/{epic_id}/``.
 """
 
 import argparse
@@ -203,30 +206,30 @@ def migrate_epic(
                 planned_moves.append((child, v2_steps_dir / child.name))
         cleanup_dirs.append(v1_decomp_dir)
 
-    # 3. Implement dir
+    # 3. Implement dir → implement/{epic_id}/sNN-*.yaml (no yaml/steps)
     v1_impl_dir = base / "implement" / f"implement-{epic_id}"
     if v1_impl_dir.exists() and v1_impl_dir.is_dir():
-        v2_impl_steps_dir = base / "implement" / epic_id / "yaml" / "steps"
+        v2_impl_dir = base / "implement" / epic_id
         for child in v1_impl_dir.iterdir():
             if child.is_file():
-                planned_moves.append((child, v2_impl_steps_dir / child.name))
+                planned_moves.append((child, v2_impl_dir / child.name))
         cleanup_dirs.append(v1_impl_dir)
 
-    # 4. QA yaml
+    # 4. QA yaml → qa/{epic_id}/qa.yaml (no yaml/ subdir)
     v1_qa_yaml = base / "qa" / f"qa-{epic_id}.yaml"
-    v2_qa_yaml = base / "qa" / epic_id / "yaml" / "qa.yaml"
+    v2_qa_yaml = base / "qa" / epic_id / "qa.yaml"
     if v1_qa_yaml.exists():
         planned_moves.append((v1_qa_yaml, v2_qa_yaml))
 
-    # 5. Analyze yaml
+    # 5. Analyze yaml → analyze/{epic_id}/analyze.yaml
     v1_analyze_yaml = base / "analyze" / f"analyze-{epic_id}.yaml"
-    v2_analyze_yaml = base / "analyze" / epic_id / "yaml" / "analyze.yaml"
+    v2_analyze_yaml = base / "analyze" / epic_id / "analyze.yaml"
     if v1_analyze_yaml.exists():
         planned_moves.append((v1_analyze_yaml, v2_analyze_yaml))
 
-    # 6. Audit yaml
+    # 6. Audit yaml → audit/{epic_id}/audit.yaml
     v1_audit_yaml = base / "audit" / f"audit-{epic_id}.yaml"
-    v2_audit_yaml = base / "audit" / epic_id / "yaml" / "audit.yaml"
+    v2_audit_yaml = base / "audit" / epic_id / "audit.yaml"
     if v1_audit_yaml.exists():
         planned_moves.append((v1_audit_yaml, v2_audit_yaml))
 
@@ -242,7 +245,7 @@ def migrate_epic(
         (f"decompose-{epic_id}/index.md", f"{epic_id}/md/decompose-index.md"),
         (f"decompose-{epic_id}/index.yaml", f"{epic_id}/yaml/decompose-index.yaml"),
         (f"decompose-{epic_id}/", f"{epic_id}/yaml/steps/"),
-        (f"implement-{epic_id}/", f"{epic_id}/yaml/steps/"),
+        (f"implement-{epic_id}/", f"{epic_id}/"),
     ]
 
     if not dry_run:

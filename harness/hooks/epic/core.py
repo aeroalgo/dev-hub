@@ -3159,13 +3159,21 @@ def latest_qa_pass_artifact_for_reference(
         d = root / "qa" / epic_id if epic_id else root / "qa"
         if not d.is_dir():
             continue
+        v2_qa = d / "yaml" / "qa.yaml"
+        if v2_qa.is_file():
+            try:
+                text = v2_qa.read_text(encoding="utf-8", errors="replace")
+                if re.search(r"(?m)^status:\s*pass\s*$", text) or re.search(r"(?m)^verdict:\s*pass\s*$", text):
+                    hits.append(v2_qa)
+            except OSError:
+                pass
         glob_pattern = "qa-*.yaml" if epic_id else "**/qa-*.yaml"
         for p in sorted(d.glob(glob_pattern), reverse=True):
             try:
                 text = p.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            if re.search(r"(?m)^verdict:\s*pass\s*$", text):
+            if re.search(r"(?m)^verdict:\s*pass\s*$", text) or re.search(r"(?m)^status:\s*pass\s*$", text):
                 hits.append(p)
         if hits:
             break
@@ -3181,9 +3189,13 @@ def latest_audit_artifact_for_reference(
         d = root / "audit" / epic_id if epic_id else root / "audit"
         if not d.is_dir():
             continue
+        canon = d / "audit.yaml"
+        if canon.is_file():
+            hits.append(canon)
         glob_pattern = "audit-*.yaml" if epic_id else "**/audit-*.yaml"
         for p in sorted(d.glob(glob_pattern), reverse=True):
-            hits.append(p)
+            if p not in hits:
+                hits.append(p)
         if hits:
             break
     return hits[0] if hits else None
@@ -3198,9 +3210,13 @@ def latest_qa_any_artifact_for_reference(
         d = root / "qa" / epic_id if epic_id else root / "qa"
         if not d.is_dir():
             continue
+        canon = d / "qa.yaml"
+        if canon.is_file():
+            hits.append(canon)
         glob_pattern = "qa-*.yaml" if epic_id else "**/qa-*.yaml"
         for p in sorted(d.glob(glob_pattern), reverse=True):
-            hits.append(p)
+            if p not in hits:
+                hits.append(p)
         if hits:
             break
     return hits[0] if hits else None

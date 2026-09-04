@@ -1,0 +1,41 @@
+---
+schema: loop-qa-report/v1
+epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
+role: BACK
+date: '2026-09-04'
+verdict: pass
+suite_results:
+  command: "bin/pytest -q --tb=line"
+  passed: 1717
+  skipped: 3
+  warnings: 71
+  status: green
+evidence:
+  s01: "loop/schemas/plan_spec.py + loop/schemas/epic_layout_schema.py (epic-plan/v1 + epic-layout/v2)"
+  s02: "loop/paths/epic_layout.py (EpicLayoutKind resolver v2)"
+  s03: "loop/mb_scaffold/ (scaffold functions for all lifecycle phases)"
+  s04: "harness/hooks/epic_resolve.py (mb-scaffold CLI subparser)"
+  s05: "loop/migrate/epic_layout_v1_to_v2.py (migration tool with dry-run/apply)"
+  s06: "harness/hooks/epic/paths.py + harness/hooks/_lib.py + mb_finish resolver wiring"
+  s07: "loop/context_loop.py + loop/epic_transition.py resolver wiring"
+  s08: "harness/hooks/epic/traceability.py (primary plan.yaml inventory)"
+  s09: "loop/mb_scaffold/decompose.py (--formula flag support)"
+  s10: "memory-bank/ layout v2 migration applied across dev-hub"
+  s11: "Purged legacy v1 globs from harness and workflow rules"
+  s12: "pytest suite green (1717 passed, 3 skipped)"
+gate_verdict:
+  schema: loop-gate-verdict/v1
+  agent_id: verify-qa
+  verdict: pass
+  recorded_at: "2026-09-04T01:35:00Z"
+---
+
+# QA Report: T-HUB-047-harness-mb-scaffold-epic-layout
+
+Все требования эпика T-HUB-047 полностью реализованы, протестированы и проверены:
+- Разрешитель путей `loop/paths/epic_layout.py` реализует layout v2 как единый источник правды.
+- Пакет `loop/mb_scaffold/` и CLI `mb-scaffold` обеспечивают скаффолдинг всех фаз (plan, decompose, implement, qa, analyze, audit).
+- Утилита миграции успешно перевела `memory-bank` репозитория на иерархическую структуру v2.
+- Рендеринг формул интегрирован в `mb-scaffold decompose --formula`.
+- Тестовый сьют репозитория полностью зелёный (1717 passed, 3 skipped).
+- Gate `@verify-qa` вынес вердикт `PASS`.

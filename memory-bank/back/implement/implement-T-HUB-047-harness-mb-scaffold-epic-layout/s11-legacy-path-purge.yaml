@@ -1,0 +1,72 @@
+schema: epic-implement/v1
+role: back
+step_id: s11
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s11 — Legacy path purge — удалить hardcoded decompose-*/plan-*.md glob в loop/
+  + harness/ + workflow rules update IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s11-legacy-path-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удален md fallback из harness/hooks/epic/traceability.py
+- Удалена standalone deprecation из loop/formula_render.py
+- Добавлен regression guard test_no_hardcoded_paths.py
+- Обновлены workflow rules и templates под layout v2 (.cursor/rules, .cursor/templates,
+  loop/YAML-CONTRACT.md, harness/claude/rules/plan-artifact.md)
+- Все тесты зеленые
+files:
+- harness/hooks/epic/traceability.py
+- loop/formula_render.py
+- harness/hooks/tests/test_no_hardcoded_paths.py
+- harness/hooks/tests/test_validate_traceability.py
+- loop/board_sync/scan_mb.py
+- loop/incidents/scope.py
+- loop/tests/test_traceability_cli.py
+- loop/tests/test_traceability_integration.py
+- loop/tests/test_traceability_parsers.py
+- loop/tests/fixtures/traceability/plan.yaml
+- .cursor/rules/back_developer/workflow-decompose.mdc
+- .cursor/rules/back_developer/workflow-plan.mdc
+- .cursor/rules/back_developer/workflow-implement.mdc
+- .cursor/rules/shared/epic-scoped-paths.mdc
+- .cursor/rules/shared/memory-bank-paths.mdc
+- .cursor/templates/decompose/epic-step.yaml
+- loop/YAML-CONTRACT.md
+- harness/claude/rules/plan-artifact.md
+deletes:
+- harness/hooks/tests/test_formula_render_deprecated.py
+tests:
+- '`bin/pytest harness/hooks/tests/test_no_hardcoded_paths.py -q`'
+- '`bin/pytest harness/hooks/tests/test_validate_traceability.py -q`'
+- '`bin/pytest loop/tests/test_traceability_cli.py -q`'
+- '`bin/pytest loop/tests/test_traceability_integration.py -q`'
+- '`bin/pytest loop/tests/test_traceability_parsers.py -q`'
+integration_check:
+- 'Grep checks empty: rg ''decompose-'' loop/ | test_no_hardcoded_paths green'
+- Traceability and formula tests pass without deprecated fallbacks
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'rg gate: rg ''decompose-'' loop/ harness/ --include=''*.py'' | grep
+    -v ''#\|test\|deprecated'' → 0'
+  status: done
+  done_at: '2026-09-03T21:43:23Z'
+- id: cp2
+  criterion: 'workflow-decompose.mdc содержит ''FORBIDDEN: Write sNN-*.yaml from scratch'''
+  status: done
+  done_at: '2026-09-03T21:43:24Z'
+- id: cp3
+  criterion: 'validate_traceability.py: rg ''md.*fallback\|fallback.*md\|regex.*plan-.*md''
+    → 0'
+  status: done
+  done_at: '2026-09-03T21:43:24Z'
+- id: cp4
+  criterion: full test suite green после purge
+  status: done
+  done_at: '2026-09-03T21:43:25Z'
+resume_from: cp1

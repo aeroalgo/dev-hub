@@ -1,19 +1,12 @@
-"""Formula render module for generating decompose directory draft from formula."""
+"""Formula render helper library for generating decompose directory draft from formula."""
 
 from __future__ import annotations
 
 import sys
-import warnings
 from pathlib import Path
 import yaml
 
 from loop.schemas.formula import load_formula, DecomposeFormula, FormulaStep
-
-warnings.warn(
-    "layout_v1_deprecated: use mb-scaffold decompose --formula",
-    DeprecationWarning,
-    stacklevel=2,
-)
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = ROOT / ".cursor" / "templates" / "decompose"

@@ -57,10 +57,9 @@ class TraceReport:
 
 
 def parse_plan_requirements(plan_path: Path) -> list[str]:
-    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.yaml (primary) or plan.md (fallback).
+    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.yaml.
 
     If plan_path is a yaml file or if a corresponding plan.yaml exists, parse PlanSpec.requirements.
-    If only markdown exists, emit DeprecationWarning('layout_v1_deprecated') and fallback to regex.
     Robust to missing file or missing requirements (returns []).
     """
     if not plan_path.exists() or not plan_path.is_file():
@@ -91,36 +90,16 @@ def parse_plan_requirements(plan_path: Path) -> list[str]:
             return []
 
     # Check if a sibling / equivalent plan.yaml exists
-    # e.g., plan.md in md/ -> check ../yaml/plan.yaml
+    # e.g., plan.md in md/ -> check ../yaml/plan.yaml or sibling plan-*.yaml
     if plan_path.name == "plan.md" and plan_path.parent.name == "md":
         sibling_yaml = plan_path.parent.parent / "yaml" / "plan.yaml"
         if sibling_yaml.is_file():
             return parse_plan_requirements(sibling_yaml)
+    elif plan_path.with_suffix(".yaml").is_file():
+        return parse_plan_requirements(plan_path.with_suffix(".yaml"))
 
-    # Md fallback: emit DeprecationWarning and parse via regex
-    warnings.warn(
-        f"layout_v1_deprecated: regex parsing markdown plan {plan_path.name} is deprecated; use plan.yaml",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    logger.warning("layout_v1_deprecated: parsing plan.md fallback for %s", plan_path)
-
-    try:
-        content = plan_path.read_text(encoding="utf-8")
-    except Exception:
-        return []
-
-    # Matches FR-001, SC-001, US-001 etc.
-    raw_matches = re.findall(r"\b((?:FR|SC|US)-\d{3,4})\b", content)
-
-    requirements: list[str] = []
-    seen: set[str] = set()
-    for req in raw_matches:
-        if req not in seen:
-            seen.add(req)
-            requirements.append(ReqID(req))
-
-    return requirements
+    # If plan_path is not YAML, return empty list (markdown parsing is purged in v2)
+    return []
 
 
 def parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace]:

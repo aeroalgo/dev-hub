@@ -108,6 +108,6 @@
 | **s07** | Loop integration — context_loop/arm_phase/finalize_step/janitor → resolver only (zero hardcoded paths) · [yaml](s07-loop-resolver-wire.yaml) | BACK IMPLEMENT | completed |
 | **s08** | validate-traceability primary inventory from plan.yaml (удалить md fallback) · [yaml](s08-validate-traceability-yaml.yaml) | BACK IMPLEMENT | completed |
 | **s09** | formula-render merged into mb-scaffold decompose --formula (deprecate standalone) · [yaml](s09-formula-render-merge.yaml) | BACK IMPLEMENT | completed |
-| **s10** | Migrate apply на dev-hub memory-bank + validate-decompose-tree green · [yaml](s10-migrate-apply-dev-hub.yaml) | BACK IMPLEMENT | pending |
-| **s11** | Legacy path purge — удалить hardcoded decompose-*/plan-*.md glob в loop/ + harness/ + workflow rules update · [yaml](s11-legacy-path-purge.yaml) | BACK IMPLEMENT | pending |
-| **s12** | ≥25 pytest + session-start arm_phase auto-scaffold + FR-017 coverage · [yaml](s12-tests-session-start-wire.yaml) | BACK IMPLEMENT | pending |
+| **s10** | Migrate apply на dev-hub memory-bank + validate-decompose-tree green · [yaml](s10-migrate-apply-dev-hub.yaml) | BACK IMPLEMENT | completed |
+| **s11** | Legacy path purge — удалить hardcoded decompose-*/plan-*.md glob в loop/ + harness/ + workflow rules update · [yaml](s11-legacy-path-purge.yaml) | BACK IMPLEMENT | completed |
+| **s12** | ≥25 pytest + session-start arm_phase auto-scaffold + FR-017 coverage · [yaml](s12-tests-session-start-wire.yaml) | BACK IMPLEMENT | completed |

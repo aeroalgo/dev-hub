@@ -30,10 +30,15 @@ def test_build_allowlist(tmp_path: Path) -> None:
 
     allowlist = build_allowlist(incident, project_root)
 
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
+
+    plan_step = resolve(role="back", epic_id="T-HUB-018", kind=EpicLayoutKind.DECOMPOSE_STEP, step_id="s03", project_root=project_root)
+    impl_step = resolve(role="back", epic_id="T-HUB-018", kind=EpicLayoutKind.IMPLEMENT_STEP, step_id="s03", project_root=project_root)
+
     expected = [
         str((project_root / "memory-bank" / "activeContext.md").resolve()),
-        str((project_root / "memory-bank" / "back" / "plan" / "decompose-T-HUB-018" / "s03").resolve()),
-        str((project_root / "memory-bank" / "back" / "implement" / "implement-T-HUB-018" / "s03").resolve()),
+        str(plan_step.resolve()),
+        str(impl_step.resolve()),
         str((project_root / "runtime" / "inc123" / "epic").resolve()),
     ]
     assert sorted(allowlist) == sorted(expected)

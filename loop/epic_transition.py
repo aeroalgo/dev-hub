@@ -160,6 +160,16 @@ def arm_phase(
             decompose_rel=decompose_rel,
         )
     elif phase_u == "DECOMPOSE" or phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
+        if phase_u == "DECOMPOSE":
+            from loop.paths.epic_layout import resolve, EpicLayoutKind
+            cwd_p = Path(cwd).resolve()
+            yaml_idx = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
+            md_idx = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
+            if not yaml_idx.is_file() and not md_idx.is_file():
+                plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=cwd_p)
+                if plan_yaml.is_file():
+                    from loop.mb_scaffold.scaffold_decompose import scaffold_decompose
+                    scaffold_decompose(epic_id=epic_id, role=role, project_root=cwd_p)
         if decompose_rel:
             res = arm_active_context_from_decompose(cwd, decompose_rel)
         elif phase_u == "DECOMPOSE":
@@ -271,6 +281,14 @@ def promote_if_ready(
             v2_md = resolve(role_dir, epic, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
             if v2_md.is_file():
                 idx_path = v2_md
+    if idx_path is None or not idx_path.is_file():
+        try:
+            from roadmap_queue import find_decompose_index
+            found = find_decompose_index(cwd_p, role_dir, epic)
+            if found and Path(found).is_file():
+                idx_path = Path(found)
+        except Exception:
+            pass
     if idx_path is None or not idx_path.is_file():
         return None
 

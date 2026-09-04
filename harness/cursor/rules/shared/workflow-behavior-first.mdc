@@ -92,6 +92,55 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 
 ---
 
+## 3a. DECOMPOSE granularity — outcome-first (HARD)
+
+**Проблема:** нарезка «один слой ladder / один файл / один audit = один sNN» раздувает эпик (часто 11–15 шагов) без роста coverage. Portfolio norm ≈ **5–8** sNN; fat-хвост — anti-pattern.
+
+**Одной фразой:** *Maximal detail = полнота coverage и глубина внутри sNN, не максимальное число sNN.*
+
+### Band (BACK / FRONT `sNN`)
+
+| | |
+|---|---|
+| Target | **5–8** sNN |
+| L3/L4 + migrate/enforce | **до 8–9** |
+| Soft FAIL | **`>9`** без justification в `index.md` (blast radius / apply≠purge / отдельный enforce) |
+| HARD FAIL | отказ добавить sNN из‑за «много шагов», если FR/AC/NFR/sunset непокрыт |
+
+Plan outline / Appetite `~N sNN` = **floor**, не ceiling и **не** повод резать до 10–12 «на всякий».
+
+**INTEG `eNN`:** band **не** схлопывает Element registry (1 element = 1 eNN). Запрет тот же: **не** layer-first micro-split одного element; audit/docs хвосты — один eNN.
+
+### Сливать по умолчанию
+
+| Слить | В один sNN когда |
+|-------|------------------|
+| schema + resolver/paths | один path/contract boundary |
+| core module + CLI | один deliverable operator invoke |
+| harness wire + loop wire | один resolver/SoT, разные call-sites |
+| audit-* хвост | **один** sNN (несколько cp / TM), не s08…s15 audit |
+| docs + Kind I rewrite | один instruction surface pass |
+| TDD / pytest | внутри шага `tdd`/`checkpoints`, не финальный «ещё tests» sNN без нового behavior |
+
+### Не сливать
+
+| Держать отдельно | Почему |
+|------------------|--------|
+| migrate **script** ≠ migrate **apply** | разный blast radius |
+| migrate **apply** ≠ **purge** | apply → green → fail-closed purge |
+| enforce / rg-gate при большом blast radius | отдельный verify, что старый путь DENY |
+| wire с несовместимыми rollback | нельзя откатить одним шагом |
+
+### FORBIDDEN (micro-ladder)
+
+- schema → core → CLI → harness-wire → loop-wire → docs → tests → purge как **восемь** sNN без отдельных outcome
+- отдельный sNN на каждый `finish_<mode>` / каждый audit finding class без отдельного product outcome
+- «лимит шагов» как оправдание дыры в Requirements/Stages/Replacement coverage
+
+Category finding (ANALYZE): `layout_dilution` соседствует; granularity = `step_granularity` (слишком много sNN без justification / micro-ladder).
+
+---
+
 ## 4. SoT uniqueness — запрет «available but optional»
 
 Для любой границы из Technology axiom / machine contract:

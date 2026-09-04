@@ -20,7 +20,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "traceability"
 
 
 def test_parse_plan_requirements_extracts_fr_sc_us():
-    plan_path = FIXTURES_DIR / "plan.md"
+    plan_path = FIXTURES_DIR / "plan.yaml"
     reqs = parse_plan_requirements(plan_path)
     assert reqs == ["FR-001", "FR-002", "FR-003", "FR-004"]
 

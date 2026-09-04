@@ -2,13 +2,14 @@
 paths:
   - "memory-bank/**/plan-*.md"
   - "memory-bank/**/plan/decompose-*/**"
+  - "memory-bank/**/plan/**"
   - "memory-bank/**/gap/gap-*.md"
   - "memory-bank/**/plan-*-GAP-*.md"
-  - "memory-bank/back/plan/plan-*.md"
-  - "memory-bank/front/plan/plan-*.md"
-  - "memory-bank/integration/plan/plan-*.md"
-  - "memory-bank/**/security/plan/plan-*.md"
-  - "memory-bank/**/refactor/plan/plan-*.md"
+  - "memory-bank/back/plan/**"
+  - "memory-bank/front/plan/**"
+  - "memory-bank/integration/plan/**"
+  - "memory-bank/**/security/plan/**"
+  - "memory-bank/**/refactor/plan/**"
   - "memory-bank/architecture/**"
 ---
 

@@ -657,3 +657,37 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
     assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" in ac
     assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
     assert "decompose-T-HUB-023/" not in ac
+
+
+def test_plan_path_resolves_layout_v2(tmp_path: Path) -> None:
+    rq = _load_rq()
+    v2 = (
+        tmp_path
+        / "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md"
+    )
+    v2.parent.mkdir(parents=True)
+    v2.write_text("# plan v2\n", encoding="utf-8")
+    found = rq.plan_path(
+        tmp_path, "back", "plan-T-HUB-048-workflow-pack-registry.md"
+    )
+    assert found == v2
+    assert found.is_file()
+
+
+def test_resolve_entry_accepts_layout_v2_plan(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md",
+        "# plan\n",
+    )
+    entry = rq.resolve_entry(
+        tmp_path,
+        role="back",
+        epic_id="T-HUB-048",
+        plan_name="plan-T-HUB-048-workflow-pack-registry.md",
+    )
+    assert entry["ok"] is True, entry
+    assert entry.get("stop") != "NEED_HUMAN: no_plan for T-HUB-048"
+    assert entry["phase"] == "DECOMPOSE"
+    assert entry["epic"] == "T-HUB-048-workflow-pack-registry"

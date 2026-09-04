@@ -3,6 +3,7 @@
 import hashlib
 from pathlib import Path
 from harness.hooks.epic.core import (
+    _append_event,
     atomic_write_text,
     epic_id_from_decompose_path,
     extract_load_now,
@@ -194,6 +195,8 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     if role_dir == "integ":
         role_dir = "integration"
     if epic_id:
+        qa_kind = "qa_fail" if qa_verdict in {"fail", "blocked"} else "qa_pass"
+        _append_event(cwd, role_dir, epic_id, qa_kind, qa_art)
         reconcile_epic_events(cwd, role_dir, epic_id)
 
     sync_cursor_from_index(cwd)
@@ -860,34 +863,40 @@ def finish_audit(
             shape_errors=[str(exc)],
         )
 
-    from loop.epic_transition import promote_if_ready
-    promote_if_ready(cwd, epic_id, role)
+    if role_dir == "integ":
+        role_dir = "integration"
+    if epic_id:
+        _append_event(cwd, role_dir, epic_id, "audit_done", audit_art)
+        reconcile_epic_events(cwd, role_dir, epic_id)
+
+    st_after = load_epic_state(cwd)
+    st_after["armed_step"] = "QA"
+    st_after["phase"] = "QA"
+    st_after["active"] = True
+    st_after["status"] = "running"
+    st_after["halt_reason"] = None
+    save_epic_state(cwd, st_after)
 
     sync_cursor_from_index(cwd)
 
     fp_data = f"audit:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
 
-    st_after = load_epic_state(cwd)
-    next_step = st_after.get("armed_step")
-    next_phase = st_after.get("phase")
-    epic_done = not st_after.get("active") and st_after.get("status") == "complete"
-
     write_last_finish_tool(
         cwd,
         "mb-finish audit",
         fp,
         finished_step="AUDIT",
-        armed_after_finish=str(next_step) if next_step else None,
+        armed_after_finish="QA",
     )
 
     return MbFinishResult(
         ok=True,
         active_context=rendered,
         finished_step="AUDIT",
-        next_step=next_step,
-        next_phase=next_phase,
-        epic_done=epic_done,
+        next_step="QA",
+        next_phase="QA",
+        epic_done=False,
     )
 
 

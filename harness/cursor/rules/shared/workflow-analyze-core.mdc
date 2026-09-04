@@ -20,19 +20,20 @@ alwaysApply: false
 6. **Optional-SoT / completeness ladder (HARD)** — FR обещает sole/единый machine path, смену контракта границы, или Technology axiom replace, а очередь: (a) только add без wire и/или enforce; (b) wording optional/soft/preferred / enforce-off default без follow-up epic ID в queue; (c) нет Kind I / instruction rewrite при смене формата границы; (d) нет `*-legacy-fallback-purge` при sunset ≠ n/a. Category: `optional_sot`. P0/P1 → CRITICAL; иначе HIGH. Канон: behavior-first §3–§4 · legacy-fallback-cleanup §2.1a.
 7. **Layout dilution (HARD)** — (a) path nodes из plan **Target layout** / tree (NEW/SoT/`git mv` dest) не ∈ step `produces`/`files`/`deletes` и нет `out_of_scope`+`follow_up:`+ID ∈ `roadmap-*.queue.yaml`; (b) Requirements coverage Notes: `deferred`/`partial`/`leave for later` без queue ID; (c) Appetite/Product probe «Cut: X» при X всё ещё в Target layout/FR/AC; (d) index remaps FR «Кратко», отбрасывая plan nouns — category `layout_dilution` **и** `FR remap`. → CRITICAL. Канон: behavior-first §1a.
 8. **FR remap (HARD)** — coverage/index колонка Requirements переписывает plan FR (другой title / урезанные nouns / перенумерация). Category: `FR remap` / `layout_dilution`. → CRITICAL. Inventory ANALYZE = **полный текст plan FR**, не remapped «Кратко».
-9. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
-10. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
+9. **Step granularity** — BACK/FRONT: `>9` sNN без justification в index; или micro-ladder (schema→core→CLI→wire×N→docs→tests как отдельные sNN без отдельных outcome); или audit-* хвост >1 sNN без product outcome. INTEG: layer-first micro-split одного element. Category: `step_granularity`. → **HIGH** (не блокирует IMPLEMENT сам по себе). Канон: behavior-first §3a.
+10. **Inconsistency** — drift терминологии между FR и step title, разные имена сущности или несовместимый порядок этапов.
+11. **Constitution** — только если существует `memory-bank/constitution.md`: MUST violations получают отдельные findings; при отсутствии файла pass пропускается без ошибки (если файл создан seed-constitution — pass работает автоматически).
 
 Для каждого finding фиксируй category, severity, message и plan/step reference. Не выдавай предположение как факт: если связь не доказана входными артефактами, отмечай её как gap для уточнения.
 
 ## Severity heuristic
 
 - **CRITICAL** — отсутствует core P1/FR; нерешённый CRITICAL marker; **dilution**, **optional_sot**, **layout_dilution** или **FR remap**; IMPLEMENT нельзя начинать.
-- **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps, отсутствует обязательный acceptance path, dilution/optional_sot non-P1.
+- **HIGH** — покрытие ниже 80%, более трёх существенных HIGH gaps, отсутствует обязательный acceptance path, dilution/optional_sot non-P1, **step_granularity**.
 - **MEDIUM** — non-core gap, частичное покрытие или неоднозначность, которую можно закрыть до cutover.
 - **LOW** — naming/style drift без влияния на decomposition, tests или runtime behavior.
 
-`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`.
+`metrics.coverage_pct` показывает долю requirements со статусом `covered`; `critical_count`, `high_count` и `findings_total` должны совпадать с массивами отчёта. `recommendation` = `IMPLEMENT` только при нулевом CRITICAL (**включая Dilution, Optional-SoT, Layout dilution, FR remap**); иначе `fix (CLARIFY | PLAN | DECOMPOSE)`. **step_granularity** = HIGH → IMPLEMENT допустим, но DECOMPOSE lean preferred на следующем эпике.
 
 **Promote:** `ANALYZE deferred` **FORBIDDEN** как путь в IMPLEMENT. Только artifact `critical_count=0`.
 

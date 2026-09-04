@@ -12,4 +12,5 @@ alwaysApply: false
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → full: @.cursor/rules/back_developer/workflow-plan.mdc  
-→ Appetite = timebox + cut_list only (не cap sNN)
+→ Appetite = timebox + cut_list only (не hard cap sNN)  
+→ outline / advisory floor: target band **5–8** sNN (L3/L4 ≤9); не раздувать draft до 10–12 «на всякий» — @.cursor/rules/shared/workflow-behavior-first.mdc §3a

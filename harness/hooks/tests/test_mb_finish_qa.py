@@ -53,6 +53,36 @@ def test_finish_qa_happy(tmp_path: Path):
     assert "mode: DONE" in written
     assert "## Handoff BACK DONE" in written
 
+    events = (
+        tmp_path / "memory-bank" / "back" / "events" / "T-HUB-040" / "events.jsonl"
+    )
+    assert events.is_file()
+    assert any(
+        '"kind": "qa_pass"' in line or '"kind":"qa_pass"' in line
+        for line in events.read_text(encoding="utf-8").splitlines()
+    )
+
+
+def test_finish_qa_v2_layout_path_emits_qa_pass(tmp_path: Path):
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040" / "yaml"
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    (qa_dir / "qa.yaml").write_text("verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8")
+    save_epic_state(tmp_path, {"armed_epic": "T-HUB-040", "armed_role": "BACK"})
+
+    res = finish_qa(
+        MbFinishRequest(
+            phase="BACK QA",
+            step_id="s05",
+            done_summary="qa v2",
+            cwd=str(tmp_path),
+        )
+    )
+    assert res.ok is True, res.diagnostic_codes
+    events = tmp_path / "memory-bank" / "back" / "events" / "T-HUB-040" / "events.jsonl"
+    body = events.read_text(encoding="utf-8")
+    assert "qa_pass" in body
+    assert "yaml/qa.yaml" in body
+
 
 def test_finish_qa_handoff(tmp_path: Path):
     """cp3 / TM-006: finish_qa results in REFLECT handoff in activeContext."""

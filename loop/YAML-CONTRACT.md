@@ -18,12 +18,18 @@ python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <dec
 
 Шаг YAML = ТЗ агенту (цель, файлы, tests).
 
-## Decompose index — yaml канон, md зеркало
+## Layout v2 & Decompose index — yaml канон, md зеркало
 
-| Файл | Роль |
+| Файл (Layout v2) | Роль |
 |------|------|
-| `plan/decompose-*/index.yaml` | **единственный SoT** очереди + `status`; prepare / identity / IMPLEMENT |
-| `plan/decompose-*/index.md` | human coverage (DECOMPOSE/AUDIT); status = best-effort зеркало |
+| `plan/<epic_id>/yaml/decompose-index.yaml` | **единственный SoT** очереди + `status`; prepare / identity / IMPLEMENT |
+| `plan/<epic_id>/md/decompose-index.md` | human coverage (DECOMPOSE/AUDIT); status = best-effort зеркало |
+| `plan/<epic_id>/yaml/steps/sNN-*.yaml` | decompose step shards |
+| `implement/<epic_id>/yaml/steps/sNN-*.yaml` | implement step shards |
+
+**Scaffold contract (HARD):**
+- Scaffolding шагов выполняется исключительно через `mb-scaffold` (`mb-scaffold plan`, `mb-scaffold decompose`, `mb-scaffold implement`).
+- **FORBIDDEN:** Write scaffolded step files from scratch (только Edit).
 
 Курсор = `activeContext.md` + `index.yaml` + step yaml.  
 Md **не** fail-closed gate. Рассинхрон → deterministic `repair-index-mirror` (prepare/check_after вызывают автоматически; CLI вручную).

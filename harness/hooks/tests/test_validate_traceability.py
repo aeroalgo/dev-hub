@@ -89,7 +89,7 @@ plan_contract:
 
 
 def test_md_fallback_deprecated(tmp_path: Path):
-    """cp3: no plan.yaml -> DeprecationWarning('layout_v1_deprecated') + fallback; no crash."""
+    """Post-purge: markdown files return empty requirements list (md fallback purged)."""
     plan_md_path = tmp_path / "plan.md"
     plan_md_path.write_text("""# Plan Test
 | ID | Desc |
@@ -97,10 +97,8 @@ def test_md_fallback_deprecated(tmp_path: Path):
 | FR-002 | Second requirement |
 """)
 
-    with pytest.deprecated_call(match=r"layout_v1_deprecated.*regex parsing markdown plan"):
-        reqs = parse_plan_requirements(plan_md_path)
-
-    assert reqs == ["FR-001", "FR-002"]
+    reqs = parse_plan_requirements(plan_md_path)
+    assert reqs == []
 
 
 def test_cli_v2_plan_yaml_primary(tmp_path: Path, monkeypatch, capsys):

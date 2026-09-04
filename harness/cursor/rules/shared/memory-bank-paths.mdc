@@ -25,7 +25,7 @@ alwaysApply: false
 | `back/creative/creative-booking-erd.md` | `back/creative/shards/` | ERD |
 | `back/creative/creative-telegram-*.md` | `back/creative/shards/` | TG |
 
-**Backend `memory-bank/back/`:**
+**Backend `memory-bank/back/` (Layout v2):**
 
 | Режим | Папка | Именование |
 |-------|--------|------------|
@@ -33,19 +33,19 @@ alwaysApply: false
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| PLAN | `back/plan/` | `plan-<epic_id>.md` + `decompose-<epic_id>/`; research multi-epic → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× `plan-<epic_id>-*.md` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; templates `roadmap-epics.md` + `roadmap-queue.yaml`). Loop canon после PLAN same-session `roadmap-merge` (или recovery `* ROADMAP MERGE`): **`roadmap-epics.queue.yaml`** |
+| PLAN | `back/plan/<epic_id>/` | `yaml/plan.yaml` + `md/plan.md`; research multi-epic → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; templates `roadmap-epics.md` + `roadmap-queue.yaml`). Loop canon после PLAN same-session `roadmap-merge` (или recovery `* ROADMAP MERGE`): **`roadmap-epics.queue.yaml`** |
 | ROADMAP MERGE (recovery) | `back/plan/` | пишет **`roadmap-epics.queue.yaml`** + `roadmap-epics.md`; happy-path = PLAN inline merge (@.cursor/rules/shared/workflow-roadmap-merge.mdc) |
-| DECOMPOSE | `back/plan/decompose-<epic_id>/` | `index.md` + `sNN-<slug>.yaml` (+ `implement`). **`<epic_id>` = stem plan со descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
+| DECOMPOSE | `back/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml` (scaffold: `mb-scaffold decompose`). **`<epic_id>` = descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
 | CREATIVE | `back/creative/<epic_id>/` или `back/creative/` | `creative-<feature>.md` — **с эпиком** под `<epic_id>/`; без эпика — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc |
-| IMPLEMENT | `back/implement/implement-<epic_id>/` | `sNN-<slug>.yaml`; `<epic_id>` тот же stem+slug, что у decompose. Без эпика: `back/implement/<slug>/` |
+| IMPLEMENT | `back/implement/<epic_id>/` | `sNN-<slug>.yaml` (прямо в `<epic_id>/`; **без** `yaml/`/`md/` — split только у plan/decompose); `<epic_id>` тот же stem+slug, что у plan. Без эпика: `back/implement/<slug>/` |
 | TASK | `back/task/` | `task-YYYYMMDD-<slug>.md` |
 | BUGFIX | `back/bugfix/<epic_id>/` или `back/bugfix/` | `bugfix-YYYYMMDD-<slug>.md` — с эпиком / без |
-| REFACTOR | `back/refactor/` | **Эпик:** `plan/{analysis,plan,decompose-<id>/}` + `implement/implement-<id>/rNN-*.yaml`. **Без эпика:** `session-YYYYMMDD-<slug>.md` в корне `refactor/`. Канон: @.cursor/rules/shared/workflow-refactor-epic.mdc |
+| REFACTOR | `back/refactor/` | **Эпик:** `plan/<id>/` + `implement/<id>/rNN-*.yaml`. **Без эпика:** `session-YYYYMMDD-<slug>.md` в корне `refactor/`. Канон: @.cursor/rules/shared/workflow-refactor-epic.mdc |
 | REFLECT (archive) | `back/reflection/` | `reflection-*.md` — **не** gate lifecycle; **не** переносится ARCHIVE |
-| ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/decompose/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc |
-| QA | `back/qa/<epic_id>/` или `back/qa/` | `qa-YYYYMMDD-<slug>.yaml` — с эпиком / без |
-| AUDIT | `back/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` по `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`) |
-| SECURITY | `back/security/` | **Эпик:** `plan/{plan,decompose-<id>/}` + `implement/implement-<id>/aNN-*.yaml`. **Без эпика:** `security-audit-YYYYMMDD-<slug>.md`. Канон: @.cursor/rules/shared/workflow-security-epic.mdc |
+| ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc |
+| QA | `back/qa/<epic_id>/` или `back/qa/` | `qa-YYYYMMDD-<slug>.yaml` или `qa.yaml` — **прямо в папке** (без `yaml/` subdir) |
+| AUDIT | `back/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` или `audit.yaml` — **прямо в папке** (без `yaml/` subdir); шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`) |
+| SECURITY | `back/security/` | **Эпик:** `plan/<id>/` + `implement/<id>/yaml/steps/aNN-*.yaml`. **Без эпика:** `security-audit-YYYYMMDD-<slug>.md`. Канон: @.cursor/rules/shared/workflow-security-epic.mdc |
 
 **Front `memory-bank/front/`** — та же схема, префикс `front/` + ARCHIVE → `memory-bank/archive/front/`.
 
@@ -66,10 +66,10 @@ alwaysApply: false
 | AUDIT | `integration/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
 | GAP | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `close-YYYYMMDD-<slug>.md` |
-| PLAN | `integration/plan/` | `plan-<epic_id>.md` |
-| DECOMPOSE | `integration/plan/decompose-<epic_id>/` | `index.md` + `eNN-<slug>.yaml` (+ `implement`); `<epic_id>` = stem plan со slug |
+| PLAN | `integration/plan/<epic_id>/` | `md/plan.md` + `yaml/plan.yaml` |
+| DECOMPOSE | `integration/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/eNN-<slug>.yaml` (+ `md/`); `<epic_id>` = stem plan со slug |
 | CREATIVE | `integration/creative/<epic_id>/` или плоско | `creative-<feature>.md` |
-| IMPLEMENT | `integration/implement/implement-<epic_id>/` | `eNN-<slug>.yaml`; `<epic_id>` тот же stem+slug |
+| IMPLEMENT | `integration/implement/<epic_id>/` | `eNN-<slug>.yaml` (прямо в `<epic_id>/`; без `yaml/` subdir); `<epic_id>` тот же stem+slug |
 | TASK | `integration/task/` | `task-YYYYMMDD-<slug>.md` |
 | BUGFIX | `integration/bugfix/<epic_id>/` или плоско | `bugfix-YYYYMMDD-<slug>.md` |
 | REFACTOR | `integration/refactor/` | Как BACK: эпик → `implement/implement-<id>/rNN-*.yaml`; без эпика → `session-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/workflow-refactor-epic.mdc |

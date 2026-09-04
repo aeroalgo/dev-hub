@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s12
+plan_id: T-HUB-047-harness-mb-scaffold-epic-layout
+title: s12 — ≥25 pytest + session-start arm_phase auto-scaffold + FR-017 coverage
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-047-harness-mb-scaffold-epic-layout/yaml/steps/s12-tests-session-start-wire.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added session-start auto-scaffold and arm_phase auto-scaffold on DECOMPOSE phase
+  enter (FR-016).
+- Created and verified full test suite (39 tests) covering resolver, scaffold modes,
+  migrate, arm smoke, finish paths, hardcoded paths check, cwd guard, and auto-scaffold
+  fail-closed (FR-016, FR-017, FR-018).
+- All test suites in harness/hooks/tests/ and loop/tests/ passing green.
+files:
+- harness/hooks/session-start.py
+- loop/epic_transition.py
+- harness/hooks/epic/traceability.py
+- harness/hooks/tests/test_session_start_autoscaffold.py
+- harness/hooks/tests/test_mb_scaffold_decompose.py
+- loop/tests/test_mb_finish_paths.py
+- loop/tests/test_incidents_scope.py
+- loop/tests/test_context_loop.py
+- loop/tests/test_convergence_engine.py
+- loop/tests/fixtures/convergence/orphan_req/memory-bank/back/plan/plan-T-HUB-ORPHANREQ.yaml
+- loop/tests/fixtures/convergence/traceability_gap/memory-bank/back/plan/plan-T-HUB-TRACEGAP.yaml
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_session_start_autoscaffold.py -q`'
+- '`bin/pytest loop/tests/test_mb_finish_paths.py -q`'
+- '`bin/pytest harness/hooks/tests/test_mb_scaffold_cli.py::test_cwd_guard -q`'
+- '`bin/pytest harness/hooks/tests/test_epic_layout_resolver.py harness/hooks/tests/test_mb_scaffold_decompose.py
+  harness/hooks/tests/test_mb_scaffold_plan.py harness/hooks/tests/test_mb_scaffold_implement.py
+  harness/hooks/tests/test_mb_scaffold_cli.py harness/hooks/tests/test_epic_layout_migrate.py
+  harness/hooks/tests/test_validate_traceability.py harness/hooks/tests/test_no_hardcoded_paths.py
+  loop/tests/test_arm_phase_smoke.py loop/tests/test_mb_finish_paths.py harness/hooks/tests/test_session_start_autoscaffold.py
+  -q`'
+integration_check:
+- bin/pytest harness/hooks/tests/test_session_start_autoscaffold.py -q
+- bin/pytest loop/tests/test_mb_finish_paths.py -q
+grep_control: []
+verification_results:
+- cp1 done 39 tests collected and verified for s12 matrix (>= 25 requirement)
+- cp2 done full pytest suite green
+- cp3 done session-start auto-scaffold creates tree on valid plan and fails closed
+  on invalid plan
+- cp4 done FR-018 cwd guard test passes
+checkpoints:
+- id: cp1
+  criterion: 'pytest count: bin/pytest harness/hooks/tests/ loop/tests/ --collect-only
+    -q | grep ''test session starts'' → ≥25 collected'
+  status: done
+  done_at: '2026-09-04T00:45:00Z'
+- id: cp2
+  criterion: 'full pytest suite green: bin/pytest harness/hooks/tests/ loop/tests/
+    -q --tb=short exit 0'
+  status: done
+  done_at: '2026-09-04T00:46:00Z'
+- id: cp3
+  criterion: 'session-start auto-scaffold: tree missing + valid plan.yaml → mb-scaffold
+    decompose called; invalid plan.yaml → fail-closed (exit non-zero, no partial write)'
+  status: done
+  done_at: '2026-09-04T00:47:00Z'
+- id: cp4
+  criterion: 'FR-018 cwd guard: bin/pytest harness/hooks/tests/test_mb_scaffold_cli.py::test_cwd_guard
+    -q exit 0'
+  status: done
+  done_at: '2026-09-04T00:48:00Z'
+resume_from: cp1

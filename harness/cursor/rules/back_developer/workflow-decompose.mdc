@@ -11,19 +11,22 @@ alwaysApply: false
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
-**Folder slug (HARD):** `plan_id` = stem plan без `plan-` (со descriptive slug). @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Цель:** plan (`memory-bank/back/plan/<epic_id>/yaml/plan.yaml` и `md/plan.md`) → decompose layout v2 (`memory-bank/back/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`). НЕ писать код.
+**Folder slug (HARD):** `plan_id` = epic id со descriptive slug. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Scaffold contract (HARD):** `python3 .claude/hooks/epic_resolve.py mb-scaffold decompose --epic-id <id>`. **FORBIDDEN: Write sNN-*.yaml from scratch** (scaffolded paths — Edit only).
 
-**Formula hint (optional):** plan header `formula:` → `epic_resolve.py formula-render` draft; planner заполняет placeholders.
+**Formula hint (optional):** plan `formula:` → `mb-scaffold decompose --formula <formula_id>` draft; planner заполняет placeholders.
 
 ---
 
 ## Maximal detail + Coverage + Replacement + Outcome (HARD)
 
-DECOMPOSE = **максимально подробная** нарезка. Артефакты **без** telegraph/200-line economy. Chat MAY be brief.
+DECOMPOSE = **максимально подробная** нарезка **по coverage** (FR/AC/Stages/Replacement), не по числу файлов. Артефакты **без** telegraph/200-line economy. Chat MAY be brief.
+
+**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; target band **5–8** sNN (L3/L4 ≤9). Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a.
 
 **Index REQUIRED:** `## Requirements coverage` · `## Stages coverage` · `## Outcome map` · `## Replacement cleanup` (A|B|C|**I**).  
-**Coverage rubric / anti-dilution / wire ladder / Outcome preserve / Replacement cleanup:** канон в @.cursor/rules/shared/workflow-behavior-first.mdc + @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc — **не дублировать** таблицы здесь; FAIL-условия — в Gates.
+**Coverage rubric / anti-dilution / wire ladder / granularity / Outcome preserve / Replacement cleanup:** канон в @.cursor/rules/shared/workflow-behavior-first.mdc + @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc — **не дублировать** таблицы здесь; FAIL-условия — в Gates.
 
 **Per-step:** `plan_contract` · delta layer · 2–4 cp · `deletes` · `tdd` · Core(4) ∪ situational ≤6 · lean interfaces (без тел методов).
 

@@ -11,30 +11,26 @@ import pytest
 @pytest.mark.ac("AC-005")
 def test_traceability_integration_exit0_on_clean_fixture(tmp_path: Path):
     """Test validate-traceability exit 0 and JSON report structure on a valid fixture."""
-    # Setup directory structure matching dev-hub / product structure
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    # Setup directory structure matching dev-hub / product structure (layout v2)
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-001" / "yaml"
     plan_dir.mkdir(parents=True, exist_ok=True)
 
-    plan_file = plan_dir / "plan-T-TEST-001.md"
-    plan_file.write_text("""# Plan T-TEST-001
-
-## User Stories
-### US-001: Test Story
-Some description.
-
-## Functional Requirements
-### FR-001: Test FR
-FR description.
-
-## Safety & Compliance
-### SC-001: Test SC
-SC description.
+    plan_file = plan_dir / "plan.yaml"
+    plan_file.write_text("""schema: epic-plan/v1
+epic_id: T-TEST-001
+requirements:
+  - id: US-001
+    title: Test Story
+  - id: FR-001
+    title: Test FR
+  - id: SC-001
+    title: Test SC
 """, encoding="utf-8")
 
-    decomp_dir = plan_dir / "decompose-T-TEST-001"
+    decomp_dir = plan_dir / "steps"
     decomp_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = decomp_dir / "index.yaml"
+    index_yaml = plan_dir / "decompose-index.yaml"
     index_yaml.write_text("""schema: epic-decompose-index/v1
 plan_id: T-TEST-001
 source_md: index.md
@@ -102,23 +98,23 @@ tdd: []
 @pytest.mark.ac("AC-005")
 def test_traceability_integration_exit1_on_uncovered_req(tmp_path: Path):
     """Test validate-traceability exit 1 when requirements are uncovered."""
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-002" / "yaml"
     plan_dir.mkdir(parents=True, exist_ok=True)
 
-    plan_file = plan_dir / "plan-T-TEST-002.md"
-    plan_file.write_text("""# Plan T-TEST-002
-
-## User Stories
-### US-001: Covered Story
-Description.
-### US-002: Uncovered Story
-Description.
+    plan_file = plan_dir / "plan.yaml"
+    plan_file.write_text("""schema: epic-plan/v1
+epic_id: T-TEST-002
+requirements:
+  - id: US-001
+    title: Covered Story
+  - id: US-002
+    title: Uncovered Story
 """, encoding="utf-8")
 
-    decomp_dir = plan_dir / "decompose-T-TEST-002"
+    decomp_dir = plan_dir / "steps"
     decomp_dir.mkdir(parents=True, exist_ok=True)
 
-    index_yaml = decomp_dir / "index.yaml"
+    index_yaml = plan_dir / "decompose-index.yaml"
     index_yaml.write_text("""schema: epic-decompose-index/v1
 plan_id: T-TEST-002
 source_md: index.md

@@ -44,6 +44,7 @@ def _ensure_gate_agents(cwd: Path) -> None:
     env_path.write_text(
         "PROJECT_WORKFLOW_HOOKS=loop\n"
         "PROJECT_AGENT_VERIFY_MODEL=sonnet\n"
+        "PROJECT_AGENT_VERIFY_IMPLEMENT_MODEL=sonnet\n"
         "PROJECT_AGENT_REVIEWER_MODEL=sonnet\n"
         "PROJECT_AGENT_EXPLORER_MODEL=fable\n",
         encoding="utf-8",

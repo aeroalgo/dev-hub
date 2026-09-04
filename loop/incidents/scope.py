@@ -17,27 +17,21 @@ def build_allowlist(incident: IncidentRecord, project_root: Path) -> list[str]:
     step_id = incident.step_id
     incident_id = incident.incident_id
 
-    plan_dir = root / "memory-bank" / "back" / "plan" / f"decompose-{epic_id}"
-    impl_dir = root / "memory-bank" / "back" / "implement" / f"implement-{epic_id}"
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
+
+    plan_dir = root / "memory-bank" / "back" / "plan" / epic_id
+    impl_dir = root / "memory-bank" / "back" / "implement" / epic_id
 
     allowed = [
         str((root / "memory-bank" / "activeContext.md").resolve()),
         str((root / "runtime" / incident_id / "epic").resolve()),
     ]
 
-    plan_shards = list(plan_dir.glob(f"{step_id}*.yaml")) if plan_dir.exists() else []
-    if plan_shards:
-        for shard in plan_shards:
-            allowed.append(str(shard.resolve()))
-    else:
-        allowed.append(str((plan_dir / step_id).resolve()))
+    plan_step = resolve(role="back", epic_id=epic_id, kind=EpicLayoutKind.DECOMPOSE_STEP, step_id=step_id, project_root=root)
+    impl_step = resolve(role="back", epic_id=epic_id, kind=EpicLayoutKind.IMPLEMENT_STEP, step_id=step_id, project_root=root)
 
-    impl_shards = list(impl_dir.glob(f"{step_id}*.yaml")) if impl_dir.exists() else []
-    if impl_shards:
-        for shard in impl_shards:
-            allowed.append(str(shard.resolve()))
-    else:
-        allowed.append(str((impl_dir / step_id).resolve()))
+    allowed.append(str(plan_step.resolve()))
+    allowed.append(str(impl_step.resolve()))
 
     return allowed
 

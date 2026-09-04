@@ -6,6 +6,7 @@ alwaysApply: false
 
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
 2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
+2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
 3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
 4. `validate-decompose-tree` exit 0 (+ plan_contract machine)
@@ -13,5 +14,5 @@ alwaysApply: false
 6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
 
 → full: @.cursor/rules/back_developer/workflow-decompose.mdc  
-→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc §1 · §1a  
-→ count в plan = floor, не ceiling
+→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc §1 · §1a · §3a  
+→ count в plan = floor, не ceiling (и не повод раздувать до 10–12)

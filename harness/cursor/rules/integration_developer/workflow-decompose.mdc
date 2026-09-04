@@ -18,7 +18,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
 
-**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
+**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element; band 5–8 **не** схлопывает registry (1 element = 1 eNN). Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
 
 ---
 
@@ -56,8 +56,8 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 **Процесс**:
 1. `OK INTEG DECOMPOSE - Разбиваю план по UI-элементам (batch)`
 1a. Прочитай **Gates**
-2. Source: `integration/plan/plan-<task_id>.md` — Element registry + **Replacement / sunset** + mocks
-3. Папка `integration/plan/decompose-<plan_id>/`: index + все eNN — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
+2. Source: `integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) — Element registry + **Replacement / sunset** + mocks
+3. Папка `integration/plan/<plan_id>/`: `yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml` (+ `md/decompose-index.md`) — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
    Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
    **Schema HARD:** каждый `eNN` = `epic-decompose/v1` + `role: integ`; **FORBIDDEN** invented schemas; FINISH `validate-decompose-tree` fail-closed.
    `index.yaml` обязателен: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый `eNN` содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.  

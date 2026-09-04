@@ -9,7 +9,7 @@ alwaysApply: false
 **Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если размыто)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** `plan-<id>.md` → `memory-bank/front/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
+**Цель:** `plan/<id>/md/plan.md` (+ `yaml/plan.yaml`) → `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`. НЕ писать код.  
 **Вход:** `load_now` или `FRONT DECOMPOSE plan-<id>` (в одном сообщении).
 
 **Folder slug (HARD):** `plan_id` = stem plan-файла без `plan-` (со descriptive slug). **FORBIDDEN** short queue id в имени папки при `plan-<id>-<slug>.md`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
@@ -20,7 +20,7 @@ alwaysApply: false
 
 Как BACK: нарезать без сужения Goal/UX/NFR плана. В `index.md` — **`## Outcome map (plan → steps)`**. Каждый `sNN.goal` — user-visible / UX outcome, не только «создать компонент».
 
-**Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph/лимита шагов; черновик count в plan — advisory. **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон формулировок: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
+**Maximal detail (HARD):** как BACK `workflow-decompose.mdc` §Maximal detail — обязательны **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый AC/NFR/этап UX плана → sNN; brownfield replace → `deletes`); decompose artifacts без telegraph; **Maximal detail ≠ maximal step count** — target **5–8** sNN (≤9 L3/L4), @.cursor/rules/shared/workflow-behavior-first.mdc §3a; черновик count в plan — floor, не ceiling. **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон формулировок: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve (роль FRONT) + **§Replacement cleanup ниже**.
 
 ---
 

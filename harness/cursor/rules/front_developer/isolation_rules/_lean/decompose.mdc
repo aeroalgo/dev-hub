@@ -4,8 +4,8 @@ alwaysApply: false
 ---
 # FRONT DECOMPOSE — gates
 
-**Артефакт:** `memory-bank/front/plan/decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`)  
-**`<plan_id>` HARD:** stem `plan-*.md` **со descriptive slug** (не short queue id). См. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Артефакт:** `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `yaml/steps/sNN-*.yaml`  
+**`<plan_id>` HARD:** stem plan **со descriptive slug** (`plan/<plan_id>/md/plan.md`). См. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
 ## Gates
 
@@ -13,6 +13,7 @@ alwaysApply: false
 2. L3–L4: все plan shards
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; goals связаны с Goal/UX плана (не scaffolding-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (FRONT) + BACK §Maximal detail / §Outcome preserve
 2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify для product FR = incomplete. @.cursor/rules/shared/workflow-behavior-first.mdc
+2a2. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; micro-ladder / audit-хвост пачкой = incomplete. §3a behavior-first
 3. Шаг = один FRONT IMPLEMENT; `step_id`, files, `deletes`, `needs_creative`, `visible_ui`, `tdd`
 3a. Delta layer: `goal` · `as_built` · `delta` · `deletes` · `out_of_scope`; checkpoints 2–4 с `criterion` + `verify` (не mega-cp = весь экран); непустой `deletes` → ≥1 `rg`/import-audit cp
 3a1. **Schema (HARD):** `schema: epic-decompose/v1` + `role: front` + list `as_built`/`delta` — только `.cursor/templates/decompose/epic-step.yaml`. **FORBIDDEN:** invented schemas (`epic-decompose-shard/*`, …). FINISH: `validate-decompose-tree` fail-closed
@@ -36,7 +37,8 @@ alwaysApply: false
 - Replace UI без `deletes`/follow-up в queue → incomplete
 - Replace без `*-legacy-fallback-purge` при cleanup ≠ n/a → incomplete
 - Непустой `deletes` без `rg`/import-audit cp → incomplete
-- Отказ добавить sNN «слишком много шагов» → incomplete
+- Отказ добавить sNN «слишком много шагов» при непокрытом AC/NFR → incomplete (coverage > band)
+- Micro-ladder / `>9` без justification → incomplete
 - Plan с дубль-чеклистом sNN → incomplete
 - `sNN` без Impl Core (6) → incomplete
 - `sNN` без `visible_ui` → incomplete

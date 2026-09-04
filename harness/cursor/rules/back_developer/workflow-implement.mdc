@@ -35,6 +35,6 @@ alwaysApply: false
 4. TDD targeted → code → green (`bin/pytest`); выполнить все `deletes:`; **FORBIDDEN** restore legacy
 5. §0.11 · pre-FINISH skills; при deletes — callers gone
 5a. **Scope check** → `SCOPE CHECK: ok` или halt
-6. **FINISH:** finish-block (`code_changed: yes`) — Write implement yaml → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
+6. **FINISH:** finish-block (`code_changed: yes`) — Write/Update implement yaml (`memory-bank/back/implement/<epic_id>/yaml/steps/sNN-*.yaml` via `mb-scaffold implement` or `seed-implement`) → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
 
 **Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`
