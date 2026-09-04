@@ -87,6 +87,18 @@ _STEP_STATUS_WORDS = ("pending", "active", "completed", "done", "blocked")
 
 def atomic_write_text(path: Path, text: str) -> None:
     path = Path(path)
+    if path.name == "activeContext.md":
+        from _lib import assert_active_context_writable
+        from loop.schemas.active_context import parse_handoff_meta
+
+        cwd = path.parent.parent if path.parent.name == "memory-bank" else path.parent
+        meta = parse_handoff_meta(text)
+        assert_active_context_writable(
+            cwd,
+            epic_id=getattr(meta, "epic_id", None) if meta else None,
+            phase=getattr(meta, "mode", None) if meta else None,
+            step=getattr(meta, "step_id", None) if meta else None,
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(text, encoding="utf-8")
@@ -585,6 +597,11 @@ def gates_from_phase(
     cwd: Path | str | None = None,
 ) -> dict[str, Any]:
     """Translate a runner-derived phase into spawn-gate requirements."""
+    import sys
+    hub_root = Path(__file__).resolve().parents[3]
+    if str(hub_root) not in sys.path:
+        sys.path.insert(0, str(hub_root))
+
     from loop.epic_transition import load_phase_registry, normalize_registry_phase
     from loop.workflow.resolve import full_resolve
     from loop.workflow.registry import load_registry, get_pack
@@ -614,7 +631,11 @@ def gates_from_phase(
     try:
         reg = load_phase_registry(pack_id=target_pack_id, cwd=cwd)
     except Exception:
-        return default_gates
+        try:
+            # Fallback to hub root for default packs in synthetic/temp test roots
+            reg = load_phase_registry(pack_id=target_pack_id, cwd=hub_root)
+        except Exception:
+            return default_gates
 
     val = str(phase or "").upper().strip()
     normalized_val = normalize_registry_phase(val, resolved_pack)
@@ -3955,7 +3976,11 @@ def build_post_implement_active_context(
     if phase_u == "AUDIT":
         from harness.hooks.epic_paths import find_plan_md_path
 
-        role_norm = str(role_dir or "back").strip().lower()
+        role_norm = str(role_dir or "back").strip().lower().replace("\\", "/")
+        if role_norm.startswith("memory-bank/"):
+            role_norm = role_norm.split("/", 1)[1]
+        if "/" in role_norm:
+            role_norm = role_norm.split("/", 1)[0]
         if role_norm == "integ":
             role_norm = "integration"
         plan_p = find_plan_md_path(cwd, role_norm, epic_id)
@@ -3969,6 +3994,32 @@ def build_post_implement_active_context(
                 (
                     plan_link,
                     "plan.md — Intent Inventory + epic goal (SoT for AUDIT PLAN↔runtime)",
+                )
+            )
+        wf_rel = {
+            "back": ".cursor/rules/back_developer/workflow-audit.mdc",
+            "front": ".cursor/rules/front_developer/workflow-audit.mdc",
+            "integration": (
+                ".cursor/rules/integration_developer/workflow-audit.mdc"
+            ),
+        }.get(role_norm, ".cursor/rules/back_developer/workflow-audit.mdc")
+        if (cwd / wf_rel).is_file():
+            load_now.append(
+                (
+                    wf_rel,
+                    "AUDIT workflow — Triple Assess PLAN↔runtime (не pytest)",
+                )
+            )
+        cheat_rel = {
+            "back": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
+            "front": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
+            "integration": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
+        }.get(role_norm, ".cursor/rules/shared/cheatsheets/back-audit.mdc")
+        if (cwd / cheat_rel).is_file():
+            load_now.append(
+                (
+                    cheat_rel,
+                    "AUDIT cheatsheet — Intent Inventory → Triple Assess → no pytest",
                 )
             )
         load_now.append(
@@ -4481,7 +4532,7 @@ def arm_epic(
         )
         body = build_post_implement_active_context(
             role=role_u,
-            role_dir=f"memory-bank/{role}",
+            role_dir=role,
             epic_id=epic_id,
             tracker_rel=rel_idx,
             tracker_link=link,

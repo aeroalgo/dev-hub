@@ -47,4 +47,4 @@ steps:
   file: s07-pytest-matrix-regression.yaml
   title: 'pytest matrix: TM-001..005 failure coverage + pack-router regression suite'
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

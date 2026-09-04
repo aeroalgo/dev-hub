@@ -48,7 +48,6 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
 
         # Check plan file in v2 or v1 layout
         plan_file_v2_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd) if plan_id else None
-        plan_file_v2_yaml = resolve(role, plan_id, EpicLayoutKind.PLAN_YAML, project_root=cwd) if plan_id else None
         plan_file_v1 = mb / role / "plan" / f"plan-{plan_id}.md" if plan_id else None
 
         # Check if plan_refs contain explicit file references or check plan file
@@ -79,7 +78,6 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
 
         has_plan = (
             (plan_file_v2_md and plan_file_v2_md.is_file())
-            or (plan_file_v2_yaml and plan_file_v2_yaml.is_file())
             or (plan_file_v1 and plan_file_v1.is_file())
         )
         if plan_id and not has_plan:

@@ -12,7 +12,6 @@ Flat v1 layout:
 
 Layout v2:
   memory-bank/{role}/plan/{epic_id}/md/plan.md
-  memory-bank/{role}/plan/{epic_id}/yaml/plan.yaml
   memory-bank/{role}/plan/{epic_id}/md/decompose-index.md
   memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml
   memory-bank/{role}/plan/{epic_id}/yaml/steps/sNN-*.yaml

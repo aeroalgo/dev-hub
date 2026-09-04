@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: "Fix doctor boundary kwargs TypeError (call-site + tests)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Устранить TypeError «unexpected keyword argument 'yaml_file'» в doctor boundary scan.
+  loop/incidents/doctor.py вызывает check_boundaries(root_dir=…, yaml_file=…), тогда как
+  prod-сигнатура — (root_dir, boundaries_yaml_path). После этого шага doctor --json возвращает
+  честный boundary_violations=pass|warn (не exception-string), monkeypatch-тесты кодируют
+  правильный kwargs и зеленеют при рабочем prod. Outcome: US-002 / FR-004 / FR-005 / SC-003.
+
+plan_contract:
+  fr_ids: [FR-004, FR-005, US-002, SC-003, TM-002]
+  nouns:
+    - "loop/incidents/doctor.py check_boundaries call-site"
+    - "tests/architecture/check_boundaries.check_boundaries signature (root_dir, boundaries_yaml_path)"
+    - "loop/tests/test_incidents_doctor.py monkeypatch"
+    - "doctor --json checklist boundary_violations"
+  layout_paths:
+    - "loop/incidents/doctor.py"
+    - "loop/tests/test_incidents_doctor.py"
+  ac_quotes:
+    - "Live python loop/context_loop.py doctor --json: checklist item boundary_violations detail НЕ содержит 'unexpected keyword argument yaml_file'"
+    - "При empty contracts → pass или skipped по правилам"
+    - "monkeypatch-тесты используют boundaries_yaml_path (или positional), совпадающий с prod call"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:24-31"
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:80-95"
+
+context:
+  consumes:
+    - "loop/incidents/doctor.py — текущий вызов check_boundaries(root_dir=…, yaml_file=…)"
+    - "tests/architecture/check_boundaries.py — публичная сигнатура (root_dir, boundaries_yaml_path)"
+  produces:
+    - "loop/incidents/doctor.py — исправленный вызов без yaml_file= kwarg"
+    - "loop/tests/test_incidents_doctor.py — тесты с правильным monkeypatch (boundaries_yaml_path)"
+  plan_refs:
+    - "plan.md §Контекст gap #2: Doctor boundary kwargs"
+    - "plan.md §Technology axiom row: Doctor ↔ architecture"
+    - "plan.md §Acceptance criteria §Doctor"
+    - "plan.md TM-002"
+  files:
+    - "loop/incidents/doctor.py"
+    - "loop/tests/test_incidents_doctor.py"
+
+as_built:
+  - "loop/incidents/doctor.py: вызывает check_boundaries(root_dir=root, yaml_file=path) — kwargs bitый"
+  - "loop/tests/test_incidents_doctor.py: monkeypatch кодирует yaml_file= и «зеленеет» при сломанном prod"
+  - "doctor --json detail: содержит 'Check failed: unexpected keyword argument yaml_file'"
+
+delta:
+  - "loop/incidents/doctor.py: заменить yaml_file=… на boundaries_yaml_path=… (или positional arg)"
+  - "loop/tests/test_incidents_doctor.py: переписать monkeypatch под правильную сигнатуру; добавить assert что detail != TypeError string"
+
+deletes:
+  - "loop/tests/test_incidents_doctor.py: строки/тестовые кейсы, которые monkeypatch-ируют yaml_file= (кодируют баг)"
+
+out_of_scope:
+  - "Изменение публичной сигнатуры check_boundaries — только call-site fix"
+  - "Другие doctor checklist items — s05"
+  - "CLI flag --raw-json fix — s02"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "doctor --json не содержит yaml_file TypeError в detail"
+    verify: "python loop/context_loop.py doctor --json 2>&1 | python -c \"import sys,json; d=json.load(sys.stdin); items={i['name']:i for i in d.get('checklist',[])}; bv=items.get('boundary_violations',{}); assert 'yaml_file' not in bv.get('detail',''), f'TypeError still present: {bv}'; print('OK')\""
+  - id: cp2
+    criterion: "unit tests doctor boundary зелёные с правильным monkeypatch"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+  - id: cp3
+    criterion: "rg не находит yaml_file= kwarg в doctor call-site"
+    verify: "rg -n 'yaml_file=' loop/incidents/doctor.py && echo FOUND || echo 'OK: yaml_file= absent'"
+
+verify:
+  - "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+tdd:
+  - "Написать failing test: doctor call зовёт check_boundaries с boundaries_yaml_path (не yaml_file)"
+  - "Fix call-site → test green"
+  - "Убедиться doctor --json detail не содержит TypeError"

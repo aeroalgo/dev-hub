@@ -306,7 +306,9 @@ const injected = [];
 const agent = {{ id: 'child-1', session: {{ header: {{ id: 'child-1', cwd: process.cwd() }} }}, inject(message) {{ injected.push(message); }} }};
 applySubagentStart({{ on(name, handler) {{ listeners.set(name, handler); }}, logger: {{ warn() {{}} }} }}, {{ python: process.env.PYTHON ?? 'python3' }});
 listeners.get('subagent/start')({{ id: 'child-1', agent_type: {json.dumps(agent_type)}, agent }});
-await new Promise((resolve) => setTimeout(resolve, 500));
+for (let i = 0; i < 40 && injected.length === 0; i++) {{
+    await new Promise((resolve) => setTimeout(resolve, 100));
+}}
 console.log(JSON.stringify({{ injected }}));
 """
     env = os.environ.copy()

@@ -43,7 +43,7 @@ alwaysApply: false
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани: один `memory-bank/front/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) **или** апсерт `front/roadmap/queue.yaml` + N plan dirs
+6. Сохрани: один `memory-bank/front/plan/<task_id>/md/plan.md` **или** апсерт `front/roadmap/queue.yaml` + N plan dirs
 7. `tasks.md` append-only (queue + каждый эпик при multi-epic)
 7a1. **Queue reconcile (optional):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`
 7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan

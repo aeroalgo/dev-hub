@@ -8,9 +8,9 @@ def test_resolve_plan_md():
     assert str(p).endswith("memory-bank/back/plan/T-HUB-047-test/md/plan.md")
 
 
-def test_resolve_plan_yaml():
-    p = resolve("back", "T-HUB-047-test", "plan_yaml")
-    assert str(p).endswith("memory-bank/back/plan/T-HUB-047-test/yaml/plan.yaml")
+def test_resolve_plan_yaml_kind_removed():
+    with pytest.raises(ValueError, match="Unknown EpicLayoutKind"):
+        resolve("back", "T-HUB-047-test", "plan_yaml")
 
 
 def test_resolve_decompose_index():

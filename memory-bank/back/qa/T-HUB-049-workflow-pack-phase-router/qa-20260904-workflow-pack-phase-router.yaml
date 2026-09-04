@@ -1,0 +1,31 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-049
+plan_id: T-HUB-049-workflow-pack-phase-router
+epic_id: T-HUB-049-workflow-pack-phase-router
+date: 2026-09-04
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-049"
+  - "epic: T-HUB-049-workflow-pack-phase-router"
+  - "steps: s01–s07"
+  - "files: loop/workflow/command_router.py, loop/context_loop.py, loop/epic_transition.py, harness/hooks/epic/core.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1772 passed, 3 skipped, 72 warnings)"
+  - "integration rule (§0.11): PASS"
+  - "reviewer gate: VERDICT PASS"
+  - "bugfix verification: ISS-001 resolved and regression-tested"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

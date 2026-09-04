@@ -11,8 +11,6 @@ from typing import Any
 import warnings
 import yaml
 
-from loop.schemas.plan_spec import PlanSpec
-
 logger = logging.getLogger(__name__)
 
 
@@ -57,49 +55,26 @@ class TraceReport:
 
 
 def parse_plan_requirements(plan_path: Path) -> list[str]:
-    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.yaml.
-
-    If plan_path is a yaml file or if a corresponding plan.yaml exists, parse PlanSpec.requirements.
-    Robust to missing file or missing requirements (returns []).
-    """
+    """Extract requirement IDs (FR-###, SC-###, US-###) from plan.md prose."""
     if not plan_path.exists() or not plan_path.is_file():
         return []
 
-    # If plan_path is YAML, read via PlanSpec / YAML directly
-    if plan_path.suffix in (".yaml", ".yml"):
-        try:
-            with open(plan_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
-            if isinstance(data, dict):
-                reqs_raw = data.get("requirements", [])
-                requirements: list[str] = []
-                seen: set[str] = set()
-                for r in reqs_raw:
-                    if isinstance(r, dict) and "id" in r:
-                        r_id = str(r["id"]).strip()
-                        if r_id and r_id not in seen:
-                            seen.add(r_id)
-                            requirements.append(ReqID(r_id))
-                    elif isinstance(r, str):
-                        r_id = r.strip()
-                        if r_id and r_id not in seen:
-                            seen.add(r_id)
-                            requirements.append(ReqID(r_id))
-                return requirements
-        except Exception:
-            return []
+    if plan_path.suffix.lower() not in {".md", ".markdown"}:
+        raise ValueError(f"plan requirements SoT is plan.md only; got {plan_path}")
 
-    # Check if a sibling / equivalent plan.yaml exists
-    # e.g., plan.md in md/ -> check ../yaml/plan.yaml or sibling plan-*.yaml
-    if plan_path.name == "plan.md" and plan_path.parent.name == "md":
-        sibling_yaml = plan_path.parent.parent / "yaml" / "plan.yaml"
-        if sibling_yaml.is_file():
-            return parse_plan_requirements(sibling_yaml)
-    elif plan_path.with_suffix(".yaml").is_file():
-        return parse_plan_requirements(plan_path.with_suffix(".yaml"))
-
-    # If plan_path is not YAML, return empty list (markdown parsing is purged in v2)
-    return []
+    try:
+        text = plan_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    req_re = re.compile(r"\b((?:FR|SC|US)-\d{3,4})\b")
+    requirements = []
+    seen: set[str] = set()
+    for m in req_re.finditer(text):
+        rid = m.group(1)
+        if rid not in seen:
+            seen.add(rid)
+            requirements.append(ReqID(rid))
+    return requirements
 
 
 def parse_decompose_refs(decompose_dir: Path) -> dict[str, ShardTrace]:

@@ -12,36 +12,6 @@ from _lib import emit, product_cwd, read_stdin  # noqa: E402
 from epic_lib import session_start_payload  # noqa: E402
 
 
-def auto_scaffold_if_needed(cwd: str | Path) -> None:
-    """Auto-scaffold decompose on phase enter when tree is missing (FR-016)."""
-    cwd_p = Path(cwd).resolve()
-    try:
-        from epic import load_epic_state
-        from loop.paths.epic_layout import resolve, EpicLayoutKind
-    except ImportError:
-        return
-
-    st = load_epic_state(cwd_p)
-    if not st:
-        return
-
-    epic_id = str(st.get("armed_epic") or "").strip()
-    role = str(st.get("role") or "back").strip().lower()
-    armed_step = str(st.get("armed_step") or st.get("phase") or "").strip().upper()
-
-    if not epic_id:
-        return
-
-    if armed_step == "DECOMPOSE":
-        yaml_idx = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p)
-        md_idx = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p)
-        if not yaml_idx.is_file() and not md_idx.is_file():
-            plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=cwd_p)
-            if plan_yaml.is_file():
-                from loop.mb_scaffold.scaffold_decompose import scaffold_decompose
-                scaffold_decompose(epic_id=epic_id, role=role, project_root=cwd_p)
-
-
 def _check_preflight_drift(cwd: str) -> None:
     if os.environ.get("EPIC_RUNTIME") != "codex":
         return
@@ -70,7 +40,6 @@ def main() -> None:
     source = data.get("source") or data.get("session_source") or ""
 
     _check_preflight_drift(cwd)
-    auto_scaffold_if_needed(cwd)
 
     payload = session_start_payload(cwd, source)
     if not payload:

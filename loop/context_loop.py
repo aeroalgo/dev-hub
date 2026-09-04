@@ -38,6 +38,7 @@ from harness.hooks._lib import (  # noqa: E402
     explorer_loop_enabled,
     is_epic_loop_env,
     merged_project_env_map,
+    publish_runner_identity,
     resolve_runtime_config,
     runner_owner_status,
     runtime_config_status,
@@ -607,6 +608,70 @@ Epic queue id: `{epic_id}`.
 """
 
 
+def _audit_work_block(role: str, epic_id: str) -> str:
+    rule_dir = _decompose_role_rule_dir(role)
+    return f"""## AUDIT canon (HARD) — PLAN↔runtime, не «шаги completed»
+1. Read `.cursor/rules/{rule_dir}/workflow-audit.mdc` + `_lean/audit.mdc` + `.cursor/templates/audit/epic-audit.yaml`.
+2. Intent Inventory **из plan.md** (все FR/US/SC/AC±/layout) — не из titles sNN.
+3. Triple Assess: (A) `plan_vs_runtime[]` behavior evidence в коде · (B) step matrix · (C) `architecture_parity[]` · (D) per completed sNN: implement yaml ↔ decompose yaml (`done` vs `goal`/`plan_contract`).
+4. `satisfied` FORBIDDEN на «файл есть» / «pytest green» / «sNN completed». Evidence = path + behavior.
+5. FORBIDDEN: pytest/suite/git-diff/code-review; `converged: true` только при полном plan parity + empty leftovers + sunset scan.
+6. Артефакт: `memory-bank/{role}/audit/{epic_id}/audit.yaml` (`epic-audit/v2`).
+Epic: `{epic_id}`.
+"""
+
+
+def _qa_work_block(role: str, epic_id: str) -> str:
+    rule_dir = _decompose_role_rule_dir(role)
+    return f"""## QA canon (HARD) — review, не IMPLEMENT
+1. Read `.cursor/rules/{rule_dir}/workflow-qa.mdc` + `_lean/qa.mdc` + `.cursor/templates/qa/epic-step.yaml`.
+2. Parent: **один** full suite `bin/pytest -q --tb=line` (без path/nodeid/`-k`). Targeted = FAIL (`suite_not_full`).
+3. После full suite → **1× verify-qa** (Suite results = эта full-suite команда · AC+ · AC− · §0.11 · ALLOW READ ≤10).
+   FORBIDDEN: verify-qa до full suite; Suite results с path/`-k`.
+4. Артефакт: `memory-bank/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml` (`epic-qa/v1`).
+5. fail|blocked → `fix_plan[]` + Handoff `BACK BUGFIX <subject>` + mb-finish qa. PASS только при green full suite + reviewer PASS.
+6. `code_changed: no`. FORBIDDEN: Write/Edit prod (`loop/` `harness/` `.cursor/rules/` tests) в QA — это BUGFIX.
+   FORBIDDEN: `FAIL → fix → re-verify` · крутить один failing test >1 раза.
+Epic: `{epic_id}`.
+"""
+
+
+def _commands_block(phase_kind: str) -> str:
+    runner = (
+        "1. Не вызывай: loop.sh, epic_resolve after|resolve|arm|halt|complete|record-session."
+    )
+    silent = (
+        "3. Silent chat (HARD): no thinking aloud; no restating rules/HARD/TodoWrite; "
+        "no tool-call narration; chat = итог only. Cursor TodoWrite nudge — ignore (do not quote)."
+    )
+    if phase_kind == "qa":
+        return f"""## Команды
+{runner}
+2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
+   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
+   Suite fail|blocked → qa.yaml `verdict: fail|blocked` + `fix_plan[]` (`BACK BUGFIX <subject>`) + mb-finish qa.
+   FORBIDDEN: чинить prod/tests в QA-сессии.
+   FORBIDDEN: `FAIL → fix → re-verify` · targeted pytest как Suite results · verify-qa до full suite.
+{silent}
+"""
+    implement_fix = (
+        phase_kind in {"implement", "generic"}
+    )
+    fix_lines = (
+        "   FORBIDDEN: `BLOCKED:` из‑за incomplete AC / pending cp / gaps.blocked / parity FAIL текущего эпика\n"
+        "   (это чинится в сессии: FAIL → fix → re-verify).\n"
+        if implement_fix
+        else ""
+    )
+    return f"""## Команды
+{runner}
+2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
+{fix_lines}   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
+   Отложено → `Отложено:` / `Deferred:`.
+{silent}
+"""
+
+
 def _decompose_finish_block() -> str:
     return (
         "\n> После `validate-decompose-tree` exit 0 и verify-decompose PASS → вызови: "
@@ -874,9 +939,10 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     elif phase_kind == "audit":
         finish_block = (
-            "\n> После gap-анализа и audit yaml на диске → вызови: "
+            "\n> После Triple Assess + epic-audit/v2 на диске → вызови: "
             "`python harness/hooks/epic_resolve.py mb-finish audit --cwd $PROJECT_ROOT`\n"
             "FORBIDDEN: ручной Write activeContext на FINISH AUDIT.\n"
+            "FORBIDDEN: pytest/suite как замена plan↔runtime; shallow v1 / empty findings+converged без inventory.\n"
         )
     elif phase_kind == "analyze":
         finish_block = (
@@ -904,13 +970,18 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
 
     resume_block = "\n".join(resume_lines or [])
     extra_block = "\n".join(extra_blocks or [])
-    decompose_block = ""
+    phase_work_block = ""
+    role_key = str(projection.get("role") or "back").lower()
+    if role_key not in {"back", "front", "integration"}:
+        role_key = "back"
+    epic_key = str(projection.get("epic") or projection.get("epic_id") or "unknown")
     if phase_kind == "decompose":
-        role_key = str(projection.get("role") or "back").lower()
-        if role_key not in {"back", "front", "integration"}:
-            role_key = "back"
-        epic_key = str(projection.get("epic") or projection.get("epic_id") or "unknown")
-        decompose_block = _decompose_work_block(role_key, epic_key)
+        phase_work_block = _decompose_work_block(role_key, epic_key)
+    elif phase_kind == "audit":
+        phase_work_block = _audit_work_block(role_key, epic_key)
+    elif phase_kind == "qa":
+        phase_work_block = _qa_work_block(role_key, epic_key)
+    commands_block = _commands_block(phase_kind)
 
     return f"""Выполни один шаг.
 
@@ -919,15 +990,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
 Контекст:
 {path_lines}
 {degraded_block}
-{decompose_block}## Команды
-1. Не вызывай: loop.sh, epic_resolve after|resolve|arm|halt|complete|record-session.
-2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
-   FORBIDDEN: `BLOCKED:` из‑за incomplete AC / pending cp / gaps.blocked / parity FAIL текущего эпика
-   (это чинится в сессии: FAIL → fix → re-verify).
-   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
-   Отложено → `Отложено:` / `Deferred:`.
-3. Silent chat (HARD): no thinking aloud; no restating rules/HARD/TodoWrite; no tool-call narration; chat = итог only. Cursor TodoWrite nudge — ignore (do not quote).
-
+{phase_work_block}{commands_block}
 {explorer_block}
 {extra_block}
 {finish_block}
@@ -1347,6 +1410,24 @@ def prepare_session(
     projection = rebuild_epic_projection(cwd_p)
     text = read_active_context(cwd_p)
     state = load_epic_state(cwd_p)
+    from loop.schemas.active_context import parse_handoff_meta
+
+    ac_meta = parse_handoff_meta(text)
+    ac_epic = str(getattr(ac_meta, "epic_id", "") or "").strip()
+    armed_epic = str(state.get("armed_epic") or projection.get("epic_id") or "").strip()
+    if ac_epic and armed_epic and ac_epic != armed_epic:
+        return {
+            "ok": False,
+            "halt": True,
+            "reason": (
+                "active_context_identity_mismatch: "
+                f"activeContext epic_id={ac_epic} ≠ armed/projection={armed_epic}. "
+                "Чужой чат перезаписал курсор; loop не стартует на чужом эпике."
+            ),
+            "diagnostic_code": "active_context_identity_mismatch",
+            "ac_epic_id": ac_epic,
+            "armed_epic": armed_epic,
+        }
     from loop.schemas.active_context import handoff_mode_from_text
 
     ac_mode = (handoff_mode_from_text(text) or "").upper()
@@ -1683,9 +1764,15 @@ def prepare_session(
             ]
         )
 
-    extra = list(_step_context_extra_blocks(cwd_p, existing))
-    # Surface incomplete blockers so loop cannot "PASS+BLOCKED" spin.
-    extra.extend(_incomplete_step_fix_blocks(cwd_p))
+    extra: list[str] = []
+    proj_for_extra = _projection_for_gate_armed_step(st, projection)
+    extra_phase_kind = _phase_kind(
+        proj_for_extra.get("phase") or st.get("phase") or projection.get("phase")
+    )
+    if extra_phase_kind not in {"qa", "audit"}:
+        extra.extend(_step_context_extra_blocks(cwd_p, existing))
+    if extra_phase_kind in {"implement", "generic"}:
+        extra.extend(_incomplete_step_fix_blocks(cwd_p))
     # de-dupe section headers while preserving order
     seen: set[str] = set()
     extra_deduped: list[str] = []
@@ -1843,6 +1930,15 @@ def prepare_session(
     }
     if "dsh_profile" in runtime_extras:
         res_dict["dsh_profile"] = runtime_extras["dsh_profile"]
+    try:
+        publish_runner_identity(
+            runtime_dir(cwd_p),
+            epic_id=str(st.get("armed_epic") or armed_epic or ""),
+            phase=str(phase_raw or ""),
+            step=str(armed_step_now or ""),
+        )
+    except Exception as err:
+        logger.warning("prepare: publish_runner_identity failed: %s", err)
     return res_dict
 
 

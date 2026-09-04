@@ -120,18 +120,31 @@ def test_build_report_coverage_pct():
     assert report.critical_count >= 1
 
 
+def _write_v2_plan_md(tmp_path: Path, epic_id: str, body: str) -> Path:
+    md_dir = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "md"
+    md_dir.mkdir(parents=True)
+    plan_md = md_dir / "plan.md"
+    plan_md.write_text(body, encoding="utf-8")
+    return plan_md
+
+
+def _write_v2_step(tmp_path: Path, epic_id: str, step_name: str, body: str) -> Path:
+    steps_dir = tmp_path / "memory-bank" / "back" / "plan" / epic_id / "yaml" / "steps"
+    steps_dir.mkdir(parents=True, exist_ok=True)
+    step_path = steps_dir / step_name
+    step_path.write_text(body, encoding="utf-8")
+    return step_path
+
+
 def test_cli_exit0_clean_fixture(tmp_path: Path, monkeypatch):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
-    plan_dir.mkdir(parents=True)
-    (plan_dir / "plan.yaml").write_text(
-        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n"
+    _write_v2_plan_md(
+        tmp_path,
+        "T-TEST",
+        "# Plan T-TEST\n\n## Requirements\n\nFR-001 Feature one\n",
     )
-
-    decomp_dir = plan_dir / "steps"
-    decomp_dir.mkdir()
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
+    _write_v2_step(tmp_path, "T-TEST", "s01.yaml", "step_id: s01\nplan_refs: ['FR-001']\n")
 
     monkeypatch.setattr(sys, "argv", ["epic_resolve.py", "--cwd", str(tmp_path), "validate-traceability", "--epic", "T-TEST"])
     assert main() == 0
@@ -140,15 +153,12 @@ def test_cli_exit0_clean_fixture(tmp_path: Path, monkeypatch):
 def test_cli_exit1_critical_finding(tmp_path: Path, monkeypatch):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
-    plan_dir.mkdir(parents=True)
-    (plan_dir / "plan.yaml").write_text(
-        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n  - id: FR-002\n"
+    _write_v2_plan_md(
+        tmp_path,
+        "T-TEST",
+        "# Plan T-TEST\n\n## Requirements\n\nFR-001 Feature one\nFR-002 Feature two\n",
     )
-
-    decomp_dir = plan_dir / "steps"
-    decomp_dir.mkdir()
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
+    _write_v2_step(tmp_path, "T-TEST", "s01.yaml", "step_id: s01\nplan_refs: ['FR-001']\n")
 
     monkeypatch.setattr(sys, "argv", ["epic_resolve.py", "--cwd", str(tmp_path), "validate-traceability", "--epic", "T-TEST"])
     assert main() == 1
@@ -164,15 +174,12 @@ def test_cli_exit2_missing_plan(tmp_path: Path, monkeypatch):
 def test_cli_json_output_valid(tmp_path: Path, monkeypatch, capsys):
     from epic_resolve import main
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST" / "yaml"
-    plan_dir.mkdir(parents=True)
-    (plan_dir / "plan.yaml").write_text(
-        "schema: epic-plan/v1\nepic_id: T-TEST\nrequirements:\n  - id: FR-001\n"
+    _write_v2_plan_md(
+        tmp_path,
+        "T-TEST",
+        "# Plan T-TEST\n\n## Requirements\n\nFR-001 Feature one\n",
     )
-
-    decomp_dir = plan_dir / "steps"
-    decomp_dir.mkdir()
-    (decomp_dir / "s01.yaml").write_text("step_id: s01\nplan_refs: ['FR-001']\n")
+    _write_v2_step(tmp_path, "T-TEST", "s01.yaml", "step_id: s01\nplan_refs: ['FR-001']\n")
 
     monkeypatch.setattr(sys, "argv", ["epic_resolve.py", "--cwd", str(tmp_path), "validate-traceability", "--epic", "T-TEST", "--json"])
     code = main()

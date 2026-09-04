@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 class EpicLayoutKind(str, Enum):
     PLAN_MD = "plan_md"
-    PLAN_YAML = "plan_yaml"
     DECOMPOSE_INDEX_MD = "decompose_index_md"
     DECOMPOSE_INDEX_YAML = "decompose_index_yaml"
     DECOMPOSE_STEP = "decompose_step"

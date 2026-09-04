@@ -1,0 +1,179 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-049-workflow-pack-phase-router
+plan_id: T-HUB-049-workflow-pack-phase-router
+date: 2026-09-04
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Pack manifest указывает phase_registry path и command_prefixes: реализовать pack-scoped phase router (load_phase_registry(pack), dynamic prefix normalization, gates_from_phase и arm_phase читают active pack, purge _ROLE_PREFIXES)."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 9
+  sc_checked: 4
+  layout_paths_total: 5
+  layout_paths_closed: 5
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "loop/epic_transition.py & harness/hooks/epic/core.py: gates_from_phase reads pack phase_registry, allowing non-software pack phases (e.g. video EDIT) to configure gates."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/epic_transition.py: normalize_registry_phase dynamically strips pack command prefixes (e.g. SCRIPT IMPLEMENT -> IMPLEMENT)."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "loop/epic_transition.py: arm_phase and get_verify_agent accept pack context to look up pack-specific verify agent names."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/epic_transition.py: _ROLE_PREFIXES static hardcode purged; dynamic prefixes loaded from pack."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "harness/hooks/session-start.py: injects active pack command prefixes and id into additionalContext payload."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_phase_router.py: test_tm_001_pack_phase_gates verifies pack-aware gates_from_phase."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_phase_router.py: test_tm_002_prefix_normalize verifies dynamic prefix stripping."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_phase_router.py: test_tm_003_purge_role_prefixes verifies complete removal of _ROLE_PREFIXES."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "loop/tests/test_epic_transition.py & test_tm_004_software_regression verify zero regression for default software pack."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/epic_transition.py: load_phase_registry(registry_path=None, *, pack_id=None, cwd=None) resolves path via resolve_workflow_pack when pack_id or cwd provided."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/epic_transition.py: get_command_prefixes(pack) extracts prefixes from WorkflowPack with caching."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/epic_transition.py: normalize_registry_phase(phase, pack=None, *, cwd=None) dynamically strips pack command prefixes."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: gates_from_phase(phase, *, cwd=None, pack=None) resolves pack and uses pack phase_registry."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/epic_transition.py: arm_phase and helper methods accept pack/cwd context and thread to resolve_workflow_pack."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/workflow/command_router.py: route_command(pack, raw_command) maps (pack, prefix, mode) to rules mdc relative path."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "harness/hooks/session-start.py: injects pack id and command prefix snippet into additionalContext payload."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/epic_transition.py: _ROLE_PREFIXES and _DEFAULT_REGISTRY_PATH static literals removed; verified via test_role_prefixes_gone."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: deferred
+    evidence: "mainrule.mdc §Workflow Pack — cut_list appetite deferred to T-HUB-052 per plan.md#Appetite and decompose-index.yaml deferred list."
+    remaining_work: "Follow-up in T-HUB-052."
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_phase_router.py: test suite covering TM-001..TM-005 and mock alternate pack phase yaml."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/epic_transition.py
+    status: present
+    follow_up: ""
+    evidence: "Contains pack-aware load_phase_registry, dynamic normalize_registry_phase, purged legacy globals."
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    follow_up: ""
+    evidence: "gates_from_phase threads cwd/pack to resolve_workflow_pack."
+  - layout_path: loop/workflow/command_router.py
+    status: present
+    follow_up: ""
+    evidence: "New module implementing route_command and CommandRoute dataclass."
+  - layout_path: harness/hooks/session-start.py
+    status: present
+    follow_up: ""
+    evidence: "Session start hook enhanced with pack command index injection."
+  - layout_path: loop/tests/test_workflow_pack_phase_router.py
+    status: present
+    follow_up: ""
+    evidence: "Dedicated regression test suite passing in pytest matrix."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s01-pack-aware-load-phase-registry.yaml
+  - step_id: s02
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s02-dynamic-normalize-registry-phase.yaml
+  - step_id: s03
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s03-gates-arm-phase-thread-pack.yaml
+  - step_id: s04
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s04-command-router.yaml
+  - step_id: s05
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s05-session-start-pack-inject.yaml
+  - step_id: s06
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s06-purge-role-prefixes-legacy.yaml
+  - step_id: s07
+    implement_file: implement-T-HUB-049-workflow-pack-phase-router/s07-pytest-matrix-regression.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-04
+  plan_ref: plan-T-HUB-049-workflow-pack-phase-router.md#replacement--sunset
+  rows:
+    - symbol: loop.epic_transition._ROLE_PREFIXES
+      kind: A
+      command: 'rg -n "_ROLE_PREFIXES" loop/ harness/ --glob "*.py" | rg -v "test_|/archive/"'
+      result: pass
+      prod_callers: []
+      notes: "Symbol deleted; zero production callers."
+    - symbol: loop.epic_transition._DEFAULT_REGISTRY_PATH
+      kind: A
+      command: 'rg -n "_DEFAULT_REGISTRY_PATH" loop/ harness/ --glob "*.py" | rg -v "test_|/archive/"'
+      result: pass
+      prod_callers: []
+      notes: "Symbol deleted; zero production callers."
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-04
+  rows:
+    - boundary: B-001
+      enforce_evidence: "bin/pytest loop/tests/test_workflow_pack_phase_router.py -q"
+      result: pass
+      notes: "All pack router unit and regression tests green."
+
+blocked_reason: ""

@@ -47,6 +47,8 @@ def main() -> None:
                 projection_gates = gates_from_phase(projection_phase, cwd=cwd)
         except Exception:
             projection_phase = None
+    else:
+        projection_phase = None
     projection_authoritative = bool(projection_phase)
     role_prompt = bool(
         QA_RE.search(prompt) or IMPL_RE.search(prompt) or BUGFIX_RE.search(prompt)

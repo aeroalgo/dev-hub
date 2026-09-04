@@ -74,7 +74,8 @@ timeout 300s .venv/bin/pytest loop/tests/test_dag_canary.py loop/tests/test_fini
 При `EPIC_CHAIN_ROADMAP=1`: после валидного `EPIC_DONE` (из `check-after` **или** `prepare`, если projection.phase уже DONE) → `roadmap-advance` (следующий из Queue YAML) → outer loop continue; очередь исчерпана → `ROADMAP_DONE`.  
 `BLOCKED:` | `NEED_HUMAN:` — halt **только** для внешнего/человеческого стопа.
 Incomplete AC текущего эпика (pending cp, `gaps.blocked`, parity FAIL) → не `BLOCKED:`;
-hooks demote ложный `@verify` PASS → FAIL; prepare injects `## FIX INCOMPLETE` и loop чинит в том же эпике.
+hooks demote ложный `@verify` PASS → FAIL; на **IMPLEMENT** prepare injects `## FIX INCOMPLETE` и loop чинит в том же шаге.
+**QA/AUDIT** — review-only (`code_changed: no`): suite/reviewer fail → qa.yaml `fail|blocked` + `fix_plan[]` (`BACK BUGFIX …`) + `mb-finish`; FORBIDDEN чинить prod/tests в QA-сессии (`FAIL → fix → re-verify`).
 `GAPS:` / `**GAPS:**` — **не** stop (часто deferred sNN/eNN notes; путают с INTEG GAP). ARCHIVE — вручную вне loop (не в DONE/REFLECT loop-сессии; finish = EPIC_DONE → chain).
 
 **Lifecycle reducer (post-implement):** `bugfix_done` / `qa_fail` **после** `reflection_done` снова открывают QA **только пока нет более нового `qa_pass`**. Следующий `qa_pass` закрывает окно reopen → `REFLECT` (если reflection stale vs QA) или `DONE`. Иначе исторический `bugfix_done` после `reflection_done` навсегда пинит `phase=QA` при каждом rewrite `qa-*.yaml` (симптом: endless BACK QA при Handoff→REFLECT). Evidence-rehash bugfix **между** `qa_pass` и reflection **не** блокирует `DONE`. Default `_load_dag()` **не** автовыбирает `canary-*` / `*-demo` (только явный `--pipeline`).

@@ -33,7 +33,7 @@ alwaysApply: false
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| PLAN | `back/plan/<epic_id>/` | `yaml/plan.yaml` + `md/plan.md`; multi-epic → апсерт **`back/roadmap/queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
+| PLAN | `back/plan/<epic_id>/` | `md/plan.md`; multi-epic → апсерт **`back/roadmap/queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
 | ROADMAP | `back/roadmap/` | **`queue.yaml`** SoT; `archive/` — старые slug (read-only). Merge: @.cursor/rules/shared/workflow-roadmap-merge.mdc |
 | DECOMPOSE | `back/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml` (scaffold: `mb-scaffold decompose`). **`<epic_id>` = descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
 | CREATIVE | `back/creative/<epic_id>/` или `back/creative/` | `creative-<feature>.md` — **с эпиком** под `<epic_id>/`; без эпика — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc |
@@ -66,7 +66,7 @@ alwaysApply: false
 | AUDIT | `integration/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
 | GAP | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `gap-YYYYMMDD-<slug>.md` |
 | GAP CLOSE | `integration/gap/<epic_id>/` (с эпиком) · `integration/gap/` (ad-hoc) | `close-YYYYMMDD-<slug>.md` |
-| PLAN | `integration/plan/<epic_id>/` | `md/plan.md` + `yaml/plan.yaml` |
+| PLAN | `integration/plan/<epic_id>/` | `md/plan.md` |
 | DECOMPOSE | `integration/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/eNN-<slug>.yaml` (+ `md/`); `<epic_id>` = stem plan со slug |
 | CREATIVE | `integration/creative/<epic_id>/` или плоско | `creative-<feature>.md` |
 | IMPLEMENT | `integration/implement/<epic_id>/` | `eNN-<slug>.yaml` (прямо в `<epic_id>/`; без `yaml/` subdir); `<epic_id>` тот же stem+slug |

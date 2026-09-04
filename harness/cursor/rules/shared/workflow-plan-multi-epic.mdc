@@ -61,7 +61,7 @@ alwaysApply: false
 1. Прочитать research **целиком**
 2. Объявить: `MULTI-EPIC PLAN — N эпиков` + таблица cut
 3. Апсерт в `roadmap/queue.yaml`: новые `queue[]` rows + `batches.<slug>` (Edit или `roadmap_upsert_batch`)
-4. Для **каждого** эпика — полный `plan/<epic_id>/md/plan.md` (+ `yaml/plan.yaml` via mb-scaffold)
+4. Для **каждого** эпика — полный `plan/<epic_id>/md/plan.md`
 5. `tasks.md` append-only: ссылка на `roadmap/queue.yaml` + каждый эпик
 6. Опционально: `roadmap-merge --role <role>` (перенос done / topo)
 7. FINISH: `load_now` → `roadmap/queue.yaml` + первый `plan/<epic_id>/md/plan.md`; next = `* DECOMPOSE` first

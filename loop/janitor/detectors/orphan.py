@@ -32,8 +32,6 @@ def detect_orphan_implement_yaml(cwd: Path) -> list[JanitorFinding]:
             else:
                 epic_id = epic_folder_name
 
-            # Check v2 plan first
-            v2_plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=cwd)
             v2_plan_md = resolve(role, epic_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
             v2_decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
             v2_decomp_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
@@ -42,7 +40,6 @@ def detect_orphan_implement_yaml(cwd: Path) -> list[JanitorFinding]:
             matching_plan_folder = plan_dir / f"decompose-{epic_id}"
             has_matching_plan = (
                 v2_plan_dir.is_dir()
-                or v2_plan_yaml.is_file()
                 or v2_plan_md.is_file()
                 or v2_decomp_yaml.is_file()
                 or v2_decomp_md.is_file()

@@ -2,10 +2,12 @@
 
 ## Active
 
+| T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
 | T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | PLAN | in_progress | [plan](back/plan/plan-T-HUB-060-remove-reflect-phase.md) · next BACK DECOMPOSE |
 
 | ID | Title | Level | Step | Status | Progress |
 |----|-------|-------|------|--------|----------|
+| T-HUB-061 | Boundary CLI + doctor hygiene (--raw-json, check_boundaries, repair prose) | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · queue head · next DECOMPOSE |
 | T-HUB-010 | SpecKit adapt — CLARIFY + spec quality | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-010-clarify-spec-quality.md) · QA pass · 7/7 steps completed |
 | T-HUB-011 | SpecKit adapt — ANALYZE pre-implement | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-011-analyze-pre-implement.md) · QA pass · 4/4 steps completed |
 | T-HUB-012 | SpecKit adapt — AUDIT converge | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-012-audit-converge.md) · QA pass · 4/4 steps completed |
@@ -109,11 +111,13 @@
 - T-HUB-054…056: MULTI-EPIC PLAN suite-hygiene (runner+gate → board-sync → loop-identity; baseline 19 failed → 0)
 - T-HUB-057: BACK PLAN loop-session-json-contract (mb-load → JSON gates → repair → mb-finish); canon after 056 before 053
 - T-HUB-058: BACK PLAN sunset-inventory agent (READ-ONLY REPLACE JSON; sunset_scope in decompose)
+- T-HUB-061: BACK PLAN boundary-cli-doctor-hygiene (--raw-json→--json, doctor check_boundaries, repair prose purge)
 
 ## Последние события
 
 | Date | ID | Event |
 |------|-----|-------|
+| 2026-09-04 | T-HUB-061-boundary-cli-doctor-hygiene | BACK PLAN done · [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · queue head · next DECOMPOSE |
 | 2026-09-03 | T-HUB-058-sunset-inventory-agent | BACK PLAN done · [plan](back/plan/plan-T-HUB-058-sunset-inventory-agent.md) · [roadmap](back/plan/roadmap-sunset-inventory-agent-epics.md) · merge ok · next DECOMPOSE |
 | 2026-09-02 | T-HUB-057-loop-session-json-contract | BACK PLAN done · after 056 · [plan](back/plan/plan-T-HUB-057-loop-session-json-contract.md) · [roadmap](back/plan/roadmap-loop-session-contract-epics.md) · next DECOMPOSE after 054–056 · 053 deps→057 |
 | 2026-09-02 | T-HUB-054…056 suite-hygiene | BACK PLAN MULTI-EPIC · [roadmap](back/plan/roadmap-suite-hygiene-epics.md) · queue · next DECOMPOSE T-HUB-054 · baseline 19 failed / 1551 passed |

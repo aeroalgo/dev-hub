@@ -11,7 +11,7 @@ alwaysApply: false
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** plan (`memory-bank/back/plan/<epic_id>/yaml/plan.yaml` и `md/plan.md`) → decompose layout v2 (`memory-bank/back/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`). НЕ писать код.
+**Цель:** plan (`memory-bank/back/plan/<epic_id>/md/plan.md`) → decompose layout v2 (`memory-bank/back/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`). НЕ писать код.
 **Folder slug (HARD):** `plan_id` = epic id со descriptive slug. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 **Scaffold contract (HARD):** `python3 .claude/hooks/epic_resolve.py mb-scaffold decompose --epic-id <id>`. **FORBIDDEN: Write sNN-*.yaml from scratch** (scaffolded paths — Edit only).
 

@@ -1,5 +1,4 @@
 import pytest
-import warnings
 from pathlib import Path
 from epic.traceability import (
     parse_plan_requirements,
@@ -12,23 +11,18 @@ import sys
 import json
 
 
-def test_yaml_primary_missing_fr(tmp_path: Path):
-    """cp1: fixture: plan.yaml with requirements [FR-001, FR-002]; decompose shard with fr_ids: [FR-001] -> CRITICAL='FR-002 uncovered'."""
-    plan_yaml_path = tmp_path / "plan.yaml"
-    plan_yaml_path.write_text("""schema: epic-plan/v1
-plan_id: T-TEST
-level: standard
-summary:
-  step_count_floor: 2
-  requirement_count: 2
-requirements:
-  - id: FR-001
-    text: First requirement
-  - id: FR-002
-    text: Second requirement
-""")
+def test_md_primary_missing_fr(tmp_path: Path):
+    """cp1: plan.md with FR-001, FR-002; decompose shard fr_ids: [FR-001] -> CRITICAL FR-002 uncovered."""
+    plan_md_path = tmp_path / "plan.md"
+    plan_md_path.write_text(
+        "# Plan Test\n\n"
+        "## Requirements\n\n"
+        "FR-001 First requirement\n"
+        "FR-002 Second requirement\n",
+        encoding="utf-8",
+    )
 
-    reqs = parse_plan_requirements(plan_yaml_path)
+    reqs = parse_plan_requirements(plan_md_path)
     assert reqs == ["FR-001", "FR-002"]
 
     decomp_dir = tmp_path / "decompose"
@@ -50,21 +44,17 @@ plan_contract:
     assert "no coverage" in critical_findings[0].message
 
 
-def test_yaml_primary_pass(tmp_path: Path):
-    """cp2: fixture: plan.yaml FR-001; decompose fr_ids: [FR-001] -> CRITICAL=0, PASS."""
-    plan_yaml_path = tmp_path / "plan.yaml"
-    plan_yaml_path.write_text("""schema: epic-plan/v1
-plan_id: T-TEST
-level: standard
-summary:
-  step_count_floor: 1
-  requirement_count: 1
-requirements:
-  - id: FR-001
-    text: First requirement
-""")
+def test_md_primary_pass(tmp_path: Path):
+    """cp2: plan.md FR-001; decompose fr_ids: [FR-001] -> CRITICAL=0, PASS."""
+    plan_md_path = tmp_path / "plan.md"
+    plan_md_path.write_text(
+        "# Plan Test\n\n"
+        "## Requirements\n\n"
+        "FR-001 First requirement\n",
+        encoding="utf-8",
+    )
 
-    reqs = parse_plan_requirements(plan_yaml_path)
+    reqs = parse_plan_requirements(plan_md_path)
     assert reqs == ["FR-001"]
 
     decomp_dir = tmp_path / "decompose"
@@ -88,36 +78,34 @@ plan_contract:
     assert report.coverage_pct == 100.0
 
 
-def test_md_fallback_deprecated(tmp_path: Path):
-    """Post-purge: markdown files return empty requirements list (md fallback purged)."""
-    plan_md_path = tmp_path / "plan.md"
-    plan_md_path.write_text("""# Plan Test
-| ID | Desc |
-| FR-001 | First requirement |
-| FR-002 | Second requirement |
-""")
+def test_yaml_plan_rejected(tmp_path: Path):
+    """plan.yaml is not a valid requirements SoT — fail closed."""
+    plan_yaml_path = tmp_path / "plan.yaml"
+    plan_yaml_path.write_text(
+        "schema: epic-plan/v1\n"
+        "requirements:\n"
+        "  - id: FR-001\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="plan.md only"):
+        parse_plan_requirements(plan_yaml_path)
 
-    reqs = parse_plan_requirements(plan_md_path)
-    assert reqs == []
 
-
-def test_cli_v2_plan_yaml_primary(tmp_path: Path, monkeypatch, capsys):
-    """CLI validate-traceability primary resolution from layout v2 plan.yaml."""
+def test_cli_v2_plan_md_primary(tmp_path: Path, monkeypatch, capsys):
+    """CLI validate-traceability primary resolution from layout v2 plan.md."""
     mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-TEST-CLI"
+    md_dir = mb_dir / "md"
     yaml_dir = mb_dir / "yaml"
     steps_dir = yaml_dir / "steps"
+    md_dir.mkdir(parents=True)
     steps_dir.mkdir(parents=True)
 
-    (yaml_dir / "plan.yaml").write_text("""schema: epic-plan/v1
-plan_id: T-TEST-CLI
-level: standard
-summary:
-  step_count_floor: 1
-  requirement_count: 1
-requirements:
-  - id: FR-001
-    text: CLI requirement 1
-""")
+    (md_dir / "plan.md").write_text(
+        "# Plan T-TEST-CLI\n\n"
+        "## Requirements\n\n"
+        "FR-001 CLI requirement 1\n",
+        encoding="utf-8",
+    )
 
     (steps_dir / "s01.yaml").write_text("""schema: epic-decompose/v1
 role: back

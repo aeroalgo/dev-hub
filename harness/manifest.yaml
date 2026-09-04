@@ -101,6 +101,13 @@ hooks:
         settings_key: "hooks.PreToolUse"
       codex:
         hooks_json_entry: true
+  write-pretool:
+    source: "harness/hooks/write-pretool.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PreToolUse"
+      codex:
+        hooks_json_entry: true
   agent-posttool:
     source: "harness/hooks/agent-posttool.py"
     runtimes:

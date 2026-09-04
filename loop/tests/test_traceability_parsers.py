@@ -20,9 +20,16 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures" / "traceability"
 
 
 def test_parse_plan_requirements_extracts_fr_sc_us():
-    plan_path = FIXTURES_DIR / "plan.yaml"
+    plan_path = FIXTURES_DIR / "plan.md"
     reqs = parse_plan_requirements(plan_path)
     assert reqs == ["FR-001", "FR-002", "FR-003", "FR-004"]
+
+
+def test_parse_plan_requirements_rejects_yaml(tmp_path: Path):
+    yaml_plan = tmp_path / "plan.yaml"
+    yaml_plan.write_text("schema: epic-plan/v1\nrequirements:\n  - id: FR-001\n")
+    with pytest.raises(ValueError, match="plan.md only"):
+        parse_plan_requirements(yaml_plan)
 
 
 def test_parse_plan_requirements_empty_on_missing_table(tmp_path: Path):

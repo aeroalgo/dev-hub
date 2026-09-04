@@ -42,7 +42,7 @@ alwaysApply: false
 3a. **Multi-epic path:** epic cut → апсерт `roadmap/queue.yaml` (`batches.<slug>`) → полный `plan/<epic_id>/` на **каждый** эпик. Шаблон: @.cursor/templates/roadmap-queue.yaml  
 4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` и `yaml/plan.yaml` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** апсерт `back/roadmap/queue.yaml` + N plan dirs
+6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** апсерт `back/roadmap/queue.yaml` + N plan dirs
 7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
 7a1. **Queue reconcile (same session, multi-epic):** после апсерта queue опционально:
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`

@@ -678,6 +678,8 @@ def filter_step_dirty(
     kept: list[str] = []
     for p in dirty:
         norm = p.replace("\\", "/")
+        if eid and "memory-bank/" in norm.lower() and eid not in norm.lower():
+            continue
         if sid and sid in norm.lower():
             # memory-bank files must also match epic_id to avoid cross-epic noise
             if norm.startswith("memory-bank/") and eid and eid not in norm.lower():
@@ -778,6 +780,20 @@ def load_implement_checkpoint_trace(
     """Load pending checkpoint state for a dirty resume without writing it."""
     try:
         if not step_id:
+            return []
+        if str(step_id).strip().upper() in {
+            "QA",
+            "AUDIT",
+            "PLAN",
+            "DECOMPOSE",
+            "ANALYZE",
+            "CLARIFY",
+            "BUGFIX",
+            "REFLECT",
+            "DONE",
+            "CREATIVE",
+            "ARCHIVE",
+        }:
             return []
         root = Path(cwd)
         matches: list[Path] = []

@@ -18,7 +18,7 @@ _ACTIONABLE_GAPS = frozenset(
 
 
 def extract_plan_intent_ids(plan_path: Path) -> list[str]:
-    """FR/SC/US from plan.yaml (preferred) or plan.md prose."""
+    """FR/SC/US from plan.md prose (SoT)."""
     reqs = list(parse_plan_requirements(plan_path))
     if reqs:
         return reqs

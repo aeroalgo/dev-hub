@@ -24,18 +24,9 @@ def test_arm_phase_v2_layout_epic(tmp_path: Path):
         encoding="utf-8",
     )
 
-    plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=tmp_path)
-    plan_yaml.parent.mkdir(parents=True, exist_ok=True)
-    plan_yaml.write_text(
-        "schema: epic-plan/v1\n"
-        "role: back\n"
-        "plan_id: T-SMOKE-001\n",
-        encoding="utf-8",
-    )
-
     plan_md = resolve(role, epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
     plan_md.parent.mkdir(parents=True, exist_ok=True)
-    plan_md.write_text("# Plan\n", encoding="utf-8")
+    plan_md.write_text("# Plan\n\nFR-001 smoke requirement\n", encoding="utf-8")
 
     step_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_STEP, step_id="s01", step_slug="init", project_root=tmp_path)
     step_yaml.parent.mkdir(parents=True, exist_ok=True)

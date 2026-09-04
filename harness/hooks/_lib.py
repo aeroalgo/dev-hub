@@ -571,6 +571,9 @@ class RunnerOwner:
     mode: str
     model: str
     timeout_config: dict[str, int | None]
+    epic_id: str = ""
+    phase: str = ""
+    step: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -582,7 +585,14 @@ class RunnerOwner:
             "mode": self.mode,
             "model": self.model,
             "timeout_config": dict(self.timeout_config),
+            "epic_id": self.epic_id,
+            "phase": self.phase,
+            "step": self.step,
         }
+
+
+class ActiveContextLocked(PermissionError):
+    """Chat/CLI tried to rewrite activeContext while a live loop owns the cursor."""
 
 
 def write_runner_owner(path: str | Path, owner: RunnerOwner) -> None:
@@ -615,6 +625,9 @@ def load_runner_owner(path: str | Path) -> RunnerOwner | None:
             mode=str(data.get("mode", "unknown")),
             model=str(data.get("model", "")),
             timeout_config=dict(data.get("timeout_config", {})),
+            epic_id=str(data.get("epic_id") or ""),
+            phase=str(data.get("phase") or ""),
+            step=str(data.get("step") or ""),
         )
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError):
         return None
@@ -662,6 +675,110 @@ def runner_owner_status(state_dir: str | Path) -> dict[str, Any]:
         "lock_age_sec": lock_age_sec,
         "owner": owner.as_dict() if owner else None,
     }
+
+
+def _normalize_owner_phase(value: str | None) -> str:
+    raw = str(value or "").strip().upper()
+    for prefix in ("BACK ", "FRONT ", "INTEG ", "INTEGRATION "):
+        if raw.startswith(prefix):
+            raw = raw[len(prefix) :].strip()
+            break
+    return raw
+
+
+def live_runner_owner(cwd: str | Path) -> RunnerOwner | None:
+    """Return live runner.json owner for this checkout, or None if idle/stale."""
+    from epic_paths import epic_dir
+
+    owner = load_runner_owner(epic_dir(cwd) / "runner.json")
+    if owner is None or not runner_pid_alive(owner.pid):
+        return None
+    return owner
+
+
+def _owner_identity_tuple(owner: RunnerOwner) -> tuple[str, str, str]:
+    return (
+        str(owner.epic_id or "").strip(),
+        _normalize_owner_phase(owner.phase or owner.mode),
+        str(owner.step or "").strip(),
+    )
+
+
+def runner_owns_active_context_reason(
+    cwd: str | Path,
+    *,
+    epic_id: str | None = None,
+    phase: str | None = None,
+    step: str | None = None,
+    same_session: bool | None = None,
+) -> str | None:
+    """Deny reason when a live runner owns the cursor and the write is foreign.
+
+    Loop process (EPIC_LOOP=1) may rewrite the cursor (including epic switch).
+    Chat and foreign CLI must not touch it while the runner is alive.
+    """
+    owner = live_runner_owner(cwd)
+    if owner is None:
+        return None
+    in_loop = is_epic_loop_env() if same_session is None else same_session
+    if in_loop:
+        return None
+    own_epic, own_phase, own_step = _owner_identity_tuple(owner)
+    identity = f"{own_epic or '?'} {own_phase or owner.mode or '?'} {own_step or '?'}".strip()
+    return (
+        "runner_owns_active_context: live loop owns "
+        f"`memory-bank/activeContext.md` ({identity}, pid={owner.pid}). "
+        "Chat PLAN/FINISH пишет только plan.md + queue.yaml; "
+        "курсор не перезаписывать."
+    )
+
+
+def publish_runner_identity(
+    state_dir: str | Path,
+    *,
+    epic_id: str | None = None,
+    phase: str | None = None,
+    step: str | None = None,
+) -> RunnerOwner | None:
+    """Update live runner.json identity after prepare/arm. No-op if missing."""
+    path = Path(state_dir) / "runner.json"
+    owner = load_runner_owner(path)
+    if owner is None:
+        return None
+    updated = RunnerOwner(
+        pid=owner.pid,
+        host=owner.host,
+        started_at=owner.started_at,
+        session_id=owner.session_id,
+        selected_identity=owner.selected_identity,
+        mode=owner.mode,
+        model=owner.model,
+        timeout_config=dict(owner.timeout_config),
+        epic_id=str(epic_id or owner.epic_id or ""),
+        phase=_normalize_owner_phase(phase or owner.phase),
+        step=str(step or owner.step or ""),
+    )
+    write_runner_owner(path, updated)
+    return updated
+
+
+def assert_active_context_writable(
+    cwd: str | Path,
+    *,
+    epic_id: str | None = None,
+    phase: str | None = None,
+    step: str | None = None,
+    same_session: bool | None = None,
+) -> None:
+    reason = runner_owns_active_context_reason(
+        cwd,
+        epic_id=epic_id,
+        phase=phase,
+        step=step,
+        same_session=same_session,
+    )
+    if reason:
+        raise ActiveContextLocked(reason)
 
 
 _RUNTIME_CONFIG_DEFAULTS: dict[str, int | None] = {
@@ -2213,6 +2330,62 @@ def index_bulk_status_deny_reason(command: str | None) -> str | None:
         "(зеркалит в index.md). Рассинхрон: repair-index-mirror. "
         "Структура: sync-index-yaml."
     )
+
+
+_ACTIVE_CONTEXT_BASENAME = "activecontext.md"
+_ACTIVE_CONTEXT_WRITE_RE = re.compile(
+    r"(?is)(?:(?:^|[\n;|&])\s*(?:cat|tee|cp|mv|install)\b|"
+    r">\s*|>>\s*)"
+    r"[^\n;|&]*activecontext\.md\b"
+)
+
+
+def is_active_context_path(path: str | Path | None) -> bool:
+    if path is None or not str(path).strip():
+        return False
+    name = Path(str(path)).name.lower()
+    return name == _ACTIVE_CONTEXT_BASENAME
+
+
+def active_context_write_deny_reason(
+    cwd: str | Path,
+    file_path: str | Path | None,
+    contents: str | None = None,
+    *,
+    same_session: bool | None = None,
+) -> str | None:
+    """Deny chat/CLI Write/Edit of activeContext while a live loop owns it."""
+    if not is_active_context_path(file_path):
+        return None
+    epic_id = None
+    phase = None
+    step = None
+    if contents:
+        try:
+            from loop.schemas.active_context import parse_handoff_meta
+
+            meta = parse_handoff_meta(contents)
+        except Exception:
+            meta = None
+        if meta is not None:
+            epic_id = meta.epic_id
+            phase = meta.mode
+            step = meta.step_id
+    return runner_owns_active_context_reason(
+        cwd,
+        epic_id=epic_id,
+        phase=phase,
+        step=step,
+        same_session=same_session,
+    )
+
+
+def bash_active_context_write_deny_reason(
+    cwd: str | Path, command: str | None
+) -> str | None:
+    if not command or not _ACTIVE_CONTEXT_WRITE_RE.search(str(command)):
+        return None
+    return runner_owns_active_context_reason(cwd)
 
 
 def runner_cli_deny_reason(command: str | None) -> str | None:

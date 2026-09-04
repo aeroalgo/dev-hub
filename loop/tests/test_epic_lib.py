@@ -221,3 +221,40 @@ def test_post_implement_done_forbids_archive_in_loop(tmp_path) -> None:
     assert re.search(r"(?m)^EPIC_DONE\s*$", body)
     assert "ARCHIVE NOW / VAN в loop" in body or "FORBIDDEN:** ARCHIVE" in body or "FORBIDDEN: ARCHIVE" in body
     assert "await VAN" not in body
+
+
+def test_post_implement_audit_includes_plan_md_even_with_memory_bank_role_dir(tmp_path) -> None:
+    """Regression: arm_phase used to pass role_dir=memory-bank/back → plan.md dropped from load_now."""
+    lib = _load_lib()
+    epic = "T-AUDIT-PLAN-LOAD"
+    plan = (
+        tmp_path
+        / "memory-bank"
+        / "back"
+        / "plan"
+        / epic
+        / "md"
+        / "plan.md"
+    )
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        "# Plan\n\n## WHAT\ngoal text here\n\n- **FR-001:** do thing\n",
+        encoding="utf-8",
+    )
+    body = lib.build_post_implement_active_context(
+        role="BACK",
+        role_dir="memory-bank/back",
+        epic_id=epic,
+        tracker_rel=f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml",
+        tracker_link=f"back/plan/{epic}/yaml/decompose-index.yaml",
+        index_rel=f"memory-bank/back/plan/{epic}/md/decompose-index.md",
+        hub_rel=None,
+        phase="AUDIT",
+        qa_path=None,
+        reflection_path=None,
+        cwd=tmp_path,
+    )
+    assert f"back/plan/{epic}/md/plan.md" in body
+    assert "Intent Inventory" in body
+    assert "## Handoff BACK AUDIT" in body
+    assert "Triple Assess" in body

@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: "Purge prose REPAIR: fallback из extract_repair_result (fail-closed)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить из extract_repair_result (harness/hooks/_lib.py) два legacy prose-пути:
+  (a) regex ^REPAIR:\s*(done|partial|fail) → synthetic dict (success без validate);
+  (b) soft-return payload после pydantic Exception без model_validate success.
+  После шага: extract_repair_result("REPAIR: fail\nno json") → None;
+  valid JSON fence → pydantic dump как прежде; prose-only → None (машинный SoT = JSON fence only).
+  Obsolete тест test_extract_repair_result_from_repair_line_fallback удалён или rewrite на deny.
+  Outcome: US-003 / FR-006 / FR-007 / SC-002 / SC-004 / TM-003.
+
+plan_contract:
+  fr_ids: [FR-006, FR-007, US-003, SC-002, SC-004, TM-003]
+  nouns:
+    - "harness/hooks/_lib.py extract_repair_result function"
+    - "prose REPAIR: regex ^REPAIR:\\s*(done|partial|fail)"
+    - "soft except Exception: return payload path"
+    - "test_extract_repair_result_from_repair_line_fallback test case"
+    - "harness/hooks/tests/test_gate_repair.py"
+    - "loop/tests/test_validate_boundary.py"
+  layout_paths:
+    - "harness/hooks/_lib.py"
+    - "harness/hooks/tests/test_gate_repair.py"
+  ac_quotes:
+    - "extract_repair_result('REPAIR: fail\\nno json') is None"
+    - "valid fence → pydantic dump"
+    - "obsolete fallback test удалён или переписан на deny"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:27-31"
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:100-115"
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:210-220"
+
+context:
+  consumes:
+    - "harness/hooks/_lib.py — extract_repair_result с prose fallback и soft-except"
+    - "harness/hooks/tests/test_gate_repair.py — test_extract_repair_result_from_repair_line_fallback"
+  produces:
+    - "harness/hooks/_lib.py — extract_repair_result без prose path, без soft-except"
+    - "harness/hooks/tests/test_gate_repair.py — тест перепишем как deny (prose → None)"
+  plan_refs:
+    - "plan.md §Контекст gap #3: Repair prose leftover"
+    - "plan.md §Technology axiom: Repair extract SoT"
+    - "plan.md §FR-006/007 Acceptance criteria"
+    - "plan.md §Sunset inventory таблица (soft except Exception / prose REPAIR regex)"
+    - "plan.md TM-003"
+  files:
+    - "harness/hooks/_lib.py"
+    - "harness/hooks/tests/test_gate_repair.py"
+
+as_built:
+  - "harness/hooks/_lib.py: prose regex ^REPAIR: → synthetic dict (success без pydantic)"
+  - "harness/hooks/_lib.py: soft except Exception: return payload (возвращает невалидный payload)"
+  - "harness/hooks/tests/test_gate_repair.py: test_extract_repair_result_from_repair_line_fallback требует prose path"
+
+delta:
+  - "harness/hooks/_lib.py: удалить regex prose branch из extract_repair_result"
+  - "harness/hooks/_lib.py: удалить soft-return при pydantic Exception (re-raise или return None)"
+  - "harness/hooks/tests/test_gate_repair.py: удалить test_extract_repair_result_from_repair_line_fallback; добавить deny-test (prose → None)"
+
+deletes:
+  - "harness/hooks/_lib.py: prose REPAIR: regex branch (строки с ^REPAIR:\\s*)"
+  - "harness/hooks/_lib.py: except Exception soft-return block"
+  - "harness/hooks/tests/test_gate_repair.py: test_extract_repair_result_from_repair_line_fallback"
+
+out_of_scope:
+  - "subagent-stop.py validate_boundary gate — отдельная логика, не затронута"
+  - "JSON fence parsing itself — оставить как есть"
+  - "other extract_* helpers — не трогать"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "extract_repair_result с prose-only → None"
+    verify: "python -c \"from harness.hooks._lib import extract_repair_result; r=extract_repair_result('REPAIR: fail\\nno json here'); assert r is None, f'Expected None, got {r}'; print('OK: prose → None')\""
+  - id: cp2
+    criterion: "extract_repair_result с valid JSON fence → pydantic dict"
+    verify: "python -c \"from harness.hooks._lib import extract_repair_result; import json; fence='```json\\n{\\\"status\\\":\\\"done\\\",\\\"summary\\\":\\\"ok\\\",\\\"repair_id\\\":\\\"r-1\\\"}\\n```'; r=extract_repair_result(fence); assert r is not None, 'Expected dict'; print('OK:', r)\""
+  - id: cp3
+    criterion: "pytest gate_repair + validate_boundary зелёный после purge"
+    verify: "bin/pytest harness/hooks/tests/test_gate_repair.py loop/tests/test_validate_boundary.py -q --tb=short"
+  - id: cp4
+    criterion: "rg prose REPAIR: regex в _lib.py → absent"
+    verify: "rg -n 'REPAIR:' harness/hooks/_lib.py && echo FOUND || echo 'OK: prose branch absent'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_gate_repair.py loop/tests/test_validate_boundary.py -q --tb=short"
+tdd:
+  - "Написать deny-test: extract_repair_result('REPAIR: fail') → None (red)"
+  - "Удалить prose regex branch → test green"
+  - "Написать deny-test: soft-except → None при pydantic fail (red)"
+  - "Удалить soft-except → test green"

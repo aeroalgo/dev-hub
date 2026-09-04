@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-049-workflow-pack-phase-router
+title: 's07 — pytest matrix: TM-001..005 failure coverage + pack-router regression
+  suite IMPLEMENT'
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-049-workflow-pack-phase-router/yaml/steps/s07-pytest-matrix-regression.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery:
+- loop/tests/test_workflow_pack_phase_router.py implements TM-001..005 matrix + pack-router
+  regression
+gaps:
+  status: none
+done:
+- TM-001..005 failure and behavioral matrix implemented in loop/tests/test_workflow_pack_phase_router.py
+- Regression suite for load_phase_registry caching, gates_from_phase resolution, route_command
+files:
+- loop/tests/test_workflow_pack_phase_router.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_workflow_pack_phase_router.py -q
+- bin/pytest loop/tests/test_workflow_pack_registry.py -q
+integration_check:
+- pytest matrix verifies fail-closed behaviors for workflow pack routing APIs
+grep_control: []
+verification_results:
+- PASS
+checkpoints:
+- id: cp1
+  criterion: TM-001..002 failure tests зелёные
+  status: done
+- id: cp2
+  criterion: TM-003..005 behavioral tests зелёные
+  status: done
+- id: cp3
+  criterion: Весь новый suite exit 0 за ≤15s
+  status: done
+- id: cp4
+  criterion: Полный hub pytest без новых fails
+  status: done

@@ -180,7 +180,7 @@ def main() -> None:
     if current_phase:
         from loop.epic_transition import get_phase_config
         try:
-            cfg = get_phase_config(str(current_phase))
+            cfg = get_phase_config(str(current_phase), cwd=cwd)
             finish_gates = cfg.get("finish_gates")
             if isinstance(finish_gates, list):
                 for g in finish_gates:
@@ -206,7 +206,7 @@ def main() -> None:
                     else:
                         raise ValueError(f"unknown gate type {g_type!r}: fail-closed")
         except ValueError as err:
-            if "unknown gate type" in str(err) or "unknown phase" in str(err):
+            if "unknown gate type" in str(err) or "unknown phase" in str(err) or "fail-closed" in str(err) or "pack_path_missing" in str(err):
                 _block(f"spawn-gate: {err}")
                 return
 

@@ -41,7 +41,6 @@ def resolve(
 
     Layout v2 structure (yaml/md split ONLY under plan/decompose):
       memory-bank/{role}/plan/{epic_id}/md/plan.md
-      memory-bank/{role}/plan/{epic_id}/yaml/plan.yaml
       memory-bank/{role}/plan/{epic_id}/md/decompose-index.md
       memory-bank/{role}/plan/{epic_id}/yaml/decompose-index.yaml
       memory-bank/{role}/plan/{epic_id}/yaml/steps/{step_filename}
@@ -86,8 +85,6 @@ def resolve(
 
     if kind_enum == EpicLayoutKind.PLAN_MD:
         return base / "plan" / epic_id / "md" / "plan.md"
-    elif kind_enum == EpicLayoutKind.PLAN_YAML:
-        return base / "plan" / epic_id / "yaml" / "plan.yaml"
     elif kind_enum == EpicLayoutKind.DECOMPOSE_INDEX_MD:
         return base / "plan" / epic_id / "md" / "decompose-index.md"
     elif kind_enum == EpicLayoutKind.DECOMPOSE_INDEX_YAML:
@@ -146,7 +143,7 @@ def discover_v2_epics(cwd: Optional[Union[str, Path]] = None) -> list[tuple[str,
             # A v2 epic plan dir must have md/ or yaml/ or decompose index / plan files
             if (child / "yaml").is_dir() or (child / "md").is_dir():
                 epics_found.add((role, child.name))
-            elif (child / "plan.yaml").is_file() or (child / "plan.md").is_file():
+            elif (child / "plan.md").is_file():
                 epics_found.add((role, child.name))
             elif (child / "decompose-index.yaml").is_file() or (child / "decompose-index.md").is_file():
                 epics_found.add((role, child.name))

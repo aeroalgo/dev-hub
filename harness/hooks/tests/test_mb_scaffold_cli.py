@@ -37,7 +37,7 @@ def test_cli_plan_dry_run(tmp_path: Path, monkeypatch):
     assert code == 0
     assert data.get("ok") is True
     assert data.get("dry_run") is True
-    assert len(data.get("created", [])) == 2
+    assert len(data.get("created", [])) == 1
 
     # Files should not exist on dry-run
     plan_md = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
@@ -54,12 +54,12 @@ def test_cli_plan_apply_and_force(tmp_path: Path, monkeypatch):
     )
     assert code == 0
     assert data.get("ok") is True
-    assert len(data.get("created", [])) == 2
+    assert len(data.get("created", [])) == 1
 
     plan_md = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
-    plan_yaml = resolve("back", epic_id, EpicLayoutKind.PLAN_YAML, project_root=tmp_path)
     assert plan_md.exists()
-    assert plan_yaml.exists()
+    assert not (plan_md.parent.parent / "yaml" / "plan.yaml").exists()
+    assert "# Plan: My Epic Plan" in plan_md.read_text()
 
     # Re-run without force should fail
     code_dup, data_dup = _run_cli(

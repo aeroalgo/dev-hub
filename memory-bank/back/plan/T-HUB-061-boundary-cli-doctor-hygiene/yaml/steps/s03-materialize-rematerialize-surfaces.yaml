@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: "Rematerialize .claude/.codex/dsh surfaces после harness SoT fix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  После исправления harness SoT (s02) пересинхронизировать materialized surfaces:
+  .claude/agents/*.md, .codex/agents/*.toml, dsh/presets/*.prompt.md (materialized copies).
+  После шага: rg --raw-json в .claude/agents + .codex/agents → empty.
+  Все runtime-поверхности синхронны harness SoT без drift.
+  Outcome: US-001 / FR-003 / SC-001 / TM-001 (полный).
+
+plan_contract:
+  fr_ids: [FR-003, US-001, SC-001, TM-001]
+  nouns:
+    - ".claude/agents/*.md — materialized Claude agent files"
+    - ".codex/agents/*.toml — materialized Codex agent files"
+    - "harness/manifest.yaml — materialize config/targets"
+    - "runtime-sync / materialize pipeline"
+  layout_paths:
+    - ".claude/agents/"
+    - ".codex/agents/"
+    - "harness/manifest.yaml"
+  ac_quotes:
+    - "rg -n -- '--raw-json' .claude/agents .codex/agents dsh/presets → empty"
+    - "materialize / runtime-sync completes without error"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:54-58"
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:37-46"
+
+context:
+  consumes:
+    - ".claude/agents/*.md — stale materialized с --raw-json"
+    - ".codex/agents/*.toml — stale materialized с --raw-json"
+    - "harness/manifest.yaml — materialize pipeline config"
+    - "harness SoT после s02 (уже исправлены)"
+  produces:
+    - ".claude/agents/*.md — обновлённые с --json"
+    - ".codex/agents/*.toml — обновлённые с --json"
+  plan_refs:
+    - "plan.md §Контекст gap #1: materialize sync"
+    - "plan.md §Technology axiom: Agent SoT / harness → materialize"
+    - "plan.md §Product probe #4 (Adoption: runtime-sync / materialize)"
+    - "plan.md TM-001 rg full check"
+  files:
+    - ".claude/agents/"
+    - ".codex/agents/"
+    - "harness/manifest.yaml"
+
+as_built:
+  - ".claude/agents/*.md: содержат --raw-json (drift от harness SoT)"
+  - ".codex/agents/*.toml: содержат --raw-json (drift от harness SoT)"
+
+delta:
+  - "Запустить materialize / runtime-sync pipeline для обновления .claude/agents + .codex/agents"
+  - "Или при необходимости: прямые Edit .claude/agents/*.md и .codex/agents/*.toml s/--raw-json/--json/"
+
+deletes:
+  - "Все вхождения --raw-json в .claude/agents/*.md и .codex/agents/*.toml"
+
+out_of_scope:
+  - "Изменение harness SoT — уже сделано в s02"
+  - "harness/hooks/_lib.py — s02"
+  - "dsh/presets source files — s02"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "rg --raw-json в .claude/agents + .codex/agents → empty"
+    verify: "rg -rn -- '--raw-json' .claude/agents .codex/agents 2>/dev/null && echo FOUND || echo 'OK: no --raw-json in materialized'"
+  - id: cp2
+    criterion: "TM-001 full: rg по всем поверхностям пуст"
+    verify: "rg -rn -- '--raw-json' harness/agents harness/hooks/_lib.py .claude/agents .codex/agents dsh/presets 2>/dev/null && echo FOUND || echo 'TM-001 OK'"
+  - id: cp3
+    criterion: "materialize pipeline выполнился без ошибок (или direct edit подтверждён grep)"
+    verify: "rg -n -- '--json' .claude/agents/ | head -3"
+
+verify:
+  - "rg -rn -- '--raw-json' .claude/agents .codex/agents → empty (TM-001 partial)"
+tdd: []

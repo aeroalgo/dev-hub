@@ -86,4 +86,4 @@ FR-идентификаторы соответствуют `plan.md §Functional
 | **s04** | loop/workflow/command_router.py — route_command(pack, cmd) → CommandRoute(phase, rules_mdc_rel) · [yaml](s04-command-router.yaml) | BACK IMPLEMENT | completed |
 | **s05** | session-start injects pack command index into additionalContext payload · [yaml](s05-session-start-pack-inject.yaml) | BACK IMPLEMENT | completed |
 | **s06** | purge _ROLE_PREFIXES hardcode + rg audit — replace with pack-scoped prefixes · [yaml](s06-purge-role-prefixes-legacy.yaml) | BACK IMPLEMENT | completed |
-| **s07** | pytest matrix: TM-001..005 failure coverage + pack-router regression suite · [yaml](s07-pytest-matrix-regression.yaml) | BACK IMPLEMENT | pending |
+| **s07** | pytest matrix: TM-001..005 failure coverage + pack-router regression suite · [yaml](s07-pytest-matrix-regression.yaml) | BACK IMPLEMENT | completed |

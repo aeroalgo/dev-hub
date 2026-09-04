@@ -2,6 +2,7 @@
 
 import hashlib
 from pathlib import Path
+from _lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
     atomic_write_text,
@@ -63,6 +64,12 @@ def finish_handoff(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -179,6 +186,12 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -316,6 +329,12 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -483,6 +502,12 @@ def finish_decompose(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -552,6 +577,22 @@ def finish_plan(
             shape_errors=["Plan artifact missing"],
         )
 
+    from _lib import runner_owns_active_context_reason
+
+    lock_reason = runner_owns_active_context_reason(
+        cwd, epic_id=epic_id or None, phase="PLAN"
+    )
+    if lock_reason:
+        return MbFinishResult(
+            ok=True,
+            diagnostic_codes=["cursor_unchanged_runner_owns_active_context"],
+            shape_errors=[lock_reason],
+            finished_step="PLAN",
+            next_step="DECOMPOSE",
+            next_phase="DECOMPOSE",
+            epic_done=False,
+        )
+
     load_now = [
         LoadNowItem(path=plan_rel, description="Plan document"),
     ]
@@ -598,6 +639,12 @@ def finish_plan(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -874,6 +921,12 @@ def finish_audit(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -1018,6 +1071,12 @@ def finish_creative(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:
@@ -1138,6 +1197,12 @@ def finish_reflect(
 
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         if backup:
             try:

@@ -52,6 +52,9 @@ def test_runner_owner_is_atomic_and_cleanup_is_owner_bound(tmp_path: Path) -> No
         "mode": "implement",
         "model": "claude-sonnet",
         "timeout_config": {"session_timeout_sec": 3600, "kill_grace_sec": 30},
+        "epic_id": "",
+        "phase": "",
+        "step": "",
     }
     assert not (state_dir / "runner.json.tmp").exists()
     assert lib.remove_runner_owner_if_owned(owner_path, 9999, "other") is False

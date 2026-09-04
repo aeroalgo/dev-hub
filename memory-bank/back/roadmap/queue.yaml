@@ -1,17 +1,15 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-049
-  epic_id: T-HUB-049-workflow-pack-phase-router
-  plan: plan-T-HUB-049-workflow-pack-phase-router.md
-  deps:
-  - T-HUB-048
-  batch: workflow-pack-framework
+- id: T-HUB-061
+  epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+  plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
+  deps: []
+  batch: harness-ops-hygiene
 - id: T-HUB-050
   epic_id: T-HUB-050-workflow-pack-memory-bank-paths
   plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
-  deps:
-  - T-HUB-048
+  deps: []
   batch: workflow-pack-framework
 - id: T-HUB-051
   epic_id: T-HUB-051-workflow-pack-reference-video
@@ -199,6 +197,10 @@ done:
   epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
   plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
   batch: harness-maturity-borrowings
+- id: T-HUB-048
+  epic_id: T-HUB-048-workflow-pack-registry
+  plan: plan-T-HUB-048-workflow-pack-registry.md
+  batch: workflow-pack-framework
 - id: T-HUB-053
   epic_id: T-HUB-053-codex-claude-hooks-parity
   plan: plan-T-HUB-053-codex-claude-hooks-parity.md
@@ -227,9 +229,9 @@ done:
   epic_id: T-HUB-059-harness-claude-agents-sot-complete
   plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
   batch: harness-universal-runtime
-- id: T-HUB-048
-  epic_id: T-HUB-048-workflow-pack-registry
-  plan: plan-T-HUB-048-workflow-pack-registry.md
+- id: T-HUB-049
+  epic_id: T-HUB-049-workflow-pack-phase-router
+  plan: plan-T-HUB-049-workflow-pack-phase-router.md
   batch: workflow-pack-framework
 batches:
   workflow-loop-hardening:
@@ -266,3 +268,7 @@ batches:
     source: memory-bank/back/plan/roadmap-workflow-pack-framework-epics.queue.yaml
     title: Workflow Pack framework
     note: T-HUB-048…052; details in plan/<epic_id>/md/plan.md
+  harness-ops-hygiene:
+    title: Harness ops hygiene (boundary CLI + doctor)
+    note: T-HUB-061 — --raw-json teaching drift, doctor check_boundaries kwargs, repair
+      prose purge; details in plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md

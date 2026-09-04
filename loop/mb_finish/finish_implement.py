@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from _lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _verify_pass_ready_for_step,
     atomic_write_text,
@@ -197,6 +198,12 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     act_path = cwd / "memory-bank" / "activeContext.md"
     try:
         atomic_write_text(act_path, rendered)
+    except ActiveContextLocked as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["runner_owns_active_context"],
+            shape_errors=[str(exc)],
+        )
     except Exception as exc:
         return MbFinishResult(
             ok=False,

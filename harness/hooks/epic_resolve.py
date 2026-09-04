@@ -298,7 +298,6 @@ def main() -> int:
     p_scaff_decomp = mb_scaffold_sub.add_parser("decompose", help="scaffold decompose artifacts (layout v2)")
     p_scaff_decomp.add_argument("--epic-id", required=True, help="epic id")
     p_scaff_decomp.add_argument("--role", default="back", help="role")
-    p_scaff_decomp.add_argument("--from-plan", action="store_true", help="read steps outline from plan.yaml")
     p_scaff_decomp.add_argument("--formula", default=None, help="formula id to merge/use for steps outline floor")
     p_scaff_decomp.add_argument("--force", action="store_true", help="force overwrite existing files")
     p_scaff_decomp.add_argument("--dry-run", action="store_true", help="dry run without writing files")
@@ -1025,25 +1024,16 @@ def main() -> int:
         plan_id = args.epic_id
         role = getattr(args, "role", None) or discover_epic_role(cwd, plan_id) or "back"
 
-        # Primary: layout v2 plan.yaml
+        # Primary: layout v2 plan.md
         plan_path = None
         try:
-            v2_plan_yaml = resolve(role, plan_id, EpicLayoutKind.PLAN_YAML, project_root=cwd)
-            if v2_plan_yaml.is_file():
-                plan_path = v2_plan_yaml
+            v2_plan_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
+            if v2_plan_md.is_file():
+                plan_path = v2_plan_md
         except Exception:
             pass
 
-        # Fallback 1: layout v2 plan.md
-        if plan_path is None:
-            try:
-                v2_plan_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
-                if v2_plan_md.is_file():
-                    plan_path = v2_plan_md
-            except Exception:
-                pass
-
-        # Fallback 2: legacy v1 layout plan.md
+        # Fallback: legacy v1 layout plan.md
         if plan_path is None:
             v1_plan = Path(cwd) / "memory-bank" / role / "plan" / f"plan-{plan_id}.md"
             if v1_plan.is_file():

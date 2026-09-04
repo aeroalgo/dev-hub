@@ -1,47 +1,28 @@
-"""Test session-start / arm_phase auto-scaffold (FR-016 / cp3)."""
+"""Session-start / arm_phase must NOT autoscaffold decompose from plan.yaml (purged)."""
 import json
 import subprocess
 import sys
 from pathlib import Path
-import pytest
-import yaml
 
 from epic.core import save_epic_state, default_state
 from loop.paths.epic_layout import resolve, EpicLayoutKind
 from loop.epic_transition import arm_phase
 
 
-def test_session_start_autoscaffold_valid_plan(tmp_path: Path):
+def test_session_start_no_autoscaffold_with_plan_md(tmp_path: Path):
     role = "back"
     epic_id = "T-AUTO-001"
 
-    # Setup valid plan.yaml
-    plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=tmp_path)
-    plan_yaml.parent.mkdir(parents=True, exist_ok=True)
-    plan_yaml.write_text(
-        f"schema: epic-plan/v1\n"
-        f"plan_id: {epic_id}\n"
-        f"level: epic\n"
-        f"title: Auto Scaffold Test\n"
-        f"summary:\n"
-        f"  step_count_floor: 2\n"
-        f"  requirement_count: 2\n"
-        f"requirements:\n"
-        f"  - id: FR-001\n"
-        f"    text: First req\n"
-        f"  - id: FR-002\n"
-        f"    text: Second req\n"
-        f"outline_steps:\n"
-        f"  - step_id: s01\n"
-        f"    title: Step one\n"
-        f"    maps_to: [FR-001]\n"
-        f"  - step_id: s02\n"
-        f"    title: Step two\n"
-        f"    maps_to: [FR-002]\n",
+    plan_md = resolve(role, epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
+    plan_md.parent.mkdir(parents=True, exist_ok=True)
+    plan_md.write_text(
+        "# Plan: Auto Scaffold Test\n\n"
+        "## Requirements\n\n"
+        "FR-001 First req\n"
+        "FR-002 Second req\n",
         encoding="utf-8",
     )
 
-    # Set state as armed for DECOMPOSE
     st = default_state()
     st.update(
         {
@@ -54,7 +35,6 @@ def test_session_start_autoscaffold_valid_plan(tmp_path: Path):
     )
     save_epic_state(tmp_path, st)
 
-    # Invoke session-start script
     session_start_py = Path(__file__).resolve().parents[1] / "session-start.py"
     proc = subprocess.run(
         [sys.executable, str(session_start_py)],
@@ -64,33 +44,38 @@ def test_session_start_autoscaffold_valid_plan(tmp_path: Path):
     )
     assert proc.returncode == 0
 
-    # Verify decompose tree was created
     decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
-    assert decomp_yaml.is_file()
+    assert not decomp_yaml.exists()
     decomp_md = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=tmp_path)
-    assert decomp_md.is_file()
-
-    s01_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_STEP, step_id="s01", step_slug="step-one", project_root=tmp_path)
-    assert s01_yaml.is_file()
-    s02_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_STEP, step_id="s02", step_slug="step-two", project_root=tmp_path)
-    assert s02_yaml.is_file()
+    assert not decomp_md.exists()
 
 
-def test_session_start_autoscaffold_invalid_plan_fail_closed(tmp_path: Path):
+def test_session_start_no_scaffold_from_leftover_plan_yaml(tmp_path: Path):
     role = "back"
     epic_id = "T-AUTO-002"
 
-    # Setup invalid plan.yaml (missing required fields / corrupt schema)
-    plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=tmp_path)
-    plan_yaml.parent.mkdir(parents=True, exist_ok=True)
-    plan_yaml.write_text(
-        f"schema: epic-plan/v1\n"
+    leftover = (
+        tmp_path
+        / "memory-bank"
+        / role
+        / "plan"
+        / epic_id
+        / "yaml"
+        / "plan.yaml"
+    )
+    leftover.parent.mkdir(parents=True, exist_ok=True)
+    leftover.write_text(
+        "schema: epic-plan/v1\n"
         f"plan_id: {epic_id}\n"
-        f"corrupted_field: true\n",
+        "requirements:\n"
+        "  - id: FR-001\n"
+        "outline_steps:\n"
+        "  - step_id: s01\n"
+        "    title: Step one\n"
+        "    maps_to: [FR-001]\n",
         encoding="utf-8",
     )
 
-    # Set state as armed for DECOMPOSE
     st = default_state()
     st.update(
         {
@@ -103,7 +88,6 @@ def test_session_start_autoscaffold_invalid_plan_fail_closed(tmp_path: Path):
     )
     save_epic_state(tmp_path, st)
 
-    # Invoke session-start script
     session_start_py = Path(__file__).resolve().parents[1] / "session-start.py"
     proc = subprocess.run(
         [sys.executable, str(session_start_py)],
@@ -111,40 +95,22 @@ def test_session_start_autoscaffold_invalid_plan_fail_closed(tmp_path: Path):
         text=True,
         capture_output=True,
     )
-    # Fail closed on invalid plan.yaml
-    assert proc.returncode != 0
+    assert proc.returncode == 0
 
-    # Ensure no partial decompose index was written
     decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
     assert not decomp_yaml.exists()
 
 
-def test_arm_phase_autoscaffold_valid_plan(tmp_path: Path):
+def test_arm_phase_no_autoscaffold(tmp_path: Path):
     role = "back"
     epic_id = "T-AUTO-003"
 
-    plan_yaml = resolve(role, epic_id, EpicLayoutKind.PLAN_YAML, project_root=tmp_path)
-    plan_yaml.parent.mkdir(parents=True, exist_ok=True)
-    plan_yaml.write_text(
-        f"schema: epic-plan/v1\n"
-        f"plan_id: {epic_id}\n"
-        f"level: epic\n"
-        f"title: Auto Scaffold Arm Phase Test\n"
-        f"summary:\n"
-        f"  step_count_floor: 1\n"
-        f"  requirement_count: 1\n"
-        f"requirements:\n"
-        f"  - id: FR-001\n"
-        f"    text: First req\n"
-        f"outline_steps:\n"
-        f"  - step_id: s01\n"
-        f"    title: Step one\n"
-        f"    maps_to: [FR-001]\n",
-        encoding="utf-8",
-    )
+    plan_md = resolve(role, epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
+    plan_md.parent.mkdir(parents=True, exist_ok=True)
+    plan_md.write_text("# Plan\n\nFR-001 First req\n", encoding="utf-8")
 
     res = arm_phase(tmp_path, epic_id=epic_id, phase="DECOMPOSE", role=role)
     assert res.get("ok") is True
 
     decomp_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
-    assert decomp_yaml.is_file()
+    assert not decomp_yaml.exists()

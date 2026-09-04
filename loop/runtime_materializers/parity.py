@@ -107,6 +107,8 @@ def check_codex_parity(
                     entry["matcher"] = "Bash"
                     if hook_name in ("bash-output-cap", "agent-posttool-bash"):
                         entry["timeout_ms"] = 45000
+                elif hook_name == "write-pretool":
+                    entry["matcher"] = "Write|Edit|NotebookEdit"
                 if ev_name not in expected_dict:
                     expected_dict[ev_name] = []
                 expected_dict[ev_name].append(entry)

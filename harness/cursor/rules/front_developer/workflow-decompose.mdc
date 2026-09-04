@@ -9,7 +9,7 @@ alwaysApply: false
 **Скиллы (сессия DECOMPOSE):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если размыто)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** `plan/<id>/md/plan.md` (+ `yaml/plan.yaml`) → `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`. НЕ писать код.  
+**Цель:** `plan/<id>/md/plan.md` → `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`. НЕ писать код.  
 **Вход:** `load_now` или `FRONT DECOMPOSE <plan_id>` (в одном сообщении).
 
 **Folder slug (HARD):** `plan_id` = `<epic_id>` каталога `plan/<epic_id>/` (со descriptive slug). **FORBIDDEN** short queue id. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.

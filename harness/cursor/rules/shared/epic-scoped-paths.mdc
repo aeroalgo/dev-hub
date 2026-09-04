@@ -14,7 +14,7 @@ alwaysApply: false
 
 | Артефакт | Канон имени (v2) |
 |----------|-------------|
-| Plan dir | `plan/<epic_id>/` (`yaml/plan.yaml` + `md/plan.md`) |
+| Plan dir | `plan/<epic_id>/` (`md/plan.md`) |
 | Decompose dir | `plan/<epic_id>/yaml/` (`decompose-index.yaml` + `steps/sNN-*.yaml`) + `md/decompose-index.md` |
 | Implement dir | `implement/<epic_id>/` (`sNN-*.yaml` **прямо здесь**; **FORBIDDEN** `yaml/`/`md/` split) |
 | Analyze / audit / qa | `<phase>/<epic_id>/<phase>-*.yaml` или `<phase>.yaml` **прямо в папке** (**FORBIDDEN** `yaml/`/`md/` split) |
@@ -22,10 +22,10 @@ alwaysApply: false
 **HARD:** разделение `md/` + `yaml/` — **только** для `plan/` / decompose. QA, AUDIT, ANALYZE, IMPLEMENT, CREATIVE — без вложенного `yaml/` или `md/`.
 
 **Scaffold contract (HARD):**
-- Plan: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`
-- Decompose: `python3 .claude/hooks/epic_resolve.py mb-scaffold decompose --epic-id <id>`
+- Plan: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>` → `md/plan.md` only
+- Decompose: agent writes `yaml/decompose-index.yaml` + `steps/` from `md/plan.md` (optional `mb-scaffold decompose --formula …`)
 - Implement: `python3 .claude/hooks/epic_resolve.py mb-scaffold implement --epic-id <id>` (or `seed-implement`)
-- **FORBIDDEN:** Write scaffolded paths from scratch (Edit only).
+- **FORBIDDEN:** Write scaffolded implement paths from scratch (Edit only).
 
 **Источник slug:** `<epic_id>` = stem plan со descriptive slug, **не** короткий `id:` из `roadmap-*.queue.yaml`.
 
@@ -49,7 +49,7 @@ alwaysApply: false
 
 | Режим | С эпиком | Без эпика |
 |-------|----------|-----------|
-| PLAN | `plan/<epic_id>/md/plan.md` + `yaml/plan.yaml` | — (PLAN всегда с id) |
+| PLAN | `plan/<epic_id>/md/plan.md` | — (PLAN всегда с id) |
 | DECOMPOSE | `plan/<epic_id>/yaml/decompose-index.yaml` + `steps/` | — |
 | IMPLEMENT | `implement/<epic_id>/sNN-*.yaml` | `implement/<slug>/` или `implement/task-YYYYMMDD-<slug>.md` |
 | REFACTOR | `refactor/plan/<epic_id>/` + execute `refactor/implement/<epic_id>/rNN-*.yaml` | `refactor/session-YYYYMMDD-<slug>.md` (корень `refactor/`) |

@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: "Fix harness SoT CLI flag: --raw-json → --json в agent/hook/preset sources"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Заменить --raw-json на --json во всех harness SoT файлах (agent .md, _lib.py CONTRACT
+  strings, dsh/presets/*.prompt.md, harness/manifest.yaml materialize config) так, чтобы
+  copy-paste из gate-repair/verify-* prompts давал valid: true без ручной правки флага.
+  После шага: rg на --raw-json в harness/agents + harness/hooks/_lib.py + dsh/presets → empty.
+  Outcome: US-001 / FR-001 / FR-002 / SC-001 / TM-001.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, US-001, SC-001, TM-001]
+  nouns:
+    - "harness/agents/gate-repair.md CONTRACT string validate-boundary"
+    - "harness/agents/verify-*.md CONTRACT strings"
+    - "harness/agents/analyze-verify.md CONTRACT string"
+    - "harness/hooks/_lib.py CONTRACT string --raw-json"
+    - "dsh/presets/*.prompt.md validate-boundary snippet"
+    - "harness/manifest.yaml materialize targets"
+  layout_paths:
+    - "harness/agents/gate-repair.md"
+    - "harness/agents/analyze-verify.md"
+    - "harness/hooks/_lib.py"
+    - "dsh/presets/"
+    - "harness/manifest.yaml"
+  ac_quotes:
+    - "rg -n -- '--raw-json' harness/agents harness/hooks/_lib.py dsh/presets → empty"
+    - "validate-boundary --json '<payload>' → valid: true (проверить вручную или через bin/pytest)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:20-24"
+    - "memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md:37-46"
+
+context:
+  consumes:
+    - "harness/agents/gate-repair.md — текущие CONTRACT strings с --raw-json"
+    - "harness/agents/verify-*.md — CONTRACT strings с --raw-json"
+    - "harness/hooks/_lib.py — CONTRACT string --raw-json"
+    - "dsh/presets/*.prompt.md — validate-boundary snippets"
+  produces:
+    - "harness/agents/*.md — CONTRACT strings с --json"
+    - "harness/hooks/_lib.py — CONTRACT string --json"
+    - "dsh/presets/*.prompt.md — validate-boundary snippets с --json"
+  plan_refs:
+    - "plan.md §Контекст gap #1: CLI drift --raw-json"
+    - "plan.md §Technology axiom row: validate-boundary CLI flag"
+    - "plan.md §Acceptance criteria §CLI"
+    - "plan.md TM-001 rg check"
+  files:
+    - "harness/agents/gate-repair.md"
+    - "harness/agents/analyze-verify.md"
+    - "harness/hooks/_lib.py"
+    - "dsh/presets/"
+
+as_built:
+  - "harness/agents/gate-repair.md: CONTRACT string учит --raw-json"
+  - "harness/agents/verify-*.md: CONTRACT strings учат --raw-json"
+  - "harness/hooks/_lib.py: CONTRACT string --raw-json"
+  - "dsh/presets/*.prompt.md: validate-boundary snippet с --raw-json"
+
+delta:
+  - "harness/agents/gate-repair.md: s/--raw-json/--json/ в CONTRACT validate-boundary snippet"
+  - "harness/agents/analyze-verify.md: s/--raw-json/--json/"
+  - "harness/agents/verify-*.md: s/--raw-json/--json/ во всех файлах"
+  - "harness/hooks/_lib.py: s/--raw-json/--json/ в CONTRACT string"
+  - "dsh/presets/*.prompt.md: s/--raw-json/--json/ в validate-boundary snippet"
+
+deletes:
+  - "Все вхождения --raw-json в harness/agents/*.md, harness/hooks/_lib.py, dsh/presets/*.prompt.md (replace, не alias)"
+
+out_of_scope:
+  - "Изменение argparse в epic_resolve.py — уже принимает --json (рабочий)"
+  - "Materialize/rematerialize в .claude/.codex — s03"
+  - "harness/manifest.yaml edits — s03 (если затронут materialize)"
+
+skills:
+  code_surface: api
+  impl:
+    - systematic-debugging
+
+checkpoints:
+  - id: cp1
+    criterion: "rg --raw-json в harness/agents + _lib.py + dsh/presets → empty"
+    verify: "rg -rn -- '--raw-json' harness/agents harness/hooks/_lib.py dsh/presets 2>/dev/null && echo FOUND || echo 'OK: no --raw-json in SoT'"
+  - id: cp2
+    criterion: "validate-boundary --json рабочий (spot-check)"
+    verify: "python harness/hooks/epic_resolve.py validate-boundary --schema-id repair_result --json '{\"status\":\"done\",\"summary\":\"ok\",\"repair_id\":\"r-test\"}' 2>&1 | grep -q 'valid' && echo OK"
+  - id: cp3
+    criterion: "rg в harness agent-файлах находит --json вместо --raw-json"
+    verify: "rg -n -- '--json' harness/agents/ | head -5"
+
+verify:
+  - "rg -rn -- '--raw-json' harness/agents harness/hooks/_lib.py dsh/presets → empty (TM-001)"
+tdd: []

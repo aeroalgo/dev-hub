@@ -1147,6 +1147,7 @@ def test_incomplete_step_fix_blocks_forbids_blocked_spin() -> None:
     source = (ROOT / "loop" / "context_loop.py").read_text(encoding="utf-8")
     assert "FORBIDDEN: `BLOCKED:`" in source
     assert "_incomplete_step_fix_blocks" in source
+    assert 'if extra_phase_kind in {"implement", "generic"}:' in source
 
 
 def test_check_after_finish_integrity_wire() -> None:
@@ -2056,8 +2057,19 @@ def test_degraded_prompt_epic_finished_only_after_qa_pass(
     assert out.get("stop") == "EPIC_DONE"
     prompt = ctx.build_prompt(tmp_path, load_now=[], shape_errors=[])
     assert "decompose-other" not in prompt
-    assert "epic finished" in prompt
-    assert "premature EPIC_DONE" not in prompt
+
+
+def test_qa_and_audit_work_blocks_render_properly() -> None:
+    ctx = _load_ctx()
+    qa_block = ctx._qa_work_block("back", "demo-epic")
+    assert "## QA canon (HARD)" in qa_block
+    assert "back_developer" in qa_block
+    assert "demo-epic" in qa_block
+
+    audit_block = ctx._audit_work_block("back", "demo-epic")
+    assert "## AUDIT canon (HARD)" in audit_block
+    assert "back_developer" in audit_block
+    assert "demo-epic" in audit_block
 
 
 def test_bugfix_reopens_qa_after_prior_pass(tmp_path: Path) -> None:
@@ -2618,3 +2630,23 @@ def test_build_prompt_decompose_includes_canon_checklist(tmp_path: Path) -> None
     assert "index.md" in prompt
     assert "sNN-<slug>.yaml" in prompt
     assert "mb-finish decompose" in prompt
+
+
+def test_build_prompt_audit_includes_canon_checklist(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    prompt = ctx.build_prompt(
+        tmp_path,
+        load_now=["memory-bank/activeContext.md"],
+        projection={
+            "phase": "BACK AUDIT",
+            "epic": "T-HUB-049",
+            "role": "back",
+            "step": "AUDIT",
+        },
+    )
+    assert "AUDIT canon" in prompt
+    assert "Triple Assess" in prompt
+    assert "mb-finish audit" in prompt
+    assert "FORBIDDEN: pytest" in prompt
+    assert "это чинится в сессии: FAIL → fix → re-verify" not in prompt

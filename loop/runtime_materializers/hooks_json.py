@@ -18,6 +18,7 @@ EVENT_MAPPING: dict[str, str] = {
     "subagent-start": "SubagentStart",
     "agent-pretool": "PreToolUse",
     "bash-pretool": "PreToolUse",
+    "write-pretool": "PreToolUse",
     "agent-posttool": "PostToolUse",
     "bash-output-cap": "PostToolUse",
     "agent-posttool-agent": "PostToolUse:agent",
@@ -75,6 +76,8 @@ def generate_hooks_json(
             entry["matcher"] = "Bash"
             if hook_name in ("bash-output-cap", "agent-posttool-bash"):
                 entry["timeout_ms"] = 45000
+        elif hook_name == "write-pretool":
+            entry["matcher"] = "Write|Edit|NotebookEdit"
 
         if event_name not in hooks_dict:
             hooks_dict[event_name] = []

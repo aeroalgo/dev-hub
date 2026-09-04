@@ -56,7 +56,7 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 **Процесс**:
 1. `OK INTEG DECOMPOSE - Разбиваю план по UI-элементам (batch)`
 1a. Прочитай **Gates**
-2. Source: `integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) — Element registry + **Replacement / sunset** + mocks
+2. Source: `integration/plan/<task_id>/md/plan.md` — Element registry + **Replacement / sunset** + mocks
 3. Папка `integration/plan/<plan_id>/`: `yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml` (+ `md/decompose-index.md`) — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
    Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
    **Schema HARD:** каждый `eNN` = `epic-decompose/v1` + `role: integ`; **FORBIDDEN** invented schemas; FINISH `validate-decompose-tree` fail-closed.

@@ -38,7 +38,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
 2. `load_now`
 2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
 2b. §0.11 endpoint ↔ fetch; mocks в registry
-3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) по @.cursor/templates/integration-plan.md
+3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` по @.cursor/templates/integration-plan.md
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица по wire-осям / продуктам / journeys)  
     - апсерт `memory-bank/integration/roadmap/queue.yaml` (шаблон @.cursor/templates/roadmap-queue.yaml)  

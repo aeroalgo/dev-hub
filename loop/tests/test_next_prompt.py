@@ -35,6 +35,27 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "## IMPLEMENT FINISH" not in text
     assert "## QA FINISH" not in text
     assert "mb-finish qa" in text
+    assert "## QA canon (HARD)" in text
+    assert "bin/pytest -q --tb=line" in text
+    assert "suite_not_full" in text
+    assert "BACK BUGFIX" in text
+    assert "code_changed: no" in text
+    assert "чинит в сессии" not in text
+    assert "это чинится в сессии: FAIL → fix → re-verify" not in text
+    assert "FIX INCOMPLETE" not in text
+    assert "verify-qa до full suite" in text
+
+
+def test_build_prompt_implement_keeps_session_fix():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        load_now=["memory-bank/activeContext.md"],
+        projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
+    )
+    assert "это чинится в сессии: FAIL → fix → re-verify" in text
+    assert "## QA canon (HARD)" not in text
 
 
 def test_build_prompt_creative_omits_verify():
@@ -58,11 +79,15 @@ def test_build_prompt_audit_phase_uses_mb_finish():
     text = build_prompt(
         ROOT,
         load_now=["memory-bank/activeContext.md"],
-        projection={"phase": "BACK AUDIT", "epic": "T-test", "next_step": "AUDIT"},
+        projection={"phase": "BACK AUDIT", "epic": "T-test", "next_step": "AUDIT", "role": "back"},
     )
     assert "mb-finish audit" in text
     assert "FORBIDDEN: ручной Write activeContext" in text
     assert "## AUDIT FINISH" not in text
+    assert "AUDIT canon" in text
+    assert "plan_vs_runtime" in text or "PLAN↔runtime" in text
+    assert "FORBIDDEN: pytest" in text
+    assert "это чинится в сессии: FAIL → fix → re-verify" not in text
 
 
 def test_build_prompt_decompose_phase_uses_mb_finish():
