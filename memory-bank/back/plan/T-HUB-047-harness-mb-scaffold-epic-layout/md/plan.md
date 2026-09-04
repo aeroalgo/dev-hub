@@ -174,13 +174,11 @@ memory-bank/{role}/plan/{epic_id}/
       sNN-<slug>.yaml          # epic-decompose/v1
 
 memory-bank/{role}/implement/{epic_id}/
-  yaml/
-    steps/
-      sNN-<slug>.yaml          # epic-implement/v1
+  sNN-<slug>.yaml              # epic-implement/v1 (без yaml/md split)
 
-memory-bank/{role}/qa/{epic_id}/yaml/qa-YYYYMMDD-<slug>.yaml
-memory-bank/{role}/analyze/{epic_id}/yaml/analyze-YYYYMMDD-<slug>.yaml
-memory-bank/{role}/audit/{epic_id}/yaml/audit-YYYYMMDD-<slug>.yaml
+memory-bank/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml
+memory-bank/{role}/analyze/{epic_id}/analyze-YYYYMMDD-<slug>.yaml
+memory-bank/{role}/audit/{epic_id}/audit-YYYYMMDD-<slug>.yaml
 ```
 
 **Legacy (v1 — sunset):**
@@ -260,7 +258,7 @@ technology_axiom:
 [IMPLEMENT session]
     | mb-scaffold implement --all
     v
-[implement/<epic_id>/yaml/steps/* in_progress]
+[implement/<epic_id>/* in_progress]
     | agent code + tests
     v
 [mb-finish implement]  (paths via resolver)

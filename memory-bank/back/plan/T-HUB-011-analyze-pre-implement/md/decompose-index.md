@@ -104,9 +104,9 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-analyze-schema-back-workflow-lean-detection.yaml](s01-analyze-schema-back-workflow-lean-detection.yaml) | [s01…](../../implement/T-HUB-011-analyze-pre-implement/yaml/steps/s01-analyze-schema-back-workflow-lean-detection.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-front-integ-analyze-slash-mainrule.yaml](s02-front-integ-analyze-slash-mainrule.yaml) | [s02…](../../implement/T-HUB-011-analyze-pre-implement/yaml/steps/s02-front-integ-analyze-slash-mainrule.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-wire-decompose-implement-finish-doc-router-paths.yaml](s03-wire-decompose-implement-finish-doc-router-paths.yaml) | [s03…](../../implement/T-HUB-011-analyze-pre-implement/yaml/steps/s03-wire-decompose-implement-finish-doc-router-paths.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-refs-dry-run-fixture-docs-role-command.yaml](s04-refs-dry-run-fixture-docs-role-command.yaml) | [s04…](../../implement/T-HUB-011-analyze-pre-implement/yaml/steps/s04-refs-dry-run-fixture-docs-role-command.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s01** | [s01-analyze-schema-back-workflow-lean-detection.yaml](s01-analyze-schema-back-workflow-lean-detection.yaml) | [s01…](../../implement/T-HUB-011-analyze-pre-implement/s01-analyze-schema-back-workflow-lean-detection.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-front-integ-analyze-slash-mainrule.yaml](s02-front-integ-analyze-slash-mainrule.yaml) | [s02…](../../implement/T-HUB-011-analyze-pre-implement/s02-front-integ-analyze-slash-mainrule.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-wire-decompose-implement-finish-doc-router-paths.yaml](s03-wire-decompose-implement-finish-doc-router-paths.yaml) | [s03…](../../implement/T-HUB-011-analyze-pre-implement/s03-wire-decompose-implement-finish-doc-router-paths.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-refs-dry-run-fixture-docs-role-command.yaml](s04-refs-dry-run-fixture-docs-role-command.yaml) | [s04…](../../implement/T-HUB-011-analyze-pre-implement/s04-refs-dry-run-fixture-docs-role-command.yaml) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** `no` | `yes (CR-…)` | `yes (CR-…) ✅` (= shard `yes (CR-…) — **closed**`)  
 **FORBIDDEN:** `yes (done)` без CR-ID · `no (CR-… closed)`

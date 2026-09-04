@@ -7,13 +7,13 @@ alwaysApply: false
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 
 **Артефакт:**  
-- с эпиком: `memory-bank/back/implement/implement-<epic_id>/sNN-<slug>.yaml` — `<epic_id>` = stem plan **со slug** (тот же, что у `decompose-<epic_id>/`)  
-- без эпика: `memory-bank/back/implement/<slug>/` (не `implement-<epic_id>/`)  
+- с эпиком: `memory-bank/back/implement/<epic_id>/sNN-<slug>.yaml` — `<epic_id>` = stem plan **со slug** (тот же, что у `plan/<epic_id>/`)  
+- без эпика: `memory-bank/back/implement/<slug>/`  
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml` (`schema: epic-implement/v1`, `role: back`, `done`/`files`/`tests`/`integration_check`/`checkpoints`)
 
 ## Gates
 
-1. `load_now`: work shard `decompose-*/sNN-*.yaml` (**+ plan_contract**) + `decompose-*/index.yaml`; **не** полный `plan-*.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR — формула: `L=end−start`; `L′=L×2`; jump=`start..(start+L′)` (ex `120–160`→`120–200`)
+1. `load_now`: work shard `plan/<epic>/yaml/steps/sNN-*.yaml` (**+ plan_contract**) + `yaml/decompose-index.yaml`; **не** полный `plan.md` как monolith AC; **обязательны** `plan_jumps` / plan §FR — формула: `L=end−start`; `L′=L×2`; jump=`start..(start+L′)` (ex `120–160`→`120–200`)
 1a. **ANALYZE hard gate:** analyze artifact `critical_count=0` иначе REJECT (нет deferred / soft WARN)
 1b. **Search scope:** loop `delta_paths_scoped` / `delta_paths_exist` → SKIP @explorer; ALLOW = shard paths + parent dirs
 1c. **Last sNN / pre-AUDIT:** `plan_parity_scan` (все plan FR + Target layout) в implement yaml / Handoff

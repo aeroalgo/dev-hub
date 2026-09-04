@@ -6,11 +6,11 @@ alwaysApply: false
 
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 
-**Артефакт:** с эпиком `memory-bank/front/implement/implement-<epic_id>/…` — `<epic_id>` = stem plan **со slug**; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
+**Артефакт:** с эпиком `memory-bank/front/implement/<epic_id>/sNN-*.yaml` — `<epic_id>` = stem plan **со slug**; без эпика — `memory-bank/front/implement/<slug>/`. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming · шаблон **строго** `.cursor/templates/implement/epic-step.yaml`
 
 ## Gates
 
-1. `load_now`: work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; **не** полный `plan-*.md`, **не** `index.md`; AC = work shard
+1. `load_now`: work shard `plan/<epic>/yaml/steps/sNN-*.yaml` + `yaml/decompose-index.yaml`; **не** полный `plan.md`, **не** `md/decompose-index.md` как monolith; AC = work shard
 2. Level из step — L2 substep → L2
 3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index без `✅`. Канон: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен FRONT CREATIVE <CR-ID>`). `no (… closed)` = дрейф → нормализовать
 4. TDD red/green: Vitest/RTL **targeted**; suite/Playwright → FRONT QA; запуск **только parent**

@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # FRONT PLAN — gates
 
-**Артефакт:** `memory-bank/front/plan/plan-<task_id>.md`  
+**Артефакт:** `memory-bank/front/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`)  
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× plan; PLAN **сам** делает `roadmap-merge --role front` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0

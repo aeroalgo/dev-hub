@@ -16,14 +16,14 @@ context:
     - dsh/profiles/epic-implement/cordis.patch.yml
     - dsh/patches/cc-hooks-bridge.yml
   produces:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s08-audit-live-dump-config.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s08-audit-live-dump-config.yaml
   plan_refs:
     - "FR-008"
     - "SC-001"
     - "AC+SC-001"
     - "F1: live dump-config evidence missing"
   files:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s08-audit-live-dump-config.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s08-audit-live-dump-config.yaml
 
 as_built:
   - "Static YAML smoke exists in tests/test_cc_hooks_bridge_config.py, but no live DSH dump-config result is recorded."

@@ -532,27 +532,24 @@ def resolve_implement_path(
     *,
     plan_id: str | None = None,
 ) -> str:
-    """Resolve implement yaml. Prefer layout v2, then folder epic hub, then plan_id alias hub."""
+    """Resolve implement yaml. Prefer flat v2, then v1 hub; yaml/steps is leftover only."""
     root = Path(cwd)
     role_norm = role_dir(role)
-    # Check v2 layout: memory-bank/<role>/implement/<epic_id>/yaml/steps/<step_id>.yaml
     for hub_id in implement_hub_ids(epic_id, plan_id):
-        v2_steps_dir = f"memory-bank/{role_norm}/implement/{hub_id}/yaml/steps"
-        found = _find_shard_file(cwd, v2_steps_dir, step_id)
+        v2_flat = f"memory-bank/{role_norm}/implement/{hub_id}"
+        found = _find_shard_file(cwd, v2_flat, step_id)
         if found:
             return str(found.relative_to(root)).replace("\\", "/")
-
-    for hub_id in implement_hub_ids(epic_id, plan_id):
+        leftover = f"memory-bank/{role_norm}/implement/{hub_id}/yaml/steps"
+        found = _find_shard_file(cwd, leftover, step_id)
+        if found:
+            return str(found.relative_to(root)).replace("\\", "/")
         rel_dir = f"memory-bank/{role_norm}/implement/implement-{hub_id}"
         found = _find_shard_file(cwd, rel_dir, step_id)
         if found:
             return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
-    p = (
-        root
-        / f"memory-bank/{role_norm}/implement/{epic_id}/yaml/steps"
-        / f"{stem}.yaml"
-    )
+    p = root / f"memory-bank/{role_norm}/implement/{epic_id}" / f"{stem}.yaml"
     return str(p.relative_to(root)).replace("\\", "/")
 
 

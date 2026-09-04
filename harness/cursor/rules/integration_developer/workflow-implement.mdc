@@ -38,7 +38,7 @@ Next-mode: `memory-bank/activeContext.md` + `decompose-*/index.yaml`
 |-------------|----------|
 | yaml keys | `plan_id` · `element_ref` · `grep_control` · `verification_results` · `gaps` · `checkpoints[]` · pre-FINISH `status: in_progress` (`completed` только `finalize-step`) |
 
-Самопроверка перед finalize: `python3 .claude/hooks/epic_resolve.py validate-step --path memory-bank/integration/implement/implement-<plan>/eNN-<slug>.yaml`
+Самопроверка перед finalize: `python3 .claude/hooks/epic_resolve.py validate-step --path memory-bank/integration/implement/<plan>/eNN-<slug>.yaml`
 
 **FORBIDDEN:** `.md` shard для eNN · BACK-секции вместо integ-обязательных · `## Handoff` в step.
 

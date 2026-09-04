@@ -64,7 +64,7 @@ def test_finish_qa_happy(tmp_path: Path):
 
 
 def test_finish_qa_v2_layout_path_emits_qa_pass(tmp_path: Path):
-    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040" / "yaml"
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
     qa_dir.mkdir(parents=True, exist_ok=True)
     (qa_dir / "qa.yaml").write_text("verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8")
     save_epic_state(tmp_path, {"armed_epic": "T-HUB-040", "armed_role": "BACK"})
@@ -81,7 +81,8 @@ def test_finish_qa_v2_layout_path_emits_qa_pass(tmp_path: Path):
     events = tmp_path / "memory-bank" / "back" / "events" / "T-HUB-040" / "events.jsonl"
     body = events.read_text(encoding="utf-8")
     assert "qa_pass" in body
-    assert "yaml/qa.yaml" in body
+    assert "qa/T-HUB-040/qa.yaml" in body
+    assert "yaml/qa.yaml" not in body
 
 
 def test_finish_qa_handoff(tmp_path: Path):

@@ -16,14 +16,14 @@ context:
     - dsh/patches/cc-claude-compat.yml
     - dsh/profiles/epic-implement/cordis.patch.yml
   produces:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s10-audit-compat-fixture.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s10-audit-compat-fixture.yaml
   plan_refs:
     - "AC+US-003"
     - "FR-005"
     - "NFR-5"
     - "F3: compat skill listing and fail-soft runtime evidence missing"
   files:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s10-audit-compat-fixture.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s10-audit-compat-fixture.yaml
 
 as_built:
   - "Compat fragment, optional dependency, required:false, and DSH_CC_COMPAT=0 switch exist; no fixture/runtime listing test exists."

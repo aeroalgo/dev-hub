@@ -22,7 +22,7 @@ done:
   in the composed profile.
 files:
 - dsh/profiles/epic-implement/cordis.patch.yml
-- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s10-audit-compat-fixture.yaml
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s10-audit-compat-fixture.yaml
 deletes: []
 tests:
 - '`timeout 300s .venv/bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line`'

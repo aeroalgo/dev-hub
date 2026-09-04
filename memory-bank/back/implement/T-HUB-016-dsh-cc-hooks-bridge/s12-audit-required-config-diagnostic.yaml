@@ -20,7 +20,7 @@ done:
 - 'Smoke зафиксировал отсутствие fallback: JSON evidence содержит fallback:false,
   а diagnostic не содержит free-session, free session или stock run.'
 files:
-- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s12-audit-required-config-diagnostic.yaml
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s12-audit-required-config-diagnostic.yaml
 deletes: []
 tests:
 - '`timeout 300s .venv/bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line`

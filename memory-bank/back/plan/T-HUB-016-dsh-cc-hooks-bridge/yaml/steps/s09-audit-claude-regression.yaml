@@ -16,7 +16,7 @@ context:
     - .claude/settings.json
     - .claude/hooks/tests/
   produces:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s09-audit-claude-regression.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s09-audit-claude-regression.yaml
   plan_refs:
     - "FR-009"
     - "SC-004"
@@ -24,7 +24,7 @@ context:
     - "NFR-2"
     - "F2: Claude regression evidence was deselected/missing"
   files:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s09-audit-claude-regression.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s09-audit-claude-regression.yaml
 
 as_built:
   - "s07 recorded a hook test command with four deselected tests and no executed Claude-path result."

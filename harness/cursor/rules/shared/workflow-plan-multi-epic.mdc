@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Когда грузить:** любой `* PLAN`, если вход — research / audit / большой spec / несколько приоритетов (P0…Pn) / ≥2 независимых subsystem.
 
-**Зачем:** один mega-plan режет детализацию и ломает §0.0 + контекст DECOMPOSE/IMPLEMENT. N полных `plan-<epic_id>-*.md` + тонкий roadmap = норма.
+**Зачем:** один mega-plan режет детализацию и ломает §0.0 + контекст DECOMPOSE/IMPLEMENT. N полных `plan/<epic_id>-*/md/plan.md` + тонкий roadmap = норма.
 
 ## Триггер (любой)
 
@@ -43,9 +43,9 @@ alwaysApply: false
 
 | Роль | Roadmap (human) | Queue (machine) | Планы эпиков |
 |------|-----------------|-----------------|--------------|
-| BACK | `memory-bank/back/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/back/plan/plan-<epic_id>-<slug>.md` |
-| FRONT | `memory-bank/front/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/front/plan/plan-<epic_id>-<slug>.md` |
-| INTEG | `memory-bank/integration/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/integration/plan/plan-<epic_id>-<slug>.md` |
+| BACK | `memory-bank/back/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/back/plan/<epic_id>-<slug>/md/plan.md` |
+| FRONT | `memory-bank/front/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/front/plan/<epic_id>-<slug>/md/plan.md` |
+| INTEG | `memory-bank/integration/plan/roadmap-<slug>-epics.md` | `…/roadmap-<slug>-epics.queue.yaml` | `memory-bank/integration/plan/<epic_id>-<slug>/md/plan.md` |
 
 **Шаблоны:**
 - Human roadmap: @.cursor/templates/roadmap-epics.md  

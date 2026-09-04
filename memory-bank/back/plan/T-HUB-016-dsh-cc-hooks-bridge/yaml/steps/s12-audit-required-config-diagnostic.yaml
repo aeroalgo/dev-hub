@@ -16,14 +16,14 @@ context:
     - dsh/patches/cc-hooks-bridge.yml
     - dsh/profiles/epic-implement/cordis.patch.yml
   produces:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s12-audit-required-config-diagnostic.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s12-audit-required-config-diagnostic.yaml
   plan_refs:
     - "AC−-004"
     - "Constitution MUST-2"
     - "Constitution MUST-5"
     - "F5: required config failure diagnostic is not smoke-tested"
   files:
-    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s12-audit-required-config-diagnostic.yaml
+    - memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s12-audit-required-config-diagnostic.yaml
 
 as_built:
   - "epic-implement overrides bridge required:true, while the shared fragment remains required:false; no invalid-config smoke is recorded."

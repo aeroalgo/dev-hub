@@ -3159,12 +3159,12 @@ def latest_qa_pass_artifact_for_reference(
         d = root / "qa" / epic_id if epic_id else root / "qa"
         if not d.is_dir():
             continue
-        v2_qa = d / "yaml" / "qa.yaml"
-        if v2_qa.is_file():
+        canon = d / "qa.yaml"
+        if canon.is_file():
             try:
-                text = v2_qa.read_text(encoding="utf-8", errors="replace")
+                text = canon.read_text(encoding="utf-8", errors="replace")
                 if re.search(r"(?m)^status:\s*pass\s*$", text) or re.search(r"(?m)^verdict:\s*pass\s*$", text):
-                    hits.append(v2_qa)
+                    hits.append(canon)
             except OSError:
                 pass
         glob_pattern = "qa-*.yaml" if epic_id else "**/qa-*.yaml"

@@ -120,13 +120,13 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-incident-schema-store.yaml](s01-incident-schema-store.yaml) — schema + store | [s01…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s01-incident-schema-store.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-registry-yaml-tier0.yaml](s02-registry-yaml-tier0.yaml) — registry + tier0 | [s02…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s02-registry-yaml-tier0.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-check-after-wire-tier0.yaml](s03-check-after-wire-tier0.yaml) — check_after wire | [s03…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s03-check-after-wire-tier0.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-session-trace-jsonl.yaml](s04-session-trace-jsonl.yaml) — trace + loop.sh | [s04…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s04-session-trace-jsonl.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s05** | [s05-metrics-rolling.yaml](s05-metrics-rolling.yaml) — metrics.json | [s05…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s05-metrics-rolling.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s06** | [s06-status-incidents-metrics.yaml](s06-status-incidents-metrics.yaml) — status payload | [s06…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s06-status-incidents-metrics.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s07** | [s07-doctor-cli-preflight.yaml](s07-doctor-cli-preflight.yaml) — doctor CLI | [s07…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s07-doctor-cli-preflight.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s08** | [s08-event-emission-repair.yaml](s08-event-emission-repair.yaml) — events.jsonl | [s08…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s08-event-emission-repair.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s09** | [s09-runbooks-docs-readme.yaml](s09-runbooks-docs-readme.yaml) — docs only | [s09…](../../implement/T-HUB-017-loop-observability-foundation/yaml/steps/s09-runbooks-docs-readme.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s01** | [s01-incident-schema-store.yaml](s01-incident-schema-store.yaml) — schema + store | [s01…](../../implement/T-HUB-017-loop-observability-foundation/s01-incident-schema-store.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-registry-yaml-tier0.yaml](s02-registry-yaml-tier0.yaml) — registry + tier0 | [s02…](../../implement/T-HUB-017-loop-observability-foundation/s02-registry-yaml-tier0.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-check-after-wire-tier0.yaml](s03-check-after-wire-tier0.yaml) — check_after wire | [s03…](../../implement/T-HUB-017-loop-observability-foundation/s03-check-after-wire-tier0.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-session-trace-jsonl.yaml](s04-session-trace-jsonl.yaml) — trace + loop.sh | [s04…](../../implement/T-HUB-017-loop-observability-foundation/s04-session-trace-jsonl.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-metrics-rolling.yaml](s05-metrics-rolling.yaml) — metrics.json | [s05…](../../implement/T-HUB-017-loop-observability-foundation/s05-metrics-rolling.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-status-incidents-metrics.yaml](s06-status-incidents-metrics.yaml) — status payload | [s06…](../../implement/T-HUB-017-loop-observability-foundation/s06-status-incidents-metrics.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s07** | [s07-doctor-cli-preflight.yaml](s07-doctor-cli-preflight.yaml) — doctor CLI | [s07…](../../implement/T-HUB-017-loop-observability-foundation/s07-doctor-cli-preflight.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s08** | [s08-event-emission-repair.yaml](s08-event-emission-repair.yaml) — events.jsonl | [s08…](../../implement/T-HUB-017-loop-observability-foundation/s08-event-emission-repair.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s09** | [s09-runbooks-docs-readme.yaml](s09-runbooks-docs-readme.yaml) — docs only | [s09…](../../implement/T-HUB-017-loop-observability-foundation/s09-runbooks-docs-readme.yaml) | no | no | BACK IMPLEMENT | completed |
 **Следующий режим:** BACK IMPLEMENT s01 (новый чат). Рекомендуется BACK ANALYZE T-HUB-017 перед первым IMPLEMENT.

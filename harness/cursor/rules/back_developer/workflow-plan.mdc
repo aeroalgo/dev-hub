@@ -38,7 +38,7 @@ alwaysApply: false
     - **Product pass:** product alignment / premises (Phase 0 или `§Product probe`).
     - **Eng pass:** Eng review spine — situational `architecture-patterns` при L2+.
     - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
-3. writing-plans; skills list в каждом `plan-<task_id>.md`; L3–4 → situational brainstorming / architecture-patterns
+3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3–4 → situational brainstorming / architecture-patterns
 3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** → полный `plan-<epic_id>-*.md` на **каждый** эпик. Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
 4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
@@ -55,6 +55,6 @@ alwaysApply: false
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
 
-**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `decompose-*/index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `md/decompose-index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 
 **Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks + brownfield sunset (если replace)

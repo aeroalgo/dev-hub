@@ -106,9 +106,9 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-epic-audit-v2-template-readme-mapping.yaml](s01-epic-audit-v2-template-readme-mapping.yaml) | [s01…](../../implement/T-HUB-012-audit-converge/yaml/steps/s01-epic-audit-v2-template-readme-mapping.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-back-audit-workflow-lean-converge.yaml](s02-back-audit-workflow-lean-converge.yaml) | [s02…](../../implement/T-HUB-012-audit-converge/yaml/steps/s02-back-audit-workflow-lean-converge.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-front-integ-audit-parity.yaml](s03-front-integ-audit-parity.yaml) | [s03…](../../implement/T-HUB-012-audit-converge/yaml/steps/s03-front-integ-audit-parity.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-finish-router-refs-fixture-doc-claim-purge.yaml](s04-finish-router-refs-fixture-doc-claim-purge.yaml) | [s04…](../../implement/T-HUB-012-audit-converge/yaml/steps/s04-finish-router-refs-fixture-doc-claim-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s01** | [s01-epic-audit-v2-template-readme-mapping.yaml](s01-epic-audit-v2-template-readme-mapping.yaml) | [s01…](../../implement/T-HUB-012-audit-converge/s01-epic-audit-v2-template-readme-mapping.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-back-audit-workflow-lean-converge.yaml](s02-back-audit-workflow-lean-converge.yaml) | [s02…](../../implement/T-HUB-012-audit-converge/s02-back-audit-workflow-lean-converge.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-front-integ-audit-parity.yaml](s03-front-integ-audit-parity.yaml) | [s03…](../../implement/T-HUB-012-audit-converge/s03-front-integ-audit-parity.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-finish-router-refs-fixture-doc-claim-purge.yaml](s04-finish-router-refs-fixture-doc-claim-purge.yaml) | [s04…](../../implement/T-HUB-012-audit-converge/s04-finish-router-refs-fixture-doc-claim-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** `no` | `yes (CR-…)` | `yes (CR-…) ✅` (= shard `yes (CR-…) — **closed**`)  
 **FORBIDDEN:** `yes (done)` без CR-ID · `no (CR-… closed)`

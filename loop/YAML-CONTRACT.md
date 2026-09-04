@@ -25,7 +25,8 @@ python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <dec
 | `plan/<epic_id>/yaml/decompose-index.yaml` | **единственный SoT** очереди + `status`; prepare / identity / IMPLEMENT |
 | `plan/<epic_id>/md/decompose-index.md` | human coverage (DECOMPOSE/AUDIT); status = best-effort зеркало |
 | `plan/<epic_id>/yaml/steps/sNN-*.yaml` | decompose step shards |
-| `implement/<epic_id>/yaml/steps/sNN-*.yaml` | implement step shards |
+| `implement/<epic_id>/sNN-*.yaml` | implement step shards (**без** `yaml/` — split только у plan/decompose) |
+| `qa|audit|analyze/<epic_id>/*.yaml` | phase artifacts (**без** `yaml/` subdir) |
 
 **Scaffold contract (HARD):**
 - Scaffolding шагов выполняется исключительно через `mb-scaffold` (`mb-scaffold plan`, `mb-scaffold decompose`, `mb-scaffold implement`).

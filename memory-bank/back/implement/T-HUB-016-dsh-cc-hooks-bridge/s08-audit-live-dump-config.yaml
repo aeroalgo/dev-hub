@@ -19,7 +19,7 @@ done:
   (required: true), configPath: !!js process.env.CLAUDE_PROJECT_DIR + ''/.claude/settings.json''
   и projectDir: !!js process.env.CLAUDE_PROJECT_DIR.'
 files:
-- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s08-audit-live-dump-config.yaml
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s08-audit-live-dump-config.yaml
 deletes: []
 tests:
 - '`timeout 300s .venv/bin/pytest tests/test_cc_hooks_bridge_config.py -q --tb=line`

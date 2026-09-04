@@ -15,24 +15,24 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 **REQUIRED session load order (default IMPLEMENT/TASK/BUGFIX/QA):**
 
 1. `memory-bank/activeContext.md` → **`load_now`** list (ONLY those files)
-2. **IMPLEMENT (эпик):** work shard `decompose-*/sNN|eNN-*.yaml` (**включая `plan_contract`**) + `decompose-*/index.yaml` + analyze artifact path если в load_now
+2. **IMPLEMENT (эпик):** work shard `plan/<epic>/yaml/steps/sNN|eNN-*.yaml` (**включая `plan_contract`**) + `yaml/decompose-index.yaml` + analyze artifact path если в load_now
 3. **Прочие режимы:** ONE work shard (`task` / `bugfix` / `qa`) из `load_now`
-4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan-*.md` как monolith AC
+4. AC source = **work shard + `plan_contract`**. **Не** подставлять полный `plan/.../md/plan.md` как monolith AC
 5. **Plan jumps (IMPLEMENT HARD):** Read строки из `plan_contract.plan_jumps` и/или `Consumes: plan §FR-00N` — объём jumps = (end-start)*2 = 100% к изначальному scope (line 120-160 = 160-120 = 40 * 2 => jump 120-200); не весь plan
 6. `load_if_needed` only when task requires
 7. **NEVER** load `done — do NOT load` section files
 
-**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan-*.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `decompose-*/index.md` · `implement-*/index.md`
+**`load_now` FORBIDDEN (IMPLEMENT / QA / BUGFIX / TASK):** полный `memory-bank/**/plan/**/md/plan.md` как monolith · «acceptance context = весь plan» · creative monolith без open CR · `tasks.md` / `systemPatterns.md` · `md/decompose-index.md` · `implement-*/index.md`
 
 **`load_now` OK partial plan:** `plan_jumps` line ranges / `plan §FR-00N` / Consumes §N (не весь файл)
 
-**`load_now` OK index:** `plan/decompose-*/index.yaml` (status). `index.md` — DECOMPOSE/AUDIT/ANALYZE coverage, не IMPLEMENT hot path.
+**`load_now` OK index:** `plan/<epic>/yaml/decompose-index.yaml` (status). `md/decompose-index.md` — DECOMPOSE/AUDIT/ANALYZE coverage, не IMPLEMENT hot path.
 
 **`load_now` OK для полного plan:** когда следующий режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 
 **PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + @.cursor/rules/token-economy-core.mdc §0.0.
 
-Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `decompose-*/index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
+Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `plan/<epic>/yaml/decompose-index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
 
 ## 0.7 Handoff (HARD)
 
@@ -79,4 +79,4 @@ Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in
 
 ## PLAN / gap / decompose write
 
-**Never shorten** `plan-*.md` / `decompose-*/**` / `architecture/**` under chat brevity. Full rules: @.cursor/rules/token-economy-core.mdc §0.0 + §0.0.1
+**Never shorten** `plan/<epic>/md/plan.md` / `plan/<epic>/yaml/**` / `architecture/**` under chat brevity. Full rules: @.cursor/rules/token-economy-core.mdc §0.0 + §0.0.1

@@ -31,7 +31,7 @@ Runner: `./loop/loop.sh` (context-first; cursor = `$PROJECT_ROOT/memory-bank/act
 
 1. **Pre-FINISH skills** — если workflow указал
 2. **Role artifact (IMPLEMENT):** yaml step  
-   - `$PROJECT_ROOT/memory-bank/{back|front|integration}/implement/implement-<plan>/sNN|eNN-<slug>.yaml`  
+   - `$PROJECT_ROOT/memory-bank/{back|front|integration}/implement/<plan>/sNN|eNN-<slug>.yaml`
    **Формат:** `schema: epic-implement/v1`, `role: back|front|integ`  
    Seed сразу: `python3 .claude/hooks/epic_resolve.py --cwd "$PROJECT_ROOT" seed-implement --decompose <decompose-shard>`  
    До `@verify` / `finalize-step`: `status: in_progress` + все `checkpoints[].status=done` + заполнены done/files/tests (и role-поля)  

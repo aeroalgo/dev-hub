@@ -17,7 +17,7 @@ alwaysApply: false
 ## Load (lean)
 
 1. `memory-bank/activeContext.md` → только `load_now`;
-2. `memory-bank/back/plan/plan-<epic>.md` и `decompose-<epic>/index.yaml`.
+2. `memory-bank/back/plan/<epic>/md/plan.md` и `…/yaml/decompose-index.yaml`.
 
 ## Процесс
 

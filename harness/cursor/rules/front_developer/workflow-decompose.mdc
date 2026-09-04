@@ -10,9 +10,9 @@ alwaysApply: false
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
 **Цель:** `plan/<id>/md/plan.md` (+ `yaml/plan.yaml`) → `memory-bank/front/plan/<plan_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`. НЕ писать код.  
-**Вход:** `load_now` или `FRONT DECOMPOSE plan-<id>` (в одном сообщении).
+**Вход:** `load_now` или `FRONT DECOMPOSE <plan_id>` (в одном сообщении).
 
-**Folder slug (HARD):** `plan_id` = stem plan-файла без `plan-` (со descriptive slug). **FORBIDDEN** short queue id в имени папки при `plan-<id>-<slug>.md`. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
+**Folder slug (HARD):** `plan_id` = `<epic_id>` каталога `plan/<epic_id>/` (со descriptive slug). **FORBIDDEN** short queue id. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
 ---
 

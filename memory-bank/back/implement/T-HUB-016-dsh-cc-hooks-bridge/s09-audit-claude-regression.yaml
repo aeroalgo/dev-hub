@@ -22,7 +22,7 @@ done:
 - 'Verified .claude/settings.json byte stability: sha256 cd0c6453a93d1888afbc43616302329b95e01fa0740816345648a607492b09a4
   before and after smoke.'
 files:
-- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/yaml/steps/s09-audit-claude-regression.yaml
+- memory-bank/back/implement/T-HUB-016-dsh-cc-hooks-bridge/s09-audit-claude-regression.yaml
 deletes: []
 tests:
 - timeout 300s .venv/bin/pytest .claude/hooks/tests/ -q --tb=line (4 passed in 0.78s;

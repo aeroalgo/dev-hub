@@ -38,7 +38,7 @@ Gap опционален — не блокирует PLAN. Не читать as 
 2. `load_now`
 2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
 2b. §0.11 endpoint ↔ fetch; mocks в registry
-3. **Single-epic:** `memory-bank/integration/plan/plan-<task_id>.md` по @.cursor/templates/integration-plan.md  
+3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) по @.cursor/templates/integration-plan.md
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица по wire-осям / продуктам / journeys)  
     - `memory-bank/integration/plan/roadmap-<slug>-epics.md` (шаблон @.cursor/templates/roadmap-epics.md)  
@@ -57,4 +57,4 @@ Gap опционален — не блокирует PLAN. Не читать as 
 
 **После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN
 
-**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.

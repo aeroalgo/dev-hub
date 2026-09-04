@@ -103,12 +103,12 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-extract-verdict-tdd.yaml](s01-extract-verdict-tdd.yaml) | [s01…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s01-extract-verdict-tdd.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-need-human-messaging.yaml](s02-need-human-messaging.yaml) | [s02…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s02-need-human-messaging.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-unified-registry-discovery.yaml](s03-unified-registry-discovery.yaml) | [s03…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s03-unified-registry-discovery.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-alias-explore.yaml](s04-alias-explore.yaml) | [s04…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s04-alias-explore.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s05** | [s05-delete-epic-reexports.yaml](s05-delete-epic-reexports.yaml) | [s05…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s05-delete-epic-reexports.yaml) | no | no | BACK IMPLEMENT | completed |
-| **s06** | [s06-posttool-mirror-lock.yaml](s06-posttool-mirror-lock.yaml) | [s06…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s06-posttool-mirror-lock.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s07** | [s07-targeted-suite-smoke.yaml](s07-targeted-suite-smoke.yaml) | [s07…](../../implement/T-HUB-004-hooks-hygiene/yaml/steps/s07-targeted-suite-smoke.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s01** | [s01-extract-verdict-tdd.yaml](s01-extract-verdict-tdd.yaml) | [s01…](../../implement/T-HUB-004-hooks-hygiene/s01-extract-verdict-tdd.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-need-human-messaging.yaml](s02-need-human-messaging.yaml) | [s02…](../../implement/T-HUB-004-hooks-hygiene/s02-need-human-messaging.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-unified-registry-discovery.yaml](s03-unified-registry-discovery.yaml) | [s03…](../../implement/T-HUB-004-hooks-hygiene/s03-unified-registry-discovery.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-alias-explore.yaml](s04-alias-explore.yaml) | [s04…](../../implement/T-HUB-004-hooks-hygiene/s04-alias-explore.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-delete-epic-reexports.yaml](s05-delete-epic-reexports.yaml) | [s05…](../../implement/T-HUB-004-hooks-hygiene/s05-delete-epic-reexports.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s06** | [s06-posttool-mirror-lock.yaml](s06-posttool-mirror-lock.yaml) | [s06…](../../implement/T-HUB-004-hooks-hygiene/s06-posttool-mirror-lock.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s07** | [s07-targeted-suite-smoke.yaml](s07-targeted-suite-smoke.yaml) | [s07…](../../implement/T-HUB-004-hooks-hygiene/s07-targeted-suite-smoke.yaml) | no | no | BACK IMPLEMENT | completed |
 **needs_creative:** `no` | `yes (CR-…)` | `yes (CR-…) ✅` (= shard `yes (CR-…) — **closed**`)  
 **FORBIDDEN:** `yes (done)` без CR-ID · `no (CR-… closed)`

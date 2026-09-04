@@ -2028,9 +2028,10 @@ def increment_schema_retry_count(
     return count
 
 
-# implement step under implement/implement-<id>/(e|s)NN-*.yaml or implement/<id>/yaml/steps/(e|s)NN-*.yaml
+# implement step: implement/<id>/(e|s)NN-*.yaml | leftover yaml/steps | v1 implement-<id>/
 _IMPLEMENT_STEP_RE = re.compile(
-    r"(memory-bank/(?:back|front|integration)/implement/(?:implement-[^\s`/]+|[^\s`/]+(?:/yaml/steps)?)/"
+    r"(memory-bank/(?:back|front|integration)/implement/"
+    r"(?:implement-[^\s`/]+|[^\s`/]+(?:/yaml/steps)?)/"
     r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
 )
 

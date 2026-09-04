@@ -33,17 +33,17 @@ alwaysApply: false
 1c. Если вход = research / audit / multi-P / ≥2 UI-surface → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan на весь research
 1d. **CRITICAL marker gate:** `[НУЖНО УТОЧНИТЬ: CRITICAL …]` должен иметь resolve или явный defer-list с owner/next до FINISH PLAN.
 2. `tasks.md` → level (+ свободные ID при multi-epic)
-3. Skills по UI (design stack + next); skills list в каждом `plan-<task_id>.md`
+3. Skills по UI (design stack + next); skills list в каждом `plan/<task_id>/md/plan.md`
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица)  
     - `memory-bank/front/plan/roadmap-<slug>-epics.md` (шаблон @.cursor/templates/roadmap-epics.md)  
     - **`memory-bank/front/plan/roadmap-<slug>-epics.queue.yaml`** (`role: front`, шаблон @.cursor/templates/roadmap-queue.yaml) — оба файла обязательны  
-    - полный `plan-<epic_id>-*.md` на **каждый** эпик (E2E + design direction; §0.0)  
-4. Single-epic: содержание по level delta в gates; E2E в плане; после DECOMPOSE трекер только в `decompose/index.md`
+    - полный `plan/<epic_id>-*/md/plan.md` на **каждый** эпик (E2E + design direction; §0.0)  
+4. Single-epic: содержание по level delta в gates; E2E в плане; после DECOMPOSE трекер только в `plan/<id>/yaml/decompose-index.yaml`
 
-**Armed IMPLEMENT lock:** если `decompose-<id>/` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
+**Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани: один `memory-bank/front/plan/plan-<task_id>.md` **или** roadmap.md + `.queue.yaml` + N планов
+6. Сохрани: один `memory-bank/front/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) **или** roadmap.md + `.queue.yaml` + N plan dirs
 7. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
 7a1. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`

@@ -22,8 +22,8 @@ alwaysApply: false
 ## Load (lean)
 
 1. `memory-bank/activeContext.md` → только `load_now`;
-2. `memory-bank/front/plan/plan-<epic>.md` → headers и нужные FR/AC/stories sections;
-3. `memory-bank/front/plan/decompose-<epic>/index.md` → coverage map;
+2. `memory-bank/front/plan/<epic>/md/plan.md` → headers и нужные FR/AC/stories sections;
+3. `memory-bank/front/plan/<epic>/md/decompose-index.md` (+ `yaml/decompose-index.yaml`) → coverage map;
 4. `index.yaml` → список steps/status;
 5. несколько sample `sNN` → headers, `goal`, `delta`, `plan_refs`.
 

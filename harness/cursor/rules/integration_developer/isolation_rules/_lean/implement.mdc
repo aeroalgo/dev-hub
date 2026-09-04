@@ -6,12 +6,12 @@ alwaysApply: false
 
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 
-**Артефакт:** `memory-bank/integration/implement/implement-<plan_id>/eNN-<slug>.yaml` — `<plan_id>` = stem plan **со slug** (@.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
+**Артефакт:** `memory-bank/integration/implement/<plan_id>/eNN-<slug>.yaml` — `<plan_id>` = stem plan **со slug** (@.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
 **Шаблоны:** `@.cursor/templates/implement/epic-step.yaml` (**строго**; без вольных секций)
 
 ## Gates
 
-1. `load_now`: work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`; **не** gap/contracts/полный `plan-*.md` / `index.md`; AC = eNN
+1. `load_now`: work shard `plan/<epic>/yaml/steps/eNN-*.yaml` + `yaml/decompose-index.yaml`; **не** gap/contracts/полный `plan.md` / `md/decompose-index.md`; AC = eNN
 2. §Contract из шага; пуст → допиши до кода
 3. Phases A→F = один UI-элемент; QueryBuilder для list/filter
 4. §0.11; mock убран из prod path; **`deletes`** из eNN выполнены (legacy/mock client не висит)

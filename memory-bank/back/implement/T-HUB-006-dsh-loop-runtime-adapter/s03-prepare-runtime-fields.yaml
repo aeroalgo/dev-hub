@@ -5,7 +5,7 @@ plan_id: T-HUB-006-dsh-loop-runtime-adapter
 title: s03 — prepare runtime fields + --runtime CLI override — orchestrator contract
   IMPLEMENT
 status: completed
-implement_index: memory-bank/back/implement/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/index.yaml
+implement_index: memory-bank/back/implement/T-HUB-006-dsh-loop-runtime-adapter/index.yaml
 date: '2026-08-23'
 decompose_ref: memory-bank/back/plan/T-HUB-006-dsh-loop-runtime-adapter/yaml/steps/s03-prepare-runtime-fields.yaml
 skills_used:

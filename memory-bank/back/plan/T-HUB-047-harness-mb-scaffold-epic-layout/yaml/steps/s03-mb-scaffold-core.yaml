@@ -91,7 +91,7 @@ delta:
 - 'scaffold_decompose: читает plan.yaml outline_steps → sNN-<slug>.yaml skeleton (delta:[],
   as_built:[], goal: placeholder) + md/decompose-index.md coverage rows (пустой sNN
   column)'
-- 'scaffold_implement_all: из decompose index.yaml → implement/<epic_id>/yaml/steps/sNN.yaml
+- 'scaffold_implement_all: из decompose index.yaml → implement/<epic_id>/sNN.yaml
   in_progress'
 - 'scaffold_qa/scaffold_analyze/scaffold_audit: schema-valid empty findings yaml из
   epic context'

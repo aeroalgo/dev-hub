@@ -98,12 +98,12 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-sync-agent-md-to-presets.yaml](s01-sync-agent-md-to-presets.yaml) | [s01…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s01-sync-agent-md-to-presets.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-epic-implement-profile.yaml](s02-epic-implement-profile.yaml) | [s02…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s02-epic-implement-profile.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-epic-qa-decompose-profiles.yaml](s03-epic-qa-decompose-profiles.yaml) | [s03…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s03-epic-qa-decompose-profiles.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-remaining-phase-profiles.yaml](s04-remaining-phase-profiles.yaml) | [s04…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s04-remaining-phase-profiles.yaml) | no | no | BACK IMPLEMENT | completed |
-| **s05** | [s05-install-profiles-readme.yaml](s05-install-profiles-readme.yaml) | [s05…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s05-install-profiles-readme.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s06** | [s06-prepare-dsh-profile-mapping.yaml](s06-prepare-dsh-profile-mapping.yaml) | [s06…](../../implement/T-HUB-007-dsh-profiles-presets/yaml/steps/s06-prepare-dsh-profile-mapping.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s01** | [s01-sync-agent-md-to-presets.yaml](s01-sync-agent-md-to-presets.yaml) | [s01…](../../implement/T-HUB-007-dsh-profiles-presets/s01-sync-agent-md-to-presets.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-epic-implement-profile.yaml](s02-epic-implement-profile.yaml) | [s02…](../../implement/T-HUB-007-dsh-profiles-presets/s02-epic-implement-profile.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-epic-qa-decompose-profiles.yaml](s03-epic-qa-decompose-profiles.yaml) | [s03…](../../implement/T-HUB-007-dsh-profiles-presets/s03-epic-qa-decompose-profiles.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-remaining-phase-profiles.yaml](s04-remaining-phase-profiles.yaml) | [s04…](../../implement/T-HUB-007-dsh-profiles-presets/s04-remaining-phase-profiles.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s05** | [s05-install-profiles-readme.yaml](s05-install-profiles-readme.yaml) | [s05…](../../implement/T-HUB-007-dsh-profiles-presets/s05-install-profiles-readme.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-prepare-dsh-profile-mapping.yaml](s06-prepare-dsh-profile-mapping.yaml) | [s06…](../../implement/T-HUB-007-dsh-profiles-presets/s06-prepare-dsh-profile-mapping.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s07** | [s07-audit-phase-models-include.yaml](s07-audit-phase-models-include.yaml) | — | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** `no` | `yes (CR-…)` | `yes (CR-…) ✅` (= shard `yes (CR-…) — **closed**`)  
 **FORBIDDEN:** `yes (done)` без CR-ID · `no (CR-… closed)`

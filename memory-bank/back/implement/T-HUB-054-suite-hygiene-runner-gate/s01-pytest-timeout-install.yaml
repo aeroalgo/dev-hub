@@ -19,7 +19,7 @@ files:
 - pytest.ini
 - requirements-dev.txt
 - memory-bank/activeContext.md
-- memory-bank/back/implement/T-HUB-054-suite-hygiene-runner-gate/yaml/steps/s01-pytest-timeout-install.yaml
+- memory-bank/back/implement/T-HUB-054-suite-hygiene-runner-gate/s01-pytest-timeout-install.yaml
 deletes:
 - pytest.ini [pytest] empty-timeout false-protection state — заменяется реальным timeout = 120
 tests:
