@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-048-workflow-pack-registry
+title: epic_resolve.py workflow resolve CLI subcommand
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить в `harness/hooks/epic_resolve.py` субкоманду `workflow resolve`:
+  `python3 harness/hooks/epic_resolve.py workflow resolve [--pack ID] [--cwd PATH] [--json]`.
+  При ok=True → stdout JSON + exit 0; при ok=False → stdout JSON + exit 2.
+  Вызывает full_resolve из s04 (FR-006, US-001, US-002, SC-001, SC-002).
+
+plan_contract:
+  fr_ids: [FR-006, US-001, US-002, SC-001, SC-002]
+  nouns:
+    - epic_resolve.py workflow subparser
+    - workflow resolve subcommand
+    - --pack flag (override)
+    - --cwd flag (default PROJECT_ROOT)
+    - --json flag (always json stdout)
+    - exit 0 ok=True, exit 2 ok=False
+  layout_paths:
+    - harness/hooks/epic_resolve.py
+  ac_quotes:
+    - "FR-006: CLI python3 harness/hooks/epic_resolve.py workflow resolve [--pack] [--cwd] [--json]"
+    - "AC+2: workflow resolve CLI returns JSON ok:true for default; ok:false for unknown"
+    - "US-001: EPIC_WORKFLOW_PACK=foo → exit 2 + JSON invalid_workflow_pack"
+    - "US-002: unset env → resolve returns software pack; existing pytest green"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:81-92"
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:68-79"
+
+context:
+  consumes:
+    - loop/workflow/resolve.py  # full_resolve from s04
+    - harness/hooks/epic_resolve.py  # existing CLI — extend, not replace
+  produces:
+    - harness/hooks/epic_resolve.py  # extended with workflow subparser
+  plan_refs:
+    - "plan.md FR-006 + Acceptance Scenarios US-001/US-002"
+    - "plan.md cut_list: MCP workflow resolve wrapper excluded"
+  files:
+    - harness/hooks/epic_resolve.py
+
+as_built:
+  - "harness/hooks/epic_resolve.py — существующий CLI с subparsers (mb-scaffold, mb-finish, etc.)"
+
+delta:
+  - "EDIT harness/hooks/epic_resolve.py: добавить subparser workflow → resolve с --pack / --cwd / --json"
+  - "workflow resolve handler: если --pack передан, подставить в env перед full_resolve; print json.dumps(result.model_dump()); sys.exit(0 if result.ok else 2)"
+
+deletes: []
+
+out_of_scope:
+  - MCP wrapper (cut_list per appetite)
+  - project.yaml custom registry path (cut_list per appetite)
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: CLI subparser workflow / resolve зарегистрирован
+    verify: "rg 'workflow' harness/hooks/epic_resolve.py"
+  - id: cp2
+    criterion: fail-closed exit 2 на unknown pack
+    verify: "rg 'sys.exit\\(2\\)|exit\\(2\\)' harness/hooks/epic_resolve.py"
+  - id: cp3
+    criterion: handler вызывает full_resolve / отдаёт pack_id
+    verify: "rg 'full_resolve|pack_id' harness/hooks/epic_resolve.py"
+
+verify: []
+tdd: []

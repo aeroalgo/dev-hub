@@ -34,12 +34,13 @@ def _index(project: Path, epic: str, statuses: list[str]) -> Path:
 
 
 def _queue(project: Path, epic: str) -> None:
-    (project / "memory-bank/back/plan/roadmap-epics.queue.yaml").write_text(
+    (project / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
+    (project / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
             {
                 "version": "roadmap-queue/v1",
                 "role": "back",
-                "roadmap": "memory-bank/back/plan/roadmap-epics.md",
+                "roadmap": "memory-bank/back/roadmap/queue.yaml",
                 "queue": [{"id": epic, "plan": f"plan-{epic}.md", "deps": []}],
             }
         ),

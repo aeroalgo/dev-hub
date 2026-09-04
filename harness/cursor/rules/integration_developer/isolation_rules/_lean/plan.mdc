@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Артефакт:** `memory-bank/integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`)  
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
-**Multi-epic:** research multi-axis → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× plan; PLAN **сам** делает `roadmap-merge --role integration` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE  
+**Multi-epic:** research multi-axis → апсерт `memory-bank/integration/roadmap/queue.yaml` + N× plan; **FORBIDDEN** slug roadmap в `plan/`; next = DECOMPOSE  
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
 
 ## Gates

@@ -11,7 +11,7 @@ alwaysApply: false
 **Процесс**:
 1. `OK INTEG ROADMAP MERGE`
 1a. Gates + Алгоритм
-2. Inventory `memory-bank/integration/plan/roadmap-*-epics.queue.yaml`
+2. Inventory `memory-bank/integration/roadmap/queue.yaml`
 3. CLI `--role integration`
 4. Conflict → halt
 5. `tasks.md` + `activeContext.md`

@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Артефакт:** `memory-bank/back/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`)  
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — auto-clarify в той же сессии PLAN при триггерах  
-**Multi-epic:** research/audit → `roadmap-<slug>-epics.md` + `.queue.yaml` + N× `plan/<epic_id>/` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); PLAN **сам** делает `roadmap-merge --role back` в той же сессии → canon `roadmap-epics.queue.yaml`; next = DECOMPOSE (не отдельный MERGE)  
+**Multi-epic:** research/audit → апсерт `memory-bank/back/roadmap/queue.yaml` + N× `plan/<epic_id>/` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
 
 ## Gates

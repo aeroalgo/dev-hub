@@ -443,6 +443,13 @@ def main() -> int:
         help="raw inline JSON payload string",
     )
 
+    p_workflow = sub.add_parser("workflow", help="workflow pack operations")
+    workflow_sub = p_workflow.add_subparsers(dest="workflow_cmd", required=True)
+    p_workflow_resolve = workflow_sub.add_parser("resolve", help="resolve workflow pack")
+    p_workflow_resolve.add_argument("--pack", default=None, help="workflow pack id override")
+    p_workflow_resolve.add_argument("--cwd", default=None, help="override target directory path")
+    p_workflow_resolve.add_argument("--json", action="store_true", default=True, help="emit JSON output")
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -751,6 +758,19 @@ def main() -> int:
         val_res = validate_boundary(args.schema_id, raw)
         print(json.dumps(val_res.model_dump(by_alias=True), ensure_ascii=False, indent=2))
         return 0 if val_res.valid else 1
+
+    if args.cmd == "workflow":
+        if args.workflow_cmd == "resolve":
+            from loop.workflow.resolve import full_resolve
+            from _lib import hub_root
+
+            if getattr(args, "pack", None):
+                os.environ["WORKFLOW_PACK"] = args.pack.strip()
+
+            hub = hub_root()
+            res = full_resolve(cwd=cwd, hub_root=hub)
+            print(json.dumps(res.model_dump(mode="json"), ensure_ascii=False, indent=2))
+            return 0 if res.ok else 2
 
     if args.cmd == "mb-migrate":
         from loop.migrate.epic_layout_v1_to_v2 import migrate_all, migrate_epic

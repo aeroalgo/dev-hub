@@ -33,8 +33,8 @@ alwaysApply: false
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| PLAN | `back/plan/<epic_id>/` | `yaml/plan.yaml` + `md/plan.md`; research multi-epic → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; templates `roadmap-epics.md` + `roadmap-queue.yaml`). Loop canon после PLAN same-session `roadmap-merge` (или recovery `* ROADMAP MERGE`): **`roadmap-epics.queue.yaml`** |
-| ROADMAP MERGE (recovery) | `back/plan/` | пишет **`roadmap-epics.queue.yaml`** + `roadmap-epics.md`; happy-path = PLAN inline merge (@.cursor/rules/shared/workflow-roadmap-merge.mdc) |
+| PLAN | `back/plan/<epic_id>/` | `yaml/plan.yaml` + `md/plan.md`; multi-epic → апсерт **`back/roadmap/queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
+| ROADMAP | `back/roadmap/` | **`queue.yaml`** SoT; `archive/` — старые slug (read-only). Merge: @.cursor/rules/shared/workflow-roadmap-merge.mdc |
 | DECOMPOSE | `back/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml` (scaffold: `mb-scaffold decompose`). **`<epic_id>` = descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
 | CREATIVE | `back/creative/<epic_id>/` или `back/creative/` | `creative-<feature>.md` — **с эпиком** под `<epic_id>/`; без эпика — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc |
 | IMPLEMENT | `back/implement/<epic_id>/` | `sNN-<slug>.yaml` (прямо в `<epic_id>/`; **без** `yaml/`/`md/` — split только у plan/decompose); `<epic_id>` тот же stem+slug, что у plan. Без эпика: `back/implement/<slug>/` |

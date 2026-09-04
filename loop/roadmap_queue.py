@@ -24,18 +24,33 @@ from epic_paths import epic_id_from_decompose_path  # noqa: E402
 from _lib import merged_project_env_map  # noqa: E402
 from analyze_gate import analyze_required_before_implement  # noqa: E402
 
-QUEUE_VERSION = "roadmap-queue/v1"
-DEFAULT_ROADMAP = "memory-bank/back/plan/roadmap-epics.md"
-DEFAULT_QUEUE = "memory-bank/back/plan/roadmap-epics.queue.yaml"
+QUEUE_VERSION_V1 = "roadmap-queue/v1"
+QUEUE_VERSION = "roadmap-queue/v2"
+SUPPORTED_QUEUE_VERSIONS = {QUEUE_VERSION_V1, QUEUE_VERSION}
+
+# Layout v2 SoT (yaml-only; no sibling .md)
+DEFAULT_QUEUE = "memory-bank/back/roadmap/queue.yaml"
+# Deprecated aliases (migration / old docs)
+DEFAULT_ROADMAP = "memory-bank/back/roadmap/queue.yaml"
+LEGACY_DEFAULT_QUEUE = "memory-bank/back/plan/roadmap-epics.queue.yaml"
 
 
 def queue_rel_from_roadmap(roadmap_rel: str) -> str:
-    """Sibling machine file: roadmap-foo-epics.md → roadmap-foo-epics.queue.yaml."""
+    """Map legacy roadmap path to machine queue.
+
+    - ``…/roadmap/queue.yaml`` stays
+    - ``…/plan/roadmap-foo-epics.md`` → ``…/plan/roadmap-foo-epics.queue.yaml`` (legacy)
+    - bare ``…/roadmap`` → ``…/roadmap/queue.yaml``
+    """
     rel = str(roadmap_rel).replace("\\", "/")
+    if rel.endswith("/queue.yaml") or rel.endswith("queue.yaml"):
+        return rel if rel.endswith(".yaml") else f"{rel.rstrip('/')}/queue.yaml"
     if rel.endswith(".queue.yaml"):
         return rel
     if rel.endswith(".md"):
         return rel[: -len(".md")] + ".queue.yaml"
+    if rel.rstrip("/").endswith("/roadmap"):
+        return f"{rel.rstrip('/')}/queue.yaml"
     return rel + ".queue.yaml"
 
 
@@ -44,6 +59,51 @@ def epic_chain_roadmap_enabled(cwd: str | Path | None = None) -> bool:
     if raw is None:
         raw = merged_project_env_map(cwd).get("EPIC_CHAIN_ROADMAP", "0")
     return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _normalize_queue_item(item: dict[str, Any], *, index: int, path: str) -> dict[str, Any]:
+    """Normalize one queue/done row: require id + (epic_id|plan)."""
+    if not isinstance(item, dict):
+        return {
+            "ok": False,
+            "error": "queue_yaml_invalid",
+            "reason": f"queue[{index}] must be a mapping",
+            "path": path,
+        }
+    qid = str(item.get("id") or "").strip()
+    epic_fs = str(item.get("epic_id") or "").strip()
+    plan = str(item.get("plan") or "").strip()
+    if not epic_fs and plan:
+        epic_fs = plan_stem_from_name(plan)
+    if not plan and epic_fs:
+        plan = f"plan-{epic_fs}.md"
+    deps_raw = item.get("deps") if "deps" in item else []
+    if not qid or (not plan and not epic_fs):
+        return {
+            "ok": False,
+            "error": "queue_yaml_invalid",
+            "reason": f"queue[{index}] requires id and epic_id|plan",
+            "path": path,
+        }
+    if not isinstance(deps_raw, list):
+        return {
+            "ok": False,
+            "error": "queue_yaml_invalid",
+            "reason": f"queue[{index}].deps must be a list",
+            "path": path,
+        }
+    deps = [str(d).strip() for d in deps_raw if str(d).strip()]
+    batch = str(item.get("batch") or "").strip() or None
+    out: dict[str, Any] = {
+        "ok": True,
+        "id": qid,
+        "plan": plan or f"plan-{epic_fs}.md",
+        "epic_id": epic_fs or plan_stem_from_name(plan),
+        "deps": deps,
+    }
+    if batch:
+        out["batch"] = batch
+    return out
 
 
 def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
@@ -55,11 +115,11 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
             "path": path,
         }
     version = str(data.get("version") or "")
-    if version != QUEUE_VERSION:
+    if version not in SUPPORTED_QUEUE_VERSIONS:
         return {
             "ok": False,
             "error": "queue_version_mismatch",
-            "reason": f"expected {QUEUE_VERSION}, got {version!r}",
+            "reason": f"expected one of {sorted(SUPPORTED_QUEUE_VERSIONS)}, got {version!r}",
             "path": path,
         }
     role = str(data.get("role") or "back").strip().lower()
@@ -71,7 +131,14 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
             "path": path,
         }
     raw_queue = data.get("queue")
-    if not isinstance(raw_queue, list) or not raw_queue:
+    if not isinstance(raw_queue, list):
+        return {
+            "ok": False,
+            "error": "queue_yaml_invalid",
+            "reason": "queue must be a list",
+            "path": path,
+        }
+    if version == QUEUE_VERSION_V1 and not raw_queue:
         return {
             "ok": False,
             "error": "queue_yaml_invalid",
@@ -81,23 +148,10 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
     queue: list[dict[str, Any]] = []
     seen: set[str] = set()
     for i, item in enumerate(raw_queue):
-        if not isinstance(item, dict):
-            return {
-                "ok": False,
-                "error": "queue_yaml_invalid",
-                "reason": f"queue[{i}] must be a mapping",
-                "path": path,
-            }
-        epic_id = str(item.get("id") or "").strip()
-        plan = str(item.get("plan") or "").strip()
-        deps_raw = item.get("deps") if "deps" in item else []
-        if not epic_id or not plan:
-            return {
-                "ok": False,
-                "error": "queue_yaml_invalid",
-                "reason": f"queue[{i}] requires id and plan",
-                "path": path,
-            }
+        norm = _normalize_queue_item(item if isinstance(item, dict) else {}, index=i, path=path)
+        if not norm.get("ok"):
+            return norm
+        epic_id = norm["id"]
         if epic_id in seen:
             return {
                 "ok": False,
@@ -105,16 +159,49 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
                 "reason": f"duplicate epic id: {epic_id}",
                 "path": path,
             }
-        if not isinstance(deps_raw, list):
+        seen.add(epic_id)
+        row = {"id": epic_id, "plan": norm["plan"], "deps": norm["deps"], "epic_id": norm["epic_id"]}
+        if norm.get("batch"):
+            row["batch"] = norm["batch"]
+        queue.append(row)
+
+    done: list[dict[str, Any]] = []
+    raw_done = data.get("done")
+    if raw_done is not None:
+        if not isinstance(raw_done, list):
             return {
                 "ok": False,
                 "error": "queue_yaml_invalid",
-                "reason": f"queue[{i}].deps must be a list",
+                "reason": "done must be a list",
                 "path": path,
             }
-        deps = [str(d).strip() for d in deps_raw if str(d).strip()]
-        seen.add(epic_id)
-        queue.append({"id": epic_id, "plan": plan, "deps": deps})
+        for i, item in enumerate(raw_done):
+            if not isinstance(item, dict):
+                return {
+                    "ok": False,
+                    "error": "queue_yaml_invalid",
+                    "reason": f"done[{i}] must be a mapping",
+                    "path": path,
+                }
+            norm = _normalize_queue_item(item, index=i, path=path)
+            if not norm.get("ok"):
+                return {
+                    "ok": False,
+                    "error": "queue_yaml_invalid",
+                    "reason": f"done[{i}]: {norm.get('reason')}",
+                    "path": path,
+                }
+            row = {
+                "id": norm["id"],
+                "plan": norm["plan"],
+                "deps": norm["deps"],
+                "epic_id": norm["epic_id"],
+            }
+            if norm.get("batch"):
+                row["batch"] = norm["batch"]
+            done.append(row)
+
+    batches = data.get("batches") if isinstance(data.get("batches"), dict) else {}
     roadmap = str(data.get("roadmap") or data.get("path") or "").strip()
     return {
         "ok": True,
@@ -123,6 +210,8 @@ def _validate_queue_doc(data: Any, *, path: str) -> dict[str, Any]:
         "path": path,
         "roadmap": roadmap or None,
         "queue": queue,
+        "done": done,
+        "batches": batches,
     }
 
 
@@ -132,10 +221,11 @@ def parse_roadmap_queue(
     queue_rel: str | None = None,
     roadmap_rel: str | None = None,
 ) -> dict[str, Any]:
-    """Parse sibling `.queue.yaml` (machine canon). Fail-closed on errors.
+    """Parse machine queue YAML. Fail-closed on errors.
 
-    Prefers ``queue_rel``. If only ``roadmap_rel`` is given, loads
-    ``roadmap-….md`` → ``roadmap-….queue.yaml``. Default: ``DEFAULT_QUEUE``.
+    Prefers ``queue_rel``. Default: ``DEFAULT_QUEUE``
+    (``memory-bank/<role>/roadmap/queue.yaml``). If default missing, tries
+    legacy ``plan/roadmap-epics.queue.yaml`` once (migration window).
     """
     root = Path(cwd)
     if queue_rel:
@@ -145,6 +235,11 @@ def parse_roadmap_queue(
     else:
         rel = DEFAULT_QUEUE
     path = root / rel
+    if not path.is_file() and not queue_rel and not roadmap_rel:
+        legacy = root / LEGACY_DEFAULT_QUEUE
+        if legacy.is_file():
+            rel = LEGACY_DEFAULT_QUEUE
+            path = legacy
     if not path.is_file():
         return {
             "ok": False,
@@ -301,6 +396,130 @@ def is_epic_done(cwd: str | Path, role: str, epic_id: str) -> bool:
     return phase2 == "DONE"
 
 
+def _queue_row_matches(
+    cwd: str | Path,
+    role: str,
+    item: dict[str, Any],
+    epic_ref: str,
+) -> bool:
+    """Match short queue id, epic_id slug, or armed_epic full id."""
+    ref = str(epic_ref or "").strip()
+    if not ref:
+        return False
+    qid = str(item.get("id") or "").strip()
+    if qid and (qid == ref or ref.startswith(qid + "-")):
+        return True
+    epic_fs = str(item.get("epic_id") or "").strip()
+    if epic_fs and epic_fs == ref:
+        return True
+    if qid:
+        slug = resolve_epic_slug(cwd, role, qid)
+        if slug == ref:
+            return True
+    return False
+
+
+def mark_queue_epic_done(
+    cwd: str | Path,
+    epic_id: str,
+    *,
+    role: str | None = None,
+    queue_rel: str | None = None,
+    require_done: bool = False,
+) -> dict[str, Any]:
+    """Move one epic from ``queue:`` → ``done:`` in roadmap/queue.yaml.
+
+    Not per-session: only on epic completion. Idempotent if already in ``done:``.
+    Missing from both lists → ``ok: true, skipped: not_in_queue`` (ad-hoc epics).
+    """
+    root = Path(cwd)
+    ref = str(epic_id or "").strip()
+    if not ref:
+        return {
+            "ok": False,
+            "error": "mark_queue_epic_missing_id",
+            "reason": "epic_id required",
+        }
+    role_key = str(role or "back").strip().lower() or "back"
+    qrel = queue_rel or canon_queue_rel(role_key)
+    parsed = parse_roadmap_queue(root, queue_rel=qrel)
+    if not parsed.get("ok"):
+        return {
+            "ok": False,
+            "error": parsed.get("error") or "queue_parse_failed",
+            "reason": parsed.get("reason") or parsed.get("error"),
+            "path": parsed.get("path") or qrel,
+        }
+    role_key = str(parsed.get("role") or role_key).strip().lower()
+    queue = list(parsed.get("queue") or [])
+    done = list(parsed.get("done") or [])
+    batches = dict(parsed.get("batches") or {})
+
+    for row in done:
+        if _queue_row_matches(root, role_key, row, ref):
+            return {
+                "ok": True,
+                "written": False,
+                "already_done": True,
+                "id": row["id"],
+                "epic_id": row.get("epic_id"),
+                "path": parsed["path"],
+            }
+
+    hit_idx: int | None = None
+    for i, row in enumerate(queue):
+        if _queue_row_matches(root, role_key, row, ref):
+            hit_idx = i
+            break
+    if hit_idx is None:
+        return {
+            "ok": True,
+            "written": False,
+            "skipped": "not_in_queue",
+            "epic_ref": ref,
+            "path": parsed["path"],
+        }
+
+    row = queue.pop(hit_idx)
+    if require_done and not is_epic_done(root, role_key, row["id"]):
+        return {
+            "ok": False,
+            "error": "mark_queue_epic_not_done",
+            "reason": f"epic {row['id']} is not DONE (QA+REFLECT gate)",
+            "id": row["id"],
+            "path": parsed["path"],
+        }
+
+    done_row: dict[str, Any] = {
+        "id": row["id"],
+        "epic_id": row.get("epic_id") or plan_stem_from_name(row.get("plan") or ""),
+        "plan": row.get("plan") or f"plan-{row['id']}.md",
+        "deps": [],
+    }
+    if row.get("batch"):
+        done_row["batch"] = row["batch"]
+    done.append(done_row)
+
+    body = _dump_queue_yaml(
+        role=role_key,
+        queue=queue,
+        done=done,
+        batches=batches or None,
+    )
+    qpath = root / parsed["path"]
+    qpath.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(qpath, body)
+    return {
+        "ok": True,
+        "written": True,
+        "already_done": False,
+        "id": done_row["id"],
+        "epic_id": done_row.get("epic_id"),
+        "path": parsed["path"],
+        "queue_remaining": [x["id"] for x in queue],
+    }
+
+
 def resolve_entry(
     cwd: str | Path,
     *,
@@ -411,6 +630,10 @@ def select_next_epic(
     role = parsed["role"]
     queue = parsed["queue"]
     done_ids: set[str] = set()
+    for item in parsed.get("done") or []:
+        qid = str(item.get("id") or "").strip()
+        if qid:
+            done_ids.add(qid)
     for item in queue:
         if is_epic_done(cwd, role, item["id"]):
             done_ids.add(item["id"])
@@ -423,6 +646,9 @@ def select_next_epic(
                 or str(skip_epic).startswith(item["id"] + "-")
             ):
                 done_ids.add(item["id"])
+        for item in parsed.get("done") or []:
+            if _queue_row_matches(cwd, role, item, skip_epic):
+                done_ids.add(item["id"])
     blocked: list[dict[str, Any]] = []
     for item in queue:
         epic_id = item["id"]
@@ -433,7 +659,10 @@ def select_next_epic(
             blocked.append({"id": epic_id, "missing_deps": missing})
             continue
         entry = resolve_entry(
-            cwd, role=role, epic_id=epic_id, plan_name=item["plan"]
+            cwd,
+            role=role,
+            epic_id=epic_id,
+            plan_name=item.get("plan") or item.get("epic_id") or "",
         )
         if entry.get("done") or entry.get("phase") == "DONE":
             done_ids.add(epic_id)
@@ -537,9 +766,35 @@ def roadmap_advance(
     skip_epic: str | None = None,
 ) -> dict[str, Any]:
     """Select and arm the next roadmap epic (opt-in chain after EPIC_DONE)."""
+    st = load_epic_state(cwd)
     if skip_epic is None:
-        st = load_epic_state(cwd)
         skip_epic = (st.get("armed_epic") or "").strip() or None
+    marked: dict[str, Any] | None = None
+    if skip_epic:
+        role_hint = (
+            str(st.get("armed_role") or st.get("role") or "back").strip().lower()
+            or "back"
+        )
+        marked = mark_queue_epic_done(
+            cwd,
+            skip_epic,
+            role=role_hint,
+            queue_rel=queue_rel,
+            require_done=False,
+        )
+        if marked.get("ok") is False and marked.get("error") in {
+            "queue_version_mismatch",
+            "queue_yaml_invalid",
+        }:
+            return {
+                "ok": False,
+                "armed": False,
+                "complete": False,
+                "halt": True,
+                "stop": f"NEED_HUMAN: {marked.get('error')}",
+                "reason": marked.get("reason"),
+                "mark_done": marked,
+            }
     selected = select_next_epic(
         cwd,
         queue_rel=queue_rel,
@@ -547,7 +802,7 @@ def roadmap_advance(
         skip_epic=skip_epic,
     )
     if selected.get("complete"):
-        return {
+        out_done = {
             "ok": True,
             "armed": False,
             "complete": True,
@@ -555,8 +810,11 @@ def roadmap_advance(
             "reason": selected.get("reason"),
             "done_ids": selected.get("done_ids"),
         }
+        if marked is not None:
+            out_done["mark_done"] = marked
+        return out_done
     if not selected.get("ok"):
-        return {
+        out_bad = {
             "ok": False,
             "armed": False,
             "complete": False,
@@ -566,16 +824,28 @@ def roadmap_advance(
             "error": selected.get("error"),
             "blocked": selected.get("blocked"),
         }
+        if marked is not None:
+            out_bad["mark_done"] = marked
+        return out_bad
     armed = arm_roadmap_entry(cwd, selected)
     armed["done_ids"] = selected.get("done_ids")
     armed["blocked"] = selected.get("blocked")
     armed["path"] = selected.get("path")
+    if marked is not None:
+        armed["mark_done"] = marked
     return armed
 
 
-CANON_QUEUE_BASENAME = "roadmap-epics.queue.yaml"
-CANON_MD_BASENAME = "roadmap-epics.md"
+CANON_QUEUE_BASENAME = "queue.yaml"
+CANON_MD_BASENAME = "roadmap-epics.md"  # deprecated; never written by default
 
+ROLE_ROADMAP_DIRS: dict[str, str] = {
+    "back": "memory-bank/back/roadmap",
+    "front": "memory-bank/front/roadmap",
+    "integration": "memory-bank/integration/roadmap",
+}
+
+# Legacy plan-dir (slug sources during migration)
 ROLE_PLAN_DIRS: dict[str, str] = {
     "back": "memory-bank/back/plan",
     "front": "memory-bank/front/plan",
@@ -585,57 +855,105 @@ ROLE_PLAN_DIRS: dict[str, str] = {
 
 def canon_queue_rel(role: str = "back") -> str:
     role_key = str(role or "back").strip().lower()
-    base = ROLE_PLAN_DIRS.get(role_key) or ROLE_PLAN_DIRS["back"]
+    base = ROLE_ROADMAP_DIRS.get(role_key) or ROLE_ROADMAP_DIRS["back"]
     return f"{base}/{CANON_QUEUE_BASENAME}"
 
 
 def canon_md_rel(role: str = "back") -> str:
+    """Deprecated md mirror path (not written). Kept for API compat."""
     role_key = str(role or "back").strip().lower()
-    base = ROLE_PLAN_DIRS.get(role_key) or ROLE_PLAN_DIRS["back"]
+    base = ROLE_ROADMAP_DIRS.get(role_key) or ROLE_ROADMAP_DIRS["back"]
     return f"{base}/{CANON_MD_BASENAME}"
 
 
 def is_source_queue_name(name: str) -> bool:
-    if name == CANON_QUEUE_BASENAME:
+    if name in {CANON_QUEUE_BASENAME, "roadmap-epics.queue.yaml"}:
         return False
-    return name.startswith("roadmap-") and name.endswith("-epics.queue.yaml")
+    if name.endswith(".queue.yaml") and name.startswith("roadmap-"):
+        return True
+    if name.endswith(".yaml") and not name.startswith(".") and name != CANON_QUEUE_BASENAME:
+        # batches/<slug>.yaml under roadmap/
+        return True
+    return False
 
 
 def discover_source_queues(cwd: str | Path, role: str = "back") -> list[Path]:
+    """Discover optional batch/legacy sources (migration + rare ops).
+
+    Prefer ``roadmap/batches/*.yaml``; also scan legacy ``plan/roadmap-*-epics.queue.yaml``.
+    Canon ``roadmap/queue.yaml`` is never a source.
+    """
     role_key = str(role or "back").strip().lower()
+    root = Path(cwd)
+    found: list[Path] = []
+
+    road_rel = ROLE_ROADMAP_DIRS.get(role_key)
+    if road_rel:
+        batches = root / road_rel / "batches"
+        if batches.is_dir():
+            for p in batches.iterdir():
+                if p.is_file() and p.suffix in {".yaml", ".yml"} and p.name != CANON_QUEUE_BASENAME:
+                    found.append(p)
+        archive = root / road_rel / "archive"
+        # archive is provenance only — do not re-merge unless batches empty and no canon
+        _ = archive
+
     plan_rel = ROLE_PLAN_DIRS.get(role_key)
-    if not plan_rel:
-        return []
-    plan_dir = Path(cwd) / plan_rel
-    if not plan_dir.is_dir():
-        return []
-    found = [
-        p
-        for p in plan_dir.iterdir()
-        if p.is_file() and is_source_queue_name(p.name)
-    ]
+    if plan_rel:
+        plan_dir = root / plan_rel
+        if plan_dir.is_dir():
+            for p in plan_dir.iterdir():
+                if (
+                    p.is_file()
+                    and p.name.startswith("roadmap-")
+                    and p.name.endswith("-epics.queue.yaml")
+                    and p.name != "roadmap-epics.queue.yaml"
+                ):
+                    found.append(p)
+
     return sorted(found, key=lambda p: (p.stat().st_mtime_ns, p.name))
 
 
 def _dump_queue_yaml(
     *,
     role: str,
-    roadmap_rel: str,
     queue: list[dict[str, Any]],
+    done: list[dict[str, Any]] | None = None,
+    batches: dict[str, Any] | None = None,
+    roadmap_rel: str | None = None,
 ) -> str:
-    lines = [
-        f"version: {QUEUE_VERSION}",
-        f"role: {role}",
-        f"roadmap: {roadmap_rel}",
-        "queue:",
-    ]
+    """Serialize roadmap-queue/v2 (yaml-only SoT)."""
+    _ = roadmap_rel
+    doc: dict[str, Any] = {
+        "version": QUEUE_VERSION,
+        "role": role,
+        "queue": [],
+        "done": [],
+    }
     for item in queue:
-        deps = item.get("deps") or []
-        deps_s = "[" + ", ".join(str(d) for d in deps) + "]"
-        lines.append(f"  - id: {item['id']}")
-        lines.append(f"    plan: {item['plan']}")
-        lines.append(f"    deps: {deps_s}")
-    return "\n".join(lines) + "\n"
+        row: dict[str, Any] = {
+            "id": item["id"],
+            "epic_id": item.get("epic_id") or plan_stem_from_name(item.get("plan") or ""),
+            "plan": item.get("plan")
+            or f"plan-{item.get('epic_id') or item['id']}.md",
+            "deps": list(item.get("deps") or []),
+        }
+        if item.get("batch"):
+            row["batch"] = item["batch"]
+        doc["queue"].append(row)
+    for item in done or []:
+        row = {
+            "id": item["id"],
+            "epic_id": item.get("epic_id") or plan_stem_from_name(item.get("plan") or ""),
+        }
+        if item.get("plan"):
+            row["plan"] = item["plan"]
+        if item.get("batch"):
+            row["batch"] = item["batch"]
+        doc["done"].append(row)
+    if batches:
+        doc["batches"] = batches
+    return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
 
 
 def _render_merged_roadmap_md(
@@ -646,44 +964,33 @@ def _render_merged_roadmap_md(
     skipped_done: list[str],
     queue_rel: str,
 ) -> str:
+    """Deprecated — md mirrors are no longer generated. Kept for dry-run preview."""
     role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(
         role, role.upper()
     )
-    qname = Path(queue_rel).name
+    qname = Path(queue_rel).as_posix()
     rows = []
     for i, item in enumerate(queue, start=1):
         deps = item.get("deps") or []
         deps_s = ", ".join(deps) if deps else "—"
         rows.append(
-            f"| {i} | {item['id']} | [{item['plan']}]({item['plan']}) | {deps_s} |"
+            f"| {i} | {item['id']} | {item.get('epic_id') or item.get('plan')} | {deps_s} |"
         )
-    src_lines = "\n".join(f"- `{s}`" for s in sources) if sources else "- (нет slug-источников)"
+    src_lines = "\n".join(f"- `{s}`" for s in sources) if sources else "- (inline batches only)"
     done_lines = (
         "\n".join(f"- `{d}`" for d in skipped_done) if skipped_done else "- (нет)"
     )
     return (
-        f"# Roadmap: active epics (merged canon)\n\n"
+        f"# Roadmap (deprecated md mirror)\n\n"
         f"**Роль:** {role_u}\n"
-        f"**Назначение:** единая очередь для loop (`EPIC_CHAIN_ROADMAP` / `roadmap-advance`).\n"
-        f"**Machine queue:** [`{qname}`]({qname})\n"
-        f"**Команда:** `{role_u} ROADMAP MERGE`\n\n"
-        f"Slug-roadmap (`roadmap-<slug>-epics.*`) — источники; этот файл — канон.\n\n"
-        f"---\n\n"
-        f"## Источники\n\n"
-        f"{src_lines}\n\n"
-        f"## Пропущены (done)\n\n"
-        f"{done_lines}\n\n"
-        f"## Очередь\n\n"
-        f"| # | ID | План | Hard deps |\n"
-        f"|---|----|------|-----------|\n"
+        f"**Machine SoT:** `{qname}`\n\n"
+        f"## Sources\n\n{src_lines}\n\n"
+        f"## Done\n\n{done_lines}\n\n"
+        f"## Queue\n\n"
+        f"| # | ID | epic_id | Hard deps |\n"
+        f"|---|----|---------|-----------|\n"
         + "\n".join(rows)
-        + "\n\n"
-        f"## Handoff\n\n"
-        f"- Loop читает **только** `{qname}` (default path).\n"
-        f"- `{role_u} PLAN` **сам** вызывает `roadmap-merge` в той же сессии "
-        f"(не отдельный next `{role_u} ROADMAP MERGE`).\n"
-        f"- Next: `{role_u} DECOMPOSE` первого id из queue.\n"
-        f"- Ручной `{role_u} ROADMAP MERGE` — только если канон устарел без PLAN.\n"
+        + "\n"
     )
 
 
@@ -724,22 +1031,40 @@ def _topo_merge_order(
     return {"ok": True, "order": ordered}
 
 
+def _batch_slug_from_source(path: Path) -> str | None:
+    name = path.name
+    if name.endswith("-epics.queue.yaml") and name.startswith("roadmap-"):
+        return name[len("roadmap-") : -len("-epics.queue.yaml")]
+    if name.endswith(".yaml"):
+        return name[: -len(".yaml")]
+    if name.endswith(".yml"):
+        return name[: -len(".yml")]
+    return None
+
+
 def roadmap_merge(
     cwd: str | Path,
     *,
     role: str = "back",
     dry_run: bool = False,
-    write_md: bool = True,
+    write_md: bool = False,
+    archive_sources: bool = True,
 ) -> dict[str, Any]:
-    """Merge slug roadmap queues into loop canon roadmap-epics.queue.yaml."""
+    """Reconcile roadmap SoT: ``memory-bank/<role>/roadmap/queue.yaml``.
+
+    Merges optional batch/legacy sources into one v2 file (queue + done + batches).
+    Does **not** write md by default. Legacy plan/ slug queues are archived under
+    ``roadmap/archive/`` after successful write.
+    """
     root = Path(cwd)
     role_key = str(role or "back").strip().lower()
-    if role_key not in ROLE_PLAN_DIRS:
+    if role_key not in ROLE_ROADMAP_DIRS:
         return {
             "ok": False,
             "error": "roadmap_merge_bad_role",
             "reason": f"unsupported role: {role_key!r}",
         }
+    road_rel = ROLE_ROADMAP_DIRS[role_key]
     plan_rel = ROLE_PLAN_DIRS[role_key]
     queue_rel = canon_queue_rel(role_key)
     md_rel = canon_md_rel(role_key)
@@ -750,17 +1075,27 @@ def roadmap_merge(
     preferred: list[str] = []
     conflicts: list[dict[str, Any]] = []
     source_rels: list[str] = []
+    batches_meta: dict[str, Any] = {}
+    prior_done: list[dict[str, Any]] = []
 
     existing = parse_roadmap_queue(root, queue_rel=queue_rel)
+    if not existing.get("ok"):
+        # try legacy canon under plan/
+        legacy_rel = f"{plan_rel}/roadmap-epics.queue.yaml"
+        existing = parse_roadmap_queue(root, queue_rel=legacy_rel)
     if existing.get("ok"):
+        batches_meta = dict(existing.get("batches") or {})
+        prior_done = list(existing.get("done") or [])
         for item in existing["queue"]:
             eid = item["id"]
             by_id[eid] = {
                 "id": eid,
                 "plan": item["plan"],
+                "epic_id": item.get("epic_id") or plan_stem_from_name(item["plan"]),
                 "deps": list(item.get("deps") or []),
+                "batch": item.get("batch"),
             }
-            source_of[eid] = queue_rel
+            source_of[eid] = existing["path"]
             preferred.append(eid)
 
     for src in sources:
@@ -769,6 +1104,7 @@ def roadmap_merge(
         except ValueError:
             rel = str(src)
         source_rels.append(rel)
+        batch_slug = _batch_slug_from_source(src)
         parsed = parse_roadmap_queue(root, queue_rel=rel)
         if not parsed.get("ok"):
             return {
@@ -786,13 +1122,17 @@ def roadmap_merge(
                 ),
                 "path": rel,
             }
+        if batch_slug and batch_slug not in batches_meta:
+            batches_meta[batch_slug] = {"source": rel}
         for item in parsed["queue"]:
             eid = item["id"]
             plan = item["plan"]
+            epic_fs = item.get("epic_id") or plan_stem_from_name(plan)
             deps = list(item.get("deps") or [])
+            batch = item.get("batch") or batch_slug
             if eid in by_id:
                 prev = by_id[eid]
-                if prev["plan"] != plan:
+                if prev["plan"] != plan and plan_stem_from_name(prev["plan"]) != epic_fs:
                     conflicts.append(
                         {
                             "id": eid,
@@ -806,8 +1146,16 @@ def roadmap_merge(
                     if d and d not in merged_deps:
                         merged_deps.append(d)
                 prev["deps"] = merged_deps
+                if batch and not prev.get("batch"):
+                    prev["batch"] = batch
             else:
-                by_id[eid] = {"id": eid, "plan": plan, "deps": deps}
+                by_id[eid] = {
+                    "id": eid,
+                    "plan": plan,
+                    "epic_id": epic_fs,
+                    "deps": deps,
+                    "batch": batch,
+                }
                 source_of[eid] = rel
             if eid not in preferred:
                 preferred.append(eid)
@@ -825,15 +1173,27 @@ def roadmap_merge(
             "ok": False,
             "error": "roadmap_merge_empty",
             "reason": (
-                f"no source queues under {plan_rel} and no existing {queue_rel}"
+                f"no sources under {road_rel}/batches or {plan_rel} "
+                f"and no existing {queue_rel}"
             ),
         }
 
     skipped_done: list[str] = []
     active: dict[str, dict[str, Any]] = {}
+    done_rows: dict[str, dict[str, Any]] = {}
+    for row in prior_done:
+        done_rows[row["id"]] = row
+
     for eid, item in by_id.items():
         if is_epic_done(root, role_key, eid):
             skipped_done.append(eid)
+            done_rows[eid] = {
+                "id": eid,
+                "plan": item["plan"],
+                "epic_id": item.get("epic_id"),
+                "deps": [],
+                "batch": item.get("batch"),
+            }
             continue
         active[eid] = item
 
@@ -859,7 +1219,7 @@ def roadmap_merge(
             "sources": source_rels,
         }
 
-    done_set = set(skipped_done)
+    done_set = set(done_rows) | set(skipped_done)
     unknown_deps: list[dict[str, str]] = []
     for eid, item in active.items():
         norm: list[str] = []
@@ -887,12 +1247,25 @@ def roadmap_merge(
         {
             "id": eid,
             "plan": active[eid]["plan"],
+            "epic_id": active[eid].get("epic_id")
+            or plan_stem_from_name(active[eid]["plan"]),
             "deps": list(active[eid].get("deps") or []),
+            **(
+                {"batch": active[eid]["batch"]}
+                if active[eid].get("batch")
+                else {}
+            ),
         }
         for eid in topo["order"]
     ]
+    done_list = [done_rows[k] for k in sorted(done_rows.keys())]
 
-    body = _dump_queue_yaml(role=role_key, roadmap_rel=md_rel, queue=ordered)
+    body = _dump_queue_yaml(
+        role=role_key,
+        queue=ordered,
+        done=done_list,
+        batches=batches_meta,
+    )
     md_body = _render_merged_roadmap_md(
         role=role_key,
         queue=ordered,
@@ -908,9 +1281,12 @@ def roadmap_merge(
         "sources": source_rels,
         "skipped_done": skipped_done,
         "queue": ordered,
+        "done": done_list,
+        "batches": batches_meta,
         "ids": [x["id"] for x in ordered],
         "dry_run": bool(dry_run),
         "written": False,
+        "md_written": False,
     }
     if dry_run:
         out["queue_yaml"] = body
@@ -924,6 +1300,112 @@ def roadmap_merge(
     if write_md:
         atomic_write_text(root / md_rel, md_body)
         out["md_written"] = True
-    else:
-        out["md_written"] = False
+
+    if archive_sources and source_rels:
+        arch = root / road_rel / "archive"
+        arch.mkdir(parents=True, exist_ok=True)
+        archived: list[str] = []
+        for rel in source_rels:
+            src = root / rel
+            if not src.is_file():
+                continue
+            # also move sibling .md if present
+            dest = arch / src.name
+            if dest.exists():
+                dest.unlink()
+            src.rename(dest)
+            archived.append(dest.relative_to(root).as_posix())
+            if rel.endswith(".queue.yaml"):
+                md_sib = Path(str(root / rel[: -len(".queue.yaml")]) + ".md")
+                if md_sib.is_file():
+                    md_dest = arch / md_sib.name
+                    if md_dest.exists():
+                        md_dest.unlink()
+                    md_sib.rename(md_dest)
+                    archived.append(md_dest.relative_to(root).as_posix())
+        out["archived"] = archived
+
+    # remove legacy canon under plan/ if we wrote new path
+    legacy_q = root / plan_rel / "roadmap-epics.queue.yaml"
+    legacy_md = root / plan_rel / "roadmap-epics.md"
+    removed: list[str] = []
+    if legacy_q.is_file() and legacy_q.resolve() != qpath.resolve():
+        legacy_q.unlink()
+        removed.append(legacy_q.relative_to(root).as_posix())
+    if legacy_md.is_file():
+        legacy_md.unlink()
+        removed.append(legacy_md.relative_to(root).as_posix())
+    if removed:
+        out["removed_legacy"] = removed
     return out
+
+
+def roadmap_upsert_batch(
+    cwd: str | Path,
+    *,
+    role: str,
+    batch: str,
+    items: list[dict[str, Any]],
+    title: str | None = None,
+    note: str | None = None,
+) -> dict[str, Any]:
+    """PLAN helper: append/update epics in single ``roadmap/queue.yaml`` (no slug files)."""
+    root = Path(cwd)
+    role_key = str(role or "back").strip().lower()
+    queue_rel = canon_queue_rel(role_key)
+    parsed = parse_roadmap_queue(root, queue_rel=queue_rel)
+    by_id: dict[str, dict[str, Any]] = {}
+    preferred: list[str] = []
+    done_rows: list[dict[str, Any]] = []
+    batches: dict[str, Any] = {}
+    if parsed.get("ok"):
+        for item in parsed["queue"]:
+            by_id[item["id"]] = dict(item)
+            preferred.append(item["id"])
+        done_rows = list(parsed.get("done") or [])
+        batches = dict(parsed.get("batches") or {})
+    batch_key = str(batch or "").strip()
+    if not batch_key:
+        return {"ok": False, "error": "roadmap_upsert_bad_batch", "reason": "batch required"}
+    meta: dict[str, Any] = dict(batches.get(batch_key) or {})
+    if title:
+        meta["title"] = title
+    if note:
+        meta["note"] = note
+    batches[batch_key] = meta
+
+    for raw in items:
+        norm = _normalize_queue_item(raw if isinstance(raw, dict) else {}, index=0, path=queue_rel)
+        if not norm.get("ok"):
+            return norm
+        row = {
+            "id": norm["id"],
+            "plan": norm["plan"],
+            "epic_id": norm["epic_id"],
+            "deps": norm["deps"],
+            "batch": batch_key,
+        }
+        by_id[row["id"]] = row
+        if row["id"] not in preferred:
+            preferred.append(row["id"])
+
+    # drop done ids from active
+    done_ids = {d["id"] for d in done_rows}
+    active = {k: v for k, v in by_id.items() if k not in done_ids}
+    topo = _topo_merge_order(active, preferred)
+    if not topo.get("ok"):
+        return topo
+    ordered = [active[eid] for eid in topo["order"]]
+    body = _dump_queue_yaml(
+        role=role_key, queue=ordered, done=done_rows, batches=batches
+    )
+    qpath = root / queue_rel
+    qpath.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(qpath, body)
+    return {
+        "ok": True,
+        "path": queue_rel,
+        "ids": [x["id"] for x in ordered],
+        "batch": batch_key,
+        "written": True,
+    }

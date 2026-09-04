@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-048-workflow-pack-registry
+title: "_lib.py WorkflowConfig + context_loop.prepare_session workflow_pack field"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Интегрировать resolved pack в harness runtime:
+  1. `harness/hooks/_lib.py` — добавить `WorkflowConfig` (или поле в `RuntimeConfig`)
+     с resolved pack, без frozenset hardcoded pack ids.
+  2. `loop/context_loop.py` — `prepare_session()` эмитирует `workflow_pack` + pack metadata
+     в prepare dict (FR-007, FR-008, AC+3, SC-003, SC-004).
+
+plan_contract:
+  fr_ids: [FR-007, FR-008, SC-003, SC-004]
+  nouns:
+    - WorkflowConfig (harness/_lib.py — new class или extend RuntimeConfig)
+    - prepare_session workflow_pack field
+    - context_loop.py
+    - harness/hooks/_lib.py
+  layout_paths:
+    - harness/hooks/_lib.py
+    - loop/context_loop.py
+  ac_quotes:
+    - "FR-007: WorkflowConfig with resolved pack — no dual frozenset of pack ids"
+    - "FR-008: prepare_session emits workflow_pack + pack metadata in prepare dict"
+    - "AC+3: prepare_session JSON contains workflow_pack field"
+    - "SC-003: prepare_session includes workflow_pack (pytest context_loop)"
+    - "SC-004: No hardcoded pack frozenset in _lib (rg audit)"
+    - "AC−1: No hardcoded pack id frozenset in Python after epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:83-93"
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:120-134"
+
+context:
+  consumes:
+    - loop/workflow/resolve.py  # full_resolve from s04
+    - harness/hooks/_lib.py    # existing RuntimeConfig
+    - loop/context_loop.py     # existing prepare_session
+  produces:
+    - harness/hooks/_lib.py    # extended with WorkflowConfig
+    - loop/context_loop.py     # extended prepare_session
+  plan_refs:
+    - "plan.md FR-007, FR-008, SC-003, SC-004"
+    - "plan.md AC− list: no frozenset"
+  files:
+    - harness/hooks/_lib.py
+    - loop/context_loop.py
+
+as_built:
+  - "harness/hooks/_lib.py RuntimeConfig — pydantic v2; поля runtime env; _ROLE_PREFIXES frozenset здесь (цель: не трогать — frozenset остаётся для role validation, но pack frozenset не добавляем)"
+  - "loop/context_loop.py prepare_session — уже возвращает dict; нужно добавить workflow_pack ключ"
+
+delta:
+  - "EDIT harness/hooks/_lib.py: добавить WorkflowConfig dataclass/pydantic с полем pack: PackResolveResult; resolve вызывается при init; используется в контексте loop prepare"
+  - "EDIT loop/context_loop.py: prepare_session() вызывает full_resolve(cwd) → добавляет workflow_pack=result.model_dump() в returned dict"
+  - "НЕ добавлять frozenset pack ids в _lib.py (AC−1)"
+
+deletes:
+  - "Implicit 'single software domain' prose в session-start (harness/claude/rules/ или .cursor/rules/ — rg audit в s08)"
+
+out_of_scope:
+  - pytest tests (s07)
+  - purge hardcoded doc assumptions (s08)
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: harness/hooks/_lib.py не содержит frozenset из pack id строк (только role prefixes допустимы)
+    verify: "rg 'frozenset' harness/hooks/_lib.py | rg -v 'ROLE_PREFIXES' || echo 'no pack frozenset found - ok'"
+  - id: cp2
+    criterion: prepare_session эмитирует ключ workflow_pack
+    verify: "rg 'workflow_pack' loop/context_loop.py"
+  - id: cp3
+    criterion: Runtime/WorkflowConfig wire без pack-id frozenset
+    verify: "rg 'WorkflowConfig|full_resolve' harness/hooks/_lib.py loop/context_loop.py"
+
+verify: []
+tdd:
+  - "rg 'workflow_pack' loop/context_loop.py"

@@ -1,19 +1,17 @@
 ---
-schema: loop-handoff/v1 # handoff
+schema: loop-handoff/v1
 role: BACK
-mode: DECOMPOSE
+mode: IMPLEMENT
 epic_id: T-HUB-048-workflow-pack-registry
-step_id: DECOMPOSE
+step_id: s07
 ---
 
 ## load_now
-1. [plan.md](back/plan/T-HUB-048-workflow-pack-registry/md/plan.md) — source plan/artifact for pre-implement phase DECOMPOSE.
-2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (канон sNN-<slug>.yaml).
-3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
-4. Target decompose: [`decompose-T-HUB-048-workflow-pack-registry/index.yaml`](back/plan/decompose-T-HUB-048-workflow-pack-registry/index.yaml) (index.md + index.yaml + sNN-<slug>.yaml).
+1. [back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s07-pytest-suite.yaml](back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s07-pytest-suite.yaml) — текущий work shard (BACK IMPLEMENT s07).
+2. [back/plan/T-HUB-048-workflow-pack-registry/yaml/decompose-index.yaml](back/plan/T-HUB-048-workflow-pack-registry/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
 
-## Handoff DECOMPOSE
-- # epic_id: T-HUB-048-workflow-pack-registry — NOT short queue id
-- **Эпик:** T-HUB-048-workflow-pack-registry (BACK).
-- **Режим/шаг:** `BACK DECOMPOSE`.
-- **Дальше:** выполнить `BACK DECOMPOSE`.
+## Handoff BACK IMPLEMENT — s07
+- **Дальше:** продолжить с work shard `memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s07-pytest-suite.yaml`
+- **Эпик:** T-HUB-048-workflow-pack-registry.
+- **Режим/шаг:** следующий BACK IMPLEMENT `s07`.
+- **Сделано:** предыдущий шаг отмечен `completed`.

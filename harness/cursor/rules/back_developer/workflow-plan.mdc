@@ -39,19 +39,18 @@ alwaysApply: false
     - **Eng pass:** Eng review spine — situational `architecture-patterns` при L2+.
     - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
 3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3–4 → situational brainstorming / architecture-patterns
-3a. **Multi-epic path:** epic cut → `roadmap-<slug>-epics.md` + **`roadmap-<slug>-epics.queue.yaml`** → полный `plan-<epic_id>-*.md` на **каждый** эпик. Шаблоны: @.cursor/templates/roadmap-epics.md · @.cursor/templates/roadmap-queue.yaml
+3a. **Multi-epic path:** epic cut → апсерт `roadmap/queue.yaml` (`batches.<slug>`) → полный `plan/<epic_id>/` на **каждый** эпик. Шаблон: @.cursor/templates/roadmap-queue.yaml  
 4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` и `yaml/plan.yaml` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** roadmap.md + `.queue.yaml` + N планов
-7. `tasks.md` append-only (ссылка на план / roadmap+queue+эпики; без sNN-чеклиста)
-7a1. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
+6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` и `yaml/plan.yaml` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** апсерт `back/roadmap/queue.yaml` + N plan dirs
+7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
+7a1. **Queue reconcile (same session, multi-epic):** после апсерта queue опционально:
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
-    Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**, покажи JSON, не FINISH.
-    Нет slug-источников и нет canon → skip CLI (single-epic без queue). Иначе merge **всегда**.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + canon roadmap + first/sole plan
+    Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**. Single-epic без queue → skip.
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + `roadmap/queue.yaml` + first/sole plan
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом CRITICAL без resolve/defer-list.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
-8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из **canon**; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
+8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
 **После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
 

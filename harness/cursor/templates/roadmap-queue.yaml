@@ -1,25 +1,37 @@
-# Machine queue for multi-epic roadmap (loop + PLAN)
-# Path (slug source): memory-bank/<role>/plan/roadmap-<slug>-epics.queue.yaml
-# Sibling human doc: roadmap-<slug>-epics.md
-# Loop canon after MERGE: roadmap-epics.queue.yaml (@.cursor/rules/shared/workflow-roadmap-merge.mdc)
-# REQUIRED when PLAN produces ≥2 epics (@.cursor/rules/shared/workflow-plan-multi-epic.mdc)
+# Roadmap SoT (yaml-only) — memory-bank/<role>/roadmap/queue.yaml
+# MULTI-EPIC PLAN: дописать queue[] + batches.<slug> в этот файл
+#   (или CLI roadmap_upsert_batch / roadmap-merge). НЕ создавать roadmap-*-epics.md.
+# Loop: roadmap-advance читает только queue.yaml.
 #
 # Roles:
-#   BACK  → memory-bank/back/plan/…         role: back
-#   FRONT → memory-bank/front/plan/…        role: front
-#   INTEG → memory-bank/integration/plan/…  role: integration
+#   BACK  → memory-bank/back/roadmap/queue.yaml         role: back
+#   FRONT → memory-bank/front/roadmap/queue.yaml        role: front
+#   INTEG → memory-bank/integration/roadmap/queue.yaml  role: integration
 #
-# version: roadmap-queue/v1
-# roadmap: relative path to human roadmap md
-# queue[].id / plan / deps (hard only)
+# version: roadmap-queue/v2
+# queue[].id — short queue id (T-HUB-048)
+# queue[].epic_id — FS slug (T-HUB-048-workflow-pack-registry) → plan/<epic_id>/
+# queue[].plan — legacy ярлык plan-….md (optional if epic_id set)
+# queue[].deps — hard deps only
+# queue[].batch — метка PLAN-батча (вместо отдельного slug-файла)
+# done[] — завершённые (roadmap-merge переносит из queue)
+# batches.<slug> — краткий provenance (title/note)
 
-version: roadmap-queue/v1
+version: roadmap-queue/v2
 role: back
-roadmap: memory-bank/back/plan/roadmap-<slug>-epics.md
 queue:
   - id: T-xxx
+    epic_id: T-xxx-<slug>
     plan: plan-T-xxx-<slug>.md
     deps: []
+    batch: <batch-slug>
   - id: T-yyy
+    epic_id: T-yyy-<slug>
     plan: plan-T-yyy-<slug>.md
     deps: [T-xxx]
+    batch: <batch-slug>
+done: []
+batches:
+  <batch-slug>:
+    title: "<human title>"
+    note: "детали — в plan/<epic_id>/md/plan.md"

@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-048-workflow-pack-registry
+title: "loop/tests/test_workflow_pack_registry.py — TM-001..006 matrix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Написать pytest-файл `loop/tests/test_workflow_pack_registry.py`, покрывающий
+  всю test matrix плана: TM-001 (unknown pack), TM-002 (default pack paths),
+  TM-003 (corrupt yaml), TM-004 (prepare_session field), TM-005 (project.yaml override),
+  TM-006 (zero regression smoke). AC+4 green (FR-010, SC-001..004).
+
+plan_contract:
+  fr_ids: [FR-010, SC-001, SC-002, SC-003, SC-004]
+  nouns:
+    - loop/tests/test_workflow_pack_registry.py
+    - pytest fixtures: tmp_hub_root, corrupt_registry_yaml, project_yaml_override
+    - test ids: unknown_pack, default_pack, corrupt_registry, prepare_workflow_pack, project_override
+    - TM-001..006
+  layout_paths:
+    - loop/tests/test_workflow_pack_registry.py
+  ac_quotes:
+    - "AC+4: pytest loop/tests/test_workflow_pack_registry.py -q green"
+    - "TM-001: pytest -k unknown_pack → PASS (AC+1, FR-004)"
+    - "TM-002: pytest -k default_pack → PASS (AC+2, FR-009)"
+    - "TM-003: pytest -k corrupt_registry → PASS (FR-003)"
+    - "TM-004: pytest -k prepare_workflow_pack → PASS (FR-008)"
+    - "TM-005: pytest -k project_override → PASS (FR-005)"
+    - "TM-006: existing epic transition tests → no regression (AC+5)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:240-260"
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:94-135"
+
+context:
+  consumes:
+    - loop/workflow/schemas.py    # s02
+    - loop/workflow/registry.py   # s03
+    - loop/workflow/resolve.py    # s04
+    - loop/context_loop.py        # s06
+    - loop/workflow_pack_registry.yaml  # s01
+  produces:
+    - loop/tests/test_workflow_pack_registry.py
+  plan_refs:
+    - "plan.md §QA consumes Test matrix TM-001..006"
+    - "plan.md AC+ 1-5"
+  files:
+    - loop/tests/test_workflow_pack_registry.py
+
+as_built:
+  - "loop/tests/ — директория уже существует с другими тестами"
+  - "conftest.py — если есть, shared fixtures"
+
+delta:
+  - "ADD loop/tests/test_workflow_pack_registry.py"
+  - "test_unknown_pack: WORKFLOW_PACK=unknown → full_resolve → ok=False, invalid_workflow_pack in codes"
+  - "test_default_pack: unset env → resolve → ok=True, pack_id=dev-hub-software, paths exist"
+  - "test_corrupt_registry: tmp file с malformed yaml → load_registry → ValidationError"
+  - "test_prepare_workflow_pack: prepare_session(cwd) → dict with workflow_pack key + pack_id=dev-hub-software"
+  - "test_project_override: tmp project.yaml с workflow_pack=unknown → resolve → ok=False"
+  - "test_zero_regression: import existing transition/arm_phase test fixture → assert no AttributeError from pack changes"
+
+deletes: []
+
+out_of_scope:
+  - e2e loop.sh smoke (QA phase)
+  - full_suite (QA)
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: TM-001 + TM-002 проходят
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -k 'unknown_pack or default_pack' -q --tb=short"
+  - id: cp2
+    criterion: TM-003 + TM-004 проходят
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -k 'corrupt_registry or prepare_workflow_pack' -q --tb=short"
+  - id: cp3
+    criterion: Весь suite зелёный
+    verify: ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short"
+  - id: cp4
+    criterion: Zero regression - existing tests не сломаны
+    verify: ".venv/bin/pytest harness/hooks/tests/ -q --tb=line -x"
+
+verify: []
+tdd:
+  - ".venv/bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short"

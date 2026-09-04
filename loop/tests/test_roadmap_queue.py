@@ -48,23 +48,28 @@ def _roadmap_md() -> str:
     )
 
 
-def _write_queue(cwd: Path, queue_yaml: str, *, name: str = "roadmap-epics") -> None:
-    _write(cwd, f"memory-bank/back/plan/{name}.md", _roadmap_md())
-    _write(cwd, f"memory-bank/back/plan/{name}.queue.yaml", queue_yaml.strip() + "\n")
+def _write_queue(cwd: Path, queue_yaml: str, *, name: str = "queue") -> None:
+    """Write canon queue.yaml or a batches/<name>.yaml source."""
+    body = queue_yaml.strip() + "\n"
+    if name in {"queue", "roadmap-epics"}:
+        _write(cwd, "memory-bank/back/roadmap/queue.yaml", body)
+        return
+    _write(cwd, f"memory-bank/back/roadmap/batches/{name}.yaml", body)
 
 
 def _minimal_queue(*ids: str) -> str:
     lines = [
-        "version: roadmap-queue/v1",
+        "version: roadmap-queue/v2",
         "role: back",
-        "roadmap: memory-bank/back/plan/roadmap-epics.md",
         "queue:",
     ]
     for i, epic_id in enumerate(ids):
         deps = f"[{ids[i - 1]}]" if i else "[]"
         lines.append(f"  - id: {epic_id}")
+        lines.append(f"    epic_id: {epic_id}")
         lines.append(f"    plan: plan-{epic_id}.md")
         lines.append(f"    deps: {deps}")
+    lines.append("done: []")
     return "\n".join(lines)
 
 
@@ -115,7 +120,7 @@ def test_parse_missing_queue_fail_closed(tmp_path: Path) -> None:
 
 def test_parse_bad_version_fail_closed(tmp_path: Path) -> None:
     rq = _load_rq()
-    bad = _minimal_queue("T-A").replace("roadmap-queue/v1", "roadmap-queue/v0")
+    bad = _minimal_queue("T-A").replace("roadmap-queue/v2", "roadmap-queue/v0")
     _write_queue(tmp_path, bad)
     out = rq.parse_roadmap_queue(tmp_path)
     assert out["ok"] is False
@@ -450,7 +455,8 @@ def test_repo_roadmap_queue_parses() -> None:
     rq = _load_rq()
     out = rq.parse_roadmap_queue(ROOT)
     assert out["ok"] is True
-    assert out["path"].endswith("roadmap-epics.queue.yaml")
+    assert out["path"].endswith("roadmap/queue.yaml")
+    assert out["version"] == "roadmap-queue/v2"
     assert len(out["queue"]) >= 1
     assert all(item.get("id") and item.get("plan") for item in out["queue"])
 
@@ -460,6 +466,14 @@ def test_queue_rel_from_roadmap() -> None:
     assert (
         rq.queue_rel_from_roadmap("memory-bank/back/plan/roadmap-foo-epics.md")
         == "memory-bank/back/plan/roadmap-foo-epics.queue.yaml"
+    )
+    assert (
+        rq.queue_rel_from_roadmap("memory-bank/back/roadmap")
+        == "memory-bank/back/roadmap/queue.yaml"
+    )
+    assert (
+        rq.queue_rel_from_roadmap("memory-bank/back/roadmap/queue.yaml")
+        == "memory-bank/back/roadmap/queue.yaml"
     )
 
 
@@ -487,37 +501,33 @@ def test_build_prompt_phase_done_forbids_archive(tmp_path: Path, monkeypatch) ->
 
 def test_roadmap_merge_sources_into_canon(tmp_path: Path) -> None:
     rq = _load_rq()
-    _write_queue(
-        tmp_path,
-        _minimal_queue("T-A", "T-B").replace(
-            "roadmap-epics.md", "roadmap-alpha-epics.md"
-        ),
-        name="roadmap-alpha-epics",
-    )
+    _write_queue(tmp_path, _minimal_queue("T-A", "T-B"), name="alpha")
     _write(
         tmp_path,
-        "memory-bank/back/plan/roadmap-beta-epics.queue.yaml",
-        "version: roadmap-queue/v1\n"
+        "memory-bank/back/roadmap/batches/beta.yaml",
+        "version: roadmap-queue/v2\n"
         "role: back\n"
-        "roadmap: memory-bank/back/plan/roadmap-beta-epics.md\n"
         "queue:\n"
         "  - id: T-C\n"
+        "    epic_id: T-C\n"
         "    plan: plan-T-C.md\n"
-        "    deps: [T-B]\n",
+        "    deps: [T-B]\n"
+        "done: []\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/roadmap-beta-epics.md", "# beta\n")
     for plan in ("plan-T-A.md", "plan-T-B.md", "plan-T-C.md"):
         _write(tmp_path, f"memory-bank/back/plan/{plan}", f"# {plan}\n")
 
-    out = rq.roadmap_merge(tmp_path, role="back")
+    out = rq.roadmap_merge(tmp_path, role="back", write_md=False)
     assert out["ok"] is True
     assert out["ids"] == ["T-A", "T-B", "T-C"]
     assert out["written"] is True
+    assert out["md_written"] is False
     parsed = rq.parse_roadmap_queue(tmp_path)
     assert parsed["ok"] is True
     assert [x["id"] for x in parsed["queue"]] == ["T-A", "T-B", "T-C"]
     assert parsed["queue"][2]["deps"] == ["T-B"]
-    assert (tmp_path / "memory-bank/back/plan/roadmap-epics.md").is_file()
+    assert (tmp_path / "memory-bank/back/roadmap/queue.yaml").is_file()
+    assert not (tmp_path / "memory-bank/back/roadmap/roadmap-epics.md").is_file()
 
 
 def test_roadmap_merge_skips_done_and_preserves_canon_order(tmp_path: Path) -> None:
@@ -526,19 +536,20 @@ def test_roadmap_merge_skips_done_and_preserves_canon_order(tmp_path: Path) -> N
     _mark_epic_done(tmp_path, "T-OLD")
     _write(
         tmp_path,
-        "memory-bank/back/plan/roadmap-extra-epics.queue.yaml",
-        "version: roadmap-queue/v1\n"
+        "memory-bank/back/roadmap/batches/extra.yaml",
+        "version: roadmap-queue/v2\n"
         "role: back\n"
-        "roadmap: memory-bank/back/plan/roadmap-extra-epics.md\n"
         "queue:\n"
         "  - id: T-NEW\n"
+        "    epic_id: T-NEW\n"
         "    plan: plan-T-NEW.md\n"
         "    deps: []\n"
         "  - id: T-X\n"
+        "    epic_id: T-X\n"
         "    plan: plan-T-X.md\n"
-        "    deps: []\n",
+        "    deps: []\n"
+        "done: []\n",
     )
-    _write(tmp_path, "memory-bank/back/plan/roadmap-extra-epics.md", "# extra\n")
     for plan in ("plan-T-OLD.md", "plan-T-NEW.md", "plan-T-X.md"):
         _write(tmp_path, f"memory-bank/back/plan/{plan}", f"# {plan}\n")
 
@@ -552,25 +563,27 @@ def test_roadmap_merge_plan_conflict_fail_closed(tmp_path: Path) -> None:
     rq = _load_rq()
     _write(
         tmp_path,
-        "memory-bank/back/plan/roadmap-a-epics.queue.yaml",
-        "version: roadmap-queue/v1\n"
+        "memory-bank/back/roadmap/batches/a.yaml",
+        "version: roadmap-queue/v2\n"
         "role: back\n"
-        "roadmap: memory-bank/back/plan/roadmap-a-epics.md\n"
         "queue:\n"
         "  - id: T-1\n"
+        "    epic_id: T-1-a\n"
         "    plan: plan-T-1-a.md\n"
-        "    deps: []\n",
+        "    deps: []\n"
+        "done: []\n",
     )
     _write(
         tmp_path,
-        "memory-bank/back/plan/roadmap-b-epics.queue.yaml",
-        "version: roadmap-queue/v1\n"
+        "memory-bank/back/roadmap/batches/b.yaml",
+        "version: roadmap-queue/v2\n"
         "role: back\n"
-        "roadmap: memory-bank/back/plan/roadmap-b-epics.md\n"
         "queue:\n"
         "  - id: T-1\n"
+        "    epic_id: T-1-b\n"
         "    plan: plan-T-1-b.md\n"
-        "    deps: []\n",
+        "    deps: []\n"
+        "done: []\n",
     )
     out = rq.roadmap_merge(tmp_path, role="back")
     assert out["ok"] is False
@@ -581,6 +594,30 @@ def test_is_source_queue_name() -> None:
     rq = _load_rq()
     assert rq.is_source_queue_name("roadmap-foo-epics.queue.yaml") is True
     assert rq.is_source_queue_name("roadmap-epics.queue.yaml") is False
+    assert rq.is_source_queue_name("queue.yaml") is False
+
+
+def test_roadmap_upsert_batch(tmp_path: Path) -> None:
+    rq = _load_rq()
+    out = rq.roadmap_upsert_batch(
+        tmp_path,
+        role="back",
+        batch="pack",
+        title="Pack",
+        items=[
+            {"id": "T-A", "epic_id": "T-A-one", "plan": "plan-T-A-one.md", "deps": []},
+            {
+                "id": "T-B",
+                "epic_id": "T-B-two",
+                "plan": "plan-T-B-two.md",
+                "deps": ["T-A"],
+            },
+        ],
+    )
+    assert out["ok"] is True
+    parsed = rq.parse_roadmap_queue(tmp_path)
+    assert [x["id"] for x in parsed["queue"]] == ["T-A", "T-B"]
+    assert parsed["batches"]["pack"]["title"] == "Pack"
 
 
 def test_plan_stem_from_name() -> None:
@@ -633,13 +670,14 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
     rq = _load_rq()
     _write_queue(
         tmp_path,
-        "version: roadmap-queue/v1\n"
+        "version: roadmap-queue/v2\n"
         "role: back\n"
-        "roadmap: memory-bank/back/plan/roadmap-epics.md\n"
         "queue:\n"
         "  - id: T-HUB-023\n"
+        "    epic_id: T-HUB-023-hooks-llm-fallbacks\n"
         "    plan: plan-T-HUB-023-hooks-llm-fallbacks.md\n"
-        "    deps: []\n",
+        "    deps: []\n"
+        "done: []\n",
     )
     _write(
         tmp_path,
@@ -691,3 +729,63 @@ def test_resolve_entry_accepts_layout_v2_plan(tmp_path: Path) -> None:
     assert entry.get("stop") != "NEED_HUMAN: no_plan for T-HUB-048"
     assert entry["phase"] == "DECOMPOSE"
     assert entry["epic"] == "T-HUB-048-workflow-pack-registry"
+
+
+def test_mark_queue_epic_done_moves_row(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write_queue(
+        tmp_path,
+        "version: roadmap-queue/v2\n"
+        "role: back\n"
+        "queue:\n"
+        "- id: T-HUB-048\n"
+        "  epic_id: T-HUB-048-workflow-pack-registry\n"
+        "  plan: plan-T-HUB-048-workflow-pack-registry.md\n"
+        "  deps: []\n"
+        "  batch: workflow-pack-framework\n"
+        "- id: T-HUB-049\n"
+        "  epic_id: T-HUB-049-workflow-pack-phase-router\n"
+        "  plan: plan-T-HUB-049-workflow-pack-phase-router.md\n"
+        "  deps: [T-HUB-048]\n"
+        "  batch: workflow-pack-framework\n"
+        "done: []\n",
+    )
+    out = rq.mark_queue_epic_done(
+        tmp_path, "T-HUB-048-workflow-pack-registry", role="back"
+    )
+    assert out["ok"] is True
+    assert out["written"] is True
+    assert out["id"] == "T-HUB-048"
+    parsed = rq.parse_roadmap_queue(tmp_path)
+    assert [x["id"] for x in parsed["queue"]] == ["T-HUB-049"]
+    assert [x["id"] for x in parsed["done"]] == ["T-HUB-048"]
+    again = rq.mark_queue_epic_done(tmp_path, "T-HUB-048", role="back")
+    assert again["ok"] is True
+    assert again["already_done"] is True
+    assert again["written"] is False
+
+
+def test_roadmap_advance_persists_done_before_next(tmp_path: Path) -> None:
+    rq = _load_rq()
+    _write_queue(tmp_path, _minimal_queue("T-A", "T-B"))
+    for epic in ("T-A", "T-B"):
+        _write(tmp_path, f"memory-bank/back/plan/plan-{epic}.md", f"# {epic}\n")
+    _mark_epic_done(tmp_path, "T-A")
+    if HOOKS not in sys.path:
+        sys.path.insert(0, HOOKS)
+    from epic import save_epic_state, default_state
+
+    st = default_state()
+    st["active"] = True
+    st["armed_epic"] = "T-A"
+    st["armed_role"] = "back"
+    st["role"] = "back"
+    save_epic_state(tmp_path, st)
+    out = rq.roadmap_advance(tmp_path)
+    assert out.get("ok") is True
+    assert out.get("mark_done", {}).get("written") is True or out.get("mark_done", {}).get(
+        "already_done"
+    )
+    parsed = rq.parse_roadmap_queue(tmp_path)
+    assert "T-A" in [x["id"] for x in parsed["done"]]
+    assert "T-A" not in [x["id"] for x in parsed["queue"]]

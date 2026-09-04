@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-048-workflow-pack-registry
+title: workflow_pack_registry.yaml + workflow-pack-registry/v1 schema doc
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать канонический YAML-реестр паков `loop/workflow_pack_registry.yaml` со схемой
+  `workflow-pack-registry/v1`, содержащий строку `dev-hub-software` с реальными путями.
+  Плюс machine-readable JSON Schema `loop/schemas/workflow-pack-registry-schema.json`
+  как документация полей (FR-001, FR-002, FR-009).
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-009, US-005]
+  nouns:
+    - workflow_pack_registry.yaml
+    - dev-hub-software pack row
+    - workflow-pack-registry/v1 schema
+    - fields: id, roles, command_prefixes, phase_registry, memory_bank, rules_root, artifact_layout
+  layout_paths:
+    - loop/workflow_pack_registry.yaml
+    - loop/schemas/workflow-pack-registry-schema.json
+    - workflows/README.md
+  ac_quotes:
+    - "workflow_pack_registry.yaml lists dev-hub-software with paths matching as-built (AC+1)"
+    - "Pack row fields: id, roles[], command_prefixes[], phase_registry (path), memory_bank, rules_root, artifact_layout enum (FR-002)"
+    - "US-005: workflow-pack-manifest/v1 JSON schema + template in workflows/"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:83-155"
+
+context:
+  consumes:
+    - loop/schemas/phase_registry.yaml  # existing — referenced as default phase_registry path
+  produces:
+    - loop/workflow_pack_registry.yaml
+    - loop/schemas/workflow-pack-registry-schema.json
+    - workflows/README.md
+  plan_refs:
+    - "plan.md §workflow_pack_registry.yaml (draft) — exact yaml shape"
+    - "plan.md FR-001, FR-002, FR-009"
+  files:
+    - loop/workflow_pack_registry.yaml
+    - loop/schemas/workflow-pack-registry-schema.json
+    - workflows/README.md
+
+as_built:
+  - "loop/schemas/phase_registry.yaml — exists; будет referenced как default path внутри dev-hub-software row"
+  - "memory-bank/ dir — exists; referenced as memory_bank value"
+  - ".cursor/rules — exists; referenced as rules_root value"
+
+delta:
+  - "ADD loop/workflow_pack_registry.yaml (schema: workflow-pack-registry/v1, default: dev-hub-software, packs section)"
+  - "ADD loop/schemas/workflow-pack-registry-schema.json (JSON Schema documenting pack row fields)"
+  - "ADD workflows/README.md (pack authoring pointer + link to schema)"
+
+deletes: []
+
+out_of_scope:
+  - pydantic loading (s02-s03)
+  - CLI (s05)
+  - custom registry path from project.yaml (cut_list per plan appetite)
+
+skills:
+  code_surface: api
+  impl:
+    - writing-plans
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: loop/workflow_pack_registry.yaml существует и содержит ключ default + packs.dev-hub-software
+    verify: "rg 'dev-hub-software' loop/workflow_pack_registry.yaml"
+  - id: cp2
+    criterion: schema поле = workflow-pack-registry/v1
+    verify: "rg 'schema: workflow-pack-registry/v1' loop/workflow_pack_registry.yaml"
+  - id: cp3
+    criterion: phase_registry path в реестре указывает на реально существующий файл
+    verify: "rg 'phase_registry: loop/schemas/phase_registry.yaml' loop/workflow_pack_registry.yaml && rg 'schema:' loop/schemas/phase_registry.yaml"
+  - id: cp4
+    criterion: JSON Schema файл валиден (parse без ошибок)
+    verify: "rg 'workflow-pack-registry' loop/schemas/workflow-pack-registry-schema.json && rg '\"properties\"|properties' loop/schemas/workflow-pack-registry-schema.json"
+
+verify: []
+tdd: []

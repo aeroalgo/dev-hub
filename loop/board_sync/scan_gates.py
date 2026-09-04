@@ -168,9 +168,25 @@ def scan_gates(
 
 def _queued_epics(project: Path, role: str) -> set[str]:
     """Return epic ids declared by the role's roadmap queue."""
-    plan_dir = project / "memory-bank" / role / "plan"
     result: set[str] = set()
-    for queue in plan_dir.glob("roadmap-*.queue.yaml") if plan_dir.is_dir() else []:
+    candidates = [
+        project / "memory-bank" / role / "roadmap" / "queue.yaml",
+        project / "memory-bank" / role / "plan" / "roadmap-epics.queue.yaml",
+    ]
+    road = project / "memory-bank" / role / "roadmap"
+    if road.is_dir():
+        for queue in road.glob("**/*.yaml"):
+            if "archive" in queue.parts:
+                continue
+            candidates.append(queue)
+    plan_dir = project / "memory-bank" / role / "plan"
+    if plan_dir.is_dir():
+        candidates.extend(plan_dir.glob("roadmap-*.queue.yaml"))
+    seen: set[Path] = set()
+    for queue in candidates:
+        if not queue.is_file() or queue in seen:
+            continue
+        seen.add(queue)
         try:
             payload = yaml.safe_load(queue.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, yaml.YAMLError):
@@ -191,6 +207,7 @@ def _known_epics(project: Path, role: str, steps: list[WorkItem]) -> set[str]:
         for item in steps
         if item.workspace_ref.path == project and item.role == role
     }
+    result.update(_queued_epics(project, role))
     plan_dir = project / "memory-bank" / role / "plan"
     if plan_dir.is_dir():
         result.update(
@@ -198,19 +215,11 @@ def _known_epics(project: Path, role: str, steps: list[WorkItem]) -> set[str]:
             for path in plan_dir.glob("decompose-*")
             if path.is_dir()
         )
-        for queue in plan_dir.glob("roadmap-*.queue.yaml"):
-            try:
-                payload = yaml.safe_load(queue.read_text(encoding="utf-8"))
-            except (OSError, UnicodeError, yaml.YAMLError):
-                continue
-            if isinstance(payload, dict) and isinstance(payload.get("queue"), list):
-                result.update(
-                    entry["id"]
-                    for entry in payload["queue"]
-                    if isinstance(entry, dict) and isinstance(entry.get("id"), str)
-                )
+        for child in plan_dir.iterdir():
+            if child.is_dir() and not child.name.startswith("."):
+                if (child / "md" / "plan.md").is_file() or (child / "yaml").is_dir():
+                    result.add(child.name)
     return result
-
 
 def _find_decompose(project: Path, role: str, epic_id: str) -> Path | None:
     import sys

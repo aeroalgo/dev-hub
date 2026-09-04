@@ -11,7 +11,7 @@ alwaysApply: false
 **Процесс**:
 1. `OK FRONT ROADMAP MERGE`
 1a. Gates + Алгоритм
-2. Inventory `memory-bank/front/plan/roadmap-*-epics.queue.yaml`
+2. Inventory `memory-bank/front/roadmap/queue.yaml`
 3. CLI `--role front`
 4. Conflict → halt
 5. `tasks.md` + `activeContext.md`

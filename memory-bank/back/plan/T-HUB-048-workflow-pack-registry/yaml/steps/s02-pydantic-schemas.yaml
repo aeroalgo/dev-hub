@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-048-workflow-pack-registry
+title: "loop/workflow/schemas.py — WorkflowPack, WorkflowPackRegistry, PackResolveResult"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать pydantic v2 модели в `loop/workflow/schemas.py`: WorkflowPack (pack row),
+  WorkflowPackRegistry (весь реестр), PackResolveResult (итог resolve).
+  Модели должны fail-closed — ValidationError на malformed yaml (FR-003, US-003, TM-001/003).
+
+plan_contract:
+  fr_ids: [FR-003, US-003]
+  nouns:
+    - WorkflowPack (pydantic model)
+    - WorkflowPackRegistry (pydantic model)
+    - PackResolveResult (pydantic model)
+    - loop/workflow/__init__.py
+    - loop/workflow/schemas.py
+  layout_paths:
+    - loop/workflow/__init__.py
+    - loop/workflow/schemas.py
+  ac_quotes:
+    - "US-003: corrupt yaml → ValidationError → diagnostic code"
+    - "FR-003: pydantic WorkflowPack, WorkflowPackRegistry, PackResolveResult"
+    - "AC−3: No dual resolver (regex + pydantic)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:83-92"
+
+context:
+  consumes:
+    - loop/workflow_pack_registry.yaml  # schema reference from s01
+    - loop/schemas/workflow-pack-registry-schema.json  # field list from s01
+  produces:
+    - loop/workflow/__init__.py
+    - loop/workflow/schemas.py
+  plan_refs:
+    - "plan.md FR-003 — exact model names"
+    - "plan.md Failure matrix TM-001 (malformed yaml → ValidationError)"
+  files:
+    - loop/workflow/__init__.py
+    - loop/workflow/schemas.py
+
+as_built:
+  - "loop/runtime/registry.py pattern (T-HUB-042) — аналог; зеркалим структуру (pydantic v2)"
+  - "harness/hooks/_lib.py RuntimeConfig — pydantic v2 в проекте уже используется"
+
+delta:
+  - "ADD loop/workflow/__init__.py (пустой package init)"
+  - "ADD loop/workflow/schemas.py: WorkflowPack, WorkflowPackRegistry, PackResolveResult"
+  - "WorkflowPack fields: id(str), roles(list[str]), command_prefixes(list[str]), phase_registry(str), memory_bank(str), rules_root(str), artifact_layout(str), description(str default='')"
+  - "WorkflowPackRegistry fields: schema_(str alias='schema'), default(str), packs(dict[str,WorkflowPack])"
+  - "PackResolveResult fields: ok(bool), pack_id(str), pack(WorkflowPack|None), diagnostic_codes(list[str] default=[])"
+
+deletes: []
+
+out_of_scope:
+  - registry loader (s03)
+  - path validation logic (s04)
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: loop/workflow/schemas.py содержит WorkflowPack / WorkflowPackRegistry / PackResolveResult
+    verify: "rg 'class WorkflowPack\\b' loop/workflow/schemas.py && rg 'class WorkflowPackRegistry\\b' loop/workflow/schemas.py && rg 'class PackResolveResult\\b' loop/workflow/schemas.py"
+  - id: cp2
+    criterion: WorkflowPackRegistry.model_validate присутствует (fail-closed путь)
+    verify: "rg 'model_validate' loop/workflow/schemas.py"
+  - id: cp3
+    criterion: PackResolveResult несёт diagnostic_codes / invalid_workflow_pack контракт
+    verify: "rg 'diagnostic_codes|invalid_workflow_pack' loop/workflow/schemas.py"
+
+verify: []
+tdd:
+  - "rg 'class WorkflowPack|class WorkflowPackRegistry|class PackResolveResult' loop/workflow/schemas.py"

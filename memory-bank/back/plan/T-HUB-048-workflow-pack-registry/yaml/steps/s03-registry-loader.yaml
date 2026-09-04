@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-048-workflow-pack-registry
+title: "loop/workflow/registry.py — load_registry + get_pack + resolve_workflow_pack"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать три публичные функции в `loop/workflow/registry.py`:
+  `load_registry(hub_root)` — yaml → WorkflowPackRegistry (pydantic validate),
+  `get_pack(registry, id)` — None если не найден,
+  `resolve_workflow_pack(cwd)` — env WORKFLOW_PACK → project.yaml workflow_pack → default.
+  Loader кешируется (functools.cache или аналог) (FR-004, US-001, US-002).
+
+plan_contract:
+  fr_ids: [FR-004, FR-005, US-001, US-002]
+  nouns:
+    - load_registry(hub_root) → WorkflowPackRegistry
+    - get_pack(registry, pack_id) → WorkflowPack | None
+    - resolve_workflow_pack(cwd) → PackResolveResult
+    - env WORKFLOW_PACK / EPIC_WORKFLOW_PACK alias
+    - project.yaml / .dev-hub/project.yaml field workflow_pack
+    - precedence: project.yaml > env > default
+  layout_paths:
+    - loop/workflow/registry.py
+  ac_quotes:
+    - "US-001: EPIC_WORKFLOW_PACK=foo → exit 2 + JSON invalid_workflow_pack"
+    - "US-002: unset env → resolve returns software pack; existing pytest green"
+    - "FR-005: project.yaml override; precedence: project > env > default"
+    - "AC−2: No silent fallback unknown pack → dev-hub-software"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:83-100"
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:157-195"
+
+context:
+  consumes:
+    - loop/workflow/schemas.py  # from s02
+    - loop/workflow_pack_registry.yaml  # from s01
+  produces:
+    - loop/workflow/registry.py
+  plan_refs:
+    - "plan.md PackResolve flow ASCII diagram"
+    - "plan.md FR-004, FR-005 + Assumptions (WORKFLOW_PACK alias)"
+  files:
+    - loop/workflow/registry.py
+
+as_built:
+  - "loop/runtime/registry.py — pattern reference: yaml load + pydantic validate + cache"
+  - "PROJECT_ROOT / hub_root resolution: уже используется в _lib.py"
+
+delta:
+  - "ADD loop/workflow/registry.py"
+  - "load_registry(hub_root: Path) → WorkflowPackRegistry: yaml.safe_load + WorkflowPackRegistry.model_validate + @cache"
+  - "get_pack(registry, pack_id: str) → WorkflowPack | None: registry.packs.get(pack_id)"
+  - "resolve_workflow_pack(cwd: Path) → PackResolveResult: read project.yaml workflow_pack → env WORKFLOW_PACK / EPIC_WORKFLOW_PACK → registry.default; get_pack → ok/fail"
+  - "fail-closed: unknown pack_id → PackResolveResult(ok=False, diagnostic_codes=['invalid_workflow_pack'])"
+
+deletes: []
+
+out_of_scope:
+  - path validation (s04)
+  - CLI exit 2 (s05)
+  - _lib wire (s06)
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: load_registry определён в registry.py
+    verify: "rg 'def load_registry' loop/workflow/registry.py"
+  - id: cp2
+    criterion: get_pack определён в registry.py
+    verify: "rg 'def get_pack' loop/workflow/registry.py"
+  - id: cp3
+    criterion: resolve_workflow_pack определён и читает WORKFLOW_PACK / EPIC_WORKFLOW_PACK
+    verify: "rg 'def resolve_workflow_pack' loop/workflow/registry.py && rg 'WORKFLOW_PACK|EPIC_WORKFLOW_PACK' loop/workflow/registry.py"
+  - id: cp4
+    criterion: fail-closed diagnostic invalid_workflow_pack присутствует
+    verify: "rg 'invalid_workflow_pack' loop/workflow/registry.py"
+
+verify: []
+tdd:
+  - "rg 'def load_registry|def get_pack|def resolve_workflow_pack' loop/workflow/registry.py"

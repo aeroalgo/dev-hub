@@ -3,8 +3,8 @@
 Каталог **`loop/`** — автоматизация ролей. `memory-bank/` — артефакты. The source of truth is `activeContext.md` plus the decompose index.
 
 **Канон переходов:** `memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
-**Очередь эпиков (loop canon):** `memory-bank/back/plan/roadmap-epics.queue.yaml` (sibling `.md`; loop не грузит md). Opt-in: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance`. Default `0` — stop / optional DAG fanout.  
-MULTI-EPIC PLAN пишет slug `roadmap-<slug>-epics.queue.yaml`; **`* PLAN` сам** вызывает CLI `context_loop.py roadmap-merge` в той же сессии. Ручной `BACK|FRONT|INTEG ROADMAP MERGE` — ops, если канон устарел без PLAN. Templates: roadmap-epics.md · roadmap-queue.yaml.  
+**Очередь эпиков (loop canon):** `memory-bank/back/roadmap/queue.yaml` (yaml-only). Opt-in: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance`. Default `0` — stop / optional DAG fanout.
+MULTI-EPIC PLAN дописывает `queue.yaml` (`batch` + `batches.<slug>`); **`* PLAN` не** плодит `plan/roadmap-*`. Ручной `BACK|FRONT|INTEG ROADMAP MERGE` — ops reconcile. Template: `roadmap-queue.yaml`.
 Для cross-epic journey runner использует runner-owned `loop/dag/*.yaml`: манифест `loop-dag/v2`, dependency-ready узлы выбираются последовательно и стабильно. `GAP_FANOUT` в текущем checkout запускается вручную через `./loop/loop.sh --phase GAP_FANOUT`; он не является автоматическим переходом `loop.sh`.  
 Следующий шаг и режим выбираются по activeContext; DAG только переключает эпики. Durable checkpoint cursor не принадлежит `state.json`: `state.json` — телеметрическая проекция checkpoint, а конфликт checkpoint/index останавливается fail-closed.  
 Runner владеет сессией, bounded timeout/retry и status evidence; агент владеет содержимым шага, Handoff и state mutation только через канонические артефакты.

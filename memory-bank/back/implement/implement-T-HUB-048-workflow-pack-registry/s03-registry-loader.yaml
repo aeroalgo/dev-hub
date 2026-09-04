@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-048-workflow-pack-registry
+title: s03 — loop/workflow/registry.py — load_registry + get_pack + resolve_workflow_pack
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s03-registry-loader.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery:
+- loop/workflow/schemas.py and loop/workflow_pack_registry.yaml available and validated.
+gaps:
+  status: none
+done:
+- Создан `loop/workflow/registry.py` с функциями `load_registry`, `get_pack`, `resolve_workflow_pack`.
+- '`load_registry(hub_root)` загружает YAML `workflow_pack_registry.yaml` и валидирует
+  через `WorkflowPackRegistry.model_validate`, кешируется через `lru_cache`.'
+- '`get_pack(registry, pack_id)` возвращает `WorkflowPack` или `None`.'
+- '`resolve_workflow_pack(cwd, hub_root)` реализует приоритет: project.yaml > WORKFLOW_PACK
+  / EPIC_WORKFLOW_PACK > default.'
+- 'Fail-closed поведение: неизвестный pack_id возвращает `PackResolveResult(ok=False,
+  diagnostic_codes=[''invalid_workflow_pack''])`.'
+files:
+- loop/workflow/registry.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py loop/tests/test_dsh_runtime_adapter.py
+  loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_dsh_dispatch.py -q --tb=line`
+  — 53 passed'
+- '`python3 -c ''from loop.workflow.registry import load_registry, get_pack, resolve_workflow_pack;
+  reg = load_registry(); assert get_pack(reg, "dev-hub-software") is not None; assert
+  resolve_workflow_pack().ok is True''` — PASS'
+integration_check:
+- loop/workflow/registry.py взаимодействует со схемами loop/workflow/schemas.py и
+  YAML loop/workflow_pack_registry.yaml.
+grep_control:
+- back: No secrets or sensitive tokens introduced. Fail-closed diagnostics match specification.
+  front: n/a
+verification_results:
+- cp1 PASS — load_registry определён в loop/workflow/registry.py
+- cp2 PASS — get_pack определён в loop/workflow/registry.py
+- cp3 PASS — resolve_workflow_pack определён и читает WORKFLOW_PACK / EPIC_WORKFLOW_PACK
+- cp4 PASS — fail-closed diagnostic invalid_workflow_pack присутствует
+checkpoints:
+- id: cp1
+  criterion: load_registry определён в registry.py
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: get_pack определён в registry.py
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: resolve_workflow_pack определён и читает WORKFLOW_PACK / EPIC_WORKFLOW_PACK
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp4
+  criterion: fail-closed diagnostic invalid_workflow_pack присутствует
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp4

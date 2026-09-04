@@ -33,7 +33,8 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
     (project / "memory-bank/back/plan/plan-T-DEMO.md").write_text(
         "# T-DEMO\n", encoding="utf-8"
     )
-    (project / "memory-bank/back/plan/roadmap-epics.queue.yaml").write_text(
+    (project / "memory-bank/back/roadmap").mkdir(parents=True, exist_ok=True)
+    (project / "memory-bank/back/roadmap/queue.yaml").write_text(
         yaml.safe_dump(
             {
                 "version": "roadmap-queue/v1",
@@ -46,7 +47,7 @@ def _dsh_home(tmp_path: Path, *, corrupt: bool = False) -> Path:
         encoding="utf-8",
     )
     if corrupt:
-        (project / "memory-bank/back/plan/roadmap-epics.queue.yaml").unlink()
+        (project / "memory-bank/back/roadmap/queue.yaml").unlink()
     registry = tmp_path / "dsh" / "storages" / "workspace.json"
     registry.parent.mkdir(parents=True)
     if corrupt:
@@ -150,7 +151,7 @@ def test_roadmap_selection_failure_is_nonzero(tmp_path: Path, capsys: pytest.Cap
         {**step, "status": "completed"} for step in payload["steps"]
     ]
     index.write_text(yaml.safe_dump(payload), encoding="utf-8")
-    (index.parent.parent / "roadmap-epics.queue.yaml").unlink()
+    (index.parent.parent.parent / "roadmap" / "queue.yaml").unlink()
 
     result = main(["sync", "--dsh-home", str(dsh_home)], client=FakeClient())
 

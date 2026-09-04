@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-048-workflow-pack-registry
+title: s02 — loop/workflow/schemas.py — WorkflowPack, WorkflowPackRegistry, PackResolveResult IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s02-pydantic-schemas.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/workflow/__init__.py
+- Реализованы Pydantic v2 модели в loop/workflow/schemas.py (WorkflowPack, WorkflowPackRegistry, PackResolveResult)
+- Настроена строгая fail-closed валидация (ConfigDict extra="forbid", literal schema version)
+files:
+- loop/workflow/__init__.py
+- loop/workflow/schemas.py
+deletes: []
+tests:
+- "`bin/pytest loop/tests/ -q --tb=line` — PASS"
+- "`python3 -c \"import yaml; from loop.workflow.schemas import WorkflowPackRegistry, PackResolveResult; reg = WorkflowPackRegistry.model_validate(yaml.safe_load(open('loop/workflow_pack_registry.yaml'))); res = PackResolveResult(ok=True, pack_id=reg.default, pack=reg.packs[reg.default])\"` — PASS"
+integration_check:
+- Pydantic v2 schemas match loop/workflow_pack_registry.yaml and loop/schemas/workflow-pack-registry-schema.json
+grep_control:
+- back: no regex dual parsing; strict pydantic v2 models
+checkpoints:
+- id: cp1
+  criterion: loop/workflow/schemas.py содержит WorkflowPack / WorkflowPackRegistry / PackResolveResult
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: WorkflowPackRegistry.model_validate присутствует (fail-closed путь)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: PackResolveResult несёт diagnostic_codes / invalid_workflow_pack контракт
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+verification_results:
+- cp1 PASS — rg 'class WorkflowPack\b' loop/workflow/schemas.py && rg 'class WorkflowPackRegistry\b' loop/workflow/schemas.py && rg 'class PackResolveResult\b' loop/workflow/schemas.py
+- cp2 PASS — WorkflowPackRegistry.model_validate validated with loop/workflow_pack_registry.yaml
+- cp3 PASS — PackResolveResult with diagnostic_codes=['invalid_workflow_pack'] verified
+resume_from: cp1

@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-048-workflow-pack-registry
+title: s05 — epic_resolve.py workflow resolve CLI subcommand IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s05-cli-workflow-resolve.yaml
+skills_used:
+- modern-python
+discovery:
+- 'harness/hooks/epic_resolve.py: добавлен subparser workflow -> resolve с аргументами
+  --pack и --json, вызывающий full_resolve.'
+gaps:
+  status: none
+done:
+- Добавлен subparser `workflow resolve` в harness/hooks/epic_resolve.py с поддержкой
+  `--pack`, `--cwd`, `--json`.
+- Реализован вызов `full_resolve(cwd=cwd, hub_root=hub)` и fail-closed exit 2 / exit
+  0 в зависимости от result.ok.
+files:
+- harness/hooks/epic_resolve.py
+deletes: []
+tests:
+- '`python3 harness/hooks/epic_resolve.py workflow resolve` -> ok=True, exit 0'
+- '`python3 harness/hooks/epic_resolve.py workflow resolve --pack unknown_pack` ->
+  ok=False, exit 2'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_workflow_pack_schemas.py loop/tests/test_workflow_pack_registry_unit.py
+  -q --tb=line` — PASS'
+integration_check:
+- Subparser `workflow resolve` интегрирован с `loop.workflow.resolve.full_resolve`.
+grep_control:
+- back: workflow resolve CLI registered and functional
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: CLI subparser workflow / resolve зарегистрирован
+  status: done
+  done_at: '2026-09-04T08:35:09Z'
+- id: cp2
+  criterion: fail-closed exit 2 на unknown pack
+  status: done
+  done_at: '2026-09-04T08:35:15Z'
+- id: cp3
+  criterion: handler вызывает full_resolve / отдаёт pack_id
+  status: done
+  done_at: '2026-09-04T08:35:20Z'
+resume_from: cp1

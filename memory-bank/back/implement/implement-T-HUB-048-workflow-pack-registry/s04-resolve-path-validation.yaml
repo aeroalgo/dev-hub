@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-048-workflow-pack-registry
+title: s04 — loop/workflow/resolve.py — path validation + fail-closed exit 2 guard
+  IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s04-resolve-path-validation.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/workflow/resolve.py с функциями validate_pack_paths и full_resolve.
+- Реализована валидация путей phase_registry (is_file) и memory_bank (is_dir) относительно
+  cwd / PROJECT_ROOT.
+- При отсутствии файлов/директорий добавляется диагностический код pack_path_missing
+  и устанавливается ok=False.
+files:
+- loop/workflow/resolve.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_dsh_profile_mapping.py -q --tb=line`
+  — 26 passed'
+- '`python3 -c "from loop.workflow.resolve import full_resolve, validate_pack_paths;
+  res = full_resolve(); assert res.ok"` — PASS'
+- '`python3 -c "from loop.workflow.resolve import validate_pack_paths; from loop.workflow.schemas
+  import PackResolveResult, WorkflowPack; p = WorkflowPack(id=\"test\", roles=[],
+  command_prefixes=[], phase_registry=\"nonexistent.yaml\", memory_bank=\"nonexistent_dir\",
+  rules_root=\"\"); res = validate_pack_paths(PackResolveResult(ok=True, pack_id=\"test\",
+  pack=p)); assert not res.ok; assert \"pack_path_missing\" in res.diagnostic_codes"`
+  — PASS'
+integration_check:
+- full_resolve объединяет resolve_workflow_pack и validate_pack_paths, возвращая PackResolveResult.
+grep_control: []
+verification_results:
+- cp1 PASS — full_resolve определён в resolve.py
+- cp2 PASS — pack_path_missing diagnostic присутствует
+- cp3 PASS — validate_pack_paths определён
+checkpoints:
+- id: cp1
+  criterion: full_resolve определён в resolve.py
+  status: done
+- id: cp2
+  criterion: pack_path_missing diagnostic присутствует
+  status: done
+- id: cp3
+  criterion: validate_pack_paths определён
+  status: done
+resume_from: cp1

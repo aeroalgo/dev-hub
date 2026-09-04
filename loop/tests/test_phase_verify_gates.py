@@ -68,6 +68,30 @@ def test_tm005_contract_verify_decompose() -> None:
     prompt_no_cov = "Verify decompose stage s01 s02 s03 s04 s05"
     missing = _lib.missing_contract_sections("verify-decompose", prompt_no_cov)
     assert "Requirements coverage" in missing or "Stages coverage" in missing
+    assert "PLAN EXCERPT" in missing
+
+
+def test_tm005b_allow_read_stops_before_decompose_sections() -> None:
+    prompt = (
+        "## ALLOW READ\n"
+        "- memory-bank/back/plan/E/md/plan.md\n"
+        "- memory-bank/back/plan/E/md/decompose-index.md\n"
+        "## PLAN EXCERPT\n"
+        "mentions memory-bank/back/plan/E/yaml/steps/s07.yaml "
+        "and memory-bank/back/plan/E/yaml/steps/s08.yaml\n"
+        "## Requirements coverage\n"
+        "also memory-bank/back/plan/E/yaml/steps/s02.yaml\n"
+        "## Stages coverage\nok\n"
+        "## Outcome map\nok\n"
+        "## Replacement cleanup\nok\n"
+    )
+    files = _lib.allow_read_files(prompt)
+    assert files == [
+        "memory-bank/back/plan/E/md/plan.md",
+        "memory-bank/back/plan/E/md/decompose-index.md",
+    ]
+    assert _lib.allow_read_violations(prompt) == []
+    assert _lib.missing_contract_sections("verify-decompose", prompt) == []
 
 
 def test_tm006_decompose_gate_blocks(tmp_path: Path) -> None:

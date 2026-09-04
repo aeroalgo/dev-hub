@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-048-workflow-pack-registry
+title: s06 — _lib.py WorkflowConfig + context_loop.prepare_session workflow_pack field IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s06-lib-prepare-session.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery:
+- "Oriented via shard, harness/hooks/_lib.py and loop/context_loop.py."
+gaps:
+  status: none
+done:
+- Added WorkflowConfig dataclass to harness/hooks/_lib.py wrapping PackResolveResult via WorkflowConfig.resolve(cwd, hub_root) with full_resolve.
+- Extended loop/context_loop.py prepare_session to resolve workflow pack and emit workflow_pack field with pack metadata in returned dict.
+- Kept harness/hooks/_lib.py free of any hardcoded pack id frozensets (AC-1, SC-004).
+files:
+- harness/hooks/_lib.py
+- loop/context_loop.py
+deletes: []
+tests:
+- "`timeout 300s .venv/bin/pytest loop/tests/test_context_loop.py loop/tests/test_dsh_profile_mapping.py -q`"
+- "`timeout 300s python3 -c 'from pathlib import Path; from loop.context_loop import prepare_session; res = prepare_session(Path.cwd()); assert res[\"workflow_pack\"][\"ok\"] is True'`"
+integration_check:
+- "prepare_session emits workflow_pack containing pack_id, pack details, and diagnostic_codes."
+- "WorkflowConfig in _lib.py wires cleanly to full_resolve without introducing any hardcoded pack id frozensets."
+grep_control:
+- back: "rg -n 'WorkflowConfig|workflow_pack' harness/hooks/_lib.py loop/context_loop.py"
+  front: "rg -n 'workflow_pack' loop/context_loop.py"
+verification_results:
+- "cp1: PASS — harness/hooks/_lib.py has no pack frozenset."
+- "cp2: PASS — prepare_session emits workflow_pack field."
+- "cp3: PASS — Runtime/WorkflowConfig wire passes without pack-id frozenset."
+checkpoints:
+- id: cp1
+  criterion: harness/hooks/_lib.py не содержит frozenset из pack id строк (только role prefixes допустимы)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: prepare_session эмитирует ключ workflow_pack
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: Runtime/WorkflowConfig wire без pack-id frozenset
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp1

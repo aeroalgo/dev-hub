@@ -41,19 +41,16 @@ Gap опционален — не блокирует PLAN. Не читать as 
 3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` (+ `yaml/plan.yaml`) по @.cursor/templates/integration-plan.md
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица по wire-осям / продуктам / journeys)  
-    - `memory-bank/integration/plan/roadmap-<slug>-epics.md` (шаблон @.cursor/templates/roadmap-epics.md)  
-    - **`memory-bank/integration/plan/roadmap-<slug>-epics.queue.yaml`** (`role: integration`, шаблон @.cursor/templates/roadmap-queue.yaml) — оба обязательны  
-    - полный `plan-<epic_id>-*.md` на **каждый** эпик (§0.0; portal-scope `wc -l` ≥ 400 **на каждый**; Rollout без status-checkboxes)  
+    - апсерт `memory-bank/integration/roadmap/queue.yaml` (шаблон @.cursor/templates/roadmap-queue.yaml)  
+    - полный `plan/<epic_id>/md/plan.md` на **каждый** эпик (§0.0; portal-scope `wc -l` ≥ 400 **на каждый**)  
+    - **FORBIDDEN** `plan/roadmap-*-epics.*`  
 4. `contracts/` не обязателен
-5. `tasks.md` append-only (roadmap + queue + каждый эпик при multi-epic)
-5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `.queue.yaml` → FAIL
-5b. **Canon merge (HARD, same session):** после записи plan/roadmap **сам** запусти CLI — не отдельный чат и не next=`ROADMAP MERGE`:
-    `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
-    (нет `loop/` в продукте → `dev-hub/loop/context_loop.py`).
-    `ok: false` → halt PLAN. Нет slug-источников и нет canon → skip CLI. Иначе merge **всегда**.
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact по slug (если был) + canon md + queue + первый plan
+5. `tasks.md` append-only (queue + каждый эпик при multi-epic)
+5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `roadmap/queue.yaml` → FAIL
+5b. **Queue reconcile (optional):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
-7. Next: **INTEG DECOMPOSE** `queue[0]` из **canon** → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
+7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 
 **После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN
 

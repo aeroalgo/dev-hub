@@ -1,0 +1,45 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-048-workflow-pack-registry
+source_md: index.md
+status_canon: index.yaml
+steps:
+- id: s01
+  file: s01-registry-yaml-schema.yaml
+  title: workflow_pack_registry.yaml + workflow-pack-registry/v1 schema doc
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-pydantic-schemas.yaml
+  title: loop/workflow/schemas.py — WorkflowPack, WorkflowPackRegistry, PackResolveResult
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-registry-loader.yaml
+  title: loop/workflow/registry.py — load_registry + get_pack + resolve_workflow_pack
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-resolve-path-validation.yaml
+  title: loop/workflow/resolve.py — path validation + fail-closed exit 2
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-cli-workflow-resolve.yaml
+  title: epic_resolve.py workflow resolve CLI subcommand
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-lib-prepare-session.yaml
+  title: _lib.py WorkflowConfig + context_loop.prepare_session workflow_pack field
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-pytest-suite.yaml
+  title: loop/tests/test_workflow_pack_registry.py — TM-001..006 matrix
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s08
+  file: s08-purge-hardcoded-domain-assumptions.yaml
+  title: Purge implicit single-domain assumptions (rg audit + doc + instruction rewrites)
+  next_phase: BACK IMPLEMENT
+  status: pending

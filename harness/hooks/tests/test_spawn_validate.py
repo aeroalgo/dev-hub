@@ -164,3 +164,98 @@ def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> 
     deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
 
     assert deny_reasons == []
+
+
+def _decompose_setup(tmp_path: Path) -> None:
+    _agent(
+        tmp_path,
+        "verify-decompose.md",
+        "name: verify-decompose\noverlay:\n  managed: true\n  mode: gate\n  default_loop: true\n  requires_model: true\n  verdict: pass-fail",
+    )
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_VERIFY_DECOMPOSE_MODEL=haiku\n", encoding="utf-8"
+    )
+
+
+def _decompose_prompt(*, plan_excerpt: bool = True, extra_allow: str = "") -> str:
+    excerpt = (
+        "## PLAN EXCERPT\n"
+        "FR-001 registry schema; FR-002 pack row; fail-closed resolve.\n"
+        if plan_excerpt
+        else ""
+    )
+    return (
+        "## ALLOW READ\n"
+        "- memory-bank/back/plan/T-HUB-048/md/plan.md\n"
+        "- memory-bank/back/plan/T-HUB-048/md/decompose-index.md\n"
+        "- memory-bank/back/plan/T-HUB-048/yaml/decompose-index.yaml\n"
+        "- memory-bank/back/plan/T-HUB-048/yaml/steps/s01-a.yaml\n"
+        "- memory-bank/back/plan/T-HUB-048/yaml/steps/s03-b.yaml\n"
+        "- memory-bank/back/plan/T-HUB-048/yaml/steps/s06-c.yaml\n"
+        f"{extra_allow}"
+        f"{excerpt}"
+        "## Requirements coverage\n"
+        "FR-001..010 covered by s01-s08; also mentions "
+        "memory-bank/back/plan/T-HUB-048/yaml/steps/s07-x.yaml and "
+        "memory-bank/back/plan/T-HUB-048/yaml/steps/s08-y.yaml\n"
+        "## Stages coverage\n"
+        "PackResolve / Failure matrix mapped.\n"
+        "## Outcome map\n"
+        "fail-closed / domain-agnostic outcomes mapped.\n"
+        "## Replacement cleanup\n"
+        "Kind I / Kind C in-epic deletes.\n"
+    )
+
+
+def test_verify_decompose_allow_read_ignores_later_section_paths(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Regression: coverage/excerpt paths must not inflate ALLOW READ count."""
+    import _lib as lib
+
+    _decompose_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    prompt = _decompose_prompt()
+    files = lib.allow_read_files(prompt)
+    assert len(files) == 6
+    assert lib.allow_read_violations(prompt) == []
+
+    tool_input = {"subagent_type": "verify-decompose", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    assert deny_reasons == []
+
+
+def test_verify_decompose_missing_plan_excerpt_denied(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _decompose_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    tool_input = {
+        "subagent_type": "verify-decompose",
+        "prompt": _decompose_prompt(plan_excerpt=False),
+    }
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    assert any(
+        "prompt_incomplete" in reason and "PLAN EXCERPT" in reason
+        for reason in deny_reasons
+    )
+
+
+def test_verify_decompose_allow_read_over_limit_still_denied(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _decompose_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    extra = "".join(
+        f"- memory-bank/back/plan/T-HUB-048/yaml/steps/s{i:02d}-extra.yaml\n"
+        for i in range(7, 13)
+    )
+    tool_input = {
+        "subagent_type": "verify-decompose",
+        "prompt": _decompose_prompt(extra_allow=extra),
+    }
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    assert any("ALLOW READ" in reason and "> 10" in reason for reason in deny_reasons)

@@ -8,7 +8,7 @@ alwaysApply: false
 2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
 3. Write `plan/<id>/md/plan.md` (+ `yaml/plan.yaml`): WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `#qa-consumes` ≥3 TM → Review readiness (no pending Required)
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — @.cursor/rules/shared/workflow-behavior-first.mdc §5
-4. Multi-epic? → roadmap.md + `.queue.yaml` + N plans → same-session `roadmap-merge --role back`
+4. Multi-epic? → апсерт `roadmap/queue.yaml` + N plans (без roadmap md)
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → full: @.cursor/rules/back_developer/workflow-plan.mdc  

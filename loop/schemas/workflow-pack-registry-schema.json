@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.dev-hub.local/workflow-pack-registry-v1.json",
+  "title": "WorkflowPackRegistry",
+  "description": "Registry of available workflow packs defining roles, phase registrations, and directory layouts.",
+  "type": "object",
+  "required": ["schema", "default", "packs"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "workflow-pack-registry/v1",
+      "description": "Schema version identifier for workflow pack registry."
+    },
+    "default": {
+      "type": "string",
+      "description": "Default pack ID to use when none is explicitly requested."
+    },
+    "packs": {
+      "type": "object",
+      "description": "Mapping of pack IDs to workflow pack definitions.",
+      "additionalProperties": {
+        "$ref": "#/$defs/WorkflowPack"
+      }
+    }
+  },
+  "$defs": {
+    "WorkflowPack": {
+      "type": "object",
+      "required": [
+        "id",
+        "roles",
+        "command_prefixes",
+        "phase_registry",
+        "memory_bank",
+        "rules_root",
+        "artifact_layout"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the workflow pack."
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of role identifiers supported by this pack."
+        },
+        "command_prefixes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of command prefixes corresponding to the roles (e.g. BACK, FRONT, INTEG)."
+        },
+        "phase_registry": {
+          "type": "string",
+          "description": "Relative path to the phase_registry.yaml file."
+        },
+        "memory_bank": {
+          "type": "string",
+          "description": "Relative directory path where the pack's memory bank is stored."
+        },
+        "rules_root": {
+          "type": "string",
+          "description": "Relative directory path to the cursor/claude rules root."
+        },
+        "artifact_layout": {
+          "type": "string",
+          "enum": ["software-epic-v1"],
+          "description": "Artifact layout structure convention."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the workflow pack."
+        }
+      }
+    }
+  }
+}

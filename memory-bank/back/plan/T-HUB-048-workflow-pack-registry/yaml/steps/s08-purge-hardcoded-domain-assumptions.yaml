@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-048-workflow-pack-registry
+title: Purge implicit single-domain assumptions (rg audit + doc + instruction rewrites)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Вытеснить implicit «single software domain» допущения из кодовой базы и документации:
+  1. Code (Kind A): `loop/context_loop.py` / сессионные скрипты — убрать hardcoded
+     domain strings если добавились.
+  2. Instruction surface (Kind I): session-start prose / harness rules / mainrule.mdc
+     — заменить явные «BACK/FRONT/INTEG only» упоминания на «configurable via pack».
+  3. Финальный rg audit: нет живых callers старых singleton-паттернов.
+  (SC-004, AC−4 — no pack-specific if/else in loop.sh).
+
+plan_contract:
+  fr_ids: [SC-004]
+  nouns:
+    - rg audit implicit domain strings
+    - session-start instruction prose
+    - harness/claude/rules/ — doc rewrites
+    - loop.sh pack-specific branches (AC−4)
+    - Replacement/sunset §A + §C from plan
+  layout_paths:
+    - loop/context_loop.py       # cleanup only if drift found
+    - harness/claude/rules/      # instruction rewrites (Kind I)
+    - loop/loop.sh               # audit only — no if/else branches per AC−4
+  ac_quotes:
+    - "SC-004: No hardcoded pack frozenset in _lib (rg audit)"
+    - "AC−4: No pack-specific logic in loop.sh if/else branches"
+    - "plan §Replacement/sunset A: Implicit single software domain → resolve_workflow_pack() — delete in-epic"
+    - "plan §Replacement/sunset C: Any silent default when WORKFLOW_PACK invalid → fail-closed exit 2 — delete in-epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:218-237"
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:97-101"
+
+context:
+  consumes:
+    - harness/hooks/_lib.py       # s06: no frozenset; confirm after s06
+    - loop/loop.sh                # audit: no new if/else branches for pack
+    - harness/claude/rules/       # instruction surfaces to rewrite
+    - loop/context_loop.py        # s06 edits — confirm no residual hardcoding
+  produces:
+    - harness/claude/rules/        # updated instruction prose (Kind I)
+  plan_refs:
+    - "plan.md §Replacement/sunset A, C"
+    - "plan.md AC−4 (no loop.sh if/else)"
+    - "plan.md SC-004 (rg audit)"
+  files:
+    - harness/claude/rules/
+
+as_built:
+  - "harness/claude/rules/ — существует; prose «BACK/FRONT/INTEG» упоминается в context-economy-cc.md и language.md"
+  - "loop/loop.sh — существует; не должен содержать pack-specific branches после эпика"
+
+delta:
+  - "rg 'BACK|FRONT|INTEG' harness/claude/rules/ — найти explicit single-domain prose"
+  - "EDIT instruction files (Kind I): заменить 'роли захардкожены BACK/FRONT/INTEG' → 'роли из Workflow Pack; default: dev-hub-software (BACK/FRONT/INTEG)'"
+  - "rg audit loop/loop.sh: нет новых if/else с pack id strings (только проверка, не правка)"
+  - "rg audit _lib.py: нет frozenset из pack id строк (кроме _ROLE_PREFIXES)"
+
+deletes:
+  - "Implicit 'single software domain' session-start prose (Kind I) — rewrites in harness/claude/rules/ если найдены"
+
+sunset_scope:
+  required: true
+  boundary_id: implicit-single-domain
+  new_sot: loop/workflow_pack_registry.yaml
+  allow_read:
+    - "harness/claude/rules/**"
+    - "loop/loop.sh"
+    - "harness/hooks/_lib.py"
+    - "loop/context_loop.py"
+  kind_hint:
+    - A
+    - I
+
+out_of_scope:
+  - mainrule.mdc prefix exhaustive rewrite — defer T-HUB-049 (command router)
+  - video/content pack addition — T-HUB-051
+  - IDEA PIPELINE dev-chain references — T-HUB-052
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: rg audit — нет frozenset pack ids в _lib.py (кроме ROLE_PREFIXES)
+    verify: "rg 'frozenset' harness/hooks/_lib.py | rg -v 'ROLE_PREFIXES' | wc -l | python3 -c \"import sys; n=int(sys.stdin.read()); assert n==0, f'{n} pack frozensets found'\""
+  - id: cp2
+    criterion: loop.sh не содержит if/else с hardcoded pack id strings
+    verify: "rg 'dev-hub-software|WORKFLOW_PACK.*=.*dev' loop/loop.sh | wc -l | python3 -c \"import sys; n=int(sys.stdin.read()); assert n==0, f'{n} hardcoded pack refs in loop.sh'\""
+  - id: cp3
+    criterion: instruction prose updated - Kind I rewrite если применимо
+    verify: "rg 'захардкожены.*BACK' harness/claude/rules/ || echo 'no legacy prose - ok'"
+  - id: cp4
+    criterion: rg по 'implicit.*software.*domain' в harness/ пусто
+    verify: "rg -i 'implicit.*software.*domain|single.*software.*domain' harness/ || echo 'clean - ok'"
+
+verify: []
+tdd: []

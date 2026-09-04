@@ -8,13 +8,13 @@ alwaysApply: false
 **Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
 **Скиллы:** нет
 
-**Когда:** канон `roadmap-epics.queue.yaml` устарел / битый, а PLAN уже закрыт.  
+**Когда:** канон `roadmap/queue.yaml` устарел / битый, а PLAN уже закрыт.  
 **Не когда:** сразу после PLAN — PLAN сам делает `roadmap-merge` в той же сессии; next = DECOMPOSE.
 
 **Процесс**:
 1. `OK BACK ROADMAP MERGE`
 1a. Gates + Алгоритм
-2. Inventory `roadmap-*-epics.queue.yaml` (+ existing canon)
+2. Inventory `roadmap/queue.yaml` (+ leftover `roadmap/batches/` / legacy `plan/roadmap-*`)
 3. CLI: `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
 4. Conflict/unknown deps/cycle → halt + JSON (не silent fix)
 5. `tasks.md` + `activeContext.md` (load_now = canon + first plan)

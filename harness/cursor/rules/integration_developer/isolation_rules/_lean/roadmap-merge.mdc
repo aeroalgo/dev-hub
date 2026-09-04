@@ -4,13 +4,13 @@ alwaysApply: false
 ---
 # ROADMAP MERGE — gates
 
-**Канон:** `memory-bank/<role>/plan/roadmap-epics.queue.yaml` (+ sibling `.md`)  
+**Канон:** `memory-bank/<role>/roadmap/queue.yaml` (yaml-only, `roadmap-queue/v2`)  
 **Алгоритм:** @.cursor/rules/shared/workflow-roadmap-merge.mdc  
 **CLI:** `context_loop.py roadmap-merge`
 
 ## Gates
 
-1. Inventory всех `roadmap-*-epics.queue.yaml` (кроме canon) + existing canon
+1. Inventory `roadmap/queue.yaml` (+ leftover batches/legacy)
 2. Skip done (QA pass / DONE); dedup id; plan conflict → halt
 3. Topo hard deps; soft только в slug md
 4. Canon + md записаны; slug sources не удалены

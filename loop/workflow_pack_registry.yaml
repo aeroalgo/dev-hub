@@ -1,0 +1,12 @@
+schema: workflow-pack-registry/v1
+default: dev-hub-software
+packs:
+  dev-hub-software:
+    id: dev-hub-software
+    roles: [back, front, integration]
+    command_prefixes: [BACK, FRONT, INTEG]
+    phase_registry: loop/schemas/phase_registry.yaml
+    memory_bank: memory-bank
+    rules_root: .cursor/rules
+    artifact_layout: software-epic-v1
+    description: Default software delivery (BACK/FRONT/INTEG)

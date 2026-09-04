@@ -42,6 +42,7 @@ from harness.hooks._lib import (  # noqa: E402
     runner_owner_status,
     runtime_config_status,
     workflow_policy,
+    WorkflowConfig,
 )
 from harness.hooks.agent_policy import AgentContext, resolve_agent_policy  # noqa: E402
 from harness.hooks.agent_registry import discover_registry  # noqa: E402
@@ -267,12 +268,38 @@ def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
     """Complete only when QA pass exists; otherwise halt (never silent DONE)."""
     gate = epic_complete_allowed(cwd)
     if gate.get("allowed"):
-        return {
+        mark_done: dict[str, Any] | None = None
+        try:
+            from roadmap_queue import mark_queue_epic_done
+
+            st = load_epic_state(cwd)
+            epic_ref = str(st.get("armed_epic") or "").strip()
+            role_hint = (
+                str(st.get("armed_role") or st.get("role") or "back").strip().lower()
+                or "back"
+            )
+            if epic_ref:
+                mark_done = mark_queue_epic_done(
+                    cwd,
+                    epic_ref,
+                    role=role_hint,
+                    require_done=False,
+                )
+        except Exception as exc:
+            mark_done = {
+                "ok": False,
+                "error": "mark_queue_epic_exception",
+                "reason": str(exc),
+            }
+        out: dict[str, Any] = {
             "ok": False,
             "complete": True,
             "reason": "EPIC_DONE",
             "stop": "EPIC_DONE",
         }
+        if mark_done is not None:
+            out["mark_done"] = mark_done
+        return out
     return {
         "ok": False,
         "complete": False,
@@ -1787,6 +1814,8 @@ def prepare_session(
     runtime_ctx = SessionContext(prompt="", phase=loop_phase, model=effective_model, runtime_id=effective_runtime)
     runtime_extras = adapter.prepare_extras(runtime_ctx)
 
+    wf_config = WorkflowConfig.resolve(cwd=cwd_p, hub_root=HUB_ROOT)
+
     res_dict = {
         "ok": True,
         "prompt_file": str(pp),
@@ -1799,6 +1828,7 @@ def prepare_session(
         "loop_phase": resolved.get("loop_phase"),
         "runtime": effective_runtime,
         "runtime_extras": runtime_extras,
+        "workflow_pack": wf_config.pack.model_dump(),
         "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
@@ -2018,12 +2048,37 @@ def check_after(
         st["status"] = "complete" if stop == "EPIC_DONE" else "halted"
         st["halt_reason"] = None if stop == "EPIC_DONE" else stop
         save_epic_state(cwd_p, st)
-        return {
+        mark_done: dict[str, Any] | None = None
+        if stop == "EPIC_DONE":
+            try:
+                from roadmap_queue import mark_queue_epic_done
+
+                epic_ref = str(st.get("armed_epic") or "").strip()
+                role_hint = str(
+                    st.get("armed_role") or st.get("role") or "back"
+                ).strip().lower() or "back"
+                if epic_ref:
+                    mark_done = mark_queue_epic_done(
+                        cwd_p,
+                        epic_ref,
+                        role=role_hint,
+                        require_done=False,
+                    )
+            except Exception as exc:
+                mark_done = {
+                    "ok": False,
+                    "error": "mark_queue_epic_exception",
+                    "reason": str(exc),
+                }
+        out_stop: dict[str, Any] = {
             "ok": True,
             "complete": True,
             "stop": stop,
             "reason": stop,
         }
+        if mark_done is not None:
+            out_stop["mark_done"] = mark_done
+        return out_stop
 
     state = load_epic_state(cwd_p)
     armed_step_now = str(state.get("armed_step") or "")
@@ -2988,15 +3043,31 @@ def main(argv: list[str] | None = None) -> int:
         help="Arm next epic from roadmap Queue (EPIC_CHAIN_ROADMAP)",
     )
 
+    p_mark = sub.add_parser(
+        "roadmap-mark-done",
+        help="Move epic queue: → done: in roadmap/queue.yaml (epic completion)",
+    )
+    p_mark.add_argument("--epic", required=True, help="queue id or full epic_id slug")
+    p_mark.add_argument(
+        "--role",
+        default="back",
+        choices=["back", "front", "integration"],
+    )
+    p_mark.add_argument(
+        "--require-done",
+        action="store_true",
+        help="Fail if QA+REFLECT gate says epic is not DONE",
+    )
+
     p_merge = sub.add_parser(
         "roadmap-merge",
-        help="Merge roadmap-*-epics.queue.yaml into roadmap-epics.queue.yaml",
+        help="Reconcile roadmap/queue.yaml (optional legacy batches → archive)",
     )
     p_merge.add_argument(
         "--role",
         default="back",
         choices=["back", "front", "integration"],
-        help="Plan role directory (default: back)",
+        help="Roadmap role directory (default: back)",
     )
     p_merge.add_argument(
         "--dry-run",
@@ -3004,9 +3075,14 @@ def main(argv: list[str] | None = None) -> int:
         help="Compute merge without writing files",
     )
     p_merge.add_argument(
-        "--no-md",
+        "--write-md",
         action="store_true",
-        help="Do not write sibling roadmap-epics.md",
+        help="Also write deprecated md mirror (default: yaml-only)",
+    )
+    p_merge.add_argument(
+        "--no-archive",
+        action="store_true",
+        help="Do not move legacy slug sources into roadmap/archive/",
     )
 
     sub.add_parser("status", help="Show context cursor")
@@ -3126,6 +3202,18 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0 if out.get("ok") and out.get("armed") else 1
 
+    if args.cmd == "roadmap-mark-done":
+        from roadmap_queue import mark_queue_epic_done
+
+        out = mark_queue_epic_done(
+            cwd,
+            args.epic,
+            role=args.role,
+            require_done=bool(args.require_done),
+        )
+        print(json.dumps(out, ensure_ascii=False))
+        return 0 if out.get("ok") else 1
+
     if args.cmd == "roadmap-merge":
         from roadmap_queue import roadmap_merge
 
@@ -3133,7 +3221,8 @@ def main(argv: list[str] | None = None) -> int:
             cwd,
             role=args.role,
             dry_run=bool(args.dry_run),
-            write_md=not bool(args.no_md),
+            write_md=bool(args.write_md),
+            archive_sources=not bool(args.no_archive),
         )
         print(json.dumps(out, ensure_ascii=False))
         return 0 if out.get("ok") else 1

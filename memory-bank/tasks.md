@@ -68,7 +68,7 @@
 
 | Artifact | Path |
 |----------|------|
-| **Canon (loop)** | [roadmap-epics.md](back/plan/roadmap-epics.md) · [roadmap-epics.queue.yaml](back/plan/roadmap-epics.queue.yaml) |
+| **Canon (loop)** | [roadmap/queue.yaml](back/roadmap/queue.yaml) |
 | Slug: workflow-loop | [roadmap-workflow-loop-hardening-epics.md](back/plan/roadmap-workflow-loop-hardening-epics.md) · [queue](back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml) |
 | Slug: dsh-loop-backend | [roadmap-dsh-loop-backend-epics.md](back/plan/roadmap-dsh-loop-backend-epics.md) · [queue](back/plan/roadmap-dsh-loop-backend-epics.queue.yaml) |
 | Slug: speckit-workflow-boost | [roadmap-speckit-workflow-boost-epics.md](back/plan/roadmap-speckit-workflow-boost-epics.md) · [queue](back/plan/roadmap-speckit-workflow-boost-epics.queue.yaml) |

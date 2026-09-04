@@ -1,0 +1,269 @@
+version: roadmap-queue/v2
+role: back
+queue:
+- id: T-HUB-048
+  epic_id: T-HUB-048-workflow-pack-registry
+  plan: plan-T-HUB-048-workflow-pack-registry.md
+  deps: []
+  batch: workflow-pack-framework
+- id: T-HUB-049
+  epic_id: T-HUB-049-workflow-pack-phase-router
+  plan: plan-T-HUB-049-workflow-pack-phase-router.md
+  deps:
+  - T-HUB-048
+  batch: workflow-pack-framework
+- id: T-HUB-050
+  epic_id: T-HUB-050-workflow-pack-memory-bank-paths
+  plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
+  deps:
+  - T-HUB-048
+  batch: workflow-pack-framework
+- id: T-HUB-051
+  epic_id: T-HUB-051-workflow-pack-reference-video
+  plan: plan-T-HUB-051-workflow-pack-reference-video.md
+  deps:
+  - T-HUB-049
+  - T-HUB-050
+  batch: workflow-pack-framework
+- id: T-HUB-052
+  epic_id: T-HUB-052-workflow-pack-adoption-docs
+  plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
+  deps:
+  - T-HUB-051
+  batch: workflow-pack-framework
+done:
+- id: T-HUB-002
+  epic_id: T-HUB-002-canon-sync
+  plan: plan-T-HUB-002-canon-sync.md
+  batch: workflow-loop-hardening
+- id: T-HUB-003
+  epic_id: T-HUB-003-loop-halt
+  plan: plan-T-HUB-003-loop-halt.md
+  batch: workflow-loop-hardening
+- id: T-HUB-004
+  epic_id: T-HUB-004-hooks-hygiene
+  plan: plan-T-HUB-004-hooks-hygiene.md
+  batch: workflow-loop-hardening
+- id: T-HUB-005
+  epic_id: T-HUB-005-simplify-docs
+  plan: plan-T-HUB-005-simplify-docs.md
+  batch: workflow-loop-hardening
+- id: T-HUB-006
+  epic_id: T-HUB-006-dsh-loop-runtime-adapter
+  plan: plan-T-HUB-006-dsh-loop-runtime-adapter.md
+  batch: dsh-loop-backend
+- id: T-HUB-007
+  epic_id: T-HUB-007-dsh-profiles-presets
+  plan: plan-T-HUB-007-dsh-profiles-presets.md
+  batch: dsh-loop-backend
+- id: T-HUB-008
+  epic_id: T-HUB-008-dsh-epic-gate-plugin
+  plan: plan-T-HUB-008-dsh-epic-gate-plugin.md
+  batch: dsh-loop-backend
+- id: T-HUB-009
+  epic_id: T-HUB-009-dsh-rollout-docs
+  plan: plan-T-HUB-009-dsh-rollout-docs.md
+  batch: dsh-loop-backend
+- id: T-HUB-010
+  epic_id: T-HUB-010-clarify-spec-quality
+  plan: plan-T-HUB-010-clarify-spec-quality.md
+  batch: speckit-workflow-boost
+- id: T-HUB-011
+  epic_id: T-HUB-011-analyze-pre-implement
+  plan: plan-T-HUB-011-analyze-pre-implement.md
+  batch: speckit-workflow-boost
+- id: T-HUB-012
+  epic_id: T-HUB-012-audit-converge
+  plan: plan-T-HUB-012-audit-converge.md
+  batch: speckit-workflow-boost
+- id: T-HUB-013
+  epic_id: T-HUB-013-idea-decide-constitution
+  plan: plan-T-HUB-013-idea-decide-constitution.md
+  batch: speckit-workflow-boost
+- id: T-HUB-014
+  epic_id: T-HUB-014-dsh-mb-board-sync
+  plan: plan-T-HUB-014-dsh-mb-board-sync.md
+  batch: dsh-mb-board
+- id: T-HUB-015
+  epic_id: T-HUB-015-dsh-board-arm-loop
+  plan: plan-T-HUB-015-dsh-board-arm-loop.md
+  batch: dsh-mb-board
+- id: T-HUB-016
+  epic_id: T-HUB-016-dsh-cc-hooks-bridge
+  plan: plan-T-HUB-016-dsh-cc-hooks-bridge.md
+  batch: dsh-loop-backend
+- id: T-HUB-017
+  epic_id: T-HUB-017-loop-observability-foundation
+  plan: plan-T-HUB-017-loop-observability-foundation.md
+  batch: loop-observability
+- id: T-HUB-018
+  epic_id: T-HUB-018-loop-incident-autopilot
+  plan: plan-T-HUB-018-loop-incident-autopilot.md
+  batch: loop-observability
+- id: T-HUB-019
+  epic_id: T-HUB-019-dsh-board-sync-enrichments
+  plan: plan-T-HUB-019-dsh-board-sync-enrichments.md
+  batch: dsh-mb-board
+- id: T-HUB-020
+  epic_id: T-HUB-020-dsh-board-epic-loop
+  plan: plan-T-HUB-020-dsh-board-epic-loop.md
+  batch: dsh-mb-board
+- id: T-HUB-023
+  epic_id: T-HUB-023-hooks-llm-fallbacks
+  plan: plan-T-HUB-023-hooks-llm-fallbacks.md
+  batch: pydantic-reliability
+- id: T-HUB-024
+  epic_id: T-HUB-024-validate-traceability
+  plan: plan-T-HUB-024-validate-traceability.md
+  batch: spec-maturity
+- id: T-HUB-025
+  epic_id: T-HUB-025-product-constitution-bootstrap
+  plan: plan-T-HUB-025-product-constitution-bootstrap.md
+  batch: spec-maturity
+- id: T-HUB-026
+  epic_id: T-HUB-026-spec-reconcile-workflow
+  plan: plan-T-HUB-026-spec-reconcile-workflow.md
+  batch: spec-maturity
+- id: T-HUB-027
+  epic_id: T-HUB-027-back-plan-gstack-adapt
+  plan: plan-T-HUB-027-back-plan-gstack-adapt.md
+  batch: back-plan-gstack-adapt
+- id: T-HUB-029
+  epic_id: T-HUB-029-epic-phase-transition-engine
+  plan: plan-T-HUB-029-epic-phase-transition-engine.md
+  batch: epic-transition-engine
+- id: T-HUB-030
+  epic_id: T-HUB-030-harness-runtime-wire
+  plan: plan-T-HUB-030-harness-runtime-wire.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-031
+  epic_id: T-HUB-031-harness-episode-packages
+  plan: plan-T-HUB-031-harness-episode-packages.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-032
+  epic_id: T-HUB-032-harness-analyze-convergence
+  plan: plan-T-HUB-032-harness-analyze-convergence.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-033
+  epic_id: T-HUB-033-harness-execution-discipline
+  plan: plan-T-HUB-033-harness-execution-discipline.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-034
+  epic_id: T-HUB-034-harness-janitor-gc
+  plan: plan-T-HUB-034-harness-janitor-gc.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-035
+  epic_id: T-HUB-035-harness-architecture-boundaries
+  plan: plan-T-HUB-035-harness-architecture-boundaries.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-036
+  epic_id: T-HUB-036-harness-decompose-formulas
+  plan: plan-T-HUB-036-harness-decompose-formulas.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-037
+  epic_id: T-HUB-037-harness-parallel-snn
+  plan: plan-T-HUB-037-harness-parallel-snn.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-038
+  epic_id: T-HUB-038-harness-metrics-dashboard
+  plan: plan-T-HUB-038-harness-metrics-dashboard.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-039
+  epic_id: T-HUB-039-phase-verify-agents-runtime
+  plan: plan-T-HUB-039-phase-verify-agents-runtime.md
+  batch: phase-verify-agents-runtime
+- id: T-HUB-040
+  epic_id: T-HUB-040-harness-workflow-finish-api
+  plan: plan-T-HUB-040-harness-workflow-finish-api.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-041
+  epic_id: T-HUB-041-harness-canonical-extract
+  plan: plan-T-HUB-041-harness-canonical-extract.md
+  batch: harness-universal-runtime
+- id: T-HUB-042
+  epic_id: T-HUB-042-runtime-adapter-framework
+  plan: plan-T-HUB-042-runtime-adapter-framework.md
+  batch: harness-universal-runtime
+- id: T-HUB-043
+  epic_id: T-HUB-043-runtime-bridge-codex
+  plan: plan-T-HUB-043-runtime-bridge-codex.md
+  batch: harness-universal-runtime
+- id: T-HUB-044
+  epic_id: T-HUB-044-runtime-sync-doctor-docs
+  plan: plan-T-HUB-044-runtime-sync-doctor-docs.md
+  batch: harness-universal-runtime
+- id: T-HUB-045
+  epic_id: T-HUB-045-harness-workflow-session-load-api
+  plan: plan-T-HUB-045-harness-workflow-session-load-api.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-046
+  epic_id: T-HUB-046-harness-alongside-install
+  plan: plan-T-HUB-046-harness-alongside-install.md
+  batch: harness-universal-runtime
+- id: T-HUB-047
+  epic_id: T-HUB-047-harness-mb-scaffold-epic-layout
+  plan: plan-T-HUB-047-harness-mb-scaffold-epic-layout.md
+  batch: harness-maturity-borrowings
+- id: T-HUB-053
+  epic_id: T-HUB-053-codex-claude-hooks-parity
+  plan: plan-T-HUB-053-codex-claude-hooks-parity.md
+  batch: harness-universal-runtime
+- id: T-HUB-054
+  epic_id: T-HUB-054-suite-hygiene-runner-gate
+  plan: plan-T-HUB-054-suite-hygiene-runner-gate.md
+  batch: suite-hygiene
+- id: T-HUB-055
+  epic_id: T-HUB-055-suite-green-board-sync
+  plan: plan-T-HUB-055-suite-green-board-sync.md
+  batch: suite-hygiene
+- id: T-HUB-056
+  epic_id: T-HUB-056-suite-green-loop-identity
+  plan: plan-T-HUB-056-suite-green-loop-identity.md
+  batch: suite-hygiene
+- id: T-HUB-057
+  epic_id: T-HUB-057-loop-session-json-contract
+  plan: plan-T-HUB-057-loop-session-json-contract.md
+  batch: loop-session-contract
+- id: T-HUB-058
+  epic_id: T-HUB-058-sunset-inventory-agent
+  plan: plan-T-HUB-058-sunset-inventory-agent.md
+  batch: loop-session-contract
+- id: T-HUB-059
+  epic_id: T-HUB-059-harness-claude-agents-sot-complete
+  plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
+  batch: harness-universal-runtime
+batches:
+  workflow-loop-hardening:
+    source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
+  speckit-workflow-boost:
+    source: memory-bank/back/plan/roadmap-speckit-workflow-boost-epics.queue.yaml
+  loop-observability:
+    source: memory-bank/back/plan/roadmap-loop-observability-epics.queue.yaml
+  dsh-mb-board:
+    source: memory-bank/back/plan/roadmap-dsh-mb-board-epics.queue.yaml
+  epic-transition-engine:
+    source: memory-bank/back/plan/roadmap-epic-transition-engine-epics.queue.yaml
+  back-plan-gstack-adapt:
+    source: memory-bank/back/plan/roadmap-back-plan-gstack-adapt-epics.queue.yaml
+  pydantic-reliability:
+    source: memory-bank/back/plan/roadmap-pydantic-reliability-epics.queue.yaml
+  phase-verify-agents-runtime:
+    source: memory-bank/back/plan/roadmap-phase-verify-agents-runtime-epics.queue.yaml
+  dsh-loop-backend:
+    source: memory-bank/back/plan/roadmap-dsh-loop-backend-epics.queue.yaml
+  spec-maturity:
+    source: memory-bank/back/plan/roadmap-spec-maturity-epics.queue.yaml
+  harness-maturity-borrowings:
+    source: memory-bank/back/plan/roadmap-harness-maturity-borrowings-epics.queue.yaml
+  harness-universal-runtime:
+    source: memory-bank/back/plan/roadmap-harness-universal-runtime-epics.queue.yaml
+  loop-session-contract:
+    source: memory-bank/back/plan/roadmap-loop-session-contract-epics.queue.yaml
+  suite-hygiene:
+    source: memory-bank/back/plan/roadmap-suite-hygiene-epics.queue.yaml
+  sunset-inventory-agent:
+    source: memory-bank/back/plan/roadmap-sunset-inventory-agent-epics.queue.yaml
+  workflow-pack-framework:
+    source: memory-bank/back/plan/roadmap-workflow-pack-framework-epics.queue.yaml
+    title: Workflow Pack framework
+    note: T-HUB-048…052; details in plan/<epic_id>/md/plan.md

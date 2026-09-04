@@ -4,7 +4,7 @@
 
 > **Переходы (канон):** `memory-bank/activeContext.md` + decompose index; открытый `needs_creative: yes (CR-…)` или CREATIVE tip армирует CREATIVE, а closed/completed creative step возвращает тот же/следующий tip в IMPLEMENT; **pre-IMPLEMENT ANALYZE gate** (zero completed sNN + analyze missing/stale/critical) → ANALYZE до IMPLEMENT; IMPLEMENT→QA→REFLECT→complete через context-first gates.
 >
-> **Очередь эпиков (канон):** `memory-bank/back/plan/roadmap-epics.queue.yaml`. Slug `roadmap-<slug>-epics.queue.yaml` — источники; слияние: `* ROADMAP MERGE` / `context_loop.py roadmap-merge`. При `EPIC_CHAIN_ROADMAP=1` после `EPIC_DONE` → `roadmap-advance`. Без флага — stop.
+> **Очередь эпиков (канон):** `memory-bank/back/roadmap/queue.yaml`. MULTI-EPIC PLAN дописывает этот файл; `* ROADMAP MERGE` / `context_loop.py roadmap-merge` — reconcile/done. При `EPIC_CHAIN_ROADMAP=1` после `EPIC_DONE` → `roadmap-advance`. Без флага — stop.
 >
 > **Тесты (канон):** [`.cursor/rules/shared/test-timeout.mdc`](../.cursor/rules/shared/test-timeout.mdc) — каждая test-команда запускается с внешним таймаутом 300 секунд.
 > **HARD:** эпик **не** DONE / `EPIC_DONE`, пока нет **QA pass** + **REFLECT**  
@@ -14,7 +14,7 @@
 | Канон | Путь |
 |-------|------|
 | Где стоим / next | `memory-bank/activeContext.md` + decompose `index.md` |
-| Очередь эпиков | `roadmap-*.queue.yaml` (machine); md = human map |
+| Очередь эпиков | `roadmap/queue.yaml` (yaml-only SoT) |
 | Переходы | `activeContext.md` + `context_loop.py`/`epic` gates |
 | Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
@@ -30,7 +30,7 @@
 - **Arm epic & Run:** Армирование контекста выполняется через `arm_epic` (`python3 loop/context_loop.py arm-epic <epic_id>`). Запуск выполнения эпика с таскборда выполняется по кнопке **Run** на карточке эпика или через CLI `./loop/loop.sh --epic-id <epic_id>`.
 - **Column logic (Статусы колонок):**
   - `running`: эпик в очереди на позициях активной работы (rank 0 / active) и в процессе выполнения (phase PLAN, DECOMPOSE, IMPLEMENT, QA, etc.).
-  - `backlog`: эпик находится в очереди roadmap (`roadmap-*.queue.yaml`), но ждёт своей очереди (rank > 0).
+  - `backlog`: эпик находится в очереди roadmap (`roadmap/queue.yaml`), но ждёт своей очереди (rank > 0).
   - `todo`: эпик завершил фазу выполнения (`phase` = `DONE` или `NEXT_EPIC`) или готов к повторному запуску/принятию.
 - **Sunset step cards:** Ранее созданные карточки шагов (`card_kind: step`) автоматически архивируются при запуске sync, уступая место единой карточке эпика.
 

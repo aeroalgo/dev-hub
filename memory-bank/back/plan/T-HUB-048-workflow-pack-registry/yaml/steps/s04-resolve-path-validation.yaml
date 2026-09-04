@@ -1,0 +1,76 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-048-workflow-pack-registry
+title: "loop/workflow/resolve.py — path validation + fail-closed exit 2 guard"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `loop/workflow/resolve.py` — финальный guard после resolve:
+  валидировать, что `phase_registry` (file) и `memory_bank` (dir) существуют относительно
+  PROJECT_ROOT; при отсутствии → diagnostic_code `pack_path_missing` + ok=False.
+  Это отдельный слой от registry.py (который не трогает FS-проверку) (TM-003, TM-004).
+
+plan_contract:
+  fr_ids: [FR-004, SC-001]
+  nouns:
+    - validate_pack_paths(pack, cwd) → PackResolveResult
+    - diagnostic_code pack_path_missing
+    - phase_registry path.is_file() check
+    - memory_bank path.is_dir() check
+  layout_paths:
+    - loop/workflow/resolve.py
+  ac_quotes:
+    - "TM-003: phase_registry path missing → exit 2 pack_path_missing"
+    - "TM-004: memory_bank root missing dir → exit 2 pack_path_missing"
+    - "fail-closed on unknown/missing paths (plan data flow)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-048-workflow-pack-registry/md/plan.md:157-206"
+
+context:
+  consumes:
+    - loop/workflow/schemas.py  # PackResolveResult, WorkflowPack
+    - loop/workflow/registry.py  # resolve_workflow_pack → pack
+  produces:
+    - loop/workflow/resolve.py
+  plan_refs:
+    - "plan.md Failure matrix TM-003, TM-004"
+    - "plan.md PackResolve flow: validate paths exist relative to PROJECT_ROOT"
+  files:
+    - loop/workflow/resolve.py
+
+as_built:
+  - "loop/workflow/registry.py (s03) — resolve_workflow_pack уже возвращает PackResolveResult"
+  - "loop/workflow/schemas.py (s02) — PackResolveResult.diagnostic_codes"
+
+delta:
+  - "ADD loop/workflow/resolve.py"
+  - "validate_pack_paths(result: PackResolveResult, cwd: Path) → PackResolveResult: если ok=True, проверяет phase_registry (is_file) и memory_bank (is_dir); при fail добавляет 'pack_path_missing' в diagnostic_codes, ok=False"
+  - "full_resolve(cwd: Path) → PackResolveResult: resolve_workflow_pack(cwd) → validate_pack_paths — единая публичная точка входа"
+
+deletes: []
+
+out_of_scope:
+  - CLI (s05) — full_resolve вызывается из CLI; exit 2 logic живёт там
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: full_resolve определён в resolve.py
+    verify: "rg 'def full_resolve' loop/workflow/resolve.py"
+  - id: cp2
+    criterion: pack_path_missing diagnostic присутствует
+    verify: "rg 'pack_path_missing' loop/workflow/resolve.py"
+  - id: cp3
+    criterion: validate_pack_paths определён
+    verify: "rg 'def validate_pack_paths' loop/workflow/resolve.py"
+
+verify: []
+tdd:
+  - "rg 'def full_resolve|def validate_pack_paths' loop/workflow/resolve.py"

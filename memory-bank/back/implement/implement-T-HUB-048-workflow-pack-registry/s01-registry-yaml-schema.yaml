@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-048-workflow-pack-registry
+title: s01 — workflow_pack_registry.yaml + workflow-pack-registry/v1 schema doc IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-048-workflow-pack-registry/yaml/steps/s01-registry-yaml-schema.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан канонический реестр loop/workflow_pack_registry.yaml со схемой workflow-pack-registry/v1
+  и паком dev-hub-software.
+- Создана JSON Schema loop/schemas/workflow-pack-registry-schema.json для валидации
+  структуры реестра и паков.
+- Документирована структура паков и ссылка на схему в workflows/README.md.
+files:
+- loop/workflow_pack_registry.yaml
+- loop/schemas/workflow-pack-registry-schema.json
+- workflows/README.md
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_board_sync_cli.py -q --tb=line`'
+- '`python3 -c "import yaml, pathlib; r = yaml.safe_load(open(\"loop/workflow_pack_registry.yaml\"));
+  assert r[\"schema\"] == \"workflow-pack-registry/v1\"; assert r[\"default\"] ==
+  \"dev-hub-software\"; pack = r[\"packs\"][\"dev-hub-software\"]; assert pathlib.Path(pack[\"phase_registry\"]).exists()"`'
+- '`python3 -c "import json, jsonschema, yaml; schema = json.load(open(\"loop/schemas/workflow-pack-registry-schema.json\"));
+  jsonschema.Draft202012Validator.check_schema(schema); data = yaml.safe_load(open(\"loop/workflow_pack_registry.yaml\"));
+  jsonschema.validate(instance=data, schema=schema)"`'
+integration_check:
+- loop/workflow_pack_registry.yaml указывает на существующий phase_registry.yaml,
+  memory-bank и .cursor/rules
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- cp1 PASS — loop/workflow_pack_registry.yaml существует и содержит ключ default +
+  packs.dev-hub-software
+- cp2 PASS — schema поле = workflow-pack-registry/v1
+- cp3 PASS — phase_registry path в реестре указывает на реально существующий файл
+- cp4 PASS — JSON Schema файл валиден и валидирует loop/workflow_pack_registry.yaml
+  без ошибок
+- AC+1 PASS — dev-hub-software paths match as-built
+- AC- PASS — без hardcoded/breaking изменений
+checkpoints:
+- id: cp1
+  criterion: loop/workflow_pack_registry.yaml существует и содержит ключ default +
+    packs.dev-hub-software
+  status: done
+  done_at: '2026-09-04T08:08:12Z'
+- id: cp2
+  criterion: schema поле = workflow-pack-registry/v1
+  status: done
+  done_at: '2026-09-04T08:08:12Z'
+- id: cp3
+  criterion: phase_registry path в реестре указывает на реально существующий файл
+  status: done
+  done_at: '2026-09-04T08:08:13Z'
+- id: cp4
+  criterion: JSON Schema файл валиден (parse без ошибок)
+  status: done
+  done_at: '2026-09-04T08:08:14Z'
+resume_from: cp1

@@ -20,6 +20,8 @@ except ImportError:  # pragma: no cover - Windows
 
 from agent_policy import AgentContext, resolve_agent_policy
 from agent_registry import AGENT_ALIASES, discover_registry
+from loop.workflow.resolve import full_resolve
+from loop.workflow.schemas import PackResolveResult
 
 # Known gate/search ids used by spawn-map finish text (verify/reviewer lines).
 CUSTOM_OVERLAY = frozenset(
@@ -95,7 +97,7 @@ CONTRACTS = {
     ),
     "verify-decompose": (
         "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · "
-        "Outcome map · Replacement cleanup · ALLOW. "
+        "Outcome map · Replacement cleanup · PLAN EXCERPT · ALLOW. "
         + _GATE_JSON_HARD
         + " FORBIDDEN pytest. Без isolation=worktree."
     ),
@@ -187,6 +189,7 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("Stages coverage", re.compile(_HD + r"Stages coverage\b")),
         ("Outcome map", re.compile(_HD + r"Outcome map\b")),
         ("Replacement cleanup", re.compile(_HD + r"Replacement cleanup\b")),
+        ("PLAN EXCERPT", re.compile(_HD + r"PLAN EXCERPT\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "gate-repair": [
@@ -199,6 +202,8 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
 _NEXT_SECTION = re.compile(
     _HD
     + r"(?:Suite results|AC\+|AC[−\-]|§?\s*0\.11|VERIFY|RESULT|ALLOW READ|ALLOW WRITE|BLOCKERS|"
+    r"Requirements coverage|Stages coverage|Outcome map|Replacement cleanup|"
+    r"PLAN EXCERPT|COVERAGE|"
     r"FORBID|CREATE/EDIT|GRAPHIFY|Цель|Цель:|Budget|Отчёт|HARD RULE|"
     r"CONTRACT|Scope:)\b"
 )
@@ -535,6 +540,15 @@ class RuntimeConfig:
     permission_mode: str
     sources: dict[str, str]
     epic_runtime: str = "claude"
+
+
+@dataclass(frozen=True)
+class WorkflowConfig:
+    pack: PackResolveResult
+
+    @classmethod
+    def resolve(cls, cwd: str | Path | None = None, hub_root: str | Path | None = None) -> WorkflowConfig:
+        return cls(pack=full_resolve(cwd=cwd, hub_root=hub_root))
 
 
 class RuntimeConfigError(ValueError):
