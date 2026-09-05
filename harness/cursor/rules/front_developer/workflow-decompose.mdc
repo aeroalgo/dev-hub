@@ -61,6 +61,8 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 
 Каждый FRONT `sNN`: `**visible_ui:**` + **Impl skills** = **Impl Core ∪ situational** (+ **Design Core** пакет если `yes`).
 
+В YAML decompose-step результат хранится в top-level секции `skills:`: `code_surface`, `impl` и для UI `design` (допустим также `design_skills`). `impl` обязателен для FRONT IMPLEMENT, а `design`/`design_skills` обязателен до UI-кода при `visible_ui: yes`.
+
 **FORBIDDEN в `impl:` любого `sNN`:** `writing-plans` · `brainstorming` · `executing-plans` · `breakdown-plan` — они **сессионные** (DECOMPOSE-only). В `impl:` — **только Impl Core + allowlist** из `skills-gate-situational.mdc`. Поставить session skill в `impl:` = FAIL.
 
 ### Impl Core (всегда — ровно эти 6)

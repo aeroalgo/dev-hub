@@ -1,9 +1,110 @@
 # dev-hub
 
-## Dev Environment
+## PLAN ARTIFACT OVERRIDE (читать первым — важнее economy)
 
-Hub tooling в `/home/aero/PyProject/dev-hub`. Workflow и процесс — `CLAUDE.md`, `.cursor/rules/`, `memory-bank/`.
+При `* PLAN` / записи `memory-bank/**/plan-*.md` / `gap-*.md` / brownfield VAN → `memory-bank/architecture/**`:
+
+- **ЗАПРЕЩЕНО** жать вывод плана/карты: telegraph, «max 3 sentences», лимит ~200 строк, «кратко для контекста»
+- **ОБЯЗАТЕЛЬНО:** plan/architecture file = maximally detailed; chat reply может быть коротким
+- Lean **load** ≠ lean **write**
+- Сразу после OK: `SUSPENSION GUARD active — plan output unlimited` (PLAN) или `SUSPENSION GUARD active — architecture map output unlimited` (brownfield VAN)
+- Path-rule: `.claude/rules/plan-artifact.md` (автоматически на plan/gap/architecture)
+- INTEG: Prefer slash **`/integ-plan`** (self-contained acceptance, `wc -l` ≥ 400 или FAIL)
+
+@.claude/rules/plan-artifact.md
+
+## Язык (обязательно)
+
+@.claude/rules/language.md
+
+**Cursor и Claude Code — один workflow.** Канон: `.cursor/rules/` + `memory-bank/`. Claude Code agents: `.claude/agents/`.
+
+Token economy: @.cursor/rules/token-economy-core.mdc — для PLAN / architecture смотри **только §0.0 + §0.0.1**; §§0.2/0.5 **не применять** к `plan-*.md` / `architecture/**`.
+
+@.cursor/rules/mainrule.mdc
+
+## Workflow Packs
+
+| Pack ID | Roles | Command Prefixes | Activation |
+|---|---|---|---|
+| `dev-hub-software` | back, front, integration | `BACK`, `FRONT`, `INTEG` | Default (`WORKFLOW_PACK=dev-hub-software` or `--workflow-pack dev-hub-software`) |
+| `video-production` | script, visual, post | `SCRIPT`, `VISUAL`, `POST` | `WORKFLOW_PACK=video-production` or `--workflow-pack video-production` |
+
+## Parity (обязательно)
+
+Команды `BACK *`, `FRONT *`, `INTEG *`, `PM *`, `TL *`, `CONTENT *`, `MARKETING *`, `SEO *`, `IDEA PIPELINE *` работают **идентично Cursor**:
+
+1. Прочитай skill `.claude/skills/role-command/SKILL.md` и выполни цепочку **до** основной работы
+2. **Step 0 graphify** (code modes): `@.cursor/rules/graphify.mdc` + CLI **`.venv/bin/graphify`** из **корня репо** (`query` / `path` / `explain`; после правок — `update .`). Канон только `<repo>/graphify-out/`. Не в PATH — только через `.venv/bin/`
+3. Не импровизируй альтернативный процесс — только файлы из `.cursor/rules/`
+4. Skills из workflow — только пути из шага workflow (`.agents/skills/`, не весь каталог)
+
+**Slash-команды:** `.claude/commands/` — см. `.claude/README.md`. PLAN → `/integ-plan` / `/back-plan` / `/front-plan`.
+
+## Workflow chain (HARD — обязательное чтение до основной работы; FINISH не блокируется)
+
+`@file` в rules/skills — ссылка-декларация, а не автоматическое чтение. Для каждой role command (`BACK/FRONT/INTEG <mode>`) Claude Code последовательно читает root rules, role index, role core, workflow текущего режима, указанный `Gates` и связанные ссылки workflow.
+
+Для `IMPLEMENT`, `TASK`, `BUGFIX` и `REFACTOR` секция `skills.impl` текущего decompose-step — обязательный источник skills: прочитать каждый перечисленный путь целиком до production-кода. Для `FRONT` также прочитать `skills.design`/`skills.design_skills`, если шаг содержит UI.
+
+**HARD RULE:** для каждой команды роли нельзя начинать анализ, изменять файлы или выполнять основную работу, пока через `Read` полностью не загружена цепочка: корневой `CLAUDE.md` → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow, соответствующий команде (`BACK|FRONT|INTEG <MODE>`) → его `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Порядок и состав цепочки определяются ссылками и таблицами workflow, а не выборочным чтением одного файла.
+
+Все перечисленные ссылки обязательны к `Read`; пропущенный `Read` — нарушение HARD RULE и gap процесса, но не блокировка `FINISH`/`stop`. `DONE` остаётся терминальным режимом без workflow chain.
+
+## Session start
+
+Триггеры: `continue project ` · role commands · `PM INIT` (архив)
+
+1. `memory-bank/activeContext.md` → **`load_now` only** — **кроме `* PLAN`**: для PLAN читай inventory из соответствующего `workflow-*-plan.mdc` (portal implement + routes)
+2. Handoff: `memory-bank/back/implement/implement-*.md` или `back/task/task-*.md` → §Handoff
+3. IMPLEMENT/TASK/BUGFIX/QA: ONE work shard из `load_now` (`sNN|eNN` / task / bugfix / qa). **FORBIDDEN** полный `plan-*.md` как AC. **PLAN/DECOMPOSE:** plan как объект работы / полный inventory по workflow.
+4. Не опирайся на transcript — файлы = source of truth
+
+## FINISH
+
+Канон: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc → шаблон `.cursor/templates/finish-doc-router.md`.
+
+1. **IMPLEMENT:** step-файл `implement-*/sNN|eNN-*.yaml` + `## Handoff` в `activeContext.md` **до** decompose `completed` / next `load_now` (5 точек + FAIL в finish-block)
+2. Рекомендуй `/clear` когда §2 context-session-economy требует new chat
+3. **PLAN:** перед FINISH — `wc -l` plan-файла; если ниже acceptance из `/integ-plan` или `plan-artifact.md` → дописать, не закрывать
+4. **code_changed:** из корня репо `.venv/bin/graphify update .`
+
+## Context economy — IMPLEMENT/TASK/BUGFIX
+
+@.claude/rules/context-economy-cc.md
+
+**Коротко (HARD):**
+- **TodoWrite ≤2** за сессию (старт + FINISH); не обновлять на каждый шаг
+- **Re-read запрещён** для файла, уже прочитанного / отредактированного в этой сессии
+- Для codebase сначала **`.venv/bin/graphify query`**; для `memory-bank` / `.cursor` / `.claude` разрешён fallback через `rg` / `Glob` / `ReadFile`
+- **Spawn gates (обязательны):** codebase search → `@explorer`; pre-FINISH + `code_changed` → `@verify`; BACK QA после suite → `@reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно
 
 ## Testing
 
 Python tests (hub): `bin/pytest …` from repo root — 300s timeout built into wrapper.
+
+## Stack (кратко)
+
+| | |
+|-|-|
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2, Alembic — `app/`, `api/`, `core/`, `jobs/` |
+| Frontend | Next.js — `frontend/` |
+| Tests | из корня репо: `.venv/bin/pytest` (не голый `pytest`; см. `pyproject.toml`) |
+| DB/Redis | PostgreSQL 16, Redis 7 |
+
+Детали: `memory-bank/techContext.md`
+
+## User conventions (как Cursor user rules)
+
+- Ответы на **русском**; в конце — модель ИИ
+- Исправлять **причину** ошибок, не fallback и не скрытие
+- Коммиты/PR — только по явному запросу
+- Не править linter без запроса; не удалять неиспользуемые импорты
+- SQL без переменных `@`
+- Комментарии к коду — только по запросу
+- `implement this` — gate для правок вне role command (см. token-economy §0.9)
+- **FRONT TESTS = PARENT ONLY** (subagent **никогда** не запускает vitest/playwright/`npm test`/e2e) — `.claude/rules/front-tests-parent-only.md` / `.cursor/rules/front-tests-parent-only.mdc` (глобально: `~/.claude/rules/02-front-tests-parent-only.md`)
+
+## Архив ролей
+
+PM, TL, CONTENT, MARKETING, SEO → `_archive/cursor-rules/`. Команда `PM PLAN` → восстановить папку или читать workflow из архива.

@@ -25,6 +25,8 @@ def test_inject_fingerprint(monkeypatch, tmp_path):
         res = session_start_payload(tmp_path)
         assert res is not None
         assert "additionalContext" in res
+        assert res["additionalContext"].startswith("COMMAND: BACK IMPLEMENT\n")
+        assert "HARD READ" in res["additionalContext"]
         assert "fp1234567890" in res["additionalContext"]
         assert "file1.txt" in res["additionalContext"]
 

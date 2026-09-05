@@ -133,7 +133,7 @@ intents:
 | `loop/doctor/checks/workflow_pack.py` | new |
 | `docs/runbooks/workflow-pack-authoring.md` | new |
 | `docs/runbooks/workflow-pack-operator.md` | new |
-| `harness/cursor/hub-link` or install script | --pack flag |
+| `bin/hub-link` or install script | --pack flag |
 | `loop/context_loop.py` | --workflow-pack |
 | `AGENTS.md`, `CLAUDE.md` | section |
 | `loop/tests/test_doctor_workflow_pack.py` | new |

@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: s07 — AGENTS.md + CLAUDE.md Workflow Packs section + idea-pipeline.mdc intent
+  table extension IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s07-agents-claude-idea-pipeline-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added Workflow Packs section to AGENTS.md with pack table (dev-hub-software, video-production)
+- Added Workflow Packs section to CLAUDE.md with pack table mirroring AGENTS.md
+- Extended harness/cursor/rules/shared/workflow-idea-pipeline.mdc Intent type table
+  with video_production and content_factory rows and reference to loop/workflow/intent_routing.yaml
+  as machine SoT
+files:
+- AGENTS.md
+- CLAUDE.md
+- harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+deletes:
+- any prose-only 'video → SCRIPT PLAN' routing sentences in idea-pipeline.mdc that
+  predate this table row (rg audit cp3)
+tests:
+- bin/pytest loop/tests/ -q --tb=line
+integration_check:
+- rg 'Workflow Packs' AGENTS.md CLAUDE.md
+- rg 'video_production' harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+- rg -n 'video.*SCRIPT PLAN' harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+  | grep -v '|' | wc -l
+grep_control: []
+verification_results:
+- All 3 checkpoints (cp1, cp2, cp3) verified and pass
+checkpoints:
+- id: cp1
+  criterion: AGENTS.md contains 'Workflow Packs' heading and pack table
+  status: done
+  done_at: '2026-09-05T05:29:48Z'
+- id: cp2
+  criterion: idea-pipeline.mdc Матрица table contains video_production row referencing
+    pack id
+  status: done
+  done_at: '2026-09-05T05:29:48Z'
+- id: cp3
+  criterion: no bare prose-only 'video → SCRIPT PLAN' sentence outside table in idea-pipeline.mdc
+  status: done
+  done_at: '2026-09-05T05:29:49Z'
+resume_from: cp1

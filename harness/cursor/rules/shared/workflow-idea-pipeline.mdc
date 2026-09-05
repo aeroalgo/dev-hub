@@ -47,20 +47,22 @@ alwaysApply: false
 - тип затрагиваемых слоёв: продукт / UI / API / контент / маркетинг / ops
 - ограничения (фаза F0/F1, срок, scope)
 
-**1b. Intent type** (один primary + optional secondary):
+**1b. Intent type** (один primary + optional secondary; машина SoT: `loop/workflow/intent_routing.yaml`):
 
-| Intent | Сигналы | Типичная цепочка |
-|--------|---------|------------------|
-| `positioning` | позиционирование, messaging, «главная идея продукта», бренд | **DECIDE** → DISCOVER MARKET → MARKETING PLAN → CREATIVE → CONTENT PLAN → IMPLEMENT |
-| `feature_full` | новая фича UI+API | **DECIDE** → PM PLAN → BACK VAN/PLAN/CREATIVE → FRONT VAN/PLAN/CREATIVE → IMPLEMENT×2 → QA |
-| `feature_ui` | страница, компонент, UX | **DECIDE** → FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
-| `feature_api` | эндпоинт, сервис, БД | **DECIDE** → BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
-| `content` | гайды, SEO-тексты, хабы | **DECIDE** → CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
-| `growth` | ads, email, retention | **DECIDE** → MARKETING PLAN → MARKETING * |
-| `initiative` | новая инициатива, multi-sprint | **DECIDE** → PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
-| `decide` | явная оценка идеи без продолжения | **DECIDE** gate только (scoring + verdict, без pipeline) |
-| `bugfix` | баг, ошибка | BACK/FRONT BUGFIX (минуя pipeline) |
-| `refactor` | качество кода | BACK/FRONT REFACTOR |
+| Intent | Сигналы | Pack ID | Типичная цепочка |
+|--------|---------|---------|------------------|
+| `positioning` | позиционирование, messaging, «главная идея продукта», бренд | `dev-hub-software` | **DECIDE** → DISCOVER MARKET → MARKETING PLAN → CREATIVE → CONTENT PLAN → IMPLEMENT |
+| `feature_full` | новая фича UI+API | `dev-hub-software` | **DECIDE** → PM PLAN → BACK VAN/PLAN/CREATIVE → FRONT VAN/PLAN/CREATIVE → IMPLEMENT×2 → QA |
+| `feature_ui` | страница, компонент, UX | `dev-hub-software` | **DECIDE** → FRONT VAN → FRONT CREATIVE → FRONT PLAN → FRONT IMPLEMENT → FRONT QA |
+| `feature_api` | эндпоинт, сервис, БД | `dev-hub-software` | **DECIDE** → BACK VAN → BACK CREATIVE → BACK PLAN → BACK IMPLEMENT → BACK QA |
+| `content` | гайды, SEO-тексты, хабы | `dev-hub-software` | **DECIDE** → CONTENT PLAN → CONTENT WRITE → CONTENT LAUNCH |
+| `growth` | ads, email, retention | `dev-hub-software` | **DECIDE** → MARKETING PLAN → MARKETING * |
+| `initiative` | новая инициатива, multi-sprint | `dev-hub-software` | **DECIDE** → PM INIT → PM DISCOVER → PM PLAN → ROADMAP → BACKLOG |
+| `video_production` | сценарий, видеоролик, сториборд, монтаж, публикация видео | `video-production` | **DECIDE** → SCRIPT PLAN → SCRIPT DECOMPOSE → VISUAL STORYBOARD → POST EDIT → POST PUBLISH |
+| `content_factory` | конвейер контента, короткие видео, рилсы, shorts | `video-production` | **DECIDE** → SCRIPT PLAN → SCRIPT DECOMPOSE → VISUAL STORYBOARD → POST EDIT → POST PUBLISH |
+| `decide` | явная оценка идеи без продолжения | - | **DECIDE** gate только (scoring + verdict, без pipeline) |
+| `bugfix` | баг, ошибка | `dev-hub-software` | BACK/FRONT BUGFIX (минуя pipeline) |
+| `refactor` | качество кода | `dev-hub-software` | BACK/FRONT REFACTOR |
 
 **1c. Complexity (два измерения):**
 - **PM-L:** L1 task · L2 feature · L3 initiative · L4 portfolio

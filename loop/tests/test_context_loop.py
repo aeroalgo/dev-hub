@@ -367,6 +367,8 @@ def test_prepare_builds_prompt_with_activecontext(tmp_path: Path) -> None:
     assert out["ok"] is True
     assert out.get("load_now")
     assert out.get("degraded") is False
+    assert out["prompt_command"] == "INTEG IMPLEMENT"
+    assert out["workflow_file"] == ".cursor/rules/integration_developer/workflow-implement.mdc"
     prompt = Path(out["prompt_file"]).read_text(encoding="utf-8")
     assert "memory-bank/activeContext.md" in prompt
     assert "activeContext.md" in prompt

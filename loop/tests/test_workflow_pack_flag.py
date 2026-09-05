@@ -18,10 +18,11 @@ def test_workflow_pack_flag_in_help():
     assert "Override WORKFLOW_PACK env var for this session" in res.stdout
 
 
-def test_workflow_pack_flag_sets_env(monkeypatch, tmp_path: Path):
+def test_workflow_pack_flag_sets_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     from loop.context_loop import main
     from loop.workflow.registry import resolve_workflow_pack
 
+    monkeypatch.setattr(os, "environ", os.environ.copy())
     monkeypatch.delenv("WORKFLOW_PACK", raising=False)
     monkeypatch.delenv("EPIC_WORKFLOW_PACK", raising=False)
 

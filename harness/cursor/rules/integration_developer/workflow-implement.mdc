@@ -7,7 +7,7 @@ alwaysApply: false
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
 **Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc
-**Скиллы:** query-builder · tdd · fastapi-templates · frontend-patterns · frontend-testing · vercel-react-best-practices · verification-before-completion
+**Скиллы (HARD):** источник — секция `skills.impl` текущего decompose-step; прочитай каждый перечисленный путь целиком до production-кода. `verification-before-completion` — только pre-FINISH.
 
 **Цель:** Один UI-элемент — live API, без mock в prod path.
 
@@ -17,6 +17,7 @@ alwaysApply: false
 2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`  
    **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`. Jump `plan §N` только при нехватке.
 3. **Contract gate:** §Contract из шага — пуст → допиши до кода
+3a. **Skills gate:** `skills.impl` в текущем eNN — обязательный список Read; не угадывать и не заменять его широким каталогом.
 
 ## Фазы A–F
 

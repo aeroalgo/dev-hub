@@ -1,0 +1,300 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-052-workflow-pack-adoption-docs
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+date: 2026-09-05
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Provide complete adoption path for workflow packs: IDEA PIPELINE intent routing table (machine SoT), doctor workflow-pack preflight check with fail-closed diagnostics, author & operator runbooks, hub-link alongside pack rules copy, and loop --workflow-pack CLI flag."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 8
+  implemented: 8
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 10
+  sc_checked: 4
+  layout_paths_total: 9
+  layout_paths_closed: 9
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/workflow/intent_routing.yaml contains workflow-intent-routing/v1 mapping video_production, feature_full, content_factory; load_intent_routing() in loop/workflow/command_router.py."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "harness/cursor/rules/shared/workflow-idea-pipeline.mdc Intent table extended with video_production and content_factory rows referencing pack ids and intent_routing.yaml."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/doctor/checks/workflow_pack.py executes 4 preflight checks (pack resolve, phase_registry exists, rules_root exists, mb_root writable) and wired into doctor workflow-pack CLI in loop/context_loop.py."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "docs/runbooks/workflow-pack-authoring.md step-by-step 30-min guide matches T-HUB-051 reference template."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "docs/runbooks/workflow-pack-operator.md covers WORKFLOW_PACK env var, --workflow-pack flag, doctor usage, and troubleshooting table for diagnostic codes."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "bin/hub-link includes --pack <id> flag, install_pack_rules() function, and dry-run output in alongside mode."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/context_loop.py prepare subcommand includes --workflow-pack flag setting WORKFLOW_PACK environment variable."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "AGENTS.md and CLAUDE.md contain ## Workflow Packs section with table of packs (dev-hub-software, video-production), roles, command prefixes, and activation."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/tests/test_doctor_workflow_pack.py contains parameterized matrix coverage covering TM-001..TM-005."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "memory-bank/back/roadmap/archive/roadmap-harness-universal-runtime-epics.md §2 architecture table updated with Workflow Pack layer row."
+    remaining_work: ""
+  - source_ref: US-001
+    status: satisfied
+    evidence: "doctor workflow-pack CLI outputs diagnostic codes and fails closed before loop start."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "IDEA PIPELINE routes video_production intent to video-production pack pipeline."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "Author runbook docs/runbooks/workflow-pack-authoring.md provides 30-min pack setup guide."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "hub-link --pack video-production copies pack rules tree in alongside mode."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "context_loop prepare --help documents --workflow-pack flag."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "check_workflow_pack() executes without error on dev-hub root returning empty diagnostic list."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "doctor workflow-pack exits with code 1 on invalid pack fixture."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "load_intent_routing() maps video_production intent to video-production pack."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "docs/runbooks/workflow-pack-operator.md and docs/runbooks/workflow-pack-authoring.md exist on disk."
+    remaining_work: ""
+  - source_ref: "AC+:1"
+    status: satisfied
+    evidence: "doctor workflow-pack subcommand operational with resolve, phase_registry, rules_root, and mb_root writability checks."
+    remaining_work: ""
+  - source_ref: "AC+:2"
+    status: satisfied
+    evidence: "intent_routing.yaml referenced by IDEA PIPELINE workflow doc as machine SoT."
+    remaining_work: ""
+  - source_ref: "AC+:3"
+    status: satisfied
+    evidence: "Operator runbook and author runbook committed in docs/runbooks/."
+    remaining_work: ""
+  - source_ref: "AC+:4"
+    status: satisfied
+    evidence: "hub-link --pack implemented and documented in bin/hub-link alongside mode."
+    remaining_work: ""
+  - source_ref: "AC+:5"
+    status: satisfied
+    evidence: "doctor workflow-pack matrix tests in loop/tests/test_doctor_workflow_pack.py are complete and passing."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "IDEA PIPELINE has no prose-only routing; intent_routing.yaml and table row serve as machine SoT."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "Doctor checks fail-closed with exit code 1 and non-empty diagnostic codes list on invalid pack."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "No duplicate pack docs across disparate files; docs/runbooks/ serve as canonical runbook SoT."
+    remaining_work: ""
+  - source_ref: "layout:loop/workflow/intent_routing.yaml"
+    status: satisfied
+    evidence: "loop/workflow/intent_routing.yaml contains workflow-intent-routing/v1 schema."
+    remaining_work: ""
+  - source_ref: "layout:loop/doctor/checks/workflow_pack.py"
+    status: satisfied
+    evidence: "loop/doctor/checks/workflow_pack.py implements check_workflow_pack() and run_doctor_workflow_pack()."
+    remaining_work: ""
+  - source_ref: "layout:docs/runbooks/workflow-pack-authoring.md"
+    status: satisfied
+    evidence: "docs/runbooks/workflow-pack-authoring.md contains authoring guide."
+    remaining_work: ""
+  - source_ref: "layout:docs/runbooks/workflow-pack-operator.md"
+    status: satisfied
+    evidence: "docs/runbooks/workflow-pack-operator.md contains operator troubleshooting guide."
+    remaining_work: ""
+  - source_ref: "layout:bin/hub-link"
+    status: satisfied
+    evidence: "bin/hub-link contains install_pack_rules() and --pack flag handling."
+    remaining_work: ""
+  - source_ref: "layout:loop/context_loop.py"
+    status: satisfied
+    evidence: "loop/context_loop.py wires doctor workflow-pack and --workflow-pack CLI argument."
+    remaining_work: ""
+  - source_ref: "layout:AGENTS.md"
+    status: satisfied
+    evidence: "AGENTS.md includes Workflow Packs summary table."
+    remaining_work: ""
+  - source_ref: "layout:CLAUDE.md"
+    status: satisfied
+    evidence: "CLAUDE.md includes Workflow Packs summary table."
+    remaining_work: ""
+  - source_ref: "layout:loop/tests/test_doctor_workflow_pack.py"
+    status: satisfied
+    evidence: "loop/tests/test_doctor_workflow_pack.py tests preflight diagnostic behavior."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Constitution MUST boundary respected."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "MUST-1 TDD first followed during implementation."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "MUST-2 No silent fallback enforced in doctor and pack resolution."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "MUST-3 FRONT tests parent-only respected."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "MUST-4 Lean load adhered to during inspection."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "MUST-5 Fail-closed misconfiguration enforced on invalid pack."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "MUST-6 No-guess markers respected."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "MUST-7 ONE Handoff per step maintained."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "MUST-8 Integration parity maintained."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "MUST-9 Phase authority maintained."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/workflow/intent_routing.yaml
+    status: present
+    follow_up: ""
+    evidence: "loop/workflow/intent_routing.yaml"
+  - layout_path: loop/doctor/checks/workflow_pack.py
+    status: present
+    follow_up: ""
+    evidence: "loop/doctor/checks/workflow_pack.py"
+  - layout_path: docs/runbooks/workflow-pack-authoring.md
+    status: present
+    follow_up: ""
+    evidence: "docs/runbooks/workflow-pack-authoring.md"
+  - layout_path: docs/runbooks/workflow-pack-operator.md
+    status: present
+    follow_up: ""
+    evidence: "docs/runbooks/workflow-pack-operator.md"
+  - layout_path: bin/hub-link
+    status: present
+    follow_up: ""
+    evidence: "bin/hub-link"
+  - layout_path: loop/context_loop.py
+    status: present
+    follow_up: ""
+    evidence: "loop/context_loop.py"
+  - layout_path: AGENTS.md
+    status: present
+    follow_up: ""
+    evidence: "AGENTS.md"
+  - layout_path: CLAUDE.md
+    status: present
+    follow_up: ""
+    evidence: "CLAUDE.md"
+  - layout_path: loop/tests/test_doctor_workflow_pack.py
+    status: present
+    follow_up: ""
+    evidence: "loop/tests/test_doctor_workflow_pack.py"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s01-intent-routing-yaml.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s02-doctor-workflow-pack.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s03-operator-runbook.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s04-author-runbook.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s05-context-loop-workflow-pack-flag.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s06-hub-link-pack-flag.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s07-agents-claude-idea-pipeline-docs.yaml
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs/s08-pytest-roadmap-update.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-05
+  plan_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md#replacement--sunset
+  rows:
+    - symbol: "Prose-only IDEA video routing"
+      kind: A
+      command: "rg 'video.*SCRIPT PLAN' harness/cursor/rules/shared/workflow-idea-pipeline.mdc | grep -v '|'"
+      result: pass
+      prod_callers: []
+      notes: "Prose-only routing replaced by machine table in idea-pipeline.mdc and intent_routing.yaml."
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-05
+  rows:
+    - boundary: "intent-routing-sot"
+      enforce_evidence: "loop/workflow/intent_routing.yaml exists and is validated by test_intent_routing.py"
+      result: pass
+      notes: "YAML file serves as machine SoT for intent to pack mapping."
+
+blocked_reason: ""

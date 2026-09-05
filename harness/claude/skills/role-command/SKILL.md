@@ -49,6 +49,8 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 0b — session
 
+**HARD RULE:** до любой основной работы для каждой команды сначала вызови `Read` корневого `CLAUDE.md`, затем полностью прочитай цепочку `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow команды → `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Выборочно читать только один workflow запрещено. Пропущенный Read — нарушение процесса, но не блокирует FINISH.
+
 1. **Read** `.cursor/rules/token-economy-core.mdc` (full §0.0–§0.15) once per role-command session — stub already in context (@.cursor/rules/token-economy-stub.mdc)
 2. @.cursor/rules/shared/context-session-economy.mdc §3
 3. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). IMPLEMENT: step-файл + Handoff **до** decompose/`load_now` (не дублировать чеклист здесь)
@@ -134,7 +136,7 @@ Default (IMPLEMENT/TASK/QA/SECURITY execute): `memory-bank/activeContext.md` →
 
 ## Step 5 — skills (lazy)
 
-ONLY skills listed in the workflow file for current subtask. Do NOT scan skills catalog. SECURITY эпик execute: только Audit skills из `aNN` step.
+ONLY skills declared by the current workflow and its current decompose-step. Do NOT scan skills catalog. For `IMPLEMENT`, `TASK`, `BUGFIX` and `REFACTOR`, the top-level `skills.impl` list in the current decompose-step is mandatory: Read every listed skill in full before production-code edits. For FRONT UI work, also Read every `skills.design` / `skills.design_skills` entry before UI edits. SECURITY эпик execute: только Audit skills из `aNN` step.
 
 ## Step 6 — execute
 

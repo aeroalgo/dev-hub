@@ -4,26 +4,35 @@ step_id: s05
 plan_id: T-HUB-052-workflow-pack-adoption-docs
 title: s05 — context_loop.py --workflow-pack flag — CLI parity with WORKFLOW_PACK
   env var IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-05'
 decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s05-context-loop-workflow-pack-flag.yaml
-skills_used: []
+skills_used:
+- modern-python
+- python-testing-patterns
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Added --workflow-pack argument to context_loop.py prepare parser
+- Set WORKFLOW_PACK environment variable when --workflow-pack argument is passed
+- Added unit tests in test_workflow_pack_flag.py covering help text and env propagation
 files:
 - loop/context_loop.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- '`bin/pytest loop/tests/test_workflow_pack_flag.py -q --tb=line`'
+integration_check:
+- Added --workflow-pack CLI flag to context_loop.py prepare subcommand setting WORKFLOW_PACK
+  environment variable before session preparation
 grep_control: []
-verification_results: []
+verification_results:
+- pass
+- pass (2 passed)
 checkpoints:
 - id: cp1
   criterion: --workflow-pack appears in context_loop prepare --help
-  status: pending
+  status: done
 - id: cp2
   criterion: pytest TM-005 passes
-  status: pending
-resume_from: cp1
+  status: done

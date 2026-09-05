@@ -9,7 +9,7 @@ alwaysApply: false
 
 **Скиллы — только step + FINISH (HARD)**
 
-Канон задаёт **DECOMPOSE skills gate** в `sNN` (`Impl skills` + `Design skills`).
+Канон задаёт **DECOMPOSE skills gate** в `sNN` (`skills.impl` + `skills.design`/`skills.design_skills`). Прочитай **каждый** перечисленный путь целиком до production-кода; design skills — до UI-кода. Не угадывай skills и не загружай широкий каталог.
 
 | Что | Когда |
 |-----|--------|

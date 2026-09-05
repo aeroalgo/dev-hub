@@ -1462,8 +1462,40 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
     st = load_epic_state(cwd)
     if not st.get("active") or st.get("status") != "running":
         return None
+    from loop.prompt_builder import build_prompt_scope, render_prompt_scope
+
+    projection = dict(st.get("projection") or {})
+    for key in ("phase", "role", "step", "next_step", "epic", "epic_id"):
+        value = st.get(key)
+        if value and not projection.get(key):
+            projection[key] = value
+    if not projection.get("role") or not projection.get("phase"):
+        from loop.schemas.active_context import handoff_mode_from_text, parse_handoff_meta
+
+        active_context = read_active_context(cwd)
+        handoff_mode = handoff_mode_from_text(active_context)
+        handoff_meta = parse_handoff_meta(active_context)
+        handoff_role = str(getattr(handoff_meta, "role", "") or "").strip()
+        if not handoff_role:
+            match = re.search(
+                r"(?im)^##\s*Handoff\s+(BACK|FRONT|INTEG(?:RATION)?)\b",
+                active_context,
+            )
+            handoff_role = match.group(1) if match else ""
+        if handoff_role and not projection.get("role"):
+            projection["role"] = (
+                "INTEG" if handoff_role.upper() == "INTEGRATION" else handoff_role.upper()
+            )
+        if handoff_mode and not projection.get("phase"):
+            projection["phase"] = f"{projection.get('role') or 'BACK'} {handoff_mode.upper()}"
+    scope = build_prompt_scope(
+        cwd,
+        projection=projection,
+        fallback_command="BACK IMPLEMENT",
+    )
     ctx = (
-        f"source={source or '?'}\n"
+        render_prompt_scope(scope)
+        + f"source={source or '?'}\n"
         "Один шаг → FINISH (Handoff в activeContext) → stop.\n"
         "Режим/шаг — по activeContext + load_now.\n"
         "Не вызывай /clear."
@@ -1488,17 +1520,6 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
             ctx += f"\nWarning: bundle load failed ({diag})"
     except Exception as exc:
         ctx += f"\nWarning: load_session exception ({exc})"
-
-    try:
-        from loop.workflow.resolve import full_resolve
-
-        pack_res = full_resolve(cwd=cwd)
-        if pack_res.ok and pack_res.pack is not None:
-            ctx += f"\nPack: {pack_res.pack_id} | Prefixes: {pack_res.pack.command_prefixes}"
-        elif not pack_res.ok:
-            ctx += f"\nWarning: pack resolve failed ({pack_res.diagnostic_codes})"
-    except Exception as exc:
-        ctx += f"\nWarning: pack resolve exception ({exc})"
 
     return {
         "additionalContext": ctx,

@@ -232,11 +232,11 @@ def test_tm_004_arm_phase_dsh_video_pack(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 # ==============================================================================
-# TM-005: session_start_payload includes pack details and command prefixes
+# TM-005: session_start_payload includes the current command scope
 # ==============================================================================
 
 def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TM-005 / AC+5: EPIC_LOOP=1 + valid pack -> additionalContext contains pack_id and prefixes."""
+    """TM-005 / AC+5: EPIC_LOOP=1 + valid pack -> only current scope is injected."""
     monkeypatch.setenv("EPIC_LOOP", "1")
     save_epic_state(tmp_path, {"active": True, "status": "running", "armed_epic": "T-HUB-049"})
 
@@ -249,8 +249,9 @@ def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.Mo
     payload = session_start_payload(tmp_path)
     assert payload is not None
     assert "additionalContext" in payload
-    assert "Pack: dev-hub-software" in payload["additionalContext"]
-    assert "Prefixes: ['BACK', 'FRONT', 'INTEG']" in payload["additionalContext"]
+    assert payload["additionalContext"].startswith("COMMAND: BACK IMPLEMENT\n")
+    assert ".cursor/rules/back_developer/workflow-implement.mdc" in payload["additionalContext"]
+    assert "Prefixes:" not in payload["additionalContext"]
 
 
 def test_session_start_pack_inject_fail_safe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,8 +265,8 @@ def test_session_start_pack_inject_fail_safe(tmp_path: Path, monkeypatch: pytest
     payload = session_start_payload(tmp_path)
     assert payload is not None
     assert "additionalContext" in payload
-    assert "Warning: pack resolve failed" in payload["additionalContext"] or "pack resolve" in payload["additionalContext"]
-    assert "Pack: non-existent-pack" not in payload["additionalContext"]
+    assert "invalid_workflow_pack" in payload["additionalContext"]
+    assert "Prefixes:" not in payload["additionalContext"]
 
 
 def test_session_start_no_loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

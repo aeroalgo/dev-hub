@@ -82,6 +82,7 @@ flowchart TB
 | Behavior SoT | `harness/` (agents, hooks, instructions) | **новый** canonical path |
 | Runtime shell | `.claude/`, `.codex/` (thin + generated) | symlink / manifest |
 | IDE presentation | `.cursor/rules/` | @-refs на harness; формат mdc |
+| Workflow Pack layer | `packs/` / `intent_routing.yaml` | role prefixes, rules root, phases, memory-bank root |
 | Session executor | `RuntimeAdapter` via `EPIC_RUNTIME` | plug-in registry |
 | Subagent semantics | spawn-hard + phase_registry + stop-gate | **нет** — только delivery bridge |
 

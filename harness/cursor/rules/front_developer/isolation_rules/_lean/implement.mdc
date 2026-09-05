@@ -15,7 +15,7 @@ alwaysApply: false
 3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index без `✅`. Канон: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен FRONT CREATIVE <CR-ID>`). `no (… closed)` = дрейф → нормализовать
 4. TDD red/green: Vitest/RTL **targeted**; suite/Playwright → FRONT QA; запуск **только parent**
 5. **Scenario:** user-visible flow → Playwright targeted обязателен; путь в step/Handoff
-6. **Skills:** Read **целиком** только Impl (+ Design если не `—`) из step (+ FINISH-only); без широкого слоя A; Design **до** UI-кода
+6. **Skills:** Read **целиком** каждый путь из `skills.impl` и, если UI, `skills.design`/`skills.design_skills` из step (+ FINISH-only); без широкого слоя A; Design **до** UI-кода
 6a. **`deletes`:** выполнить все из work shard; FINISH → implement `deletes:`; §0.11 на отсутствие callers
 6b. Purge step (`*-legacy-fallback-purge`): evidence `rg`/entrypoint/Kind I inventory обязательна (shared/workflow-legacy-fallback-cleanup.mdc §3)
 6c. **`wire_complete`:** boundary/SoT/API contract steps → блок green до `completed` (shared/workflow-behavior-first.mdc §9)

@@ -29,21 +29,21 @@ steps:
   title: context_loop.py --workflow-pack flag — CLI parity with WORKFLOW_PACK env
     var
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-hub-link-pack-flag.yaml
   title: hub-link --pack <id> — alongside mode copies pack rules tree
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s07
   file: s07-agents-claude-idea-pipeline-docs.yaml
   title: AGENTS.md + CLAUDE.md Workflow Packs section + idea-pipeline.mdc intent table
     extension
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s08
   file: s08-pytest-roadmap-update.yaml
   title: pytest doctor workflow-pack matrix + roadmap-harness-universal-runtime table
     update
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

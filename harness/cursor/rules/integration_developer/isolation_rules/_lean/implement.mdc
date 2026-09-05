@@ -14,6 +14,7 @@ alwaysApply: false
 1. `load_now`: work shard `plan/<epic>/yaml/steps/eNN-*.yaml` + `yaml/decompose-index.yaml`; **не** gap/contracts/полный `plan.md` / `md/decompose-index.md`; AC = eNN
 2. §Contract из шага; пуст → допиши до кода
 3. Phases A→F = один UI-элемент; QueryBuilder для list/filter
+3a. **Skills:** Read **целиком** каждый путь из `skills.impl` текущего decompose-step до production-кода; не угадывать skills и не читать широкий каталог.
 4. §0.11; mock убран из prod path; **`deletes`** из eNN выполнены (legacy/mock client не висит)
 4a. Purge eNN: evidence `rg`/inventory/Kind I при slug `*-legacy-fallback-purge` (shared/workflow-legacy-fallback-cleanup.mdc §3)
 4b. **`wire_complete`:** contract/SoT boundary eNN → блок green до `completed` (shared/workflow-behavior-first.mdc §9)

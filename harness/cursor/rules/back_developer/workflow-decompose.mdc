@@ -36,6 +36,8 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 Канон: `skills-gate-situational.mdc`. Core(4) обязательны если не docs-only (`impl: []`).  
 **FORBIDDEN в `impl:`:** writing-plans · brainstorming · executing-plans · breakdown-plan.
 
+Каждый YAML decompose-step обязан хранить результат gate в top-level секции `skills:`: `code_surface` и `impl`. Значения `impl` — repo-relative пути `.agents/skills/<name>/SKILL.md`; этот список является источником обязательных Read для BACK IMPLEMENT.
+
 ---
 
 **Процесс**:

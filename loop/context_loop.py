@@ -87,6 +87,7 @@ from harness.hooks.epic import (  # noqa: E402
 )
 from loop.mb_load.session import load_session
 from loop.episodes import begin_episode, finalize_episode
+from loop.prompt_builder import build_prompt_scope, render_prompt_scope
 from harness.hooks.session_resilience import (  # noqa: E402
     analyze_session_log,
     classify_abort,
@@ -633,13 +634,19 @@ Epic: `{epic_id}`.
 
 def _qa_work_block(role: str, epic_id: str) -> str:
     rule_dir = _decompose_role_rule_dir(role)
+    role_command = {
+        "back": "BACK",
+        "front": "FRONT",
+        "integration": "INTEG",
+        "integ": "INTEG",
+    }.get(str(role).lower(), str(role).upper())
     return f"""## QA canon (HARD) — review, не IMPLEMENT
 1. Read `.cursor/rules/{rule_dir}/workflow-qa.mdc` + `_lean/qa.mdc` + `.cursor/templates/qa/epic-step.yaml`.
 2. Parent: **один** full suite `bin/pytest -q --tb=line` (без path/nodeid/`-k`). Targeted = FAIL (`suite_not_full`).
 3. После full suite → **1× verify-qa** (Suite results = эта full-suite команда · AC+ · AC− · §0.11 · ALLOW READ ≤10).
    FORBIDDEN: verify-qa до full suite; Suite results с path/`-k`.
 4. Артефакт: `{{mb_root}}/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml` (`epic-qa/v1`).
-5. fail|blocked → `fix_plan[]` + Handoff `BACK BUGFIX <subject>` + mb-finish qa. PASS только при green full suite + reviewer PASS.
+5. fail|blocked → `fix_plan[]` + Handoff `{role_command} BUGFIX <subject>` + mb-finish qa. PASS только при green full suite + reviewer PASS.
 6. `code_changed: no`. FORBIDDEN: Write/Edit prod (`loop/` `harness/` `.cursor/rules/` tests) в QA — это BUGFIX.
    FORBIDDEN: `FAIL → fix → re-verify` · крутить один failing test >1 раза.
 Epic: `{epic_id}`.
@@ -827,6 +834,7 @@ FORBIDDEN: `@verify` для CREATIVE.
 def build_prompt(
     cwd: str | Path,
     *,
+    command: str | None = None,
     shape_errors: list[str] | None = None,
     load_now: list[str] | None = None,
     delta_ok: bool | None = None,
@@ -839,6 +847,12 @@ def build_prompt(
     cwd_p = Path(cwd)
     load_now = list(load_now or [])
     shape_errors = list(shape_errors or [])
+    projection = projection or {}
+    scope = build_prompt_scope(
+        cwd_p,
+        projection=projection,
+        command=command,
+    )
     paths = mb_paths_for_prompt(cwd_p, load_now)
 
     if delta_ok is None and delta_scope is None:
@@ -850,28 +864,45 @@ def build_prompt(
     ac_text = read_active_context(cwd_p)
     marker_finished = handoff_indicates_epic_finished(ac_text)
     gate = epic_complete_allowed(cwd_p)
-    projection = projection or {}
-    phase = projection.get("phase")
+    phase = (
+        scope.command
+        if command
+        else projection.get("phase") or (scope.command if scope.phase else None)
+    )
     phase_done = str(phase or "").upper() == "DONE"
     truly_done = bool(
         gate.get("allowed")
         and (marker_finished or phase_done)
     )
-    # After EPIC_DONE / ARCHIVE do not discover other decompose indexes (would trigger VAN).
-    # Premature EPIC_DONE also must not VAN — stay on the current epic.
-    # phase DONE + allowed also must not discover — runner owns roadmap chain.
+    # Keep degraded context scoped to the armed epic. Never discover every
+    # decompose index: unrelated epics must not enter this prompt.
     if not load_now and not marker_finished and not truly_done:
-        for h in discover_decompose_indexes(cwd_p):
-            if h not in paths:
-                paths.append(h)
+        armed_decompose = str(
+            (load_epic_state(cwd_p) or {}).get("armed_decompose") or ""
+        ).strip()
+        if armed_decompose:
+            for h in mb_paths_for_prompt(cwd_p, [armed_decompose]):
+                if h not in paths:
+                    paths.append(h)
+        else:
+            # Recovery fallback for a malformed activeContext: use a
+            # decompose index only when the project has exactly one candidate.
+            # If there are several, adding any of them would leak another epic.
+            candidates = discover_decompose_indexes(cwd_p, limit=2)
+            if len(candidates) == 1:
+                for h in mb_paths_for_prompt(cwd_p, candidates):
+                    if h not in paths:
+                        paths.append(h)
 
     path_lines = "\n".join(f"- `{p}`" for p in paths)
     phase_kind = _phase_kind(phase)
     step_id = _projection_step_id(projection, cwd_p)
+    if step_id == "unknown" and scope.step != "unknown":
+        step_id = scope.step
     projection_lines = (
         "## projection\n"
         f"- phase: `{phase or 'unknown'}`\n"
-        f"- epic: `{projection.get('epic') or 'unknown'}`\n"
+        f"- epic: `{projection.get('epic') or scope.epic or 'unknown'}`\n"
         f"- step: `{step_id}`\n"
     )
     path_lines = f"{path_lines}\n\n{projection_lines}"
@@ -988,16 +1019,27 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish implement --step <sNN>`\n"
+            "\n## STEP FINISH\n"
+            f"1. Выполни только `{scope.command}` для шага `{step_id}`.\n"
+            "2. После завершения перепиши activeContext: `## load_now` → 1× `## Handoff` → ≤1× `## done`.\n"
         )
 
     resume_block = "\n".join(resume_lines or [])
     extra_block = "\n".join(extra_blocks or [])
     phase_work_block = ""
-    role_key = str(projection.get("role") or "back").lower()
+    role_key = str(
+        scope.role if command else projection.get("role") or scope.role or "back"
+    ).lower()
+    if role_key == "integ":
+        role_key = "integration"
     if role_key not in {"back", "front", "integration"}:
         role_key = "back"
-    epic_key = str(projection.get("epic") or projection.get("epic_id") or "unknown")
+    epic_key = str(
+        projection.get("epic")
+        or projection.get("epic_id")
+        or scope.epic
+        or "unknown"
+    )
     if phase_kind == "decompose":
         phase_work_block = _decompose_work_block(role_key, epic_key)
     elif phase_kind == "audit":
@@ -1006,7 +1048,8 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         phase_work_block = _qa_work_block(role_key, epic_key)
     commands_block = _commands_block(phase_kind)
 
-    return f"""Выполни один шаг.
+    return f"""{render_prompt_scope(scope)}
+Выполни один шаг.
 
 {resume_block}
 
@@ -1812,6 +1855,33 @@ def prepare_session(
 
     extra: list[str] = []
     proj_for_extra = _projection_for_gate_armed_step(st, projection)
+    # A degraded/rebuilt projection may not contain a trustworthy role while
+    # activeContext still has an authoritative handoff frontmatter.
+    from loop.schemas.active_context import handoff_mode_from_text, parse_handoff_meta
+
+    handoff_mode = handoff_mode_from_text(text)
+    handoff_meta = parse_handoff_meta(text)
+    handoff_role = str(getattr(handoff_meta, "role", "") or "").strip()
+    if not handoff_role:
+        match = re.search(
+            r"(?im)^##\s*Handoff\s+(BACK|FRONT|INTEG(?:RATION)?)\b",
+            text,
+        )
+        handoff_role = match.group(1) if match else ""
+    explicit_role = (
+        st.get("role")
+        or projection.get("role")
+        or (projection.get("projection") or {}).get("role")
+    )
+    if handoff_mode and handoff_role and not explicit_role:
+        role_u = "INTEG" if handoff_role.upper() == "INTEGRATION" else handoff_role.upper()
+        proj_for_extra["role"] = role_u
+        proj_for_extra["phase"] = f"{role_u} {handoff_mode.upper()}"
+    prompt_scope = build_prompt_scope(
+        cwd_p,
+        projection=proj_for_extra,
+        fallback_command="BACK IMPLEMENT",
+    )
     extra_phase_kind = _phase_kind(
         proj_for_extra.get("phase") or st.get("phase") or projection.get("phase")
     )
@@ -1831,12 +1901,13 @@ def prepare_session(
 
     prompt = build_prompt(
         cwd_p,
+        command=prompt_scope.command,
         shape_errors=shape,
         load_now=existing,
         delta_scope=delta_scope,
         delta_paths=delta_paths,
         resume_lines=resume_lines,
-        projection=_projection_for_gate_armed_step(st, projection),
+        projection=proj_for_extra,
         extra_blocks=extra_deduped,
     )
 
@@ -1879,7 +1950,12 @@ def prepare_session(
     st["delta_scope"] = delta_scope
     st["delta_paths"] = delta_paths
     proj_for_phase = _projection_for_gate_armed_step(st, projection)
-    phase_raw = proj_for_phase.get("phase") or st.get("phase") or projection.get("phase")
+    phase_raw = (
+        proj_for_phase.get("phase")
+        or st.get("phase")
+        or projection.get("phase")
+        or (prompt_scope.command if prompt_scope.phase else None)
+    )
     armed_step_now = st.get("armed_step")
     runtime_config = resolve_runtime_config(cwd_p)
     effective_runtime = (runtime or "").strip() or runtime_config.epic_runtime
@@ -1965,6 +2041,8 @@ def prepare_session(
         "dsh_workspace": str(cwd_p),
         "phase": phase_raw,
         "armed_step": armed_step_now,
+        "prompt_command": prompt_scope.command,
+        "workflow_file": prompt_scope.workflow_file,
         "episode_id": ep_id,
         "degraded": degraded,
         "shape_errors": shape,

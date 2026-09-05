@@ -9,6 +9,8 @@ alwaysApply: false
 **Не грузить:** `executing-plans`
 **FORBIDDEN в полях `back:`/`front:` eNN:** `writing-plans` · `brainstorming` — они сессионные (DECOMPOSE-only). В back/front impl lists — только skills из BACK/FRONT allowlist.
 
+Каждый YAML decompose-step обязан содержать top-level `skills:` с `code_surface` и `impl`. Для INTEG IMPLEMENT каждый путь из `skills.impl` — обязательный Read до production-кода; не подменять список hardcoded-каталогом.
+
 **Цель:** Plan Element registry → `decompose-*/` (`index.md` + **все** `eNN-*.yaml`) за **один** проход. НЕ писать код.  
 DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 

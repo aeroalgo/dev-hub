@@ -16,6 +16,9 @@ def test_build_prompt_implement_finish_order_and_handoff():
         load_now=["memory-bank/activeContext.md"],
         projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
     )
+    assert text.startswith("COMMAND: BACK IMPLEMENT\n")
+    assert ".cursor/rules/back_developer/workflow-implement.mdc" in text
+    assert "front_developer" not in text
     assert "- step: `s01`" in text
     assert "Silent chat (HARD)" in text
     assert "no thinking aloud" in text
@@ -46,6 +49,21 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "verify-qa до full suite" in text
 
 
+def test_build_prompt_qa_uses_current_integration_role():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        load_now=["memory-bank/activeContext.md"],
+        projection={"phase": "INTEG QA", "epic": "T-test", "next_step": "QA"},
+    )
+
+    assert text.startswith("COMMAND: INTEG QA\n")
+    assert ".cursor/rules/integration_developer/workflow-qa.mdc" in text
+    assert "Handoff `INTEG BUGFIX <subject>`" in text
+    assert "Handoff `BACK BUGFIX <subject>`" not in text
+
+
 def test_build_prompt_implement_keeps_session_fix():
     from context_loop import build_prompt
 
@@ -56,6 +74,25 @@ def test_build_prompt_implement_keeps_session_fix():
     )
     assert "это чинится в сессии: FAIL → fix → re-verify" in text
     assert "## QA canon (HARD)" not in text
+
+
+def test_build_prompt_custom_command_has_no_implement_finish_rules():
+    from context_loop import build_prompt
+
+    text = build_prompt(
+        ROOT,
+        command="SCRIPT STORYBOARD",
+        load_now=["memory-bank/activeContext.md"],
+        projection={
+            "phase": "SCRIPT STORYBOARD",
+            "epic": "T-test",
+            "next_step": "s01",
+        },
+    )
+
+    assert text.startswith("COMMAND: SCRIPT STORYBOARD\n")
+    assert "## STEP FINISH" in text
+    assert "mb-finish implement" not in text
 
 
 def test_build_prompt_creative_omits_verify():
