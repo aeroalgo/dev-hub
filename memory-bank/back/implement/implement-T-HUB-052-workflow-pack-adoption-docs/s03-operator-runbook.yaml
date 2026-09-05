@@ -2,8 +2,9 @@ schema: epic-implement/v1
 role: back
 step_id: s03
 plan_id: T-HUB-052-workflow-pack-adoption-docs
-title: s03 — docs/runbooks/workflow-pack-operator.md — env vars, loop flags, troubleshooting IMPLEMENT
-status: in_progress
+title: s03 — docs/runbooks/workflow-pack-operator.md — env vars, loop flags, troubleshooting
+  IMPLEMENT
+status: completed
 date: '2026-09-05'
 decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s03-operator-runbook.yaml
 skills_used: []
@@ -11,25 +12,30 @@ discovery: []
 gaps:
   status: none
 done:
-  - "Created docs/runbooks/workflow-pack-operator.md with overview, env vars table, --workflow-pack flag, doctor preflight, diagnostic codes troubleshooting table, and canonical intent_routing.yaml link."
+- Created docs/runbooks/workflow-pack-operator.md with overview, env vars table, --workflow-pack
+  flag, doctor preflight, diagnostic codes troubleshooting table, and canonical intent_routing.yaml
+  link.
 files:
-  - docs/runbooks/workflow-pack-operator.md
+- docs/runbooks/workflow-pack-operator.md
 deletes: []
 tests:
-  - "`bin/pytest loop/tests/test_doctor_workflow_pack.py -q --tb=line`"
+- '`bin/pytest loop/tests/test_doctor_workflow_pack.py -q --tb=line`'
 integration_check:
-  - "Runbook file docs/runbooks/workflow-pack-operator.md exists and contains sections for WORKFLOW_PACK, --workflow-pack, doctor workflow-pack, diagnostic codes, and links to intent_routing.yaml."
+- Runbook file docs/runbooks/workflow-pack-operator.md exists and contains sections
+  for WORKFLOW_PACK, --workflow-pack, doctor workflow-pack, diagnostic codes, and
+  links to intent_routing.yaml.
 grep_control: []
 verification_results:
-  - cp1 PASS — rg 'WORKFLOW_PACK|--workflow-pack|doctor workflow-pack' docs/runbooks/workflow-pack-operator.md
-  - cp2 PASS — rg 'pack_rules_missing|pack_phase_registry_missing|mb_root_not_writable|pack_not_found' docs/runbooks/workflow-pack-operator.md
+- cp1 PASS — rg 'WORKFLOW_PACK|--workflow-pack|doctor workflow-pack' docs/runbooks/workflow-pack-operator.md
+- cp2 PASS — rg 'pack_rules_missing|pack_phase_registry_missing|mb_root_not_writable|pack_not_found'
+  docs/runbooks/workflow-pack-operator.md
 checkpoints:
-  - id: cp1
-    criterion: docs/runbooks/workflow-pack-operator.md exists and contains WORKFLOW_PACK, --workflow-pack, doctor workflow-pack sections
-    status: done
-    done_at: '2026-09-05T00:00:00Z'
-  - id: cp2
-    criterion: Troubleshooting table covers all 4 diagnostic codes from failure matrix
-    status: done
-    done_at: '2026-09-05T00:00:00Z'
-resume_from: null
+- id: cp1
+  criterion: docs/runbooks/workflow-pack-operator.md exists and contains WORKFLOW_PACK,
+    --workflow-pack, doctor workflow-pack sections
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+- id: cp2
+  criterion: Troubleshooting table covers all 4 diagnostic codes from failure matrix
+  status: done
+  done_at: '2026-09-05T00:00:00Z'

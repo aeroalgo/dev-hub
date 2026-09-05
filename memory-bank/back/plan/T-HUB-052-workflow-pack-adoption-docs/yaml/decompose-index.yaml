@@ -18,12 +18,12 @@ steps:
   file: s03-operator-runbook.yaml
   title: docs/runbooks/workflow-pack-operator.md — env vars, loop flags, troubleshooting
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-author-runbook.yaml
   title: docs/runbooks/workflow-pack-authoring.md — «create pack in 30 min» step-by-step
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-context-loop-workflow-pack-flag.yaml
   title: context_loop.py --workflow-pack flag — CLI parity with WORKFLOW_PACK env

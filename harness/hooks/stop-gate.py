@@ -148,9 +148,19 @@ def main() -> None:
     msg = data.get("last_assistant_message") or ""
     st = load_state(session_id, cwd)
     if not workflow_state_active(st, cwd or None):
-        neutralize_state(st)
-        save_state(session_id, cwd, st)
-        return
+        # A persisted running epic is authoritative for the stop hook.  This
+        # also covers hook invocations launched without the shell's EPIC_LOOP
+        # export (for example editor/CI subprocesses) while still ignoring
+        # stale standalone spawn-gate state.
+        persisted_epic = load_epic_state(cwd) if cwd else {}
+        if not (
+            st.get("workflow_source") == "loop"
+            and persisted_epic.get("active")
+            and persisted_epic.get("status") == "running"
+        ):
+            neutralize_state(st)
+            save_state(session_id, cwd, st)
+            return
 
     epic = load_epic_state(cwd) if cwd else {}
     if cwd:

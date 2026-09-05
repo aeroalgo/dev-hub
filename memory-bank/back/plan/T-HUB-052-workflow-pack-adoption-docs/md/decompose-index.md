@@ -102,8 +102,8 @@
 | :--- | :--- | :---: | :---: | :--- | :--- |
 | **s01** | [s01-intent-routing-yaml.yaml](../yaml/steps/s01-intent-routing-yaml.yaml) — intent_routing.yaml + loader | no | yes | BACK IMPLEMENT | completed |
 | **s02** | [s02-doctor-workflow-pack.yaml](../yaml/steps/s02-doctor-workflow-pack.yaml) — doctor checks | no | yes | BACK IMPLEMENT | completed |
-| **s03** | [s03-operator-runbook.yaml](../yaml/steps/s03-operator-runbook.yaml) — operator runbook | no | no | BACK IMPLEMENT | pending |
-| **s04** | [s04-author-runbook.yaml](../yaml/steps/s04-author-runbook.yaml) — author runbook | no | no | BACK IMPLEMENT | pending |
+| **s03** | [s03-operator-runbook.yaml](../yaml/steps/s03-operator-runbook.yaml) — operator runbook | no | no | BACK IMPLEMENT | completed |
+| **s04** | [s04-author-runbook.yaml](../yaml/steps/s04-author-runbook.yaml) — author runbook | no | no | BACK IMPLEMENT | completed |
 | **s05** | [s05-context-loop-workflow-pack-flag.yaml](../yaml/steps/s05-context-loop-workflow-pack-flag.yaml) — --workflow-pack flag | no | yes | BACK IMPLEMENT | pending |
 | **s06** | [s06-hub-link-pack-flag.yaml](../yaml/steps/s06-hub-link-pack-flag.yaml) — hub-link --pack | no | no | BACK IMPLEMENT | pending |
 | **s07** | [s07-agents-claude-idea-pipeline-docs.yaml](../yaml/steps/s07-agents-claude-idea-pipeline-docs.yaml) — AGENTS/CLAUDE/idea-pipeline | no | no | BACK IMPLEMENT | pending |

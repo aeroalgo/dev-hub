@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from _lib import ActiveContextLocked
+from harness.hooks._lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _verify_pass_ready_for_step,
     atomic_write_text,

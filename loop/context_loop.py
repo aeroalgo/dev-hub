@@ -3155,6 +3155,11 @@ def main(argv: list[str] | None = None) -> int:
     p_prep = sub.add_parser("prepare", help="Build prompt + fingerprint before session")
     p_prep.add_argument("--model", default=None)
     p_prep.add_argument("--runtime", choices=runtime_choices, default=None)
+    p_prep.add_argument(
+        "--workflow-pack",
+        default=None,
+        help="Override WORKFLOW_PACK env var for this session",
+    )
 
     p_arm = sub.add_parser(
         "arm",
@@ -3297,6 +3302,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if out.get("ok") else 1
 
     if args.cmd == "prepare":
+        if getattr(args, "workflow_pack", None):
+            os.environ["WORKFLOW_PACK"] = args.workflow_pack
         out = prepare_session(cwd, model=args.model, runtime=args.runtime)
         print(json.dumps(out, ensure_ascii=False))
         if out.get("complete"):

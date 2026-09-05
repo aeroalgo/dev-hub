@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: s04 — docs/runbooks/workflow-pack-authoring.md — «create pack in 30 min» step-by-step
+  IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s04-author-runbook.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created docs/runbooks/workflow-pack-authoring.md with step-by-step 30-min guide
+  covering scaffolding, phase_registry.yaml, workflow_pack_registry.yaml, doctor workflow-pack
+  verification, and intent_routing.yaml
+files:
+- docs/runbooks/workflow-pack-authoring.md
+deletes: []
+tests:
+- '`bin/pytest tests/test_dashboard_doctor.py`'
+integration_check:
+- Checkpoints cp1 and cp2 passed verifying phase_registry/workflow_pack_registry references
+  and doctor workflow-pack verification step
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: docs/runbooks/workflow-pack-authoring.md exists with ≥5 numbered steps
+    and references to phase_registry.yaml, workflow_pack_registry.yaml
+  status: done
+  done_at: '2026-09-05T05:06:48Z'
+- id: cp2
+  criterion: Runbook mentions doctor workflow-pack as verification step
+  status: done
+  done_at: '2026-09-05T05:06:49Z'
+resume_from: cp1

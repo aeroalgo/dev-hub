@@ -116,9 +116,7 @@ def load_session(
 
     fp = fingerprint_context(act_text)
 
-    from loop.paths.pack_layout import pack_diagnostics
     return MbLoadResult(
-        **pack_diagnostics(cwd_path),
         ok=ok_status,
         diagnostic_codes=diagnostic_codes,
         shape_errors=[],

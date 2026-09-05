@@ -42,6 +42,9 @@ def load_plan_section(cwd: str | Path = ".", section: int | str = 1) -> tuple[st
     plan_dir = mb_root / role / "plan"
     # Exact current identity, including the scoped legacy filename layout.
     candidates = [plan_dir / epic_id / "md" / "plan.md", plan_dir / f"plan-{epic_id}.md"]
+    # Older packs append a human slug to the legacy filename.  Scope the glob
+    # to the exact epic prefix so another epic's plan cannot be pulled in.
+    candidates.extend(sorted(plan_dir.glob(f"plan-{epic_id}-*.md")))
     plan_file = next((p for p in candidates if p.is_file()), None)
 
     if not plan_file or not plan_file.is_file():

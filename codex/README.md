@@ -35,6 +35,25 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
    export OMNIROUTE_API_KEY_FILE=~/.codex/.omniroute_key
    ```
 
+## Model picker in VS Code / Cursor extension
+
+Codex CLI supports `model_catalog_json` in `~/.codex/config.toml` — an official
+extension point (unlike Claude Code, which needs a webview JS patch). It points
+to a JSON file whose `models` array *replaces* the built-in catalog, so
+`codex/bin/patch-model-catalog.py` merges the bundled catalog
+(`codex debug models --bundled`) with entries cloned from
+`~/.claude/extra-models.json`, then writes `~/.codex/model-catalog.json` and
+wires `model_catalog_json` into `config.toml`.
+
+```bash
+./codex/bin/patch-model-catalog.py apply    # merge + wire (idempotent)
+./codex/bin/patch-model-catalog.py status   # check current state
+```
+
+Re-run `apply` after editing `extra-models.json` or upgrading `@openai/codex`
+(the bundled catalog can change between versions). The extension/CLI model
+picker then lists every `extra-models.json` entry alongside the stock models.
+
 ## Usage with Loop
 
 To run the loop with Codex runtime:

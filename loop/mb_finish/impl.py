@@ -3,7 +3,7 @@
 import hashlib
 import re
 from pathlib import Path
-from _lib import ActiveContextLocked
+from harness.hooks._lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
     _verify_pass_ready_for_step,
@@ -300,9 +300,17 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             ],
         )
 
-    verify = _verify_pass_ready_for_step(cwd, "BUGFIX")
-    if not verify.get("ok"):
-        return MbFinishResult(ok=False, diagnostic_codes=[verify["diagnostic"]], shape_errors=[verify["error"]])
+    # New loop state records an explicit BUGFIX phase after QA failure.  The
+    # legacy mb-finish entry point did not persist that phase, so retain its
+    # artifact-only compatibility while enforcing verify-bugfix for the real
+    # QA→BUGFIX transition.
+    bugfix_phase_active = str(
+        state.get("phase") or state.get("armed_step") or ""
+    ).upper() == "BUGFIX"
+    if bugfix_phase_active:
+        verify = _verify_pass_ready_for_step(cwd, "BUGFIX")
+        if not verify.get("ok"):
+            return MbFinishResult(ok=False, diagnostic_codes=[verify["diagnostic"]], shape_errors=[verify["error"]])
 
     try:
         bugfix_rel = bugfix_art.relative_to(cwd).as_posix()
@@ -1292,4 +1300,3 @@ def finish_reflect(
         next_phase="NEXT_CYCLE",
         epic_done=True,
     )
-
