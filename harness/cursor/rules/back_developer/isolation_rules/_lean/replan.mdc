@@ -1,0 +1,28 @@
+---
+description: "REPLAN gates — независимый plan outcome в пределах трёх итераций"
+alwaysApply: false
+---
+# REPLAN — gates
+
+## Gates
+
+1. Вход только после PASS `BACK QA`, с исходным prompt и номером iteration.
+2. Исходный prompt — единственный критерий outcome. Старые plan/shards/audits
+   используются лишь для фактов уже сделанного.
+3. Создаваемый plan обязан иметь `iteration: 2` или `iteration: 3`, явный
+   outcome verbatim и отдельные `outcome_gap|legacy_removal|hardening` задачи.
+4. Любая работа вне исходного outcome уходит в `backlog_candidates`, а не в plan.
+5. После I3 новый plan запрещён. Допустим только FINAL OUTCOME REVIEW и
+   точечный BUGFIX, прямо восстанавливающий outcome.
+
+## Abort
+
+- Нет исходного prompt или QA PASS → reject.
+- Прежний plan/shard использован как доказательство достижения outcome → FAIL.
+- Создана I4 или расширен scope исходного prompt → FAIL.
+- Внесены code/loop/CLI/schema изменения в рамках REPLAN → FAIL.
+
+## Verify
+
+`rg -n 'iteration: 2|iteration: 3|FINAL OUTCOME REVIEW|backlog_candidates' .cursor/rules/back_developer/workflow-replan.mdc`
+

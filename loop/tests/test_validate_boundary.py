@@ -59,6 +59,94 @@ def test_unknown_schema_id_fails():
     assert "schema_unknown_schema_id" in res.diagnostic_codes
 
 
+def test_validate_boundary_sunset_zero_items_valid():
+    """TM-002 / AC+1 / FR-006: semantic empty inventory is valid (zero items)."""
+    payload = {
+        "schema": "loop-sunset-inventory/v1",
+        "boundary_id": "b_test_1",
+        "new_sot": "loop.schemas.boundary_registry.BOUNDARY_REGISTRY",
+        "forbidden_for_parent": [],
+        "diagnostic_codes": [],
+        "ok": True,
+        "items": [],
+    }
+    res = validate_boundary("loop-sunset-inventory/v1", payload)
+    assert isinstance(res, ValidateResult)
+    assert res.valid is True
+    assert res.schema_id == "loop-sunset-inventory/v1"
+    assert res.errors == []
+    assert res.diagnostic_codes == []
+
+
+def test_validate_boundary_sunset_nonzero_items_valid():
+    """TM-006 / AC+2: non-zero items inventory passes validation."""
+    payload = {
+        "schema": "loop-sunset-inventory/v1",
+        "boundary_id": "b_test_2",
+        "new_sot": "loop.schemas.boundary_registry.BOUNDARY_REGISTRY",
+        "forbidden_for_parent": ["old_helper"],
+        "diagnostic_codes": [],
+        "ok": True,
+        "items": [
+            {
+                "kind": "A",
+                "symbol": "old_func",
+                "path": "loop/old_module.py",
+                "start_line": 10,
+                "end_line": 15,
+                "excerpt": "def old_func():\n    pass",
+                "mark": "REPLACE",
+                "role": "back",
+                "notes": "legacy stub",
+            }
+        ],
+    }
+    res = validate_boundary("loop-sunset-inventory/v1", payload)
+    assert res.valid is True
+    assert res.schema_id == "loop-sunset-inventory/v1"
+    assert res.errors == []
+
+
+def test_validate_boundary_sunset_extra_field_fails():
+    """TM-003 / AC−5: extra field fails closed (extra=forbid)."""
+    payload = {
+        "schema": "loop-sunset-inventory/v1",
+        "boundary_id": "b_test_3",
+        "new_sot": "sot_target",
+        "unexpected_extra_field": "disallowed",
+        "items": [],
+    }
+    res = validate_boundary("loop-sunset-inventory/v1", payload)
+    assert res.valid is False
+    assert len(res.errors) > 0
+
+
+def test_validate_boundary_canonical_sunset_not_schema_unknown():
+    """US-004: canonical sunset id is recognized and does not produce schema_unknown_schema_id."""
+    res = validate_boundary("loop-sunset-inventory/v1", {})
+    assert "schema_unknown_schema_id" not in res.diagnostic_codes
+
+
+def test_cli_sunset_validate_boundary():
+    """SC-002 / AC+1: epic_resolve validate-boundary CLI with loop-sunset-inventory/v1."""
+    valid_payload = json.dumps({
+        "schema": "loop-sunset-inventory/v1",
+        "boundary_id": "b_test_cli",
+        "new_sot": "loop.schemas.boundary_registry.BOUNDARY_REGISTRY",
+        "items": [],
+    })
+    proc = subprocess.run(
+        [sys.executable, str(EPIC_RESOLVE), "validate-boundary", "--schema-id", "loop-sunset-inventory/v1", "--json", valid_payload],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0
+    data = json.loads(proc.stdout)
+    assert data.get("valid") is True
+    assert data.get("schema_id") == "loop-sunset-inventory/v1"
+
+
 def test_invalid_json_string_fails():
     """TM-003: unparseable JSON string produces schema_json_decode_error."""
     res = validate_boundary("loop-gate-verdict/v1", "not json {")

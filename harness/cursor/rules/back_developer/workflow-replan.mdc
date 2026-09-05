@@ -1,0 +1,58 @@
+---
+description: "Режим BACK REPLAN — независимое перепланирование outcome между тремя итерациями"
+alwaysApply: false
+---
+### Команда: BACK REPLAN
+
+**Контекст:** @.cursor/rules/back_developer/mainrule-core.mdc  
+**Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/replan.mdc
+
+## Назначение
+
+REPLAN выполняется только после PASS в `BACK QA`. Он заново строит план от
+неизменяемого исходного user prompt и фактического состояния кода. Предыдущие
+plan, decompose и audit artifacts — контекст для исключения уже сделанного, но
+не источник готовности и не ограничитель поиска gaps.
+
+## Бюджет итераций
+
+Для одного Outcome допустимы ровно три iteration:
+
+```text
+I1 PLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
+I2 REPLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
+I3 REPLAN → DECOMPOSE → ANALYZE → IMPLEMENT → AUDIT → QA
+FINAL OUTCOME REVIEW
+```
+
+Номер iteration фиксируется в plan и Handoff. REPLAN после I1 создаёт I2,
+после I2 — I3. После I3 он не создаёт I4.
+
+## Процесс для I2 и I3
+
+1. Загрузить исходный prompt verbatim из исходного plan/Handoff. Если его нельзя
+   восстановить без догадки, остановиться с `NEED_HUMAN: outcome_prompt_missing`.
+2. Исследовать фактический код и сценарии outcome. Не считать прежний plan,
+   completed shard, существующий файл или зелёный QA evidence доказательством
+   достижения outcome.
+3. Создать новый самостоятельный plan этой iteration. Включать только:
+   `outcome_gap` — требуемый исходным prompt сценарий отсутствует/частичен;
+   `legacy_removal` — старый путь противоречит outcome или оставляет dual-path;
+   `hardening` — минимальная работа, без которой outcome ненадёжен.
+4. Явно вынести улучшения, не требуемые outcome, в `backlog_candidates`; они не
+   блокируют iteration и не становятся shard.
+5. Передать новый plan в `BACK DECOMPOSE` с его собственным `plan_id` и
+   `iteration: 2|3`.
+
+## FINAL OUTCOME REVIEW после I3
+
+Сверить исходный prompt с реальным поведением и необходимыми legacy surfaces.
+Открыть только точечный `BACK BUGFIX`, если найден дефект, прямо нарушающий
+outcome. Архитектурные улучшения, расширение функциональности и новые идеи
+фиксируются в backlog и не открывают четвёртый plan.
+
+## Переходный статус
+
+Этот режим описан только в workflow. Он не добавляет loop state, CLI, schema,
+автоматический счётчик iteration или runtime gate; оператор запускает его явно.
+

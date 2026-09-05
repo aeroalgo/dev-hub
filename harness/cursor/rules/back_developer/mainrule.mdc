@@ -34,6 +34,7 @@ alwaysApply: false
 |-------|---------|
 | `BACK ROADMAP MERGE` | @.cursor/rules/back_developer/workflow-roadmap-merge.mdc — только если canon устарел без PLAN |
 | `BACK RECONCILE` | @.cursor/rules/back_developer/workflow-reconcile.mdc — drift после hotfix |
+| `BACK REPLAN` | @.cursor/rules/back_developer/workflow-replan.mdc — независимый plan outcome после QA |
 | `BACK JANITOR` | @.cursor/rules/back_developer/workflow-janitor.mdc |
 
 **Archive (не gate):** `workflow-reflect.mdc` — не линковать из hot path; lifecycle после QA = DONE.

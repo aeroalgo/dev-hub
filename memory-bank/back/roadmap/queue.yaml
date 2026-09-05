@@ -1,11 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-062
-  epic_id: T-HUB-062-skill-topology-canonical-paths
-  plan: plan-T-HUB-062-skill-topology-canonical-paths.md
-  deps: []
-  batch: workflow-loop-20260905
 - id: T-HUB-063
   epic_id: T-HUB-063-sunset-boundary-stop-pipeline
   plan: plan-T-HUB-063-sunset-boundary-stop-pipeline.md
@@ -299,6 +294,10 @@ done:
   epic_id: T-HUB-061-boundary-cli-doctor-hygiene
   plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
   batch: harness-ops-hygiene
+- id: T-HUB-062
+  epic_id: T-HUB-062-skill-topology-canonical-paths
+  plan: plan-T-HUB-062-skill-topology-canonical-paths.md
+  batch: workflow-loop-20260905
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: s02 — SubagentStop — fence sunset, no-fence DENY, retry then NEED_HUMAN IMPLEMENT
+status: in_progress
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/yaml/steps/s02-subagentstop-sunset-branch.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/hooks/subagent-stop.py
+- loop/tests/test_subagent_stop_sunset.py
+deletes:
+- 'implicit skip path: sunset-inventory completing without fence recorded as success
+  / clear_in_flight-only'
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Valid sunset fence on sunset-inventory stop → validate_boundary called
+    with sunset schema (not skip, not gate schema)
+  status: pending
+- id: cp2
+  criterion: No-fence transcript → not success; no sidecar ok; retry or block (US-002
+    / TM-004)
+  status: pending
+- id: cp3
+  criterion: Malformed fence → 1 retry then NEED_HUMAN; not silent accept
+  status: pending
+- id: cp4
+  criterion: Enforce — sunset not mapped to gate schema; search-agent skip gone (rg
+    branch exists)
+  status: pending
+resume_from: cp1

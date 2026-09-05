@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: "Kind I — prompt schema_id = registry; 08-row sunset wired"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Instruction surface `harness/agents/sunset-inventory.md` держит тот же schema_id,
+  что registry (не «validated» при missing pipeline). Living 08-style matrix row:
+  Start inject yes, Stop parse yes, Schema sunset, sidecar yes. Historical audit
+  08 file keep. Wrong schema id in prompt → fail validate, не prose accept.
+  FR-010: не удалять machine contract из prompt.
+
+plan_contract:
+  fr_ids: [FR-002, FR-007, FR-008, FR-010, SC-004, AC−3]
+  nouns:
+    - harness/agents/sunset-inventory.md
+    - SCHEMA_LOOP_SUNSET_INVENTORY
+    - 08 matrix row sunset-inventory
+    - misconfig wrong schema id fail validate
+  layout_paths:
+    - harness/agents/sunset-inventory.md
+    - loop/tests/test_sunset_kind_i.py
+    - memory-bank/audit/workflow-loop-20260905/08-test-and-evidence-matrix.md
+  ac_quotes:
+    - "Prompt `harness/agents/sunset-inventory.md` schema_id совпадает с registry (Kind I if drift)."
+    - "08 matrix row sunset: Start inject yes, Stop parse yes, Schema sunset, sidecar yes."
+    - "Misconfig (wrong schema id in prompt) → fail validate, не prose accept."
+    - "Не удалять sunset machine contract; «удалить schema из prompt» = только если registry path rejected — **не** выбран"
+    - "audit 08 matrix «currently no» → update after green (docs optional) | keep audit historical"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:86-97"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:116-128"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:191-196"
+
+context:
+  consumes:
+    - s01 one-string constant
+    - s02/s03 stop+sidecar behavior (matrix yes-row is true only after those)
+    - plan.md §FR-007/008/010 §Replacement I
+  produces:
+    - prompt schema_id == SCHEMA_LOOP_SUNSET_INVENTORY
+    - living pytest encoding 08 sunset row (start/stop/schema/sidecar)
+    - no instruction that claims validated while skip-path remains
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#functional-requirements-fr-
+  files:
+    - harness/agents/sunset-inventory.md
+    - loop/tests/test_sunset_kind_i.py
+
+as_built:
+  - "harness/agents/sunset-inventory.md already emits schema loop-sunset-inventory/v1 (truthful output shape; pipeline was missing)"
+  - "spawn-hard.md already requires fenced JSON loop-sunset-inventory/v1 for sunset-inventory"
+  - "audit 08 row: Start currently partial, Stop currently no, sidecar currently no — keep historical file"
+  - "no living pytest asserting the 08 sunset row"
+
+delta:
+  - "lock prompt schema string to registry constant (test: extract from md == SCHEMA_LOOP_SUNSET_INVENTORY)"
+  - "if CLI flag `--schema-id` vs `--schema` drift in prompt examples — align to epic_resolve actual flags"
+  - "add living matrix test: sunset-inventory stop parse yes, schema sunset, sidecar yes (behavior, not rewrite audit md)"
+  - "misconfig fixture: prompt/agent claiming other schema_id → validate fail (AC−3)"
+  - "do not delete schema fence from prompt (FR-010)"
+
+deletes:
+  - "instruction implying schema is validated by model_validate-only / skip-stop (if any in agent prompt or spawn packing for sunset)"
+
+out_of_scope:
+  - "rewrite historical audit 08 markdown (plan I keep)"
+  - "ownership v2 / Codex collab extra=ignore — follow_up: T-HUB-066-boundary-schema-ownership-strict"
+  - "video agents 064; skill FS 062"
+  - "purge leftover tests (s05)"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Prompt schema_id equals SCHEMA_LOOP_SUNSET_INVENTORY (FR-007)
+    verify: "bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k schema_id"
+  - id: cp2
+    criterion: Living 08-style row — stop parse + sidecar + sunset schema (SC-004 / FR-008)
+    verify: "bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k matrix"
+  - id: cp3
+    criterion: Wrong schema id in prompt/fixture → validate fail, not prose accept (AC−3)
+    verify: "bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k misconfig"
+  - id: cp4
+    criterion: FR-010 — prompt still contains loop-sunset-inventory/v1 fence contract
+    verify: "rg -n \"loop-sunset-inventory/v1\" harness/agents/sunset-inventory.md"
+
+verify:
+  - "bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line"
+  - "rg -n \"loop-sunset-inventory/v1\" harness/agents/sunset-inventory.md"
+
+tdd:
+  - "test_sunset_agent_prompt_schema_id_matches_registry — FR-007"
+  - "test_sunset_matrix_row_stop_parse_schema_sidecar — FR-008 / SC-004"
+  - "test_wrong_schema_id_in_prompt_fails_validate — AC−3"
+  - "test_sunset_prompt_retains_machine_contract — FR-010"

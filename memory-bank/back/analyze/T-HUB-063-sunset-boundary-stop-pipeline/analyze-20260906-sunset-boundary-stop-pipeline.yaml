@@ -1,0 +1,177 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+slug: sunset-boundary-stop-pipeline
+date: 2026-09-06
+status: complete
+
+findings: []
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "BOUNDARY_REGISTRY[SCHEMA_LOOP_SUNSET_INVENTORY] = SunsetReport (или WireSunsetReport с required schema)."
+  - requirement_id: FR-002
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Export schema id constant used by agent prompt and registry (one string)."
+  - requirement_id: FR-003
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "validate_boundary positive/negative tests in loop/tests/test_boundary_registry.py / test_validate_boundary.py."
+  - requirement_id: FR-004
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "SubagentStop: agent id sunset-inventory → extract fence → validate_boundary sunset schema."
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Persist result (sidecar path convention same family as gate, documented) or explicit typed in-memory + parent-readable file; not log-only."
+  - requirement_id: FR-006
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Malformed → schema retry count documented (0 or 1; sunset is search — prefer 1 retry then NEED_HUMAN). Semantic empty inventory is valid (zero items)."
+  - requirement_id: FR-007
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Prompt harness/agents/sunset-inventory.md schema_id совпадает с registry (Kind I if drift)."
+  - requirement_id: FR-008
+    step_ids: [s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "08 matrix row sunset: Start inject yes, Stop parse yes, Schema sunset, sidecar yes."
+  - requirement_id: FR-009
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Codex collab parser, если отдельный — same schema id (soft: если 066 owns collab, минимум registry shared)."
+  - requirement_id: FR-010
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Не удалять sunset machine contract; «удалить schema из prompt» = только если registry path rejected — не выбран (audit preferred include)."
+  - requirement_id: US-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как parent, я хочу validate_boundary принять корректный SunsetReport."
+  - requirement_id: US-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как hook, я хочу SubagentStop отвергнуть sunset без fence."
+  - requirement_id: US-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как parent, я хочу sidecar/result после valid sunset, чтобы строить deletes."
+  - requirement_id: US-004
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу unknown schema_id больше не быть единственным ответом на valid sunset."
+  - requirement_id: SC-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "registry contains sunset id"
+  - requirement_id: SC-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "valid payload CLI valid true"
+  - requirement_id: SC-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "stop without fence ≠ success"
+  - requirement_id: SC-004
+    step_ids: [s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "08-style matrix row green"
+  - requirement_id: AC+1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "loop-sunset-inventory/v1 in BOUNDARY_REGISTRY."
+  - requirement_id: AC+2
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "CLI validate success on fixture report (zero and non-zero items)."
+  - requirement_id: AC+3
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "SubagentStop validates sunset; no-fence fails."
+  - requirement_id: AC+4
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Parent-readable persisted result."
+  - requirement_id: AC−1
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Нет dual path unit-only validate vs hook skip."
+  - requirement_id: AC−2
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Нет silent schema_unknown на каноническом id."
+  - requirement_id: AC−3
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Misconfig (wrong schema id in prompt) → fail validate, не prose accept."
+  - requirement_id: AC−4
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Нет optional SoT «модель есть, hook нет»."
+  - requirement_id: AC−5
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Нет extra=ignore на sunset wire."
+  - requirement_id: TM-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "unknown schema_id leftover | CLI unknown | pytest registry | register | TM-001"
+  - requirement_id: TM-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "extra fields | pydantic extra=forbid | validate | fail | TM-002"
+  - requirement_id: TM-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "no fence | stop skip historically | stop test | retry/NEED_HUMAN | TM-003"
+  - requirement_id: TM-004
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "empty items valid | false fail | fixture zero items | valid true | TM-004"
+  - requirement_id: TM-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "persist fail | IO | hook | fail-closed not swallow | TM-005"
+  - requirement_id: TM-006
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "wrong agent id | mapped to gate schema | mapping test | sunset branch only | TM-006"
+  - requirement_id: TM-007
+    step_ids: []
+    status: covered
+    plan_text_verbatim: "Codex collab extra=ignore | silent extra | 066/this | forbid or follow-up 066 | TM-007"
+  - requirement_id: layout:loop/schemas/boundary_registry.py
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "loop/schemas/boundary_registry.py"
+  - requirement_id: layout:loop/schemas/sunset_inventory.py
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "loop/schemas/sunset_inventory.py"
+  - requirement_id: layout:harness/hooks/subagent-stop.py
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "harness/hooks/subagent-stop.py"
+  - requirement_id: layout:loop/tests/test_validate_boundary.py
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_validate_boundary.py"
+  - requirement_id: layout:harness/agents/sunset-inventory.md
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "harness/agents/sunset-inventory.md"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

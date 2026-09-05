@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** audit `04-schemas-validation.md` P0 · `05-repair-and-verdict.md` · `01-subagents-prompts.md` sunset
 
-→ decompose-index — **после DECOMPOSE**
+→ decompose-index — [md/decompose-index.md](decompose-index.md) · [yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 

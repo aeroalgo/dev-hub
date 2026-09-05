@@ -1,0 +1,239 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: "s05 — legacy-fallback-purge — unknown-id leftover + skip-path"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: канонический sunset id больше не ожидается как
+  schema_unknown; Stop не skip search-agent; persist не swallow; prompt не врёт
+  «validated» без pipeline. Нулевые leftover A+B+C+I из plan Replacement;
+  obsolete tests rewritten; suite green без restore unknown-id. Канон:
+  workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-010, US-004, AC−1, AC−2, AC−4, Independent Test]
+  nouns:
+    - leftover schema_unknown on canonical sunset
+    - skip sunset because not verify
+    - swallow persist exception
+    - tests encoding unknown id as expected
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - loop/tests/test_boundary_registry.py
+    - harness/hooks/subagent-stop.py
+    - harness/agents/sunset-inventory.md
+  ac_quotes:
+    - "Нет dual path unit-only validate vs hook skip."
+    - "Нет silent `schema_unknown` на каноническом id."
+    - "Нет optional SoT «модель есть, hook нет»."
+    - "FAIL: «SunsetReport.model_validate in unit» only."
+    - "tests only model_validate → e2e validate_boundary + stop | rewrite in-epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:167-196"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:123-129"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:235-254"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s04 new SoT already wired
+  produces:
+    - удалённые leftover asserts/skip-paths/instructions
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+  files:
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_sunset_inventory_schema.py
+    - harness/hooks/subagent-stop.py
+    - harness/agents/sunset-inventory.md
+
+as_built:
+  - "test_boundary_registry_contains_all_four_schemas (s01 rewrites; purge leftover comments/other files)"
+  - "stop fall-through for non-verify agents"
+  - "unit-only sunset schema tests remain valid as extra, not as sole SoT"
+  - "audit 08 historical «currently no» kept (not a leftover instruction SoT)"
+
+delta:
+  - "rewrite/delete any remaining asserts that canonical sunset id → schema_unknown"
+  - "rg: no skip-because-not-verify for sunset-inventory in prod hooks"
+  - "rg: persist except swallow absent"
+  - "inventory scan all A+B+C+I rows; Kind I remaining skip-path comments in prompts/rules"
+  - "targeted pytest green without restoring unknown-id contract"
+
+sunset_inventory:
+  - symbol: BOUNDARY_REGISTRY without SCHEMA_LOOP_SUNSET_INVENTORY
+    kind: A
+    replacement: BOUNDARY_REGISTRY[SCHEMA_LOOP_SUNSET_INVENTORY] = SunsetReport
+    policy: delete in-epic
+    rg_scope: loop/schemas/boundary_registry.py loop/tests/test_boundary_registry.py
+    expect: sunset id present; no exact-len==4
+  - symbol: harness/hooks/subagent-stop.py ignore sunset-inventory
+    kind: A
+    replacement: dedicated sunset branch + validate_boundary
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-stop.py
+    expect: sunset-inventory branch exists; not fall-through-only
+  - symbol: loop/tests asserting schema_unknown for loop-sunset-inventory/v1
+    kind: A
+    replacement: tests on known id / valid:true
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: validate-boundary unknown for sunset
+    kind: B
+    replacement: known --schema-id loop-sunset-inventory/v1
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_resolve.py loop/tests/test_validate_boundary.py
+    expect: CLI accepts canonical id
+  - symbol: skip sunset because not verify
+    kind: C
+    replacement: validate anyway
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-stop.py
+    expect: zero skip/search-agent bypass for sunset-inventory
+  - symbol: swallow persist exception
+    kind: C
+    replacement: raise/NEED_HUMAN
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-stop.py harness/hooks/_lib.py
+    expect: persist errors fail-closed
+  - symbol: prompt «schema validated» while registry/hook missing
+    kind: I
+    replacement: truthful fence → registry → stop pipeline
+    policy: delete in-epic
+    rg_scope: harness/agents/sunset-inventory.md .claude/instructions/spawn-hard.md
+    expect: schema_id matches registry; no skip-stop instruction
+  - symbol: audit 08 matrix currently no
+    kind: I
+    replacement: living pytest row; keep historical audit file
+    policy: keep
+    rg_scope: memory-bank/audit/workflow-loop-20260905/08-test-and-evidence-matrix.md
+    expect: historical file may still say currently no; living test encodes yes
+
+deletes:
+  - "loop/tests leftover exact-four / canonical-sunset-is-unknown asserts"
+  - "prod skip path for sunset-inventory in subagent-stop.py"
+  - "silent persist except: around sunset sidecar write"
+  - "Kind I packing text that skip-validates sunset as search-only"
+
+out_of_scope:
+  - "historical audit 08 markdown rewrite (policy keep)"
+  - "T-HUB-066 collab extra=ignore — follow_up: T-HUB-066-boundary-schema-ownership-strict"
+  - "MCP sunset tool; auto-fill plan tables (appetite)"
+  - "full suite → QA"
+
+# grep_control (HARD) — executable rg per sunset_inventory row; FINISH evidence обязана.
+# Canonical checks: no schema_unknown on loop-sunset-inventory/v1; no skip-path;
+# persist errors not swallowed; prompt schema_id matches registry (no drift).
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: BOUNDARY_REGISTRY without sunset
+    command: 'rg -n "SCHEMA_LOOP_SUNSET_INVENTORY" loop/schemas/boundary_registry.py'
+    expect: ≥1 hit; registry maps sunset model
+  - id: inv-a-02
+    kind: A
+    symbol: stop ignore sunset
+    command: 'rg -n "sunset-inventory" harness/hooks/subagent-stop.py'
+    expect: branch present (not comments-only)
+  - id: inv-a-tests-01
+    kind: A
+    symbol: tests expecting unknown for canonical sunset
+    command: 'rg -n "loop-sunset-inventory/v1" loop/tests/ harness/hooks/tests/ | rg -n "schema_unknown|unknown_schema" || true'
+    expect: no output tying canonical id to unknown
+  - id: inv-a-tests-02
+    kind: A
+    symbol: exact four schemas leftover
+    command: 'rg -n "len\\(BOUNDARY_REGISTRY\\) == 4" loop/tests/ || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: validate-boundary unknown for sunset
+    command: 'rg -n "loop-sunset-inventory/v1" loop/tests/test_validate_boundary.py loop/tests/test_boundary_registry.py'
+    expect: positive known-id tests exist
+  - id: inv-c-01
+    kind: C
+    symbol: skip sunset because not verify
+    command: 'rg -n "not verify|search agent|skip sunset" harness/hooks/subagent-stop.py || true'
+    expect: no skip-bypass for sunset
+  - id: inv-c-02
+    kind: C
+    symbol: swallow persist exception
+    command: 'rg -n "except.*pass|except OSError" harness/hooks/subagent-stop.py || true'
+    expect: persist errors not swallowed as success
+  - id: inv-i-01
+    kind: I
+    symbol: prompt schema drift
+    command: 'rg -n "loop-sunset-inventory/v1" harness/agents/sunset-inventory.md'
+    expect: schema present and matches registry
+  - id: inv-i-02
+    kind: I
+    symbol: skip-stop instruction
+    command: 'rg -n "schema validated" harness/agents/sunset-inventory.md .claude/instructions/spawn-hard.md || true'
+    expect: no claim of validation without stop pipeline
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A grep_control inv-a-01, inv-a-02, inv-a-tests-01, inv-a-tests-02:
+      registry has SCHEMA_LOOP_SUNSET_INVENTORY; stop branch exists;
+      0 leftover tests asserting schema_unknown / exact-4 on canonical sunset id.
+    verify: |
+      rg -n "SCHEMA_LOOP_SUNSET_INVENTORY" loop/schemas/boundary_registry.py
+      rg -n "sunset-inventory" harness/hooks/subagent-stop.py
+      rg -n "loop-sunset-inventory/v1" loop/tests/ harness/hooks/tests/ | rg -n "schema_unknown|unknown_schema" || true
+      rg -n "len\\(BOUNDARY_REGISTRY\\) == 4" loop/tests/ || true
+      bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py -q --tb=line -k sunset
+  - id: cp2
+    criterion: Kind B grep_control inv-b-01 — CLI/tests known id loop-sunset-inventory/v1 (not unknown-as-success)
+    verify: "rg -n \"loop-sunset-inventory/v1\" loop/tests/test_validate_boundary.py loop/tests/test_boundary_registry.py"
+  - id: cp3
+    criterion: |
+      Kind C+I grep_control inv-c-01, inv-c-02, inv-i-01, inv-i-02:
+      no skip-not-verify; persist errors not swallowed; prompt schema_id matches registry; no skip-stop instruction.
+    verify: |
+      rg -n "not verify|search agent|skip sunset" harness/hooks/subagent-stop.py || true
+      rg -n "except.*pass|except OSError" harness/hooks/subagent-stop.py || true
+      rg -n "loop-sunset-inventory/v1" harness/agents/sunset-inventory.md
+      rg -n "schema validated" harness/agents/sunset-inventory.md .claude/instructions/spawn-hard.md || true
+      bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line
+  - id: cp4
+    criterion: Obsolete unknown-id/exact-4 tests gone or rewritten; targeted green without restore (inv-a-tests-01/02)
+    verify: "rg -n \"len\\(BOUNDARY_REGISTRY\\) == 4\" loop/tests/ || true; bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py loop/tests/test_sunset_inventory_schema.py loop/tests/test_subagent_stop_sunset.py loop/tests/test_sunset_kind_i.py -q --tb=line"
+
+sunset_scope:
+  required: true
+  boundary_id: sunset-stop-pipeline
+  new_sot: loop/schemas/boundary_registry.py
+  allow_read:
+    - loop/schemas/
+    - loop/tests/
+    - harness/hooks/subagent-stop.py
+    - harness/agents/sunset-inventory.md
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+verify:
+  - "bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py loop/tests/test_sunset_inventory_schema.py -q --tb=line"
+
+tdd:
+  - "test_canonical_sunset_not_schema_unknown_after_purge"
+  - "test_no_exact_four_registry_assert"
+  - "test_no_prod_skip_sunset_search_agent"

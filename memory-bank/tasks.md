@@ -3,7 +3,7 @@
 ## Active
 
 | T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] · next BACK ANALYZE · batch workflow-loop-20260905 |
-| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | PLAN done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · batch workflow-loop-20260905 |
+| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · [decompose](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/decompose-index.md) · 5 sNN · next BACK ANALYZE · batch workflow-loop-20260905 |
 | T-HUB-064 | Video pack route + verify parity | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md) · batch workflow-loop-20260905 |
 | T-HUB-065 | Duplicate hooks + runtime entrypoint | L3 | PLAN done | queued | [plan](back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md) · batch workflow-loop-20260905 |
 | T-HUB-066 | Boundary schema + ownership strict | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md) · deps T-HUB-063 · batch workflow-loop-20260905 |
@@ -21,7 +21,7 @@
 | ID | Title | Level | Step | Status | Progress |
 |----|-------|-------|------|--------|----------|
 | T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] workflow-loop-20260905 · next ANALYZE |
-| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | PLAN done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) |
+| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · [decompose](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/decompose-index.md) · next ANALYZE |
 | T-HUB-064 | Video pack route + verify parity | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md) |
 | T-HUB-065 | Duplicate hooks + runtime entrypoint | L3 | PLAN done | queued | [plan](back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md) |
 | T-HUB-066 | Boundary schema + ownership strict | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md) · deps T-HUB-063 |

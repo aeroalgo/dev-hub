@@ -1,0 +1,76 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: s01 — Registry + CLI — loop-sunset-inventory/v1 проходит validate_boundary
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/yaml/steps/s01-register-sunset-boundary.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- BOUNDARY_REGISTRY in loop/schemas/boundary_registry.py updated with SCHEMA_LOOP_SUNSET_INVENTORY
+  -> SunsetReport
+- Re-exported SCHEMA_LOOP_SUNSET_INVENTORY from loop/schemas/boundary_registry.py
+gaps:
+  status: none
+done:
+- Registered SCHEMA_LOOP_SUNSET_INVENTORY in BOUNDARY_REGISTRY mapping to SunsetReport
+- Re-exported SCHEMA_LOOP_SUNSET_INVENTORY in loop/schemas/boundary_registry.py and
+  __all__
+- Rewrote test_boundary_registry_contains_all_four_schemas to test_boundary_registry_contains_sunset_schema
+  removing hardcoded len==4
+- 'Added validate_boundary tests for zero and non-zero items (valid: true), extra
+  field (fail-closed), canonical id recognition'
+- Added CLI test for validate-boundary --schema-id loop-sunset-inventory/v1
+files:
+- loop/schemas/boundary_registry.py
+- loop/schemas/sunset_inventory.py
+- loop/tests/test_boundary_registry.py
+- loop/tests/test_validate_boundary.py
+deletes:
+- loop/tests/test_boundary_registry.py::test_boundary_registry_contains_all_four_schemas
+  exact len==4 assert (rewrite, not leave as expected unknown)
+tests:
+- '`bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py
+  -q --tb=line -k sunset`'
+- '`bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py
+  -q --tb=line`'
+- '`bin/pytest loop/tests/test_sunset_inventory_schema.py -q --tb=line`'
+integration_check:
+- 'python3 harness/hooks/epic_resolve.py validate-boundary --schema-id loop-sunset-inventory/v1
+  --json ''{"schema":"loop-sunset-inventory/v1","boundary_id":"b_test","new_sot":"sot","items":[]}''
+  -> valid: true'
+grep_control:
+- back: rg -n 'SCHEMA_LOOP_SUNSET_INVENTORY' loop/schemas/boundary_registry.py
+  front: ''
+verification_results:
+- 'cp1: BOUNDARY_REGISTRY maps SCHEMA_LOOP_SUNSET_INVENTORY to SunsetReport -> PASS'
+- 'cp2: CLI/validate_boundary valid fixture zero items -> valid true; non-zero items
+  -> valid true -> PASS'
+- 'cp3: extra field fail-closed; truly unknown schema_id -> schema_unknown; canonical
+  sunset id is not unknown -> PASS'
+- 'cp4: Independent Test CLI path — epic_resolve validate-boundary --schema-id loop-sunset-inventory/v1
+  on fixture -> PASS'
+checkpoints:
+- id: cp1
+  criterion: BOUNDARY_REGISTRY maps SCHEMA_LOOP_SUNSET_INVENTORY to SunsetReport (or
+    WireSunsetReport)
+  status: done
+- id: cp2
+  criterion: CLI/validate_boundary valid fixture zero items → valid true; non-zero
+    items → valid true
+  status: done
+- id: cp3
+  criterion: extra field fail-closed; truly unknown schema_id → schema_unknown; canonical
+    sunset id is not unknown
+  status: done
+- id: cp4
+  criterion: Independent Test CLI path — epic_resolve validate-boundary --schema-id
+    loop-sunset-inventory/v1 on fixture
+  status: done

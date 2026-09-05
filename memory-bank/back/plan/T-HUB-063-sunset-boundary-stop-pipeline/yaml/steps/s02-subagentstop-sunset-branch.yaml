@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: "SubagentStop — fence sunset, no-fence DENY, retry then NEED_HUMAN"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SubagentStop для agent id `sunset-inventory` (alias `sunset`) извлекает JSON fence,
+  зовёт validate_boundary(loop-sunset-inventory/v1), не skip как «search agent».
+  Нет fence → не success / не persist; 1 schema retry затем NEED_HUMAN.
+  Wire+enforce: старый fall-through без валидации = DENY.
+
+plan_contract:
+  fr_ids: [FR-004, FR-006, FR-008, US-002, SC-003, SC-004, AC+3, AC−1, AC−4, TM-004]
+  nouns:
+    - harness/hooks/subagent-stop.py sunset branch
+    - extract_json_fence
+    - validate_boundary loop-sunset-inventory/v1
+    - schema retry 1 then NEED_HUMAN
+    - agent id sunset-inventory / alias sunset
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/
+    - loop/tests/
+  ac_quotes:
+    - "SubagentStop: agent id `sunset-inventory` → extract fence → validate_boundary sunset schema."
+    - "Given: sunset-inventory subagent completion text without JSON fence / When: SubagentStop / Then: not recorded as success; retry or NEED_HUMAN per policy; no sidecar «ok»"
+    - "Нет dual path unit-only validate vs hook skip."
+    - "Нет optional SoT «модель есть, hook нет»."
+    - "sunset is search — prefer 1 retry then NEED_HUMAN"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:79-96"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:116-155"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:183-189"
+
+context:
+  consumes:
+    - s01 registry known id
+    - plan.md §FR-004/006 §US-002 §AC+3 §Failure matrix TM-003/TM-006-map
+    - as-built gate/repair branches in subagent-stop.py
+  produces:
+    - SubagentStop sunset-inventory branch using same parser as gate
+    - no-fence ≠ success
+    - malformed fence → 1 retry then NEED_HUMAN
+    - wrong agent id does not validate as gate schema
+  plan_refs:
+    - plan.md#acceptance-scenarios--us-002
+    - plan.md#functional-requirements-fr-
+    - plan.md#failure-matrix
+  files:
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_subagent_stop_sunset.py
+
+as_built:
+  - "SubagentStop validates VERIFY_FINISH_AGENTS (gate) and gate-repair only"
+  - "after those branches: if agent_type: clear_in_flight; return — sunset ignored"
+  - "sunset-inventory overlay mode=search verdict=none; not in VERIFY_FINISH_AGENTS"
+  - "08 matrix: sunset Start inject currently partial, Stop parse currently no, sidecar currently no"
+  - "schema retry: gate ≤2, repair ≤1; sunset policy = 1 then NEED_HUMAN"
+
+delta:
+  - "branch agent_type in {sunset-inventory, sunset} (normalize alias): extract fence → validate_boundary(SCHEMA_LOOP_SUNSET_INVENTORY)"
+  - "no fence / schema error: increment retry; retry_count<=1 → stderr re-emit; else NEED_HUMAN: schema_retry_exhausted (sunset)"
+  - "do NOT add sunset to VERIFY_MB_FINISH / finish mapping"
+  - "semantic empty items already valid at s01; stop must not treat zero items as fail"
+  - "mapping: sunset transcript must not be validated as loop-gate-verdict/v1 (TM-006)"
+
+deletes:
+  - "implicit skip path: sunset-inventory completing without fence recorded as success / clear_in_flight-only"
+
+out_of_scope:
+  - "sidecar write + parent helper (s03) — this step DENY no-fence; persist on valid is s03 (may share helper if needed)"
+  - "Kind I prompt rewrite (s04)"
+  - "purge leftover unknown-id tests (s05)"
+  - "VERIFY_MB_FINISH / transactional finish — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Valid sunset fence on sunset-inventory stop → validate_boundary called with sunset schema (not skip, not gate schema)
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k valid"
+  - id: cp2
+    criterion: No-fence transcript → not success; no sidecar ok; retry or block (US-002 / TM-004)
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k no_fence"
+  - id: cp3
+    criterion: Malformed fence → 1 retry then NEED_HUMAN; not silent accept
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k retry"
+  - id: cp4
+    criterion: Enforce — sunset not mapped to gate schema; search-agent skip gone (rg branch exists)
+    verify: "rg -n \"sunset-inventory\" harness/hooks/subagent-stop.py"
+
+sunset_scope:
+  required: true
+  boundary_id: sunset-stop-pipeline
+  new_sot: harness/hooks/subagent-stop.py#sunset-inventory
+  allow_read:
+    - harness/hooks/subagent-stop.py
+    - loop/schemas/boundary_registry.py
+    - loop/schemas/sunset_inventory.py
+    - loop/validate_boundary.py
+  kind_hint:
+    - A
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line"
+  - "rg -n \"sunset-inventory\" harness/hooks/subagent-stop.py"
+
+tdd:
+  - "test_subagent_stop_sunset_valid_fence_validates_sunset_schema — FR-004"
+  - "test_subagent_stop_sunset_no_fence_not_success — TM-004 / US-002"
+  - "test_subagent_stop_sunset_schema_retry_then_need_human — FR-006"
+  - "test_subagent_stop_sunset_not_validated_as_gate_schema — TM-006 mapping"
+  - "test_subagent_stop_sunset_alias_sunset_same_branch"

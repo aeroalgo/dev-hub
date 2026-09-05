@@ -1,0 +1,118 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: "Persist sidecar — parent читает valid SunsetReport, IO fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  После valid sunset stop parent читает typed result с диска (sidecar same family
+  as gate / `.claude/runtime/epic/…`), не log-only. Persist IO fail → raise /
+  NEED_HUMAN, не swallow. US-003: file or state key exists with schema_id.
+
+plan_contract:
+  fr_ids: [FR-005, FR-008, US-003, SC-004, AC+4, TM-005]
+  nouns:
+    - sidecar `.claude/runtime/epic/sunset-<session>-<step>.json` or gate-family path
+    - parent read helper
+    - persist fail-closed
+    - schema_id on persisted payload
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - loop/schemas/sunset_inventory.py
+    - harness/hooks/_lib.py
+  ac_quotes:
+    - "Persist result (sidecar path convention same family as gate, documented) **or** explicit typed in-memory + parent-readable file; not log-only."
+    - "Как parent, я хочу sidecar/result после valid sunset, чтобы строить deletes."
+    - "Independent Test: file or state key exists with schema_id"
+    - "swallow persist exception → raise/NEED_HUMAN | delete in-epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:85-96"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:116-135"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:183-215"
+
+context:
+  consumes:
+    - s02 valid stop path (fence already validated)
+    - plan.md §FR-005 §HOW sidecar convention
+    - as-built gate sidecar via parse_gate_verdict_message / read_gate_verdict
+  produces:
+    - parent-readable sunset sidecar/file after valid stop
+    - documented path convention (gate family)
+    - persist IO → NEED_HUMAN / raise, not silent
+  plan_refs:
+    - plan.md#техника--архитектура-how
+    - plan.md#replacement--sunset
+  files:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - loop/tests/test_subagent_stop_sunset.py
+
+as_built:
+  - "gate sidecar: parse_gate_verdict_message + read_gate_verdict; VERIFY_FINISH_AGENTS only"
+  - "plan HOW: `.claude/runtime/epic/sunset-<session>-<step>.json` or existing evidence dir — pick one existing convention"
+  - "sunset stop currently writes nothing parent-readable"
+  - "state.json is forbidden as operator SoT (state_projection_forbidden)"
+
+delta:
+  - "on valid sunset validate: persist SunsetReport JSON to gate-family runtime path (prefer `.claude/runtime/epic/sunset-<session>.json` or evidence sibling of gate verdict)"
+  - "parent helper: read function returning model/dict with schema_id (not log scrape)"
+  - "IO/OSError on persist → NEED_HUMAN / non-zero, do not clear_in_flight as success"
+  - "document path in helper docstring (operator + IMPLEMENT)"
+
+deletes:
+  - "log-only success for sunset (no file) if any comment/path encodes that as done"
+
+out_of_scope:
+  - "Kind I prompt (s04)"
+  - "purge unknown-id tests (s05)"
+  - "auto-fill plan sunset tables from sidecar (appetite cut)"
+  - "MCP sunset tool (appetite cut)"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Valid sunset stop writes parent-readable file containing schema loop-sunset-inventory/v1 (TM-005)
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k persist"
+  - id: cp2
+    criterion: Parent helper reads sidecar/state key with schema_id (US-003)
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k parent_read"
+  - id: cp3
+    criterion: Persist IO failure fail-closed — not swallow, not success (plan C / TM-005 persist fail)
+    verify: "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k persist_fail"
+  - id: cp4
+    criterion: Path is under `.claude/runtime/epic/` family, not log-only; not state.json as SoT
+    verify: "rg -n \"sunset-\" harness/hooks/subagent-stop.py harness/hooks/_lib.py loop --glob '*.py' | rg -v test_"
+
+sunset_scope:
+  required: true
+  boundary_id: sunset-sidecar
+  new_sot: ".claude/runtime/epic/sunset-*.json"
+  allow_read:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - loop/gate_verdict_store.py
+  kind_hint:
+    - A
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k persist"
+  - "rg -n \"NEED_HUMAN\" harness/hooks/subagent-stop.py"
+
+tdd:
+  - "test_sunset_stop_writes_sidecar_with_schema_id — TM-005 / US-003"
+  - "test_parent_reads_sunset_sidecar — FR-005"
+  - "test_sunset_persist_io_error_need_human — Kind C swallow"
+  - "test_no_fence_does_not_write_ok_sidecar — regression vs s02"

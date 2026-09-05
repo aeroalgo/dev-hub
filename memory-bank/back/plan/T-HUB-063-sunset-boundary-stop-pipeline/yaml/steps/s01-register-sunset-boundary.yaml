@@ -1,0 +1,119 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: "Registry + CLI — loop-sunset-inventory/v1 проходит validate_boundary"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Канонический `loop-sunset-inventory/v1` зарегистрирован в BOUNDARY_REGISTRY и
+  проходит тот же CLI/validate_boundary pipeline, что gate/repair: valid fixture
+  (zero и non-zero items) → valid:true; extra/malformed → fail-closed; truly
+  unknown id → schema_unknown. Add-слой ladder, не hook.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-006, FR-009, US-001, US-004, SC-001, SC-002, AC+1, AC+2, AC−2, AC−5, TM-001, TM-002, TM-003, TM-006]
+  nouns:
+    - BOUNDARY_REGISTRY
+    - SCHEMA_LOOP_SUNSET_INVENTORY
+    - SunsetReport
+    - validate_boundary
+    - validate-boundary CLI --schema-id loop-sunset-inventory/v1
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+  layout_paths:
+    - loop/schemas/boundary_registry.py
+    - loop/schemas/sunset_inventory.py
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+  ac_quotes:
+    - "Valid sunset JSON проходит CLI `validate-boundary --schema-id loop-sunset-inventory/v1 --json '…'` → `valid: true`."
+    - "`loop-sunset-inventory/v1` in BOUNDARY_REGISTRY."
+    - "CLI validate success on fixture report (zero and non-zero items)."
+    - "Then: `valid: true`; extra field → fail; wrong id → `schema_unknown` only for truly unknown ids"
+    - "Semantic empty inventory is **valid** (zero items)."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:33-50"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:73-130"
+    - "memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md:147-216"
+
+context:
+  consumes:
+    - plan.md §Technology axiom §FR-001–003 §US-001 §AC+1/2 §QA consumes
+    - as-built SunsetReport + 4-id BOUNDARY_REGISTRY
+  produces:
+    - BOUNDARY_REGISTRY[SCHEMA_LOOP_SUNSET_INVENTORY] = SunsetReport
+    - CLI valid:true on zero/non-zero fixtures
+    - CLI/pytest fail-closed extra + unknown-id-only-for-truly-unknown
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#ac
+    - plan.md#qa-consumes
+  files:
+    - loop/schemas/boundary_registry.py
+    - loop/schemas/sunset_inventory.py
+    - loop/tests/test_boundary_registry.py
+    - loop/tests/test_validate_boundary.py
+
+as_built:
+  - "loop/schemas/sunset_inventory.py defines SunsetReport + SCHEMA_LOOP_SUNSET_INVENTORY; extra=forbid"
+  - "BOUNDARY_REGISTRY has only mb-load, gate, repair, validate-result (4 ids)"
+  - "validate_boundary('loop-sunset-inventory/v1', payload) → schema_unknown_schema_id"
+  - "loop/tests/test_boundary_registry.py asserts len(BOUNDARY_REGISTRY)==4"
+  - "loop/tests/test_sunset_inventory_schema.py — unit model_validate only"
+  - "CLI: python harness/hooks/epic_resolve.py validate-boundary --schema-id / --schema"
+
+delta:
+  - "register SCHEMA_LOOP_SUNSET_INVENTORY → SunsetReport (WireSunsetReport only if schema field must be required on wire)"
+  - "re-export constant from boundary_registry (one string shared with prompt s04)"
+  - "rewrite test_boundary_registry_contains_all_four_schemas → includes sunset; drop exact-4"
+  - "add validate_boundary pos/neg: zero items valid, non-zero valid, extra forbid, unknown id only for non-canonical"
+  - "CLI fixture: --schema-id loop-sunset-inventory/v1 --json valid report → valid true"
+
+deletes:
+  - "loop/tests/test_boundary_registry.py::test_boundary_registry_contains_all_four_schemas exact len==4 assert (rewrite, not leave as expected unknown)"
+
+out_of_scope:
+  - "SubagentStop branch (s02)"
+  - "sidecar persist (s03)"
+  - "Kind I prompt / 08 matrix living row (s04)"
+  - "leftover comments encoding unknown-id as expected (s05 remainder)"
+  - "Codex collab extra=ignore — follow_up: T-HUB-066-boundary-schema-ownership-strict"
+  - "MCP sunset tool; auto-fill plan sunset tables (appetite cut_list)"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: BOUNDARY_REGISTRY maps SCHEMA_LOOP_SUNSET_INVENTORY to SunsetReport (or WireSunsetReport)
+    verify: "bin/pytest loop/tests/test_boundary_registry.py -q --tb=line -k sunset"
+  - id: cp2
+    criterion: CLI/validate_boundary valid fixture zero items → valid true; non-zero items → valid true
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -q --tb=line -k sunset"
+  - id: cp3
+    criterion: extra field fail-closed; truly unknown schema_id → schema_unknown; canonical sunset id is not unknown
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -q --tb=line -k 'sunset or extra or unknown'"
+  - id: cp4
+    criterion: Independent Test CLI path — epic_resolve validate-boundary --schema-id loop-sunset-inventory/v1 on fixture
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -q --tb=line -k cli_sunset"
+
+verify:
+  - "bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py -q --tb=line -k sunset"
+  - "rg -n \"SCHEMA_LOOP_SUNSET_INVENTORY\" loop/schemas/boundary_registry.py"
+
+tdd:
+  - "test_boundary_registry_contains_sunset_schema — SCHEMA_LOOP_SUNSET_INVENTORY in BOUNDARY_REGISTRY (replaces exact-4)"
+  - "test_validate_boundary_sunset_zero_items_valid — TM-002"
+  - "test_validate_boundary_sunset_nonzero_items_valid — TM-006"
+  - "test_validate_boundary_sunset_extra_field_fails — TM-003 / AC−5"
+  - "test_validate_boundary_canonical_sunset_not_schema_unknown — US-004"
+  - "test_epic_resolve_cli_validate_boundary_sunset — SC-002"
