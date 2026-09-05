@@ -18,6 +18,14 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _write_finished_artifact(path: Path, text: str) -> None:
+    from loop.tests.lifecycle_helpers import record_finished_artifact
+
+    _write(path, text)
+    cwd = next(parent.parent for parent in path.parents if parent.name == "memory-bank")
+    record_finished_artifact(cwd, path)
+
+
 def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
     from loop.schemas.active_context import (
         handoff_gate_phase_from_text,
@@ -41,7 +49,7 @@ def test_handoff_frontmatter_parse_and_mode(tmp_path: Path) -> None:
     assert meta is not None
     assert meta.mode == "REFLECT"
     assert handoff_mode_from_text(text) == "REFLECT"
-    assert handoff_gate_phase_from_text(text) == "REFLECT"
+    assert handoff_gate_phase_from_text(text) is None
 
 
 def test_handoff_mode_back_reflect_normalizes(tmp_path: Path) -> None:
@@ -57,7 +65,7 @@ def test_handoff_mode_back_reflect_normalizes(tmp_path: Path) -> None:
         "## Handoff BACK BACK REFLECT\n"
     )
     assert handoff_mode_from_text(text) == "REFLECT"
-    assert handoff_gate_phase_from_text(text) == "REFLECT"
+    assert handoff_gate_phase_from_text(text) is None
 
 
 def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> None:
@@ -76,7 +84,7 @@ def test_project_handoff_from_reducer_syncs_stale_markdown(tmp_path: Path) -> No
         "  title: one\n"
         "  status: completed\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )
@@ -132,7 +140,7 @@ def test_epic_complete_allowed_uses_reducer_not_stale_handoff(tmp_path: Path) ->
         "  title: one\n"
         "  status: completed\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )
@@ -259,7 +267,7 @@ def test_project_handoff_from_reducer_qa_failed_stays_bugfix(
         "  status: completed\n",
     )
     _write(tmp_path / audit, "not_implemented: []\nqa_ready: true\n")
-    _write(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    _write_finished_artifact(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
     _write(
         tmp_path / "memory-bank/activeContext.md",
         "---\n"
@@ -306,7 +314,7 @@ def test_project_handoff_from_reducer_qa_failed_rewrites_premature_qa(
         "  status: completed\n",
     )
     _write(tmp_path / audit, "not_implemented: []\nqa_ready: true\n")
-    _write(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    _write_finished_artifact(tmp_path / qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
     _write(
         tmp_path / "memory-bank/activeContext.md",
         "---\n"
@@ -348,7 +356,7 @@ def test_project_handoff_from_reducer_skips_done_when_disabled(tmp_path: Path) -
         "  title: one\n"
         "  status: completed\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )

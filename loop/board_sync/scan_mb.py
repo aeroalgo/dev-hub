@@ -83,11 +83,13 @@ def _index_paths(memory_bank: Path) -> list[Path]:
             continue
         # v2 layout: plan/<epic_id>/yaml/decompose-index.yaml
         v2_paths = sorted(plan_dir.glob("*/yaml/decompose-index.yaml"))
-        if v2_paths:
-            paths.extend(v2_paths)
-        else:
-            # v1 fallback
-            paths.extend(sorted(plan_dir.glob("decompose-*/index.yaml")))
+        paths.extend(v2_paths)
+        v2_epics = {path.parent.parent.name for path in v2_paths}
+        paths.extend(
+            path
+            for path in sorted(plan_dir.glob("decompose-*/index.yaml"))
+            if path.parent.name.removeprefix("decompose-") not in v2_epics
+        )
     return paths
 
 
@@ -123,7 +125,11 @@ def _parse_index(path: Path, workspace_ref: WorkspaceRef) -> list[WorkItem]:
         if not isinstance(title, str):
             raise TypeError("decompose index step title must be a string")
         file_name = step.get("file")
-        shard_rel = f"{Path(decompose_rel).parent}/{file_name}" if isinstance(file_name, str) and file_name else None
+        if isinstance(file_name, str) and file_name:
+            shard_dir = path.parent / "steps" if path.parent.name == "yaml" else path.parent
+            shard_rel = f"{shard_dir.relative_to(workspace_ref.path)}/{file_name}"
+        else:
+            shard_rel = None
         result.append(
             WorkItem(
                 role=role,

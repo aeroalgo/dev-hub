@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: s02 — Canonical FS — move/symlink skills so parent Read opens SKILL.md IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/yaml/steps/s02-canonical-skill-fs-cutover.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+  - "Выполнен sunset-inventory: .agents/skills симлинк на harness/skills, 192 скилла находились в harness/skills/skills/<name>."
+  - "Перенесены все 192 скилла на канонический уровень harness/skills/<name> (доступны через .agents/skills/<name>/SKILL.md)."
+  - "Вложенный путь harness/skills/skills сохранен как обратная совместимость (symlink на .)."
+  - "Production corpus checker test loop/tests/test_skill_literal_refs.py стал полностью зеленым (0 missing refs)."
+gaps:
+  status: none
+done:
+  - "Очищены пустые shadow-директории верхнего уровня harness/skills."
+  - "Перенесены все 192 каталога скиллов из harness/skills/skills/<name> в harness/skills/<name>."
+  - "Создан симлинк harness/skills/skills -> . для обратной совместимости."
+  - "Добавлены тесты проверки канонических путей и отсутствия коллизий в loop/tests/test_skill_literal_refs.py."
+  - "Тест production_corpus_zero_missing переведен из red в green (PASS)."
+files:
+  - .agents/skills/
+  - harness/skills/
+  - loop/tests/test_skill_literal_refs.py
+deletes:
+  - "harness/skills/skills/<name>/ as independent SoT after successful move (symlink leftover OK until s05)"
+tests:
+  - bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line
+  - test -f .agents/skills/writing-plans/SKILL.md
+  - test -f .agents/skills/grill-me/SKILL.md
+  - test -f .agents/skills/python-testing-patterns/SKILL.md
+integration_check:
+  - bin/pytest loop/tests/test_skill_literal_refs.py -k corpus -q --tb=line
+  - bin/pytest loop/tests/test_skill_literal_refs.py -k canonical -q --tb=line
+  - "python3 -c \"from pathlib import Path; ns=['writing-plans','grill-me','python-testing-patterns']; assert all((Path('.agents/skills')/n/'SKILL.md').is_file() for n in ns)\""
+grep_control:
+  - back: "rg -n '^name: writing-plans' .agents/skills/writing-plans/SKILL.md"
+    front: ""
+verification_results:
+- 'cp1: PASS (canonical paths for writing-plans, grill-me, python-testing-patterns exist)'
+- 'cp2: PASS (production corpus zero missing, 6 passed in test_skill_literal_refs.py)'
+- 'cp3: PASS (no silent overwrite, collision test PASS)'
+- 'cp4: PASS (frontmatter name writing-plans intact)'
+checkpoints:
+- id: cp1
+  criterion: writing-plans, grill-me, python-testing-patterns существуют на каноне
+  status: done
+- id: cp2
+  criterion: Production corpus zero missing (checker green)
+  status: done
+- id: cp3
+  criterion: Нет silent overwrite при коллизии (inventory log / test)
+  status: done
+- id: cp4
+  criterion: SKILL body writing-plans keeps frontmatter name writing-plans (не переписан)
+  status: done

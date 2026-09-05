@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: s03 — Fail-closed fixture — skill_ref_missing + allowlist templates IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/yaml/steps/s03-skill-ref-missing-fixture.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Added MissingSkillRefError with machine code skill_ref_missing and assert_zero_missing_skill_refs
+  helper
+gaps:
+  status: none
+done:
+- 'cp1: test_fixture_missing_skill_ref_fails_with_skill_ref_missing verifying diagnostic
+  code skill_ref_missing and expected target path'
+- 'cp2: test_production_corpus_zero_missing passes via assert_zero_missing_skill_refs'
+- 'cp3: test_templates_dummy_at_not_in_production_corpus confirms .cursor/templates
+  exclude'
+- 'cp4: test_workflow_mdc_not_excluded_as_template_allowlist confirms production workflow
+  .mdc files are checked'
+files:
+- loop/workflow/skill_refs.py
+- loop/tests/test_skill_literal_refs.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_skill_literal_refs.py -k missing -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -k corpus -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -k template -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -k allowlist -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line
+integration_check:
+- all 9 tests in loop/tests/test_skill_literal_refs.py pass
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line -> 9 passed, 2 warnings
+  in 0.12s
+checkpoints:
+- id: cp1
+  criterion: Fixture missing skill → pytest fail, diagnostic содержит `skill_ref_missing`
+    и path
+  status: done
+- id: cp2
+  criterion: Production corpus zero missing после cutover
+  status: done
+- id: cp3
+  criterion: Dummy `@` в `.cursor/templates` не валит corpus
+  status: done
+- id: cp4
+  criterion: Workflow files не в template allowlist (writing-plans ref still checked)
+  status: done
+resume_from: done

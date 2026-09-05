@@ -107,9 +107,9 @@ def test_find_next_decompose_step_docstring_marks_legacy_fallback() -> None:
 
 def test_reconcile_deterministic_sort_for_equal_mtime(tmp_path) -> None:
     lib = _load_lib()
-    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-037-loop-gap-closure"
+    qa_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-037-loop-gap-closure"
     qa_dir.mkdir(parents=True)
-    paths = [qa_dir / "qa-20260806-b.yaml", qa_dir / "qa-20260806-a.yaml"]
+    paths = [qa_dir / "audit-20260806-b.yaml", qa_dir / "audit-20260806-a.yaml"]
     for path in paths:
         path.write_text("verdict: pass\n", encoding="utf-8")
         os.utime(path, ns=(1_000_000_000, 1_000_000_000))
@@ -122,10 +122,10 @@ def test_reconcile_deterministic_sort_for_equal_mtime(tmp_path) -> None:
 
 def test_reconcile_sort_ignores_mtime_order(tmp_path) -> None:
     lib = _load_lib()
-    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-037-loop-gap-closure"
+    qa_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-037-loop-gap-closure"
     qa_dir.mkdir(parents=True)
-    older = qa_dir / "qa-20260806-z.yaml"
-    newer = qa_dir / "qa-20260806-a.yaml"
+    older = qa_dir / "audit-20260806-z.yaml"
+    newer = qa_dir / "audit-20260806-a.yaml"
     older.write_text("verdict: pass\n", encoding="utf-8")
     newer.write_text("verdict: pass\n", encoding="utf-8")
     os.utime(older, ns=(1_000_000_000, 1_000_000_000))
@@ -148,7 +148,6 @@ def test_post_implement_audit_handoff_has_no_standalone_epic_done(tmp_path) -> N
         hub_rel=None,
         phase="AUDIT",
         qa_path=None,
-        reflection_path=None,
         cwd=tmp_path,
     )
     assert "## Handoff BACK AUDIT" in body
@@ -171,7 +170,6 @@ def test_post_implement_unknown_phase_has_no_standalone_epic_done(tmp_path) -> N
         hub_rel=None,
         phase="WEIRD",
         qa_path=None,
-        reflection_path=None,
         cwd=tmp_path,
     )
     from epic.core import post_implement_handoff_violates_epic_done
@@ -192,7 +190,6 @@ def test_post_implement_done_keeps_standalone_epic_done(tmp_path) -> None:
         hub_rel=None,
         phase="DONE",
         qa_path=None,
-        reflection_path=None,
         cwd=tmp_path,
     )
     from epic.core import post_implement_handoff_violates_epic_done
@@ -215,7 +212,6 @@ def test_post_implement_done_forbids_archive_in_loop(tmp_path) -> None:
         hub_rel=None,
         phase="DONE",
         qa_path=None,
-        reflection_path=None,
         cwd=tmp_path,
     )
     assert re.search(r"(?m)^EPIC_DONE\s*$", body)
@@ -251,7 +247,6 @@ def test_post_implement_audit_includes_plan_md_even_with_memory_bank_role_dir(tm
         hub_rel=None,
         phase="AUDIT",
         qa_path=None,
-        reflection_path=None,
         cwd=tmp_path,
     )
     assert f"back/plan/{epic}/md/plan.md" in body

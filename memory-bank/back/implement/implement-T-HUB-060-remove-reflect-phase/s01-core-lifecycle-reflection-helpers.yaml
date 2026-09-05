@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-060-remove-reflect-phase
+title: s01 — core.py — lifecycle reducer, artifacts, epic_complete_allowed, reflection
+  helpers IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/yaml/steps/s01-core-lifecycle-reflection-helpers.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Удалены функции find_reflection_artifact, _matching_reflection_artifacts, _reflection_ownership_ambiguous,
+  _reflection_stale_vs_qa_pass из harness/hooks/epic/core.py
+- Удален параметр reflection_path из build_post_implement_active_context и всех мест
+  вызова
+- 'Обновлен post_implement_phase: при qa_pass возвращает (''DONE'', qa, None) без
+  reflection_path'
+- 'Обновлен epic_complete_allowed: возвращает allowed=True при qa_pass без проверки
+  reflection'
+- Удален REFLECT из POST_IMPLEMENT_CHAIN и guard-строк/наборов в core.py
+- Обновлены фасады в harness/hooks/epic/__init__.py, .claude/hooks/epic/__init__.py,
+  .claude/hooks/epic_lib.py
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/epic/__init__.py
+- .claude/hooks/epic/__init__.py
+- .claude/hooks/epic_lib.py
+deletes:
+- 'harness/hooks/epic/core.py: def find_reflection_artifact (line ~3584)'
+- 'harness/hooks/epic/core.py: def _matching_reflection_artifacts (line ~1123)'
+- 'harness/hooks/epic/core.py: def _reflection_ownership_ambiguous (line ~1150)'
+- 'harness/hooks/epic/core.py: def _reflection_stale_vs_qa_pass (line ~1327)'
+- 'harness/hooks/epic/core.py: параметр reflection_path из build_post_implement_active_context'
+tests:
+- '`bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short`'
+- '`bin/pytest loop/tests/test_reducer_qa_bugfix.py -q --tb=short`'
+integration_check:
+- '`bin/pytest loop/tests/test_handoff_phase_gates.py loop/tests/test_reducer_qa_bugfix.py
+  -q --tb=short` — PASS'
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: post_implement_phase при qa_pass возвращает (DONE, qa_path, None) без
+    reflection_path
+  status: done
+- id: cp2
+  criterion: epic_complete_allowed при qa_pass возвращает allowed=True
+  status: done
+- id: cp3
+  criterion: find_reflection_artifact и _matching_reflection_artifacts не существуют
+    в core.py
+  status: done
+- id: cp4
+  criterion: legacy reflection_done events в event.log не вызывают краш
+  status: done

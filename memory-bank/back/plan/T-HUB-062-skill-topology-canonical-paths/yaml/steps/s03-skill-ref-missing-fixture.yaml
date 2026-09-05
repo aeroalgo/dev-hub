@@ -1,0 +1,97 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: "Fail-closed fixture — skill_ref_missing + allowlist templates"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  CI падает с machine code `skill_ref_missing` и списком путей, если rule/skill
+  ссылается на несуществующий `@.agents/skills/<name>/SKILL.md`. Dummy `@` в
+  `.cursor/templates/**` не краснят production corpus. Misconfig ≠ warning.
+
+plan_contract:
+  fr_ids: [FR-006, FR-007, FR-008, US-002, US-004, SC-001, SC-004, AC+2, AC−3, TM-001, TM-003, TM-006]
+  nouns:
+    - skill_ref_missing
+    - fixture `.mdc` with `@.agents/skills/no-such/SKILL.md`
+    - allowlist `.cursor/templates/**`
+    - production corpus zero missing
+  layout_paths:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py
+  ac_quotes:
+    - "fixture rule с `@.agents/skills/no-such/SKILL.md` → pytest fail с кодом `skill_ref_missing`"
+    - "Missing path → fail с machine code `skill_ref_missing` + list."
+    - "Misconfig (ссылка на missing) → fail test/CI, не warning."
+    - "allowlist templates; real workflow files не в allowlist"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:66-115"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:132-146"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:226-250"
+
+context:
+  consumes:
+    - s01 parser + corpus test
+    - s02 canonical FS (corpus green)
+  produces:
+    - diagnostic code skill_ref_missing in checker/pytest
+    - negative fixture test
+    - templates exclude confirmed
+  plan_refs:
+    - plan.md#fr-007
+    - plan.md#acceptance-scenarios--us-002
+  files:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py
+
+as_built:
+  - "после s01/s02: parser + канон FS; нет negative fixture и нет стабильного machine code"
+  - ".cursor/templates/** содержат пример-пути `@` (plan US-004)"
+  - "production rules не должны быть в template allowlist"
+
+delta:
+  - "checker fail: code `skill_ref_missing` + missing path list in assertion/exception"
+  - "tmp fixture directory с `.mdc` `@.agents/skills/missing-skill/SKILL.md` → pytest fail"
+  - "production corpus остаётся 0 missing (не регрессия s02)"
+  - "`.cursor/templates/**` exclude; real `.cursor/rules/back_developer/workflow-*.mdc` не exclude"
+
+deletes: []
+
+out_of_scope:
+  - "Kind I nested docs (s04)"
+  - "nested dir leftover purge (s05)"
+  - "doctor graph (T-HUB-067)"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Fixture missing skill → pytest fail, diagnostic содержит `skill_ref_missing` и path
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k missing -q --tb=line"
+  - id: cp2
+    criterion: Production corpus zero missing после cutover
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k corpus -q --tb=line"
+  - id: cp3
+    criterion: Dummy `@` в `.cursor/templates` не валит corpus
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k template -q --tb=line"
+  - id: cp4
+    criterion: Workflow files не в template allowlist (writing-plans ref still checked)
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k allowlist -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+
+tdd:
+  - "test_fixture_missing_skill_ref_fails_with_skill_ref_missing — tmp mdc, code in message"
+  - "test_production_corpus_zero_missing — still PASS"
+  - "test_templates_dummy_at_not_in_production_corpus"
+  - "test_workflow_mdc_not_excluded_as_template"

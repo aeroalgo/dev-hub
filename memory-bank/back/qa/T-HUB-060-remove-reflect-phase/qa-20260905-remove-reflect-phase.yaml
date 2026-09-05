@@ -1,0 +1,41 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-060-remove-reflect-phase
+plan_id: T-HUB-060-remove-reflect-phase
+epic_id: T-HUB-060-remove-reflect-phase
+date: 2026-09-05
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "epic: T-HUB-060-remove-reflect-phase"
+  - "steps: s01–s05"
+  - "files: harness/hooks/epic/core.py, loop/context_loop.py, loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_creative.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (FAILED: 4 tests failed)"
+  - "integration rule (§0.11): FAILED (ImportError on find_reflection_artifact in loop/mb_finish/impl.py)"
+  - "no phantom refs: FAILED (legacy tests in test_mb_finish_creative.py call finish_reflect)"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - id: ISS-001
+    description: "ImportError: cannot import name 'find_reflection_artifact' from 'harness.hooks.epic.core' in loop/mb_finish/impl.py:1205"
+    severity: blocker
+    file: "loop/mb_finish/impl.py:1205"
+  - id: ISS-002
+    description: "4 failing tests in harness/hooks/tests/: test_finish_reflect_happy, test_finish_reflect_no_artifact, test_uniform_contract_matrix[finish_reflect], test_full_mb_finish_suite_green"
+    severity: blocker
+    file: "harness/hooks/tests/test_mb_finish_creative.py"
+
+blockers:
+  - "ImportError in loop/mb_finish/impl.py due to missing find_reflection_artifact in harness/hooks/epic/core.py"
+  - "Failing unit tests in test_mb_finish_creative.py and test_mb_finish_legacy_purge.py"
+
+fix_plan:
+  - "BACK BUGFIX mb-finish-reflect-cleanup: Clean up or deprecate finish_reflect in loop/mb_finish/impl.py and update/remove obsolete reflect tests in harness/hooks/tests/test_mb_finish_creative.py"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

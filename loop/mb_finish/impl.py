@@ -1,6 +1,7 @@
 """finish_handoff, finish_qa, and finish_bugfix implementation."""
 
 import hashlib
+import os
 import re
 from pathlib import Path
 from harness.hooks._lib import ActiveContextLocked
@@ -10,6 +11,7 @@ from harness.hooks.epic.core import (
     atomic_write_text,
     epic_id_from_decompose_path,
     extract_load_now,
+    find_decompose_index_path,
     gate_evidence_matches,
     handoff_post_implement_phase,
     latest_audit_artifact_for_reference,
@@ -28,6 +30,7 @@ from harness.hooks.epic.core import (
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult
 from loop.paths.pack_layout import resolve_mb_root
+from loop.schemas.state import QaAfterBugfix
 
 
 def finish_handoff(
@@ -120,13 +123,41 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     epic_id = state.get("armed_epic") or ""
     role = (state.get("armed_role") or "BACK").upper()
     role_dir = role.lower()
+    if role_dir == "integ":
+        role_dir = "integration"
 
     if not epic_id:
         decompose = state.get("armed_decompose") or ""
         if decompose:
             epic_id = epic_id_from_decompose_path(decompose)
 
+    rerun = state.get("qa_after_bugfix")
     qa_art = latest_qa_any_artifact_for_reference(cwd, role_dir, epic_id=epic_id)
+    if rerun is not None:
+        rerun = QaAfterBugfix.model_validate(rerun)
+        if rerun.epic_id == epic_id:
+            phase_run_id = state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID")
+            if not phase_run_id or phase_run_id == rerun.phase_run_id:
+                return MbFinishResult(
+                    ok=False,
+                    diagnostic_codes=["qa_new_session_required"],
+                    shape_errors=["BUGFIX finished; stop this session and start a new QA run"],
+                )
+            qa_dir = resolve_mb_root(cwd) / role_dir / "qa" / epic_id
+            candidates = [
+                path for path in sorted(qa_dir.glob("*.yaml"), reverse=True)
+                if path.name == "qa.yaml" or path.name.startswith("qa-")
+            ]
+            qa_art = next((
+                path for path in candidates
+                if path.relative_to(cwd).as_posix() not in rerun.existing_artifacts
+            ), None)
+            if qa_art is None:
+                return MbFinishResult(
+                    ok=False,
+                    diagnostic_codes=["qa_new_artifact_required"],
+                    shape_errors=["Write a new qa-*.yaml run artifact after BUGFIX; earlier artifacts cannot close QA"],
+                )
     if not qa_art or not qa_art.is_file():
         return MbFinishResult(
             ok=False,
@@ -149,6 +180,21 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     ]
 
     qa_verdict = parse_qa_verdict(qa_art) if qa_art else "pass"
+    if qa_verdict == "pass" and rerun is not None and rerun.epic_id == epic_id:
+        reviewer = state.get("last_reviewer_evidence")
+        matched, _ = gate_evidence_matches(cwd, reviewer)
+        if (
+            state.get("last_reviewer_verdict") != "PASS"
+            or state.get("last_reviewer_phase_run_id") != phase_run_id
+            or not isinstance(reviewer, dict)
+            or str(reviewer.get("step") or "").upper() != "QA"
+            or not matched
+        ):
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["qa_reviewer_required"],
+                shape_errors=["The new QA run requires its own reviewer PASS before FINISH"],
+            )
     if qa_verdict in {"fail", "blocked"}:
         next_mode = "BUGFIX"
         default_hint = "fix QA blockers via BUGFIX"
@@ -187,7 +233,7 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
-    valid_qa, err_msg = validate_qa_finish_handoff(cwd, rendered, role_dir=role_dir, epic_id=epic_id)
+    valid_qa, err_msg = validate_qa_finish_handoff(cwd, rendered, role_dir=role_dir, epic_id=epic_id, qa_artifact=qa_art)
     if not valid_qa:
         return MbFinishResult(
             ok=False,
@@ -236,6 +282,7 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     st["active"] = next_mode != "DONE"
     st["status"] = "complete" if next_mode == "DONE" else "armed"
     st["halt_reason"] = None
+    st["qa_after_bugfix"] = None
     save_epic_state(cwd, st)
 
     fp_data = f"qa:{utc_now()}"
@@ -379,6 +426,7 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
+    _append_event(cwd, role_dir, epic_id, "bugfix_done", bugfix_art)
     reconcile_epic_events(cwd, role_dir, epic_id)
 
     st = load_epic_state(cwd)
@@ -387,6 +435,16 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     st["active"] = True
     st["status"] = "armed"
     st["halt_reason"] = None
+    qa_dir = resolve_mb_root(cwd) / role_dir / "qa" / epic_id
+    st["qa_after_bugfix"] = QaAfterBugfix(
+        epic_id=epic_id,
+        phase_run_id=state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
+        existing_artifacts=[
+            path.relative_to(cwd).as_posix()
+            for path in sorted(qa_dir.glob("*.yaml"))
+            if path.name == "qa.yaml" or path.name.startswith("qa-")
+        ],
+    ).model_dump()
     save_epic_state(cwd, st)
 
     sync_cursor_from_index(cwd)
@@ -424,6 +482,14 @@ def finish_decompose(
     role = (state.get("armed_role") or "BACK").upper()
     decompose_rel = state.get("armed_decompose") or ""
 
+    if not decompose_rel and epic_id:
+        resolved = find_decompose_index_path(cwd, role, str(epic_id))
+        if resolved and resolved.is_file():
+            try:
+                decompose_rel = resolved.relative_to(cwd).as_posix()
+            except ValueError:
+                decompose_rel = str(resolved).replace("\\", "/")
+
     if not decompose_rel:
         ctx = ""
         try:
@@ -436,14 +502,15 @@ def finish_decompose(
             preferred = [
                 c
                 for c in candidates
-                if "/plan/decompose-" in c.replace("\\", "/")
+                if "/plan/" in c.replace("\\", "/")
                 and c.endswith(("index.yaml", "index.yml", "index.md"))
             ]
             if not preferred:
                 preferred = [
                     c
                     for c in candidates
-                    if "/plan/decompose-" in c.replace("\\", "/")
+                    if "/plan/" in c.replace("\\", "/")
+                    and Path(c).name in {"index.yaml", "index.yml", "index.md", "decompose-index.yaml", "decompose-index.yml", "decompose-index.md"}
                 ]
             if preferred:
                 decompose_rel = preferred[0]
@@ -597,10 +664,11 @@ def finish_plan(
     plan_rel = state.get("armed_plan") or ""
 
     if not plan_rel and epic_id:
-        role_dir = role.lower()
-        cand = cwd / "memory-bank" / role_dir / "plan" / f"plan-{epic_id}.md"
-        if cand.exists():
-            plan_rel = str(cand.relative_to(cwd))
+        from epic_paths import find_plan_md_path
+
+        cand = find_plan_md_path(cwd, role, str(epic_id))
+        if cand is not None and cand.is_file():
+            plan_rel = cand.relative_to(cwd).as_posix()
 
     if not plan_rel or not (cwd / plan_rel).exists():
         return MbFinishResult(
@@ -1182,121 +1250,4 @@ def finish_creative(
         next_step=next_step,
         next_phase=next_phase,
         epic_done=epic_done,
-    )
-
-
-
-def finish_reflect(
-    req: MbFinishRequest,
-) -> MbFinishResult:
-    """Orchestrate REFLECT phase finish atomically."""
-    cwd = Path(req.cwd).resolve()
-    act_path = resolve_mb_root(cwd) / "activeContext.md"
-
-    state = load_epic_state(cwd)
-    epic_id = state.get("armed_epic") or ""
-    role = (state.get("armed_role") or "BACK").upper()
-    role_dir = role.lower()
-    decompose_rel = state.get("armed_decompose") or ""
-
-    if not epic_id and decompose_rel:
-        epic_id = epic_id_from_decompose_path(decompose_rel)
-
-    from harness.hooks.epic.core import find_reflection_artifact
-    refl_art = find_reflection_artifact(cwd, role_dir, epic_id)
-    if not refl_art or not refl_art.is_file():
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["reflection_artifact_missing"],
-            shape_errors=["Reflection artifact missing or invalid"],
-        )
-
-    try:
-        refl_rel = refl_art.relative_to(cwd).as_posix()
-    except ValueError:
-        refl_rel = str(refl_art)
-
-    load_now = [
-        LoadNowItem(path=refl_rel, description="Reflection artifact"),
-    ]
-
-    meta = LoopHandoffMeta(
-        role=role,
-        mode="NEXT_CYCLE",
-        epic_id=epic_id or None,
-        step_id=req.step_id or None,
-    )
-    handoff_body = HandoffBody(
-        mode="NEXT_CYCLE",
-        next_hint=req.done_summary or "epic complete, select next work",
-        epic_id=epic_id or None,
-        step_id=req.step_id or None,
-    )
-
-    try:
-        rendered = render_active_context(
-            meta=meta,
-            load_now=load_now,
-            done=[],
-            handoff=handoff_body,
-        )
-    except ValueError as exc:
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["rendered_shape_invalid"],
-            shape_errors=[str(exc)],
-        )
-    except Exception as exc:
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["render_failed"],
-            shape_errors=[str(exc)],
-        )
-
-    backup = None
-    if act_path.exists():
-        try:
-            backup = act_path.read_text(encoding="utf-8")
-        except Exception:
-            backup = None
-
-    try:
-        atomic_write_text(act_path, rendered)
-    except ActiveContextLocked as exc:
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["runner_owns_active_context"],
-            shape_errors=[str(exc)],
-        )
-    except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
-        return MbFinishResult(
-            ok=False,
-            diagnostic_codes=["active_context_write_failed"],
-            shape_errors=[str(exc)],
-        )
-
-    sync_cursor_from_index(cwd)
-
-    fp_data = f"reflect:{utc_now()}"
-    fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
-    write_last_finish_tool(
-        cwd,
-        "mb-finish reflect",
-        fp,
-        finished_step="REFLECT",
-        armed_after_finish="NEXT_CYCLE",
-    )
-
-    return MbFinishResult(
-        ok=True,
-        active_context=rendered,
-        finished_step="REFLECT",
-        next_step="NEXT_CYCLE",
-        next_phase="NEXT_CYCLE",
-        epic_done=True,
     )

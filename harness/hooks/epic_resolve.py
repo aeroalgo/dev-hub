@@ -25,6 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from epic_index import sync_yaml_from_md  # noqa: E402
 from epic_paths import (
     discover_epic_role,
+    epic_id_from_plan_path,
+    find_decompose_index_path,
+    find_plan_md_path,
     resolve,
     EpicLayoutKind,
 )
@@ -276,11 +279,6 @@ def main() -> int:
     p_mb_creative.add_argument("--step", default="", help="step_id (optional)")
     p_mb_creative.add_argument("--done", default="", help="done summary string")
     p_mb_creative.add_argument("--phase", default="BACK CREATIVE", help="phase string")
-
-    p_mb_reflect = mb_sub.add_parser("reflect", help="finish reflect phase atomically")
-    p_mb_reflect.add_argument("--step", default="", help="step_id (optional)")
-    p_mb_reflect.add_argument("--done", default="", help="done summary string")
-    p_mb_reflect.add_argument("--phase", default="BACK REFLECT", help="phase string")
 
     p_mb_scaffold = sub.add_parser("mb-scaffold", help="mb-scaffold subcommand dispatcher")
     mb_scaffold_sub = p_mb_scaffold.add_subparsers(dest="mb_scaffold_cmd", required=True)
@@ -536,7 +534,7 @@ def main() -> int:
             out.update(pack_diagnostics(cwd))
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
-        if args.mb_cmd in ("qa", "bugfix", "decompose", "plan", "analyze", "audit", "creative", "reflect"):
+        if args.mb_cmd in ("qa", "bugfix", "decompose", "plan", "analyze", "audit", "creative"):
             from loop.mb_finish.impl import (
                 finish_analyze,
                 finish_audit,
@@ -545,7 +543,6 @@ def main() -> int:
                 finish_decompose,
                 finish_plan,
                 finish_qa,
-                finish_reflect,
             )
             from loop.mb_finish.schemas import MbFinishRequest
             req = MbFinishRequest(
@@ -566,10 +563,8 @@ def main() -> int:
                 fn = finish_analyze
             elif args.mb_cmd == "audit":
                 fn = finish_audit
-            elif args.mb_cmd == "creative":
-                fn = finish_creative
             else:
-                fn = finish_reflect
+                fn = finish_creative
             res = fn(req)
             out = res.model_dump()
             from loop.paths.pack_layout import pack_diagnostics
@@ -1072,38 +1067,29 @@ def main() -> int:
         plan_id = args.epic_id
         role = getattr(args, "role", None) or discover_epic_role(cwd, plan_id) or "back"
 
-        # Primary: layout v2 plan.md
-        plan_path = None
-        try:
-            v2_plan_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd)
-            if v2_plan_md.is_file():
-                plan_path = v2_plan_md
-        except Exception:
-            pass
-
-        # Fallback: legacy v1 layout plan.md
-        if plan_path is None:
-            v1_plan = Path(cwd) / "memory-bank" / role / "plan" / f"plan-{plan_id}.md"
-            if v1_plan.is_file():
-                plan_path = v1_plan
-            else:
-                # check if plan_id matches any plan-*.md
-                matches = list((Path(cwd) / "memory-bank" / role / "plan").glob(f"plan-{plan_id}-*.md"))
-                if matches:
-                    plan_path = matches[0]
+        plan_path = find_plan_md_path(cwd, role, plan_id)
 
         if plan_path is None or not plan_path.is_file():
             print(f"Error: plan file not found for epic {plan_id}", file=sys.stderr)
             return 2
 
-        # Decompose directory resolution (v2 steps/ or v2 yaml/ or v1 decompose-<id>)
         decomp_dir = None
-        try:
-            v2_decomp_yaml = resolve(role, plan_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
-            if v2_decomp_yaml.is_file() or v2_decomp_yaml.parent.is_dir():
-                decomp_dir = v2_decomp_yaml.parent
-        except Exception:
-            pass
+        decompose_index = find_decompose_index_path(cwd, role, plan_id)
+        if decompose_index is not None and decompose_index.is_file():
+            decomp_dir = decompose_index.parent
+        if decomp_dir is None:
+            v2_epic_id = epic_id_from_plan_path(plan_path) or plan_id
+            try:
+                v2_decompose = resolve(
+                    role,
+                    v2_epic_id,
+                    EpicLayoutKind.DECOMPOSE_INDEX_YAML,
+                    project_root=cwd,
+                )
+                if v2_decompose.parent.is_dir():
+                    decomp_dir = v2_decompose.parent
+            except Exception:
+                pass
 
         if decomp_dir is None or not decomp_dir.is_dir():
             v1_decomp = Path(cwd) / "memory-bank" / role / "plan" / f"decompose-{plan_id}"
@@ -1123,8 +1109,9 @@ def main() -> int:
 
         # Implement evidence resolution
         impl_dir = None
+        implement_epic_id = epic_id_from_plan_path(plan_path) or plan_id
         try:
-            v2_impl_step = resolve(role, plan_id, EpicLayoutKind.IMPLEMENT_STEP, step_id="s01", project_root=cwd)
+            v2_impl_step = resolve(role, implement_epic_id, EpicLayoutKind.IMPLEMENT_STEP, step_id="s01", project_root=cwd)
             if v2_impl_step.parent.is_dir():
                 impl_dir = v2_impl_step.parent
         except Exception:

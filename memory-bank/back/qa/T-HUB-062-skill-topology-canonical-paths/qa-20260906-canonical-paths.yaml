@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-062-skill-topology-canonical-paths
+plan_id: T-HUB-062-skill-topology-canonical-paths
+epic_id: T-HUB-062-skill-topology-canonical-paths
+date: 2026-09-06
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "epic: T-HUB-062-skill-topology-canonical-paths"
+  - "steps: s01-s05"
+  - "files: loop/workflow/skill_refs.py, loop/tests/test_skill_literal_refs.py, .agents/skills/, harness/skills/"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (FAIL: 1 failed, 1974 passed, 3 skipped)"
+  - "integration rule (§0.11): pass (zero dual-path fallback / resolve_skill calls in prod)"
+  - "no phantom refs: pass (all 192 skills resolved to canonical path)"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "Regression in test_symlink_agents_skills_points_to_harness: expects legacy nested path harness/skills/skills/product-discovery/SKILL.md instead of canonical harness/skills/product-discovery/SKILL.md"
+
+blockers:
+  - "loop/tests/test_harness_paths.py:55: test_symlink_agents_skills_points_to_harness fails on purged nested layout"
+
+fix_plan:
+  - "BACK BUGFIX T-HUB-062-skill-topology-canonical-paths update test_harness_paths.py asserts to canonical harness/skills/product-discovery/SKILL.md"
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+
+suite:
+  - "bin/pytest -q --tb=line"

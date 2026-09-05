@@ -52,8 +52,8 @@ def test_symlink_agents_skills_points_to_harness():
     assert (ROOT / ".agents" / ".skill-lock.json").is_file()
     assert not (ROOT / ".agents" / ".skill-lock.json").is_symlink()
     # TM-002 sample SKILL.md reachable via both paths
-    assert (ROOT / "harness" / "skills" / "skills" / "product-discovery" / "SKILL.md").exists()
-    assert (ROOT / ".agents" / "skills" / "skills" / "product-discovery" / "SKILL.md").exists()
+    assert (ROOT / "harness" / "skills" / "product-discovery" / "SKILL.md").exists()
+    assert (ROOT / ".agents" / "skills" / "product-discovery" / "SKILL.md").exists()
 
 
 def test_harness_import_smoke():

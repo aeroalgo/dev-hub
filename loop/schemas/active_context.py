@@ -16,7 +16,7 @@ _ROLE_TOKEN = r"(?:BACK|FRONT|INTEG(?:RATION)?)"
 _HANDOFF_PHASE_HEADING_RE = re.compile(
     rf"(?im)^##\s*Handoff\s+{_ROLE_TOKEN}\s+"
     rf"(?:{_ROLE_TOKEN}\s+)?"
-    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)\b"
+    r"(AUDIT|QA|BUGFIX|DECOMPOSE)\b"
 )
 _POST_IMPLEMENT_GATE_PHASES = frozenset(
     {"AUDIT", "QA", "BUGFIX", "DECOMPOSE"}
@@ -30,11 +30,11 @@ _POST_IMPLEMENT_PHASE_RANK = {
 _HANDOFF_MODE_LINE_RE = re.compile(
     r"(?im)(?:[-*]\s*)?(?:\*\*)?(?:Режим/шаг|Mode/step):(?:\*\*)?\s*"
     r"`?(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)`?"
+    r"(AUDIT|QA|BUGFIX|DECOMPOSE)`?"
 )
 _HANDOFF_NEXT_PHASE_RE = re.compile(
     r"(?im)(?:\*\*)?(?:Дальше|Next)(?:\*\*)?:\s*.*`(?:BACK|FRONT|INTEG(?:RATION)?)\s+"
-    r"(AUDIT|QA|REFLECT|BUGFIX)`"
+    r"(AUDIT|QA|BUGFIX)`"
 )
 _IMPLEMENT_HANDOFF_RE = re.compile(
     r"(?im)^##\s*Handoff\s+(?:BACK|FRONT|INTEG(?:RATION)?)\s+IMPLEMENT\b"

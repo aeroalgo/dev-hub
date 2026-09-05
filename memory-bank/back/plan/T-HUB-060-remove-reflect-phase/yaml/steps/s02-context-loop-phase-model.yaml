@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-060-remove-reflect-phase
+title: "context_loop.py — phase model, finish block, prompts"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Убрать REFLECT из loop/context_loop.py: из LOOP_PHASE_MODEL_ENV, _LOOP_PHASE_DETECT_ORDER,
+  _POST_IMPLEMENT_PHASES; удалить функцию _reflect_finish_block и ветку phase_kind == "reflect";
+  убрать промпт-строки «QA pass + REFLECT» как gate к DONE.
+  Результат: loop_phase_key("REFLECT") == None; ни один путь context_loop не переходит в REFLECT.
+
+plan_contract:
+  fr_ids: [FR-04, FR-05, AC+3, AC−4, AC−5]
+  nouns:
+    - LOOP_PHASE_MODEL_ENV (без ключа REFLECT)
+    - _LOOP_PHASE_DETECT_ORDER (без REFLECT)
+    - _reflect_finish_block (удалена)
+    - ветка phase_kind == "reflect" (удалена)
+    - _POST_IMPLEMENT_PHASES (проверить наличие REFLECT)
+  layout_paths:
+    - loop/context_loop.py
+  ac_quotes:
+    - "loop_phase_key('REFLECT') возвращает None (ключ не в dict)"
+    - "LOOP_PHASE_MODEL_ENV не содержит ключ 'REFLECT'"
+    - "_LOOP_PHASE_DETECT_ORDER не содержит 'REFLECT'"
+    - "Промпт loop не содержит 'QA pass + REFLECT' как gate к DONE"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:1-80"
+
+context:
+  consumes:
+    - loop/context_loop.py
+  produces:
+    - loop/context_loop.py (изменён)
+  plan_refs:
+    - "plan.md §Architecture — Затронутые файлы: loop/context_loop.py"
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py:106-116 — LOOP_PHASE_MODEL_ENV dict без REFLECT (уже чистый)"
+  - "loop/context_loop.py:117-127 — _LOOP_PHASE_DETECT_ORDER tuple без REFLECT (уже чистый)"
+  - "loop/context_loop.py:1018 — _POST_IMPLEMENT_PHASES = frozenset({'AUDIT', 'QA', 'BUGFIX'})"
+  - "loop/context_loop.py:3223 — CLI arg help='Fail if QA+REFLECT gate...'"
+  - "loop/context_loop.py:244 — комментарий упоминает REFLECT template line"
+
+delta:
+  - "_POST_IMPLEMENT_PHASES (line 1018): убедиться что REFLECT не присутствует (уже нет — проверить)"
+  - "loop/context_loop.py:3223 — help текст: 'QA+REFLECT gate' → 'QA gate'"
+  - "loop/context_loop.py:244 — комментарий: убрать упоминание REFLECT template line"
+  - "Проверить и удалить _reflect_finish_block если существует; убрать ветку phase_kind == 'reflect'"
+  - "Промпт строки: grep все 'REFLECT' → убрать только те, где REFLECT = gate к DONE (не legacy комменты)"
+
+deletes:
+  - "loop/context_loop.py: def _reflect_finish_block (если существует)"
+  - "loop/context_loop.py: ветка if phase_kind == 'reflect': (если существует)"
+  - "loop/context_loop.py:3223 — текст 'QA+REFLECT gate' → 'QA gate'"
+
+out_of_scope:
+  - "harness/hooks/epic/core.py (s01)"
+  - "loop/schemas/* (s03)"
+  - "loop/tests/ (s05)"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/systematic-debugging/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: REFLECT не в LOOP_PHASE_MODEL_ENV
+    verify: "python -c \"from loop.context_loop import LOOP_PHASE_MODEL_ENV; assert 'REFLECT' not in LOOP_PHASE_MODEL_ENV\""
+  - id: cp2
+    criterion: loop_phase_key('REFLECT') == None
+    verify: "python -c \"from loop.context_loop import loop_phase_key; assert loop_phase_key('REFLECT') is None\""
+  - id: cp3
+    criterion: _reflect_finish_block не существует в context_loop.py
+    verify: "rg '_reflect_finish_block' loop/context_loop.py"
+  - id: cp4
+    criterion: REFLECT не упоминается как gate к DONE в промпт-строках
+    verify: "rg 'REFLECT' loop/context_loop.py | grep -v 'QA+REFLECT gate\\|# '"
+
+verify:
+  - "python -c \"from loop.context_loop import LOOP_PHASE_MODEL_ENV; assert 'REFLECT' not in LOOP_PHASE_MODEL_ENV\""
+  - "python -c \"from loop.context_loop import loop_phase_key; assert loop_phase_key('REFLECT') is None\""
+  - "bin/pytest loop/tests/test_context_loop.py -q --tb=short -k 'not reflect'"
+
+tdd:
+  - "test_loop_phase_key_reflect_returns_none — loop_phase_key('REFLECT') is None"
+  - "test_reflect_not_in_loop_phase_model_env"

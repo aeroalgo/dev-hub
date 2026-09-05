@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: s01 — Checker red — literal @.agents/skills parser + failing corpus IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/yaml/steps/s01-skill-refs-checker-red.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- Создан статический чекер skill_refs.py (stdlib pathlib + re) для проверки канонических
+  путей @.agents/skills/<name>/SKILL.md.
+- Corpus test собран и падает (red) на текущем nested layout (113 missing refs), подтверждая
+  red-фазу s01 до cutover в s02.
+gaps:
+  status: none
+done:
+- Реализован парсер литералов @.agents/skills в loop/workflow/skill_refs.py
+- Реализован corpus walk с exclude _archive и .cursor/templates
+- Написаны тесты в loop/tests/test_skill_literal_refs.py
+- Corpus test падает на текущем дереве (checker red по контракту s01)
+files:
+- loop/workflow/skill_refs.py
+- loop/tests/test_skill_literal_refs.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_skill_literal_refs.py -k 'not corpus' -q --tb=line
+- python3 -c "import pytest; res = pytest.main(['loop/tests/test_skill_literal_refs.py',
+  '-k', 'corpus', '-q']); assert res == pytest.ExitCode.TESTS_FAILED"
+integration_check:
+- bin/pytest loop/tests/test_skill_literal_refs.py -k parse -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -k exclude -q --tb=line
+- bin/pytest loop/tests/test_skill_literal_refs.py -k unreferenced -q --tb=line
+grep_control:
+- back: rg -n 'skills/skills' loop/workflow/skill_refs.py || true
+  front: ''
+verification_results:
+- 'cp1: PASS (parse tests pass)'
+- 'cp2: PASS (corpus test fails as expected for s01 red phase)'
+- 'cp3: PASS (zero occurrences of skills/skills fallback)'
+- 'cp4: PASS (exclude tests pass)'
+checkpoints:
+- id: cp1
+  criterion: Parser находит literal `@.agents/skills/writing-plans/SKILL.md` в workflow-plan.mdc
+    / role-command
+  status: done
+- id: cp2
+  criterion: Corpus test собирается и падает на текущем nested layout (red), не skip
+    и не silent pass
+  status: done
+- id: cp3
+  criterion: Parser не резолвит nested `.agents/skills/skills/<name>` как успех
+  status: done
+- id: cp4
+  criterion: Exclude `_archive` и `.cursor/templates` из production corpus walk
+  status: done

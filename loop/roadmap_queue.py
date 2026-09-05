@@ -298,6 +298,14 @@ def plan_path(cwd: str | Path, role: str, plan_name: str) -> Path:
         return flat
     stem = plan_stem_from_name(plan_name)
     if stem:
+        try:
+            from epic_paths import find_plan_md_path
+
+            resolved = find_plan_md_path(root, role_dir, stem)
+            if resolved is not None and resolved.is_file():
+                return resolved
+        except Exception:
+            pass
         v2 = root / "memory-bank" / role_dir / "plan" / stem / "md" / "plan.md"
         if v2.is_file():
             return v2
@@ -335,15 +343,33 @@ def resolve_epic_slug(
 
     Source of truth for FS folders: plan file stem (queue ``plan:`` field or
     ``plan-{queue_id}[-slug].md`` on disk). Short queue id alone is only a
-    fallback when no plan / decompose / reflection / qa artifact exists.
+    fallback when no plan / decompose / qa artifact exists.
     """
+    root = Path(cwd)
     if plan_name:
         stem = plan_stem_from_name(plan_name)
         if stem:
+            try:
+                from epic_paths import epic_id_from_plan_path, find_plan_md_path
+
+                resolved = find_plan_md_path(root, role, stem)
+                canonical = epic_id_from_plan_path(resolved)
+                if canonical:
+                    return canonical
+            except Exception:
+                pass
             return stem
-    root = Path(cwd)
     plan_dir = root / "memory-bank" / role / "plan"
     if plan_dir.is_dir():
+        try:
+            from epic_paths import epic_id_from_plan_path, find_plan_md_path
+
+            resolved = find_plan_md_path(root, role, queue_id)
+            canonical = epic_id_from_plan_path(resolved)
+            if canonical:
+                return canonical
+        except Exception:
+            pass
         exact_plan = plan_dir / f"plan-{queue_id}.md"
         slugged = sorted(plan_dir.glob(f"plan-{queue_id}-*.md"))
         if slugged:
@@ -355,15 +381,6 @@ def resolve_epic_slug(
         slug = epic_id_from_decompose_path(str(idx))
         if slug:
             return slug
-    refl_dir = root / "memory-bank" / role / "reflection"
-    if refl_dir.is_dir():
-        exact = refl_dir / f"reflection-{queue_id}.md"
-        if exact.is_file():
-            return queue_id
-        hits = sorted(refl_dir.glob(f"reflection-{queue_id}-*.md"))
-        if hits:
-            name = hits[0].name
-            return name[len("reflection-") : -len(".md")]
     qa_dir = root / "memory-bank" / role / "qa"
     if qa_dir.is_dir():
         if (qa_dir / queue_id).is_dir():
@@ -485,7 +502,7 @@ def mark_queue_epic_done(
         return {
             "ok": False,
             "error": "mark_queue_epic_not_done",
-            "reason": f"epic {row['id']} is not DONE (QA+REFLECT gate)",
+            "reason": f"epic {row['id']} is not DONE (QA gate)",
             "id": row["id"],
             "path": parsed["path"],
         }

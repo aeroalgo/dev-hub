@@ -1,0 +1,115 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: "Canonical FS — move/symlink skills so parent Read opens SKILL.md"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Parent на BACK PLAN/DECOMPOSE делает Read `.agents/skills/writing-plans/SKILL.md`
+  (и grill-me, python-testing-patterns, все referenced names) и получает skill body.
+  Nested `harness/skills/skills/<name>` перестаёт быть SoT: содержимое на каноне
+  (move или symlink канон→content). Тела SKILL не переписывать.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, US-001, US-003, SC-002, AC+1, AC+3, NFR-01, NFR-03, TM-002, TM-005]
+  nouns:
+    - ".agents/skills/<name>/SKILL.md"
+    - ".agents/skills/writing-plans/SKILL.md"
+    - ".agents/skills/grill-me/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - harness/skills/skills/<name>/ (source)
+    - move or symlink canonical → content
+  layout_paths:
+    - .agents/skills/
+    - harness/skills/
+  ac_quotes:
+    - "Read skill path из workflow открывает файл (exit/tool success), без угадывания вложенного каталога."
+    - "Given fresh clone / current worktree after эпика When parent Read writing-plans и grill-me Then оба файла существуют"
+    - "Перенос из `.agents/skills/skills/<name>/` → канон (move или symlink канон→content)."
+    - "Содержимое SKILL.md не переписываем «для качества» — только layout."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:46-107"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:132-163"
+
+context:
+  consumes:
+    - s01 checker (red corpus)
+    - harness/skills/skills/*/SKILL.md
+    - referenced names from skill_refs parser
+  produces:
+    - ".agents/skills/<name>/SKILL.md for every referenced skill"
+    - corpus pytest green (zero missing on production refs)
+  plan_refs:
+    - plan.md#fr-001
+    - plan.md#inventory-as-built-sunset
+  files:
+    - .agents/skills/
+    - harness/skills/
+
+as_built:
+  - ".agents/skills — symlink на harness/skills; first-level skill dirs отсутствуют"
+  - "harness/skills/skills/<name>/SKILL.md — фактический SoT (writing-plans, grill-me, tdd, …)"
+  - "harness/skills/<name>/SKILL.md — File does not exist (проверено PLAN/DECOMPOSE)"
+  - "коллизия канон-уже-другой-skill: на 2026-09-05 канон пуст, overwrite risk низкий — всё равно inventory до move"
+
+delta:
+  - "inventory referenced names (parser s01) ∪ P0 writing-plans, grill-me, python-testing-patterns"
+  - "для каждого name: если канон отсутствует — move или symlink `.agents/skills/<name>` → content"
+  - "если канон уже есть и hash != nested — STOP, не overwrite молча (FR-003); задокументировать merge в implement evidence"
+  - "не менять текст SKILL.md кроме path docs если README уже есть (FR-010 → s04)"
+  - "corpus test s01 становится green для production refs"
+
+deletes:
+  - "harness/skills/skills/<name>/ as independent SoT after successful move (symlink leftover OK until s05)"
+
+out_of_scope:
+  - "полный leftover scan / hash dual-copy (s05)"
+  - "fixture skill_ref_missing (s03)"
+  - "Kind I instruction rewrite (s04)"
+  - "rewrite skill bodies (cut_list)"
+  - "Windows symlink (NFR-03 hub=linux)"
+
+sunset_scope:
+  required: true
+  boundary_id: agents-skills-fs
+  new_sot: ".agents/skills/<name>/SKILL.md"
+  allow_read:
+    - ".agents/skills/**"
+    - "harness/skills/**"
+  kind_hint:
+    - A
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: writing-plans, grill-me, python-testing-patterns существуют на каноне
+    verify: "python -c \"from pathlib import Path; ns=['writing-plans','grill-me','python-testing-patterns']; assert all((Path('.agents/skills')/n/'SKILL.md').is_file() for n in ns)\""
+  - id: cp2
+    criterion: Production corpus zero missing (checker green)
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k corpus -q --tb=line"
+  - id: cp3
+    criterion: Нет silent overwrite при коллизии (inventory log / test)
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k collision -q --tb=line"
+  - id: cp4
+    criterion: SKILL body writing-plans keeps frontmatter name writing-plans (не переписан)
+    verify: "rg -n '^name: writing-plans' .agents/skills/writing-plans/SKILL.md"
+
+verify:
+  - "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+  - "test -f .agents/skills/writing-plans/SKILL.md"
+  - "test -f .agents/skills/grill-me/SKILL.md"
+
+tdd:
+  - "test_writing_plans_canonical_exists — Path.is_file"
+  - "test_grill_me_and_python_testing_patterns_canonical_exist"
+  - "test_production_corpus_zero_missing — PASS after cutover"
+  - "test_collision_does_not_overwrite_different_hash — skip/xfail only if no collision in tree"

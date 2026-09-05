@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -241,7 +242,7 @@ def handoff_indicates_epic_finished(text: str) -> bool:
     if not handoff:
         return False
     heading = handoff.splitlines()[0] if handoff.splitlines() else ""
-    # Only ARCHIVE NOW heading — not REFLECT template line «ARCHIVE: вручную после EPIC_DONE».
+    # Only ARCHIVE NOW heading.
     return bool(re.search(r"(?i)\bARCHIVE\s+NOW\b", heading))
 
 
@@ -348,6 +349,12 @@ def discover_decompose_indexes(cwd: str | Path, *, limit: int = 5) -> list[str]:
             found.append(idx_md.relative_to(root).as_posix())
             if len(found) >= limit:
                 return found
+        else:
+            idx_yaml = resolve(role, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
+            if idx_yaml.is_file():
+                found.append(idx_yaml.relative_to(root).as_posix())
+                if len(found) >= limit:
+                    return found
 
     return found
 
@@ -918,6 +925,8 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "2. Зафиксируй QA source, root cause и regression evidence по правилам workflow.\n"
             "3. After verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
             "4. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
+            "5. После успешного FINISH останови сессию: BACK QA выполнит следующий запуск runner.\n"
+            "6. Не создавай QA verdict и не вызывай mb-finish qa в BUGFIX-сессии; не изменяй gate evidence.\n"
         )
     elif phase_kind == "implement":
         explorer_block = _explorer_block(
@@ -931,6 +940,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     elif phase_kind == "qa":
         finish_block = (
             "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`\n"
+            "> После BUGFIX обязателен новый qa-*.yaml с новым именем и reviewer PASS текущего QA run.\n"
         )
     elif phase_kind == "audit":
         finish_block = (
@@ -1268,15 +1278,12 @@ def _role_dir_from_state_role(role: str | None) -> str:
 def _find_decompose_index_for_epic(
     cwd: Path, epic_id: str, role: str | None
 ) -> str | None:
-    from loop.paths.epic_layout import resolve, EpicLayoutKind
-
     role_dir = _role_dir_from_state_role(role)
-    v2_idx = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd)
-    if v2_idx.is_file():
-        return v2_idx.relative_to(cwd).as_posix()
-    v2_md = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd)
-    if v2_md.is_file():
-        return v2_md.relative_to(cwd).as_posix()
+    from epic_paths import find_decompose_index_path
+
+    index_path = find_decompose_index_path(cwd, role_dir, epic_id)
+    if index_path is not None and index_path.is_file():
+        return index_path.relative_to(cwd).as_posix()
     return None
 
 
@@ -1910,6 +1917,7 @@ def prepare_session(
         or f"prepare-{projection.get('phase_epoch') or fp}"
     )
     st["session_id"] = checkpoint_session
+    st["phase_run_id"] = uuid.uuid4().hex
     proj = st.get("projection")
     if isinstance(proj, dict):
         proj["session_id"] = checkpoint_session
@@ -3220,7 +3228,7 @@ def main(argv: list[str] | None = None) -> int:
     p_mark.add_argument(
         "--require-done",
         action="store_true",
-        help="Fail if QA+REFLECT gate says epic is not DONE",
+        help="Fail if QA gate says epic is not DONE",
     )
 
     p_merge = sub.add_parser(

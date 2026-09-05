@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-060-remove-reflect-phase
+title: s03 — schemas + epic_transition + roadmap_queue — убрать REFLECT IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/yaml/steps/s03-schemas-epic-transition-roadmap.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- loop/schemas/active_context.py — убран REFLECT из _HANDOFF_PHASE_HEADING_RE, _HANDOFF_MODE_LINE_RE,
+  _HANDOFF_NEXT_PHASE_RE
+- loop/roadmap_queue.py — убран fallback на reflection-* в resolve_epic_slug и строка
+  'QA+REFLECT gate' заменена на 'QA gate'
+files:
+- loop/schemas/active_context.py
+- loop/schemas/phase_registry.yaml
+- loop/epic_transition.py
+- loop/roadmap_queue.py
+deletes:
+- 'loop/schemas/active_context.py: REFLECT из regex литералов'
+- 'loop/roadmap_queue.py: reflection fallback в resolve_epic_slug (строки 358-366)'
+- 'loop/roadmap_queue.py:338 docstring: убрать / reflection из перечисления'
+tests:
+- bin/pytest loop/tests/test_schemas_event.py loop/tests/test_epic_transition.py -q
+  --tb=short
+integration_check:
+- rg 'REFLECT' loop/schemas/active_context.py loop/roadmap_queue.py loop/epic_transition.py
+  loop/schemas/phase_registry.yaml
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: REFLECT не в regex active_context.py (HEADING, MODE, NEXT)
+  status: done
+- id: cp2
+  criterion: roadmap_queue.py не содержит QA+REFLECT gate текст
+  status: done
+- id: cp3
+  criterion: reflection fallback удалён из resolve_epic_slug
+  status: done
+- id: cp4
+  criterion: schemas suite зелёная
+  status: done

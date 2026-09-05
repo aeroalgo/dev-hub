@@ -1,0 +1,119 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-060-remove-reflect-phase
+title: "schemas + epic_transition + roadmap_queue — убрать REFLECT"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Убрать REFLECT из schemas/active_context.py (regex/frozenset), phase_registry.yaml (нет REFLECT блока),
+  epic_transition.py (_POST_IMPLEMENT_ARMED без REFLECT), roadmap_queue.py (текст «QA+REFLECT gate» → «QA gate»,
+  убрать reflection_path из smart_entry).
+  Результат: все schema-файлы чистые; REFLECT не упоминается как live gate ни в одном из этих файлов.
+
+plan_contract:
+  fr_ids: [FR-06, FR-07, FR-08, FR-09, FR-10, AC+5]
+  nouns:
+    - _HANDOFF_PHASE_HEADING_RE (убрать REFLECT из regex)
+    - _HANDOFF_MODE_LINE_RE (убрать REFLECT из regex)
+    - _HANDOFF_NEXT_PHASE_RE (убрать REFLECT из regex)
+    - _POST_IMPLEMENT_GATE_PHASES (frozenset без REFLECT)
+    - phase_registry.yaml (без REFLECT блока/terminal_phases)
+    - _POST_IMPLEMENT_ARMED в epic_transition.py (без REFLECT)
+    - roadmap_queue.py:488 «QA+REFLECT gate» → «QA gate»
+  layout_paths:
+    - loop/schemas/active_context.py
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - loop/roadmap_queue.py
+  ac_quotes:
+    - "schemas/active_context.py не ссылается на REFLECT в regex"
+    - "phase_registry.yaml не содержит REFLECT в terminal_phases"
+    - "loop/epic_transition.py: _POST_IMPLEMENT_ARMED без REFLECT"
+    - "Cursor rules не содержат BACK REFLECT → ARCHIVE в цепочке переходов"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:1-120"
+
+context:
+  consumes:
+    - loop/schemas/active_context.py
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - loop/roadmap_queue.py
+  produces:
+    - loop/schemas/active_context.py (изменён)
+    - loop/schemas/phase_registry.yaml (изменён)
+    - loop/epic_transition.py (изменён — только строки с REFLECT если есть)
+    - loop/roadmap_queue.py (изменён — строка 488 и reflection fallback в resolve_epic_slug)
+  plan_refs:
+    - "plan.md §Architecture — Затронутые файлы: schemas, epic_transition, roadmap_queue"
+    - "plan.md §Risks — reflection_path из smart_entry"
+  files:
+    - loop/schemas/active_context.py
+    - loop/schemas/phase_registry.yaml
+    - loop/epic_transition.py
+    - loop/roadmap_queue.py
+
+as_built:
+  - "loop/schemas/active_context.py:19 — _HANDOFF_PHASE_HEADING_RE: (AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)"
+  - "loop/schemas/active_context.py:21-22 — _POST_IMPLEMENT_GATE_PHASES = frozenset({'AUDIT','QA','BUGFIX','DECOMPOSE'})"
+  - "loop/schemas/active_context.py:33 — _HANDOFF_MODE_LINE_RE: (AUDIT|QA|REFLECT|BUGFIX|DECOMPOSE)"
+  - "loop/schemas/active_context.py:37 — _HANDOFF_NEXT_PHASE_RE: (AUDIT|QA|REFLECT|BUGFIX)"
+  - "loop/schemas/event.py:31 — LEGACY_DEAD_EVENT_KINDS = frozenset({'reflection_done'}) — уже правильно"
+  - "loop/schemas/phase_registry.yaml: нет REFLECT блока (уже чисто)"
+  - "loop/epic_transition.py:46 — _POST_IMPLEMENT_ARMED = frozenset({'AUDIT','QA','BUGFIX','DONE'}) — уже чисто"
+  - "loop/roadmap_queue.py:488 — 'is not DONE (QA+REFLECT gate)'"
+  - "loop/roadmap_queue.py:358-366 — resolve_epic_slug ищет reflection-*.md как fallback"
+
+delta:
+  - "loop/schemas/active_context.py:19 — убрать REFLECT из _HANDOFF_PHASE_HEADING_RE"
+  - "loop/schemas/active_context.py:33 — убрать REFLECT из _HANDOFF_MODE_LINE_RE"
+  - "loop/schemas/active_context.py:37 — убрать REFLECT из _HANDOFF_NEXT_PHASE_RE"
+  - "loop/schemas/active_context.py:21-22 — _POST_IMPLEMENT_GATE_PHASES: убедиться нет REFLECT (уже нет — проверить)"
+  - "loop/roadmap_queue.py:488 — 'QA+REFLECT gate' → 'QA gate'"
+  - "loop/roadmap_queue.py:338,358-366 — убрать reflection fallback из resolve_epic_slug docstring и logic"
+  - "loop/schemas/event.py — без изменений (reflection_done уже в LEGACY_DEAD_EVENT_KINDS, не в EVENT_KINDS)"
+  - "loop/epic_transition.py — без изменений (REFLECT уже не в _POST_IMPLEMENT_ARMED)"
+  - "loop/schemas/phase_registry.yaml — без изменений (REFLECT уже не присутствует)"
+
+deletes:
+  - "loop/schemas/active_context.py: REFLECT из regex литералов"
+  - "loop/roadmap_queue.py: reflection fallback в resolve_epic_slug (строки 358-366)"
+  - "loop/roadmap_queue.py:338 docstring: убрать / reflection из перечисления"
+
+out_of_scope:
+  - "harness/hooks/epic/core.py (s01)"
+  - "loop/context_loop.py (s02)"
+  - "Cursor rules (s04)"
+  - "loop/tests/ (s05)"
+  - "loop/schemas/event.py — без изменений (уже корректно)"
+  - "loop/epic_transition.py — без изменений (уже корректно)"
+  - "loop/schemas/phase_registry.yaml — без изменений (уже корректно)"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: REFLECT не в regex active_context.py (HEADING, MODE, NEXT)
+    verify: "rg 'REFLECT' loop/schemas/active_context.py"
+  - id: cp2
+    criterion: roadmap_queue.py не содержит QA+REFLECT gate текст
+    verify: "rg 'REFLECT' loop/roadmap_queue.py"
+  - id: cp3
+    criterion: reflection fallback удалён из resolve_epic_slug
+    verify: "rg 'reflection' loop/roadmap_queue.py"
+  - id: cp4
+    criterion: schemas suite зелёная
+    verify: "bin/pytest loop/tests/test_schemas_event.py loop/tests/test_epic_transition.py -q --tb=short"
+
+verify:
+  - "rg 'REFLECT' loop/schemas/active_context.py loop/roadmap_queue.py loop/epic_transition.py loop/schemas/phase_registry.yaml"
+  - "bin/pytest loop/tests/test_schemas_event.py loop/tests/test_epic_transition.py -q --tb=short"
+
+tdd:
+  - "test_handoff_gate_phase_from_text_reflect_returns_none — REFLECT убран из regex, возвращает None а не REFLECT"
+  - "test_reflect_not_in_roadmap_queue_gate_reason"

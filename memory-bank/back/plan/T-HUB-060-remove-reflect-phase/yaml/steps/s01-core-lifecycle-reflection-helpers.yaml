@@ -1,0 +1,117 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-060-remove-reflect-phase
+title: "core.py — lifecycle reducer, artifacts, epic_complete_allowed, reflection helpers"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Убрать из harness/hooks/epic/core.py все пути, ведущие к phase=REFLECT или требующие reflection_done.
+  Результат: reduce_epic_lifecycle переходит qa_pass → DONE напрямую; post_implement_phase
+  возвращает (phase, qa_path, None) без reflection_path; epic_complete_allowed возвращает
+  allowed=True при qa_pass без проверки отражения; helper-функции find_reflection_artifact,
+  _reflection_stale_vs_qa_pass, _matching_reflection_artifacts удалены.
+
+plan_contract:
+  fr_ids: [FR-01, FR-02, FR-03, AC+1, AC+2, AC+6, AC−1, AC−2, NFR-01, NFR-02]
+  nouns:
+    - reduce_epic_lifecycle (qa_pass → DONE без reflection)
+    - post_implement_phase (возврат без reflection_path)
+    - epic_complete_allowed (REFLECT не в guard-set)
+    - find_reflection_artifact (удалена)
+    - _reflection_stale_vs_qa_pass (удалена)
+    - _matching_reflection_artifacts (удалена)
+    - _reflection_ownership_ambiguous (удалена)
+    - build_post_implement_active_context (параметр reflection_path удалён)
+    - POST_IMPLEMENT_CHAIN (без REFLECT)
+  layout_paths:
+    - harness/hooks/epic/core.py
+  ac_quotes:
+    - "post_implement_phase() при qa_pass возвращает ('DONE', qa_path, None) — без reflection_path проверки"
+    - "epic_complete_allowed() при qa_pass возвращает {allowed: True}"
+    - "POST_IMPLEMENT_CHAIN == 'IMPLEMENT → AUDIT → QA → EPIC_DONE'"
+    - "Архивные reflection_done events → игнорируются (dead events), не вызывают краш"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:1-60"
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:61-120"
+
+context:
+  consumes:
+    - harness/hooks/epic/core.py
+  produces:
+    - harness/hooks/epic/core.py (изменён)
+  plan_refs:
+    - "plan.md §Architecture — Затронутые файлы: harness/hooks/epic/core.py"
+    - "plan.md §Architecture — Логика reduce_epic_lifecycle (новая)"
+  files:
+    - harness/hooks/epic/core.py
+
+as_built:
+  - "harness/hooks/epic/core.py:3584 — find_reflection_artifact() ищет reflection-*.md"
+  - "harness/hooks/epic/core.py:1123 — _matching_reflection_artifacts() glob reflection-*.md"
+  - "harness/hooks/epic/core.py:1150 — _reflection_ownership_ambiguous()"
+  - "harness/hooks/epic/core.py:1327 — _reflection_stale_vs_qa_pass()"
+  - "harness/hooks/epic/core.py:3737 — post_implement_phase возвращает (phase, qa, find_reflection_artifact(...))"
+  - "harness/hooks/epic/core.py:4029 — build_post_implement_active_context принимает reflection_path: Path | None"
+  - "harness/hooks/epic/core.py:4115-4121 — load_now.append reflection если is_file()"
+  - "harness/hooks/epic/core.py:3938,3950 — epic_complete_allowed возвращает reflection_path в ответе"
+  - "harness/hooks/epic/core.py:4363,4622 — callers передают reflection_path=refl_p"
+  - "harness/hooks/epic/core.py:958 — строка с 'REFLECT' в frozenset/string"
+  - "harness/hooks/epic/core.py:3401-3402 — QA FINISH check body.upper() REFLECT"
+
+delta:
+  - "reduce_epic_lifecycle (~line 3626-3714): reason_code='qa_passed' → phase='DONE' напрямую; убрать all reflection ветки и вызовы"
+  - "post_implement_phase: убрать третий return элемент find_reflection_artifact; возвращать (phase, qa, None)"
+  - "build_post_implement_active_context: убрать параметр reflection_path; убрать load_now.append для reflection"
+  - "Все callers (line ~4363, ~4622): убрать reflection_path= аргумент"
+  - "epic_complete_allowed: убрать 'reflection_path' из возвращаемого dict"
+  - "Удалить функции: find_reflection_artifact, _matching_reflection_artifacts, _reflection_ownership_ambiguous, _reflection_stale_vs_qa_pass"
+  - "Строки 958, 2424, 3401-3402, 2533 — убрать REFLECT из наборов/строк/комментов"
+  - "Docstring _declared_artifacts: убрать упоминание reflection"
+
+deletes:
+  - "harness/hooks/epic/core.py: def find_reflection_artifact (line ~3584)"
+  - "harness/hooks/epic/core.py: def _matching_reflection_artifacts (line ~1123)"
+  - "harness/hooks/epic/core.py: def _reflection_ownership_ambiguous (line ~1150)"
+  - "harness/hooks/epic/core.py: def _reflection_stale_vs_qa_pass (line ~1327)"
+  - "harness/hooks/epic/core.py: параметр reflection_path из build_post_implement_active_context"
+
+out_of_scope:
+  - "loop/context_loop.py (s02)"
+  - "loop/schemas/* (s03)"
+  - "loop/epic_transition.py (s03)"
+  - "loop/roadmap_queue.py (s03)"
+  - "Cursor rules (s04)"
+  - "loop/tests/ (s05)"
+  - "memory-bank/*/reflection/*.md — НЕ удалять (архив)"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/systematic-debugging/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: post_implement_phase при qa_pass возвращает (DONE, qa_path, None) без reflection_path
+    verify: "bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short"
+  - id: cp2
+    criterion: epic_complete_allowed при qa_pass возвращает allowed=True
+    verify: "bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short"
+  - id: cp3
+    criterion: find_reflection_artifact и _matching_reflection_artifacts не существуют в core.py
+    verify: "rg 'def find_reflection_artifact|def _matching_reflection_artifacts|def _reflection_stale_vs_qa_pass|def _reflection_ownership_ambiguous' harness/hooks/epic/core.py"
+  - id: cp4
+    criterion: legacy reflection_done events в event.log не вызывают краш
+    verify: "bin/pytest loop/tests/test_reducer_qa_bugfix.py::test_legacy_reflection_done_event_ignored -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short"
+  - "bin/pytest loop/tests/test_reducer_qa_bugfix.py -q --tb=short"
+  - "python -c \"from harness.hooks.epic.core import POST_IMPLEMENT_CHAIN; assert 'REFLECT' not in POST_IMPLEMENT_CHAIN\""
+
+tdd:
+  - "test_post_implement_phase_qa_pass_returns_done_none — (phase, qa, None), не (phase, qa, reflection)"
+  - "test_epic_complete_allowed_qa_pass_allowed_true — нет проверки reflection"
+  - "test_legacy_reflection_done_event_ignored — существующий тест должен остаться зелёным"

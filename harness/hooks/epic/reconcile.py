@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from harness.hooks.epic_index import load_index_yaml
+from harness.hooks.epic_paths import (
+    epic_id_from_plan_path,
+    find_decompose_index_path,
+    find_plan_md_path,
+)
 from harness.hooks.epic_portfolio import _ACTIVE_HEADER_RE, _split_cells, _table_block
 from harness.hooks.epic_yaml import load_decompose, load_implement
 
@@ -92,25 +97,24 @@ def resolve_epic_bundle(cwd: Path, epic_or_plan_id: str) -> EpicBundle | None:
     if not key:
         return None
     plan_root = cwd / "memory-bank" / "back" / "plan"
-    candidates = sorted(plan_root.glob(f"decompose-{key}*/index.yaml"))
-    if not candidates:
-        exact_plan = plan_root / f"plan-{key}.md"
-        if exact_plan.is_file():
-            candidates = sorted(plan_root.glob(f"decompose-{key}/index.yaml"))
-            if not candidates:
-                candidates = sorted(plan_root.glob(f"decompose-{key}-*/index.yaml"))
-    if not candidates:
+    plan_path = find_plan_md_path(cwd, "back", key)
+    plan_id_from_path = epic_id_from_plan_path(plan_path)
+    lookup_id = plan_id_from_path or key
+    index_path = find_decompose_index_path(cwd, "back", lookup_id)
+    if index_path is None:
         return None
-    index_path = candidates[0]
     index_doc = load_index_yaml(index_path)
     plan_id = str(index_doc.get("plan_id") or "").strip()
     if not plan_id:
         return None
-    plan_path = plan_root / f"plan-{plan_id}.md"
-    if not plan_path.is_file():
+    if plan_path is None or not plan_path.is_file():
+        plan_path = find_plan_md_path(cwd, "back", plan_id)
+    if plan_path is None or not plan_path.is_file():
         return None
     epic_id = _epic_id_from_key(key, plan_id)
-    implement_dir = cwd / "memory-bank" / "back" / "implement" / f"implement-{plan_id}"
+    v2_implement_dir = cwd / "memory-bank" / "back" / "implement" / plan_id
+    v1_implement_dir = cwd / "memory-bank" / "back" / "implement" / f"implement-{plan_id}"
+    implement_dir = v2_implement_dir if v2_implement_dir.is_dir() else v1_implement_dir
     return EpicBundle(
         epic_id=epic_id,
         plan_id=plan_id,
@@ -209,7 +213,10 @@ def _collect_allowed_deletes(cwd: Path, bundle: EpicBundle) -> set[str]:
     for step in _load_steps(bundle.decompose_index):
         step_id = str(step.get("id") or "").lower()
         shard_name = str(step.get("file") or "")
-        dec_path = bundle.decompose_index.parent / shard_name
+        shard_dir = bundle.decompose_index.parent
+        if shard_dir.name == "yaml" and (shard_dir / "steps").is_dir():
+            shard_dir = shard_dir / "steps"
+        dec_path = shard_dir / shard_name
         if dec_path.is_file():
             try:
                 dec = load_decompose(dec_path)
@@ -271,7 +278,10 @@ def reconcile_epic(cwd: Path, bundle: EpicBundle) -> dict[str, Any]:
     for step in _load_steps(bundle.decompose_index):
         step_id = str(step.get("id") or "").lower()
         shard_name = str(step.get("file") or "")
-        dec_path = bundle.decompose_index.parent / shard_name
+        shard_dir = bundle.decompose_index.parent
+        if shard_dir.name == "yaml" and (shard_dir / "steps").is_dir():
+            shard_dir = shard_dir / "steps"
+        dec_path = shard_dir / shard_name
         if not dec_path.is_file():
             continue
         try:

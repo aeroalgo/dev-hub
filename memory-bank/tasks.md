@@ -2,12 +2,38 @@
 
 ## Active
 
+| T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] · next BACK ANALYZE · batch workflow-loop-20260905 |
+| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | PLAN done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · batch workflow-loop-20260905 |
+| T-HUB-064 | Video pack route + verify parity | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md) · batch workflow-loop-20260905 |
+| T-HUB-065 | Duplicate hooks + runtime entrypoint | L3 | PLAN done | queued | [plan](back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md) · batch workflow-loop-20260905 |
+| T-HUB-066 | Boundary schema + ownership strict | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md) · deps T-HUB-063 · batch workflow-loop-20260905 |
+| T-HUB-067 | Pack doctor executable graph | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md) · deps T-HUB-062,064 · batch workflow-loop-20260905 |
+| T-HUB-068 | Start/finish transaction boundary | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md) · deps T-HUB-066 · batch workflow-loop-20260905 |
+| T-HUB-069 | Agent contract registry + Codex policy | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md) · deps T-HUB-064 · batch workflow-loop-20260905 |
+| T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 · after 062–069 · next DECOMPOSE when 062 not blocking |
+| T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
+| T-HUB-072 | Context bundle fail-closed | L3 | PLAN done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · hard deps T-HUB-071 · batch loop-session-architecture-20260906 |
+| T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) · deps none · batch loop-session-architecture-20260906 |
+| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
 | T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
-| T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | PLAN | in_progress | [plan](back/plan/plan-T-HUB-060-remove-reflect-phase.md) · next BACK DECOMPOSE |
+| T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | IMPLEMENT s05 | in_progress | [plan](back/plan/T-HUB-060-remove-reflect-phase/md/plan.md) · **не этот PLAN-батч** · отдельный чат IMPLEMENT s05 |
 
 | ID | Title | Level | Step | Status | Progress |
 |----|-------|-------|------|--------|----------|
-| T-HUB-061 | Boundary CLI + doctor hygiene (--raw-json, check_boundaries, repair prose) | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · queue head · next DECOMPOSE |
+| T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] workflow-loop-20260905 · next ANALYZE |
+| T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | PLAN done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) |
+| T-HUB-064 | Video pack route + verify parity | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md) |
+| T-HUB-065 | Duplicate hooks + runtime entrypoint | L3 | PLAN done | queued | [plan](back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md) |
+| T-HUB-066 | Boundary schema + ownership strict | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md) · deps T-HUB-063 |
+| T-HUB-067 | Pack doctor executable graph | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md) · deps T-HUB-062,064 |
+| T-HUB-068 | Start/finish transaction boundary | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md) · deps T-HUB-066 |
+| T-HUB-069 | Agent contract registry + Codex policy | L3–L4 | PLAN done | queued | [plan](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md) · deps T-HUB-064 |
+| T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 |
+| T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · deps T-HUB-070 |
+| T-HUB-072 | Context bundle fail-closed | L3 | PLAN done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · deps T-HUB-071 |
+| T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) |
+| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · deps T-HUB-070 |
+| T-HUB-061 | Boundary CLI + doctor hygiene (--raw-json, check_boundaries, repair prose) | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · batch harness-ops-hygiene (done queue) · не queue[0] |
 | T-HUB-010 | SpecKit adapt — CLARIFY + spec quality | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-010-clarify-spec-quality.md) · QA pass · 7/7 steps completed |
 | T-HUB-011 | SpecKit adapt — ANALYZE pre-implement | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-011-analyze-pre-implement.md) · QA pass · 4/4 steps completed |
 | T-HUB-012 | SpecKit adapt — AUDIT converge | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-012-audit-converge.md) · QA pass · 4/4 steps completed |

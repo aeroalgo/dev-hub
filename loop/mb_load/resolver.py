@@ -80,9 +80,22 @@ def resolve_bundle_paths(
     auto_added: list[str] = []
     if epic_id and role and mode_upper in {"IMPLEMENT", "QA", "BUGFIX"}:
         kind = mode_upper.lower()
-        directories = [mb_root / role / kind / epic_id]
+        epic_ids = [epic_id]
         if kind == "implement":
-            directories.append(mb_root / role / kind / f"implement-{epic_id}")
+            try:
+                from epic_paths import epic_id_from_plan_path, find_plan_md_path
+
+                plan_path = find_plan_md_path(cwd_path, role, epic_id)
+                full_id = epic_id_from_plan_path(plan_path)
+                if full_id and full_id not in epic_ids:
+                    epic_ids.append(full_id)
+            except Exception:
+                pass
+        directories = [mb_root / role / kind / item for item in epic_ids]
+        if kind == "implement":
+            directories.extend(
+                mb_root / role / kind / f"implement-{item}" for item in epic_ids
+            )
             patterns = [f"{step_id}-*.yaml", f"{step_id}.yaml"] if step_id else []
         else:
             patterns = [f"{kind}-*.{'md' if kind == 'bugfix' else 'yaml'}"]

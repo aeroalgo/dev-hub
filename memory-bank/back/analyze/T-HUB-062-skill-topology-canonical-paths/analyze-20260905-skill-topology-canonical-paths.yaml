@@ -1,0 +1,192 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-062-skill-topology-canonical-paths
+slug: skill-topology-canonical-paths
+date: 2026-09-05
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Канонический FS: `.agents/skills/<name>/SKILL.md` для каждого skill, на который ссылаются active `.cursor/rules/**` и `.claude/skills/**` / `harness/claude/skills/**`."
+  - requirement_id: FR-002
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Перенос из `.agents/skills/skills/<name>/` → канон (move или symlink канон→content). Nested dir не остаётся вторым SoT."
+  - requirement_id: FR-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Если `.agents/skills/<name>` уже существует как другой skill — merge plan в DECOMPOSE, не overwrite молча."
+  - requirement_id: FR-004
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "То же для `harness/skills/` если nested `skills/skills` существует (inventory на IMPLEMENT)."
+  - requirement_id: FR-005
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Статический checker: парсит literal `@.agents/skills/<name>/SKILL.md` и `@.agents/skills/<name>/` из allowlisted corpora."
+  - requirement_id: FR-006
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Checker corpora: `.cursor/rules/**/*.mdc`, `.claude/skills/**/*.md`, `harness/claude/skills/**/*.md`, `harness/claude/rules/**/*.md`. Exclude: `_archive/**`, `.cursor/templates/**` (кроме если template обещает real path)."
+  - requirement_id: FR-007
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Missing path → fail с machine code `skill_ref_missing` + list."
+  - requirement_id: FR-008
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Zero missing на production corpus после эпика (`bin/pytest` named file green)."
+  - requirement_id: FR-009
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Kind I: workflow-plan.mdc и role-command SKILL продолжают писать канон `.agents/skills/<name>/SKILL.md` (не nested)."
+  - requirement_id: FR-010
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Документировать канон одной строкой в `memory-bank/systemPatterns.md` не обязательно; test + tree = SoT. Optional README в `.agents/skills/README.md` если уже есть — обновить, не плодить."
+  - requirement_id: FR-011
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "`bin/runtime-sync` / doctor не обязан чинить skills в этом эпике (это 067), но checker должен быть вызываем как pytest."
+  - requirement_id: FR-012
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Не добавлять runtime resolver «search both paths»."
+  - requirement_id: US-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как parent на BACK PLAN, я хочу `Read .agents/skills/writing-plans/SKILL.md` успешен, чтобы не гадать nested path."
+  - requirement_id: US-002
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу падение suite если workflow ссылается на несуществующий skill path."
+  - requirement_id: US-003
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Как operator, я хочу один канон, чтобы harness/claude и .agents не расходились."
+  - requirement_id: US-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как pack author, я хочу templates с dummy `@` не ломали checker."
+  - requirement_id: SC-001
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "0 missing canonical skill refs в production corpus"
+  - requirement_id: SC-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "`writing-plans`, `grill-me`, `python-testing-patterns` открываются по канону"
+  - requirement_id: SC-003
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет silent dual-path resolver в Python"
+  - requirement_id: SC-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Fixture broken ref fails"
+  - requirement_id: AC+1
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Канонические skill paths существуют для всех production `@.agents/skills/<name>/SKILL.md`."
+  - requirement_id: AC+2
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Named pytest checker зелёный на corpus и красный на fixture missing."
+  - requirement_id: AC+3
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Nested `skills/skills` не является SoT (удалён или symlink-only)."
+  - requirement_id: AC+4
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет Python fallback, который ищет оба пути и прячет 404."
+  - requirement_id: AC−1
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Нет второго entrypoint на тот же skill name с другим содержимым."
+  - requirement_id: AC−2
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет soft default «если нет файла — skip skill»."
+  - requirement_id: AC−3
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Misconfig (ссылка на missing) → fail test/CI, не warning."
+  - requirement_id: AC−4
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Нет prod dual-path nested+canonical без follow-up в queue."
+  - requirement_id: AC−5
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Нет dual machine path «resolver or literal» на одной границе."
+  - requirement_id: NFR-01
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "FS move/symlink: atomic or inventory-first; no data loss."
+  - requirement_id: NFR-02
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Static check speed: stdlib regex + pathlib, <1s on entire rules tree."
+  - requirement_id: NFR-03
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Symlink portability: Linux hub repo; git preserves symlinks if used."
+  - requirement_id: NFR-04
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Lean load: checker does not load/parse entire YAML/MDC ast — only regex scan for `@.agents/skills/`."
+  - requirement_id: TM-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "corpus zero missing"
+  - requirement_id: TM-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "writing-plans exists"
+  - requirement_id: TM-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "fixture missing fails"
+  - requirement_id: TM-004
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "no dual resolver"
+  - requirement_id: TM-005
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "grill-me + python-testing-patterns exist"
+  - requirement_id: TM-006
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "templates excluded"
+  - requirement_id: TM-007
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Symlink loop"
+  - requirement_id: layout:loop/workflow/skill_refs.py
+    step_ids: [s01, s03, s04]
+    status: covered
+    plan_text_verbatim: "loop/workflow/skill_refs.py (parser + corpus walk)"
+  - requirement_id: layout:loop/tests/test_skill_literal_refs.py
+    step_ids: [s01, s02, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_skill_literal_refs.py"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

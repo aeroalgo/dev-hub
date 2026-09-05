@@ -1,0 +1,209 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: "s05 — legacy-fallback-purge — nested skills/skills leftover + inventory"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: nested `.agents/skills/skills/` / `harness/skills/skills/`
+  не второй SoT (пусто / только README на канон / symlink target documented).
+  Нулевые prod dual-path resolvers, нулевые soft-skip missing, Kind I без nested-as-SoT.
+  Suite green без restore nested layout. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-002, FR-004, FR-012, US-003, AC+3, AC−1, AC−2, AC−4, SC-003, TM-004, TM-007]
+  nouns:
+    - nested skills/skills leftover
+    - hash compare dual SKILL.md
+    - symlink loop fail
+    - sunset inventory A+B+C+I
+  layout_paths:
+    - harness/skills/skills/
+    - .agents/skills/skills/
+    - loop/tests/test_skill_literal_refs.py
+  ac_quotes:
+    - "Nested `skills/skills` не является SoT (удалён или symlink-only)."
+    - "canonical names at first level; `skills/skills` empty or only README pointing to canonical; no second SKILL.md with different hash"
+    - "Нет второго entrypoint на тот же skill name с другим содержимым."
+    - "Нет prod dual-path nested+canonical без follow-up в queue."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:176-225"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:86-91"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (A, B, C, I)
+    - decompose index §Replacement cleanup
+    - s02 cutover + s04 enforce
+  produces:
+    - nested dir not independent SoT
+    - inventory evidence rg/hash
+    - targeted pytest green without restoring nested SoT
+  plan_refs:
+    - plan.md#replacement--sunset-brownfield
+  files:
+    - harness/skills/skills/
+    - .agents/skills/skills/
+    - loop/tests/test_skill_literal_refs.py
+
+as_built:
+  - "после s02: канон заполнен; nested может остаться копией/пустым/symlink"
+  - "plan B entrypoints n/a (checker pytest greenfield)"
+  - "historical resolve_skill dual search: none expected; scan still required"
+
+delta:
+  - "удалить leftover nested SKILL.md с другим hash; оставить empty dir или README→канон или symlink"
+  - "запретить symlink loop (checker follow_symlinks → fail TM-007)"
+  - "полный inventory scan A+B+C+I + obsolete tests"
+
+sunset_inventory:
+  - symbol: ".agents/skills/skills/<name>/SKILL.md"
+    kind: A
+    replacement: ".agents/skills/<name>/SKILL.md"
+    policy: delete in-epic
+    rg_scope: ".agents/skills/skills harness/skills/skills"
+    expect: no second SKILL.md with different hash; dir empty or README-only or symlink to canon
+  - symbol: harness/skills/skills/<name>/ as SoT
+    kind: A
+    replacement: harness/skills/<name>/SKILL.md
+    policy: delete in-epic
+    rg_scope: harness/skills/
+    expect: nested not independent SoT
+  - symbol: resolve_skill dual search / nested fallback
+    kind: A
+    replacement: literal Path.exists only
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero prod callers
+  - symbol: tests asserting nested skills/skills as required layout
+    kind: A
+    replacement: tests on canonical path
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: compose/CLI nested skills entrypoint
+    kind: B
+    replacement: n/a (checker pytest)
+    policy: n/a
+    rg_scope: docker-compose*.yml Dockerfile* Makefile bin/
+    expect: zero nested-skills CMD
+  - symbol: "попробуй nested если 404"
+    kind: C
+    replacement: raise / pytest fail
+    policy: delete in-epic
+    rg_scope: loop/ harness/hooks/
+    expect: zero fallback dual-path
+  - symbol: skip missing skill in workflow load
+    kind: C
+    replacement: fail Read / CI
+    policy: delete in-epic
+    rg_scope: loop/ .cursor/rules/
+    expect: no skip-missing soft default
+  - symbol: docs teaching skills/skills/ as SoT
+    kind: I
+    replacement: ".agents/skills/<name>/"
+    policy: delete in-epic
+    rg_scope: .cursor/rules/ .claude/skills/ harness/claude/
+    expect: zero nested-as-SoT instructions in active rules/skills
+  - symbol: role-command nested mention
+    kind: I
+    replacement: canonical
+    policy: delete in-epic
+    rg_scope: .claude/skills/role-command/SKILL.md harness/claude/skills/role-command/SKILL.md
+    expect: canonical only
+
+deletes:
+  - "harness/skills/skills/<name>/SKILL.md leftover independent copies"
+  - ".agents/skills/skills/<name>/SKILL.md leftover independent copies"
+  - "resolve_skill dual-search if present"
+  - "obsolete tests requiring nested layout as SoT"
+  - "Kind I nested-as-SoT instructions in active rules/skills"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: nested SKILL.md independent SoT
+    command: "python -c \"from pathlib import Path; root=Path('harness/skills'); print((root/'skills').exists())\""
+    expect: no dual different-hash SKILL.md
+  - id: inv-a-02
+    kind: A
+    symbol: resolve_skill dual search
+    command: "rg -n \"resolve_skill|skills/skills\" loop/ harness/hooks/ --glob '*.py' | rg -v '/tests/|test_' || true"
+    expect: no prod dual-search
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete nested-layout asserts
+    command: "rg -n \"skills/skills/.*/SKILL.md\" loop/tests/ harness/hooks/tests/ || true"
+    expect: no asserts requiring nested as SoT
+  - id: inv-b-01
+    kind: B
+    symbol: nested skills entrypoint
+    command: "rg -n \"skills/skills\" docker-compose*.yml Dockerfile* Makefile bin/ || true"
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: nested-if-404 fallback
+    command: "rg -n \"skills/skills\" loop/ harness/hooks/ --glob '*.py' | rg -v '/tests/' || true"
+    expect: no fallback/dual-path in prod
+  - id: inv-i-01
+    kind: I
+    symbol: nested-as-SoT instructions
+    command: "rg -n \"\\.agents/skills/skills/\" .cursor/rules .claude/skills harness/claude --glob '*.mdc' --glob '*.md' || true"
+    expect: no nested-as-SoT in active instruction surfaces
+
+out_of_scope:
+  - "MCP catalog UI / graphify nodes / skill body rewrite (cut_list)"
+  - "doctor graph — follow_up: T-HUB-067-pack-doctor-executable-graph"
+  - "full suite (BACK QA)"
+
+sunset_scope:
+  required: true
+  boundary_id: agents-skills-fs
+  new_sot: ".agents/skills/<name>/SKILL.md"
+  allow_read:
+    - ".agents/skills/**"
+    - "harness/skills/**"
+    - "loop/**"
+    - "harness/hooks/**"
+    - ".cursor/rules/**"
+    - ".claude/skills/**"
+    - "harness/claude/**"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A inventory — nested not independent SoT; 0 prod dual-search callers;
+      obsolete nested-layout tests rewritten/deleted.
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k leftover -q --tb=line"
+  - id: cp2
+    criterion: Kind C inventory — no nested-if-404 / skip-missing in prod Python
+    verify: "rg -n \"skills/skills\" loop/ harness/hooks/ --glob '*.py' | rg -v '/tests/' || true"
+  - id: cp3
+    criterion: Kind I inventory — 0 nested-as-SoT in active rules/skills
+    verify: "rg -n \"\\.agents/skills/skills/\" .cursor/rules .claude/skills harness/claude --glob '*.mdc' --glob '*.md' || true"
+  - id: cp4
+    criterion: Targeted checker green after deletes; no restore nested SoT; symlink loop fails closed
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+
+tdd:
+  - "test_nested_dir_not_independent_sot — empty or README or symlink; hash != dual copy"
+  - "test_symlink_loop_fails_closed — TM-007"
+  - "test_no_prod_dual_path_after_purge"

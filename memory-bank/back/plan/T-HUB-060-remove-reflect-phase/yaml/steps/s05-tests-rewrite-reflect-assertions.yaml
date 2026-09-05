@@ -1,0 +1,128 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-060-remove-reflect-phase
+title: "Тесты — переписать/удалить REFLECT assertions"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать тесты, которые ожидают phase=REFLECT или проверяют REFLECT-поведение.
+  После s01-s04 REFLECT больше не является валидным gate phase — тесты должны это отражать.
+  Ключевые изменения:
+  - test_handoff_phase_gates.py: тест на legacy REFLECT handoff → ожидать что handoff_gate_phase_from_text
+    возвращает None (т.к. REFLECT убран из regex в s03) или legacy parsing;
+    тест test_prepare_completes_when_qa_pass_despite_legacy_reflect_handoff — может остаться (legacy compatibility).
+  - test_handoff_projection.py: тесты на parse REFLECT mode → либо переписать что REFLECT
+    остаётся в frontmatter parse (legacy), либо тесты на None.
+  - test_sync_cursor_handoff_preserve.py: assert phase in {None, "QA", "DONE", ...} — убрать "REFLECT".
+  - test_context_loop.py: строки с BACK REFLECT в handoff → переписать под DONE/QA flow.
+  - test_epic_transition.py: "REFLECT" not in terminal_phases — уже зелёный (проверить).
+  - test_schemas_event.py: reflection_done уже в LEGACY_DEAD_EVENT_KINDS — тест сохранить.
+
+plan_contract:
+  fr_ids: [FR-12, AC+4, AC−3]
+  nouns:
+    - test_handoff_phase_gates.py (переписать REFLECT assertions)
+    - test_handoff_projection.py (переписать REFLECT parse assertions)
+    - test_sync_cursor_handoff_preserve.py (убрать REFLECT из allowed set)
+    - test_context_loop.py (переписать BACK REFLECT handoff tests)
+    - test_epic_transition.py (проверить — ожидаемо зелёный)
+    - test_schemas_event.py (проверить — ожидаемо зелёный)
+  layout_paths:
+    - loop/tests/test_handoff_phase_gates.py
+    - loop/tests/test_handoff_projection.py
+    - loop/tests/test_sync_cursor_handoff_preserve.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_schemas_event.py
+  ac_quotes:
+    - "bin/pytest loop/tests/ — все тесты зелёные"
+    - "Тест не ожидает reflection_done event или phase=REFLECT"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:60-120"
+
+context:
+  consumes:
+    - loop/tests/test_handoff_phase_gates.py
+    - loop/tests/test_handoff_projection.py
+    - loop/tests/test_sync_cursor_handoff_preserve.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_schemas_event.py
+  produces:
+    - loop/tests/test_handoff_phase_gates.py (изменён)
+    - loop/tests/test_handoff_projection.py (изменён)
+    - loop/tests/test_sync_cursor_handoff_preserve.py (изменён)
+    - loop/tests/test_context_loop.py (изменён)
+  plan_refs:
+    - "plan.md §Decompose plan — s05 Тесты"
+    - "plan.md §Risks — Тесты, опирающиеся на phase=REFLECT fixture"
+  files:
+    - loop/tests/test_handoff_phase_gates.py
+    - loop/tests/test_handoff_projection.py
+    - loop/tests/test_sync_cursor_handoff_preserve.py
+    - loop/tests/test_context_loop.py
+
+as_built:
+  - "test_handoff_phase_gates.py:58 — assert handoff_post_implement_phase(text) == 'REFLECT'"
+  - "test_handoff_phase_gates.py:108-109 — Handoff BACK REFLECT в fixture"
+  - "test_handoff_projection.py:42-44 — assert meta.mode == 'REFLECT'; assert handoff_gate_phase_from_text(text) == 'REFLECT'"
+  - "test_handoff_projection.py:59-60 — assert handoff_mode_from_text(text) == 'REFLECT'"
+  - "test_handoff_projection.py:151-152 — Handoff BACK REFLECT в fixture + assert"
+  - "test_sync_cursor_handoff_preserve.py:34 — assert handoff_gate_phase_from_text(text) == 'REFLECT'"
+  - "test_sync_cursor_handoff_preserve.py:83 — phase in {None, 'QA', 'DONE', 'REFLECT', 'AUDIT', 'BUGFIX'}"
+  - "test_context_loop.py:986 — 'BACK REFLECT' в handoff text fixture"
+  - "test_context_loop.py:1578 — Handoff BACK REFLECT fixture"
+  - "test_context_loop.py:2087-2106 — phase, qa, reflection = post_implement_phase(...)"
+
+delta:
+  - "test_handoff_phase_gates.py:58: после s03 (REFLECT убран из regex) handoff_post_implement_phase возвращает None → переписать assert на None"
+  - "test_handoff_phase_gates.py: тест legacy_handoff_reflect_does_not_block — может остаться если тестирует что REFLECT не блокирует (поведение корректно), но убрать assert == 'REFLECT'"
+  - "test_handoff_projection.py:42-44: REFLECT в frontmatter mode — legacy parse должен работать (frontmatter parser не трогаем), НО handoff_gate_phase_from_text → None т.к. regex без REFLECT → fix assert"
+  - "test_handoff_projection.py:59-60: аналогично"
+  - "test_handoff_projection.py:151-152: переписать fixture + assert под QA/DONE flow"
+  - "test_sync_cursor_handoff_preserve.py:34: если REFLECT убран из regex → assert == None"
+  - "test_sync_cursor_handoff_preserve.py:83: убрать 'REFLECT' из allowed set"
+  - "test_context_loop.py:986, 1578: заменить BACK REFLECT fixture на BACK DONE/QA"
+  - "test_context_loop.py:2087-2106: post_implement_phase возвращает (phase, qa, None) — уже корректно"
+
+deletes:
+  - "Тесты, которые ожидают REFLECT как ненулевую gate фазу — удалить ветки assert == 'REFLECT'"
+  - "Строки с 'BACK REFLECT' в handoff text fixtures где это тестирует REFLECT как следующий шаг"
+
+out_of_scope:
+  - "harness/hooks/epic/core.py (s01)"
+  - "loop/context_loop.py (s02)"
+  - "loop/schemas/* (s03)"
+  - ".cursor/rules/ (s04)"
+  - "test_reducer_qa_bugfix.py::test_legacy_reflection_done_event_ignored — НЕ удалять (legacy read test)"
+  - "test_schemas_event.py::test_loop_event_accepts_legacy_reflection_done — НЕ удалять"
+  - "test_board_sync_scan_gates.py — REFLECT уже в deny-set (уже правильно)"
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: test_handoff_phase_gates зелёный без REFLECT assertions
+    verify: "bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short"
+  - id: cp2
+    criterion: test_handoff_projection зелёный
+    verify: "bin/pytest loop/tests/test_handoff_projection.py -q --tb=short"
+  - id: cp3
+    criterion: test_sync_cursor_handoff_preserve зелёный
+    verify: "bin/pytest loop/tests/test_sync_cursor_handoff_preserve.py -q --tb=short"
+  - id: cp4
+    criterion: полный loop/tests/ suite зелёный
+    verify: "bin/pytest loop/tests/ -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/ -q --tb=short"
+  - "rg 'assert.*REFLECT|== .REFLECT' loop/tests/ | grep -v 'not in\\|denied\\|BUGFIX'"
+
+tdd:
+  - "test_handoff_gate_phase_from_text_legacy_reflect_returns_none — после s03 regex не матчит REFLECT"
+  - "test_epic_complete_allowed_legacy_reflect_handoff_not_blocking — allowed=True несмотря на REFLECT в Handoff"

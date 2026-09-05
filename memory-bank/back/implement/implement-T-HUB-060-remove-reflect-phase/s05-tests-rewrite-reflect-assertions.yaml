@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-060-remove-reflect-phase
+title: s05 — Тесты — переписать/удалить REFLECT assertions IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/yaml/steps/s05-tests-rewrite-reflect-assertions.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Переписаны и очищены тесты от устаревших REFLECT assertions и фикстур
+- Удалён тест test_reflection_ownership_ambiguity_does_not_emit_evidence в test_reconciliation.py
+  после удаления _matching_reflection_artifacts в s01
+- Полный тестовый suite loop/tests/ (1767 тестов) успешно проходит
+files:
+- loop/tests/test_handoff_phase_gates.py
+- loop/tests/test_handoff_projection.py
+- loop/tests/test_sync_cursor_handoff_preserve.py
+- loop/tests/test_context_loop.py
+- loop/tests/test_reconciliation.py
+deletes:
+- Тесты, которые ожидают REFLECT как ненулевую gate фазу — удалить ветки assert ==
+  'REFLECT'
+- Строки с 'BACK REFLECT' в handoff text fixtures где это тестирует REFLECT как следующий
+  шаг
+tests:
+- bin/pytest loop/tests/test_handoff_phase_gates.py -q --tb=short
+- bin/pytest loop/tests/test_handoff_projection.py -q --tb=short
+- bin/pytest loop/tests/test_sync_cursor_handoff_preserve.py -q --tb=short
+- bin/pytest loop/tests/test_context_loop.py -q --tb=short
+- bin/pytest loop/tests/test_reconciliation.py -q --tb=short
+- bin/pytest loop/tests/ -q --tb=short
+integration_check:
+- test_handoff_phase_gates.py + test_handoff_projection.py + test_sync_cursor_handoff_preserve.py
+  + test_context_loop.py + test_reconciliation.py PASS
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: test_handoff_phase_gates зелёный без REFLECT assertions
+  status: done
+- id: cp2
+  criterion: test_handoff_projection зелёный
+  status: done
+- id: cp3
+  criterion: test_sync_cursor_handoff_preserve зелёный
+  status: done
+- id: cp4
+  criterion: полный loop/tests/ suite зелёный
+  status: done
+resume_from: cp1

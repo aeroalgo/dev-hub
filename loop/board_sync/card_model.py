@@ -219,6 +219,7 @@ def parse_metadata(description: str) -> StepCard | GateCard | EpicCard:
         if not required.issubset(raw_dict):
             missing = required - set(raw_dict.keys())
             raise ValueError(f"epic metadata is missing required fields: {missing}")
+        raw_dict.setdefault("next_step_id", None)
         return EpicCard(**raw_dict)
     raise ValueError("metadata card_kind must be step, gate, or epic")
 

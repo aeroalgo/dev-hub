@@ -16,20 +16,20 @@
 
 ## WHAT (аксиомы)
 
-- `IMPLEMENT → AUDIT → QA → DONE` — новая цепочка (REFLECT вырезан).
-- После `qa_pass` lifecycle-фаза = `DONE` без требования `reflection_done`.
-- `epic_complete_allowed()` возвращает `allowed=True` при наличии QA pass (без проверки reflection).
-- `POST_IMPLEMENT_CHAIN` = `"IMPLEMENT → AUDIT → QA → EPIC_DONE"`.
-- `LOOP_PHASE_MODEL_ENV` не содержит ключ `"REFLECT"`.
-- `_LOOP_PHASE_DETECT_ORDER` не содержит `"REFLECT"`.
-- `phase_registry.yaml` не содержит REFLECT в terminal_phases.
-- `schemas/active_context.py` не ссылается на REFLECT в regex.
-- `schemas/event.py` не содержит `"reflection_done"` в EVENT_KINDS.
-- `_declared_artifacts()` в core.py не собирает `reflection_done` события.
-- `reduce_epic_lifecycle()` не эмитит phase=REFLECT, переходит напрямую qa_pass → DONE.
-- cursor rules (back/front/integ mainrule-core, mainrule, workflow-reflect) — REFLECT убран из цепочки переходов.
-- Тесты, проверявшие REFLECT-поведение — переписаны под новую цепочку (DONE после qa_pass).
-- Артефакты `reflection-*.md` в `memory-bank/*/reflection/` — **не удаляются** (архивные), но больше не требуются для gate.
+- `FR-001`: `IMPLEMENT → AUDIT → QA → DONE` — новая цепочка (REFLECT вырезан).
+- `FR-002`: После `qa_pass` lifecycle-фаза = `DONE` без требования `reflection_done`.
+- `FR-003`: `epic_complete_allowed()` возвращает `allowed=True` при наличии QA pass (без проверки reflection).
+- `FR-004`: `POST_IMPLEMENT_CHAIN` = `"IMPLEMENT → AUDIT → QA → EPIC_DONE"`.
+- `FR-005`: `LOOP_PHASE_MODEL_ENV` не содержит ключ `"REFLECT"`.
+- `FR-006`: `_LOOP_PHASE_DETECT_ORDER` не содержит `"REFLECT"`.
+- `FR-007`: `phase_registry.yaml` не содержит REFLECT в terminal_phases.
+- `FR-008`: `schemas/active_context.py` не ссылается на REFLECT в regex.
+- `FR-009`: `schemas/event.py` не содержит `"reflection_done"` в EVENT_KINDS.
+- `FR-010`: `_declared_artifacts()` в core.py не собирает `reflection_done` события.
+- `FR-011`: `reduce_epic_lifecycle()` не эмитит phase=REFLECT, переходит напрямую qa_pass → DONE.
+- `FR-012`: cursor rules (back/front/integ mainrule-core, mainrule, workflow-reflect) — REFLECT убран из цепочки переходов.
+- `FR-013`: Тесты, проверявшие REFLECT-поведение — переписаны под новую цепочку (DONE после qa_pass).
+- `FR-014`: Артефакты `reflection-*.md` в `memory-bank/*/reflection/` — **не удаляются** (архивные), но больше не требуются для gate.
 
 ---
 
@@ -65,7 +65,7 @@
 | `loop/schemas/phase_registry.yaml` | Убрать `REFLECT` из terminal_phases и блок `REFLECT:`. |
 | `loop/roadmap_queue.py` | Убрать `reflection_path` из smart_entry; убрать поиск reflection-*.md. |
 | `loop/epic_transition.py` | Убрать `"REFLECT"` из `_POST_IMPLEMENT_ARMED`. |
-| **Cursor rules** | `back_developer/mainrule-core.mdc`: убрать REFLECT из transitions. Аналогично front/integ. `back_developer/mainrule.mdc`, `front_developer/mainrule.mdc`, `integ/.../mainrule.mdc`: убрать row `BACK REFLECT`. Workflow-reflect files: оставить (не удалять — архив), но не линковать из mainrule. |
+| **Cursor rules** | `.cursor/rules/back_developer/mainrule-core.mdc`: убрать REFLECT из transitions. Аналогично front/integ. `.cursor/rules/back_developer/mainrule.mdc`, `.cursor/rules/front_developer/mainrule.mdc`, `.cursor/rules/integration_developer/mainrule.mdc`: убрать row `BACK REFLECT`. Workflow-reflect files: оставить (не удалять — архив), но не линковать из mainrule. |
 | **Тесты** | `loop/tests/test_handoff_phase_gates.py`: переписать тесты REFLECT → ожидать DONE. `loop/tests/test_epic_transition.py`: убрать REFLECT из terminal_phases assert. `loop/tests/test_epic_lib.py` (если есть): обновить. Другие тесты — удалить/переписать REFLECT assertions. |
 
 ### Логика reduce_epic_lifecycle (новая)

@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-060-remove-reflect-phase
+title: s04 — Cursor rules — убрать REFLECT из mainrule-core и mainrule IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/yaml/steps/s04-cursor-rules-mainrule.yaml
+skills_used: []
+discovery:
+  - "Проверены mainrule.mdc, mainrule-core.mdc во всех 3 ролях (back_developer, front_developer, integration_developer)"
+  - "REFLECT отсутствует в таблицах активных режимов и цепочках переходов"
+  - "workflow-reflect.mdc сохранены в архиве для всех 3 ролей"
+gaps:
+  status: none
+done:
+  - "Проверено отсутствие строк BACK/FRONT/INTEG REFLECT в таблицах mainrule.mdc"
+  - "Проверены переходы в mainrule-core.mdc — REFLECT не в цепочке"
+  - "Подтверждено сохранение архивных файлов workflow-reflect.mdc"
+files:
+  - .cursor/rules/back_developer/mainrule.mdc
+  - .cursor/rules/back_developer/mainrule-core.mdc
+  - .cursor/rules/front_developer/mainrule.mdc
+  - .cursor/rules/front_developer/mainrule-core.mdc
+  - .cursor/rules/integration_developer/mainrule.mdc
+  - .cursor/rules/integration_developer/mainrule-core.mdc
+deletes: []
+tests:
+  - "`bin/pytest loop/tests/test_context_loop.py`"
+integration_check:
+  - "rg 'REFLECT' .cursor/rules/back_developer/mainrule.mdc .cursor/rules/front_developer/mainrule.mdc .cursor/rules/integration_developer/mainrule.mdc"
+grep_control:
+  - pattern: "REFLECT"
+    path: ".cursor/rules/back_developer/mainrule.mdc"
+    count: 0
+verification_results:
+  - cp1: PASS
+  - cp2: PASS
+  - cp3: PASS
+  - cp4: PASS
+checkpoints:
+  - id: cp1
+    criterion: BACK REFLECT не в таблице mainrule.mdc как активный режим
+    status: done
+  - id: cp2
+    criterion: FRONT REFLECT не в таблице mainrule.mdc
+    status: done
+  - id: cp3
+    criterion: INTEG REFLECT не в mainrule.mdc integration
+    status: done
+  - id: cp4
+    criterion: workflow-reflect.mdc файлы на месте (не удалены)
+    status: done
+resume_from: none

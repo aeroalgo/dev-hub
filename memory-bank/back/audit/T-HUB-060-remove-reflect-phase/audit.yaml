@@ -1,0 +1,341 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-060-remove-reflect-phase
+plan_id: T-HUB-060-remove-reflect-phase
+date: 2026-09-05
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Убрать фазу REFLECT полностью из workflow и из loop. После успешного QA эпик должен переходить в DONE и запускать следующий эпик из очереди — без промежуточного шага reflection."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 14
+  fr_satisfied: 14
+  sc_checked: 0
+  layout_paths_total: 14
+  layout_paths_closed: 14
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3399 POST_IMPLEMENT_CHAIN == 'IMPLEMENT → AUDIT → QA → EPIC_DONE'; core.py:3640 post_implement_phase при qa_pass переходит в DONE"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3640 reduce_epic_lifecycle переходит qa_pass -> DONE напрямую без требования reflection_done"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3938 epic_complete_allowed возвращает allowed=True при qa_pass без проверки reflection_path"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3399 константа POST_IMPLEMENT_CHAIN обновлена на 'IMPLEMENT → AUDIT → QA → EPIC_DONE'"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/context_loop.py:106 LOOP_PHASE_MODEL_ENV не содержит ключ 'REFLECT'; loop_phase_key('REFLECT') is None"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/context_loop.py:117 _LOOP_PHASE_DETECT_ORDER не содержит 'REFLECT'"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/schemas/phase_registry.yaml не содержит REFLECT в terminal_phases"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/schemas/active_context.py:19-38 _HANDOFF_PHASE_HEADING_RE, _HANDOFF_MODE_LINE_RE, _HANDOFF_NEXT_PHASE_RE не содержат REFLECT в regex"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/schemas/event.py:13,31 EVENT_KINDS не содержит reflection_done; reflection_done перемещен в LEGACY_DEAD_EVENT_KINDS"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3640 _declared_artifacts и reduce_epic_lifecycle игнорируют dead reflection_done events"
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3640 reduce_epic_lifecycle не эмитит phase=REFLECT, qa_pass -> DONE"
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: ".cursor/rules/back_developer/mainrule.mdc, mainrule-core.mdc и front/integ mainrules не содержат BACK REFLECT в таблице активных переходов"
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "loop/tests/ (test_handoff_phase_gates.py, test_handoff_projection.py, test_sync_cursor_handoff_preserve.py, test_context_loop.py, test_reconciliation.py) переписаны под DONE flow; suite green"
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "Артефакты reflection-*.md сохранены в архиве и не удаляются"
+    remaining_work: ""
+  - source_ref: "AC+:1"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3647 post_implement_phase возвращает ('DONE', qa, None) без reflection_path"
+    remaining_work: ""
+  - source_ref: "AC+:2"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3938 epic_complete_allowed возвращает {'allowed': True}"
+    remaining_work: ""
+  - source_ref: "AC+:3"
+    status: satisfied
+    evidence: "loop/context_loop.py:130 loop_phase_key('REFLECT') returns None"
+    remaining_work: ""
+  - source_ref: "AC+:4"
+    status: satisfied
+    evidence: "loop/tests/ (1767 тестов) успешно проходят"
+    remaining_work: ""
+  - source_ref: "AC+:5"
+    status: satisfied
+    evidence: ".cursor/rules/back_developer/mainrule.mdc не содержит переход BACK REFLECT -> ARCHIVE"
+    remaining_work: ""
+  - source_ref: "AC+:6"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3399 POST_IMPLEMENT_CHAIN == 'IMPLEMENT → AUDIT → QA → EPIC_DONE'"
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3640 ни один путь не возвращает phase=REFLECT при qa_pass"
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:3938 epic_complete_allowed не проверяет reflection"
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "loop/tests/ тесты не ожидают reflection_done event или phase=REFLECT"
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "loop/context_loop.py:106,117 'REFLECT' отсутствует в LOOP_PHASE_MODEL_ENV и _LOOP_PHASE_DETECT_ORDER"
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "loop/context_loop.py:3223 и roadmap_queue.py:488 текст обновлен с 'QA+REFLECT gate' на 'QA gate'"
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Constitution MUST section соблюдается в полном объеме"
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "TDD first соблюден: тесты обновлены и проверены для всех шагов"
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "No silent fallback: все reflection helpers удалены, а не заменены заглушками"
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "FRONT tests parent-only: соблюдено, subagent не запускал фронтенд-тесты"
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Lean load: прочитаны только необходимые артефакты и правила"
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Fail-closed misconfiguration: все типы строго валидируются Pydantic"
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "No-guess markers: четкие маркеры состояния и переходов"
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "ONE Handoff per step: активный контекст содержит ровно один Handoff"
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "§0.11 integration parity: все фасады и контракты синхронизированы"
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Phase authority: AUDIT выполняет полную проверку intent vs runtime"
+    remaining_work: ""
+  - source_ref: "layout:.cursor/rules/back_developer/mainrule-core.mdc"
+    status: satisfied
+    evidence: ".cursor/rules/back_developer/mainrule-core.mdc:50 lifecycle DONE"
+    remaining_work: ""
+  - source_ref: "layout:.cursor/rules/back_developer/mainrule.mdc"
+    status: satisfied
+    evidence: ".cursor/rules/back_developer/mainrule.mdc активные режимы без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:.cursor/rules/front_developer/mainrule.mdc"
+    status: satisfied
+    evidence: ".cursor/rules/front_developer/mainrule.mdc активные режимы без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:.cursor/rules/integration_developer/mainrule.mdc"
+    status: satisfied
+    evidence: ".cursor/rules/integration_developer/mainrule.mdc активные режимы без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:harness/hooks/epic/core.py"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py lifecycle reducer и helpers обновлены"
+    remaining_work: ""
+  - source_ref: "layout:loop/context_loop.py"
+    status: satisfied
+    evidence: "loop/context_loop.py phase model и prompts очищены от REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:loop/epic_transition.py"
+    status: satisfied
+    evidence: "loop/epic_transition.py:46 _POST_IMPLEMENT_ARMED без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:loop/roadmap_queue.py"
+    status: satisfied
+    evidence: "loop/roadmap_queue.py gate reason и resolve_epic_slug очищены"
+    remaining_work: ""
+  - source_ref: "layout:loop/schemas/active_context.py"
+    status: satisfied
+    evidence: "loop/schemas/active_context.py regex литералы очищены от REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:loop/schemas/event.py"
+    status: satisfied
+    evidence: "loop/schemas/event.py reflection_done в LEGACY_DEAD_EVENT_KINDS"
+    remaining_work: ""
+  - source_ref: "layout:loop/schemas/phase_registry.yaml"
+    status: satisfied
+    evidence: "loop/schemas/phase_registry.yaml phase registry без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:loop/tests/test_epic_lib.py"
+    status: satisfied
+    evidence: "loop/tests/test_epic_lib.py тесты согласованы с новым API"
+    remaining_work: ""
+  - source_ref: "layout:loop/tests/test_epic_transition.py"
+    status: satisfied
+    evidence: "loop/tests/test_epic_transition.py terminal_phases без REFLECT"
+    remaining_work: ""
+  - source_ref: "layout:loop/tests/test_handoff_phase_gates.py"
+    status: satisfied
+    evidence: "loop/tests/test_handoff_phase_gates.py переписан под DONE flow"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: ".cursor/rules/back_developer/mainrule-core.mdc"
+    status: present
+    evidence: ".cursor/rules/back_developer/mainrule-core.mdc transitions без REFLECT"
+  - layout_path: ".cursor/rules/back_developer/mainrule.mdc"
+    status: present
+    evidence: ".cursor/rules/back_developer/mainrule.mdc active modes без REFLECT"
+  - layout_path: ".cursor/rules/front_developer/mainrule.mdc"
+    status: present
+    evidence: ".cursor/rules/front_developer/mainrule.mdc active modes без REFLECT"
+  - layout_path: ".cursor/rules/integration_developer/mainrule.mdc"
+    status: present
+    evidence: ".cursor/rules/integration_developer/mainrule.mdc active modes без REFLECT"
+  - layout_path: "harness/hooks/epic/core.py"
+    status: present
+    evidence: "core.py lifecycle reducer и helpers обновлены"
+  - layout_path: "loop/context_loop.py"
+    status: present
+    evidence: "loop/context_loop.py phase model и prompts очищены от REFLECT"
+  - layout_path: "loop/epic_transition.py"
+    status: present
+    evidence: "loop/epic_transition.py:46 _POST_IMPLEMENT_ARMED без REFLECT"
+  - layout_path: "loop/roadmap_queue.py"
+    status: present
+    evidence: "loop/roadmap_queue.py gate reason и resolve_epic_slug очищены"
+  - layout_path: "loop/schemas/active_context.py"
+    status: present
+    evidence: "loop/schemas/active_context.py regex литералы очищены от REFLECT"
+  - layout_path: "loop/schemas/event.py"
+    status: present
+    evidence: "loop/schemas/event.py reflection_done в LEGACY_DEAD_EVENT_KINDS"
+  - layout_path: "loop/schemas/phase_registry.yaml"
+    status: present
+    evidence: "loop/schemas/phase_registry.yaml phase registry без REFLECT"
+  - layout_path: "loop/tests/test_epic_lib.py"
+    status: present
+    evidence: "loop/tests/test_epic_lib.py тесты согласованы с новым API"
+  - layout_path: "loop/tests/test_epic_transition.py"
+    status: present
+    evidence: "loop/tests/test_epic_transition.py terminal_phases без REFLECT"
+  - layout_path: "loop/tests/test_handoff_phase_gates.py"
+    status: present
+    evidence: "loop/tests/test_handoff_phase_gates.py переписан под DONE flow"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase/s01-core-lifecycle-reflection-helpers.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase/s02-context-loop-phase-model.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase/s03-schemas-epic-transition-roadmap.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase/s04-cursor-rules-mainrule.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase/s05-tests-rewrite-reflect-assertions.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-05
+  plan_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md#sunset-inventory
+  rows:
+    - symbol: find_reflection_artifact
+      kind: A
+      command: 'rg -n "find_reflection_artifact" harness/ loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Функция полностью удалена"
+    - symbol: _matching_reflection_artifacts
+      kind: A
+      command: 'rg -n "_matching_reflection_artifacts" harness/ loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Функция полностью удалена"
+    - symbol: _reflection_ownership_ambiguous
+      kind: A
+      command: 'rg -n "_reflection_ownership_ambiguous" harness/ loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Функция полностью удалена"
+    - symbol: _reflection_stale_vs_qa_pass
+      kind: A
+      command: 'rg -n "_reflection_stale_vs_qa_pass" harness/ loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Функция полностью удалена"
+    - symbol: _reflect_finish_block
+      kind: A
+      command: 'rg -n "_reflect_finish_block" loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Функция отсутствует"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-05
+  rows:
+    - boundary: epic_complete_allowed
+      enforce_evidence: "qa_pass -> allowed=True без reflection_path"
+      result: pass
+      notes: "core.py:3938"
+    - boundary: post_implement_chain
+      enforce_evidence: "POST_IMPLEMENT_CHAIN == 'IMPLEMENT → AUDIT → QA → EPIC_DONE'"
+      result: pass
+      notes: "core.py:3399"
+
+blocked_reason: ""

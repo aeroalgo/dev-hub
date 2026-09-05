@@ -1,0 +1,37 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-062-skill-topology-canonical-paths
+plan_id: T-HUB-062-skill-topology-canonical-paths
+epic_id: T-HUB-062-skill-topology-canonical-paths
+date: 2026-09-06
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "epic: T-HUB-062-skill-topology-canonical-paths"
+  - "steps: s01-s05 + bugfix"
+  - "files: loop/workflow/skill_refs.py, loop/tests/test_skill_literal_refs.py, loop/tests/test_harness_paths.py, .agents/skills/, harness/skills/"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (PASS: 1975 passed, 3 skipped, 0 failed)"
+  - "integration rule (§0.11): pass (zero dual-path fallback / resolve_skill calls in prod)"
+  - "no phantom refs: pass (all 192 skills resolved to canonical path harness/skills/<name>/SKILL.md)"
+  - "regression test: pass (test_harness_paths.py asserts canonical layout)"
+  - "reviewer gate: VERDICT PASS (verify-qa)"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+
+suite:
+  - "bin/pytest -q --tb=line"

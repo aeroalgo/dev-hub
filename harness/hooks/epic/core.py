@@ -574,6 +574,10 @@ def write_last_finish_tool(
         "name": str(name),
         "at": ts,
         "fingerprint": str(fingerprint),
+        "session_id": st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
+        "phase_run_id": st.get("phase_run_id") or st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
+        "epic_id": st.get("armed_epic"),
+        "handoff_sha256": hashlib.sha256(read_active_context(cwd).encode("utf-8")).hexdigest(),
     }
     if finished_step is not None:
         st["last_finished_step"] = str(finished_step)
@@ -955,7 +959,7 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
         if armed.upper() != phase_u:
             # Stale sNN/eNN or previous post-implement phase → sync to current phase name.
             if (not armed) or armed.upper() in {
-                "AUDIT", "QA", "BUGFIX", "DONE", "REFLECT"
+                "AUDIT", "QA", "BUGFIX", "DONE"
             } or re.match(r"^[se]\d+", armed, re.I):
                 state["armed_step"] = phase_u
     state.update(
@@ -1120,83 +1124,72 @@ def _append_event(
         lock.close()
 
 
-def _matching_reflection_artifacts(
-    cwd: Path, role_dir: str, epic_id: str
-) -> list[Path]:
-    directory = cwd / "memory-bank" / role_dir / "reflection"
-    if not directory.is_dir():
-        return []
-    task = _task_id_from_epic(epic_id)
-    result: list[Path] = []
-    for path in sorted(directory.glob("reflection-*.md"), key=lambda item: item.name):
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        owner_epics = set(re.findall(r"(?im)^\*\*Эпик:\*\*\s*([^\s]+)", text[:800]))
-        owner_epics.update(re.findall(r"(?im)^epic_id:\s*([^\s]+)", text[:800]))
-        if owner_epics:
-            if epic_id in owner_epics:
-                result.append(path)
-            continue
-        if epic_id in path.name or (task and task in path.name):
-            result.append(path)
-            continue
-        if epic_id in text[:800] or (task and task in text[:800]):
-            result.append(path)
-    return result
-
-
-def _reflection_ownership_ambiguous(
-    cwd: Path, role_dir: str, epic_id: str
-) -> bool:
-    matches = _matching_reflection_artifacts(cwd, role_dir, epic_id)
-    if len(matches) > 1:
-        return True
-    if len(matches) != 1:
-        return False
-    path = matches[0]
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")[:800]
-    except OSError:
-        return False
-    owner_epics = set(re.findall(r"(?im)^\*\*Эпик:\*\*\s*([^\s]+)", text))
-    owner_epics.update(re.findall(r"(?im)^epic_id:\s*([^\s]+)", text))
-    if owner_epics:
-        return False
-    task = _task_id_from_epic(epic_id)
-    ids = set(re.findall(r"T-\d+", text))
-    return bool(task and task in ids and len(ids) > 1)
-
-
 def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[str, Path]]:
-    """Return artifacts in append order: decompose → implement → audit → bugfix → qa → reflection.
-
-    QA must come after audit/bugfix so a single reconcile pass that rewrites
-    evidence and the QA verdict does not emit ``bugfix_done`` after ``qa_pass``.
-    """
+    """Discover structural artifacts; QA and BUGFIX events require FINISH."""
     records: list[tuple[str, Path]] = []
-    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="plan"):
-        decomp_dir = root / "plan" / f"decompose-{epic_id}"
-        if decomp_dir.is_dir():
-            for path in sorted(
-                decomp_dir.glob("s*.yaml"),
-                key=lambda item: str(item),
-            ):
-                records.append(("decompose_step_done", path))
-    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="implement"):
-        impl_dir = root / "implement" / f"implement-{epic_id}"
-        if impl_dir.is_dir():
-            for path in sorted(
-                impl_dir.glob("s*.yaml"),
-                key=lambda item: str(item),
-            ):
+    epic_ids = [epic_id]
+    try:
+        from epic_paths import (
+            epic_id_from_decompose_path,
+            epic_id_from_plan_path,
+            find_decompose_index_path,
+            find_plan_md_path,
+        )
+
+        plan_path = find_plan_md_path(cwd, role_dir, epic_id)
+        full_epic_id = epic_id_from_plan_path(plan_path)
+        if not full_epic_id:
+            index_path = find_decompose_index_path(cwd, role_dir, epic_id)
+            full_epic_id = epic_id_from_decompose_path(index_path) if index_path else None
+        if full_epic_id and full_epic_id not in epic_ids:
+            epic_ids.append(full_epic_id)
+    except Exception:
+        pass
+    for artifact_epic_id in epic_ids:
+        for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="plan"):
+            v2_steps_dir = root / "plan" / artifact_epic_id / "yaml" / "steps"
+            if v2_steps_dir.is_dir():
+                for path in sorted(v2_steps_dir.glob("s*.yaml"), key=lambda item: str(item)):
+                    records.append(("decompose_step_done", path))
+            decomp_dir = root / "plan" / f"decompose-{artifact_epic_id}"
+            if decomp_dir.is_dir():
+                for path in sorted(decomp_dir.glob("s*.yaml"), key=lambda item: str(item)):
+                    records.append(("decompose_step_done", path))
+        for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="implement"):
+            impl_dirs = (
+                root / "implement" / artifact_epic_id,
+                root / "implement" / f"implement-{artifact_epic_id}",
+            )
+            for impl_dir in impl_dirs:
+                if not impl_dir.is_dir():
+                    continue
+                for path in sorted(impl_dir.glob("s*.yaml"), key=lambda item: str(item)):
+                    try:
+                        text = path.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+                    if re.search(r"(?m)^status:\s*completed\s*$", text):
+                        records.append(("implement_done", path))
+        for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="bugfix"):
+            bugfix_dir = root / "bugfix" / artifact_epic_id
+            if bugfix_dir.is_dir():
+                for path in sorted(bugfix_dir.glob("bugfix-*.md"), key=lambda item: str(item)):
+                    records.append(("bugfix_done", path))
+        for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="qa"):
+            qa_dir = root / "qa" / artifact_epic_id
+            if not qa_dir.is_dir():
+                continue
+            for path in sorted(qa_dir.glob("qa-*.yaml"), key=lambda item: str(item)):
                 try:
                     text = path.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                if re.search(r"(?m)^status:\s*completed\s*$", text):
-                    records.append(("implement_done", path))
+                verdict = re.search(r"(?m)^verdict:\s*(pass|fail|blocked)\s*$", text)
+                schema = re.search(r"(?m)^schema:\s*epic-qa/v1\s*$", text)
+                legacy_without_identity = not re.search(r"(?m)^epic_id:\s*\S+\s*$", text)
+                if verdict and (schema or legacy_without_identity):
+                    value = verdict.group(1)
+                    records.append((f"qa_{'fail' if value == 'blocked' else value}", path))
     for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="audit"):
         audit_dir = root / "audit" / epic_id
         for path in sorted(
@@ -1204,27 +1197,6 @@ def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[st
             key=lambda item: str(item),
         ) if audit_dir.is_dir() else ():
             records.append(("audit_done", path))
-    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="bugfix"):
-        bugfix_dir = root / "bugfix" / epic_id
-        for path in sorted(
-            bugfix_dir.glob("bugfix-*.md"),
-            key=lambda item: str(item),
-        ) if bugfix_dir.is_dir() else ():
-            records.append(("bugfix_done", path))
-    for root in _role_mb_roots(cwd, role_dir, epic_id=epic_id, kind="qa"):
-        qa_dir = root / "qa" / epic_id
-        for path in sorted(
-            qa_dir.glob("qa-*.yaml"),
-            key=lambda item: str(item),
-        ) if qa_dir.is_dir() else ():
-            try:
-                text = path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            verdict = re.search(r"(?m)^verdict:\s*(pass|fail|blocked)\s*$", text)
-            if verdict:
-                v = verdict.group(1)
-                records.append((f"qa_{'fail' if v == 'blocked' else v}", path))
     return records
 
 
@@ -1322,23 +1294,6 @@ def handoff_post_implement_phase(text: str) -> str | None:
     from loop.schemas.active_context import handoff_gate_phase_from_text
 
     return handoff_gate_phase_from_text(text)
-
-
-def _reflection_stale_vs_qa_pass(
-    cwd: Path,
-    latest_qa: dict[str, Any],
-    last_reflection: dict[str, Any],
-) -> bool:
-    """True when reflection artifact predates the current QA pass artifact."""
-    qa_art = str(latest_qa.get("artifact") or "").strip()
-    refl_art = str(last_reflection.get("artifact") or "").strip()
-    if not qa_art or not refl_art:
-        return False
-    qa_path = cwd / qa_art
-    refl_path = cwd / refl_art
-    if not qa_path.is_file() or not refl_path.is_file():
-        return False
-    return refl_path.stat().st_mtime < qa_path.stat().st_mtime
 
 
 def extract_load_now(text: str) -> list[str]:
@@ -1611,6 +1566,7 @@ def mirror_verify_verdict(
     st["last_verify_verdict"] = effective
     st["last_verify_at"] = utc_now()
     st["last_verify_evidence"] = payload
+    st["last_verify_evidence_sha256"] = _projection_digest(payload)
     save_epic_state(cwd, st)
 
 
@@ -1621,7 +1577,23 @@ def mirror_gate_verdict(
     agent_id: str = "verify",
     evidence: dict[str, Any] | None = None,
 ) -> None:
-    return mirror_verify_verdict(cwd, verdict, evidence=evidence)
+    if agent_id in {"reviewer", "verify-qa"}:
+        if not verdict:
+            return
+        st = load_epic_state(cwd)
+        if not st.get("active"):
+            return
+        normalized = str(verdict).upper()
+        reviewer_evidence = dict(evidence or {})
+        st["last_reviewer_verdict"] = normalized
+        st["last_reviewer_evidence"] = reviewer_evidence
+        st["reviewer_verdict"] = normalized
+        st["reviewer_done"] = True
+        st["reviewer_evidence"] = reviewer_evidence
+        st["last_reviewer_phase_run_id"] = st.get("phase_run_id") or st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID")
+        save_epic_state(cwd, st)
+        return
+    mirror_verify_verdict(cwd, verdict, evidence=evidence)
 
 
 def gate_evidence_matches(cwd: str | Path, evidence: object) -> tuple[bool, str]:
@@ -2025,6 +1997,16 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
             "verdict": verdict or None,
         }
     sid = step_id.strip().lower()
+    if sid == "bugfix" and (
+        not isinstance(evidence, dict)
+        or state.get("last_verify_evidence_sha256") != _projection_digest(evidence)
+    ):
+        return {
+            "ok": False,
+            "error": "BUGFIX requires unmodified verify evidence recorded by the gate",
+            "diagnostic": "verdict_evidence_modified",
+            "verdict": verdict,
+        }
     if isinstance(evidence, dict):
         evidence_step = str(evidence.get("step") or "").strip().lower()
         if evidence_step and evidence_step != sid:
@@ -2421,7 +2403,6 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
         "AUDIT",
         "QA",
         "BUGFIX",
-        "REFLECT",
         "DONE",
         "CREATIVE",
         "PLAN",
@@ -2530,7 +2511,7 @@ def sync_cursor_from_index(cwd: str | Path) -> dict[str, Any]:
                         "reason": "handoff_aligned",
                         "armed_step": handoff_phase,
                     }
-        # Queue exhausted — arm may promote to AUDIT/QA/REFLECT/DONE.
+        # Queue exhausted — arm may promote to AUDIT/QA/DONE.
         arm = arm_active_context_from_decompose(cwd_p, decompose)
         return {
             "ok": bool(arm.get("ok")),
@@ -3385,21 +3366,20 @@ def lifecycle_arm_phase(phase: str, decision: dict[str, Any]) -> str:
 
 
 def validate_qa_finish_handoff(
-    cwd: str | Path, body: str, role_dir: str = "back", epic_id: str = ""
+    cwd: str | Path, body: str, role_dir: str = "back", epic_id: str = "",
+    *, qa_artifact: Path | None = None,
 ) -> tuple[bool, str | None]:
     if not epic_id:
         m = re.search(r"(?m)^epic_id:\s*([^\s]+)", body)
         if m:
             epic_id = m.group(1).strip()
-    qa = latest_qa_any_artifact_for_reference(cwd, role_dir, epic_id)
+    qa = qa_artifact or latest_qa_any_artifact_for_reference(cwd, role_dir, epic_id)
     if not qa:
         return False, "QA FINISH без qa-*.yaml — запиши epic-qa/v1 artifact"
     verdict = parse_qa_verdict(qa)
     if not verdict:
         return False, "qa-*.yaml без verdict: pass|fail|blocked"
     if verdict in {"blocked", "fail"}:
-        if "REFLECT" in body.upper():
-            return False, "QA FINISH: verdict blocked/fail — Handoff BACK BUGFIX, не REFLECT/DONE"
         if "BUGFIX" not in body.upper():
             return False, "QA FINISH: verdict blocked/fail — Handoff должен быть BACK BUGFIX"
     return True, None
@@ -3489,7 +3469,13 @@ def project_handoff_from_reducer(
     role_dir = info.get("role_dir") or "back"
 
     if not epic_id:
-        m_epic = re.search(r"decompose-([^/]+)/index\.yaml", text)
+        m_epic = re.search(
+            r"(?:memory-bank/)?(?:back|front|integration)/plan/([^/]+)/"
+            r"(?:yaml|md)/decompose-index\.(?:yaml|yml|md)",
+            text,
+        )
+        if not m_epic:
+            m_epic = re.search(r"decompose-([^/]+)/index\.yaml", text)
         if not m_epic:
             m_epic = re.search(r"Handoff\s+BACK\s+\w+\s*—\s*([^\n\s]+)", text)
         epic_id = m_epic.group(1) if m_epic else ""
@@ -3581,26 +3567,6 @@ def repair_post_implement_handoff_drift(cwd: str | Path) -> dict[str, Any]:
     return project_handoff_from_reducer(cwd)
 
 
-def find_reflection_artifact(cwd: str | Path, role_dir: str, epic_id: str) -> Path | None:
-    """reflection-*.md matching epic_id or task id (T-031…)."""
-    cwd_p = Path(cwd)
-    d = cwd_p / "memory-bank" / role_dir / "reflection"
-    if not d.is_dir():
-        return None
-    task = _task_id_from_epic(epic_id)
-    for p in sorted(d.glob("reflection-*.md"), reverse=True):
-        name = p.name
-        if epic_id in name or (task and task in name):
-            return p
-        try:
-            head = p.read_text(encoding="utf-8", errors="replace")[:800]
-        except OSError:
-            continue
-        if epic_id in head or (task and task in head):
-            return p
-    return None
-
-
 def reduce_epic_lifecycle(
     cwd: str | Path, role_dir: str, epic_id: str
 ) -> dict[str, Any]:
@@ -3633,6 +3599,10 @@ def reduce_epic_lifecycle(
             latest_audit = event
 
     invalidator: dict[str, Any] | None = None
+    state = load_epic_state(cwd_p)
+    qa_required_after_bugfix = bool(
+        state.get("qa_required_after_bugfix") or state.get("qa_after_bugfix")
+    )
     if latest_qa is not None:
         qa_seq = int(latest_qa.get("seq", 0))
         for event in events:
@@ -3660,6 +3630,9 @@ def reduce_epic_lifecycle(
             reason_code = "bugfix_reopens_qa"
         else:
             reason_code = "qa_failed"
+    elif qa_required_after_bugfix:
+        phase = "QA"
+        reason_code = "bugfix_requires_new_qa"
     elif latest_qa is not None and latest_qa.get("kind") == "qa_pass":
         if invalidator is not None:
             phase = "QA"
@@ -3734,7 +3707,7 @@ def post_implement_phase(
     phase = str(decision["phase"])
     qa = find_qa_pass_artifact(cwd, role_dir, epic_id)
     if phase == "DONE":
-        return phase, qa, find_reflection_artifact(cwd, role_dir, epic_id)
+        return phase, qa, None
     return phase, None, None
 
 
@@ -3756,6 +3729,11 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
         candidates = {state_decompose.removeprefix("memory-bank/")}
     else:
         candidates = set(re.findall(
+            r"(?:memory-bank/)?((?:back|front|integration)/plan/[^/]+/"
+            r"(?:yaml|md)/decompose-index\.(?:yaml|yml|md))",
+            text,
+        ))
+        candidates.update(re.findall(
             r"(?:memory-bank/)?([A-Za-z0-9._-]+/plan/decompose-[A-Za-z0-9._-]+/index\.(?:yaml|md))",
             text,
         ))
@@ -3774,14 +3752,28 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                 epic_id = m_epic.group(1).strip()
                 try:
                     from loop.paths.pack_layout import resolve_mb_root
+
                     mb_root = resolve_mb_root(cwd=cwd_p)
-                    for p in mb_root.glob(f"*/plan/decompose-{epic_id}/index.yaml"):
-                        candidates.add(str(p.relative_to(mb_root)))
+                    role_raw = str(st.get("armed_role") or st.get("role") or "").lower()
+                    roles = (
+                        ["integration"]
+                        if role_raw in {"integ", "integration"}
+                        else [role_raw]
+                        if role_raw in {"back", "front"}
+                        else ["back", "front", "integration"]
+                    )
+                    for role_dir in roles:
+                        found = find_decompose_index_path(cwd_p, role_dir, epic_id)
+                        if found is not None and found.is_file():
+                            candidates.add(str(found.relative_to(cwd_p)).removeprefix("memory-bank/"))
+                    if not candidates:
+                        for p in mb_root.glob(f"*/plan/decompose-{epic_id}/index.yaml"):
+                            candidates.add(str(p.relative_to(mb_root)))
                 except Exception:
                     pass
         if not candidates:
             armed = (st.get("armed_epic") or "").strip()
-            role_raw = str(st.get("role") or "back").lower()
+            role_raw = str(st.get("role") or st.get("armed_role") or "back").lower()
             role_dir = (
                 "integration"
                 if role_raw in {"integ", "integration"}
@@ -3935,7 +3927,6 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
             "reason": None,
             **info,
             "qa_path": qa,
-            "reflection_path": refl,
         }
     need = post_implement_phase_need(phase)
     return {
@@ -3947,7 +3938,6 @@ def epic_complete_allowed(cwd: str | Path) -> dict[str, Any]:
         ),
         **info,
         "qa_path": qa,
-        "reflection_path": refl,
     }
 
 
@@ -4026,7 +4016,6 @@ def build_post_implement_active_context(
     hub_rel: str | None,
     phase: str,
     qa_path: Path | None,
-    reflection_path: Path | None,
     cwd: Path,
 ) -> str:
     """Full Handoff for post-implement pipeline — not a one-line EPIC_DONE stub."""
@@ -4112,19 +4101,12 @@ def build_post_implement_active_context(
             qa_rel = str(qa_path)
         qa_link = qa_rel.removeprefix("memory-bank/")
         load_now.append((qa_link, "QA pass artifact"))
-    if reflection_path is not None and reflection_path.is_file():
-        try:
-            r_rel = reflection_path.relative_to(cwd).as_posix()
-        except ValueError:
-            r_rel = str(reflection_path)
-        r_link = r_rel.removeprefix("memory-bank/")
-        load_now.append((r_link, "reflection"))
 
     if phase_u == "AUDIT":
         next_hint = (
             f"выполнить `{role_u} AUDIT`: из plan.md вывести цель эпика + все FR/US/SC/layout; "
             f"Triple Assess plan_vs_runtime vs runtime (behavior, не sNN completed); "
-            f"Assess D: Read implement yaml `{{mb_root}}/{role_norm}/implement/implement-{epic_id}/sNN-*.yaml` "
+            f"Assess D: Read implement yaml `{{mb_root}}/{role_norm}/implement/{epic_id}/sNN-*.yaml` "
             f"↔ decompose `{{mb_root}}/{role_norm}/plan/{epic_id}/yaml/steps/sNN-*.yaml`; "
             f"записать epic-audit/v2 (plan_intent, findings, converged); "
             f"mb-finish audit отклонит v1/shallow, phantom implement_file, presence-only evidence. "
@@ -4136,7 +4118,7 @@ def build_post_implement_active_context(
             f"- **Эпик:** {epic_id} — implement queue исчерпана; AUDIT = PLAN↔IMPLEMENT parity.",
             f"- **Режим/шаг:** `{role_u} AUDIT`.",
             f"- **SoT:** `{{mb_root}}/{role_norm}/plan/{epic_id}/md/plan.md` (цели/FR).",
-            f"- **Implement yaml:** `{{mb_root}}/{role_norm}/implement/implement-{epic_id}/sNN-*.yaml` (не plan/.../md).",
+            f"- **Implement yaml:** `{{mb_root}}/{role_norm}/implement/{epic_id}/sNN-*.yaml` (не plan/.../md).",
             f"- **Decompose yaml:** `{{mb_root}}/{role_norm}/plan/{epic_id}/yaml/steps/sNN-*.yaml`.",
             "- **Артефакт:** {mb_root}/<role>/audit/<epic_id>/audit.yaml (epic-audit/v2).",
             "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA сессии).",
@@ -4349,7 +4331,7 @@ def arm_active_context_from_decompose(
 
     step = find_next_decompose_step_from_queue(steps)
     if step is None:
-        phase, qa_p, refl_p = post_implement_phase(cwd_p, role_dir, epic_id or "")
+        phase, qa_p, _ = post_implement_phase(cwd_p, role_dir, epic_id or "")
         body = build_post_implement_active_context(
             role=role,
             role_dir=role_dir,
@@ -4360,7 +4342,6 @@ def arm_active_context_from_decompose(
             hub_rel=None,
             phase=phase,
             qa_path=qa_p,
-            reflection_path=refl_p,
             cwd=cwd_p,
         )
         if post_implement_handoff_violates_epic_done(phase, body):
@@ -4601,8 +4582,20 @@ def arm_epic(
         except Exception:
             mb_root_name = "memory-bank"
         qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
-        ref_p = find_reflection_artifact(cwd_p, role, epic_id)
-        rel_idx = action.decompose_rel or f"{mb_root_name}/{role}/plan/decompose-{epic_id}/index.yaml"
+        rel_idx = action.decompose_rel
+        if not rel_idx:
+            resolved_idx = find_decompose_index_path(cwd_p, role, epic_id)
+            if resolved_idx is not None:
+                rel_idx = resolved_idx.relative_to(cwd_p).as_posix()
+            else:
+                from loop.paths.epic_layout import EpicLayoutKind, resolve as layout_resolve
+
+                rel_idx = layout_resolve(
+                    role,
+                    epic_id,
+                    EpicLayoutKind.DECOMPOSE_INDEX_YAML,
+                    project_root=cwd_p,
+                ).relative_to(cwd_p).as_posix()
         rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
         link = rel_idx.removeprefix(f"{mb_root_name}/").removeprefix("memory-bank/")
         hub_rel = f"{mb_root_name}/hub/plan/plan-{epic_id}.md"
@@ -4619,7 +4612,6 @@ def arm_epic(
             hub_rel=hub_rel if (cwd_p / hub_rel).is_file() else None,
             phase=phase,
             qa_path=qa_p if qa_p and qa_p.is_file() else None,
-            reflection_path=ref_p if ref_p and ref_p.is_file() else None,
             cwd=cwd_p,
         )
         locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
@@ -4700,12 +4692,22 @@ def arm_pre_implement_context(
     armed_decompose: str | None = None
     if phase_u == "ANALYZE" and decompose_rel:
         decomp_yaml = decompose_rel
-        if decomp_yaml.endswith("index.md"):
+        if decomp_yaml.endswith("/md/decompose-index.md"):
+            decomp_yaml = decomp_yaml[: -len("/md/decompose-index.md")] + "/yaml/decompose-index.yaml"
+        elif decomp_yaml.endswith("decompose-index.md"):
+            decomp_yaml = decomp_yaml[: -len("decompose-index.md")] + "decompose-index.yaml"
+        elif decomp_yaml.endswith("index.md"):
             decomp_yaml = decomp_yaml[: -len("index.md")] + "index.yaml"
         decomp_link = decomp_yaml.removeprefix("memory-bank/")
-        decomp_dir = Path(decompose_rel).parent.name
+        decomp_path = Path(decompose_rel)
+        if decomp_path.name in {"decompose-index.yaml", "decompose-index.md"}:
+            decomp_label = decomp_path.name
+        elif decomp_path.suffix.lower() in {".yaml", ".yml", ".md"}:
+            decomp_label = f"{decomp_path.parent.name}/{decomp_path.name}"
+        else:
+            decomp_label = f"{decomp_path.name}/index.yaml"
         load_now += (
-            f"2. [`{decomp_dir}/index.yaml`]({decomp_link}) — decompose index for ANALYZE gate.\n"
+            f"2. [`{decomp_label}`]({decomp_link}) — decompose index for ANALYZE gate.\n"
         )
         armed_decompose = decomp_yaml
     elif phase_u == "DECOMPOSE":

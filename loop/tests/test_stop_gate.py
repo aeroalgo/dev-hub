@@ -1895,6 +1895,38 @@ def test_stop_gate_audit_accepts_qa_handoff_after_mb_finish_audit(tmp_path: Path
     assert "Handoff BACK AUDIT" not in str(result.get("reason") or "")
 
 
+def test_bugfix_finish_stops_before_next_session_qa_gates(tmp_path: Path) -> None:
+    from epic.core import mirror_verify_verdict, load_epic_state, save_epic_state
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+
+    save_epic_state(tmp_path, {
+        "active": True, "status": "running", "phase": "BUGFIX",
+        "armed_step": "BUGFIX", "armed_epic": "demo", "armed_role": "BACK",
+        "session_id": "bugfix-run",
+    })
+    mirror_verify_verdict(tmp_path, "PASS", evidence={"authority": "manual", "step": "BUGFIX"})
+    _write("memory-bank/back/bugfix/demo/bugfix-001.md", "# Root cause fixed\n", tmp_path)
+    result = finish_bugfix(MbFinishRequest(phase="BUGFIX", step_id="BUGFIX", done_summary="", cwd=str(tmp_path)))
+    assert result.ok, result
+    for invoke in ("bugfix-invoke", "qa-invoke"):
+        _write(f".claude/runtime/spawn-gate/{invoke}.json", json.dumps({
+            "mode": "qa", "need_verify": False, "need_reviewer": True,
+            "workflow_source": "loop", "reviewer_done": False,
+        }), tmp_path)
+
+    payload = {"session_id": "bugfix-invoke", "cwd": str(tmp_path), "last_assistant_message": "FINISH BUGFIX: mb-finish bugfix завершён"}
+    assert _run_stop_gate(tmp_path, payload).get("decision") != "block"
+
+    st = load_epic_state(tmp_path)
+    st.update(session_id="qa-run", status="running")
+    save_epic_state(tmp_path, st)
+    payload.update(session_id="qa-invoke", last_assistant_message="FINISH QA")
+    result = _run_stop_gate(tmp_path, payload)
+    assert result.get("decision") == "block", result
+    assert "reviewer" in result["reason"]
+
+
 def test_stop_gate_audit_blocks_qa_handoff_without_finish_tool(tmp_path: Path) -> None:
     from epic.core import default_state, fingerprint_context, save_epic_state
 

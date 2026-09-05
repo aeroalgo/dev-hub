@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: s04 — Enforce sole SoT — Kind I canon + no dual nested resolver IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/yaml/steps/s04-kind-i-no-dual-resolver.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added test_no_dual_path_resolver_in_loop_and_hooks enforcing 0 dual-path resolvers
+  across loop and harness/hooks
+- Added test_checker_does_not_accept_nested_only_layout_as_success enforcing literal
+  canonical layout only
+- Added test_kind_i_workflow_and_role_command_use_canonical_at_path asserting canonical
+  @.agents/skills paths in rules and skills
+- Verified zero dual-search / fallback in loop/workflow/skill_refs.py
+files:
+- loop/tests/test_skill_literal_refs.py
+- loop/workflow/skill_refs.py
+- .cursor/rules/back_developer/workflow-plan.mdc
+- .claude/skills/role-command/SKILL.md
+- harness/claude/skills/role-command/SKILL.md
+deletes:
+- instruction text teaching `.agents/skills/skills/<name>` as SoT (Kind I)
+- any resolve_skill / search-both-paths helper if historically present
+tests:
+- bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line
+integration_check:
+- rg -n "skills/skills" loop harness/hooks --glob '*.py' -> 0 results
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line: 12 passed'
+checkpoints:
+- id: cp1
+  criterion: rg dual nested resolver в prod Python = 0 (кроме tests/comments)
+  status: done
+  done_at: '2026-09-05T21:30:51Z'
+- id: cp2
+  criterion: pytest gate no dual resolver
+  status: done
+  done_at: '2026-09-05T21:30:59Z'
+- id: cp3
+  criterion: workflow-plan.mdc и role-command SKILL содержат канон, не nested SoT
+  status: done
+  done_at: '2026-09-05T21:31:00Z'
+- id: cp4
+  criterion: checker не имплементирует nested fallback
+  status: done
+  done_at: '2026-09-05T21:31:00Z'
+resume_from: cp1

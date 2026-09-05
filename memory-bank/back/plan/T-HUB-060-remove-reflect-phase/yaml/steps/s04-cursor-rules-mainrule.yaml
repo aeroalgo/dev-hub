@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-060-remove-reflect-phase
+title: "Cursor rules — убрать REFLECT из mainrule-core и mainrule"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Убрать REFLECT из таблиц переходов в cursor rules (BACK/FRONT/INTEG mainrule-core.mdc и mainrule.mdc).
+  Строка «BACK REFLECT» не должна появляться в таблице «Режим → workflow» как активный режим.
+  workflow-reflect.mdc файлы НЕ удалять — они остаются архивом.
+  Строка в mainrule-core.mdc:50 «lifecycle DONE (REFLECT не gate)» — корректная, оставить.
+  isolation_rules_load.md строки «REFLECT: … — архив; не hot path» — оставить (правильный статус).
+  Результат: BACK REFLECT → ARCHIVE не в цепочке переходов ни в одном mainrule файле.
+
+plan_contract:
+  fr_ids: [FR-11, AC+5]
+  nouns:
+    - back_developer/mainrule.mdc (таблица Режим → workflow — проверить нет REFLECT row)
+    - back_developer/mainrule-core.mdc (ПЕРЕХОДЫ — проверить нет REFLECT в цепочке)
+    - front_developer/mainrule.mdc (аналогично)
+    - front_developer/mainrule-core.mdc (аналогично)
+    - integration_developer/mainrule.mdc (аналогично)
+    - integration_developer/mainrule-core.mdc (аналогично)
+  layout_paths:
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/back_developer/mainrule-core.mdc
+    - .cursor/rules/front_developer/mainrule.mdc
+    - .cursor/rules/front_developer/mainrule-core.mdc
+    - .cursor/rules/integration_developer/mainrule.mdc
+    - .cursor/rules/integration_developer/mainrule-core.mdc
+  ac_quotes:
+    - "Cursor rules не содержат BACK REFLECT → ARCHIVE в цепочке переходов"
+    - "workflow-reflect files: оставить (не удалять — архив), но не линковать из mainrule"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-060-remove-reflect-phase/md/plan.md:80-120"
+
+context:
+  consumes:
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/back_developer/mainrule-core.mdc
+    - .cursor/rules/front_developer/mainrule.mdc
+    - .cursor/rules/front_developer/mainrule-core.mdc
+    - .cursor/rules/integration_developer/mainrule.mdc
+    - .cursor/rules/integration_developer/mainrule-core.mdc
+  produces:
+    - .cursor/rules/back_developer/mainrule.mdc (изменён если REFLECT row есть)
+    - .cursor/rules/back_developer/mainrule-core.mdc (изменён если REFLECT row в ПЕРЕХОДЫ)
+    - .cursor/rules/front_developer/mainrule.mdc (аналогично)
+    - .cursor/rules/front_developer/mainrule-core.mdc (аналогично)
+    - .cursor/rules/integration_developer/mainrule.mdc (аналогично)
+    - .cursor/rules/integration_developer/mainrule-core.mdc (аналогично)
+  plan_refs:
+    - "plan.md §Architecture — Cursor rules scope"
+  files:
+    - .cursor/rules/back_developer/mainrule.mdc
+    - .cursor/rules/back_developer/mainrule-core.mdc
+    - .cursor/rules/front_developer/mainrule.mdc
+    - .cursor/rules/front_developer/mainrule-core.mdc
+    - .cursor/rules/integration_developer/mainrule.mdc
+    - .cursor/rules/integration_developer/mainrule-core.mdc
+
+as_built:
+  - "back_developer/mainrule.mdc — строки BACK REFLECT отсутствуют в таблице режимов (уже архив)"
+  - "back_developer/mainrule-core.mdc:50 — 'REFLECT не gate' — информационная фраза, корректна"
+  - "back_developer/mainrule.mdc:39 — 'Archive (не gate): workflow-reflect.mdc — не линковать из hot path; lifecycle после QA = DONE'"
+  - "front_developer/mainrule.mdc — REFLECT не в таблице (уже нет)"
+  - "integration_developer/mainrule.mdc — REFLECT не в таблице (уже нет)"
+  - "isolation_rules_load.md:29 (все три) — 'REFLECT: ... — архив; не hot path' — корректный статус"
+
+delta:
+  - "Прочитать каждый mainrule.mdc / mainrule-core.mdc — убедиться что REFLECT не в таблице активных режимов"
+  - "back_developer/mainrule-core.mdc:50 — уточнить фразу убрав 'REFLECT не gate' если требуется clarity"
+  - "Если REFLECT row присутствует в таблице Режим → workflow любого из файлов — удалить строку"
+  - "workflow-reflect.mdc — НЕ трогать (архив по плану)"
+  - "isolation_rules_load.md — НЕ трогать (уже помечен как архив)"
+
+deletes:
+  - ".cursor/rules/back_developer/mainrule.mdc: строка BACK REFLECT → workflow-reflect.mdc (если есть в таблице)"
+  - ".cursor/rules/front_developer/mainrule.mdc: строка FRONT REFLECT → workflow-reflect.mdc (если есть)"
+  - ".cursor/rules/integration_developer/mainrule.mdc: строка INTEG REFLECT → workflow-reflect.mdc (если есть)"
+
+out_of_scope:
+  - "workflow-reflect.mdc (все три роли) — НЕ удалять, архив"
+  - "isolation_rules/_lean/reflect.mdc — НЕ трогать"
+  - "isolation_rules_load.md — НЕ трогать"
+  - "harness/hooks/epic/core.py (s01)"
+  - "loop/ (s02, s03)"
+  - "loop/tests/ (s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: BACK REFLECT не в таблице mainrule.mdc как активный режим
+    verify: "rg 'BACK REFLECT' .cursor/rules/back_developer/mainrule.mdc"
+  - id: cp2
+    criterion: FRONT REFLECT не в таблице mainrule.mdc
+    verify: "rg 'FRONT REFLECT' .cursor/rules/front_developer/mainrule.mdc"
+  - id: cp3
+    criterion: INTEG REFLECT не в mainrule.mdc integration
+    verify: "rg 'INTEG REFLECT' .cursor/rules/integration_developer/mainrule.mdc"
+  - id: cp4
+    criterion: workflow-reflect.mdc файлы на месте (не удалены)
+    verify: "ls .cursor/rules/back_developer/workflow-reflect.mdc .cursor/rules/front_developer/workflow-reflect.mdc .cursor/rules/integration_developer/workflow-reflect.mdc"
+
+verify:
+  - "rg 'REFLECT' .cursor/rules/back_developer/mainrule.mdc .cursor/rules/back_developer/mainrule-core.mdc .cursor/rules/front_developer/mainrule.mdc .cursor/rules/integration_developer/mainrule.mdc"
+
+tdd: []

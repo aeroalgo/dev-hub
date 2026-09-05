@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-060-remove-reflect-phase
+title: s02 — context_loop.py — phase model, finish block, prompts IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-060-remove-reflect-phase/yaml/steps/s02-context-loop-phase-model.yaml
+skills_used:
+- harness/skills/skills/tdd/SKILL.md
+- harness/skills/skills/systematic-debugging/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Удалено упоминание REFLECT из комментария loop/context_loop.py
+- 'Обновлен help текст CLI аргумента --require-done: ''QA+REFLECT gate'' -> ''QA gate'''
+- Подтверждено отсутствие REFLECT в LOOP_PHASE_MODEL_ENV, _LOOP_PHASE_DETECT_ORDER,
+  _POST_IMPLEMENT_PHASES
+- Добавлены TDD тесты в loop/tests/test_context_loop.py (test_loop_phase_key_reflect_returns_none,
+  test_reflect_not_in_loop_phase_model_env)
+files:
+- loop/context_loop.py
+- loop/tests/test_context_loop.py
+deletes:
+- 'loop/context_loop.py: def _reflect_finish_block (не существует/удалено)'
+- 'loop/context_loop.py: ветка if phase_kind == ''reflect'': (не существует/удалено)'
+- loop/context_loop.py:3223 — текст 'QA+REFLECT gate' -> 'QA gate'
+tests:
+- '`bin/pytest loop/tests/test_context_loop.py -k ''test_loop_phase_key_reflect_returns_none
+  or test_reflect_not_in_loop_phase_model_env''`'
+integration_check:
+- python3 -c "from loop.context_loop import LOOP_PHASE_MODEL_ENV, loop_phase_key;
+  assert 'REFLECT' not in LOOP_PHASE_MODEL_ENV; assert loop_phase_key('REFLECT') is
+  None" — PASS
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: REFLECT не в LOOP_PHASE_MODEL_ENV
+  status: done
+- id: cp2
+  criterion: loop_phase_key('REFLECT') == None
+  status: done
+- id: cp3
+  criterion: _reflect_finish_block не существует в context_loop.py
+  status: done
+- id: cp4
+  criterion: REFLECT не упоминается как gate к DONE в промпт-строках
+  status: done

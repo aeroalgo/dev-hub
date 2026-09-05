@@ -29,6 +29,13 @@ def _write(cwd: Path, rel: str, body: str) -> None:
     p.write_text(body, encoding="utf-8")
 
 
+def _write_finished_artifact(cwd: Path, rel: str, body: str) -> None:
+    from loop.tests.lifecycle_helpers import record_finished_artifact
+
+    _write(cwd, rel, body)
+    record_finished_artifact(cwd, cwd / rel)
+
+
 def _seed_context(cwd: Path, *, next_line: str = "INTEG IMPLEMENT e16") -> None:
     _write(
         cwd,
@@ -256,6 +263,16 @@ def test_status_agent_policy_active_loop_agents(tmp_path: Path, monkeypatch) -> 
     }
 
 
+def test_loop_phase_key_reflect_returns_none() -> None:
+    ctx = _load_ctx()
+    assert ctx.loop_phase_key("REFLECT") is None
+
+
+def test_reflect_not_in_loop_phase_model_env() -> None:
+    ctx = _load_ctx()
+    assert "REFLECT" not in ctx.LOOP_PHASE_MODEL_ENV
+
+
 def test_agent_policy_no_secrets(tmp_path: Path, monkeypatch) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
@@ -382,6 +399,17 @@ def test_prepare_builds_prompt_with_activecontext(tmp_path: Path) -> None:
     assert "Context economy" not in prompt
     assert "step_context (JSON)" not in prompt
     assert "expected_artifact" not in prompt
+
+
+def test_prepare_allocates_new_phase_run_in_same_runner(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    assert ctx.prepare_session(tmp_path, model="gpt")["ok"]
+    first = ctx.load_epic_state(tmp_path)
+    assert ctx.prepare_session(tmp_path, model="gpt")["ok"]
+    second = ctx.load_epic_state(tmp_path)
+    assert first["session_id"] == second["session_id"]
+    assert first["phase_run_id"] != second["phase_run_id"]
 
 
 def test_prepare_emits_runtime_claude_default(tmp_path: Path, monkeypatch) -> None:
@@ -867,7 +895,7 @@ def test_prepare_clears_stale_post_implement_checkpoint(
         f"memory-bank/back/audit/{epic}/audit-20260829-demo.yaml",
         "schema: epic-audit/v1\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path,
         f"memory-bank/back/qa/{epic}/qa-20260829-board-arm-loop.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -962,7 +990,7 @@ def test_check_after_commits_next_step_for_post_implement_phase(
         "memory-bank/back/audit/demo/audit-20260829-demo.yaml",
         "schema: epic-audit/v1\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path,
         f"memory-bank/back/qa/{epic}/qa-20260829-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -983,7 +1011,7 @@ def test_check_after_commits_next_step_for_post_implement_phase(
         "## Handoff BACK QA — demo\n"
         "- **Эпик:** demo.\n"
         "- **Режим/шаг:** `BACK QA` завершён, QA pass.\n"
-        "- **Дальше:** выполнить `BACK REFLECT`.\n",
+        "- **Дальше:** `BACK DONE`.\n",
     )
     from epic import checkpoint_lifecycle, checkpoint_path, load_epic_state, save_epic_state
 
@@ -1503,7 +1531,7 @@ def test_check_after_epic_done(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
     # Full post-implement evidence required for EPIC_DONE
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/x/qa-20260802-x.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -1575,7 +1603,7 @@ def test_degraded_prompt_skips_other_epics_after_epic_done(tmp_path: Path) -> No
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
-        "## load_now\n\n## Handoff BACK REFLECT\n"
+        "## load_now\n\n## Handoff BACK DONE\n"
         "- **Стоп:** `EPIC_DONE`.\n"
         "- await VAN / next T-xxx\n",
     )
@@ -1589,7 +1617,7 @@ def test_check_after_epic_done_with_backticks(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
     prep = ctx.prepare_session(tmp_path)
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/x/qa-20260802-x.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -1880,7 +1908,7 @@ def test_arm_done_when_qa_pass_exists(tmp_path: Path) -> None:
         "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
         "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/demo/qa-20260802-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -1906,7 +1934,7 @@ def test_arm_epic_done_after_qa_pass(tmp_path: Path) -> None:
         "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
         "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/demo/qa-20260802-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -2038,7 +2066,7 @@ def test_degraded_prompt_epic_finished_only_after_qa_pass(
         "| **e01** | [e01-one.yaml](e01-one.yaml) | completed |\n"
         "| **e02** | [e02-two.yaml](e02-two.yaml) | done |\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/demo/qa-20260802-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -2079,7 +2107,7 @@ def test_qa_and_audit_work_blocks_render_properly() -> None:
 def test_bugfix_reopens_qa_after_prior_pass(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/demo/qa-20260802-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
@@ -2091,7 +2119,7 @@ def test_bugfix_reopens_qa_after_prior_pass(tmp_path: Path) -> None:
     assert qa is not None
     assert reflection is None
 
-    _write(
+    _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/bugfix/demo/bugfix-20260803-fix.md",
         "# Fix\n",

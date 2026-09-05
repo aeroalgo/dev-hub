@@ -273,7 +273,13 @@ def find_decompose_index_path(
     if not plan_dir.is_dir():
         return None
 
-    lookup = epic_lookup_ids(epic_id)
+    lookup_values = list(epic_lookup_ids(epic_id))
+    for lookup_id in tuple(lookup_values):
+        for plan_path in sorted(plan_dir.glob(f"{lookup_id}-*/md/plan.md")):
+            full_epic_id = plan_path.parent.parent.name
+            if full_epic_id and full_epic_id not in lookup_values:
+                lookup_values.append(full_epic_id)
+    lookup = tuple(lookup_values)
     for lookup_id in lookup:
         # Check v2 lookup candidate
         try:
@@ -292,6 +298,9 @@ def find_decompose_index_path(
     for ypath in sorted(plan_dir.glob("*/yaml/decompose-index.yaml")):  # layout_v2 glob
         plan_id = plan_id_from_decompose_index(ypath)
         if plan_id and plan_id in lookup_set:
+            return ypath
+        folder_id = ypath.parent.parent.name
+        if any(folder_id == item or folder_id.startswith(f"{item}-") for item in lookup):
             return ypath
 
     # Legacy v1 glob fallback (layout_v1_deprecated)
@@ -459,6 +468,10 @@ def discover_epic_role(cwd: str | Path, epic_id: str) -> str | None:
                     return role
                 v2_idx = resolve(role, lookup_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=root)
                 if v2_idx.is_file():
+                    return role
+                if any(plan_dir.glob(f"{lookup_id}-*/md/plan.md")):
+                    return role
+                if any(plan_dir.glob(f"{lookup_id}-*/yaml/decompose-index.yaml")):
                     return role
             except Exception:
                 pass

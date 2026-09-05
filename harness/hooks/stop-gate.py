@@ -163,6 +163,25 @@ def main() -> None:
             return
 
     epic = load_epic_state(cwd) if cwd else {}
+    receipt = epic.get("last_finish_tool") or {}
+    phase_run_id = epic.get("phase_run_id") or epic.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID")
+    if (
+        receipt.get("name") == "mb-finish bugfix"
+        and receipt.get("phase_run_id")
+        and receipt.get("phase_run_id") == phase_run_id
+        and receipt.get("epic_id") == epic.get("armed_epic")
+        and epic.get("last_finished_step") == "BUGFIX"
+        and epic.get("armed_after_finish") == "QA"
+        and epic.get("armed_step") == "QA"
+    ):
+        import hashlib
+
+        handoff = read_active_context(cwd)
+        if (
+            hashlib.sha256(handoff.encode("utf-8")).hexdigest() == receipt.get("handoff_sha256")
+            and not validate_active_context_shape(handoff)
+        ):
+            return
     if cwd:
         from _lib import current_gate_identity, sync_gate_identity, match_gate_evidence
 

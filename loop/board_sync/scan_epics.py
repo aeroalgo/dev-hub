@@ -94,16 +94,24 @@ def scan_epics(workspace_refs: list[WorkspaceRef]) -> ScanEpicsResult:
                     epic_id = p.stem.removeprefix("plan-")
                     if epic_id:
                         epic_ids.add(epic_id)
+                for p in plan_dir.glob("*/md/plan.md"):
+                    epic_id = p.parent.parent.name
+                    if epic_id:
+                        epic_ids.add(epic_id)
                 for p in plan_dir.glob("decompose-*"):
                     if p.is_dir():
                         epic_id = p.name.removeprefix("decompose-")
                         if epic_id:
                             epic_ids.add(epic_id)
+                for p in plan_dir.glob("*/yaml/decompose-index.yaml"):
+                    epic_id = p.parent.parent.name
+                    if epic_id:
+                        epic_ids.add(epic_id)
 
             # Find epics in implement/
             impl_dir = role_dir / "implement"
             if impl_dir.is_dir():
-                for p in impl_dir.glob("implement-*"):
+                for p in impl_dir.iterdir():
                     if p.is_dir():
                         epic_id = p.name.removeprefix("implement-")
                         if epic_id:

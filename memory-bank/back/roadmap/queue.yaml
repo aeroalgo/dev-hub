@@ -1,6 +1,79 @@
 version: roadmap-queue/v2
 role: back
-queue: []
+queue:
+- id: T-HUB-062
+  epic_id: T-HUB-062-skill-topology-canonical-paths
+  plan: plan-T-HUB-062-skill-topology-canonical-paths.md
+  deps: []
+  batch: workflow-loop-20260905
+- id: T-HUB-063
+  epic_id: T-HUB-063-sunset-boundary-stop-pipeline
+  plan: plan-T-HUB-063-sunset-boundary-stop-pipeline.md
+  deps: []
+  batch: workflow-loop-20260905
+- id: T-HUB-064
+  epic_id: T-HUB-064-video-pack-route-verify-parity
+  plan: plan-T-HUB-064-video-pack-route-verify-parity.md
+  deps: []
+  batch: workflow-loop-20260905
+- id: T-HUB-065
+  epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+  plan: plan-T-HUB-065-duplicate-hooks-runtime-entrypoint.md
+  deps: []
+  batch: workflow-loop-20260905
+- id: T-HUB-066
+  epic_id: T-HUB-066-boundary-schema-ownership-strict
+  plan: plan-T-HUB-066-boundary-schema-ownership-strict.md
+  deps:
+  - T-HUB-063
+  batch: workflow-loop-20260905
+- id: T-HUB-067
+  epic_id: T-HUB-067-pack-doctor-executable-graph
+  plan: plan-T-HUB-067-pack-doctor-executable-graph.md
+  deps:
+  - T-HUB-062
+  - T-HUB-064
+  batch: workflow-loop-20260905
+- id: T-HUB-068
+  epic_id: T-HUB-068-start-finish-transaction-boundary
+  plan: plan-T-HUB-068-start-finish-transaction-boundary.md
+  deps:
+  - T-HUB-066
+  batch: workflow-loop-20260905
+- id: T-HUB-069
+  epic_id: T-HUB-069-agent-contract-registry-codex-policy
+  plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
+  deps:
+  - T-HUB-064
+  batch: workflow-loop-20260905
+- id: T-HUB-070
+  epic_id: T-HUB-070-phase-policy-overlay-sole-sot
+  plan: plan-T-HUB-070-phase-policy-overlay-sole-sot.md
+  deps: []
+  batch: loop-session-architecture-20260906
+- id: T-HUB-071
+  epic_id: T-HUB-071-session-identity-lock
+  plan: plan-T-HUB-071-session-identity-lock.md
+  deps:
+  - T-HUB-070
+  batch: loop-session-architecture-20260906
+- id: T-HUB-072
+  epic_id: T-HUB-072-context-bundle-fail-closed
+  plan: plan-T-HUB-072-context-bundle-fail-closed.md
+  deps:
+  - T-HUB-071
+  batch: loop-session-architecture-20260906
+- id: T-HUB-073
+  epic_id: T-HUB-073-abort-classifier-dirty-halt
+  plan: plan-T-HUB-073-abort-classifier-dirty-halt.md
+  deps: []
+  batch: loop-session-architecture-20260906
+- id: T-HUB-074
+  epic_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+  plan: plan-T-HUB-074-qa-bugfix-lifecycle-rearm.md
+  deps:
+  - T-HUB-070
+  batch: loop-session-architecture-20260906
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -178,6 +251,22 @@ done:
   epic_id: T-HUB-048-workflow-pack-registry
   plan: plan-T-HUB-048-workflow-pack-registry.md
   batch: workflow-pack-framework
+- id: T-HUB-049
+  epic_id: T-HUB-049-workflow-pack-phase-router
+  plan: plan-T-HUB-049-workflow-pack-phase-router.md
+  batch: workflow-pack-framework
+- id: T-HUB-050
+  epic_id: T-HUB-050-workflow-pack-memory-bank-paths
+  plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
+  batch: workflow-pack-framework
+- id: T-HUB-051
+  epic_id: T-HUB-051-workflow-pack-reference-video
+  plan: plan-T-HUB-051-workflow-pack-reference-video.md
+  batch: workflow-pack-framework
+- id: T-HUB-052
+  epic_id: T-HUB-052-workflow-pack-adoption-docs
+  plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
+  batch: workflow-pack-framework
 - id: T-HUB-053
   epic_id: T-HUB-053-codex-claude-hooks-parity
   plan: plan-T-HUB-053-codex-claude-hooks-parity.md
@@ -206,26 +295,10 @@ done:
   epic_id: T-HUB-059-harness-claude-agents-sot-complete
   plan: plan-T-HUB-059-harness-claude-agents-sot-complete.md
   batch: harness-universal-runtime
-- id: T-HUB-049
-  epic_id: T-HUB-049-workflow-pack-phase-router
-  plan: plan-T-HUB-049-workflow-pack-phase-router.md
-  batch: workflow-pack-framework
 - id: T-HUB-061
   epic_id: T-HUB-061-boundary-cli-doctor-hygiene
   plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
   batch: harness-ops-hygiene
-- id: T-HUB-050
-  epic_id: T-HUB-050-workflow-pack-memory-bank-paths
-  plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
-  batch: workflow-pack-framework
-- id: T-HUB-051
-  epic_id: T-HUB-051-workflow-pack-reference-video
-  plan: plan-T-HUB-051-workflow-pack-reference-video.md
-  batch: workflow-pack-framework
-- id: T-HUB-052
-  epic_id: T-HUB-052-workflow-pack-adoption-docs
-  plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
-  batch: workflow-pack-framework
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -265,3 +338,13 @@ batches:
     title: Harness ops hygiene (boundary CLI + doctor)
     note: T-HUB-061 — --raw-json teaching drift, doctor check_boundaries kwargs, repair
       prose purge; details in plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md
+  workflow-loop-20260905:
+    title: Workflow/loop leftover after 2026-09-05 audit
+    note: T-HUB-062…069 — skills topology, sunset stop, video routes, duplicate hooks,
+      schema ownership, pack doctor, finish transaction, Codex policy; details in
+      plan/<epic_id>/md/plan.md; T-HUB-060 REFLECT out of this batch (IMPLEMENT s05)
+  loop-session-architecture-20260906:
+    title: Variant A leftover — overlay / identity / bundle / abort / QA re-arm
+    note: T-HUB-070…074 after 062–069; details in plan/<epic_id>/md/plan.md; clarify
+      memory-bank/back/clarify/clarify-20260906-loop-session-architecture.md; do not
+      rewrite 062–069 WHAT; Armed IMPLEMENT 062 not re-armed by this PLAN

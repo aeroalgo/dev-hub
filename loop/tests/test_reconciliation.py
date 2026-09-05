@@ -31,30 +31,15 @@ def _write(cwd: Path, rel: str, body: str) -> Path:
 
 def test_restored_artifact_is_discovered_without_mtime_ordering(tmp_path: Path) -> None:
     lib = _load_epic_lib()
-    first = _write(tmp_path, "memory-bank/back/qa/demo/qa-first.yaml", "verdict: pass\n")
-    second = _write(tmp_path, "memory-bank/back/qa/demo/qa-second.yaml", "verdict: fail\n")
+    first = _write(tmp_path, "memory-bank/back/audit/demo/audit-first.yaml", "verdict: pass\n")
+    second = _write(tmp_path, "memory-bank/back/audit/demo/audit-second.yaml", "verdict: fail\n")
     os.utime(first, ns=(2, 2))
     os.utime(second, ns=(1, 1))
 
     events = lib.reconcile_epic_events(tmp_path, "back", "demo")
 
     assert [event["artifact"] for event in events] == [
-        "memory-bank/back/qa/demo/qa-first.yaml",
-        "memory-bank/back/qa/demo/qa-second.yaml",
+        "memory-bank/back/audit/demo/audit-first.yaml",
+        "memory-bank/back/audit/demo/audit-second.yaml",
     ]
     assert [event["seq"] for event in events] == [1, 2]
-
-
-def test_reflection_ownership_ambiguity_does_not_emit_evidence(tmp_path: Path) -> None:
-    lib = _load_epic_lib()
-    reflection = _write(
-        tmp_path,
-        "memory-bank/back/reflection/reflection-shared.md",
-        "T-035\nT-036\n",
-    )
-
-    matches = lib._matching_reflection_artifacts(tmp_path, "back", "T-035-loop-state-prod-hardening")
-
-    assert reflection in matches
-    assert lib.reconcile_epic_events(tmp_path, "back", "T-035-loop-state-prod-hardening") == []
-    assert not (tmp_path / "memory-bank/back/events/T-035-loop-state-prod-hardening/events.jsonl").exists()

@@ -1,0 +1,104 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: "Checker red — literal @.agents/skills parser + failing corpus"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Появился статический checker (stdlib pathlib + regex), который парсит literal
+  `@.agents/skills/<name>/SKILL.md` из production corpora и падает, пока канонические
+  файлы отсутствуют. После s01 тест корпуса красный на текущем nested layout —
+  это Add-слой ladder, не «модуль импортируется». Doctor/MCP не в этом шаге.
+
+plan_contract:
+  fr_ids: [FR-005, FR-006, FR-011, AC+2, NFR-02, NFR-04, TM-001]
+  nouns:
+    - loop/workflow/skill_refs.py (parser + corpus walk)
+    - loop/tests/test_skill_literal_refs.py
+    - regex `@.agents/skills/<name>/SKILL.md`
+    - production corpora `.cursor/rules/**/*.mdc`
+    - exclude `_archive/**` `.cursor/templates/**`
+  layout_paths:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py
+  ac_quotes:
+    - "Named pytest checker зелёный на corpus и красный на fixture missing."
+    - "Статический checker: парсит literal `@.agents/skills/<name>/SKILL.md`"
+    - "Checker corpora: `.cursor/rules/**/*.mdc`, `.claude/skills/**/*.md`, `harness/claude/skills/**/*.md`, `harness/claude/rules/**/*.md`."
+    - "не ходить в `.agents/` vendor skills catalog целиком — только referenced names"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:93-154"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:226-250"
+
+context:
+  consumes:
+    - plan.md §FR-005/006/011 §HOW §QA consumes
+    - as-built nested `harness/skills/skills/*/SKILL.md`
+  produces:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py (corpus test red on current tree)
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#техника--архитектура-how
+  files:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py
+
+as_built:
+  - ".agents/skills -> ../harness/skills (symlink); канон `.agents/skills/<name>/SKILL.md` отсутствует"
+  - "контент лежит в harness/skills/skills/<name>/SKILL.md (вложенный SoT)"
+  - "нет pytest на missing literal `@` skill path (plan gap #4)"
+  - "tests/architecture/check_boundaries.py — соседний static checker, не skill refs"
+  - "loop/workflow/ содержит command_router.py / registry.py / resolve.py — нет skill_refs.py"
+
+delta:
+  - "добавить parser: regex `@.agents/skills/[-a-z0-9]+/(?:SKILL\\.md)?` walk allowlisted corpora"
+  - "corpora: .cursor/rules/**/*.mdc, .claude/skills/**/*.md, harness/claude/skills/**/*.md, harness/claude/rules/**/*.md"
+  - "exclude: _archive/**, .cursor/templates/** (fixture allowlist later in s03)"
+  - "Path.exists на `.agents/skills/<name>/SKILL.md` (follow_symlinks); без поиска nested fallback"
+  - "test_production_corpus_zero_missing — после s01 FAIL (red) на текущем дереве"
+  - "не требовать существования unreferenced vendor skills"
+
+deletes: []
+
+out_of_scope:
+  - "FS move/symlink (s02)"
+  - "fixture skill_ref_missing machine code (s03)"
+  - "Kind I docs / dual resolver purge (s04/s05)"
+  - "bin/runtime-sync doctor graph — follow_up: T-HUB-067-pack-doctor-executable-graph"
+  - "MCP skill catalog UI; graphify skill nodes; rewrite skill bodies (appetite cut_list)"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Parser находит literal `@.agents/skills/writing-plans/SKILL.md` в workflow-plan.mdc / role-command
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k parse -q --tb=line"
+  - id: cp2
+    criterion: Corpus test собирается и падает на текущем nested layout (red), не skip и не silent pass
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k corpus -q --tb=line"
+  - id: cp3
+    criterion: Parser не резолвит nested `.agents/skills/skills/<name>` как успех
+    verify: "rg -n \"skills/skills\" loop/workflow/skill_refs.py || true"
+  - id: cp4
+    criterion: Exclude `_archive` и `.cursor/templates` из production corpus walk
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k exclude -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+  - "test -f loop/workflow/skill_refs.py"
+
+tdd:
+  - "test_parse_literal_at_agents_skills_from_mdc — extracts writing-plans from a fixture snippet"
+  - "test_production_corpus_zero_missing — FAIL until s02 cutover (red)"
+  - "test_unreferenced_vendor_skill_not_required — nested catalog name without `@` is not a miss"
+  - "test_archive_and_templates_excluded_from_corpus — `_archive` / `.cursor/templates` skipped"

@@ -11,7 +11,6 @@ from loop.mb_finish.impl import (
     finish_handoff,
     finish_plan,
     finish_qa,
-    finish_reflect,
 )
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult
 
@@ -73,12 +72,6 @@ TOOLS = [
         "description": "Finish creative step",
         "parameters": MbFinishRequest.model_json_schema(),
         "handler": finish_creative,
-    },
-    {
-        "name": "finish_reflect",
-        "description": "Finish reflect step",
-        "parameters": MbFinishRequest.model_json_schema(),
-        "handler": finish_reflect,
     },
 ]
 

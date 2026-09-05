@@ -9,7 +9,7 @@ _HOOKS_DIR = Path(__file__).resolve().parents[3] / ".claude" / "hooks"
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
-from epic_index import index_yaml_path, load_index_yaml, parse_steps_from_md
+from epic_index import index_md_path, load_index_yaml, parse_steps_from_md
 from loop.janitor.schema import JanitorFinding
 
 
@@ -20,8 +20,9 @@ def detect_stale_index_status(cwd: Path) -> list[JanitorFinding]:
     if not mb.is_dir():
         return findings
 
-    for index_yaml_file in mb.glob("**/index.yaml"):
-        index_md_file = index_yaml_file.with_name("index.md")
+    index_files = set(mb.glob("**/index.yaml")) | set(mb.glob("**/decompose-index.yaml"))
+    for index_yaml_file in sorted(index_files):
+        index_md_file = index_md_path(index_yaml_file)
         if not index_md_file.is_file():
             continue
 

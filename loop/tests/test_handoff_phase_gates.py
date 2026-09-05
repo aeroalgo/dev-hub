@@ -18,6 +18,14 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _write_finished_artifact(path: Path, text: str) -> None:
+    from loop.tests.lifecycle_helpers import record_finished_artifact
+
+    _write(path, text)
+    cwd = next(parent.parent for parent in path.parents if parent.name == "memory-bank")
+    record_finished_artifact(cwd, path)
+
+
 def _load_ctx():
     from importlib.util import module_from_spec, spec_from_file_location
 
@@ -45,7 +53,7 @@ def test_legacy_handoff_reflect_does_not_block_epic_done(tmp_path: Path) -> None
         "  status: completed\n",
     )
     qa = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260830-bot-graph-test-harness.yaml"
-    _write(qa, "schema: epic-qa/v1\nverdict: pass\nissues: []\n")
+    _write_finished_artifact(qa, "schema: epic-qa/v1\nverdict: pass\nissues: []\n")
 
     handoff_text = (
         "## load_now\n"
@@ -55,7 +63,7 @@ def test_legacy_handoff_reflect_does_not_block_epic_done(tmp_path: Path) -> None
         "- **Дальше:** reflection-*.md.\n"
     )
     _write(tmp_path / "memory-bank/activeContext.md", handoff_text)
-    assert handoff_post_implement_phase(handoff_text) == "REFLECT"
+    assert handoff_post_implement_phase(handoff_text) is None
 
     decision = reduce_epic_lifecycle(tmp_path, "back", epic)
     assert decision.get("phase") == "DONE"
@@ -98,7 +106,7 @@ def test_prepare_completes_when_qa_pass_despite_legacy_reflect_handoff(
         f"decompose_ref: memory-bank/back/plan/decompose-{epic}/s01-one.yaml\n"
         "date: '2026-08-29'\n",
     )
-    _write(
+    _write_finished_artifact(
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260829-demo.yaml",
         "schema: epic-qa/v1\nverdict: pass\nissues: []\n",
     )

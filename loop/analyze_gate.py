@@ -34,8 +34,15 @@ def canon_index_yaml_path(index_path: Path | None) -> Path | None:
         return None
     path = Path(index_path)
     if path.is_dir():
+        yaml_v2 = path / "yaml" / "decompose-index.yaml"
+        if yaml_v2.is_file():
+            return yaml_v2
         yaml = path / "index.yaml"
         return yaml if yaml.is_file() else path
+    if path.name == "decompose-index.md" and path.parent.name == "md":
+        yaml_v2 = path.parent.parent / "yaml" / "decompose-index.yaml"
+        if yaml_v2.is_file():
+            return yaml_v2
     if path.name in {"index.md", "index.yml"}:
         yaml = path.with_name("index.yaml")
         if yaml.is_file():

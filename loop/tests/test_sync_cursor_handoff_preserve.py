@@ -31,7 +31,7 @@ def test_handoff_gate_phase_from_frontmatter_back_reflect() -> None:
         "## Handoff BACK BACK REFLECT\n"
         "- **Дальше:** reflection\n"
     )
-    assert handoff_gate_phase_from_text(text) == "REFLECT"
+    assert handoff_gate_phase_from_text(text) is None
 
 
 def test_sync_cursor_ignores_legacy_reflect_handoff_without_halt(tmp_path: Path) -> None:
@@ -80,7 +80,7 @@ def test_sync_cursor_ignores_legacy_reflect_handoff_without_halt(tmp_path: Path)
     phase = handoff_post_implement_phase(
         (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     )
-    assert phase in {None, "QA", "DONE", "REFLECT", "AUDIT", "BUGFIX"}, phase
+    assert phase in {None, "QA", "DONE", "AUDIT", "BUGFIX"}, phase
 
 
 def test_sync_cursor_preserves_qa_handoff_without_rearm(tmp_path: Path) -> None:

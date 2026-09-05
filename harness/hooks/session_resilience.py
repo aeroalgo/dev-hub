@@ -803,10 +803,15 @@ def load_implement_checkpoint_trace(
                     f"memory-bank/*/implement/implement-{plan_id}/{step_id}-*.yaml"
                 )
             )
+            matches.extend(
+                root.glob(f"memory-bank/*/implement/{plan_id}/{step_id}-*.yaml")
+            )
         if not matches:
             matches = list(
                 root.glob(f"memory-bank/*/implement/implement-*/{step_id}-*.yaml")
             )
+        if not matches:
+            matches = list(root.glob(f"memory-bank/*/implement/*/{step_id}-*.yaml"))
         if len(matches) != 1:
             print(
                 f"checkpoint trace: expected one shard for {step_id}, found {len(matches)}",

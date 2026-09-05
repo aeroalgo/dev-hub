@@ -27,7 +27,6 @@ def test_mcp_descriptors_parity():
         "finish_analyze",
         "finish_audit",
         "finish_creative",
-        "finish_reflect",
     ]
 
     for cmd in expected_cmds:

@@ -116,10 +116,7 @@ class GcEngine:
                 )
 
             # Repair call using epic_lib repair_index_mirror
-            # target_path_str is like 'memory-bank/back/plan/decompose-T-HUB-034/index.md'
-            # decompose arg can be relative decompose path or decompose dir
-            decompose_rel = target_path_str.replace("/index.md", "").replace("/index.yaml", "")
-            res = repair_index_mirror(self.cwd, decompose_rel)
+            res = repair_index_mirror(self.cwd, target_path_str)
             return GcResult(
                 success=True,
                 dry_run=False,

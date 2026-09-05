@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-062-skill-topology-canonical-paths
+title: "Enforce sole SoT — Kind I canon + no dual nested resolver"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  На границе skill-path единственный machine SoT = literal `.agents/skills/<name>/SKILL.md`.
+  Попытка dual-search nested (`skills/skills` / resolve_skill both paths) запрещена тестом и
+  rg. Instructions (workflow-plan, role-command) учат канон, не nested. Soft skip missing —
+  FORBIDDEN.
+
+plan_contract:
+  fr_ids: [FR-009, FR-010, FR-012, SC-003, AC+4, AC−2, AC−5, TM-004]
+  nouns:
+    - no resolve_skill dual search
+    - Kind I `.agents/skills/<name>/SKILL.md`
+    - ".cursor/rules/back_developer/workflow-plan.mdc"
+    - ".claude/skills/role-command/SKILL.md"
+    - optional `.agents/skills/README.md`
+  layout_paths:
+    - loop/workflow/skill_refs.py
+    - loop/tests/test_skill_literal_refs.py
+    - .cursor/rules/back_developer/workflow-plan.mdc
+    - .claude/skills/role-command/SKILL.md
+  ac_quotes:
+    - "Не добавлять runtime resolver «search both paths»."
+    - "Нет Python fallback, который ищет оба пути и прячет 404."
+    - "Нет dual machine path «resolver or literal» на одной границе."
+    - "Kind I: workflow-plan.mdc и role-command SKILL продолжают писать канон"
+    - "Нет soft default «если нет файла — skip skill»."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:32-42"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:93-146"
+    - "memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md:196-225"
+
+context:
+  consumes:
+    - s01–s03 checker + FS + fixture
+    - plan §Technology axiom · §Replacement I/C
+  produces:
+    - test forbidding dual-path resolver
+    - Kind I canonical refs in workflow-plan + role-command
+    - README update only if file already exists
+  plan_refs:
+    - plan.md#fr-012
+    - plan.md#i-instruction-surfaces
+  files:
+    - loop/tests/test_skill_literal_refs.py
+    - loop/workflow/skill_refs.py
+    - .cursor/rules/back_developer/workflow-plan.mdc
+    - .claude/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+
+as_built:
+  - "workflow/role-command уже пишут `@.agents/skills/<name>/SKILL.md` (канон в тексте)"
+  - "нет известного resolve_skill dual search — enforce = запрет добавить + rg gate"
+  - "docs могут упоминать nested skills/skills (audit); Kind I rewrite если hit"
+
+delta:
+  - "тест: loop/ и harness/hooks/ не содержат runtime dual-search nested+canonical (кроме comments/tests/sunset)"
+  - "rg Kind I: workflow-plan.mdc + role-command SKILL не учат `skills/skills/` как SoT"
+  - "если `.agents/skills/README.md` существует — одна строка канона; не создавать systemPatterns.md строку (FR-010)"
+  - "checker остаётся literal Path.exists, без fallback walk на nested"
+
+deletes:
+  - "instruction text teaching `.agents/skills/skills/<name>` as SoT (Kind I)"
+  - "any resolve_skill / search-both-paths helper if historically present"
+
+out_of_scope:
+  - "nested directory leftover empty/README (s05)"
+  - "doctor consuming checker (T-HUB-067)"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: rg dual nested resolver в prod Python = 0 (кроме tests/comments)
+    verify: "rg -n \"skills/skills\" loop harness/hooks --glob '*.py' | rg -v 'test_|sunset|comment' || true"
+  - id: cp2
+    criterion: pytest gate no dual resolver
+    verify: "bin/pytest loop/tests/test_skill_literal_refs.py -k dual -q --tb=line"
+  - id: cp3
+    criterion: workflow-plan.mdc и role-command SKILL содержат канон, не nested SoT
+    verify: "rg -n '@.agents/skills/.*/SKILL.md' .cursor/rules/back_developer/workflow-plan.mdc .claude/skills/role-command/SKILL.md"
+  - id: cp4
+    criterion: checker не имплементирует nested fallback
+    verify: "rg -n 'skills/skills' loop/workflow/skill_refs.py || true"
+
+verify:
+  - "bin/pytest loop/tests/test_skill_literal_refs.py -q --tb=line"
+  - "rg -n \"skills/skills\" loop/workflow/skill_refs.py || true"
+
+tdd:
+  - "test_no_dual_path_resolver_in_loop_and_hooks — rg/AST: no search both paths"
+  - "test_checker_does_not_accept_nested_only_layout_as_success"
+  - "test_kind_i_workflow_and_role_command_use_canonical_at_path"

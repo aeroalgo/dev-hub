@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from loop.board_sync.card_model import CardKind, EpicCard, GateCard, StepCard, parse_metadata
@@ -88,7 +89,22 @@ def parse_launch_metadata(task_dict: dict[str, Any]) -> LaunchCard:
 
     decompose_rel = raw.get("decompose_rel")
     if kind == CardKind.EPIC.value:
-        decompose_rel = decompose_rel or f"memory-bank/{raw.get('role', 'back')}/plan/decompose-{raw.get('epic_id', '')}/index.yaml"
+        if not decompose_rel:
+            from loop.paths.epic_layout import EpicLayoutKind, resolve
+
+            project_path = Path(project_root).expanduser()
+            role = str(raw.get("role") or "back")
+            epic_id = str(raw.get("epic_id") or "")
+            try:
+                canonical = resolve(
+                    role,
+                    epic_id,
+                    EpicLayoutKind.DECOMPOSE_INDEX_YAML,
+                    project_root=project_path,
+                )
+                decompose_rel = canonical.relative_to(project_path).as_posix()
+            except (ValueError, OSError):
+                decompose_rel = None
     if not isinstance(decompose_rel, str) or not decompose_rel.strip():
         raise CardMetadataError("metadata decompose_rel is required")
     if kind == CardKind.GATE.value and not isinstance(decompose_rel, str):
@@ -136,14 +152,11 @@ def _canonical_metadata(metadata: dict[str, Any], kind: str) -> dict[str, Any]:
     canonical.setdefault("schema", _METADATA_SCHEMA)
     canonical.setdefault("workspace_id", "launch")
     canonical.setdefault("role", "back")
-    canonical.setdefault(
-        "phase",
-        "IMPLEMENT"
-        if kind == CardKind.STEP.value
-        else "QA"
-        if kind == CardKind.GATE.value
-        else "DECOMPOSE",
-    )
+    if kind != CardKind.EPIC.value:
+        canonical.setdefault(
+            "phase",
+            "IMPLEMENT" if kind == CardKind.STEP.value else "QA",
+        )
     canonical.setdefault("sync_generation", 0)
     if kind == CardKind.STEP.value:
         canonical.setdefault("epic_id", "launch")

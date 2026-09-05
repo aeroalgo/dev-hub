@@ -1,0 +1,30 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-060-remove-reflect-phase
+plan_id: T-HUB-060-remove-reflect-phase
+epic_id: T-HUB-060-remove-reflect-phase
+date: 2026-09-05
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "epic: T-HUB-060-remove-reflect-phase"
+  - "steps: s01–s05"
+  - "files: harness/hooks/epic/core.py, loop/context_loop.py, loop/mb_finish/impl.py, harness/hooks/tests/test_mb_finish_creative.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1942 passed, 3 skipped, 75 warnings, 100% green)"
+  - "integration rule (§0.11): PASS"
+  - "no phantom refs: PASS (finish_reflect, find_reflection_artifact clean)"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

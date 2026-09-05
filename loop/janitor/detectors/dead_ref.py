@@ -47,7 +47,11 @@ def detect_dead_plan_ref(cwd: Path) -> list[JanitorFinding]:
         role = data.get("role") or "back"
 
         # Check plan file in v2 or v1 layout
-        plan_file_v2_md = resolve(role, plan_id, EpicLayoutKind.PLAN_MD, project_root=cwd) if plan_id else None
+        plan_file_v2_md = None
+        if plan_id:
+            from epic_paths import find_plan_md_path
+
+            plan_file_v2_md = find_plan_md_path(cwd, str(role), str(plan_id))
         plan_file_v1 = mb / role / "plan" / f"plan-{plan_id}.md" if plan_id else None
 
         # Check if plan_refs contain explicit file references or check plan file

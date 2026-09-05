@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-062-skill-topology-canonical-paths
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - MCP skill catalog UI
+  - graphify skill nodes
+  - rewrite skill bodies
+steps:
+- id: s01
+  file: s01-skill-refs-checker-red.yaml
+  title: Checker red — literal @.agents/skills parser + failing corpus
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-canonical-skill-fs-cutover.yaml
+  title: Canonical FS — move/symlink skills so parent Read opens SKILL.md
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-skill-ref-missing-fixture.yaml
+  title: Fail-closed fixture — skill_ref_missing + allowlist templates
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-kind-i-no-dual-resolver.yaml
+  title: Enforce sole SoT — Kind I canon + no dual nested resolver
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: s05 — legacy-fallback-purge — nested skills/skills leftover + inventory
+  next_phase: BACK IMPLEMENT
+  status: completed

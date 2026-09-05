@@ -1,0 +1,31 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-060-remove-reflect-phase
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-core-lifecycle-reflection-helpers.yaml
+  title: core.py — lifecycle reducer, artifacts, epic_complete_allowed, reflection
+    helpers
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-context-loop-phase-model.yaml
+  title: context_loop.py — phase model, finish block, prompts
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-schemas-epic-transition-roadmap.yaml
+  title: schemas + epic_transition + roadmap_queue — убрать REFLECT
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-cursor-rules-mainrule.yaml
+  title: Cursor rules — убрать REFLECT из mainrule-core и mainrule
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-tests-rewrite-reflect-assertions.yaml
+  title: Тесты — переписать/удалить REFLECT assertions
+  next_phase: BACK IMPLEMENT
+  status: completed

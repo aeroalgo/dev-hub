@@ -18,6 +18,14 @@ class DriftCounters(BaseModel):
     schema_invalid: int = 0
 
 
+class QaAfterBugfix(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    epic_id: str
+    phase_run_id: str | None
+    existing_artifacts: list[str]
+
+
 class EpicState(BaseModel):
     """Runtime state schema for epic persistence (loop-state/v2)."""
 
@@ -39,5 +47,7 @@ class EpicState(BaseModel):
     last_finished_step: str | None = None
     last_finished_epic: str | None = None
     armed_after_finish: str | None = None
+    qa_after_bugfix: QaAfterBugfix | None = None
+    phase_run_id: str | None = None
 
     drift_counters: DriftCounters = Field(default_factory=DriftCounters)

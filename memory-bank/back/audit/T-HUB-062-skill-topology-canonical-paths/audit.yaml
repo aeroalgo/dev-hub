@@ -1,0 +1,248 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-062-skill-topology-canonical-paths
+plan_id: T-HUB-062-skill-topology-canonical-paths
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Каждый literal @.agents/skills/<name>/SKILL.md из workflow/role chain резолвится в существующий файл на каноническом пути .agents/skills/<name>/SKILL.md без nested skills/skills/ SoT и без runtime dual-path fallback; static fail-closed checker валидирует production corpus в pytest."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 4
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "FS layout .agents/skills/<name>/SKILL.md существует для всех 192 скиллов, включая writing-plans, grill-me, python-testing-patterns, tdd."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "Все скиллы перемещены из вложенной директории harness/skills/skills/<name>/ на канонический уровень harness/skills/<name>/. Вложенный путь skills/skills полностью удален и не является SoT."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "Проведен inventory до переноса; все 192 скилла перемещены без затирания или конфликтов хешей."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/skills/ и .agents/skills/ синхронизированы через канонический symlink .agents/skills -> ../harness/skills."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/workflow/skill_refs.py реализует extract_skill_refs_from_text и check_skill_refs для парсинга литералов @.agents/skills/<name>."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "CORPUS_GLOBS в loop/workflow/skill_refs.py покрывает .cursor/rules/**/*.mdc, .claude/skills/**/*.md, harness/claude/skills/**/*.md, harness/claude/rules/**/*.md с исключением _archive и .cursor/templates."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "MissingSkillRefError с машинным кодом skill_ref_missing выбрасывается при обнаружении отсутствующих путей."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "check_skill_refs(Path('.')) возвращает 0 missing на всем production корпусе."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "workflow-plan.mdc и role-command SKILL.md используют канонические литералы @.agents/skills/<name>/SKILL.md."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "Каноническая топология зафиксирована в структуре каталогов и валидируется чекером; лишние systemPatterns.md записи не создавались."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "loop/workflow/skill_refs.py экспортирует assert_zero_missing_skill_refs для вызова из pytest без зависимости от внешних CLI."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "В loop/ и harness/hooks/ отсутствуют runtime dual-path resolvers (resolve_canonical_skill_path возвращает только канонический путь)."
+    remaining_work: ""
+  - source_ref: US-001
+    status: satisfied
+    evidence: ".agents/skills/writing-plans/SKILL.md и .agents/skills/grill-me/SKILL.md открываются напрямую по каноническому пути."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "Негативный фикстурный тест test_fixture_missing_skill_ref_fails_with_skill_ref_missing падает с кодом skill_ref_missing."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "Вложенные каталоги .agents/skills/skills и harness/skills/skills удалены; дублирующие SoT отсутствуют."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: ".cursor/templates/** исключены из обхода production корпуса."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "0 missing refs во всех production rules и skills."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "writing-plans, grill-me, python-testing-patterns открываются по каноническому пути."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "rg -n 'skills/skills' по продакшен коду возвращает 0 совпадений."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "Фикстурный broken ref тест подтверждает fail-closed поведение."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "Единственный канонический entrypoint на каждый skill name; дублирующие entrypoint отсутствуют."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "Отсутствует soft default 'если нет файла — skip skill', отсутствие файла вызывает fail-closed ошибку."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "Ссылка на missing skill path вызывает MissingSkillRefError (fail CI/pytest), а не предупреждение."
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "Отсутствует dual-path nested+canonical в prod среде; nested путь полностью удален."
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "Отсутствует dual machine path 'resolver or literal' на границе разрешения скиллов."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "MUST требования конституции соблюдены в полном объеме."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "MUST-1: TDD цикл строго соблюден (s01 red -> s02 green)."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "MUST-2: Fail-closed логика при отсутствии канонического пути без fallback."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "MUST-3: Frontend тесты не запускались субагентами (backend scope)."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "MUST-4: Lean load контекста выполнен во всех шагах эпика."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "MUST-5: Ошибки конфигурации и путей скиллов вызывают fail-closed MissingSkillRefError."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "MUST-6: Все решения опираются на факты и результаты чекера."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "MUST-7: Ровно один Handoff блок формируется при завершении фазы."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "MUST-8: Интеграционные интерфейсы чекера согласованы."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "MUST-9: Полномочия фазы AUDIT соблюдены (read-only сопоставление plan↔runtime)."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: .agents/skills/
+    status: present
+    follow_up: ""
+    evidence: "Канонический симлинк на harness/skills с файлами первого уровня <name>/SKILL.md."
+  - layout_path: harness/skills/
+    status: present
+    follow_up: ""
+    evidence: "Каноническое хранилище всех 192 скиллов первого уровня."
+  - layout_path: loop/workflow/skill_refs.py
+    status: present
+    follow_up: ""
+    evidence: "Модуль парсинга и валидации ссылок на скиллы."
+  - layout_path: loop/tests/test_skill_literal_refs.py
+    status: present
+    follow_up: ""
+    evidence: "Набор тестов статического чекера и проверок топологии."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-062-skill-topology-canonical-paths/s01-skill-refs-checker-red.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-062-skill-topology-canonical-paths/s02-canonical-skill-fs-cutover.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-062-skill-topology-canonical-paths/s03-skill-ref-missing-fixture.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-062-skill-topology-canonical-paths/s04-kind-i-no-dual-resolver.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-062-skill-topology-canonical-paths/s05-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md#replacement--sunset
+  rows:
+    - symbol: harness/skills/skills/
+      kind: A
+      command: "rg -n 'skills/skills' loop harness/hooks --glob '*.py' | rg -v 'test_|sunset|comment'"
+      result: pass
+      prod_callers: []
+      notes: "Вложенная директория полностью удалена; prod callers отсутствуют"
+    - symbol: resolve_skill dual-search
+      kind: A
+      command: "rg -n 'resolve_skill' loop/ harness/hooks/ --glob '*.py'"
+      result: pass
+      prod_callers: []
+      notes: "Dual resolver отсутствует; resolve_canonical_skill_path возвращает канонический путь"
+    - symbol: "попробуй nested если 404"
+      kind: C
+      command: "rg -n 'skills/skills' loop/workflow/skill_refs.py"
+      result: pass
+      prod_callers: []
+      notes: "Чекер проверяет только прямой путь Path.exists, fallback отсутствует"
+    - symbol: "docs saying skills live under skills/skills/"
+      kind: I
+      command: "rg -n '\\.agents/skills/skills/' .cursor/rules .claude/skills harness/claude --glob '*.mdc' --glob '*.md'"
+      result: pass
+      prod_callers: []
+      notes: "Все инструкции и правила используют канонический путь @.agents/skills/<name>/SKILL.md"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: agents-skills-fs
+      enforce_evidence: "loop/workflow/skill_refs.py:check_skill_refs"
+      result: pass
+      notes: "Все 192 скилла доступны по каноническому пути, 0 missing refs в корпусе"
+
+blocked_reason: ""

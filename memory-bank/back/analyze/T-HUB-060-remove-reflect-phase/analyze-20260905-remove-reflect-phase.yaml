@@ -1,0 +1,125 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-060-remove-reflect-phase
+slug: remove-reflect-phase
+date: 2026-09-05
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: AC+1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "post_implement_phase() при qa_pass возвращает ('DONE', qa_path, None) — без reflection_path проверки."
+  - requirement_id: AC+2
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "epic_complete_allowed() при qa_pass возвращает {'allowed': True}."
+  - requirement_id: AC+3
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "loop_phase_key('REFLECT') возвращает None (ключ не в dict)."
+  - requirement_id: AC+4
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "bin/pytest loop/tests/ — все тесты зелёные (в т.ч. переписанные под новую логику)."
+  - requirement_id: AC+5
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Cursor rules не содержат BACK REFLECT → ARCHIVE в цепочке переходов."
+  - requirement_id: AC+6
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "POST_IMPLEMENT_CHAIN == 'IMPLEMENT → AUDIT → QA → EPIC_DONE'."
+  - requirement_id: AC−1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Любой код-путь, возвращающий phase='REFLECT' при qa_pass — FAIL."
+  - requirement_id: AC−2
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "epic_complete_allowed() возвращает allowed=False ссылаясь на отсутствие reflection — FAIL."
+  - requirement_id: AC−3
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "Тест ожидает reflection_done event или phase=REFLECT — FAIL."
+  - requirement_id: AC−4
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "'REFLECT' в LOOP_PHASE_MODEL_ENV или _LOOP_PHASE_DETECT_ORDER — FAIL."
+  - requirement_id: AC−5
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Промпт loop содержит текст вида «QA pass + REFLECT» как gate к DONE — FAIL."
+  - requirement_id: FR-01
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "reduce_epic_lifecycle: qa_pass (latest) → phase=DONE (было: → phase=REFLECT, потом reflection_done → DONE)."
+  - requirement_id: FR-02
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "_declared_artifacts() в core.py не собирает reflection_done события."
+  - requirement_id: FR-03
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "post_implement_phase: убрать phase==REFLECT ветку; параметр reflection_path убрать."
+  - requirement_id: FR-04
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "LOOP_PHASE_MODEL_ENV не содержит ключ 'REFLECT'; _LOOP_PHASE_DETECT_ORDER не содержит 'REFLECT'."
+  - requirement_id: FR-05
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "_reflect_finish_block: удалить функцию; ветка phase_kind == 'reflect' → убрать."
+  - requirement_id: FR-06
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "schemas/event.py не содержит 'reflection_done' в EVENT_KINDS."
+  - requirement_id: FR-07
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "schemas/active_context.py не ссылается на REFLECT в regex."
+  - requirement_id: FR-08
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "phase_registry.yaml не содержит REFLECT в terminal_phases."
+  - requirement_id: FR-09
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/epic_transition.py: убрать 'REFLECT' из _POST_IMPLEMENT_ARMED."
+  - requirement_id: FR-10
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/roadmap_queue.py: убрать reflection_path из smart_entry; убрать поиск reflection-*.md."
+  - requirement_id: FR-11
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "cursor rules (back/front/integ mainrule-core, mainrule, workflow-reflect) — REFLECT убран из цепочки переходов."
+  - requirement_id: FR-12
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Тесты, проверявшие REFLECT-поведение — переписаны под новую цепочку (DONE после qa_pass)."
+  - requirement_id: NFR-01
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Артефакты reflection-*.md в memory-bank/*/reflection/ — не удаляются (архивные), но больше не требуются для gate."
+  - requirement_id: NFR-02
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "reflection_done events в существующих event.log (архивные эпики) — reducer должен игнорировать (не краш, не влиять на phase)."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

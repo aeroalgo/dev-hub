@@ -18,7 +18,7 @@ from harness.hooks.epic.core import (
     validate_finish_integrity,
     write_last_finish_tool,
 )
-from harness.hooks.epic_paths import role_from_decompose_path
+from harness.hooks.epic_paths import find_decompose_index_path, role_from_decompose_path
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import (
     HandoffBody,
@@ -34,6 +34,12 @@ def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any
     """Resolve armed decompose from loop epic state. Fail-closed when missing."""
     state = load_epic_state(cwd)
     decompose_rel = str(state.get("armed_decompose") or "").strip()
+    if not decompose_rel:
+        epic_id = str(state.get("armed_epic") or "").strip()
+        role = str(state.get("armed_role") or state.get("role") or "back").strip()
+        resolved = find_decompose_index_path(cwd, role, epic_id) if epic_id else None
+        if resolved is not None and resolved.is_file():
+            decompose_rel = resolved.relative_to(cwd).as_posix()
     if not decompose_rel:
         return None, state
 
@@ -54,6 +60,14 @@ def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any
     if not loaded.get("ok"):
         return None, state
     index_ref = str(loaded.get("index") or decompose_rel).strip()
+    from harness.hooks.epic_index import index_yaml_path
+
+    index_path = Path(index_ref)
+    if not index_path.is_absolute():
+        index_path = cwd / index_path
+    canonical_index = index_yaml_path(index_path)
+    if canonical_index.is_file():
+        index_ref = canonical_index.relative_to(cwd).as_posix()
     return index_ref or decompose_rel, state
 
 
@@ -68,6 +82,10 @@ def _resolve_work_shard_rel(cwd: Path, decompose_rel: str, step_id: str) -> str 
     dec_dir = idx_path.parent if idx_path.is_file() else idx_path
     if not dec_dir.is_absolute():
         dec_dir = cwd / dec_dir
+    if idx_path.name == "decompose-index.md" and idx_path.parent.name == "md":
+        dec_dir = idx_path.parent.parent / "yaml" / "steps"
+    elif idx_path.name in {"decompose-index.yaml", "decompose-index.yml"} and idx_path.parent.name == "yaml":
+        dec_dir = idx_path.parent / "steps"
     for step in loaded.get("steps") or []:
         if str(step.get("id") or "").strip().lower() != sid:
             continue
@@ -104,7 +122,7 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         return MbFinishResult(ok=False, diagnostic_codes=["bugfix_finish_required"], shape_errors=["Use mb-finish bugfix; do not finalize a completed implement step"])
 
     idx_ref, state = _resolve_armed_decompose_index(cwd)
-    decompose_rel = str(state.get("armed_decompose") or "").strip()
+    decompose_rel = str(state.get("armed_decompose") or idx_ref or "").strip()
     if not decompose_rel or not idx_ref:
         return MbFinishResult(
             ok=False,
@@ -269,4 +287,3 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         next_phase=next_phase,
         epic_done=epic_done,
     )
-

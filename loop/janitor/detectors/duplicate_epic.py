@@ -23,7 +23,8 @@ def detect_duplicate_epic_id(cwd: Path) -> list[JanitorFinding]:
 
     seen_epics: dict[str, list[Path]] = {}
 
-    for index_yaml_file in mb.glob("**/index.yaml"):
+    index_files = set(mb.glob("**/index.yaml")) | set(mb.glob("**/decompose-index.yaml"))
+    for index_yaml_file in sorted(index_files):
         try:
             data = load_index_yaml(index_yaml_file)
             epic_id = data.get("epic_id") or data.get("plan_id")

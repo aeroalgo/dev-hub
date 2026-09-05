@@ -9,7 +9,7 @@ HOOKS = Path(__file__).resolve().parents[2] / ".claude" / "hooks"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 
-from epic_index import load_index_yaml, dump_index_yaml, set_step_status_in_doc, mirror_status_to_md  # noqa: E402
+from epic_index import index_md_path, load_index_yaml, dump_index_yaml, set_step_status_in_doc, mirror_status_to_md  # noqa: E402
 from loop.parallel.wave import compute_ready_wave  # noqa: E402
 from loop.parallel.overlap import file_overlap_check  # noqa: E402
 from loop.parallel.worktree import create_worktree, destroy_worktree  # noqa: E402
@@ -28,6 +28,9 @@ def filter_non_overlapping(ready_wave: list[str], decompose_dir: Path) -> list[s
     that do not overlap with any previously selected step in this wave.
     If step_b overlaps with any selected step_a, step_b is excluded (sequential fallback).
     """
+    if decompose_dir.name == "yaml" and (decompose_dir / "steps").is_dir():
+        decompose_dir = decompose_dir / "steps"
+
     selected: list[str] = []
     shards: dict[str, Path] = {}
 
@@ -70,7 +73,7 @@ def update_step_status_flock(index_path: Path, step_id: str, status: str) -> Non
             if doc:
                 set_step_status_in_doc(doc, step_id, status)
                 index_path.write_text(dump_index_yaml(doc), encoding="utf-8")
-                md_path = index_path.parent / "index.md"
+                md_path = index_md_path(index_path)
                 if md_path.is_file():
                     mirror_status_to_md(md_path, step_id, status)
         finally:
@@ -101,7 +104,7 @@ async def run_parallel_wave_async(
     if not ready_wave:
         return ParallelResult(wave=[], spawned=[], failed=[])
 
-    decompose_dir = idx_path.parent
+    decompose_dir = idx_path.parent / "steps" if idx_path.parent.name == "yaml" else idx_path.parent
     batch = filter_non_overlapping(ready_wave, decompose_dir)
     batch = batch[:max_parallel]
 

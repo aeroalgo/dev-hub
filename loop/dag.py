@@ -50,7 +50,13 @@ def _validate_source(source: Any, diagnostics: list[dict[str, Any]]) -> None:
 
 def _epic_id_from_decompose_field(value: str) -> str:
     path = PurePosixPath(value)
-    for part in reversed(path.parts):
+    parts = path.parts
+    for index, part in enumerate(parts):
+        if part == "plan" and index + 1 < len(parts):
+            candidate = parts[index + 1]
+            if candidate not in {"md", "yaml", "steps"} and not candidate.startswith("decompose-"):
+                return candidate
+    for part in reversed(parts):
         if part.startswith("decompose-"):
             return part[len("decompose-") :]
     name = path.name
