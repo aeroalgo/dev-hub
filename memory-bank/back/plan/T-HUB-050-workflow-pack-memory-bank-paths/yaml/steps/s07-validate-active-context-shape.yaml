@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: validate_active_context_shape — fail-closed guard
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать `validate_active_context_shape(path: Path) -> ShapeResult` в
+  `loop/incidents/doctor.py` (или выделенный модуль). Fail-closed при отсутствии
+  activeContext или некорректной schema — диагностическое сообщение, не silent pass.
+  TM-002: activeContext missing → `shape invalid` diagnostic. AC− US-001 закрыт.
+
+plan_contract:
+  fr_ids: [AC- US-001, NFR-002, TM-002]
+  nouns: [validate_active_context_shape, ShapeResult, shape invalid diagnostic, fail-closed]
+  layout_paths:
+    - loop/incidents/doctor.py
+    - loop/tests/test_incidents_doctor.py
+  ac_quotes:
+    - "activeContext missing → shape invalid diagnostic (TM-002)"
+    - "fail-closed if activeContext missing"
+    - "no silent default mb root"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:155-170"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (resolve_mb_root — из s01)
+    - harness/hooks/epic/core.py (read_active_context — из s03)
+  produces:
+    - loop/incidents/doctor.py (edit/extend)
+    - loop/tests/test_incidents_doctor.py (extend)
+  plan_refs:
+    - "plan.md §Failure matrix — TM-001, TM-002"
+    - "plan.md §AC− US-001"
+    - "plan.md §NFR-002"
+  files:
+    - loop/incidents/doctor.py
+    - loop/tests/test_incidents_doctor.py
+
+as_built:
+  - "loop/incidents/doctor.py — нет validate_active_context_shape"
+  - "отсутствие activeContext.md → silent fail или generic exception"
+
+delta:
+  - "edit: loop/incidents/doctor.py — `validate_active_context_shape(path)` → `ShapeResult(valid: bool, diagnostic: str | None)`; missing file → `ShapeResult(valid=False, diagnostic='activeContext missing at {path}')`; schema mismatch → descriptive message"
+  - "edit: loop/tests/test_incidents_doctor.py — TM-002: missing path → valid=False + diagnostic contains path; valid schema → valid=True; wrong schema → valid=False + reason"
+
+deletes: []
+
+out_of_scope:
+  - "автоматический repair activeContext — не в этом эпике"
+  - "mb_load integration wiring — s04"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "validate_active_context_shape(missing_path) → ShapeResult(valid=False, diagnostic contains path)"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short -k 'missing'"
+  - id: cp2
+    criterion: "validate_active_context_shape(valid_ac_path) → ShapeResult(valid=True)"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short -k 'valid_shape'"
+  - id: cp3
+    criterion: "validate_active_context_shape(wrong_schema_path) → ShapeResult(valid=False) с диагностикой"
+    verify: "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short -k 'wrong_schema'"
+
+verify:
+  - "bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short"
+
+tdd:
+  - "Extend test_incidents_doctor.py (RED: TM-002 cases) → edit doctor.py (GREEN)"

@@ -1,23 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-061
-  epic_id: T-HUB-061-boundary-cli-doctor-hygiene
-  plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
-  deps: []
-  batch: harness-ops-hygiene
-- id: T-HUB-050
-  epic_id: T-HUB-050-workflow-pack-memory-bank-paths
-  plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
-  deps: []
-  batch: workflow-pack-framework
-- id: T-HUB-051
-  epic_id: T-HUB-051-workflow-pack-reference-video
-  plan: plan-T-HUB-051-workflow-pack-reference-video.md
-  deps:
-  - T-HUB-049
-  - T-HUB-050
-  batch: workflow-pack-framework
 - id: T-HUB-052
   epic_id: T-HUB-052-workflow-pack-adoption-docs
   plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
@@ -232,6 +215,18 @@ done:
 - id: T-HUB-049
   epic_id: T-HUB-049-workflow-pack-phase-router
   plan: plan-T-HUB-049-workflow-pack-phase-router.md
+  batch: workflow-pack-framework
+- id: T-HUB-061
+  epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+  plan: plan-T-HUB-061-boundary-cli-doctor-hygiene.md
+  batch: harness-ops-hygiene
+- id: T-HUB-050
+  epic_id: T-HUB-050-workflow-pack-memory-bank-paths
+  plan: plan-T-HUB-050-workflow-pack-memory-bank-paths.md
+  batch: workflow-pack-framework
+- id: T-HUB-051
+  epic_id: T-HUB-051-workflow-pack-reference-video
+  plan: plan-T-HUB-051-workflow-pack-reference-video.md
   batch: workflow-pack-framework
 batches:
   workflow-loop-hardening:

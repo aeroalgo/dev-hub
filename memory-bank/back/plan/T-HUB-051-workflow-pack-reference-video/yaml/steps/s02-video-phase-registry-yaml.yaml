@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "workflows/video/phase_registry.yaml — 6 phases with external_gates field"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `workflows/video/phase_registry.yaml` (schema: phase-registry/v1) с фазами:
+  BRIEF, SCRIPT, STORYBOARD, SHOOT, EDIT, PUBLISH.
+  EDIT фаза содержит поле `external_gates: [render]` (additive yaml extension field,
+  не ломающее существующий load_phase_registry).
+  SCRIPT и STORYBOARD — arm_template: pre_implement (plan-only).
+  SHOOT, EDIT — arm_template: implement (с finish_gates need_verify: true).
+  PUBLISH — arm_template: implement (need_verify: true, verify_agent: verify-publish).
+  После шага: load_phase_registry(pack_id='video-production', cwd=...) парсит yaml без ошибок.
+  Outcomes: FR-002, FR-003, SC-002, AC+2 (структурная основа), AC−4.
+
+plan_contract:
+  fr_ids: [FR-002, FR-003, SC-002, AC-4]
+  nouns:
+    - "workflows/video/phase_registry.yaml — schema: phase-registry/v1"
+    - "phases: BRIEF / SCRIPT / STORYBOARD / SHOOT / EDIT / PUBLISH"
+    - "EDIT.external_gates: [render] — additive extension field (yaml-level, не Pydantic-validated)"
+    - "roles/command_prefixes в manifest (s01) — не дублировать в phase_registry"
+    - "verify_agent mapping: SCRIPT→verify-script, EDIT→verify-edit, PUBLISH→verify-publish"
+    - "dsh_preset mapping: SCRIPT→plan, SHOOT→implement, EDIT→implement, PUBLISH→implement"
+  layout_paths:
+    - "workflows/video/phase_registry.yaml"
+  ac_quotes:
+    - "SC-002: SCRIPT IMPLEMENT gates differ from BACK IMPLEMENT (arm_template: implement vs pre_implement)"
+    - "AC−4: NO dual phase registry loader — reuse load_phase_registry(pack_id=..., cwd=...)"
+    - "AC+2: external_gates: [render] present on EDIT phase"
+    - "AC−1: no hardcoded if video — external_gates is a data field, not code branch"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:105-135"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:50-70"
+
+context:
+  consumes:
+    - "loop/schemas/phase_registry.yaml — software schema образец; reuse структуры"
+    - "loop/epic_transition.py:load_phase_registry — читает pack.phase_registry path"
+    - "loop/workflow/schemas.py:WorkflowPack.phase_registry — str path относительно cwd"
+    - "s01: workflows/video/manifest.yaml → phase_registry: 'workflows/video/phase_registry.yaml'"
+  produces:
+    - "workflows/video/phase_registry.yaml — полный 6-phase registry для video-production pack"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §video phase_registry (draft excerpt)"
+  files:
+    - "workflows/video/phase_registry.yaml"
+
+as_built:
+  - "loop/schemas/phase_registry.yaml: software phase registry, нет external_gates поля"
+  - "loop/epic_transition.py:load_phase_registry: парсит yaml, проверяет наличие 'phases' ключа; доп. поля yaml-level не ломают загрузку"
+
+delta:
+  - "workflows/video/phase_registry.yaml: создать (new file) с 6 фазами"
+  - "EDIT phase получает external_gates: [render] как yaml extension field"
+
+deletes: []
+
+out_of_scope:
+  - "Pydantic-level валидация external_gates в load_phase_registry — в s06 (stop-gate integration)"
+  - "VISUAL / POST role-specific phases — scope cut; roles=visual/post используют общие STORYBOARD/SHOOT"
+  - "T-HUB-052 rules install"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: load_phase_registry парсит video phase_registry без ValidationError
+    verify: "bin/pytest loop/tests/test_video_phase_registry.py -q --tb=short -k 'load_phase_registry_video'"
+  - id: cp2
+    criterion: EDIT phase содержит external_gates field со значением [render]
+    verify: "python -c \"import yaml; d=yaml.safe_load(open('workflows/video/phase_registry.yaml')); assert d['phases']['EDIT'].get('external_gates')==['render']\""
+  - id: cp3
+    criterion: SCRIPT фаза имеет arm_template отличный от EDIT (SC-002)
+    verify: "python -c \"import yaml; d=yaml.safe_load(open('workflows/video/phase_registry.yaml')); assert d['phases']['SCRIPT']['arm_template'] != d['phases']['EDIT']['arm_template']\""
+
+verify:
+  - "rg 'external_gates' workflows/video/phase_registry.yaml"
+  - "rg 'verify-script\\|verify-edit\\|verify-publish' workflows/video/phase_registry.yaml"
+
+tdd:
+  - "loop/tests/test_video_phase_registry.py — test_load_phase_registry_video, test_edit_external_gates, test_script_vs_edit_arm_template"

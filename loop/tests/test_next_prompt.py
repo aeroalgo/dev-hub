@@ -87,6 +87,8 @@ def test_build_prompt_audit_phase_uses_mb_finish():
     assert "AUDIT canon" in text
     assert "plan_vs_runtime" in text or "PLAN↔runtime" in text
     assert "FORBIDDEN: pytest" in text
+    assert "implement/implement-T-test/" in text
+    assert "yaml/steps/sNN-<slug>.yaml" in text
     assert "это чинится в сессии: FAIL → fix → re-verify" not in text
 
 
@@ -112,3 +114,24 @@ def test_build_prompt_analyze_phase_uses_mb_finish():
     )
     assert "mb-finish analyze" in text
     assert "## ANALYZE FINISH" not in text
+
+
+def test_bugfix_prompt_uses_bugfix_artifact_and_finish():
+    from context_loop import build_prompt
+    text = build_prompt(ROOT, load_now=[], projection={"phase": "BACK BUGFIX", "epic": "T-test", "next_step": "BUGFIX"})
+    assert "mb-finish bugfix" in text
+    assert "mb-finish implement" not in text
+    assert "verify-bugfix" in text
+    assert "bugfix/T-test/bugfix-" in text
+    assert "new QA artifact" in text
+
+
+def test_finish_commands_put_global_cwd_before_subcommand():
+    import re
+    from context_loop import build_prompt
+    for phase in ("IMPLEMENT", "BUGFIX", "AUDIT", "QA", "DECOMPOSE", "ANALYZE"):
+        text = build_prompt(ROOT, load_now=[], projection={"phase": f"BACK {phase}", "epic": "T-test", "next_step": phase})
+        commands = re.findall(r'`([^`]*epic_resolve\.py[^`]*mb-finish[^`]*)`', text)
+        assert commands, phase
+        for command in commands:
+            assert command.index("--cwd") < command.index("mb-finish"), command

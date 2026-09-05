@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s01 — pack_layout.py — resolve_mb_root + software handler IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s01-pack-layout-resolver.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/architecture-patterns/SKILL.md
+discovery:
+- 'explorer: pack registry and schemas — loop/workflow/registry.py, loop/workflow/schemas.py'
+gaps:
+  status: none
+done:
+- Создан loop/paths/pack_layout.py с `ArtifactLayout` enum, `PackLayoutError` и `resolve_mb_root(cwd,
+  pack, hub_root)`
+- Экспортированы `ArtifactLayout`, `PackLayoutError`, `resolve_mb_root` в loop/paths/__init__.py
+- Написаны unit тесты loop/tests/test_pack_layout.py по TDD (AC+, fail-closed, enum)
+files:
+- loop/paths/pack_layout.py
+- loop/paths/__init__.py
+- loop/tests/test_pack_layout.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_pack_layout.py -q --tb=short
+- bin/pytest loop/tests/test_pack_layout.py -q --tb=short -k "software"
+- bin/pytest loop/tests/test_pack_layout.py -q --tb=short -k "missing"
+- python -c 'from loop.paths import ArtifactLayout; print(ArtifactLayout.software_epic_v1)'
+integration_check:
+- 'Software pack paths identical to as-built: `resolve_mb_root(cwd)` returns `cwd
+  / "memory-bank"`'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- cp1 PASS — resolve_mb_root(cwd) для software pack → Path('memory-bank') относительно
+  cwd
+- cp2 PASS — missing manifest → PackLayoutError (fail-closed)
+- cp3 PASS — ArtifactLayout enum импортируется из loop.paths
+- suite PASS — 5 passed in 0.21s
+checkpoints:
+- id: cp1
+  criterion: resolve_mb_root(cwd) для software pack → Path('memory-bank') относительно
+    cwd
+  status: done
+  done_at: '2026-09-04T16:46:05Z'
+- id: cp2
+  criterion: missing manifest → PackLayoutError (fail-closed, не silent default)
+  status: done
+  done_at: '2026-09-04T16:46:06Z'
+- id: cp3
+  criterion: ArtifactLayout enum импортируется из loop.paths
+  status: done
+  done_at: '2026-09-04T16:46:07Z'
+resume_from: cp1

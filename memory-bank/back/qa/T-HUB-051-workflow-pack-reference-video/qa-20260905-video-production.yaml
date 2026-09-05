@@ -1,0 +1,31 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-051-workflow-pack-reference-video
+plan_id: T-HUB-051-workflow-pack-reference-video
+epic_id: T-HUB-051-workflow-pack-reference-video
+date: 2026-09-05
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-051-workflow-pack-reference-video"
+  - "epic: T-HUB-051-workflow-pack-reference-video"
+  - "steps: s01–s09"
+  - "files: workflows/video/…, workflows/_template/…, loop/workflow/tool_gates/…, harness/agents/verify-*.md, loop/tests/test_workflow_pack_video_e2e.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1847 passed, 2 skipped, 75 warnings)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

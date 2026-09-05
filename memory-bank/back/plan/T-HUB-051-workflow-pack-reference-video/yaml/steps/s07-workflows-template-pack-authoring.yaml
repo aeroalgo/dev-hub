@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "workflows/_template/ — manifest stub + phase_registry stub + README"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `workflows/_template/` как pack authoring template:
+  - `manifest.yaml` — заготовка с placeholder полями WorkflowPack
+  - `phase_registry.yaml` — stub с одной фазой EXAMPLE и комментариями-инструкциями
+  - `README.md` — инструкция автора: как скопировать template, заполнить, зарегистрировать
+  Template должен проходить валидацию через WorkflowPackRegistry после заполнения.
+  Outcomes: FR-010, SC-005, US-004, TM-005.
+
+plan_contract:
+  fr_ids: [FR-010, SC-005, US-004, TM-005]
+  nouns:
+    - "workflows/_template/manifest.yaml — WorkflowPack-совместимый stub с TODO placeholders"
+    - "workflows/_template/phase_registry.yaml — stub с EXAMPLE phase + external_gates пример"
+    - "workflows/_template/README.md — step-by-step: copy → fill → register → validate"
+    - "Template validate: скопировать + заполнить → python -c 'WorkflowPack.model_validate(...)' OK"
+  layout_paths:
+    - "workflows/_template/manifest.yaml"
+    - "workflows/_template/phase_registry.yaml"
+    - "workflows/_template/README.md"
+  ac_quotes:
+    - "US-004: как pack author, я хочу template workflows/_template/ для нового pack"
+    - "SC-005: Template pack validates — pytest template"
+    - "TM-005: copy template → validate registry"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:270-290"
+
+context:
+  consumes:
+    - "s01: workflows/video/manifest.yaml — reference для fields"
+    - "s02: workflows/video/phase_registry.yaml — reference для phase structure"
+    - "loop/workflow/schemas.py:WorkflowPack — поля для placeholder документации"
+  produces:
+    - "workflows/_template/ — 3 файла"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-010"
+  files:
+    - "workflows/_template/manifest.yaml"
+    - "workflows/_template/phase_registry.yaml"
+    - "workflows/_template/README.md"
+
+as_built:
+  - "workflows/ — существует (содержит video/ после s01)"
+  - "workflows/_template/ — не существует"
+
+delta:
+  - "workflows/_template/manifest.yaml: создать stub"
+  - "workflows/_template/phase_registry.yaml: создать stub"
+  - "workflows/_template/README.md: создать инструкцию"
+
+deletes: []
+
+out_of_scope:
+  - "CLI scaffold wizard (copy-and-fill automation) — appetite cut"
+  - "hub-link install template — T-HUB-052 follow_up"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: все три template файла существуют
+    verify: "find workflows/_template -type f | wc -l | grep -E '^3$'"
+  - id: cp2
+    criterion: template manifest заполненный проходит WorkflowPack validate
+    verify: "bin/pytest loop/tests/test_template_pack_validate.py -q --tb=short -k 'validate_template'"
+
+verify:
+  - "rg 'TODO\\|PLACEHOLDER\\|your-pack' workflows/_template/manifest.yaml"
+  - "cat workflows/_template/README.md | grep -c 'validate\\|register'"
+
+tdd:
+  - "loop/tests/test_template_pack_validate.py — test_validate_template_filled"

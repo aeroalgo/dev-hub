@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s05 — mb_finish — pack-aware Handoff write IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s05-mb-finish-pack-thread.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery:
+- loop/mb_finish/impl.py and finish_implement.py hardcoded act_path as cwd / 'memory-bank'
+  / 'activeContext.md'
+- Replaced with resolve_mb_root(cwd) / 'activeContext.md' to route activeContext writes
+  per workflow pack layout
+gaps:
+  status: none
+done:
+- 'Параметризован `loop/mb_finish/impl.py`: `act_path = resolve_mb_root(cwd) / ''activeContext.md''`
+  для всех фаз (finish_handoff, finish_qa, finish_bugfix, finish_decompose, finish_plan,
+  finish_audit, finish_creative, finish_reflect)'
+- 'Параметризован `loop/mb_finish/finish_implement.py`: `act_path = resolve_mb_root(cwd)
+  / ''activeContext.md''`'
+- Добавлены тесты `loop/tests/test_mb_finish_pack_write.py` для software pack, video
+  pack и fail-closed wrong cwd
+files:
+- loop/mb_finish/impl.py
+- loop/mb_finish/finish_implement.py
+- loop/tests/test_mb_finish_pack_write.py
+deletes:
+- hardcoded `Path('memory-bank/activeContext.md')` в impl.py — удален (cutover)
+tests:
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_finish and software''`'
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_finish and video''`'
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_finish and wrong_cwd''`'
+- '`bin/pytest loop/tests/test_mb_finish_pack_write.py -q --tb=short`'
+integration_check:
+- FINISH operations across all phases write activeContext.md into the pack's configured
+  memory-bank directory
+grep_control:
+- back: grep -n 'cwd / "memory-bank" / "activeContext.md"' loop/mb_finish/*.py returns
+    0 matches
+  front: n/a
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: mb_finish для software pack → пишет в memory-bank/activeContext.md
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: mb_finish для video pack → пишет в memory-bank/video/activeContext.md
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: wrong cwd → fail-closed (PackLayoutError или аналог)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp1

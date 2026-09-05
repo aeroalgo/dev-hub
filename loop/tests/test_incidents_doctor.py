@@ -11,7 +11,7 @@ if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 
 from epic_paths import epic_dir
-from loop.incidents.doctor import run_doctor
+from loop.incidents.doctor import ShapeResult, run_doctor, validate_active_context_shape
 
 
 VALID_AC = """---
@@ -142,13 +142,15 @@ def test_doctor_boundary_check_warn(tmp_path: Path, monkeypatch) -> None:
     )
 
     import loop.incidents.doctor as doctor_mod
-    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, yaml_file: [dummy_violation])
+    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, boundaries_yaml_path: [dummy_violation])
 
     report = doctor_mod.run_doctor(tmp_path)
     assert report.exit_code == 0
     chk = next(c for c in report.checklist if c.name == "boundary_violations")
     assert chk.status == "warn"
     assert "WARNING: 1 boundary violations" in chk.detail
+    assert "TypeError" not in chk.detail
+    assert "yaml_file" not in chk.detail
     assert any("boundary violations" in w for w in report.warnings)
 
 
@@ -162,12 +164,58 @@ def test_doctor_boundary_check_pass(tmp_path: Path, monkeypatch) -> None:
     (arch_dir / "boundaries.yaml").write_text("contracts: []\n", encoding="utf-8")
 
     import loop.incidents.doctor as doctor_mod
-    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, yaml_file: [])
+    monkeypatch.setattr(doctor_mod, "check_boundaries", lambda root_dir, boundaries_yaml_path: [])
 
     report = doctor_mod.run_doctor(tmp_path)
     assert report.exit_code == 0
     chk = next(c for c in report.checklist if c.name == "boundary_violations")
     assert chk.status == "pass"
     assert "0 boundary violations" in chk.detail
+    assert "TypeError" not in chk.detail
+    assert "yaml_file" not in chk.detail
     assert not any("boundary violations" in w for w in report.warnings)
+
+
+def test_validate_active_context_shape_missing(tmp_path: Path) -> None:
+    missing_path = tmp_path / "memory-bank" / "activeContext.md"
+    res = validate_active_context_shape(missing_path)
+    assert isinstance(res, ShapeResult)
+    assert res.valid is False
+    assert res.diagnostic is not None
+    assert str(missing_path) in res.diagnostic
+    assert "missing" in res.diagnostic
+
+
+def test_validate_active_context_shape_valid_shape(tmp_path: Path) -> None:
+    mb = tmp_path / "memory-bank"
+    mb.mkdir(parents=True)
+    ac_file = mb / "activeContext.md"
+    ac_file.write_text(VALID_AC, encoding="utf-8")
+    res = validate_active_context_shape(ac_file)
+    assert isinstance(res, ShapeResult)
+    assert res.valid is True
+    assert res.diagnostic is None
+
+
+def test_validate_active_context_shape_wrong_schema(tmp_path: Path) -> None:
+    mb = tmp_path / "memory-bank"
+    mb.mkdir(parents=True)
+    ac_file = mb / "activeContext.md"
+    wrong_ac = """---
+schema: wrong-schema/v1
+role: BACK
+mode: IMPLEMENT
+---
+## load_now
+file.py
+## Handoff BACK IMPLEMENT
+done
+"""
+    ac_file.write_text(wrong_ac, encoding="utf-8")
+    res = validate_active_context_shape(ac_file)
+    assert isinstance(res, ShapeResult)
+    assert res.valid is False
+    assert res.diagnostic is not None
+    assert "shape invalid" in res.diagnostic
+
 

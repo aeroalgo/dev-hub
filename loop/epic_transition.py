@@ -187,8 +187,8 @@ def arm_phase(
     **kwargs: Any,
 ) -> dict:
     """Arm an epic phase context by routing to appropriate arm function."""
-    from epic.core import arm_active_context_from_decompose, arm_epic, arm_pre_implement_context, load_epic_state
-    from _lib import resolve_runtime_config
+    from epic.core import active_context_path, arm_active_context_from_decompose, arm_epic, arm_pre_implement_context, load_epic_state
+    from _lib import ActiveContextLocked, resolve_runtime_config
     from loop.workflow.resolve import full_resolve
 
     st_before = load_epic_state(cwd)
@@ -238,23 +238,11 @@ def arm_phase(
                     "failed": p_res.failed,
                     "armed_step": "IMPLEMENT",
                     "role": role,
-                    "handoff": "memory-bank/activeContext.md",
+                    "handoff": str(active_context_path(cwd_p).relative_to(cwd_p)),
                 }
 
-    if phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
-        target_rel = kwargs.get("target_rel")
-        res = arm_pre_implement_context(
-            cwd,
-            epic_id=epic_id,
-            role=role,
-            phase=phase_u,
-            target_rel=target_rel,
-            decompose_rel=decompose_rel,
-        )
-    elif phase_u == "DECOMPOSE" or phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
-        if decompose_rel:
-            res = arm_active_context_from_decompose(cwd, decompose_rel)
-        elif phase_u == "DECOMPOSE":
+    try:
+        if phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
             target_rel = kwargs.get("target_rel")
             res = arm_pre_implement_context(
                 cwd,
@@ -264,20 +252,41 @@ def arm_phase(
                 target_rel=target_rel,
                 decompose_rel=decompose_rel,
             )
+        elif phase_u == "DECOMPOSE" or phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
+            if decompose_rel:
+                res = arm_active_context_from_decompose(cwd, decompose_rel)
+            elif phase_u == "DECOMPOSE":
+                target_rel = kwargs.get("target_rel")
+                res = arm_pre_implement_context(
+                    cwd,
+                    epic_id=epic_id,
+                    role=role,
+                    phase=phase_u,
+                    target_rel=target_rel,
+                    decompose_rel=decompose_rel,
+                )
+            else:
+                kwargs.pop("env", None)
+                kwargs.pop("epic_runtime", None)
+                res = arm_epic(cwd, epic_id, role=role, **kwargs)
         else:
             kwargs.pop("env", None)
             kwargs.pop("epic_runtime", None)
             res = arm_epic(cwd, epic_id, role=role, **kwargs)
-    else:
-        kwargs.pop("env", None)
-        kwargs.pop("epic_runtime", None)
-        res = arm_epic(cwd, epic_id, role=role, **kwargs)
+    except ActiveContextLocked as exc:
+        return {
+            "ok": False,
+            "error": str(exc),
+            "diagnostic_code": "runner_owns_active_context",
+            "epic_id": epic_id,
+            "phase": phase_u,
+        }
 
     if isinstance(res, dict):
         if "armed_step" not in res:
             res["armed_step"] = res.get("step_id")
         if "handoff" not in res:
-            res["handoff"] = res.get("active_context") or "memory-bank/activeContext.md"
+            res["handoff"] = res.get("active_context") or str(active_context_path(Path(cwd).resolve()).relative_to(Path(cwd).resolve()))
         if "role" not in res:
             res["role"] = role
 

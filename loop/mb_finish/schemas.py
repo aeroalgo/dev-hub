@@ -43,6 +43,8 @@ class MbFinishRequest(BaseModel):
 
 class MbFinishResult(BaseModel):
     ok: bool
+    mb_root: str | None = None
+    workflow_pack: str | None = None
     diagnostic_codes: list[str] = Field(default_factory=list)
     shape_errors: list[str] = Field(default_factory=list)
     active_context: str | None = None

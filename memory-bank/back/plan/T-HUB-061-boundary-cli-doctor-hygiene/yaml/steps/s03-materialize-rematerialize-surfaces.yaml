@@ -14,7 +14,7 @@ goal: |
   Outcome: US-001 / FR-003 / SC-001 / TM-001 (полный).
 
 plan_contract:
-  fr_ids: [FR-003, US-001, SC-001, TM-001]
+  fr_ids: [FR-003, FR-009, US-001, US-004, SC-001, TM-001]
   nouns:
     - ".claude/agents/*.md — materialized Claude agent files"
     - ".codex/agents/*.toml — materialized Codex agent files"

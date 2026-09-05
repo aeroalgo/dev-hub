@@ -52,7 +52,7 @@ Parent **обязан** передать секции. Нет секции → `
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","recorded_at":"<iso8601>"}'
 ```
 
 Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).

@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: forbidden_policy.py — artifact_layout dispatch для forbidden load
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/paths/forbidden_policy.py` с `policy_for_layout(artifact_layout: ArtifactLayout)`
+  и `production_epic_v1` handler, который расширяет forbidden-load матрицу.
+  US-004: software-epic-v1 запрещает полный plan в IMPLEMENT; production-epic-v1 —
+  своя policy-таблица. Удалить one-size software denylist из mb_load.
+
+plan_contract:
+  fr_ids: [FR-003, US-004]
+  nouns: [artifact_layout, forbidden policy, policy_for_layout, production-epic-v1, software-epic-v1]
+  layout_paths:
+    - loop/paths/forbidden_policy.py
+    - loop/tests/test_forbidden_policy.py
+  ac_quotes:
+    - "software-epic-v1 vs production-epic-v1 matrix"
+    - "pack.artifact_layout → policy module (not one-size software denylist)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:32-43"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (ArtifactLayout — из s01)
+  produces:
+    - loop/paths/forbidden_policy.py
+    - loop/tests/test_forbidden_policy.py
+  plan_refs:
+    - "plan.md §Technology axiom — Forbidden policy row"
+    - "plan.md §User Stories US-004"
+  files:
+    - loop/paths/forbidden_policy.py
+    - loop/tests/test_forbidden_policy.py
+
+as_built:
+  - "mb_load — hardcoded software-only denylist (no layout dispatch)"
+  - "нет `forbidden_policy.py` / policy protocol"
+
+delta:
+  - "add: loop/paths/forbidden_policy.py — `ForbiddenPolicy` protocol; `policy_for_layout(layout)` → dispatch; `SoftwareEpicV1Policy` (current denylist); `ProductionEpicV1Policy` (new)"
+  - "add: loop/tests/test_forbidden_policy.py — matrix: software / production каждый layout даёт корректную policy"
+
+deletes:
+  - "hardcoded software denylist из mb_load (перенести в SoftwareEpicV1Policy) — удалить в s09"
+
+out_of_scope:
+  - "wiring policy в mb_load — s04"
+  - "mb_finish — s05"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "policy_for_layout(ArtifactLayout.software_epic_v1) → SoftwareEpicV1Policy с текущим denylist"
+    verify: "bin/pytest loop/tests/test_forbidden_policy.py -q --tb=short -k 'software'"
+  - id: cp2
+    criterion: "policy_for_layout(ArtifactLayout.production_epic_v1) → ProductionEpicV1Policy"
+    verify: "bin/pytest loop/tests/test_forbidden_policy.py -q --tb=short -k 'production'"
+  - id: cp3
+    criterion: "unknown layout → ForbiddenPolicyError (fail-closed)"
+    verify: "bin/pytest loop/tests/test_forbidden_policy.py -q --tb=short -k 'unknown'"
+
+verify:
+  - "bin/pytest loop/tests/test_forbidden_policy.py -q --tb=short"
+
+tdd:
+  - "Написать test_forbidden_policy.py (RED) → реализовать forbidden_policy.py (GREEN)"

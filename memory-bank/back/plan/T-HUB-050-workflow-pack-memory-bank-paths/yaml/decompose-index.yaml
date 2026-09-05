@@ -1,0 +1,50 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+role: back
+date: 2026-09-04
+steps:
+- id: s01
+  file: s01-pack-layout-resolver.yaml
+  title: pack_layout.py — resolve_mb_root + software handler
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-production-epic-policy.yaml
+  title: forbidden_policy.py — artifact_layout dispatch
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-epic-core-activecontext-refactor.yaml
+  title: epic/core + context_loop — activeContext path via pack resolver
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-mb-load-pack-thread.yaml
+  title: mb_load — pack-aware activeContext load
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-mb-finish-pack-thread.yaml
+  title: mb_finish — pack-aware Handoff write
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-epic-layout-pack-param.yaml
+  title: epic_paths.py — resolve_epic_path(kind, epic_id, pack)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-validate-active-context-shape.yaml
+  title: validate_active_context_shape — fail-closed guard
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-pytest-matrix-smoke.yaml
+  title: pytest matrix — software regression + video integration smoke
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-legacy-path-purge.yaml
+  title: legacy-path-purge — delete hardcoded memory-bank/ + Kind I purge
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "doctor workflow-pack subcommand — ≥4 preflight checks, fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Add loop/doctor/checks/workflow_pack.py implementing ≥4 checks:
+  (1) pack resolve ok, (2) phase_registry file exists, (3) rules_root dir exists,
+  (4) mb_root is writable. Wire as `doctor workflow-pack [--cwd PATH]` in
+  loop/context_loop.py (or new doctor CLI). Exit 1 + JSON diagnostic codes on any
+  failure; exit 0 on all pass. Reuses existing resolve.full_resolve() + PackResolveResult.
+  Closes FR-003, US-001, SC-001, SC-002, AC+ #1.
+
+plan_contract:
+  fr_ids: [FR-003, US-001, SC-001, SC-002, TM-001, TM-002]
+  nouns: [doctor workflow-pack, workflow_pack.py, pack_rules_missing, pack_phase_registry_missing, mb_root_not_writable, exit 1]
+  layout_paths:
+    - loop/doctor/__init__.py
+    - loop/doctor/checks/__init__.py
+    - loop/doctor/checks/workflow_pack.py
+  ac_quotes:
+    - "US-001: missing pack → non-zero + diagnostic"
+    - "FR-003: checks: resolve ok, phase_registry exists, rules_root exists, mb_root writable"
+    - "SC-001: doctor workflow-pack green on dev-hub default"
+    - "SC-002: doctor fails on invalid pack"
+    - "AC+ #1: doctor workflow-pack operational with ≥4 checks"
+    - "AC− #2: Doctor warnings-only on invalid pack (must fail-closed)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:90-160"
+
+context:
+  consumes:
+    - loop/workflow/resolve.py
+    - loop/workflow/schemas.py
+    - loop/incidents/doctor.py
+    - loop/context_loop.py
+  produces:
+    - loop/doctor/__init__.py
+    - loop/doctor/checks/__init__.py
+    - loop/doctor/checks/workflow_pack.py
+  plan_refs:
+    - "plan §Failure matrix: TM-001..TM-004"
+  files:
+    - loop/doctor/__init__.py
+    - loop/doctor/checks/__init__.py
+    - loop/doctor/checks/workflow_pack.py
+    - loop/context_loop.py
+
+as_built:
+  - "loop/workflow/resolve.py: full_resolve(cwd) → PackResolveResult(ok, pack, diagnostic_codes)"
+  - "loop/workflow/schemas.py: PackResolveResult with ok/pack/diagnostic_codes"
+  - "loop/incidents/doctor.py: existing doctor infra (runtime checks)"
+  - "loop/context_loop.py: argparse subcommands pattern"
+
+delta:
+  - "add: loop/doctor/__init__.py (empty package init)"
+  - "add: loop/doctor/checks/__init__.py"
+  - "add: loop/doctor/checks/workflow_pack.py — check_workflow_pack(cwd) → list[DiagnosticCode]; run_doctor_workflow_pack CLI entrypoint"
+  - "edit: loop/context_loop.py — add `doctor workflow-pack` subcommand wiring `--cwd` flag, exits 0/1 per result"
+
+deletes: []
+
+out_of_scope:
+  - "MCP doctor expose — cut_list item, follow_up: roadmap-workflow-pack-framework-epics.queue.yaml"
+  - "Other doctor checks beyond workflow-pack — s02 scope only"
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "check_workflow_pack() on dev-hub cwd returns empty list (all pass)"
+    verify: "python -c \"from loop.doctor.checks.workflow_pack import check_workflow_pack; codes=check_workflow_pack(); assert codes==[], codes\""
+  - id: cp2
+    criterion: "check_workflow_pack() on fixture with invalid pack_id returns ≥1 diagnostic code"
+    verify: "bin/pytest loop/tests/test_doctor_workflow_pack.py::test_invalid_pack_fails -q --tb=line"
+  - id: cp3
+    criterion: "CLI exit codes: exit 0 on ok, exit 1 on invalid"
+    verify: "bin/pytest loop/tests/test_doctor_workflow_pack.py -q --tb=line"
+
+verify: []
+tdd:
+  - "loop/tests/test_doctor_workflow_pack.py: test_doctor_ok (TM-001), test_invalid_pack_exit1 (TM-002), test_missing_rules_root (TM-002), test_missing_phase_registry, test_mb_root_not_writable"

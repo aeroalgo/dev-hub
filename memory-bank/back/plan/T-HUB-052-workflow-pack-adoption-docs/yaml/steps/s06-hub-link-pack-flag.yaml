@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "hub-link --pack <id> — alongside mode copies pack rules tree"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Extend bin/hub-link script with --pack <id> flag. When alongside mode + --pack video-production:
+  copies .cursor/rules/video from hub into product repo alongside standard alongside install.
+  Dry-run output shows what would be copied. If pack rules_root doesn't exist in hub, error+exit.
+  Closes FR-006, US-004, AC+ #4 (implement P1), TM-004.
+
+plan_contract:
+  fr_ids: [FR-006, US-004, TM-004]
+  nouns: ["--pack", hub-link, alongside mode, rules_root, .cursor/rules/video]
+  layout_paths:
+    - bin/hub-link
+  ac_quotes:
+    - "FR-006: hub-link --pack <id> (046 integration or standalone patch markers)"
+    - "US-004: hub-link --pack video-production alongside mode copies .cursor/rules/video"
+    - "AC+ #4: hub-link --pack documented (implement or defer with explicit queue item — prefer implement P1)"
+    - "TM-004: hub-link pack dry-run → ok"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:70-90"
+
+context:
+  consumes:
+    - bin/hub-link
+    - loop/workflow_pack_registry.yaml
+  produces:
+    - bin/hub-link
+  plan_refs:
+    - "plan §FR-006; cut_list item 'hub-link --pack auto install' → prefer implement P1"
+  files:
+    - bin/hub-link
+
+as_built:
+  - "bin/hub-link: bash script with --mode alongside|full; copies .cursor/rules symlink and .claude/ symlink"
+  - "loop/workflow_pack_registry.yaml: packs[id].rules_root field"
+
+delta:
+  - "edit: bin/hub-link — add --pack <id> flag parsing; add install_pack_rules() function; after alongside install: if PACK_ID set, read rules_root from workflow_pack_registry.yaml (python -c), copy/symlink $DEV_HUB/$rules_root to $PRODUCT_ROOT/.cursor/rules/$(basename $rules_root); error if rules_root missing"
+
+deletes: []
+
+out_of_scope:
+  - "hub-link auto-install without explicit --pack flag (requires manual user parameter)"
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "hub-link --help shows --pack flag"
+    verify: "bin/hub-link --help 2>&1 | grep -- '--pack'"
+  - id: cp2
+    criterion: "hub-link --mode alongside --pack video-production --dry-run succeeds without error on hub repo"
+    verify: "bash bin/hub-link --mode alongside --pack video-production --dry-run --product /tmp/test-product-$$ 2>&1 | grep -i 'pack\\|rules' && echo OK"
+
+verify: []
+tdd: []

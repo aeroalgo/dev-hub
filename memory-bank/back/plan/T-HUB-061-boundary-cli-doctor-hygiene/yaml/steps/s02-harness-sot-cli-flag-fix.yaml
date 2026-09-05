@@ -14,7 +14,7 @@ goal: |
   Outcome: US-001 / FR-001 / FR-002 / SC-001 / TM-001.
 
 plan_contract:
-  fr_ids: [FR-001, FR-002, US-001, SC-001, TM-001]
+  fr_ids: [FR-001, FR-002, FR-008, US-001, SC-001, SC-002, TM-001]
   nouns:
     - "harness/agents/gate-repair.md CONTRACT string validate-boundary"
     - "harness/agents/verify-*.md CONTRACT strings"

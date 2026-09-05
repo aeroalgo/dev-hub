@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s04 — mb_load — pack-aware activeContext load IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s04-mb-load-pack-thread.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery:
+- loop/mb_load/session.py, resolver.py, plan_section.py and harness/hooks/epic/core.py
+  updated to use resolve_mb_root and policy_for_layout.
+gaps:
+  status: none
+done:
+- 'Обновлен loop/mb_load/resolver.py: поиск implement/QA/BUGFIX шардов через resolve_mb_root(cwd)
+  и фильтрация bundle paths через policy_for_layout.'
+- 'Обновлен loop/mb_load/plan_section.py: поиск планов относительно resolve_mb_root(cwd).'
+- 'Обновлен harness/hooks/epic/core.py: extract_load_now поддерживает видео/аудио/произвольные
+  layout пути.'
+- Добавлены тесты в loop/tests/test_mb_load_session.py для software regression, video
+  pack activeContext load и forbidden policy layout dispatch.
+files:
+- loop/mb_load/resolver.py
+- loop/mb_load/plan_section.py
+- harness/hooks/epic/core.py
+- loop/tests/test_mb_load_session.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_load and software''`'
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_load and video''`'
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_load and policy''`'
+- '`bin/pytest loop/tests/ -q --tb=short -k ''mb_load''`'
+integration_check:
+- 'Full suite: `bin/pytest loop/tests/` passes (1631 passed, 3 skipped).'
+grep_control:
+- back: No hardcoded software-only denylist in mb_load resolver; layout-aware policy_for_layout
+    is used.
+  front: n/a
+verification_results:
+- cp1 PASS — mb_load для software pack загружает memory-bank/activeContext.md (1 passed).
+- cp2 PASS — mb_load для video pack загружает memory-bank/video/activeContext.md (1
+  passed).
+- cp3 PASS — forbidden policy check через policy_for_layout (1 passed).
+- suite PASS — 25 passed in 4.49s.
+checkpoints:
+- id: cp1
+  criterion: mb_load для software pack → загружает memory-bank/activeContext.md (regression)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: mb_load для video pack → загружает memory-bank/video/activeContext.md
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: forbidden policy check через policy_for_layout (не hardcoded list)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'

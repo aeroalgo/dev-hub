@@ -1,0 +1,32 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-061-boundary-cli-doctor-hygiene
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+date: '2026-09-04'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-061-boundary-cli-doctor-hygiene"
+  - "epic: T-HUB-061-boundary-cli-doctor-hygiene"
+  - "steps: s01–s04"
+  - "files: harness/agents/*.md, harness/hooks/_lib.py, loop/incidents/doctor.py, loop/tests/test_incidents_doctor.py, harness/hooks/tests/test_gate_repair.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1786 passed, 3 skipped)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+  - "sot_enforce_scan: zero --raw-json occurrences, zero yaml_file= callers, prose fallback purged"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

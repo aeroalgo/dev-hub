@@ -108,6 +108,21 @@ def atomic_write_text(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
+def _write_active_context_or_lock(path: Path, body: str, *, epic_id: str | None = None) -> dict[str, Any] | None:
+    from _lib import ActiveContextLocked
+
+    try:
+        atomic_write_text(path, body)
+    except ActiveContextLocked as exc:
+        return {
+            "ok": False,
+            "error": str(exc),
+            "diagnostic_code": "runner_owns_active_context",
+            "epic_id": epic_id,
+        }
+    return None
+
+
 _CHECKPOINT_SCHEMA = "loop-checkpoint/v1"
 _CHECKPOINT_STAGES = frozenset(
     {
@@ -191,11 +206,14 @@ def _checkpoint_scalar(value: Any, *, default: str = "") -> str:
 
 def _checkpoint_identity(value: Any) -> dict[str, str]:
     source = value if isinstance(value, dict) else {}
-    return {
-        key: _checkpoint_scalar(source.get(key))
-        for key in ("pipeline", "epic", "role", "step", "action")
-        if _checkpoint_scalar(source.get(key))
-    }
+    res: dict[str, str] = {}
+    for key in ("pipeline", "epic", "role", "step", "action"):
+        val = _checkpoint_scalar(source.get(key))
+        if val:
+            if key in ("role", "step"):
+                val = val.upper()
+            res[key] = val
+    return res
 
 
 def _checkpoint_metadata(value: Any) -> dict[str, Any]:
@@ -384,7 +402,7 @@ def resolve_checkpoint_resume(
         if not validated_resume:
             return {"ok": False, "decision": "need_human", "code": "checkpoint_blocked", "checkpoint": checkpoint}
     expected = _checkpoint_identity(identity)
-    actual = checkpoint.get("identity") or {}
+    actual = _checkpoint_identity(checkpoint.get("identity") or {})
     if expected and any(actual.get(key) != value for key, value in expected.items()):
         conflicting_keys = {key for key, value in expected.items() if actual.get(key) != value}
         # resume_policy=next_step + stage=committed means we intentionally advanced
@@ -828,10 +846,15 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
 
         expected = None
         phase_upper = phase.upper()
+        try:
+            from loop.paths.pack_layout import resolve_mb_root
+            mb_root_name = resolve_mb_root(cwd=cwd_p).name
+        except Exception:
+            mb_root_name = "memory-bank"
         if "QA" in phase_upper:
-            expected = f"memory-bank/{role_dir}/qa/{epic_id}/qa-*.yaml"
+            expected = f"{mb_root_name}/{role_dir}/qa/{epic_id}/qa-*.yaml"
         elif "AUDIT" in phase_upper:
-            expected = f"memory-bank/{role_dir}/audit/{epic_id}/audit-*.yaml"
+            expected = f"{mb_root_name}/{role_dir}/audit/{epic_id}/audit-*.yaml"
         elif "IMPLEMENT" in phase_upper and next_step:
             expected = f"decompose step {next_step} artifact"
         event_digest, last_seq, event_diagnostics = _event_evidence(
@@ -1055,6 +1078,15 @@ def _append_event(
             if previous_hash is not None
             else None
         )
+        if kind in {"qa_fail", "qa_pass", "bugfix_done"}:
+            snapshot = path.parent / "artifacts" / f"{artifact_hash}{artifact.suffix}"
+            snapshot.parent.mkdir(parents=True, exist_ok=True)
+            if not snapshot.exists():
+                payload = artifact.read_bytes()
+                if hashlib.sha256(payload).hexdigest() != artifact_hash:
+                    return False  # Concurrent write: reconcile the stable revision next time.
+                snapshot.write_bytes(payload)
+            metadata = dict(metadata or {}, artifact_snapshot=snapshot.relative_to(cwd_p).as_posix())
         event = build_event(
             epic_id=epic_id,
             kind=kind,
@@ -1333,7 +1365,7 @@ def extract_load_now(text: str) -> list[str]:
         ):
             add(pm.group(1))
         for pm in re.finditer(
-            r"\(((?:memory-bank/)?(?:back|front|integration)/[^)\s]+)\)",
+            r"\(((?:memory-bank/)?(?:back|front|integration|video|audio)/[^)\s]+)\)",
             line,
         ):
             add(pm.group(1))
@@ -1608,7 +1640,7 @@ def _decompose_index_path(cwd: str | Path, decompose: str | Path | None) -> Path
     """Resolve human index.md (still used for hub links / mirror).
 
     Accepts index.md, index.yaml, a decompose-* directory, an epic id under
-    memory-bank/*/plan/, or a step shard yaml sitting next to index.md.
+    {mb_root}/*/plan/, or a step shard yaml sitting next to index.md.
     A shard must not be treated as the index itself (that desyncs yaml vs md).
     """
     if decompose is None or not isinstance(decompose, (str, Path)):
@@ -1747,7 +1779,7 @@ def decompose_index_yaml_exists(cwd: str | Path, decompose: str | Path | None) -
 
 
 def complete_archived_armed_epic(cwd: str | Path) -> dict[str, Any] | None:
-    """Disarm runtime when armed decompose only exists under memory-bank/archive/."""
+    """Disarm runtime when armed decompose only exists under {mb_root}/archive/."""
     cwd_p = Path(cwd)
     state = load_epic_state(cwd_p)
     decompose = (state.get("armed_decompose") or "").strip()
@@ -3618,14 +3650,20 @@ def reduce_epic_lifecycle(
         phase = "AUDIT"
         reason_code = "audit_required"
 
+    try:
+        from loop.paths.pack_layout import resolve_mb_root
+        mb_root_name = resolve_mb_root(cwd=cwd_p).name
+    except Exception:
+        mb_root_name = "memory-bank"
+
     if phase == "DONE":
         expected_artifact = None
     elif phase == "AUDIT":
         expected_artifact = (
-            f"memory-bank/{role_dir}/audit/{epic_id}/audit-*.yaml"
+            f"{mb_root_name}/{role_dir}/audit/{epic_id}/audit-*.yaml"
         )
     else:
-        expected_artifact = f"memory-bank/{role_dir}/qa/{epic_id}/qa-*.yaml"
+        expected_artifact = f"{mb_root_name}/{role_dir}/qa/{epic_id}/qa-*.yaml"
 
     last_seq = latest_event.get("seq") if latest_event else None
     event_digest = f"sha256:{event_stream_digest(result)}"
@@ -3713,8 +3751,13 @@ def resolve_pipeline_identity(cwd: str | Path) -> dict[str, Any]:
                 m_epic = re.search(r"Handoff\s+[A-Za-z]+\s+[^\n]*?—\s*([A-Za-z0-9._-]+)", text)
             if m_epic:
                 epic_id = m_epic.group(1).strip()
-                for p in cwd_p.glob(f"memory-bank/*/plan/decompose-{epic_id}/index.yaml"):
-                    candidates.add(str(p.relative_to(cwd_p)).removeprefix("memory-bank/"))
+                try:
+                    from loop.paths.pack_layout import resolve_mb_root
+                    mb_root = resolve_mb_root(cwd=cwd_p)
+                    for p in mb_root.glob(f"*/plan/decompose-{epic_id}/index.yaml"):
+                        candidates.add(str(p.relative_to(mb_root)))
+                except Exception:
+                    pass
         if not candidates:
             armed = (st.get("armed_epic") or "").strip()
             role_raw = str(st.get("role") or "back").lower()
@@ -4060,16 +4103,21 @@ def build_post_implement_active_context(
         next_hint = (
             f"выполнить `{role_u} AUDIT`: из plan.md вывести цель эпика + все FR/US/SC/layout; "
             f"Triple Assess plan_vs_runtime vs runtime (behavior, не sNN completed); "
+            f"Assess D: Read implement yaml `{{mb_root}}/{role_norm}/implement/implement-{epic_id}/sNN-*.yaml` "
+            f"↔ decompose `{{mb_root}}/{role_norm}/plan/{epic_id}/yaml/steps/sNN-*.yaml`; "
             f"записать epic-audit/v2 (plan_intent, findings, converged); "
-            f"mb-finish audit отклонит v1/shallow. "
-            f"FORBIDDEN: pytest как единственная проверка; PASS по пустому not_implemented[]. "
+            f"mb-finish audit отклонит v1/shallow, phantom implement_file, presence-only evidence. "
+            f"FORBIDDEN: pytest как единственная проверка; PASS по пустому not_implemented[]; "
+            f"implement_file = plan/.../md/sNN.md. "
             f"НЕ ставить EPIC_DONE до QA pass"
         )
         custom_lines = [
             f"- **Эпик:** {epic_id} — implement queue исчерпана; AUDIT = PLAN↔IMPLEMENT parity.",
             f"- **Режим/шаг:** `{role_u} AUDIT`.",
-            "- **SoT:** plan.md (цели/FR); decompose index — только статус шагов.",
-            "- **Артефакт:** memory-bank/<role>/audit/<epic_id>/audit.yaml (epic-audit/v2).",
+            f"- **SoT:** `{{mb_root}}/{role_norm}/plan/{epic_id}/md/plan.md` (цели/FR).",
+            f"- **Implement yaml:** `{{mb_root}}/{role_norm}/implement/implement-{epic_id}/sNN-*.yaml` (не plan/.../md).",
+            f"- **Decompose yaml:** `{{mb_root}}/{role_norm}/plan/{epic_id}/yaml/steps/sNN-*.yaml`.",
+            "- **Артефакт:** {mb_root}/<role>/audit/<epic_id>/audit.yaml (epic-audit/v2).",
             "- **ARCHIVE:** вне loop после EPIC_DONE (не в AUDIT/QA сессии).",
         ]
     elif phase_u == "QA":
@@ -4304,7 +4352,9 @@ def arm_active_context_from_decompose(
                 "phase": phase,
                 "epic_id": epic_id,
             }
-        atomic_write_text(active_context_path(cwd_p), body)
+        locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
+        if locked:
+            return locked
         cleared = clear_runner_checkpoint(cwd_p)
         if not cleared.get("ok"):
             return {
@@ -4335,7 +4385,7 @@ def arm_active_context_from_decompose(
                 "role": role,
                 "index": tracker_rel,
                 "queue_source": queue_src,
-                "active_context": "memory-bank/activeContext.md",
+                "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
             }
         st["active"] = True
         st["status"] = "armed"
@@ -4353,7 +4403,7 @@ def arm_active_context_from_decompose(
             "status": "pending",
             "index": tracker_rel,
             "queue_source": queue_src,
-            "active_context": "memory-bank/activeContext.md",
+            "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
             "qa_path": str(qa_p.relative_to(cwd_p)) if qa_p else None,
         }
 
@@ -4423,7 +4473,9 @@ def arm_active_context_from_decompose(
         ),
         done=done_items,
     )
-    atomic_write_text(active_context_path(cwd_p), body)
+    locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
+    if locked:
+        return locked
 
     # Arm always rewrites activeContext. Drop runner checkpoint unconditionally —
     # same-step re-arm still changes context_fingerprint and would halt prepare with
@@ -4464,7 +4516,7 @@ def arm_active_context_from_decompose(
         "index_md": index_rel,
         "queue_source": queue_src,
         "implement_hub": None,
-        "active_context": "memory-bank/activeContext.md",
+        "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
         "checkpoint_cleared": True,
     }
 
@@ -4521,12 +4573,18 @@ def arm_epic(
                 logger.warning(f"[convergence] check failed during arm_epic: {exc}")
         return arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=action.decompose_rel)
     if phase in {"AUDIT", "QA", "BUGFIX"}:
+        try:
+            from loop.paths.pack_layout import resolve_mb_root
+            mb_root = resolve_mb_root(cwd=cwd_p)
+            mb_root_name = mb_root.name
+        except Exception:
+            mb_root_name = "memory-bank"
         qa_p = find_qa_pass_artifact(cwd_p, role, epic_id)
         ref_p = find_reflection_artifact(cwd_p, role, epic_id)
-        rel_idx = action.decompose_rel or f"memory-bank/{role}/plan/decompose-{epic_id}/index.yaml"
+        rel_idx = action.decompose_rel or f"{mb_root_name}/{role}/plan/decompose-{epic_id}/index.yaml"
         rel_md = rel_idx.removesuffix(".yaml") + ".md" if rel_idx.endswith(".yaml") else rel_idx
-        link = rel_idx.removeprefix("memory-bank/")
-        hub_rel = f"memory-bank/hub/plan/plan-{epic_id}.md"
+        link = rel_idx.removeprefix(f"{mb_root_name}/").removeprefix("memory-bank/")
+        hub_rel = f"{mb_root_name}/hub/plan/plan-{epic_id}.md"
         role_u = {"back": "BACK", "front": "FRONT", "integration": "INTEG"}.get(
             str(role or "back").lower(), str(role or "BACK").upper()
         )
@@ -4543,7 +4601,9 @@ def arm_epic(
             reflection_path=ref_p if ref_p and ref_p.is_file() else None,
             cwd=cwd_p,
         )
-        atomic_write_text(active_context_path(cwd_p), body)
+        locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
+        if locked:
+            return locked
         clear_runner_checkpoint(cwd_p)
         st = load_epic_state(cwd_p)
         st["active"] = True
@@ -4564,7 +4624,7 @@ def arm_epic(
             "step_id": phase,
             "status": "pending",
             "index": rel_idx,
-            "active_context": "memory-bank/activeContext.md",
+            "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
             "qa_path": str(qa_p.relative_to(cwd_p)) if qa_p and qa_p.is_file() else None,
         }
     return {
@@ -4629,6 +4689,7 @@ def arm_pre_implement_context(
         armed_decompose = decomp_yaml
     elif phase_u == "DECOMPOSE":
         from epic_paths import find_decompose_index_path
+        from loop.paths.epic_layout import EpicLayoutKind, resolve as layout_resolve
 
         rule_dir = {
             "back": "back_developer",
@@ -4636,17 +4697,32 @@ def arm_pre_implement_context(
             "integration": "integration_developer",
         }.get(role_key, f"{role_key}_developer")
         idx = find_decompose_index_path(cwd_p, role_key, epic_id)
+        v2_yaml = layout_resolve(
+            role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=cwd_p
+        )
+        v2_md = layout_resolve(
+            role_key, epic_id, EpicLayoutKind.DECOMPOSE_INDEX_MD, project_root=cwd_p
+        )
         if idx and idx.is_file():
             decomp_yaml = idx.relative_to(cwd_p).as_posix()
+            if idx.name in {"decompose-index.md", "index.md"}:
+                sibling_yaml = idx.with_name(
+                    "decompose-index.yaml" if idx.name == "decompose-index.md" else "index.yaml"
+                )
+                if sibling_yaml.is_file():
+                    decomp_yaml = sibling_yaml.relative_to(cwd_p).as_posix()
+                elif idx.name == "decompose-index.md":
+                    decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
         else:
-            decomp_yaml = f"memory-bank/{role_key}/plan/decompose-{epic_id}/index.yaml"
+            decomp_yaml = v2_yaml.relative_to(cwd_p).as_posix()
         decomp_link = decomp_yaml.removeprefix("memory-bank/")
-        decomp_dir = Path(decomp_yaml).parent.name
+        decomp_md_link = v2_md.relative_to(cwd_p).as_posix().removeprefix("memory-bank/")
         load_now += (
-            f"2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (канон sNN-<slug>.yaml).\n"
+            f"2. `.cursor/templates/decompose/` — epic-step.yaml + index.md "
+            f"(layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).\n"
             f"3. `.cursor/rules/{rule_dir}/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.\n"
-            f"4. Target decompose: [`{decomp_dir}/index.yaml`]({decomp_link}) "
-            f"(index.md + index.yaml + sNN-<slug>.yaml).\n"
+            f"4. Target decompose: [`decompose-index.yaml`]({decomp_link}) "
+            f"(layout v2: `{decomp_md_link}` + `{decomp_link}` + `yaml/steps/sNN-<slug>.yaml`).\n"
         )
         armed_decompose = decomp_yaml if idx and idx.is_file() else None
     body = (
@@ -4658,7 +4734,9 @@ def arm_pre_implement_context(
         f"- **Режим/шаг:** `{next_cmd}`.\n"
         f"- **Дальше:** выполнить `{next_cmd}`.\n"
     )
-    atomic_write_text(active_context_path(cwd_p), body)
+    locked = _write_active_context_or_lock(active_context_path(cwd_p), body, epic_id=epic_id)
+    if locked:
+        return locked
     clear_runner_checkpoint(cwd_p)
     st = load_epic_state(cwd_p)
     st["active"] = True
@@ -4678,5 +4756,5 @@ def arm_pre_implement_context(
         "role": role,
         "step_id": phase_u,
         "target_rel": target_rel,
-        "active_context": "memory-bank/activeContext.md",
+        "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
     }

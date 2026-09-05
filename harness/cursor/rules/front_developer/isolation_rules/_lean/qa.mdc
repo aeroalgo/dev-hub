@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # FRONT QA — gates
 
-**Артефакт:** с эпиком `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — `memory-bank/front/qa/qa-YYYYMMDD-<slug>.yaml`. @.cursor/rules/shared/epic-scoped-paths.mdc · `.cursor/templates/qa/epic-step.yaml`
+**Артефакт:** с эпиком `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — `memory-bank/front/qa/qa-YYYYMMDD-<slug>.yaml`. **FORBIDDEN** дубль `qa.yaml`+dated. @.cursor/rules/shared/epic-scoped-paths.mdc · `.cursor/templates/qa/epic-step.yaml`
 
 ## Gates
 

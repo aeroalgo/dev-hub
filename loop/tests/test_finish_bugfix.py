@@ -99,6 +99,12 @@ def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
         f"# bugfix\nepic_id: {epic}\n\nfixed suite regressions\n",
     )
 
+    from harness.hooks._lib import current_gate_identity, verdict_evidence
+    from harness.hooks.epic.core import mirror_gate_verdict
+    ev = verdict_evidence(current_gate_identity(str(tmp_path), "test"), "PASS")
+    ev["authority"] = "manual"
+    mirror_gate_verdict(tmp_path, "PASS", evidence=ev)
+
     out = finish_bugfix(
         MbFinishRequest(
             cwd=str(tmp_path),
@@ -157,3 +163,61 @@ def test_prepare_session_keeps_bugfix_when_qa_failed(
     ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
     assert "mode: BUGFIX" in ac
     assert "Handoff BACK BUGFIX" in ac
+
+
+def test_bugfix_cannot_finish_as_implement_or_handoff(tmp_path):
+    from loop.mb_finish.impl import finish_handoff
+    from loop.mb_finish.finish_implement import finish_implement_step
+    from loop.mb_finish.schemas import MbFinishRequest, LoopHandoffMeta, HandoffBody
+    _seed_epic(tmp_path, "T-finish-bugfix-guard")
+    out = finish_implement_step(MbFinishRequest(cwd=str(tmp_path), phase="IMPLEMENT", step_id="s01", done_summary=""))
+    assert "bugfix_finish_required" in out.diagnostic_codes
+    out = finish_handoff(LoopHandoffMeta(role="BACK", mode="QA", epic_id="T-finish-bugfix-guard"), [], HandoffBody(mode="QA"), cwd=tmp_path)
+    assert "bugfix_finish_required" in out.diagnostic_codes
+
+
+def test_bugfix_rejects_missing_verifier_evidence(tmp_path):
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+    epic = "T-bugfix-gate"
+    _seed_epic(tmp_path, epic)
+    _write(tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260905-fix.md", "# root cause\nfixed\n")
+    out = finish_bugfix(MbFinishRequest(cwd=str(tmp_path), phase="BUGFIX", step_id="BUGFIX", done_summary=""))
+    assert not out.ok
+    assert "verify_pass_missing" in out.diagnostic_codes
+
+
+def test_qa_event_preserves_original_content(tmp_path):
+    import json, hashlib
+    from harness.hooks.epic.core import _append_event
+    epic = "T-qa-history"
+    p = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260905-run1.yaml"
+    original = "verdict: fail\nfix_plan: [fix boundary scanner]\n"
+    _write(p, original)
+    assert _append_event(tmp_path, "back", epic, "qa_fail", p)
+    event = json.loads((tmp_path / f"memory-bank/back/events/{epic}/events.jsonl").read_text())
+    snapshot = tmp_path / event["metadata"]["artifact_snapshot"]
+    p.write_text("verdict: pass\n")
+    assert snapshot.read_text() == original
+    assert hashlib.sha256(snapshot.read_bytes()).hexdigest() == event["artifact_sha256"]
+
+
+def test_recorded_qa_write_is_denied_and_new_run_allowed(tmp_path):
+    from harness.hooks._lib import active_context_write_deny_reason
+    from harness.hooks.epic.core import _append_event
+    epic = "T-qa-preserve"
+    path = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260905-run1.yaml"
+    _write(path, "verdict: fail\n")
+    _append_event(tmp_path, "back", epic, "qa_fail", path)
+    assert "recorded_artifact_immutable" in (active_context_write_deny_reason(tmp_path, path, "verdict: pass\n") or "")
+    assert active_context_write_deny_reason(tmp_path, path.with_name("qa-20260905-run2.yaml"), "verdict: pass\n") is None
+
+
+def test_qa_finish_rejects_bugfix_phase(tmp_path):
+    from loop.mb_finish.impl import finish_qa
+    from loop.mb_finish.schemas import MbFinishRequest
+    epic = "T-qa-no-bypass"
+    _seed_epic(tmp_path, epic)
+    out = finish_qa(MbFinishRequest(cwd=str(tmp_path), phase="QA", step_id="QA", done_summary=""))
+    assert not out.ok
+    assert "bugfix_finish_required" in out.diagnostic_codes

@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s07 — workflows/_template/ — manifest stub + phase_registry stub + README IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s07-workflows-template-pack-authoring.yaml
+skills_used:
+- python-testing-patterns
+discovery:
+- workflows/_template/ created with manifest.yaml, phase_registry.yaml, README.md
+gaps:
+  status: none
+done:
+- Created workflows/_template/manifest.yaml stub with placeholders
+- Created workflows/_template/phase_registry.yaml stub with EXAMPLE phase and external
+  gates
+- Created workflows/_template/README.md with authoring instructions
+- Added test_template_pack_validate.py verifying files existence and WorkflowPack
+  validation
+files:
+- workflows/_template/manifest.yaml
+- workflows/_template/phase_registry.yaml
+- workflows/_template/README.md
+- loop/tests/test_template_pack_validate.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_template_pack_validate.py -q --tb=short
+integration_check:
+- WorkflowPack.model_validate on filled template stub passes
+grep_control:
+- back: find workflows/_template -type f | wc -l
+  front: n/a — backend/tooling-only shard.
+verification_results:
+- find workflows/_template -type f | wc -l | grep -E '^3$' -> 3
+- bin/pytest loop/tests/test_template_pack_validate.py -q --tb=short -k 'validate_template'
+  -> 1 passed
+checkpoints:
+- id: cp1
+  criterion: все три template файла существуют
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+- id: cp2
+  criterion: template manifest заполненный проходит WorkflowPack validate
+  status: done
+  done_at: '2026-09-05T00:00:00Z'

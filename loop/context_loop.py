@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Context-first loop — activeContext is the cursor; runner only spins sessions.
 
-Канон переходов и next mode: memory-bank/activeContext.md + decompose index.
+Канон переходов и next mode: activeContext.md + decompose index.
 Next mode/step — решение модели по context, не отдельный FSM-парсер runner.
 Если load_now/shape парсятся плохо — всё равно стартуем сессию: агент сам
 читает activeContext + decompose index и выбирает шаг (и чинит activeContext).
@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 from loop.mb_finish.render import render_active_context
 from harness.hooks._lib import (  # noqa: E402
+    epic_ids_compatible,
     explorer_loop_enabled,
     is_epic_loop_env,
     merged_project_env_map,
@@ -50,6 +51,7 @@ from harness.hooks.agent_registry import discover_registry  # noqa: E402
 from harness.hooks.epic import (  # noqa: E402
     arm_active_context_from_decompose,
     arm_epic,
+    active_context_path,
     checkpoint_lifecycle,
     checkpoint_resume,
     clear_reserved_role_arm,
@@ -599,8 +601,11 @@ def _decompose_role_rule_dir(role: str) -> str:
 def _decompose_work_block(role: str, epic_id: str) -> str:
     rule_dir = _decompose_role_rule_dir(role)
     return f"""## DECOMPOSE canon (HARD)
-1. Read `.cursor/templates/decompose/epic-step.yaml` + `index.md` + `.cursor/rules/{rule_dir}/workflow-decompose.mdc` (§Maximal detail).
-2. Output dir: `memory-bank/{role}/plan/{epic_id}/yaml/steps/` with **decompose-index.md** + **decompose-index.yaml** + `sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`).
+1. Read `.cursor/templates/decompose/epic-step.yaml` + `index.md` template + `.cursor/rules/{rule_dir}/workflow-decompose.mdc` (§Maximal detail).
+2. Layout v2 (FORBIDDEN `decompose-<id>/` and dual `index.md`+`decompose-index.md`):
+   - `{{mb_root}}/{role}/plan/{epic_id}/md/decompose-index.md`
+   - `{{mb_root}}/{role}/plan/{epic_id}/yaml/decompose-index.yaml` (status SoT)
+   - `{{mb_root}}/{role}/plan/{epic_id}/yaml/steps/sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`)
 3. decompose-index.md MUST contain: `## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup` (greenfield → `n/a`).
 4. Each shard: `schema: epic-decompose/v1`, `role`, `as_built`/`delta` lists, 2–4 checkpoints with runnable verify.
 5. FINISH: `validate-decompose-tree` (stop-gate) blocks promote if tree incomplete.
@@ -612,11 +617,16 @@ def _audit_work_block(role: str, epic_id: str) -> str:
     rule_dir = _decompose_role_rule_dir(role)
     return f"""## AUDIT canon (HARD) — PLAN↔runtime, не «шаги completed»
 1. Read `.cursor/rules/{rule_dir}/workflow-audit.mdc` + `_lean/audit.mdc` + `.cursor/templates/audit/epic-audit.yaml`.
-2. Intent Inventory **из plan.md** (все FR/US/SC/AC±/layout) — не из titles sNN.
-3. Triple Assess: (A) `plan_vs_runtime[]` behavior evidence в коде · (B) step matrix · (C) `architecture_parity[]` · (D) per completed sNN: implement yaml ↔ decompose yaml (`done` vs `goal`/`plan_contract`).
-4. `satisfied` FORBIDDEN на «файл есть» / «pytest green» / «sNN completed». Evidence = path + behavior.
-5. FORBIDDEN: pytest/suite/git-diff/code-review; `converged: true` только при полном plan parity + empty leftovers + sunset scan.
-6. Артефакт: `memory-bank/{role}/audit/{epic_id}/audit.yaml` (`epic-audit/v2`).
+2. Layout v2 paths (FORBIDDEN v1 `plan-<id>.md` / `decompose-<id>/` / `implement-<id>/sNN.md`):
+   - plan: `{{mb_root}}/{role}/plan/{epic_id}/md/plan.md`
+   - decompose: `{{mb_root}}/{role}/plan/{epic_id}/yaml/steps/sNN-<slug>.yaml`
+   - implement: `{{mb_root}}/{role}/implement/implement-{epic_id}/sNN-<slug>.yaml`
+3. Intent Inventory **из plan.md** (все FR/US/SC/AC±/layout) — не из titles sNN.
+4. Triple Assess: (A) `plan_vs_runtime[]` behavior evidence в коде · (B) step matrix · (C) `architecture_parity[]` · (D) per completed sNN: **Read** implement yaml ↔ decompose yaml (`done` vs `goal`/`plan_contract`). Assess D = per-step Read, не full-repo dump.
+5. `implemented[].implement_file` MUST exist on disk as implement yaml (не plan/.../md/sNN.md). mb-finish audit REJECTS phantom paths.
+6. `satisfied` FORBIDDEN на «файл есть» / «pytest green» / «sNN completed». Evidence = path + behavior.
+7. FORBIDDEN: pytest/suite/git-diff/code-review; `converged: true` только при полном plan parity + empty leftovers + sunset scan.
+8. Артефакт: `{{mb_root}}/{role}/audit/{epic_id}/audit.yaml` (`epic-audit/v2`).
 Epic: `{epic_id}`.
 """
 
@@ -628,7 +638,7 @@ def _qa_work_block(role: str, epic_id: str) -> str:
 2. Parent: **один** full suite `bin/pytest -q --tb=line` (без path/nodeid/`-k`). Targeted = FAIL (`suite_not_full`).
 3. После full suite → **1× verify-qa** (Suite results = эта full-suite команда · AC+ · AC− · §0.11 · ALLOW READ ≤10).
    FORBIDDEN: verify-qa до full suite; Suite results с path/`-k`.
-4. Артефакт: `memory-bank/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml` (`epic-qa/v1`).
+4. Артефакт: `{{mb_root}}/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml` (`epic-qa/v1`).
 5. fail|blocked → `fix_plan[]` + Handoff `BACK BUGFIX <subject>` + mb-finish qa. PASS только при green full suite + reviewer PASS.
 6. `code_changed: no`. FORBIDDEN: Write/Edit prod (`loop/` `harness/` `.cursor/rules/` tests) в QA — это BUGFIX.
    FORBIDDEN: `FAIL → fix → re-verify` · крутить один failing test >1 раза.
@@ -675,7 +685,7 @@ def _commands_block(phase_kind: str) -> str:
 def _decompose_finish_block() -> str:
     return (
         "\n> После `validate-decompose-tree` exit 0 и verify-decompose PASS → вызови: "
-        "`python harness/hooks/epic_resolve.py mb-finish decompose --cwd $PROJECT_ROOT`\n"
+        "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish decompose`\n"
         "FORBIDDEN: ручной Write activeContext на FINISH DECOMPOSE.\n"
     )
 
@@ -694,6 +704,8 @@ def _phase_kind(phase: object) -> str:
         return "decompose"
     if re.search(r"\bPLAN\b", value):
         return "plan"
+    if re.search(r"\bBUGFIX\b", value):
+        return "bugfix"
     if re.search(r"\bIMPLEMENT\b", value):
         return "implement"
     if re.search(r"\bQA\b", value):
@@ -802,7 +814,7 @@ def _creative_finish_block() -> str:
 1. Запиши creative artifact и закрой gate в work shard:
    `needs_creative: yes (CR-…) — **closed**`; index колонка `yes (CR-…) ✅`;
    `next_phase` этого же sNN/eNN → `* IMPLEMENT`.
-2. Перепиши `memory-bank/activeContext.md` (`## load_now` → 1× `## Handoff` → ≤1× `## done`).
+2. Перепиши `activeContext.md` (`## load_now` → 1× `## Handoff` → ≤1× `## done`).
    Handoff: тот же шаг, следующий режим IMPLEMENT (не следующий sNN и не `completed`).
 3. FORBIDDEN: `mark-index-status --status completed` на CREATIVE —
    шаг остаётся `pending`/`active`. Index `completed` пишет только `finalize-step` после IMPLEMENT.
@@ -909,7 +921,7 @@ FORBIDDEN: ARCHIVE NOW / skill archive в этой сессии.
         degraded_block = f"""
 ## Context degraded
 activeContext не разобран ({'; '.join(reasons)}). Не halt.
-1. Прочитай `$PROJECT_ROOT/memory-bank/activeContext.md`.
+1. Прочитай activeContext.md.
 2. **SoT:** Decompose index (YAML) — первый step со status `pending`/`active`.
 3. **FORBIDDEN:** доверять Handoff step_id или `## done`, если они расходятся с index.yaml (нет implement-шарда / finalize-step).
 4. Один следующий шаг = режим + step_id **из index.yaml**, не из Handoff.
@@ -924,6 +936,17 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         finish_block = _done_finish_block(chain_on=chain_on)
     elif phase_kind == "creative":
         finish_block = _creative_finish_block()
+    elif phase_kind == "bugfix":
+        epic = str(projection.get("epic") or projection.get("epic_id") or "unknown")
+        role = str(projection.get("role") or "back").lower()
+        finish_block = (
+            "\n## BUGFIX FINISH\n"
+            f"1. Read workflow-bugfix + _lean/bugfix; write `{{mb_root}}/{role}/bugfix/{epic}/bugfix-YYYYMMDD-<subject>.md`.\n"
+            "2. Record QA source, root cause, regression red → fix → green; call verify-bugfix with BUGFIX ARTIFACT, AC+, AC−, §0.11, VERIFY, ALLOW READ.\n"
+            "3. After verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
+            "4. Next session: QA, full suite + verify-qa + new QA artifact (unique run filename).\n"
+            "FORBIDDEN: overwrite prior QA, rewrite completed implement shards, or use low-level handoff to bypass BUGFIX finish.\n"
+        )
     elif phase_kind == "implement":
         explorer_block = _explorer_block(
             delta_scope=delta_scope or "open",
@@ -931,23 +954,23 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish implement --step <sNN>`\n"
         )
     elif phase_kind == "qa":
         finish_block = (
-            "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py mb-finish qa --cwd $PROJECT_ROOT`\n"
+            "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`\n"
         )
     elif phase_kind == "audit":
         finish_block = (
             "\n> После Triple Assess + epic-audit/v2 на диске → вызови: "
-            "`python harness/hooks/epic_resolve.py mb-finish audit --cwd $PROJECT_ROOT`\n"
+            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish audit`\n"
             "FORBIDDEN: ручной Write activeContext на FINISH AUDIT.\n"
             "FORBIDDEN: pytest/suite как замена plan↔runtime; shallow v1 / empty findings+converged без inventory.\n"
         )
     elif phase_kind == "analyze":
         finish_block = (
             "\n> После analyze yaml на диске и analyze-verify PASS → вызови: "
-            "`python harness/hooks/epic_resolve.py mb-finish analyze --cwd $PROJECT_ROOT`\n"
+            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish analyze`\n"
             "FORBIDDEN: ручной Write activeContext на FINISH ANALYZE.\n"
         )
     elif phase_kind == "decompose":
@@ -965,7 +988,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             explorer_on=explorer_on,
         )
         finish_block = (
-            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py mb-finish implement --cwd $PROJECT_ROOT --step <sNN>`\n"
+            "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish implement --step <sNN>`\n"
         )
 
     resume_block = "\n".join(resume_lines or [])
@@ -1369,6 +1392,42 @@ def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
     return _promote_if_ready(cwd)
 
 
+def active_context_identity_mismatch(
+    cwd: str | Path,
+    *,
+    ac_text: str | None = None,
+    armed_epic: str | None = None,
+) -> dict[str, Any] | None:
+    """Fail-closed split between activeContext epic and armed epic.
+
+    Must run BEFORE promote/arm so a foreign chat cursor cannot be healed.
+    """
+    from loop.schemas.active_context import parse_handoff_meta
+
+    cwd_p = Path(cwd)
+    text = ac_text if ac_text is not None else read_active_context(cwd_p)
+    if armed_epic is None:
+        armed_epic = str(load_epic_state(cwd_p).get("armed_epic") or "").strip()
+    else:
+        armed_epic = str(armed_epic or "").strip()
+    ac_meta = parse_handoff_meta(text)
+    ac_epic = str(getattr(ac_meta, "epic_id", "") or "").strip()
+    if ac_epic and armed_epic and not epic_ids_compatible(ac_epic, armed_epic):
+        return {
+            "ok": False,
+            "halt": True,
+            "reason": (
+                "active_context_identity_mismatch: "
+                f"activeContext epic_id={ac_epic} ≠ armed/projection={armed_epic}. "
+                "Чужой чат перезаписал курсор; loop не стартует на чужом эпике."
+            ),
+            "diagnostic_code": "active_context_identity_mismatch",
+            "ac_epic_id": ac_epic,
+            "armed_epic": armed_epic,
+        }
+    return None
+
+
 def prepare_session(
     cwd: str | Path,
     *,
@@ -1376,11 +1435,12 @@ def prepare_session(
     runtime: str | None = None,
 ) -> dict[str, Any]:
     cwd_p = Path(cwd)
-    ac = cwd_p / "memory-bank" / "activeContext.md"
+    ac = active_context_path(cwd_p)
     if not ac.is_file():
+        ac_rel = str(ac.relative_to(cwd_p)) if ac.is_relative_to(cwd_p) else str(ac)
         return {
             "ok": False,
-            "reason": "нет memory-bank/activeContext.md — создай файл или восстанови из git",
+            "reason": f"нет {ac_rel} — создай файл или восстанови из git",
         }
 
     cleared_role = clear_reserved_role_arm(cwd_p)
@@ -1392,6 +1452,10 @@ def prepare_session(
             "diagnostic_code": cleared_role.get("diagnostic_code") or "armed_role_slug",
             "cleared_reserved_role_arm": True,
         }
+
+    mismatch = active_context_identity_mismatch(cwd_p)
+    if mismatch:
+        return mismatch
 
     promoted = _promote_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
@@ -1410,24 +1474,6 @@ def prepare_session(
     projection = rebuild_epic_projection(cwd_p)
     text = read_active_context(cwd_p)
     state = load_epic_state(cwd_p)
-    from loop.schemas.active_context import parse_handoff_meta
-
-    ac_meta = parse_handoff_meta(text)
-    ac_epic = str(getattr(ac_meta, "epic_id", "") or "").strip()
-    armed_epic = str(state.get("armed_epic") or projection.get("epic_id") or "").strip()
-    if ac_epic and armed_epic and ac_epic != armed_epic:
-        return {
-            "ok": False,
-            "halt": True,
-            "reason": (
-                "active_context_identity_mismatch: "
-                f"activeContext epic_id={ac_epic} ≠ armed/projection={armed_epic}. "
-                "Чужой чат перезаписал курсор; loop не стартует на чужом эпике."
-            ),
-            "diagnostic_code": "active_context_identity_mismatch",
-            "ac_epic_id": ac_epic,
-            "armed_epic": armed_epic,
-        }
     from loop.schemas.active_context import handoff_mode_from_text
 
     ac_mode = (handoff_mode_from_text(text) or "").upper()
@@ -1756,7 +1802,7 @@ def prepare_session(
         resume_lines.extend(
             [
                 "## PRIOR SESSION: fingerprint stall (HARD)",
-                "Прошлая сессия вышла без смены `memory-bank/activeContext.md`.",
+                "Прошлая сессия вышла без смены `activeContext.md`.",
                 "ПЕРВЫМ делом (до кода, если шаг уже частично сделан — всё равно):",
                 "Write весь `activeContext.md`: `## load_now` → ровно 1× `## Handoff` → ≤1× `## done`.",
                 "В Handoff: что уже сделано + что осталось на текущем шаге; затем доведи шаг или FINISH.",
@@ -1880,7 +1926,7 @@ def prepare_session(
             "step": st.get("armed_step"),
             "action": "invoke",
         },
-        step_id=st.get("armed_step") or "memory-bank/activeContext.md",
+        step_id=st.get("armed_step") or str(active_context_path(cwd_p).relative_to(cwd_p)),
         phase=projection.get("phase") or "UNKNOWN",
         phase_epoch=projection.get("phase_epoch") or "unknown",
         projection_hash=projection.get("projection_hash"),
@@ -2379,7 +2425,7 @@ def record_abort(
     st = load_epic_state(cwd_p)
     step_id = st.get("armed_step")
     plan_id = st.get("armed_epic")
-    resume_from = step_id or "memory-bank/activeContext.md"
+    resume_from = step_id or str(active_context_path(cwd_p).relative_to(cwd_p))
     try:
         dirty = git_dirty_paths(cwd_p)
     except RuntimeError:
@@ -2994,9 +3040,12 @@ def _status_trace_tail(cwd: Path) -> list[dict[str, Any]]:
 
 def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
     from dag import validate_manifest
+    from loop.paths.pack_layout import resolve_mb_root
 
     root = Path(cwd)
-    gap_dir = root / "memory-bank" / "integration" / "gap"
+    mb_root = resolve_mb_root(cwd=root)
+    mb_root_rel = mb_root.relative_to(root).as_posix()
+    gap_dir = mb_root / "integration" / "gap"
     gaps = (
         sorted(gap_dir.glob("**/gap-*.yaml"))
         + sorted(gap_dir.glob("**/gap-*.yml"))
@@ -3016,9 +3065,9 @@ def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
             text = gap.read_text(encoding="utf-8", errors="replace")
             links = list(dict.fromkeys(re.findall(r"decompose-[A-Za-z0-9._-]+", text)))
             data = {
-                "back": {"decompose": f"memory-bank/back/plan/{links[0]}/index.md"}
+                "back": {"decompose": f"{mb_root_rel}/back/plan/{links[0]}/index.md"}
                 if links else {},
-                "front": {"decompose": f"memory-bank/front/plan/{links[1]}/index.md"}
+                "front": {"decompose": f"{mb_root_rel}/front/plan/{links[1]}/index.md"}
                 if len(links) > 1 else {},
             }
         elif not isinstance(data, dict):
@@ -3076,7 +3125,7 @@ def _cmd_dag_generate(cwd: str | Path, pipeline_id: str) -> dict[str, Any]:
     manifest = {
         "schema": "loop-dag/v2",
         "pipeline": {"id": pipeline_id},
-        "source": {"kind": "integration_gap", "artifacts": source_artifacts or [f"memory-bank/integration/gap/{pipeline_id}"]},
+        "source": {"kind": "integration_gap", "artifacts": source_artifacts or [f"{mb_root_rel}/integration/gap/{pipeline_id}"]},
         "execution": {"autonomous": not legacy},
         "nodes": nodes,
     }
@@ -3096,7 +3145,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--cwd",
         default=(os.environ.get("PROJECT_ROOT") or "").strip() or str(ROOT),
-        help="Product repo root (memory-bank/). Default: $PROJECT_ROOT or hub root.",
+        help="Product repo root ({mb_root}/). Default: $PROJECT_ROOT or hub root.",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -3184,6 +3233,13 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="Show context cursor")
 
     p_doc = sub.add_parser("doctor", help="Preflight check before autopilot")
+    p_doc.add_argument(
+        "check",
+        nargs="?",
+        default=None,
+        choices=["workflow-pack"],
+        help="Optional check target (e.g. workflow-pack)",
+    )
     p_doc.add_argument(
         "--auto-repair",
         action="store_true",
@@ -3328,6 +3384,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "doctor":
+        if getattr(args, "check", None) == "workflow-pack":
+            from loop.doctor.checks.workflow_pack import run_doctor_workflow_pack
+
+            doctor_format = "json" if args.json else args.format
+            return run_doctor_workflow_pack(cwd, format=doctor_format)
+
         from loop.incidents.doctor import run_doctor
 
         doctor_format = "json" if args.json else args.format

@@ -1,0 +1,27 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+role: back
+date: '2026-09-04'
+steps:
+- id: s01
+  file: s01-doctor-boundary-kwargs-fix.yaml
+  title: Fix doctor boundary kwargs TypeError (call-site + tests)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-harness-sot-cli-flag-fix.yaml
+  title: 'Fix harness SoT CLI flag: --raw-json → --json в agent/hook/preset sources'
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-materialize-rematerialize-surfaces.yaml
+  title: Rematerialize .claude/.codex/dsh surfaces после harness SoT fix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-repair-extract-prose-fallback-purge.yaml
+  title: 'Purge prose REPAIR: fallback из extract_repair_result'
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: pack_layout.py — resolve_mb_root + software handler
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/paths/pack_layout.py` с публичным API `resolve_mb_root(cwd: Path) -> Path`
+  и первичным `ArtifactLayout` enum. Software handler возвращает `cwd / "memory-bank"` —
+  точный эквивалент нынешнего hardcoded пути, обеспечивая US-005 zero-regression.
+  Fail-closed при отсутствии pack manifest: диагностика, не silent default (NFR-002).
+
+plan_contract:
+  fr_ids: [FR-001, FR-005, US-005, NFR-002]
+  nouns: [resolve_mb_root, ArtifactLayout, pack manifest, memory_bank root]
+  layout_paths:
+    - loop/paths/pack_layout.py
+    - loop/paths/__init__.py
+    - loop/tests/test_pack_layout.py
+  ac_quotes:
+    - "software pack paths identical to as-built"
+    - "wrong cwd → fail-closed"
+    - "no string concat `memory-bank/` in hooks"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:32-43"
+
+context:
+  consumes: []
+  produces:
+    - loop/paths/pack_layout.py
+    - loop/paths/__init__.py (update exports)
+    - loop/tests/test_pack_layout.py
+  plan_refs:
+    - "plan.md §Technology axiom"
+    - "plan.md §Product probe #1-3"
+  files:
+    - loop/paths/pack_layout.py
+    - loop/paths/__init__.py
+    - loop/tests/test_pack_layout.py
+
+as_built:
+  - "loop/ — нет `paths/` субпакета; нет `resolve_mb_root`"
+  - "hardcoded `Path('memory-bank')` / `'memory-bank/'` в context_loop.py, epic/core.py, epic_transition.py"
+
+delta:
+  - "add: loop/paths/pack_layout.py — `ArtifactLayout` enum (software_epic_v1, production_epic_v1); `resolve_mb_root(cwd)` — dispatch по manifest; software handler → `cwd / 'memory-bank'`"
+  - "add: loop/paths/__init__.py — экспорт `resolve_mb_root`, `ArtifactLayout`"
+  - "add: loop/tests/test_pack_layout.py — parametrized: software → `memory-bank/`; missing manifest → PackLayoutError; cwd mismatch → fail-closed"
+
+deletes: []
+
+out_of_scope:
+  - "production-epic-v1 handler — s02"
+  - "activeContext path wiring в core.py — s03"
+  - "mb_load/mb_finish пакет — s04, s05"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "resolve_mb_root(cwd) для software pack → Path('memory-bank') относительно cwd"
+    verify: "bin/pytest loop/tests/test_pack_layout.py -q --tb=short -k 'software'"
+  - id: cp2
+    criterion: "missing manifest → PackLayoutError (fail-closed, не silent default)"
+    verify: "bin/pytest loop/tests/test_pack_layout.py -q --tb=short -k 'missing'"
+  - id: cp3
+    criterion: "ArtifactLayout enum импортируется из loop.paths"
+    verify: "python -c 'from loop.paths import ArtifactLayout; print(ArtifactLayout.software_epic_v1)'"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_layout.py -q --tb=short"
+
+tdd:
+  - "Написать test_pack_layout.py (RED) → реализовать pack_layout.py (GREEN)"

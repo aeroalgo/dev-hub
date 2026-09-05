@@ -1,0 +1,66 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "docs/runbooks/workflow-pack-authoring.md — «create pack in 30 min» step-by-step"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Create docs/runbooks/workflow-pack-authoring.md with step-by-step guide for pack authors:
+  scaffold from T-HUB-051 reference template, fill phase_registry.yaml, register in
+  workflow_pack_registry.yaml, verify with doctor workflow-pack, add intent_routing entry.
+  Closes FR-004, US-003, SC-004. Steps must match actual template from T-HUB-051.
+
+plan_contract:
+  fr_ids: [FR-004, US-003, SC-004]
+  nouns: [workflow-pack-authoring.md, phase_registry.yaml, workflow_pack_registry.yaml, intent_routing.yaml, doctor workflow-pack]
+  layout_paths:
+    - docs/runbooks/workflow-pack-authoring.md
+  ac_quotes:
+    - "US-003: runbook steps match template 051"
+    - "FR-004: step-by-step from template"
+    - "AC+ #3: Operator runbook + author runbook committed"
+    - "SC-004: Runbook paths exist and link from README"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:45-70"
+
+context:
+  consumes:
+    - loop/workflow_pack_registry.yaml
+    - loop/workflow/intent_routing.yaml  # produced by s01
+    - loop/workflow/schemas.py  # WorkflowPack fields
+    - docs/runbooks/workflow-pack-operator.md  # produced by s03 — cross-link
+  produces:
+    - docs/runbooks/workflow-pack-authoring.md
+  plan_refs:
+    - "plan §FR-004, US-003 Independent Test: runbook steps match template 051"
+  files:
+    - docs/runbooks/workflow-pack-authoring.md
+
+as_built:
+  - "docs/runbooks/ exists"
+  - "WorkflowPack schema: id, roles, command_prefixes, phase_registry, memory_bank, rules_root, artifact_layout"
+
+delta:
+  - "add: docs/runbooks/workflow-pack-authoring.md — sections: Overview (30-min target), Step 1 scaffold dirs, Step 2 write phase_registry.yaml, Step 3 register in workflow_pack_registry.yaml, Step 4 doctor verify, Step 5 add intent_routing entry, Step 6 first loop run"
+
+deletes: []
+
+out_of_scope:
+  - "operator env/flags — s03"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "docs/runbooks/workflow-pack-authoring.md exists with ≥5 numbered steps and references to phase_registry.yaml, workflow_pack_registry.yaml"
+    verify: "rg 'phase_registry|workflow_pack_registry' docs/runbooks/workflow-pack-authoring.md | wc -l | xargs -I{} test {} -ge 2"
+  - id: cp2
+    criterion: "Runbook mentions doctor workflow-pack as verification step"
+    verify: "rg 'doctor workflow-pack' docs/runbooks/workflow-pack-authoring.md"
+
+verify: []
+tdd: []

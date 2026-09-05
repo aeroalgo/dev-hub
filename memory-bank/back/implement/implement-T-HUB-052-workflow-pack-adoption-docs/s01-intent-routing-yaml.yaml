@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: s01 — intent_routing.yaml + loader — machine-readable intent→pack mapping IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s01-intent-routing-yaml.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery:
+- 'intent_routing.yaml draft and schemas in loop/workflow/'
+gaps:
+  status: none
+done:
+- Added loop/workflow/intent_routing.yaml with workflow-intent-routing/v1 schema and intents video_production, feature_full, content_factory.
+- Extended loop/workflow/schemas.py with IntentPipelineStep, IntentRoute, and IntentRoutingTable pydantic models.
+- Added load_intent_routing() in loop/workflow/command_router.py with caching and fallback discovery.
+- Added loop/tests/test_intent_routing.py with 5 unit tests covering all checkpoints.
+files:
+- loop/workflow/intent_routing.yaml
+- loop/workflow/schemas.py
+- loop/workflow/command_router.py
+- loop/tests/test_intent_routing.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_intent_routing.py -q --tb=line
+integration_check:
+- load_intent_routing returns IntentRoutingTable with video_production mapping to video-production pack and 5 pipeline steps.
+grep_control: []
+verification_results:
+- cp1 PASS — python -c "import yaml; d=yaml.safe_load(open('loop/workflow/intent_routing.yaml')); assert d['schema']=='workflow-intent-routing/v1'; assert 'video_production' in d['intents']; assert d['intents']['video_production']['pack']=='video-production'"
+- cp2 PASS — python -c "from loop.workflow.command_router import load_intent_routing; t=load_intent_routing(); assert 'video_production' in t.intents"
+- cp3 PASS — bin/pytest loop/tests/test_intent_routing.py -q --tb=line (5 passed)
+checkpoints:
+- id: cp1
+  criterion: 'intent_routing.yaml validates against schema: workflow-intent-routing/v1;
+    video_production entry has pack=video-production and ≥3 pipeline steps'
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+- id: cp2
+  criterion: load_intent_routing() returns IntentRoutingTable with video_production
+    route
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+- id: cp3
+  criterion: pytest s01 tests pass
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+resume_from: null

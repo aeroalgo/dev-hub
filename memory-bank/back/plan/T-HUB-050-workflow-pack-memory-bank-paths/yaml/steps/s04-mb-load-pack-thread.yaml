@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: mb_load — pack-aware activeContext load
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Расширить `loop/mb_load/` так, чтобы при загрузке сессии mb-load использовал
+  `resolve_mb_root(cwd)` для нахождения activeContext.md и связанных артефактов.
+  AC+ US-001: pack video → memory-bank/video/activeContext.md загружается корректно.
+  Wiring forbidden_policy (s02) в mb_load session load — layout-aware policy check.
+
+plan_contract:
+  fr_ids: [US-001, AC+ US-001, FR-003]
+  nouns: [mb_load, activeContext load, pack root, forbidden_policy]
+  layout_paths:
+    - loop/mb_load/
+  ac_quotes:
+    - "pack video → memory-bank/video/activeContext.md loaded"
+    - "pack.artifact_layout → policy module in mb_load"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:50-65"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (resolve_mb_root — из s01)
+    - loop/paths/forbidden_policy.py (policy_for_layout — из s02)
+    - harness/hooks/epic/core.py (read_active_context — из s03)
+  produces:
+    - loop/mb_load/ (edit существующих модулей)
+    - loop/tests/ (тесты mb_load pack thread)
+  plan_refs:
+    - "plan.md §gap (as-built) — mb_load paths relative to fixed memory-bank tree"
+    - "plan.md §User Stories US-001"
+  files:
+    - loop/mb_load/
+
+as_built:
+  - "loop/mb_load/ — пути к артефактам захардкожены относительно `memory-bank/`"
+  - "forbidden policy check в mb_load — software-only denylist без dispatch"
+
+delta:
+  - "edit: mb_load session loader — принимает `cwd`, вызывает `resolve_mb_root(cwd)` для базового пути"
+  - "edit: mb_load forbidden check — `policy_for_layout(layout).is_forbidden(artifact)` вместо denylist"
+  - "add: тест video pack smoke: load → memory-bank/video/activeContext.md (TM-001 partial)"
+
+deletes:
+  - "одноразовый software denylist в mb_load — заменяется policy_for_layout; удалить в s09 после wire"
+
+out_of_scope:
+  - "mb_finish — s05"
+  - "epic paths resolver — s06"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "mb_load для software pack → загружает memory-bank/activeContext.md (regression)"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_load and software'"
+  - id: cp2
+    criterion: "mb_load для video pack → загружает memory-bank/video/activeContext.md"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_load and video'"
+  - id: cp3
+    criterion: "forbidden policy check через policy_for_layout (не hardcoded list)"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_load and policy'"
+
+verify:
+  - "bin/pytest loop/tests/ -q --tb=short -k 'mb_load'"
+
+tdd:
+  - "Написать тесты mb_load pack (RED) → edit mb_load (GREEN)"

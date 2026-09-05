@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s07 — validate_active_context_shape — fail-closed guard IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s07-validate-active-context-shape.yaml
+skills_used:
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/tdd/SKILL.md
+discovery:
+- loop/incidents/doctor.py exports validate_active_context_shape(path) -> ShapeResult(valid,
+  diagnostic).
+- Fail-closed check covers missing file, unreadable file, and schema/shape mismatch.
+gaps:
+  status: none
+done:
+- Added ShapeResult dataclass and validate_active_context_shape(path) in loop/incidents/doctor.py.
+- Integrated validate_active_context_shape into run_doctor active_context_shape check.
+- Added unit test cases in loop/tests/test_incidents_doctor.py for missing path, valid
+  path, and wrong schema.
+files:
+- loop/incidents/doctor.py
+- loop/tests/test_incidents_doctor.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short` — 11 passed.'
+- '`bin/pytest harness/hooks/tests/ loop/tests/ -q --tb=line` — 1793 passed.'
+integration_check:
+- run_doctor correctly handles valid and invalid activeContext shapes via validate_active_context_shape.
+grep_control:
+- back: rg -n "validate_active_context_shape|ShapeResult" loop/incidents/doctor.py
+    loop/tests/test_incidents_doctor.py
+  front: n/a — backend only
+verification_results:
+- 'cp1 PASS: validate_active_context_shape(missing_path) -> ShapeResult(valid=False,
+  diagnostic contains path)'
+- 'cp2 PASS: validate_active_context_shape(valid_ac_path) -> ShapeResult(valid=True)'
+- 'cp3 PASS: validate_active_context_shape(wrong_schema_path) -> ShapeResult(valid=False,
+  diagnostic contains error)'
+checkpoints:
+- id: cp1
+  criterion: validate_active_context_shape(missing_path) → ShapeResult(valid=False,
+    diagnostic contains path)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: validate_active_context_shape(valid_ac_path) → ShapeResult(valid=True)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: validate_active_context_shape(wrong_schema_path) → ShapeResult(valid=False)
+    с диагностикой
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+resume_from: cp1

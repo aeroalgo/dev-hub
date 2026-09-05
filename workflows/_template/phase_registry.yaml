@@ -1,0 +1,55 @@
+schema: phase-registry/v1
+
+terminal_phases:
+  - PUBLISH
+
+phases:
+  # Example pre-implementation phase (e.g. analysis, brief, script)
+  BRIEF:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  # Example implementation phase with verification agent and external gate
+  EXAMPLE:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-example
+    dsh_preset: implement
+    external_gates:
+      - example_check
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  # Terminal phase
+  PUBLISH:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: Done

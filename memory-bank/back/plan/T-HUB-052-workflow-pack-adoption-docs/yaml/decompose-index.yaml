@@ -1,0 +1,49 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+date: '2026-09-05'
+role: back
+next_phase: BACK IMPLEMENT
+steps:
+- id: s01
+  file: s01-intent-routing-yaml.yaml
+  title: intent_routing.yaml + loader — machine-readable intent→pack mapping
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-doctor-workflow-pack.yaml
+  title: doctor workflow-pack subcommand — ≥4 preflight checks, fail-closed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-operator-runbook.yaml
+  title: docs/runbooks/workflow-pack-operator.md — env vars, loop flags, troubleshooting
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-author-runbook.yaml
+  title: docs/runbooks/workflow-pack-authoring.md — «create pack in 30 min» step-by-step
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-context-loop-workflow-pack-flag.yaml
+  title: context_loop.py --workflow-pack flag — CLI parity with WORKFLOW_PACK env
+    var
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-hub-link-pack-flag.yaml
+  title: hub-link --pack <id> — alongside mode copies pack rules tree
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s07
+  file: s07-agents-claude-idea-pipeline-docs.yaml
+  title: AGENTS.md + CLAUDE.md Workflow Packs section + idea-pipeline.mdc intent table
+    extension
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s08
+  file: s08-pytest-roadmap-update.yaml
+  title: pytest doctor workflow-pack matrix + roadmap-harness-universal-runtime table
+    update
+  next_phase: BACK IMPLEMENT
+  status: pending

@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s09 — workflows/video/README.md — operator setup + WORKFLOW_PACK usage IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s09-readme-operator-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created workflows/video/README.md operator documentation with WORKFLOW_PACK activation,
+  phases overview, render gate details, verify agents, and rules info
+files:
+- workflows/video/README.md
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short`'
+- rg 'WORKFLOW_PACK' workflows/video/README.md
+- rg 'render|final.mp4|external.gate' workflows/video/README.md
+- test -f workflows/video/README.md
+integration_check:
+- bin/pytest loop/tests/test_workflow_pack_video.py -q --tb=short
+grep_control: []
+verification_results:
+- workflows/video/README.md contains all required sections and meets checkpoints cp1,
+  cp2
+checkpoints:
+- id: cp1
+  criterion: README существует и содержит WORKFLOW_PACK activation
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+- id: cp2
+  criterion: README упоминает render gate и outputs/final.mp4
+  status: done
+  done_at: '2026-09-05T00:00:00Z'
+resume_from: cp1

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/pre_tool_use.py",
+        "matcher": "Write|Edit|TabWrite",
+        "failClosed": false
+      }
+    ]
+  }
+}

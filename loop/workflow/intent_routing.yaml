@@ -1,0 +1,21 @@
+schema: workflow-intent-routing/v1
+intents:
+  video_production:
+    pack: video-production
+    pipeline:
+      - { command: SCRIPT PLAN, gate: auto }
+      - { command: SCRIPT DECOMPOSE, gate: auto }
+      - { command: VISUAL STORYBOARD, gate: auto }
+      - { command: POST EDIT, gate: approval }
+      - { command: POST PUBLISH, gate: approval }
+  feature_full:
+    pack: dev-hub-software
+    pipeline: []
+  content_factory:
+    pack: video-production
+    pipeline:
+      - { command: SCRIPT PLAN, gate: auto }
+      - { command: SCRIPT DECOMPOSE, gate: auto }
+      - { command: VISUAL STORYBOARD, gate: auto }
+      - { command: POST EDIT, gate: auto }
+      - { command: POST PUBLISH, gate: approval }

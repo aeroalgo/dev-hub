@@ -15,6 +15,13 @@ _ALLOWED_STATUS = frozenset({"satisfied", "partial", "missing", "deferred"})
 _ACTIONABLE_GAPS = frozenset(
     {"missing", "partial", "contradicts", "layout_dilution", "dilution"}
 )
+_COMPLETED = frozenset({"completed", "done"})
+_PRESENCE_ONLY_RE = re.compile(
+    r"(?i)(файл на диске|file on disk|файлы на диске|модуль есть|presence-only|(?:file|contract|module|directory) (?:exists|is present))"
+)
+_PYTEST_EVIDENCE_RE = re.compile(
+    r"(?i)(pytest green|targeted suite|suite полностью|тесты зелён)"
+)
 
 
 def extract_plan_intent_ids(plan_path: Path) -> list[str]:
@@ -40,6 +47,41 @@ def extract_plan_intent_ids(plan_path: Path) -> list[str]:
 
 def _as_dict(data: Any) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
+
+
+def _norm_role(role_dir: str) -> str:
+    value = str(role_dir or "back").strip().lower()
+    if value == "integ":
+        return "integration"
+    return value or "back"
+
+
+def _completed_step_ids(cwd: Path, role_norm: str, epic_id: str) -> list[str]:
+    idx_path = (
+        cwd
+        / "memory-bank"
+        / role_norm
+        / "plan"
+        / epic_id
+        / "yaml"
+        / "decompose-index.yaml"
+    )
+    if not idx_path.is_file():
+        return []
+    try:
+        from harness.hooks.epic_index import load_index_yaml, steps_from_doc
+
+        idx_doc = load_index_yaml(idx_path)
+        steps = steps_from_doc(idx_doc or {})
+    except (OSError, TypeError, ValueError, yaml.YAMLError):
+        return []
+    out: list[str] = []
+    for step in steps:
+        sid = str(step.get("id") or "").strip().lower()
+        status = str(step.get("status") or "").strip().lower()
+        if sid and status in _COMPLETED:
+            out.append(sid)
+    return out
 
 
 def validate_audit_artifact(
@@ -133,6 +175,16 @@ def validate_audit_artifact(
                 f"audit_plan_vs_runtime[{i}]_evidence_missing:"
                 "behavior evidence required (not presence-only / sNN completed)"
             )
+        if status == "satisfied" and _PRESENCE_ONLY_RE.search(evidence):
+            errors.append(
+                f"audit_plan_vs_runtime[{i}]_presence_only:"
+                "satisfied FORBIDDEN on «файл есть» / file on disk"
+            )
+        if status == "satisfied" and _PYTEST_EVIDENCE_RE.search(evidence):
+            errors.append(
+                f"audit_plan_vs_runtime[{i}]_pytest_evidence:"
+                "pytest/suite is not PLAN↔runtime evidence"
+            )
         if status == "deferred" and not str(row.get("remaining_work") or row.get("follow_up") or "").strip():
             errors.append(
                 f"audit_plan_vs_runtime[{i}]_deferred_without_follow_up"
@@ -144,10 +196,20 @@ def validate_audit_artifact(
     if "converged" not in doc or not isinstance(doc.get("converged"), bool):
         errors.append("audit_converged_missing")
 
-    if "architecture_parity" not in doc or not isinstance(
-        doc.get("architecture_parity"), list
-    ):
+    parity = doc.get("architecture_parity")
+    if "architecture_parity" not in doc or not isinstance(parity, list):
         errors.append("audit_architecture_parity_missing")
+        parity = []
+    for i, row in enumerate(parity):
+        if not isinstance(row, dict):
+            continue
+        ev = str(row.get("evidence") or "").strip()
+        st = str(row.get("status") or "").strip().lower()
+        if st in {"present", "satisfied"} and _PRESENCE_ONLY_RE.search(ev):
+            errors.append(
+                f"audit_architecture_parity[{i}]_presence_only:"
+                "status present FORBIDDEN on «файл на диске» without behavior"
+            )
 
     sunset = doc.get("sunset_inventory_scan")
     if not isinstance(sunset, dict):
@@ -156,9 +218,67 @@ def validate_audit_artifact(
             "brownfield scan block required (or plan_ref: n/a with empty rows)"
         )
 
-    role_norm = str(role_dir or "back").strip().lower()
-    if role_norm == "integ":
-        role_norm = "integration"
+    cwd_p = Path(cwd)
+    role_norm = _norm_role(role_dir)
+    implemented = doc.get("implemented")
+    if isinstance(implemented, list):
+        from harness.hooks.epic_yaml import resolve_implement_path
+
+        for i, row in enumerate(implemented):
+            if not isinstance(row, dict):
+                continue
+            step_id = str(row.get("step_id") or "").strip()
+            impl_file = str(row.get("implement_file") or "").strip()
+            if not impl_file:
+                errors.append(f"audit_implemented[{i}]_implement_file_missing")
+                continue
+            impl_path = cwd_p / impl_file
+            if not impl_path.is_file():
+                errors.append(
+                    f"audit_implemented[{i}]_implement_file_missing_on_disk:"
+                    f"{impl_file}"
+                )
+                continue
+            if "/plan/" in impl_file.replace("\\", "/") and impl_file.endswith(".md"):
+                errors.append(
+                    f"audit_implemented[{i}]_plan_md_not_implement:"
+                    f"{impl_file}"
+                )
+            if step_id:
+                resolved = resolve_implement_path(
+                    cwd_p, role_norm, epic_id, step_id
+                )
+                resolved_p = cwd_p / resolved
+                if resolved_p.is_file() and impl_path.resolve() != resolved_p.resolve():
+                    errors.append(
+                        f"audit_implemented[{i}]_not_implement_shard:"
+                        f"got {impl_file}; expected {resolved}"
+                    )
+
+    completed_ids = _completed_step_ids(cwd_p, role_norm, epic_id)
+    if completed_ids:
+        covered_steps: set[str] = set()
+        if isinstance(implemented, list):
+            for row in implemented:
+                if isinstance(row, dict):
+                    sid = str(row.get("step_id") or "").strip().lower()
+                    if sid:
+                        covered_steps.add(sid)
+        matrix = doc.get("step_matrix")
+        if isinstance(matrix, list):
+            for row in matrix:
+                if isinstance(row, dict):
+                    sid = str(row.get("step_id") or "").strip().lower()
+                    if sid:
+                        covered_steps.add(sid)
+        missing_steps = [sid for sid in completed_ids if sid not in covered_steps]
+        if missing_steps:
+            preview = ", ".join(missing_steps[:12])
+            errors.append(
+                "audit_completed_steps_uncovered:"
+                f"implemented[]/step_matrix must cover completed sNN: {preview}"
+            )
+
     plan_path = find_plan_md_path(cwd, role_norm, epic_id)
     if plan_path is None or not plan_path.is_file():
         errors.append(
@@ -166,6 +286,8 @@ def validate_audit_artifact(
             "(AUDIT must inventory intent from plan)"
         )
     else:
+        from harness.hooks.epic.audit_contract import validate_contract
+        errors.extend(validate_contract(doc, cwd_p, plan_path))
         plan_ids = extract_plan_intent_ids(plan_path)
         if not plan_ids:
             errors.append(

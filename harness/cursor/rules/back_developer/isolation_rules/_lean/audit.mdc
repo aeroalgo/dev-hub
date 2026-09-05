@@ -4,11 +4,11 @@ alwaysApply: false
 ---
 # AUDIT — gates
 **Артефакт:**
-`memory-bank/back/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
+`memory-bank/back/audit/<epic_id>/audit.yaml`
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
 
 ## Gates (обязательные — узкий путь)
-1. Lean load §7: `load_now` + `plan-<epic_id>.md` + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/sNN|eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard.
+1. Lean load §7: `load_now` + `plan/<epic_id>/md/plan.md` + `plan/<epic_id>/yaml/decompose-index.yaml` (status) + заголовки `implement/implement-<epic_id>/sNN-*.yaml`. Assess D: **полный текст per completed sNN** implement yaml ↔ decompose yaml (`plan/<epic_id>/yaml/steps/sNN-*.yaml`). FORBIDDEN: full-repo dump всех шардов сразу; FORBIDDEN искать implement в `plan/<epic_id>/md/sNN-*.md`.
 2. **Intent Inventory gate (plan-first):** в audit artifact — **все** plan FR/SC/US/AC±/NFR + constitution MUST с `source_ref`; каждый → `step_id`/eNN или finding `missing` CRITICAL. Decompose coverage вторичен. **FORBIDDEN** inventory только из remapped decompose FR.
 2a. **Constitution CASE:** файл `$PROJECT_ROOT/memory-bank/constitution.md` есть → CASE A (canonical); нет → CASE B (note или `constitution: n/a` + reason). **FORBIDDEN** выбор CASE по hardcoded epic ID.
 3. **Triple Assess (HARD):**
@@ -30,7 +30,8 @@ alwaysApply: false
 - Новый shard записан без обновления `index.md` + `index.yaml` → FAIL
 - FINISH без Intent Inventory, Assess, findings или полной gap-матрицы в артефакте → FAIL
 - Intent Inventory без plan FR (только decompose remap) → FAIL
-- `satisfied` / ✅ на registry/alias/unit-only при agent/hook/CLI FR → FAIL
+- `satisfied` / ✅ на registry/alias/unit-only / «файл на диске» при agent/hook/CLI FR → FAIL
+- `implemented[].implement_file` указывает на `plan/<epic_id>/md/sNN-*.md` или путь не существует → FAIL
 - `converged: true` при plan FR без behavior evidence / layout_dilution / architecture_parity missing → FAIL
 - Intent Inventory без Target layout nodes (при наличии Target layout в plan) → FAIL
 - `source_ref` отсутствует в finding или goal/plan_refs нового audit shard → FAIL
@@ -48,7 +49,7 @@ alwaysApply: false
 
 ## FORBIDDEN
 - MODE CONVERGE / `specify-cli`.
-- Full-text shard loading, full-repo audit and auto-delete of unrequested code.
+- Full-repo dump всех implement/decompose шардов сразу (Assess D = per completed sNN, не batch dump). Auto-delete unrequested code.
 - Tests/suite or code-review; this lean gate only validates audit artifact/process.
 - Rewriting completed implement artifacts; remediation is append-only.
 

@@ -4,10 +4,11 @@ alwaysApply: false
 ---
 # Hot path (BACK AUDIT)
 
-1. Intent Inventory **из plan** (все FR/US + Target layout — **verbatim IDs**, не remapped decompose)
-2. **Triple Assess:** PLAN↔runtime · step ✅/❌/⚠️ · architecture_parity (layout tree)
-   - presence/registry ≠ satisfied · deferred Notes без queue → `layout_dilution` CRITICAL
-3. Append-only `sNN-audit-*` (+ `plan_contract`) для gaps → sync index
+1. Intent Inventory **из** `plan/<epic_id>/md/plan.md` (все FR/US + Target layout — **verbatim IDs**, не remapped decompose)
+2. **Triple Assess:** PLAN↔runtime · step ✅/❌/⚠️ · architecture_parity · **Assess D:** Read `implement/implement-<epic_id>/sNN-*.yaml` ↔ `plan/<epic_id>/yaml/steps/sNN-*.yaml`
+   - presence/registry / «файл на диске» ≠ satisfied · deferred Notes без queue → `layout_dilution` CRITICAL
+   - `implemented[].implement_file` MUST exist (не `plan/.../md/sNN.md`)
+3. Append-only `plan/<epic_id>/yaml/steps/sNN-audit-*` (+ `plan_contract`) для gaps → sync index
 4. Brownfield: `sunset_inventory_scan` + leftovers + `purge_step_present`
 5. `converged: true` только при полном plan parity → QA; иначе IMPLEMENT → AUDIT ↻
 

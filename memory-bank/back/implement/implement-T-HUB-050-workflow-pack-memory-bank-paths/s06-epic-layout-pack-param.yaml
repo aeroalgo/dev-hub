@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s06 — epic_paths.py — resolve_epic_path(kind, epic_id, pack) IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s06-epic-layout-pack-param.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+- architecture-patterns
+discovery:
+- Создан модуль loop/paths/epic_paths.py с классом EpicPathKind и функцией resolve_epic_path(kind, epic_id, pack=..., role=..., step_id=..., step_slug=..., ext=..., cwd=...)
+- resolve_epic_path использует resolve_mb_root(cwd=cwd, pack=pack) для вычисления pack-relative пути к plan, decompose, implement, qa, analyze, audit артефактам
+gaps:
+  status: none
+done:
+- Реализован `loop/paths/epic_paths.py` с enum `EpicPathKind` и функцией `resolve_epic_path`
+- Поддержаны все типы артефактов (plan, decompose, implement, qa, analyze, audit) и переопределение role/step_id/step_slug/ext
+- Добавлен тестовый набор `loop/tests/test_epic_paths.py`, покрывающий software, video и production workflow packs
+files:
+- loop/paths/epic_paths.py
+- loop/tests/test_epic_paths.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_epic_paths.py -q --tb=short`'
+- '`bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k ''plan and software''`'
+- '`bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k ''plan and video''`'
+- '`bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k ''decompose''`'
+integration_check:
+- resolve_epic_path возвращает корректный pack-relative путь в зависимости от конфигурации pack.memory_bank и artifact_layout
+grep_control:
+- back: python3 -c "from loop.paths.epic_paths import resolve_epic_path, EpicPathKind; print(resolve_epic_path('plan', 'T-HUB-050'))"
+  front: n/a
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: resolve_epic_path('plan', epic_id, software_pack) → mb_root/back/plan/{epic_id}/md/
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: resolve_epic_path('plan', epic_id, video_pack) → memory-bank/video/back/plan/{epic_id}/md/
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: resolve_epic_path('decompose', ...) → yaml/steps/ subfolder корректно
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp1

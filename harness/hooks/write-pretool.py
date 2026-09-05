@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     active_context_write_deny_reason,
+    recorded_artifact_write_deny_reason,
     emit,
     product_cwd,
     read_stdin,
@@ -27,9 +28,11 @@ def main() -> None:
         or tool_input.get("notebook_path")
         or ""
     )
-    contents = tool_input.get("contents") or tool_input.get("new_string") or ""
+    contents = tool_input.get("contents") or tool_input.get("content") or tool_input.get("new_string") or ""
     cwd = product_cwd(data.get("cwd"))
     reason = active_context_write_deny_reason(cwd, file_path, contents)
+    if not reason:
+        reason = recorded_artifact_write_deny_reason(cwd, file_path)
     if not reason:
         return
 

@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "pytest doctor workflow-pack matrix + roadmap-harness-universal-runtime table update"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  (a) Ensure loop/tests/test_doctor_workflow_pack.py covers full TM-001..TM-005 matrix:
+  ok pack (exit 0), invalid pack (exit 1), missing rules_root, missing phase_registry,
+  mb_root not writable. All green on dev-hub default.
+  (b) Update roadmap-harness-universal-runtime §2 architecture table with Workflow Pack layer row
+  (or equivalent roadmap doc in memory-bank). Closes FR-009, FR-010, SC-001, SC-002, AC+ #5.
+
+plan_contract:
+  fr_ids: [FR-009, FR-010, SC-001, SC-002, TM-001, TM-002, TM-003, TM-004, TM-005]
+  nouns: [test_doctor_workflow_pack.py, roadmap-harness-universal-runtime, Workflow Pack layer]
+  layout_paths:
+    - loop/tests/test_doctor_workflow_pack.py
+  ac_quotes:
+    - "FR-009: pytest doctor workflow-pack matrix (ok pack, missing rules, invalid pack)"
+    - "FR-010: Update roadmap-harness-universal-runtime §2 table with Workflow Pack layer row"
+    - "AC+ #5: pytest doctor pack matrix green"
+    - "SC-001: doctor workflow-pack green on dev-hub default"
+    - "SC-002: doctor fails on invalid pack"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:155-200"
+
+context:
+  consumes:
+    - loop/doctor/checks/workflow_pack.py  # produced by s02
+    - loop/tests/test_doctor_workflow_pack.py  # may exist from s02 TDD
+  produces:
+    - loop/tests/test_doctor_workflow_pack.py
+  plan_refs:
+    - "plan §QA consumes table TM-001..TM-005"
+    - "plan §FR-010"
+  files:
+    - loop/tests/test_doctor_workflow_pack.py
+
+as_built:
+  - "loop/tests/ exists with existing test patterns (fixtures, tmp_path)"
+  - "test_doctor_workflow_pack.py: partial — created in s02 TDD; s08 ensures full matrix"
+
+delta:
+  - "edit: loop/tests/test_doctor_workflow_pack.py — ensure all 5 TM cases have parametrized coverage; add fixtures for invalid_pack, missing_rules_root, missing_phase_registry, unwritable_mb_root"
+  - "edit: roadmap doc (find via rg 'harness-universal-runtime') — add Workflow Pack layer row to §2 architecture table"
+
+deletes: []
+
+out_of_scope:
+  - "full suite QA — next phase QA step"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "all test_doctor_workflow_pack.py tests pass"
+    verify: "bin/pytest loop/tests/test_doctor_workflow_pack.py -q --tb=line"
+  - id: cp2
+    criterion: "intent_routing tests pass"
+    verify: "bin/pytest loop/tests/test_intent_routing.py -q --tb=line"
+  - id: cp3
+    criterion: "workflow-pack flag tests pass"
+    verify: "bin/pytest loop/tests/test_workflow_pack_flag.py -q --tb=line"
+  - id: cp4
+    criterion: "roadmap doc contains Workflow Pack layer row"
+    verify: "rg -l 'harness-universal-runtime' memory-bank/ | xargs rg 'Workflow Pack' | head -3"
+
+verify: []
+tdd:
+  - "loop/tests/test_doctor_workflow_pack.py: full TM-001..TM-005 matrix (parametrized fixtures)"

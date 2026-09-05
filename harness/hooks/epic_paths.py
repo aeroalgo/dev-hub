@@ -76,12 +76,16 @@ def next_prompt_path(cwd: str | Path) -> Path:
 
 def active_context_path(cwd: str | Path) -> Path:
     import os
+    from loop.paths.pack_layout import resolve_mb_root
 
     cwd_p = Path(cwd).expanduser().resolve()
     hub_root = Path(__file__).resolve().parents[2]
     proj = (os.environ.get("PROJECT_ROOT") or "").strip()
     root = Path(proj).expanduser().resolve() if proj and cwd_p == hub_root else cwd_p
-    return root / "memory-bank" / "activeContext.md"
+    try:
+        return resolve_mb_root(root) / "activeContext.md"
+    except Exception:
+        return root / "memory-bank" / "activeContext.md"
 
 
 def _normalize_mb_path(path: str | Path) -> str:

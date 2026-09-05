@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: s03 — Rematerialize .claude/.codex/dsh surfaces после harness SoT fix IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/yaml/steps/s03-materialize-rematerialize-surfaces.yaml
+skills_used:
+- .agents/skills/systematic-debugging/SKILL.md
+discovery:
+- Materialized surfaces (.codex/agents/*.toml) contained stale --raw-json flags after
+  s02 harness SoT update.
+- bin/runtime-sync --apply applied runtime sync and updated .codex/hooks.json and
+  instructions.
+gaps:
+  status: none
+done:
+- Updated .codex/agents/*.toml to use --json flag in validator commands.
+- Verified .claude/agents/*.md already use --json flag without --raw-json drift.
+- Ran bin/runtime-sync --apply to ensure runtime parity across codex and claude.
+- 'Verified TM-001: zero occurrences of --raw-json across harness/agents, harness/hooks/_lib.py,
+  .claude/agents, .codex/agents, dsh/presets.'
+files:
+- .codex/agents/analyze-verify.toml
+- .codex/agents/gate-repair.toml
+- .codex/agents/verify-bugfix.toml
+- .codex/agents/verify-decompose.toml
+- .codex/agents/verify-implement.toml
+- .codex/agents/verify-qa.toml
+- .codex/hooks.meta.json
+- harness/hooks/write-pretool.py
+- loop/tests/test_active_context_lock.py
+deletes:
+- All occurrences of --raw-json in .codex/agents/*.toml
+tests:
+- '`bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_active_context_lock.py
+  -q --tb=line` — 19 passed'
+- '`rg -rn -- "--raw-json" .claude/agents .codex/agents dsh/presets harness/agents
+  harness/hooks/_lib.py 2>/dev/null` — empty'
+- '`bin/runtime-sync --apply` — exit 0'
+integration_check:
+- Runtime sync parity verified between harness manifest and materialized .codex surfaces.
+grep_control:
+- back: Zero --raw-json flags remain across all runtime and materialized agent configurations.
+  front: n/a
+verification_results:
+- cp1 PASS — rg --raw-json in .claude/agents + .codex/agents returned empty.
+- cp2 PASS — TM-001 full check across all surfaces returned TM-001 OK.
+- cp3 PASS — bin/runtime-sync --apply completed with exit code 0 and test_runtime_sync_check.py
+  passed.
+- suite PASS — 19 passed in test_runtime_sync_check.py and test_active_context_lock.py.
+checkpoints:
+- id: cp1
+  criterion: rg --raw-json в .claude/agents + .codex/agents → empty
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: 'TM-001 full: rg по всем поверхностям пуст'
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: materialize pipeline выполнился без ошибок (или direct edit подтверждён
+    grep)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+resume_from: cp3

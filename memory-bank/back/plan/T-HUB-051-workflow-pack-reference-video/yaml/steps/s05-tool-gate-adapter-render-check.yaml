@@ -1,0 +1,110 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "loop/workflow/tool_gates/ ToolGateAdapter + workflows/video/tools/render_check.py"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/workflow/tool_gates/` пакет с Protocol `ToolGateAdapter` и `ToolGateContext`/`ToolGateResult` dataclass-ами.
+  Создать `workflows/video/tools/render_check.py` — конкретный adapter для render gate:
+  проверяет наличие output файла + stat-based duration (ffprobe если доступен, иначе fallback file size > 0).
+  JSON stdout contract: `{"ok": bool, "diagnostic_codes": []}`.
+  Adapter регистрируется в `workflows/video/manifest.yaml` под `tool_gates: {render: ...}`.
+  Outcomes: FR-006, FR-007, TM-001, TM-002, SC-003, AC+2, AC−2.
+
+plan_contract:
+  fr_ids: [FR-006, FR-007, TM-001, TM-002, SC-003, AC+2, AC-2]
+  nouns:
+    - "loop/workflow/tool_gates/__init__.py — package"
+    - "loop/workflow/tool_gates/protocol.py — ToolGateAdapter(Protocol), ToolGateContext, ToolGateResult"
+    - "ToolGateAdapter.id: str"
+    - "ToolGateAdapter.check(ctx: ToolGateContext) -> ToolGateResult"
+    - "ToolGateContext — fields: cwd: Path, phase: str, pack_id: str, extra: dict"
+    - "ToolGateResult — fields: ok: bool, diagnostic_codes: list[str]"
+    - "workflows/video/tools/render_check.py — RenderCheckAdapter implements ToolGateAdapter"
+    - "render_check: проверяет ctx.cwd/'outputs/final.mp4' stat; ffprobe optional"
+    - "diagnostic_codes: ['render_output_missing'] | ['render_duration_zero'] | []"
+    - "workflows/video/manifest.yaml: добавить tool_gates: {render: {adapter: workflows/video/tools/render_check.py, class: RenderCheckAdapter}}"
+  layout_paths:
+    - "loop/workflow/tool_gates/__init__.py"
+    - "loop/workflow/tool_gates/protocol.py"
+    - "workflows/video/tools/__init__.py"
+    - "workflows/video/tools/render_check.py"
+    - "workflows/video/manifest.yaml (update: +tool_gates section)"
+  ac_quotes:
+    - "US-002: external gate проверил output mp4 exists + duration>0"
+    - "AC−2: Real ffmpeg NOT required in CI pytest — stat fallback / mock adapter"
+    - "TM-001: render gate fail → exit 1, {ok:false, diagnostic_codes:['render_output_missing']}"
+    - "TM-002: render gate pass → fixture mp4 → exit 0"
+    - "FORBIDDEN (Technology axiom): LLM prose «render готов» вместо machine check"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:195-230"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:71-85"
+
+context:
+  consumes:
+    - "loop/workflow/schemas.py:WorkflowPack — добавить optional tool_gates field или держать в manifest yaml-level"
+    - "s01: workflows/video/manifest.yaml — добавить tool_gates секцию"
+    - "s02: phase_registry EDIT.external_gates: [render] — protocol использует этот id"
+  produces:
+    - "loop/workflow/tool_gates/ — новый пакет"
+    - "workflows/video/tools/render_check.py — RenderCheckAdapter"
+    - "workflows/video/manifest.yaml — +tool_gates секция"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §Tool gate protocol"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §Technology axiom"
+  files:
+    - "loop/workflow/tool_gates/__init__.py"
+    - "loop/workflow/tool_gates/protocol.py"
+    - "workflows/video/tools/__init__.py"
+    - "workflows/video/tools/render_check.py"
+    - "workflows/video/manifest.yaml"
+
+as_built:
+  - "loop/workflow/tool_gates/ — не существует"
+  - "workflows/video/tools/ — не существует"
+  - "loop/workflow/schemas.py:WorkflowPack — нет tool_gates поля (extra='forbid')"
+
+delta:
+  - "loop/workflow/tool_gates/__init__.py: создать пакет"
+  - "loop/workflow/tool_gates/protocol.py: ToolGateAdapter(Protocol) + dataclasses"
+  - "workflows/video/tools/__init__.py: создать пакет"
+  - "workflows/video/tools/render_check.py: RenderCheckAdapter — stat + ffprobe optional"
+  - "workflows/video/manifest.yaml: добавить tool_gates: {render: {...}} секцию"
+  - "loop/workflow/schemas.py:WorkflowPack: НЕ добавлять tool_gates в Pydantic (extra=forbid) — держать как yaml-level extension; или добавить Optional[dict] + model_config extra='ignore' на tool_gates"
+
+deletes: []
+
+out_of_scope:
+  - "ffprobe binary availability CI enforcement — cut_list; только stat fallback обязателен"
+  - "Generic tool_gates registry loader (авто-обнаружение адаптеров) — в s06 (CLI dispatch)"
+  - "VISUAL/POST specific tool gates"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: ToolGateAdapter Protocol + ToolGateResult импортируются без ошибок
+    verify: "python -c \"from loop.workflow.tool_gates.protocol import ToolGateAdapter, ToolGateContext, ToolGateResult\""
+  - id: cp2
+    criterion: render_check fail path (нет файла) → ok=False, diagnostic_codes=['render_output_missing']
+    verify: "bin/pytest loop/tests/test_tool_gate_render_check.py -q --tb=short -k 'fail'"
+  - id: cp3
+    criterion: render_check pass path (fixture mp4) → ok=True, diagnostic_codes=[]
+    verify: "bin/pytest loop/tests/test_tool_gate_render_check.py -q --tb=short -k 'pass'"
+  - id: cp4
+    criterion: render_check не требует реального ffprobe в CI (stat fallback)
+    verify: "bin/pytest loop/tests/test_tool_gate_render_check.py -q --tb=short -k 'no_ffprobe'"
+
+verify:
+  - "rg 'ToolGateAdapter' loop/workflow/tool_gates/protocol.py"
+  - "rg 'render_output_missing' workflows/video/tools/render_check.py"
+
+tdd:
+  - "loop/tests/test_tool_gate_render_check.py — test_render_fail_missing, test_render_pass_fixture, test_render_no_ffprobe_fallback"

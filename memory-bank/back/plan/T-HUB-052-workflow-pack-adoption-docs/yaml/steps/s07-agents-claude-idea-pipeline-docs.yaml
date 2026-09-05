@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "AGENTS.md + CLAUDE.md Workflow Packs section + idea-pipeline.mdc intent table extension"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  (a) Add «Workflow Packs» section to AGENTS.md and CLAUDE.md with concise table: pack id, roles,
+  command_prefixes, how to activate (WORKFLOW_PACK env / --workflow-pack flag).
+  (b) Patch harness/cursor/rules/shared/workflow-idea-pipeline.mdc: extend Матрица intent→chain
+  table with video_production and content_factory rows referencing pack ids and intent_routing.yaml.
+  Closes FR-002, FR-008, US-002, AC+ #2 (intent_routing.yaml referenced by IDEA PIPELINE doc).
+  Replaces: prose-only IDEA video routing (AC− #1 prevention).
+
+plan_contract:
+  fr_ids: [FR-002, FR-008, US-002]
+  nouns: [AGENTS.md, CLAUDE.md, workflow-idea-pipeline.mdc, video_production, content_factory, intent_routing.yaml]
+  layout_paths:
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+  ac_quotes:
+    - "FR-002: Extend workflow-idea-pipeline.mdc intent table with video_production, content_factory rows referencing pack ids"
+    - "FR-008: AGENTS.md + CLAUDE.md section «Workflow Packs» with concise table"
+    - "AC+ #2: intent_routing.yaml loaded by IDEA PIPELINE workflow doc reference"
+    - "US-002: IDEA PIPELINE video intent → video pack chain"
+    - "AC− #1: no prose-only routing — machine table is SoT"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:35-65"
+
+context:
+  consumes:
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+    - loop/workflow/intent_routing.yaml  # produced by s01
+  produces:
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+  plan_refs:
+    - "plan §FR-002, §FR-008, AC− #1"
+  files:
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/rules/shared/workflow-idea-pipeline.mdc
+
+as_built:
+  - "AGENTS.md: existing sections without Workflow Packs section"
+  - "CLAUDE.md: existing project instructions without Workflow Packs"
+  - "harness/cursor/rules/shared/workflow-idea-pipeline.mdc: Матрица table has software|feature|content|marketing rows; no video_production row"
+
+delta:
+  - "edit: AGENTS.md — add ## Workflow Packs section with table: pack id / roles / command_prefixes / activate"
+  - "edit: CLAUDE.md — add ## Workflow Packs section (mirror of AGENTS.md, project context)"
+  - "edit: harness/cursor/rules/shared/workflow-idea-pipeline.mdc — add video_production and content_factory rows to Матрица table; add note referencing loop/workflow/intent_routing.yaml as machine SoT"
+
+deletes:
+  - "any prose-only 'video → SCRIPT PLAN' routing sentences in idea-pipeline.mdc that predate this table row (rg audit cp3)"
+
+out_of_scope:
+  - "operator/author runbook links in AGENTS.md — s03/s04 products already linked in runbooks"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "AGENTS.md contains 'Workflow Packs' heading and pack table"
+    verify: "rg 'Workflow Packs' AGENTS.md"
+  - id: cp2
+    criterion: "idea-pipeline.mdc Матрица table contains video_production row referencing pack id"
+    verify: "rg 'video_production' harness/cursor/rules/shared/workflow-idea-pipeline.mdc"
+  - id: cp3
+    criterion: "no bare prose-only 'video → SCRIPT PLAN' sentence outside table in idea-pipeline.mdc"
+    verify: "rg -n 'video.*SCRIPT PLAN' harness/cursor/rules/shared/workflow-idea-pipeline.mdc | grep -v '|' | wc -l | xargs -I{} test {} -eq 0"
+
+verify: []
+tdd: []

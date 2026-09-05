@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "context_loop.py --workflow-pack flag — CLI parity with WORKFLOW_PACK env var"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Add --workflow-pack <id> argument to loop/context_loop.py `prepare` subcommand (or top-level).
+  When passed, sets WORKFLOW_PACK env var for the session (same effect as env var set externally).
+  Document parity in --help text. Closes FR-007, US-005, TM-005.
+
+plan_contract:
+  fr_ids: [FR-007, US-005, TM-005]
+  nouns: ["--workflow-pack", WORKFLOW_PACK, context_loop.py, prepare subcommand]
+  layout_paths:
+    - loop/context_loop.py
+  ac_quotes:
+    - "FR-007: loop/context_loop.py --workflow-pack CLI flag sets env for session (document parity with WORKFLOW_PACK)"
+    - "US-005: context_loop --help shows flag"
+    - "TM-005: loop --workflow-pack → pytest → PASS"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:135-155"
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - loop/workflow/registry.py
+  produces:
+    - loop/context_loop.py
+  plan_refs:
+    - "plan §FR-007"
+  files:
+    - loop/context_loop.py
+
+as_built:
+  - "loop/context_loop.py: argparse with prepare subcommand, p_prep.add_argument('--model', '--runtime') pattern"
+  - "WORKFLOW_PACK env consumed by resolve_workflow_pack() in loop/workflow/registry.py"
+
+delta:
+  - "edit: loop/context_loop.py — add p_prep.add_argument('--workflow-pack', default=None, help='Override WORKFLOW_PACK env var for this session'); wire: if args.workflow_pack: os.environ['WORKFLOW_PACK'] = args.workflow_pack before pack resolution"
+
+deletes: []
+
+out_of_scope:
+  - "hub-link --pack — s06"
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "--workflow-pack appears in context_loop prepare --help"
+    verify: "python loop/context_loop.py prepare --help | grep workflow-pack"
+  - id: cp2
+    criterion: "pytest TM-005 passes"
+    verify: "bin/pytest loop/tests/test_workflow_pack_flag.py -q --tb=line"
+
+verify: []
+tdd:
+  - "loop/tests/test_workflow_pack_flag.py: test_workflow_pack_flag_sets_env, test_workflow_pack_flag_in_help"

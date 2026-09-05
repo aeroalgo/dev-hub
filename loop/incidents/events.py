@@ -54,7 +54,13 @@ def _get_epic_info(cwd: Path) -> tuple[str, str] | None:
 
 
 def _append_event_to_jsonl(cwd: Path, epic_id: str, role_dir: str, kind: str, metadata: dict[str, Any]) -> bool:
-    """Append event to memory-bank/<role_dir>/events/<epic_id>/events.jsonl using build_event."""
+    """Append event to <mb_root>/<role_dir>/events/<epic_id>/events.jsonl using build_event."""
+    try:
+        from loop.paths.pack_layout import resolve_mb_root
+        mb_root = resolve_mb_root(cwd=cwd)
+    except Exception:
+        mb_root = cwd / "memory-bank"
+
     try:
         from epic import _append_event, _event_log_path, _next_event_seq, read_event_log_result, utc_now, atomic_write_text
     except ImportError:
@@ -64,13 +70,16 @@ def _append_event_to_jsonl(cwd: Path, epic_id: str, role_dir: str, kind: str, me
             logger.error("Could not import epic helpers for event emission")
             return False
 
-    events_path = cwd / "memory-bank" / role_dir / "events" / epic_id / "events.jsonl"
+    events_path = mb_root / role_dir / "events" / epic_id / "events.jsonl"
     events_path.parent.mkdir(parents=True, exist_ok=True)
 
     stream = read_event_log_result(events_path, expected_epic_id=epic_id, cwd=cwd)
     events = list(stream.events) if not stream.diagnostics else []
 
-    dummy_artifact = f"memory-bank/{role_dir}/events/{epic_id}/events.jsonl"
+    try:
+        dummy_artifact = events_path.relative_to(cwd).as_posix()
+    except ValueError:
+        dummy_artifact = f"{mb_root.name}/{role_dir}/events/{epic_id}/events.jsonl"
 
     # Sanitize metadata to strip secret keys/values or prompt fields before build_event
     safe_metadata = {}

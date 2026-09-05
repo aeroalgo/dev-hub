@@ -1,16 +1,17 @@
 # Реестр шагов (Decompose index)
 **Plan ID:** <plan_id>
-**План:** [plan-<id>.md](../plan-<id>.md)
-**Machine index:** [index.yaml](index.yaml) — **канон status**
+**План:** [plan.md](plan.md)
+**Machine index:** [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) — **канон status**
 **Дата:** YYYY-MM-DD
 **Режим:** BACK DECOMPOSE | FRONT DECOMPOSE | INTEG DECOMPOSE
 
 Каждый шаг — атомарная задача (BACK/FRONT: один prod-модуль или один test-file; INTEG: один UI-элемент). Shard: `sNN|eNN-<slug>.yaml` — [.cursor/templates/decompose/epic-step.yaml](epic-step.yaml).
 
-> **DECOMPOSE-only:** coverage-таблицы ниже — доказательство нарезки. **IMPLEMENT `load_now` = work shard + `index.yaml`.** Этот файл в IMPLEMENT не грузить.
-> **status SoT = `index.yaml` only.** `index.md` status — best-effort зеркало (`mark-index-status` / `finalize-step` / auto `repair-index-mirror` на prepare).
-> **`index.yaml` contract:** `schema: epic-decompose-index/v1`, корневой список `steps:`, у шага минимум `id`, `file`, `title`, `next_phase`, `status`. `queue:` / `step_id:` в корне индекса недопустимы.
-> `--decompose` = `index.md` | `index.yaml` | каталог | shard yaml рядом. Не передавать implement-шард.
+> **Path (layout v2 HARD):** этот файл = `plan/<plan_id>/md/decompose-index.md`. Machine = `plan/<plan_id>/yaml/decompose-index.yaml`. Shards = `yaml/steps/`. **FORBIDDEN** `decompose-<id>/` · `yaml/index.md` · `yaml/index.yaml` · дубль имён.
+> **DECOMPOSE-only:** coverage-таблицы ниже — доказательство нарезки. **IMPLEMENT `load_now` = work shard + `yaml/decompose-index.yaml`.** Этот файл в IMPLEMENT не грузить.
+> **status SoT = `decompose-index.yaml` only.** `decompose-index.md` status — best-effort зеркало (`mark-index-status` / `finalize-step` / auto `repair-index-mirror` на prepare).
+> **`decompose-index.yaml` contract:** `schema: epic-decompose-index/v1`, корневой список `steps:`, у шага минимум `id`, `file` (basename в `yaml/steps/`), `title`, `next_phase`, `status`. `queue:` / `step_id:` в корне индекса недопустимы.
+> `--decompose` = `decompose-index.md` | `decompose-index.yaml` | каталог эпика | shard yaml. Не передавать implement-шард.
 > PLAN / другой чат **не** пишет весь этот файл и **не** трогает status, пока эпик в IMPLEMENT/loop.
 > Рассинхрон → `repair-index-mirror` (rebuild queue из yaml). Состав yaml из md → `sync-index-yaml` (bootstrap).
 > Plan не дублирует чеклист шагов. `implement/index.md` не создавать.

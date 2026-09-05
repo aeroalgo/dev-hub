@@ -1,10 +1,45 @@
 """Workflow pack command router: maps raw commands to normalized phases and rules mdc paths."""
 from __future__ import annotations
 
+import functools
 from pathlib import Path
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Union
+import yaml
 
-from loop.workflow.schemas import WorkflowPack
+from loop.workflow.schemas import IntentRoutingTable, WorkflowPack
+
+DEFAULT_INTENT_ROUTING_FILENAME = "intent_routing.yaml"
+
+
+@functools.lru_cache(maxsize=32)
+def load_intent_routing(hub_root: Optional[Union[Path, str]] = None) -> IntentRoutingTable:
+    """Load and validate IntentRoutingTable from hub_root/loop/workflow/intent_routing.yaml."""
+    if hub_root is None:
+        hub_root_path = Path(__file__).resolve().parent.parent.parent
+    else:
+        hub_root_path = Path(hub_root).resolve()
+
+    routing_path = hub_root_path / "loop" / "workflow" / DEFAULT_INTENT_ROUTING_FILENAME
+    if not routing_path.is_file():
+        alt_path = hub_root_path / "loop" / DEFAULT_INTENT_ROUTING_FILENAME
+        if alt_path.is_file():
+            routing_path = alt_path
+        else:
+            alt_path2 = hub_root_path / DEFAULT_INTENT_ROUTING_FILENAME
+            if alt_path2.is_file():
+                routing_path = alt_path2
+
+    if not routing_path.is_file():
+        raise FileNotFoundError(f"Intent routing file not found: {routing_path}")
+
+    with open(routing_path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    if not isinstance(data, dict):
+        raise ValueError(f"Malformed YAML in intent routing: expected dict at root, got {type(data)}")
+
+    return IntentRoutingTable.model_validate(data)
+
 
 
 class CommandRoute(NamedTuple):

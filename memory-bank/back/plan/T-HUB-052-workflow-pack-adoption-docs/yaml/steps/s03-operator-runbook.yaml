@@ -1,0 +1,65 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "docs/runbooks/workflow-pack-operator.md — env vars, loop flags, troubleshooting"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Create docs/runbooks/workflow-pack-operator.md as SoT for operators: env vars
+  (WORKFLOW_PACK), --workflow-pack loop flag, doctor workflow-pack preflight,
+  troubleshooting table keyed on diagnostic codes (TM-001..TM-004). Closes FR-005, US-001, SC-004.
+  Runbook must reference intent_routing.yaml as canonical routing source (not prose-only).
+
+plan_contract:
+  fr_ids: [FR-005, US-001, SC-004]
+  nouns: [workflow-pack-operator.md, WORKFLOW_PACK, --workflow-pack, doctor workflow-pack, diagnostic codes]
+  layout_paths:
+    - docs/runbooks/workflow-pack-operator.md
+  ac_quotes:
+    - "FR-005: env vars, loop flags, troubleshooting"
+    - "SC-004: Runbook paths exist and link from README"
+    - "US-001: operator wants doctor --check workflow-pack before loop start"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:45-70"
+
+context:
+  consumes:
+    - loop/workflow_pack_registry.yaml
+    - loop/workflow/intent_routing.yaml  # produced by s01
+    - loop/doctor/checks/workflow_pack.py  # produced by s02
+  produces:
+    - docs/runbooks/workflow-pack-operator.md
+  plan_refs:
+    - "plan §FR-005, §FR-007 (--workflow-pack flag parity doc)"
+  files:
+    - docs/runbooks/workflow-pack-operator.md
+
+as_built:
+  - "docs/runbooks/ directory exists (parallel-snn.md present)"
+  - "WORKFLOW_PACK env var consumed in loop/workflow/registry.py"
+
+delta:
+  - "add: docs/runbooks/workflow-pack-operator.md — sections: Overview, Prerequisites, Env vars table, --workflow-pack flag, doctor workflow-pack usage, troubleshooting by diagnostic code, link to intent_routing.yaml + author runbook"
+
+deletes: []
+
+out_of_scope:
+  - "hub-link --pack section — s06"
+  - "AGENTS.md/CLAUDE.md — s07"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "docs/runbooks/workflow-pack-operator.md exists and contains WORKFLOW_PACK, --workflow-pack, doctor workflow-pack sections"
+    verify: "rg 'WORKFLOW_PACK|--workflow-pack|doctor workflow-pack' docs/runbooks/workflow-pack-operator.md | wc -l | xargs -I{} test {} -ge 3"
+  - id: cp2
+    criterion: "Troubleshooting table covers all 4 diagnostic codes from failure matrix"
+    verify: "rg 'pack_rules_missing|pack_phase_registry_missing|mb_root_not_writable|pack_not_found' docs/runbooks/workflow-pack-operator.md | wc -l | xargs -I{} test {} -ge 4"
+
+verify: []
+tdd: []

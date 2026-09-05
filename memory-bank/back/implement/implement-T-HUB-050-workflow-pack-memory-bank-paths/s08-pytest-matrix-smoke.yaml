@@ -1,0 +1,46 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s08 — pytest matrix — software regression + video integration smoke IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s08-pytest-matrix-smoke.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен параметризованный интеграционный smoke-тест loop/tests/test_pack_integration.py
+  для software и video pack
+- 'Проверен полный жизненный цикл: resolve_mb_root → validate_active_context_shape
+  → mb_load → policy_for_layout → resolve_epic_path → mb_finish'
+- Подтверждена полная регрессионная целостность (1795 tests passed, 0 failures)
+files:
+- loop/tests/test_pack_integration.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_pack_integration.py -q --tb=short`'
+- '`bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=short`'
+integration_check:
+- bin/pytest loop/tests/test_pack_integration.py -q --tb=short
+grep_control: []
+verification_results:
+- 'PASS: loop/tests/test_pack_integration.py (2 passed in 0.33s)'
+- 'PASS: 1795 passed, 3 skipped in full test suite'
+checkpoints:
+- id: cp1
+  criterion: 'software pack: все existing тесты проходят (zero regression)'
+  status: done
+  done_at: '2026-09-04T23:35:00Z'
+- id: cp2
+  criterion: 'video pack smoke: mb_load → mb_finish → activeContext в memory-bank/video/'
+  status: done
+  done_at: '2026-09-04T23:32:00Z'
+- id: cp3
+  criterion: full matrix pass (оба pack типа)
+  status: done
+  done_at: '2026-09-04T23:33:00Z'
+resume_from: cp1

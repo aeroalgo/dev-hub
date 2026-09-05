@@ -1,0 +1,13 @@
+id: video-production
+roles: [script, visual, post]
+command_prefixes: [SCRIPT, VISUAL, POST]
+phase_registry: workflows/video/phase_registry.yaml
+memory_bank: memory-bank/video
+rules_root: .cursor/rules/video
+artifact_layout: software-epic-v1
+description: Reference video production workflow pack (SCRIPT/VISUAL/POST)
+tool_gates:
+  render:
+    adapter: workflows/video/tools/render_check.py
+    class: RenderCheckAdapter
+

@@ -449,6 +449,13 @@ def main() -> int:
     p_workflow_resolve.add_argument("--cwd", default=None, help="override target directory path")
     p_workflow_resolve.add_argument("--json", action="store_true", default=True, help="emit JSON output")
 
+    p_tool_gate = sub.add_parser("tool-gate", help="tool gate adapter operations")
+    tool_gate_sub = p_tool_gate.add_subparsers(dest="tool_gate_cmd", required=True)
+    p_tool_gate_check = tool_gate_sub.add_parser("check", help="execute tool gate check")
+    p_tool_gate_check.add_argument("--gate", required=True, help="tool gate id (e.g. render)")
+    p_tool_gate_check.add_argument("--phase", default="", help="phase name (optional, defaults to empty)")
+    p_tool_gate_check.add_argument("--cwd", default=None, help="override target directory path")
+
     args = ap.parse_args()
     cwd = str(resolve_cli_cwd(args.cwd))
 
@@ -501,6 +508,8 @@ def main() -> int:
             )
             res = finish_implement_step(req)
             out = res.model_dump()
+            from loop.paths.pack_layout import pack_diagnostics
+            out.update(pack_diagnostics(cwd))
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
         if args.mb_cmd == "handoff":
@@ -523,6 +532,8 @@ def main() -> int:
             )
             res = finish_handoff(meta, load_now, body, cwd=cwd)
             out = res.model_dump()
+            from loop.paths.pack_layout import pack_diagnostics
+            out.update(pack_diagnostics(cwd))
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
         if args.mb_cmd in ("qa", "bugfix", "decompose", "plan", "analyze", "audit", "creative", "reflect"):
@@ -561,6 +572,8 @@ def main() -> int:
                 fn = finish_reflect
             res = fn(req)
             out = res.model_dump()
+            from loop.paths.pack_layout import pack_diagnostics
+            out.update(pack_diagnostics(cwd))
             print(json.dumps(out, ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
 
@@ -770,6 +783,41 @@ def main() -> int:
             res = full_resolve(cwd=cwd, hub_root=hub)
             print(json.dumps(res.model_dump(mode="json"), ensure_ascii=False, indent=2))
             return 0 if res.ok else 2
+
+    if args.cmd == "tool-gate":
+        if args.tool_gate_cmd == "check":
+            from loop.workflow.registry import resolve_workflow_pack
+            from loop.workflow.tool_gates.loader import load_tool_gate_adapter
+            from loop.workflow.tool_gates.protocol import ToolGateContext
+
+            cwd_path = Path(cwd).resolve()
+            pack_res = resolve_workflow_pack(cwd=cwd_path)
+            pack_id = pack_res.pack.id if pack_res.ok and pack_res.pack else ""
+
+            try:
+                adapter = load_tool_gate_adapter(args.gate, cwd=cwd_path)
+                ctx = ToolGateContext(
+                    cwd=cwd_path,
+                    phase=getattr(args, "phase", "") or "",
+                    pack_id=pack_id,
+                )
+                res = adapter.check(ctx)
+                payload = {
+                    "ok": res.ok,
+                    "gate_id": args.gate,
+                    "diagnostic_codes": res.diagnostic_codes,
+                }
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+                return 0 if res.ok else 1
+            except Exception as exc:
+                payload = {
+                    "ok": False,
+                    "gate_id": args.gate,
+                    "diagnostic_codes": ["tool_gate_load_error"],
+                    "error": str(exc),
+                }
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+                return 1
 
     if args.cmd == "mb-migrate":
         from loop.migrate.epic_layout_v1_to_v2 import migrate_all, migrate_epic

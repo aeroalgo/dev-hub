@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from harness.hooks.epic.core import read_active_context
+from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.active_context import parse_handoff_meta
 
 
@@ -32,15 +33,19 @@ def load_plan_section(cwd: str | Path = ".", section: int | str = 1) -> tuple[st
         return None, "plan_missing"
 
     epic_id = meta.epic_id
-    plan_dir = cwd_path / "memory-bank" / "back" / "plan"
-    if not plan_dir.is_dir():
-        return None, "plan_missing"
+    from loop.paths.pack_layout import PackLayoutError
+    try:
+        mb_root = resolve_mb_root(cwd=cwd_path)
+    except PackLayoutError:
+        return None, "workflow_pack_unresolved"
+    role = "integration" if meta.role.lower() == "integ" else meta.role.lower()
+    plan_dir = mb_root / role / "plan"
+    # Exact current identity, including the scoped legacy filename layout.
+    candidates = [plan_dir / epic_id / "md" / "plan.md", plan_dir / f"plan-{epic_id}.md"]
+    plan_file = next((p for p in candidates if p.is_file()), None)
 
-    matching_plans = list(plan_dir.glob(f"plan-{epic_id}*.md"))
-    if not matching_plans:
+    if not plan_file or not plan_file.is_file():
         return None, "plan_missing"
-
-    plan_file = matching_plans[0]
     try:
         plan_text = plan_file.read_text(encoding="utf-8")
     except Exception:

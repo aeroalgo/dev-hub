@@ -69,7 +69,7 @@ _GATE_JSON_HARD = (
     "Schema id — поле `schema` внутри JSON. "
     "Перед emit (последний Bash): "
     "`python harness/hooks/epic_resolve.py validate-boundary "
-    "--schema-id loop-gate-verdict/v1 --raw-json '…'` → `valid:true`; "
+    "--schema-id loop-gate-verdict/v1 --json '…'` → `valid:true`; "
     "иначе правь по diagnostic_codes и повтори. "
     "Строка VERDICT: — optional human summary, не machine input. "
     "После ≤6 Read (+ validate-boundary) — только финальный отчёт, ноль tool. "
@@ -132,7 +132,7 @@ CONTRACTS = {
         '({"schema":"loop-repair-result/v1","status":"done|partial|fail",...}). '
         "Fence language = только `json`. "
         "Перед emit: `python harness/hooks/epic_resolve.py validate-boundary "
-        "--schema-id loop-repair-result/v1 --raw-json '…'` → `valid:true`. "
+        "--schema-id loop-repair-result/v1 --json '…'` → `valid:true`. "
         "Write/Edit только ALLOW WRITE. После fix — pytest из VERIFY. "
         "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
         "Ответ без JSON fence = status fail."
@@ -686,14 +686,44 @@ def _normalize_owner_phase(value: str | None) -> str:
     return raw
 
 
-def live_runner_owner(cwd: str | Path) -> RunnerOwner | None:
-    """Return live runner.json owner for this checkout, or None if idle/stale."""
+def epic_ids_compatible(a: str | None, b: str | None) -> bool:
+    """True if a/b are the same epic (exact match or short/full id alias)."""
+    from epic_paths import epic_lookup_ids
+
+    a_norm = str(a or "").strip()
+    b_norm = str(b or "").strip()
+    if not a_norm or not b_norm:
+        return True
+    if a_norm == b_norm:
+        return True
+    return bool(set(epic_lookup_ids(a_norm)) & set(epic_lookup_ids(b_norm)))
+
+
+def runner_json_candidates(cwd: str | Path) -> list[Path]:
+    """Resolve runner.json locations used by loop.sh and hook cwd variants."""
     from epic_paths import epic_dir
 
-    owner = load_runner_owner(epic_dir(cwd) / "runner.json")
-    if owner is None or not runner_pid_alive(owner.pid):
-        return None
-    return owner
+    cwd_p = Path(cwd).expanduser().resolve()
+    hub = hub_root()
+    seen: list[Path] = []
+    for directory in (
+        epic_dir(cwd_p),
+        hub / "runtime" / cwd_p.name / "epic",
+        cwd_p / ".claude" / "runtime" / "epic",
+    ):
+        path = directory / "runner.json"
+        if path not in seen:
+            seen.append(path)
+    return seen
+
+
+def live_runner_owner(cwd: str | Path) -> RunnerOwner | None:
+    """Return live runner.json owner for this checkout, or None if idle/stale."""
+    for path in runner_json_candidates(cwd):
+        owner = load_runner_owner(path)
+        if owner is not None and runner_pid_alive(owner.pid):
+            return owner
+    return None
 
 
 def _owner_identity_tuple(owner: RunnerOwner) -> tuple[str, str, str]:
@@ -2048,21 +2078,7 @@ def extract_repair_result(text: str | None) -> dict[str, Any] | None:
             record = RepairResultRecord.model_validate(payload)
             return record.model_dump(by_alias=True)
         except Exception:
-            status = str(payload.get("status") or "").lower()
-            if status in {"done", "partial", "fail"}:
-                return payload
-    repair_match = re.search(
-        r"(?m)^REPAIR:\s*(done|partial|fail)\b", text, re.I
-    )
-    if repair_match:
-        return {
-            "schema": "loop-repair-result/v1",
-            "agent_id": "gate-repair",
-            "status": repair_match.group(1).lower(),
-            "fixed_blockers": [],
-            "remaining_blockers": [],
-            "recorded_at": utc_now(),
-        }
+            continue
     return None
 
 
@@ -2334,9 +2350,9 @@ def index_bulk_status_deny_reason(command: str | None) -> str | None:
 
 _ACTIVE_CONTEXT_BASENAME = "activecontext.md"
 _ACTIVE_CONTEXT_WRITE_RE = re.compile(
-    r"(?is)(?:(?:^|[\n;|&])\s*(?:cat|tee|cp|mv|install)\b|"
-    r">\s*|>>\s*)"
-    r"[^\n;|&]*activecontext\.md\b"
+    r"(?is)(?:(?:^|[\n;|&])\s*(?:tee|cp|mv|install)\b[^\n;|&]*activecontext\.md\b|"
+    r"(?:^|[\n;|&])\s*cat\b[^\n;|&]*>\s*[^\n;|&]*activecontext\.md\b|"
+    r"(?:>>|>)\s*[^\n;|&]*activecontext\.md\b)"
 )
 
 
@@ -2356,7 +2372,11 @@ def active_context_write_deny_reason(
 ) -> str | None:
     """Deny chat/CLI Write/Edit of activeContext while a live loop owns it."""
     if not is_active_context_path(file_path):
-        return None
+        # Keep the public write guard as the single entry point for immutable
+        # loop artifacts too.  The pre-tool hook historically called this
+        # helper first, so callers that use it directly must receive the same
+        # decision as the hook without duplicating the event-ledger lookup.
+        return recorded_artifact_write_deny_reason(cwd, file_path)
     epic_id = None
     phase = None
     step = None
@@ -2378,6 +2398,36 @@ def active_context_write_deny_reason(
         step=step,
         same_session=same_session,
     )
+
+
+def recorded_artifact_write_deny_reason(
+    cwd: str | Path, file_path: str | Path | None
+) -> str | None:
+    """Reject overwriting an artifact that is already recorded in the event ledger."""
+    if not file_path:
+        return None
+    path = Path(file_path)
+    cwd_p = Path(cwd).resolve()
+    if not path.is_absolute():
+        path = cwd_p / path
+    try:
+        rel = path.resolve().relative_to(cwd_p).as_posix()
+    except ValueError:
+        return None
+    if not re.search(r"(?:^|/)back/(?:qa|bugfix|audit)/[^/]+/", rel):
+        return None
+    epic_id = rel.split("/")[3]
+    events = cwd_p / "memory-bank" / "back" / "events" / epic_id / "events.jsonl"
+    if not events.is_file():
+        return None
+    try:
+        for line in events.read_text(encoding="utf-8").splitlines():
+            event = json.loads(line)
+            if event.get("artifact") == rel and event.get("kind") in {"qa_fail", "qa_pass", "bugfix_done", "audit_done"}:
+                return "recorded_artifact_immutable: create a new run artifact instead of overwriting the recorded file"
+    except (OSError, ValueError, TypeError):
+        return None
+    return None
 
 
 def bash_active_context_write_deny_reason(

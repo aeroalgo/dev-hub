@@ -20,11 +20,33 @@ from epic_paths import epic_dir
 from epic import (
     load_epic_state,
     read_active_context,
-    validate_active_context_shape,
+    validate_active_context_shape as _validate_ac_text_shape,
     validate_finish_integrity,
 )
 from loop.incidents.store import CorruptIncidentError, list_open_incidents, parse_incidents_jsonl
 from loop.incidents.metrics import load_metrics
+
+
+@dataclass
+class ShapeResult:
+    valid: bool
+    diagnostic: str | None = None
+
+
+def validate_active_context_shape(path: Path | str) -> ShapeResult:
+    """Validate activeContext file existence and schema shape (fail-closed)."""
+    p = Path(path)
+    if not p.is_file():
+        return ShapeResult(valid=False, diagnostic=f"activeContext missing at {p}")
+    try:
+        text = p.read_text(encoding="utf-8", errors="replace")
+    except Exception as exc:
+        return ShapeResult(valid=False, diagnostic=f"activeContext unreadable at {p}: {exc}")
+
+    shape_errs = _validate_ac_text_shape(text)
+    if shape_errs:
+        return ShapeResult(valid=False, diagnostic=f"activeContext shape invalid: {'; '.join(shape_errs)}")
+    return ShapeResult(valid=True, diagnostic=None)
 
 
 def _check_runtime_registry_valid(cwd: Path) -> CheckResult:
@@ -205,35 +227,26 @@ def run_doctor(cwd: str | Path, auto_repair: bool = False, format: str = "text")
     )
 
     # 1. active_context_shape
-    try:
-        ac_text = read_active_context(cwd_p)
-        shape_errs = validate_active_context_shape(ac_text)
-        if shape_errs:
-            report.checklist.append(
-                CheckResult(
-                    name="active_context_shape",
-                    status="fail",
-                    detail="; ".join(shape_errs),
-                )
-            )
-            report.blockers.append(f"activeContext shape invalid: {'; '.join(shape_errs)}")
-        else:
-            report.checklist.append(
-                CheckResult(
-                    name="active_context_shape",
-                    status="pass",
-                    detail="valid",
-                )
-            )
-    except Exception as exc:
+    from epic_paths import active_context_path
+    ac_path = active_context_path(cwd_p)
+    shape_res = validate_active_context_shape(ac_path)
+    if not shape_res.valid:
         report.checklist.append(
             CheckResult(
                 name="active_context_shape",
                 status="fail",
-                detail=str(exc),
+                detail=shape_res.diagnostic,
             )
         )
-        report.blockers.append(f"activeContext unreadable: {exc}")
+        report.blockers.append(f"activeContext shape invalid: {shape_res.diagnostic}")
+    else:
+        report.checklist.append(
+            CheckResult(
+                name="active_context_shape",
+                status="pass",
+                detail="valid",
+            )
+        )
 
     # 2. armed_decompose_exists
     st = load_epic_state(cwd_p) or {}
@@ -403,7 +416,7 @@ def run_doctor(cwd: str | Path, auto_repair: bool = False, format: str = "text")
         try:
             boundaries_yaml = cwd_p / "tests" / "architecture" / "boundaries.yaml"
             if boundaries_yaml.exists():
-                violations = check_boundaries(root_dir=cwd_p, yaml_file=boundaries_yaml)
+                violations = check_boundaries(root_dir=cwd_p, boundaries_yaml_path=boundaries_yaml)
                 if violations:
                     count = len(violations)
                     report.checklist.append(

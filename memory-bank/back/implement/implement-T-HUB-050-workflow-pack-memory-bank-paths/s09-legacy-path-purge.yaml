@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s09
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s09 — legacy-path-purge — delete hardcoded memory-bank/ + Kind I instruction purge IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s09-legacy-path-purge.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery:
+- Audited remaining hardcoded memory-bank/ occurrences and parallel fallback glob patterns across loop/ and harness/hooks/.
+- Purged legacy fallback globs in loop/mb_load/resolver.py.
+- Updated loop/mb_finish/impl.py to resolve pack mb_root dynamically for QA links and bugfix diagnostics.
+- Purged hardcoded memory-bank instruction prompts in loop/context_loop.py and harness/hooks/epic/core.py.
+- Updated loop/incidents/events.py to use resolve_mb_root.
+gaps:
+  status: none
+done:
+- Removed legacy cwd fallback globs from loop/mb_load/resolver.py in favor of resolve_mb_root.
+- Replaced hardcoded memory-bank/ link prefix stripping in loop/mb_finish/impl.py with dynamic mb_root resolution.
+- Updated loop/context_loop.py and harness/hooks/epic/core.py canon instruction templates from hardcoded memory-bank/ to {mb_root}/.
+- Updated loop/incidents/events.py to use resolve_mb_root(cwd) for events path.
+files:
+- loop/mb_load/resolver.py
+- loop/mb_finish/impl.py
+- loop/context_loop.py
+- loop/incidents/events.py
+- harness/hooks/epic/core.py
+deletes:
+- legacy cwd glob search fallback in loop/mb_load/resolver.py
+- hardcoded memory-bank/ canon strings in doc/prompt generators
+tests:
+- bin/pytest loop/tests/test_pack_layout.py loop/tests/test_pack_integration.py loop/tests/test_mb_finish_paths.py loop/tests/test_epic_paths.py loop/tests/test_mb_load_resolver.py -q --tb=short
+- bin/pytest tests/architecture/test_boundary_check.py -q --tb=short
+- bin/pytest -q --tb=line
+integration_check:
+- bin/pytest -q --tb=line PASS (1818 passed, 3 skipped)
+grep_control: []
+verification_results:
+- 1818 passed, 3 skipped in full pytest suite
+checkpoints:
+- id: cp1
+  criterion: 'rg audit: нет production hardcode `memory-bank/` string concat в *.py (кроме тестовых фикстур)'
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: все existing тесты проходят после purge (zero regression)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: 'Kind I: нет instruction с `memory-bank/` как fixed prefix в *.py comments/docstrings'
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp4
+  criterion: 'sunset_inventory scan: boundary hardcoded-mb-root → leftover_count=0'
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+resume_from: cp1

@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s06 — epic_resolve.py tool-gate check CLI + stop-gate external_gates integration
+  IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s06-cli-tool-gate-check-stop-gate.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Added tool-gate check CLI subparser and handler to epic_resolve.py
+- Implemented load_tool_gate_adapter in loop/workflow/tool_gates/loader.py
+- Integrated external_gates check in stop-gate FINISH path
+- Added unit tests in loop/tests/test_cli_tool_gate.py and loop/tests/test_external_gates_stop_gate.py
+files:
+- harness/hooks/epic_resolve.py
+- loop/workflow/tool_gates/loader.py
+- loop/workflow/tool_gates/__init__.py
+- harness/hooks/stop-gate.py
+- loop/tests/test_cli_tool_gate.py
+- loop/tests/test_external_gates_stop_gate.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_cli_tool_gate.py -q --tb=short -k 'cli_fail'
+- bin/pytest loop/tests/test_cli_tool_gate.py -q --tb=short -k 'cli_pass'
+- bin/pytest loop/tests/test_external_gates_stop_gate.py -q --tb=short -k 'block_finish'
+integration_check:
+- rg 'video.production|if.*video|pack_id.*video' harness/hooks/epic/core.py | wc -l
+  | grep -E '^0$'
+grep_control:
+- back: rg 'tool-gate' harness/hooks/epic_resolve.py
+  front: ''
+- back: rg 'external_gates' harness/hooks/stop-gate.py
+  front: ''
+verification_results:
+- bin/pytest loop/tests/test_cli_tool_gate.py loop/tests/test_external_gates_stop_gate.py
+  -> 6 passed
+checkpoints:
+- id: cp1
+  criterion: CLI tool-gate check exit 1 при отсутствии файла
+  status: done
+  done_at: '2026-09-04T23:03:01Z'
+- id: cp2
+  criterion: CLI tool-gate check exit 0 при наличии fixture mp4
+  status: done
+  done_at: '2026-09-04T23:03:02Z'
+- id: cp3
+  criterion: stop-gate блокирует FINISH для EDIT с external_gates без render файла
+  status: done
+  done_at: '2026-09-04T23:03:02Z'
+- id: cp4
+  criterion: stop-gate НЕ содержит hardcoded video branch
+  status: done
+  done_at: '2026-09-04T23:02:51Z'
+resume_from: cp1

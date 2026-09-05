@@ -2070,6 +2070,9 @@ def test_qa_and_audit_work_blocks_render_properly() -> None:
     assert "## AUDIT canon (HARD)" in audit_block
     assert "back_developer" in audit_block
     assert "demo-epic" in audit_block
+    assert "implement/implement-demo-epic/" in audit_block
+    assert "yaml/steps/sNN-<slug>.yaml" in audit_block
+    assert "phantom" in audit_block.lower() or "implement_file" in audit_block
 
 
 def test_bugfix_reopens_qa_after_prior_pass(tmp_path: Path) -> None:
@@ -2649,4 +2652,6 @@ def test_build_prompt_audit_includes_canon_checklist(tmp_path: Path) -> None:
     assert "Triple Assess" in prompt
     assert "mb-finish audit" in prompt
     assert "FORBIDDEN: pytest" in prompt
+    assert "implement/implement-T-HUB-049/" in prompt
+    assert "yaml/steps/sNN-<slug>.yaml" in prompt
     assert "это чинится в сессии: FAIL → fix → re-verify" not in prompt

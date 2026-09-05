@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "video-production manifest + workflow_pack_registry.yaml row"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `workflows/video/manifest.yaml` (WorkflowPack-совместимый) и добавить строку
+  `video-production` в `loop/workflow_pack_registry.yaml`.
+  После шага: `WORKFLOW_PACK=video-production python -c "from loop.workflow.registry import resolve_workflow_pack; r=resolve_workflow_pack(); assert r.ok"` проходит.
+  Roles: script, visual, post. Prefixes: SCRIPT, VISUAL, POST.
+  memory_bank: memory-bank/video (изолировано от software memory-bank).
+  Outcomes: FR-001, FR-003, SC-001, TM-003, AC+1, AC+5, US-001.
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, SC-001, TM-003, AC+1, AC+5, US-001]
+  nouns:
+    - "workflows/video/manifest.yaml — WorkflowPack fields: id, roles, command_prefixes, phase_registry, memory_bank, rules_root, artifact_layout, description"
+    - "loop/workflow_pack_registry.yaml — новая строка video-production в packs:"
+    - "WorkflowPack.artifact_layout = 'software-epic-v1' (reuse существующего enum)"
+    - "memory_bank: 'memory-bank/video' — изолированный root"
+    - "rules_root: '.cursor/rules/video'"
+    - "phase_registry: 'workflows/video/phase_registry.yaml'"
+  layout_paths:
+    - "workflows/video/manifest.yaml"
+    - "loop/workflow_pack_registry.yaml"
+  ac_quotes:
+    - "AC+1: video-production pack end-to-end resolvable via resolve_workflow_pack()"
+    - "AC+5: Software pack unaffected — dev-hub-software default unchanged"
+    - "AC−3: Video pack does NOT replace default software pack globally"
+    - "Independent test US-001: arm_phase SCRIPT PLAN → mb path under memory-bank/video/script/"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:1-50"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:85-105"
+
+context:
+  consumes:
+    - "loop/workflow_pack_registry.yaml — добавляем строку; schema: workflow-pack-registry/v1"
+    - "loop/workflow/schemas.py:WorkflowPack — Pydantic model, поля должны совпадать"
+    - "loop/workflow/registry.py:load_registry — читает registry, validate через WorkflowPack"
+  produces:
+    - "workflows/video/manifest.yaml — новый файл WorkflowPack-совместимый"
+    - "loop/workflow_pack_registry.yaml — +1 строка video-production под packs:"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-001"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-003"
+  files:
+    - "workflows/video/manifest.yaml"
+    - "loop/workflow_pack_registry.yaml"
+
+as_built:
+  - "loop/workflow_pack_registry.yaml: содержит только dev-hub-software под packs:"
+  - "loop/workflow/schemas.py:WorkflowPack — поле artifact_layout Literal['software-epic-v1','production-epic-v1']"
+  - "loop/workflow/registry.py:load_registry — lru_cache; validate WorkflowPackRegistry.model_validate"
+
+delta:
+  - "workflows/video/manifest.yaml: создать (new file) с полями id/roles/command_prefixes/phase_registry/memory_bank/rules_root/artifact_layout/description"
+  - "loop/workflow_pack_registry.yaml: добавить video-production row под packs:"
+
+deletes: []
+
+out_of_scope:
+  - "Валидация manifest.yaml отдельным CLI — в s07 (template validator)"
+  - "memory-bank/video/ директория создаётся в s08 (fixtures)"
+  - "T-HUB-052 hub-link pack install rules tree — follow_up"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: resolve_workflow_pack возвращает ok=True для video-production
+    verify: "WORKFLOW_PACK=video-production bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short -k 'video'"
+  - id: cp2
+    criterion: WorkflowPackRegistry.model_validate не бросает при новом registry
+    verify: "python -c \"import yaml; from loop.workflow.schemas import WorkflowPackRegistry; WorkflowPackRegistry.model_validate(yaml.safe_load(open('loop/workflow_pack_registry.yaml')))\""
+  - id: cp3
+    criterion: software default pack неизменён — resolve без env возвращает dev-hub-software
+    verify: "bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short -k 'default_software'"
+
+verify:
+  - "rg 'video-production' loop/workflow_pack_registry.yaml"
+  - "rg 'SCRIPT.*VISUAL.*POST\\|command_prefixes' workflows/video/manifest.yaml"
+
+tdd:
+  - "loop/tests/test_workflow_pack_registry.py — test_video_pack_resolves, test_software_pack_unaffected"

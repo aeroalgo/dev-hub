@@ -175,6 +175,10 @@ def test_hooks_json_stop_event_wired(tmp_path: Path) -> None:
         "harness/hooks/agent-pretool.py" in str(item.get("command", ""))
         for item in hooks["PreToolUse"]
     )
+    assert any(
+        "harness/hooks/write-pretool.py" in str(item.get("command", ""))
+        for item in hooks["PreToolUse"]
+    )
 
 
 def test_agent_registry_discovers_harness_agents_without_claude_copy(tmp_path: Path) -> None:

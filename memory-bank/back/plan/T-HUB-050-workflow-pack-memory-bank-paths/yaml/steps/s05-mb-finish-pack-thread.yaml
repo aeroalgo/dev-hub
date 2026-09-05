@@ -1,0 +1,77 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: mb_finish — pack-aware Handoff write
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Параметризовать `loop/mb_finish/impl.py` так, чтобы FINISH Handoff писался
+  в `{mb_root}/activeContext.md` через `resolve_mb_root(cwd)`.
+  AC+ US-002: FINISH на video pack → `memory-bank/video/activeContext.md` обновляется.
+  FR-005: cwd guard — тот же guard что и в mb-finish (wrong cwd → fail-closed).
+
+plan_contract:
+  fr_ids: [US-002, AC+ US-002, FR-005, FR-001]
+  nouns: [mb_finish, Handoff, activeContext write, pack root]
+  layout_paths:
+    - loop/mb_finish/impl.py
+  ac_quotes:
+    - "FINISH on video pack → correct path written"
+    - "wrong cwd → fail-closed"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:50-65"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (resolve_mb_root — из s01)
+    - harness/hooks/epic/core.py (read_active_context — из s03)
+  produces:
+    - loop/mb_finish/impl.py (edit)
+    - loop/tests/ (тесты mb_finish pack write)
+  plan_refs:
+    - "plan.md §gap (as-built) — mb_finish paths relative to fixed memory-bank tree"
+    - "plan.md §User Stories US-002"
+    - "plan.md §Technology axiom — Hub vs product cwd row"
+  files:
+    - loop/mb_finish/impl.py
+
+as_built:
+  - "loop/mb_finish/impl.py — `activeContext.md` write path hardcoded как `Path('memory-bank/activeContext.md')`"
+  - "cwd guard уже присутствует — расширить для pack resolve"
+
+delta:
+  - "edit: loop/mb_finish/impl.py — вычислять `active_context_path = resolve_mb_root(cwd) / 'activeContext.md'` вместо hardcode"
+  - "add: тест: video pack FINISH → записывает в memory-bank/video/activeContext.md"
+  - "add: тест: wrong cwd → PackLayoutError / fail-closed"
+
+deletes:
+  - "hardcoded `Path('memory-bank/activeContext.md')` в impl.py — удалить в этом шаге (cutover)"
+
+out_of_scope:
+  - "mb_load — s04"
+  - "full purge scan — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "mb_finish для software pack → пишет в memory-bank/activeContext.md"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_finish and software'"
+  - id: cp2
+    criterion: "mb_finish для video pack → пишет в memory-bank/video/activeContext.md"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_finish and video'"
+  - id: cp3
+    criterion: "wrong cwd → fail-closed (PackLayoutError или аналог)"
+    verify: "bin/pytest loop/tests/ -q --tb=short -k 'mb_finish and wrong_cwd'"
+
+verify:
+  - "bin/pytest loop/tests/ -q --tb=short -k 'mb_finish'"
+
+tdd:
+  - "Написать тесты mb_finish pack write (RED) → edit impl.py (GREEN)"

@@ -1,0 +1,56 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-051-workflow-pack-reference-video
+role: back
+next_phase: BACK IMPLEMENT
+appetite:
+  timebox_days: 6
+  cut_list:
+  - real ffmpeg integration test
+  - full VISUAL/POST rules polish
+deferred: []
+steps:
+- id: s01
+  file: s01-video-manifest-registry-row.yaml
+  title: video-production manifest + workflow_pack_registry.yaml row
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-video-phase-registry-yaml.yaml
+  title: workflows/video/phase_registry.yaml — 6 phases with external_gates field
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-cursor-rules-video-skeleton.yaml
+  title: .cursor/rules/video/ skeleton — mainrule + workflow-plan/implement/qa + _lean/
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-verify-agents-script-edit-publish.yaml
+  title: harness/agents/verify-script.md + verify-edit.md + verify-publish.md contracts
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-tool-gate-adapter-render-check.yaml
+  title: loop/workflow/tool_gates/ ToolGateAdapter + workflows/video/tools/render_check.py
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-cli-tool-gate-check-stop-gate.yaml
+  title: epic_resolve.py tool-gate check CLI + stop-gate external_gates integration
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-workflows-template-pack-authoring.yaml
+  title: workflows/_template/ — manifest stub + phase_registry stub + README
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s08
+  file: s08-e2e-pytest-video-pack-fixtures.yaml
+  title: pytest e2e video pack — mock tool gate, fixtures, software isolation parity
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s09
+  file: s09-readme-operator-docs.yaml
+  title: workflows/video/README.md — operator setup + WORKFLOW_PACK usage
+  next_phase: BACK IMPLEMENT
+  status: completed

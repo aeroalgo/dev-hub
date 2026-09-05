@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: .cursor/rules/video/ skeleton — mainrule + workflow-plan/implement/qa + _lean/
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s03-cursor-rules-video-skeleton.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Создан reference skeleton .cursor/rules/video/: mainrule-core.mdc, workflow-plan.mdc,
+  workflow-implement.mdc, workflow-qa.mdc, _lean/decompose.mdc, _lean/audit.mdc, _lean/qa.mdc'
+files:
+- .cursor/rules/video/mainrule-core.mdc
+- .cursor/rules/video/workflow-plan.mdc
+- .cursor/rules/video/workflow-implement.mdc
+- .cursor/rules/video/workflow-qa.mdc
+- .cursor/rules/video/_lean/decompose.mdc
+- .cursor/rules/video/_lean/audit.mdc
+- .cursor/rules/video/_lean/qa.mdc
+deletes: []
+tests:
+- '`bin/pytest tests/`'
+integration_check:
+- find .cursor/rules/video -name '*.mdc' | wc -l -> 7
+- rg 'SCRIPT|VISUAL|POST' .cursor/rules/video/mainrule-core.mdc
+grep_control: []
+verification_results:
+- '7'
+- matches found
+checkpoints:
+- id: cp1
+  criterion: все 7 mdc файлов существуют
+  status: done
+  done_at: '2026-09-04T22:41:37Z'
+- id: cp2
+  criterion: mainrule-core.mdc содержит references на video phases
+  status: done
+  done_at: '2026-09-04T22:41:38Z'
+resume_from: cp1

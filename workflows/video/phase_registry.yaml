@@ -1,0 +1,97 @@
+schema: phase-registry/v1
+
+terminal_phases:
+  - PUBLISH
+
+phases:
+  BRIEF:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  SCRIPT:
+    arm_template: pre_implement
+    finish_gates:
+      mode: pre_implement
+      need_verify: false
+      need_reviewer: false
+    finish_gates_dict:
+      mode: pre_implement
+      need_verify: false
+      need_reviewer: false
+    verify_agent: verify-script
+    dsh_preset: plan
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  STORYBOARD:
+    arm_template: pre_implement
+    finish_gates: {}
+    finish_gates_dict:
+      mode: null
+      need_verify: false
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: null
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  SHOOT:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: null
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  EDIT:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-edit
+    dsh_preset: implement
+    external_gates:
+      - render
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: In Progress
+
+  PUBLISH:
+    arm_template: implement
+    finish_gates:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    finish_gates_dict:
+      mode: implement
+      need_verify: true
+      need_reviewer: false
+    verify_agent: verify-publish
+    dsh_preset: implement
+    promotable_after_finish: false
+    skip_index_sync: false
+    board_column: Done

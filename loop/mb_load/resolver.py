@@ -1,13 +1,11 @@
-"""Resolver for loop/mb_load mode matrix & bundle path resolution."""
+"""Resolve session bundles within the current pack, role and epic."""
 
-import re
 from pathlib import Path
 from typing import NamedTuple
 
-from harness.hooks.epic_paths import epic_id_from_decompose_path, role_from_decompose_path
-from harness.hooks.epic_yaml import role_dir, resolve_implement_path
-
-_PLAN_MD_RE = re.compile(r"(?:^|/)plan-[^/]+\.md$")
+from loop.paths.forbidden_policy import policy_for_layout
+from loop.paths.pack_layout import resolve_mb_root
+from loop.workflow.registry import resolve_workflow_pack
 
 
 class ResolvedBundle(NamedTuple):
@@ -17,91 +15,86 @@ class ResolvedBundle(NamedTuple):
     diagnostics: list[str]
 
 
+def _artifact_identity(path: Path, mb_root: Path) -> tuple[str, str] | None:
+    try:
+        parts = path.resolve().relative_to(mb_root.resolve()).parts
+    except ValueError:
+        return None
+    if len(parts) < 4 or parts[1] not in {"plan", "implement", "qa", "bugfix", "audit"}:
+        return None
+    epic = parts[2]
+    for prefix in ("decompose-", "implement-", "qa-"):
+        if epic.startswith(prefix):
+            epic = epic[len(prefix):]
+            break
+    return parts[0], epic
+
+
 def resolve_bundle_paths(
     cwd: str | Path,
     mode: str | None,
     step_id: str | None,
     load_now_paths: list[str],
+    *,
+    epic_id: str | None = None,
+    role: str | None = None,
 ) -> ResolvedBundle:
-    """Resolves and filters load_now bundle paths based on current mode matrix and step_id.
-
-    - mode=IMPLEMENT: auto-resolves implement yaml shard if missing from load_now_paths.
-      Rejects plan-*.md as forbidden.
-    - mode=QA / BUGFIX / DECOMPOSE: allows mode-specific bundle policies.
-      DECOMPOSE allows plan-*.md files.
-    """
+    """Auto-add only current epic evidence; never substitute another epic's step."""
     cwd_path = Path(cwd).resolve()
     mode_upper = (mode or "").strip().upper()
-
-    resolved_paths = list(load_now_paths)
-    auto_added: list[str] = []
-    forbidden_skipped: list[str] = []
     diagnostics: list[str] = []
+    try:
+        pack = resolve_workflow_pack(cwd=cwd_path)
+        if not pack.ok or pack.pack is None:
+            return ResolvedBundle([], [], list(load_now_paths), ["workflow_pack_unresolved"])
+        mb_root = resolve_mb_root(cwd=cwd_path, pack=pack.pack)
+        policy = policy_for_layout(pack.pack.artifact_layout)
+    except (ValueError, RuntimeError) as exc:
+        return ResolvedBundle([], [], list(load_now_paths), [f"bundle_layout_invalid:{exc}"])
 
-    # 1. IMPLEMENT mode auto-resolve implement shard if missing
-    if mode_upper == "IMPLEMENT" and step_id:
-        has_implement_yaml = any(
-            "implement-" in p and (p.endswith(".yaml") or p.endswith(".yml"))
-            for p in resolved_paths
-        )
-        if not has_implement_yaml:
-            impl_rel: str | None = None
-            decompose_rel: str | None = None
-            for p in resolved_paths:
-                if "/decompose-" in p and (p.endswith(".yaml") or p.endswith(".yml")):
-                    decompose_rel = p
-                    break
+    role = (role or "").lower()
+    if role == "integ":
+        role = "integration"
+    identities = {_artifact_identity(cwd_path / p, mb_root) for p in load_now_paths}
+    identities.discard(None)
+    if not epic_id and len(identities) == 1:
+        inferred_role, epic_id = next(iter(identities))
+        role = role or inferred_role
+    if epic_id and not role:
+        roles = {r for r, e in identities if e == epic_id}
+        if len(roles) == 1:
+            role = roles.pop()
 
-            if decompose_rel:
-                role = role_from_decompose_path(decompose_rel) or "back"
-                epic_id = epic_id_from_decompose_path(decompose_rel)
-                if epic_id:
-                    try:
-                        cand = resolve_implement_path(
-                            cwd_path,
-                            role=role_dir(role),
-                            epic_id=epic_id,
-                            step_id=step_id,
-                        )
-                        if (cwd_path / cand).is_file():
-                            impl_rel = cand
-                    except Exception:
-                        pass
-
-            if not impl_rel:
-                # Glob search fallback
-                for found in cwd_path.glob(f"memory-bank/**/implement/**/{step_id}*.yaml"):
-                    if found.is_file():
-                        impl_rel = found.relative_to(cwd_path).as_posix()
-                        break
-
-            if impl_rel and impl_rel not in resolved_paths:
-                resolved_paths.append(impl_rel)
-                auto_added.append(impl_rel)
-
-    # 2. QA / BUGFIX mode auto-resolve shards if needed
-    if mode_upper in ("QA", "BUGFIX") and step_id:
-        kind = mode_upper.lower()
-        for found in cwd_path.glob(f"memory-bank/**/{kind}/**/{kind}-*{step_id}*.yaml"):
-            if found.is_file():
-                rel = found.relative_to(cwd_path).as_posix()
-                if rel not in resolved_paths:
-                    resolved_paths.append(rel)
-                    auto_added.append(rel)
-                    break
-
-    # 3. Apply mode matrix forbidden rules
-    final_paths: list[str] = []
-    for p in resolved_paths:
-        is_plan_md = bool(_PLAN_MD_RE.search(p))
-        if is_plan_md and mode_upper != "DECOMPOSE":
-            forbidden_skipped.append(p)
+    resolved: list[str] = []
+    forbidden: list[str] = []
+    for path in load_now_paths:
+        identity = _artifact_identity(cwd_path / path, mb_root)
+        if identity and epic_id and role and identity != (role, epic_id):
+            forbidden.append(path)
+            diagnostics.append(f"artifact_identity_mismatch:{path}")
+        elif policy.is_forbidden(path, mode=mode_upper):
+            forbidden.append(path)
         else:
-            final_paths.append(p)
+            resolved.append(path)
 
-    return ResolvedBundle(
-        resolved_paths=final_paths,
-        auto_added=auto_added,
-        forbidden_skipped=forbidden_skipped,
-        diagnostics=diagnostics,
-    )
+    auto_added: list[str] = []
+    if epic_id and role and mode_upper in {"IMPLEMENT", "QA", "BUGFIX"}:
+        kind = mode_upper.lower()
+        directories = [mb_root / role / kind / epic_id]
+        if kind == "implement":
+            directories.append(mb_root / role / kind / f"implement-{epic_id}")
+            patterns = [f"{step_id}-*.yaml", f"{step_id}.yaml"] if step_id else []
+        else:
+            patterns = [f"{kind}-*.{'md' if kind == 'bugfix' else 'yaml'}"]
+        has_kind = any(kind in Path(p).parts for p in resolved)
+        candidates = {p for d in directories for pattern in patterns for p in d.glob(pattern) if p.is_file()}
+        if not has_kind and candidates:
+            if kind == "implement" and len(candidates) > 1:
+                diagnostics.append("implement_artifact_ambiguous")
+            else:
+                candidate = max(candidates, key=lambda p: (p.stat().st_mtime_ns, p.name))
+                rel = candidate.relative_to(cwd_path).as_posix()
+                if rel not in resolved:
+                    resolved.append(rel)
+                    auto_added.append(rel)
+    return ResolvedBundle(resolved, auto_added, forbidden, diagnostics)

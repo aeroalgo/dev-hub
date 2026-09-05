@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "epic_resolve.py tool-gate check CLI + stop-gate external_gates integration"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Добавить CLI субкоманду `epic_resolve.py tool-gate check --gate <id> [--cwd PATH]`:
+  - Читает manifest pack через resolve_workflow_pack(cwd)
+  - Находит adapter class по tool_gates[gate_id]
+  - Вызывает adapter.check(ctx) → ToolGateResult
+  - exit 0 если ok=True, exit 1 если ok=False, JSON stdout в обоих случаях
+  Интегрировать external_gates в stop-gate FINISH path:
+  - При FINISH для фаз с external_gates[] — вызвать tool-gate check для каждого gate id
+  - Если любой gate ok=False → блокировать FINISH (стоп-gate deny)
+  - AC−1: НЕ hardcoded `if video` — диспатч через phase_registry + Protocol
+  Outcomes: FR-008, FR-009, SC-003, AC+2, AC−1, US-002, US-003.
+
+plan_contract:
+  fr_ids: [FR-008, FR-009, SC-003, AC+2, AC-1, US-002, US-003]
+  nouns:
+    - "harness/hooks/epic_resolve.py — добавить subparser 'tool-gate' → 'check'"
+    - "epic_resolve.py tool-gate check --gate render --cwd $PROJECT_ROOT"
+    - "exit code: 0=pass, 1=fail; stdout: JSON {ok, diagnostic_codes}"
+    - "loop/workflow/tool_gates/loader.py — load_tool_gate_adapter(gate_id, manifest) -> ToolGateAdapter"
+    - "stop-gate integration: harness/hooks/epic/core.py или finish path — check external_gates[] перед FINISH"
+    - "external_gates dispatch: phase_registry[phase].get('external_gates', []) → iterate, call CLI/loader"
+    - "FORBIDDEN: if pack_id == 'video-production' в stop-gate"
+  layout_paths:
+    - "harness/hooks/epic_resolve.py (update: +tool-gate subparser)"
+    - "loop/workflow/tool_gates/loader.py"
+    - "harness/hooks/epic/core.py или harness/hooks/write-pretool.py (update: +external_gates check)"
+  ac_quotes:
+    - "US-002 AC scenario: EDIT done, no outputs/final.mp4 → exit 1, {ok:false, diagnostic_codes:['render_output_missing']}"
+    - "AC−1: HARD — NO hardcoded if video in stop-gate body"
+    - "US-003: stop-gate blocks FINISH until verify PASS (external gate variant)"
+    - "FR-009: phases declaring external_gates: [render] in phase_registry → enforced"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:230-265"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:112-130"
+
+context:
+  consumes:
+    - "harness/hooks/epic_resolve.py — существующая CLI структура с subparsers"
+    - "s05: loop/workflow/tool_gates/protocol.py — ToolGateAdapter Protocol"
+    - "s05: workflows/video/manifest.yaml tool_gates section"
+    - "s02: phase_registry EDIT.external_gates: [render]"
+    - "loop/epic_transition.py:get_phase_config — читает phase registry для конкретного pack"
+  produces:
+    - "harness/hooks/epic_resolve.py — +tool-gate subparser"
+    - "loop/workflow/tool_gates/loader.py — load_tool_gate_adapter"
+    - "harness/hooks/epic/core.py или finish path — external_gates enforcement"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-008"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-009"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §Acceptance Scenarios US-002"
+  files:
+    - "harness/hooks/epic_resolve.py"
+    - "loop/workflow/tool_gates/loader.py"
+
+as_built:
+  - "harness/hooks/epic_resolve.py: subparsers структура (mb-finish, validate-decompose-tree, etc)"
+  - "harness/hooks/epic/core.py: gates_from_phase + stop-gate logic"
+  - "harness/hooks/epic/core.py: нет external_gates check"
+
+delta:
+  - "harness/hooks/epic_resolve.py: добавить p_tool_gate subparser + 'check' action"
+  - "loop/workflow/tool_gates/loader.py: load_tool_gate_adapter(gate_id, manifest_path, cwd) → ToolGateAdapter instance"
+  - "stop-gate path: при external_gates[] в phase config — call tool-gate check, блокировать при fail"
+
+deletes: []
+
+out_of_scope:
+  - "Параллельный запуск multiple tool gates — sequential достаточно для reference"
+  - "Tool gate timeout/retry — scope cut"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+    - python-error-handling
+
+checkpoints:
+  - id: cp1
+    criterion: CLI tool-gate check exit 1 при отсутствии файла
+    verify: "bin/pytest loop/tests/test_cli_tool_gate.py -q --tb=short -k 'cli_fail'"
+  - id: cp2
+    criterion: CLI tool-gate check exit 0 при наличии fixture mp4
+    verify: "bin/pytest loop/tests/test_cli_tool_gate.py -q --tb=short -k 'cli_pass'"
+  - id: cp3
+    criterion: stop-gate блокирует FINISH для EDIT с external_gates без render файла
+    verify: "bin/pytest loop/tests/test_external_gates_stop_gate.py -q --tb=short -k 'block_finish'"
+  - id: cp4
+    criterion: stop-gate НЕ содержит hardcoded video branch
+    verify: "rg 'video.production\\|if.*video\\|pack_id.*video' harness/hooks/epic/core.py | wc -l | grep -E '^0$'"
+
+verify:
+  - "rg 'tool.gate\\|tool_gate' harness/hooks/epic_resolve.py"
+  - "rg 'external_gates' harness/hooks/epic/core.py"
+
+tdd:
+  - "loop/tests/test_cli_tool_gate.py — test_cli_tool_gate_fail, test_cli_tool_gate_pass"
+  - "loop/tests/test_external_gates_stop_gate.py — test_block_finish_on_gate_fail, test_pass_finish_on_gate_pass"

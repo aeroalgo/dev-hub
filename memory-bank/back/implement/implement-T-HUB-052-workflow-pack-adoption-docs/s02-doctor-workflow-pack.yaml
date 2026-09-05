@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: s02 — doctor workflow-pack subcommand — ≥4 preflight checks, fail-closed IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/yaml/steps/s02-doctor-workflow-pack.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Added loop/doctor/__init__.py and loop/doctor/checks/__init__.py.
+- Implemented check_workflow_pack and run_doctor_workflow_pack in loop/doctor/checks/workflow_pack.py
+  checking resolve ok, phase_registry file exists, rules_root dir exists, mb_root
+  exists and is writable.
+- Wired doctor workflow-pack subcommand in loop/context_loop.py.
+- Added comprehensive pytest test suite in loop/tests/test_doctor_workflow_pack.py
+  covering TM-001..TM-004.
+files:
+- loop/doctor/__init__.py
+- loop/doctor/checks/__init__.py
+- loop/doctor/checks/workflow_pack.py
+- loop/context_loop.py
+- loop/tests/test_doctor_workflow_pack.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_doctor_workflow_pack.py loop/tests/test_workflow_pack_registry.py
+  -q --tb=line`'
+- '`python3 loop/context_loop.py doctor workflow-pack`'
+integration_check:
+- CLI doctor workflow-pack returns JSON with diagnostic_codes and exits 0 on valid
+  project and 1 on errors.
+grep_control:
+- back: check_workflow_pack covers resolve, phase_registry, rules_root, and mb_root
+    writability fail-closed.
+  front: n/a
+verification_results:
+- cp1 PASS — check_workflow_pack() on dev-hub cwd returns empty list (all pass)
+- cp2 PASS — check_workflow_pack() on fixture with invalid pack_id returns invalid_workflow_pack
+  diagnostic code
+- '{''cp3 PASS — CLI exit codes'': ''exit 0 on ok, exit 1 on invalid''}'
+- suite PASS — 15 passed in 1.95s
+checkpoints:
+- id: cp1
+  criterion: check_workflow_pack() on dev-hub cwd returns empty list (all pass)
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+- id: cp2
+  criterion: check_workflow_pack() on fixture with invalid pack_id returns ≥1 diagnostic
+    code
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+- id: cp3
+  criterion: 'CLI exit codes: exit 0 on ok, exit 1 on invalid'
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+resume_from: cp1

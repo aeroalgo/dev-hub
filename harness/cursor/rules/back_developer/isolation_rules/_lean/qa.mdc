@@ -7,6 +7,7 @@ alwaysApply: false
 **Артефакт:**  
 - с эпиком: `memory-bank/back/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`  
 - без эпика: `memory-bank/back/qa/qa-YYYYMMDD-<slug>.yaml`  
+- **FORBIDDEN:** дубль `qa.yaml` + `qa-YYYYMMDD-*` с одним содержимым (один файл на прогон) 
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/qa/epic-step.yaml` (`epic-qa/v1`)
 
 ## Gates (обязательные — узкий путь)

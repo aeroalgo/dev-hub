@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s02 — forbidden_policy.py — artifact_layout dispatch для forbidden load IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s02-production-epic-policy.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+- architecture-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- Создан модуль loop/paths/forbidden_policy.py с ForbiddenPolicy protocol, SoftwareEpicV1Policy,
+  ProductionEpicV1Policy и fail-closed dispatch policy_for_layout.
+- Экспортированы новые классы и функции в loop/paths/__init__.py.
+- Добавлены тесты loop/tests/test_forbidden_policy.py, покрывающие software_epic_v1,
+  production_epic_v1 и fail-closed для unknown layout.
+files:
+- loop/paths/forbidden_policy.py
+- loop/paths/__init__.py
+- loop/tests/test_forbidden_policy.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_forbidden_policy.py -q --tb=short` — 3 passed'
+- '`bin/pytest loop/tests/test_pack_layout.py loop/tests/test_forbidden_policy.py
+  loop/tests/test_mb_load_resolver.py loop/tests/test_mb_load_session.py -q --tb=short`
+  — 21 passed'
+integration_check:
+- policy_for_layout returns layout-specific policy implementing ForbiddenPolicy protocol;
+  fail-closed on unknown or None layout
+grep_control:
+- back: no hardcoded secrets or unhandled layout strings
+  front: n/a
+verification_results:
+- cp1 PASS — policy_for_layout(ArtifactLayout.software_epic_v1) -> SoftwareEpicV1Policy
+- cp2 PASS — policy_for_layout(ArtifactLayout.production_epic_v1) -> ProductionEpicV1Policy
+- cp3 PASS — policy_for_layout(unknown) raises ForbiddenPolicyError
+- suite PASS — 21 passed in 0.44s
+checkpoints:
+- id: cp1
+  criterion: policy_for_layout(ArtifactLayout.software_epic_v1) → SoftwareEpicV1Policy
+    с текущим denylist
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp2
+  criterion: policy_for_layout(ArtifactLayout.production_epic_v1) → ProductionEpicV1Policy
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+- id: cp3
+  criterion: unknown layout → ForbiddenPolicyError (fail-closed)
+  status: done
+  done_at: '2026-09-04T00:00:00Z'
+resume_from: cp1

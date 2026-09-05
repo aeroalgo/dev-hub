@@ -1,0 +1,244 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+date: '2026-09-04'
+auditor: BACK AUDIT
+
+# HARD: derive from plan.md (WHAT / Product probe Reframe / Контекст) — not from decompose titles.
+plan_intent:
+  epic_goal: >-
+    Устранить 3 drift-косяка machine path после T-HUB-057/053/044: (1) заменить устаревший CLI флаг
+    --raw-json на --json в harness SoT и синхронизировать materialized поверхности (.claude, .codex, dsh),
+    (2) исправить вызов check_boundaries в loop doctor (boundaries_yaml_path вместо yaml_file) и обновить тесты,
+    (3) удалить legacy prose REPAIR: fallback и soft pydantic bypass из extract_repair_result.
+  source: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md#WHAT
+
+summary:
+  total_steps: 4
+  implemented: 4
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+# Intent coverage — IDs MUST match plan-*.md FR/SC/US verbatim (no remapped audit FR-00N).
+intent_checked:
+  fr_total: 9
+  fr_satisfied: 9
+  sc_checked: 5
+  layout_paths_total: 8
+  layout_paths_closed: 8
+  constitution_checked: true
+
+# Triple assess (HARD):
+# 1) plan_vs_runtime — каждый plan FR/US/AC/layout vs runtime evidence
+# 2) step_matrix — каждый sNN|eNN ✅/❌/⚠️ vs implement
+# 3) architecture_parity — Target layout / HOW target vs as-built tree
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: >-
+      harness/agents/gate-repair.md, harness/agents/verify-*.md, harness/agents/analyze-verify.md содержат
+      `validate-boundary --schema-id ... --json '...'`. Флаг --raw-json полностью отсутствует.
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: >-
+      loop/incidents/doctor.py:406 вызывает `check_boundaries(root_dir=cwd_p, boundaries_yaml_path=boundaries_yaml)`.
+      loop/tests/test_incidents_doctor.py:145,167 используют `lambda root_dir, boundaries_yaml_path: ...`.
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: >-
+      harness/hooks/_lib.py:extract_repair_result (в _lib.py / subagent-stop.py) обрабатывает только JSON fence через RepairResultRecord.model_validate.
+      harness/hooks/tests/test_gate_repair.py:34 test_extract_repair_result_from_repair_line_deny_prose проверяет assert is None.
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: >-
+      .codex/agents/*.toml, .claude/agents/*.md, dsh/presets/*.prompt.md синхронизированы с harness SoT и используют флаг --json.
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: >-
+      harness/agents/gate-repair.md, harness/agents/verify-*.md, harness/agents/analyze-verify.md обновлены с --json.
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: >-
+      harness/hooks/_lib.py:71,135 CONTRACT strings содержат --json; --raw-json отсутствует.
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: >-
+      .codex/agents/*.toml, dsh/presets/*.prompt.md синхронизированы с harness SoT.
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: >-
+      loop/incidents/doctor.py:406 использует корректный kwargs `boundaries_yaml_path=boundaries_yaml`.
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: >-
+      loop/tests/test_incidents_doctor.py:152-153,174-175 проверяет отсутствие TypeError и yaml_file в detail.
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: >-
+      harness/hooks/_lib.py:extract_repair_result удалил regex `^REPAIR:` и soft accept при Exception; валидация строго через pydantic RepairResultRecord.
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: >-
+      harness/hooks/tests/test_gate_repair.py:34 переписан в test_extract_repair_result_from_repair_line_deny_prose с assert result is None.
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: >-
+      Enforce scan подтверждает 0 вхождений --raw-json в harness/agents, harness/hooks/_lib.py, .claude/agents, .codex/agents, dsh/presets.
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: >-
+      Materialize синхронизация выполнена и зафиксирована в s03 implement shard.
+    remaining_work: ""
+  - source_ref: NFR-001
+    status: satisfied
+    evidence: >-
+      Fail-closed поведение подтверждено тестами в test_gate_repair.py и test_validate_boundary.py.
+    remaining_work: ""
+  - source_ref: NFR-002
+    status: satisfied
+    evidence: >-
+      Scope ограничен hygiene фиксами без расширения на mid-turn JSON или MCP Cursor live.
+    remaining_work: ""
+  - source_ref: NFR-003
+    status: satisfied
+    evidence: >-
+      Materialize идемпотентен, alongside layout сохранён.
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: >-
+      0 совпадений по `--raw-json` в instruction surfaces.
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: >-
+      gate-repair CLI snippet с --json возвращает valid: true.
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: >-
+      doctor boundary_violations отрабатывает без TypeError.
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: >-
+      test_extract_repair_result_from_repair_line_deny_prose подтверждает None на prose input.
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: >-
+      Targeted suite полностью зелёный.
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/incidents/doctor.py
+    status: present
+    evidence: "Файл на диске, check_boundaries вызов исправлен на boundaries_yaml_path"
+  - layout_path: loop/tests/test_incidents_doctor.py
+    status: present
+    evidence: "Файл на диске, monkeypatch lambdas обновлены, тесты проверяют корректную сигнатуру"
+  - layout_path: harness/agents/gate-repair.md
+    status: present
+    evidence: "Файл на диске, snippet переведен на --json"
+  - layout_path: harness/agents/verify-*.md
+    status: present
+    evidence: "Файлы на диске, snippets переведены на --json"
+  - layout_path: harness/hooks/_lib.py
+    status: present
+    evidence: "Файл на диске, CONTRACT strings и extract_repair_result очищены от prose/fallback"
+  - layout_path: harness/hooks/tests/test_gate_repair.py
+    status: present
+    evidence: "Файл на диске, deny-prose тест присутствует"
+  - layout_path: .codex/agents/*.toml
+    status: present
+    evidence: "Файлы синхронизированы, содержат --json"
+  - layout_path: dsh/presets/*.prompt.md
+    status: present
+    evidence: "Файлы синхронизированы, содержат --json"
+
+step_matrix:
+  - step_id: s01
+    title: Fix doctor boundary kwargs TypeError (call-site + tests)
+    status: completed
+    evidence: "loop/incidents/doctor.py и loop/tests/test_incidents_doctor.py обновлены"
+  - step_id: s02
+    title: 'Fix harness SoT CLI flag: --raw-json → --json в agent/hook/preset sources'
+    status: completed
+    evidence: "harness/agents/*.md и harness/hooks/_lib.py обновлены"
+  - step_id: s03
+    title: Rematerialize .claude/.codex/dsh surfaces после harness SoT fix
+    status: completed
+    evidence: ".codex/agents/*.toml, dsh/presets/*.prompt.md обновлены"
+  - step_id: s04
+    title: 'Purge prose REPAIR: fallback из extract_repair_result'
+    status: completed
+    evidence: "harness/hooks/_lib.py и harness/hooks/tests/test_gate_repair.py очищены от prose fallback"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/s01-doctor-boundary-kwargs-fix.md
+  - step_id: s02
+    implement_file: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/s02-harness-sot-cli-flag-fix.md
+  - step_id: s03
+    implement_file: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/s03-materialize-rematerialize-surfaces.md
+  - step_id: s04
+    implement_file: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/s04-repair-extract-prose-fallback-purge.md
+
+not_implemented: []
+
+deviations: []
+
+# Brownfield replace / cutover (shared/workflow-legacy-fallback-cleanup.mdc §4):
+sunset_inventory_scan:
+  scanned_at: '2026-09-04'
+  plan_ref: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md#replacement--sunset
+  rows:
+    - symbol: "--raw-json"
+      kind: I
+      command: "rg -n -- '--raw-json' harness/agents harness/hooks/_lib.py .claude/agents .codex/agents dsh/presets"
+      result: pass
+      prod_callers: []
+      notes: "0 совпадений найдено"
+    - symbol: "yaml_file="
+      kind: A
+      command: "rg -n 'check_boundaries\\(.*yaml_file=' loop/"
+      result: pass
+      prod_callers: []
+      notes: "0 совпадений найдено"
+    - symbol: "extract_repair_result prose fallback"
+      kind: C
+      command: "rg -n 'REPAIR:\\s*\\(done' harness/hooks/_lib.py"
+      result: pass
+      prod_callers: []
+      notes: "0 совпадений найдено"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-04'
+  rows:
+    - boundary: B-REPAIR
+      enforce_evidence: "JSON fence only in extract_repair_result + pydantic model_validate"
+      result: pass
+      notes: "Prose fallback полностью удален"
+
+blocked_reason: ""

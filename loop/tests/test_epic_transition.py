@@ -536,7 +536,8 @@ def test_arm_pre_implement_decompose_sets_armed_decompose(tmp_path: Path) -> Non
     ac = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
     assert "workflow-decompose.mdc" in ac
     assert "sNN-<slug>.yaml" in ac
-    assert "decompose-T-030-demo/index.yaml" in ac
+    assert "T-030-demo/yaml/decompose-index.yaml" in ac
+    assert "decompose-T-030-demo/index.yaml" not in ac
 
 
 def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None:
@@ -563,7 +564,8 @@ def test_arm_pre_implement_short_queue_id_uses_plan_stem(tmp_path: Path) -> None
     st = load_epic_state(tmp_path)
     assert st.get("armed_epic") == "T-HUB-023-hooks-llm-fallbacks"
     ac = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
-    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" in ac
+    assert "T-HUB-023-hooks-llm-fallbacks/yaml/decompose-index.yaml" in ac
+    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" not in ac
     assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
     assert "NOT short queue id" in ac
 

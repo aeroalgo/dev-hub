@@ -1,0 +1,86 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: epic/core + context_loop — activeContext path via pack resolver
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Параметризовать `harness/hooks/epic/core.py` (`read_active_context`, `extract_load_now`)
+  и `loop/context_loop.py` так, чтобы путь к activeContext.md вычислялся через
+  `resolve_mb_root(cwd) / "activeContext.md"` вместо hardcoded строки.
+  FR-002: ни одной строки `"memory-bank/activeContext.md"` или `Path("memory-bank") / "activeContext.md"` после шага.
+
+plan_contract:
+  fr_ids: [FR-002, US-001, AC- US-001]
+  nouns: [read_active_context, extract_load_now, activeContext.md, resolve_mb_root]
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - loop/context_loop.py
+    - loop/epic_transition.py
+  ac_quotes:
+    - "pack video → memory-bank/video/activeContext.md loaded"
+    - "activeContext missing → fail-closed (shape invalid diagnostic)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:20-27"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (resolve_mb_root — из s01)
+  produces:
+    - harness/hooks/epic/core.py (edit)
+    - loop/context_loop.py (edit)
+    - loop/epic_transition.py (edit)
+    - loop/tests/test_active_context_lock.py (extend)
+  plan_refs:
+    - "plan.md §gap (as-built) — read_active_context, extract_load_now"
+    - "plan.md §Technology axiom — activeContext path row"
+  files:
+    - harness/hooks/epic/core.py
+    - loop/context_loop.py
+    - loop/epic_transition.py
+    - loop/tests/test_active_context_lock.py
+
+as_built:
+  - "harness/hooks/epic/core.py — `read_active_context` hardcodes `Path('memory-bank/activeContext.md')`"
+  - "loop/context_loop.py — hardcoded `'memory-bank/activeContext.md'` path"
+  - "loop/epic_transition.py — аналогичный hardcode"
+
+delta:
+  - "edit: harness/hooks/epic/core.py — `read_active_context(cwd)` принимает `cwd`, вычисляет path через `resolve_mb_root(cwd) / 'activeContext.md'`"
+  - "edit: loop/context_loop.py — передавать `cwd` в `read_active_context`; убрать hardcode"
+  - "edit: loop/epic_transition.py — аналогично context_loop"
+  - "edit: loop/tests/test_active_context_lock.py — добавить тест: video pack → corect path"
+
+deletes:
+  - "hardcoded `'memory-bank/activeContext.md'` и `Path('memory-bank') / 'activeContext.md'` — удалить в этом шаге (s03 = cutover)"
+
+out_of_scope:
+  - "mb_load / mb_finish wiring — s04, s05"
+  - "validate_active_context_shape — s07"
+  - "rg audit полного дерева — s09"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "read_active_context(cwd) для software pack → читает memory-bank/activeContext.md"
+    verify: "bin/pytest loop/tests/test_active_context_lock.py -q --tb=short -k 'software'"
+  - id: cp2
+    criterion: "read_active_context(cwd) для video pack → читает memory-bank/video/activeContext.md"
+    verify: "bin/pytest loop/tests/test_active_context_lock.py -q --tb=short -k 'video'"
+  - id: cp3
+    criterion: "rg: нет `'memory-bank/activeContext.md'` в core.py и context_loop.py"
+    verify: "rg -n 'memory-bank/activeContext' harness/hooks/epic/core.py loop/context_loop.py loop/epic_transition.py && exit 1 || echo OK"
+
+verify:
+  - "bin/pytest loop/tests/test_active_context_lock.py -q --tb=short"
+  - "rg -rn 'memory-bank/activeContext' harness/hooks/ loop/ && exit 1 || echo OK"
+
+tdd:
+  - "Extend test_active_context_lock.py (video pack test, RED) → edit core.py + context_loop.py (GREEN)"

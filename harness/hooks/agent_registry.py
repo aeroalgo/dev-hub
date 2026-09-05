@@ -412,7 +412,7 @@ def discover_registry(
             if enabled_key in matching and chat_key not in matching and loop_key not in matching and _parse_bool(matching[enabled_key][1]) is None:
                 diagnostics.append(RegistryDiagnostic("invalid_enabled", agent_id, enabled_key))
                 config_error = True
-            runnable = not config_error and (model_entry is None or model is not None or not overlay.requires_model)
+            runnable = not config_error  # Explicit inherit is valid; missing/invalid models set config_error above.
         description = metadata.get("description", "")
         if not isinstance(description, str):
             diagnostics.append(RegistryDiagnostic("definition_invalid", agent_id))

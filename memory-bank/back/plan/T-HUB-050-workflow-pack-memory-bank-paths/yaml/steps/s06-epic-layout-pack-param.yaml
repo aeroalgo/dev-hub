@@ -1,0 +1,82 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: epic_paths.py — resolve_epic_path(kind, epic_id, pack)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать / расширить `loop/paths/epic_paths.py` с единой функцией
+  `resolve_epic_path(kind, epic_id, pack)` которая заменяет параллельные glob-хелперы per-domain.
+  US-003/AC+ US-003: resolve_epic_path(plan) → pack-relative путь к плану/decompose/implement.
+  T-HUB-047 param: если 047 смёрджен — стыковать с его resolver; иначе — stub совместимый интерфейс.
+
+plan_contract:
+  fr_ids: [FR-004, US-003, AC+ US-003]
+  nouns: [resolve_epic_path, epic_paths.py, kind (plan/decompose/implement), epic_id, pack]
+  layout_paths:
+    - loop/paths/epic_paths.py
+    - loop/tests/test_epic_paths.py
+  ac_quotes:
+    - "resolve_epic_path(plan) → pack-relative"
+    - "parallel glob helpers per-domain removed"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:32-43"
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:48-56"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (resolve_mb_root, ArtifactLayout — из s01)
+  produces:
+    - loop/paths/epic_paths.py (create/edit)
+    - loop/tests/test_epic_paths.py
+  plan_refs:
+    - "plan.md §Technology axiom — Epic path kinds row"
+    - "plan.md §Product probe #3 (T-HUB-047)"
+    - "plan.md §gap (as-built) — epic_paths.py / reconcile"
+  files:
+    - loop/paths/epic_paths.py
+    - loop/tests/test_epic_paths.py
+
+as_built:
+  - "нет единого resolve_epic_path; параллельные glob-хелперы per-domain в loop/"
+  - "hardcode `plan/decompose-{id}/` under `back/plan/` в reconcile"
+  - "T-HUB-047 — no pack dimension"
+
+delta:
+  - "add/edit: loop/paths/epic_paths.py — `EpicPathKind` enum (plan, decompose, implement); `resolve_epic_path(kind, epic_id, pack)` → Path relative to mb_root/role subdir"
+  - "add: loop/tests/test_epic_paths.py — software/production/video pack × каждый kind"
+  - "если T-HUB-047 не смёрджен: compatible stub interface; follow_up: T-HUB-047-full-wire"
+
+deletes:
+  - "параллельные glob-хелперы per-domain → удалить в s09 после wire (cutover)"
+  - "hardcode `back/plan/decompose-{id}/` → заменить вызовом resolve_epic_path в s09"
+
+out_of_scope:
+  - "T-HUB-047 полная интеграция если 047 не смёрджен — follow_up: T-HUB-047-full-wire"
+  - "mb_load/mb_finish — s04, s05"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+    - architecture-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "resolve_epic_path('plan', epic_id, software_pack) → mb_root/back/plan/{epic_id}/md/"
+    verify: "bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k 'plan and software'"
+  - id: cp2
+    criterion: "resolve_epic_path('plan', epic_id, video_pack) → memory-bank/video/back/plan/{epic_id}/md/"
+    verify: "bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k 'plan and video'"
+  - id: cp3
+    criterion: "resolve_epic_path('decompose', ...) → yaml/steps/ subfolder корректно"
+    verify: "bin/pytest loop/tests/test_epic_paths.py -q --tb=short -k 'decompose'"
+
+verify:
+  - "bin/pytest loop/tests/test_epic_paths.py -q --tb=short"
+
+tdd:
+  - "Написать test_epic_paths.py (RED) → реализовать epic_paths.py (GREEN)"

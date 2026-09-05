@@ -1,0 +1,18 @@
+# TODO: Replace with your pack identifier (e.g. my-custom-workflow)
+id: TODO_PACK_ID_PLACEHOLDER
+# TODO: List roles available in this pack (e.g. [author, reviewer])
+roles:
+  - TODO_ROLE_PLACEHOLDER
+# TODO: List slash/CLI command prefixes for roles (e.g. [AUTHOR, REVIEWER])
+command_prefixes:
+  - TODO_PREFIX_PLACEHOLDER
+# Relative path to phase_registry.yaml for your pack
+phase_registry: workflows/your-pack/phase_registry.yaml
+# Relative path to memory bank directory for your pack
+memory_bank: memory-bank/your-pack
+# Relative path to cursor/claude rules root for your pack
+rules_root: .cursor/rules/your-pack
+# Artifact layout: "software-epic-v1" or "production-epic-v1"
+artifact_layout: software-epic-v1
+# Description of the workflow pack
+description: "TODO: Workflow pack description placeholder for your-pack"

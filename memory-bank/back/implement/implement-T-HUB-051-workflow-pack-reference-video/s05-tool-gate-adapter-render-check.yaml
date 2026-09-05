@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s05 — loop/workflow/tool_gates/ ToolGateAdapter + workflows/video/tools/render_check.py
+  IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s05-tool-gate-adapter-render-check.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/workflow/tool_gates package with ToolGateAdapter, ToolGateContext,
+  ToolGateResult
+- Created workflows/video/tools/render_check.py with RenderCheckAdapter supporting
+  stat and ffprobe fallback
+- Registered render tool gate in workflows/video/manifest.yaml
+- Added test suite in loop/tests/test_tool_gate_render_check.py
+files:
+- loop/workflow/tool_gates/__init__.py
+- loop/workflow/tool_gates/protocol.py
+- workflows/video/tools/__init__.py
+- workflows/video/tools/render_check.py
+- workflows/video/manifest.yaml
+- loop/tests/test_tool_gate_render_check.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_tool_gate_render_check.py -q --tb=short
+integration_check:
+- python3 -c "from loop.workflow.tool_gates.protocol import ToolGateAdapter, ToolGateContext,
+  ToolGateResult; from workflows.video.tools.render_check import RenderCheckAdapter;
+  assert isinstance(RenderCheckAdapter(), ToolGateAdapter)"
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- bin/pytest loop/tests/test_tool_gate_render_check.py -> 6 passed
+checkpoints:
+- id: cp1
+  criterion: ToolGateAdapter Protocol + ToolGateResult импортируются без ошибок
+  status: done
+- id: cp2
+  criterion: render_check fail path (нет файла) → ok=False, diagnostic_codes=['render_output_missing']
+  status: done
+- id: cp3
+  criterion: render_check pass path (fixture mp4) → ok=True, diagnostic_codes=[]
+  status: done
+- id: cp4
+  criterion: render_check не требует реального ffprobe в CI (stat fallback)
+  status: done

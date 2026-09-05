@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: s01 — Fix doctor boundary kwargs TypeError (call-site + tests) IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/yaml/steps/s01-doctor-boundary-kwargs-fix.yaml
+skills_used:
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/systematic-debugging/SKILL.md
+discovery:
+- 'call-site: loop/incidents/doctor.py:406 check_boundaries call'
+- 'signature: tests/architecture/check_boundaries.py:76 check_boundaries(root_dir,
+  boundaries_yaml_path)'
+gaps:
+  status: none
+done:
+- 'loop/incidents/doctor.py: заменен некорректный kwarg yaml_file= на boundaries_yaml_path='
+- 'loop/tests/test_incidents_doctor.py: обновлен monkeypatch на boundaries_yaml_path
+  и добавлены ассерты против TypeError'
+files:
+- loop/incidents/doctor.py
+- loop/tests/test_incidents_doctor.py
+deletes:
+- 'loop/tests/test_incidents_doctor.py: устаревшие monkeypatch с сигнатурой yaml_file='
+tests:
+- bin/pytest loop/tests/test_incidents_doctor.py -q --tb=short
+- bin/pytest tests/architecture/test_boundary_check.py tests/architecture/test_ratchet.py
+  -q --tb=short
+- python loop/context_loop.py doctor --json
+integration_check:
+- doctor --json checklist item boundary_violations detail не содержит TypeError
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: doctor --json возвращает checklist без TypeError/yaml_file в detail'
+- 'cp2 PASS: pytest loop/tests/test_incidents_doctor.py -> 8 passed in 3.93s'
+- 'cp3 PASS: rg -n "yaml_file=" loop/incidents/doctor.py не находит совпадений'
+checkpoints:
+- id: cp1
+  criterion: doctor --json не содержит yaml_file TypeError в detail
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: unit tests doctor boundary зелёные с правильным monkeypatch
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: rg не находит yaml_file= kwarg в doctor call-site
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+resume_from: cp1

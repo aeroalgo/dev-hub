@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "harness/agents/verify-script.md + verify-edit.md + verify-publish.md contracts"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать три verify agent contract файла по образцу `harness/agents/verify-implement.md`:
+  - `harness/agents/verify-script.md` — SCRIPT phase: AC+ script outline complete, scenes listed
+  - `harness/agents/verify-edit.md` — EDIT phase: AC+ render artifact present, duration > 0
+  - `harness/agents/verify-publish.md` — PUBLISH phase: AC+ publish target URL or delivery artifact confirmed
+  Каждый файл: Description, AC+ список, AC− список, §0.11 gate (stop-gate blocker criteria).
+  После шага: harness может spawn verify-edit/verify-script/verify-publish по контракту
+  аналогично verify-implement.
+  Outcomes: FR-005, AC+3, US-003.
+
+plan_contract:
+  fr_ids: [FR-005, AC+3, US-003]
+  nouns:
+    - "harness/agents/verify-script.md — SCRIPT phase AC+/AC− contract"
+    - "harness/agents/verify-edit.md — EDIT phase AC+/AC− contract (render artifact)"
+    - "harness/agents/verify-publish.md — PUBLISH phase AC+/AC− contract"
+    - "§0.11 gate — VERDICT: PASS / VERDICT: FAIL + BLOCKERS format"
+    - "verify_agent mapping: phase_registry s02 → verify-edit / verify-script / verify-publish"
+  layout_paths:
+    - "harness/agents/verify-script.md"
+    - "harness/agents/verify-edit.md"
+    - "harness/agents/verify-publish.md"
+  ac_quotes:
+    - "AC+3: Three verify agent contracts for video phases"
+    - "US-003: verify-edit spawn после IMPLEMENT gate как в software"
+    - "FORBIDDEN: reuse verify-implement contract verbatim (Technology axiom)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:170-190"
+
+context:
+  consumes:
+    - "harness/agents/verify-implement.md — образец структуры и §0.11 gate format"
+    - "s02: phase_registry verify_agent mapping (verify-script, verify-edit, verify-publish)"
+  produces:
+    - "harness/agents/verify-script.md"
+    - "harness/agents/verify-edit.md"
+    - "harness/agents/verify-publish.md"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-005"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §Technology axiom"
+  files:
+    - "harness/agents/verify-script.md"
+    - "harness/agents/verify-edit.md"
+    - "harness/agents/verify-publish.md"
+
+as_built:
+  - "harness/agents/verify-implement.md — существует, образец"
+  - "harness/agents/verify-qa.md — существует, образец"
+  - "harness/agents/ — нет verify-script, verify-edit, verify-publish"
+
+delta:
+  - "harness/agents/verify-script.md: create (new) с SCRIPT-specific AC+/AC− + §0.11"
+  - "harness/agents/verify-edit.md: create (new) с EDIT-specific AC+/AC− + §0.11 + render artifact check"
+  - "harness/agents/verify-publish.md: create (new) с PUBLISH-specific AC+/AC− + §0.11"
+
+deletes: []
+
+out_of_scope:
+  - "verify-storyboard, verify-shoot, verify-brief — appetite cut; BRIEF/STORYBOARD/SHOOT без verify_agent"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: все три verify md файла существуют
+    verify: "find harness/agents -name 'verify-script.md' -o -name 'verify-edit.md' -o -name 'verify-publish.md' | wc -l | grep -E '^3$'"
+  - id: cp2
+    criterion: verify-edit.md содержит render artifact AC+
+    verify: "rg 'render|artifact|mp4|duration' harness/agents/verify-edit.md"
+  - id: cp3
+    criterion: "все три файла содержат VERDICT: PASS / VERDICT: FAIL format"
+    verify: "rg 'VERDICT' harness/agents/verify-script.md harness/agents/verify-edit.md harness/agents/verify-publish.md"
+
+verify:
+  - "rg 'AC\\+' harness/agents/verify-script.md harness/agents/verify-edit.md harness/agents/verify-publish.md"
+
+tdd: []

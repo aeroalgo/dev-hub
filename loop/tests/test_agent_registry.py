@@ -146,3 +146,14 @@ def test_sunset_discovered(tmp_path: Path) -> None:
     assert agent.runnable is True
 
 
+
+
+def test_explicit_inherit_model_keeps_required_reviewer_runnable(tmp_path):
+    registry = _load()
+    _agent(tmp_path, "verify-qa.md", "name: verify-qa\ndescription: QA\noverlay:\n  managed: true\n  requires_model: true\n  default_loop: true")
+    result = registry.discover_registry(tmp_path, process_env={"PROJECT_AGENT_VERIFY_QA_MODEL": "inherit"}, project_env_local={}, project_env={})
+    agent = result.get("reviewer")
+    assert agent is not None
+    assert agent.runnable is True
+    assert agent.model is None
+    assert not result.diagnostics

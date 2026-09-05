@@ -99,8 +99,8 @@ def check_boundaries(root_dir: Path | str, boundaries_yaml_path: Path | str) -> 
 
             python_files = list(root.rglob("*.py")) if root.is_dir() else [root]
             for py_file in python_files:
-                # Exclude tests directory
-                if "tests" in py_file.parts:
+                # Exclude tests directory and virtual environments/caches
+                if any(part in py_file.parts for part in ("tests", ".venv", "venv", "site-packages", "__pycache__", ".git")):
                     continue
 
                 rel_path = str(py_file.relative_to(root_path))

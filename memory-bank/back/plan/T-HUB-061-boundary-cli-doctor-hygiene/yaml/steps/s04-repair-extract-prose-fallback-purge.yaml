@@ -16,7 +16,7 @@ goal: |
   Outcome: US-003 / FR-006 / FR-007 / SC-002 / SC-004 / TM-003.
 
 plan_contract:
-  fr_ids: [FR-006, FR-007, US-003, SC-002, SC-004, TM-003]
+  fr_ids: [FR-006, FR-007, US-003, SC-002, SC-004, SC-005, TM-003]
   nouns:
     - "harness/hooks/_lib.py extract_repair_result function"
     - "prose REPAIR: regex ^REPAIR:\\s*(done|partial|fail)"

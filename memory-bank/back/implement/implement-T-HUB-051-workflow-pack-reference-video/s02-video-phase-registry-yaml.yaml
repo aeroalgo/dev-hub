@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s02 — workflows/video/phase_registry.yaml — 6 phases with external_gates field IMPLEMENT
+status: completed
+implement_index: ''
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s02-video-phase-registry-yaml.yaml
+skills_used:
+- python-testing-patterns
+- modern-python
+discovery: []
+gaps:
+  status: none
+done:
+- "Создан workflows/video/phase_registry.yaml (schema: phase-registry/v1) с 6 фазами (BRIEF, SCRIPT, STORYBOARD, SHOOT, EDIT, PUBLISH)."
+- "EDIT фаза содержит external_gates: [render] как additive YAML extension field."
+- "Настроены arm_templates и verify_agents: SCRIPT (pre_implement, verify-script), SHOOT (implement, need_verify: true), EDIT (implement, need_verify: true, verify-edit), PUBLISH (implement, need_verify: true, verify-publish, board_column: Done)."
+- "Написаны и пройдены тесты в loop/tests/test_video_phase_registry.py."
+files:
+- workflows/video/phase_registry.yaml
+- loop/tests/test_video_phase_registry.py
+deletes: []
+tests:
+- "`bin/pytest loop/tests/test_video_phase_registry.py -q --tb=short`"
+integration_check:
+- "load_phase_registry(pack_id='video-production', cwd=...) загружает 6 фаз без ошибок и валидирует external_gates и verify_agents"
+grep_control:
+- back: external_gates in workflows/video/phase_registry.yaml
+  front: n/a
+verification_results:
+- cp1 PASS — load_phase_registry парсит video phase_registry без ValidationError
+- cp2 PASS — EDIT phase содержит external_gates: [render]
+- cp3 PASS — SCRIPT arm_template != EDIT arm_template
+- suite PASS — loop/tests/test_video_phase_registry.py 4 passed
+checkpoints:
+- id: cp1
+  criterion: load_phase_registry парсит video phase_registry без ValidationError
+  status: done
+  done_at: '2026-09-04T22:36:58Z'
+- id: cp2
+  criterion: EDIT phase содержит external_gates field со значением [render]
+  status: done
+  done_at: '2026-09-04T22:36:58Z'
+- id: cp3
+  criterion: SCRIPT фаза имеет arm_template отличный от EDIT (SC-002)
+  status: done
+  done_at: '2026-09-04T22:36:59Z'
+resume_from: cp1

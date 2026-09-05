@@ -1,0 +1,236 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-051-workflow-pack-reference-video
+plan_id: T-HUB-051-workflow-pack-reference-video
+date: 2026-09-05
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: Reference Workflow Pack `video-production` with phases BRIEF→SCRIPT→STORYBOARD→SHOOT→EDIT→PUBLISH, roles SCRIPT/VISUAL/POST, verify agents, external tool gate (ffmpeg file check), rules skeleton, and e2e pytest proving non-software pipeline runs on harness.
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 9
+  implemented: 9
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 5
+  layout_paths_total: 9
+  layout_paths_closed: 9
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "workflows/video/manifest.yaml defines memory_bank: memory-bank/video with SCRIPT prefix targeting memory-bank/video/script/"
+    remaining_work: ""
+
+  - source_ref: US-002
+    status: satisfied
+    evidence: "workflows/video/tools/render_check.py checks outputs/final.mp4 presence and duration; stop-gate and CLI enforce it"
+    remaining_work: ""
+
+  - source_ref: US-003
+    status: satisfied
+    evidence: "harness/agents/verify-edit.md configured as verify_agent for EDIT phase in workflows/video/phase_registry.yaml"
+    remaining_work: ""
+
+  - source_ref: US-004
+    status: satisfied
+    evidence: "workflows/_template/ provides manifest.yaml, phase_registry.yaml, and README.md authoring templates"
+    remaining_work: ""
+
+  - source_ref: US-005
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_video_e2e.py runs mock tool gate adapter without requiring real ffmpeg render"
+    remaining_work: ""
+
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "WORKFLOW_PACK=video-production resolves via resolve_workflow_pack() without errors"
+    remaining_work: ""
+
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "SCRIPT phase uses pre_implement arm_template while EDIT uses implement with external_gates [render]"
+    remaining_work: ""
+
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "tool-gate check CLI exits 1 on missing file and exits 0 on valid fixture mp4"
+    remaining_work: ""
+
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_video_e2e.py passes 8 e2e smoke tests"
+    remaining_work: ""
+
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "loop/tests/test_template_pack_validate.py validates workflows/_template/ manifest"
+    remaining_work: ""
+
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/workflow_pack_registry.yaml defines video-production pack row; workflows/video/manifest.yaml exists with complete pack metadata"
+    remaining_work: ""
+
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "workflows/video/phase_registry.yaml defines 6 phases (BRIEF, SCRIPT, STORYBOARD, SHOOT, EDIT, PUBLISH) with finish_gates and verify_agent mapping"
+    remaining_work: ""
+
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "workflows/video/manifest.yaml defines roles [script, visual, post] and command_prefixes [SCRIPT, VISUAL, POST]"
+    remaining_work: ""
+
+  - source_ref: FR-004
+    status: satisfied
+    evidence: ".cursor/rules/video/ contains 7 mdc skeleton files (mainrule-core.mdc, workflow-plan/implement/qa.mdc, _lean/decompose/audit/qa.mdc)"
+    remaining_work: ""
+
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/agents/ contains verify-script.md, verify-edit.md, verify-publish.md with §0.11 gate and phase-specific AC+/AC-"
+    remaining_work: ""
+
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/workflow/tool_gates/ package defines ToolGateAdapter protocol, ToolGateContext, and ToolGateResult dataclasses"
+    remaining_work: ""
+
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "workflows/video/tools/render_check.py implements RenderCheckAdapter checking outputs/final.mp4 presence and ffprobe/stat duration fallback"
+    remaining_work: ""
+
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "harness/hooks/epic_resolve.py implements tool-gate check CLI returning exit 0/1 and JSON stdout"
+    remaining_work: ""
+
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py integrates external_gates check in FINISH path, blocking on gate failure"
+    remaining_work: ""
+
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "workflows/_template/ provides manifest.yaml, phase_registry.yaml, and README.md authoring templates"
+    remaining_work: ""
+
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "loop/tests/test_workflow_pack_video_e2e.py provides full e2e test suite covering pack resolution, arming, tool gates, and isolation"
+    remaining_work: ""
+
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep exists as sample epic fixture"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: workflows/video/manifest.yaml
+    status: present
+    follow_up: ""
+    evidence: "Manifest specifies id, roles, prefixes, phase_registry, memory_bank, rules_root, and tool_gates.render"
+
+  - layout_path: workflows/video/phase_registry.yaml
+    status: present
+    follow_up: ""
+    evidence: "Phase registry defines BRIEF, SCRIPT, STORYBOARD, SHOOT, EDIT (with external_gates: [render]), PUBLISH"
+
+  - layout_path: .cursor/rules/video/
+    status: present
+    follow_up: ""
+    evidence: "Directory contains 7 mdc rules skeleton files"
+
+  - layout_path: harness/agents/verify-script.md
+    status: present
+    follow_up: ""
+    evidence: "verify-script agent contract file exists"
+
+  - layout_path: harness/agents/verify-edit.md
+    status: present
+    follow_up: ""
+    evidence: "verify-edit agent contract file exists with render artifact check"
+
+  - layout_path: harness/agents/verify-publish.md
+    status: present
+    follow_up: ""
+    evidence: "verify-publish agent contract file exists"
+
+  - layout_path: loop/workflow/tool_gates/
+    status: present
+    follow_up: ""
+    evidence: "Package contains protocol.py and loader.py for tool gate adapters"
+
+  - layout_path: workflows/_template/
+    status: present
+    follow_up: ""
+    evidence: "Pack authoring template contains manifest.yaml, phase_registry.yaml, README.md"
+
+  - layout_path: loop/tests/test_workflow_pack_video_e2e.py
+    status: present
+    follow_up: ""
+    evidence: "e2e pytest suite with 8 test cases validating workflow pack behavior"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s01-video-manifest-registry-row.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s02-video-phase-registry-yaml.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s03-cursor-rules-video-skeleton.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s04-verify-agents-script-edit-publish.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s05-tool-gate-adapter-render-check.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s06-cli-tool-gate-check-stop-gate.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s07-workflows-template-pack-authoring.yaml
+  - step_id: s08
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s08-e2e-pytest-video-pack-fixtures.yaml
+  - step_id: s09
+    implement_file: memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video/s09-readme-operator-docs.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-05
+  plan_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md#replacement--sunset
+  rows:
+    - symbol: n/a greenfield reference pack
+      kind: A
+      command: 'rg -n "video-production" loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Purely additive pack, no deprecated shims"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-05
+  rows:
+    - boundary: loop-gate-verdict/v1
+      enforce_evidence: "rg 'loop-gate-verdict/v1' harness/agents/verify-*.md"
+      result: pass
+      notes: "All 3 video verify agents conform to loop-gate-verdict/v1"
+
+blocked_reason: ""

@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: 's04 — Purge prose REPAIR: fallback из extract_repair_result (fail-closed)
+  IMPLEMENT'
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/yaml/steps/s04-repair-extract-prose-fallback-purge.yaml
+skills_used:
+- python-testing-patterns
+- systematic-debugging
+discovery:
+- 'extract_repair_result в harness/hooks/_lib.py содержал regex fallback ^REPAIR:\s*(done|partial|fail)
+  и soft except Exception: return payload'
+- test_gate_repair.py имел test_extract_repair_result_from_repair_line_fallback, проверявший
+  fallback
+gaps:
+  status: none
+done:
+- Удалён prose fallback и soft except return из extract_repair_result в harness/hooks/_lib.py
+- Переписан test_extract_repair_result_from_repair_line_fallback на deny test (prose
+  -> None) и добавлен тест на pydantic schema validation failure в harness/hooks/tests/test_gate_repair.py
+files:
+- harness/hooks/_lib.py
+- harness/hooks/tests/test_gate_repair.py
+deletes:
+- 'harness/hooks/_lib.py: prose REPAIR: regex branch (строки с ^REPAIR:\s*)'
+- 'harness/hooks/_lib.py: except Exception soft-return block'
+- 'harness/hooks/tests/test_gate_repair.py: test_extract_repair_result_from_repair_line_fallback'
+tests:
+- bin/pytest harness/hooks/tests/test_gate_repair.py loop/tests/test_validate_boundary.py
+  -q --tb=short
+- bin/pytest harness/hooks/tests/ loop/tests/ -q --tb=line
+integration_check:
+- 'Grep/import check: extract_repair_result callers parse valid JSON fences and fail
+  closed on invalid/prose output'
+grep_control: []
+verification_results:
+- 'cp1: OK: prose -> None'
+- 'cp2: OK: pydantic dump dict on valid JSON fence'
+- 'cp3: 12 passed in harness/hooks/tests/test_gate_repair.py & loop/tests/test_validate_boundary.py'
+- 'cp4: absent in _lib.py'
+checkpoints:
+- id: cp1
+  criterion: extract_repair_result с prose-only → None
+  status: done
+- id: cp2
+  criterion: extract_repair_result с valid JSON fence → pydantic dict
+  status: done
+- id: cp3
+  criterion: pytest gate_repair + validate_boundary зелёный после purge
+  status: done
+- id: cp4
+  criterion: 'rg prose REPAIR: regex в _lib.py → absent'
+  status: done
+resume_from: none

@@ -27,6 +27,7 @@ from loop.mb_finish.schemas import (
     MbFinishRequest,
     MbFinishResult,
 )
+from loop.paths.pack_layout import resolve_mb_root
 
 
 def _resolve_armed_decompose_index(cwd: Path) -> tuple[str | None, dict[str, Any]]:
@@ -97,6 +98,10 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     """Orchestrate implement step finish atomically with rollback support."""
     cwd = Path(req.cwd).resolve()
     step_id = req.step_id.strip().lower()
+
+    armed = load_epic_state(cwd)
+    if str(armed.get("armed_step") or armed.get("phase") or "").upper() == "BUGFIX":
+        return MbFinishResult(ok=False, diagnostic_codes=["bugfix_finish_required"], shape_errors=["Use mb-finish bugfix; do not finalize a completed implement step"])
 
     idx_ref, state = _resolve_armed_decompose_index(cwd)
     decompose_rel = str(state.get("armed_decompose") or "").strip()
@@ -195,7 +200,7 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         )
 
     # 6. Write rendered to activeContext.md
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
     try:
         atomic_write_text(act_path, rendered)
     except ActiveContextLocked as exc:

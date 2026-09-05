@@ -1,0 +1,81 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: pytest matrix — software regression + video integration smoke
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Собрать полную pytest-матрицу по s01–s07: параметризованный integration smoke
+  для software + video pack. NFR-001: zero regression для software pack.
+  TM-001: video epic integration smoke end-to-end (mb_load → mb_finish → activeContext).
+  Обеспечить 100% pass перед переходом к s09 (purge).
+
+plan_contract:
+  fr_ids: [NFR-001, TM-001, US-005, AC+ US-005]
+  nouns: [pytest matrix, software regression, video integration smoke, parametrize]
+  layout_paths:
+    - loop/tests/test_pack_integration.py
+  ac_quotes:
+    - "default pack paths identical to as-built"
+    - "video epic integration smoke"
+    - "software pack zero regression"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:163-190"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (из s01)
+    - loop/paths/forbidden_policy.py (из s02)
+    - harness/hooks/epic/core.py (из s03)
+    - loop/mb_load/ (из s04)
+    - loop/mb_finish/impl.py (из s05)
+    - loop/paths/epic_paths.py (из s06)
+    - loop/incidents/doctor.py (из s07)
+  produces:
+    - loop/tests/test_pack_integration.py
+  plan_refs:
+    - "plan.md §Failure matrix"
+    - "plan.md §US-005 Independent Test"
+  files:
+    - loop/tests/test_pack_integration.py
+
+as_built:
+  - "нет интеграционного теста video pack end-to-end"
+  - "нет параметризованной матрицы software vs video"
+
+delta:
+  - "add: loop/tests/test_pack_integration.py — @pytest.mark.parametrize(['software', 'video']): mb_load → resolve_mb_root → validate_active_context_shape → mb_finish → записанный activeContext"
+  - "parametrize TM-001 (video): mb_root → memory-bank/video/; activeContext path корректен"
+  - "parametrize NFR-001 (software): paths идентичны as-built; ни один тест не ломается"
+
+deletes: []
+
+out_of_scope:
+  - "legacy path удаление (purge) — s09"
+  - "production-epic-v1 full integration — deferred, follow_up: T-HUB-050-production-integration"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "software pack: все existing тесты проходят (zero regression)"
+    verify: "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=short -x"
+  - id: cp2
+    criterion: "video pack smoke: mb_load → mb_finish → activeContext в memory-bank/video/"
+    verify: "bin/pytest loop/tests/test_pack_integration.py -q --tb=short -k 'video'"
+  - id: cp3
+    criterion: "full matrix pass (оба pack типа)"
+    verify: "bin/pytest loop/tests/test_pack_integration.py -q --tb=short"
+
+verify:
+  - "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=short"
+  - "bin/pytest loop/tests/test_pack_integration.py -q --tb=short"
+
+tdd:
+  - "Написать test_pack_integration.py (RED) → убедиться что все wire шаги s01–s07 GREEN"

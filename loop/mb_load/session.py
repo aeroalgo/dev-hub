@@ -53,6 +53,8 @@ def load_session(
         mode=mode,
         step_id=step_id,
         load_now_paths=raw_paths,
+        epic_id=meta_model.epic_id if meta_model else None,
+        role=meta_model.role if meta_model else None,
     )
 
     load_now_items: list[LoadNowItem] = []
@@ -114,7 +116,9 @@ def load_session(
 
     fp = fingerprint_context(act_text)
 
+    from loop.paths.pack_layout import pack_diagnostics
     return MbLoadResult(
+        **pack_diagnostics(cwd_path),
         ok=ok_status,
         diagnostic_codes=diagnostic_codes,
         shape_errors=[],

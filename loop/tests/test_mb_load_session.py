@@ -200,3 +200,108 @@ step_id: s02
     res = load_session(cwd=tmp_path)
     assert any("missing_file:" in code for code in res.diagnostic_codes)
 
+
+def test_mb_load_software_regression(tmp_path: Path):
+    """CP1: mb_load для software pack -> загружает memory-bank/activeContext.md (regression)."""
+    act_content = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-050
+step_id: s04
+---
+
+## load_now
+1. [s04.yaml](memory-bank/back/plan/s04.yaml) — work shard.
+
+## Handoff BACK IMPLEMENT — s04
+- **Эпик:** T-HUB-050
+"""
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
+    (mb_dir / "s04.yaml").write_text("schema: epic-decompose/v1\nstep_id: s04\n", encoding="utf-8")
+
+    res = load_session(cwd=tmp_path)
+    assert res.ok is True
+    assert res.meta is not None
+    assert res.meta.epic_id == "T-HUB-050"
+    assert any(f.path == "memory-bank/back/plan/s04.yaml" for f in res.files)
+
+
+def test_mb_load_video_pack(tmp_path: Path):
+    """CP2: mb_load для video pack -> загружает memory-bank/video/activeContext.md."""
+    # Configure project.yaml for video pack
+    (tmp_path / "project.yaml").write_text("workflow_pack: dev-hub-video\n", encoding="utf-8")
+
+    # Mock or register video pack
+    from loop.workflow.schemas import WorkflowPack
+    from unittest.mock import patch
+    video_pack = WorkflowPack(
+        id="dev-hub-video",
+        roles=["video", "audio"],
+        command_prefixes=["VIDEO", "AUDIO"],
+        phase_registry="loop/schemas/phase_registry.yaml",
+        memory_bank="memory-bank/video",
+        rules_root=".cursor/rules",
+        artifact_layout="production-epic-v1",
+    )
+
+    act_content = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: V-001
+step_id: s01
+---
+
+## load_now
+1. [s01.yaml](memory-bank/video/script/s01.yaml) — script shard.
+
+## Handoff BACK IMPLEMENT — s01
+- **Эпик:** V-001
+"""
+    video_mb = tmp_path / "memory-bank" / "video" / "script"
+    video_mb.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank" / "video" / "activeContext.md").write_text(act_content, encoding="utf-8")
+    (video_mb / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n", encoding="utf-8")
+
+    with patch("loop.workflow.registry.get_pack", return_value=video_pack):
+        res = load_session(cwd=tmp_path)
+        assert res.ok is True
+        assert res.meta is not None
+        assert res.meta.role == "BACK"
+        assert res.meta.epic_id == "V-001"
+        assert any(f.path == "memory-bank/video/script/s01.yaml" for f in res.files)
+
+
+def test_mb_load_and_policy(tmp_path: Path):
+    """CP3: forbidden policy check через policy_for_layout (не hardcoded list)."""
+    act_content = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-050
+step_id: s04
+---
+
+## load_now
+1. [plan-T-HUB-050.md](memory-bank/back/plan/plan-T-HUB-050.md) — full plan (forbidden in IMPLEMENT).
+2. [s04.yaml](memory-bank/back/plan/s04.yaml) — work shard.
+
+## Handoff BACK IMPLEMENT — s04
+- **Эпик:** T-HUB-050
+"""
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
+    (mb_dir / "plan-T-HUB-050.md").write_text("# Plan T-HUB-050\n", encoding="utf-8")
+    (mb_dir / "s04.yaml").write_text("schema: epic-decompose/v1\nstep_id: s04\n", encoding="utf-8")
+
+    res = load_session(cwd=tmp_path)
+    assert res.ok is True
+    assert "memory-bank/back/plan/plan-T-HUB-050.md" in res.forbidden_skipped
+    assert not any(f.path == "memory-bank/back/plan/plan-T-HUB-050.md" for f in res.files)
+    assert any(f.path == "memory-bank/back/plan/s04.yaml" for f in res.files)
+
+

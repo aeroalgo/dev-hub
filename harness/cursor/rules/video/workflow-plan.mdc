@@ -1,0 +1,17 @@
+---
+description: "Режим SCRIPT PLAN — разработка концепции и сценария видео"
+alwaysApply: false
+---
+# SCRIPT PLAN — рабочий процесс
+
+## Контекст
+@.cursor/rules/video/mainrule-core.mdc
+
+## Gates
+@.cursor/rules/video/_lean/decompose.mdc
+
+## Процесс
+1. Определение целевой аудитории и формата видео (Shorts / Long-form / Explainer).
+2. Разработка структуры сценария: Hook → Story/Value → CTA.
+3. Согласование тайминга и ключевых визуальных сцен.
+4. Выход: артефакт сценария и раскадровки в `memory-bank/video/plan/`.

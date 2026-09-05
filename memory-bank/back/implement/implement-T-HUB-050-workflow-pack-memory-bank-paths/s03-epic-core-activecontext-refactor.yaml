@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: s03 — epic/core + context_loop — activeContext path via pack resolver IMPLEMENT
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/yaml/steps/s03-epic-core-activecontext-refactor.yaml
+skills_used:
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- 'harness/hooks/epic/core.py: read_active_context, arm_active_context_from_decompose,
+  arm_epic, arm_pre_implement_context используют active_context_path(cwd) через pack
+  resolver'
+- 'harness/hooks/epic_paths.py: active_context_path(cwd) вычисляет путь через resolve_mb_root(root)
+  / ''activeContext.md'''
+- 'loop/paths/pack_layout.py & loop/workflow/schemas.py: поддержка production-epic-v1
+  / software-epic-v1'
+- 'loop/context_loop.py & loop/epic_transition.py: убран hardcode ''memory-bank/activeContext.md'''
+- 'loop/tests/test_active_context_lock.py: добавлены тесты software и video pack для
+  read_active_context'
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/epic_paths.py
+- harness/hooks/epic/__init__.py
+- loop/paths/pack_layout.py
+- loop/workflow/schemas.py
+- loop/context_loop.py
+- loop/epic_transition.py
+- loop/tests/test_active_context_lock.py
+deletes:
+- hardcoded `'memory-bank/activeContext.md'` и `Path('memory-bank') / 'activeContext.md'`
+  — удалить в этом шаге (s03 = cutover)
+tests:
+- bin/pytest loop/tests/test_active_context_lock.py -q --tb=short
+integration_check:
+- bin/pytest loop/tests/test_pack_layout.py loop/tests/test_workflow_pack_phase_router.py
+  loop/tests/test_forbidden_policy.py loop/tests/test_active_context_lock.py -q --tb=short
+grep_control:
+- back: rg -n 'memory-bank/activeContext' harness/hooks/epic/core.py loop/context_loop.py
+    loop/epic_transition.py
+  front: ''
+verification_results:
+- cp1 PASS — read_active_context(cwd) для software pack → читает memory-bank/activeContext.md
+- cp2 PASS — read_active_context(cwd) для video pack → читает memory-bank/video/activeContext.md
+- '{''cp3 PASS — rg'': "нет ''memory-bank/activeContext.md'' в core.py и context_loop.py"}'
+checkpoints:
+- id: cp1
+  criterion: read_active_context(cwd) для software pack → читает memory-bank/activeContext.md
+  status: done
+  done_at: '2026-09-04T19:25:00Z'
+- id: cp2
+  criterion: read_active_context(cwd) для video pack → читает memory-bank/video/activeContext.md
+  status: done
+  done_at: '2026-09-04T19:25:00Z'
+- id: cp3
+  criterion: 'rg: нет `''memory-bank/activeContext.md''` в core.py и context_loop.py'
+  status: done
+  done_at: '2026-09-04T19:25:00Z'
+resume_from: cp1

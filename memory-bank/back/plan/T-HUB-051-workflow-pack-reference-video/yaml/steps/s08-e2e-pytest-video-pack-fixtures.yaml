@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s08
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "pytest e2e video pack — mock tool gate, fixtures, software isolation parity"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `loop/tests/test_workflow_pack_video_e2e.py` — e2e smoke suite для video-production pack:
+  - TM-003: resolve video pack → ok=True
+  - TM-004: EDIT phase verify gate contract (mock tool gate, no real LLM)
+  - TM-005: template pack validate
+  - TM-006: software isolation — software pack unaffected при video env
+  - SC-002: SCRIPT gates ≠ BACK IMPLEMENT gates
+  - SC-003: tool-gate check render fail/pass через mock adapter
+  Fixtures:
+  - `tmp_project_root` (tmp_path): создаёт PROJECT_ROOT с project.yaml = video-production
+  - `memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/` sample epic fixture
+  - `tmp_mp4_fixture` — пустой файл-заглушка outputs/final.mp4
+  Mock: `MockRenderCheckAdapter` — реализует ToolGateAdapter, возвращает ok=True/False по параметру
+  Outcomes: FR-011, FR-012, SC-002, SC-003, SC-004, SC-005, AC+5, TM-001..006.
+
+plan_contract:
+  fr_ids: [FR-011, FR-012, SC-002, SC-003, SC-004, SC-005, AC+5, TM-001, TM-002, TM-003, TM-004, TM-005, TM-006]
+  nouns:
+    - "loop/tests/test_workflow_pack_video_e2e.py — основной e2e файл"
+    - "fixtures: tmp_project_root(tmp_path, monkeypatch) — project.yaml + memory-bank/video/ skeleton"
+    - "fixtures: tmp_mp4_fixture(tmp_path) — outputs/final.mp4 заглушка"
+    - "MockRenderCheckAdapter(ToolGateAdapter) — controllable ok/fail"
+    - "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/ — sample epic directory fixture"
+    - "test_video_pack_resolve: resolve_workflow_pack(cwd=tmp) ok=True, pack_id='video-production'"
+    - "test_software_isolation: resolve без WORKFLOW_PACK → dev-hub-software (TM-006)"
+    - "test_script_gates_differ: SCRIPT.arm_template != EDIT.arm_template (SC-002)"
+    - "test_render_gate_fail: MockAdapter ok=False → FINISH blocked (TM-001)"
+    - "test_render_gate_pass: fixture mp4 + MockAdapter ok=True → FINISH allowed (TM-002)"
+    - "test_template_validate: filled template manifest validates (TM-005)"
+  layout_paths:
+    - "loop/tests/test_workflow_pack_video_e2e.py"
+    - "loop/tests/fixtures/video/ (sample fixture files)"
+    - "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep (или index файл)"
+  ac_quotes:
+    - "FR-011: pytest e2e: resolve video pack → arm EDIT → mock tool gate → verify spawn contract (no real LLM)"
+    - "FR-012: Sample epic fixture memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/"
+    - "AC+5: Software pack unaffected when video pack enabled on separate PROJECT_ROOT fixture"
+    - "AC−2: No real ffmpeg required in CI pytest"
+    - "US-005: CI хочет e2e pytest video pack без real ffmpeg render"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:290-330"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:135-175"
+
+context:
+  consumes:
+    - "s01: resolve_workflow_pack + video-production registry row"
+    - "s02: phase_registry — SCRIPT/EDIT arm_template difference"
+    - "s05: ToolGateAdapter + render_check fail/pass paths"
+    - "s06: stop-gate external_gates integration"
+    - "s07: template pack validate"
+    - "loop/workflow/registry.py:resolve_workflow_pack — тестируем через tmp_path fixture"
+  produces:
+    - "loop/tests/test_workflow_pack_video_e2e.py"
+    - "loop/tests/fixtures/video/ (если отдельная папка)"
+    - "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/ (sample fixture)"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-011"
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §QA consumes"
+  files:
+    - "loop/tests/test_workflow_pack_video_e2e.py"
+    - "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep"
+
+as_built:
+  - "loop/tests/ — директория существует с другими тестами"
+  - "memory-bank/video/ — не существует"
+  - "loop/tests/test_workflow_pack_video_e2e.py — не существует"
+
+delta:
+  - "loop/tests/test_workflow_pack_video_e2e.py: создать e2e suite"
+  - "memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep: создать sample fixture"
+
+deletes: []
+
+out_of_scope:
+  - "Real LLM spawn в тестах — mock only"
+  - "Real ffmpeg render тест — cut_list"
+  - "VISUAL/POST role tests — cut_list"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: весь e2e suite проходит без реального ffmpeg
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short"
+  - id: cp2
+    criterion: software isolation — WORKFLOW_PACK env не влияет на software PROJECT_ROOT
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short -k 'isolation'"
+  - id: cp3
+    criterion: sample epic fixture существует
+    verify: "test -d memory-bank/video/script/plan/decompose-T-VIDEO-001-demo && echo ok"
+  - id: cp4
+    criterion: render gate mock fail/pass работают через MockRenderCheckAdapter
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short -k 'render_gate'"
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py --collect-only -q | grep -c 'test_'"
+  - "rg 'MockRenderCheckAdapter\\|mock.*adapter\\|monkeypatch' loop/tests/test_workflow_pack_video_e2e.py"
+
+tdd:
+  - "loop/tests/test_workflow_pack_video_e2e.py — весь файл является TDD-шардом этого шага"

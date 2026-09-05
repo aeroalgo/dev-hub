@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: ".cursor/rules/video/ skeleton — mainrule + workflow-plan/implement/qa + _lean/"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать минимальный reference skeleton `.cursor/rules/video/`:
+  - `mainrule-core.mdc` — ссылается на video phases, prefixes SCRIPT/VISUAL/POST
+  - `workflow-plan.mdc`, `workflow-implement.mdc`, `workflow-qa.mdc` — stub rules
+  - `_lean/decompose.mdc`, `_lean/audit.mdc`, `_lean/qa.mdc` — lean gate stubs
+  Файлы должны быть reference-quality (читаемые, содержательные), не production-polished.
+  Цель — доказать что pack rules структура работает, не идеальный контент.
+  Outcomes: FR-004, AC+1 (rules_root resolvable).
+
+plan_contract:
+  fr_ids: [FR-004]
+  nouns:
+    - ".cursor/rules/video/mainrule-core.mdc — alwaysApply: false; references video phases"
+    - ".cursor/rules/video/workflow-plan.mdc — SCRIPT PLAN workflow"
+    - ".cursor/rules/video/workflow-implement.mdc — EDIT/SHOOT IMPLEMENT workflow"
+    - ".cursor/rules/video/workflow-qa.mdc — PUBLISH QA workflow"
+    - ".cursor/rules/video/_lean/decompose.mdc — decompose gate"
+    - ".cursor/rules/video/_lean/audit.mdc — audit gate"
+    - ".cursor/rules/video/_lean/qa.mdc — qa gate"
+  layout_paths:
+    - ".cursor/rules/video/mainrule-core.mdc"
+    - ".cursor/rules/video/workflow-plan.mdc"
+    - ".cursor/rules/video/workflow-implement.mdc"
+    - ".cursor/rules/video/workflow-qa.mdc"
+    - ".cursor/rules/video/_lean/decompose.mdc"
+    - ".cursor/rules/video/_lean/audit.mdc"
+    - ".cursor/rules/video/_lean/qa.mdc"
+  ac_quotes:
+    - "FR-004: mirror back_developer structure — mainrule + workflow-plan/implement/qa + _lean/"
+    - "Video rules are reference quality, not production-polished copywriting (Assumptions)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:140-165"
+
+context:
+  consumes:
+    - ".cursor/rules/back_developer/mainrule-core.mdc — образец структуры (read pattern only)"
+    - ".cursor/rules/back_developer/workflow-plan.mdc — образец"
+    - ".cursor/rules/back_developer/_lean/ — образец lean gates"
+    - "s01: manifest rules_root: '.cursor/rules/video'"
+  produces:
+    - ".cursor/rules/video/ — 7 mdc файлов skeleton"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §FR-004"
+  files:
+    - ".cursor/rules/video/mainrule-core.mdc"
+    - ".cursor/rules/video/workflow-plan.mdc"
+    - ".cursor/rules/video/workflow-implement.mdc"
+    - ".cursor/rules/video/workflow-qa.mdc"
+    - ".cursor/rules/video/_lean/decompose.mdc"
+    - ".cursor/rules/video/_lean/audit.mdc"
+    - ".cursor/rules/video/_lean/qa.mdc"
+
+as_built:
+  - ".cursor/rules/back_developer/ — существует, образец структуры"
+  - ".cursor/rules/video/ — не существует"
+
+delta:
+  - ".cursor/rules/video/ — создать директорию + 7 mdc файлов (reference skeleton)"
+
+deletes: []
+
+out_of_scope:
+  - "Полный production-polished контент правил — cut_list appetite"
+  - "hub-link install механизм для правил — T-HUB-052 follow_up"
+  - "VISUAL / POST отдельные workflow rules — cut_list"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: все 7 mdc файлов существуют
+    verify: "find .cursor/rules/video -name '*.mdc' | wc -l | grep -E '^7$'"
+  - id: cp2
+    criterion: mainrule-core.mdc содержит references на video phases
+    verify: "rg 'SCRIPT|VISUAL|POST' .cursor/rules/video/mainrule-core.mdc"
+
+verify:
+  - "rg 'video' .cursor/rules/video/mainrule-core.mdc"
+  - "find .cursor/rules/video/_lean -name '*.mdc' | wc -l | grep -E '^3$'"
+
+tdd: []

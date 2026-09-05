@@ -4,11 +4,11 @@ alwaysApply: false
 ---
 # INTEG AUDIT — gates
 **Артефакт:**
-`memory-bank/integration/audit/<epic_id>/audit-YYYYMMDD-<slug>.yaml`
+`memory-bank/integration/audit/<epic_id>/audit.yaml`
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc · шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`)
 
 ## Gates (обязательные — узкий путь)
-1. Lean load §7: `load_now` + `plan-<epic_id>.md` (Element registry) + `decompose/index.md` (coverage) + `index.yaml` (status) + заголовки `implement-*/eNN-*.yaml`; читать только bound file list/evidence, **не** полный текст каждого shard
+1. Lean load §7: `load_now` + `plan/<epic_id>/md/plan.md` (Element registry) + `plan/<epic_id>/yaml/decompose-index.yaml` (status) + заголовки `implement/implement-<epic_id>/eNN-*.yaml`. Assess D: полный текст per completed eNN implement yaml ↔ decompose yaml. FORBIDDEN: full-repo dump; FORBIDDEN `plan/<epic_id>/md/eNN-*.md` как implement
 2. **Intent Inventory gate (plan-first):** все plan FR/SC/US/AC±/NFR + constitution MUST; каждый → `element_id`/`eNN` или `missing` CRITICAL. Decompose вторичен. @.cursor/rules/shared/workflow-behavior-first.mdc §3
 3. **Assess gate (behavior):** для каждого plan intent и `element_id`:
    - **✅** — behavior/contract evidence (не presence alone)

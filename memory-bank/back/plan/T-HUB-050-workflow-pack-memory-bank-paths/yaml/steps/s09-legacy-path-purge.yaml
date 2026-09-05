@@ -1,0 +1,101 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-050-workflow-pack-memory-bank-paths
+title: legacy-path-purge — delete hardcoded memory-bank/ + Kind I instruction purge
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальная зачистка: удалить все оставшиеся hardcoded `memory-bank/` string concat
+  и параллельные glob-хелперы per-domain после wire (s01–s08 GREEN).
+  Kind I: обновить instruction surfaces (agent rules/hooks) чтобы не ссылались на
+  фиксированный `memory-bank/` prefix — заменить на `{mb_root}/`.
+  Результат: `rg 'memory-bank/' harness/hooks/ loop/` возвращает только комментарии/тесты.
+
+plan_contract:
+  fr_ids: [FR-006, NFR-003]
+  nouns: [legacy path purge, hardcoded memory-bank/, Kind I instruction, rg audit, sunset_inventory]
+  layout_paths: []
+  ac_quotes:
+    - "delete in-epic all hardcoded `memory-bank/` string concats in hooks"
+    - "no silent default mb root"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-050-workflow-pack-memory-bank-paths/md/plan.md:183-190"
+
+context:
+  consumes:
+    - loop/paths/pack_layout.py (все шаги s01–s08 GREEN)
+    - harness/hooks/epic/core.py
+    - loop/context_loop.py
+    - loop/epic_transition.py
+    - loop/mb_finish/impl.py
+    - loop/paths/epic_paths.py
+  produces: []
+  plan_refs:
+    - "plan.md §Technology axiom — FORBIDDEN column"
+    - "plan.md §NFR-003"
+  files:
+    - harness/hooks/epic/core.py
+    - loop/context_loop.py
+    - loop/epic_transition.py
+    - loop/mb_finish/impl.py
+    - loop/paths/epic_paths.py
+    - harness/hooks/write-pretool.py
+
+as_built:
+  - "Все source файлы могут содержать остаточные hardcode после частичных замен в s03–s06"
+  - "Kind I: harness agent rules/hooks — упоминают `memory-bank/` как фиксированный путь"
+
+delta:
+  - "rg audit: `rg -rn \"['\\\"]memory-bank/\" harness/hooks/ loop/ --include='*.py'` → inventory остатков"
+  - "delete/edit: каждый найденный hardcode заменить / убрать (не добавлять shim)"
+  - "Kind I: review harness/hooks/*.py комментарии/docstring — убрать `memory-bank/` как fixed reference"
+  - "финальный rg verify: 0 production hits (не считая тестовые фикстуры)"
+
+deletes:
+  - "все оставшиеся hardcoded `memory-bank/` string concat в harness/hooks/ и loop/ (Kind A)"
+  - "параллельные glob-хелперы per-domain в loop/ если ещё остались (Kind A)"
+  - "software-only denylist остаток в mb_load если не удалён в s04 (Kind A)"
+  - "instruction surfaces с фиксированным `memory-bank/` prefix (Kind I)"
+
+sunset_scope:
+  required: true
+  boundary_id: hardcoded-mb-root
+  new_sot: loop/paths/pack_layout.py::resolve_mb_root
+  allow_read:
+    - "harness/hooks/**/*.py"
+    - "loop/**/*.py"
+  kind_hint:
+    - A
+    - I
+
+out_of_scope:
+  - "T-HUB-047 полная интеграция если не смёрджен — follow_up: T-HUB-047-full-wire"
+  - "production-epic-v1 full integration smoke — follow_up: T-HUB-050-production-integration"
+
+skills:
+  code_surface: api
+  impl:
+    - python-testing-patterns
+    - modern-python
+
+checkpoints:
+  - id: cp1
+    criterion: "rg audit: нет production hardcode `memory-bank/` string concat в *.py (кроме тестовых фикстур)"
+    verify: "rg -rn \"['\\\"]memory-bank/\" harness/hooks/ loop/ --include='*.py' | grep -v test | grep -v '#' && exit 1 || echo 'OK: no production hardcode'"
+  - id: cp2
+    criterion: "все existing тесты проходят после purge (zero regression)"
+    verify: "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=short"
+  - id: cp3
+    criterion: "Kind I: нет instruction с `memory-bank/` как fixed prefix в *.py comments/docstrings"
+    verify: "rg -rn 'memory-bank/' harness/hooks/ loop/ --include='*.py' | grep -v 'test\\|fixture' | wc -l"
+  - id: cp4
+    criterion: "sunset_inventory scan: boundary hardcoded-mb-root → leftover_count=0"
+    verify: "rg -rn \"memory-bank/\" harness/hooks/ loop/ --include='*.py' | grep -v 'test\\|#.*memory-bank' | wc -l"
+
+verify:
+  - "rg -rn \"['\\\"]memory-bank/\" harness/hooks/ loop/ --include='*.py' | grep -v test || echo 'CLEAN'"
+  - "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=short"
+
+tdd: []

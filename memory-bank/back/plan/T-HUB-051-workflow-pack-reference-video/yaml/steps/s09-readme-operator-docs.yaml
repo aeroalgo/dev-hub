@@ -1,0 +1,70 @@
+schema: epic-decompose/v1
+role: back
+step_id: s09
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: "workflows/video/README.md — operator setup + WORKFLOW_PACK usage"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать `workflows/video/README.md` — operator documentation для video-production pack:
+  - Как активировать: WORKFLOW_PACK=video-production или project.yaml workflow_pack
+  - Phases overview: BRIEF→SCRIPT→STORYBOARD→SHOOT→EDIT→PUBLISH
+  - External gate EDIT: render_check — что проверяет, путь outputs/final.mp4
+  - Verify agents: verify-script, verify-edit, verify-publish — кратко
+  - Rules: .cursor/rules/video/ — как установить через hub-link (Deferred T-HUB-052)
+  Outcomes: plan §Product probe #4.
+
+plan_contract:
+  fr_ids: []
+  nouns:
+    - "workflows/video/README.md — operator documentation"
+    - "WORKFLOW_PACK=video-production — env activation"
+    - "project.yaml workflow_pack: video-production — file activation"
+    - "outputs/final.mp4 — render gate expected path"
+  layout_paths:
+    - "workflows/video/README.md"
+  ac_quotes:
+    - "Product probe #4: Operator sets WORKFLOW_PACK=video-production"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md:25-40"
+
+context:
+  consumes:
+    - "s01..s06: все компоненты pack — документируем как завершённую систему"
+  produces:
+    - "workflows/video/README.md"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/md/plan.md §Product probe"
+  files:
+    - "workflows/video/README.md"
+
+as_built:
+  - "workflows/video/ — директория существует после s01"
+  - "workflows/video/README.md — не существует"
+
+delta:
+  - "workflows/video/README.md: создать operator docs"
+
+deletes: []
+
+out_of_scope:
+  - "hub-link install steps для правил — Deferred: T-HUB-052 follow_up"
+  - "Full authoring guide — в workflows/_template/README.md (s07)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: README существует и содержит WORKFLOW_PACK activation
+    verify: "rg 'WORKFLOW_PACK' workflows/video/README.md"
+  - id: cp2
+    criterion: README упоминает render gate и outputs/final.mp4
+    verify: "rg 'render|final.mp4|external.gate' workflows/video/README.md"
+
+verify:
+  - "test -f workflows/video/README.md && echo ok"
+
+tdd: []

@@ -1,0 +1,35 @@
+schema: loop-analyze/v1
+epic_id: T-HUB-061-boundary-cli-doctor-hygiene
+mode: BACK ANALYZE
+status: complete
+date: '2026-09-04'
+index_fingerprint: sha256:3ca11337be82fc6b103c6b03678874b74393d9f74268b915b4b92cb686774483
+
+metrics:
+  critical_count: 0
+  high_count: 0
+  medium_count: 0
+  low_count: 0
+  findings_total: 0
+  coverage_pct: 100
+
+summary: >
+  Pre-implement review of plan and decompose artifacts for T-HUB-061-boundary-cli-doctor-hygiene.
+  All 4 decompose shards s01-s04 comprehensively cover requirements FR-001..FR-009, US-001..US-004,
+  SC-001..SC-005, AC+/AC-, and failure matrix TM-001..TM-003.
+  Technology axioms (doctor ↔ architecture boundary call signature, validate-boundary --json SoT,
+  spec-first purge of prose REPAIR fallback, materialization sync) are strictly preserved.
+  Replacement cleanups have explicit deletes (yaml_file kwargs, --raw-json occurrences, prose REPAIR regex branch).
+  Traceability validation is 100% with zero critical/high findings.
+
+findings: []
+
+coverage:
+  requirements_mapped: true
+  stages_mapped: true
+  outcomes_mapped: true
+  replacement_cleanup_complete: true
+  shards_count: 4
+
+recommendation: IMPLEMENT
+next_actions: []

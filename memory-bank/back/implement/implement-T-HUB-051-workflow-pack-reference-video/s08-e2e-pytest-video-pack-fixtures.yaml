@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s08
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s08 — pytest e2e video pack — mock tool gate, fixtures, software isolation parity IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s08-e2e-pytest-video-pack-fixtures.yaml
+skills_used:
+- modern-python
+- python-testing-patterns
+discovery: []
+gaps:
+  status: none
+done:
+- "Создан e2e suite loop/tests/test_workflow_pack_video_e2e.py (8 тестов: TM-001..006, SC-002..003, AC+5, FR-011)"
+- "Создан sample epic fixture memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep (FR-012)"
+- "Реализован MockRenderCheckAdapter для проверки render gate fail/pass без реального ffmpeg"
+files:
+- loop/tests/test_workflow_pack_video_e2e.py
+- memory-bank/video/script/plan/decompose-T-VIDEO-001-demo/.gitkeep
+deletes: []
+tests:
+- "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short"
+- "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short -k 'isolation'"
+- "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=short -k 'render_gate'"
+integration_check:
+- "bin/pytest loop/tests/test_workflow_pack_video_e2e.py --collect-only -q | grep -c 'test_'"
+- "rg 'MockRenderCheckAdapter|mock.*adapter|monkeypatch' loop/tests/test_workflow_pack_video_e2e.py"
+grep_control: []
+verification_results:
+- "PASS: 8 passed in 0.23s"
+checkpoints:
+- id: cp1
+  criterion: весь e2e suite проходит без реального ffmpeg
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+- id: cp2
+  criterion: software isolation — WORKFLOW_PACK env не влияет на software PROJECT_ROOT
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+- id: cp3
+  criterion: sample epic fixture существует
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+- id: cp4
+  criterion: render gate mock fail/pass работают через MockRenderCheckAdapter
+  status: done
+  done_at: '2026-09-05T12:00:00Z'
+resume_from: null

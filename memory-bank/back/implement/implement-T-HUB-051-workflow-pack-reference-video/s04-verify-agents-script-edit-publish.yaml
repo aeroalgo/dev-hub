@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s04 — harness/agents/verify-script.md + verify-edit.md + verify-publish.md
+  contracts IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s04-verify-agents-script-edit-publish.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created harness/agents/verify-script.md with SCRIPT phase AC+/AC- contract and §0.11
+  gate
+- Created harness/agents/verify-edit.md with EDIT phase AC+/AC- contract, render artifact
+  check and §0.11 gate
+- Created harness/agents/verify-publish.md with PUBLISH phase AC+/AC- contract and
+  §0.11 gate
+files:
+- harness/agents/verify-script.md
+- harness/agents/verify-edit.md
+- harness/agents/verify-publish.md
+deletes: []
+tests:
+- '`bin/pytest tests/ -q --tb=line` — pass'
+- '`find harness/agents -name ''verify-script.md'' -o -name ''verify-edit.md'' -o
+  -name ''verify-publish.md'' | wc -l | grep -E ''^3$''` — PASS'
+- '`rg ''render|artifact|mp4|duration'' harness/agents/verify-edit.md` — PASS'
+- '`rg ''VERDICT'' harness/agents/verify-script.md harness/agents/verify-edit.md harness/agents/verify-publish.md`
+  — PASS'
+integration_check:
+- harness/agents contracts conform to loop-gate-verdict/v1 boundary format
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- All 3 verify agent markdown files created and verified against checkpoints
+checkpoints:
+- id: cp1
+  criterion: все три verify md файла существуют
+  status: done
+- id: cp2
+  criterion: verify-edit.md содержит render artifact AC+
+  status: done
+- id: cp3
+  criterion: 'все три файла содержат VERDICT: PASS / VERDICT: FAIL format'
+  status: done
+resume_from: none

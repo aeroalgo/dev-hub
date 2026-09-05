@@ -66,7 +66,7 @@ Parent **обязан** передать секции. Если нет — ср�
 Перед финальным текстом — **один** Bash (тот же pydantic helper, что SubagentStop):
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --raw-json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - `valid: false` → исправь payload по `diagnostic_codes` и повтори Bash.

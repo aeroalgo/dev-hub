@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-061-boundary-cli-doctor-hygiene
+title: 's02 — Fix harness SoT CLI flag: --raw-json → --json в agent/hook/preset sources
+  IMPLEMENT'
+status: completed
+date: '2026-09-04'
+decompose_ref: memory-bank/back/plan/T-HUB-061-boundary-cli-doctor-hygiene/yaml/steps/s02-harness-sot-cli-flag-fix.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Заменен устаревший CLI флаг --raw-json на --json во всех исходниках harness/agents/*.md
+  (verify-implement, gate-repair, analyze-verify, verify-bugfix, verify-decompose,
+  verify-qa).
+- Заменен --raw-json на --json в _lib.py CONTRACT строках (_GATE_JSON_HARD и gate-repair).
+- Заменен --raw-json на --json во всех пресетах dsh/presets/*.prompt.md.
+files:
+- harness/agents/gate-repair.md
+- harness/agents/analyze-verify.md
+- harness/agents/verify-implement.md
+- harness/agents/verify-bugfix.md
+- harness/agents/verify-decompose.md
+- harness/agents/verify-qa.md
+- harness/hooks/_lib.py
+- dsh/presets/verify-implement.prompt.md
+- dsh/presets/verify-bugfix.prompt.md
+- dsh/presets/verify-decompose.prompt.md
+- dsh/presets/verify-qa.prompt.md
+deletes:
+- Все вхождения --raw-json в harness/agents/*.md, harness/hooks/_lib.py, dsh/presets/*.prompt.md
+  (replace, не alias)
+tests:
+- '`rg -rn -- ''--raw-json'' harness/agents harness/hooks/_lib.py dsh/presets`'
+- '`python harness/hooks/epic_resolve.py validate-boundary --schema-id repair_result
+  --json ''{"status":"done","summary":"ok","repair_id":"r-test"}''`'
+- '`bin/pytest loop/tests/test_incidents_doctor.py -q --tb=line`'
+integration_check:
+- validate-boundary CLI принимает --json payload без ошибок; все агентные SoT контракты
+  ссылаются на актуальный флаг.
+grep_control:
+- back: rg --raw-json в harness/agents harness/hooks/_lib.py dsh/presets пуст
+  front: n/a
+verification_results:
+- cp1 PASS — rg --raw-json в harness/agents + _lib.py + dsh/presets пуст
+- 'cp2 PASS — validate-boundary --json возвращает valid: true'
+- cp3 PASS — rg --json в harness/agents находит обновленные команды
+- suite PASS — 8 passed in 4.49s
+checkpoints:
+- id: cp1
+  criterion: rg --raw-json в harness/agents + _lib.py + dsh/presets → empty
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp2
+  criterion: validate-boundary --json рабочий (spot-check)
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+- id: cp3
+  criterion: rg в harness agent-файлах находит --json вместо --raw-json
+  status: done
+  done_at: '2026-09-04T12:00:00Z'
+resume_from: cp1

@@ -1,0 +1,79 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+title: "intent_routing.yaml + loader — machine-readable intent→pack mapping"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Create loop/workflow/intent_routing.yaml (schema workflow-intent-routing/v1) mapping intent
+  types to default pack + ordered phase chain. Add load_intent_routing() helper in
+  loop/workflow/command_router.py (or new loader module) that reads the yaml and returns
+  typed objects. IDEA PIPELINE can reference this file as authoritative routing table
+  (not prose-only). Closes FR-001, SC-003.
+
+plan_contract:
+  fr_ids: [FR-001, SC-003, TM-003]
+  nouns: [intent_routing.yaml, load_intent_routing, video_production, feature_full, content_factory]
+  layout_paths:
+    - loop/workflow/intent_routing.yaml
+    - loop/workflow/command_router.py
+  ac_quotes:
+    - "FR-001: loop/workflow/intent_routing.yaml maps intent types → default pack + phase chain templates"
+    - "SC-003: IDEA intent video maps to pack — unit test intent_routing.yaml"
+    - "TM-003: intent load → pytest intent → PASS"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-052-workflow-pack-adoption-docs/md/plan.md:60-80"
+
+context:
+  consumes:
+    - loop/workflow_pack_registry.yaml
+    - loop/workflow/schemas.py
+    - loop/workflow/registry.py
+  produces:
+    - loop/workflow/intent_routing.yaml
+    - loop/workflow/command_router.py  # extended with load_intent_routing
+  plan_refs:
+    - "plan §intent_routing.yaml (draft) — schema + two intents"
+  files:
+    - loop/workflow/intent_routing.yaml
+    - loop/workflow/command_router.py
+
+as_built:
+  - "loop/workflow/registry.py: WorkflowPackRegistry + load_registry() + resolve_workflow_pack() exist"
+  - "loop/workflow/schemas.py: WorkflowPack, PackResolveResult pydantic models"
+  - "loop/workflow_pack_registry.yaml: dev-hub-software + video-production entries"
+
+delta:
+  - "add: loop/workflow/intent_routing.yaml with schema workflow-intent-routing/v1, intents: video_production, feature_full, content_factory"
+  - "add: load_intent_routing(hub_root) in loop/workflow/command_router.py returning typed dict/model"
+  - "add: IntentRoute pydantic model (id, pack, pipeline list) in loop/workflow/schemas.py"
+  - "add: IntentRoutingTable model in schemas.py"
+
+deletes: []
+
+out_of_scope:
+  - "FR-002 idea-pipeline.mdc doc patch — handled in s07"
+  - "doctor checks — handled in s02"
+
+skills:
+  code_surface: api
+  impl:
+    - modern-python
+    - python-testing-patterns
+
+checkpoints:
+  - id: cp1
+    criterion: "intent_routing.yaml validates against schema: workflow-intent-routing/v1; video_production entry has pack=video-production and ≥3 pipeline steps"
+    verify: "python -c \"import yaml; d=yaml.safe_load(open('loop/workflow/intent_routing.yaml')); assert d['schema']=='workflow-intent-routing/v1'; assert 'video_production' in d['intents']; assert d['intents']['video_production']['pack']=='video-production'\""
+  - id: cp2
+    criterion: "load_intent_routing() returns IntentRoutingTable with video_production route"
+    verify: "python -c \"from loop.workflow.command_router import load_intent_routing; t=load_intent_routing(); assert 'video_production' in t.intents\""
+  - id: cp3
+    criterion: "pytest s01 tests pass"
+    verify: "bin/pytest loop/tests/test_intent_routing.py -q --tb=line"
+
+verify: []
+tdd:
+  - "loop/tests/test_intent_routing.py: test_load_intent_routing_video_production, test_load_intent_routing_feature_full, test_unknown_intent_not_present"

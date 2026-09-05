@@ -236,7 +236,48 @@ def main() -> None:
             re.search(r"(?i)(FINISH\s+AUDIT|gap-матрица\s+полна|audit.*записан)", msg)
         )
 
-    verify_active, verify_bypass, verify_invalid = _gate_status("verify", cwd)
+    # Check external_gates if present in phase config
+    if finishing and current_phase:
+        from loop.epic_transition import get_phase_config
+        try:
+            cfg = get_phase_config(str(current_phase), cwd=cwd)
+            ext_gates = cfg.get("external_gates") or []
+            if isinstance(ext_gates, list) and ext_gates:
+                from loop.workflow.tool_gates.loader import load_tool_gate_adapter
+                from loop.workflow.tool_gates.protocol import ToolGateContext
+                from loop.workflow.resolve import full_resolve
+
+                pack_res = full_resolve(cwd)
+                pack_id = pack_res.pack.id if pack_res.ok and pack_res.pack else ""
+
+                for gate_id in ext_gates:
+                    try:
+                        adapter = load_tool_gate_adapter(gate_id, cwd=cwd)
+                        ctx = ToolGateContext(
+                            cwd=Path(cwd) if cwd else Path.cwd(),
+                            phase=str(current_phase),
+                            pack_id=pack_id,
+                        )
+                        gate_res = adapter.check(ctx)
+                        if not gate_res.ok:
+                            if not stop_hook_active:
+                                _block(
+                                    f"spawn-gate: external gate '{gate_id}' check failed. "
+                                    f"diagnostic_codes={gate_res.diagnostic_codes}"
+                                )
+                                return
+                    except Exception as err:
+                        if not stop_hook_active:
+                            _block(f"spawn-gate: external gate '{gate_id}' error: {err}")
+                            return
+        except ValueError as err:
+            if "unknown gate type" in str(err) or "unknown phase" in str(err) or "fail-closed" in str(err) or "pack_path_missing" in str(err):
+                if not stop_hook_active:
+                    _block(f"spawn-gate: {err}")
+                    return
+
+    verify_agent = "verify-bugfix" if str(epic.get("armed_step") or "").upper() == "BUGFIX" else "verify"
+    verify_active, verify_bypass, verify_invalid = _gate_status(verify_agent, cwd)
     armed_step_u = str(epic.get("armed_step") or "").upper() if epic_on else ""
     if armed_step_u == "DECOMPOSE":
         st["need_verify"] = False

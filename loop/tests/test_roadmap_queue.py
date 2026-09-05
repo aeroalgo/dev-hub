@@ -692,7 +692,7 @@ def test_arm_roadmap_entry_decompose_arms_full_slug(tmp_path: Path) -> None:
     assert out["ok"] is True
     assert out["epic"] == "T-HUB-023-hooks-llm-fallbacks"
     ac = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
-    assert "decompose-T-HUB-023-hooks-llm-fallbacks/index.yaml" in ac
+    assert "T-HUB-023-hooks-llm-fallbacks/yaml/decompose-index.yaml" in ac
     assert "epic_id: T-HUB-023-hooks-llm-fallbacks" in ac
     assert "decompose-T-HUB-023/" not in ac
 

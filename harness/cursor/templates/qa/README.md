@@ -1,6 +1,7 @@
 # Epic QA shard — `epic-qa/v1`
 
-Канон: `epic-step.yaml` → `memory-bank/{back|front|integration}/qa/<epic>/qa-YYYYMMDD-<slug>.yaml`
+Канон: `epic-step.yaml` → `memory-bank/{back|front|integration}/qa/<epic>/qa-YYYYMMDD-<slug>.yaml`  
+**FORBIDDEN:** параллельно писать `qa.yaml` с тем же отчётом (один файл на прогон). `qa.yaml` = только mb-scaffold stub.
 
 - `verdict` — pass | fail | blocked (согласован с Handoff)
 - `scope[]`, `checks[]` — обязательны

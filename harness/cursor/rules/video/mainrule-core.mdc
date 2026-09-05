@@ -1,0 +1,22 @@
+---
+description: "VIDEO — общие правила и фазы видео-пака (SCRIPT/VISUAL/POST)"
+alwaysApply: false
+---
+# VIDEO — общий контекст
+
+## ФАЗЫ И ПРЕФИКСЫ
+
+- **SCRIPT** (`SCRIPT PLAN` / `SCRIPT DECOMPOSE` / `SCRIPT REVIEW`) — концепция, сценарий, раскадровка
+- **VISUAL** (`VISUAL ASSETS` / `VISUAL GENERATE`) — промпты, ассеты, генерация видео/аудио
+- **POST** (`POST EDIT` / `POST QA` / `POST PUBLISH`) — монтаж, эффекты, рендеринг, публикация
+
+## ПЕРЕХОДЫ
+
+```text
+SCRIPT PLAN → SCRIPT DECOMPOSE → VISUAL ASSETS → POST EDIT → POST QA → PUBLISH
+```
+
+## MEMORY BANK
+
+- `activeContext.md` → `load_now` first
+- Пак артефактов: `memory-bank/video/`

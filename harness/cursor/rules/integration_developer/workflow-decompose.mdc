@@ -60,7 +60,7 @@ INTEG DECOMPOSE **обязан** нарезать удаление вытесн�
 3. Папка `integration/plan/<plan_id>/`: `yaml/decompose-index.yaml` + `yaml/steps/eNN-*.yaml` (+ `md/decompose-index.md`) — **`<plan_id>` = stem plan со slug** (не short queue id; @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming)  
    Шаблоны: @.cursor/templates/decompose/index.md + @.cursor/templates/decompose/index.yaml + @.cursor/templates/decompose/epic-step.yaml
    **Schema HARD:** каждый `eNN` = `epic-decompose/v1` + `role: integ`; **FORBIDDEN** invented schemas; FINISH `validate-decompose-tree` fail-closed.
-   `index.yaml` обязателен: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый `eNN` содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.  
+   `yaml/decompose-index.yaml` обязателен: `schema: epic-decompose-index/v1`, `plan_id:` = тот же stem, корень `steps:`, каждый `eNN` содержит минимум `id`, `file` (basename в `yaml/steps/`), `title`, `next_phase`, `status`. **FORBIDDEN** `yaml/index.yaml`. Формат roadmap `queue:` для decompose запрещён.  
    Шаг: §UI · §Data · §API today · **§Contract lean** · §BACK/FRONT/DB · `deletes` · §0.11 · §Verify
 3a. Index: Requirements / Stages / Outcome map / **Replacement cleanup**
 3b. **FAIL** если mock/legacy replace в plan без eNN с `deletes` (и без out_of_scope+follow-up **в queue**)

@@ -3,8 +3,8 @@ schema: epic-decompose-index/v1
 # (plan-T-HUB-033-harness-execution-discipline.md → T-HUB-033-harness-execution-discipline)
 # FORBIDDEN: short queue id alone (T-HUB-033) when plan has a slug suffix
 plan_id: <plan_id>
-source_md: index.md
-status_canon: index.yaml
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
 # Optional appetite mirror from plan.md (timebox + cut_list only; never a step-count cap)
 # appetite:
 #   timebox_days: 3

@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-051-workflow-pack-reference-video
+title: s01 — video-production manifest + workflow_pack_registry.yaml row IMPLEMENT
+status: completed
+date: '2026-09-05'
+decompose_ref: memory-bank/back/plan/T-HUB-051-workflow-pack-reference-video/yaml/steps/s01-video-manifest-registry-row.yaml
+skills_used: []
+discovery:
+- WorkflowPackRegistry model_validate and load_registry verified against new video-production
+  pack
+gaps:
+  status: none
+done:
+- Создан workflows/video/manifest.yaml с полями id, roles, command_prefixes, phase_registry,
+  memory_bank, rules_root, artifact_layout, description
+- Добавлена строка video-production в loop/workflow_pack_registry.yaml
+- Добавлены unit/integration тесты в loop/tests/test_workflow_pack_registry.py
+files:
+- workflows/video/manifest.yaml
+- loop/workflow_pack_registry.yaml
+- loop/tests/test_workflow_pack_registry.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=short
+integration_check:
+- WORKFLOW_PACK=video-production python3 -c 'from loop.workflow.registry import resolve_workflow_pack;
+  r=resolve_workflow_pack(); assert r.ok'
+grep_control:
+- back: rg 'video-production' loop/workflow_pack_registry.yaml
+  front: ''
+verification_results:
+- 'pytest loop/tests/test_workflow_pack_registry.py: 9 passed'
+checkpoints:
+- id: cp1
+  criterion: resolve_workflow_pack возвращает ok=True для video-production
+  status: done
+  done_at: '2026-09-04T22:33:17Z'
+- id: cp2
+  criterion: WorkflowPackRegistry.model_validate не бросает при новом registry
+  status: done
+  done_at: '2026-09-04T22:33:17Z'
+- id: cp3
+  criterion: software default pack неизменён — resolve без env возвращает dev-hub-software
+  status: done
+  done_at: '2026-09-04T22:33:18Z'
+resume_from: cp1

@@ -165,3 +165,51 @@ def test_zero_regression_existing_smoke() -> None:
     assert wf_config.pack.pack.id == "dev-hub-software"
     assert wf_config.pack.pack.artifact_layout == "software-epic-v1"
     assert "back" in wf_config.pack.pack.roles
+
+
+def test_video_pack_resolves() -> None:
+    """AC+1 / SC-001 / FR-001 / FR-003: Video pack is resolvable via resolve_workflow_pack."""
+    load_registry.cache_clear()
+    old_env = os.environ.get("WORKFLOW_PACK")
+    try:
+        os.environ["WORKFLOW_PACK"] = "video-production"
+        res = resolve_workflow_pack()
+        assert res.ok is True
+        assert res.pack_id == "video-production"
+        assert res.pack is not None
+        assert res.pack.id == "video-production"
+        assert res.pack.roles == ["script", "visual", "post"]
+        assert res.pack.command_prefixes == ["SCRIPT", "VISUAL", "POST"]
+        assert res.pack.memory_bank == "memory-bank/video"
+        assert res.pack.phase_registry == "workflows/video/phase_registry.yaml"
+        assert res.pack.rules_root == ".cursor/rules/video"
+        assert res.pack.artifact_layout == "software-epic-v1"
+        assert len(res.diagnostic_codes) == 0
+    finally:
+        load_registry.cache_clear()
+        if old_env is None:
+            os.environ.pop("WORKFLOW_PACK", None)
+        else:
+            os.environ["WORKFLOW_PACK"] = old_env
+
+
+def test_software_pack_unaffected() -> None:
+    """AC+5 / AC-3 / TM-003: Software pack remains default when no override is set."""
+    load_registry.cache_clear()
+    old_env_wp = os.environ.pop("WORKFLOW_PACK", None)
+    old_env_ewp = os.environ.pop("EPIC_WORKFLOW_PACK", None)
+    try:
+        res = resolve_workflow_pack()
+        assert res.ok is True
+        assert res.pack_id == "dev-hub-software"
+        assert res.pack is not None
+        assert res.pack.id == "dev-hub-software"
+        assert res.pack.roles == ["back", "front", "integration"]
+        assert res.pack.command_prefixes == ["BACK", "FRONT", "INTEG"]
+    finally:
+        load_registry.cache_clear()
+        if old_env_wp is not None:
+            os.environ["WORKFLOW_PACK"] = old_env_wp
+        if old_env_ewp is not None:
+            os.environ["EPIC_WORKFLOW_PACK"] = old_env_ewp
+

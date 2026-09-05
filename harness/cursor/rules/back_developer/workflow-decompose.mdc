@@ -11,11 +11,10 @@ alwaysApply: false
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** plan (`memory-bank/back/plan/<epic_id>/md/plan.md`) → decompose layout v2 (`memory-bank/back/plan/<epic_id>/yaml/decompose-index.yaml` + `steps/sNN-*.yaml`). НЕ писать код.
-**Folder slug (HARD):** `plan_id` = epic id со descriptive slug. @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
-**Scaffold contract (HARD):** `python3 .claude/hooks/epic_resolve.py mb-scaffold decompose --epic-id <id>`. **FORBIDDEN: Write sNN-*.yaml from scratch** (scaffolded paths — Edit only).
+**Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
+**Folder slug (HARD):** `plan_id` = stem plan без `plan-` (со descriptive slug). @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
-**Formula hint (optional):** plan `formula:` → `mb-scaffold decompose --formula <formula_id>` draft; planner заполняет placeholders.
+**Formula hint (optional):** plan header `formula:` → `epic_resolve.py formula-render` draft; planner заполняет placeholders.
 
 ---
 
@@ -48,7 +47,7 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 5z. `validate-decompose-tree` exit 0 · schema `epic-decompose/v1` only
 5y. Advisory: `verify-decompose-creative` → `ready: true` или CREATIVE
 5a–5j. FAIL-условия = Gates Abort (+ dilution / optional_sot / Kind I / purge / short plan_id)
-6. Папка + `index.yaml` (`epic-decompose-index/v1`)
+6. Layout v2: `md/decompose-index.md` + `yaml/decompose-index.yaml` (`epic-decompose-index/v1`) + `yaml/steps/sNN-*.yaml` — **FORBIDDEN** `decompose-<id>/` · `yaml/index.md|index.yaml`
 7. Обнови plan: ссылка на index; без дубль-чеклистов; Goal/NFR не infra-only
 7a. **Promote:** validate-decompose-tree · validate-traceability CRITICAL=0 · `@verify-decompose` · Next = **BACK ANALYZE** only (**FORBIDDEN** ANALYZE deferred)
 7b. **FINISH:** finish-block (`code_changed: no`); next ANALYZE

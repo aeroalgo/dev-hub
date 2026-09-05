@@ -27,6 +27,8 @@ class MbLoadRequest(BaseModel):
 class MbLoadResult(BaseModel):
     schema: Literal["mb-load-result/v1"] = "mb-load-result/v1"
     ok: bool
+    mb_root: str | None = None
+    workflow_pack: str | None = None
     diagnostic_codes: list[str] = Field(default_factory=list)
     shape_errors: list[str] = Field(default_factory=list)
     meta: LoopHandoffMeta | None = None

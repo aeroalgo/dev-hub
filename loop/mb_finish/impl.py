@@ -1,10 +1,12 @@
 """finish_handoff, finish_qa, and finish_bugfix implementation."""
 
 import hashlib
+import re
 from pathlib import Path
 from _lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
+    _verify_pass_ready_for_step,
     atomic_write_text,
     epic_id_from_decompose_path,
     extract_load_now,
@@ -25,6 +27,7 @@ from harness.hooks.epic.core import (
 )
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult
+from loop.paths.pack_layout import resolve_mb_root
 
 
 def finish_handoff(
@@ -35,7 +38,10 @@ def finish_handoff(
 ) -> MbFinishResult:
     """Low-level escape hatch to render and write activeContext without finalizing step."""
     cwd_p = Path(cwd)
-    act_path = cwd_p / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd_p) / "activeContext.md"
+    state = load_epic_state(cwd_p)
+    if str(state.get("armed_step") or state.get("phase") or "").upper() == "BUGFIX" and meta.mode.upper() != "BUGFIX":
+        return MbFinishResult(ok=False, diagnostic_codes=["bugfix_finish_required"], shape_errors=["Use mb-finish bugfix with a bugfix artifact and verify-bugfix PASS"])
 
     try:
         backup = read_active_context(cwd_p)
@@ -101,10 +107,16 @@ def finish_handoff(
 def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     """Orchestrate QA phase finish atomically."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     # Load epic state to resolve epic_id and role
     state = load_epic_state(cwd)
+    if str(state.get("phase") or state.get("armed_step") or "").upper() == "BUGFIX":
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_finish_required"],
+            shape_errors=["QA cannot finish while BUGFIX is active; finish BUGFIX first, then start a new QA run"],
+        )
     epic_id = state.get("armed_epic") or ""
     role = (state.get("armed_role") or "BACK").upper()
     role_dir = role.lower()
@@ -126,7 +138,11 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         qa_rel = qa_art.relative_to(cwd).as_posix()
     except ValueError:
         qa_rel = str(qa_art)
-    qa_link = qa_rel.removeprefix("memory-bank/")
+    try:
+        mb_root_name = resolve_mb_root(cwd).name
+        qa_link = qa_rel.removeprefix(f"{mb_root_name}/").removeprefix("memory-bank/")
+    except Exception:
+        qa_link = qa_rel.removeprefix("memory-bank/")
 
     load_now = [
         LoadNowItem(path=qa_rel, description="QA pass artifact"),
@@ -246,7 +262,7 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
 def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     """Orchestrate Bugfix phase finish atomically."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -270,15 +286,23 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     bugfix_art = latest_bugfix_artifact_for_reference(
         cwd, role_dir, epic_id=epic_id
     )
+    try:
+        mb_root_name = resolve_mb_root(cwd).name
+    except Exception:
+        mb_root_name = "memory-bank"
     if not bugfix_art or not bugfix_art.is_file():
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["bugfix_artifact_missing"],
             shape_errors=[
-                f"Bugfix artifact missing: memory-bank/{role_dir}/bugfix/"
+                f"Bugfix artifact missing: {mb_root_name}/{role_dir}/bugfix/"
                 f"{epic_id}/bugfix-*.md"
             ],
         )
+
+    verify = _verify_pass_ready_for_step(cwd, "BUGFIX")
+    if not verify.get("ok"):
+        return MbFinishResult(ok=False, diagnostic_codes=[verify["diagnostic"]], shape_errors=[verify["error"]])
 
     try:
         bugfix_rel = bugfix_art.relative_to(cwd).as_posix()
@@ -385,7 +409,7 @@ def finish_decompose(
 ) -> MbFinishResult:
     """Orchestrate DECOMPOSE phase finish atomically with Transition Engine delegation."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -557,7 +581,7 @@ def finish_plan(
 ) -> MbFinishResult:
     """Orchestrate PLAN phase finish atomically with Transition Engine delegation."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -577,12 +601,45 @@ def finish_plan(
             shape_errors=["Plan artifact missing"],
         )
 
-    from _lib import runner_owns_active_context_reason
+    from _lib import epic_ids_compatible, live_runner_owner, runner_owns_active_context_reason
+    from loop.roadmap_queue import plan_stem_from_name, roadmap_upsert_batch
 
     lock_reason = runner_owns_active_context_reason(
         cwd, epic_id=epic_id or None, phase="PLAN"
     )
     if lock_reason:
+        owner = live_runner_owner(cwd)
+        own_epic = str(getattr(owner, "epic_id", "") or "") if owner else ""
+        plan_name = Path(plan_rel).name
+        stem = plan_stem_from_name(plan_name)
+        finishing = stem or epic_id or ""
+        if own_epic and epic_ids_compatible(own_epic, finishing):
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["runner_owns_active_context"],
+                shape_errors=[lock_reason],
+            )
+        m = re.match(r"^(T-[A-Z]+-\d+)", finishing)
+        queue_id = m.group(1) if m else finishing
+        upsert = roadmap_upsert_batch(
+            cwd,
+            role=role.lower(),
+            batch="chat-plan",
+            items=[
+                {
+                    "id": queue_id,
+                    "epic_id": epic_id or stem,
+                    "plan": plan_name,
+                    "deps": [],
+                }
+            ],
+        )
+        if not upsert.get("ok"):
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["plan_enqueue_failed"],
+                shape_errors=[str(upsert.get("reason") or upsert.get("error") or upsert)],
+            )
         return MbFinishResult(
             ok=True,
             diagnostic_codes=["cursor_unchanged_runner_owns_active_context"],
@@ -815,7 +872,7 @@ def finish_audit(
 ) -> MbFinishResult:
     """Orchestrate AUDIT phase finish atomically."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -982,7 +1039,7 @@ def finish_creative(
 ) -> MbFinishResult:
     """Orchestrate CREATIVE phase finish atomically."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -1126,7 +1183,7 @@ def finish_reflect(
 ) -> MbFinishResult:
     """Orchestrate REFLECT phase finish atomically."""
     cwd = Path(req.cwd).resolve()
-    act_path = cwd / "memory-bank" / "activeContext.md"
+    act_path = resolve_mb_root(cwd) / "activeContext.md"
 
     state = load_epic_state(cwd)
     epic_id = state.get("armed_epic") or ""
@@ -1235,5 +1292,4 @@ def finish_reflect(
         next_phase="NEXT_CYCLE",
         epic_done=True,
     )
-
 

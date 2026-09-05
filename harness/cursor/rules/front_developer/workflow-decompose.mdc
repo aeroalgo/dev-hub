@@ -105,7 +105,7 @@ IMPLEMENT: Read **только** Impl + Design из step (+ FINISH-only). См. 
 5c. **FAIL** если cleanup ≠ n/a без `*-legacy-fallback-purge` в очереди (shared/workflow-legacy-fallback-cleanup.mdc)
 5c. **FAIL** если план заменяет UI-поверхность, а нет sNN с `deletes` (и нет out_of_scope+follow-up)
 5d. **FAIL** если `deletes` непустой, а нет checkpoint verify `rg`/import-audit на отсутствие callers
-6. Папка из `.cursor/templates/decompose/`. `index.yaml` обязателен и создаётся по `templates/decompose/index.yaml`: `schema: epic-decompose-index/v1`, корень `steps:`, каждый шаг содержит минимум `id`, `file`, `title`, `next_phase`, `status`. Формат roadmap `queue:` для decompose запрещён.
+6. Layout v2: `md/decompose-index.md` + `yaml/decompose-index.yaml` (`epic-decompose-index/v1` по `templates/decompose/index.yaml`) + `yaml/steps/sNN-*.yaml`. **FORBIDDEN** `decompose-<id>/` · `yaml/index.md|index.yaml`. Формат roadmap `queue:` для decompose запрещён.
 7. Plan: index = единственный трекер; удали дубль-чеклисты sNN
 7a. **Promote gate (HARD):** `validate-decompose-tree` exit 0 + `validate-traceability --epic <plan_id>` CRITICAL=0. Next = **FRONT ANALYZE** (обязателен). **FORBIDDEN** `ANALYZE deferred:` → IMPLEMENT.
 7b. **FINISH:** finish-block (`code_changed: no`) — `load_now` → `s01-*.yaml`
