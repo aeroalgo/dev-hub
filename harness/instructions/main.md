@@ -1,33 +1,41 @@
 # dev-hub
 
-## Dev Environment
+## Runtime entrypoint
 
-Hub tooling в `/home/aero/PyProject/dev-hub`. Workflow и процесс — `CLAUDE.md`, `.cursor/rules/`, `memory-bank/`.
+Используй только entrypoint текущего runtime:
 
-## Workflow chain (HARD — обязательное чтение до основной работы; FINISH не блокируется)
+- Claude Code → `CLAUDE.md`
+- Codex → `AGENTS.md`
 
-Для команд `BACK`, `FRONT` и `INTEG` агент обязан выполнять цепочку, объявленную ссылками в workflow:
+Не читай другой runtime entrypoint.
 
-Для каждой команды роли (`BACK|FRONT|INTEG <MODE>`) обязательна полная цепочка чтения:
+## HARD READ RULE
 
-**HARD RULE:** нельзя начинать анализ, изменять файлы или выполнять основную работу, пока все доступные файлы этой цепочки не прочитаны через `Read`.
+До анализа, изменений и основной работы прочитай только entrypoint текущего
+runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную role/mode chain
+с Gates и `@`-ссылками.
 
-0. Прочитать корневой `CLAUDE.md`.
-1. Прочитать `.cursor/rules/mainrule.mdc`.
-2. По нему прочитать индекс и core выбранной роли.
-3. По таблице выбранного role index прочитать workflow, соответствующий команде.
-4. Прочитать путь `Gates` и все связанные `@`-ссылки из прочитанных файлов рекурсивно, в порядке объявления, до листовых файлов.
-5. Для `IMPLEMENT`, `TASK`, `BUGFIX` и `REFACTOR` прочитать каждый skill из секции `skills.impl` текущего decompose-step до production-кода. Для `FRONT` также прочитать `skills.design`/`skills.design_skills`, если шаг содержит UI.
+## Workflow router
 
-`@`-ссылки определяют обязательные вызовы `Read`. Пропущенный `Read` — нарушение HARD RULE и gap процесса, но не является блокировкой `FINISH`/`stop`.
+По таблице router выбери текущую команду, роль и режим. Затем прочитай только
+выбранную role/mode chain, её Gates и связанные `@`-ссылки.
 
-## Workflow Packs
+Не загружай workflow или skills заранее и не выбирай другую роль или режим.
+Пути и имена файлов определяются каноническими workflow, index и skills.
 
-| Pack ID | Roles | Command Prefixes | Activation |
-|---|---|---|---|
-| `dev-hub-software` | back, front, integration | `BACK`, `FRONT`, `INTEG` | Default (`WORKFLOW_PACK=dev-hub-software` or `--workflow-pack dev-hub-software`) |
-| `video-production` | script, visual, post | `SCRIPT`, `VISUAL`, `POST` | `WORKFLOW_PACK=video-production` or `--workflow-pack video-production` |
+## Session context
+
+Для role command используй `memory-bank/activeContext.md` и только текущие
+пути из `load_now`. Не подменяй текущий shard другим epic или режимом.
+
+## Общие правила
+
+- Отвечай пользователю на русском языке.
+- В конце ответа указывай название модели ИИ.
+- Исправляй причину ошибки, не скрывай её fallback-логикой.
+- Коммиты и PR выполняй только по явному запросу.
+- Комментарии в коде добавляй только по запросу.
 
 ## Testing
 
-Python tests (hub): `bin/pytest …` from repo root — 300s timeout built into wrapper.
+Python tests запускай из корня репозитория через `bin/pytest …`.

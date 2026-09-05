@@ -589,102 +589,43 @@ def _cmd_dashboard_render(args: argparse.Namespace, cwd: Path | str) -> int:
     return 0
 
 
-def _decompose_role_rule_dir(role: str) -> str:
-    key = str(role or "back").lower()
-    return {
-        "back": "back_developer",
-        "front": "front_developer",
-        "integration": "integration_developer",
-        "integ": "integration_developer",
-    }.get(key, f"{key}_developer")
-
-
-def _decompose_work_block(role: str, epic_id: str) -> str:
-    rule_dir = _decompose_role_rule_dir(role)
+def _decompose_work_block(_role: str, epic_id: str) -> str:
     return f"""## DECOMPOSE canon (HARD)
-1. Read `.cursor/templates/decompose/epic-step.yaml` + `index.md` template + `.cursor/rules/{rule_dir}/workflow-decompose.mdc` (§Maximal detail).
-2. Layout v2 (FORBIDDEN `decompose-<id>/` and dual `index.md`+`decompose-index.md`):
-   - `{{mb_root}}/{role}/plan/{epic_id}/md/decompose-index.md`
-   - `{{mb_root}}/{role}/plan/{epic_id}/yaml/decompose-index.yaml` (status SoT)
-   - `{{mb_root}}/{role}/plan/{epic_id}/yaml/steps/sNN-<slug>.yaml` (FORBIDDEN bare `sNN.yaml`)
-3. decompose-index.md MUST contain: `## Requirements coverage`, `## Stages coverage`, `## Outcome map`, `## Replacement cleanup` (greenfield → `n/a`).
-4. Each shard: `schema: epic-decompose/v1`, `role`, `as_built`/`delta` lists, 2–4 checkpoints with runnable verify.
-5. FINISH: `validate-decompose-tree` (stop-gate) blocks promote if tree incomplete.
-Epic queue id: `{epic_id}`.
+1. Прочитай только DECOMPOSE-цепочку текущей команды через entrypoint и `mainrule.mdc`.
+2. Выполняй требования выбранного workflow и его Gates; не подменяй их общим шаблоном.
+3. Создай или обнови только артефакты текущего epic `{epic_id}`.
+4. На FINISH следуй finish-процедуре текущего workflow.
 """
 
 
-def _audit_work_block(role: str, epic_id: str) -> str:
-    rule_dir = _decompose_role_rule_dir(role)
+def _audit_work_block(_role: str, epic_id: str) -> str:
     return f"""## AUDIT canon (HARD) — PLAN↔runtime, не «шаги completed»
-1. Read `.cursor/rules/{rule_dir}/workflow-audit.mdc` + `_lean/audit.mdc` + `.cursor/templates/audit/epic-audit.yaml`.
-2. Layout v2 paths (FORBIDDEN v1 `plan-<id>.md` / `decompose-<id>/` / `implement-<id>/sNN.md`):
-   - plan: `{{mb_root}}/{role}/plan/{epic_id}/md/plan.md`
-   - decompose: `{{mb_root}}/{role}/plan/{epic_id}/yaml/steps/sNN-<slug>.yaml`
-   - implement: `{{mb_root}}/{role}/implement/implement-{epic_id}/sNN-<slug>.yaml`
-3. Intent Inventory **из plan.md** (все FR/US/SC/AC±/layout) — не из titles sNN.
-4. Triple Assess: (A) `plan_vs_runtime[]` behavior evidence в коде · (B) step matrix · (C) `architecture_parity[]` · (D) per completed sNN: **Read** implement yaml ↔ decompose yaml (`done` vs `goal`/`plan_contract`). Assess D = per-step Read, не full-repo dump.
-5. `implemented[].implement_file` MUST exist on disk as implement yaml (не plan/.../md/sNN.md). mb-finish audit REJECTS phantom paths.
-6. `satisfied` FORBIDDEN на «файл есть» / «pytest green» / «sNN completed». Evidence = path + behavior.
-7. FORBIDDEN: pytest/suite/git-diff/code-review; `converged: true` только при полном plan parity + empty leftovers + sunset scan.
-8. Артефакт: `{{mb_root}}/{role}/audit/{epic_id}/audit.yaml` (`epic-audit/v2`).
-Epic: `{epic_id}`.
+1. Прочитай только AUDIT-цепочку текущей команды через entrypoint и `mainrule.mdc`.
+2. Сопоставь intent текущего epic `{epic_id}` с runtime evidence по правилам workflow.
+3. Не подменяй audit наличием файлов, green suite или статусом шага.
+4. На FINISH следуй finish-процедуре текущего workflow.
 """
 
 
-def _qa_work_block(role: str, epic_id: str) -> str:
-    rule_dir = _decompose_role_rule_dir(role)
-    role_command = {
-        "back": "BACK",
-        "front": "FRONT",
-        "integration": "INTEG",
-        "integ": "INTEG",
-    }.get(str(role).lower(), str(role).upper())
+def _qa_work_block(_role: str, epic_id: str) -> str:
     return f"""## QA canon (HARD) — review, не IMPLEMENT
-1. Read `.cursor/rules/{rule_dir}/workflow-qa.mdc` + `_lean/qa.mdc` + `.cursor/templates/qa/epic-step.yaml`.
-2. Parent: **один** full suite `bin/pytest -q --tb=line` (без path/nodeid/`-k`). Targeted = FAIL (`suite_not_full`).
-3. После full suite → **1× verify-qa** (Suite results = эта full-suite команда · AC+ · AC− · §0.11 · ALLOW READ ≤10).
-   FORBIDDEN: verify-qa до full suite; Suite results с path/`-k`.
-4. Артефакт: `{{mb_root}}/{role}/qa/{epic_id}/qa-YYYYMMDD-<slug>.yaml` (`epic-qa/v1`).
-5. fail|blocked → `fix_plan[]` + Handoff `{role_command} BUGFIX <subject>` + mb-finish qa. PASS только при green full suite + reviewer PASS.
-6. `code_changed: no`. FORBIDDEN: Write/Edit prod (`loop/` `harness/` `.cursor/rules/` tests) в QA — это BUGFIX.
-   FORBIDDEN: `FAIL → fix → re-verify` · крутить один failing test >1 раза.
-Epic: `{epic_id}`.
+1. Прочитай только QA-цепочку текущей команды через entrypoint и `mainrule.mdc`.
+2. Выполняй только проверки и сценарии, определённые выбранным QA workflow.
+3. QA — review текущего epic `{epic_id}`, не IMPLEMENT и не BUGFIX.
+4. При FAIL/blocked используй handoff и artifact-правила выбранного workflow.
+5. На FINISH следуй finish-процедуре текущего workflow.
 """
 
 
-def _commands_block(phase_kind: str) -> str:
-    runner = (
-        "1. Не вызывай: loop.sh, epic_resolve after|resolve|arm|halt|complete|record-session."
-    )
+def _commands_block(command: str) -> str:
     silent = (
         "3. Silent chat (HARD): no thinking aloud; no restating rules/HARD/TodoWrite; "
         "no tool-call narration; chat = итог only. Cursor TodoWrite nudge — ignore (do not quote)."
     )
-    if phase_kind == "qa":
-        return f"""## Команды
-{runner}
-2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
-   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
-   Suite fail|blocked → qa.yaml `verdict: fail|blocked` + `fix_plan[]` (`BACK BUGFIX <subject>`) + mb-finish qa.
-   FORBIDDEN: чинить prod/tests в QA-сессии.
-   FORBIDDEN: `FAIL → fix → re-verify` · targeted pytest как Suite results · verify-qa до full suite.
-{silent}
-"""
-    implement_fix = (
-        phase_kind in {"implement", "generic"}
-    )
-    fix_lines = (
-        "   FORBIDDEN: `BLOCKED:` из‑за incomplete AC / pending cp / gaps.blocked / parity FAIL текущего эпика\n"
-        "   (это чинится в сессии: FAIL → fix → re-verify).\n"
-        if implement_fix
-        else ""
-    )
     return f"""## Команды
-{runner}
-2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — **только** внешний/человеческий стоп.
-{fix_lines}   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
-   Отложено → `Отложено:` / `Deferred:`.
+1. Выполняй только `{command}` и не переключайся на другой режим самостоятельно.
+2. Стоп: `BLOCKED:` или `NEED_HUMAN:` — только при внешнем или человеческом блокере.
+   FORBIDDEN stop-маркер: `GAPS:` / `**GAPS:**`.
 {silent}
 """
 
@@ -796,7 +737,7 @@ def _projection_for_gate_armed_step(
     return _prompt_projection(state, projection)
 
 
-def _done_finish_block(*, chain_on: bool) -> str:
+def _done_finish_block(*, chain_on: bool, command: str) -> str:
     chain_line = (
         "Runner при `EPIC_CHAIN_ROADMAP=1` сам возьмёт следующий эпик из roadmap Queue "
         "(smart entry: DECOMPOSE / IMPLEMENT / …).\n"
@@ -808,8 +749,8 @@ def _done_finish_block(*, chain_on: bool) -> str:
         "Эпик уже закрыт (projection.phase=DONE: QA pass).\n"
         "1. Перепиши `activeContext.md`: `## load_now` пуст → 1× `## Handoff` со "
         "строкой `EPIC_DONE` (без префикса Стоп:) → stop.\n"
-        "2. FORBIDDEN: `BACK|FRONT|INTEG ARCHIVE NOW`, skill `*-archive`, VAN, "
-        "выбор другого decompose/эпика, IMPLEMENT/QA/AUDIT заново.\n"
+        f"2. FORBIDDEN: `{command} ARCHIVE NOW`, skill `*-archive`, VAN, "
+        "выбор другого decompose/эпика или режима.\n"
         "3. ARCHIVE — только вручную вне loop, после того как runner остановился "
         "или очередь roadmap исчерпана.\n"
         f"4. {chain_line}"
@@ -835,6 +776,7 @@ def build_prompt(
     cwd: str | Path,
     *,
     command: str | None = None,
+    runtime: str | None = None,
     shape_errors: list[str] | None = None,
     load_now: list[str] | None = None,
     delta_ok: bool | None = None,
@@ -852,6 +794,7 @@ def build_prompt(
         cwd_p,
         projection=projection,
         command=command,
+        runtime=runtime,
     )
     paths = mb_paths_for_prompt(cwd_p, load_now)
 
@@ -964,19 +907,17 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     finish_block = ""
     explorer_on = explorer_loop_enabled(cwd)
     if phase_done or phase_kind == "done":
-        finish_block = _done_finish_block(chain_on=chain_on)
+        finish_block = _done_finish_block(chain_on=chain_on, command=scope.command)
     elif phase_kind == "creative":
         finish_block = _creative_finish_block()
     elif phase_kind == "bugfix":
         epic = str(projection.get("epic") or projection.get("epic_id") or "unknown")
-        role = str(projection.get("role") or "back").lower()
         finish_block = (
             "\n## BUGFIX FINISH\n"
-            f"1. Read workflow-bugfix + _lean/bugfix; write `{{mb_root}}/{role}/bugfix/{epic}/bugfix-YYYYMMDD-<subject>.md`.\n"
-            "2. Record QA source, root cause, regression red → fix → green; call verify-bugfix with BUGFIX ARTIFACT, AC+, AC−, §0.11, VERIFY, ALLOW READ.\n"
+            f"1. Выполни BUGFIX workflow текущей команды для epic `{epic}`.\n"
+            "2. Зафиксируй QA source, root cause и regression evidence по правилам workflow.\n"
             "3. After verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
-            "4. Next session: QA, full suite + verify-qa + new QA artifact (unique run filename).\n"
-            "FORBIDDEN: overwrite prior QA, rewrite completed implement shards, or use low-level handoff to bypass BUGFIX finish.\n"
+            "4. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
         )
     elif phase_kind == "implement":
         explorer_block = _explorer_block(
@@ -1027,13 +968,6 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     resume_block = "\n".join(resume_lines or [])
     extra_block = "\n".join(extra_blocks or [])
     phase_work_block = ""
-    role_key = str(
-        scope.role if command else projection.get("role") or scope.role or "back"
-    ).lower()
-    if role_key == "integ":
-        role_key = "integration"
-    if role_key not in {"back", "front", "integration"}:
-        role_key = "back"
     epic_key = str(
         projection.get("epic")
         or projection.get("epic_id")
@@ -1041,12 +975,12 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         or "unknown"
     )
     if phase_kind == "decompose":
-        phase_work_block = _decompose_work_block(role_key, epic_key)
+        phase_work_block = _decompose_work_block(scope.role, epic_key)
     elif phase_kind == "audit":
-        phase_work_block = _audit_work_block(role_key, epic_key)
+        phase_work_block = _audit_work_block(scope.role, epic_key)
     elif phase_kind == "qa":
-        phase_work_block = _qa_work_block(role_key, epic_key)
-    commands_block = _commands_block(phase_kind)
+        phase_work_block = _qa_work_block(scope.role, epic_key)
+    commands_block = _commands_block(scope.command)
 
     return f"""{render_prompt_scope(scope)}
 Выполни один шаг.
@@ -1881,6 +1815,7 @@ def prepare_session(
         cwd_p,
         projection=proj_for_extra,
         fallback_command="BACK IMPLEMENT",
+        runtime=runtime or os.environ.get("EPIC_RUNTIME"),
     )
     extra_phase_kind = _phase_kind(
         proj_for_extra.get("phase") or st.get("phase") or projection.get("phase")
@@ -1902,6 +1837,7 @@ def prepare_session(
     prompt = build_prompt(
         cwd_p,
         command=prompt_scope.command,
+        runtime=runtime or os.environ.get("EPIC_RUNTIME"),
         shape_errors=shape,
         load_now=existing,
         delta_scope=delta_scope,

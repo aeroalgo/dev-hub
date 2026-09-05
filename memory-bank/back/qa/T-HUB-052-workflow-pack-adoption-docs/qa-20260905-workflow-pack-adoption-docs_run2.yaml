@@ -1,0 +1,31 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-052-workflow-pack-adoption-docs
+plan_id: T-HUB-052-workflow-pack-adoption-docs
+epic_id: T-HUB-052-workflow-pack-adoption-docs
+date: 2026-09-05
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-052-workflow-pack-adoption-docs"
+  - "epic: T-HUB-052-workflow-pack-adoption-docs"
+  - "steps: s01-s08"
+  - "files: loop/workflow/intent_routing.yaml, loop/workflow/command_router.py, loop/doctor/checks/workflow_pack.py, loop/context_loop.py, loop/tests/test_doctor_workflow_pack.py, bin/hub-link, docs/workflow-pack-authoring.md, docs/workflow-pack-operator.md, harness/cursor/rules/shared/workflow-idea-pipeline.mdc"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1944 passed, 3 skipped, 75 warnings in 174.13s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

@@ -250,7 +250,8 @@ def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.Mo
     assert payload is not None
     assert "additionalContext" in payload
     assert payload["additionalContext"].startswith("COMMAND: BACK IMPLEMENT\n")
-    assert ".cursor/rules/back_developer/workflow-implement.mdc" in payload["additionalContext"]
+    assert "entrypoint: `CLAUDE.md`" in payload["additionalContext"]
+    assert "workflow-implement.mdc" not in payload["additionalContext"]
     assert "Prefixes:" not in payload["additionalContext"]
 
 
@@ -265,7 +266,7 @@ def test_session_start_pack_inject_fail_safe(tmp_path: Path, monkeypatch: pytest
     payload = session_start_payload(tmp_path)
     assert payload is not None
     assert "additionalContext" in payload
-    assert "invalid_workflow_pack" in payload["additionalContext"]
+    assert "workflow-qa.mdc" not in payload["additionalContext"]
     assert "Prefixes:" not in payload["additionalContext"]
 
 

@@ -1,8 +1,8 @@
-"""Build a command-first, workflow-scoped prompt context.
+"""Build a command-first, runtime- and workflow-scoped prompt context.
 
-This module deliberately resolves pointers only.  It does not read workflow
-files or create a runtime chain; the agent is responsible for reading the
-declared command scope and following its links.
+This module does not resolve or read workflow files. The active runtime
+entrypoint and ``mainrule.mdc`` remain the single routing source; the agent
+reads the selected command chain itself.
 """
 from __future__ import annotations
 
@@ -11,22 +11,12 @@ from pathlib import Path
 import re
 from typing import Any
 
-from loop.workflow.command_router import route_command
-from loop.workflow.registry import resolve_workflow_pack
-
-
 _ROLE_ALIASES = {
     "BACK": "BACK",
     "FRONT": "FRONT",
     "INTEG": "INTEG",
     "INTEGRATION": "INTEG",
 }
-_ROLE_DIRS = {
-    "BACK": "back_developer",
-    "FRONT": "front_developer",
-    "INTEG": "integration_developer",
-}
-_NO_WORKFLOW_PHASES = frozenset({"", "UNKNOWN", "DONE"})
 _TOKEN_RE = re.compile(r"[^\s`]+")
 
 
@@ -39,7 +29,11 @@ class PromptScope:
     phase: str
     step: str
     epic: str
-    workflow_file: str | None
+    runtime: str = "claude-code"
+    entrypoint: str = "CLAUDE.md"
+    # Kept for API compatibility with runner metadata. Workflow paths are
+    # deliberately not resolved by the prompt builder.
+    workflow_file: str | None = None
     pack_id: str | None = None
     diagnostics: tuple[str, ...] = ()
 
@@ -51,8 +45,15 @@ def _canonical_role(raw: object, *, default: str = "") -> str:
     return _ROLE_ALIASES.get(value, value)
 
 
-def _role_dir(role: str) -> str:
-    return _ROLE_DIRS.get(role, f"{role.lower()}_developer")
+def _runtime_name(raw: object) -> str:
+    value = str(raw or "claude-code").strip().lower().replace("_", "-")
+    if value in {"codex", "codex-cli", "codex-app"}:
+        return "codex"
+    return "claude-code"
+
+
+def _runtime_entrypoint(runtime: str) -> str:
+    return "AGENTS.md" if runtime == "codex" else "CLAUDE.md"
 
 
 def _projection_value(projection: dict[str, Any], *keys: str) -> str:
@@ -83,7 +84,8 @@ def _command_parts(
     known_role = _canonical_role(first, default="")
     if len(tokens) >= 2 and (first in _ROLE_ALIASES or first.isalpha()):
         role = known_role or first
-        phase = tokens[1].upper()
+        phase_tokens = [token for token in tokens[1:] if not token.startswith("@")]
+        phase = " ".join(phase_tokens).upper()
     elif not phase:
         phase = first
 
@@ -109,15 +111,18 @@ def build_prompt_scope(
     projection: dict[str, Any] | None = None,
     command: str | None = None,
     fallback_command: str | None = None,
+    runtime: str | None = None,
 ) -> PromptScope:
-    """Resolve one command and its one workflow pointer.
+    """Build one command scope without resolving or loading workflow files.
 
-    The function is intentionally tolerant: a malformed/unknown pack produces
-    diagnostics in the scope instead of preventing a prompt from being
-    written.  No workflow contents are loaded here.
+    Workflow routing remains the responsibility of the runtime entrypoint and
+    ``mainrule.mdc``. This builder only renders the command, role, mode and
+    the correct entrypoint contract for the selected runtime.
     """
 
-    root = Path(cwd).resolve()
+    # Keep the public cwd parameter for callers that build prompts from a
+    # project root. The prompt builder must not inspect that root for routes.
+    _ = Path(cwd)
     projection = dict(projection or {})
     raw = command or _fallback_command(projection, fallback_command)
     fallback_role = _projection_value(projection, "role")
@@ -140,21 +145,7 @@ def build_prompt_scope(
         role = role or "UNKNOWN"
         phase = phase or ""
 
-    workflow_file: str | None = None
-    pack_id: str | None = None
-    diagnostics: list[str] = []
-    if phase not in _NO_WORKFLOW_PHASES and role != "UNKNOWN":
-        try:
-            pack_result = resolve_workflow_pack(cwd=root)
-            pack_id = pack_result.pack_id or None
-            diagnostics.extend(str(item) for item in pack_result.diagnostic_codes)
-            if pack_result.ok and pack_result.pack is not None:
-                route = route_command(pack_result.pack, normalized_command)
-                workflow_file = route.rules_mdc_rel
-            elif not diagnostics:
-                diagnostics.append("workflow_pack_unresolved")
-        except Exception as exc:  # pragma: no cover - defensive hook boundary
-            diagnostics.append(f"workflow_scope_resolve_failed: {exc}")
+    runtime_name = _runtime_name(runtime)
 
     return PromptScope(
         command=normalized_command,
@@ -162,9 +153,8 @@ def build_prompt_scope(
         phase=phase,
         step=_projection_value(projection, "step", "next_step") or "unknown",
         epic=_projection_value(projection, "epic", "epic_id") or "unknown",
-        workflow_file=workflow_file,
-        pack_id=pack_id,
-        diagnostics=tuple(diagnostics),
+        runtime=runtime_name,
+        entrypoint=_runtime_entrypoint(runtime_name),
     )
 
 
@@ -174,23 +164,18 @@ def render_prompt_scope(scope: PromptScope) -> str:
     lines = [
         f"COMMAND: {scope.command}",
         "## CURRENT WORKFLOW SCOPE (HARD)",
+        f"- runtime: `{scope.runtime}`",
+        f"- entrypoint: `{scope.entrypoint}`",
         f"- role: `{scope.role}`",
         f"- phase: `{scope.phase or 'unknown'}`",
         f"- step: `{scope.step}`",
         f"- epic: `{scope.epic}`",
+        "- HARD READ: прочитай только указанный entrypoint.",
+        "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
+        "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
+        "- HARD READ: загрузи цепочку связанных файлов выбранной role/mode chain, Gates и ссылок.",
+        "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
     ]
-    if scope.workflow_file:
-        lines.append(f"- workflow: `{scope.workflow_file}`")
-        lines.extend(
-            [
-                "- HARD READ: прочитай `CLAUDE.md`, `AGENTS.md` и указанный workflow.",
-                "- HARD READ: загрузи всю цепочку связанных файлов по ссылкам и командам из этого workflow.",
-            ]
-        )
-    else:
-        lines.append("- workflow: `(unresolved — use the current command context)`")
-        lines.append("- HARD READ: прочитай `CLAUDE.md` и `AGENTS.md`; не выдумывай unrelated workflow.")
-    lines.append("- Scope lock: не загружай инструкции других ролей, фаз или команд.")
     if scope.diagnostics:
         lines.append("- scope diagnostics: " + ", ".join(scope.diagnostics))
     return "\n".join(lines) + "\n"

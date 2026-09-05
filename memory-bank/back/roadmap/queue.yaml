@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
-queue:
-- id: T-HUB-052
-  epic_id: T-HUB-052-workflow-pack-adoption-docs
-  plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
-  deps:
-  - T-HUB-051
-  batch: workflow-pack-framework
+queue: []
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -227,6 +221,10 @@ done:
 - id: T-HUB-051
   epic_id: T-HUB-051-workflow-pack-reference-video
   plan: plan-T-HUB-051-workflow-pack-reference-video.md
+  batch: workflow-pack-framework
+- id: T-HUB-052
+  epic_id: T-HUB-052-workflow-pack-adoption-docs
+  plan: plan-T-HUB-052-workflow-pack-adoption-docs.md
   batch: workflow-pack-framework
 batches:
   workflow-loop-hardening:

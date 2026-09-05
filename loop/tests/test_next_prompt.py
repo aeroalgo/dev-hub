@@ -17,8 +17,8 @@ def test_build_prompt_implement_finish_order_and_handoff():
         projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
     )
     assert text.startswith("COMMAND: BACK IMPLEMENT\n")
-    assert ".cursor/rules/back_developer/workflow-implement.mdc" in text
-    assert "front_developer" not in text
+    assert "workflow-implement.mdc" not in text
+    assert "AGENTS.md" not in text
     assert "- step: `s01`" in text
     assert "Silent chat (HARD)" in text
     assert "no thinking aloud" in text
@@ -39,14 +39,15 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "## QA FINISH" not in text
     assert "mb-finish qa" in text
     assert "## QA canon (HARD)" in text
-    assert "bin/pytest -q --tb=line" in text
-    assert "suite_not_full" in text
-    assert "BACK BUGFIX" in text
-    assert "code_changed: no" in text
+    assert "выбранного workflow" in text
+    assert "bin/pytest -q --tb=line" not in text
+    assert "suite_not_full" not in text
+    assert "BACK BUGFIX" not in text
+    assert "code_changed: no" not in text
     assert "чинит в сессии" not in text
     assert "это чинится в сессии: FAIL → fix → re-verify" not in text
     assert "FIX INCOMPLETE" not in text
-    assert "verify-qa до full suite" in text
+    assert "verify-qa до full suite" not in text
 
 
 def test_build_prompt_qa_uses_current_integration_role():
@@ -59,8 +60,8 @@ def test_build_prompt_qa_uses_current_integration_role():
     )
 
     assert text.startswith("COMMAND: INTEG QA\n")
-    assert ".cursor/rules/integration_developer/workflow-qa.mdc" in text
-    assert "Handoff `INTEG BUGFIX <subject>`" in text
+    assert "workflow-qa.mdc" not in text
+    assert "Handoff `INTEG BUGFIX <subject>`" not in text
     assert "Handoff `BACK BUGFIX <subject>`" not in text
 
 
@@ -72,7 +73,7 @@ def test_build_prompt_implement_keeps_session_fix():
         load_now=["memory-bank/activeContext.md"],
         projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
     )
-    assert "это чинится в сессии: FAIL → fix → re-verify" in text
+    assert "только `BACK IMPLEMENT`" in text
     assert "## QA canon (HARD)" not in text
 
 
@@ -122,10 +123,10 @@ def test_build_prompt_audit_phase_uses_mb_finish():
     assert "FORBIDDEN: ручной Write activeContext" in text
     assert "## AUDIT FINISH" not in text
     assert "AUDIT canon" in text
-    assert "plan_vs_runtime" in text or "PLAN↔runtime" in text
+    assert "runtime evidence" in text
     assert "FORBIDDEN: pytest" in text
-    assert "implement/implement-T-test/" in text
-    assert "yaml/steps/sNN-<slug>.yaml" in text
+    assert "workflow-audit.mdc" not in text
+    assert "yaml/steps/sNN-<slug>.yaml" not in text
     assert "это чинится в сессии: FAIL → fix → re-verify" not in text
 
 
@@ -153,14 +154,14 @@ def test_build_prompt_analyze_phase_uses_mb_finish():
     assert "## ANALYZE FINISH" not in text
 
 
-def test_bugfix_prompt_uses_bugfix_artifact_and_finish():
+def test_bugfix_prompt_uses_current_workflow_and_finish():
     from context_loop import build_prompt
     text = build_prompt(ROOT, load_now=[], projection={"phase": "BACK BUGFIX", "epic": "T-test", "next_step": "BUGFIX"})
     assert "mb-finish bugfix" in text
     assert "mb-finish implement" not in text
     assert "verify-bugfix" in text
-    assert "bugfix/T-test/bugfix-" in text
-    assert "new QA artifact" in text
+    assert "bugfix/T-test/bugfix-" not in text
+    assert "Следующий режим и artifact определяет текущий workflow" in text
 
 
 def test_finish_commands_put_global_cwd_before_subcommand():
