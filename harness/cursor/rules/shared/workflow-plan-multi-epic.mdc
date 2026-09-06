@@ -50,6 +50,7 @@ alwaysApply: false
 **Шаблоны:**
 - Queue: @.cursor/templates/roadmap-queue.yaml (`roadmap-queue/v2`)
 - Plan: @.cursor/templates/plan.md (BACK/FRONT) · @.cursor/templates/integration-plan.md (INTEG)
+- Outcome prompt: @.cursor/templates/plan-prompt.md → `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`; Covering одинаковый на всю нарезку)
 
 **ID:** свободные `T-xxx` из `tasks.md`.  
 **Batch label:** поле `batch: <slug>` + `batches.<slug>.{title,note}` — **не** отдельный файл.
@@ -61,15 +62,15 @@ alwaysApply: false
 1. Прочитать research **целиком**
 2. Объявить: `MULTI-EPIC PLAN — N эпиков` + таблица cut
 3. Апсерт в `roadmap/queue.yaml`: новые `queue[]` rows + `batches.<slug>` (Edit или `roadmap_upsert_batch`)
-4. Для **каждого** эпика — полный `plan/<epic_id>/md/plan.md`
+4. Для **каждого** эпика — полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` (файл начинается с `## Epic`; `## Covering` = один текст на всю нарезку; **весь** prompt без ID / без шапки Role·Deps / без путей чужих plan; не читать соседние plan)
 5. `tasks.md` append-only: ссылка на `roadmap/queue.yaml` + каждый эпик
 6. Опционально: `roadmap-merge --role <role>` (перенос done / topo)
-7. FINISH: `load_now` → `roadmap/queue.yaml` + первый `plan/<epic_id>/md/plan.md`; next = `* DECOMPOSE` first
+7. FINISH: `load_now` → `roadmap/queue.yaml` + первый `plan/<epic_id>/md/plan.md` + `md/prompt.md`; Covering с ID эпиков → не закрывать; next = `* DECOMPOSE` first
 
 ## Chat vs files
 
 - Chat: brief — список эпиков + порядок + путь `roadmap/queue.yaml`
-- Files: каждый plan exhaustive; queue.yaml = machine SoT
+- Files: каждый plan exhaustive; каждый `md/prompt.md` = Epic (срез) + Covering (одинаковый, без ID); queue.yaml = machine SoT (ID cut живут здесь, не в Covering)
 
 ## FAIL
 
@@ -78,6 +79,11 @@ alwaysApply: false
 - `queue.yaml` без `version: roadmap-queue/v2` / soft deps в `deps`
 - Нет полных plan dirs на каждый ID
 - Один plan «оглавление всех P0–P3» без детальных AC
+- Нет `md/prompt.md` / нет `## Covering` / Covering разный между эпиками
+- Epic = copy-paste соседа / dump research / AC-нумерация plan
+- В `prompt.md` есть ID эпиков / шапка Role·Deps·Source / пути чужих plan
+- Агент читает соседние `plan/` из-за prompt
+- Создан `roadmap/prompt-*.md` (Covering только внутри `md/prompt.md`)
 
 ## Пример
 

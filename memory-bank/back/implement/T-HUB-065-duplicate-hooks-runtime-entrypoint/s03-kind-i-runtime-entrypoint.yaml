@@ -1,0 +1,71 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: s03 — Kind I — mainrule/role-command current entrypoint only IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/yaml/steps/s03-kind-i-runtime-entrypoint.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- 'mainrule.mdc Full linked chain: unconditional Read CLAUDE.md replaced with current
+  runtime entrypoint from prompt scope'
+- role-command SKILL.md copies aligned with runtime entrypoint
+gaps:
+  status: none
+done:
+- Rewrote mainrule.mdc full linked chain to read current runtime entrypoint (CLAUDE.md
+  / AGENTS.md)
+- Updated role-command SKILL.md copies to use runtime entrypoint
+- Added test_kind_i_runtime_entrypoint.py verifying mainrule, role-command, and 0
+  unconditional CLAUDE.md HARD hits
+files:
+- .cursor/rules/mainrule.mdc
+- .claude/skills/role-command/SKILL.md
+- harness/claude/skills/role-command/SKILL.md
+- .agents/skills/role-command/SKILL.md
+- loop/tests/test_kind_i_runtime_entrypoint.py
+deletes:
+- unconditional «вызвать Read корневого CLAUDE.md» as HARD for all runtimes including
+  Codex in mainrule.mdc
+- same phrase in .claude/skills/role-command/SKILL.md and harness/claude/skills/role-command/SKILL.md
+tests:
+- bin/pytest loop/tests/test_kind_i_runtime_entrypoint.py -q --tb=line
+- bin/pytest loop/tests/test_hook_duplicate_realpath.py harness/hooks/tests/test_session_start_inject.py
+  loop/tests/test_kind_i_runtime_entrypoint.py -q --tb=line
+integration_check:
+- rg -n "Read корневого CLAUDE.md" .cursor/rules/mainrule.mdc .claude/skills/role-command/SKILL.md
+  harness/claude/skills/role-command/SKILL.md
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- test_mainrule_no_unconditional_claude_md_for_codex PASSED
+- test_role_command_skill_uses_runtime_entrypoint PASSED
+- test_rg_policy_zero_unconditional_claude_hard PASSED
+checkpoints:
+- id: cp1
+  criterion: mainrule.mdc не требует Read CLAUDE.md as universal HARD for Codex (FR-006
+    / US-003)
+  status: done
+  done_at: '2026-09-06T02:09:29Z'
+- id: cp2
+  criterion: role-command SKILL copies aligned — current entrypoint, not hardcoded
+    CLAUDE for Codex (SC-003)
+  status: done
+  done_at: '2026-09-06T02:09:30Z'
+- id: cp3
+  criterion: QA TM-006 — rg policy 0 unconditional CLAUDE.md HARD hits in instruction
+    surfaces
+  status: done
+  done_at: '2026-09-06T02:09:30Z'
+- id: cp4
+  criterion: AC−3 — нет «Read CLAUDE.md» as universal HARD for Codex; Claude runtime
+    still may name CLAUDE.md
+  status: done
+  done_at: '2026-09-06T02:09:31Z'
+resume_from: cp1

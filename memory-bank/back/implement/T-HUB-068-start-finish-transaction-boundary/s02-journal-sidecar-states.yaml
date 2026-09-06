@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: s02 — Sidecar finish journal — states, stage, identity, commit IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s02-journal-sidecar-states.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- loop/mb_finish/transaction.py created as sidecar journal helper for loop-finish-transaction/v1
+- atomic_write_text reused from harness.hooks.epic.core for atomic fsync and replace
+gaps:
+  status: none
+done:
+- Implemented FinishTxRecord and FinishTxStagedFile with extra='forbid' and schema
+  'loop-finish-transaction/v1'
+- Implemented FinishTxState enum (prepared, context_written, index_written, committed,
+  rollback_required)
+- Implemented stage_file_in_tx, commit_staged_files, rollback_staged_files using atomic_write_text
+- Implemented validate_identity for staged Handoff vs index target vs armed state
+files:
+- loop/mb_finish/transaction.py
+- loop/tests/test_mb_finish_transaction.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'test_journal
+  or test_identity'
+integration_check:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'test_journal
+  or test_identity'
+grep_control:
+- back: loop-finish-transaction/v1
+  front: ''
+verification_results:
+- 4 passed in test_mb_finish_transaction.py
+checkpoints:
+- id: cp1
+  criterion: Sidecar journal file contract — schema loop-finish-transaction/v1 extra=forbid;
+    missing schema invalid (FR-001 / FR-011)
+  status: done
+- id: cp2
+  criterion: State machine prepared → context_written → index_written → committed;
+    failure → rollback_required (FR-002)
+  status: done
+- id: cp3
+  criterion: Stage+commit uses existing atomic helper (rename/replace + fsync); not
+    postgres (FR-003 / FR-011)
+  status: done
+- id: cp4
+  criterion: Identity mismatch staged Handoff vs index vs armed → abort tx rollback_required
+    (FR-004 / Failure matrix TM-006 / QA TM-005)
+  status: done

@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "Parity mutation — drop deny / weaker verify-implement fails CI"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Parity применяет mapping к каждому prompt file. Снять disallowedTools из
+  TOML/sidecar → fail (codex_policy_dropped / unsupported_runtime_policy).
+  verify-implement (и video verify после 064) не слабее md: native Write
+  запрещён source → hook+fingerprint или TOML field. Presence-only «файл есть»
+  больше не зелёный Independent Test.
+
+plan_contract:
+  fr_ids: [FR-005, FR-009, FR-010, FR-013, US-001, US-002, SC-001, SC-005, AC+2, AC−1, AC−2, AC−5, TM-001, TM-003, TM-006, Failure-TM-001, Failure-TM-004, Failure-TM-007]
+  nouns:
+    - check_codex_parity policy matrix
+    - codex_policy_dropped
+    - unsupported_runtime_policy
+    - mutation remove disallowedTools
+    - verify-implement mapping
+    - explorer Write deny Codex
+  layout_paths:
+    - loop/runtime_materializers/parity.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/tests/test_codex_agent_policy.py
+    - loop/tests/test_runtime_sync_check.py
+  ac_quotes:
+    - "Parity: for each prompt file, mapping applied; fail codes codex_policy_dropped, unsupported_runtime_policy, agent_contract_drift"
+    - "Tests mutation: remove disallowedTools from TOML/sidecar → fail parity"
+    - "Then: either TOML encodes deny or materialize/parity fails with unsupported_runtime_policy unless hook-enforcement row exists in matrix with test proving stop/start still blocks those tools"
+    - "FAIL: «TOML file exists for each md»; «deny mentioned in developer_instructions»"
+    - "Нет presence-only Codex parity. Нет silent drop disallowedTools. Нет policy in developer_instructions only as sufficient Independent Test"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:63-91"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:94-124"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:142-152"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:241-244"
+
+context:
+  consumes:
+    - s01 PolicyRecord · s02 mapping + fingerprint emit
+    - plan §FR-005/013 §US-001/002 §Independent Test
+  produces:
+    - parity issues include policy fail codes (not only missing_dest / missing_codex_agent)
+    - mutation tests fail CI when deny stripped
+    - matrix test verify-implement not weaker; explorer Codex Write denied
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+    - plan.md#independent-test
+  files:
+    - loop/runtime_materializers/parity.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/tests/test_codex_agent_policy.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/tests/test_codex_agent_toml.py
+
+as_built:
+  - "check_codex_parity: events, missing_codex_agent vs Claude set, orphan md, hooks hash — no policy matrix"
+  - "codex_drift_items: missing_dest / hash_mismatch vs rematerialize — truncated-but-present TOML can still match if emit is name/desc/body"
+  - "test_codex_agent_toml / test_agent_materializer green on presence of name/desc/body"
+  - "064 glob/orphan exists; leftover presence-only completeness still in toml tests"
+
+delta:
+  - "parity applies mapping per prompt file; emit fail codes codex_policy_dropped / unsupported_runtime_policy"
+  - "mutation: strip disallowedTools from TOML/sidecar → issues non-empty (FR-013 / TM-001)"
+  - "verify-implement matrix: source forbids Write → Codex path not weaker (hook row + test or native field) TM-003 / SC-005"
+  - "explorer mapping: Codex must not grant Write (FR-010 / TM-006)"
+  - "rewrite tests that treat name/desc TOML as sufficient parity (start here; leftover → s07)"
+
+deletes:
+  - "presence-only Independent Test interpretation in new policy tests (do not add tests that PASS when only TOML file exists)"
+
+out_of_scope:
+  - "agent_contract_drift spawn block (s04) — code may emit the string; hook compare is s04"
+  - "ALWAYS_INJECT derived (s05)"
+  - "runtime-sync fingerprint CLI (s06)"
+  - "full leftover inventory scan (s07)"
+  - "generic @verify purge — FR-014 cut"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Drop deny from TOML/sidecar → parity/policy fail unsupported_runtime_policy or codex_policy_dropped (TM-001 / FR-013)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k drop_deny"
+  - id: cp2
+    criterion: verify-implement Codex not weaker than md (US-001 / SC-005 / TM-003); hook row if native unsupported
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k verify_implement_mapping"
+  - id: cp3
+    criterion: explorer Codex Write denied (FR-010 / TM-006)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k explorer_write"
+  - id: cp4
+    criterion: Presence-only TOML exists is NOT sufficient — Independent Test FAIL path encoded (AC−1 / AC−5)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k presence_only"
+
+verify:
+  - "bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'policy or drop_deny or mapping or presence'"
+  - "rg -n \"codex_policy_dropped|unsupported_runtime_policy\" loop/runtime_materializers/parity.py loop/runtime_materializers/"
+
+tdd:
+  - "test_mutation_strip_disallowed_tools_fails_parity — TM-001 / FR-013"
+  - "test_verify_implement_codex_not_weaker_than_md — TM-003 / US-001"
+  - "test_explorer_codex_write_denied — TM-006"
+  - "test_toml_file_exists_alone_is_not_parity_green — AC−1 Independent Test FAIL"

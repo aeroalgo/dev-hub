@@ -1,0 +1,32 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-067
+plan_id: T-HUB-067-pack-doctor-executable-graph
+epic_id: T-HUB-067-pack-doctor-executable-graph
+date: 2026-09-06
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-067"
+  - "epic: T-HUB-067-pack-doctor-executable-graph"
+  - "steps: s01–s05"
+  - "files: loop/workflow/pack_graph.py, loop/mb_load/session.py, harness/hooks/session-start.py, loop/doctor/checks/workflow_pack.py, loop/tests/test_pack_graph_doctor.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2082 passed, 3 skipped, 77 warnings in 171.13s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "none"
+
+suite:
+  - "bin/pytest -q --tb=line"

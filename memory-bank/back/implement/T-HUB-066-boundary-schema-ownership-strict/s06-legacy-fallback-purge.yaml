@@ -1,0 +1,124 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s06 — legacy-fallback-purge — bypass leftover + SKIP docs IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- 'Kind A: bypass or not data.get(''verdict'') purged from harness/hooks/subagent-stop.py;
+  extra=forbid on collab GateVerdictRecord; schema discriminator required on wire.'
+- 'Kind B: CLI validate-boundary kept in harness/hooks/epic_resolve.py and tested
+  in loop/tests/test_validate_boundary.py without dual CLI parser.'
+- 'Kind C: payload verdict alone cannot record PASS; semantic_ownership_mismatch escalates
+  without schema retry; repair done with leftover remaining rejected.'
+- 'Kind I: README updated without SKIP / obsolete verdict.py; prompt requirements
+  match runtime enforcement.'
+gaps:
+  status: none
+done:
+- Purged leftover bypass `or not data.get("verdict")` across stop hook path.
+- Purged extra=ignore on collab GateVerdictRecord model; enforce extra=forbid.
+- Enforced wire schema required on external validation without fallback defaults.
+- Enforced semantic_ownership_mismatch fail-closed escalation without schema-retry.
+- Cleaned up schemas README from SKIP/verdict.py.
+- Rewrote obsolete test cases in loop/tests/test_codex_collab_verdict.py and added
+  tests for all purged behaviors.
+files:
+- harness/hooks/subagent-stop.py
+- loop/codex_collab_verdict.py
+- loop/validate_boundary.py
+- loop/schemas/gate_verdict.py
+- loop/schemas/repair_result.py
+- loop/schemas/README.md
+- loop/tests/test_validate_boundary.py
+- loop/tests/test_codex_collab_verdict.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_kind_i_boundary_prompts.py
+- harness/hooks/tests/test_gate_repair.py
+deletes:
+- leftover `or not data.get("verdict")` in prod stop path
+- leftover extra='ignore' on collab gate fence model
+- leftover wire schema default on external validate
+- obsolete tests asserting bypass/default/ignore as expected
+- README verdict.py / SKIP as current SoT
+- ownership mismatch increment_schema_retry leftover
+tests:
+- bin/pytest loop/tests/test_stop_gate.py loop/tests/test_validate_boundary.py loop/tests/test_codex_collab_verdict.py
+  loop/tests/test_repair_result.py loop/tests/test_kind_i_boundary_prompts.py harness/hooks/tests/test_gate_repair.py
+  -q --tb=line
+- bin/pytest loop/tests/test_stop_gate.py loop/tests/test_codex_collab_verdict.py
+  -q --tb=line -k 'bypass or extra_ignore or no_bypass or forbid'
+- bin/pytest loop/tests/test_kind_i_boundary_prompts.py loop/tests/test_repair_result.py
+  loop/tests/test_stop_gate.py -q --tb=line -k 'readme or remaining or ownership or
+  nofence'
+integration_check:
+- 'inv-a-01: bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k no_bypass ->
+  PASS'
+- 'inv-a-02: bin/pytest loop/tests/test_codex_collab_verdict.py -q --tb=line -k extra
+  -> PASS'
+- 'inv-a-03: bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k bypass -> PASS'
+- 'inv-b-01: rg -n validate-boundary harness/hooks/epic_resolve.py loop/tests/test_validate_boundary.py
+  -> PASS'
+- 'inv-c-01: bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k nofence -> PASS'
+- 'inv-c-02: rg -n semantic_ownership_mismatch harness/hooks/subagent-stop.py harness/hooks/_lib.py
+  -> PASS'
+- 'inv-c-03: rg -n parent_evidence_id loop/schemas/repair_result.py -> PASS'
+- 'inv-i-01: bin/pytest loop/tests/test_kind_i_boundary_prompts.py -q --tb=line -k
+  readme -> PASS'
+- 'inv-i-02: rg -n ''JSON fence|протокольн'' harness/agents/verify-implement.md ->
+  PASS'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'Targeted epic test suite: 114 passed in 29.52s'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A grep_control inv-a-01, inv-a-02, inv-a-03:
+
+    0 leftover bypass `or not data.get("verdict")`; 0 extra=ignore collab fence;
+
+    obsolete tests not asserting bypass as success.
+
+    '
+  status: done
+- id: cp2
+  criterion: Kind B grep_control inv-b-01 — CLI validate-boundary keep; no dual parser
+    CLI
+  status: done
+- id: cp3
+  criterion: 'Kind C+I grep_control inv-c-01, inv-c-02, inv-c-03, inv-i-01, inv-i-02:
+
+    payload verdict not SoT; ownership not schema-retried; repair done+remaining invalid;
+
+    README not verdict.py/SKIP; prompts fence required.
+
+    '
+  status: done
+- id: cp4
+  criterion: Targeted epic tests green after deletes without restore bypass (Independent
+    Test)
+  status: done

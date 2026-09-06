@@ -7,7 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any, List, Optional
 
-from loop.workflow.registry import resolve_workflow_pack
+import loop.workflow.pack_graph as pack_graph
+from loop.workflow.registry import load_registry, resolve_workflow_pack
 
 
 _WORKFLOW_PACK_ERROR = "workflow_pack_check_error"
@@ -16,55 +17,21 @@ _WORKFLOW_PACK_ERROR = "workflow_pack_check_error"
 def check_workflow_pack(
     cwd: Optional[Path | str] = None,
     hub_root: Optional[Path | str] = None,
+    pack_id: Optional[str] = None,
 ) -> List[str]:
-    """Run >=4 preflight checks on workflow pack configuration and environment.
-
-    Checks:
-    1. Workflow pack resolve ok (via resolve_workflow_pack)
-    2. Phase registry file exists and is a file
-    3. Rules root directory exists and is a directory
-    4. Memory-bank root directory exists and is writable
+    """Run preflight checks on executable workflow pack graph.
 
     Returns a list of diagnostic code strings. Empty list indicates all checks passed.
     """
     try:
-        cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
-        res = resolve_workflow_pack(cwd=cwd_path, hub_root=hub_root)
-
-        diagnostic_codes: List[str] = []
-
-        # Check 1: Resolve ok
-        if not res.ok or res.pack is None:
-            if res.diagnostic_codes:
-                for code in res.diagnostic_codes:
-                    if code not in diagnostic_codes:
-                        diagnostic_codes.append(code)
-            else:
-                diagnostic_codes.append("pack_resolve_failed")
-            return diagnostic_codes
-
-        pack = res.pack
-
-        # Check 2: Phase registry file exists
-        phase_reg_path = cwd_path / pack.phase_registry
-        if not phase_reg_path.is_file():
-            diagnostic_codes.append("pack_phase_registry_missing")
-
-        # Check 3: Rules root directory exists
-        rules_root_path = cwd_path / pack.rules_root
-        if not rules_root_path.is_dir():
-            diagnostic_codes.append("pack_rules_missing")
-
-        # Check 4: Memory-bank root exists and is writable
-        mb_path = cwd_path / pack.memory_bank
-        if not mb_path.exists():
-            diagnostic_codes.append("mb_root_missing")
-        elif not mb_path.is_dir():
-            diagnostic_codes.append("mb_root_not_dir")
-        elif not os.access(mb_path, os.W_OK):
-            diagnostic_codes.append("mb_root_not_writable")
-
-        return diagnostic_codes
+        if pack_id is None:
+            resolved = resolve_workflow_pack(cwd=cwd, hub_root=hub_root)
+            if not resolved.ok or resolved.pack is None:
+                return list(resolved.diagnostic_codes) or [_WORKFLOW_PACK_ERROR]
+            res = pack_graph.check_pack_graph(pack_or_id=resolved.pack, cwd=cwd, hub_root=hub_root)
+        else:
+            res = pack_graph.check_pack_graph(pack_or_id=pack_id, cwd=cwd, hub_root=hub_root)
+        return list(res.diagnostic_codes)
     except Exception:
         return [_WORKFLOW_PACK_ERROR]
 
@@ -72,6 +39,7 @@ def check_workflow_pack(
 def run_doctor_workflow_pack(
     cwd: Optional[Path | str] = None,
     hub_root: Optional[Path | str] = None,
+    pack_id: Optional[str] = None,
     format: str = "json",
 ) -> int:
     """CLI entrypoint for doctor workflow-pack.
@@ -81,17 +49,29 @@ def run_doctor_workflow_pack(
     """
     try:
         cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
-        codes = check_workflow_pack(cwd=cwd_path, hub_root=hub_root)
-        res = resolve_workflow_pack(cwd=cwd_path, hub_root=hub_root)
-        pack_id = res.pack_id if res.pack_id else ""
+        hub_root_path = Path(hub_root).resolve() if hub_root is not None else None
+
+        if pack_id is None:
+            resolved = resolve_workflow_pack(cwd=cwd_path, hub_root=hub_root_path)
+            if not resolved.ok or resolved.pack is None:
+                codes = list(resolved.diagnostic_codes) or [_WORKFLOW_PACK_ERROR]
+                resolved_pack_id = resolved.pack_id
+            else:
+                res = pack_graph.check_pack_graph(pack_or_id=resolved.pack, cwd=cwd_path, hub_root=hub_root_path)
+                codes = list(res.diagnostic_codes)
+                resolved_pack_id = res.pack_id
+        else:
+            res = pack_graph.check_pack_graph(pack_or_id=pack_id, cwd=cwd_path, hub_root=hub_root_path)
+            codes = list(res.diagnostic_codes)
+            resolved_pack_id = res.pack_id
     except Exception:
         codes = [_WORKFLOW_PACK_ERROR]
-        pack_id = ""
+        resolved_pack_id = pack_id or ""
 
     ok = len(codes) == 0
     out: dict[str, Any] = {
         "ok": ok,
-        "pack_id": pack_id,
+        "pack_id": resolved_pack_id,
         "diagnostic_codes": codes,
     }
 

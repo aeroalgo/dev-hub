@@ -23,7 +23,7 @@ alwaysApply: false
 | `INTEG PLAN/GAP/GAP CLOSE` | см. шаблон |
 | `* DECOMPOSE` | first step file `s01|e01-*.md` (не index); plan был входом DECOMPOSE, **не** остаётся в `load_now` после FINISH |
 | `* ANALYZE` | `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` в `load_now`; `metrics.critical_count = 0` → next IMPLEMENT, `> 0` → next CLARIFY/DECOMPOSE. **FORBIDDEN** soft-defer в IMPLEMENT |
-| `* PLAN` | Phase 0 clarify (orchestration) в сессии при триггерах; plan artifact OK; **inline** `roadmap-merge` до FINISH (если есть slug queues / canon); `load_now` = clarify по slug (если был) + canon md+queue + first plan → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
+| `* PLAN` | Phase 0 clarify (orchestration) в сессии при триггерах; plan artifact OK; **inline** `roadmap-merge` до FINISH (если есть slug queues / canon); `load_now` = clarify по slug (если был) + canon md+queue + first plan + `md/prompt.md` (без prompt → FAIL) → next `* DECOMPOSE <queue[0]>`. **FORBIDDEN:** next = `* ROADMAP MERGE` |
 | `* CLARIFY` | `memory-bank/{role}/clarify/clarify-YYYYMMDD-<slug>.md` → next `* PLAN` Phase 1 (или continue CLARIFY). Standalone; в сессии PLAN Phase 0 **не** отдельный FINISH CLARIFY |
 | `VAN` / `TASK` | init or shift focus |
 

@@ -169,10 +169,21 @@ def test_bugfix_cannot_finish_as_implement_or_handoff(tmp_path):
     from loop.mb_finish.impl import finish_handoff
     from loop.mb_finish.finish_implement import finish_implement_step
     from loop.mb_finish.schemas import MbFinishRequest, LoopHandoffMeta, HandoffBody
+    from loop.mb_finish.transaction import FinishTxRecord, FinishTxState, write_finish_tx
     _seed_epic(tmp_path, "T-finish-bugfix-guard")
     out = finish_implement_step(MbFinishRequest(cwd=str(tmp_path), phase="IMPLEMENT", step_id="s01", done_summary=""))
     assert "bugfix_finish_required" in out.diagnostic_codes
-    out = finish_handoff(LoopHandoffMeta(role="BACK", mode="QA", epic_id="T-finish-bugfix-guard"), [], HandoffBody(mode="QA"), cwd=tmp_path)
+    token = "tx-bugfix-guard"
+    rec = FinishTxRecord(
+        tx_id=token,
+        epic_id="T-finish-bugfix-guard",
+        step_id="s01",
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        recovery_token=token,
+    )
+    write_finish_tx(tmp_path, rec)
+    out = finish_handoff(LoopHandoffMeta(role="BACK", mode="QA", epic_id="T-finish-bugfix-guard"), [], HandoffBody(mode="QA"), cwd=tmp_path, recovery_token=token)
     assert "bugfix_finish_required" in out.diagnostic_codes
 
 

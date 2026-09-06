@@ -1,0 +1,263 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+date: '2026-09-06'
+auditor: BACK AUDIT
+
+# HARD: derive from plan.md (WHAT / Product probe Reframe / Контекст) — not from decompose titles.
+plan_intent:
+  epic_goal: "Один hook command на (event, matcher, realpath). SessionStart inject обязан передавать EPIC_RUNTIME в build_prompt_scope, чтобы Codex получил AGENTS.md, а не CLAUDE.md. mainrule.mdc не должен требовать читать чужой entrypoint. runtime-sync claude hash_mismatch fail-closed."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 10
+  sc_checked: 4
+  layout_paths_total: 6
+  layout_paths_closed: 6
+  constitution_checked: true
+
+# Triple assess (HARD):
+# 1) plan_vs_runtime — каждый plan FR/US/AC/layout vs runtime evidence
+# 2) step_matrix — каждый sNN|eNN ✅/❌/⚠️ vs implement
+# 3) architecture_parity — Target layout / HOW target vs as-built tree
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "loop/hub_settings_merge.py: canonicalize_command canonicalizes paths via Path.resolve() so each (event, matcher, realpath) hook group in .claude/settings.json has size 1"
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload passes EPIC_RUNTIME into build_prompt_scope resolving entrypoint to AGENTS.md for codex"
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: ".cursor/rules/mainrule.mdc: Full linked chain step requires reading the current runtime entrypoint from prompt scope instead of hardcoding CLAUDE.md for Codex"
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/tests/test_hook_duplicate_realpath.py: fixture with dual command strings pointing to same realpath fails with hook_duplicate_realpath"
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/hub_settings_merge.py: canonicalize_command resolves path relative to project dir and matches realpath"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/hub_settings_merge.py: merge_hooks emits unique commands by canonical realpath; loop/tests/test_hook_duplicate_realpath.py validates committed .claude/settings.json"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: ".claude/settings.json: harness SoT path registered only once per hook event/matcher, no duplicate .claude/hooks twin"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload passes runtime=os.environ.get('EPIC_RUNTIME') into build_prompt_scope"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_inject.py: tests both EPIC_RUNTIME=codex (AGENTS.md) and claude (CLAUDE.md)"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: ".cursor/rules/mainrule.mdc & role-command SKILL.md: full linked chain requires current runtime entrypoint from prompt scope (Kind I fixed)"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/runtime_materializers/sync.py & loop/cli/runtime_sync.py: hash_mismatch fail-closed on CLAUDE.md unless documented generated header present"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/tests/test_hook_duplicate_realpath.py: all hook events (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse) validated for 0 duplicate realpaths"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "Cursor hooks.json failClosed documented as cut in plan Appetite cut_list"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "Hook Python execution semantics preserved with unique registration preventing double-execution"
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "loop/hub_settings_merge.py & .claude/settings.json: 0 duplicate realpaths across all hook events in settings"
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py & harness/hooks/session-start.py: Codex inject emits PromptScope.entrypoint == AGENTS.md"
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: ".cursor/rules/mainrule.mdc: 0 unconditional CLAUDE.md requirements for Codex"
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "loop/tests/test_hub_settings_merge.py: merge_hooks does not reintroduce harness twin when twin realpath matches"
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: ".claude/settings.json: exactly 1 command per event/matcher, zero duplicate SessionStart registrations"
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: build_prompt_scope receives runtime=EPIC_RUNTIME, no silent default to claude on codex"
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: ".cursor/rules/mainrule.mdc: instructions dictate current runtime entrypoint from prompt scope"
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "loop/hub_settings_merge.py: generator deduplicates by canonical realpath preventing hand-maintained duplicates"
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "loop/cli/runtime_sync.py: hash_mismatch returns non-zero exit code 1 instead of warning-only"
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "Audited against single entrypoint and single realpath per hook invariants"
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "Audited against role command and runtime integrity invariants"
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "Audited against explicit error reporting and no silent fallback invariants"
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "Audited against fail-closed behavior on configuration drift"
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Audited against spec-first replacement and purge of legacy duplicate hooks"
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "Audited against testability and failure matrix requirements"
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "Audited against scope boundaries and appetite timebox"
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "Audited against non-destructive file updates and clean git hygiene"
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "Audited against runtime-sync validation and hash check policy"
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Audited against handoff protocol and audit artifact standards"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/hub_settings_merge.py
+    status: present
+    follow_up: ""
+    evidence: "canonicalize_command and deduplication logic implemented"
+  - layout_path: loop/tests/test_hook_duplicate_realpath.py
+    status: present
+    follow_up: ""
+    evidence: "dual fixture and committed settings regression suite present"
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    follow_up: ""
+    evidence: "session_start_payload passes runtime to prompt scope"
+  - layout_path: .cursor/rules/mainrule.mdc
+    status: present
+    follow_up: ""
+    evidence: "Full linked chain uses runtime entrypoint"
+  - layout_path: loop/runtime_materializers/sync.py
+    status: present
+    follow_up: ""
+    evidence: "ManifestSync hash_mismatch fail-closed check with generated header support"
+  - layout_path: loop/tests/test_kind_i_runtime_entrypoint.py
+    status: present
+    follow_up: ""
+    evidence: "Kind I regression test suite present"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-065-duplicate-hooks-runtime-entrypoint/s01-unique-hook-realpath.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-065-duplicate-hooks-runtime-entrypoint/s02-session-start-runtime-inject.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-065-duplicate-hooks-runtime-entrypoint/s03-kind-i-runtime-entrypoint.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-065-duplicate-hooks-runtime-entrypoint/s04-runtime-sync-hash-fail-closed.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-065-duplicate-hooks-runtime-entrypoint/s05-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: '2026-09-06'
+  plan_ref: memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md#replacement--sunset
+  rows:
+    - symbol: second settings command same realpath
+      kind: A
+      command: 'rg -n "harness/hooks" .claude/settings.json'
+      result: pass
+      prod_callers: []
+      notes: "0 duplicate realpaths across all events"
+    - symbol: build_prompt_scope() default used for Codex
+      kind: A
+      command: 'rg -n "build_prompt_scope" harness/hooks/epic/core.py'
+      result: pass
+      prod_callers: []
+      notes: "session_start_payload passes runtime=os.environ.get('EPIC_RUNTIME')"
+    - symbol: installer that appends both .claude and harness
+      kind: B
+      command: 'rg -n "merge_hooks" loop/hub_settings_merge.py'
+      result: pass
+      prod_callers: []
+      notes: "merge_hooks checks canonical realpaths before appending"
+    - symbol: hash_mismatch warning-only
+      kind: C
+      command: 'rg -n "hash_mismatch" loop/runtime_materializers/sync.py'
+      result: pass
+      prod_callers: []
+      notes: "fail-closed error returned for drift on claude target"
+    - symbol: mainrule Read CLAUDE.md always
+      kind: I
+      command: 'rg -n "Read.*CLAUDE\.md.*всегда|обязан.*CLAUDE\.md" .cursor/rules/mainrule.mdc'
+      result: pass
+      prod_callers: []
+      notes: "0 unconditional CLAUDE.md hits for Codex; reads current entrypoint"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-06'
+  rows:
+    - boundary: hook-duplicate-realpath
+      enforce_evidence: 'loop/tests/test_hook_duplicate_realpath.py'
+      result: pass
+      notes: "Enforced by test_committed_settings_no_duplicate_realpaths"
+    - boundary: session-start-runtime-inject
+      enforce_evidence: 'harness/hooks/tests/test_session_start_inject.py'
+      result: pass
+      notes: "Enforced by test_session_start_payload_codex_entrypoint_agents_md"
+
+blocked_reason: ""

@@ -45,6 +45,8 @@ from loop.mb_finish.verify_hint import (  # noqa: E402
     mb_finish_hint_after_verdict,
     record_agent_key,
 )
+from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY  # noqa: E402
+from loop.sunset_sidecar_store import write_sunset_sidecar  # noqa: E402
 from loop.validate_boundary import validate_boundary  # noqa: E402
 
 
@@ -168,7 +170,7 @@ def main() -> None:
         return
 
     agent_type = normalize_type(data.get("agent_type")) or data.get("agent_type")
-    msg = data.get("last_assistant_message") or ""
+    msg = data.get("last_assistant_message") or data.get("message") or ""
     transcript = data.get("transcript_path") or data.get("agent_transcript_path")
     if transcript:
         try:
@@ -220,8 +222,8 @@ def main() -> None:
 
     fence_data = extract_json_fence(msg)
     if agent_type in VERIFY_FINISH_AGENTS:
-        if fence_data is not None or not data.get("verdict"):
-            val_res = validate_boundary("loop-gate-verdict/v1", fence_data if fence_data is not None else {})
+        if fence_data is not None:
+            val_res = validate_boundary("loop-gate-verdict/v1", fence_data)
             if not val_res.valid and is_schema_error(val_res.diagnostic_codes):
                 tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
                 retry_count = increment_schema_retry_count(cwd, tool_use_id, session_id=session_id)
@@ -244,6 +246,82 @@ def main() -> None:
                     st["need_human"] = "schema_retry_exhausted:B-GATE"
                     save_state(session_id, cwd, st)
                     sys.exit(2)
+            elif not val_res.valid:
+                # Other validation failures that are not schema errors (fail-closed without schema retry)
+                diag_str = ", ".join(val_res.diagnostic_codes or ["validation_failed"])
+                print(
+                    f"NEED_HUMAN: gate_validation_failed ({agent_type} invalid: {diag_str})",
+                    file=sys.stderr,
+                )
+                st["need_human"] = f"gate_validation_failed:{diag_str}"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+
+            # Check semantic BLOCKED validity per agent type (FR-005 / TM-007)
+            verdict_val = str(fence_data.get("verdict") or "").strip().upper()
+            if verdict_val == "BLOCKED" and agent_type not in BLOCKED_VERDICT_AGENTS:
+                print(
+                    f"NEED_HUMAN: semantic_invalid_verdict ({agent_type} emitted BLOCKED, which is forbidden)",
+                    file=sys.stderr,
+                )
+                st["need_human"] = f"semantic_invalid_verdict:{agent_type}_blocked_forbidden"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+
+            # Check ownership against in-flight gate identity (FR-004 / US-003 / SC-003 / TM-004)
+            current_id = current_gate_identity(cwd, session_id)
+            sync_gate_identity(st, current_id)
+            expected_step = current_id.get("step")
+            expected_epic = current_id.get("epic_id")
+            # Session match: in autonomous mode with projection, check session_id; if manual, check session_id if present
+            expected_session = current_id.get("session_id") if current_id.get("authority") != "manual" else (session_id or None)
+
+            fence_step = fence_data.get("step_id")
+            fence_epic = fence_data.get("epic_id")
+            fence_session = fence_data.get("session_id")
+            fence_agent = fence_data.get("agent_id")
+
+            mismatches = []
+            if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():
+                mismatches.append(f"step_id mismatch (got {fence_step!r}, expected {expected_step!r})")
+            if expected_epic and fence_epic and str(fence_epic).strip() != str(expected_epic).strip():
+                mismatches.append(f"epic_id mismatch (got {fence_epic!r}, expected {expected_epic!r})")
+            if expected_session and fence_session and str(fence_session).strip() != str(expected_session).strip():
+                mismatches.append(f"session_id mismatch (got {fence_session!r}, expected {expected_session!r})")
+            expected_record_key = record_agent_key(str(agent_type))
+            if fence_agent and record_agent_key(str(fence_agent)) != expected_record_key:
+                mismatches.append(f"agent_id mismatch (got {fence_agent!r}, expected {agent_type!r})")
+
+            if mismatches:
+                mismatch_detail = "; ".join(mismatches)
+                print(
+                    f"NEED_HUMAN: semantic_ownership_mismatch ({mismatch_detail})",
+                    file=sys.stderr,
+                )
+                st["need_human"] = "semantic_ownership_mismatch"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+        else:
+            tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
+            retry_count = increment_schema_retry_count(cwd, tool_use_id, session_id=session_id)
+            if retry_count <= 2:
+                if agent_type in COERCE_VERIFY_AGENTS:
+                    st["verify_incomplete"] = int(st.get("verify_incomplete") or 0) + 1
+                    save_state(session_id, cwd, st)
+                print(
+                    f"{agent_type}: schema validation failed (schema_verdict_missing). "
+                    f"MUST re-emit valid loop-gate-verdict/v1 JSON fence (retry {retry_count}/2).",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+            else:
+                print(
+                    f"NEED_HUMAN: schema_retry_exhausted:B-GATE ({agent_type} invalid schema after {retry_count - 1} retries)",
+                    file=sys.stderr,
+                )
+                st["need_human"] = "schema_retry_exhausted:B-GATE"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
 
         if verdict:
             _handle_verify_finish_agent(
@@ -298,6 +376,50 @@ def main() -> None:
                 "затем retry @gate-repair или @verify.",
                 file=sys.stderr,
             )
+        return
+
+    if agent_type in {"sunset-inventory", "sunset"}:
+        val_res = validate_boundary(SCHEMA_LOOP_SUNSET_INVENTORY, fence_data if fence_data is not None else {})
+        clear_in_flight(st, agent=str(agent_type))
+        if fence_data is None or (not val_res.valid and is_schema_error(val_res.diagnostic_codes)):
+            tool_use_id = str(data.get("tool_use_id") or session_id or "sunset-inventory")
+            retry_count = increment_schema_retry_count(cwd, tool_use_id)
+            if retry_count <= 1:
+                diag_str = ", ".join(val_res.diagnostic_codes or ["schema_sunset_missing"])
+                print(
+                    f"{agent_type}: schema validation failed ({diag_str}). "
+                    f"MUST re-emit valid {SCHEMA_LOOP_SUNSET_INVENTORY} JSON fence (retry {retry_count}/1).",
+                    file=sys.stderr,
+                )
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+            else:
+                print(
+                    "NEED_HUMAN: schema_retry_exhausted:B-SUNSET (sunset-inventory invalid schema after retry)",
+                    file=sys.stderr,
+                )
+                st["need_human"] = "schema_retry_exhausted:B-SUNSET"
+                save_state(session_id, cwd, st)
+                sys.exit(2)
+
+        # Valid fence: persist sidecar fail-closed
+        try:
+            write_sunset_sidecar(
+                cwd,
+                session_id or "default",
+                fence_data,
+                step_id=data.get("step_id"),
+            )
+        except Exception as exc:
+            print(
+                f"NEED_HUMAN: sunset_sidecar_persist_failed ({exc})",
+                file=sys.stderr,
+            )
+            st["need_human"] = f"sunset_sidecar_persist_failed:{exc}"
+            save_state(session_id, cwd, st)
+            sys.exit(2)
+
+        save_state(session_id, cwd, st)
         return
 
     if agent_type:

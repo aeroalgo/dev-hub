@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "ALWAYS_INJECT derived — video verify-edit + sunset if managed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Inject set включает все finish/managed agents (software+video+repair+sunset),
+  не hardcoded software-only. _ALWAYS_INJECT derived from PolicyRecord.managed/verdict
+  или phase registry ∪ manifest (consume 064 ids). sunset-inventory inject if managed
+  (063). Operator: verify-edit in set after 064.
+
+plan_contract:
+  fr_ids: [FR-007, FR-008, US-004, SC-004, AC+4, AC−4, TM-005, Failure-TM-003, Product-WHAT-4]
+  nouns:
+    - _ALWAYS_INJECT
+    - verify-edit
+    - sunset-inventory
+    - PolicyRecord.managed
+    - harness/hooks/subagent-start.py
+  layout_paths:
+    - harness/hooks/subagent-start.py
+    - loop/runtime_materializers/agent_policy.py
+    - harness/hooks/tests/test_subagent_start_inject_set.py
+  ac_quotes:
+    - "_ALWAYS_INJECT derived from PolicyRecord.managed/verdict or phase registry ∪ manifest — not hardcoded software-only set (consume 064 ids)"
+    - "sunset-inventory: inject contract after 063; 069 must include if managed"
+    - "Как operator, я хочу video verify in inject set after 064 — _ALWAYS_INJECT contains verify-edit"
+    - "Нет hardcoded software-only ALWAYS_INJECT after 064"
+    - "Inject set includes all finish/managed agents (software+video+repair+sunset)"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:17-22"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:63-69"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:84-91"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:109-123"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:197-205"
+
+context:
+  consumes:
+    - s01 PolicyRecord.managed/verdict · 064 video agents exist · 063 sunset-inventory
+    - plan §FR-007/008 §US-004
+  produces:
+    - derived inject set including verify-edit and sunset-inventory if managed
+    - unit: verify-edit ∈ _ALWAYS_INJECT (or derived equivalent)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/subagent-start.py
+    - loop/runtime_materializers/agent_policy.py
+    - harness/hooks/tests/test_subagent_start_inject_set.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "_ALWAYS_INJECT = {verify, verify-implement, verify-bugfix, verify-qa, verify-decompose, analyze-verify, reviewer, gate-repair} — software-only; no verify-edit, verify-script, verify-publish, sunset-inventory, explorer"
+  - "CONTRACTS has sunset-inventory and explorer keys but they are not always-injected"
+  - "064 materialized verify-edit.toml; 063 sunset-inventory.md exists"
+
+delta:
+  - "derive inject set from PolicyRecord.managed/verdict ∪ manifest/phase registry (not a frozen software-only literal as sole SoT)"
+  - "include video verify-edit (US-004 / TM-005) and sunset-inventory if managed (FR-008)"
+  - "repair/gate-repair remains in set (AC+4 software+video+repair+sunset)"
+  - "tests: set membership; hardcoded-only software set is not the runtime SoT"
+
+deletes:
+  - "harness/hooks/subagent-start.py::_ALWAYS_INJECT as exclusive software-only SoT (replace with derived; leftover literal asserts → s07)"
+
+out_of_scope:
+  - "Kind I docs (s06)"
+  - "parity policy matrix (s03 already)"
+  - "CONTRACTS AST generation — cut_list"
+  - "duplicate Claude hooks (065)"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: verify-edit in derived inject set (US-004 / TM-005 / SC-004)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -k verify_edit"
+  - id: cp2
+    criterion: sunset-inventory injected if managed (FR-008)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -k sunset"
+  - id: cp3
+    criterion: software verify-implement / gate-repair still injected (no regression)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -k 'verify_implement or gate_repair'"
+  - id: cp4
+    criterion: AC−4 — runtime SoT is not the old software-only frozenset
+    verify: "rg -n \"_ALWAYS_INJECT\" harness/hooks/subagent-start.py && bin/pytest harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -k derived"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line"
+  - "rg -n \"verify-edit|sunset-inventory\" harness/hooks/subagent-start.py loop/runtime_materializers/agent_policy.py"
+
+tdd:
+  - "test_always_inject_contains_verify_edit — TM-005"
+  - "test_sunset_inventory_injected_if_managed — FR-008"
+  - "test_inject_set_not_software_only_literal — AC−4"

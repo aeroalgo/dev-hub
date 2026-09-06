@@ -13,8 +13,6 @@ def load_session(
 ) -> Dict[str, Any]:
     """MCP tool wrapper for load_session. Calls core load_session and returns JSON dict."""
     res = _core_load_session(cwd=cwd, plan_section=plan_section, max_file_bytes=max_file_bytes)
-    if not res.files and any("missing_file:" in d for d in res.diagnostic_codes):
-        res.ok = False
     return res.model_dump(mode="json")
 
 

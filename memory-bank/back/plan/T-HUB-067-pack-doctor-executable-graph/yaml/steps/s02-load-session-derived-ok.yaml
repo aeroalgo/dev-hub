@@ -1,0 +1,153 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: "load_session — derived ok + required/optional fields; MCP cannot override"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  load_session ok=true только если все required load_now прочитаны.
+  Machine fields required_missing / optional_missing / forbidden_skipped / status=complete|incomplete.
+  Unmarked = required. MCP wrapper не поднимает ok на partial required.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-011
+    - US-004
+    - SC-002
+    - SC-005
+    - AC+2
+    - AC+4
+    - AC−1
+    - TM-004
+    - TM-006
+  nouns:
+    - load_session
+    - derived ok
+    - required_missing
+    - optional_missing
+    - forbidden_skipped
+    - status=complete|incomplete
+    - unmarked = required
+    - MbLoadResult
+    - MbLoadRequest
+    - loop/mb_load/session.py
+    - loop/mb_load/mcp_server.py
+    - loop/tests/test_mb_load_session.py
+  layout_paths:
+    - loop/mb_load/session.py
+    - loop/mb_load/schemas.py
+    - loop/mb_load/mcp_server.py
+    - loop/tests/test_mb_load_session.py
+  ac_quotes:
+    - "never set ok=True after required miss/read error. Derive ok = not required_missing and not read_errors_on_required"
+    - "entries marked required vs optional. Unmarked = required (fail-closed)"
+    - "Result schema fields: required_missing, optional_missing, forbidden_skipped, fingerprint, status=complete|incomplete"
+    - "Given: activeContext load_now lists required path that is absent When: load_session Then: ok is False; required_missing contains path; diagnostic_codes keep missing_file:; MCP wrapper cannot override to ok for partial required"
+    - "Нет ok=true + missing_file on required"
+    - "optional miss → ok true + optional_missing"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:31-40"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:78-100"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:117-163"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:203-216"
+
+context:
+  consumes:
+    - plan.md §FR-006/007/008 §US-004 §AC+2/4 §AC−1 §QA TM-004/006 §Failure TM-005/006
+    - as-built ok_status=True after missing_file continue
+    - MCP override only when files empty
+  produces:
+    - derived ok from required completeness
+    - required_missing / optional_missing / status on MbLoadResult
+    - request optional=true typed; unmarked required
+    - MCP dump uses same ok (no partial-required override)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#acceptance-scenarios--us-004
+    - plan.md#qa-consumes
+  files:
+    - loop/mb_load/session.py
+    - loop/mb_load/schemas.py
+    - loop/mb_load/mcp_server.py
+    - loop/tests/test_mb_load_session.py
+
+as_built:
+  - "load_session: missing file → diagnostic_codes missing_file: + continue; then ok_status = True (L97) unless plan_section err — audit 03 false-green"
+  - "MbLoadResult has ok, diagnostic_codes, forbidden_skipped, fingerprint — no required_missing / optional_missing / status"
+  - "MbLoadRequest has no per-entry required vs optional"
+  - "MCP wrapper: ok=False only if not res.files AND missing_file — partial nonempty leftover files stay ok=true"
+  - "test_mb_load_session.py happy-path only; no required-miss contract"
+
+delta:
+  - "derive ok = not required_missing and not read_errors_on_required; never reset True after miss"
+  - "add result fields required_missing, optional_missing, status=complete|incomplete; keep forbidden_skipped + fingerprint"
+  - "request/load_now entries: optional=true typed; unmarked required fail-closed"
+  - "MCP wrapper must not override derived ok on partial required (same derive; Appetite cut = MCP load rewrite, not this override)"
+  - "red tests: (d) missing required → ok false; (e) optional missing still ok true + optional_missing"
+
+deletes:
+  - "ok_status = True after missing_file:/read_error: on required paths"
+  - "MCP if not res.files and missing_file-only override that leaves partial required ok=true"
+  - "tests that accept diagnostic_codes nonempty + ok true for required miss"
+
+out_of_scope:
+  - "check_pack_graph / doctor CLI (s01)"
+  - "SessionStart inject CONTEXT_INCOMPLETE (s03) — this step only result contract"
+  - "Kind I docs (s04)"
+  - "purge leftover Warning strings (s05)"
+  - "MCP load rewrite (new protocol / empty-bundle redesign) — Appetite cut_list"
+  - "full ContextBoundaryService — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+sunset_scope:
+  required: true
+  boundary_id: load-session-ok
+  new_sot: loop/mb_load/session.py
+  allow_read:
+    - loop/mb_load/
+    - loop/tests/test_mb_load_session.py
+  kind_hint:
+    - A
+    - C
+
+checkpoints:
+  - id: cp1
+    criterion: Required miss / read error → ok is False; required_missing contains path; diagnostic_codes keep missing_file (US-004 / FR-006 / SC-002 / QA TM-004 / Failure TM-005 / AC−1).
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'required_miss or ok_false or missing_file or derived_ok'"
+  - id: cp2
+    criterion: Optional miss → ok true + optional_missing; unmarked = required (FR-007 / FR-011e / SC-005 / QA TM-006 / AC+4).
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'optional_miss or unmarked_required or optional_missing'"
+  - id: cp3
+    criterion: Result schema fields required_missing, optional_missing, forbidden_skipped, fingerprint, status complete|incomplete (FR-008).
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'schema or status_incomplete or required_missing'"
+  - id: cp4
+    criterion: MCP cannot override ok for partial required (US-004 Then / Kind C). Independent Test — optional miss ok true; required miss ok false.
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'mcp or partial_required or independent'"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line"
+  - "rg -n \"ok_status = True\" loop/mb_load/session.py"
+
+tdd:
+  - "test_required_missing_ok_false — US-004 FR-006 QA TM-004"
+  - "test_read_error_on_required_ok_false — FR-006"
+  - "test_optional_missing_ok_true_field — FR-007 SC-005 QA TM-006"
+  - "test_unmarked_entry_required_fail_closed — FR-007"
+  - "test_result_status_incomplete_on_required_miss — FR-008"
+  - "test_mcp_wrapper_cannot_ok_partial_required — US-004 AC−1"
+  - "test_no_ok_true_with_missing_file_required — Independent Test FAIL pattern"

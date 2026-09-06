@@ -5,6 +5,7 @@
 **Уровень:** L1–L4  
 **Статус:** draft | active | done  
 **Clarify:** `memory-bank/{role}/clarify/clarify-…md` | Phase 0 skipped — taxonomy clear | n/a
+**Prompt:** [md/prompt.md](prompt.md) — outcome SoT (абстрактный; не HOW)
 
 ## Контекст
 

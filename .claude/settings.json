@@ -31,15 +31,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/session-start.py\"",
             "timeout": 15
           }
@@ -51,15 +42,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/user-prompt.py\"",
             "timeout": 15
           }
@@ -67,26 +49,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/bash-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
       {
         "matcher": "Agent|Task",
         "hooks": [
@@ -112,16 +74,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/write-pretool.py\"",
             "timeout": 15
           }
@@ -129,26 +81,6 @@
       }
     ],
     "PostToolUse": [
-      {
-        "matcher": "Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-posttool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/bash-output-cap.py\"",
-            "timeout": 45
-          }
-        ]
-      },
       {
         "matcher": "Agent|Task",
         "hooks": [
@@ -176,16 +108,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/subagent-start.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/subagent-start.py\"",
             "timeout": 15
           }
@@ -198,16 +120,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/subagent-stop.py\"",
             "timeout": 15
           }
@@ -215,15 +127,6 @@
       }
     ],
     "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.py\"",
-            "timeout": 15
-          }
-        ]
-      },
       {
         "hooks": [
           {

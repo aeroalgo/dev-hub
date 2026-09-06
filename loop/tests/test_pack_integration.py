@@ -127,6 +127,18 @@ step_id: s01
         assert plan_path == mb_root / "back" / "plan" / epic_id / "md"
 
         # 7. mb_finish
+        from loop.mb_finish.transaction import FinishTxRecord, FinishTxState, write_finish_tx
+        token = f"tx-{pack.id}-{epic_id}"
+        rec = FinishTxRecord(
+            tx_id=token,
+            epic_id=epic_id,
+            step_id="s01",
+            phase="BACK IMPLEMENT",
+            state=FinishTxState.PREPARED,
+            recovery_token=token,
+        )
+        write_finish_tx(tmp_path, rec)
+
         meta = LoopHandoffMeta(
             role="BACK",
             mode="IMPLEMENT",
@@ -146,7 +158,7 @@ step_id: s01
             step_id="s01",
         )
 
-        finish_res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+        finish_res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
         assert finish_res.ok is True
         assert ac_file.exists()
         updated_content = ac_file.read_text(encoding="utf-8")

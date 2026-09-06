@@ -1,0 +1,140 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: "SessionStart — CONTEXT_INCOMPLETE halt; required exceptions typed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SessionStart не masquerade partial required bundle как complete additionalContext.
+  status=incomplete / ok=false → CONTEXT_INCOMPLETE + codes; halt when any required missing.
+  Required-context exception → typed code, не Warning: load_session exception as success.
+
+plan_contract:
+  fr_ids:
+    - FR-009
+    - FR-010
+    - US-005
+    - SC-003
+    - AC+3
+    - AC−3
+    - TM-005
+    - TM-007
+  nouns:
+    - CONTEXT_INCOMPLETE
+    - session_start_payload
+    - status=incomplete
+    - halt required
+    - degrade optional
+    - Warning: load_session exception
+    - additionalContext
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "if status=incomplete or ok=false → inject CONTEXT_INCOMPLETE + codes; forbid presenting leftover files as sufficient for main work"
+    - "Halt vs degrade: halt when any required missing; degrade documented only for optional"
+    - "Split diagnostic-only exceptions vs required-context exceptions. Required → typed code, not Warning: load_session exception"
+    - "SessionStart does not treat partial required as success"
+    - "Нет Warning-only on required context exception"
+    - "session_start_payload missing file → halt/degrade code"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:31-50"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:62-70"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:91-95"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:117-163"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:203-216"
+
+context:
+  consumes:
+    - s02 derived ok + status incomplete
+    - plan.md §FR-009/010 §US-005 §AC+3 §AC−3 §QA TM-005 §Failure TM-007
+    - as-built session_start_payload Warning append + still return additionalContext
+  produces:
+    - CONTEXT_INCOMPLETE inject + codes when required incomplete
+    - forbid leftover files as sufficient main work
+    - required exception typed halt; diagnostic-only may degrade
+    - hook tests missing required → not success inject
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+    - plan.md#replacement--sunset
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "session_start_payload: if res.ok inject bundle; else append Warning: bundle load failed (diag) still returns additionalContext with HARD READ / COMMAND as if work may proceed"
+  - "except Exception: append Warning: load_session exception (exc) — audit 03 §4 swallow as success-shaped inject"
+  - "test_session_start_inject.py covers fingerprint inject on ok=True; no CONTEXT_INCOMPLETE / required-miss halt"
+
+delta:
+  - "when load_session ok=false or status=incomplete: inject CONTEXT_INCOMPLETE + codes; do not dump leftover required files as sufficient for main work"
+  - "halt if any required missing; optional-only miss may degrade (documented)"
+  - "split exceptions: required-context → typed code (not Warning success); diagnostic-only remain non-success for required path"
+  - "red tests: missing required file → payload contains CONTEXT_INCOMPLETE, not Warning-only success; exception on required → typed"
+
+deletes:
+  - "Warning: load_session exception as the required-miss success path"
+  - "Warning: bundle load failed while still presenting leftover files as complete additionalContext for required"
+  - "tests that treat Warning-only inject as PASS for required miss"
+
+out_of_scope:
+  - "pack graph doctor (s01)"
+  - "derive ok implementation (s02) — consume result only"
+  - "Kind I README (s04)"
+  - "full purge inventory (s05)"
+  - "runtime-sync WARNING preflight in session-start.py _check_preflight_drift — not load_session required path"
+  - "MCP load rewrite — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+sunset_scope:
+  required: true
+  boundary_id: session-start-context-incomplete
+  new_sot: harness/hooks/epic/core.py
+  allow_read:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/mb_load/session.py
+  kind_hint:
+    - C
+    - I
+
+checkpoints:
+  - id: cp1
+    criterion: status=incomplete or ok=false → CONTEXT_INCOMPLETE + codes in payload; leftover required files not presented as sufficient (FR-009 / US-005 / SC-003 / QA TM-005 / AC+3).
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'context_incomplete or incomplete or required_missing'"
+  - id: cp2
+    criterion: Halt when any required missing; optional-only may degrade (FR-009 halt vs degrade).
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'halt_required or degrade_optional'"
+  - id: cp3
+    criterion: Required-context exception → typed code, not Warning load_session exception as success (FR-010 / AC−3 / Failure TM-007).
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'exception or typed or warning'; rg -n \"Warning: load_session exception\" harness/hooks/epic/core.py"
+  - id: cp4
+    criterion: Independent Test / WHAT #4–5 — SessionStart incomplete not success inject; partial fingerprint marked incomplete consumed.
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+  - "rg -n \"CONTEXT_INCOMPLETE\" harness/hooks/epic/core.py"
+
+tdd:
+  - "test_session_start_required_missing_context_incomplete — US-005 QA TM-005"
+  - "test_session_start_does_not_inject_leftover_required_as_complete — FR-009"
+  - "test_required_exception_typed_not_warning_success — FR-010 Failure TM-007"
+  - "test_optional_only_miss_degrade_not_halt — FR-009"

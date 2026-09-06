@@ -1,0 +1,51 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: s01 — Crash recover + public finish_handoff forbidden — red contract IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s01-crash-handoff-red-contract.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created red-contract test suite in loop/tests/test_mb_finish_transaction.py covering
+  crash-after-context mixed identity and forbidden tokenless handoff.
+- Verified all checkpoints cp1..cp4 are met and tests correctly fail on as-built without
+  skipping.
+files:
+- loop/tests/test_mb_finish_transaction.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line` (target red
+  contract)'
+integration_check:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -> RED (4 failures
+  on as-built)
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Crash-after-context fixture exists and currently fails on as-built mixed
+    identity (US-001 / SC-001 / QA TM-001 / Failure matrix TM-001)
+  status: done
+- id: cp2
+  criterion: Tokenless public handoff CLI/unit fails closed with finish_handoff_forbidden;
+    state not armed (US-002 / SC-002 / QA TM-002 / Failure matrix TM-003)
+  status: done
+- id: cp3
+  criterion: Independent Test FAIL dilution documented — one-file atomic replace without
+    journal is not enough
+  status: done
+- id: cp4
+  criterion: Tests are red on current as-built (no silent skip/xfail hiding the contract)
+  status: done

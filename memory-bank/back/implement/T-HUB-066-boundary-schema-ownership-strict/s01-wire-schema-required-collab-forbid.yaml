@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s01 — Wire schema required + Codex extra=forbid — same parse function IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s01-wire-schema-required-collab-forbid.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- "Wire path: schema field is strictly required in validate_boundary (missing schema returns valid=False with schema_missing_schema)"
+- "Removed private _CollabGateVerdictFence with extra=ignore from loop/codex_collab_verdict.py"
+- "Codex collab verdict parser now uses canonical validate_boundary and GateVerdictRecord (extra=forbid)"
+- "Added unit and regression tests for missing schema rejection and codex collab extra fields rejection"
+files:
+- loop/validate_boundary.py
+- loop/codex_collab_verdict.py
+- loop/tests/test_validate_boundary.py
+- loop/tests/test_codex_collab_verdict.py
+deletes:
+- loop/codex_collab_verdict.py extra='ignore' on collab fence model
+- wire acceptance of payloads without schema field (default SCHEMA_* on external validate)
+tests:
+- "bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_codex_collab_verdict.py -q --tb=line"
+integration_check:
+- "rg -n \"extra=.ignore\" loop/codex_collab_verdict.py -> empty"
+- "validate_boundary rejects missing schema field across boundary schemas"
+grep_control:
+- pattern: "extra=.ignore"
+  path: "loop/codex_collab_verdict.py"
+  matches: 0
+verification_results:
+- check: "cp1: Missing schema on wire invalid"
+  result: "PASS"
+- check: "cp2: Codex collab extra field invalid"
+  result: "PASS"
+- check: "cp3: Collab uses canonical parser"
+  result: "PASS"
+- check: "cp4: Independent test suite green"
+  result: "PASS"
+wire_complete:
+  call_sites: "loop/codex_collab_verdict.py -> validate_boundary"
+  enforce_path: "loop/validate_boundary.py: missing schema rejected"
+  dual_path_rg: "none"
+  instruction_rg: "none"
+checkpoints:
+- id: cp1
+  criterion: Missing schema on wire → invalid (US-002 / SC-002 / QA TM-002 / Failure matrix TM-002)
+  status: done
+- id: cp2
+  criterion: Codex collab extra field invalid; extra=forbid (US-005 / SC-005 / QA TM-005 / Failure matrix TM-003)
+  status: done
+- id: cp3
+  criterion: Collab uses same parse path as gate (FR-008) — not a private extra=ignore model
+  status: done
+- id: cp4
+  criterion: Independent Test — missing schema invalid on validate_boundary; FAIL dilution «GateVerdictRecord extra=forbid unit» only
+  status: done
+resume_from: null

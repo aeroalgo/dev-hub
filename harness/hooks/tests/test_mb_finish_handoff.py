@@ -8,12 +8,28 @@ from harness.hooks.epic.core import read_active_context, validate_active_context
 from loop.mb_finish.impl import finish_handoff
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta
+from loop.mb_finish.transaction import FinishTxRecord, FinishTxState, write_finish_tx
+
+
+def _prepare_tx(tmp_path: Path, epic_id: str, step_id: str, token: str = "tx-token-test") -> str:
+    rec = FinishTxRecord(
+        tx_id=token,
+        epic_id=epic_id,
+        step_id=step_id,
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        recovery_token=token,
+    )
+    write_finish_tx(tmp_path, rec)
+    return token
 
 
 def test_finish_handoff_valid(tmp_path: Path):
     """cp1: finish_handoff writes valid activeContext via render_active_context."""
     mb_dir = tmp_path / "memory-bank"
     mb_dir.mkdir(parents=True, exist_ok=True)
+
+    token = _prepare_tx(tmp_path, "T-HUB-040", "s04")
 
     meta = LoopHandoffMeta(
         role="BACK",
@@ -34,7 +50,7 @@ def test_finish_handoff_valid(tmp_path: Path):
         step_id="s04",
     )
 
-    res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+    res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
     assert res.ok is True
     assert res.active_context is not None
 
@@ -51,6 +67,8 @@ def test_finish_handoff_bad_meta(tmp_path: Path):
     mb_dir = tmp_path / "memory-bank"
     mb_dir.mkdir(parents=True, exist_ok=True)
 
+    token = _prepare_tx(tmp_path, "T-HUB-040", "s04")
+
     meta = LoopHandoffMeta(
         role="BACK",
         mode="IMPLEMENT",
@@ -64,13 +82,14 @@ def test_finish_handoff_bad_meta(tmp_path: Path):
         next_hint="continue s04",
     )
 
-    res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+    res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
     assert res.ok is False
     assert res.diagnostic_codes in (["rendered_shape_invalid"], ["active_context_shape_invalid"], ["render_failed"])
 
 
 def test_doctor_repair_uses_render(tmp_path: Path):
     """TM-008: doctor repair code path uses render_active_context."""
+    token = _prepare_tx(tmp_path, "T-HUB-040", "s04")
     with patch("loop.mb_finish.impl.render_active_context") as mock_render:
         mock_render.return_value = "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: T-HUB-040\n---\n\n## load_now\n1. [a](a) — b.\n\n## Handoff BACK IMPLEMENT\n- **Дальше:** test\n"
         meta = LoopHandoffMeta(
@@ -81,6 +100,7 @@ def test_doctor_repair_uses_render(tmp_path: Path):
         )
         load_now = [LoadNowItem(path="a", description="b")]
         body = HandoffBody(mode="IMPLEMENT", next_hint="test")
-        res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+        res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
         assert mock_render.called
         assert res.ok is True
+

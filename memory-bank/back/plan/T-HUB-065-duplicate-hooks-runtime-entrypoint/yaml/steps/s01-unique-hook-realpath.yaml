@@ -1,0 +1,124 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: "Unique realpath — generator + committed settings; dual fixture fail"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  На (event, matcher, realpath) в Claude settings — ровно один command.
+  Generator/installer (`merge_hooks`) не эмитит `.claude/hooks` + `harness/hooks`
+  на один и тот же resolved path. Dual fixture → fail `hook_duplicate_realpath`.
+  SoT path = harness (manifest). Add+wire+enforce unique registration; leftover
+  других событий дочищает s05.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-008, FR-010, US-001, US-004, SC-001, SC-004, AC+1, AC+4, AC−1, AC−4, TM-001, TM-002, TM-005, TM-006, TM-007]
+  nouns:
+    - unique realpath
+    - hook_duplicate_realpath
+    - merge_hooks
+    - .claude/settings.json
+    - harness/claude/settings.harness.json
+    - harness/hooks/session-start.py
+  layout_paths:
+    - loop/hub_settings_merge.py
+    - loop/tests/test_hub_settings_merge.py
+    - .claude/settings.json
+    - harness/claude/settings.harness.json
+  ac_quotes:
+    - "Given: generated `.claude/settings.json` When: group hooks by (event, matcher, Path.resolve) Then: each group size == 1"
+    - "Dedup function: canonicalize command path via realpath relative to project dir."
+    - "If `.claude/hooks/*.py` symlink to harness — register **only harness** or **only .claude**, not both (choose harness SoT — matches manifest)."
+    - "fixture dual commands → fail `hook_duplicate_realpath`"
+    - "FAIL: «symlinks exist» without unique registration."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:31-92"
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:109-148"
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:158-237"
+
+context:
+  consumes:
+    - plan.md §Technology axiom §FR-001–003 §FR-008 §US-001 §US-004 §AC+1 §QA consumes TM-001/002/007
+    - as-built dual SessionStart in committed `.claude/settings.json`
+  produces:
+    - unique-realpath grouping helper (event, matcher, Path.resolve)
+    - merge_hooks realpath-aware (не string-equal only)
+    - committed settings without dual same-realpath commands
+    - pytest dual fixture fail `hook_duplicate_realpath`
+    - pytest on committed `.claude/settings.json` unique
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#ac
+    - plan.md#qa-consumes
+    - plan.md#replacement--sunset
+  files:
+    - loop/hub_settings_merge.py
+    - loop/tests/test_hub_settings_merge.py
+    - loop/tests/test_hook_duplicate_realpath.py
+    - .claude/settings.json
+    - harness/claude/settings.harness.json
+
+as_built:
+  - ".claude/settings.json SessionStart (и UserPromptSubmit/PreToolUse/…) регистрирует два command: `.claude/hooks/*.py` и `harness/hooks/*.py`"
+  - "harness/claude/settings.harness.json — только harness/hooks path (SoT generator input)"
+  - "loop/hub_settings_merge.merge_hooks сравнивает command strings, не realpath → symlink + harness = не duplicate"
+  - "test_merge_adds_hooks_idempotent покрывает string-equal, не same-file dual"
+  - "harness/README: hook commands point to harness/hooks, not .claude/hooks/"
+  - "FR-010: hook Python semantics не менять, кроме mid-migrate idempotency guard"
+
+delta:
+  - "add canonicalize(command, project_dir) via Path.resolve / realpath"
+  - "merge_hooks: skip harness entry if user already has same resolved path (even if string differs .claude vs harness)"
+  - "when both present: keep harness SoT, drop .claude/hooks twin (or rewrite user command to harness path)"
+  - "rewrite/add tests: committed settings unique; dual fixture → hook_duplicate_realpath; Pre/Post same treatment"
+  - "optional mid-migrate idempotency guard only if dual still possible during s01; не вечный shim — s05 удаляет dual"
+
+deletes:
+  - "second SessionStart/UserPromptSubmit/PreToolUse/PostToolUse/… command with same resolved path as harness twin in .claude/settings.json"
+  - "merge_hooks behavior that treats `.claude/hooks/X.py` and `harness/hooks/X.py` as distinct when they resolve equal"
+
+out_of_scope:
+  - "session_start_payload runtime inject (s02)"
+  - "Kind I mainrule/role-command (s03)"
+  - "runtime-sync hash_mismatch policy (s04)"
+  - "full leftover inventory scan other events comments/docs (s05 remainder)"
+  - "Cursor .cursor/hooks.json failClosed — Appetite cut FR-009"
+  - "full Codex event matrix — follow_up: T-HUB-053-codex-claude-hooks-parity"
+  - "hook Python business semantics besides unique registration / optional mid-migrate guard (FR-010)"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Dual fixture (same realpath, two command strings) fails with hook_duplicate_realpath (US-004 / TM-002)
+    verify: "bin/pytest loop/tests/test_hook_duplicate_realpath.py -q --tb=line -k hook_duplicate_realpath"
+  - id: cp2
+    criterion: Committed .claude/settings.json grouped by (event, matcher, Path.resolve) → group size == 1 including Pre/Post (FR-008 / TM-001 / TM-005 QA)
+    verify: "bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py -q --tb=line -k unique"
+  - id: cp3
+    criterion: merge_hooks/generator does not re-append harness command when .claude/hooks twin realpath-equals harness (SC-004 / TM-007)
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line -k 'realpath or duplicate or unique'"
+  - id: cp4
+    criterion: Independent Test — settings unique; FAIL dilution «symlinks exist» without unique registration
+    verify: "bin/pytest loop/tests/test_hook_duplicate_realpath.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py -q --tb=line"
+  - "rg -n \"\\.claude/hooks/session-start.py\" .claude/settings.json || true"
+
+tdd:
+  - "test_hook_duplicate_realpath_fixture_fails — dual commands same resolve → fail (TM-002)"
+  - "test_committed_settings_unique_realpath_all_events — SessionStart+Pre/Post+… (TM-001, TM-005 QA, FR-008)"
+  - "test_merge_hooks_skips_symlink_twin — .claude vs harness same realpath (FR-001, FR-003, SC-004)"
+  - "test_merge_hooks_does_not_reintroduce_dual — generator regression (TM-007)"

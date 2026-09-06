@@ -48,7 +48,7 @@ def test_product_hooks_resolve(tmp_path: Path):
 
 
 def test_product_settings_hook_paths_resolve(tmp_path: Path):
-    """Verify settings.json hook paths via .claude/hooks work in a linked product."""
+    """Verify settings.json hook paths via harness/hooks or .claude/hooks work in a linked product."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "fake_product"
     product_dir.mkdir()
@@ -70,10 +70,10 @@ def test_product_settings_hook_paths_resolve(tmp_path: Path):
         for block in event_hooks:
             for hook in block.get("hooks", []):
                 cmd = hook.get("command", "")
-                if "python3" in cmd and ".claude/hooks/" in cmd:
+                if "python3" in cmd and ("harness/hooks/" in cmd or ".claude/hooks/" in cmd):
                     hook_commands.append(cmd)
 
-    assert hook_commands, "settings.json must reference .claude/hooks paths"
+    assert hook_commands, "settings.json must reference harness/hooks or .claude/hooks paths"
 
     for cmd in hook_commands:
         rel = cmd.split('"$CLAUDE_PROJECT_DIR/')[1].split('"')[0]

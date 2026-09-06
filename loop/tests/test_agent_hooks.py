@@ -57,11 +57,18 @@ def _run_pretool(
     return json.loads(result.stdout)
 
 
-def _gate_fence(verdict: str = "PASS", agent: str = "verify") -> str:
+def _gate_fence(
+    verdict: str = "PASS",
+    agent: str = "verify",
+    step_id: str = "s01",
+    session_id: str = "sess-test",
+    epic_id: str = "T-HUB-001",
+) -> str:
     return (
         f"```json\n"
         f'{{"schema":"loop-gate-verdict/v1","agent_id":"{agent}",'
-        f'"verdict":"{verdict}","recorded_at":"2026-08-31T12:00:00Z"}}\n'
+        f'"verdict":"{verdict}","step_id":"{step_id}","session_id":"{session_id}",'
+        f'"epic_id":"{epic_id}","recorded_at":"2026-08-31T12:00:00Z"}}\n'
         f"```\n"
     )
 
@@ -642,7 +649,11 @@ def test_subagent_lifecycle_legacy_agents(tmp_path: Path) -> None:
             tmp_path,
             agent=agent,
             session_id=f"stop-{agent}",
-            message=_gate_fence("PASS", agent) if agent in {"verify", "reviewer"} else "done",
+            message=(
+                _gate_fence("PASS", agent, session_id=f"stop-{agent}")
+                if agent in {"verify", "reviewer"}
+                else "done"
+            ),
         )
         assert stopped.returncode == 0
 

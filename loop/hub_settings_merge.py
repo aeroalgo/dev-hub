@@ -2,9 +2,49 @@
 
 import argparse
 import json
+import re
+import shlex
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+
+def canonicalize_command(cmd_str: str, project_dir: Optional[Union[str, Path]] = None) -> str:
+    """Canonicalize a hook command by resolving script paths relative to project_dir."""
+    if not cmd_str:
+        return ""
+    p_dir = Path(project_dir).resolve() if project_dir else Path.cwd().resolve()
+
+    # Expand $CLAUDE_PROJECT_DIR or ${CLAUDE_PROJECT_DIR}
+    expanded = cmd_str.replace("$CLAUDE_PROJECT_DIR", str(p_dir)).replace("${CLAUDE_PROJECT_DIR}", str(p_dir))
+
+    try:
+        tokens = shlex.split(expanded)
+    except ValueError:
+        tokens = expanded.split()
+
+    canon_tokens = []
+    for token in tokens:
+        token_path = Path(token)
+        # If absolute or relative to project_dir and exists (or is inside project)
+        if token_path.is_absolute():
+            try:
+                resolved = token_path.resolve()
+                canon_tokens.append(str(resolved))
+                continue
+            except Exception:
+                pass
+        else:
+            rel_candidate = (p_dir / token_path)
+            if rel_candidate.exists():
+                try:
+                    resolved = rel_candidate.resolve()
+                    canon_tokens.append(str(resolved))
+                    continue
+                except Exception:
+                    pass
+        canon_tokens.append(token)
+    return " ".join(canon_tokens)
 
 
 def _extract_hook_commands(hook_dict: Dict[str, Any]) -> List[str]:
@@ -18,18 +58,90 @@ def _extract_hook_commands(hook_dict: Dict[str, Any]) -> List[str]:
     return cmds
 
 
-def _hook_entry_matches(entry_a: Dict[str, Any], entry_b: Dict[str, Any]) -> bool:
-    """Check if two hook entries match in matcher and inner commands."""
+def _extract_canon_commands(hook_dict: Dict[str, Any], project_dir: Optional[Union[str, Path]] = None) -> List[str]:
+    """Extract canonicalized command strings from nested hook structure."""
+    cmds = _extract_hook_commands(hook_dict)
+    return [canonicalize_command(cmd, project_dir=project_dir) for cmd in cmds]
+
+
+def find_duplicate_hook_realpaths(
+    settings_input: Union[str, Path, Dict[str, Any]],
+    project_dir: Optional[Union[str, Path]] = None,
+) -> List[Dict[str, Any]]:
+    """Scan settings for duplicate command realpaths under the same (event, matcher)."""
+    if isinstance(settings_input, (str, Path)):
+        s_path = Path(settings_input)
+        if not s_path.exists():
+            return []
+        data = json.loads(s_path.read_text(encoding="utf-8"))
+    else:
+        data = settings_input
+
+    hooks = data.get("hooks", {})
+    if not isinstance(hooks, dict):
+        return []
+
+    duplicates = []
+    for event_name, entries in hooks.items():
+        if not isinstance(entries, list):
+            continue
+        # Group by matcher
+        by_matcher: Dict[Optional[str], List[Tuple[str, str]]] = {}
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            matcher = entry.get("matcher")
+            raw_cmds = _extract_hook_commands(entry)
+            for raw_cmd in raw_cmds:
+                canon = canonicalize_command(raw_cmd, project_dir=project_dir)
+                by_matcher.setdefault(matcher, []).append((raw_cmd, canon))
+
+        for matcher, cmd_pairs in by_matcher.items():
+            seen_canon: Dict[str, str] = {}
+            for raw_cmd, canon in cmd_pairs:
+                if canon in seen_canon:
+                    duplicates.append({
+                        "event": event_name,
+                        "matcher": matcher,
+                        "canonical": canon,
+                        "first_command": seen_canon[canon],
+                        "duplicate_command": raw_cmd,
+                    })
+                else:
+                    seen_canon[canon] = raw_cmd
+    return duplicates
+
+
+def check_settings_unique_realpaths(
+    settings_input: Union[str, Path, Dict[str, Any]],
+    project_dir: Optional[Union[str, Path]] = None,
+) -> None:
+    """Raise ValueError(hook_duplicate_realpath) if any duplicate command realpaths exist."""
+    duplicates = find_duplicate_hook_realpaths(settings_input, project_dir=project_dir)
+    if duplicates:
+        raise ValueError(f"hook_duplicate_realpath: found duplicates: {duplicates}")
+
+
+def _hook_entry_matches(
+    entry_a: Dict[str, Any],
+    entry_b: Dict[str, Any],
+    project_dir: Optional[Union[str, Path]] = None,
+) -> bool:
+    """Check if two hook entries match in matcher and inner commands (realpath aware)."""
     if entry_a.get("matcher") != entry_b.get("matcher"):
         return False
-    cmds_a = _extract_hook_commands(entry_a)
-    cmds_b = _extract_hook_commands(entry_b)
-    if cmds_a and cmds_b:
-        return set(cmds_a) == set(cmds_b)
+    canon_a = _extract_canon_commands(entry_a, project_dir=project_dir)
+    canon_b = _extract_canon_commands(entry_b, project_dir=project_dir)
+    if canon_a and canon_b:
+        return set(canon_a) == set(canon_b)
     return entry_a == entry_b
 
 
-def merge_hooks(user_hooks: Dict[str, Any], harness_hooks: Dict[str, Any]) -> Dict[str, Any]:
+def merge_hooks(
+    user_hooks: Dict[str, Any],
+    harness_hooks: Dict[str, Any],
+    project_dir: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
     """Merge harness hooks into user hooks without duplicating existing hook commands."""
     merged = dict(user_hooks)
     for event_name, harness_entries in harness_hooks.items():
@@ -43,19 +155,18 @@ def merge_hooks(user_hooks: Dict[str, Any], harness_hooks: Dict[str, Any]) -> Di
         for h_entry in harness_entries:
             if not isinstance(h_entry, dict):
                 continue
-            # Check if this entry or its commands already exist in result_entries
-            h_cmds = _extract_hook_commands(h_entry)
+            h_canons = _extract_canon_commands(h_entry, project_dir=project_dir)
             duplicate_found = False
             for u_entry in result_entries:
                 if not isinstance(u_entry, dict):
                     continue
-                if _hook_entry_matches(u_entry, h_entry):
+                if _hook_entry_matches(u_entry, h_entry, project_dir=project_dir):
                     duplicate_found = True
                     break
-                u_cmds = _extract_hook_commands(u_entry)
-                if h_cmds and u_cmds and u_entry.get("matcher") == h_entry.get("matcher"):
-                    # If all commands in h_entry already present in u_entry, consider duplicate
-                    if all(cmd in u_cmds for cmd in h_cmds):
+                u_canons = _extract_canon_commands(u_entry, project_dir=project_dir)
+                if h_canons and u_canons and u_entry.get("matcher") == h_entry.get("matcher"):
+                    # If all canonical commands in h_entry already present in u_entry, consider duplicate
+                    if all(cmd in u_canons for cmd in h_canons):
                         duplicate_found = True
                         break
 
@@ -111,7 +222,9 @@ def merge_settings(
     if not isinstance(harness_hooks, dict):
         harness_hooks = {}
 
-    merged_hooks = merge_hooks(user_hooks, harness_hooks)
+    # Infer project_dir from user_path parent if user_path is in .claude/settings.json
+    project_dir = u_path.parent.parent if u_path.parent.name == ".claude" else u_path.parent
+    merged_hooks = merge_hooks(user_hooks, harness_hooks, project_dir=project_dir)
 
     new_user_json = dict(user_json)
     # Ensure $schema is preserved or added if absent

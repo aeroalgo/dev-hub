@@ -10,9 +10,11 @@ from loop.schemas.handoff import LoopHandoffFrontmatter, LoopHandoffRole, SCHEMA
 class LoadNowItem(BaseModel):
     path: str
     description: str
+    optional: bool = False
 
     def render(self, index: int) -> str:
-        return f"{index}. [{self.path}]({self.path}) — {self.description}."
+        opt_str = " (optional)" if self.optional else ""
+        return f"{index}. [{self.path}]({self.path}){opt_str} — {self.description}."
 
 
 class LoopHandoffMeta(LoopHandoffFrontmatter):

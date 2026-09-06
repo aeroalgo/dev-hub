@@ -1,0 +1,132 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "Manifest + materialize — verify-script/edit/publish on Claude and Codex"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Три video verify prompt-файла (уже на диске) объявлены в harness/manifest.yaml
+  с claude copy_to + codex materialize. После sync: .claude/agents/verify-{script,edit,publish}.md
+  и .codex/agents/verify-{script,edit,publish}.toml существуют. Distinct prompts
+  (не copy verify-implement). runtime-sync --check зелёный.
+
+plan_contract:
+  fr_ids: [FR-003, FR-008, FR-010, US-002, SC-002, AC+2, AC−5, TM-003]
+  nouns:
+    - harness/manifest.yaml verify-script verify-edit verify-publish
+    - claude copy_to .claude/agents/
+    - codex materialize .codex/agents/verify-edit.toml
+    - bin/runtime-sync --check
+    - distinct prompts not verify-implement verbatim
+  layout_paths:
+    - harness/manifest.yaml
+    - harness/agents/verify-script.md
+    - harness/agents/verify-edit.md
+    - harness/agents/verify-publish.md
+    - loop/runtime_materializers/agents.py
+    - .claude/agents/
+    - .codex/agents/
+  ac_quotes:
+    - "Как Codex, я хочу TOML для verify-edit."
+    - "Three agents materialized both runtimes."
+    - "Independent Test PASS: verify-edit.toml exists"
+    - "FAIL: «manifest yaml has keys» without files"
+    - "Не reuse verify-implement contract verbatim — keep distinct prompts, wire same pipeline."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:46-91"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:107-120"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:189-199"
+
+context:
+  consumes:
+    - existing harness/agents/verify-{script,edit,publish}.md (11 prompt files)
+    - harness/manifest.yaml 8 agents without video three
+    - plan.md §FR-003/008/010
+  produces:
+    - manifest entries three agents both runtimes
+    - materialized claude md + codex toml
+    - runtime-sync --check includes new TOML
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+  files:
+    - harness/manifest.yaml
+    - harness/agents/verify-script.md
+    - harness/agents/verify-edit.md
+    - harness/agents/verify-publish.md
+    - loop/runtime_materializers/agents.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_runtime_sync_check.py
+
+as_built:
+  - "harness/agents/verify-script.md, verify-edit.md, verify-publish.md exist; .claude/agents already has the three md (copy leftover)"
+  - "harness/manifest.yaml agents: verify-implement, gate-repair, verify-bugfix, verify-qa, verify-decompose, analyze-verify, explorer, sunset-inventory — NO video three"
+  - ".codex/agents/ has no verify-edit.toml / verify-script.toml / verify-publish.toml"
+  - "materialize_agents iterates manifest.agents only — undeclared prompts never get toml"
+  - "check_codex_parity compares claude vs codex members of manifest, not harness/agents/*.md glob"
+
+delta:
+  - "add three agent entries to harness/manifest.yaml (source + claude copy_to + codex materialize target toml) mirroring software verify-* shape"
+  - "do not replace prompt bodies with verify-implement (FR-010); keep distinct files"
+  - "materialize / runtime-sync so toml exist; pytest US-002 Path.exists verify-edit.toml"
+  - "FR-008: bin/runtime-sync --check exit 0 (or documented generate step if check is generate-then-verify)"
+
+deletes:
+  - "implicit «Claude symlink enough» as the Codex contract (toml must exist)"
+
+out_of_scope:
+  - "route Path.exists (s01)"
+  - "stop mapping / no_gate_reason (s03)"
+  - "parity glob orphan fail (s04) — this step ADDS declare; s04 ENFORCES source=glob"
+  - "Kind I docs (s05)"
+  - "purge REQUIRED_CODEX_AGENTS exclusivity leftover (s06)"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Manifest yaml has verify-script, verify-edit, verify-publish with claude copy_to + codex materialize (FR-003 / TM-003)
+    verify: "rg -n \"verify-script:|verify-edit:|verify-publish:\" harness/manifest.yaml"
+  - id: cp2
+    criterion: After materialize, .codex/agents/verify-edit.toml exists (US-002 / Independent Test)
+    verify: "test -f .codex/agents/verify-edit.toml && test -f .codex/agents/verify-script.toml && test -f .codex/agents/verify-publish.toml"
+  - id: cp3
+    criterion: runtime-sync --check includes new TOML / exit 0 (FR-008)
+    verify: "bin/runtime-sync --check --runtime codex"
+  - id: cp4
+    criterion: Distinct prompts — verify-edit.md is not a copy of verify-implement contract (FR-010 / AC−5)
+    verify: "rg -n \"EDIT phase|verify-edit\" harness/agents/verify-edit.md; rg -n \"name: verify-implement\" harness/agents/verify-edit.md || true"
+
+sunset_scope:
+  required: true
+  boundary_id: video-verify-agents
+  new_sot: harness/manifest.yaml
+  allow_read:
+    - harness/manifest.yaml
+    - harness/agents/
+    - loop/runtime_materializers/
+    - .codex/agents/
+    - .claude/agents/
+  kind_hint:
+    - A
+    - B
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'verify_edit or manifest or runtime_sync or video_agent'"
+  - "test -f .codex/agents/verify-edit.toml"
+
+tdd:
+  - "test_manifest_declares_three_video_verify_agents — FR-003 TM-003"
+  - "test_codex_verify_edit_toml_exists_after_materialize — US-002"
+  - "test_runtime_sync_check_includes_video_toml — FR-008"
+  - "test_verify_edit_prompt_not_implement_verbatim — FR-010"

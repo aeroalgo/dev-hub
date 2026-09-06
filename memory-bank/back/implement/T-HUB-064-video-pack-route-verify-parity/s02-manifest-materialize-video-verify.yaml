@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: s02 — Manifest + materialize — verify-script/edit/publish on Claude and Codex
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/yaml/steps/s02-manifest-materialize-video-verify.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery:
+- harness/manifest.yaml updated with verify-script, verify-edit, verify-publish
+- .codex/agents/verify-{script,edit,publish}.toml materialized via runtime-sync
+gaps:
+  status: none
+done:
+- Declared verify-script, verify-edit, verify-publish in harness/manifest.yaml (FR-003
+  / TM-003)
+- Materialized .codex/agents/verify-{script,edit,publish}.toml with runtime-sync --apply
+  (US-002 / SC-002)
+- Verified bin/runtime-sync --check --runtime codex reports zero drift (FR-008)
+- Added TDD tests in test_workflow_pack_video_e2e.py and test_runtime_sync_check.py
+  (FR-010 / AC−5)
+files:
+- harness/manifest.yaml
+- harness/agents/verify-script.md
+- harness/agents/verify-edit.md
+- harness/agents/verify-publish.md
+- loop/runtime_materializers/agents.py
+- loop/tests/test_workflow_pack_video_e2e.py
+- loop/tests/test_runtime_sync_check.py
+- .codex/agents/verify-script.toml
+- .codex/agents/verify-edit.toml
+- .codex/agents/verify-publish.toml
+deletes:
+- implicit «Claude symlink enough» as the Codex contract (toml must exist)
+tests:
+- bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py
+  -q --tb=line -k 'verify_edit or manifest or runtime_sync or video_agent'
+- bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py
+  -q --tb=line
+integration_check:
+- test -f .codex/agents/verify-edit.toml && test -f .codex/agents/verify-script.toml
+  && test -f .codex/agents/verify-publish.toml
+- bin/runtime-sync --check --runtime codex
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Manifest yaml has verify-script, verify-edit, verify-publish with claude
+    copy_to + codex materialize (FR-003 / TM-003)
+  status: done
+- id: cp2
+  criterion: After materialize, .codex/agents/verify-edit.toml exists (US-002 / Independent
+    Test)
+  status: done
+- id: cp3
+  criterion: runtime-sync --check includes new TOML / exit 0 (FR-008)
+  status: done
+- id: cp4
+  criterion: Distinct prompts — verify-edit.md is not a copy of verify-implement contract
+    (FR-010 / AC−5)
+  status: done
+resume_from: none

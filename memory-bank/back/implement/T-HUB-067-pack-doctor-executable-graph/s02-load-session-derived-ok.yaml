@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: s02 — load_session — derived ok + required/optional fields; MCP cannot override
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/yaml/steps/s02-load-session-derived-ok.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- loop/mb_load/session.py derives ok from required_missing and read_errors_on_required
+- loop/mb_load/schemas.py includes required_missing, optional_missing, status in MbLoadResult
+- loop/mb_finish/schemas.py LoadNowItem includes optional field with unmarked=required
+  fail-closed
+gaps:
+  status: none
+done:
+- Derived ok = not required_missing and not read_errors_on_required in load_session
+- Added required_missing, optional_missing, status fields to MbLoadResult
+- Added optional field to LoadNowItem and unmarked=required fail-closed parsing
+- Simplified MCP wrapper to return direct core load_session output without partial
+  required override
+- Added comprehensive unit and parity tests for required/optional missing, status,
+  MCP parity
+files:
+- loop/mb_load/session.py
+- loop/mb_load/schemas.py
+- loop/mb_load/mcp_server.py
+- loop/mb_finish/schemas.py
+- loop/tests/test_mb_load_session.py
+- harness/hooks/tests/test_mcp_load_parity.py
+deletes:
+- 'ok_status = True after missing_file:/read_error: on required paths'
+- MCP if not res.files and missing_file-only override that leaves partial required
+  ok=true
+- tests that accept diagnostic_codes nonempty + ok true for required miss
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line
+- bin/pytest harness/hooks/tests/test_mcp_load_parity.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_mb_load_plan_section.py
+  harness/hooks/tests/test_mcp_load_parity.py harness/hooks/tests/test_session_start_inject.py
+  -q --tb=line — PASS (36 passed)
+grep_control:
+- back: rg -n "derived_ok" loop/mb_load/session.py
+  front: ''
+verification_results:
+- 19 passed in loop/tests/test_mb_load_session.py
+- 4 passed in harness/hooks/tests/test_mcp_load_parity.py
+checkpoints:
+- id: cp1
+  criterion: Required miss / read error → ok is False; required_missing contains path;
+    diagnostic_codes keep missing_file (US-004 / FR-006 / SC-002 / QA TM-004 / Failure
+    TM-005 / AC−1).
+  status: done
+- id: cp2
+  criterion: Optional miss → ok true + optional_missing; unmarked = required (FR-007
+    / FR-011e / SC-005 / QA TM-006 / AC+4).
+  status: done
+- id: cp3
+  criterion: Result schema fields required_missing, optional_missing, forbidden_skipped,
+    fingerprint, status complete|incomplete (FR-008).
+  status: done
+- id: cp4
+  criterion: MCP cannot override ok for partial required (US-004 Then / Kind C). Independent
+    Test — optional miss ok true; required miss ok false.
+  status: done
+resume_from: cp1

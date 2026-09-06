@@ -30,6 +30,9 @@ def test_valid_gate_verdict_passes():
         "schema": "loop-gate-verdict/v1",
         "agent_id": "verify",
         "verdict": "PASS",
+        "step_id": "s01",
+        "epic_id": "T-HUB-066-boundary-schema-ownership-strict",
+        "session_id": "sess-test",
         "recorded_at": "2026-09-01T12:00:00Z",
     }
     res = validate_boundary("loop-gate-verdict/v1", payload)
@@ -50,6 +53,30 @@ def test_invalid_gate_verdict_fails_with_errors():
     assert res.valid is False
     assert len(res.errors) > 0
     assert "schema_missing_verdict" in res.diagnostic_codes
+
+
+def test_validate_boundary_missing_schema_invalid():
+    """TM-002 / US-002 / SC-002 / AC+2 / AC−3 / FR-001: payload without schema field must be invalid."""
+    payload = {
+        "agent_id": "verify-implement",
+        "verdict": "PASS",
+        "recorded_at": "2026-09-01T12:00:00Z",
+    }
+    res = validate_boundary("loop-gate-verdict/v1", payload)
+    assert res.valid is False
+    assert len(res.errors) > 0
+    assert any("schema_missing_schema" in code or "schema" in code for code in res.diagnostic_codes)
+
+
+def test_validate_boundary_wire_does_not_default_schema():
+    """AC−3 / FR-001: wire validation does not inject default schema alias."""
+    payload = {
+        "agent_id": "verify-implement",
+        "verdict": "PASS",
+        "recorded_at": "2026-09-01T12:00:00Z",
+    }
+    res = validate_boundary("loop-gate-verdict/v1", payload)
+    assert res.valid is False
 
 
 def test_unknown_schema_id_fails():
@@ -165,11 +192,66 @@ def test_taxonomy_classifiers():
     """TM-011: is_schema_error vs is_semantic_error classification split."""
     assert is_schema_error(["schema_missing_verdict", "schema_invalid"]) is True
     assert is_schema_error(["semantic_ac_failed"]) is False
+    assert is_schema_error(["semantic_ownership_mismatch"]) is False
     assert is_schema_error([]) is False
 
     assert is_semantic_error(["semantic_ac_failed", "semantic_blocker"]) is True
+    assert is_semantic_error(["semantic_ownership_mismatch"]) is True
     assert is_semantic_error(["schema_missing_verdict"]) is False
     assert is_semantic_error([]) is False
+
+
+def test_gate_verdict_record_ownership_fields_required():
+    """FR-003 / AC+3 / TM-004: GateVerdictRecord requires agent_id, epic_id, step_id, session_id, recorded_at ISO."""
+    valid_payload = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify",
+        "verdict": "PASS",
+        "step_id": "s03",
+        "epic_id": "T-HUB-066-boundary-schema-ownership-strict",
+        "session_id": "sess-123",
+        "recorded_at": "2026-09-06T12:00:00Z",
+    }
+    res = validate_boundary("loop-gate-verdict/v1", valid_payload)
+    assert res.valid is True
+    assert res.errors == []
+
+    # Missing step_id fails
+    missing_step = dict(valid_payload)
+    missing_step.pop("step_id")
+    res_step = validate_boundary("loop-gate-verdict/v1", missing_step)
+    assert res_step.valid is False
+    assert any("step_id" in err for err in res_step.errors)
+
+    # Missing epic_id fails
+    missing_epic = dict(valid_payload)
+    missing_epic.pop("epic_id")
+    res_epic = validate_boundary("loop-gate-verdict/v1", missing_epic)
+    assert res_epic.valid is False
+    assert any("epic_id" in err for err in res_epic.errors)
+
+    # Missing session_id fails
+    missing_sess = dict(valid_payload)
+    missing_sess.pop("session_id")
+    res_sess = validate_boundary("loop-gate-verdict/v1", missing_sess)
+    assert res_sess.valid is False
+    assert any("session_id" in err for err in res_sess.errors)
+
+
+def test_recorded_at_iso_junk_invalid():
+    """TM-008 / cp4: recorded_at junk fails ISO parsing validation."""
+    invalid_payload = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify",
+        "verdict": "PASS",
+        "step_id": "s03",
+        "epic_id": "T-HUB-066-boundary-schema-ownership-strict",
+        "session_id": "sess-123",
+        "recorded_at": "not-an-iso-timestamp",
+    }
+    res = validate_boundary("loop-gate-verdict/v1", invalid_payload)
+    assert res.valid is False
+    assert any("recorded_at" in err for err in res.errors)
 
 
 def test_schema_retry_counter_state(tmp_path: Path):
@@ -187,6 +269,9 @@ def test_epic_resolve_cli_validate_boundary(tmp_path: Path):
         "schema": "loop-gate-verdict/v1",
         "agent_id": "verify",
         "verdict": "PASS",
+        "step_id": "s01",
+        "epic_id": "T-HUB-066-boundary-schema-ownership-strict",
+        "session_id": "sess-test",
         "recorded_at": "2026-09-01T12:00:00Z",
     })
     proc = subprocess.run(

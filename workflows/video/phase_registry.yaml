@@ -12,6 +12,7 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
+    no_gate_reason: "Concept / brief definition phase; verified by human stakeholder approval and downstream script acceptance."
     dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
@@ -41,6 +42,7 @@ phases:
       need_verify: false
       need_reviewer: false
     verify_agent: null
+    no_gate_reason: "Visual storyboard and asset gathering phase; verified during EDIT timeline composition."
     dsh_preset: null
     promotable_after_finish: false
     skip_index_sync: false
@@ -50,13 +52,14 @@ phases:
     arm_template: implement
     finish_gates:
       mode: implement
-      need_verify: true
+      need_verify: false
       need_reviewer: false
     finish_gates_dict:
       mode: implement
-      need_verify: true
+      need_verify: false
       need_reviewer: false
     verify_agent: null
+    no_gate_reason: "Physical/external video capture phase; footage verified during EDIT ingest."
     dsh_preset: implement
     promotable_after_finish: false
     skip_index_sync: false

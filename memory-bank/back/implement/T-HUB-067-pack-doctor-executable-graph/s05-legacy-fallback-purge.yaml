@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: s05 — s05 — legacy-fallback-purge — ok=true leftover + Warning-as-success IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+  - ".agents/skills/workflow-legacy-fallback-cleanup"
+discovery:
+  - "Verified sunset inventory across loop/mb_load/session.py, loop/doctor/checks/workflow_pack.py, and harness/hooks/epic/core.py"
+gaps:
+  status: none
+done:
+  - "Zero leftover ok=true after required miss in session/mcp load"
+  - "Zero keys-only doctor usable path without actual route existence"
+  - "Doctor CLI exits with non-zero on unusable packs or critical codes"
+  - "Warning-as-success purged for required bundle loads"
+  - "All obsolete tests updated to fail-closed semantics across suite"
+files:
+  - loop/mb_load/session.py
+  - loop/mb_load/mcp_server.py
+  - loop/mb_load/schemas.py
+  - loop/doctor/checks/workflow_pack.py
+  - loop/workflow/pack_graph.py
+  - harness/hooks/epic/core.py
+  - CLAUDE.md
+  - loop/tests/test_mb_load_session.py
+  - loop/tests/test_pack_graph_doctor.py
+  - loop/tests/test_doctor_workflow_pack.py
+  - harness/hooks/tests/test_session_start_inject.py
+deletes:
+  - 'leftover ok_status = True after required missing_file:/read_error:'
+  - leftover keys-only doctor usable path (rules_root dir without route exists)
+  - leftover doctor exit 0 when codes nonempty
+  - 'leftover Warning: load_session exception / Warning: bundle load failed as required success inject'
+  - leftover MCP ok override on partial required
+  - leftover docs «pack wired» / «partial load ok»
+  - obsolete tests asserting old ok+missing / keys-only green / skip red pack
+tests:
+  - "`bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_mb_load_session.py loop/tests/test_doctor_workflow_pack.py harness/hooks/tests/test_session_start_inject.py -q --tb=line`"
+integration_check:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_mb_load_session.py loop/tests/test_doctor_workflow_pack.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+grep_control:
+  - command: 'rg -n "Warning: load_session exception|Warning: bundle load failed" harness/hooks/epic/core.py'
+    result: "clean / no legacy warning success"
+verification_results:
+  - check: "52 passed in targeted pytest suite"
+    status: "PASS"
+checkpoints:
+  - id: cp1
+    criterion: 'Kind A — rg/pytest по каждой строке sunset_inventory kind=A: 0 leftover ok=true after required miss; 0 keys-only doctor green; 0 divergent exists-fork; obsolete tests rewritten.'
+    status: done
+  - id: cp2
+    criterion: 'Kind B — doctor CLI exit ≠0 on unusable; no leftover exit 0.'
+    status: done
+  - id: cp3
+    criterion: 'Kind C — Warning-as-success absent on required; MCP no partial override; red pack not skipped.'
+    status: done
+  - id: cp4
+    criterion: 'Kind I — 0 «fully wired» / «partial load ok» as current SoT.'
+    status: done
+resume_from: null

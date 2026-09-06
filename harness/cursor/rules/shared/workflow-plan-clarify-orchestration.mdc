@@ -74,6 +74,7 @@ alwaysApply: false
 
 - Ссылка на clarify в шапке plan: `**Clarify:** memory-bank/{role}/clarify/clarify-…md` (если Phase 0 был или артефакт существует)
 - Секция `## Clarifications` — session ref + краткий summary resolved/deferred (не дублировать весь Q→A)
+- `plan/<epic_id>/md/prompt.md` — абстрактный outcome + Chat decisions (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc); clarify Q→A **не** копировать в prompt
 - Остальной процесс — role `workflow-plan.mdc` (multi-epic, merge, FINISH guards)
 
 ---

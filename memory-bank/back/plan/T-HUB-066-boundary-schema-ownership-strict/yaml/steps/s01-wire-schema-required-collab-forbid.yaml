@@ -1,0 +1,128 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: "Wire schema required + Codex extra=forbid — same parse function"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  На внешней границе (validate_boundary / fence parse) поле `schema` обязательно:
+  missing schema → invalid. Codex collab extra=forbid; тот же parse, что gate.
+  Add-слой ladder: контракт Wire vs Internal, не stop-hook. Internal defaults
+  не протекают на wire.
+
+plan_contract:
+  fr_ids: [FR-001, FR-008, US-002, US-005, SC-002, SC-005, AC+2, AC+5, AC−2, AC−3, TM-002, TM-003]
+  nouns:
+    - Wire* vs Internal*
+    - require_discriminator=True
+    - validate_boundary external
+    - extra=forbid
+    - _CollabGateVerdictFence
+    - same parse function
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_codex_collab_verdict.py
+  layout_paths:
+    - loop/validate_boundary.py
+    - loop/schemas/gate_verdict.py
+    - loop/schemas/repair_result.py
+    - loop/codex_collab_verdict.py
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_codex_collab_verdict.py
+  ac_quotes:
+    - "Split Wire* vs Internal* or `require_discriminator=True` on validate_boundary external."
+    - "Codex collab extra=forbid; same parse function."
+    - "Missing schema field on wire → invalid."
+    - "schema required on wire."
+    - "Нет extra=ignore on collab."
+    - "Нет schema default on external payload."
+    - "collab extra field invalid"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:33-50"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:61-90"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:108-158"
+
+context:
+  consumes:
+    - plan.md §Technology axiom Wire/Codex §FR-001/008 §US-002/005 §AC+2/5 §QA TM-002/005
+    - as-built GateVerdictRecord extra=forbid + default schema alias; collab extra=ignore
+  produces:
+    - wire missing schema → ValidateResult valid=false
+    - collab extra field → invalid
+    - one parse function for fence JSON (collab calls canonical, not private extra=ignore model)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#ac
+    - plan.md#qa-consumes
+  files:
+    - loop/validate_boundary.py
+    - loop/schemas/gate_verdict.py
+    - loop/schemas/repair_result.py
+    - loop/codex_collab_verdict.py
+    - loop/tests/test_validate_boundary.py
+    - loop/tests/test_codex_collab_verdict.py
+
+as_built:
+  - "GateVerdictRecord/RepairResultRecord Field(alias='schema', default=SCHEMA_*) — missing schema accepted via default"
+  - "validate_boundary model_validate(payload) without require_discriminator — internal default leaks to wire"
+  - "loop/codex_collab_verdict.py _CollabGateVerdictFence extra='ignore'; recorded_at optional"
+  - "GateVerdictRecord already extra=forbid — Independent Test FAIL if only this unit without stop path (s02)"
+  - "sunset already in BOUNDARY_REGISTRY (T-HUB-063)"
+
+delta:
+  - "Wire path: schema required (Wire* models or require_discriminator=True / no default on external validate)"
+  - "Internal* may keep default for in-process construction — must not be used as wire SoT"
+  - "replace _CollabGateVerdictFence extra=ignore with extra=forbid; parse via same function as gate fence (validate_boundary or shared extract)"
+  - "red tests: missing schema invalid; extra collab field invalid; extra=forbid on collab fixture"
+  - "do not rewrite SubagentStop bypass in this step (s02)"
+
+deletes:
+  - "loop/codex_collab_verdict.py extra='ignore' on collab fence model"
+  - "wire acceptance of payloads without schema field (default SCHEMA_* on external validate)"
+
+out_of_scope:
+  - "SubagentStop bypass or not data.get('verdict') (s02)"
+  - "semantic_ownership_mismatch vs in-flight (s03)"
+  - "repair parent_evidence_id / leftover remaining (s04)"
+  - "README verdict.py rewrite (s05)"
+  - "purge leftover comments/tests (s06)"
+  - "signed runtime envelope — Appetite cut_list"
+  - "full retry_policy/v1 productization — Appetite cut_list; follow_up: T-HUB-069-agent-contract-registry-codex-policy"
+  - "duplicate hooks — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "finish transaction — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Missing schema on wire → invalid (US-002 / SC-002 / QA TM-002 / Failure matrix TM-002)
+    verify: "bin/pytest loop/tests/test_validate_boundary.py -q --tb=line -k 'missing_schema or schema_required or discriminator'"
+  - id: cp2
+    criterion: Codex collab extra field invalid; extra=forbid (US-005 / SC-005 / QA TM-005 / Failure matrix TM-003)
+    verify: "bin/pytest loop/tests/test_codex_collab_verdict.py -q --tb=line -k 'extra or forbid or collab'"
+  - id: cp3
+    criterion: Collab uses same parse path as gate (FR-008) — not a private extra=ignore model
+    verify: "rg -n \"extra=.ignore\" loop/codex_collab_verdict.py; bin/pytest loop/tests/test_codex_collab_verdict.py loop/tests/test_validate_boundary.py -q --tb=line -k 'collab or extra'"
+  - id: cp4
+    criterion: Independent Test — missing schema invalid on validate_boundary; FAIL dilution «GateVerdictRecord extra=forbid unit» only
+    verify: "bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_codex_collab_verdict.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_codex_collab_verdict.py -q --tb=line"
+  - "rg -n \"extra=.ignore\" loop/codex_collab_verdict.py"
+
+tdd:
+  - "test_validate_boundary_missing_schema_invalid — TM-002 / US-002"
+  - "test_validate_boundary_wire_does_not_default_schema — AC−3 / FR-001"
+  - "test_codex_collab_extra_field_invalid — TM-005 QA / US-005"
+  - "test_collab_fence_uses_canonical_parser — FR-008"

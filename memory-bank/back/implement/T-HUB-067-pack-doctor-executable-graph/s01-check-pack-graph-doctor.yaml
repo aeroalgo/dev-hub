@@ -1,0 +1,81 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: s01 — Executable pack graph — exists+declare codes; doctor CLI fail-closed
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/yaml/steps/s01-check-pack-graph-doctor.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- loop/workflow/pack_graph.py implements check_pack_graph validating executable route
+  paths, _lean gates, declared verify_agents, skill references via check_skill_refs,
+  schemas, and tool gates
+- loop/doctor/checks/workflow_pack.py wires doctor check_workflow_pack and run_doctor_workflow_pack
+  to check_pack_graph with fail-closed non-zero exit on unusable pack
+gaps:
+  status: none
+done:
+- Implemented check_pack_graph in loop/workflow/pack_graph.py with comprehensive fail-closed
+  graph walk
+- Integrated check_pack_graph into loop/doctor/checks/workflow_pack.py supporting
+  --pack filter and fail-closed CLI exit
+- Composed route_command exists and check_skill_refs without regex or Path.exists
+  forks
+- Handled tool_gates with advisory vs fail semantics (fail only when required=true)
+- Added unit and doctor CLI tests in loop/tests/test_pack_graph_doctor.py and verified
+  loop/tests/test_doctor_workflow_pack.py
+files:
+- loop/workflow/pack_graph.py
+- loop/doctor/checks/workflow_pack.py
+- loop/tests/test_pack_graph_doctor.py
+deletes:
+- doctor/check_workflow_pack treating keys-only (rules_root dir exists) as pack usable
+- second Path.exists implementation diverging from route_command / 064 helper
+- fork of skill_refs regex instead of calling check_skill_refs
+- silent skip of a registered pack because it is red
+tests:
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  -q --tb=line
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  loop/tests/test_workflow_pack_*.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  -q --tb=line — PASS (18 passed)
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  loop/tests/test_workflow_pack_*.py -q --tb=line — PASS (71 passed)
+grep_control:
+- back: rg -n "def check_pack_graph" loop/workflow/
+  front: ''
+- back: rg -n "pack_route_missing|pack_gate_missing|pack_agent_missing" loop/workflow/pack_graph.py
+    loop/doctor/
+  front: ''
+verification_results:
+- 18 passed, 2 warnings in 0.61s
+- loop/workflow/pack_graph.py:210:def check_pack_graph(
+checkpoints:
+- id: cp1
+  criterion: Missing route fixture → ok=false, code pack_route_missing, path listed
+    (US-001 / FR-001 / SC-001 / QA TM-001 / Failure TM-001).
+  status: done
+- id: cp2
+  criterion: Missing _lean gate → pack_gate_missing (US-003 / QA TM-002 / Failure
+    TM-002); undeclared verify_agent → pack_agent_missing (US-002 / QA TM-003 / Failure
+    TM-003); missing skill @ → skill_ref_missing via 062 (FR-003 / Failure TM-004).
+    Multiple codes in one result allowed (FR-002).
+  status: done
+- id: cp3
+  criterion: Doctor CLI exit ≠0 on unusable; --pack filter; IO not skip pack (FR-005
+    / FR-014 / AC+1). Keys-only yaml present + missing file → not green (Failure TM-009
+    / Independent Test FAIL).
+  status: done
+- id: cp4
+  criterion: Compose not fork — doctor uses route_command/064 exists + check_skill_refs;
+    ffmpeg advisory unless tool_gates.required (FR-004 / FR-015 / AC+5 / AC−5).
+  status: done
+resume_from: cp1

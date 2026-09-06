@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: s04 — prepare_session recovers leftover journal before agent work IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s04-prepare-session-recover.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- prepare_session now invokes recover_finish_transaction before agent work / projection
+  / promote
+- recover_finish_transaction handles COMMITTED, INDEX_WRITTEN, and rollbacks PREPARED/CONTEXT_WRITTEN,
+  failing closed on corrupt journal
+gaps:
+  status: none
+done:
+- Wired recover_finish_transaction() into prepare_session() entrypoint before agent
+  inject
+- Added fail-closed NEED_HUMAN handling for corrupt finish-tx.json in recover_finish_transaction
+- Added committed remainder recovery for INDEX_WRITTEN state in recover_finish_transaction
+- Added and verified comprehensive test suite for prepare_session and crash recoveries
+  in test_mb_finish_transaction.py
+files:
+- loop/context_loop.py
+- loop/mb_finish/transaction.py
+- loop/tests/test_mb_finish_transaction.py
+deletes:
+- sole crash strategy = backup restore only on Exception (as the documented recovery)
+tests:
+- '`bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line`'
+integration_check:
+- recover_finish_transaction called at start of prepare_session; returns fail-closed
+  halt if corrupt journal
+- All checkpoints cp1..cp4 verified green against pytest
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line - 15 passed in
+  0.44s
+checkpoints:
+- id: cp1
+  criterion: prepare_session calls recover_finish_transaction before agent inject
+    (FR-005 / US-004 / SC-003 / QA TM-003)
+  status: done
+- id: cp2
+  criterion: Crash after context then prepare_session → both new or both old; never
+    mixed identity (US-001 / AC−1 / TM-001 / FR-013)
+  status: done
+- id: cp3
+  criterion: Crash after index before committed marker recovered; leftover prepared
+    not ignored (FR-013 / AC−3 / TM-002 / TM-004)
+  status: done
+- id: cp4
+  criterion: Corrupt journal → NEED_HUMAN fail-closed; not infinite recover loop (TM-007);
+    Exception-only backup is not sole strategy (AC−5)
+  status: done
+resume_from: none

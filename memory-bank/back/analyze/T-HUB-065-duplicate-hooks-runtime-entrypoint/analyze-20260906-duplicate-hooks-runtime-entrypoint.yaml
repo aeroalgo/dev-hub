@@ -1,0 +1,200 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+slug: duplicate-hooks-runtime-entrypoint
+date: "2026-09-06"
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings:
+  - id: A1
+    severity: MEDIUM
+    category: Underspecification
+    message: "as_built in s01 mentions loop/hub_settings_merge.merge_hooks which is created during implementation as new helper/generator module"
+    plan_ref: "Target layout"
+    step_ref: s01
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Unique command per (event, matcher, realpath) in Claude settings"
+  - requirement_id: FR-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Doctor / CI check hook_duplicate_realpath: fails if two registered command strings in settings.json resolve to same realpath on disk for same event/matcher."
+  - requirement_id: FR-003
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "merge_hooks / install logic: when merging .claude/hooks with harness/hooks, if Path(cmd).resolve() matches an already chosen harness command, do not emit duplicate."
+  - requirement_id: FR-004
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "SessionStart inject: read EPIC_RUNTIME (or config runtime) -> build_prompt_scope(..., runtime=runtime)."
+  - requirement_id: FR-005
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "AGENTS.md emitted as entrypoint for Codex; CLAUDE.md for Claude Code; DSH.md for DeepSeek (or fail-closed if unknown runtime with clear diagnostic)."
+  - requirement_id: FR-006
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "mainrule.mdc / role-command: instruction text says \"read current runtime entrypoint\" (not hardcoded CLAUDE.md in codex)."
+  - requirement_id: FR-007
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "runtime-sync: CLAUDE.md either regenerated from harness/instructions/main.md or documented generated header; hash_mismatch = fail CI unless allow."
+  - requirement_id: FR-008
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Pre/Post tool hooks: also verified unique realpath, not only SessionStart."
+  - requirement_id: FR-009
+    step_ids: []
+    status: covered
+    plan_text_verbatim: "Cursor .cursor/hooks.json failClosed false = out of scope unless one-line note in Appetite cut."
+  - requirement_id: FR-010
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Leftover purge: remove any duplicate command blocks in committed .claude/settings.json, keeping harness path as single source of truth."
+  - requirement_id: US-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как разработчик, я хочу, чтобы SessionStart hook выполнялся ровно один раз за запуск сессии, чтобы не дублировать логи и не тратить токены."
+  - requirement_id: US-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как оператор Codex CLI, я хочу видеть в context scope правильный entrypoint AGENTS.md, чтобы агент читал свои инструкции, а не CLAUDE.md."
+  - requirement_id: US-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как агент в Codex, я не должен получать HARD FAIL за то, что не прочитал CLAUDE.md, когда мой entrypoint — AGENTS.md."
+  - requirement_id: US-004
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу duplicate registration fail."
+  - requirement_id: SC-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "SessionStart triggers exactly 1 time on Claude Code start"
+  - requirement_id: SC-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "EPIC_RUNTIME=codex -> CURRENT WORKFLOW SCOPE shows AGENTS.md"
+  - requirement_id: SC-003
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "bin/runtime-sync --runtime claude --check returns 0"
+  - requirement_id: SC-004
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "merge_hooks is idempotent"
+  - requirement_id: AC+ #1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: ".claude/settings.json contains exactly one command for each hook event/matcher pointing to harness/hooks/*.py"
+  - requirement_id: AC+ #2
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "SessionStart inject outputs entrypoint: AGENTS.md when EPIC_RUNTIME=codex"
+  - requirement_id: AC+ #3
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "mainrule.mdc specifies reading runtime-appropriate entrypoint"
+  - requirement_id: AC+ #4
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "CI validates no duplicate hook realpaths"
+  - requirement_id: AC- #1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "No duplicate execution of session-start.py"
+  - requirement_id: AC- #2
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "No hardcoded CLAUDE.md in Codex session scope"
+  - requirement_id: AC- #3
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "No silent ignore of runtime-sync hash mismatches"
+  - requirement_id: AC- #4
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "No breakage of existing hook execution for other events"
+  - requirement_id: NFR-01
+    step_ids: [s01, s02, s04]
+    status: covered
+    plan_text_verbatim: "Hook execution overhead < 50ms"
+  - requirement_id: NFR-02
+    step_ids: [s01, s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "Zero drift between settings.json and harness/manifest.yaml"
+  - requirement_id: NFR-03
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Fail-closed on ambiguous runtime or duplicate hooks in test/CI"
+  - requirement_id: TM-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "duplicate hook in settings.json -> doctor / CI fail"
+  - requirement_id: TM-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "dual fixture fails -> pytest hook_duplicate_realpath"
+  - requirement_id: TM-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "unknown EPIC_RUNTIME -> fail-closed or documented default"
+  - requirement_id: TM-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "mainrule stale -> Kind I instructions update"
+  - requirement_id: TM-005
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "hash_mismatch ignored -> fail check"
+  - requirement_id: TM-006
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "only SessionStart deduped / other events dual -> all events unique realpath"
+  - requirement_id: TM-007
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "generator skip -> manual JSON regress -> CI on settings fail"
+  - requirement_id: layout:.claude/settings.json
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: ".claude/settings.json (SoT single harness command per event/matcher/realpath)"
+  - requirement_id: layout:harness/claude/settings.harness.json
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "harness/claude/settings.harness.json (canonical harness hook list)"
+  - requirement_id: layout:harness/hooks/session-start.py
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "harness/hooks/session-start.py (wire EPIC_RUNTIME -> payload -> scope)"
+  - requirement_id: layout:loop/prompt_builder.py
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "loop/prompt_builder.py (build_prompt_scope runtime parameter handling)"
+  - requirement_id: layout:.cursor/rules/mainrule.mdc
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: ".cursor/rules/mainrule.mdc (Kind I runtime entrypoint instruction)"
+  - requirement_id: layout:loop/runtime_materializers/parity.py
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "loop/runtime_materializers/parity.py (hash_mismatch fail-closed)"
+  - requirement_id: layout:loop/tests/test_hook_duplicate_realpath.py
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_hook_duplicate_realpath.py (dual fixture fail test)"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 1
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

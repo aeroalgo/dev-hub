@@ -72,6 +72,33 @@ agents:
       codex:
         materialize: true
         target: ".codex/agents/sunset-inventory.toml"
+  verify-script:
+    description: "Pre-FINISH verify gate for SCRIPT phase"
+    source: "harness/agents/verify-script.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-script.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-script.toml"
+  verify-edit:
+    description: "Pre-FINISH verify gate for EDIT phase"
+    source: "harness/agents/verify-edit.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-edit.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-edit.toml"
+  verify-publish:
+    description: "Pre-FINISH verify gate for PUBLISH phase"
+    source: "harness/agents/verify-publish.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/verify-publish.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/verify-publish.toml"
 hooks:
   session-start:
     source: "harness/hooks/session-start.py"

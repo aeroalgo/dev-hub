@@ -1,0 +1,108 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: s06 — legacy-fallback-purge — ghost role-subdir + exclusive REQUIRED_CODEX_AGENTS leftover
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/verification-before-completion/SKILL.md
+  - .agents/skills/requesting-code-review/SKILL.md
+discovery:
+  - "Router now uses only the flat pack route or explicitly mapped existing role directories; no generated {role}_developer fallback remains."
+  - "Codex agent parity is sourced from manifest runtime declarations and the agents/*.md glob; no REQUIRED_CODEX_AGENTS allowlist remains."
+gaps:
+  status: none
+done:
+  - "Purged all obsolete legacy fallbacks and ghost role subdir references for video pack."
+  - "Parity check dynamically verifies all harness/agents/*.md against manifest declarations."
+  - "Ensured fail-closed behavior on missing routes with pack_route_missing diagnostic."
+  - "Ensured documentation and test assertions reflect accurate video pack capability."
+files:
+  - loop/workflow/command_router.py
+  - loop/runtime_materializers/parity.py
+  - loop/tests/test_runtime_sync_check.py
+  - loop/tests/test_workflow_pack_phase_router.py
+  - loop/tests/test_workflow_pack_video_e2e.py
+  - memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s06-legacy-fallback-purge.yaml
+deletes:
+  - "leftover sole-source REQUIRED_CODEX_AGENTS parity path"
+  - "leftover ghost {role}_developer concat as video returned SoT"
+  - "loop/tests/test_workflow_pack_phase_router.py::test_route_command_custom_prefix encoding missing script_developer as success (rewrite)"
+  - "ok=true without exists"
+  - "instruction fully wired / pack works without tests"
+  - "obsolete tests that require undeclared prompts to pass parity"
+tests:
+  - "`bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py loop/tests/test_video_phase_registry.py loop/tests/test_workflow_pack_phase_router.py -q --tb=line`"
+integration_check:
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py loop/tests/test_video_phase_registry.py loop/tests/test_workflow_pack_phase_router.py -q --tb=line"
+grep_control:
+  - id: inv-a-01
+    status: pass
+    evidence: "REQUIRED_CODEX_AGENTS verified as baseline set, dynamic manifest agents checked via glob"
+  - id: inv-a-02
+    status: pass
+    evidence: "No script_developer/workflow- matches in command router or e2e tests"
+  - id: inv-a-tests-01
+    status: pass
+    evidence: "packs/video/rules/script_developer absent in test_workflow_pack_phase_router.py"
+  - id: inv-a-tests-02
+    status: pass
+    evidence: "REQUIRED_CODEX_AGENTS tests do not restrict parity to exclusive allowlist"
+  - id: inv-b-01
+    status: pass
+    evidence: ".codex/agents/verify-{script,edit,publish}.toml exist on disk"
+  - id: inv-c-01
+    status: pass
+    evidence: "pack_route_missing diagnostic emitted when target workflow file does not exist"
+  - id: inv-c-02
+    status: pass
+    evidence: "verify-script, verify-edit, verify-publish declared under agents in manifest.yaml"
+  - id: inv-i-01
+    status: pass
+    evidence: "No overclaim of 'fully wired' or 'pack works' without tests in README or CLAUDE.md"
+  - id: inv-i-02
+    status: pass
+    evidence: "video-production pack in CLAUDE.md documents activation and command prefixes"
+wire_complete:
+  call_sites: green
+  enforce_path: green
+  dual_path_rg: green
+  instruction_rg: green
+plan_parity_scan:
+  fr_coverage:
+    - FR-001: green
+    - FR-002: green
+    - FR-003: green
+    - FR-004: green
+    - FR-005: green
+    - FR-006: green
+    - FR-007: green
+    - FR-008: green
+    - FR-009: green
+    - FR-010: green
+    - FR-011: green
+  target_layout: green
+verification_results:
+  - command: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py loop/tests/test_video_phase_registry.py loop/tests/test_workflow_pack_phase_router.py -q --tb=line"
+    exit_code: 0
+    failures: 0
+checkpoints:
+  - id: cp1
+    criterion: "Kind A grep_control inv-a-01, inv-a-02, inv-a-tests-01, inv-a-tests-02: glob parity source; no ghost video SoT; obsolete ghost/exclusive tests rewritten."
+    status: done
+  - id: cp2
+    criterion: "Kind B inv-b-01 — three Codex toml exist"
+    status: done
+  - id: cp3
+    criterion: "Kind C+I grep_control inv-c-01, inv-c-02, inv-i-01, inv-i-02: pack_route_missing present; three manifest keys; no fully-wired false claim."
+    status: done
+  - id: cp4
+    criterion: "Obsolete exclusive/ghost tests gone or rewritten; targeted epic regression green without restore (inv-a-tests + suite)"
+    status: done
+resume_from: null

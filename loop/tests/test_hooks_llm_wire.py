@@ -14,11 +14,18 @@ def test_subagent_stop_calls_parse_gate_verdict(tmp_path):
 {
   "verdict": "PASS",
   "step_id": "s11",
+  "session_id": "test-sess",
   "epic_id": "T-HUB-023"
 }
 ```
 """
-    rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    rec = parse_gate_verdict_message(
+        text,
+        str(tmp_path),
+        "verify",
+        recorded_at=utc_now(),
+        session_id="test-sess",
+    )
     assert rec is not None
     assert rec.verdict == "PASS"
 
@@ -28,11 +35,18 @@ def test_subagent_stop_valid_json_sidecar_written(tmp_path):
 {
   "verdict": "FAIL",
   "step_id": "s11",
+  "session_id": "test-sess",
   "epic_id": "T-HUB-023"
 }
 ```
 """
-    parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    parse_gate_verdict_message(
+        text,
+        str(tmp_path),
+        "verify",
+        recorded_at=utc_now(),
+        session_id="test-sess",
+    )
     rec = read_gate_verdict(tmp_path, "verify")
     assert rec is not None
     assert rec.verdict == "FAIL"

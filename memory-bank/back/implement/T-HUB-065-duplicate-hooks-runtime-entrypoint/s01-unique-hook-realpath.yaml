@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: s01 — Unique realpath — generator + committed settings; dual fixture fail IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/yaml/steps/s01-unique-hook-realpath.yaml
+level: L2
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Add canonicalize_command, find_duplicate_hook_realpaths, check_settings_unique_realpaths
+  in loop/hub_settings_merge.py
+- Update merge_hooks in loop/hub_settings_merge.py to compare canonical paths
+- Clean duplicate .claude/hooks entries in .claude/settings.json, keeping harness
+  SoT
+- Add loop/tests/test_hook_duplicate_realpath.py with dual fixture fail and committed
+  settings check
+- Add tests in loop/tests/test_hub_settings_merge.py for symlink deduplication and
+  non-reintroduction
+files:
+- loop/hub_settings_merge.py
+- loop/tests/test_hub_settings_merge.py
+- loop/tests/test_hook_duplicate_realpath.py
+- .claude/settings.json
+- harness/claude/settings.harness.json
+deletes:
+- second SessionStart/UserPromptSubmit/PreToolUse/PostToolUse/… command with same
+  resolved path as harness twin in .claude/settings.json
+- merge_hooks behavior that treats `.claude/hooks/X.py` and `harness/hooks/X.py` as
+  distinct when they resolve equal
+tests:
+- '`bin/pytest loop/tests/test_hook_duplicate_realpath.py -q --tb=line -k hook_duplicate_realpath`'
+- '`bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py
+  -q --tb=line -k unique`'
+- '`bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line -k "realpath or
+  duplicate or unique"`'
+- '`bin/pytest loop/tests/test_hook_duplicate_realpath.py -q --tb=line`'
+integration_check:
+- '`bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py
+  -q --tb=line`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Dual fixture (same realpath, two command strings) fails with hook_duplicate_realpath
+    (US-004 / TM-002)
+  status: done
+- id: cp2
+  criterion: Committed .claude/settings.json grouped by (event, matcher, Path.resolve)
+    → group size == 1 including Pre/Post (FR-008 / TM-001 / TM-005 QA)
+  status: done
+- id: cp3
+  criterion: merge_hooks/generator does not re-append harness command when .claude/hooks
+    twin realpath-equals harness (SC-004 / TM-007)
+  status: done
+- id: cp4
+  criterion: Independent Test — settings unique; FAIL dilution «symlinks exist» without
+    unique registration
+  status: done
+resume_from: cp1

@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L2–L3  
 **Статус:** active  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Clarify:** Phase 0 skipped — taxonomy clear (чат 2026-09-04 audit plan↔runtime: три конкретных drift’а с воспроизводимым evidence; product ambiguity нет)  
 **Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `harness-ops-hygiene`  
 **Deps:** soft T-HUB-057 (JSON session boundaries), T-HUB-053/059 (agent materialize), T-HUB-044 (doctor). Hard deps нет — эпик чинит leftover после закрытых.  

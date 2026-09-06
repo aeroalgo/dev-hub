@@ -10,7 +10,7 @@
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns  
 **Источник:** audit `01-subagents-prompts.md` P0 · `02-workflow-pack-and-rules.md` video routes · `08` matrix video rows
 
-→ decompose после DECOMPOSE
+→ decompose: [md/decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
 
 ---
 
@@ -27,7 +27,9 @@
 - **refs:** `workflows/video/phase_registry.yaml`; `loop/workflow/resolve.py` `route_command`; `harness/manifest.yaml`; `.codex/agents/`; `loop/tests/test_workflow_pack_video_e2e.py`.
 - **Не:** ffmpeg real render (051 CREATIVE/tool gate); software verify rewrite; 067 full doctor (consumes this).
 
-**CREATIVE need:** нет (051 already flagged CREATIVE for tool-gate; this leftover is engineering parity). Если 051 CREATIVE ещё не шёл — не блокируем 064.
+### CREATIVE need
+
+**нет** (051 already flagged CREATIVE for tool-gate; this leftover is engineering parity). Если 051 CREATIVE ещё не шёл — не блокируем 064.
 
 ---
 
@@ -240,6 +242,8 @@
 
 ## Следующий режим
 
-→ BACK DECOMPOSE T-HUB-064 after 063.
+→ BACK ANALYZE T-HUB-064-video-pack-route-verify-parity (DECOMPOSE done; ANALYZE обязателен, не deferred).
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет.**

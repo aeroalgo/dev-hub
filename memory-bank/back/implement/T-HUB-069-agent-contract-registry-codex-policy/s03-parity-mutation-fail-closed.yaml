@@ -1,0 +1,78 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: Parity mutation — drop deny / weaker verify-implement fails CI
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s03-parity-mutation-fail-closed.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- check_codex_parity updated to validate policy mappings, sidecars, and fingerprints
+- runtime-sync CLI check updated to pass root_dir to parity check
+- mutation tests for drop deny and presence-only verification added to test_codex_agent_policy.py
+gaps:
+  status: none
+done:
+- parity applies mapping per prompt file; emits fail codes codex_policy_dropped /
+  unsupported_runtime_policy
+- 'mutation: strip disallowedTools from TOML/sidecar → issues non-empty (FR-013 /
+  TM-001)'
+- 'verify-implement matrix: source forbids Write → Codex path not weaker (hook row
+  + test or native field) TM-003 / SC-005'
+- 'explorer mapping: Codex must not grant Write (FR-010 / TM-006)'
+- presence-only TOML file without policy fingerprint / valid sidecar fails parity
+  (AC−1 / AC−5)
+files:
+- loop/runtime_materializers/parity.py
+- loop/runtime_materializers/codex_sync.py
+- loop/tests/test_codex_agent_policy.py
+- loop/tests/test_runtime_sync_check.py
+- loop/tests/test_codex_agent_toml.py
+deletes:
+- presence-only Independent Test interpretation in new policy tests (do not add tests
+  that PASS when only TOML file exists)
+tests:
+- bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k drop_deny
+- bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k verify_implement_mapping
+- bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k explorer_write
+- bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k presence_only
+integration_check:
+- bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_runtime_sync_check.py
+  -q --tb=line -k 'policy or drop_deny or mapping or presence'
+- rg -n 'codex_policy_dropped|unsupported_runtime_policy' loop/runtime_materializers/parity.py
+  loop/runtime_materializers/
+grep_control:
+- back: codex_policy_dropped in loop/runtime_materializers/parity.py
+  front: unsupported_runtime_policy in loop/runtime_materializers/parity.py
+verification_results:
+- 'cp1 PASS: bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k drop_deny
+  (1 passed)'
+- 'cp2 PASS: bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k verify_implement_mapping
+  (1 passed)'
+- 'cp3 PASS: bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k explorer_write
+  (1 passed)'
+- 'cp4 PASS: bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k presence_only
+  (1 passed)'
+checkpoints:
+- id: cp1
+  criterion: Drop deny from TOML/sidecar → parity/policy fail unsupported_runtime_policy
+    or codex_policy_dropped (TM-001 / FR-013)
+  status: done
+- id: cp2
+  criterion: verify-implement Codex not weaker than md (US-001 / SC-005 / TM-003);
+    hook row if native unsupported
+  status: done
+- id: cp3
+  criterion: explorer Codex Write denied (FR-010 / TM-006)
+  status: done
+- id: cp4
+  criterion: Presence-only TOML exists is NOT sufficient — Independent Test FAIL path
+    encoded (AC−1 / AC−5)
+  status: done

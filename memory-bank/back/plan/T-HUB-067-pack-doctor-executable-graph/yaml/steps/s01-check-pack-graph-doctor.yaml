@@ -1,0 +1,194 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: "Executable pack graph — exists+declare codes; doctor CLI fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Doctor/CI видит unusable pack как ok=false с точными кодами (route/gate/agent/skill/schema),
+  не keys-only green. check_pack_graph ходит по исполняемому графу; CLI exit ≠0;
+  062 skill_refs и 064 route exists compose, не fork. Software pack не падает на ffmpeg.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-011
+    - FR-014
+    - FR-015
+    - US-001
+    - US-002
+    - US-003
+    - SC-001
+    - SC-004
+    - AC+1
+    - AC+5
+    - AC−2
+    - AC−5
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-004
+    - TM-009
+  nouns:
+    - check_pack_graph
+    - pack_route_missing
+    - pack_gate_missing
+    - pack_agent_missing
+    - skill_ref_missing
+    - pack_schema_missing
+    - pack_tool_gate_missing
+    - Path.exists
+    - check_skill_refs
+    - route_command
+    - run_doctor_workflow_pack
+    - --pack
+    - loop/workflow/pack_graph.py
+    - loop/tests/test_pack_graph_doctor.py
+  layout_paths:
+    - loop/workflow/pack_graph.py
+    - loop/doctor/checks/workflow_pack.py
+    - loop/workflow/skill_refs.py
+    - loop/workflow/command_router.py
+    - loop/workflow/resolve.py
+    - loop/context_loop.py
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_doctor_workflow_pack.py
+  ac_quotes:
+    - "check_pack_graph(pack) walks: registry entry, rules_root exists, each role index, each intent→route Path.exists, each _lean gate, each phase verify_agent in manifest or no_gate_reason, each schema_id"
+    - "Precise fail codes (axiom table). Multiple codes allowed (list), not first-only hide."
+    - "Consume 062 skill checker … or call same function."
+    - "Consume 064 route exists helper; do not duplicate divergent exists logic."
+    - "Doctor CLI exit ≠0 when any registered pack unusable; --pack filter."
+    - "Do not swallow doctor IO errors as skip pack."
+    - "ffmpeg = pack_tool_gate_missing advisory vs fail: fail only if pack tool_gates.required=true"
+    - "FAIL: «doctor prints yaml keys» without Path.exists"
+    - "Given: tmp pack whose route_command path does not exist When: doctor / check_pack_graph Then: ok=false, code pack_route_missing"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:31-40"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:43-100"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:117-163"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:203-216"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:235-255"
+
+context:
+  consumes:
+    - plan.md §Technology axiom Pack usable / Doctor codes
+    - plan.md §FR-001…005 §FR-011(a)(b)(c) §FR-014 §FR-015
+    - plan.md §US-001/002/003 §AC+1/5 §AC−2/5 §QA TM-001…003 §Failure TM-001…004/009
+    - T-HUB-062 check_skill_refs (hard dep)
+    - T-HUB-064 route_command pack_route_missing (hard dep)
+  produces:
+    - check_pack_graph walk + codes[] ok=len(codes)==0
+    - doctor CLI exit ≠0 on unusable; --pack filter
+    - fixtures missing route/gate/agent → exact codes (list, not first-only hide)
+    - compose skill_refs + route exists (no fork)
+    - pack_tool_gate_missing advisory unless tool_gates.required=true
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#technology-axiom
+    - plan.md#failure-matrix
+    - plan.md#qa-consumes
+    - plan.md#independent-test
+  files:
+    - loop/workflow/pack_graph.py
+    - loop/doctor/checks/workflow_pack.py
+    - loop/workflow/resolve.py
+    - loop/context_loop.py
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_doctor_workflow_pack.py
+
+as_built:
+  - "check_workflow_pack: resolve ok + phase_registry is_file + rules_root is_dir + mb writable — no per-route Path.exists, no _lean gates, no verify_agent declare, no skill_refs"
+  - "full_resolve/validate_pack_paths: pack_path_missing only for phase_registry file + memory_bank dir"
+  - "route_command already fail-closed pack_route_missing (T-HUB-064) — doctor does not call it for every intent"
+  - "check_skill_refs / skill_ref_missing exists (T-HUB-062) — doctor does not consume it"
+  - "run_doctor_workflow_pack JSON ok=len(codes)==0; no --pack filter; except Exception → workflow_pack_check_error (keep, do not skip pack)"
+  - "test_doctor_ok asserts codes==[] on hub root without walking routes"
+
+delta:
+  - "add loop/workflow/pack_graph.py (or extend resolve) check_pack_graph: registry, rules_root, role indexes, each intent→route via 064 helper Path.exists, each _lean Gates path, each verify_agent in manifest or no_gate_reason, schema_id in BOUNDARY_REGISTRY if declared, skill_refs via 062"
+  - "wire doctor check_workflow_pack / run_doctor_workflow_pack to check_pack_graph; --pack filter; exit ≠0 when any registered pack unusable (or filtered pack)"
+  - "codes list: pack_route_missing · pack_gate_missing · pack_agent_missing · skill_ref_missing · pack_schema_missing; multiple allowed"
+  - "FR-015: pack_tool_gate_missing only fail if tool_gates.required=true; default software not fail ffmpeg"
+  - "red tests fixtures (a)(b)(c) before prod walk; rewrite keys-only tests that would stay green on missing workflow file"
+  - "IO errors remain diagnostic, never skip pack (FR-014)"
+
+deletes:
+  - "doctor/check_workflow_pack treating keys-only (rules_root dir exists) as pack usable"
+  - "second Path.exists implementation diverging from route_command / 064 helper"
+  - "fork of skill_refs regex instead of calling check_skill_refs"
+  - "silent skip of a registered pack because it is red"
+
+out_of_scope:
+  - "load_session derived ok / required_missing fields (s02)"
+  - "SessionStart CONTEXT_INCOMPLETE (s03)"
+  - "Kind I README / CLAUDE table (s04)"
+  - "full leftover inventory scan (s05)"
+  - "template pack authoring — Appetite cut_list"
+  - "MCP load rewrite — Appetite cut_list"
+  - "full ContextBoundaryService class — Appetite cut_list; follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "ffmpeg required gate fail for video — Appetite cut_list; follow_up leftover T-HUB-051; this step only documents advisory field"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+sunset_scope:
+  required: true
+  boundary_id: pack-doctor-executable-graph
+  new_sot: loop/workflow/pack_graph.py
+  allow_read:
+    - loop/workflow/
+    - loop/doctor/
+    - loop/tests/test_doctor_workflow_pack.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_skill_literal_refs.py
+  kind_hint:
+    - A
+    - B
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Missing route fixture → ok=false, code pack_route_missing, path listed
+      (US-001 / FR-001 / SC-001 / QA TM-001 / Failure TM-001).
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'pack_route_missing or missing_route'"
+  - id: cp2
+    criterion: Missing _lean gate → pack_gate_missing (US-003 / QA TM-002 / Failure TM-002); undeclared verify_agent → pack_agent_missing (US-002 / QA TM-003 / Failure TM-003); missing skill @ → skill_ref_missing via 062 (FR-003 / Failure TM-004). Multiple codes in one result allowed (FR-002).
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'pack_gate_missing or pack_agent_missing or skill_ref_missing or multiple_codes'"
+  - id: cp3
+    criterion: Doctor CLI exit ≠0 on unusable; --pack filter; IO not skip pack (FR-005 / FR-014 / AC+1). Keys-only yaml present + missing file → not green (Failure TM-009 / Independent Test FAIL).
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py -q --tb=line -k 'doctor or keys_only or skip_pack or workflow_pack_check_error or pack_filter'"
+  - id: cp4
+    criterion: Compose not fork — doctor uses route_command/064 exists + check_skill_refs; ffmpeg advisory unless tool_gates.required (FR-004 / FR-015 / AC+5 / AC−5).
+    verify: "rg -n \"check_skill_refs|pack_route_missing|check_pack_graph\" loop/workflow/pack_graph.py loop/doctor/checks/workflow_pack.py; bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'compose or tool_gate or ffmpeg or skill_ref'"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py -q --tb=line"
+  - "rg -n \"def check_pack_graph\" loop/workflow/"
+  - "rg -n \"pack_route_missing|pack_gate_missing|pack_agent_missing\" loop/workflow/pack_graph.py loop/doctor/"
+
+tdd:
+  - "test_missing_route_fixture_pack_route_missing — US-001 TM-001"
+  - "test_missing_lean_gate_pack_gate_missing — US-003 TM-002"
+  - "test_undeclared_verify_agent_pack_agent_missing — US-002 TM-003"
+  - "test_missing_skill_ref_pack_unusable — FR-003 Failure TM-004"
+  - "test_multiple_codes_not_first_only_hide — FR-002"
+  - "test_keys_only_yaml_missing_file_not_green — TM-009 Independent Test FAIL"
+  - "test_doctor_cli_exit_nonzero_unusable_pack — FR-005"
+  - "test_doctor_pack_filter — FR-005"
+  - "test_doctor_io_error_not_skip_pack — FR-014"
+  - "test_ffmpeg_tool_gate_advisory_unless_required — FR-015"
+  - "test_check_pack_graph_reuses_route_command_and_skill_refs — FR-003/004"

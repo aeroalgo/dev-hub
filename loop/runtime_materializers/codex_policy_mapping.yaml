@@ -1,0 +1,60 @@
+schema_version: "codex-policy-mapping/v1"
+description: "Equivalence matrix for agent contract fields mapped to Codex runtime"
+
+fields:
+  name:
+    support: native
+    target: "name"
+    notes: "Directly supported in Codex agent TOML"
+  description:
+    support: native
+    target: "description"
+    notes: "Directly supported in Codex agent TOML"
+  tools:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Codex TOML has no tools list; enforced via harness hooks"
+  disallowedTools:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Deny policy for Write/Edit/Agent enforced via harness hooks"
+  maxTurns:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Turn limits enforced via hooks"
+  overlay:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Overlay model/routing enforced via hooks"
+  managed:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Managed lifecycle flag tracked in PolicyRecord and hook policy"
+  mode:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Subagent mode enforced via hooks"
+  verdict:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Verdict parsing enforced via hooks"
+  allow_worktree:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Worktree isolation handled in hook"
+  requires_model:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Model requirement checked via hook"
+  default_loop:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Default loop configuration checked via hook"
+  default_chat:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Default chat configuration checked via hook"
+  color:
+    support: unsupported
+    target: null
+    notes: "UI visual indicator not applicable to Codex CLI runtime"

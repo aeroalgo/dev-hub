@@ -1,0 +1,47 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - generate schemas README
+  - generate CONTRACTS AST
+  - generic @verify purge
+  - Cursor Codex IDE
+steps:
+- id: s01
+  file: s01-policy-record-parser.yaml
+  title: PolicyRecord + frontmatter parser — extras listed; red silent-drop deny
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-mapping-fingerprint-sidecar.yaml
+  title: Mapping yaml + materialize fingerprint/sidecar — native or fail-closed emit
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-parity-mutation-fail-closed.yaml
+  title: Parity mutation — drop deny / weaker verify-implement fails CI
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-subagent-start-contract-drift.yaml
+  title: SubagentStart — CONTRACTS sha drift blocks spawn
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-always-inject-derived.yaml
+  title: ALWAYS_INJECT derived — video verify-edit + sunset if managed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-kind-i-runtime-sync-fingerprint.yaml
+  title: Kind I honesty + runtime-sync --check fingerprint mismatch
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-legacy-fallback-purge.yaml
+  title: s07 — legacy-fallback-purge — presence-only parity + silent-weaker leftovers
+  next_phase: BACK IMPLEMENT
+  status: pending

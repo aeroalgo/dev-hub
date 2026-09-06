@@ -1,0 +1,238 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: "s05 — legacy-fallback-purge — dual leftover + warning-only + Kind I"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: 0 dual same-realpath commands на всех hook events;
+  inject не default claude на Codex; hash_mismatch не warning-only; Kind I
+  instructions не требуют universal CLAUDE.md для Codex. Нулевые leftover
+  A+B+C+I из plan Replacement (C swallow preflight — scan + follow_up 067/068);
+  obsolete tests rewritten; suite green без restore dual. Канон:
+  workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-003, FR-008, FR-010, SC-001, AC−1, AC−3, AC−4, AC−5, Independent Test]
+  nouns:
+    - leftover dual realpath all events
+    - merge_hooks string-equal only
+    - warning-only hash_mismatch
+    - Read корневого CLAUDE.md
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - .claude/settings.json
+    - loop/hub_settings_merge.py
+    - harness/hooks/epic/core.py
+    - .cursor/rules/mainrule.mdc
+    - loop/runtime_materializers/sync.py
+  ac_quotes:
+    - "Pre/Post tool duplicate same treatment as SessionStart."
+    - "FAIL: «symlinks exist» without unique registration."
+    - "Нет hand-maintained second settings copy that re-adds dual."
+    - "hash_mismatch warning-only | fail check | delete in-epic for claude target"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:158-237"
+
+context:
+  consumes:
+    - plan.md §Replacement / sunset (A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s04 apply/wire/enforce
+  produces:
+    - zero leftover dual commands all events
+    - rewritten obsolete merge/inject/hash/instruction tests
+    - sunset_inventory + grep_control evidence
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - .claude/settings.json
+    - loop/hub_settings_merge.py
+    - loop/tests/test_hub_settings_merge.py
+    - loop/tests/test_hook_duplicate_realpath.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - .cursor/rules/mainrule.mdc
+    - .claude/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+    - loop/runtime_materializers/sync.py
+    - loop/tests/test_runtime_sync_check.py
+
+as_built:
+  - "After s01–s04: unique helper + inject runtime + Kind I rewrite + hash fail-closed may still leave leftover events, comments, obsolete tests"
+  - "session-start except Exception: pass remains (follow_up 067/068)"
+  - "Cursor hooks.json failClosed out of scope (Appetite cut)"
+
+delta:
+  - "scan all hook events in committed settings + generator output; delete leftover dual realpath rows"
+  - "rewrite/delete tests that assert string-equal merge as sufficient or dual-path OK"
+  - "rg Kind I leftover unconditional CLAUDE.md HARD"
+  - "rg warning-only hash_mismatch success path for claude target"
+  - "document C swallow preflight as follow_up T-HUB-067 / T-HUB-068 (IDs already in queue)"
+
+deletes:
+  - "leftover dual `.claude/hooks` + `harness/hooks` commands any event/matcher same realpath"
+  - "obsolete tests asserting dual registration OK or merge without realpath"
+  - "leftover unconditional Read корневого CLAUDE.md HARD in instruction copies"
+  - "warning-only default success for claude CLAUDE.md hash_mismatch"
+
+sunset_scope:
+  required: true
+  boundary_id: hook-registration-runtime-entrypoint
+  new_sot: harness/hooks/*.py + EPIC_RUNTIME → build_prompt_scope + current entrypoint
+  allow_read:
+    - ".claude/settings.json"
+    - "harness/claude/settings.harness.json"
+    - "loop/hub_settings_merge.py"
+    - "harness/hooks/**"
+    - "loop/prompt_builder.py"
+    - "loop/runtime_materializers/**"
+    - ".cursor/rules/mainrule.mdc"
+    - ".claude/skills/role-command/SKILL.md"
+    - "harness/claude/skills/role-command/SKILL.md"
+    - ".agents/skills/role-command/SKILL.md"
+    - "loop/tests/**"
+    - "harness/hooks/tests/**"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+sunset_inventory:
+  - symbol: second settings command same realpath
+    kind: A
+    replacement: single harness SoT command
+    policy: delete in-epic
+    rg_scope: .claude/settings.json harness/claude/settings.harness.json
+    expect: zero dual same-realpath commands per event/matcher
+  - symbol: build_prompt_scope() default used for Codex
+    kind: A
+    replacement: explicit runtime from EPIC_RUNTIME
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: session_start_payload passes runtime= when EPIC_RUNTIME set
+  - symbol: tests asserting dual-path OK / string-equal merge without realpath
+    kind: A
+    replacement: unique-realpath tests + dual fixture fail
+    policy: delete in-epic
+    rg_scope: loop/tests/test_hub_settings_merge.py loop/tests/test_hook_duplicate_realpath.py
+    expect: no live asserts that dual same-realpath is OK
+  - symbol: installer that appends both .claude and harness
+    kind: B
+    replacement: one harness path
+    policy: delete in-epic
+    rg_scope: loop/hub_settings_merge.py
+    expect: merge does not append twin when realpath equal
+  - symbol: catch Exception continue on preflight as success
+    kind: C
+    replacement: typed warning vs fail
+    policy: shim+follow-up
+    follow_up_epic: T-HUB-067-pack-doctor-executable-graph
+    rg_scope: harness/hooks/session-start.py
+    expect: leftover allowed only with follow_up T-HUB-067 / T-HUB-068 in queue
+  - symbol: hash_mismatch warning-only
+    kind: C
+    replacement: fail check
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers harness/hooks/session-start.py
+    expect: claude --check non-zero on mismatch; no default warning-only success
+  - symbol: mainrule «Read CLAUDE.md» always
+    kind: I
+    replacement: current entrypoint
+    policy: delete in-epic
+    rg_scope: .cursor/rules/mainrule.mdc
+    expect: no unconditional CLAUDE.md HARD for Codex
+  - symbol: role-command same
+    kind: I
+    replacement: runtime entrypoint
+    policy: delete in-epic
+    rg_scope: .claude/skills/role-command/SKILL.md harness/claude/skills/role-command/SKILL.md
+    expect: no unconditional CLAUDE.md HARD for Codex
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: second settings command same realpath
+    command: 'rg -n "\\.claude/hooks/.+\\.py" .claude/settings.json || true'
+    expect: no twin of harness/hooks same basename on same event if realpath-equal; unique grouping test green
+  - id: inv-a-02
+    kind: A
+    symbol: build_prompt_scope default for Codex
+    command: 'rg -n "build_prompt_scope\\(" harness/hooks/epic/core.py'
+    expect: runtime= present from EPIC_RUNTIME
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete dual-OK tests
+    command: 'rg -n "duplicate.*ok|both .claude and harness" loop/tests/test_hub_settings_merge.py loop/tests/test_hook_duplicate_realpath.py || true'
+    expect: no asserts that dual same-realpath is success
+  - id: inv-b-01
+    kind: B
+    symbol: installer appends both paths
+    command: 'rg -n "result_entries.append" loop/hub_settings_merge.py'
+    expect: append skipped when realpath equal
+  - id: inv-c-01
+    kind: C
+    symbol: catch Exception continue on preflight
+    command: 'rg -n "except Exception" harness/hooks/session-start.py || true'
+    expect: leftover only with follow_up T-HUB-067 / T-HUB-068
+  - id: inv-c-02
+    kind: C
+    symbol: hash_mismatch warning-only
+    command: 'rg -n "WARNING: Runtime drift|warning-only|hash_mismatch" harness/hooks/session-start.py loop/runtime_materializers loop/tests/test_runtime_sync_check.py || true'
+    expect: claude check fail-closed; Codex preflight warn may remain until 067/068
+  - id: inv-i-01
+    kind: I
+    symbol: mainrule Read CLAUDE.md always
+    command: 'rg -n "Read корневого CLAUDE.md" .cursor/rules/mainrule.mdc || true'
+    expect: no unconditional HARD for all runtimes
+  - id: inv-i-02
+    kind: I
+    symbol: role-command Read CLAUDE.md always
+    command: 'rg -n "Read корневого CLAUDE.md" .claude/skills/role-command/SKILL.md harness/claude/skills/role-command/SKILL.md || true'
+    expect: no unconditional HARD for Codex
+
+out_of_scope:
+  - "Cursor hooks.json failClosed — Appetite cut FR-009"
+  - "DSH full inject matrix polish — Appetite cut"
+  - "full Codex event matrix — follow_up: T-HUB-053-codex-claude-hooks-parity"
+  - "schema fence — follow_up: T-HUB-066-boundary-schema-ownership-strict"
+  - "preflight swallow full fail-closed — follow_up: T-HUB-067-pack-doctor-executable-graph / T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A (cp-inventory-a) — rg по каждой sunset_inventory kind=A: 0 dual same-realpath
+      prod commands; inject passes runtime; obsolete dual-OK tests gone.
+    verify: |
+      bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py harness/hooks/tests/test_session_start_inject.py -q --tb=line
+  - id: cp2
+    criterion: Kind B (cp-inventory-b) — merge_hooks does not append harness twin when realpath equals .claude/hooks
+    verify: "bin/pytest loop/tests/test_hub_settings_merge.py -q --tb=line -k realpath"
+  - id: cp3
+    criterion: |
+      Kind C (cp-inventory-c) — hash_mismatch warning-only deleted for claude target;
+      preflight swallow leftover documented with follow_up T-HUB-067 / T-HUB-068.
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k hash_mismatch"
+  - id: cp4
+    criterion: Kind I (cp-inventory-i) — 0 unconditional Read корневого CLAUDE.md HARD for Codex in mainrule + role-command copies
+    verify: "bin/pytest loop/tests/test_kind_i_runtime_entrypoint.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py harness/hooks/tests/test_session_start_inject.py loop/tests/test_kind_i_runtime_entrypoint.py loop/tests/test_runtime_sync_check.py -q --tb=line"
+
+tdd:
+  - "re-run unique-all-events + dual fixture + inject both runtimes + kind-i rg + hash fail-closed after leftover deletes"

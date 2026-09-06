@@ -9,25 +9,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (
     product_cwd,  # noqa: E402
     CONTRACTS,
+    CONTRACTS_SHA256,
     HARD_RULE,
+    check_contract_drift,
     emit,
     load_state,
     normalize_type,
     read_stdin,
     workflow_state_active,
 )
+from loop.runtime_materializers.agent_policy import get_always_inject_set
 
 
-_ALWAYS_INJECT = {
-    "verify",
-    "verify-implement",
-    "verify-bugfix",
-    "verify-qa",
-    "verify-decompose",
-    "analyze-verify",
-    "reviewer",
-    "gate-repair",
-}
+_ALWAYS_INJECT = get_always_inject_set()
 _AGENT_TYPE_FIELDS = ("agent_type", "subagent_type", "type")
 PRESET_BY_AGENT = {
     "verify": "preset.verify",
@@ -39,6 +33,10 @@ PRESET_BY_AGENT = {
     "reviewer": "preset.reviewer",
     "explorer": "preset.explorer",
     "gate-repair": "preset.repair",
+    "sunset-inventory": "preset.explorer",
+    "verify-script": "preset.verify",
+    "verify-edit": "preset.verify",
+    "verify-publish": "preset.verify",
 }
 
 
@@ -58,6 +56,20 @@ def main() -> None:
     contract = CONTRACTS.get(agent_type or "", "")
     if not contract:
         return
+
+    is_ok, drift_msg = check_contract_drift(agent_type)
+    if not is_ok:
+        emit(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "SubagentStart",
+                    "permissionDecision": "deny",
+                    "additionalContext": f"DENY: {drift_msg}",
+                }
+            }
+        )
+        return
+
     # verify/reviewer always get their contract — regardless of workflow state
     if agent_type not in _ALWAYS_INJECT:
         st = load_state(session_id, cwd)

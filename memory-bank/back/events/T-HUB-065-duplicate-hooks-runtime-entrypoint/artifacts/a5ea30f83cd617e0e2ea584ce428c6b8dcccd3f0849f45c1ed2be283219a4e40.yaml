@@ -1,0 +1,40 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+date: '2026-09-06'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-065"
+  - "epic: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "steps: s01–s05"
+  - "files: loop/hub_settings_merge.py, harness/hooks/epic/core.py, .cursor/rules/mainrule.mdc, harness/claude/skills/role-command/SKILL.md, loop/runtime_materializers/parity.py, loop/cli/runtime_sync.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2029 passed, 3 skipped)"
+  - "integration rule (§0.11): hook realpath deduplication & runtime injection parity verified"
+  - "no phantom refs: verified via test_hook_duplicate_realpath, test_kind_i_runtime_entrypoint, test_runtime_sync_check"
+  - "reviewer gate: @verify-qa VERDICT PASS"
+  - "behavior smoke: TM-001..TM-006 pass, runtime-sync claude check passed"
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

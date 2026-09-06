@@ -36,6 +36,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Root directory for relative paths (default: manifest parent or CWD)",
     )
+    parser.add_argument(
+        "--allow-hash-mismatch",
+        action="store_true",
+        help="Allow hash mismatches without non-zero exit code (default: fail-closed / false)",
+    )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--check", action="store_true", help="Check for drift / parity without writing")
     group.add_argument("--apply", action="store_true", help="Apply changes and materialize files")
@@ -70,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
             parity_issues = check_codex_parity(
                 hooks_json_path=hooks_json_path,
                 manifest_path=manifest_path if manifest_path.exists() else None,
+                root_dir=root_dir,
             )
             if parity_issues:
                 total_drift.extend(parity_issues)
@@ -92,6 +98,11 @@ def main(argv: list[str] | None = None) -> int:
                         sys.stdout.write(f"  - {item}\n")
 
         if total_drift:
+            if args.allow_hash_mismatch and all("hash_mismatch" in item for item in total_drift):
+                sys.stderr.write(
+                    f"Warning: Drift/parity issues detected ({len(total_drift)} items total), allowed via flag\n"
+                )
+                return 0
             sys.stderr.write(f"Drift/parity issues detected ({len(total_drift)} items total)\n")
             return 1
         sys.stdout.write("No drift detected\n")

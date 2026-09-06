@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L3  
 **Статус:** active  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Roadmap:** [roadmap-pydantic-reliability-epics.md](roadmap-pydantic-reliability-epics.md)  
 **Queue:** [roadmap-pydantic-reliability-epics.queue.yaml](roadmap-pydantic-reliability-epics.queue.yaml)  
 **Deps:** нет hard. Soft: существующий `PROJECT_OUTPUT_SUMMARY_*` в `.claude/project.env`.

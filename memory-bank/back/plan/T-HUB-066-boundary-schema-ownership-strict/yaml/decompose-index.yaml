@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - signed runtime envelope
+  - full retry_policy/v1 productization
+steps:
+- id: s01
+  file: s01-wire-schema-required-collab-forbid.yaml
+  title: Wire schema required + Codex extra=forbid — same parse function
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-fence-required-stop-mutation.yaml
+  title: SubagentStop — fence required; payload verdict ≠ SoT; mutation
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-semantic-ownership-mismatch.yaml
+  title: Ownership vs in-flight — mismatch fail-closed, no schema-retry
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-repair-parent-fail-invariants.yaml
+  title: Repair linked to parent FAIL — leftover remaining invalid
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-kind-i-readme-prompts.yaml
+  title: Kind I — README gate_verdict + prompts «no fence = FAIL» runtime-true
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — bypass leftover + SKIP docs
+  next_phase: BACK IMPLEMENT
+  status: completed

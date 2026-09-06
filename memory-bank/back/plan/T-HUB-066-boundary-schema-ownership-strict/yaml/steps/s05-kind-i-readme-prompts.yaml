@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: "Kind I — README gate_verdict + prompts «no fence = FAIL» runtime-true"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Instruction surface совпадает с runtime после s01–s04: README не указывает
+  `verdict.py` / SKIP; таблица gate = GateVerdictRecord PASS/FAIL/BLOCKED.
+  Prompts «no fence = FAIL» остаются и проверяются living-тестом, что runtime
+  (s02) это исполняет. Не удалять fence contract из prompt (FR-010).
+
+plan_contract:
+  fr_ids: [FR-010, FR-012, AC+1]
+  nouns:
+    - loop/schemas/README.md
+    - GateVerdictRecord
+    - PASS/FAIL/BLOCKED
+    - no fence = FAIL
+    - harness/agents/verify-implement.md
+  layout_paths:
+    - loop/schemas/README.md
+    - harness/agents/verify-implement.md
+    - harness/agents/gate-repair.md
+    - loop/tests/test_kind_i_boundary_prompts.py
+  ac_quotes:
+    - "Kind I: agent prompts «no fence = FAIL» remains true in runtime."
+    - "`loop/schemas/README.md` stale verdict.py — rewrite in-epic Kind I"
+    - "prompts already say fence required | make runtime match"
+    - "schemas README lie | rewrite"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:86-90"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:168-197"
+
+context:
+  consumes:
+    - s02 runtime fence-required (Kind I must stay true)
+    - plan.md §FR-010/012 §Replacement I
+  produces:
+    - README maps loop-gate-verdict/v1 → GateVerdictRecord + PASS/FAIL/BLOCKED (not SKIP / verdict.py)
+    - living test: prompts still require fence AND stop path rejects no-fence
+    - no instruction teaching payload verdict as SoT
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#functional-requirements
+  files:
+    - loop/schemas/README.md
+    - harness/agents/verify-implement.md
+    - harness/agents/verify-qa.md
+    - harness/agents/gate-repair.md
+    - loop/tests/test_kind_i_boundary_prompts.py
+
+as_built:
+  - "loop/schemas/README.md lists LoopGateVerdict / loop/schemas/verdict.py / SKIP — file does not exist; GateVerdictRecord is SoT"
+  - "harness/agents/verify-*.md already HARD JSON fence; runtime until s02 could still PASS via payload"
+  - "spawn-hard / verify prompts already say no fence = protocol FAIL"
+
+delta:
+  - "rewrite README gate row: GateVerdictRecord, gate_verdict.py, PASS/FAIL/BLOCKED; drop SKIP and verdict.py"
+  - "align repair/sunset rows if README omits them or lies"
+  - "living Kind I test: prompt contains fence contract; rg no instruction that payload data.verdict is SoT"
+  - "do not delete fence examples from prompts (FR-010)"
+
+deletes:
+  - "loop/schemas/README.md references to verdict.py, LoopGateVerdict SKIP as current SoT"
+  - "any Kind I line that teaches extra=ignore collab or payload-without-fence PASS"
+
+out_of_scope:
+  - "historical audit 04/06 markdown keep (rewrite README only)"
+  - "purge leftover code comments (s06)"
+  - "signed envelope docs — cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: >
+      README current SoT is GateVerdictRecord PASS/FAIL/BLOCKED in gate_verdict.py;
+      leftover verdict.py / SKIP as current SoT equals 0 (FR-012). Absence fail-closed
+      via pytest assert empty leftover.
+    verify: "bin/pytest loop/tests/test_kind_i_boundary_prompts.py -q --tb=line -k readme"
+  - id: cp2
+    criterion: Prompts still require JSON fence (FR-010) — positive hits required
+    verify: "rg -n \"JSON fence|loop-gate-verdict/v1\" harness/agents/verify-implement.md harness/agents/gate-repair.md"
+  - id: cp3
+    criterion: Living test — no-fence FAIL remains true in runtime+prompt (FR-010)
+    verify: "bin/pytest loop/tests/test_kind_i_boundary_prompts.py loop/tests/test_stop_gate.py -q --tb=line -k 'fence or kind_i or nofence'"
+  - id: cp4
+    criterion: Kind I does not teach payload data.verdict as SoT or extra=ignore collab — leftover count 0 (fail-closed pytest, no || true)
+    verify: "bin/pytest loop/tests/test_kind_i_boundary_prompts.py -q --tb=line -k 'payload_sot or extra_ignore or kind_i'"
+
+verify:
+  - "bin/pytest loop/tests/test_kind_i_boundary_prompts.py -q --tb=line"
+  - "rg -n \"GateVerdictRecord\" loop/schemas/README.md"
+
+tdd:
+  - "test_readme_gate_verdict_not_skip_or_verdict_py — FR-012"
+  - "test_prompts_require_fence_and_runtime_agrees — FR-010"

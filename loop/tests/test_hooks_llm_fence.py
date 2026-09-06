@@ -50,11 +50,18 @@ def test_parse_gate_verdict_message_valid(tmp_path):
 {
   "verdict": "PASS",
   "step_id": "s11",
+  "session_id": "test-sess",
   "epic_id": "T-HUB-023"
 }
 ```
 """
-    rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    rec = parse_gate_verdict_message(
+        text,
+        str(tmp_path),
+        "verify",
+        recorded_at=utc_now(),
+        session_id="test-sess",
+    )
     assert rec is not None
     assert rec.verdict == "PASS"
     assert rec.step_id == "s11"
@@ -69,7 +76,13 @@ def test_parse_gate_verdict_message_invalid_payload(tmp_path):
 }
 ```
 """
-    rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    rec = parse_gate_verdict_message(
+        text,
+        str(tmp_path),
+        "verify",
+        recorded_at=utc_now(),
+        session_id="test-sess",
+    )
     assert rec is None
 
 def test_parse_gate_verdict_message_canonical_loop_gate_verdict(tmp_path):
@@ -80,12 +93,19 @@ def test_parse_gate_verdict_message_canonical_loop_gate_verdict(tmp_path):
   "agent_id": "verify-implement",
   "verdict": "PASS",
   "step_id": "s03",
+  "session_id": "test-sess",
   "epic_id": "T-HUB-055",
   "recorded_at": "2026-09-03T00:00:00Z"
 }
 ```
 """
-    rec = parse_gate_verdict_message(text, str(tmp_path), "verify", recorded_at=utc_now())
+    rec = parse_gate_verdict_message(
+        text,
+        str(tmp_path),
+        "verify-implement",
+        recorded_at=utc_now(),
+        session_id="test-sess",
+    )
     assert rec is not None
     assert rec.verdict == "PASS"
     assert rec.step_id == "s03"

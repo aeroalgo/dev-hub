@@ -288,7 +288,7 @@ def test_subagent_start_and_stop_lifecycle_codex(tmp_path: Path) -> None:
         "cwd": str(tmp_path),
         "last_assistant_message": (
             "```json\n"
-            '{"schema": "loop-gate-verdict/v1", "agent_id": "verify", "verdict": "PASS", "recorded_at": "2026-09-03T12:00:00Z"}\n'
+            '{"schema": "loop-gate-verdict/v1", "agent_id": "verify", "verdict": "PASS", "step_id": "s01", "session_id": "test-session-subagent", "epic_id": "T-HUB-001", "recorded_at": "2026-09-03T12:00:00Z"}\n'
             "```\n"
             "VERDICT: PASS"
         ),

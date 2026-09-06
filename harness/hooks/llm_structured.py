@@ -187,6 +187,7 @@ def run_log_summary(
 class GateVerdictOutput(BaseModel):
     verdict: str
     step_id: str | None = None
+    session_id: str | None = None
     epic_id: str | None = None
 
 
@@ -216,7 +217,13 @@ def run_gate_classify(domain: str, text: str, *, env: dict[str, str] | None = No
     return None
 
 
-def run_gate_verdict_llm(text: str, cwd: str | Path, agent_id: str = "verify", recorded_at: str | None = None) -> Any | None:
+def run_gate_verdict_llm(
+    text: str,
+    cwd: str | Path,
+    agent_id: str = "verify",
+    recorded_at: str | None = None,
+    session_id: str | None = None,
+) -> Any | None:
     env = os.environ
     if env.get("PROJECT_HOOKS_LLM_FALLBACK") == "0":
         return None
@@ -229,6 +236,7 @@ def run_gate_verdict_llm(text: str, cwd: str | Path, agent_id: str = "verify", r
             agent_id,
             output.verdict,
             step_id=output.step_id,
+            session_id=output.session_id or session_id,
             epic_id=output.epic_id,
             recorded_at=recorded_at or utc_now(),
         )

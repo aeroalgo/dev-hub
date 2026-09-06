@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: s02 — SessionStart inject — EPIC_RUNTIME → AGENTS.md / CLAUDE.md IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/yaml/steps/s02-session-start-runtime-inject.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/verification-before-completion/SKILL.md
+- .agents/skills/requesting-code-review/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Passed runtime=os.environ.get('EPIC_RUNTIME') into build_prompt_scope in session_start_payload
+- Added unit tests for codex AGENTS.md, claude CLAUDE.md, and unknown runtime handling
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/session-start.py
+- harness/hooks/tests/test_session_start_inject.py
+- loop/prompt_builder.py
+- loop/tests/test_prompt_builder.py
+deletes:
+- session_start_payload → build_prompt_scope() without runtime when EPIC_RUNTIME is
+  set
+- Codex SessionStart additionalContext HARD READ CLAUDE.md as default
+tests:
+- '`bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line`'
+- '`bin/pytest loop/tests/test_prompt_builder.py -q --tb=line`'
+integration_check:
+- session_start_payload correctly routes entrypoint based on EPIC_RUNTIME env var
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- '{''check'': ''cp1 (EPIC_RUNTIME=codex -> AGENTS.md)'', ''status'': ''pass'', ''command'':
+  "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_prompt_builder.py
+  -q --tb=line -k ''codex or AGENTS''"}'
+- '{''check'': ''cp2 (EPIC_RUNTIME=claude -> CLAUDE.md)'', ''status'': ''pass'', ''command'':
+  "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k ''claude
+  or CLAUDE''"}'
+- '{''check'': ''cp3 (build_prompt_scope passes runtime)'', ''status'': ''pass'',
+  ''command'': ''bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line
+  -k runtime''}'
+- '{''check'': ''cp4 (unknown EPIC_RUNTIME handling)'', ''status'': ''pass'', ''command'':
+  "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_prompt_builder.py
+  -q --tb=line -k ''unknown or runtime''"}'
+checkpoints:
+- id: cp1
+  criterion: EPIC_RUNTIME=codex → session_start_payload additionalContext entrypoint
+    AGENTS.md not CLAUDE.md (US-002 / TM-003 / SC-002)
+  status: done
+- id: cp2
+  criterion: EPIC_RUNTIME=claude / claude-code → entrypoint CLAUDE.md (FR-005 / TM-004)
+  status: done
+- id: cp3
+  criterion: AC−2 — нет default claude entrypoint on Codex inject (build_prompt_scope
+    called with runtime)
+  status: done
+- id: cp4
+  criterion: unknown EPIC_RUNTIME fail-closed or documented default (Failure matrix
+    TM-003)
+  status: done

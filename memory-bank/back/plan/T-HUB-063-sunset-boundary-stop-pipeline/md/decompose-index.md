@@ -126,11 +126,10 @@
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
 | **s01** | [s01-register-sunset-boundary.yaml](../yaml/steps/s01-register-sunset-boundary.yaml) | [s01…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s01-register-sunset-boundary.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s02** | [s02-subagentstop-sunset-branch.yaml](../yaml/steps/s02-subagentstop-sunset-branch.yaml) | [s02…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s02-subagentstop-sunset-branch.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-persist-sunset-sidecar.yaml](../yaml/steps/s03-persist-sunset-sidecar.yaml) | [s03…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s03-persist-sunset-sidecar.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s04** | [s04-kind-i-sunset-prompt-matrix.yaml](../yaml/steps/s04-kind-i-sunset-prompt-matrix.yaml) | [s04…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s04-kind-i-sunset-prompt-matrix.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-legacy-fallback-purge.yaml](../yaml/steps/s05-legacy-fallback-purge.yaml) | [s05…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s05-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
-
+| **s02** | [s02-subagentstop-sunset-branch.yaml](../yaml/steps/s02-subagentstop-sunset-branch.yaml) | [s02…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s02-subagentstop-sunset-branch.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-persist-sunset-sidecar.yaml](../yaml/steps/s03-persist-sunset-sidecar.yaml) | [s03…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s03-persist-sunset-sidecar.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-kind-i-sunset-prompt-matrix.yaml](../yaml/steps/s04-kind-i-sunset-prompt-matrix.yaml) | [s04…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s04-kind-i-sunset-prompt-matrix.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-legacy-fallback-purge.yaml](../yaml/steps/s05-legacy-fallback-purge.yaml) | [s05…](../../implement/T-HUB-063-sunset-boundary-stop-pipeline/s05-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** все `no` (plan CREATIVE need: нет).
 
 **Ladder justification (5 sNN, не 6):** plan §До DECOMPOSE #1+#2 = один contract boundary (registry+CLI+fixtures) → s01; #3 wire+enforce stop → s02; persist отдельно (apply≠только validate) → s03; Kind I+matrix → s04; purge leftover → s05.

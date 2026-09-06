@@ -1,0 +1,214 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+slug: boundary-schema-ownership-strict
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "Wire schema required: на внешней границе (validate_boundary / fence parse) поле schema обязательно; missing schema → invalid."
+  - requirement_id: FR-002
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "SubagentStop: не принимает PASS из data.verdict без fence. Условие if fence_data is not None or not data.get(\"verdict\") заменено на fence_data is not None."
+  - requirement_id: FR-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Ownership: fence с чужим epic/step/session/agent относительно in-flight spawn → semantic_ownership_mismatch, не schema-retry."
+  - requirement_id: FR-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Ownership fields required: agent_id, epic_id, step_id, session_id, recorded_at ISO."
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "BLOCKED allowed only for agents/phases that declare it (verify-qa)."
+  - requirement_id: FR-006
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Repair: parent_evidence_id; remaining/fixed disjoint; done ⇒ remaining empty; fail ⇒ remaining or diagnostic; agent_id=gate-repair."
+  - requirement_id: FR-007
+    step_ids: [s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "Schema errors retry; ownership no retry (audit 01)."
+  - requirement_id: FR-008
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Codex collab extra=forbid: parse_collab_fence использует ту же базовую валидацию, что gate."
+  - requirement_id: FR-009
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Mutation test: test_subagent_stop_nofence_mutation_fails_if_bypass_restored."
+  - requirement_id: FR-010
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "Kind I: agent prompts «no fence = FAIL» remains true in runtime."
+  - requirement_id: FR-011
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Sunset parity: loop-sunset-inventory/v1 fence required after 063."
+  - requirement_id: FR-012
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "loop/schemas/README.md stale verdict.py — rewrite in-epic Kind I (audit 04/06)."
+  - requirement_id: US-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как parent loop runner, я не принимаю PASS без fence, чтобы subagent не мог обойти валидацию структуры."
+  - requirement_id: US-002
+    step_ids: [s01]
+    status_verbatim: "missing schema on wire invalid"
+    status: covered
+    plan_text_verbatim: "Как validator, я требую явное поле schema на wire JSON, чтобы не гадать схему по полям."
+  - requirement_id: US-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как loop state machine, я отклоняю вердикт с чужим step/epic/session, не расходуя schema retries."
+  - requirement_id: US-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как parent, я вижу repair привязанный к FAIL blockers."
+  - requirement_id: US-005
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как reviewer, я уверен, что collab verdict не игнорирует лишние поля."
+  - requirement_id: AC+1
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "SubagentStop без fence не ставит PASS ни при каких data.verdict."
+  - requirement_id: AC+2
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Wire JSON без schema отклонён validate_boundary."
+  - requirement_id: AC+3
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Ownership mismatch fail-closed without schema-retry."
+  - requirement_id: AC+4
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Repair linked to parent FAIL."
+  - requirement_id: AC+5
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Collab extra=forbid."
+  - requirement_id: AC-1
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Нет обхода через data.get(\"verdict\") == \"PASS\"."
+  - requirement_id: AC-2
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "Нет extra=ignore на fence-моделях."
+  - requirement_id: AC-3
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "Нет schema-default на внешней границе."
+  - requirement_id: AC-4
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет инкремента schema_retries при ownership mismatch."
+  - requirement_id: AC-5
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет repair done with leftover blockers."
+  - requirement_id: NFR-1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Pydantic V2 discriminated union / require_discriminator."
+  - requirement_id: NFR-2
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Fail-closed: неизвестная ошибка валидации = block, не silent pass."
+  - requirement_id: NFR-3
+    step_ids: [s01, s02, s03, s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "Single parse path for fence extraction across hooks/tools."
+  - requirement_id: NFR-4
+    step_ids: [s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "Hook execution <50ms overhead."
+  - requirement_id: SC-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Given: SubagentStop data.verdict=PASS, message without fence. When: hook runs. Then: validation path executed; not record_verdict PASS; retry or protocol fail"
+  - requirement_id: SC-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Given: wire JSON without schema key. When: validate_boundary called. Then: raises ValidationError / invalid result; does not default to gate_verdict"
+  - requirement_id: SC-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Given: gate verdict with step_id=s99 while in-flight step is s02. When: SubagentStop validates. Then: semantic_ownership_mismatch; does not increment schema_retry_count"
+  - requirement_id: SC-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Given: repair result with status=done and remaining_blockers=['b1']. When: validated. Then: invalid (done requires remaining empty)"
+  - requirement_id: SC-005
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Given: collab verdict with extra field 'notes'. When: parse_collab_fence called. Then: extra=forbid validation error"
+  - requirement_id: layout:loop/schemas/gate_verdict.py
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "loop/schemas/gate_verdict.py"
+  - requirement_id: layout:loop/schemas/repair_result.py
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "loop/schemas/repair_result.py"
+  - requirement_id: layout:loop/schemas/boundary.py
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "loop/schemas/boundary.py"
+  - requirement_id: layout:loop/codex_collab_verdict.py
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "loop/codex_collab_verdict.py"
+  - requirement_id: layout:harness/hooks/subagent-stop.py
+    step_ids: [s02, s03, s04, s06]
+    status: covered
+    plan_text_verbatim: "harness/hooks/subagent-stop.py"
+  - requirement_id: layout:loop/schemas/README.md
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "loop/schemas/README.md"
+  - requirement_id: layout:loop/tests/test_validate_boundary.py
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_validate_boundary.py"
+  - requirement_id: layout:loop/tests/test_stop_gate.py
+    step_ids: [s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_stop_gate.py"
+  - requirement_id: layout:loop/tests/test_repair_result.py
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_repair_result.py"
+  - requirement_id: layout:loop/tests/test_codex_collab_verdict.py
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_codex_collab_verdict.py"
+  - requirement_id: layout:loop/tests/test_kind_i_boundary_prompts.py
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_kind_i_boundary_prompts.py"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions:
+  - "Proceed to BACK IMPLEMENT s01-wire-schema-required-collab-forbid"
+
+constitution_violations: []

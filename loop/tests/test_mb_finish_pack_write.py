@@ -1,4 +1,8 @@
-"""Tests for mb_finish pack-aware activeContext writing (s05)."""
+"""Tests for mb_finish pack-aware activeContext writing (s05).
+
+Updated in s06 (T-HUB-068): finish_handoff requires recovery_token matching active journal.
+Tokenless calls fail-closed.
+"""
 
 from pathlib import Path
 from unittest.mock import patch
@@ -6,6 +10,7 @@ import pytest
 
 from loop.mb_finish.impl import finish_handoff, finish_qa, finish_bugfix, finish_decompose, finish_plan
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest
+from loop.mb_finish.transaction import FinishTxRecord, FinishTxState, write_finish_tx
 from loop.paths.pack_layout import PackLayoutError
 from loop.workflow.schemas import WorkflowPack
 
@@ -34,7 +39,18 @@ def test_mb_finish_software_pack_writes_active_context(tmp_path: Path):
         step_id="s05",
     )
 
-    res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+    token = "tx-soft-050"
+    rec = FinishTxRecord(
+        tx_id=token,
+        epic_id="T-HUB-050",
+        step_id="s05",
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        recovery_token=token,
+    )
+    write_finish_tx(tmp_path, rec)
+
+    res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
     assert res.ok is True
     assert (tmp_path / "memory-bank" / "activeContext.md").exists()
     content = (tmp_path / "memory-bank" / "activeContext.md").read_text(encoding="utf-8")
@@ -76,8 +92,19 @@ def test_mb_finish_video_pack_writes_active_context(tmp_path: Path):
         step_id="s01",
     )
 
+    token = "tx-video-001"
+    rec = FinishTxRecord(
+        tx_id=token,
+        epic_id="V-001",
+        step_id="s01",
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        recovery_token=token,
+    )
+    write_finish_tx(tmp_path, rec)
+
     with patch("loop.workflow.registry.get_pack", return_value=video_pack):
-        res = finish_handoff(meta, load_now, body, cwd=tmp_path)
+        res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
         assert res.ok is True
         assert (tmp_path / "memory-bank" / "video" / "activeContext.md").exists()
         content = (tmp_path / "memory-bank" / "video" / "activeContext.md").read_text(encoding="utf-8")
@@ -105,6 +132,17 @@ def test_mb_finish_wrong_cwd_fails_closed(tmp_path: Path):
         next_hint="continue s05",
     )
 
+    token = "tx-err-050"
+    rec = FinishTxRecord(
+        tx_id=token,
+        epic_id="T-HUB-050",
+        step_id="s05",
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        recovery_token=token,
+    )
+    write_finish_tx(non_existent, rec)
+
     with patch("loop.paths.pack_layout.resolve_workflow_pack") as mock_resolve:
         from loop.workflow.schemas import PackResolveResult
         mock_resolve.return_value = PackResolveResult(
@@ -114,4 +152,4 @@ def test_mb_finish_wrong_cwd_fails_closed(tmp_path: Path):
             diagnostic_codes=["invalid_workflow_pack_registry"],
         )
         with pytest.raises(PackLayoutError):
-            finish_handoff(meta, load_now, body, cwd=non_existent)
+            finish_handoff(meta, load_now, body, cwd=non_existent, recovery_token=token)

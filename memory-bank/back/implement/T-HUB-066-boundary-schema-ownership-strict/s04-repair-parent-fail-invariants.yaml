@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s04 — Repair linked to parent FAIL — leftover remaining invalid IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s04-repair-parent-fail-invariants.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- RepairResultRecord required parent_evidence_id, agent_id='gate-repair', disjoint
+  fixed/remaining, status=done requires empty remaining, and status=fail requires
+  remaining or diagnostic
+gaps:
+  status: none
+done:
+- Added parent_evidence_id field and validators to RepairResultRecord
+- Enforced agent_id must be gate-repair in RepairResultRecord
+- Enforced status=done requires empty remaining_blockers
+- Enforced remaining_blockers and fixed_blockers must be disjoint
+- Enforced status=fail requires remaining_blockers or diagnostic
+- Updated test_gate_repair.py and added comprehensive unit test suite in loop/tests/test_repair_result.py
+- Verified schema error retry on gate-repair in test_stop_gate.py
+files:
+- loop/schemas/repair_result.py
+- harness/hooks/subagent-stop.py
+- harness/hooks/tests/test_gate_repair.py
+- loop/tests/test_repair_result.py
+- loop/tests/test_stop_gate.py
+deletes:
+- accepting status=done with leftover remaining_blockers
+- repair records without parent FAIL identity on wire
+tests:
+- bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py
+  -q --tb=line
+- bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k 'repair'
+integration_check:
+- bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py
+  loop/tests/test_stop_gate.py -q --tb=line
+grep_control: []
+verification_results:
+- test_repair_done_with_remaining_invalid PASS
+- test_repair_disjoint_fixed_and_remaining PASS
+- test_repair_parent_evidence_required PASS
+- test_repair_agent_id_gate_repair_only PASS
+- test_repair_fail_requires_remaining_or_diagnostic PASS
+- test_subagent_stop_gate_repair_schema_fail_not_recorded_as_repair_done PASS
+- 11 passed in test_repair_result.py and test_gate_repair.py
+checkpoints:
+- id: cp1
+  criterion: done + leftover remaining → invalid (US-004 / SC-004 / QA TM-004 / AC−5)
+  status: done
+  done_at: '2026-09-06T03:44:37Z'
+- id: cp2
+  criterion: parent_evidence_id required; fixed ⊆ parent FAIL; remaining/fixed disjoint
+    (FR-006)
+  status: done
+  done_at: '2026-09-06T03:44:37Z'
+- id: cp3
+  criterion: agent_id must be gate-repair; fail ⇒ remaining or diagnostic
+  status: done
+  done_at: '2026-09-06T03:44:38Z'
+- id: cp4
+  criterion: Independent Test repair invariant; schema fail not stored as repair done
+    (Failure matrix TM-006)
+  status: done
+  done_at: '2026-09-06T03:44:38Z'
+resume_from: cp1

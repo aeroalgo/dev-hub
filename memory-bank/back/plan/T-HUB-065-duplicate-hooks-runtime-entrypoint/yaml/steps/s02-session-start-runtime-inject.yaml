@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: "SessionStart inject — EPIC_RUNTIME → AGENTS.md / CLAUDE.md"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SessionStart inject передаёт runtime из EPIC_RUNTIME (или payload) в
+  build_prompt_scope. Codex → entrypoint AGENTS.md; Claude → CLAUDE.md.
+  Нет default claude-code на Codex. Unknown runtime — fail-closed или
+  documented default (plan Failure matrix TM-003). Tests both runtimes.
+
+plan_contract:
+  fr_ids: [FR-004, FR-005, US-002, SC-002, AC+2, AC−2, TM-003, TM-004]
+  nouns:
+    - session_start_payload
+    - build_prompt_scope
+    - EPIC_RUNTIME
+    - AGENTS.md
+    - CLAUDE.md
+    - PromptScope.entrypoint
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+  ac_quotes:
+    - "Given: EPIC_RUNTIME=codex When: session_start_payload(...) Then: PromptScope.entrypoint == AGENTS.md (or pack equivalent), not CLAUDE.md"
+    - "`session_start_payload` passes runtime from `EPIC_RUNTIME` / payload into `build_prompt_scope`."
+    - "Tests both runtimes."
+    - "Нет default claude entrypoint on Codex inject."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:31-92"
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:124-148"
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:188-237"
+
+context:
+  consumes:
+    - plan.md §FR-004 §FR-005 §US-002 §AC+2 §AC−2 §QA consumes TM-003/004
+    - as-built session_start_payload → build_prompt_scope without runtime=
+  produces:
+    - session_start_payload(..., runtime from EPIC_RUNTIME)
+    - Codex additionalContext HARD READ entrypoint AGENTS.md
+    - Claude additionalContext HARD READ entrypoint CLAUDE.md
+    - unit tests both runtimes + unknown runtime policy
+  plan_refs:
+    - plan.md#acceptance-scenarios--us-002
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+
+as_built:
+  - "session_start_payload calls build_prompt_scope(cwd, projection=..., fallback_command=...) without runtime="
+  - "build_prompt_scope._runtime_name(None) → claude-code → entrypoint CLAUDE.md"
+  - "context_loop already passes runtime=runtime or os.environ.get('EPIC_RUNTIME') — inject path does not"
+  - "harness/hooks/tests/test_session_start_inject.py не фиксирует entrypoint AGENTS vs CLAUDE"
+  - "loop/tests/test_prompt_builder.py already covers runtime=codex when caller passes it"
+  - "session-start.py _check_preflight_drift: except Exception: pass (sunset C partial → 067/068)"
+
+delta:
+  - "session_start_payload: runtime = os.environ.get('EPIC_RUNTIME') or payload runtime; pass into build_prompt_scope"
+  - "unknown EPIC_RUNTIME: fail-closed diagnostic or documented default (choose one; test it)"
+  - "DSH: explicit n/a or map if already supported; Appetite cut = full DSH inject matrix polish"
+  - "tests: EPIC_RUNTIME=codex → AGENTS.md in additionalContext; claude → CLAUDE.md"
+  - "do not swallow inject miss as success (default claude on Codex = AC−2 FAIL)"
+
+deletes:
+  - "session_start_payload → build_prompt_scope() without runtime when EPIC_RUNTIME is set"
+  - "Codex SessionStart additionalContext HARD READ CLAUDE.md as default"
+
+out_of_scope:
+  - "unique realpath settings (s01)"
+  - "Kind I mainrule rewrite (s03)"
+  - "runtime-sync hash_mismatch (s04)"
+  - "preflight except Exception: pass full fail-closed — follow_up: T-HUB-067-pack-doctor-executable-graph / T-HUB-068-start-finish-transaction-boundary"
+  - "DSH full inject matrix polish — Appetite cut"
+  - "full Codex event matrix — follow_up: T-HUB-053-codex-claude-hooks-parity"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: EPIC_RUNTIME=codex → session_start_payload additionalContext entrypoint AGENTS.md not CLAUDE.md (US-002 / TM-003 / SC-002)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_prompt_builder.py -q --tb=line -k 'codex or AGENTS'"
+  - id: cp2
+    criterion: EPIC_RUNTIME=claude / claude-code → entrypoint CLAUDE.md (FR-005 / TM-004)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'claude or CLAUDE'"
+  - id: cp3
+    criterion: AC−2 — нет default claude entrypoint on Codex inject (build_prompt_scope called with runtime)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k runtime"
+  - id: cp4
+    criterion: unknown EPIC_RUNTIME fail-closed or documented default (Failure matrix TM-003)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_prompt_builder.py -q --tb=line -k 'unknown or runtime'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+  - "rg -n \"build_prompt_scope\\(\" harness/hooks/epic/core.py"
+
+tdd:
+  - "test_session_start_payload_codex_entrypoint_agents_md — TM-003"
+  - "test_session_start_payload_claude_entrypoint_claude_md — TM-004"
+  - "test_session_start_payload_passes_epic_runtime — FR-004"
+  - "test_unknown_epic_runtime_fail_closed_or_documented — Failure matrix TM-003"

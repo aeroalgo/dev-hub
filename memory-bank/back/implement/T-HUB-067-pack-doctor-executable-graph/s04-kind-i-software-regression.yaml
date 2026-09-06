@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: s04 — Kind I + software pack assertion — docs honest; video red reported not
+  skipped IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/yaml/steps/s04-kind-i-software-regression.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- CLAUDE.md pack table does not claim fully wired / pack wired
+- dev-hub-software exists-based graph checks pass cleanly against real filesystem
+- doctor reports red video-production pack rather than skipping it
+gaps:
+  status: none
+done:
+- Verified CLAUDE.md / documentation honesty regarding pack status (no fully wired
+  / partial load ok claims)
+- Added unit and regression tests in loop/tests/test_pack_graph_doctor.py for Kind
+  I docs, dev-hub-software exists-based green, and video red reporting
+files:
+- CLAUDE.md
+- loop/tests/test_pack_graph_doctor.py
+- loop/tests/test_doctor_workflow_pack.py
+deletes:
+- docs claiming pack fully wired / pack works without doctor green
+- comments «partial load ok» as current SoT
+- doctor skip-not-in-set / hide red video pack
+tests:
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+  -q --tb=line
+grep_control:
+- back: rg -n "fully wired|pack wired|partial load ok" CLAUDE.md loop/mb_load/
+  front: ''
+verification_results:
+- 21 passed in loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py
+checkpoints:
+- id: cp1
+  criterion: Kind I — pack README / CLAUDE pack table do not say fully wired while
+    doctor red (FR-012 / Replacement I).
+  status: done
+- id: cp2
+  criterion: Software pack doctor exists-based green (FR-013 / SC-004 / QA TM-007).
+  status: done
+- id: cp3
+  criterion: Video pack red reported, not skipped (FR-013 / AC−4 / Failure TM-008).
+  status: done
+- id: cp4
+  criterion: Independent Test honesty — docs match doctor; no keys-only claim.
+  status: done
+resume_from: cp4

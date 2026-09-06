@@ -9,6 +9,7 @@ alwaysApply: false
 3. Element registry: ≥400 строк или FAIL
 4. `wc -l` plan → ≥400 иначе дописать
 5. `wc -l` plan → ≥400 иначе дописать
+5p. `md/prompt.md` на каждый эпик (начинается с `## Epic`; без шапки Role/Deps/ID; Covering одинаковый и без ID при multi-epic)
 5a. PLAN **сам** `roadmap-merge --role integration` если есть slug queues
 6. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
 

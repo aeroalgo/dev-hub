@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: s04 — Kind I — prompt schema_id = registry; 08-row sunset wired IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/yaml/steps/s04-kind-i-sunset-prompt-matrix.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- harness/agents/sunset-inventory.md already specifies loop-sunset-inventory/v1 and
+  fenced JSON
+- Added loop/tests/test_sunset_kind_i.py to lock prompt schema string to registry
+  constant SCHEMA_LOOP_SUNSET_INVENTORY
+- Verified living 08-style matrix row for sunset-inventory (Start inject yes, Stop
+  parse yes, Schema sunset, Sidecar yes)
+- Verified misconfig behavior where invalid schema id triggers validation failure
+  rather than prose acceptance
+gaps:
+  status: none
+done:
+- Created loop/tests/test_sunset_kind_i.py asserting schema_id lock between prompt
+  and boundary registry
+- Verified prompt machine contract retention and lack of prose downgrade
+- Implemented living test asserting full 08-style matrix row behavior (stop parse,
+  schema lookup, sidecar store)
+- Implemented misconfig test confirming schema validation failure on unknown or mismatched
+  schema_id
+files:
+- harness/agents/sunset-inventory.md
+- loop/tests/test_sunset_kind_i.py
+deletes:
+- instruction implying schema is validated by model_validate-only / skip-stop (if
+  any in agent prompt or spawn packing for sunset)
+tests:
+- bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k schema_id
+- bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k matrix
+- bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line -k misconfig
+- bin/pytest loop/tests/test_sunset_kind_i.py -q --tb=line
+- rg -n "loop-sunset-inventory/v1" harness/agents/sunset-inventory.md
+integration_check:
+- Confirmed harness/agents/sunset-inventory.md contains exact schema_id matching loop.schemas.boundary_registry.SCHEMA_LOOP_SUNSET_INVENTORY
+- Confirmed sidecar storage round-trip with SunsetReport validates properly under
+  loop-sunset-inventory/v1
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Prompt schema_id equals SCHEMA_LOOP_SUNSET_INVENTORY (FR-007)
+  status: done
+  done_at: '2026-09-05T23:28:16Z'
+- id: cp2
+  criterion: Living 08-style row — stop parse + sidecar + sunset schema (SC-004 /
+    FR-008)
+  status: done
+  done_at: '2026-09-05T23:28:17Z'
+- id: cp3
+  criterion: Wrong schema id in prompt/fixture → validate fail, not prose accept (AC−3)
+  status: done
+  done_at: '2026-09-05T23:28:17Z'
+- id: cp4
+  criterion: FR-010 — prompt still contains loop-sunset-inventory/v1 fence contract
+  status: done
+  done_at: '2026-09-05T23:28:18Z'
+resume_from: none

@@ -1,0 +1,42 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-068-start-finish-transaction-boundary
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 5
+  cut_list:
+  - TransitionService class tree
+  - ContextBoundaryService rewrite
+  - MCP-only finish
+  - cross-host locks
+steps:
+- id: s01
+  file: s01-crash-handoff-red-contract.yaml
+  title: Crash recover + public finish_handoff forbidden — red contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-journal-sidecar-states.yaml
+  title: Sidecar finish journal — states, stage, identity, commit
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-wrap-finish-implement-qa.yaml
+  title: Wire journal into finish_implement + finish_qa (same writer)
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-prepare-session-recover.yaml
+  title: prepare_session recovers leftover journal before agent work
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-lock-save-epic-state.yaml
+  title: save_epic_state lockfile — no silent lost-update
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — unjournaled write + public handoff leftover
+  next_phase: BACK IMPLEMENT
+  status: completed

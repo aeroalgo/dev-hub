@@ -1,0 +1,22 @@
+{
+  "name": "verify-script",
+  "policy_fingerprint": "sha256:e96946f153329609c72c05776af6a53571be5c81f535cff4a4cb050b32083821",
+  "source_prompt_sha256": "d9b85affe7f2a6a95c6c68881db4bb73b29c62f98bd43fd2593ab0ee963c0442",
+  "disallowedTools": [
+    "Write",
+    "Edit",
+    "Agent",
+    "Skill",
+    "Glob",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite"
+  ],
+  "tools": [
+    "Read",
+    "Grep",
+    "Bash"
+  ],
+  "managed": true
+}

@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L3  
 **Статус:** active  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Clarify:** `memory-bank/back/clarify/clarify-20260905-workflow-loop-audit.md`  
 **Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `workflow-loop-20260905`  
 **Deps:** soft T-HUB-058 (agent+schema model already planned/partially present), T-HUB-057 (JSON fence SoT). Hard нет на 058 — leftover **runtime pipeline** можно закрыть на текущем as-built `SunsetReport`.  

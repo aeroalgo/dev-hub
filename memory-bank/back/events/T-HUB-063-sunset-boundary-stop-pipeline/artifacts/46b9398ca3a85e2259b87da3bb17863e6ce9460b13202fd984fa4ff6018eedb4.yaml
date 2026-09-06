@@ -1,0 +1,79 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-063-sunset-boundary-stop-pipeline
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+date: 2026-09-06
+reviewer: verify-qa
+verdict: pass
+
+full_suite:
+  command: "bin/pytest -q --tb=line"
+  passed: 1995
+  skipped: 3
+  warnings: 77
+  failed: 0
+  exit_code: 0
+  duration_s: 155.64
+
+test_matrix_coverage:
+  - id: TM-001
+    status: passed
+    evidence: "loop/tests/test_boundary_registry.py:29-47"
+  - id: TM-002
+    status: passed
+    evidence: "loop/tests/test_validate_boundary.py:77-90"
+  - id: TM-003
+    status: passed
+    evidence: "loop/tests/test_validate_boundary.py:110-121"
+  - id: TM-004
+    status: passed
+    evidence: "loop/tests/test_subagent_stop_sunset.py:30-49"
+  - id: TM-005
+    status: passed
+    evidence: "loop/tests/test_subagent_stop_sunset.py:51-104, loop/tests/test_sunset_kind_i.py:47-96"
+  - id: TM-006
+    status: passed
+    evidence: "loop/tests/test_validate_boundary.py:93-107"
+
+acceptance_criteria:
+  ac_plus:
+    - id: AC-001
+      status: passed
+      evidence: "loop-sunset-inventory/v1 registered in BOUNDARY_REGISTRY (loop/schemas/boundary_registry.py:20)"
+    - id: AC-002
+      status: passed
+      evidence: "validate_boundary passes valid SunsetReport with zero and non-zero items"
+    - id: AC-003
+      status: passed
+      evidence: "SubagentStop validates sunset-inventory agent and enforces fail-closed on missing fence"
+    - id: AC-004
+      status: passed
+      evidence: "loop/sunset_sidecar_store.py writes and reads atomic typed sidecars"
+  ac_minus:
+    - id: AC_MINUS-001
+      status: passed
+      evidence: "No dual path — unified validation via validate_boundary"
+    - id: AC_MINUS-002
+      status: passed
+      evidence: "No silent schema_unknown on canonical schema id"
+    - id: AC_MINUS-003
+      status: passed
+      evidence: "Malformed or invalid schema id fails boundary validation"
+    - id: AC_MINUS-004
+      status: passed
+      evidence: "Schema registry and hook stop branches are in sync"
+    - id: AC_MINUS-005
+      status: passed
+      evidence: "extra=forbid enforced on SunsetReport model"
+
+behavior_smoke:
+  status: passed
+  evidence: "SubagentStop extracts fenced JSON for sunset-inventory, validates boundary, and persists sidecar in .claude/runtime/epic/sunset-*.json"
+
+security_spot_check:
+  status: passed
+  evidence: "Fail-closed JSON extraction, atomic tempfile write with fsync, strict NEED_HUMAN escalation on write failure"
+
+skipped: []
+findings: []
+fix_plan: []

@@ -10,6 +10,8 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** audit `02` pack resolve false-green · `07` P1.5 doctor + P1.6 strict bundle · `03` load_session ok=true partial
 
+→ decompose: [md/decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) (status SoT). Plan не дублирует чеклист шагов.
+
 ---
 
 ## Контекст
@@ -23,8 +25,6 @@
   5. T-HUB-061 hygiene (CLI kwargs) ≠ executable graph.
 - **refs:** `loop/workflow/resolve.py`; `loop/mb_load/session.py`; `harness/hooks/session-start.py`; doctor CLI; audit 02, 03, 07 P1.5–P1.6.
 - **Не:** video ffmpeg (051); duplicate hooks (065); transactional finish journal (068); Codex TOML policy (069). Bundle **strictness** живёт здесь, не в 065 (065 = runtime arg + hook dedup).
-
-**CREATIVE need:** нет.
 
 ---
 
@@ -256,6 +256,8 @@
 
 ## Следующий режим
 
-→ BACK DECOMPOSE T-HUB-067 after 064 and 062.
+→ BACK ANALYZE T-HUB-067-pack-doctor-executable-graph (DECOMPOSE done; ANALYZE обязателен, не deferred).
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет**

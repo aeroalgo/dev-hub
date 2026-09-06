@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: "Kind I + software pack assertion — docs honest; video red reported not skipped"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Instruction surfaces не утверждают «pack wired» / «partial load ok», пока doctor/load red.
+  Doctor green на dev-hub-software exists-based; video pack red reported, not skipped.
+  CLAUDE pack table / pack README honest.
+
+plan_contract:
+  fr_ids:
+    - FR-012
+    - FR-013
+    - SC-004
+    - AC−4
+    - TM-007
+    - TM-008
+  nouns:
+    - pack README
+    - CLAUDE pack table
+    - fully wired
+    - doctor green dev-hub-software
+    - report video red
+    - not skip pack
+    - workflows
+    - CLAUDE.md
+  layout_paths:
+    - CLAUDE.md
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_doctor_workflow_pack.py
+  ac_quotes:
+    - "Kind I: pack README / CLAUDE pack table cannot say «fully wired» while doctor red"
+    - "Software pack regression: doctor green on dev-hub-software after 064 video leftover — video pack may stay red until 064; doctor must still report video red, not skip pack"
+    - "Нет skip video pack in doctor because red"
+    - "docs «pack wired» | doctor green | delete in-epic"
+    - "«partial load ok» comments | required complete | delete in-epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:97-100"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:112-115"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:196-216"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:235-255"
+
+context:
+  consumes:
+    - s01 doctor graph + --pack
+    - s02 derived ok (docs must not teach ok+missing)
+    - plan.md §FR-012/013 §Replacement I §QA TM-007 §Failure TM-008
+  produces:
+    - honest README / CLAUDE pack table
+    - software pack doctor exists-based assertion
+    - video red reported (not skip)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+  files:
+    - CLAUDE.md
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_doctor_workflow_pack.py
+
+as_built:
+  - "CLAUDE.md Workflow Packs table lists prefixes; may imply packs work without doctor exists-walk"
+  - "check_workflow_pack currently can skip walking video routes; doctor may stay green keys-only"
+  - "docs/comments may treat partial load_session as ok"
+  - "064 leftover: video pack may be red; 067 must report, not hide"
+
+delta:
+  - "rewrite Kind I: no «fully wired» / «pack wired» while doctor red; no «partial load ok»"
+  - "pytest: doctor --pack dev-hub-software matches FS (exists-based, not keys-only)"
+  - "doctor all-packs path reports video red instead of omitting the pack (TM-008)"
+  - "xfail/feature flag for video production assertion only if 064 not done — prefer report"
+
+deletes:
+  - "docs claiming pack fully wired / pack works without doctor green"
+  - "comments «partial load ok» as current SoT"
+  - "doctor skip-not-in-set / hide red video pack"
+
+out_of_scope:
+  - "implement check_pack_graph walk (s01)"
+  - "load_session fields (s02)"
+  - "SessionStart halt (s03)"
+  - "full leftover rg inventory (s05)"
+  - "template pack authoring — Appetite cut_list"
+  - "full video rules prose / ffmpeg live — T-HUB-051 / 064 leftover report only"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Kind I — pack README / CLAUDE pack table do not say fully wired while doctor red (FR-012 / Replacement I).
+    verify: "rg -n \"fully wired|pack wired|partial load ok\" CLAUDE.md workflows README.md loop/mb_load/ || true"
+  - id: cp2
+    criterion: Software pack doctor exists-based green (FR-013 / SC-004 / QA TM-007).
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py -q --tb=line -k 'software or dev-hub-software or exists'"
+  - id: cp3
+    criterion: Video pack red reported, not skipped (FR-013 / AC−4 / Failure TM-008).
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'video_red or skip_pack or report_red'"
+  - id: cp4
+    criterion: Independent Test honesty — docs match doctor; no keys-only claim.
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'software or video or kind_i'"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_doctor_workflow_pack.py -q --tb=line -k 'software or video or doctor'"
+  - "rg -n \"fully wired|pack wired\" CLAUDE.md workflows || true"
+
+tdd:
+  - "test_software_pack_doctor_exists_based — FR-013 QA TM-007"
+  - "test_doctor_reports_red_video_pack_not_skip — FR-013 Failure TM-008"
+  - "test_kind_i_no_fully_wired_while_red — FR-012"

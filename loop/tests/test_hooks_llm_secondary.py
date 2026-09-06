@@ -17,11 +17,21 @@ def test_run_gate_verdict_llm_disabled_returns_none(tmp_path, monkeypatch):
 def test_run_gate_verdict_llm_mocked_agent(tmp_path, monkeypatch):
     monkeypatch.setenv("PROJECT_HOOKS_LLM_FALLBACK", "1")
     monkeypatch.setenv("PROJECT_HOOKS_LLM_VERDICT", "1")
-    
-    mock_output = GateVerdictOutput(verdict="PASS", step_id="s11", epic_id="T-HUB-023")
-    
+
+    mock_output = GateVerdictOutput(
+        verdict="PASS",
+        step_id="s11",
+        session_id="test-sess",
+        epic_id="T-HUB-023",
+    )
+
     with patch("llm_structured.run_gate_classify", return_value=mock_output):
-        rec = run_gate_verdict_llm("some raw text", cwd=tmp_path, agent_id="verify")
+        rec = run_gate_verdict_llm(
+            "some raw text",
+            cwd=tmp_path,
+            agent_id="verify",
+            session_id="test-sess",
+        )
         assert rec is not None
         assert rec.verdict == "PASS"
 

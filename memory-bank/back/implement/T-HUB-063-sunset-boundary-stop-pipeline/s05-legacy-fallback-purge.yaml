@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: s05 — s05 — legacy-fallback-purge — unknown-id leftover + skip-path IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+- .agents/skills/verification-before-completion/SKILL.md
+- .agents/skills/requesting-code-review/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Purged legacy exact-four assert and schema_unknown expectations for canonical sunset
+  id
+- Confirmed subagent-stop.py does not skip sunset agent and does not swallow persist
+  exceptions
+- Verified sunset-inventory.md prompt uses SCHEMA_LOOP_SUNSET_INVENTORY schema_id
+- Executed @sunset-inventory scan and verified 0 leftovers across Kind A, B, C, I
+files:
+- loop/tests/test_boundary_registry.py
+- loop/tests/test_validate_boundary.py
+- loop/tests/test_sunset_inventory_schema.py
+- harness/hooks/subagent-stop.py
+- harness/agents/sunset-inventory.md
+deletes:
+- loop/tests leftover exact-four / canonical-sunset-is-unknown asserts
+- prod skip path for sunset-inventory in subagent-stop.py
+- 'silent persist except: around sunset sidecar write'
+- Kind I packing text that skip-validates sunset as search-only
+tests:
+- '`bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py
+  loop/tests/test_sunset_inventory_schema.py loop/tests/test_subagent_stop_sunset.py
+  loop/tests/test_sunset_kind_i.py -q --tb=line`'
+integration_check:
+- bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_validate_boundary.py
+  loop/tests/test_sunset_inventory_schema.py loop/tests/test_subagent_stop_sunset.py
+  loop/tests/test_sunset_kind_i.py -q --tb=line
+grep_control:
+- back: rg -n 'SCHEMA_LOOP_SUNSET_INVENTORY' loop/schemas/boundary_registry.py
+  front: ''
+- back: rg -n 'sunset-inventory' harness/hooks/subagent-stop.py
+  front: ''
+- back: rg -n 'except.*pass|except OSError' harness/hooks/subagent-stop.py
+  front: ''
+verification_results:
+- 35 passed in 9.16s
+checkpoints:
+- id: cp1
+  criterion: 'Kind A grep_control inv-a-01, inv-a-02, inv-a-tests-01, inv-a-tests-02:
+    registry has SCHEMA_LOOP_SUNSET_INVENTORY; stop branch exists; 0 leftover tests
+    asserting schema_unknown / exact-4 on canonical sunset id.'
+  status: done
+- id: cp2
+  criterion: Kind B grep_control inv-b-01 — CLI/tests known id loop-sunset-inventory/v1
+    (not unknown-as-success)
+  status: done
+- id: cp3
+  criterion: 'Kind C+I grep_control inv-c-01, inv-c-02, inv-i-01, inv-i-02: no skip-not-verify;
+    persist errors not swallowed; prompt schema_id matches registry; no skip-stop
+    instruction.'
+  status: done
+- id: cp4
+  criterion: Obsolete unknown-id/exact-4 tests gone or rewritten; targeted green without
+    restore (inv-a-tests-01/02)
+  status: done

@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: s04 — SubagentStart — CONTRACTS sha drift blocks spawn IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s04-subagent-start-contract-drift.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- PolicyRecord extended with source_sha256 matching prompt SHA256
+- CONTRACTS_SHA256 dictionary and check_contract_drift helper implemented in _lib.py
+- SubagentStart hook checks contract drift and emits permissionDecision=deny on drift
+gaps:
+  status: none
+done:
+- Extended PolicyRecord with source_sha256 in loop/runtime_materializers/agent_policy.py
+- Added CONTRACTS_SHA256 fingerprint registry and check_contract_drift validator in
+  harness/hooks/_lib.py
+- Integrated check_contract_drift into harness/hooks/subagent-start.py to deny subagent
+  spawn on checksum drift
+- Created comprehensive unit & mutation tests in harness/hooks/tests/test_subagent_start_contract_drift.py
+  and loop/tests/test_codex_agent_policy.py
+files:
+- harness/hooks/_lib.py
+- harness/hooks/subagent-start.py
+- harness/hooks/tests/test_subagent_start_contract_drift.py
+- loop/runtime_materializers/agent_policy.py
+- loop/tests/test_codex_agent_policy.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_subagent_start_contract_drift.py loop/tests/test_codex_agent_policy.py
+  -q --tb=line
+- bin/pytest harness/hooks/tests/test_subagent_start.py -q --tb=line
+integration_check:
+- SubagentStart deny on drift prevents injection of mutated/stale contract text
+- SubagentStart happy path continues to inject valid contracts
+grep_control: []
+verification_results:
+- 'harness/hooks/tests/test_subagent_start_contract_drift.py: 4 passed'
+- 'loop/tests/test_codex_agent_policy.py: 16 passed'
+- 'harness/hooks/tests/test_subagent_start.py: 6 passed'
+checkpoints:
+- id: cp1
+  criterion: SubagentStart compares CONTRACTS checksum to prompt/PolicyRecord source_sha
+  status: done
+- id: cp2
+  criterion: Mutate CONTRACTS → agent_contract_drift (TM-002 / US-003 / SC-003)
+  status: done
+- id: cp3
+  criterion: Matching checksum still injects contract (happy path not broken)
+  status: done
+- id: cp4
+  criterion: AC−3 — CONTRACTS text ≠ prompt without fail is encoded (no silent inject)
+  status: done

@@ -1,0 +1,257 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+slug: agent-contract-registry-codex-policy
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "`PolicyRecord` pydantic: name, tools, disallowedTools, maxTurns, overlay, managed, mode, verdict, allow_worktree, requires_model, default_loop, default_chat, color (color may map n/a)."
+  - requirement_id: FR-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Parser from harness/agents frontmatter; extra unknown keys listed not silently ignored if `managed: true`."
+  - requirement_id: FR-003
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Codex mapping table yaml: field → `native` | `hook` | `unsupported`. Required deny (Write/Edit/Agent on verify-*) cannot be `unsupported` without hook row."
+  - requirement_id: FR-004
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Generated TOML includes `policy_fingerprint` and `source_prompt_sha256` (as TOML comments or `[metadata]` if Codex allows; if parser strips unknown — still write sidecar `.codex/agents/<id>.policy.json`)."
+  - requirement_id: FR-005
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "Parity: for each prompt file, mapping applied; fail codes `codex_policy_dropped`, `unsupported_runtime_policy`, `agent_contract_drift`."
+  - requirement_id: FR-006
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "`_lib.CONTRACTS` keyed by agent; build or checksum vs prompt section; SubagentStart compares."
+  - requirement_id: FR-007
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "`_ALWAYS_INJECT` derived from PolicyRecord.managed/verdict **or** phase registry ∪ manifest — not hardcoded software-only set (consume 064 ids)."
+  - requirement_id: FR-008
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "sunset-inventory: inject contract after 063; 069 must include if managed."
+  - requirement_id: FR-009
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Kind I: agent md may keep human tools list; runtime must not be weaker than md."
+  - requirement_id: FR-010
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Explorer Write deny: same mapping (already Claude native); Codex path must not grant Write."
+  - requirement_id: FR-011
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Do not invent Codex CLI flags that do not exist; prefer hook enforcement documented."
+  - requirement_id: FR-012
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "runtime-sync --check includes fingerprint mismatch."
+  - requirement_id: FR-013
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Tests mutation: remove disallowedTools from TOML/sidecar → fail parity."
+  - requirement_id: FR-014
+    step_ids: [s06, s07]
+    status: covered
+    plan_text_verbatim: "Generic `@verify` in machine commands (audit P2.3) — **out of this epic** unless one-line Kind I if we touch spawn docs; cut."
+  - requirement_id: FR-015
+    step_ids: [s06, s07]
+    status: covered
+    plan_text_verbatim: "Generated loop/schemas/README from registry — **cut** (P2.4)."
+  - requirement_id: US-001
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Как Codex parent, я не хочу verify-implement с native Write если source forbids."
+  - requirement_id: US-002
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу fail если TOML silent-dropped required deny."
+  - requirement_id: US-003
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как SubagentStart, я хочу drift CONTRACTS vs prompt hash block."
+  - requirement_id: US-004
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Как operator, я хочу video verify in inject set after 064."
+  - requirement_id: SC-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "silent drop deny fails CI"
+  - requirement_id: SC-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "fingerprint in sidecar/TOML"
+  - requirement_id: SC-003
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "CONTRACTS drift blocks start"
+  - requirement_id: SC-004
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "video agents in inject after 064"
+  - requirement_id: SC-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "verify-implement Codex not weaker than md"
+  - requirement_id: AC+1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "PolicyRecord for all managed agents."
+  - requirement_id: AC+2
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Materialize/parity fail-closed on undroppable policy."
+  - requirement_id: AC+3
+    step_ids: [s02, s04]
+    status: covered
+    plan_text_verbatim: "Fingerprint + drift spawn block."
+  - requirement_id: AC+4
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Inject set includes all finish/managed agents (software+video+repair+sunset)."
+  - requirement_id: AC+5
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Mapping yaml tested."
+  - requirement_id: AC-1
+    step_ids: [s03, s07]
+    status: covered
+    plan_text_verbatim: "Нет presence-only Codex parity."
+  - requirement_id: AC-2
+    step_ids: [s01, s03, s07]
+    status: covered
+    plan_text_verbatim: "Нет silent drop disallowedTools."
+  - requirement_id: AC-3
+    step_ids: [s04, s07]
+    status: covered
+    plan_text_verbatim: "Нет CONTRACTS text ≠ prompt without fail."
+  - requirement_id: AC-4
+    step_ids: [s05, s07]
+    status: covered
+    plan_text_verbatim: "Нет hardcoded software-only ALWAYS_INJECT after 064."
+  - requirement_id: AC-5
+    step_ids: [s03, s06, s07]
+    status: covered
+    plan_text_verbatim: "Нет «policy in developer_instructions only» as sufficient Independent Test."
+  - requirement_id: TM-001
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "drop deny fixture | pytest policy | unsupported_runtime_policy or equivalent hook row + fail if neither | US-002"
+  - requirement_id: TM-002
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "CONTRACTS sha mismatch | hook start | agent_contract_drift | US-003"
+  - requirement_id: TM-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "verify-implement mapping | pytest | not weaker | US-001"
+  - requirement_id: TM-004
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "fingerprint written | sidecar/TOML | present | FR-004"
+  - requirement_id: TM-005
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "ALWAYS_INJECT has verify-edit | unit | in set | US-004"
+  - requirement_id: TM-006
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "explorer Codex Write | mapping | denied | FR-010"
+  - requirement_id: Failure-TM-001
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "drop disallowedTools | Write on verify | parity | unsupported/fail | TM-001"
+  - requirement_id: Failure-TM-002
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "stale CONTRACTS | two HARD texts | sha | drift block | TM-002"
+  - requirement_id: Failure-TM-003
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "missing video inject | no contract | set | include | TM-003"
+  - requirement_id: Failure-TM-004
+    step_ids: [s03, s07]
+    status: covered
+    plan_text_verbatim: "presence-only parity | false green | mutation TOML | fail | TM-004"
+  - requirement_id: Failure-TM-005
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "unknown frontmatter | lost field | extra list | fail managed | TM-005"
+  - requirement_id: Failure-TM-006
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "sidecar stripped | fingerprint gone | runtime-sync | fail | TM-006"
+  - requirement_id: Failure-TM-007
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "explorer Write on Codex | weaker | mapping | deny hook | TM-007"
+  - requirement_id: layout:loop/runtime_materializers/agent_policy.py
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "`loop/runtime_materializers/agent_policy.py` + mapping yaml + extend `codex_agent_toml.py` + `_lib.py` fingerprint + tests `loop/tests/test_codex_agent_policy.py`, hook start drift."
+  - requirement_id: layout:loop/runtime_materializers/codex_policy_mapping.yaml
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Codex mapping table yaml: field → `native` | `hook` | `unsupported`. Required deny (Write/Edit/Agent on verify-*) cannot be `unsupported` without hook row."
+  - requirement_id: layout:loop/runtime_materializers/codex_agent_toml.py
+    step_ids: [s02, s07]
+    status: covered
+    plan_text_verbatim: "`codex_agent_toml.py` writes only name/description/developer_instructions."
+  - requirement_id: layout:loop/runtime_materializers/parity.py
+    step_ids: [s03, s06, s07]
+    status: covered
+    plan_text_verbatim: "Parity: for each prompt file, mapping applied; fail codes `codex_policy_dropped`, `unsupported_runtime_policy`, `agent_contract_drift`."
+  - requirement_id: layout:loop/runtime_materializers/codex_sync.py
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "runtime-sync --check includes fingerprint mismatch."
+  - requirement_id: layout:harness/hooks/_lib.py
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "`_lib.CONTRACTS` keyed by agent; build or checksum vs prompt section; SubagentStart compares."
+  - requirement_id: layout:harness/hooks/subagent-start.py
+    step_ids: [s04, s05, s07]
+    status: covered
+    plan_text_verbatim: "Hook inject includes contract fingerprint; mismatch → `agent_contract_drift` block spawn."
+  - requirement_id: layout:loop/cli/runtime_sync.py
+    step_ids: [s06, s07]
+    status: covered
+    plan_text_verbatim: "runtime-sync --check includes fingerprint mismatch."
+  - requirement_id: layout:loop/tests/test_codex_agent_policy.py
+    step_ids: [s01, s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "tests `loop/tests/test_codex_agent_policy.py`, hook start drift."
+  - requirement_id: layout:harness/hooks/tests/test_subagent_start_contract_drift.py
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Mutate CONTRACTS string → `agent_contract_drift`"
+  - requirement_id: layout:harness/hooks/tests/test_subagent_start_inject_set.py
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "`_ALWAYS_INJECT` contains verify-edit"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

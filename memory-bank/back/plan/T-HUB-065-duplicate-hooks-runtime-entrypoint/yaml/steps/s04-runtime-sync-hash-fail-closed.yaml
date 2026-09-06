@@ -1,0 +1,111 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: "runtime-sync claude — hash_mismatch fail-closed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  `bin/runtime-sync --runtime claude --check` на hash_mismatch CLAUDE.md
+  (dest ≠ harness/instructions/main.md) — fail CI, не warning-only.
+  CLAUDE.md либо regenerated from source, либо documented generated header.
+  Нет silent stale copy.
+
+plan_contract:
+  fr_ids: [FR-007, AC+4, AC−5]
+  nouns:
+    - bin/runtime-sync
+    - hash_mismatch
+    - CLAUDE.md
+    - harness/instructions/main.md
+  layout_paths:
+    - loop/runtime_materializers/sync.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_check.py
+    - bin/runtime-sync
+  ac_quotes:
+    - "runtime-sync: CLAUDE.md either regenerated from `harness/instructions/main.md` or documented generated header; hash_mismatch = fail CI unless allow."
+    - "Нет warning-only on hash_mismatch."
+    - "runtime-sync claude either green or intentional generated marker — no silent stale copy."
+    - "hash_mismatch ignored | drift | runtime-sync --check | fail | TM-005"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:83-122"
+    - "memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/md/plan.md:138-178"
+
+context:
+  consumes:
+    - plan.md §FR-007 §AC−5 §Replacement C hash_mismatch §Failure matrix TM-005
+    - as-built ManifestSync.check already emits hash_mismatch; CLI/CI may warn-only
+  produces:
+    - claude --check non-zero on CLAUDE.md hash_mismatch (unless explicit allow)
+    - regenerate-or-header policy for CLAUDE.md from harness/instructions/main.md
+    - tests: mismatch → fail; matching/generated header → pass
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#ac
+    - plan.md#replacement--sunset
+  files:
+    - loop/runtime_materializers/sync.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/tests/test_runtime_sync.py
+    - loop/tests/test_runtime_sync_check.py
+    - bin/runtime-sync
+
+as_built:
+  - "ManifestSync.check already records DriftItem reason=hash_mismatch for dest≠source"
+  - "session-start _check_preflight_drift for Codex writes WARNING to stderr and continues (except pass)"
+  - "plan gap: bin/runtime-sync --runtime claude --check → hash_mismatch: CLAUDE.md treated as warning-only"
+  - "loop/tests/test_runtime_sync.py::test_check_drift_hash_mismatch exists for generic target, not CI-fail policy on claude CLAUDE.md"
+
+delta:
+  - "claude --check: hash_mismatch CLAUDE.md → non-zero exit (fail CI) unless allow flag documented"
+  - "either apply/regenerate CLAUDE.md from harness/instructions/main.md or require generated header marker that check accepts"
+  - "tests: stale CLAUDE.md fails check; regenerated or marked generated passes"
+  - "do not keep warning-only as default after epic (sunset C delete in-epic)"
+
+deletes:
+  - "warning-only / exit 0 path for claude target hash_mismatch CLAUDE.md as default success"
+  - "silent stale CLAUDE.md copy treated as green check"
+
+out_of_scope:
+  - "unique hooks (s01)"
+  - "inject runtime (s02)"
+  - "Kind I (s03)"
+  - "Codex preflight except Exception: pass — follow_up: T-HUB-067-pack-doctor-executable-graph / T-HUB-068-start-finish-transaction-boundary"
+  - "full leftover rg inventory (s05)"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: hash_mismatch CLAUDE.md → runtime-sync --runtime claude --check non-zero (FR-007 / AC−5 / Failure matrix TM-005)
+    verify: "bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'hash_mismatch or claude'"
+  - id: cp2
+    criterion: regenerated from harness/instructions/main.md or documented generated header → check green
+    verify: "bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'generated or header or apply'"
+  - id: cp3
+    criterion: no warning-only default success on stale CLAUDE.md (AC−5)
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k 'warning or fail_closed or hash_mismatch'"
+  - id: cp4
+    criterion: allow-exception documented if present; default enforce on (behavior-first no flag default off)
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k allow"
+
+verify:
+  - "bin/pytest loop/tests/test_runtime_sync.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'hash_mismatch or claude'"
+  - "rg -n \"hash_mismatch\" loop/runtime_materializers/sync.py bin/runtime-sync"
+
+tdd:
+  - "test_claude_check_hash_mismatch_fails — FR-007 / Failure matrix TM-005"
+  - "test_claude_check_matching_or_generated_header_passes — Product WHAT #5"
+  - "test_claude_check_not_warning_only — AC−5"

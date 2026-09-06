@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: "Repair linked to parent FAIL — leftover remaining invalid"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Repair result связан с parent FAIL: parent_evidence_id; remaining ∩ fixed = ∅;
+  status=done ⇒ remaining empty; fail ⇒ remaining or diagnostic; agent_id=gate-repair.
+  Schema fail не ретраится как repair-агент (taxonomy). leftover remaining на done —
+  invalid.
+
+plan_contract:
+  fr_ids: [FR-006, FR-007, US-004, SC-004, AC+4, AC−5, TM-004, TM-006]
+  nouns:
+    - parent_evidence_id
+    - remaining_blockers
+    - fixed_blockers
+    - RepairResultRecord
+    - gate-repair
+    - loop-repair-result/v1
+  layout_paths:
+    - loop/schemas/repair_result.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_gate_repair.py
+  ac_quotes:
+    - "Repair: parent_evidence_id; remaining/fixed disjoint; done ⇒ remaining empty; fail ⇒ remaining or diagnostic; agent_id=gate-repair."
+    - "Как parent, я вижу repair привязанный к FAIL blockers."
+    - "Repair `done` requires empty remaining; fixed ⊆ parent FAIL."
+    - "Нет repair done with leftover blockers."
+    - "schema fail retried as repair → schema retry only"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:45-90"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:108-158"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:199-214"
+
+context:
+  consumes:
+    - s01 wire schema on repair fence
+    - s02 fence required for gate-repair
+    - plan.md §FR-006 §gap 4
+  produces:
+    - RepairResultRecord invariants (parent id, disjoint lists, done empty remaining)
+    - SubagentStop rejects done+remaining
+    - agent_id must be gate-repair
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#qa-consumes
+  files:
+    - loop/schemas/repair_result.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_gate_repair.py
+    - loop/tests/test_repair_result.py
+
+as_built:
+  - "RepairResultRecord: agent_id, status, fixed_blockers, remaining_blockers, recorded_at — no parent_evidence_id, no model_validator disjoint/done"
+  - "SubagentStop gate-repair: extract_repair_result; status done/partial prints retry @verify; no parent FAIL subset check"
+  - "harness/hooks/tests/test_gate_repair.py fixture has remaining=[] but does not assert leftover-invalid"
+  - "agent-pretool already blocks repair without FAIL — this step is result identity vs parent blockers"
+
+delta:
+  - "add parent_evidence_id (or equivalent parent FAIL id) required on wire repair"
+  - "validators: remaining ∩ fixed empty; done ⇒ remaining empty; fail ⇒ remaining or diagnostic; fixed ⊆ parent FAIL blockers"
+  - "agent_id=gate-repair required"
+  - "stop path: invalid repair does not set repair_done success"
+  - "schema fail on repair fence → schema retry only, not treated as semantic repair done (Failure matrix TM-006)"
+
+deletes:
+  - "accepting status=done with leftover remaining_blockers"
+  - "repair records without parent FAIL identity on wire"
+
+out_of_scope:
+  - "Kind I README (s05)"
+  - "ownership spawn identity (s03) except agent_id=gate-repair"
+  - "full retry_policy product — cut_list"
+  - "finish transaction — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: done + leftover remaining → invalid (US-004 / SC-004 / QA TM-004 / AC−5)
+    verify: "bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py -q --tb=line -k 'remaining or leftover or done'"
+  - id: cp2
+    criterion: parent_evidence_id required; fixed ⊆ parent FAIL; remaining/fixed disjoint (FR-006)
+    verify: "bin/pytest loop/tests/test_repair_result.py -q --tb=line -k 'parent or disjoint or subset'"
+  - id: cp3
+    criterion: agent_id must be gate-repair; fail ⇒ remaining or diagnostic
+    verify: "bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py -q --tb=line -k 'agent_id or fail or diagnostic'"
+  - id: cp4
+    criterion: Independent Test repair invariant; schema fail not stored as repair done (Failure matrix TM-006)
+    verify: "bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py loop/tests/test_stop_gate.py -q --tb=line -k 'repair'"
+
+verify:
+  - "bin/pytest loop/tests/test_repair_result.py harness/hooks/tests/test_gate_repair.py -q --tb=line"
+  - "rg -n \"parent_evidence_id\" loop/schemas/repair_result.py"
+
+tdd:
+  - "test_repair_done_with_remaining_invalid — QA TM-004 / SC-004"
+  - "test_repair_parent_evidence_required_and_subset — FR-006 / US-004"
+  - "test_repair_agent_id_gate_repair_only"
+  - "test_repair_fail_requires_remaining_or_diagnostic"

@@ -8,6 +8,7 @@ alwaysApply: false
 **Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/front_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md`
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 **Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Скиллы:**
@@ -37,17 +38,17 @@ alwaysApply: false
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица)  
     - апсерт `memory-bank/front/roadmap/queue.yaml` (`batch` + `batches.<slug>`; шаблон @.cursor/templates/roadmap-queue.yaml)  
-    - полный `plan/<epic_id>/md/plan.md` на **каждый** эпик (E2E + design direction; §0.0)  
+    - полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` на **каждый** эпик (начинается с `## Epic`; Covering одинаковый; весь prompt без ID / без шапки Role·Deps; E2E + design direction; §0.0)  
     - **FORBIDDEN** `plan/roadmap-*-epics.*`  
 4. Single-epic: содержание по level delta в gates; E2E в плане; после DECOMPOSE трекер только в `plan/<id>/yaml/decompose-index.yaml`
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани: один `memory-bank/front/plan/<task_id>/md/plan.md` **или** апсерт `front/roadmap/queue.yaml` + N plan dirs
+6. Сохрани: один `memory-bank/front/plan/<task_id>/md/plan.md` **и** `md/prompt.md` **или** апсерт `front/roadmap/queue.yaml` + N plan dirs + N `prompt.md` (Covering одинаковый)
 7. `tasks.md` append-only (queue + каждый эпик при multi-epic)
 7a1. **Queue reconcile (optional):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role front`
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 
-**Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `roadmap/queue.yaml` при ≥2 → FAIL)
+**Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `roadmap/queue.yaml` при ≥2 → FAIL) + `md/prompt.md` (начинается с `## Epic`; без ID / без шапки Role·Deps; без файла → FAIL)

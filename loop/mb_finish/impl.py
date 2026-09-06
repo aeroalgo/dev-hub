@@ -29,6 +29,15 @@ from harness.hooks.epic.core import (
 )
 from loop.mb_finish.render import render_active_context
 from loop.mb_finish.schemas import HandoffBody, LoadNowItem, LoopHandoffMeta, MbFinishRequest, MbFinishResult
+from loop.mb_finish.transaction import (
+    FinishTxRecord,
+    FinishTxState,
+    commit_staged_files,
+    recover_finish_transaction,
+    rollback_staged_files,
+    stage_file_in_tx,
+    write_finish_tx,
+)
 from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.state import QaAfterBugfix
 
@@ -38,9 +47,28 @@ def finish_handoff(
     load_now: list[LoadNowItem],
     handoff_body: HandoffBody,
     cwd: str | Path = ".",
+    recovery_token: str | None = None,
 ) -> MbFinishResult:
-    """Low-level escape hatch to render and write activeContext without finalizing step."""
+    """Internal finish_handoff requiring recovery_token matching active journal id.
+
+    FR-007 / US-002: Tokenless calls return finish_handoff_forbidden.
+    """
+    from loop.mb_finish.transaction import read_finish_tx
+
     cwd_p = Path(cwd)
+    tx = read_finish_tx(cwd_p)
+    expected_token = tx.tx_id if tx else None
+
+    if not recovery_token or recovery_token != expected_token:
+        # Log incident / reject
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["finish_handoff_forbidden"],
+            shape_errors=[
+                "finish_handoff is internal only and requires a valid recovery_token matching the finish transaction journal"
+            ],
+        )
+
     act_path = resolve_mb_root(cwd_p) / "activeContext.md"
     state = load_epic_state(cwd_p)
     if str(state.get("armed_step") or state.get("phase") or "").upper() == "BUGFIX" and meta.mode.upper() != "BUGFIX":
@@ -246,20 +274,41 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     except OSError:
         backup = ""
 
+    # Transaction Journal: stage activeContext, commit and record states
+    tx_id = f"tx-qa-{epic_id or 'none'}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
+
+    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id or "",
+        step_id="QA",
+        phase="BACK QA",
+        state=FinishTxState.PREPARED,
+        staged_files=[staged_act],
+        recovery_token=tx_id,
+    )
+    write_finish_tx(cwd, tx_rec)
+
     try:
-        atomic_write_text(act_path, rendered)
+        commit_staged_files(cwd, [staged_act])
+        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
+        write_finish_tx(cwd, tx_rec)
     except ActiveContextLocked as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["runner_owns_active_context"],
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
@@ -284,6 +333,10 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     st["halt_reason"] = None
     st["qa_after_bugfix"] = None
     save_epic_state(cwd, st)
+
+    # Mark committed in journal
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, tx_rec)
 
     fp_data = f"qa:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
@@ -406,20 +459,41 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     except OSError:
         backup = ""
 
+    # Transaction Journal: stage activeContext, commit and record states
+    tx_id = f"tx-bugfix-{epic_id}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
+
+    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id,
+        step_id="BUGFIX",
+        phase="BACK BUGFIX",
+        state=FinishTxState.PREPARED,
+        staged_files=[staged_act],
+        recovery_token=tx_id,
+    )
+    write_finish_tx(cwd, tx_rec)
+
     try:
-        atomic_write_text(act_path, rendered)
+        commit_staged_files(cwd, [staged_act])
+        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
+        write_finish_tx(cwd, tx_rec)
     except ActiveContextLocked as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["runner_owns_active_context"],
             shape_errors=[str(exc)],
         )
     except Exception as exc:
-        if backup:
-            try:
-                atomic_write_text(act_path, backup)
-            except Exception:
-                pass
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
@@ -446,6 +520,10 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
         ],
     ).model_dump()
     save_epic_state(cwd, st)
+
+    # Mark committed in journal
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, tx_rec)
 
     sync_cursor_from_index(cwd)
 

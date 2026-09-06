@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L3  
 **Статус:** active  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Clarify:** Phase 0 skipped — taxonomy clear (чат 2026-09-03: subagent inventory as-built → JSON REPLACE; scope в decompose; parent строит новый SoT)  
 **Roadmap:** [roadmap-sunset-inventory-agent-epics.md](roadmap-sunset-inventory-agent-epics.md) · queue sibling  
 **Deps:** **hard** T-HUB-057. **Unlocks hard** T-HUB-053 (materialize нового agent в Codex parity).  

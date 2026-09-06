@@ -6,9 +6,9 @@ alwaysApply: false
 
 ## Gates
 
-1. Вход только после PASS `BACK QA`, с исходным prompt и номером iteration.
-2. Исходный prompt — единственный критерий outcome. Старые plan/shards/audits
-   используются лишь для фактов уже сделанного.
+1. Вход только после PASS `BACK QA`, с `plan/<epic_id>/md/prompt.md` и номером iteration.
+2. Секция `## Epic` в `md/prompt.md` — единственный критерий outcome (не Covering, не plan.md).
+   Старые plan/shards/audits — только факты уже сделанного. Prompt I1 не переписывать.
 3. Создаваемый plan обязан иметь `iteration: 2` или `iteration: 3`, явный
    outcome verbatim и отдельные `outcome_gap|legacy_removal|hardening` задачи.
 4. Любая работа вне исходного outcome уходит в `backlog_candidates`, а не в plan.
@@ -17,7 +17,9 @@ alwaysApply: false
 
 ## Abort
 
-- Нет исходного prompt или QA PASS → reject.
+- Нет `md/prompt.md` / нет `## Epic` / пустой prompt или QA PASS отсутствует → reject.
+- В `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → FAIL.
+- REPLAN читает Covering как SoT / читает соседние `plan/` из-за prompt → FAIL.
 - Прежний plan/shard использован как доказательство достижения outcome → FAIL.
 - Создана I4 или расширен scope исходного prompt → FAIL.
 - Внесены code/loop/CLI/schema изменения в рамках REPLAN → FAIL.
@@ -25,4 +27,5 @@ alwaysApply: false
 ## Verify
 
 `rg -n 'iteration: 2|iteration: 3|FINAL OUTCOME REVIEW|backlog_candidates' .cursor/rules/back_developer/workflow-replan.mdc`
+`test -f memory-bank/back/plan/<epic_id>/md/prompt.md`
 

@@ -1,0 +1,143 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "Route SoT — video intent commands → existing workflow files, missing → pack_route_missing"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Operator SCRIPT PLAN / VISUAL STORYBOARD / POST EDIT / POST PUBLISH (и остальные
+  intent pipeline commands pack video-production) резолвится в существующий workflow
+  path на диске. Missing file/dir → не ok=true, diagnostic pack_route_missing.
+  Один SoT: либо существующие files под rules_root, либо explicit route_map — не оба.
+  Inventory (FR-001) = red tests того же Path.exists.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-007, US-001, SC-001, AC+1, AC−1, AC−4, TM-001, TM-002, TM-007]
+  nouns:
+    - route_command
+    - CommandRoute.rules_mdc_rel
+    - Path.exists
+    - pack_route_missing
+    - route_map XOR workflow-*.mdc under video role dirs
+    - intent_routing.yaml video_production / content_factory commands
+    - .cursor/rules/video/workflow-plan.mdc
+  layout_paths:
+    - loop/workflow/command_router.py
+    - loop/workflow/schemas.py
+    - loop/workflow/intent_routing.yaml
+    - .cursor/rules/video/
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_workflow_pack_phase_router.py
+  ac_quotes:
+    - "Как operator SCRIPT PLAN, я хочу route на существующий workflow."
+    - "Then: `ok` и Path.exists; missing dir → ok false `pack_route_missing`"
+    - "route_command never returns ok with nonexistent workflow."
+    - "Нет ok=true + missing path."
+    - "Нет dual route_map + ghost role-subdir без delete."
+    - "Independent Test PASS: SCRIPT PLAN path exists"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:34-91"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:107-126"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:158-199"
+
+context:
+  consumes:
+    - plan.md §Technology axiom §FR-001/002/007 §US-001 §AC+1 §HOW
+    - intent_routing.yaml video pipelines
+    - as-built command_router concatenates {rules_root}/{role}_developer/workflow-{phase}.mdc
+  produces:
+    - every video intent command Path.exists(hub_root / rules_mdc_rel)
+    - missing path → pack_route_missing fail-closed (not ok)
+    - one route SoT (flat files and/or route_map); ghost script_developer concat gone for video pack
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#ac
+    - plan.md#how
+  files:
+    - loop/workflow/command_router.py
+    - loop/workflow/schemas.py
+    - .cursor/rules/video/workflow-plan.mdc
+    - .cursor/rules/video/workflow-implement.mdc
+    - .cursor/rules/video/workflow-qa.mdc
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_workflow_pack_phase_router.py
+
+as_built:
+  - "video pack rules_root=.cursor/rules/video; files are FLAT (workflow-plan.mdc, workflow-implement.mdc, workflow-qa.mdc) — no script_developer/ visual_developer/ post_developer/"
+  - "_resolve_role_subdir('script') → script_developer; route_command(SCRIPT PLAN) → .cursor/rules/video/script_developer/workflow-plan.mdc — Path does not exist"
+  - "CommandRoute is NamedTuple(normalized_phase, rules_mdc_rel) with no ok / pack_route_missing field"
+  - "test_route_command_custom_prefix asserts packs/video/rules/script_developer/workflow-plan.mdc string equality, no exists check"
+  - "test_workflow_pack_video_e2e.py resolves pack but does not Path.exists route_command for SCRIPT PLAN"
+  - "intent commands: SCRIPT PLAN, SCRIPT DECOMPOSE, VISUAL STORYBOARD, POST EDIT, POST PUBLISH"
+  - "missing phases on disk: workflow-decompose.mdc, workflow-storyboard.mdc (and any other intent phase not in {plan,implement,qa})"
+
+delta:
+  - "inventory pytest: for each intent command vs loaded video pack, Path.exists(hub_root / route.rules_mdc_rel) (FR-001/007)"
+  - "choose ONE SoT: prefer create missing workflow-*.mdc under the layout that index/README already documents (flat .cursor/rules/video/) PLUS resolver that does not concat ghost {role}_developer when pack.rules_root is video; XOR explicit route_map dict — not both"
+  - "extend CommandRoute / wrapper so missing file cannot be ok=true; diagnostic pack_route_missing (FR-007 fixture)"
+  - "create missing workflow files required by intent pipeline (DECOMPOSE, STORYBOARD at minimum) if SoT=files"
+  - "fail-closed test: monkeypatch/missing file → not ok, code pack_route_missing"
+
+deletes:
+  - "live concat of nonexistent {role}_developer under video rules_root as the returned SoT (purge leftover in s06 if dual remains)"
+  - "ok=true semantics on missing path (if introduced as bool default true without exists)"
+
+out_of_scope:
+  - "manifest / materialize three agents (s02)"
+  - "SubagentStop VERIFY set / no_gate_reason (s03)"
+  - "source-driven parity glob (s04)"
+  - "Kind I README (s05)"
+  - "full leftover inventory scan (s06)"
+  - "ffmpeg live gate / template pack authoring — Appetite cut_list"
+  - "JANITOR no-gate — FR-011 skip"
+  - "follow_up: T-HUB-051 leftover ffmpeg CREATIVE; T-HUB-067 doctor consumes this"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Inventory — каждый command intent_routing video_production + content_factory
+      резолвится в Path.exists (US-001 / FR-001 / SC-001 / TM-001).
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'script_plan_path or intent_route_exists or video_route'"
+  - id: cp2
+    criterion: Missing workflow file fixture → not ok, diagnostic pack_route_missing (FR-007 / TM-002 / AC−1)
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k pack_route_missing"
+  - id: cp3
+    criterion: One SoT — video SCRIPT PLAN does not return ghost script_developer path that is missing on disk (FR-002 / AC−4)
+    verify: "rg -n \"script_developer/workflow-\" loop/workflow/command_router.py .cursor/rules/video/ || true; bin/pytest loop/tests/test_workflow_pack_phase_router.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'route_command or video_route'"
+  - id: cp4
+    criterion: Enforce — route_command (or pack-aware wrapper used by loop) never yields ok with nonexistent workflow
+    verify: "rg -n \"pack_route_missing\" loop/workflow/command_router.py loop/tests/"
+
+sunset_scope:
+  required: true
+  boundary_id: video-pack-route
+  new_sot: loop/workflow/command_router.py
+  allow_read:
+    - loop/workflow/
+    - .cursor/rules/video/
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_workflow_pack_phase_router.py
+  kind_hint:
+    - A
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_workflow_pack_phase_router.py -q --tb=line -k 'route or pack_route or script_plan or video'"
+  - "rg -n \"pack_route_missing\" loop/"
+
+tdd:
+  - "test_video_intent_commands_route_paths_exist — FR-001/007 TM-001"
+  - "test_missing_video_workflow_pack_route_missing — TM-002 AC−1"
+  - "test_script_plan_not_ghost_script_developer — FR-002 AC−4"
+  - "test_route_command_never_ok_missing_file — Technology axiom Route"

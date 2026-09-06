@@ -24,7 +24,9 @@
 - **refs:** `.claude/settings.json` (Read this session: dual SessionStart); `harness/hooks/session-start.py`; `loop` prompt_builder; `.cursor/rules/mainrule.mdc`; T-HUB-044 doctor; T-HUB-053.
 - **Не:** full Codex event matrix (053); transactional finish (068); schema fence (066).
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет**
 
 ---
 
@@ -238,6 +240,10 @@
 
 ## Следующий режим
 
-→ BACK DECOMPOSE T-HUB-065 after 064.
+→ BACK ANALYZE T-HUB-065 (decompose index = sole tracker).
 
-**CREATIVE need:** нет.
+**Decompose:** [md/decompose-index.md](decompose-index.md) · [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · 5 sNN.
+
+### CREATIVE need
+
+**нет**

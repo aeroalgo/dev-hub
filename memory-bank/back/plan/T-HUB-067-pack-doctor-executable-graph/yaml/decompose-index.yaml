@@ -1,0 +1,37 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-067-pack-doctor-executable-graph
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - template pack authoring
+  - MCP load rewrite
+  - full ContextBoundaryService class
+  - ffmpeg required gate
+steps:
+- id: s01
+  file: s01-check-pack-graph-doctor.yaml
+  title: Executable pack graph — exists+declare codes; doctor CLI fail-closed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-load-session-derived-ok.yaml
+  title: load_session — derived ok + required/optional fields; MCP cannot override
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-session-start-context-incomplete.yaml
+  title: SessionStart — CONTEXT_INCOMPLETE halt; required exceptions typed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-kind-i-software-regression.yaml
+  title: Kind I + software pack assertion — docs honest; video red reported not skipped
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: s05 — legacy-fallback-purge — ok=true leftover + Warning-as-success
+  next_phase: BACK IMPLEMENT
+  status: completed

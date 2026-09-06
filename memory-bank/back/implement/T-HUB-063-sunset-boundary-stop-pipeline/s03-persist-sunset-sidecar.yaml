@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-063-sunset-boundary-stop-pipeline
+title: s03 — Persist sidecar — parent читает valid SunsetReport, IO fail-closed IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-063-sunset-boundary-stop-pipeline/yaml/steps/s03-persist-sunset-sidecar.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- Sunset stop pipeline requires typed sidecar persistence in gate family path (.claude/runtime/epic/sunset-<session>[-<step>].json)
+- Created loop/sunset_sidecar_store.py with write_sunset_sidecar and read_sunset_sidecar
+- Integrated sidecar persistence and fail-closed NEED_HUMAN handling in harness/hooks/subagent-stop.py
+gaps:
+  status: none
+done:
+- Created loop/sunset_sidecar_store.py implementing typed sidecar persistence and
+  reader helpers for SunsetReport
+- Wired write_sunset_sidecar in harness/hooks/subagent-stop.py on valid sunset-inventory
+  / sunset stop
+- 'Implemented fail-closed IO handling raising NEED_HUMAN: sunset_sidecar_persist_failed
+  and exit 2 on write failures'
+- Added comprehensive unit and regression tests in loop/tests/test_subagent_stop_sunset.py
+files:
+- loop/sunset_sidecar_store.py
+- harness/hooks/subagent-stop.py
+- loop/tests/test_subagent_stop_sunset.py
+deletes:
+- log-only success for sunset (no file) if any comment/path encodes that as done
+tests:
+- bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k persist
+- bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k parent_read
+- bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line -k persist_fail
+- bin/pytest loop/tests/test_subagent_stop_sunset.py -q --tb=line
+integration_check:
+- Validated that sunset sidecar paths stay within .claude/runtime/epic/ family
+- Verified that schema_version loop-sunset-inventory/v1 is preserved in written and
+  read JSON
+grep_control: []
+verification_results:
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Valid sunset stop writes parent-readable file containing schema loop-sunset-inventory/v1
+    (TM-005)
+  status: done
+- id: cp2
+  criterion: Parent helper reads sidecar/state key with schema_id (US-003)
+  status: done
+- id: cp3
+  criterion: Persist IO failure fail-closed — not swallow, not success (plan C / TM-005
+    persist fail)
+  status: done
+- id: cp4
+  criterion: Path is under `.claude/runtime/epic/` family, not log-only; not state.json
+    as SoT
+  status: done
+resume_from: none

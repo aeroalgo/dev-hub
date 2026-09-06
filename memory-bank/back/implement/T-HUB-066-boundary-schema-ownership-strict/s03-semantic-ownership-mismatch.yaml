@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s03 — Ownership vs in-flight — mismatch fail-closed, no schema-retry IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s03-semantic-ownership-mismatch.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- GateVerdictRecord requires agent_id, epic_id, step_id, session_id, and valid ISO
+  8601 recorded_at
+- SubagentStop enforces ownership comparison against in-flight gate identity (step_id,
+  epic_id, session_id, agent_id)
+- Ownership mismatches fail closed with semantic_ownership_mismatch without incrementing
+  schema retry
+- BLOCKED verdict allowed only for agents declaring it (verify-qa / reviewer); forbidden
+  for verify-implement
+- Updated _GATE_JSON_HARD contract string to include ownership fields on loop-gate-verdict/v1
+  wire
+files:
+- harness/hooks/subagent-stop.py
+- harness/hooks/_lib.py
+- loop/schemas/gate_verdict.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_validate_boundary.py
+deletes:
+- optional-empty identity on finish-gate wire that lets stale step PASS
+- any path that classifies ownership mismatch as schema_* retry
+tests:
+- bin/pytest loop/tests/test_stop_gate.py loop/tests/test_validate_boundary.py -q
+  --tb=line -k 'ownership or blocked or recorded_at or stale'
+integration_check:
+- SubagentStop ownership checks compare against current_gate_identity and record_agent_key
+- GateVerdictRecord validation in validate_boundary enforces all required fields and
+  ISO timestamp
+grep_control: []
+verification_results:
+- test_stale_step_id_semantic_ownership_mismatch PASS
+- test_ownership_mismatch_no_schema_retry PASS
+- test_blocked_verify_implement_invalid PASS
+- test_recorded_at_iso_junk_invalid PASS
+- 89 passed in test_stop_gate.py and test_validate_boundary.py
+checkpoints:
+- id: cp1
+  criterion: stale step_id vs in-flight → semantic_ownership_mismatch, not PASS (US-003
+    / SC-003 / QA TM-003 / Failure matrix TM-004)
+  status: done
+- id: cp2
+  criterion: ownership fail does not increment schema retry (FR-007 / AC−4)
+  status: done
+- id: cp3
+  criterion: BLOCKED on verify-implement invalid; verify-qa may BLOCKED (FR-005 /
+    QA TM-006 / Failure matrix TM-007)
+  status: done
+- id: cp4
+  criterion: recorded_at ISO junk fails (Failure matrix TM-008); Independent Test
+    stale mismatch code
+  status: done

@@ -1,0 +1,22 @@
+{
+  "name": "verify-publish",
+  "policy_fingerprint": "sha256:df7ba2ee04446a31699ca8f4ae583f62334a4063f549e275df280b3ff5a3e949",
+  "source_prompt_sha256": "87a5aa267d5ae18f7205d26973f039a7559c0c3b57537abcaec855e26303da63",
+  "disallowedTools": [
+    "Write",
+    "Edit",
+    "Agent",
+    "Skill",
+    "Glob",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite"
+  ],
+  "tools": [
+    "Read",
+    "Grep",
+    "Bash"
+  ],
+  "managed": true
+}

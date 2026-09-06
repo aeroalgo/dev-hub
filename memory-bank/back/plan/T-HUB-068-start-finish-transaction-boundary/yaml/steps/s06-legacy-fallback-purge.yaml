@@ -1,0 +1,268 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "s06 — legacy-fallback-purge — unjournaled write + public handoff leftover"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: нулевые leftover plan Replacement A+B+C+I.
+  Нет unjournaled dual write как sole path; нет public mb-finish handoff
+  success без token; нет exception-only restore as sole crash strategy;
+  нет unlocked save_epic_state; нет docs «finish_handoff for operators»;
+  нет finish_reflect reintroduction. Obsolete tests rewritten; suite green
+  без restore legacy. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-008
+    - FR-012
+    - FR-014
+    - AC−2
+    - AC−3
+    - AC−4
+    - AC−5
+    - SC-002
+    - SC-005
+    - Independent Test
+  nouns:
+    - unjournaled dual write
+    - public finish_handoff
+    - mb-finish handoff
+    - exception-only restore
+    - unlocked save_epic_state
+    - finish_handoff for operators
+    - finish-doc-router handoff escape
+    - finish_reflect
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/finish_implement.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/epic/core.py
+    - harness/cursor/rules/shared/finish-block.mdc
+    - harness/cursor/rules/shared/finish-doc-router.mdc
+    - .cursor/templates/finish-doc-router.md
+    - loop/tests/test_mb_finish_transaction.py
+  ac_quotes:
+    - "Kind I: finish-block.mdc / docs mentioning handoff CLI as normal path — rewrite."
+    - "Нет CLI re-arm without verify."
+    - "Нет reintroduction finish_reflect."
+    - "Нет «backup restore only on exception» as sole crash strategy."
+    - "FAIL: «atomic replace of one file» without multi-file journal; «backup on Exception» without prepare recover."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:173-201"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:124-130"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:250-253"
+
+context:
+  consumes:
+    - plan.md §Replacement / sunset (A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 apply/wire/enforce
+  produces:
+    - zero leftover public handoff operator path
+    - zero leftover unjournaled dual-write sole path
+    - rewritten obsolete tests
+    - sunset_inventory + grep_control evidence
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/finish_implement.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/epic/core.py
+    - harness/cursor/rules/shared/finish-block.mdc
+    - harness/cursor/rules/shared/finish-doc-router.mdc
+    - .cursor/templates/finish-doc-router.md
+    - loop/tests/test_mb_finish_transaction.py
+    - loop/tests/test_mb_finish_pack_write.py
+
+as_built:
+  - "After s01–s05: journal+wrap+recover+lock may still leave CLI help 'escape hatch', docs advertising handoff, Exception-backup comments, obsolete tests asserting public handoff ok"
+  - "finish_handoff still exported in loop/mb_finish/__init__.py — keep internal+token, not public operator path"
+  - "TransitionService / MCP-only / cross-host cut_list keep"
+
+delta:
+  - "rg full inventory A/B/C/I; delete leftover unjournaled sole path, public handoff CLI success, Exception-only-as-sole-strategy comments, unlocked save"
+  - "rewrite Kind I: finish-block / finish-doc-router / templates — typed mb-finish <phase> only; handoff = recovery"
+  - "rewrite/delete tests that assert public finish_handoff without token succeeds or backup-on-Exception is sufficient crash recovery"
+  - "confirm finish_reflect not reintroduced; halt/check_after still no public handoff"
+
+deletes:
+  - "leftover unjournaled dual write as sole finish_implement commit"
+  - "leftover public mb-finish handoff success without recovery_token"
+  - "leftover CLI help advertising low-level escape hatch as normal operator path"
+  - "leftover exception-only restore as sole crash strategy comments/tests"
+  - "leftover unlocked save_epic_state last-write-wins"
+  - "leftover docs «finish_handoff for operators» / finish-doc-router handoff escape as normal path"
+  - "obsolete tests asserting public handoff ok or Exception-backup-only recover"
+  - "finish_reflect reintroduction"
+
+out_of_scope:
+  - "TransitionService class tree — Appetite cut_list"
+  - "ContextBoundaryService rewrite — Appetite cut_list"
+  - "MCP-only finish — Appetite cut_list"
+  - "cross-host locks — Appetite cut_list"
+  - "REFLECT deletion already 060 — follow_up: T-HUB-060-remove-reflect-phase (keep deleted)"
+  - "duplicate hooks — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "Codex TOML — follow_up: T-HUB-069-agent-contract-registry-codex-policy"
+  - "full suite → QA"
+
+sunset_inventory:
+  - symbol: unjournaled dual write finish_implement_step
+    kind: A
+    replacement: journal helper loop/mb_finish/transaction.py
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/finish_implement.py loop/tests/test_mb_finish_transaction.py
+    expect: writers go through journal states; no sole context-then-finalize without journal
+  - symbol: public finish_handoff re-arm without recovery_token
+    kind: A
+    replacement: typed mb-finish phase / token vs journal id
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/impl.py harness/hooks/epic_resolve.py
+    expect: tokenless call → finish_handoff_forbidden
+  - symbol: tests asserting public handoff ok / Exception-backup-only recover
+    kind: A
+    replacement: rewrite asserts
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: finish_reflect reintroduction
+    kind: A
+    replacement: ignore/out (060)
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/
+    expect: no def finish_reflect
+  - symbol: CLI mb-finish handoff public escape
+    kind: B
+    replacement: removed or gated
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_resolve.py
+    expect: tokenless CLI nonzero + finish_handoff_forbidden
+  - symbol: exception-only restore as sole crash strategy
+    kind: C
+    replacement: prepare_session recover_finish_transaction
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/finish_implement.py loop/context_loop.py loop/tests/test_mb_finish_transaction.py
+    expect: recover on prepare exists; Exception-backup not sole documented strategy
+  - symbol: unlocked save_epic_state last-write-lose
+    kind: C
+    replacement: lockfile same family as spawn-gate
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: lock around save_epic_state
+  - symbol: docs finish_handoff for operators
+    kind: I
+    replacement: recovery only
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/shared/finish-block.mdc harness/cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md
+    expect: 0 operator paths advertising public handoff CLI
+  - symbol: finish-doc-router handoff escape as normal path
+    kind: I
+    replacement: typed mb-finish phases
+    policy: delete in-epic
+    rg_scope: .cursor/templates/finish-doc-router.md harness/cursor/rules/shared/finish-doc-router.mdc
+    expect: typed phases only
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: unjournaled dual write sole path
+    command: "rg -n \"finalize_step\" loop/mb_finish/finish_implement.py"
+    expect: journal wrap present; not context-write-then-finalize without journal
+  - id: inv-a-02
+    kind: A
+    symbol: public finish_handoff without token
+    command: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'finish_handoff_forbidden or tokenless'"
+    expect: tokenless forbidden (fail-closed)
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete public-handoff-ok asserts
+    command: "rg -n \"finish_handoff\\(\" loop/tests/ -g '*transaction*' ; bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'handoff'"
+    expect: tests require token or forbidden
+  - id: inv-a-03
+    kind: A
+    symbol: finish_reflect
+    command: "rg -n \"def finish_reflect\" loop/mb_finish/"
+    expect: 0 hits
+  - id: inv-b-01
+    kind: B
+    symbol: CLI mb-finish handoff
+    command: "rg -n \"add_parser\\(\\\"handoff\\\"\" harness/hooks/epic_resolve.py; bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'handoff_forbidden'"
+    expect: gated or removed; tokenless fails
+  - id: inv-c-01
+    kind: C
+    symbol: exception-only restore sole strategy
+    command: "rg -n \"recover_finish_transaction\" loop/context_loop.py"
+    expect: prepare recover exists
+  - id: inv-c-02
+    kind: C
+    symbol: unlocked save_epic_state
+    command: "rg -n \"lock|_spawn_state_lock|fcntl\" harness/hooks/epic/core.py"
+    expect: lock present in save_epic_state
+  - id: inv-i-01
+    kind: I
+    symbol: operator finish_handoff docs
+    command: "rg -n \"mb-finish handoff\" harness/cursor/rules/shared/finish-block.mdc harness/cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md"
+    expect: 0 operator-normal-path hits (recovery-only ok)
+  - id: inv-i-02
+    kind: I
+    symbol: finish-doc-router escape as normal
+    command: "rg -n \"finish_handoff\" .cursor/templates/finish-doc-router.md harness/cursor/rules/shared/finish-doc-router.mdc"
+    expect: typed phases; no operator escape
+
+sunset_scope:
+  required: true
+  boundary_id: mb-finish-transaction
+  new_sot: loop/mb_finish/transaction.py
+  allow_read:
+    - loop/mb_finish/**
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/epic/core.py
+    - loop/context_loop.py
+    - harness/cursor/rules/shared/finish-block.mdc
+    - harness/cursor/rules/shared/finish-doc-router.mdc
+    - .cursor/templates/finish-doc-router.md
+    - loop/tests/test_mb_finish_transaction.py
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — unjournaled dual write / public tokenless handoff / finish_reflect / obsolete tests — 0 leftover prod callers
+    verify: "rg -n \"def finish_reflect\" loop/mb_finish/; bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'finish_handoff_forbidden or journal'"
+  - id: cp2
+    criterion: Kind B — CLI mb-finish handoff not a public operator success path
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'handoff_forbidden or tokenless'"
+  - id: cp3
+    criterion: Kind C — recover on prepare exists; save_epic_state locked; Exception-backup not sole strategy
+    verify: "rg -n \"recover_finish_transaction\" loop/context_loop.py; rg -n \"lock|_spawn_state_lock|fcntl\" harness/hooks/epic/core.py"
+  - id: cp4
+    criterion: Kind I — 0 operator docs advertising public handoff CLI as normal path (SC-005 / QA TM-006 / FR-008)
+    verify: "rg -n \"mb-finish handoff\" harness/cursor/rules/shared/finish-block.mdc harness/cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line"
+  - "rg -n \"def finish_reflect\" loop/mb_finish/"
+  - "rg -n \"mb-finish handoff\" harness/cursor/rules/shared/finish-block.mdc harness/cursor/rules/shared/finish-doc-router.mdc .cursor/templates/finish-doc-router.md"
+
+tdd:
+  - "test_public_handoff_docs_zero_operator_paths — FR-008 / SC-005 / QA TM-006"
+  - "test_no_finish_reflect — FR-012 / TM-008"
+  - "test_prepare_recover_not_exception_only — AC−5"

@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s05 — Kind I — README gate_verdict + prompts «no fence = FAIL» runtime-true
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s05-kind-i-readme-prompts.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- loop/schemas/README.md contained stale references to LoopGateVerdict / verdict.py
+  / SKIP
+- agent prompts in harness/agents/ already contained strict JSON fence contracts
+gaps:
+  status: none
+done:
+- rewrote loop/schemas/README.md schema table with GateVerdictRecord, RepairResultRecord,
+  and SunsetReport
+- created loop/tests/test_kind_i_boundary_prompts.py with full assertions for cp1,
+  cp2, cp3, cp4
+- verified that no instruction teaches payload data.verdict as SoT over JSON fence
+files:
+- loop/schemas/README.md
+- harness/agents/verify-implement.md
+- harness/agents/verify-qa.md
+- harness/agents/gate-repair.md
+- loop/tests/test_kind_i_boundary_prompts.py
+deletes:
+- loop/schemas/README.md references to verdict.py, LoopGateVerdict SKIP as current
+  SoT
+- any Kind I line that teaches extra=ignore collab or payload-without-fence PASS
+tests:
+- bin/pytest loop/tests/test_kind_i_boundary_prompts.py -q --tb=line
+- bin/pytest loop/tests/test_boundary_registry.py loop/tests/test_kind_i_boundary_prompts.py
+  loop/tests/test_stop_gate.py -q --tb=line
+integration_check:
+- README and boundary registry agree on GateVerdictRecord and schema IDs
+- Living subagent-stop execution asserts that absence of fenced JSON triggers validation
+  failure
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: README current SoT is GateVerdictRecord PASS/FAIL/BLOCKED in gate_verdict.py;
+    leftover verdict.py / SKIP as current SoT equals 0 (FR-012). Absence fail-closed
+    via pytest assert empty leftover.
+  status: done
+  done_at: '2026-09-06T00:00:00Z'
+- id: cp2
+  criterion: Prompts still require JSON fence (FR-010) — positive hits required
+  status: done
+  done_at: '2026-09-06T00:00:00Z'
+- id: cp3
+  criterion: Living test — no-fence FAIL remains true in runtime+prompt (FR-010)
+  status: done
+  done_at: '2026-09-06T00:00:00Z'
+- id: cp4
+  criterion: Kind I does not teach payload data.verdict as SoT or extra=ignore collab
+    — leftover count 0 (fail-closed pytest, no || true)
+  status: done
+  done_at: '2026-09-06T00:00:00Z'
+resume_from: none

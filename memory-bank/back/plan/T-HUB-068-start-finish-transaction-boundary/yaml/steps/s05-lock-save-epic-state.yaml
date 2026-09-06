@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "save_epic_state lockfile — no silent lost-update"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Two concurrent save_epic_state cannot drop fields (retry_count / sidecars).
+  Lockfile same family as spawn-gate (`_spawn_state_lock` / fcntl + atomic
+  replace) **or** documented single-threaded assumption with a test that fails
+  if unlocked lost-update is reproduced. NFS/cross-host locks out of appetite.
+
+plan_contract:
+  fr_ids:
+    - FR-009
+    - US-003
+    - SC-004
+    - AC+5
+    - TM-005
+  nouns:
+    - save_epic_state
+    - lockfile
+    - spawn-gate
+    - retry counter
+    - two writers fixture
+    - lost-update
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/_lib.py
+    - loop/tests/test_mb_finish_transaction.py
+  ac_quotes:
+    - "save_epic_state lockfile same family as spawn-gate or document single-threaded hook assumption with test that fails if unlocked lost-update reproduced."
+    - "Two concurrent save_epic_state cannot drop fields (lock or retry)."
+    - "Как hook, я не теряю retry counter при concurrent save."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:17-23"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:85-93"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:116-123"
+
+context:
+  consumes:
+    - harness/hooks/epic/core.py save_epic_state (atomic_write_text, no RMW lock)
+    - harness/hooks/_lib.py _spawn_state_lock / save_state
+    - plan.md §Technology axiom State RMW
+  produces:
+    - locked save_epic_state (or failing unlocked lost-update test + lock)
+    - two-writers fixture green
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#failure-matrix
+  files:
+    - harness/hooks/epic/core.py
+    - loop/tests/test_mb_finish_transaction.py
+
+as_built:
+  - "save_epic_state: merge projection then atomic_write_text(state_path) without lockfile"
+  - "spawn-gate JSON uses _spawn_state_lock + fsync + os.replace (harness/hooks/_lib.py)"
+  - "checkpoint path has its own lock; epic state does not"
+
+delta:
+  - "wrap save_epic_state with lockfile sibling same family as spawn-gate"
+  - "two-writers fixture: retry_count / field from writer A not dropped by writer B"
+  - "if documenting single-threaded instead of lock — test must fail when unlocked lost-update reproduced (plan OR); default is lock"
+
+deletes:
+  - "unlocked concurrent save_epic_state as accepted last-write-wins"
+
+out_of_scope:
+  - "cross-host / NFS locks — Appetite cut_list; Assumptions NFS N/A"
+  - "Kind I docs (s06)"
+  - "journal recover (s04 already)"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: save_epic_state uses lockfile same family as spawn-gate (FR-009)
+    verify: "rg -n \"lock|_spawn_state_lock|fcntl.flock\" harness/hooks/epic/core.py"
+  - id: cp2
+    criterion: Two writers fixture — retry counter / field not silently dropped (US-003 / SC-004 / QA TM-004 / Failure matrix TM-005)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'concurrent or lost_update or two_writer or lock'"
+  - id: cp3
+    criterion: Unlocked last-write-lose is not the accepted path (AC+5)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'save_epic_state or concurrent'"
+  - id: cp4
+    criterion: Cross-host/NFS not implemented (Appetite cut) — documented in test or comment, not a fake distributed lock
+    verify: "rg -n \"NFS|cross-host\" loop/tests/test_mb_finish_transaction.py harness/hooks/epic/core.py || true"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'concurrent or lost_update or save_epic_state or lock'"
+  - "rg -n \"def save_epic_state\" -A 40 harness/hooks/epic/core.py"
+
+tdd:
+  - "test_save_epic_state_lockfile_prevents_lost_update — FR-009 / US-003"
+  - "test_two_writers_retry_counter_preserved — TM-005 / SC-004"

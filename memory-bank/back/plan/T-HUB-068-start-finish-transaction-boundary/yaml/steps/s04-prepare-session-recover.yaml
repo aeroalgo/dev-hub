@@ -1,0 +1,128 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "prepare_session recovers leftover journal before agent work"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Enforce-слой crash SoT: prepare_session (SessionStart) вызывает
+  recover_finish_transaction() до agent work. leftover prepared/context_written/
+  index_written → commit remainder or rollback — never mixed identity.
+  Corrupt journal → fail-closed NEED_HUMAN. Exception-only backup restore
+  больше не единственная crash-стратегия.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-013
+    - US-001
+    - US-004
+    - SC-001
+    - SC-003
+    - AC+2
+    - AC+4
+    - AC−1
+    - AC−3
+    - AC−5
+    - TM-001
+    - TM-002
+    - TM-004
+    - TM-007
+  nouns:
+    - prepare_session
+    - recover_finish_transaction
+    - leftover journal
+    - mixed identity
+    - NEED_HUMAN
+    - backup restore only on exception
+  layout_paths:
+    - loop/context_loop.py
+    - loop/mb_finish/transaction.py
+    - loop/tests/test_mb_finish_transaction.py
+  ac_quotes:
+    - "prepare_session calls recover_finish_transaction()."
+    - "leftover journal → recover before inject"
+    - "Nет journal left prepared ignored on next start."
+    - "Нет «backup restore only on exception» as sole crash strategy."
+    - "recover loops | journal corrupt | fail-closed NEED_HUMAN"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:45-49"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:85-97"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:152-163"
+
+context:
+  consumes:
+    - s02 journal states
+    - s03 writers emit journal
+    - loop/context_loop.py prepare_session
+    - s01 crash fixtures
+  produces:
+    - recover_finish_transaction wired at prepare_session start
+    - crash-after-context and crash-after-index recover tests green
+    - committed leftover recover idempotent
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#failure-matrix
+    - plan.md#user-stories
+  files:
+    - loop/context_loop.py
+    - loop/mb_finish/transaction.py
+    - loop/tests/test_mb_finish_transaction.py
+
+as_built:
+  - "prepare_session repairs false index completed / identity mismatch / promote — does not recover finish-tx journal"
+  - "finish_implement backup restore only on finalize Exception (s03 may still keep as inner helper, not sole strategy)"
+  - "No recover_finish_transaction call site in prepare_session"
+
+delta:
+  - "prepare_session calls recover_finish_transaction() before inject/agent work"
+  - "recover: context_written without index → rollback or complete per documented policy; never mixed epic/step identity"
+  - "crash after index before committed marker — recover policy documented + tested (FR-013)"
+  - "recover committed leftover — idempotent"
+  - "corrupt journal → NEED_HUMAN fail-closed (TM-007); do not loop forever"
+  - "exception-only restore is not the only crash path"
+
+deletes:
+  - "sole crash strategy = backup restore only on Exception (as the documented recovery)"
+
+out_of_scope:
+  - "save_epic_state lock (s05)"
+  - "Kind I docs (s06)"
+  - "leftover comments in tests claiming Exception-backup is enough (s06 purge)"
+  - "cross-host recover — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: prepare_session calls recover_finish_transaction before agent inject (FR-005 / US-004 / SC-003 / QA TM-003)
+    verify: "rg -n \"recover_finish_transaction\" loop/context_loop.py; bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'prepare_session or recover_finish'"
+  - id: cp2
+    criterion: Crash after context then prepare_session → both new or both old; never mixed identity (US-001 / AC−1 / TM-001 / FR-013)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'crash_after_context or mixed_identity or recover'"
+  - id: cp3
+    criterion: Crash after index before committed marker recovered; leftover prepared not ignored (FR-013 / AC−3 / TM-002 / TM-004)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'crash_after_index or leftover_prepared or committed_idempotent'"
+  - id: cp4
+    criterion: Corrupt journal → NEED_HUMAN fail-closed; not infinite recover loop (TM-007); Exception-only backup is not sole strategy (AC−5)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'corrupt or NEED_HUMAN or recover_loop'"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'recover or prepare_session or crash_after or leftover or corrupt'"
+  - "rg -n \"recover_finish_transaction\" loop/context_loop.py"
+
+tdd:
+  - "test_prepare_session_recovers_leftover_journal — FR-005 / US-004"
+  - "test_crash_after_context_recover_aligns — TM-001 / US-001"
+  - "test_crash_after_index_pre_marker_recover — FR-013 / TM-002"
+  - "test_corrupt_journal_need_human — TM-007"

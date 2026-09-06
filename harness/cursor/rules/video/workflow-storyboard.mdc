@@ -1,0 +1,16 @@
+---
+description: "Режим VISUAL STORYBOARD — создание раскадровки и визуального ряда"
+alwaysApply: false
+---
+# VISUAL STORYBOARD — рабочий процесс
+
+## Контекст
+@.cursor/rules/video/mainrule-core.mdc
+
+## Gates
+@.cursor/rules/video/_lean/decompose.mdc
+
+## Процесс
+1. Отрисовка/генерация визуальных фреймов для каждого шота.
+2. Проверка композиции кадров, расстановки персонажей и текстовых плашек.
+3. Выход: раскадровка (storyboard) в `memory-bank/video/plan/`.

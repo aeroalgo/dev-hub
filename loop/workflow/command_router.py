@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import NamedTuple, Optional, Union
+from typing import List, Optional, Union
 import yaml
 
-from loop.workflow.schemas import IntentRoutingTable, WorkflowPack
+from loop.workflow.schemas import CommandRoute, IntentRoutingTable, WorkflowPack
 
 DEFAULT_INTENT_ROUTING_FILENAME = "intent_routing.yaml"
 
@@ -42,12 +42,6 @@ def load_intent_routing(hub_root: Optional[Union[Path, str]] = None) -> IntentRo
 
 
 
-class CommandRoute(NamedTuple):
-    """Result of routing a raw command against a workflow pack."""
-    normalized_phase: str
-    rules_mdc_rel: Optional[str]
-
-
 _ROLE_SUBDIR_MAP = {
     "back": "back_developer",
     "front": "front_developer",
@@ -56,21 +50,26 @@ _ROLE_SUBDIR_MAP = {
 }
 
 
-def _resolve_role_subdir(role: str) -> str:
-    role_key = role.strip().lower()
-    return _ROLE_SUBDIR_MAP.get(role_key, f"{role_key}_developer" if not role_key.endswith("_developer") else role_key)
-
-
-def route_command(pack: WorkflowPack, raw_command: str) -> CommandRoute:
+def route_command(pack: WorkflowPack, raw_command: str, hub_root: Optional[Union[Path, str]] = None) -> CommandRoute:
     """Route raw_command via pack.command_prefixes to canonical phase and relative rules MDC path.
 
     1. Normalizes raw_command via pack.command_prefixes (matching prefix determines role).
-    2. Resolves rules_mdc_rel = {pack.rules_root}/{role_subdir}/workflow-{phase.lower()}.mdc.
-    3. If no prefix matches, normalized_phase is the uppercase raw command stripped, and rules_mdc_rel is None.
+    2. Resolves rules_mdc_rel:
+       - If {rules_root}/workflow-{phase_lower}.mdc exists, use flat layout: {rules_root}/workflow-{phase_lower}.mdc.
+       - Else if {rules_root}/{role_subdir}/workflow-{phase_lower}.mdc exists or role_subdir layout is used:
+         {rules_root}/{role_subdir}/workflow-{phase_lower}.mdc.
+    3. Verifies existence against hub_root (if hub_root provided or defaults to project root).
+       If target rules file does not exist, marks ok=False and diagnostic_codes=['pack_route_missing'].
+    4. If no prefix matches, normalized_phase is the uppercase raw command stripped, and rules_mdc_rel is None.
     """
+    if hub_root is None:
+        hub_root_path = Path(__file__).resolve().parent.parent.parent
+    else:
+        hub_root_path = Path(hub_root).resolve()
+
     raw_str = str(raw_command or "").strip()
     if not raw_str:
-        return CommandRoute(normalized_phase="", rules_mdc_rel=None)
+        return CommandRoute(ok=True, normalized_phase="", rules_mdc_rel=None, diagnostic_codes=[])
 
     raw_upper = raw_str.upper()
 
@@ -94,8 +93,10 @@ def route_command(pack: WorkflowPack, raw_command: str) -> CommandRoute:
 
     if not matched_prefix or not normalized_phase:
         return CommandRoute(
+            ok=True,
             normalized_phase=normalized_phase or raw_str.upper(),
             rules_mdc_rel=None,
+            diagnostic_codes=[],
         )
 
     # Determine role_subdir based on prefix and pack.roles / pack.command_prefixes
@@ -110,13 +111,42 @@ def route_command(pack: WorkflowPack, raw_command: str) -> CommandRoute:
     if 0 <= prefix_idx < len(pack.roles):
         role = pack.roles[prefix_idx]
 
-    role_subdir = _resolve_role_subdir(role)
+    role_subdir = _ROLE_SUBDIR_MAP.get(role.strip().lower())
     rules_root = str(pack.rules_root or "").rstrip("/")
     phase_lower = normalized_phase.lower()
 
-    rules_mdc_rel = f"{rules_root}/{role_subdir}/workflow-{phase_lower}.mdc" if rules_root else f"{role_subdir}/workflow-{phase_lower}.mdc"
+    # Check candidates on disk
+    flat_rel = f"{rules_root}/workflow-{phase_lower}.mdc" if rules_root else f"workflow-{phase_lower}.mdc"
+    role_rel = (
+        f"{rules_root}/{role_subdir}/workflow-{phase_lower}.mdc"
+        if rules_root and role_subdir
+        else None
+    )
+
+    if (hub_root_path / flat_rel).is_file():
+        rules_mdc_rel = flat_rel
+    elif role_rel and (hub_root_path / role_rel).is_file():
+        rules_mdc_rel = role_rel
+    else:
+        # Keep missing routes on the canonical flat path; known role layouts remain supported.
+        if role_rel and rules_root and (hub_root_path / rules_root / role_subdir).is_dir():
+            rules_mdc_rel = role_rel
+        else:
+            rules_mdc_rel = flat_rel
+
+    file_exists = (hub_root_path / rules_mdc_rel).is_file() if rules_mdc_rel else False
+    if not file_exists:
+        return CommandRoute(
+            ok=False,
+            normalized_phase=normalized_phase,
+            rules_mdc_rel=rules_mdc_rel,
+            diagnostic_codes=["pack_route_missing"],
+        )
 
     return CommandRoute(
+        ok=True,
         normalized_phase=normalized_phase,
         rules_mdc_rel=rules_mdc_rel,
+        diagnostic_codes=[],
     )
+

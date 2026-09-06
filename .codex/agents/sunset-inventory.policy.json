@@ -1,0 +1,22 @@
+{
+  "name": "sunset-inventory",
+  "policy_fingerprint": "sha256:827f05c8a4c9ba8edb0db35bfb31b05a41679532a21778edaba7ae3a14685b29",
+  "source_prompt_sha256": "849f04457762c87e41a1b84aa7f7111f9f3e2369fadc95d0fec1c65ad2660b97",
+  "disallowedTools": [
+    "Write",
+    "Edit",
+    "Agent",
+    "Skill",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite"
+  ],
+  "tools": [
+    "Read",
+    "Bash",
+    "Grep",
+    "Glob"
+  ],
+  "managed": true
+}

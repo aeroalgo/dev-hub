@@ -1,0 +1,118 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "Mapping yaml + materialize fingerprint/sidecar — native or fail-closed emit"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Equivalence matrix — checked-in yaml/json, не markdown-only. Codex materialize
+  пишет policy_fingerprint + source_prompt_sha256 (TOML comments/[metadata] или
+  sidecar .codex/agents/<id>.policy.json). Unsupported required fields не дают
+  usable agent без unsupported_runtime_policy. FR-011: не изобретать Codex CLI flags.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, FR-011, US-001, AC+2, AC+5, SC-002, TM-004, Product-WHAT-2, Product-WHAT-5]
+  nouns:
+    - Codex mapping table yaml
+    - native | hook | unsupported
+    - policy_fingerprint
+    - source_prompt_sha256
+    - .codex/agents/<id>.policy.json sidecar
+    - render_codex_agent_toml
+    - materialize_agents
+  layout_paths:
+    - loop/runtime_materializers/codex_policy_mapping.yaml
+    - loop/runtime_materializers/codex_agent_toml.py
+    - loop/runtime_materializers/agents.py
+    - loop/runtime_materializers/agent_policy.py
+    - loop/tests/test_codex_agent_policy.py
+  ac_quotes:
+    - "Codex mapping table yaml: field → native | hook | unsupported. Required deny (Write/Edit/Agent on verify-*) cannot be unsupported without hook row."
+    - "Generated TOML includes policy_fingerprint and source_prompt_sha256 … still write sidecar .codex/agents/<id>.policy.json"
+    - "Do not invent Codex CLI flags that do not exist; prefer hook enforcement documented."
+    - "PASS: fingerprint exists. FAIL: «TOML file exists for each md»"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:42-50"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:76-91"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:125-140"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:197-205"
+
+context:
+  consumes:
+    - s01 PolicyRecord parser
+    - plan §FR-003/004/011 §HOW §QA TM-004
+  produces:
+    - mapping yaml loaded in tests
+    - materialize writes fingerprint in TOML and/or sidecar
+    - fail-closed emit path when required field unsupported without hook row (raise or doctor-fail code)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#how
+    - plan.md#qa-consumes
+  files:
+    - loop/runtime_materializers/codex_policy_mapping.yaml
+    - loop/runtime_materializers/codex_agent_toml.py
+    - loop/runtime_materializers/agents.py
+    - loop/runtime_materializers/agent_policy.py
+    - loop/tests/test_codex_agent_policy.py
+    - loop/tests/test_agent_materializer.py
+    - loop/tests/test_codex_agent_toml.py
+
+as_built:
+  - "render_codex_agent_toml(name, description, developer_instructions) only"
+  - "materialize_agents copies markdown_agent_to_codex_toml to .codex/agents/*.toml"
+  - "no mapping yaml; no sidecar; no fingerprint fields"
+  - "test_materialize_codex_agent_toml_from_frontmatter asserts name/desc/body only"
+
+delta:
+  - "add mapping yaml field → native|hook|unsupported; required deny on verify-* cannot be unsupported without hook row"
+  - "extend render/materialize: write policy_fingerprint + source_prompt_sha256; sidecar if TOML unknown keys stripped"
+  - "materialize fail-closed (raise CodexAgentTomlError / MaterializationError with unsupported_runtime_policy) when required deny neither native nor hook"
+  - "tests: fingerprint present after materialize (TM-004); mapping yaml loads; no invented CLI flags in mapping native column"
+
+deletes:
+  - "completeness claim that name/desc/instructions TOML is a complete Codex agent (behavior moves to fingerprint+mapping; leftover asserts → s07)"
+
+out_of_scope:
+  - "parity mutation on already-written TOML (s03)"
+  - "SubagentStart CONTRACTS compare (s04)"
+  - "ALWAYS_INJECT derived (s05)"
+  - "runtime-sync --check fingerprint (s06)"
+  - "full inventory purge (s07)"
+  - "generate schemas README — cut_list"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Mapping yaml exists and is loaded; each field native|hook|unsupported; required deny not unsupported without hook row
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k mapping"
+  - id: cp2
+    criterion: Materialize writes policy_fingerprint and source_prompt_sha256 in TOML and/or sidecar .policy.json (TM-004 / SC-002)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_agent_materializer.py -q --tb=line -k fingerprint"
+  - id: cp3
+    criterion: Required deny unsupported without hook row → materialize raises/fails unsupported_runtime_policy (not usable weaker TOML)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k unsupported_runtime"
+  - id: cp4
+    criterion: FR-011 — mapping native column contains only documented Codex TOML fields (name/description/developer_instructions + allowed metadata); no invented flags
+    verify: "rg -n \"native\" loop/runtime_materializers/codex_policy_mapping.yaml && bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k no_invented_flags"
+
+verify:
+  - "bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_agent_materializer.py -q --tb=line -k 'mapping or fingerprint or unsupported'"
+  - "rg -n \"policy_fingerprint|source_prompt_sha256\" loop/runtime_materializers/codex_agent_toml.py loop/runtime_materializers/agents.py"
+
+tdd:
+  - "test_mapping_yaml_required_deny_has_hook_or_native — FR-003"
+  - "test_materialize_writes_fingerprint_sidecar — TM-004 / FR-004"
+  - "test_materialize_unsupported_required_without_hook_fails — AC+2"
+  - "test_mapping_native_fields_are_real_codex_toml — FR-011"

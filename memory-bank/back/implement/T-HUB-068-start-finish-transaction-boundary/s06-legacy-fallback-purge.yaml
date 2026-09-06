@@ -1,0 +1,83 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: s06 — legacy-fallback-purge — unjournaled write + public handoff leftover
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Grep/audit confirmed 0 leftover finish_reflect functions in loop/mb_finish/
+- Zero operator docs advertising public mb-finish handoff in rules/templates
+- All tests asserting public handoff without recovery_token rewritten to fail-closed
+  with diagnostic finish_handoff_forbidden
+- Updated test_mb_finish_pack_write.py to provide recovery_token matching active journal
+gaps:
+  status: none
+done:
+- Audited codebase for Kind A+B+C+I leftovers (sunset inventory verified)
+- Rewrote obsolete unit tests in test_mb_finish_pack_write.py to pass recovery_token
+  with active journal
+- 'Added s06 TDD assertions: test_public_handoff_docs_zero_operator_paths, test_no_finish_reflect,
+  test_prepare_recover_not_exception_only in loop/tests/test_mb_finish_transaction.py'
+- Verified all checkpoints cp1, cp2, cp3, cp4 PASS
+files:
+- loop/mb_finish/impl.py
+- loop/mb_finish/finish_implement.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/epic/core.py
+- harness/cursor/rules/shared/finish-block.mdc
+- harness/cursor/rules/shared/finish-doc-router.mdc
+- .cursor/templates/finish-doc-router.md
+- loop/tests/test_mb_finish_transaction.py
+- loop/tests/test_mb_finish_pack_write.py
+deletes:
+- leftover unjournaled dual write as sole finish_implement commit
+- leftover public mb-finish handoff success without recovery_token
+- leftover CLI help advertising low-level escape hatch as normal operator path
+- leftover exception-only restore as sole crash strategy comments/tests
+- leftover unlocked save_epic_state last-write-wins
+- leftover docs «finish_handoff for operators» / finish-doc-router handoff escape
+  as normal path
+- obsolete tests asserting public handoff ok or Exception-backup-only recover
+- finish_reflect reintroduction
+tests:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line
+- bin/pytest loop/tests/test_mb_finish_pack_write.py -q --tb=line
+integration_check:
+- rg -n "def finish_reflect" loop/mb_finish/
+- rg -n "mb-finish handoff" harness/cursor/rules/shared/finish-block.mdc harness/cursor/rules/shared/finish-doc-router.mdc
+  .cursor/templates/finish-doc-router.md
+- rg -n "recover_finish_transaction" loop/context_loop.py
+- rg -n "_epic_state_lock" harness/hooks/epic/core.py
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- PASS
+- PASS
+checkpoints:
+- id: cp1
+  criterion: Kind A — unjournaled dual write / public tokenless handoff / finish_reflect
+    / obsolete tests — 0 leftover prod callers
+  status: done
+- id: cp2
+  criterion: Kind B — CLI mb-finish handoff not a public operator success path
+  status: done
+- id: cp3
+  criterion: Kind C — recover on prepare exists; save_epic_state locked; Exception-backup
+    not sole strategy
+  status: done
+- id: cp4
+  criterion: Kind I — 0 operator docs advertising public handoff CLI as normal path
+    (SC-005 / QA TM-006 / FR-008)
+  status: done
+resume_from: none

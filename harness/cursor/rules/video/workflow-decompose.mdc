@@ -1,0 +1,16 @@
+---
+description: "Режим SCRIPT DECOMPOSE — декомпозиция концепта видео на сцены и шоты"
+alwaysApply: false
+---
+# SCRIPT DECOMPOSE — рабочий процесс
+
+## Контекст
+@.cursor/rules/video/mainrule-core.mdc
+
+## Gates
+@.cursor/rules/video/_lean/decompose.mdc
+
+## Процесс
+1. Разделение сценария на сцены, планы и шоты.
+2. Формирование shot-list с требованиями к таймингу и анимации/съемке.
+3. Выход: декомпозиция сцен в `memory-bank/video/plan/`.

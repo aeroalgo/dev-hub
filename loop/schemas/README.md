@@ -5,7 +5,9 @@ This directory contains the machine-readable Pydantic schemas and models for the
 | Schema ID | Class / Model | File | Description |
 |-----------|---------------|------|-------------|
 | `loop-handoff/v1` | `LoopHandoffFrontmatter` | `loop/schemas/handoff.py` | Frontmatter metadata for `activeContext.md` handoff state |
-| `loop-gate-verdict/v1` | `LoopGateVerdict` | `loop/schemas/verdict.py` | Gate verdict result (PASS/FAIL/SKIP) |
+| `loop-gate-verdict/v1` | `GateVerdictRecord` | `loop/schemas/gate_verdict.py` | Gate verdict record (PASS/FAIL/BLOCKED) |
+| `loop-repair-result/v1` | `RepairResultRecord` | `loop/schemas/repair_result.py` | Gate repair outcome record (done/partial/fail) |
+| `loop-sunset-inventory/v1` | `SunsetReport` | `loop/schemas/sunset_inventory.py` | Sunset inventory analysis and extraction report |
 | `loop-state/v1` | `LoopState` | `loop/schemas/state.py` | Loop execution state |
 | `loop-checkpoint/v1` | `LoopCheckpoint` | `loop/schemas/checkpoint.py` | Step checkpoint model |
 | `loop-event/v1` | `LoopEvent` | `loop/schemas/event.py` | Loop lifecycle event |
@@ -26,4 +28,5 @@ This directory contains the machine-readable Pydantic schemas and models for the
 ## Usage & Helper Modules
 
 - `loop/schemas/active_context.py`: Functions `parse_handoff_meta`, `render_with_frontmatter`, `validate_handoff_frontmatter`, `split_frontmatter` for parsing and validating `activeContext.md` header frontmatter.
-
+- `loop/schemas/boundary_registry.py`: Registry mapping schema IDs to Pydantic validator models (`BOUNDARY_REGISTRY`).
+- `loop/validate_boundary.py`: CLI and helper for validating arbitrary JSON payloads against registered boundary schemas.

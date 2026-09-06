@@ -46,6 +46,9 @@ def test_sidecar_pass_overrides_transcript_fail(tmp_path: Path) -> None:
         tmp_path,
         agent_id,
         "PASS",
+        step_id="s01",
+        session_id="sess_test",
+        epic_id="T-HUB-001",
         recorded_at="2026-08-31T12:00:00Z",
     )
 

@@ -236,7 +236,7 @@ def main() -> int:
     p_mb_impl.add_argument("--done", default="", help="done summary string")
     p_mb_impl.add_argument("--phase", default="BACK IMPLEMENT", help="phase string")
 
-    p_mb_handoff = mb_sub.add_parser("handoff", help="low-level finish handoff escape hatch")
+    p_mb_handoff = mb_sub.add_parser("handoff", help="internal finish handoff (requires recovery-token)")
     p_mb_handoff.add_argument("--role", default="BACK", help="role slug")
     p_mb_handoff.add_argument("--mode", required=True, help="handoff mode (e.g. IMPLEMENT, QA)")
     p_mb_handoff.add_argument("--epic-id", default=None, help="epic id")
@@ -244,6 +244,7 @@ def main() -> int:
     p_mb_handoff.add_argument("--next-hint", default=None, help="next hint")
     p_mb_handoff.add_argument("--load-now-path", default=None, help="load now item path")
     p_mb_handoff.add_argument("--load-now-desc", default=None, help="load now item description")
+    p_mb_handoff.add_argument("--recovery-token", default=None, help="journal recovery token")
 
     p_mb_qa = mb_sub.add_parser("qa", help="finish qa phase atomically")
     p_mb_qa.add_argument("--step", default="", help="step_id (optional)")
@@ -528,7 +529,8 @@ def main() -> int:
                 epic_id=args.epic_id,
                 step_id=args.step,
             )
-            res = finish_handoff(meta, load_now, body, cwd=cwd)
+            recovery_tok = getattr(args, "recovery_token", None)
+            res = finish_handoff(meta, load_now, body, cwd=cwd, recovery_token=recovery_tok)
             out = res.model_dump()
             from loop.paths.pack_layout import pack_diagnostics
             out.update(pack_diagnostics(cwd))

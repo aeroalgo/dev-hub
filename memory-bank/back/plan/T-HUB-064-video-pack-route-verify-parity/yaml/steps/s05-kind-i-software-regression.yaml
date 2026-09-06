@@ -1,0 +1,115 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "Kind I + software regression — README honest; BACK IMPLEMENT still exists"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Instruction surfaces не утверждают «video pack fully wired / works» пока
+  FR-007 (path exists) не зелёный — после s01 они должны говорить правду
+  (routes exist, agents materialized). Software pack BACK IMPLEMENT route
+  path exists (нет регрессии TM-006). CLAUDE.md pack table match reality.
+
+plan_contract:
+  fr_ids: [FR-009, TM-006, Independent Test]
+  nouns:
+    - workflows/video/README.md
+    - CLAUDE.md pack table
+    - software pack BACK IMPLEMENT Path.exists
+    - Kind I fully wired
+  layout_paths:
+    - workflows/video/README.md
+    - CLAUDE.md
+    - loop/tests/test_workflow_pack_phase_router.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+  ac_quotes:
+    - "Kind I: pack README не утверждает «fully wired» пока FR-007 red."
+    - "docs «video pack works» → honest after tests"
+    - "CLAUDE.md pack table if claims full video execute → match reality"
+    - "Software pack routes не ломаем."
+    - "TM-006 software pack still routes"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:89-120"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:182-199"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:236-239"
+
+context:
+  consumes:
+    - s01 Path.exists green (otherwise README cannot claim routes)
+    - s02 toml exist
+    - plan §Replacement I
+  produces:
+    - honest README / CLAUDE table
+    - software BACK IMPLEMENT still Path.exists
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#assumptions
+  files:
+    - workflows/video/README.md
+    - CLAUDE.md
+    - loop/tests/test_workflow_pack_phase_router.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+
+as_built:
+  - "workflows/video/README.md describes activation, phases, verify agents, cursor rules skeleton — implies operator-ready pack without Path.exists gate"
+  - "CLAUDE.md pack table lists prefixes SCRIPT/VISUAL/POST (activation), does not claim full execute — keep honest, do not upgrade to «fully wired» falsely"
+  - "test_route_command_software asserts BACK IMPLEMENT → .cursor/rules/back_developer/workflow-implement.mdc (file exists today)"
+  - "docs/runbooks/workflow-pack-operator.md / authoring mention video-production as reference"
+
+delta:
+  - "rewrite README claims: after s01/s02, document existing routes + materialized agents; never «fully wired» while tests red; if a sentence implied execute-complete, qualify"
+  - "CLAUDE.md table: prefixes OK; do not add full-execute claim; if any sentence overclaims, match reality"
+  - "pytest software isolation + BACK IMPLEMENT Path.exists (TM-006 / Assumptions)"
+  - "optional rg Kind I: no «fully wired» / «pack works» leftover in pack README"
+
+deletes:
+  - "instruction «video pack works / fully wired» without FR-007 evidence"
+
+out_of_scope:
+  - "full video rules prose (Appetite cut)"
+  - "template pack authoring (Appetite cut)"
+  - "067 doctor"
+  - "purge leftover allowlist tests (s06)"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Software pack BACK IMPLEMENT path exists (TM-006 / AC software)
+    verify: "bin/pytest loop/tests/test_workflow_pack_phase_router.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'route_command_software or software_isolation'"
+  - id: cp2
+    criterion: Kind I — README does not claim fully wired without routes (FR-009)
+    verify: "rg -n \"fully wired|pack works|исполняем\" workflows/video/README.md CLAUDE.md || true"
+  - id: cp3
+    criterion: CLAUDE pack table matches reality (prefixes + no false full execute)
+    verify: "rg -n \"video-production\" CLAUDE.md"
+  - id: cp4
+    criterion: Independent Test still holds together with s01/s02/s04 (SCRIPT path, toml, orphan) — regression smoke
+    verify: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'script_plan_path or verify_edit or orphan or software_isolation'"
+
+sunset_scope:
+  required: true
+  boundary_id: video-pack-kind-i
+  new_sot: workflows/video/README.md
+  allow_read:
+    - workflows/video/README.md
+    - CLAUDE.md
+    - docs/runbooks/
+  kind_hint:
+    - I
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_phase_router.py -q --tb=line -k route_command_software"
+  - "rg -n \"fully wired\" workflows/video/README.md CLAUDE.md || true"
+
+tdd:
+  - "test_software_back_implement_path_exists — TM-006"
+  - "test_video_readme_not_fully_wired_false_claim — FR-009"

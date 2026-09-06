@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - Cursor hooks.json failClosed
+  - DSH full inject matrix polish
+steps:
+- id: s01
+  file: s01-unique-hook-realpath.yaml
+  title: Unique realpath — generator + committed settings; dual fixture fail
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-session-start-runtime-inject.yaml
+  title: SessionStart inject — EPIC_RUNTIME → AGENTS.md / CLAUDE.md
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-kind-i-runtime-entrypoint.yaml
+  title: Kind I — mainrule/role-command current entrypoint only
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-runtime-sync-hash-fail-closed.yaml
+  title: runtime-sync claude — hash_mismatch fail-closed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: s05 — legacy-fallback-purge — dual leftover + warning-only + Kind I
+  next_phase: BACK IMPLEMENT
+  status: completed

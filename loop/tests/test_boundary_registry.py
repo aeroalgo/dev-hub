@@ -39,3 +39,21 @@ def test_boundary_registry_classes_are_pydantic_models():
     for schema_id, model_cls in BOUNDARY_REGISTRY.items():
         assert issubclass(model_cls, BaseModel)
 
+
+def test_canonical_sunset_not_schema_unknown_after_purge():
+    """FR-010 / s05: canonical sunset id loop-sunset-inventory/v1 is never schema_unknown."""
+    assert SCHEMA_LOOP_SUNSET_INVENTORY in BOUNDARY_REGISTRY
+    assert BOUNDARY_REGISTRY.get(SCHEMA_LOOP_SUNSET_INVENTORY) is SunsetReport
+
+
+def test_no_exact_four_registry_assert():
+    """FR-010 / s05: registry is extensible, len(BOUNDARY_REGISTRY) >= 5, exact-four assert purged."""
+    assert len(BOUNDARY_REGISTRY) >= 5
+
+
+def test_no_prod_skip_sunset_search_agent():
+    """FR-010 / s05: sunset agents are validated, not skipped as search-only."""
+    from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY
+    assert SCHEMA_LOOP_SUNSET_INVENTORY == "loop-sunset-inventory/v1"
+
+

@@ -1,0 +1,122 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: "Ownership vs in-flight — mismatch fail-closed, no schema-retry"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Fence с чужим epic/step/session/agent относительно in-flight spawn →
+  `semantic_ownership_mismatch`, не schema-retry. Ownership fields required
+  (agent_id, epic_id, step_id, session_id, recorded_at ISO). BLOCKED только
+  у агентов/фаз, что декларируют (verify-qa); verify-implement BLOCKED → fail.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, FR-005, FR-007, US-003, SC-003, AC+3, AC−4, TM-003, TM-006, TM-007, TM-008]
+  nouns:
+    - semantic_ownership_mismatch
+    - in-flight spawn state
+    - agent_id
+    - epic_id
+    - step_id
+    - session_id
+    - recorded_at ISO
+    - evidence_sha256
+    - BLOCKED verify-qa
+    - verify-implement
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - loop/schemas/gate_verdict.py
+    - harness/hooks/_lib.py
+    - loop/tests/test_stop_gate.py
+  ac_quotes:
+    - "Compare record identity to in-flight spawn state; mismatch → `semantic_ownership_mismatch`."
+    - "Ownership fields required for loop finish gates: `agent_id`, `epic_id`, `step_id`, `session_id`, `recorded_at` ISO"
+    - "Schema errors retry; ownership **no** retry"
+    - "BLOCKED allowed only for agents/phases that declare it (verify-qa)."
+    - "stale step_id → semantic_ownership_mismatch"
+    - "Нет retry on ownership."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:33-50"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:79-90"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:108-158"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:199-214"
+
+context:
+  consumes:
+    - s01 wire schema + s02 fence required (ownership runs after valid fence)
+    - plan.md §FR-003–005/007 §Data flow ownership branch
+  produces:
+    - diagnostic `semantic_ownership_mismatch` on stale identity
+    - no increment_schema_retry_count on ownership fail
+    - BLOCKED illegal on verify-implement; allowed on verify-qa
+    - recorded_at ISO junk → fail
+  plan_refs:
+    - plan.md#failure-matrix
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - loop/schemas/gate_verdict.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_validate_boundary.py
+
+as_built:
+  - "GateVerdictRecord: step_id/session_id/epic_id optional; agent_id required; recorded_at str untyped ISO"
+  - "is_schema_error vs is_semantic_error exist; no semantic_ownership_mismatch code"
+  - "record_verdict matches record_key; no compare to in-flight epic/step/session"
+  - "schema retry on schema_* only today; ownership would currently fall through or schema-retry if coded as schema_*"
+
+delta:
+  - "require ownership fields on finish-gate wire (agent_id, epic_id, step_id, session_id, recorded_at ISO; evidence_sha256 optional format)"
+  - "compare fence identity to in-flight spawn/state; mismatch → semantic_ownership_mismatch + NEED_HUMAN/block"
+  - "ownership fail MUST NOT increment schema_retry_counts (FR-007 / AC−4)"
+  - "BLOCKED enum: allow only agents/phases that declare it (verify-qa); verify-implement BLOCKED → invalid (FR-005 / Failure matrix TM-007 / QA TM-006)"
+  - "ISO timestamp junk → validator fail (Failure matrix TM-008)"
+
+deletes:
+  - "optional-empty identity on finish-gate wire that lets stale step PASS"
+  - "any path that classifies ownership mismatch as schema_* retry"
+
+out_of_scope:
+  - "repair parent FAIL subset (s04)"
+  - "Kind I README (s05)"
+  - "signed envelope — Appetite cut"
+  - "session identity lock product — follow_up: T-HUB-071-session-identity-lock"
+  - "finish transaction — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: stale step_id vs in-flight → semantic_ownership_mismatch, not PASS (US-003 / SC-003 / QA TM-003 / Failure matrix TM-004)
+    verify: "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_validate_boundary.py -q --tb=line -k 'ownership or stale or mismatch'"
+  - id: cp2
+    criterion: ownership fail does not increment schema retry (FR-007 / AC−4)
+    verify: "bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k 'ownership or retry'"
+  - id: cp3
+    criterion: BLOCKED on verify-implement invalid; verify-qa may BLOCKED (FR-005 / QA TM-006 / Failure matrix TM-007)
+    verify: "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_validate_boundary.py -q --tb=line -k 'BLOCKED or blocked'"
+  - id: cp4
+    criterion: recorded_at ISO junk fails (Failure matrix TM-008); Independent Test stale mismatch code
+    verify: "bin/pytest loop/tests/test_validate_boundary.py loop/tests/test_stop_gate.py -q --tb=line -k 'recorded_at or iso or ownership'"
+
+verify:
+  - "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_validate_boundary.py -q --tb=line -k 'ownership or blocked or recorded_at or stale'"
+  - "rg -n \"semantic_ownership_mismatch\" harness/hooks loop"
+
+tdd:
+  - "test_stale_step_id_semantic_ownership_mismatch — QA TM-003 / US-003"
+  - "test_ownership_mismatch_no_schema_retry — FR-007 / AC−4"
+  - "test_blocked_verify_implement_invalid — FR-005 / QA TM-006"
+  - "test_recorded_at_iso_junk_invalid — Failure matrix TM-008"

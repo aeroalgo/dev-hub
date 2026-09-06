@@ -8,6 +8,7 @@ alwaysApply: false
 **Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/integration_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md`
 **Legacy/fallback (brownfield):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 **Spec-first replace (anti blur):** @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Скиллы:**
@@ -38,17 +39,17 @@ Gap опционален — не блокирует PLAN. Не читать as 
 2. `load_now`
 2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
 2b. §0.11 endpoint ↔ fetch; mocks в registry
-3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` по @.cursor/templates/integration-plan.md
+3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` по @.cursor/templates/integration-plan.md **и** `md/prompt.md` (@.cursor/templates/plan-prompt.md)
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица по wire-осям / продуктам / journeys)  
     - апсерт `memory-bank/integration/roadmap/queue.yaml` (шаблон @.cursor/templates/roadmap-queue.yaml)  
-    - полный `plan/<epic_id>/md/plan.md` на **каждый** эпик (§0.0; portal-scope `wc -l` ≥ 400 **на каждый**)  
-    - **FORBIDDEN** `plan/roadmap-*-epics.*`  
+    - полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` на **каждый** эпик (начинается с `## Epic`; Covering одинаковый; весь prompt без ID / без шапки Role·Deps; §0.0; portal-scope `wc -l` ≥ 400 **на каждый**)
+    - **FORBIDDEN** `plan/roadmap-*-epics.*` / `roadmap/prompt-*.md`  
 4. `contracts/` не обязателен
 5. `tasks.md` append-only (queue + каждый эпик при multi-epic)
 5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `roadmap/queue.yaml` → FAIL
 5b. **Queue reconcile (optional):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
-6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan
+6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 

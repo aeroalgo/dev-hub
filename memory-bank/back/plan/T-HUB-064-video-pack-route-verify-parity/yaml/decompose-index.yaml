@@ -1,0 +1,42 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-064-video-pack-route-verify-parity
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - ffmpeg live gate
+  - full video rules prose
+  - template pack authoring
+steps:
+- id: s01
+  file: s01-video-route-exists-fail-closed.yaml
+  title: Route SoT — video intent commands → existing workflow files, missing → pack_route_missing
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-manifest-materialize-video-verify.yaml
+  title: Manifest + materialize — verify-script/edit/publish on Claude and Codex
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-stop-mapping-no-gate-reason.yaml
+  title: Stop mapping — video verify in VERIFY set; BRIEF/STORYBOARD/SHOOT no_gate_reason
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-source-driven-agent-parity.yaml
+  title: Source-driven parity — harness/agents/*.md orphan fails, not allowlist-only
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-kind-i-software-regression.yaml
+  title: Kind I + software regression — README honest; BACK IMPLEMENT still exists
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — ghost role-subdir + exclusive REQUIRED_CODEX_AGENTS
+    leftover
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: s03 — SessionStart — CONTEXT_INCOMPLETE halt; required exceptions typed IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/yaml/steps/s03-session-start-context-incomplete.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented CONTEXT_INCOMPLETE halt and diagnostics in session_start_payload when
+  load_session returns ok=False or status=incomplete
+- Typed exception handling with required_context_exception in session_start_payload
+  instead of Warning-only success
+- Added degraded message when optional files are missing without halting
+- Forbid injecting leftover partial required files as complete main work context
+- Comprehensive unit tests in harness/hooks/tests/test_session_start_inject.py
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes:
+- 'Warning: load_session exception as the required-miss success path'
+- 'Warning: bundle load failed while still presenting leftover files as complete additionalContext
+  for required'
+- tests that treat Warning-only inject as PASS for required miss
+tests:
+- bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line
+grep_control:
+- back: rg -n "CONTEXT_INCOMPLETE" harness/hooks/epic/core.py
+  front: ''
+verification_results:
+- 12 passed in harness/hooks/tests/test_session_start_inject.py
+- 19 passed in loop/tests/test_mb_load_session.py
+- 11 passed in loop/tests/test_pack_graph_doctor.py
+checkpoints:
+- id: cp1
+  criterion: status=incomplete or ok=false → CONTEXT_INCOMPLETE + codes in payload;
+    leftover required files not presented as sufficient (FR-009 / US-005 / SC-003
+    / QA TM-005 / AC+3).
+  status: done
+- id: cp2
+  criterion: Halt when any required missing; optional-only may degrade (FR-009 halt
+    vs degrade).
+  status: done
+- id: cp3
+  criterion: Required-context exception → typed code, not Warning load_session exception
+    as success (FR-010 / AC−3 / Failure TM-007).
+  status: done
+- id: cp4
+  criterion: Independent Test / WHAT
+  status: done
+resume_from: cp4

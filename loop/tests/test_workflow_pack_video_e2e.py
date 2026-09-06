@@ -203,3 +203,184 @@ def test_sample_epic_fixture_exists() -> None:
     fixture_dir = ROOT / "memory-bank" / "video" / "script" / "plan" / "decompose-T-VIDEO-001-demo"
     assert fixture_dir.is_dir()
     assert (fixture_dir / ".gitkeep").exists()
+
+
+def test_video_intent_commands_route_paths_exist() -> None:
+    """FR-001 / FR-007 / TM-001 / SC-001 / US-001: Every video intent command routes to existing path on disk."""
+    from loop.workflow.command_router import load_intent_routing, route_command
+    from loop.workflow.registry import load_registry
+
+    reg = load_registry(ROOT)
+    video_pack = reg.packs["video-production"]
+    routing = load_intent_routing(ROOT)
+
+    video_intents = ["video_production", "content_factory"]
+    for intent_name in video_intents:
+        route_def = routing.intents[intent_name]
+        for step in route_def.pipeline:
+            cmd = step.command
+            route = route_command(video_pack, cmd, hub_root=ROOT)
+            assert route.ok is True, f"Command '{cmd}' failed to route: {route.diagnostic_codes}"
+            assert route.rules_mdc_rel is not None
+            path = ROOT / route.rules_mdc_rel
+            assert path.is_file(), f"Workflow file for command '{cmd}' does not exist: {path}"
+
+
+def test_missing_video_workflow_pack_route_missing(tmp_path: Path) -> None:
+    """FR-007 / TM-002 / AC−1: Missing workflow file yields ok=False with pack_route_missing diagnostic."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.schemas import WorkflowPack
+
+    # Create empty rules_root with no workflow files
+    rules_dir = tmp_path / ".cursor" / "rules" / "video"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+
+    video_pack = WorkflowPack(
+        id="video-production",
+        roles=["script", "visual", "post"],
+        command_prefixes=["SCRIPT", "VISUAL", "POST"],
+        phase_registry="workflows/video/phase_registry.yaml",
+        memory_bank="memory-bank/video",
+        rules_root=".cursor/rules/video",
+        artifact_layout="software-epic-v1",
+    )
+
+    route = route_command(video_pack, "SCRIPT PLAN", hub_root=tmp_path)
+    assert route.ok is False
+    assert "pack_route_missing" in route.diagnostic_codes
+
+
+def test_script_plan_not_ghost_script_developer() -> None:
+    """FR-002 / AC−4: SCRIPT PLAN does not resolve to ghost script_developer subdir."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.registry import load_registry
+
+    reg = load_registry(ROOT)
+    video_pack = reg.packs["video-production"]
+
+    route = route_command(video_pack, "SCRIPT PLAN", hub_root=ROOT)
+    assert route.ok is True
+    assert "script_developer" not in (route.rules_mdc_rel or "")
+    assert route.rules_mdc_rel == ".cursor/rules/video/workflow-plan.mdc"
+
+
+def test_route_command_never_ok_missing_file(tmp_path: Path) -> None:
+    """Technology axiom Route: route_command never yields ok=True when target file is missing."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.schemas import WorkflowPack
+
+    custom_pack = WorkflowPack(
+        id="custom",
+        roles=["back"],
+        command_prefixes=["BACK"],
+        phase_registry="phases.yaml",
+        memory_bank="mb",
+        rules_root="nonexistent_rules",
+        artifact_layout="software-epic-v1",
+    )
+
+    route = route_command(custom_pack, "BACK IMPLEMENT", hub_root=tmp_path)
+    assert route.ok is False
+    assert "pack_route_missing" in route.diagnostic_codes
+
+
+def test_manifest_declares_three_video_verify_agents() -> None:
+    """FR-003 / TM-003: Manifest yaml declares verify-script, verify-edit, verify-publish."""
+    manifest_path = Path(__file__).resolve().parents[2] / "harness" / "manifest.yaml"
+    data = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    agents = data.get("agents", {})
+    for agent_id in ("verify-script", "verify-edit", "verify-publish"):
+        assert agent_id in agents, f"{agent_id} missing from manifest.yaml agents"
+        assert agents[agent_id].get("runtimes", {}).get("claude", {}).get("copy_to") == f".claude/agents/{agent_id}.md"
+        assert agents[agent_id].get("runtimes", {}).get("codex", {}).get("materialize") is True
+        assert agents[agent_id].get("runtimes", {}).get("codex", {}).get("target") == f".codex/agents/{agent_id}.toml"
+
+
+def test_codex_verify_edit_toml_exists_after_materialize() -> None:
+    """US-002 / Independent Test: .codex/agents/verify-edit.toml exists."""
+    repo_root = Path(__file__).resolve().parents[2]
+    assert (repo_root / ".codex" / "agents" / "verify-script.toml").exists()
+    assert (repo_root / ".codex" / "agents" / "verify-edit.toml").exists()
+    assert (repo_root / ".codex" / "agents" / "verify-publish.toml").exists()
+
+
+def test_verify_edit_prompt_not_implement_verbatim() -> None:
+    """FR-010 / AC−5: Distinct prompts — verify-edit.md is not a copy of verify-implement contract."""
+    repo_root = Path(__file__).resolve().parents[2]
+    edit_prompt = (repo_root / "harness" / "agents" / "verify-edit.md").read_text(encoding="utf-8")
+    implement_prompt = (repo_root / "harness" / "agents" / "verify-implement.md").read_text(encoding="utf-8")
+    assert edit_prompt != implement_prompt
+    assert "name: verify-edit" in edit_prompt
+    assert "EDIT" in edit_prompt
+    assert "name: verify-implement" not in edit_prompt
+
+
+def test_software_back_implement_path_exists() -> None:
+    """TM-006: BACK IMPLEMENT route path exists in software pack."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.registry import load_registry
+
+    reg = load_registry(ROOT)
+    software_pack = reg.packs["dev-hub-software"]
+    route = route_command(software_pack, "BACK IMPLEMENT", hub_root=ROOT)
+    assert route.ok is True
+    assert route.rules_mdc_rel is not None
+    assert (ROOT / route.rules_mdc_rel).is_file()
+
+
+def test_video_readme_not_fully_wired_false_claim() -> None:
+    """FR-009: Video pack README and CLAUDE.md do not make false fully wired claims."""
+    readme_text = (ROOT / "workflows" / "video" / "README.md").read_text(encoding="utf-8")
+    claude_text = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "fully wired" not in readme_text.lower()
+    assert "pack works" not in readme_text.lower()
+    assert "fully wired" not in claude_text.lower()
+
+
+def test_no_ghost_script_developer_video_sot_after_purge() -> None:
+    """s06 TDD: Ensure video pack routing does not use ghost script_developer subdir."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.registry import load_registry
+
+    reg = load_registry(ROOT)
+    video_pack = reg.packs["video-production"]
+    for cmd in ["SCRIPT PLAN", "SCRIPT DECOMPOSE", "SCRIPT IMPLEMENT"]:
+        route = route_command(video_pack, cmd, hub_root=ROOT)
+        assert route.ok is True
+        assert "script_developer" not in (route.rules_mdc_rel or "")
+        assert Path(ROOT / route.rules_mdc_rel).is_file()
+
+
+def test_no_exclusive_allowlist_only_parity(tmp_path: Path) -> None:
+    """s06 TDD: Parity checks all harness/agents/*.md files dynamically, not just hardcoded allowlist."""
+    from loop.runtime_materializers.parity import check_codex_parity
+
+    hooks_file = ROOT / ".codex" / "hooks.json"
+    manifest_file = ROOT / "harness" / "manifest.yaml"
+    dummy_agents_dir = tmp_path / "agents"
+    dummy_agents_dir.mkdir(parents=True)
+    (dummy_agents_dir / "unregistered-video-agent.md").write_text("# prompt", encoding="utf-8")
+
+    issues = check_codex_parity(hooks_file, manifest_file, agents_dir=dummy_agents_dir)
+    assert any("unregistered-video-agent" in iss for iss in issues)
+
+
+def test_pack_route_missing_still_fail_closed(tmp_path: Path) -> None:
+    """s06 TDD: Missing route file yields ok=False with pack_route_missing diagnostic."""
+    from loop.workflow.command_router import route_command
+    from loop.workflow.schemas import WorkflowPack
+
+    pack = WorkflowPack(
+        id="video-empty",
+        roles=["script"],
+        command_prefixes=["SCRIPT"],
+        phase_registry="loop/schemas/phase_registry.yaml",
+        memory_bank="memory-bank",
+        rules_root="empty_rules_root",
+    )
+    route = route_command(pack, "SCRIPT PLAN", hub_root=tmp_path)
+    assert route.ok is False
+    assert "pack_route_missing" in route.diagnostic_codes
+
+
+

@@ -24,7 +24,9 @@
 - **refs:** `loop/mb_finish/impl.py` `finish_handoff` / `finish_implement_step`; `finalize_step`; `save_epic_state`; audit 03 §6–9.
 - **Не:** REFLECT deletion (T-HUB-060 IMPLEMENT); duplicate hooks (065); pack doctor (067) except consume incomplete-bundle if already landed; Codex TOML (069).
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет**
 
 ---
 
@@ -252,8 +254,14 @@
 - PASS: mixed files after simulated crash become aligned; CLI handoff without token fails.
 - FAIL: «atomic replace of one file» without multi-file journal; «backup on Exception» without prepare recover.
 
+## Decompose
+
+Index (layout v2): [`md/decompose-index.md`](decompose-index.md) · machine [`../yaml/decompose-index.yaml`](../yaml/decompose-index.yaml) · shards `../yaml/steps/sNN-*.yaml`. Status SoT = yaml only.
+
+**FR-001 pick:** sidecar-only `.claude/runtime/epic/finish-tx.json` (`loop-finish-transaction/v1`, extra=forbid) — **не** BOUNDARY_REGISTRY.
+
 ## Следующий режим
 
-→ BACK DECOMPOSE T-HUB-068 after 066.
+→ BACK ANALYZE T-HUB-068-start-finish-transaction-boundary (после DECOMPOSE FINISH).
 
 **CREATIVE need:** нет.

@@ -1,0 +1,199 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-067-pack-doctor-executable-graph
+slug: pack-doctor-executable-graph
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "check_pack_graph(pack) walks: registry entry, rules_root exists, each role index, each intent→route Path.exists, each _lean gate referenced by workflow Gates, each phase verify_agent in manifest or no_gate_reason, each schema_id in BOUNDARY_REGISTRY if pack declares schemas."
+
+  - requirement_id: FR-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Precise fail codes (axiom table). Multiple codes allowed (list), not first-only hide."
+
+  - requirement_id: FR-003
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Consume 062 skill checker on pack/workflow corpora (or call same function). Missing skill → skill_ref_missing counts as pack unusable if referenced from pack rules."
+
+  - requirement_id: FR-004
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Consume 064 route exists helper; do not duplicate divergent exists logic."
+
+  - requirement_id: FR-005
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Doctor CLI exit ≠0 when any registered pack unusable; --pack filter."
+
+  - requirement_id: FR-006
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "load_session: never set ok=True after required miss/read error. Derive ok = not required_missing and not read_errors_on_required."
+
+  - requirement_id: FR-007
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Request model: entries marked required vs optional. Unmarked = required (fail-closed)."
+
+  - requirement_id: FR-008
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Result schema fields: required_missing, optional_missing, forbidden_skipped, fingerprint, status=complete|incomplete."
+
+  - requirement_id: FR-009
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "SessionStart: if status=incomplete or ok=false → inject CONTEXT_INCOMPLETE + codes; forbid presenting leftover files as sufficient for main work. Halt vs degrade: halt when any required missing; degrade documented only for optional."
+
+  - requirement_id: FR-010
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Split diagnostic-only exceptions vs required-context exceptions (audit 03 §4). Required → typed code, not Warning: load_session exception."
+
+  - requirement_id: FR-011
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "pytest fixtures: (a) missing route (b) missing gate (c) missing agent (d) missing required load path (e) optional missing still ok=true."
+
+  - requirement_id: FR-012
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Kind I: pack README / CLAUDE pack table cannot say «fully wired» while doctor red."
+
+  - requirement_id: FR-013
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Software pack regression: doctor green on dev-hub-software after 064 video leftover — video pack may stay red until 064; doctor must still report video red, not skip pack."
+
+  - requirement_id: FR-014
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Do not swallow doctor IO errors as skip pack."
+
+  - requirement_id: FR-015
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "External tool gates (ffmpeg) = pack_tool_gate_missing advisory vs fail: Appetite cut = fail only if pack tool_gates.required=true; video ffmpeg remains 051 — this epic documents field, default not fail hub software pack."
+
+  - requirement_id: US-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу doctor red на missing workflow route."
+
+  - requirement_id: US-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу doctor red на phase verify_agent not in manifest."
+
+  - requirement_id: US-003
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу doctor red на missing _lean gate file."
+
+  - requirement_id: US-004
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как operator, я не хочу SessionStart с ok=true при дырявом load_now."
+
+  - requirement_id: US-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как parent, я хочу явный CONTEXT_INCOMPLETE вместо Warning."
+
+  - requirement_id: SC-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "broken route fixture code exact (pytest / outcome)"
+
+  - requirement_id: SC-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "load required miss → ok false (unit / outcome)"
+
+  - requirement_id: SC-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "SessionStart incomplete not success inject (hook/unit / outcome)"
+
+  - requirement_id: SC-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "software pack doctor uses exists not keys-only (pytest / outcome)"
+
+  - requirement_id: SC-005
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "optional miss → ok true + optional_missing (unit / outcome)"
+
+  - requirement_id: AC+ #1
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Doctor fail-closed on unusable pack with precise codes."
+
+  - requirement_id: AC+ #2
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "load_session ok iff required complete."
+
+  - requirement_id: AC+ #3
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "SessionStart does not treat partial required as success."
+
+  - requirement_id: AC+ #4
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Optional typed and does not flip ok."
+
+  - requirement_id: AC+ #5
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Skill/route checkers composed, not forked."
+
+  - requirement_id: AC- #1
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Нет ok=true + missing_file on required."
+
+  - requirement_id: AC- #2
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Нет doctor green on yaml-only keys."
+
+  - requirement_id: AC- #3
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "Нет Warning-only on required context exception."
+
+  - requirement_id: AC- #4
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет skip video pack in doctor because red."
+
+  - requirement_id: AC- #5
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Нет second exists-implementation diverging from 064."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

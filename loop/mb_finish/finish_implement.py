@@ -27,6 +27,16 @@ from loop.mb_finish.schemas import (
     MbFinishRequest,
     MbFinishResult,
 )
+from loop.mb_finish.transaction import (
+    FinishTxRecord,
+    FinishTxState,
+    commit_staged_files,
+    recover_finish_transaction,
+    rollback_staged_files,
+    stage_file_in_tx,
+    validate_identity,
+    write_finish_tx,
+)
 from loop.paths.pack_layout import resolve_mb_root
 
 
@@ -217,17 +227,58 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
-    # 6. Write rendered to activeContext.md
+    # 6. Transaction Journal: stage activeContext, validate identity, finalize step, and commit
+    tx_id = f"tx-{epic_id}-{step_id}-{hashlib.sha256(utc_now().encode('utf-8')).hexdigest()[:8]}"
     act_path = resolve_mb_root(cwd) / "activeContext.md"
+    act_rel = str(act_path.relative_to(cwd)) if act_path.is_relative_to(cwd) else "memory-bank/activeContext.md"
+
+    # Identity check before replace
+    if not validate_identity(
+        staged_epic_id=epic_id,
+        staged_step_id=step_id,
+        index_target_step_id=step_id,
+        armed_epic_id=epic_id,
+        armed_step_id=step_id,
+    ):
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["identity_mismatch"],
+            shape_errors=[f"Identity mismatch in transaction: staged {epic_id}/{step_id} does not match armed state"],
+        )
+
+    # Stage files and record prepared state
+    staged_act = stage_file_in_tx(cwd, tx_id, act_rel, rendered)
+    tx_rec = FinishTxRecord(
+        tx_id=tx_id,
+        epic_id=epic_id,
+        step_id=step_id,
+        phase="BACK IMPLEMENT",
+        state=FinishTxState.PREPARED,
+        staged_files=[staged_act],
+        recovery_token=tx_id,
+    )
+    write_finish_tx(cwd, tx_rec)
+
+    # Transition to context_written and commit staged context
     try:
-        atomic_write_text(act_path, rendered)
+        commit_staged_files(cwd, [staged_act])
+        tx_rec.state = FinishTxState.CONTEXT_WRITTEN
+        write_finish_tx(cwd, tx_rec)
     except ActiveContextLocked as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["runner_owns_active_context"],
             shape_errors=[str(exc)],
         )
     except Exception as exc:
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+        tx_rec.error = str(exc)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=["active_context_write_failed"],
@@ -242,20 +293,26 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         require_verify=True,
     )
 
-    # 8. On finalize failure: restore backup
+    # 8. On finalize failure: rollback transaction and restore backup
     if not fin_res.get("ok"):
-        try:
-            atomic_write_text(act_path, backup)
-        except Exception:
-            pass
+        rollback_staged_files(cwd, tx_rec.staged_files)
+        tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
         err = fin_res.get("error") or "finalize step failed"
         diag = fin_res.get("diagnostic") or "finalize_failed"
         err_details = fin_res.get("errors") or [str(err)]
+        tx_rec.error = str(err)
+        write_finish_tx(cwd, tx_rec)
         return MbFinishResult(
             ok=False,
             diagnostic_codes=[diag],
             shape_errors=[str(e) for e in err_details],
         )
+
+    # Mark index written and committed in journal
+    tx_rec.state = FinishTxState.INDEX_WRITTEN
+    write_finish_tx(cwd, tx_rec)
+    tx_rec.state = FinishTxState.COMMITTED
+    write_finish_tx(cwd, tx_rec)
 
     fp_data = f"{step_id}:{utc_now()}"
     fp = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()

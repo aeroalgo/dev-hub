@@ -89,4 +89,12 @@ def codex_drift_items(
         if item.target.kind == "instruction":
             issues.append(f"{item.reason}: {item.target.dest}")
 
+    # Check for orphan agent markdown files not in manifest
+    agents_dir = manifest_path.parent / "agents"
+    if agents_dir.exists() and agents_dir.is_dir():
+        for prompt_file in sorted(agents_dir.glob("*.md")):
+            agent_id = prompt_file.stem
+            if agent_id not in manifest.agents:
+                issues.append(f"missing_manifest_agent: {agent_id}")
+
     return issues

@@ -1,0 +1,164 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-064-video-pack-route-verify-parity
+slug: video-pack-route-verify-parity
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Inventory всех video intent commands vs FS."
+  - requirement_id: FR-002
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "Либо создать missing workflow-*.mdc under video role dirs, либо route_map на реальные shared files — один SoT, не оба."
+  - requirement_id: FR-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Manifest entries verify-script, verify-edit, verify-publish с claude copy_to + codex materialize."
+  - requirement_id: FR-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Parity source = harness/agents/*.md set, not REQUIRED_CODEX_AGENTS hardcoded allowlist-only."
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Stop/start contracts include three ids (VERIFY_FINISH or phase-aware map)."
+  - requirement_id: FR-006
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "BRIEF/STORYBOARD/SHOOT: no_gate_reason in phase_registry."
+  - requirement_id: FR-007
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "pytest: each intent command path exists; broken fixture pack_route_missing."
+  - requirement_id: FR-008
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "bin/runtime-sync --check includes new TOML or documents generate step."
+  - requirement_id: FR-009
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Kind I: pack README не утверждает «fully wired» пока FR-007 red."
+  - requirement_id: FR-010
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Не reuse verify-implement contract verbatim (051 axiom) — keep distinct prompts, wire same pipeline."
+  - requirement_id: FR-011
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "JANITOR no-gate (audit 02 §7) не в этом эпике кроме если video janitor — skip."
+  - requirement_id: US-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Как operator SCRIPT PLAN, я хочу route на существующий workflow."
+  - requirement_id: US-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Как Codex, я хочу TOML для verify-edit."
+  - requirement_id: US-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как parent EDIT, я хочу SubagentStop принять gate JSON verify-edit."
+  - requirement_id: US-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу parity fail если agents/*.md не в manifest."
+  - requirement_id: SC-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "0 missing video routes"
+  - requirement_id: SC-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "3 video agents in manifest+toml"
+  - requirement_id: SC-003
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "orphan prompt fails parity"
+  - requirement_id: SC-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "no_gate_reason on ungated phases"
+  - requirement_id: "AC+ #1"
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "route_command video commands → existing files."
+  - requirement_id: "AC+ #2"
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Three agents materialized both runtimes."
+  - requirement_id: "AC+ #3"
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Parity fails on undeclared prompt file."
+  - requirement_id: "AC+ #4"
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Stop validates video verify JSON like software."
+  - requirement_id: "AC- #1"
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "Нет ok=true + missing path."
+  - requirement_id: "AC- #2"
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет parity green на subset manifest."
+  - requirement_id: "AC- #3"
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Video verify not silent skip."
+  - requirement_id: "AC- #4"
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "No ghost script_developer route."
+  - requirement_id: "AC- #5"
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Distinct prompts not implement verbatim."
+  - requirement_id: TM-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "SCRIPT PLAN path exists"
+  - requirement_id: TM-002
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "missing route fixture -> pack_route_missing"
+  - requirement_id: TM-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "manifest has 3 video agents"
+  - requirement_id: TM-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "orphan md fails parity"
+  - requirement_id: TM-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "stop mapping verify-edit"
+  - requirement_id: TM-006
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "software pack still routes"
+  - requirement_id: TM-007
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "dual ghost dirs"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

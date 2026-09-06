@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "PolicyRecord + frontmatter parser — extras listed; red silent-drop deny"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Typed PolicyRecord — единственный machine SoT извлечения политики из
+  harness/agents/*.md frontmatter. Parser не игнорирует unknown keys у managed.
+  Red tests: silent drop disallowedTools / lost extras — FAIL до mapping emit.
+  Outcome: CI видит incomplete policy как ошибку модели, не как «TOML есть».
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, US-002, SC-001, AC+1, AC−2, TM-001, Failure-TM-005]
+  nouns:
+    - PolicyRecord
+    - harness/agents frontmatter parser
+    - extra unknown keys listed
+    - disallowedTools
+    - loop/tests/test_codex_agent_policy.py
+  layout_paths:
+    - loop/runtime_materializers/agent_policy.py
+    - loop/tests/test_codex_agent_policy.py
+  ac_quotes:
+    - "PolicyRecord pydantic: name, tools, disallowedTools, maxTurns, overlay, managed, mode, verdict, allow_worktree, requires_model, default_loop, default_chat, color"
+    - "Parser from harness/agents frontmatter; extra unknown keys listed not silently ignored if managed: true"
+    - "Given: agent md with disallowedTools: [\"Write\",\"Edit\",\"Agent\"]"
+    - "unknown frontmatter | lost field | extra list | fail managed | TM-005"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:30-50"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:71-91"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:109-124"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:142-151"
+
+context:
+  consumes:
+    - plan.md §Technology axiom §FR-001/002 §US-002 Given §AC+1 §Failure TM-005
+    - harness/agents/*.md frontmatter (verify-implement disallowedTools already present)
+  produces:
+    - PolicyRecord model + parse_agent_policy()
+    - extras list for unknown keys on managed agents
+    - red pytest silent-drop / lost-field
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#ac
+  files:
+    - loop/runtime_materializers/agent_policy.py
+    - loop/tests/test_codex_agent_policy.py
+
+as_built:
+  - "loop/runtime_materializers/codex_agent_toml.py split_markdown_frontmatter uses yaml.safe_load; render_codex_agent_toml writes only name/description/developer_instructions"
+  - "markdown_agent_to_codex_toml ignores tools/disallowedTools/maxTurns/overlay"
+  - "loop/tests/test_codex_agent_toml.py asserts name/desc/body conversion only"
+  - "no PolicyRecord; no extras list; no test_codex_agent_policy.py"
+
+delta:
+  - "add PolicyRecord pydantic with FR-001 fields; color may map n/a"
+  - "add parser from markdown frontmatter; managed=true → unknown keys listed, not silently dropped"
+  - "red tests: fixture with extra unknown key; fixture with disallowedTools present in md (parser retains them)"
+  - "do not yet change TOML emit (s02) or parity (s03)"
+
+deletes: []
+
+out_of_scope:
+  - "mapping yaml + fingerprint sidecar (s02)"
+  - "parity mutation fail-closed (s03)"
+  - "CONTRACTS drift (s04)"
+  - "ALWAYS_INJECT (s05)"
+  - "Kind I docs (s06)"
+  - "purge leftover presence-only tests (s07)"
+  - "generate CONTRACTS AST / README — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: PolicyRecord model_validate accepts FR-001 fields; extra=forbid or extras listed API exists
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k PolicyRecord"
+  - id: cp2
+    criterion: Parser extracts disallowedTools from verify-implement.md frontmatter (not body-only)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k parse_frontmatter"
+  - id: cp3
+    criterion: managed=true unknown key → extras listed / fail, not silently ignored (Failure TM-005)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k extra_unknown"
+  - id: cp4
+    criterion: Independent Test red — silent drop of disallowedTools from PolicyRecord fails the new test (TDD red before s02 emit)
+    verify: "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k silent_drop"
+
+verify:
+  - "bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line"
+  - "rg -n \"class PolicyRecord\" loop/runtime_materializers/agent_policy.py"
+
+tdd:
+  - "test_policy_record_fields_fr001 — name, tools, disallowedTools, maxTurns, overlay flags"
+  - "test_parse_harness_agent_frontmatter_disallowed_tools — verify-implement Write/Edit/Agent"
+  - "test_managed_unknown_frontmatter_listed_not_silent — TM-005"
+  - "test_policy_record_retains_disallowed_tools — red for silent drop (US-002)"

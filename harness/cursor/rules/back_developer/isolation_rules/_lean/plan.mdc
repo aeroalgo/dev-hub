@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # PLAN — gates
 
-**Артефакт:** `memory-bank/back/plan/<task_id>/md/plan.md`  
+**Артефакт:** `memory-bank/back/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)  
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — auto-clarify в той же сессии PLAN при триггерах  
 **Multi-epic:** research/audit → апсерт `memory-bank/back/roadmap/queue.yaml` + N× `plan/<epic_id>/` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE  
 **SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
@@ -14,12 +14,12 @@ alwaysApply: false
 0. Phase 0 orchestration: при триггерах — clarify artifact + Completion Report до Phase 1; skip taxonomy-clear → `§Product probe` note
 1. `tasks.md` прочитан; level зафиксирован
 2. L2 substep → L2 scope, не L4 по умолчанию
-3. План сохранён в path выше; при research — roadmap + полный plan на **каждый** эпик (не один mega-plan)
+3. План сохранён в path выше + `md/prompt.md` (файл начинается с `## Epic` + `## Covering`; без шапки Role/Deps/ID); при research — roadmap + полный plan **и** prompt на **каждый** эпик (Covering одинаковый; **весь** prompt без ID эпиков / путей чужих plan; не один mega-plan)
 4. `tasks.md` append-only со ссылкой (roadmap + каждый эпик)
 4a. Brownfield replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc. DECOMPOSE нарежет `deletes` + purge sNN
 4b. Brownfield FAIL: replace без inventory entrypoints (B) или без fallback table (C) → halt
 5. CREATIVE need (да/нет) перед next mode (per epic при multi-epic)
-6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt
+6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть `T-HUB-*` / ID / шапка Role·Deps / `plan/<id>/` → halt
 6a. Поверхность «в другом compose/дереве» → отдельный эпик в queue, не «уже отдельный» без ID
 7. После записи roadmap/plan: CLI `roadmap-merge --role back` ok (или skip если нет slug+canon); next ≠ ROADMAP MERGE
 8. Eng review spine (gate 8): для L2+ plan должен быть заполнен Eng review spine (architecture, patterns, code surface) до FINISH PLAN
@@ -37,3 +37,6 @@ alwaysApply: false
 - Нет task context → VAN
 - Phase 0 halt (ожидается Q / CRITICAL) → не начинать Phase 1; standalone `continue * CLARIFY` или дождаться ответа
 - Блокирующие неясности после spike skip → mini grill в PLAN §Product probe или `continue * CLARIFY`
+- Нет `md/prompt.md` / файл не начинается с `## Epic` / Chat decisions пустой без `n/a` → halt
+- В `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
+- Агент читает соседние `plan/` из-за prompt → halt

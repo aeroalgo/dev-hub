@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L3  
 **Статус:** active  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Clarify:** Phase 0 skipped — taxonomy clear (chat 2026-09-02 + refine: schema-retry / error taxonomy / post-finish next≠current arm)  
 **Roadmap:** [roadmap-loop-session-contract-epics.md](roadmap-loop-session-contract-epics.md) · queue sibling  
 **Deps:** **hard** T-HUB-056 (suite green / loop identity). **Soft:** T-HUB-040 / T-HUB-045 (mb-finish / mb-load modules — в canon skip/done; reuse, не re-invent). **Unlocks:** T-HUB-053 (Codex parity после канона session path).

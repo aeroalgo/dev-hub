@@ -1427,6 +1427,12 @@ def prepare_session(
             "reason": f"нет {ac_rel} — создай файл или восстанови из git",
         }
 
+    from loop.mb_finish.transaction import recover_finish_transaction
+
+    recovered = recover_finish_transaction(cwd_p)
+    if not recovered.get("ok") and recovered.get("halt"):
+        return recovered
+
     cleared_role = clear_reserved_role_arm(cwd_p)
     if cleared_role.get("cleared"):
         return {
@@ -3268,6 +3274,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional check target (e.g. workflow-pack)",
     )
     p_doc.add_argument(
+        "--pack",
+        default=None,
+        help="Target workflow pack ID for doctor workflow-pack",
+    )
+    p_doc.add_argument(
         "--auto-repair",
         action="store_true",
         help="Attempt safe automatic remediation for stale locks / corrupt records",
@@ -3417,7 +3428,8 @@ def main(argv: list[str] | None = None) -> int:
             from loop.doctor.checks.workflow_pack import run_doctor_workflow_pack
 
             doctor_format = "json" if args.json else args.format
-            return run_doctor_workflow_pack(cwd, format=doctor_format)
+            pack_filter = getattr(args, "pack", None)
+            return run_doctor_workflow_pack(cwd, pack_id=pack_filter, format=doctor_format)
 
         from loop.incidents.doctor import run_doctor
 

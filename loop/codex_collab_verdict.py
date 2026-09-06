@@ -9,11 +9,10 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, Literal
+from typing import Any, Iterator
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from loop.schemas.gate_verdict import SCHEMA_LOOP_GATE_VERDICT, GateVerdictValue
+from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDICT
+from loop.validate_boundary import validate_boundary
 
 _JSON_FENCE_RE = re.compile(r"```json[^\n`]*\n(.*?)\n```", re.DOTALL)
 _AT_AGENT_RE = re.compile(r"@([\w-]+)")
@@ -26,42 +25,6 @@ class CollabVerdictEvent:
     verdict: str
     message: str
     tool_use_id: str | None
-
-
-class _CollabGateVerdictFence(BaseModel):
-    """Message-side extract of loop-gate-verdict/v1 (recorded_at optional)."""
-
-    model_config = ConfigDict(populate_by_name=True, extra="ignore")
-
-    schema_version: Literal["loop-gate-verdict/v1"] = Field(
-        alias="schema", default=SCHEMA_LOOP_GATE_VERDICT
-    )
-    agent_id: str | None = None
-    verdict: GateVerdictValue
-
-    @field_validator("schema_version")
-    @classmethod
-    def _schema_id(cls, value: str) -> str:
-        if value != SCHEMA_LOOP_GATE_VERDICT:
-            raise ValueError(f"unsupported gate verdict schema: {value!r}")
-        return value
-
-    @field_validator("verdict", mode="before")
-    @classmethod
-    def _verdict_upper(cls, value: object) -> object:
-        if isinstance(value, str):
-            return value.strip().upper()
-        return value
-
-    @field_validator("agent_id", mode="before")
-    @classmethod
-    def _strip_agent(cls, value: object) -> object:
-        if value is None:
-            return None
-        if isinstance(value, str):
-            stripped = value.strip()
-            return stripped or None
-        return value
 
 
 def _normalize_agent_type(raw: str | None) -> str | None:
@@ -89,12 +52,15 @@ def _extract_json_fence(text: str) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
-def _parse_gate_verdict_fence(message: str) -> _CollabGateVerdictFence | None:
+def _parse_gate_verdict_fence(message: str) -> GateVerdictRecord | None:
     data = _extract_json_fence(message)
-    if not data:
+    if not data or not isinstance(data, dict):
+        return None
+    res = validate_boundary(SCHEMA_LOOP_GATE_VERDICT, data)
+    if not res.valid:
         return None
     try:
-        return _CollabGateVerdictFence.model_validate(data)
+        return GateVerdictRecord.model_validate(data)
     except Exception:
         return None
 
@@ -103,7 +69,7 @@ def _infer_agent_type(
     prompt: str | None,
     message: str,
     *,
-    fence: _CollabGateVerdictFence | None = None,
+    fence: GateVerdictRecord | None = None,
 ) -> str | None:
     if fence and fence.agent_id:
         agent = _normalize_agent_type(fence.agent_id)

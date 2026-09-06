@@ -1,0 +1,26 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-066-boundary-schema-ownership-strict
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+date: 2026-09-06
+reviewer: verify-qa
+verdict: fail
+
+summary:
+  full_suite_command: "bin/pytest -q --tb=line"
+  suite_passed: false
+  passed_count: 2048
+  failed_count: 9
+  skipped_count: 3
+  ac_status: "AC+ and AC- satisfied; §0.11 failed due to 9 legacy hook tests failing on strict schema requirements"
+
+findings:
+  - id: QA-001
+    title: "Legacy tests payload mismatch with strict GateVerdictRecord schema"
+    severity: high
+    description: "Tests in loop/tests/test_agent_hooks.py, test_codex_hooks_bridge.py, test_dsh_epic_gate_gaps.py, test_hooks_llm_*.py, and test_schemas_gate_verdict.py emit mock payloads or instantiate GateVerdictRecord without required fields (step_id, session_id, epic_id)."
+    repro: "bin/pytest -q --tb=line"
+
+fix_plan:
+  - subject: "BACK BUGFIX align-legacy-hook-tests-strict-schema"
+    action: "Update test mocks and GateVerdictRecord instantiations across the 9 failing tests to include valid step_id, session_id, and epic_id fields."

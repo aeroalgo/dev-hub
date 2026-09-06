@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN  
 **Уровень:** L3–L4  
 **Статус:** active — **REDO v4** (JSON-in-prompt contract + pydantic validate; без regex)  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Roadmap:** [roadmap-pydantic-reliability-epics.md](roadmap-pydantic-reliability-epics.md) · **canon queue:** [roadmap-epics.queue.yaml](roadmap-epics.queue.yaml) (#5 после T-HUB-031)  
 **Queue:** [roadmap-pydantic-reliability-epics.queue.yaml](roadmap-pydantic-reliability-epics.queue.yaml)  
 **Deps:** **hard** T-HUB-021 (`llm_structured` / pydantic-ai client), T-HUB-022 (`GateVerdictRecord`, `LoopHandoffFrontmatter`, validate-on-write). **Hard (canon):** T-HUB-031. **Soft:** T-HUB-017.

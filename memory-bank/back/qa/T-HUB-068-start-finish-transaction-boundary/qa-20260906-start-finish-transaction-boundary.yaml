@@ -1,0 +1,53 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-068-start-finish-transaction-boundary
+plan_id: T-HUB-068-start-finish-transaction-boundary
+epic_id: T-HUB-068-start-finish-transaction-boundary
+date: 2026-09-06
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-068-start-finish-transaction-boundary"
+  - "epic: T-HUB-068-start-finish-transaction-boundary"
+  - "steps: s01–s06"
+  - "files: loop/mb_finish/, loop/context_loop.py, loop/mb_finish/transaction.py, harness/hooks/epic/core.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (FAIL: 8 failed, 2096 passed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - id: ISS-001
+    title: "finish_handoff forbidden check breaks legacy tests and pack integration"
+    severity: high
+    description: "Calling finish_handoff directly in existing tests fails with finish_handoff_forbidden because tests do not set up an active transaction journal or provide a recovery token."
+    files:
+      - harness/hooks/tests/test_mb_finish_handoff.py
+      - harness/hooks/tests/test_mb_finish_legacy_purge.py
+      - loop/tests/test_pack_integration.py
+      - loop/tests/test_finish_bugfix.py
+
+  - id: ISS-002
+    title: "prepare_session cursor sync flag race with recover_finish_transaction"
+    severity: medium
+    description: "In loop/tests/test_context_loop.py::test_prepare_syncs_cursor_from_index_yaml_sot, recover_finish_transaction re-armed activeContext from index.yaml during recovery, leaving sync_cursor_from_index reporting synced=False (already_aligned)."
+    files:
+      - loop/context_loop.py
+      - loop/mb_finish/transaction.py
+      - loop/tests/test_context_loop.py
+
+blockers:
+  - "Full pytest suite has 8 failures in mb_finish handoff / legacy purge / context loop / pack integration"
+
+fix_plan:
+  - "BACK BUGFIX finish_handoff tokenless backwards-compatibility / test adaptations"
+  - "BACK BUGFIX prepare_session cursor_sync report consistency"
+
+limitations:
+  - "Requires BUGFIX phase to resolve test suite regressions before epic can transition to DONE"
+
+suite:
+  - "bin/pytest -q --tb=line"

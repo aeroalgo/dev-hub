@@ -1,0 +1,113 @@
+---
+description: "PLAN outcome prompt — один md/prompt.md: секция Epic + секция Covering; SoT REPLAN = Epic"
+alwaysApply: false
+---
+# PLAN outcome prompt (BACK / FRONT / INTEG)
+
+**Когда:** любой `* PLAN` / `* REPLAN` Phase 1, в момент записи `plan/<epic_id>/`.
+**Шаблон:** @.cursor/templates/plan-prompt.md
+**Канон пути:** `memory-bank/{role}/plan/<epic_id>/md/prompt.md`
+
+Один файл, **две** секции: `## Epic` и `## Covering`. Файл **начинается с `## Epic`**.
+REPLAN читает **Epic**. Нет файла / нет `## Epic` / пустой dump чата → `NEED_HUMAN: outcome_prompt_missing`.
+
+**FORBIDDEN в `prompt.md` целиком (шапка, Epic, Covering):**
+- ID эпиков (`T-HUB-*`, `T-xxx`, номера соседей)
+- пути `plan/<id>/` / «читай соседний plan»
+- Role / Deps / batch / Source как YAML-шапка над секциями
+- `roadmap/prompt-*.md` / отдельный batch-файл
+
+Cut с ID живёт в `roadmap/queue.yaml` и шапке **`plan.md`**, не в prompt.
+Читать соседние `plan/` из-за prompt **запрещено**. Prompt самодостаточен.
+
+---
+
+## Зачем
+
+`plan.md` = HOW этой итерации.
+`prompt.md` Epic = **зачем** этого эпика, если HOW сменится.
+`prompt.md` Covering = constitution нарезки (все эпики multi-epic одним текстом).
+
+Жёсткая привязка к FR/AC/`if` → IMPLEMENT чинит известные места и оставляет dual-path. Обе секции **абстрактнее** plan.
+
+---
+
+## Что писать
+
+Переформулировать вход (чат + research/audit/clarify), не копировать verbatim.
+
+| Секция | Да | Нет |
+|--------|----|-----|
+| Outcome | инвариант / наблюдаемое поведение | «починить L142», FR-00N |
+| In / Out | классы работы и границы | список модулей как SoT |
+| Done when | старый обход нельзя без ошибки | «файл существует» |
+| Forbidden after | dual-path, salvage, default, prose-as-SoT | копипаст AC− |
+| Chat decisions | решения сессии до PLAN | transcript, clarify Q→A целиком |
+| Axes (Covering) | одно предложение на ось | HOW / файлы / ID эпиков |
+
+**Объём Epic:** ~15–25 строк. **Covering:** тот же порядок величины, не сумма N plan.md.
+**Язык:** RU.
+**FORBIDDEN во всём `prompt.md`:** `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps·Source над `## Epic`. Агент не читает чужие plan. Cut с ID — в `roadmap/queue.yaml` и шапке `plan.md`.
+
+---
+
+## Chat mix-in (HARD)
+
+1. В Epic и (если multi-epic) Covering — только **решения**: выбор, отказ, граница.
+2. Чат ↔ research противоречие → явно; молча победить research **запрещено**.
+3. Чата не было → `n/a — no pre-plan chat`.
+4. **FORBIDDEN:** сырой user message / transcript как секция. **FORBIDDEN:** дубль `plan.md`.
+
+---
+
+## Single-epic
+
+Записать `md/prompt.md` вместе с `plan.md`.
+`## Covering` = строка `n/a — single epic`.
+Шапка plan: `**Prompt:** \`md/prompt.md\``.
+FINISH без файла или без `## Epic` → **FAIL**.
+
+---
+
+## Multi-epic
+
+Нарезка **сначала**, prompt **после** cut.
+
+1. Таблица epic cut.
+2. На **каждый** эпик — свой `md/prompt.md`.
+3. `## Epic` = срез **этого** эпика (не копия соседа, не dump аудита).
+4. `## Covering` = **один и тот же** текст во всех файлах нарезки (охватывает все epic-промпты). Не HOW. Axes = cut **без ID**.
+5. Covering **не** заменяет Epic. REPLAN = Epic. Covering не добавляет работу в этот эпик.
+
+**FAIL:** нет `## Covering` при ≥2 эпиках.
+**FAIL:** Covering разный между эпиками одной нарезки.
+**FAIL:** Epic = copy-paste соседа / = Covering без среза.
+**FAIL:** в `prompt.md` есть ID эпиков / пути чужих plan / шапка Role·Deps·Source над `## Epic`.
+**FAIL:** агент по prompt читает соседние `plan/`.
+**FAIL:** отдельный `roadmap/prompt-*.md`.
+
+---
+
+## Связь с plan / REPLAN / AUDIT
+
+- Plan соответствует Epic (In/Out/Done), детализирует HOW. Prompt не цитирует AC-нумерацию.
+- Independent Test проверяет Epic **Done when**.
+- **REPLAN:** SoT = `## Epic`. I2/I3 не переписывают prompt. Расширение outcome → backlog.
+- **AUDIT:** prompt вне scope.
+
+---
+
+## Verify (агент, без нового CLI)
+
+```text
+test -f memory-bank/{role}/plan/<epic_id>/md/prompt.md
+rg -n '^## (Epic|Covering)$' …/md/prompt.md
+# файл должен начинаться с ## Epic (нет шапки Role/Deps/T-HUB)
+```
+
+Нет обеих секций / файл не начинается с `## Epic` → FAIL.
+Covering пустой при multi-epic → FAIL.
+В файле есть `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps → FAIL.
+Читать соседние `plan/` из-за prompt → FAIL.
+Chat decisions пустой без `n/a` → FAIL.
+Epic < ~10 строк без границ → переписать, не FINISH.

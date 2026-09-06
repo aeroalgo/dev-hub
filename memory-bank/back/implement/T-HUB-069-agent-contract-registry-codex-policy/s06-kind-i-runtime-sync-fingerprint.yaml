@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: s06 — Kind I honesty + runtime-sync --check fingerprint mismatch IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s06-kind-i-runtime-sync-fingerprint.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery:
+- "runtime-sync --check fails on stripped sidecar or fingerprint mismatch (TM-006 / FR-012)"
+- "mapping honesty verified: hook enforcement documented, no invented Codex CLI flags"
+gaps:
+  status: none
+done:
+- Added tests in test_runtime_sync_check.py verifying runtime-sync --check fails when sidecar or fingerprint is stripped
+- Verified Kind I mapping honesty across codebase, no invented Codex CLI flags in codex_policy_mapping.yaml or docs
+- Verified Independent Test FAIL path for developer_instructions-only assertions
+files:
+- loop/cli/runtime_sync.py
+- loop/runtime_materializers/codex_sync.py
+- loop/runtime_materializers/parity.py
+- loop/tests/test_runtime_sync_check.py
+- loop/README.md
+deletes:
+- instruction claims that presence of .codex/agents/*.toml == full policy parity
+- docs teaching invented Codex CLI deny flags (FR-011)
+tests:
+- bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k 'fingerprint or sidecar or check'
+- python -m loop.cli.runtime_sync --check --runtime codex
+integration_check:
+- python -m loop.cli.runtime_sync --check --runtime codex
+grep_control:
+- pattern: "TOML = full|toml equals|presence.only"
+  target: "loop/README.md harness/claude CLAUDE.md"
+  count: 0
+- pattern: "disallowedTools"
+  target: "loop/runtime_materializers/codex_policy_mapping.yaml"
+  count: 1
+verification_results:
+- 16 passed in test_runtime_sync_check.py
+- python -m loop.cli.runtime_sync --check --runtime codex returns 0 (No drift detected)
+checkpoints:
+- id: cp1
+  criterion: runtime-sync --check fails when sidecar/fingerprint stripped (FR-012 / Failure TM-006)
+  status: done
+- id: cp2
+  criterion: Kind I — no living instruction «Codex TOML = full agent» in prod docs this step touches
+  status: done
+- id: cp3
+  criterion: FR-011 Kind I — no invented Codex deny CLI flags in mapping docs / comments
+  status: done
+- id: cp4
+  criterion: Independent Test FAIL path — deny-in-developer_instructions-only is not documented as sufficient
+  status: done
+resume_from: null

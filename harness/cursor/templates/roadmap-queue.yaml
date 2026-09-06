@@ -34,4 +34,4 @@ done: []
 batches:
   <batch-slug>:
     title: "<human title>"
-    note: "детали — в plan/<epic_id>/md/plan.md"
+    note: "детали — в plan/<epic_id>/md/plan.md; constitution — md/prompt.md ## Covering"

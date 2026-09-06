@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: Kind I + software regression — README honest; BACK IMPLEMENT still exists
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/yaml/steps/s05-kind-i-software-regression.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+  - "Sunset inventory scan for video-pack-kind-i completed with loop-sunset-inventory/v1."
+  - "README and CLAUDE.md do not contain false claims like 'fully wired' or 'pack works'."
+  - "Software pack BACK IMPLEMENT route targets .cursor/rules/back_developer/workflow-implement.mdc which exists on disk."
+gaps:
+  status: none
+done:
+  - "Verified sunset inventory for video-pack-kind-i (Kind I)."
+  - "Ensured workflows/video/README.md and CLAUDE.md are honest and match runtime reality."
+  - "Added and verified regression tests for TM-006 (software BACK IMPLEMENT path exists) and FR-009 (Kind I honest docs)."
+  - "Verified all regression smoke tests pass."
+files:
+  - workflows/video/README.md
+  - CLAUDE.md
+  - loop/tests/test_workflow_pack_phase_router.py
+  - loop/tests/test_workflow_pack_video_e2e.py
+deletes:
+  - instruction «video pack works / fully wired» without FR-007 evidence
+tests:
+  - "bin/pytest loop/tests/test_workflow_pack_phase_router.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'route_command_software or software_isolation or software_back_implement or video_readme'"
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'script_plan_path or verify_edit or orphan or software_isolation'"
+integration_check:
+  - "rg -n \"fully wired|pack works|исполняем\" workflows/video/README.md CLAUDE.md || true"
+  - "rg -n \"video-production\" CLAUDE.md"
+grep_control: []
+verification_results:
+  - command: "bin/pytest loop/tests/test_workflow_pack_phase_router.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'route_command_software or software_isolation or software_back_implement or video_readme'"
+    status: passed
+  - command: "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py -q --tb=line -k 'script_plan_path or verify_edit or orphan or software_isolation'"
+    status: passed
+checkpoints:
+  - id: cp1
+    criterion: Software pack BACK IMPLEMENT path exists (TM-006 / AC software)
+    status: done
+  - id: cp2
+    criterion: Kind I — README does not claim fully wired without routes (FR-009)
+    status: done
+  - id: cp3
+    criterion: CLAUDE pack table matches reality (prefixes + no false full execute)
+    status: done
+  - id: cp4
+    criterion: Independent Test still holds together with s01/s02/s04 (SCRIPT path, toml, orphan) — regression smoke
+    status: done
+resume_from: completed

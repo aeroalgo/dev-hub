@@ -1,0 +1,117 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "Source-driven parity — harness/agents/*.md orphan fails, not allowlist-only"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Parity source = set of harness/agents/*.md (declared in manifest or
+  advisory/unmaterialized with reason). Orphan prompt fixture fails checker.
+  REQUIRED_CODEX_AGENTS больше не единственный allowlist, из-за которого
+  video prompts зелёные, пока их нет в manifest.
+
+plan_contract:
+  fr_ids: [FR-004, US-004, SC-003, AC+3, AC−2, TM-004]
+  nouns:
+    - harness/agents/*.md glob
+    - orphan prompt fixture
+    - REQUIRED_CODEX_AGENTS not sole parity source
+    - check_codex_parity / runtime-sync --check
+  layout_paths:
+    - loop/runtime_materializers/parity.py
+    - harness/agents/
+    - harness/manifest.yaml
+    - loop/tests/test_runtime_sync_check.py
+  ac_quotes:
+    - "Как CI, я хочу parity fail если agents/*.md не в manifest."
+    - "Parity fails on undeclared prompt file."
+    - "Нет parity green на subset manifest."
+    - "every harness/agents/*.md declared in manifest or advisory/unmaterialized with reason"
+    - "Independent Test PASS: orphan md fails"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:19-42"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:79-120"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:158-199"
+
+context:
+  consumes:
+    - s02 three agents declared (otherwise current orphans would fail immediately — intended after declare)
+    - as-built check_codex_parity only diffs manifest claude vs codex members
+  produces:
+    - glob harness/agents/*.md ⊆ manifest declared ∪ explicit excluded-with-reason
+    - pytest orphan fixture fails parity (US-004)
+  plan_refs:
+    - plan.md#контекст
+    - plan.md#replacement--sunset
+  files:
+    - loop/runtime_materializers/parity.py
+    - loop/runtime_materializers/sync.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/cli/runtime_sync.py
+
+as_built:
+  - "REQUIRED_CODEX_AGENTS frozenset of 7 software/search ids; tests assert expected_agents <= REQUIRED_CODEX_AGENTS"
+  - "check_codex_parity: missing_codex_agent only for names in manifest.agents with claude runtime not in codex materialize"
+  - "prompt files outside manifest (verify-script/edit/publish today) do not fail parity"
+  - "test_required_codex_agents_covers_claude encodes exclusive-ish floor, not glob"
+
+delta:
+  - "parity source = glob harness/agents/*.md vs manifest keys (plus optional advisory/unmaterialized with reason code — Technology axiom)"
+  - "orphan fixture: undeclared *.md → fail (FR-004 / TM-004 plan QA / Failure TM-002)"
+  - "keep REQUIRED_CODEX_AGENTS as floor/minimum if still useful; MUST NOT be sole source"
+  - "after s02 declare, current three video files are not orphans"
+
+deletes:
+  - "parity green while prompt file orphan (subset-manifest checker as the only check)"
+
+out_of_scope:
+  - "creating the three prompt files (already exist)"
+  - "stop mapping (s03)"
+  - "Kind I (s05)"
+  - "deleting REQUIRED_CODEX_AGENTS symbol entirely if still a minimum floor — leftover exclusive-only tests in s06"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Orphan harness/agents/*.md fixture fails parity (US-004 / SC-003 / AC+3)
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k orphan"
+  - id: cp2
+    criterion: Source is glob agents dir, not allowlist-only (FR-004 / AC−2)
+    verify: "rg -n \"harness/agents|glob\\(.*\\.md|agents_dir\" loop/runtime_materializers/parity.py"
+  - id: cp3
+    criterion: After s02, real video prompts are declared — live tree parity not red on verify-edit.md
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k 'parity or full_set or runtime_sync_cli_check_full'"
+  - id: cp4
+    criterion: Enforce — no path where undeclared prompt is silent success
+    verify: "rg -n \"orphan|undeclared|missing_manifest_agent\" loop/runtime_materializers/parity.py loop/tests/test_runtime_sync_check.py"
+
+sunset_scope:
+  required: true
+  boundary_id: agent-parity-source
+  new_sot: loop/runtime_materializers/parity.py
+  allow_read:
+    - loop/runtime_materializers/parity.py
+    - harness/agents/
+    - harness/manifest.yaml
+    - loop/tests/test_runtime_sync_check.py
+  kind_hint:
+    - A
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line"
+  - "rg -n \"harness/agents\" loop/runtime_materializers/parity.py"
+
+tdd:
+  - "test_orphan_agent_md_fails_parity — US-004 TM-004"
+  - "test_parity_source_is_agents_glob_not_allowlist_only — FR-004"
+  - "test_declared_video_prompts_not_orphan — s02 consume"

@@ -9,6 +9,7 @@ alwaysApply: false
 **Phase 0 orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/back_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`)
 **Policy (по триггеру, не всегда целиком):** brownfield replace → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc; axiom/stack lock → @.cursor/rules/shared/workflow-spec-first-replace.mdc; Independent Test → @.cursor/rules/shared/workflow-behavior-first.mdc §5
 
 **Скиллы — core (Phase 1):**
@@ -39,15 +40,15 @@ alwaysApply: false
     - **Eng pass:** Eng review spine — situational `architecture-patterns` при L2+.
     - **Auto-resolve defer:** в `## Plan review batch log` (не AskUserQuestion one-by-one). L1 — review опционален.
 3. writing-plans; skills list в каждом `plan/<task_id>/md/plan.md`; L3–4 → situational brainstorming / architecture-patterns
-3a. **Multi-epic path:** epic cut → апсерт `roadmap/queue.yaml` (`batches.<slug>`) → полный `plan/<epic_id>/` на **каждый** эпик. Шаблон: @.cursor/templates/roadmap-queue.yaml  
+3a. **Multi-epic path:** epic cut → апсерт `roadmap/queue.yaml` (`batches.<slug>`) → полный `plan/<epic_id>/` + `md/prompt.md` на **каждый** эпик (`## Epic` разный, `## Covering` один, Axes **без** ID эпиков). Шаблон: @.cursor/templates/roadmap-queue.yaml  
 4. Содержание по level delta в gates (L2 / L3–4). Черновик нарезки без checkbox — трекер после DECOMPOSE только в `decompose/index.md`. Brownfield → sunset **A+B+C+I** + AC− fail-closed. Technology axiom + Independent Test = behavior (не alias/get_*/yaml field).
 5. CREATIVE need? (per epic при multi-epic)
-6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** апсерт `back/roadmap/queue.yaml` + N plan dirs
+6. Сохрани артефакт(ы): `memory-bank/back/plan/<epic_id>/md/plan.md` **и** `md/prompt.md` (scaffold: `python3 .claude/hooks/epic_resolve.py mb-scaffold plan --epic-id <id>`) **или** апсерт `back/roadmap/queue.yaml` + N plan dirs + N `prompt.md` (Covering одинаковый)
 7. `tasks.md` append-only (ссылка на план / roadmap queue + эпики; без sNN-чеклиста)
 7a1. **Queue reconcile (same session, multi-epic):** после апсерта queue опционально:
     `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`
     Conflict / unknown deps / empty active / `ok: false` → **halt PLAN**. Single-epic без queue → skip.
-7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + `roadmap/queue.yaml` + first/sole plan
+7b. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify artifact (если был) + `roadmap/queue.yaml` + first/sole plan + `md/prompt.md` (нет prompt → FAIL)
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом CRITICAL без resolve/defer-list.
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
@@ -56,4 +57,4 @@ alwaysApply: false
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `md/decompose-index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 
-**Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks + brownfield sunset (если replace)
+**Верификация**: gates + AC + CREATIVE need + multi-epic FAIL-checks + brownfield sunset (если replace) + `md/prompt.md` (начинается с `## Epic`; без шапки Role/Deps/ID; без чтения соседних plan; без prompt → FAIL)

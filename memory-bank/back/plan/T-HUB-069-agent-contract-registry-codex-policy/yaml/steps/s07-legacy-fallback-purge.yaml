@@ -1,0 +1,264 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "s07 — legacy-fallback-purge — presence-only parity + silent-weaker leftovers"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по presence-only completeness, software-only ALWAYS_INJECT
+  SoT, silent weaker materialize, prose-deny Independent Test, «TOML = full agent».
+  Obsolete tests на name/desc-only completeness rewrite; suite green без restore
+  legacy. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [AC−1, AC−2, AC−3, AC−4, AC−5, Independent Test, Failure-TM-004]
+  nouns:
+    - leftover name/desc-only TOML completeness
+    - leftover software-only _ALWAYS_INJECT SoT
+    - leftover presence-only parity asserts
+    - leftover silent weaker materialize
+    - leftover «TOML = full agent» instructions
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - loop/runtime_materializers/codex_agent_toml.py
+    - loop/runtime_materializers/parity.py
+    - harness/hooks/subagent-start.py
+    - loop/cli/runtime_sync.py
+    - loop/tests/test_codex_agent_toml.py
+    - loop/tests/test_agent_materializer.py
+  ac_quotes:
+    - "TOML name/desc/instructions only as complete | mapped+fingerprint | delete in-epic"
+    - "hardcoded ALWAYS_INJECT software set | derived set | delete in-epic"
+    - "presence-only REQUIRED_CODEX_AGENTS exclusivity | policy matrix | delete leftover in-epic"
+    - "runtime-sync green on truncated TOML | fingerprint check | delete in-epic"
+    - "silent materialize weaker agent | fail-closed | delete in-epic"
+    - "prose deny only as SoT | hook+matrix | delete in-epic as sufficient"
+    - "docs «Codex TOML = full agent» | mapping honesty | delete in-epic"
+    - "Independent Test FAIL: «TOML file exists for each md»; «deny mentioned in developer_instructions»"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:163-191"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:117-124"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:241-244"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s06 already applied new SoT
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+  files:
+    - loop/runtime_materializers/codex_agent_toml.py
+    - loop/runtime_materializers/parity.py
+    - harness/hooks/subagent-start.py
+    - loop/cli/runtime_sync.py
+    - loop/tests/test_codex_agent_toml.py
+    - loop/tests/test_agent_materializer.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/README.md
+
+as_built:
+  - "s01–s06 introduce PolicyRecord, mapping, fingerprint, drift, derived inject, --check"
+  - "leftover risk: test_markdown_frontmatter_converts_to_toml completeness-as-done; software-only frozenset comments; --check green without fingerprint; docs TOML=full"
+
+delta:
+  - "scan full sunset_inventory; delete leftover dual SoT / presence-only asserts / silent-weaker / software-only exclusive set / TOML=full instructions"
+  - "rewrite tests that encode name/desc-only TOML as sufficient agent policy"
+
+sunset_inventory:
+  - symbol: render_codex_agent_toml name/desc/developer_instructions only as complete agent
+    kind: A
+    replacement: mapped fields + policy_fingerprint + sidecar
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers/codex_agent_toml.py loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py
+    expect: emit includes fingerprint/sidecar; tests do not treat name/desc-only as complete
+  - symbol: markdown_agent_to_codex_toml silent drop tools/disallowedTools
+    kind: A
+    replacement: PolicyRecord + mapping or unsupported_runtime_policy
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers/codex_agent_toml.py loop/runtime_materializers/agents.py
+    expect: no silent drop path in prod
+  - symbol: hardcoded _ALWAYS_INJECT software-only exclusive SoT
+    kind: A
+    replacement: derived set from PolicyRecord/manifest
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-start.py harness/hooks/tests
+    expect: verify-edit + sunset-inventory if managed; leftover exclusive software-only asserts gone
+  - symbol: presence-only Codex dest-exists as sole parity
+    kind: A
+    replacement: policy matrix per prompt file
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers/parity.py loop/tests/test_runtime_sync_check.py loop/tests/test_codex_agent_toml.py
+    expect: mutation/policy checks present; presence-only completeness asserts rewritten
+  - symbol: tests asserting name/desc/body TOML conversion is sufficient policy
+    kind: A
+    replacement: fingerprint + deny mapping + mutation fail tests
+    policy: delete in-epic
+    rg_scope: loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py
+    expect: obsolete completeness-as-done cases rewritten
+  - symbol: runtime-sync --check green on truncated TOML without fingerprint
+    kind: B
+    replacement: fingerprint mismatch in drift items
+    policy: delete in-epic
+    rg_scope: loop/cli/runtime_sync.py loop/runtime_materializers/codex_sync.py loop/tests/test_runtime_sync_check.py
+    expect: --check fails without fingerprint/sidecar
+  - symbol: silent materialize weaker agent
+    kind: C
+    replacement: fail-closed unsupported_runtime_policy
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers/agents.py loop/runtime_materializers/codex_agent_toml.py
+    expect: no usable weaker TOML without fail code
+  - symbol: prose deny in developer_instructions as sufficient Independent Test
+    kind: C
+    replacement: hook+matrix
+    policy: delete in-epic
+    rg_scope: loop/tests/ loop/runtime_materializers/
+    expect: no test PASS on deny-in-prose-only
+  - symbol: docs «Codex TOML = full agent»
+    kind: I
+    replacement: mapping honesty native|hook|unsupported
+    policy: delete in-epic
+    rg_scope: loop/README.md CLAUDE.md harness/claude
+    expect: zero full-agent-from-TOML-only claims
+  - symbol: P2 generate all docs / README encyclopedia
+    kind: I
+    replacement: cut — keep manual rationale
+    policy: keep cut (do not add generator)
+    rg_scope: loop/scripts loop/runtime_materializers
+    expect: no new README generator from registry
+
+deletes:
+  - "leftover presence-only completeness asserts in loop/tests/test_codex_agent_toml.py / test_agent_materializer.py"
+  - "leftover exclusive software-only _ALWAYS_INJECT as sole SoT"
+  - "leftover --check success path on truncated TOML"
+  - "leftover silent drop tools in markdown_agent_to_codex_toml prod path"
+  - "leftover Kind I «TOML = full agent»"
+
+out_of_scope:
+  - "generate schemas README / CONTRACTS AST / generic @verify purge / Cursor Codex IDE — Appetite cut_list (not leftover to implement)"
+  - "doctor graph 067 fingerprint consumer"
+  - "duplicate Claude hooks 065; finish journal 068; skill FS 062"
+  - "full suite → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: name/desc-only TOML as complete
+    command: 'rg -n "developer_instructions = " loop/runtime_materializers/codex_agent_toml.py loop/tests/test_codex_agent_toml.py'
+    expect: fingerprint/sidecar also required in emit; tests not completeness-as-done
+  - id: inv-a-02
+    kind: A
+    symbol: silent drop disallowedTools
+    command: 'rg -n "disallowedTools" loop/runtime_materializers/codex_agent_toml.py loop/runtime_materializers/agent_policy.py loop/runtime_materializers/agents.py'
+    expect: PolicyRecord/mapping path present; no silent ignore in prod emit
+  - id: inv-a-03
+    kind: A
+    symbol: software-only _ALWAYS_INJECT exclusive
+    command: 'rg -n "_ALWAYS_INJECT" harness/hooks/subagent-start.py harness/hooks/tests'
+    expect: derived set includes verify-edit; leftover exclusive software-only asserts gone
+  - id: inv-a-04
+    kind: A
+    symbol: presence-only parity
+    command: 'rg -n "missing_codex_agent|toml exists|file exists for each" loop/runtime_materializers/parity.py loop/tests/test_codex_agent_policy.py loop/tests/test_runtime_sync_check.py'
+    expect: policy fail codes present; presence-only not sole green
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete name/desc completeness tests
+    command: 'rg -n "assert .name =|Do verify only" loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py'
+    expect: cases rewritten to require fingerprint/policy or kept only as non-completeness unit
+  - id: inv-b-01
+    kind: B
+    symbol: runtime-sync truncated TOML green
+    command: 'rg -n "fingerprint|policy.json|sidecar" loop/cli/runtime_sync.py loop/runtime_materializers/codex_sync.py loop/tests/test_runtime_sync_check.py'
+    expect: fingerprint mismatch in --check
+  - id: inv-c-01
+    kind: C
+    symbol: silent weaker materialize
+    command: 'rg -n "unsupported_runtime_policy|codex_policy_dropped" loop/runtime_materializers/'
+    expect: fail-closed codes exist; no try-new-except-old
+  - id: inv-c-02
+    kind: C
+    symbol: prose deny sufficient
+    command: 'rg -n "developer_instructions only|deny mentioned in developer" loop/tests/ loop/README.md || true'
+    expect: no output treating prose deny as Independent Test PASS
+  - id: inv-i-01
+    kind: I
+    symbol: Codex TOML = full agent
+    command: 'rg -n "TOML = full|toml is (the )?full agent|presence-only" loop/README.md CLAUDE.md harness/claude || true'
+    expect: no old machine-format instructions
+  - id: inv-i-02
+    kind: I
+    symbol: generate-all README
+    command: 'rg -n "generate schemas README|generate CONTRACTS AST" loop/runtime_materializers loop/scripts || true'
+    expect: no generator added (cut kept)
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (inv-a-01..04, inv-a-tests-01):
+      0 prod callers on silent-drop / exclusive software-only SoT / presence-only completeness.
+      Asserts на sunset-поведение = FAIL (deletes/rewrite).
+    verify: |
+      rg -n "policy_fingerprint|unsupported_runtime_policy" loop/runtime_materializers/codex_agent_toml.py loop/runtime_materializers/agent_policy.py
+      rg -n "disallowedTools" loop/runtime_materializers/codex_agent_toml.py loop/runtime_materializers/agent_policy.py loop/runtime_materializers/agents.py
+      rg -n "_ALWAYS_INJECT" harness/hooks/subagent-start.py harness/hooks/tests
+      rg -n "codex_policy_dropped|unsupported_runtime_policy" loop/runtime_materializers/parity.py
+  - id: cp2
+    criterion: Kind B — runtime-sync --check no longer greens truncated TOML without fingerprint (inv-b-01)
+    verify: |
+      rg -n "fingerprint|policy.json|sidecar" loop/cli/runtime_sync.py loop/runtime_materializers/codex_sync.py loop/tests/test_runtime_sync_check.py
+      bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k fingerprint
+  - id: cp3
+    criterion: |
+      Kind C+I — no silent weaker materialize; no prose-deny Independent Test PASS;
+      0 hits «TOML = full agent»; no generate-all README added (inv-c-01/02, inv-i-01/02)
+    verify: |
+      rg -n "unsupported_runtime_policy|codex_policy_dropped" loop/runtime_materializers/
+      rg -n "developer_instructions only|deny mentioned in developer" loop/tests/ loop/README.md || true
+      rg -n "TOML = full|toml is (the )?full agent|presence-only" loop/README.md CLAUDE.md harness/claude || true
+      rg -n "generate schemas README|generate CONTRACTS AST" loop/runtime_materializers loop/scripts || true
+  - id: cp4
+    criterion: Obsolete completeness tests rewritten; targeted epic regression green without restore legacy
+    verify: "rg -n \"assert .name =\" loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py; bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py harness/hooks/tests/test_subagent_start_contract_drift.py harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line"
+
+sunset_scope:
+  required: true
+  boundary_id: agent-contract-codex-policy
+  new_sot: loop/runtime_materializers/agent_policy.py
+  allow_read:
+    - loop/runtime_materializers/
+    - loop/cli/runtime_sync.py
+    - harness/hooks/subagent-start.py
+    - harness/hooks/_lib.py
+    - harness/agents/
+    - loop/tests/
+    - harness/hooks/tests/
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+verify:
+  - "bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py -q --tb=line"
+
+tdd:
+  - "test_no_presence_only_parity_green_after_purge"
+  - "test_no_software_only_always_inject_exclusive"
+  - "test_no_silent_drop_disallowed_tools_prod_path"

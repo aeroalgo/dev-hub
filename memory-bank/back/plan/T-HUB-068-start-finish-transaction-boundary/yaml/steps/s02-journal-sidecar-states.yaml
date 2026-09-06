@@ -1,0 +1,124 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "Sidecar finish journal — states, stage, identity, commit"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Add-слой ladder: filesystem sidecar journal — единственный machine SoT транзакции
+  finish. Schema id `loop-finish-transaction/v1` в `.claude/runtime/epic/finish-tx.json`
+  (не BOUNDARY_REGISTRY). States prepared → context_written → index_written →
+  committed; failure → rollback_required. Stage files + fsync/replace; identity
+  mismatch abort. Postgres не требуется.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-011
+    - TM-006
+  nouns:
+    - loop-finish-transaction/v1
+    - .claude/runtime/epic/finish-tx.json
+    - sidecar-only
+    - prepared
+    - context_written
+    - index_written
+    - committed
+    - rollback_required
+    - staged files in tx dir
+    - identity check
+    - loop/mb_finish/transaction.py
+  layout_paths:
+    - loop/mb_finish/transaction.py
+    - .claude/runtime/epic/finish-tx.json
+    - loop/tests/test_mb_finish_transaction.py
+  ac_quotes:
+    - "Prefer sidecar journal first (less 066 coupling); if registered, extra=forbid."
+    - "States: prepared → context_written → index_written → committed. Failure → rollback_required."
+    - "Staged files in tx dir; commit = rename/replace all; fsync as existing atomic helper."
+    - "Identity check: staged Handoff epic_id/step_id == index target == state armed."
+    - "Do not require postgres; filesystem journal is SoT."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:31-40"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:84-96"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:132-149"
+
+context:
+  consumes:
+    - s01 red tests (contract)
+    - plan.md §Technology axiom Finish commit
+    - plan.md §HOW transaction.py
+    - harness/hooks/epic/core.py atomic_write_text
+  produces:
+    - loop/mb_finish/transaction.py journal helper
+    - sidecar path `.claude/runtime/epic/finish-tx.json`
+    - state machine + identity abort unit tests
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#how
+  files:
+    - loop/mb_finish/transaction.py
+    - loop/tests/test_mb_finish_transaction.py
+
+as_built:
+  - "No finish-tx journal file; no recover_finish_transaction"
+  - "atomic_write_text per single path (core.py); fsync+replace exists for spawn-gate JSON"
+  - "BOUNDARY_REGISTRY has loop-handoff/v1, loop-gate-verdict/v1 — 068 does not register finish-tx (sidecar-first)"
+  - "s01 tests red against missing journal"
+
+delta:
+  - "add thin journal module: prepare/stage/commit/rollback; extra=forbid payload; schema field required"
+  - "states enum/Literal; corrupt journal → rollback_required / NEED_HUMAN path stub (s04 wires recover loops)"
+  - "identity check helper: staged epic_id/step_id vs index vs armed — mismatch → abort tx"
+  - "do not wrap finish_implement yet (s03); do not call from prepare_session (s04)"
+
+deletes: []
+
+out_of_scope:
+  - "wrap finish_implement/qa call sites (s03)"
+  - "prepare_session recover (s04)"
+  - "save_epic_state lock (s05)"
+  - "Appetite cut_list: TransitionService class tree; ContextBoundaryService rewrite; MCP-only finish; cross-host locks (FR-015 no module tree)"
+  - "postgres / alembic"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Sidecar journal file contract — schema loop-finish-transaction/v1 extra=forbid; missing schema invalid (FR-001 / FR-011)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'journal_schema or sidecar or extra_forbid or finish-tx'"
+  - id: cp2
+    criterion: State machine prepared → context_written → index_written → committed; failure → rollback_required (FR-002)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'prepared or context_written or index_written or committed or rollback_required'"
+  - id: cp3
+    criterion: Stage+commit uses existing atomic helper (rename/replace + fsync); not postgres (FR-003 / FR-011)
+    verify: "rg -n \"atomic_write_text|os.replace|fsync\" loop/mb_finish/transaction.py; rg -n \"sqlalchemy|alembic|postgres\" loop/mb_finish/transaction.py || true"
+  - id: cp4
+    criterion: Identity mismatch staged Handoff vs index vs armed → abort tx rollback_required (FR-004 / Failure matrix TM-006 / QA TM-005)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'identity_mismatch or rollback_required'"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'journal or sidecar or identity or rollback_required or prepared'"
+  - "rg -n \"loop-finish-transaction/v1\" loop/mb_finish/transaction.py"
+  - "rg -n \"BOUNDARY_REGISTRY\" loop/mb_finish/transaction.py || true"
+
+tdd:
+  - "test_journal_sidecar_schema_required_extra_forbid — FR-001"
+  - "test_journal_states_prepared_to_committed — FR-002"
+  - "test_journal_stage_commit_fsync_replace — FR-003"
+  - "test_identity_mismatch_aborts_tx — FR-004 / TM-006"

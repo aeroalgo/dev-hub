@@ -1,0 +1,22 @@
+{
+  "name": "explorer",
+  "policy_fingerprint": "sha256:d5c4341cc6619485d3bfafb520058c16136dd107e6b6b8fded07c91660c50462",
+  "source_prompt_sha256": "a3c3d717b13bb58f4545c5d0ceaa3f38469d5e1d2a7f19423d6f0f7457a5d4e7",
+  "disallowedTools": [
+    "Write",
+    "Edit",
+    "Agent",
+    "Skill",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite"
+  ],
+  "tools": [
+    "Read",
+    "Bash",
+    "Grep",
+    "Glob"
+  ],
+  "managed": true
+}

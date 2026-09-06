@@ -1,0 +1,122 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: "SubagentStop — fence required; payload verdict ≠ SoT; mutation"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SubagentStop не принимает PASS из `data.verdict` без JSON fence. Условие
+  `if fence_data is not None or not data.get("verdict")` заменено на
+  `fence_data is not None`. Mutation test закрывает обход. Schema errors
+  retry; sunset/repair/verify — fence required. SoT = fence body.
+
+plan_contract:
+  fr_ids: [FR-002, FR-007, FR-009, FR-011, US-001, SC-001, AC+1, AC−1, TM-001]
+  nouns:
+    - SubagentStop
+    - fence_data is not None
+    - data.verdict
+    - record_verdict PASS
+    - mutation test
+    - loop-gate-verdict/v1
+    - loop-repair-result/v1
+    - loop-sunset-inventory/v1
+    - harness/hooks/subagent-stop.py
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/
+    - loop/tests/test_stop_gate.py
+  ac_quotes:
+    - "Replace bypass condition with `fence_data is not None`"
+    - "Как stop-gate, я не принимаю PASS из payload без fence."
+    - "Given: SubagentStop data.verdict=PASS, message without fence — Then: validation path executed; not record_verdict PASS"
+    - "Fence required for verify/repair/sunset machine agents."
+    - "Нет bypass `or not data.get(\"verdict\")`."
+    - "sunset records (after 063) get same fence+schema rules."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:16-24"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:71-90"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:128-158"
+    - "memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md:203-214"
+
+context:
+  consumes:
+    - s01 wire schema required (validate_boundary fail on missing schema)
+    - plan.md §FR-002/007/009/011 §US-001 §Data flow
+    - T-HUB-063 sunset branch already in SubagentStop
+  produces:
+    - no-fence + payload PASS ≠ recorded PASS
+    - mutation coverage of bypass condition
+    - schema-error still retries; missing fence = protocol fail / schema retry, not payload SoT
+    - sunset no-fence after 063 fails same as gate
+  plan_refs:
+    - plan.md#acceptance-scenarios--us-001
+    - plan.md#qa-consumes
+    - plan.md#data-flow
+  files:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_subagent_stop.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_hooks_llm_fence.py
+
+as_built:
+  - "harness/hooks/subagent-stop.py:225 `if fence_data is not None or not data.get(\"verdict\")` — payload verdict skips validate"
+  - "lines 204-214 extract_verdict then data.get('verdict') PASS/FAIL/BLOCKED as fallback SoT"
+  - "gate-repair / sunset branches already validate_boundary; sunset no-fence retries schema (063)"
+  - "prompts already require JSON fence (Kind I true in text; runtime bypass is the gap)"
+
+delta:
+  - "VERIFY_FINISH: validate only when fence_data is not None; else protocol fail / schema retry — never treat data.verdict as SoT"
+  - "remove `or not data.get(\"verdict\")` bypass; mutation test fails if restored"
+  - "keep schema retry counters for schema_* codes; missing fence is not ownership (s03)"
+  - "sunset/repair: confirm no-fence cannot complete success path (FR-011 / QA TM-007)"
+  - "schema fail must not be handled as repair agent (Failure matrix TM-006 taxonomy — schema retry only)"
+
+deletes:
+  - "bypass `or not data.get(\"verdict\")` in VERIFY_FINISH validate gate"
+  - "payload-only record_verdict PASS without fence for verify/repair/sunset machine agents"
+
+out_of_scope:
+  - "ownership identity vs in-flight (s03)"
+  - "repair parent_evidence_id / leftover remaining (s04)"
+  - "README / prompt rewrite (s05) — prompts already say fence; this step makes runtime match"
+  - "signed adapter envelope — Appetite cut; default none"
+  - "full retry_policy/v1 — cut_list; counters stay"
+  - "Explorer no-verdict (Assumptions)"
+  - "purge leftover comments (s06)"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: no-fence + data.verdict=PASS → not record_verdict PASS (US-001 / SC-001 / QA TM-001 / Failure matrix TM-001)
+    verify: "bin/pytest loop/tests/test_stop_gate.py harness/hooks/tests -q --tb=line -k 'nofence or no_fence or payload_verdict or fence_required'"
+  - id: cp2
+    criterion: Mutation — restoring `or not data.get(\"verdict\")` would make test fail (FR-009)
+    verify: "bin/pytest loop/tests/test_stop_gate.py harness/hooks/tests -q --tb=line -k 'mutation or bypass'"
+  - id: cp3
+    criterion: sunset no-fence after 063 fails (FR-011 / QA TM-007); repair no-fence does not succeed
+    verify: "bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k 'sunset or repair or fence'"
+  - id: cp4
+    criterion: Independent Test PASS path — no-fence not PASS; schema errors still retry (FR-007)
+    verify: "bin/pytest loop/tests/test_stop_gate.py loop/tests/test_hooks_llm_fence.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stop_gate.py harness/hooks/tests/test_subagent_stop.py loop/tests/test_hooks_llm_fence.py -q --tb=line"
+  - "rg -n \"or not data.get\\(\\\"verdict\\\"\\)\" harness/hooks/subagent-stop.py"
+
+tdd:
+  - "test_subagent_stop_nofence_payload_pass_not_recorded — TM-001 / US-001"
+  - "test_bypass_or_not_verdict_absent — FR-009 mutation"
+  - "test_sunset_nofence_fails_after_063 — QA TM-007 / FR-011"
+  - "test_schema_error_still_retries — FR-007 / Failure matrix TM-006 schema retry only"

@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # INTEG PLAN — gates
 
-**Артефакт:** `memory-bank/integration/plan/<task_id>/md/plan.md`  
+**Артефакт:** `memory-bank/integration/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)  
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
 **Multi-epic:** research multi-axis → апсерт `memory-bank/integration/roadmap/queue.yaml` + N× plan; **FORBIDDEN** slug roadmap в `plan/`; next = DECOMPOSE  
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
@@ -19,7 +19,7 @@ alwaysApply: false
 5. `contracts/` не обязателен
 6. `tasks.md` append-only (roadmap + `.queue.yaml` + каждый эпик при multi-epic)
 7. После DECOMPOSE: plan → index; нет дубль eNN-чеклиста
-8. Multi-epic FAIL: ≥2 независимых wire-осей в research и только 1 plan → halt; ≥2 эпика без sibling `.queue.yaml` → halt
+8. Multi-epic FAIL: ≥2 независимых wire-осей в research и только 1 plan → halt; ≥2 эпика без `roadmap/queue.yaml` или без per-epic `md/prompt.md` → halt; в `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
 
 ## Abort
 

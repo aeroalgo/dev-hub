@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: s01 — Route SoT — video intent commands → existing workflow files, missing
+  → pack_route_missing IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/yaml/steps/s01-video-route-exists-fail-closed.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Video pack rules layout is flat (.cursor/rules/video/workflow-*.mdc) without role
+  subdirectories.
+- Added workflow-decompose.mdc, workflow-storyboard.mdc, workflow-edit.mdc, workflow-publish.mdc
+  under .cursor/rules/video/ to satisfy all intent routing pipeline commands.
+- Updated route_command to return CommandRoute(ok=bool, normalized_phase=str, rules_mdc_rel=Optional[str],
+  diagnostic_codes=List[str]), resolving flat vs role-subdir layouts and checking
+  existence on disk against hub_root (fail-closed with pack_route_missing).
+gaps:
+  status: none
+done:
+- Extended CommandRoute schema with ok and diagnostic_codes fields.
+- Updated route_command to resolve flat and role_subdir layouts, verifying file existence
+  and setting ok=False with pack_route_missing when target is missing.
+- Created missing workflow mdc files under .cursor/rules/video/ (decompose, storyboard,
+  edit, publish).
+- Added test_video_intent_commands_route_paths_exist, test_missing_video_workflow_pack_route_missing,
+  test_script_plan_not_ghost_script_developer, test_route_command_never_ok_missing_file
+  to test_workflow_pack_video_e2e.py.
+files:
+- loop/workflow/command_router.py
+- loop/workflow/schemas.py
+- .cursor/rules/video/workflow-plan.mdc
+- .cursor/rules/video/workflow-implement.mdc
+- .cursor/rules/video/workflow-qa.mdc
+- .cursor/rules/video/workflow-decompose.mdc
+- .cursor/rules/video/workflow-storyboard.mdc
+- .cursor/rules/video/workflow-edit.mdc
+- .cursor/rules/video/workflow-publish.mdc
+- loop/tests/test_workflow_pack_video_e2e.py
+- loop/tests/test_workflow_pack_phase_router.py
+deletes:
+- live concat of nonexistent {role}_developer under video rules_root as the returned
+  SoT (purge leftover in s06 if dual remains)
+- ok=true semantics on missing path (if introduced as bool default true without exists)
+tests:
+- bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_workflow_pack_phase_router.py
+  -q --tb=line
+integration_check:
+- rg -n 'pack_route_missing' loop/workflow/command_router.py loop/tests/
+- bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_workflow_pack_phase_router.py
+  -q --tb=line -k 'route or pack_route or script_plan or video'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 'cp1 PASS: test_video_intent_commands_route_paths_exist verifies all intent_routing
+  commands for video_production and content_factory exist on disk'
+- 'cp2 PASS: test_missing_video_workflow_pack_route_missing verifies missing workflow
+  returns ok=False and diagnostic pack_route_missing'
+- 'cp3 PASS: test_script_plan_not_ghost_script_developer verifies no ghost script_developer
+  subdir is concatenated'
+- 'cp4 PASS: test_route_command_never_ok_missing_file enforces fail-closed semantics'
+checkpoints:
+- id: cp1
+  criterion: Inventory — каждый command intent_routing video_production + content_factory
+    резолвится в Path.exists (US-001 / FR-001 / SC-001 / TM-001).
+  status: done
+- id: cp2
+  criterion: Missing workflow file fixture → not ok, diagnostic pack_route_missing
+    (FR-007 / TM-002 / AC−1)
+  status: done
+- id: cp3
+  criterion: One SoT — video SCRIPT PLAN does not return ghost script_developer path
+    that is missing on disk (FR-002 / AC−4)
+  status: done
+- id: cp4
+  criterion: Enforce — route_command (or pack-aware wrapper used by loop) never yields
+    ok with nonexistent workflow
+  status: done

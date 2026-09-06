@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: s02 — Mapping yaml + materialize fingerprint/sidecar — native or fail-closed
+  emit IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s02-mapping-fingerprint-sidecar.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/runtime_materializers/codex_policy_mapping.yaml mapping each policy
+  field to native/hook/unsupported
+- Extended agent_policy.py with load_codex_policy_mapping, PolicyRecord.policy_fingerprint,
+  and validate_codex_runtime_support (raising UnsupportedRuntimePolicyError)
+- Extended codex_agent_toml.py to render policy_fingerprint and source_prompt_sha256
+  in TOML header comments
+- Updated agents.py materialize_agents to validate codex runtime policy mapping, render
+  fingerprint comments in TOML, and emit .codex/agents/<id>.policy.json sidecars
+- Added tests in test_codex_agent_policy.py and test_agent_materializer.py covering
+  FR-003, FR-004, FR-011, US-001, AC+2, AC+5, SC-002, TM-004
+files:
+- loop/runtime_materializers/codex_policy_mapping.yaml
+- loop/runtime_materializers/codex_agent_toml.py
+- loop/runtime_materializers/agents.py
+- loop/runtime_materializers/agent_policy.py
+- loop/tests/test_codex_agent_policy.py
+- loop/tests/test_agent_materializer.py
+- loop/tests/test_codex_agent_toml.py
+deletes:
+- completeness claim that name/desc/instructions TOML is a complete Codex agent (behavior
+  moves to fingerprint+mapping; leftover asserts → s07)
+tests:
+- bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py
+  loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync.py loop/tests/test_runtime_sync_check.py
+  -q --tb=line
+integration_check:
+- .venv/bin/python -m loop.cli.runtime_sync --apply
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- pass
+checkpoints:
+- id: cp1
+  criterion: Mapping yaml exists and is loaded; each field native|hook|unsupported;
+    required deny not unsupported without hook row
+  status: done
+- id: cp2
+  criterion: Materialize writes policy_fingerprint and source_prompt_sha256 in TOML
+    and/or sidecar .policy.json (TM-004 / SC-002)
+  status: done
+- id: cp3
+  criterion: Required deny unsupported without hook row → materialize raises/fails
+    unsupported_runtime_policy (not usable weaker TOML)
+  status: done
+- id: cp4
+  criterion: FR-011 — mapping native column contains only documented Codex TOML fields
+    (name/description/developer_instructions + allowed metadata); no invented flags
+  status: done

@@ -1,0 +1,239 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "s06 — legacy-fallback-purge — ghost role-subdir + exclusive REQUIRED_CODEX_AGENTS leftover"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: нулевые leftover plan Replacement A+B+C+I.
+  Нет ghost {role}_developer concat как живого video SoT; нет ok=true на missing
+  route; нет parity green на subset manifest; нет «Claude symlink enough»;
+  нет docs fully-wired без tests; obsolete tests на exclusive REQUIRED_CODEX_AGENTS
+  / ghost script_developer rewritten. Suite green без restore legacy.
+
+plan_contract:
+  fr_ids: [AC−1, AC−2, AC−3, AC−4, Independent Test]
+  nouns:
+    - leftover REQUIRED_CODEX_AGENTS exclusive parity
+    - ghost script_developer route builder
+    - ok=true on missing route
+    - Claude symlink enough
+    - docs video pack works
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - loop/workflow/command_router.py
+    - loop/runtime_materializers/parity.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/tests/test_workflow_pack_phase_router.py
+    - workflows/video/README.md
+  ac_quotes:
+    - "REQUIRED_CODEX_AGENTS as sole parity source → agents dir glob ∪ manifest declare | delete in-epic"
+    - "route builder to nonexistent role-subdir → existing files / route_map | delete in-epic"
+    - "ok=true on missing route → fail-closed | delete in-epic"
+    - "«Claude symlink enough» → manifest declare | delete in-epic"
+    - "Independent Test FAIL: «manifest yaml has keys» without files; «prompt files exist» without manifest."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:158-187"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:107-120"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:219-239"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 already applied new SoT
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+  files:
+    - loop/workflow/command_router.py
+    - loop/runtime_materializers/parity.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/tests/test_workflow_pack_phase_router.py
+    - workflows/video/README.md
+    - CLAUDE.md
+
+as_built:
+  - "Before epic: route_command concatenates {role}_developer under any rules_root; video files are flat"
+  - "REQUIRED_CODEX_AGENTS used as required floor in tests; parity ignores undeclared prompt files"
+  - "CommandRoute has no pack_route_missing"
+  - "Claude already has verify-edit.md without manifest row / without toml"
+
+delta:
+  - "scan full sunset_inventory; delete leftover dual SoT / exclusive-only asserts / skip-not-in-set / fully-wired claims"
+  - "rewrite tests that encode ghost script_developer as expected video path or exclusive allowlist as sole parity"
+
+sunset_inventory:
+  - symbol: REQUIRED_CODEX_AGENTS as sole parity source
+    kind: A
+    replacement: harness/agents/*.md glob ∪ manifest declare
+    policy: delete in-epic
+    rg_scope: loop/runtime_materializers/parity.py loop/tests/test_runtime_sync_check.py
+    expect: glob/orphan check present; allowlist not the only source
+  - symbol: route builder nonexistent role-subdir (script_developer under video rules_root)
+    kind: A
+    replacement: existing files / route_map (one SoT)
+    policy: delete in-epic
+    rg_scope: loop/workflow/command_router.py loop/tests/
+    expect: video SCRIPT PLAN Path.exists; no live ghost as returned SoT
+  - symbol: tests asserting packs/video/rules/script_developer/workflow-plan.mdc without exists
+    kind: A
+    replacement: exists-check / rewritten custom-prefix fixture
+    policy: delete in-epic
+    rg_scope: loop/tests/test_workflow_pack_phase_router.py
+    expect: case absent or rewritten (not encoding missing path as success)
+  - symbol: Codex without video toml
+    kind: B
+    replacement: generated .codex/agents/verify-{script,edit,publish}.toml
+    policy: delete in-epic
+    rg_scope: .codex/agents/ harness/manifest.yaml
+    expect: three toml exist; runtime-sync --check green
+  - symbol: ok=true on missing route
+    kind: C
+    replacement: fail-closed pack_route_missing
+    policy: delete in-epic
+    rg_scope: loop/workflow/command_router.py loop/tests/
+    expect: missing file not ok
+  - symbol: Claude symlink enough
+    kind: C
+    replacement: manifest declare + both runtimes
+    policy: delete in-epic
+    rg_scope: harness/manifest.yaml .claude/agents/ .codex/agents/
+    expect: no video prompt on disk without manifest row
+  - symbol: docs video pack works / fully wired
+    kind: I
+    replacement: honest after FR-007
+    policy: delete in-epic
+    rg_scope: workflows/video/README.md CLAUDE.md
+    expect: zero fully-wired false claims
+  - symbol: CLAUDE.md pack table full video execute
+    kind: I
+    replacement: match reality (prefixes + existing routes after s01)
+    policy: delete in-epic
+    rg_scope: CLAUDE.md
+    expect: no overclaim full execute
+
+deletes:
+  - "leftover sole-source REQUIRED_CODEX_AGENTS parity path"
+  - "leftover ghost {role}_developer concat as video returned SoT"
+  - "loop/tests/test_workflow_pack_phase_router.py::test_route_command_custom_prefix encoding missing script_developer as success (rewrite)"
+  - "ok=true without exists"
+  - "instruction fully wired / pack works without tests"
+  - "obsolete tests that require undeclared prompts to pass parity"
+
+out_of_scope:
+  - "ffmpeg live gate / full video rules prose / template pack authoring — Appetite"
+  - "JANITOR no-gate FR-011"
+  - "follow_up: T-HUB-067-full-doctor; T-HUB-051 CREATIVE tool-gate; T-HUB-069 agent contract registry consumes 064"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: REQUIRED_CODEX_AGENTS sole parity
+    command: 'rg -n "REQUIRED_CODEX_AGENTS" loop/runtime_materializers/parity.py loop/tests/test_runtime_sync_check.py'
+    expect: not the only source; glob/orphan check exists
+  - id: inv-a-02
+    kind: A
+    symbol: ghost script_developer video SoT
+    command: 'rg -n "script_developer/workflow-" loop/workflow/command_router.py loop/tests/test_workflow_pack_video_e2e.py || true'
+    expect: video pack does not return missing script_developer path
+  - id: inv-a-tests-01
+    kind: A
+    symbol: custom_prefix ghost assert
+    command: 'rg -n "packs/video/rules/script_developer" loop/tests/test_workflow_pack_phase_router.py || true'
+    expect: rewritten or not success-without-exists
+  - id: inv-a-tests-02
+    kind: A
+    symbol: exclusive allowlist-only test
+    command: 'rg -n "REQUIRED_CODEX_AGENTS" loop/tests/test_runtime_sync_check.py'
+    expect: floor OK; no test that forbids glob source
+  - id: inv-b-01
+    kind: B
+    symbol: Codex video toml
+    command: 'ls .codex/agents/verify-script.toml .codex/agents/verify-edit.toml .codex/agents/verify-publish.toml'
+    expect: three files exist
+  - id: inv-c-01
+    kind: C
+    symbol: ok=true missing route
+    command: 'rg -n "pack_route_missing" loop/workflow/ loop/tests/'
+    expect: fail-closed diagnostic present
+  - id: inv-c-02
+    kind: C
+    symbol: Claude symlink enough
+    command: 'rg -n "verify-script:|verify-edit:|verify-publish:" harness/manifest.yaml'
+    expect: three keys declared
+  - id: inv-i-01
+    kind: I
+    symbol: fully wired
+    command: 'rg -n "fully wired|pack works" workflows/video/README.md CLAUDE.md || true'
+    expect: no false complete-execute claim
+  - id: inv-i-02
+    kind: I
+    symbol: CLAUDE full execute
+    command: 'rg -n "video-production" CLAUDE.md'
+    expect: prefixes/activation only or honest after s01
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A grep_control inv-a-01, inv-a-02, inv-a-tests-01, inv-a-tests-02:
+      glob parity source; no ghost video SoT; obsolete ghost/exclusive tests rewritten.
+    verify: |
+      rg -n "REQUIRED_CODEX_AGENTS" loop/runtime_materializers/parity.py loop/tests/test_runtime_sync_check.py
+      rg -n "script_developer/workflow-" loop/workflow/command_router.py loop/tests/test_workflow_pack_video_e2e.py || true
+      rg -n "packs/video/rules/script_developer" loop/tests/test_workflow_pack_phase_router.py || true
+      bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'orphan or video_route or pack_route or script_plan'
+  - id: cp2
+    criterion: Kind B inv-b-01 — three Codex toml exist
+    verify: "ls .codex/agents/verify-script.toml .codex/agents/verify-edit.toml .codex/agents/verify-publish.toml"
+  - id: cp3
+    criterion: |
+      Kind C+I grep_control inv-c-01, inv-c-02, inv-i-01, inv-i-02:
+      pack_route_missing present; three manifest keys; no fully-wired false claim.
+    verify: |
+      rg -n "pack_route_missing" loop/workflow/ loop/tests/
+      rg -n "verify-script:|verify-edit:|verify-publish:" harness/manifest.yaml
+      rg -n "fully wired|pack works" workflows/video/README.md CLAUDE.md || true
+  - id: cp4
+    criterion: Obsolete exclusive/ghost tests gone or rewritten; targeted epic regression green without restore (inv-a-tests + suite)
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_workflow_pack_phase_router.py loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_video_phase_registry.py -q --tb=line"
+
+sunset_scope:
+  required: true
+  boundary_id: video-pack-route-verify
+  new_sot: loop/workflow/command_router.py
+  allow_read:
+    - loop/workflow/
+    - loop/runtime_materializers/
+    - harness/manifest.yaml
+    - harness/agents/
+    - harness/hooks/subagent-stop.py
+    - workflows/video/
+    - .cursor/rules/video/
+    - CLAUDE.md
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_runtime_sync_check.py loop/tests/test_video_phase_registry.py -q --tb=line"
+
+tdd:
+  - "test_no_ghost_script_developer_video_sot_after_purge"
+  - "test_no_exclusive_allowlist_only_parity"
+  - "test_pack_route_missing_still_fail_closed"

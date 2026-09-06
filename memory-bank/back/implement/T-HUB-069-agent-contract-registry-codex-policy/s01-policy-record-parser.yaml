@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: s01 — PolicyRecord + frontmatter parser — extras listed; red silent-drop deny
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s01-policy-record-parser.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- PolicyRecord model in loop/runtime_materializers/agent_policy.py covers all FR-001
+  fields.
+- parse_agent_policy and parse_agent_policy_text validate frontmatter, extracting
+  tools/disallowedTools and detecting unknown keys on managed agents.
+gaps:
+  status: none
+done:
+- Added PolicyRecord pydantic model in loop/runtime_materializers/agent_policy.py
+- Added parse_agent_policy_text and parse_agent_policy with extra unknown keys rejection
+  on managed agents
+- Added unit tests in loop/tests/test_codex_agent_policy.py covering FR-001, disallowedTools,
+  and extra unknown keys
+files:
+- loop/runtime_materializers/agent_policy.py
+- loop/tests/test_codex_agent_policy.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line`'
+integration_check:
+- '`bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line`'
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- pass (bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k PolicyRecord)
+- pass (bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k parse_frontmatter)
+- pass (bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k extra_unknown)
+- pass (bin/pytest loop/tests/test_codex_agent_policy.py -q --tb=line -k silent_drop)
+checkpoints:
+- id: cp1
+  criterion: PolicyRecord model_validate accepts FR-001 fields; extra=forbid or extras
+    listed API exists
+  status: done
+- id: cp2
+  criterion: Parser extracts disallowedTools from verify-implement.md frontmatter
+    (not body-only)
+  status: done
+- id: cp3
+  criterion: managed=true unknown key → extras listed / fail, not silently ignored
+    (Failure TM-005)
+  status: done
+- id: cp4
+  criterion: Independent Test red — silent drop of disallowedTools from PolicyRecord
+    fails the new test (TDD red before s02 emit)
+  status: done
+resume_from: cp1

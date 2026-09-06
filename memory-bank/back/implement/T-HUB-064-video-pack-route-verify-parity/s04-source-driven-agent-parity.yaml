@@ -1,0 +1,49 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: s04 — Source-driven parity — harness/agents/*.md orphan fails, not allowlist-only
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/yaml/steps/s04-source-driven-agent-parity.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added glob *.md check against manifest in check_codex_parity and codex_drift_items
+- Added test_orphan_agent_md_fails_parity, test_parity_source_is_agents_glob_not_allowlist_only,
+  test_declared_video_prompts_not_orphan
+files:
+- loop/runtime_materializers/parity.py
+- loop/runtime_materializers/codex_sync.py
+- loop/tests/test_runtime_sync_check.py
+deletes:
+- parity green while prompt file orphan (subset-manifest checker as the only check)
+tests:
+- bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line
+integration_check:
+- rg -n 'missing_manifest_agent' loop/runtime_materializers/parity.py loop/runtime_materializers/codex_sync.py
+  loop/tests/test_runtime_sync_check.py
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -> 10 passed
+checkpoints:
+- id: cp1
+  criterion: Orphan harness/agents/*.md fixture fails parity (US-004 / SC-003 / AC+3)
+  status: done
+- id: cp2
+  criterion: Source is glob agents dir, not allowlist-only (FR-004 / AC−2)
+  status: done
+- id: cp3
+  criterion: After s02, real video prompts are declared — live tree parity not red
+    on verify-edit.md
+  status: done
+- id: cp4
+  criterion: Enforce — no path where undeclared prompt is silent success
+  status: done

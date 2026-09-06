@@ -430,6 +430,9 @@ def test_route_command_software() -> None:
     assert isinstance(route, CommandRoute)
     assert route.normalized_phase == "IMPLEMENT"
     assert route.rules_mdc_rel == ".cursor/rules/back_developer/workflow-implement.mdc"
+    # TM-006 / FR-009: verify target path exists on disk in repo root
+    repo_root = Path(__file__).resolve().parents[2]
+    assert (repo_root / route.rules_mdc_rel).is_file()
 
     route_front = route_command(software_pack, "front qa")
     assert route_front.normalized_phase == "QA"
@@ -440,8 +443,12 @@ def test_route_command_software() -> None:
     assert route_integ.rules_mdc_rel == ".cursor/rules/integration_developer/workflow-plan.mdc"
 
 
-def test_route_command_custom_prefix() -> None:
+def test_route_command_custom_prefix(tmp_path: Path) -> None:
     """AC+2 / cp2: route_command with custom video pack."""
+    rules_dir = tmp_path / "packs" / "video" / "rules"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    (rules_dir / "workflow-plan.mdc").write_text("# Plan", encoding="utf-8")
+
     video_pack = WorkflowPack(
         id="video-prod",
         roles=["script", "edit", "render"],
@@ -453,9 +460,10 @@ def test_route_command_custom_prefix() -> None:
         description="Video production",
     )
 
-    route = route_command(video_pack, "SCRIPT PLAN")
+    route = route_command(video_pack, "SCRIPT PLAN", hub_root=tmp_path)
+    assert route.ok is True
     assert route.normalized_phase == "PLAN"
-    assert route.rules_mdc_rel == "packs/video/rules/script_developer/workflow-plan.mdc"
+    assert route.rules_mdc_rel == "packs/video/rules/workflow-plan.mdc"
 
 
 def test_route_command_passthrough() -> None:

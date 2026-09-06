@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+title: s02 — SubagentStop — fence required; payload verdict ≠ SoT; mutation IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/yaml/steps/s02-fence-required-stop-mutation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/verification-before-completion/SKILL.md
+- .agents/skills/requesting-code-review/SKILL.md
+discovery:
+- SubagentStop bypass `or not data.get("verdict")` allowed payload verdict without
+  JSON fence
+- Removed bypass so fence_data is required for verify finish agents, triggering schema
+  validation/retry on missing fence
+gaps:
+  status: none
+done:
+- Removed `or not data.get("verdict")` bypass in harness/hooks/subagent-stop.py
+- Missing fence now triggers schema validation failure and schema retry protocol instead
+  of recording payload verdict
+- Added mutation and fence-required tests in loop/tests/test_stop_gate.py
+- Updated DSH epic gate gap test to expect schema failure exit code 2 when no fence
+  is provided
+files:
+- harness/hooks/subagent-stop.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_hooks_llm_fence.py
+- loop/tests/test_dsh_epic_gate_gaps.py
+deletes:
+- bypass `or not data.get("verdict")` in VERIFY_FINISH validate gate
+- payload-only record_verdict PASS without fence for verify/repair/sunset machine
+  agents
+tests:
+- bin/pytest loop/tests/test_stop_gate.py loop/tests/test_hooks_llm_fence.py loop/tests/test_subagent_stop_sunset.py
+  loop/tests/test_dsh_epic_gate_gaps.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_stop_gate.py -k "nofence or mutation or schema_error
+  or repair_nofence" -q --tb=line
+grep_control:
+- back: rg -n "or not data.get\(\"verdict\"\)" harness/hooks/subagent-stop.py
+  front: ''
+verification_results:
+- 98 passed, 2 warnings in 33.53s
+- (no output — pattern absent)
+checkpoints:
+- id: cp1
+  criterion: no-fence + data.verdict=PASS → not record_verdict PASS (US-001 / SC-001
+    / QA TM-001 / Failure matrix TM-001)
+  status: done
+- id: cp2
+  criterion: Mutation — restoring `or not data.get(\"verdict\")` would make test fail
+    (FR-009)
+  status: done
+- id: cp3
+  criterion: sunset no-fence after 063 fails (FR-011 / QA TM-007); repair no-fence
+    does not succeed
+  status: done
+- id: cp4
+  criterion: Independent Test PASS path — no-fence not PASS; schema errors still retry
+    (FR-007)
+  status: done

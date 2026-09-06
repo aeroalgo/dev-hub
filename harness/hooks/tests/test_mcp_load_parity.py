@@ -84,5 +84,18 @@ def test_mcp_schema_field_guard():
     assert "load_plan_section" in tool_names
 
     fields = set(MbLoadResult.model_fields.keys())
-    expected_fields = {"schema", "ok", "meta", "load_now", "files", "fingerprint", "diagnostic_codes", "shape_errors", "forbidden_skipped"}
+    expected_fields = {
+        "schema",
+        "ok",
+        "status",
+        "meta",
+        "load_now",
+        "files",
+        "required_missing",
+        "optional_missing",
+        "forbidden_skipped",
+        "fingerprint",
+        "diagnostic_codes",
+        "shape_errors",
+    }
     assert expected_fields == fields, f"Schema drift detected! Fields: {fields}"

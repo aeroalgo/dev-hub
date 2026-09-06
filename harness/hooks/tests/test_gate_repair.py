@@ -17,6 +17,7 @@ REPAIR: done
 ```json
 {
   "schema": "loop-repair-result/v1",
+  "parent_evidence_id": "evidence-fail-001",
   "agent_id": "gate-repair",
   "status": "done",
   "fixed_blockers": ["diagnostic_code_mismatch"],
@@ -28,7 +29,26 @@ REPAIR: done
     result = extract_repair_result(text)
     assert result is not None
     assert result["status"] == "done"
+    assert result["parent_evidence_id"] == "evidence-fail-001"
     assert "diagnostic_code_mismatch" in result["fixed_blockers"]
+
+
+def test_extract_repair_result_done_with_remaining_fails_closed() -> None:
+    text = """
+```json
+{
+  "schema": "loop-repair-result/v1",
+  "parent_evidence_id": "evidence-fail-001",
+  "agent_id": "gate-repair",
+  "status": "done",
+  "fixed_blockers": ["b1"],
+  "remaining_blockers": ["b2"],
+  "recorded_at": "2026-09-01T12:00:00Z"
+}
+```
+"""
+    result = extract_repair_result(text)
+    assert result is None
 
 
 def test_extract_repair_result_from_repair_line_deny_prose() -> None:

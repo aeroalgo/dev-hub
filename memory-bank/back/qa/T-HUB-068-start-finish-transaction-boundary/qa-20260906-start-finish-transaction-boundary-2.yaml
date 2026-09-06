@@ -1,0 +1,28 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-068-start-finish-transaction-boundary
+plan_id: T-HUB-068-start-finish-transaction-boundary
+epic_id: T-HUB-068-start-finish-transaction-boundary
+date: 2026-09-06
+reviewer: BACK QA (verify-qa)
+verdict: pass
+
+scope:
+  - "task: T-HUB-068-start-finish-transaction-boundary"
+  - "epic: T-HUB-068-start-finish-transaction-boundary"
+  - "steps: s01–s06"
+  - "files: loop/mb_finish/, loop/context_loop.py, loop/mb_finish/transaction.py, harness/hooks/epic/core.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2104 passed, 3 skipped, 80 warnings in 170.01s)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+blockers: []
+fix_plan: []
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

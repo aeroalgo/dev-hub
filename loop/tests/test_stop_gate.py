@@ -524,7 +524,8 @@ def test_subagent_stop_increments_incomplete_without_verdict(tmp_path: Path) -> 
 
     payload["last_assistant_message"] = (
         '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
-        '"verdict":"FAIL","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+        '"verdict":"FAIL","step_id":"s01","epic_id":"T-HUB-057","session_id":"test-incomplete",'
+        '"recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
         "BLOCKERS: x"
     )
     proc2 = subprocess.run(
@@ -546,6 +547,277 @@ def test_subagent_stop_increments_incomplete_without_verdict(tmp_path: Path) -> 
     assert st2.get("verify_done") is True
 
 
+def test_subagent_stop_nofence_payload_pass_not_recorded(tmp_path: Path) -> None:
+    """TM-001 / US-001 / cp1: data.verdict=PASS without JSON fence fails schema validation and does not record PASS."""
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    tool_use_id = "test-tool-nofence-pass"
+    payload = {
+        "agent_type": "verify",
+        "session_id": "test-sess-nofence-pass",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "verdict": "PASS",
+        "last_assistant_message": "All checks passed! VERDICT: PASS without any json fence.",
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "schema validation failed" in proc.stderr
+    state_file = tmp_path / ".claude" / "runtime" / "spawn-gate" / "test-sess-nofence-pass.json"
+    if state_file.exists():
+        state = json.loads(state_file.read_text(encoding="utf-8"))
+        assert state.get("verify_verdict") != "PASS"
+        assert state.get("verify_done") is not True
+
+
+def test_subagent_stop_bypass_or_not_verdict_absent_mutation(tmp_path: Path) -> None:
+    """FR-009 / cp2: Verify that subagent-stop.py source code contains no `or not data.get(\"verdict\")` bypass."""
+    src = (ROOT / "harness" / "hooks" / "subagent-stop.py").read_text(encoding="utf-8")
+    assert 'or not data.get("verdict")' not in src
+    assert "or not data.get('verdict')" not in src
+
+
+def test_subagent_stop_schema_error_still_retries_and_exhausts(tmp_path: Path) -> None:
+    """FR-007 / cp4: Schema error on verify agent retries up to 2 times, then triggers NEED_HUMAN."""
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    tool_use_id = "test-tool-schema-retry"
+    payload = {
+        "agent_type": "verify",
+        "session_id": "test-sess-schema-retry",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": "```json\n{\"schema\":\"loop-gate-verdict/v1\",\"invalid_key\":true}\n```",
+        "stop_hook_active": False,
+    }
+    # Attempt 1: retry 1/2
+    p1 = subprocess.run([sys.executable, str(stop)], input=json.dumps(payload), text=True, capture_output=True, cwd=str(tmp_path), check=False)
+    assert p1.returncode == 2
+    assert "retry 1/2" in p1.stderr
+
+    # Attempt 2: retry 2/2
+    p2 = subprocess.run([sys.executable, str(stop)], input=json.dumps(payload), text=True, capture_output=True, cwd=str(tmp_path), check=False)
+    assert p2.returncode == 2
+    assert "retry 2/2" in p2.stderr
+
+    # Attempt 3: exhausted -> NEED_HUMAN
+    p3 = subprocess.run([sys.executable, str(stop)], input=json.dumps(payload), text=True, capture_output=True, cwd=str(tmp_path), check=False)
+    assert p3.returncode == 2
+    assert "NEED_HUMAN: schema_retry_exhausted:B-GATE" in p3.stderr
+
+
+def test_subagent_stop_gate_repair_nofence_fails_retry(tmp_path: Path) -> None:
+    """FR-011 / cp3: gate-repair without fence fails validation and triggers schema retry."""
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    tool_use_id = "test-tool-repair-nofence"
+    payload = {
+        "agent_type": "gate-repair",
+        "session_id": "test-sess-repair-nofence",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": "I repaired everything without json fence.",
+        "stop_hook_active": False,
+    }
+    p1 = subprocess.run([sys.executable, str(stop)], input=json.dumps(payload), text=True, capture_output=True, cwd=str(tmp_path), check=False)
+    assert p1.returncode == 2
+    assert "gate-repair: schema validation failed" in p1.stderr
+    assert "retry 1/1" in p1.stderr
+
+
+def test_no_bypass_or_not_verdict_after_purge(tmp_path: Path) -> None:
+    """s06 TDD: Ensure `or not data.get("verdict")` is completely purged from codebase."""
+    src = (ROOT / "harness" / "hooks" / "subagent-stop.py").read_text(encoding="utf-8")
+    assert 'or not data.get("verdict")' not in src
+    assert "or not data.get('verdict')" not in src
+
+
+def test_stale_step_id_semantic_ownership_mismatch(tmp_path: Path) -> None:
+    """QA TM-003 / US-003 / SC-003 / cp1: stale step_id vs in-flight yields semantic_ownership_mismatch and no PASS."""
+    from epic.core import default_state, save_epic_state
+    from _lib import get_schema_retry_count
+
+    _write(
+        "memory-bank/activeContext.md",
+        "## load_now\n- [s03](s03.yaml) — s03\n\n## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s03\n",
+        tmp_path,
+    )
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "armed_epic": "T-HUB-066-boundary-schema-ownership-strict",
+            "armed_step": "s03",
+            "session_id": "sess-current",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    tool_use_id = "test-tool-stale-step"
+    payload = {
+        "agent_type": "verify",
+        "session_id": "sess-current",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+            '"verdict":"PASS","step_id":"s01","epic_id":"T-HUB-066-boundary-schema-ownership-strict",'
+            '"session_id":"sess-current","recorded_at":"2026-09-06T12:00:00Z"}\n```\n'
+        ),
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "semantic_ownership_mismatch" in proc.stderr
+    assert "step_id mismatch" in proc.stderr
+    # Must NOT increment schema retry
+    assert get_schema_retry_count(tmp_path, tool_use_id, session_id="sess-current") == 0
+
+    state_file = tmp_path / ".claude" / "runtime" / "spawn-gate" / "sess-current.json"
+    if state_file.exists():
+        sg_st = json.loads(state_file.read_text(encoding="utf-8"))
+        assert sg_st.get("verify_done") is not True
+        assert sg_st.get("verify_verdict") != "PASS"
+
+
+def test_ownership_mismatch_no_schema_retry(tmp_path: Path) -> None:
+    """FR-007 / AC−4 / cp2: epic mismatch fails closed as ownership mismatch without schema retry."""
+    from epic.core import default_state, save_epic_state
+    from _lib import get_schema_retry_count
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "armed_epic": "T-HUB-066-boundary-schema-ownership-strict",
+            "armed_step": "s03",
+            "session_id": "sess-current",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    tool_use_id = "test-tool-epic-mismatch"
+    payload = {
+        "agent_type": "verify",
+        "session_id": "sess-current",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
+            '"verdict":"PASS","step_id":"s03","epic_id":"T-HUB-999-foreign-epic",'
+            '"session_id":"sess-current","recorded_at":"2026-09-06T12:00:00Z"}\n```\n'
+        ),
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "semantic_ownership_mismatch" in proc.stderr
+    assert "epic_id mismatch" in proc.stderr
+    assert get_schema_retry_count(tmp_path, tool_use_id, session_id="sess-current") == 0
+
+
+def test_blocked_verify_implement_invalid(tmp_path: Path) -> None:
+    """FR-005 / QA TM-006 / TM-007 / cp3: BLOCKED on verify-implement is invalid; verify-qa may emit BLOCKED."""
+    from epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "armed_epic": "T-HUB-066-boundary-schema-ownership-strict",
+            "armed_step": "s03",
+            "session_id": "sess-current",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    # verify / verify-implement emitting BLOCKED -> forbidden
+    payload_implement = {
+        "agent_type": "verify-implement",
+        "session_id": "sess-current",
+        "tool_use_id": "test-tool-blocked-implement",
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement",'
+            '"verdict":"BLOCKED","step_id":"s03","epic_id":"T-HUB-066-boundary-schema-ownership-strict",'
+            '"session_id":"sess-current","recorded_at":"2026-09-06T12:00:00Z"}\n```\n'
+        ),
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload_implement),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "semantic_invalid_verdict" in proc.stderr or "blocked_forbidden" in proc.stderr
+
+    # verify-qa emitting BLOCKED -> allowed
+    st["phase"] = "BACK QA"
+    st["armed_step"] = "qa"
+    save_epic_state(tmp_path, st)
+
+    payload_qa = {
+        "agent_type": "verify-qa",
+        "session_id": "sess-current",
+        "tool_use_id": "test-tool-blocked-qa",
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa",'
+            '"verdict":"BLOCKED","step_id":"qa","epic_id":"T-HUB-066-boundary-schema-ownership-strict",'
+            '"session_id":"sess-current","recorded_at":"2026-09-06T12:00:00Z"}\n```\n'
+        ),
+        "stop_hook_active": False,
+    }
+    proc_qa = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload_qa),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc_qa.returncode == 0
+    state_file = tmp_path / ".claude" / "runtime" / "spawn-gate" / "sess-current.json"
+    if state_file.exists():
+        sg_st = json.loads(state_file.read_text(encoding="utf-8"))
+        assert sg_st.get("qa_blocked") is True
+
+
 def test_subagent_stop_semantic_fail_repair_path_no_schema_retry(tmp_path: Path) -> None:
     """TM-005: valid JSON verdict FAIL + blockers emits repair hint; schema-retry count does not grow."""
     stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
@@ -560,7 +832,8 @@ def test_subagent_stop_semantic_fail_repair_path_no_schema_retry(tmp_path: Path)
         "cwd": str(tmp_path),
         "last_assistant_message": (
             '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
-            '"verdict":"FAIL","recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
+            '"verdict":"FAIL","step_id":"s01","epic_id":"T-HUB-057","session_id":"test-semantic-fail",'
+            '"recorded_at":"2026-09-02T00:00:00Z"}\n```\n'
             "BLOCKERS: cp1 not done"
         ),
         "stop_hook_active": False,
@@ -576,6 +849,40 @@ def test_subagent_stop_semantic_fail_repair_path_no_schema_retry(tmp_path: Path)
     assert proc.returncode == 0
     assert "@gate-repair" in proc.stderr
     assert get_schema_retry_count(tmp_path, tool_use_id) == 0
+
+
+def test_subagent_stop_gate_repair_schema_fail_not_recorded_as_repair_done(tmp_path: Path) -> None:
+    """TM-006 / SC-004 / cp4: gate-repair with invalid schema / done+remaining triggers schema-retry, not recorded as repair_done."""
+    stop = ROOT / ".claude" / "hooks" / "subagent-stop.py"
+    from _lib import get_schema_retry_count
+
+    tool_use_id = "test-tool-gate-repair-schema-fail"
+    payload = {
+        "agent_type": "gate-repair",
+        "session_id": "test-repair-fail",
+        "tool_use_id": tool_use_id,
+        "cwd": str(tmp_path),
+        "last_assistant_message": (
+            '```json\n{"schema":"loop-repair-result/v1","agent_id":"gate-repair",'
+            '"status":"done","fixed_blockers":["b1"],"remaining_blockers":["b2"],'
+            '"parent_evidence_id":"ev-001","recorded_at":"2026-09-06T12:00:00Z"}\n```\n'
+        ),
+        "stop_hook_active": False,
+    }
+    proc = subprocess.run(
+        [sys.executable, str(stop)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(tmp_path),
+        check=False,
+    )
+    assert proc.returncode == 2
+    assert "schema validation failed" in proc.stderr
+    state_file = tmp_path / ".claude" / "runtime" / "spawn-gate" / "test-repair-fail.json"
+    if state_file.exists():
+        sg_st = json.loads(state_file.read_text(encoding="utf-8"))
+        assert sg_st.get("repair_done") is not True
 
 
 def test_stop_gate_pass_without_last_finish_tool_emits_need_human_finish_tool_missing(tmp_path: Path) -> None:

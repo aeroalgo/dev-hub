@@ -1,0 +1,129 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-064-video-pack-route-verify-parity
+title: "Stop mapping — video verify in VERIFY set; BRIEF/STORYBOARD/SHOOT no_gate_reason"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SubagentStop принимает gate JSON verify-script/edit/publish тем же pipeline
+  (loop-gate-verdict/v1), что software verify-*. Нет silent skip потому что ids
+  не в hardcoded VERIFY_FINISH_AGENTS. Фазы без verify (BRIEF/STORYBOARD/SHOOT)
+  имеют machine field no_gate_reason. Distinct agents, same pipeline (FR-010).
+
+plan_contract:
+  fr_ids: [FR-005, FR-006, FR-010, US-003, SC-004, AC+4, AC−3, AC−5, TM-005]
+  nouns:
+    - VERIFY_FINISH_AGENTS
+    - verify-edit SubagentStop
+    - loop-gate-verdict/v1
+    - no_gate_reason
+    - phase_registry BRIEF STORYBOARD SHOOT
+    - SubagentStart mapping if needed
+  layout_paths:
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/subagent-stop.py
+    - workflows/video/phase_registry.yaml
+    - loop/tests/test_video_phase_registry.py
+  ac_quotes:
+    - "Как parent EDIT, я хочу SubagentStop принять gate JSON verify-edit."
+    - "Stop validates video verify JSON like software."
+    - "Нет silent skip video verify."
+    - "BRIEF/STORYBOARD/SHOOT: `no_gate_reason` in phase_registry."
+    - "Phases without verify documented as no-gate."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:34-42"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:79-120"
+    - "memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md:127-147"
+
+context:
+  consumes:
+    - s02 declared agent ids
+    - as-built VERIFY_MB_FINISH_SUBCMD software-only
+    - workflows/video/phase_registry.yaml verify_agent set / null
+  produces:
+    - three video ids in stop validate set (VERIFY_FINISH or phase-aware map)
+    - no_gate_reason on BRIEF/STORYBOARD/SHOOT
+    - video verify JSON validated like software (same schema)
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#eng-review-spine
+  files:
+    - loop/mb_finish/verify_hint.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-posttool.py
+    - workflows/video/phase_registry.yaml
+    - loop/tests/test_video_phase_registry.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+
+as_built:
+  - "VERIFY_MB_FINISH_SUBCMD / VERIFY_FINISH_AGENTS = verify, verify-implement, verify-bugfix, verify-decompose, verify-qa, reviewer, analyze-verify — no verify-script/edit/publish"
+  - "subagent-stop.py: if agent_type in VERIFY_FINISH_AGENTS → validate_boundary loop-gate-verdict/v1; else video verify fence ignored"
+  - "phase_registry: SCRIPT/EDIT/PUBLISH have verify_agent; BRIEF/STORYBOARD verify_agent null; SHOOT need_verify true but verify_agent null (fake gate)"
+  - "no field no_gate_reason in phase_registry schema/yaml"
+  - "get_verify_agent SCRIPT/EDIT/PUBLISH already returns the three ids (phase yaml only)"
+
+delta:
+  - "include three ids in stop/start contracts (VERIFY_FINISH or phase-aware map) so fence validates (FR-005)"
+  - "do not blindly map video agents onto mb-finish implement software subcmd if that would coerce EDIT→software implement (FR-010 same pipeline, distinct finish)"
+  - "add no_gate_reason machine field to BRIEF/STORYBOARD/SHOOT; SHOOT cannot need_verify true with null agent (FR-006 / Failure TM-004)"
+  - "pytest: verify-edit in stop set (TM-005); no_gate_reason present (SC-004)"
+
+deletes:
+  - "silent skip path for video verify because not in hardcoded software set"
+  - "SHOOT/BRIEF fake verify (need_verify true + verify_agent null without no_gate_reason)"
+
+out_of_scope:
+  - "route files (s01)"
+  - "manifest rows (s02) except consuming declared ids"
+  - "parity glob (s04)"
+  - "Kind I (s05)"
+  - "full doctor 067"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: verify-edit (and script/publish) in stop validate set; SubagentStop would validate gate JSON (US-003 / TM-005 / AC+4)
+    verify: "bin/pytest loop/tests/test_video_phase_registry.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line -k 'verify_edit or stop_mapping or verify-edit'"
+  - id: cp2
+    criterion: rg — three ids appear in VERIFY set or phase-aware map used by subagent-stop (FR-005 / AC−3)
+    verify: "rg -n \"verify-edit|verify-script|verify-publish\" loop/mb_finish/verify_hint.py harness/hooks/subagent-stop.py"
+  - id: cp3
+    criterion: BRIEF/STORYBOARD/SHOOT have no_gate_reason; SHOOT not fake verify (FR-006 / SC-004)
+    verify: "rg -n \"no_gate_reason\" workflows/video/phase_registry.yaml; bin/pytest loop/tests/test_video_phase_registry.py -q --tb=line -k no_gate"
+  - id: cp4
+    criterion: Wire+enforce — video verify uses loop-gate-verdict/v1 pipeline, not skip-not-in-set (FR-010)
+    verify: "rg -n \"VERIFY_FINISH_AGENTS|verify-edit\" harness/hooks/subagent-stop.py"
+
+sunset_scope:
+  required: true
+  boundary_id: video-verify-stop
+  new_sot: harness/hooks/subagent-stop.py
+  allow_read:
+    - harness/hooks/subagent-stop.py
+    - loop/mb_finish/verify_hint.py
+    - workflows/video/phase_registry.yaml
+  kind_hint:
+    - A
+    - C
+
+verify:
+  - "bin/pytest loop/tests/test_video_phase_registry.py -q --tb=line"
+  - "rg -n \"verify-edit\" harness/hooks/subagent-stop.py loop/mb_finish/verify_hint.py"
+
+tdd:
+  - "test_verify_edit_in_stop_validate_set — TM-005 US-003"
+  - "test_verify_script_publish_in_stop_set — FR-005"
+  - "test_brief_storyboard_shoot_no_gate_reason — FR-006 SC-004"
+  - "test_shoot_not_need_verify_without_agent — Failure TM-004"
+  - "test_video_verify_not_silent_skip — AC−3"

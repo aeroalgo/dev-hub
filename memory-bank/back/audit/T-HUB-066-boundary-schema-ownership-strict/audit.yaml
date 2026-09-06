@@ -1,0 +1,263 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-066-boundary-schema-ownership-strict
+plan_id: T-HUB-066-boundary-schema-ownership-strict
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Wire JSON на границе: schema required; fence обязателен; data.verdict без fence != SoT; semantic ownership (epic/step/session/agent/phase) mismatch -> block, не schema-retry; repair связан с parent FAIL blockers."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 5
+  layout_paths_total: 6
+  layout_paths_closed: 6
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:236-326 enforces fence is required; payload data.verdict alone cannot record PASS."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/validate_boundary.py:53-61 rejects missing schema on wire with schema_missing_schema."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:271-303 compares step_id against in-flight gate identity and fails closed on mismatch."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/schemas/repair_result.py:14-81 and harness/hooks/subagent-stop.py require parent_evidence_id and forbid done with remaining blockers."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "loop/codex_collab_verdict.py:14-16 uses GateVerdictRecord with extra=forbid to reject unknown fields."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/validate_boundary.py:53-61 enforces required schema/schema_version field on wire payload, rejecting missing schema with schema_missing_schema."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:236-326 enforces fence_data is required for verify finish agents; missing fence triggers validation failure and schema retry protocol instead of recording payload verdict."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/schemas/gate_verdict.py:15-63 GateVerdictRecord requires agent_id, epic_id, step_id, session_id, ISO 8601 recorded_at, with extra=forbid."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:272-303 compares fence identity against in-flight gate identity (step_id, epic_id, session_id, agent_id); mismatch fails closed with semantic_ownership_mismatch."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:260-269 enforces BLOCKED allowed only for BLOCKED_VERDICT_AGENTS (verify-qa, reviewer), rejecting BLOCKED on verify-implement."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/schemas/repair_result.py:14-81 RepairResultRecord enforces parent_evidence_id, agent_id='gate-repair', disjoint fixed/remaining, status='done' requires empty remaining_blockers, status='fail' requires remaining_blockers or diagnostic."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:250-258 and 295-303 fail closed on semantic/ownership errors without incrementing schema retry counter."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/codex_collab_verdict.py:14-16 uses validate_boundary and canonical GateVerdictRecord (extra=forbid); private _CollabGateVerdictFence with extra=ignore removed."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/tests/test_stop_gate.py:test_subagent_stop_payload_verdict_without_fence_not_recorded and test_subagent_stop_mutation_bypass_restoration_fails covered."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/agents/verify-implement.md, verify-qa.md, gate-repair.md and loop/tests/test_kind_i_boundary_prompts.py confirm prompts require JSON fence and runtime strictly enforces it."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py:169-234 and loop/tests/test_stop_gate.py:test_subagent_stop_sunset_missing_fence_fails enforce fence requirement on sunset-inventory."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "loop/schemas/README.md rewritten with current SoT (GateVerdictRecord, RepairResultRecord, SunsetReport); obsolete verdict.py/SKIP references removed."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "loop/tests/test_stop_gate.py:test_subagent_stop_payload_verdict_without_fence_not_recorded confirms no-fence payload verdict does not record PASS."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "loop/tests/test_validate_boundary.py:test_missing_schema_field_invalid confirms missing schema field is invalid across boundaries."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "loop/tests/test_stop_gate.py:test_stale_step_id_semantic_ownership_mismatch confirms stale step mismatch is rejected."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "loop/tests/test_repair_result.py:test_repair_done_with_remaining_invalid confirms repair done with remaining blockers is rejected."
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "loop/tests/test_codex_collab_verdict.py:test_codex_collab_verdict_extra_field_forbidden confirms collab extra field is rejected."
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py purged 'or not data.get(\"verdict\")' bypass condition; 0 occurrences remain."
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "loop/codex_collab_verdict.py purged extra='ignore' model; uses extra='forbid' GateVerdictRecord."
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "loop/validate_boundary.py strictly requires schema field on wire without falling back to internal default."
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "harness/hooks/subagent-stop.py fails closed on semantic_ownership_mismatch without incrementing schema retry."
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "loop/schemas/repair_result.py validator forbids status='done' when remaining_blockers list is non-empty."
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "TDD lifecycle and test discipline followed across all steps."
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "Minimal diff discipline and minimal code touch maintained."
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "No unrequested abstractions introduced."
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "Strict schema boundary compliance enforced."
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Ownership verification enforced across all boundary entrypoints."
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "No legacy fallback shims left behind in epic scope."
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "Fail-closed behavior on security and protocol invalidity."
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "Artifacts validated against schema invariants."
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "Traceability maintained from plan to implementation."
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Audit parity verified against all functional requirements."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/validate_boundary.py
+    status: present
+    follow_up: ""
+    evidence: "Unified boundary validator with required schema enforcement."
+  - layout_path: loop/codex_collab_verdict.py
+    status: present
+    follow_up: ""
+    evidence: "Codex collab verdict parser using canonical validate_boundary (extra=forbid)."
+  - layout_path: loop/schemas/gate_verdict.py
+    status: present
+    follow_up: ""
+    evidence: "GateVerdictRecord with required ownership fields and ISO 8601 recorded_at."
+  - layout_path: loop/schemas/repair_result.py
+    status: present
+    follow_up: ""
+    evidence: "RepairResultRecord with parent FAIL link and invariant validators."
+  - layout_path: harness/hooks/subagent-stop.py
+    status: present
+    follow_up: ""
+    evidence: "Hook enforcing fence requirement, ownership matching, and BLOCKED agent restrictions."
+  - layout_path: loop/schemas/README.md
+    status: present
+    follow_up: ""
+    evidence: "Schema catalog documenting current boundary contracts."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s01-wire-schema-required-collab-forbid.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s02-fence-required-stop-mutation.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s03-semantic-ownership-mismatch.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s04-repair-parent-fail-invariants.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s05-kind-i-readme-prompts.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-066-boundary-schema-ownership-strict/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-066-boundary-schema-ownership-strict/md/plan.md#replacement--sunset
+  rows:
+    - symbol: "harness/hooks/subagent-stop.py bypass or not data.get('verdict')"
+      kind: A
+      command: 'rg -n "or not data.get\(\"verdict\"\)" harness/hooks/subagent-stop.py'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found in production codebase."
+    - symbol: "loop/codex_collab_verdict.py _CollabGateVerdictFence extra=ignore"
+      kind: A
+      command: 'rg -n "extra=.ignore" loop/codex_collab_verdict.py'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found in production codebase."
+    - symbol: "loop/schemas/README.md references to verdict.py / SKIP"
+      kind: I
+      command: 'rg -n "verdict\.py|SKIP" loop/schemas/README.md'
+      result: pass
+      prod_callers: []
+      notes: "0 stale references found in README."
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: loop-gate-verdict/v1
+      enforce_evidence: "loop/schemas/gate_verdict.py GateVerdictRecord with extra=forbid and validate_boundary"
+      result: pass
+      notes: "Ownership and timestamp validated."
+    - boundary: loop-repair-result/v1
+      enforce_evidence: "loop/schemas/repair_result.py RepairResultRecord with parent_evidence_id and status invariants"
+      result: pass
+      notes: "Invariants strictly enforced."
+
+blocked_reason: ""

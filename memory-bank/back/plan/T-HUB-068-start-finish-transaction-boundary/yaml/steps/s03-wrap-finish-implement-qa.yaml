@@ -1,0 +1,153 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "Wire journal into finish_implement + finish_qa (same writer)"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Wire-слой: finish_implement_step и finish_qa (same write pattern) идут через
+  journal helper — не unjournaled dual write. Public dispatcher остаётся
+  phase-typed; finish_handoff internal only с recovery_token == journal id и
+  incident log. halt_logic/check_after не зовут public handoff. finish_reflect
+  не реинтродьюсить.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-007
+    - FR-010
+    - FR-012
+    - FR-014
+    - AC+1
+    - US-002
+  nouns:
+    - finish_implement_step
+    - finish_qa
+    - journal helper
+    - recovery_token
+    - finish_handoff internal
+    - mb-finish implement|qa|bugfix
+    - halt_logic
+    - check_after
+    - finish_reflect ignore
+  layout_paths:
+    - loop/mb_finish/finish_implement.py
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/transaction.py
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+  ac_quotes:
+    - "Journaled finish for implement (and qa if same writer)."
+    - "Public dispatcher: only mb-finish implement|qa|bugfix|… typed. handoff subcommand removed or gated."
+    - "Internal finish_handoff(..., recovery_token=) validates token vs journal id; logs incident."
+    - "halt_logic / check_after unchanged behaviorally except they must not call public handoff."
+    - "If finish_reflect still exists, 068 must not reintroduce; journal helper ignores reflect."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:84-99"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:116-123"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:142-149"
+
+context:
+  consumes:
+    - s02 journal helper
+    - s01 red tokenless/crash tests
+    - loop/mb_finish/finish_implement.py current dual write
+    - loop/mb_finish/impl.py finish_handoff / finish_qa / finish_bugfix
+  produces:
+    - journaled finish_implement_step
+    - journaled finish_qa (minimum); bugfix if same dual-write pattern
+    - gated finish_handoff(recovery_token=)
+    - dispatcher does not re-arm without token
+  plan_refs:
+    - plan.md#how
+    - plan.md#functional-requirements
+    - plan.md#data-flow
+  files:
+    - loop/mb_finish/finish_implement.py
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/transaction.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_mb_finish_transaction.py
+
+as_built:
+  - "finish_implement_step: write activeContext then finalize_step; backup restore only on finalize failure (exception path)"
+  - "finish_qa/finish_bugfix write context + save_epic_state without journal"
+  - "mb-finish handoff public; finish_handoff mutates armed_step from handoff_post_implement_phase"
+  - "s02 journal exists but unused by writers"
+
+delta:
+  - "wrap finish_implement_step through journal prepare/stage/commit; identity check before replace"
+  - "wrap finish_qa the same helper (FR-010 minimum); wrap finish_bugfix if it dual-writes context+index/state"
+  - "finish_handoff requires recovery_token matching journal id; else finish_handoff_forbidden; log incident"
+  - "CLI mb-finish handoff: fail-closed without token (gate now; leftover help text purged in s06)"
+  - "rg halt_logic/check_after: no call to public finish_handoff"
+  - "journal helper ignores reflect; do not add finish_reflect"
+
+deletes:
+  - "unjournaled dual write in finish_implement_step as sole commit path"
+  - "public finish_handoff success without recovery_token"
+
+out_of_scope:
+  - "prepare_session recover leftover (s04) — writers emit journal; recover is next"
+  - "save_epic_state lockfile (s05)"
+  - "Kind I docs/finish-block rewrite (s06)"
+  - "leftover CLI help 'escape hatch' prose (s06)"
+  - "MCP-only finish — Appetite cut_list"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: mb-finish-transaction
+  new_sot: loop/mb_finish/transaction.py
+  allow_read:
+    - loop/mb_finish/**
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+  kind_hint:
+    - A
+    - B
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: finish_implement_step commits via journal states; crash-after-context leaves recoverable journal not silent split-brain (AC+1 / FR-010 / FR-002)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'finish_implement or journaled or crash_after_context'"
+  - id: cp2
+    criterion: finish_qa shares journal helper (not implement-only) (FR-010)
+    verify: "rg -n \"recover_finish_transaction|begin_finish_transaction|FinishTransaction\" loop/mb_finish/impl.py loop/mb_finish/finish_implement.py; bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'finish_qa or journal'"
+  - id: cp3
+    criterion: Internal finish_handoff without recovery_token → finish_handoff_forbidden; token must match journal id; incident logged (FR-007 / US-002)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'recovery_token or finish_handoff_forbidden'"
+  - id: cp4
+    criterion: halt_logic/check_after do not call public finish_handoff; finish_reflect not reintroduced (FR-014 / FR-012 / TM-008)
+    verify: "rg -n \"finish_handoff\" loop/context_loop.py; rg -n \"def finish_reflect\" loop/mb_finish/ || true"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'finish_implement or finish_qa or recovery_token or crash_after_context'"
+  - "rg -n \"finish_handoff_forbidden\" loop/mb_finish/impl.py harness/hooks/epic_resolve.py"
+
+tdd:
+  - "test_finish_implement_uses_journal_commit — FR-010 / AC+1"
+  - "test_finish_qa_uses_journal_helper — FR-010"
+  - "test_finish_handoff_requires_recovery_token — FR-007"
+  - "test_check_after_does_not_call_public_handoff — FR-014"
+
+wire_complete:
+  call_sites:
+    - loop/mb_finish/finish_implement.py
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic_resolve.py
+  enforce_path: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'recovery_token or finish_handoff_forbidden'"
+  dual_path_rg: "rg -n \"finish_handoff\\(\" harness/hooks/epic_resolve.py loop/context_loop.py"
+  instruction_rg: "rg -n \"mb-finish handoff\" harness/cursor/rules/shared/finish-block.mdc .cursor/templates/finish-doc-router.md"

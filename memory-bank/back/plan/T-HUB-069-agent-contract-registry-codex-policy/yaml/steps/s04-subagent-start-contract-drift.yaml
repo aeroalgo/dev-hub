@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "SubagentStart — CONTRACTS sha drift blocks spawn"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Injected contract fingerprint совпадает с prompt SoT. SubagentStart сравнивает
+  CONTRACTS keyed-by-agent checksum vs PolicyRecord.source_sha / prompt section.
+  Mutate CONTRACTS string → agent_contract_drift, spawn blocked. Нет двух HARD
+  текстов без fail.
+
+plan_contract:
+  fr_ids: [FR-006, US-003, SC-003, AC+3, AC−3, TM-002, Failure-TM-002, Product-WHAT-3]
+  nouns:
+    - _lib.CONTRACTS
+    - contract_id
+    - source_sha256
+    - agent_contract_drift
+    - SubagentStart
+    - harness/hooks/subagent-start.py
+  layout_paths:
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-start.py
+    - harness/hooks/tests/test_subagent_start_contract_drift.py
+  ac_quotes:
+    - "_lib.CONTRACTS keyed by agent; build or checksum vs prompt section; SubagentStart compares"
+    - "Hook inject includes contract fingerprint; mismatch → agent_contract_drift block spawn"
+    - "Как SubagentStart, я хочу drift CONTRACTS vs prompt hash block"
+    - "Нет CONTRACTS text ≠ prompt without fail"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:30-46"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:63-68"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:80-86"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:132-148"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:197-201"
+
+context:
+  consumes:
+    - s01 PolicyRecord.source_sha · s02 fingerprint fields
+    - plan §FR-006 §US-003 §Data flow SubagentStart
+  produces:
+    - SubagentStart compare CONTRACTS checksum vs prompt/PolicyRecord
+    - mismatch → agent_contract_drift (no spawn / hook deny)
+    - hook test mutate CONTRACTS
+  plan_refs:
+    - plan.md#eng-review-spine
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/_lib.py
+    - harness/hooks/subagent-start.py
+    - harness/hooks/tests/test_subagent_start_contract_drift.py
+    - loop/tests/test_codex_agent_policy.py
+
+as_built:
+  - "CONTRACTS dict in harness/hooks/_lib.py is hardcoded prose per agent_type"
+  - "subagent-start.py injects CONTRACTS.get(agent_type) if in _ALWAYS_INJECT or workflow active — no sha compare"
+  - "no agent_contract_drift code path"
+
+delta:
+  - "checksum CONTRACTS text vs prompt section / PolicyRecord.source_sha256"
+  - "mismatch → emit/deny agent_contract_drift; do not inject stale contract as success"
+  - "test: mutate CONTRACTS string → drift (TM-002 / US-003)"
+
+deletes: []
+
+out_of_scope:
+  - "ALWAYS_INJECT membership (s05) — drift compare may run for injected types; set derivation is s05"
+  - "Kind I docs (s06)"
+  - "purge leftover ignore-drift (s07)"
+  - "generate CONTRACTS from AST — Appetite cut_list"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: SubagentStart compares CONTRACTS checksum to prompt/PolicyRecord source_sha
+    verify: "rg -n \"agent_contract_drift|source_sha\" harness/hooks/subagent-start.py harness/hooks/_lib.py"
+  - id: cp2
+    criterion: Mutate CONTRACTS → agent_contract_drift (TM-002 / US-003 / SC-003)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_contract_drift.py loop/tests/test_codex_agent_policy.py -q --tb=line -k drift"
+  - id: cp3
+    criterion: Matching checksum still injects contract (happy path not broken)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_contract_drift.py -q --tb=line -k match"
+  - id: cp4
+    criterion: AC−3 — CONTRACTS text ≠ prompt without fail is encoded (no silent inject)
+    verify: "bin/pytest harness/hooks/tests/test_subagent_start_contract_drift.py -q --tb=line -k mismatch"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_subagent_start_contract_drift.py -q --tb=line"
+  - "rg -n \"agent_contract_drift\" harness/hooks/subagent-start.py"
+
+tdd:
+  - "test_contracts_sha_mismatch_blocks_spawn — TM-002"
+  - "test_contracts_sha_match_injects — AC+3 happy"
+  - "test_stale_contracts_two_hard_texts_fail — Failure TM-002"

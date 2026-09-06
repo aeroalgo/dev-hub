@@ -1,40 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-063
-  epic_id: T-HUB-063-sunset-boundary-stop-pipeline
-  plan: plan-T-HUB-063-sunset-boundary-stop-pipeline.md
-  deps: []
-  batch: workflow-loop-20260905
-- id: T-HUB-064
-  epic_id: T-HUB-064-video-pack-route-verify-parity
-  plan: plan-T-HUB-064-video-pack-route-verify-parity.md
-  deps: []
-  batch: workflow-loop-20260905
-- id: T-HUB-065
-  epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
-  plan: plan-T-HUB-065-duplicate-hooks-runtime-entrypoint.md
-  deps: []
-  batch: workflow-loop-20260905
-- id: T-HUB-066
-  epic_id: T-HUB-066-boundary-schema-ownership-strict
-  plan: plan-T-HUB-066-boundary-schema-ownership-strict.md
-  deps:
-  - T-HUB-063
-  batch: workflow-loop-20260905
-- id: T-HUB-067
-  epic_id: T-HUB-067-pack-doctor-executable-graph
-  plan: plan-T-HUB-067-pack-doctor-executable-graph.md
-  deps:
-  - T-HUB-062
-  - T-HUB-064
-  batch: workflow-loop-20260905
-- id: T-HUB-068
-  epic_id: T-HUB-068-start-finish-transaction-boundary
-  plan: plan-T-HUB-068-start-finish-transaction-boundary.md
-  deps:
-  - T-HUB-066
-  batch: workflow-loop-20260905
 - id: T-HUB-069
   epic_id: T-HUB-069-agent-contract-registry-codex-policy
   plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
@@ -297,6 +263,30 @@ done:
 - id: T-HUB-062
   epic_id: T-HUB-062-skill-topology-canonical-paths
   plan: plan-T-HUB-062-skill-topology-canonical-paths.md
+  batch: workflow-loop-20260905
+- id: T-HUB-063
+  epic_id: T-HUB-063-sunset-boundary-stop-pipeline
+  plan: plan-T-HUB-063-sunset-boundary-stop-pipeline.md
+  batch: workflow-loop-20260905
+- id: T-HUB-064
+  epic_id: T-HUB-064-video-pack-route-verify-parity
+  plan: plan-T-HUB-064-video-pack-route-verify-parity.md
+  batch: workflow-loop-20260905
+- id: T-HUB-065
+  epic_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+  plan: plan-T-HUB-065-duplicate-hooks-runtime-entrypoint.md
+  batch: workflow-loop-20260905
+- id: T-HUB-066
+  epic_id: T-HUB-066-boundary-schema-ownership-strict
+  plan: plan-T-HUB-066-boundary-schema-ownership-strict.md
+  batch: workflow-loop-20260905
+- id: T-HUB-067
+  epic_id: T-HUB-067-pack-doctor-executable-graph
+  plan: plan-T-HUB-067-pack-doctor-executable-graph.md
+  batch: workflow-loop-20260905
+- id: T-HUB-068
+  epic_id: T-HUB-068-start-finish-transaction-boundary
+  plan: plan-T-HUB-068-start-finish-transaction-boundary.md
   batch: workflow-loop-20260905
 batches:
   workflow-loop-hardening:

@@ -1,0 +1,263 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-067-pack-doctor-executable-graph
+title: "s05 — legacy-fallback-purge — ok=true leftover + Warning-as-success"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: нулевые leftover plan Replacement A+B+C+I.
+  Нет ok=true after required miss; нет keys-only doctor green; нет doctor exit 0 on unusable;
+  нет Warning-as-success на required; нет MCP partial-required ok; нет docs pack wired / partial load ok.
+  Obsolete tests rewritten; suite green без restore legacy.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - AC−1
+    - AC−2
+    - AC−3
+    - AC−4
+    - AC−5
+    - Independent Test
+  nouns:
+    - leftover ok=true after required miss
+    - keys-only doctor
+    - doctor exit 0 unusable
+    - Warning: load_session exception
+    - MCP ok override partial required
+    - docs pack wired
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - loop/mb_load/session.py
+    - loop/mb_load/mcp_server.py
+    - loop/doctor/checks/workflow_pack.py
+    - harness/hooks/epic/core.py
+    - CLAUDE.md
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_pack_graph_doctor.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "ok=true after required miss → derived ok | delete in-epic"
+    - "pack resolve without exists → graph checker | delete in-epic"
+    - "doctor keys-only → exists+declare | delete in-epic"
+    - "doctor exit 0 on unusable pack → exit ≠0 | delete in-epic"
+    - "SessionStart Warning on Exception as success → typed halt | delete in-epic for required"
+    - "MCP ok override partial required → same derive | delete in-epic"
+    - "Independent Test FAIL: «doctor prints yaml keys» without Path.exists; «diagnostic_codes nonempty but ok true» as accepted"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:173-201"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:125-131"
+    - "memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md:252-255"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s04 already applied new SoT
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - loop/mb_load/session.py
+    - loop/mb_load/mcp_server.py
+    - loop/mb_load/schemas.py
+    - loop/doctor/checks/workflow_pack.py
+    - loop/workflow/pack_graph.py
+    - harness/hooks/epic/core.py
+    - CLAUDE.md
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_doctor_workflow_pack.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "After s01–s04: graph+derive+CONTEXT_INCOMPLETE+docs may still leave comments, ok_status=True, Warning strings, MCP override, obsolete tests asserting keys-only green"
+  - "ffmpeg required fail remains 051 (keep advisory)"
+  - "MCP load rewrite Appetite cut — only override-on-partial in-epic"
+
+delta:
+  - "scan full sunset_inventory; delete leftover ok=true after required miss, keys-only doctor, exit 0 unusable, Warning-as-success, MCP partial override, pack-wired docs"
+  - "rewrite tests that encode diagnostic_codes nonempty + ok true on required, or keys-only doctor green"
+
+deletes:
+  - "leftover ok_status = True after required missing_file:/read_error:"
+  - "leftover keys-only doctor usable path (rules_root dir without route exists)"
+  - "leftover doctor exit 0 when codes nonempty"
+  - "leftover Warning: load_session exception / Warning: bundle load failed as required success inject"
+  - "leftover MCP ok override on partial required"
+  - "leftover docs «pack wired» / «partial load ok»"
+  - "obsolete tests asserting old ok+missing / keys-only green / skip red pack"
+
+out_of_scope:
+  - "template pack authoring — Appetite cut_list"
+  - "MCP protocol rewrite — Appetite cut_list"
+  - "full ContextBoundaryService class — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "ffmpeg required gate — Appetite cut_list; follow_up leftover T-HUB-051"
+  - "historical audit markdown keep"
+  - "full suite → QA"
+
+sunset_inventory:
+  - symbol: ok=true after required miss (ok_status = True)
+    kind: A
+    replacement: derived ok from required completeness
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py loop/tests/test_mb_load_session.py
+    expect: required miss cannot return ok true
+  - symbol: pack resolve / doctor without per-route exists (keys-only)
+    kind: A
+    replacement: check_pack_graph exists+declare
+    policy: delete in-epic
+    rg_scope: loop/doctor/checks/workflow_pack.py loop/workflow/resolve.py loop/workflow/pack_graph.py
+    expect: missing workflow file not green
+  - symbol: tests asserting ok true with missing_file on required / keys-only green
+    kind: A
+    replacement: rewrite asserts
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: second exists-implementation diverging from 064
+    kind: A
+    replacement: route_command / shared exists helper
+    policy: delete in-epic
+    rg_scope: loop/workflow/pack_graph.py loop/doctor/
+    expect: compose not fork
+  - symbol: doctor exit 0 on unusable pack
+    kind: B
+    replacement: exit ≠0
+    policy: delete in-epic
+    rg_scope: loop/doctor/checks/workflow_pack.py loop/context_loop.py
+    expect: unusable → nonzero
+  - symbol: SessionStart Warning on Exception as success
+    kind: C
+    replacement: typed CONTEXT_INCOMPLETE halt for required
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py harness/hooks/tests/test_session_start_inject.py
+    expect: required path not Warning-only success
+  - symbol: MCP ok override partial required
+    kind: C
+    replacement: same derive as core
+    policy: delete in-epic
+    rg_scope: loop/mb_load/mcp_server.py
+    expect: partial required cannot dump ok true
+  - symbol: skip video pack because red
+    kind: C
+    replacement: report red pack
+    policy: delete in-epic
+    rg_scope: loop/doctor/checks/workflow_pack.py loop/workflow/pack_graph.py
+    expect: red pack listed not omitted
+  - symbol: docs pack wired / fully wired while doctor red
+    kind: I
+    replacement: honest doctor green / red
+    policy: delete in-epic
+    rg_scope: CLAUDE.md workflows
+    expect: no fully wired claim without doctor
+  - symbol: partial load ok comments
+    kind: I
+    replacement: required complete
+    policy: delete in-epic
+    rg_scope: loop/mb_load/ harness/hooks/epic/core.py
+    expect: no instruction that partial required is ok
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: ok_status True after required miss
+    command: 'bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k required_miss'
+    expect: leftover ok=true on required miss absent (fail-closed)
+  - id: inv-a-02
+    kind: A
+    symbol: keys-only doctor
+    command: 'bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k keys_only'
+    expect: yaml-only missing file not green (fail-closed)
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete ok+missing asserts
+    command: 'rg -n "ok=True" loop/tests/test_mb_load_session.py loop/tests/test_pack_graph_doctor.py || true'
+    expect: no asserts of required miss ok true / keys-only green
+  - id: inv-b-01
+    kind: B
+    symbol: doctor exit 0 unusable
+    command: 'bin/pytest loop/tests/test_doctor_workflow_pack.py loop/tests/test_pack_graph_doctor.py -q --tb=line -k "exit or unusable or doctor"'
+    expect: unusable pack nonzero exit
+  - id: inv-c-01
+    kind: C
+    symbol: Warning load_session exception success
+    command: 'rg -n "Warning: load_session exception|Warning: bundle load failed" harness/hooks/epic/core.py'
+    expect: not used as required success path (CONTEXT_INCOMPLETE instead)
+  - id: inv-c-02
+    kind: C
+    symbol: MCP partial required override
+    command: 'bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k mcp'
+    expect: MCP dump ok matches derived
+  - id: inv-c-03
+    kind: C
+    symbol: skip red video pack
+    command: 'bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k skip_pack'
+    expect: red pack reported
+  - id: inv-i-01
+    kind: I
+    symbol: pack wired docs
+    command: 'rg -n "fully wired|pack wired|partial load ok" CLAUDE.md workflows loop/mb_load/ || true'
+    expect: no leftover instruction of false-green pack/load
+
+sunset_scope:
+  required: true
+  boundary_id: pack-doctor-executable-graph
+  new_sot: loop/workflow/pack_graph.py
+  allow_read:
+    - loop/workflow/
+    - loop/doctor/
+    - loop/mb_load/
+    - harness/hooks/epic/core.py
+    - loop/tests/
+    - harness/hooks/tests/
+    - CLAUDE.md
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg/pytest по каждой строке sunset_inventory kind=A:
+      0 leftover ok=true after required miss; 0 keys-only doctor green;
+      0 divergent exists-fork; obsolete tests rewritten.
+    verify: |
+      bin/pytest loop/tests/test_mb_load_session.py loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'required_miss or keys_only or compose'
+  - id: cp2
+    criterion: Kind B — doctor CLI exit ≠0 on unusable; no leftover exit 0.
+    verify: "bin/pytest loop/tests/test_doctor_workflow_pack.py loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'doctor or unusable or exit'"
+  - id: cp3
+    criterion: |
+      Kind C — Warning-as-success absent on required; MCP no partial override; red pack not skipped.
+    verify: |
+      rg -n "Warning: load_session exception" harness/hooks/epic/core.py
+      bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'context_incomplete or mcp or skip_pack'
+  - id: cp4
+    criterion: Kind I — 0 «fully wired» / «partial load ok» as current SoT.
+    verify: "rg -n \"fully wired|pack wired|partial load ok\" CLAUDE.md workflows loop/mb_load/ || true"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_mb_load_session.py loop/tests/test_doctor_workflow_pack.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+
+tdd:
+  - "test_no_ok_true_required_miss_after_purge"
+  - "test_no_keys_only_doctor_green_after_purge"
+  - "test_no_warning_success_required_after_purge"
+  - "test_no_mcp_partial_required_ok_after_purge"

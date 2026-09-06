@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-065-duplicate-hooks-runtime-entrypoint
+title: s05 — s05 — legacy-fallback-purge — dual leftover + warning-only + Kind I IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-065-duplicate-hooks-runtime-entrypoint/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery:
+- All sunset inventory targets (Kind A, B, C, I) verified purged across all hook events, settings, and instructions.
+- Legacy test in test_hub_link_harness.py updated to accept harness/hooks as valid single SoT path.
+- Preflight swallow in session-start.py documented with follow_up T-HUB-067 and T-HUB-068.
+gaps:
+  status: none
+done:
+- Verified 0 dual same-realpath commands across all events in .claude/settings.json and harness/claude/settings.harness.json
+- Verified merge_hooks deduplication by realpath in loop/hub_settings_merge.py
+- Verified runtime-sync check hash_mismatch fail-closed default for claude target
+- Verified 0 unconditional Read of root CLAUDE.md for Codex in mainrule and role-command copies
+- Updated obsolete assertion in loop/tests/test_hub_link_harness.py for single SoT harness hook path
+- Verified full test suite passes (2006 passed, 3 skipped)
+files:
+- .claude/settings.json
+- loop/hub_settings_merge.py
+- loop/tests/test_hub_settings_merge.py
+- loop/tests/test_hook_duplicate_realpath.py
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_session_start_inject.py
+- .cursor/rules/mainrule.mdc
+- .claude/skills/role-command/SKILL.md
+- harness/claude/skills/role-command/SKILL.md
+- loop/runtime_materializers/sync.py
+- loop/tests/test_runtime_sync_check.py
+- loop/tests/test_hub_link_harness.py
+deletes:
+- leftover dual `.claude/hooks` + `harness/hooks` commands any event/matcher same realpath
+- obsolete tests asserting dual registration OK or merge without realpath
+- leftover unconditional Read корневого CLAUDE.md HARD in instruction copies
+- warning-only default success for claude CLAUDE.md hash_mismatch
+tests:
+- '`bin/pytest loop/tests/test_hook_duplicate_realpath.py loop/tests/test_hub_settings_merge.py harness/hooks/tests/test_session_start_inject.py loop/tests/test_kind_i_runtime_entrypoint.py loop/tests/test_runtime_sync_check.py loop/tests/test_hub_link_harness.py -q --tb=line`'
+integration_check:
+- 'bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line: 2006 passed, 3 skipped'
+- 'bin/runtime-sync --runtime claude --check: exit 0'
+grep_control:
+- back: rg -n "harness/hooks/.*\.py" .claude/settings.json
+  front: ''
+verification_results:
+- 34 passed in target tests, 2006 passed in full loop+harness suite
+checkpoints:
+- id: cp1
+  criterion: 'Kind A (cp-inventory-a) — rg по каждой sunset_inventory kind=A: 0 dual same-realpath prod commands; inject passes runtime; obsolete dual-OK tests gone.'
+  status: done
+- id: cp2
+  criterion: 'Kind B (cp-inventory-b) — merge_hooks does not append harness twin when realpath equals .claude/hooks'
+  status: done
+- id: cp3
+  criterion: 'Kind C (cp-inventory-c) — hash_mismatch warning-only deleted for claude target; preflight swallow leftover documented with follow_up T-HUB-067 / T-HUB-068.'
+  status: done
+- id: cp4
+  criterion: 'Kind I (cp-inventory-i) — 0 unconditional Read корневого CLAUDE.md HARD for Codex in mainrule + role-command copies'
+  status: done

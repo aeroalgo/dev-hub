@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 
 import yaml
@@ -41,6 +43,8 @@ def render_codex_agent_toml(
     name: str,
     description: str,
     developer_instructions: str,
+    policy_fingerprint: str | None = None,
+    source_prompt_sha256: str | None = None,
 ) -> str:
     agent_name = name.strip()
     agent_description = description.strip()
@@ -54,11 +58,17 @@ def render_codex_agent_toml(
 
     lines = [
         GENERATED_HEADER,
+    ]
+    if policy_fingerprint:
+        lines.append(f"# policy_fingerprint: {policy_fingerprint}")
+    if source_prompt_sha256:
+        lines.append(f"# source_prompt_sha256: {source_prompt_sha256}")
+    lines.extend([
         "",
         f"name = {_toml_basic_string(agent_name)}",
         f"description = {_toml_basic_string(agent_description)}",
         f"developer_instructions = {_toml_literal_multiline(instructions)}",
-    ]
+    ])
     return "\n".join(lines) + "\n"
 
 
@@ -67,13 +77,18 @@ def markdown_agent_to_codex_toml(
     *,
     fallback_name: str,
     fallback_description: str = "",
+    policy_fingerprint: str | None = None,
+    source_prompt_sha256: str | None = None,
 ) -> str:
     meta, body = split_markdown_frontmatter(src_text)
     name = str(meta.get("name") or fallback_name).strip()
     description = str(meta.get("description") or fallback_description or "").strip()
     instructions = body or src_text.strip()
+    prompt_sha = source_prompt_sha256 or hashlib.sha256(src_text.encode("utf-8")).hexdigest()
     return render_codex_agent_toml(
         name=name,
         description=description,
         developer_instructions=instructions,
+        policy_fingerprint=policy_fingerprint,
+        source_prompt_sha256=prompt_sha,
     )

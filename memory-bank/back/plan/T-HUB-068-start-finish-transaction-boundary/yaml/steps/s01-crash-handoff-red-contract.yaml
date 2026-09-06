@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: "Crash recover + public finish_handoff forbidden — red contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Independent Test как SoT: crash-after-context-write оставляет mixed Handoff/index —
+  recover обязан выровнять (оба new или оба old). Public CLI `mb-finish handoff`
+  без recovery_token → diagnostic `finish_handoff_forbidden`, state не armed.
+  Red-first: тесты падают на as-built (unjournaled dual write + public hatch).
+  Dilution FAIL: «atomic replace of one file» без multi-file journal.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-013
+    - US-001
+    - US-002
+    - SC-001
+    - SC-002
+    - AC+3
+    - AC+4
+    - AC−1
+    - AC−2
+    - TM-001
+    - TM-003
+  nouns:
+    - crash fixture
+    - mixed Handoff/index identity
+    - recover aligns files
+    - mb-finish handoff
+    - finish_handoff_forbidden
+    - recovery_token
+    - loop/tests/test_mb_finish_transaction.py
+  layout_paths:
+    - loop/tests/test_mb_finish_transaction.py
+    - harness/hooks/epic_resolve.py
+  ac_quotes:
+    - "Given: staged finish; context file replaced; kill before index. Then: either both new or both old; never mixed identity"
+    - "CLI without token → error finish_handoff_forbidden"
+    - "PASS: mixed files after simulated crash become aligned; CLI handoff without token fails."
+    - "FAIL: «atomic replace of one file» without multi-file journal"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:62-81"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:116-130"
+    - "memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/md/plan.md:250-253"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/US-002
+    - plan.md §Independent Test
+    - plan.md §Failure matrix TM-001/TM-003
+  produces:
+    - failing crash fixture tests (red)
+    - failing tokenless mb-finish handoff tests (red)
+    - test module loop/tests/test_mb_finish_transaction.py
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#independent-test
+    - plan.md#functional-requirements
+  files:
+    - loop/tests/test_mb_finish_transaction.py
+
+as_built:
+  - "finish_implement_step writes activeContext then finalize_step — crash window = new Handoff, old index (loop/mb_finish/finish_implement.py)"
+  - "mb-finish handoff public subparser calls finish_handoff without recovery_token (harness/hooks/epic_resolve.py)"
+  - "finish_handoff writes context and may mutate armed_step/phase without verify (loop/mb_finish/impl.py)"
+  - "atomic_write_text exists per-file; no multi-file journal"
+
+delta:
+  - "add red tests: simulate context written, index not committed → mixed identity is a FAIL until recover exists (s04 greens this)"
+  - "add red tests: CLI/python dispatcher mb-finish handoff without token → finish_handoff_forbidden; state not armed"
+  - "do not implement journal yet (s02); do not wrap writers (s03)"
+
+deletes: []
+
+out_of_scope:
+  - "journal sidecar schema/states (s02)"
+  - "wrap finish_implement/qa (s03)"
+  - "prepare_session recover_finish_transaction (s04)"
+  - "save_epic_state lock (s05)"
+  - "Kind I docs rewrite (s06)"
+  - "TransitionService class tree — Appetite cut_list"
+  - "MCP-only finish — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Crash-after-context fixture exists and currently fails on as-built mixed identity (US-001 / SC-001 / QA TM-001 / Failure matrix TM-001)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'crash_after_context or mixed_identity'"
+  - id: cp2
+    criterion: Tokenless public handoff CLI/unit fails closed with finish_handoff_forbidden; state not armed (US-002 / SC-002 / QA TM-002 / Failure matrix TM-003)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'handoff_forbidden or recovery_token or tokenless'"
+  - id: cp3
+    criterion: Independent Test FAIL dilution documented — one-file atomic replace without journal is not enough
+    verify: "rg -n \"finish_handoff_forbidden|mixed identity|crash after context\" loop/tests/test_mb_finish_transaction.py"
+  - id: cp4
+    criterion: Tests are red on current as-built (no silent skip/xfail hiding the contract)
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line; test $? -ne 0"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'crash or handoff_forbidden or tokenless or mixed'"
+  - "rg -n \"finish_handoff_forbidden\" loop/tests/test_mb_finish_transaction.py"
+
+tdd:
+  - "test_crash_after_context_mixed_identity_recovered — TM-001 / US-001 (red until s03+s04)"
+  - "test_mb_finish_handoff_without_token_forbidden — TM-003 / US-002 (red until s03+s06)"
+  - "test_handoff_without_token_does_not_arm_state — AC−2"

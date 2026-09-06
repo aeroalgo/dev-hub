@@ -22,15 +22,19 @@ class MbLoadRequest(BaseModel):
     cwd: str = "."
     plan_section: str | None = None
     max_file_bytes: int = 256 * 1024
+    optional_paths: list[str] = Field(default_factory=list)
 
 
 class MbLoadResult(BaseModel):
     schema: Literal["mb-load-result/v1"] = "mb-load-result/v1"
     ok: bool
+    status: Literal["complete", "incomplete"] = "complete"
     diagnostic_codes: list[str] = Field(default_factory=list)
     shape_errors: list[str] = Field(default_factory=list)
     meta: LoopHandoffMeta | None = None
     load_now: list[LoadNowItem] = Field(default_factory=list)
     files: list[MbLoadFile] = Field(default_factory=list)
+    required_missing: list[str] = Field(default_factory=list)
+    optional_missing: list[str] = Field(default_factory=list)
     forbidden_skipped: list[str] = Field(default_factory=list)
     fingerprint: str | None = None

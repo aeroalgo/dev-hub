@@ -5,6 +5,7 @@
 **Уровень:** L3–L4  
 **Статус:** active  
 **Clarify:** `memory-bank/back/clarify/clarify-20260905-workflow-loop-audit.md`  
+**Prompt:** [md/prompt.md](prompt.md) — `## Epic` + `## Covering`  
 **Roadmap:** `memory-bank/back/roadmap/queue.yaml` · batch `workflow-loop-20260905`  
 **Deps:** **hard T-HUB-063** (sunset in registry — ownership applies to all managed schemas including sunset). Soft T-HUB-057 (JSON session).  
 **Skills:** writing-plans · architecture-patterns · python-testing-patterns  
@@ -228,15 +229,22 @@
 | Product | Close bypass before retry_policy product | signed envelope |
 | Eng | Wire vs Internal models | retry_policy/v1 registry |
 
+## Decompose
+
+Index (status SoT): [yaml/decompose-index.yaml](../yaml/decompose-index.yaml) · coverage: [md/decompose-index.md](decompose-index.md).  
+Queue: s01 wire schema+collab forbid → s02 fence/mutation → s03 ownership → s04 repair → s05 Kind I → s06 purge (6 sNN; plan floor 7 merged #1+#2).
+
 ## До DECOMPOSE
 
-1. s01 — red tests bypass + missing schema.
-2. s02 — Wire required schema + extra=forbid collab.
-3. s03 — stop condition + mutation test.
-4. s04 — ownership vs in-flight.
-5. s05 — repair parent constraints.
-6. s06 — Kind I README + prompts.
-7. s07 — purge bypass leftover + SKIP docs.
+Advisory floor (merged in index):
+
+1. s01 — red tests bypass + missing schema. *(merged into decompose s01 with #2)*
+2. s02 — Wire required schema + extra=forbid collab. *(decompose s01)*
+3. s03 — stop condition + mutation test. *(decompose s02)*
+4. s04 — ownership vs in-flight. *(decompose s03)*
+5. s05 — repair parent constraints. *(decompose s04)*
+6. s06 — Kind I README + prompts. *(decompose s05)*
+7. s07 — purge bypass leftover + SKIP docs. *(decompose s06)*
 
 ## Appetite
 
@@ -252,6 +260,6 @@
 
 ## Следующий режим
 
-→ BACK DECOMPOSE T-HUB-066 after 063 (hard).
+→ BACK ANALYZE T-HUB-066-boundary-schema-ownership-strict (DECOMPOSE done; hard dep 063 in registry).
 
 **CREATIVE need:** нет.

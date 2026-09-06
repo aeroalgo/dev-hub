@@ -16,7 +16,10 @@ from loop.schemas.gate_verdict import GateVerdictRecord, GateVerdictValue
 
 
 def gates_dir(cwd: str | Path) -> Path:
-    from epic_paths import epic_dir
+    try:
+        from epic_paths import epic_dir
+    except ImportError:
+        from harness.hooks.epic_paths import epic_dir
 
     path = epic_dir(cwd) / "gates"
     path.mkdir(parents=True, exist_ok=True)

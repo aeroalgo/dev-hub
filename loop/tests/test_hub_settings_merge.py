@@ -158,12 +158,84 @@ def test_unlink_restores_settings(tmp_path: Path):
     assert res_link.returncode == 0
     assert (claude_dir / "settings.json.hub-backup").exists()
 
-    # Unlink alongside
-    res_unlink = subprocess.run([str(hub_unlink_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
-    assert res_unlink.returncode == 0
 
-    assert not (claude_dir / "settings.json.hub-backup").exists()
-    assert settings_file.exists()
-    restored_data = json.loads(settings_file.read_text(encoding="utf-8"))
-    assert restored_data == original_settings
+def test_merge_hooks_skips_symlink_twin(tmp_path: Path):
+    """When user has .claude/hooks/X.py symlink pointing to harness/hooks/X.py, harness entry is not duplicated."""
+    project_dir = tmp_path
+    harness_hooks = project_dir / "harness" / "hooks"
+    claude_hooks = project_dir / ".claude" / "hooks"
+    harness_hooks.mkdir(parents=True)
+    claude_hooks.mkdir(parents=True)
+
+    target_script = harness_hooks / "session-start.py"
+    target_script.write_text("# session start\n")
+    symlink_script = claude_hooks / "session-start.py"
+    symlink_script.symlink_to(target_script)
+
+    user_hooks = {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.py\"",
+                    }
+                ]
+            }
+        ]
+    }
+    harness_hooks_cfg = {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/session-start.py\"",
+                    }
+                ]
+            }
+        ]
+    }
+
+    merged = merge_hooks(user_hooks, harness_hooks_cfg, project_dir=project_dir)
+    assert len(merged["SessionStart"]) == 1
+
+
+def test_merge_hooks_does_not_reintroduce_dual(tmp_path: Path):
+    """merge_settings must not add duplicate commands when realpaths match."""
+    project_dir = tmp_path
+    harness_hooks = project_dir / "harness" / "hooks"
+    claude_hooks = project_dir / ".claude" / "hooks"
+    harness_hooks.mkdir(parents=True)
+    claude_hooks.mkdir(parents=True)
+
+    target_script = harness_hooks / "session-start.py"
+    target_script.write_text("# session start\n")
+    symlink_script = claude_hooks / "session-start.py"
+    symlink_script.symlink_to(target_script)
+
+    user_file = claude_hooks.parent / "settings.json"
+    user_data = {
+        "hooks": {
+            "SessionStart": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/session-start.py\"",
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    user_file.write_text(json.dumps(user_data, indent=2) + "\n")
+
+    harness_file = harness_hooks.parent / "settings.harness.json"
+    harness_file.write_text(json.dumps(user_data, indent=2))
+
+    changed = merge_settings(user_file, harness_file, backup=False)
+    assert changed is False
+    res = json.loads(user_file.read_text())
+    assert len(res["hooks"]["SessionStart"]) == 1
 

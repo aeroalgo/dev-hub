@@ -92,7 +92,9 @@ def test_materialize_returns_dest_paths(sample_agent_manifest: Path, tmp_path: P
 
     expected = [
         str(tmp_path / ".codex" / "agents" / "verify-implement.toml"),
+        str(tmp_path / ".codex" / "agents" / "verify-implement.policy.json"),
         str(tmp_path / ".codex" / "agents" / "explorer.toml"),
+        str(tmp_path / ".codex" / "agents" / "explorer.policy.json"),
     ]
     assert sorted(dest_paths) == sorted(expected)
 
@@ -143,3 +145,46 @@ def test_materialize_idempotent(sample_agent_manifest: Path, tmp_path: Path) -> 
     assert first_run == second_run
     target_file = tmp_path / ".codex" / "agents" / "verify-implement.toml"
     assert 'name = "verify-implement"' in target_file.read_text(encoding="utf-8")
+
+
+def test_materialize_writes_fingerprint_sidecar(sample_agent_manifest: Path, tmp_path: Path) -> None:
+    agents_dir = tmp_path / "harness" / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+    (agents_dir / "verify-implement.md").write_text(
+        """---
+name: verify-implement
+description: Gate verify
+disallowedTools: [Write, Edit, Agent]
+managed: true
+---
+Verify instructions body.
+""",
+        encoding="utf-8",
+    )
+    manifest_content = sample_agent_manifest.read_text(encoding="utf-8").replace(
+        ".codex/agents/verify-implement.md",
+        ".codex/agents/verify-implement.toml",
+    ).replace(
+        ".codex/agents/explorer.md",
+        ".codex/agents/explorer.toml",
+    )
+    sample_agent_manifest.write_text(manifest_content, encoding="utf-8")
+    manifest = load_manifest(sample_agent_manifest)
+
+    materialized = materialize_agents(manifest, "codex", dest_root=tmp_path, repo_root=tmp_path)
+
+    toml_path = tmp_path / ".codex" / "agents" / "verify-implement.toml"
+    sidecar_path = tmp_path / ".codex" / "agents" / "verify-implement.policy.json"
+
+    assert toml_path.exists()
+    assert sidecar_path.exists()
+
+    toml_text = toml_path.read_text(encoding="utf-8")
+    assert "# policy_fingerprint: sha256:" in toml_text
+    assert "# source_prompt_sha256:" in toml_text
+
+    import json
+    sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    assert sidecar["name"] == "verify-implement"
+    assert sidecar["policy_fingerprint"].startswith("sha256:")
+    assert sidecar["disallowedTools"] == ["Write", "Edit", "Agent"]

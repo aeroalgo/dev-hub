@@ -2,6 +2,7 @@
 """Shared spawn-gate state for Claude Code hooks."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -64,6 +65,7 @@ HARD_RULE = (
 _GATE_JSON_HARD = (
     "HARD: финальный ответ содержит fenced ```json``` блок "
     '({"schema":"loop-gate-verdict/v1","agent_id":"<id>","verdict":"PASS|FAIL|BLOCKED",'
+    '"step_id":"<step_id>","epic_id":"<epic_id>","session_id":"<session_id>",'
     '"recorded_at":"<iso8601>"}). '
     "Fence language = только `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`). "
     "Schema id — поле `schema` внутри JSON. "
@@ -138,6 +140,30 @@ CONTRACTS = {
         "Ответ без JSON fence = status fail."
     ),
 }
+
+CONTRACTS_SHA256: dict[str, str] = {
+    "explorer": "e2841969d9d0e4cf765036d458543a99095a9a67943f23729166a0a075ff863b",
+    "gate-repair": "4e47a2e4502ccf7476abef69499df92453aaef8672ef756172c386384beeb970",
+    "reviewer": "951eca047a8c28bf35debe38d0c0e3c28e9a733bc7b6c2f53588a8aaccbc5bfa",
+    "sunset-inventory": "7bdb8f4401affdc2f5d278f25ae542c23ea02014e0e6d2230da3a4ab62294f18",
+    "verify": "cd6fd6b16ec09039bdce4fefcbd5e955ed327c294ce58bd48f8b23e472ce4390",
+    "verify-bugfix": "7151af797102fe1f904937f6da99e228f7187d069260d7eb02b68459645c1ff1",
+    "verify-decompose": "ccfa3391ac21d4d0fc82dd6d841447e195f1a32c7540280da25cec702bed5c95",
+    "verify-implement": "0d5712e4bc3f6abc8e907c5275a8361722e4cf972a259a773cf9f27e8dad3589",
+    "verify-qa": "9f5c704f29235e7d56b668e15d7ba3239a86308e939735fcba13d006a87f72f3",
+}
+
+
+def check_contract_drift(agent_type: str | None) -> tuple[bool, str]:
+    """Check if CONTRACTS text checksum matches expected CONTRACTS_SHA256 fingerprint."""
+    if not agent_type or agent_type not in CONTRACTS:
+        return True, ""
+    contract_text = CONTRACTS[agent_type]
+    actual_sha = hashlib.sha256(contract_text.encode("utf-8")).hexdigest()
+    expected_sha = CONTRACTS_SHA256.get(agent_type)
+    if expected_sha and actual_sha != expected_sha:
+        return False, f"agent_contract_drift: CONTRACTS['{agent_type}'] sha256 mismatch (actual={actual_sha}, expected={expected_sha})"
+    return True, ""
 
 VERDICT_FIRST_LINE = (
     "HARD: финальный ответ содержит fenced ```json``` блок "

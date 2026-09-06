@@ -216,7 +216,8 @@ def test_verdict_extraction_uses_last_line_and_returns_empty_without_verdict() -
 def test_subagent_stop_verdict_round_trip_records_enriched_verdict(tmp_path: Path) -> None:
     fence = (
         '```json\n{"schema":"loop-gate-verdict/v1","agent_id":"verify",'
-        '"verdict":"PASS","recorded_at":"2026-08-31T12:00:00Z"}\n```\nAC+: ok'
+        '"verdict":"PASS","step_id":"s01","session_id":"child-round-trip",'
+        '"epic_id":"T-HUB-001","recorded_at":"2026-08-31T12:00:00Z"}\n```\nAC+: ok'
     )
     payload = _ts_payload(
         {
@@ -239,6 +240,7 @@ def test_subagent_stop_verdict_round_trip_records_enriched_verdict(tmp_path: Pat
 
 
 def test_subagent_stop_accepts_verdict_without_assistant_message(tmp_path: Path) -> None:
+    # Under fence-required SoT (T-HUB-066), verify agent without fence fails schema validation with exit code 2
     result = _run_hook(
         tmp_path,
         {
@@ -250,13 +252,8 @@ def test_subagent_stop_accepts_verdict_without_assistant_message(tmp_path: Path)
         },
     )
 
-    assert result.returncode == 0, result.stderr
-    state = json.loads(
-        (tmp_path / ".claude" / "runtime" / "spawn-gate" / "child-direct-verdict.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert state["verify_verdict"] == "FAIL"
+    assert result.returncode == 2
+    assert "schema validation failed" in result.stderr
 
 
 def test_subagent_stop_without_verdict_does_not_crash_for_generic_dsh_event(tmp_path: Path) -> None:

@@ -1,0 +1,257 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-064-video-pack-route-verify-parity
+plan_id: T-HUB-064-video-pack-route-verify-parity
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Pack video-production не может быть ok=True, если route_command() строит несуществующие role-subdir paths, а verify-script/edit/publish отсутствуют в manifest. Operator на SCRIPT PLAN должен получить существующий workflow file + materialized verify agent + stop mapping."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 11
+  fr_satisfied: 11
+  sc_checked: 4
+  layout_paths_total: 9
+  layout_paths_closed: 9
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/workflow/command_router.py + loop/tests/test_workflow_pack_video_e2e.py: inventory всех video intent commands резолвится в существующие файлы."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: ".cursor/rules/video/workflow-{plan,implement,qa,decompose,storyboard,edit,publish}.mdc созданы и являются единым SoT."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "harness/manifest.yaml содержит записи verify-script, verify-edit, verify-publish с claude copy_to и codex materialize."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "loop/runtime_materializers/parity.py проверяет harness/agents/*.md через glob на соответствие manifest, а не только hardcoded allowlist."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/mb_finish/verify_hint.py содержит verify-script, verify-edit, verify-publish в VERIFY_MB_FINISH_SUBCMD и VERIFY_FINISH_AGENTS."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "workflows/video/phase_registry.yaml: BRIEF, STORYBOARD, SHOOT содержат no_gate_reason; fake verify устранён."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/workflow/command_router.py возвращает ok=False и pack_route_missing при отсутствии целевого workflow файла."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: ".codex/agents/verify-{script,edit,publish}.toml материализованы и проверены через codex sync / parity."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "workflows/video/README.md и CLAUDE.md не содержат завышенных утверждений «fully wired»."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/agents/verify-{script,edit,publish}.md имеют специализированные промпты и интегрированы в loop-gate-verdict/v1 пайплайн."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "Учтено: JANITOR no-gate вне скоупа кроме video janitor, сохранено поведение без раздувания."
+    remaining_work: ""
+  - source_ref: US-001
+    status: satisfied
+    evidence: "Operator SCRIPT PLAN получает путь к .cursor/rules/video/workflow-plan.mdc через route_command."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "Codex получает .codex/agents/verify-edit.toml материализованный из manifest."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "Parent EDIT передает SubagentStop валидацию для verify-edit через VERIFY_FINISH_AGENTS."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "CI parity checker фейлится при обнаружении orphan *.md в harness/agents/ без декларации в manifest."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "0 missing video routes: все intent команды video-production резолвятся в реальные mdc файлы."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "3 video agents (verify-script, verify-edit, verify-publish) материализованы в codex toml и claude agents."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "Orphan prompt fixture гарантированно вызывает ошибку missing_manifest_agent в parity check."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "no_gate_reason объявлен для всех ungated phases (BRIEF, STORYBOARD, SHOOT) в phase_registry.yaml."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "Исключено ok=true при отсутствующем файле: возвращается ok=False и diagnostic pack_route_missing."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "Исключен parity green на неполном subset manifest: glob agents проверяет все файлы harness/agents/*.md."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "Исключен silent skip video verify: все 3 агента зарегистрированы в VERIFY_MB_FINISH_SUBCMD."
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "Исключен dual route_map + ghost role-subdir: единый SoT в .cursor/rules/video/."
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "Исключено копирование verify-implement verbatim: созданы отдельные специализированные промпты."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Memory-bank структура соблюдена, план и декомпозиция сохранены в канонических путях."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "Канонический переход фаз соблюден, AUDIT следует за IMPLEMENT."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "Strict spec-first replacement и fail-closed контракты выполнены."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "Отсутствие hardcoded allowlist-only проверок, обеспечен source-driven glob."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Детерминированные правила маппинга без скрытых fallback-путей."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Все проверки и манифесты синхронизированы между Claude и Codex рантаймами."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "Не используется mock/fake verify gate в фазах video-production."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "Исключены недостоверные утверждения в документации пакета."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Каждый шаг декомпозиции зафиксирован в имплемент-шардах с верификацией."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Все legacy-пути и ghost role-subdir удалены без остаточных артефактов."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/manifest.yaml
+    status: present
+    follow_up: ""
+    evidence: "verify-script, verify-edit, verify-publish объявлены в манифесте"
+  - layout_path: .codex/agents/verify-script.toml
+    status: present
+    follow_up: ""
+    evidence: "материализован томл файл конфигурации"
+  - layout_path: .codex/agents/verify-edit.toml
+    status: present
+    follow_up: ""
+    evidence: "материализован томл файл конфигурации"
+  - layout_path: .codex/agents/verify-publish.toml
+    status: present
+    follow_up: ""
+    evidence: "материализован томл файл конфигурации"
+  - layout_path: .cursor/rules/video/workflow-decompose.mdc
+    status: present
+    follow_up: ""
+    evidence: "создан файл правил workflow"
+  - layout_path: .cursor/rules/video/workflow-storyboard.mdc
+    status: present
+    follow_up: ""
+    evidence: "создан файл правил workflow"
+  - layout_path: .cursor/rules/video/workflow-edit.mdc
+    status: present
+    follow_up: ""
+    evidence: "создан файл правил workflow"
+  - layout_path: .cursor/rules/video/workflow-publish.mdc
+    status: present
+    follow_up: ""
+    evidence: "создан файл правил workflow"
+  - layout_path: loop/workflow/command_router.py
+    status: present
+    follow_up: ""
+    evidence: "fail-closed реализация route_command"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s01-video-route-exists-fail-closed.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s02-manifest-materialize-video-verify.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s03-stop-mapping-no-gate-reason.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s04-source-driven-agent-parity.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s05-kind-i-software-regression.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-064-video-pack-route-verify-parity/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md#replacement--sunset
+  rows:
+    - symbol: REQUIRED_CODEX_AGENTS
+      kind: A
+      command: 'rg -n "REQUIRED_CODEX_AGENTS" loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Hardcoded exclusive check replaced by glob-driven parity"
+    - symbol: role_subdir_ghost_concat
+      kind: A
+      command: 'rg -n "script_developer" loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "No ghost script_developer path concatenation remains"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: video-intent-routing
+      enforce_evidence: "loop/tests/test_workflow_pack_video_e2e.py"
+      result: pass
+      notes: "All intent routing commands map to existing workflow files"
+    - boundary: parity-source-glob
+      enforce_evidence: "loop/tests/test_runtime_sync_check.py"
+      result: pass
+      notes: "Orphan agent prompts fail parity check"
+
+blocked_reason: ""

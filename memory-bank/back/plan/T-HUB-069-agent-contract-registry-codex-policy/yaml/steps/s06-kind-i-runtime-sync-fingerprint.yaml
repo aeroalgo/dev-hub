@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+title: "Kind I honesty + runtime-sync --check fingerprint mismatch"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  runtime-sync --check падает на fingerprint mismatch / sidecar stripped
+  (Failure TM-006). Kind I: docs не учат «Codex TOML = full agent»; human tools
+  list в md допустим, runtime не слабее. FR-011 documented: hook enforcement,
+  не выдуманные CLI flags. P2 generate-all README остаётся cut (ручной rationale).
+
+plan_contract:
+  fr_ids: [FR-009, FR-011, FR-012, FR-010, AC−5, TM-006, Failure-TM-006, Failure-TM-007, Independent Test]
+  nouns:
+    - runtime-sync --check
+    - fingerprint mismatch
+    - sidecar stripped
+    - Kind I mapping honesty
+    - loop/cli/runtime_sync.py
+    - loop/runtime_materializers/codex_sync.py
+  layout_paths:
+    - loop/cli/runtime_sync.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/runtime_materializers/parity.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/README.md
+  ac_quotes:
+    - "runtime-sync --check includes fingerprint mismatch"
+    - "sidecar stripped | fingerprint gone | runtime-sync | fail | TM-006"
+    - "Kind I: agent md may keep human tools list; runtime must not be weaker than md"
+    - "docs «Codex TOML = full agent» → mapping honesty | delete in-epic"
+    - "Do not invent Codex CLI flags that do not exist; prefer hook enforcement documented"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:86-91"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:142-152"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:187-191"
+    - "memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md:241-244"
+
+context:
+  consumes:
+    - s02 fingerprint emit · s03 policy parity · plan §FR-012 §Replacement I
+  produces:
+    - --check fail on stripped sidecar / fingerprint mismatch
+    - Kind I rewrite: mapping honesty; no «TOML = full agent»; no invented flags
+    - explorer Write deny documented as hook if native unsupported
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#functional-requirements
+  files:
+    - loop/cli/runtime_sync.py
+    - loop/runtime_materializers/codex_sync.py
+    - loop/runtime_materializers/parity.py
+    - loop/tests/test_runtime_sync_check.py
+    - loop/README.md
+
+as_built:
+  - "codex_drift_items rematerializes and compares full TOML text; no dedicated fingerprint/sidecar check"
+  - "runtime_sync --check uses missing_dest / hash_mismatch / check_codex_parity events"
+  - "docs may describe Codex agents as materialized TOML from markdown without mapping honesty"
+  - "P2 generate-all docs is Appetite cut — do not add generator"
+
+delta:
+  - "codex_drift_items / --check: fingerprint mismatch and missing sidecar → non-zero (FR-012 / TM-006)"
+  - "Kind I: rewrite instruction surfaces that claim TOML is complete agent; document native|hook|unsupported"
+  - "explorer Write: Kind I + mapping already deny (FR-010) — instruction must not teach weaker Codex Write"
+  - "keep manual rationale that generate-all README is cut (FR-015) — do not add generator"
+
+deletes:
+  - "instruction claims that presence of .codex/agents/*.toml == full policy parity"
+  - "docs teaching invented Codex CLI deny flags (FR-011)"
+
+out_of_scope:
+  - "full leftover inventory + obsolete test purge (s07)"
+  - "FR-014 generic @verify machine commands — cut unless one-line if this step already touches spawn docs"
+  - "FR-015 generated README encyclopedia — cut"
+  - "Cursor Codex IDE — cut_list"
+  - "doctor graph 067 consume fingerprint — later; this step only produces checkable fingerprint"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: runtime-sync --check fails when sidecar/fingerprint stripped (FR-012 / Failure TM-006)
+    verify: "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k fingerprint"
+  - id: cp2
+    criterion: Kind I — no living instruction «Codex TOML = full agent» in prod docs this step touches
+    verify: "rg -n \"TOML = full|toml equals|presence.only\" loop/README.md harness/claude CLAUDE.md || true"
+  - id: cp3
+    criterion: FR-011 Kind I — no invented Codex deny CLI flags in mapping docs / comments
+    verify: "rg -n \"disallowedTools|tools =\" loop/runtime_materializers/codex_policy_mapping.yaml loop/README.md"
+  - id: cp4
+    criterion: Independent Test FAIL path — deny-in-developer_instructions-only is not documented as sufficient
+    verify: "rg -n \"developer_instructions\" loop/tests/test_codex_agent_policy.py loop/README.md"
+
+verify:
+  - "bin/pytest loop/tests/test_runtime_sync_check.py -q --tb=line -k 'fingerprint or sidecar or check'"
+  - "python -m loop.cli.runtime_sync --check --runtime codex"
+
+tdd:
+  - "test_runtime_sync_check_fails_on_stripped_fingerprint — TM-006"
+  - "test_runtime_sync_check_fails_on_missing_sidecar"
+  - "test_kind_i_no_toml_equals_full_agent_instruction"

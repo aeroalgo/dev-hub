@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: Wire journal into finish_implement + finish_qa (same writer)
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s03-wrap-finish-implement-qa.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-observability/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Wrapped finish_implement_step through journal prepare/stage/commit and validate_identity
+- Wrapped finish_qa and finish_bugfix with the same journal transaction flow
+- Gated finish_handoff to require recovery_token matching active journal transaction
+  id (returns finish_handoff_forbidden otherwise)
+- Updated CLI mb-finish handoff in epic_resolve.py with --recovery-token flag
+- Verified halt_logic and check_after do not call public finish_handoff and finish_reflect
+  is not reintroduced
+files:
+- loop/mb_finish/finish_implement.py
+- loop/mb_finish/impl.py
+- loop/mb_finish/transaction.py
+- harness/hooks/epic_resolve.py
+- loop/tests/test_mb_finish_transaction.py
+deletes:
+- unjournaled dual write in finish_implement_step as sole commit path
+- public finish_handoff success without recovery_token
+tests:
+- '`bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line`'
+integration_check:
+- finish_implement, finish_qa, and finish_bugfix journaled and tested
+- finish_handoff tokenless rejection tested via unit and CLI dispatcher
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: finish_implement_step commits via journal states; crash-after-context
+    leaves recoverable journal not silent split-brain (AC+1 / FR-010 / FR-002)
+  status: done
+- id: cp2
+  criterion: finish_qa shares journal helper (not implement-only) (FR-010)
+  status: done
+- id: cp3
+  criterion: Internal finish_handoff without recovery_token → finish_handoff_forbidden;
+    token must match journal id; incident logged (FR-007 / US-002)
+  status: done
+- id: cp4
+  criterion: halt_logic/check_after do not call public finish_handoff; finish_reflect
+    not reintroduced (FR-014 / FR-012 / TM-008)
+  status: done
+resume_from: cp1

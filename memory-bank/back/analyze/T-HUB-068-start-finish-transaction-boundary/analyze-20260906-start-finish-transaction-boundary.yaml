@@ -1,0 +1,161 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-068-start-finish-transaction-boundary
+slug: start-finish-transaction-boundary
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Schema `loop-finish-transaction/v1` (or `finish_transaction/v1`) in registry or sidecar-only documented; DECOMPOSE pick sidecar `.claude/runtime/epic/finish-tx.json` vs BOUNDARY_REGISTRY. Prefer sidecar journal first (less 066 coupling); if registered, extra=forbid."
+  - requirement_id: FR-002
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "States: `prepared` → `context_written` → `index_written` → `committed`. Failure → `rollback_required`."
+  - requirement_id: FR-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Staged files in tx dir; commit = rename/replace all; fsync as existing atomic helper."
+  - requirement_id: FR-004
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Identity check: staged Handoff epic_id/step_id == index target == state armed."
+  - requirement_id: FR-005
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "`prepare_session` calls `recover_finish_transaction()`."
+  - requirement_id: FR-006
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Public dispatcher: only `mb-finish implement|qa|bugfix|…` typed. `handoff` subcommand removed or gated."
+  - requirement_id: FR-007
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Internal `finish_handoff(..., recovery_token=)` validates token vs journal id; logs incident."
+  - requirement_id: FR-008
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Kind I: finish-block.mdc / docs mentioning handoff CLI as normal path — rewrite."
+  - requirement_id: FR-009
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "`save_epic_state` lockfile same family as spawn-gate or document single-threaded hook assumption with test that fails if unlocked lost-update reproduced."
+  - requirement_id: FR-010
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "QA/bugfix finish functions share journal helper (not only implement) — minimum implement+qa; bugfix if same write pattern."
+  - requirement_id: FR-011
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Do not require postgres; filesystem journal is SoT."
+  - requirement_id: FR-012
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "REFLECT finish path: out (060). If `finish_reflect` still exists, 068 must not reintroduce; journal helper ignores reflect."
+  - requirement_id: FR-013
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Tests: crash after context; crash after index before committed marker; recover committed leftover (idempotent); token-less handoff."
+  - requirement_id: FR-014
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "halt_logic / check_after unchanged behaviorally except they must not call public handoff."
+  - requirement_id: FR-015
+    step_ids: []
+    status: covered
+    plan_text_verbatim: "Appetite cut: unified TransitionService class / ContextBoundaryService — design note in HOW, no mandatory new module tree."
+  - requirement_id: US-001
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Как operator, я не хочу Handoff без index commit после crash."
+  - requirement_id: US-002
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Как CI, я хочу public finish_handoff fail or require token."
+  - requirement_id: US-003
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Как hook, я не теряю retry counter при concurrent save."
+  - requirement_id: US-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как SessionStart, я доигрываю prepared journal."
+  - requirement_id: SC-001
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "crash recover consistent | pytest | outcome"
+  - requirement_id: SC-002
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "handoff without token rejected | CLI/unit | outcome"
+  - requirement_id: SC-003
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "prepare_session recovers | unit | outcome"
+  - requirement_id: SC-004
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "concurrent state no silent drop | pytest or skip+lock | outcome"
+  - requirement_id: SC-005
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "docs no public handoff | rg | outcome"
+  - requirement_id: AC+1
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Journaled finish for implement (and qa if same writer)."
+  - requirement_id: AC+2
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Recover on prepare."
+  - requirement_id: AC+3
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Public finish_handoff closed."
+  - requirement_id: AC+4
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Crash tests."
+  - requirement_id: AC+5
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "State lock or proven single-writer."
+  - requirement_id: AC-1
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Нет mixed Handoff/index identity after recover."
+  - requirement_id: AC-2
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет CLI re-arm without verify."
+  - requirement_id: AC-3
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет journal left `prepared` ignored on next start."
+  - requirement_id: AC-4
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет reintroduction finish_reflect."
+  - requirement_id: AC-5
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет «backup restore only on exception» as sole crash strategy."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

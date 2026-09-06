@@ -1,0 +1,22 @@
+{
+  "name": "analyze-verify",
+  "policy_fingerprint": "sha256:087d730a8a4e8e1a38fff021e5d2f506be8a97afed80fab1691cea1338de589c",
+  "source_prompt_sha256": "9fc737a371a8c09c083d75d8d0665f7ecb1c06fb1d71c8681f629c108f9e3d44",
+  "disallowedTools": [
+    "Write",
+    "Edit",
+    "Agent",
+    "Skill",
+    "Glob",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch",
+    "TodoWrite"
+  ],
+  "tools": [
+    "Read",
+    "Grep",
+    "Bash"
+  ],
+  "managed": true
+}

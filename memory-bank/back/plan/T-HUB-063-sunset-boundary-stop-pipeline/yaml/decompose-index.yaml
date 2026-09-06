@@ -17,19 +17,19 @@ steps:
   file: s02-subagentstop-sunset-branch.yaml
   title: SubagentStop — fence sunset, no-fence DENY, retry then NEED_HUMAN
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s03
   file: s03-persist-sunset-sidecar.yaml
   title: Persist sidecar — parent читает valid SunsetReport, IO fail-closed
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-kind-i-sunset-prompt-matrix.yaml
   title: Kind I — prompt schema_id = registry; 08-row sunset wired
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-legacy-fallback-purge.yaml
   title: s05 — legacy-fallback-purge — unknown-id leftover + skip-path
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

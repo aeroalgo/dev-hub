@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-068-start-finish-transaction-boundary
+title: s05 — save_epic_state lockfile — no silent lost-update IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-068-start-finish-transaction-boundary/yaml/steps/s05-lock-save-epic-state.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- Wrapped save_epic_state with exclusive flock lockfile (_epic_state_lock/_epic_state_unlock).
+- Added multi-writer state merge for retry_count / drift_counters / schema_retry_counts
+  / sidecars to prevent lost updates.
+gaps:
+  status: none
+done:
+- save_epic_state wrapped with flock lockfile sibling (.lock)
+- concurrent two-writers fixture tests added and verified green
+- cross-host / NFS out of scope documented
+files:
+- harness/hooks/epic/core.py
+- loop/tests/test_mb_finish_transaction.py
+deletes:
+- unlocked concurrent save_epic_state as accepted last-write-wins
+tests:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k 'concurrent
+  or lost_update or two_writer or lock'
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line
+integration_check:
+- save_epic_state acquires lockfile and preserves fields across concurrent threads
+grep_control:
+- back: rg -n "lock|_spawn_state_lock|fcntl.flock" harness/hooks/epic/core.py
+  front: ''
+verification_results:
+- pass (unit & concurrent tests green)
+checkpoints:
+- id: cp1
+  criterion: save_epic_state uses lockfile same family as spawn-gate (FR-009)
+  status: done
+  done_at: '2026-09-06T08:16:23Z'
+- id: cp2
+  criterion: Two writers fixture — retry counter / field not silently dropped (US-003
+    / SC-004 / QA TM-004 / Failure matrix TM-005)
+  status: done
+  done_at: '2026-09-06T08:16:23Z'
+- id: cp3
+  criterion: Unlocked last-write-lose is not the accepted path (AC+5)
+  status: done
+  done_at: '2026-09-06T08:16:24Z'
+- id: cp4
+  criterion: Cross-host/NFS not implemented (Appetite cut) — documented in test or
+    comment, not a fake distributed lock
+  status: done
+  done_at: '2026-09-06T08:16:25Z'
+resume_from: cp1

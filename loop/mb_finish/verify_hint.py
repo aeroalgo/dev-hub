@@ -13,6 +13,9 @@ VERIFY_MB_FINISH_SUBCMD: dict[str, str] = {
     "verify-qa": "qa",
     "reviewer": "qa",
     "analyze-verify": "analyze",
+    "verify-script": "script",
+    "verify-edit": "edit",
+    "verify-publish": "publish",
 }
 
 VERIFY_FINISH_AGENTS = frozenset(VERIFY_MB_FINISH_SUBCMD)

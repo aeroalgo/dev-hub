@@ -13,11 +13,12 @@ import json
 import logging
 import os
 import re
+import sys
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-import sys
 import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -100,12 +101,18 @@ def atomic_write_text(path: Path, text: str) -> None:
             step=getattr(meta, "step_id", None) if meta else None,
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    with tmp.open("r+") as handle:
-        handle.flush()
-        os.fsync(handle.fileno())
-    tmp.replace(path)
+    tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        with tmp.open("r+") as handle:
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _write_active_context_or_lock(path: Path, body: str, *, epic_id: str | None = None) -> dict[str, Any] | None:
@@ -533,26 +540,101 @@ def _runtime_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     return {key: state.get(key) for key in keys if key in state}
 
 
+_local_epic_locks = threading.local()
+
+
+def _epic_state_lock(path: Path):
+    """Exclusive lockfile sibling for epic state JSON (same family as spawn-gate).
+
+    Note: Cross-host / NFS locks are out of scope (Appetite cut).
+    """
+    if not hasattr(_local_epic_locks, "held"):
+        _local_epic_locks.held = {}
+
+    key = str(path.resolve())
+    if key in _local_epic_locks.held:
+        _local_epic_locks.held[key]["depth"] += 1
+        return _local_epic_locks.held[key]["handle"]
+
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_path.open("a+", encoding="utf-8")
+    if fcntl is not None:
+        deadline = time.monotonic() + 5.0
+        while True:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except (BlockingIOError, OSError):
+                if time.monotonic() >= deadline:
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                    break
+                time.sleep(0.01)
+    _local_epic_locks.held[key] = {"depth": 1, "handle": handle}
+    return handle
+
+
+def _epic_state_unlock(handle: Any, path: Path | None = None) -> None:
+    if path is not None and hasattr(_local_epic_locks, "held"):
+        key = str(path.resolve())
+        if key in _local_epic_locks.held:
+            _local_epic_locks.held[key]["depth"] -= 1
+            if _local_epic_locks.held[key]["depth"] > 0:
+                return
+            del _local_epic_locks.held[key]
+
+    if fcntl is not None:
+        try:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+    try:
+        handle.close()
+    except OSError:
+        pass
+
+
 def save_epic_state(cwd: str | Path, state: dict[str, Any]) -> None:
-    state["updated_at"] = utc_now()
-    projection = state.get("projection") if isinstance(state.get("projection"), dict) else {}
-    state["state_schema_version"] = "loop-state/v2"
-    state["schema_version"] = "loop-state/v2"
-    state["runtime"] = _runtime_snapshot(state)
-    state["dag"] = {
-        "pipeline_id": state.get("dag_pipeline") or state.get("pipeline_id"),
-        "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
-        "done": sorted({str(item) for item in state.get("dag_done") or []}),
-    }
-    state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
-    state["diagnostic_codes"] = sorted(
-        set(state.get("diagnostic_codes") or [])
-        | set(projection.get("diagnostic_codes") or [])
-    )
-    atomic_write_text(
-        state_path(cwd),
-        json.dumps(state, ensure_ascii=False, indent=2) + "\n",
-    )
+    p = state_path(cwd)
+    lock = _epic_state_lock(p)
+    try:
+        if p.is_file():
+            try:
+                on_disk = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(on_disk, dict):
+                    for key in ("drift_counters", "schema_retry_counts", "sidecars"):
+                        if key in on_disk and isinstance(on_disk[key], dict):
+                            merged = dict(on_disk[key])
+                            if isinstance(state.get(key), dict):
+                                merged.update(state[key])
+                            state[key] = merged
+                    if "retry_count" in on_disk and on_disk["retry_count"] is not None:
+                        disk_rc = int(on_disk["retry_count"] or 0)
+                        state_rc = int(state.get("retry_count") or 0)
+                        if disk_rc > state_rc:
+                            state["retry_count"] = disk_rc
+            except Exception:
+                pass
+
+        state["updated_at"] = utc_now()
+        projection = state.get("projection") if isinstance(state.get("projection"), dict) else {}
+        state["state_schema_version"] = "loop-state/v2"
+        state["schema_version"] = "loop-state/v2"
+        state["runtime"] = _runtime_snapshot(state)
+        state["dag"] = {
+            "pipeline_id": state.get("dag_pipeline") or state.get("pipeline_id"),
+            "cursor": state.get("dag_cursor") or state.get("fanout_cursor"),
+            "done": sorted({str(item) for item in state.get("dag_done") or []}),
+        }
+        state["gate_snapshot"] = projection.get("gates") or gates_from_phase(state.get("phase"), cwd=cwd)
+        state["diagnostic_codes"] = sorted(
+            set(state.get("diagnostic_codes") or [])
+            | set(projection.get("diagnostic_codes") or [])
+        )
+        text = json.dumps(state, ensure_ascii=False, indent=2) + "\n"
+        atomic_write_text(p, text)
+    finally:
+        _epic_state_unlock(lock, p)
 
 
 def write_last_finish_tool(
@@ -1447,34 +1529,61 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
         cwd,
         projection=projection,
         fallback_command="BACK IMPLEMENT",
+        runtime=os.environ.get("EPIC_RUNTIME"),
     )
-    ctx = (
-        render_prompt_scope(scope)
-        + f"source={source or '?'}\n"
-        "Один шаг → FINISH (Handoff в activeContext) → stop.\n"
-        "Режим/шаг — по activeContext + load_now.\n"
-        "Не вызывай /clear."
-    )
+    rendered_scope = render_prompt_scope(scope)
+
     try:
         from loop.mb_load.session import load_session
 
         res = load_session(cwd)
-        if res.ok:
+        if res.ok and res.status != "incomplete":
             fp = res.fingerprint or ""
             file_paths = [f.path for f in res.files]
             total_size = sum(len(f.content or "") for f in res.files)
 
+            ctx = (
+                rendered_scope
+                + f"source={source or '?'}\n"
+                "Один шаг → FINISH (Handoff в activeContext) → stop.\n"
+                "Режим/шаг — по activeContext + load_now.\n"
+                "Не вызывай /clear."
+            )
             lines = [f"\nFingerprint: {fp}", "Bundle files: " + ", ".join(file_paths)]
             if total_size <= 16 * 1024:
                 for f in res.files:
                     if f.content:
                         lines.append(f"\n--- {f.path} ---\n{f.content}")
+            if res.optional_missing:
+                opt_diag = ", ".join(res.optional_missing)
+                lines.append(f"\nDegraded (optional missing): {opt_diag}")
             ctx += "\n".join(lines)
         else:
-            diag = ", ".join(res.diagnostic_codes or res.shape_errors or ["load_session_failed"])
-            ctx += f"\nWarning: bundle load failed ({diag})"
+            codes = sorted(
+                set(res.diagnostic_codes or [])
+                | {f"missing_required:{p}" for p in res.required_missing}
+                | set(res.shape_errors or [])
+                | ({"load_session_failed"} if not (res.diagnostic_codes or res.required_missing or res.shape_errors) else set())
+            )
+            diag_str = ", ".join(codes)
+            ctx = (
+                rendered_scope
+                + f"source={source or '?'}\n"
+                "CONTEXT_INCOMPLETE: Session context load incomplete or missing required files.\n"
+                f"Codes: {diag_str}\n"
+                "HALT: Required context is incomplete. Forbid proceeding with partial leftover files as sufficient for main work.\n"
+                "Fix activeContext / load_now or restore required files before executing role commands."
+            )
     except Exception as exc:
-        ctx += f"\nWarning: load_session exception ({exc})"
+        exc_type = type(exc).__name__
+        ctx = (
+            rendered_scope
+            + f"source={source or '?'}\n"
+            "CONTEXT_INCOMPLETE: Session context load failed with required-context exception.\n"
+            f"Codes: required_context_exception:{exc_type}\n"
+            f"Details: {exc}\n"
+            "HALT: Required context exception encountered. Forbid proceeding with partial leftover files as sufficient."
+        )
 
     return {
         "additionalContext": ctx,

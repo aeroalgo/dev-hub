@@ -64,6 +64,9 @@ def test_iter_codex_collab_verdicts_json_fence() -> None:
                                     '{"schema":"loop-gate-verdict/v1",'
                                     '"agent_id":"verify-implement",'
                                     '"verdict":"PASS",'
+                                    '"step_id":"s05",'
+                                    '"session_id":"test-session",'
+                                    '"epic_id":"T-HUB-044",'
                                     '"recorded_at":"2026-09-02T00:00:00Z"}\n'
                                     "```"
                                 ),
@@ -116,6 +119,9 @@ def test_iter_codex_collab_verdicts_qa_json_without_at_mention() -> None:
                                     '  "schema": "loop-gate-verdict/v1",\n'
                                     '  "agent_id": "verify-qa",\n'
                                     '  "verdict": "FAIL",\n'
+                                    '  "step_id": "QA",\n'
+                                    '  "session_id": "test-session",\n'
+                                    '  "epic_id": "T-HUB-044",\n'
                                     '  "recorded_at": "2026-09-02T00:00:00Z"\n'
                                     "}\n"
                                     "```"
@@ -131,6 +137,71 @@ def test_iter_codex_collab_verdicts_qa_json_without_at_mention() -> None:
     assert len(events) == 1
     assert events[0].agent_type == "verify-qa"
     assert events[0].verdict == "FAIL"
+
+
+def test_codex_collab_extra_field_invalid() -> None:
+    """TM-005 QA / US-005 / SC-005 / AC+5 / AC−2 / FR-008: collab fence with extra field must be rejected."""
+    log = "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "spawn-1",
+                        "type": "collab_tool_call",
+                        "tool": "spawn_agent",
+                        "receiver_thread_ids": ["thread-a"],
+                        "prompt": "Run @verify-implement checks.",
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "wait-1",
+                        "type": "collab_tool_call",
+                        "tool": "wait",
+                        "agents_states": {
+                            "thread-a": {
+                                "status": "completed",
+                                "message": (
+                                    "```json\n"
+                                    "{\n"
+                                    '  "schema": "loop-gate-verdict/v1",\n'
+                                    '  "agent_id": "verify-implement",\n'
+                                    '  "verdict": "PASS",\n'
+                                    '  "recorded_at": "2026-09-02T00:00:00Z",\n'
+                                    '  "extra_unauthorized_field": "exploit"\n'
+                                    "}\n"
+                                    "```"
+                                ),
+                            }
+                        },
+                    },
+                }
+            ),
+        ]
+    )
+    events = list(iter_codex_collab_verdicts(log))
+    assert len(events) == 0
+
+
+def test_no_collab_extra_ignore_after_purge() -> None:
+    """s06 TDD: Ensure extra=ignore is purged from collab gate fence model."""
+    from loop.schemas.gate_verdict import GateVerdictRecord
+    assert GateVerdictRecord.model_config.get("extra") == "forbid"
+
+
+def test_collab_fence_uses_canonical_parser() -> None:
+    """FR-008: collab parsing calls canonical validate_boundary (extra=forbid, schema required)."""
+    from loop.codex_collab_verdict import _parse_gate_verdict_fence
+    bad_extra_msg = (
+        "```json\n"
+        '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS","recorded_at":"2026-09-02T00:00:00Z","extra_field":123}\n'
+        "```"
+    )
+    assert _parse_gate_verdict_fence(bad_extra_msg) is None
 
 
 def test_iter_codex_collab_verdicts_prose_verdict_ignored() -> None:
@@ -249,6 +320,9 @@ def test_mirror_codex_collab_verdicts_updates_epic_state(tmp_path: Path) -> None
                                         '{"schema":"loop-gate-verdict/v1",'
                                         '"agent_id":"verify-implement",'
                                         '"verdict":"PASS",'
+                                        '"step_id":"s05",'
+                                        '"session_id":"codex-test-session",'
+                                        '"epic_id":"T-HUB-044",'
                                         '"recorded_at":"2026-09-02T00:00:00Z"}\n'
                                         "```"
                                     ),
@@ -317,6 +391,9 @@ def test_mirror_codex_collab_verdicts_verify_qa_fail(tmp_path: Path) -> None:
                                 '{"schema":"loop-gate-verdict/v1",'
                                 '"agent_id":"verify-qa",'
                                 '"verdict":"FAIL",'
+                                '"step_id":"QA",'
+                                '"session_id":"codex-qa-session",'
+                                '"epic_id":"T-HUB-044",'
                                 '"recorded_at":"2026-09-02T00:00:00Z"}\n'
                                 "```"
                             ),

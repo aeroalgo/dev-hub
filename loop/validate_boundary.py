@@ -50,6 +50,16 @@ def validate_boundary(schema_id: str, raw_json: str | dict[str, Any]) -> Validat
             diagnostic_codes=["schema_payload_not_dict"],
         )
 
+    # Wire requirement: schema field must be explicitly present on the wire payload
+    if "schema" not in payload and "schema_version" not in payload:
+        return ValidateResult(
+            schema=SCHEMA_LOOP_VALIDATE_RESULT,
+            schema_id=schema_id,
+            valid=False,
+            errors=["Missing required 'schema' field on wire payload"],
+            diagnostic_codes=["schema_missing_schema"],
+        )
+
     try:
         model_cls.model_validate(payload)
         return ValidateResult(

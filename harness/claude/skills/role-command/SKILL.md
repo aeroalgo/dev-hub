@@ -49,7 +49,7 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 0b — session
 
-**HARD RULE:** до любой основной работы для каждой команды сначала вызови `Read` корневого `CLAUDE.md`, затем полностью прочитай цепочку `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow команды → `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Выборочно читать только один workflow запрещено. Пропущенный Read — нарушение процесса, но не блокирует FINISH.
+**HARD RULE:** до любой основной работы для каждой команды сначала вызови `Read` указанного entrypoint текущего runtime (из prompt scope: `CLAUDE.md` для Claude Code, `AGENTS.md` для Codex), затем полностью прочитай цепочку `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow команды → `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Выборочно читать только один workflow запрещено. Пропущенный Read — нарушение процесса, но не блокирует FINISH.
 
 1. **Read** `.cursor/rules/token-economy-core.mdc` (full §0.0–§0.15) once per role-command session — stub already in context (@.cursor/rules/token-economy-stub.mdc)
 2. @.cursor/rules/shared/context-session-economy.mdc §3

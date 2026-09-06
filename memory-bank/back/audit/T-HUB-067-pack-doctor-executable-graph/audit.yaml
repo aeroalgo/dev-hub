@@ -1,0 +1,266 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-067-pack-doctor-executable-graph
+plan_id: T-HUB-067-pack-doctor-executable-graph
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Pack ok=true только если исполняемый граф цел (rules_root, role indexes, route_command path, _lean gates, phase registry verify agents, manifest rows, schemas, optional tool-gates). load_session ok=true только если все required load_now paths прочитаны. SessionStart не inject-ит partial bundle как normal context."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 15
+  fr_satisfied: 15
+  sc_checked: 5
+  layout_paths_total: 7
+  layout_paths_closed: 7
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py checks route_command paths and yields pack_route_missing when broken route fixture is provided"
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py verifies phase verify_agent against manifest and emits pack_agent_missing if undeclared"
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py verifies _lean gate references in workflow files and emits pack_gate_missing when missing"
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/mb_load/session.py derives ok=False when any required load_now entry is missing or fails read"
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py emits CONTEXT_INCOMPLETE halt diagnostic instead of Warning-only success on required miss"
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py:check_pack_graph walks pack rules_root, role indexes, route_command paths, _lean gates, phase registry verify_agents, BOUNDARY_REGISTRY schemas, tool_gates"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py returns distinct diagnostic codes: pack_route_missing, pack_gate_missing, pack_agent_missing, skill_ref_missing, schema_missing as non-empty list without hiding"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py:_check_skills calls check_skill_refs directly without forking regex or reference logic"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py calls route_command helper directly without diverging Path.exists logic"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/doctor/checks/workflow_pack.py:run_doctor_workflow_pack supports --pack parameter and returns exit code 1 when diagnostic_codes are non-empty"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/mb_load/session.py:load_session derives ok = not required_missing and not read_errors_on_required (never sets ok=True on required miss)"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/mb_load/session.py:_parse_load_now_with_optional defaults unmarked to required (fail-closed) and marks entries with optional keyword as optional"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/mb_load/schemas.py:MbLoadResult includes required_missing, optional_missing, forbidden_skipped, fingerprint, and status complete|incomplete"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:session_start_payload emits CONTEXT_INCOMPLETE with halt semantics when required_missing exists and degrades only on optional"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py classifies exceptions during bundle loading into required_context_exception instead of swallowing as Warning success"
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "loop/tests/test_pack_graph_doctor.py and loop/tests/test_mb_load_session.py test missing route, missing gate, missing agent, required miss, and optional miss"
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "CLAUDE.md contains honest pack descriptions without false 'fully wired' claims when broken"
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "check_pack_graph accurately verifies dev-hub-software against filesystem and reports red packs rather than skipping"
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "Doctor checks do not swallow IO errors as silent skip"
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "loop/workflow/pack_graph.py checks tool_gates and only treats missing tools as fatal when required=True"
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "Broken route fixture produces exact pack_route_missing code in loop/tests/test_pack_graph_doctor.py"
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "Missing required load_now path produces derived ok=False in loop/mb_load/session.py"
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "SessionStart payload injects CONTEXT_INCOMPLETE instead of treating partial bundle as success"
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "Dev-hub-software doctor verifies actual existence of all routes and gates instead of checking yaml keys alone"
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "Optional missing files preserve derived ok=True and populate optional_missing list in loop/mb_load/session.py"
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "load_session never sets ok=True when missing_file on required paths occurs"
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "doctor checks route existence on disk rather than accepting yaml keys alone"
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "session_start_payload raises typed CONTEXT_INCOMPLETE rather than Warning-only success on required context exception"
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "doctor reports video pack diagnostic codes rather than skipping red packs"
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "check_pack_graph reuses canonical route_command helper without forking exists logic"
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "All core MUST rules from constitution verified and honored across implementation"
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "TDD first enforced across all 5 steps with unit tests preceding changes"
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "No silent fallback: errors produce typed diagnostic codes and halt execution"
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "FRONT tests parent-only invariant maintained (no front runners executed in subagent)"
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Lean load followed strictly with bounded file reads"
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Fail-closed misconfiguration: missing required files or unusable packs immediately fail"
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "No-guess markers adhered to across handoffs and evidence"
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "ONE Handoff per step maintained"
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Integration parity checks passing across back/front boundaries"
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Phase authority respected with strict AUDIT workflow adherence"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/workflow/pack_graph.py
+    status: present
+    evidence: "check_pack_graph, CheckPackGraphResult implemented with full graph traversal"
+  - layout_path: loop/doctor/checks/workflow_pack.py
+    status: present
+    evidence: "check_workflow_pack and run_doctor_workflow_pack wired to pack_graph with fail-closed CLI"
+  - layout_path: loop/mb_load/session.py
+    status: present
+    evidence: "load_session derives ok and separates required vs optional"
+  - layout_path: loop/mb_load/schemas.py
+    status: present
+    evidence: "MbLoadResult with required_missing, optional_missing, status fields"
+  - layout_path: loop/mb_load/mcp_server.py
+    status: present
+    evidence: "MCP wrapper passes through load_session result without partial required overrides"
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    evidence: "session_start_payload handles CONTEXT_INCOMPLETE and typed required exceptions"
+  - layout_path: loop/tests/test_pack_graph_doctor.py
+    status: present
+    evidence: "Targeted test suite covering all pack graph failure scenarios"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-067-pack-doctor-executable-graph/s01-check-pack-graph-doctor.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-067-pack-doctor-executable-graph/s02-load-session-derived-ok.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-067-pack-doctor-executable-graph/s03-session-start-context-incomplete.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-067-pack-doctor-executable-graph/s04-kind-i-software-regression.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-067-pack-doctor-executable-graph/s05-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-067-pack-doctor-executable-graph/md/plan.md#replacement--sunset
+  rows:
+    - symbol: ok_status = True after missing_file on required
+      kind: A
+      command: "rg -n 'ok_status = True' loop/mb_load/session.py"
+      result: pass
+      prod_callers: []
+      notes: "Derived ok in place; no unconditional True after missing required"
+    - symbol: doctor keys-only usable path
+      kind: A
+      command: "rg -n 'def check_workflow_pack' loop/doctor/checks/workflow_pack.py"
+      result: pass
+      prod_callers: []
+      notes: "check_workflow_pack delegates directly to pack_graph.check_pack_graph"
+    - symbol: Warning load_session exception as success
+      kind: C
+      command: "rg -n 'Warning: load_session exception' harness/hooks/epic/core.py"
+      result: pass
+      prod_callers: []
+      notes: "Replaced by CONTEXT_INCOMPLETE halt and typed exception handling"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: executable-pack-graph
+      enforce_evidence: "bin/pytest loop/tests/test_pack_graph_doctor.py loop/tests/test_mb_load_session.py loop/tests/test_doctor_workflow_pack.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+      result: pass
+      notes: "All 52 tests pass"
+
+blocked_reason: ""

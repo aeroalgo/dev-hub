@@ -28,6 +28,16 @@ class WorkflowPackRegistry(BaseModel):
     packs: Dict[str, WorkflowPack]
 
 
+class CommandRoute(BaseModel):
+    """Result of routing a raw command against a workflow pack."""
+    model_config = ConfigDict(extra="forbid")
+
+    ok: bool = True
+    normalized_phase: str
+    rules_mdc_rel: Optional[str] = None
+    diagnostic_codes: List[str] = Field(default_factory=list)
+
+
 class PackResolveResult(BaseModel):
     """Result of workflow pack resolution."""
     model_config = ConfigDict(extra="forbid")
