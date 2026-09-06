@@ -11,10 +11,14 @@ alwaysApply: false
 Один файл, **две** секции: `## Epic` и `## Covering`. Файл **начинается с `## Epic`**.
 REPLAN читает **Epic**. Нет файла / нет `## Epic` / пустой dump чата → `NEED_HUMAN: outcome_prompt_missing`.
 
-**FORBIDDEN в `prompt.md` целиком (шапка, Epic, Covering):**
-- ID эпиков (`T-HUB-*`, `T-xxx`, номера соседей)
+`prompt.md` **обезличен полностью** — без идентичности эпика. Cut / ID / Role / Deps / batch живут в `roadmap/queue.yaml` и шапке **`plan.md`**.
+
+**FORBIDDEN в `prompt.md` целиком (H1, шапка, Epic, Covering):**
+- H1 `# Outcome prompt` / `# … — T-HUB-*` / любой заголовок до `## Epic`
+- ID эпиков (`T-HUB-*`, `T-xxx`, «057», «unlocks 053», номера соседей)
 - пути `plan/<id>/` / «читай соседний plan»
-- Role / Deps / batch / Source как YAML-шапка над секциями
+- Role / L-level / Deps / batch / Source как шапка над секциями
+- мета этого workflow («один файл, две секции», «REPLAN читает Epic»)
 - `roadmap/prompt-*.md` / отдельный batch-файл
 
 Cut с ID живёт в `roadmap/queue.yaml` и шапке **`plan.md`**, не в prompt.
@@ -47,7 +51,7 @@ Cut с ID живёт в `roadmap/queue.yaml` и шапке **`plan.md`**, не �
 
 **Объём Epic:** ~15–25 строк. **Covering:** тот же порядок величины, не сумма N plan.md.
 **Язык:** RU.
-**FORBIDDEN во всём `prompt.md`:** `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps·Source над `## Epic`. Агент не читает чужие plan. Cut с ID — в `roadmap/queue.yaml` и шапке `plan.md`.
+**FORBIDDEN во всём `prompt.md`:** H1 `# Outcome prompt` / любой текст до `## Epic` / `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps·Source. Агент не читает чужие `plan/`. Cut с ID — в `roadmap/queue.yaml` и шапке `plan.md`.
 
 ---
 
@@ -82,8 +86,8 @@ FINISH без файла или без `## Epic` → **FAIL**.
 **FAIL:** нет `## Covering` при ≥2 эпиках.
 **FAIL:** Covering разный между эпиками одной нарезки.
 **FAIL:** Epic = copy-paste соседа / = Covering без среза.
-**FAIL:** в `prompt.md` есть ID эпиков / пути чужих plan / шапка Role·Deps·Source над `## Epic`.
-**FAIL:** агент по prompt читает соседние `plan/`.
+**FAIL:** в `prompt.md` есть H1 / шапка Role·Deps·Source / ID эпиков / пути чужих plan (файл не начинается с `## Epic`).
+**FAIL:** агент по prompt читает соседние `plan/` (sibling dirs) — Covering/Out/Axes не из чужих plan.md.
 **FAIL:** отдельный `roadmap/prompt-*.md`.
 
 ---
@@ -101,13 +105,15 @@ FINISH без файла или без `## Epic` → **FAIL**.
 
 ```text
 test -f memory-bank/{role}/plan/<epic_id>/md/prompt.md
+# первая непустая строка = ## Epic
 rg -n '^## (Epic|Covering)$' …/md/prompt.md
-# файл должен начинаться с ## Epic (нет шапки Role/Deps/T-HUB)
+rg -n '^(# Outcome prompt|# .*T-HUB-|\\*\\*(Role|Source|Deps):)' …/md/prompt.md
+# любое совпадение → FAIL
 ```
 
 Нет обеих секций / файл не начинается с `## Epic` → FAIL.
 Covering пустой при multi-epic → FAIL.
-В файле есть `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps → FAIL.
+В файле есть H1 / `T-HUB-*` / ID соседних эпиков / пути `plan/<id>/` / шапка Role·Deps → FAIL.
 Читать соседние `plan/` из-за prompt → FAIL.
 Chat decisions пустой без `n/a` → FAIL.
 Epic < ~10 строк без границ → переписать, не FINISH.

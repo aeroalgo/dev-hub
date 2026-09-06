@@ -1,0 +1,125 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "Kind I — rewrite OFF/REFLECT tests and comments; keep spawn-hard ON"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Instruction surfaces и obsolete tests больше не требуют DECOMPOSE verify OFF
+  или QA→REFLECT. spawn-hard.md остаётся требовать verify-decompose (не ослаблять).
+  rg forbidden strings в user-prompt.py = 0 (TM-007). Живых тестов, assert'ящих
+  старый overlay-контракт, нет (AC−4).
+
+plan_contract:
+  fr_ids: [FR-007, FR-008, FR-013, US-003, SC-004, AC+5, AC−4, NFR-4, TM-007, Failure-TM-008]
+  nouns:
+    - Kind I instruction surfaces
+    - harness/hooks/user-prompt.py comments
+    - harness/hooks/tests
+    - .claude/instructions/spawn-hard.md
+    - REFLECT обязател
+    - verify/reviewer OFF
+    - promote DECOMPOSE→IMPLEMENT
+  layout_paths:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+    - .claude/instructions/spawn-hard.md
+  ac_quotes:
+    - "Kind I rewrite: any comment/test expecting DECOMPOSE verify OFF or QA→REFLECT — delete/rewrite in-epic. Search: REFLECT обязател, verify/reviewer OFF, promote DECOMPOSE→IMPLEMENT."
+    - "spawn-hard.md already requires verify-decompose — keep. Do not weaken spawn-hard to match old overlay."
+    - "Kind I: rg по запрещённым строкам в harness/hooks/user-prompt.py = 0."
+    - "Нет живых тестов, assert’ящих verify OFF на DECOMPOSE или QA→REFLECT."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:107-114"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:241-247"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:251-258"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:280-281"
+
+context:
+  consumes:
+    - s02 overlay strings deleted from prod emit
+    - s04 stop-gate REFLECT messages
+    - plan §Replacement I
+    - spawn-hard.md verify-decompose ON (keep)
+  produces:
+    - rewritten tests that no longer assert OFF/REFLECT overlay
+    - comments in user-prompt.py aligned to registry
+    - evidence rg TM-007 = 0 on user-prompt.py
+    - spawn-hard still requires verify-decompose
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#functional-requirements
+    - plan.md#nfr
+  files:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+    - harness/hooks/stop-gate.py
+    - .claude/instructions/spawn-hard.md
+
+as_built:
+  - "spawn-hard.md already lists verify-decompose as DECOMPOSE pre-FINISH required — keep"
+  - "test_mb_finish_qa.py docstring still says finish_qa → mode=REFLECT / REFLECT handoff (T-HUB-060 leftover in tests; rewrite if they encode overlay-as-required-next, not finish_qa product — 074 owns finish_qa yaml)"
+  - "user-prompt comments after s02 should already be gone; this step hunts leftovers in comments/tests"
+  - "workflow-qa mdc outside hooks = Appetite cut"
+
+delta:
+  - "rg Kind I patterns in harness/hooks/** and rewrite comments/tests that teach OFF/REFLECT overlay"
+  - "rewrite test_mb_finish_qa.py assertions/docstrings only if they require overlay REFLECT as UserPromptSubmit next; do not rewrite finish_qa engine (074)"
+  - "confirm spawn-hard.md still requires @verify-decompose; FORBIDDEN weaken"
+  - "do not edit .cursor/rules/** unless listed here (not listed — Appetite cut)"
+
+deletes:
+  - "comments/tests encoding 'verify/reviewer OFF' or 'promote DECOMPOSE→IMPLEMENT' or 'REFLECT обязател' as current overlay contract"
+  - "harness/hooks/tests cases that assert need_verify False for armed DECOMPOSE or additionalContext contains REFLECT as QA next"
+
+sunset_scope:
+  required: true
+  boundary_id: overlay-kind-i-instructions
+  new_sot: loop/schemas/phase_registry.yaml
+  allow_read:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/tests/**
+    - .claude/instructions/spawn-hard.md
+  kind_hint:
+    - I
+    - A
+
+out_of_scope:
+  - "full leftover inventory + dual-path purge (s06)"
+  - "rewrite all workflow-qa mdc REFLECT outside hooks — Appetite cut_list"
+  - "finish_qa re-QA yaml — follow_up: T-HUB-074-qa-bugfix-lifecycle-rearm"
+  - "T-HUB-060 tests importing finish_reflect unless they encode overlay strings (plan QA regression notes)"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: TM-007 Kind I rg user-prompt.py forbidden strings = 0 hits
+    verify: "rg -n 'REFLECT|verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT' harness/hooks/user-prompt.py; test $? -eq 1"
+  - id: cp2
+    criterion: spawn-hard.md still requires verify-decompose for DECOMPOSE (FR-008 Failure TM-008)
+    verify: "rg -n 'verify-decompose' .claude/instructions/spawn-hard.md"
+  - id: cp3
+    criterion: No live tests asserting DECOMPOSE verify OFF or QA overlay → REFLECT as required next (AC−4)
+    verify: "rg -n 'need_verify.*=.*False|Handoff → REFLECT' harness/hooks/tests/test_user_prompt_overlay.py; test $? -eq 1"
+  - id: cp4
+    criterion: Overlay tests green on new contract; US-003 no promote IMPLEMENT string
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line"
+
+verify:
+  - "rg -n 'REFLECT|verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT' harness/hooks/user-prompt.py; test $? -eq 1"
+  - "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line"
+tdd:
+  - "rewrite obsolete overlay asserts; keep spawn-hard ON"

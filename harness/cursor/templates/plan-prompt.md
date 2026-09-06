@@ -1,5 +1,7 @@
 ## Epic
 
+Первая непустая строка файла — эта. **FORBIDDEN:** `# Outcome prompt`, шапка Role/Deps/Source/batch, ID эпиков, пути `plan/`. Не читать соседние `plan/`.
+
 Outcome, In, Out, Done when, Forbidden after, Chat decisions **этого** эпика. Абстрактнее `plan.md`. Не FR/AC ids, не имена файлов, не патчи, не ID эпиков.
 
 ### Outcome

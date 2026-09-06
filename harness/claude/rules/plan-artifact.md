@@ -68,12 +68,12 @@ If scope is portal/journey / file is `plan-INTEG-*`:
 - **REQUIRED** на каждый эпик вместе с `plan.md`. FINISH PLAN без файла / без `## Epic` → FAIL
 - Две секции: `## Epic` (срез эпика) + `## Covering` (single = `n/a`; multi = один текст на всю нарезку)
 - Абстрактный outcome, **не** HOW, **не** FR/AC ids, **не** transcript dump, **не** `roadmap/prompt-*.md`
-- Файл начинается с `## Epic` (нет шапки Role/Deps/Source/ID). **FORBIDDEN** во всём файле: ID эпиков, пути чужих `plan/`. Читать соседние plan из-за prompt — FAIL
+- Файл начинается с `## Epic` (нет H1 `# Outcome prompt`, нет шапки Role/Deps/Source/ID). **FORBIDDEN** во всём файле: ID эпиков, пути чужих `plan/`. Читать соседние `plan/` из-за prompt — FAIL
 - Prompt **не** раздувать до plan: Epic ~15–25 строк; telegraph-заглушка без границ → FAIL
 
 ## After Write
 
 Run `wc -l` on the plan file. If under acceptance bar → expand before FINISH. Do not declare done.
-Confirm `md/prompt.md` starts with `## Epic`, has `## Covering`, and contains no epic IDs / no `plan/<id>/` paths.
+Confirm `md/prompt.md` starts with `## Epic` (no `# Outcome prompt` / Role·Deps header), has `## Covering`, and contains no epic IDs / no `plan/<id>/` paths. Do not read sibling `plan/` to write Covering.
 For architecture shards: verify mermaid blocks exist before FINISH.
 For decompose: verify Requirements coverage + Stages coverage + Outcome map + Replacement cleanup exist and have no empty requirement / orphan-replace rows before FINISH.

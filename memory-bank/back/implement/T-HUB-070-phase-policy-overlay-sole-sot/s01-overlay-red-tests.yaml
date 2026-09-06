@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s01 — Red tests — armed DECOMPOSE need_verify true; QA FINISH without REFLECT
+status: in_progress
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s01-overlay-red-tests.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added harness/hooks/tests/test_user_prompt_overlay.py covering US-001/US-002/TM-001/TM-002
+- Verified test fails on as-built overlay behavior (TDD red confirmed)
+files:
+- harness/hooks/tests/test_user_prompt_overlay.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line
+integration_check:
+- hook behavior verified against UserPromptSubmit state and additionalContext
+grep_control: []
+verification_results:
+- check: cp1
+  result: pass
+  evidence: 'pytest xfailed as expected: as-built need_verify=False and forbidden verify/reviewer OFF or promote DECOMPOSE→IMPLEMENT context'
+- check: cp2
+  result: pass
+  evidence: 'pytest xfailed as expected: as-built QA FINISH context contains forbidden Handoff → REFLECT'
+- check: cp3
+  result: pass
+  evidence: 'rg confirmed assertions test hook state st and additionalContext behavior'
+- check: cp4
+  result: pass
+  evidence: 'rg confirmed user-prompt.py overlay lines 156 and 170 remain untouched in s01'
+checkpoints:
+- id: cp1
+  criterion: 'US-001 red — armed DECOMPOSE + prompt BACK DECOMPOSE: test asserts need_verify
+    is True
+
+    and additionalContext does not contain verify/reviewer OFF or promote DECOMPOSE→IMPLEMENT.
+
+    As-built must FAIL this test (TDD red).
+
+    '
+  status: done
+- id: cp2
+  criterion: 'US-002 red — mode=qa + FINISH: additionalContext may mention reviewer/Handoff
+    but must not
+
+    contain REFLECT as next. As-built L156 must FAIL this test.
+
+    '
+  status: done
+- id: cp3
+  criterion: Independent Test is hook behavior (st + additionalContext), not yaml-field-exists
+    surrogate
+  status: done
+- id: cp4
+  criterion: Prod overlay blocks still present (this step does not delete) — red is
+    expected until s02
+  status: done
+resume_from: null

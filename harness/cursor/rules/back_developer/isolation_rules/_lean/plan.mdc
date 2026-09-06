@@ -38,5 +38,5 @@ alwaysApply: false
 - Phase 0 halt (ожидается Q / CRITICAL) → не начинать Phase 1; standalone `continue * CLARIFY` или дождаться ответа
 - Блокирующие неясности после spike skip → mini grill в PLAN §Product probe или `continue * CLARIFY`
 - Нет `md/prompt.md` / файл не начинается с `## Epic` / Chat decisions пустой без `n/a` → halt
-- В `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
+- В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps / пути чужих plan → halt
 - Агент читает соседние `plan/` из-за prompt → halt

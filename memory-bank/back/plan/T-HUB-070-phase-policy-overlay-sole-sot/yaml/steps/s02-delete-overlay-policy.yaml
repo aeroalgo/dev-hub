@@ -1,0 +1,125 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "Delete overlay DECOMPOSE OFF + QA→REFLECT; projection = gates_from_phase only"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Overlay больше не второй SoT фазы. При projection_authoritative — только gates_from_phase.
+  QA FINISH inject без REFLECT; armed DECOMPOSE не OFF и не promote IMPLEMENT.
+  Regex path для IDE остаётся, но не воскрешает REFLECT и не special-case DECOMPOSE OFF.
+  Independent Test FAIL: «удалили комментарий» / «projection_authoritative уже есть» без удаления L164–172.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-005, FR-006, FR-009, FR-012, FR-015, US-001, US-002, US-003, US-005, SC-001, SC-002, SC-004, AC+1, AC+2, AC−1, AC−2, AC−3, AC−5, NFR-1, NFR-2, TM-001, TM-002, TM-005]
+  nouns:
+    - harness/hooks/user-prompt.py
+    - gates_from_phase
+    - projection_authoritative
+    - QA FINISH additionalContext
+    - armed_step DECOMPOSE override
+    - regex QA_RE / FINISH_RE
+  layout_paths:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+  ac_quotes:
+    - "Delete armed_step==\"DECOMPOSE\" override block in user-prompt.py (L159–172 as-built). No equivalent «docs-only» branch."
+    - "Delete QA FINISH → REFLECT string. Replace with registry-true next: QA → BUGFIX/DONE (prose may say mb-finish qa; not REFLECT)."
+    - "Overlay when projection_authoritative: only apply gates_from_phase; never a second policy table in Python."
+    - "FAIL: «удалили комментарий» / «projection_authoritative уже есть» без удаления L164–172."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:35-48"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:100-116"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:143-158"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:331-334"
+
+context:
+  consumes:
+    - s01 red tests
+    - plan §Technology axiom · §FR-001/002/005/006
+    - user-prompt.py L93–172
+  produces:
+    - user-prompt.py without DECOMPOSE OFF block and without QA→REFLECT
+    - green US-001/US-002/US-003/TM-005 on hook emit
+    - regex path still runs when not projection_authoritative
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#independent-test
+  files:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+
+as_built:
+  - "projection_authoritative sets mode/need_verify/need_reviewer from gates_from_phase (L93–100)"
+  - "then L149–157 still injects REFLECT on QA FINISH regardless of registry"
+  - "then L159–172 overwrites need_verify=False when armed DECOMPOSE even after projection"
+  - "regex QA_RE/IMPL_RE/BUGFIX_RE/FINISH_RE used only when not projection_authoritative"
+
+delta:
+  - "delete L159–172 DECOMPOSE override entirely (not wrap with if registry)"
+  - "replace QA FINISH sentence: reviewer + mb-finish qa / BUGFIX/DONE; no REFLECT substring as next"
+  - "when projection_authoritative: do not apply a second Python policy table; gates_from_phase already applied"
+  - "keep regex path for IDE; must not mention REFLECT; must not special-case DECOMPOSE OFF"
+  - "optional P1: overlay_regex_mode diagnostic / increment existing regex-fallback counter — only if already exists, do not invent mega module"
+  - "no PROJECT_LOOP_DECOMPOSE_VERIFY flag"
+  - "do not rewrite finish_decompose (FR-009 out)"
+
+deletes:
+  - "harness/hooks/user-prompt.py armed_step==DECOMPOSE override (need_verify=False, verify/reviewer OFF, promote DECOMPOSE→IMPLEMENT)"
+  - "harness/hooks/user-prompt.py string 'Handoff → REFLECT.'"
+
+sunset_scope:
+  required: true
+  boundary_id: user-prompt-overlay-policy
+  new_sot: loop/schemas/phase_registry.yaml
+  allow_read:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+  kind_hint:
+    - A
+    - I
+
+out_of_scope:
+  - "registry yaml need_verify value (s03)"
+  - "stop-gate DECOMPOSE special-case (s04)"
+  - "Kind I spawn-hard keep (s05)"
+  - "full leftover inventory scan (s06)"
+  - "finish_decompose rewrite — FR-009; leftover prepare→IMPLEMENT is 074/transition"
+  - "identity halt overlay QA-ит armed — follow_up: T-HUB-071-session-identity-lock"
+  - "generate overlay from AST — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: DECOMPOSE override block gone; no equivalent docs-only branch (FR-001 Independent Test FAIL path)
+    verify: "rg -n 'verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT|armed_step=DECOMPOSE' harness/hooks/user-prompt.py; test $? -eq 1"
+  - id: cp2
+    criterion: QA FINISH inject has no REFLECT as next; may mention reviewer / mb-finish qa / BUGFIX/DONE (FR-002 US-002)
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k 'reflect or qa_finish'"
+  - id: cp3
+    criterion: US-001 green — armed DECOMPOSE need_verify True, need_reviewer False, no OFF/promote strings
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k decompose"
+  - id: cp4
+    criterion: |
+      Wire+enforce on overlay boundary: projection_authoritative path does not re-table policy;
+      regex path (not authoritative) does not resurrect REFLECT or DECOMPOSE OFF (FR-005/006 TM-005).
+      No second Python phase table; hook stays thin (NFR-1/2).
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k regex; wc -l harness/hooks/user-prompt.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line"
+tdd:
+  - "green s01 tests after overlay delete"
+  - "add TM-005 regex FINISH QA no REFLECT"

@@ -31,3 +31,5 @@ alwaysApply: false
 ## Abort
 
 - Блокеры scope → grill-me
+- Нет `md/prompt.md` / файл не начинается с `## Epic` / есть H1 `# Outcome prompt` / шапка Role·Deps / ID эпиков / пути чужих plan → halt
+- Агент читает соседние `plan/` из-за prompt → halt

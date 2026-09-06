@@ -1,0 +1,117 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "Stop-gate honor DECOMPOSE need_verify; delete docs-only special-case"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Stop-gate не пропускает docs-only DECOMPOSE FINISH. Special-case
+  `armed_step==DECOMPOSE → need_verify=False` удалён; honor registry/spawn need_verify.
+  verify-decompose VERDICT: PASS before FINISH остаётся. QA FINISH hook messages
+  не учат REFLECT как next (hooks in-scope FR-013).
+
+plan_contract:
+  fr_ids: [FR-014, FR-013, US-001, SC-005, AC+1, TM-004, Failure-TM-004]
+  nouns:
+    - harness/hooks/stop-gate.py
+    - need_verify
+    - verify-decompose
+    - DECOMPOSE FINISH
+    - loop/tests/test_stop_gate.py
+  layout_paths:
+    - harness/hooks/stop-gate.py
+    - loop/tests/test_stop_gate.py
+  ac_quotes:
+    - "Stop-gate must honor DECOMPOSE need_verify after registry align. If stop-gate special-cases docs-only DECOMPOSE — delete that special case in this epic (wire-complete)."
+    - "SC-005 stop-gate DECOMPOSE requires verify sidecar if need_verify"
+    - "spawn-gate: DECOMPOSE phase requires verify-decompose VERDICT: PASS before FINISH."
+    - "Broader workflow-qa REFLECT leftovers that 060 missed in hooks are in-scope"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:114-115"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:179-205"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:271-278"
+
+context:
+  consumes:
+    - s02 overlay no longer forces OFF
+    - s03 registry need_verify true
+    - stop-gate.py L308–329 DECOMPOSE force False then optional verify-decompose check
+    - stop-gate.py L394–416 QA FINISH REFLECT messages
+  produces:
+    - stop-gate without DECOMPOSE need_verify=False override
+    - FINISH DECOMPOSE blocked without verify-decompose PASS when need_verify
+    - QA finish error text without REFLECT-as-next (DONE/BUGFIX)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#eng-review-spine
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/stop-gate.py
+    - loop/tests/test_stop_gate.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+
+as_built:
+  - "stop-gate.py L311–313: if armed_step_u == DECOMPOSE: st[need_verify]=False then save_state"
+  - "L315–329 still checks verify-decompose VERDICT if agent enabled — dual: spawn need_verify OFF but semantic check ON"
+  - "L406–416 QA FINISH errors say pass → Handoff BACK REFLECT"
+  - "loop/tests/test_stop_gate.py exists; no TM-004 DECOMPOSE need_verify honor case"
+
+delta:
+  - "delete DECOMPOSE special-case that sets need_verify False; honor spawn/registry need_verify from overlay/gates"
+  - "keep fail-closed verify-decompose VERDICT PASS before FINISH (wire-complete enforce)"
+  - "rewrite QA FINISH block messages: pass → DONE / mb-finish qa; blocked → BUGFIX; no REFLECT as required next"
+  - "pytest: DECOMPOSE FINISH without verify sidecar/verdict → block (TM-004 SC-005)"
+  - "do not rewrite .cursor/rules workflow-qa (Appetite cut)"
+
+deletes:
+  - "harness/hooks/stop-gate.py armed_step_u == DECOMPOSE: st['need_verify'] = False"
+  - "harness/hooks/stop-gate.py strings 'pass → ## Handoff BACK REFLECT' and 'pass→REFLECT' as required next"
+
+sunset_scope:
+  required: true
+  boundary_id: stop-gate-decompose-need-verify
+  new_sot: loop/schemas/phase_registry.yaml
+  allow_read:
+    - harness/hooks/stop-gate.py
+    - loop/tests/test_stop_gate.py
+  kind_hint:
+    - A
+    - C
+    - I
+
+out_of_scope:
+  - "Kind I spawn-hard keep / user-prompt comments leftover scan (s05/s06)"
+  - "rewrite all workflow-qa mdc — Appetite cut_list; follow FR-013 rules only if later shard lists them (this shard does not)"
+  - "finish_qa yaml re-arm — follow_up: T-HUB-074-qa-bugfix-lifecycle-rearm"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: No DECOMPOSE branch that assigns need_verify False in stop-gate.py (FR-014)
+    verify: "rg -n 'armed_step_u == \"DECOMPOSE\"' -A6 harness/hooks/stop-gate.py | rg 'need_verify.*=.*False'; test $? -eq 1"
+  - id: cp2
+    criterion: DECOMPOSE FINISH without verify-decompose PASS still HALT when gate active (SC-005 TM-004)
+    verify: "bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k decompose"
+  - id: cp3
+    criterion: QA FINISH stop-gate messages do not require REFLECT as next (FR-013 hooks)
+    verify: "rg -n 'Handoff BACK REFLECT|pass→REFLECT' harness/hooks/stop-gate.py; test $? -eq 1"
+  - id: cp4
+    criterion: Enforce — docs-only DECOMPOSE FINISH cannot succeed; verify sidecar required
+    verify: "bin/pytest loop/tests/test_stop_gate.py harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k 'decompose or need_verify'"
+
+verify:
+  - "bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k decompose"
+tdd:
+  - "red: stop-gate DECOMPOSE FINISH without verdict currently may skip via need_verify False"
+  - "green after special-case delete + honor need_verify"

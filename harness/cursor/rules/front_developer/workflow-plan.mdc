@@ -51,4 +51,4 @@ alwaysApply: false
 7c. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 8. Next: L2+ → **FRONT DECOMPOSE** `queue[0]`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `FRONT ROADMAP MERGE`
 
-**Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `roadmap/queue.yaml` при ≥2 → FAIL) + `md/prompt.md` (начинается с `## Epic`; без ID / без шапки Role·Deps; без файла → FAIL)
+**Верификация**: gates + AC + E2E в плане + CREATIVE need + multi-epic FAIL-checks (если research; без `roadmap/queue.yaml` при ≥2 → FAIL) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без ID / без шапки Role·Deps; без чтения соседних plan; без файла → FAIL)

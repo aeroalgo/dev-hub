@@ -1,0 +1,135 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+slug: phase-policy-overlay-sole-sot
+date: "2026-09-06"
+status: complete
+
+findings:
+  - id: A1
+    severity: MEDIUM
+    category: Underspecification
+    message: "New test file harness/hooks/tests/test_user_prompt_overlay.py does not exist yet (created in s01 as TDD red)"
+    plan_ref: "plan.md#target-layout"
+    step_ref: s01
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Delete overlay armed_step==\"DECOMPOSE\" override block (L159–172)."
+  - requirement_id: FR-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Delete overlay mode==\"qa\" + FINISH_RE → Handoff → REFLECT block (L149–157)."
+  - requirement_id: FR-003
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/schemas/phase_registry.yaml: DECOMPOSE phase need_verify: true, verify_agent: verify-decompose."
+  - requirement_id: FR-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/schemas/phase_registry.yaml: QA phase verify_agent: reviewer, need_reviewer: true, need_verify: false."
+  - requirement_id: FR-005
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Projection authoritative (projection_authoritative=True) emits ONLY gates_from_phase."
+  - requirement_id: FR-006
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Projection regex fallback (projection_authoritative=False) uses regex only to detect mode."
+  - requirement_id: FR-007
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "harness/hooks/stop-gate.py: honor need_verify for DECOMPOSE phase via get_phase_config / gates_from_phase."
+  - requirement_id: FR-008
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: ".claude/instructions/spawn-hard.md and spawn-gate text: verify QA FINISH instruction aligns with DONE/BUGFIX."
+  - requirement_id: FR-009
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "All in-scope hook files and spawn texts: delete any remaining mentions of QA → REFLECT or DECOMPOSE OFF."
+  - requirement_id: FR-010
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Unit tests: test_user_prompt_overlay.py testing all combinations of projection vs regex."
+  - requirement_id: FR-011
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Do not add a second phase_policy.py mega-module (Appetite: thin adapter)."
+  - requirement_id: FR-012
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Preserve spawn-hard active agents table: verify-decompose and reviewer remain in active agents list."
+  - requirement_id: FR-013
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "No resurrection of REFLECT anywhere in hooks, instructions, or templates in scope."
+  - requirement_id: FR-014
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Stop-gate validation: when phase=DECOMPOSE and need_verify=true, verify-decompose VERDICT: PASS required before FINISH."
+  - requirement_id: FR-015
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Clean cutover: delete obsolete code paths completely; do not leave commented-out blocks."
+  - requirement_id: NFR-1
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Sole SoT: loop/schemas/phase_registry.yaml is the single source of truth for phase gates."
+  - requirement_id: NFR-2
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Zero duplication: no secondary gate policy dictionaries in Python code."
+  - requirement_id: NFR-3
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Fail-closed: missing registry phase ≠ silent OFF"
+  - requirement_id: US-001
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "As an autonomous loop runner during DECOMPOSE phase, I want spawn-gate overlay to require verify-decompose"
+  - requirement_id: US-002
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "As a loop runner finishing QA phase, I want the overlay to guide toward DONE or BUGFIX (not REFLECT)"
+  - requirement_id: US-003
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "As an operator running in an IDE session (no projection), I want regex fallback to use gates_from_phase"
+  - requirement_id: US-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "As a quality gate, I want stop-gate to enforce verify-decompose on DECOMPOSE phase finish"
+  - requirement_id: US-005
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "As a developer reading hook code, I want zero conflicting instructions between overlay comments and registry"
+  - requirement_id: layout:harness/hooks/user-prompt.py
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "harness/hooks/user-prompt.py — delete overlay overrides L149–172, use gates_from_phase exclusively"
+  - requirement_id: layout:loop/schemas/phase_registry.yaml
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/schemas/phase_registry.yaml — align DECOMPOSE need_verify: true, verify_agent: verify-decompose"
+  - requirement_id: layout:harness/hooks/stop-gate.py
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "harness/hooks/stop-gate.py — align DECOMPOSE gate check with registry need_verify"
+  - requirement_id: layout:harness/hooks/tests/test_user_prompt_overlay.py
+    step_ids: [s01, s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "harness/hooks/tests/test_user_prompt_overlay.py — unit tests for overlay behavior and phase gate resolution"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 1
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

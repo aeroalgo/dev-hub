@@ -32,7 +32,9 @@ FINAL OUTCOME REVIEW
 
 1. Загрузить секцию `## Epic` из `memory-bank/{role}/plan/<epic_id>/md/prompt.md`
    (иммутабелен; не Covering, не plan.md HOW, не Handoff). Нет файла / нет Epic /
-   пустой dump → `NEED_HUMAN: outcome_prompt_missing`. Канон: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
+   пустой dump / файл не начинается с `## Epic` → `NEED_HUMAN: outcome_prompt_missing`.
+   **FORBIDDEN:** читать соседние `plan/` из-за prompt (Covering/deps/ID живут в queue + шапке **этого** `plan.md`).
+   Канон: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc.
 2. Исследовать фактический код и сценарии outcome. Не считать прежний plan,
    completed shard, существующий файл или зелёный QA evidence доказательством
    достижения outcome.

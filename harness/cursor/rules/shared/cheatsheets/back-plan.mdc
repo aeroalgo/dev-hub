@@ -7,7 +7,7 @@ alwaysApply: false
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
 2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
 3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `#qa-consumes` ≥3 TM → Review readiness (no pending Required)
-3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc
+3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc
 3a. **Independent Test = behavior** (не alias/get_*/yaml field) — @.cursor/rules/shared/workflow-behavior-first.mdc §5
 4. Multi-epic? → апсерт `roadmap/queue.yaml` + N plans + N `prompt.md` (`## Covering` один текст, оси без ID; без roadmap md / без `roadmap/prompt-*`)
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)

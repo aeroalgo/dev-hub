@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "Red tests — armed DECOMPOSE need_verify true; QA FINISH without REFLECT"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red: Independent Test видит ложь overlay до удаления кода.
+  Fixture armed DECOMPOSE → need_verify True и context без verify OFF / promote IMPLEMENT.
+  Fixture QA FINISH → additionalContext без REFLECT как next.
+  Outcome: CI падает на as-built L156/L164–172, не на «yaml field exists».
+
+plan_contract:
+  fr_ids: [FR-010, US-001, US-002, SC-001, SC-002, AC+1, AC+2, AC+4, AC−4, TM-001, TM-002, Independent Test]
+  nouns:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+    - need_verify
+    - additionalContext
+    - REFLECT
+    - verify/reviewer OFF
+    - promote DECOMPOSE→IMPLEMENT
+  layout_paths:
+    - harness/hooks/tests/test_user_prompt_overlay.py
+  ac_quotes:
+    - "Given: epic loop env, load_epic_state armed_step=DECOMPOSE, projection.phase=DECOMPOSE"
+    - "Then: st[\"need_verify\"] is True; additionalContext не match verify/reviewer OFF; не match promote DECOMPOSE→IMPLEMENT"
+    - "Then: additionalContext не содержит REFLECT как обязательный next"
+    - "Independent Test = behavior of hook+registry, не «yaml field exists» alone"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:52-99"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:143-158"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:271-282"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:331-334"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/002 Given/When/Then
+    - plan.md §AC+1/2/4 §FR-010
+    - as-built harness/hooks/user-prompt.py L149–172 (sunset inventory, not template)
+  produces:
+    - harness/hooks/tests/test_user_prompt_overlay.py (red)
+    - failing pytest TM-001 / TM-002 on as-built overlay
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#acceptance-scenarios--us-001
+    - plan.md#ac
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/tests/test_user_prompt_overlay.py
+
+as_built:
+  - "harness/hooks/user-prompt.py L149–157: FINISH_RE + mode==qa injects Handoff → REFLECT"
+  - "same file L159–172: armed_step==DECOMPOSE forces need_verify=False, need_reviewer=False, text verify/reviewer OFF + promote DECOMPOSE→IMPLEMENT"
+  - "no test_user_prompt_overlay.py covering US-001/US-002 behavior"
+  - "projection_authoritative already sets gates_from_phase then overlay override overwrites"
+
+delta:
+  - "add harness/hooks/tests/test_user_prompt_overlay.py with US-001/US-002 fixtures (TDD red)"
+  - "do not yet delete overlay blocks (s02) or change registry (s03)"
+  - "tests must invoke user-prompt.main() / emit additionalContext, not assert yaml text only"
+
+deletes: []
+
+out_of_scope:
+  - "delete overlay blocks (s02)"
+  - "phase_registry.yaml need_verify (s03)"
+  - "stop-gate special-case (s04)"
+  - "Kind I spawn-hard / comments (s05)"
+  - "legacy-fallback-purge (s06)"
+  - "identity COMMAND lock — follow_up: T-HUB-071-session-identity-lock"
+  - "duplicate hooks — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001 red — armed DECOMPOSE + prompt BACK DECOMPOSE: test asserts need_verify is True
+      and additionalContext does not contain verify/reviewer OFF or promote DECOMPOSE→IMPLEMENT.
+      As-built must FAIL this test (TDD red).
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k decompose"
+  - id: cp2
+    criterion: |
+      US-002 red — mode=qa + FINISH: additionalContext may mention reviewer/Handoff but must not
+      contain REFLECT as next. As-built L156 must FAIL this test.
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k reflect"
+  - id: cp3
+    criterion: Independent Test is hook behavior (st + additionalContext), not yaml-field-exists surrogate
+    verify: "rg -n 'need_verify is True|REFLECT|verify/reviewer OFF' harness/hooks/tests/test_user_prompt_overlay.py"
+  - id: cp4
+    criterion: Prod overlay blocks still present (this step does not delete) — red is expected until s02
+    verify: "rg -n 'verify/reviewer OFF|Handoff → REFLECT' harness/hooks/user-prompt.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line"
+tdd:
+  - "red: test_user_prompt_overlay.py US-001/US-002 fail on as-built overlay"
+  - "green: s02 after overlay delete"

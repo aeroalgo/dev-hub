@@ -17,8 +17,8 @@ alwaysApply: false
 
 ## Abort
 
-- Нет `md/prompt.md` / нет `## Epic` / пустой prompt или QA PASS отсутствует → reject.
-- В `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → FAIL.
+- Нет `md/prompt.md` / нет `## Epic` / файл не начинается с `## Epic` / пустой prompt или QA PASS отсутствует → reject.
+- В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps / пути чужих plan → FAIL.
 - REPLAN читает Covering как SoT / читает соседние `plan/` из-за prompt → FAIL.
 - Прежний plan/shard использован как доказательство достижения outcome → FAIL.
 - Создана I4 или расширен scope исходного prompt → FAIL.

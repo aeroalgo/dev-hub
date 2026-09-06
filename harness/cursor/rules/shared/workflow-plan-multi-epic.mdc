@@ -81,8 +81,8 @@ alwaysApply: false
 - Один plan «оглавление всех P0–P3» без детальных AC
 - Нет `md/prompt.md` / нет `## Covering` / Covering разный между эпиками
 - Epic = copy-paste соседа / dump research / AC-нумерация plan
-- В `prompt.md` есть ID эпиков / шапка Role·Deps·Source / пути чужих plan
-- Агент читает соседние `plan/` из-за prompt
+- В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps·Source / пути чужих plan
+- Агент читает соседние `plan/` из-за prompt (Covering/Out/Axes не из чужих plan.md)
 - Создан `roadmap/prompt-*.md` (Covering только внутри `md/prompt.md`)
 
 ## Пример

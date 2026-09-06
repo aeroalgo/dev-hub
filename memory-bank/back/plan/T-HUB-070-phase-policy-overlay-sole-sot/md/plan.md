@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** `memory-bank/audit/loop-session-architecture-20260905.md` Variant A P0.1+P0.5; `claude-sessions-20260905-last15.md` §6; as-built `harness/hooks/user-prompt.py`
 
-→ decompose-index — **после DECOMPOSE**
+→ [decompose-index.md](decompose-index.md) · [decompose-index.yaml](../yaml/decompose-index.yaml) — status SoT = yaml; index = sole tracker (не дублировать чеклист шагов здесь).
 
 ---
 

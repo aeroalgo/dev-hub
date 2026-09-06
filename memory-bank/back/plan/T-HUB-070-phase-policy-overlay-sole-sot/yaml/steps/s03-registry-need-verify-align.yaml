@@ -1,0 +1,126 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "Align DECOMPOSE need_verify true; gates_from_phase behavior + fail-closed unknown"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Registry больше не врёт verify_agent. DECOMPOSE finish_gates / finish_gates_dict.need_verify = true
+  при verify_agent=verify-decompose; need_reviewer остаётся false.
+  gates_from_phase("DECOMPOSE") возвращает need_verify true (тест функции, не только yaml).
+  Unknown phase fail-closed с diagnostic, не silent default OFF. Нет mega phase_policy.py.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, FR-011, FR-015, US-004, SC-003, AC+3, AC−2, AC−5, AC−6, NFR-2, NFR-3, TM-003, TM-006, TM-008]
+  nouns:
+    - loop/schemas/phase_registry.yaml
+    - finish_gates_dict.need_verify
+    - verify_agent verify-decompose
+    - gates_from_phase
+    - get_phase_config
+  layout_paths:
+    - loop/schemas/phase_registry.yaml
+    - harness/hooks/epic/core.py
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+  ac_quotes:
+    - "Align phase_registry.yaml DECOMPOSE finish_gates + finish_gates_dict.need_verify: true. Keep need_reviewer: false. Keep verify_agent: verify-decompose."
+    - "gates_from_phase(\"DECOMPOSE\") returns need_verify: true after change; tests on this function, not only yaml text."
+    - "Misconfig registry (verify_agent set, need_verify false) → этот эпик чинит, не «документирует drift»."
+    - "Fail-closed: missing registry phase ≠ silent OFF"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:47-48"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:94-116"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:219-226"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:251-258"
+
+context:
+  consumes:
+    - s02 overlay no longer overwrites gates
+    - plan §Technology axiom wedge
+    - loop/schemas/phase_registry.yaml DECOMPOSE row
+    - harness/hooks/epic/core.py gates_from_phase
+  produces:
+    - DECOMPOSE need_verify true in finish_gates and finish_gates_dict
+    - pytest get_phase_config / gates_from_phase DECOMPOSE
+    - unknown-phase fail-closed test (not swallow to default_gates OFF)
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+  files:
+    - loop/schemas/phase_registry.yaml
+    - harness/hooks/epic/core.py
+    - loop/epic_transition.py
+    - loop/tests/test_epic_transition.py
+    - harness/hooks/tests/test_user_prompt_overlay.py
+
+as_built:
+  - "phase_registry.yaml DECOMPOSE: verify_agent verify-decompose AND finish_gates_dict.need_verify false (and finish_gates {})"
+  - "gates_from_phase returns dict(row.finish_gates_dict); unknown/unmatched → default_gates need_verify False (silent OFF)"
+  - "get_phase_config unknown raises (test_get_phase_config_unknown_fails_closed already exists)"
+  - "no phase_policy.py mega-module"
+
+delta:
+  - "set DECOMPOSE finish_gates.need_verify and finish_gates_dict.need_verify to true; keep need_reviewer false; keep verify_agent"
+  - "pytest: get_phase_config('DECOMPOSE') verify_agent and need_verify true (TM-003 US-004)"
+  - "pytest: gates_from_phase('DECOMPOSE')['need_verify'] is True (FR-004 TM-008) — not yaml-text-only"
+  - "unknown phase: fail-closed diagnostic, not silent default OFF for DECOMPOSE-shaped misconfig (NFR-3 TM-006). Do not add second Python phase table; optional thin overlay_gates wrapping gates_from_phase only if copy-paste otherwise"
+  - "no PROJECT_LOOP_DECOMPOSE_VERIFY default off"
+
+deletes:
+  - "loop/schemas/phase_registry.yaml DECOMPOSE finish_gates_dict.need_verify: false (replace value true)"
+  - "loop/schemas/phase_registry.yaml DECOMPOSE finish_gates empty/need_verify false if present (align true)"
+
+sunset_scope:
+  required: true
+  boundary_id: phase-registry-decompose-need-verify
+  new_sot: loop/schemas/phase_registry.yaml
+  allow_read:
+    - loop/schemas/phase_registry.yaml
+    - harness/hooks/epic/core.py
+    - loop/epic_transition.py
+  kind_hint:
+    - A
+    - C
+
+out_of_scope:
+  - "stop-gate special-case (s04)"
+  - "Kind I comments (s05)"
+  - "purge leftover (s06)"
+  - "other phases need_verify (PLAN/ANALYZE/CREATIVE) — not this epic"
+  - "mega phase_policy.py — Appetite / FR-011 FORBIDDEN"
+  - "generate overlay from AST — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: get_phase_config("DECOMPOSE") verify_agent==verify-decompose AND finish_gates_dict.need_verify is True (US-004 TM-003)
+    verify: "bin/pytest loop/tests/test_epic_transition.py -q --tb=line -k decompose_need_verify"
+  - id: cp2
+    criterion: gates_from_phase("DECOMPOSE") returns need_verify true — function behavior, not yaml grep alone (FR-004 TM-008)
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py loop/tests/test_epic_transition.py -q --tb=line -k gates_from_phase"
+  - id: cp3
+    criterion: unknown phase fail-closed diagnostic, not silent OFF (NFR-3 TM-006); no phase_policy.py
+    verify: "bin/pytest loop/tests/test_epic_transition.py -q --tb=line -k unknown; test ! -e harness/hooks/phase_policy.py"
+  - id: cp4
+    criterion: need_reviewer remains false; no PROJECT_LOOP_DECOMPOSE_VERIFY flag (FR-003/015)
+    verify: "rg -n 'PROJECT_LOOP_DECOMPOSE_VERIFY' loop/schemas/phase_registry.yaml harness/hooks/user-prompt.py harness/hooks/epic/core.py; test $? -eq 1"
+
+verify:
+  - "bin/pytest loop/tests/test_epic_transition.py harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k 'decompose or gates_from_phase or unknown'"
+tdd:
+  - "red: gates_from_phase DECOMPOSE need_verify true fails on as-built yaml"
+  - "green after yaml align + any fail-closed unknown-path fix"

@@ -1,0 +1,270 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: "s06 — legacy-fallback-purge — overlay dual-policy leftovers A+B+C+I"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по DECOMPOSE OFF override, QA→REFLECT inject, registry
+  need_verify false, stop-gate docs-only, overlay-wins-if-missing, forbidden Kind I
+  strings. Obsolete tests на старый overlay-контракт delete/rewrite; suite green
+  без restore legacy. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [AC−1, AC−2, AC−3, AC−4, AC−5, AC−6, Independent Test, NFR-1, NFR-4, Failure-TM-001, Failure-TM-002, Failure-TM-003, Failure-TM-004, Failure-TM-005]
+  nouns:
+    - leftover DECOMPOSE armed override
+    - leftover QA FINISH REFLECT
+    - leftover registry need_verify false
+    - leftover stop-gate need_verify False
+    - leftover docs-only DECOMPOSE
+    - leftover overlay-wins-if-registry-missing
+    - sunset_inventory A+B+C+I
+  layout_paths:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/stop-gate.py
+    - loop/schemas/phase_registry.yaml
+    - harness/hooks/tests/test_user_prompt_overlay.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_epic_transition.py
+  ac_quotes:
+    - "Нет dual policy: overlay vs registry на DECOMPOSE verify."
+    - "Нет «preferred registry but overlay wins if armed»."
+    - "Independent Test FAIL: «удалили комментарий» / «projection_authoritative уже есть» без удаления L164–172."
+    - "user-prompt.py DECOMPOSE armed override | gates_from_phase only | delete in-epic"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:152-158"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:217-247"
+    - "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md:331-334"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 already applied new SoT
+  produces:
+    - удалённые символы/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#ac
+    - plan.md#independent-test
+  files:
+    - harness/hooks/user-prompt.py
+    - harness/hooks/stop-gate.py
+    - loop/schemas/phase_registry.yaml
+    - harness/hooks/tests/test_user_prompt_overlay.py
+    - loop/tests/test_stop_gate.py
+    - loop/tests/test_epic_transition.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+
+as_built:
+  - "s01–s05 delete overlay, align registry, honor stop-gate, rewrite Kind I"
+  - "leftover risk: comment-only delete; second if-armed table; tests still asserting OFF/REFLECT; silent default_gates OFF; stop-gate REFLECT copy; PROJECT_LOOP_DECOMPOSE_VERIFY flag"
+
+delta:
+  - "scan full sunset_inventory; delete leftover dual SoT / docs-only / overlay-wins / REFLECT-as-next / OFF comments / obsolete asserts"
+  - "rewrite any remaining tests that encode overlay OFF or QA→REFLECT as sufficient Independent Test"
+
+sunset_inventory:
+  - symbol: user-prompt.py DECOMPOSE armed override
+    kind: A
+    replacement: gates_from_phase only
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py
+    expect: zero prod callers; no armed_step==DECOMPOSE need_verify=False block
+  - symbol: user-prompt.py REFLECT QA FINISH sentence
+    kind: A
+    replacement: QA FINISH → reviewer + mb-finish qa (no REFLECT)
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py
+    expect: no Handoff → REFLECT in emit
+  - symbol: phase_registry.yaml DECOMPOSE need_verify false
+    kind: A
+    replacement: true (keep need_reviewer false, verify_agent verify-decompose)
+    policy: delete in-epic (replace value)
+    rg_scope: loop/schemas/phase_registry.yaml
+    expect: DECOMPOSE finish_gates_dict.need_verify true
+  - symbol: tests expecting OFF/REFLECT overlay
+    kind: A
+    replacement: rewrite on new contract
+    policy: delete in-epic
+    rg_scope: harness/hooks/tests/ loop/tests/
+    expect: no asserts requiring verify OFF on DECOMPOSE or QA overlay REFLECT next
+  - symbol: stop-gate.py DECOMPOSE st need_verify False
+    kind: A
+    replacement: honor registry/spawn need_verify
+    policy: delete in-epic
+    rg_scope: harness/hooks/stop-gate.py
+    expect: no assignment need_verify False solely because armed DECOMPOSE
+  - symbol: n/a same UserPromptSubmit hook
+    kind: B
+    replacement: n/a
+    policy: n/a
+    rg_scope: harness/hooks/user-prompt.py
+    expect: same entrypoint; no second UserPromptSubmit overlay module
+  - symbol: docs-only DECOMPOSE
+    kind: C
+    replacement: verify-decompose required
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py harness/hooks/stop-gate.py
+    expect: zero docs-only OFF / verify/reviewer OFF
+  - symbol: overlay wins if registry missing
+    kind: C
+    replacement: fail-closed unknown phase
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py harness/hooks/user-prompt.py
+    expect: unknown phase not silent OFF; no overlay table if registry missing
+  - symbol: overlay QA FINISH → REFLECT instruction
+    kind: I
+    replacement: DONE/BUGFIX / mb-finish qa
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py harness/hooks/stop-gate.py
+    expect: zero QA next = REFLECT in hook overlay/stop-gate
+  - symbol: overlay verify OFF + promote IMPLEMENT
+    kind: I
+    replacement: verify-decompose ON; next ANALYZE via mb-finish
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py
+    expect: zero verify/reviewer OFF and promote DECOMPOSE→IMPLEMENT
+  - symbol: comments in user-prompt.py
+    kind: I
+    replacement: registry comment
+    policy: delete in-epic
+    rg_scope: harness/hooks/user-prompt.py
+    expect: comments do not teach OFF/REFLECT overlay
+  - symbol: stop-gate QA FINISH pass → Handoff BACK REFLECT
+    kind: I
+    replacement: pass → DONE / mb-finish qa; blocked → BUGFIX
+    policy: delete in-epic
+    rg_scope: harness/hooks/stop-gate.py
+    expect: zero required-next REFLECT in stop-gate QA messages
+
+deletes:
+  - "leftover armed DECOMPOSE override / docs-only comments"
+  - "leftover Handoff → REFLECT in user-prompt.py and stop-gate.py"
+  - "leftover DECOMPOSE need_verify false in phase_registry.yaml"
+  - "leftover stop-gate need_verify=False special-case"
+  - "obsolete tests asserting overlay OFF or QA→REFLECT"
+  - "PROJECT_LOOP_DECOMPOSE_VERIFY default-off if introduced"
+  - "second Python phase policy table if introduced"
+
+out_of_scope:
+  - "duplicate UserPromptSubmit fire — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "identity COMMAND lock — follow_up: T-HUB-071-session-identity-lock"
+  - "finish_qa yaml — follow_up: T-HUB-074-qa-bugfix-lifecycle-rearm"
+  - "workflow-qa mdc outside hooks — Appetite cut_list"
+  - "Variant B event projector / generate overlay AST — Appetite cut_list"
+  - "full suite → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: user-prompt.py DECOMPOSE armed override
+    command: 'rg -n "armed_step==\"DECOMPOSE\"|verify/reviewer OFF|need_verify\"] = False" harness/hooks/user-prompt.py || true'
+    expect: no DECOMPOSE override assigning need_verify False
+  - id: inv-a-02
+    kind: A
+    symbol: user-prompt.py REFLECT QA FINISH sentence
+    command: 'rg -n "Handoff → REFLECT|→ REFLECT" harness/hooks/user-prompt.py || true'
+    expect: no output
+  - id: inv-a-03
+    kind: A
+    symbol: phase_registry.yaml DECOMPOSE need_verify false
+    command: 'rg -n -A8 "^  DECOMPOSE:" loop/schemas/phase_registry.yaml | rg "need_verify: false" || true'
+    expect: no need_verify false under DECOMPOSE
+  - id: inv-a-04
+    kind: A
+    symbol: stop-gate DECOMPOSE need_verify False
+    command: 'rg -n "armed_step_u == \"DECOMPOSE\"" -A8 harness/hooks/stop-gate.py | rg "need_verify.*=.*False" || true'
+    expect: no assignment
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete OFF/REFLECT overlay tests
+    command: 'rg -n "assert .*need_verify.*False|Handoff → REFLECT" harness/hooks/tests/test_user_prompt_overlay.py loop/tests/test_stop_gate.py || true'
+    expect: no obsolete asserts (rewritten to new contract)
+  - id: inv-b-01
+    kind: B
+    symbol: n/a same UserPromptSubmit hook
+    command: 'rg -n "phase_policy.py|second policy table" harness/hooks/user-prompt.py || true'
+    expect: no second overlay entrypoint; same UserPromptSubmit
+  - id: inv-c-01
+    kind: C
+    symbol: docs-only DECOMPOSE
+    command: 'rg -n "docs-only|verify/reviewer OFF" harness/hooks/user-prompt.py harness/hooks/stop-gate.py || true'
+    expect: no output
+  - id: inv-c-02
+    kind: C
+    symbol: overlay wins if registry missing
+    command: 'rg -n "PROJECT_LOOP_DECOMPOSE_VERIFY" harness/hooks/user-prompt.py loop/schemas/phase_registry.yaml harness/hooks/epic/core.py || true'
+    expect: no default-off flag; unknown phase fail-closed not overlay table
+  - id: inv-i-01
+    kind: I
+    symbol: overlay QA FINISH → REFLECT instruction
+    command: 'rg -n "REFLECT" harness/hooks/user-prompt.py harness/hooks/stop-gate.py || true'
+    expect: no REFLECT as required QA next in hooks
+  - id: inv-i-02
+    kind: I
+    symbol: overlay verify OFF + promote IMPLEMENT
+    command: 'rg -n "verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT" harness/hooks/user-prompt.py || true'
+    expect: no output
+  - id: inv-i-03
+    kind: I
+    symbol: comments in user-prompt.py
+    command: 'rg -n "REFLECT обязател|docs-only" harness/hooks/user-prompt.py || true'
+    expect: no output
+  - id: inv-i-04
+    kind: I
+    symbol: stop-gate QA FINISH pass → Handoff BACK REFLECT
+    command: 'rg -n "Handoff BACK REFLECT|pass→REFLECT" harness/hooks/stop-gate.py || true'
+    expect: no output
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (inv-a-01..04, inv-a-tests-01):
+      0 prod callers. Matches в tests/ допустимы ТОЛЬКО если кейс уже на новом контракте.
+      Asserts на sunset-поведение / импорт удалённого API = FAIL (deletes/rewrite).
+    verify: |
+      rg -n "armed_step==\"DECOMPOSE\"|verify/reviewer OFF|need_verify\"] = False" harness/hooks/user-prompt.py || true
+      rg -n "Handoff → REFLECT|→ REFLECT" harness/hooks/user-prompt.py || true
+      rg -n -A8 "^  DECOMPOSE:" loop/schemas/phase_registry.yaml | rg "need_verify: false" || true
+      rg -n "armed_step_u == \"DECOMPOSE\"" -A8 harness/hooks/stop-gate.py | rg "need_verify.*=.*False" || true
+      rg -n "assert .*need_verify.*False|Handoff → REFLECT" harness/hooks/tests/test_user_prompt_overlay.py loop/tests/test_stop_gate.py || true
+  - id: cp2
+    criterion: Kind B — same UserPromptSubmit hook; no second overlay entrypoint / phase_policy.py (inv-b-01)
+    verify: |
+      test ! -e harness/hooks/phase_policy.py
+      rg -n "phase_policy.py|second policy table" harness/hooks/user-prompt.py || true
+  - id: cp3
+    criterion: |
+      Kind C+I — no docs-only DECOMPOSE; no overlay-wins-if-missing; no REFLECT-as-next /
+      verify OFF / promote IMPLEMENT instructions (inv-c-01/02, inv-i-01..04).
+    verify: |
+      rg -n "docs-only|verify/reviewer OFF" harness/hooks/user-prompt.py harness/hooks/stop-gate.py || true
+      rg -n "PROJECT_LOOP_DECOMPOSE_VERIFY" harness/hooks/user-prompt.py loop/schemas/phase_registry.yaml harness/hooks/epic/core.py || true
+      rg -n "REFLECT" harness/hooks/user-prompt.py harness/hooks/stop-gate.py || true
+      rg -n "promote DECOMPOSE→IMPLEMENT" harness/hooks/user-prompt.py || true
+      rg -n "REFLECT обязател" harness/hooks/user-prompt.py || true
+      rg -n "Handoff BACK REFLECT|pass→REFLECT" harness/hooks/stop-gate.py || true
+  - id: cp4
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py loop/tests/test_stop_gate.py loop/tests/test_epic_transition.py -q --tb=line -k 'decompose or overlay or gates_from_phase or reflect or unknown'"
+
+verify:
+  - "rg -n 'verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT|Handoff → REFLECT' harness/hooks/user-prompt.py harness/hooks/stop-gate.py; test $? -eq 1"
+tdd:
+  - "purge leftover; keep s01–s05 tests green without restore overlay"
