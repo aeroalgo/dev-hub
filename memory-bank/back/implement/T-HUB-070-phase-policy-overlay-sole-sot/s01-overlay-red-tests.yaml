@@ -3,7 +3,7 @@ role: back
 step_id: s01
 plan_id: T-HUB-070-phase-policy-overlay-sole-sot
 title: s01 — Red tests — armed DECOMPOSE need_verify true; QA FINISH without REFLECT
-status: in_progress
+status: completed
 date: '2026-09-06'
 decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s01-overlay-red-tests.yaml
 skills_used:
@@ -27,18 +27,10 @@ integration_check:
 - hook behavior verified against UserPromptSubmit state and additionalContext
 grep_control: []
 verification_results:
-- check: cp1
-  result: pass
-  evidence: 'pytest xfailed as expected: as-built need_verify=False and forbidden verify/reviewer OFF or promote DECOMPOSE→IMPLEMENT context'
-- check: cp2
-  result: pass
-  evidence: 'pytest xfailed as expected: as-built QA FINISH context contains forbidden Handoff → REFLECT'
-- check: cp3
-  result: pass
-  evidence: 'rg confirmed assertions test hook state st and additionalContext behavior'
-- check: cp4
-  result: pass
-  evidence: 'rg confirmed user-prompt.py overlay lines 156 and 170 remain untouched in s01'
+- pass
+- pass
+- pass
+- pass
 checkpoints:
 - id: cp1
   criterion: 'US-001 red — armed DECOMPOSE + prompt BACK DECOMPOSE: test asserts need_verify
@@ -66,4 +58,3 @@ checkpoints:
   criterion: Prod overlay blocks still present (this step does not delete) — red is
     expected until s02
   status: done
-resume_from: null

@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §1.3 identity lock P0.3; session audit §5 `94cea2d3` BUGFIX vs QA; `loop/prompt_builder.py` step unknown
 
-→ decompose-index — **после DECOMPOSE**
+→ decompose: [decompose-index.md](decompose-index.md) · [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 

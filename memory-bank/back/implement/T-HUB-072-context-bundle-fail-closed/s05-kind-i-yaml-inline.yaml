@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s05 — Kind I rewrite + yaml still inline under cap IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s05-kind-i-yaml-inline.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'sunset-inventory scanned files for Kind I docs: zero legacy inline docs found.'
+gaps:
+  status: none
+done:
+- Kind I comments and docs verified/rewritten to path-only md while yaml/json <= cap
+  remains inlined.
+- Checked tests asserting plan.md/decompose-index.md are path-only and yaml remains
+  inline under cap.
+- 'FR-006 verified: truncated yaml keeps ok True.'
+files:
+- harness/hooks/epic/core.py
+- loop/mb_load/session.py
+- harness/hooks/tests/test_session_start_inject.py
+- loop/tests/test_mb_load_session.py
+deletes:
+- 'comments/docs «load_now files inlined» / «inline plan if < 256KiB» in files:'
+- tests asserting plan.md / decompose-index.md body in additionalContext as success
+tests:
+- bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py
+  -q --tb=line -k 'yaml or inline or fingerprint'
+- bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py
+  -q --tb=line -k 'index_md or decompose_index or path_only'
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'truncat'
+- bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py
+  -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py
+  -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- PASS - 0 legacy inline doc items
+- 33 passed
+checkpoints:
+- id: cp1
+  criterion: US-003/TM-003 — yaml in load_now has content in additionalContext if
+    < cap
+  status: done
+- id: cp2
+  criterion: FR-009/TM-007 — decompose-index.md content empty / not in inject body
+  status: done
+- id: cp3
+  criterion: Kind I — 0 hits load_now files inlined / inline plan if in files listed
+  status: done
+- id: cp4
+  criterion: FR-006 — truncated yaml ok True with truncated flag (not missing)
+  status: done

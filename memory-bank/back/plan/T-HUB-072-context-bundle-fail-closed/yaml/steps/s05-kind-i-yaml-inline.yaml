@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "Kind I rewrite + yaml still inline under cap"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Инструкции «load_now files inlined» / «inline plan if < 256KiB» переписаны на
+  path-only для md plan/gap/index. yaml/json ≤ cap остаются inline (US-003).
+  Obsolete tests, требующие тело plan.md в additionalContext, rewrite.
+  Outcome: Kind I учит Read path; yaml shard всё ещё в inject.
+
+plan_contract:
+  fr_ids: [FR-004, FR-006, FR-007, FR-009, US-003, SC-003, AC+3, AC−2, AC−5, TM-003, TM-004, TM-007, NFR-1]
+  nouns:
+    - Kind I
+    - load_now files inlined
+    - yaml inline
+    - decompose-index.md
+    - truncated
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - loop/mb_load/session.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "Kind I: docs saying load_now bodies always inlined — rewrite."
+    - "Do not inline decompose-index.md (md coverage) — path-only same as plan. yaml index may inline (small)."
+    - "yaml steps / qa yaml: may still inline under cap."
+    - "Нет dual loader (old inline + new path) both emitting body."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:88-99"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:196-211"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:236-242"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:255-266"
+
+context:
+  consumes:
+    - s02 classifier · s03 renderer · s04 exception
+    - plan.md §Replacement I · FR-007 · Path classifier
+  produces:
+    - Kind I comments/docs in touched prod+test files rewritten to path-only md
+    - yaml still has content in inject if < cap
+    - decompose-index.md path-only (TM-007)
+    - rewrite tests that asserted plan.md body in additionalContext as success
+  plan_refs:
+    - plan.md#i-instruction-surfaces
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/epic/core.py
+    - loop/mb_load/session.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/tests/test_mb_load_session.py
+
+as_built:
+  - "s02/s03 should empty md content; comments in core.py / session.py / tests may still say bodies always inlined"
+  - "test_inject_fingerprint dumps hello from file1.txt — keep yaml/txt inline"
+  - "possible tests asserting plan.md heading in additionalContext as success"
+  - "token-economy / session-start comments in prod code (not .cursor/rules unless in files:)"
+
+delta:
+  - "rewrite Kind I in files: «load_now files inlined» → md plan/gap/index path-only; yaml/json inline ≤ cap"
+  - "TM-007: decompose-index.md content empty; yaml/decompose-index.yaml may still inline"
+  - "US-003 lock: yaml shard content present in inject when < cap"
+  - "delete/rewrite obsolete asserts that require plan.md body in SessionStart"
+  - "do not edit .cursor/rules unless path listed — Kind I here is prod comments + tests in files:"
+
+deletes:
+  - "comments/docs «load_now files inlined» / «inline plan if < 256KiB» in files:"
+  - "tests asserting plan.md / decompose-index.md body in additionalContext as success"
+
+sunset_scope:
+  required: true
+  boundary_id: bundle-kind-i-inline-docs
+  new_sot: path-only md + yaml inline ≤ cap
+  allow_read:
+    - harness/hooks/epic/core.py
+    - loop/mb_load/session.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/tests/test_mb_load_session.py
+  kind_hint:
+    - I
+    - A
+
+out_of_scope:
+  - "leftover inventory scan all Kind A/B/C/I (s06)"
+  - ".cursor/rules token-economy prose unless leftover in prod comments — full rules rewrite not this epic files:"
+  - "LoadNowItem.kind enum — Appetite cut_list"
+  - "forbidden_for_parent — follow_up: T-HUB-063-sunset-boundary-stop-pipeline"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: US-003/TM-003 — yaml in load_now has content in additionalContext if < cap
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py -q --tb=line -k 'yaml or inline or fingerprint'"
+  - id: cp2
+    criterion: FR-009/TM-007 — decompose-index.md content empty / not in inject body
+    verify: "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'index_md or decompose_index or path_only'"
+  - id: cp3
+    criterion: "Kind I — 0 hits load_now files inlined / inline plan if in files listed"
+    verify: "rg -n 'load_now files inlined|inline plan if|always inlined' loop/mb_load/session.py harness/hooks/epic/core.py loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py || true"
+  - id: cp4
+    criterion: FR-006 — truncated yaml ok True with truncated flag (not missing)
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'truncat'"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+tdd:
+  - "green yaml inline + Kind I rewrite; md path-only remains"

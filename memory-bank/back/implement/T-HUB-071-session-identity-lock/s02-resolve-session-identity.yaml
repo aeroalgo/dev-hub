@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-071-session-identity-lock
+title: s02 — Add resolve_session_identity + PromptScope step chain never unknown when armed IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s02-resolve-session-identity.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- sunset inventory extracted for boundary prompt-scope-step (kind A/C)
+gaps:
+  status: none
+done:
+- Added resolve_session_identity(state, ac_meta, projection) -> Identity | Drift
+- Added typed Identity and Drift dataclasses with drift codes phase_mismatch, epic_mismatch, step_unknown_while_armed
+- Updated build_prompt_scope step resolution chain to never return 'unknown' when armed
+- Verified cp1, cp2, cp3, cp4 with targeted unit tests
+files:
+- loop/prompt_builder.py
+- loop/tests/test_session_identity_lock.py
+deletes:
+- loop/prompt_builder.py PromptScope.step default or "unknown" for armed path
+tests:
+- bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py -q --tb=line
+integration_check:
+- rg -n 'def resolve_session_identity' loop/prompt_builder.py
+- rg -n 'HARD READ' loop/prompt_builder.py
+grep_control: []
+verification_results:
+- verify: "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py -q --tb=line -> 76 passed"
+checkpoints:
+- id: cp1
+  criterion: resolve_session_identity exists; Identity vs Drift with codes phase_mismatch, epic_mismatch, step_unknown_while_armed
+  status: done
+- id: cp2
+  criterion: US-002 green — armed QA, missing projection.step → PromptScope.step == QA != unknown
+  status: done
+- id: cp3
+  criterion: US-004 — armed IMPLEMENT s03/s05 → step sNN; COMMAND ROLE IMPLEMENT; FR-020 disagree → Drift not silent winner
+  status: done
+- id: cp4
+  criterion: HARD READ lines still in render_prompt_scope; no SessionContextService package
+  status: done

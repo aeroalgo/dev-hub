@@ -1,0 +1,91 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s06 — legacy-fallback-purge — bundle inline leftovers A+B+C+I IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Full scan of codebase for legacy fallbacks across A+B+C+I categories
+- Zero leftover unconditional ok_status=True
+- 'Zero leftover Warning: load_session exception'
+- Zero leftover inline plan if small
+- Zero leftover load_now files inlined comments
+gaps:
+  status: none
+done:
+- Sunset inventory scan completed across categories A, B, C, I
+- Verified derived_ok fail-closed semantics in loop/mb_load/session.py
+- Verified SessionStart path+sha rendering and fail-closed exception handling in harness/hooks/epic/core.py
+- Verified all tests green in loop/tests/test_mb_load_session.py and harness/hooks/tests/test_session_start_inject.py
+files:
+- loop/mb_load/session.py
+- harness/hooks/epic/core.py
+- loop/tests/test_mb_load_session.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes:
+- leftover ok_status = True after missing
+- leftover full md body in files[].content / inject for plan/gap/index/analyze md
+- leftover SessionStart plan_section call
+- 'leftover Warning: load_session exception success'
+- obsolete tests asserting inline plan.md as success
+- Kind I «load_now files inlined» leftover comments in files
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py
+  -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- PASS - zero hits for ok_status = True
+- 'PASS - zero hits for Warning: load_session exception'
+- PASS - zero hits for inline plan if small
+- PASS - zero hits for load_now files inlined
+- PASS - 33 passed in targeted suite
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg per inventory: no ok_status=True leftover; classifier paths
+
+    empty content; SessionStart no plan_section; obsolete inline-plan asserts gone.
+
+    '
+  status: done
+- id: cp2
+  criterion: Kind B — same SessionStart + load_session; no second bundle service package
+  status: done
+- id: cp3
+  criterion: Kind C — no Warning load_session exception; no inline-plan-if-small dual
+    path
+  status: done
+- id: cp4
+  criterion: Kind I — 0 hits load_now files inlined / always inlined in files listed
+  status: done
+- id: cp5
+  criterion: Obsolete inline-plan success tests purged; targeted pytest green without
+    restore
+  status: done
+- id: cp6
+  criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+  status: done

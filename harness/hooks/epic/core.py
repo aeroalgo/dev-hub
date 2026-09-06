@@ -1499,37 +1499,71 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
     st = load_epic_state(cwd)
     if not st.get("active") or st.get("status") != "running":
         return None
-    from loop.prompt_builder import build_prompt_scope, render_prompt_scope
+    from loop.prompt_builder import (
+        build_prompt_scope,
+        render_prompt_scope,
+        resolve_session_identity,
+        Drift,
+    )
+    from loop.schemas.active_context import parse_handoff_meta
 
+    active_context = read_active_context(cwd)
+    handoff_meta = parse_handoff_meta(active_context)
     projection = dict(st.get("projection") or {})
-    for key in ("phase", "role", "step", "next_step", "epic", "epic_id"):
-        value = st.get(key)
-        if value and not projection.get(key):
-            projection[key] = value
-    if not projection.get("role") or not projection.get("phase"):
-        from loop.schemas.active_context import handoff_mode_from_text, parse_handoff_meta
 
-        active_context = read_active_context(cwd)
-        handoff_mode = handoff_mode_from_text(active_context)
-        handoff_meta = parse_handoff_meta(active_context)
-        handoff_role = str(getattr(handoff_meta, "role", "") or "").strip()
-        if not handoff_role:
-            match = re.search(
-                r"(?im)^##\s*Handoff\s+(BACK|FRONT|INTEG(?:RATION)?)\b",
-                active_context,
+    ident_or_drift = resolve_session_identity(st, handoff_meta, projection=projection)
+
+    # EPIC_PHASE / expected_identity check (FR-005)
+    expected_phase = os.environ.get("EPIC_PHASE", "").strip().upper()
+    if expected_phase:
+        if isinstance(ident_or_drift, Drift):
+            pass
+        elif ident_or_drift.phase.upper() != expected_phase:
+            ident_or_drift = Drift(
+                code="phase_mismatch",
+                armed_step=ident_or_drift.step,
+                ac_mode=getattr(handoff_meta, "mode", "") if handoff_meta else "",
+                projection_phase=expected_phase,
+                epic_id=ident_or_drift.epic_id,
+                role=ident_or_drift.role,
             )
-            handoff_role = match.group(1) if match else ""
-        if handoff_role and not projection.get("role"):
-            projection["role"] = (
-                "INTEG" if handoff_role.upper() == "INTEGRATION" else handoff_role.upper()
-            )
-        if handoff_mode and not projection.get("phase"):
-            projection["phase"] = f"{projection.get('role') or 'BACK'} {handoff_mode.upper()}"
+
+    if isinstance(ident_or_drift, Drift):
+        diag_lines = [
+            f"source={source or '?'}",
+            "CONTEXT_IDENTITY_DRIFT: Session identity resolution detected drift or conflict.",
+            f"code: {ident_or_drift.code}",
+            f"armed_step: {ident_or_drift.armed_step}",
+            f"ac_mode: {ident_or_drift.ac_mode}",
+            f"projection_phase: {ident_or_drift.projection_phase}",
+            f"epic_id: {ident_or_drift.epic_id}",
+            f"role: {ident_or_drift.role}",
+        ]
+        session_id = st.get("session_id")
+        if session_id:
+            diag_lines.append(f"session_id: {session_id}")
+        diag_lines.extend([
+            "HALT: Context identity drift detected. Forbid proceeding with drifted session state.",
+            "Fix activeContext frontmatter or epic state to realign identity before executing role commands.",
+        ])
+        return {
+            "additionalContext": "\n".join(diag_lines),
+            "sessionTitle": "epic:context",
+        }
+
+    # Populate projection from resolved identity
+    projection["role"] = ident_or_drift.role
+    projection["phase"] = f"{ident_or_drift.role} {ident_or_drift.phase}"
+    projection["step"] = ident_or_drift.step
+    if ident_or_drift.epic_id:
+        projection["epic"] = ident_or_drift.epic_id
+
     scope = build_prompt_scope(
         cwd,
         projection=projection,
-        fallback_command="BACK IMPLEMENT",
         runtime=os.environ.get("EPIC_RUNTIME"),
+        state=st,
+        ac_meta=handoff_meta,
     )
     rendered_scope = render_prompt_scope(scope)
 
@@ -1550,6 +1584,14 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
                 "Не вызывай /clear."
             )
             lines = [f"\nFingerprint: {fp}", "Bundle files: " + ", ".join(file_paths)]
+            for f in res.files:
+                if f.sha256:
+                    sz_info = f" ({f.size_bytes}B, sha256:{f.sha256[:12]})" if f.size_bytes is not None else f" (sha256:{f.sha256[:12]})"
+                else:
+                    sz_info = ""
+                if not f.content:
+                    lines.append(f"- {f.path}{sz_info} — Read this path")
+
             if total_size <= 16 * 1024:
                 for f in res.files:
                     if f.content:

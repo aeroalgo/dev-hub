@@ -1,0 +1,123 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "Wire SessionStart renderer — path+sha only; never inline plan.md"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SessionStart additionalContext для markdown plan/gap/index: path + sha256 + size +
+  инструкция Read this path; тело не эмитится даже если total_size ≤ 16KiB.
+  yaml content non-empty всё ещё dump под cap. load_plan_section не на hot path
+  (load_session(cwd) без plan_section). Outcome: агент не видит ложный «plan уже в контексте».
+
+plan_contract:
+  fr_ids: [FR-004, FR-005, FR-009, US-001, US-003, SC-002, SC-003, AC+2, AC+3, AC−2, AC−3, AC−5, TM-002, TM-003, TM-006, TM-007, NFR-1]
+  nouns:
+    - session_start_payload
+    - additionalContext
+    - path + sha256 + size
+    - load_plan_section
+    - yaml inline
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "SessionStart additionalContext for md plan: path + sha256 + size, instruction «Read this path»; not the body."
+    - "SessionStart renderer uses files.content only if non-empty; always lists paths."
+    - "load_plan_section not called from SessionStart hot path. If CLI still has flag — keep but SessionStart does not pass plan_section."
+    - "Нет «inline plan if < 256KiB». Нет heading-split SoT on start. Нет dual loader both emitting body."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:44-52"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:74-79"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:116-129"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:145-153"
+
+context:
+  consumes:
+    - s02 empty content on classifier paths
+    - plan.md §FR-004/005 · AC−2/3/5 · data flow
+    - as-built session_start_payload L1573 load_session(cwd); L1587 total_size ≤ 16KiB dump
+  produces:
+    - renderer always lists file paths (+ sha256 + size when present)
+    - empty content never dumped; non-empty yaml still dumped under size gate
+    - path-only instruction Read this path for classifier files
+    - green US-001 unique sentence absent; yaml still present (US-003)
+    - rg: session_start_payload does not pass plan_section=
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#ac
+    - plan.md#data-flow-ascii
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "load_session(cwd) already without plan_section (FR-005 as-built likely green)"
+  - "if total_size <= 16*1024: for f in res.files: if f.content: dump body — still inlines small yaml AND would inline small plan if content non-empty"
+  - "Fingerprint + Bundle files: paths already listed; no sha/size/Read instruction per path-only file"
+  - "dual risk: loader empty content + renderer still concatenating leftover body from another path"
+
+delta:
+  - "wire renderer: always list paths; for each file emit sha256+size; dump body only if content non-empty AND not classifier path"
+  - "never treat «small enough cap» as license to inline plan.md (AC−2)"
+  - "add Read-this-path line for path-only files"
+  - "confirm SessionStart does not call load_plan_section / load_session(..., plan_section=)"
+  - "do not rewrite Kind I docs (s05); do not exception path (s04)"
+
+deletes:
+  - "session_start_payload dump of plan.md / gap-*.md / decompose-index.md / analyze-*.md bodies"
+  - "any remaining dual emit (loader content + renderer body) for those paths"
+
+sunset_scope:
+  required: true
+  boundary_id: session-start-path-only-inject
+  new_sot: additionalContext path+sha manifest
+  allow_read:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/mb_load/session.py
+    - loop/mb_load/plan_section.py
+  kind_hint:
+    - A
+    - C
+
+out_of_scope:
+  - "exception incomplete card (s04)"
+  - "Kind I comments/docs (s05)"
+  - "leftover inventory (s06)"
+  - "identity COMMAND / CONTEXT_IDENTITY_DRIFT — follow_up: T-HUB-071-session-identity-lock"
+  - "duplicate SessionStart process — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001/TM-002 green — 500+ line plan.md in load_now: additionalContext has path + sha256;
+      unique plan sentence absent; instruction Read this path present.
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'plan_md or path_only or inline'"
+  - id: cp2
+    criterion: US-003/TM-003 — yaml shard < cap still has content in inject; missing yaml → incomplete (ok false path from s02)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'yaml or inline or required_missing'"
+  - id: cp3
+    criterion: FR-005/TM-006 — SessionStart hot path does not call load_plan_section or pass plan_section
+    verify: "rg -n 'load_plan_section|plan_section=' harness/hooks/epic/core.py harness/hooks/session-start.py"
+  - id: cp4
+    criterion: wire_complete — renderer skips empty content; no dual body emit; cap never inlines classifier paths
+    verify: "rg -n 'if f.content|is_markdown_plan_path|path_only' harness/hooks/epic/core.py loop/mb_load/session.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py -q --tb=line"
+tdd:
+  - "green inject path-only; yaml still dumped"

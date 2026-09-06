@@ -1,0 +1,114 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "Red tests — missing ok false + plan.md body absent from inject"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red: Independent Test видит ложь completeness и bloat plan.md до classifier/wire.
+  Fixture missing required load_now → ok is False (lock; as-built derived_ok may already
+  pass). Fixture existing 500+ line plan.md in load_now → additionalContext contains
+  unique plan sentence from body → FAIL until path-only. Outcome: CI красный на inject
+  body dump (total_size ≤ 16KiB still inlines), не на «yaml field exists».
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, FR-004, FR-008, US-001, US-002, US-004, SC-001, SC-002, SC-004, AC+1, AC+2, AC+4, AC−1, AC−2, TM-001, TM-002, TM-004, Independent Test]
+  nouns:
+    - load_session
+    - MbLoadResult.ok
+    - missing_file
+    - session_start_payload
+    - additionalContext
+    - plan.md
+    - sha256
+  layout_paths:
+    - loop/tests/test_mb_load_session.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "Given: load_now path that does not exist → Then: ok is False; missing_file:… in diagnostic_codes; not ok True"
+    - "Given: AC load_now includes md/plan.md existing 500+ lines → Then: additionalContext does not contain unique plan sentence from line 50; contains path and sha256"
+    - "PASS: missing → not ok; plan.md body absent from inject; yaml present."
+    - "Independent Test FAIL: «cap 256KiB enough so inline OK»."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:64-85"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:86-99"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:116-129"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:308-311"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/002/004 Given/When/Then
+    - plan.md §Independent Test
+    - as-built loop/mb_load/session.py files[].content full md; session_start_payload dump if total_size ≤ 16KiB (sunset inventory, not template)
+  produces:
+    - loop/tests/test_mb_load_session.py cases TM-001/TM-004 (extend)
+    - harness/hooks/tests/test_session_start_inject.py (or sibling) TM-002 red on plan body in inject
+    - failing pytest on as-built plan.md inline
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#functional-requirements
+    - plan.md#independent-test
+  files:
+    - loop/tests/test_mb_load_session.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "loop/tests/test_mb_load_session.py already asserts required missing → ok False (FR-001 lock exists)"
+  - "session.py still puts full decoded content into MbLoadFile.content for every existing file including md/plan.md"
+  - "session_start_payload L1587–1590 dumps f.content into additionalContext when total_size ≤ 16*1024"
+  - "no fixture with 500+ line plan.md asserting unique sentence absent from inject"
+
+delta:
+  - "add/lock pytest missing required → ok is False + missing_file diagnostic (green OK if as-built already fail-closed)"
+  - "add inject/load_session fixture: load_now plan.md ≥500 lines with unique sentence; assert sentence NOT in additionalContext; path + sha256 ARE (red on as-built dump)"
+  - "add sha256 len 64 on path-only file even when content empty (may red until s02)"
+  - "tests must invoke load_session / session_start_payload, not assert yaml text only"
+  - "do not yet add is_markdown_plan_path (s02) or change renderer (s03)"
+
+deletes: []
+
+out_of_scope:
+  - "is_markdown_plan_path implementation (s02)"
+  - "session_start_payload renderer skip empty content (s03)"
+  - "exception Warning continue purge (s04)"
+  - "Kind I docs rewrite (s05)"
+  - "legacy-fallback-purge (s06)"
+  - "LoadNowItem.kind enum — Appetite cut_list"
+  - "forbidden_for_parent ACL consume — follow_up: T-HUB-063-sunset-boundary-stop-pipeline"
+  - "identity COMMAND lock — follow_up: T-HUB-071-session-identity-lock"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-002 / TM-001 — missing required load_now path: load_session ok is False,
+      missing_file: in diagnostic_codes, required_missing set. Never ok True with missing.
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'required_missing or missing_file or ok_false'"
+  - id: cp2
+    criterion: |
+      US-001 / TM-002 red — existing 500+ line md/plan.md in load_now: additionalContext
+      must not contain unique plan sentence; must contain path. As-built 16KiB dump must FAIL.
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'plan_md or path_only or inline'"
+  - id: cp3
+    criterion: Independent Test is hook/loader behavior (ok + inject body), not yaml-field-exists
+    verify: "rg -n 'ok is False|path_only|plan.md|sha256' loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py"
+  - id: cp4
+    criterion: Prod still inlines md content (this step does not delete) — red expected until s02/s03
+    verify: "rg -n 'content_str = raw_bytes.decode' loop/mb_load/session.py; rg -n 'if f.content' harness/hooks/epic/core.py"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+tdd:
+  - "red: plan.md unique sentence still in additionalContext on as-built inject dump"
+  - "green: s02 empty content + s03 renderer skip"

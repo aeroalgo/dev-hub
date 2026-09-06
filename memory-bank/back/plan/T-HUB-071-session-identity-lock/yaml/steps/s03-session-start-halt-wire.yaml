@@ -1,0 +1,137 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-071-session-identity-lock
+title: "Wire session_start_payload — halt CONTEXT_IDENTITY_DRIFT, one COMMAND"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SessionStart не врёт фазу. resolve_session_identity вызывается до render;
+  Drift → halt card + ok=false fields, без work inject load_now и без второго COMMAND.
+  expected_identity from EPIC_PHASE/runner must match state. Outcome: 94cea2d3
+  becomes halt, not BACK QA + BACK BUGFIX in one turn. Halt at SessionStart (NFR-1).
+
+plan_contract:
+  fr_ids: [FR-001, FR-004, FR-005, FR-007, FR-010, FR-011, FR-012, FR-014, FR-015, FR-016, FR-017, FR-018, FR-019, FR-020, US-001, US-003, US-005, SC-001, SC-003, SC-005, AC+1, AC+3, AC+4, AC−1, AC−2, AC−4, AC−5, NFR-1, NFR-2, NFR-3, TM-001, TM-003, TM-007, Independent Test]
+  nouns:
+    - session_start_payload
+    - harness/hooks/session-start.py
+    - CONTEXT_IDENTITY_DRIFT
+    - additionalContext halt card
+    - expected_identity EPIC_PHASE
+    - COMMAND BACK BUGFIX
+    - LoopHandoffFrontmatter
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_identity.py
+  ac_quotes:
+    - "SessionStart: if Drift → additionalContext warning and ok=false in load result if composed; do not start work inject of load_now bodies"
+    - "expected_identity from loop env (EPIC_PHASE / runner) if present must match state; else halt."
+    - "PromptScope.command field (or rendered line) is the only COMMAND in additionalContext. Grep … count of lines matching COMMAND: … ≤ 1."
+    - "Then: Drift halt, not SessionStart COMMAND: BACK QA plus user BACK BUGFIX."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:44-51"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:79-83"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:114-124"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:193-220"
+
+context:
+  consumes:
+    - s02 resolve_session_identity
+    - plan.md §Halt diagnostic shape · §FR-014
+    - as-built session_start_payload L1494–1591
+  produces:
+    - session_start_payload calls resolve_session_identity first
+    - Drift halt card with typed fields (code, armed_step, ac_mode, projection_phase, epic_id, role; session_id echoed if present)
+    - green US-001/US-003/FR-014/FR-019 on payload
+    - no heading-as-COMMAND when loop-handoff/v1 valid
+  plan_refs:
+    - plan.md#halt-diagnostic-shape-machine
+    - plan.md#data-flow-ascii
+    - plan.md#ac
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_identity.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "session_start_payload merges state into projection then fills role/phase from handoff heading regex if missing"
+  - "always build_prompt_scope + render then injects load_session bodies even when identity would drift"
+  - "fallback_command BACK IMPLEMENT when projection empty — can invent COMMAND"
+  - "no CONTEXT_IDENTITY_DRIFT diagnostic_codes on payload"
+
+delta:
+  - "wire resolve_session_identity(state, ac_meta) before build_prompt_scope"
+  - "on Drift: additionalContext = halt card (same fields as JSON labeled lines); do not inject load_now file bodies; include CONTEXT_IDENTITY_DRIFT; ok=false in composed load result if present — do not invent a second JSON file"
+  - "EPIC_PHASE / runner expected_identity if set must match state else halt (FR-005)"
+  - "valid loop-handoff/v1: do not use ## Handoff heading as COMMAND (FR-007); heading regex only missing-frontmatter diagnostic, not COMMAND if armed"
+  - "FR-019: exactly one COMMAND: line; count BACK QA|BUGFIX|IMPLEMENT command lines ≤ 1"
+  - "FR-020 enforced at payload: armed vs projection disagree → halt"
+  - "keep bugfix_finish_required / finish_handoff untouched (FR-012)"
+  - "do not reopen duplicate SessionStart WHAT (FR-018); tests mock single payload function"
+  - "US-005: do not regress EPIC_RUNTIME entrypoint if 065 landed; skip if not"
+  - "session_id echo in halt if present; mismatch session_id not this epic (FR-016)"
+
+deletes:
+  - "session_start_payload path that sets projection.phase from handoff_mode_from_text as COMMAND source when armed + valid frontmatter"
+  - "warning + continue (inject work COMMAND) on AC mode vs state.phase mismatch"
+
+sunset_scope:
+  required: true
+  boundary_id: session-start-identity
+  new_sot: resolve_session_identity
+  allow_read:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_identity.py
+    - harness/hooks/tests/test_session_start_inject.py
+    - loop/prompt_builder.py
+    - loop/schemas/handoff.py
+    - loop/schemas/active_context.py
+  kind_hint:
+    - A
+    - C
+
+out_of_scope:
+  - "Kind I comment/docs rewrite (s04)"
+  - "full phase matrix pytest (s05)"
+  - "leftover inventory (s06)"
+  - "path-only mb-load incomplete — follow_up: T-HUB-072-context-bundle-fail-closed"
+  - "duplicate realpath SessionStart — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "finish_handoff / bugfix_finish_required (FR-012 keep)"
+  - "session_id mismatch journal — follow_up: T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001/FR-014 green — armed BUGFIX + stale QA AC/projection: payload additionalContext
+      has COMMAND BACK BUGFIX XOR halt (no COMMAND BACK QA work inject). Count COMMAND: ≤ 1.
+    verify: "bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line -k '94cea2d3 or BUGFIX or COMMAND'"
+  - id: cp2
+    criterion: US-003 — mismatch halt CONTEXT_IDENTITY_DRIFT labeled fields; no load_now bodies; not warning-continue
+    verify: "bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line -k 'drift or CONTEXT_IDENTITY'"
+  - id: cp3
+    criterion: FR-007/SC-005 — valid frontmatter — heading regex not COMMAND source; FR-005 EPIC_PHASE mismatch halt
+    verify: "bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line -k 'frontmatter or EPIC_PHASE or heading'"
+  - id: cp4
+    criterion: wire_complete — session_start_payload calls resolve_session_identity; finish_handoff untouched
+    verify: |
+      rg -n "resolve_session_identity" harness/hooks/epic/core.py
+      rg -n "def session_start_payload" -A 80 harness/hooks/epic/core.py | rg -n "resolve_session_identity"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py loop/tests/test_session_identity_lock.py -q --tb=line"
+tdd:
+  - "green 94cea2d3 halt + one COMMAND; keep inject fingerprint tests on matching identity"

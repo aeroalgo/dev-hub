@@ -308,25 +308,6 @@ def main() -> None:
     verify_agent = "verify-bugfix" if str(epic.get("armed_step") or "").upper() == "BUGFIX" else "verify"
     verify_active, verify_bypass, verify_invalid = _gate_status(verify_agent, cwd)
     armed_step_u = str(epic.get("armed_step") or "").upper() if epic_on else ""
-    if armed_step_u == "DECOMPOSE":
-        st["need_verify"] = False
-        save_state(session_id, cwd, st)
-
-        # Check DECOMPOSE semantic verification if verify-decompose is enabled
-        v_dec_active, _, v_dec_invalid = _gate_status("verify-decompose", cwd)
-        if v_dec_invalid and finishing:
-            _block(f"spawn-gate: required gate verify-decompose invalid — fail-closed. diagnostic={v_dec_invalid}")
-            return
-        if v_dec_active and finishing:
-            # Check if verify-decompose verdict exists and is PASS
-            v_done = st.get("verify_done") or st.get("verify_decompose_done")
-            v_verdict = st.get("verify_verdict") or st.get("verify_decompose_verdict")
-            if not v_done or v_verdict != "PASS":
-                if not stop_hook_active:
-                    _block(
-                        "spawn-gate: DECOMPOSE phase requires verify-decompose VERDICT: PASS before FINISH."
-                    )
-                    return
     if verify_bypass and st.get("need_verify"):
         _record_gate_bypass(st, "verify", verify_bypass)
         st["need_verify"] = False
@@ -405,7 +386,7 @@ def main() -> None:
                     return
                 _block(
                     f"spawn-gate: {qa_handoff_err}. "
-                    "pass → ## Handoff BACK REFLECT; blocked/fail → ## Handoff BACK BUGFIX."
+                    "pass → ## Handoff BACK DONE / mb-finish qa; blocked/fail → ## Handoff BACK BUGFIX."
                 )
                 return
         else:
@@ -413,7 +394,7 @@ def main() -> None:
                 return
             _block(
                 "spawn-gate: BACK QA FINISH без memory-bank/activeContext.md. "
-                "Перепиши Handoff (pass→REFLECT; blocked→BUGFIX) + load_now, затем остановись."
+                "Перепиши Handoff (pass→DONE; blocked→BUGFIX) + load_now, затем остановись."
             )
             return
 
@@ -480,7 +461,7 @@ def main() -> None:
                 _block(
                     "spawn-gate: ARCHIVE NOW запрещён в loop-сессии (EPIC_LOOP=1). "
                     "ARCHIVE — только вручную вне loop после EPIC_DONE / stop runner. "
-                    "На FINISH: EPIC_DONE или Handoff → REFLECT/QA; не переносить артефакты в archive/."
+                    "На FINISH: EPIC_DONE или Handoff → DONE/QA; не переносить артефакты в archive/."
                 )
                 return
 

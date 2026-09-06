@@ -6,6 +6,47 @@ from harness.hooks.epic.core import session_start_payload
 from loop.mb_load.schemas import MbLoadResult, MbLoadFile, LoopHandoffMeta
 
 
+def test_plan_md_body_absent_from_session_start_inject_and_path_only(monkeypatch, tmp_path):
+    """TM-002 / US-001 / SC-002: existing 500+ line plan.md in load_now must NOT be inlined into additionalContext."""
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    mb_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-072-context-bundle-fail-closed" / "md"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+
+    unique_sentence = "UNIQUE_PLAN_SENTENCE_LINE_50_SHOULD_NOT_LEAK_INTO_INJECT"
+    lines = [f"Line {i}" for i in range(1, 50)] + [unique_sentence] + [f"Line {i}" for i in range(51, 550)]
+    plan_text = "\n".join(lines) + "\n"
+    plan_file = mb_dir / "plan.md"
+    plan_file.write_text(plan_text, encoding="utf-8")
+
+    act_content = f"""---
+schema: loop-handoff/v1
+role: BACK
+mode: DECOMPOSE
+epic_id: T-HUB-072-context-bundle-fail-closed
+---
+
+## load_now
+1. [{plan_file.relative_to(tmp_path)}](memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) — plan doc.
+
+## Handoff BACK DECOMPOSE
+- **Эпик:** T-HUB-072-context-bundle-fail-closed
+"""
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
+
+    with patch("harness.hooks.epic.core.load_epic_state", return_value={"active": "T-HUB-072-context-bundle-fail-closed", "status": "running"}):
+        res = session_start_payload(tmp_path)
+        assert res is not None
+        ctx = res["additionalContext"]
+        # Path must be present in bundle list
+        assert "plan.md" in ctx
+        # Unique sentence from plan body must NOT be in additionalContext (fail-closed against full body dump)
+        assert unique_sentence not in ctx
+        # Instruction Read this path must be present for path-only markdown
+        assert "- memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md" in ctx
+        assert "Read this path" in ctx
+        assert "sha256:" in ctx
+
+
 def test_no_inject_without_epic_loop(monkeypatch):
     monkeypatch.delenv("EPIC_LOOP", raising=False)
     assert session_start_payload(".") is None
@@ -98,7 +139,7 @@ def test_required_exception_typed_not_warning_success(monkeypatch, tmp_path):
         assert "CONTEXT_INCOMPLETE" in ctx
         assert "required_context_exception:ValueError" in ctx
         assert "HALT" in ctx
-        assert "Warning: load_session exception" not in ctx
+        assert "Warning" not in ctx
         assert "Один шаг → FINISH" not in ctx
 
 

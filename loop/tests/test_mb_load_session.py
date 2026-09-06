@@ -6,7 +6,31 @@ from loop.mb_load import load_session, MbLoadRequest, MbLoadResult
 from loop.mb_finish.schemas import LoopHandoffMeta
 
 
-def test_schemas_contract():
+def test_missing_required_path_ok_is_false_and_diagnostic(tmp_path: Path):
+    """TM-001 / US-002: missing required load_now path -> ok is False + missing_file in diagnostics."""
+    act_content = """---
+schema: loop-handoff/v1
+role: BACK
+mode: IMPLEMENT
+epic_id: T-HUB-072
+step_id: s01
+---
+
+## load_now
+1. [missing.yaml](memory-bank/back/plan/missing.yaml) — missing.
+
+## Handoff BACK IMPLEMENT — s01
+- **Эпик:** T-HUB-072
+"""
+    (tmp_path / "memory-bank").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
+
+    res = load_session(cwd=tmp_path)
+    assert res.ok is False
+    assert res.status == "incomplete"
+    assert "missing.yaml" in str(res.required_missing)
+    assert any("missing_file:" in d for d in res.diagnostic_codes)
+
     """TM-001: request/result schemas match canonical names."""
     req = MbLoadRequest()
     res = MbLoadResult(ok=True)
@@ -490,32 +514,89 @@ step_id: s02
     assert len(mcp_res["files"]) == 1
 
 
-def test_no_ok_true_with_missing_file_required(tmp_path: Path):
-    """Independent Test FAIL pattern: never set ok=True when missing_file is in required_missing."""
+def test_path_only_classifier_and_load_session_plan_md(tmp_path: Path):
+    """FR-002, FR-003, US-001, US-004: plan markdown paths have empty content, full sha256/size, path_only diagnostic."""
+    from loop.mb_load.session import is_markdown_plan_path
+    import hashlib
+
+    # Unit checks on is_markdown_plan_path
+    assert is_markdown_plan_path("memory-bank/back/plan/T-HUB-072/md/plan.md") is True
+    assert is_markdown_plan_path("md/plan.md") is True
+    assert is_markdown_plan_path("memory-bank/back/plan/plan-T-HUB-072.md") is True
+    assert is_markdown_plan_path("memory-bank/back/plan/gap-01.md") is True
+    assert is_markdown_plan_path("memory-bank/back/plan/decompose-index.md") is True
+    assert is_markdown_plan_path("memory-bank/back/analyze/analyze-01.md") is True
+    assert is_markdown_plan_path("memory-bank/back/plan/s01.yaml") is False
+    assert is_markdown_plan_path("memory-bank/back/plan/state.json") is False
+
+    # Integration via load_session with role/mode where plan.md is allowed (e.g. DECOMPOSE)
+    plan_body = "# Mega Plan Document\n" + ("line content\n" * 100)
+    full_sha = hashlib.sha256(plan_body.encode("utf-8")).hexdigest()
+    full_size = len(plan_body.encode("utf-8"))
+
+    act_content = """---
+schema: loop-handoff/v1
+role: BACK
+mode: DECOMPOSE
+epic_id: T-HUB-072
+---
+
+## load_now
+1. [plan.md](memory-bank/back/plan/T-HUB-072/md/plan.md) — plan doc.
+2. [decompose-index.md](memory-bank/back/plan/T-HUB-072/md/decompose-index.md) — decompose index.
+
+## Handoff BACK DECOMPOSE — s01
+- **Эпик:** T-HUB-072
+"""
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-072" / "md"
+    plan_dir.mkdir(parents=True, exist_ok=True)
+    (plan_dir / "plan.md").write_text(plan_body, encoding="utf-8")
+    (plan_dir / "decompose-index.md").write_text("# Decompose index\n", encoding="utf-8")
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
+
+    res = load_session(cwd=tmp_path)
+    assert res.ok is True
+    assert len(res.files) == 2
+
+    plan_file = next(f for f in res.files if f.path == "memory-bank/back/plan/T-HUB-072/md/plan.md")
+    assert plan_file.content == ""
+    assert plan_file.sha256 == full_sha
+    assert plan_file.size_bytes == full_size
+    assert plan_file.truncated is False
+
+    idx_file = next(f for f in res.files if f.path == "memory-bank/back/plan/T-HUB-072/md/decompose-index.md")
+    assert idx_file.content == ""
+    assert idx_file.truncated is False
+
+    assert "path_only:memory-bank/back/plan/T-HUB-072/md/plan.md" in res.diagnostic_codes
+    assert "path_only:memory-bank/back/plan/T-HUB-072/md/decompose-index.md" in res.diagnostic_codes
+
+
+def test_yaml_truncated_keeps_ok_true(tmp_path: Path):
+    """FR-006: yaml truncation sets truncated=True but keeps ok=True."""
+    yaml_body = "key: " + ("val" * 1000)
     act_content = """---
 schema: loop-handoff/v1
 role: BACK
 mode: IMPLEMENT
-epic_id: T-HUB-067
-step_id: s02
+epic_id: T-HUB-072
 ---
 
 ## load_now
-1. [present.yaml](memory-bank/back/plan/present.yaml) — present.
-2. [absent.yaml](memory-bank/back/plan/absent.yaml) — absent.
+1. [big.yaml](memory-bank/back/plan/big.yaml) — big yaml shard.
 
-## Handoff BACK IMPLEMENT — s02
-- **Эпик:** T-HUB-067
+## Handoff BACK IMPLEMENT — s01
+- **Эпик:** T-HUB-072
 """
     mb_dir = tmp_path / "memory-bank" / "back" / "plan"
     mb_dir.mkdir(parents=True, exist_ok=True)
     (tmp_path / "memory-bank" / "activeContext.md").write_text(act_content, encoding="utf-8")
-    (mb_dir / "present.yaml").write_text("data: 1\n", encoding="utf-8")
+    (mb_dir / "big.yaml").write_text(yaml_body, encoding="utf-8")
 
-    res = load_session(cwd=tmp_path)
-    assert not (res.ok is True and len(res.required_missing) > 0)
-    assert res.ok is False
-    assert res.status == "incomplete"
-
-
-
+    # Call with small max_file_bytes to trigger truncation
+    res = load_session(cwd=tmp_path, max_file_bytes=50)
+    assert res.ok is True
+    assert len(res.files) == 1
+    f = res.files[0]
+    assert f.truncated is True
+    assert len(f.content.encode("utf-8")) == 50

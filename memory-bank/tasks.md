@@ -12,7 +12,7 @@
 | T-HUB-069 | Agent contract registry + Codex policy | L3–L4 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md) · [decompose](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/decompose-index.md) · 7 sNN · next BACK ANALYZE · deps T-HUB-064 · batch workflow-loop-20260905 |
 | T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 · after 062–069 · next DECOMPOSE when 062 not blocking |
 | T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
-| T-HUB-072 | Context bundle fail-closed | L3 | PLAN done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · hard deps T-HUB-071 · batch loop-session-architecture-20260906 |
+| T-HUB-072 | Context bundle fail-closed | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · [decompose](back/plan/T-HUB-072-context-bundle-fail-closed/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-071 · batch loop-session-architecture-20260906 |
 | T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) · deps none · batch loop-session-architecture-20260906 |
 | T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
 | T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
@@ -30,7 +30,7 @@
 | T-HUB-069 | Agent contract registry + Codex policy | L3–L4 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md) · [decompose](back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/decompose-index.md) · 7 sNN · next ANALYZE |
 | T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 |
 | T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · deps T-HUB-070 |
-| T-HUB-072 | Context bundle fail-closed | L3 | PLAN done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · deps T-HUB-071 |
+| T-HUB-072 | Context bundle fail-closed | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · [decompose](back/plan/T-HUB-072-context-bundle-fail-closed/md/decompose-index.md) · next ANALYZE |
 | T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) |
 | T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · deps T-HUB-070 |
 | T-HUB-061 | Boundary CLI + doctor hygiene (--raw-json, check_boundaries, repair prose) | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · batch harness-ops-hygiene (done queue) · не queue[0] |

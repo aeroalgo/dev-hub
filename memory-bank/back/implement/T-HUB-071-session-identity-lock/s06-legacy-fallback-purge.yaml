@@ -1,0 +1,91 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-071-session-identity-lock
+title: "s06 — legacy-fallback-purge — identity dual-COMMAND leftovers A+B+C+I"
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+  - "Kind A: scanned and confirmed 0 prod callers of armed unknown default and heading-as-COMMAND"
+  - "Kind B: confirmed single SessionStart hook and absence of duplicate SessionContextService package"
+  - "Kind C: confirmed halt on CONTEXT_IDENTITY_DRIFT and zero silent-continue/prefer-heading-if-richer"
+  - "Kind I: confirmed zero leftover instructions/comments teaching 'step unknown OK for QA' or heading as COMMAND SoT"
+  - "Purged obsolete legacy fallback assertions; full targeted regression suite 100 passed green without restoring sunset behavior"
+files:
+  - loop/prompt_builder.py
+  - harness/hooks/epic/core.py
+  - loop/tests/test_prompt_builder.py
+  - loop/tests/test_session_identity_lock.py
+  - harness/hooks/tests/test_session_start_identity.py
+deletes:
+  - "leftover loop/prompt_builder.py armed step or \"unknown\""
+  - "leftover session_start_payload heading-as-COMMAND when armed+valid frontmatter"
+  - "leftover warning-continue / prefer-heading dual-path"
+  - "obsolete tests asserting unknown-when-armed or dual COMMAND as success"
+  - "Kind I «step unknown OK for QA» leftover comments"
+wire_complete:
+  call_sites:
+    - "loop.prompt_builder.resolve_session_identity"
+    - "loop.prompt_builder.build_prompt_scope"
+    - "harness.hooks.epic.core.session_start_payload"
+  enforce_path: "loop/prompt_builder.py:resolve_session_identity + harness/hooks/epic/core.py:session_start_payload"
+  dual_path_rg: "PASS: 0 hits for prefer.*heading|if richer or warning-continue"
+  instruction_rg: "PASS: 0 hits for step unknown OK|unknown OK for QA or heading as COMMAND SoT"
+plan_parity_scan:
+  fr_001_to_fr_020: "COVERED: resolve_session_identity + Drift codes (phase_mismatch, epic_mismatch, step_unknown_while_armed) + single COMMAND injection + halt on drift"
+  target_layout: "loop/prompt_builder.py, harness/hooks/epic/core.py, tests in loop/tests and harness/hooks/tests"
+  replacement_sunset: "All items in tables A, B, C, I purged and verified clean"
+tests:
+  - "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+integration_check:
+  - "100 passed in 0.30s across loop/tests and harness/hooks/tests"
+grep_control:
+  - id: inv-a-01
+    status: pass
+    evidence: "0 occurrences of armed default unknown for PromptScope.step"
+  - id: inv-a-02
+    status: pass
+    evidence: "heading not used as COMMAND source when armed + valid frontmatter"
+  - id: inv-a-tests-01
+    status: pass
+    evidence: "0 hits for obsolete step == 'unknown' asserts in tests"
+  - id: inv-b-01
+    status: pass
+    evidence: "loop/SessionContextService does not exist"
+  - id: inv-c-01
+    status: pass
+    evidence: "CONTEXT_IDENTITY_DRIFT raises halt in session_start_payload"
+  - id: inv-c-02
+    status: pass
+    evidence: "0 hits for prefer heading / if richer dual path"
+  - id: inv-i-01
+    status: pass
+    evidence: "0 hits for step unknown OK in comments/code"
+  - id: inv-i-02
+    status: pass
+    evidence: "0 hits for teaching heading as COMMAND SoT when frontmatter ok"
+verification_results:
+  - "pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py -> 100 passed"
+checkpoints:
+  - id: cp1
+    criterion: "Kind A+B — 0 prod callers of armed unknown-default and heading-as-COMMAND; no SessionContextService"
+    status: done
+  - id: cp2
+    criterion: "Kind C+I — no warning-continue; no prefer-heading-if-richer; disagree armed vs projection -> halt; 0 hits step unknown OK"
+    status: done
+  - id: cp3
+    criterion: "Obsolete unknown-when-armed / dual-COMMAND-as-success tests purged; targeted pytest green without restore"
+    status: done
+  - id: cp4
+    criterion: "Targeted + epic regression suite green после deletes (без возврата sunset-кода)"
+    status: done

@@ -1,0 +1,152 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-072-context-bundle-fail-closed
+slug: context-bundle-fail-closed
+date: 2026-09-06
+status: complete
+
+findings: []
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "After the per-path loop, ok_status = False if any missing_file/read_error. Remove unconditional ok_status = True at L97. Combine with plan_section errors."
+  - requirement_id: FR-002
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Classifier is_markdown_plan_path(path) : md/plan.md suffix, plan-*.md under memory-bank, gap-*.md optional same policy (architecture: plan/gap not inline)."
+  - requirement_id: FR-003
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "For those paths: store sha256+size; content=\"\" or omit from inject renderer; truncated=False; maybe kind=path_ref if schema allows extra field — if extra=forbid on MbLoadFile, use empty content + diagnostic path_only:plan.md without failing ok (file exists). Existence still required."
+  - requirement_id: FR-004
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "SessionStart renderer uses files.content only if non-empty; always lists paths."
+  - requirement_id: FR-005
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "load_plan_section not called from SessionStart hot path. If CLI still has flag — keep but SessionStart does not pass plan_section."
+  - requirement_id: FR-006
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Cap: yaml overflow still truncated flag; required yaml truncated → ok false or documented ok true with truncated (choose: ok false if truncated required yaml to fail-closed — may be strict; Appetite: truncated yaml ok=true with truncated=true as today, missing not ok). Decision: missing/read_error → ok false; truncate → keep truncated flag, ok true (avoid blocking huge yaml). Plan md never truncated because not inlined."
+  - requirement_id: FR-007
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "Kind I: docs saying load_now bodies always inlined — rewrite."
+  - requirement_id: FR-008
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Tests in loop/tests/ for load_session."
+  - requirement_id: FR-009
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Do not inline decompose-index.md (md coverage) — path-only same as plan. yaml index may inline (small)."
+  - requirement_id: FR-010
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "forbidden_skipped from resolver still ok if policy skip; missing required resolved path not skipped → not ok."
+  - requirement_id: FR-011
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "SessionStart catch Exception: set inject warning and treat as incomplete (do not look like full success). Exact hook code as-built — find load_session exception and fail-closed."
+  - requirement_id: US-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Как DECOMPOSE, я не получаю тело plan.md в SessionStart."
+  - requirement_id: US-002
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как runner, missing required file → ok false."
+  - requirement_id: US-003
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "Как IMPLEMENT, yaml shard всё ещё может быть inline."
+  - requirement_id: US-004
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "Как агент, sha256 plan доступен чтобы заметить drift."
+  - requirement_id: US-005
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как SessionStart, exception load_session не silent success."
+  - requirement_id: SC-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "missing → ok false"
+  - requirement_id: SC-002
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "plan.md not in inject body"
+  - requirement_id: SC-003
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "yaml still inline"
+  - requirement_id: SC-004
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "sha present for path-only"
+  - requirement_id: SC-005
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "SessionStart exception not silent ok"
+  - requirement_id: AC+1
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "ok=false on missing required."
+  - requirement_id: AC+2
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "plan.md path-only in SessionStart."
+  - requirement_id: AC+3
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "yaml inline remains."
+  - requirement_id: AC+4
+    step_ids: [s01, s03, s04]
+    status: covered
+    plan_text_verbatim: "Independent tests as behavior."
+  - requirement_id: AC-1
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Нет ok=true при missing_file."
+  - requirement_id: AC-2
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет «inline plan if < 256KiB»."
+  - requirement_id: AC-3
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет heading-split SoT on start."
+  - requirement_id: AC-4
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет silent exception continue as success."
+  - requirement_id: AC-5
+    step_ids: [s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "Нет dual loader (old inline + new path) both emitting body."
+  - requirement_id: NFR-1
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "SessionStart context size not dominated by plan.md"
+  - requirement_id: NFR-2
+    step_ids: [s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "Completeness honest"
+  - requirement_id: NFR-3
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Hash cheap (read file once)"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

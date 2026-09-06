@@ -1,0 +1,28 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-071
+plan_id: T-HUB-071-session-identity-lock
+epic_id: T-HUB-071-session-identity-lock
+date: 2026-09-06
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-071"
+  - "epic: T-HUB-071-session-identity-lock"
+  - "steps: s01–s06"
+  - "files: loop/prompt_builder.py, harness/hooks/epic/core.py, loop/tests/test_stop_gate.py, loop/tests/test_session_identity_lock.py, harness/hooks/tests/test_session_start_identity.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2168 passed, 3 skipped)"
+  - "integration rule (§0.11)"
+  - "reviewer gate: VERDICT PASS (@verify-qa)"
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

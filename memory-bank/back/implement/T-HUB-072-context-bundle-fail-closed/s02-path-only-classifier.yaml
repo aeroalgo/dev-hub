@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s02 — Add is_markdown_plan_path + fail-closed ok + empty content for plan/gap
+  md IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s02-path-only-classifier.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- sunset-inventory verified obsolete full markdown body in MbLoadFile.content for
+  plan/gap/index/analyze files
+- MbLoadFile extra=forbid respected via content="" and diagnostic path_only:<path>
+gaps:
+  status: none
+done:
+- added is_markdown_plan_path classifier matching plan/gap/index/analyze markdown
+  files
+- updated load_session to set content="" and truncated=False for plan markdown paths,
+  while computing full sha256 and size_bytes
+- added path_only:<path> diagnostic code for plan paths without failing ok
+- verified fail-closed ok aggregation on required missing and read errors
+files:
+- loop/mb_load/session.py
+- loop/tests/test_mb_load_session.py
+deletes:
+- loop/mb_load/session.py leftover ok_status = True after missing continue (if still
+  present)
+- full md body in MbLoadFile.content for plan/gap/index.md/analyze-*.md
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'path_only or plan_md
+  or is_markdown'
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'required_missing
+  or read_error'
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'truncat or index_md
+  or decompose_index'
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'forbidden or policy'
+grep_control: []
+verification_results:
+- 20 passed in 0.35s
+checkpoints:
+- id: cp1
+  criterion: 'FR-002/003 — classifier hits: load_session files for md/plan.md have
+    content=="" ; sha256 of full file; size_bytes original; truncated False; diagnostic
+    path_only present; ok True if file exists.'
+  status: done
+- id: cp2
+  criterion: FR-001/TM-001/TM-008 — missing_file and read_error on required → ok False;
+    no ok True with those codes
+  status: done
+- id: cp3
+  criterion: FR-006/FR-009 — yaml truncated keeps ok True + truncated flag; decompose-index.md
+    content empty
+  status: done
+- id: cp4
+  criterion: FR-010 — forbidden_skipped still not missing; skipped path not in required_missing
+  status: done

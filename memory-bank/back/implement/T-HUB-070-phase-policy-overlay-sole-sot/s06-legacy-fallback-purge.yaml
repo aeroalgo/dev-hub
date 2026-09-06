@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s06 — s06 — legacy-fallback-purge — overlay dual-policy leftovers A+B+C+I IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- Sunset inventory sweep A+B+C+I verified across hooks and tests
+gaps:
+  status: none
+done:
+- Purged leftover REFLECT mention in stop-gate.py ARCHIVE check
+- Verified zero prod callers / zero armed DECOMPOSE need_verify=False overrides
+- Verified zero docs-only / verify/reviewer OFF instructions in hooks
+- Verified targeted suite passes with 0 regressions
+files:
+- harness/hooks/user-prompt.py
+- harness/hooks/stop-gate.py
+- loop/schemas/phase_registry.yaml
+- harness/hooks/tests/test_user_prompt_overlay.py
+- loop/tests/test_stop_gate.py
+- loop/tests/test_epic_transition.py
+- harness/hooks/tests/test_mb_finish_qa.py
+deletes:
+- leftover armed DECOMPOSE override / docs-only comments
+- leftover Handoff → REFLECT in user-prompt.py and stop-gate.py
+- leftover DECOMPOSE need_verify false in phase_registry.yaml
+- leftover stop-gate need_verify=False special-case
+- obsolete tests asserting overlay OFF or QA→REFLECT
+- PROJECT_LOOP_DECOMPOSE_VERIFY default-off if introduced
+- second Python phase policy table if introduced
+tests:
+- bin/pytest harness/hooks/tests/test_user_prompt_overlay.py loop/tests/test_stop_gate.py
+  loop/tests/test_epic_transition.py -q --tb=line
+integration_check:
+- 'Section 0.11 check passed: phase_registry.yaml is sole SoT for phase gate policies'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- inv-a-01..04 clean, inv-b-01 clean, inv-c-01..02 clean, inv-i-01..04 clean
+checkpoints:
+- id: cp1
+  criterion: Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (inv-a-01..04, inv-a-tests-01)
+  status: done
+- id: cp2
+  criterion: Kind B — same UserPromptSubmit hook; no second overlay entrypoint / phase_policy.py
+    (inv-b-01)
+  status: done
+- id: cp3
+  criterion: Kind C+I — no docs-only DECOMPOSE; no overlay-wins-if-missing; no REFLECT-as-next
+    / verify OFF / promote IMPLEMENT instructions (inv-c-01/02, inv-i-01..04)
+  status: done
+- id: cp4
+  criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+  status: done

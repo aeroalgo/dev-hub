@@ -61,16 +61,17 @@ def parse_frontmatter(text: str) -> LoopHandoffFrontmatter | None:
     return parse_handoff_meta(text)
 
 
-def parse_handoff_meta(text: str) -> LoopHandoffFrontmatter | None:
+def parse_handoff_meta(text: str) -> LoopHandoffFrontmatter | dict[str, Any] | None:
     raw, _body = split_frontmatter(text)
     if not raw:
         return None
-    if str(raw.get("schema") or "") != SCHEMA_LOOP_HANDOFF:
-        return None
-    try:
-        return LoopHandoffFrontmatter.model_validate(raw)
-    except ValidationError:
-        return None
+    if str(raw.get("schema") or "") == SCHEMA_LOOP_HANDOFF:
+        try:
+            return LoopHandoffFrontmatter.model_validate(raw)
+        except ValidationError:
+            pass
+    # Fallback to dict for unstructured/transitional frontmatter
+    return raw
 
 
 def validate_handoff_frontmatter(text: str) -> tuple[LoopHandoffFrontmatter | None, list[str]]:

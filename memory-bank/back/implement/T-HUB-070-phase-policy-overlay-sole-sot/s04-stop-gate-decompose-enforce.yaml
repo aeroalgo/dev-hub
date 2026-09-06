@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s04 — Stop-gate honor DECOMPOSE need_verify; delete docs-only special-case
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s04-stop-gate-decompose-enforce.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Removed armed_step_u == 'DECOMPOSE' override that forced need_verify = False in
+  stop-gate.py
+- Rewrote QA FINISH error messages to guide pass -> DONE / mb-finish qa and blocked
+  -> BUGFIX instead of REFLECT
+- Added test_stop_gate_decompose_finish_blocked_without_verify_pass in loop/tests/test_stop_gate.py
+- Enforced need_verify on DECOMPOSE phase in stop-gate hook
+files:
+- harness/hooks/stop-gate.py
+- loop/tests/test_stop_gate.py
+- harness/hooks/tests/test_user_prompt_overlay.py
+deletes:
+- 'harness/hooks/stop-gate.py armed_step_u == DECOMPOSE: st[''need_verify''] = False'
+- 'harness/hooks/stop-gate.py strings ''pass → ## Handoff BACK REFLECT'' and ''pass→REFLECT''
+  as required next'
+tests:
+- bin/pytest loop/tests/test_stop_gate.py -q --tb=line -k decompose
+- bin/pytest loop/tests/test_stop_gate.py harness/hooks/tests/test_user_prompt_overlay.py
+  -q --tb=line -k 'decompose or need_verify'
+integration_check:
+- bin/pytest loop/tests/test_stop_gate.py -q --tb=line
+grep_control: []
+verification_results:
+- 74 passed in loop/tests/test_stop_gate.py
+- 0 matches for need_verify = False on DECOMPOSE branch
+- 0 matches for REFLECT handoff in stop-gate.py
+checkpoints:
+- id: cp1
+  criterion: No DECOMPOSE branch that assigns need_verify False in stop-gate.py (FR-014)
+  status: done
+- id: cp2
+  criterion: DECOMPOSE FINISH without verify-decompose PASS still HALT when gate active
+    (SC-005 TM-004)
+  status: done
+- id: cp3
+  criterion: QA FINISH stop-gate messages do not require REFLECT as next (FR-013 hooks)
+  status: done
+- id: cp4
+  criterion: Enforce — docs-only DECOMPOSE FINISH cannot succeed; verify sidecar required
+  status: done

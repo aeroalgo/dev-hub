@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-071
+plan_id: T-HUB-071-session-identity-lock
+epic_id: T-HUB-071-session-identity-lock
+date: 2026-09-06
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-071"
+  - "epic: T-HUB-071-session-identity-lock"
+  - "steps: s01–s06"
+  - "files: loop/prompt_builder.py, harness/hooks/epic/core.py, loop/tests/test_stop_gate.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (1 failed, 2167 passed)"
+  - "integration rule (§0.11)"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - id: QA-FAIL-001
+    type: regression
+    severity: critical
+    component: loop/tests/test_stop_gate.py
+    description: "test_session_start_payload_requires_epic_loop failed due to epic_mismatch drift when session identity lock is active"
+    evidence: "loop/tests/test_stop_gate.py:1048: AssertionError: assert 'Один шаг → FINISH' in 'source=startup\\nCONTEXT_IDENTITY_DRIFT...'"
+
+blockers:
+  - "loop/tests/test_stop_gate.py::test_session_start_payload_requires_epic_loop"
+
+fix_plan:
+  - "BACK BUGFIX T-HUB-071-stop-gate-test-identity-alignment: align activeContext frontmatter in test fixture"
+
+limitations:
+  - "full repo suite regression prevents QA PASS"
+
+suite:
+  - "bin/pytest -q --tb=line"

@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s03 — Wire SessionStart renderer — path+sha only; never inline plan.md IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s03-session-start-path-only-wire.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- "sunset-inventory extracted boundary session-start-path-only-inject items: session_start_payload and load_session path_only handling"
+gaps:
+  status: none
+done:
+- "Wired SessionStart renderer in harness/hooks/epic/core.py: always emit path+sha+size manifest for path-only docs with instruction 'Read this path', body omitted even under 16KiB cap."
+- "Preserved yaml/json content inlining when non-empty and under size cap."
+- "Updated test_session_start_inject.py with assertions verifying instruction 'Read this path' and sha256 presence for markdown plan docs."
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes:
+- session_start_payload dump of plan.md / gap-*.md / decompose-index.md / analyze-*.md bodies
+- any remaining dual emit (loader content + renderer body) for those paths
+tests:
+- bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py -q --tb=line
+integration_check:
+- "bin/pytest harness/hooks/tests/test_session_start_inject.py loop/tests/test_mb_load_session.py -q --tb=line -> 33 passed"
+- "rg -n 'load_plan_section|plan_section=' harness/hooks/epic/core.py harness/hooks/session-start.py -> 0 matches in SessionStart hot path"
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: 'US-001/TM-002 green — 500+ line plan.md in load_now: additionalContext has path + sha256; unique plan sentence absent; instruction Read this path present.'
+  status: done
+- id: cp2
+  criterion: US-003/TM-003 — yaml shard < cap still has content in inject; missing yaml → incomplete (ok false path from s02)
+  status: done
+- id: cp3
+  criterion: FR-005/TM-006 — SessionStart hot path does not call load_plan_section or pass plan_section
+  status: done
+- id: cp4
+  criterion: wire_complete — renderer skips empty content; no dual body emit; cap never inlines classifier paths
+  status: done
+wire_complete:
+  call_sites: "session_start_payload calls load_session(cwd) without plan_section and inspects res.files for empty content before dump"
+  enforce_path: "harness/hooks/epic/core.py"
+  dual_path_rg: "clean — only non-empty content dumped, markdown plan paths have empty content + path_only diagnostic"
+  instruction_rg: "clean — Read this path instruction emitted for empty content items"

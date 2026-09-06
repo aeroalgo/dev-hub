@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-071-session-identity-lock
+title: s04 — Kind I + purge unknown default and heading-as-COMMAND IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s04-kind-i-unknown-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- sunset-inventory verified obsolete step `or "unknown"` default and Kind I instructions
+gaps:
+  status: none
+done:
+- Purged literal "unknown" default for step in prompt_builder.py when armed/unarmed
+- Documented unarmed step as "-" without ambiguous "unknown"
+- Verified 0 "step unknown OK" Kind I comments across touched files
+- Kept HARD READ routing instructions intact in render_prompt_scope
+files:
+- loop/prompt_builder.py
+- loop/tests/test_prompt_builder.py
+- loop/tests/test_session_identity_lock.py
+deletes:
+- loop/prompt_builder.py `or "unknown"` as PromptScope.step default when armed exists
+- comments/docs «step unknown OK for QA»
+- tests asserting armed QA/BUGFIX/AUDIT step==unknown
+tests:
+- bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py
+  -q --tb=line -k 'unknown or QA or armed'
+- rg -n 'step unknown OK|unknown OK for QA' loop/prompt_builder.py loop/tests harness/hooks/epic/core.py
+  || true
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: armed fixtures grep PromptScope.step unknown = 0 (FR-003)
+  status: done
+- id: cp2
+  criterion: Kind I — no «step unknown OK» instruction in prompt_builder / identity
+    tests
+  status: done
+- id: cp3
+  criterion: SC-005 leftover — tests do not teach heading as COMMAND when frontmatter
+    valid
+  status: done
+- id: cp4
+  criterion: HARD READ still present; unarmed path documented not crash
+  status: done

@@ -1,17 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-070
-  epic_id: T-HUB-070-phase-policy-overlay-sole-sot
-  plan: plan-T-HUB-070-phase-policy-overlay-sole-sot.md
-  deps: []
-  batch: loop-session-architecture-20260906
-- id: T-HUB-071
-  epic_id: T-HUB-071-session-identity-lock
-  plan: plan-T-HUB-071-session-identity-lock.md
-  deps:
-  - T-HUB-070
-  batch: loop-session-architecture-20260906
 - id: T-HUB-072
   epic_id: T-HUB-072-context-bundle-fail-closed
   plan: plan-T-HUB-072-context-bundle-fail-closed.md
@@ -286,6 +275,14 @@ done:
   epic_id: T-HUB-069-agent-contract-registry-codex-policy
   plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
   batch: workflow-loop-20260905
+- id: T-HUB-070
+  epic_id: T-HUB-070-phase-policy-overlay-sole-sot
+  plan: plan-T-HUB-070-phase-policy-overlay-sole-sot.md
+  batch: loop-session-architecture-20260906
+- id: T-HUB-071
+  epic_id: T-HUB-071-session-identity-lock
+  plan: plan-T-HUB-071-session-identity-lock.md
+  batch: loop-session-architecture-20260906
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

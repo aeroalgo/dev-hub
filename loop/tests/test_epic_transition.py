@@ -748,3 +748,22 @@ def test_write_last_finish_tool_records_last_finished_epic(tmp_path: Path) -> No
     assert st.get("last_finished_epic") == "T-HUB-047-prev"
     assert st.get("armed_after_finish") == "ANALYZE"
 
+
+def test_tm003_decompose_need_verify_align():
+    """US-004 / TM-003: get_phase_config('DECOMPOSE') has verify_agent and need_verify: True."""
+    from loop.epic_transition import get_phase_config
+
+    cfg = get_phase_config("DECOMPOSE")
+    assert cfg["verify_agent"] == "verify-decompose"
+    assert cfg["finish_gates_dict"]["need_verify"] is True
+    assert cfg["finish_gates_dict"]["need_reviewer"] is False
+    assert cfg.get("finish_gates", {}).get("need_verify") is True
+
+
+def test_tm008_gates_from_phase_decompose_need_verify_true():
+    """FR-004 / TM-008: gates_from_phase('DECOMPOSE') returns need_verify True."""
+    from loop.epic_transition import gates_from_phase
+
+    gates = gates_from_phase("DECOMPOSE")
+    assert gates["need_verify"] is True
+    assert gates["need_reviewer"] is False

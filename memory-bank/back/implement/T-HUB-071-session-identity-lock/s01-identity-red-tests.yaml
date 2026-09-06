@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-071-session-identity-lock
+title: s01 — Red tests — 94cea2d3 dual COMMAND + unknown step when armed IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s01-identity-red-tests.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added red tests for PromptScope.step armed resolution (US-002, FR-008, FR-013) in
+  loop/tests/test_session_identity_lock.py
+- Added red tests for SessionStart 94cea2d3 fixture / CONTEXT_IDENTITY_DRIFT halt
+  (US-001, US-003, FR-014, FR-019) in harness/hooks/tests/test_session_start_identity.py
+files:
+- loop/tests/test_session_identity_lock.py
+- harness/hooks/tests/test_session_start_identity.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 'unknown or
+  QA'
+- bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line -k '94cea2d3
+  or drift or BUGFIX'
+integration_check:
+- 'TDD red phase confirmed: as-built code fails on PromptScope ''or unknown'' default
+  and missing CONTEXT_IDENTITY_DRIFT halt'
+grep_control:
+- back: 'rg -n ''CONTEXT_IDENTITY_DRIFT|COMMAND: BACK BUGFIX|step != .unknown|94cea2d3''
+    loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py'
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'US-002 red — armed_step=QA, projection.step missing: test asserts PromptScope.step
+    == "QA" and != "unknown". As-built L154 must FAIL this test (TDD red).'
+  status: done
+  done_at: '2026-09-06T14:17:41Z'
+- id: cp2
+  criterion: 'US-001/US-003/FR-014 red — state BUGFIX + stale AC mode=QA (or projection
+    QA): additionalContext must not contain COMMAND BACK QA alongside intended BUGFIX;
+    must carry CONTEXT_IDENTITY_DRIFT. As-built must FAIL (dual COMMAND or no halt).'
+  status: done
+  done_at: '2026-09-06T14:17:41Z'
+- id: cp3
+  criterion: Independent Test is hook/builder behavior (COMMAND + step + diagnostic),
+    not yaml-field-exists
+  status: done
+  done_at: '2026-09-06T14:17:42Z'
+- id: cp4
+  criterion: Prod unknown default still present (this step does not delete) — red
+    is expected until s02/s04
+  status: done
+  done_at: '2026-09-06T14:17:42Z'
+resume_from: cp1

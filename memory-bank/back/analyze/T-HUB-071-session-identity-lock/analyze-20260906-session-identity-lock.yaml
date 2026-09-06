@@ -1,0 +1,323 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-071-session-identity-lock
+slug: session-identity-lock
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Single function `resolve_session_identity(state, ac_meta) -> Identity | Drift`. Drift codes: `phase_mismatch`, `epic_mismatch`, `step_unknown_while_armed`."
+
+  - requirement_id: FR-002
+    step_ids: [s02, s04, s05]
+    status: covered
+    plan_text_verbatim: "`build_prompt_scope` uses Identity; `step` fallback chain: `projection.step` → `state.armed_step` → `state.phase` → **empty + diagnostic**, never the string `unknown` if any of the three is set. If **nothing** armed, step may be `unarmed` (explicit) not `unknown` (ambiguous). Prefer: unarmed IDE → step=`-` documented."
+
+  - requirement_id: FR-003
+    step_ids: [s01, s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "Literal `unknown` purged from prompt_builder as default when armed exists. Tests grep `unknown` in PromptScope for armed fixtures = 0."
+
+  - requirement_id: FR-004
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "SessionStart: if Drift → additionalContext warning **and** `ok=false` in load result if composed; do not start «work» inject of load_now bodies (072 will path-only; this epic at least doesn't lie COMMAND)."
+
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "`expected_identity` from loop env (`EPIC_PHASE` / runner) if present must match state; else halt."
+
+  - requirement_id: FR-006
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Kind I: comments «step unknown OK for QA» — delete."
+
+  - requirement_id: FR-007
+    step_ids: [s03, s04, s06]
+    status: covered
+    plan_text_verbatim: "Do not parse `## Handoff` heading for phase when frontmatter valid (`loop-handoff/v1`). If frontmatter missing — diagnostic, migrational regex with drift counter (existing active_context parsers) **not** as COMMAND source if state armed."
+
+  - requirement_id: FR-008
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Tests: matrix phases PLAN/DECOMPOSE/ANALYZE/IMPLEMENT/AUDIT/QA/BUGFIX each has non-unknown step when armed."
+
+  - requirement_id: FR-009
+    step_ids: [s02, s04]
+    status: covered
+    plan_text_verbatim: "`render_prompt_scope` HARD READ still says read entrypoint then chain — **do not** expand to inline workflow (072)."
+
+  - requirement_id: FR-010
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Identity fields required in halt diagnostic JSON (typed), not prose-only."
+
+  - requirement_id: FR-011
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Concurrent dual SessionStart (065) — identity function must be pure/idempotent."
+
+  - requirement_id: FR-012
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "BUGFIX `bugfix_finish_required` already in finish_handoff — keep; identity lock is **start** side."
+
+  - requirement_id: FR-013
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Phase token table (locked for PromptScope.step when not IMPLEMENT sNN): PLAN, DECOMPOSE, ANALYZE, CREATIVE, CLARIFY, IMPLEMENT+sNN, AUDIT, QA, BUGFIX, DONE"
+
+  - requirement_id: FR-014
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Reproduction fixture `94cea2d3`: env/loop intended COMMAND = `BACK BUGFIX`; `state.phase` / `armed_step` = `BUGFIX`; stale AC frontmatter `mode: QA` **or** overlay leftover projection QA; **Then:** Drift halt, **not** SessionStart `COMMAND: BACK QA` plus user `BACK BUGFIX`."
+
+  - requirement_id: FR-015
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "ROLE comes from state/frontmatter `role` (BACK/FRONT/INTEG), not guessed from prompt regex when armed."
+
+  - requirement_id: FR-016
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "`session_id` if present in state/last-session must be echoed in halt diagnostic; mismatch session_id is **not** this epic (068/journal) unless cheap."
+
+  - requirement_id: FR-017
+    step_ids: [s01, s02, s03, s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "Wire-complete: **Add** `resolve_session_identity` → **Wire** `session_start_payload` + `build_prompt_scope` → **Enforce** pytest 94cea2d3 + matrix → **Purge** default `\"unknown\"` and heading-as-COMMAND."
+
+  - requirement_id: FR-018
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Out vs T-HUB-065: 065 deletes duplicate realpath SessionStart + injects `EPIC_RUNTIME` entrypoint. This epic **must not** reopen duplicate-hook WHAT. If 065 not landed, identity tests mock a **single** payload function."
+
+  - requirement_id: FR-019
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "`PromptScope.command` field (or rendered line) is the only COMMAND in additionalContext. Grep fixture output: count of lines matching `COMMAND:` or `^BACK (QA|BUGFIX|IMPLEMENT)` ≤ 1."
+
+  - requirement_id: FR-020
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "If projection.phase and state.armed_step disagree (both set, different) → Drift `phase_mismatch` even if AC frontmatter matches one of them. State vs projection: **armed_step wins for COMMAND** only if they match; if they disagree → halt (do not pick a winner silently)."
+
+  - requirement_id: US-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Как BUGFIX loop session, я вижу COMMAND BACK BUGFIX, не QA."
+
+  - requirement_id: US-002
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "Как агент, я не получаю step=unknown на QA."
+
+  - requirement_id: US-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Как runner, mismatch state vs AC mode halt."
+
+  - requirement_id: US-004
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Как IMPLEMENT, step=sNN from armed."
+
+  - requirement_id: US-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как Codex/Claude, runtime entrypoint orthogonal (065)."
+
+  - requirement_id: SC-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "armed BUGFIX COMMAND not QA"
+
+  - requirement_id: SC-002
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "no step unknown when armed"
+
+  - requirement_id: SC-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "mismatch halt"
+
+  - requirement_id: SC-004
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "IMPLEMENT step sNN"
+
+  - requirement_id: SC-005
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "no heading regex as COMMAND if frontmatter ok"
+
+  - requirement_id: AC+1
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "One COMMAND per SessionStart, equals armed phase."
+
+  - requirement_id: AC+2
+    step_ids: [s01, s02, s04, s05]
+    status: covered
+    plan_text_verbatim: "step never `unknown` when armed."
+
+  - requirement_id: AC+3
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Drift halt, not warning-continue."
+
+  - requirement_id: AC+4
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Tests for 94cea2d3 reproduction."
+
+  - requirement_id: AC−1
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет двух COMMAND строк."
+
+  - requirement_id: AC−2
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет silent continue on mismatch."
+
+  - requirement_id: AC−3
+    step_ids: [s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет `unknown` default masking missing projection."
+
+  - requirement_id: AC−4
+    step_ids: [s03, s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет regex heading SoT when frontmatter valid."
+
+  - requirement_id: AC−5
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет dual-path «prefer AC heading if richer»."
+
+  - requirement_id: NFR-1
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Halt faster than agent tool-use (SessionStart)"
+
+  - requirement_id: NFR-2
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Diagnostic machine-readable"
+
+  - requirement_id: NFR-3
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Idempotent under dual hooks"
+
+  - requirement_id: TM-001
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "BUGFIX armed COMMAND — pytest — BACK BUGFIX only"
+
+  - requirement_id: TM-002
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "QA step not unknown — pytest — step QA"
+
+  - requirement_id: TM-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "mismatch halt — pytest — CONTEXT_IDENTITY_DRIFT"
+
+  - requirement_id: TM-004
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "IMPLEMENT sNN — pytest — s05"
+
+  - requirement_id: TM-005
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "unarmed IDE — pytest — no crash"
+
+  - requirement_id: TM-006
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "epic mismatch — pytest — halt"
+
+  - requirement_id: TM-007
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "no heading COMMAND — unit — state wins"
+
+  - requirement_id: TM-008
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "matrix all phases — pytest — no unknown"
+
+  - requirement_id: Failure-TM-001
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "BUGFIX vs QA inject dual COMMAND"
+
+  - requirement_id: Failure-TM-002
+    step_ids: [s01, s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "step unknown agent lost shard"
+
+  - requirement_id: Failure-TM-003
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "AC stale mode drift"
+
+  - requirement_id: Failure-TM-004
+    step_ids: [s03, s04, s06]
+    status: covered
+    plan_text_verbatim: "missing frontmatter regex temptation"
+
+  - requirement_id: Failure-TM-005
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "unarmed IDE no state"
+
+  - requirement_id: Failure-TM-006
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "epic_id mismatch wrong plan"
+
+  - requirement_id: Failure-TM-007
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "065 dual hook double payload"
+
+  - requirement_id: Failure-TM-008
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "IMPLEMENT missing sNN armed implement no step"
+
+  - requirement_id: layout:loop/tests/test_session_identity_lock.py
+    step_ids: [s01, s02, s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "loop/tests/test_session_identity_lock.py"
+
+  - requirement_id: layout:harness/hooks/tests/test_session_start_identity.py
+    step_ids: [s01, s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "harness/hooks/tests/test_session_start_identity.py"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

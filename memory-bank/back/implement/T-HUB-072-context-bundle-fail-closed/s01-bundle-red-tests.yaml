@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s01 — Red tests — missing ok false + plan.md body absent from inject IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s01-bundle-red-tests.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлен тест test_missing_required_path_ok_is_false_and_diagnostic в loop/tests/test_mb_load_session.py
+  для фиксации ok=False при missing required файле
+- Добавлен красный тест test_plan_md_body_absent_from_session_start_inject_and_path_only
+  в harness/hooks/tests/test_session_start_inject.py, падающий на as-built 16KiB dump
+  plan.md
+files:
+- loop/tests/test_mb_load_session.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'missing_required_path_ok_is_false'
+- bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'plan_md'
+integration_check:
+- Prod код не модифицировался (step s01 strictly red tests); content_str = raw_bytes.decode
+  и if f.content сохранены до s02/s03
+grep_control: []
+verification_results:
+- PASS (ok is False on missing required load_now path)
+- RED/PASS (test fails against as-built payload as required by step s01 TDD red phase)
+- PASS (tests invoke load_session and session_start_payload behavior)
+- PASS (prod content inlining untouched in s01)
+checkpoints:
+- id: cp1
+  criterion: 'US-002 / TM-001 — missing required load_now path: load_session ok is
+    False, missing_file: in diagnostic_codes, required_missing set. Never ok True
+    with missing.'
+  status: done
+- id: cp2
+  criterion: 'US-001 / TM-002 red — existing 500+ line md/plan.md in load_now: additionalContext
+    must not contain unique plan sentence; must contain path. As-built 16KiB dump
+    must FAIL.'
+  status: done
+- id: cp3
+  criterion: Independent Test is hook/loader behavior (ok + inject body), not yaml-field-exists
+  status: done
+- id: cp4
+  criterion: Prod still inlines md content (this step does not delete) — red expected
+    until s02/s03
+  status: done
+resume_from: none

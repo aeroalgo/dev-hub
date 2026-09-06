@@ -1,0 +1,219 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-071-session-identity-lock
+title: "s06 — legacy-fallback-purge — identity dual-COMMAND leftovers A+B+C+I"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по unknown-when-armed default, heading-as-COMMAND when
+  frontmatter valid, warning+continue mismatch, dual COMMAND inject, Kind I
+  «step unknown OK». Obsolete tests на старый контракт delete/rewrite; suite
+  green без restore legacy. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-003, FR-006, FR-007, FR-017, FR-019, AC+1, AC+3, AC−1, AC−2, AC−3, AC−4, AC−5, Independent Test, NFR-1, Failure-TM-001, Failure-TM-002, Failure-TM-003, Failure-TM-004]
+  nouns:
+    - leftover or unknown step default
+    - leftover heading-as-COMMAND
+    - leftover warning-continue
+    - leftover dual COMMAND
+    - leftover step unknown OK
+    - CONTEXT_IDENTITY_DRIFT
+  layout_paths:
+    - loop/prompt_builder.py
+    - harness/hooks/epic/core.py
+  ac_quotes:
+    - "Wire-complete: Add resolve_session_identity → Wire session_start_payload + build_prompt_scope → Enforce pytest 94cea2d3 + matrix → Purge default unknown and heading-as-COMMAND."
+    - "Independent Test FAIL: «projection usually matches» without halt fixture."
+    - "Nет двух COMMAND строк. Нет silent continue on mismatch."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:121-124"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:164-171"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:245-271"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:350-353"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 deltas
+  produces:
+    - удалённые символы/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - loop/prompt_builder.py
+    - harness/hooks/epic/core.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+    - harness/hooks/tests/test_session_start_identity.py
+
+as_built:
+  - "s02–s05 should have removed primary unknown default and unlocked payload; this step scans leftovers"
+  - "plan B n/a — same SessionStart hook"
+  - "possible leftover: render phase or 'unknown'; heading fill when armed; tests asserting dual-path richer heading"
+
+delta:
+  - "full sunset_inventory scan A+B+C+I; delete leftover prod callers and obsolete asserts"
+  - "no restore of or unknown armed default to make old tests green"
+  - "confirm one COMMAND; halt not warn; no prefer-heading-if-richer"
+
+sunset_inventory:
+  - symbol: loop.prompt_builder.build_prompt_scope step or "unknown" when armed
+    kind: A
+    replacement: projection.step → armed_step → phase → empty+diagnostic / unarmed -
+    policy: delete in-epic
+    rg_scope: loop/prompt_builder.py
+    expect: zero armed-path or "unknown" for PromptScope.step
+  - symbol: session_start_payload COMMAND from handoff_mode_from_text when armed + valid frontmatter
+    kind: A
+    replacement: resolve_session_identity
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: heading not COMMAND source if state armed and loop-handoff/v1 valid
+  - symbol: tests asserting armed PromptScope.step == unknown
+    kind: A
+    replacement: tests on phase token / sNN
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: SessionStart same hook
+    kind: B
+    replacement: n/a same entrypoint
+    policy: delete in-epic
+    rg_scope: harness/hooks/session-start.py
+    expect: no second identity entrypoint / no SessionContextService package
+  - symbol: warning + continue on mismatch
+    kind: C
+    replacement: halt CONTEXT_IDENTITY_DRIFT
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py loop/prompt_builder.py
+    expect: zero silent continue / dual COMMAND on stale AC mode
+  - symbol: prefer AC heading if richer
+    kind: C
+    replacement: fail-closed identity
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: no dual-path richer heading
+  - symbol: pick winner silently projection.phase vs armed_step
+    kind: C
+    replacement: Drift phase_mismatch
+    policy: delete in-epic
+    rg_scope: loop/prompt_builder.py harness/hooks/epic/core.py
+    expect: disagree → halt
+  - symbol: comments «step unknown OK for QA»
+    kind: I
+    replacement: armed always has step token
+    policy: delete in-epic
+    rg_scope: loop/prompt_builder.py loop/tests harness/hooks
+    expect: zero old instruction
+  - symbol: instruction regex ## Handoff BACK QA as COMMAND SoT when frontmatter valid
+    kind: I
+    replacement: LoopHandoffFrontmatter + identity
+    policy: delete in-epic
+    rg_scope: loop/prompt_builder.py harness/hooks/epic/core.py
+    expect: zero instruction teaching heading as COMMAND SoT if frontmatter ok
+
+deletes:
+  - "leftover loop/prompt_builder.py armed step or \"unknown\""
+  - "leftover session_start_payload heading-as-COMMAND when armed+valid frontmatter"
+  - "leftover warning-continue / prefer-heading dual-path"
+  - "obsolete tests asserting unknown-when-armed or dual COMMAND as success"
+  - "Kind I «step unknown OK for QA» leftover comments"
+
+out_of_scope:
+  - "overlay REFLECT/verify OFF leftovers — follow_up: T-HUB-070-phase-policy-overlay-sole-sot"
+  - "mb-load ok flag / path-only — follow_up: T-HUB-072-context-bundle-fail-closed"
+  - "duplicate SessionStart process — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "SessionContextService package — Appetite cut_list"
+  - "full suite → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: step or "unknown" when armed
+    command: 'rg -n "or \"unknown\"" loop/prompt_builder.py'
+    expect: no PromptScope.step armed default unknown (unarmed documented token OK)
+  - id: inv-a-02
+    kind: A
+    symbol: heading as COMMAND when armed
+    command: 'rg -n "handoff_mode_from_text" harness/hooks/epic/core.py'
+    expect: not used as COMMAND source after identity when armed+valid frontmatter
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete unknown-when-armed asserts
+    command: 'rg -n "step == \"unknown\"|step == ''unknown''" loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py || true'
+    expect: no output (obsolete cases deleted/rewritten)
+  - id: inv-b-01
+    kind: B
+    symbol: second identity entrypoint
+    command: 'test ! -d loop/SessionContextService; rg -n "class SessionContextService" loop/ harness/hooks/ || true'
+    expect: no SessionContextService package
+  - id: inv-c-01
+    kind: C
+    symbol: warning + continue on mismatch
+    command: 'rg -n "CONTEXT_IDENTITY_DRIFT" harness/hooks/epic/core.py loop/prompt_builder.py'
+    expect: halt present; no continue-on-mismatch comment/path
+  - id: inv-c-02
+    kind: C
+    symbol: prefer AC heading if richer
+    command: 'rg -n "prefer.*heading|if richer" harness/hooks/epic/core.py loop/prompt_builder.py || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: step unknown OK for QA
+    command: 'rg -n "step unknown OK|unknown OK for QA" loop/prompt_builder.py loop/tests harness/hooks/epic/core.py || true'
+    expect: no output
+  - id: inv-i-02
+    kind: I
+    symbol: heading as COMMAND SoT instruction
+    command: 'rg -n "Handoff BACK QA.*COMMAND|COMMAND from heading" loop/prompt_builder.py harness/hooks/epic/core.py || true'
+    expect: no instruction teaching heading as COMMAND SoT
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A+B — rg по каждой строке sunset_inventory kind=A:
+      0 prod callers of armed unknown-default and heading-as-COMMAND.
+      Asserts на sunset-поведение = FAIL (deletes/rewrite).
+      Kind B — same SessionStart hook; no SessionContextService package (inv-b-01).
+    verify: |
+      rg -n 'or "unknown"' loop/prompt_builder.py || true
+      rg -n 'handoff_mode_from_text' harness/hooks/epic/core.py
+      test ! -d loop/SessionContextService
+      test -f harness/hooks/session-start.py
+  - id: cp2
+    criterion: |
+      Kind C+I — no warning-continue; no prefer-heading-if-richer; disagree armed vs projection → halt.
+      Kind I — 0 hits «step unknown OK» / heading-as-COMMAND SoT instructions.
+    verify: |
+      rg -n "CONTEXT_IDENTITY_DRIFT" harness/hooks/epic/core.py loop/prompt_builder.py
+      rg -n "prefer.*heading|if richer" harness/hooks/epic/core.py loop/prompt_builder.py || true
+      rg -n "step unknown OK|unknown OK for QA" loop/prompt_builder.py loop/tests harness/hooks/epic/core.py || true
+  - id: cp3
+    criterion: Obsolete unknown-when-armed / dual-COMMAND-as-success tests purged; targeted pytest green without restore
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+  - id: cp4
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+
+verify:
+  - "rg -n 'or \"unknown\"' loop/prompt_builder.py || true"
+  - "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py -q --tb=line"
+tdd:
+  - "purge leftover; keep s01–s05 tests green without restore unknown-default or dual COMMAND"

@@ -24,10 +24,13 @@ phases:
 
   DECOMPOSE:
     arm_template: pre_implement
-    finish_gates: {}
+    finish_gates:
+      mode: decompose
+      need_verify: true
+      need_reviewer: false
     finish_gates_dict:
-      mode: null
-      need_verify: false
+      mode: decompose
+      need_verify: true
       need_reviewer: false
     verify_agent: verify-decompose
     dsh_preset: decompose

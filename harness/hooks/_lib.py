@@ -504,7 +504,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "FAIL: @verify после VERDICT: PASS. FAIL: FINISH до PASS. "
             "FAIL: второй @verify пока предыдущий running. "
             "FAIL: parallel managed / same-model spawn.",
-            "QA FINISH: qa-*.yaml (verdict) + Handoff → REFLECT обязательны.",
+            "QA FINISH: qa-*.yaml (verdict) + mb-finish qa / BUGFIX/DONE.",
             "Канон: `.claude/instructions/spawn-hard.md`",
         ]
     )

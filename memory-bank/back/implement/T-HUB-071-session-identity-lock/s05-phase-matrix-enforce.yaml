@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-071-session-identity-lock
+title: s05 — Enforce FR-013 phase matrix + epic_mismatch + unarmed IDE IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s05-phase-matrix-enforce.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- 'FR-013 phase matrix mapping verified: PLAN/DECOMPOSE/ANALYZE/CREATIVE/CLARIFY/AUDIT/QA/BUGFIX
+  each resolves to step token and {ROLE} {PHASE} COMMAND.'
+- DONE phase maps to step DONE and command DONE (no spawn work session COMMAND).
+- Unarmed IDE resolves safely to step '-' and COMMAND UNKNOWN without crash.
+- 'Failure-TM-008 verified: armed IMPLEMENT missing sNN yields step_unknown_while_armed
+  drift diagnostic.'
+- 'TM-006 verified: epic_id mismatch yields epic_mismatch drift halt.'
+gaps:
+  status: none
+done:
+- Enforced FR-013 phase matrix table in loop/prompt_builder.py and loop/tests/test_session_identity_lock.py.
+- Added test coverage for IMPLEMENT sNN steps (s03, s05, e01), unarmed IDE '-' token
+  (TM-005), epic_id mismatch halt (TM-006), and Failure-TM-008 diagnostic.
+files:
+- loop/tests/test_session_identity_lock.py
+- loop/prompt_builder.py
+- harness/hooks/tests/test_session_start_identity.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py
+  -q --tb=line
+integration_check:
+- All 27 identity and session-start tests pass with zero failures.
+- PromptScope step and command generation aligns with FR-013 phase token table.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: FR-008/TM-008 — PLAN/DECOMPOSE/ANALYZE/IMPLEMENT/AUDIT/QA/BUGFIX armed
+    → step != unknown
+  status: done
+- id: cp2
+  criterion: US-004/TM-004 IMPLEMENT step sNN; CREATIVE/CLARIFY tokens; DONE no work
+    COMMAND
+  status: done
+- id: cp3
+  criterion: TM-005 unarmed IDE no crash documented token; TM-006 epic_mismatch halt
+  status: done
+- id: cp4
+  criterion: Failure TM-008 — armed IMPLEMENT missing sNN → diagnostic not unknown
+  status: done

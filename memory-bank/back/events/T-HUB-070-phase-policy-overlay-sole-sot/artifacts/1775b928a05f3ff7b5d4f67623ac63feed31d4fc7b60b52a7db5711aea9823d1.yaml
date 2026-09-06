@@ -1,0 +1,48 @@
+schema: epic-qa/v1
+epic_id: T-HUB-070-phase-policy-overlay-sole-sot
+role: BACK
+date: 2026-09-06
+verdict: pass
+reviewer: verify-qa
+
+test_suite:
+  command: "bin/pytest -q --tb=line"
+  passed: 2141
+  failed: 0
+  skipped: 3
+  warnings: 80
+  duration_sec: 170.82
+  status: green
+
+ac_status:
+  - ac: AC+ 1 (UserPromptSubmit no longer emits REFLECT anywhere after QA FINISH)
+    status: verified
+    evidence: "test_us002_qa_finish_no_reflect and test_tm005_regex_qa_finish_no_reflect pass"
+  - ac: AC+ 2 (armed_step=DECOMPOSE in spawn-gate and phase_registry has need_verify=True, need_reviewer=False)
+    status: verified
+    evidence: "test_tm003_decompose_need_verify_align and test_tm008_gates_from_phase_decompose_need_verify_true pass"
+  - ac: AC+ 3 (UserPromptSubmit additionalContext does NOT say verify/reviewer OFF for DECOMPOSE)
+    status: verified
+    evidence: "test_us001_armed_decompose_need_verify_true passes"
+  - ac: AC+ 4 (phase_registry.yaml is sole SoT for phase gates)
+    status: verified
+    evidence: "all phase gates sourced from phase_registry via gates_from_phase / get_phase_config"
+  - ac: AC- 1 (No regex fallback resurrects REFLECT or need_verify=False)
+    status: verified
+    evidence: "test_tm005_regex_qa_finish_no_reflect passes and hardcoded branch deleted"
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+  - TM-007
+  - TM-008
+
+security_spot_check:
+  owasp_status: pass
+  notes: "No new attack surface or secret handling introduced; fail-closed configuration in phase_registry enforced."
+
+fix_plan: []

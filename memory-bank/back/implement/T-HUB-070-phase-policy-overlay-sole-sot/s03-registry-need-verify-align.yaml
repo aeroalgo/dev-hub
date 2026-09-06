@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s03 — Align DECOMPOSE need_verify true; gates_from_phase behavior + fail-closed
+  unknown IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s03-registry-need-verify-align.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Aligned loop/schemas/phase_registry.yaml DECOMPOSE finish_gates and finish_gates_dict
+  to need_verify true and need_reviewer false
+- Added test_tm003_decompose_need_verify_align and test_tm008_gates_from_phase_decompose_need_verify_true
+  in loop/tests/test_epic_transition.py
+- Updated harness/hooks/tests/test_user_prompt_overlay.py test_us001_armed_decompose_need_verify_true
+  to test real gates_from_phase integration
+- Verified unknown phase fail-closed behavior and verified no phase_policy.py or PROJECT_LOOP_DECOMPOSE_VERIFY
+  exist
+files:
+- loop/schemas/phase_registry.yaml
+- harness/hooks/epic/core.py
+- loop/epic_transition.py
+- loop/tests/test_epic_transition.py
+- harness/hooks/tests/test_user_prompt_overlay.py
+deletes:
+- 'loop/schemas/phase_registry.yaml DECOMPOSE finish_gates_dict.need_verify: false
+  (replace value true)'
+- loop/schemas/phase_registry.yaml DECOMPOSE finish_gates empty/need_verify false
+  if present (align true)
+tests:
+- bin/pytest loop/tests/test_epic_transition.py harness/hooks/tests/test_user_prompt_overlay.py
+  -q --tb=line -k 'decompose or gates_from_phase or unknown'
+integration_check:
+- bin/pytest loop/tests/test_epic_transition.py harness/hooks/tests/test_user_prompt_overlay.py
+  -q --tb=line
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: get_phase_config("DECOMPOSE") verify_agent==verify-decompose AND finish_gates_dict.need_verify
+    is True (US-004 TM-003)
+  status: done
+- id: cp2
+  criterion: gates_from_phase("DECOMPOSE") returns need_verify true — function behavior,
+    not yaml grep alone (FR-004 TM-008)
+  status: done
+- id: cp3
+  criterion: unknown phase fail-closed diagnostic, not silent OFF (NFR-3 TM-006);
+    no phase_policy.py
+  status: done
+- id: cp4
+  criterion: need_reviewer remains false; no PROJECT_LOOP_DECOMPOSE_VERIFY flag (FR-003/015)
+  status: done

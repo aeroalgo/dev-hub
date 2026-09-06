@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-071-session-identity-lock
+title: "Kind I + purge unknown default and heading-as-COMMAND"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Старый machine default неизвестен агенту: literal unknown не маскирует armed step;
+  инструкции «step unknown OK for QA» удалены; heading regex не SoT COMMAND при
+  valid loop-handoff/v1. Obsolete tests на unknown-when-armed rewrite. Outcome:
+  grep armed fixtures → 0 PromptScope.step == unknown.
+
+plan_contract:
+  fr_ids: [FR-002, FR-003, FR-006, FR-007, FR-009, SC-005, AC+2, AC−3, AC−4, TM-007, Failure-TM-002, Failure-TM-004]
+  nouns:
+    - unknown default
+    - Kind I comments
+    - handoff_mode_from_text
+    - render_prompt_scope
+    - test_prompt_builder.py
+  layout_paths:
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+  ac_quotes:
+    - "Literal unknown purged from prompt_builder as default when armed exists. Tests grep unknown in PromptScope for armed fixtures = 0."
+    - "Kind I: comments «step unknown OK for QA» — delete."
+    - "Do not parse ## Handoff heading for phase when frontmatter valid (loop-handoff/v1)."
+    - "Nет unknown default masking missing projection."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:86-93"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:164-171"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:245-271"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:332-339"
+
+context:
+  consumes:
+    - s02 step chain · s03 heading-not-COMMAND when armed
+    - plan.md §Replacement I · FR-006
+  produces:
+    - prompt_builder without armed-path `or "unknown"` for step
+    - rewrite test_prompt_builder / identity tests that asserted unknown for armed
+    - Kind I comments/docs in touched files rewritten
+    - render still HARD READ; unarmed may use `-` / `unarmed` not ambiguous unknown
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#i-instruction-surfaces
+  files:
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+
+as_built:
+  - "L154 step or unknown; L155 epic or unknown; L170 phase or 'unknown' in render"
+  - "test_scope_without_phase_is_explicitly_unknown asserts command UNKNOWN (keep if unarmed — not armed step)"
+  - "possible comments/docs treating unknown as OK for QA/AUDIT in prompt_builder / tests"
+  - "handoff_mode_from_text still exists for missing frontmatter (keep as diagnostic, not COMMAND)"
+
+delta:
+  - "purge step default \"unknown\" when any of projection.step / armed_step / phase set (FR-003)"
+  - "unarmed IDE: step='-' or 'unarmed' documented (FR-002); do not crash; full pytest in s05 TM-005"
+  - "render: do not print phase unknown as normal armed state; HARD READ lines stay (FR-009)"
+  - "delete Kind I comments «step unknown OK for QA» in prod+tests in scope"
+  - "rewrite obsolete tests that require PromptScope.step==unknown for armed fixtures"
+  - "heading parser remains for missing frontmatter + drift counter; not COMMAND if state armed (already s03 — this step greps leftover instruction/tests)"
+
+deletes:
+  - "loop/prompt_builder.py `or \"unknown\"` as PromptScope.step default when armed exists"
+  - "comments/docs «step unknown OK for QA»"
+  - "tests asserting armed QA/BUGFIX/AUDIT step==unknown"
+
+sunset_scope:
+  required: true
+  boundary_id: prompt-scope-unknown-default
+  new_sot: armed_step / phase token
+  allow_read:
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+    - harness/hooks/epic/core.py
+  kind_hint:
+    - A
+    - I
+
+out_of_scope:
+  - "full FR-013 matrix parametrize (s05)"
+  - "leftover inventory scan all Kind A/B/C/I (s06)"
+  - "epic field or unknown (L155) unless it masks step — out unless cheap"
+  - "inline workflow in render — follow_up: T-HUB-072-context-bundle-fail-closed"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: armed fixtures grep PromptScope.step unknown = 0 (FR-003)
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py -q --tb=line -k 'unknown or QA or armed'"
+  - id: cp2
+    criterion: Kind I — no «step unknown OK» instruction in prompt_builder / identity tests
+    verify: "rg -n 'step unknown OK|unknown OK for QA' loop/prompt_builder.py loop/tests harness/hooks/epic/core.py || true"
+  - id: cp3
+    criterion: SC-005 leftover — tests do not teach heading as COMMAND when frontmatter valid
+    verify: "rg -n 'handoff_mode_from_text' harness/hooks/epic/core.py loop/prompt_builder.py"
+  - id: cp4
+    criterion: HARD READ still present; unarmed path documented not crash
+    verify: "rg -n 'HARD READ' loop/prompt_builder.py; rg -n \"or \\\"unknown\\\"\" loop/prompt_builder.py || true"
+
+verify:
+  - "rg -n 'or \"unknown\"' loop/prompt_builder.py || true"
+  - "bin/pytest loop/tests/test_prompt_builder.py loop/tests/test_session_identity_lock.py -q --tb=line"
+tdd:
+  - "rewrite unknown-when-armed tests; keep unarmed UNKNOWN command test if still valid for missing role+phase"

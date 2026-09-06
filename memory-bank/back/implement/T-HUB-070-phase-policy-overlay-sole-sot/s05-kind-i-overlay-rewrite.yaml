@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s05 — Kind I — rewrite OFF/REFLECT tests and comments; keep spawn-hard ON IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s05-kind-i-overlay-rewrite.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+  - "user-prompt.py and test_user_prompt_overlay.py have 0 forbidden legacy strings (REFLECT / verify/reviewer OFF / promote DECOMPOSE→IMPLEMENT)"
+  - "spawn-hard.md keeps verify-decompose required before FINISH DECOMPOSE"
+  - "test_mb_finish_qa.py docstrings updated from mode=REFLECT to mode=DONE"
+gaps:
+  status: none
+done:
+  - "Verified user-prompt.py contains 0 legacy overlay strings"
+  - "Verified spawn-hard.md maintains verify-decompose requirement"
+  - "Aligned test_mb_finish_qa.py docstrings with DONE mode post-QA"
+  - "Verified all tests in test_user_prompt_overlay.py and test_mb_finish_qa.py pass cleanly"
+files:
+  - harness/hooks/user-prompt.py
+  - harness/hooks/tests/test_user_prompt_overlay.py
+  - harness/hooks/tests/test_mb_finish_qa.py
+  - harness/hooks/stop-gate.py
+  - .claude/instructions/spawn-hard.md
+deletes:
+  - comments/tests encoding 'verify/reviewer OFF' or 'promote DECOMPOSE→IMPLEMENT' or 'REFLECT обязател' as current overlay contract
+  - harness/hooks/tests cases that assert need_verify False for armed DECOMPOSE or additionalContext contains REFLECT as QA next
+tests:
+  - bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line
+  - bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line
+integration_check:
+  - hook behavior verified against UserPromptSubmit state and additionalContext
+grep_control: []
+verification_results:
+  - pass
+  - pass
+  - pass
+  - pass
+checkpoints:
+  - id: cp1
+    criterion: TM-007 Kind I rg user-prompt.py forbidden strings = 0 hits
+    status: done
+  - id: cp2
+    criterion: spawn-hard.md still requires verify-decompose for DECOMPOSE (FR-008 Failure TM-008)
+    status: done
+  - id: cp3
+    criterion: No live tests asserting DECOMPOSE verify OFF or QA overlay → REFLECT as required next (AC−4)
+    status: done
+  - id: cp4
+    criterion: Overlay tests green on new contract; US-003 no promote IMPLEMENT string
+    status: done

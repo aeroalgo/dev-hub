@@ -1,0 +1,227 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "s06 — legacy-fallback-purge — bundle inline leftovers A+B+C+I"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по ok_status=True after missing, inline plan.md content,
+  SessionStart plan_section split, Warning continue exception, Kind I always-inlined.
+  Obsolete tests на старый контракт delete/rewrite; suite green без restore legacy.
+  Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, FR-004, FR-005, FR-007, FR-011, AC+1, AC+2, AC−1, AC−2, AC−3, AC−4, AC−5, Independent Test, NFR-1, NFR-2, Failure-TM-001, Failure-TM-002, Failure-TM-005]
+  nouns:
+    - leftover ok_status = True
+    - leftover inline plan.md
+    - leftover load_plan_section on start
+    - leftover Warning: load_session exception
+    - leftover load_now files inlined
+  layout_paths:
+    - loop/mb_load/session.py
+    - harness/hooks/epic/core.py
+  ac_quotes:
+    - "Wire-complete: Add is_markdown_plan_path + ok aggregation → Wire SessionStart renderer → Enforce pytest missing + plan body absent → Purge unconditional ok_status = True."
+    - "Independent Test FAIL: «cap 256KiB enough so inline OK»."
+    - "Нет ok=true при missing_file. Нет silent exception continue as success."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:178-227"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:116-129"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:308-311"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 deltas
+  produces:
+    - удалённые символы/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - loop/mb_load/session.py
+    - harness/hooks/epic/core.py
+    - loop/tests/test_mb_load_session.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "s02–s05 should have emptied plan content, wired renderer, exception incomplete; this step scans leftovers"
+  - "plan B n/a — same mb-load session CLI / SessionStart hook"
+  - "possible leftover: ok_status True; dump of md if content non-empty; plan_section= on start; Warning continue; tests asserting inline plan success"
+
+delta:
+  - "full sunset_inventory scan A+B+C+I; delete leftover prod callers and obsolete asserts"
+  - "no restore of full md content or warning-success to make old tests green"
+  - "confirm missing → not ok; plan.md body absent; yaml present"
+
+sunset_inventory:
+  - symbol: ok_status = True after missing continue
+    kind: A
+    replacement: derived_ok False if any missing_file/read_error
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py
+    expect: zero unconditional ok_status = True after missing
+  - symbol: inline plan.md content in MbLoadFile / additionalContext
+    kind: A
+    replacement: path+sha empty content
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py harness/hooks/epic/core.py
+    expect: classifier paths content empty; inject has no plan body
+  - symbol: SessionStart load_plan_section / plan_section= call
+    kind: A
+    replacement: load_session(cwd) only on hot path
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py harness/hooks/session-start.py
+    expect: zero plan_section on SessionStart
+  - symbol: tests asserting plan.md body in additionalContext as success
+    kind: A
+    replacement: tests on path+sha / unique sentence absent
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: case absent or rewritten
+  - symbol: mb-load session CLI / SessionStart same hook
+    kind: B
+    replacement: n/a same entrypoint
+    policy: delete in-epic
+    rg_scope: harness/hooks/session-start.py loop/mb_load/
+    expect: no second bundle loader entrypoint
+  - symbol: Warning continue exception as success
+    kind: C
+    replacement: CONTEXT_INCOMPLETE required_context_exception
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py harness/hooks/session-start.py
+    expect: "zero Warning load_session exception success path"
+  - symbol: inline plan if < 256KiB dual path
+    kind: C
+    replacement: never inline classifier md regardless size
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py harness/hooks/epic/core.py
+    expect: no size-gate exception for plan.md
+  - symbol: docs «load_now files inlined»
+    kind: I
+    replacement: path-only for md plan/gap/index
+    policy: delete in-epic
+    rg_scope: loop/mb_load/session.py harness/hooks/epic/core.py loop/tests harness/hooks/tests
+    expect: zero old instruction in scope
+  - symbol: heading-split load_plan_section as SessionStart SoT
+    kind: I
+    replacement: path-only; CLI flag may remain
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py harness/hooks/session-start.py
+    expect: zero instruction teaching ## split as start SoT
+
+deletes:
+  - "leftover ok_status = True after missing"
+  - "leftover full md body in files[].content / inject for plan/gap/index/analyze md"
+  - "leftover SessionStart plan_section call"
+  - "leftover Warning: load_session exception success"
+  - "obsolete tests asserting inline plan.md as success"
+  - "Kind I «load_now files inlined» leftover comments in files:"
+
+out_of_scope:
+  - "LoadNowItem.kind enum — Appetite cut_list"
+  - "forbidden_for_parent ACL consume — follow_up: T-HUB-063-sunset-boundary-stop-pipeline"
+  - "plan yaml section offsets — Appetite cut_list"
+  - "identity COMMAND — follow_up: T-HUB-071-session-identity-lock"
+  - "JSON session contract — follow_up: T-HUB-057-loop-session-json-contract"
+  - "abort dirty halt — follow_up: T-HUB-073-abort-classifier-dirty-halt"
+  - "full suite → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: ok_status = True after missing
+    command: 'rg -n "ok_status = True" loop/mb_load/session.py || true'
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: inline plan.md content
+    command: 'rg -n "is_markdown_plan_path|path_only" loop/mb_load/session.py harness/hooks/epic/core.py'
+    expect: classifier present; plan.md not dumped as body
+  - id: inv-a-03
+    kind: A
+    symbol: SessionStart plan_section
+    command: 'rg -n "load_plan_section|plan_section=" harness/hooks/epic/core.py harness/hooks/session-start.py'
+    expect: no SessionStart call with plan_section
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete inline-plan success asserts
+    command: 'rg -n "assert .*plan.md|# Heading.*additionalContext" loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py || true'
+    expect: no asserts requiring plan body in inject
+  - id: inv-b-01
+    kind: B
+    symbol: second bundle entrypoint
+    command: 'test -f harness/hooks/session-start.py; test -f loop/mb_load/session.py'
+    expect: same SessionStart + load_session; no extra ContextBundleService package
+  - id: inv-c-01
+    kind: C
+    symbol: Warning continue exception
+    command: 'rg -n "Warning: load_session exception" harness/hooks/epic/core.py harness/hooks/session-start.py || true'
+    expect: no output
+  - id: inv-c-02
+    kind: C
+    symbol: inline plan if small
+    command: 'rg -n "inline plan if|if < 256" loop/mb_load/session.py harness/hooks/epic/core.py || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: load_now files inlined
+    command: 'rg -n "load_now files inlined|always inlined" loop/mb_load/session.py harness/hooks/epic/core.py loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py || true'
+    expect: no output
+  - id: inv-i-02
+    kind: I
+    symbol: heading-split as start SoT
+    command: 'rg -n "load_plan_section" harness/hooks/epic/core.py harness/hooks/session-start.py || true'
+    expect: not on SessionStart hot path
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg per inventory: no ok_status=True leftover; classifier paths empty content;
+      SessionStart no plan_section; obsolete inline-plan asserts gone.
+    verify: |
+      rg -n 'ok_status = True' loop/mb_load/session.py || true
+      rg -n 'load_plan_section|plan_section=' harness/hooks/epic/core.py harness/hooks/session-start.py
+  - id: cp2
+    criterion: Kind B — same SessionStart + load_session; no second bundle service package
+    verify: |
+      test -f harness/hooks/session-start.py
+      test -f loop/mb_load/session.py
+      rg -n 'class ContextBundleService' loop/ harness/hooks/ || true
+  - id: cp3
+    criterion: "Kind C — no Warning load_session exception; no inline-plan-if-small dual path"
+    verify: |
+      rg -n 'Warning: load_session exception' harness/hooks/epic/core.py harness/hooks/session-start.py || true
+      rg -n 'inline plan if|if < 256' loop/mb_load/session.py harness/hooks/epic/core.py || true
+  - id: cp4
+    criterion: "Kind I — 0 hits load_now files inlined / always inlined in files listed"
+    verify: |
+      rg -n 'load_now files inlined|always inlined' loop/mb_load/session.py harness/hooks/epic/core.py loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py || true
+  - id: cp5
+    criterion: Obsolete inline-plan success tests purged; targeted pytest green without restore
+    verify: "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+  - id: cp6
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+
+verify:
+  - "rg -n 'ok_status = True' loop/mb_load/session.py || true"
+  - "bin/pytest loop/tests/test_mb_load_session.py harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+tdd:
+  - "purge leftover; keep s01–s05 tests green without restore inline plan or warning-success"

@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: s04 — Enforce SessionStart exception incomplete — no warning-continue success
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/yaml/steps/s04-session-start-exception-enforce.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- "sunset-inventory scanned harness/hooks/epic/core.py, session-start.py, and tests: no legacy Warning: load_session exception found."
+gaps:
+  status: none
+done:
+- "Enforce session_start_payload catch Exception builds CONTEXT_INCOMPLETE + required_context_exception:<Type> + HALT."
+- "Verify that 'Warning: load_session exception' is not present in prod paths and locked in tests."
+- "Sunset inventory verified empty for legacy warning continue."
+files:
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_session_start_inject.py
+deletes:
+- 'harness/hooks/epic/core.py leftover ''Warning: load_session exception'' success path'
+- any continue-as-success on load_session Exception
+tests:
+- "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'exception or required_context'"
+- "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'required_missing or CONTEXT_INCOMPLETE'"
+- "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+integration_check:
+- "rg -n 'Warning: load_session exception' harness/hooks/epic/core.py harness/hooks/session-start.py || true -> 0 matches"
+- "rg -n 'required_context_exception' harness/hooks/epic/core.py harness/hooks/tests/test_session_start_inject.py -> matches found"
+grep_control:
+- pattern: "Warning: load_session exception"
+  paths:
+  - harness/hooks/epic/core.py
+  - harness/hooks/session-start.py
+  expected_matches: 0
+verification_results:
+- check: "sunset-inventory loop-sunset-inventory/v1"
+  result: "PASS - 0 legacy items"
+- check: "pytest test_session_start_inject.py"
+  result: "13 passed"
+checkpoints:
+- id: cp1
+  criterion: 'US-005/TM-005 — load_session side_effect Exception → additionalContext has CONTEXT_INCOMPLETE + required_context_exception; no Warning: load_session exception; not a successful Fingerprint bundle dump of leftover files as sufficient.'
+  status: done
+- id: cp2
+  criterion: AC-4 — prod rg zero Warning load_session exception as success path
+  status: done
+- id: cp3
+  criterion: incomplete missing required still HALT (regression with s02/s03)
+  status: done
+- id: cp4
+  criterion: enforce — exception is incomplete, not ok-true inject
+  status: done
+wire_complete:
+  call_sites: "session_start_payload in harness/hooks/epic/core.py"
+  enforce_path: "harness/hooks/epic/core.py:1619-1628"
+  dual_path_rg: "0 matches for Warning: load_session exception in prod hooks"
+  instruction_rg: "test_required_exception_typed_not_warning_success enforces no warning continue"

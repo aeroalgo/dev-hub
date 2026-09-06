@@ -1,0 +1,114 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-071-session-identity-lock
+title: "Red tests — 94cea2d3 dual COMMAND + unknown step when armed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red: Independent Test видит ложь identity до добавления resolver.
+  Fixture 94cea2d3 (armed BUGFIX + stale QA projection/AC) падает на dual COMMAND
+  или на отсутствие halt. Fixture armed QA без projection.step падает на step=unknown.
+  Outcome: CI красный на as-built L154 `or "unknown"` и session_start_payload без lock,
+  не на «yaml field exists».
+
+plan_contract:
+  fr_ids: [FR-003, FR-014, FR-019, US-001, US-002, US-003, SC-001, SC-002, SC-003, AC+1, AC+2, AC+4, AC−1, TM-001, TM-002, TM-003, Independent Test]
+  nouns:
+    - session_start_payload
+    - build_prompt_scope
+    - PromptScope.step
+    - COMMAND BACK BUGFIX
+    - CONTEXT_IDENTITY_DRIFT
+    - 94cea2d3
+    - unknown
+  layout_paths:
+    - loop/tests/test_session_identity_lock.py
+    - harness/hooks/tests/test_session_start_identity.py
+  ac_quotes:
+    - "Given: epic state phase=BUGFIX, armed_step=BUGFIX, AC frontmatter mode=BUGFIX → Then: COMMAND BACK BUGFIX; no second COMMAND QA"
+    - "Given: armed_step=QA, projection.step missing → Then: scope.step == QA; scope.step != unknown"
+    - "Given: state phase=BUGFIX, AC mode=QA → Then: diagnostic CONTEXT_IDENTITY_DRIFT; halt card not dual commands"
+    - "Independent Test FAIL: «projection usually matches» without halt fixture."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:63-83"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:114-130"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:157-171"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:332-353"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/002/003 Given/When/Then
+    - plan.md §FR-014 reproduction fixture 94cea2d3
+    - as-built loop/prompt_builder.py L154 and session_start_payload L1494–1533 (sunset inventory, not template)
+  produces:
+    - loop/tests/test_session_identity_lock.py (red)
+    - harness/hooks/tests/test_session_start_identity.py (red)
+    - failing pytest TM-001 / TM-002 / TM-003 on as-built
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#functional-requirements
+    - plan.md#independent-test
+  files:
+    - loop/tests/test_session_identity_lock.py
+    - harness/hooks/tests/test_session_start_identity.py
+
+as_built:
+  - "loop/prompt_builder.py L154: step=_projection_value(projection, \"step\", \"next_step\") or \"unknown\""
+  - "session_start_payload fills projection.phase from handoff_mode_from_text when projection missing; no identity lock"
+  - "test_prompt_builder.py has no 94cea2d3 / CONTEXT_IDENTITY_DRIFT fixtures"
+  - "test_session_start_inject.py asserts COMMAND BACK IMPLEMENT default without armed BUGFIX lock"
+
+delta:
+  - "add loop/tests/test_session_identity_lock.py: US-002 armed QA → step!=unknown (red on L154)"
+  - "add harness/hooks/tests/test_session_start_identity.py: US-001/US-003 94cea2d3 (red on dual COMMAND / missing halt)"
+  - "tests must invoke session_start_payload / build_prompt_scope, not assert yaml text only"
+  - "do not yet add resolve_session_identity (s02) or change session_start_payload (s03)"
+
+deletes: []
+
+out_of_scope:
+  - "resolve_session_identity function (s02)"
+  - "session_start_payload halt wire (s03)"
+  - "Kind I comments (s04)"
+  - "phase matrix all tokens (s05)"
+  - "legacy-fallback-purge (s06)"
+  - "duplicate SessionStart process — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "mb-load ok=false path-only — follow_up: T-HUB-072-context-bundle-fail-closed"
+  - "SessionContextService package — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-002 red — armed_step=QA, projection.step missing: test asserts PromptScope.step == "QA"
+      and != "unknown". As-built L154 must FAIL this test (TDD red).
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 'unknown or QA'"
+  - id: cp2
+    criterion: |
+      US-001/US-003/FR-014 red — state BUGFIX + stale AC mode=QA (or projection QA):
+      additionalContext must not contain COMMAND BACK QA alongside intended BUGFIX;
+      must carry CONTEXT_IDENTITY_DRIFT. As-built must FAIL (dual COMMAND or no halt).
+    verify: "bin/pytest harness/hooks/tests/test_session_start_identity.py -q --tb=line -k '94cea2d3 or drift or BUGFIX'"
+  - id: cp3
+    criterion: Independent Test is hook/builder behavior (COMMAND + step + diagnostic), not yaml-field-exists
+    verify: "rg -n 'CONTEXT_IDENTITY_DRIFT|COMMAND: BACK BUGFIX|step != .unknown|94cea2d3' loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py"
+  - id: cp4
+    criterion: Prod unknown default still present (this step does not delete) — red is expected until s02/s04
+    verify: "rg -n 'or \"unknown\"' loop/prompt_builder.py"
+
+verify:
+  - "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py -q --tb=line"
+tdd:
+  - "red: identity lock tests fail on as-built unknown default and unlocked session_start_payload"
+  - "green: s02/s03 after identity + halt wire"

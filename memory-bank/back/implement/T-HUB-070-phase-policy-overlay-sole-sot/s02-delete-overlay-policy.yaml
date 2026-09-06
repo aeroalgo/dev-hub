@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+title: s02 — Delete overlay DECOMPOSE OFF + QA→REFLECT; projection = gates_from_phase
+  only IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/yaml/steps/s02-delete-overlay-policy.yaml
+skills_used:
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted armed_step DECOMPOSE override block in harness/hooks/user-prompt.py
+- Replaced QA FINISH additionalContext injection string with canonical target without
+  REFLECT
+- Verified that projection_authoritative uses gates_from_phase only and regex fallback
+  does not resurrect REFLECT or DECOMPOSE OFF
+- Added test_tm005_regex_qa_finish_no_reflect to harness/hooks/tests/test_user_prompt_overlay.py
+files:
+- harness/hooks/user-prompt.py
+- harness/hooks/tests/test_user_prompt_overlay.py
+deletes:
+- harness/hooks/user-prompt.py armed_step==DECOMPOSE override (need_verify=False,
+  verify/reviewer OFF, promote DECOMPOSE→IMPLEMENT)
+- harness/hooks/user-prompt.py string 'Handoff → REFLECT.'
+tests:
+- bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/ -q --tb=line
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: DECOMPOSE override block gone; no equivalent docs-only branch (FR-001
+    Independent Test FAIL path)
+  status: done
+- id: cp2
+  criterion: QA FINISH inject has no REFLECT as next; may mention reviewer / mb-finish
+    qa / BUGFIX/DONE (FR-002 US-002)
+  status: done
+- id: cp3
+  criterion: US-001 green — armed DECOMPOSE need_verify True, need_reviewer False,
+    no OFF/promote strings
+  status: done
+- id: cp4
+  criterion: 'Wire+enforce on overlay boundary: projection_authoritative path does
+    not re-table policy;
+
+    regex path (not authoritative) does not resurrect REFLECT or DECOMPOSE OFF (FR-005/006
+    TM-005).
+
+    No second Python phase table; hook stays thin (NFR-1/2).
+
+    '
+  status: done

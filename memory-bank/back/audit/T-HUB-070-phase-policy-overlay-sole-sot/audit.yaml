@@ -1,0 +1,345 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-070-phase-policy-overlay-sole-sot
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "1. После эпика UserPromptSubmit не содержит подстроки REFLECT как next после QA FINISH. 2. При armed_step=DECOMPOSE spawn-gate need_verify=true (verify-decompose), need_reviewer=false; additionalContext не говорит verify OFF и не говорит promote IMPLEMENT. 3. phase_registry.yaml DECOMPOSE: finish_gates / finish_gates_dict.need_verify согласованы с verify_agent: verify-decompose (true). 4. Когда projection.phase или state.armed_step заданы — regex по prompt не меняет st[\"mode\"] / gates (уже частично так для projection; DECOMPOSE override — удалить). 5. Kind I: spawn-hard, workflow-qa, любые hook comments — QA next ≠ REFLECT; DECOMPOSE verify ON. 6. Тесты: fixture armed DECOMPOSE → need_verify true; fixture QA FINISH prompt → context без REFLECT; registry load DECOMPOSE need_verify true."
+  source: "memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md#WHAT"
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 15
+  fr_satisfied: 15
+  sc_checked: 5
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: deleted armed_step==DECOMPOSE override block (need_verify=False, verify/reviewer OFF, promote DECOMPOSE→IMPLEMENT)"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: QA FINISH injection updated to 'QA FINISH detected → @reviewer · qa-*.yaml (verdict) · mb-finish qa / BUGFIX/DONE.' without REFLECT"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/schemas/phase_registry.yaml: aligned DECOMPOSE finish_gates and finish_gates_dict to need_verify: true, need_reviewer: false, verify_agent: verify-decompose"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "loop/epic_transition.py / harness/hooks/epic/core.py: gates_from_phase('DECOMPOSE') returns need_verify=True; verified by unit tests"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: projection_authoritative strictly uses gates_from_phase without secondary policy tables"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: regex fallback does not inject REFLECT or DECOMPOSE OFF; verified by test_tm005_regex_qa_finish_no_reflect"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py / harness/hooks/stop-gate.py / test files: 0 matches for legacy strings (REFLECT as QA next, verify/reviewer OFF, promote DECOMPOSE→IMPLEMENT)"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: ".claude/instructions/spawn-hard.md: maintains verify-decompose requirement before FINISH DECOMPOSE"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: does not perform promote; promote handled by canonical transition engine"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/hooks/tests/test_user_prompt_overlay.py / loop/tests/test_epic_transition.py / loop/tests/test_stop_gate.py: behavior tests execute and pass cleanly"
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "No second phase_policy.py created; harness/hooks/user-prompt.py remains a thin adapter"
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py: regexes and projection logic apply role-agnostically to BACK, FRONT, and INTEG"
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py / harness/hooks/user-prompt.py: all hook surfaces purged of REFLECT next-step requirements"
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py: docs-only DECOMPOSE override removed; test_stop_gate_decompose_finish_blocked_without_verify_pass passes"
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "Zero feature flags / PROJECT_LOOP_DECOMPOSE_VERIFY created; default is sole SoT from registry"
+    remaining_work: ""
+  - source_ref: US-001
+    status: satisfied
+    evidence: "test_us001_armed_decompose_need_verify_true in test_user_prompt_overlay.py"
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "test_us002_qa_finish_no_reflect in test_user_prompt_overlay.py"
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "user-prompt.py context does not contain promote DECOMPOSE→IMPLEMENT"
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "test_tm003_decompose_need_verify_align in test_epic_transition.py"
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "projection_authoritative branch ensures mode/gates come from projection when armed"
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "DECOMPOSE overlay sets st['need_verify'] = True"
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "no REFLECT in QA FINISH inject; verified by pytest and rg"
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "get_phase_config('DECOMPOSE')['finish_gates_dict']['need_verify'] is True"
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "0 matches for 'promote DECOMPOSE→IMPLEMENT' across hooks"
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "test_stop_gate_decompose_finish_blocked_without_verify_pass passes"
+    remaining_work: ""
+  - source_ref: NFR-1
+    status: satisfied
+    evidence: "Overlay policy table size is 0 special cases for DECOMPOSE/REFLECT"
+    remaining_work: ""
+  - source_ref: NFR-2
+    status: satisfied
+    evidence: "harness/hooks/user-prompt.py is 172 lines (<200 LOC target)"
+    remaining_work: ""
+  - source_ref: NFR-3
+    status: satisfied
+    evidence: "Unknown phase in get_phase_config raises ValueError fail-closed"
+    remaining_work: ""
+  - source_ref: NFR-4
+    status: satisfied
+    evidence: "0 matches for forbidden strings in harness/hooks/user-prompt.py"
+    remaining_work: ""
+  - source_ref: TM-001
+    status: satisfied
+    evidence: "test_us001_armed_decompose_need_verify_true passes"
+    remaining_work: ""
+  - source_ref: TM-002
+    status: satisfied
+    evidence: "test_us002_qa_finish_no_reflect passes"
+    remaining_work: ""
+  - source_ref: TM-003
+    status: satisfied
+    evidence: "test_tm003_decompose_need_verify_align passes"
+    remaining_work: ""
+  - source_ref: TM-004
+    status: satisfied
+    evidence: "test_stop_gate_decompose_finish_blocked_without_verify_pass passes"
+    remaining_work: ""
+  - source_ref: TM-005
+    status: satisfied
+    evidence: "test_tm005_regex_qa_finish_no_reflect passes"
+    remaining_work: ""
+  - source_ref: TM-006
+    status: satisfied
+    evidence: "test_get_phase_config_unknown_fails_closed passes"
+    remaining_work: ""
+  - source_ref: TM-007
+    status: satisfied
+    evidence: "rg -n 'REFLECT|verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT' harness/hooks/user-prompt.py yields 0 hits"
+    remaining_work: ""
+  - source_ref: TM-008
+    status: satisfied
+    evidence: "test_tm008_gates_from_phase_decompose_need_verify_true passes"
+    remaining_work: ""
+  - source_ref: AC+:1
+    status: satisfied
+    evidence: "Overlay does not disable verify on DECOMPOSE (st['need_verify'] is True)"
+    remaining_work: ""
+  - source_ref: AC+:2
+    status: satisfied
+    evidence: "Overlay does not require REFLECT after QA; emits mb-finish qa / BUGFIX/DONE"
+    remaining_work: ""
+  - source_ref: AC+:3
+    status: satisfied
+    evidence: "phase_registry.yaml DECOMPOSE finish_gates_dict.need_verify is True"
+    remaining_work: ""
+  - source_ref: AC+:4
+    status: satisfied
+    evidence: "Red tests in s01 turned green in s02-s04 after implementation"
+    remaining_work: ""
+  - source_ref: AC+:5
+    status: satisfied
+    evidence: "Kind I rg check is clean across user-prompt.py (0 hits)"
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "No dual policy: overlay delegates solely to registry gates_from_phase"
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "No PROJECT_LOOP_DECOMPOSE_VERIFY soft flag created"
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "No overlay-wins-if-armed override logic remaining"
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "No live tests assert DECOMPOSE verify OFF or QA->REFLECT"
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "No secondary Python phase table created; hook remains thin adapter"
+    remaining_work: ""
+  - source_ref: AC-:6
+    status: satisfied
+    evidence: "phase_registry.yaml misconfig resolved (need_verify is true)"
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "Must rules checked: TDD followed, fail-closed observed, parent tests respected"
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "TDD red-green cycle followed in s01-s06"
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "No silent fallbacks in gates_from_phase or get_phase_config (raises ValueError)"
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "Frontend runners parent-only respected (no subagent execution)"
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Lean load observed; session reads bounded"
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "Fail-closed misconfiguration enforced (unknown phase fails closed)"
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "No-guess markers adhered to throughout epic"
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "ONE Handoff per step maintained in activeContext.md"
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "Section 0.11 integration parity preserved across registry and hooks"
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Phase authority check: AUDIT verifies plan intent vs runtime evidence without shortcuts"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/hooks/user-prompt.py
+    status: present
+    follow_up: ""
+    evidence: "Thin adapter calling gates_from_phase without hardcoded policy override tables"
+  - layout_path: loop/schemas/phase_registry.yaml
+    status: present
+    follow_up: ""
+    evidence: "Canonical phase-registry/v1 with DECOMPOSE finish_gates_dict.need_verify=true"
+  - layout_path: harness/hooks/stop-gate.py
+    status: present
+    follow_up: ""
+    evidence: "Enforces DECOMPOSE verify sidecar without bypass"
+  - layout_path: harness/hooks/tests/test_user_prompt_overlay.py
+    status: present
+    follow_up: ""
+    evidence: "Regression test suite covering US-001, US-002, TM-001, TM-002, TM-005"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s01-overlay-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s02-delete-overlay-policy.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s03-registry-need-verify-align.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s04-stop-gate-decompose-enforce.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s05-kind-i-overlay-rewrite.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-070-phase-policy-overlay-sole-sot/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md#replacement--sunset
+  rows:
+    - symbol: "user-prompt.py DECOMPOSE armed override"
+      kind: A
+      command: "rg -n 'verify/reviewer OFF|promote DECOMPOSE→IMPLEMENT' harness/hooks/user-prompt.py"
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+    - symbol: "user-prompt.py REFLECT QA FINISH sentence"
+      kind: A
+      command: "rg -n 'Handoff → REFLECT' harness/hooks/user-prompt.py"
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+    - symbol: "phase_registry.yaml DECOMPOSE need_verify: false"
+      kind: A
+      command: "rg -n 'need_verify: false' loop/schemas/phase_registry.yaml -A 1 | rg DECOMPOSE"
+      result: pass
+      prod_callers: []
+      notes: "DECOMPOSE has need_verify: true"
+    - symbol: "stop-gate.py DECOMPOSE docs-only override"
+      kind: A
+      command: "rg -n 'need_verify = False' harness/hooks/stop-gate.py"
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences on DECOMPOSE branch"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: "phase_registry.yaml as sole SoT for phase gates"
+      enforce_evidence: "pytest loop/tests/test_epic_transition.py -k 'test_tm003 or test_tm008'"
+      result: pass
+      notes: "get_phase_config and gates_from_phase strictly read phase_registry.yaml"
+    - boundary: "UserPromptSubmit overlay thin adapter"
+      enforce_evidence: "pytest harness/hooks/tests/test_user_prompt_overlay.py"
+      result: pass
+      notes: "overlay strictly delegates to gates_from_phase"
+
+blocked_reason: ""

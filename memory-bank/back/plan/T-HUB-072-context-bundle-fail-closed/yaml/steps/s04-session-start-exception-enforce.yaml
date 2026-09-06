@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "Enforce SessionStart exception incomplete — no warning-continue success"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  SessionStart catch Exception не выглядит как успешный bundle: CONTEXT_INCOMPLETE +
+  required_context_exception:<Type> + HALT; строка Warning: load_session exception
+  отсутствует. Outcome: misconfig/crash loader → incomplete, не silent success.
+
+plan_contract:
+  fr_ids: [FR-011, US-005, SC-005, AC+1, AC−4, TM-005, Failure-TM-005]
+  nouns:
+    - required_context_exception
+    - CONTEXT_INCOMPLETE
+    - "Warning: load_session exception"
+    - session_start_payload
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+  ac_quotes:
+    - "SessionStart catch Exception: set inject warning and treat as incomplete (do not look like full success)."
+    - "Как SessionStart, exception load_session не silent success."
+    - "Нет silent exception continue as success."
+    - "SessionStart Warning: load_session exception → continue as if load worked → incomplete / not success"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:40-48"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:64-72"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:116-129"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:214-220"
+
+context:
+  consumes:
+    - s03 renderer
+    - plan.md §FR-011 · US-005 · sunset C
+    - as-built session_start_payload except already CONTEXT_INCOMPLETE (confirm leftover Warning string)
+  produces:
+    - exception path incomplete HALT only
+    - green test_required_exception_typed_not_warning_success + no Warning: load_session exception
+    - leftover warning-continue comment/string purged in this hook
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#c-fallbacks
+    - plan.md#as-built-sunset-sessionpy
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_session_start_inject.py
+
+as_built:
+  - "except Exception already builds CONTEXT_INCOMPLETE + required_context_exception:{exc_type} + HALT (L1611–1620)"
+  - "test_required_exception_typed_not_warning_success already forbids Warning: load_session exception"
+  - "possible leftover comments/docs still teaching Warning continue as success"
+  - "session-start.py main() does not catch load exception (payload does)"
+
+delta:
+  - "enforce exception path remains incomplete; delete leftover Warning: load_session exception string if any prod path still emits it"
+  - "lock pytest: exception → CONTEXT_INCOMPLETE, not fingerprint success, not Warning continue"
+  - "do not restore warning-success to make obsolete tests green"
+  - "Kind I broader docs in s05; leftover inventory s06"
+
+deletes:
+  - "harness/hooks/epic/core.py leftover 'Warning: load_session exception' success path"
+  - "any continue-as-success on load_session Exception"
+
+sunset_scope:
+  required: true
+  boundary_id: session-start-load-exception
+  new_sot: CONTEXT_INCOMPLETE required_context_exception
+  allow_read:
+    - harness/hooks/epic/core.py
+    - harness/hooks/session-start.py
+    - harness/hooks/tests/test_session_start_inject.py
+  kind_hint:
+    - C
+    - A
+
+out_of_scope:
+  - "Kind I load_now files inlined docs (s05)"
+  - "legacy-fallback-purge full inventory (s06)"
+  - "identity drift halt — follow_up: T-HUB-071-session-identity-lock"
+  - "abort 401 dirty — follow_up: T-HUB-073-abort-classifier-dirty-halt"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-005/TM-005 — load_session side_effect Exception → additionalContext has
+      CONTEXT_INCOMPLETE + required_context_exception; no Warning: load_session exception;
+      not a successful Fingerprint bundle dump of leftover files as sufficient.
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'exception or required_context'"
+  - id: cp2
+    criterion: "AC-4 — prod rg zero Warning load_session exception as success path"
+    verify: "rg -n 'Warning: load_session exception' harness/hooks/epic/core.py harness/hooks/session-start.py || true"
+  - id: cp3
+    criterion: incomplete missing required still HALT (regression with s02/s03)
+    verify: "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line -k 'required_missing or CONTEXT_INCOMPLETE'"
+  - id: cp4
+    criterion: enforce — exception is incomplete, not ok-true inject
+    verify: "rg -n 'required_context_exception' harness/hooks/epic/core.py harness/hooks/tests/test_session_start_inject.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_session_start_inject.py -q --tb=line"
+tdd:
+  - "green exception incomplete; no warning-continue"

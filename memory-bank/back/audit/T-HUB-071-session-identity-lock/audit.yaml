@@ -1,0 +1,297 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-071-session-identity-lock
+plan_id: T-HUB-071-session-identity-lock
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: Одна сессия = одна identity (role, phase, epic_id, step_id, session_id). SessionStart COMMAND обязан совпасть с state.armed_step / projection.phase. Handoff frontmatter loop-handoff/v1 обязан совпасть с identity. Mismatch → сессия не стартует работу (CONTEXT_IDENTITY_DRIFT / halt). step в PromptScope никогда не литерал unknown, если armed_step задан.
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 20
+  fr_satisfied: 20
+  sc_checked: 5
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/prompt_builder.py:52 resolve_session_identity(state, ac_meta, projection) -> Identity | Drift with drift codes phase_mismatch, epic_mismatch, step_unknown_while_armed"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/prompt_builder.py:317-337 PromptScope step fallback chain projection.step -> state.armed_step -> ac_step_id -> phase; unarmed maps to '-'; never unknown when armed"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/prompt_builder.py: literal unknown purged as default step; loop/tests/test_session_identity_lock.py:test_armed_matrix_step_never_unknown verifies 0 unknown across all armed phases"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:1531-1553 session_start_payload emits CONTEXT_IDENTITY_DRIFT halt card on Drift and forbids load_now body injection"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:1517-1529 EPIC_PHASE loop env check enforces phase alignment and emits Drift(code='phase_mismatch') on conflict"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "0 occurrences of 'step unknown OK' or 'unknown OK for QA' in loop/prompt_builder.py, harness/hooks/epic/core.py, or tests"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py uses parse_handoff_meta from valid loop-handoff/v1 frontmatter; heading regex not used as COMMAND source when armed"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/tests/test_session_identity_lock.py:test_armed_matrix_step_never_unknown covers PLAN, DECOMPOSE, ANALYZE, CREATIVE, CLARIFY, IMPLEMENT, AUDIT, QA, BUGFIX with non-unknown step"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/prompt_builder.py:28-36 render_prompt_scope retains HARD READ instructions without expanding to inline workflow"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:1532-1548 halt card contains typed labeled lines: code, armed_step, ac_mode, projection_phase, epic_id, role, session_id"
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "loop/prompt_builder.py: resolve_session_identity is a pure, idempotent function safe under concurrent calls"
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: finish_handoff and bugfix_finish_required preserved untouched; identity lock applied at SessionStart"
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "loop/prompt_builder.py:23-25 _PHASE_STEP_TOKENS and loop/tests/test_session_identity_lock.py:test_armed_matrix_step_never_unknown enforce exact phase token table"
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt verifies halt on armed BUGFIX vs stale QA"
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "loop/prompt_builder.py:159 resolved_role derived from state/frontmatter role (BACK/FRONT/INTEG) with default fallback, not regex guessing"
+    remaining_work: ""
+  - source_ref: FR-016
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:1542-1544 session_id echoed in halt diagnostic when present in state"
+    remaining_work: ""
+  - source_ref: FR-017
+    status: satisfied
+    evidence: "Full wire complete: resolve_session_identity added -> wired to session_start_payload and build_prompt_scope -> enforced in tests -> unknown default purged"
+    remaining_work: ""
+  - source_ref: FR-018
+    status: satisfied
+    evidence: "Duplicate hook WHAT not reopened; identity tested against single pure function"
+    remaining_work: ""
+  - source_ref: FR-019
+    status: satisfied
+    evidence: "PromptScope.command is the sole COMMAND in additionalContext; <= 1 COMMAND line in payload output"
+    remaining_work: ""
+  - source_ref: FR-020
+    status: satisfied
+    evidence: "loop/prompt_builder.py:146-156 disagreement between projection.phase and state.armed_step yields Drift(code='phase_mismatch'); no silent winner"
+    remaining_work: ""
+  - source_ref: US-001
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_armed_bugfix_single_command_back_bugfix_no_second_command_qa verifies BACK BUGFIX only"
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/tests/test_session_identity_lock.py:test_armed_qa_step_not_unknown_on_missing_projection_step asserts step == 'QA' != 'unknown'"
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt verifies CONTEXT_IDENTITY_DRIFT halt card"
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/tests/test_session_identity_lock.py:test_armed_implement_snn_step_and_command verifies armed s03/s05 -> step s03/s05 and COMMAND BACK IMPLEMENT"
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "loop/prompt_builder.py: build_prompt_scope preserves EPIC_RUNTIME routing entrypoint without regression"
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_armed_bugfix_single_command_back_bugfix_no_second_command_qa passes"
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "loop/tests/test_session_identity_lock.py:test_armed_matrix_step_never_unknown passes"
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt passes"
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "loop/tests/test_session_identity_lock.py:test_armed_implement_snn_step_and_command passes"
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_identity.py:test_frontmatter_heading_not_used_as_command_when_frontmatter_valid passes"
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload emits single COMMAND line, preventing dual COMMAND lines in prompt context"
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py:1531-1553 Drift results in fail-closed halt card, never warning + continue work"
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "loop/prompt_builder.py: literal unknown purged as default step; missing projection falls back to armed_step/phase"
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: uses parse_handoff_meta from valid loop-handoff/v1 frontmatter; heading regex not used when frontmatter valid"
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "0 hits for prefer heading if richer dual path; valid frontmatter is sole markdown source"
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Single source of truth preserved; prompt builder and core hook align on state/frontmatter"
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "Specification and typed models used instead of ad-hoc regex across boundaries"
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "Pure functions and fail-closed halt on state drift adhere to strict invariants"
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "No hidden silent defaults; armed step resolution is explicit and deterministic"
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Clean separation between identity resolver, prompt rendering, and hook execution"
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Error conditions emit structured diagnostic codes and halt cards"
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "Sunset surfaces completely purged without leaving legacy fallbacks or shims"
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "Comprehensive test suite asserts behavioral outcomes across all matrix dimensions"
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Traceability preserved between plan FR/SC/US, decompose shards, and implementation"
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Fail-closed semantics prevent execution under corrupt or drifted context"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/prompt_builder.py
+    status: present
+    follow_up: ""
+    evidence: "Defines Identity, Drift, resolve_session_identity, PromptScope, build_prompt_scope"
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    follow_up: ""
+    evidence: "session_start_payload wires resolve_session_identity and emits CONTEXT_IDENTITY_DRIFT on drift"
+  - layout_path: loop/tests/test_session_identity_lock.py
+    status: present
+    follow_up: ""
+    evidence: "Comprehensive identity lock and FR-013 phase matrix tests"
+  - layout_path: harness/hooks/tests/test_session_start_identity.py
+    status: present
+    follow_up: ""
+    evidence: "SessionStart identity lock, 94cea2d3 fixture, and drift halt tests"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s01-identity-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s02-resolve-session-identity.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s03-session-start-halt-wire.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s04-kind-i-unknown-purge.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s05-phase-matrix-enforce.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-071-session-identity-lock/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md#replacement--sunset
+  rows:
+    - symbol: PromptScope.step unknown default when armed
+      kind: A
+      command: 'rg -n "or \"unknown\"" loop/prompt_builder.py'
+      result: pass
+      prod_callers: []
+      notes: "Purged in s04/s06"
+    - symbol: COMMAND from stale AC heading regex
+      kind: A
+      command: 'rg -n "handoff_mode_from_text" harness/hooks/epic/core.py'
+      result: pass
+      prod_callers: []
+      notes: "Frontmatter precedence enforced in s03/s06"
+    - symbol: SessionContextService package
+      kind: B
+      command: 'test ! -d loop/SessionContextService'
+      result: pass
+      prod_callers: []
+      notes: "Kept out of scope per cut list"
+    - symbol: warning + continue on mismatch
+      kind: C
+      command: 'rg -n "CONTEXT_IDENTITY_DRIFT" harness/hooks/epic/core.py'
+      result: pass
+      prod_callers: []
+      notes: "Fail-closed halt enforced"
+    - symbol: docs/comments «step unknown OK»
+      kind: I
+      command: 'rg -n "step unknown OK|unknown OK for QA" loop/prompt_builder.py loop/tests harness/hooks/epic/core.py'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: session-identity-lock
+      enforce_evidence: "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py"
+      result: pass
+      notes: "All 27 identity lock tests pass"
+
+blocked_reason: ""

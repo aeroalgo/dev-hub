@@ -1,0 +1,132 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-072-context-bundle-fail-closed
+title: "Add is_markdown_plan_path + fail-closed ok + empty content for plan/gap md"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Единственный classifier: is_markdown_plan_path(path) → md/plan.md, plan-*.md,
+  gap-*.md, decompose-index.md, analyze-*.md никогда не кладут тело в MbLoadFile.content.
+  sha256+size полного файла; truncated=False на path-only. missing/read_error required
+  → ok=False (убрать leftover ok_status=True если жив). Outcome: bundle completeness
+  честный; plan не в files.content.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-006, FR-008, FR-009, FR-010, US-001, US-002, US-004, SC-001, SC-002, SC-004, AC+1, AC+2, AC−1, AC−2, TM-001, TM-002, TM-004, TM-007, TM-008, Technology axiom]
+  nouns:
+    - is_markdown_plan_path
+    - MbLoadFile.content
+    - path_only
+    - sha256
+    - derived_ok
+    - missing_file
+    - read_error
+    - truncated
+  layout_paths:
+    - loop/mb_load/session.py
+    - loop/tests/test_mb_load_session.py
+  ac_quotes:
+    - "After the per-path loop, ok_status = False if any missing_file/read_error. Remove unconditional ok_status = True at L97."
+    - "Classifier is_markdown_plan_path(path): md/plan.md suffix, plan-*.md under memory-bank, gap-*.md optional same policy."
+    - "For those paths: store sha256+size; content=\"\" or omit from inject renderer; truncated=False; diagnostic path_only:plan.md without failing ok (file exists)."
+    - "Decision: missing/read_error → ok false; truncate → keep truncated flag, ok true."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:40-48"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:86-99"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:200-220"
+    - "memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md:222-227"
+
+context:
+  consumes:
+    - s01 red tests
+    - plan.md §Technology axiom · §FR-001/002/003/006/009 · Path classifier table
+    - loop/mb_load/schemas.py MbLoadFile extra=forbid (no kind field unless already allowed)
+  produces:
+    - is_markdown_plan_path in loop/mb_load/session.py (or sibling imported by it)
+    - path-only files: content empty, sha256 of full bytes, size_bytes full, truncated False
+    - diagnostic path_only:<path> when emptying body; ok stays true if file exists
+    - leftover unconditional ok_status=True gone; derived_ok remains missing+read_error+plan_section
+    - green US-002/TM-001/TM-008 on loader; US-001 content empty on load_session files
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#path-classifier-locked
+    - plan.md#functional-requirements  # FR-012 Graphify N/A hub documented n/a
+  files:
+    - loop/mb_load/session.py
+    - loop/tests/test_mb_load_session.py
+
+as_built:
+  - "derived_ok already False on required_missing / read_errors_on_required / plan_section_ok — leftover ok_status=True at old L97 may already be deleted; confirm rg"
+  - "every existing file still files.append(content=content_str) up to max_file_bytes 256KiB"
+  - "sha256 currently of possibly truncated raw_bytes — path-only must hash full file"
+  - "MbLoadFile extra=forbid — cannot add kind=path_ref; use empty content + diagnostic"
+  - "forbidden_skipped already ok if resolver skip (FR-010 as-built)"
+
+delta:
+  - "add is_markdown_plan_path covering **/md/plan.md, memory-bank/**/plan-*.md, **/gap-*.md, **/decompose-index.md, **/analyze-*.md"
+  - "for classifier hits: read full file for sha256+size; set content=\"\"; truncated=False; append diagnostic path_only:<path> without failing ok"
+  - "yaml/json: keep inline ≤ cap; truncated flag; ok true if truncated required yaml (FR-006 decision)"
+  - "confirm no unconditional ok_status=True after missing continue"
+  - "do not change SessionStart renderer yet (s03); empty content already skips dump if renderer checks f.content"
+
+deletes:
+  - "loop/mb_load/session.py leftover ok_status = True after missing continue (if still present)"
+  - "full md body in MbLoadFile.content for plan/gap/index.md/analyze-*.md"
+
+sunset_scope:
+  required: true
+  boundary_id: mb-load-path-only-plan
+  new_sot: is_markdown_plan_path + empty MbLoadFile.content
+  allow_read:
+    - loop/mb_load/session.py
+    - loop/mb_load/schemas.py
+    - loop/mb_load/plan_section.py
+    - loop/tests/test_mb_load_session.py
+  kind_hint:
+    - A
+    - C
+
+out_of_scope:
+  - "session_start_payload inject listing + Read instruction (s03)"
+  - "exception swallow (s04)"
+  - "Kind I instruction rewrite (s05)"
+  - "leftover inventory (s06)"
+  - "FR-012 Graphify N/A hub — n/a (hub repository, no graph.json; no sNN work)"
+  - "LoadNowItem.kind enum — Appetite cut_list"
+  - "plan yaml section offsets / load_plan_section SoT — Appetite cut_list (keep CLI flag; not SessionStart)"
+  - "forbidden_for_parent consume — follow_up: T-HUB-063-sunset-boundary-stop-pipeline"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-002/003 — classifier hits: load_session files for md/plan.md have content=="" ;
+      sha256 of full file; size_bytes original; truncated False; diagnostic path_only present; ok True if file exists.
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'path_only or plan_md or is_markdown'"
+  - id: cp2
+    criterion: FR-001/TM-001/TM-008 — missing_file and read_error on required → ok False; no ok True with those codes
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'required_missing or read_error'"
+  - id: cp3
+    criterion: FR-006/FR-009 — yaml truncated keeps ok True + truncated flag; decompose-index.md content empty
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'truncat or index_md or decompose_index'"
+  - id: cp4
+    criterion: FR-010 — forbidden_skipped still not missing; skipped path not in required_missing
+    verify: "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line -k 'forbidden_skipped'"
+
+verify:
+  - "bin/pytest loop/tests/test_mb_load_session.py -q --tb=line"
+tdd:
+  - "green loader path-only + fail-closed; inject unique-sentence still red until s03 if renderer dumps leftover content"

@@ -181,13 +181,12 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-overlay-red-tests.yaml](../yaml/steps/s01-overlay-red-tests.yaml) | [s01…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s01-overlay-red-tests.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-delete-overlay-policy.yaml](../yaml/steps/s02-delete-overlay-policy.yaml) | [s02…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s02-delete-overlay-policy.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-registry-need-verify-align.yaml](../yaml/steps/s03-registry-need-verify-align.yaml) | [s03…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s03-registry-need-verify-align.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s04** | [s04-stop-gate-decompose-enforce.yaml](../yaml/steps/s04-stop-gate-decompose-enforce.yaml) | [s04…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s04-stop-gate-decompose-enforce.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-kind-i-overlay-rewrite.yaml](../yaml/steps/s05-kind-i-overlay-rewrite.yaml) | [s05…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s05-kind-i-overlay-rewrite.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) | [s06…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s06-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
-
+| **s01** | [s01-overlay-red-tests.yaml](../yaml/steps/s01-overlay-red-tests.yaml) | [s01…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s01-overlay-red-tests.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-delete-overlay-policy.yaml](../yaml/steps/s02-delete-overlay-policy.yaml) | [s02…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s02-delete-overlay-policy.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-registry-need-verify-align.yaml](../yaml/steps/s03-registry-need-verify-align.yaml) | [s03…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s03-registry-need-verify-align.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-stop-gate-decompose-enforce.yaml](../yaml/steps/s04-stop-gate-decompose-enforce.yaml) | [s04…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s04-stop-gate-decompose-enforce.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-kind-i-overlay-rewrite.yaml](../yaml/steps/s05-kind-i-overlay-rewrite.yaml) | [s05…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s05-kind-i-overlay-rewrite.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) | [s06…](../../implement/T-HUB-070-phase-policy-overlay-sole-sot/s06-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** все `no` (plan: CREATIVE need нет).
 
 **Next after DECOMPOSE FINISH:** `BACK ANALYZE T-HUB-070-phase-policy-overlay-sole-sot` only. **FORBIDDEN** ANALYZE deferred → IMPLEMENT.

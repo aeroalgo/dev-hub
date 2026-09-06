@@ -989,6 +989,7 @@ def test_stop_gate_armed_epic_ignored_without_epic_loop(tmp_path: Path) -> None:
     )
     _write(
         "memory-bank/activeContext.md",
+        "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: decompose-ide\n---\n"
         "## load_now\n- `memory-bank/back/plan/decompose-ide/index.md`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
@@ -1031,6 +1032,7 @@ def test_session_start_payload_requires_epic_loop(tmp_path: Path, monkeypatch) -
     )
     _write(
         "memory-bank/activeContext.md",
+        "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\nepic_id: ssp\n---\n"
         "## load_now\n- `memory-bank/back/plan/decompose-ssp/index.md`\n\n"
         "## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
@@ -2069,6 +2071,23 @@ def test_stop_gate_decompose_uses_validate_decompose_tree(tmp_path: Path) -> Non
             "status": "running",
             "phase": "DECOMPOSE",
             "armed_step": "DECOMPOSE",
+            "last_verify_verdict": "PASS",
+            "last_finish_tool": {
+                "name": "mb-finish",
+                "fingerprint": "fp-123",
+            },
+        }),
+        tmp_path,
+    )
+    _write(
+        ".claude/runtime/spawn-gate/gate-fixture.json",
+        json.dumps({
+            "workflow_source": "loop",
+            "mode": "decompose",
+            "need_verify": True,
+            "verify_done": True,
+            "verify_verdict": "PASS",
+            "need_reviewer": False,
         }),
         tmp_path,
     )
@@ -2133,6 +2152,43 @@ def test_stop_gate_unknown_gate_type_fails_closed(tmp_path: Path) -> None:
     )
     assert result["decision"] == "block"
     assert "fail-closed" in result["reason"] or "unknown phase" in result["reason"]
+
+
+def test_stop_gate_decompose_finish_blocked_without_verify_pass(tmp_path: Path) -> None:
+    """TM-004 / SC-005 / AC+1 / FR-014: DECOMPOSE FINISH without verify PASS is blocked when need_verify is true."""
+    _write_gate_fixture(tmp_path)
+    _write(
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "active": True,
+            "status": "running",
+            "phase": "DECOMPOSE",
+            "armed_step": "DECOMPOSE",
+        }),
+        tmp_path,
+    )
+    _write(
+        ".claude/runtime/spawn-gate/gate-fixture.json",
+        json.dumps({
+            "workflow_source": "loop",
+            "mode": "decompose",
+            "need_verify": True,
+            "verify_done": False,
+            "need_reviewer": False,
+        }),
+        tmp_path,
+    )
+    result = _run_stop_gate(
+        tmp_path,
+        {
+            "session_id": "gate-fixture",
+            "cwd": str(tmp_path),
+            "last_assistant_message": "FINISH: done",
+            "stop_hook_active": False,
+        },
+    )
+    assert result["decision"] == "block"
+    assert "обязателен @verify" in result["reason"]
 
 
 def test_stop_gate_audit_accepts_qa_handoff_after_mb_finish_audit(tmp_path: Path) -> None:

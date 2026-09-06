@@ -1,0 +1,41 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-071-session-identity-lock
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - SessionContextService package
+  - Variant B projector
+steps:
+- id: s01
+  file: s01-identity-red-tests.yaml
+  title: Red tests — 94cea2d3 dual COMMAND + unknown step when armed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-resolve-session-identity.yaml
+  title: Add resolve_session_identity + PromptScope step chain never unknown when
+    armed
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-session-start-halt-wire.yaml
+  title: Wire session_start_payload — halt CONTEXT_IDENTITY_DRIFT, one COMMAND
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-kind-i-unknown-purge.yaml
+  title: Kind I + purge unknown default and heading-as-COMMAND
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-phase-matrix-enforce.yaml
+  title: Enforce FR-013 phase matrix + epic_mismatch + unarmed IDE
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — identity dual-COMMAND leftovers A+B+C+I
+  next_phase: BACK IMPLEMENT
+  status: completed

@@ -1,0 +1,127 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-071-session-identity-lock
+title: "Add resolve_session_identity + PromptScope step chain never unknown when armed"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Единственный typed resolver: resolve_session_identity(state, ac_meta) -> Identity | Drift.
+  build_prompt_scope берёт Identity; step chain projection.step → armed_step → phase →
+  empty+diagnostic; never string unknown if any of the three is set. COMMAND = {ROLE} {PHASE}
+  from identity. Outcome: agent sees one identity, not projection-or-unknown.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-009, FR-010, FR-011, FR-013, FR-015, FR-017, FR-020, US-002, US-004, SC-002, SC-004, AC+2, AC−3, NFR-2, NFR-3, TM-002, TM-004, TM-008, Technology axiom]
+  nouns:
+    - resolve_session_identity
+    - Identity
+    - Drift
+    - phase_mismatch
+    - epic_mismatch
+    - step_unknown_while_armed
+    - PromptScope.step
+    - LoopHandoffFrontmatter
+    - armed_step
+  layout_paths:
+    - loop/prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+  ac_quotes:
+    - "Single function resolve_session_identity(state, ac_meta) -> Identity | Drift. Drift codes: phase_mismatch, epic_mismatch, step_unknown_while_armed."
+    - "step fallback chain: projection.step → state.armed_step → state.phase → empty + diagnostic, never the string unknown if any of the three is set."
+    - "If projection.phase and state.armed_step disagree (both set, different) → Drift phase_mismatch … do not pick a winner silently."
+    - "ROLE comes from state/frontmatter role (BACK/FRONT/INTEG), not guessed from prompt regex when armed."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:32-41"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:85-113"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:120-137"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:174-205"
+
+context:
+  consumes:
+    - s01 red tests
+    - plan.md §Technology axiom · §FR-001/002/013/020
+    - loop/schemas/handoff.py LoopHandoffFrontmatter
+  produces:
+    - resolve_session_identity in loop/prompt_builder.py (or thin sibling imported by it — not SessionContextService package)
+    - build_prompt_scope uses Identity; armed QA step=QA; IMPLEMENT sNN
+    - green US-002 / TM-002 on builder; US-004 step sNN
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#halt-diagnostic-shape-machine
+  files:
+    - loop/prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+
+as_built:
+  - "build_prompt_scope derives COMMAND from projection/command/fallback; step or unknown; no resolve_session_identity"
+  - "no Drift / CONTEXT_IDENTITY_DRIFT on builder"
+  - "FR-020 silent winner possible: projection.phase vs armed_step not compared"
+  - "Appetite FORBIDDEN: SessionContextService/ package tree"
+
+delta:
+  - "add resolve_session_identity(state, ac_meta) -> Identity | Drift (Pydantic or frozen dataclass + extra=forbid on diagnostic fields)"
+  - "Drift codes exactly: phase_mismatch, epic_mismatch, step_unknown_while_armed; halt fields armed_step, ac_mode, projection_phase, epic_id, role, code=CONTEXT_IDENTITY_DRIFT"
+  - "build_prompt_scope uses Identity when state/ac_meta provided; step chain never unknown when armed"
+  - "FR-020: projection.phase ≠ armed_step (both set) → Drift, do not pick winner"
+  - "IMPLEMENT: step = sNN from armed_step/index cursor; COMMAND {ROLE} IMPLEMENT"
+  - "QA/BUGFIX/AUDIT/DECOMPOSE/ANALYZE/CREATIVE/CLARIFY: step = phase token from FR-013"
+  - "keep render_prompt_scope HARD READ lines (FR-009); do not inline workflow"
+  - "function pure/idempotent (FR-011); no new SessionContextService package"
+  - "do not yet wire session_start_payload halt (s03) — builder+unit only; optional hook call-site may wait s03 if tests still red on payload"
+
+deletes:
+  - "loop/prompt_builder.py PromptScope.step default or \"unknown\" for armed path"
+
+sunset_scope:
+  required: true
+  boundary_id: prompt-scope-step
+  new_sot: loop/prompt_builder.py resolve_session_identity
+  allow_read:
+    - loop/prompt_builder.py
+    - loop/tests/test_prompt_builder.py
+    - loop/tests/test_session_identity_lock.py
+    - loop/schemas/handoff.py
+  kind_hint:
+    - A
+    - C
+
+out_of_scope:
+  - "session_start_payload halt card / skip load_now bodies (s03)"
+  - "Kind I comments / heading regex COMMAND purge in core.py (s04)"
+  - "full FR-013 matrix + unarmed IDE + epic_mismatch pytest (s05) — s02 covers chain + IMPLEMENT sNN unit"
+  - "leftover inventory (s06)"
+  - "SessionContextService package — Appetite cut_list"
+  - "EPIC_RUNTIME duplicate-hook WHAT — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: resolve_session_identity exists; Identity vs Drift with codes phase_mismatch, epic_mismatch, step_unknown_while_armed
+    verify: "rg -n 'def resolve_session_identity' loop/prompt_builder.py; rg -n 'phase_mismatch|epic_mismatch|step_unknown_while_armed' loop/prompt_builder.py"
+  - id: cp2
+    criterion: US-002 green — armed QA, missing projection.step → PromptScope.step == QA != unknown
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 'QA or unknown or step'"
+  - id: cp3
+    criterion: US-004 — armed IMPLEMENT s03/s05 → step sNN; COMMAND ROLE IMPLEMENT; FR-020 disagree → Drift not silent winner
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 's03 or s05 or phase_mismatch or IMPLEMENT'"
+  - id: cp4
+    criterion: HARD READ lines still in render_prompt_scope; no SessionContextService package
+    verify: "rg -n 'HARD READ' loop/prompt_builder.py; test ! -d loop/SessionContextService"
+
+verify:
+  - "bin/pytest loop/tests/test_session_identity_lock.py loop/tests/test_prompt_builder.py -q --tb=line"
+tdd:
+  - "green US-002/US-004 on builder after identity; keep s01 payload tests red until s03"

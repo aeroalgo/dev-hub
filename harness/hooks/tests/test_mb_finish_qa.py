@@ -31,7 +31,7 @@ def test_finish_qa_no_artifact(tmp_path: Path):
 
 
 def test_finish_qa_happy(tmp_path: Path):
-    """cp1: finish_qa happy path with valid QA artifact -> ok=True, activeContext mode=REFLECT."""
+    """cp1: finish_qa happy path with valid QA artifact -> ok=True, activeContext mode=DONE."""
     mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
     mb_dir.mkdir(parents=True, exist_ok=True)
     qa_file = mb_dir / "qa-001.yaml"
@@ -86,7 +86,7 @@ def test_finish_qa_v2_layout_path_emits_qa_pass(tmp_path: Path):
 
 
 def test_finish_qa_handoff(tmp_path: Path):
-    """cp3 / TM-006: finish_qa results in REFLECT handoff in activeContext."""
+    """cp3 / TM-006: finish_qa results in DONE handoff in activeContext."""
     mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
     mb_dir.mkdir(parents=True, exist_ok=True)
     qa_file = mb_dir / "qa-001.yaml"

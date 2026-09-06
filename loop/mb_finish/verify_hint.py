@@ -21,7 +21,7 @@ VERIFY_MB_FINISH_SUBCMD: dict[str, str] = {
 VERIFY_FINISH_AGENTS = frozenset(VERIFY_MB_FINISH_SUBCMD)
 
 BLOCKED_TO_BUGFIX_AGENTS = frozenset({"verify-qa", "reviewer"})
-COERCE_VERIFY_AGENTS = frozenset({"verify", "verify-implement"})
+COERCE_VERIFY_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix"})
 REVIEWER_MIRROR_AGENTS = frozenset({"verify-qa", "reviewer"})
 BLOCKED_VERDICT_AGENTS = REVIEWER_MIRROR_AGENTS
 

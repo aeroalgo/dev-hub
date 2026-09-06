@@ -1,0 +1,105 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-071-session-identity-lock
+title: "Enforce FR-013 phase matrix + epic_mismatch + unarmed IDE"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Каждая armed-фаза из таблицы FR-013 даёт non-unknown step token и правильный COMMAND.
+  IMPLEMENT → sNN; DONE → halt/no work COMMAND; unarmed IDE → documented `-`/`unarmed` без crash;
+  epic_id mismatch → Drift epic_mismatch. Outcome: matrix pytest TM-008 green, not one happy-path.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-008, FR-013, US-002, US-004, SC-002, SC-004, AC+2, TM-002, TM-004, TM-005, TM-006, TM-008, Failure-TM-005, Failure-TM-006, Failure-TM-008]
+  nouns:
+    - FR-013 phase token table
+    - PromptScope.step
+    - COMMAND
+    - epic_mismatch
+    - unarmed IDE
+    - DONE halt
+  layout_paths:
+    - loop/tests/test_session_identity_lock.py
+    - loop/prompt_builder.py
+  ac_quotes:
+    - "Tests: matrix phases PLAN/DECOMPOSE/ANALYZE/IMPLEMENT/AUDIT/QA/BUGFIX each has non-unknown step when armed."
+    - "IMPLEMENT + sNN | sNN (e.g. s03) | {ROLE} IMPLEMENT"
+    - "DONE | DONE (should not spawn work session) | halt or no COMMAND work"
+    - "Prefer: unarmed IDE → step=`-` documented."
+    - "epic_id mismatch | halt | TM-006"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:99-113"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:126-137"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:222-233"
+    - "memory-bank/back/plan/T-HUB-071-session-identity-lock/md/plan.md:293-304"
+
+context:
+  consumes:
+    - s02 identity + FR-013 tokens in resolver
+    - s04 unknown purge
+    - plan.md §FR-013 table · §QA consumes TM-005/006/008
+  produces:
+    - parametrized matrix tests PLAN/DECOMPOSE/ANALYZE/CREATIVE/CLARIFY/IMPLEMENT/AUDIT/QA/BUGFIX/DONE
+    - TM-005 unarmed no crash; TM-006 epic_mismatch halt; TM-008 no unknown
+    - IMPLEMENT missing sNN → diagnostic not unknown (Failure TM-008)
+  plan_refs:
+    - plan.md#fr-013
+    - plan.md#qa-consumes
+    - plan.md#failure-matrix
+  files:
+    - loop/tests/test_session_identity_lock.py
+    - loop/prompt_builder.py
+    - harness/hooks/tests/test_session_start_identity.py
+
+as_built:
+  - "s02 covers QA + IMPLEMENT sNN unit; no full FR-013 parametrize including CREATIVE/CLARIFY/DONE"
+  - "unarmed IDE / epic_mismatch not yet asserted as halt vs crash"
+  - "DONE may still emit work COMMAND BACK IMPLEMENT fallback"
+
+delta:
+  - "parametrize armed phases from FR-013: step token and COMMAND as table (including CREATIVE/CLARIFY)"
+  - "IMPLEMENT + sNN (s03 or s05 per TM-004 plan table s05) → step sNN, COMMAND {ROLE} IMPLEMENT"
+  - "DONE: halt or no work COMMAND (should not spawn work session)"
+  - "unarmed IDE: no crash; step `-` or `unarmed` (TM-005)"
+  - "epic_id state vs AC mismatch → Drift epic_mismatch halt (TM-006)"
+  - "armed IMPLEMENT without sNN → diagnostic not unknown (TM-008 / Failure TM-008)"
+  - "extend payload tests only if DONE/epic_mismatch must go through session_start_payload"
+
+deletes: []
+
+out_of_scope:
+  - "leftover A+B+C+I inventory (s06)"
+  - "SessionContextService / event projector — Appetite cut_list"
+  - "065 dual hook process — follow_up: T-HUB-065-duplicate-hooks-runtime-entrypoint"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: FR-008/TM-008 — PLAN/DECOMPOSE/ANALYZE/IMPLEMENT/AUDIT/QA/BUGFIX armed → step != unknown
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 'matrix or FR-013 or TM-008'"
+  - id: cp2
+    criterion: US-004/TM-004 IMPLEMENT step sNN; CREATIVE/CLARIFY tokens; DONE no work COMMAND
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py -q --tb=line -k 'IMPLEMENT or DONE or CREATIVE or s05 or s03'"
+  - id: cp3
+    criterion: TM-005 unarmed IDE no crash documented token; TM-006 epic_mismatch halt
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py -q --tb=line -k 'unarmed or epic_mismatch or TM-005 or TM-006'"
+  - id: cp4
+    criterion: Failure TM-008 — armed IMPLEMENT missing sNN → diagnostic not unknown
+    verify: "bin/pytest loop/tests/test_session_identity_lock.py -q --tb=line -k 'missing_sNN or step_unknown_while_armed or IMPLEMENT'"
+
+verify:
+  - "bin/pytest loop/tests/test_session_identity_lock.py harness/hooks/tests/test_session_start_identity.py -q --tb=line"
+tdd:
+  - "matrix enforce green; Independent Test PASS path complete except leftover purge"

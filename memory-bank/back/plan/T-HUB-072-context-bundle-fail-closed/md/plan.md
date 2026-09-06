@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §1.2 B P0.4; session audit §3 SessionStart inline plan.md; `loop/mb_load/session.py`
 
-→ decompose-index — **после DECOMPOSE**
+→ [decompose-index.md](decompose-index.md) · [decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 

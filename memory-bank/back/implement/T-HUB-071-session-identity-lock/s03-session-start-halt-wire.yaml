@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-071-session-identity-lock
+title: "s03 — Wire session_start_payload — halt CONTEXT_IDENTITY_DRIFT, one COMMAND IMPLEMENT"
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-071-session-identity-lock/yaml/steps/s03-session-start-halt-wire.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+discovery:
+  - "session_start_payload wired to resolve_session_identity before prompt scope rendering"
+  - "Drift card emits CONTEXT_IDENTITY_DRIFT and HALT with labeled fields and stops work file injection"
+  - "FR-005 EPIC_PHASE loop env check enforces expected phase against resolved identity"
+gaps:
+  status: none
+done:
+  - "Wired resolve_session_identity in session_start_payload before build_prompt_scope"
+  - "Emitted typed halt card with CONTEXT_IDENTITY_DRIFT on Drift, forbidding load_now work injection"
+  - "Enforced single COMMAND in additionalContext and validated valid loop-handoff/v1 frontmatter precedence"
+  - "Added FR-005 EPIC_PHASE mismatch check to halt if loop env and state disagree"
+files:
+  - harness/hooks/epic/core.py
+  - loop/prompt_builder.py
+  - loop/schemas/active_context.py
+  - harness/hooks/tests/test_session_start_identity.py
+  - harness/hooks/tests/test_session_start_inject.py
+  - loop/tests/test_session_identity_lock.py
+deletes:
+  - "session_start_payload path that sets projection.phase from handoff_mode_from_text as COMMAND source when armed + valid frontmatter"
+  - "warning + continue (inject work COMMAND) on AC mode vs state.phase mismatch"
+tests:
+  - "bin/pytest harness/hooks/tests/test_session_start_identity.py harness/hooks/tests/test_session_start_inject.py loop/tests/test_session_identity_lock.py -q --tb=line"
+integration_check:
+  - "All callers of session_start_payload receive either valid scope with <= 1 COMMAND or HALT card on identity drift"
+  - "finish_handoff and bugfix_finish_required remain untouched"
+grep_control: []
+verification_results:
+  - "31 passed in 0.23s"
+checkpoints:
+  - id: cp1
+    criterion: "US-001/FR-014 green — armed BUGFIX + stale QA AC/projection: payload additionalContext has COMMAND BACK BUGFIX XOR halt (no COMMAND BACK QA work inject). Count COMMAND: ≤ 1."
+    status: done
+    evidence: "test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt and test_armed_bugfix_single_command_back_bugfix_no_second_command_qa pass"
+  - id: cp2
+    criterion: "US-003 — mismatch halt CONTEXT_IDENTITY_DRIFT labeled fields; no load_now bodies; not warning-continue"
+    status: done
+    evidence: "test_fixture_94cea2d3_armed_bugfix_stale_qa_ac_drift_halt verifies CONTEXT_IDENTITY_DRIFT, labeled fields, and HALT without file injection"
+  - id: cp3
+    criterion: "FR-007/SC-005 — valid frontmatter — heading regex not COMMAND source; FR-005 EPIC_PHASE mismatch halt"
+    status: done
+    evidence: "test_frontmatter_heading_not_used_as_command_when_frontmatter_valid and test_epic_phase_mismatch_halt pass"
+  - id: cp4
+    criterion: "wire_complete — session_start_payload calls resolve_session_identity; finish_handoff untouched"
+    status: done
+    evidence: "session_start_payload in harness/hooks/epic/core.py calls resolve_session_identity at line 1514; finish_handoff untouched"
+resume_from: cp1

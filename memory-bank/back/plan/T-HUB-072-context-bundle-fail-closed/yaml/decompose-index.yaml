@@ -1,0 +1,41 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-072-context-bundle-fail-closed
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - LoadNowItem.kind enum rollout
+  - sunset forbidden_for_parent consume (063)
+  - plan yaml section offsets
+steps:
+- id: s01
+  file: s01-bundle-red-tests.yaml
+  title: Red tests — missing ok false + plan.md body absent from inject
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-path-only-classifier.yaml
+  title: Add is_markdown_plan_path + fail-closed ok + empty content for plan/gap md
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-session-start-path-only-wire.yaml
+  title: Wire SessionStart renderer — path+sha only; never inline plan.md
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-session-start-exception-enforce.yaml
+  title: Enforce SessionStart exception incomplete — no warning-continue success
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-kind-i-yaml-inline.yaml
+  title: Kind I rewrite + yaml still inline under cap
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — bundle inline leftovers A+B+C+I
+  next_phase: BACK IMPLEMENT
+  status: completed
