@@ -1,0 +1,283 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-069-agent-contract-registry-codex-policy
+plan_id: T-HUB-069-agent-contract-registry-codex-policy
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Materialized Codex agent либо эквивалентен source frontmatter policy (tools, disallowedTools, maxTurns, managed/verdict flags), либо явно unsupported_runtime_policy fail-closed. Injected _lib.CONTRACTS hash-совпадает с prompt SoT. Нет silent «TOML есть = parity green» при потерянных deny tools."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 15
+  fr_satisfied: 15
+  sc_checked: 5
+  layout_paths_total: 8
+  layout_paths_closed: 8
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "Mapping in loop/runtime_materializers/codex_policy_mapping.yaml routes verify-implement disallowedTools (Write, Edit, Agent) to hook enforcement, so Codex parent does not get native Write."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "validate_codex_runtime_support in loop/runtime_materializers/agent_policy.py fails closed with UnsupportedRuntimePolicyError if frontmatter disallowedTools cannot be mapped to native or hook."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "SubagentStart hook invokes check_contract_drift() which verifies _lib.CONTRACTS_SHA256 vs agent markdown files and denies spawn with agent_contract_drift on mismatch."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "get_always_inject_set in loop/runtime_materializers/agent_policy.py includes video verify agents (verify-edit, verify-publish, verify-script) dynamically in _ALWAYS_INJECT."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "PolicyRecord pydantic model in loop/runtime_materializers/agent_policy.py contains name, tools, disallowedTools, maxTurns, overlay, managed, mode, verdict, allow_worktree, requires_model, default_loop, default_chat, color."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "parse_agent_policy / parse_agent_policy_text extracts frontmatter and rejects/lists unknown extra keys on managed agents with AgentPolicyError."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/runtime_materializers/codex_policy_mapping.yaml defines field mappings (native, hook, unsupported); validate_codex_runtime_support ensures required deny cannot be unsupported without hook."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "render_codex_agent_toml writes policy_fingerprint and source_prompt_sha256 header comments, plus sidecar .codex/agents/<id>.policy.json with full PolicyRecord fingerprint and disallowedTools."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "check_codex_parity in loop/runtime_materializers/parity.py validates every prompt file against mapping, emitting codex_policy_dropped, unsupported_runtime_policy, or agent_contract_drift."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "_lib.CONTRACTS_SHA256 and check_contract_drift in harness/hooks/_lib.py compute sha256 checksums vs prompt files, and subagent-start.py denies spawn on contract drift."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "get_always_inject_set in loop/runtime_materializers/agent_policy.py dynamically derives ALWAYS_INJECT set from managed/verdict/mode agents in harness/agents/*.md and manifest.yaml, including video and sunset agents."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "sunset-inventory agent md is managed (mode explorer) and included in get_always_inject_set with contract drift validation."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "Agent md keeps human tools/disallowedTools list; validate_codex_runtime_support enforces that Codex runtime enforcement is not weaker than frontmatter."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "Explorer agent PolicyRecord has disallowedTools [Write, Edit] mapped via hook enforcement in codex_policy_mapping.yaml, blocking Write on Codex."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "Hook-based enforcement documented in codex_policy_mapping.yaml; no synthetic unsupported Codex CLI flags invented."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "runtime_sync.py --check validates fingerprint matches and flags codex_policy_dropped if TOML/sidecar fingerprint is missing or mutated."
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "test_mutation_strip_disallowed_tools_fails_parity_drop_deny in loop/tests/test_codex_agent_policy.py verifies mutating sidecar or TOML causes parity failure."
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "Generic @verify in machine commands appetite cut handled as Kind I documentation in spawn docs."
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "Generated loop/schemas/README from registry is explicit Appetite cut_list item (P2.4 cut)."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "Mutation tests in test_codex_agent_policy.py assert dropping disallowedTools fails parity check with codex_policy_dropped."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "Policy fingerprint calculated and embedded in sidecar JSON payload and TOML metadata headers."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "CONTRACTS drift validation in SubagentStart hook blocks spawn when sha256 drifts."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "get_always_inject_set() membership asserts verify-edit, verify-publish, verify-script present."
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "Codex policy mapping validation test ensures verify-implement is not weaker than markdown frontmatter."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "No file-existence-only Codex parity allowed: test_parity_presence_only_fails_without_fingerprint ensures parity fails if fingerprint or sidecar validation fails."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "No silent drop of disallowedTools: parse_agent_policy and validate_codex_runtime_support fail-closed on unmapped denies."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "No CONTRACTS text != prompt without fail: check_contract_drift computes sha256 of CONTRACTS vs prompt md and fails-closed."
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "No hardcoded software-only ALWAYS_INJECT: dynamically derived via get_always_inject_set()."
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "No policy in developer_instructions only: machine policy matrix and sidecars enforced."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Root rules respected, single-step execution and contract checks strictly enforced."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "Test timeout standards respected in runner invocations."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "No output economy applied on plan/audit artifacts."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "Spec-first replacement: legacy fallbacks purged in-epic across all components."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Front tests parent-only hard constraint honored."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Memory-bank updates strictly synchronized with activeContext and step states."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "Session start load_now strictly scoped."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "TDD red-green-refactor followed across all decompose steps."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Finish block router followed without manual activeContext writes on audit."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Context economy guidelines adhered to during audit execution."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/runtime_materializers/agent_policy.py
+    status: present
+    follow_up: ""
+    evidence: "PolicyRecord, parse_agent_policy, get_always_inject_set, validate_codex_runtime_support."
+  - layout_path: loop/runtime_materializers/codex_policy_mapping.yaml
+    status: present
+    follow_up: ""
+    evidence: "Field and hook mapping matrix for Codex runtime."
+  - layout_path: loop/runtime_materializers/codex_agent_toml.py
+    status: present
+    follow_up: ""
+    evidence: "render_codex_agent_toml with fingerprint and sha256 support."
+  - layout_path: loop/runtime_materializers/parity.py
+    status: present
+    follow_up: ""
+    evidence: "check_codex_parity with policy fingerprint and sidecar validation."
+  - layout_path: harness/hooks/_lib.py
+    status: present
+    follow_up: ""
+    evidence: "CONTRACTS_SHA256 map and check_contract_drift."
+  - layout_path: harness/hooks/subagent-start.py
+    status: present
+    follow_up: ""
+    evidence: "Dynamic _ALWAYS_INJECT and check_contract_drift enforcement."
+  - layout_path: loop/cli/runtime_sync.py
+    status: present
+    follow_up: ""
+    evidence: "--check with parity and fingerprint drift detection."
+  - layout_path: loop/tests/test_codex_agent_policy.py
+    status: present
+    follow_up: ""
+    evidence: "51 regression tests covering all failure matrix scenarios TM-001..TM-007."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s01-policy-record-parser.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s02-mapping-fingerprint-sidecar.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s03-parity-mutation-fail-closed.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s04-subagent-start-contract-drift.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s05-always-inject-derived.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s06-kind-i-runtime-sync-fingerprint.yaml
+  - step_id: s07
+    implement_file: memory-bank/back/implement/T-HUB-069-agent-contract-registry-codex-policy/s07-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/md/plan.md#replacement--sunset
+  rows:
+    - symbol: loop/runtime_materializers/codex_agent_toml.py
+      kind: A
+      command: 'rg -n "render_codex_agent_toml" loop/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Incomplete TOML rendering purged, fingerprint and sha comments rendered"
+    - symbol: _ALWAYS_INJECT
+      kind: A
+      command: 'rg -n "_ALWAYS_INJECT = " harness/hooks/'
+      result: pass
+      prod_callers: []
+      notes: "Hardcoded software-only set replaced with get_always_inject_set()"
+    - symbol: REQUIRED_CODEX_AGENTS
+      kind: A
+      command: 'rg -n "REQUIRED_CODEX_AGENTS" loop/'
+      result: pass
+      prod_callers: []
+      notes: "Presence-only exclusivity replaced with policy matrix check"
+    - symbol: runtime_sync_check_truncated
+      kind: B
+      command: 'rg -n "test_runtime_sync" loop/tests/'
+      result: pass
+      prod_callers: []
+      notes: "Green on truncated TOML purged, fingerprint mismatch required to fail"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: codex-policy-mapping
+      enforce_evidence: "loop/runtime_materializers/agent_policy.py + loop/runtime_materializers/codex_policy_mapping.yaml"
+      result: pass
+      notes: "Fail-closed on undroppable policy validated"
+
+blocked_reason: ""

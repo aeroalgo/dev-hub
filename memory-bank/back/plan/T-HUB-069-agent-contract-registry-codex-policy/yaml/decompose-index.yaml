@@ -44,4 +44,4 @@ steps:
   file: s07-legacy-fallback-purge.yaml
   title: s07 — legacy-fallback-purge — presence-only parity + silent-weaker leftovers
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

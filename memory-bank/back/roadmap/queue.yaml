@@ -1,12 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-069
-  epic_id: T-HUB-069-agent-contract-registry-codex-policy
-  plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
-  deps:
-  - T-HUB-064
-  batch: workflow-loop-20260905
 - id: T-HUB-070
   epic_id: T-HUB-070-phase-policy-overlay-sole-sot
   plan: plan-T-HUB-070-phase-policy-overlay-sole-sot.md
@@ -287,6 +281,10 @@ done:
 - id: T-HUB-068
   epic_id: T-HUB-068-start-finish-transaction-boundary
   plan: plan-T-HUB-068-start-finish-transaction-boundary.md
+  batch: workflow-loop-20260905
+- id: T-HUB-069
+  epic_id: T-HUB-069-agent-contract-registry-codex-policy
+  plan: plan-T-HUB-069-agent-contract-registry-codex-policy.md
   batch: workflow-loop-20260905
 batches:
   workflow-loop-hardening:

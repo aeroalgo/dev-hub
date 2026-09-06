@@ -1,0 +1,41 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-070-phase-policy-overlay-sole-sot
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - generate overlay from AST
+  - Variant B event projector
+  - rewrite all workflow-qa mdc REFLECT if any outside hooks
+steps:
+- id: s01
+  file: s01-overlay-red-tests.yaml
+  title: Red tests — armed DECOMPOSE need_verify true; QA FINISH without REFLECT
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s02
+  file: s02-delete-overlay-policy.yaml
+  title: Delete overlay DECOMPOSE OFF + QA→REFLECT; projection = gates_from_phase only
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s03
+  file: s03-registry-need-verify-align.yaml
+  title: Align DECOMPOSE need_verify true; gates_from_phase behavior + fail-closed unknown
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-stop-gate-decompose-enforce.yaml
+  title: Stop-gate honor DECOMPOSE need_verify; delete docs-only special-case
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-kind-i-overlay-rewrite.yaml
+  title: Kind I — rewrite OFF/REFLECT tests and comments; keep spawn-hard ON
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — overlay dual-policy leftovers A+B+C+I
+  next_phase: BACK IMPLEMENT
+  status: pending

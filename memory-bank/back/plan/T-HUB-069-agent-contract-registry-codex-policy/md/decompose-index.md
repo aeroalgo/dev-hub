@@ -170,8 +170,7 @@
 | **s04** | [s04-subagent-start-contract-drift.yaml](../yaml/steps/s04-subagent-start-contract-drift.yaml) | [s04…](../../implement/T-HUB-069-agent-contract-registry-codex-policy/s04-subagent-start-contract-drift.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s05** | [s05-always-inject-derived.yaml](../yaml/steps/s05-always-inject-derived.yaml) | [s05…](../../implement/T-HUB-069-agent-contract-registry-codex-policy/s05-always-inject-derived.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s06** | [s06-kind-i-runtime-sync-fingerprint.yaml](../yaml/steps/s06-kind-i-runtime-sync-fingerprint.yaml) | [s06…](../../implement/T-HUB-069-agent-contract-registry-codex-policy/s06-kind-i-runtime-sync-fingerprint.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s07** | [s07-legacy-fallback-purge.yaml](../yaml/steps/s07-legacy-fallback-purge.yaml) | [s07…](../../implement/T-HUB-069-agent-contract-registry-codex-policy/s07-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
-
+| **s07** | [s07-legacy-fallback-purge.yaml](../yaml/steps/s07-legacy-fallback-purge.yaml) | [s07…](../../implement/T-HUB-069-agent-contract-registry-codex-policy/s07-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **needs_creative:** все `no` (plan: CREATIVE need нет).
 
 **Next after DECOMPOSE FINISH:** `BACK ANALYZE T-HUB-069-agent-contract-registry-codex-policy` only. **FORBIDDEN** ANALYZE deferred → IMPLEMENT.

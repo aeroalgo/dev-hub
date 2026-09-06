@@ -3,120 +3,91 @@ role: back
 step_id: s07
 plan_id: T-HUB-069-agent-contract-registry-codex-policy
 title: s07 — legacy-fallback-purge — presence-only parity + silent-weaker leftovers
-status: in_progress
+status: completed
 date: '2026-09-06'
 decompose_ref: memory-bank/back/plan/T-HUB-069-agent-contract-registry-codex-policy/yaml/steps/s07-legacy-fallback-purge.yaml
 skills_used:
-  - .agents/skills/tdd/SKILL.md
-  - .agents/skills/python-testing-patterns/SKILL.md
-  - .agents/skills/modern-python/SKILL.md
-  - .agents/skills/python-anti-patterns/SKILL.md
-  - .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
 discovery:
-  - Sunset scan confirmed zero prod callers on silent-drop, presence-only parity, or hardcoded software-only ALWAYS_INJECT.
-  - TDD regression added 3 new test cases verifying no presence-only green, derived ALWAYS_INJECT set, and no silent drop of disallowedTools.
+- Sunset scan confirmed zero prod callers on silent-drop, presence-only parity, or
+  hardcoded software-only ALWAYS_INJECT.
+- TDD regression added 3 new test cases verifying no presence-only green, derived
+  ALWAYS_INJECT set, and no silent drop of disallowedTools.
 gaps:
   status: none
 done:
-  - "Purged all legacy presence-only, silent-weaker, and hardcoded software-only SoT fallbacks."
-  - "Verified sunset_inventory kinds A, B, C, I against all grep_control assertions."
-  - "Ensured 51 targeted regression tests pass across policy, TOML, materializers, parity, and hook drift."
+- Purged all legacy presence-only, silent-weaker, and hardcoded software-only SoT
+  fallbacks.
+- Verified sunset_inventory kinds A, B, C, I against all grep_control assertions.
+- Ensured 51 targeted regression tests pass across policy, TOML, materializers, parity,
+  and hook drift.
 files:
-  - loop/runtime_materializers/codex_agent_toml.py
-  - loop/runtime_materializers/parity.py
-  - harness/hooks/subagent-start.py
-  - loop/cli/runtime_sync.py
-  - loop/tests/test_codex_agent_toml.py
-  - loop/tests/test_agent_materializer.py
-  - loop/tests/test_runtime_sync_check.py
-  - loop/tests/test_codex_agent_policy.py
-  - loop/README.md
+- loop/runtime_materializers/codex_agent_toml.py
+- loop/runtime_materializers/parity.py
+- harness/hooks/subagent-start.py
+- loop/cli/runtime_sync.py
+- loop/tests/test_codex_agent_toml.py
+- loop/tests/test_agent_materializer.py
+- loop/tests/test_runtime_sync_check.py
+- loop/tests/test_codex_agent_policy.py
+- loop/README.md
 deletes:
-  - leftover presence-only completeness asserts in loop/tests/test_codex_agent_toml.py / test_agent_materializer.py
-  - leftover exclusive software-only _ALWAYS_INJECT as sole SoT
-  - leftover --check success path on truncated TOML
-  - leftover silent drop tools in markdown_agent_to_codex_toml prod path
-  - leftover Kind I «TOML = full agent»
+- leftover presence-only completeness asserts in loop/tests/test_codex_agent_toml.py
+  / test_agent_materializer.py
+- leftover exclusive software-only _ALWAYS_INJECT as sole SoT
+- leftover --check success path on truncated TOML
+- leftover silent drop tools in markdown_agent_to_codex_toml prod path
+- leftover Kind I «TOML = full agent»
 tests:
-  - "`bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py harness/hooks/tests/test_subagent_start_contract_drift.py harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line`"
+- '`bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py
+  loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py harness/hooks/tests/test_subagent_start_contract_drift.py
+  harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line`'
 integration_check:
-  - "bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py harness/hooks/tests/test_subagent_start_contract_drift.py harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -> 51 passed, 2 warnings"
+- bin/pytest loop/tests/test_codex_agent_policy.py loop/tests/test_codex_agent_toml.py
+  loop/tests/test_agent_materializer.py loop/tests/test_runtime_sync_check.py harness/hooks/tests/test_subagent_start_contract_drift.py
+  harness/hooks/tests/test_subagent_start_inject_set.py -q --tb=line -> 51 passed,
+  2 warnings
 grep_control:
-  - id: inv-a-01
-    kind: A
-    status: verified
-  - id: inv-a-02
-    kind: A
-    status: verified
-  - id: inv-a-03
-    kind: A
-    status: verified
-  - id: inv-a-04
-    kind: A
-    status: verified
-  - id: inv-a-tests-01
-    kind: A
-    status: verified
-  - id: inv-b-01
-    kind: B
-    status: verified
-  - id: inv-c-01
-    kind: C
-    status: verified
-  - id: inv-c-02
-    kind: C
-    status: verified
-  - id: inv-i-01
-    kind: I
-    status: verified
-  - id: inv-i-02
-    kind: I
-    status: verified
-wire_complete:
-  boundary_id: agent-contract-codex-policy
-  call_sites:
-    - loop/runtime_materializers/agent_policy.py
-    - loop/runtime_materializers/agents.py
-    - loop/runtime_materializers/parity.py
-    - loop/cli/runtime_sync.py
-    - harness/hooks/subagent-start.py
-  enforce_path: loop/runtime_materializers/agent_policy.py
-  dual_path_rg: "zero fallback or dual path hits"
-  instruction_rg: "zero 'TOML = full agent' hits"
-plan_parity_scan:
-  fr_coverage:
-    - FR-001: PolicyRecord model with full fields and validation
-    - FR-002: Frontmatter parser retaining disallowedTools and extras
-    - FR-003: Codex mapping table yaml enforcing hook-backed deny
-    - FR-004: Generated TOML includes policy_fingerprint and sidecar policy.json
-    - FR-005: Parity checks mapping equivalence and fail codes
-    - FR-006: CONTRACTS sha256 checksums and drift check in SubagentStart
-    - FR-007: ALWAYS_INJECT derived set covering software + video + managed agents
-    - FR-008: sunset-inventory included in inject set when managed
-    - FR-009: Kind I documentation honesty
-    - FR-010: explorer Codex Write deny enforced via mapping
-    - FR-011: No invented Codex native CLI flags
-    - FR-012: runtime-sync --check checks fingerprint and sidecar integrity
-    - FR-013: Parity mutation tests fail on dropped deny / stripped sidecar
-  target_layout_paths:
-    - loop/runtime_materializers/agent_policy.py
-    - loop/runtime_materializers/codex_agent_toml.py
-    - loop/runtime_materializers/parity.py
-    - loop/runtime_materializers/codex_policy_mapping.yaml
-    - harness/hooks/subagent-start.py
-    - harness/hooks/_lib.py
-    - loop/cli/runtime_sync.py
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results: []
 checkpoints:
-  - id: cp1
-    criterion: 'Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (inv-a-01..04, inv-a-tests-01): 0 prod callers on silent-drop / exclusive software-only SoT / presence-only completeness. Asserts на sunset-поведение = FAIL (deletes/rewrite).'
-    status: done
-  - id: cp2
-    criterion: 'Kind B — runtime-sync --check no longer greens truncated TOML without fingerprint (inv-b-01)'
-    status: done
-  - id: cp3
-    criterion: 'Kind C+I — no silent weaker materialize; no prose-deny Independent Test PASS; 0 hits «TOML = full agent»; no generate-all README added (inv-c-01/02, inv-i-01/02)'
-    status: done
-  - id: cp4
-    criterion: 'Obsolete completeness tests rewritten; targeted epic regression green without restore legacy'
-    status: done
-resume_from: null
+- id: cp1
+  criterion: 'Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (inv-a-01..04,
+    inv-a-tests-01): 0 prod callers on silent-drop / exclusive software-only SoT /
+    presence-only completeness. Asserts на sunset-поведение = FAIL (deletes/rewrite).'
+  status: done
+- id: cp2
+  criterion: Kind B — runtime-sync --check no longer greens truncated TOML without
+    fingerprint (inv-b-01)
+  status: done
+- id: cp3
+  criterion: Kind C+I — no silent weaker materialize; no prose-deny Independent Test
+    PASS; 0 hits «TOML = full agent»; no generate-all README added (inv-c-01/02, inv-i-01/02)
+  status: done
+- id: cp4
+  criterion: Obsolete completeness tests rewritten; targeted epic regression green
+    without restore legacy
+  status: done
