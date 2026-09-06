@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # TOKEN ECONOMY (Layer 0 — full)
 
-Always-on stub: @.cursor/rules/token-economy-stub.mdc (§0.5.1 · §0.9 · handoff). **Read this file** on role command and before PLAN/DECOMPOSE/VAN artifact writes (§0.0).
+Always-on stub: @.cursor/rules/token-economy-stub.mdc (§0.5.1 · §0.9 · handoff). **Read this file** on PLAN/DECOMPOSE/VAN and before those artifact writes (§0.0). **IMPLEMENT/TASK/BUGFIX:** skip (stub already-on).
 
 Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge cases) > economy when conflict.
 
@@ -223,7 +223,7 @@ Mandatory in **BACK IMPLEMENT** (before finish) and **BACK QA**.
 
 - Collect ALL edits per file → one Write/Edit pass
 - Read file once per session; plan edits from that read
-- **Subagents:** **обязательные gate’ы** — codebase search → `explorer`; pre-FINISH `verify` (`code_changed`); BACK QA `reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
+- **Subagents:** **обязательные gate’ы** — широкий codebase search → `explorer` (полный `files:` / `delta_paths_*` → SKIP) · pre-FINISH `verify` (`code_changed`) · BACK QA `reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
 - `tasks.md` updates: только смена фазы эпика (или `finalize-step`); checkbox-only на shards
 - **PLAN:** prefer one comprehensive Write of `plan-*.md`; size is not a reason to truncate
 

@@ -1,0 +1,257 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-072-context-bundle-fail-closed
+plan_id: T-HUB-072-context-bundle-fail-closed
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "ContextBundle typed, completeness fail-closed. Markdown plan в load_now = path + sha, тело не инлайнится в SessionStart additionalContext. Любой required missing_file:* / read_error:* → MbLoadResult.ok=false + diagnostic_codes. SessionStart exception → incomplete HALT, не Warning continue."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 5
+  us_checked: 5
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload renders plan.md as path-only manifest (path+size+sha256) and omits body content from additionalContext"
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/mb_load/session.py: missing required path sets MbLoadResult.ok=False and appends missing_file:<path> to diagnostic_codes"
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "loop/mb_load/session.py: yaml and json files in load_now under cap retain full content in files[].content"
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "loop/mb_load/session.py: MbLoadFile computes exact sha256 and size_bytes for path-only markdown files"
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload catches load_session exceptions, emits CONTEXT_INCOMPLETE with required_context_exception:<Type> and HALT"
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/mb_load/session.py: derived_ok combines not required_missing and not read_errors_on_required; leftover unconditional ok_status=True removed"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/mb_load/session.py: is_markdown_plan_path identifies plan/gap/index/analyze markdown files"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/mb_load/session.py: MbLoadFile for plan markdown has content='', truncated=False, computes full sha256 and size_bytes, emits diagnostic path_only:<path>"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload emits path+sha256+size with 'Read this path' instruction and omits body dump"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload calls load_session(cwd) without plan_section"
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/mb_load/session.py: yaml content over cap sets truncated=True and preserves ok=True (not treated as missing)"
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py & loop/mb_load/session.py: docs/comments reflect path-only manifest for markdown and inline yaml under cap"
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/mb_load/session.py: required_missing and optional_missing accurately segregated based on (optional) suffix"
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/mb_load/session.py: decompose-index.md matches is_markdown_plan_path, resulting in empty content and path_only diagnostic"
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "loop/mb_load/session.py: forbidden_skipped files are excluded from load without triggering required_missing"
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: session_start_payload catches Exception, emits CONTEXT_INCOMPLETE with required_context_exception:<Type> and HALT message"
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "dev-hub architecture: graphify step 0 is skipped when graph.json is absent in repo root without error"
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "loop/tests/test_mb_load_session.py: test_missing_required_path_ok_is_false_and_diagnostic confirms ok=False on missing required file"
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_inject.py: test_plan_md_body_absent_from_session_start_inject_and_path_only confirms plan.md body absent"
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_inject.py: test_yaml_shard_still_inlined_under_cap confirms yaml inlining"
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_inject.py: test_plan_md_body_absent_from_session_start_inject_and_path_only asserts sha256 output in header"
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "harness/hooks/tests/test_session_start_inject.py: test_load_session_exception_returns_incomplete_and_halt confirms exception handling"
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "loop/mb_load/session.py: required_missing check enforces ok=False when any required load_now item fails to load"
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "loop/mb_load/session.py: is_markdown_plan_path sets content='' regardless of file size (never inlined)"
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: load_plan_section removed from SessionStart payload generation"
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py: load_session exception generates CONTEXT_INCOMPLETE status instead of Warning continue"
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py & loop/mb_load/session.py: legacy dual-path fallback emitting inline bodies eliminated"
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "Token economy and spec-first replacement invariants maintained in loader and hook implementations"
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "Deterministic fail-closed behavior on missing or unreadable required context files"
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "load_now routing respected with path-only references for large markdown artifacts"
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "Atomic step execution verified across s01-s06 shards without dangling states"
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Schema and typed contract validation enforced on MbLoadResult and SessionStart payload"
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "Memory-bank file layout and canonical paths preserved across all back workflows"
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "BACK role boundaries respected without modifying out-of-scope frontend or orchestrator components"
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "TDD red-to-green progression followed across s01 unit tests and subsequent implementations"
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "Bounded file modifications restricted to loop/mb_load, harness/hooks/epic, and test suites"
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Fail-closed gates enforced for audit and finish lifecycles without silent regressions"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/mb_load/session.py
+    status: present
+    follow_up: ""
+    evidence: "as-built loader with fail-closed ok aggregation and is_markdown_plan_path"
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    follow_up: ""
+    evidence: "session_start_payload renderer emitting path-only manifest and fail-closed exception handling"
+  - layout_path: loop/tests/test_mb_load_session.py
+    status: present
+    follow_up: ""
+    evidence: "comprehensive unit tests for loader fail-closed and classifier behavior"
+  - layout_path: harness/hooks/tests/test_session_start_inject.py
+    status: present
+    follow_up: ""
+    evidence: "hook tests for session_start_payload manifest rendering and exception handling"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s01-bundle-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s02-path-only-classifier.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s03-session-start-path-only-wire.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s04-session-start-exception-enforce.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s05-kind-i-yaml-inline.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-072-context-bundle-fail-closed/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md#replacement--sunset
+  rows:
+    - symbol: ok_status = True
+      kind: A
+      command: 'rg -n "ok_status = True" loop/mb_load/session.py'
+      result: pass
+      prod_callers: []
+      notes: "clean - removed in s02/s06"
+    - symbol: "Warning: load_session exception"
+      kind: C
+      command: 'rg -n "Warning: load_session exception" harness/hooks/epic/core.py harness/hooks/session-start.py'
+      result: pass
+      prod_callers: []
+      notes: "clean - fail-closed exception handler enforced in s04/s06"
+    - symbol: load_plan_section
+      kind: A
+      command: 'rg -n "load_plan_section" harness/hooks/epic/core.py harness/hooks/session-start.py'
+      result: pass
+      prod_callers: []
+      notes: "clean - not invoked in SessionStart hot path"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: session-start-path-only-inject
+      enforce_evidence: 'harness/hooks/tests/test_session_start_inject.py: test_plan_md_body_absent_from_session_start_inject_and_path_only'
+      result: pass
+      notes: "enforces path-only rendering and absence of full plan markdown body"
+    - boundary: load-session-fail-closed
+      enforce_evidence: 'loop/tests/test_mb_load_session.py: test_missing_required_path_ok_is_false_and_diagnostic'
+      result: pass
+      notes: "enforces ok=False on required missing files or read errors"
+
+blocked_reason: ""

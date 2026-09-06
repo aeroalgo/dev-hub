@@ -36,7 +36,7 @@ Token economy: @.cursor/rules/token-economy-core.mdc — для PLAN / architect
 Команды `BACK *`, `FRONT *`, `INTEG *`, `PM *`, `TL *`, `CONTENT *`, `MARKETING *`, `SEO *`, `IDEA PIPELINE *` работают **идентично Cursor**:
 
 1. Прочитай skill `.claude/skills/role-command/SKILL.md` и выполни цепочку **до** основной работы
-2. **Step 0 graphify** (code modes): `@.cursor/rules/graphify.mdc` + CLI **`.venv/bin/graphify`** из **корня репо** (`query` / `path` / `explain`; после правок — `update .`). Канон только `<repo>/graphify-out/`. Не в PATH — только через `.venv/bin/`
+2. **Step 0 graphify** (code modes): `@.cursor/rules/graphify.mdc` + CLI **`.venv/bin/graphify`** из **корня репо**. IMPLEMENT с полным `files:` / `delta_paths_*` → query **skip**. Канон только `<repo>/graphify-out/`. Не в PATH — только через `.venv/bin/`
 3. Не импровизируй альтернативный процесс — только файлы из `.cursor/rules/`
 4. Skills из workflow — только пути из шага workflow (`.agents/skills/`, не весь каталог)
 
@@ -44,13 +44,15 @@ Token economy: @.cursor/rules/token-economy-core.mdc — для PLAN / architect
 
 ## Workflow chain (HARD — обязательное чтение до основной работы; FINISH не блокируется)
 
-`@file` в rules/skills — ссылка-декларация, а не автоматическое чтение. Для каждой role command (`BACK/FRONT/INTEG <mode>`) Claude Code последовательно читает root rules, role index, role core, workflow текущего режима, указанный `Gates` и связанные ссылки workflow.
+`@file` в rules/skills — ссылка-декларация, а не автоматическое чтение. PLAN/DECOMPOSE: root rules → индекс → core → workflow → Gates → `@` рекурсивно. IMPLEMENT: cheatsheet + Gates + scope-lock — **не** рекурсивный `@`.
 
-Для `IMPLEMENT`, `TASK`, `BUGFIX` и `REFACTOR` секция `skills.impl` текущего decompose-step — обязательный источник skills: прочитать каждый перечисленный путь целиком до production-кода. Для `FRONT` также прочитать `skills.design`/`skills.design_skills`, если шаг содержит UI.
+Для `IMPLEMENT`, `TASK`, `BUGFIX` и `REFACTOR` секция `skills.impl` текущего decompose-step — источник skills (`impl: []` / docs-only → skip). Для `FRONT` также `skills.design`/`skills.design_skills`, если шаг содержит UI (`visible_ui: no` → skip).
 
-**HARD RULE:** для каждой команды роли нельзя начинать анализ, изменять файлы или выполнять основную работу, пока через `Read` полностью не загружена цепочка: корневой `CLAUDE.md` → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow, соответствующий команде (`BACK|FRONT|INTEG <MODE>`) → его `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Порядок и состав цепочки определяются ссылками и таблицами workflow, а не выборочным чтением одного файла.
+**HARD RULE (PLAN / DECOMPOSE / brownfield VAN):** нельзя начинать работу, пока через `Read` не загружена цепочка: корневой `CLAUDE.md` → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow → `Gates` → связанные `@` рекурсивно до листьев.
 
-Все перечисленные ссылки обязательны к `Read`; пропущенный `Read` — нарушение HARD RULE и gap процесса, но не блокировка `FINISH`/`stop`. `DONE` остаётся терминальным режимом без workflow chain.
+**HARD RULE (IMPLEMENT / TASK / BUGFIX / REFACTOR):** **cheatsheet wins — не рекурсивный `@`.** До кода Read только: `load_now` shard + index → `_lean/<mode>.mdc` → `workflow-implement-scope-lock.mdc` → cheatsheet → `skills.impl` текущего шага (docs-only skip). Full `workflow-implement.mdc`, индекс роли, `token-economy-core`, finish-block — не на старте (finish-block **перед FINISH**). Канон: `.cursor/rules/mainrule.mdc` §Full linked chain.
+
+Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`/`stop`. `DONE` — без workflow chain.
 
 ## Session start
 
@@ -77,8 +79,8 @@ Token economy: @.cursor/rules/token-economy-core.mdc — для PLAN / architect
 **Коротко (HARD):**
 - **TodoWrite ≤2** за сессию (старт + FINISH); не обновлять на каждый шаг
 - **Re-read запрещён** для файла, уже прочитанного / отредактированного в этой сессии
-- Для codebase сначала **`.venv/bin/graphify query`**; для `memory-bank` / `.cursor` / `.claude` разрешён fallback через `rg` / `Glob` / `ReadFile`
-- **Spawn gates (обязательны):** codebase search → `@explorer`; pre-FINISH + `code_changed` → `@verify`; BACK QA после suite → `@reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно
+- Для codebase сначала **`.venv/bin/graphify query`** — **кроме** IMPLEMENT с полным `files:` / `delta_paths_*`; для `memory-bank` / `.cursor` / `.claude` разрешён fallback через `rg` / `Glob` / `ReadFile`
+- **Spawn gates:** широкий codebase search → `@explorer` (полный `files:` → SKIP); pre-FINISH + `code_changed` → `@verify`; BACK QA после suite → `@reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно
 
 ## Testing
 

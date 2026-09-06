@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 # TOKEN ECONOMY STUB (Layer 0 — always)
 
-Full canon: @.cursor/rules/token-economy-core.mdc (§0.0–§0.15). **Read it** on any role command (`BACK *`, `FRONT *`, `INTEG *`, `IDEA PIPELINE *`) and **before** writing plan/gap/architecture/decompose artifacts (§0.0 + §0.0.1).
+Full canon: @.cursor/rules/token-economy-core.mdc (§0.0–§0.15). **Read it** on PLAN/DECOMPOSE/VAN/`IDEA PIPELINE` and **before** writing plan/gap/architecture/decompose artifacts (§0.0 + §0.0.1). **IMPLEMENT/TASK/BUGFIX:** skip — this stub is already-on.
 
 Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge cases) > economy when conflict.
 

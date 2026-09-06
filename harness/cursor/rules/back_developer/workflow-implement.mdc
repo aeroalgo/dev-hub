@@ -6,24 +6,26 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — читать **первым**; full ниже — при FAIL.
+**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — **единственный** process-файл на старте; этот файл — при FAIL / дыре coverage.
+**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
 
 **Policy lazy (не грузить целиком без триггера):**
 - boundary/SoT/cutover step → @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (`wire_complete`)
 - непустой `deletes` / purge slug → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §3
 - always-on stub уже покрывает axiom; не читать full `workflow-spec-first-replace` без PLAN/design спора
 
-**Скиллы — только step + FINISH (HARD)**
+**Скиллы — только step (HARD)**
 
-Источник обязательных Impl skills — секция `skills.impl` текущего decompose-step. Прочитай **каждый** перечисленный путь целиком до production-кода; не угадывай skills и не загружай широкий каталог.
+Источник — секция `skills.impl` текущего decompose-step. `impl: []` / `code_surface: docs` / Kind I-only → skip. Не угадывай skills и не загружай широкий каталог.
 
 | Что | Когда |
 |-----|--------|
 | **Impl skills** из текущего `sNN` | Read **каждый** путь целиком **до** prod-кода (docs-only: skip) |
-| `verification-before-completion` | pre-FINISH |
-| `requesting-code-review` | pre-FINISH |
+| `verification-before-completion` / `requesting-code-review` | **не** грузить — finish-block + `@verify` |
 
-**FORBIDDEN:** широкий слой A · Read скиллов вне step · `limit` на SKILL.md
+**FORBIDDEN:** широкий слой A · Read скиллов вне step · `limit` на SKILL.md · Core(4) «на всякий», если их нет в `skills.impl`
+
+**Старт (до кода):** cheatsheet → Gates → scope-lock → `load_now` shard+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
 1. `OK BACK IMPLEMENT` → **Gates** · **Scope lock** · cheatsheet
@@ -32,11 +34,11 @@ alwaysApply: false
 2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.
    **Plan jumps:** формула `L=end−start`; `L′=L×2`; jump=`start..(start+L′)`.
    Last sNN / pre-AUDIT → **`plan_parity_scan`**.
-   Search scope: `delta_paths_*` → SKIP @explorer.
-3. Read **Impl skills** из step до prod-edit (после TDD red ок)
+   Search scope: `delta_paths_*` / полный `files:` → SKIP @explorer и graphify query.
+3. Read **Impl skills** из step до prod-edit (docs-only skip; после TDD red ок)
 4. TDD targeted → code → green (`bin/pytest`); выполнить все `deletes:`; **FORBIDDEN** restore legacy
-5. §0.11 · pre-FINISH skills; при deletes — callers gone
+5. §0.11 · при deletes — callers gone. **Не** pre-FINISH skills.
 5a. **Scope check** → `SCOPE CHECK: ok` или halt
-6. **FINISH:** finish-block (`code_changed: yes`) — Write/Update implement yaml (`memory-bank/back/implement/<epic_id>/yaml/steps/sNN-*.yaml` via `mb-scaffold implement` or `seed-implement`) → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
+6. **FINISH:** **сейчас** Read finish-block (`code_changed: yes`) — Write/Update implement yaml (`memory-bank/back/implement/<epic_id>/sNN-*.yaml` via `mb-scaffold implement` or `seed-implement`) → Handoff → `@verify-implement` (alias `@verify`) → PASS → `finalize-step`. Epic complete → AUDIT.
 
 **Верификация**: ANALYZE gate + scope lock + plan_contract + gates + deletes + FINISH + `graphify update .`

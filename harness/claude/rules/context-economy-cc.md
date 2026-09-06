@@ -32,7 +32,7 @@ paths:
 
 ## find / grep vs graphify
 
-- Для **codebase** (`app/`, `api/`, `core/`, `jobs/`, `tests/`, `frontend/`) сначала используй `.venv/bin/graphify query "..."` из корня репо
+- Для **codebase** (`app/`, `api/`, `core/`, `jobs/`, `tests/`, `frontend/`) сначала `.venv/bin/graphify query "..."` — **кроме** IMPLEMENT с полным shard `files:` / `delta_paths_*` (query skip до неизвестных callers)
 - `find` / `grep -R` по **кодовой** части репо без попытки graphify — нежелательны; используй их только как fallback, если graphify не покрывает запрос или явно недоступен
 - Для `memory-bank/`, `.cursor/`, `.claude/`, `tasks/log/` и прочих **неиндексируемых / docs-only** зон fallback-поиск через `rg`, `Glob`, `ReadFile` разрешён сразу
 - Предпочтение fallback: `rg` / `Glob` / `ReadFile`; shell `find` и `grep -R` — только если tool-поиск не решает задачу
@@ -41,14 +41,14 @@ paths:
 
 За одну role-сессию каждый файл — Read **≤1×**:
 - `role-command/SKILL.md`, `mainrule*.mdc`, `workflow-*.mdc`, `_lean/*.mdc`
-- каждый `SKILL.md` из Impl skills step (+ FINISH-only)
+- каждый `SKILL.md` из Impl skills step (docs-only skip; pre-FINISH skills не грузить)
 - `activeContext.md` (повтор — только если сам переписал)
 
 **FAIL:** повторный Read workflow «для уверенности» / после каждого крупного шага.
 
 ## Agent spawn — IMPLEMENT / REFACTOR / BUGFIX / QA
 
-**Обязательные** gate’ы: `@explorer` (codebase search до parent `rg`) · `@verify` (FINISH + `code_changed`) · `@reviewer` (BACK QA после suite). Packed — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно.
+**Обязательные** gate’ы: `@explorer` только на **широкий** codebase search (полный `files:` / `delta_paths_*` → SKIP) · `@verify` (FINISH + `code_changed`) · `@reviewer` (BACK QA после suite). Packed — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно.
 
 ## Bash / logs / pytest (HARD — anti-bloat)
 

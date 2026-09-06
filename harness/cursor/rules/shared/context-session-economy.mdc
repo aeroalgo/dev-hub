@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # Context Session Economy
 
-Cross-cutting. Layer 0: @.cursor/rules/token-economy-stub.mdc · full @.cursor/rules/token-economy-core.mdc on role command
+Cross-cutting. Layer 0: @.cursor/rules/token-economy-stub.mdc · full @.cursor/rules/token-economy-core.mdc on PLAN/DECOMPOSE/VAN (IMPLEMENT: stub only)
 
 ## 1. Session unit
 
@@ -33,7 +33,7 @@ AC met · next substep differs · role switch · long debug trace · user confus
 
 ## 4. During session
 
-Read once per file · search → обязательный `@explorer` · прочие Agent свободно · index = link only · isolation level из task.
+Read once per file · широкий search → `@explorer` (полный shard `files:` / `delta_paths_*` → SKIP) · прочие Agent свободно · index = link only · isolation level из task.
 
 ## 5. FINISH
 

@@ -6,35 +6,39 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — **единственный** process-файл на старте (пока нет front-cheatsheet); этот файл — при FAIL.
+**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
 
-**Скиллы — только step + FINISH (HARD)**
+**Скиллы — только step (HARD)**
 
-Канон задаёт **DECOMPOSE skills gate** в `sNN` (`skills.impl` + `skills.design`/`skills.design_skills`). Прочитай **каждый** перечисленный путь целиком до production-кода; design skills — до UI-кода. Не угадывай skills и не загружай широкий каталог.
+Канон задаёт **DECOMPOSE skills gate** в `sNN` (`skills.impl` + `skills.design`/`skills.design_skills`). `impl: []` / `visible_ui: no` → skip соответствующего слоя. Не угадывай skills и не загружай широкий каталог.
 
 | Что | Когда |
 |-----|--------|
-| **Impl skills** из step | Read каждый путь целиком **до** prod-кода |
+| **Impl skills** из step | Read каждый путь целиком **до** prod-кода (`docs-only` skip) |
 | **Design skills** из step | Read **до** UI-кода; если `—` / `visible_ui: no` → skip |
-| `verification-before-completion` | pre-FINISH |
-| `requesting-code-review` | pre-FINISH |
+| `verification-before-completion` / `requesting-code-review` | **не** грузить — finish-block + `@verify` |
 
 **FORBIDDEN:**
 - широкий слой A / угадывание скиллов
-- Read скиллов вне step (кроме FINISH-only)
+- Read скиллов вне step
 - Design Read при `visible_ui: no`
-- пропуск пути из Impl/Design step
+- пропуск пути из Impl/Design step когда слой активен
 - `limit` на Read SKILL.md
 
+**Старт (до кода):** cheatsheet → Gates → scope-lock → `load_now` shard+index → skills шага. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
+
 **Процесс**:
-1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock**
+1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock** · cheatsheet
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
-2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`  
+2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`
    **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.
+   Полный `files:` → SKIP @explorer.
 3. Read Impl (+ Design если есть) до prod-edit
 4. TDD targeted Vitest/RTL; scenario E2E если user-visible — **parent** runs; **выполнить `deletes:`** из work shard (код **и** obsolete tests; **FORBIDDEN** restore legacy «чтобы green»)
-5. §0.11 · pre-FINISH skills; после deletes — нет callers на удалённое и нет asserts на sunset-контракт
+5. §0.11; после deletes — нет callers на удалённое и нет asserts на sunset-контракт
 5a. **Scope check (HARD):** changed paths ⊆ allowlist; иначе REVERT → halt FINISH
-6. **FINISH:** finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)  
+6. **FINISH:** **сейчас** Read finish-block (`code_changed: yes`) — Write step → Handoff → `@verify` → `finalize-step`; epic complete → AUDIT через хук (`load_now` → `index.yaml`, **не** plan)
    Next: Handoff в `activeContext.md` + `index.yaml`
 
 **Верификация**: scope lock + gates + deletes executed + FINISH/Handoff + graphify

@@ -11,7 +11,7 @@ description: "Role command parity chain — BACK/FRONT/INTEG workflow router (gr
 
 **FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 
-**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK QA → `@reviewer`. Прочие Agent — свободно.
+**Claude Code subagents:** `.claude/agents/` — `reviewer` · `verify` · `explorer` + built-in. **Обязательные gate’ы** (packed — `.claude/instructions/spawn-hard.md`): широкий codebase search → `@explorer`; FINISH + `code_changed` → `@verify`; BACK QA → `@reviewer`. IMPLEMENT с полным `files:` / `delta_paths_*` → `@explorer` **SKIP**. Прочие Agent — свободно.
 
 Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
@@ -29,11 +29,11 @@ Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP
 
 ## Step 0 — graphify (parity with Cursor `mainrule.mdc`)
 
-Читай @.cursor/rules/graphify.mdc и ориентируйся по графу **до** Grep/Read по codebase.
+Читай @.cursor/rules/graphify.mdc и ориентируйся по графу **до** Grep/Read по codebase — **кроме** IMPLEMENT, когда shard `files:` уже полный (тогда query до правки известных путей не обязателен).
 
-**Обязателен** для: `IMPLEMENT` · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/INTEG VAN`.
+**Обязателен** для: `IMPLEMENT` (если `files:` неполные / широкий поиск) · `TASK` · `BUGFIX` · `REFACTOR` · `QA` · **`SECURITY` execute** (`@aNN` / `S` one-shot); также `PM DISCOVER`, `TL SYNC DEV`; **brownfield** `BACK/FRONT/INTEG VAN`.
 
-**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают.
+**Пропуск:** greenfield `VAN` · `PLAN` · `DECOMPOSE` · `CREATIVE` · `REFLECT` · `ARCHIVE NOW` · **`SECURITY PLAN` · `SECURITY DECOMPOSE`** · `GAP` (если только docs). CONTENT/MARKETING/SEO — пропускают. IMPLEMENT + полный `files:` / `delta_paths_*` — query skip.
 
 **CLI (не в PATH):** всегда из **корня репо** (cwd = root; Shell `working_directory` = root). Канон только `<repo>/graphify-out/` — HARD RULE в @.cursor/rules/graphify.mdc.
 
@@ -43,18 +43,22 @@ Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP
 .venv/bin/graphify explain "<concept>"
 ```
 
-Fallback на Read/Grep — только после ориентации по графу **или** после отчёта `@explorer`, или если root `graphify-out/graph.json` нет / stale. Не пропускай graphify «потому что файлы уже известны». **Codebase search / multi-file discovery** в IMPLEMENT·REFACTOR·BUGFIX·TASK → обязательный `Agent`→`explorer` (не серия parent `rg`) — `.claude/instructions/spawn-hard.md`. В промпт explorer: «сначала `.venv/bin/graphify`, затем Grep/Glob/`rg` fallback до ответа; не создавать nested graphify-out».
+Fallback на Read/Grep — только после ориентации по графу **или** после отчёта `@explorer`, или если root `graphify-out/graph.json` нет / stale. **IMPLEMENT:** shard `files:` / `delta_paths_*` полные → graphify query **не** обязателен до правки известных путей; `@explorer` **SKIP** (Gates 1b). Широкий поиск / неизвестные callers → graphify, затем `@explorer`. В промпт explorer: «сначала `.venv/bin/graphify`, затем Grep/Glob/`rg` fallback; не создавать nested graphify-out».
 
 **После правок кода (FINISH):** из корня репо `.venv/bin/graphify update .` — см. @.cursor/rules/shared/finish-block.mdc.
 
 ## Step 0b — session
 
-**HARD RULE:** до любой основной работы для каждой команды сначала вызови `Read` указанного entrypoint текущего runtime (из prompt scope: `CLAUDE.md` для Claude Code, `AGENTS.md` для Codex), затем полностью прочитай цепочку `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow команды → `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Выборочно читать только один workflow запрещено. Пропущенный Read — нарушение процесса, но не блокирует FINISH.
+**HARD RULE:** канон — `.cursor/rules/mainrule.mdc` §Full linked chain.
 
-1. **Read** `.cursor/rules/token-economy-core.mdc` (full §0.0–§0.15) once per role-command session — stub already in context (@.cursor/rules/token-economy-stub.mdc)
-2. @.cursor/rules/shared/context-session-economy.mdc §3
-3. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). IMPLEMENT: step-файл + Handoff **до** decompose/`load_now` (не дублировать чеклист здесь)
-4. Tool unclear → recommend: **Cursor** + fast-editing (default) | **Claude Code** + premium-coding (E2E / multi-file / **any PLAN**)
+- **PLAN / DECOMPOSE / brownfield VAN:** `Read` entrypoint текущего runtime (`CLAUDE.md` / `AGENTS.md`) → `mainrule.mdc` → индекс+core → workflow → Gates → `@` рекурсивно.
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → cheatsheet → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
+
+Пропущенный Read из списка режима — gap, не блок FINISH.
+
+1. PLAN/DECOMPOSE/VAN: **Read** `.cursor/rules/token-economy-core.mdc` §0.0–§0.15. IMPLEMENT: skip (stub).
+2. FINISH / `* FINISH`: @.cursor/rules/shared/finish-block.mdc → @.cursor/rules/shared/finish-doc-router.mdc (+ graphify update если code changed). Грузить **перед FINISH**, не на старте IMPLEMENT.
+3. Tool unclear → recommend: **Cursor** + fast-editing (default) | **Claude Code** + premium-coding (E2E / multi-file / **any PLAN**)
 
 ### Если MODE = PLAN (BACK/FRONT/INTEG/PM) или SECURITY PLAN / REFACTOR PLAN
 
@@ -68,7 +72,9 @@ Fallback на Read/Grep — только после ориентации по г
 - PLAN → recommend premium model; after PLAN → inline `roadmap-merge` (same session) → new chat for `* DECOMPOSE` первого эпика **canon** queue (не `* ROADMAP MERGE`)
 ## Step 1 — role index + core
 
-Читай **полные пути** (не basename без папки роли):
+**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если cheatsheet/Gates ссылаются на TDD/pytest runner и его нет в Gates.
+
+**PLAN / DECOMPOSE / прочие:** читай **полные пути** (не basename без папки роли):
 
 - индекс роли: `{role_dir}mainrule.mdc`
 - core роли: `{role_dir}mainrule-core.mdc`
@@ -101,6 +107,8 @@ Fallback на Read/Grep — только после ориентации по г
 | REFACTOR · REFACTOR PLAN · REFACTOR DECOMPOSE | `{role_dir}workflow-refactor.mdc` |
 | GAP CLOSE | `{role_dir}workflow-gap-close.mdc` |
 
+**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (cheatsheet + Gates). Читать при FAIL / дыре coverage.
+
 **ЗАПРЕЩЕНО угадывать:**
 - `workflow-back-bugfix.mdc` / `workflow-front-*.mdc` / `workflow-integ-*.mdc`
 - `workflow-BACK-bugfix.mdc`
@@ -110,7 +118,7 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 3 — isolation (step 1a)
 
-Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно).
+Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно). На IMPLEMENT это **стартовый** файл (вместе с cheatsheet + scope-lock).
 
 Канон BACK QA:
 `.cursor/rules/back_developer/isolation_rules/_lean/qa.mdc`
@@ -123,7 +131,7 @@ Fallback на Read/Grep — только после ориентации по г
 Если Gates в workflow **нет** — lean не открывать. SECURITY / REFACTOR — Gates есть (`_lean/security.mdc` / `_lean/refactor.mdc`).
 
 Level — из decompose step / plan / task shard.  
-**Скиллы не грузить из isolation** — только из workflow (Step 5).
+**Скиллы не грузить из isolation** — только из workflow (Step 5) / текущего shard.
 
 ## Step 4 — memory-bank
 
@@ -136,11 +144,11 @@ Default (IMPLEMENT/TASK/QA/SECURITY execute): `memory-bank/activeContext.md` →
 
 ## Step 5 — skills (lazy)
 
-ONLY skills declared by the current workflow and its current decompose-step. Do NOT scan skills catalog. For `IMPLEMENT`, `TASK`, `BUGFIX` and `REFACTOR`, the top-level `skills.impl` list in the current decompose-step is mandatory: Read every listed skill in full before production-code edits. For FRONT UI work, also Read every `skills.design` / `skills.design_skills` entry before UI edits. SECURITY эпик execute: только Audit skills из `aNN` step.
+ONLY skills declared by the current workflow and its current decompose-step. Do NOT scan skills catalog. For `IMPLEMENT` / `TASK` / `BUGFIX` / `REFACTOR`: `skills.impl` из текущего shard — Read целиком до prod-кода; `impl: []` / `code_surface: docs` / Kind I-only → skip. FRONT UI: ещё `skills.design` / `skills.design_skills` до UI (`visible_ui: no` → skip). Pre-FINISH `verification-before-completion` / `requesting-code-review` **не** грузить — их закрывают finish-block + `@verify`. SECURITY execute: только Audit skills из `aNN`.
 
 ## Step 6 — execute
 
-Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integration grep §0.11 token-economy before FINISH. Code modes: graphify Step 0 уже выполнен; FINISH → из корня репо `.venv/bin/graphify update .` если code changed.
+Follow workflow. BACK/FRONT QA → lean load §7 context-session-economy. Integration grep §0.11 token-economy before FINISH. Code modes: graphify Step 0 уже выполнен **или** skip по полному `files:`; FINISH → из корня репо `.venv/bin/graphify update .` если code changed.
 
 ## IDEA PIPELINE
 

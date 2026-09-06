@@ -4,7 +4,7 @@ alwaysApply: true
 ---
 # WORKFLOW ROUTER
 
-**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc (PLAN/DECOMPOSE/ANALYZE/AUDIT/QA) · **full economy:** @.cursor/rules/token-economy-core.mdc (read on role command)
+**Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc (PLAN/DECOMPOSE/ANALYZE/AUDIT/QA) · **full economy:** @.cursor/rules/token-economy-core.mdc (PLAN/DECOMPOSE/VAN; IMPLEMENT skip)
 
 **Test runner:** `bin/pytest …` (300s built-in) · @.cursor/rules/shared/test-timeout.mdc
 
@@ -16,19 +16,32 @@ alwaysApply: true
 |-----------|----------|
 | Обычный вопрос, без команды роли | **Не** читай workflow, isolation rules, `.agents/skills/` |
 | «Примени workflow» / «от идеи до реализации» | @.cursor/rules/shared/workflow-idea-pipeline.mdc |
-| Команда роли (`BACK IMPLEMENT`, …) | Цепочка ниже + **Read** @.cursor/rules/token-economy-core.mdc |
+| Команда роли PLAN/DECOMPOSE/VAN | Цепочка ниже + **Read** @.cursor/rules/token-economy-core.mdc |
+| Команда роли IMPLEMENT/TASK/BUGFIX | Цепочка ниже; stub already-on — **не** грузить full token-economy-core |
 
 ## Цепочка при распознанной команде
 
-0. **graphify** — @.cursor/rules/graphify.mdc (code modes: IMPLEMENT/TASK/BUGFIX/REFACTOR/QA/SECURITY execute, brownfield VAN, PM DISCOVER, TL SYNC DEV; skip PLAN/DECOMPOSE/CREATIVE/REFLECT/ARCHIVE; Hub без graph.json → N/A)
-1. **Индекс роли** — таблица ниже
-2. **Core** — `{role}/mainrule-core.mdc`
-3. **Workflow** — `{role}/workflow-{mode}.mdc`
-4. **Скиллы** — только пути из шага 3; `SKILL.md` целиком
+0. **graphify** — @.cursor/rules/graphify.mdc (code modes: IMPLEMENT/TASK/BUGFIX/REFACTOR/QA/SECURITY execute, brownfield VAN, PM DISCOVER, TL SYNC DEV; skip PLAN/DECOMPOSE/CREATIVE/REFLECT/ARCHIVE; IMPLEMENT с полным `files:` / `delta_paths_*` → query skip; Hub без graph.json → N/A)
+1. **Индекс роли** — таблица ниже (**IMPLEMENT/TASK/BUGFIX/REFACTOR: skip** — см. Full linked chain)
+2. **Core** — `{role}/mainrule-core.mdc` (IMPLEMENT: skip, если runner уже в Gates)
+3. **Workflow** — `{role}/workflow-{mode}.mdc` (IMPLEMENT: cheatsheet, не этот файл)
+4. **Скиллы** — только пути из шага 3 / текущего shard; `SKILL.md` целиком (`impl: []` / docs-only → skip)
 
 ### Full linked chain (HARD RULE)
 
-Для каждой команды `BACK|FRONT|INTEG <MODE>` агент **обязан до любой основной работы** вызвать `Read` указанного entrypoint текущего runtime (из prompt scope: `CLAUDE.md` для Claude Code, `AGENTS.md` для Codex), затем полностью прочитать цепочку `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow команды → `Gates` → все связанные `@`-ссылки рекурсивно до листовых файлов. Состав цепочки определяется ссылками и таблицами workflow; выборочно читать только один workflow запрещено. Пропущенный Read — нарушение HARD RULE и gap процесса, но не блокирует `FINISH`.
+**PLAN / DECOMPOSE / brownfield VAN:** до работы — `Read` entrypoint текущего runtime (`CLAUDE.md` для Claude Code, `AGENTS.md` для Codex) → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow → `Gates` → связанные `@` рекурсивно до листьев.
+
+**IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **cheatsheet wins.** До кода — **не** рекурсивный `@`. Обязательный Read:
+
+1. `activeContext.md` → `load_now` (work shard + `decompose-index.yaml`)
+2. `{role}/isolation_rules/_lean/<mode>.mdc` (Gates)
+3. @.cursor/rules/shared/workflow-implement-scope-lock.mdc
+4. cheatsheet роли (`shared/cheatsheets/back-implement.mdc` — BACK и INTEG; FRONT — тот же, пока нет front-cheatsheet)
+5. `skills.impl` / FRONT `skills.design` из **текущего** shard (`docs-only` / `impl: []` → skip)
+
+**Skip на старте IMPLEMENT:** индекс роли (`{role}/mainrule.mdc`), полный `workflow-implement.mdc` (только при FAIL/неясности), `token-economy-core.mdc`, `context-session-economy.mdc`, finish-block/doc-router (грузить **перед FINISH**), policy `behavior-first` / `legacy-fallback` / `spec-first-replace` full — только по триггеру Gates.
+
+Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
 Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK RECONCILE` → `<epic_id>`. `BACK REPLAN` → `<epic_id>`.
 

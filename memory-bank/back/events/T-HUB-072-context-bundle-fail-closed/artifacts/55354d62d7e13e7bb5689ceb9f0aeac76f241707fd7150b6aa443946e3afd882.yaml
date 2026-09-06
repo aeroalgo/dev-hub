@@ -1,0 +1,35 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-072-context-bundle-fail-closed
+plan_id: T-HUB-072-context-bundle-fail-closed
+date: 2026-09-06
+verdict: fail
+qa_lead: BACK QA
+
+summary:
+  total_checks: 4
+  passed: 2
+  failed: 2
+  blockers: 1
+
+suite_results:
+  command: "bin/pytest -q --tb=line"
+  exit_code: 1
+  passed: 2168
+  failed: 2
+  skipped: 3
+  warnings: 80
+  failed_tests:
+    - "loop/tests/test_kind_i_runtime_entrypoint.py::test_mainrule_no_unconditional_claude_md_for_codex"
+    - "loop/tests/test_kind_i_runtime_entrypoint.py::test_role_command_skill_uses_runtime_entrypoint"
+
+failures:
+  - id: QA-001
+    type: regression
+    test: "loop/tests/test_kind_i_runtime_entrypoint.py"
+    summary: "Тексты в .cursor/rules/mainrule.mdc и harness/claude/skills/role-command/SKILL.md не содержат точную фразу 'entrypoint текущего runtime', ожидаемую тестом Kind I."
+    impact: "Full repository pytest suite failing with exit code 1."
+
+fix_plan:
+  - action: "BACK BUGFIX kind-i-runtime-entrypoint-text"
+    description: "Синхронизировать формулировку 'entrypoint текущего runtime' в .cursor/rules/mainrule.mdc и harness/claude/skills/role-command/SKILL.md (.claude/skills/role-command/SKILL.md) с утверждениями test_kind_i_runtime_entrypoint.py."
