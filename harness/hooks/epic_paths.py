@@ -55,11 +55,10 @@ def epic_dir(cwd: str | Path) -> Path:
     project_p = Path(proj).expanduser().resolve() if proj else None
     effective_cwd = project_p if project_p is not None and cwd_p == hub_root else cwd_p
     hub = (os.environ.get("DEV_HUB") or os.environ.get("HUB_ROOT") or "").strip()
-    use_hub_runtime = bool(
-        hub and (project_p is None or project_p != hub_root)
-    )
+    use_hub_runtime = bool(hub) or cwd_p == hub_root
     if use_hub_runtime:
-        d = Path(hub).expanduser().resolve() / "runtime" / effective_cwd.name / EPIC_DIRNAME
+        runtime_root = Path(hub).expanduser().resolve() if hub else hub_root
+        d = runtime_root / "runtime" / effective_cwd.name / EPIC_DIRNAME
     else:
         d = effective_cwd / ".claude" / "runtime" / EPIC_DIRNAME
     d.mkdir(parents=True, exist_ok=True)

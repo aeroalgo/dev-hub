@@ -19,7 +19,9 @@ npm install -g @deepseek-ai/dsh@0.1.1-rc.2
 
 The reviewed CLI pin is `0.1.1-rc.2`; install the exact version shown above and review compatibility before upgrading it. The DSH CLI is currently considered unstable, and an unreviewed version upgrade is not a compatible change (NFR-4).
 
-To install all local profiles and their local `dsh-phase-models` bundle into `$DSH_HOME/profiles/`:
+Loop automatically installs all local profiles, their local `dsh-phase-models`
+bundle, and the Claude hooks bridge when `EPIC_RUNTIME=dsh` is selected. The
+manual command below is useful for prewarming or repairing the DSH home:
 
 ```bash
 dsh/scripts/install-profiles.sh
@@ -124,80 +126,6 @@ PROJECT_ROOT=/path/to/product EPIC_RUNTIME=dsh make loop ARGS=gpt
 
 The loop resolves DSH through `DSH_BIN` or `dsh/bin/which-dsh.sh` and invokes it with the selected profile.
 
-## Memory-bank board sync
-
-`bin/hub-board sync` projects eligible work from registered product workspaces into the DSH task board. It reads the workspace registry at `$DSH_HOME/storages/workspace.json`; a workspace is eligible when its path contains a `memory-bank/` directory. Run it from the hub checkout, or pass an absolute path to the hub wrapper:
-
-```bash
-DSH_HOME=$HOME/.dsh ./bin/hub-board sync
-```
-
-Use `--dry-run` to inspect the desired changes without writing them. `--workspace-id ID` limits a run to one registered workspace. For local development or tests without a DSH Host, use `--offline-ledger PATH`; `LedgerFileClient` is a dev/test and offline-only fallback, not the production Host transport:
-
-```bash
-./bin/hub-board sync \
-  --dsh-home "$DSH_HOME" \
-  --offline-ledger /tmp/dev-hub-board.json \
-  --dry-run
-```
-
-The board contains two kinds of cards:
-
-- **Step cards** represent a concrete `sNN` implement step. Their title includes the role, `epic_id`, and `step_id`, and their prompt is the corresponding `BACK IMPLEMENT` command.
-- **Gate cards** represent lifecycle gates such as `CLARIFY`, `ANALYZE`, `TIPS`, or `ROADMAP`. Their title identifies the gate phase and, when applicable, the `epic_id`; their prompt is the matching role command.
-
-In the DSH UI, filter the task board by the card metadata field `epic_id` to see all step and gate cards for one epic. A step card and a gate card are separate board items even when they belong to the same epic, so use the card kind and gate phase when distinguishing them.
-
-For a periodic development sync, keep the job scoped to the checkout and log output for review:
-
-```cron
-*/15 * * * * cd /home/aero/PyProject/dev-hub && DSH_HOME=$HOME/.dsh ./bin/hub-board sync >>$HOME/.cache/hub-board-sync.log 2>&1
-```
-
-The live default uses the DSH Host API at `DSH_TASK_BOARD_HOST_URL` (or `DSH_WEB_URL`, then `$DSH_HOME/web-host-url`, then `http://127.0.0.1:3080`). Use `--host-url URL` when a one-off sync needs an explicit Host endpoint; the offline ledger option should not be used as a substitute for the live Host in production automation.
-
-## Board Arm/Loop (T-HUB-015)
-
-The `mb-*` board flow is deliberately explicit and fail-closed:
-
-```text
-sync → filter workspace → choose model preset → Arm+Run
-  └─ arm writes the product activeContext, then loop runs PROJECT_ROOT
-       └─ optional syncAfterLoop refreshes the board (including failed runs)
-```
-
-Install the local Cordis bridge into the DSH plugins directory with `DEV_HUB` pointing at this checkout:
-
-```bash
-DEV_HUB=/home/aero/PyProject/dev-hub \
-  DSH_HOME=${DSH_HOME:-$HOME/.dsh} \
-  dsh/scripts/install-mb-bridge.sh
-```
-
-The bridge copies `dsh/plugins/mb-bridge` to `$DSH_HOME/plugins/mb-bridge`; it does not publish a package or execute browser-supplied shell commands. A missing or invalid `DEV_HUB`, source plugin, or destination layout stops installation.
-
-### Model precedence
-
-| Priority | Source | Behavior |
-|---|---|---|
-| 1 | Product `.claude/project.env` — `PROJECT_LOOP_<PHASE>_MODEL` | Non-empty phase override wins; an empty value does not override anything. |
-| 2 | Board model preset | Validated preset arguments are appended to the loop argv. |
-| 3 | Bridge `defaultLoopArgs` | Used when no env model or preset is selected. |
-| 4 | Bare loop argv | Used when none of the above supplies model arguments. |
-
-Use the workspace dropdown to select a `workspace_id`, or choose `All` to show cards from every eligible registered product workspace. The selection is stored in `localStorage` as `mb-bridge.workspaceFilter`; the model and runtime controls are independent, and `Sync` refreshes the current board projection.
-
-### Troubleshooting
-
-| Symptom | Resolution |
-|---|---|
-| `Connection refused` on sync | DSH Web is not running, or `hub-board` targets the wrong port. Start `DEV_HUB=/path/to/dev-hub dsh web --no-open` and export `DSH_WEB_URL` / `DSH_TASK_BOARD_HOST_URL` to the printed URL, or write it to `$DSH_HOME/web-host-url`. |
-| `forbidden` on sync | Task-board API requires loopback browser markers; use a current `hub-board` build or sync from the task-board **Sync workspace** button after mb-bridge is installed. |
-| `flock` / `another loop runner is already active` | Only one loop may run for a product root. Wait for the existing run to finish, then retry; do not bypass the lock. |
-| `step_mismatch` | The arm response does not match the card `step_id`. Refresh with `Sync`, verify the card metadata and active step, then arm again. |
-| Missing `DEV_HUB` / `DEV_HUB is required` | Export `DEV_HUB` as the absolute dev-hub checkout before running `hub-board arm`, `loop`, `arm-loop`, or the installer. |
-| `mb_card_requires_loop_run` | The mb-bridge is not handling stock run. Install/enable `@dev-hub/dsh-mb-bridge`; never fall back to a free-session stock run for `mb-*` cards. |
-
 ## Hooks bridge
 
 The DSH profiles use the official `@deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5` bridge to invoke the existing command hooks from `.claude/settings.json`. The bridge mounts the product project directory and keeps the Claude hook scripts as the source of truth; it does not port those scripts into TypeScript or replace the Claude runtime path.
@@ -264,15 +192,5 @@ The package is declared under `optionalDependencies`, and the Cordis entry is `r
 The plugin discovers the project `.claude/` from the DSH session working directory. Keep `CLAUDE_PROJECT_DIR` set to the product root when using the loop launcher so the existing Claude hook configuration continues to resolve correctly.
 
 > `dsh-claude-compat` is a community-equivalent package; verify its compatibility before changing the reviewed `0.8.0` pin.
-
-## Rebuilding Plugins
-
-After making TypeScript changes in `dsh/plugins/mb-bridge/`, rebuild and reinstall the plugin using `install-mb-bridge.sh` (or `dsh/install-mb-bridge.sh`):
-
-```bash
-./install-mb-bridge.sh
-```
-
-This updates the bundle so DSH picks up changes to card metadata parsing and board filtering.
 
 Use the profile installer after the pins have been reviewed; bridge mounting and runtime smoke checks are implemented by the following T-HUB-016 steps.

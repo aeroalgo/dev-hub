@@ -204,11 +204,25 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         )
     ]
     done_items = [req.done_summary] if req.done_summary else []
+    from harness.hooks.context_telemetry import build_finish_receipt, format_telemetry_summary
+    session_id = str(state.get("session_id") or os.environ.get("PROJECT_LOOP_SESSION_ID") or "").strip()
+    receipt = None
+    if session_id:
+        receipt = build_finish_receipt(cwd, session_id, epic_id=epic_id, step_id=step_id)
+        if receipt.status in ("corrupt", "non_green"):
+            diag_code = receipt.aggregate.diagnostic_code or "telemetry_corrupt"
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=[diag_code],
+                shape_errors=[f"Context telemetry is non-green: {receipt.diagnostics}"],
+            )
+
     handoff = HandoffBody(
         mode=mode_str,
         epic_id=epic_id,
         step_id=step_id,
         next_hint=f"продолжить работу по шагу {step_id}",
+        telemetry_summary=format_telemetry_summary(receipt) if receipt and receipt.status == "green" else None,
     )
 
     # 4 & 5. Render activeContext (raises ValueError if shape invalid)
@@ -343,4 +357,6 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
         next_step=next_step,
         next_phase=next_phase,
         epic_done=epic_done,
+        telemetry=receipt.aggregate.model_dump() if receipt and receipt.aggregate else None,
+        finish_receipt=receipt.model_dump() if receipt else None,
     )

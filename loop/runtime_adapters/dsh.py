@@ -107,7 +107,7 @@ DSH_MISSING_EXIT = 127
 def _build_dsh_command(
     profile: str, prompt: str, dsh_bin: str = "dsh"
 ) -> list[str]:
-    return [dsh_bin, "--profile", profile, "--no-open", prompt]
+    return [dsh_bin, "--profile", profile, prompt]
 
 
 def _normalize_dsh_log(raw_log: str) -> str:
@@ -257,4 +257,3 @@ class DshAdapter(RuntimeAdapter):
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {"dsh_profile": f"epic-{ctx.phase.lower()}"}
-

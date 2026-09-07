@@ -71,6 +71,23 @@ def test_session_resilience_codex_binary_missing(tmp_path: Path):
     assert analysis["abort_kind"] == "fatal"
 
 
+def test_session_resilience_codex_unsupported_tool_is_permanent(tmp_path: Path):
+    log_file = tmp_path / "codex-unsupported-tool.log"
+    log_file.write_text(
+        "SESSION_START session=1 mode=headless command=codex\n"
+        "CODEX_UNSUPPORTED_TOOL_CALL tool=multi_agent_v1_spawn_agent\n"
+        "SESSION_END session=1 exit_code=126 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+    analysis = analyze_session_log(log_file, exit_code=126, runtime="codex")
+
+    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["aborted"] is True
+    assert analysis["reason"] == "unsupported_tool_call: multi_agent_v1_spawn_agent"
+    assert analysis["retryable"] is False
+    assert analysis["abort_kind"] == "fatal"
+
+
 def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
     """Smoke test for SubagentStart hook under session resilience codex context."""
     from harness.hooks._lib import CONTRACTS, HARD_RULE, normalize_type
@@ -79,5 +96,4 @@ def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
     assert "reviewer" in CONTRACTS
     assert normalize_type("verify-implement") == "verify-implement"
     assert "HARD RULE" in HARD_RULE
-
 

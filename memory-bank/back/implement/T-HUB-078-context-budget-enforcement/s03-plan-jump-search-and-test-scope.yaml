@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-078-context-budget-enforcement
+title: s03 — Plan-jump, search allowlist и test fingerprint закрывают обходы контекста IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s03-plan-jump-search-and-test-scope.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-type-safety
+- python-resilience
+discovery: []
+gaps:
+  status: none
+done:
+- Реализованы парсинг, материализация bounded plan jumps (`parse_plan_jump`, `materialize_plan_jump`, `load_plan_jumps`) и guard против чтения монолитного `md/plan.md` в lean execution modes (`evaluate_plan_read`, `is_whole_plan_path`) в `loop/mb_load/plan_section.py`.
+- Обновлён `loop/mb_load/resolver.py` для запрета чтения полного `plan.md` в `IMPLEMENT`/`TASK`/`BUGFIX`/`QA` с записью diagnostic кода и сохранением доступа для `DECOMPOSE`/`PLAN`.
+- Обновлён `loop/prompt_builder.py` для материализации bounded plan jumps и проекции их excerpt identity в prompt scope root- и subagent-контекстов.
+- Создан `harness/hooks/context_scope.py` с классом `ScopeResolver` (вычисление allowlist из shard files, delta, layout paths и родительских директорий; валидация search commands с требованием graphify evidence и typed reason), а также `TestFingerprintCache` (нормализация test command + SHA-256 fingerprint релевантных файлов, инвалидация при изменении путей).
+- Интегрированы проверки в `harness/hooks/bash-pretool.py` и `harness/hooks/agent-pretool.py` / `harness/hooks/context_ledger_adapters.py`.
+- Созданы тестовые наборы `loop/tests/test_plan_jump_context_policy.py`, `harness/hooks/tests/test_context_scope_policy.py` и `loop/tests/test_search_and_test_fingerprint.py` (11 новых тестов), подтверждающие запрет монолитного плана, разрешение plan-jump, ограничение search scope, исключения graphify и кэширование/инвалидацию test fingerprints.
+files:
+- loop/mb_load/plan_section.py
+- loop/paths/forbidden_policy.py
+- loop/mb_load/resolver.py
+- loop/prompt_builder.py
+- harness/hooks/context_scope.py
+- harness/hooks/bash-pretool.py
+- harness/hooks/agent-pretool.py
+- harness/hooks/context_ledger_adapters.py
+- loop/context_loop.py
+- harness/hooks/tests/test_context_scope_policy.py
+- loop/tests/test_plan_jump_context_policy.py
+- loop/tests/test_search_and_test_fingerprint.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py loop/tests/test_search_and_test_fingerprint.py -v`'
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger*.py loop/tests/test_context_ledger*.py loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py loop/tests/test_search_and_test_fingerprint.py -q --tb=line — 33 passed
+grep_control: []
+verification_results:
+- .venv/bin/pytest loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py -q --tb=line -k "jump or monolith or excerpt" — 6 passed
+- .venv/bin/pytest loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py -q --tb=line -k "search or scope or graphify or alias" — 4 passed
+- .venv/bin/pytest loop/tests/test_search_and_test_fingerprint.py -q --tb=line -k "fingerprint or cache or changed" — 3 passed
+- rg -n 'whole.*plan|plan\.md|graphify|allowlist|fingerprint|cached|no.op|fail.closed' loop/mb_load loop/prompt_builder.py harness/hooks/context_scope.py harness/hooks/bash-pretool.py harness/hooks/agent-pretool.py — CP4 OK
+checkpoints:
+- id: cp1
+  criterion: IMPLEMENT rejects whole md/plan.md, accepts exact plan_contract.plan_jumps and renders only bounded excerpt identity for root and subagent.
+  status: done
+  done_at: '2026-09-07T19:10:00Z'
+- id: cp2
+  criterion: Search within shard files/delta/parent dirs is allowed; rg/cat/Python wrapper outside scope requires valid graphify evidence and typed reason.
+  status: done
+  done_at: '2026-09-07T19:10:00Z'
+- id: cp3
+  criterion: Exact targeted test repeat uses cached/no-op only for unchanged command and diff fingerprint; changed relevant path executes again.
+  status: done
+  done_at: '2026-09-07T19:10:00Z'
+- id: cp4
+  criterion: No hidden broad-read recovery exists in policy or wrapper paths.
+  status: done
+  done_at: '2026-09-07T19:10:00Z'
+resume_from: null

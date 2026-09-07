@@ -166,24 +166,3 @@ def test_tier1_disabled_escalate_immediately(mock_epic_env: dict):
     escalate_incident(inc, epic_dir, project_root=project_root)
     need_human_file = epic_dir / "NEED_HUMAN"
     assert need_human_file.exists()
-
-
-class FakeBoardExecution:
-    def __init__(self):
-        self.status = "idle"
-        self.recorded_events = []
-
-    def handle_incident_escalated(self, incident_id: str, reason: str):
-        self.status = "escalated"
-        self.recorded_events.append({"incident_id": incident_id, "reason": reason})
-
-
-def test_fake_board_execution_soft(mock_epic_env: dict):
-    """US-005 soft integration check: FakeBoardExecution captures escalation event status."""
-    board = FakeBoardExecution()
-    assert board.status == "idle"
-
-    board.handle_incident_escalated("inc-005", "soft_015_test")
-    assert board.status == "escalated"
-    assert len(board.recorded_events) == 1
-    assert board.recorded_events[0]["incident_id"] == "inc-005"

@@ -43,9 +43,47 @@ if [[ -n "${_PROJECT_ENV_EXPORTS}" ]]; then
 fi
 unset _PROJECT_ENV_EXPORTS
 
+DSH_PROFILES_READY=0
+
+ensure_dsh_profiles() {
+  if [[ "$DSH_PROFILES_READY" == "1" ]]; then
+    return 0
+  fi
+
+  export DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
+
+  local installer="${DSH_PROFILE_INSTALLER:-$HUB_ROOT/dsh/scripts/install-profiles.sh}"
+  local hooks_installer="${DSH_HOOKS_INSTALLER:-$HUB_ROOT/dsh/scripts/install-cc-hooks.sh}"
+  local rc
+
+  if [[ ! -x "$installer" ]]; then
+    echo "==> HALT: dsh profile installer not found or not executable: $installer" >&2
+    return 127
+  fi
+  if [[ ! -x "$hooks_installer" ]]; then
+    echo "==> HALT: dsh hooks installer not found or not executable: $hooks_installer" >&2
+    return 127
+  fi
+
+  echo "==> dsh: installing profiles into $DSH_HOME" >&2
+  "$installer" || {
+    rc=$?
+    echo "==> HALT: dsh profile installation failed (exit=$rc)" >&2
+    return "$rc"
+  }
+  "$hooks_installer" || {
+    rc=$?
+    echo "==> HALT: dsh hooks installation failed (exit=$rc)" >&2
+    return "$rc"
+  }
+
+  DSH_PROFILES_READY=1
+}
+
 configure_runtime_env() {
   local runtime="${1:-${EPIC_RUNTIME:-${EPIC_RUNTIME_RESOLVED:-claude}}}"
   if [[ "$runtime" == "dsh" ]]; then
+    ensure_dsh_profiles
     export DSH_HOOKS_BRIDGE=1
     export CLAUDE_PROJECT_DIR="$PROJECT_ROOT"
   else
@@ -551,7 +589,7 @@ run_dsh_session() {
   local profile_override
   profile_override="$(echo "${EXTRAS_JSON:-{\}}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("dsh_profile") or "epic-implement")' 2>/dev/null || echo epic-implement)"
   local profile="$profile_override"
-  local -a command=("${DSH_COMMAND[@]}" --profile "$profile" --no-open "$prompt")
+  local -a command=("${DSH_COMMAND[@]}" --profile "$profile" "$prompt")
   local rc
   if (cd "$PROJECT_ROOT" && python3 "$SESSION_WRAPPER" run-session \
     --mode headless \

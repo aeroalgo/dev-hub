@@ -1,5 +1,5 @@
 schema_version: "codex-policy-mapping/v1"
-description: "Equivalence matrix for agent contract fields mapped to Codex runtime"
+description: "Equivalence matrix for agent contract fields and context ledger mapped to Codex runtime"
 
 fields:
   name:
@@ -54,6 +54,10 @@ fields:
     support: hook
     target: "harness/hooks/subagent-stop.py"
     notes: "Default chat configuration checked via hook"
+  context_ledger:
+    support: hook
+    target: "harness/hooks/context_ledger_adapters.py"
+    notes: "Shared context_ledger adapter for PreToolUse, PostToolUse, SubagentStart, SubagentStop, normalizing Read/read and Edit/Write with derived_identity, fail-closed enforcement, and provider parity"
   color:
     support: unsupported
     target: null

@@ -44,6 +44,7 @@ _PERMANENT_FAILURE_PATTERNS = _AUTH_BANNED_PATTERNS + (
     re.compile(r"(?i)(?:CLI|command) error:[^\\n]*"),
     re.compile(r"(?i)invalid (?:config|option|argument)"),
     re.compile(r"(?i)auth_failed"),
+    re.compile(r"(?i)unsupported_tool_call:\s*\S+"),
     re.compile(r"(?i)Authentication\s+(?:failed|error|invalid)"),
     # Claude Code / org allowlist silently swaps --model; never treat as success.
     re.compile(
@@ -84,6 +85,19 @@ _MALFORMED_RESULT_PATTERNS = (
 # Process exit when run_session kills Claude after detecting model swap.
 MODEL_SUBSTITUTION_EXIT = 125
 _MODEL_SUBSTITUTION_MARKER = "MODEL_SUBSTITUTION\n"
+CODEX_UNSUPPORTED_TOOL_EXIT = 126
+_CODEX_UNSUPPORTED_TOOL_RE = re.compile(
+    r"(?i)^\s*ERROR\s+codex_core::tools::router:\s*"
+    r"error=unsupported call:\s*(?P<tool>[A-Za-z0-9_.:-]+)"
+)
+
+
+def _detect_codex_unsupported_tool(text: str) -> str | None:
+    for line in (text or "").splitlines():
+        match = _CODEX_UNSUPPORTED_TOOL_RE.search(line)
+        if match:
+            return match.group("tool")
+    return None
 
 
 def _safe_killpg(pid: int, sig: int) -> None:
@@ -1019,6 +1033,7 @@ def run_session(
     timed_out = False
     idle_timed_out = False
     model_substituted = False
+    unsupported_tool: str | None = None
     total = 0
     scan_buf = ""
     tool_tail = ""
@@ -1128,6 +1143,24 @@ def run_session(
                             chunk_txt = data.decode("utf-8", errors="replace")
                         except Exception:
                             chunk_txt = ""
+                        if progress_mode == "codex_json":
+                            unsupported_tool = _detect_codex_unsupported_tool(chunk_txt)
+                            if unsupported_tool:
+                                log.write(
+                                    "CODEX_UNSUPPORTED_TOOL_CALL "
+                                    f"tool={unsupported_tool}\n"
+                                )
+                                log.flush()
+                                _write_status(
+                                    "\n==> HALT: Codex requested unsupported tool "
+                                    f"{unsupported_tool}\n"
+                                )
+                                _safe_killpg(process.pid, signal.SIGTERM)
+                                try:
+                                    process.wait(timeout=kill_grace)
+                                except subprocess.TimeoutExpired:
+                                    _safe_killpg(process.pid, signal.SIGKILL)
+                                    process.wait()
                         if progress_mode == "stream_bytes":
                             last_activity = time.monotonic()
                         elif progress_mode in {"tool_json", "codex_json"}:
@@ -1156,6 +1189,8 @@ def run_session(
                                         process.wait()
                     else:
                         selector.unregister(key.fileobj)
+                if unsupported_tool:
+                    break
                 if process.poll() is not None and not selector.get_map():
                     break
                 if model_substituted and process.poll() is not None:
@@ -1170,6 +1205,8 @@ def run_session(
 
         if model_substituted:
             rc = MODEL_SUBSTITUTION_EXIT
+        elif unsupported_tool:
+            rc = CODEX_UNSUPPORTED_TOOL_EXIT
         elif idle_timed_out:
             log.write(
                 f'{{"type":"result","terminal_reason":"api_error","result":"API Error: Stream idle timeout - no tool_use/tool_result","subtype":"success"}}\n'

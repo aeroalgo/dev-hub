@@ -39,16 +39,15 @@ def test_build_command_wraps_build_dsh_command():
     adapter = DshAdapter()
     ctx = SessionContext(prompt="do work", phase="implement", extras={"dsh_profile": "epic-custom"})
     cmd = adapter.build_command(ctx)
-    assert cmd == ["dsh", "--profile", "epic-custom", "--no-open", "do work"]
+    assert cmd == ["dsh", "--profile", "epic-custom", "do work"]
 
     # Fallback to phase default if extras has no dsh_profile
     ctx_no_extra = SessionContext(prompt="do work", phase="implement")
     cmd_default = adapter.build_command(ctx_no_extra)
-    assert cmd_default == ["dsh", "--profile", "epic-implement", "--no-open", "do work"]
+    assert cmd_default == ["dsh", "--profile", "epic-implement", "do work"]
 
 
 def test_dsh_adapter_does_not_depend_on_standalone_functions():
     adapter = DshAdapter()
     ctx = SessionContext(prompt="hello", phase="implement")
-    assert adapter.build_command(ctx) == ["dsh", "--profile", "epic-implement", "--no-open", "hello"]
-
+    assert adapter.build_command(ctx) == ["dsh", "--profile", "epic-implement", "hello"]

@@ -25,7 +25,7 @@
 
 ## Epic-level board (Task Board)
 
-При синхронизации с task-board (`dsh` / `mb-bridge`):
+При синхронизации с task-board через `hub-board`:
 - **Единая карточка эпика (`card_kind: epic`):** На доске создаётся одна карточка на уровень эпика, вместо множества атомарных карточек отдельных шагов `sNN`.
 - **Arm epic & Run:** Армирование контекста выполняется через `arm_epic` (`python3 loop/context_loop.py arm-epic <epic_id>`). Запуск выполнения эпика с таскборда выполняется по кнопке **Run** на карточке эпика или через CLI `./loop/loop.sh --epic-id <epic_id>`.
 - **Column logic (Статусы колонок):**

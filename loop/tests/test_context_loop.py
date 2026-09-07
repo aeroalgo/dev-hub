@@ -2284,6 +2284,7 @@ def test_record_abort_unknown_nonzero_is_fatal(tmp_path: Path) -> None:
         (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
     )
     assert state["status"] == "halted"
+    assert state["active"] is False
 
 
 def test_build_prompt_accepts_resume_lines(tmp_path: Path) -> None:
@@ -2444,7 +2445,12 @@ def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path)
     _write(
         tmp_path,
         ".claude/runtime/epic/state.json",
-        '{"status":"running", "armed_step":"s03", "armed_epic":"T-HUB-073"}\n',
+        '{"status":"running", "active":true, "armed_step":"s03", "armed_epic":"T-HUB-073"}\n',
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/checkpoint.json",
+        '{"status":"active", "step_id":"s03"}\n',
     )
     log = tmp_path / "session.log"
     log.write_text('API Error: 401 {"error":{"message":"All connections banned"}}\n', encoding="utf-8")
@@ -2459,6 +2465,8 @@ def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path)
         (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
     )
     assert state["status"] == "halted"
+    assert state["active"] is False
+    assert not (tmp_path / ".claude/runtime/epic/checkpoint.json").exists()
     marker = json.loads(
         (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
     )

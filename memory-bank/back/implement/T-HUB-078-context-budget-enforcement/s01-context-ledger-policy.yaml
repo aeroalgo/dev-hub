@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-078-context-budget-enforcement
+title: s01 — Один durable ledger принимает нормализованные Read/Edit решения IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s01-context-ledger-policy.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-type-safety
+discovery: []
+gaps:
+  status: none
+done:
+- Создан harness/hooks/context_ledger.py с классами ContextLedger, ReadRequest, ReadRecord,
+  DecisionReceipt, ActorKey, интервальной алгеброй, SHA-256 хешированием и fail-closed
+  политикой.
+- Создан test suite harness/hooks/tests/test_context_ledger.py с 11 тестами, покрывающими
+  дубликаты, частичные перекрытия, изоляцию акторов, сброс диапазонов при edit/invalidation
+  и atomic persistence с lockfile.
+files:
+- harness/hooks/context_ledger.py
+- harness/hooks/tests/test_context_ledger.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_context_ledger.py -v`'
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line — 11 passed
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k "duplicate
+  or actor or alias" — 4 passed
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k "range
+  or overlap or eof" — 5 passed
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k "invalidate
+  or hash or concurrent" — 2 passed
+- rg -n "atomic|lock|content_hash|invocation_id|source content|read_text" harness/hooks/context_ledger.py
+  harness/hooks/tests/test_context_ledger.py — verified
+checkpoints:
+- id: cp1
+  criterion: Одинаковый canonical path, hash и диапазон для одного actor возвращает
+    duplicate или cached-reference receipt без второго payload; parent и child не
+    смешиваются.
+  status: done
+  done_at: '2026-09-07T18:40:09Z'
+- id: cp2
+  criterion: Частичное пересечение выдаёт только непокрытый интервал, disjoint ranges
+    объединяются, EOF и omitted range не получают неявный full-file доступ.
+  status: done
+  done_at: '2026-09-07T18:40:09Z'
+- id: cp3
+  criterion: Edit, Write, rename, delete и внешняя hash mutation инвалидируют старые
+    ranges; unknown hash и concurrency conflict fail closed.
+  status: done
+  done_at: '2026-09-07T18:40:09Z'
+- id: cp4
+  criterion: После process restart durable metadata сохраняет duplicate decision и
+    файл ledger не содержит исходного содержимого.
+  status: done
+  done_at: '2026-09-07T18:40:09Z'
+resume_from: null

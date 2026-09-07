@@ -36,6 +36,8 @@ def render_active_context(
     lines.append(f"## Handoff {meta.role} {handoff.mode}{step_str}")
     if handoff.next_hint:
         lines.append(f"- **Дальше:** {handoff.next_hint}")
+    if handoff.telemetry_summary:
+        lines.append(f"- **Context Telemetry:** {handoff.telemetry_summary}")
     for line in handoff.custom_lines:
         lines.append(line)
     lines.append("")

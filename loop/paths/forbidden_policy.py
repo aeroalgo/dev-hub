@@ -6,7 +6,8 @@ from typing import Protocol, Union, runtime_checkable
 
 from loop.paths.pack_layout import ArtifactLayout
 
-_PLAN_MD_RE = re.compile(r"(?:^|/)plan-[^/]+\.md$")
+_PLAN_MD_RE = re.compile(r"(?:^|/)plan-[^/]+\.md$|(?:^|/)md/plan\.md$|(?:^|/)plan\.md$")
+_UNRESTRICTED_MODES = frozenset({"DECOMPOSE", "PLAN", "ANALYZE", "AUDIT", "CREATIVE", "CLARIFY"})
 
 
 class ForbiddenPolicyError(Exception):
@@ -26,27 +27,28 @@ class ForbiddenPolicy(Protocol):
 class SoftwareEpicV1Policy:
     """Forbidden policy for software-epic-v1 layout.
 
-    Forbids full plan-*.md files during execution phases (IMPLEMENT, QA, BUGFIX, etc.),
-    while allowing them during DECOMPOSE.
+    Forbids full plan-*.md / md/plan.md files during lean execution phases (IMPLEMENT, QA, BUGFIX, TASK, etc.),
+    while allowing them during whole-plan modes (PLAN, DECOMPOSE, ANALYZE, AUDIT, CREATIVE, CLARIFY).
     """
 
     def is_forbidden(self, path: str, mode: str | None) -> bool:
         mode_upper = (mode or "").strip().upper()
         if _PLAN_MD_RE.search(path):
-            return mode_upper != "DECOMPOSE"
+            return mode_upper not in _UNRESTRICTED_MODES
         return False
 
 
 class ProductionEpicV1Policy:
     """Forbidden policy for production-epic-v1 layout.
 
-    Forbids full plan-*.md files during execution phases, allowing during DECOMPOSE.
+    Forbids full plan-*.md / md/plan.md files during lean execution phases,
+    while allowing them during whole-plan modes.
     """
 
     def is_forbidden(self, path: str, mode: str | None) -> bool:
         mode_upper = (mode or "").strip().upper()
         if _PLAN_MD_RE.search(path):
-            return mode_upper != "DECOMPOSE"
+            return mode_upper not in _UNRESTRICTED_MODES
         return False
 
 

@@ -24,6 +24,7 @@ def test_build_command_contains_exec():
     assert "--json" in cmd
     assert "--ephemeral" in cmd
     assert "--dangerously-bypass-approvals-and-sandbox" in cmd
+    assert "--dangerously-bypass-hook-trust" in cmd
     assert "--cd" in cmd
 
 
@@ -132,6 +133,34 @@ def test_analyze_auth_fail_fixture():
     assert isinstance(analysis, SessionAnalysis)
     assert analysis.retry is False
     assert analysis.reason == "auth_failed"
+
+
+def test_analyze_ignores_auth_keyword_inside_command_output():
+    adapter = CodexAdapter()
+    raw_log = (
+        "SESSION_START session=1 mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"command_execution",'
+        '"aggregated_output":"debug auth_failed marker from a fixture\\n",'
+        '"exit_code":1,"status":"failed"}}\n'
+        "SESSION_END session=1 exit_code=1 elapsed=1.0s\n"
+    )
+    ctx = SessionContext(prompt="do task", phase="implement", extras={"exit_code": 1})
+    analysis = adapter.analyze_log(raw_log, ctx)
+    assert analysis.reason == "exit_1"
+    assert analysis.retry is False
+
+
+def test_analyze_unsupported_codex_tool_call_is_permanent():
+    adapter = CodexAdapter()
+    raw_log = (
+        "SESSION_START session=1 mode=headless command=codex\n"
+        "CODEX_UNSUPPORTED_TOOL_CALL tool=multi_agent_v1_spawn_agent\n"
+        "SESSION_END session=1 exit_code=126 elapsed=1.0s\n"
+    )
+    ctx = SessionContext(prompt="do task", phase="analyze", extras={"exit_code": 126})
+    analysis = adapter.analyze_log(raw_log, ctx)
+    assert analysis.reason == "unsupported_tool_call: multi_agent_v1_spawn_agent"
+    assert analysis.retry is False
 
 
 def test_analyze_log_binary_missing_fixture():

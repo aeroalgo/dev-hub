@@ -12,6 +12,54 @@ from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionC
 _CODEX_ABORT_RE = re.compile(
     r"(?i)(?:session aborted(?:\s+by\b|\s*$)|codex session aborted)"
 )
+_CODEX_UNSUPPORTED_TOOL_RE = re.compile(
+    r"(?i)^\s*(?:ERROR\s+codex_core::tools::router:\s*error=unsupported call:\s*|"
+    r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
+)
+
+
+def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
+    for line in raw_log.splitlines():
+        match = _CODEX_UNSUPPORTED_TOOL_RE.search(line.strip())
+        if match:
+            return match.group("tool")
+    return None
+
+
+def _codex_error_text(raw_log: str) -> str:
+    """Extract runtime errors without treating command output as CLI errors."""
+    errors: list[str] = []
+    for line in raw_log.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            obj = json.loads(stripped)
+        except json.JSONDecodeError:
+            if not stripped.startswith(("SESSION_", "EXPECTED_MODEL ")):
+                errors.append(stripped)
+            continue
+        if not isinstance(obj, dict):
+            continue
+        obj_type = obj.get("type")
+        if obj_type == "error":
+            for key in ("message", "error", "detail"):
+                value = obj.get(key)
+                if isinstance(value, str) and value.strip():
+                    errors.append(value.strip())
+        elif obj_type == "item.completed":
+            item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
+            if item.get("type") == "error":
+                for key in ("message", "error", "detail"):
+                    value = item.get(key)
+                    if isinstance(value, str) and value.strip():
+                        errors.append(value.strip())
+        elif obj_type == "result" and obj.get("is_error"):
+            for key in ("result", "error", "message"):
+                value = obj.get(key)
+                if isinstance(value, str) and value.strip():
+                    errors.append(value.strip())
+    return "\n".join(errors)
 
 
 def _detect_codex_runtime_abort(raw_log: str) -> bool:
@@ -100,6 +148,7 @@ class CodexAdapter(RuntimeAdapter):
             str(project_root),
             "--ephemeral",
             "--dangerously-bypass-approvals-and-sandbox",
+            "--dangerously-bypass-hook-trust",
         ]
         if _uses_omniroute(codex_bin):
             cmd.extend(["-c", 'model_provider="omniroute"'])
@@ -110,7 +159,13 @@ class CodexAdapter(RuntimeAdapter):
 
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
         exit_code = ctx.extras.get("exit_code")
-        log_lower = raw_log.lower()
+
+        unsupported_tool = _detect_codex_unsupported_tool(raw_log)
+        if unsupported_tool:
+            return SessionAnalysis(
+                reason=f"unsupported_tool_call: {unsupported_tool}",
+                retry=False,
+            )
 
         if exit_code == 127:
             return SessionAnalysis(reason="command not found", retry=False)
@@ -134,7 +189,8 @@ class CodexAdapter(RuntimeAdapter):
             "run codex auth",
             "auth_failed",
         ]
-        if any(kw in log_lower for kw in auth_keywords):
+        error_text = _codex_error_text(raw_log).lower()
+        if any(kw in error_text for kw in auth_keywords):
             return SessionAnalysis(reason="auth_failed", retry=False)
 
         if exit_code is not None and exit_code != 0:
@@ -144,3 +200,19 @@ class CodexAdapter(RuntimeAdapter):
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {}
+
+    def normalize_read_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
+        from harness.hooks.context_ledger_adapters import normalize_read_payload
+        return normalize_read_payload(payload, provider="codex", default_cwd=cwd)
+
+    def normalize_write_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
+        from harness.hooks.context_ledger_adapters import normalize_write_payload
+        return normalize_write_payload(payload, provider="codex", default_cwd=cwd)
+
+    def evaluate_context_read(self, payload: dict[str, Any], cwd: Any = None, runtime_dir: Any = None) -> Any:
+        from harness.hooks.context_ledger_adapters import evaluate_read_payload
+        return evaluate_read_payload(payload, provider="codex", cwd=cwd, runtime_dir=runtime_dir)
+
+    def evaluate_context_write(self, payload: dict[str, Any], cwd: Any = None, runtime_dir: Any = None) -> Any:
+        from harness.hooks.context_ledger_adapters import evaluate_write_payload
+        return evaluate_write_payload(payload, provider="codex", cwd=cwd, runtime_dir=runtime_dir)

@@ -17,8 +17,7 @@ graph TD
     LoopSh -->|EPIC_RUNTIME=dsh| DSH[DSH CLI + epic-implement profile]
     
     CC -->|subagent/start| CC_Hooks[.claude/hooks/ subagent-start.py]
-    DSH -->|mb-bridge plugin| Bridge[dsh/plugins/mb-bridge]
-    Bridge -->|subagent/start| CC_Hooks
+    DSH -->|official hooks bridge| CC_Hooks
     
     CC_Hooks -->|verify / reviewer| Gates[Hook Gates & Hand-off]
     Gates -->|Session State| SessLog[memory-bank/activeContext.md & task logs]
@@ -27,7 +26,7 @@ graph TD
 ## Data Flow Summary
 
 1. **Launcher Dispatch:** `loop/loop.sh` evaluates `EPIC_RUNTIME`. If `dsh`, it launches `dsh --profile epic-implement`.
-2. **Bridge Hook Ingestion:** `mb-bridge` forwards DSH phase lifecycle events to `.claude/hooks/subagent-start.py`.
+2. **Hook Ingestion:** The official DSH hooks bridge forwards supported lifecycle events to `.claude/hooks/`.
 3. **Verdict & State Mirroring:** Session state and verdicts write back to `memory-bank/activeContext.md` and task logs.
 
 ## Detailed References

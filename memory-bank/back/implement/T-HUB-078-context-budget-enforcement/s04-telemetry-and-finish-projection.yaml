@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-078-context-budget-enforcement
+title: s04 — Finish telemetry публикует attributable counters без content leakage
+  IMPLEMENT
+status: in_progress
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s04-telemetry-and-finish-projection.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/hooks/context_telemetry.py
+- harness/hooks/stop-gate.py
+- harness/hooks/subagent-stop.py
+- harness/hooks/agent-posttool.py
+- loop/mb_finish/render.py
+- loop/mb_finish/impl.py
+- loop/schemas/telemetry.py
+- harness/hooks/tests/test_context_telemetry.py
+- loop/tests/test_context_finish_projection.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Finish projection contains exact unique_reads, duplicate_reads, bytes/ranges,
+    monolith-plan attempts, search exceptions and highest-repeat path counters with
+    actor/provider attribution.
+  status: pending
+- id: cp2
+  criterion: Corrupt/missing ledger or atomic write failure is non-green and never
+    reported as zero duplicates; no source content is emitted.
+  status: pending
+- id: cp3
+  criterion: Root, child and provider counters remain distinguishable while session
+    aggregate is deterministic across equivalent events.
+  status: pending
+- id: cp4
+  criterion: Finish integration consumes the shared telemetry receipt rather than
+    a provider-local duplicate counter.
+  status: pending
+resume_from: cp1

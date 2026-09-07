@@ -100,6 +100,36 @@ def test_idle_timeout_emits_heartbeat_and_retryable_api_error(tmp_path: Path) ->
     assert analysis["abort_kind"] == "transient"
 
 
+def test_codex_unsupported_tool_call_fails_fast(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "codex-unsupported-tool.log"
+    started = time.monotonic()
+    rc = sr.run_session(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import time; "
+                "print('ERROR codex_core::tools::router: error=unsupported call: "
+                "multi_agent_v1_spawn_agent', flush=True); "
+                "time.sleep(5)"
+            ),
+        ],
+        mode="headless",
+        session_id="codex-unsupported",
+        timeout=5,
+        kill_grace=0.2,
+        log_path=log,
+        progress_mode="codex_json",
+    )
+
+    assert rc == 126
+    assert time.monotonic() - started < 2.0
+    text = log.read_text(encoding="utf-8")
+    assert "CODEX_UNSUPPORTED_TOOL_CALL tool=multi_agent_v1_spawn_agent" in text
+    assert "SESSION_END session=codex-unsupported exit_code=126" in text
+
+
 def test_idle_timeout_ignores_stream_noise_without_tools(tmp_path: Path) -> None:
     sr = _load_resilience()
     log = tmp_path / "idle-noise.log"

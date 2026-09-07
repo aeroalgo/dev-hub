@@ -27,6 +27,7 @@ class HandoffBody(BaseModel):
     epic_id: str | None = None
     step_id: str | None = None
     custom_lines: list[str] = Field(default_factory=list)
+    telemetry_summary: str | None = None
 
     @field_validator("mode", mode="before")
     @classmethod
@@ -54,4 +55,6 @@ class MbFinishResult(BaseModel):
     next_step: str | None = None
     next_phase: str | None = None
     epic_done: bool | None = None
+    telemetry: dict[str, Any] | None = None
+    finish_receipt: dict[str, Any] | None = None
 

@@ -807,11 +807,24 @@ def build_prompt(
     load_now = list(load_now or [])
     shape_errors = list(shape_errors or [])
     projection = projection or {}
+    shard_jumps = []
+    shard_excerpts = []
+    shard_p = _work_shard_path(cwd_p, load_now)
+    if shard_p:
+        try:
+            from loop.mb_load.plan_section import load_plan_jumps
+            shard_excerpts = load_plan_jumps(shard_p, cwd=cwd_p)
+            shard_jumps = [e["jump_ref"] for e in shard_excerpts if e.get("jump_ref")]
+        except Exception:
+            pass
+
     scope = build_prompt_scope(
         cwd_p,
         projection=projection,
         command=command,
         runtime=runtime,
+        plan_jumps=shard_jumps,
+        plan_excerpts=shard_excerpts,
     )
     paths = mb_paths_for_prompt(cwd_p, load_now)
 
@@ -2716,8 +2729,15 @@ def record_abort(
         st["halt_reason"] = reason or "other"
         save_epic_state(cwd_p, st)
     else:
+        st["active"] = False
         st["status"] = "halted"
         st["halt_reason"] = reason
+        checkpoint = clear_runner_checkpoint(cwd_p)
+        if not checkpoint.get("ok"):
+            st["diagnostic_codes"] = sorted(
+                set(st.get("diagnostic_codes") or [])
+                | {"checkpoint_clear_failed"}
+            )
         save_epic_state(cwd_p, st)
     return {
         "ok": False,

@@ -12,7 +12,6 @@ import urllib.error
 from pathlib import Path
 
 from loop.incidents.alert_schema import LoopAlertV1Payload
-from loop.incidents.board_soft import try_mark_board_execution_failed
 from loop.incidents.schema import IncidentRecord
 from loop.incidents.store import resolve_incident
 
@@ -114,7 +113,6 @@ def escalate_incident(
         resolution_tier="escalation",
     )
     write_need_human_file(epic_path, updated)
-    try_mark_board_execution_failed(updated, project_root=project_root)
     print_stderr_banner(updated)
     post_webhook(updated, url=url, project_root=project_root)
     return updated

@@ -206,6 +206,8 @@ class PromptScope:
     workflow_file: str | None = None
     pack_id: str | None = None
     diagnostics: tuple[str, ...] = ()
+    plan_jumps: tuple[str, ...] = ()
+    plan_excerpts: tuple[dict[str, Any], ...] = ()
 
 
 def _canonical_role(raw: object, *, default: str = "") -> str:
@@ -284,6 +286,8 @@ def build_prompt_scope(
     runtime: str | None = None,
     state: Any | None = None,
     ac_meta: Any | None = None,
+    plan_jumps: Sequence[str] | None = None,
+    plan_excerpts: Sequence[dict[str, Any]] | None = None,
 ) -> PromptScope:
     """Build one command scope without resolving or loading workflow files.
 
@@ -352,6 +356,11 @@ def build_prompt_scope(
 
     runtime_name = _runtime_name(runtime)
 
+    raw_jumps = plan_jumps or (projection.get("plan_jumps") if projection else None) or []
+    norm_jumps = tuple(str(j).strip() for j in raw_jumps if str(j).strip())
+    raw_excerpts = plan_excerpts or (projection.get("plan_excerpts") if projection else None) or []
+    norm_excerpts = tuple(dict(e) for e in raw_excerpts if isinstance(e, dict))
+
     return PromptScope(
         command=normalized_command,
         role=role,
@@ -360,6 +369,8 @@ def build_prompt_scope(
         epic=_projection_value(projection, "epic", "epic_id") or "unknown",
         runtime=runtime_name,
         entrypoint=_runtime_entrypoint(runtime_name),
+        plan_jumps=norm_jumps,
+        plan_excerpts=norm_excerpts,
     )
 
 
@@ -383,6 +394,10 @@ def render_prompt_scope(scope: PromptScope) -> str:
     ]
     if scope.diagnostics:
         lines.append("- scope diagnostics: " + ", ".join(scope.diagnostics))
+    if scope.plan_jumps:
+        lines.append("## PLAN EXCERPTS (bounded)")
+        for j in scope.plan_jumps:
+            lines.append(f"- jump: `{j}`")
     return "\n".join(lines) + "\n"
 
 

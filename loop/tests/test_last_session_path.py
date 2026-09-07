@@ -58,6 +58,32 @@ def test_last_session_path_dev_hub_slug(tmp_path: Path, monkeypatch: pytest.Monk
     assert got == expected
 
 
+def test_last_session_path_uses_hub_runtime_when_project_is_hub(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The hub checkout itself still uses the canonical runtime/<slug>/epic path."""
+    hub = ROOT
+    monkeypatch.setenv("HUB_ROOT", str(hub))
+    monkeypatch.setenv("PROJECT_ROOT", str(hub))
+
+    sr = _load_resilience()
+    got = sr.last_session_path(hub)
+
+    expected = hub / "runtime" / "dev-hub" / "epic" / "last-session.json"
+    assert got == expected
+
+
+def test_last_session_path_self_hosting_without_env_uses_canonical_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Direct context_loop calls from the hub checkout must match loop.sh routing."""
+    monkeypatch.delenv("HUB_ROOT", raising=False)
+    monkeypatch.delenv("DEV_HUB", raising=False)
+    monkeypatch.delenv("PROJECT_ROOT", raising=False)
+
+    sr = _load_resilience()
+    got = sr.last_session_path(ROOT)
+
+    expected = ROOT / "runtime" / "dev-hub" / "epic" / "last-session.json"
+    assert got == expected
+
+
 def test_last_session_path_no_hub_product_layout(tmp_path: Path) -> None:
     """Without hub env → product .claude/runtime/epic/last-session.json."""
     sr = _load_resilience()

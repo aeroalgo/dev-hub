@@ -52,7 +52,7 @@ flowchart TD
 | `DSH_HOME` | Absolute / relative path | `~/.dsh` | Директория профилей и конфигурации DSH. Используется при старте `dsh` профилей (`dsh/profiles/epic-*`). |
 | `DEEPSEEK_API_KEY` | Secret string | `n/a` | API-ключ для вызовов DeepSeek API (обязателен при `EPIC_RUNTIME=dsh`). |
 | `PROJECT_LOOP_IMPLEMENT_MODEL` | String | `n/a` (модель по умолчанию) | Опциональный override модели для шага `implement` в автономном цикле. |
-| `NODE_VERSION` | Version specifier | `22+` | Требуемая версия Node.js для работы pnpm и компонентов DSH bridge (`dsh/plugins/mb-bridge`). |
+| `NODE_VERSION` | Version specifier | `22+` | Требуемая версия Node.js для работы pnpm и профилей DSH. |
 
 ---
 

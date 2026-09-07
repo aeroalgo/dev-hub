@@ -21,6 +21,7 @@ def _run_loop(tmp_path: Path, *, runtime: str = "dsh", dsh_bin: str | None = Non
     env.update(
         {
             "PROJECT_ROOT": str(product),
+            "EPIC_RUNTIME": "claude",
             "EPIC_RUNTIME_RESOLVED": runtime,
             "EPIC_DSH_PROFILE": "epic-implement",
             "DSH_BIN": dsh_bin or str(FAKE_DSH),
@@ -35,6 +36,75 @@ def _run_loop(tmp_path: Path, *, runtime: str = "dsh", dsh_bin: str | None = Non
         text=True,
         check=False,
     )
+
+
+def _run_runtime_configuration(
+    tmp_path: Path,
+    *,
+    installer_exit: int = 0,
+) -> subprocess.CompletedProcess[str]:
+    installer = tmp_path / "install-profiles.sh"
+    hooks_installer = tmp_path / "install-cc-hooks.sh"
+    install_log = tmp_path / "install.log"
+    installer.write_text(
+        "#!/usr/bin/env bash\n"
+        f"printf '%s\\n' profiles >> {shlex.quote(str(install_log))}\n"
+        f"exit {installer_exit}\n",
+        encoding="utf-8",
+    )
+    hooks_installer.write_text(
+        "#!/usr/bin/env bash\n"
+        f"printf '%s\\n' hooks >> {shlex.quote(str(install_log))}\n",
+        encoding="utf-8",
+    )
+    installer.chmod(0o755)
+    hooks_installer.chmod(0o755)
+
+    product = tmp_path / "product"
+    product.mkdir()
+    env = os.environ.copy()
+    env.update(
+        {
+            "EPIC_RUNTIME": "claude",
+            "PROJECT_ROOT": str(product),
+            "DSH_HOME": str(tmp_path / "dsh-home"),
+            "DSH_PROFILE_INSTALLER": str(installer),
+            "DSH_HOOKS_INSTALLER": str(hooks_installer),
+        }
+    )
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            "source loop/loop.sh >/dev/null 2>&1 || exit $?; "
+            "configure_runtime_env dsh; configure_runtime_env dsh; "
+            "printf '%s|%s|%s\\n' \"$DSH_HOME\" \"$DSH_HOOKS_BRIDGE\" \"$CLAUDE_PROJECT_DIR\"",
+        ],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_selecting_dsh_installs_profiles_and_hooks_once(tmp_path: Path) -> None:
+    result = _run_runtime_configuration(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "install.log").read_text(encoding="utf-8").splitlines() == [
+        "profiles",
+        "hooks",
+    ]
+    assert result.stdout.strip() == f"{tmp_path / 'dsh-home'}|1|{tmp_path / 'product'}"
+
+
+def test_dsh_profile_installation_failure_stops_runtime_configuration(tmp_path: Path) -> None:
+    result = _run_runtime_configuration(tmp_path, installer_exit=23)
+
+    assert result.returncode == 23
+    assert "dsh profile installation failed" in result.stderr
+    assert (tmp_path / "install.log").read_text(encoding="utf-8").splitlines() == ["profiles"]
 
 
 def test_fake_dsh_records_argv_and_prompt(tmp_path: Path) -> None:
@@ -69,6 +139,7 @@ def _run_dsh_function(
             "SESSION_WRAPPER": str(ROOT / ".claude/hooks/session_resilience.py"),
             "EPIC_SESSION_TIMEOUT_SEC": "10",
             "EPIC_SESSION_KILL_GRACE_SEC": "1",
+            "EPIC_RUNTIME": "claude",
             "EPIC_RUNTIME_RESOLVED": "dsh",
             "EPIC_DSH_PROFILE": "epic-implement",
             "DSH_BIN": dsh_bin or str(FAKE_DSH),
@@ -137,7 +208,7 @@ def test_run_agent_session_dispatches_npx_resolver_as_argv(tmp_path: Path) -> No
     )
     assert result.returncode == 0
     recorded = record.read_text(encoding="utf-8")
-    assert "argv: -y @deepseek-ai/dsh --profile epic-implement --no-open hello from prompt" in recorded
+    assert "argv: -y @deepseek-ai/dsh --profile epic-implement hello from prompt" in recorded
 
 
 def test_run_agent_session_defaults_to_claude(tmp_path: Path) -> None:

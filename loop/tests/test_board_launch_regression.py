@@ -29,9 +29,3 @@ def test_board_sync_card_model_remains_canonical() -> None:
         epic_id="T-HUB-015",
         step_id="s10",
     ).startswith("mb-ws-1-back-t-hub-015-s10")
-
-
-def test_required_s10_files_are_present() -> None:
-    assert (ROOT / "dsh" / "README.md").is_file()
-    assert (ROOT / "dsh" / "scripts" / "install-mb-bridge.sh").is_file()
-    assert (ROOT / "dsh" / "plugins" / "mb-bridge" / "package.json").is_file()

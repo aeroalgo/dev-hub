@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-078-context-budget-enforcement
+title: s02 — Claude и Codex используют один контракт и одинаковую invalidation semantics IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s02-provider-adapters-and-invalidation.yaml
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- async-python-patterns
+- python-type-safety
+- python-resilience
+discovery: []
+gaps:
+  status: none
+done:
+- Создан harness/hooks/context_ledger_adapters.py с provider-neutral нормализатором, поддержкой Read/read, Edit/Write, NotebookEdit, rename/delete aliases, детерминированным derived_identity, сессионной инвалидацией для всех акторов (root и subagents) и fail-closed обработкой.
+- Интегрированы PreToolUse и PostToolUse хуки в harness/hooks/agent-pretool.py, harness/hooks/write-pretool.py, harness/hooks/agent-posttool.py.
+- Обновлены runtime адаптеры loop/runtime_adapters/claude.py и loop/runtime_adapters/codex.py, а также materializers loop/runtime_materializers/hooks_json.py, loop/runtime_materializers/codex_policy_mapping.yaml и harness/manifest.yaml для обеспечения паритета провайдеров.
+- Созданы тестовые наборы harness/hooks/tests/test_context_ledger_adapters.py и loop/tests/test_context_ledger_provider_parity.py (11 тестов), подтверждающие паритет между Claude и Codex, изоляцию root/subagent, инвалидацию при записи и fail-closed поведение.
+files:
+- harness/hooks/context_ledger_adapters.py
+- harness/hooks/agent-pretool.py
+- harness/hooks/write-pretool.py
+- harness/hooks/subagent-start.py
+- harness/hooks/agent-posttool.py
+- loop/runtime_adapters/claude.py
+- loop/runtime_adapters/codex.py
+- loop/runtime_materializers/hooks_json.py
+- loop/runtime_materializers/codex_policy_mapping.yaml
+- harness/manifest.yaml
+- harness/hooks/tests/test_context_ledger_adapters.py
+- loop/tests/test_context_ledger_provider_parity.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -v`'
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -q --tb=line — 11 passed
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -q --tb=line -k "alias or parity or normalize" — 6 passed
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -q --tb=line -k "root or subagent or invalidat" — 4 passed
+- rg -n 'derived_identity|fail.closed|provider|parity|Read|read|Edit|Write' harness/hooks/context_ledger_adapters.py harness/hooks/agent-pretool.py harness/hooks/write-pretool.py loop/runtime_materializers/hooks_json.py loop/runtime_materializers/codex_policy_mapping.yaml — CP3 OK
+- rg -n 'context_ledger|PreToolUse|PostToolUse|SubagentStart|SubagentStop' harness/manifest.yaml loop/runtime_materializers/hooks_json.py loop/runtime_materializers/codex_policy_mapping.yaml — CP4 OK
+checkpoints:
+- id: cp1
+  criterion: Claude Read/Edit and Codex equivalent aliases normalize to the same request fields, actor lineage, canonical path and reason code.
+  status: done
+  done_at: '2026-09-07T18:45:00Z'
+- id: cp2
+  criterion: Root and subagent invocations stay distinguishable while a root write invalidates the same file for every actor; each actor can read the new hash once.
+  status: done
+  done_at: '2026-09-07T18:45:00Z'
+- id: cp3
+  criterion: Missing provider identity is recorded as derived_identity and mismatched normalized payloads fail closed without provider-local fallback.
+  status: done
+  done_at: '2026-09-07T18:45:00Z'
+- id: cp4
+  criterion: Claude and Codex hook materialization contains the context ledger adapter exactly once at the shared boundary.
+  status: done
+  done_at: '2026-09-07T18:45:00Z'
+resume_from: null

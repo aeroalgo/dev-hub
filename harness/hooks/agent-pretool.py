@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""PreToolUse Agent — normalize type, contract gate, strip worktree/model, HARD RULE."""
+"""PreToolUse Agent & Context Read — normalize type, contract gate, provider parity, derived_identity, fail-closed enforcement.
+Supports Read/read/Edit/Write aliases and routes reads to context ledger adapter.
+"""
 from __future__ import annotations
 
 import sys
@@ -27,11 +29,27 @@ from _lib import (
     GATE_AGENTS,
 )
 from spawn_validate import validate_spawn_input
+from context_ledger_adapters import (
+    READ_TOOL_ALIASES,
+    evaluate_read_payload,
+)
 
 
 def main() -> None:
     data = read_stdin()
-    if data.get("tool_name") not in {"Agent", "Task"}:
+    tool_name = str(data.get("tool_name") or data.get("tool") or data.get("name") or "")
+
+    # Handle Read/read tool aliases through context ledger provider parity adapter
+    if tool_name in READ_TOOL_ALIASES:
+        cwd = str(product_cwd(data.get("cwd") or ""))
+        receipt, resp = evaluate_read_payload(data, provider="claude", cwd=cwd)
+        if receipt.decision in ("duplicate", "denied"):
+            emit(resp)
+            return
+        emit(resp)
+        return
+
+    if tool_name not in {"Agent", "Task"}:
         return
 
     tool_input = dict(data.get("tool_input") or {})

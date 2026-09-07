@@ -1,3 +1,7 @@
+"""Materialize Codex hooks.json from harness manifest with provider parity across runtimes.
+Maps PreToolUse, PostToolUse, SubagentStart, SubagentStop, and context_ledger adapters.
+Guarantees Read/read and Edit/Write parity, derived_identity tracking, and fail.closed execution.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -19,6 +23,7 @@ EVENT_MAPPING: dict[str, str] = {
     "agent-pretool": "PreToolUse",
     "bash-pretool": "PreToolUse",
     "write-pretool": "PreToolUse",
+    "context-ledger": "PreToolUse",
     "finish-boundary-pretool": "PreToolUse",
     "agent-posttool": "PostToolUse",
     "bash-output-cap": "PostToolUse",
@@ -77,7 +82,7 @@ def generate_hooks_json(
             entry["matcher"] = "Bash"
             if hook_name in ("bash-output-cap", "agent-posttool-bash"):
                 entry["timeout_ms"] = 45000
-        elif hook_name == "write-pretool":
+        elif hook_name in ("write-pretool", "context-ledger"):
             entry["matcher"] = "Write|Edit|NotebookEdit"
 
         if event_name not in hooks_dict:

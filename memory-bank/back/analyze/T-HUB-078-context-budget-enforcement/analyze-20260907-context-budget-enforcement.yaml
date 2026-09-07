@@ -2,133 +2,285 @@ schema: epic-analyze/v1
 role: back
 plan_id: T-HUB-078-context-budget-enforcement
 slug: context-budget-enforcement
-date: 2026-09-07
+date: '2026-09-07'
 status: complete
-
-findings:
-  - id: A1
-    severity: MEDIUM
-    category: Underspecification
-    message: "Test target loop/tests/test_context_real_shard_flow.py in s05 is a new file that will be created during implementation."
-    plan_ref: "plan §259"
-    step_ref: s05
-
+index_fingerprint: sha256:99564048955fa8021cdc5cf7dc51c742bfb2518a6c69efa5249bef33f9dc18dd
+findings: []
 coverage:
-  - requirement_id: FR-001
-    step_ids: [s01, s02, s06]
-    status: covered
-    plan_text_verbatim: "повторный полный Read того же пути, диапазона и content hash возвращает cached-reference receipt или deny, не перегружая контекст вторым payload."
-  - requirement_id: FR-002
-    step_ids: [s01, s02]
-    status: covered
-    plan_text_verbatim: "после Edit допускается только diff или declared symbol/range; новый full Read требует explicit exception reason."
-  - requirement_id: FR-003
-    step_ids: [s03, s05, s06]
-    status: covered
-    plan_text_verbatim: "PLAN runner materializes `plan_jumps` into bounded excerpts; IMPLEMENT Read whole `md/plan.md` denied unless plan-mode/approved exception."
-  - requirement_id: FR-004
-    step_ids: [s03, s05, s06]
-    status: covered
-    plan_text_verbatim: "поиск (Grep, Glob, find, rg, cat/Python fallback) за пределами declared shard files, delta и их direct parent directories требует graphify evidence и явный `reason`."
-  - requirement_id: FR-005
-    step_ids: [s04, s06]
-    status: covered
-    plan_text_verbatim: "end-of-session telemetry reports `unique_reads`, `duplicate_reads`, bytes/ranges, monolith-plan attempts, search exceptions and highest-repeat path."
-  - requirement_id: FR-006
-    step_ids: [s03, s06]
-    status: covered
-    plan_text_verbatim: "повторный запуск того же targeted test без изменения relevant diff возвращает no-op/cached test receipt."
-  - requirement_id: FR-007
-    step_ids: [s02, s04, s05, s06]
-    status: covered
-    plan_text_verbatim: "Claude Code и Codex используют один и тот же normalized request/response format на границе policy; adapter конвертирует transport payloads в shared ledger decisions."
-  - requirement_id: FR-008
-    step_ids: [s01, s02, s04, s05, s06]
-    status: covered
-    plan_text_verbatim: "ledger различает root-agent и каждый subagent через `(project_root, root_session_id, agent_invocation_id, runtime_provider)`."
-  - requirement_id: FR-009
-    step_ids: [s01, s02, s06]
-    status: covered
-    plan_text_verbatim: "любая запись (Edit, Write, tool apply, git checkout) инвалидирует cached ranges затронутых файлов для всех subagents этой сессии."
-  - requirement_id: FR-010
-    step_ids: [s01, s02, s04, s05, s06]
-    status: covered
-    plan_text_verbatim: "повторный полный/частичный Read возвращает machine-readable decision receipt с `allowed|duplicate|partial|invalidated|denied|exception`, reason code и canonical path, но никогда не включает содержимое файла."
-  - requirement_id: AC+ #1
-    step_ids: [s01, s02, s06]
-    status: covered
-    plan_text_verbatim: "Duplicate full/partial Read returns cached-reference receipt or deny without delivering full file payload a second time."
-  - requirement_id: AC+ #2
-    step_ids: [s01, s02]
-    status: covered
-    plan_text_verbatim: "Write/Edit invalidates existing ranges across root and subagents; subsequent read delivers only changed content/diff or fails closed."
-  - requirement_id: AC+ #3
-    step_ids: [s03, s05, s06]
-    status: covered
-    plan_text_verbatim: "IMPLEMENT reading whole plan.md is blocked unless matching a declared jump or explicit plan mode."
-  - requirement_id: AC+ #4
-    step_ids: [s03, s05, s06]
-    status: covered
-    plan_text_verbatim: "Unscoped grep/rg/search fails closed unless graphify exception is attached."
-  - requirement_id: AC+ #5
-    step_ids: [s04, s06]
-    status: covered
-    plan_text_verbatim: "Telemetry distinguishes allowed reads, denied rereads and approved exceptions without storing secret file content."
-  - requirement_id: AC+ #6
-    step_ids: [s02, s05]
-    status: covered
-    plan_text_verbatim: "Codex and Claude run on the same shared policy with zero provider-local bypass."
-  - requirement_id: AC- #1
-    step_ids: [s01, s04]
-    status: covered
-    plan_text_verbatim: "No secret file contents or diff bodies persisted in ledger/telemetry files."
-  - requirement_id: AC- #2
-    step_ids: [s03, s04, s05, s06]
-    status: covered
-    plan_text_verbatim: "No failure mode that silently falls back to full plan/read-all-memory-bank."
-  - requirement_id: AC- #3
-    step_ids: [s01, s02]
-    status: covered
-    plan_text_verbatim: "No subagent cross-talk or silent sharing of unverified cache entries."
-  - requirement_id: NFR: fail-closed
-    step_ids: [s01, s02, s04, s06]
-    status: covered
-    plan_text_verbatim: "hash unavailable, pre/post mismatch, persistence failure, provider mismatch and finish write failure do not become silent green."
-  - requirement_id: NFR: durable
-    step_ids: [s01, s04, s06]
-    status: covered
-    plan_text_verbatim: "ledger survives hook process restarts within the session without losing duplicate state."
-  - requirement_id: NFR: low overhead
-    step_ids: [s01, s03]
-    status: covered
-    plan_text_verbatim: "pre-hook decision latency < 15ms on local files."
-  - requirement_id: layout:harness/hooks/context_ledger.py
-    step_ids: [s01, s06]
-    status: covered
-    plan_text_verbatim: "harness/hooks/context_ledger.py — shared ContextLedger core, range tracking, invalidation and receipts."
-  - requirement_id: layout:harness/hooks/context_ledger_adapters.py
-    step_ids: [s02, s06]
-    status: covered
-    plan_text_verbatim: "harness/hooks/context_ledger_adapters.py — Claude PreToolUse and Codex event bridges."
-  - requirement_id: layout:harness/hooks/context_scope.py
-    step_ids: [s03, s06]
-    status: covered
-    plan_text_verbatim: "harness/hooks/context_scope.py — plan-jump and search allowlist resolver."
-  - requirement_id: layout:harness/hooks/context_telemetry.py
-    step_ids: [s04, s06]
-    status: covered
-    plan_text_verbatim: "harness/hooks/context_telemetry.py — session-finish metrics and projection."
-  - requirement_id: layout:loop/runtime_materializers/agent_policy.py
-    step_ids: [s05, s06]
-    status: covered
-    plan_text_verbatim: "loop/runtime_materializers/agent_policy.py — materialized agent instructions and policy records."
-
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: session ledger хранит canonical realpath, content hash/version,
+    range, purpose и sequence Read; повтор полного неизменённого Read получает denial/cached
+    reference.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: после Edit допускается только diff или declared symbol/range;
+    новый full Read требует explicit exception reason.
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: PLAN runner materializes `plan_jumps` into bounded excerpts;
+    IMPLEMENT Read whole `md/plan.md` denied unless plan-mode/approved exception.
+- requirement_id: FR-004
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: search command derives allowlist from shard `files`, declared
+    delta and parent dirs. Выход за неё требует successful graphify query plus typed
+    reason.
+- requirement_id: FR-005
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: end-of-session telemetry reports `unique_reads`, `duplicate_reads`,
+    bytes/ranges, monolith-plan attempts, search exceptions and highest-repeat path.
+- requirement_id: FR-006
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: targeted test command results are fingerprinted by command +
+    relevant diff; exact repeat without changed inputs returns cached result or explicit
+    no-op record.
+- requirement_id: FR-007
+  step_ids:
+  - s02
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: один и тот же ledger policy применяется к root-agent и каждому
+    subagent в Claude Code и Codex; различия provider payload не меняют duplicate/read-after-edit
+    semantics.
+- requirement_id: FR-008
+  step_ids:
+  - s01
+  - s02
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: ledger scope различает `(project, root session, actor invocation)`
+    и не переносит факт чтения между parent/child автоматически.
+- requirement_id: FR-009
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: после успешного изменения или обнаружения внешнего изменения
+    файла прежние ranges этого файла недействительны до подтверждения новой content
+    hash.
+- requirement_id: FR-010
+  step_ids:
+  - s01
+  - s02
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: повторный полный/частичный Read возвращает machine-readable
+    decision receipt с `allowed|duplicate|partial|invalidated|denied|exception`, reason
+    code и canonical path, но никогда не включает содержимое файла.
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Repeating the same full Read in IMPLEMENT is blocked/cached,
+    increments `duplicate_reads`, and cannot produce a second full context payload.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: A plan jump succeeds while whole plan Read is denied in IMPLEMENT.
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Search inside shard paths works; search outside requires graphify
+    evidence and records its reason.
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: A real code edit permits a narrow post-edit diff read, not silent
+    stale caching.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Telemetry distinguishes allowed reads, denied rereads and approved
+    exceptions without storing secret file content.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s01
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Root-agent and two subagents reading the same unchanged range
+    receive independent, deterministic decisions in both Claude and Codex fixtures.
+- requirement_id: 'AC+ #7'
+  step_ids:
+  - s01
+  - s02
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: A write by root-agent invalidates the same file for root-agent
+    and subagents; each actor may read the new version once, then duplicate protection
+    applies again.
+- requirement_id: 'AC+ #8'
+  step_ids:
+  - s02
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Provider event aliases (`Read`/`read`, `Edit`/`Write` and equivalent
+    Codex payloads) converge to the same normalized request and decision.
+- requirement_id: 'AC− #1'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: No hidden global bypass for `Read`, `rg`, `cat`, Python file
+    reads or wrapper aliases.
+- requirement_id: 'AC− #2'
+  step_ids:
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: No failure mode that silently falls back to full plan/read-all-memory-bank.
+- requirement_id: 'AC− #3'
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: No test cache reuses a command after relevant files changed.
+- requirement_id: 'AC− #4'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: No process-local-only ledger that disappears between hook invocations.
+- requirement_id: 'AC− #5'
+  step_ids:
+  - s02
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: No provider-specific bypass through child agents, aliases, wrapper
+    commands or a second hook registration.
+- requirement_id: 'NFR: fail-closed'
+  step_ids:
+  - s01
+  - s02
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: hash unavailable, pre/post mismatch, persistence failure, provider
+    mismatch and finish write failure do not become silent green.
+- requirement_id: 'NFR: durable'
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: ledger survives hook process restarts within the session without
+    losing duplicate state.
+- requirement_id: 'NFR: low overhead'
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: pure unit tests with no provider; metadata-only storage.
+- requirement_id: layout:harness/hooks/context_ledger.py
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: harness/hooks/context_ledger.py — canonical path, hash/version,
+    interval algebra, actor/session key, decision receipt
+- requirement_id: layout:harness/hooks/context_ledger_adapters.py
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: harness/hooks/context_ledger_adapters.py — Claude and Codex
+    event normalizers and provider response mapping
+- requirement_id: layout:harness/hooks/context_scope.py
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: harness/hooks/context_scope.py — plan-jump and search allowlist
+    resolver
+- requirement_id: layout:harness/hooks/context_telemetry.py
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: harness/hooks/context_telemetry.py — session state, counters
+    and finish projection
+- requirement_id: layout:loop/mb_load/plan_section.py
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: loop/mb_load/plan_section.py — bounded plan jump excerpt generator
+- requirement_id: layout:loop/runtime_adapters/claude.py
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: loop/runtime_adapters/claude.py — Claude runtime tool and lifecycle
+    hooks
+- requirement_id: layout:loop/runtime_adapters/codex.py
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: loop/runtime_adapters/codex.py — Codex event bridge and hook
+    integration
+- requirement_id: layout:loop/runtime_materializers/agent_policy.py
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: loop/runtime_materializers/agent_policy.py — shared instruction
+    and policy materializer
 metrics:
   coverage_pct: 100
   critical_count: 0
   high_count: 0
-  findings_total: 1
-
+  findings_total: 0
 recommendation: IMPLEMENT
 next_actions: []
 constitution_violations: []

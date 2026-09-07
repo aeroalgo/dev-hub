@@ -37,7 +37,6 @@ def test_build_dsh_command_default_profile() -> None:
         "dsh",
         "--profile",
         "epic-implement",
-        "--no-open",
         "do the work",
     ]
 
@@ -47,7 +46,6 @@ def test_build_dsh_command_custom_bin() -> None:
         "npx",
         "--profile",
         "custom",
-        "--no-open",
         "prompt",
     ]
 

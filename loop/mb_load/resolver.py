@@ -1,8 +1,7 @@
 """Resolve session bundles within the current pack, role and epic."""
-
 from pathlib import Path
 from typing import NamedTuple
-
+from loop.mb_load.plan_section import is_whole_plan_path
 from loop.paths.forbidden_policy import policy_for_layout
 from loop.paths.pack_layout import resolve_mb_root
 from loop.workflow.registry import resolve_workflow_pack
@@ -39,7 +38,9 @@ def resolve_bundle_paths(
     epic_id: str | None = None,
     role: str | None = None,
 ) -> ResolvedBundle:
-    """Auto-add only current epic evidence; never substitute another epic's step."""
+    """Auto-add only current epic evidence; never substitute another epic's step.
+    Denies whole plan paths in lean execution modes and records diagnostic.
+    """
     cwd_path = Path(cwd).resolve()
     mode_upper = (mode or "").strip().upper()
     diagnostics: list[str] = []
@@ -55,6 +56,7 @@ def resolve_bundle_paths(
     role = (role or "").lower()
     if role == "integ":
         role = "integration"
+
     identities = {_artifact_identity(cwd_path / p, mb_root) for p in load_now_paths}
     identities.discard(None)
     if not epic_id and len(identities) == 1:
@@ -74,6 +76,8 @@ def resolve_bundle_paths(
             diagnostics.append(f"artifact_identity_mismatch:{path}")
         elif policy.is_forbidden(path, mode=mode_upper):
             forbidden.append(path)
+            if is_whole_plan_path(path):
+                diagnostics.append(f"whole_plan_forbidden_in_{mode_upper.lower()}:{path}")
         else:
             resolved.append(path)
 
@@ -84,7 +88,6 @@ def resolve_bundle_paths(
         if kind == "implement":
             try:
                 from epic_paths import epic_id_from_plan_path, find_plan_md_path
-
                 plan_path = find_plan_md_path(cwd_path, role, epic_id)
                 full_id = epic_id_from_plan_path(plan_path)
                 if full_id and full_id not in epic_ids:
@@ -99,6 +102,7 @@ def resolve_bundle_paths(
             patterns = [f"{step_id}-*.yaml", f"{step_id}.yaml"] if step_id else []
         else:
             patterns = [f"{kind}-*.{'md' if kind == 'bugfix' else 'yaml'}"]
+
         has_kind = any(kind in Path(p).parts for p in resolved)
         candidates = {p for d in directories for pattern in patterns for p in d.glob(pattern) if p.is_file()}
         if not has_kind and candidates:
@@ -110,4 +114,5 @@ def resolve_bundle_paths(
                 if rel not in resolved:
                     resolved.append(rel)
                     auto_added.append(rel)
+
     return ResolvedBundle(resolved, auto_added, forbidden, diagnostics)

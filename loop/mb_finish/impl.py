@@ -261,10 +261,24 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         mode=next_mode,
         epic_id=epic_id or None,
     )
+    from harness.hooks.context_telemetry import build_finish_receipt, format_telemetry_summary
+    session_id = str(state.get("session_id") or os.environ.get("PROJECT_LOOP_SESSION_ID") or "").strip()
+    receipt = None
+    if session_id:
+        receipt = build_finish_receipt(cwd, session_id, epic_id=epic_id)
+        if receipt.status in ("corrupt", "non_green"):
+            diag_code = receipt.aggregate.diagnostic_code or "telemetry_corrupt"
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=[diag_code],
+                shape_errors=[f"Context telemetry is non-green: {receipt.diagnostics}"],
+            )
+
     handoff_body = HandoffBody(
         mode=next_mode,
         next_hint=req.done_summary or default_hint,
         epic_id=epic_id or None,
+        telemetry_summary=format_telemetry_summary(receipt) if receipt and receipt.status == "green" else None,
     )
 
     try:

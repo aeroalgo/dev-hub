@@ -3,33 +3,33 @@ plan_id: T-HUB-078-context-budget-enforcement
 source_md: ../md/decompose-index.md
 status_canon: decompose-index.yaml
 steps:
-  - id: s01
-    file: s01-context-ledger-policy.yaml
-    title: "Один durable ledger принимает нормализованные Read/Edit решения"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02-provider-adapters-and-invalidation.yaml
-    title: "Claude и Codex используют один контракт и одинаковую invalidation semantics"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s03
-    file: s03-plan-jump-search-and-test-scope.yaml
-    title: "Plan-jump, search allowlist и test fingerprint закрывают обходы контекста"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s04
-    file: s04-telemetry-and-finish-projection.yaml
-    title: "Finish telemetry публикует attributable counters без content leakage"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s05
-    file: s05-contract-materialization-and-regression-flow.yaml
-    title: "Root/subagent policy materialized parity и реальный shard flow enforce-ится"
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s06
-    file: s06-legacy-fallback-purge.yaml
-    title: "Legacy fallback purge удаляет prose-only и provider-local обходы"
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-context-ledger-policy.yaml
+  title: Один durable ledger принимает нормализованные Read/Edit решения
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-provider-adapters-and-invalidation.yaml
+  title: Claude и Codex используют один контракт и одинаковую invalidation semantics
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-plan-jump-search-and-test-scope.yaml
+  title: Plan-jump, search allowlist и test fingerprint закрывают обходы контекста
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-telemetry-and-finish-projection.yaml
+  title: Finish telemetry публикует attributable counters без content leakage
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-contract-materialization-and-regression-flow.yaml
+  title: Root/subagent policy materialized parity и реальный shard flow enforce-ится
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: Legacy fallback purge удаляет prose-only и provider-local обходы
+  next_phase: BACK IMPLEMENT
+  status: pending
