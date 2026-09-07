@@ -4,6 +4,7 @@
 **Режим:** BACK PLAN · **Уровень:** L3 · **Статус:** draft  
 **Clarify:** Phase 0 skipped — taxonomy clear; источник содержит конкретный incident, владельцев и проверяемый результат.  
 **Prompt:** [md/prompt.md](prompt.md)
+**Decompose index:** [md/decompose-index.md](decompose-index.md) · [yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ## Контекст
 

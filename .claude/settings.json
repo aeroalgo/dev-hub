@@ -78,6 +78,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/finish-boundary-pretool.py\"",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PostToolUse": [

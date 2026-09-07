@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-077-gate-evidence-integrity
+title: "Immutable verifier receipt contract and runtime-only emitter"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать единственный schema-validated immutable receipt, который runtime выпускает после
+  завершения разрешённого verifier/reviewer и который связывает результат с текущими
+  session, epoch, projection, role, step и identity. Mirror хранит только ссылку и digest,
+  а не произвольный evidence-dict; receipt-less legacy state получает named rejection.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, AC+1, AC+2, AC−1, TM-077-02, TM-077-04]
+  nouns: [typed signed gate receipt, session_id, phase_epoch, projection/event digest, role, step, verifier identity, receipt digest, mirror_gate_verdict, subagent-stop]
+  layout_paths:
+    - harness/hooks/gate_receipt.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_lib.py
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+  ac_quotes:
+    - "PASS evidence имеет immutable provenance: session_id, phase_epoch, projection/event digest, role, step, verifier identity, receipt digest и время создания."
+    - "mb-finish и finalize-step принимают PASS только если provenance совпадает с текущим projection и receipt выпущен разрешённым verifier/reviewer runtime-path."
+    - "Нет compatibility branch, где authority=manual, пустой receipt или state-only PASS эквивалентны verifier PASS."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:33-61
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:65-76
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:117-123
+
+context:
+  consumes:
+    - s01 red receipt matrix
+    - plan.md §Technology axiom
+    - plan.md §Stage 1
+  produces:
+    - versioned receipt schema, digest builder, validator and immutable persisted receipt record
+    - subagent-stop runtime-only receipt emission after accepted verifier/reviewer verdict
+    - mirror APIs that accept validated receipt reference/digest rather than caller-controlled evidence
+  plan_refs: [plan.md#technology-axiom, plan.md#stages]
+  files:
+    - harness/hooks/gate_receipt.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_lib.py
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+
+as_built:
+  - subagent-stop derives mutable verdict evidence from current_gate_identity and passes it to mirror APIs.
+  - gate_evidence_matches compares persisted evidence against current runner projection but does not require an immutable runtime receipt.
+  - mirror_verify_verdict and mirror_gate_verdict remain the production integration surface for verifier/reviewer completion.
+
+delta:
+  - add a versioned JSON receipt model with canonical digest over immutable provenance and issued timestamp.
+  - issue and persist receipt only in the accepted subagent-stop verifier/reviewer completion path after identity resolution.
+  - require mirror production paths to resolve a validated receipt reference and record only its digest/reference in epic state.
+  - reject receipt-less, manual-authority and malformed legacy state with a named diagnostic; retain test-only fixture builders outside production authority.
+
+deletes: []
+
+out_of_scope:
+  - stop-gate and mb-finish dual validation/wire (s03)
+  - parent write denial and operator repair (s04)
+  - removal of obsolete manual helpers and instructions (s05)
+  - full suite → QA
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Receipt schema validates all provenance fields and recomputes canonical digest; any post-issue mutation is detected.
+    verify: "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py -q --tb=line -k 'schema or digest or mutated'"
+  - id: cp2
+    criterion: Only subagent-stop accepted verifier/reviewer completion emits a receipt; direct mirror caller cannot supply authority=manual evidence.
+    verify: "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py -q --tb=line -k 'emitter or manual or mirror'"
+  - id: cp3
+    criterion: Persisted mirror state carries receipt reference/digest only and legacy receipt-less PASS is a named rejection.
+    verify: "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'reference or receipt_less or legacy'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line"
+tdd:
+  - "red: s01 matrix stays red until receipt issuance and validation exist"
+  - "green: schema, emitter and mirror reference satisfy forged/mutated evidence cases without a second authority path"

@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-077-gate-evidence-integrity
+title: "Enforce current verifier receipt at stop and finish boundaries"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сделать валидный current receipt единственным разрешением продолжать workflow: stop-gate
+  и mb-finish/finalize-step независимо проверяют identity, epoch, projection и digest.
+  Parent получает только read-only typed status; отсутствующий, stale или mismatched receipt
+  останавливает flow с GATE_INFRASTRUCTURE_FAILURE и не запускает скрытый retry.
+
+plan_contract:
+  fr_ids: [FR-002, FR-004, AC+1, AC+2, AC+3, AC+4, AC+5, AC−1, AC−2, TM-077-02, TM-077-03, TM-077-04, TM-077-05]
+  nouns: [stop-gate, mb-finish, finalize-step, receipt validator, current projection, passed, failed, stale, infrastructure_failure, GATE_INFRASTRUCTURE_FAILURE, await_gate]
+  layout_paths:
+    - harness/hooks/stop-gate.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+  ac_quotes:
+    - "Parent может только ждать/читать typed status gate; не может очистить in_flight или редактировать runtime JSON."
+    - "Stale/TaskStop оставляет диагностируемую запись и переводит flow в stop/repair, а не в verifier retry loop."
+    - "Настоящий verifier PASS по действующему shard продолжает успешно проходить весь finish path."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:41-53
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:65-86
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:124-128
+
+context:
+  consumes:
+    - s01 receipt-integrity test matrix
+    - s02 immutable receipt contract
+    - plan.md §Stage 2
+  produces:
+    - one shared pure current-receipt validator used by stop-gate and mb-finish/finalize-step
+    - read-only typed status projection for parent prompt/lifecycle consumers
+    - fail-closed stale and abnormal-verifier diagnostics with retained forensic state
+  plan_refs: [plan.md#failure-matrix, plan.md#stages]
+  files:
+    - harness/hooks/stop-gate.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+
+as_built:
+  - stop-gate reads spawn-gate and epic state to determine whether verify evidence permits FINISH.
+  - mb-finish owns final activeContext and decompose validation but receives legacy gate evidence through epic core helpers.
+  - parent-facing loop instructions can observe runtime status but do not expose a receipt-only typed projection contract.
+
+delta:
+  - wire the shared receipt validator into stop-gate before it permits FINISH and into mb-finish/finalize-step before it changes completion state.
+  - require receipt session, epoch, projection/event digest, role, step, verifier identity and receipt digest to match current identity at both boundaries.
+  - project only passed, failed, stale or infrastructure_failure to parent lifecycle prompt construction; omit mutable receipt internals.
+  - classify TaskStop/no receipt/stale receipt and identity mismatch as GATE_INFRASTRUCTURE_FAILURE with preserved forensic marker and no implicit verifier retry.
+
+deletes: []
+
+out_of_scope:
+  - direct-write policy and human operator repair command (s04)
+  - legacy production helpers, shell recipes and instruction text deletion (s05)
+  - cosmetic status UI and non-Claude-Code runtimes — Appetite cut
+  - full suite → QA
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: stop-gate rejects manual, missing, mutated and wrong-identity receipts before FINISH with named fail-closed diagnostics.
+    verify: "bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line"
+  - id: cp2
+    criterion: Direct mb-finish/finalize-step cannot bypass stop-gate with state-only PASS; both boundaries use the same current receipt validation result.
+    verify: "bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'manual or direct or identity or digest'"
+  - id: cp3
+    criterion: TaskStop, no receipt and stale receipt project infrastructure_failure, preserve forensic state and do not schedule an implicit retry.
+    verify: "bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'taskstop or stale or infrastructure'"
+  - id: cp4
+    criterion: Valid verifier receipt for the active shard returns passed and completes the production finish path.
+    verify: "bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'valid and finish'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line"
+tdd:
+  - "green: use s02 receipt validator in both boundary entrypoints"
+  - "regression: no state-only PASS, stale clear or auto-retry restores a finish path"

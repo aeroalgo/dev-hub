@@ -1648,18 +1648,20 @@ def set_gate_identity(state: dict[str, Any], identity: dict[str, Any]) -> None:
 def match_gate_evidence(
     evidence: object, current: dict[str, Any]
 ) -> tuple[bool, str]:
-    """Match verify evidence to the current projection.
-
-    Binding keys are step + projection_hash + phase_epoch (+ epic/role/digest).
-    ``session_id`` is audit-only: Claude retries mint new invoke ids, and
-    aborted loop sessions often clear epic ``session_id`` while PASS evidence
-    remains valid for the same armed step. Requiring session equality caused
-    finalize-step to fail and the loop to re-arm the same step forever.
-    """
+    """Match verify evidence/receipt to the current projection."""
     if not isinstance(evidence, dict):
         return False, "verdict_evidence_missing"
     if evidence.get("authority") == "manual":
         return True, "manual_fallback_non_authoritative"
+
+    schema = str(evidence.get("schema") or "").strip()
+    if schema == "loop-verifier-receipt/v1":
+        try:
+            from gate_receipt import validate_verifier_receipt
+            return validate_verifier_receipt(evidence, current)
+        except ImportError:
+            pass
+
     required = ("step", "projection_hash", "phase_epoch")
     if any(not evidence.get(key) for key in required):
         return False, "verdict_identity_missing"
@@ -1669,6 +1671,10 @@ def match_gate_evidence(
         expected = current.get(key)
         observed = evidence.get(key)
         if expected is not None and observed != expected:
+            if key == "step":
+                return False, "verdict_wrong_step"
+            if key == "phase_epoch":
+                return False, "epoch_mismatch"
             return False, "verdict_stale"
     return True, "matched"
 
@@ -1714,20 +1720,30 @@ def verdict_evidence(
     verdict: str,
     *,
     diagnostic: str | None = None,
+    verifier_identity: str = "verify",
 ) -> dict[str, Any]:
-    """Create bounded, typed evidence for one gate verdict."""
-    evidence = {
-        "schema_version": "hook-verdict/v1",
-        "verdict": str(verdict).upper(),
-        "observed_at": utc_now(),
-        **{key: identity.get(key) for key in (
-            "session_id", "epic_id", "role", "step", "projection_hash",
-            "phase_epoch", "event_digest", "authority",
-        )},
-    }
-    if diagnostic:
-        evidence["diagnostic"] = str(diagnostic)[:240]
-    return evidence
+    """Create bounded, typed evidence / verifier receipt for one gate verdict."""
+    try:
+        from gate_receipt import issue_verifier_receipt
+        return issue_verifier_receipt(
+            identity,
+            verdict,
+            verifier_identity=verifier_identity,
+            diagnostic=diagnostic,
+        )
+    except ImportError:
+        evidence = {
+            "schema_version": "hook-verdict/v1",
+            "verdict": str(verdict).upper(),
+            "observed_at": utc_now(),
+            **{key: identity.get(key) for key in (
+                "session_id", "epic_id", "role", "step", "projection_hash",
+                "phase_epoch", "event_digest", "authority",
+            )},
+        }
+        if diagnostic:
+            evidence["diagnostic"] = str(diagnostic)[:240]
+        return evidence
 
 
 def sync_gate_identity(state: dict[str, Any], identity: dict[str, Any]) -> bool:
@@ -2340,16 +2356,49 @@ _STATE_PATH_RE = re.compile(
 
 
 def state_projection_deny_reason(command: str | None) -> str | None:
-    """Deny agent-side writes to the runner-derived epic projection."""
-    if not command or not _STATE_PATH_RE.search(str(command)):
-        return None
-    cmd = str(command)
-    if not re.search(r"(?is)(?:>|tee|sed\s+-i|perl\s+-i|mv|cp|rm|truncate)", cmd):
+    """Deny agent-side writes to the runner-derived epic projection or runtime gate state."""
+    return bash_gate_state_write_deny_reason(command)
+
+
+_RUNTIME_GATE_FILE_RE = re.compile(
+    r"(?i)(?:^|[\s/'\"])(?:\.\.?/)?(?:\.claude/)?runtime/(?:spawn-gate|epic|gate)[/\w.-]*"
+)
+_RUNTIME_GATE_MUTATOR_RE = re.compile(
+    r"(?is)(?:>|tee|sed\s+-i|perl\s+-i|mv|cp|rm|truncate)"
+)
+
+
+def is_gate_state_path(path: str | Path | None) -> bool:
+    if not path:
+        return False
+    norm = str(path).replace("\\", "/")
+    return bool(re.search(r"(?:^|/)(?:\.claude/)?runtime/(?:spawn-gate|epic|gate)(?:/|$)", norm))
+
+
+def gate_state_write_deny_reason(
+    cwd: str | Path, file_path: str | Path | None
+) -> str | None:
+    """Deny Tool/Write/Edit targeting runtime-gate, spawn-gate, and verifier state."""
+    if not is_gate_state_path(file_path):
         return None
     return (
-        "state_projection_forbidden: `.claude/runtime/epic/state.json` — "
-        "runner-owned derived cache; не редактируй его вручную. "
-        "Измени source artifacts, activeContext или index через canonical CLI."
+        "runtime_gate_write_forbidden: direct modification of runtime gate, spawn-gate, "
+        "or verifier state is denied on agent tool boundary. "
+        "Use authorized verifier spawn or operator repair CLI."
+    )
+
+
+def bash_gate_state_write_deny_reason(command: str | None) -> str | None:
+    """Deny shell write/edit/rm/truncate commands targeting runtime gate files."""
+    if not command or not _RUNTIME_GATE_FILE_RE.search(str(command)):
+        return None
+    cmd = str(command)
+    if not _RUNTIME_GATE_MUTATOR_RE.search(cmd):
+        return None
+    return (
+        "runtime_gate_write_forbidden: direct shell mutation of runtime gate, spawn-gate, "
+        "or verifier state is denied on agent tool boundary. "
+        "Use authorized verifier spawn or operator repair CLI."
     )
 
 

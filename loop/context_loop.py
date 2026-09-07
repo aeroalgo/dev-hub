@@ -946,6 +946,8 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
         finish_block = (
             "\n> После verify PASS (fenced JSON `loop-gate-verdict/v1`) → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish implement --step <sNN>`\n"
+            "> Если JSON-ответ `mb-finish` содержит `ok: true`, немедленно заверши текущую сессию/turn. Не делай после этого Read, Grep, Bash, git status или повторную валидацию. Следующий шаг runner запустит отдельным эпизодом.\n"
+            "> Если `ok: false`, остановись на диагностике CLI и исправляй только указанную причину.\n"
         )
     elif phase_kind == "qa":
         finish_block = (

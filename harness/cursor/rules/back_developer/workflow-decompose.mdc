@@ -24,6 +24,8 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 
 **Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; target band **5–8** sNN (L3/L4 ≤9). Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a.
 
+**TDD — процесс внутри шага, не отдельный shard (HARD):** failing tests + impl + green = один `sNN`. `s01-*-red-tests` как самостоятельный шаг без production behavior — **FORBIDDEN**. Checkpoints: `[tdd red, impl, green]` внутри одного шага. Поле `tdd:` = список pytest-имён, которые должны стать green.
+
 **Index REQUIRED:** `## Requirements coverage` · `## Stages coverage` · `## Outcome map` · `## Replacement cleanup` (A|B|C|**I**).  
 **Coverage rubric / anti-dilution / wire ladder / granularity / Outcome preserve / Replacement cleanup:** канон в @.cursor/rules/shared/workflow-behavior-first.mdc + @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc — **не дублировать** таблицы здесь; FAIL-условия — в Gates.
 

@@ -1717,7 +1717,16 @@ def mirror_verify_verdict(
     st["last_verify_verdict"] = effective
     st["last_verify_at"] = utc_now()
     st["last_verify_evidence"] = payload
-    st["last_verify_evidence_sha256"] = _projection_digest(payload)
+    if payload.get("schema") == "loop-verifier-receipt/v1":
+        try:
+            from gate_receipt import compute_receipt_digest
+            digest = payload.get("receipt_digest") or compute_receipt_digest(payload)
+        except Exception:
+            digest = _projection_digest(payload)
+    else:
+        digest = _projection_digest(payload)
+    st["last_verify_evidence_sha256"] = digest
+    st["last_verify_receipt"] = payload
     save_epic_state(cwd, st)
 
 
@@ -1742,6 +1751,12 @@ def mirror_gate_verdict(
         st["reviewer_done"] = True
         st["reviewer_evidence"] = reviewer_evidence
         st["last_reviewer_phase_run_id"] = st.get("phase_run_id") or st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID")
+        try:
+            from gate_receipt import compute_receipt_digest
+            st["last_reviewer_receipt"] = reviewer_evidence
+            st["last_reviewer_evidence_sha256"] = reviewer_evidence.get("receipt_digest") or compute_receipt_digest(reviewer_evidence)
+        except Exception:
+            pass
         save_epic_state(cwd, st)
         return
     mirror_verify_verdict(cwd, verdict, evidence=evidence)
@@ -2139,7 +2154,7 @@ def _resolve_implement_shard(
 def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]:
     state = load_epic_state(cwd)
     verdict = str(state.get("last_verify_verdict") or "").upper()
-    evidence = state.get("last_verify_evidence")
+    evidence = state.get("last_verify_evidence") or state.get("last_verify_receipt")
     if verdict != "PASS":
         return {
             "ok": False,
@@ -2147,6 +2162,39 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
             "diagnostic": "verify_pass_missing",
             "verdict": verdict or None,
         }
+    if not isinstance(evidence, dict):
+        return {
+            "ok": False,
+            "error": "verifier receipt required before finalize-step",
+            "diagnostic": "verifier_receipt_missing",
+            "verdict": verdict,
+        }
+
+    sid = step_id.strip().lower()
+    # Validate receipt digest & schema integrity
+    if evidence.get("authority") == "manual":
+        # Allow legacy manual authority for BUGFIX until purged in s05
+        if sid != "bugfix":
+            return {
+                "ok": False,
+                "error": "manual authority evidence rejected",
+                "diagnostic": "manual_authority_rejected",
+                "verdict": verdict,
+            }
+    if evidence.get("schema") == "loop-verifier-receipt/v1":
+        try:
+            from gate_receipt import validate_verifier_receipt
+            valid, diag = validate_verifier_receipt(evidence)
+            if not valid:
+                return {
+                    "ok": False,
+                    "error": "invalid verifier receipt",
+                    "diagnostic": diag,
+                    "verdict": verdict,
+                }
+        except ImportError:
+            pass
+
     sid = step_id.strip().lower()
     if sid == "bugfix" and (
         not isinstance(evidence, dict)
@@ -4932,4 +4980,85 @@ def arm_pre_implement_context(
         "step_id": phase_u,
         "target_rel": target_rel,
         "active_context": str(active_context_path(cwd_p).relative_to(cwd_p)),
+    }
+
+
+def operator_repair_gate(
+    cwd: str | Path,
+    *,
+    session_id: str,
+    authority: str,
+    reason: str,
+    action: str = "rearm",
+    target_verdict: str | None = None,
+) -> dict[str, Any]:
+    """Audited operator-only repair command.
+
+    Requires explicit operator authority and reason.
+    Cannot set or forge PASS.
+    Records an immutable forensic audit event.
+    """
+    auth = str(authority or "").strip().lower()
+    if not auth or auth not in {"operator", "human", "admin"}:
+        return {
+            "ok": False,
+            "diagnostic": "operator_authority_required",
+            "error": "operator authority required for gate repair",
+        }
+
+    rsn = str(reason or "").strip()
+    if not rsn:
+        return {
+            "ok": False,
+            "diagnostic": "repair_reason_required",
+            "error": "explicit reason required for operator repair",
+        }
+
+    if target_verdict and str(target_verdict).strip().upper() == "PASS":
+        return {
+            "ok": False,
+            "diagnostic": "repair_pass_prohibited",
+            "error": "operator repair is prohibited from setting or forging PASS",
+        }
+
+    cwd_p = Path(cwd).resolve()
+    st = load_epic_state(cwd_p)
+    epic_id = st.get("armed_epic") or "unknown"
+
+    # Reset stuck/stale in_flight or diagnostics in epic state
+    st["in_flight"] = []
+    st["gate_diagnostic"] = None
+    if action == "rearm":
+        st["status"] = "armed"
+        st["active"] = True
+    save_epic_state(cwd_p, st)
+
+    # Reset in spawn gate state if session_id matches
+    from _lib import load_state, save_state
+    spawn_st = load_state(session_id, str(cwd_p))
+    spawn_st["in_flight"] = []
+    spawn_st["gate_diagnostic"] = None
+    save_state(session_id, str(cwd_p), spawn_st)
+
+    # Append immutable forensic event
+    events_dir = cwd_p / "memory-bank" / "back" / "events" / epic_id
+    events_dir.mkdir(parents=True, exist_ok=True)
+    events_file = events_dir / "events.jsonl"
+    event_payload = {
+        "kind": "operator_repair",
+        "authority": auth,
+        "reason": rsn,
+        "action": action,
+        "session_id": session_id,
+        "epic_id": epic_id,
+        "created_at": utc_now(),
+    }
+    with events_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(event_payload, ensure_ascii=False) + "\n")
+
+    return {
+        "ok": True,
+        "action": action,
+        "diagnostic": "operator_repair_applied",
+        "epic_id": epic_id,
     }

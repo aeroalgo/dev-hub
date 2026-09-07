@@ -23,6 +23,8 @@ def test_build_prompt_implement_finish_order_and_handoff():
     assert "Silent chat (HARD)" in text
     assert "no thinking aloud" in text
     assert "mb-finish implement" in text
+    assert "Если JSON-ответ `mb-finish` содержит `ok: true`, немедленно заверши текущую сессию/turn" in text
+    assert "Не делай после этого Read, Grep, Bash, git status" in text
     assert "## IMPLEMENT FINISH" not in text
     assert "seed-implement" not in text
 

@@ -1,6 +1,29 @@
 version: roadmap-queue/v2
 role: back
 queue:
+- id: T-HUB-081
+  epic_id: T-HUB-081-workflow-hot-path-consolidation
+  plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
+  deps: []
+  batch: workflow-read-chain-20260907
+- id: T-HUB-082
+  epic_id: T-HUB-082-shared-lean-gate-topology
+  plan: plan-T-HUB-082-shared-lean-gate-topology.md
+  deps: []
+  batch: workflow-read-chain-20260907
+- id: T-HUB-083
+  epic_id: T-HUB-083-role-core-shared-contract
+  plan: plan-T-HUB-083-role-core-shared-contract.md
+  deps: []
+  batch: workflow-read-chain-20260907
+- id: T-HUB-084
+  epic_id: T-HUB-084-workflow-reference-graph-hygiene
+  plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
+  deps:
+  - T-HUB-081
+  - T-HUB-082
+  - T-HUB-083
+  batch: workflow-read-chain-20260907
 - id: T-HUB-077
   epic_id: T-HUB-077-gate-evidence-integrity
   plan: plan-T-HUB-077-gate-evidence-integrity.md
@@ -16,6 +39,11 @@ queue:
   plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
   deps:
   - T-HUB-077
+  batch: claude-session-audit-20260907
+- id: T-HUB-080
+  epic_id: T-HUB-080-workflow-capability-instruction-parity
+  plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
+  deps: []
   batch: claude-session-audit-20260907
 - id: plan
   epic_id: T-HUB-076-stack-profile-capability-execution
@@ -362,6 +390,9 @@ batches:
       bounded capability execution after T-HUB-075 QA PASS.
   claude-session-audit-20260907:
     title: Claude Code session audit remediation
-    note: Verification integrity, context budget enforcement and lifecycle reliability;
-      details in plan/<epic_id>/md/plan.md.
+    note: Verification integrity, context budget enforcement, lifecycle reliability
+      and stack-profile workflow instruction parity; details in plan/<epic_id>/md/plan.md.
+  workflow-read-chain-20260907:
+    title: Workflow Read-chain consolidation
+    note: Hot paths, shared lean gates, compact role cores and reference graph hygiene.
   chat-plan: {}

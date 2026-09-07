@@ -441,6 +441,16 @@ def main() -> int:
         help="raw inline JSON payload string",
     )
 
+    p_op_repair = sub.add_parser(
+        "operator-gate-repair",
+        help="audited operator repair command for stuck/stale gate states",
+    )
+    p_op_repair.add_argument("--authority", required=True, help="authority token (operator/human/admin)")
+    p_op_repair.add_argument("--reason", required=True, help="explicit operator repair rationale")
+    p_op_repair.add_argument("--session-id", default="", help="session_id to repair")
+    p_op_repair.add_argument("--action", default="rearm", help="repair action (default: rearm)")
+    p_op_repair.add_argument("--target-verdict", default=None, help="target verdict (PASS is forbidden)")
+
     p_workflow = sub.add_parser("workflow", help="workflow pack operations")
     workflow_sub = p_workflow.add_subparsers(dest="workflow_cmd", required=True)
     p_workflow_resolve = workflow_sub.add_parser("resolve", help="resolve workflow pack")
@@ -767,6 +777,19 @@ def main() -> int:
         val_res = validate_boundary(args.schema_id, raw)
         print(json.dumps(val_res.model_dump(by_alias=True), ensure_ascii=False, indent=2))
         return 0 if val_res.valid else 1
+
+    if args.cmd == "operator-gate-repair":
+        from harness.hooks.epic.core import operator_repair_gate
+        r = operator_repair_gate(
+            cwd,
+            session_id=args.session_id,
+            authority=args.authority,
+            reason=args.reason,
+            action=args.action,
+            target_verdict=args.target_verdict,
+        )
+        print(json.dumps(r, ensure_ascii=False, indent=2))
+        return 0 if r.get("ok") else 2
 
     if args.cmd == "workflow":
         if args.workflow_cmd == "resolve":

@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-077-gate-evidence-integrity
+title: s04 — Deny agent state mutation and add audited operator repair IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s04-write-boundary-operator-repair.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented agent tool boundary deny policies in write-pretool and bash-pretool
+  for runtime gate state.
+- Added operator_repair_gate with mandatory authority and rationale, recording immutable
+  forensic events.
+- Disallowed PASS injection or forging via operator repair.
+- Added test suites for agent tool write boundaries and operator gate repair.
+files:
+- harness/hooks/agent-pretool.py
+- harness/hooks/write-pretool.py
+- harness/hooks/bash-pretool.py
+- harness/hooks/_lib.py
+- harness/hooks/epic/core.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+- harness/hooks/tests/test_operator_gate_repair.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_operator_gate_repair.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_operator_gate_repair.py
+  -q --tb=line`'
+grep_control: []
+verification_results:
+- '{''pass'': True, ''test'': ''test_agent_pretool_gate_write_boundary.py''}'
+- '{''pass'': True, ''test'': ''test_operator_gate_repair.py''}'
+checkpoints:
+- id: cp1
+  criterion: Agent-style direct Tool/Edit/shell write attempts against runtime-gate,
+    spawn-gate and last_verify state are denied and observably diagnosed.
+  status: done
+  done_at: '2026-09-07T12:14:48Z'
+- id: cp2
+  criterion: TaskStop/stale path creates immutable forensic evidence and leaves gate
+    state available for diagnosis rather than silently clearing it.
+  status: done
+  done_at: '2026-09-07T12:14:55Z'
+- id: cp3
+  criterion: Operator repair requires explicit authority and reason, writes an audit
+    event, and cannot create PASS or mutate a receipt.
+  status: done
+  done_at: '2026-09-07T12:15:01Z'
+- id: cp4
+  criterion: Parent-facing repair outcome remains typed status and valid verifier
+    receipt is still required for finish success.
+  status: done
+  done_at: '2026-09-07T12:15:08Z'
+resume_from: cp1

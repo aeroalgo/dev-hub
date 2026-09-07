@@ -2,6 +2,8 @@
 
 ## Active
 
+| T-HUB-081…084 | Workflow Read-chain consolidation | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · hot path → shared lean → role core → graph hygiene · next BACK DECOMPOSE T-HUB-081 |
+
 | T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] · next BACK ANALYZE · batch workflow-loop-20260905 |
 | T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · [decompose](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/decompose-index.md) · 5 sNN · next BACK ANALYZE · batch workflow-loop-20260905 |
 | T-HUB-064 | Video pack route + verify parity | L3–L4 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-064-video-pack-route-verify-parity/md/plan.md) · [decompose](back/plan/T-HUB-064-video-pack-route-verify-parity/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · batch workflow-loop-20260905 |
@@ -20,6 +22,7 @@
 | T-HUB-077 | Gate evidence integrity | L3 | PLAN done | queued | [plan](back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md) · next BACK DECOMPOSE · batch claude-session-audit-20260907 |
 | T-HUB-078 | Context budget enforcement | L3 | PLAN done | queued | [plan](back/plan/T-HUB-078-context-budget-enforcement/md/plan.md) · next BACK DECOMPOSE · batch claude-session-audit-20260907 |
 | T-HUB-079 | Orchestrator lifecycle reliability | L3 | PLAN done | queued | [plan](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md) · next BACK DECOMPOSE after T-HUB-077 · batch claude-session-audit-20260907 |
+| T-HUB-080 | Workflow capability instruction parity | L3 | PLAN done | queued | [plan](back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md) · hard dep T-HUB-076 · next BACK DECOMPOSE · batch claude-session-audit-20260907 |
 | T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
 | T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | IMPLEMENT s05 | in_progress | [plan](back/plan/T-HUB-060-remove-reflect-phase/md/plan.md) · **не этот PLAN-батч** · отдельный чат IMPLEMENT s05 |
 

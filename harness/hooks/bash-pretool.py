@@ -7,7 +7,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    active_context_write_deny_reason,
     bash_active_context_write_deny_reason,
+    bash_gate_state_write_deny_reason,
     emit,
     is_epic_loop_env,
     product_cwd,
@@ -24,7 +26,9 @@ def main() -> None:
     tool_input = data.get("tool_input") or {}
     cmd = tool_input.get("command") or ""
     cwd = product_cwd(data.get("cwd"))
-    reason = bash_active_context_write_deny_reason(cwd, cmd)
+    reason = bash_gate_state_write_deny_reason(cmd)
+    if not reason:
+        reason = bash_active_context_write_deny_reason(cwd, cmd)
     if not reason and is_epic_loop_env():
         reason = runner_cli_deny_reason(cmd)
     if not reason:

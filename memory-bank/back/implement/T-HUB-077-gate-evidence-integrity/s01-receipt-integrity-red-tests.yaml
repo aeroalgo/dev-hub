@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-077-gate-evidence-integrity
+title: s01 — Red tests — manual, forged, stale and real verifier evidence IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s01-receipt-integrity-red-tests.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added failing red tests for authority=manual and state-only PASS rejected through
+  mb-finish and finalize-step
+- Added failing red tests for mutated receipts, invalid digest, and stale epoch/identity
+- Added red tests for TaskStop/absent receipt producing infrastructure failure and
+  retention of forensic state
+- Added baseline positive test for valid verifier receipt succeeding through finish
+files:
+- harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+- harness/hooks/tests/test_stop_gate_receipt_integrity.py
+- loop/tests/test_finish_receipt_integrity.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k "manual
+  or state_only"`'
+- '`bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py
+  -q --tb=line -k "mutated or digest or epoch or identity"`'
+- '`bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line
+  -k "taskstop or stale or absent"`'
+- '`bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k "valid
+  and verifier"`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py harness/hooks/tests/test_stop_gate_receipt_integrity.py
+  loop/tests/test_finish_receipt_integrity.py -q --tb=line`'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Manual authority and state-only PASS fixtures fail through mb-finish/finalize-step,
+    not merely a pure helper.
+  status: done
+- id: cp2
+  criterion: Mutated receipt and old epoch/session/role/step fixtures fail with a
+    named integrity diagnostic.
+  status: done
+- id: cp3
+  criterion: TaskStop or absent receipt produces infrastructure_failure, retains forensic
+    evidence and does not request retry.
+  status: done
+- id: cp4
+  criterion: A valid current verifier receipt reaches finish success without a compatibility
+    branch.
+  status: done

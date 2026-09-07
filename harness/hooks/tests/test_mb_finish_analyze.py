@@ -504,4 +504,5 @@ def test_mb_finish_pass_hint_emitted(tmp_path: Path):
     assert "mb-finish implement" in hint
     assert "--step s03" in hint
     assert "FORBIDDEN: ручной Write activeContext" in hint
-
+    assert "Если JSON-ответ содержит `ok: true`, немедленно останови текущий turn" in hint
+    assert "не читай файлы, не запускай дополнительные проверки" in hint

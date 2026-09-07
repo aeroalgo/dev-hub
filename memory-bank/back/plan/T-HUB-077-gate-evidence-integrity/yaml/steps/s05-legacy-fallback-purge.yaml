@@ -1,0 +1,129 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-077-gate-evidence-integrity
+title: "s05 — legacy-fallback-purge — manual evidence and mutable gate authority"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge удаляет все A+B+C+I поверхности, которыми parent/worker мог
+  синтезировать verifier PASS: direct last_verify writes, permissive manual mirror, shell
+  recipes для spawn-gate и инструкции по правке runtime state. Obsolete tests переписаны
+  на receipt contract; targeted integration regression подтверждает один verifier-only путь.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, FR-005, AC+1, AC+2, AC+3, AC+4, AC+5, AC−1, AC−2, AC−3, TM-077-01, TM-077-02, TM-077-03, TM-077-04, TM-077-05]
+  nouns: [last_verify fields, manual mirror path, spawn-gate shell recipes, stale clear/retry/force PASS, runtime gate instruction surfaces, verifier-only receipt]
+  layout_paths:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_lib.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/agent-pretool.py
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+  ac_quotes:
+    - "Нет compatibility branch, где authority=manual, пустой receipt или state-only PASS эквивалентны verifier PASS."
+    - "Нет диагностического auto-repair, который очищает in_flight либо зеркалит PASS."
+    - "Нет разрешения общей записи в runtime/** для тестов вне test fixture/operator command."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:41-53
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:88-113
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:136-150
+
+context:
+  consumes:
+    - s01–s04 receipt, dual-boundary and operator-repair changes
+    - plan.md §Replacement / sunset A+B+C+I
+    - plan.md §Stage 4 and §QA consumes
+  produces:
+    - deleted manual evidence production helpers, direct state mutation recipes, stale clear/retry fallbacks and obsolete instructions
+    - rewritten obsolete tests that no longer require legacy mutable authority
+    - sunset inventory and grep evidence proving no live parent path can synthesize verifier proof
+  plan_refs: [plan.md#replacement--sunset, plan.md#stages, plan.md#qa-consumes]
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_lib.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/agent-pretool.py
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+
+as_built:
+  - Direct agent writes to load_epic_state/save_epic_state last_verify fields are an identified sunset code surface.
+  - Permissive manual mirror remains an identified alternate authority path.
+  - Worker shell recipes manipulating spawn-gate JSON and prompts suggesting runtime state edits are identified B/I sunset surfaces.
+  - Clearing stale marker and retrying or force-PASS is an identified Kind C soft-fail.
+
+delta:
+  - delete production manual-evidence helpers and compatibility branches that accept manual authority, empty receipt or state-only PASS.
+  - delete agent-facing shell recipes that modify spawn-gate state and replace surviving lifecycle guidance with await/status plus explicit failure handoff.
+  - delete silent stale clear/retry/force-PASS behavior; retain only typed failure and separately authorized operator repair.
+  - rewrite/delete obsolete tests and instructions that require mutable verifier authority; keep bounded test fixture receipt builders only.
+
+deletes:
+  - "A: direct production writes to load_epic_state/save_epic_state for last_verify_* authority; permissive manual mirror path."
+  - "B: worker shell recipes manipulating .claude/runtime/spawn-gate/*.json."
+  - "C: clear stale marker, implicit retry and force-PASS fallback paths."
+  - "I: prompts/rules/instructions suggesting inspection or edit of runtime gate state."
+
+sunset_scope:
+  required: true
+  boundary_id: verifier-evidence-authority
+  new_sot: runtime-issued immutable verifier receipt validated at stop and finish
+  allow_read:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_lib.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/agent-pretool.py
+    - loop/mb_finish/impl.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+  kind_hint: [A, B, C, I]
+
+out_of_scope:
+  - cosmetic status UI — Appetite cut
+  - cross-runtime migration beyond Claude Code — Appetite cut
+  - full suite → QA
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — no production manual mirror or direct last_verify authority writer remains; obsolete tests do not import or assert the removed contract.
+    verify: "rg -n 'authority[=:\\x27\"]manual|last_verify_(verdict|evidence).*PASS|mirror_.*verdict.*evidence' harness/hooks loop/mb_finish --glob '*.py'"
+  - id: cp2
+    criterion: Kind B — no worker-facing shell recipe mutates spawn-gate JSON; parent path exposes await/status only.
+    verify: "rg -n 'spawn-gate/.*json|spawn-gate.*(write|edit|rm|clear)' .claude harness loop --glob '!**/tests/**'"
+  - id: cp3
+    criterion: Kind C — no silent stale clear, implicit retry or force-PASS fallback survives in production lifecycle paths.
+    verify: "rg -n 'clear_in_flight|force.?PASS|retry.*verif|last_verify_verdict.*PASS' harness/hooks loop/mb_finish loop/context_loop.py --glob '*.py'"
+  - id: cp4
+    criterion: Kind I — agent-facing prompts and instructions no longer teach runtime-gate edits; retained text permits wait/status or explicit failure handoff only.
+    verify: "rg -n 'edit.*runtime|write.*runtime|clear.*in_flight|spawn-gate.*json' CLAUDE.md .claude harness/claude loop --glob '*.md' --glob '*.py'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_subagent_stop_receipt_integrity.py harness/hooks/tests/test_stop_gate_receipt_integrity.py harness/hooks/tests/test_operator_gate_repair.py loop/tests/test_finish_receipt_integrity.py -q --tb=line"
+  - "rg -n 'authority[=:\\x27\"]manual|force.?PASS|clear.*in_flight' harness/hooks loop/mb_finish --glob '*.py'"
+tdd:
+  - "purge only after s01–s04 green; deleted compatibility behavior must not be restored to satisfy obsolete tests"
+  - "regression: targeted full receipt/stop/finish flow is green with runtime-issued receipt as the sole PASS authority"

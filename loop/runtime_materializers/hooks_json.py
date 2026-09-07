@@ -19,6 +19,7 @@ EVENT_MAPPING: dict[str, str] = {
     "agent-pretool": "PreToolUse",
     "bash-pretool": "PreToolUse",
     "write-pretool": "PreToolUse",
+    "finish-boundary-pretool": "PreToolUse",
     "agent-posttool": "PostToolUse",
     "bash-output-cap": "PostToolUse",
     "agent-posttool-agent": "PostToolUse:agent",

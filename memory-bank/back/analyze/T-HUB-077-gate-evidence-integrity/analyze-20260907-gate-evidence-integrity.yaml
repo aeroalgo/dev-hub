@@ -1,0 +1,77 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-077-gate-evidence-integrity
+slug: gate-evidence-integrity
+date: 2026-09-07
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "PASS evidence имеет immutable provenance: session_id, phase_epoch, projection/event digest, role, step, verifier identity, receipt digest и время создания."
+  - requirement_id: FR-002
+    step_ids: [s01, s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "mb-finish и finalize-step принимают PASS только если provenance совпадает с текущим projection и receipt выпущен разрешённым verifier/reviewer runtime-path."
+  - requirement_id: FR-003
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "прямые write/edit/shell-write в runtime-gate, spawn-gate и last_verify_* запрещены агентскому tool boundary; нарушение observable и fail-closed."
+  - requirement_id: FR-004
+    step_ids: [s01, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "TaskStop, отсутствующий receipt, stale in_flight и mismatch identity дают GATE_INFRASTRUCTURE_FAILURE/конкретный diagnostic, сохраняют forensic state и не запускают implicit retry."
+  - requirement_id: FR-005
+    step_ids: [s01, s04, s05]
+    status: covered
+    plan_text_verbatim: "repair path существует отдельно от worker workflow, требует human/operator authority и создаёт audit trail; он не может изготовить PASS."
+  - requirement_id: AC+ #1
+    step_ids: [s01, s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Manual last_verify_verdict='PASS' или evidence с authority=manual не позволяют mb-finish/finalize-step завершить шаг."
+  - requirement_id: AC+ #2
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "Изменение любого signed/hashed поля receipt после создания обнаруживается до finish."
+  - requirement_id: AC+ #3
+    step_ids: [s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Parent может только ждать/читать typed status gate; не может очистить in_flight или редактировать runtime JSON."
+  - requirement_id: AC+ #4
+    step_ids: [s01, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Stale/TaskStop оставляет диагностируемую запись и переводит flow в stop/repair, а не в verifier retry loop."
+  - requirement_id: AC+ #5
+    step_ids: [s01, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Настоящий verifier PASS по действующему shard продолжает успешно проходить весь finish path."
+  - requirement_id: AC− #1
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Нет compatibility branch, где authority=manual, пустой receipt или state-only PASS эквивалентны verifier PASS."
+  - requirement_id: AC− #2
+    step_ids: [s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет диагностического auto-repair, который очищает in_flight либо зеркалит PASS."
+  - requirement_id: AC− #3
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет разрешения общей записи в runtime/** «для тестов» вне test fixture/operator command."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

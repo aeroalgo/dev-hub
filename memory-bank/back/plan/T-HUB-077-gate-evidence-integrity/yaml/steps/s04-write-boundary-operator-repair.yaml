@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-077-gate-evidence-integrity
+title: "Deny agent state mutation and add audited operator repair"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Закрыть источник подделки на agent tool boundary: parent/worker не может write/edit/shell-write
+  runtime-gate, spawn-gate или last_verify fields. Stale/TaskStop сохраняет forensic event и
+  требует отдельного operator-authorized repair с причиной и audit trail; repair может заново
+  запустить verifier, но никогда не изготовляет PASS.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, FR-005, AC+3, AC+4, AC−2, AC−3, TM-077-01, TM-077-03, TM-077-05]
+  nouns: [agent tool boundary, runtime-gate, spawn-gate, last_verify fields, pretool policy, forensic event, operator repair, operator authority, audit trail, GATE_INFRASTRUCTURE_FAILURE]
+  layout_paths:
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+    - harness/hooks/tests/test_operator_gate_repair.py
+  ac_quotes:
+    - "Parent может только ждать/читать typed status gate; не может очистить in_flight или редактировать runtime JSON."
+    - "Нет диагностического auto-repair, который очищает in_flight либо зеркалит PASS."
+    - "Нет разрешения общей записи в runtime/** для тестов вне test fixture/operator command."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:35-39
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:43-53
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:80-86
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:130-134
+
+context:
+  consumes:
+    - s01 pretool and TaskStop red cases
+    - s02 immutable receipt contract
+    - s03 typed infrastructure failure status
+    - plan.md §Stage 3
+  produces:
+    - observable deny policy for agent direct writes to gate state and verifier result fields
+    - immutable forensic events for stale/TaskStop outcomes
+    - explicit operator-only repair command with authority, reason and audit event, prohibited from writing PASS
+  plan_refs: [plan.md#functional-requirements, plan.md#stages, plan.md#replacement--sunset]
+  files:
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+    - harness/hooks/tests/test_operator_gate_repair.py
+
+as_built:
+  - agent-pretool validates Agent spawning but does not provide a complete deny boundary for shell/edit/write targeting runtime gate state.
+  - runtime spawn-gate state can be cleared or mutated outside a dedicated operator authority flow.
+  - subagent-stop and lifecycle code record mutable verdict state rather than a dedicated stale/TaskStop forensic event contract.
+
+delta:
+  - deny and log agent-originated write/edit/shell-write attempts against runtime gate files, spawn-gate state and last_verify authority fields before execution where supported.
+  - record an immutable forensic event for stale/TaskStop and leave the marker intact until operator repair.
+  - add a separately named operator-only repair command requiring explicit authority and reason; it may re-arm/restart verification but cannot set or mirror PASS.
+  - ensure test fixtures use bounded test-only builders rather than exempting general runtime writes.
+
+deletes: []
+
+out_of_scope:
+  - replacement cleanup of all previous manual helpers, recipes and instructions (s05)
+  - a generic autonomous repair/retry loop
+  - cosmetic status UI and cross-runtime migration — Appetite cut
+  - full suite → QA
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Agent-style direct Tool/Edit/shell write attempts against runtime-gate, spawn-gate and last_verify state are denied and observably diagnosed.
+    verify: "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py -q --tb=line"
+  - id: cp2
+    criterion: TaskStop/stale path creates immutable forensic evidence and leaves gate state available for diagnosis rather than silently clearing it.
+    verify: "bin/pytest harness/hooks/tests/test_operator_gate_repair.py harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line -k 'forensic or stale or taskstop'"
+  - id: cp3
+    criterion: Operator repair requires explicit authority and reason, writes an audit event, and cannot create PASS or mutate a receipt.
+    verify: "bin/pytest harness/hooks/tests/test_operator_gate_repair.py -q --tb=line -k 'authority or reason or pass'"
+  - id: cp4
+    criterion: Parent-facing repair outcome remains typed status and valid verifier receipt is still required for finish success.
+    verify: "bin/pytest harness/hooks/tests/test_operator_gate_repair.py loop/tests/test_finish_receipt_integrity.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_operator_gate_repair.py -q --tb=line"
+tdd:
+  - "red: direct agent mutation and repair-to-PASS attempts fail before policy implementation"
+  - "green: only audited operator repair can re-arm; a fresh verifier receipt remains mandatory"

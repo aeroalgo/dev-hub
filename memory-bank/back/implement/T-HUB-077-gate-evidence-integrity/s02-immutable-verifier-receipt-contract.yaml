@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-077-gate-evidence-integrity
+title: s02 — Immutable verifier receipt contract and runtime-only emitter IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s02-immutable-verifier-receipt-contract.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created harness/hooks/gate_receipt.py with immutable verifier receipt schema (loop-verifier-receipt/v1),
+  canonical digest calculation, and validator.
+- Updated harness/hooks/subagent-stop.py and harness/hooks/_lib.py to issue and bind
+  valid verifier receipts upon verifier/reviewer completion.
+- Updated harness/hooks/epic/core.py to mirror receipt reference and digest, and reject
+  manual authority or mutated receipts on finalize.
+files:
+- harness/hooks/gate_receipt.py
+- harness/hooks/subagent-stop.py
+- harness/hooks/epic/core.py
+- harness/hooks/epic_lib.py
+- harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py
+  -q --tb=line`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line`'
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: Receipt schema validates all provenance fields and recomputes canonical
+    digest; any post-issue mutation is detected.
+  status: done
+- id: cp2
+  criterion: Only subagent-stop accepted verifier/reviewer completion emits a receipt;
+    direct mirror caller cannot supply authority=manual evidence.
+  status: done
+- id: cp3
+  criterion: Persisted mirror state carries receipt reference/digest only and legacy
+    receipt-less PASS is a named rejection.
+  status: done

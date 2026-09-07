@@ -87,5 +87,8 @@ def mb_finish_hint_after_verdict(
     label = str(agent_type or "verify")
     return (
         f"{label} VERDICT: {str(verdict).upper()} — parent: сразу вызови `{cli}` "
-        "(FORBIDDEN: ручной Write activeContext на FINISH)."
+        "(FORBIDDEN: ручной Write activeContext на FINISH). "
+        "Если JSON-ответ содержит `ok: true`, немедленно останови текущий turn: "
+        "не читай файлы, не запускай дополнительные проверки и не вызывай другие tools; "
+        "следующий шаг продолжит новый runner-эпизод."
     )

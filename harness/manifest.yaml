@@ -135,6 +135,13 @@ hooks:
         settings_key: "hooks.PreToolUse"
       codex:
         hooks_json_entry: true
+  finish-boundary-pretool:
+    source: "harness/hooks/finish-boundary-pretool.py"
+    runtimes:
+      claude:
+        settings_key: "hooks.PreToolUse"
+      codex:
+        hooks_json_entry: true
   agent-posttool:
     source: "harness/hooks/agent-posttool.py"
     runtimes:

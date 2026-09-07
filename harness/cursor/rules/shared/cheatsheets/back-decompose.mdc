@@ -7,6 +7,7 @@ alwaysApply: false
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
 2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
 2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a
+2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
 3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
 4. `validate-decompose-tree` exit 0 (+ plan_contract machine)

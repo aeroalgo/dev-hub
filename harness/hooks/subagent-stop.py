@@ -114,7 +114,7 @@ def _handle_verify_finish_agent(
         st["qa_blocked"] = True
 
     record_key = record_agent_key(agent_type)
-    evidence = verdict_evidence(identity, verdict)
+    evidence = verdict_evidence(identity, verdict, verifier_identity=agent_type or "verify")
     matched, _diagnostic = record_verdict(st, record_key, verdict, evidence)
     dedupe_key = verdict_dedupe_key(
         session_id,

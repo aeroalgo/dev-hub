@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-077-gate-evidence-integrity
+title: s03 — Enforce current verifier receipt at stop and finish boundaries IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s03-stop-finish-receipt-enforcement.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Wire shared verifier receipt validation across stop-gate, mb-finish and finalize-step
+- Require session, epoch, projection/event digest, role, step, verifier identity and
+  receipt digest to match current projection
+- Preserve fail-closed diagnostics and forensic state on missing/stale receipts, mutated
+  digests, or TaskStop without hidden retries
+- Pass all unit and integration tests across stop gate and finish boundaries
+files:
+- harness/hooks/stop-gate.py
+- harness/hooks/epic/core.py
+- loop/mb_finish/impl.py
+- loop/context_loop.py
+- harness/hooks/tests/test_stop_gate_receipt_integrity.py
+- loop/tests/test_finish_receipt_integrity.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line
+- bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py
+  -q --tb=line
+grep_control: []
+verification_results:
+- 7 passed
+checkpoints:
+- id: cp1
+  criterion: stop-gate rejects manual, missing, mutated and wrong-identity receipts
+    before FINISH with named fail-closed diagnostics.
+  status: done
+- id: cp2
+  criterion: Direct mb-finish/finalize-step cannot bypass stop-gate with state-only
+    PASS; both boundaries use the same current receipt validation result.
+  status: done
+- id: cp3
+  criterion: TaskStop, no receipt and stale receipt project infrastructure_failure,
+    preserve forensic state and do not schedule an implicit retry.
+  status: done
+- id: cp4
+  criterion: Valid verifier receipt for the active shard returns passed and completes
+    the production finish path.
+  status: done
+resume_from: none
