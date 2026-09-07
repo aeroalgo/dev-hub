@@ -82,6 +82,7 @@ PROFILE_PHASES = {
     "epic-implement": "IMPLEMENT",
     "epic-qa": "QA",
     "epic-decompose": "DECOMPOSE",
+    "epic-analyze": "ANALYZE",
     "epic-plan": "PLAN",
     "epic-creative": "CREATIVE",
     "epic-audit": "AUDIT",
@@ -227,6 +228,14 @@ def test_prepare_emits_dsh_profile_qa(tmp_path: Path, monkeypatch) -> None:
 def test_prepare_emits_dsh_profile_decompose(tmp_path: Path, monkeypatch) -> None:
     out = _prepare_for_phase(tmp_path, monkeypatch, "BACK DECOMPOSE")
     assert out["dsh_profile"] == "epic-decompose"
+
+
+#
+
+
+def test_prepare_emits_dsh_profile_analyze(tmp_path: Path, monkeypatch) -> None:
+    out = _prepare_for_phase(tmp_path, monkeypatch, "BACK ANALYZE")
+    assert out["dsh_profile"] == "epic-analyze"
 
 
 #
@@ -409,7 +418,7 @@ def test_shared_bundle_is_loaded_before_profile_local_patch() -> None:
         assert bundles.index("dsh-phase-models") < len(bundles)
 
 
-def test_phase_model_source_keeps_all_eight_rows() -> None:
+def test_phase_model_source_keeps_all_nine_rows() -> None:
     text = PHASE_MODELS.read_text(encoding="utf-8")
     assert text.count("PROJECT_LOOP_") >= 8
     for phase in PROFILE_PHASES.values():
@@ -419,5 +428,3 @@ def test_phase_model_source_keeps_all_eight_rows() -> None:
 def test_phase_model_package_has_no_runtime_code() -> None:
     assert not (ROOT / "dsh" / "patches" / "index.js").exists()
     assert not (ROOT / "dsh" / "patches" / "index.ts").exists()
-
-

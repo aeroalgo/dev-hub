@@ -32,4 +32,4 @@ steps:
   file: s05-legacy-fallback-purge.yaml
   title: s05 — legacy-fallback-purge — manual evidence and mutable gate authority
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

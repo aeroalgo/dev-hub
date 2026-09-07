@@ -1,0 +1,200 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Legacy fallback purge удаляет prose-only и provider-local обходы"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge удаляет все поверхности из plan Replacement / sunset A+B+C+I:
+  untracked/ad-hoc read counters, raw plan injection, broad-read/search soft fallback, prose-only
+  guidance и provider-local duplicate counters. Единственным SoT остаётся shared ledger/policy;
+  obsolete tests переписаны, а каждый старый путь проверен rg/import-audit.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+  nouns:
+    - untracked Read/tool usage
+    - ad-hoc context counting
+    - raw runner plan injection
+    - broad read/search fallback
+    - prose-only reread guidance
+    - provider-local duplicate counters
+    - obsolete tests
+    - Kind I instruction surfaces
+    - shared ledger/policy SoT
+  layout_paths:
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/write-pretool.py
+    - harness/hooks/bash-pretool.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/agent-posttool.py
+    - harness/hooks/subagent-stop.py
+    - harness/instructions/main.md
+    - CLAUDE.md
+    - AGENTS.md
+    - DSH.md
+    - .cursor/hooks.json
+    - loop/runtime_materializers/hooks_json.py
+    - loop/runtime_materializers/codex_policy_mapping.yaml
+    - harness/hooks/tests/
+    - loop/tests/
+  ac_quotes:
+    - "No hidden global bypass for Read, rg, cat, Python file reads or wrapper aliases"
+    - "No failure mode that silently falls back to full plan/read-all-memory-bank"
+    - "No provider-specific bypass through child agents, aliases, wrapper commands or a second hook registration"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:204-229"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:247-261"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:263-281"
+
+context:
+  consumes:
+    - "s01 shared ledger SoT"
+    - "s02 provider adapters and write invalidation"
+    - "s03 plan/search/test enforcement"
+    - "s04 finish telemetry"
+    - "s05 materialized parity and real shard regression"
+    - "plan §Replacement / sunset A+B+C+I"
+    - "plan §Stage 4 — metrics, migration and purge"
+  produces:
+    - "deleted or rewritten obsolete code, entrypoints, fallbacks and instruction surfaces"
+    - "rewritten/deleted obsolete tests that assert old behavior"
+    - "sunset inventory and grep_control evidence for A/B/C/I"
+    - "sot_enforce evidence that old boundaries DENY/HALT rather than remain optional"
+  plan_refs:
+    - "FR-001"
+    - "FR-003"
+    - "FR-004"
+    - "FR-005"
+    - "FR-006"
+    - "FR-007"
+    - "FR-008"
+    - "FR-009"
+    - "FR-010"
+    - "AC 1"
+    - "AC 2"
+    - "AC 3"
+    - "AC 4"
+    - "AC 5"
+    - "AC 6"
+    - "AC 7"
+    - "AC 8"
+    - "AC−1"
+    - "AC−2"
+    - "AC−3"
+    - "AC−4"
+    - "AC−5"
+    - "AC−6"
+    - "AC−7"
+    - "NFR: single SoT"
+  files:
+    - "harness/hooks/agent-pretool.py"
+    - "harness/hooks/write-pretool.py"
+    - "harness/hooks/bash-pretool.py"
+    - "harness/hooks/stop-gate.py"
+    - "harness/hooks/agent-posttool.py"
+    - "harness/hooks/subagent-stop.py"
+    - "harness/instructions/main.md"
+    - "CLAUDE.md"
+    - "AGENTS.md"
+    - "DSH.md"
+    - ".cursor/hooks.json"
+    - "loop/runtime_materializers/hooks_json.py"
+    - "loop/runtime_materializers/codex_policy_mapping.yaml"
+    - "harness/hooks/tests/"
+    - "loop/tests/"
+
+as_built:
+  - "harness/hooks/pre/post tool and stop hooks contain existing gate/lifecycle enforcement and may be extended, but no shared context ledger purge inventory exists."
+  - "harness/instructions/main.md, CLAUDE.md, runtime materializers and provider mapping are instruction/transport surfaces that can disagree if prose remains authoritative."
+  - "Existing tests cover hook and loop behavior, but obsolete assertions for provider-local or broad fallback must be identified and rewritten during implementation."
+
+delta:
+  - "EDIT harness/hooks/agent-pretool.py, harness/hooks/write-pretool.py, harness/hooks/bash-pretool.py, harness/hooks/stop-gate.py and harness/hooks/agent-posttool.py to route all A code/module surfaces through the shared ledger and remove untracked Read/tool usage and ad-hoc context counters."
+  - "EDIT harness/hooks/subagent-stop.py, loop/runtime_materializers/hooks_json.py, loop/runtime_materializers/codex_policy_mapping.yaml and .cursor/hooks.json to remove provider-local duplicate counters and second registrations."
+  - "EDIT harness/instructions/main.md, CLAUDE.md, AGENTS.md, DSH.md and .claude/agents/ / .codex/agents/ surfaces so Kind I prose-only guidance is replaced by the shared contract."
+  - "DELETE or rewrite obsolete tests and provider-local duplicate counters; delete untracked Read/tool usage and ad-hoc context counting, raw runner injection of plan path, policy failure -> broad read/search fallback, prose-only reread/graphify guidance as authoritative enforcement, and provider-local duplicate-read counters; keep one documented typed exception path with reason code."
+  - "DELETE or rewrite obsolete tests asserting old broad-read/provider-local behavior; run mandatory sunset-inventory scan over A code/modules, Kind B entrypoints, Kind C anti-fallbacks and Kind I instruction surfaces, then run full targeted/epic regression without restoring sunset code."
+
+deletes:
+  - "untracked Read/tool usage and ad-hoc context counting"
+  - "raw runner injection of plan path"
+  - "policy failure -> broad read/search fallback"
+  - "prose-only reread/graphify guidance as authoritative enforcement"
+  - "provider-local duplicate-read counters"
+  - "obsolete tests asserting old broad-read/provider-local behavior"
+
+out_of_scope:
+  - "No production fallback or shim remains; dashboard UI/adaptive token estimation were explicitly cut by plan appetite."
+
+sunset_scope:
+  required: true
+  boundary_id: T-HUB-078-context-budget-enforcement
+  new_sot: "harness/hooks/context_ledger.py + shared provider-neutral policy boundary"
+  allow_read:
+    - "harness/hooks/**"
+    - "loop/**"
+    - "harness/instructions/main.md"
+    - "CLAUDE.md"
+    - "AGENTS.md"
+    - "DSH.md"
+    - ".cursor/hooks.json"
+    - ".claude/agents/**"
+    - ".codex/agents/**"
+    - "harness/hooks/tests/**"
+    - "loop/tests/**"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+    - ".agents/skills/python-resilience/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A sunset inventory: every untracked/ad-hoc counter has zero live production callers; obsolete symbols are deleted or rewritten to shared ledger."
+    verify: "rg -n 'duplicate_reads|unique_reads|context.*count|ReadRecord|ContextLedger|provider.*counter' harness/hooks loop tests --glob '*.py'"
+  - id: cp2
+    criterion: "Kind B sunset inventory: raw plan injection is absent from runtime entrypoints; only bounded plan-jump projection remains."
+    verify: |
+      rg -n 'plan\.md|plan_jumps|bounded|whole.*plan|read.all' harness loop CLAUDE.md AGENTS.md DSH.md --glob '*.py' --glob '*.md' --glob '*.yaml'
+  - id: cp3
+    criterion: "Kind C anti-fallback scan: broad read/search, silent full-memory recovery and soft dual paths are absent; old boundary denies or emits typed exception."
+    verify: "rg -n 'read.all|read-all|all.*memory|fallback|soft|optional|preferred|broad.*search|graphify' harness/hooks loop harness/instructions CLAUDE.md AGENTS.md DSH.md --glob '*.py' --glob '*.md' --glob '*.yaml'"
+  - id: cp4
+    criterion: "Kind I instruction scan: canonical and generated instructions no longer treat prose-only reread/graphify guidance as sole control and all obsolete machine format references are rewritten."
+    verify: "rg -n 'context ledger|plan_jumps|graphify|derived_identity|DecisionReceipt|reread|read.*again' harness/instructions/main.md CLAUDE.md AGENTS.md DSH.md .cursor/hooks.json .claude/agents .codex/agents"
+  - id: cp5
+    criterion: "Obsolete tests/counters are deleted or rewritten and targeted epic regression is green without restoring sunset behavior."
+    verify: ".venv/bin/pytest harness/hooks/tests loop/tests -q --tb=line -k 'context or hook or prompt or codex or agent'"
+  - id: cp6
+    criterion: "Final shared SoT enforcement evidence confirms every boundary FR routes through ledger and old path DENY/HALT is tested, with no second hook registration."
+    verify: "rg -n 'ContextLedger|DecisionReceipt|permissionDecision.*deny|fail.closed|hooks_json|PreToolUse|SubagentStart|SubagentStop' harness loop .cursor .claude --glob '*.py' --glob '*.yaml' --glob '*.json' --glob '*.md'"
+
+verify:
+  - "sunset_inventory_scan covers A/B/C/I before any empty leftover claim."
+  - "sot_enforce_scan proves old SoT is DENY/HALT or absent, not merely that new SoT exists."
+  - "All obsolete tests and instruction rewrites are included in deletes and verified by rg/import-audit."
+  - "No provider-local or prose-only enforcement can disagree with the shared receipt."
+
+tdd: []

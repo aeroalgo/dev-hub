@@ -9,6 +9,7 @@
       credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'
 
 # Shared phase matrix retained in this bundle source for auditability:
+# ANALYZE: PROJECT_LOOP_ANALYZE_MODEL
 # IMPLEMENT: PROJECT_LOOP_IMPLEMENT_MODEL
 # QA: PROJECT_LOOP_QA_MODEL
 # DECOMPOSE: PROJECT_LOOP_DECOMPOSE_MODEL

@@ -1,0 +1,135 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Finish telemetry публикует attributable counters без content leakage"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Session finish и handoff projection показывают проверяемые counters для unique/duplicate reads,
+  bytes/ranges, monolith attempts, search exceptions и highest-repeat path. Сбой записи или
+  повреждённый ledger даёт non-green diagnostic и не позволяет объявить zero duplicates.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-007
+    - FR-008
+    - FR-010
+  nouns:
+    - unique_reads
+    - duplicate_reads
+    - bytes_read
+    - ranges_read
+    - monolith_plan_attempts
+    - search_exceptions
+    - highest_repeat_path
+    - finish telemetry
+    - handoff projection
+    - secret-free metadata
+  layout_paths:
+    - harness/hooks/context_telemetry.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/agent-posttool.py
+    - loop/mb_finish/render.py
+    - loop/mb_finish/impl.py
+    - loop/schemas/telemetry.py
+    - harness/hooks/tests/test_context_telemetry.py
+    - loop/tests/test_context_finish_projection.py
+  ac_quotes:
+    - "end-of-session telemetry reports unique_reads, duplicate_reads, bytes/ranges"
+    - "Telemetry distinguishes allowed reads, denied rereads and approved exceptions"
+    - "missing or corrupt ledger cannot produce green finish metrics"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:84-105"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:150-184"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:255-277"
+
+context:
+  consumes:
+    - "s01 durable ledger records and DecisionReceipt"
+    - "s02 actor/provider identity metadata"
+    - "s03 search and test exception/fingerprint records"
+    - "plan §Delivery closure Read telemetry"
+    - "plan §Failure matrix finish projection"
+  produces:
+    - "typed secret-free telemetry aggregate and receipt counters"
+    - "finish/handoff projection with non-green diagnostics on missing/corrupt state"
+    - "root/subagent/provider attribution without source content"
+    - "tests for exact aggregate fields and failed persistence"
+  plan_refs:
+    - "FR-005"
+    - "FR-007"
+    - "FR-008"
+    - "FR-010"
+    - "AC 5"
+    - "AC 6"
+    - "AC 7"
+    - "AC 8"
+    - "AC−2"
+    - "AC−4"
+    - "NFR: observable"
+  files:
+    - "harness/hooks/context_telemetry.py"
+    - "harness/hooks/stop-gate.py"
+    - "harness/hooks/subagent-stop.py"
+    - "harness/hooks/agent-posttool.py"
+    - "loop/mb_finish/render.py"
+    - "loop/mb_finish/impl.py"
+    - "loop/schemas/telemetry.py"
+    - "harness/hooks/tests/test_context_telemetry.py"
+    - "loop/tests/test_context_finish_projection.py"
+
+as_built:
+  - "harness/hooks/stop-gate.py and subagent-stop.py project lifecycle gate state, not read/search/test counters."
+  - "loop/mb_finish/render.py and impl.py render handoff/finish artifacts, but no shared context ledger telemetry schema is consumed."
+  - "Existing events and state records can report gate outcomes but do not include content-free context-read receipt aggregates."
+
+delta:
+  - "ADD harness/hooks/context_telemetry.py and loop/schemas/telemetry.py with typed TelemetryAggregate/FinishReceipt derived solely from ledger metadata and DecisionReceipt counters."
+  - "EDIT harness/hooks/stop-gate.py, harness/hooks/subagent-stop.py, harness/hooks/agent-posttool.py, loop/mb_finish/render.py and loop/mb_finish/impl.py so Stop, SubagentStop, PostToolUse and mb_finish projection aggregate root/subagent/provider counters by session."
+  - "REJECT missing, corrupt, non-atomic or content-bearing telemetry state with explicit non-green diagnostic; never synthesize zero values."
+  - "REDACT canonical paths according to existing project boundary while retaining highest-repeat path identity required for audit."
+  - "ADD harness/hooks/tests/test_context_telemetry.py and loop/tests/test_context_finish_projection.py fixtures proving exact fields, actor attribution, secret-free output and persistence failure behavior."
+
+deletes: []
+
+out_of_scope:
+  - "New dashboard UI or adaptive token estimation, cut by appetite."
+  - "Provider-local counters after s02/s06 purge."
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+    - ".agents/skills/python-resilience/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Finish projection contains exact unique_reads, duplicate_reads, bytes/ranges, monolith-plan attempts, search exceptions and highest-repeat path counters with actor/provider attribution."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py -q --tb=line -k 'aggregate or counter or attribution'"
+  - id: cp2
+    criterion: "Corrupt/missing ledger or atomic write failure is non-green and never reported as zero duplicates; no source content is emitted."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py -q --tb=line -k 'corrupt or missing or failure or secret'"
+  - id: cp3
+    criterion: "Root, child and provider counters remain distinguishable while session aggregate is deterministic across equivalent events."
+    verify: ".venv/bin/pytest loop/tests/test_context_finish_projection.py -q --tb=line -k 'root or child or provider or deterministic'"
+  - id: cp4
+    criterion: "Finish integration consumes the shared telemetry receipt rather than a provider-local duplicate counter."
+    verify: "rg -n 'unique_reads|duplicate_reads|monolith|search_exceptions|highest_repeat|DecisionReceipt|non.green' harness/hooks/stop-gate.py harness/hooks/subagent-stop.py harness/hooks/agent-posttool.py loop/mb_finish loop/schemas"
+
+verify:
+  - "Telemetry is metadata-only, attributable and machine-readable; no file payload or secret content is stored."
+  - "Persistence/schema failures block green finish rather than silently recovering to zero."
+  - "The finish entrypoint consumes one shared aggregate for Claude and Codex."
+
+tdd:
+  - "test_finish_telemetry_reports_exact_context_counters"
+  - "test_corrupt_ledger_blocks_green_finish"
+  - "test_telemetry_is_secret_free_and_actor_attributable"

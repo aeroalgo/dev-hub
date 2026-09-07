@@ -1,0 +1,141 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Plan-jump, search allowlist и test fingerprint закрывают обходы контекста"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Lean IMPLEMENT получает только bounded plan excerpts и declared shard scope: целый plan.md
+  отвергается, разрешённый plan_jump работает, поиск вне files/delta/parent dirs требует graphify
+  evidence, а повтор targeted test кэшируется только при неизменённом relevant diff.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-006
+  nouns:
+    - plan_jumps
+    - bounded excerpt
+    - IMPLEMENT whole-plan guard
+    - ScopeResolver
+    - shard files
+    - declared delta
+    - parent directories
+    - graphify receipt
+    - normalized test command
+    - relevant diff fingerprint
+  layout_paths:
+    - loop/mb_load/plan_section.py
+    - loop/mb_load/resolver.py
+    - loop/prompt_builder.py
+    - harness/hooks/context_scope.py
+    - harness/hooks/bash-pretool.py
+    - harness/hooks/agent-pretool.py
+    - loop/context_loop.py
+    - harness/hooks/tests/test_context_scope_policy.py
+    - loop/tests/test_plan_jump_context_policy.py
+    - loop/tests/test_search_and_test_fingerprint.py
+  ac_quotes:
+    - "PLAN runner materializes plan_jumps into bounded excerpts"
+    - "Search inside shard paths works; search outside requires graphify evidence"
+    - "targeted test command results are fingerprinted by command + relevant diff"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:84-115"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:231-253"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:263-277"
+
+context:
+  consumes:
+    - "s01 DecisionReceipt and durable ledger"
+    - "s02 normalized provider payload and actor scope"
+    - "plan §Stage 2 — plan-jump projection and monolith guard"
+    - "plan §Stage 3 — search and test execution contracts"
+    - "active decompose shard files/delta/plan_contract.plan_jumps"
+  produces:
+    - "bounded plan-jump materialization for IMPLEMENT root and subagent contexts"
+    - "mode-aware whole-plan denial and diagnostic naming valid jump"
+    - "ScopeResolver allowlist plus graphify-backed typed exception path"
+    - "test fingerprint cache/no-op evidence invalidated by relevant changed paths"
+  plan_refs:
+    - "FR-003"
+    - "FR-004"
+    - "FR-006"
+    - "AC 2"
+    - "AC 3"
+    - "AC 5"
+    - "AC−1"
+    - "AC−2"
+    - "AC−3"
+    - "AC−4"
+    - "NFR: bounded context"
+  files:
+    - "loop/mb_load/plan_section.py"
+    - "loop/mb_load/resolver.py"
+    - "loop/prompt_builder.py"
+    - "harness/hooks/context_scope.py"
+    - "harness/hooks/bash-pretool.py"
+    - "harness/hooks/agent-pretool.py"
+    - "loop/context_loop.py"
+    - "harness/hooks/tests/test_context_scope_policy.py"
+    - "loop/tests/test_plan_jump_context_policy.py"
+    - "loop/tests/test_search_and_test_fingerprint.py"
+
+as_built:
+  - "loop/prompt_builder.py projects command/role/phase but does not materialize shard plan_jumps into bounded excerpts."
+  - "loop/mb_load/plan_section.py and resolver.py load plan sections, but IMPLEMENT whole-plan denial and jump identity are not a shared preflight contract."
+  - "harness/hooks/bash-pretool.py denies selected runner writes/commands, not search scope or wrapper aliases."
+  - "No test execution fingerprint cache binds command results to relevant changed paths."
+
+delta:
+  - "ADD mode-aware ContextScope request that derives allowlist from current shard files, declared delta and parent directories."
+  - "WIRE plan_contract.plan_jumps into bounded prompt/session excerpts and reject whole md/plan.md reads in IMPLEMENT/TASK/BUGFIX/QA unless typed exception."
+  - "WIRE search preflight for rg, cat/Python reads and wrapper aliases; local scope allows declared paths, graphify receipt plus reason permits expansion, otherwise deny."
+  - "ADD normalized test command and relevant-diff fingerprint persistence; exact repeat returns cached/no-op only when inputs are unchanged."
+  - "EDIT loop/mb_load/plan_section.py, loop/mb_load/resolver.py and loop/prompt_builder.py to materialize bounded plan_jumps and deny whole-plan IMPLEMENT reads."
+  - "EDIT harness/hooks/context_scope.py, harness/hooks/bash-pretool.py, harness/hooks/agent-pretool.py and loop/context_loop.py to enforce declared files/delta/parent allowlist and graphify exceptions."
+  - "ADD independent outcome fixtures in harness/hooks/tests/test_context_scope_policy.py, loop/tests/test_plan_jump_context_policy.py and loop/tests/test_search_and_test_fingerprint.py for allowed jump, denied monolith, scoped search, graphify exception and changed-test rerun."
+
+deletes: []
+
+out_of_scope:
+  - "Full ledger interval and provider normalization internals — s01/s02."
+  - "Finish aggregate telemetry and instruction purge — s04/s05/s06."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-resilience/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "IMPLEMENT rejects whole md/plan.md, accepts exact plan_contract.plan_jumps and renders only bounded excerpt identity for root and subagent."
+    verify: ".venv/bin/pytest loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py -q --tb=line -k 'jump or monolith or excerpt'"
+  - id: cp2
+    criterion: "Search within shard files/delta/parent dirs is allowed; rg/cat/Python wrapper outside scope requires valid graphify evidence and typed reason."
+    verify: ".venv/bin/pytest loop/tests/test_plan_jump_context_policy.py harness/hooks/tests/test_context_scope_policy.py -q --tb=line -k 'search or scope or graphify or alias'"
+  - id: cp3
+    criterion: "Exact targeted test repeat uses cached/no-op only for unchanged command and diff fingerprint; changed relevant path executes again."
+    verify: ".venv/bin/pytest loop/tests/test_search_and_test_fingerprint.py -q --tb=line -k 'fingerprint or cache or changed'"
+  - id: cp4
+    criterion: "No hidden broad-read recovery exists in policy or wrapper paths."
+    verify: |
+      rg -n 'whole.*plan|plan\.md|graphify|allowlist|fingerprint|cached|no.op|fail.closed' loop/mb_load loop/prompt_builder.py harness/hooks/context_scope.py harness/hooks/bash-pretool.py harness/hooks/agent-pretool.py
+
+verify:
+  - "Product outcome tests call the production prompt/search/test preflight entrypoints, not only a resolver helper."
+  - "A diagnostic suggests a valid jump or typed exception and never silently grants read-all-memory-bank."
+  - "Test cache is invalidated when any relevant file or diff fingerprint changes."
+
+tdd:
+  - "test_implement_whole_plan_denied_and_plan_jump_allowed"
+  - "test_search_scope_requires_graphify_exception"
+  - "test_tool_aliases_cannot_bypass_search_scope"
+  - "test_test_fingerprint_cache_invalidates_on_relevant_change"

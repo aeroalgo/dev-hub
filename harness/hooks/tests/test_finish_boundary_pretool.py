@@ -15,14 +15,22 @@ ROOT = Path(__file__).resolve().parents[3]
 HOOK = ROOT / "harness" / "hooks" / "finish-boundary-pretool.py"
 
 
-def _run_hook(tmp_path: Path, *, tool_name: str = "Read") -> dict:
+def _run_hook(
+    tmp_path: Path, *, tool_name: str = "Read", epic_loop: bool = True
+) -> dict:
     payload = {
         "tool_name": tool_name,
         "cwd": str(tmp_path),
         "session_id": "claude-session",
     }
     env = os.environ.copy()
-    env.update({"EPIC_LOOP": "1", "PROJECT_ROOT": str(tmp_path)})
+    env["PROJECT_ROOT"] = str(tmp_path)
+    env.pop("DEV_HUB", None)
+    env.pop("HUB_ROOT", None)
+    if epic_loop:
+        env["EPIC_LOOP"] = "1"
+    else:
+        env.pop("EPIC_LOOP", None)
     result = subprocess.run(
         [sys.executable, str(HOOK)],
         input=json.dumps(payload),
@@ -77,3 +85,9 @@ def test_failed_or_missing_finish_does_not_activate_barrier(tmp_path: Path) -> N
     _state(tmp_path, phase_run_id="run-1", finish_run_id=None)
 
     assert _run_hook(tmp_path, tool_name="Bash") == {}
+
+
+def test_barrier_is_scoped_to_epic_loop(tmp_path: Path) -> None:
+    _state(tmp_path, phase_run_id="run-1", finish_run_id="run-1")
+
+    assert _run_hook(tmp_path, tool_name="Read", epic_loop=False) == {}

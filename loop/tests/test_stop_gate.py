@@ -1250,7 +1250,7 @@ def test_bash_pretool_denies_state_projection_write(tmp_path: Path) -> None:
         epic_loop=True,
     )
     assert out["hookSpecificOutput"]["permissionDecision"] == "deny"
-    assert "state_projection_forbidden" in out["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "runtime_gate_write_forbidden" in out["hookSpecificOutput"]["permissionDecisionReason"]
 
 
 def test_bash_pretool_allows_validate_step_in_epic_loop(tmp_path: Path) -> None:

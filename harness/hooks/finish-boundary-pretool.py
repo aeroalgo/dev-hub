@@ -7,8 +7,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    bash_project_boundary_deny_reason,
     emit,
     is_epic_loop_env,
+    project_boundary_deny_reason,
     product_cwd,
     read_stdin,
 )
@@ -40,11 +42,51 @@ def finish_boundary_reason(cwd: str | Path) -> str | None:
     )
 
 
+def project_boundary_reason(data: dict, cwd: Path) -> str | None:
+    tool_name = str(data.get("tool_name") or data.get("tool") or "")
+    tool_input = data.get("tool_input") or {}
+    if tool_name == "Bash":
+        return bash_project_boundary_deny_reason(cwd, tool_input.get("command") or "")
+    if tool_name not in {"Read", "Edit", "Write", "NotebookEdit", "Glob", "Grep"}:
+        return None
+    raw_path = (
+        tool_input.get("file_path")
+        or tool_input.get("notebook_path")
+        or tool_input.get("path")
+    )
+    return project_boundary_deny_reason(cwd, raw_path, operation=tool_name.lower())
+
+
 def main() -> None:
     data = read_stdin()
-    if not is_epic_loop_env():
-        return
     cwd = product_cwd(data.get("cwd") or "")
+    if not is_epic_loop_env():
+        boundary = project_boundary_reason(data, cwd)
+        if boundary:
+            emit(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": boundary,
+                        "additionalContext": "project-boundary DENY: доступ вне project root запрещён.",
+                    }
+                }
+            )
+        return
+    boundary = project_boundary_reason(data, cwd)
+    if boundary:
+        emit(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": boundary,
+                    "additionalContext": "project-boundary DENY: доступ вне project root запрещён.",
+                }
+            }
+        )
+        return
     reason = finish_boundary_reason(cwd)
     if not reason:
         return

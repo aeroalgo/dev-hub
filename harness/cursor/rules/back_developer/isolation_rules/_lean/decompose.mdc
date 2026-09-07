@@ -20,7 +20,7 @@ alwaysApply: false
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
 8. CLI: `validate-decompose-tree` exit 0 · `validate-traceability` **CRITICAL=0**
 9. Next = **BACK ANALYZE** only — **FORBIDDEN** `ANALYZE deferred`
-10. Plan: index = sole tracker; Goal/NFR не сжаты до infra-only
+10. Goal/NFR не сжаты до infra-only
 
 ## Abort (incomplete)
 

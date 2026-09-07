@@ -1,0 +1,124 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Один durable ledger принимает нормализованные Read/Edit решения"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Root-agent и каждый subagent получают actor-isolated, durable и fail-closed решения для Read
+  и Edit без повторного payload после неизменённого диапазона. Это закрывает Stage 1 и делает
+  ContextLedger единственной policy boundary для FR-001, FR-008, FR-009 и FR-010.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-008
+    - FR-009
+    - FR-010
+  nouns:
+    - ContextLedger
+    - ReadRequest
+    - ReadRecord
+    - DecisionReceipt
+    - canonical realpath
+    - content hash/version
+    - interval set
+    - actor invocation key
+    - durable atomic ledger
+  layout_paths:
+    - harness/hooks/context_ledger.py
+    - harness/hooks/tests/test_context_ledger.py
+    - .claude/runtime/context-ledger/<project>/<root-session>/<invocation>.json
+  ac_quotes:
+    - "Repeating the same full Read in IMPLEMENT is blocked/cached"
+    - "A real code edit permits a narrow post-edit diff read"
+    - "Root-agent and two subagents ... receive independent, deterministic decisions"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:14-72"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:84-115"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:125-148"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:231-239"
+
+context:
+  consumes:
+    - "plan §Scope владельца ledger"
+    - "plan §Read semantics"
+    - "plan §Edit invalidation"
+    - "plan §Stage 1 — ledger and read policy"
+  produces:
+    - "harness/hooks/context_ledger.py — canonical path/hash/range/actor policy and receipts"
+    - "harness/hooks/tests/test_context_ledger.py — pure duplicate, overlap, alias, edit and persistence tests"
+    - ".claude/runtime/context-ledger/<project>/<root-session>/<invocation>.json — metadata-only durable state"
+  plan_refs:
+    - "FR-001"
+    - "FR-008"
+    - "FR-009"
+    - "FR-010"
+    - "AC 1"
+    - "AC 4"
+    - "AC 6"
+    - "AC 7"
+    - "AC 8"
+    - "AC−1"
+    - "AC−4"
+    - "NFR: fail-closed"
+  files:
+    - "harness/hooks/context_ledger.py"
+    - "harness/hooks/tests/test_context_ledger.py"
+    - ".claude/runtime/context-ledger/<project>/<root-session>/<invocation>.json"
+
+as_built:
+  - "harness/hooks/_lib.py already persists spawn-gate state with file locks, but it has no ReadRecord, range algebra, content hash or actor-isolated context ledger."
+  - "harness/hooks/agent-pretool.py and write-pretool.py normalize selected tool payloads, but no shared Read/Edit decision receipt is emitted."
+  - "Existing .claude/runtime state is provider/gate state and is not a source of truth for context reads."
+
+delta:
+  - "CREATE harness/hooks/context_ledger.py with typed ReadRequest, ReadRecord, DecisionReceipt, actor/session key, canonical realpath, SHA-256 version and interval algebra."
+  - "CREATE harness/hooks/tests/test_context_ledger.py with TDD red/green coverage for exact duplicate, partial overlap, disjoint range, EOF, omitted range, alias, parent/child isolation and edit invalidation."
+  - "CREATE metadata-only .claude/runtime/context-ledger/<project>/<root-session>/<invocation>.json persistence with atomic write and per-ledger lock; no source content is stored."
+  - "Enforce unknown content hash and pre/post mismatch as fail-closed content_version_unknown decisions."
+
+deletes: []
+
+out_of_scope:
+  - "Provider payload parsing and hook response mapping — s02."
+  - "Plan-jump, search scope and test result fingerprints — s03."
+  - "Finish metrics projection — s04."
+
+skills:
+  code_surface: service
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/async-python-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Одинаковый canonical path, hash и диапазон для одного actor возвращает duplicate или cached-reference receipt без второго payload; parent и child не смешиваются."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k 'duplicate or actor or alias'"
+  - id: cp2
+    criterion: "Частичное пересечение выдаёт только непокрытый интервал, disjoint ranges объединяются, EOF и omitted range не получают неявный full-file доступ."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k 'range or overlap or eof'"
+  - id: cp3
+    criterion: "Edit, Write, rename, delete и внешняя hash mutation инвалидируют старые ranges; unknown hash и concurrency conflict fail closed."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_ledger.py -q --tb=line -k 'invalidate or hash or concurrent'"
+  - id: cp4
+    criterion: "После process restart durable metadata сохраняет duplicate decision и файл ledger не содержит исходного содержимого."
+    verify: "rg -n 'atomic|lock|content_hash|invocation_id|source content|read_text' harness/hooks/context_ledger.py harness/hooks/tests/test_context_ledger.py"
+
+verify:
+  - "ContextLedger is the only duplicate/read-after-edit policy boundary and returns a receipt without file content."
+  - "Actor key contains project_root, root_session_id, agent_invocation_id and runtime_provider."
+  - "Old ranges cannot be reused after a changed content hash; unknown version never becomes a cache hit."
+
+tdd:
+  - "test_duplicate_full_read_returns_cached_or_denied_receipt"
+  - "test_partial_overlap_returns_missing_interval_only"
+  - "test_parent_and_child_ranges_are_actor_isolated"
+  - "test_edit_invalidates_ranges_and_unknown_hash_fails_closed"
+  - "test_restart_preserves_durable_duplicate_decision"

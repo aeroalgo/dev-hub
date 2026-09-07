@@ -1,17 +1,17 @@
 ---
-schema: loop-handoff/v1
+schema: loop-handoff/v1 # handoff
 role: BACK
-mode: IMPLEMENT
-epic_id: T-HUB-077-gate-evidence-integrity
-step_id: s05
+mode: ANALYZE
+epic_id: T-HUB-078-context-budget-enforcement
+step_id: ANALYZE
 ---
 
 ## load_now
-1. [back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s05-legacy-fallback-purge.yaml](back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s05-legacy-fallback-purge.yaml) — текущий work shard (BACK IMPLEMENT s05).
-2. [back/plan/T-HUB-077-gate-evidence-integrity/yaml/decompose-index.yaml](back/plan/T-HUB-077-gate-evidence-integrity/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
+1. [plan.md](back/plan/T-HUB-078-context-budget-enforcement/md/plan.md) — source plan/artifact for pre-implement phase ANALYZE.
+2. [`decompose-index.yaml`](back/plan/T-HUB-078-context-budget-enforcement/yaml/decompose-index.yaml) — decompose index for ANALYZE gate.
 
-## Handoff BACK IMPLEMENT — s05
-- **Дальше:** продолжить с work shard `memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s05-legacy-fallback-purge.yaml`
-- **Эпик:** T-HUB-077-gate-evidence-integrity.
-- **Режим/шаг:** следующий BACK IMPLEMENT `s05`.
-- **Сделано:** предыдущий шаг отмечен `completed`.
+## Handoff ANALYZE
+- # epic_id: T-HUB-078-context-budget-enforcement — NOT short queue id
+- **Эпик:** T-HUB-078-context-budget-enforcement (BACK).
+- **Режим/шаг:** `BACK ANALYZE`.
+- **Дальше:** выполнить `BACK ANALYZE`.

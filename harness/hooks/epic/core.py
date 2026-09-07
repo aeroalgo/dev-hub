@@ -2196,16 +2196,23 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
             pass
 
     sid = step_id.strip().lower()
-    if sid == "bugfix" and (
-        not isinstance(evidence, dict)
-        or state.get("last_verify_evidence_sha256") != _projection_digest(evidence)
-    ):
-        return {
-            "ok": False,
-            "error": "BUGFIX requires unmodified verify evidence recorded by the gate",
-            "diagnostic": "verdict_evidence_modified",
-            "verdict": verdict,
-        }
+    if sid == "bugfix":
+        expected_digest = None
+        if evidence.get("schema") == "loop-verifier-receipt/v1":
+            try:
+                from gate_receipt import compute_receipt_digest
+                expected_digest = evidence.get("receipt_digest") or compute_receipt_digest(evidence)
+            except Exception:
+                expected_digest = _projection_digest(evidence)
+        else:
+            expected_digest = _projection_digest(evidence)
+        if not isinstance(evidence, dict) or state.get("last_verify_evidence_sha256") != expected_digest:
+            return {
+                "ok": False,
+                "error": "BUGFIX requires unmodified verify evidence recorded by the gate",
+                "diagnostic": "verdict_evidence_modified",
+                "verdict": verdict,
+            }
     if isinstance(evidence, dict):
         evidence_step = str(evidence.get("step") or "").strip().lower()
         if evidence_step and evidence_step != sid:
@@ -3509,6 +3516,14 @@ def latest_audit_artifact_for_reference(
 def latest_qa_any_artifact_for_reference(
     cwd: str | Path, role_dir: str = "back", epic_id: str = ""
 ) -> Path | None:
+    """Return the latest QA artifact according to lifecycle order.
+
+    QA retries commonly reuse the same date in their filenames (for example a
+    failed ``qa-<date>-...yaml`` followed by ``qa-<date>-...-pass.yaml``).
+    Filename ordering is therefore not a lifecycle ordering.  The event log is
+    authoritative when available; filesystem mtime is the compatibility
+    fallback for legacy artifacts that have no event history.
+    """
     cwd_p = Path(cwd)
     hits: list[Path] = []
     for root in _role_mb_roots(cwd_p, role_dir, epic_id=epic_id, kind="qa"):
@@ -3524,7 +3539,36 @@ def latest_qa_any_artifact_for_reference(
                 hits.append(p)
         if hits:
             break
-    return hits[0] if hits else None
+    if not hits:
+        return None
+
+    if epic_id:
+        event_result = read_event_log_result(
+            _event_log_path(cwd_p, role_dir, epic_id),
+            expected_epic_id=epic_id,
+            cwd=cwd_p,
+        )
+        if not event_result.diagnostics:
+            by_relative_path = {
+                path.relative_to(cwd_p).as_posix(): path
+                for path in hits
+                if path.is_relative_to(cwd_p)
+            }
+            for event in reversed(event_result.events):
+                if event.get("kind") not in {"qa_pass", "qa_fail"}:
+                    continue
+                artifact = str(event.get("artifact") or "").replace("\\", "/")
+                selected = by_relative_path.get(artifact)
+                if selected is not None and selected.is_file():
+                    return selected
+
+    return max(
+        hits,
+        key=lambda path: (
+            path.stat().st_mtime_ns if path.is_file() else -1,
+            path.name,
+        ),
+    )
 
 
 def latest_bugfix_artifact_for_reference(

@@ -301,7 +301,23 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 7. Optional --with-skills: install .agents/skills link to harness/skills (fail-closed if regular dir exists)
+  # 7. Link canonical Cursor and Claude extension trees while preserving
+  # product-local settings, router stubs, runtime, and worktrees.
+  for pair in \
+    ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
+    ".cursor/templates:$DEV_HUB/harness/cursor/templates" \
+    ".claude/commands:$DEV_HUB/harness/claude/commands" \
+    ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
+    ".claude/rules:$DEV_HUB/harness/claude/rules" \
+    ".claude/skills:$DEV_HUB/harness/claude/skills"; do
+    dest="${pair%%:*}"
+    source="${pair#*:}"
+    if [[ -d "$source" ]]; then
+      link_one "$dest" "$source"
+    fi
+  done
+
+  # 8. Optional --with-skills: install .agents/skills link to harness/skills (fail-closed if regular dir exists)
   if [[ "$WITH_SKILLS" -eq 1 ]]; then
     target_skills="$DEV_HUB/harness/skills"
     if [[ ! -d "$target_skills" ]]; then
@@ -321,7 +337,7 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 8. AGENTS.md stub if missing
+  # 9. AGENTS.md stub if missing
   AGENTS="$PRODUCT_ROOT/AGENTS.md"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "[dry-run] write AGENTS.md (if missing)"
@@ -343,7 +359,7 @@ EOF
     echo "write   AGENTS.md"
   fi
 
-  # 9. Pack rules (if --pack specified)
+  # 10. Pack rules (if --pack specified)
   if [[ -n "$PACK_ID" ]]; then
     install_pack_rules "$PACK_ID"
   fi

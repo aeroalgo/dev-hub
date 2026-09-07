@@ -3,7 +3,7 @@ role: back
 step_id: s05
 plan_id: T-HUB-077-gate-evidence-integrity
 title: s05 — legacy-fallback-purge — manual evidence and mutable gate authority IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-07'
 decompose_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/yaml/steps/s05-legacy-fallback-purge.yaml
 skills_used:
@@ -17,10 +17,14 @@ discovery: []
 gaps:
   status: none
 done:
-- 'Kind A: Purged direct last_verify production authority bypasses and manual mirror overrides; verifier receipt is sole PASS authority.'
-- 'Kind B: Eliminated worker shell recipes manipulating spawn-gate state; parent path uses await/status only.'
-- 'Kind C: Eliminated silent stale clear, retry and force-PASS fallbacks; fail-closed on unverified/stale state.'
-- 'Kind I: Updated instructions and rules to prohibit runtime gate edits and teach typed failure handoff.'
+- 'Kind A: Purged direct last_verify production authority bypasses and manual mirror
+  overrides; verifier receipt is sole PASS authority.'
+- 'Kind B: Eliminated worker shell recipes manipulating spawn-gate state; parent path
+  uses await/status only.'
+- 'Kind C: Eliminated silent stale clear, retry and force-PASS fallbacks; fail-closed
+  on unverified/stale state.'
+- 'Kind I: Updated instructions and rules to prohibit runtime gate edits and teach
+  typed failure handoff.'
 files:
 - harness/hooks/epic/core.py
 - harness/hooks/epic_lib.py
@@ -39,10 +43,14 @@ deletes:
 - 'C: clear stale marker, implicit retry and force-PASS fallback paths.'
 - 'I: prompts/rules/instructions suggesting inspection or edit of runtime gate state.'
 tests:
-- bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_subagent_stop_receipt_integrity.py harness/hooks/tests/test_stop_gate_receipt_integrity.py harness/hooks/tests/test_operator_gate_repair.py loop/tests/test_finish_receipt_integrity.py -q --tb=line
+- bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py harness/hooks/tests/test_operator_gate_repair.py
+  loop/tests/test_finish_receipt_integrity.py -q --tb=line
 integration_check:
-- Targeted receipt/stop/finish integration test suite passes with verifier-only receipt contract.
-- Grep audits confirm no surviving production manual mirror or mutable gate authority writers.
+- Targeted receipt/stop/finish integration test suite passes with verifier-only receipt
+  contract.
+- Grep audits confirm no surviving production manual mirror or mutable gate authority
+  writers.
 grep_control: []
 verification_results: []
 checkpoints:
@@ -62,4 +70,3 @@ checkpoints:
   criterion: Kind I — agent-facing prompts and instructions no longer teach runtime-gate
     edits; retained text permits wait/status or explicit failure handoff only.
   status: done
-resume_from: null

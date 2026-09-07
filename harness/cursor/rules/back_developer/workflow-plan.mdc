@@ -53,8 +53,6 @@ alwaysApply: false
 7d. **Review readiness gate:** L2+ `## Review readiness` без неразрешённых `pending` Required.
 8. Next: L2+ → **BACK DECOMPOSE** `queue[0]` из `roadmap/queue.yaml`; CREATIVE если дизайн; L1 → IMPLEMENT. **FORBIDDEN:** next = `BACK ROADMAP MERGE`
 
-**После DECOMPOSE:** plan = Goal/AC/архитектура + ссылка на index; без дубль `- [ ] s01…` в plan.
-
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / BACK IMPLEMENT — этот PLAN **не** делает Write всего `md/decompose-index.md`, **не** меняет status/чеклист, **не** перезаписывает Handoff эпика. Status только `epic_resolve.py mark-index-status` / `finalize-step`.
 
 **Верификация**: gates + AC + CREATIVE need + queue row/reconcile + multi-epic FAIL-checks + brownfield sunset (если replace) + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; без чтения соседних plan; без prompt → FAIL)

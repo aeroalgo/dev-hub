@@ -1,0 +1,59 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-077-gate-evidence-integrity
+plan_id: T-HUB-077-gate-evidence-integrity
+date: '2026-09-07'
+auditor: BACK QA
+
+verdict: fail
+summary:
+  verdict: fail
+  full_suite_executed: true
+  full_suite_command: "bin/pytest -q --tb=line"
+  passed_tests: 2306
+  failed_tests: 7
+  skipped_tests: 3
+  warnings: 81
+
+test_matrix_coverage:
+  - TM-077-01: passed
+  - TM-077-02: passed
+  - TM-077-03: passed
+  - TM-077-04: passed
+  - TM-077-05: passed
+
+failures:
+  - file: harness/hooks/tests/test_finish_boundary_pretool.py
+    test: test_successful_finish_denies_any_followup_tool
+    error: "KeyError: 'hookSpecificOutput'"
+    impact: "PreTool hook output format mismatch in test fixture"
+  - file: loop/tests/test_finish_bugfix.py
+    test: test_finish_bugfix_requires_artifact_then_arms_qa
+    error: "AssertionError: MbFinishResult(ok=False, diagnostic_codes=['manual_authority_rejected'])"
+    impact: "Legacy test fixture for mb-finish bugfix uses unreceipted manual authority"
+  - file: loop/tests/test_finish_integrity.py
+    test: test_finalize_step_syncs_index_and_active_context
+    error: "AssertionError: layout_v1_deprecated: decompose_folder_v1 (decompose-demo)"
+    impact: "Legacy test fixtures in test_finish_integrity call finalize_step directly without valid verifier receipt fixture"
+  - file: loop/tests/test_finish_integrity.py
+    test: test_finalize_step_from_in_progress_sets_implement_and_index
+    error: "AssertionError: manual authority evidence rejected"
+    impact: "Legacy test fixtures in test_finish_integrity call finalize_step directly without valid verifier receipt fixture"
+  - file: loop/tests/test_finish_integrity.py
+    test: test_finalize_step_rolls_back_implement_when_index_mark_fails
+    error: "AssertionError: manual authority evidence rejected"
+    impact: "Legacy test fixtures in test_finish_integrity call finalize_step directly without valid verifier receipt fixture"
+  - file: loop/tests/test_finish_integrity.py
+    test: test_finalize_step_last_snn_calls_promote_if_ready
+    error: "AssertionError: assert None is True"
+    impact: "Legacy test fixtures in test_finish_integrity call finalize_step directly without valid verifier receipt fixture"
+  - file: loop/tests/test_stop_gate.py
+    test: test_bash_pretool_denies_state_projection_write
+    error: "AssertionError: assert 'state_projection_forbidden' in 'runtime_gate_write_forbidden...'"
+    impact: "Diagnostic string assertion mismatch in bash pretool test"
+
+fix_plan:
+  - subject: BACK BUGFIX test-suite-receipt-and-pretool-fixtures
+    description: "Update regression test fixtures in test_finish_boundary_pretool.py, test_finish_bugfix.py, test_finish_integrity.py, and test_stop_gate.py to supply valid runtime receipt fixtures or assert updated typed diagnostic codes under fail-closed receipt enforcement."
+
+blocked_reason: ""

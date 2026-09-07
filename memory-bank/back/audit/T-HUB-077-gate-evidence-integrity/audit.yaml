@@ -1,0 +1,198 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-077-gate-evidence-integrity
+plan_id: T-HUB-077-gate-evidence-integrity
+date: '2026-09-07'
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: Ни один parent/worker агент не может сам объявить verifier/reviewer PASS, очистить активный gate или завершить шаг по поддельному evidence; только runtime-путь, принявший завершённый проверочный subagent receipt с совпадающей identity, вправе записать результат.
+  source: plan.md#Goal
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 5
+  fr_satisfied: 5
+  sc_checked: 5
+  layout_paths_total: 9
+  layout_paths_closed: 9
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "harness/hooks/gate_receipt.py (schema loop-verifier-receipt/v1 with immutable provenance fields session_id, phase_epoch, projection_hash, event_digest, role, step, verifier_identity, created_at, canonical receipt_digest)"
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py, harness/hooks/epic/core.py, loop/mb_finish/impl.py (dual enforcement rejecting receipt-less, manual authority, or mutated evidence and matching current projection identity)"
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "harness/hooks/agent-pretool.py, harness/hooks/write-pretool.py, harness/hooks/bash-pretool.py, harness/hooks/_lib.py (agent tool boundary denies Tool/Edit/shell writes to runtime gate state and last_verify authority)"
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py, harness/hooks/_lib.py, harness/hooks/epic/core.py (TaskStop, missing receipt, and stale in_flight project GATE_INFRASTRUCTURE_FAILURE, retain forensic marker, and omit implicit retry)"
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "harness/hooks/epic_resolve.py, harness/hooks/epic/core.py (operator_repair_gate requires explicit authority and reason, writes forensic audit events, and cannot synthesize PASS)"
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "harness/hooks/gate_receipt.py, harness/hooks/epic/core.py, loop/mb_finish/impl.py (no compatibility branch accepts authority=manual, empty receipt, or state-only PASS)"
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "harness/hooks/stop-gate.py, harness/hooks/epic/core.py, harness/hooks/epic_resolve.py (diagnostic auto-repair cannot clear in_flight or mirror PASS; operator repair is audited and re-arms only)"
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "harness/hooks/write-pretool.py, harness/hooks/bash-pretool.py, harness/hooks/_lib.py (agent write permissions to runtime state are denied uniformly; test fixtures use temporary sandboxes)"
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "memory-bank/constitution.md MUST invariants confirmed across implementation shards and boundary hooks"
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "s01 implemented failing red tests before receipt contract and enforcement changes (s01-s05 all TDD green)"
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "fail-closed receipt verification in stop-gate.py and loop/mb_finish/impl.py with zero silent fallbacks"
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "subagent execution policies and front testing constraints preserved without subagent test run escapes"
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "memory-bank load_now and token economy conventions maintained across all epic shards"
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "missing/invalid receipt or misconfigured projection raises GATE_INFRASTRUCTURE_FAILURE and halts flow"
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "explicit typed status codes and diagnostics used uniformly without ambiguous guessing"
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "single Handoff block written per step in activeContext.md across s01-s05"
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "integration parity maintained across harness hooks, runner loop, and epic state structures"
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "phase authority strictly enforced: verifier receipt issued solely by subagent-stop and verified by stop/finish gates"
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/hooks/gate_receipt.py
+    status: present
+    evidence: "canonical receipt constructor, digest computation, and validator"
+  - layout_path: harness/hooks/subagent-stop.py
+    status: present
+    evidence: "runtime-only emitter upon accepted verifier completion"
+  - layout_path: harness/hooks/stop-gate.py
+    status: present
+    evidence: "fail-closed stop gate validating receipt provenance"
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    evidence: "mirror stores receipt reference/digest only; finalize_step validates receipt"
+  - layout_path: harness/hooks/agent-pretool.py
+    status: present
+    evidence: "tool boundary pretool denies agent mutations"
+  - layout_path: loop/mb_finish/impl.py
+    status: present
+    evidence: "finish boundary enforcing receipt provenance"
+  - layout_path: harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    status: present
+    evidence: "unit/regression suite for receipt emission and tampering"
+  - layout_path: harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    status: present
+    evidence: "stop-gate failure matrix regression suite"
+  - layout_path: loop/tests/test_finish_receipt_integrity.py
+    status: present
+    evidence: "finish boundary integrity and positive path regression suite"
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-077-gate-evidence-integrity/s01-receipt-integrity-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-077-gate-evidence-integrity/s02-immutable-verifier-receipt-contract.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-077-gate-evidence-integrity/s03-stop-finish-receipt-enforcement.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-077-gate-evidence-integrity/s04-write-boundary-operator-repair.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-077-gate-evidence-integrity/s05-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: '2026-09-07'
+  plan_ref: memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md#replacement--sunset
+  rows:
+    - symbol: direct production last_verify authority writers
+      kind: A
+      command: rg -n 'last_verify_(verdict|evidence).*PASS' harness/hooks loop/mb_finish --glob '*.py'
+      result: pass
+      prod_callers: []
+      notes: "All production mirror/finalize paths require runtime verifier receipt reference/digest."
+    - symbol: worker spawn-gate JSON manipulation shell recipes
+      kind: B
+      command: rg -n 'spawn-gate.*(write|edit|rm|clear)' .claude harness loop --glob '!**/tests/**'
+      result: pass
+      prod_callers: []
+      notes: "Tool boundaries deny agent manipulation and shell recipes have been purged."
+    - symbol: silent stale clear and retry fallbacks
+      kind: C
+      command: rg -n 'clear_in_flight|force.?PASS' harness/hooks loop/mb_finish --glob '*.py'
+      result: pass
+      prod_callers: []
+      notes: "Fail-closed on stale or unverified state; operator repair handles recovery explicitly."
+    - symbol: runtime gate edit instruction surfaces
+      kind: I
+      command: rg -n 'edit.*runtime|write.*runtime|clear.*in_flight' CLAUDE.md .claude harness/claude loop --glob '*.md'
+      result: pass
+      prod_callers: []
+      notes: "Prompts and instructions only teach status observation and explicit handoff."
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-07'
+  rows:
+    - boundary: stop-gate
+      enforce_evidence: "harness/hooks/stop-gate.py enforces validate_receipt_provenance"
+      result: pass
+      notes: ""
+    - boundary: mb-finish
+      enforce_evidence: "harness/hooks/epic/core.py and loop/mb_finish/impl.py enforce receipt match"
+      result: pass
+      notes: ""
+    - boundary: agent-pretool
+      enforce_evidence: "harness/hooks/agent-pretool.py, write-pretool.py, bash-pretool.py deny runtime mutations"
+      result: pass
+      notes: ""
+
+blocked_reason: ""

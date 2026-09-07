@@ -99,11 +99,14 @@ def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
         f"# bugfix\nepic_id: {epic}\n\nfixed suite regressions\n",
     )
 
-    from harness.hooks._lib import current_gate_identity, verdict_evidence
-    from harness.hooks.epic.core import mirror_gate_verdict
-    ev = verdict_evidence(current_gate_identity(str(tmp_path), "test"), "PASS")
-    ev["authority"] = "manual"
-    mirror_gate_verdict(tmp_path, "PASS", evidence=ev)
+    from gate_receipt import issue_verifier_receipt
+    from harness.hooks._lib import current_gate_identity
+    from harness.hooks.epic.core import mirror_gate_verdict, rebuild_epic_projection
+    rebuild_epic_projection(tmp_path)
+    ident = current_gate_identity(str(tmp_path), "test")
+    ident["authority"] = "autonomous"
+    receipt = issue_verifier_receipt(ident, "PASS", "verify-bugfix")
+    mirror_gate_verdict(tmp_path, "PASS", evidence=receipt)
 
     out = finish_bugfix(
         MbFinishRequest(

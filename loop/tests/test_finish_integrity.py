@@ -654,10 +654,33 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
                 "armed_epic": "demo",
                 "armed_decompose": decompose,
                 "armed_step": "s01",
+                "role": "BACK",
+                "session_id": "sess-1",
+                "projection_hash": "hash-1",
+                "phase_epoch": "epoch-1",
+                "event_digest": "digest-1",
+                "projection": {
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "next_step": "s01",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
+                    "session_id": "sess-1",
+                },
                 "last_verify_verdict": "PASS",
                 "last_verify_evidence": {
-                    "authority": "manual",
+                    "schema_version": "hook-verdict/v1",
+                    "authority": "autonomous",
                     "verdict": "PASS",
+                    "session_id": "sess-1",
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
                 },
             }
         )
@@ -687,7 +710,7 @@ def test_finalize_step_syncs_index_and_active_context(tmp_path: Path) -> None:
     assert payload["finalized"] is True
     assert payload["step_id"] == "s01"
     assert payload["next_step"] == "s02"
-    assert payload["verify_diagnostic"] == "manual_fallback_non_authoritative"
+    assert payload["verify_diagnostic"] == "matched"
 
     index_yaml = (
         tmp_path / "memory-bank/back/plan/decompose-demo/index.yaml"
@@ -752,10 +775,33 @@ def test_finalize_step_from_in_progress_sets_implement_and_index(
                 "armed_epic": "demo",
                 "armed_decompose": decompose,
                 "armed_step": "s01",
+                "role": "BACK",
+                "session_id": "sess-1",
+                "projection_hash": "hash-1",
+                "phase_epoch": "epoch-1",
+                "event_digest": "digest-1",
+                "projection": {
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "next_step": "s01",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
+                    "session_id": "sess-1",
+                },
                 "last_verify_verdict": "PASS",
                 "last_verify_evidence": {
-                    "authority": "manual",
+                    "schema_version": "hook-verdict/v1",
+                    "authority": "autonomous",
                     "verdict": "PASS",
+                    "session_id": "sess-1",
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
                 },
             }
         )
@@ -837,10 +883,33 @@ def test_finalize_step_rolls_back_implement_when_index_mark_fails(
                 "armed_epic": "demo",
                 "armed_decompose": decompose,
                 "armed_step": "s01",
+                "role": "BACK",
+                "session_id": "sess-1",
+                "projection_hash": "hash-1",
+                "phase_epoch": "epoch-1",
+                "event_digest": "digest-1",
+                "projection": {
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "next_step": "s01",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
+                    "session_id": "sess-1",
+                },
                 "last_verify_verdict": "PASS",
                 "last_verify_evidence": {
-                    "authority": "manual",
+                    "schema_version": "hook-verdict/v1",
+                    "authority": "autonomous",
                     "verdict": "PASS",
+                    "session_id": "sess-1",
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
                 },
             }
         )
@@ -942,10 +1011,33 @@ def test_finalize_step_last_snn_calls_promote_if_ready(tmp_path: Path, monkeypat
                 "armed_epic": "demo",
                 "armed_decompose": decompose,
                 "armed_step": "s01",
+                "role": "BACK",
+                "session_id": "sess-1",
+                "projection_hash": "hash-1",
+                "phase_epoch": "epoch-1",
+                "event_digest": "digest-1",
+                "projection": {
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "next_step": "s01",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
+                    "session_id": "sess-1",
+                },
                 "last_verify_verdict": "PASS",
                 "last_verify_evidence": {
-                    "authority": "manual",
+                    "schema_version": "hook-verdict/v1",
+                    "authority": "autonomous",
                     "verdict": "PASS",
+                    "session_id": "sess-1",
+                    "epic_id": "demo",
+                    "role": "BACK",
+                    "step": "s01",
+                    "projection_hash": "hash-1",
+                    "phase_epoch": "epoch-1",
+                    "event_digest": "digest-1",
                 },
             }
         )

@@ -13,7 +13,7 @@
 - deps: T-xxx / gap ref
 - refs: …
 
-→ [decompose-…/index.md](decompose-…/index.md) — **после DECOMPOSE:** единственный трекер шагов (не дублировать s01…sNN здесь)
+→ [decompose-…/index.md](decompose-…/index.md)
 
 ## Delivery closure
 
@@ -235,8 +235,8 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 
 ## До DECOMPOSE (черновик нарезки)
 
-Краткий outline фаз **без** checkbox-статусов (статусы появятся только в decompose index).  
-После DECOMPOSE — этот блок сжать или удалить; детали → `sNN-*.yaml`.  
+Краткий outline фаз **без** checkbox-статусов.
+Детали → `sNN-*.yaml`.
 Brownfield: в конце очереди заложить `sNN-legacy-fallback-purge`.
 
 ## Appetite

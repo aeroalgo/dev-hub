@@ -1,0 +1,147 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Claude и Codex используют один контракт и одинаковую invalidation semantics"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Claude Code и Codex получают transport-only adapters, которые нормализуют Read/Edit/Write
+  aliases в один shared ledger request и возвращают эквивалентный DecisionReceipt. Write boundary
+  виден root-agent и subagents, а provider mismatch останавливается без локального bypass.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+  nouns:
+    - Claude PreToolUse adapter
+    - Codex event bridge
+    - normalized ReadRequest
+    - normalized EditEvent
+    - provider alias map
+    - write boundary
+    - root-agent
+    - subagent
+    - DecisionReceipt
+  layout_paths:
+    - harness/hooks/context_ledger_adapters.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/write-pretool.py
+    - harness/hooks/subagent-start.py
+    - harness/hooks/agent-posttool.py
+    - loop/runtime_adapters/claude.py
+    - loop/runtime_adapters/codex.py
+    - loop/runtime_materializers/hooks_json.py
+    - loop/runtime_materializers/codex_policy_mapping.yaml
+    - harness/hooks/tests/test_context_ledger_adapters.py
+    - loop/tests/test_context_ledger_provider_parity.py
+  ac_quotes:
+    - "Claude Code и Codex produce equivalent decisions for equivalent read and edit actions"
+    - "Provider event aliases ... converge to the same normalized request and decision"
+    - "A write by root-agent invalidates the same file for root-agent and subagents"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:26-72"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:92-115"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:136-148"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:247-253"
+
+context:
+  consumes:
+    - "s01 ContextLedger and receipt contract"
+    - "plan §Provider parity matrix"
+    - "plan §Failure matrix provider adapter and write boundary"
+    - "plan Stage 3 provider fixtures and invalidation"
+  produces:
+    - "Claude PreToolUse/PostToolUse and Subagent lifecycle integration with shared ledger"
+    - "Codex event bridge and generated hook mapping using the same normalizer"
+    - "provider parity fixtures for Read/read, Edit/Write, missing-range and equivalent Codex payloads"
+    - "root/subagent edit invalidation including rename/delete/external mutation"
+  plan_refs:
+    - "FR-002"
+    - "FR-007"
+    - "FR-008"
+    - "FR-009"
+    - "FR-010"
+    - "AC 4"
+    - "AC 6"
+    - "AC 7"
+    - "AC 8"
+    - "AC−1"
+    - "AC−4"
+    - "AC−5"
+    - "NFR: provider parity"
+  files:
+    - "harness/hooks/context_ledger_adapters.py"
+    - "harness/hooks/agent-pretool.py"
+    - "harness/hooks/write-pretool.py"
+    - "harness/hooks/subagent-start.py"
+    - "harness/hooks/agent-posttool.py"
+    - "loop/runtime_adapters/claude.py"
+    - "loop/runtime_adapters/codex.py"
+    - "loop/runtime_materializers/hooks_json.py"
+    - "loop/runtime_materializers/codex_policy_mapping.yaml"
+    - "harness/hooks/tests/test_context_ledger_adapters.py"
+    - "loop/tests/test_context_ledger_provider_parity.py"
+
+as_built:
+  - "harness/hooks/agent-pretool.py handles Agent spawn policy but does not normalize Read payloads into a shared ledger."
+  - "harness/hooks/write-pretool.py handles activeContext and gate-state write denies, not content-version invalidation."
+  - "loop/runtime_adapters/claude.py and codex.py analyze runtime logs, while hooks_json.py maps events; no shared context-read adapter exists."
+  - "manifest.yaml registers provider hooks, but registration is not yet a context-ledger enforcement boundary."
+
+delta:
+  - "ADD a provider-neutral normalizer and wire Claude PreToolUse/PostToolUse plus SubagentStart/SubagentStop payloads to s01 ContextLedger."
+  - "ADD Codex bridge normalization for Read/read, Edit/Write, NotebookEdit, rename/delete and missing-range events; map response status without changing policy."
+  - "WIRE root-session and invocation lineage into every provider request, generating deterministic derived_identity when provider invocation id is absent."
+  - "WIRE all supported write boundaries to hash refresh/invalidation and reject provider payload divergence rather than falling back locally."
+  - "EDIT harness/hooks/context_ledger_adapters.py, harness/hooks/agent-pretool.py, harness/hooks/write-pretool.py, harness/hooks/subagent-start.py and harness/hooks/agent-posttool.py so every provider boundary calls the shared normalizer."
+  - "EDIT loop/runtime_adapters/claude.py, loop/runtime_adapters/codex.py, loop/runtime_materializers/hooks_json.py and loop/runtime_materializers/codex_policy_mapping.yaml only for transport mapping and parity metadata."
+  - "ADD parity fixtures in harness/hooks/tests/test_context_ledger_adapters.py and loop/tests/test_context_ledger_provider_parity.py asserting identical normalized receipts and reason codes for Claude and Codex equivalents."
+
+deletes: []
+
+out_of_scope:
+  - "Ledger core range algebra and persistence implementation — s01."
+  - "Plan jump/search/test execution policy — s03."
+  - "Provider-local duplicate counters or prose cleanup — s06."
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/async-python-patterns/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+    - ".agents/skills/python-resilience/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Claude Read/Edit and Codex equivalent aliases normalize to the same request fields, actor lineage, canonical path and reason code."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -q --tb=line -k 'alias or parity or normalize'"
+  - id: cp2
+    criterion: "Root and subagent invocations stay distinguishable while a root write invalidates the same file for every actor; each actor can read the new hash once."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_context_ledger_adapters.py loop/tests/test_context_ledger_provider_parity.py -q --tb=line -k 'root or subagent or invalidat'"
+  - id: cp3
+    criterion: "Missing provider identity is recorded as derived_identity and mismatched normalized payloads fail closed without provider-local fallback."
+    verify: "rg -n 'derived_identity|fail.closed|provider|parity|Read|read|Edit|Write' harness/hooks/context_ledger_adapters.py harness/hooks/agent-pretool.py harness/hooks/write-pretool.py loop/runtime_materializers/hooks_json.py loop/runtime_materializers/codex_policy_mapping.yaml"
+  - id: cp4
+    criterion: "Claude and Codex hook materialization contains the context ledger adapter exactly once at the shared boundary."
+    verify: "rg -n 'context_ledger|PreToolUse|PostToolUse|SubagentStart|SubagentStop' harness/manifest.yaml loop/runtime_materializers/hooks_json.py loop/runtime_materializers/codex_policy_mapping.yaml"
+
+verify:
+  - "Equivalent Claude and Codex payloads produce byte-equivalent normalized decision fields except transport metadata."
+  - "No child/provider path can bypass root-session actor isolation or write invalidation."
+  - "There is one shared policy call site and no provider-specific duplicate-read rule."
+
+tdd:
+  - "test_claude_and_codex_aliases_share_normalized_receipt"
+  - "test_root_write_invalidates_subagent_ranges"
+  - "test_missing_invocation_identity_is_derived_and_recorded"
+  - "test_provider_mismatch_fails_closed_without_local_fallback"

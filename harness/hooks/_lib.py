@@ -247,6 +247,133 @@ _ALLOW_PATH = re.compile(
     r")"
 )
 
+_SHARED_LINK_PREFIXES = frozenset(
+    {
+        ".claude/skills",
+        ".claude/rules",
+        ".cursor/rules",
+        ".cursor/templates",
+        "CLAUDE.harness.md",
+        "harness",
+        "harness/claude/skills",
+        "harness/claude/rules",
+        "harness/cursor/rules",
+        "harness/cursor/templates",
+        "harness/skills",
+    }
+)
+_SHARED_LINK_DENY_PREFIXES = frozenset({"harness/hooks"})
+
+
+def _path_is_under(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _shared_link_prefixes() -> frozenset[str]:
+    raw = os.environ.get("DEV_HUB_ALLOWED_LINKS", "")
+    extra = {
+        item.strip().strip("/")
+        for item in raw.split(os.pathsep)
+        if item.strip()
+    }
+    return frozenset((*_SHARED_LINK_PREFIXES, *extra))
+
+
+def _project_path_candidate(cwd: Path, raw_path: str | Path) -> tuple[Path, str] | None:
+    """Return (lexical, canonical) paths without treating direct shared paths as local."""
+    if not isinstance(raw_path, (str, Path)) or not str(raw_path).strip():
+        return None
+    raw = os.path.expanduser(str(raw_path).strip())
+    lexical = Path(raw) if os.path.isabs(raw) else cwd / raw
+    lexical = Path(os.path.normpath(str(lexical)))
+    try:
+        canonical = lexical.resolve(strict=False)
+    except OSError:
+        canonical = lexical.absolute()
+    return lexical, str(canonical)
+
+
+def _is_allowed_shared_link(lexical: Path, project_root: Path) -> bool:
+    try:
+        relative = lexical.relative_to(project_root).as_posix()
+    except ValueError:
+        return False
+    if any(
+        relative == prefix or relative.startswith(prefix + "/")
+        for prefix in _SHARED_LINK_DENY_PREFIXES
+    ):
+        return False
+    return any(
+        relative == prefix or relative.startswith(prefix + "/")
+        for prefix in _shared_link_prefixes()
+    )
+
+
+def project_boundary_deny_reason(
+    cwd: str | Path,
+    raw_path: str | Path | None,
+    *,
+    operation: str = "read",
+) -> str | None:
+    """Deny tool paths outside the product root, except approved shared links."""
+    project_root = Path(cwd).expanduser().resolve()
+    candidate = _project_path_candidate(project_root, raw_path or "")
+    if candidate is None:
+        return None
+    lexical, canonical_text = candidate
+    canonical = Path(canonical_text)
+    if _path_is_under(lexical, project_root):
+        if _path_is_under(canonical, project_root):
+            return None
+        if _is_allowed_shared_link(lexical, project_root) and _path_is_under(
+            canonical, hub_root()
+        ):
+            return None
+        return (
+            f"project_boundary: {operation} denied for external symlink target "
+            f"{canonical}; only approved shared links are allowed"
+        )
+    return (
+        f"project_boundary: {operation} denied outside project root "
+        f"{project_root} (target={canonical})"
+    )
+
+
+def bash_project_boundary_deny_reason(cwd: str | Path, command: str) -> str | None:
+    """Reject explicit shell paths outside the product project.
+
+    The shell still executes normal commands and project-relative paths.  Any
+    explicit absolute path or parent traversal is checked by the same boundary
+    as Read/Edit, which prevents Bash from bypassing the file-tool guard.
+    """
+    if not isinstance(command, str) or not command.strip():
+        return None
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        tokens = command.split()
+    candidates = list(tokens)
+    candidates.extend(
+        match.group(0)
+        for match in re.finditer(
+            r"(?<![\w])/(?:home|mnt|workspace|tmp|opt|var|srv|root|run)(?:/[^\s'\";,|&<>()]*)?",
+            command,
+        )
+    )
+    for token in candidates:
+        cleaned = token.strip("'\"(),;")
+        if not cleaned or cleaned.startswith(("$", "-", "http://", "https://")):
+            continue
+        if os.path.isabs(cleaned) or cleaned.startswith(("../", "./../", "~")):
+            reason = project_boundary_deny_reason(cwd, cleaned, operation="bash")
+            if reason:
+                return reason
+    return None
+
 def env_bool(value: str | None, default: bool = False) -> bool:
     """Parse the project's documented boolean values."""
     if value is None:

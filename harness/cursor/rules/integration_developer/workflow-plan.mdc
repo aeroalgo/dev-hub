@@ -53,6 +53,4 @@ Gap опционален — не блокирует PLAN. Не читать as 
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`
 
-**После DECOMPOSE:** статусы только в `implement/eNN-*.yaml` и `decompose/index.yaml`; plan без дубль-чеклиста eNN
-
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / INTEG IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.

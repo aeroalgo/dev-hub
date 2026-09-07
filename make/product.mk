@@ -33,7 +33,7 @@ hub-info:
 	@ls -la "$(PROJECT_ROOT)/.cursor/rules" "$(PROJECT_ROOT)/.agents" "$(PROJECT_ROOT)/CLAUDE.md" 2>/dev/null || true
 
 hub-link:
-	@DEV_HUB="$(DEV_HUB)" PROJECT_ROOT="$(PROJECT_ROOT)" "$(DEV_HUB)/bin/hub-link" "$(PROJECT_ROOT)"
+	@DEV_HUB="$(DEV_HUB)" PROJECT_ROOT="$(PROJECT_ROOT)" "$(DEV_HUB)/bin/hub-link" --with-skills "$(PROJECT_ROOT)"
 
 hub-unlink:
 	@PROJECT_ROOT="$(PROJECT_ROOT)" "$(DEV_HUB)/bin/hub-unlink" "$(PROJECT_ROOT)"

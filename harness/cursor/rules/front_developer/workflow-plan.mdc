@@ -40,7 +40,7 @@ alwaysApply: false
     - multi-epic: сначала epic cut (таблица), затем апсерт row на **каждый** эпик в `memory-bank/front/roadmap/queue.yaml` (`batch` + `batches.<slug>`; шаблон @.cursor/templates/roadmap-queue.yaml)
     - полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` на **каждый** эпик (начинается с `## Epic`; Covering одинаковый; весь prompt без ID / без шапки Role·Deps; E2E + design direction; §0.0)  
     - **FORBIDDEN** `plan/roadmap-*-epics.*`  
-4. Single-epic: содержание по level delta в gates; E2E в плане; после DECOMPOSE трекер только в `plan/<id>/yaml/decompose-index.yaml`
+4. Single-epic: содержание по level delta в gates; E2E в плане
 
 **Armed IMPLEMENT lock:** если `plan/<id>/yaml/decompose-index.yaml` уже в loop / FRONT IMPLEMENT — PLAN **не** пишет весь `md/decompose-index.md`, **не** трогает status/чеклист, **не** перезаписывает `activeContext` Handoff этого эпика. Status только `mark-index-status` / `finalize-step`. Рассинхрон → `repair-index-mirror`.
 5. CREATIVE need? (per epic при multi-epic)

@@ -8,7 +8,7 @@
 **Gap ref (опционально):** [gap-YYYYMMDD-<slug>.md](../gap/<epic_id>/gap-YYYYMMDD-<slug>.md)
 **Prompt:** [md/prompt.md](prompt.md) — outcome SoT (абстрактный; не HOW)
 
-→ [decompose-<plan_id>/index.md](decompose-<plan_id>/index.md) — **после DECOMPOSE:** единственный трекер status `eNN` (не дублировать `- [ ] e01…` в этом plan)
+→ [decompose-<plan_id>/index.md](decompose-<plan_id>/index.md)
 
 ## Суть
 
@@ -83,7 +83,7 @@ response…
 
 ## Rollout (by UI element, not by layer)
 
-> Порядок фаз — стратегия. **Не** ставить `- [ ]` / `done` здесь. Статус элементов → `decompose/index.md` после DECOMPOSE.
+> Порядок фаз — стратегия. **Не** ставить `- [ ]` / `done` здесь.
 
 **Фаза 0 — Discovery (guest funnel)**
 1. e04 catalog list + filters

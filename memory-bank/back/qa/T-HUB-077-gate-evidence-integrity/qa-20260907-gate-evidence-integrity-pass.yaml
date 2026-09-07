@@ -1,0 +1,29 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-077-gate-evidence-integrity
+plan_id: T-HUB-077-gate-evidence-integrity
+date: '2026-09-07'
+auditor: BACK QA
+
+verdict: pass
+summary:
+  verdict: pass
+  full_suite_executed: true
+  full_suite_command: "bin/pytest -q --tb=line"
+  passed_tests: 2313
+  failed_tests: 0
+  skipped_tests: 3
+  warnings: 82
+
+test_matrix_coverage:
+  - TM-077-01: passed
+  - TM-077-02: passed
+  - TM-077-03: passed
+  - TM-077-04: passed
+  - TM-077-05: passed
+
+failures: []
+
+fix_plan: []
+
+blocked_reason: ""

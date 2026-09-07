@@ -74,6 +74,5 @@
 | **s02** | [s02-immutable-verifier-receipt-contract.yaml](../yaml/steps/s02-immutable-verifier-receipt-contract.yaml) — schema and runtime-only emitter | no | yes | BACK IMPLEMENT | completed |
 | **s03** | [s03-stop-finish-receipt-enforcement.yaml](../yaml/steps/s03-stop-finish-receipt-enforcement.yaml) — stop/finish dual enforcement | no | yes | BACK IMPLEMENT | completed |
 | **s04** | [s04-write-boundary-operator-repair.yaml](../yaml/steps/s04-write-boundary-operator-repair.yaml) — deny mutation and audited repair | no | yes | BACK IMPLEMENT | completed |
-| **s05** | [s05-legacy-fallback-purge.yaml](../yaml/steps/s05-legacy-fallback-purge.yaml) — A+B+C+I purge and regression proof | no | yes | BACK IMPLEMENT | pending |
-
+| **s05** | [s05-legacy-fallback-purge.yaml](../yaml/steps/s05-legacy-fallback-purge.yaml) — A+B+C+I purge and regression proof | no | yes | BACK IMPLEMENT | completed |
 Следующая фаза после DECOMPOSE — **BACK ANALYZE**. Переход к IMPLEMENT до ANALYZE с `critical_count=0` запрещён.

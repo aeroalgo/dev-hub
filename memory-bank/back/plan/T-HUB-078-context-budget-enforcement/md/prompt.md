@@ -2,11 +2,12 @@
 
 ### Outcome
 
-Implementation sessions receive exactly the context and discovery authority they need, with every exception measurable.
+Root agents and subagents receive exactly the context and discovery authority they need, with one measurable read policy shared by Claude Code and Codex.
 
 ### In
 
 - Deduplicated reads and bounded post-edit inspection.
+- Shared enforcement for root-agent and subagent invocations, including durable invalidation after edits.
 - Projected plan excerpts, scoped search and reproducible test execution.
 
 ### Out
@@ -15,12 +16,13 @@ Global token metering, product feature changes and visual reporting.
 
 ### Done when
 
-1. Repetition and monolithic context loads cannot occur silently.
-2. Legitimate narrow investigation remains possible with explicit evidence.
+1. Repetition and monolithic context loads cannot occur silently for either root agents or subagents.
+2. Claude Code and Codex produce equivalent decisions for equivalent read and edit actions.
+3. Legitimate narrow investigation remains possible with explicit evidence, including after a file changes.
 
 ### Forbidden after
 
-Read-all recovery, search-by-convenience, or cached test results after relevant change.
+Read-all recovery, provider-specific bypasses, search-by-convenience, or cached test results after relevant change.
 
 ### Chat decisions
 

@@ -74,6 +74,7 @@ Profiles live at `dsh/profiles/<name>/` and are composed from `package.json`, `c
 |---|---|---|---|
 | DECOMPOSE | `epic-decompose` | `explorer` | `PROJECT_LOOP_DECOMPOSE_MODEL` |
 | PLAN | `epic-plan` | — | `PROJECT_LOOP_PLAN_MODEL` |
+| ANALYZE | `epic-analyze` | — | `PROJECT_LOOP_ANALYZE_MODEL` |
 | CREATIVE | `epic-creative` | — | `PROJECT_LOOP_CREATIVE_MODEL` |
 | IMPLEMENT | `epic-implement` | `verify`, `explorer` | `PROJECT_LOOP_IMPLEMENT_MODEL` |
 | AUDIT | `epic-audit` | `explorer` | `PROJECT_LOOP_AUDIT_MODEL` |
@@ -81,7 +82,7 @@ Profiles live at `dsh/profiles/<name>/` and are composed from `package.json`, `c
 | BUGFIX | `epic-bugfix` | `verify`, `explorer` | `PROJECT_LOOP_BUGFIX_MODEL` |
 | REFLECT | `epic-reflect` | — | `PROJECT_LOOP_REFLECT_MODEL` |
 
-The profile selected by the loop is exposed through `EPIC_DSH_PROFILE`; the installer makes all eight phase profiles available under `$DSH_HOME/profiles/`.
+The profile selected by the loop is exposed through `EPIC_DSH_PROFILE`; the installer makes all nine phase profiles available under `$DSH_HOME/profiles/`.
 
 ## Env bridge
 
@@ -91,6 +92,7 @@ Each profile's `cordis.patch.yml` maps its phase model environment variable to t
 |---|---|
 | `PROJECT_LOOP_DECOMPOSE_MODEL` | `llm.config.model` in `epic-decompose/cordis.patch.yml` |
 | `PROJECT_LOOP_PLAN_MODEL` | `llm.config.model` in `epic-plan/cordis.patch.yml` |
+| `PROJECT_LOOP_ANALYZE_MODEL` | `llm.config.model` in `epic-analyze/cordis.patch.yml` |
 | `PROJECT_LOOP_CREATIVE_MODEL` | `llm.config.model` in `epic-creative/cordis.patch.yml` |
 | `PROJECT_LOOP_IMPLEMENT_MODEL` | `llm.config.model` in `epic-implement/cordis.patch.yml` |
 | `PROJECT_LOOP_AUDIT_MODEL` | `llm.config.model` in `epic-audit/cordis.patch.yml` |

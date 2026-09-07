@@ -21,7 +21,6 @@ alwaysApply: false
 4. Каждый `sNN`: skills gate — Impl Core(6) ∪ situational из @.cursor/rules/front_developer/skills-gate-situational.mdc
 5. `visible_ui: yes` → Design Core (весь пакет Base 4 + Taste 13); `no` → `**Design skills:** —` + причина
 6. Папка создана
-7. Plan: index = единственный трекер; нет sNN-чеклистов
 7a. **Promote gate (HARD):** `validate-decompose-tree` + `validate-traceability` CRITICAL=0. Next = **FRONT ANALYZE**. **FORBIDDEN** `ANALYZE deferred:` → IMPLEMENT
 8. `load_now` → `s01-*.yaml`
 
@@ -39,7 +38,6 @@ alwaysApply: false
 - Непустой `deletes` без `rg`/import-audit cp → incomplete
 - Отказ добавить sNN «слишком много шагов» при непокрытом AC/NFR → incomplete (coverage > band)
 - Micro-ladder / `>9` без justification → incomplete
-- Plan с дубль-чеклистом sNN → incomplete
 - `sNN` без Impl Core (6) → incomplete
 - `sNN` без `visible_ui` → incomplete
 - `visible_ui: yes` без Design Core (весь пакет) → incomplete

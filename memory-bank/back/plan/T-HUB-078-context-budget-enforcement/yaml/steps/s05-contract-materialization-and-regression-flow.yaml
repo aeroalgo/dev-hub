@@ -1,0 +1,142 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Root/subagent policy materialized parity и реальный shard flow enforce-ится"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Shared context contract materialized в Claude root/subagent instructions и Codex agent/policy
+  artifacts без provider drift. Реальный shard flow доказывает allowed code map, один TDD cycle,
+  bounded plan и отсутствие duplicate full Read через production entrypoints, а не unit-only helpers.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-007
+    - FR-008
+    - FR-010
+  nouns:
+    - root-agent contract
+    - subagent contract
+    - Claude instructions
+    - Codex agent policy
+    - generated materializer
+    - parity checker
+    - real shard flow
+    - production entrypoint
+    - allowed code map
+    - TDD cycle
+  layout_paths:
+    - harness/instructions/main.md
+    - CLAUDE.md
+    - AGENTS.md
+    - DSH.md
+    - .claude/agents/
+    - .codex/agents/
+    - loop/runtime_materializers/agent_policy.py
+    - loop/runtime_materializers/hooks_json.py
+    - loop/runtime_materializers/codex_agent_toml.py
+    - loop/tests/test_context_contract_materialization.py
+    - loop/tests/test_context_real_shard_flow.py
+  ac_quotes:
+    - "Ensure the same mode decision is injected into root-agent and subagent context contracts"
+    - "Materialize the shared contract into Claude root/subagent instructions and Codex agent/policy artifacts"
+    - "Regression-test a real shard flow: one allowed code map, one TDD cycle"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:38-72"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:125-148"
+    - "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md:247-261"
+
+context:
+  consumes:
+    - "s02 normalized provider contract"
+    - "s03 scope and plan-jump production entrypoints"
+    - "s04 finish receipt schema"
+    - "plan §Architecture proposed module boundaries"
+    - "plan §Stage 4 — metrics, migration and purge"
+  produces:
+    - "generated Claude/Codex contract surfaces carrying the same concise enforceable policy"
+    - "parity checker for instruction/policy materialization"
+    - "real root/subagent shard-flow regression fixture with production entrypoints"
+    - "evidence that no full plan or duplicate Read is needed for a legitimate cycle"
+  plan_refs:
+    - "FR-003"
+    - "FR-004"
+    - "FR-007"
+    - "FR-008"
+    - "FR-010"
+    - "AC 2"
+    - "AC 3"
+    - "AC 6"
+    - "AC 8"
+    - "AC−1"
+    - "AC−4"
+    - "AC−5"
+    - "NFR: parity"
+  files:
+    - "harness/instructions/main.md"
+    - "CLAUDE.md"
+    - "AGENTS.md"
+    - "DSH.md"
+    - ".claude/agents/"
+    - ".codex/agents/"
+    - "loop/runtime_materializers/agent_policy.py"
+    - "loop/runtime_materializers/hooks_json.py"
+    - "loop/runtime_materializers/codex_agent_toml.py"
+    - "loop/tests/test_context_contract_materialization.py"
+    - "loop/tests/test_context_real_shard_flow.py"
+
+as_built:
+  - "harness/instructions/main.md and generated runtime files carry workflow prose and provider-specific materialization, but no shared context-budget contract."
+  - "loop/runtime_materializers/agent_policy.py, hooks_json.py and codex_agent_toml.py already provide generated policy surfaces that can carry the shared contract."
+  - "Existing prompt_builder and shard plan_contract provide command and plan-jump inputs, but no end-to-end regression proves the production flow."
+
+delta:
+  - "EDIT harness/instructions/main.md, CLAUDE.md, AGENTS.md and DSH.md with the concise shared context ledger/search/plan-jump rule, then materialize it through existing Claude/Codex paths."
+  - "EDIT loop/runtime_materializers/agent_policy.py, loop/runtime_materializers/hooks_json.py and loop/runtime_materializers/codex_agent_toml.py so root and subagent policy records use the same mode, actor and exception contract; preserve provider payload as transport only."
+  - "ADD loop/tests/test_context_contract_materialization.py parity checks that reject missing or divergent generated contract surfaces and do not create a second hook entrypoint."
+  - "ADD loop/tests/test_context_real_shard_flow.py regression invoking prompt projection, scope preflight, ledger decision and finish receipt for an allowed code map plus TDD cycle."
+
+deletes: []
+
+out_of_scope:
+  - "Removing old conflicting prose and provider-local counters — s06 final purge."
+  - "Changing product feature behavior unrelated to workflow control."
+
+skills:
+  code_surface: infra
+  impl:
+    - ".agents/skills/tdd/SKILL.md"
+    - ".agents/skills/python-testing-patterns/SKILL.md"
+    - ".agents/skills/modern-python/SKILL.md"
+    - ".agents/skills/python-anti-patterns/SKILL.md"
+    - ".agents/skills/python-configuration/SKILL.md"
+    - ".agents/skills/python-observability/SKILL.md"
+    - ".agents/skills/python-type-safety/SKILL.md"
+
+checkpoints:
+  - id: cp1
+    criterion: "Claude root, Claude subagent and Codex policy/TOML generated surfaces include one equivalent context contract with matching mode, scope, exception and receipt semantics."
+    verify: ".venv/bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line -k 'parity or root or subagent or codex'"
+  - id: cp2
+    criterion: "Parity checker fails when a generated surface is missing or provider payload mapping diverges, and no parallel hook entrypoint is introduced."
+    verify: ".venv/bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line -k 'missing or divergent or duplicate'"
+  - id: cp3
+    criterion: "Production shard-flow regression completes allowed code map and TDD cycle without monolithic plan or duplicate full Read and emits attributable receipt."
+    verify: ".venv/bin/pytest loop/tests/test_context_real_shard_flow.py -q --tb=line"
+  - id: cp4
+    criterion: "Generated artifacts and canonical instructions contain no broad-read recovery language that weakens the shared contract."
+    verify: "rg -n 'context ledger|plan_jumps|graphify|duplicate|whole plan|fail.closed|derived_identity' harness/instructions/main.md CLAUDE.md AGENTS.md DSH.md loop/runtime_materializers .claude/agents .codex/agents"
+
+verify:
+  - "The real regression calls production boundary entrypoints and proves success plus deny behavior."
+  - "Claude and Codex are transport-equivalent, not separately implemented policy paths."
+  - "No new parallel hook entrypoint or generated surface bypasses existing registration."
+
+tdd:
+  - "test_materialized_claude_codex_context_contracts_are_equivalent"
+  - "test_materializer_rejects_missing_or_divergent_context_contract"
+  - "test_real_shard_flow_has_bounded_plan_and_no_duplicate_read"

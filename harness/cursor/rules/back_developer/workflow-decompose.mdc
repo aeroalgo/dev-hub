@@ -52,7 +52,7 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 5y. Advisory: `verify-decompose-creative` → `ready: true` или CREATIVE
 5a–5j. FAIL-условия = Gates Abort (+ dilution / optional_sot / Kind I / purge / short plan_id)
 6. Layout v2: `md/decompose-index.md` + `yaml/decompose-index.yaml` (`epic-decompose-index/v1`) + `yaml/steps/sNN-*.yaml` — **FORBIDDEN** `decompose-<id>/` · `yaml/index.md|index.yaml`
-7. Обнови plan: ссылка на index; без дубль-чеклистов; Goal/NFR не infra-only
+7. Goal/NFR не infra-only
 7a. **Promote:** validate-decompose-tree · validate-traceability CRITICAL=0 · `@verify-decompose` · Next = **BACK ANALYZE** only (**FORBIDDEN** ANALYZE deferred)
 7b. **FINISH:** finish-block (`code_changed: no`); next ANALYZE
 8. `tasks.md` append-only

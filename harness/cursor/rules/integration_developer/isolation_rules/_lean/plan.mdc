@@ -18,7 +18,6 @@ alwaysApply: false
 4. Plan: все секции @.cursor/templates/integration-plan.md; Rollout без status-checkboxes; research multi-axis → не один mega-plan
 5. `contracts/` не обязателен
 6. Сначала queue row/reconcile, затем `tasks.md` append-only (roadmap + каждый эпик)
-7. После DECOMPOSE: plan → index; нет дубль eNN-чеклиста
 8. Queue FAIL: нет row/reconcile для любого PLAN → halt; multi-epic с ≥2 независимыми wire-осями и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
 
 ## Abort

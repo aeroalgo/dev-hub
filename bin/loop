@@ -3,10 +3,19 @@
 # Usage:
 #   ./bin/loop [/path/to/project] gpt
 #   PROJECT_ROOT=/path/to/project ./bin/loop gpt
+#   ./bin/loop <runtime> <epic> <model>
 set -euo pipefail
 HUB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if [[ $# -ge 1 && -d "${1:-}" && -d "${1}/memory-bank" ]]; then
+case "${1:-}" in
+  claude|codex|dsh)
+    export EPIC_RUNTIME="$1"
+    shift
+    export PROJECT_ROOT="$(pwd)"
+    ;;
+esac
+
+if [[ -z "${PROJECT_ROOT:-}" && $# -ge 1 && -d "${1:-}" && -d "${1}/memory-bank" ]]; then
   export PROJECT_ROOT="$(cd "$1" && pwd)"
   shift
 elif [[ -z "${PROJECT_ROOT:-}" ]]; then

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -665,6 +666,30 @@ def test_mark_queue_epic_done_qa_fail_blocks(tmp_path: Path) -> None:
     res = rq.mark_queue_epic_done(tmp_path, "T-005", role="back", require_done=False)
     assert res["ok"] is False
     assert res["error"] == "qa_fail_blocks_advance"
+
+
+def test_latest_qa_artifact_uses_lifecycle_time_not_filename_order(tmp_path: Path) -> None:
+    """A same-day QA pass must supersede an older fail despite its suffix."""
+    _load_rq()
+    if HOOKS not in sys.path:
+        sys.path.insert(0, HOOKS)
+    from epic.core import latest_qa_any_artifact_for_reference, parse_qa_verdict
+
+    qa_dir = tmp_path / "memory-bank/back/qa/T-077"
+    fail = qa_dir / "qa-20260907-gate-evidence-integrity.yaml"
+    passed = qa_dir / "qa-20260907-gate-evidence-integrity-pass.yaml"
+    fail.parent.mkdir(parents=True, exist_ok=True)
+    fail.write_text("schema: epic-qa/v1\nverdict: fail\n", encoding="utf-8")
+    passed.write_text("schema: epic-qa/v1\nverdict: pass\n", encoding="utf-8")
+    old = 1_700_000_000
+    os.utime(fail, (old, old))
+    os.utime(passed, (old + 1, old + 1))
+
+    latest = latest_qa_any_artifact_for_reference(
+        tmp_path, "back", epic_id="T-077"
+    )
+    assert latest == passed
+    assert parse_qa_verdict(latest) == "pass"
 
 
 def test_plan_stem_from_name() -> None:

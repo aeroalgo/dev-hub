@@ -3,6 +3,7 @@
 ## Active
 
 | T-HUB-081…084 | Workflow Read-chain consolidation | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · hot path → shared lean → role core → graph hygiene · next BACK DECOMPOSE T-HUB-081 |
+| T-HUB-085 | Hook event dispatcher consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md) · deps T-HUB-063,065,077,079 · event-specific dispatchers, shared policy/evidence, no mega-hook |
 
 | T-HUB-062 | Skill topology canonical paths | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-062-skill-topology-canonical-paths/md/plan.md) · [decompose](back/plan/T-HUB-062-skill-topology-canonical-paths/md/decompose-index.md) · queue[0] · next BACK ANALYZE · batch workflow-loop-20260905 |
 | T-HUB-063 | Sunset boundary + SubagentStop pipeline | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/plan.md) · [decompose](back/plan/T-HUB-063-sunset-boundary-stop-pipeline/md/decompose-index.md) · 5 sNN · next BACK ANALYZE · batch workflow-loop-20260905 |
