@@ -1,0 +1,169 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: "finish_qa next_mode BUGFIX-only; parse_qa_verdict missing ≠ pass; keep qa_new_* and reviewer"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Единственный SoT QA finish: finish_qa fail/blocked → next_mode BUGFIX only.
+  Never DONE, never REFLECT, never EPIC_DONE hint, never epic_done True on fail.
+  parse_qa_verdict missing verdict ≠ pass: delete `if qa_art else "pass"`;
+  missing/None verdict fail-closed (not DONE). Keep qa_new_session_required,
+  qa_new_artifact_required, qa_reviewer_required. No ALLOW_QA_FAIL_DONE.
+  FRONT/INTEG share the same finish_qa. Outcome: fail yaml cannot leave as success.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-004
+    - FR-009
+    - FR-011
+    - FR-012
+    - FR-014
+    - FR-015
+    - US-001
+    - US-002
+    - US-005
+    - SC-001
+    - SC-002
+    - SC-005
+    - AC+1
+    - AC+2
+    - AC+5
+    - AC−1
+    - AC−2
+    - AC−4
+    - AC−5
+    - TM-001
+    - TM-002
+    - TM-005
+    - TM-006
+    - TM-007
+    - TM-008
+    - NFR-1
+    - NFR-3
+    - Technology axiom
+    - Independent Test
+  nouns:
+    - finish_qa
+    - parse_qa_verdict
+    - next_mode BUGFIX
+    - qa_new_session_required
+    - qa_new_artifact_required
+    - qa_reviewer_required
+    - QaAfterBugfix
+  layout_paths:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic/core.py
+  ac_quotes:
+    - "finish_qa fail/blocked → next_mode=\"BUGFIX\" only. Never \"DONE\", never \"REFLECT\"."
+    - "parse_qa_verdict fail-closed: missing verdict ≠ pass."
+    - "Keep qa_new_session_required and qa_new_artifact_required. Add tests that fail if those branches deleted."
+    - "No feature flag ALLOW_QA_FAIL_DONE."
+    - "FRONT/INTEG finish_qa same functions — one fix."
+    - "Independent Test = cannot leave with fail yaml; not «QaAfterBugfix field exists»."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:37-47"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:101-114"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:143-157"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:210-216"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:239-245"
+
+context:
+  consumes:
+    - s01 red tests
+    - plan.md §FR-001/002/009/012/014/015
+    - as-built finish_qa fail branch + else pass on missing artifact
+  produces:
+    - finish_qa fail/blocked → BUGFIX only (lock + no REFLECT/DONE)
+    - parse_qa_verdict None / missing key → not treated as pass (delete else "pass")
+    - kept qa_new_session_required / qa_new_artifact_required / qa_reviewer_required
+    - no ALLOW_QA_FAIL_DONE symbol
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#technology-axiom-replace-not-wrap
+    - plan.md#replacement--sunset
+  files:
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+
+as_built:
+  - "finish_qa L226-231: fail/blocked → BUGFIX else DONE — good fail branch; pass is default including missing verdict"
+  - "impl.py L210: qa_verdict = parse_qa_verdict(qa_art) if qa_art else \"pass\" — sunset"
+  - "parse_qa_verdict (core.py L3502-3510): missing regex match returns None, not fail"
+  - "qa_after_bugfix gates L162-188 present; reviewer L211-225 present"
+  - "role_dir back|front|integration already in finish_qa — one function for FR-015"
+  - "validate_qa_finish_handoff: fail/blocked requires BUGFIX in body (core.py L3533-3535)"
+
+delta:
+  - "delete `if qa_art else \"pass\"`; if parse_qa_verdict returns None/missing → fail-closed (not DONE); align parse_qa_verdict so missing verdict is not pass"
+  - "lock fail/blocked next_mode BUGFIX only; never assign DONE/REFLECT/EPIC_DONE on fail"
+  - "keep qa_new_session_required, qa_new_artifact_required, qa_reviewer_required — tests from s01 must stay red if deleted"
+  - "do not add ALLOW_QA_FAIL_DONE; do not dual-path DONE on fail"
+  - "do not change finish_handoff (s03) or purge reflect (s04)"
+  - "wire_complete: call_sites finish_qa; enforce missing verdict ≠ pass; dual_path_rg ALLOW_QA_FAIL_DONE = 0"
+
+deletes:
+  - "loop/mb_finish/impl.py: `parse_qa_verdict(qa_art) if qa_art else \"pass\"`"
+  - "any ALLOW_QA_FAIL_DONE / finish_qa next_mode REFLECT"
+
+out_of_scope:
+  - "finish_handoff qa_fail_blocks_handoff / roadmap_advance (s03)"
+  - "purge finish_reflect symbols (s04)"
+  - "Kind I comments / mb-finish reflect CLI (s05)"
+  - "leftover inventory (s06)"
+  - "Appetite cut_list"
+  - "overlay 070 / identity 071 / load_session 072 / abort 073 / journal 068"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: qa-verdict-sot
+  new_sot: harness/hooks/epic/core.py::parse_qa_verdict + finish_qa next_mode BUGFIX on fail
+  allow_read:
+    - "loop/mb_finish/impl.py"
+    - "harness/hooks/epic/core.py"
+    - "harness/hooks/tests/test_mb_finish_qa.py"
+  kind_hint:
+    - A
+    - C
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-001 / US-001 — finish_qa fail|blocked → next_mode BUGFIX, epic_done False,
+      rendered mode BUGFIX, hint not EPIC_DONE, never REFLECT.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k 'fail or blocked or BUGFIX'"
+  - id: cp2
+    criterion: |
+      FR-009 / TM-007 — missing verdict ≠ pass; else \"pass\" gone; parse_qa_verdict
+      None does not DONE.
+    verify: "! rg -n 'if qa_art else \"pass\"' loop/mb_finish/impl.py"
+  - id: cp3
+    criterion: |
+      FR-002/004/012 — qa_new_session_required, qa_new_artifact_required,
+      qa_reviewer_required still live; finish_bugfix sets QaAfterBugfix.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_qa.py loop/tests/test_finish_bugfix.py -q --tb=line -k 'artifact or session or reviewer or bugfix'"
+  - id: cp4
+    criterion: FR-014 — no ALLOW_QA_FAIL_DONE; FR-015 one finish_qa for all roles
+    verify: "! rg -n 'ALLOW_QA_FAIL_DONE|next_mode = \"REFLECT\"' loop/mb_finish/impl.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_mb_finish_qa.py loop/tests/test_finish_bugfix.py -q --tb=line"
+tdd:
+  - "red: missing verdict → DONE via else pass"
+  - "green: fail-closed parse + BUGFIX-only next_mode"

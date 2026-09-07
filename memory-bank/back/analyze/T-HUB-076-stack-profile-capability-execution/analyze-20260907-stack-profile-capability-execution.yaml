@@ -1,0 +1,209 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-076-stack-profile-capability-execution
+slug: stack-profile-capability-execution
+date: 2026-09-07
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Add strict typed models for a phase declaration, execution result and persisted evidence. Unknown fields fail; declaration accepts only capability enum, required target and optional selector under existing selector rules."
+  - requirement_id: FR-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Add a public executor that accepts only project root plus typed request/declaration, calls resolve_capability(), and runs only resolution.argv with resolution.cwd, timeout_seconds and shell=False."
+  - requirement_id: FR-003
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Executor never accepts raw command text, caller argv, cwd override, env override, profile override or timeout override; resolver failure means no subprocess call."
+  - requirement_id: FR-004
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "Execution emits stack-capability-execution/v1 JSON with request fingerprint, resolution identity, start/end or duration, exit code/status, bounded output metadata and ordered diagnostics. No output body or secret-bearing environment is embedded in memory-bank YAML."
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "python -m loop.stack_profiles execute is JSON-first and exposes the same typed result as API. Exit mapping distinguishes success, configuration/selection failure, unavailable/spawn failure, timeout, and delegated command failure."
+  - requirement_id: FR-006
+    step_ids: [s01, s04, s05]
+    status: covered
+    plan_text_verbatim: "Extend decompose schema with explicit capability_checks; BACK/INTEG phase declarations are valid only with required named targets, allowed capability/selector pairing and no raw process fields."
+  - requirement_id: FR-007
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "loop.context_loop.check_after() finds declared checks for the current armed step, executes them before returning a green continuation, persists evidence under the role/epic/step execution artifact path and HALTs on any failed/missing/stale evidence."
+  - requirement_id: FR-008
+    step_ids: [s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "Finish/step validation recognises typed managed-project evidence and validates it against the current declaration fingerprint. Hub command evidence remains a separate, explicit contract and remains valid for hub-only work."
+  - requirement_id: FR-009
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Update BACK, INTEG and shared workflow instructions so managed project work declares and receives capability checks; instructions no longer prescribe Python-specific generic test commands as the managed-project default."
+  - requirement_id: FR-010
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Keep FRONT parent-only test authority. This epic may rewrite its vocabulary from manager literals to “managed frontend capability / approved scenario runner”, but it does not add profile test.e2e or execute browser tests through the capability executor."
+  - requirement_id: FR-011
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "All old generic-string assumptions are removed from validation and instruction surfaces in the same epic. Any remaining raw tests: string is labelled hub-only, cannot be used to satisfy a managed declaration, and never triggers a legacy fallback."
+  - requirement_id: FR-012
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Direct resolver/doctor behaviour from T-HUB-075, immutable registry vocabulary, JS lockfile policy, target containment and hub self-test runner are unchanged."
+  - requirement_id: US-001
+    step_ids: [s01, s02, s04]
+    status: covered
+    plan_text_verbatim: "As an autonomous loop, I execute the declared profile check for the active step so that verification uses the same argv/cwd/timeout contract defined by the project manifest."
+  - requirement_id: US-002
+    step_ids: [s01, s04, s05]
+    status: covered
+    plan_text_verbatim: "As an operator, I am prevented from declaring an ambiguous check without a target so that a monorepo cannot silently run against the wrong directory."
+  - requirement_id: US-003
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "As an operator, I receive JSON result and stable non-zero outcome upon invalid manifest, spawn error, timeout or non-zero command."
+  - requirement_id: US-004
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "As a maintainer of dev-hub itself, existing hub self-tests continue to validate without profile manifest inference."
+  - requirement_id: SC-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Every bundled profile executes an explicit test.full through one executor."
+  - requirement_id: SC-002
+    step_ids: [s01, s02, s04]
+    status: covered
+    plan_text_verbatim: "No resolver/validation failure invokes a target subprocess."
+  - requirement_id: SC-003
+    step_ids: [s02, s04]
+    status: covered
+    plan_text_verbatim: "Failed, timed-out and non-zero command evidence blocks check-after."
+  - requirement_id: SC-004
+    step_ids: [s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "A managed result cannot be proven by raw shell test prose."
+  - requirement_id: SC-005
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "Hub self-tests remain accepted without manifest/profile inference."
+  - requirement_id: SC-006
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Active workflow rules do not teach generic bin/pytest as managed-project execution."
+  - requirement_id: AC+ #1
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Explicit target capability declaration executes resolved argv with timeout."
+  - requirement_id: AC+ #2
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "execute CLI returns JSON schema with exit mapping."
+  - requirement_id: AC+ #3
+    step_ids: [s02, s04]
+    status: covered
+    plan_text_verbatim: "Failed execution blocks green continuation with typed diagnostic."
+  - requirement_id: AC+ #4
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "check-after persists atomic execution evidence."
+  - requirement_id: AC+ #5
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "Step and finish validation verifies evidence against current declaration fingerprint."
+  - requirement_id: AC+ #6
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Rules describe the managed capability path and hub exception."
+  - requirement_id: AC- #1
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "No raw shell command, cwd or timeout accepted from caller."
+  - requirement_id: AC- #2
+    step_ids: [s02, s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "No fallback to default target, hub command, npm/cargo/pytest literal or raw tests string after managed failure."
+  - requirement_id: AC- #3
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "No capability check without required named target."
+  - requirement_id: AC- #4
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "No profile test.e2e or capability executor path for FRONT browser scenario runners."
+  - requirement_id: NFR-01
+    step_ids: [s01, s02, s04, s05]
+    status: covered
+    plan_text_verbatim: "fail-closed: invalid declaration, resolution, spawn, timeout, child failure, missing/stale proof all HALT/deny."
+  - requirement_id: NFR-02
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "isolation: executor executes only resolver argv/cwd/timeout with shell=False; no raw commands or arbitrary environment."
+  - requirement_id: NFR-03
+    step_ids: [s01, s03, s04]
+    status: covered
+    plan_text_verbatim: "bounded evidence: no unbounded stdout/stderr in memory bank; execution evidence records only status, exit code, diagnostic, duration and bounded summary."
+  - requirement_id: NFR-04
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "hub compatibility: hub tests continue to validate without profile manifest inference or executor calls."
+  - requirement_id: layout:loop/stack_profiles/schemas.py
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/schemas.py — declaration, result and evidence Pydantic models with strict field validation."
+  - requirement_id: layout:loop/stack_profiles/execution.py
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/execution.py — execution model helpers, canonical serialization and fingerprint generation."
+  - requirement_id: layout:loop/stack_profiles/executor.py
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/executor.py — resolver-owned argv execution service and bounded outcome collector."
+  - requirement_id: layout:loop/stack_profiles/__main__.py
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/__main__.py — CLI router exposing execute subcommand."
+  - requirement_id: layout:loop/stack_profiles/cli.py
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/cli.py — JSON execute CLI handler and exit mapping."
+  - requirement_id: layout:loop/context_loop.py
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "loop/context_loop.py — check-after capability check orchestration, sidecar persistence and fail-closed HALT."
+  - requirement_id: layout:loop/mb_finish/impl.py
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "loop/mb_finish/impl.py — finish gate validation for managed capability evidence versus hub test command."
+  - requirement_id: layout:harness/hooks/epic_yaml.py
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "harness/hooks/epic_yaml.py — decompose schema validation for capability_checks declaration."
+  - requirement_id: layout:harness/hooks/tests_format.py
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "harness/hooks/tests_format.py — test spec formatter distinguishing managed project evidence from hub test."
+  - requirement_id: layout:harness/cursor/rules/**
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "harness/cursor/rules/** — canonical workflow instruction rules teaching managed capability checks and hub exception."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

@@ -22,7 +22,10 @@ from epic import (  # noqa: E402
 from epic.core import active_context_path, checkpoint_lock_path, checkpoint_path, load_checkpoint  # noqa: E402
 from epic_paths import epic_id_from_decompose_path  # noqa: E402
 from _lib import merged_project_env_map  # noqa: E402
-from analyze_gate import analyze_required_before_implement  # noqa: E402
+try:
+    from loop.analyze_gate import analyze_required_before_implement  # noqa: E402
+except ImportError:
+    from analyze_gate import analyze_required_before_implement  # noqa: E402
 
 QUEUE_VERSION_V1 = "roadmap-queue/v1"
 QUEUE_VERSION = "roadmap-queue/v2"
@@ -497,6 +500,22 @@ def mark_queue_epic_done(
             "path": parsed["path"],
         }
 
+    # FR-013: If latest QA for this epic is fail or blocked, do not allow marking done as success.
+    # Fail-closed diagnostic qa_fail_blocks_advance.
+    from epic.core import latest_qa_any_artifact_for_reference, parse_qa_verdict
+    slug_for_qa = resolve_epic_slug(root, role_key, ref)
+    latest_qa = latest_qa_any_artifact_for_reference(root, role_key, epic_id=slug_for_qa)
+    if latest_qa:
+        v = parse_qa_verdict(latest_qa)
+        if v in {"fail", "blocked"}:
+            return {
+                "ok": False,
+                "error": "qa_fail_blocks_advance",
+                "reason": f"epic {ref} latest QA verdict is '{v}' ({latest_qa.name}); cannot advance or mark queue epic done",
+                "id": ref,
+                "path": parsed["path"],
+            }
+
     row = queue.pop(hit_idx)
     if require_done and not is_epic_done(root, role_key, row["id"]):
         return {
@@ -799,10 +818,7 @@ def roadmap_advance(
             queue_rel=queue_rel,
             require_done=False,
         )
-        if marked.get("ok") is False and marked.get("error") in {
-            "queue_version_mismatch",
-            "queue_yaml_invalid",
-        }:
+        if marked.get("ok") is False:
             return {
                 "ok": False,
                 "armed": False,

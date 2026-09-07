@@ -1,0 +1,47 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 4
+  cut_list:
+  - manifest-writing init
+  - minimum version enforcement
+  - custom profiles
+  - pack phase declaration syntax
+steps:
+- id: s01
+  file: s01-schema-manifest-containment-red.yaml
+  title: Red tests + strict ProjectManifest — schema, containment, vocabulary, no
+    unknown keys
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-bundled-registry-pure-resolver.yaml
+  title: Bundled registry + pure Python/Rust/JS resolver — argv/cwd, JS lockfile,
+    target selection
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-json-cli-doctor-no-script.yaml
+  title: JSON CLI resolve|doctor — exit mapping, fake-executable probes, no target
+    scripts
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-wire-workflow-pack-typed-manifest.yaml
+  title: Wire workflow_pack from typed manifest; delete _read_project_yaml_pack dual
+    path
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-consumer-api-integration-no-lifecycle.yaml
+  title: Consumer-facing API integration — resolve_capability only, no lifecycle execution
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — old project.yaml / .dev-hub YAML / fallbacks
+    / Kind I leftovers
+  next_phase: BACK IMPLEMENT
+  status: completed

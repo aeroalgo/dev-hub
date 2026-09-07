@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: s05 — Kind I comments + Kind B mb-finish reflect subcommand/MCP gone IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s05-kind-i-mb-finish-reflect-entrypoint.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-observability/SKILL.md
+discovery:
+- Scanned sunset targets for boundary reflect-entrypoint-kind-i via sunset-inventory
+- Confirmed no mb-finish reflect CLI subcommand in harness/hooks/epic_resolve.py
+- Confirmed no finish_reflect MCP tool in loop/mb_finish/mcp_server.py
+- Confirmed no Python comments teaching QA FINISH -> REFLECT in loop/mb_finish or
+  harness/hooks/epic
+- Confirmed test_no_finish_reflect passes in loop/tests/test_mb_finish_transaction.py
+gaps:
+  status: none
+done:
+- Verified zero Kind B reflect entrypoint registrations in CLI and MCP server
+- Verified zero Kind I comments instructing QA FINISH -> REFLECT in loop/mb_finish
+  and harness/hooks/epic
+- Verified overlay test coverage for QA finish remaining intact
+files:
+- loop/mb_finish/mcp_server.py
+- harness/hooks/epic_resolve.py
+- loop/mb_finish/impl.py
+- harness/hooks/epic/core.py
+- loop/tests/test_mb_finish_transaction.py
+deletes:
+- mb-finish reflect subcommand / MCP finish_reflect registration
+- Kind I comments next QA = REFLECT in loop/mb_finish / harness/hooks/epic
+tests:
+- bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k 'qa_finish_no_reflect
+  or reflect'
+- bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line
+integration_check:
+- '! rg -n ''finish_reflect|mb-finish reflect|mb_cmd.*reflect'' loop/mb_finish harness/hooks/epic_resolve.py'
+- '! rg -n ''next QA = REFLECT|next_mode.*REFLECT|QA FINISH.*REFLECT'' loop/mb_finish
+  harness/hooks/epic --glob ''*.py'''
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- '{''check'': ''cp1'', ''status'': ''pass''}'
+- '{''check'': ''cp2'', ''status'': ''pass''}'
+- '{''check'': ''cp3'', ''status'': ''pass''}'
+- '{''check'': ''cp4'', ''status'': ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: Kind B — no mb-finish reflect CLI / MCP tool finish_reflect
+  status: done
+- id: cp2
+  criterion: Kind I — no comments in mb_finish / epic core «QA FINISH → REFLECT» /
+    next_mode REFLECT
+  status: done
+- id: cp3
+  criterion: FR-007 scope — .cursor/rules overlay not edited unless loop/harness one-liner
+    blocks tests
+  status: done
+- id: cp4
+  criterion: overlay tests still own 070; this step does not weaken them
+  status: done
+resume_from: cp4

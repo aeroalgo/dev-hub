@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §P1 abort + dirty_files; session audit §11 401×8 empty DECOMPOSE; as-built `harness/hooks/session_resilience.py`
 
-→ decompose-index — **после DECOMPOSE**
+→ [decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml)
 
 ---
 
@@ -25,7 +25,9 @@
 - **refs:** `harness/hooks/session_resilience.py`; `loop/context_loop.py` retry; `last-session.json`; architecture abort P1; session audit §11.
 - **Не:** overlay REFLECT (070); identity COMMAND (071); mb-load ok (072); finish_qa yaml (074); model substitution (already permanent, keep).
 
-**CREATIVE need:** нет.
+### CREATIVE need
+
+**нет**
 
 ---
 
@@ -325,5 +327,3 @@ Advisory band 5–8.
 ## Следующий режим
 
 → BACK DECOMPOSE T-HUB-073 (deps none; can parallel 070). Queue order after 062–069.
-
-**CREATIVE need:** нет.

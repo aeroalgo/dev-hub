@@ -1,0 +1,44 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - ML classifier
+  - rewrite all retry UX copy
+  - Variant B event log
+steps:
+- id: s01
+  file: s01-abort-classifier-red-tests.yaml
+  title: Red tests — 401/banned not retryable; catch-all presence; timeout still retryable
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-permanent-patterns-catch-all-delete.yaml
+  title: Delete catch-all API Error; add shared _AUTH_BANNED_PATTERNS; permanent before
+    transient
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-loop-honor-retryable-false.yaml
+  title: Wire+enforce loop — retryable False halts; no second retry path; last-session
+    records abort
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-dirty-files-epic-yaml-glob.yaml
+  title: dirty_files collector lists epic yaml/md/yml — not plan.md-only
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-dsh-parity-kind-i.yaml
+  title: DSH 401/banned permanent + Kind I comments; no DSH catch-all API Error
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — catch-all / unknown-retry / dirty-plan-only
+    leftovers A+B+C+I
+  next_phase: BACK IMPLEMENT
+  status: completed

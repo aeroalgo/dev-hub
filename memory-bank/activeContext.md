@@ -1,12 +1,17 @@
 ---
 schema: loop-handoff/v1
 role: BACK
-mode: BUGFIX
-epic_id: T-HUB-072-context-bundle-fail-closed
+mode: IMPLEMENT
+epic_id: T-HUB-076-stack-profile-capability-execution
+step_id: s05
 ---
 
 ## load_now
-1. [memory-bank/back/qa/T-HUB-072-context-bundle-fail-closed/qa-20260906-context-bundle-fail-closed.yaml](memory-bank/back/qa/T-HUB-072-context-bundle-fail-closed/qa-20260906-context-bundle-fail-closed.yaml) — QA pass artifact.
+1. [back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s05-finish-managed-evidence-validation.yaml](back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s05-finish-managed-evidence-validation.yaml) — текущий work shard (BACK IMPLEMENT s05).
+2. [back/plan/T-HUB-076-stack-profile-capability-execution/yaml/decompose-index.yaml](back/plan/T-HUB-076-stack-profile-capability-execution/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
 
-## Handoff BACK BUGFIX
-- **Дальше:** fix QA blockers via BUGFIX
+## Handoff BACK IMPLEMENT — s05
+- **Дальше:** продолжить с work shard `memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s05-finish-managed-evidence-validation.yaml`
+- **Эпик:** T-HUB-076-stack-profile-capability-execution.
+- **Режим/шаг:** следующий BACK IMPLEMENT `s05`.
+- **Сделано:** предыдущий шаг отмечен `completed`.

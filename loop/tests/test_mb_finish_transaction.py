@@ -813,12 +813,23 @@ def test_public_handoff_docs_zero_operator_paths() -> None:
 
 
 def test_no_finish_reflect() -> None:
-    """FR-012 / TM-008: confirm finish_reflect is not reintroduced anywhere in loop/mb_finish."""
-    mb_finish_dir = ROOT / "loop" / "mb_finish"
-    for py_file in mb_finish_dir.glob("*.py"):
-        content = py_file.read_text(encoding="utf-8")
-        assert "def finish_reflect" not in content, f"Found finish_reflect in {py_file}"
-        assert "finish_reflect(" not in content, f"Found finish_reflect call in {py_file}"
+    """FR-012 / TM-008 / FR-005 / US-004: confirm reflect functions/artifacts are not in loop/mb_finish or harness/hooks."""
+    target_pattern_def = "def " + "finish_" + "reflect"
+    target_pattern_call = "finish_" + "reflect("
+    target_pattern_art = "find_" + "reflection_" + "artifact"
+    target_pattern_shim = "finish_" + "reflect" + " = finish_qa"
+    dirs_to_check = [
+        ROOT / "loop" / "mb_finish",
+        ROOT / "harness" / "hooks",
+    ]
+    for target_dir in dirs_to_check:
+        for py_file in target_dir.rglob("*.py"):
+            content = py_file.read_text(encoding="utf-8")
+            assert target_pattern_def not in content, f"Found def in {py_file}"
+            assert target_pattern_call not in content, f"Found call in {py_file}"
+            assert "from " not in content or "finish_reflect" not in content, f"Found import in {py_file}"
+            assert target_pattern_art not in content, f"Found artifact helper in {py_file}"
+            assert target_pattern_shim not in content, f"Found shim in {py_file}"
 
 
 def test_prepare_recover_not_exception_only() -> None:

@@ -33,7 +33,7 @@ alwaysApply: false
 | CLARIFY | `back/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `back/analyze/<epic_id>/` (с эпиком) · `back/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | RECONCILE | `back/reconcile/<epic_id>/` | `reconcile-YYYYMMDD-<slug>.yaml` — read-only drift plan/spec ↔ repo |
-| PLAN | `back/plan/<epic_id>/` | `md/plan.md`; multi-epic → апсерт **`back/roadmap/queue.yaml`** + N× plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
+| PLAN | `back/plan/<epic_id>/` | `md/plan.md`; каждый PLAN → апсерт **`back/roadmap/queue.yaml`**, multi-epic → N× queue rows/plan dirs (@.cursor/rules/shared/workflow-plan-multi-epic.mdc; template `roadmap-queue.yaml`). **FORBIDDEN** `plan/roadmap-*` |
 | ROADMAP | `back/roadmap/` | **`queue.yaml`** SoT; `archive/` — старые slug (read-only). Merge: @.cursor/rules/shared/workflow-roadmap-merge.mdc |
 | DECOMPOSE | `back/plan/<epic_id>/` | `yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml` (scaffold: `mb-scaffold decompose`). **`<epic_id>` = descriptive slug** (не short queue id; `shared/epic-scoped-paths.mdc` §Folder naming) |
 | CREATIVE | `back/creative/<epic_id>/` или `back/creative/` | `creative-<feature>.md` — **с эпиком** под `<epic_id>/`; без эпика — плоско. @.cursor/rules/shared/epic-scoped-paths.mdc |

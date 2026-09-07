@@ -1,0 +1,299 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+slug: qa-bugfix-lifecycle-rearm
+date: 2026-09-07
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "finish_qa fail/blocked → next_mode=\"BUGFIX\" only. Never \"DONE\", never \"REFLECT\"."
+
+  - requirement_id: FR-002
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Keep qa_new_session_required and qa_new_artifact_required. Add tests that fail if those branches deleted."
+
+  - requirement_id: FR-003
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "finish_handoff: if latest qa for armed epic is fail/blocked and requested meta.mode in {DONE, IMPLEMENT, ANALYZE, DECOMPOSE, PLAN, QA} except BUGFIX — ok=False qa_fail_blocks_handoff. BUGFIX allowed (already bugfix_finish_required inverse)."
+
+  - requirement_id: FR-004
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "finish_bugfix must set QaAfterBugfix so subsequent QA cannot skip (already). Test: after finish_bugfix, finish_qa without new yaml fails."
+
+  - requirement_id: FR-005
+    step_ids: [s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "Purge finish_reflect and find_reflection_artifact from hub codebase. rg in loop/ harness/hooks/ excluding historical T-HUB-060 qa yaml must return 0 live imports/calls."
+
+  - requirement_id: FR-006
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "T-HUB-060 ISS-001/ISS-002 tests that still import finish_reflect rewritten to finish_qa or deleted."
+
+  - requirement_id: FR-007
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "Kind I comments in loop/mb_finish and epic core that say next after QA = REFLECT — delete (BUGFIX/DONE)."
+
+  - requirement_id: FR-008
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Historical T-HUB-060 fail yaml remains on disk as archive evidence; machine must not treat it as current pass."
+
+  - requirement_id: FR-009
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "parse_qa_verdict fail-closed: missing verdict ≠ pass."
+
+  - requirement_id: FR-010
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Bugfix doc prose «1942 passed» is not SoT for QA pass; only qa-*.yaml verdict is."
+
+  - requirement_id: FR-011
+    step_ids: [s01, s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "Independent Test = cannot leave with fail yaml; not «QaAfterBugfix field exists»."
+
+  - requirement_id: FR-012
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "qa_reviewer_required preserved on re-QA."
+
+  - requirement_id: FR-013
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "roadmap-advance cannot mark current epic done while latest qa fail (qa_fail_blocks_advance)."
+
+  - requirement_id: FR-014
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "No feature flag ALLOW_QA_FAIL_DONE."
+
+  - requirement_id: FR-015
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "One finish_qa across FRONT/BACK/INTEG."
+
+  - requirement_id: US-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как QA fail, я иду в BUGFIX, не DONE."
+
+  - requirement_id: US-002
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как BUGFIX done, я не закрываю QA старым fail yaml."
+
+  - requirement_id: US-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "Как operator, finish_handoff не DONE при fail yaml."
+
+  - requirement_id: US-004
+    step_ids: [s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "Как codebase, я не держу мёртвые импорты finish_reflect."
+
+  - requirement_id: US-005
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как CI, prose в bugfix.md не превращает QA в pass."
+
+  - requirement_id: SC-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "fail qa → BUGFIX not DONE"
+
+  - requirement_id: SC-002
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "re-QA requires new yaml"
+
+  - requirement_id: SC-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "finish_handoff DONE blocked on fail yaml"
+
+  - requirement_id: SC-004
+    step_ids: [s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "rg finish_reflect 0 live"
+
+  - requirement_id: SC-005
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "060-shaped fail yaml + bugfix prose does not pass"
+
+  - requirement_id: AC+1
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "QA fail cannot DONE."
+
+  - requirement_id: AC+2
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Re-QA needs new yaml + new session."
+
+  - requirement_id: AC+3
+    step_ids: [s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "No finish_reflect live imports."
+
+  - requirement_id: AC+4
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "Escape hatch cannot skip fail yaml."
+
+  - requirement_id: AC+5
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Tests encode 060-shaped leftover (fail yaml + bugfix prose)."
+
+  - requirement_id: AC-1
+    step_ids: [s01, s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет DONE после fail yaml."
+
+  - requirement_id: AC-2
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Нет REFLECT в next_mode."
+
+  - requirement_id: AC-3
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет shim finish_reflect = finish_qa."
+
+  - requirement_id: AC-4
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Нет reuse fail artifact as pass."
+
+  - requirement_id: AC-5
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Нет «bugfix.md 1942 passed» as verdict SoT."
+
+  - requirement_id: AC-6
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет dual path finish_handoff that writes DONE anyway."
+
+  - requirement_id: NFR-1
+    step_ids: [s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "Fail-closed epic leave"
+
+  - requirement_id: NFR-2
+    step_ids: [s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "Clean symbol purge"
+
+  - requirement_id: NFR-3
+    step_ids: [s01, s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "Anti-dilution tests"
+
+  - requirement_id: NFR-4
+    step_ids: [s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "No regression on 070 overlay"
+
+  - requirement_id: TM-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "P0 fail yaml → BUGFIX pytest finish_qa mode BUGFIX"
+
+  - requirement_id: TM-002
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "P0 reuse fail yaml pytest finish_qa qa_new_artifact_required"
+
+  - requirement_id: TM-003
+    step_ids: [s01, s03]
+    status: covered
+    plan_text_verbatim: "P0 handoff DONE on fail pytest ok false"
+
+  - requirement_id: TM-004
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "P0 finish_reflect import rg 0"
+
+  - requirement_id: TM-005
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "P1 same session re-QA pytest qa_new_session_required"
+
+  - requirement_id: TM-006
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "P1 reviewer skip pytest qa_reviewer_required"
+
+  - requirement_id: TM-007
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "P1 missing verdict ≠ pass pytest fail-closed"
+
+  - requirement_id: TM-008
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "P1 finish_bugfix writes QaAfterBugfix pytest"
+
+  - requirement_id: "layout:loop/mb_finish/impl.py"
+    step_ids: [s02, s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "finish_qa, finish_bugfix, finish_handoff QA fail, reflect purge."
+
+  - requirement_id: "layout:harness/hooks/epic/core.py"
+    step_ids: [s02, s03, s04, s05, s06]
+    status: covered
+    plan_text_verbatim: "parse_qa_verdict, qa_after_bugfix helper, purge finish_reflect."
+
+  - requirement_id: "layout:loop/roadmap_queue.py"
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "roadmap-advance qa fail gate (if applicable)."
+
+  - requirement_id: "layout:harness/hooks/tests/test_mb_finish_qa.py"
+    step_ids: [s01, s02, s04, s06]
+    status: covered
+    plan_text_verbatim: "test fail verdict, reuse yaml, missing verdict, session."
+
+  - requirement_id: "layout:harness/hooks/tests/test_mb_finish_handoff.py"
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "test finish_handoff cannot DONE on qa fail."
+
+  - requirement_id: "layout:loop/tests/test_qa_finish_handoff.py"
+    step_ids: [s01, s03, s06]
+    status: covered
+    plan_text_verbatim: "complementary handoff test suite."
+
+  - requirement_id: "layout:loop/tests/test_mb_finish_transaction.py"
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "rewrite reflect tests to finish_qa."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

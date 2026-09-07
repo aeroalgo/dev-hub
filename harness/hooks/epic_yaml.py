@@ -9,6 +9,12 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from loop.stack_profiles.execution import (
+    CapabilityCheckSpec,
+    compute_declaration_fingerprint,
+)
+from loop.stack_profiles.evidence import read_capability_evidence
+
 SCHEMA_EPIC_IMPLEMENT = "epic-implement/v1"
 SCHEMA_EPIC_DECOMPOSE = "epic-decompose/v1"
 # Read-time alias only (@model_validator before); files must store epic-* schema.
@@ -176,6 +182,7 @@ class EpicDecomposeDoc(BaseModel):
     deletes: list[str] = Field(default_factory=list)
     out_of_scope: list[str] = Field(default_factory=list)
     plan_contract: dict[str, Any] = Field(default_factory=dict)
+    capability_checks: list[CapabilityCheckSpec] = Field(default_factory=list)
 
     model_config = {"populate_by_name": True}
 
@@ -631,7 +638,12 @@ def _gaps_ok(gaps: dict[str, Any] | str) -> bool:
     return str(gaps.get("status", "")).lower() in {"none", "no", "closed"}
 
 
-def validate_implement_yaml(path: Path, *, finish: bool = True) -> list[str]:
+def validate_implement_yaml(
+    path: Path,
+    *,
+    finish: bool = True,
+    cwd: str | Path | None = None,
+) -> list[str]:
     errors: list[str] = []
     if not path.is_file():
         return [f"missing implement file: {path}"]
@@ -658,20 +670,77 @@ def validate_implement_yaml(path: Path, *, finish: bool = True) -> list[str]:
     if doc.role == "integ" and not doc.checkpoints:
         errors.append("checkpoints: at least one checkpoint required for integ")
 
+    # Resolve decompose doc and evaluate capability checks vs hub tests
+    root = Path(cwd).resolve() if cwd is not None else None
+    if root is None:
+        cand = path.resolve()
+        for parent in [cand] + list(cand.parents):
+            if (parent / "memory-bank").is_dir() or (parent / "dev-hub.project.yaml").is_file():
+                root = parent
+                break
+        if root is None:
+            root = path.parent.resolve()
+
+    dec_doc: EpicDecomposeDoc | None = None
+    if doc.decompose_ref:
+        dec_candidate = (root / doc.decompose_ref).resolve() if not Path(doc.decompose_ref).is_absolute() else Path(doc.decompose_ref)
+        if dec_candidate.is_file():
+            try:
+                dec_doc = load_decompose(dec_candidate)
+            except Exception:
+                pass
+    if dec_doc is None:
+        try:
+            dec_rel = resolve_decompose_path(root, doc.role, doc.plan_id, doc.step_id)
+            dec_p = (root / dec_rel).resolve()
+            if dec_p.is_file():
+                dec_doc = load_decompose(dec_p)
+        except Exception:
+            pass
+
+    has_capability_checks = bool(dec_doc and dec_doc.capability_checks)
+
     if finish:
         if doc.status not in {"in_progress", "completed"}:
             errors.append("status must be in_progress or completed on FINISH")
         for cp in doc.checkpoints:
             if cp.status != "done":
                 errors.append(f"checkpoint {cp.id} must be done on FINISH")
-        try:
-            from tests_format import validate_tests_entries
 
-            errors.extend(
-                validate_tests_entries(doc.tests, finish=True, require_executable=True)
-            )
-        except Exception as exc:
-            errors.append(f"tests: validate failed ({exc})")
+        if has_capability_checks and dec_doc is not None:
+            for check in dec_doc.capability_checks:
+                evidence = read_capability_evidence(
+                    root,
+                    role=doc.role,
+                    epic_id=doc.plan_id,
+                    step_id=doc.step_id,
+                    declaration=check,
+                )
+                if evidence is None:
+                    errors.append(
+                        f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
+                    )
+                elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
+                    errors.append(
+                        f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
+                    )
+            if doc.tests:
+                try:
+                    from tests_format import validate_tests_entries
+                    errors.extend(
+                        validate_tests_entries(doc.tests, finish=False, require_executable=False)
+                    )
+                except Exception as exc:
+                    errors.append(f"tests: validate failed ({exc})")
+        else:
+            try:
+                from tests_format import validate_tests_entries
+
+                errors.extend(
+                    validate_tests_entries(doc.tests, finish=True, require_executable=True)
+                )
+            except Exception as exc:
+                errors.append(f"tests: validate failed ({exc})")
 
     return errors
 
@@ -1607,15 +1676,17 @@ def format_spec_lines(*, role: str) -> list[str]:
         "status=completed пишет только finalize-step (вместе с index)",
         "Самопроверка: `python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>`",
         "",
-        "tests: format (HARD) — loop after assert запускает эти строки как shell:",
-        "  OK:   - '`.venv/bin/pytest path -q` — PASS'",
-        "  OK:   - '`cd frontend && npm exec vitest -- run src/x.test.tsx`'",
-        "  OK:   - '`cd frontend && npm exec tsc -- --noEmit`'",
-        "  OK:   - '`npm --prefix frontend exec vitest -- run src/x.test.tsx`'  (runner перепишет)",
-        "  FAIL: - 'npm exec tsc -- --noEmit — passed'  (prose без backticks)",
-        "  FAIL: - {command: …, result: …}  (mapping запрещён)",
-        "  result/PASS/counts → verification_results (не в tests).",
-        "  ≥1 executable: .venv/bin/pytest | cd frontend && npm exec vitest|tsc …",
+        "tests: format (HARD) — hub tests / managed capability proof:",
+        "  Managed project: declare capability_checks in decompose; proof via typed capability evidence sidecar.",
+        "  Hub self-tests: explicit tests: strings run via hub test runner:",
+        "    OK:   - '`.venv/bin/pytest path -q` — PASS'",
+        "    OK:   - '`cd frontend && npm exec vitest -- run src/x.test.tsx`'",
+        "    OK:   - '`cd frontend && npm exec tsc -- --noEmit`'",
+        "    OK:   - '`npm --prefix frontend exec vitest -- run src/x.test.tsx`'  (runner перепишет)",
+        "    FAIL: - 'npm exec tsc -- --noEmit — passed'  (prose без backticks)",
+        "    FAIL: - {command: …, result: …}  (mapping запрещён)",
+        "    result/PASS/counts → verification_results (не в tests).",
+        "    ≥1 executable for hub tests: .venv/bin/pytest | cd frontend && npm exec vitest|tsc …",
         "  Bash: cwd=repo root; одноразовый `cd frontend && cmd` разрешён. "
         "FORBIDDEN: working_directory=frontend.",
     ]
@@ -1677,7 +1748,11 @@ def set_implement_status(path: Path, status: str) -> dict[str, Any]:
     }
 
 
-def implement_ready_for_finalize_doc(doc: EpicImplementDoc) -> list[str]:
+def implement_ready_for_finalize_doc(
+    doc: EpicImplementDoc,
+    *,
+    cwd: str | Path | None = None,
+) -> list[str]:
     errors: list[str] = []
     if not all_checkpoints_done(doc.checkpoints):
         pending = [cp.id for cp in doc.checkpoints if cp.status != "done"]
@@ -1698,14 +1773,61 @@ def implement_ready_for_finalize_doc(doc: EpicImplementDoc) -> list[str]:
             errors.append("files: at least one entry required")
         if not doc.integration_check:
             errors.append("integration_check: at least one entry required")
-    try:
-        from tests_format import validate_tests_entries
 
-        errors.extend(
-            validate_tests_entries(doc.tests, finish=True, require_executable=True)
-        )
-    except Exception as exc:
-        errors.append(f"tests: validate failed ({exc})")
+    root = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
+    dec_doc: EpicDecomposeDoc | None = None
+    if doc.decompose_ref:
+        dec_candidate = (root / doc.decompose_ref).resolve() if not Path(doc.decompose_ref).is_absolute() else Path(doc.decompose_ref)
+        if dec_candidate.is_file():
+            try:
+                dec_doc = load_decompose(dec_candidate)
+            except Exception:
+                pass
+    if dec_doc is None:
+        try:
+            dec_rel = resolve_decompose_path(root, doc.role, doc.plan_id, doc.step_id)
+            dec_p = (root / dec_rel).resolve()
+            if dec_p.is_file():
+                dec_doc = load_decompose(dec_p)
+        except Exception:
+            pass
+
+    has_capability_checks = bool(dec_doc and dec_doc.capability_checks)
+
+    if has_capability_checks and dec_doc is not None:
+        for check in dec_doc.capability_checks:
+            evidence = read_capability_evidence(
+                root,
+                role=doc.role,
+                epic_id=doc.plan_id,
+                step_id=doc.step_id,
+                declaration=check,
+            )
+            if evidence is None:
+                errors.append(
+                    f"capability_evidence_missing_or_mismatch: missing evidence for {check.capability} on target {check.target} (step {doc.step_id})"
+                )
+            elif evidence.status != "succeeded" or (evidence.exit_code is not None and evidence.exit_code != 0):
+                errors.append(
+                    f"capability_evidence_missing_or_mismatch: capability {check.capability} on target {check.target} failed with status {evidence.status} (exit code {evidence.exit_code})"
+                )
+        if doc.tests:
+            try:
+                from tests_format import validate_tests_entries
+                errors.extend(
+                    validate_tests_entries(doc.tests, finish=False, require_executable=False)
+                )
+            except Exception as exc:
+                errors.append(f"tests: validate failed ({exc})")
+    else:
+        try:
+            from tests_format import validate_tests_entries
+
+            errors.extend(
+                validate_tests_entries(doc.tests, finish=True, require_executable=True)
+            )
+        except Exception as exc:
+            errors.append(f"tests: validate failed ({exc})")
     return errors
 
 
@@ -1715,7 +1837,7 @@ def implement_ready_for_finalize(cwd: str | Path, rel: str) -> bool:
         return False
     try:
         doc = load_implement(p)
-        return not implement_ready_for_finalize_doc(doc)
+        return not implement_ready_for_finalize_doc(doc, cwd=cwd)
     except Exception:
         return False
 

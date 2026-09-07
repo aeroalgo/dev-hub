@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: JSON execute CLI persists target-bound capability evidence atomically
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Operators and later workflow gates receive the same safe, machine-readable execution
+  outcome from API and CLI. Successful and unsuccessful attempts produce only target-bound
+  evidence with a declaration fingerprint, so prose, a copied command or a result from a
+  different role, epic or step cannot become proof.
+
+plan_contract:
+  fr_ids: [FR-004, FR-005]
+  nouns:
+    - python -m loop.stack_profiles execute
+    - stack-capability-execution/v1
+    - CapabilityExecutionEvidence
+    - atomic sidecar
+    - declaration fingerprint
+    - role/epic_id/step_id
+  layout_paths:
+    - loop/stack_profiles/__main__.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/tests/test_stack_profile_execute_cli.py
+    - loop/tests/test_stack_profile_evidence.py
+  ac_quotes:
+    - "CLI and API expose the same typed JSON result and stable non-zero mapping for configuration, spawn, timeout and delegated-command failure."
+    - "Evidence is deterministic, atomic and cannot be reused across target, step, epic or declaration fingerprint."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:211-235"
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:353-374"
+
+context:
+  consumes:
+    - s01 declaration/result/evidence identity models and canonical fingerprint
+    - s02 execute_capability typed outcome boundary
+    - loop/stack_profiles/__main__.py existing JSON CLI conventions
+  produces:
+    - execute subcommand with JSON-first result and documented exit mapping
+    - atomic evidence write/read under memory-bank/<role>/execution/<epic>/<step>/capability-<fingerprint>.json
+    - evidence reader that rejects stale, foreign or fingerprint-mismatched proof
+  plan_refs:
+    - FR-004
+    - FR-005
+    - US-003
+    - TM-004
+    - TM-005
+    - TM-007
+    - TM-011
+  files:
+    - loop/stack_profiles/__main__.py
+    - loop/stack_profiles/evidence.py
+    - loop/stack_profiles/execution.py
+    - loop/tests/test_stack_profile_execute_cli.py
+    - loop/tests/test_stack_profile_evidence.py
+
+as_built:
+  - loop/stack_profiles/__main__.py supports resolver-oriented commands but no execute result protocol.
+  - No deterministic capability sidecar exists under memory-bank execution artifacts.
+  - Existing workflow evidence can be prose or command-oriented and has no declaration fingerprint binding.
+
+delta:
+  - Add JSON-first execute CLI that accepts the typed declaration identity, delegates only to s02 executor and maps statuses to exits 0, 2, 3, 4 or child-safe failure exit.
+  - Add validate-on-write sidecar persistence using an atomic replace and a deterministic fingerprinted relative path; never serialize output body or secret environment.
+  - Add strict evidence read/match helpers that bind role, epic_id, step_id, decompose reference, target and declaration fingerprint.
+  - Test CLI/API parity with fake targets and test successful, failing, stale and cross-step evidence without calling host cargo/npm scripts.
+
+deletes: []
+
+out_of_scope:
+  - check-after selects and writes evidence for the armed workflow step in s04.
+  - Finish consumes evidence versus declarations in s05.
+  - Generic shell-proof and instruction surfaces are purged in s05/s06.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "execute CLI emits the same stack-capability-execution/v1 fields as the API for successful and failed fake targets."
+    verify: "bin/pytest loop/tests/test_stack_profile_execute_cli.py -q --tb=line -k parity"
+  - id: cp2
+    criterion: "CLI exit mapping is 0 for success, 2 resolution failure, 3 spawn failure, 4 timeout and a safe delegated-command failure code."
+    verify: "bin/pytest loop/tests/test_stack_profile_execute_cli.py -q --tb=line -k exit_mapping"
+  - id: cp3
+    criterion: "Evidence write is atomic, validated and stored at the deterministic fingerprint path without output bodies or environment."
+    verify: "bin/pytest loop/tests/test_stack_profile_evidence.py -q --tb=line -k 'atomic or serialization'"
+  - id: cp4
+    criterion: "Evidence from a different target, role, epic, step or declaration fingerprint is rejected."
+    verify: "bin/pytest loop/tests/test_stack_profile_evidence.py -q --tb=line -k 'mismatch or stale'"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_execute_cli.py loop/tests/test_stack_profile_evidence.py -q --tb=line"
+
+tdd:
+  - test_execute_cli_json_matches_api_success_result
+  - test_execute_cli_json_matches_api_failed_result
+  - test_execute_cli_exit_mapping
+  - test_evidence_write_is_atomic_and_fingerprint_named
+  - test_evidence_omits_output_body_and_environment
+  - test_evidence_rejects_foreign_role_epic_step_target_and_fingerprint

@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s01 — Red tests — 401/banned not retryable; catch-all presence; timeout still
+  retryable IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s01-abort-classifier-red-tests.yaml
+level: L2
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added table-driven red tests for 401/banned/unknown API errors in test_session_resilience_adapter.py
+  and test_session_wrapper.py
+- Added test_catch_all_api_error_pattern_must_be_absent asserting catch-all removal
+  (red until s02)
+- Locked timeout, stream idle, overloaded, rate-limit as retryable True, and KeyboardInterrupt/model
+  substitution as retryable False
+files:
+- loop/tests/test_session_resilience_adapter.py
+- loop/tests/test_session_wrapper.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py
+  -q --tb=line -k ''401 or banned or classify_abort or permanent''`'
+- '`bin/pytest loop/tests/test_session_wrapper.py -q --tb=line -k ''idle_timeout or
+  stalled or timeout or overloaded or KeyboardInterrupt or model_substitution''`'
+- '`bin/pytest loop/tests/test_session_wrapper.py -q --tb=line -k ''test_catch_all_api_error_pattern_must_be_absent''`'
+integration_check:
+- Classification behavior matches FR-001..FR-003, FR-010, FR-014 contracts
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'US-001 / TM-001 / TM-006 — blob API Error 401 All connections banned
+    and
+
+    All connections banned without prefix: classify_abort/analyze_session_log
+
+    retryable is False; outcome not transient_abort. As-built classify=transient must
+    FAIL.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'US-003 / TM-003 lock — timeout / Stream idle timeout / overloaded /
+    rate-limit
+
+    still retryable True. KeyboardInterrupt and model substitution still False.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'US-005 / TM-002 red — catch-all API Error:[^\n]* still in _TRANSIENT_ABORT_PATTERNS
+
+    until s02; test asserts it must be gone (red). FR-014: invoke classify, not tuple-exists.
+
+    '
+  status: done
+- id: cp4
+  criterion: Independent Test is classify+analyze behavior (retryable/outcome), not
+    pattern-in-tuple
+  status: done
+resume_from: cp4

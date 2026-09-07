@@ -1,0 +1,351 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-075-stack-profiles-rust-python-js
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+date: 2026-09-07
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Provide a strict, typed target capability resolution engine (Python, Rust, JavaScript) and doctor inspection based on dev-hub.project.yaml without arbitrary shell execution, legacy project.yaml fallback, or conflation with hub self-test pytest tooling."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 17
+  fr_satisfied: 17
+  sc_checked: 6
+  layout_paths_total: 15
+  layout_paths_closed: 15
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "resolve_capability for Rust target returns argv=['cargo', 'test', '--all-targets'] with profile='rust' without Python dependencies."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "resolve_capability for Python target format.check resolves to ['python', '-m', 'ruff', 'format', '--check', '.']."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "JS target with multiple lockfiles and no package_manager override produces js_package_manager_ambiguous diagnostic and empty argv."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "Multi-target manifest without default_target requires explicit target parameter, returning target_selection_required when omitted."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "CLI resolve output emits structured JSON with exact schema fields matching resolve_capability output model."
+    remaining_work: ""
+  - source_ref: US-006
+    status: satisfied
+    evidence: "CLI doctor probes executables with --version under fixed timeout and never executes target build/test scripts."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/stack_profiles/schemas.py: ProjectManifest model with extra='forbid', accepting only schema, optional workflow_pack, optional default_target, targets."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/stack_profiles/schemas.py: TargetSpec models and validate_workspace_containment; validates workspace containment and duplicate target name/root rejection."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/stack_profiles/resolver.py: load_project_manifest reads only root dev-hub.project.yaml without parent/child directory traversal."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "README.md and harness/README.md document .dev-hub as single-line hub-link pointer; configuration resides in root dev-hub.project.yaml."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "loop/workflow/registry.py: resolve_workflow_pack reads optional workflow_pack from typed load_project_manifest; legacy _read_project_yaml_pack deleted."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "loop/stack_profiles/registry.yaml and registry.py: immutable bundled registry with exactly python, rust, javascript profiles."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "loop/stack_profiles/schemas.py: CapabilityName enum contains exactly format.check, lint, typecheck, test.targeted, test.full, build."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "loop/stack_profiles/schemas.py: CapabilityRequest validates nonempty selector for test.targeted and rejects selector for all other capabilities as single argv atom."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "loop/stack_profiles/registry.yaml: deterministic command definitions for Python, Rust (cargo), and JS (manager run labels)."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "loop/stack_profiles/resolver.py: _detect_js_package_manager resolves single lockfile or explicit package_manager; zero/multiple lockfiles produce typed diagnostic without fallback."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "loop/stack_profiles/resolver.py: resolve_capability returns pure CapabilityResolution with cwd, argv, timeout_seconds without command execution."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "loop/stack_profiles/__main__.py and doctor.py: JSON CLI with exits 0, 2, 3, 1; doctor probes executable --version under 5s timeout without running project scripts."
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "loop/stack_profiles/schemas.py and resolver.py: typed diagnostics with empty argv and nonzero exit code on errors; no default fallback."
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "loop/workflow/registry.py: only manifest/pack resolution used; no lifecycle execution of target commands in workflow engine."
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "harness/hooks/test_run_canon.py and loop/incidents/tier1_verify.py: hub self-test pytest canon remains intact."
+    remaining_work: ""
+  - source_ref: FR-016
+    status: satisfied
+    evidence: "Deleted _read_project_yaml_pack; zero occurrences of legacy parser in loop/workflow/registry.py."
+    remaining_work: ""
+  - source_ref: FR-017
+    status: satisfied
+    evidence: "harness/templates/dev-hub.project.yaml created; README.md and harness/README.md updated with migration notes."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "Six capabilities resolve deterministically across Python, Rust, and JavaScript targets."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "Unsafe root, missing manifest, or invalid capability emits diagnostic code and empty argv."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "JS ambiguity rejects implicit package manager selection."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "Multi-target repository without default target prevents silent selection."
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "Legacy project.yaml and .dev-hub/project.yaml are ignored by workflow pack resolver."
+    remaining_work: ""
+  - source_ref: SC-006
+    status: satisfied
+    evidence: "Doctor preflight only calls --version on tools and never executes project scripts."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "Zero subprocess shell=True, bash -c, or eval calls across loop/stack_profiles/."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "Zero fallback to project.yaml or .dev-hub/project.yaml in registry resolution."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "Strict target, profile, and JS package manager requirements without implicit defaults."
+    remaining_work: ""
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "CapabilityName enum restricted strictly to verify-first six capabilities."
+    remaining_work: ""
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "Local immutable bundled registry.yaml only; no remote plugin/profile lookup."
+    remaining_work: ""
+  - source_ref: "AC-:6"
+    status: satisfied
+    evidence: "Hub self-test pytest runner canon preserved without disguise as target profile."
+    remaining_work: ""
+  - source_ref: "layout:bin/hub-link"
+    status: satisfied
+    evidence: "Executable pointer script bin/hub-link verified present and intact."
+    remaining_work: ""
+  - source_ref: "layout:loop/runtime_registry.yaml"
+    status: satisfied
+    evidence: "Runtime registry configuration verified present and intact."
+    remaining_work: ""
+  - source_ref: "layout:loop/workflow/registry.py"
+    status: satisfied
+    evidence: "Typed workflow pack resolver verified present and intact."
+    remaining_work: ""
+  - source_ref: "layout:md/decompose-index.md"
+    status: satisfied
+    evidence: "Decompose index markdown documentation verified present in plan directory."
+    remaining_work: ""
+  - source_ref: "layout:yaml/decompose-index.yaml"
+    status: satisfied
+    evidence: "Decompose index YAML tracking all 6 steps as completed."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "No test runner mutation; bin/pytest timeout wrapper preserved."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "TDD red-green discipline followed across all 6 implementation steps."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "Targeted pytest discipline preserved during implementation."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "Memory bank SoT paths respected without phantom paths."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Clean handoff transitions between role lifecycle phases."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Spec-first replacement discipline followed with sunset inventory cleanup."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "Fail-closed validation on all external input manifests and YAML files."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "Clean step-by-step progress tracking without premature convergence."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Parent-only execution for frontend and test suite gates."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Immutable runtime registry and bundled stack profile security guarantees."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: bin/hub-link
+    status: present
+    follow_up: ""
+    evidence: "Executable pointer script bin/hub-link intact."
+  - layout_path: loop/runtime_registry.yaml
+    status: present
+    follow_up: ""
+    evidence: "Runtime registry configuration intact."
+  - layout_path: loop/workflow/registry.py
+    status: present
+    follow_up: ""
+    evidence: "Typed workflow pack resolver reading dev-hub.project.yaml without legacy dual-path."
+  - layout_path: md/decompose-index.md
+    status: present
+    follow_up: ""
+    evidence: "Decompose index markdown file present."
+  - layout_path: yaml/decompose-index.yaml
+    status: present
+    follow_up: ""
+    evidence: "Decompose index YAML file present."
+  - layout_path: loop/stack_profiles/schemas.py
+    status: present
+    follow_up: ""
+    evidence: "Strict Pydantic models for manifest, targets, capabilities, diagnostics, and reports."
+  - layout_path: loop/stack_profiles/registry.py
+    status: present
+    follow_up: ""
+    evidence: "Bundled YAML registry loader and validator."
+  - layout_path: loop/stack_profiles/registry.yaml
+    status: present
+    follow_up: ""
+    evidence: "Immutable local registry with python, rust, javascript definitions."
+  - layout_path: loop/stack_profiles/resolver.py
+    status: present
+    follow_up: ""
+    evidence: "Pure resolver with containment check, lockfile detection, and argv synthesis."
+  - layout_path: loop/stack_profiles/doctor.py
+    status: present
+    follow_up: ""
+    evidence: "Doctor preflight with safe executable --version inspection."
+  - layout_path: loop/stack_profiles/__main__.py
+    status: present
+    follow_up: ""
+    evidence: "CLI entrypoint with resolve and doctor subcommands and JSON output."
+  - layout_path: harness/templates/dev-hub.project.yaml
+    status: present
+    follow_up: ""
+    evidence: "Canonical structure template for dev-hub-project/v1."
+  - layout_path: README.md
+    status: present
+    follow_up: ""
+    evidence: "User documentation updated for dev-hub.project.yaml and .dev-hub pointer."
+  - layout_path: harness/README.md
+    status: present
+    follow_up: ""
+    evidence: "Harness documentation updated for dev-hub.project.yaml and .dev-hub pointer."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s01-schema-manifest-containment-red.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s02-bundled-registry-pure-resolver.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s03-json-cli-doctor-no-script.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s04-wire-workflow-pack-typed-manifest.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s05-consumer-api-integration-no-lifecycle.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-075-stack-profiles-rust-python-js/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-07
+  plan_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md#replacement--sunset
+  rows:
+    - symbol: loop.workflow.registry._read_project_yaml_pack
+      kind: A
+      command: 'rg -n "_read_project_yaml_pack" loop/ harness/'
+      result: pass
+      prod_callers: []
+      notes: "Deleted in s04, confirmed 0 hits."
+    - symbol: "untyped project.yaml pack discovery"
+      kind: B
+      command: 'rg -n "project\.yaml" loop/workflow/registry.py'
+      result: pass
+      prod_callers: []
+      notes: "Only dev-hub.project.yaml is read."
+    - symbol: "implicit profile / lockfile / target fallbacks"
+      kind: C
+      command: 'rg -n "js_package_manager_ambiguous|target_selection_required" loop/stack_profiles/'
+      result: pass
+      prod_callers: []
+      notes: "Strict fail-closed diagnostics verified."
+    - symbol: "teaching old config locations as live"
+      kind: I
+      command: 'rg -n "project\.yaml" README.md harness/README.md'
+      result: pass
+      prod_callers: []
+      notes: "Only migration references remain; dev-hub.project.yaml is taught as live SoT."
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-07
+  rows:
+    - boundary: "dev-hub-project/v1 root manifest"
+      enforce_evidence: "loop/stack_profiles/resolver.py:MANIFEST_FILENAME = 'dev-hub.project.yaml'"
+      result: pass
+      notes: "Strict root manifest enforcement."
+
+blocked_reason: ""

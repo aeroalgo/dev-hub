@@ -1,0 +1,149 @@
+schema: stack-profile-registry/v1
+version: 1
+profiles:
+  python:
+    description: "Python standard toolchain (ruff, mypy, pytest, build)"
+    required_executables:
+      - python
+    capabilities:
+      format.check:
+        argv:
+          - python
+          - -m
+          - ruff
+          - format
+          - --check
+          - .
+        timeout_seconds: 300
+        requirements:
+          - ruff
+      lint:
+        argv:
+          - python
+          - -m
+          - ruff
+          - check
+          - .
+        timeout_seconds: 300
+        requirements:
+          - ruff
+      typecheck:
+        argv:
+          - python
+          - -m
+          - mypy
+          - .
+        timeout_seconds: 300
+        requirements:
+          - mypy
+      test.targeted:
+        argv_template:
+          - python
+          - -m
+          - pytest
+          - "{selector}"
+        timeout_seconds: 300
+        requirements:
+          - pytest
+      test.full:
+        argv:
+          - python
+          - -m
+          - pytest
+        timeout_seconds: 300
+        requirements:
+          - pytest
+      build:
+        argv:
+          - python
+          - -m
+          - build
+        timeout_seconds: 300
+        requirements:
+          - build
+  rust:
+    description: "Rust cargo toolchain (cargo fmt, clippy, check, test, build)"
+    required_executables:
+      - cargo
+    capabilities:
+      format.check:
+        argv:
+          - cargo
+          - fmt
+          - --
+          - --check
+        timeout_seconds: 300
+        requirements:
+          - cargo-fmt
+      lint:
+        argv:
+          - cargo
+          - clippy
+          - --all-targets
+          - --
+          - -D
+          - warnings
+        timeout_seconds: 300
+        requirements:
+          - cargo-clippy
+      typecheck:
+        argv:
+          - cargo
+          - check
+          - --all-targets
+        timeout_seconds: 300
+        requirements:
+          - cargo-check
+      test.targeted:
+        argv_template:
+          - cargo
+          - test
+          - --
+          - "{selector}"
+        timeout_seconds: 300
+        requirements:
+          - cargo-test
+      test.full:
+        argv:
+          - cargo
+          - test
+          - --all-targets
+        timeout_seconds: 300
+        requirements:
+          - cargo-test
+      build:
+        argv:
+          - cargo
+          - build
+          - --all-targets
+        timeout_seconds: 300
+        requirements:
+          - cargo-build
+  javascript:
+    description: "JavaScript / TypeScript standard package manager toolchain"
+    default_scripts:
+      format.check: "format:check"
+      lint: "lint"
+      typecheck: "typecheck"
+      test: "test"
+      build: "build"
+    capabilities:
+      format.check:
+        script_key: "format.check"
+        timeout_seconds: 300
+      lint:
+        script_key: "lint"
+        timeout_seconds: 300
+      typecheck:
+        script_key: "typecheck"
+        timeout_seconds: 300
+      test.targeted:
+        script_key: "test"
+        timeout_seconds: 300
+        append_selector: true
+      test.full:
+        script_key: "test"
+        timeout_seconds: 300
+      build:
+        script_key: "build"
+        timeout_seconds: 300

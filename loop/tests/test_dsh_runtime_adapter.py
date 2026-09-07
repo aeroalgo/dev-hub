@@ -197,6 +197,30 @@ def test_analyze_dsh_permanent_auth() -> None:
     assert analysis["abort_kind"] == "fatal"
 
 
+@pytest.mark.parametrize(
+    "log_content",
+    [
+        'API Error: 401 {"error":{"message":"All connections banned"}}\n',
+        "All connections banned\n",
+        "API Error: 401 Unauthorized\n",
+        "401 error - user banned\n",
+    ],
+)
+def test_analyze_dsh_permanent_401_and_banned(tmp_path: Path, log_content: str) -> None:
+    resilience = _load_resilience()
+    log = tmp_path / "dsh-banned.log"
+    log.write_text(log_content, encoding="utf-8")
+
+    analysis = resilience.analyze_session_log(log, exit_code=1, runtime="dsh")
+
+    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["aborted"] is True
+    assert analysis["retryable"] is False
+    assert analysis["abort_kind"] == "fatal"
+    assert analysis["reason"] is not None
+    assert "dsh_permanent" in analysis["reason"]
+
+
 def test_analyze_dsh_exit0_incomplete_finish(tmp_path: Path) -> None:
     resilience = _load_resilience()
     log = tmp_path / "dsh-incomplete.jsonl"

@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s02 — Resolver-owned argv executor reports bounded typed process outcomes IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s02-resolver-owned-executor.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- pure resolver resolve_capability in loop/stack_profiles/resolver.py provides argv,
+  cwd, and timeout
+- executor in loop/stack_profiles/execution.py encapsulates subprocess.Popen with
+  shell=False and deadline enforcement
+gaps:
+  status: none
+done:
+- Implemented public execute_capability(project_root, declaration) API in loop/stack_profiles/execution.py
+- Mapped resolution errors to resolution_failed without spawning child process
+- Handled OSError into spawn_failed, TimeoutExpired into timed_out (kill and collect),
+  and non-zero exits into failed
+- Tracked byte counts and duration metadata without output body retention
+- Created unit tests in loop/tests/test_stack_profile_executor.py
+- Created multi-target integration tests in loop/tests/test_stack_profile_execution_integration.py
+files:
+- loop/stack_profiles/execution.py
+- loop/stack_profiles/__init__.py
+- loop/tests/test_stack_profile_executor.py
+- loop/tests/test_stack_profile_execution_integration.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_executor.py loop/tests/test_stack_profile_execution_integration.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_executor.py loop/tests/test_stack_profile_execution_integration.py
+  loop/tests/test_stack_profile_execution_contract.py -q --tb=line
+- bin/pytest loop/tests/test_stack_profiles_*.py -q --tb=line
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: The executor runs exactly resolver argv/cwd for explicit py, rs and web
+    test.full targets with shell=False.
+  status: done
+- id: cp2
+  criterion: Resolver and selector errors yield resolution_failed with no Popen call.
+  status: done
+- id: cp3
+  criterion: OSError, timeout and child non-zero map to spawn_failed, timed_out and
+    failed respectively, preserving safe exit metadata.
+  status: done
+- id: cp4
+  criterion: Result contains bounded byte metadata and diagnostics but neither output
+    body nor caller-provided process controls.
+  status: done
+resume_from: cp1

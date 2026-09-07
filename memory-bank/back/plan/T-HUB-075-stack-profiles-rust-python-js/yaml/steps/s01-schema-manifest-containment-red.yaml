@@ -1,0 +1,149 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: "Red tests + strict ProjectManifest — schema, containment, vocabulary, no unknown keys"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red + strict models: `dev-hub-project/v1` Pydantic `ProjectManifest` принимает
+  только schema / optional workflow_pack / optional default_target / targets;
+  unknown keys fail. Target name+workspace-relative root+profile enum;
+  duplicate name/root and path outside workspace fail. Vocabulary enum is exactly
+  six verify-first keys. Outcome: CI красный на extra keys / unsafe root / unknown
+  capability, не на «YAML файл существует».
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-013
+    - US-004
+    - SC-002
+    - SC-004
+    - AC+1
+    - AC+4
+    - AC−4
+    - NFR-2
+    - NFR-3
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-004
+  nouns:
+    - ProjectManifest
+    - dev-hub.project.yaml
+    - dev-hub-project/v1
+    - targets
+    - default_target
+    - workflow_pack
+    - CapabilityName
+    - extra=forbid
+  layout_paths:
+    - loop/stack_profiles/schemas.py
+    - loop/tests/test_stack_profiles_schema.py
+  ac_quotes:
+    - "dev-hub-project/v1 Pydantic schema permits only schema, optional workflow_pack, optional default_target, targets; unknown keys fail."
+    - "Canonical root stays in workspace; duplicate name/root fails."
+    - "V1 vocabulary is exactly format.check, lint, typecheck, test.targeted, test.full, build."
+    - "All YAML boundaries use Pydantic extra=\"forbid\"."
+    - "Root containment uses resolved Path, never prefix string checks."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:85-104"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:124-143"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:159-181"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:266-276"
+
+context:
+  consumes:
+    - plan §Functional Requirements FR-001/002/003/006/007/008/013
+    - plan §Canonical manifest
+    - plan §Technology axiom Project config / Profile / Capability
+  produces:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/__init__.py
+    - loop/tests/test_stack_profiles_schema.py
+    - ProjectManifest extra=forbid
+    - CapabilityName enum of six keys
+    - DiagnosticCode literals for manifest/root/selection
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#canonical-manifest
+    - plan.md#technology-axiom-replace-not-wrap
+  files:
+    - loop/stack_profiles/__init__.py
+    - loop/stack_profiles/schemas.py
+    - loop/tests/test_stack_profiles_schema.py
+
+as_built:
+  - "no loop/stack_profiles/ package"
+  - "loop/workflow/registry.py _read_project_yaml_pack reads project.yaml and .dev-hub/project.yaml untyped (s04 deletes)"
+  - "loop/runtime_registry.yaml is runtime adapter registry, not stack profiles"
+  - "hub self-test bin/pytest / test_run_canon / tier1_verify unchanged (FR-015)"
+
+delta:
+  - "add Pydantic ProjectManifest / TargetSpec / CapabilityName / DiagnosticCode / CapabilityResolution / CapabilityRequest with extra=forbid"
+  - "forbid unknown keys, command/argv/shell/env/cwd/import/registry fields on manifest"
+  - "profile Literal python|rust|javascript; JS-only optional package_manager + scripts map"
+  - "Python/Rust TargetSpec reject scripts/argv/command/cwd/env/shell/registry"
+  - "add red tests: unknown key, malformed YAML, missing manifest, duplicate name/root, absolute/escaping root, two targets no default, unknown capability, selector required/forbidden"
+  - "containment helper uses Path.resolve() relative to project_root, not startswith string"
+
+deletes: []
+
+out_of_scope:
+  - "bundled registry.yaml + argv templates (s02)"
+  - "JSON CLI / doctor probes (s03)"
+  - "delete _read_project_yaml_pack (s04)"
+  - "consumer integration without lifecycle (s05)"
+  - "legacy-fallback-purge leftover (s06)"
+  - "manifest-writing init — Appetite cut_list"
+  - "minimum version enforcement — Appetite cut_list"
+  - "custom profiles — Appetite cut_list"
+  - "pack phase declaration syntax — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      TM-002 / FR-001 / NFR-2 — unknown key and malformed YAML fail extra=forbid with
+      project_manifest_invalid; permitted keys only schema, workflow_pack, default_target, targets.
+    verify: "bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line -k 'unknown or malformed or extra or forbid'"
+  - id: cp2
+    criterion: |
+      TM-003 / TM-004 / FR-002 / NFR-3 — duplicate name/root fail; absolute or
+      escaping root fails target_root_unsafe using resolved Path (not prefix string);
+      two targets without default_target fail target_selection_required at load or resolve helper.
+    verify: "bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line -k 'root or duplicate or selection or containment'"
+  - id: cp3
+    criterion: |
+      FR-006/007/008 — CapabilityName is exactly six keys; unknown/run/migrate/generate/deploy
+      fail capability_unknown; test.targeted requires nonempty selector; other keys reject selector;
+      manifest cannot carry command/argv/shell/env/cwd/import/registry path.
+    verify: "bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line -k 'capability or vocabulary or selector or forbidden_field'"
+  - id: cp4
+    criterion: |
+      TM-001 red until s02 load — missing root dev-hub.project.yaml is a typed diagnostic
+      (project_manifest_missing), not recursive parent walk. Schema tests assert the code exists.
+    verify: "rg -n 'project_manifest_missing|dev-hub.project.yaml' loop/stack_profiles/schemas.py loop/tests/test_stack_profiles_schema.py"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line"
+tdd:
+  - "red: extra keys / unsafe root / unknown capability currently have no models"
+  - "green: s01 models + table-driven schema tests"

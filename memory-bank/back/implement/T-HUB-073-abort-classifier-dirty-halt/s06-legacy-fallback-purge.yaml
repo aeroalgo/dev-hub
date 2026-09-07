@@ -1,0 +1,98 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s06 — legacy-fallback-purge — catch-all / unknown-retry / dirty-plan-only leftovers
+  A+B+C+I IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- scan sunset-inventory boundary abort-classifier (Kind A, B, C, I)
+- confirmed catch-all regex API Error:[^\n]* is completely removed from prod classifiers
+- confirmed no parallel abort CLIs or alternative entrypoints
+- confirmed unknown API Error is fail-closed fatal (retryable False)
+- confirmed no Kind I comments claiming API Error is always transient
+- confirmed all targeted and independent tests pass
+gaps:
+  status: none
+done:
+- Scanned codebase with @sunset-inventory agent and confirmed 0 leftover catch-all
+  API Error regexes in prod classifiers
+- 'Verified Kind B entrypoints: record_abort / record-session unified in loop/context_loop.py'
+- 'Verified Kind C fallbacks: unknown API errors fail-closed to UNKNOWN_FAILURE with
+  retryable=False, no RETRY_401 default flag'
+- 'Verified Kind I comments: zero comments asserting generic API Error is always transient
+  or retryable'
+- Verified and ran targeted pytest suite across adapter, wrapper, context_loop, filter_step_dirty,
+  and dsh_runtime_adapter
+- 'Verified Independent Test scenarios: 401/banned text never retries, catch-all rg
+  returns 0, dirty yaml listed, timeout retries'
+files:
+- harness/hooks/session_resilience.py
+- loop/context_loop.py
+- loop/runtime_adapters/dsh.py
+- loop/tests/test_session_resilience_adapter.py
+- loop/tests/test_session_wrapper.py
+- loop/tests/test_context_loop.py
+- loop/tests/test_filter_step_dirty.py
+- loop/tests/test_dsh_runtime_adapter.py
+deletes:
+- leftover catch-all API Error:[^\n]* in prod classifiers
+- leftover tests asserting generic API Error → retryable True / transient_abort
+- leftover Kind I always-transient comments
+- leftover plan.md-only dirty special case
+tests:
+- bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py
+  loop/tests/test_context_loop.py loop/tests/test_filter_step_dirty.py loop/tests/test_dsh_runtime_adapter.py
+  -q --tb=line
+- bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_filter_step_dirty.py
+  loop/tests/test_session_wrapper.py -q --tb=line -k '401 or banned or idle_timeout
+  or dirty or filter_step'
+- bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_dsh_runtime_adapter.py
+  -q --tb=line
+integration_check:
+- 'catch-all-rg: rg -n ''API Error:\[^\\n\]\*'' harness/hooks/session_resilience.py
+  loop/context_loop.py loop/runtime_adapters -> 0 hits'
+- 'entrypoints-rg: rg -n ''def record_abort|record-session'' loop/context_loop.py
+  -> unified'
+- 'retry-401-rg: rg -n ''RETRY_401|API Error:\[^\\n\]\*'' harness/hooks/session_resilience.py
+  loop/context_loop.py -> 0 hits'
+- 'comments-kind-i-rg: rg -n ''always transient|any API Error is retryable'' harness/hooks/session_resilience.py
+  loop/runtime_adapters -> 0 hits'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 29 passed
+- 21 passed
+checkpoints:
+- id: cp1
+  criterion: Kind A — catch-all API Error gone; _AUTH_BANNED_PATTERNS present; no
+    second retry ignoring analysis; dirty yaml glob live. rg per grep_control A rows.
+  status: done
+- id: cp2
+  criterion: Kind B — same run_session / record-session; no parallel abort CLI
+  status: done
+- id: cp3
+  criterion: Kind C — unknown API Error not transient; no RETRY_401 flag default on;
+    no dual catch-all+401.
+  status: done
+- id: cp4
+  criterion: Kind I — 0 hits API Error always transient / any API Error is retryable
+  status: done
+- id: cp5
+  criterion: Obsolete tests on catch-all→transient deleted or rewritten; targeted
+    pytest green without restore
+  status: done
+- id: cp6
+  criterion: Independent Test PASS — 401 no retry; catch-all rg 0; dirty yaml listed;
+    timeout still retries
+  status: done
+resume_from: cp6

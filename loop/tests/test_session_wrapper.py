@@ -350,6 +350,34 @@ def test_truncated_user_jsonl_not_classified_as_abort(tmp_path: Path) -> None:
     assert analysis["outcome"] == "clean"
 
 
+def test_system_task_notification_quoted_401_is_not_runtime_abort(tmp_path: Path) -> None:
+    """A successful session may carry a reviewer summary that quotes a past 401."""
+    sr = _load_resilience()
+    log = tmp_path / "quoted-401-task-notification.log"
+    notification = {
+        "type": "system",
+        "subtype": "task_notification",
+        "summary": (
+            "QA evidence: API Error: 401 was classified as permanent_failure; "
+            "timeout and rate limit remain retryable"
+        ),
+    }
+    log.write_text(
+        json.dumps(notification)
+        + "\n"
+        + '{"type":"result","subtype":"success","is_error":false,"result":"QA passed"}\n'
+        + "SESSION_END session=11 exit_code=0 elapsed=1.0s\n",
+        encoding="utf-8",
+    )
+
+    reason = sr.detect_abort_in_log(log, exit_code=0)
+    analysis = sr.analyze_session_log(log, exit_code=0, attempt=1, runtime="claude")
+
+    assert reason is None
+    assert analysis["outcome"] == "clean"
+    assert analysis["aborted"] is False
+
+
 def test_stalled_mid_stream_is_transient(tmp_path: Path) -> None:
     """'Response stalled mid-stream' without 'may be incomplete' must still be retryable."""
     sr = _load_resilience()
@@ -761,3 +789,38 @@ def test_session_19_false_positive_regression() -> None:
     )
     assert analysis["outcome"] != "permanent_failure"
     assert not sr.is_structured_model_substitution_reason(analysis.get("reason"))
+
+
+def test_catch_all_api_error_pattern_must_be_absent() -> None:
+    """Catch-all API Error:[^\\n]* must not be in _TRANSIENT_ABORT_PATTERNS (s02 will delete)."""
+    sr = _load_resilience()
+    for pat in sr._TRANSIENT_ABORT_PATTERNS:
+        assert pat.pattern != r"(?i)API Error:[^\n]*", "Catch-all API Error:[^\\n]* found in _TRANSIENT_ABORT_PATTERNS"
+
+
+@pytest.mark.parametrize(
+    "blob,exit_code,expected_retryable,expected_kind",
+    [
+        ('API Error: 401 {"error":{"message":"All connections banned"}}', 1, False, "fatal"),
+        ("All connections banned", 1, False, "fatal"),
+        ("API Error: 401 Unauthorized", 1, False, "fatal"),
+        ("API Error: 401", 1, False, "fatal"),
+        ("banned", 1, False, "fatal"),
+        ("API Error: weird unknown error", 1, False, "fatal"),
+        ("API Error: Stream idle timeout - no chunks received", 1, True, "transient"),
+        ("API Error: overloaded", 1, True, "transient"),
+        ("API Error: rate limit exceeded", 1, True, "transient"),
+        ("timed out", 1, True, "transient"),
+        ("KeyboardInterrupt", 1, False, "fatal"),
+    ],
+)
+def test_classify_abort_and_table_driven_lock(
+    blob: str, exit_code: int, expected_retryable: bool, expected_kind: str
+) -> None:
+    sr = _load_resilience()
+    kind = sr.classify_abort(blob, exit_code=exit_code)
+    assert kind == expected_kind, f"classify_abort({blob!r}) = {kind}, expected {expected_kind}"
+    if expected_retryable:
+        assert kind == "transient"
+    else:
+        assert kind != "transient"

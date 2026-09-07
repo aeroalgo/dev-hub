@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s01 — Strict capability execution declaration, result, and fingerprint contract
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s01-capability-execution-contract.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- Implemented CapabilityCheckSpec, CapabilityExecutionResult, and CapabilityExecutionEvidence
+  Pydantic models with extra="forbid".
+- Implemented compute_declaration_fingerprint canonical sha256 hashing bound to role,
+  epic, step, target, capability, and selector.
+- Added capability_checks field to EpicDecomposeDoc in harness/hooks/epic_yaml.py.
+gaps:
+  status: none
+done:
+- CapabilityCheckSpec requires named target and validates capability selector rules.
+- CapabilityCheckSpec rejects raw process fields and unknown fields.
+- compute_declaration_fingerprint generates stable canonical sha256 hash bound to
+  target, selector, role, epic, and step.
+- EpicDecomposeDoc validates capability_checks using CapabilityCheckSpec.
+files:
+- loop/stack_profiles/schemas.py
+- loop/stack_profiles/execution.py
+- loop/stack_profiles/__init__.py
+- harness/hooks/epic_yaml.py
+- loop/tests/test_stack_profile_execution_contract.py
+- harness/hooks/tests/test_epic_yaml_capability_checks.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_execution_contract.py harness/hooks/tests/test_epic_yaml_capability_checks.py
+  -q --tb=line
+integration_check:
+- All unit tests in loop/tests/test_stack_profile_execution_contract.py and harness/hooks/tests/test_epic_yaml_capability_checks.py
+  pass.
+grep_control: []
+verification_results:
+- 'bin/pytest loop/tests/test_stack_profile_execution_contract.py harness/hooks/tests/test_epic_yaml_capability_checks.py
+  -q --tb=line: 8 passed'
+checkpoints:
+- id: cp1
+  criterion: A declaration requires target and permits only existing capability/selector
+    combinations.
+  status: done
+  done_at: '2026-09-07T12:00:00Z'
+- id: cp2
+  criterion: Unknown fields and raw command, argv, cwd, env, profile and timeout controls
+    are rejected before resolution.
+  status: done
+  done_at: '2026-09-07T12:00:00Z'
+- id: cp3
+  criterion: Equivalent declarations have an identical fingerprint; target, selector,
+    role, epic or step changes cannot reuse it.
+  status: done
+  done_at: '2026-09-07T12:00:00Z'
+- id: cp4
+  criterion: Decompose YAML missing target fails capability_target_required and executes
+    no process seam.
+  status: done
+  done_at: '2026-09-07T12:00:00Z'

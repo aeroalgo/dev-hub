@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: s04 — Purge finish_reflect / find_reflection_artifact and obsolete ISS-002
+  tests IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s04-purge-finish-reflect-symbols.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Verified zero live finish_reflect and find_reflection_artifact in loop/ and harness/hooks
+  production modules
+- Confirmed no shim finish_reflect = finish_qa exists
+- Expanded test_no_finish_reflect in loop/tests/test_mb_finish_transaction.py across
+  loop/mb_finish and harness/hooks
+files:
+- loop/tests/test_mb_finish_transaction.py
+deletes:
+- def finish_reflect / import finish_reflect in loop/ harness/hooks production
+- def find_reflection_artifact / import find_reflection_artifact in production
+- shim finish_reflect = finish_qa
+- ImportError catch continue around missing reflect
+- tests asserting finish_reflect exists / ISS-002 live import
+tests:
+- '`bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k ''reflect
+  or finish_qa or no_finish''`'
+integration_check:
+- rg -n 'finish_reflect|find_reflection_artifact' loop/ harness/hooks --glob '*.py'
+  --glob '!**/test_mb_finish_transaction.py' --glob '!**/T-HUB-060/**' -> 0
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- bin/pytest loop/tests/test_mb_finish_transaction.py -k test_no_finish_reflect ->
+  PASSED
+checkpoints:
+- id: cp1
+  criterion: 'US-004 / TM-004 / FR-005 — rg finish_reflect in loop/ harness/hooks
+    production
+
+    (exclude memory-bank T-HUB-060) = 0 defs/imports/calls.
+
+    '
+  status: done
+  done_at: '2026-09-06T23:03:23Z'
+- id: cp2
+  criterion: FR-006 — find_reflection_artifact gone (no def, no import)
+  status: done
+  done_at: '2026-09-06T23:03:28Z'
+- id: cp3
+  criterion: AC−3 — no shim finish_reflect = finish_qa; no ImportError catch continue
+  status: done
+  done_at: '2026-09-06T23:03:28Z'
+- id: cp4
+  criterion: ISS-002 tests rewritten; test_no_finish_reflect still green / expanded
+  status: done
+  done_at: '2026-09-06T23:03:29Z'
+resume_from: cp1

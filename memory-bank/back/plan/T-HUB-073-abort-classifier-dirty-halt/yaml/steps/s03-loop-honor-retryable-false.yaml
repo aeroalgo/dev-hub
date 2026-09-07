@@ -1,0 +1,136 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "Wire+enforce loop — retryable False halts; no second retry path; last-session records abort"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  context_loop / record_abort / run_session: если analysis.retryable is False —
+  нет sleep+retry, нет следующего DECOMPOSE spawn. last-session.json пишет
+  abort_kind, retryable false (as-built keys; extra=forbid — не invent need_human
+  если поля нет). Если второй retry max 8/30 игнорирует classifier — sunset in-epic.
+  Outcome: 401 banned = один attempt + halt, не 8 пустых сессий.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-011
+    - FR-014
+    - FR-015
+    - US-002
+    - SC-005
+    - AC+5
+    - AC−3
+    - AC−6
+    - TM-005
+    - NFR-1
+    - Independent Test
+  nouns:
+    - context_loop.record_abort
+    - analysis.retryable
+    - last-session.json
+    - abort_kind
+    - retryable
+    - halted
+    - DEFAULT_TRANSIENT_RETRY_MAX
+  layout_paths:
+    - loop/context_loop.py
+    - loop/tests/test_context_loop.py
+    - harness/hooks/session_resilience.py
+  ac_quotes:
+    - "Audit context_loop.py / run_session retry: if analysis.retryable is False, no sleep+retry. If a second retry path ignores analysis — delete in-epic"
+    - "last-session.json records abort_kind, retryable: false, need_human: true (field names as-built schema; extra=forbid → use existing keys)"
+    - "Как DECOMPOSE session, All connections banned → NEED_HUMAN, не 8 пустых прогонов. loop fixture: one spawn then halt"
+    - "Do not change DEFAULT_TRANSIENT_RETRY_MAX as the fix for 401. If audit finds a second retry max of 8/30 that ignores classifier — sunset that constant in-epic"
+    - "FRONT/INTEG loops share session_resilience — one fix"
+    - "Нет второго classifier copy in context_loop that still catch-alls"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:81-82"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:108-116"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:145-160"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:187-198"
+
+context:
+  consumes:
+    - s02 classifier permanent/unknown retryable False
+    - plan.md §FR-004/005/011/015 · US-002 · TM-005
+    - as-built record_abort honors analysis.retryable (loop/context_loop.py ~2487-2550); CLI record-session return 3 only if retryable
+    - write_last_session payload keys: abort_kind, retryable, outcome — no need_human field (use retryable false + halted)
+  produces:
+    - loop fixture: 401/banned analysis → one attempt, halted True, no backoff retry
+    - last-session.json abort_kind + retryable false on permanent (existing keys)
+    - sunset any second retry path / duplicate classifier catch-all in context_loop if found
+    - DEFAULT_TRANSIENT_RETRY_MAX unchanged unless a second ignore-classifier max exists
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#user-stories
+    - plan.md#qa-consumes
+  files:
+    - loop/context_loop.py
+    - loop/tests/test_context_loop.py
+    - harness/hooks/session_resilience.py
+
+as_built:
+  - "record_abort reads analysis['retryable']; if False sets st status halted and returns halted: not retryable"
+  - "CLI record-session: retryable → exit 3 (retry); else exit 1 (halt). Outer loop.sh must honor this — audit"
+  - "write_last_session has retryable + abort_kind; no need_human key — FR-005 extra=forbid → do not add parallel marker"
+  - "DEFAULT_TRANSIENT_RETRY_MAX = 3; EPIC_TRANSIENT_RETRY_MAX env — not the 401 bug"
+  - "possible outer loop retry that ignores retryable=False — this step must find and delete if present"
+  - "FRONT/INTEG share session_resilience; no per-role classifier copy expected in context_loop"
+
+delta:
+  - "audit loop/context_loop.py + loop.sh / epic runner for retry when retryable False; delete second path if it ignores analysis"
+  - "add pytest loop fixture: analyze 401 banned → record_abort retryable False, halted True, retry_count stays attempt, no sleep"
+  - "assert last-session.json retryable is false and abort_kind set (as-built keys); do not invent need_human if schema extra=forbid"
+  - "rg context_loop for API Error catch-all / duplicate classifier — 0 hits (AC−6)"
+  - "do not bump DEFAULT_TRANSIENT_RETRY_MAX as 401 fix; only sunset a second max that ignores classifier"
+  - "wire_complete: call_sites record_abort + record-session CLI; enforce retryable False → halt; dual_path_rg no catch-all in context_loop"
+
+deletes:
+  - "any second retry path in loop/context_loop.py or loop runner that retries when analysis.retryable is False"
+  - "duplicate API Error catch-all classifier copy in context_loop.py if present"
+
+out_of_scope:
+  - "filter_step_dirty yaml glob (s04)"
+  - "DSH pattern parity (s05)"
+  - "legacy-fallback-purge (s06)"
+  - "rewrite retry UX copy — Appetite cut_list"
+  - "Variant B event log — Appetite"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-002 / FR-004 / TM-005 / NFR-1 — loop fixture 401/banned: record_abort
+      retryable False, halted True; no sleep+retry; one attempt. Independent Test
+      is loop halt behavior, not pattern-in-tuple.
+    verify: "bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'retryable or record_abort or banned or permanent or halt'"
+  - id: cp2
+    criterion: |
+      FR-005 — last-session.json on abort writes abort_kind and retryable false
+      using as-built keys (no invented need_human file).
+    verify: "rg -n '\"retryable\"|abort_kind' harness/hooks/session_resilience.py loop/context_loop.py"
+  - id: cp3
+    criterion: |
+      AC−6 / FR-015 — no second classifier catch-all in context_loop; no retry when
+      retryable False. FR-011 — DEFAULT_TRANSIENT_RETRY_MAX not used as 401 fix.
+    verify: "rg -n 'API Error:\\[^\\\\n\\]\\*|retryable is False|DEFAULT_TRANSIENT_RETRY_MAX' loop/context_loop.py harness/hooks/session_resilience.py || true"
+
+verify:
+  - "bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'record_abort or retryable or halt'"
+tdd:
+  - "red if outer loop ignores retryable False"
+  - "green: one attempt then halt on 401 banned"

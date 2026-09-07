@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s04 — check-after executes current-step checks and HALTs without valid evidence
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s04-check-after-capability-enforcement.yaml
+skills_used:
+- modern-python
+- tdd
+- python-testing-patterns
+- python-error-handling
+- python-resilience
+discovery:
+- Discovered that check_after in loop/context_loop.py was returning green continuation
+  without discovering and executing declared capability_checks in the armed step shard.
+- Integrated _enforce_capability_checks_for_armed_step into check_after right after
+  integrity validation and before continuation.
+gaps:
+  status: none
+done:
+- Added _enforce_capability_checks_for_armed_step in loop/context_loop.py to parse
+  declared capability_checks for the current armed step.
+- Enforced execution in declaration order via execute_capability and atomic evidence
+  persistence via write_capability_evidence.
+- Mapped missing targets, invalid declarations, resolver failures, process spawn failures,
+  timeouts, non-zero exits, and evidence write failures into typed HALT responses.
+- Authored comprehensive integration tests in test_context_loop_capability_checks.py
+  and test_check_after_capability_halt.py.
+files:
+- loop/context_loop.py
+- loop/stack_profiles/execution.py
+- loop/stack_profiles/evidence.py
+- loop/tests/test_context_loop_capability_checks.py
+- loop/tests/test_check_after_capability_halt.py
+deletes:
+- loop/context_loop.py check-after green continuation path that ignores declared managed
+  capability_checks
+tests:
+- bin/pytest loop/tests/test_context_loop_capability_checks.py loop/tests/test_check_after_capability_halt.py
+  -q --tb=line
+integration_check:
+- 'bin/pytest loop/tests/test_context_loop_capability_checks.py loop/tests/test_check_after_capability_halt.py
+  -q --tb=line: 8 passed'
+grep_control: []
+verification_results:
+- 's04: PASS'
+checkpoints:
+- id: cp1
+  criterion: check-after discovers only the current armed step declarations and executes
+    each explicit py/rs/web target in declaration order.
+  status: done
+- id: cp2
+  criterion: Every successful declared check writes matching role/epic/step evidence
+    before the green continuation.
+  status: done
+- id: cp3
+  criterion: Missing target, ambiguous resolver state, spawn error, timeout and non-zero
+    child each HALT without a fallback subprocess.
+  status: done
+- id: cp4
+  criterion: A stale or foreign sidecar cannot make check-after green.
+  status: done

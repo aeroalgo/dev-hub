@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-076-stack-profile-capability-execution
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-capability-execution-contract.yaml
+  title: Strict capability execution declaration, result, and fingerprint contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-resolver-owned-executor.yaml
+  title: Resolver-owned argv executor reports bounded typed process outcomes
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-execute-cli-and-evidence.yaml
+  title: JSON execute CLI persists target-bound capability evidence atomically
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-check-after-capability-enforcement.yaml
+  title: check-after executes current-step checks and HALTs without valid evidence
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-finish-managed-evidence-validation.yaml
+  title: Finish validation distinguishes managed capability evidence from hub tests
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: Purge generic managed-test command authority and stale workflow instruction
+    paths
+  next_phase: BACK IMPLEMENT
+  status: pending

@@ -46,8 +46,13 @@ def test_scope_normalizes_integration_alias_and_ignores_step_suffix() -> None:
 
 
 def test_scope_does_not_resolve_workflow_paths_from_pack(tmp_path: Path) -> None:
-    (tmp_path / "project.yaml").write_text(
-        "workflow_pack: does-not-exist\n",
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: does-not-exist\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
         encoding="utf-8",
     )
 

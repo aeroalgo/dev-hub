@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s03 — JSON execute CLI persists target-bound capability evidence atomically
+  IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s03-execute-cli-and-evidence.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery:
+- 'loop/stack_profiles/__main__.py: Added execute subcommand returning stack-capability-execution/v1
+  JSON and mapping statuses to 0, 2, 3, 4, or child exit code.'
+- 'loop/stack_profiles/evidence.py: Added atomic persistence and strict validation
+  reader for CapabilityExecutionEvidence.'
+gaps:
+  status: none
+done:
+- JSON-first execute CLI with exact schema parity with execute_capability and robust
+  exit code mapping
+- Atomic evidence persistence at deterministic memory-bank/<role>/execution/<epic>/<step>/capability-<fingerprint>.json
+- Evidence validation reader rejecting foreign role, epic, step, target, capability,
+  or declaration fingerprint
+files:
+- loop/stack_profiles/__main__.py
+- loop/stack_profiles/evidence.py
+- loop/stack_profiles/execution.py
+- loop/tests/test_stack_profile_execute_cli.py
+- loop/tests/test_stack_profile_evidence.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_execute_cli.py loop/tests/test_stack_profile_evidence.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_execute_cli.py loop/tests/test_stack_profile_evidence.py
+  loop/tests/test_stack_profile_executor.py loop/tests/test_stack_profile_execution_integration.py
+  loop/tests/test_stack_profile_execution_contract.py -q --tb=line
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: execute CLI emits the same stack-capability-execution/v1 fields as the
+    API for successful and failed fake targets.
+  status: done
+- id: cp2
+  criterion: CLI exit mapping is 0 for success, 2 resolution failure, 3 spawn failure,
+    4 timeout and a safe delegated-command failure code.
+  status: done
+- id: cp3
+  criterion: Evidence write is atomic, validated and stored at the deterministic fingerprint
+    path without output bodies or environment.
+  status: done
+- id: cp4
+  criterion: Evidence from a different target, role, epic, step or declaration fingerprint
+    is rejected.
+  status: done
+resume_from: cp1

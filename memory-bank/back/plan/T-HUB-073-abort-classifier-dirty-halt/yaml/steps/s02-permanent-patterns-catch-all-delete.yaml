@@ -1,0 +1,150 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "Delete catch-all API Error; add shared _AUTH_BANNED_PATTERNS; permanent before transient"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Единственный SoT abort: catch-all `API Error:[^\\n]*` удалён из _TRANSIENT_ABORT_PATTERNS.
+  Shared `_AUTH_BANNED_PATTERNS` (401 / banned / All connections banned) consumed by
+  _PERMANENT_FAILURE_PATTERNS (auth_failed kept). classify_abort / analyze_session:
+  permanent before transient. Unknown `API Error: weird` → UNKNOWN_FAILURE retryable False,
+  not TRANSIENT. Outcome: 401 banned halt; timeout still retries.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-008
+    - FR-010
+    - FR-011
+    - FR-014
+    - US-001
+    - US-003
+    - US-005
+    - SC-001
+    - SC-002
+    - SC-003
+    - AC+1
+    - AC+2
+    - AC+3
+    - AC−1
+    - AC−2
+    - AC−5
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-006
+    - TM-007
+    - Technology axiom
+    - Independent Test
+  nouns:
+    - _AUTH_BANNED_PATTERNS
+    - _TRANSIENT_ABORT_PATTERNS
+    - _PERMANENT_FAILURE_PATTERNS
+    - classify_abort
+    - analyze_session_log
+    - UNKNOWN_FAILURE
+    - SessionOutcome.PERMANENT_FAILURE
+  layout_paths:
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_session_resilience_adapter.py
+  ac_quotes:
+    - "Catch-all API Error: — sunset, не «добавить 401 рядом и оставить catch-all»"
+    - "Remove re.compile(r\"(?i)API Error:[^\\n]*\") from _TRANSIENT_ABORT_PATTERNS"
+    - "Add to _PERMANENT_FAILURE_PATTERNS: API Error:\\s*401\\b ; \\b401\\b[^\\n]*banned ; All connections banned ; connections? banned ; existing auth_failed kept"
+    - "classify_abort / analyze_session order: permanent before transient. String matching both API Error: and 401 is permanent"
+    - "UNKNOWN API Error (e.g. API Error: weird) after catch-all removal → retryable False (safe default). Not TRANSIENT"
+    - "Do not change DEFAULT_TRANSIENT_RETRY_MAX as the fix for 401"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:32-52"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:99-116"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:145-159"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:210-237"
+
+context:
+  consumes:
+    - s01 red tests
+    - plan.md §Technology axiom · §FR-001/002/003/010
+    - as-built session_resilience.py L41–113 pattern tuples
+  produces:
+    - _AUTH_BANNED_PATTERNS shared constant used by _PERMANENT_FAILURE_PATTERNS
+    - catch-all API Error:[^\\n]* deleted from _TRANSIENT_ABORT_PATTERNS
+    - classify_abort: permanent match → fatal; unknown API Error not auto-transient
+    - analyze_session_log: 401/banned → PERMANENT_FAILURE retryable False; weird API Error → UNKNOWN_FAILURE retryable False
+    - s01 table-driven tests green without restoring catch-all
+  plan_refs:
+    - plan.md#technology-axiom
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+  files:
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_session_resilience_adapter.py
+
+as_built:
+  - "_TRANSIENT_ABORT_PATTERNS L110 catch-all swallows any API Error including 401 banned"
+  - "_PERMANENT_FAILURE_PATTERNS: CLI error, invalid config, auth_failed, Authentication failed, model restricted — no 401/banned"
+  - "classify_abort: fatal exits / fatal patterns / permanent patterns → fatal; else ALWAYS transient (does not inspect transient list)"
+  - "analyze_session_log: any leftover reason → TRANSIENT_ABORT (L620-621) so unknown API Error is retryable after detect"
+  - "DEFAULT_TRANSIENT_RETRY_MAX = 3 — do not change as 401 fix (FR-011)"
+  - "ABORT_PATTERNS alias = fatal + transient (tests/imports)"
+
+delta:
+  - "add _AUTH_BANNED_PATTERNS: (?i)API Error:\\s*401\\b ; (?i)\\b401\\b[^\\n]*banned ; (?i)All connections banned ; (?i)connections? banned — consume in _PERMANENT_FAILURE_PATTERNS; keep auth_failed"
+  - "delete re.compile(r\"(?i)API Error:[^\\n]*\") from _TRANSIENT_ABORT_PATTERNS; keep explicit timeout/overloaded/rate-limit/server error/idle/connection reset/abrupt/log truncated"
+  - "classify_abort: after permanent, if reason matches remaining transient list → transient; else if reason looks like API Error/unknown abort → fatal (UNKNOWN), not default transient"
+  - "analyze_session_log: if reason and not transient match and not permanent → UNKNOWN_FAILURE retryable False (FR-010); optional abort_unknown log — not required"
+  - "permanent before transient in detect_abort_in_text when exit_code not 0/None (already concatenates permanent then transient — keep; do not put catch-all back)"
+  - "no RETRY_401 flag; no DEFAULT_TRANSIENT_RETRY_MAX change; no dual catch-all+401"
+
+deletes:
+  - "harness/hooks/session_resilience.py::_TRANSIENT_ABORT_PATTERNS catch-all r\"(?i)API Error:[^\\n]*\""
+  - "comments / Kind I 'API Error always transient' in session_resilience.py if present (FR-008; remainder s05/s06)"
+
+out_of_scope:
+  - "context_loop second retry path (s03)"
+  - "filter_step_dirty yaml glob (s04)"
+  - "DSH pattern tuples consume _AUTH_BANNED_PATTERNS (s05 — same constant, DSH wire)"
+  - "obsolete tests rewrite leftover (s06)"
+  - "ML classifier / retry UX copy / Variant B event log — Appetite"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-001 / US-005 / TM-002 / AC−1 — catch-all API Error:[^\\n]* gone from
+      session_resilience.py _TRANSIENT_ABORT_PATTERNS. rg = 0. Dual 401-after-catch-all forbidden.
+    verify: "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py || true"
+  - id: cp2
+    criterion: |
+      FR-002/003 / US-001 / TM-001/006 — 401 banned and All connections banned
+      (with or without API Error prefix) → classify_abort fatal; analyze_session_log
+      retryable False; outcome permanent_failure not transient_abort.
+    verify: "bin/pytest loop/tests/test_session_resilience_adapter.py -q --tb=line -k '401 or banned or classify'"
+  - id: cp3
+    criterion: |
+      FR-010 / TM-007 / AC−5 — API Error: weird → UNKNOWN_FAILURE retryable False, not TRANSIENT.
+      US-003 / TM-003 — timeout/idle/overloaded still retryable True. No RETRY_401 flag.
+    verify: "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py -q --tb=line -k 'weird or unknown or idle_timeout or overloaded or 401'"
+  - id: cp4
+    criterion: _AUTH_BANNED_PATTERNS exists and is consumed by permanent list (shared, not copy-paste only in comments)
+    verify: "rg -n '_AUTH_BANNED_PATTERNS' harness/hooks/session_resilience.py"
+
+verify:
+  - "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py -q --tb=line"
+tdd:
+  - "green s01 401/banned/unknown after catch-all delete + permanent patterns"
+  - "lock timeout/idle still retryable"

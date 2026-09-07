@@ -1,0 +1,174 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: "Bundled registry + pure Python/Rust/JS resolver — argv/cwd, JS lockfile, target selection"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Bundled immutable `stack-profile-registry/v1` with exactly python/rust/javascript plus
+  pure `resolve_capability()`: named target or default, workspace-contained cwd,
+  deterministic argv per FR-009, JS lockfile-first or explicit override.
+  Independent Test: tmp monorepo three targets resolve test.full exact JSON;
+  remove default / two JS lockfiles / root escape → distinct codes, empty argv.
+  Outcome: workflow intention → target argv, не «registry YAML существует».
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - FR-006
+    - FR-007
+    - FR-008
+    - FR-009
+    - FR-010
+    - FR-011
+    - FR-013
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - AC+2
+    - AC+3
+    - AC+4
+    - AC−1
+    - AC−3
+    - AC−4
+    - AC−5
+    - NFR-1
+    - NFR-5
+    - NFR-7
+    - TM-001
+    - TM-003
+    - TM-004
+    - TM-005
+    - TM-006
+    - TM-007
+    - TM-008
+    - TM-009
+  nouns:
+    - stack-profile-registry/v1
+    - resolve_capability
+    - CapabilityResolution
+    - argv
+    - cwd
+    - python
+    - rust
+    - javascript
+    - package_manager
+    - lockfile
+    - test.full
+    - test.targeted
+  layout_paths:
+    - loop/stack_profiles/registry.yaml
+    - loop/stack_profiles/registry.py
+    - loop/stack_profiles/resolver.py
+    - loop/tests/test_stack_profiles_resolver.py
+  ac_quotes:
+    - "Given: api has profile rust, root services/api, Cargo.toml. When: resolve_capability(..., target=\"api\", capability=\"test.full\"). Then: ok=true, cwd=<workspace>/services/api, argv=[\"cargo\",\"test\",\"--all-targets\"], profile=\"rust\"; Python files are irrelevant."
+    - "Given: JS target has pnpm-lock.yaml and package-lock.json, no override. Then: js_package_manager_ambiguous, non-zero, no argv."
+    - "Given: manifest has backend and frontend, no default. When: caller omits target. Then: target_selection_required, not current directory/alphabetical/recursive discovery."
+    - "Selector is one argv atom, never a concatenated shell fragment."
+    - "Resolver has no network/install/shell/target-script execution."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:66-99"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:183-214"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:216-229"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:339-341"
+
+context:
+  consumes:
+    - s01 ProjectManifest / CapabilityName / DiagnosticCode
+    - plan §FR-006–011 argv tables
+    - plan §Independent Test
+  produces:
+    - loop/stack_profiles/registry.yaml
+    - loop/stack_profiles/registry.py
+    - loop/stack_profiles/resolver.py
+    - load_project_manifest
+    - resolve_capability
+    - CapabilityResolution argv/cwd JSON-ready
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#public-api--cli
+    - plan.md#independent-test
+  files:
+    - loop/stack_profiles/registry.yaml
+    - loop/stack_profiles/registry.py
+    - loop/stack_profiles/resolver.py
+    - loop/tests/test_stack_profiles_resolver.py
+
+as_built:
+  - "s01 models exist (or this step depends on them)"
+  - "no bundled stack-profile-registry"
+  - "no resolve_capability"
+  - "profile inference from Cargo.toml/pyproject.toml/package.json does not exist yet — FORBIDDEN to add"
+
+delta:
+  - "ship immutable local registry.yaml relative to hub root; extra=forbid; exactly three profiles"
+  - "load_project_manifest reads only <project_root>/dev-hub.project.yaml (no parent/child walk)"
+  - "resolve_capability: target or default_target; fail target_selection_required otherwise"
+  - "root containment via Path.resolve(); target_root_unsafe|missing|duplicate"
+  - "exact argv per FR-009 for all six capabilities × three profiles"
+  - "test.targeted selector is one list atom; other capabilities reject selector"
+  - "JS: exactly one supported lockfile or explicit package_manager; none/many without override → js_package_manager_missing|ambiguous"
+  - "JS scripts override = safe labels only; Python/Rust cannot add scripts"
+  - "never execute target commands; never shell=True / bash -c / eval / shlex.join as machine API"
+  - "never infer profile from marker files; never silent npm/pnpm; never first/cwd/alphabetical target"
+
+deletes: []
+
+out_of_scope:
+  - "CLI __main__ JSON/exit mapping (s03)"
+  - "doctor probes (s03)"
+  - "workflow pack reader cutover (s04)"
+  - "phase execution of argv (future epic / Appetite cut pack phase declaration)"
+  - "legacy-fallback-purge leftover (s06)"
+  - "custom/remote profiles — Appetite cut_list"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001 / TM-006 / Independent Test — rust target test.full returns
+      argv=["cargo","test","--all-targets"], cwd=workspace/services/api (or fixture root),
+      profile=rust; Python files in sibling dirs are irrelevant. Presence of YAML alone fails.
+    verify: "bin/pytest loop/tests/test_stack_profiles_resolver.py -q --tb=line -k 'rust or cargo or test_full'"
+  - id: cp2
+    criterion: |
+      US-002 / TM-005 / TM-009 / FR-008/009 — Python all six exact argv; test.targeted
+      selector remains one argv atom (not concatenated shell); other keys reject selector.
+    verify: "bin/pytest loop/tests/test_stack_profiles_resolver.py -q --tb=line -k 'python or selector or targeted or ruff or mypy'"
+  - id: cp3
+    criterion: |
+      US-003 / TM-007 / TM-008 / FR-010 — JS one lockfile each → exact manager run labels;
+      zero/two locks without override → js_package_manager_missing|ambiguous and argv [];
+      explicit supported package_manager succeeds; Python/Rust cannot set scripts.
+    verify: "bin/pytest loop/tests/test_stack_profiles_resolver.py -q --tb=line -k 'javascript or lockfile or package_manager or ambiguous'"
+  - id: cp4
+    criterion: |
+      US-004 / TM-001/003/004 / FR-003/013 / Independent Test negatives — missing manifest,
+      two targets no default, root escape: distinct codes, empty argv, no parent walk,
+      no marker-file inference, no remote registry path.
+    verify: "bin/pytest loop/tests/test_stack_profiles_resolver.py -q --tb=line -k 'missing or selection or unsafe or infer or walk'"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profiles_resolver.py loop/tests/test_stack_profiles_schema.py -q --tb=line"
+tdd:
+  - "red: no argv for rust/python/js test.full"
+  - "green: registry + pure resolver parameterized matrix"

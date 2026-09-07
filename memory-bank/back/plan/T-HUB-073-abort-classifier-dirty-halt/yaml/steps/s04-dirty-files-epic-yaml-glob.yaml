@@ -1,0 +1,119 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "dirty_files collector lists epic yaml/md/yml — not plan.md-only"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Abort/resume dirty_files включает yaml tree / steps / index под armed epic,
+  не только plan.md. filter_step_dirty + dirty_resume_prompt_lines: globs
+  **/*.md **/*.yaml **/*.yml relative to plan epic and implement/qa/bugfix
+  dirs for epic_id. Exclude __pycache__ .venv. Hardcoded md/plan.md special
+  case — delete. Outcome: dirty yaml step виден без dirty plan.md.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - US-004
+    - SC-004
+    - AC+4
+    - AC−4
+    - TM-004
+    - Independent Test
+  nouns:
+    - dirty_files
+    - filter_step_dirty
+    - dirty_resume_prompt_lines
+    - git_dirty_paths
+    - yaml/steps
+    - decompose-index.yaml
+  layout_paths:
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_filter_step_dirty.py
+    - loop/tests/test_checkpoint_resume.py
+  ac_quotes:
+    - "Given: git/workdir dirty memory-bank/back/plan/T-HUB-070-…/yaml/steps/s01-*.yaml, plan.md clean → Then: dirty_files includes that yaml path; not empty; not only plan.md"
+    - "dirty_files collector: include globs under armed epic dir: **/*.md, **/*.yaml, **/*.yml relative to plan epic and implement/qa/bugfix dirs for epic_id. Exclude __pycache__, .venv. If collector currently hardcodes md/plan.md — delete that special case"
+    - "Нет dirty_files = [plan.md] only"
+    - "PASS: … dirty yaml listed …"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:93-97"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:111"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:145-158"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:216-218"
+
+context:
+  consumes:
+    - plan.md §US-004 Given/When/Then · FR-006
+    - as-built filter_step_dirty: keeps memory-bank path only if step_id substring in path OR (delta match). yaml/steps/s01 without step_id=s01 in resume → dropped
+    - dirty_resume_prompt_lines lists related via filter_step_dirty
+  produces:
+    - filter_step_dirty keeps epic yaml/md/yml under plan/<epic>/ and implement/qa/bugfix/<epic>/ even when plan.md clean and step_id not in filename (e.g. decompose-index.yaml)
+    - dirty_resume_prompt_lines dirty_files includes yaml/steps/s01-*.yaml when that file is git-dirty
+    - no plan.md-only special case; __pycache__ / .venv excluded
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+  files:
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_filter_step_dirty.py
+    - loop/tests/test_checkpoint_resume.py
+
+as_built:
+  - "filter_step_dirty keeps memory-bank files when sid in path (s03 in s03-*.yaml) AND eid in path; otherwise memory-bank skipped unless delta_norm matches"
+  - "layout v2 yaml/steps/s01-*.yaml dropped if resume step_id is DECOMPOSE (not in filename) and delta empty — architecture gap"
+  - "memory-bank/ kept only via sid/eid/delta — no glob **/*.yaml under epic dir"
+  - "test_filter_step_dirty.py uses legacy decompose-T-036 paths, not layout v2 yaml/steps"
+  - "dirty_resume_prompt_lines iterates related; empty related + not aborted → no prompt"
+
+delta:
+  - "extend filter_step_dirty: if eid set, keep dirty paths under memory-bank/**/<epic_id>/** matching *.md *.yaml *.yml (plan/implement/qa/bugfix/analyze/audit/creative); still drop other epics"
+  - "keep existing sid-in-path and delta_paths behavior for code (frontend/apps/tests)"
+  - "exclude __pycache__ .venv; delete any hardcoded md/plan.md-only allowlist if found"
+  - "pytest: dirty yaml/steps/s01-*.yaml + clean plan.md + epic_id set → yaml in result; not empty; not only plan.md (US-004)"
+  - "pytest: decompose-index.yaml dirty without sNN in name still listed for that epic"
+  - "do not change classifier (s02) or DSH (s05)"
+
+deletes:
+  - "hardcoded md/plan.md-only special case in dirty collector if present"
+
+out_of_scope:
+  - "DSH 401 parity (s05)"
+  - "legacy-fallback-purge (s06)"
+  - "classifier catch-all (s02 owned)"
+  - "loop retry path (s03 owned)"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-004 / TM-004 / FR-006 — dirty yaml/steps/s01-*.yaml with plan.md clean
+      and epic_id set: filter_step_dirty / dirty_resume_prompt_lines includes yaml
+      path; list not empty; not only plan.md.
+    verify: "bin/pytest loop/tests/test_filter_step_dirty.py loop/tests/test_checkpoint_resume.py -q --tb=line -k 'dirty or yaml or filter_step or resume'"
+  - id: cp2
+    criterion: |
+      AC−4 — no dirty_files = [plan.md] only when yaml tree dirty. Epic glob
+      covers md+yaml+yml under plan/implement/qa/bugfix for epic_id.
+    verify: "rg -n 'filter_step_dirty|yaml/steps|plan.md' harness/hooks/session_resilience.py loop/tests/test_filter_step_dirty.py"
+  - id: cp3
+    criterion: Cross-epic memory-bank still dropped; __pycache__ / .venv excluded; unrelated files excluded
+    verify: "bin/pytest loop/tests/test_filter_step_dirty.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_filter_step_dirty.py loop/tests/test_checkpoint_resume.py -q --tb=line"
+tdd:
+  - "red: yaml/steps dirty + plan.md clean omitted from dirty_files"
+  - "green: epic glob keeps yaml without requiring sid in filename"

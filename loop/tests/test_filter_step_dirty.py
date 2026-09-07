@@ -29,6 +29,10 @@ DIRTY = [
     "memory-bank/back/plan/decompose-T-035-loop-state-prod-hardening/s03-session-classification-resume.yaml",
     "memory-bank/back/plan/decompose-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml",
     "memory-bank/back/plan/decompose-T-036-session-checkpoint-resume/s03-dirty-resume-extend.yaml",
+    "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s01-setup.yaml",
+    "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/decompose-index.yaml",
+    "memory-bank/back/plan/T-036-crash-cycle-fix/__pycache__/cache.pyc",
+    "memory-bank/back/plan/T-036-crash-cycle-fix/.venv/some_file.md",
     "frontend/src/app/page.tsx",
     "apps/api/main.py",
     "unrelated/file.txt",
@@ -49,6 +53,29 @@ def test_epic_id_keeps_correct_epic_files() -> None:
     paths = set(result)
     assert "memory-bank/back/implement/implement-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml" in paths
     assert "memory-bank/back/plan/decompose-T-036-crash-cycle-fix/s03-set-vs-dict-status-telemetry.yaml" in paths
+    assert "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/steps/s01-setup.yaml" in paths
+    assert "memory-bank/back/plan/T-036-crash-cycle-fix/yaml/decompose-index.yaml" in paths
+    assert "memory-bank/back/plan/T-036-crash-cycle-fix/__pycache__/cache.pyc" not in paths
+    assert "memory-bank/back/plan/T-036-crash-cycle-fix/.venv/some_file.md" not in paths
+
+
+def test_dirty_yaml_steps_and_index_without_step_id_in_filename() -> None:
+    dirty = [
+        "memory-bank/back/plan/T-HUB-070-test/yaml/steps/s01-setup.yaml",
+        "memory-bank/back/plan/T-HUB-070-test/yaml/decompose-index.yaml",
+        "memory-bank/back/implement/T-HUB-070-test/s01-setup.yaml",
+        "memory-bank/back/qa/T-HUB-070-test/qa-report.yaml",
+        "memory-bank/back/bugfix/T-HUB-070-test/bugfix-note.md",
+        "memory-bank/back/other-epic/T-HUB-999-other/yaml/steps/s01-setup.yaml",
+    ]
+    # plan.md is clean (not in dirty list), step_id is DECOMPOSE (not s01)
+    result = filter_step_dirty(dirty, step_id="DECOMPOSE", epic_id="T-HUB-070-test")
+    assert "memory-bank/back/plan/T-HUB-070-test/yaml/steps/s01-setup.yaml" in result
+    assert "memory-bank/back/plan/T-HUB-070-test/yaml/decompose-index.yaml" in result
+    assert "memory-bank/back/implement/T-HUB-070-test/s01-setup.yaml" in result
+    assert "memory-bank/back/qa/T-HUB-070-test/qa-report.yaml" in result
+    assert "memory-bank/back/bugfix/T-HUB-070-test/bugfix-note.md" in result
+    assert "memory-bank/back/other-epic/T-HUB-999-other/yaml/steps/s01-setup.yaml" not in result
 
 
 def test_no_epic_id_returns_all_step_matches() -> None:

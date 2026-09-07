@@ -39,16 +39,16 @@ Gap опционален — не блокирует PLAN. Не читать as 
 2. `load_now`
 2a. **Portal inventory** (single portal plan): все `frontend/src/app/**/page.tsx` + UI elements; back/front epic `implement-*/sNN|eNN-*.yaml` (по ссылкам decompose `index.yaml`); exclude infra-only
 2b. §0.11 endpoint ↔ fetch; mocks в registry
-3. **Single-epic:** `memory-bank/integration/plan/<task_id>/md/plan.md` по @.cursor/templates/integration-plan.md **и** `md/prompt.md` (@.cursor/templates/plan-prompt.md)
+3. **Every PLAN:** апсерт одной row в `memory-bank/integration/roadmap/queue.yaml` + `memory-bank/integration/plan/<task_id>/md/plan.md` по @.cursor/templates/integration-plan.md **и** `md/prompt.md` (@.cursor/templates/plan-prompt.md)
 3a. **Multi-epic path (HARD):**  
     - epic cut (таблица по wire-осям / продуктам / journeys)  
-    - апсерт `memory-bank/integration/roadmap/queue.yaml` (шаблон @.cursor/templates/roadmap-queue.yaml)  
+    - апсерт row на **каждый** эпик в `memory-bank/integration/roadmap/queue.yaml` (шаблон @.cursor/templates/roadmap-queue.yaml)
     - полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` на **каждый** эпик (начинается с `## Epic`; Covering одинаковый; весь prompt без ID / без шапки Role·Deps; §0.0; portal-scope `wc -l` ≥ 400 **на каждый**)
     - **FORBIDDEN** `plan/roadmap-*-epics.*` / `roadmap/prompt-*.md`  
 4. `contracts/` не обязателен
-5. `tasks.md` append-only (queue + каждый эпик при multi-epic)
-5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; ≥2 эпика без `roadmap/queue.yaml` → FAIL
-5b. **Queue reconcile (optional):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`
+5. `tasks.md` append-only (ссылка на queue + каждый эпик)
+5a. **Acceptance:** каждый portal-scope plan — `wc -l` ≥ 400 или FAIL; нет layer-first rollout; нет queue row/reconcile для любого PLAN → FAIL
+5b. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration`; `ok: false` → halt PLAN
 6. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed: no`); `load_now` = clarify + `roadmap/queue.yaml` + первый plan + `md/prompt.md`
 6a. **CLARIFY FINISH guard:** PLAN **не** закрывается при открытом `[НУЖНО УТОЧНИТЬ: CRITICAL …]` без resolve или явного defer-list с owner/next.
 7. Next: **INTEG DECOMPOSE** `queue[0]` → IMPLEMENT e01. **FORBIDDEN:** next = `INTEG ROADMAP MERGE`

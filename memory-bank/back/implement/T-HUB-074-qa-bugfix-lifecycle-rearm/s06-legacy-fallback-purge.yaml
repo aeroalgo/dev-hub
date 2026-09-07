@@ -1,0 +1,107 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+session_id: d3a2d3d6-f21d-459f-a9b9-bedba0e93844
+title: s06 — s06 — legacy-fallback-purge — DONE-on-fail / reflect / handoff-escape leftovers A+B+C+I IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+  - .agents/skills/python-error-handling/SKILL.md
+discovery:
+  - "Grep control confirms 0 live callers of finish_reflect / find_reflection_artifact / ALLOW_QA_FAIL_DONE / else-pass."
+  - "Kind B reflect subcommands / MCP routes are fully removed."
+  - "Kind C qa_fail_blocks_handoff and qa_fail_blocks_advance are live and fail-closed."
+  - "Kind I QA->REFLECT comments in finish_* modules are cleaned."
+gaps:
+  status: none
+done:
+  - "Purged all legacy leftovers across Replacement A+B+C+I."
+  - "Verified that fail yaml blocks DONE in finish_qa, finish_handoff, and roadmap_advance."
+  - "Verified that zero prod callers or entrypoints remain for finish_reflect."
+  - "Targeted tests green across hooks and loop test suites without restoring legacy paths."
+files:
+  - loop/mb_finish/impl.py
+  - loop/mb_finish/mcp_server.py
+  - loop/roadmap_queue.py
+  - harness/hooks/epic/core.py
+  - harness/hooks/epic_resolve.py
+  - harness/hooks/tests/test_mb_finish_qa.py
+  - harness/hooks/tests/test_mb_finish_handoff.py
+  - loop/tests/test_mb_finish_transaction.py
+  - loop/tests/test_qa_finish_handoff.py
+  - loop/tests/test_roadmap_queue.py
+deletes:
+  - leftover finish_reflect / find_reflection_artifact prod callers
+  - leftover else "pass" / DONE-on-fail / ALLOW_QA_FAIL_DONE
+  - leftover finish_handoff DONE despite fail yaml
+  - leftover Kind I QA→REFLECT comments in Python finish_*
+  - leftover tests importing finish_reflect or asserting DONE-on-fail success
+tests:
+  - "bin/pytest harness/hooks/tests/test_mb_finish_qa.py harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py loop/tests/test_mb_finish_transaction.py loop/tests/test_finish_bugfix.py -q --tb=line"
+  - "bin/pytest harness/hooks/tests/test_mb_finish_qa.py harness/hooks/tests/test_mb_finish_handoff.py -q --tb=line -k 'fail or artifact or handoff or BUGFIX'"
+integration_check:
+  - "! rg -n 'def finish_reflect|find_reflection_artifact|if qa_art else \"pass\"|ALLOW_QA_FAIL_DONE' loop/ harness/hooks --glob '*.py' --glob '!**/T-HUB-060/**'"
+  - "! rg -n 'finish_reflect|mb-finish reflect' loop/mb_finish harness/hooks/epic_resolve.py"
+  - "rg -n 'qa_fail_blocks_handoff' loop/mb_finish/impl.py && ! rg -n 'ALLOW_QA_FAIL_DONE' loop/mb_finish/impl.py loop/roadmap_queue.py"
+grep_control:
+  - inv_id: inv-a-done-fail
+    status: PASS
+  - inv_id: inv-a-advance
+    status: PASS
+  - inv_id: inv-a-handoff
+    status: PASS
+  - inv_id: inv-a-allow-qa-fail
+    status: PASS
+plan_parity_scan:
+  fr_coverage:
+    FR-001: covered
+    FR-003: covered
+    FR-005: covered
+    FR-006: covered
+    FR-007: covered
+    FR-009: covered
+    FR-011: covered
+    FR-013: covered
+    FR-014: covered
+    US-004: covered
+    SC-001: covered
+    SC-003: covered
+  layout_check:
+    - "No finish_reflect in loop/mb_finish/"
+    - "No reflect subcommand in harness/hooks/epic_resolve.py"
+    - "qa_fail_blocks_handoff enforced in loop/mb_finish/impl.py"
+    - "qa_fail_blocks_advance enforced in loop/roadmap_queue.py"
+verification_results:
+  - cp: cp1
+    verdict: PASS
+  - cp: cp2
+    verdict: PASS
+  - cp: cp3
+    verdict: PASS
+  - cp: cp4
+    verdict: PASS
+  - cp: cp5
+    verdict: PASS
+  - cp: cp6
+    verdict: PASS
+checkpoints:
+  - id: cp1
+    criterion: 'Kind A — finish_reflect / find_reflection_artifact gone; else pass gone; fail never DONE; qa_fail_blocks_advance present. rg per grep_control A rows.'
+    status: done
+  - id: cp2
+    criterion: Kind B — no mb-finish reflect CLI/MCP
+    status: done
+  - id: cp3
+    criterion: Kind C — qa_fail_blocks_handoff live; no ImportError catch-continue; no ALLOW_QA_FAIL_DONE
+    status: done
+  - id: cp4
+    criterion: Kind I — 0 hits QA FINISH → REFLECT in Python finish_*; verdict SoT is yaml
+    status: done
+  - id: cp5
+    criterion: Obsolete tests deleted/rewritten; targeted pytest green without restore reflect/DONE-on-fail
+    status: done
+  - id: cp6
+    criterion: Independent Test PASS — fail yaml cannot DONE; re-QA new yaml; rg finish_reflect 0
+    status: done

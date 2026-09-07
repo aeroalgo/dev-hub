@@ -117,21 +117,60 @@ def test_prepare_workflow_pack_field(tmp_path: Path) -> None:
 
 
 def test_project_override_workflow_pack(tmp_path: Path) -> None:
-    """TM-005 / FR-005: project.yaml with workflow_pack=custom -> precedence over default/env."""
-    # 1. Valid custom pack in project.yaml (if defined in registry)
-    project_yaml = tmp_path / "project.yaml"
-    project_yaml.write_text("workflow_pack: dev-hub-software\n", encoding="utf-8")
+    """TM-005 / FR-005 / TM-011: dev-hub.project.yaml with workflow_pack=custom -> precedence over default/env."""
+    manifest_yaml = tmp_path / "dev-hub.project.yaml"
+    manifest_yaml.write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: dev-hub-software\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     res = resolve_workflow_pack(cwd=tmp_path)
     assert res.ok
     assert res.pack_id == "dev-hub-software"
 
-    # 2. Unknown custom pack
-    project_yaml.write_text("workflow_pack: unknown_custom_pack\n", encoding="utf-8")
+    # 2. Unknown custom pack in dev-hub.project.yaml
+    manifest_yaml.write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: unknown_custom_pack\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
     res_err = resolve_workflow_pack(cwd=tmp_path)
     assert not res_err.ok
     assert res_err.pack_id == "unknown_custom_pack"
     assert "invalid_workflow_pack" in res_err.diagnostic_codes
+
+
+def test_legacy_project_yaml_ignored_and_fail_closed(tmp_path: Path) -> None:
+    """TM-011 / SC-005 / AC−2: Leftover project.yaml and .dev-hub/project.yaml are never read."""
+    (tmp_path / "project.yaml").write_text("workflow_pack: dev-hub-video\n", encoding="utf-8")
+    dot_dev_hub = tmp_path / ".dev-hub"
+    dot_dev_hub.mkdir(parents=True, exist_ok=True)
+    (dot_dev_hub / "project.yaml").write_text("workflow_pack: dev-hub-video\n", encoding="utf-8")
+
+    # Without dev-hub.project.yaml and env, defaults to dev-hub-software (never dev-hub-video)
+    old_env = os.environ.pop("WORKFLOW_PACK", None)
+    try:
+        res = resolve_workflow_pack(cwd=tmp_path)
+        assert res.ok
+        assert res.pack_id == "dev-hub-software"
+    finally:
+        if old_env is not None:
+            os.environ["WORKFLOW_PACK"] = old_env
+
+    # Invalid dev-hub.project.yaml does not fall back to legacy project.yaml
+    (tmp_path / "dev-hub.project.yaml").write_text("invalid_manifest_content\n", encoding="utf-8")
+    res_invalid = resolve_workflow_pack(cwd=tmp_path)
+    assert not res_invalid.ok
+    assert "invalid_project_manifest" in res_invalid.diagnostic_codes
 
 
 def test_cli_workflow_resolve() -> None:

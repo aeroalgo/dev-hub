@@ -87,6 +87,38 @@ def test_finish_handoff_bad_meta(tmp_path: Path):
     assert res.diagnostic_codes in (["rendered_shape_invalid"], ["active_context_shape_invalid"], ["render_failed"])
 
 
+@pytest.mark.parametrize("target_mode", ["DONE", "IMPLEMENT", "ANALYZE", "DECOMPOSE", "PLAN", "QA"])
+def test_finish_handoff_qa_fail_blocks_handoff_gate(tmp_path: Path, target_mode: str):
+    """cp3 / FR-003 / US-003 / SC-003: finish_handoff with latest qa fail blocks non-BUGFIX modes with qa_fail_blocks_handoff."""
+    epic = "T-HUB-040"
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / epic
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    (qa_dir / "qa-001.yaml").write_text("verdict: fail\nepic_id: T-HUB-040\n", encoding="utf-8")
+
+    from harness.hooks.epic.core import save_epic_state
+    save_epic_state(tmp_path, {"armed_epic": epic, "armed_role": "BACK"})
+
+    token = _prepare_tx(tmp_path, epic, "s04")
+    meta = LoopHandoffMeta(
+        role="BACK",
+        mode=target_mode,
+        epic_id=epic,
+    )
+    load_now = [
+        LoadNowItem(path="memory-bank/back/plan/decompose-T-HUB-040/s04.yaml", description="work shard")
+    ]
+    body = HandoffBody(
+        mode=target_mode,
+        next_hint=f"continue {target_mode}",
+        epic_id=epic,
+    )
+
+    res = finish_handoff(meta, load_now, body, cwd=tmp_path, recovery_token=token)
+    assert res.ok is False
+    assert "qa_fail_blocks_handoff" in (res.diagnostic_codes or [])
+
+
+
 def test_doctor_repair_uses_render(tmp_path: Path):
     """TM-008: doctor repair code path uses render_active_context."""
     token = _prepare_tx(tmp_path, "T-HUB-040", "s04")

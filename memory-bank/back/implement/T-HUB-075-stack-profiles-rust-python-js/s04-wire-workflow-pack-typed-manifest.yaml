@@ -1,0 +1,88 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s04 — Wire workflow_pack from typed manifest; delete _read_project_yaml_pack
+  dual path IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s04-wire-workflow-pack-typed-manifest.yaml
+skills_used:
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Replaced _read_project_yaml_pack in loop/workflow/registry.py with typed optional
+  workflow_pack from load_project_manifest(cwd)
+- Enforced fail-closed behavior on invalid dev-hub.project.yaml (diagnostic code invalid_project_manifest)
+- Deleted _read_project_yaml_pack and untyped project.yaml / .dev-hub/project.yaml
+  reads from registry.py
+- Created harness/templates/dev-hub.project.yaml canonical structure template
+- Updated README.md and harness/README.md documenting dev-hub.project.yaml and .dev-hub
+  as hub-link pointer only
+- Rewrote pack-override tests in test_workflow_pack_registry.py, test_workflow_pack_video_e2e.py,
+  test_cli_tool_gate.py, test_external_gates_stop_gate.py, test_mb_finish_pack_write.py,
+  test_mb_load_session.py, test_workflow_pack_phase_router.py, test_active_context_lock.py,
+  test_prompt_builder.py
+- Added test_legacy_project_yaml_ignored_and_fail_closed verifying TM-011 / SC-005
+  / AC−2
+files:
+- loop/workflow/registry.py
+- harness/templates/dev-hub.project.yaml
+- README.md
+- harness/README.md
+- loop/tests/test_workflow_pack_registry.py
+- loop/tests/test_workflow_pack_video_e2e.py
+- loop/tests/test_mb_finish_pack_write.py
+- loop/tests/test_external_gates_stop_gate.py
+- loop/tests/test_cli_tool_gate.py
+- loop/tests/test_workflow_pack_phase_router.py
+- loop/tests/test_mb_load_session.py
+- loop/tests/test_active_context_lock.py
+- loop/tests/test_prompt_builder.py
+deletes:
+- loop/workflow/registry.py::_read_project_yaml_pack
+- prod reads of project.yaml and .dev-hub/project.yaml for workflow_pack
+- tests asserting old config precedence via tmp_path/project.yaml (rewrite to new
+  manifest or negative TM-011)
+- docs teaching project.yaml / .dev-hub/project.yaml as live config
+tests:
+- bin/pytest loop/tests/test_workflow_pack_registry.py loop/tests/test_workflow_pack_video_e2e.py
+  loop/tests/test_workflow_pack_phase_router.py loop/tests/test_cli_tool_gate.py loop/tests/test_external_gates_stop_gate.py
+  loop/tests/test_mb_finish_pack_write.py loop/tests/test_mb_load_session.py loop/tests/test_active_context_lock.py
+  loop/tests/test_prompt_builder.py -q --tb=line
+integration_check:
+- rg -n '_read_project_yaml_pack|cwd / "project.yaml"|\.dev-hub" / "project.yaml"'
+  loop/workflow/registry.py
+- rg -n 'dev-hub.project.yaml|hub-link|project.yaml' README.md harness/README.md harness/templates/dev-hub.project.yaml
+grep_control:
+- back: rg -n '_read_project_yaml_pack' loop/workflow/
+  front: ''
+verification_results:
+- '{''check'': ''pytest target suite (9 test files)'', ''status'': ''PASS'', ''details'':
+  ''58 passed in 2.37s''}'
+- '{''check'': ''cp2 deletion of _read_project_yaml_pack'', ''status'': ''PASS'',
+  ''details'': ''zero occurrences in loop/workflow/registry.py''}'
+- '{''check'': ''cp3 documentation and template verification'', ''status'': ''PASS'',
+  ''details'': ''template exists and READMEs updated''}'
+checkpoints:
+- id: cp1
+  criterion: FR-005 / TM-012 — resolve_workflow_pack reads workflow_pack from typed
+    dev-hub.project.yaml; env/default still work when file absent. Unknown pack still
+    invalid_workflow_pack.
+  status: done
+- id: cp2
+  criterion: TM-011 / SC-005 / AC−2 / FR-016 — leftover-only project.yaml or .dev-hub/project.yaml
+    is never parsed for pack; _read_project_yaml_pack symbol gone.
+  status: done
+- id: cp3
+  criterion: FR-004 / FR-017 / TM-013 / Kind B+I — template exists; README/harness
+    README document root dev-hub.project.yaml and hub-link pointer-only; no instruction
+    that .dev-hub is a YAML config directory.
+  status: done
+- id: cp4
+  criterion: Kind C — no try new except old; invalid new manifest does not fall back
+    to untyped project.yaml. Pack e2e fixtures that selected video pack via project.yaml
+    rewritten.
+  status: done

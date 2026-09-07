@@ -1,0 +1,150 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: "JSON CLI resolve|doctor — exit mapping, fake-executable probes, no target scripts"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Operator surface: `python -m loop.stack_profiles resolve|doctor` JSON-first.
+  resolve exits 0 only with complete CapabilityResolution; config/profile diagnostics
+  exit 2 with empty argv; missing/probe-failed tool exit 3; unexpected 1.
+  Doctor inspects files and calls executable --version under fixed short timeout;
+  never test/build scripts. Fake executable log must stay empty of application scripts.
+  Outcome: blockers видны до запуска кода проекта (US-006), не «CLI --help существует».
+
+plan_contract:
+  fr_ids:
+    - FR-011
+    - FR-012
+    - FR-013
+    - US-003
+    - US-005
+    - US-006
+    - SC-002
+    - SC-003
+    - SC-006
+    - AC+3
+    - AC+5
+    - AC+6
+    - AC−1
+    - NFR-1
+    - NFR-4
+    - NFR-6
+    - NFR-7
+    - TM-001
+    - TM-010
+  nouns:
+    - python -m loop.stack_profiles
+    - resolve
+    - doctor
+    - DoctorReport
+    - doctor_project_profiles
+    - JSON stdout
+    - exit 2
+    - exit 3
+    - --version probe
+  layout_paths:
+    - loop/stack_profiles/__main__.py
+    - loop/stack_profiles/doctor.py
+    - loop/tests/test_stack_profiles_cli.py
+    - loop/tests/test_stack_profiles_doctor.py
+  ac_quotes:
+    - "python -m loop.stack_profiles resolve|doctor is JSON-first. resolve exits 0 only with complete result; doctor may inspect files and call executable --version under fixed short timeout, never test/build scripts."
+    - "Expected CLI failures preserve JSON output."
+    - "Doctor probes have fixed low timeout and no secret output."
+    - "Doctor never invokes application scripts."
+    - "Exit: 0 complete; 2 config/profile diagnostics; 3 missing/probe-failed tool; 1 unexpected internal error. Stdout is JSON."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:183-197"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:216-229"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:266-276"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:279-301"
+
+context:
+  consumes:
+    - s02 resolve_capability / load_project_manifest
+    - plan §Public API / CLI
+    - plan §Failure matrix tool/doctor rows
+    - T-HUB-067 doctor JSON form (hard dep; reuse envelope, do not reimplement pack graph)
+  produces:
+    - loop/stack_profiles/__main__.py
+    - loop/stack_profiles/doctor.py
+    - doctor_project_profiles
+    - JSON CLI identical machine result to API
+  plan_refs:
+    - plan.md#public-api--cli
+    - plan.md#failure-matrix
+    - plan.md#nfr
+  files:
+    - loop/stack_profiles/__main__.py
+    - loop/stack_profiles/doctor.py
+    - loop/tests/test_stack_profiles_cli.py
+    - loop/tests/test_stack_profiles_doctor.py
+
+as_built:
+  - "s02 resolver is pure and does not execute"
+  - "no loop.stack_profiles CLI"
+  - "pack doctor lives in T-HUB-067 surface — this step is stack-profile doctor, not pack graph"
+  - "timeout_seconds=300 on CapabilityResolution is metadata; doctor probe uses separate short timeout"
+
+delta:
+  - "CLI parser: resolve --project-root --target --capability [--selector]; doctor --project-root [--target]"
+  - "stdout always JSON (success and expected failure); no prose machine API"
+  - "exit mapping 0/2/3/1 as plan"
+  - "doctor_project_profiles: file presence + executable --version probes; never cargo test / pytest / npm run / build scripts"
+  - "fake PATH executables record argv; application script names must not appear"
+  - "API resolve_capability JSON keys == CLI JSON keys (US-005)"
+  - "argv never shlex.join'd into a command string field"
+  - "JS ambiguity via CLI still emits only diagnostic, no argv"
+
+deletes: []
+
+out_of_scope:
+  - "workflow pack reader cutover (s04)"
+  - "consumer phase execution (s05/future)"
+  - "legacy-fallback-purge leftover (s06)"
+  - "minimum version floors — Appetite cut_list (doctor reports availability only)"
+  - "T-HUB-067 pack executable graph implementation"
+  - "full suite → QA"
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-005 / AC+5 / NFR-4 — resolve CLI JSON equals resolve_capability() fields
+      (schema id, ok, target, profile, capability, cwd, argv, timeout_seconds,
+      requirements, diagnostics). Expected failures still emit JSON, exit 2, argv [].
+    verify: "bin/pytest loop/tests/test_stack_profiles_cli.py -q --tb=line -k 'resolve or json or exit'"
+  - id: cp2
+    criterion: |
+      US-006 / TM-010 / SC-006 / FR-012 / NFR-6 — doctor missing tool or probe timeout
+      → exit 3, JSON diagnostic, fake executable log contains only --version (or empty
+      for missing), never test/build/script labels.
+    verify: "bin/pytest loop/tests/test_stack_profiles_doctor.py -q --tb=line -k 'probe or timeout or version or script'"
+  - id: cp3
+    criterion: |
+      TM-001 / US-003 via CLI — missing manifest and JS lockfile conflict through CLI
+      preserve JSON, nonzero, empty argv. No shell=True / bash -c / eval.
+    verify: "bin/pytest loop/tests/test_stack_profiles_cli.py -q --tb=line -k 'missing or ambiguous or shell'"
+  - id: cp4
+    criterion: |
+      NFR-7 / AC−1 — CLI result has argv as list[str]; no command/shell field;
+      rg no subprocess shell=True in stack_profiles.
+    verify: "rg -n 'shell=True|bash -c|eval\\(|shlex.join' loop/stack_profiles || true"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profiles_cli.py loop/tests/test_stack_profiles_doctor.py -q --tb=line"
+tdd:
+  - "red: no JSON CLI / doctor may invoke scripts"
+  - "green: CLI exit map + fake PATH probes only --version"

@@ -74,6 +74,26 @@ def finish_handoff(
     if str(state.get("armed_step") or state.get("phase") or "").upper() == "BUGFIX" and meta.mode.upper() != "BUGFIX":
         return MbFinishResult(ok=False, diagnostic_codes=["bugfix_finish_required"], shape_errors=["Use mb-finish bugfix with a bugfix artifact and verify-bugfix PASS"])
 
+    # FR-003 / US-003 / SC-003: Escape hatch closed.
+    # If latest QA verdict for the armed epic is fail or blocked, finish_handoff cannot write DONE/IMPLEMENT/ANALYZE/DECOMPOSE/PLAN/QA success.
+    # BUGFIX mode is the only allowed transition.
+    epic_for_qa = str(meta.epic_id or state.get("armed_epic") or "").strip()
+    role_for_qa = str(meta.role or state.get("armed_role") or "back").strip().lower()
+    if role_for_qa == "integ":
+        role_for_qa = "integration"
+    if epic_for_qa:
+        latest_qa = latest_qa_any_artifact_for_reference(cwd_p, role_for_qa, epic_id=epic_for_qa)
+        if latest_qa:
+            v = parse_qa_verdict(latest_qa)
+            if v in {"fail", "blocked"} and meta.mode.upper() != "BUGFIX":
+                return MbFinishResult(
+                    ok=False,
+                    diagnostic_codes=["qa_fail_blocks_handoff"],
+                    shape_errors=[
+                        f"Latest QA artifact {latest_qa.name} has verdict '{v}'. Cannot finish handoff to '{meta.mode}'. Only BUGFIX is allowed."
+                    ],
+                )
+
     try:
         backup = read_active_context(cwd_p)
     except OSError:
@@ -207,7 +227,13 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         LoadNowItem(path=qa_rel, description="QA pass artifact"),
     ]
 
-    qa_verdict = parse_qa_verdict(qa_art) if qa_art else "pass"
+    qa_verdict = parse_qa_verdict(qa_art)
+    if qa_verdict is None:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["qa_verdict_missing"],
+            shape_errors=["qa-*.yaml missing or invalid verdict (must be pass, fail, or blocked)"],
+        )
     if qa_verdict == "pass" and rerun is not None and rerun.epic_id == epic_id:
         reviewer = state.get("last_reviewer_evidence")
         matched, _ = gate_evidence_matches(cwd, reviewer)
@@ -935,8 +961,8 @@ def finish_analyze(
             shape_errors=[f"Gate evidence invalid or missing: {diagnostic}"],
         )
 
-    from analyze_gate import analyze_required_before_implement
-    from roadmap_queue import find_decompose_index, load_steps_for_index
+    from loop.analyze_gate import analyze_required_before_implement
+    from loop.roadmap_queue import find_decompose_index, load_steps_for_index
 
     idx_path = None
     if decompose_rel:

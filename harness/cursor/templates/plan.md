@@ -15,6 +15,15 @@
 
 → [decompose-…/index.md](decompose-…/index.md) — **после DECOMPOSE:** единственный трекер шагов (не дублировать s01…sNN здесь)
 
+## Delivery closure
+
+> Обязательно для каждой новой P0/P1 runtime capability, API, tool или machine boundary. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §1.
+> Default = `vertical_slice`: capability работает через production entrypoint в этом эпике. `foundation_only` допустим только при явном решении пользователя и заранее созданном follow-up epic ID в `roadmap/queue.yaml`; такой эпик не обещает user/workflow support.
+
+| Capability / outcome | Classification | Production entrypoint and caller | Success / failure enforcement | Independent outcome test | Foundation approval / follow-up |
+|---|---|---|---|---|---|
+| … | `vertical_slice` | `path:symbol` → caller | continue / DENY or HALT | Given / When / Then through entrypoint | `n/a` |
+
 ## Technology axiom (replace-not-wrap)
 
 > **HARD** при смене machine boundary / structured validation. Канон: @.cursor/rules/shared/workflow-spec-first-replace.mdc  
@@ -208,6 +217,7 @@ Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 
 | CLARIFY / Product probe | L3: one of done | done \| skip+reason \| pending | link clarify or §Product probe |
 | Eng review spine | L2+ | done \| pending | §Eng review spine filled |
 | §0.11 counterparts (draft) | if external refs in HOW | done \| n/a \| pending | table or defer list |
+| Delivery closure | P0/P1 runtime capability / API / tool / boundary | done \| n/a \| pending | §Delivery closure; foundation has approval + queue ID |
 | CREATIVE | if flagged | done \| n/a | link creative |
 | qa_consumes draft | L2+ | done \| pending | §QA consumes ≥3 TM |
 | Plan review batch | L2+ | done \| pending | §Plan review batch log |

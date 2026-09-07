@@ -1,0 +1,66 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s05 — Consumer-facing API integration — resolve_capability only, no lifecycle execution IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s05-consumer-api-integration-no-lifecycle.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added Independent Test monorepo suite resolving test.full exact JSON for Python, Rust, and JavaScript targets
+- Verified CLI and API JSON parity on identical CapabilityRequest input
+- Verified all negative resolution paths (no default target, ambiguous JS lockfile, root escape) produce structured diagnostics and empty argv
+- Verified no lifecycle command execution in loop/workflow or loop/stack_profiles
+- Confirmed hub self-test pytest canon in test_run_canon.py and tier1_verify.py is unchanged
+files:
+- loop/tests/test_stack_profiles_integration.py
+- loop/stack_profiles/__init__.py
+- loop/stack_profiles/schemas.py
+- loop/stack_profiles/resolver.py
+- harness/hooks/test_run_canon.py
+- loop/incidents/tier1_verify.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profiles_integration.py loop/tests/test_stack_profiles_resolver.py loop/tests/test_stack_profiles_cli.py -q --tb=line
+integration_check:
+- rg -n 'resolve_capability\(.*\).*subprocess|subprocess.*resolve_capability' loop/workflow loop/stack_profiles
+grep_control: []
+verification_results:
+- check: integration_tests
+  result: pass
+checkpoints:
+- id: cp1
+  criterion: |
+    Independent Test PASS / SC-001 / TM-005/006/007 — tmp monorepo Python+Rust+JS
+    resolve test.full exact JSON argv/cwd/profile. YAML/classes alone is not evidence.
+  status: done
+  verify: bin/pytest loop/tests/test_stack_profiles_integration.py -q --tb=line -k 'monorepo or test_full or python or rust or javascript'
+- id: cp2
+  criterion: |
+    Independent Test negatives / SC-003/004 / TM-008 — remove default, second JS
+    lockfile, root escape: distinct codes, argv [].
+  status: done
+  verify: bin/pytest loop/tests/test_stack_profiles_integration.py -q --tb=line -k 'selection or ambiguous or unsafe or escape'
+- id: cp3
+  criterion: |
+    FR-014 / NFR-1 — no lifecycle execution: rg finds no subprocess of resolved
+    argv / cargo test / npm run as stack-profile consumer in loop/workflow.
+  status: done
+  verify: rg -n 'resolve_capability\(.*\).*subprocess|subprocess.*resolve_capability' loop/workflow loop/stack_profiles || true
+- id: cp4
+  criterion: |
+    FR-015 / TM-014 / AC+8 / AC−6 — test_run_canon prefixes and tier1_verify
+    still hub pytest; formula_render default pytest kept. No disguise as stack support.
+  status: done
+  verify: bin/pytest harness/hooks/tests -q --tb=line -k 'test_run_canon' ; rg -n 'BIN_PYTEST_PREFIX|bin/pytest' harness/hooks/test_run_canon.py
+resume_from: null

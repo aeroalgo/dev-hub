@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: Strict capability execution declaration, result, and fingerprint contract
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Workflow-owned verification becomes an explicit typed declaration with a required named
+  target, not a reusable shell command. The contract rejects raw process controls before
+  resolution, gives every result a stable typed status and fingerprint, and remains the
+  input boundary for executor, evidence, phase and finish enforcement.
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, FR-004, FR-006]
+  nouns:
+    - CapabilityCheckSpec
+    - CapabilityExecutionResult
+    - CapabilityExecutionEvidence
+    - declaration fingerprint
+    - capability_checks
+  layout_paths:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/execution.py
+    - harness/hooks/epic_yaml.py
+    - loop/tests/test_stack_profile_execution_contract.py
+  ac_quotes:
+    - "A decompose capability_checks row without target fails capability_target_required and spawns neither target."
+    - "Raw command, argv, cwd, environment, profile and timeout fields cannot enter the executor boundary."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:107-225"
+
+context:
+  consumes:
+    - loop/stack_profiles/schemas.py existing CapabilityName, CapabilityRequest and Diagnostic contract
+    - loop/stack_profiles/resolver.py existing selector and target resolution rules
+    - harness/hooks/epic_yaml.py existing decompose YAML validation entrypoint
+  produces:
+    - strict CapabilityCheckSpec parsed from decompose capability_checks
+    - typed execution result and evidence models with canonical declaration fingerprint
+    - validation diagnostic capability_target_required before any execution path
+  plan_refs:
+    - FR-001
+    - FR-003
+    - FR-004
+    - FR-006
+    - TM-001
+  files:
+    - loop/stack_profiles/schemas.py
+    - loop/stack_profiles/execution.py
+    - loop/stack_profiles/__init__.py
+    - harness/hooks/epic_yaml.py
+    - loop/tests/test_stack_profile_execution_contract.py
+    - harness/hooks/tests/test_epic_yaml_capability_checks.py
+
+as_built:
+  - loop/stack_profiles/schemas.py exposes resolver request/resolution models but no phase declaration, execution result or persisted evidence contract.
+  - harness/hooks/epic_yaml.py validates current decompose fields but has no typed capability_checks boundary.
+  - loop/context_loop.py has no declared-check executor caller.
+
+delta:
+  - Add strict Pydantic models for capability declaration, result status, bounded output metadata and evidence identity; forbid unknown and raw process-control fields.
+  - Require a named target and validate allowed capability/selector pairing with existing resolver rules; create stable diagnostics without attempting a subprocess.
+  - Canonically serialize declaration inputs and hash them so later evidence can be bound to role, epic, step and declared target rather than prose or another step.
+  - Extend decompose-schema validation to parse capability_checks through the new model while leaving hub tests as a separate later validation branch.
+
+deletes: []
+
+out_of_scope:
+  - Resolver-owned process creation and timeout handling belong to s02.
+  - CLI output and evidence persistence belong to s03.
+  - check-after continuation enforcement belongs to s04.
+  - Generic tests-string migration and instruction cleanup belong to s05 and s06.
+
+skills:
+  code_surface: model
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "A declaration requires target and permits only existing capability/selector combinations."
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_contract.py -q --tb=line -k 'declaration or selector'"
+  - id: cp2
+    criterion: "Unknown fields and raw command, argv, cwd, env, profile and timeout controls are rejected before resolution."
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_contract.py -q --tb=line -k 'forbids_raw or unknown_field'"
+  - id: cp3
+    criterion: "Equivalent declarations have an identical fingerprint; target, selector, role, epic or step changes cannot reuse it."
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_contract.py -q --tb=line -k fingerprint"
+  - id: cp4
+    criterion: "Decompose YAML missing target fails capability_target_required and executes no process seam."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_checks.py -q --tb=line -k target_required"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_execution_contract.py harness/hooks/tests/test_epic_yaml_capability_checks.py -q --tb=line"
+
+tdd:
+  - test_capability_check_spec_requires_named_target
+  - test_capability_check_spec_rejects_raw_process_fields
+  - test_capability_check_spec_rejects_unknown_fields
+  - test_declaration_fingerprint_is_canonical_and_target_bound
+  - test_decompose_capability_check_without_target_is_fail_closed

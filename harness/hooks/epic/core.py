@@ -2789,7 +2789,7 @@ def repair_fingerprint_stall(cwd: str | Path) -> dict[str, Any]:
         }
 
     files_ok, missing_files = _implement_files_on_disk(cwd_p, list(doc.files or []))
-    ready_errors = ey.implement_ready_for_finalize_doc(doc)
+    ready_errors = ey.implement_ready_for_finalize_doc(doc, cwd=cwd_p)
     if doc.status == "completed":
         ready_errors = [
             e for e in ready_errors if e.startswith("checkpoints not done")
@@ -2869,6 +2869,7 @@ def finalize_step(
     sid = step_id.strip().lower()
     if not re.match(r"^[sera]\d{2}$", sid):
         return {"ok": False, "error": f"bad step_id: {step_id!r}"}
+    cwd_p = Path(cwd)
     idx = _decompose_index_path(cwd, decompose)
     if idx is None:
         return {"ok": False, "error": f"missing decompose index: {decompose}"}
@@ -2909,7 +2910,7 @@ def finalize_step(
                 "implement_path": rel,
                 "step_id": sid,
             }
-        ready_errors = ey.implement_ready_for_finalize_doc(doc)
+        ready_errors = ey.implement_ready_for_finalize_doc(doc, cwd=cwd_p)
         if doc.status == "completed":
             ready_errors = [
                 e for e in ready_errors if e.startswith("checkpoints not done")

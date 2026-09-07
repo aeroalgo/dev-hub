@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: check-after executes current-step checks and HALTs without valid evidence
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  The production workflow path becomes the sole managed verification authority: before a
+  green continuation, check-after reads only the armed step's explicit declarations, executes
+  each through the resolver-owned boundary, records its evidence and HALTs on every missing,
+  invalid, stale or failed outcome. A successful resolver module or CLI alone is not done.
+
+plan_contract:
+  fr_ids: [FR-006, FR-007]
+  nouns:
+    - loop.context_loop.check_after
+    - current armed step
+    - capability_checks
+    - execution evidence
+    - green continuation
+    - HALT
+  layout_paths:
+    - loop/context_loop.py
+    - loop/stack_profiles/execution.py
+    - loop/stack_profiles/evidence.py
+    - loop/tests/test_context_loop_capability_checks.py
+  ac_quotes:
+    - "check-after runs every declared check before green continuation and persists evidence for role, epic and step."
+    - "Missing declaration target, resolution error, spawn failure, timeout, child failure or stale proof HALTs with no fallback command."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:107-161"
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:239-260"
+
+context:
+  consumes:
+    - s01 decompose capability_checks schema and target-required diagnostics
+    - s02 resolver-owned executor status outcomes
+    - s03 atomic evidence writer and fingerprint matcher
+    - loop/context_loop.py check_after armed-step and continuation lifecycle
+  produces:
+    - check-after declared-check discovery scoped to the current armed step
+    - ordered execute/write/verify path before continuation
+    - typed HALT result for invalid, missing, stale or failed managed verification
+  plan_refs:
+    - FR-006
+    - FR-007
+    - US-001
+    - US-002
+    - SC-003
+    - TM-006
+  files:
+    - loop/context_loop.py
+    - loop/stack_profiles/execution.py
+    - loop/stack_profiles/evidence.py
+    - loop/tests/test_context_loop_capability_checks.py
+    - loop/tests/test_check_after_capability_halt.py
+
+as_built:
+  - loop/context_loop.py check_after validates lifecycle state but does not invoke stack profile capability execution from a decompose declaration.
+  - No current-step managed evidence is required before check-after returns a green continuation.
+  - Existing hub test validation is command-oriented and must not become a fallback for managed targets.
+
+delta:
+  - Locate the current armed decompose step and strictly parse only its capability_checks; reject absent target and invalid declarations before any target command runs.
+  - Invoke the executor once per declared check in declaration order, atomically persist evidence under the active role/epic/step and continue only when each matching result succeeded.
+  - Convert resolver, spawn, timeout, non-zero, missing and stale/mismatched evidence states into a typed HALT path with diagnostic and no alternate hub test command, default target or raw tests string.
+  - Add a three-target temporary monorepo integration seam proving exact argv/cwd, three evidence records, green continuation and the full negative HALT matrix.
+
+deletes:
+  - loop/context_loop.py check-after green continuation path that ignores declared managed capability_checks
+
+out_of_scope:
+  - Finish schema matching is completed in s05 after this production wire exists.
+  - Existing hub-only tests remain an explicit separate branch; they are not profile-executor inputs.
+  - Browser E2E capability, target streaming and automatic remediation are excluded by the appetite cut.
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/async-python-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "check-after discovers only the current armed step declarations and executes each explicit py/rs/web target in declaration order."
+    verify: "bin/pytest loop/tests/test_context_loop_capability_checks.py -q --tb=line -k current_armed_step"
+  - id: cp2
+    criterion: "Every successful declared check writes matching role/epic/step evidence before the green continuation."
+    verify: "bin/pytest loop/tests/test_context_loop_capability_checks.py -q --tb=line -k 'evidence and continuation'"
+  - id: cp3
+    criterion: "Missing target, ambiguous resolver state, spawn error, timeout and non-zero child each HALT without a fallback subprocess."
+    verify: "bin/pytest loop/tests/test_check_after_capability_halt.py -q --tb=line"
+  - id: cp4
+    criterion: "A stale or foreign sidecar cannot make check-after green."
+    verify: "bin/pytest loop/tests/test_context_loop_capability_checks.py -q --tb=line -k stale"
+
+verify:
+  - "bin/pytest loop/tests/test_context_loop_capability_checks.py loop/tests/test_check_after_capability_halt.py -q --tb=line"
+
+tdd:
+  - test_check_after_executes_only_current_armed_step_capability_checks
+  - test_check_after_persists_each_successful_capability_evidence_before_continue
+  - test_check_after_halts_on_missing_target_without_spawning
+  - test_check_after_halts_on_resolution_spawn_timeout_and_nonzero
+  - test_check_after_halts_on_stale_or_foreign_evidence

@@ -1,0 +1,124 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "DSH 401/banned permanent + Kind I comments; no DSH catch-all API Error"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  DSH не ретраит 401/banned: _DSH_TRANSIENT_PATTERNS без catch-all API Error;
+  _DSH_PERMANENT_PATTERNS consumes shared _AUTH_BANNED_PATTERNS (or equivalent).
+  Kind I: comments «API Error always transient» deleted. detect_dsh_abort_in_log
+  401 → dsh_permanent retryable False. Outcome: DSH parity with Claude classifier.
+
+plan_contract:
+  fr_ids:
+    - FR-008
+    - FR-009
+    - FR-015
+    - US-005
+    - SC-002
+    - AC−1
+    - AC−6
+    - TM-008
+    - NFR-3
+    - Technology axiom
+  nouns:
+    - _DSH_TRANSIENT_PATTERNS
+    - _DSH_PERMANENT_PATTERNS
+    - _AUTH_BANNED_PATTERNS
+    - detect_dsh_abort_in_log
+    - Kind I comments
+  layout_paths:
+    - harness/hooks/session_resilience.py
+    - loop/runtime_adapters/dsh.py
+    - loop/tests/test_dsh_runtime_adapter.py
+  ac_quotes:
+    - "DSH _DSH_TRANSIENT_PATTERNS must not reintroduce catch-all API Error. DSH permanent already has terminated/overloaded — keep; add 401/banned there too or share one pattern tuple (prefer shared constant _AUTH_BANNED_PATTERNS used by both)"
+    - "Kind I comments «API Error always transient» — delete"
+    - "TM-008 P1 DSH 401 permanent pytest retryable False"
+    - "Нет второго classifier copy in context_loop that still catch-alls"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:113-114"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:160"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:233-237"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:271"
+
+context:
+  consumes:
+    - s02 _AUTH_BANNED_PATTERNS
+    - plan.md §FR-008/009 · TM-008 · sunset I
+    - as-built _DSH_TRANSIENT_PATTERNS: 429/503/5xx/connection — no API Error catch-all today
+    - "as-built _DSH_PERMANENT_PATTERNS: terminated/overloaded/rate-limit + Authentication + Invalid API key — no 401/banned; terminated/overloaded currently PERMANENT on DSH vs TRANSIENT on Claude (plan keep DSH terminated/overloaded as permanent)"
+  produces:
+    - _DSH_PERMANENT_PATTERNS includes _AUTH_BANNED_PATTERNS (401/banned)
+    - _DSH_TRANSIENT_PATTERNS still no catch-all API Error (rg lock)
+    - Kind I comments API Error always transient gone from session_resilience / adapters / tests docs
+    - pytest DSH 401 log → retryable False
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/session_resilience.py
+    - loop/runtime_adapters/dsh.py
+    - loop/tests/test_dsh_runtime_adapter.py
+    - loop/tests/test_session_resilience_adapter.py
+
+as_built:
+  - "_DSH_TRANSIENT_PATTERNS has 429/503/5xx/connection — no catch-all (lock must stay 0)"
+  - "_DSH_PERMANENT_PATTERNS has API Error terminated/overloaded/rate-limit + auth — missing 401/banned"
+  - "detect_dsh_abort_in_log: transient FIRST then permanent — 401 must not match 5xx; add 401 to permanent and check order so 401 is not swallowed by 5[0-9]{2} Server Error (401 is not 5xx)"
+  - "analyze_session_log dsh_abort_kind transient vs fatal/unknown"
+  - "test_session_resilience_delegates_to_adapter uses API Error: 503 as dsh_transient — keep"
+
+delta:
+  - "consume _AUTH_BANNED_PATTERNS in _DSH_PERMANENT_PATTERNS (prefer share, not duplicate regex)"
+  - "lock rg: no API Error:[^\\n]* in _DSH_TRANSIENT_PATTERNS or dsh adapter"
+  - "pytest: DSH log API Error 401 All connections banned → retryable False, not dsh_transient"
+  - "delete Kind I comments 'API Error always transient' / 'any API Error is retryable' in prod+instruction surfaces listed"
+  - "keep DSH 503 transient test green; keep DSH terminated/overloaded as currently permanent (plan: keep)"
+  - "detect_dsh order: if 401/banned would hit transient first — fix order so permanent auth-banned runs before or is not masked (401 is not 5xx; still add explicit permanent)"
+
+deletes:
+  - "Kind I comments «API Error always transient» / «any API Error is retryable» in harness/hooks/session_resilience.py and related instruction surfaces"
+
+out_of_scope:
+  - "legacy-fallback-purge leftover tests expecting catch-all (s06)"
+  - "rewrite all retry UX copy — Appetite"
+  - "ML classifier — Appetite"
+  - "full suite → QA"
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-009 / TM-008 — DSH 401/banned → detect_dsh / analyze_session_log runtime=dsh
+      retryable False. _AUTH_BANNED_PATTERNS shared with Claude permanent.
+    verify: "bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_session_resilience_adapter.py -q --tb=line -k 'dsh or 401 or banned'"
+  - id: cp2
+    criterion: |
+      FR-001/009 / NFR-3 / US-005 — catch-all API Error:[^\\n]* absent from
+      session_resilience.py and dsh adapter. _DSH_TRANSIENT does not reintroduce it.
+    verify: "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py loop/runtime_adapters/dsh.py || true"
+  - id: cp3
+    criterion: |
+      FR-008 Kind I — comments API Error always transient / any API Error is retryable
+      gone from classifier module. 503 DSH still transient (lock).
+    verify: "rg -n 'always transient|any API Error is retryable' harness/hooks/session_resilience.py loop/runtime_adapters/dsh.py || true"
+
+verify:
+  - "bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_session_resilience_adapter.py -q --tb=line"
+tdd:
+  - "red: DSH 401 classified transient or unclassified retryable"
+  - "green: shared banned patterns on DSH permanent"

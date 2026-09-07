@@ -1,0 +1,321 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: "s06 — legacy-fallback-purge — old project.yaml / .dev-hub YAML / fallbacks / Kind I leftovers"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по `_read_project_yaml_pack`, untyped project.yaml /
+  .dev-hub/project.yaml reads, inferred profile, silent JS manager, implicit
+  target choice, try-new-except-old. Obsolete tests на old config precedence
+  delete/rewrite; Kind I instructions переписаны; hub self-test keep documented.
+  Suite green без restore legacy parser. Канон: workflow-legacy-fallback-cleanup §2.2–2.4.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-010
+    - FR-012
+    - FR-013
+    - FR-015
+    - FR-016
+    - FR-017
+    - SC-005
+    - SC-006
+    - AC+6
+    - AC+7
+    - AC+8
+    - AC−1
+    - AC−2
+    - AC−3
+    - AC−5
+    - NFR-5
+    - TM-011
+    - TM-013
+    - TM-014
+  nouns:
+    - leftover _read_project_yaml_pack
+    - leftover project.yaml parser
+    - leftover .dev-hub/project.yaml
+    - leftover inferred profile
+    - leftover silent npm/pnpm
+    - leftover try new except old
+    - leftover docs old locations
+  layout_paths:
+    - loop/workflow/registry.py
+    - loop/stack_profiles/
+    - README.md
+    - harness/README.md
+  ac_quotes:
+    - "Legacy workflow config is never read after cutover."
+    - "Delete legacy project config reader, tests and instructions in the same epic; do not leave try new except old."
+    - "No project.yaml/.dev-hub/project.yaml fallback."
+    - "No implicit target/profile/package-manager choice."
+    - "No remote plugin/profile search path."
+    - "Wire-complete: Add typed manifest → Wire resolve_workflow_pack → Enforce leftover-only old file never parsed → Purge _read_project_yaml_pack."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:231-264"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:124-143"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:321-330"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 apply/wire/enforce
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset-brownfield
+  files:
+    - loop/workflow/registry.py
+    - loop/stack_profiles/resolver.py
+    - README.md
+    - harness/README.md
+
+as_built:
+  - "s04 deleted _read_project_yaml_pack if apply succeeded; leftovers possible in tests/docs/comments"
+  - "possible leftover: tests writing project.yaml; docs listing .dev-hub/project.yaml; swallow Exception fallback"
+  - "formula_render.py / test_run_canon / tier1_verify remain hub self-test (keep n/a)"
+  - "future consumer tool literals stay until a later epic executes capabilities (documented keep)"
+
+delta:
+  - "full sunset_inventory scan A+B+C+I with grep_control per row"
+  - "delete leftover prod callers / obsolete asserts / Kind I old locations"
+  - "document keep: formula_render pytest, test_run_canon, tier1_verify, future consumer literals"
+  - "targeted + epic regression green without restore untyped parser"
+
+sunset_inventory:
+  - symbol: loop.workflow.registry._read_project_yaml_pack
+    kind: A
+    replacement: load_project_manifest().workflow_pack
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero prod callers; no live asserts on old contract
+  - symbol: untyped reads of project.yaml and .dev-hub/project.yaml for workflow_pack
+    kind: A
+    replacement: root dev-hub.project.yaml
+    policy: delete in-epic
+    rg_scope: loop/workflow/registry.py
+    expect: zero prod reads
+  - symbol: tests asserting old config precedence via tmp_path/project.yaml
+    kind: A
+    replacement: typed manifest / TM-011 negative
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: case absent or rewritten
+  - symbol: formula_render.py default pytest / incident checks
+    kind: A
+    replacement: hub self-test, not target command
+    policy: keep documented n/a
+    rg_scope: loop/formula_render.py loop/incidents/tier1_verify.py harness/hooks/test_run_canon.py
+    expect: still hub pytest; not routed through stack profiles
+  - symbol: future consumer tool literals
+    kind: A
+    replacement: resolver result when consumer migrates
+    policy: keep until future epic (FR-014; Appetite cut pack phase declaration; no queue ID)
+    rg_scope: loop/workflow/
+    expect: no phase executes stack argv in this epic
+  - symbol: docs for project config at project.yaml / .dev-hub/project.yaml as live SoT
+    kind: B
+    replacement: root dev-hub.project.yaml
+    policy: delete in-epic
+    rg_scope: README.md harness/README.md harness/templates/
+    expect: no live-SoT instruction for old paths
+  - symbol: treating .dev-hub as config directory
+    kind: B
+    replacement: pointer-only hub-link
+    policy: delete in-epic
+    rg_scope: README.md harness/README.md bin/hub-link
+    expect: pointer-only semantics
+  - symbol: inferred profile from Cargo.toml / pyproject.toml / package.json
+    kind: C
+    replacement: targets.*.profile
+    policy: delete in-epic
+    rg_scope: loop/stack_profiles/
+    expect: zero inference at resolve
+  - symbol: assumed JS manager silent npm/pnpm
+    kind: C
+    replacement: one lockfile or explicit override
+    policy: delete in-epic
+    rg_scope: loop/stack_profiles/
+    expect: zero silent default manager
+  - symbol: first/current/alphabetical target choice
+    kind: C
+    replacement: explicit target/default
+    policy: delete in-epic
+    rg_scope: loop/stack_profiles/
+    expect: target_selection_required on ambiguity
+  - symbol: new parser failure → old parser
+    kind: C
+    replacement: typed diagnostic
+    policy: delete in-epic
+    rg_scope: loop/workflow/registry.py loop/stack_profiles/
+    expect: zero try-new-except-old
+  - symbol: config docs teaching old locations
+    kind: I
+    replacement: template + migration
+    policy: delete in-epic
+    rg_scope: README.md harness/README.md
+    expect: zero old machine-format instructions as live SoT
+  - symbol: .dev-hub shown as YAML
+    kind: I
+    replacement: one-line pointer explanation
+    policy: delete in-epic
+    rg_scope: README.md harness/README.md .cursor/ .claude/
+    expect: pointer-only
+  - symbol: guidance to embed pytest/cargo/npm in generic consumer
+    kind: I
+    replacement: fixed capability request
+    policy: rewrite in-epic where found
+    rg_scope: README.md harness/README.md loop/
+    expect: consumers told to call resolve_capability / capability names
+
+deletes:
+  - "leftover _read_project_yaml_pack symbol and comments"
+  - "leftover prod/test reads of project.yaml / .dev-hub/project.yaml as pack SoT"
+  - "leftover docs teaching old locations as live config"
+  - "leftover tests asserting generic API Error-style fallback (n/a) / old precedence"
+  - "leftover try/except swallowing new manifest into old parser"
+  - "leftover Kind I .dev-hub as YAML directory"
+
+out_of_scope:
+  - "minimum version enforcement — Appetite cut_list"
+  - "custom/remote profiles — Appetite cut_list"
+  - "manifest-writing init — Appetite cut_list"
+  - "pack phase declaration / executing capabilities — Appetite cut / FR-014 future epic (no queue ID)"
+  - "hub self-test canon keep (formula_render, test_run_canon, tier1_verify)"
+  - "full suite beyond targeted+loop/tests stack+workflow pack → QA"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: _read_project_yaml_pack
+    command: "rg -n '_read_project_yaml_pack' loop/ harness/ --glob '*.py' || true"
+    expect: no prod callers; test hits only if rewritten to new contract
+  - id: inv-a-02
+    kind: A
+    symbol: untyped project.yaml pack read
+    command: "rg -n 'cwd / \"project.yaml\"|Path\\(.*\\) / \"project.yaml\"|\\.dev-hub\" / \"project.yaml\"' loop/workflow/registry.py || true"
+    expect: no output
+  - id: inv-a-tests-01
+    kind: A
+    symbol: obsolete tests writing project.yaml as pack SoT without TM-011 reject
+    command: "rg -n '\\(tmp_path / \"project.yaml\"\\)\\.write_text' loop/tests/test_workflow_pack_registry.py loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_cli_tool_gate.py loop/tests/test_mb_finish_pack_write.py || true"
+    expect: no output (rewritten to dev-hub.project.yaml or negative detect/reject)
+  - id: inv-a-keep-01
+    kind: A
+    symbol: hub self-test pytest canon
+    command: "rg -n 'BIN_PYTEST_PREFIX|bin/pytest' harness/hooks/test_run_canon.py loop/incidents/tier1_verify.py"
+    expect: still present (keep n/a)
+  - id: inv-b-01
+    kind: B
+    symbol: live SoT docs for project.yaml
+    command: "rg -n 'project.yaml|\\.dev-hub/project.yaml' README.md harness/README.md harness/templates/ || true"
+    expect: mentions only as sunset/migration, not as current SoT
+  - id: inv-b-02
+    kind: B
+    symbol: .dev-hub as config directory
+    command: "rg -n '\\.dev-hub.*(yaml|config directory|project.yaml)' README.md harness/README.md bin/hub-link || true"
+    expect: pointer-only hub-link
+  - id: inv-c-01
+    kind: C
+    symbol: inferred profile
+    command: "rg -n 'Cargo.toml|pyproject.toml|package.json' loop/stack_profiles/resolver.py loop/stack_profiles/registry.py"
+    expect: no profile inference (lockfile names allowed only inside JS manager policy)
+  - id: inv-c-02
+    kind: C
+    symbol: silent npm/pnpm default
+    command: "rg -n 'default.*pnpm|assume.*npm|silent npm' loop/stack_profiles/ || true"
+    expect: no silent default manager
+  - id: inv-c-03
+    kind: C
+    symbol: try new except old
+    command: "rg -n 'except.*_read_project_yaml|try:.*load_project_manifest' loop/workflow/registry.py loop/stack_profiles/ || true"
+    expect: no fallback to old parser
+  - id: inv-i-01
+    kind: I
+    symbol: old location instructions
+    command: "rg -n 'Put workflow_pack in project.yaml|config directory .dev-hub' README.md harness/README.md .cursor/ .claude/ || true"
+    expect: no old machine-format instructions
+  - id: inv-i-02
+    kind: I
+    symbol: embed pytest/cargo/npm as generic consumer API
+    command: "rg -n 'request quality via cargo|generic consumer.*npm run' README.md harness/README.md loop/stack_profiles/ || true"
+    expect: capability request guidance instead
+
+sunset_scope:
+  required: true
+  boundary_id: stack-profile-project-config
+  new_sot: loop/stack_profiles/resolver.py::load_project_manifest
+  allow_read:
+    - "loop/workflow/registry.py"
+    - "loop/stack_profiles/**"
+    - "loop/tests/test_workflow_pack*.py"
+    - "loop/tests/test_stack_profiles_*.py"
+    - "README.md"
+    - "harness/README.md"
+    - "harness/templates/**"
+    - "bin/hub-link"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по КАЖДОЙ строке sunset_inventory kind=A (не выборочно):
+      0 prod callers of _read_project_yaml_pack / untyped project.yaml pack reads.
+      Obsolete tests rewritten. Hub self-test keep rows still present.
+      Shim with prod callers = FAIL.
+    verify: "rg -n '_read_project_yaml_pack' loop/ harness/ --glob '*.py' || true"
+  - id: cp2
+    criterion: |
+      Kind B — docs/template/hub-link: live SoT is root dev-hub.project.yaml;
+      .dev-hub is pointer-only; old paths only in migration language.
+    verify: "rg -n 'dev-hub.project.yaml|project.yaml|.dev-hub' README.md harness/README.md harness/templates bin/hub-link"
+  - id: cp3
+    criterion: |
+      Kind C — no inferred profile, no silent JS manager, no implicit target,
+      no try-new-except-old; Independent Test negatives still empty argv.
+    verify: "rg -n 'shell=True|_read_project_yaml_pack|except Exception' loop/stack_profiles loop/workflow/registry.py || true"
+  - id: cp4
+    criterion: |
+      Kind I — 0 hits teaching old locations as live config or embedding
+      pytest/cargo/npm as generic consumer API.
+    verify: "rg -n 'Put workflow_pack in project.yaml|config directory .dev-hub' README.md harness/README.md || true"
+  - id: cp5
+    criterion: |
+      Obsolete tests on old pack precedence deleted or rewritten; targeted pytest
+      green without restore untyped parser.
+    verify: "bin/pytest loop/tests/test_stack_profiles_schema.py loop/tests/test_stack_profiles_resolver.py loop/tests/test_stack_profiles_cli.py loop/tests/test_stack_profiles_doctor.py loop/tests/test_stack_profiles_integration.py loop/tests/test_workflow_pack_registry.py -q --tb=line"
+  - id: cp6
+    criterion: Targeted + epic regression suite green after deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/test_stack_profiles_*.py loop/tests/test_workflow_registry.py loop/tests/test_workflow_pack_registry.py loop/tests/test_workflow_pack_video_e2e.py -q --tb=line"
+
+verify:
+  - "rg -n '_read_project_yaml_pack' loop/ harness/ --glob '*.py' || true"
+  - "bin/pytest loop/tests/test_stack_profiles_*.py loop/tests/test_workflow_pack_registry.py -q --tb=line"
+tdd:
+  - "purge leftover; keep s01–s05 tests green without restore old parser"

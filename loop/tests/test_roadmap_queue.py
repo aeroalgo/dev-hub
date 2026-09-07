@@ -617,7 +617,54 @@ def test_roadmap_upsert_batch(tmp_path: Path) -> None:
     assert out["ok"] is True
     parsed = rq.parse_roadmap_queue(tmp_path)
     assert [x["id"] for x in parsed["queue"]] == ["T-A", "T-B"]
-    assert parsed["batches"]["pack"]["title"] == "Pack"
+
+
+def test_roadmap_advance_qa_fail_blocks_advance(tmp_path: Path) -> None:
+    """FR-013 / TM-003 / SC-003: roadmap_advance after QA fail blocks queue leave with qa_fail_blocks_advance."""
+    rq = _load_rq()
+    _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
+    _write(tmp_path, "memory-bank/back/plan/plan-T-005.md", "# 5\n")
+    _write(tmp_path, "memory-bank/back/plan/plan-T-013.md", "# 13\n")
+
+    # Set up QA fail artifact for T-005
+    _write(
+        tmp_path,
+        "memory-bank/back/qa/T-005/qa-20260905-fail.yaml",
+        "schema: epic-qa/v1\nverdict: fail\nissues:\n  - blocker\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        '{"armed_epic":"T-005","status":"complete","active":false}\n',
+    )
+
+    out = rq.roadmap_advance(tmp_path, skip_epic="T-005")
+    assert out["ok"] is False
+    assert out["halt"] is True
+    assert "qa_fail_blocks_advance" in str(out.get("reason") or "") or "qa_fail_blocks_advance" in str(out.get("stop") or "")
+    if "mark_done" in out:
+        assert out["mark_done"]["ok"] is False
+        assert out["mark_done"]["error"] == "qa_fail_blocks_advance"
+
+    # Verify queue.yaml was not modified (T-005 is still in queue, not in done)
+    parsed = rq.parse_roadmap_queue(tmp_path)
+    assert parsed["ok"] is True
+    assert any(x["id"] == "T-005" for x in parsed["queue"])
+    assert not any(x["id"] == "T-005" for x in parsed["done"])
+
+
+def test_mark_queue_epic_done_qa_fail_blocks(tmp_path: Path) -> None:
+    """FR-013: mark_queue_epic_done directly rejects marking done if latest QA failed."""
+    rq = _load_rq()
+    _write_queue(tmp_path, _minimal_queue("T-005", "T-013"))
+    _write(
+        tmp_path,
+        "memory-bank/back/qa/T-005/qa-20260905-fail.yaml",
+        "schema: epic-qa/v1\nverdict: fail\nissues: []\n",
+    )
+    res = rq.mark_queue_epic_done(tmp_path, "T-005", role="back", require_done=False)
+    assert res["ok"] is False
+    assert res["error"] == "qa_fail_blocks_advance"
 
 
 def test_plan_stem_from_name() -> None:

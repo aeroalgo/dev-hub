@@ -1,0 +1,230 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "s06 — legacy-fallback-purge — catch-all / unknown-retry / dirty-plan-only leftovers A+B+C+I"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan Replacement A+B+C+I.
+  Нулевые prod-callers по catch-all API Error, unknown-as-transient, plan.md-only
+  dirty, Kind I always-transient comments. Obsolete tests на catch-all success
+  delete/rewrite; suite green без restore catch-all. Канон: workflow-legacy-fallback-cleanup §2.2–2.4.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-004
+    - FR-006
+    - FR-008
+    - FR-009
+    - FR-010
+    - AC+1
+    - AC+2
+    - AC−1
+    - AC−2
+    - AC−3
+    - AC−4
+    - AC−5
+    - Independent Test
+    - NFR-1
+    - NFR-3
+  nouns:
+    - leftover catch-all API Error
+    - leftover retry unknown API Error
+    - leftover dirty_files plan.md-only
+    - leftover comments API Error always transient
+  layout_paths:
+    - harness/hooks/session_resilience.py
+    - loop/context_loop.py
+    - loop/runtime_adapters/dsh.py
+  ac_quotes:
+    - "Wire-complete: Add _AUTH_BANNED_PATTERNS → Wire classify+loop halt → Enforce pytest 401 not retryable → Purge catch-all API Error:[^\\n]*"
+    - "Independent Test FAIL: «добавили 401 рядом с catch-all»"
+    - "Нет catch-all API Error в transient. Нет retry when retryable False. Нет dirty_files = [plan.md] only"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:210-237"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:145-160"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:320-323"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+    - s01–s05 deltas
+  produces:
+    - удалённые символы/fallbacks/instructions leftover
+    - удалённые/переписанные obsolete tests expecting catch-all → transient
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - harness/hooks/session_resilience.py
+    - loop/context_loop.py
+    - loop/runtime_adapters/dsh.py
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_session_wrapper.py
+    - loop/tests/test_context_loop.py
+    - loop/tests/test_filter_step_dirty.py
+    - loop/tests/test_dsh_runtime_adapter.py
+
+as_built:
+  - "s02–s05 should have deleted catch-all, wired loop halt, epic yaml dirty glob, DSH banned; this step scans leftovers"
+  - "plan B n/a — same run_session / record-session entrypoints"
+  - "possible leftover: catch-all regex; classify default-transient for any reason; tests asserting generic API Error is retryable True; plan.md-only dirty"
+
+delta:
+  - "full sunset_inventory scan A+B+C+I; delete leftover prod callers and obsolete asserts"
+  - "no restore of catch-all or unknown-as-transient to make old tests green"
+  - "confirm Independent Test: 401 text → no retry; catch-all rg 0; dirty yaml listed; timeout still retries"
+
+sunset_scope:
+  required: true
+  boundary_id: abort-classifier
+  new_sot: harness/hooks/session_resilience.py::_AUTH_BANNED_PATTERNS + explicit _TRANSIENT_ABORT_PATTERNS
+  allow_read:
+    - "harness/hooks/session_resilience.py"
+    - "loop/context_loop.py"
+    - "loop/runtime_adapters/**"
+    - "loop/tests/test_session_resilience*.py"
+    - "loop/tests/test_session_wrapper.py"
+    - "loop/tests/test_context_loop.py"
+    - "loop/tests/test_filter_step_dirty.py"
+    - "loop/tests/test_dsh_runtime_adapter.py"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+sunset_inventory:
+  - symbol: _TRANSIENT_ABORT_PATTERNS catch-all API Error:[^\n]*
+    kind: A
+    replacement: explicit transient only
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py
+    expect: zero catch-all API Error:[^\n]*
+  - symbol: missing 401/banned in permanent
+    kind: A
+    replacement: _AUTH_BANNED_PATTERNS shared
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py
+    expect: _AUTH_BANNED_PATTERNS consumed by permanent
+  - symbol: dirty_files plan.md-only
+    kind: A
+    replacement: epic glob md+yaml+yml
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py
+    expect: yaml/steps dirty kept without plan.md
+  - symbol: second retry ignoring analysis
+    kind: A
+    replacement: honor retryable False
+    policy: delete in-epic
+    rg_scope: loop/context_loop.py
+    expect: no retry when retryable False
+  - symbol: n/a same run_session
+    kind: B
+    replacement: same entrypoints
+    policy: n/a
+    rg_scope: loop/context_loop.py
+    expect: no parallel abort CLI
+  - symbol: retry unknown API Error
+    kind: C
+    replacement: UNKNOWN retryable False
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py loop/context_loop.py
+    expect: API Error weird not transient
+  - symbol: comments API Error always transient
+    kind: I
+    replacement: permanent 401
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py loop/runtime_adapters
+    expect: zero always-transient instruction
+  - symbol: tests asserting generic API Error is retryable True
+    kind: A
+    replacement: rewrite to UNKNOWN or specific transient pattern
+    policy: delete in-epic
+    rg_scope: loop/tests
+    expect: "no assert retryable True on bare API Error"
+
+grep_control:
+  - id: inv-a-catchall
+    kind: A
+    symbol: catch-all API Error
+    command: "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py loop/context_loop.py loop/runtime_adapters || true"
+  - id: inv-a-auth
+    kind: A
+    symbol: _AUTH_BANNED_PATTERNS
+    command: "rg -n '_AUTH_BANNED_PATTERNS' harness/hooks/session_resilience.py"
+  - id: inv-a-dirty
+    kind: A
+    symbol: plan.md-only dirty
+    command: "rg -n 'plan.md' harness/hooks/session_resilience.py"
+  - id: inv-b-entry
+    kind: B
+    symbol: run_session entry
+    command: "rg -n 'def record_abort|record-session' loop/context_loop.py"
+  - id: inv-c-unknown
+    kind: C
+    symbol: unknown API Error transient
+    command: "rg -n 'API Error: weird|UNKNOWN_FAILURE' harness/hooks/session_resilience.py loop/tests"
+  - id: inv-i-comments
+    kind: I
+    symbol: always transient comments
+    command: "rg -n 'always transient|any API Error is retryable' harness/hooks/session_resilience.py loop/runtime_adapters || true"
+  - id: inv-a-tests
+    kind: A
+    symbol: obsolete catch-all tests
+    command: "rg -n 'API Error:\\[^\\\\n\\]\\*|retryable.True' loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py || true"
+
+deletes:
+  - "leftover catch-all API Error:[^\\n]* in prod classifiers"
+  - "leftover tests asserting generic API Error → retryable True / transient_abort"
+  - "leftover Kind I always-transient comments"
+  - "leftover plan.md-only dirty special case"
+
+out_of_scope:
+  - "ML classifier / retry UX copy / Variant B event log — Appetite cut_list"
+  - "overlay 070 / identity 071 / load_session 072 / finish_qa 074"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — catch-all API Error gone; _AUTH_BANNED_PATTERNS present; no second
+      retry ignoring analysis; dirty yaml glob live. rg per grep_control A rows.
+    verify: "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py loop/context_loop.py loop/runtime_adapters || true"
+  - id: cp2
+    criterion: Kind B — same run_session / record-session; no parallel abort CLI
+    verify: "rg -n 'def record_abort|record-session' loop/context_loop.py"
+  - id: cp3
+    criterion: |
+      Kind C — unknown API Error not transient; no RETRY_401 flag default on;
+      no dual catch-all+401.
+    verify: "rg -n 'RETRY_401|API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py loop/context_loop.py || true"
+  - id: cp4
+    criterion: Kind I — 0 hits API Error always transient / any API Error is retryable
+    verify: "rg -n 'always transient|any API Error is retryable' harness/hooks/session_resilience.py loop/runtime_adapters || true"
+  - id: cp5
+    criterion: Obsolete tests on catch-all→transient deleted or rewritten; targeted pytest green without restore
+    verify: "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py loop/tests/test_context_loop.py loop/tests/test_filter_step_dirty.py loop/tests/test_dsh_runtime_adapter.py -q --tb=line"
+  - id: cp6
+    criterion: Independent Test PASS — 401 no retry; catch-all rg 0; dirty yaml listed; timeout still retries
+    verify: "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_filter_step_dirty.py loop/tests/test_session_wrapper.py -q --tb=line -k '401 or banned or idle_timeout or dirty or filter_step'"
+
+verify:
+  - "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py || true"
+  - "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_dsh_runtime_adapter.py -q --tb=line"
+tdd:
+  - "purge leftover; keep s01–s05 tests green without restore catch-all"

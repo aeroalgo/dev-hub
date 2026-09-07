@@ -8,6 +8,7 @@ from typing import Optional
 import yaml
 from pydantic import ValidationError
 
+from loop.stack_profiles.resolver import MANIFEST_FILENAME, load_project_manifest
 from loop.workflow.schemas import PackResolveResult, WorkflowPack, WorkflowPackRegistry
 
 DEFAULT_REGISTRY_FILENAME = "workflow_pack_registry.yaml"
@@ -45,31 +46,12 @@ def get_pack(registry: WorkflowPackRegistry, pack_id: str) -> Optional[WorkflowP
     return registry.packs.get(pack_id)
 
 
-def _read_project_yaml_pack(cwd: Path) -> Optional[str]:
-    """Read workflow_pack field from project.yaml or .dev-hub/project.yaml if present."""
-    candidates = [
-        cwd / "project.yaml",
-        cwd / ".dev-hub" / "project.yaml",
-    ]
-    for p in candidates:
-        if p.is_file():
-            try:
-                with open(p, "r", encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
-                if isinstance(data, dict) and "workflow_pack" in data:
-                    val = data.get("workflow_pack")
-                    if isinstance(val, str) and val.strip():
-                        return val.strip()
-            except Exception:
-                pass
-    return None
-
-
 def resolve_workflow_pack(cwd: Optional[Path | str] = None, hub_root: Optional[Path | str] = None) -> PackResolveResult:
-    """Resolve workflow pack following precedence: project.yaml > env > default.
+    """Resolve workflow pack following precedence: dev-hub.project.yaml > env > default.
 
     Env aliases checked: WORKFLOW_PACK, EPIC_WORKFLOW_PACK.
     Fail-closed: unknown pack_id returns ok=False with diagnostic_codes=['invalid_workflow_pack'].
+    Invalid manifest returns ok=False with diagnostic_codes=['invalid_project_manifest'].
     """
     cwd_path = Path(cwd).resolve() if cwd is not None else Path.cwd().resolve()
 
@@ -83,8 +65,21 @@ def resolve_workflow_pack(cwd: Optional[Path | str] = None, hub_root: Optional[P
             diagnostic_codes=["invalid_workflow_pack_registry"],
         )
 
-    # 1. Check project.yaml / .dev-hub/project.yaml
-    pack_id = _read_project_yaml_pack(cwd_path)
+    pack_id: Optional[str] = None
+
+    # 1. Check dev-hub.project.yaml if present in cwd
+    manifest_file = cwd_path / MANIFEST_FILENAME
+    if manifest_file.is_file():
+        manifest, diag = load_project_manifest(cwd_path)
+        if diag is not None or manifest is None:
+            return PackResolveResult(
+                ok=False,
+                pack_id="",
+                pack=None,
+                diagnostic_codes=["invalid_project_manifest"],
+            )
+        if manifest.workflow_pack:
+            pack_id = manifest.workflow_pack
 
     # 2. Check environment variables
     if not pack_id:

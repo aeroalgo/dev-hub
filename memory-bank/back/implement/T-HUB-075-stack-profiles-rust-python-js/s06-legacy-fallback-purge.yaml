@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s06 — legacy-fallback-purge — old project.yaml / .dev-hub YAML / fallbacks / Kind I leftovers IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+  - checked prod code and tests for legacy _read_project_yaml_pack, untyped project.yaml reads, silent fallbacks, Kind I leftover docs
+gaps:
+  status: none
+done:
+  - "verified 0 prod callers of _read_project_yaml_pack across loop/ and harness/"
+  - "verified root dev-hub.project.yaml is strict live SoT; legacy project.yaml only in migration notes and regression tests"
+  - "verified Kind C: explicit target resolution, fail-closed diagnostic errors, no silent JS package manager inference"
+  - "verified Kind I: 0 teaching hits for old paths as live config"
+  - "verified targeted test suite (46 passed) and epic regression suite (90 passed) are fully green without legacy parser"
+files:
+  - loop/workflow/registry.py
+  - loop/stack_profiles/resolver.py
+  - README.md
+  - harness/README.md
+deletes:
+  - leftover _read_project_yaml_pack symbol and comments
+  - leftover prod/test reads of project.yaml / .dev-hub/project.yaml as pack SoT
+  - leftover docs teaching old locations as live config
+  - leftover tests asserting generic API Error-style fallback (n/a) / old precedence
+  - leftover try/except swallowing new manifest into old parser
+  - leftover Kind I .dev-hub as YAML directory
+tests:
+  - "`bin/pytest loop/tests/test_stack_profiles_schema.py loop/tests/test_stack_profiles_resolver.py loop/tests/test_stack_profiles_cli.py loop/tests/test_stack_profiles_doctor.py loop/tests/test_stack_profiles_integration.py loop/tests/test_workflow_pack_registry.py -q --tb=line`"
+integration_check:
+  - "`bin/pytest loop/tests/test_stack_profiles_*.py loop/tests/test_workflow_pack_*.py -q --tb=line`"
+  - "`bin/pytest loop/tests/ -q --tb=line`"
+grep_control:
+  - pattern: "_read_project_yaml_pack"
+    path: "loop/ harness/"
+    expected: "0 hits"
+  - pattern: "Put workflow_pack in project.yaml|config directory .dev-hub"
+    path: "README.md harness/README.md"
+    expected: "0 hits"
+verification_results:
+  - "rg _read_project_yaml_pack: 0 hits"
+  - "pytest stack_profiles + workflow_pack: 90 passed"
+  - "full loop test suite: 2033 passed"
+checkpoints:
+  - id: cp1
+    criterion: 'Kind A — 0 prod callers of _read_project_yaml_pack / untyped project.yaml pack reads'
+    status: done
+  - id: cp2
+    criterion: 'Kind B — docs/template/hub-link: live SoT is root dev-hub.project.yaml; .dev-hub pointer-only'
+    status: done
+  - id: cp3
+    criterion: 'Kind C — no inferred profile, no silent JS manager, no implicit target, no try-new-except-old'
+    status: done
+  - id: cp4
+    criterion: 'Kind I — 0 hits teaching old locations as live config'
+    status: done
+  - id: cp5
+    criterion: 'Obsolete tests on old pack precedence deleted or rewritten; targeted pytest green'
+    status: done
+  - id: cp6
+    criterion: 'Targeted + epic regression suite green after deletes'
+    status: done
+resume_from: null

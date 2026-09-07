@@ -65,3 +65,27 @@ def test_non_qa_mode_skip(tmp_path: Path):
     ok, diagnostic = validate_qa_finish_handoff(tmp_path, active_context)
     assert ok is True
     assert diagnostic is None
+
+
+@pytest.mark.parametrize("target_mode", ["DONE", "IMPLEMENT", "ANALYZE", "DECOMPOSE", "PLAN", "QA"])
+def test_finish_handoff_with_latest_qa_fail_blocks_non_bugfix(tmp_path: Path, target_mode: str):
+    """cp3 / US-003 / SC-003: finish_handoff to DONE/IMPLEMENT/etc. while latest qa is fail -> rejected."""
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-999-test-epic"
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    (qa_dir / "qa-20260831-test.yaml").write_text("verdict: fail\n", encoding="utf-8")
+
+    active_context = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        f"mode: {target_mode}\n"
+        "epic_id: T-HUB-999-test-epic\n"
+        "step_id: s10\n"
+        "---\n\n"
+        f"## Handoff BACK {target_mode}\n"
+    )
+
+    ok, diagnostic = validate_qa_finish_handoff(tmp_path, active_context)
+    assert ok is False
+    assert "BUGFIX" in (diagnostic or "") or "qa_fail_blocks_handoff" in (diagnostic or "")
+

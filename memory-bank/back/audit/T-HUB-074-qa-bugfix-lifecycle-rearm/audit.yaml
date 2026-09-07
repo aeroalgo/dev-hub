@@ -1,0 +1,281 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+date: '2026-09-07'
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "QA/BUGFIX lifecycle fail-closed: finish_qa with fail/blocked cannot mark epic DONE / dequeue; re-QA after finish_bugfix requires new session and new qa-*.yaml; finish_handoff and roadmap_advance block leave on QA fail; finish_reflect and find_reflection_artifact symbols purged across hub production."
+  source: "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md#Контекст"
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 15
+  fr_satisfied: 15
+  sc_checked: 5
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_qa forces next_mode='BUGFIX' on verdict in {'fail', 'blocked'}, never returning DONE or REFLECT."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_qa rejects reuse of same qa artifact after finish_bugfix with qa_new_artifact_required."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_handoff rejects target mode DONE/IMPLEMENT/QA with qa_fail_blocks_handoff when latest QA is fail."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "finish_reflect and find_reflection_artifact symbols removed across production codebase without lingering imports."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "Historical T-HUB-060 fail yaml retained on disk without machine allowing advance without fresh pass."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_qa maps verdict in {'fail', 'blocked'} to next_mode='BUGFIX' only, epic_done=False, rendered_mode='BUGFIX'."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_qa retains qa_new_session_required and qa_new_artifact_required checks against existing_artifacts."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_handoff enforces diagnostic qa_fail_blocks_handoff when latest QA verdict for armed epic is fail or blocked and requested mode is not BUGFIX."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "loop/mb_finish/impl.py finish_bugfix records QaAfterBugfix state, blocking re-QA reuse of same artifact."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "Purged def finish_reflect / import finish_reflect in loop/ and harness/hooks/ production modules; verified 0 occurrences."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "Purged def find_reflection_artifact / import find_reflection_artifact in production modules; verified 0 occurrences."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "Zero Kind I comments instructing 'QA FINISH -> REFLECT' in loop/mb_finish and harness/hooks/epic modules."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "Cut criteria respected; T-HUB-060 historical fail yaml kept as archive on disk without auto-requeue."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "harness/hooks/epic/core.py and loop/mb_finish/impl.py parse_qa_verdict is fail-closed; missing or unparseable verdict yields None and diagnostic qa_verdict_missing."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "Unit and integration tests established under harness/hooks/tests/ and loop/tests/ with isolation."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "Independent tests verify behavioral refusal to advance/DONE on fail yaml across finish_qa, finish_handoff, and roadmap_advance."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "qa_reviewer_required check retained in loop/mb_finish/impl.py finish_qa on pass path."
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "loop/roadmap_queue.py mark_queue_epic_done and roadmap_advance enforce qa_fail_blocks_advance diagnostic on latest QA fail."
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "No ALLOW_QA_FAIL_DONE flag or escape path exists in loop/ or harness/hooks/."
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "Single finish_qa SoT in loop/mb_finish/impl.py handles all roles (BACK, FRONT, INTEG)."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "finish_qa fail maps to next_mode BUGFIX, preventing premature epic DONE."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "re-QA after bugfix requires new artifact path distinct from previous fail artifact."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "finish_handoff and roadmap_advance block leave when latest QA is fail."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "finish_reflect deleted from codebase without broken import paths."
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "T-HUB-060 historical fail yaml remains archival without blocking new epics."
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "No DONE after fail qa yaml across finish_qa, finish_handoff, roadmap_advance."
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "No REFLECT after QA fail; routes strictly to BUGFIX."
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "No finish_reflect shim or placeholder alias in production modules."
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "No reuse of same fail yaml to close QA after bugfix."
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "No auto-requeue or rewrite of historical T-HUB-060 artifacts."
+    remaining_work: ""
+  - source_ref: AC-:6
+    status: satisfied
+    evidence: "No finish_handoff bypass writing DONE while latest QA is fail."
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "Single source of truth preserved; activeContext and state transactions keep invariant."
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "Fail-closed execution model applied across QA/BUGFIX lifecycle."
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "Atomic state commits in finish transaction handlers prevent corrupt states."
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "No hidden defaults or unvalidated fallbacks in verdict parsing."
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Explicit diagnostics emitted on validation failure (e.g. qa_fail_blocks_handoff)."
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "Traceability maintained between decompose steps and implement records."
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "No unverified assumptions; behavior verified against contract specifications."
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "Dead code and deprecated symbols purged in-epic rather than retained as shims."
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "State validation runs on all lifecycle transitions before committing changes."
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Deterministic behavior ensured across runner adapters and hooks."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/mb_finish/impl.py
+    status: present
+    follow_up: ""
+    evidence: "Houses fail-closed finish_qa, finish_bugfix, finish_handoff with qa_fail_blocks_handoff."
+  - layout_path: loop/roadmap_queue.py
+    status: present
+    follow_up: ""
+    evidence: "Houses roadmap_advance and mark_queue_epic_done with qa_fail_blocks_advance."
+  - layout_path: harness/hooks/epic/core.py
+    status: present
+    follow_up: ""
+    evidence: "Houses parse_qa_verdict fail-closed helper."
+  - layout_path: harness/hooks/epic_resolve.py
+    status: present
+    follow_up: ""
+    evidence: "Houses mb-finish CLI entrypoints without reflect subcommand."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s01-qa-fail-lifecycle-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s02-finish-qa-next-mode-parse-fail-closed.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s03-handoff-roadmap-qa-fail-blocks.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s04-purge-finish-reflect-symbols.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s05-kind-i-mb-finish-reflect-entrypoint.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-074-qa-bugfix-lifecycle-rearm/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: '2026-09-07'
+  plan_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md#replacement--sunset
+  rows:
+    - symbol: finish_reflect
+      kind: A
+      command: 'rg -n "def finish_reflect|import finish_reflect" loop/ harness/hooks/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+    - symbol: find_reflection_artifact
+      kind: A
+      command: 'rg -n "find_reflection_artifact" loop/ harness/hooks/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+    - symbol: mb-finish reflect
+      kind: B
+      command: 'rg -n "mb-finish reflect|finish_reflect" harness/hooks/epic_resolve.py loop/mb_finish/mcp_server.py'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+    - symbol: ALLOW_QA_FAIL_DONE
+      kind: C
+      command: 'rg -n "ALLOW_QA_FAIL_DONE" loop/ harness/hooks/'
+      result: pass
+      prod_callers: []
+      notes: "0 occurrences found"
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-07'
+  rows:
+    - boundary: qa-verdict-fail-closed
+      enforce_evidence: 'parse_qa_verdict returns None on unparseable/missing verdict; finish_qa rejects with qa_verdict_missing'
+      result: pass
+      notes: ""
+    - boundary: qa-fail-blocks-handoff
+      enforce_evidence: 'finish_handoff rejects non-BUGFIX modes with qa_fail_blocks_handoff on latest QA fail'
+      result: pass
+      notes: ""
+    - boundary: qa-fail-blocks-advance
+      enforce_evidence: 'roadmap_advance rejects advance with qa_fail_blocks_advance on latest QA fail'
+      result: pass
+      notes: ""
+
+blocked_reason: ""

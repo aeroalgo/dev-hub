@@ -13,8 +13,10 @@
 | T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 · after 062–069 · next DECOMPOSE when 062 not blocking |
 | T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
 | T-HUB-072 | Context bundle fail-closed | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · [decompose](back/plan/T-HUB-072-context-bundle-fail-closed/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-071 · batch loop-session-architecture-20260906 |
-| T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) · deps none · batch loop-session-architecture-20260906 |
-| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
+| T-HUB-073 | Abort classifier + dirty halt | L3 | QA pass | EPIC_DONE | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) · [qa](back/qa/T-HUB-073-abort-classifier-dirty-halt/qa-20260907-abort-classifier-dirty-halt-pass.yaml) · QA pass · 6/6 steps completed · batch loop-session-architecture-20260906 |
+| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · [decompose](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
+| T-HUB-075 | Stack profiles: Rust, Python, JavaScript | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md) · [decompose](back/plan/T-HUB-075-stack-profiles-rust-python-js/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-067 · clarify 20260906 |
+| T-HUB-076 | Stack profile capability execution | L3 | PLAN done | queued | [plan](back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md) · next BACK DECOMPOSE after T-HUB-075 BACK QA PASS · hard dep T-HUB-075 |
 | T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
 | T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | IMPLEMENT s05 | in_progress | [plan](back/plan/T-HUB-060-remove-reflect-phase/md/plan.md) · **не этот PLAN-батч** · отдельный чат IMPLEMENT s05 |
 
@@ -31,8 +33,8 @@
 | T-HUB-070 | Phase policy overlay sole SoT | L3 | PLAN done | queued | [plan](back/plan/T-HUB-070-phase-policy-overlay-sole-sot/md/plan.md) · batch loop-session-architecture-20260906 |
 | T-HUB-071 | Session identity lock | L3 | PLAN done | queued | [plan](back/plan/T-HUB-071-session-identity-lock/md/plan.md) · deps T-HUB-070 |
 | T-HUB-072 | Context bundle fail-closed | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-072-context-bundle-fail-closed/md/plan.md) · [decompose](back/plan/T-HUB-072-context-bundle-fail-closed/md/decompose-index.md) · next ANALYZE |
-| T-HUB-073 | Abort classifier + dirty halt | L3 | PLAN done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) |
-| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | PLAN done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · deps T-HUB-070 |
+| T-HUB-073 | Abort classifier + dirty halt | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md) · [decompose](back/plan/T-HUB-073-abort-classifier-dirty-halt/md/decompose-index.md) · 6 sNN · next ANALYZE |
+| T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · [decompose](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/decompose-index.md) · 6 sNN · next ANALYZE |
 | T-HUB-061 | Boundary CLI + doctor hygiene (--raw-json, check_boundaries, repair prose) | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · batch harness-ops-hygiene (done queue) · не queue[0] |
 | T-HUB-010 | SpecKit adapt — CLARIFY + spec quality | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-010-clarify-spec-quality.md) · QA pass · 7/7 steps completed |
 | T-HUB-011 | SpecKit adapt — ANALYZE pre-implement | L3 | REFLECT done | EPIC_DONE | [reflection](back/reflection/reflection-T-HUB-011-analyze-pre-implement.md) · QA pass · 4/4 steps completed |

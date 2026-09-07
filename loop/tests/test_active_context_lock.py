@@ -377,7 +377,15 @@ def test_read_active_context_video_pack(tmp_path: Path, monkeypatch: pytest.Monk
         rules_root=".cursor/rules",
         artifact_layout="production-epic-v1",
     )
-    (tmp_path / "project.yaml").write_text(yaml.dump({"workflow_pack": "video"}), encoding="utf-8")
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: video\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     from unittest.mock import patch
     from loop.workflow.schemas import PackResolveResult

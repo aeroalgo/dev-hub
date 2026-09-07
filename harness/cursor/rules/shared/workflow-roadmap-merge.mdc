@@ -7,7 +7,7 @@ alwaysApply: false
 **Команды:** `BACK ROADMAP MERGE` · `FRONT ROADMAP MERGE` · `INTEG ROADMAP MERGE`
 
 **Зачем:** единый SoT `memory-bank/<role>/roadmap/queue.yaml` для loop (`roadmap-advance`).  
-MULTI-EPIC PLAN **дописывает** этот файл (queue + batches); отдельный slug `roadmap-<slug>-epics.*` **FORBIDDEN**.  
+PLAN **дописывает** этот файл (queue + batches) для каждого эпика, включая single-epic; отдельный slug `roadmap-<slug>-epics.*` **FORBIDDEN**.
 MERGE = reconcile (перенос done, topo deps, опциональный import legacy batches → `archive/`).
 
 ## Модель файлов

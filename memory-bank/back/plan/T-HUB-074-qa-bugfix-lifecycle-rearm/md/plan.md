@@ -10,7 +10,7 @@
 **Skills:** writing-plans · python-testing-patterns · architecture-patterns  
 **Источник:** architecture §6 QA tx + §8 QA/BUGFIX; session audit stale QA; `loop/mb_finish/impl.py` `finish_qa` / `finish_bugfix`; T-HUB-060 qa yaml `verdict: fail`
 
-→ decompose-index — **после DECOMPOSE**
+→ decompose-index: [decompose-index.md](decompose-index.md) · machine [../yaml/decompose-index.yaml](../yaml/decompose-index.yaml) — **sole tracker** (не дублировать чеклист шагов в этом плане).
 
 ---
 

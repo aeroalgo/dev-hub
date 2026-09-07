@@ -260,8 +260,16 @@ step_id: s04
 
 def test_mb_load_video_pack(tmp_path: Path):
     """CP2: mb_load для video pack -> загружает memory-bank/video/activeContext.md."""
-    # Configure project.yaml for video pack
-    (tmp_path / "project.yaml").write_text("workflow_pack: dev-hub-video\n", encoding="utf-8")
+    # Configure dev-hub.project.yaml for video pack
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: dev-hub-video\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     # Mock or register video pack
     from loop.workflow.schemas import WorkflowPack

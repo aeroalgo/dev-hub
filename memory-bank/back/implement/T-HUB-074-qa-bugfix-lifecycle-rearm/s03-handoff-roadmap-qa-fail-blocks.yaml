@@ -1,0 +1,68 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: s03 — Wire+enforce finish_handoff qa_fail_blocks_handoff; roadmap_advance qa_fail_blocks_advance
+  IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s03-handoff-roadmap-qa-fail-blocks.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-observability/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Enforce finish_handoff qa_fail_blocks_handoff when latest QA verdict for armed epic
+  is fail or blocked and target mode is not BUGFIX
+- Enforce mark_queue_epic_done and roadmap_advance qa_fail_blocks_advance when latest
+  QA verdict is fail or blocked
+- Closed escape hatches with full test coverage in test_mb_finish_handoff.py, test_qa_finish_handoff.py,
+  and test_roadmap_queue.py
+files:
+- loop/mb_finish/impl.py
+- loop/roadmap_queue.py
+- harness/hooks/epic_resolve.py
+- harness/hooks/tests/test_mb_finish_handoff.py
+- loop/tests/test_roadmap_queue.py
+- loop/tests/test_qa_finish_handoff.py
+deletes:
+- finish_handoff success path that writes mode DONE/IMPLEMENT/QA while latest qa fail
+- roadmap_advance mark-done success while latest qa fail without BUGFIX
+tests:
+- bin/pytest harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py
+  loop/tests/test_roadmap_queue.py -q --tb=line
+integration_check:
+- finish_handoff + roadmap_advance properly gate transitions and block queue advance
+  on QA fail
+grep_control:
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'FR-003 / US-003 / TM-003 — finish_handoff DONE/IMPLEMENT/QA with latest
+    qa fail
+
+    → ok False, diagnostic qa_fail_blocks_handoff; BUGFIX still ok.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'FR-013 — roadmap_advance after QA fail without BUGFIX → ok False
+
+    qa_fail_blocks_advance; queue not left as success.
+
+    '
+  status: done
+- id: cp3
+  criterion: Independent Test — escape hatch closed; not field-exists only
+  status: done
+- id: cp4
+  criterion: AC−6 — no dual path that writes DONE anyway; 068 token still required
+  status: done

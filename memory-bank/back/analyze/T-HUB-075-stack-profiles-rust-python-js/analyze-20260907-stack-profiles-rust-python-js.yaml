@@ -1,0 +1,257 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+slug: stack-profiles-rust-python-js
+date: 2026-09-07
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "dev-hub-project/v1 Pydantic schema permits only schema, optional workflow_pack, optional default_target, targets; unknown keys fail."
+  - requirement_id: FR-002
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Target has stable name, workspace-relative root, profile python|rust|javascript, only profile-specific typed overrides. Canonical root stays in workspace; duplicate name/root fails."
+  - requirement_id: FR-003
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Resolver reads only root dev-hub.project.yaml; it never walks parent/child directories or infers profile from Cargo.toml, pyproject.toml, package.json."
+  - requirement_id: FR-004
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: ".dev-hub remains the one-line hub-link pointer, never YAML/config directory."
+  - requirement_id: FR-005
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Replace loop.workflow.registry._read_project_yaml_pack() reads from project.yaml and .dev-hub/project.yaml with typed optional workflow_pack from new manifest. Default/env workflow-pack still work when no new manifest exists."
+  - requirement_id: FR-006
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Ship immutable local stack-profile-registry/v1 with exactly python, rust, javascript; manifest cannot provide command, argv, shell, env, cwd, import or registry path."
+  - requirement_id: FR-007
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "V1 vocabulary is exactly format.check, lint, typecheck, test.targeted, test.full, build. Unknown/run/migrate/generate/deploy fails capability_unknown."
+  - requirement_id: FR-008
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "test.targeted requires nonempty selector; all other keys reject selector. Selector is one argv atom, never a concatenated shell fragment."
+  - requirement_id: FR-009
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Commands are deterministic: Python = python -m ruff format --check ., python -m ruff check ., python -m mypy ., python -m pytest [selector], python -m build; Rust = cargo fmt -- --check, cargo clippy --all-targets -- -D warnings, cargo check --all-targets, cargo test [-- selector], cargo build --all-targets; JS = selected manager run safe labels format:check, lint, typecheck, test, build, target selector appended as --, selector."
+  - requirement_id: FR-010
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "JS chooses exactly one supported lockfile (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lock/bun.lockb) or explicit supported package_manager. None/many without override fail; safe script-label override is JS-only."
+  - requirement_id: FR-011
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Public resolver returns schema ID, ok, target/profile/capability, absolute cwd, argv, timeout_seconds, requirements, ordered diagnostics. It never executes target commands."
+  - requirement_id: FR-012
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "python -m loop.stack_profiles resolve|doctor is JSON-first. resolve exits 0 only with complete result; doctor may inspect files and call executable --version under fixed short timeout, never test/build scripts."
+  - requirement_id: FR-013
+    step_ids: [s01, s02, s03, s06]
+    status: covered
+    plan_text_verbatim: "YAML/schema/root/profile/capability/selector/lockfile/tool failures have stable diagnostics, empty argv and nonzero status. No default Python/JS/target fallback."
+  - requirement_id: FR-014
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "Consumers use resolve_capability() only. Wiring an actual phase to execute commands is a future epic that declares its own capability."
+  - requirement_id: FR-015
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "bin/pytest, harness/hooks/test_run_canon.py, loop/incidents/tier1_verify.py, loop/tests/** remain hub self-test; no migration through target profiles."
+  - requirement_id: FR-016
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Delete legacy project config reader, tests and instructions in the same epic; do not leave try new except old."
+  - requirement_id: FR-017
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Add migration documentation/template for old workflow config locations."
+  - requirement_id: US-001
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Developer resolves verified capability for Python target."
+  - requirement_id: US-002
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Developer resolves verified capability for Rust target."
+  - requirement_id: US-003
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "Developer resolves capability for JS target with clear lockfile / manager."
+  - requirement_id: US-004
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "Monorepo owner selects named target/default safely."
+  - requirement_id: US-005
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "Tool caller receives stable JSON and exits."
+  - requirement_id: US-006
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Operator diagnoses missing tools before task start."
+  - requirement_id: SC-001
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Six capabilities resolve for all three bundled profiles."
+  - requirement_id: SC-002
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "Unsafe/missing input emits code and no argv."
+  - requirement_id: SC-003
+    step_ids: [s02, s03, s05]
+    status: covered
+    plan_text_verbatim: "JS ambiguity cannot choose a manager."
+  - requirement_id: SC-004
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "Multi-target repo cannot choose silently."
+  - requirement_id: SC-005
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Legacy workflow config is never read after cutover."
+  - requirement_id: SC-006
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Doctor detects blockers without executing target scripts."
+  - requirement_id: "AC+ #1"
+    step_ids: [s01, s04]
+    status: covered
+    plan_text_verbatim: "Strict schema rejects unknown keys."
+  - requirement_id: "AC+ #2"
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "Six capabilities resolve for python, rust, javascript."
+  - requirement_id: "AC+ #3"
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Root containment, profile, vocabulary, selector and JS ambiguity errors emit stable codes."
+  - requirement_id: "AC+ #4"
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Target directory outside workspace is rejected."
+  - requirement_id: "AC+ #5"
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "API and CLI expose same machine result, never prose parsing."
+  - requirement_id: "AC+ #6"
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Doctor detects blockers without target-script execution."
+  - requirement_id: "AC+ #7"
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Old config locations are removed from machine discovery and migration is documented."
+  - requirement_id: "AC+ #8"
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "Hub self-test command canon is unchanged."
+  - requirement_id: "AC- #1"
+    step_ids: [s02, s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "No shell=True, bash -c, eval, interpolated command, supplied argv/env."
+  - requirement_id: "AC- #2"
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "No project.yaml/.dev-hub/project.yaml fallback."
+  - requirement_id: "AC- #3"
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "No implicit target/profile/package-manager choice."
+  - requirement_id: "AC- #4"
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "No capabilities outside verify-first six."
+  - requirement_id: "AC- #5"
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "No remote plugin/profile search path."
+  - requirement_id: "AC- #6"
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "No change to hub-only pytest canon disguised as stack support."
+  - requirement_id: NFR-1
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Resolver execution remains in-process and fast."
+  - requirement_id: NFR-2
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "All YAML boundaries use Pydantic extra=\"forbid\"."
+  - requirement_id: NFR-3
+    step_ids: [s01]
+    status: covered
+    plan_text_verbatim: "Root containment uses resolved Path, never prefix string checks."
+  - requirement_id: NFR-4
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Expected CLI failures preserve JSON output."
+  - requirement_id: NFR-5
+    step_ids: [s06]
+    status: covered
+    plan_text_verbatim: "Old config code deleted in-epic, not left behind boolean flag."
+  - requirement_id: NFR-6
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "CLI exit codes match specification."
+  - requirement_id: NFR-7
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Doctor subprocess probe uses bounded timeout."
+  - requirement_id: layout:loop/stack_profiles/schemas.py
+    step_ids: [s01, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/schemas.py"
+  - requirement_id: layout:loop/stack_profiles/registry.py
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/registry.py"
+  - requirement_id: layout:loop/stack_profiles/resolver.py
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/resolver.py"
+  - requirement_id: layout:loop/stack_profiles/doctor.py
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/doctor.py"
+  - requirement_id: layout:loop/stack_profiles/__main__.py
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/__main__.py"
+  - requirement_id: layout:loop/stack_profiles/registry.yaml
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "loop/stack_profiles/registry.yaml"
+  - requirement_id: layout:loop/workflow/registry.py
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "loop/workflow/registry.py"
+  - requirement_id: layout:harness/templates/dev-hub.project.yaml
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "harness/templates/dev-hub.project.yaml"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+# Optional; populate only when memory-bank/constitution.md exists.
+constitution_violations: []

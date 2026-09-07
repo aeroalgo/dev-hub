@@ -25,7 +25,7 @@ if _hub_s in sys.path:
 sys.path.insert(0, _hub_s)
 
 from epic_yaml import all_checkpoints_done, compute_resume_from, load_implement
-from loop.runtime_adapters.base import SessionContext
+from loop.runtime_adapters.base import AUTH_BANNED_PATTERNS, SessionContext
 from loop.runtime_adapters.common import get_adapter_for_runtime
 from loop.runtime_adapters.dsh import detect_dsh_model_mismatch
 
@@ -38,7 +38,9 @@ _SHELL_COMMAND_NOT_FOUND_RE = re.compile(
     r"(?i)(?:^|\n)(?:[\w/.~-]+:\s*)?(?:line \d+:\s*)?[\w/.~-]+: command not found"
 )
 
-_PERMANENT_FAILURE_PATTERNS = (
+_AUTH_BANNED_PATTERNS = AUTH_BANNED_PATTERNS
+
+_PERMANENT_FAILURE_PATTERNS = _AUTH_BANNED_PATTERNS + (
     re.compile(r"(?i)(?:CLI|command) error:[^\\n]*"),
     re.compile(r"(?i)invalid (?:config|option|argument)"),
     re.compile(r"(?i)auth_failed"),
@@ -61,7 +63,7 @@ _DSH_TRANSIENT_PATTERNS = (
     re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
 )
 
-_DSH_PERMANENT_PATTERNS = (
+_DSH_PERMANENT_PATTERNS = AUTH_BANNED_PATTERNS + (
     re.compile(r"(?i)API\s+Error:\s*terminated"),
     re.compile(r"(?i)API\s+Error:\s*overloaded"),
     re.compile(r"(?i)API\s+Error:.*rate.?limit"),
@@ -106,8 +108,8 @@ _TRANSIENT_ABORT_PATTERNS = (
     re.compile(r"(?i)response stalled mid.?stream"),
     re.compile(r"(?i)stream ended unexpectedly"),
     re.compile(r"(?i)connection (?:reset|aborted|closed)"),
+    re.compile(r"(?i)^\s*(?:session\s+)?aborted\s*$"),
     re.compile(r"(?i)API Error:\s*Stream idle timeout[^\n]*"),
-    re.compile(r"(?i)API Error:[^\n]*"),
     re.compile(r"(?i)abrupt stream termination"),
     re.compile(r"(?i)log truncated.*session output exceeded cap"),
 )
@@ -431,11 +433,16 @@ def detect_abort_in_log(
             # Skip assistant/user content — only look at system/error events.
             if obj_type in ("assistant", "user"):
                 continue
-            # Surface human-readable system/informational content for pattern match.
             if obj_type == "system":
                 content = obj.get("content")
                 if isinstance(content, str) and content.strip():
                     system_lines.append(content.strip())
+                if str(obj.get("subtype") or "").lower() in {"error", "fatal_error"}:
+                    for key in ("error", "message"):
+                        value = obj.get(key)
+                        if isinstance(value, str) and value.strip():
+                            system_lines.append(value.strip())
+                continue
             # For stream events, skip content_block_delta with text/thinking.
             if obj_type == "stream_event":
                 ev = obj.get("event") or {}
@@ -494,6 +501,8 @@ def classify_abort(
     """Return 'transient' | 'fatal' for an abort reason / process exit."""
     if exit_code in (130, 143, MODEL_SUBSTITUTION_EXIT, 127):
         return "fatal"
+    if exit_code == 124:
+        return "transient"
     r = reason or ""
     if r == "command not found":
         return "fatal"
@@ -501,7 +510,12 @@ def classify_abort(
         return "fatal"
     if _match_patterns(r, _PERMANENT_FAILURE_PATTERNS) or is_structured_model_substitution_reason(r):
         return "fatal"
-    return "transient"
+    if _match_patterns(r, _TRANSIENT_ABORT_PATTERNS):
+        return "transient"
+    # Unmatched / unknown reasons (e.g. unknown API Error) are treated as fatal (UNKNOWN_FAILURE), not transient
+    if not r and exit_code in (0, None):
+        return "transient"
+    return "fatal"
 
 
 def transient_retry_max() -> int:
@@ -618,7 +632,10 @@ def analyze_session_log(
     elif permanent:
         outcome = SessionOutcome.PERMANENT_FAILURE
     elif reason:
-        outcome = SessionOutcome.TRANSIENT_ABORT
+        if _match_patterns(reason, _TRANSIENT_ABORT_PATTERNS):
+            outcome = SessionOutcome.TRANSIENT_ABORT
+        else:
+            outcome = SessionOutcome.UNKNOWN_FAILURE
     else:
         reason = f"process exit={exit_code}"
         outcome = SessionOutcome.UNKNOWN_FAILURE
@@ -678,7 +695,19 @@ def filter_step_dirty(
     kept: list[str] = []
     for p in dirty:
         norm = p.replace("\\", "/")
+        # Exclude __pycache__ and .venv
+        if "__pycache__" in norm or ".venv" in norm:
+            continue
         if eid and "memory-bank/" in norm.lower() and eid not in norm.lower():
+            continue
+        # Keep epic-scoped markdown and yaml files for the armed epic
+        if (
+            eid
+            and norm.startswith("memory-bank/")
+            and eid in norm.lower()
+            and norm.lower().endswith((".md", ".yaml", ".yml"))
+        ):
+            kept.append(norm)
             continue
         if sid and sid in norm.lower():
             # memory-bank files must also match epic_id to avoid cross-epic noise

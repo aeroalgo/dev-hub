@@ -11,8 +11,16 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_cli_fail(tmp_path: Path) -> None:
     """CLI tool-gate check exit 1 when target output file is missing."""
-    # Create project.yaml selecting video pack
-    (tmp_path / "project.yaml").write_text("workflow_pack: video-production\n", encoding="utf-8")
+    # Create dev-hub.project.yaml selecting video pack
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: video-production\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     cmd = [
         sys.executable,
@@ -38,7 +46,15 @@ def test_cli_tool_gate_fail(tmp_path: Path) -> None:
 
 def test_cli_pass(tmp_path: Path) -> None:
     """CLI tool-gate check exit 0 when target output fixture is present."""
-    (tmp_path / "project.yaml").write_text("workflow_pack: video-production\n", encoding="utf-8")
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: video-production\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
     out_file = tmp_path / "outputs" / "final.mp4"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_bytes(b"dummy mp4 fixture payload")

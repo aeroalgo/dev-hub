@@ -1,0 +1,154 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: "Wire+enforce finish_handoff qa_fail_blocks_handoff; roadmap_advance qa_fail_blocks_advance"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Escape hatch closed: while armed_step=QA (or latest qa fail/blocked) finish_handoff
+  cannot write DONE/IMPLEMENT/ANALYZE/DECOMPOSE/PLAN/QA success — ok=False
+  diagnostic qa_fail_blocks_handoff. BUGFIX allowed.
+  roadmap_advance / queue leave after QA fail without BUGFIX → ok=False
+  qa_fail_blocks_advance (as-built marks done with require_done=False).
+  068 token lock complementary — this epic still tests QA fail cannot DONE.
+  Outcome: operator cannot skip fail yaml via handoff or queue advance.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-011
+    - FR-013
+    - FR-015
+    - US-003
+    - SC-003
+    - AC+1
+    - AC+4
+    - AC−1
+    - AC−6
+    - TM-003
+    - NFR-1
+    - Independent Test
+    - Product WHAT-3
+    - Product WHAT-4
+  nouns:
+    - finish_handoff
+    - qa_fail_blocks_handoff
+    - roadmap_advance
+    - qa_fail_blocks_advance
+    - latest qa fail
+  layout_paths:
+    - loop/mb_finish/impl.py
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_resolve.py
+  ac_quotes:
+    - "finish_handoff: if latest qa for armed epic is fail/blocked and requested meta.mode in {DONE, IMPLEMENT, ANALYZE, DECOMPOSE, PLAN, QA} except BUGFIX — ok=False qa_fail_blocks_handoff. BUGFIX allowed."
+    - "roadmap-advance / queue leave: if called after QA fail without BUGFIX — ok=false diagnostic qa_fail_blocks_advance"
+    - "Нет dual path finish_handoff that writes DONE anyway."
+    - "Independent Test FAIL: «qa_after_bugfix field already exists» without tests that escape hatch is closed"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:53-56"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:103-113"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:178-179"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:224-228"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:262-264"
+
+context:
+  consumes:
+    - s01 red tests on finish_handoff DONE
+    - s02 parse_qa_verdict fail-closed
+    - plan FR-003 / FR-013
+    - as-built finish_handoff token-only; roadmap_advance mark_queue_epic_done require_done=False
+  produces:
+    - finish_handoff qa_fail_blocks_handoff when latest qa fail and mode ≠ BUGFIX
+    - BUGFIX handoff still allowed
+    - roadmap_advance qa_fail_blocks_advance when latest qa fail and not BUGFIX-armed leave
+    - tests that escape hatch is closed (Independent Test)
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset
+    - plan.md#independent-test
+  files:
+    - loop/mb_finish/impl.py
+    - loop/roadmap_queue.py
+    - harness/hooks/epic_resolve.py
+    - harness/hooks/tests/test_mb_finish_handoff.py
+    - loop/tests/test_roadmap_queue.py
+    - loop/tests/test_qa_finish_handoff.py
+
+as_built:
+  - "finish_handoff: recovery_token mismatch → finish_handoff_forbidden; BUGFIX armed + mode≠BUGFIX → bugfix_finish_required; no latest-qa-fail check"
+  - "epic_resolve mb-finish handoff calls finish_handoff with recovery_token (L514-533)"
+  - "roadmap_advance: if skip_epic, mark_queue_epic_done(..., require_done=False) then select_next — no parse_qa_verdict"
+  - "068 may require recovery_token — complementary; tests here still required if 068 lands first or later"
+  - "FRONT/INTEG share finish_handoff / roadmap_advance"
+
+delta:
+  - "in finish_handoff: if latest qa for armed epic is fail/blocked and meta.mode.upper() in {DONE, IMPLEMENT, ANALYZE, DECOMPOSE, PLAN, QA} — return ok=False qa_fail_blocks_handoff; BUGFIX allowed"
+  - "in roadmap_advance (or mark_queue_epic_done path): if latest qa fail/blocked and not transitioning via BUGFIX — ok=False qa_fail_blocks_advance; do not dequeue as success"
+  - "if locating no other DONE-advance besides roadmap_advance + finish_qa — FR-003 handoff is wedge AND still add advance gate because as-built marks done without qa pass"
+  - "keep 068 token check; do not weaken finish_handoff_forbidden"
+  - "wire_complete: call_sites finish_handoff + roadmap_advance; enforce_path tests qa_fail_blocks_*; dual_path_rg write DONE anyway = 0"
+  - "do not purge reflect (s04) or Kind I (s05)"
+
+deletes:
+  - "finish_handoff success path that writes mode DONE/IMPLEMENT/QA while latest qa fail"
+  - "roadmap_advance mark-done success while latest qa fail without BUGFIX"
+
+out_of_scope:
+  - "parse_qa_verdict / finish_qa next_mode (s02 done)"
+  - "purge finish_reflect (s04)"
+  - "Kind I / mb-finish reflect CLI (s05)"
+  - "leftover inventory (s06)"
+  - "068 journal schema rewrite — follow_up T-HUB-068-start-finish-transaction-boundary"
+  - "Appetite cut_list"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: qa-fail-escape-hatch
+  new_sot: finish_handoff qa_fail_blocks_handoff + roadmap_advance qa_fail_blocks_advance
+  allow_read:
+    - "loop/mb_finish/impl.py"
+    - "loop/roadmap_queue.py"
+    - "harness/hooks/epic_resolve.py"
+    - "harness/hooks/tests/test_mb_finish_handoff.py"
+    - "loop/tests/test_roadmap_queue.py"
+  kind_hint:
+    - A
+    - C
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-003 / US-003 / TM-003 — finish_handoff DONE/IMPLEMENT/QA with latest qa fail
+      → ok False, diagnostic qa_fail_blocks_handoff; BUGFIX still ok.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py -q --tb=line -k 'fail or qa_fail_blocks or DONE or handoff'"
+  - id: cp2
+    criterion: |
+      FR-013 — roadmap_advance after QA fail without BUGFIX → ok False
+      qa_fail_blocks_advance; queue not left as success.
+    verify: "bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line -k 'qa_fail or advance or mark_done'"
+  - id: cp3
+    criterion: Independent Test — escape hatch closed; not field-exists only
+    verify: "rg -n 'qa_fail_blocks_handoff|qa_fail_blocks_advance' loop/mb_finish/impl.py loop/roadmap_queue.py harness/hooks/tests/test_mb_finish_handoff.py loop/tests"
+  - id: cp4
+    criterion: AC−6 — no dual path that writes DONE anyway; 068 token still required
+    verify: "rg -n 'qa_fail_blocks_handoff|finish_handoff_forbidden' loop/mb_finish/impl.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py loop/tests/test_roadmap_queue.py -q --tb=line"
+tdd:
+  - "red: finish_handoff DONE on fail yaml ok; roadmap_advance marks done"
+  - "green: both gates diagnostic + tests"

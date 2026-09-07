@@ -34,6 +34,16 @@ if str(LOOP_DIR) not in sys.path:
 
 logger = logging.getLogger(__name__)
 
+from loop.stack_profiles.evidence import (
+    read_capability_evidence,
+    write_capability_evidence,
+)
+from loop.stack_profiles.execution import (
+    CapabilityCheckSpec,
+    CapabilityExecutionEvidence,
+    compute_declaration_fingerprint,
+    execute_capability,
+)
 from loop.mb_finish.render import render_active_context
 from harness.hooks._lib import (  # noqa: E402
     epic_ids_compatible,
@@ -2147,6 +2157,162 @@ def _run_tier0_check_after(cwd_p: Path, res: dict[str, Any]) -> dict[str, Any]:
     return res
 
 
+def _enforce_capability_checks_for_armed_step(
+    cwd: Path,
+    *,
+    decompose: str | Path,
+    step_id: str,
+    state: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Execute declared capability_checks for the current armed step and persist evidence."""
+    sid = step_id.strip().lower()
+    if not sid or not re.match(r"^[sera]\d{2}$", sid):
+        return None
+
+    from epic_paths import find_decompose_index_path, role_from_decompose_path, epic_id_from_decompose_path
+    from epic_index import load_index_yaml, index_yaml_path
+    from loop.paths.epic_layout import resolve, EpicLayoutKind
+
+    role = str(role_from_decompose_path(str(decompose)) or state.get("role") or "back").lower()
+    role_dir = "integration" if role in {"integ", "integration"} else role
+    epic_id = str(state.get("armed_epic") or epic_id_from_decompose_path(str(decompose)) or "").strip()
+
+    idx = find_decompose_index_path(cwd, role=role_dir, epic_id=epic_id)
+    if idx is None:
+        idx = cwd / str(decompose)
+        if not idx.is_file():
+            return None
+
+    # Load shard corresponding to armed_step
+    loaded = load_decompose_steps_fail_closed(cwd, str(decompose))
+    if not loaded.get("ok"):
+        return None
+
+    step_info = None
+    for s in loaded.get("steps") or []:
+        if str(s.get("id") or s.get("step_id") or "").strip().lower() == sid:
+            step_info = s
+            break
+
+    shard_path = None
+    if step_info:
+        href = step_info.get("file") or step_info.get("shard_href")
+        if href:
+            cand = idx.parent / href
+            if cand.is_file():
+                shard_path = cand
+            else:
+                cand_v2 = idx.parent / "steps" / href
+                if cand_v2.is_file():
+                    shard_path = cand_v2
+
+    if shard_path is None or not shard_path.is_file():
+        # Fallback to layout resolver
+        try:
+            cand_res = resolve(role_dir, epic_id, EpicLayoutKind.DECOMPOSE_STEP, step_id=sid, project_root=cwd)
+            if cand_res.is_file():
+                shard_path = cand_res
+        except Exception:
+            pass
+
+    if shard_path is None or not shard_path.is_file():
+        # Shard not found on disk; let regular flow handle missing shard
+        return None
+
+    try:
+        raw_doc = yaml.safe_load(shard_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "ok": False,
+            "halt": True,
+            "diagnostic_code": "capability_declaration_invalid",
+            "diagnostic_codes": ["capability_declaration_invalid"],
+            "reason": f"Failed to parse decompose shard YAML {shard_path.name}: {exc}",
+        }
+
+    if not isinstance(raw_doc, dict):
+        return None
+
+    declared_raw = raw_doc.get("capability_checks")
+    if not declared_raw:
+        return None
+
+    if not isinstance(declared_raw, list):
+        return {
+            "ok": False,
+            "halt": True,
+            "diagnostic_code": "capability_declaration_invalid",
+            "diagnostic_codes": ["capability_declaration_invalid"],
+            "reason": f"capability_checks in {shard_path.name} must be a list",
+        }
+
+    # Validate each check model
+    specs: list[CapabilityCheckSpec] = []
+    for item in declared_raw:
+        try:
+            spec = CapabilityCheckSpec.model_validate(item)
+            specs.append(spec)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "halt": True,
+                "diagnostic_code": "capability_declaration_invalid",
+                "diagnostic_codes": ["capability_declaration_invalid"],
+                "reason": f"Invalid capability_check in {shard_path.name}: {exc}",
+            }
+
+    # Execute checks sequentially in declaration order
+    for spec in specs:
+        exec_res = execute_capability(cwd, spec)
+        if not exec_res.ok or exec_res.status != "succeeded":
+            diag_codes = [d.code for d in exec_res.diagnostics] or [exec_res.status]
+            diag_code = diag_codes[0] if diag_codes else "command_failed"
+            diag_msgs = "; ".join(d.message for d in exec_res.diagnostics) or exec_res.status
+            return {
+                "ok": False,
+                "halt": True,
+                "status": exec_res.status,
+                "diagnostic_code": diag_code,
+                "diagnostic_codes": diag_codes,
+                "reason": f"Capability check '{spec.capability}' on target '{spec.target}' failed with status '{exec_res.status}': {diag_msgs}",
+                "execution_result": exec_res.model_dump(by_alias=True, exclude_none=True),
+            }
+
+        # Successful execution: write atomic evidence
+        fp = compute_declaration_fingerprint(
+            role=role_dir,
+            epic_id=epic_id,
+            step_id=sid,
+            declaration=spec,
+        )
+        cap_name = spec.capability if isinstance(spec.capability, str) else spec.capability.value
+        evidence = CapabilityExecutionEvidence(
+            declaration_fingerprint=fp,
+            role=role_dir,
+            epic_id=epic_id,
+            step_id=sid,
+            target=spec.target,
+            capability=cap_name,
+            status=exec_res.status,
+            exit_code=exec_res.exit_code,
+            duration_ms=exec_res.duration_ms,
+            recorded_at=utc_now(),
+            diagnostics=exec_res.diagnostics,
+        )
+        try:
+            write_capability_evidence(cwd, evidence)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "halt": True,
+                "diagnostic_code": "evidence_persistence_failed",
+                "diagnostic_codes": ["evidence_persistence_failed"],
+                "reason": f"Failed to persist capability evidence for '{spec.capability}' on '{spec.target}': {exc}",
+            }
+
+    return {"ok": True}
+
+
 def check_after(
     cwd: str | Path,
     *,
@@ -2286,6 +2452,16 @@ def check_after(
                 "md_repair": md_repair,
             }
             return _run_tier0_check_after(cwd_p, res)
+
+        # FR-007 / SC-003: Execute and enforce capability checks for current armed step
+        cap_res = _enforce_capability_checks_for_armed_step(
+            cwd_p,
+            decompose=decompose,
+            step_id=armed_step_now,
+            state=state,
+        )
+        if cap_res is not None and not cap_res.get("ok"):
+            return _run_tier0_check_after(cwd_p, cap_res)
 
     fp_now = fingerprint_context(text)
     before = fingerprint_before

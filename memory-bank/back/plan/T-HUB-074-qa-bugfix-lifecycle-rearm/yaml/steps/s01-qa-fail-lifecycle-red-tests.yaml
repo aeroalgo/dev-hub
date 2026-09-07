@@ -1,0 +1,183 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: "Red tests — fail yaml ≠ DONE; reuse yaml; handoff escape; missing verdict"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red: Independent Test видит ложь lifecycle до tighten gates.
+  qa-*.yaml verdict fail + finish_qa → next_mode BUGFIX, не DONE / не EPIC_DONE
+  (as-built fail branch already BUGFIX — lock; missing tests on this path = red until written).
+  After finish_bugfix, finish_qa on same fail yaml → qa_new_artifact_required.
+  finish_handoff mode DONE while latest qa fail → ok=False (as-built: only token + BUGFIX armed — red).
+  Missing verdict ≠ pass. Same session after bugfix → qa_new_session_required.
+  Reviewer lock on re-QA kept. Tests encode 060 leftover: fail yaml + bugfix prose «1942 passed» is not SoT.
+  Outcome: CI красный на DONE-on-fail / reuse-yaml / handoff escape, не на «QaAfterBugfix field exists».
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-009
+    - FR-010
+    - FR-011
+    - FR-012
+    - US-001
+    - US-002
+    - US-003
+    - US-005
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-005
+    - AC+1
+    - AC+2
+    - AC+4
+    - AC+5
+    - AC−1
+    - AC−2
+    - AC−4
+    - AC−5
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-005
+    - TM-006
+    - TM-007
+    - TM-008
+    - Independent Test
+    - NFR-3
+  nouns:
+    - finish_qa
+    - finish_handoff
+    - finish_bugfix
+    - parse_qa_verdict
+    - QaAfterBugfix
+    - qa_new_artifact_required
+    - qa_new_session_required
+    - qa_reviewer_required
+    - qa_fail_blocks_handoff
+    - next_mode BUGFIX
+  layout_paths:
+    - harness/hooks/tests/test_mb_finish_qa.py
+    - harness/hooks/tests/test_mb_finish_handoff.py
+    - loop/tests/test_qa_finish_handoff.py
+    - loop/tests/test_finish_bugfix.py
+  ac_quotes:
+    - "Given: qa-*.yaml verdict: fail, armed QA → When: finish_qa → Then: result ok for transition; rendered AC mode BUGFIX; hint not EPIC_DONE; state not phase DONE"
+    - "Given: QaAfterBugfix recorded with existing_artifacts including qa-20260905-….yaml fail → When: finish_qa pointing at that same file → Then: ok=False, qa_new_artifact_required"
+    - "finish_handoff mode DONE → ok false"
+    - "PASS: fail yaml cannot DONE; re-QA needs new yaml; rg finish_reflect 0"
+    - "Independent Test FAIL: «qa_after_bugfix field already exists» without tests that escape hatch is closed"
+    - "Нет «bugfix.md 1942 passed» as verdict SoT"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:53-58"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:75-97"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:101-114"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:143-157"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:262-269"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:318-321"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/002/003/005 Given/When/Then
+    - plan.md §Independent Test
+    - plan.md §Technology axiom (yaml verdict; re-QA new yaml)
+    - as-built finish_qa fail→BUGFIX; qa_after_bugfix gates exist; finish_handoff no qa-fail check
+  produces:
+    - table-driven pytest finish_qa fail yaml → next_mode BUGFIX, epic_done False, no EPIC_DONE (lock; red if missing)
+    - pytest reuse fail yaml after finish_bugfix → qa_new_artifact_required
+    - pytest same session after bugfix → qa_new_session_required
+    - pytest finish_handoff DONE/IMPLEMENT/QA while latest qa fail → ok False qa_fail_blocks_handoff (red on as-built)
+    - pytest missing verdict / None from parse_qa_verdict ≠ treated as pass (red if impl.py else "pass")
+    - lock: qa_reviewer_required on re-QA without PASS; finish_bugfix writes QaAfterBugfix
+    - 060-shaped fixture: fail yaml + bugfix.md prose «1942 passed» must not close QA
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#functional-requirements
+    - plan.md#independent-test
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/tests/test_mb_finish_qa.py
+    - harness/hooks/tests/test_mb_finish_handoff.py
+    - loop/tests/test_qa_finish_handoff.py
+    - loop/tests/test_finish_bugfix.py
+
+as_built:
+  - "finish_qa: qa_verdict in {fail,blocked} → next_mode BUGFIX, default_hint not EPIC_DONE (impl.py L226-231) — no dedicated pytest on this path in test_mb_finish_qa.py (happy path only pass→DONE)"
+  - "qa_after_bugfix / qa_new_session_required / qa_new_artifact_required exist (impl.py L162-188) — tests that fail if branches deleted are missing"
+  - "parse_qa_verdict missing verdict returns None; finish_qa uses `parse_qa_verdict(qa_art) if qa_art else \"pass\"` (impl.py L210) — missing verdict can fall through to DONE"
+  - "finish_handoff: recovery_token + BUGFIX armed check only; no latest-qa-fail gate (impl.py L45-135)"
+  - "qa_reviewer_required on re-QA pass path (impl.py L211-225) — keep; no weaken"
+  - "finish_bugfix writes QaAfterBugfix existing_artifacts (impl.py L513-521)"
+  - "test_mb_finish_qa.py covers no-artifact, happy pass→DONE, v2 path, finish_bugfix happy/fail-closed — not fail yaml, not reuse, not missing verdict"
+  - "test_qa_finish_handoff.py: validate_qa_finish_handoff pass→DONE ok; missing artifact; non-QA skip — no fail-yaml+DONE reject via finish_handoff"
+
+delta:
+  - "add table-driven finish_qa: verdict fail and blocked → ok True, next_mode/rendered mode BUGFIX, epic_done False, hint not EPIC_DONE, state phase not DONE (lock as-built fail branch; red if someone routes DONE)"
+  - "add finish_qa after finish_bugfix with same fail yaml → ok False qa_new_artifact_required (red if branch deleted)"
+  - "add same phase_run_id after bugfix → qa_new_session_required (red if branch deleted)"
+  - "add finish_handoff meta.mode DONE/IMPLEMENT/ANALYZE/DECOMPOSE/PLAN/QA with latest qa fail → ok False qa_fail_blocks_handoff (red on as-built)"
+  - "add parse_qa_verdict missing verdict / no verdict key → finish_qa does not DONE (red on else pass)"
+  - "lock qa_reviewer_required; lock finish_bugfix sets QaAfterBugfix; 060-shaped leftover: bugfix.md «1942 passed» is not parse_qa_verdict SoT"
+  - "tests invoke finish_qa / finish_handoff / parse_qa_verdict, not assert field-exists only (FR-011)"
+  - "do not yet change finish_qa parse (s02), finish_handoff gate (s03), or purge reflect (s04)"
+
+deletes: []
+
+out_of_scope:
+  - "finish_qa next_mode lock + parse fail-closed prod change (s02)"
+  - "finish_handoff qa_fail_blocks_handoff + roadmap_advance gate (s03)"
+  - "purge finish_reflect / find_reflection_artifact (s04)"
+  - "Kind I comments + mb-finish reflect CLI (s05)"
+  - "legacy-fallback-purge leftover (s06)"
+  - "requeue T-HUB-060 / rewrite historical qa yaml / auto-open BUGFIX from audit — Appetite cut_list"
+  - "overlay REFLECT strings — follow_up T-HUB-070-phase-policy-overlay-sole-sot"
+  - "identity COMMAND — follow_up T-HUB-071-session-identity-lock"
+  - "load_session — follow_up T-HUB-072-context-bundle-fail-closed"
+  - "abort 401 — follow_up T-HUB-073-abort-classifier-dirty-halt"
+  - "finish journal schema — follow_up T-HUB-068-start-finish-transaction-boundary"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001 / TM-001 / SC-001 — qa yaml verdict fail|blocked + finish_qa:
+      next_mode BUGFIX, epic_done False, rendered mode not DONE, hint not EPIC_DONE.
+      Invoke finish_qa, not assert next_mode string in source only.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k 'fail or blocked or BUGFIX or verdict'"
+  - id: cp2
+    criterion: |
+      US-002 / TM-002 / TM-005 / TM-008 — after finish_bugfix: same yaml →
+      qa_new_artifact_required; same session → qa_new_session_required;
+      QaAfterBugfix set. 060 leftover: bugfix prose not SoT.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_qa.py loop/tests/test_finish_bugfix.py -q --tb=line -k 'artifact or session or QaAfterBugfix or bugfix'"
+  - id: cp3
+    criterion: |
+      US-003 / TM-003 — finish_handoff DONE (and IMPLEMENT/QA) while latest qa fail
+      → ok False. As-built without gate must FAIL this test until s03.
+    verify: "bin/pytest harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py -q --tb=line -k 'fail or DONE or handoff'"
+  - id: cp4
+    criterion: |
+      FR-009 / TM-007 / FR-012 / TM-006 — missing verdict ≠ pass; qa_reviewer_required
+      still on re-QA. Independent Test is behavior, not field-exists.
+    verify: "rg -n 'qa_new_artifact_required|qa_fail_blocks_handoff|parse_qa_verdict|1942 passed|qa_reviewer_required' harness/hooks/tests/test_mb_finish_qa.py harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_mb_finish_qa.py harness/hooks/tests/test_mb_finish_handoff.py loop/tests/test_qa_finish_handoff.py loop/tests/test_finish_bugfix.py -q --tb=line"
+tdd:
+  - "red: finish_handoff DONE on fail yaml still ok; missing verdict can DONE; no tests lock fail≠DONE / reuse yaml"
+  - "green: s02 parse+next_mode; s03 handoff/roadmap gates"

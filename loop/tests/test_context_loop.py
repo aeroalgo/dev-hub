@@ -2438,6 +2438,36 @@ def test_record_abort_timeout_is_transient(tmp_path: Path) -> None:
     assert out["halted"] is False
 
 
+def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        '{"status":"running", "armed_step":"s03", "armed_epic":"T-HUB-073"}\n',
+    )
+    log = tmp_path / "session.log"
+    log.write_text('API Error: 401 {"error":{"message":"All connections banned"}}\n', encoding="utf-8")
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=1)
+
+    assert out["retryable"] is False
+    assert out["abort_kind"] == "fatal"
+    assert out["outcome"] == "permanent_failure"
+    assert out["halted"] is True
+    state = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert state["status"] == "halted"
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker["retryable"] is False
+    assert marker["abort_kind"] == "fatal"
+    assert marker["outcome"] == "permanent_failure"
+    assert "need_human" not in marker
+
+
 def test_loop_shell_skips_check_after_on_retry_cap() -> None:
     script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
     assert "resume_outer=0" in script

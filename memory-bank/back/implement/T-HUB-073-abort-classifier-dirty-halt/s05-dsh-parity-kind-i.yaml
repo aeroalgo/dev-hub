@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s05 — DSH 401/banned permanent + Kind I comments; no DSH catch-all API Error
+  IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s05-dsh-parity-kind-i.yaml
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
+  - .agents/skills/python-error-handling/SKILL.md
+  - .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+  - Consumed AUTH_BANNED_PATTERNS in _DSH_PERMANENT_PATTERNS (shared from loop.runtime_adapters.base).
+  - Kept _DSH_TRANSIENT_PATTERNS free of catch-all API Error.
+  - Verified Kind I comments absent from classifier and dsh adapter.
+  - Added unit tests for DSH 401 and banned errors returning permanent_failure and retryable=False.
+files:
+- harness/hooks/session_resilience.py
+- loop/runtime_adapters/base.py
+- loop/runtime_adapters/dsh.py
+- loop/tests/test_dsh_runtime_adapter.py
+- loop/tests/test_session_resilience_adapter.py
+deletes:
+- Kind I comments «API Error always transient» / «any API Error is retryable» in harness/hooks/session_resilience.py
+  and related instruction surfaces
+tests:
+- "bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_session_resilience_adapter.py -q --tb=line"
+integration_check:
+- "bin/pytest loop/tests/test_dsh_runtime_adapter.py loop/tests/test_session_resilience_adapter.py -q --tb=line -k 'dsh or 401 or banned'"
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'FR-009 / TM-008 — DSH 401/banned → detect_dsh / analyze_session_log
+    runtime=dsh
+
+    retryable False. _AUTH_BANNED_PATTERNS shared with Claude permanent.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'FR-001/009 / NFR-3 / US-005 — catch-all API Error:[^\\n]* absent from
+
+    session_resilience.py and dsh adapter. _DSH_TRANSIENT does not reintroduce it.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'FR-008 Kind I — comments API Error always transient / any API Error
+    is retryable
+
+    gone from classifier module. 503 DSH still transient (lock).
+
+    '
+  status: done
+resume_from: cp3

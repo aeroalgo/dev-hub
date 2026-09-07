@@ -1,0 +1,154 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: "Red tests — 401/banned not retryable; catch-all presence; timeout still retryable"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red: Independent Test видит ложь classifier до delete catch-all.
+  Blob `API Error: 401 … All connections banned` → classify_abort / analyze_session_log
+  retryable False и outcome не transient_abort (as-built: classify_abort=transient — red).
+  Timeout / stream idle остаётся retryable True (lock). Catch-all presence test red until s02.
+  Outcome: CI красный на 401-as-transient, не на «pattern tuple exists».
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-007
+    - FR-010
+    - FR-012
+    - FR-013
+    - FR-014
+    - US-001
+    - US-003
+    - US-005
+    - SC-001
+    - SC-002
+    - SC-003
+    - AC+1
+    - AC+2
+    - AC+3
+    - AC−1
+    - AC−2
+    - TM-001
+    - TM-002
+    - TM-003
+    - TM-006
+    - TM-007
+    - Independent Test
+  nouns:
+    - classify_abort
+    - analyze_session_log
+    - SessionAnalysis.retryable
+    - abort_kind
+    - _TRANSIENT_ABORT_PATTERNS
+    - _PERMANENT_FAILURE_PATTERNS
+    - API Error: 401
+    - All connections banned
+  layout_paths:
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_session_wrapper.py
+  ac_quotes:
+    - "Given: stderr/stdout blob `API Error: 401 {\"error\":{\"message\":\"All connections banned\"}}` → Then: retryable is False; outcome in {permanent_failure, unknown_failure} not transient_abort"
+    - "Input containing API Error: 401 and/or banned → SessionAnalysis.retryable is False, abort_kind permanent/need_human, not transient_abort"
+    - "Catch-all API Error:[^\\n]* gone from _TRANSIENT_ABORT_PATTERNS"
+    - "PASS: 401 text → no retry; catch-all rg 0; dirty yaml listed; timeout still retries"
+    - "Independent Test FAIL: «добавили 401 рядом с catch-all»"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:57-60"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:81-91"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:99-119"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:145-159"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:261-271"
+    - "memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md:320-323"
+
+context:
+  consumes:
+    - plan.md §User Stories US-001/003/005 Given/When/Then
+    - plan.md §Independent Test
+    - plan.md §Technology axiom (permanent before transient; no catch-all)
+    - as-built classify_abort: 401 blob → transient (sunset inventory, not template)
+  produces:
+    - table-driven pytest 401/banned/All connections banned → retryable False (red on as-built)
+    - lock: timeout / Stream idle timeout → retryable True
+    - lock: KeyboardInterrupt / model substitution → retryable False
+    - source/rg assertion catch-all `API Error:[^\\n]*` in _TRANSIENT_ABORT_PATTERNS (red until s02)
+    - unknown `API Error: weird` → retryable False (red if catch-all swallows as transient)
+  plan_refs:
+    - plan.md#user-stories
+    - plan.md#functional-requirements
+    - plan.md#independent-test
+    - plan.md#qa-consumes
+  files:
+    - loop/tests/test_session_resilience_adapter.py
+    - loop/tests/test_session_wrapper.py
+
+as_built:
+  - "classify_abort(401 banned, exit_code=1) returns 'transient' — permanent list has no 401/banned"
+  - "_TRANSIENT_ABORT_PATTERNS last-but-two is re.compile(r\"(?i)API Error:[^\\n]*\") session_resilience.py L110"
+  - "detect_abort_in_text(401 blob, exit=1) returns the API Error line via catch-all"
+  - "analyze_session_log: elif reason → TRANSIENT_ABORT before UNKNOWN; classify then retryable = kind==transient"
+  - "existing tests lock timeout/idle/server-error-mid-response retryable True (test_session_wrapper.py)"
+  - "model substitution already retryable False (adapter + dsh tests) — keep green"
+
+delta:
+  - "add table-driven cases: API Error 401 All connections banned; All connections banned without prefix; 401 banned substring → retryable False, outcome not transient_abort (red)"
+  - "add source/rg or inspect _TRANSIENT_ABORT_PATTERNS: catch-all API Error:[^\\n]* must be absent (red until s02)"
+  - "add unknown API Error: weird → retryable False / unknown_failure not transient (red on catch-all)"
+  - "lock existing timeout / Stream idle / overloaded / rate-limit retryable True; KeyboardInterrupt fatal; model substitution permanent"
+  - "tests must invoke classify_abort / analyze_session_log / detect_abort_in_text, not assert yaml/tuple membership only (FR-014)"
+  - "do not yet delete catch-all or add _AUTH_BANNED_PATTERNS (s02); do not change loop retry (s03) or dirty glob (s04)"
+
+deletes: []
+
+out_of_scope:
+  - "delete catch-all + add _AUTH_BANNED_PATTERNS (s02)"
+  - "context_loop honor retryable=False second path (s03)"
+  - "filter_step_dirty yaml-without-step_id (s04)"
+  - "DSH _DSH_TRANSIENT / _DSH_PERMANENT 401 parity (s05)"
+  - "legacy-fallback-purge leftover tests (s06)"
+  - "ML classifier — Appetite cut_list"
+  - "rewrite all retry UX copy — Appetite cut_list"
+  - "Variant B event log — Appetite cut_list"
+  - "overlay 070 / identity 071 / load_session 072 / finish_qa 074"
+  - "full suite → QA"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-001 / TM-001 / TM-006 — blob API Error 401 All connections banned and
+      All connections banned without prefix: classify_abort/analyze_session_log
+      retryable is False; outcome not transient_abort. As-built classify=transient must FAIL.
+    verify: "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py -q --tb=line -k '401 or banned or classify_abort or permanent'"
+  - id: cp2
+    criterion: |
+      US-003 / TM-003 lock — timeout / Stream idle timeout / overloaded / rate-limit
+      still retryable True. KeyboardInterrupt and model substitution still False.
+    verify: "bin/pytest loop/tests/test_session_wrapper.py -q --tb=line -k 'idle_timeout or stalled or timeout or overloaded or KeyboardInterrupt or model_substitution'"
+  - id: cp3
+    criterion: |
+      US-005 / TM-002 red — catch-all API Error:[^\\n]* still in _TRANSIENT_ABORT_PATTERNS
+      until s02; test asserts it must be gone (red). FR-014: invoke classify, not tuple-exists.
+    verify: "rg -n 'API Error:\\[^\\\\n\\]\\*' harness/hooks/session_resilience.py"
+  - id: cp4
+    criterion: Independent Test is classify+analyze behavior (retryable/outcome), not pattern-in-tuple
+    verify: "rg -n 'retryable is False|All connections banned|API Error: weird|classify_abort' loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py"
+
+verify:
+  - "bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py -q --tb=line"
+tdd:
+  - "red: 401 banned classify_abort still transient on as-built catch-all"
+  - "green: s02 permanent patterns + catch-all delete"

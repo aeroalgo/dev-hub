@@ -1,0 +1,142 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: "Purge finish_reflect / find_reflection_artifact and obsolete ISS-002 tests"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Kind A cutover: finish_reflect and find_reflection_artifact gone from production
+  (loop/, harness/hooks/ excluding historical T-HUB-060 artifacts). No shim
+  finish_reflect = finish_qa. No ImportError-catch-continue. Tests that imported
+  finish_reflect rewritten to finish_qa BUGFIX/DONE (ISS-002). Historical 060 qa
+  yaml stays on disk — machine must not treat it as current pass. Outcome: CI rg 0
+  live imports; US-004.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - US-004
+    - SC-004
+    - AC+3
+    - AC−3
+    - TM-004
+    - NFR-2
+    - Product WHAT-5
+    - Product WHAT-6
+  nouns:
+    - finish_reflect
+    - find_reflection_artifact
+  layout_paths:
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/__init__.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+    - loop/tests/test_mb_finish_transaction.py
+  ac_quotes:
+    - "Purge finish_reflect function if still present; purge imports; rewrite harness/hooks/tests/test_mb_finish_*.py ISS-002 class."
+    - "Purge find_reflection_artifact or make it raise unused — delete."
+    - "Нет shim finish_reflect = finish_qa."
+    - "rg -n 'finish_reflect|find_reflection_artifact' loop/ harness/ --glob '!**/T-HUB-060/**' → 0 in production modules"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:57-58"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:93-97"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:105-106"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:211-215"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:228-229"
+
+context:
+  consumes:
+    - s01–s03 lifecycle gates
+    - plan sunset A finish_reflect / find_reflection_artifact
+    - as-built: no def finish_reflect in loop/mb_finish; test_no_finish_reflect lock exists
+  produces:
+    - zero live finish_reflect / find_reflection_artifact in loop/ harness/hooks production
+    - rewritten/deleted ISS-002 tests
+    - no ImportError catch continue
+    - lock test_no_finish_reflect expanded to harness/hooks (not only loop/mb_finish)
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#user-stories
+  files:
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/__init__.py
+    - loop/mb_finish/mcp_server.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_resolve.py
+    - loop/tests/test_mb_finish_transaction.py
+    - harness/hooks/tests/test_mb_finish_qa.py
+
+as_built:
+  - "loop/mb_finish has no def finish_reflect; test_mb_finish_transaction.test_no_finish_reflect scans loop/mb_finish/*.py only"
+  - "find_reflection_artifact: no def in loop/ harness/hooks as of DECOMPOSE scan — lock + leftover"
+  - "T-HUB-060 historical qa yaml / plan text may mention symbols — do not rewrite 060 IMPLEMENT (Appetite / Product WHAT-6)"
+  - "ImportError catch continue on missing reflect is sunset C if found"
+
+delta:
+  - "rg loop/ harness/hooks (exclude memory-bank T-HUB-060, archive): delete any remaining def/import/call finish_reflect / find_reflection_artifact"
+  - "rewrite tests that import those symbols to finish_qa next BUGFIX/DONE"
+  - "expand lock: production rg 0; forbid shim finish_reflect = finish_qa"
+  - "do not rewrite historical T-HUB-060 qa yaml bodies (Appetite cut)"
+  - "Kind I comments / mb-finish CLI in s05; leftover scan s06"
+
+deletes:
+  - "def finish_reflect / import finish_reflect in loop/ harness/hooks production"
+  - "def find_reflection_artifact / import find_reflection_artifact in production"
+  - "shim finish_reflect = finish_qa"
+  - "ImportError catch continue around missing reflect"
+  - "tests asserting finish_reflect exists / ISS-002 live import"
+
+out_of_scope:
+  - "rewrite T-HUB-060 IMPLEMENT / historical qa yaml — Appetite cut_list / FR-008"
+  - "overlay QA→REFLECT strings in .cursor/rules — follow_up T-HUB-070 (unless one-line in loop/harness blocks tests)"
+  - "Kind I comments + mb-finish reflect subcommand (s05)"
+  - "leftover inventory (s06)"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: reflect-finish-symbols
+  new_sot: finish_qa / finish_bugfix only
+  allow_read:
+    - "loop/mb_finish/**"
+    - "harness/hooks/epic/**"
+    - "harness/hooks/epic_resolve.py"
+    - "loop/tests/test_mb_finish_transaction.py"
+    - "harness/hooks/tests/test_mb_finish_*.py"
+  kind_hint:
+    - A
+    - C
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      US-004 / TM-004 / FR-005 — rg finish_reflect in loop/ harness/hooks production
+      (exclude memory-bank T-HUB-060) = 0 defs/imports/calls.
+    verify: "! rg -n 'def finish_reflect|from .* import finish_reflect|finish_reflect\\(' loop/ harness/hooks --glob '*.py' --glob '!**/T-HUB-060/**'"
+  - id: cp2
+    criterion: FR-006 — find_reflection_artifact gone (no def, no import)
+    verify: "! rg -n 'find_reflection_artifact' loop/ harness/hooks --glob '*.py' --glob '!**/T-HUB-060/**'"
+  - id: cp3
+    criterion: AC−3 — no shim finish_reflect = finish_qa; no ImportError catch continue
+    verify: "! rg -n 'finish_reflect\\s*=\\s*finish_qa' loop/mb_finish harness/hooks/epic --glob '*.py'"
+  - id: cp4
+    criterion: ISS-002 tests rewritten; test_no_finish_reflect still green / expanded
+    verify: "bin/pytest loop/tests/test_mb_finish_transaction.py harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k 'reflect or finish_qa or no_finish'"
+
+verify:
+  - "! rg -n 'def finish_reflect|find_reflection_artifact' loop/ harness/hooks --glob '*.py'"
+  - "bin/pytest loop/tests/test_mb_finish_transaction.py -q --tb=line -k reflect"
+tdd:
+  - "red if leftover import; green rg 0 + rewritten tests"

@@ -1,0 +1,212 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+slug: abort-classifier-dirty-halt
+date: 2026-09-06
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Remove re.compile(r\"(?i)API Error:[^\\n]*\") from _TRANSIENT_ABORT_PATTERNS. Kind I: tests that relied on catch-all for generic API Error → rewrite to UNKNOWN or specific pattern."
+  - requirement_id: FR-002
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "Add to _PERMANENT_FAILURE_PATTERNS (or dedicated NEED_HUMAN set consumed as non-retryable): (?i)API Error:\\s*401\\b ; (?i)\\b401\\b[^\\n]*banned ; (?i)All connections banned ; (?i)connections? banned ; existing auth_failed kept"
+  - requirement_id: FR-003
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "classify_abort / analyze_session order: permanent before transient. Unit test: string matching both API Error: and 401 is permanent."
+  - requirement_id: FR-004
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Audit context_loop.py / run_session retry: if analysis.retryable is False, no sleep+retry. If a second retry path ignores analysis — delete in-epic."
+  - requirement_id: FR-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "last-session.json records abort_kind, retryable: false, need_human: true (field names as-built schema; extra=forbid → use existing keys). Do not invent parallel marker file."
+  - requirement_id: FR-006
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "dirty_files collector: include globs under armed epic dir: **/*.md, **/*.yaml, **/*.yml relative to plan epic and implement/qa/bugfix dirs for epic_id. Exclude __pycache__, .venv. If collector currently hardcodes md/plan.md — delete that special case."
+  - requirement_id: FR-007
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Tests in harness/hooks/tests/ (session_resilience already has tests — extend, don't parallel module)."
+  - requirement_id: FR-008
+    step_ids: [s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "Kind I comments «API Error always transient» — delete."
+  - requirement_id: FR-009
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "DSH _DSH_TRANSIENT_PATTERNS must not reintroduce catch-all API Error. DSH permanent already has terminated/overloaded — keep; add 401/banned there too or share one pattern tuple (prefer shared constant _AUTH_BANNED_PATTERNS used by both)."
+  - requirement_id: FR-010
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "UNKNOWN API Error (e.g. API Error: weird) after catch-all removal → retryable False (safe default). Optional: log metric abort_unknown. Not TRANSIENT."
+  - requirement_id: FR-011
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Do not change DEFAULT_TRANSIENT_RETRY_MAX as the fix for 401 (that's treating symptom). If audit finds a second retry max of 8/30 that ignores classifier — sunset that constant in-epic."
+  - requirement_id: FR-012
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "KeyboardInterrupt remains FATAL, not retried."
+  - requirement_id: FR-013
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Model substitution remains permanent (already). Regression test stays."
+  - requirement_id: FR-014
+    step_ids: [s01, s02, s03]
+    status: covered
+    plan_text_verbatim: "Independent Test is behavior of classify + loop halt, not «pattern exists in tuple»."
+  - requirement_id: FR-015
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "FRONT/INTEG loops share session_resilience — one fix."
+  - requirement_id: SC-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "401 banned not retryable"
+  - requirement_id: SC-002
+    step_ids: [s01, s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "catch-all gone"
+  - requirement_id: SC-003
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "timeout still retryable"
+  - requirement_id: SC-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "dirty yaml listed"
+  - requirement_id: SC-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop does not retry permanent"
+  - requirement_id: US-001
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как operator, 401 banned не ретраится."
+  - requirement_id: US-002
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Как loop, постоянный аборт останавливает цикл, не плодя сессии."
+  - requirement_id: US-003
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Как dev, таймауты и временные перегрузки по-прежнему ретраятся."
+  - requirement_id: US-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "Как dev, dirty_files на abort видит незакоммиченные yaml-шаги эпика, а не только plan.md."
+  - requirement_id: US-005
+    step_ids: [s01, s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "Как CI, catch-all API Error отсутствует в source."
+  - requirement_id: AC+ #1
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "401/banned → not TRANSIENT."
+  - requirement_id: AC+ #2
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Catch-all API Error deleted."
+  - requirement_id: AC+ #3
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "Transient list still covers timeouts/overload."
+  - requirement_id: AC+ #4
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "dirty_files includes yaml steps."
+  - requirement_id: AC+ #5
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Loop honors retryable=False."
+  - requirement_id: AC- #1
+    step_ids: [s01, s02, s05, s06]
+    status: covered
+    plan_text_verbatim: "Нет catch-all API Error: в transient."
+  - requirement_id: AC- #2
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Нет «401 pattern after catch-all» dual."
+  - requirement_id: AC- #3
+    step_ids: [s03, s06]
+    status: covered
+    plan_text_verbatim: "Нет retry when retryable False."
+  - requirement_id: AC- #4
+    step_ids: [s04, s06]
+    status: covered
+    plan_text_verbatim: "Нет dirty_files = [plan.md] only."
+  - requirement_id: AC- #5
+    step_ids: [s02, s06]
+    status: covered
+    plan_text_verbatim: "Нет feature flag RETRY_401 default on."
+  - requirement_id: AC- #6
+    step_ids: [s03, s05, s06]
+    status: covered
+    plan_text_verbatim: "Нет второго classifier copy in context_loop that still catch-alls."
+  - requirement_id: NFR-1
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "Halt 401 in one session, not N"
+  - requirement_id: NFR-2
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "Classifier O(patterns × log size) unchanged order of magnitude"
+  - requirement_id: NFR-3
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "Kind I rg catch-all = 0"
+  - requirement_id: TM-001
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "401 banned not retryable"
+  - requirement_id: TM-002
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "catch-all absent"
+  - requirement_id: TM-003
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "timeout retryable"
+  - requirement_id: TM-004
+    step_ids: [s04]
+    status: covered
+    plan_text_verbatim: "dirty yaml listed"
+  - requirement_id: TM-005
+    step_ids: [s03]
+    status: covered
+    plan_text_verbatim: "loop does not retry permanent"
+  - requirement_id: TM-006
+    step_ids: [s05, s06]
+    status: covered
+    plan_text_verbatim: "DSH copy catch-all 401 on DSH retried"
+  - requirement_id: TM-007
+    step_ids: [s01, s02, s06]
+    status: covered
+    plan_text_verbatim: "unknown API Error transient storm"
+  - requirement_id: TM-008
+    step_ids: [s01, s02]
+    status: covered
+    plan_text_verbatim: "KeyboardInterrupt retried bad UX"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

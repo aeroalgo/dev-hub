@@ -5,7 +5,12 @@ import re
 from pathlib import Path
 from typing import Any
 
-from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
+from loop.runtime_adapters.base import (
+    AUTH_BANNED_PATTERNS,
+    RuntimeAdapter,
+    SessionAnalysis,
+    SessionContext,
+)
 
 
 _REQUESTED_MODEL_RE = re.compile(
@@ -133,7 +138,7 @@ _DSH_TRANSIENT_PATTERNS = (
     re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
 )
 
-_DSH_PERMANENT_PATTERNS = (
+_DSH_PERMANENT_PATTERNS = AUTH_BANNED_PATTERNS + (
     re.compile(r"(?i)API\s+Error:\s*terminated"),
     re.compile(r"(?i)API\s+Error:\s*overloaded"),
     re.compile(r"(?i)API\s+Error:.*rate.?limit"),

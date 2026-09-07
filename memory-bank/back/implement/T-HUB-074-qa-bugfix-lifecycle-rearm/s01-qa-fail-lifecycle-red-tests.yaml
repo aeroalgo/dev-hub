@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: s01 — Red tests — fail yaml ≠ DONE; reuse yaml; handoff escape; missing verdict
+  IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s01-qa-fail-lifecycle-red-tests.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added table-driven test in test_mb_finish_qa.py for verdict fail/blocked -> next_mode
+  BUGFIX
+- Added tests in test_mb_finish_qa.py for re-QA reuse of same fail yaml -> qa_new_artifact_required
+  and same session -> qa_new_session_required
+- Added test in test_mb_finish_qa.py ensuring missing verdict does not route to DONE
+- Added test in test_mb_finish_qa.py for reviewer lock on re-QA pass path
+- Added test in test_mb_finish_qa.py for 060-shaped fixture where prose 1942 passed
+  is not SoT
+- Added tests in loop/tests/test_qa_finish_handoff.py and harness/hooks/tests/test_mb_finish_handoff.py
+  asserting qa_fail_blocks_handoff on non-BUGFIX modes
+files:
+- harness/hooks/tests/test_mb_finish_qa.py
+- harness/hooks/tests/test_mb_finish_handoff.py
+- loop/tests/test_qa_finish_handoff.py
+- loop/tests/test_finish_bugfix.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_mb_finish_qa.py harness/hooks/tests/test_mb_finish_handoff.py
+  loop/tests/test_qa_finish_handoff.py loop/tests/test_finish_bugfix.py -q --tb=line`'
+integration_check:
+- bin/pytest harness/hooks/tests/test_mb_finish_qa.py loop/tests/test_qa_finish_handoff.py
+  loop/tests/test_finish_bugfix.py -q --tb=line
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'US-001 / TM-001 / SC-001 — qa yaml verdict fail|blocked + finish_qa:
+    next_mode BUGFIX, epic_done False, rendered mode not DONE, hint not EPIC_DONE.
+    Invoke finish_qa, not assert next_mode string in source only.'
+  status: done
+- id: cp2
+  criterion: 'US-002 / TM-002 / TM-005 / TM-008 — after finish_bugfix: same yaml →
+    qa_new_artifact_required; same session → qa_new_session_required; QaAfterBugfix
+    set. 060 leftover: bugfix prose not SoT.'
+  status: done
+- id: cp3
+  criterion: US-003 / TM-003 — finish_handoff DONE (and IMPLEMENT/QA) while latest
+    qa fail → ok False. As-built without gate must FAIL this test until s03.
+  status: done
+- id: cp4
+  criterion: FR-009 / TM-007 / FR-012 / TM-006 — missing verdict ≠ pass; qa_reviewer_required
+    still on re-QA. Independent Test is behavior, not field-exists.
+  status: done

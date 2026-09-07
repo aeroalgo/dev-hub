@@ -1,0 +1,50 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s05 — Finish validation distinguishes managed capability evidence from hub
+  tests IMPLEMENT
+status: in_progress
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s05-finish-managed-evidence-validation.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/hooks/epic_yaml.py
+- harness/hooks/epic_shard_extra.py
+- harness/hooks/tests_format.py
+- harness/hooks/test_run_canon.py
+- harness/hooks/tests/test_epic_yaml_capability_evidence.py
+- harness/hooks/tests/test_tests_format_managed_capabilities.py
+- loop/tests/test_finish_capability_evidence.py
+deletes:
+- harness/hooks/tests_format.py generic managed-project authority of is_allowed_test_command
+- harness/hooks/tests_format.py universal managed-evidence use of extract_test_commands_from_yaml_tests
+- harness/hooks/test_run_canon.py managed-target authority of ALLOWED_TEST_PREFIXES
+- harness/hooks/epic_yaml.py format_spec_lines assertion that loop executes all YAML
+  tests strings as shell commands
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'validate-step rejects a managed capability declaration with only tests:
+    or with missing/stale/wrong fingerprint evidence.'
+  status: pending
+- id: cp2
+  criterion: Matching evidence for every current declaration is accepted only when
+    role, epic, step, target and fingerprint agree.
+  status: pending
+- id: cp3
+  criterion: Existing hub tests fixtures remain valid and assert zero profile executor
+    calls.
+  status: pending
+- id: cp4
+  criterion: Legacy generic managed command authority has no live validation caller
+    after cutover.
+  status: pending
+resume_from: cp1

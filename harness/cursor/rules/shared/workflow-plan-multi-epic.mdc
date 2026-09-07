@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Когда грузить:** любой `* PLAN`, если вход — research / audit / большой spec / несколько приоритетов (P0…Pn) / ≥2 независимых subsystem.
 
-**Зачем:** один mega-plan режет детализацию и ломает §0.0 + контекст DECOMPOSE/IMPLEMENT. N полных `plan/<epic_id>/md/plan.md` + **один** `roadmap/queue.yaml` = норма.
+**Зачем:** один mega-plan режет детализацию и ломает §0.0 + контекст DECOMPOSE/IMPLEMENT. Каждый PLAN обязан иметь **один** канонический `roadmap/queue.yaml`; для N эпиков это N полных `plan/<epic_id>/md/plan.md` + N queue rows.
 
 ## Триггер (любой)
 
@@ -14,16 +14,17 @@ alwaysApply: false
 - В источнике явные полосы приоритета (`P0`…`Pn`) или независимые оси (разные деревья кода / разные cutover)
 - Объём research такой, что один plan не удержит exhaustive AC без урезания
 
-**Не триггер (один эпик OK):** узкий `T-xxx` уже в команде; пользователь явно «один эпик»; INTEG `scope=portal` **без** research-нарезки на продукты/journeys (канон — один master portal plan).
+**Не триггер split (один эпик OK):** узкий `T-xxx` уже в команде; пользователь явно «один эпик»; INTEG `scope=portal` **без** research-нарезки на продукты/journeys (канон — один master portal plan). Это отменяет только epic cut, но не отменяет обязательный queue row.
 
 ## HARD
 
 1. **FORBIDDEN:** весь research → один plan, если по критериям ниже нужны ≥2 эпика
 2. **FORBIDDEN:** урезать AC/детали «потому что plan большой» вместо split
-3. **REQUIRED:** сначала **epic cut** (таблица), потом **апсерт** в `roadmap/queue.yaml`, потом **полный** plan на каждый эпик (§0.0)
-4. **REQUIRED при ≥2 эпиках:** запись в `memory-bank/<role>/roadmap/queue.yaml` (`roadmap-queue/v2`). Без queue = FAIL
+3. **REQUIRED:** для каждого PLAN сначала апсерт в `roadmap/queue.yaml`, потом полный plan на каждый эпик (§0.0). При multi-epic перед апсертом обязателен **epic cut** (таблица).
+4. **REQUIRED для каждого PLAN:** запись в `memory-bank/<role>/roadmap/queue.yaml` (`roadmap-queue/v2`) с одной `queue[]` row и `batches.<slug>`. Без queue = FAIL; при ≥2 эпиках — по row на каждый эпик.
 5. Hygiene / мелкие хвосты (`P4`) — **внутри** ближайшего эпика или отдельный тонкий эпик
-6. Один чат PLAN дописывает `queue.yaml` (queue + `batches.<slug>`) + все plan dirs; **FORBIDDEN** создавать `plan/roadmap-*-epics.*` или roadmap `.md`. Next = `* DECOMPOSE` **первого** id из `queue`. Опционально `roadmap-merge` если нужно перенести done.
+6. Один чат PLAN дописывает `queue.yaml` (queue + `batches.<slug>`) + все plan dirs; **FORBIDDEN** создавать `plan/roadmap-*-epics.*` или roadmap `.md`. `roadmap-merge` обязателен в той же сессии после записи. Next = `* DECOMPOSE` **первого** id из `queue`.
+7. **Vertical-slice guard:** producer contract и его первый обязательный production consumer остаются одним эпиком. Их можно разделить только если producer честно ship-ready по собственному Done when без consumer либо пользователь явно выбрал `foundation_only` и follow-up уже находится в queue.
 
 ## Критерии нарезки (epic cut)
 
@@ -34,10 +35,10 @@ alwaysApply: false
 | 1 | Отдельная полоса приоритета в research (`P0` ≠ `P1` …) |
 | 2 | Другое дерево кода / runtime |
 | 3 | Другой тип риска |
-| 4 | Hard-dep: эпик B бессмысленен до A → разные ID + `deps` в queue |
+| 4 | Hard-dep: B бессмысленен до A **и A independently ship-ready без B** → разные ID + `deps` в queue. Producer + первый обязательный consumer одного outcome — не cut, а последовательные `sNN|eNN` одного эпика. |
 | 5 | Independent deliverable: можно QA/ship A без B |
 
-**Не** режь только «по файлам» или «по слоям» внутри одной фичи — это DECOMPOSE `sNN|eNN`.
+**Не** режь только «по файлам», «schema → resolver → executor → gate» или по слоям внутри одной пользовательской фичи — это DECOMPOSE `sNN|eNN`. Band шагов advisory: при полном vertical slice coverage важнее лимита 5–8.
 
 ## Артефакты
 
@@ -61,10 +62,10 @@ alwaysApply: false
 
 1. Прочитать research **целиком**
 2. Объявить: `MULTI-EPIC PLAN — N эпиков` + таблица cut
-3. Апсерт в `roadmap/queue.yaml`: новые `queue[]` rows + `batches.<slug>` (Edit или `roadmap_upsert_batch`)
+3. Апсерт в `roadmap/queue.yaml`: новая `queue[]` row (или rows) + `batches.<slug>` (Edit или `roadmap_upsert_batch`)
 4. Для **каждого** эпика — полный `plan/<epic_id>/md/plan.md` **и** `md/prompt.md` (файл начинается с `## Epic`; `## Covering` = один текст на всю нарезку; **весь** prompt без ID / без шапки Role·Deps / без путей чужих plan; не читать соседние plan)
 5. `tasks.md` append-only: ссылка на `roadmap/queue.yaml` + каждый эпик
-6. Опционально: `roadmap-merge --role <role>` (перенос done / topo)
+6. Обязательно: `roadmap-merge --role <role>` (перенос done / topo); `ok: false` → halt PLAN.
 7. FINISH: `load_now` → `roadmap/queue.yaml` + первый `plan/<epic_id>/md/plan.md` + `md/prompt.md`; Covering с ID эпиков → не закрывать; next = `* DECOMPOSE` first
 
 ## Chat vs files
@@ -74,11 +75,13 @@ alwaysApply: false
 
 ## FAIL
 
+- Для любого PLAN не создана queue row / не выполнен reconcile
 - Research с ≥2 критериями cut → создан только 1 plan
 - Создан `roadmap-*-epics.md` / `plan/roadmap-*` (legacy)
 - `queue.yaml` без `version: roadmap-queue/v2` / soft deps в `deps`
 - Нет полных plan dirs на каждый ID
 - Один plan «оглавление всех P0–P3» без детальных AC
+- Отдельные эпики producer и первого обязательного consumer, хотя producer не имеет независимого Done when и нет согласованного `foundation_only`
 - Нет `md/prompt.md` / нет `## Covering` / Covering разный между эпиками
 - Epic = copy-paste соседа / dump research / AC-нумерация plan
 - В `prompt.md` есть H1 `# Outcome prompt` / ID эпиков / шапка Role·Deps·Source / пути чужих plan

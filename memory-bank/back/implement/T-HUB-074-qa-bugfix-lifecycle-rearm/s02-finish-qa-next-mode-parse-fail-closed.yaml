@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: s02 — finish_qa next_mode BUGFIX-only; parse_qa_verdict missing ≠ pass; keep
+  qa_new_* and reviewer IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/yaml/steps/s02-finish-qa-next-mode-parse-fail-closed.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Eliminated fallback `if qa_art else 'pass'` in finish_qa; missing or unparseable
+  qa_verdict returns MbFinishResult(ok=False, diagnostic_codes=['qa_verdict_missing'])
+  fail-closed.
+- finish_qa routes verdict in {'fail', 'blocked'} to next_mode='BUGFIX' only, never
+  DONE or REFLECT.
+- Retained qa_new_session_required, qa_new_artifact_required, and qa_reviewer_required
+  re-arm lifecycle gates.
+- Verified no ALLOW_QA_FAIL_DONE exists and finish_qa is single SoT for all roles.
+files:
+- loop/mb_finish/impl.py
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_mb_finish_qa.py
+deletes:
+- 'loop/mb_finish/impl.py: `parse_qa_verdict(qa_art) if qa_art else "pass"`'
+- any ALLOW_QA_FAIL_DONE / finish_qa next_mode REFLECT
+tests:
+- bin/pytest harness/hooks/tests/test_mb_finish_qa.py loop/tests/test_finish_bugfix.py
+  -q --tb=line
+integration_check:
+- bin/pytest harness/hooks/tests/test_mb_finish_qa.py -q --tb=line -k 'fail or blocked
+  or BUGFIX'
+- '! rg -n ''if qa_art else "pass"'' loop/mb_finish/impl.py'
+- '! rg -n ''ALLOW_QA_FAIL_DONE|next_mode = "REFLECT"'' loop/mb_finish/impl.py'
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: FR-001 / US-001 — finish_qa fail|blocked → next_mode BUGFIX, epic_done
+    False, rendered mode BUGFIX, hint not EPIC_DONE, never REFLECT.
+  status: done
+- id: cp2
+  criterion: FR-009 / TM-007 — missing verdict ≠ pass; else "pass" gone; parse_qa_verdict
+    None does not DONE.
+  status: done
+- id: cp3
+  criterion: FR-002/004/012 — qa_new_session_required, qa_new_artifact_required, qa_reviewer_required
+    still live; finish_bugfix sets QaAfterBugfix.
+  status: done
+- id: cp4
+  criterion: FR-014 — no ALLOW_QA_FAIL_DONE; FR-015 one finish_qa for all roles
+  status: done
+resume_from: cp1

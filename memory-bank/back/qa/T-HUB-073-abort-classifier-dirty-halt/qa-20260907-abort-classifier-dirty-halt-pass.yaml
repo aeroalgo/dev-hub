@@ -1,0 +1,61 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-073-abort-classifier-dirty-halt
+date: 2026-09-07
+verdict: pass
+qa_lead: BACK QA
+status: complete
+
+summary:
+  total_tests: 2195
+  passed_tests: 2192
+  failed_tests: 0
+  skipped_tests: 3
+  suite_command: "bin/pytest -q --tb=line"
+
+suite_results:
+  command: "bin/pytest -q --tb=line"
+  exit_code: 0
+  passed: 2192
+  failed: 0
+  skipped: 3
+  warnings: 80
+
+reviewer:
+  verdict: PASS
+  agent_id: verify-qa
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+  - TM-007
+  - TM-008
+
+ac_verification:
+  - id: US-001 / TM-001
+    status: PASS
+    evidence: "AUTH_BANNED_PATTERNS matched 401/banned, classify_abort returns fatal (retryable=False)."
+  - id: US-002 / TM-005
+    status: PASS
+    evidence: "All connections banned triggers PERMANENT_FAILURE and halts loop without retrying."
+  - id: US-003 / TM-003
+    status: PASS
+    evidence: "Timeouts, rate-limits, overloaded patterns preserved in _TRANSIENT_ABORT_PATTERNS."
+  - id: US-004 / TM-004
+    status: PASS
+    evidence: "filter_step_dirty globs all yaml steps and index under memory-bank epic directories."
+  - id: US-005 / TM-002
+    status: PASS
+    evidence: "API Error:[^\\n]* catch-all removed from _TRANSIENT_ABORT_PATTERNS."
+  - id: AC-1
+    status: PASS
+    evidence: "Unmatched errors fail closed to UNKNOWN_FAILURE with retryable=False."
+  - id: AC-2
+    status: PASS
+    evidence: "No silent catch-all re-introduction."
+
+fix_plan: []

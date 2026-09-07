@@ -1,0 +1,87 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s01 — Red tests + strict ProjectManifest — schema, containment, vocabulary,
+  no unknown keys IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s01-schema-manifest-containment-red.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+- .agents/skills/python-configuration/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented Pydantic ProjectManifest, TargetSpec (Python/Rust/JS), CapabilityName,
+  DiagnosticCode, CapabilityResolution, CapabilityRequest with extra='forbid'
+- Added validate_workspace_containment using resolved Path.relative_to checks
+- Enforced 6 verify-first capabilities and selector rules on CapabilityRequest
+- Added comprehensive schema unit tests in loop/tests/test_stack_profiles_schema.py
+files:
+- loop/stack_profiles/__init__.py
+- loop/stack_profiles/schemas.py
+- loop/tests/test_stack_profiles_schema.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_stack_profiles_schema.py -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- '{''cp1'': ''PASS (13 tests in test_stack_profiles_schema.py)''}'
+- '{''cp2'': ''PASS (duplicate root, absolute/escape root containment tests)''}'
+- '{''cp3'': ''PASS (6 vocabulary keys, selector rules on CapabilityRequest)''}'
+- '{''cp4'': ''PASS (project_manifest_missing literal verified)''}'
+checkpoints:
+- id: cp1
+  criterion: 'TM-002 / FR-001 / NFR-2 — unknown key and malformed YAML fail extra=forbid
+    with
+
+    project_manifest_invalid; permitted keys only schema, workflow_pack, default_target,
+
+    targets.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'TM-003 / TM-004 / FR-002 / NFR-3 — duplicate name/root fail; absolute
+    or
+
+    escaping root fails target_root_unsafe using resolved Path (not prefix string);
+
+    two targets without default_target fail target_selection_required at load or resolve
+
+    helper.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'FR-006/007/008 — CapabilityName is exactly six keys; unknown/run/migrate/generate/deploy
+
+    fail capability_unknown; test.targeted requires nonempty selector; other keys
+
+    reject selector;
+
+    manifest cannot carry command/argv/shell/env/cwd/import/registry path.
+
+    '
+  status: done
+- id: cp4
+  criterion: 'TM-001 red until s02 load — missing root dev-hub.project.yaml is a typed
+
+    diagnostic
+
+    (project_manifest_missing), not recursive parent walk. Schema tests assert the
+
+    code exists.
+
+    '
+  status: done

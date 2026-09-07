@@ -25,12 +25,29 @@ alwaysApply: false
 | CLI / command X | entrypoint + runnable invoke |
 | preset / profile | реальный preset-файл + mapping, не только строка в yaml |
 | новый machine / API / session contract | артефакт контракта **+** call-site wire **+** deny старого SoT **+** rewrite инструкций (Kind I) |
+| capability для workflow / agent / parent | contract **+** обязательный production entrypoint, который её вызывает **+** success/failure gate; resolver/CLI-only недостаточны, если CLI не является заявленным outcome |
 
 **HARD:**
 
-1. `covered` / Outcome «закрыто» **только если** каждый noun ∈ `produces` или `files` закрывающего `sNN|eNN` **или** явный `out_of_scope` + follow-up epic **уже в** `roadmap-*.queue.yaml`.
+1. `covered` / Outcome «закрыто» **только если** каждый noun ∈ `produces` или `files` закрывающего `sNN|eNN`. Исключение — только явно классифицированный `foundation_only`: пользователь согласовал отсутствие production integration, follow-up epic ID уже есть в `roadmap-*.queue.yaml`, а plan/prompt не обещают capability workflow/agent/operator.
 2. `delta` закрывающего шага = **наблюдаемое поведение** (parent/loop/operator), не «добавить поле в registry».
 3. **FORBIDDEN dilution:** FR про runtime → step только metadata/lookup/alias без surfaces из таблицы.
+
+### Delivery closure для runtime capability (HARD)
+
+По умолчанию новая capability, API, tool или machine boundary — `vertical_slice`: она должна работать через тот production entrypoint, ради которого появилась, в **том же эпике**. В PLAN до HOW зафиксируй для каждой P0/P1 runtime capability:
+
+| Поле | Что указать |
+|---|---|
+| Classification | `vertical_slice` или редкое `foundation_only` |
+| Promised outcome | Кто и какое действие получает; нельзя подменять «workflow выполняет check» на «resolver возвращает argv» |
+| Production entrypoint and caller | Конкретный hot path, который вызывает новый contract; CLI достаточен только если CLI — обещанный outcome |
+| Success and failure enforcement | Что продолжает success path и что делает DENY/HALT при invalid/failed result |
+| Independent outcome test | Given/When/Then через entrypoint, подтверждающий success и failure без fallback |
+
+`foundation_only` допустим только при явном решении пользователя в clarify/plan. Он обязан иметь уже созданный follow-up ID в queue и не может завершать заявленную пользовательскую capability. Нельзя после PLAN создать follow-up задним числом, чтобы легализовать completed producer.
+
+**FAIL:** resolver, schema, registry или JSON CLI готовы, но production workflow/agent/parent всё ещё не вызывает их; plan называет это «workflow support» или «consumer integration»; follow-up отсутствует в queue; capability завершается фразой «agent may call the tool».
 
 **FAIL examples (dilution):**
 - FR «agent X» → produces только registry row + `get_x()` без файла агента / без enforce spawn
@@ -63,7 +80,7 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 
 ## 3. Wire-complete ladder (анти-минимализм) — HARD
 
-Для FR про machine boundary / API / tool / смену контракта границы **done = четыре слоя в одном эпике** (пропуск слоя только с `out_of_scope` + follow-up **epic ID уже в** `roadmap-*.queue.yaml`):
+Для FR про machine boundary / API / tool / смену контракта границы **done = четыре слоя в одном vertical-slice эпике**. `foundation_only` — единственное исключение: оно требует явного согласия пользователя и follow-up **epic ID уже в** `roadmap-*.queue.yaml` до FINISH PLAN.
 
 **Inventory & replace gate:** parent не читает as-built as template (защита от process contamination) — parent spawns `@sunset-inventory` → получает structured JSON `loop-sunset-inventory/v1` → проектирует SoT по marks/inventory, а не по тексту as-built.
 
@@ -85,6 +102,7 @@ Surrogate unit (string equality / field present) **может** быть cp1; д
 - «создал модуль/CLI, вызов optional»
 - «новый путь first, старый if missing» после EPIC_DONE
 - «агент *может* вызвать tool» без «агент *обязан* / runtime *блокирует* иначе»
+- «resolver/CLI существует» вместо production caller для обещанной workflow capability
 - AC+ = «import ok» / «CLI --help» / «файл существует»
 - migration / strictness flag **default off** после эпика без follow-up ID в queue
 
@@ -190,6 +208,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 - **FAIL:** «alias works» · «get_* returns string» · «field in yaml» · «unit green» · «module imports» · «CLI exists»
 - **OK:** «runtime surface существует + discover; enforce-путь требует новый контракт; **старый SoT → DENY/HALT**»
+- Для `vertical_slice`: Given/When/Then проходит через заявленный production entrypoint, доказывает success и доказывает DENY/HALT без fallback.
 
 ---
 
@@ -199,6 +218,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 - suite green **недостаточен** для `verdict: pass`
 - REQUIRED smoke (parent): path exists · registry discover · один enforce-path (`rg` / targeted test) что runtime зовёт нужную поверхность **и** старый SoT не принимается
+- Для `vertical_slice`: smoke обязан вызвать production entrypoint, а не resolver/CLI напрямую; PASS требует evidence success и failure/HALT.
 - При brownfield replace: **`sot_enforce_scan`** — см. @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
 - PASS при «N unit tests green» и мёртвом FR = **FAIL process**
 - Reflection/QA текст «полностью удалён X» при живых `rg` hits = **FAIL honesty**
@@ -213,7 +233,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 
 ```yaml
 wire_complete:
-  call_sites: []          # hot paths, которые зовут новый SoT
+  call_sites: []          # непустые hot paths, которые зовут новый SoT; CLI alone только если это outcome
   enforce_path: ""        # hook/CLI/test: DENY/HALT старого
   dual_path_rg: ""        # command; expect 0 hits old SoT в prod scope
   instruction_rg: ""      # command; expect 0 hits старых инструкций (Kind I scope)

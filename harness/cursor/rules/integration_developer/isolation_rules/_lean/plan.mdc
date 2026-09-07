@@ -4,9 +4,9 @@ alwaysApply: false
 ---
 # INTEG PLAN — gates
 
-**Артефакт:** `memory-bank/integration/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)  
+**Артефакт:** `memory-bank/integration/roadmap/queue.yaml` (одна row на каждый PLAN) + `memory-bank/integration/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)
 **Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc  
-**Multi-epic:** research multi-axis → апсерт `memory-bank/integration/roadmap/queue.yaml` + N× plan; **FORBIDDEN** slug roadmap в `plan/`; next = DECOMPOSE  
+**Multi-epic:** research multi-axis → epic cut + N rows в `memory-bank/integration/roadmap/queue.yaml` + N× plan; single-epic также обязан иметь одну row; **FORBIDDEN** slug roadmap в `plan/`; next = DECOMPOSE
 **SUSPENSION GUARD** §0.0 — plan unlimited; portal `wc -l` ≥ 400 или FAIL (на **каждый** portal-scope plan)
 
 ## Gates
@@ -17,9 +17,9 @@ alwaysApply: false
 3. §0.11; mocks в Element registry; brownfield replace mock/legacy → `## Replacement / sunset` **A+B+C** (DECOMPOSE → `deletes` + purge). Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
 4. Plan: все секции @.cursor/templates/integration-plan.md; Rollout без status-checkboxes; research multi-axis → не один mega-plan
 5. `contracts/` не обязателен
-6. `tasks.md` append-only (roadmap + `.queue.yaml` + каждый эпик при multi-epic)
+6. Сначала queue row/reconcile, затем `tasks.md` append-only (roadmap + каждый эпик)
 7. После DECOMPOSE: plan → index; нет дубль eNN-чеклиста
-8. Multi-epic FAIL: ≥2 независимых wire-осей в research и только 1 plan → halt; ≥2 эпика без `roadmap/queue.yaml` или без per-epic `md/prompt.md` → halt; в `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
+8. Queue FAIL: нет row/reconcile для любого PLAN → halt; multi-epic с ≥2 независимыми wire-осями и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть ID эпиков / шапка Role·Deps / пути чужих plan → halt
 
 ## Abort
 

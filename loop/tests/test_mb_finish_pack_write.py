@@ -60,7 +60,15 @@ def test_mb_finish_software_pack_writes_active_context(tmp_path: Path):
 
 def test_mb_finish_video_pack_writes_active_context(tmp_path: Path):
     """cp2: mb_finish для video pack -> пишет в memory-bank/video/activeContext.md."""
-    (tmp_path / "project.yaml").write_text("workflow_pack: dev-hub-video\n", encoding="utf-8")
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: dev-hub-video\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
     video_pack = WorkflowPack(
         id="dev-hub-video",
         roles=["video", "audio"],

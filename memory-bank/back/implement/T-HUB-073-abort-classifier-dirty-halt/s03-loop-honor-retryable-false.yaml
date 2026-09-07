@@ -1,0 +1,81 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s03 — Wire+enforce loop — retryable False halts; no second retry path; last-session
+  records abort IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s03-loop-honor-retryable-false.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-resilience/SKILL.md
+discovery:
+- record_abort and loop.sh honor analysis.retryable is False and halt immediately
+- last-session.json uses as-built keys abort_kind and retryable
+- no duplicate classifier or catch-all in context_loop.py
+- classify_abort explicitly returns transient for exit_code 124 (timeout)
+gaps:
+  status: none
+done:
+- Added test_record_abort_401_banned_is_permanent_not_retryable_halt verifying one
+  attempt and halt on 401 banned
+- Verified last-session.json contains abort_kind and retryable false without inventing
+  extra keys
+- Verified classify_abort and analyze_session_log handle exit_code 124 timeout as
+  transient and 401 banned as permanent fatal
+- Confirmed zero catch-all duplicate classifiers in context_loop.py
+files:
+- loop/context_loop.py
+- loop/tests/test_context_loop.py
+- harness/hooks/session_resilience.py
+deletes:
+- any second retry path in loop/context_loop.py or loop runner that retries when analysis.retryable
+  is False
+- duplicate API Error catch-all classifier copy in context_loop.py if present
+tests:
+- bin/pytest loop/tests/test_context_loop.py -q --tb=line -k 'record_abort or retryable
+  or halt or banned or permanent'
+integration_check:
+- session resilience classifier hooks integrate cleanly with context_loop.record_abort
+  and loop.sh
+grep_control: []
+verification_results:
+- test_record_abort_401_banned_is_permanent_not_retryable_halt PASSED
+- test_record_abort_timeout_is_transient PASSED
+- test_record_abort_resyncs_armed_step_on_retryable_abort PASSED
+- test_record_abort_unknown_nonzero_is_fatal PASSED
+checkpoints:
+- id: cp1
+  criterion: 'US-002 / FR-004 / TM-005 / NFR-1 — loop fixture 401/banned: record_abort
+
+    retryable False, halted True; no sleep+retry; one attempt. Independent Test
+
+    is loop halt behavior, not pattern-in-tuple.
+
+    '
+  status: done
+  done_at: '2026-09-06T20:01:44Z'
+- id: cp2
+  criterion: 'FR-005 — last-session.json on abort writes abort_kind and retryable
+    false
+
+    using as-built keys (no invented need_human file).
+
+    '
+  status: done
+  done_at: '2026-09-06T20:01:45Z'
+- id: cp3
+  criterion: 'AC−6 / FR-015 — no second classifier catch-all in context_loop; no retry
+    when
+
+    retryable False. FR-011 — DEFAULT_TRANSIENT_RETRY_MAX not used as 401 fix.
+
+    '
+  status: done
+  done_at: '2026-09-06T20:01:45Z'
+resume_from: cp1

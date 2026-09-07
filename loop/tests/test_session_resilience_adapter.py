@@ -70,3 +70,43 @@ def test_session_resilience_delegates_to_adapter_not_is_dsh(tmp_path: Path):
     assert analysis["abort_kind"] == "transient"
     assert analysis["reason"] is not None
     assert "dsh_transient" in analysis["reason"]
+
+
+@pytest.mark.parametrize(
+    "log_content,expected_abort_kind,expected_outcome",
+    [
+        (
+            'API Error: 401 {"error":{"message":"All connections banned"}}\n',
+            "fatal",
+            "permanent_failure",
+        ),
+        (
+            "All connections banned\n",
+            "fatal",
+            "permanent_failure",
+        ),
+        (
+            "API Error: 401 Unauthorized\n",
+            "fatal",
+            "permanent_failure",
+        ),
+        (
+            "API Error: weird unknown error\n",
+            "fatal",
+            "unknown_failure",
+        ),
+    ],
+)
+def test_banned_and_401_and_unknown_api_errors_not_retryable(
+    tmp_path: Path, log_content: str, expected_abort_kind: str, expected_outcome: str
+):
+    log_file = tmp_path / "session.log"
+    log_file.write_text(log_content, encoding="utf-8")
+
+    analysis = analyze_session_log(log_file, exit_code=1, runtime="claude")
+
+    assert analysis["retryable"] is False
+    assert analysis["outcome"] == expected_outcome
+    assert analysis["outcome"] != "transient_abort"
+    assert analysis["abort_kind"] == expected_abort_kind
+

@@ -46,7 +46,7 @@ def test_all_flags_off_zero_llm_calls():
 
         assert res_handoff == ""
         assert res_verdict is None
-        assert res_abort == "transient"
+        assert res_abort == "fatal"
         mock_agent_builder.assert_not_called()
 
 

@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s02 — Bundled registry + pure Python/Rust/JS resolver — argv/cwd, JS lockfile,
+  target selection IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s02-bundled-registry-pure-resolver.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created immutable bundled registry YAML (loop/stack_profiles/registry.yaml) with
+  exactly python, rust, javascript
+- Created registry loader with Pydantic validation (loop/stack_profiles/registry.py)
+- Created pure capability resolver (loop/stack_profiles/resolver.py) supporting target
+  selection, root containment, JS lockfile discovery, exact argv generation
+- Created comprehensive unit test suite (loop/tests/test_stack_profiles_resolver.py)
+files:
+- loop/stack_profiles/registry.yaml
+- loop/stack_profiles/registry.py
+- loop/stack_profiles/resolver.py
+- loop/stack_profiles/schemas.py
+- loop/tests/test_stack_profiles_resolver.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profiles_resolver.py loop/tests/test_stack_profiles_schema.py
+  -q --tb=line
+integration_check:
+- 'Grep/Callers: resolve_capability exposed with pure deterministic execution without
+  shell/exec/network'
+grep_control: []
+verification_results:
+- 18 passed in 0.18s
+checkpoints:
+- id: cp1
+  criterion: US-001 / TM-006 / Independent Test — rust target test.full returns argv=['cargo','test','--all-targets'],
+    cwd=workspace/services/api, profile=rust
+  status: done
+- id: cp2
+  criterion: US-002 / TM-005 / TM-009 / FR-008/009 — Python all six exact argv; test.targeted
+    selector remains one argv atom; other keys reject selector
+  status: done
+- id: cp3
+  criterion: US-003 / TM-007 / TM-008 / FR-010 — JS one lockfile each → exact manager
+    run labels; zero/two locks without override → js_package_manager_missing|ambiguous
+    and argv []; explicit supported package_manager succeeds
+  status: done
+- id: cp4
+  criterion: 'US-004 / TM-001/003/004 / FR-003/013 / Independent Test negatives —
+    missing manifest, two targets no default, root escape: distinct codes, empty argv'
+  status: done

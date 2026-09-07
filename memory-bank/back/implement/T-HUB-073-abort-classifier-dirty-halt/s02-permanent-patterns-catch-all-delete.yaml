@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s02 — Delete catch-all API Error; add shared _AUTH_BANNED_PATTERNS; permanent
+  before transient IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s02-permanent-patterns-catch-all-delete.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Added _AUTH_BANNED_PATTERNS covering 401 and banned variations and composed into
+  _PERMANENT_FAILURE_PATTERNS
+- Deleted catch-all API Error:[^\n]* pattern from _TRANSIENT_ABORT_PATTERNS
+- Updated classify_abort and analyze_session_log to check permanent before transient,
+  routing unknown API errors to UNKNOWN_FAILURE retryable False
+files:
+- harness/hooks/session_resilience.py
+- loop/tests/test_session_resilience_adapter.py
+- loop/tests/test_session_wrapper.py
+deletes:
+- harness/hooks/session_resilience.py::_TRANSIENT_ABORT_PATTERNS catch-all r"(?i)API
+  Error:[^\n]*"
+- comments / Kind I 'API Error always transient' in session_resilience.py if present
+  (FR-008; remainder s05/s06)
+tests:
+- '`bin/pytest loop/tests/test_session_resilience_adapter.py loop/tests/test_session_wrapper.py
+  -q --tb=line`'
+integration_check:
+- Classification behavior matches FR-001..FR-003, FR-008, FR-010, FR-011, FR-014 contracts
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: FR-001 / US-005 / TM-002 / AC−1 — catch-all API Error:[^\n]* gone from
+    session_resilience.py _TRANSIENT_ABORT_PATTERNS. rg = 0. Dual 401-after-catch-all
+    forbidden.
+  status: done
+- id: cp2
+  criterion: FR-002/003 / US-001 / TM-001/006 — 401 banned and All connections banned
+    (with or without API Error prefix) → classify_abort fatal; analyze_session_log
+    retryable False; outcome permanent_failure not transient_abort.
+  status: done
+- id: cp3
+  criterion: 'FR-010 / TM-007 / AC−5 — API Error: weird → UNKNOWN_FAILURE retryable
+    False, not TRANSIENT. US-003 / TM-003 — timeout/idle/overloaded still retryable
+    True. No RETRY_401 flag.'
+  status: done
+- id: cp4
+  criterion: _AUTH_BANNED_PATTERNS exists and is consumed by permanent list (shared,
+    not copy-paste only in comments)
+  status: done
+resume_from: cp4

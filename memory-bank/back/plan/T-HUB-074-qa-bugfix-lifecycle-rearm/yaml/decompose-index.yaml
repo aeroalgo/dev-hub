@@ -1,0 +1,43 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+  - requeue T-HUB-060
+  - rewrite historical qa yaml bodies
+  - auto-open BUGFIX from audit docs
+steps:
+- id: s01
+  file: s01-qa-fail-lifecycle-red-tests.yaml
+  title: Red tests — fail yaml ≠ DONE; reuse yaml; handoff escape; missing verdict
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-finish-qa-next-mode-parse-fail-closed.yaml
+  title: finish_qa next_mode BUGFIX-only; parse_qa_verdict missing ≠ pass; keep qa_new_*
+    and reviewer
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-handoff-roadmap-qa-fail-blocks.yaml
+  title: Wire+enforce finish_handoff qa_fail_blocks_handoff; roadmap_advance qa_fail_blocks_advance
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-purge-finish-reflect-symbols.yaml
+  title: Purge finish_reflect / find_reflection_artifact and obsolete ISS-002 tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-kind-i-mb-finish-reflect-entrypoint.yaml
+  title: Kind I comments + Kind B mb-finish reflect subcommand/MCP gone
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — DONE-on-fail / reflect / handoff-escape leftovers
+    A+B+C+I
+  next_phase: BACK IMPLEMENT
+  status: completed

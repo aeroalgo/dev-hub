@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: Finish validation distinguishes managed capability evidence from hub tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Completion proof becomes fail-closed and unambiguous. A managed-project implement step
+  cannot pass using a raw tests string, copied sidecar or Python hub command, while a hub
+  step remains independently valid through its explicit hub-test contract and never invokes
+  the profile executor.
+
+plan_contract:
+  fr_ids: [FR-006, FR-008]
+  nouns:
+    - validate-step
+    - managed-project evidence
+    - declaration fingerprint
+    - hub test canon
+    - capability_evidence_missing_or_mismatch
+  layout_paths:
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/tests_format.py
+    - harness/hooks/test_run_canon.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+    - harness/hooks/tests/test_tests_format_managed_capabilities.py
+  ac_quotes:
+    - "A managed declaration proven only by tests: is rejected; matching typed evidence is mandatory."
+    - "Existing hub fixtures remain accepted and verify zero profile-executor calls."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:107-161"
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:307-345"
+
+context:
+  consumes:
+    - s01 strict capability_checks declaration and fingerprint
+    - s03 typed evidence sidecar read/match boundary
+    - s04 check-after production evidence behavior
+    - harness/hooks/epic_yaml.py and tests_format.py existing finish/test evidence validation
+  produces:
+    - managed evidence validator matched to current declaration fingerprint
+    - explicit hub-only tests branch retaining current hub runner contract
+    - fail-closed finish diagnostic for absent, stale or raw-command substituted proof
+  plan_refs:
+    - FR-006
+    - FR-008
+    - US-004
+    - TM-007
+    - TM-008
+    - TM-009
+  files:
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic_shard_extra.py
+    - harness/hooks/tests_format.py
+    - harness/hooks/test_run_canon.py
+    - harness/hooks/tests/test_epic_yaml_capability_evidence.py
+    - harness/hooks/tests/test_tests_format_managed_capabilities.py
+    - loop/tests/test_finish_capability_evidence.py
+
+as_built:
+  - harness/hooks/tests_format.py and test_run_canon.py treat command prefixes as generic workflow test evidence authority.
+  - harness/hooks/epic_yaml.py validates tests entries but cannot require sidecar identity for a managed declaration.
+  - Hub test fixtures must remain usable without a manifest or profile executor call.
+
+delta:
+  - Detect managed capability declarations in decompose/implement validation and require typed evidence for each current fingerprint before validation or finish accepts proof.
+  - Preserve a separate explicit hub branch for hub tests; narrow its command validation to hub work and prevent it from inferring a managed target or calling the executor.
+  - Reject raw tests-only proof, stale sidecars and evidence bound to a different role, epic, step, target or declaration with capability_evidence_missing_or_mismatch.
+  - Rewrite fixture expectations around the new distinction without deleting coverage for the existing hub test-format behavior.
+
+deletes:
+  - harness/hooks/tests_format.py generic managed-project authority of is_allowed_test_command
+  - harness/hooks/tests_format.py universal managed-evidence use of extract_test_commands_from_yaml_tests
+  - harness/hooks/test_run_canon.py managed-target authority of ALLOWED_TEST_PREFIXES
+  - harness/hooks/epic_yaml.py format_spec_lines assertion that loop executes all YAML tests strings as shell commands
+
+out_of_scope:
+  - Broad instruction-surface purge is s06 so the machine validator is complete before prose changes.
+  - The resolve CLI remains a read-only operation and is not removed.
+  - Hub test runner behavior is not migrated to a managed profile.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "validate-step rejects a managed capability declaration with only tests: or with missing/stale/wrong fingerprint evidence."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py loop/tests/test_finish_capability_evidence.py -q --tb=line -k 'missing or mismatch or raw'"
+  - id: cp2
+    criterion: "Matching evidence for every current declaration is accepted only when role, epic, step, target and fingerprint agree."
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py loop/tests/test_finish_capability_evidence.py -q --tb=line -k matching"
+  - id: cp3
+    criterion: "Existing hub tests fixtures remain valid and assert zero profile executor calls."
+    verify: "bin/pytest harness/hooks/tests/test_tests_format_managed_capabilities.py loop/tests/test_stack_profiles_integration.py -q --tb=line -k hub"
+  - id: cp4
+    criterion: "Legacy generic managed command authority has no live validation caller after cutover."
+    verify: "rg -n 'is_allowed_test_command|extract_test_commands_from_yaml_tests|ALLOWED_TEST_PREFIXES' harness/hooks --glob '*.py'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_tests_format_managed_capabilities.py loop/tests/test_finish_capability_evidence.py -q --tb=line"
+
+tdd:
+  - test_managed_capability_requires_matching_evidence
+  - test_managed_capability_rejects_tests_only_proof
+  - test_managed_capability_rejects_stale_or_foreign_evidence
+  - test_hub_test_fixture_remains_valid_without_executor
+  - test_generic_command_canon_is_not_managed_target_authority

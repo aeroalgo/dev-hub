@@ -260,8 +260,16 @@ def test_session_start_pack_inject_fail_safe(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setenv("EPIC_LOOP", "1")
     save_epic_state(tmp_path, {"active": True, "status": "running", "armed_epic": "T-HUB-049"})
 
-    # Broken project.yaml specifying non-existent pack
-    (tmp_path / "project.yaml").write_text("workflow_pack: non-existent-pack\n", encoding="utf-8")
+    # Broken dev-hub.project.yaml specifying non-existent pack
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: non-existent-pack\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     payload = session_start_payload(tmp_path)
     assert payload is not None
@@ -388,8 +396,16 @@ def test_gates_from_phase_auto_resolve(tmp_path: Path, monkeypatch: pytest.Monke
 
     monkeypatch.setattr(wf_reg, "load_registry", lambda hub_root=None: MockPackRegistry())
 
-    # project.yaml specifies pack
-    (tmp_path / "project.yaml").write_text("workflow_pack: custom-pack\n", encoding="utf-8")
+    # dev-hub.project.yaml specifies pack
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: custom-pack\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     gates = gates_from_phase("IMPLEMENT", cwd=tmp_path)
     assert gates["mode"] == "custom-mode"

@@ -1,0 +1,287 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-073-abort-classifier-dirty-halt
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+date: 2026-09-06
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Abort classifier не ретраит auth/policy bans как TRANSIENT. 401 / All connections banned / org-banned API keys -> NEED_HUMAN / PERMANENT_FAILURE / halt, не 8 пустых DECOMPOSE-циклов. Catch-all API Error:[^\\n]* удалить. dirty_files на abort/resume включает yaml tree / steps / index, не только plan.md."
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 25
+  fr_satisfied: 25
+  sc_checked: 5
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: US-001
+    status: satisfied
+    evidence: "classify_abort('API Error: 401 ... banned') and analyze_session_log return retryable=False and outcome=permanent_failure."
+    remaining_work: ""
+  - source_ref: US-002
+    status: satisfied
+    evidence: "context_loop.py record_abort halts on All connections banned and non-retryable errors in a single attempt without loops."
+    remaining_work: ""
+  - source_ref: US-003
+    status: satisfied
+    evidence: "Session timeouts, stream idle timeouts, and overloaded responses retain retryable=True."
+    remaining_work: ""
+  - source_ref: US-004
+    status: satisfied
+    evidence: "filter_step_dirty and dirty_resume_prompt_lines surface dirty s03-*.yaml and other yaml files even when plan.md is clean."
+    remaining_work: ""
+  - source_ref: US-005
+    status: satisfied
+    evidence: "rg check for API Error:[^\\n]* in harness/hooks/session_resilience.py returns 0 matches."
+    remaining_work: ""
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "Deleted catch-all re.compile(r\"(?i)API Error:[^\\n]*\") from _TRANSIENT_ABORT_PATTERNS in harness/hooks/session_resilience.py. rg check returns 0 hits."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "AUTH_BANNED_PATTERNS defined in loop/runtime_adapters/base.py covering 401 and banned patterns; consumed by _PERMANENT_FAILURE_PATTERNS in harness/hooks/session_resilience.py."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "classify_abort and analyze_session_log check permanent failure patterns before transient; string matching API Error and 401 classified as fatal/permanent_failure."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "loop/context_loop.py record_abort halts on analysis.retryable is False; no secondary retry loop exists."
+    remaining_work: ""
+  - source_ref: FR-005
+    status: satisfied
+    evidence: "write_last_session in harness/hooks/session_resilience.py and record_abort in loop/context_loop.py write abort_kind, retryable false, and outcome using as-built schema."
+    remaining_work: ""
+  - source_ref: FR-006
+    status: satisfied
+    evidence: "filter_step_dirty in harness/hooks/session_resilience.py keeps all .md, .yaml, .yml files under memory-bank/ for the armed epic; excludes __pycache__ and .venv."
+    remaining_work: ""
+  - source_ref: FR-007
+    status: satisfied
+    evidence: "Unit and regression tests extended in loop/tests/test_session_resilience_adapter.py, test_session_wrapper.py, test_context_loop.py, and test_filter_step_dirty.py."
+    remaining_work: ""
+  - source_ref: FR-008
+    status: satisfied
+    evidence: "Kind I comments claiming API Error is always transient purged across harness/hooks and loop adapters."
+    remaining_work: ""
+  - source_ref: FR-009
+    status: satisfied
+    evidence: "_DSH_PERMANENT_PATTERNS consumes AUTH_BANNED_PATTERNS in harness/hooks/session_resilience.py; _DSH_TRANSIENT_PATTERNS does not contain catch-all API Error."
+    remaining_work: ""
+  - source_ref: FR-010
+    status: satisfied
+    evidence: "classify_abort routes unmatched API Error strings (e.g. 'API Error: weird') to fatal/UNKNOWN_FAILURE with retryable=False."
+    remaining_work: ""
+  - source_ref: FR-011
+    status: satisfied
+    evidence: "DEFAULT_TRANSIENT_RETRY_MAX untouched as 401 fix; no secondary retry counter ignoring classifier."
+    remaining_work: ""
+  - source_ref: FR-012
+    status: satisfied
+    evidence: "KeyboardInterrupt kept in _FATAL_ABORT_PATTERNS and exit_code 130/143 handled as fatal/SIGNAL (not retryable)."
+    remaining_work: ""
+  - source_ref: FR-013
+    status: satisfied
+    evidence: "MODEL_SUBSTITUTION_EXIT (125) and model restricted patterns remain fatal/PERMANENT_FAILURE."
+    remaining_work: ""
+  - source_ref: FR-014
+    status: satisfied
+    evidence: "Behavioral testing in loop/tests asserts classify_abort and analyze_session_log return retryable=False and outcome=permanent_failure."
+    remaining_work: ""
+  - source_ref: FR-015
+    status: satisfied
+    evidence: "Session resilience hooks and runtime adapters shared across all roles/loops."
+    remaining_work: ""
+  - source_ref: SC-001
+    status: satisfied
+    evidence: "401 and banned errors classified as fatal and non-retryable by classify_abort and analyze_session_log."
+    remaining_work: ""
+  - source_ref: SC-002
+    status: satisfied
+    evidence: "Catch-all API Error regex completely purged from transient patterns in session_resilience and dsh adapters."
+    remaining_work: ""
+  - source_ref: SC-003
+    status: satisfied
+    evidence: "Session timeout exit_code 124 and stream idle timeout maintain retryable=True behavior."
+    remaining_work: ""
+  - source_ref: SC-004
+    status: satisfied
+    evidence: "filter_step_dirty includes yaml step files for the active epic even with clean plan.md."
+    remaining_work: ""
+  - source_ref: SC-005
+    status: satisfied
+    evidence: "context_loop record_abort immediately halts without retries on permanent failures."
+    remaining_work: ""
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: "Zero occurrences of catch-all API Error:[^\\n]* in _TRANSIENT_ABORT_PATTERNS across codebase."
+    remaining_work: ""
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: "No dual 401 pattern placed after catch-all; permanent checks executed strictly before transient."
+    remaining_work: ""
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: "Loop halts on retryable=False with 0 subsequent retry attempts."
+    remaining_work: ""
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: "filter_step_dirty collects all epic yaml/md/yml files instead of plan.md-only list."
+    remaining_work: ""
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: "Unmatched/weird API Error strings classified as UNKNOWN_FAILURE with retryable=False."
+    remaining_work: ""
+  - source_ref: AC-:6
+    status: satisfied
+    evidence: "No duplicate catch-all classifier in context_loop.py or runtime adapters."
+    remaining_work: ""
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: "Atomic step execution verified across s01-s06 shards."
+    remaining_work: ""
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: "Single checkpoint tracking and resume discipline maintained."
+    remaining_work: ""
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: "Fail-closed validation enforced on all step boundaries."
+    remaining_work: ""
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: "Single source of truth architecture respected without duplicate definitions."
+    remaining_work: ""
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: "Zero mock fallbacks in core session resilience and abort classification."
+    remaining_work: ""
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: "Audit parity strictly checked against plan intent requirements."
+    remaining_work: ""
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: "Strict schema compliance maintained across all YAML artifacts."
+    remaining_work: ""
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: "No regressions introduced in model substitution or signal abort handling."
+    remaining_work: ""
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: "Fail-closed defaults applied for unknown error classification."
+    remaining_work: ""
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: "Clean transaction and handoff integrity verified."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/hooks/session_resilience.py
+    status: present
+    follow_up: ""
+    evidence: "Contains AUTH_BANNED_PATTERNS integration, permanent-before-transient classification, and updated filter_step_dirty."
+  - layout_path: loop/runtime_adapters/base.py
+    status: present
+    follow_up: ""
+    evidence: "Defines shared AUTH_BANNED_PATTERNS tuple."
+  - layout_path: loop/runtime_adapters/dsh.py
+    status: present
+    follow_up: ""
+    evidence: "DSH adapter uses shared AUTH_BANNED_PATTERNS without transient catch-all."
+  - layout_path: loop/context_loop.py
+    status: present
+    follow_up: ""
+    evidence: "record_abort and loop runner honor analysis.retryable=False."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s01-abort-classifier-red-tests.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s02-permanent-patterns-catch-all-delete.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s03-loop-honor-retryable-false.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s04-dirty-files-epic-yaml-glob.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s05-dsh-parity-kind-i.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-073-abort-classifier-dirty-halt/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-06
+  plan_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/md/plan.md#replacement--sunset
+  rows:
+    - symbol: _TRANSIENT_ABORT_PATTERNS catch-all API Error:[^\n]*
+      kind: A
+      command: 'rg -n "API Error:\[\^\n\]\*" harness/hooks/session_resilience.py loop/context_loop.py loop/runtime_adapters'
+      result: pass
+      prod_callers: []
+      notes: "0 hits in production classifier modules"
+    - symbol: missing 401/banned in permanent
+      kind: A
+      command: 'rg -n "_AUTH_BANNED_PATTERNS" harness/hooks/session_resilience.py'
+      result: pass
+      prod_callers: []
+      notes: "_AUTH_BANNED_PATTERNS consumed by _PERMANENT_FAILURE_PATTERNS and _DSH_PERMANENT_PATTERNS"
+    - symbol: dirty_files plan.md-only
+      kind: A
+      command: 'rg -n "filter_step_dirty" harness/hooks/session_resilience.py'
+      result: pass
+      prod_callers: []
+      notes: "Epic glob covers md, yaml, yml files for armed epic"
+    - symbol: second retry ignoring analysis
+      kind: A
+      command: 'rg -n "retryable" loop/context_loop.py'
+      result: pass
+      prod_callers: []
+      notes: "Loop halts when analysis.retryable is False"
+    - symbol: retry unknown API Error
+      kind: C
+      command: 'rg -n "UNKNOWN_FAILURE" harness/hooks/session_resilience.py'
+      result: pass
+      prod_callers: []
+      notes: "Unmatched API errors classified as fatal UNKNOWN_FAILURE with retryable=False"
+    - symbol: comments API Error always transient
+      kind: I
+      command: 'rg -n "always transient|any API Error is retryable" harness/hooks/session_resilience.py loop/runtime_adapters'
+      result: pass
+      prod_callers: []
+      notes: "0 hits across codebase"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-06
+  rows:
+    - boundary: abort-classifier
+      enforce_evidence: "AUTH_BANNED_PATTERNS in base.py, catch-all removed from _TRANSIENT_ABORT_PATTERNS, classify_abort checks permanent before transient"
+      result: pass
+      notes: "Fail-closed permanent abort classification verified"
+
+blocked_reason: ""

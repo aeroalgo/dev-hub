@@ -155,3 +155,200 @@ def test_finish_bugfix_fail_closed(tmp_path: Path):
     res = finish_bugfix(req)
     assert res.ok is False
     assert "bugfix_artifact_missing" in res.diagnostic_codes
+
+
+import pytest
+
+@pytest.mark.parametrize("verdict", ["fail", "blocked"])
+def test_finish_qa_verdict_fail_or_blocked_routes_to_bugfix_not_done(tmp_path: Path, verdict: str):
+    """cp1 / US-001 / SC-001: verdict fail/blocked -> next_mode BUGFIX, not DONE / not EPIC_DONE."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = mb_dir / "qa-001.yaml"
+    qa_file.write_text(f"verdict: {verdict}\nepic_id: T-HUB-040\n", encoding="utf-8")
+
+    save_epic_state(tmp_path, {"armed_epic": "T-HUB-040", "armed_role": "BACK"})
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="qa found blockers",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    assert res.ok is True
+    assert res.active_context is not None
+
+    written = read_active_context(tmp_path)
+    assert "mode: BUGFIX" in written
+    assert "## Handoff BACK BUGFIX" in written
+    assert "mode: DONE" not in written
+    assert "EPIC_DONE" not in written
+
+    st = save_epic_state  # state check
+    from harness.hooks.epic.core import load_epic_state
+    st_loaded = load_epic_state(tmp_path)
+    assert st_loaded.get("phase") != "DONE"
+
+
+def test_finish_qa_after_bugfix_reuses_same_yaml_fails(tmp_path: Path):
+    """cp2 / US-002 / SC-002: after finish_bugfix, reusing earlier qa fail yaml is rejected."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = mb_dir / "qa-20260905-fail.yaml"
+    qa_file.write_text("verdict: fail\nepic_id: T-HUB-040\n", encoding="utf-8")
+
+    # Simulate QaAfterBugfix recorded by finish_bugfix
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "T-HUB-040",
+            "armed_role": "BACK",
+            "phase_run_id": "session-run-2",
+            "qa_after_bugfix": {
+                "epic_id": "T-HUB-040",
+                "phase_run_id": "session-run-1",
+                "existing_artifacts": ["memory-bank/back/qa/T-HUB-040/qa-20260905-fail.yaml"],
+            },
+        },
+    )
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="re-qa attempted without new yaml",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    assert res.ok is False
+    assert "qa_new_artifact_required" in res.diagnostic_codes
+
+
+def test_finish_qa_after_bugfix_same_session_fails(tmp_path: Path):
+    """cp2 / TM-005: after finish_bugfix, finishing QA in same session fails with qa_new_session_required."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = mb_dir / "qa-20260905-new.yaml"
+    qa_file.write_text("verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8")
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "T-HUB-040",
+            "armed_role": "BACK",
+            "phase_run_id": "session-run-1",
+            "qa_after_bugfix": {
+                "epic_id": "T-HUB-040",
+                "phase_run_id": "session-run-1",
+                "existing_artifacts": ["memory-bank/back/qa/T-HUB-040/qa-20260905-fail.yaml"],
+            },
+        },
+    )
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="re-qa in same session",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    assert res.ok is False
+    assert "qa_new_session_required" in res.diagnostic_codes
+
+
+def test_finish_qa_parse_qa_verdict_missing_does_not_route_to_done(tmp_path: Path):
+    """cp4 / FR-009 / TM-007: missing verdict in qa yaml must NOT be treated as pass / cannot route to DONE."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = mb_dir / "qa-001.yaml"
+    qa_file.write_text("epic_id: T-HUB-040\nsummary: no verdict field here\n", encoding="utf-8")
+
+    save_epic_state(tmp_path, {"armed_epic": "T-HUB-040", "armed_role": "BACK"})
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="qa complete with missing verdict",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    # Missing verdict should either fail validation or not route to DONE
+    if res.ok:
+        written = read_active_context(tmp_path)
+        assert "mode: DONE" not in written
+        assert "EPIC_DONE" not in written
+    else:
+        assert not res.ok
+
+
+def test_finish_qa_reviewer_lock_on_re_qa(tmp_path: Path):
+    """cp4 / FR-012 / TM-006: re-QA pass path requires reviewer evidence matching current run."""
+    mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = mb_dir / "qa-20260905-new.yaml"
+    qa_file.write_text("verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8")
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "T-HUB-040",
+            "armed_role": "BACK",
+            "phase_run_id": "session-run-2",
+            "qa_after_bugfix": {
+                "epic_id": "T-HUB-040",
+                "phase_run_id": "session-run-1",
+                "existing_artifacts": ["memory-bank/back/qa/T-HUB-040/qa-20260905-fail.yaml"],
+            },
+            # No reviewer evidence or stale evidence
+            "last_reviewer_verdict": None,
+        },
+    )
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="re-qa pass without reviewer",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    assert res.ok is False
+    assert "qa_reviewer_required" in res.diagnostic_codes
+
+
+def test_060_shaped_fixture_bugfix_prose_not_sot(tmp_path: Path):
+    """cp2 / FR-011: T-HUB-060-shaped fixture: fail yaml + bugfix prose «1942 passed» is not SoT."""
+    epic = "T-HUB-060"
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / epic
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = qa_dir / "qa-20260905-fail.yaml"
+    qa_file.write_text("verdict: fail\nepic_id: T-HUB-060\nissues:\n  - some blocker\n", encoding="utf-8")
+
+    bugfix_dir = tmp_path / "memory-bank" / "back" / "bugfix" / epic
+    bugfix_dir.mkdir(parents=True, exist_ok=True)
+    bugfix_file = bugfix_dir / "bugfix-20260905.md"
+    bugfix_file.write_text("# Bugfix\n\nAll tests fixed: 1942 passed, 0 failed in test suite.\n", encoding="utf-8")
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_role": "BACK",
+            "phase_run_id": "session-2",
+            "qa_after_bugfix": {
+                "epic_id": epic,
+                "phase_run_id": "session-1",
+                "existing_artifacts": [f"memory-bank/back/qa/{epic}/qa-20260905-fail.yaml"],
+            },
+        },
+    )
+
+    req = MbFinishRequest(
+        phase="BACK QA",
+        step_id="s05",
+        done_summary="re-qa trying to finish with prose claiming 1942 passed",
+        cwd=str(tmp_path),
+    )
+    res = finish_qa(req)
+    assert res.ok is False
+    assert "qa_new_artifact_required" in res.diagnostic_codes
+

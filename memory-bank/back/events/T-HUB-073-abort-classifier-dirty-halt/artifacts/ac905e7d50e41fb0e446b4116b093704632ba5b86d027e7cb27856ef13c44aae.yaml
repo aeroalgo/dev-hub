@@ -1,0 +1,38 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-073-abort-classifier-dirty-halt
+date: 2026-09-06
+verdict: fail
+qa_lead: BACK QA
+status: fail
+
+summary:
+  total_tests: 2195
+  passed_tests: 2190
+  failed_tests: 2
+  skipped_tests: 3
+  suite_command: "bin/pytest -q --tb=line"
+
+suite_results:
+  command: "bin/pytest -q --tb=line"
+  exit_code: 1
+  passed: 2190
+  failed: 2
+  skipped: 3
+  warnings: 80
+  failed_tests:
+    - "loop/tests/test_hooks_llm_fallback.py::test_all_flags_off_zero_llm_calls"
+    - "loop/tests/test_session_resilience_codex.py::test_session_resilience_codex_aborted"
+
+reviewer:
+  verdict: FAIL
+  agent_id: verify-qa
+
+failures:
+  - test: "loop/tests/test_hooks_llm_fallback.py::test_all_flags_off_zero_llm_calls"
+    reason: "AssertionError: assert 'fatal' == 'transient' (classify_abort on unknown abort string changed from transient to fatal fail-closed)"
+  - test: "loop/tests/test_session_resilience_codex.py::test_session_resilience_codex_aborted"
+    reason: "AssertionError: assert 'unknown_failure' == 'transient_abort' (analyze_session_log on codex session aborted text classified as unknown_failure when reason not in transient patterns)"
+
+fix_plan:
+  - action: "BACK BUGFIX T-HUB-073-abort-classifier-dirty-halt test regression in test_hooks_llm_fallback.py and test_session_resilience_codex.py"

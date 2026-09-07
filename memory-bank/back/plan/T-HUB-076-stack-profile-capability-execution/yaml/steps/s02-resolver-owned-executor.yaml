@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: Resolver-owned argv executor reports bounded typed process outcomes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  A valid declaration now reaches exactly one resolver-owned command execution; every normal
+  or operational failure is a typed result rather than a guessed fallback. Python, Rust and
+  JavaScript targets prove that argv, cwd and deadline originate only from resolution, while
+  invalid resolution proves that no process is spawned.
+
+plan_contract:
+  fr_ids: [FR-002, FR-003, FR-004]
+  nouns:
+    - resolve_capability
+    - resolver-owned argv
+    - resolution.cwd
+    - timeout_seconds
+    - CapabilityExecutionResult
+    - subprocess.Popen
+  layout_paths:
+    - loop/stack_profiles/execution.py
+    - loop/stack_profiles/schemas.py
+    - loop/tests/test_stack_profile_executor.py
+    - loop/tests/test_stack_profile_execution_integration.py
+  ac_quotes:
+    - "Python, cargo test --all-targets and selected JS manager run with exact resolver argv/cwd."
+    - "Resolver or validation failure makes zero target subprocess calls; no hub command or retry is substituted."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:107-161"
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:226-237"
+
+context:
+  consumes:
+    - s01 typed CapabilityCheckSpec, result and fingerprint contract
+    - loop/stack_profiles/resolver.py resolve_capability project-root boundary
+    - loop/stack_profiles/registry.py capability timeout and argv policy
+  produces:
+    - public execute_capability(project_root, declaration) API
+    - succeeded, resolution_failed, spawn_failed, timed_out and failed result statuses
+    - bounded output metadata and diagnostic ordering without output-body persistence
+  plan_refs:
+    - FR-002
+    - FR-003
+    - FR-004
+    - SC-001
+    - SC-002
+    - TM-002
+    - TM-003
+    - TM-004
+    - TM-005
+  files:
+    - loop/stack_profiles/execution.py
+    - loop/stack_profiles/__init__.py
+    - loop/tests/test_stack_profile_executor.py
+    - loop/tests/test_stack_profile_execution_integration.py
+
+as_built:
+  - loop/stack_profiles/resolver.py safely resolves argv, cwd and timeout but performs no subprocess work.
+  - loop/stack_profiles/__main__.py exposes resolve-oriented output but no executor command.
+  - No profile executor currently owns timeout kill/collect, spawn diagnostics or bounded process metadata.
+
+delta:
+  - Implement the public executor accepting only project root and the typed declaration; call resolve_capability once and invoke Popen with resolution.argv, resolution.cwd, shell=False and resolver timeout.
+  - Translate resolution diagnostics to resolution_failed without calling Popen; translate OSError, timeout kill-and-collect and non-zero exit to the specified result statuses and exit data.
+  - Count and cap stdout/stderr metadata without using output as structured input, persisting output bodies or importing generic runtime/board dispatchers.
+  - Add temporary py/rs/web profile fixtures with fake binaries/managers to assert one exact argv/cwd execution per explicit target.
+
+deletes: []
+
+out_of_scope:
+  - JSON CLI parity and atomic evidence write belong to s03.
+  - Current armed-step discovery and phase continuation gate belong to s04.
+  - No retry, dependency installation, custom/remote profile, streaming UI or automatic remediation is added.
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-resilience/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "The executor runs exactly resolver argv/cwd for explicit py, rs and web test.full targets with shell=False."
+    verify: "bin/pytest loop/tests/test_stack_profile_execution_integration.py -q --tb=line -k exact_argv"
+  - id: cp2
+    criterion: "Resolver and selector errors yield resolution_failed with no Popen call."
+    verify: "bin/pytest loop/tests/test_stack_profile_executor.py -q --tb=line -k resolution_failed"
+  - id: cp3
+    criterion: "OSError, timeout and child non-zero map to spawn_failed, timed_out and failed respectively, preserving safe exit metadata."
+    verify: "bin/pytest loop/tests/test_stack_profile_executor.py -q --tb=line -k 'spawn or timeout or nonzero'"
+  - id: cp4
+    criterion: "Result contains bounded byte metadata and diagnostics but neither output body nor caller-provided process controls."
+    verify: "bin/pytest loop/tests/test_stack_profile_executor.py -q --tb=line -k bounded_output"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_executor.py loop/tests/test_stack_profile_execution_integration.py -q --tb=line"
+
+tdd:
+  - test_executor_uses_resolver_argv_cwd_and_shell_false
+  - test_executor_runs_each_explicit_python_rust_and_javascript_target_once
+  - test_resolution_failure_does_not_spawn
+  - test_spawn_error_has_typed_result
+  - test_timeout_kills_and_collects_child
+  - test_nonzero_exit_is_failed_without_retry
+  - test_result_exposes_bounded_metadata_not_output_body

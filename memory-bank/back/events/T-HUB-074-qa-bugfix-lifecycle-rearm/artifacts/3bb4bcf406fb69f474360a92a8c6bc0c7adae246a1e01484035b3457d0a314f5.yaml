@@ -1,0 +1,51 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+date: '2026-09-07'
+auditor: BACK QA
+verdict: pass
+
+summary:
+  verdict: pass
+  full_suite_passed: true
+  reviewer_passed: true
+  total_ac_checked: 10
+  passed_ac: 10
+  failed_ac: 0
+
+test_run:
+  command: "bin/pytest -q --tb=line"
+  passed: 2214
+  skipped: 3
+  warnings: 80
+  exit_code: 0
+
+reviewer_gate:
+  agent_id: verify-qa
+  verdict: PASS
+  evidence: "Subagent verify-qa confirmed AC+/AC- compliance and fail-closed transitions across loop/mb_finish/impl.py and loop/roadmap_queue.py"
+
+ac_verification:
+  - id: AC-001
+    statement: "QA fail cannot mark epic DONE / dequeue / advance"
+    status: pass
+    evidence: "loop/mb_finish/impl.py finish_qa forces BUGFIX on fail; loop/roadmap_queue.py blocks advance with qa_fail_blocks_advance"
+  - id: AC-002
+    statement: "Re-QA after finish_bugfix requires new session and new qa-*.yaml artifact"
+    status: pass
+    evidence: "loop/mb_finish/impl.py enforces qa_new_session_required and qa_new_artifact_required"
+  - id: AC-003
+    statement: "finish_handoff and roadmap_advance block leave on QA fail"
+    status: pass
+    evidence: "loop/mb_finish/impl.py returns qa_fail_blocks_handoff on non-BUGFIX handoff"
+  - id: AC-004
+    statement: "finish_reflect and find_reflection_artifact symbols purged across hub production"
+    status: pass
+    evidence: "Zero occurrences of finish_reflect/find_reflection_artifact in loop/ and harness/ production code"
+  - id: AC-005
+    statement: "parse_qa_verdict is fail-closed"
+    status: pass
+    evidence: "parse_qa_verdict handles missing or malformed verdicts safely without defaulting to pass"
+
+fix_plan: []

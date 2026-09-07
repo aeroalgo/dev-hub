@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Any, Protocol, runtime_checkable
+
+AUTH_BANNED_PATTERNS = (
+    re.compile(r"(?i)API Error:\s*401\b"),
+    re.compile(r"(?i)\b401\b[^\n]*banned"),
+    re.compile(r"(?i)All connections banned"),
+    re.compile(r"(?i)connections?\s+banned"),
+    re.compile(r"(?i)\bbanned\b"),
+)
 
 
 @dataclass(frozen=True)

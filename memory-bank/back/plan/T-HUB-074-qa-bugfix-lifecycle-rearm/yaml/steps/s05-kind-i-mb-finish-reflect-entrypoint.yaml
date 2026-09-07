@@ -1,0 +1,127 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-074-qa-bugfix-lifecycle-rearm
+title: "Kind I comments + Kind B mb-finish reflect subcommand/MCP gone"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Kind I: comments/instructions in loop/mb_finish and epic core that say next after
+  QA = REFLECT — delete (BUGFIX/DONE). Overlay string in .cursor/rules is 070 —
+  this epic only if rg in loop/harness blocks tests.
+  Kind B: mb-finish reflect subcommand / MCP tool finish_reflect if still registered
+  — remove. finish_qa must never next_mode REFLECT (lock s02). Outcome: operator
+  cannot invoke deleted REFLECT finish; comments do not teach REFLECT next.
+
+plan_contract:
+  fr_ids:
+    - FR-007
+    - FR-005
+    - US-004
+    - SC-004
+    - AC+3
+    - AC−2
+    - TM-004
+    - NFR-2
+  nouns:
+    - mb-finish reflect
+    - finish_reflect MCP
+    - Kind I QA FINISH → REFLECT comments
+  layout_paths:
+    - loop/mb_finish/mcp_server.py
+    - harness/hooks/epic_resolve.py
+    - loop/mb_finish/impl.py
+  ac_quotes:
+    - "Kind I: workflow comments next QA = REFLECT in mb_finish / epic core — delete."
+    - "mb-finish reflect subcommand if still registered | removed | delete in-epic"
+    - "Нет REFLECT next from finish_qa."
+    - "prefer 070 for overlay; this epic for Python finish_*"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:107-107"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:218-222"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:231-235"
+    - "memory-bank/back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md:151-152"
+
+context:
+  consumes:
+    - s04 symbol purge
+    - plan sunset B + I
+    - as-built MCP TOOLS has no finish_reflect; epic_resolve mb_cmd has no reflect
+  produces:
+    - no mb-finish reflect CLI / MCP tool
+    - no Kind I «QA → REFLECT» in loop/mb_finish / epic core Python comments
+    - lock: finish_qa next_mode never REFLECT
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#functional-requirements
+  files:
+    - loop/mb_finish/mcp_server.py
+    - harness/hooks/epic_resolve.py
+    - loop/mb_finish/impl.py
+    - harness/hooks/epic/core.py
+
+as_built:
+  - "mcp_server TOOLS: finish_handoff/implement/qa/bugfix/decompose/plan/analyze/audit/creative — no reflect"
+  - "epic_resolve mb_cmd in (qa, bugfix, decompose, plan, analyze, audit, creative) — no reflect"
+  - "Kind I comments may remain in mb_finish / epic core / tests_user_prompt_overlay (070 owns overlay)"
+  - "harness/hooks/tests/test_user_prompt_overlay.py already asserts QA FINISH no reflect (070) — do not duplicate overlay work"
+
+delta:
+  - "rg mb-finish reflect / add_parser reflect / TOOLS name finish_reflect — delete if found"
+  - "delete Python comments in loop/mb_finish and epic core teaching QA FINISH → REFLECT"
+  - "do not edit .cursor/rules overlay (070) unless a one-liner in loop/harness blocks tests"
+  - "lock finish_qa never next_mode REFLECT"
+  - "leftover scan s06"
+
+deletes:
+  - "mb-finish reflect subcommand / MCP finish_reflect registration"
+  - "Kind I comments next QA = REFLECT in loop/mb_finish / harness/hooks/epic"
+
+out_of_scope:
+  - "overlay policy strings in .cursor/rules / user-prompt overlay — follow_up T-HUB-070-phase-policy-overlay-sole-sot"
+  - "symbol defs (s04)"
+  - "leftover inventory (s06)"
+  - "Appetite cut_list"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: reflect-entrypoint-kind-i
+  new_sot: mb-finish qa|bugfix only; comments BUGFIX/DONE
+  allow_read:
+    - "loop/mb_finish/**"
+    - "harness/hooks/epic_resolve.py"
+    - "harness/hooks/epic/core.py"
+  kind_hint:
+    - B
+    - I
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-observability/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Kind B — no mb-finish reflect CLI / MCP tool finish_reflect
+    verify: "! rg -n 'finish_reflect|mb-finish reflect|mb_cmd.*reflect' loop/mb_finish harness/hooks/epic_resolve.py --glob '*.py'"
+  - id: cp2
+    criterion: Kind I — no comments in mb_finish / epic core «QA FINISH → REFLECT» / next_mode REFLECT
+    verify: "! rg -n 'next QA = REFLECT|next_mode.*REFLECT|QA FINISH.*REFLECT' loop/mb_finish harness/hooks/epic --glob '*.py'"
+  - id: cp3
+    criterion: FR-007 scope — .cursor/rules overlay not edited unless loop/harness one-liner blocks tests
+    verify: "! rg -n 'finish_reflect' loop/ harness/hooks --glob '*.py'"
+  - id: cp4
+    criterion: overlay tests still own 070; this step does not weaken them
+    verify: "bin/pytest harness/hooks/tests/test_user_prompt_overlay.py -q --tb=line -k 'qa_finish_no_reflect or reflect'"
+
+verify:
+  - "! rg -n 'finish_reflect' loop/mb_finish harness/hooks/epic_resolve.py"
+tdd:
+  - "purge entrypoint + comments; keep overlay tests green"

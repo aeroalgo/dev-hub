@@ -1,0 +1,156 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: Purge generic managed-test command authority and stale workflow instruction paths
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  The profile capability boundary is the only managed-project verification path in code,
+  lifecycle entrypoints, fallbacks and instructions. This final cutover removes every
+  remaining generic Python command prescription for managed work, retains a clearly marked
+  hub exception, and proves via full sunset inventory that no old authority, optional path
+  or stale guidance can restore a green workflow.
+
+plan_contract:
+  fr_ids: [FR-003, FR-008, FR-009, FR-010]
+  nouns:
+    - managed capability declaration
+    - managed capability evidence
+    - hub-only test runner
+    - check-after HALT
+    - instruction inventory
+    - sunset inventory
+  layout_paths:
+    - harness/hooks/tests_format.py
+    - harness/hooks/test_run_canon.py
+    - harness/hooks/epic_yaml.py
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  ac_quotes:
+    - "Managed verification never falls back to bin/pytest, .venv/bin/pytest, npm, cargo, manifest default target or raw tests string."
+    - "FRONT parent-only authority remains intact; this epic does not add test.e2e or execute browser tests through the executor."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:307-345"
+    - "memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md:346-374"
+
+context:
+  consumes:
+    - s04 production check-after sole-path enforcement
+    - s05 managed-versus-hub finish validator split
+    - plan Replacement / sunset A, B, C and I inventories
+    - existing BACK/INTEG/shared/Claude runtime instruction surfaces
+  produces:
+    - deleted generic managed command authority and old no-op green path
+    - hub-only test runner wording distinct from managed capability execution
+    - full A/B/C/I inventory evidence with no legacy, fallback or instruction leftovers
+  plan_refs:
+    - FR-003
+    - FR-008
+    - FR-009
+    - FR-010
+    - FR-011
+    - FR-012
+    - FR-014
+    - US-005
+    - SC-002
+    - SC-004
+    - SC-005
+    - SC-006
+    - TM-008
+    - TM-009
+    - TM-010
+  files:
+    - harness/hooks/tests_format.py
+    - harness/hooks/test_run_canon.py
+    - harness/hooks/epic_yaml.py
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+
+as_built:
+  - test_run_canon.py and tests_format.py still expose generic command-prefix authority that predates typed managed evidence.
+  - check-after previously allowed a green lifecycle path without executing declared managed checks.
+  - BACK, INTEG, shared and Claude role guidance contain Python runner wording that must distinguish hub tests from managed-project capability checks.
+
+delta:
+  - Remove or rewrite all residual A/B/C code and lifecycle paths identified in the plan so managed declarations cannot route to generic prefix parsing, raw tests strings, default targets, retries or hub tests.
+  - Rewrite Kind I instructions to require an explicit managed capability declaration/evidence path while preserving hub runner commands only under an explicit hub exception.
+  - Preserve FRONT parent-only test authority in wording and add no browser capability vocabulary or executor dispatch.
+  - Add an instruction-inventory regression test and record A/B/C/I sunset scan evidence plus anti-dual-path commands in the implementation artifact.
+
+deletes:
+  - Generic managed-project workflow-process authority in harness/hooks/tests_format.py::is_allowed_test_command
+  - Universal managed evidence extraction through harness/hooks/tests_format.py::extract_test_commands_from_yaml_tests
+  - Managed-target command authority through harness/hooks/test_run_canon.py::ALLOWED_TEST_PREFIXES
+  - check-after green path without declared managed capability execution
+  - Generic managed-backend pytest wording in BACK core and lean workflow instructions
+  - Generic managed API pytest wording in INTEG core and lean workflow instructions
+  - Universal pytest wording in harness/claude/skills/role-command/SKILL.md
+  - format_spec_lines prose claiming loop runs YAML shell strings
+
+sunset_scope:
+  required: true
+  boundary_id: stack-profile-capability-execution
+  new_sot: loop.stack_profiles.execution.execute_capability + typed capability evidence
+  allow_read:
+    - harness/hooks/tests_format.py
+    - harness/hooks/test_run_canon.py
+    - harness/hooks/epic_yaml.py
+    - loop/context_loop.py
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  kind_hint: [A, B, C, I]
+
+out_of_scope:
+  - Adding test.e2e, browser runner execution, custom/remote profiles, profile-version floors or package installation.
+  - Changing hub test execution itself into a managed project profile.
+  - Automatic repair/retry, streaming UI and preserving raw command compatibility.
+
+skills:
+  code_surface: infra
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A: generic managed prefix/parser authority is deleted or confined to the explicit hub-only branch; obsolete tests assert the new evidence contract."
+    verify: "rg -n 'is_allowed_test_command|extract_test_commands_from_yaml_tests|ALLOWED_TEST_PREFIXES' harness/hooks --glob '*.py'"
+  - id: cp2
+    criterion: "Kind B: no check-after or CLI entrypoint can continue a managed workflow without declared-check execution and matching evidence."
+    verify: "rg -n 'check_after|capability_checks|execute_capability|capability_evidence' loop/context_loop.py loop/stack_profiles/__main__.py harness/hooks/epic_yaml.py"
+  - id: cp3
+    criterion: "Kind C: no managed path falls back to a raw tests string, default target, hub pytest command or retry after resolver/execution failure."
+    verify: "! rg -n 'fallback.*(pytest|tests:|default_target)|retry.*(pytest|cargo|npm)|managed.*(bin/pytest|[.]venv/bin/pytest)' loop harness/hooks --glob '*.py'"
+  - id: cp4
+    criterion: "Kind I: managed instructions name capability declaration/evidence and no longer teach generic Python commands as the managed default; hub exception and FRONT parent-only boundary remain explicit."
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py harness/hooks/tests/test_epic_yaml_capability_evidence.py loop/tests/test_context_loop_capability_checks.py -q --tb=line"
+
+tdd:
+  - test_instruction_inventory_has_no_generic_managed_test_runner
+  - test_instruction_inventory_retains_explicit_hub_exception
+  - test_instruction_inventory_preserves_front_parent_only_boundary
+  - test_sunset_a_b_c_i_scans_have_no_live_legacy_authority

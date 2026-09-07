@@ -1,0 +1,58 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-073-abort-classifier-dirty-halt
+title: s04 — dirty_files collector lists epic yaml/md/yml — not plan.md-only IMPLEMENT
+status: completed
+date: '2026-09-06'
+decompose_ref: memory-bank/back/plan/T-HUB-073-abort-classifier-dirty-halt/yaml/steps/s04-dirty-files-epic-yaml-glob.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated filter_step_dirty in harness/hooks/session_resilience.py to include all
+  .md/.yaml/.yml files under memory-bank/ for the armed epic
+- Added test cases in loop/tests/test_filter_step_dirty.py verifying yaml/steps and
+  decompose-index.yaml collection without plan.md dirty
+- Verified __pycache__ and .venv are excluded and cross-epic files remain dropped
+files:
+- harness/hooks/session_resilience.py
+- loop/tests/test_filter_step_dirty.py
+- loop/tests/test_checkpoint_resume.py
+deletes:
+- hardcoded md/plan.md-only special case in dirty collector if present
+tests:
+- bin/pytest loop/tests/test_filter_step_dirty.py loop/tests/test_checkpoint_resume.py
+  -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_filter_step_dirty.py -q --tb=line
+- bin/pytest loop/tests/test_checkpoint_resume.py -q --tb=line
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'US-004 / TM-004 / FR-006 — dirty yaml/steps/s01-*.yaml with plan.md
+    clean
+
+    and epic_id set: filter_step_dirty / dirty_resume_prompt_lines includes yaml
+
+    path; list not empty; not only plan.md.
+
+    '
+  status: done
+  done_at: '2026-09-06T20:08:36Z'
+- id: cp2
+  criterion: 'AC−4 — no dirty_files = [plan.md] only when yaml tree dirty. Epic glob
+
+    covers md+yaml+yml under plan/implement/qa/bugfix for epic_id.
+
+    '
+  status: done
+  done_at: '2026-09-06T20:08:42Z'
+- id: cp3
+  criterion: Cross-epic memory-bank still dropped; __pycache__ / .venv excluded; unrelated
+    files excluded
+  status: done
+  done_at: '2026-09-06T20:08:47Z'
+resume_from: cp1

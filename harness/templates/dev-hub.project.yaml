@@ -1,0 +1,19 @@
+# Canonical template for dev-hub.project.yaml (not executable configuration)
+# Documentation and structure schema: dev-hub-project/v1
+schema: dev-hub-project/v1
+workflow_pack: dev-hub-software
+default_target: backend
+
+targets:
+  backend:
+    root: "."
+    profile: python
+
+  # frontend:
+  #   root: "frontend"
+  #   profile: javascript
+  #   package_manager: npm
+
+  # core_rs:
+  #   root: "crates/core"
+  #   profile: rust

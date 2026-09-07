@@ -59,8 +59,16 @@ class MockRenderCheckAdapter(ToolGateAdapter):
 @pytest.fixture
 def tmp_project_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Fixture creating a full video pack PROJECT_ROOT structure."""
-    # Create project.yaml selecting video pack
-    (tmp_path / "project.yaml").write_text("workflow_pack: video-production\n", encoding="utf-8")
+    # Create dev-hub.project.yaml selecting video pack
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: video-production\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     # Copy / symlink required files
     shutil.copytree(ROOT / "workflows", tmp_path / "workflows", dirs_exist_ok=True)
@@ -103,12 +111,12 @@ def test_video_pack_resolve(tmp_project_root: Path) -> None:
 
 
 def test_software_isolation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TM-006 / AC+5: Software pack unaffected when WORKFLOW_PACK not set and no video project.yaml."""
+    """TM-006 / AC+5: Software pack unaffected when WORKFLOW_PACK not set and no video dev-hub.project.yaml."""
     load_registry.cache_clear()
     monkeypatch.delenv("WORKFLOW_PACK", raising=False)
     monkeypatch.delenv("EPIC_WORKFLOW_PACK", raising=False)
 
-    # In tmp_path without project.yaml, defaults to dev-hub-software
+    # In tmp_path without dev-hub.project.yaml, defaults to dev-hub-software
     res = resolve_workflow_pack(cwd=tmp_path)
     assert res.ok is True
     assert res.pack_id == "dev-hub-software"

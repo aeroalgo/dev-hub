@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: s03 — JSON CLI resolve|doctor — exit mapping, fake-executable probes, no target scripts IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/yaml/steps/s03-json-cli-doctor-no-script.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-observability/SKILL.md
+discovery:
+- doctor_project_profiles verifies target roots, profiles, JS manager detection and tool probes with --version
+- JSON CLI maps exits 0 (success), 2 (config/profile/selector diagnostics), 3 (missing/probe-failed tool), 1 (unexpected)
+gaps:
+  status: none
+done:
+- Implement doctor_project_profiles in loop/stack_profiles/doctor.py with short probe timeout and no project scripts
+- Implement python -m loop.stack_profiles CLI in loop/stack_profiles/__main__.py for resolve and doctor commands
+- Comprehensive unit tests in loop/tests/test_stack_profiles_cli.py and loop/tests/test_stack_profiles_doctor.py
+files:
+- loop/stack_profiles/__init__.py
+- loop/stack_profiles/__main__.py
+- loop/stack_profiles/doctor.py
+- loop/stack_profiles/schemas.py
+- loop/tests/test_stack_profiles_cli.py
+- loop/tests/test_stack_profiles_doctor.py
+deletes: []
+tests:
+- "`bin/pytest loop/tests/test_stack_profiles_cli.py loop/tests/test_stack_profiles_doctor.py -q --tb=line`"
+integration_check:
+- bin/pytest loop/tests/test_stack_profiles_*.py -q --tb=line
+- rg -n 'shell=True|bash -c|eval\(|shlex.join' loop/stack_profiles
+grep_control:
+- pattern: shell=True|bash -c|eval\(|shlex.join
+  count: 0
+verification_results:
+- verify_cmd: bin/pytest loop/tests/test_stack_profiles_cli.py loop/tests/test_stack_profiles_doctor.py -q --tb=line
+  status: PASS
+checkpoints:
+- id: cp1
+  criterion: 'US-005 / AC+5 / NFR-4 — resolve CLI JSON equals resolve_capability() fields (schema id, ok, target, profile, capability, cwd, argv, timeout_seconds, requirements, diagnostics). Expected failures still emit JSON, exit 2, argv [].'
+  status: done
+- id: cp2
+  criterion: 'US-006 / TM-010 / SC-006 / FR-012 / NFR-6 — doctor missing tool or probe timeout → exit 3, JSON diagnostic, fake executable log contains only --version (or empty for missing), never test/build/script labels.'
+  status: done
+- id: cp3
+  criterion: 'TM-001 / US-003 via CLI — missing manifest and JS lockfile conflict through CLI preserve JSON, nonzero, empty argv. No shell=True / bash -c / eval.'
+  status: done
+- id: cp4
+  criterion: 'NFR-7 / AC−1 — CLI result has argv as list[str]; no command/shell field; rg no subprocess shell=True in stack_profiles.'
+  status: done
+resume_from: cp1

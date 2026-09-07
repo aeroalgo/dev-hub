@@ -39,8 +39,16 @@ def _run_stop_gate(cwd: Path, payload: dict, env_overrides: dict | None = None) 
 
 def test_block_finish_on_gate_fail(tmp_path: Path) -> None:
     """stop-gate blocks FINISH for EDIT phase when render external gate fails (missing outputs/final.mp4)."""
-    # 1. Setup video pack in project.yaml
-    (tmp_path / "project.yaml").write_text("workflow_pack: video-production\n", encoding="utf-8")
+    # 1. Setup video pack in dev-hub.project.yaml
+    (tmp_path / "dev-hub.project.yaml").write_text(
+        "schema: dev-hub-project/v1\n"
+        "workflow_pack: video-production\n"
+        "targets:\n"
+        "  backend:\n"
+        "    root: .\n"
+        "    profile: python\n",
+        encoding="utf-8",
+    )
 
     # 2. Setup state
     runtime_dir = tmp_path / ".claude" / "runtime"

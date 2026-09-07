@@ -1,0 +1,173 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-075-stack-profiles-rust-python-js
+title: "Wire workflow_pack from typed manifest; delete _read_project_yaml_pack dual path"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Cutover: `resolve_workflow_pack` читает optional `workflow_pack` только из
+  typed `dev-hub.project.yaml` via `load_project_manifest`. Default/env still work
+  when no new manifest exists. Delete `_read_project_yaml_pack()` and untyped
+  `project.yaml` / `.dev-hub/project.yaml` reads. `.dev-hub` remains hub-link
+  pointer, never YAML dir. Template + migration docs for old locations.
+  Outcome: legacy workflow config is never read (SC-005); dual path DENY.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-016
+    - FR-017
+    - SC-005
+    - AC+1
+    - AC+7
+    - AC−2
+    - TM-011
+    - TM-012
+    - TM-013
+  nouns:
+    - load_project_manifest
+    - workflow_pack
+    - resolve_workflow_pack
+    - _read_project_yaml_pack
+    - dev-hub.project.yaml
+    - hub-link
+    - harness/templates/dev-hub.project.yaml
+  layout_paths:
+    - loop/workflow/registry.py
+    - harness/templates/dev-hub.project.yaml
+    - README.md
+    - harness/README.md
+    - loop/tests/test_workflow_pack_registry.py
+  ac_quotes:
+    - "Replace loop.workflow.registry._read_project_yaml_pack() reads from project.yaml and .dev-hub/project.yaml with typed optional workflow_pack from new manifest. Default/env workflow-pack still work when no new manifest exists."
+    - ".dev-hub remains the one-line hub-link pointer, never YAML/config directory."
+    - "No project.yaml/.dev-hub/project.yaml fallback."
+    - "Delete legacy project config reader, tests and instructions in the same epic; do not leave try new except old."
+    - "Old config locations are removed from machine discovery and migration is documented."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:87-104"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:231-264"
+    - "memory-bank/back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md:145-157"
+
+context:
+  consumes:
+    - s01/s02 load_project_manifest
+    - plan §FR-004/005/016/017
+    - plan §Replacement A/B/I
+  produces:
+    - typed workflow_pack sole machine path
+    - deleted _read_project_yaml_pack
+    - harness/templates/dev-hub.project.yaml
+    - migration docs
+    - rewritten pack-override tests
+  plan_refs:
+    - plan.md#functional-requirements
+    - plan.md#replacement--sunset-brownfield
+  files:
+    - loop/workflow/registry.py
+    - harness/templates/dev-hub.project.yaml
+    - README.md
+    - harness/README.md
+    - loop/tests/test_workflow_pack_registry.py
+    - loop/tests/test_workflow_pack_video_e2e.py
+    - loop/tests/test_mb_finish_pack_write.py
+    - loop/tests/test_external_gates_stop_gate.py
+    - loop/tests/test_cli_tool_gate.py
+    - loop/tests/test_workflow_pack_phase_router.py
+    - loop/tests/test_mb_load_session.py
+    - loop/tests/test_active_context_lock.py
+    - loop/tests/test_prompt_builder.py
+
+as_built:
+  - "loop/workflow/registry.py:_read_project_yaml_pack reads cwd/project.yaml then cwd/.dev-hub/project.yaml; swallows Exception; returns None"
+  - "resolve_workflow_pack precedence: project.yaml > env WORKFLOW_PACK/EPIC_WORKFLOW_PACK > registry.default"
+  - "tests write tmp_path/project.yaml to select video/software packs (test_workflow_pack_registry.py, video_e2e, mb_finish_pack_write, external_gates, cli_tool_gate, phase_router, mb_load_session, active_context_lock, prompt_builder)"
+  - ".dev-hub used as hub-link pointer by bin/hub-link"
+
+delta:
+  - "resolve_workflow_pack: if root dev-hub.project.yaml exists, read typed workflow_pack via load_project_manifest; invalid manifest fail-closed (no swallow-to-old-parser)"
+  - "if new manifest absent: env then default (unchanged)"
+  - "delete _read_project_yaml_pack and both candidate paths from prod"
+  - "rewrite tests: pack override fixture is dev-hub.project.yaml schema v1; leftover-only project.yaml is detected/rejected never used (TM-011)"
+  - "add harness/templates/dev-hub.project.yaml canonical example (not executable config)"
+  - "docs: root manifest + hub-link pointer-only; migration from project.yaml / .dev-hub/project.yaml"
+  - "no try: new except: old; no dual read"
+
+deletes:
+  - "loop/workflow/registry.py::_read_project_yaml_pack"
+  - "prod reads of project.yaml and .dev-hub/project.yaml for workflow_pack"
+  - "tests asserting old config precedence via tmp_path/project.yaml (rewrite to new manifest or negative TM-011)"
+  - "docs teaching project.yaml / .dev-hub/project.yaml as live config"
+
+out_of_scope:
+  - "consumer resolve_capability integration (s05)"
+  - "leftover inventory scan (s06)"
+  - "executing pack phases from stack argv — Appetite cut pack phase declaration"
+  - "changing hub-link one-line pointer format beyond docs"
+  - "full suite → QA"
+
+sunset_scope:
+  required: true
+  boundary_id: workflow-pack-project-config
+  new_sot: loop/stack_profiles/resolver.py::load_project_manifest
+  allow_read:
+    - "loop/workflow/registry.py"
+    - "loop/tests/test_workflow_pack*.py"
+    - "loop/tests/test_mb_finish_pack_write.py"
+    - "loop/tests/test_cli_tool_gate.py"
+    - "loop/tests/test_external_gates_stop_gate.py"
+    - "loop/tests/test_mb_load_session.py"
+    - "loop/tests/test_active_context_lock.py"
+    - "loop/tests/test_prompt_builder.py"
+    - "README.md"
+    - "harness/README.md"
+    - "bin/hub-link"
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: service
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-configuration/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      FR-005 / TM-012 — resolve_workflow_pack reads workflow_pack from typed
+      dev-hub.project.yaml; env/default still work when file absent. Unknown pack still
+      invalid_workflow_pack.
+    verify: "bin/pytest loop/tests/test_workflow_pack_registry.py -q --tb=line -k 'project or workflow_pack or override or env'"
+  - id: cp2
+    criterion: |
+      TM-011 / SC-005 / AC−2 / FR-016 — leftover-only project.yaml or
+      .dev-hub/project.yaml is never parsed for pack; _read_project_yaml_pack symbol gone.
+    verify: "rg -n '_read_project_yaml_pack|cwd / \"project.yaml\"|\\.dev-hub\" / \"project.yaml\"' loop/workflow/registry.py || true"
+  - id: cp3
+    criterion: |
+      FR-004 / FR-017 / TM-013 / Kind B+I — template exists; README/harness README
+      document root dev-hub.project.yaml and hub-link pointer-only; no instruction that
+      .dev-hub is a YAML config directory.
+    verify: "rg -n 'dev-hub.project.yaml|hub-link|project.yaml' README.md harness/README.md harness/templates/dev-hub.project.yaml"
+  - id: cp4
+    criterion: |
+      Kind C — no try new except old; invalid new manifest does not fall back to
+      untyped project.yaml. Pack e2e fixtures that selected video pack via project.yaml
+      rewritten.
+    verify: "bin/pytest loop/tests/test_workflow_pack_registry.py loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_cli_tool_gate.py -q --tb=line"
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_pack_registry.py loop/tests/test_workflow_pack_video_e2e.py loop/tests/test_workflow_pack_phase_router.py -q --tb=line"
+tdd:
+  - "red: pack override still via project.yaml"
+  - "green: typed manifest sole path; old reader deleted"
