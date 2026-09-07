@@ -1,4 +1,4 @@
-"""Test command format helpers for implement/refactor yaml `tests:` field."""
+"""Test command format helpers for hub implement/refactor yaml `tests:` field (hub exception only)."""
 from __future__ import annotations
 
 import re
@@ -42,6 +42,7 @@ def normalize_test_command_entry(entry: str) -> str:
 
 
 def is_allowed_test_command(cmd: str) -> bool:
+    """Validate hub test command prefix. Managed projects must use capability_checks instead."""
     cmd = normalize_test_command_entry(cmd)
     return any(cmd.startswith(prefix) for prefix in _ALLOWED_TEST_PREFIXES)
 
@@ -66,6 +67,7 @@ def _add_test_cmd(cmd: str, seen: set[str], out: list[str]) -> None:
 
 
 def extract_test_commands_from_yaml_tests(tests: list[str]) -> list[str]:
+    """Extract hub test commands. Only valid for dev-hub self-tests."""
     commands: list[str] = []
     seen: set[str] = set()
     for raw in tests:
@@ -80,6 +82,7 @@ def validate_tests_entries(
     finish: bool = True,
     require_executable: bool = True,
 ) -> list[str]:
+    """Validate tests list entries for hub test execution."""
     errors: list[str] = []
     if tests is None:
         tests = []
@@ -117,3 +120,4 @@ def validate_tests_entries(
                 "timeout 300s npm exec tsc …); wrap cmd in `backticks`"
             )
     return errors
+

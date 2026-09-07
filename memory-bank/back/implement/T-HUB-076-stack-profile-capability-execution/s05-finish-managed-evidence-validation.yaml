@@ -2,21 +2,36 @@ schema: epic-implement/v1
 role: back
 step_id: s05
 plan_id: T-HUB-076-stack-profile-capability-execution
-title: s05 — Finish validation distinguishes managed capability evidence from hub
-  tests IMPLEMENT
-status: in_progress
+title: Finish validation distinguishes managed capability evidence from hub tests
+status: completed
 date: '2026-09-07'
 decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s05-finish-managed-evidence-validation.yaml
-skills_used: []
-discovery: []
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-error-handling/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery:
+- 'validate-step and implement validation now distinguish decompose capability_checks
+  from raw tests: strings'
+- Managed declarations require matching typed evidence sidecars in memory-bank/<role>/execution/<epic_id>/<step_id>/capability-<fp>.json
+- 'Hub self-tests retain explicit tests: runner contract and never invoke the profile
+  executor'
 gaps:
   status: none
-done: []
+done:
+- Updated validate_implement_yaml and implement_ready_for_finalize_doc in harness/hooks/epic_yaml.py
+  to check capability evidence for declared capability_checks
+- Pass cwd and root context cleanly to implement validation in harness/hooks/epic/core.py
+- Updated format_spec_lines to clearly distinguish managed capability execution from
+  hub test formats
+- Added comprehensive unit and integration tests in test_epic_yaml_capability_evidence.py,
+  test_tests_format_managed_capabilities.py, and test_finish_capability_evidence.py
 files:
 - harness/hooks/epic_yaml.py
-- harness/hooks/epic_shard_extra.py
-- harness/hooks/tests_format.py
-- harness/hooks/test_run_canon.py
+- harness/hooks/epic/core.py
 - harness/hooks/tests/test_epic_yaml_capability_evidence.py
 - harness/hooks/tests/test_tests_format_managed_capabilities.py
 - loop/tests/test_finish_capability_evidence.py
@@ -26,25 +41,30 @@ deletes:
 - harness/hooks/test_run_canon.py managed-target authority of ALLOWED_TEST_PREFIXES
 - harness/hooks/epic_yaml.py format_spec_lines assertion that loop executes all YAML
   tests strings as shell commands
-tests: []
-integration_check: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_tests_format_managed_capabilities.py
+  loop/tests/test_finish_capability_evidence.py -q --tb=line` — PASS'
+integration_check:
+- '`bin/pytest loop/tests/test_stack_profiles_integration.py loop/tests/test_finish_integrity.py
+  -q --tb=line` — PASS'
 grep_control: []
-verification_results: []
+verification_results:
+- 's05: PASS (unit and integration tests for managed capability finish evidence validation
+  and hub isolation green)'
 checkpoints:
 - id: cp1
   criterion: 'validate-step rejects a managed capability declaration with only tests:
     or with missing/stale/wrong fingerprint evidence.'
-  status: pending
+  status: done
 - id: cp2
   criterion: Matching evidence for every current declaration is accepted only when
     role, epic, step, target and fingerprint agree.
-  status: pending
+  status: done
 - id: cp3
   criterion: Existing hub tests fixtures remain valid and assert zero profile executor
     calls.
-  status: pending
+  status: done
 - id: cp4
   criterion: Legacy generic managed command authority has no live validation caller
     after cutover.
-  status: pending
-resume_from: cp1
+  status: done

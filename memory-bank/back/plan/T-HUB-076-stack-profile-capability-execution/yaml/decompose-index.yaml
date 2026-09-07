@@ -27,10 +27,10 @@ steps:
   file: s05-finish-managed-evidence-validation.yaml
   title: Finish validation distinguishes managed capability evidence from hub tests
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: Purge generic managed-test command authority and stale workflow instruction
     paths
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

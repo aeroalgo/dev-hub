@@ -948,7 +948,10 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
       reprep_rc=$?
       set -e
       if [[ $reprep_rc -eq 2 ]]; then
-        rec_rc=0
+        # The agent completed the epic before its transient transport abort.
+        # Do not run check-after against the aborted session: the next outer
+        # prepare owns the terminal EPIC_DONE → roadmap-advance transition.
+        resume_outer=1
         break
       fi
       if [[ $reprep_rc -ne 0 ]]; then

@@ -1,0 +1,55 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-076-stack-profile-capability-execution
+date: 2026-09-07
+verdict: pass
+
+summary:
+  test_command: "bin/pytest -q --tb=line"
+  total_tests: 2295
+  passed: 2292
+  failed: 0
+  skipped: 3
+  warnings: 81
+  duration_seconds: 222.87
+  reviewer_verdict: PASS
+
+test_matrix_coverage:
+  - TM-001
+  - TM-002
+  - TM-003
+  - TM-004
+  - TM-005
+  - TM-006
+
+ac_checked:
+  positive:
+    - id: AC-001
+      status: pass
+      evidence: "CapabilityCheckSpec and CapabilityExecutionRequest reject raw shell strings and require target."
+    - id: AC-002
+      status: pass
+      evidence: "CLI execute command returns structured JSON and mapped exit codes."
+    - id: AC-003
+      status: pass
+      evidence: "Finish validation enforces managed evidence sidecars fail-closed."
+    - id: AC-004
+      status: pass
+      evidence: "Legacy pytest prescriptions for managed projects removed and verified by inventory tests."
+  negative:
+    - id: AC-NEG-001
+      status: pass
+      evidence: "Invalid check specifications trigger resolution_failed without subprocess spawn."
+    - id: AC-NEG-002
+      status: pass
+      evidence: "Capability failure/timeout halts execution without generic shell fallback."
+
+security_spot_check:
+  owasp_status: pass
+  notes: "Zero raw shell injection surfaces in execution module; typed Pydantic models with argv isolation."
+
+sunset_cleanup_verified: true
+sot_enforce_scan_result: pass
+
+issues: []
+fix_plan: []

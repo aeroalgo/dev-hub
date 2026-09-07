@@ -2487,6 +2487,21 @@ def test_loop_shell_reprepares_on_transient_retry() -> None:
     assert "armed_step resynced" in script
 
 
+def test_loop_shell_terminal_transient_retry_returns_to_outer_prepare() -> None:
+    """An EPIC_DONE found during retry must reach roadmap-advance, not check-after.
+
+    A transport timeout can arrive after the agent has already persisted the
+    FINISH_DOC_ROUTER handoff.  The retry prepare detects that terminal state;
+    it must restart the outer loop, whose prepare branch owns the queue advance.
+    """
+    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
+    retry_terminal = script.split('if [[ $reprep_rc -eq 2 ]]; then', 1)[1].split(
+        'if [[ $reprep_rc -ne 0 ]]; then', 1
+    )[0]
+    assert "resume_outer=1" in retry_terminal
+    assert "rec_rc=0" not in retry_terminal
+
+
 def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> None:
     """Retryable abort syncs armed_step from index before resume marker."""
     ctx = _load_ctx()

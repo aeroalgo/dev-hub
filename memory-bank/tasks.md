@@ -17,6 +17,9 @@
 | T-HUB-074 | QA/BUGFIX lifecycle re-arm | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/plan.md) · [decompose](back/plan/T-HUB-074-qa-bugfix-lifecycle-rearm/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-070 · batch loop-session-architecture-20260906 |
 | T-HUB-075 | Stack profiles: Rust, Python, JavaScript | L3 | DECOMPOSE done | queued | [plan](back/plan/T-HUB-075-stack-profiles-rust-python-js/md/plan.md) · [decompose](back/plan/T-HUB-075-stack-profiles-rust-python-js/md/decompose-index.md) · 6 sNN · next BACK ANALYZE · hard deps T-HUB-067 · clarify 20260906 |
 | T-HUB-076 | Stack profile capability execution | L3 | PLAN done | queued | [plan](back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md) · next BACK DECOMPOSE after T-HUB-075 BACK QA PASS · hard dep T-HUB-075 |
+| T-HUB-077 | Gate evidence integrity | L3 | PLAN done | queued | [plan](back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md) · next BACK DECOMPOSE · batch claude-session-audit-20260907 |
+| T-HUB-078 | Context budget enforcement | L3 | PLAN done | queued | [plan](back/plan/T-HUB-078-context-budget-enforcement/md/plan.md) · next BACK DECOMPOSE · batch claude-session-audit-20260907 |
+| T-HUB-079 | Orchestrator lifecycle reliability | L3 | PLAN done | queued | [plan](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md) · next BACK DECOMPOSE after T-HUB-077 · batch claude-session-audit-20260907 |
 | T-HUB-061 | Boundary CLI + doctor hygiene | L2–L3 | PLAN done | active | [plan](back/plan/T-HUB-061-boundary-cli-doctor-hygiene/md/plan.md) · next BACK DECOMPOSE · batch harness-ops-hygiene |
 | T-HUB-060 | Remove REFLECT phase from loop and workflow | L3 | IMPLEMENT s05 | in_progress | [plan](back/plan/T-HUB-060-remove-reflect-phase/md/plan.md) · **не этот PLAN-батч** · отдельный чат IMPLEMENT s05 |
 

@@ -1,4 +1,4 @@
-"""Shared test-runner timeout constants."""
+"""Shared test-runner timeout constants for dev-hub self tests (hub exception)."""
 
 TEST_TIMEOUT_SECONDS = 300
 TEST_TIMEOUT_PREFIX = f"timeout {TEST_TIMEOUT_SECONDS}s "
@@ -21,3 +21,4 @@ ALLOWED_TEST_PREFIXES = (BIN_PYTEST_PREFIX,) + TIMEOUT_TEST_PREFIXES
 
 def has_external_timeout(command: str) -> bool:
     return command.startswith(TEST_TIMEOUT_PREFIX)
+

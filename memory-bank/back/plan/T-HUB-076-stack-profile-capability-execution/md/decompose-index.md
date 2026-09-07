@@ -118,5 +118,5 @@
 | **s02** | Resolver-owned argv executor reports bounded typed process outcomes · [yaml](s02-resolver-owned-executor.yaml) | BACK IMPLEMENT | completed |
 | **s03** | JSON execute CLI persists target-bound capability evidence atomically · [yaml](s03-execute-cli-and-evidence.yaml) | BACK IMPLEMENT | completed |
 | **s04** | check-after executes current-step checks and HALTs without valid evidence · [yaml](s04-check-after-capability-enforcement.yaml) | BACK IMPLEMENT | completed |
-| **s05** | Finish validation distinguishes managed capability evidence from hub tests · [yaml](s05-finish-managed-evidence-validation.yaml) | BACK IMPLEMENT | pending |
-| **s06** | Purge generic managed-test command authority and stale workflow instruction paths · [yaml](s06-legacy-fallback-purge.yaml) | BACK IMPLEMENT | pending |
+| **s05** | Finish validation distinguishes managed capability evidence from hub tests · [yaml](s05-finish-managed-evidence-validation.yaml) | BACK IMPLEMENT | completed |
+| **s06** | Purge generic managed-test command authority and stale workflow instruction paths · [yaml](s06-legacy-fallback-purge.yaml) | BACK IMPLEMENT | completed |

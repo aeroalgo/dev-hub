@@ -1,0 +1,71 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-076-stack-profile-capability-execution
+title: s06 — Purge generic managed-test command authority and stale workflow instruction
+  paths IMPLEMENT
+status: completed
+date: '2026-09-07'
+decompose_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Purged generic managed command authority in rules, hooks, and lifecycle checkers
+- Confined raw pytest/test runners strictly to explicit hub exception
+- Migrated instruction inventory to require capability_checks/evidence for managed
+  projects
+- Added regression test suite loop/tests/test_stack_profile_instruction_inventory.py
+- Verified sunset Kind A, B, C, I surfaces and zero live legacy bypass paths
+files:
+- harness/hooks/tests_format.py
+- harness/hooks/test_run_canon.py
+- harness/hooks/epic_yaml.py
+- harness/cursor/rules/shared/test-timeout.mdc
+- harness/cursor/rules/back_developer/mainrule-core.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+- harness/cursor/rules/integration_developer/mainrule-core.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+- harness/claude/skills/role-command/SKILL.md
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes:
+- Generic managed-project workflow-process authority in harness/hooks/tests_format.py::is_allowed_test_command
+- Universal managed evidence extraction through harness/hooks/tests_format.py::extract_test_commands_from_yaml_tests
+- Managed-target command authority through harness/hooks/test_run_canon.py::ALLOWED_TEST_PREFIXES
+- check-after green path without declared managed capability execution
+- Generic managed-backend pytest wording in BACK core and lean workflow instructions
+- Generic managed API pytest wording in INTEG core and lean workflow instructions
+- Universal pytest wording in harness/claude/skills/role-command/SKILL.md
+- format_spec_lines prose claiming loop runs YAML shell strings
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_instruction_inventory.py harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  loop/tests/test_context_loop_capability_checks.py -q --tb=line`'
+integration_check:
+- 'Sunset A/B/C/I scans: no live legacy authority or generic test command bypass for
+  managed workflows'
+- Hub exception explicit and preserved for dev-hub repo test runners
+- FRONT parent-only boundary preserved
+grep_control: []
+verification_results:
+- 11 passed, 2 warnings in 0.40s for loop/tests/test_stack_profile_instruction_inventory.py,
+  harness/hooks/tests/test_epic_yaml_capability_evidence.py, loop/tests/test_context_loop_capability_checks.py
+checkpoints:
+- id: cp1
+  criterion: 'Kind A: generic managed prefix/parser authority is deleted or confined
+    to the explicit hub-only branch; obsolete tests assert the new evidence contract.'
+  status: done
+- id: cp2
+  criterion: 'Kind B: no check-after or CLI entrypoint can continue a managed workflow
+    without declared-check execution and matching evidence.'
+  status: done
+- id: cp3
+  criterion: 'Kind C: no managed path falls back to a raw tests string, default target,
+    hub pytest command or retry after resolver/execution failure.'
+  status: done
+- id: cp4
+  criterion: 'Kind I: managed instructions name capability declaration/evidence and
+    no longer teach generic Python commands as the managed default; hub exception
+    and FRONT parent-only boundary remain explicit.'
+  status: done

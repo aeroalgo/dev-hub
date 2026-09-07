@@ -171,12 +171,12 @@ As-built нужен только для inventory того, что удалит�
 | Surface | Owner | New / changed responsibility | Consumers |
 |---|---|---|---|
 | `loop/stack_profiles/schemas.py` | stack profile boundary | Add strict declaration/execution/evidence models and diagnostics. | executor, CLI, phase runner, validators, tests |
-| `loop/stack_profiles/executor.py` | profile boundary | Purely typed execution service; resolve → argv-only subprocess → safe result. | CLI, context loop |
+| `loop/stack_profiles/execution.py` | profile boundary | Purely typed execution service; resolve → argv-only subprocess → safe result. | CLI, context loop |
 | `loop/stack_profiles/evidence.py` | profile boundary | Request fingerprinting and atomic evidence read/write/path validation. | context loop, finish validator |
 | `loop/stack_profiles/__main__.py` | operator CLI | `execute` subcommand JSON/exit mapping. | operator, integration tests |
 | `loop/context_loop.py` | phase orchestration | Execute current step declarations during `check_after`, persist/return gate result. | loop runner, check-after CLI |
-| `harness/hooks/epic_yaml.py` and `epic_shard_extra.py` | artifact schema | Parse `capability_checks`, require appropriate evidence at finish. | `epic_resolve`, mb-finish |
-| `harness/hooks/tests_format.py` and `test_run_canon.py` | hub command validation | Narrow names/rules to hub-only command evidence; remove claim that all workflow checks are raw shell strings. | legacy hub shards |
+| `harness/hooks/epic_yaml.py` and `harness/hooks/epic_shard_extra.py` | artifact schema | Parse `capability_checks`, require appropriate evidence at finish. | `epic_resolve`, mb-finish |
+| `harness/hooks/tests_format.py` and `harness/hooks/test_run_canon.py` | hub command validation | Narrow names/rules to hub-only command evidence; remove claim that all workflow checks are raw shell strings. | legacy hub shards |
 | `harness/cursor/rules/**` plus Claude role-command source | Kind I contract | Instruct declaration/execution/evidence, not hardcoded managed test runner. | Cursor, Claude, Codex materialisation |
 | `loop/tests/test_stack_profile_execution*.py` | contract tests | New unit, CLI, phase, finish and migration tests. | CI |
 

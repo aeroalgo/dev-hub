@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-077-gate-evidence-integrity
+title: "Red tests — manual, forged, stale and real verifier evidence"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  TDD red фиксирует границу доверия до реализации: mutable state, manual authority,
+  изменённый receipt, старый epoch и TaskStop не могут завершить workflow, а валидный
+  receipt независимого verifier продолжает полный finish path. Outcome — тесты вызывают
+  stop/finish entrypoints, а не проверяют наличие поля в JSON.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-004, FR-005, AC+1, AC+2, AC+4, AC+5, AC−1, AC−2, TM-077-02, TM-077-03, TM-077-04, TM-077-05]
+  nouns: [verifier receipt, immutable provenance, session_id, phase_epoch, projection digest, verifier identity, receipt digest, GATE_INFRASTRUCTURE_FAILURE, mb-finish, finalize-step]
+  layout_paths:
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+  ac_quotes:
+    - "Manual last_verify_verdict='PASS' или evidence с authority=manual не позволяют mb-finish/finalize-step завершить шаг."
+    - "Изменение любого signed/hashed поля receipt после создания обнаруживается до finish."
+    - "Stale/TaskStop оставляет диагностируемую запись и переводит flow в stop/repair, а не в verifier retry loop."
+    - "Настоящий verifier PASS по действующему shard продолжает успешно проходить весь finish path."
+  plan_jumps:
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:33-61
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:65-86
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:117-139
+    - memory-bank/back/plan/T-HUB-077-gate-evidence-integrity/md/plan.md:142-150
+
+context:
+  consumes:
+    - plan.md §AC and §AC−
+    - plan.md §Failure matrix
+    - plan.md §QA consumes TM-077-02…05
+  produces:
+    - red receipt-integrity tests through subagent-stop, stop-gate and mb-finish entrypoints
+    - fixtures for manual authority, field mutation, stale epoch, TaskStop/no receipt and valid verifier receipt
+  plan_refs: [plan.md#functional-requirements, plan.md#ac, plan.md#failure-matrix, plan.md#qa-consumes]
+  files:
+    - harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+    - harness/hooks/tests/test_stop_gate_receipt_integrity.py
+    - loop/tests/test_finish_receipt_integrity.py
+
+as_built:
+  - subagent-stop constructs verdict evidence then mirrors it through epic_lib into mutable epic state.
+  - stop-gate and mb_finish import current gate evidence helpers but state last_verify fields remain an available authority surface.
+  - existing finish and stop-gate tests cover integrity fragments without the complete manual/forged/stale/real receipt matrix.
+
+delta:
+  - add failing tests for authority=manual and state-only PASS rejected by direct mb-finish/finalize-step path.
+  - add failing mutation and wrong session/epoch/role/step fixtures that require named diagnostics and preserve forensic state.
+  - add TaskStop/no receipt fixture that requires infrastructure_failure and no implicit retry.
+  - add a positive valid verifier receipt fixture that reaches the production finish path successfully.
+
+deletes: []
+
+out_of_scope:
+  - receipt schema and runtime emitter implementation (s02)
+  - stop/finish production enforcement (s03)
+  - write boundary and operator repair implementation (s04)
+  - all legacy and instruction purge (s05)
+  - full suite → QA
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-error-handling/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: Manual authority and state-only PASS fixtures fail through mb-finish/finalize-step, not merely a pure helper.
+    verify: "bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'manual or state_only'"
+  - id: cp2
+    criterion: Mutated receipt and old epoch/session/role/step fixtures fail with a named integrity diagnostic.
+    verify: "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'mutated or digest or epoch or identity'"
+  - id: cp3
+    criterion: TaskStop or absent receipt produces infrastructure_failure, retains forensic evidence and does not request retry.
+    verify: "bin/pytest harness/hooks/tests/test_stop_gate_receipt_integrity.py -q --tb=line -k 'taskstop or stale or absent'"
+  - id: cp4
+    criterion: A valid current verifier receipt reaches finish success without a compatibility branch.
+    verify: "bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line -k 'valid and verifier'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_subagent_stop_receipt_integrity.py harness/hooks/tests/test_stop_gate_receipt_integrity.py loop/tests/test_finish_receipt_integrity.py -q --tb=line"
+tdd:
+  - "red: add manual, forged, stale/TaskStop and real verifier cases before production receipt changes"
+  - "green: s02–s04 make the complete matrix pass through production entrypoints"

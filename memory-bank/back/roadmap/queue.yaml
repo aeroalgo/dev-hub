@@ -1,17 +1,27 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-073
-  epic_id: T-HUB-073-abort-classifier-dirty-halt
-  plan: plan-T-HUB-073-abort-classifier-dirty-halt.md
+- id: T-HUB-077
+  epic_id: T-HUB-077-gate-evidence-integrity
+  plan: plan-T-HUB-077-gate-evidence-integrity.md
   deps: []
-  batch: loop-session-architecture-20260906
-- id: T-HUB-076
-  epic_id: T-HUB-076-stack-profile-capability-execution
-  plan: plan-T-HUB-076-stack-profile-capability-execution.md
+  batch: claude-session-audit-20260907
+- id: T-HUB-078
+  epic_id: T-HUB-078-context-budget-enforcement
+  plan: plan-T-HUB-078-context-budget-enforcement.md
+  deps: []
+  batch: claude-session-audit-20260907
+- id: T-HUB-079
+  epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+  plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
   deps:
-  - T-HUB-075
-  batch: stack-profiles
+  - T-HUB-077
+  batch: claude-session-audit-20260907
+- id: plan
+  epic_id: T-HUB-076-stack-profile-capability-execution
+  plan: plan.md
+  deps: []
+  batch: chat-plan
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -261,10 +271,6 @@ done:
   epic_id: T-HUB-067-pack-doctor-executable-graph
   plan: plan-T-HUB-067-pack-doctor-executable-graph.md
   batch: workflow-loop-20260905
-- id: T-HUB-075
-  epic_id: T-HUB-075-stack-profiles-rust-python-js
-  plan: plan-T-HUB-075-stack-profiles-rust-python-js.md
-  batch: stack-profiles
 - id: T-HUB-068
   epic_id: T-HUB-068-start-finish-transaction-boundary
   plan: plan-T-HUB-068-start-finish-transaction-boundary.md
@@ -285,10 +291,22 @@ done:
   epic_id: T-HUB-072-context-bundle-fail-closed
   plan: plan-T-HUB-072-context-bundle-fail-closed.md
   batch: loop-session-architecture-20260906
+- id: T-HUB-073
+  epic_id: T-HUB-073-abort-classifier-dirty-halt
+  plan: plan-T-HUB-073-abort-classifier-dirty-halt.md
+  batch: loop-session-architecture-20260906
 - id: T-HUB-074
   epic_id: T-HUB-074-qa-bugfix-lifecycle-rearm
   plan: plan-T-HUB-074-qa-bugfix-lifecycle-rearm.md
   batch: loop-session-architecture-20260906
+- id: T-HUB-075
+  epic_id: T-HUB-075-stack-profiles-rust-python-js
+  plan: plan-T-HUB-075-stack-profiles-rust-python-js.md
+  batch: stack-profiles
+- id: T-HUB-076
+  epic_id: T-HUB-076-stack-profile-capability-execution
+  plan: plan-T-HUB-076-stack-profile-capability-execution.md
+  batch: stack-profiles
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -340,4 +358,10 @@ batches:
       rewrite 062–069 WHAT; Armed IMPLEMENT 062 not re-armed by this PLAN
   stack-profiles:
     title: Stack profile capability delivery
-    note: T-HUB-075 defines typed Rust/Python/JavaScript profiles; T-HUB-076 adds bounded capability execution after T-HUB-075 QA PASS.
+    note: T-HUB-075 defines typed Rust/Python/JavaScript profiles; T-HUB-076 adds
+      bounded capability execution after T-HUB-075 QA PASS.
+  claude-session-audit-20260907:
+    title: Claude Code session audit remediation
+    note: Verification integrity, context budget enforcement and lifecycle reliability;
+      details in plan/<epic_id>/md/plan.md.
+  chat-plan: {}

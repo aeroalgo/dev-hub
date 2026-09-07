@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-077-gate-evidence-integrity
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+    - cosmetic status UI
+    - cross-runtime migration beyond Claude Code
+steps:
+  - id: s01
+    file: s01-receipt-integrity-red-tests.yaml
+    title: Red tests — manual, forged, stale and real verifier evidence
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-immutable-verifier-receipt-contract.yaml
+    title: Immutable verifier receipt contract and runtime-only emitter
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-stop-finish-receipt-enforcement.yaml
+    title: Enforce current verifier receipt at stop and finish boundaries
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s04
+    file: s04-write-boundary-operator-repair.yaml
+    title: Deny agent state mutation and add audited operator repair
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s05
+    file: s05-legacy-fallback-purge.yaml
+    title: s05 — legacy-fallback-purge — manual evidence and mutable gate authority
+    next_phase: BACK IMPLEMENT
+    status: pending

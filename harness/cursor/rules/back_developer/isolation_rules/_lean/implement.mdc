@@ -45,7 +45,7 @@ alwaysApply: false
 - Нет analyze artifact / `critical_count>0` → REJECT IMPLEMENT
 - **Scope violation:** paths вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT → REVERT + halt
 - Полный `plan-*.md` в `load_now` как monolith AC **без** plan_jumps → FAIL; отсутствие plan_jumps при непустых fr_ids → FAIL
-- Полный pytest / голый `pytest` / не из корня → BACK QA или FAIL
+- Полный pytest / голый `pytest` / не из корня (для hub) или пропуск capability declaration/evidence (для managed) → BACK QA или FAIL
 - Impl skills из step не Read (если не docs-only skip) · Read скиллов вне step → no FINISH
 - Непустой decompose `deletes` не выполнен / не отражён в implement → no FINISH
 - Purge step без evidence `rg`/entrypoint/Kind I inventory → no FINISH

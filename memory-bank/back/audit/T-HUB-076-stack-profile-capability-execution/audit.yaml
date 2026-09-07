@@ -1,0 +1,411 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-076-stack-profile-capability-execution
+plan_id: T-HUB-076-stack-profile-capability-execution
+date: 2026-09-07
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: Connect stack profile capability execution to phase runner, CLI and finish validation with strict typed models, executor, evidence sidecars and fail-closed check-after gate without generic command fallbacks
+  source: plan.md#Контекст
+
+summary:
+  total_steps: 6
+  implemented: 6
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 13
+  fr_satisfied: 13
+  sc_checked: 6
+  layout_paths_total: 11
+  layout_paths_closed: 11
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: CapabilityCheckSpec, CapabilityExecutionResult, and CapabilityExecutionEvidence in loop/stack_profiles/execution.py enforce strict Pydantic parsing with unknown fields forbidden, required named target, and canonical hash computation.
+    remaining_work: ""
+
+  - source_ref: FR-002
+    status: satisfied
+    evidence: execute_capability in loop/stack_profiles/execution.py calls resolve_capability and invokes subprocess.Popen with shell=False, resolution.argv, resolution.cwd, and timeout_seconds, collecting status and diagnostics safely.
+    remaining_work: ""
+
+  - source_ref: FR-003
+    status: satisfied
+    evidence: Executor accepts only ProjectRoot and typed declaration/request; raw command text, caller argv, cwd/env overrides are completely absent from executor boundary; resolver failure emits resolution_failed without subprocess spawn.
+    remaining_work: ""
+
+  - source_ref: FR-004
+    status: satisfied
+    evidence: CapabilityExecutionResult uses schema stack-capability-execution/v1, computes duration_ms, byte counts, bounded diagnostics, and excludes stdout/stderr body or environment secrets from YAML/evidence.
+    remaining_work: ""
+
+  - source_ref: FR-005
+    status: satisfied
+    evidence: loop/stack_profiles/__main__.py execute subcommand outputs JSON schema with exit code mapping (0 for succeeded, 2 for resolution_failed, 3 for spawn_failed, 4 for timed_out, child exit code for failed).
+    remaining_work: ""
+
+  - source_ref: FR-006
+    status: satisfied
+    evidence: harness/hooks/epic_yaml.py parses capability_checks as list[CapabilityCheckSpec] in DecomposeStepDoc and validates target presence, selector rules, and fail-closed structure.
+    remaining_work: ""
+
+  - source_ref: FR-007
+    status: satisfied
+    evidence: loop/context_loop.py check_after executes declared capability_checks for current armed step, writes sidecar evidence under memory-bank/<role>/execution/<epic>/<step>/, and HALTs phase progression if evidence is missing or failed.
+    remaining_work: ""
+
+  - source_ref: FR-008
+    status: satisfied
+    evidence: harness/hooks/epic_yaml.py finish validation checks read_capability_evidence matching declaration fingerprint for managed projects, while retaining explicit hub test runner validation for hub shards.
+    remaining_work: ""
+
+  - source_ref: FR-009
+    status: satisfied
+    evidence: harness/cursor/rules/back_developer, integ_developer, and mainrule-core instruct capability_checks declaration and execution evidence rather than generic Python/pytest commands for managed projects.
+    remaining_work: ""
+
+  - source_ref: FR-010
+    status: satisfied
+    evidence: FRONT parent-only test execution boundary is strictly preserved across all instructions and rules with zero automatic browser execution in executor.
+    remaining_work: ""
+
+  - source_ref: FR-011
+    status: satisfied
+    evidence: harness/hooks/tests_format.py and test_run_canon.py confine generic command validation to hub-only exception; raw shell strings cannot prove managed capability_checks declarations.
+    remaining_work: ""
+
+  - source_ref: FR-012
+    status: satisfied
+    evidence: Direct resolve_capability and doctor from T-HUB-075, immutable capability vocabulary, lockfile rules, and hub bin/pytest wrapper remain intact.
+    remaining_work: ""
+
+  - source_ref: FR-014
+    status: satisfied
+    evidence: Lifecycle execution and runtime evidence integration planned in T-HUB-075 cut-list is fully implemented and enforced.
+    remaining_work: ""
+
+  - source_ref: US-001
+    status: satisfied
+    evidence: Operators and phase runners can execute test.full, test.targeted, format.check, lint, typecheck, build via JSON CLI and API.
+    remaining_work: ""
+
+  - source_ref: US-002
+    status: satisfied
+    evidence: Decompose shards without target or with invalid process control fields fail closed with capability_target_required and do not spawn subprocesses.
+    remaining_work: ""
+
+  - source_ref: US-003
+    status: satisfied
+    evidence: Invalid manifest, spawn error, timeout, or non-zero command returns structured JSON and mapped non-zero exit code, causing check-after HALT.
+    remaining_work: ""
+
+  - source_ref: US-004
+    status: satisfied
+    evidence: Hub implementation shards without dev-hub.project.yaml remain validated via hub test format without capability inference.
+    remaining_work: ""
+
+  - source_ref: US-005
+    status: satisfied
+    evidence: Workflow rules and instructions clearly distinguish managed capability execution from hub self-test exceptions.
+    remaining_work: ""
+
+  - source_ref: SC-001
+    status: satisfied
+    evidence: Bundled profiles (Python, Rust, JavaScript) execute test.full through the resolver-owned executor with typed outcome verification.
+    remaining_work: ""
+
+  - source_ref: SC-002
+    status: satisfied
+    evidence: Resolver/validation failures return resolution_failed without invoking any target subprocess.
+    remaining_work: ""
+
+  - source_ref: SC-003
+    status: satisfied
+    evidence: Failed, timed out, or non-zero command execution halts check-after and records diagnostics in evidence sidecar.
+    remaining_work: ""
+
+  - source_ref: SC-004
+    status: satisfied
+    evidence: Finish validator rejects raw shell test strings for decompose steps declaring capability_checks.
+    remaining_work: ""
+
+  - source_ref: SC-005
+    status: satisfied
+    evidence: Hub self-tests pass finish validation via hub command canon without invoking capability executor.
+    remaining_work: ""
+
+  - source_ref: SC-006
+    status: satisfied
+    evidence: Active workflow rules in harness/cursor and harness/claude do not prescribe generic pytest commands for managed projects.
+    remaining_work: ""
+
+  - source_ref: AC-:1
+    status: satisfied
+    evidence: No shell=True or string concatenation is used for capability subprocesses; execution uses direct argv list.
+    remaining_work: ""
+
+  - source_ref: AC-:2
+    status: satisfied
+    evidence: No fallback from failed managed check to bin/pytest, npm, cargo, or default target.
+    remaining_work: ""
+
+  - source_ref: AC-:3
+    status: satisfied
+    evidence: CapabilityCheckSpec forbids raw command, timeout, profile, or environment fields.
+    remaining_work: ""
+
+  - source_ref: AC-:4
+    status: satisfied
+    evidence: Evidence models contain byte counts and status without dumping stdout/stderr body or environment variables.
+    remaining_work: ""
+
+  - source_ref: AC-:5
+    status: satisfied
+    evidence: Finish validator denies PASS when declaration omits target, selector violates rules, or evidence sidecar is missing/stale.
+    remaining_work: ""
+
+  - source_ref: AC-:6
+    status: satisfied
+    evidence: Six-capability vocabulary, JS lockfile policy, and hub test runner wrapper remain unchanged.
+    remaining_work: ""
+
+  - source_ref: constitution:L7
+    status: satisfied
+    evidence: Constitution MUST section compliance verified across all audit checks.
+    remaining_work: ""
+
+  - source_ref: constitution:L9
+    status: satisfied
+    evidence: TDD first principle followed with red-green tests created across steps s01 through s06.
+    remaining_work: ""
+
+  - source_ref: constitution:L13
+    status: satisfied
+    evidence: No silent fallback rule enforced; failed capability checks halt execution fail-closed.
+    remaining_work: ""
+
+  - source_ref: constitution:L17
+    status: satisfied
+    evidence: FRONT tests parent-only boundary preserved with explicit rule protections.
+    remaining_work: ""
+
+  - source_ref: constitution:L21
+    status: satisfied
+    evidence: Lean load rules maintained across step execution and context management.
+    remaining_work: ""
+
+  - source_ref: constitution:L25
+    status: satisfied
+    evidence: Fail-closed misconfiguration diagnostics returned for invalid manifests and targets.
+    remaining_work: ""
+
+  - source_ref: constitution:L29
+    status: satisfied
+    evidence: No-guess markers respected; explicit target required in all capability declarations.
+    remaining_work: ""
+
+  - source_ref: constitution:L33
+    status: satisfied
+    evidence: ONE Handoff per step enforced across all implement step completions.
+    remaining_work: ""
+
+  - source_ref: constitution:L37
+    status: satisfied
+    evidence: Section 0.11 integration parity preserved between resolver, executor, loop, and finish validator.
+    remaining_work: ""
+
+  - source_ref: constitution:L41
+    status: satisfied
+    evidence: Phase authority respected; check-after enforces current armed step declarations before continuation.
+    remaining_work: ""
+
+  - source_ref: layout:harness/cursor/rules/**
+    status: satisfied
+    evidence: Cursor workflow rules updated to instruct managed capability declarations and hub exception.
+    remaining_work: ""
+
+  - source_ref: layout:harness/hooks/epic_shard_extra.py
+    status: satisfied
+    evidence: Extra schema validation utilities integrating capability evidence checks.
+    remaining_work: ""
+
+  - source_ref: layout:harness/hooks/epic_yaml.py
+    status: satisfied
+    evidence: Decompose and finish schema validator enforcing capability_checks and matching evidence sidecars.
+    remaining_work: ""
+
+  - source_ref: layout:harness/hooks/test_run_canon.py
+    status: satisfied
+    evidence: Hub test runner canon module defining allowed hub test command prefixes.
+    remaining_work: ""
+
+  - source_ref: layout:harness/hooks/tests_format.py
+    status: satisfied
+    evidence: Hub test format validation narrowed to hub-only commands without generic managed authority.
+    remaining_work: ""
+
+  - source_ref: layout:loop/context_loop.py
+    status: satisfied
+    evidence: Loop runner check_after enforcing declared capability checks for current step with fail-closed halt.
+    remaining_work: ""
+
+  - source_ref: layout:loop/stack_profiles/__main__.py
+    status: satisfied
+    evidence: Operator CLI exposing execute subcommand with JSON output and typed exit codes.
+    remaining_work: ""
+
+  - source_ref: layout:loop/stack_profiles/evidence.py
+    status: satisfied
+    evidence: Sidecar persistence module managing atomic evidence write, read, and fingerprint validation.
+    remaining_work: ""
+
+  - source_ref: layout:loop/stack_profiles/execution.py
+    status: satisfied
+    evidence: Typed executor service mapping resolved argv to safe subprocess execution and status outcome.
+    remaining_work: ""
+
+  - source_ref: layout:loop/stack_profiles/schemas.py
+    status: satisfied
+    evidence: Schema module defining CapabilityCheckSpec, CapabilityName, Diagnostic, and base target models.
+    remaining_work: ""
+
+  - source_ref: layout:loop/tests/test_stack_profile_execution*.py
+    status: satisfied
+    evidence: Comprehensive test suites covering contract, executor, CLI, check-after, finish evidence, and instruction inventory.
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: loop/stack_profiles/schemas.py
+    status: present
+    follow_up: ""
+    evidence: Schema module defining CapabilityCheckSpec, CapabilityName, Diagnostic, and base target models.
+
+  - layout_path: loop/stack_profiles/execution.py
+    status: present
+    follow_up: ""
+    evidence: Typed executor service mapping resolved argv to safe subprocess execution and status outcome.
+
+  - layout_path: loop/stack_profiles/evidence.py
+    status: present
+    follow_up: ""
+    evidence: Sidecar persistence module managing atomic evidence write, read, and fingerprint validation.
+
+  - layout_path: loop/stack_profiles/__main__.py
+    status: present
+    follow_up: ""
+    evidence: Operator CLI exposing execute subcommand with JSON output and typed exit codes.
+
+  - layout_path: loop/context_loop.py
+    status: present
+    follow_up: ""
+    evidence: Loop runner check_after enforcing declared capability checks for current step with fail-closed halt.
+
+  - layout_path: harness/hooks/epic_yaml.py
+    status: present
+    follow_up: ""
+    evidence: Decompose and finish schema validator enforcing capability_checks and matching evidence sidecars.
+
+  - layout_path: harness/hooks/epic_shard_extra.py
+    status: present
+    follow_up: ""
+    evidence: Extra schema validation utilities integrating capability evidence checks.
+
+  - layout_path: harness/hooks/tests_format.py
+    status: present
+    follow_up: ""
+    evidence: Hub test format validation narrowed to hub-only commands without generic managed authority.
+
+  - layout_path: harness/hooks/test_run_canon.py
+    status: present
+    follow_up: ""
+    evidence: Hub test runner canon module defining allowed hub test command prefixes.
+
+  - layout_path: harness/cursor/rules/**
+    status: present
+    follow_up: ""
+    evidence: Cursor workflow rules updated to instruct managed capability declarations and hub exception.
+
+  - layout_path: loop/tests/test_stack_profile_execution*.py
+    status: present
+    follow_up: ""
+    evidence: Comprehensive test suites covering contract, executor, CLI, check-after, finish evidence, and instruction inventory.
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s01-capability-execution-contract.yaml
+
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s02-resolver-owned-executor.yaml
+
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s03-execute-cli-and-evidence.yaml
+
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s04-check-after-capability-enforcement.yaml
+
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s05-finish-managed-evidence-validation.yaml
+
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-076-stack-profile-capability-execution/s06-legacy-fallback-purge.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: 2026-09-07
+  plan_ref: memory-bank/back/plan/T-HUB-076-stack-profile-capability-execution/md/plan.md#replacement--sunset
+  rows:
+    - symbol: harness/hooks/tests_format.py:is_allowed_test_command
+      kind: A
+      command: 'rg -n "is_allowed_test_command" harness/hooks/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "Narrowed strictly to hub self-test validation; cannot validate managed capability declarations."
+
+    - symbol: loop/context_loop.py:_enforce_capability_checks_for_armed_step
+      kind: B
+      command: 'rg -n "check_after|capability_checks" loop/context_loop.py'
+      result: pass
+      prod_callers: []
+      notes: "Enforces declared capability checks for armed step before green continuation."
+
+    - symbol: generic_managed_pytest_fallbacks
+      kind: C
+      command: 'rg -n "fallback.*(pytest|tests:|default_target)|retry.*(pytest|cargo|npm)" loop/ harness/hooks/ --glob "*.py"'
+      result: pass
+      prod_callers: []
+      notes: "No fallback from failed managed check to pytest or retry exists."
+
+    - symbol: instruction_surfaces_managed_pytest_prescription
+      kind: I
+      command: 'rg -n "managed.*(bin/pytest|[.]venv/bin/pytest)" harness/cursor/rules/ harness/claude/'
+      result: pass
+      prod_callers: []
+      notes: "Managed instructions prescribe capability declarations; hub tests explicitly marked as hub exception."
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: 2026-09-07
+  rows:
+    - boundary: stack-capability-execution-boundary
+      enforce_evidence: "loop/stack_profiles/execution.py and harness/hooks/epic_yaml.py require strict CapabilityCheckSpec with target"
+      result: pass
+      notes: "Fail-closed check-after and finish validator enforce evidence sidecars."
+
+blocked_reason: ""
