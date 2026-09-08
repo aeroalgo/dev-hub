@@ -10,9 +10,6 @@
     "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5",
     "@dev-hub/dsh-epic-gate": "file:../../plugins/epic-gate"
   },
-  "optionalDependencies": {
-    "dsh-claude-compat": "0.8.0"
-  },
   "dsh": {
     "profile": {
       "bundles": [

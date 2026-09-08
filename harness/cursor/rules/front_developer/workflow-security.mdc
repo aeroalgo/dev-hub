@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 ### Команда: FRONT SECURITY | FRONT SECURITY PLAN | FRONT SECURITY DECOMPOSE
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+**Gates**: @.cursor/rules/shared/_lean/security.mdc + @.cursor/rules/front_developer/isolation_rules/_lean/security.mdc (role patch)
 **Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)

@@ -41,6 +41,7 @@ from epic.traceability import (
 from epic_lib import (  # noqa: E402
     _decompose_index_path,
     arm_active_context_from_decompose,
+    arm_epic,
     finalize_step,
     halt_epic,
     load_epic_state,

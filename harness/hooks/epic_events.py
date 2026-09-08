@@ -26,6 +26,18 @@ EVENT_KINDS = frozenset({
     "phase_transition",
     "traceability_warn",
     "traceability_fail",
+    "operator_repair",
+})
+# Gate receipts are stored by older runners in the same JSONL file, but they
+# are sidecars rather than lifecycle events.  They must not poison the
+# lifecycle reducer or prevent a later atomic event append from compacting the
+# log back to canonical loop-event/v2 records.
+EVENT_LOG_SIDECAR_SCHEMAS = frozenset({
+    "loop-gate-evidence/v1",
+    "loop-gate-verdict/v1",
+})
+OPERATOR_REPAIR_KINDS = frozenset({
+    "operator_repair",
 })
 # Historical event.log rows — parse for seq continuity; reducer ignores these kinds.
 LEGACY_DEAD_EVENT_KINDS = frozenset({"reflection_done"})
@@ -288,6 +300,17 @@ def read_event_log_result(
             except json.JSONDecodeError as exc:
                 diagnostics.append(_diagnostic("invalid_json", f"{source.name}[line[{index}]]", str(exc)))
                 invalid_count += 1
+                continue
+            if (
+                isinstance(raw, dict)
+                and (
+                    raw.get("schema") in EVENT_LOG_SIDECAR_SCHEMAS
+                    or raw.get("kind") in OPERATOR_REPAIR_KINDS
+                )
+            ):
+                # Gate evidence has its own schema and storage semantics.  A
+                # mixed historical log is repaired by the next _append_event,
+                # which rewrites only canonical lifecycle events atomically.
                 continue
             if isinstance(raw, dict) and raw.get("schema") == EVENT_SCHEMA:
                 result = validate_event(raw, expected_epic_id=expected_epic_id)

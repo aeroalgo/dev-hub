@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 ### Команда: BACK SECURITY | BACK SECURITY PLAN | BACK SECURITY DECOMPOSE
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+**Gates**: @.cursor/rules/shared/_lean/security.mdc + @.cursor/rules/back_developer/isolation_rules/_lean/security.mdc (role patch)
 **Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)

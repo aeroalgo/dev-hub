@@ -3,17 +3,18 @@ description: "Режим INTEG VAN — full as-built map (back+front) + integrat
 alwaysApply: false
 ---
 ### Команда: INTEG VAN
-**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc  
-**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/van.mdc  
-**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
-**Скиллы:** @.agents/skills/architecture-patterns/SKILL.md  
+**Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
+**Gates (shared contract)**: @.cursor/rules/shared/_lean/van.mdc
+**Gates (role patch)**: @.cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc
+**Скиллы:** @.agents/skills/architecture-patterns/SKILL.md
 **Paths**: @.cursor/rules/shared/memory-bank-paths.mdc
 
 **Процесс**:
 1. `OK INTEG VAN - Оцениваю интеграцию / полную карту`
-1a. Прочитай **Gates** + **Brownfield map**
+1a. Прочитай **Gates** (shared + role patch) + **Brownfield map**
 2. Detect greenfield | brownfield
-3. **greenfield / thin:** domain scope + as-built checklist → L → van artifact → FINISH  
+3. **greenfield / thin:** domain scope + as-built checklist → L → van artifact → FINISH
    **brownfield (default если код есть):**
    - announce: `SUSPENSION GUARD active — architecture map output unlimited`
    - graphify: services, endpoints, consumers, pipelines

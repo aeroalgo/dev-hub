@@ -1,0 +1,10 @@
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: !!js >-
+      process.getBuiltinModule('node:fs').readFileSync(
+        (process.env.DSH_HOME ||
+         process.getBuiltinModule('node:os').homedir() + '/.dsh') +
+        '/presets/verify-implement.prompt.md',
+        'utf8'
+      )

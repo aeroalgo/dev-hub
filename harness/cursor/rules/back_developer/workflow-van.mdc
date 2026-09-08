@@ -3,17 +3,18 @@ description: "Режим BACK VAN — init / brownfield architecture map (backen
 alwaysApply: false
 ---
 ### Команда: BACK VAN
-**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc  
-**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/van.mdc  
-**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates (shared contract)**: @.cursor/rules/shared/_lean/van.mdc
+**Gates (role patch)**: @.cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc
 **Paths**: @.cursor/rules/shared/memory-bank-paths.mdc
 
 **Процесс**:
 1. `OK BACK VAN - Запускаю инициализацию / карту backend`
-1a. Прочитай **Gates** + **Brownfield map** (+ paths если create MB)
+1a. Прочитай **Gates** (shared + role patch) + **Brownfield map** (+ paths если create MB)
 2. Detect greenfield | brownfield (shared rule)
 3. `tasks.md`, `projectbrief.md`, `activeContext.md`
-4. **greenfield:** структура MB → L1–L4 → tasks append → van log (опц.) → FINISH  
+4. **greenfield:** структура MB → L1–L4 → tasks append → van log (опц.) → FINISH
    **brownfield:**
    - announce: `SUSPENSION GUARD active — architecture map output unlimited`
    - graphify + inventory (shared)

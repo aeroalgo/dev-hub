@@ -108,6 +108,42 @@ def test_finish_qa_handoff(tmp_path: Path):
     assert "## Handoff BACK DONE" in written
 
 
+def test_finish_qa_fails_closed_when_lifecycle_event_cannot_be_recorded(tmp_path: Path):
+    """QA must not report DONE when the durable qa_pass event was rejected."""
+    epic = "T-HUB-040"
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / epic
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    (qa_dir / "qa-001.yaml").write_text(
+        "verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8"
+    )
+
+    events_dir = tmp_path / "memory-bank" / "back" / "events" / epic
+    events_dir.mkdir(parents=True, exist_ok=True)
+    (events_dir / "events.jsonl").write_text(
+        '{"kind":"not-a-valid-event","artifact":"memory-bank/x"}\n',
+        encoding="utf-8",
+    )
+
+    active_context = tmp_path / "memory-bank" / "activeContext.md"
+    active_context.parent.mkdir(parents=True, exist_ok=True)
+    active_context.write_text("before QA finish\n", encoding="utf-8")
+    save_epic_state(tmp_path, {"armed_epic": epic, "armed_role": "BACK"})
+
+    res = finish_qa(
+        MbFinishRequest(
+            phase="BACK QA",
+            step_id="QA",
+            done_summary="qa passed",
+            cwd=str(tmp_path),
+        )
+    )
+
+    assert res.ok is False
+    assert "qa_event_persist_failed" in res.diagnostic_codes
+    assert res.epic_done is None
+    assert active_context.read_text(encoding="utf-8") == "before QA finish\n"
+
+
 def test_finish_bugfix_happy(tmp_path: Path):
     """cp4: finish_bugfix happy path with valid bugfix artifact -> ok=True."""
     bugfix_dir = tmp_path / "memory-bank" / "back" / "bugfix" / "T-HUB-040"
@@ -351,4 +387,3 @@ def test_060_shaped_fixture_bugfix_prose_not_sot(tmp_path: Path):
     res = finish_qa(req)
     assert res.ok is False
     assert "qa_new_artifact_required" in res.diagnostic_codes
-

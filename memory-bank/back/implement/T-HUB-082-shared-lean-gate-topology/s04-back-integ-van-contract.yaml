@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: s04 — VAN parity — shared BACK/INTEG contract with preserved ownership semantics IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/yaml/steps/s04-back-integ-van-contract.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Extracted common memory-bank, mode, complexity and brownfield fail-closed gates into harness/cursor/rules/shared/_lean/van.mdc
+- Created role patches for BACK and INTEG preserving artifact paths, ownership, level and next semantics
+- Preserved FRONT VAN as independent local gate without shared merge
+- Rewired BACK and INTEG workflow-van callers to shared owner + role patch
+- Extended test_shared_lean_gate_topology.py with tests for shared VAN contract, role patches, FRONT independence, false merge detection and caller references
+files:
+- harness/cursor/rules/shared/_lean/van.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/back_developer/workflow-van.mdc
+- harness/cursor/rules/integration_developer/workflow-van.mdc
+- harness/cursor/rules/front_developer/workflow-van.mdc
+- harness/hooks/tests/test_shared_lean_gate_topology.py
+deletes:
+- duplicated common BACK/INTEG VAN gate body from role-local _lean/van.mdc files
+tests:
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k van -q --tb=line
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line
+integration_check:
+- BACK workflow-van references shared/_lean/van.mdc and back role patch
+- INTEG workflow-van references shared/_lean/van.mdc and integ role patch
+- FRONT VAN remains independent local gate without shared link
+grep_control: []
+verification_results:
+- 2 passed
+- 8 passed
+checkpoints:
+- id: cp1
+  criterion: Shared VAN owner contains only evidence-approved common gates and no role-specific artifact/UI/domain wording.
+  status: done
+- id: cp2
+  criterion: BACK and INTEG patches preserve their artifact paths, ownership, complexity/level and next semantics.
+  status: done
+- id: cp3
+  criterion: FRONT VAN remains a separate local contract with frontend artifact and shard semantics.
+  status: done
+- id: cp4
+  criterion: VAN corpus detects false merge, lost role patch and shared owner fallback.
+  status: done

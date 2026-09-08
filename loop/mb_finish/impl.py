@@ -7,6 +7,7 @@ from pathlib import Path
 from harness.hooks._lib import ActiveContextLocked
 from harness.hooks.epic.core import (
     _append_event,
+    event_persisted,
     _verify_pass_ready_for_step,
     atomic_write_text,
     epic_id_from_decompose_path,
@@ -360,7 +361,24 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
         role_dir = "integration"
     if epic_id:
         qa_kind = "qa_fail" if qa_verdict in {"fail", "blocked"} else "qa_pass"
-        _append_event(cwd, role_dir, epic_id, qa_kind, qa_art)
+        event_written = _append_event(cwd, role_dir, epic_id, qa_kind, qa_art)
+        if not event_written and not event_persisted(
+            cwd, role_dir, epic_id, qa_kind, qa_art
+        ):
+            # The context has already been committed to the finish journal,
+            # so restore it before returning.  A phase must never report DONE
+            # while its durable reducer event is missing.
+            rollback_staged_files(cwd, tx_rec.staged_files)
+            tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+            tx_rec.error = "qa lifecycle event was not persisted"
+            write_finish_tx(cwd, tx_rec)
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["qa_event_persist_failed"],
+                shape_errors=[
+                    "QA finish rolled back: qa_pass/qa_fail lifecycle event was not persisted"
+                ],
+            )
         reconcile_epic_events(cwd, role_dir, epic_id)
 
     sync_cursor_from_index(cwd)

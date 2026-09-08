@@ -3,9 +3,43 @@
   "hooks": {
     "preToolUse": [
       {
-        "command": ".cursor/hooks/pre_tool_use.py",
-        "matcher": "Write|Edit|TabWrite",
-        "failClosed": false
+        "command": "python3 harness/hooks/agent-pretool.py",
+        "matcher": "Agent|Task",
+        "failClosed": true
+      },
+      {
+        "command": "python3 harness/hooks/write-pretool.py",
+        "matcher": "Write|Edit|NotebookEdit",
+        "failClosed": true
+      },
+      {
+        "command": "python3 harness/hooks/bash-pretool.py",
+        "matcher": "Bash",
+        "failClosed": true
+      },
+      {
+        "command": "python3 harness/hooks/context_ledger_adapters.py",
+        "matcher": "Read|read|Write|Edit|NotebookEdit",
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "python3 harness/hooks/agent-posttool.py",
+        "matcher": "Agent|Task|Write|Edit|NotebookEdit",
+        "failClosed": true
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "python3 harness/hooks/subagent-stop.py",
+        "failClosed": true
+      }
+    ],
+    "stop": [
+      {
+        "command": "python3 harness/hooks/stop-gate.py",
+        "failClosed": true
       }
     ]
   }

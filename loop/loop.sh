@@ -101,6 +101,7 @@ CTX=(python3 "$HUB_ROOT/loop/context_loop.py" --cwd "$PROJECT_ROOT")
 STATE_DIR="$HUB_ROOT/runtime/$PROJ_SLUG/epic"
 STREAM_FILTER="$HARNESS_HOOKS/epic_stream_filter.py"
 CODEX_STREAM_FILTER="$HARNESS_HOOKS/epic_codex_stream_filter.py"
+DSH_STREAM_FILTER="$HARNESS_HOOKS/dsh_stream_filter.py"
 ROOT="$HUB_ROOT"
 SESSION_WRAPPER="$HARNESS_HOOKS/session_resilience.py"
 mkdir -p "$STATE_DIR"
@@ -662,6 +663,8 @@ for part in json.load(sys.stdin):
   if [[ "$runtime_id" == "codex" ]]; then
     stdin_file_args=(--stdin-file "$prompt_file")
     progress_mode="codex_json"
+  elif [[ "$runtime_id" == "dsh" ]]; then
+    progress_mode="stream_bytes"
   fi
 
   set +e
@@ -693,6 +696,20 @@ for part in json.load(sys.stdin):
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
         "${stdin_file_args[@]}" \
         -- "${command[@]}") | python3 "$CODEX_STREAM_FILTER"
+      rc="${PIPESTATUS[0]}"
+    elif [[ "$runtime_id" == "dsh" ]]; then
+      (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
+        --mode headless \
+        --session-id "$iter" \
+        --timeout "$EPIC_SESSION_TIMEOUT_SEC" \
+        --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
+        ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
+        ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        --progress-mode "$progress_mode" \
+        --log "$log_file" \
+        ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
+        "${stdin_file_args[@]}" \
+        -- "${command[@]}") | python3 "$DSH_STREAM_FILTER"
       rc="${PIPESTATUS[0]}"
     else
       (cd "$session_cwd" && python3 "$SESSION_WRAPPER" run-session \
@@ -772,6 +789,14 @@ _apply_prepare_session_vars() {
     MODEL_ARGS=(--model "$MODEL")
     SESSION_MODEL="$MODEL"
   fi
+  if [[ "${EPIC_RUNTIME_RESOLVED:-}" == "dsh" ]]; then
+    if [[ -n "$SESSION_MODEL" ]]; then
+      export PROJECT_LOOP_DSH_PROVIDER="${PROJECT_LOOP_DSH_PROVIDER:-omniroute}"
+      export PROJECT_LOOP_DSH_MODEL="$SESSION_MODEL"
+    else
+      unset PROJECT_LOOP_DSH_MODEL
+    fi
+  fi
   fp_before="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("fingerprint") or "")')"
   prompt_file="$(echo "$prep_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["prompt_file"])')"
 }
@@ -785,23 +810,6 @@ _run_context_prepare() {
   fi
   PREP_RC=$?
   set -e
-}
-
-_print_projection_banner() {
-  local label="${1:-}"
-  if [[ -n "$label" ]]; then
-    echo "==> prompt (projection) [$label]:"
-  else
-    echo "==> prompt (projection):"
-  fi
-  awk '
-    /^## projection$/ {show=1}
-    show {print; if (/^- step:/) exit}
-  ' "$prompt_file"
-  if [[ -n "$ARMED_STEP" ]]; then
-    echo "==> armed_step: $ARMED_STEP"
-  fi
-  echo "..."
 }
 
 # Transient API retry must re-prepare: memory-bank may advance during try 1 while
@@ -842,7 +850,6 @@ _reprepare_for_transient_retry() {
   else
     echo "==> transient retry: re-prepared (step=${ARMED_STEP:-?})"
   fi
-  _print_projection_banner "retry t${next_try}"
   return 0
 }
 
@@ -943,8 +950,6 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
 
   _apply_prepare_session_vars "$prep_json"
   echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
-
-  _print_projection_banner
 
   transient_try=0
   max_transient="${EPIC_TRANSIENT_RETRY_MAX:-3}"

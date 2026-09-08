@@ -102,8 +102,7 @@
 | **s01** | [s01-context-ledger-policy.yaml](../yaml/steps/s01-context-ledger-policy.yaml) — ContextLedger and range policy | — | no | yes | BACK IMPLEMENT | completed |
 | **s02** | [s02-provider-adapters-and-invalidation.yaml](../yaml/steps/s02-provider-adapters-and-invalidation.yaml) — Claude/Codex parity and invalidation | — | no | yes | BACK IMPLEMENT | completed |
 | **s03** | [s03-plan-jump-search-and-test-scope.yaml](../yaml/steps/s03-plan-jump-search-and-test-scope.yaml) — bounded context and search/test scope | — | no | yes | BACK IMPLEMENT | completed |
-| **s04** | [s04-telemetry-and-finish-projection.yaml](../yaml/steps/s04-telemetry-and-finish-projection.yaml) — finish-safe metrics | — | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-contract-materialization-and-regression-flow.yaml](../yaml/steps/s05-contract-materialization-and-regression-flow.yaml) — generated parity and real flow | — | no | yes | BACK IMPLEMENT | pending |
-| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) — final A/B/C/I purge | — | no | no | BACK IMPLEMENT | pending |
-
+| **s04** | [s04-telemetry-and-finish-projection.yaml](../yaml/steps/s04-telemetry-and-finish-projection.yaml) — finish-safe metrics | — | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-contract-materialization-and-regression-flow.yaml](../yaml/steps/s05-contract-materialization-and-regression-flow.yaml) — generated parity and real flow | — | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) — final A/B/C/I purge | — | no | no | BACK IMPLEMENT | completed |
 **Next:** `BACK ANALYZE T-HUB-078-context-budget-enforcement`; IMPLEMENT не начинается до `validate-decompose-tree` exit 0, `validate-traceability` `CRITICAL=0` и обязательного ANALYZE с `critical_count=0`.

@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: s05 — Legacy purge — remove local copies, dangling references and topology
+  fallbacks IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/yaml/steps/s05-legacy-fallback-purge.yaml
+task_id: T-HUB-082
+level: L1
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Purged local roadmap-merge copies in back_developer, front_developer, and integration_developer
+  isolation_rules/_lean/.
+- Preserved single shared owner in shared/_lean/roadmap-merge.mdc and canonical role
+  references in workflow-roadmap-merge.mdc.
+- Verified security and VAN shared owners, explicit role patches, and FRONT VAN independence.
+- Updated topology contract tests in harness/hooks/tests/test_shared_lean_gate_topology.py
+  for single shared roadmap-merge owner.
+- Executed full fail-closed checks against symlinks, local fallback copies, and duplicate
+  owners.
+files:
+- harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+- harness/cursor/rules/shared/_lean/security.mdc
+- harness/cursor/rules/shared/_lean/van.mdc
+- harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc
+- harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc
+- harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+- harness/hooks/tests/test_shared_lean_gate_topology.py
+deletes:
+- harness/cursor/rules/back_developer/isolation_rules/_lean/roadmap-merge.mdc
+- harness/cursor/rules/front_developer/isolation_rules/_lean/roadmap-merge.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/roadmap-merge.mdc
+tests:
+- '`bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line`
+  — PASS (8 passed)'
+- '`for p in harness/cursor/rules/{back_developer,front_developer,integration_developer}/isolation_rules/_lean/roadmap-merge.mdc;
+  do test ! -e "$p"; done` — PASS'
+integration_check:
+- All active workflow callers point to shared/_lean/ canonical contracts and role
+  patches.
+- Zero dangling references to deleted role-local roadmap-merge paths across active
+  rules.
+- Targeted topology test suite green (8/8 passed).
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: 'Kind A shared-owner purge: local roadmap copies are absent; security/VAN
+    common body is not duplicated; shared owners and patches are present.'
+  status: done
+- id: cp2
+  criterion: 'Kind C fallback scan: no symlink, compatibility alias or recreated local
+    copy remains for a shared contract.'
+  status: done
+- id: cp3
+  criterion: Kind I active callers resolve shared canonical paths; FRONT VAN's intentional
+    local exception and archive/history exclusions are explicit.
+  status: done
+- id: cp4
+  criterion: Kind B inventory confirms product/runtime/router/skill-selection scope
+    is unchanged.
+  status: done
+- id: cp5
+  criterion: Targeted topology regression is green without restoring legacy copies;
+    full hub suite is a BACK QA consume.
+  status: done
+resume_from: cp5

@@ -465,6 +465,30 @@ def main() -> None:
                 )
                 return
 
+    if finishing and session_id and cwd:
+        try:
+            from context_telemetry import build_finish_receipt
+            telemetry_receipt = build_finish_receipt(cwd, session_id)
+            if telemetry_receipt.status in ("corrupt", "non_green"):
+                diag = telemetry_receipt.aggregate.diagnostic_code or "telemetry_corrupt"
+                if not stop_hook_active:
+                    _block(
+                        f"epic-gate: context telemetry non-green — {diag}. "
+                        f"Counters (unique_reads={telemetry_receipt.aggregate.unique_reads}, "
+                        f"duplicate_reads={telemetry_receipt.aggregate.duplicate_reads}, "
+                        f"monolith_plan_attempts={telemetry_receipt.aggregate.monolith_plan_attempts}, "
+                        f"search_exceptions={telemetry_receipt.aggregate.search_exceptions}, "
+                        f"highest_repeat_path={telemetry_receipt.aggregate.highest_repeat_path}) are invalid or corrupt."
+                    )
+                    return
+        except Exception as exc:
+            if not stop_hook_active:
+                _block(
+                    "epic-gate: context telemetry check failed closed — "
+                    f"{type(exc).__name__}: {exc}"
+                )
+                return
+
     current_phase_u = str(epic.get("phase") or st.get("mode") or "").upper()
     if finishing and current_phase_u == "IMPLEMENT" and not st.get("gate_bypass_reason"):
         lft = epic.get("last_finish_tool")

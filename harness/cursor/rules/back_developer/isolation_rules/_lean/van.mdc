@@ -1,34 +1,18 @@
 ---
-description: "VAN gates — memory bank, complexity, brownfield architecture (lean)"
+description: "BACK VAN role patch — backend artifact path, L1-L4 tasks and next semantics"
 alwaysApply: false
 ---
-# VAN — gates
+# VAN — BACK role patch
 
-**Артефакт (session):** `memory-bank/back/van/van-YYYYMMDD.md`  
-**Карта (brownfield):** `memory-bank/architecture/`  
-**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
-**Пути:** @.cursor/rules/shared/memory-bank-paths.mdc
+**Shared contract:** @.cursor/rules/shared/_lean/van.mdc
 
-## Gates
+## Role patch (BACK)
 
-1. `memory-bank/` valid по paths — иначе create; abort до valid
-2. Обязательны: `tasks.md`, `activeContext.md`, `projectbrief.md`
-3. Mode detected: greenfield | brownfield
-4. L1–L4 записан в `tasks.md` (append-only)
-5. Контекст ясен из tasks + activeContext
-6. **Brownfield:** backend-scope shards refreshed + `architecture/index.md` updated; session van log с links; mermaid minimum (services + data-flow + erd|n/a)
-
-## Complexity
-
-| L | Scope |
-|---|--------|
-| L1 | 1–2 файла |
-| L2 | 3–5 файлов |
-| L3 | фича, возможен CREATIVE |
-| L4 | архитектура |
-
-## Abort
-
-- Invalid memory bank → fix first
-- Complexity не определён → не рекомендовать IMPLEMENT/PLAN
-- Brownfield без architecture refresh → FAIL
+1. **Artifact & ownership:**
+   - Session artifact: `memory-bank/back/van/van-YYYYMMDD.md`
+   - Brownfield refresh: backend-scope shards (`overview` BE, `services`, `data-flow`, `erd`, `workers`, `containers`) + `memory-bank/architecture/index.md`
+2. **Complexity & level:**
+   - L1–L4 записан в `tasks.md` (append-only)
+3. **Next semantics:**
+   - L1 → IMPLEMENT
+   - L2–L4 → PLAN

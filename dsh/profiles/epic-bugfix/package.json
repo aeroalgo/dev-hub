@@ -22,8 +22,8 @@
   "bundles": {
     "subagent": {
       "presets": {
-        "verify": "preset-verify",
-        "explorer": "preset-explorer"
+        "verify": "verify-bugfix",
+        "explorer": "explorer"
       }
     }
   }

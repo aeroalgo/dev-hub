@@ -19,9 +19,23 @@ alwaysApply: false
 - @.agents/skills/frontend-patterns/SKILL.md
 - @.agents/skills/vercel-react-best-practices/SKILL.md
 
-**Цель:** Master-план wire портала — route × UI × API × БД.  
+**Цель:** Master-план wire портала — route × UI × API × БД.
 **§0.0:** после OK — `SUSPENSION GUARD active — plan output unlimited`. Артефакт exhaustive; chat brief OK.
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/integ-plan.mdc
+
+---
+
+## Hot path
+
+1. `SUSPENSION GUARD active — plan output unlimited`
+2. **Phase 0 Clarify (orchestration):** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — при триггерах clarify mechanics до Phase 0 gate OK
+3. **Portal inventory:** все `frontend/src/app/**/page.tsx` + UI elements
+4. **Element registry & Acceptance:** ≥400 строк (`wc -l` plan ≥400 иначе дописать; endpoint ↔ fetch)
+5. **Every PLAN:** апсерт row в `roadmap/queue.yaml` + `plan/<epic_id>/md/plan.md` + `md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering одинаковый и без ID; не читать соседние plan)
+5a. **Queue reconcile (mandatory):** `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role integration` (`ok: false` → halt PLAN)
+6. graphify: `.venv/bin/graphify query` (routes/components/endpoints; hub без graph.json → inventory)
+7. FINISH (`code_changed: no`) → next **INTEG DECOMPOSE** (не ROADMAP MERGE)
+
+---
 
 **Scope в plan:** `portal` (default) | `journey` | `section` (только если явно).  
 Gap опционален — не блокирует PLAN. Не читать as input: gap/, contracts/, BACK/FRONT decompose.

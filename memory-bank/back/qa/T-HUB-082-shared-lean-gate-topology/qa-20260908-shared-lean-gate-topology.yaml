@@ -1,0 +1,43 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-082-shared-lean-gate-topology
+verdict: pass
+date: '2026-09-08'
+qa_lead: BACK QA
+
+test_matrix_coverage:
+  - tm_id: TM-082-01
+    status: pass
+    evidence: "harness/hooks/tests/test_shared_lean_gate_topology.py подтверждает единого shared владельца для roadmap-merge и отсутствие дубликатов"
+  - tm_id: TM-082-02
+    status: pass
+    evidence: "test_shared_security_contract_and_role_patches проверяет наличие общего security контракта и точных role patches для BACK/FRONT/INTEG"
+  - tm_id: TM-082-03
+    status: pass
+    evidence: "test_van_parity_and_role_isolation проверяет общий контракт BACK/INTEG VAN и независимость FRONT VAN"
+  - tm_id: TM-082-04
+    status: pass
+    evidence: "test_missing_patch_duplicate_owner_and_dangling_path_fail_closed проверяет детерминированный отказ при отсутствии патча, дубликате или fallback"
+  - tm_id: TM-082-05
+    status: pass
+    evidence: "Targeted topology suite: 8 passed; full pytest suite выполнен"
+
+reviewer_gate:
+  agent_id: verify-qa
+  verdict: PASS
+  evidence: "verify-qa subagent проверил AC+, AC-, §0.11, target tests и вынес VERDICT: PASS"
+
+security_spot_check:
+  owasp_check: pass
+  notes: "Изменения затрагивают топологию lean gate правил (.mdc) и тесты; нет auth, crypto, db или external I/O"
+
+behavior_smoke:
+  status: pass
+  evidence: "Все вызывающие workflow обращаются к каноническим shared lean контрактам и role patches"
+
+sunset_scan:
+  status: pass
+  evidence: "Дублирующие local gate copies удалены, fallback/symlink отсутствуют"
+
+issues: []
+fix_plan: []

@@ -73,3 +73,52 @@ def test_malformed_legacy_record_is_counted_and_does_not_become_pending(tmp_path
     assert result.events == ()
     assert result.invalid_count == 2
     assert {item.code for item in result.diagnostics} == {"kind", "invalid_json"}
+
+
+def test_gate_sidecars_in_event_log_are_ignored_without_invalidating_events(
+    tmp_path: Path,
+) -> None:
+    """Gate receipts are sidecars, not lifecycle events, and must not poison the log."""
+    event_path = tmp_path / "events.jsonl"
+    canonical = {
+        "schema": "loop-event/v2",
+        "event_id": "a" * 32,
+        "seq": 1,
+        "kind": "phase_transition",
+        "artifact": "memory-bank/back/plan/demo/index.yaml",
+        "artifact_sha256": "b" * 64,
+        "epic_id": "demo",
+        "epoch": 0,
+        "t": "2026-08-05T12:00:00+00:00",
+        "metadata": {},
+    }
+    gate_evidence = {
+        "schema": "loop-gate-evidence/v1",
+        "phase": "QA",
+        "epic_id": "demo",
+        "step_id": "QA",
+        "verdict": "PASS",
+        "agent_id": "verify-qa",
+        "recorded_at": "2026-08-05T12:01:00+00:00",
+    }
+    gate_verdict = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify-qa",
+        "session_id": "session",
+        "epic_id": "demo",
+        "step_id": "QA",
+        "phase": "QA",
+        "verdict": "PASS",
+        "recorded_at": "2026-08-05T12:01:00+00:00",
+    }
+    event_path.write_text(
+        "\n".join(json.dumps(item) for item in (canonical, gate_evidence, gate_verdict))
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = read_event_log_result(event_path, expected_epic_id="demo", cwd=tmp_path)
+
+    assert result.diagnostics == ()
+    assert result.invalid_count == 0
+    assert [event["kind"] for event in result.events] == ["phase_transition"]

@@ -1,0 +1,39 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-083-role-core-shared-contract
+title: s01 — Semantic corpus устанавливает common-owner и role-guard failure matrix
+  IMPLEMENT
+status: in_progress
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s01-role-core-contract-red-tests.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/hooks/tests/test_role_core_contract.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: The red corpus names one shared owner and requires exactly one import
+    from each BACK, FRONT and INTEG role core.
+  status: pending
+- id: cp2
+  criterion: The corpus fails when common MEMORY BANK/format/runner prose is copied
+    into a role core instead of referenced from the shared owner.
+  status: pending
+- id: cp3
+  criterion: 'The corpus keeps the role-only guard matrix: BACK promotion, FRONT parent-only/visible-UI,
+    and INTEG element-first/contract/GAP.'
+  status: pending
+- id: cp4
+  criterion: The corpus rejects unconditional managed pytest and missing hub/managed
+    branch wording.
+  status: pending
+resume_from: cp1

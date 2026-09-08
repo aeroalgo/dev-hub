@@ -5,10 +5,12 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
 PROFILE_ROOT="$REPO_ROOT/dsh/profiles"
 PATCH_ROOT="$REPO_ROOT/dsh/patches"
+PRESETS_ROOT="$REPO_ROOT/dsh/presets"
 PLUGIN_ROOT="$REPO_ROOT/dsh/plugins"
 DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 DEST="$DSH_HOME/profiles"
 PATCH_DEST="$DSH_HOME/patches"
+PRESETS_DEST="$DSH_HOME/presets"
 PLUGIN_DEST="$DSH_HOME/plugins"
 MODE=copy
 DRY_RUN=0
@@ -21,8 +23,8 @@ usage() {
   cat <<'EOF'
 Usage: install-profiles.sh [--link] [--dry-run]
 
-Install the repository's epic-* DSH profiles and their local bundle into
-$DSH_HOME/profiles.
+Install the repository's epic-* DSH profiles, shared bundle, presets, and local
+plugins into $DSH_HOME.
   --link     create symlinks instead of copying profile directories
   --dry-run  print planned changes without modifying the filesystem
   --help     show this help
@@ -50,7 +52,7 @@ if ((${#profiles[@]} == 0)); then
 fi
 
 if ((DRY_RUN)); then
-  printf 'Would install profiles to %s (%s) and local bundle to %s:\n' "$DEST" "$MODE" "$PATCH_DEST"
+  printf 'Would install profiles to %s (%s), bundle to %s, presets to %s, and plugins to %s:\n' "$DEST" "$MODE" "$PATCH_DEST" "$PRESETS_DEST" "$PLUGIN_DEST"
 else
   command -v pnpm >/dev/null 2>&1 || {
     printf 'pnpm not found: install pnpm before installing DSH profiles\n' >&2
@@ -61,9 +63,27 @@ else
     rm -rf "$PATCH_DEST"
     cp -R "$PATCH_ROOT" "$PATCH_DEST"
   fi
+  if [[ "$PRESETS_DEST" != "$PRESETS_ROOT" ]]; then
+    rm -rf "$PRESETS_DEST"
+    cp -R "$PRESETS_ROOT" "$PRESETS_DEST"
+  fi
   if [[ "$PLUGIN_DEST" != "$PLUGIN_ROOT" && -d "$PLUGIN_ROOT" ]]; then
     rm -rf "$PLUGIN_DEST"
     cp -R "$PLUGIN_ROOT" "$PLUGIN_DEST"
+  fi
+fi
+
+if ((DRY_RUN)); then
+  printf '%s\n' "Would install shared bundle dependencies: $PATCH_DEST"
+elif [[ -f "$PATCH_DEST/package.json" ]]; then
+  (cd "$PATCH_DEST" && CI=true pnpm install --ignore-scripts)
+fi
+
+if [[ -d "$PLUGIN_DEST/epic-gate" ]]; then
+  if ((DRY_RUN)); then
+    printf '%s\n' "Would install and build local plugin: $PLUGIN_DEST/epic-gate"
+  else
+    (cd "$PLUGIN_DEST/epic-gate" && CI=true pnpm install --ignore-scripts && pnpm run build)
   fi
 fi
 

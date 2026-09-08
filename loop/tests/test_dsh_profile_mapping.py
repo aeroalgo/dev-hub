@@ -105,12 +105,25 @@ def test_install_profiles_provisions_local_bundle(tmp_path: Path) -> None:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'printf "%s\\t%s\\n" "$PWD" "$*" >>"${PNPM_LOG}"\n'
+        'if [[ "$PWD" == */plugins/epic-gate ]]; then\n'
+        '  if [[ "${1:-}" == "run" && "${2:-}" == "build" ]]; then\n'
+        '    mkdir -p lib\n'
+        '    touch lib/index.js\n'
+        '  fi\n'
+        '  exit 0\n'
+        'fi\n'
+        'if [[ "$PWD" == */patches ]]; then\n'
+        '  exit 0\n'
+        'fi\n'
         'if [[ "${1:-}" != "install" ]]; then\n'
         '  printf "unexpected pnpm args: %s\\n" "$*" >&2\n'
         "  exit 2\n"
         "fi\n"
         "mkdir -p node_modules/dsh-phase-models\n"
-        "cp ../../patches/package.json node_modules/dsh-phase-models/package.json\n",
+        "cp ../../patches/package.json node_modules/dsh-phase-models/package.json\n"
+        'if [[ "$PWD" == */profiles/epic-implement ]]; then\n'
+        "  :\n"
+        "fi\n",
         encoding="utf-8",
     )
     pnpm.chmod(pnpm.stat().st_mode | stat.S_IEXEC)
@@ -135,7 +148,12 @@ def test_install_profiles_provisions_local_bundle(tmp_path: Path) -> None:
     assert (dsh_home / "patches" / "phase-models.yml").is_file()
 
     log_lines = pnpm_log.read_text(encoding="utf-8").strip().splitlines()
-    assert len(log_lines) == len(PROFILE_PHASES), log_lines
+    assert len(log_lines) == len(PROFILE_PHASES) + 3, log_lines
+    assert any("/patches\tinstall --ignore-scripts" in line for line in log_lines)
+    assert any("/plugins/epic-gate\tinstall --ignore-scripts" in line for line in log_lines)
+    assert any("/plugins/epic-gate\trun build" in line for line in log_lines)
+    assert (dsh_home / "presets" / "explorer" / "agent.cordis.yml").is_file()
+    assert not (dsh_home / "patches" / "node_modules" / "dsh-claude-compat").exists()
 
     for profile in PROFILE_PHASES:
         profile_dir = dsh_home / "profiles" / profile
@@ -155,6 +173,68 @@ def test_install_profiles_provisions_local_bundle(tmp_path: Path) -> None:
 def test_shared_phase_models_is_a_dsh_bundle() -> None:
     manifest = json.loads((ROOT / "dsh" / "patches" / "package.json").read_text(encoding="utf-8"))
     assert manifest["dsh"]["bundle"]["patch"] == "./phase-models.yml"
+
+
+def test_shared_bundle_declares_the_hooks_bridge_dependency() -> None:
+    manifest = json.loads((ROOT / "dsh" / "patches" / "package.json").read_text(encoding="utf-8"))
+    assert manifest["dependencies"]["@deepseek-ai/dsh-hooks-claude-code"] == "0.0.1-rc.5"
+
+
+def test_dsh_profile_does_not_resolve_claude_compat_plugin() -> None:
+    manifest = json.loads((ROOT / "dsh" / "patches" / "package.json").read_text(encoding="utf-8"))
+    assert "dsh-claude-compat" not in manifest.get("dependencies", {})
+    assert "dsh-claude-compat" not in manifest.get("optionalDependencies", {})
+    patch = (ROOT / "dsh" / "profiles" / "epic-implement" / "cordis.patch.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "dsh-claude-compat" not in patch
+    assert "`${home}/profiles/epic-implement/package.json`" not in patch
+
+
+def test_profiles_use_discoverable_agent_preset_compositions() -> None:
+    preset_ids = {
+        "epic-implement": "verify-implement",
+        "epic-bugfix": "verify-bugfix",
+        "epic-qa": "verify-qa",
+        "epic-decompose": "explorer",
+        "epic-audit": "explorer",
+    }
+    for profile, preset_id in preset_ids.items():
+        patch = (ROOT / "dsh" / "profiles" / profile / "cordis.patch.yml").read_text(
+            encoding="utf-8"
+        )
+        composition = ROOT / "dsh" / "presets" / preset_id / "agent.cordis.yml"
+        assert composition.is_file()
+        assert "id: agent-presets" in patch
+        assert f"default: {preset_id}" in patch
+        assert "id: preset-" not in patch
+
+
+def test_profile_subagent_aliases_point_to_roster_ids() -> None:
+    expected = {
+        "epic-bugfix": {"verify": "verify-bugfix", "explorer": "explorer"},
+        "epic-decompose": {"explorer": "explorer"},
+        "epic-qa": {"reviewer": "verify-qa"},
+    }
+    for profile, aliases in expected.items():
+        manifest = json.loads(
+            (ROOT / "dsh" / "profiles" / profile / "package.json").read_text(encoding="utf-8")
+        )
+        assert manifest["bundles"]["subagent"]["presets"] == aliases
+
+
+def test_epic_gate_exports_compiled_javascript() -> None:
+    manifest = json.loads(
+        (ROOT / "dsh" / "plugins" / "epic-gate" / "package.json").read_text(encoding="utf-8")
+    )
+    compiler = json.loads(
+        (ROOT / "dsh" / "plugins" / "epic-gate" / "tsconfig.json").read_text(encoding="utf-8")
+    )
+    assert manifest["main"] == "lib/index.js"
+    assert manifest["exports"]["."] == "./lib/index.js"
+    assert manifest["scripts"]["build"] == "tsc"
+    assert compiler["compilerOptions"]["outDir"] == "lib"
+    assert "noEmit" not in compiler["compilerOptions"]
 
 
 def test_profiles_include_shared_phase_models_bundle() -> None:
@@ -393,6 +473,34 @@ def test_phase_model_bundle_uses_loader_patch_shape() -> None:
     assert "model: !!js process.env.PROJECT_LOOP_MODEL ?? 'default'" in text
     assert "model: PROJECT_LOOP_MODEL" in text
     assert "credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'" in text
+
+
+def test_dsh_runtime_owns_model_and_reads_only_agents_entrypoint() -> None:
+    text = PHASE_MODELS.read_text(encoding="utf-8")
+    assert "- id: agent-default-model" in text
+    assert "model: !!js process.env.PROJECT_LOOP_DSH_MODEL" in text
+    assert "- id: settings\n  disabled: true" in text
+    assert "- id: agent-instructions" in text
+    assert "- AGENTS.md" in text
+    assert "localInstructionFileCandidates: []" in text
+    assert "- id: skill-filesystem\n  disabled: true" in text
+    assert "- id: tool-skill\n  disabled: true" in text
+    assert "dsh-claude-compat" not in text
+    loop = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
+    assert 'export PROJECT_LOOP_DSH_MODEL="$SESSION_MODEL"' in loop
+    assert 'export PROJECT_LOOP_DSH_PROVIDER="${PROJECT_LOOP_DSH_PROVIDER:-omniroute}"' in loop
+
+
+def test_dsh_profiles_do_not_mount_claude_compatibility_layer() -> None:
+    for profile in PROFILE_PHASES:
+        package = (ROOT / "dsh" / "profiles" / profile / "package.json").read_text(
+            encoding="utf-8"
+        )
+        patch = (ROOT / "dsh" / "profiles" / profile / "cordis.patch.yml").read_text(
+            encoding="utf-8"
+        )
+        assert "dsh-claude-compat" not in package
+        assert "dsh-claude-compat" not in patch
 
 
 def test_all_profiles_have_shared_bundle_and_phase_bridge() -> None:

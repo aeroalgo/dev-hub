@@ -6,16 +6,16 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Cheatsheet hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — **единственный** process-файл на старте; этот файл — при FAIL.
+**Hot path:** @.cursor/rules/back_developer/workflow-implement.mdc#Hot path — **единственный** process-файл на старте; этот файл — при FAIL.
 **Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
 **Скиллы (HARD):** источник — секция `skills.impl` текущего decompose-step; `impl: []` / docs-only → skip. `verification-before-completion` **не** грузить — finish-block + `@verify`.
 
 **Цель:** Один UI-элемент — live API, без mock в prod path.
 
-**Старт (до кода):** cheatsheet → Gates → scope-lock → `load_now` eNN+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
+**Старт (до кода):** Hot path → Gates → scope-lock → `load_now` eNN+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
-1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · **Scope lock** · cheatsheet
+1. `OK INTEG IMPLEMENT - Wire UI-элемента` → **Gates** · **Scope lock** · Hot path
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
 2. `load_now` → work shard `decompose-*/eNN-*.yaml` + `decompose-*/index.yaml`
    **AC = eNN (§Contract).** **FORBIDDEN** полный `plan-*.md` / back|front plan в `load_now`. Jump `plan §N` только при нехватке.

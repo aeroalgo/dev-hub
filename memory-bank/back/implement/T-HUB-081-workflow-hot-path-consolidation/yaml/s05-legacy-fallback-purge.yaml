@@ -1,0 +1,22 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Legacy purge — full A+B+C+I inventory and regression corpus"
+status: completed
+checkpoints:
+  - id: cp1
+    status: completed
+  - id: cp2
+    status: completed
+  - id: cp3
+    status: completed
+  - id: cp4
+    status: completed
+  - id: cp5
+    status: completed
+evidence:
+  tests:
+    - name: test_workflow_hot_path_consolidation.py
+      status: passed
+      suite: harness/hooks/tests/test_workflow_hot_path_consolidation.py

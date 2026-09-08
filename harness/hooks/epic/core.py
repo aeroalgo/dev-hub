@@ -1111,6 +1111,42 @@ def _artifact_sha256(artifact: Path) -> str:
         return hashlib.sha256(artifact.as_posix().encode("utf-8")).hexdigest()
 
 
+def event_persisted(
+    cwd: str | Path,
+    role_dir: str,
+    epic_id: str,
+    kind: str,
+    artifact: Path,
+) -> bool:
+    """Return whether an exact lifecycle event is already durable.
+
+    ``_append_event`` intentionally returns ``False`` for both duplicate
+    events and rejected writes.  Finish transactions need to distinguish
+    those cases so a retry remains idempotent without treating a failed
+    lifecycle write as a successful phase transition.
+    """
+    if not artifact.is_file():
+        return False
+    cwd_p = Path(cwd)
+    try:
+        artifact_rel = artifact.relative_to(cwd_p).as_posix()
+    except ValueError:
+        artifact_rel = artifact.as_posix()
+    result = read_event_log_result(
+        _event_log_path(cwd_p, role_dir, epic_id),
+        expected_epic_id=epic_id,
+        cwd=cwd_p,
+        include_archives=True,
+    )
+    artifact_hash = _artifact_sha256(artifact)
+    return any(
+        event.get("kind") == kind
+        and event.get("artifact") == artifact_rel
+        and event.get("artifact_sha256") == artifact_hash
+        for event in result.events
+    )
+
+
 def _next_event_seq(events: list[dict[str, Any]]) -> int:
     return max((event.get("seq", 0) for event in events if isinstance(event.get("seq"), int)), default=0) + 1
 
@@ -1694,16 +1730,55 @@ def coerce_verify_verdict(
     return "PASS", []
 
 
+def _has_active_gate_spawn(
+    cwd: str | Path,
+    session_id: str | None,
+    agent_id: str,
+) -> bool:
+    """Require a live managed spawn before accepting a verifier mirror."""
+    if not session_id:
+        return False
+    if str(session_id).startswith("codex-"):
+        return True
+    try:
+        from _lib import load_state, normalize_type
+
+        state = load_state(str(session_id), str(cwd))
+        expected = normalize_type(agent_id) or str(agent_id).strip().lower()
+        for entry in state.get("in_flight") or []:
+            if not entry.get("managed"):
+                continue
+            actual = normalize_type(str(entry.get("agent") or ""))
+            if actual == expected:
+                return True
+    except (ImportError, OSError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+    return False
+
+
 def mirror_verify_verdict(
     cwd: str | Path,
     verdict: str | None,
     *,
     evidence: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    agent_id: str = "verify-implement",
 ) -> None:
     if not verdict:
         return
     st = load_epic_state(cwd)
     if not st.get("active"):
+        return
+    evidence_map = evidence if isinstance(evidence, dict) else {}
+    manual_auth = evidence_map.get("authority") == "manual"
+    sid = session_id or evidence_map.get("session_id")
+    if (
+        not manual_auth
+        and sid
+        and not _has_active_gate_spawn(cwd, sid, agent_id)
+    ):
+        st["gate_diagnostic"] = "verify_spawn_missing"
+        save_epic_state(cwd, st)
         return
     effective, demote_blockers = coerce_verify_verdict(
         cwd, verdict, evidence=evidence
@@ -1736,12 +1811,19 @@ def mirror_gate_verdict(
     *,
     agent_id: str = "verify",
     evidence: dict[str, Any] | None = None,
+    session_id: str | None = None,
 ) -> None:
     if agent_id in {"reviewer", "verify-qa"}:
         if not verdict:
             return
         st = load_epic_state(cwd)
         if not st.get("active"):
+            return
+        sid = session_id or (evidence.get("session_id") if isinstance(evidence, dict) else None)
+        manual_auth = evidence.get("authority") == "manual" if isinstance(evidence, dict) else False
+        if not manual_auth and sid and not _has_active_gate_spawn(cwd, sid, agent_id):
+            st["gate_diagnostic"] = "reviewer_spawn_missing"
+            save_epic_state(cwd, st)
             return
         normalized = str(verdict).upper()
         reviewer_evidence = dict(evidence or {})
@@ -1759,7 +1841,13 @@ def mirror_gate_verdict(
             pass
         save_epic_state(cwd, st)
         return
-    mirror_verify_verdict(cwd, verdict, evidence=evidence)
+    mirror_verify_verdict(
+        cwd,
+        verdict,
+        evidence=evidence,
+        session_id=session_id,
+        agent_id=agent_id,
+    )
 
 
 def gate_evidence_matches(cwd: str | Path, evidence: object) -> tuple[bool, str]:

@@ -1,0 +1,106 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: "VAN parity — shared BACK/INTEG contract with preserved ownership semantics"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Только доказанно общий BACK/INTEG VAN gate contract извлекается в shared owner.
+  BACK artifact path, backend brownfield refresh and complexity semantics and INTEG
+  domain/full-map, level and next semantics remain explicit role patches. FRONT VAN
+  stays independent because its UI artifact/frontend shard semantics differ. The
+  extraction is fail-closed when equivalence evidence is missing.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, "AC+ #1", "AC+ #2", "AC+ #3", "AC- #1", "AC- #2", TM-082-03, TM-082-04]
+  nouns:
+    - harness/cursor/rules/shared/_lean/van.mdc
+    - BACK VAN role patch
+    - INTEG VAN role patch
+    - FRONT VAN independent gate
+    - architecture refresh and mermaid minimum
+    - role artifact path and next semantics
+  layout_paths:
+    - harness/cursor/rules/shared/_lean/van.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/back_developer/workflow-van.mdc
+    - harness/cursor/rules/integration_developer/workflow-van.mdc
+    - harness/cursor/rules/front_developer/workflow-van.mdc
+  ac_quotes:
+    - "BACK/INTEG VAN common contract is extracted only after fresh equivalence inventory; FRONT remains separate when UI semantics differ."
+    - "Role patch preserves artifact path/ownership/next semantics."
+    - "No change to VAN requirements."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:6-23"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:25-35"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:37-44"
+
+context:
+  consumes:
+    - s01 fresh VAN equivalence/delta corpus
+    - current BACK, FRONT and INTEG VAN lean gates
+    - shared/workflow-van-brownfield.mdc and memory-bank-paths.mdc
+  produces:
+    - shared VAN common gate owner for approved common checks
+    - explicit BACK and INTEG patches
+    - independent FRONT gate with preserved UI semantics
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#replacement--sunset
+  files:
+    - harness/cursor/rules/shared/_lean/van.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/back_developer/workflow-van.mdc
+    - harness/cursor/rules/integration_developer/workflow-van.mdc
+    - harness/cursor/rules/front_developer/workflow-van.mdc
+
+as_built:
+  - "BACK and INTEG VAN files are currently equivalent in the measured candidate body, while their workflow contexts and artifact ownership are role-specific."
+  - "FRONT VAN differs in frontend artifact path, UI complexity labels and frontend shard refresh; it is not an approved merge target."
+  - "All VAN workflows separately reference their role-local lean gate plus shared brownfield/path policies."
+
+delta:
+  - "Extract only common memory-bank validity, mode/complexity and brownfield fail-closed checks into harness/cursor/rules/shared/_lean/van.mdc."
+  - "Add explicit BACK and INTEG role patches in van.mdc for artifact path, ownership, level/next and domain/backend refresh semantics."
+  - "The common BACK/INTEG VAN gate body in role-local van.mdc files is reserved for deletion by s05 after patch wiring."
+  - "Keep harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc local and add a regression assertion that it remains independent from shared BACK/INTEG owner."
+  - "Rewire harness/cursor/rules/back_developer/workflow-van.mdc and harness/cursor/rules/integration_developer/workflow-van.mdc to shared common contract plus role patch."
+
+deletes:
+  - "duplicated common BACK/INTEG VAN gate body from role-local _lean/van.mdc files"
+
+out_of_scope:
+  - "Merging FRONT VAN into shared contract."
+  - "Changing architecture requirements, mermaid minimum, artifact paths, complexity levels or next transitions."
+  - "Refreshing architecture shards or implementing product code."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Shared VAN owner contains only evidence-approved common gates and no role-specific artifact/UI/domain wording."
+    verify: "rg -n 'memory-bank|Mode|brownfield|Complexity|architecture refresh|mermaid|Abort' harness/cursor/rules/shared/_lean/van.mdc"
+  - id: cp2
+    criterion: "BACK and INTEG patches preserve their artifact paths, ownership, complexity/level and next semantics."
+    verify: "rg -n 'role-patch|BACK|INTEG|memory-bank/back|memory-bank/integration|Next|L1|L2|L3|L4' harness/cursor/rules/{back_developer,integration_developer}/isolation_rules/_lean/van.mdc"
+  - id: cp3
+    criterion: "FRONT VAN remains a separate local contract with frontend artifact and shard semantics."
+    verify: 'rg -n "FRONT VAN|memory-bank/front|frontend\.md|frontend shard|UI|design system" harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc'
+  - id: cp4
+    criterion: "VAN corpus detects false merge, lost role patch and shared owner fallback."
+    verify: "rg -n 'false merge|role patch|fallback|VAN' harness/hooks/tests/test_shared_lean_gate_topology.py"
+
+verify:
+  - 'rg -n "memory-bank/back|memory-bank/integration|memory-bank/front|frontend\.md|Next" harness/cursor/rules/{back_developer,front_developer,integration_developer}/isolation_rules/_lean/van.mdc'
+  - "bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k van -q --tb=line"
+
+tdd: []

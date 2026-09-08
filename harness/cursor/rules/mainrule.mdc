@@ -24,19 +24,19 @@ alwaysApply: true
 0. **graphify** — @.cursor/rules/graphify.mdc (code modes: IMPLEMENT/TASK/BUGFIX/REFACTOR/QA/SECURITY execute, brownfield VAN, PM DISCOVER, TL SYNC DEV; skip PLAN/DECOMPOSE/CREATIVE/REFLECT/ARCHIVE; IMPLEMENT с полным `files:` / `delta_paths_*` → query skip; Hub без graph.json → N/A)
 1. **Индекс роли** — таблица ниже (**IMPLEMENT/TASK/BUGFIX/REFACTOR: skip** — см. Full linked chain)
 2. **Core** — `{role}/mainrule-core.mdc` (IMPLEMENT: skip, если runner уже в Gates)
-3. **Workflow** — `{role}/workflow-{mode}.mdc` (IMPLEMENT: cheatsheet, не этот файл)
+3. **Workflow** — `{role}/workflow-{mode}.mdc` (IMPLEMENT: canonical `## Hot path`, не полный файл)
 4. **Скиллы** — только пути из шага 3 / текущего shard; `SKILL.md` целиком (`impl: []` / docs-only → skip)
 
 ### Full linked chain (HARD RULE)
 
 **PLAN / DECOMPOSE / brownfield VAN:** до работы — `Read` entrypoint текущего runtime (`CLAUDE.md` для Claude Code, `AGENTS.md` для Codex) → `.cursor/rules/mainrule.mdc` → индекс и core роли → workflow → `Gates` → связанные `@` рекурсивно до листьев.
 
-**IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **cheatsheet wins.** До кода — **не** рекурсивный `@`. Обязательный Read:
+**IMPLEMENT / TASK / BUGFIX / REFACTOR (code):** **canonical `## Hot path` wins.** До кода — **не** рекурсивный `@`. Обязательный Read:
 
 1. `activeContext.md` → `load_now` (work shard + `decompose-index.yaml`)
 2. `{role}/isolation_rules/_lean/<mode>.mdc` (Gates)
 3. @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-4. cheatsheet роли (`shared/cheatsheets/back-implement.mdc` — BACK и INTEG; FRONT — тот же, пока нет front-cheatsheet)
+4. Hot path роли (`harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path` / `{role}/workflow-implement.mdc#Hot path`)
 5. `skills.impl` / FRONT `skills.design` из **текущего** shard (`docs-only` / `impl: []` → skip)
 
 **Skip на старте IMPLEMENT:** индекс роли (`{role}/mainrule.mdc`), полный `workflow-implement.mdc` (только при FAIL/неясности), `token-economy-core.mdc`, `context-session-economy.mdc`, finish-block/doc-router (грузить **перед FINISH**), policy `behavior-first` / `legacy-fallback` / `spec-first-replace` full — только по триггеру Gates.

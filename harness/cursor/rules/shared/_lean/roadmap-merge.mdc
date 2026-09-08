@@ -4,8 +4,8 @@ alwaysApply: false
 ---
 # ROADMAP MERGE — gates
 
-**Канон:** `memory-bank/<role>/roadmap/queue.yaml` (yaml-only, `roadmap-queue/v2`)  
-**Алгоритм:** @.cursor/rules/shared/workflow-roadmap-merge.mdc  
+**Канон:** `memory-bank/<role>/roadmap/queue.yaml` (yaml-only, `roadmap-queue/v2`)
+**Алгоритм:** @.cursor/rules/shared/workflow-roadmap-merge.mdc
 **CLI:** `context_loop.py roadmap-merge`
 
 ## Gates

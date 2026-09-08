@@ -1,0 +1,102 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Cutover — delete the four standalone quick-path source files"
+status: completed
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  После встраивания и перепривязки active callers четыре standalone cheatsheet
+  source-файла удалены из canonical rule tree. Единственным владельцем короткого
+  маршрута остаются `## Hot path` в четырёх workflow-файлах; удаление не меняет
+  runtime/router/skill selection и не ослабляет declared lean gates.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, AC+1, AC+2, AC-2, TM-081-01, TM-081-03]
+  nouns:
+    - harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+    - harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+    - canonical workflow Hot path sections as sole owner
+  layout_paths:
+    - harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+    - harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  ac_quotes:
+    - "active standalone `back-decompose`, `back-implement`, `back-plan`, `integ-plan` cheatsheets и их ссылки удалены."
+    - "Нет двух active quick-path sources и compatibility alias."
+    - "Default route режима читает одним документом меньше, не меняя обязательный gate."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:17-32"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:46-53"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:68-70"
+
+context:
+  consumes:
+    - s02 four embedded Hot path sections
+    - s03 active caller rewiring
+    - plan.md §Replacement / sunset A/B/C/I
+  produces:
+    - source-free canonical shared/cheatsheets path for these four modes
+    - one surviving Hot path owner per required mode
+    - corpus test green for source absence and caller absence
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#replacement--sunset
+    - plan.md#draft-stages
+  files:
+    - harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+    - harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+    - harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+
+as_built:
+  - "Четыре standalone cheatsheet-файла являются отдельными active quick-path sources."
+  - "s02/s03 оставляют canonical embedded sections и active callers готовыми к cutover."
+  - "`.cursor/rules` проецирует `harness/cursor/rules`; удалять отдельную symlink-копию не требуется."
+
+delta:
+  - "Удалить четыре перечисленных standalone source files после подтверждения их callers и embedded replacements."
+  - "Сделать source absence частью corpus test, чтобы старый файл нельзя было вернуть как compatibility alias."
+  - "Сохранить archive/history вне active source scan и не менять другие cheatsheets."
+
+deletes:
+  - "harness/cursor/rules/shared/cheatsheets/back-decompose.mdc"
+  - "harness/cursor/rules/shared/cheatsheets/back-implement.mdc"
+  - "harness/cursor/rules/shared/cheatsheets/back-plan.mdc"
+  - "harness/cursor/rules/shared/cheatsheets/integ-plan.mdc"
+
+out_of_scope:
+  - "Финальный A+B+C+I inventory и full regression suite — s05."
+  - "Удаление unrelated `back-audit.mdc` или любых archive/history artifacts."
+  - "Изменение runtime/router/skill selection и длинных lean contracts."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Все четыре standalone source files отсутствуют после cutover."
+    verify: "test ! -e harness/cursor/rules/shared/cheatsheets/back-decompose.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-implement.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-plan.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/integ-plan.mdc"
+  - id: cp2
+    criterion: "Canonical workflow Hot path sections остаются единственными required owners и не заменены compatibility alias."
+    verify: "test $(rg -l '^## Hot path$' harness/cursor/rules/back_developer/workflow-decompose.mdc harness/cursor/rules/back_developer/workflow-implement.mdc harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/integration_developer/workflow-plan.mdc | wc -l) -eq 4 && ! rg -n 'cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)' harness/cursor/rules harness/claude/skills/role-command/SKILL.md"
+  - id: cp3
+    criterion: "Injected old source/link is reported by corpus test; deletion is fail-closed, not a silent skip."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k 'standalone or dangling' -q --tb=line"
+  - id: cp4
+    criterion: "Unrelated shared cheatsheet and archive/history surfaces remain untouched by the scoped deletion."
+    verify: "test -e harness/cursor/rules/shared/cheatsheets/back-audit.mdc && ! rg -n 'back-decompose|back-implement|back-plan|integ-plan' harness/cursor/rules/_archive harness/claude/skills/_archive 2>/dev/null || true"
+
+verify:
+  - "test ! -e harness/cursor/rules/shared/cheatsheets/back-decompose.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-implement.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-plan.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/integ-plan.mdc"
+  - "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line"
+
+tdd: []

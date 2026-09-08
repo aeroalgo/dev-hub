@@ -1,0 +1,121 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-083-role-core-shared-contract
+slug: role-core-shared-contract
+date: "2026-09-08"
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids:
+      - s02
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "shared core is sole owner of common policy."
+
+  - requirement_id: FR-002
+    step_ids:
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "each role core imports it once and contains only role-only semantics."
+
+  - requirement_id: FR-003
+    step_ids:
+      - s01
+      - s05
+    status: covered
+    plan_text_verbatim: "semantic tests require BACK promotion, FRONT parent-only boundary, INTEG contract fanout and hub/managed branch wording."
+
+  - requirement_id: "AC+ #1"
+    step_ids:
+      - s02
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "Common policy changes in one source."
+
+  - requirement_id: "AC+ #2"
+    step_ids:
+      - s01
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "Missing import, copied common prose or missing role marker fails."
+
+  - requirement_id: "AC+ #3"
+    step_ids:
+      - s05
+    status: covered
+    plan_text_verbatim: "No mode W needs compensating changes."
+
+  - requirement_id: "AC− #1"
+    step_ids:
+      - s03
+      - s04
+      - s05
+    status: covered
+    plan_text_verbatim: "No generic core replacing role responsibility; no unconditional managed pytest; no weakening lifecycle/UI/contract guards."
+
+  - requirement_id: TM-083-01
+    step_ids:
+      - s01
+      - s02
+      - s03
+    status: covered
+    plan_text_verbatim: "common import"
+
+  - requirement_id: TM-083-02
+    step_ids:
+      - s01
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "no copied body"
+
+  - requirement_id: TM-083-03
+    step_ids:
+      - s01
+      - s03
+      - s05
+    status: covered
+    plan_text_verbatim: "BACK lifecycle"
+
+  - requirement_id: TM-083-04
+    step_ids:
+      - s01
+      - s03
+      - s05
+    status: covered
+    plan_text_verbatim: "FRONT parent-only"
+
+  - requirement_id: TM-083-05
+    step_ids:
+      - s01
+      - s03
+      - s05
+    status: covered
+    plan_text_verbatim: "INTEG contract"
+
+  - requirement_id: TM-083-06
+    step_ids:
+      - s05
+    status: covered
+    plan_text_verbatim: "full suite"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

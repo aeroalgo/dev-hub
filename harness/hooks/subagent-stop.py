@@ -134,26 +134,36 @@ def _handle_verify_finish_agent(
     if "need_human" in st and st["need_human"] == "schema_retry_exhausted:B-GATE":
         st.pop("need_human", None)
 
-    clear_in_flight(st, agent=agent_type)
-    save_state(session_id, cwd, st)
-
     if matched:
         try:
             if agent_type in COERCE_VERIFY_AGENTS:
                 from epic_lib import mirror_verify_verdict
 
-                mirror_verify_verdict(cwd, verdict, evidence=evidence)
+                mirror_verify_verdict(
+                    cwd,
+                    verdict,
+                    evidence=evidence,
+                    session_id=session_id,
+                    agent_id=agent_type,
+                )
             elif agent_type in REVIEWER_MIRROR_AGENTS:
                 from epic_lib import mirror_gate_verdict
 
                 mirror_gate_verdict(
-                    cwd, verdict, agent_id="reviewer", evidence=evidence
+                    cwd,
+                    verdict,
+                    agent_id="reviewer",
+                    evidence=evidence,
+                    session_id=session_id,
                 )
         except Exception as exc:
             print(
                 f"{agent_type}: mirror verdict failed: {exc}",
                 file=sys.stderr,
             )
+
+    clear_in_flight(st, agent=agent_type)
+    save_state(session_id, cwd, st)
 
     if verdict == "FAIL":
         print(_fail_hint(agent_type), file=sys.stderr)
@@ -421,6 +431,23 @@ def main() -> None:
 
         save_state(session_id, cwd, st)
         return
+
+    if session_id and cwd:
+        try:
+            from context_telemetry import collect_session_telemetry
+            agg, diag = collect_session_telemetry(cwd, session_id)
+            if diag and diag != "missing_ledger":
+                print(f"subagent-stop: non-green telemetry diagnostic: {diag}", file=sys.stderr)
+            elif agg:
+                _ = (
+                    f"subagent-telemetry: unique_reads={agg.unique_reads} "
+                    f"duplicate_reads={agg.duplicate_reads} "
+                    f"monolith_plan_attempts={agg.monolith_plan_attempts} "
+                    f"search_exceptions={agg.search_exceptions} "
+                    f"highest_repeat_path={agg.highest_repeat_path}"
+                )
+        except Exception as exc:
+            print(f"subagent-stop: collect_session_telemetry failed: {exc}", file=sys.stderr)
 
     if agent_type:
         clear_in_flight(st, agent=str(agent_type))

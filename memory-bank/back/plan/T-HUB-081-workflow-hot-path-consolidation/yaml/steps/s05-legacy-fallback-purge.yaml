@@ -1,0 +1,235 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Legacy purge — full A+B+C+I inventory and regression corpus"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge подтверждает, что после удаления source files не осталось
+  active A/B/C/I поверхности: ни standalone duplicate, ни dangling instruction link,
+  ни compatibility alias, ни obsolete corpus assertion. Canonical workflow Hot path
+  sections проходят success/failure corpus checks и полный hub suite не возвращает
+  старый маршрут. Канон: workflow-legacy-fallback-cleanup §2.2–§2.4.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004, AC+1, AC+2, AC+3, AC-1, AC-2, AC-3, TM-081-01, TM-081-02, TM-081-03, TM-081-04]
+  nouns:
+    - sunset inventory A+B+C+I
+    - standalone source absence
+    - dangling active instruction reference
+    - compatibility alias / duplicate active owner
+    - archive/history exclusion
+    - full hub suite
+  layout_paths:
+    - harness/cursor/rules/shared/cheatsheets/
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+    - harness/cursor/rules/mainrule.mdc
+    - harness/cursor/rules/front_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  ac_quotes:
+    - "У режима один источник навигации."
+    - "Старая ссылка или пропущенный guard диагностируются."
+    - "Нет двух active quick-path sources и compatibility alias."
+    - "Archive/history не классифицируется как active caller."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:46-62"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:64-70"
+
+context:
+  consumes:
+    - s01 corpus contract
+    - s02 embedded owners
+    - s03 active caller rewiring
+    - s04 source deletion
+    - plan.md §Replacement / sunset A+B+C+I
+    - plan.md §QA consumes TM-081-01..04
+  produces:
+    - sunset_inventory evidence for every A/B/C/I row
+    - grep_control commands and zero-leftover results
+    - corpus targeted result and full-suite handoff evidence
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+    - plan.md#review-readiness
+  files:
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+
+as_built:
+  - "A: четыре standalone quick-path files существуют как active sources до s04."
+  - "B: plan явно не меняет compose/CLI/deploy entrypoints; B = n/a."
+  - "C: active caller paths могут продолжать читать duplicate source или silently preserve compatibility reference до cutover."
+  - "I: workflow/mainrule/role-command instructions содержат old `shared/cheatsheets/*` navigation references до s03."
+  - "Archive/history surfaces существуют вне active corpus и должны быть explicitly excluded."
+
+delta:
+  - "Добавить полный inventory scan A+B+C+I, а не проверку одной representative строки."
+  - "Добавить `sot_enforce`-style corpus assertion: old source/reference → fail, canonical Hot path owner → pass."
+  - "Добавить regression checks для required markers, archive exclusion и injected dangling link."
+  - "Зафиксировать targeted corpus и full `bin/pytest -q --tb=line` как QA consumes; не считать targeted-only suite финальным QA PASS."
+
+deletes:
+  - "любой остаточный standalone `back-decompose`, `back-implement`, `back-plan`, `integ-plan` source/copy в active rule tree"
+  - "любой остаточный active caller на `shared/cheatsheets/{back-decompose,back-implement,back-plan,integ-plan}.mdc`"
+  - "compatibility alias или obsolete test assertion, возвращающий duplicate quick-path source"
+  - "Kind I instruction, утверждающий отдельный quick-path source после cutover"
+
+sunset_scope:
+  required: true
+  boundary_id: workflow-hot-path-owner
+  new_sot: "harness/cursor/rules/{back_developer, integration_developer}/workflow-*.mdc#Hot path"
+  allow_read:
+    - "harness/cursor/rules/**/workflow-*.mdc"
+    - "harness/cursor/rules/mainrule.mdc"
+    - "harness/claude/skills/role-command/SKILL.md"
+    - "harness/hooks/tests/test_workflow_hot_path_consolidation.py"
+  kind_hint:
+    - A
+    - C
+    - I
+
+out_of_scope:
+  - "Изменение runtime/router/skill selection."
+  - "Удаление unrelated cheatsheets, archive/history и длинных lean gate contracts."
+  - "Полный suite как часть IMPLEMENT; его исполнение и QA verdict — BACK QA."
+
+sunset_inventory:
+  - symbol: "harness/cursor/rules/shared/cheatsheets/back-decompose.mdc"
+    kind: A
+    replacement: "harness/cursor/rules/back_developer/workflow-decompose.mdc#Hot path"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/shared/cheatsheets/"
+    expect: "source absent; no active caller"
+  - symbol: "harness/cursor/rules/shared/cheatsheets/back-implement.mdc"
+    kind: A
+    replacement: "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/shared/cheatsheets/"
+    expect: "source absent; no active caller"
+  - symbol: "harness/cursor/rules/shared/cheatsheets/back-plan.mdc"
+    kind: A
+    replacement: "harness/cursor/rules/back_developer/workflow-plan.mdc#Hot path"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/shared/cheatsheets/"
+    expect: "source absent; no active caller"
+  - symbol: "harness/cursor/rules/shared/cheatsheets/integ-plan.mdc"
+    kind: A
+    replacement: "harness/cursor/rules/integration_developer/workflow-plan.mdc#Hot path"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/shared/cheatsheets/"
+    expect: "source absent; no active caller"
+  - symbol: "n/a — compose/CLI/deploy entrypoint"
+    kind: B
+    replacement: n/a
+    policy: no-op; preserve runtime entrypoints
+    rg_scope: "n/a"
+    expect: "no runtime/router/skill-selection delta"
+  - symbol: "active caller following duplicate standalone quick path"
+    kind: C
+    replacement: "same-file canonical Hot path"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/ harness/claude/skills/role-command/"
+    expect: "zero old source references and no compatibility alias"
+  - symbol: "Kind I instruction requiring shared/cheatsheets quick-path read"
+    kind: I
+    replacement: "canonical workflow#Hot path instruction"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules/ harness/claude/skills/role-command/"
+    expect: "zero active old navigation references"
+
+grep_control:
+  - id: inv-a-back-decompose
+    kind: A
+    symbol: "back-decompose.mdc"
+    command: |
+      rg -n 'back-decompose\.mdc' harness/cursor/rules/shared/cheatsheets harness/cursor/rules harness/claude/skills/role-command/ || true
+    expect: "no output"
+  - id: inv-a-back-implement
+    kind: A
+    symbol: "back-implement.mdc"
+    command: |
+      rg -n 'back-implement\.mdc' harness/cursor/rules/shared/cheatsheets harness/cursor/rules harness/claude/skills/role-command/ || true
+    expect: "no output"
+  - id: inv-a-back-plan
+    kind: A
+    symbol: "back-plan.mdc"
+    command: |
+      rg -n 'back-plan\.mdc' harness/cursor/rules/shared/cheatsheets harness/cursor/rules harness/claude/skills/role-command/ || true
+    expect: "no output"
+  - id: inv-a-integ-plan
+    kind: A
+    symbol: "integ-plan.mdc"
+    command: |
+      rg -n 'integ-plan\.mdc' harness/cursor/rules/shared/cheatsheets harness/cursor/rules harness/claude/skills/role-command/ || true
+    expect: "no output"
+  - id: inv-b-runtime
+    kind: B
+    symbol: "n/a"
+    command: "true"
+    expect: "n/a; runtime/router/skill selection unchanged"
+  - id: inv-c-old-callers
+    kind: C
+    symbol: "shared/cheatsheets/{back-decompose,back-implement,back-plan,integ-plan}.mdc"
+    command: |
+      rg -n 'shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\.mdc' harness/cursor/rules harness/claude/skills/role-command/ || true
+    expect: "no active caller output"
+  - id: inv-i-old-instructions
+    kind: I
+    symbol: "standalone cheatsheet-first navigation"
+    command: "rg -n 'Default hot path|Cheatsheet hot path|cheatsheet.*перв|cheatsheet.*start' harness/cursor/rules harness/claude/skills/role-command/ || true"
+    expect: "no active instruction requiring deleted source"
+  - id: inv-tests-obsolete
+    kind: A
+    symbol: "obsolete duplicate-source assertion"
+    command: |
+      rg -n 'back-(decompose|implement|plan)\.mdc|integ-plan\.mdc' harness/hooks/tests/test_workflow_hot_path_consolidation.py || true
+    expect: "only negative/absence assertions for the new contract"
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — каждая из четырёх standalone source rows отсутствует, production callers отсутствуют, obsolete duplicate assertions не возвращают source."
+    verify: |
+      for p in back-decompose back-implement back-plan integ-plan; do
+        test ! -e harness/cursor/rules/shared/cheatsheets/$p.mdc
+      done
+      rg -n 'shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\.mdc' harness/cursor/rules harness/claude/skills/role-command/ || true
+  - id: cp2
+    criterion: "Kind B — runtime/router/skill selection surface unchanged; B is explicitly n/a."
+    verify: "true"
+  - id: cp3
+    criterion: "Kind C — no duplicate-source fallback, compatibility alias or silent old route remains in active instructions."
+    verify: |
+      rg -n 'shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\.mdc|compatibility.*(cheatsheet|quick.path)' harness/cursor/rules harness/claude/skills/role-command/ || true
+  - id: cp4
+    criterion: "Kind I — active instruction corpus names canonical workflow Hot path, not deleted standalone files; archive/history are excluded."
+    verify: |
+      rg -n '## Hot path|workflow-(decompose|implement|plan)\.mdc' harness/cursor/rules/back_developer harness/cursor/rules/integration_developer harness/cursor/rules/mainrule.mdc harness/claude/skills/role-command/SKILL.md
+  - id: cp5
+    criterion: "Corpus targeted regression green; full hub suite is the separate BACK QA consume and must not be represented as an unrun implementation result."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line"
+  - "for p in back-decompose back-implement back-plan integ-plan; do test ! -e harness/cursor/rules/shared/cheatsheets/$p.mdc; done"
+  - |
+    rg -n 'shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\.mdc' harness/cursor/rules harness/claude/skills/role-command/ || true
+
+tdd:
+  - "test_no_standalone_hot_path_sources_after_cutover"
+  - "test_no_active_old_cheatsheet_callers"
+  - "test_required_markers_and_single_owner_after_purge"
+  - "test_archive_history_excluded_from_active_scan"

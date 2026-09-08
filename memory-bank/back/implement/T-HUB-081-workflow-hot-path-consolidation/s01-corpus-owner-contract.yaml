@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: s01 — Corpus contract — failing test for four hot-path owners and dangling
+  links IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/yaml/steps/s01-corpus-owner-contract.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created corpus contract tests in harness/hooks/tests/test_workflow_hot_path_consolidation.py
+- Added checks for single Hot path owner and required mode markers across 4 modes
+- Added dangling reference check for standalone cheatsheet links
+- Added archive and history path exclusions
+files:
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k owner
+  -q --tb=line
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k dangling
+  -q --tb=line
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k archive
+  -q --tb=line
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k corpus
+  -q --tb=line
+integration_check:
+- Verified archive exclusions pass and corpus owner/dangling tests properly fail as
+  red baseline before s02
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Corpus test извлекает четыре required mode markers и проверяет ровно
+    одного Hot path owner на режим.
+  status: done
+  done_at: '2026-09-07T23:34:38Z'
+- id: cp2
+  criterion: Старый standalone cheatsheet reference диагностируется как dangling active
+    link, а не silently ignored.
+  status: done
+  done_at: '2026-09-07T23:34:38Z'
+- id: cp3
+  criterion: Archive/history исключены из active-caller corpus и не создают false
+    positive.
+  status: done
+  done_at: '2026-09-07T23:34:39Z'
+- id: cp4
+  criterion: До с02 corpus red из-за отсутствующих embedded sections/markers; тест
+    не превращён в skip.
+  status: done
+  done_at: '2026-09-07T23:34:39Z'
+resume_from: cp1

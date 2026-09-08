@@ -22,7 +22,7 @@
   "bundles": {
     "subagent": {
       "presets": {
-        "reviewer": "preset-reviewer"
+        "reviewer": "verify-qa"
       }
     }
   }

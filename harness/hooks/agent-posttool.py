@@ -29,6 +29,25 @@ from context_ledger_adapters import (
 )
 
 
+def _tool_response_text(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        content = value.get("content")
+        if isinstance(content, list):
+            parts = [
+                item.get("text", "")
+                for item in content
+                if isinstance(item, dict) and isinstance(item.get("text"), str)
+            ]
+            return "\n".join(parts)
+        if isinstance(content, str):
+            return content
+    if isinstance(value, list):
+        return "\n".join(_tool_response_text(item) for item in value)
+    return ""
+
+
 def main() -> None:
     data = read_stdin()
     tool_name = str(data.get("tool_name") or data.get("tool") or data.get("name") or "")
@@ -43,26 +62,20 @@ def main() -> None:
             pass
         return
 
-    text = str(data.get("tool_response") or "")
-    agent_type = str(data.get("agent_type") or "").strip() or None
+    text = _tool_response_text(data.get("tool_response"))
+    tool_input = data.get("tool_input") if isinstance(data.get("tool_input"), dict) else {}
+    agent_type = str(
+        data.get("agent_type") or tool_input.get("subagent_type") or ""
+    ).strip() or None
     sidecar_agent = str(data.get("sidecar_agent") or "").strip() or None
 
     st = load_state(session_id, cwd)
 
-    # repair_in_flight: mirror_verify_verdict failed -> clear on subagent completion
+    # Repair completion never authorizes a verifier PASS; parent must retry @verify.
     if st.get("repair_in_flight"):
-        try:
-            from epic_lib import mirror_verify_verdict
-            mirror_verify_verdict(cwd, "PASS", evidence="repair cleared")
-            st["repair_in_flight"] = False
-            save_state(session_id, cwd, st)
-        except (ImportError, OSError, TypeError, ValueError) as exc:
-            print(
-                f"posttool: mirror_verify_verdict failed: {exc}",
-                file=sys.stderr,
-            )
-            st["repair_in_flight"] = False
-            save_state(session_id, cwd, st)
+        st["repair_in_flight"] = False
+        st["gate_diagnostic"] = "repair_complete_verify_required"
+        save_state(session_id, cwd, st)
         return
 
     verdict = extract_verdict(
@@ -102,7 +115,13 @@ def main() -> None:
     if record_key == "verify" and matched:
         try:
             from epic_lib import mirror_verify_verdict
-            mirror_verify_verdict(cwd, verdict, evidence=evidence)
+            mirror_verify_verdict(
+                cwd,
+                verdict,
+                evidence=evidence,
+                session_id=session_id,
+                agent_id=sidecar_agent or agent_type,
+            )
             print(
                 f"posttool: recorded verify verdict={verdict}",
                 file=sys.stderr,
@@ -112,6 +131,24 @@ def main() -> None:
                 f"posttool: mirror_verify_verdict failed: {exc}",
                 file=sys.stderr,
             )
+
+    # Record or update telemetry counters and DecisionReceipt state
+    if session_id and cwd:
+        try:
+            from context_telemetry import collect_session_telemetry
+            agg, diag = collect_session_telemetry(cwd, session_id)
+            if diag and diag != "missing_ledger":
+                print(f"agent-posttool: telemetry diagnostic warning: {diag}", file=sys.stderr)
+            elif agg:
+                st["context_telemetry_counters"] = {
+                    "unique_reads": agg.unique_reads,
+                    "duplicate_reads": agg.duplicate_reads,
+                    "monolith_plan_attempts": agg.monolith_plan_attempts,
+                    "search_exceptions": agg.search_exceptions,
+                    "highest_repeat_path": agg.highest_repeat_path,
+                }
+        except Exception as exc:
+            print(f"agent-posttool: collect_session_telemetry failed: {exc}", file=sys.stderr)
 
     save_state(session_id, cwd, st)
 

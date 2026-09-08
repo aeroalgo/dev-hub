@@ -2,11 +2,11 @@
 description: "FRONT VAN gates — memory bank, complexity, brownfield UI map (lean)"
 alwaysApply: false
 ---
-# FRONT VAN — gates
+# FRONT VAN — gates (independent role gate)
 
-**Артефакт (session):** `memory-bank/front/van/van-YYYYMMDD.md`  
-**Карта (brownfield):** `memory-bank/architecture/frontend.md` (+ overview UI slice)  
-**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
+**Артефакт (session):** `memory-bank/front/van/van-YYYYMMDD.md`
+**Карта (brownfield):** `memory-bank/architecture/frontend.md` (+ overview UI slice)
+**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc
 **Пути:** @.cursor/rules/shared/memory-bank-paths.mdc
 
 ## Gates

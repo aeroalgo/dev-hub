@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: s02 — Roadmap merge — one shared lean contract with canonical role references
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/yaml/steps/s02-shared-roadmap-merge-contract.yaml
+task_id: T-HUB-082
+level: L2
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created shared roadmap-merge lean gate contract at harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+- Rewired BACK, FRONT, and INTEG roadmap-merge workflow gate references to harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+- Added executable verification to test_shared_lean_gate_topology.py for shared owner
+  contract and caller rewiring without fallback/symlink
+files:
+- harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+- harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc
+- harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc
+- harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc
+- harness/hooks/tests/test_shared_lean_gate_topology.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k roadmap -q --tb=line
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line
+integration_check:
+- All three role callers (BACK/FRONT/INTEG) reference the single shared lean roadmap-merge
+  owner
+- No symlink or local fallback copy is introduced
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: The shared roadmap-merge lean owner contains the complete current gate
+    contract and does not silently drop queue/reconcile rules.
+  status: done
+- id: cp2
+  criterion: BACK, FRONT and INTEG workflow owners reference the same canonical shared
+    lean path.
+  status: done
+- id: cp3
+  criterion: No local alias or fallback is introduced while the shared contract is
+    wired.
+  status: done
+- id: cp4
+  criterion: The topology corpus sees one intended shared owner and all three role
+    callers.
+  status: done
+resume_from: cp1

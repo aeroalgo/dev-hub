@@ -30,6 +30,11 @@
       },
       {
         "type": "command",
+        "command": "python3 harness/hooks/context_ledger_adapters.py",
+        "matcher": "Write|Edit|NotebookEdit"
+      },
+      {
+        "type": "command",
         "command": "python3 harness/hooks/finish-boundary-pretool.py"
       }
     ],

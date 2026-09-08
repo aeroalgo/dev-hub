@@ -1,0 +1,75 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-078-context-budget-enforcement
+title: s05 — Root/subagent policy materialized parity и реальный shard flow enforce-ится
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s05-contract-materialization-and-regression-flow.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Materialized concise shared context ledger/search/plan-jump contract into harness/instructions/main.md,
+  CLAUDE.md, AGENTS.md, DSH.md
+- Updated PolicyRecord, hooks_json.py, and codex_agent_toml.py to share mode, actor,
+  and exception contract across root and subagents
+- Added loop/tests/test_context_contract_materialization.py with full parity matrix,
+  missing/divergent artifact rejection, and single hook registration checks
+- Added loop/tests/test_context_real_shard_flow.py verifying bounded plan-jumps, scope
+  preflight, ledger duplicate read denial, TDD cycle, and finish receipt
+files:
+- harness/instructions/main.md
+- CLAUDE.md
+- AGENTS.md
+- DSH.md
+- .claude/agents/
+- .codex/agents/
+- loop/runtime_materializers/agent_policy.py
+- loop/runtime_materializers/hooks_json.py
+- loop/runtime_materializers/codex_agent_toml.py
+- loop/tests/test_context_contract_materialization.py
+- loop/tests/test_context_real_shard_flow.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_context_contract_materialization.py -q --tb=line`'
+- '`bin/pytest loop/tests/test_context_real_shard_flow.py -q --tb=line`'
+integration_check:
+- '`bin/pytest loop/tests/test_context_contract_materialization.py loop/tests/test_context_real_shard_flow.py
+  loop/tests/test_context_finish_projection.py loop/tests/test_context_ledger_provider_parity.py
+  harness/hooks/tests/test_context_telemetry.py -q --tb=line`'
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: Claude root, Claude subagent and Codex policy/TOML generated surfaces
+    include one equivalent context contract with matching mode, scope, exception and
+    receipt semantics.
+  status: done
+  done_at: '2026-09-07T21:53:08Z'
+- id: cp2
+  criterion: Parity checker fails when a generated surface is missing or provider
+    payload mapping diverges, and no parallel hook entrypoint is introduced.
+  status: done
+  done_at: '2026-09-07T21:53:10Z'
+- id: cp3
+  criterion: Production shard-flow regression completes allowed code map and TDD cycle
+    without monolithic plan or duplicate full Read and emits attributable receipt.
+  status: done
+  done_at: '2026-09-07T21:53:11Z'
+- id: cp4
+  criterion: Generated artifacts and canonical instructions contain no broad-read
+    recovery language that weakens the shared contract.
+  status: done
+  done_at: '2026-09-07T21:53:12Z'
+resume_from: cp1

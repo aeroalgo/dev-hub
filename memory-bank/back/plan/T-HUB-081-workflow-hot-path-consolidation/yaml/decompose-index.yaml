@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - изменение runtime/router/skill selection
+  - инлайнинг длинных lean gates
+  - классификация archive/history как active caller
+steps:
+- id: s01
+  file: s01-corpus-owner-contract.yaml
+  title: Corpus contract — failing test for four hot-path owners and dangling links
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-embed-canonical-hot-paths.yaml
+  title: Canonical workflows — embed four Hot path sections with preserved gates
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-rewire-active-callers.yaml
+  title: Active callers — route role instructions to same-file Hot path owners
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-delete-standalone-sources.yaml
+  title: Cutover — delete the four standalone quick-path source files
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: Legacy purge — full A+B+C+I inventory and regression corpus
+  next_phase: BACK IMPLEMENT
+  status: completed

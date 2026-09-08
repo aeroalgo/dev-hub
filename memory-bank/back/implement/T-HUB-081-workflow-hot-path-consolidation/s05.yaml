@@ -1,0 +1,85 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: s05 — Legacy purge — full A+B+C+I inventory and regression corpus IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- 'Sunset inventory verified: Kind A (4 standalone cheatsheets deleted), Kind B (n/a),
+  Kind C (0 active callers to deleted sources), Kind I (rules/skills updated to canonical
+  Hot path owners).'
+gaps:
+  status: none
+done:
+- Ran sunset inventory scan via @sunset-inventory validating all A+B+C+I rows with
+  PASS status
+- Updated test_workflow_hot_path_consolidation.py with exhaustive regression assertions
+  for absent standalone sources, zero active old callers, canonical Hot path owners,
+  and archive exclusion
+- Verified targeted test suite passes cleanly with 8/8 tests green
+- Verified wire_complete and zero active references to deprecated cheatsheets across
+  harness rules and skills
+files:
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+deletes:
+- harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+- harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+- harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+- harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line
+integration_check:
+- for p in back-decompose back-implement back-plan integ-plan; do test ! -e harness/cursor/rules/shared/cheatsheets/$p.mdc;
+  done
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '{''name'': ''Sunset Inventory loop-sunset-inventory/v1'', ''status'': ''pass'',
+  ''summary'': ''Boundary workflow-hot-path-owner items verified; diagnostic_codes:
+  [], ok: true''}'
+checkpoints:
+- id: cp1
+  criterion: Kind A — каждая из четырёх standalone source rows отсутствует, production
+    callers отсутствуют, obsolete duplicate assertions не возвращают source.
+  status: done
+  done_at: '2026-09-08T00:00:00Z'
+- id: cp2
+  criterion: Kind B — runtime/router/skill selection surface unchanged; B is explicitly
+    n/a.
+  status: done
+  done_at: '2026-09-08T00:00:00Z'
+- id: cp3
+  criterion: Kind C — no duplicate-source fallback, compatibility alias or silent
+    old route remains in active instructions.
+  status: done
+  done_at: '2026-09-08T00:00:00Z'
+- id: cp4
+  criterion: Kind I — active instruction corpus names canonical workflow Hot path,
+    not deleted standalone files; archive/history are excluded.
+  status: done
+  done_at: '2026-09-08T00:00:00Z'
+- id: cp5
+  criterion: Corpus targeted regression green; full hub suite is the separate BACK
+    QA consume and must not be represented as an unrun implementation result.
+  status: done
+  done_at: '2026-09-08T00:00:00Z'
+resume_from: cp1

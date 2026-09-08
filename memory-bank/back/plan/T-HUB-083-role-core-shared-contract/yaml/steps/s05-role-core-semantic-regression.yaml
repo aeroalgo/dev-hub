@@ -1,0 +1,114 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-083-role-core-shared-contract
+title: "Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных изменений"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальная semantic regression matrix запускает реальные role-core contract checks для BACK,
+  FRONT и INTEG и подтверждает, что после extraction ни один mode W не получил compensating
+  change. Named tests сохраняют BACK promotion, FRONT parent-only boundary, INTEG contract
+  fanout и hub/managed runner wording; полный hub suite фиксирует TM-083-06 после targeted checks.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - "AC+ #3"
+    - "AC− #1"
+    - TM-083-03
+    - TM-083-04
+    - TM-083-05
+    - TM-083-06
+  nouns:
+    - harness/hooks/tests/test_role_core_mode_regression.py
+    - BACK promotion matrix
+    - FRONT parent-only boundary
+    - INTEG contract/GAP fanout
+    - mode W
+    - full hub suite
+  layout_paths:
+    - harness/hooks/tests/test_role_core_mode_regression.py
+    - harness/hooks/tests/test_role_core_contract.py
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+  ac_quotes:
+    - "No mode W needs compensating changes."
+    - "semantic tests require BACK promotion, FRONT parent-only boundary, INTEG contract fanout and hub/managed branch wording."
+    - "No weakening lifecycle/UI/contract guards."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:10-22"
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:24-30"
+
+context:
+  consumes:
+    - s01 semantic contract corpus
+    - s03 preserved role markers
+    - s04 A/C/I purge evidence
+    - plan TM-083-03..06
+  produces:
+    - mode-W regression test with explicit role matrix
+    - targeted semantic evidence for all three roles
+    - full hub-suite evidence without role-specific compensating changes
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#draft-stages
+  files:
+    - harness/hooks/tests/test_role_core_mode_regression.py
+    - harness/hooks/tests/test_role_core_contract.py
+
+as_built:
+  - "The plan names TM-083-03..06 but has no dedicated mode-W regression fixture or final full-suite evidence shard."
+  - "Role-specific semantics currently live in the three role cores and must remain observable after shared extraction."
+
+delta:
+  - "Create a mode-W regression test that enumerates the three role-only guard groups and asserts no shared extraction compensating branch is required."
+  - "Run targeted semantic contract tests for common owner, imports, role markers and runner branch before full suite."
+  - "Record the canonical full hub suite command and its result as the TM-083-06 acceptance evidence; do not substitute a targeted command for full suite."
+
+deletes: []
+
+out_of_scope:
+  - "Adding new role behavior or modifying product runtime outcomes."
+  - "Frontend Vitest/Playwright execution inside any subagent; parent owns all frontend runners."
+  - "Reintroducing copied common policy to make a regression test green."
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Mode-W matrix confirms BACK promotion/lifecycle remains local and does not require a compensating shared-path branch."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line -k 'back or promotion or mode'"
+  - id: cp2
+    criterion: "Mode-W matrix confirms FRONT parent-only and visible-UI guards remain local and unchanged."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line -k 'front or parent'"
+  - id: cp3
+    criterion: "Mode-W matrix confirms INTEG element-first, contract and BACK/FRONT/GAP fanout remain local and unchanged."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line -k 'integ or contract or gap'"
+  - id: cp4
+    criterion: "The semantic suite observes hub/managed runner wording and all three role imports after purge."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line"
+  - id: cp5
+    criterion: "The full hub suite runs with the repository wrapper and no targeted-only substitute is recorded as TM-083-06."
+    verify: "bin/pytest -q --tb=line"
+
+verify:
+  - "Mode-W regression uses actual role-core files and does not duplicate policy content as a test fixture."
+  - "Targeted semantic checks pass before the full suite is attempted."
+  - "Full-suite evidence uses bin/pytest from repository root and is not silently downgraded to a targeted command."
+
+tdd:
+  - test_mode_w_does_not_need_compensating_role_changes
+  - test_back_promotion_guard_survives_shared_extraction
+  - test_front_parent_only_guard_survives_shared_extraction
+  - test_integ_contract_and_gap_fanout_survive_shared_extraction

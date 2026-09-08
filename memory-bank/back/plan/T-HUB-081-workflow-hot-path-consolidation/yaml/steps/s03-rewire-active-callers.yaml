@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Active callers — route role instructions to same-file Hot path owners"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Все active instruction callers, которые сейчас открывают standalone cheatsheet,
+  направляют parent/agent к `## Hot path` в canonical workflow. Canonical workflow
+  headers, shared router и Claude role-command parity больше не создают отдельный
+  quick-path source; archive/history и unrelated runtime selection не меняются.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, AC+1, AC+2, AC-2, AC-3, TM-081-01, TM-081-03]
+  nouns:
+    - harness/cursor/rules/mainrule.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/cursor/rules/front_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - canonical workflow `#Hot path` anchors
+    - no dangling `shared/cheatsheets/*` references
+  layout_paths:
+    - harness/cursor/rules/mainrule.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/front_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  ac_quotes:
+    - "active standalone `back-decompose`, `back-implement`, `back-plan`, `integ-plan` cheatsheets и их ссылки удалены."
+    - "Нет двух active quick-path sources и compatibility alias."
+    - "Нет изменения runtime/router/skill selection."
+    - "Injected old cheatsheet reference или пропущенный marker ломает test."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:17-32"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:34-44"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:46-53"
+
+context:
+  consumes:
+    - s01 corpus contract
+    - s02 canonical Hot path sections
+    - mainrule/role-command parity routing rules
+  produces:
+    - active caller references to canonical same-file sections
+    - no active references to four standalone source paths
+    - preserved front/integration IMPLEMENT route without changing selection
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#replacement--sunset
+  files:
+    - harness/cursor/rules/mainrule.mdc
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/front_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+
+as_built:
+  - "Canonical BACK workflows declare `Default hot path` references to shared cheatsheets."
+  - "mainrule and role-command describe cheatsheet-first loading as a separate document."
+  - "FRONT and INTEG IMPLEMENT still point at the shared BACK IMPLEMENT cheatsheet, so deleting it without rewiring would leave a dangling active link."
+  - "`.cursor` and `.claude` are symlinked/runtime projections of harness paths; no second independent rule tree is introduced."
+
+delta:
+  - "Replace mode-specific standalone references with canonical workflow `#Hot path` guidance."
+  - "Remove generic role-command/mainrule instructions that require a separate cheatsheet read, while retaining the same gates and lazy/full-workflow fallback semantics."
+  - "Update FRONT/INTEG IMPLEMENT callers to the surviving canonical IMPLEMENT Hot path without changing role selection or implementation scope."
+  - "Extend corpus test to scan every active caller and fail on any old standalone path."
+
+deletes:
+  - "active `@.cursor/rules/shared/cheatsheets/back-decompose.mdc` references"
+  - "active `@.cursor/rules/shared/cheatsheets/back-implement.mdc` references"
+  - "active `@.cursor/rules/shared/cheatsheets/back-plan.mdc` references"
+  - "active `@.cursor/rules/shared/cheatsheets/integ-plan.mdc` references"
+  - "separate-cheatsheet-first wording that would become a dangling or duplicate route"
+
+out_of_scope:
+  - "Deleting the four source files — s04."
+  - "Archive/history references and unrelated skill catalog text."
+  - "Changing runtime/router/skill selection, lean gates, or FINISH semantics."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "No active caller in canonical rule/router scope names any of the four removed shared cheatsheets."
+    verify: '! rg -n "shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\\.mdc" harness/cursor/rules harness/claude/skills/role-command/SKILL.md'
+  - id: cp2
+    criterion: "Active callers point to canonical workflow Hot path guidance and preserve the generic non-recursive load/FINISH discipline."
+    verify: |
+      rg -n 'workflow-(decompose|implement|plan)\.mdc(#Hot path)?|## Hot path|FINISH|non-recursive|не рекурсивный' harness/cursor/rules/mainrule.mdc harness/claude/skills/role-command/SKILL.md harness/cursor/rules
+  - id: cp3
+    criterion: "FRONT and INTEG IMPLEMENT have no dangling reference after BACK IMPLEMENT source rewire."
+    verify: |
+      ! rg -n 'shared/cheatsheets/back-implement\.mdc' harness/cursor/rules/front_developer/workflow-implement.mdc harness/cursor/rules/integration_developer/workflow-implement.mdc
+  - id: cp4
+    criterion: "Corpus test catches old caller injection and keeps archive/history outside the active set."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k 'dangling or archive' -q --tb=line"
+
+verify:
+  - '! rg -n "shared/cheatsheets/(back-decompose|back-implement|back-plan|integ-plan)\\.mdc" harness/cursor/rules harness/claude/skills/role-command/SKILL.md'
+  - "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k dangling -q --tb=line"
+
+tdd: []

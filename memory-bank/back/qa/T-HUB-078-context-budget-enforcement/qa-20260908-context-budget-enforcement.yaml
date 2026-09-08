@@ -1,0 +1,45 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-078
+plan_id: T-HUB-078-context-budget-enforcement
+epic_id: T-HUB-078-context-budget-enforcement
+date: '2026-09-08'
+reviewer: BACK QA
+verdict: pass
+
+scope:
+  - "task: T-HUB-078"
+  - "epic: T-HUB-078-context-budget-enforcement"
+  - "steps: s01–s06"
+  - "files: harness/hooks/context_ledger.py, harness/hooks/context_telemetry.py, harness/hooks/agent-pretool.py, harness/hooks/agent-posttool.py, harness/hooks/stop-gate.py, loop/mb_finish/finish_implement.py"
+
+checks:
+  - "full suite green: `env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT bin/pytest -q --tb=line` (2367 passed, 3 skipped, 0 failed)"
+  - "integration rule (§0.11): parity across Claude Code, Codex, and DSH runtimes"
+  - "no phantom refs: verified against codebase and manifests"
+  - "reviewer gate: verify-qa VERDICT: PASS"
+  - "behavior smoke: context ledger duplicate reads prevented, plan jump projection enforced, search allowlist active"
+
+test_matrix_coverage:
+  - TM-078-01
+  - TM-078-02
+  - TM-078-03
+  - TM-078-04
+  - TM-078-05
+  - TM-078-06
+  - TM-078-07
+  - TM-078-08
+  - TM-078-09
+  - TM-078-10
+  - TM-078-11
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "env -u DEV_HUB -u HUB_ROOT -u PROJECT_ROOT bin/pytest -q --tb=line"

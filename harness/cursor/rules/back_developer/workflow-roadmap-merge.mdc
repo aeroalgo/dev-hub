@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 ### Команда: BACK ROADMAP MERGE (recovery)
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/roadmap-merge.mdc
+**Gates**: @.cursor/rules/shared/_lean/roadmap-merge.mdc
 **Алгоритм**: @.cursor/rules/shared/workflow-roadmap-merge.mdc
 **Скиллы:** нет
 

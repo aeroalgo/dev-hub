@@ -1,0 +1,36 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-082-shared-lean-gate-topology
+source_md: ../md/decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - изменение security permissions или VAN requirements
+  - массовое объединение unrelated _lean gates
+  - product runtime/router/skill-selection changes
+steps:
+- id: s01
+  file: s01-topology-equivalence-corpus.yaml
+  title: Equivalence corpus — executable duplicate, delta and caller contract
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-shared-roadmap-merge-contract.yaml
+  title: Roadmap merge — one shared lean contract with canonical role references
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-shared-security-contract.yaml
+  title: Security gates — shared body with explicit role patches
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-back-integ-van-contract.yaml
+  title: VAN parity — shared BACK/INTEG contract with preserved ownership semantics
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: Legacy purge — remove local copies, dangling references and topology fallbacks
+  next_phase: BACK IMPLEMENT
+  status: completed

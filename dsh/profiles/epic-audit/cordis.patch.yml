@@ -1,11 +1,5 @@
 # dsh-phase-models is applied before this profile patch.
 - insert:
-    - id: preset-explorer
-      name: '@deepseek-ai/dsh-agent-presets'
-      config:
-        id: explorer
-        systemPrompt:
-          file: ../../presets/explorer.prompt.md
     - id: agent-presets
       name: '@deepseek-ai/dsh-agent-presets'
       config:

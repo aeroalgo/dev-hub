@@ -221,11 +221,13 @@ def _runtime_name(raw: object) -> str:
     value = str(raw or "claude-code").strip().lower().replace("_", "-")
     if value in {"codex", "codex-cli", "codex-app"}:
         return "codex"
+    if value in {"dsh", "deepseek-harness", "deepseek"}:
+        return "dsh"
     return "claude-code"
 
 
 def _runtime_entrypoint(runtime: str) -> str:
-    return "AGENTS.md" if runtime == "codex" else "CLAUDE.md"
+    return "AGENTS.md" if runtime in {"codex", "dsh"} else "CLAUDE.md"
 
 
 def _projection_value(projection: dict[str, Any], *keys: str) -> str:
@@ -386,12 +388,29 @@ def render_prompt_scope(scope: PromptScope) -> str:
         f"- phase: `{scope.phase or 'unknown'}`",
         f"- step: `{scope.step}`",
         f"- epic: `{scope.epic}`",
-        "- HARD READ: прочитай только указанный entrypoint.",
-        "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
-        "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
-        "- HARD READ: загрузи цепочку связанных файлов выбранной role/mode chain, Gates и ссылок.",
-        "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
     ]
+    if scope.runtime == "dsh":
+        lines.extend(
+            [
+                "- HARD READ: native DSH tool `read` — прочитай только указанный entrypoint.",
+                "- HARD READ: затем через `read` прочитай `.cursor/rules/mainrule.mdc`.",
+                "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
+                "- HARD READ: следуй только явно указанным `@`-ссылкам выбранной role/mode chain, Gates и текущего shard; каждую ссылку загружай через `read`.",
+                "- Skills: загружай только `SKILL.md`, явно указанные в выбранной цепочке или текущем shard, также через `read`; глобальный каталог skills не используй.",
+                "- DSH dialect: используй `read`, `write`, `edit`, `bash`; не вызывай Claude Code tools `Read`, `Write`, `Edit`, `Bash`, `Skill` или `Task`.",
+                "- Scope lock: не загружай инструкции других ролей, фаз, команд или skills.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "- HARD READ: прочитай только указанный entrypoint.",
+                "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
+                "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
+                "- HARD READ: загрузи цепочку связанных файлов выбранной role/mode chain, Gates и ссылок.",
+                "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
+            ]
+        )
     if scope.diagnostics:
         lines.append("- scope diagnostics: " + ", ".join(scope.diagnostics))
     if scope.plan_jumps:

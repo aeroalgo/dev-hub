@@ -22,14 +22,14 @@ steps:
   file: s04-telemetry-and-finish-projection.yaml
   title: Finish telemetry публикует attributable counters без content leakage
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-contract-materialization-and-regression-flow.yaml
   title: Root/subagent policy materialized parity и реальный shard flow enforce-ится
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: Legacy fallback purge удаляет prose-only и provider-local обходы
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

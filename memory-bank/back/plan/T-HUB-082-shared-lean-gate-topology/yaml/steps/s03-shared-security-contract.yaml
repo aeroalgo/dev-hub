@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: "Security gates — shared body with explicit role patches"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Один shared security lean contract владеет common path, artifact/path rules,
+  no-code audit boundary and PLAN/DECOMPOSE gates. Named role patches retain only
+  evidence-proven deltas: BACK security priorities, FRONT XSS/tokens/CSP/bundle
+  priorities, and INTEG wire×authz×IDOR×contract plus the explicit GAP handoff.
+  Security permissions and next semantics remain unchanged.
+
+plan_contract:
+  fr_ids: [FR-002, FR-004, "AC+ #1", "AC+ #2", "AC+ #3", "AC- #1", TM-082-02, TM-082-04]
+  nouns:
+    - harness/cursor/rules/shared/_lean/security.mdc
+    - BACK security role patch
+    - FRONT security role patch
+    - INTEG security role patch
+    - security artifact path/ownership gate
+    - no-code audit boundary
+  layout_paths:
+    - harness/cursor/rules/shared/_lean/security.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/back_developer/workflow-security.mdc
+    - harness/cursor/rules/front_developer/workflow-security.mdc
+    - harness/cursor/rules/integration_developer/workflow-security.mdc
+  ac_quotes:
+    - "security has shared body plus named role patches only for real deltas."
+    - "Role patch preserves artifact path/ownership/next semantics."
+    - "No change to security permissions."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:6-23"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:25-35"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:37-44"
+
+context:
+  consumes:
+    - s01 security common/delta corpus
+    - current role-local security gates
+    - shared/workflow-security-epic.mdc path and audit contract
+  produces:
+    - shared security common gate owner
+    - explicit BACK/FRONT/INTEG patch surfaces
+    - role-preserving references with no optional local fallback
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#replacement--sunset
+  files:
+    - harness/cursor/rules/shared/_lean/security.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/back_developer/workflow-security.mdc
+    - harness/cursor/rules/front_developer/workflow-security.mdc
+    - harness/cursor/rules/integration_developer/workflow-security.mdc
+    - harness/hooks/tests/test_shared_lean_gate_topology.py
+
+as_built:
+  - "All three security lean files carry the same path/artifact/no-code/PLAN/DECOMPOSE gates."
+  - "BACK has the base priority-matrix wording; FRONT replaces it with XSS/tokens/CSP/bundle/deps; INTEG replaces it with wire×authz×IDOR×contract and adds GAP to the code-fix split."
+  - "Each security workflow points to its role-local security lean file and shared workflow-security-epic policy."
+
+delta:
+  - "Extract common security gates into harness/cursor/rules/shared/_lean/security.mdc without changing their behavior."
+  - "Replace copied role-local security.mdc bodies with named patch markers that contain only real role deltas and retain role path/next semantics."
+  - "The common security gate body in role-local security.mdc files is reserved for deletion by s05 after patch wiring."
+  - "Rewire harness/cursor/rules/back_developer/workflow-security.mdc, harness/cursor/rules/front_developer/workflow-security.mdc and harness/cursor/rules/integration_developer/workflow-security.mdc to shared common contract plus role patches."
+  - "Extend harness/hooks/tests/test_shared_lean_gate_topology.py to fail if a required patch disappears or a common body is duplicated."
+
+deletes:
+  - "duplicated common security gate body from role-local _lean/security.mdc files"
+
+out_of_scope:
+  - "Changing security permissions, findings severity order, artifact ownership or next SECURITY semantics."
+  - "Merging FRONT UI semantics or INTEG GAP policy into the shared common body."
+  - "Security audit execution or code fixes."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "The shared security owner contains common path, artifact, no-code, findings and PLAN/DECOMPOSE gates."
+    verify: "rg -n 'Path rule|SECURITY не чинит код|Findings|PLAN-only|DECOMPOSE-only|next_phase' harness/cursor/rules/shared/_lean/security.mdc"
+  - id: cp2
+    criterion: "BACK, FRONT and INTEG patch markers preserve each real priority/next delta without copied common prose."
+    verify: "rg -n 'role-patch|BACK|FRONT|INTEG|XSS|tokens|CSP|wire×authz×IDOR×contract|GAP' harness/cursor/rules/{back_developer,front_developer,integration_developer}/isolation_rules/_lean/security.mdc"
+  - id: cp3
+    criterion: "Security workflow callers name the shared common owner and their patch; no role silently falls back to another role."
+    verify: 'rg -n "shared/_lean/security\.mdc|role patch|patch" harness/cursor/rules/{back_developer,front_developer,integration_developer}/workflow-security.mdc harness/cursor/rules/{back_developer,front_developer,integration_developer}/isolation_rules/_lean/security.mdc'
+  - id: cp4
+    criterion: "Corpus detects a missing security role patch and common-body duplication."
+    verify: "rg -n 'missing.*patch|common.*body|security' harness/hooks/tests/test_shared_lean_gate_topology.py"
+
+verify:
+  - "rg -n 'XSS|tokens|CSP|bundle|wire×authz×IDOR×contract|GAP' harness/cursor/rules/{front_developer,integration_developer}/isolation_rules/_lean/security.mdc"
+  - "bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k security -q --tb=line"
+
+tdd: []

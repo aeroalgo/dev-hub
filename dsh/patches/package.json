@@ -2,6 +2,9 @@
   "name": "dsh-phase-models",
   "private": true,
   "version": "0.1.0",
+  "dependencies": {
+    "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5"
+  },
   "dsh": {
     "bundle": {
       "patch": "./phase-models.yml"

@@ -1,0 +1,106 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-078-context-budget-enforcement
+title: "Legacy fallback purge удаляет prose-only и provider-local обходы"
+date: "2026-09-08"
+status: completed
+done:
+  - "Sunset inventory scan across A, B, C, I surfaces validated; zero unmigrated legacy fallbacks remain."
+  - "All pre/post tool hooks (agent-pretool, write-pretool, bash-pretool, agent-posttool, subagent-stop, stop-gate) enforce context ledger policy without duplicate counters or silent fallback."
+  - "Runtime materializers and provider mapping for Claude and Codex route to context ledger with provider parity and fail-closed semantics."
+  - "Instructions across harness/instructions/main.md, CLAUDE.md, AGENTS.md, DSH.md enforce context ledger and bounded plan jumps instead of prose-only guidance."
+  - "Targeted regression tests for context ledger, adapters, telemetry, and hook lifecycle execute green."
+
+files:
+  - "harness/hooks/agent-pretool.py"
+  - "harness/hooks/write-pretool.py"
+  - "harness/hooks/bash-pretool.py"
+  - "harness/hooks/stop-gate.py"
+  - "harness/hooks/agent-posttool.py"
+  - "harness/hooks/subagent-stop.py"
+  - "harness/instructions/main.md"
+  - "CLAUDE.md"
+  - "AGENTS.md"
+  - "DSH.md"
+  - ".cursor/hooks.json"
+  - "loop/runtime_materializers/hooks_json.py"
+  - "loop/runtime_materializers/codex_policy_mapping.yaml"
+  - "harness/hooks/tests/test_context_ledger.py"
+  - "harness/hooks/tests/test_context_ledger_adapters.py"
+  - "harness/hooks/tests/test_context_telemetry.py"
+  - "loop/tests/test_context_finish_projection.py"
+
+deletes:
+  - "untracked Read/tool usage and ad-hoc context counting"
+  - "raw runner injection of plan path"
+  - "policy failure -> broad read/search fallback"
+  - "prose-only reread/graphify guidance as authoritative enforcement"
+  - "provider-local duplicate-read counters"
+  - "obsolete tests asserting old broad-read/provider-local behavior"
+
+wire_complete:
+  call_sites:
+    - "harness/hooks/agent-pretool.py routes all Read/read/Edit/Write payloads through evaluate_read_payload/evaluate_write_payload"
+    - "harness/hooks/write-pretool.py routes all Write/Edit payloads through evaluate_write_payload"
+    - "harness/hooks/bash-pretool.py routes command-line searches through ScopeResolver"
+    - "harness/hooks/agent-posttool.py and subagent-stop.py update telemetry via context_telemetry.collect_session_telemetry"
+  enforce_path:
+    - "harness/hooks/context_ledger.py + harness/hooks/context_ledger_adapters.py"
+  dual_path_rg:
+    - "Zero ad-hoc duplicate/unique counters outside context_telemetry and context_ledger"
+  instruction_rg:
+    - "main.md, CLAUDE.md, AGENTS.md, DSH.md all specify durable ContextLedger, plan_jumps, search allowlist, and derived_identity"
+
+plan_parity_scan:
+  fr_coverage:
+    - "FR-001: Duplicate read prevention with hash and interval algebra"
+    - "FR-002: Invalidation on file write with narrow re-read"
+    - "FR-003: Monolithic plan denial and plan_jumps bounded excerpts"
+    - "FR-004: Search scope allowlist and graphify exception verification"
+    - "FR-005: Context telemetry in finish projection"
+    - "FR-006: Test execution fingerprinting and cache receipts"
+    - "FR-007: Provider parity between Claude Code and Codex CLI runtimes"
+    - "FR-008: Durable cross-process ledger persistence"
+    - "FR-009: Actor isolation between parent and subagent sessions"
+    - "FR-010: Conservative normalization for tool aliases and range omissions"
+  layout_check:
+    - "harness/hooks/context_ledger.py (SoT ledger)"
+    - "harness/hooks/context_ledger_adapters.py (provider adapters)"
+    - "harness/hooks/context_scope.py (scope resolver)"
+    - "harness/hooks/context_telemetry.py (telemetry metrics)"
+    - "loop/runtime_materializers/ (materialized runtime configs)"
+
+integration_check:
+  - "Context ledger adapters enforce uniform policy across Claude and Codex."
+  - "Hooks deny unauthorized reads, search outside scope, and unverified plans."
+  - "PreToolUse, PostToolUse, and Stop gates operate fail-closed."
+
+tests:
+  - "`bin/pytest harness/hooks/tests/test_context_ledger.py harness/hooks/tests/test_context_ledger_adapters.py harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py -q --tb=line`"
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A sunset inventory: every untracked/ad-hoc counter has zero live production callers; obsolete symbols are deleted or rewritten to shared ledger."
+    status: done
+    evidence: "Zero duplicate_reads or ad-hoc context counting outside shared context_telemetry/context_ledger."
+  - id: cp2
+    criterion: "Kind B sunset inventory: raw plan injection is absent from runtime entrypoints; only bounded plan-jump projection remains."
+    status: done
+    evidence: "Raw plan paths rejected in lean modes; bounded plan-jumps projection enforced."
+  - id: cp3
+    criterion: "Kind C anti-fallback scan: broad read/search, silent full-memory recovery and soft dual paths are absent; old boundary denies or emits typed exception."
+    status: done
+    evidence: "ScopeResolver denies searches outside shard scope unless graphify receipt provided; no broad-read fallback."
+  - id: cp4
+    criterion: "Kind I instruction scan: canonical and generated instructions no longer treat prose-only reread/graphify guidance as sole control and all obsolete machine format references are rewritten."
+    status: done
+    evidence: "harness/instructions/main.md, CLAUDE.md, AGENTS.md, DSH.md enforce ContextLedger, plan_jumps, search allowlist, and derived_identity."
+  - id: cp5
+    criterion: "Obsolete tests/counters are deleted or rewritten and targeted epic regression is green without restoring sunset behavior."
+    status: done
+    evidence: "Targeted regression tests in harness/hooks/tests/test_context_*.py and loop/tests/test_context_finish_projection.py pass 100% green."
+  - id: cp6
+    criterion: "Final shared SoT enforcement evidence confirms every boundary FR routes through ledger and old path DENY/HALT is tested, with no second hook registration."
+    status: done
+    evidence: "PreToolUse, PostToolUse, and Subagent hooks route all boundaries to shared ledger adapter."

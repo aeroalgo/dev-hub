@@ -1,0 +1,114 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-083-role-core-shared-contract
+title: "Три role core импортируют shared policy и сохраняют уникальные обязанности"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  BACK, FRONT и INTEG mainrule-core.mdc используют shared role-core contract ровно один раз,
+  а после компактизации в каждом файле остаются только доказанные role-only semantics:
+  BACK lifecycle/promotion и TDD context, FRONT visible-UI и parent-only tests, INTEG
+  element-first, §Contract и BACK/FRONT/GAP fanout. Common paragraphs удаляются только после
+  того, как shared owner создан и import path проверен.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - "AC+ #1"
+    - "AC+ #2"
+    - "AC− #1"
+    - TM-083-02
+    - TM-083-03
+    - TM-083-04
+    - TM-083-05
+  nouns:
+    - BACK mainrule-core.mdc
+    - FRONT mainrule-core.mdc
+    - INTEG mainrule-core.mdc
+    - shared role-core import
+    - BACK lifecycle/promotion/TDD
+    - FRONT visible-UI/parent-only
+    - INTEG element-first/contract/GAP fanout
+    - role marker
+  layout_paths:
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/role-core-contract.mdc
+  ac_quotes:
+    - "each role core imports it once and contains only role-only semantics."
+    - "No generic core replacing role responsibility."
+    - "No weakening lifecycle/UI/contract guards."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:6-22"
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:24-30"
+
+context:
+  consumes:
+    - s01 semantic failure matrix
+    - s02 shared role-core owner
+    - current BACK/FRONT/INTEG role-only sections
+  produces:
+    - one shared import in each role core
+    - compact role-only cores with explicit markers
+    - preserved promotion, UI boundary, parent-only test and contract fanout semantics
+  plan_refs:
+    - plan.md#what
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+  files:
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/role-core-contract.mdc
+
+as_built:
+  - "BACK core contains common TDD/runner/memory-bank/format text plus lifecycle/promotion; FRONT core contains common test/runner/memory-bank/format text plus UI guards; INTEG core contains common runner/memory-bank/format text plus contract fanout."
+  - "No role core currently imports a shared role-core contract."
+
+delta:
+  - "Add exactly one canonical reference/import to shared/role-core-contract.mdc in each of the three role cores."
+  - "Remove the known common loading/format/runner paragraphs from role files after the shared owner is available."
+  - "Retain BACK transition/promotion and BACK-specific TDD semantics."
+  - "Retain FRONT visible_ui/design-stack and parent-only Vitest/RTL/Playwright boundary."
+  - "Retain INTEG element-first lifecycle, §Contract, BACK/FRONT wire and GAP fanout semantics."
+  - "Keep explicit role markers so later sunset scans can distinguish role-only text from common policy."
+
+deletes:
+  - "Duplicated common loading/format/runner paragraphs in harness/cursor/rules/back_developer/mainrule-core.mdc."
+  - "Duplicated common loading/format/runner paragraphs in harness/cursor/rules/front_developer/mainrule-core.mdc."
+  - "Duplicated common loading/format/runner paragraphs in harness/cursor/rules/integration_developer/mainrule-core.mdc."
+
+out_of_scope:
+  - "Removing the role files or replacing them with one generic core."
+  - "Changing workflow transitions, visible UI requirements, parent-only test ownership or INTEG GAP routing."
+  - "Full purge of any residual common instruction surface; s04 owns final inventory and deletes."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Each role core references the same shared owner exactly once and no role references another role's core."
+    verify: 'for f in harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc; do test $(rg -c "shared/role-core-contract.mdc" "$f") -eq 1; done'
+  - id: cp2
+    criterion: "BACK keeps lifecycle/promotion and TDD semantics while common policy is no longer copied."
+    verify: "rg -n 'ПЕРЕХОДЫ|Promote DECOMPOSE|BACK IMPLEMENT|BACK QA|TDD|lifecycle|promotion' harness/cursor/rules/back_developer/mainrule-core.mdc"
+  - id: cp3
+    criterion: "FRONT keeps visible-UI and parent-only test guards without weakening them."
+    verify: "rg -n 'parent|Vitest|RTL|Playwright|visible_ui|DESIGN STACK' harness/cursor/rules/front_developer/mainrule-core.mdc"
+  - id: cp4
+    criterion: "INTEG keeps element-first, contract and BACK/FRONT/GAP fanout semantics."
+    verify: "rg -n 'ELEMENT-FIRST|element-first|§Contract|BACK / FRONT|GAP|fanout' harness/cursor/rules/integration_developer/mainrule-core.mdc"
+
+verify:
+  - "The three files have one common reference and retain independent role markers."
+  - "No role file contains an unconditional managed pytest instruction after the common extraction."
+  - "No role responsibility is represented only by the shared contract."
+
+tdd: []

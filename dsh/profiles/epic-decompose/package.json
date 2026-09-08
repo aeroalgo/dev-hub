@@ -22,7 +22,7 @@
   "bundles": {
     "subagent": {
       "presets": {
-        "explorer": "preset-explorer"
+        "explorer": "explorer"
       }
     }
   }

@@ -1,16 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-081
-  epic_id: T-HUB-081-workflow-hot-path-consolidation
-  plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
-  deps: []
-  batch: workflow-read-chain-20260907
-- id: T-HUB-082
-  epic_id: T-HUB-082-shared-lean-gate-topology
-  plan: plan-T-HUB-082-shared-lean-gate-topology.md
-  deps: []
-  batch: workflow-read-chain-20260907
 - id: T-HUB-083
   epic_id: T-HUB-083-role-core-shared-contract
   plan: plan-T-HUB-083-role-core-shared-contract.md
@@ -24,11 +14,6 @@ queue:
   - T-HUB-082
   - T-HUB-083
   batch: workflow-read-chain-20260907
-- id: T-HUB-078
-  epic_id: T-HUB-078-context-budget-enforcement
-  plan: plan-T-HUB-078-context-budget-enforcement.md
-  deps: []
-  batch: claude-session-audit-20260907
 - id: T-HUB-079
   epic_id: T-HUB-079-orchestrator-lifecycle-reliability
   plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
@@ -45,6 +30,12 @@ queue:
   deps:
   - T-HUB-079
   batch: hook-runtime-optimization-20260907
+- id: T-HUB-086
+  epic_id: T-HUB-086-python-loop-supervisor-cutover
+  plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
+  deps:
+  - T-HUB-079
+  batch: loop-runner-python-20260908
 - id: plan
   epic_id: T-HUB-076-stack-profile-capability-execution
   plan: plan.md
@@ -339,6 +330,18 @@ done:
   epic_id: T-HUB-077-gate-evidence-integrity
   plan: plan-T-HUB-077-gate-evidence-integrity.md
   batch: claude-session-audit-20260907
+- id: T-HUB-078
+  epic_id: T-HUB-078-context-budget-enforcement
+  plan: plan-T-HUB-078-context-budget-enforcement.md
+  batch: claude-session-audit-20260907
+- id: T-HUB-081
+  epic_id: T-HUB-081-workflow-hot-path-consolidation
+  plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
+  batch: workflow-read-chain-20260907
+- id: T-HUB-082
+  epic_id: T-HUB-082-shared-lean-gate-topology
+  plan: plan-T-HUB-082-shared-lean-gate-topology.md
+  batch: workflow-read-chain-20260907
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -396,6 +399,10 @@ batches:
     title: Claude Code session audit remediation
     note: Verification integrity, context budget enforcement, lifecycle reliability
       and stack-profile workflow instruction parity; details in plan/<epic_id>/md/plan.md.
+  loop-runner-python-20260908:
+    title: Python loop supervisor cutover
+    note: T-HUB-086 moves process orchestration to one typed Python supervisor while
+      retaining bin/loop and loop.sh as compatibility launchers; hard dependency T-HUB-079.
   workflow-read-chain-20260907:
     title: Workflow Read-chain consolidation
     note: Hot paths, shared lean gates, compact role cores and reference graph hygiene.

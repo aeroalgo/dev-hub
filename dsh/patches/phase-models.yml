@@ -18,3 +18,35 @@
 # AUDIT: PROJECT_LOOP_AUDIT_MODEL
 # BUGFIX: PROJECT_LOOP_BUGFIX_MODEL
 # REFLECT: PROJECT_LOOP_REFLECT_MODEL
+
+- id: agent-default-model
+  config:
+    provider: !!js process.env.PROJECT_LOOP_DSH_PROVIDER ?? 'omniroute'
+    model: !!js process.env.PROJECT_LOOP_DSH_MODEL ?? 'default'
+
+- id: agent-instructions
+  config:
+    maxBytes: 65536
+    instructionFileCandidates:
+      - AGENTS.md
+    localInstructionFileCandidates: []
+
+- id: settings
+  disabled: true
+
+- id: llm-pi-ai
+  config:
+    providers:
+      omniroute:
+        apiKeyEnv: ANTHROPIC_AUTH_TOKEN
+        api: anthropic-messages
+        baseURL: !!js process.env.OMNIROUTE_BASE_URL ?? 'http://localhost:20128'
+        models:
+          - id: !!js process.env.PROJECT_LOOP_DSH_MODEL ?? 'default'
+            name: !!js process.env.PROJECT_LOOP_DSH_MODEL ?? 'default'
+
+- id: skill-filesystem
+  disabled: true
+
+- id: tool-skill
+  disabled: true

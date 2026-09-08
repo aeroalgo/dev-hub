@@ -9,6 +9,8 @@ import pytest
 from harness.hooks.epic.core import (
     atomic_write_text,
     default_state,
+    load_epic_state,
+    mirror_verify_verdict,
     read_active_context,
     save_epic_state,
 )
@@ -161,6 +163,52 @@ def test_finish_implement_no_verify(setup_epic_env):
         # Verify SC-001: 0 status mutations in index or implement
         impl_content = (tmp_path / "memory-bank" / "back" / "implement" / "implement-T-HUB-TEST" / "s01-test.yaml").read_text(encoding="utf-8")
         assert "status: in_progress" in impl_content
+
+
+def test_finish_implement_missing_telemetry_is_not_green(setup_epic_env):
+    tmp_path = setup_epic_env
+    state = load_epic_state(tmp_path)
+    state["session_id"] = "runner-s01"
+    save_epic_state(tmp_path, state)
+
+    req = MbFinishRequest(
+        phase="BACK IMPLEMENT",
+        step_id="s01",
+        done_summary="missing telemetry must block",
+        cwd=str(tmp_path),
+    )
+
+    with patch("loop.mb_finish.finish_implement._verify_pass_ready_for_step") as mock_verify, \
+         patch("harness.hooks.epic.core._verify_pass_ready_for_step") as mock_verify_fin:
+        mock_verify.return_value = {"ok": True, "diagnostic": "verify_pass"}
+        mock_verify_fin.return_value = {"ok": True, "diagnostic": "verify_pass"}
+        res = finish_implement_step(req)
+
+    assert res.ok is False
+    assert "missing_ledger" in res.diagnostic_codes
+
+
+def test_manual_verify_mirror_cannot_authorize_implement(setup_epic_env):
+    tmp_path = setup_epic_env
+    state = load_epic_state(tmp_path)
+    state["session_id"] = "runner-s01"
+    save_epic_state(tmp_path, state)
+
+    mirror_verify_verdict(
+        tmp_path,
+        "PASS",
+        evidence={
+            "schema": "loop-verifier-receipt/v1",
+            "authority": "autonomous",
+            "step": "s01",
+            "session_id": "runner-s01",
+            "verdict": "PASS",
+        },
+    )
+
+    persisted = load_epic_state(tmp_path)
+    assert persisted.get("last_verify_verdict") is None
+    assert persisted.get("gate_diagnostic") == "verify_spawn_missing"
 
 
 def test_finish_implement_bad_shape(setup_epic_env):

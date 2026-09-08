@@ -1,0 +1,107 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Corpus contract — failing test for four hot-path owners and dangling links"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Статический corpus test фиксирует четыре обязательных режима, единственного
+  владельца `## Hot path`, сохранность обязательных маркеров и отсутствие активных
+  ссылок на удаляемые cheatsheet-файлы. На текущем дереве тест сначала красный:
+  канонические секции отсутствуют, а старые ссылки ещё живы. Archive/history
+  исключаются из active-caller corpus и не становятся ложной находкой.
+
+plan_contract:
+  fr_ids: [FR-001, FR-003, FR-004, AC+2, AC+3, AC-1, AC-2, TM-081-01, TM-081-02, TM-081-03]
+  nouns:
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - active workflow corpus
+    - four mode markers: BACK DECOMPOSE, BACK IMPLEMENT, BACK PLAN, INTEG PLAN
+    - single `## Hot path` owner per mode
+    - dangling standalone cheatsheet reference diagnostic
+    - archive/history exclusion
+  layout_paths:
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+  ac_quotes:
+    - "corpus test проверяет один hot-path owner, required mode markers и no dangling link"
+    - "Injected old cheatsheet reference или пропущенный marker ломает test."
+    - "Archive/history не классифицируется как active caller."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:17-32"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:34-44"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:55-62"
+
+context:
+  consumes:
+    - plan.md §FR / AC+ / AC−
+    - plan.md §HOW / Eng spine
+    - plan.md §QA consumes TM-081-01..03
+  produces:
+    - corpus test with explicit active-file allowlist
+    - deterministic diagnostics for missing Hot path, duplicate owner, and old link
+    - archive/history exclusion fixture
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+
+as_built:
+  - "Четыре canonical workflow-файла указывают на standalone cheatsheet вместо embedded `## Hot path`."
+  - "`harness/cursor/rules/shared/cheatsheets/` содержит четыре active quick-path source-файла."
+  - "Corpus test для owner/marker/dangling-link контракта отсутствует."
+  - "Archive/history не являются частью активного runtime read route и должны быть исключены из scan."
+
+delta:
+  - "Добавить allowlisted corpus reader только для активных workflow/rule surfaces; не сканировать vendor catalog."
+  - "Добавить failing checks на четыре mode markers и ровно один `## Hot path` owner на режим."
+  - "Добавить failing check на ссылки `back-decompose`, `back-implement`, `back-plan`, `integ-plan` в active scope."
+  - "Добавить fixture/проверку, что archive/history hits не считаются active callers."
+
+deletes: []
+
+out_of_scope:
+  - "Встраивание Hot path в canonical workflows — s02."
+  - "Перепривязка active callers — s03."
+  - "Удаление standalone source files — s04."
+  - "Полный sunset inventory и suite — s05."
+  - "Изменение runtime/router/skill selection — out of scope плана."
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Corpus test извлекает четыре required mode markers и проверяет ровно одного Hot path owner на режим."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k owner -q --tb=line"
+  - id: cp2
+    criterion: "Старый standalone cheatsheet reference диагностируется как dangling active link, а не silently ignored."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k dangling -q --tb=line"
+  - id: cp3
+    criterion: "Archive/history исключены из active-caller corpus и не создают false positive."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k archive -q --tb=line"
+  - id: cp4
+    criterion: "До с02 corpus red из-за отсутствующих embedded sections/markers; тест не превращён в skip."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k corpus -q --tb=line"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line"
+  - "rg -n 'back-(decompose|implement|plan)|integ-plan|## Hot path' harness/cursor/rules harness/claude/skills/role-command/SKILL.md"
+
+tdd:
+  - "test_each_required_mode_has_single_hot_path_owner"
+  - "test_old_cheatsheet_reference_is_reported"
+  - "test_archive_and_history_are_not_active_callers"
+  - "test_required_mode_markers_are_present"

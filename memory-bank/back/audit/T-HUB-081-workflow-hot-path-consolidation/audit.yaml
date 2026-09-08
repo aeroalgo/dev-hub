@@ -1,0 +1,199 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-081-workflow-hot-path-consolidation
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+date: '2026-09-08'
+auditor: BACK AUDIT
+
+plan_intent:
+  epic_goal: "Один canonical workflow с embedded ## Hot path; у каждого режима (BACK DECOMPOSE, IMPLEMENT, PLAN и INTEG PLAN) единственный владелец короткого маршрута; standalone cheatsheet файлы и ссылки на них удалены; длинные lean gates не объединены."
+  source: plan.md#WHAT
+
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+
+intent_checked:
+  fr_total: 4
+  fr_satisfied: 4
+  sc_checked: 0
+  layout_paths_total: 5
+  layout_paths_closed: 5
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: FR-001
+    status: satisfied
+    evidence: "Четыре canonical workflow (back_developer/workflow-decompose.mdc, back_developer/workflow-implement.mdc, back_developer/workflow-plan.mdc, integration_developer/workflow-plan.mdc) содержат ровно по одной секции ## Hot path и проверены test_each_required_mode_has_single_hot_path_owner."
+    remaining_work: ""
+  - source_ref: FR-002
+    status: satisfied
+    evidence: "Каждая встроенная секция Hot path сохраняет свои обязательные маркеры (DECOMPOSE: coverage+sunset+granularity+ANALYZE, IMPLEMENT: scope-lock+contract+skills+FINISH, BACK PLAN: clarify+prompt+queue/reconcile, INTEG PLAN: portal inventory+reconcile+400-line); проверено test_required_mode_markers_are_present."
+    remaining_work: ""
+  - source_ref: FR-003
+    status: satisfied
+    evidence: "Четыре standalone cheatsheet файла (back-decompose, back-implement, back-plan, integ-plan) удалены из harness/cursor/rules/shared/cheatsheets/, все активные ссылки перепривязаны на canonical Hot path; проверено test_no_standalone_hot_path_sources_after_cutover и test_no_active_old_cheatsheet_callers."
+    remaining_work: ""
+  - source_ref: FR-004
+    status: satisfied
+    evidence: "Corpus test suite test_workflow_hot_path_consolidation.py (8 тестов) проверяет единственного владельца, обязательные маркеры, отсутствие висячих ссылок и исключение архива/истории; все 8 тестов проходят green."
+    remaining_work: ""
+  - source_ref: "AC+:1"
+    status: satisfied
+    evidence: "Default route режима читает одним документом меньше, не меняя обязательный gate; секция Hot path встроена прямо в канонический workflow файл."
+    remaining_work: ""
+  - source_ref: "AC+:2"
+    status: satisfied
+    evidence: "Injected old cheatsheet reference или пропущенный marker диагностируются fail-closed тестами test_old_cheatsheet_reference_is_reported и test_required_mode_markers_are_present."
+    remaining_work: ""
+  - source_ref: "AC+:3"
+    status: satisfied
+    evidence: "Archive/history исключены из активного сканирования и проверены тестами test_archive_history_excluded_from_active_scan и test_archive_and_history_are_not_active_callers."
+    remaining_work: ""
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "Правило _lean/implement.mdc и lazy FINISH сохранены без инлайнинга и без ослабления проверок."
+    remaining_work: ""
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "Отсутствуют compatibility aliases или два активных quick-path источника; канонические Hot path секции являются единственными владельцами."
+    remaining_work: ""
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "Поведение runtime/router/skill selection не изменено."
+    remaining_work: ""
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "Секция MUST конституции соблюдена: все инварианты покрыты проверками."
+    remaining_work: ""
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "TDD цикл соблюден в s01..s05, статические тесты контракта реализованы до cutover."
+    remaining_work: ""
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "Fail-closed поведение проверено, отсутствие fallback на удаленные файлы гарантировано."
+    remaining_work: ""
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "Frontend тесты не запускались в subagents; scope ограничен backend/rules."
+    remaining_work: ""
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "Lean load соблюден: workflow chain загружена по шагам без повторных чтений."
+    remaining_work: ""
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "Конфигурация и окружение валидированы строго без fallback."
+    remaining_work: ""
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "Все ссылки и маркеры определены детерминированно."
+    remaining_work: ""
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "Ровно один Handoff блок формируется на AUDIT FINISH."
+    remaining_work: ""
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "Интеграционная сквозная связанность правил и тестов проверена."
+    remaining_work: ""
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "Фазовые авторитеты соблюдены: AUDIT фиксирует plan vs runtime соответствие."
+    remaining_work: ""
+
+architecture_parity:
+  - layout_path: harness/cursor/rules/back_developer/workflow-decompose.mdc
+    status: present
+    follow_up: ""
+    evidence: "Содержит canonical ## Hot path секцию и сохраненные lean gates."
+  - layout_path: harness/cursor/rules/back_developer/workflow-implement.mdc
+    status: present
+    follow_up: ""
+    evidence: "Содержит canonical ## Hot path секцию и scope-lock/FINISH discipline."
+  - layout_path: harness/cursor/rules/back_developer/workflow-plan.mdc
+    status: present
+    follow_up: ""
+    evidence: "Содержит canonical ## Hot path секцию, clarify, queue reconcile и prompt rules."
+  - layout_path: harness/cursor/rules/integration_developer/workflow-plan.mdc
+    status: present
+    follow_up: ""
+    evidence: "Содержит canonical ## Hot path секцию, portal inventory, queue reconcile и prompt rules."
+  - layout_path: harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    status: present
+    follow_up: ""
+    evidence: "Содержит статические corpus contract проверки для 4 режимов."
+
+findings: []
+
+converged: true
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-081-workflow-hot-path-consolidation/s01-corpus-owner-contract.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-081-workflow-hot-path-consolidation/s02-embed-canonical-hot-paths.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-081-workflow-hot-path-consolidation/s03-rewire-active-callers.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-081-workflow-hot-path-consolidation/s04-delete-standalone-sources.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-081-workflow-hot-path-consolidation/s05.yaml
+
+not_implemented: []
+
+deviations: []
+
+sunset_inventory_scan:
+  scanned_at: '2026-09-08'
+  plan_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md#replacement--sunset
+  rows:
+    - symbol: harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+      kind: A
+      command: 'test ! -e harness/cursor/rules/shared/cheatsheets/back-decompose.mdc'
+      result: pass
+      prod_callers: []
+      notes: "Deleted in s04, confirmed absent"
+    - symbol: harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+      kind: A
+      command: 'test ! -e harness/cursor/rules/shared/cheatsheets/back-implement.mdc'
+      result: pass
+      prod_callers: []
+      notes: "Deleted in s04, confirmed absent"
+    - symbol: harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+      kind: A
+      command: 'test ! -e harness/cursor/rules/shared/cheatsheets/back-plan.mdc'
+      result: pass
+      prod_callers: []
+      notes: "Deleted in s04, confirmed absent"
+    - symbol: harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+      kind: A
+      command: 'test ! -e harness/cursor/rules/shared/cheatsheets/integ-plan.mdc'
+      result: pass
+      prod_callers: []
+      notes: "Deleted in s04, confirmed absent"
+    - symbol: active @...cheatsheets/... references
+      kind: I
+      command: 'bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k test_no_active_old_cheatsheet_callers'
+      result: pass
+      prod_callers: []
+      notes: "All callers rewired to canonical Hot path"
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+
+sot_enforce_scan:
+  scanned_at: '2026-09-08'
+  rows:
+    - boundary: workflow-hot-path-owner
+      enforce_evidence: 'bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line'
+      result: pass
+      notes: "8 passed"
+
+blocked_reason: ""

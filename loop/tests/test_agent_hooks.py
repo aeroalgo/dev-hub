@@ -589,6 +589,7 @@ def test_posttool_fail_then_pass_mirrors_epic_last_verify(
         "verify_verdict": None,
         "gate_identity": identity,
         "verdict_recorded_agents": [],
+        "in_flight": [{"agent": "verify-implement", "managed": True}],
     }
     lib.save_state(sid, str(tmp_path), gate)
 
@@ -748,8 +749,9 @@ def test_posttool_mirror_error_logs_stderr_and_saves_state(
             "verify_verdict": None,
             "gate_identity": identity,
             "verdict_recorded_agents": [],
-        },
-    )
+            "in_flight": [{"agent": "verify-implement", "managed": True}],
+            },
+        )
 
     # Make epic state unwritable so mirror_verify_verdict raises OSError on save.
     os.chmod(epic_dir, 0o555)

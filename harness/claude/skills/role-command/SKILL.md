@@ -52,7 +52,7 @@ Fallback на Read/Grep — только после ориентации по г
 **HARD RULE:** канон — `.cursor/rules/mainrule.mdc` §Full linked chain.
 
 - **PLAN / DECOMPOSE / brownfield VAN:** `Read` entrypoint текущего runtime (`CLAUDE.md` / `AGENTS.md`) → `mainrule.mdc` → индекс+core → workflow → Gates → `@` рекурсивно.
-- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → cheatsheet → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → canonical `## Hot path` → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
 
 Пропущенный Read из списка режима — gap, не блок FINISH.
 
@@ -72,7 +72,7 @@ Fallback на Read/Grep — только после ориентации по г
 - PLAN → recommend premium model; after PLAN → inline `roadmap-merge` (same session) → new chat for `* DECOMPOSE` первого эпика **canon** queue (не `* ROADMAP MERGE`)
 ## Step 1 — role index + core
 
-**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если cheatsheet/Gates ссылаются на TDD/pytest runner и его нет в Gates.
+**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если Hot path/Gates ссылаются на TDD/pytest runner и его нет в Gates.
 
 **PLAN / DECOMPOSE / прочие:** читай **полные пути** (не basename без папки роли):
 
@@ -107,7 +107,7 @@ Fallback на Read/Grep — только после ориентации по г
 | REFACTOR · REFACTOR PLAN · REFACTOR DECOMPOSE | `{role_dir}workflow-refactor.mdc` |
 | GAP CLOSE | `{role_dir}workflow-gap-close.mdc` |
 
-**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (cheatsheet + Gates). Читать при FAIL / дыре coverage.
+**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (Hot path + Gates). Читать при FAIL / дыре coverage.
 
 **ЗАПРЕЩЕНО угадывать:**
 - `workflow-back-bugfix.mdc` / `workflow-front-*.mdc` / `workflow-integ-*.mdc`
@@ -118,7 +118,7 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 3 — isolation (step 1a)
 
-Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно). На IMPLEMENT это **стартовый** файл (вместе с cheatsheet + scope-lock).
+Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно). На IMPLEMENT это **стартовый** файл (вместе с Hot path + scope-lock).
 
 Канон BACK QA:
 `.cursor/rules/back_developer/isolation_rules/_lean/qa.mdc`

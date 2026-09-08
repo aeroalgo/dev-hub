@@ -15,4 +15,5 @@ projects/**/*.env.local
 .DS_Store
 .spec-kit/
 node_modules/
+dsh/plugins/epic-gate/lib/
 graphify-out/

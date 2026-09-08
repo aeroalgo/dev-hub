@@ -1,3 +1,4 @@
+"""Codex agent TOML renderer with context ledger policy_fingerprint and derived_identity support."""
 from __future__ import annotations
 
 import hashlib

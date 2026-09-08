@@ -134,3 +134,50 @@ def test_append_refuses_existing_gap_or_collision(tmp_path: Path) -> None:
 
     assert not lib._append_event(tmp_path, "back", "demo", "qa_pass", artifact)
     assert json.loads(event_path.read_text().splitlines()[0])["seq"] == 2
+
+
+def test_append_compacts_gate_sidecars_into_canonical_event_log(tmp_path: Path) -> None:
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    spec = spec_from_file_location(
+        "epic_lib_event_stream_sidecars", ROOT / ".claude/hooks/epic_lib.py"
+    )
+    assert spec and spec.loader
+    lib = module_from_spec(spec)
+    spec.loader.exec_module(lib)
+
+    event_path = tmp_path / "memory-bank/back/events/demo/events.jsonl"
+    event_path.parent.mkdir(parents=True, exist_ok=True)
+    canonical = _event("demo", 1)
+    gate_evidence = {
+        "schema": "loop-gate-evidence/v1",
+        "phase": "QA",
+        "epic_id": "demo",
+        "step_id": "QA",
+        "verdict": "PASS",
+        "agent_id": "verify-qa",
+        "recorded_at": "2026-08-05T12:01:00+00:00",
+    }
+    gate_verdict = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify-qa",
+        "session_id": "session",
+        "epic_id": "demo",
+        "step_id": "QA",
+        "phase": "QA",
+        "verdict": "PASS",
+        "recorded_at": "2026-08-05T12:01:00+00:00",
+    }
+    _write(event_path, [canonical, gate_evidence, gate_verdict])
+
+    artifact = tmp_path / "memory-bank/back/qa/demo/qa-current.yaml"
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text("verdict: pass\n", encoding="utf-8")
+
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", artifact)
+
+    raw_lines = event_path.read_text(encoding="utf-8").splitlines()
+    assert all(json.loads(line)["schema"] == "loop-event/v2" for line in raw_lines)
+    result = read_event_log_result(event_path, expected_epic_id="demo", cwd=tmp_path)
+    assert result.diagnostics == ()
+    assert [event["kind"] for event in result.events] == ["qa_pass", "qa_pass"]

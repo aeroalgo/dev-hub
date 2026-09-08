@@ -19,19 +19,29 @@ npm install -g @deepseek-ai/dsh@0.1.1-rc.2
 
 The reviewed CLI pin is `0.1.1-rc.2`; install the exact version shown above and review compatibility before upgrading it. The DSH CLI is currently considered unstable, and an unreviewed version upgrade is not a compatible change (NFR-4).
 
-Loop automatically installs all local profiles, their local `dsh-phase-models`
-bundle, and the Claude hooks bridge when `EPIC_RUNTIME=dsh` is selected. The
-manual command below is useful for prewarming or repairing the DSH home:
+Loop automatically installs all local profiles, the shared `dsh-phase-models`
+bundle and its hooks-bridge dependency, the discoverable agent presets, and the
+compiled local `epic-gate` plugin when `EPIC_RUNTIME=dsh` is selected. The manual
+command below is useful for prewarming or repairing the DSH home:
 
 ```bash
 dsh/scripts/install-profiles.sh
 ```
 
-The installer requires `pnpm`, defaults to `DSH_HOME=${DSH_HOME:-$HOME/.dsh}`, replaces an existing profile with the same name, copies every `dsh/profiles/epic-*` directory, and runs `pnpm install --ignore-scripts` in each installed profile. Use `--link` for symlinks or `--dry-run` to inspect the planned changes without modifying the filesystem. The local bundle is copied to `$DSH_HOME/patches/`, which keeps the `file:../../patches` dependency valid after installation.
+The installer requires `pnpm`, defaults to `DSH_HOME=${DSH_HOME:-$HOME/.dsh}`, replaces an existing profile with the same name, copies every `dsh/profiles/epic-*` directory, installs the shared bundle dependencies, copies the preset roots, builds `epic-gate` to JavaScript, and runs `pnpm install --ignore-scripts` in each installed profile. Use `--link` for symlinks or `--dry-run` to inspect the planned changes without modifying the filesystem. The local bundle and presets are copied to `$DSH_HOME/patches/` and `$DSH_HOME/presets/`; this keeps the `file:../../patches` dependency and preset root valid after installation.
 
-If profiles were copied manually, provision their dependencies before running DSH:
+Headless epic profiles emit bounded live progress while the agent is running.
+The loop shows the current LLM step and tool action, for example
+`==> dsh: LLM request turn=1 step=2` or `==> dsh: Bash pytest ...`; the final
+assistant response is printed after the run completes. Long streamed LLM
+responses produce a periodic `LLM streaming` notice so the session is visibly
+active during model generation.
+
+If profiles were copied manually, provision the shared bundle and local plugin first, then provision each profile:
 
 ```bash
+(cd "$DSH_HOME/patches" && pnpm install --ignore-scripts)
+(cd "$DSH_HOME/plugins/epic-gate" && pnpm install --ignore-scripts && pnpm run build)
 for profile in "$DSH_HOME"/profiles/epic-*; do
   (cd "$profile" && pnpm install --ignore-scripts)
 done
@@ -62,11 +72,16 @@ export EPIC_RUNTIME=dsh
 
 When the loop runs with `EPIC_RUNTIME=dsh`, it exports `DSH_HOOKS_BRIDGE=1`, sets `CLAUDE_PROJECT_DIR=$PROJECT_ROOT` for the mounted Claude hooks, and keeps `DEV_HUB` pointed at the dev-hub checkout. With the default Claude runtime, `CLAUDE_PROJECT_DIR` remains the hub path used by the loop runner.
 
+The loop also exports the resolved `MODEL` value as `PROJECT_LOOP_DSH_MODEL` and
+selects it through DSH's `agent-default-model` service. The DSH settings file is
+disabled for loop profiles, so `~/.dsh/settings.yaml` cannot replace the model.
+
 | Environment variable | Value under DSH | Purpose |
 |---|---|---|
 | `DSH_HOOKS_BRIDGE` | `1` | Signals that the Claude command-hook bridge is active. |
 | `CLAUDE_PROJECT_DIR` | `$PROJECT_ROOT` | Product root used by the bridge for `projectDir`, `.claude/settings.json`, and hook paths. |
 | `DEV_HUB` | hub checkout | Hub root used by hooks and board tooling. |
+| `PROJECT_LOOP_DSH_MODEL` | resolved `MODEL` | Exact model ID selected for the DSH session. |
 
 ## Profiles
 
@@ -112,7 +127,7 @@ Without an installed DSH CLI, the smoke test is skipped in CI. After running the
 DSH_HOME=${DSH_HOME:-$HOME/.dsh} dsh --profile epic-implement --dump-config
 ```
 
-The output must include the `@deepseek-ai/dsh-hooks-claude-code` (`dsh-hooks-claude-code`) plugin, with `configPath` pointing to `$PROJECT_ROOT/.claude/settings.json` and `projectDir` set to `$PROJECT_ROOT`. It must also include the `verify` preset and the `dsh-phase-models` bundle. Repeat the command with each `epic-*` profile to verify the complete phase matrix.
+The output must include the `agent-instructions` entry restricted to `AGENTS.md`, the `agent-presets` roster, and the `dsh-phase-models` bundle. The `settings`, `skill-filesystem`, and `tool-skill` entries must be disabled. `--dump-config` only serializes the profile; to exercise plugin loading, run a real profile command after credentials are configured, for example `DSH_HOME=${DSH_HOME:-$HOME/.dsh} dsh --profile epic-implement 'diagnostic boot only'`. Repeat the command with each `epic-*` profile to verify the complete phase matrix.
 
 If the command reports `cannot resolve profile bundle "dsh-phase-models"`, the profile dependencies have not been installed; run `dsh/scripts/install-profiles.sh` or the manual `pnpm install --ignore-scripts` loop above.
 
@@ -177,20 +192,11 @@ For native `subagent/start`, the plugin resolves only explicit `verify`, `review
 
 > `@deepseek-ai/dsh@0.1.1-rc.2` and `@deepseek-ai/dsh-hooks-claude-code@0.0.1-rc.5` were checked with npm registry metadata on 2026-08-29; re-check engines and compatibility before changing either pin.
 
-## dsh-claude-compat
+## Native workflow traversal
 
-The `epic-implement` profile optionally mounts the community `dsh-claude-compat@0.8.0` plugin. When enabled, it exposes the product's `.claude/skills/`, `.claude/rules/`, and `.claude/commands/` to DSH without migrating or copying them into a DSH-native layout; the plugin also keeps the existing hook bridge available.
-
-The mount is enabled by default for `epic-implement`. Set `DSH_CC_COMPAT=0` before starting DSH to disable it:
-
-```bash
-DSH_CC_COMPAT=0 dsh --profile epic-implement
-```
-
-The package is declared under `optionalDependencies`, and the Cordis entry is `required: false`. If npm cannot resolve or load `dsh-claude-compat`, DSH continues without the compatibility mount and emits a warning; skills, rules, and commands are then unavailable, but profile boot is not blocked. The hook bridge remains a separate mount.
-
-The plugin discovers the project `.claude/` from the DSH session working directory. Keep `CLAUDE_PROJECT_DIR` set to the product root when using the loop launcher so the existing Claude hook configuration continues to resolve correctly.
-
-> `dsh-claude-compat` is a community-equivalent package; verify its compatibility before changing the reviewed `0.8.0` pin.
-
-Use the profile installer after the pins have been reviewed; bridge mounting and runtime smoke checks are implemented by the following T-HUB-016 steps.
+DSH starts with the product `AGENTS.md`. Its native `read` tool then follows the
+selected role/phase chain through `.cursor/rules/mainrule.mdc`, workflow `@` links,
+Gates, the current shard, and only the explicitly declared `SKILL.md` files.
+The global `.agents/skills` catalog and Claude Code compatibility mount are not
+loaded into the DSH system prompt. DSH uses native lowercase tool names:
+`read`, `write`, `edit`, and `bash`.

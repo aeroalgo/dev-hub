@@ -90,6 +90,21 @@ def test_scope_selects_codex_entrypoint_without_loading_claude() -> None:
     assert "mainrule.mdc" in rendered
 
 
+def test_scope_selects_dsh_native_entrypoint_and_tool_dialect() -> None:
+    from prompt_builder import build_prompt_scope, render_prompt_scope
+
+    scope = build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="dsh")
+
+    rendered = render_prompt_scope(scope)
+    assert scope.runtime == "dsh"
+    assert scope.entrypoint == "AGENTS.md"
+    assert "entrypoint: `AGENTS.md`" in rendered
+    assert "native DSH tool `read`" in rendered
+    assert "SKILL.md" in rendered
+    assert "Claude Code tools `Read`" in rendered
+    assert "CLAUDE.md" not in rendered
+
+
 def test_scope_keeps_only_current_command_contract() -> None:
     from prompt_builder import build_prompt_scope, render_prompt_scope
 

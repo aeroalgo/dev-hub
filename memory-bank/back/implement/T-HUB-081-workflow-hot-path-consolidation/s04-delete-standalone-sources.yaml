@@ -1,0 +1,56 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: s04 — Cutover — delete the four standalone quick-path source files IMPLEMENT
+status: completed
+implement_index: ''
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/yaml/steps/s04-delete-standalone-sources.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Deleted four standalone quick-path source files (back-decompose.mdc, back-implement.mdc, back-plan.mdc, integ-plan.mdc)
+- Verified canonical workflow Hot path sections remain the sole owners
+- Passed regression corpus test test_workflow_hot_path_consolidation.py
+files:
+- harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+- harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+- harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+- harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+deletes:
+- harness/cursor/rules/shared/cheatsheets/back-decompose.mdc
+- harness/cursor/rules/shared/cheatsheets/back-implement.mdc
+- harness/cursor/rules/shared/cheatsheets/back-plan.mdc
+- harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line
+integration_check:
+- test ! -e harness/cursor/rules/shared/cheatsheets/back-decompose.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-implement.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/back-plan.mdc && test ! -e harness/cursor/rules/shared/cheatsheets/integ-plan.mdc
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Все четыре standalone source files отсутствуют после cutover.
+  status: done
+  done_at: '2026-09-07T23:57:39Z'
+- id: cp2
+  criterion: Canonical workflow Hot path sections остаются единственными required
+    owners и не заменены compatibility alias.
+  status: done
+  done_at: '2026-09-07T23:57:40Z'
+- id: cp3
+  criterion: Injected old source/link is reported by corpus test; deletion is fail-closed,
+    not a silent skip.
+  status: done
+  done_at: '2026-09-07T23:57:40Z'
+- id: cp4
+  criterion: Unrelated shared cheatsheet and archive/history surfaces remain untouched
+    by the scoped deletion.
+  status: done
+  done_at: '2026-09-07T23:57:41Z'
+resume_from: cp1

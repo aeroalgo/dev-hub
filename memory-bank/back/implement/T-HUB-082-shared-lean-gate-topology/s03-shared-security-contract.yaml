@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: s03 — Security gates — shared body with explicit role patches IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/yaml/steps/s03-shared-security-contract.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Extracted shared security lean contract to harness/cursor/rules/shared/_lean/security.mdc
+  with common path, artifact, no-code, findings and PLAN/DECOMPOSE gates
+- Converted role-local security.mdc files to named role patches containing only real
+  role deltas (BACK SAST/supply-chain priorities, FRONT XSS/tokens/CSP/bundle priorities,
+  INTEG wire×authz×IDOR×contract priorities and GAP split)
+- Rewired BACK, FRONT, and INTEG workflow-security.mdc callers to reference the shared
+  common owner plus their explicit role patch
+- Extended test_shared_lean_gate_topology.py with tests for shared security contract,
+  role patches, workflow callers, missing role patch detection, and common body duplication
+  fail-closed
+files:
+- harness/cursor/rules/shared/_lean/security.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+- harness/cursor/rules/back_developer/workflow-security.mdc
+- harness/cursor/rules/front_developer/workflow-security.mdc
+- harness/cursor/rules/integration_developer/workflow-security.mdc
+- harness/hooks/tests/test_shared_lean_gate_topology.py
+deletes:
+- duplicated common security gate body from role-local _lean/security.mdc files
+tests:
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k security -q
+  --tb=line
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line
+integration_check:
+- shared/_lean/security.mdc contains common path, artifact, no-code, findings and
+  PLAN/DECOMPOSE gates
+- role patches reference shared/_lean/security.mdc and contain role deltas without
+  duplicated common gates
+- workflow-security.mdc callers in back, front, integ point to shared owner + role
+  patch without local fallback
+grep_control: []
+verification_results:
+- 2 passed
+- 7 passed
+checkpoints:
+- id: cp1
+  criterion: The shared security owner contains common path, artifact, no-code, findings
+    and PLAN/DECOMPOSE gates.
+  status: done
+- id: cp2
+  criterion: BACK, FRONT and INTEG patch markers preserve each real priority/next
+    delta without copied common prose.
+  status: done
+- id: cp3
+  criterion: Security workflow callers name the shared common owner and their patch;
+    no role silently falls back to another role.
+  status: done
+- id: cp4
+  criterion: Corpus detects a missing security role patch and common-body duplication.
+  status: done

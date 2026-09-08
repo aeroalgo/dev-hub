@@ -6,7 +6,6 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — **единственный** process-файл на старте; этот файл — при FAIL / дыре coverage.
 **Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
 
 **Policy lazy (не грузить целиком без триггера):**
@@ -25,10 +24,34 @@ alwaysApply: false
 
 **FORBIDDEN:** широкий слой A · Read скиллов вне step · `limit` на SKILL.md · Core(4) «на всякий», если их нет в `skills.impl`
 
-**Старт (до кода):** cheatsheet → Gates → scope-lock → `load_now` shard+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
+---
+
+## Hot path
+
+**Load (HARD):** не рекурсивный `@`. Канон: @.cursor/rules/mainrule.mdc §Full linked chain.
+
+1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
+2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
+3. Read **`plan_jumps`** / plan §FR (line 120-160 = 160-120 = 40 * 2 => 100% к изначальному scope; jump 120-200)
+4. Gates + scope-lock. Полный `files:` / `delta_paths_*` → SKIP @explorer и graphify query. `skills.impl` если code (docs-only skip). sunset-inventory если `sunset_scope.required`. TDD red→green · `deletes:` · `wire_complete` на SoT
+5. Последний sNN/eNN → **`plan_parity_scan`** (FR+layout checklist)
+6. **Перед FINISH** — Read finish-block. 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
+
+→ wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
+
+### Execution discipline
+
+- One shard = one session · `EPIC_ATOMIC_COMMIT` per project.env
+- Анти-минимализм: «модуль есть» ≠ done
+- FRONT: Vitest/Playwright — **только parent**
+- INTEG: AC = eNN §Contract; фазы A–F
+
+---
+
+**Старт (до кода):** Hot path → Gates → scope-lock → `load_now` shard+index → `skills.impl` если code. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
-1. `OK BACK IMPLEMENT` → **Gates** · **Scope lock** · cheatsheet
+1. `OK BACK IMPLEMENT` → **Gates** · **Scope lock** · Hot path
 1a. **Allowlist:** Write/Delete только shard `files:`/`produces.files` + implement yaml + тесты в shard. `.cursor/rules/**` — **FORBIDDEN** без path в shard / `implement this`.
 1b. **ANALYZE hard gate:** `analyze-*.yaml` с `metrics.critical_count = 0`. Иначе **REJECT** (нет `ANALYZE deferred`).
 2. `load_now` → work shard (+ **`plan_contract`**) + `index.yaml`; AC = shard+contract; **FORBIDDEN** полный plan monolith.

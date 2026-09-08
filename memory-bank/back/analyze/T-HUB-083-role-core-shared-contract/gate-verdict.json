@@ -1,0 +1,9 @@
+{
+  "schema": "loop-gate-verdict/v1",
+  "agent_id": "analyze-verify",
+  "verdict": "PASS",
+  "step_id": "s01",
+  "epic_id": "T-HUB-083-role-core-shared-contract",
+  "session_id": "b667d6da-b99f-46c5-8af5-0e66e3c447fd",
+  "recorded_at": "2026-09-08T00:00:00Z"
+}

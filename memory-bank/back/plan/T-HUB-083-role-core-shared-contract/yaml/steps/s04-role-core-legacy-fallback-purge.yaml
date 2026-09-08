@@ -1,0 +1,180 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-083-role-core-shared-contract
+title: "s04 — role-core-legacy-fallback-purge — A/C/I sunset inventory и fail-closed purge"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge закрывает все строки plan Replacement / sunset A+C+I.
+  Common paragraphs, duplicate MEMORY BANK/format/runner instruction surfaces и любой
+  fallback, допускающий role core без shared import, удалены или переписаны. Полный bounded
+  inventory scan доказывает один shared owner, три role imports и отсутствие generic-core,
+  unconditional-managed-pytest или ослабленных role guards.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - "AC+ #1"
+    - "AC+ #2"
+    - "AC− #1"
+    - TM-083-02
+    - TM-083-06
+  nouns:
+    - common copied paragraphs
+    - role core without shared import
+    - duplicate MEMORY BANK/format/runner instructions
+    - shared/role-core-contract.mdc
+    - sunset inventory A/C/I
+    - obsolete fallback wording
+  layout_paths:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/hooks/tests/test_role_core_contract.py
+  ac_quotes:
+    - "Missing import, copied common prose or missing role marker fails."
+    - "No generic core replacing role responsibility; no unconditional managed pytest; no weakening lifecycle/UI/contract guards."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:32-39"
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:45-47"
+
+context:
+  consumes:
+    - s02 shared owner
+    - s03 wired role cores
+    - s01 semantic failure corpus
+    - plan §Replacement / sunset A+B+C+I
+  produces:
+    - sunset inventory evidence for every A/C/I row
+    - zero residual duplicate owner/fallback/instruction surfaces
+    - fail-closed proof for missing import and missing marker
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#fr--ac
+  files:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/hooks/tests/test_role_core_contract.py
+
+as_built:
+  - "Before this cutover, common policy has three copied owners and no A/C/I inventory proving the old surfaces are gone."
+  - "The plan explicitly marks common copied paragraphs as A, role success without shared policy as C, duplicate policy prose as I, and B as n/a."
+
+delta:
+  - "Run a complete sunset inventory over shared owner and all three role cores before claiming empty leftovers."
+  - "Delete residual copied common paragraphs and duplicate instruction wording in the same epic; do not leave a compatibility alias or shim."
+  - "Make semantic validation fail closed when a role import or role marker is missing."
+  - "Record grep_control and sot_enforce evidence for A/C/I; B remains explicitly n/a."
+
+deletes:
+  - "Any residual common policy paragraph outside harness/cursor/rules/shared/role-core-contract.mdc."
+  - "Any fallback or compatibility wording that permits a role core to succeed without the shared import."
+  - "Any duplicate MEMORY BANK, response-format or runner instruction surface in the three role cores."
+  - "Obsolete semantic assertions that accept generic-core or unconditional-managed-pytest behavior."
+
+sunset_scope:
+  required: true
+  boundary_id: T-HUB-083-role-core-contract
+  new_sot: harness/cursor/rules/shared/role-core-contract.mdc
+  allow_read:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/hooks/tests/test_role_core_contract.py
+  kind_hint:
+    - A
+    - C
+    - I
+
+out_of_scope:
+  - "B entrypoint/deploy replacement; plan declares B=n/a."
+  - "Changing product outcomes or adding a generic role workflow."
+  - "Restoring copied prose to satisfy obsolete tests."
+
+sunset_inventory:
+  - symbol: common paragraphs in role mainrule-core.mdc files
+    kind: A
+    replacement: harness/cursor/rules/shared/role-core-contract.mdc
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc
+    expect: zero common-owner paragraphs outside the shared file
+  - symbol: role core without shared role-core import
+    kind: C
+    replacement: fail-closed semantic contract test
+    policy: delete in-epic
+    rg_scope: harness/hooks/tests/test_role_core_contract.py harness/cursor/rules/*_developer/mainrule-core.mdc
+    expect: missing import is a validation failure; no local fallback
+  - symbol: duplicate MEMORY BANK/format/runner instruction prose
+    kind: I
+    replacement: one shared import plus explicit role-only markers
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/{shared,back_developer,front_developer,integration_developer}
+    expect: no duplicate active instruction owner
+  - symbol: n/a B entrypoint/deploy surface
+    kind: B
+    replacement: n/a
+    policy: n/a
+    rg_scope: n/a
+    expect: no B surface invented for rule-only extraction
+
+grep_control:
+  - id: inv-a-common-owner
+    kind: A
+    symbol: common paragraphs in role cores
+    command: "rg -n 'MEMORY BANK|activeContext|load_now|bin/pytest|capability_checks|ФОРМАТ' harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc"
+    expect: only role-specific references remain; common body is owned by shared contract
+  - id: inv-a-import-cardinality
+    kind: A
+    symbol: shared role-core import
+    command: "for f in harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc; do rg -n 'shared/role-core-contract\\.mdc' \"$f\"; done"
+    expect: exactly one import in each role core
+  - id: inv-c-missing-import
+    kind: C
+    symbol: missing shared import acceptance
+    command: "rg -n 'fail.closed|fail-closed|missing import|role marker' harness/hooks/tests/test_role_core_contract.py"
+    expect: semantic test denies missing import or marker
+  - id: inv-i-duplicate-policy
+    kind: I
+    symbol: duplicate common instruction surface
+    command: "rg -n 'MEMORY BANK|ФОРМАТ|managed|capability_checks|parent-only|ELEMENT-FIRST' harness/cursor/rules/{shared,back_developer,front_developer,integration_developer} --glob '*.mdc'"
+    expect: common markers occur in shared owner; role-only markers remain only in matching role core
+  - id: inv-i-generic-and-runner
+    kind: I
+    symbol: generic core or unconditional managed pytest wording
+    command: "rg -n 'generic core|unconditional.*pytest|managed.*pytest|fallback.*pytest|role responsibility' harness/cursor/rules/{shared,back_developer,front_developer,integration_developer} --glob '*.mdc'"
+    expect: no weakening or unconditional managed runner path
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A inventory has one shared owner and exactly one import per role; copied common body has no live role owner."
+    verify: "rg -n 'shared/role-core-contract\\.mdc' harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc harness/cursor/rules/shared/role-core-contract.mdc"
+  - id: cp2
+    criterion: "Kind C scan proves missing import and missing role marker fail closed rather than using a local fallback."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'missing or fail_closed'"
+  - id: cp3
+    criterion: "Kind I scan proves common MEMORY BANK/format/runner wording has one active owner and role-only markers remain scoped."
+    verify: "rg -n 'MEMORY BANK|ФОРМАТ|parent-only|ELEMENT-FIRST|capability_checks' harness/cursor/rules/{shared,back_developer,front_developer,integration_developer} --glob '*.mdc'"
+  - id: cp4
+    criterion: "No semantic test accepts generic-core, unconditional managed pytest or weakened role guard behavior."
+    verify: "rg -n 'generic core|unconditional managed|managed.*pytest|fallback|role marker' harness/hooks/tests/test_role_core_contract.py"
+  - id: cp5
+    criterion: "The shared contract is the sole common policy source and all old A/C/I surfaces are either absent or fail closed."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line"
+  - id: cp6
+    criterion: "Targeted contract regression is green without restoring sunset prose; full suite is owned by s05."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line"
+
+verify:
+  - "sunset_inventory_scan covers every non-n/a A/C/I row before any empty leftover claim."
+  - "sot_enforce_scan proves missing import/marker is DENY/FAIL, not merely that the new shared path exists."
+  - "No local compatibility alias, symlink or generic role core remains."
+
+tdd: []

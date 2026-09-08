@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-083-role-core-shared-contract
+title: "Shared role-core contract владеет общей loading, format и runner policy"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Shared role-core contract становится единственным владельцем общей session/memory-bank loading,
+  response format и hub/managed runner policy. Контракт описывает bounded hub runner через bin/pytest
+  и capability/evidence branch для managed projects, не поглощая BACK lifecycle, FRONT UI boundary
+  или INTEG contract fanout.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - "AC+ #1"
+    - "AC− #1"
+    - TM-083-01
+  nouns:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - activeContext/load_now policy
+    - response format contract
+    - hub pytest runner branch
+    - managed capability_checks/evidence branch
+    - explicit role marker boundary
+  layout_paths:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+  ac_quotes:
+    - "shared core is sole owner of common policy."
+    - "No generic core replacing role responsibility; no unconditional managed pytest."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:6-18"
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:24-30"
+
+context:
+  consumes:
+    - s01 red contract corpus
+    - current common sections in all three role-core files
+    - shared test-timeout and context-session-economy policies
+  produces:
+    - one shared role-core contract file
+    - explicit common-policy sections available to all role consumers
+    - role boundary markers identifying what must remain local
+  plan_refs:
+    - plan.md#what
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+  files:
+    - harness/cursor/rules/shared/role-core-contract.mdc
+
+as_built:
+  - "Common MEMORY BANK/loading, response format and runner prose is repeated in three role-core files."
+  - "No shared/role-core-contract.mdc exists as the named owner for this extraction."
+
+delta:
+  - "Create harness/cursor/rules/shared/role-core-contract.mdc as the sole source for common loading, response format and runner policy."
+  - "Document the hub exception as bin/pytest from repository root with bounded timeout semantics."
+  - "Document managed-project verification through registered capability_checks and execution evidence, with no generic pytest fallback."
+  - "Define explicit role-only boundary markers so shared text cannot silently absorb lifecycle, UI or contract responsibilities."
+
+deletes: []
+
+out_of_scope:
+  - "Rewriting any role-core consumer; s03 wires role files after the owner exists."
+  - "Changing BACK promotion, FRONT parent-only/visible-UI or INTEG element-first/contract/GAP policy."
+  - "Adding a second shared alias, symlink or compatibility shim."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "The new shared owner contains the complete common loading/memory-bank and response-format contract without role-specific lifecycle/UI/contract rules."
+    verify: "rg -n 'activeContext|load_now|MEMORY BANK|ФОРМАТ|response|role-only|BACK|FRONT|INTEG' harness/cursor/rules/shared/role-core-contract.mdc"
+  - id: cp2
+    criterion: "The shared owner states both bounded hub runner and managed capability/evidence branches and explicitly rejects unconditional managed pytest."
+    verify: "rg -n 'bin/pytest|300|capability_checks|execution evidence|managed|unconditional|fallback' harness/cursor/rules/shared/role-core-contract.mdc"
+  - id: cp3
+    criterion: "The shared contract has one canonical path and no local compatibility alias or duplicate owner."
+    verify: 'test $(rg -l "role-core-contract.mdc" harness/cursor/rules/shared harness/cursor/rules/{back_developer,front_developer,integration_developer} --glob "*.mdc" | wc -l) -ge 1'
+  - id: cp4
+    criterion: "The red semantic corpus can identify the shared owner without relying on copied test constants for policy content."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'owner'"
+
+verify:
+  - "The shared file is an explicit policy source, not a generic replacement for role cores."
+  - "The managed branch is capability/evidence based and never an unconditional pytest instruction."
+  - "The common policy is written once before role consumers are rewired."
+
+tdd: []

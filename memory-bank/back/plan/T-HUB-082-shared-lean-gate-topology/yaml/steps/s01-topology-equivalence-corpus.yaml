@@ -1,0 +1,112 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: "Equivalence corpus — executable duplicate, delta and caller contract"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать red-first corpus contract для topology replace: точные дубликаты
+  roadmap/security/VAN, реальные role deltas, active callers и fail-closed
+  diagnostics для duplicate owner, missing patch и dangling old path. Inventory
+  ограничен перечисленными lean gates и их workflow callers; product runtime,
+  router и skill-selection не входят в corpus.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004, "AC+ #3", "AC- #1", "AC- #2", TM-082-01, TM-082-02, TM-082-03, TM-082-04]
+  nouns:
+    - topology equivalence corpus test
+    - roadmap-merge duplicate owner
+    - security common body and role patch
+    - BACK/INTEG VAN equivalence and FRONT delta
+    - active caller and dangling old path
+    - symlink/local fallback rejection
+  layout_paths:
+    - harness/hooks/tests/test_shared_lean_gate_topology.py
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/van.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/van.mdc
+  ac_quotes:
+    - "BACK/INTEG VAN common contract is extracted only after fresh equivalence inventory; FRONT remains separate when UI semantics differ."
+    - "Recreated local copy or absent patch fails test."
+    - "No symlink or local fallback copy; no mass merge of unrelated `_lean` files."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:6-23"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:25-44"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:46-56"
+
+context:
+  consumes:
+    - plan.md §FR / AC+ / AC-
+    - memory-bank/back/analyze/workflow-read-chain-audit.md duplicate/delta evidence
+    - current role-local roadmap-merge/security/van gates and workflow callers
+  produces:
+    - executable equivalence/delta corpus test
+    - explicit allowlist of topology surfaces and active callers
+    - red checks for duplicate owner, missing patch and dangling old path
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#replacement--sunset
+  files:
+    - harness/hooks/tests/test_shared_lean_gate_topology.py
+
+as_built:
+  - "roadmap-merge.mdc is byte-identical across BACK, FRONT and INTEG role-local _lean paths."
+  - "security.mdc has one shared body with one real PLAN priority-matrix delta per FRONT/INTEG; INTEG also has a real abort wording delta."
+  - "BACK and INTEG VAN gates are equivalent; FRONT differs in UI artifact path and semantics."
+  - "Role workflows point directly to role-local _lean gates; no shared lean owner or topology corpus exists."
+
+delta:
+  - "Add harness/hooks/tests/test_shared_lean_gate_topology.py with explicit candidate files and expected equivalence/delta rules."
+  - "Assert exact roadmap-merge duplicate set before extraction and exact BACK/INTEG VAN equivalence."
+  - "Assert security common markers plus required role-specific patch markers, not whole-file identity."
+  - "Assert active callers are explicit and detect missing shared path, duplicate local owner and dangling old reference."
+  - "Assert symlinks and compatibility copies are failures; archive/history are outside active caller scope."
+
+deletes: []
+
+out_of_scope:
+  - "Creating shared owners or rewiring role gates — s02–s04."
+  - "Deleting local copies and final A+B+C+I purge — s05."
+  - "Changing security permissions, VAN requirements, runtime/router or skill selection."
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Corpus has an explicit allowlist for roadmap-merge, security, VAN gates and active workflow callers; unrelated _lean files are excluded."
+    verify: "rg -n 'CANONICAL|ALLOW|inventory' harness/hooks/tests/test_shared_lean_gate_topology.py"
+  - id: cp2
+    criterion: "Current corpus records roadmap-merge and BACK/INTEG VAN equivalence while preserving FRONT VAN and security deltas."
+    verify: "rg -n 'roadmap|BACK.*INTEG|FRONT|security.*delta|equivalence' harness/hooks/tests/test_shared_lean_gate_topology.py"
+  - id: cp3
+    criterion: "Missing role patch, duplicate local owner, symlink/local fallback or dangling old path produces a deterministic failure."
+    verify: "rg -n 'duplicate|missing.*patch|dangling|symlink|fallback' harness/hooks/tests/test_shared_lean_gate_topology.py"
+  - id: cp4
+    criterion: "Archive/history and unrelated product/runtime paths are not classified as active topology callers."
+    verify: "rg -n 'archive|history|runtime|active.*scope' harness/hooks/tests/test_shared_lean_gate_topology.py"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line"
+  - "rg -n 'roadmap-merge|security|van|shared|patch|dangling|fallback' harness/hooks/tests/test_shared_lean_gate_topology.py"
+
+tdd:
+  - test_candidate_inventory_is_explicit_and_bounded
+  - test_roadmap_merge_duplicates_and_back_integ_van_equivalence
+  - test_security_role_deltas_are_present
+  - test_missing_patch_duplicate_owner_and_dangling_path_fail_closed
+  - test_archive_and_runtime_paths_are_outside_active_scope

@@ -1,3 +1,6 @@
+"""PolicyRecord and materialization for shared context ledger and actor contract.
+Maps root and subagent policies with context_ledger, plan_jumps, and derived_identity parity.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -63,6 +66,11 @@ class PolicyRecord(BaseModel):
     default_loop: bool | None = None
     default_chat: bool | None = None
     color: str | None = None
+    actor: str | None = None
+    actor_kind: str = "subagent"
+    context_budget_mode: str | None = None
+    context_ledger: str | dict[str, Any] | None = None
+    exception_contract: str | None = None
     source_sha256: str | None = None
     extra_fields: dict[str, Any] = Field(default_factory=dict)
 
@@ -81,6 +89,11 @@ class PolicyRecord(BaseModel):
             "requires_model": self.requires_model,
             "default_loop": self.default_loop,
             "default_chat": self.default_chat,
+            "actor": self.actor,
+            "actor_kind": self.actor_kind,
+            "context_budget_mode": self.context_budget_mode,
+            "context_ledger": self.context_ledger,
+            "exception_contract": self.exception_contract,
         }
         encoded = json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
         return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
@@ -148,6 +161,11 @@ def parse_agent_policy_text(
         "default_loop",
         "default_chat",
         "color",
+        "actor",
+        "actor_kind",
+        "context_budget_mode",
+        "context_ledger",
+        "exception_contract",
         "source_sha256",
     }
 

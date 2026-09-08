@@ -728,9 +728,27 @@ def main() -> None:
     elif tool_name in WRITE_TOOL_ALIASES:
         _ok, _reason, resp = evaluate_write_payload(data)
         print(json.dumps(resp))
+    elif not tool_name:
+        # Unknown/missing tool payload -> fail-closed
+        print(
+            json.dumps(
+                {
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": "unknown_tool_payload: missing or unrecognized tool name",
+                    "additionalContext": "context-ledger-adapter DENY: unknown tool payload fail-closed.",
+                }
+            )
+        )
     else:
-        # Default allow
-        print(json.dumps({"permissionDecision": "allow"}))
+        # Explicit non-read/write tool passthrough with typed reason code
+        print(
+            json.dumps(
+                {
+                    "permissionDecision": "allow",
+                    "permissionDecisionReason": f"non_file_tool_passthrough:{tool_name}",
+                }
+            )
+        )
 
 
 if __name__ == "__main__":

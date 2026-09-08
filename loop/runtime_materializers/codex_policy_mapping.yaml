@@ -54,6 +54,22 @@ fields:
     support: hook
     target: "harness/hooks/subagent-stop.py"
     notes: "Default chat configuration checked via hook"
+  actor:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Actor kind (root vs subagent) tracked across harness hooks"
+  actor_kind:
+    support: hook
+    target: "harness/hooks/subagent-stop.py"
+    notes: "Actor kind (root vs subagent) tracked across harness hooks"
+  context_budget_mode:
+    support: hook
+    target: "harness/hooks/context_ledger_adapters.py"
+    notes: "Context budget enforcement mode tracked in context ledger"
+  exception_contract:
+    support: hook
+    target: "harness/hooks/context_ledger_adapters.py"
+    notes: "Context exception contract backed by ledger receipts"
   context_ledger:
     support: hook
     target: "harness/hooks/context_ledger_adapters.py"

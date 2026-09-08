@@ -159,7 +159,7 @@ def _prepare_stop_gate(tmp_path: Path) -> None:
 
 
 def test_all_epic_profiles_mount_gate_after_hooks_bridge() -> None:
-    assert len(EPIC_PROFILES) == 8
+    assert len(EPIC_PROFILES) == 9
     for profile in EPIC_PROFILES:
         text = profile.read_text(encoding="utf-8")
         assert text.index("id: cc-hooks-bridge") < text.index("id: epic-gate"), profile

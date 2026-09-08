@@ -51,6 +51,10 @@ TM-082-01 roadmap three-role owner; TM-082-02 security common/delta; TM-082-03 V
 
 Product probe (one owner), Eng spine (source→patch→caller), delivery closure and QA matrix: **done**.
 
+### CREATIVE need
+
+**нет** — exact duplicate/delta inventory and role semantics are already evidenced; no open design decision remains for this topology extraction.
+
 ## Draft stages
 
 1. Inventory/red tests; 2. roadmap merge extract; 3. security and evidence-approved VAN extract; 4. purge copies + regression/sunset scan.

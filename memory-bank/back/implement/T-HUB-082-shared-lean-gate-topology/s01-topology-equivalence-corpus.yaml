@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: s01 — Equivalence corpus — executable duplicate, delta and caller contract
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/yaml/steps/s01-topology-equivalence-corpus.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Implemented red-first executable corpus tests in harness/hooks/tests/test_shared_lean_gate_topology.py
+- Explicit bounded candidate inventory for roadmap-merge, security, and VAN across
+  BACK, FRONT, INTEG
+- Asserted roadmap-merge byte equivalence and BACK/INTEG VAN equivalence while retaining
+  FRONT VAN and security deltas
+- Asserted fail-closed checks for duplicate local owner, missing role patch, symlinks,
+  and dangling references
+- Asserted archive/history/runtime exclusion from active topology caller scope
+files:
+- harness/hooks/tests/test_shared_lean_gate_topology.py
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -q --tb=line
+integration_check:
+- 5 passed in 0.10s
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Corpus has an explicit allowlist for roadmap-merge, security, VAN gates
+    and active workflow callers; unrelated _lean files are excluded.
+  status: done
+- id: cp2
+  criterion: Current corpus records roadmap-merge and BACK/INTEG VAN equivalence while
+    preserving FRONT VAN and security deltas.
+  status: done
+- id: cp3
+  criterion: Missing role patch, duplicate local owner, symlink/local fallback or
+    dangling old path produces a deterministic failure.
+  status: done
+- id: cp4
+  criterion: Archive/history and unrelated product/runtime paths are not classified
+    as active topology callers.
+  status: done

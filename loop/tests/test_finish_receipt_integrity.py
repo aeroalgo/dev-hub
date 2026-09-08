@@ -121,6 +121,19 @@ def epic_finish_env(tmp_path: Path):
     st["event_digest"] = "digest-1"
     save_epic_state(tmp_path, st)
 
+    ledger_dir = tmp_path / ".claude" / "runtime" / "context-ledger" / tmp_path.name / "test-session"
+    ledger_dir.mkdir(parents=True, exist_ok=True)
+    (ledger_dir / "root.json").write_text(
+        json.dumps({
+            "schema": "context-ledger/v1",
+            "session_id": "test-session",
+            "actor_key": {"actor_kind": "root", "invocation_id": "test-session", "runtime_provider": "claude"},
+            "counters": {"unique_reads": 1, "duplicate_reads": 0, "bytes_read": 100, "ranges_read": 1},
+            "files": {"file1.py": {"read_count": 1, "versions": []}},
+        }),
+        encoding="utf-8",
+    )
+
     return tmp_path
 
 

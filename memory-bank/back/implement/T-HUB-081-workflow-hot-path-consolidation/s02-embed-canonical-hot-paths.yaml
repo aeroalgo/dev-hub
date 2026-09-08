@@ -1,0 +1,71 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: s02 — Canonical workflows — embed four Hot path sections with preserved gates
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/yaml/steps/s02-embed-canonical-hot-paths.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Встроена каноническая секция ## Hot path в harness/cursor/rules/back_developer/workflow-decompose.mdc
+  с сохранением Requirements/Stages/Outcome/Replacement coverage, granularity, TDD
+  и ANALYZE маркеров'
+- 'Встроена каноническая секция ## Hot path в harness/cursor/rules/back_developer/workflow-implement.mdc
+  с сохранением ANALYZE hard gate, load_now shard+contract, plan_jumps, scope-lock,
+  Impl skills и FINISH верификации'
+- 'Встроена каноническая секция ## Hot path в harness/cursor/rules/back_developer/workflow-plan.mdc
+  с сохранением Phase 0 clarify, SUSPENSION GUARD, plan/prompt, queue/reconcile и
+  review readiness'
+- 'Встроена каноническая секция ## Hot path в harness/cursor/rules/integration_developer/workflow-plan.mdc
+  с сохранением SUSPENSION GUARD, clarify orchestration, portal inventory, ≥400 line
+  acceptance, prompt и roadmap-merge'
+files:
+- harness/cursor/rules/back_developer/workflow-decompose.mdc
+- harness/cursor/rules/back_developer/workflow-implement.mdc
+- harness/cursor/rules/back_developer/workflow-plan.mdc
+- harness/cursor/rules/integration_developer/workflow-plan.mdc
+deletes: []
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -k "single_hot_path_owner
+  or required_mode_markers"
+integration_check:
+- 'Проверено через harness/hooks/tests/test_workflow_hot_path_consolidation.py: 4
+  канонических файла содержат ровно одну секцию ## Hot path и все требуемые маркеры
+  режимов'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Все четыре canonical workflow-файла содержат собственный `## Hot path`;
+    standalone file пока может существовать только как промежуточный источник.
+  status: done
+  done_at: '2026-09-07T23:43:31Z'
+- id: cp2
+  criterion: DECOMPOSE/IMPLEMENT sections contain required coverage, ANALYZE, scope-lock
+    and FINISH markers.
+  status: done
+  done_at: '2026-09-07T23:43:37Z'
+- id: cp3
+  criterion: PLAN sections contain clarify/queue/prompt and INTEG inventory/reconcile/400-line
+    markers.
+  status: done
+  done_at: '2026-09-07T23:43:42Z'
+- id: cp4
+  criterion: Hot path does not copy `_lean/implement.mdc` or weaken lazy FINISH; external
+    gate references remain explicit.
+  status: done
+  done_at: '2026-09-07T23:43:48Z'
+resume_from: cp1

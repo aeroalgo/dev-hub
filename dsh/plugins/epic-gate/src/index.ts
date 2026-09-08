@@ -34,14 +34,24 @@ import {
   applySubagentStop,
   inject as subagentStopInject,
 } from './subagent-stop.ts';
+import {
+  applySessionProgress,
+  sessionProgressInject,
+} from './session-progress.ts';
 
 export const name = 'epic-gate';
-export const inject = [...new Set([...preToolUseInject, ...subagentStartInject, ...subagentStopInject])];
+export const inject = [...new Set([
+  ...preToolUseInject,
+  ...subagentStartInject,
+  ...subagentStopInject,
+  ...sessionProgressInject,
+])];
 
 export function apply(ctx: Context, config: EpicGateConfig = {}): void {
   applyPreToolUse(ctx, config);
   applySubagentStart(ctx, config);
   applySubagentStop(ctx, config);
+  applySessionProgress(ctx);
   applySessionStart(ctx, () => {
     const additionalContext = process.env.EPIC_SESSION_START_CONTEXT?.trim();
     if (!additionalContext) return undefined;

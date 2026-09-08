@@ -1,6 +1,7 @@
 """finish_implement_step orchestration logic."""
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 
@@ -209,7 +210,7 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     receipt = None
     if session_id:
         receipt = build_finish_receipt(cwd, session_id, epic_id=epic_id, step_id=step_id)
-        if receipt.status in ("corrupt", "non_green"):
+        if receipt.status in ("missing", "corrupt", "non_green"):
             diag_code = receipt.aggregate.diagnostic_code or "telemetry_corrupt"
             return MbFinishResult(
                 ok=False,

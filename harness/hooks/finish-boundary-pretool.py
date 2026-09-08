@@ -18,6 +18,13 @@ from _lib import (  # noqa: E402
 
 def _load_epic_state(cwd: Path) -> dict:
     try:
+        from epic.core import load_epic_state
+
+        state = load_epic_state(cwd)
+        return state if isinstance(state, dict) else {}
+    except (ImportError, OSError, TypeError, ValueError):
+        pass
+    try:
         from epic_lib import load_epic_state
 
         state = load_epic_state(cwd)

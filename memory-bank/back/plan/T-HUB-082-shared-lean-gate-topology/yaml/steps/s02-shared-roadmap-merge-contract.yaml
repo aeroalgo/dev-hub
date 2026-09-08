@@ -1,0 +1,98 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-082-shared-lean-gate-topology
+title: "Roadmap merge — one shared lean contract with canonical role references"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Один shared roadmap-merge lean contract становится владельцем общего gate
+  поведения для BACK, FRONT и INTEG. Ролевые workflow и roadmap-merge entrypoints
+  читают canonical shared path; role-local copies удаляются только после wire и
+  regression checks. Queue SoT, topo/dependency rules, done handling and next
+  semantics remain unchanged.
+
+plan_contract:
+  fr_ids: [FR-001, FR-004, "AC+ #1", "AC+ #3", "AC- #1", TM-082-01, TM-082-04]
+  nouns:
+    - harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+    - BACK/FRONT/INTEG roadmap-merge workflow gate references
+    - roadmap queue SoT and reconcile CLI
+    - single shared owner
+    - no local fallback copy
+  layout_paths:
+    - harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc
+    - harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc
+    - harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc
+  ac_quotes:
+    - "one shared roadmap-merge lean contract serves BACK/FRONT/INTEG."
+    - "Shared update is visible to all intended callers."
+    - "No symlink or local fallback copy."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:6-19"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:25-35"
+    - "memory-bank/back/plan/T-HUB-082-shared-lean-gate-topology/md/plan.md:37-44"
+
+context:
+  consumes:
+    - s01 equivalence corpus and duplicate-owner evidence
+    - current role-local roadmap-merge gates
+    - shared/workflow-roadmap-merge.mdc algorithm and queue contract
+  produces:
+    - shared roadmap-merge lean owner
+    - canonical references from all three role workflows/gates
+    - preserved queue/reconcile semantics without compatibility alias
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#replacement--sunset
+  files:
+    - harness/cursor/rules/shared/_lean/roadmap-merge.mdc
+    - harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc
+    - harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc
+    - harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc
+
+as_built:
+  - "The three role-local roadmap-merge gate files are byte-identical and each workflow declares its role-local _lean path."
+  - "shared/workflow-roadmap-merge.mdc owns the algorithm, while the lean gate owns pass/fail checks; neither is currently a shared lean owner."
+
+delta:
+  - "Create harness/cursor/rules/shared/_lean/roadmap-merge.mdc as the single gate owner, preserving the current roadmap queue and reconcile rules."
+  - "Rewire harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc, harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc and harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc to the shared owner."
+  - "Add harness/hooks/tests/test_shared_lean_gate_topology.py assertions that all intended callers see the same shared contract and no compatibility alias is accepted."
+
+deletes: []
+
+out_of_scope:
+  - "Deleting role-local roadmap-merge files before the final purge step s05."
+  - "Changing roadmap queue schema, dependency ordering, done handling or context_loop behavior."
+  - "Merging security or VAN gates into the roadmap contract."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "The shared roadmap-merge lean owner contains the complete current gate contract and does not silently drop queue/reconcile rules."
+    verify: "rg -n 'roadmap/queue.yaml|roadmap-queue/v2|Dedup|Deps|topo|reconcile|next.*DECOMPOSE' harness/cursor/rules/shared/_lean/roadmap-merge.mdc"
+  - id: cp2
+    criterion: "BACK, FRONT and INTEG workflow owners reference the same canonical shared lean path."
+    verify: "rg -n 'shared/_lean/roadmap-merge' harness/cursor/rules/back_developer/workflow-roadmap-merge.mdc harness/cursor/rules/front_developer/workflow-roadmap-merge.mdc harness/cursor/rules/integration_developer/workflow-roadmap-merge.mdc"
+  - id: cp3
+    criterion: "No local alias or fallback is introduced while the shared contract is wired."
+    verify: "! rg -n 'fallback|compatibility|symlink' harness/cursor/rules/{back_developer,front_developer,integration_developer}/workflow-roadmap-merge.mdc harness/cursor/rules/shared/_lean/roadmap-merge.mdc"
+  - id: cp4
+    criterion: "The topology corpus sees one intended shared owner and all three role callers."
+    verify: "rg -n 'shared owner|roadmap|caller' harness/hooks/tests/test_shared_lean_gate_topology.py"
+
+verify:
+  - 'test $(rg -l "shared/_lean/roadmap-merge\.mdc" harness/cursor/rules/{back_developer,front_developer,integration_developer}/workflow-roadmap-merge.mdc | wc -l) -eq 3'
+  - "bin/pytest harness/hooks/tests/test_shared_lean_gate_topology.py -k roadmap -q --tb=line"
+
+tdd: []

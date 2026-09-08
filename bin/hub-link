@@ -304,7 +304,6 @@ if [[ "$MODE" == "alongside" ]]; then
   # 7. Link canonical Cursor and Claude extension trees while preserving
   # product-local settings, router stubs, runtime, and worktrees.
   for pair in \
-    ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
     ".cursor/templates:$DEV_HUB/harness/cursor/templates" \
     ".claude/commands:$DEV_HUB/harness/claude/commands" \
     ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
@@ -341,20 +340,23 @@ if [[ "$MODE" == "alongside" ]]; then
   AGENTS="$PRODUCT_ROOT/AGENTS.md"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "[dry-run] write AGENTS.md (if missing)"
-  elif [[ ! -e "$AGENTS" ]]; then
+  elif [[ ! -e "$AGENTS" ]] || { [[ -f "$AGENTS" ]] && grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null; }; then
     cat > "$AGENTS" <<EOF
 <!-- dev-hub product stub: keep this file; modes/skills live in DEV_HUB -->
 # Agent entry (product)
 
 - **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
 - **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
-  harness router rules in \`.cursor/rules.d/\` or \`harness/cursor/rules/\`.
+  \`.cursor/rules/mainrule.mdc\` (symlinked from the harness).
+- **DSH runtime:** start from this \`AGENTS.md\`; use native \`read\` to follow only
+  the selected workflow's \`@\`-links and load only its declared \`SKILL.md\` files.
 - **Claude Code extension:** \`harness/claude/\`
 - **Skills:** \`harness/skills/*/SKILL.md\`
 - **Artifacts:** only this repo — \`memory-bank/\`
 - **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
 
-On role command: follow harness router, then role workflow.
+On role command: read the router, select the current role/phase, then traverse
+only that role/phase workflow chain.
 EOF
     echo "write   AGENTS.md"
   fi
@@ -419,6 +421,8 @@ if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null;
 - **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
 - **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
   \`.cursor/rules/mainrule.mdc\` (symlinked from hub).
+- **DSH runtime:** start from this \`AGENTS.md\`; use native \`read\` to follow only
+  the selected workflow's \`@\`-links and load only its declared \`SKILL.md\` files.
 - **Claude Code extension:** \`.claude/agents\` (\`verify\`/\`reviewer\`/\`explorer\`), hooks, settings — symlinks → hub; \`runtime/\` local to this product.
 - **Skills:** \`harness/skills/*/SKILL.md\`
 - **Artifacts:** only this repo — \`memory-bank/\`
@@ -426,7 +430,8 @@ if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null;
 - **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
 - **EPIC_RUNTIME values:** \`claude\` (default), \`dsh\`, \`codex\`.
 
-On role command: read hub router \`.cursor/rules/mainrule.mdc\` first, then role workflow.
+On role command: read hub router \`.cursor/rules/mainrule.mdc\` first, select the
+current role/phase, then traverse only that role/phase workflow chain.
 EOF
   echo "write   AGENTS.md"
 fi

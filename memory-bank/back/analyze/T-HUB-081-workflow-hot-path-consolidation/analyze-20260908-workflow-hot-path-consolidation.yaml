@@ -1,0 +1,93 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+slug: workflow-hot-path-consolidation
+date: 2026-09-08
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "BACK DECOMPOSE, IMPLEMENT, PLAN и INTEG PLAN получают `## Hot path` в canonical `workflow-*.mdc`."
+
+  - requirement_id: FR-002
+    step_ids: [s02]
+    status: covered
+    plan_text_verbatim: "embedded path сохраняет scope-lock/FINISH, coverage+sunset и PLAN clarify/queue/prompt соответственно."
+
+  - requirement_id: FR-003
+    step_ids: [s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "active standalone `back-decompose`, `back-implement`, `back-plan`, `integ-plan` cheatsheets и их ссылки удалены."
+
+  - requirement_id: FR-004
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "corpus test проверяет один hot-path owner, required mode markers и no dangling link."
+
+  - requirement_id: AC+1
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "Default route режима читает одним документом меньше, не меняя обязательный gate."
+
+  - requirement_id: AC+2
+    step_ids: [s01, s03, s04]
+    status: covered
+    plan_text_verbatim: "Injected old cheatsheet reference или пропущенный marker ломает test."
+
+  - requirement_id: AC+3
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Archive/history не классифицируется как active caller."
+
+  - requirement_id: AC-1
+    step_ids: [s02, s03]
+    status: covered
+    plan_text_verbatim: "Нельзя инлайнить `_lean/implement.mdc` или ослаблять lazy FINISH."
+
+  - requirement_id: AC-2
+    step_ids: [s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет двух active quick-path sources и compatibility alias."
+
+  - requirement_id: AC-3
+    step_ids: [s02, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Нет изменения runtime/router/skill selection."
+
+  - requirement_id: TM-081-01
+    step_ids: [s01, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "stale cheatsheet link → target test fails."
+
+  - requirement_id: TM-081-02
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "four mode routes → Hot path + required marker pass."
+
+  - requirement_id: TM-081-03
+    step_ids: [s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "removed source scan → zero active callers."
+
+  - requirement_id: TM-081-04
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "full hub suite → `bin/pytest -q --tb=line` PASS."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

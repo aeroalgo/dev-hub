@@ -79,7 +79,9 @@ Token economy: @.cursor/rules/token-economy-core.mdc — для PLAN / architect
 **Коротко (HARD):**
 - **TodoWrite ≤2** за сессию (старт + FINISH); не обновлять на каждый шаг
 - **Re-read запрещён** для файла, уже прочитанного / отредактированного в этой сессии
-- Для codebase сначала **`.venv/bin/graphify query`** — **кроме** IMPLEMENT с полным `files:` / `delta_paths_*`; для `memory-bank` / `.cursor` / `.claude` разрешён fallback через `rg` / `Glob` / `ReadFile`
+- **Context ledger:** durable metadata tracking для Read/Edit решений (allow, cached-ref, duplicate deny, split, fail.closed derived_identity)
+- **Plan jump:** bounded `plan_jumps` only, reading whole plan is forbidden
+- **Search allowlist:** поиск ограничен `files:`; wider search requires graphify receipt
 - **Spawn gates:** широкий codebase search → `@explorer` (полный `files:` → SKIP); pre-FINISH + `code_changed` → `@verify`; BACK QA после suite → `@reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно
 
 ## Testing

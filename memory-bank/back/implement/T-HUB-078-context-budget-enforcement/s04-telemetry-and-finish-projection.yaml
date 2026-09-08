@@ -4,14 +4,31 @@ step_id: s04
 plan_id: T-HUB-078-context-budget-enforcement
 title: s04 — Finish telemetry публикует attributable counters без content leakage
   IMPLEMENT
-status: in_progress
-date: '2026-09-07'
+status: completed
+date: '2026-09-08'
 decompose_ref: memory-bank/back/plan/T-HUB-078-context-budget-enforcement/yaml/steps/s04-telemetry-and-finish-projection.yaml
-skills_used: []
+skills_used:
+- tdd
+- python-testing-patterns
+- modern-python
+- python-anti-patterns
+- python-observability
+- python-resilience
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Создан harness/hooks/context_telemetry.py и loop/schemas/telemetry.py с типизированными
+  моделями ActorTelemetry, ProviderTelemetry, TelemetryAggregate и FinishReceipt.
+- Интегрирован сбор и проекция телеметрии в loop/mb_finish/finish_implement.py, loop/mb_finish/impl.py,
+  loop/mb_finish/render.py, harness/hooks/stop-gate.py, harness/hooks/subagent-stop.py
+  и harness/hooks/agent-posttool.py.
+- Реализованы redaction путей relative to project root, защита от утечки содержимого
+  файлов/токенов (verify_telemetry_secret_free) и fail-closed обработка повреждённого/отсутствующего
+  ledger с non-green диагностикой.
+- Созданы тестовые наборы harness/hooks/tests/test_context_telemetry.py и loop/tests/test_context_finish_projection.py
+  (9 тестов), подтверждающие точные счетчики, изоляцию акторов/провайдеров, non-green
+  диагностику при сбоях и проекцию в activeContext.md.
 files:
 - harness/hooks/context_telemetry.py
 - harness/hooks/stop-gate.py
@@ -23,26 +40,44 @@ files:
 - harness/hooks/tests/test_context_telemetry.py
 - loop/tests/test_context_finish_projection.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py
+  -v`'
+integration_check:
+- .venv/bin/pytest harness/hooks/tests/test_context_ledger*.py loop/tests/test_context_ledger*.py
+  loop/tests/test_plan_jump*.py harness/hooks/tests/test_context_scope*.py loop/tests/test_search_and_test*.py
+  harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py
+  -W ignore — 42 passed
 grep_control: []
-verification_results: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py
+  -q --tb=line -k "aggregate or counter or attribution" — 3 passed
+- .venv/bin/pytest harness/hooks/tests/test_context_telemetry.py loop/tests/test_context_finish_projection.py
+  -q --tb=line -k "corrupt or missing or failure or secret" — 3 passed
+- .venv/bin/pytest loop/tests/test_context_finish_projection.py -q --tb=line -k "root
+  or child or provider or deterministic" — 1 passed
+- rg -n "unique_reads|duplicate_reads|monolith|search_exceptions|highest_repeat|DecisionReceipt|non.green"
+  harness/hooks/stop-gate.py harness/hooks/subagent-stop.py harness/hooks/agent-posttool.py
+  loop/mb_finish loop/schemas — CP4 OK
 checkpoints:
 - id: cp1
   criterion: Finish projection contains exact unique_reads, duplicate_reads, bytes/ranges,
     monolith-plan attempts, search exceptions and highest-repeat path counters with
     actor/provider attribution.
-  status: pending
+  status: done
+  done_at: '2026-09-08T00:15:00Z'
 - id: cp2
   criterion: Corrupt/missing ledger or atomic write failure is non-green and never
     reported as zero duplicates; no source content is emitted.
-  status: pending
+  status: done
+  done_at: '2026-09-08T00:15:00Z'
 - id: cp3
   criterion: Root, child and provider counters remain distinguishable while session
     aggregate is deterministic across equivalent events.
-  status: pending
+  status: done
+  done_at: '2026-09-08T00:15:00Z'
 - id: cp4
   criterion: Finish integration consumes the shared telemetry receipt rather than
     a provider-local duplicate counter.
-  status: pending
-resume_from: cp1
+  status: done
+  done_at: '2026-09-08T00:15:00Z'

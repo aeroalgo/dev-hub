@@ -1,0 +1,82 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-082-shared-lean-gate-topology
+slug: shared-lean-gate-topology
+date: 2026-09-08
+status: complete
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+coverage:
+  - requirement_id: FR-001
+    step_ids: [s02, s05]
+    status: covered
+    plan_text_verbatim: "one shared roadmap-merge lean contract serves BACK/FRONT/INTEG."
+  - requirement_id: FR-002
+    step_ids: [s03, s05]
+    status: covered
+    plan_text_verbatim: "security has shared body plus named role patches only for real deltas."
+  - requirement_id: FR-003
+    step_ids: [s01, s04, s05]
+    status: covered
+    plan_text_verbatim: "BACK/INTEG VAN common contract is extracted only after fresh equivalence inventory; FRONT remains separate when UI semantics differ."
+  - requirement_id: FR-004
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "active callers use canonical path; topology test reports duplicate, missing patch and dangling old path."
+  - requirement_id: "AC+ #1"
+    step_ids: [s02, s03, s04]
+    status: covered
+    plan_text_verbatim: "Shared update is visible to all intended callers."
+  - requirement_id: "AC+ #2"
+    step_ids: [s03, s04]
+    status: covered
+    plan_text_verbatim: "Role patch preserves artifact path/ownership/next semantics."
+  - requirement_id: "AC+ #3"
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "Recreated local copy or absent patch fails test."
+  - requirement_id: "AC- #1"
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "No symlink or local fallback copy; no mass merge of unrelated `_lean` files; no change to security permissions or VAN requirements."
+  - requirement_id: "AC- #2"
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "No mass merge of unrelated `_lean` files; no change to security permissions or VAN requirements."
+  - requirement_id: TM-082-01
+    step_ids: [s01, s02, s05]
+    status: covered
+    plan_text_verbatim: "old local link"
+  - requirement_id: TM-082-02
+    step_ids: [s01, s03, s05]
+    status: covered
+    plan_text_verbatim: "lost role delta"
+  - requirement_id: TM-082-03
+    step_ids: [s01, s04, s05]
+    status: covered
+    plan_text_verbatim: "false VAN merge"
+  - requirement_id: TM-082-04
+    step_ids: [s01, s05]
+    status: covered
+    plan_text_verbatim: "no local fallback"
+  - requirement_id: TM-082-05
+    step_ids: [s05]
+    status: covered
+    plan_text_verbatim: "bin/pytest -q --tb=line"
+  - requirement_id: NFR-01
+    step_ids: [s02, s03, s04, s05]
+    status: covered
+    plan_text_verbatim: "Shared contracts must remain fail-closed and one-owner."
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

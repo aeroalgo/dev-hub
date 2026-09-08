@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 ### Команда: INTEG SECURITY | INTEG SECURITY PLAN | INTEG SECURITY DECOMPOSE
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
-**Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/security.mdc
+**Gates**: @.cursor/rules/shared/_lean/security.mdc + @.cursor/rules/integration_developer/isolation_rules/_lean/security.mdc (role patch)
 **Epic paths:** @.cursor/rules/shared/workflow-security-epic.mdc
 **Скиллы:**
 - @.agents/skills/writing-plans/SKILL.md (PLAN / DECOMPOSE)

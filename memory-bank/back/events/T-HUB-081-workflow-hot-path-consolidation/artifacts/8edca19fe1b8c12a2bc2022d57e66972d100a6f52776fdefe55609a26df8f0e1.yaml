@@ -1,0 +1,40 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-081-workflow-hot-path-consolidation
+verdict: pass
+date: '2026-09-08'
+qa_lead: BACK QA
+
+test_matrix_coverage:
+  - tm_id: TM-081-01
+    status: pass
+    evidence: "test_no_active_old_cheatsheet_callers и test_old_cheatsheet_reference_is_reported подтверждают отсутствие stale ссылок и fail-closed реакцию"
+  - tm_id: TM-081-02
+    status: pass
+    evidence: "test_each_required_mode_has_single_hot_path_owner и test_required_mode_markers_are_present подтверждают наличие секций ## Hot path во всех 4 режимах"
+  - tm_id: TM-081-03
+    status: pass
+    evidence: "test_no_standalone_hot_path_sources_after_cutover, test_archive_history_excluded_from_active_scan подтверждают удаление старых файлов и корректность сканирования"
+  - tm_id: TM-081-04
+    status: pass
+    evidence: "Corpus suite test_workflow_hot_path_consolidation.py: 8 passed; full pytest regression scan выполнен"
+
+reviewer_gate:
+  agent_id: verify-qa
+  verdict: PASS
+  evidence: "Subagent verify-qa проверил AC+, AC-, §0.11 и подтвердил соответствие спецификации"
+
+security_spot_check:
+  owasp_check: pass
+  notes: "Изменения затрагивают только правила markdown/cursor rules и тесты; нет auth, crypto, db или external I/O"
+
+behavior_smoke:
+  status: pass
+  evidence: "Все 4 режима содержат канонические секции Hot path, проверенные тестами"
+
+sunset_scan:
+  status: pass
+  evidence: "4 standalone cheatsheet файла удалены, активные ссылки rewired"
+
+issues: []
+fix_plan: []

@@ -16,6 +16,7 @@ import epic_codex_stream_filter as csf  # noqa: E402
 
 def _capture_lines(lines: list[str]) -> str:
     buf = io.StringIO()
+    csf.reset_stream_state()
     with redirect_stdout(buf):
         for line in lines:
             line = line.strip()
@@ -25,7 +26,7 @@ def _capture_lines(lines: list[str]) -> str:
     return buf.getvalue()
 
 
-def test_command_execution_shows_exec_not_output() -> None:
+def test_command_execution_is_compact_and_hides_output() -> None:
     lines = [
         json.dumps(
             {
@@ -53,11 +54,40 @@ def test_command_execution_shows_exec_not_output() -> None:
         ),
     ]
     out = _capture_lines(lines)
-    assert "exec\n" in out
+    assert out.startswith("→ Bash sed -n '1,5p' harness/hooks/session_resilience.py\n")
     assert "sed -n '1,5p'" in out
-    assert " succeeded\n" in out
+    assert " succeeded" not in out
+    assert "--- codex stream" not in out
     assert "secret" not in out
     assert "#!/usr/bin/env python3" not in out
+
+
+def test_failed_command_is_visible_without_shell_wrapper() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "id": "item-fail",
+                    "type": "command_execution",
+                    "command": "/bin/bash -lc \"false\"",
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "item-fail",
+                    "type": "command_execution",
+                    "status": "completed",
+                    "exit_code": 1,
+                },
+            }
+        ),
+    ]
+    out = _capture_lines(lines)
+    assert out == "→ Bash false\n✗ Bash false (exit=1)\n"
 
 
 def test_agent_message_with_code_fence_is_hidden() -> None:

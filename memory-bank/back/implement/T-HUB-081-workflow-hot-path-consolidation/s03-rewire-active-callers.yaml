@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: s03 — Active callers — route role instructions to same-file Hot path owners
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/yaml/steps/s03-rewire-active-callers.yaml
+skills_used: []
+discovery:
+- Grep/search across active callers located 4 standalone cheatsheet targets in mainrule,
+  role-command, back workflows and front/integ implement workflows.
+gaps:
+  status: none
+done:
+- Rewired mainrule.mdc and role-command SKILL.md to refer to canonical Hot path sections
+  instead of standalone cheatsheets.
+- Updated back-decompose, back-implement, back-plan workflows to reference same-file
+  Hot path instead of cheatsheets.
+- Rewired front_developer/workflow-implement.mdc and integration_developer/workflow-implement.mdc
+  to back_developer/workflow-implement.mdc#Hot path.
+- Verified corpus test passes with no dangling cheatsheet references.
+files:
+- harness/cursor/rules/mainrule.mdc
+- harness/claude/skills/role-command/SKILL.md
+- harness/cursor/rules/back_developer/workflow-decompose.mdc
+- harness/cursor/rules/back_developer/workflow-implement.mdc
+- harness/cursor/rules/back_developer/workflow-plan.mdc
+- harness/cursor/rules/front_developer/workflow-implement.mdc
+- harness/cursor/rules/integration_developer/workflow-implement.mdc
+- harness/cursor/rules/integration_developer/workflow-plan.mdc
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+deletes:
+- active `@.cursor/rules/shared/cheatsheets/back-decompose.mdc` references
+- active `@.cursor/rules/shared/cheatsheets/back-implement.mdc` references
+- active `@.cursor/rules/shared/cheatsheets/back-plan.mdc` references
+- active `@.cursor/rules/shared/cheatsheets/integ-plan.mdc` references
+- separate-cheatsheet-first wording that would become a dangling or duplicate route
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line
+integration_check:
+- Verified that active rule and skill files have zero references to the 4 deprecated
+  cheatsheets.
+grep_control:
+- back: ''
+  front: ''
+verification_results:
+- 4 passed, 2 warnings
+checkpoints:
+- id: cp1
+  criterion: No active caller in canonical rule/router scope names any of the four
+    removed shared cheatsheets.
+  status: done
+- id: cp2
+  criterion: Active callers point to canonical workflow Hot path guidance and preserve
+    the generic non-recursive load/FINISH discipline.
+  status: done
+- id: cp3
+  criterion: FRONT and INTEG IMPLEMENT have no dangling reference after BACK IMPLEMENT
+    source rewire.
+  status: done
+- id: cp4
+  criterion: Corpus test catches old caller injection and keeps archive/history outside
+    the active set.
+  status: done
+resume_from: cp4

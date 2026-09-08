@@ -1,33 +1,24 @@
 ---
-description: "INTEG VAN gates — domain L1-L4 + full architecture map (lean)"
+description: "INTEG VAN role patch — domain/full-map scope, integration level L1-L4 and GAP next semantics"
 alwaysApply: false
 ---
-# INTEG VAN — gates
+# VAN — INTEG role patch
 
-**Артефакт (session):** `memory-bank/integration/van/van-YYYYMMDD-<slug>.md`  
-**Карта (brownfield):** `memory-bank/architecture/` (все shards)  
-**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc  
-**Пути:** @.cursor/rules/shared/memory-bank-paths.mdc
+**Shared contract:** @.cursor/rules/shared/_lean/van.mdc
 
-## Gates
+## Role patch (INTEG)
 
-1. Домен/scope (entity, screens, endpoints) **или** full-repo map если user не сузил
-2. Mode: greenfield | brownfield
-3. As-built checklist: model / endpoint / front / contract?
-4. L1–L4 в van-артефакте
-5. Next: L1 → IMPLEMENT; L2+ → GAP (если нет свежего) → PLAN
-6. **Brownfield:** все architecture shards refreshed; front нет → `frontend.md` = absent; mermaid minimum; index updated; session log с links
-
-## Level
-
-| L | Scope |
-|---|--------|
-| L1 | flat CRUD, 1 screen |
-| L2 | filters + URL sync |
-| L3 | joins, mapping_filters |
-| L4 | dashboard N API |
-
-## Abort
-
-- Complexity не определён → не рекомендовать next
-- Brownfield TOC-only architecture → FAIL
+1. **Artifact & ownership:**
+   - Session artifact: `memory-bank/integration/van/van-YYYYMMDD-<slug>.md`
+   - Brownfield refresh: все architecture shards refreshed (front нет → `frontend.md` = absent) + `memory-bank/architecture/index.md`
+2. **Domain & level:**
+   - Домен/scope (entity, screens, endpoints) **или** full-repo map если user не сузил
+   - As-built checklist: model / endpoint / front / contract?
+   - L1–L4 в van-артефакте:
+     - L1: flat CRUD, 1 screen
+     - L2: filters + URL sync
+     - L3: joins, mapping_filters
+     - L4: dashboard N API
+3. **Next semantics:**
+   - L1 → IMPLEMENT
+   - L2+ → GAP (если нет свежего) → PLAN → DECOMPOSE

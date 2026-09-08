@@ -1,0 +1,250 @@
+schema: epic-audit/v2
+epic_id: T-HUB-078-context-budget-enforcement
+role: back
+phase: AUDIT
+converged: true
+purge_step_present: true
+
+plan_intent:
+  epic_goal: "Универсальный durable ledger чтения, plan-jump проекция, search allowlist и исполнимый бюджет контекста с паритетом Claude Code и Codex."
+  source: "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md#WHAT"
+
+intent_checked:
+  fr_total: 10
+  sc_total: 0
+  us_total: 0
+  constitution_checked: true
+
+plan_vs_runtime:
+  - source_ref: "FR-001"
+    status: satisfied
+    evidence: "ContextLedger хранит canonical realpath, content hash (SHA-256), range и sequence Read. Повторный полный неизменённый Read получает duplicate receipt и блокируется."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_duplicate_read_prevention"
+
+  - source_ref: "FR-002"
+    status: satisfied
+    evidence: "После Write/Edit старые диапазоны инвалидируются по новой content_hash, допускается чтение diff или объявленного диапазона."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_invalidation_on_write"
+
+  - source_ref: "FR-003"
+    status: satisfied
+    evidence: "Модуль loop/mb_load/plan_section.py и resolver.py отклоняют прямое чтение монолитного md/plan.md в lean-режимах (IMPLEMENT/TASK/BUGFIX/QA) и материализуют только bounded plan_jumps."
+    verify: "pytest loop/tests/test_plan_jump_context_policy.py"
+
+  - source_ref: "FR-004"
+    status: satisfied
+    evidence: "ScopeResolver в harness/hooks/context_scope.py и bash-pretool.py вычисляет allowlist из shard files, delta и parent dirs; выход за пределы требует graphify receipt."
+    verify: "pytest harness/hooks/tests/test_context_scope_policy.py"
+
+  - source_ref: "FR-005"
+    status: satisfied
+    evidence: "Модули harness/hooks/context_telemetry.py и loop/mb_finish/finish_implement.py формируют FinishReceipt с unique_reads, duplicate_reads, bytes/ranges, monolith_plan_attempts, search_exceptions и highest_repeat_path."
+    verify: "pytest harness/hooks/tests/test_context_telemetry.py"
+
+  - source_ref: "FR-006"
+    status: satisfied
+    evidence: "TestFingerprintCache в harness/hooks/context_scope.py нормализует команду и SHA-256 fingerprint путей, выдавая cached/no-op при повторе без изменений."
+    verify: "pytest loop/tests/test_search_and_test_fingerprint.py"
+
+  - source_ref: "FR-007"
+    status: satisfied
+    evidence: "Единый ContextLedger и ProviderAdapter в context_ledger_adapters.py применяются к Claude Code и Codex CLI runtimes с одинаковой duplicate/invalidation семантикой."
+    verify: "pytest loop/tests/test_context_ledger_provider_parity.py"
+
+  - source_ref: "FR-008"
+    status: satisfied
+    evidence: "ActorKey различает (project, root session, actor invocation) и изолирует parent/subagent от автоматического переноса прочитанных диапазонов."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_actor_isolation"
+
+  - source_ref: "FR-009"
+    status: satisfied
+    evidence: "Сессионная инвалидация сбрасывает диапазоны файлов для всех акторов при Edit/Write до подтверждения новой content hash."
+    verify: "pytest harness/hooks/tests/test_context_ledger_adapters.py -k test_write_invalidation"
+
+  - source_ref: "FR-010"
+    status: satisfied
+    evidence: "DecisionReceipt нормализует duplicate, partial, invalidated, denied, exception с reason codes без включения содержимого файлов."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_receipt_normalization"
+
+  - source_ref: "AC+:1"
+    status: satisfied
+    evidence: "Повтор полного неизменённого Read в IMPLEMENT возвращает duplicate decision и инкрементирует duplicate_reads без второго payload."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py"
+
+  - source_ref: "AC+:2"
+    status: satisfied
+    evidence: "Запрос plan-jump возвращает только объявленную секцию, тогда как чтение полного md/plan.md в IMPLEMENT отклоняется."
+    verify: "pytest loop/tests/test_plan_jump_context_policy.py"
+
+  - source_ref: "AC+:3"
+    status: satisfied
+    evidence: "Поиск внутри shard путей разрешён; поиск снаружи требует graphify evidence и typed reason."
+    verify: "pytest harness/hooks/tests/test_context_scope_policy.py"
+
+  - source_ref: "AC+:4"
+    status: satisfied
+    evidence: "После реального редактирования разрешён узкий re-read diff-диапазона, старые диапазоны инвалидированы."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_post_edit_read"
+
+  - source_ref: "AC+:5"
+    status: satisfied
+    evidence: "Телеметрия различает разрешённые, запрещённые и исключительные чтения без сохранения содержимого файлов."
+    verify: "pytest harness/hooks/tests/test_context_telemetry.py"
+
+  - source_ref: "AC+:6"
+    status: satisfied
+    evidence: "Root-agent и subagents получают независимые детерминированные решения для одинаковых диапазонов в Claude и Codex."
+    verify: "pytest loop/tests/test_context_ledger_provider_parity.py"
+
+  - source_ref: "AC+:7"
+    status: satisfied
+    evidence: "Write со стороны root-agent инвалидирует файл для root и subagents; каждый может прочитать новый хэш один раз."
+    verify: "pytest harness/hooks/tests/test_context_ledger_adapters.py"
+
+  - source_ref: "AC+:8"
+    status: satisfied
+    evidence: "Алиасы событий Read/read, Edit/Write нормализуются в идентичный DecisionReceipt."
+    verify: "pytest harness/hooks/tests/test_context_ledger_adapters.py"
+
+  - source_ref: "AC-:1"
+    status: satisfied
+    evidence: "Скрытые глобальные обходы для Read, rg, cat и Python-wrapper отсутствуют, все точки перехвачены ScopeResolver и ContextLedger."
+    verify: "pytest harness/hooks/tests/test_context_scope_policy.py"
+
+  - source_ref: "AC-:2"
+    status: satisfied
+    evidence: "При сбое политики происходит fail-closed, тихий fallback на чтение полного плана запрещён."
+    verify: "pytest loop/tests/test_plan_jump_context_policy.py"
+
+  - source_ref: "AC-:3"
+    status: satisfied
+    evidence: "Тестовый кэш инвалидируется при изменении исходных файлов, повторное выполнение запускает тест."
+    verify: "pytest loop/tests/test_search_and_test_fingerprint.py"
+
+  - source_ref: "AC-:4"
+    status: satisfied
+    evidence: "Ledger сохраняется на диске с межпроцессным lockfile, данные не теряются между вызовами хуков."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py -k test_atomic_persistence"
+
+  - source_ref: "AC-:5"
+    status: satisfied
+    evidence: "Удалены provider-specific обходы через дочерние агенты или дублирующие хуки."
+    verify: "pytest loop/tests/test_context_contract_materialization.py"
+
+  - source_ref: "constitution:L7"
+    status: satisfied
+    evidence: "MUST section in constitution starts with foundational requirements."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py"
+
+  - source_ref: "constitution:L9"
+    status: satisfied
+    evidence: "MUST-1 TDD first: тесты до кода для всех шагов."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py"
+
+  - source_ref: "constitution:L13"
+    status: satisfied
+    evidence: "MUST-2 No silent fallback: fail closed при отсутствии путей/хэшей."
+    verify: "pytest harness/hooks/tests/test_context_ledger_adapters.py"
+
+  - source_ref: "constitution:L17"
+    status: satisfied
+    evidence: "MUST-3 FRONT tests parent-only: сабагенты не запускают runners."
+    verify: "pytest loop/tests/test_context_contract_materialization.py"
+
+  - source_ref: "constitution:L21"
+    status: satisfied
+    evidence: "MUST-4 Lean load: повторные чтения и монолитные планы блокируются."
+    verify: "pytest loop/tests/test_plan_jump_context_policy.py"
+
+  - source_ref: "constitution:L25"
+    status: satisfied
+    evidence: "MUST-5 Fail-closed misconfiguration: ошибка при некорректном конфиге."
+    verify: "pytest harness/hooks/tests/test_context_ledger.py"
+
+  - source_ref: "constitution:L29"
+    status: satisfied
+    evidence: "MUST-6 No-guess markers: явные typed receipts вместо угадывания."
+    verify: "pytest harness/hooks/tests/test_context_scope_policy.py"
+
+  - source_ref: "constitution:L33"
+    status: satisfied
+    evidence: "MUST-7 ONE Handoff per step: один Handoff блок в activeContext."
+    verify: "pytest loop/tests/test_context_finish_projection.py"
+
+  - source_ref: "constitution:L37"
+    status: satisfied
+    evidence: "MUST-8 §0.11 integration parity: сквозная проверка интерфейсов."
+    verify: "pytest loop/tests/test_context_real_shard_flow.py"
+
+  - source_ref: "constitution:L41"
+    status: satisfied
+    evidence: "MUST-9 Phase authority: AUDIT и ANALYZE как контрольные авторитеты."
+    verify: "pytest loop/tests/test_context_finish_projection.py"
+
+implemented:
+  - step_id: s01
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s01-context-ledger-policy.yaml
+  - step_id: s02
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s02-provider-adapters-and-invalidation.yaml
+  - step_id: s03
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s03-plan-jump-search-and-test-scope.yaml
+  - step_id: s04
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s04-telemetry-and-finish-projection.yaml
+  - step_id: s05
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s05-contract-materialization-and-regression-flow.yaml
+  - step_id: s06
+    implement_file: memory-bank/back/implement/T-HUB-078-context-budget-enforcement/s06.yaml
+
+step_matrix:
+  - step_id: s01
+    status: completed
+    evidence: "ContextLedger core module with interval algebra and SHA-256 hashing."
+  - step_id: s02
+    status: completed
+    evidence: "Provider adapters with Claude/Codex parity and write invalidation."
+  - step_id: s03
+    status: completed
+    evidence: "Plan-jump projection, ScopeResolver allowlist, and TestFingerprintCache."
+  - step_id: s04
+    status: completed
+    evidence: "Attributable context telemetry and finish projection."
+  - step_id: s05
+    status: completed
+    evidence: "Materialized runtime contracts and real shard flow enforcement."
+  - step_id: s06
+    status: completed
+    evidence: "Legacy fallback purge across instructions, hooks, and materializers."
+
+architecture_parity: []
+
+sunset_inventory_scan:
+  scanned_at: "2026-09-08T00:30:00Z"
+  plan_ref: "memory-bank/back/plan/T-HUB-078-context-budget-enforcement/md/plan.md#Replacement-/-sunset"
+  rows:
+    - symbol: "untracked_read_usage"
+      kind: "code_module"
+      command: "rg 'read_raw|untracked_read' harness/ loop/"
+      result: pass
+      prod_callers: 0
+    - symbol: "raw_plan_injection"
+      kind: "entrypoint"
+      command: "rg 'plan_md_direct_inject' loop/mb_load/"
+      result: pass
+      prod_callers: 0
+    - symbol: "broad_search_fallback"
+      kind: "fallback"
+      command: "rg 'fallback_broad_search' harness/hooks/"
+      result: pass
+      prod_callers: 0
+    - symbol: "prose_only_reread_guidance"
+      kind: "instruction"
+      command: "rg 'prose_only_reread' harness/instructions/"
+      result: pass
+      prod_callers: 0
+
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+
+findings: []
+replan_candidates: []

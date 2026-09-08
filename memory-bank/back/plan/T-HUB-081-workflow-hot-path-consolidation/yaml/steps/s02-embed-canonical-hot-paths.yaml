@@ -1,0 +1,104 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-081-workflow-hot-path-consolidation
+title: "Canonical workflows — embed four Hot path sections with preserved gates"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Четыре canonical workflow-файла получают полноценный `## Hot path`, который
+  заменяет быстрый маршрут без инлайнинга длинных lean gates. Каждый embedded
+  маршрут сохраняет собственные обязательные markers: DECOMPOSE coverage и
+  ANALYZE handoff, IMPLEMENT scope/FINISH, BACK PLAN clarify/queue/prompt и
+  INTEG PLAN portal inventory/queue/reconcile/prompt.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, AC+1, AC-1, TM-081-02]
+  nouns:
+    - "harness/cursor/rules/back_developer/workflow-decompose.mdc#Hot path"
+    - "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path"
+    - "harness/cursor/rules/back_developer/workflow-plan.mdc#Hot path"
+    - "harness/cursor/rules/integration_developer/workflow-plan.mdc#Hot path"
+    - DECOMPOSE Requirements/Staged/Outcome/Replacement coverage
+    - IMPLEMENT ANALYZE/scope-lock/FINISH gates
+    - BACK PLAN clarify/queue/prompt/DECOMPOSE route
+    - INTEG PLAN inventory/400-line/queue/reconcile/prompt route
+  layout_paths:
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+  ac_quotes:
+    - "BACK DECOMPOSE, IMPLEMENT, PLAN и INTEG PLAN получают `## Hot path` в canonical `workflow-*.mdc`."
+    - "embedded path сохраняет scope-lock/FINISH, coverage+sunset и PLAN clarify/queue/prompt соответственно."
+    - "Нельзя инлайнить `_lean/implement.mdc` или ослаблять lazy FINISH."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:17-32"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:34-44"
+    - "memory-bank/back/plan/T-HUB-081-workflow-hot-path-consolidation/md/plan.md:64-70"
+
+context:
+  consumes:
+    - s01 corpus owner/marker contract
+    - shared lean gate paths named by each workflow
+    - plan.md §FR-001/002 and AC−
+  produces:
+    - embedded BACK DECOMPOSE hot path
+    - embedded BACK IMPLEMENT hot path
+    - embedded BACK PLAN hot path
+    - embedded INTEG PLAN hot path
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+    - plan.md#review-readiness
+  files:
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/integration_developer/workflow-plan.mdc
+
+as_built:
+  - "BACK DECOMPOSE, BACK IMPLEMENT и BACK PLAN перед основным workflow читают отдельные shared cheatsheet-файлы."
+  - "INTEG PLAN имеет отдельный `shared/cheatsheets/integ-plan.mdc`."
+  - "Длинные lean gate contracts уже объявлены отдельными Gates/Policy ссылками и не должны копироваться в Hot path."
+
+delta:
+  - "Вставить в каждый из четырёх canonical workflow-файлов ровно один `## Hot path` с режимными шагами."
+  - "В DECOMPOSE сохранить Requirements/Stages/Outcome/Replacement coverage, granularity, validator/traceability и next BACK ANALYZE."
+  - "В IMPLEMENT сохранить ANALYZE hard gate, load_now shard+index, scope-lock, step skills, TDD/deletes/wire и FINISH verify/finalize."
+  - "В BACK PLAN сохранить Phase 0 clarify, suspension guard, plan/prompt, queue/reconcile, review readiness и next DECOMPOSE."
+  - "В INTEG PLAN сохранить portal inventory, endpoint↔fetch, prompt, queue/reconcile, ≥400 acceptance и next DECOMPOSE."
+  - "Не переносить внутрь Hot path содержимое `_lean/*`, full token economy или runtime/router logic."
+
+deletes: []
+
+out_of_scope:
+  - "Перепривязка сторонних active callers — s03."
+  - "Удаление shared cheatsheet files — s04."
+  - "Изменение scope-lock, lean gate, runtime/router или skill selection — запрещено планом."
+
+skills:
+  code_surface: docs
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Все четыре canonical workflow-файла содержат собственный `## Hot path`; standalone file пока может существовать только как промежуточный источник."
+    verify: "test $(rg -l '^## Hot path$' harness/cursor/rules/back_developer/workflow-decompose.mdc harness/cursor/rules/back_developer/workflow-implement.mdc harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/integration_developer/workflow-plan.mdc | wc -l) -eq 4"
+  - id: cp2
+    criterion: "DECOMPOSE/IMPLEMENT sections contain required coverage, ANALYZE, scope-lock and FINISH markers."
+    verify: "rg -n 'Requirements|Stages|Outcome|Replacement|ANALYZE|scope-lock|FINISH|BACK ANALYZE' harness/cursor/rules/back_developer/workflow-decompose.mdc harness/cursor/rules/back_developer/workflow-implement.mdc"
+  - id: cp3
+    criterion: "PLAN sections contain clarify/queue/prompt and INTEG inventory/reconcile/400-line markers."
+    verify: "rg -n 'Clarify|clarify|queue|prompt|inventory|reconcile|400' harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/integration_developer/workflow-plan.mdc"
+  - id: cp4
+    criterion: "Hot path does not copy `_lean/implement.mdc` or weaken lazy FINISH; external gate references remain explicit."
+    verify: |
+      rg -n '_lean/implement\.mdc|lazy FINISH|scope-lock|FINISH' harness/cursor/rules/back_developer/workflow-implement.mdc
+
+verify:
+  - "test $(rg -l '^## Hot path$' harness/cursor/rules/back_developer/workflow-decompose.mdc harness/cursor/rules/back_developer/workflow-implement.mdc harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/integration_developer/workflow-plan.mdc | wc -l) -eq 4"
+  - "rg -n 'ANALYZE|scope-lock|Requirements|Replacement|queue|reconcile' harness/cursor/rules/back_developer harness/cursor/rules/integration_developer"
+
+tdd: []

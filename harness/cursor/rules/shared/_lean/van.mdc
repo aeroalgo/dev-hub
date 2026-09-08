@@ -1,0 +1,33 @@
+---
+description: "VAN gates — memory bank, complexity, brownfield architecture (shared common contract)"
+alwaysApply: false
+---
+# VAN — gates (shared common contract)
+
+**Карта (brownfield):** `memory-bank/architecture/`
+**Brownfield:** @.cursor/rules/shared/workflow-van-brownfield.mdc
+**Пути:** @.cursor/rules/shared/memory-bank-paths.mdc
+
+## Gates (common)
+
+1. `memory-bank/` valid по paths — иначе create; abort до valid
+2. Обязательны: `tasks.md`, `activeContext.md`, `projectbrief.md`
+3. Mode detected: greenfield | brownfield
+4. Complexity / level определён и зафиксирован
+5. Контекст ясен из tasks + activeContext
+6. **Brownfield:** architecture shards refreshed + `architecture/index.md` updated; session van log с links; mermaid minimum (services + data-flow + erd|n/a)
+
+## Complexity
+
+| L | Scope |
+|---|--------|
+| L1 | 1–2 файла |
+| L2 | 3–5 файлов |
+| L3 | фича, возможен CREATIVE |
+| L4 | архитектура |
+
+## Abort
+
+- Invalid memory bank → fix first
+- Complexity / level не определён → не рекомендовать next / IMPLEMENT / PLAN
+- Brownfield без architecture refresh / TOC-only architecture → FAIL

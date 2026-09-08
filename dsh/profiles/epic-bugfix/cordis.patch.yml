@@ -1,18 +1,6 @@
 # T-HUB-007 stub; refine in a future epic.
 # dsh-phase-models is applied before this profile patch.
 - insert:
-    - id: preset-verify
-      name: '@deepseek-ai/dsh-agent-presets'
-      config:
-        id: verify-bugfix
-        systemPrompt:
-          file: ../../presets/verify-bugfix.prompt.md
-    - id: preset-explorer
-      name: '@deepseek-ai/dsh-agent-presets'
-      config:
-        id: explorer
-        systemPrompt:
-          file: ../../presets/explorer.prompt.md
     - id: agent-presets
       name: '@deepseek-ai/dsh-agent-presets'
       config:

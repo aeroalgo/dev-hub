@@ -6,8 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/front_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/front_developer/isolation_rules/_lean/implement.mdc
 **Scope lock (HARD):** @.cursor/rules/shared/workflow-implement-scope-lock.mdc
-**Default hot path:** @.cursor/rules/shared/cheatsheets/back-implement.mdc — **единственный** process-файл на старте (пока нет front-cheatsheet); этот файл — при FAIL.
-**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`).
+**Load:** @.cursor/rules/mainrule.mdc §Full linked chain (IMPLEMENT = не рекурсивный `@`). Hot path роли: @.cursor/rules/back_developer/workflow-implement.mdc#Hot path.
 
 **Скиллы — только step (HARD)**
 
@@ -26,10 +25,10 @@ alwaysApply: false
 - пропуск пути из Impl/Design step когда слой активен
 - `limit` на Read SKILL.md
 
-**Старт (до кода):** cheatsheet → Gates → scope-lock → `load_now` shard+index → skills шага. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
+**Старт (до кода):** Hot path → Gates → scope-lock → `load_now` shard+index → skills шага. **Не** на старте: индекс роли, этот full workflow, token-economy-core, finish-block.
 
 **Процесс**:
-1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock** · cheatsheet
+1. `OK FRONT IMPLEMENT - Начинаю реализацию` → **Gates** · **Scope lock** · Hot path
 1a. Write/Delete только shard `files:` allowlist; `.cursor/rules/**` — FORBIDDEN без shard path или `implement this`.
 2. `load_now` → work shard `decompose-*/sNN-*.yaml` + `decompose-*/index.yaml`; артефакт `implement-<plan_id>/sNN-<slug>.yaml`
    **AC = work shard.** **FORBIDDEN** полный `plan-*.md` в `load_now`. Jump `plan §N` только из Consumes при нехватке.

@@ -1,12 +1,6 @@
 # dsh-phase-models is applied before this profile patch.
 # QA profile patch layer: reviewer preset and phase model bridge.
 - insert:
-    - id: preset-reviewer
-      name: '@deepseek-ai/dsh-agent-presets'
-      config:
-        id: verify-qa
-        systemPrompt:
-          file: ../../presets/verify-qa.prompt.md
     - id: agent-presets
       name: '@deepseek-ai/dsh-agent-presets'
       config:

@@ -5,16 +5,32 @@ alwaysApply: false
 ### Команда: BACK DECOMPOSE
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
-**Default hot path:** @.cursor/rules/shared/cheatsheets/back-decompose.mdc — читать **первым**; этот файл — при FAIL / дыре coverage.
 **Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc
 **Policy (по триггеру):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
-**Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)  
+**Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
-**Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.  
+**Цель:** `plan-<id>.md` → `decompose-<plan_id>/` (`index.md` + `sNN-*.yaml`). НЕ писать код.
 **Folder slug (HARD):** `plan_id` = stem plan без `plan-` (со descriptive slug). @.cursor/rules/shared/epic-scoped-paths.mdc §Folder naming.
 
 **Formula hint (optional):** plan header `formula:` → `epic_resolve.py formula-render` draft; planner заполняет placeholders.
+
+---
+
+## Hot path
+
+1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
+2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
+2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a
+2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
+3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
+3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
+4. `validate-decompose-tree` exit 0 (+ plan_contract machine)
+5. `validate-traceability` CRITICAL=0 (deferred OOS без follow_up = CRITICAL)
+6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
+
+→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc §1 · §1a · §3a
+→ count в plan = floor, не ceiling (и не повод раздувать до 10–12)
 
 ---
 
@@ -43,7 +59,7 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 ---
 
 **Процесс**:
-1. `OK BACK DECOMPOSE - [plan_id]` → Gates + skills-gate + **cheatsheet**
+1. `OK BACK DECOMPOSE - [plan_id]` → Gates + skills-gate + **Hot path**
 2. Прочитай план (L3–4: все shards) — AC±/FR/NFR/этапы/ADR/тесты/§0.11/Outcome
 3. Index: четыре coverage-секции
 4. Нарежь `sNN` (+ `needs_creative` hard-stop на open CR)
@@ -61,4 +77,4 @@ DECOMPOSE = **максимально подробная** нарезка **по 
 
 **Границы:** нет кода; нет ужимания intent/coverage.
 
-**Верификация**: Gates + cheatsheet + promote CLI
+**Верификация**: Gates + Hot path + promote CLI

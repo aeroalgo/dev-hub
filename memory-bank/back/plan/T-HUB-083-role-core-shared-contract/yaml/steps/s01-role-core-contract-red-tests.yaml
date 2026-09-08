@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-083-role-core-shared-contract
+title: "Semantic corpus устанавливает common-owner и role-guard failure matrix"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Red-first semantic tests фиксируют полный контракт extraction до изменения rule-файлов:
+  один shared owner, ровно один import у каждой роли, role markers BACK/FRONT/INTEG,
+  bounded hub/managed runner wording и fail-closed поведение при missing import или copied body.
+  Тесты проверяют реальные rule-файлы и не заменяют production corpus unit-only helper-ом.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - "AC+ #1"
+    - "AC+ #2"
+    - "AC+ #3"
+    - "AC− #1"
+    - TM-083-01
+    - TM-083-02
+    - TM-083-03
+    - TM-083-04
+    - TM-083-05
+  nouns:
+    - shared/role-core-contract.mdc
+    - BACK mainrule-core.mdc
+    - FRONT mainrule-core.mdc
+    - INTEG mainrule-core.mdc
+    - common owner import
+    - BACK lifecycle/promotion marker
+    - FRONT parent-only and visible-UI markers
+    - INTEG element-first/contract/GAP markers
+    - hub/managed runner branch
+  layout_paths:
+    - harness/hooks/tests/test_role_core_contract.py
+    - harness/cursor/rules/shared/role-core-contract.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+  ac_quotes:
+    - "Common policy changes in one source."
+    - "Missing import, copied common prose or missing role marker fails."
+    - "No generic core replacing role responsibility; no unconditional managed pytest; no weakening lifecycle/UI/contract guards."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:10-22"
+    - "memory-bank/back/plan/T-HUB-083-role-core-shared-contract/md/plan.md:24-30"
+
+context:
+  consumes:
+    - current BACK/FRONT/INTEG mainrule-core.mdc files
+    - plan §FR / AC
+    - plan §HOW / Eng spine
+  produces:
+    - red semantic corpus for the shared role-core contract
+    - named failure assertions for missing import, copied common body and missing role marker
+    - regression targets for hub/managed runner wording
+  plan_refs:
+    - plan.md#fr--ac
+    - plan.md#how--eng-spine
+  files:
+    - harness/hooks/tests/test_role_core_contract.py
+
+as_built:
+  - "No role-core semantic test currently owns the T-HUB-083 common-owner and role-marker matrix."
+  - "BACK, FRONT and INTEG mainrule-core.mdc each contain common policy prose alongside role-specific sections."
+
+delta:
+  - "Create harness/hooks/tests/test_role_core_contract.py with red tests that read the canonical harness/cursor/rules files."
+  - "Assert exactly one shared contract reference per role and reject duplicate common sections in role cores."
+  - "Assert BACK lifecycle/promotion, FRONT parent-only/visible-UI, INTEG element-first/contract/GAP markers and both hub/managed runner branches."
+  - "Assert missing import and missing role marker produce a deterministic failure rather than silently passing."
+
+deletes: []
+
+out_of_scope:
+  - "Changing any role-core rule file; those edits belong to s02 and s03."
+  - "Running the full repository suite; s05 owns full-suite evidence."
+  - "Replacing role-specific semantics with a generic fixture or a shared test-only constant."
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "The red corpus names one shared owner and requires exactly one import from each BACK, FRONT and INTEG role core."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'owner or import'"
+  - id: cp2
+    criterion: "The corpus fails when common MEMORY BANK/format/runner prose is copied into a role core instead of referenced from the shared owner."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'duplicate or copied'"
+  - id: cp3
+    criterion: "The corpus keeps the role-only guard matrix: BACK promotion, FRONT parent-only/visible-UI, and INTEG element-first/contract/GAP."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'back or front or integ'"
+  - id: cp4
+    criterion: "The corpus rejects unconditional managed pytest and missing hub/managed branch wording."
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'runner or managed'"
+
+verify:
+  - "The red tests read rule files through their canonical repository paths, not duplicated in-test prose."
+  - "Each failure assertion identifies the missing owner/import/marker or forbidden runner wording."
+  - "No frontend runner is invoked by the test corpus itself."
+
+tdd:
+  - test_shared_role_core_owner_is_declared_once
+  - test_each_role_core_imports_shared_contract_once
+  - test_role_only_markers_survive_extraction
+  - test_runner_policy_has_hub_and_managed_branches
