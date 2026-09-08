@@ -222,3 +222,11 @@ def test_tool_aliases_cannot_bypass_search_scope(workspace: Path):
         ok, reason, details = resolver.evaluate_search(cmd)
         assert not ok, f"Command {cmd} should have been denied"
         assert reason == "search_outside_scope_denied"
+
+
+@pytest.mark.parametrize("cmd", [
+    "git log -S verify_hints -p harness/hooks/epic_yaml.py",
+    "git grep verify_hints",
+])
+def test_git_history_and_grep_are_search_commands(cmd: str) -> None:
+    assert is_search_command_line(cmd)

@@ -1,4 +1,5 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm/message';
+import type { UserMessage } from '@deepseek-ai/dsh-llm/message';
 import type { Context } from '@deepseek-ai/cordis';
 import type { Agent } from '@deepseek-ai/dsh-agent';
 
@@ -12,6 +13,27 @@ export type SessionStartContext = {
   additionalContext: string;
   sessionTitle?: string;
 };
+
+export function coalesceAdjacentUserMessages(messages: readonly UserMessage[]): UserMessage[] {
+  const result: UserMessage[] = [];
+  for (const message of messages) {
+    const previous = result.at(-1);
+    if (
+      previous?.role === 'user'
+      && message.role === 'user'
+      && previous.source?.kind === 'plugin'
+      && message.source?.kind === 'plugin'
+    ) {
+      result[result.length - 1] = {
+        ...previous,
+        content: [...previous.content, ...message.content],
+      };
+    } else {
+      result.push(message);
+    }
+  }
+  return result;
+}
 
 export function sessionStartMessage(context: SessionStartContext) {
   return createUserMessage({
@@ -49,6 +71,13 @@ export const inject = [...new Set([
 ])];
 
 export function apply(ctx: Context, config: EpicGateConfig = {}): void {
+  ctx.on('agent/pre-step', async (_info, next) => {
+    const decision = await next();
+    if (decision.kind !== 'enter') return decision;
+    const messages = coalesceAdjacentUserMessages(decision.messages);
+    if (messages.length === decision.messages.length) return decision;
+    return { ...decision, messages };
+  }, { prepend: true });
   applyToolNameCompatibility(ctx);
   applyPreToolUse(ctx, config);
   applySubagentStart(ctx, config);

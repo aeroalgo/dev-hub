@@ -62,6 +62,7 @@ _DSH_TRANSIENT_PATTERNS = (
     re.compile(r"(?i)503\s*Service\s*Unavailable"),
     re.compile(r"(?i)5[0-9]{2}\s+(?:Server|Service|Gateway)\s+Error"),
     re.compile(r"(?i)Connection\s+(?:refused|reset|timed?\s*out)"),
+    re.compile(r"(?i)(?:api[_ ]error|api error).*empty response"),
 )
 
 _DSH_PERMANENT_PATTERNS = AUTH_BANNED_PATTERNS + (

@@ -405,7 +405,7 @@ def main() -> None:
                 "additionalContext": (
                     f"output-cap:{mode} ({total}→{len(view)} chars). "
                     f"Full: {dump_path}. "
-                    "Prefer pytest -q --tb=line; docker logs --tail=80; rg dump."
+                    "Prefer bin/pytest -q --tb=line; docker logs --tail=80; rg dump."
                 ),
             }
         }

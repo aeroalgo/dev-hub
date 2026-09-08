@@ -184,6 +184,23 @@ def test_analyze_dsh_transient_http429() -> None:
     assert analysis["abort_kind"] == "transient"
 
 
+def test_analyze_dsh_empty_response_api_error_is_retryable(tmp_path: Path) -> None:
+    resilience = _load_resilience()
+    log = tmp_path / "dsh-empty-response.log"
+    log.write_text(
+        'dsh: PI_AI_ERROR: {"type":"error","error":{"type":"api_error",'
+        '"message":"Claude returned an empty response (no content block)"}}\n',
+        encoding="utf-8",
+    )
+
+    analysis = resilience.analyze_session_log(log, exit_code=1, runtime="dsh")
+
+    assert analysis["outcome"] == "transient_abort"
+    assert analysis["retryable"] is True
+    assert analysis["abort_kind"] == "transient"
+    assert "empty response" in analysis["reason"]
+
+
 def test_analyze_dsh_permanent_auth() -> None:
     resilience = _load_resilience()
     log = _fixture("dsh_session_permanent.jsonl")

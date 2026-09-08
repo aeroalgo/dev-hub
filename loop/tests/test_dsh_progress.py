@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "dsh" / "plugins" / "epic-gate" / "lib" / "session-progress.js"
+PLUGIN_INDEX = ROOT / "dsh" / "plugins" / "epic-gate" / "lib" / "index.js"
 COMPAT_PLUGIN = ROOT / "dsh" / "plugins" / "epic-gate" / "lib" / "tool-name-compat.js"
 STANDALONE_COMPAT_PLUGIN = ROOT / "dsh" / "plugins" / "tool-name-compat" / "src" / "index.js"
 
@@ -86,6 +87,42 @@ def test_dsh_progress_reports_tool_failure_and_preserves_tool_name() -> None:
         '==> dsh: tool failed name=Read call=call-1 '
         'error=Error: unknown tool "Read"\n'
     )
+
+
+def test_dsh_progress_does_not_call_successful_tool_result_a_failure() -> None:
+    output = _format(
+        {
+            "type": "tool/result",
+            "data": {
+                "message": {
+                    "content": [{"type": "text", "text": "normal tool output"}],
+                },
+                "isError": False,
+                "name": "Read",
+            },
+        }
+    )
+    assert output == "==> dsh: tool complete name=Read\n"
+
+
+def test_dsh_coalesces_adjacent_user_messages() -> None:
+    script = """
+        import { coalesceAdjacentUserMessages } from __PLUGIN__;
+        const messages = [
+            { role: 'user', content: [{ type: 'text', text: 'context 1' }], source: { kind: 'plugin' } },
+            { role: 'user', content: [{ type: 'text', text: 'context 2' }], source: { kind: 'plugin' } },
+            { role: 'user', content: [{ type: 'tool-result', text: 'tool result' }], source: { kind: 'tool' } },
+            { role: 'user', content: [{ type: 'text', text: 'context 3' }], source: { kind: 'plugin' } },
+            { role: 'assistant', content: [{ type: 'text', text: 'answer' }] },
+            { role: 'user', content: [{ type: 'text', text: 'next' }] },
+        ];
+        process.stdout.write(JSON.stringify(coalesceAdjacentUserMessages(messages)));
+    """.replace("__PLUGIN__", json.dumps(PLUGIN_INDEX.as_uri()))
+    proc = _run_node(script)
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads(proc.stdout)
+    assert [message["role"] for message in result] == ["user", "user", "user", "assistant", "user"]
+    assert [block["text"] for block in result[0]["content"]] == ["context 1", "context 2"]
 
 
 def test_dsh_progress_describes_legacy_editor_operation() -> None:
@@ -187,3 +224,13 @@ def test_dsh_uses_stream_progress_for_idle_watchdog() -> None:
     loop = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
     dsh_branch = loop.split('elif [[ "$runtime_id" == "dsh" ]]', 1)[1].split("else", 1)[0]
     assert 'progress_mode="stream_bytes"' in dsh_branch
+
+
+def test_implement_profile_mounts_epic_gate_progress_plugin() -> None:
+    profile = ROOT / "dsh" / "profiles" / "epic-implement"
+    package = json.loads((profile / "package.json").read_text(encoding="utf-8"))
+    patch = (profile / "cordis.patch.yml").read_text(encoding="utf-8")
+
+    assert "@dev-hub/dsh-epic-gate" in package["dependencies"]
+    assert "id: epic-gate" in patch
+    assert "name: '@dev-hub/dsh-epic-gate'" in patch

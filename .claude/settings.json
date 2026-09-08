@@ -70,6 +70,16 @@
         ]
       },
       {
+        "matcher": "Read|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/context-scope-pretool.py\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           {

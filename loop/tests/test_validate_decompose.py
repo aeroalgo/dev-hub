@@ -166,6 +166,20 @@ def test_clean_shard_no_errors(tmp_path: Path) -> None:
     assert errors == []
 
 
+def test_bin_pytest_is_a_runnable_checkpoint_command(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "e99.yaml",
+        {
+            "checkpoints": [
+                {"id": "cp1", "criterion": "c", "verify": "bin/pytest tests/test_foo.py -q"},
+                {"id": "cp2", "criterion": "c2", "verify": "bin/pytest tests/test_bar.py -q"},
+            ]
+        },
+    )
+    errors, _warnings = validate_decompose_full(p)
+    assert errors == []
+
+
 def test_strict_via_cli_promotes_warnings(tmp_path: Path) -> None:
     import subprocess
 

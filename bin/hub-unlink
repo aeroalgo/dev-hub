@@ -109,6 +109,28 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   done
 
+  # Remove the canonical Cursor/Claude extension links created by hub-link
+  # alongside mode (including the legacy .cursor/rules link), while
+  # preserving product-local files and directories.
+  for pair in \
+    ".cursor/rules:$DEV_HUB/harness/cursor/rules" \
+    ".cursor/templates:$DEV_HUB/harness/cursor/templates" \
+    ".claude/commands:$DEV_HUB/harness/claude/commands" \
+    ".claude/instructions:$DEV_HUB/harness/claude/instructions" \
+    ".claude/rules:$DEV_HUB/harness/claude/rules" \
+    ".claude/skills:$DEV_HUB/harness/claude/skills"; do
+    dest="$PRODUCT_ROOT/${pair%%:*}"
+    source="${pair#*:}"
+    if [[ -L "$dest" ]]; then
+      resolved_target="$(readlink -f "$dest" 2>/dev/null || true)"
+      canonical_target="$(readlink -f "$source" 2>/dev/null || true)"
+      if [[ -n "$canonical_target" && "$resolved_target" == "$canonical_target" ]]; then
+        rm "$dest"
+        echo "removed ${pair%%:*}"
+      fi
+    fi
+  done
+
   if [[ -f "$PRODUCT_ROOT/CLAUDE.md" && ! -L "$PRODUCT_ROOT/CLAUDE.md" ]]; then
     python3 -c "
 import sys

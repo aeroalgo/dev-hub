@@ -107,6 +107,9 @@ def is_search_command_line(cmd: str | list[str]) -> bool:
     if binary in _SEARCH_COMMAND_BINARIES:
         return True
 
+    if binary == "git" and len(tokens) > 1:
+        return tokens[1].lower() in {"grep", "log", "show", "diff"}
+
     if binary.startswith("python") or binary in {"python3", "py"}:
         joined = " ".join(tokens)
         if any(kw in joined for kw in ("open(", "read_text(", "read()", "rg", "grep")):

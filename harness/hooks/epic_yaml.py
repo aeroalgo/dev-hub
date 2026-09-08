@@ -799,6 +799,7 @@ def validate_decompose_full(
         errors.append("checkpoints: duplicate id")
 
     verify_hints = (
+        "bin/pytest ",
         ".venv/bin/pytest ",
         "cd frontend && npm ",  # канон
         "npm --prefix frontend ",  # runner переписывает под капотом
@@ -1679,14 +1680,14 @@ def format_spec_lines(*, role: str) -> list[str]:
         "tests: format (HARD) — hub tests / managed capability proof:",
         "  Managed project: declare capability_checks in decompose; proof via typed capability evidence sidecar.",
         "  Hub self-tests: explicit tests: strings run via hub test runner:",
-        "    OK:   - '`.venv/bin/pytest path -q` — PASS'",
+        "    OK:   - '`bin/pytest path -q` — PASS' (также совместим `.venv/bin/pytest`)",
         "    OK:   - '`cd frontend && npm exec vitest -- run src/x.test.tsx`'",
         "    OK:   - '`cd frontend && npm exec tsc -- --noEmit`'",
         "    OK:   - '`npm --prefix frontend exec vitest -- run src/x.test.tsx`'  (runner перепишет)",
         "    FAIL: - 'npm exec tsc -- --noEmit — passed'  (prose без backticks)",
         "    FAIL: - {command: …, result: …}  (mapping запрещён)",
         "    result/PASS/counts → verification_results (не в tests).",
-        "    ≥1 executable for hub tests: .venv/bin/pytest | cd frontend && npm exec vitest|tsc …",
+        "    ≥1 executable for hub tests: bin/pytest | .venv/bin/pytest | cd frontend && npm exec vitest|tsc …",
         "  Bash: cwd=repo root; одноразовый `cd frontend && cmd` разрешён. "
         "FORBIDDEN: working_directory=frontend.",
     ]

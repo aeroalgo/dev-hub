@@ -218,7 +218,7 @@ def test_alongside_router_stub_conflict(tmp_path: Path):
 
 
 def test_alongside_unlink(tmp_path: Path):
-    """alongside unlink removes hub-owned entrypoint symlinks and integration artifacts."""
+    """alongside unlink removes all hub-owned links and preserves local Claude state."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "unlink_product"
     product_dir.mkdir()
@@ -237,6 +237,24 @@ def test_alongside_unlink(tmp_path: Path):
     assert (product_dir / ".dev-hub").is_file()
     assert (product_dir / ".cursor" / "rules.d" / "dev-hub-harness-router.mdc").is_file()
 
+    alongside_links = [
+        ".cursor/rules",
+        ".cursor/templates",
+        ".claude/commands",
+        ".claude/instructions",
+        ".claude/rules",
+        ".claude/skills",
+    ]
+    # Older alongside installs also linked .cursor/rules directly.
+    (product_dir / ".cursor" / "rules").symlink_to(
+        hub_dir / "harness" / "cursor" / "rules", target_is_directory=True
+    )
+    assert all((product_dir / link).is_symlink() for link in alongside_links)
+
+    local_runtime = product_dir / ".claude" / "runtime"
+    local_runtime.mkdir(parents=True)
+    (local_runtime / "keep.txt").write_text("local state")
+
     # 2. Unlink alongside
     res_unlink = subprocess.run([str(hub_unlink_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
     assert res_unlink.returncode == 0
@@ -248,6 +266,8 @@ def test_alongside_unlink(tmp_path: Path):
     assert not (product_dir / ".dev-hub").exists()
     assert not (product_dir / ".cursor" / "rules.d" / "dev-hub-harness-router.mdc").exists()
     assert not (product_dir / "CLAUDE.harness.md").exists()
+    assert all(not (product_dir / link).exists() for link in alongside_links)
+    assert (local_runtime / "keep.txt").read_text() == "local state"
 
 def test_alongside_settings_hooks_point_to_harness(tmp_path: Path):
     """US-005: merged settings keep user permissions; hooks resolve via harness/hooks."""

@@ -38,7 +38,7 @@
         provider: spawn
         toolName: cc_agent
         injectCatalog: true
-    - id: cc-hooks
+    - id: cc-hooks-bridge
       name: 'dsh-cc-hooks'
       config:
         enabled: true
@@ -53,3 +53,11 @@
         watchProject: true
     - id: tool-name-compat
       name: '@dev-hub/dsh-tool-name-compat'
+
+- insert:
+    - id: epic-gate
+      name: '@dev-hub/dsh-epic-gate'
+      config:
+        python: !!js process.env.PYTHON ?? 'python3'
+        validator: !!js process.env.DSH_SPAWN_VALIDATE ?? '.claude/hooks/spawn_validate.py'
+      required: true

@@ -84,18 +84,31 @@ function nestedText(value: unknown): string {
 }
 
 function toolError(data: JsonObject): string {
-  const error = asObject(data.error);
-  const message = asText(error.message);
-  if (message) return message;
+  const message = asObject(data.message);
+  const content = message.content;
+  const nestedFailure = hasNestedFailure(content);
+  const failed = data.isError === true || nestedFailure;
+  if (!failed) return '';
 
-  const content = asObject(data.message).content;
+  const error = asObject(data.error);
+  const errorMessage = asText(error.message);
+  if (errorMessage) return errorMessage;
+
   const contentText = nestedText(content);
   if (contentText) return contentText;
 
   const code = asText(error.code);
   const name = asText(error.name);
   if (name || code) return [name, code].filter(Boolean).join(' / ');
-  return data.isError === true ? 'tool execution failed' : '';
+  return 'tool execution failed';
+}
+
+function hasNestedFailure(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasNestedFailure);
+  if (value === null || typeof value !== 'object') return false;
+  const object = value as JsonObject;
+  if (object.isError === true) return true;
+  return hasNestedFailure(object.content) || hasNestedFailure(object.error);
 }
 
 /** Convert one durable DSH event into a short operator-facing progress line. */

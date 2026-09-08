@@ -610,8 +610,8 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
     )
     return "\n".join(
         [
-            "## spawn-gate (Claude Code)",
-            "Делегирование — как обычно у Claude Code (Agent / built-in). Не запрещай spawn.",
+            f"## spawn-gate ({'DSH' if os.environ.get('DSH_HOOKS_BRIDGE') == '1' else 'Claude Code'})",
+            f"Делегирование — как обычно у {'DSH' if os.environ.get('DSH_HOOKS_BRIDGE') == '1' else 'Claude Code'} (Agent / built-in). Не запрещай spawn.",
             f"Overlay: {overlay} (model строго из `.claude/project.env`).",
             "| Ситуация | Agent |",
             *search_lines,
