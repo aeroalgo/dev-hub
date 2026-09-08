@@ -39,7 +39,7 @@ CUSTOM_OVERLAY = frozenset(
         "explorer",
         "sunset-inventory",
         "gate-repair",
-        "reconcile",
+        "reconcile-verify",
     }
 )
 GATE_AGENTS = frozenset(
@@ -140,8 +140,8 @@ CONTRACTS = {
         "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
         "Ответ без JSON fence = status fail."
     ),
-    "reconcile": (
-        "CONTRACT reconcile: read-only reconciliation gate. Проверь только ALLOW READ: "
+    "reconcile-verify": (
+        "CONTRACT reconcile-verify: read-only reconciliation gate. Проверь только ALLOW READ: "
         "activeContext.md, текущий decompose plan/index.yaml, текущий implement/qa artifact "
         "и runtime diagnostics. Укажи каждый drift как file:line → observed → canonical → next action. "
         "Не редактируй исходные plan/decompose/implement/code; единственная допустимая запись — "
@@ -161,7 +161,7 @@ CONTRACTS_SHA256: dict[str, str] = {
     "verify-decompose": "ccfa3391ac21d4d0fc82dd6d841447e195f1a32c7540280da25cec702bed5c95",
     "verify-implement": "0d5712e4bc3f6abc8e907c5275a8361722e4cf972a259a773cf9f27e8dad3589",
     "verify-qa": "9f5c704f29235e7d56b668e15d7ba3239a86308e939735fcba13d006a87f72f3",
-    "reconcile": "a995bad4a87c41cbaef81dba8b7349c706a5ae72a48369bf2ac5a0f28fdd3274",
+    "reconcile-verify": "0615a2e6c77a7472651ce1b105acb972e9b983b95822b28d04793450e3d7289d",
 }
 
 
@@ -585,7 +585,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "analyze-verify",
             "reviewer",
             "gate-repair",
-            "reconcile",
+            "reconcile-verify",
         )
         if agent_id in definitions
     ]
@@ -1879,7 +1879,7 @@ def resolve_hook_agent_type(data: dict[str, Any]) -> str | None:
         return normalize_type(match.group(1))
     for token in (
         "gate-repair", "verify-bugfix", "verify-implement", "verify-qa",
-        "verify-decompose", "analyze-verify", "reconcile",
+        "verify-decompose", "analyze-verify", "reconcile-verify",
     ):
         if token in prompt.lower():
             return token

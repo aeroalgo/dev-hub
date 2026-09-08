@@ -4,7 +4,7 @@
 
 name = "sunset-inventory"
 description = "Sunset inventory extraction agent. Scans codebase/configs for sunset targets (legacy fallbacks, dual-paths, obsolete shims) and outputs structured loop-sunset-inventory/v1 JSON. Read-only. Never implement, never edit, never design."
-model = "cx/gpt-5.6-luna"
+model = "cx/gpt-5.6-luna-high"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = '''

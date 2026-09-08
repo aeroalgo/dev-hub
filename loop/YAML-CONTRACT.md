@@ -35,7 +35,7 @@ python3 .claude/hooks/epic_resolve.py verify-decompose-creative --decompose <dec
 Курсор = `activeContext.md` + `index.yaml` + step yaml.  
 Md **не** fail-closed gate. Рассинхрон → deterministic `repair-index-mirror` (prepare/check_after вызывают автоматически; CLI вручную).
 
-**Fingerprint stall** (агент вышел без смены Handoff): `check-after` → `repair_fingerprint_stall`. Если implement ready (checkpoints + files на диске) → finalize/re-arm без LLM. Иначе **outer retry** (новый агент, prompt со stall-блоком) до `EPIC_DEGRADED_MAX`; после лимита → `NEED_HUMAN` HALT.
+**Fingerprint stall** (агент вышел без смены Handoff): `check-after` → `repair_fingerprint_stall`. Если implement ready (checkpoints + files на диске) → finalize/re-arm без LLM. Иначе проверяется fingerprint scoped-файлов текущего шага: реальное изменение файлов сбрасывает stall-счётчик и запускает outer retry с dirty-контекстом; только отсутствие и Handoff, и scoped-прогресса считается повторным stall и идёт до `EPIC_DEGRADED_MAX`, после лимита → `NEED_HUMAN` HALT.
 
 **Cursor SoT = `index.yaml` only.** На `prepare` вызывается `sync_cursor_from_index`: `activeContext` + `armed_step` переписываются из next pending; stale checkpoint с другим step сбрасывается. `armed_step` — кэш, не источник правды.
 

@@ -4,7 +4,7 @@
 
 name = "explorer"
 description = "Mandatory codebase search gate for IMPLEMENT/REFACTOR/BUGFIX/TASK. Use PROACTIVELY before parent multi-file discovery — import audit, where-is-X, ownership map. Graphify first, then Grep/Glob/rg fallback until the answer is found. Read-only. Never implement, never edit."
-model = "cx/gpt-5.6-luna"
+model = "cx/gpt-5.6-luna-high"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = '''

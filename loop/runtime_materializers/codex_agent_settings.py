@@ -88,7 +88,11 @@ def load_codex_agent_settings(
             f"defaults contains unsupported settings: {unknown_defaults}"
         )
     _validate_agent_table(
-        {key: value for key, value in defaults.items() if key not in {"max_concurrent_threads_per_session", "max_depth"}},
+        {
+            key: value
+            for key, value in defaults.items()
+            if key not in {"max_concurrent_threads_per_session", "max_depth"}
+        },
         "defaults",
     )
     for key in ("max_concurrent_threads_per_session", "max_depth"):

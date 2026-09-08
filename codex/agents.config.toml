@@ -24,7 +24,7 @@ requires_model = true
 allow_worktree = false
 verdict = "none"
 
-[agents."reconcile"]
+[agents."reconcile-verify"]
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 workflow_mode = "search"

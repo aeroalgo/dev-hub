@@ -39,7 +39,7 @@ PRESET_BY_AGENT = {
     "reviewer": "preset.reviewer",
     "explorer": "preset.explorer",
     "gate-repair": "preset.repair",
-    "reconcile": "preset.explorer",
+    "reconcile-verify": "preset.explorer",
     "sunset-inventory": "preset.explorer",
     "verify-script": "preset.verify",
     "verify-edit": "preset.verify",
@@ -67,7 +67,7 @@ def _resolve_agent_type(data: dict[str, object]) -> str | None:
     match = re.search(r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)", prompt)
     if match:
         return normalize_type(match.group(1))
-    for token in ("gate-repair", "verify-bugfix", "verify-implement", "verify-qa", "verify-decompose", "analyze-verify", "reconcile"):
+    for token in ("gate-repair", "verify-bugfix", "verify-implement", "verify-qa", "verify-decompose", "analyze-verify", "reconcile-verify"):
         if token in prompt.lower():
             return token
     return None

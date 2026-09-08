@@ -38,6 +38,7 @@ from epic import (  # noqa: E402
     halt_epic,
     index_yaml_path,
     load_epic_state,
+    progress_snapshot,
     load_index_yaml,
     project_handoff_from_reducer,
     read_active_context,
@@ -94,7 +95,7 @@ def _is_handoff_strict(cwd: str) -> bool:
 
 
 def _epic_progressed(cwd: str, epic: dict) -> tuple[bool, str]:
-    """True when Handoff+load_now fingerprint changed vs pending_fingerprint_before."""
+    """Return whether lifecycle or current-step evidence advanced."""
     ctx = read_active_context(cwd)
     handoff = extract_handoff_block(ctx)
     before = epic.get("pending_fingerprint_before")
@@ -103,7 +104,14 @@ def _epic_progressed(cwd: str, epic: dict) -> tuple[bool, str]:
         return False, now_fp
     if before is None:
         return True, now_fp
-    return now_fp != before, now_fp
+    if now_fp != before:
+        return True, now_fp
+    progress_before = epic.get("pending_progress_fingerprint")
+    if progress_before:
+        paths = extract_load_now(ctx) + list(epic.get("step_progress_paths") or [])
+        current = progress_snapshot(cwd, paths=paths, state=epic, context=ctx)
+        return current["fingerprint"] != progress_before, now_fp
+    return False, now_fp
 
 
 def _check_stale_load_now(cwd: str, epic: dict) -> str | None:

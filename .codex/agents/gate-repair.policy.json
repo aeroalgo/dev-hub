@@ -20,7 +20,7 @@
   ],
   "managed": true,
   "codex_native_settings": {
-    "model": "cx/gpt-5.6-luna",
+    "model": "cx/gpt-5.6-luna-high",
     "model_reasoning_effort": "high",
     "sandbox_mode": "workspace-write"
   },

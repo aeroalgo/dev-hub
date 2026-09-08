@@ -738,6 +738,7 @@ def filter_step_dirty(
                 "apps/api/",
                 "apps/edge/",
                 "tests/",
+                "harness/",
                 "memory-bank/",
             )
         ):
@@ -746,11 +747,11 @@ def filter_step_dirty(
                     kept.append(norm)
                     continue
                 # code dirty while step in progress — still relevant
-                if norm.startswith(("frontend/", "apps/", "tests/")):
+                if norm.startswith(("frontend/", "apps/", "tests/", "harness/")):
                     kept.append(norm)
                     continue
             else:
-                if norm.startswith(("frontend/", "apps/", "tests/")):
+                if norm.startswith(("frontend/", "apps/", "tests/", "harness/")):
                     kept.append(norm)
     # unique preserve order
     seen: set[str] = set()
@@ -893,7 +894,7 @@ def extract_paths_from_delta(delta: list[str]) -> list[str]:
     """Best-effort path extraction from delta bullet strings."""
     paths: list[str] = []
     pat = re.compile(
-        r"(?:frontend/|apps/|tests/|dsh/|loop/|\.claude/|memory-bank/)[^\s`'\"]+"
+        r"(?:frontend/|apps/|tests/|dsh/|harness/|loop/|\.claude/|memory-bank/)[^\s`'\"]+"
     )
     for item in delta:
         for m in pat.finditer(str(item)):
@@ -933,6 +934,13 @@ def dirty_resume_prompt_lines(
             lines.append(f"prev_resume_from: {last['resume_from']}")
     if resume_from:
         lines.append(f"continue_from_checkpoint: {resume_from}")
+    if last and last.get("log_file"):
+        lines.append(
+            "prev_session_log: "
+            f"{last.get('log_file')} (step={last.get('step_id') or step_id}, "
+            f"plan={last.get('plan_id') or plan_id}, "
+            f"outcome={last.get('outcome') or last.get('status')})"
+        )
     if related:
         lines.append("dirty_files (do NOT restart discovery; continue edits):")
         for p in related:

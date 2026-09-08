@@ -393,6 +393,119 @@ def checkpoint_lifecycle(cwd: str | Path, stage: str, **kwargs: Any) -> dict[str
     return commit_checkpoint(cwd, stage=stage, **kwargs)
 
 
+def progress_snapshot(
+    cwd: str | Path,
+    *,
+    paths: list[str] | None = None,
+    state: dict[str, Any] | None = None,
+    context: str | None = None,
+) -> dict[str, Any]:
+    """Return stable progress evidence for the active epic session."""
+    root = Path(cwd)
+    current_state = state if isinstance(state, dict) else load_epic_state(root)
+    text = read_active_context(root) if context is None else context
+    selected = list(paths or extract_load_now(text))
+    decompose = str(current_state.get("armed_decompose") or "").strip()
+    if decompose:
+        selected.append(decompose)
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for raw in selected:
+        rel = str(raw).replace("\\", "/").strip().lstrip("./")
+        if not rel or ".." in Path(rel).parts or rel in seen:
+            continue
+        seen.add(rel)
+        normalized.append(rel)
+
+    file_records: list[dict[str, str]] = []
+    for rel in sorted(normalized):
+        path = root / rel
+        try:
+            if path.is_file():
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                file_records.append({"path": rel, "sha256": digest})
+            else:
+                file_records.append({"path": rel, "sha256": "missing"})
+        except OSError as exc:
+            file_records.append({"path": rel, "sha256": f"error:{type(exc).__name__}"})
+
+    role = str(current_state.get("role") or current_state.get("armed_role") or "").lower()
+    role_dir = "integration" if role in {"integ", "integration"} else role
+    epic_id = str(current_state.get("armed_epic") or current_state.get("epic") or "").strip()
+    event_record: dict[str, str] = {"path": "", "sha256": "missing"}
+    if role_dir and epic_id:
+        event_path = _event_log_path(root, role_dir, epic_id)
+        try:
+            event_digest = (
+                hashlib.sha256(event_path.read_bytes()).hexdigest()
+                if event_path.is_file()
+                else "missing"
+            )
+            event_record = {"path": event_path.relative_to(root).as_posix(), "sha256": event_digest}
+        except (OSError, ValueError) as exc:
+            event_record = {"path": str(event_path), "sha256": f"error:{type(exc).__name__}"}
+
+    projection = current_state.get("projection")
+    projection = projection if isinstance(projection, dict) else {}
+    identity = {
+        key: current_state.get(key)
+        for key in (
+            "armed_epic",
+            "armed_step",
+            "role",
+            "phase",
+            "next_step",
+            "expected_artifact",
+            "projection_hash",
+            "phase_epoch",
+        )
+    }
+    identity["projection_next_step"] = projection.get("next_step")
+    identity["projection_next_step_status"] = projection.get("next_step_status")
+    identity["projection_phase"] = projection.get("phase")
+    checkpoint = load_checkpoint(root)
+    checkpoint_state: dict[str, Any] | None = None
+    if checkpoint:
+        checkpoint_state = {
+            key: checkpoint.get(key)
+            for key in (
+                "step_id",
+                "phase",
+                "phase_epoch",
+                "projection_hash",
+                "index_fingerprint",
+                "context_fingerprint",
+                "stage",
+                "status",
+                "next_action",
+                "resume_policy",
+                "identity",
+            )
+        }
+
+    payload = {
+        "context": fingerprint_context(text),
+        "files": file_records,
+        "event": event_record,
+        "identity": identity,
+        "checkpoint": checkpoint_state,
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    sources = ["activeContext", "step_files", "identity"]
+    if event_record["sha256"] != "missing":
+        sources.append("event_log")
+    if checkpoint_state is not None:
+        sources.append("checkpoint")
+    return {
+        "fingerprint": digest,
+        "sources": sources,
+        "files": [record["path"] for record in file_records],
+    }
+
+
 def resolve_checkpoint_resume(
     cwd: str | Path,
     *,

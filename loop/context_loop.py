@@ -9,6 +9,7 @@ Next mode/step — решение модели по context, не отдельн
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import os
@@ -93,6 +94,7 @@ from harness.hooks.epic import (  # noqa: E402
     gates_from_phase,
     discover_epic_for_pipeline,
     post_implement_phase,
+    progress_snapshot,
     _event_log_path,
     utc_now,
 )
@@ -378,6 +380,7 @@ _SCOPED_PATH_PREFIXES = (
     "apps/",
     "tests/",
     "dsh/",
+    "harness/",
     "loop/",
     ".claude/",
     "scripts/",
@@ -385,8 +388,8 @@ _SCOPED_PATH_PREFIXES = (
 )
 _CODE_PATH_RE = re.compile(
     r"(?:^|[\s\"'`])"
-    r"((?:frontend|apps|tests|dsh|loop|\.claude)/[A-Za-z0-9_./-]+\."
-    r"(?:ts|tsx|js|jsx|py|json|ya?ml|md|sh))"
+    r"((?:frontend|apps|tests|dsh|harness|loop|\.claude)/[A-Za-z0-9_./-]+\."
+    r"(?:ts|tsx|js|jsx|py|json|ya?ml|mdc|md|sh))(?![A-Za-z0-9])"
 )
 _BARE_FILE_RE = re.compile(r"`([A-Za-z0-9_-]+\.(?:ts|tsx|js|jsx|py))`")
 _FILES_BLOCK_RE = re.compile(r"(?ms)^files:\s*\n((?:[ \t]*-[ \t]*.+\n)*)")
@@ -394,7 +397,7 @@ _CONTEXT_LIST_RE = re.compile(
     r"(?ms)^[ \t]*(?:consumes|produces):\s*\n((?:[ \t]*-[ \t]*.+\n)*)"
 )
 _DELTA_LINE_PATH_RE = re.compile(
-    r"^\s*-\s*['\"]?((?:frontend|apps|tests|dsh|loop|\.claude|memory-bank)/"
+    r"^\s*-\s*['\"]?((?:frontend|apps|tests|dsh|harness|loop|\.claude|memory-bank)/"
     r"[^\s:'\"`]+)"
 )
 
@@ -489,6 +492,91 @@ def extract_shard_code_paths(cwd: str | Path, shard_text: str) -> list[str]:
             add(resolved)
 
     return out
+
+
+def _step_progress_paths(
+    cwd: Path, load_now: list[str], state: dict[str, Any]
+) -> list[str]:
+    """Return files whose changes count as progress for the armed step.
+
+    ``activeContext.md`` is the lifecycle cursor, but it is not the only useful
+    progress signal. A session can create or repair a scoped test/code file
+    before it reaches FINISH. Keep this list derived from the current shard so
+    unrelated dirty files cannot defeat the stall guard.
+    """
+    work = _work_shard_path(cwd, load_now)
+    if work is None:
+        return []
+
+    try:
+        shard_text = work.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    paths = list(extract_shard_code_paths(cwd, shard_text))
+    try:
+        from epic_yaml import load_decompose, resolve_implement_path
+        from epic_paths import epic_id_from_decompose_path
+
+        decompose = load_decompose(work)
+        epic_id = str(
+            state.get("armed_epic")
+            or epic_id_from_decompose_path(work)
+            or decompose.plan_id
+        )
+        paths.append(
+            resolve_implement_path(
+                cwd,
+                decompose.role,
+                epic_id,
+                decompose.step_id,
+                plan_id=decompose.plan_id,
+            )
+        )
+    except Exception:
+        pass
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for raw in paths:
+        rel = str(raw).replace("\\", "/").strip().lstrip("./")
+        if not rel or rel in seen or ".." in Path(rel).parts:
+            continue
+        seen.add(rel)
+        result.append(rel)
+    return sorted(result)
+
+
+def _step_progress_fingerprint(cwd: Path, paths: list[str]) -> str:
+    """Hash scoped step files, including missing files and untracked files."""
+    digest = hashlib.sha256()
+    for rel in sorted(set(paths)):
+        path = cwd / rel
+        digest.update(rel.encode("utf-8"))
+        digest.update(b"\0")
+        try:
+            if path.is_file():
+                digest.update(b"file\0")
+                digest.update(hashlib.sha256(path.read_bytes()).digest())
+            else:
+                digest.update(b"missing\0")
+        except OSError as exc:
+            digest.update(f"error:{type(exc).__name__}\0".encode("utf-8"))
+    return digest.hexdigest()
+
+
+def _progress_snapshot(
+    cwd: Path,
+    text: str,
+    state: dict[str, Any],
+    progress_paths: list[str],
+) -> dict[str, Any]:
+    return progress_snapshot(
+        cwd,
+        paths=extract_load_now(text) + list(progress_paths),
+        state=state,
+        context=text,
+    )
 
 
 def detect_delta_paths(
@@ -797,7 +885,7 @@ def _codex_native_collaboration_block() -> str:
 3. Для managed child используй отдельную модель из `PROJECT_AGENT_<NAME>_MODEL_CODEX`; harness передаёт её в native `spawn_agent.model`. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) от этого не меняй.
 4. Перед FINISH IMPLEMENT/TASK/BUGFIX/QA обязательно spawn ровно одного gate-субагента: `verify-implement`, `verify-bugfix`, `verify-qa` или соответствующий текущему режиму; дождись `wait` и только затем учитывай valid fenced JSON verdict.
 5. Если verify возвращает FAIL, spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись `wait`, затем повтори verify.
-6. `reconcile` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Spawn read-only `reconcile` только для явного текущего режима `BACK RECONCILE`, если для текущего epic существует decompose-бандл с входными файлами в ALLOW READ; дождись `wait`, затем сформируй только reconcile artifact.
+6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Spawn read-only `reconcile-verify` только для явного текущего режима `BACK RECONCILE`, если для текущего epic существует decompose-бандл с входными файлами в ALLOW READ; дождись `wait`, затем сформируй только reconcile artifact.
 7. Не выдумывай receipt/verdict, не редактируй runtime gate state и не выставляй вручную `in_flight`/`status: completed`. Если native spawn недоступен или получил unsupported call — остановись с диагностикой.
 """
 
@@ -1782,6 +1870,8 @@ def prepare_session(
     delta_scope, delta_paths = detect_delta_paths(cwd_p, existing)
     delta_ok = delta_scope == "exist"
     st = load_epic_state(cwd_p)
+    stall_n = int(st.get("fingerprint_stall_count") or 0)
+    progress_paths = _step_progress_paths(cwd_p, existing, st)
 
     # Cursor already synced from index.yaml earlier in prepare (SoT).
     _auto_advanced = bool(cursor_sync.get("synced"))
@@ -1805,7 +1895,7 @@ def prepare_session(
     step_id = st.get("armed_step")
     plan_id = st.get("armed_epic")
     try:
-        if last and last.get("status") != "aborted":
+        if last and last.get("status") != "aborted" and stall_n == 0:
             resume_lines = []
         else:
             resume_lines = dirty_resume_prompt_lines(
@@ -1813,7 +1903,7 @@ def prepare_session(
                 step_id=step_id,
                 plan_id=plan_id,
                 epic_id=st.get("armed_epic"),
-                delta=existing,
+                delta=(delta_paths or existing),
                 resume_from=step_id if _auto_advanced else ((last or {}).get("resume_from") or step_id),
                 last=last,
             )
@@ -1829,8 +1919,6 @@ def prepare_session(
                 "FORBIDDEN: discard/revert dirty step files; full-repo rediscovery.",
             ]
 
-    st_pre = load_epic_state(cwd_p)
-    stall_n = int(st_pre.get("fingerprint_stall_count") or 0)
     if stall_n > 0:
         resume_lines = list(resume_lines or [])
         resume_lines.extend(
@@ -1916,6 +2004,14 @@ def prepare_session(
     st["halt_reason"] = None
     st["pending_fingerprint_before"] = fp
     st["load_now_before"] = existing
+    st["step_progress_paths"] = progress_paths
+    reconcile_current_epic_events(cwd_p)
+    progress_before = _progress_snapshot(cwd_p, text, st, existing + progress_paths)
+    st["pending_progress_fingerprint"] = progress_before["fingerprint"]
+    st["progress_sources"] = progress_before["sources"]
+    st["step_progress_fingerprint"] = _step_progress_fingerprint(
+        cwd_p, progress_paths
+    )
     previous_fp = st.get("degraded_fingerprint")
     if degraded:
         if previous_fp == fp:
@@ -2007,7 +2103,48 @@ def prepare_session(
         next_action="invoke",
         resume_policy="same_step",
         degraded_count=int(st.get("degraded_count") or 0),
+        metadata={
+            "progress_fingerprint": progress_before["fingerprint"],
+            "progress_sources": ",".join(progress_before["sources"]),
+        },
     )
+    progress_after_checkpoint = _progress_snapshot(
+        cwd_p,
+        text,
+        st,
+        existing + progress_paths,
+    )
+    st["pending_progress_fingerprint"] = progress_after_checkpoint["fingerprint"]
+    st["progress_sources"] = progress_after_checkpoint["sources"]
+    checkpoint_lifecycle(
+        cwd_p,
+        checkpoint_id=f"{checkpoint_session}:{st.get('armed_step') or 'context'}",
+        session_id=checkpoint_session,
+        runner_id=st.get("runner_id") or os.environ.get("EPIC_RUNNER_ID"),
+        identity={
+            "pipeline": st.get("pipeline_id") or st.get("dag_pipeline"),
+            "epic": st.get("armed_epic"),
+            "role": st.get("role") or projection.get("projection", {}).get("role"),
+            "step": st.get("armed_step"),
+            "action": "invoke",
+        },
+        step_id=st.get("armed_step") or str(active_context_path(cwd_p).relative_to(cwd_p)),
+        phase=projection.get("phase") or "UNKNOWN",
+        phase_epoch=projection.get("phase_epoch") or "unknown",
+        projection_hash=projection.get("projection_hash"),
+        index_fingerprint=projection.get("projection", {}).get("index_fingerprint"),
+        context_fingerprint=fp,
+        stage="prepared",
+        status="active",
+        next_action="invoke",
+        resume_policy="same_step",
+        degraded_count=int(st.get("degraded_count") or 0),
+        metadata={
+            "progress_fingerprint": progress_after_checkpoint["fingerprint"],
+            "progress_sources": ",".join(progress_after_checkpoint["sources"]),
+        },
+    )
+    save_epic_state(cwd_p, st)
 
     from loop.runtime_adapters.common import get_adapter_for_runtime
     from loop.runtime_adapters.base import SessionContext
@@ -2051,7 +2188,7 @@ def prepare_session(
     try:
         publish_runner_identity(
             runtime_dir(cwd_p),
-            epic_id=str(st.get("armed_epic") or armed_epic or ""),
+            epic_id=str(st.get("armed_epic") or ""),
             phase=str(phase_raw or ""),
             step=str(armed_step_now or ""),
         )
@@ -2514,6 +2651,51 @@ def check_after(
                 fingerprint_repair.get("step_id"),
             )
         if before and fp_now == before:
+            st_progress = load_epic_state(cwd_p)
+            progress_paths = _step_progress_paths(
+                cwd_p,
+                extract_load_now(text),
+                st_progress,
+            )
+            progress_before = str(st_progress.get("pending_progress_fingerprint") or "")
+            checkpoint = load_checkpoint(cwd_p) or {}
+            checkpoint_meta = checkpoint.get("metadata") if isinstance(checkpoint, dict) else {}
+            if not progress_before and isinstance(checkpoint_meta, dict):
+                progress_before = str(checkpoint_meta.get("progress_fingerprint") or "")
+            current_progress = _progress_snapshot(
+                cwd_p,
+                text,
+                st_progress,
+                progress_paths,
+            )
+            progress_now = current_progress["fingerprint"]
+            if progress_before and progress_before != progress_now:
+                st_progress["fingerprint_stall_count"] = 0
+                st_progress["fingerprint_stall_fingerprint"] = None
+                st_progress["step_progress_paths"] = progress_paths
+                st_progress["step_progress_fingerprint"] = progress_now
+                st_progress["pending_progress_fingerprint"] = progress_now
+                st_progress["progress_sources"] = current_progress["sources"]
+                save_epic_state(cwd_p, st_progress)
+                reason = (
+                    "activeContext fingerprint не изменился, но composite progress "
+                    "текущего шага изменился — продолжаем recovery"
+                )
+                logger.warning("check_after: %s", reason)
+                return {
+                    "ok": True,
+                    "halt": False,
+                    "complete": False,
+                    "retry": True,
+                    "retry_fingerprint_stall": True,
+                    "progress_fingerprint_changed": True,
+                    "reason": reason,
+                    "fingerprint_repair": fingerprint_repair,
+                    "fingerprint_stall_count": 0,
+                    "fingerprint": fp_now,
+                    "progress_fingerprint": progress_now,
+                    "progress_sources": current_progress["sources"],
+                }
             st_stall = load_epic_state(cwd_p)
             prev_stall_fp = st_stall.get("fingerprint_stall_fingerprint")
             if prev_stall_fp == fp_now:

@@ -117,6 +117,110 @@ def test_sync_cursor_skips_implement_when_analyze_pending(tmp_path: Path) -> Non
     assert res["armed_step"] == "ANALYZE"
 
 
+def test_extract_shard_paths_includes_harness_files() -> None:
+    ctx = _load_ctx()
+    shard = """
+context:
+  files:
+    - harness/hooks/tests/test_regression.py
+    - harness/cursor/rules/shared/contract.mdc
+"""
+
+    assert ctx.extract_shard_code_paths(ROOT, shard) == [
+        "harness/hooks/tests/test_regression.py",
+        "harness/cursor/rules/shared/contract.mdc",
+    ]
+
+
+def test_check_after_recognizes_scoped_worktree_progress_without_handoff(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A changed step file must reset the stall counter and trigger another session."""
+    monkeypatch.setenv("EPIC_DEGRADED_MAX", "1")
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        "memory-bank/integration/plan/decompose-x/e16-foo.yaml",
+        "schema: epic-decompose/v1\n"
+        "role: integ\n"
+        "step_id: e16\n"
+        "plan_id: x\n"
+        "title: foo\n"
+        "next_phase: INTEG IMPLEMENT\n"
+        "context:\n"
+        "  files:\n"
+        "    - harness/hooks/tests/test_regression.py\n",
+    )
+    _write(tmp_path, "harness/hooks/tests/test_regression.py", "before\n")
+
+    prep = ctx.prepare_session(tmp_path)
+    assert prep["ok"] is True
+    _write(tmp_path, "harness/hooks/tests/test_regression.py", "after\n")
+
+    after = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
+
+    assert after["ok"] is True
+    assert after.get("halt") is not True
+    assert after.get("retry_fingerprint_stall") is True
+    assert after.get("progress_fingerprint_changed") is True
+    assert after.get("fingerprint_stall_count") == 0
+
+
+def test_progress_baseline_is_checkpointed_and_tracks_implement_artifact(
+    tmp_path: Path,
+) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+
+    prep = ctx.prepare_session(tmp_path)
+    assert prep["ok"] is True
+
+    checkpoint = ctx.load_checkpoint(tmp_path)
+    assert checkpoint is not None
+    metadata = checkpoint.get("metadata") or {}
+    assert metadata.get("progress_fingerprint")
+    assert "checkpoint" in metadata.get("progress_sources", "")
+
+    _write(
+        tmp_path,
+        "memory-bank/integration/implement/implement-x/index.md",
+        "| Step | Status |\n| e16 | active |\n",
+    )
+    after = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
+
+    assert after["ok"] is True
+    assert after.get("retry_fingerprint_stall") is True
+    assert "step_files" in after.get("progress_sources", [])
+
+
+def test_checkpoint_lifecycle_progress_resets_stall_without_handoff(
+    tmp_path: Path,
+) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    prep = ctx.prepare_session(tmp_path)
+    assert prep["ok"] is True
+
+    checkpoint = ctx.load_checkpoint(tmp_path)
+    assert checkpoint is not None
+    checkpoint["stage"] = "committed"
+    checkpoint["status"] = "committed"
+    checkpoint["next_action"] = "resume"
+    checkpoint["updated_at"] = "test"
+    checkpoint_path = tmp_path / ".claude/runtime/epic/checkpoint.json"
+    checkpoint_path.write_text(
+        json.dumps(checkpoint, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    after = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
+
+    assert after["ok"] is True
+    assert after.get("retry_fingerprint_stall") is True
+    assert "checkpoint" in after.get("progress_sources", [])
+
+
 def test_dag_fanout_arms_dependency_ready_node(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _write(tmp_path, "memory-bank/activeContext.md", "## load_now\n1. old\n")

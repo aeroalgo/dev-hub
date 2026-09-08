@@ -1,7 +1,7 @@
 {
-  "name": "reconcile",
-  "policy_fingerprint": "sha256:7065d7bc76c42307f7328ccba58659e5c9576743f59855a2558e66cc02cf8609",
-  "source_prompt_sha256": "72426379a5160f6ddfef1b09b017c14aeac8e1872418ad626bd0a0fa5337d237",
+  "name": "reconcile-verify",
+  "policy_fingerprint": "sha256:1c90a8edf26606dd8ae57fb1f106cd7a21ec3dd5a39ab4b2dc34a45677a27298",
+  "source_prompt_sha256": "0b453b0eb250180bc65142935a61c0ea0c4894989e819e9cde14d986e70a3741",
   "disallowedTools": [
     "Write",
     "Edit",
@@ -18,7 +18,7 @@
   ],
   "managed": true,
   "codex_native_settings": {
-    "model": "cx/gpt-5.6-luna",
+    "model": "cx/gpt-5.6-luna-high",
     "model_reasoning_effort": "medium",
     "sandbox_mode": "workspace-write"
   },
