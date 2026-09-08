@@ -23,6 +23,11 @@ def test_hub_link_idempotent(tmp_path: Path):
     product_hooks = product_dir / ".claude" / "hooks"
     assert product_hooks.exists()
 
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        entrypoint = product_dir / name
+        assert entrypoint.is_symlink()
+        assert entrypoint.resolve() == (hub_dir / name).resolve()
+
     # Second run (idempotent)
     res2 = subprocess.run([str(hub_link_bin), "--mode=full", str(product_dir)], env=env, capture_output=True, text=True)
     assert res2.returncode == 0, f"Second hub-link failed: {res2.stderr}"

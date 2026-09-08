@@ -7,8 +7,13 @@
     "@deepseek-ai/dsh-base": "^0.1.1-rc.2",
     "@deepseek-ai/dsh-headless": "^0.1.1-rc.2",
     "dsh-phase-models": "file:../../patches",
-    "@deepseek-ai/dsh-hooks-claude-code": "0.0.1-rc.5",
-    "@dev-hub/dsh-epic-gate": "file:../../plugins/epic-gate"
+    "@dev-hub/dsh-tool-name-compat": "file:../../plugins/tool-name-compat",
+    "dsh-cc-agents": "^0.1.2",
+    "dsh-cc-hooks": "^0.1.2",
+    "dsh-cc-loader": "^0.1.2",
+    "dsh-cc-mcp": "^0.1.2",
+    "dsh-cc-permissions": "^0.2.2",
+    "dsh-cc-skills": "^0.1.2"
   },
   "dsh": {
     "profile": {

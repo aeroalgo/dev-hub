@@ -97,8 +97,19 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 5. Strip marker block from CLAUDE.md (preserve user content)
-  if [[ -f "$PRODUCT_ROOT/CLAUDE.md" ]]; then
+  for name in AGENTS.md CLAUDE.md; do
+    dest="$PRODUCT_ROOT/$name"
+    if [[ -L "$dest" ]]; then
+      resolved_target="$(readlink -f "$dest" 2>/dev/null || true)"
+      canonical_target="$(readlink -f "$DEV_HUB/$name" 2>/dev/null || true)"
+      if [[ -n "$canonical_target" && "$resolved_target" == "$canonical_target" ]]; then
+        rm "$dest"
+        echo "removed $name"
+      fi
+    fi
+  done
+
+  if [[ -f "$PRODUCT_ROOT/CLAUDE.md" && ! -L "$PRODUCT_ROOT/CLAUDE.md" ]]; then
     python3 -c "
 import sys
 sys.path.insert(0, '$DEV_HUB')
@@ -107,14 +118,14 @@ strip_claude_md_block('$PRODUCT_ROOT/CLAUDE.md')
 " 2>/dev/null || true
   fi
 
-  # 6. Restore settings.json from .hub-backup if exists
+  # 7. Restore settings.json from .hub-backup if exists
   BACKUP_SETTINGS="$PRODUCT_ROOT/.claude/settings.json.hub-backup"
   if [[ -f "$BACKUP_SETTINGS" ]]; then
     mv "$BACKUP_SETTINGS" "$PRODUCT_ROOT/.claude/settings.json"
     echo "restored .claude/settings.json from backup"
   fi
 
-  # 7. Remove installer-owned .agents/skills link if created by --with-skills
+  # 8. Remove installer-owned .agents/skills link if created by --with-skills
   if [[ -L "$PRODUCT_ROOT/.agents/skills" ]]; then
     target_link="$(readlink "$PRODUCT_ROOT/.agents/skills" || true)"
     canonical_harness_skills="$(cd "$DEV_HUB/harness/skills" 2>/dev/null && pwd || true)"
@@ -142,7 +153,7 @@ fi
 
 # Full mode: removes legacy full symlinks tree
 for name in \
-  .cursor/rules .cursor/templates .agents CLAUDE.md \
+  .cursor/rules .cursor/templates .agents AGENTS.md CLAUDE.md \
   .claude/agents .claude/hooks .claude/skills .claude/commands \
   .claude/instructions .claude/rules .claude/settings.json .claude/project.env \
   .claude/project.env.local

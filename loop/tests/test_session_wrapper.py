@@ -205,6 +205,40 @@ def test_heartbeat_writes_to_stderr_not_stdout(tmp_path: Path) -> None:
     assert "==> heartbeat:" not in proc.stdout
 
 
+def test_heartbeat_reports_last_dsh_activity(tmp_path: Path) -> None:
+    log = tmp_path / "heartbeat-activity.log"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(RESILIENCE),
+            "run-session",
+            "--mode",
+            "headless",
+            "--session-id",
+            "hb-activity",
+            "--timeout",
+            "2",
+            "--kill-grace",
+            "0.2",
+            "--heartbeat-sec",
+            "0.15",
+            "--progress-mode",
+            "stream_bytes",
+            "--log",
+            str(log),
+            "--",
+            sys.executable,
+            "-c",
+            "import time; print('==> dsh: Bash pytest -q', flush=True); time.sleep(0.5)",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0
+    assert 'activity="==> dsh: Bash pytest -q"' in proc.stderr
+
+
 def test_stream_bytes_progress_resets_idle_on_any_output(tmp_path: Path) -> None:
     sr = _load_resilience()
     log = tmp_path / "stream-bytes-idle.log"

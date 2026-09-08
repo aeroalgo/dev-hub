@@ -170,6 +170,41 @@ def test_install_profiles_provisions_local_bundle(tmp_path: Path) -> None:
         assert matched, log_lines
 
 
+def test_install_cc_hooks_does_not_repeat_dependency_install(tmp_path: Path) -> None:
+    import os
+    import stat
+    import subprocess
+
+    dsh_home = tmp_path / "dsh"
+    (dsh_home / "profiles" / "epic-implement").mkdir(parents=True)
+    fakebin = tmp_path / "bin"
+    fakebin.mkdir()
+    pnpm = fakebin / "pnpm"
+    pnpm.write_text(
+        "#!/usr/bin/env bash\n"
+        "printf 'unexpected pnpm invocation\n' >&2\n"
+        "exit 99\n",
+        encoding="utf-8",
+    )
+    pnpm.chmod(pnpm.stat().st_mode | stat.S_IEXEC)
+
+    env = os.environ.copy()
+    env["DSH_HOME"] = str(dsh_home)
+    env["PATH"] = f"{fakebin}{os.pathsep}{env['PATH']}"
+
+    result = subprocess.run(
+        ["bash", str(ROOT / "dsh" / "scripts" / "install-cc-hooks.sh")],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert (dsh_home / "patches" / "cc-hooks-bridge.yml").is_file()
+
+
 def test_shared_phase_models_is_a_dsh_bundle() -> None:
     manifest = json.loads((ROOT / "dsh" / "patches" / "package.json").read_text(encoding="utf-8"))
     assert manifest["dsh"]["bundle"]["patch"] == "./phase-models.yml"

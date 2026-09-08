@@ -232,6 +232,12 @@ if [[ "$MODE" == "alongside" ]]; then
     echo "ERROR: hub harness directory missing: $DEV_HUB/harness" >&2
     exit 2
   fi
+  for entrypoint in AGENTS.md CLAUDE.md; do
+    if [[ ! -f "$DEV_HUB/$entrypoint" ]]; then
+      echo "ERROR: canonical runtime entrypoint missing: $DEV_HUB/$entrypoint" >&2
+      exit 2
+    fi
+  done
 
   # 1. Symlink harness/ -> $DEV_HUB/harness
   link_one "harness" "$DEV_HUB/harness"
@@ -280,16 +286,12 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 4. Symlink CLAUDE.harness.md -> harness/claude/CLAUDE.harness.md (or $DEV_HUB/harness/claude/CLAUDE.harness.md)
+  link_one "AGENTS.md" "$DEV_HUB/AGENTS.md"
+  link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
+
+  # 5. Symlink CLAUDE.harness.md -> harness/claude/CLAUDE.harness.md (or $DEV_HUB/harness/claude/CLAUDE.harness.md)
   if [[ -f "$DEV_HUB/harness/claude/CLAUDE.harness.md" ]]; then
     link_one "CLAUDE.harness.md" "$DEV_HUB/harness/claude/CLAUDE.harness.md"
-  fi
-
-  # 5. Patch or create CLAUDE.md with harness marker block
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[dry-run] patch CLAUDE.md marker block"
-  else
-    python3 "$DEV_HUB/loop/hub_claude_patch.py" "$PRODUCT_ROOT/CLAUDE.md"
   fi
 
   # 6. Merge settings.json if harness settings exist
@@ -336,32 +338,7 @@ if [[ "$MODE" == "alongside" ]]; then
     fi
   fi
 
-  # 9. AGENTS.md stub if missing
-  AGENTS="$PRODUCT_ROOT/AGENTS.md"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[dry-run] write AGENTS.md (if missing)"
-  elif [[ ! -e "$AGENTS" ]] || { [[ -f "$AGENTS" ]] && grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null; }; then
-    cat > "$AGENTS" <<EOF
-<!-- dev-hub product stub: keep this file; modes/skills live in DEV_HUB -->
-# Agent entry (product)
-
-- **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
-- **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
-  \`.cursor/rules/mainrule.mdc\` (symlinked from the harness).
-- **DSH runtime:** start from this \`AGENTS.md\`; use native \`read\` to follow only
-  the selected workflow's \`@\`-links and load only its declared \`SKILL.md\` files.
-- **Claude Code extension:** \`harness/claude/\`
-- **Skills:** \`harness/skills/*/SKILL.md\`
-- **Artifacts:** only this repo — \`memory-bank/\`
-- **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
-
-On role command: read the router, select the current role/phase, then traverse
-only that role/phase workflow chain.
-EOF
-    echo "write   AGENTS.md"
-  fi
-
-  # 10. Pack rules (if --pack specified)
+  # 9. Pack rules (if --pack specified)
   if [[ -n "$PACK_ID" ]]; then
     install_pack_rules "$PACK_ID"
   fi
@@ -375,6 +352,12 @@ if [[ ! -d "$DEV_HUB/.cursor/rules" ]]; then
   echo "ERROR: hub rules missing: $DEV_HUB/.cursor/rules" >&2
   exit 2
 fi
+for entrypoint in AGENTS.md CLAUDE.md; do
+  if [[ ! -f "$DEV_HUB/$entrypoint" ]]; then
+    echo "ERROR: canonical runtime entrypoint missing: $DEV_HUB/$entrypoint" >&2
+    exit 2
+  fi
+done
 
 mkdir -p "$PRODUCT_ROOT/.cursor" "$PRODUCT_ROOT/.claude"
 
@@ -383,6 +366,7 @@ link_one ".cursor/templates" "$DEV_HUB/.cursor/templates"
 if [[ -d "$DEV_HUB/harness/skills" ]]; then
   link_one ".agents/skills" "$DEV_HUB/harness/skills"
 fi
+link_one "AGENTS.md" "$DEV_HUB/AGENTS.md"
 link_one "CLAUDE.md" "$DEV_HUB/CLAUDE.md"
 if [[ -d "$DEV_HUB/harness" ]]; then
   link_one "harness" "$DEV_HUB/harness"
@@ -408,33 +392,6 @@ if [[ -e "$DEV_HUB/.claude/project.env.local" && ! -e "$PRODUCT_ROOT/.claude/pro
   link_one ".claude/project.env.local" "$DEV_HUB/.claude/project.env.local"
 fi
 mkdir -p "$PRODUCT_ROOT/.claude/runtime" "$PRODUCT_ROOT/.claude/worktrees"
-
-# Cursor always-on stub (real file, not symlink) — points agent at hub modes.
-STUB="$PRODUCT_ROOT/.cursor/rules-product"
-# rules is symlink to hub; product-only stub lives beside via AGENTS.md
-AGENTS="$PRODUCT_ROOT/AGENTS.md"
-if [[ ! -f "$AGENTS" ]] || grep -q 'dev-hub product stub' "$AGENTS" 2>/dev/null; then
-  cat > "$AGENTS" <<EOF
-<!-- dev-hub product stub: keep this file; modes/skills live in DEV_HUB -->
-# Agent entry (product)
-
-- **DEV_HUB:** \`$DEV_HUB\` (also \`.dev-hub\` / \`Makefile\`)
-- **Workflow commands** (\`BACK IMPLEMENT\`, \`FRONT PLAN\`, \`INTEG GAP\`, …): follow
-  \`.cursor/rules/mainrule.mdc\` (symlinked from hub).
-- **DSH runtime:** start from this \`AGENTS.md\`; use native \`read\` to follow only
-  the selected workflow's \`@\`-links and load only its declared \`SKILL.md\` files.
-- **Claude Code extension:** \`.claude/agents\` (\`verify\`/\`reviewer\`/\`explorer\`), hooks, settings — symlinks → hub; \`runtime/\` local to this product.
-- **Skills:** \`harness/skills/*/SKILL.md\`
-- **Artifacts:** only this repo — \`memory-bank/\`
-- **Autoloop:** \`make loop ARGS="gpt"\` / \`make loop-epic EPIC=decompose-…\`
-- **Harness:** \`harness/\` layer (hooks, \`epic_resolve\`).
-- **EPIC_RUNTIME values:** \`claude\` (default), \`dsh\`, \`codex\`.
-
-On role command: read hub router \`.cursor/rules/mainrule.mdc\` first, select the
-current role/phase, then traverse only that role/phase workflow chain.
-EOF
-  echo "write   AGENTS.md"
-fi
 
 # Ensure .dev-hub exists for Make
 if [[ ! -f "$PRODUCT_ROOT/.dev-hub" ]]; then

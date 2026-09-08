@@ -38,6 +38,7 @@ import {
   applySessionProgress,
   sessionProgressInject,
 } from './session-progress.ts';
+import { applyToolNameCompatibility } from './tool-name-compat.ts';
 
 export const name = 'epic-gate';
 export const inject = [...new Set([
@@ -48,6 +49,7 @@ export const inject = [...new Set([
 ])];
 
 export function apply(ctx: Context, config: EpicGateConfig = {}): void {
+  applyToolNameCompatibility(ctx);
   applyPreToolUse(ctx, config);
   applySubagentStart(ctx, config);
   applySubagentStop(ctx, config);

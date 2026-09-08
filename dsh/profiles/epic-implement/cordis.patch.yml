@@ -1,4 +1,4 @@
-# Profile patch layer: register the local gate prompts and phase model.
+# Profile patch layer: register the phase model and Claude Code compatibility.
 # The dsh loader resolves relative file references from this profile directory.
 - insert:
     - id: agent-presets
@@ -21,18 +21,35 @@
       credentials: !!js process.env.DSH_HOME + '/.credentials.yaml'
 
 - insert:
-    - id: cc-hooks-bridge
-      name: '@deepseek-ai/cordis-plugin-include'
+    - id: cc-skills
+      name: 'dsh-cc-skills'
       config:
-        path: ../../patches/cc-hooks-bridge.yml
-        patches:
-          - id: dsh-hooks-claude-code
-            required: true
-
-- insert:
-    - id: epic-gate
-      name: '@dev-hub/dsh-epic-gate'
+        enableSkills: true
+        enableRules: true
+        enableGlobal: true
+    - id: cc-permissions
+      name: 'dsh-cc-permissions'
       config:
-        python: !!js process.env.PYTHON ?? 'python3'
-        validator: !!js process.env.DSH_SPAWN_VALIDATE ?? '.claude/hooks/spawn_validate.py'
-      required: true
+        enabled: true
+        hideDeniedTools: true
+    - id: cc-agents
+      name: 'dsh-cc-agents'
+      config:
+        provider: spawn
+        toolName: cc_agent
+        injectCatalog: true
+    - id: cc-hooks
+      name: 'dsh-cc-hooks'
+      config:
+        enabled: true
+        enableGlobal: true
+    - id: cc-mcp
+      name: 'dsh-cc-mcp'
+      config:
+        enableProject: true
+        pluginRoots: []
+        idleTimeoutMs: 300000
+        toolCallTimeoutMs: 60000
+        watchProject: true
+    - id: tool-name-compat
+      name: '@dev-hub/dsh-tool-name-compat'

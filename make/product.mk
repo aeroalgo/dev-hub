@@ -30,7 +30,7 @@ hub-info:
 	@echo "PROJECT_ROOT=$(PROJECT_ROOT)"
 	@echo "LOOP_BIN=$(LOOP_BIN)"
 	@echo "links:"
-	@ls -la "$(PROJECT_ROOT)/.cursor/rules" "$(PROJECT_ROOT)/.agents" "$(PROJECT_ROOT)/CLAUDE.md" 2>/dev/null || true
+	@ls -la "$(PROJECT_ROOT)/.cursor/rules" "$(PROJECT_ROOT)/.agents" "$(PROJECT_ROOT)/AGENTS.md" "$(PROJECT_ROOT)/CLAUDE.md" 2>/dev/null || true
 
 hub-link:
 	@DEV_HUB="$(DEV_HUB)" PROJECT_ROOT="$(PROJECT_ROOT)" "$(DEV_HUB)/bin/hub-link" --with-skills "$(PROJECT_ROOT)"
@@ -44,7 +44,7 @@ cursor-workspace:
 	@echo "Or run: make hub-link  # then Reload Window"
 
 loop-help:
-	@echo "make hub-link          # Cursor: rules + skills + CLAUDE.md from hub"
+	@echo "make hub-link          # Cursor/agents: rules + skills + entrypoints from hub"
 	@echo "make hub-unlink"
 	@echo "make loop ARGS='gpt'"
 	@echo "make loop ARGS='decompose-T-013 gpt'"

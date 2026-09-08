@@ -28,7 +28,7 @@ def test_alongside_is_default(tmp_path: Path):
 
 
 def test_alongside_clean_fixture(tmp_path: Path):
-    """alongside on clean product fixture: harness/ symlink + .dev-hub + router stub created; CLAUDE.md absent = no CLAUDE.md created."""
+    """alongside links the hub entrypoints and creates the remaining integration artifacts."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "clean_product"
     product_dir.mkdir()
@@ -60,15 +60,29 @@ def test_alongside_clean_fixture(tmp_path: Path):
     assert claude_harness.is_symlink()
     assert claude_harness.resolve() == (hub_dir / "harness" / "claude" / "CLAUDE.harness.md").resolve()
 
-    # AGENTS.md created
-    agents_md = product_dir / "AGENTS.md"
-    assert agents_md.exists()
+    # Runtime entrypoints resolve to the hub's canonical files.
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        entrypoint = product_dir / name
+        assert entrypoint.is_symlink()
+        assert entrypoint.resolve() == (hub_dir / name).resolve()
 
-    # CLAUDE.md created with marker block
-    claude_md = product_dir / "CLAUDE.md"
-    assert claude_md.exists()
-    assert "<!-- dev-hub:harness:begin -->" in claude_md.read_text()
-    assert "<!-- dev-hub:harness:end -->" in claude_md.read_text()
+
+def test_alongside_links_runtime_entrypoints_to_hub(tmp_path: Path):
+    """alongside uses the hub's canonical runtime entrypoints as symlinks."""
+    hub_dir = Path(__file__).resolve().parents[2]
+    product_dir = tmp_path / "linked_entrypoints_product"
+    product_dir.mkdir()
+
+    env = dict(os.environ, DEV_HUB=str(hub_dir))
+    hub_link_bin = hub_dir / "bin" / "hub-link"
+
+    res = subprocess.run([str(hub_link_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
+    assert res.returncode == 0, f"hub-link failed: {res.stderr}"
+
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        entrypoint = product_dir / name
+        assert entrypoint.is_symlink(), f"{name} must be a symlink"
+        assert entrypoint.resolve() == (hub_dir / name).resolve()
 
 
 def test_alongside_default_mode(tmp_path: Path):
@@ -84,8 +98,8 @@ def test_alongside_default_mode(tmp_path: Path):
     assert res.returncode == 0, f"hub-link failed: {res.stderr}"
 
     claude_md = product_dir / "CLAUDE.md"
-    assert claude_md.exists()
-    assert "<!-- dev-hub:harness:begin -->" in claude_md.read_text()
+    assert claude_md.is_symlink()
+    assert claude_md.resolve() == (hub_dir / "CLAUDE.md").resolve()
     assert (product_dir / "harness").is_symlink()
 
 
@@ -111,8 +125,8 @@ def test_alongside_fails_on_conflict(tmp_path: Path):
     assert harness_conflict.read_text() == "existing user content"
 
 
-def test_alongside_preserves_existing_user_agents_and_claude_md(tmp_path: Path):
-    """alongside mode patches CLAUDE.md while preserving existing user content, and leaves AGENTS.md intact."""
+def test_alongside_fails_on_existing_user_entrypoints(tmp_path: Path):
+    """alongside does not overwrite user-owned runtime entrypoints."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "existing_files_product"
     product_dir.mkdir()
@@ -127,18 +141,15 @@ def test_alongside_preserves_existing_user_agents_and_claude_md(tmp_path: Path):
     hub_link_bin = hub_dir / "bin" / "hub-link"
 
     res = subprocess.run([str(hub_link_bin), "--mode=alongside", str(product_dir)], env=env, capture_output=True, text=True)
-    assert res.returncode == 0
+    assert res.returncode != 0
+    assert "ERROR:" in res.stderr
 
-    claude_text = claude_md.read_text()
-    assert "# My User Project" in claude_text
-    assert "User custom claude instructions" in claude_text
-    assert "<!-- dev-hub:harness:begin -->" in claude_text
-    assert "<!-- dev-hub:harness:end -->" in claude_text
+    assert claude_md.read_text() == "# My User Project\n\nUser custom claude instructions\n"
     assert agents_md.read_text() == "User custom agents instructions"
 
 
-def test_alongside_creates_claude_md(tmp_path: Path):
-    """patch on missing CLAUDE.md creates file with marker block."""
+def test_alongside_links_claude_md(tmp_path: Path):
+    """missing CLAUDE.md is linked to the hub's canonical file."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "missing_claude_product"
     product_dir.mkdir()
@@ -150,11 +161,8 @@ def test_alongside_creates_claude_md(tmp_path: Path):
     assert res.returncode == 0
 
     claude_md = product_dir / "CLAUDE.md"
-    assert claude_md.exists()
-    content = claude_md.read_text()
-    assert "<!-- dev-hub:harness:begin -->" in content
-    assert "<!-- dev-hub:harness:end -->" in content
-    assert "Harness role commands" in content
+    assert claude_md.is_symlink()
+    assert claude_md.resolve() == (hub_dir / "CLAUDE.md").resolve()
 
 
 def test_alongside_preserves_claude(tmp_path: Path):
@@ -210,14 +218,10 @@ def test_alongside_router_stub_conflict(tmp_path: Path):
 
 
 def test_alongside_unlink(tmp_path: Path):
-    """alongside unlink removes harness symlink and .dev-hub; CLAUDE.md user content intact."""
+    """alongside unlink removes hub-owned entrypoint symlinks and integration artifacts."""
     hub_dir = Path(__file__).resolve().parents[2]
     product_dir = tmp_path / "unlink_product"
     product_dir.mkdir()
-
-    # User preexisting CLAUDE.md and settings
-    claude_md = product_dir / "CLAUDE.md"
-    claude_md.write_text("# My User Project\n\nUser instructions here.\n")
 
     env = dict(os.environ, DEV_HUB=str(hub_dir))
     hub_link_bin = hub_dir / "bin" / "hub-link"
@@ -228,6 +232,8 @@ def test_alongside_unlink(tmp_path: Path):
     assert res_link.returncode == 0
 
     assert (product_dir / "harness").is_symlink()
+    assert (product_dir / "AGENTS.md").is_symlink()
+    assert (product_dir / "CLAUDE.md").is_symlink()
     assert (product_dir / ".dev-hub").is_file()
     assert (product_dir / ".cursor" / "rules.d" / "dev-hub-harness-router.mdc").is_file()
 
@@ -237,18 +243,11 @@ def test_alongside_unlink(tmp_path: Path):
 
     # Installer artifacts removed
     assert not (product_dir / "harness").exists()
+    assert not (product_dir / "AGENTS.md").exists()
+    assert not (product_dir / "CLAUDE.md").exists()
     assert not (product_dir / ".dev-hub").exists()
     assert not (product_dir / ".cursor" / "rules.d" / "dev-hub-harness-router.mdc").exists()
     assert not (product_dir / "CLAUDE.harness.md").exists()
-
-    # User content preserved
-    assert claude_md.exists()
-    content = claude_md.read_text()
-    assert "# My User Project" in content
-    assert "User instructions here." in content
-    assert "<!-- dev-hub:harness:begin -->" not in content
-    assert "<!-- dev-hub:harness:end -->" not in content
-
 
 def test_alongside_settings_hooks_point_to_harness(tmp_path: Path):
     """US-005: merged settings keep user permissions; hooks resolve via harness/hooks."""

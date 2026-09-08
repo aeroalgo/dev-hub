@@ -119,10 +119,9 @@ make hub-link
 |-----------|------------------|
 | `.cursor/rules`, `.cursor/templates` | `dev-hub/.cursor/…` |
 | `.agents` | `dev-hub/.agents` |
-| `CLAUDE.md` | `dev-hub/CLAUDE.md` |
+| `AGENTS.md`, `CLAUDE.md` | `dev-hub/AGENTS.md`, `dev-hub/CLAUDE.md` |
 | `.claude/agents`, `hooks`, `skills`, `commands`, … | `dev-hub/.claude/…` |
 | `.dev-hub` | относительный путь к хабу (только указатель для Make/CLI, не каталог конфигурации) |
-| `AGENTS.md` | stub с подсказками для агента |
 
 Конфигурация проекта и targets задаётся строго в корневом `dev-hub.project.yaml` (схема `dev-hub-project/v1`, шаблон: `harness/templates/dev-hub.project.yaml`). Устаревшие пути `project.yaml` и `.dev-hub/project.yaml` более не поддерживаются.
 

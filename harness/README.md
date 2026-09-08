@@ -43,9 +43,8 @@ Non-destructive integration designed for external product repositories. It layer
 - Writes relative path to `$DEV_HUB` in `.dev-hub` (one-line pointer, never YAML/config directory)
 - Places router stub at `.cursor/rules.d/dev-hub-harness-router.mdc`
 - Symlinks `CLAUDE.harness.md` -> `$DEV_HUB/harness/claude/CLAUDE.harness.md`
-- Patches `CLAUDE.md` using marker blocks (`<!-- dev-hub:harness:start -->` ... `<!-- dev-hub:harness:end -->`) preserving user instructions
+- Symlinks `AGENTS.md` and `CLAUDE.md` to the canonical files in `$DEV_HUB`; existing regular entrypoints are left untouched and cause a fail-closed conflict
 - Merges hooks from `harness/claude/settings.harness.json` into `.claude/settings.json` preserving user permissions; hook commands point to `harness/hooks/*.py` (via product `harness/` symlink), not `.claude/hooks/`
-- Creates `AGENTS.md` stub if missing
 
 Project targets and workflow pack configuration are defined solely in root `dev-hub.project.yaml` (`dev-hub-project/v1`). Old config locations (`project.yaml`, `.dev-hub/project.yaml`) are removed and not read. Example template: `harness/templates/dev-hub.project.yaml`.
 

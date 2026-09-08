@@ -25,9 +25,9 @@ Mount the Claude Code command-hook bridge into installed epic-* DSH profiles.
   --dry-run  print planned changes without modifying the filesystem
   --help     show this help
 
-The installer requires pnpm and installs each existing profile's dependencies
-without running package lifecycle scripts. Run install-profiles.sh first when
-profiles have not yet been installed.
+Run install-profiles.sh first when profiles have not yet been installed. This
+script only mounts the bridge; dependency installation belongs to
+install-profiles.sh.
 EOF
 }
 
@@ -56,10 +56,6 @@ fi
 if ((DRY_RUN)); then
   printf 'Dry run: would mount bridge fragment to %s (%s).\n' "$PATCH_TARGET" "$MODE"
 else
-  command -v pnpm >/dev/null 2>&1 || {
-    printf 'pnpm not found: install pnpm before installing DSH profiles\n' >&2
-    exit 127
-  }
   mkdir -p "$PATCH_DEST"
   if same_path "$PATCH_SOURCE" "$PATCH_TARGET"; then
     printf 'Bridge fragment already mounted at %s\n' "$PATCH_TARGET"
@@ -82,14 +78,12 @@ for profile in "${profiles[@]}"; do
     continue
   fi
   if ((DRY_RUN)); then
-    printf 'Would install dependencies: %s\n' "$target"
-  else
-    (cd "$target" && pnpm install --ignore-scripts)
+    printf 'Profile already installed; no dependency install needed: %s\n' "$target"
   fi
 done
 
 if ((DRY_RUN)); then
   printf 'Dry run complete; no files changed.\n'
 else
-  printf 'Mounted Claude Code hooks bridge and installed dependencies for available profiles in %s\n' "$PROFILE_DEST"
+  printf 'Mounted Claude Code hooks bridge in available profiles in %s\n' "$PROFILE_DEST"
 fi

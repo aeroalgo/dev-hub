@@ -1037,6 +1037,8 @@ def run_session(
     total = 0
     scan_buf = ""
     tool_tail = ""
+    progress_line_buf = ""
+    last_progress = "starting"
     # Idle: tool_json = last tool_use/tool_result; stream_bytes = last stdout chunk (Codex).
     last_activity = started
     last_heartbeat = started
@@ -1098,13 +1100,14 @@ def run_session(
                     state = "running" if process.poll() is None else "exited"
                     hb = (
                         f"SESSION_HEARTBEAT session={session_id} elapsed={elapsed:.1f}s "
-                        f"idle_for={idle_for:.1f}s state={state} cwd={os.getcwd()}\n"
+                        f"idle_for={idle_for:.1f}s state={state} activity=\"{last_progress}\" "
+                        f"cwd={os.getcwd()}\n"
                     )
                     log.write(hb)
                     log.flush()
                     _write_status(
                         f"==> heartbeat: session={session_id} elapsed={elapsed:.1f}s "
-                        f"idle_for={idle_for:.1f}s state={state}\n"
+                        f"idle_for={idle_for:.1f}s state={state} activity=\"{last_progress}\"\n"
                     )
                     last_heartbeat = now
                 if (
@@ -1143,6 +1146,13 @@ def run_session(
                             chunk_txt = data.decode("utf-8", errors="replace")
                         except Exception:
                             chunk_txt = ""
+                        progress_line_buf += chunk_txt
+                        while "\n" in progress_line_buf:
+                            progress_line, progress_line_buf = progress_line_buf.split("\n", 1)
+                            progress_line = " ".join(progress_line.split())
+                            if progress_line.startswith("==> dsh:"):
+                                last_progress = progress_line[:200]
+                        progress_line_buf = progress_line_buf[-512:]
                         if progress_mode == "codex_json":
                             unsupported_tool = _detect_codex_unsupported_tool(chunk_txt)
                             if unsupported_tool:

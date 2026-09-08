@@ -55,7 +55,7 @@ Mount the Claude Code command-hook bridge into the installed profiles with:
 dsh/scripts/install-cc-hooks.sh
 ```
 
-This copies `dsh/patches/cc-hooks-bridge.yml` to `$DSH_HOME/patches/cc-hooks-bridge.yml` and runs `pnpm install --ignore-scripts` for each installed `epic-*` profile. Use `--link` to symlink the fragment or `--dry-run` to inspect the plan without changing the filesystem; profiles missing from `$DSH_HOME/profiles/` are reported and skipped. In headless CI, set `DSH_HOME` to the job-local DSH directory and run the same non-interactive command after `install-profiles.sh`, for example `DSH_HOME="$RUNNER_TEMP/dsh" dsh/scripts/install-cc-hooks.sh`.
+This copies `dsh/patches/cc-hooks-bridge.yml` to `$DSH_HOME/patches/cc-hooks-bridge.yml` and mounts it into each installed `epic-*` profile. Dependency installation is performed once by `install-profiles.sh`; the hooks installer does not repeat it. Use `--link` to symlink the fragment or `--dry-run` to inspect the plan without changing the filesystem; profiles missing from `$DSH_HOME/profiles/` are reported and skipped. In headless CI, set `DSH_HOME` to the job-local DSH directory and run the same non-interactive command after `install-profiles.sh`, for example `DSH_HOME="$RUNNER_TEMP/dsh" dsh/scripts/install-cc-hooks.sh`.
 
 > `--link` keeps profile directories linked to this checkout; it still installs dependencies into each profile and therefore requires a writable checkout.
 
@@ -197,6 +197,10 @@ For native `subagent/start`, the plugin resolves only explicit `verify`, `review
 DSH starts with the product `AGENTS.md`. Its native `read` tool then follows the
 selected role/phase chain through `.cursor/rules/mainrule.mdc`, workflow `@` links,
 Gates, the current shard, and only the explicitly declared `SKILL.md` files.
-The global `.agents/skills` catalog and Claude Code compatibility mount are not
-loaded into the DSH system prompt. DSH uses native lowercase tool names:
-`read`, `write`, `edit`, and `bash`.
+The global `.agents/skills` catalog and Claude Code asset compatibility mount are
+not loaded into the DSH system prompt by default. DSH uses native lowercase tool
+names: `read`, `write`, `edit`, and `bash`; the IMPLEMENT profile additionally
+mounts `@dev-hub/dsh-tool-name-compat`, which registers bounded Claude-name
+aliases and delegates `Read`/`Write`/`Edit`/`Bash` calls to the native tools.
+Session progress reports failed tool results with their name, call id, and
+bounded error text.

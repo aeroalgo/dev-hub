@@ -1,0 +1,3 @@
+- insert:
+    - id: tool-name-compat
+      name: '@dev-hub/dsh-tool-name-compat'
