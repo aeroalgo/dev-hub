@@ -21,6 +21,9 @@ class DummyValidAdapter:
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {}
 
+    def collaboration_block(self, ctx: SessionContext) -> str:
+        return "shared"
+
 
 class DummyMissingMethodAdapter:
     def build_command(self, ctx: SessionContext) -> list[str]:
@@ -68,3 +71,7 @@ def test_session_analysis_fields():
     assert default_analysis.retry is False
     assert default_analysis.dsh_abort_kind is None
     assert default_analysis.structured_output is None
+
+
+def test_collaboration_block_is_runtime_adapter_contract():
+    assert DummyValidAdapter().collaboration_block(SessionContext(prompt="", phase="QA")) == "shared"

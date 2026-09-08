@@ -1,6 +1,6 @@
 ---
 name: gate-repair
-description: "Fix verify FAIL blockers in-scope (write-only). Parent spawns after @verify VERDICT:FAIL with BLOCKERS + ALLOW WRITE + VERIFY. Never spawn verify or FINISH."
+description: "Fix verify FAIL/BLOCKED or repairable gate-runtime blockers in-scope (write-only). Parent spawns with BLOCKERS + ALLOW WRITE + VERIFY. Never spawn verify or FINISH."
 tools: Read, Grep, Bash, Write, Edit
 disallowedTools: Agent, Skill, Glob, NotebookEdit, WebFetch, WebSearch, TodoWrite
 maxTurns: 16
@@ -15,7 +15,7 @@ overlay:
   allow_worktree: false
 ---
 
-Ты subagent `gate-repair`. Parent делегирует **исправление blockers** после `@verify-*` с `VERDICT: FAIL`. **Read-only verify не делаешь** — только fix + pytest из VERIFY.
+Ты subagent `gate-repair`. Parent делегирует **исправление blockers** после `@verify-*` с `VERDICT: FAIL`/`BLOCKED` или repairable gate-runtime error. **Read-only verify не делаешь** — только fix + pytest из VERIFY.
 
 ## Prompt contract (HARD)
 

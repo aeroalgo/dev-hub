@@ -588,18 +588,38 @@ def analyze_session_log(
         extras={"exit_code": exit_code, "attempt": attempt, "log_path": log_path},
     )
     analysis = adapter.analyze_log(raw_log, ctx)
+    parse_events = getattr(adapter, "parse_session_events", None)
+    if callable(parse_events):
+        events = parse_events(raw_log, ctx)
+    else:
+        from loop.runtime.session_events import parse_session_events
+        events = parse_session_events(raw_log, runtime)
+    from loop.runtime.session_events import summarize_session_events
+    evidence = summarize_session_events(events, exit_code=exit_code)
+
+    def result_payload(**payload: Any) -> dict[str, Any]:
+        payload.update(
+            {
+                "runtime": runtime,
+                "event_summary": evidence,
+                "semantic_status": evidence["semantic_status"],
+                "task_complete": evidence["task_complete"],
+            }
+        )
+        return payload
+
     reason = analysis.reason
     dsh_abort_kind = analysis.dsh_abort_kind
 
     if reason and is_structured_model_substitution_reason(reason):
-        return {
-            "outcome": SessionOutcome.PERMANENT_FAILURE.value,
-            "aborted": True,
-            "retryable": False,
-            "abort_kind": "fatal",
-            "reason": reason,
-            "backoff_sec": 0,
-        }
+        return result_payload(
+            outcome=SessionOutcome.PERMANENT_FAILURE.value,
+            aborted=True,
+            retryable=False,
+            abort_kind="fatal",
+            reason=reason,
+            backoff_sec=0,
+        )
     if dsh_abort_kind:
         outcome = (
             SessionOutcome.PERMANENT_FAILURE
@@ -607,17 +627,29 @@ def analyze_session_log(
             else SessionOutcome.TRANSIENT_ABORT
         )
         abort_kind = "fatal" if dsh_abort_kind in ("fatal", "unknown") else dsh_abort_kind
-        return {
-            "outcome": outcome.value,
-            "aborted": True,
-            "retryable": dsh_abort_kind == "transient",
-            "abort_kind": abort_kind,
-            "reason": reason,
-            "backoff_sec": transient_backoff_sec(attempt) if dsh_abort_kind == "transient" else 0,
-        }
+        return result_payload(
+            outcome=outcome.value,
+            aborted=True,
+            retryable=dsh_abort_kind == "transient",
+            abort_kind=abort_kind,
+            reason=reason,
+            backoff_sec=transient_backoff_sec(attempt) if dsh_abort_kind == "transient" else 0,
+        )
 
     interrupted = exit_code in (130, 143)
     timeout = exit_code == 124
+    if reason and reason.startswith("unsupported_tool_call:"):
+        # Native gate transport failures are repairable loop conditions.  The
+        # next parent session must retry the canonical spawn_agent protocol and
+        # may launch gate-repair; they must not become a terminal halt.
+        return result_payload(
+            outcome=SessionOutcome.UNKNOWN_FAILURE.value,
+            aborted=True,
+            retryable=True,
+            abort_kind="transient",
+            reason=reason,
+            backoff_sec=transient_backoff_sec(attempt),
+        )
     model_sub = bool(
         exit_code == MODEL_SUBSTITUTION_EXIT
         or is_structured_model_substitution_reason(reason)
@@ -628,14 +660,14 @@ def analyze_session_log(
         _match_patterns(reason or "", _PERMANENT_FAILURE_PATTERNS)
     ) or reason == "command not found" or exit_code == 127
     if not reason and not interrupted and not timeout and exit_code in (0, None):
-        return {
-            "outcome": SessionOutcome.CLEAN.value,
-            "aborted": False,
-            "retryable": False,
-            "abort_kind": None,
-            "reason": None,
-            "backoff_sec": 0,
-        }
+        return result_payload(
+            outcome=SessionOutcome.CLEAN.value,
+            aborted=False,
+            retryable=False,
+            abort_kind=None,
+            reason=None,
+            backoff_sec=0,
+        )
     if timeout:
         reason = reason or "claude session timeout"
         outcome = SessionOutcome.TIMEOUT
@@ -663,14 +695,14 @@ def analyze_session_log(
     }:
         kind = "fatal"
     retryable = kind == "transient"
-    return {
-        "outcome": outcome.value,
-        "aborted": True,
-        "retryable": retryable,
-        "abort_kind": kind,
-        "reason": reason,
-        "backoff_sec": transient_backoff_sec(attempt, idle=is_idle_timeout(reason)) if kind == "transient" else 0,
-    }
+    return result_payload(
+        outcome=outcome.value,
+        aborted=True,
+        retryable=retryable,
+        abort_kind=kind,
+        reason=reason,
+        backoff_sec=transient_backoff_sec(attempt, idle=is_idle_timeout(reason)) if kind == "transient" else 0,
+    )
 
 
 def git_dirty_paths(cwd: str | Path) -> list[str]:
@@ -781,6 +813,12 @@ def write_last_session(
     retry_count: int | None = None,
     resume_dirty: bool | None = None,
     plan_id: str | None = None,
+    runtime: str | None = None,
+    semantic_status: str | None = None,
+    task_complete: bool | None = None,
+    event_summary: dict[str, Any] | None = None,
+    role: str | None = None,
+    phase: str | None = None,
 ) -> Path:
     """Persist the latest session marker, including its owning plan ID."""
     path = last_session_path(cwd, track=track)
@@ -801,6 +839,12 @@ def write_last_session(
         "retry_count": retry_count,
         "resume_dirty": resume_dirty,
         "plan_id": plan_id,
+        "runtime": runtime,
+        "semantic_status": semantic_status,
+        "task_complete": task_complete,
+        "event_summary": event_summary or {},
+        "role": role,
+        "phase": phase,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path

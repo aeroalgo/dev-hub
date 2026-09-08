@@ -442,7 +442,11 @@ def invalidate_session_actors(
     ledger in that session is invalidated and transitions to the new content version.
     """
     proj_path = Path(project_root).expanduser().resolve()
-    base_dir = runtime_dir or (proj_path / ".claude" / "runtime")
+    if runtime_dir is None:
+        from epic_paths import epic_dir as runtime_epic_dir
+        base_dir = runtime_epic_dir(proj_path).parent
+    else:
+        base_dir = runtime_dir
     safe_proj = re.sub(r"[^a-zA-Z0-9._-]+", "_", proj_path.name or "proj")[:64]
     safe_sess = re.sub(r"[^a-zA-Z0-9._-]+", "_", root_session_id or "sess")[:64]
     sess_dir = base_dir / "context-ledger" / safe_proj / safe_sess

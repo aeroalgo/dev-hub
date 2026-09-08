@@ -175,6 +175,12 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     if role_dir == "integ":
         role_dir = "integration"
 
+    phase_run_id = (
+        state.get("phase_run_id")
+        or state.get("session_id")
+        or os.environ.get("EPIC_RUNNER_SESSION_ID")
+    )
+
     if not epic_id:
         decompose = state.get("armed_decompose") or ""
         if decompose:
@@ -185,7 +191,6 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     if rerun is not None:
         rerun = QaAfterBugfix.model_validate(rerun)
         if rerun.epic_id == epic_id:
-            phase_run_id = state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID")
             if not phase_run_id or phase_run_id == rerun.phase_run_id:
                 return MbFinishResult(
                     ok=False,
@@ -235,20 +240,35 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             diagnostic_codes=["qa_verdict_missing"],
             shape_errors=["qa-*.yaml missing or invalid verdict (must be pass, fail, or blocked)"],
         )
-    if qa_verdict == "pass" and rerun is not None and rerun.epic_id == epic_id:
+    # A QA artifact is only a report.  Closing QA requires a fresh autonomous
+    # verify-qa receipt for the current run.  Re-QA already had this check;
+    # applying it to normal QA closes the path that previously forged qa_pass.
+    reviewer_required = bool(state.get("active")) or (
+        rerun is not None and rerun.epic_id == epic_id
+    )
+    if qa_verdict == "pass" and reviewer_required:
         reviewer = state.get("last_reviewer_evidence")
         matched, _ = gate_evidence_matches(cwd, reviewer)
+        verifier_identity = (
+            str(reviewer.get("verifier_identity") or reviewer.get("agent_id") or "").strip()
+            if isinstance(reviewer, dict)
+            else ""
+        )
         if (
             state.get("last_reviewer_verdict") != "PASS"
+            or state.get("reviewer_done") is not True
+            or not phase_run_id
             or state.get("last_reviewer_phase_run_id") != phase_run_id
             or not isinstance(reviewer, dict)
             or str(reviewer.get("step") or "").upper() != "QA"
+            or verifier_identity not in {"verify-qa", "reviewer"}
+            or reviewer.get("authority") == "manual"
             or not matched
         ):
             return MbFinishResult(
                 ok=False,
                 diagnostic_codes=["qa_reviewer_required"],
-                shape_errors=["The new QA run requires its own reviewer PASS before FINISH"],
+                shape_errors=["The current QA run requires its own autonomous verify-qa PASS receipt before FINISH"],
             )
     if qa_verdict in {"fail", "blocked"}:
         next_mode = "BUGFIX"

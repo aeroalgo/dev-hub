@@ -22,6 +22,7 @@ from epic import (  # noqa: E402
 from epic.core import active_context_path, checkpoint_lock_path, checkpoint_path, load_checkpoint  # noqa: E402
 from epic_paths import epic_id_from_decompose_path  # noqa: E402
 from _lib import merged_project_env_map  # noqa: E402
+from loop.decompose_gate import decompose_shards_diagnostic  # noqa: E402
 try:
     from loop.analyze_gate import analyze_required_before_implement  # noqa: E402
 except ImportError:
@@ -599,6 +600,18 @@ def resolve_entry(
             "phase": None,
         }
     steps = loaded.get("steps") or []
+    shard_diagnostic = decompose_shards_diagnostic(idx, steps)
+    if shard_diagnostic:
+        return {
+            "ok": True,
+            "epic": slug,
+            "queue_id": epic_id,
+            "phase": "DECOMPOSE",
+            "plan": plan.relative_to(root).as_posix(),
+            "decompose": idx.relative_to(root).as_posix(),
+            "decompose_reason": "decompose_shards_missing",
+            "reason": shard_diagnostic,
+        }
     next_step = find_next_decompose_step_from_queue(steps)
     decomp_rel = idx.relative_to(root).as_posix()
     if next_step is not None:

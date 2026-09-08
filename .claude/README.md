@@ -14,19 +14,21 @@ claude
 
 ```
 BACK PLAN          →  /back-plan
+BACK PLAN REFACTOR →  /back-plan-refactor
 FRONT CREATIVE     →  /front-creative
 PM PLAN            →  /pm-plan
 IDEA PIPELINE      →  /idea-pipeline
 ```
 
-## Все slash-команды (81)
+## Все slash-команды (82)
 
-### BACK (15)
+### BACK (16)
 
 | Slash | Chat |
 |-------|------|
 | `/back-van` | BACK VAN |
 | `/back-plan` | BACK PLAN |
+| `/back-plan-refactor` | BACK PLAN REFACTOR |
 | `/back-roadmap-merge` | BACK ROADMAP MERGE |
 | `/back-decompose` | BACK DECOMPOSE |
 | `/back-creative` | BACK CREATIVE |

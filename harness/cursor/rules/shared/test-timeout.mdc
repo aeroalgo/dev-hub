@@ -40,6 +40,13 @@ timeout -k 10s 300s make test
 - **suite (мульти-команда):** весь набор команд — максимум 300 секунд только при явном внешнем wrapper вокруг всего набора;
 - если scope не указан вне QA — targeted-команда с лимитом 300 секунд; в QA scope по умолчанию = **full**.
 
+## DECOMPOSE / IMPLEMENT boundary (HARD)
+
+- При нарезке каждый `sNN`/`eNN` обязан получать только executable targeted-проверки по своему `files`/`delta`/`plan_contract` scope.
+- Full pytest suite без path/nodeid/`-k` запрещён в `verify` и `checkpoints[].verify` decompose-shard’а: такой shard не проходит `validate-decompose-tree`.
+- В decompose можно зафиксировать, что full suite является QA handoff, но executable full-команду записывает и запускает только QA-артефакт после IMPLEMENT.
+- Если проверка требует более широкого покрытия, её нужно вынести в отдельный QA outcome, а не расширять scope implement-шарду.
+
 ## Parity
 
 Этот контракт обязателен для:

@@ -2,7 +2,7 @@ schema: epic-decompose/v1
 role: back
 step_id: s05
 plan_id: T-HUB-083-role-core-shared-contract
-title: "Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных изменений"
+title: "Mode-W matrix подтверждает отсутствие компенсационных изменений; full suite — QA handoff"
 next_phase: BACK IMPLEMENT
 needs_creative: "no"
 
@@ -10,7 +10,7 @@ goal: |
   Финальная semantic regression matrix запускает реальные role-core contract checks для BACK,
   FRONT и INTEG и подтверждает, что после extraction ни один mode W не получил compensating
   change. Named tests сохраняют BACK promotion, FRONT parent-only boundary, INTEG contract
-  fanout и hub/managed runner wording; полный hub suite фиксирует TM-083-06 после targeted checks.
+  fanout и hub/managed runner wording; full hub suite остаётся QA handoff для TM-083-06 после targeted checks.
 
 plan_contract:
   fr_ids:
@@ -52,7 +52,7 @@ context:
   produces:
     - mode-W regression test with explicit role matrix
     - targeted semantic evidence for all three roles
-    - full hub-suite evidence without role-specific compensating changes
+    - QA handoff for full hub-suite evidence without role-specific compensating changes
   plan_refs:
     - plan.md#fr--ac
     - plan.md#how--eng-spine
@@ -67,8 +67,8 @@ as_built:
 
 delta:
   - "Create a mode-W regression test that enumerates the three role-only guard groups and asserts no shared extraction compensating branch is required."
-  - "Run targeted semantic contract tests for common owner, imports, role markers and runner branch before full suite."
-  - "Record the canonical full hub suite command and its result as the TM-083-06 acceptance evidence; do not substitute a targeted command for full suite."
+  - "Run targeted semantic contract tests for common owner, imports, role markers and runner branch."
+  - "Hand off TM-083-06 to QA; do not execute or record the full hub suite in this IMPLEMENT shard."
 
 deletes: []
 
@@ -98,14 +98,10 @@ checkpoints:
   - id: cp4
     criterion: "The semantic suite observes hub/managed runner wording and all three role imports after purge."
     verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line"
-  - id: cp5
-    criterion: "The full hub suite runs with the repository wrapper and no targeted-only substitute is recorded as TM-083-06."
-    verify: "bin/pytest -q --tb=line"
-
 verify:
   - "Mode-W regression uses actual role-core files and does not duplicate policy content as a test fixture."
-  - "Targeted semantic checks pass before the full suite is attempted."
-  - "Full-suite evidence uses bin/pytest from repository root and is not silently downgraded to a targeted command."
+  - "Targeted semantic checks pass within this shard scope."
+  - "TM-083-06 is handed off to QA; this IMPLEMENT shard contains no executable full-suite command."
 
 tdd:
   - test_mode_w_does_not_need_compensating_role_changes

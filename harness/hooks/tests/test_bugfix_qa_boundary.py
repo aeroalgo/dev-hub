@@ -9,6 +9,7 @@ from harness.hooks.epic.core import (
     reduce_epic_lifecycle,
     save_epic_state,
 )
+from harness.hooks._lib import gate_identity, load_state, save_state, verdict_evidence
 
 
 def test_reducer_keeps_qa_open_until_post_bugfix_run_finishes(tmp_path: Path):
@@ -30,6 +31,18 @@ def test_reducer_keeps_qa_open_until_post_bugfix_run_finishes(tmp_path: Path):
             "existing_artifacts": ["memory-bank/back/qa/demo/qa-old.yaml"],
         },
     })
+    assert reduce_epic_lifecycle(tmp_path, "back", epic)["phase"] == "QA"
+
+
+def test_reducer_reopens_qa_after_gate_repair(tmp_path: Path):
+    epic = "demo"
+    qa = tmp_path / "memory-bank/back/qa/demo/qa-old.yaml"
+    qa.parent.mkdir(parents=True)
+    qa.write_text("verdict: pass\nepic_id: demo\n")
+    _append_event(tmp_path, "back", epic, "qa_pass", qa)
+    _append_event(tmp_path, "back", epic, "repair_applied", qa)
+
+    assert reduce_epic_lifecycle(tmp_path, "back", epic)["reason_code"] == "qa_gate_repair_required"
     assert reduce_epic_lifecycle(tmp_path, "back", epic)["phase"] == "QA"
 from loop.mb_finish.impl import finish_bugfix, finish_qa
 from loop.mb_finish.schemas import MbFinishRequest
@@ -90,9 +103,32 @@ def test_bugfix_requires_new_qa_session_and_new_artifact(tmp_path: Path):
     unreviewed = finish_qa(_request(tmp_path, "QA"))
     assert not unreviewed.ok
     assert "qa_reviewer_required" in unreviewed.diagnostic_codes
-    mirror_gate_verdict(tmp_path, "PASS", agent_id="reviewer", evidence={
-        "authority": "manual", "step": "QA", "session_id": "qa-rerun",
-    })
+    sid = "runner"
+    st = load_epic_state(tmp_path)
+    st["projection"] = {
+        "epic_id": "demo",
+        "role": "BACK",
+        "next_step": "QA",
+        "projection_hash": "projection-qa",
+        "phase_epoch": "epoch-qa",
+        "event_digest": "events-qa",
+    }
+    save_epic_state(tmp_path, st)
+    gate_state = load_state(sid, str(tmp_path))
+    gate_state["in_flight"] = [{"agent": "verify-qa", "managed": True}]
+    save_state(sid, str(tmp_path), gate_state)
+    evidence = verdict_evidence(
+        gate_identity(load_epic_state(tmp_path), sid),
+        "PASS",
+        verifier_identity="verify-qa",
+    )
+    mirror_gate_verdict(
+        tmp_path,
+        "PASS",
+        agent_id="reviewer",
+        evidence=evidence,
+        session_id=sid,
+    )
     result = finish_qa(_request(tmp_path, "QA"))
     assert result.ok, result
     assert result.epic_done

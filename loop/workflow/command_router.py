@@ -49,6 +49,10 @@ _ROLE_SUBDIR_MAP = {
     "integration": "integration_developer",
 }
 
+_COMPOSITE_WORKFLOW_FILES = {
+    ("back", "PLAN REFACTOR"): "workflow-plan-refactor.mdc",
+}
+
 
 def route_command(pack: WorkflowPack, raw_command: str, hub_root: Optional[Union[Path, str]] = None) -> CommandRoute:
     """Route raw_command via pack.command_prefixes to canonical phase and relative rules MDC path.
@@ -114,11 +118,15 @@ def route_command(pack: WorkflowPack, raw_command: str, hub_root: Optional[Union
     role_subdir = _ROLE_SUBDIR_MAP.get(role.strip().lower())
     rules_root = str(pack.rules_root or "").rstrip("/")
     phase_lower = normalized_phase.lower()
+    workflow_filename = _COMPOSITE_WORKFLOW_FILES.get(
+        (role.strip().lower(), normalized_phase),
+        f"workflow-{phase_lower}.mdc",
+    )
 
     # Check candidates on disk
-    flat_rel = f"{rules_root}/workflow-{phase_lower}.mdc" if rules_root else f"workflow-{phase_lower}.mdc"
+    flat_rel = f"{rules_root}/{workflow_filename}" if rules_root else workflow_filename
     role_rel = (
-        f"{rules_root}/{role_subdir}/workflow-{phase_lower}.mdc"
+        f"{rules_root}/{role_subdir}/{workflow_filename}"
         if rules_root and role_subdir
         else None
     )
@@ -149,4 +157,3 @@ def route_command(pack: WorkflowPack, raw_command: str, hub_root: Optional[Union
         rules_mdc_rel=rules_mdc_rel,
         diagnostic_codes=[],
     )
-

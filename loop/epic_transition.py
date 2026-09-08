@@ -45,6 +45,9 @@ if str(_LOOP) not in sys.path:
 _PROMOTABLE_PHASES = frozenset({"DECOMPOSE", "ANALYZE"})
 _POST_IMPLEMENT_ARMED = frozenset({"AUDIT", "QA", "BUGFIX", "DONE"})
 _PHASE_REGISTRY_CACHE: dict[str, dict[str, Any]] = {}
+_COMPOSITE_PHASE_BASES = {
+    "PLAN REFACTOR": "PLAN",
+}
 
 
 def normalize_registry_phase(phase: str, pack: Any = None) -> str:
@@ -69,7 +72,7 @@ def normalize_registry_phase(phase: str, pack: Any = None) -> str:
         if normalized.startswith(prefix):
             normalized = normalized[len(prefix) :].strip()
             break
-    return normalized
+    return _COMPOSITE_PHASE_BASES.get(normalized, normalized)
 
 
 def load_phase_registry(
@@ -214,6 +217,7 @@ def arm_phase(
         kwargs["dsh_preset"] = dsh_preset
 
     phase_u = (phase or "").upper()
+    lifecycle_phase_u = normalize_registry_phase(phase_u)
     decompose_rel = kwargs.get("decompose") or kwargs.get("decompose_rel")
 
     env = kwargs.get("env") or os.environ
@@ -242,26 +246,26 @@ def arm_phase(
                 }
 
     try:
-        if phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
+        if lifecycle_phase_u in ("PLAN", "CLARIFY", "ANALYZE", "CREATIVE"):
             target_rel = kwargs.get("target_rel")
             res = arm_pre_implement_context(
                 cwd,
                 epic_id=epic_id,
                 role=role,
-                phase=phase_u,
+                phase=lifecycle_phase_u,
                 target_rel=target_rel,
                 decompose_rel=decompose_rel,
             )
-        elif phase_u == "DECOMPOSE" or phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
+        elif lifecycle_phase_u == "DECOMPOSE" or lifecycle_phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
             if decompose_rel:
                 res = arm_active_context_from_decompose(cwd, decompose_rel)
-            elif phase_u == "DECOMPOSE":
+            elif lifecycle_phase_u == "DECOMPOSE":
                 target_rel = kwargs.get("target_rel")
                 res = arm_pre_implement_context(
                     cwd,
                     epic_id=epic_id,
                     role=role,
-                    phase=phase_u,
+                    phase=lifecycle_phase_u,
                     target_rel=target_rel,
                     decompose_rel=decompose_rel,
                 )
@@ -390,6 +394,14 @@ def promote_if_ready(
         return None
     steps = loaded.get("steps") or []
     if not steps:
+        return None
+
+    from loop.decompose_gate import decompose_shards_diagnostic
+
+    shard_diagnostic = decompose_shards_diagnostic(idx_path, steps)
+    if shard_diagnostic:
+        # This is deliberately checked before analyze_gate: an analyze
+        # artifact cannot promote an incomplete decompose graph.
         return None
 
     decompose_rel = (

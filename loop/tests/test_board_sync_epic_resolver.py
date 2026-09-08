@@ -101,6 +101,12 @@ def test_resolve_v2_layout_plan_implements_pending_id_field(tmp_path: Path):
         "    status: pending\n",
         encoding="utf-8",
     )
+    (idx.parent / "steps" / "s10-migrate-apply-dev-hub.yaml").parent.mkdir(
+        parents=True, exist_ok=True
+    )
+    (idx.parent / "steps" / "s10-migrate-apply-dev-hub.yaml").write_text(
+        "schema: epic-decompose/v1\nstep_id: s10\n", encoding="utf-8"
+    )
 
     res = resolve_epic_next_action(tmp_path, "back", epic_id)
     assert res.phase == "IMPLEMENT"
@@ -109,6 +115,41 @@ def test_resolve_v2_layout_plan_implements_pending_id_field(tmp_path: Path):
     assert res.reason_code == "implement_pending"
     assert res.plan_rel.endswith(f"{epic_id}/md/plan.md")
     assert res.decompose_rel.endswith(f"{epic_id}/yaml/decompose-index.yaml")
+
+
+def test_resolve_v2_pending_without_decompose_shard_restarts_decompose(tmp_path: Path):
+    from loop.paths.epic_layout import EpicLayoutKind, resolve
+
+    epic_id = "T-HUB-084-workflow-reference-graph-hygiene"
+    plan_md = resolve("back", epic_id, EpicLayoutKind.PLAN_MD, project_root=tmp_path)
+    plan_md.parent.mkdir(parents=True, exist_ok=True)
+    plan_md.write_text("# Plan v2\n", encoding="utf-8")
+
+    idx = resolve("back", epic_id, EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
+    idx.parent.mkdir(parents=True, exist_ok=True)
+    idx.write_text(
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic_id}\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: s01-reference-graph-fixtures.yaml\n"
+        "    status: pending\n"
+        "    next_phase: BACK IMPLEMENT\n",
+        encoding="utf-8",
+    )
+
+    analyze_dir = tmp_path / "memory-bank/back/analyze" / epic_id
+    analyze_dir.mkdir(parents=True, exist_ok=True)
+    (analyze_dir / "analyze-pass.yaml").write_text(
+        "schema: epic-analyze/v1\nmetrics:\n  critical_count: 0\n",
+        encoding="utf-8",
+    )
+
+    res = resolve_epic_next_action(tmp_path, "back", epic_id)
+
+    assert res.phase == "DECOMPOSE"
+    assert res.next_command == f"BACK DECOMPOSE {epic_id}"
+    assert res.reason_code == "decompose_shards_missing"
 
 def test_resolve_clarify_required(tmp_path: Path):
     plan_dir = tmp_path / "memory-bank" / "back" / "plan"

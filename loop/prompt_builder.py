@@ -23,6 +23,7 @@ _TOKEN_RE = re.compile(r"[^\s`]+")
 _PHASE_STEP_TOKENS = frozenset(
     {"PLAN", "DECOMPOSE", "ANALYZE", "CREATIVE", "CLARIFY", "AUDIT", "QA", "BUGFIX", "DONE"}
 )
+_COMPOSITE_PHASE_BASES = {"PLAN REFACTOR": "PLAN"}
 
 
 @dataclass(frozen=True)
@@ -132,7 +133,7 @@ def resolve_session_identity(
     def _norm_p(p: str) -> str:
         toks = p.strip().upper().split()
         if len(toks) > 1 and toks[0] in _ROLE_ALIASES:
-            return " ".join(toks[1:])
+            p = " ".join(toks[1:])
         return p.strip().upper()
 
     phase_sources = []
@@ -144,7 +145,7 @@ def resolve_session_identity(
         phase_sources.append(("ac_meta", _norm_p(ac_mode)))
 
     if len(phase_sources) >= 2:
-        norm_phases = set(p[1] for p in phase_sources)
+        norm_phases = set(_COMPOSITE_PHASE_BASES.get(p[1], p[1]) for p in phase_sources)
         if len(norm_phases) > 1:
             return Drift(
                 code="phase_mismatch",
@@ -162,8 +163,8 @@ def resolve_session_identity(
     # Never the string "unknown" if armed
     step_candidate = proj_step_raw or state_armed_step or ac_step_id
     if not step_candidate:
-        if resolved_phase in _PHASE_STEP_TOKENS:
-            step_candidate = resolved_phase
+        if _COMPOSITE_PHASE_BASES.get(resolved_phase, resolved_phase) in _PHASE_STEP_TOKENS:
+            step_candidate = _COMPOSITE_PHASE_BASES.get(resolved_phase, resolved_phase)
         elif not (state_armed_step or state_phase):
             # Unarmed IDE / test without armed state
             step_candidate = "s01"
@@ -335,8 +336,8 @@ def build_prompt_scope(
 
     if not step and phase:
         clean_phase = phase.strip().upper()
-        if clean_phase in _PHASE_STEP_TOKENS:
-            step = clean_phase
+        if _COMPOSITE_PHASE_BASES.get(clean_phase, clean_phase) in _PHASE_STEP_TOKENS:
+            step = _COMPOSITE_PHASE_BASES.get(clean_phase, clean_phase)
 
     if not step:
         step = "-" if is_unarmed else ("" if (role or phase) else "-")
@@ -379,6 +380,21 @@ def build_prompt_scope(
 def render_prompt_scope(scope: PromptScope) -> str:
     """Render the command scope as the first, standalone prompt block."""
 
+    recursive_modes = {"PLAN", "DECOMPOSE", "VAN", "PLAN REFACTOR"}
+    phase = scope.phase.strip().upper()
+    if phase in recursive_modes:
+        workflow_read = (
+            "- HARD READ: по таблице mainrule выбери текущую роль и режим. "
+            "Загрузи только выбранную role/mode chain, её Gates и связанные @-ссылки."
+        )
+    else:
+        workflow_read = (
+            "- HARD READ: по таблице mainrule выбери текущую роль и режим. "
+            "Для code-режима загрузи только Gates, scope-lock, canonical hot path "
+            "и current shard; связанные @-ссылки следуй только если их требует hot path, "
+            "не рекурсивно."
+        )
+
     lines = [
         f"COMMAND: {scope.command}",
         "## CURRENT WORKFLOW SCOPE (HARD)",
@@ -394,9 +410,8 @@ def render_prompt_scope(scope: PromptScope) -> str:
             [
                 "- HARD READ: native DSH tool `read` — прочитай только указанный entrypoint.",
                 "- HARD READ: затем через `read` прочитай `.cursor/rules/mainrule.mdc`.",
-                "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
-                "- HARD READ: следуй только явно указанным `@`-ссылкам выбранной role/mode chain, Gates и текущего shard; каждую ссылку загружай через `read`.",
-                "- Skills: загружай только `SKILL.md`, явно указанные в выбранной цепочке или текущем shard, также через `read`; глобальный каталог skills не используй.",
+                workflow_read,
+                "- Skills: загружай только явно указанные `SKILL.md` из выбранной цепочки или текущего shard, также через `read`.",
                 "- DSH dialect: используй `read`, `write`, `edit`, `bash`; не вызывай Claude Code tools `Read`, `Write`, `Edit`, `Bash`, `Skill` или `Task`.",
                 "- Scope lock: не загружай инструкции других ролей, фаз, команд или skills.",
             ]
@@ -406,11 +421,19 @@ def render_prompt_scope(scope: PromptScope) -> str:
             [
                 "- HARD READ: прочитай только указанный entrypoint.",
                 "- HARD READ: затем прочитай `.cursor/rules/mainrule.mdc`.",
-                "- HARD READ: по таблице mainrule выбери текущую роль и режим.",
-                "- HARD READ: загрузи цепочку связанных файлов выбранной role/mode chain, Gates и ссылок.",
+                workflow_read,
                 "- Scope lock: не загружай инструкции других ролей, фаз или команд.",
             ]
         )
+    lines.extend(
+        [
+            "## SKILLS LOAD POLICY (HARD)",
+            "- Skills загружаются lazy из локального `.agents/skills/` и только в границах выбранного workflow; автоматический каталог не является инструкцией для чтения.",
+            "- Прочитай только конкретные локальные `SKILL.md`, явно указанные выбранной цепочкой или текущим shard (`skills.impl`, `skills.design`, `skills.design_skills`, audit skills).",
+            "- Если workflow/shard не назвал skill-путь, действуй без skill: не перечисляй, не ищи и не preload соседние skills; no skill read.",
+            "- Это локальная политика загрузки workflow и она не отменяет явный запрос пользователя или runtime на конкретный skill.",
+        ]
+    )
     if scope.diagnostics:
         lines.append("- scope diagnostics: " + ", ".join(scope.diagnostics))
     if scope.plan_jumps:

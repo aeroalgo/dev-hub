@@ -16,6 +16,7 @@ from _lib import (
     agent_model_env_key,
     allow_read_violations,
     allow_write_violations,
+    agent_model_from_project_env,
     in_flight_deny_reasons,
     is_epic_loop_env,
     load_state,
@@ -75,7 +76,11 @@ def validate_spawn_input(
                 f"scope_disabled (context={context}); включи _MODEL_{context.upper()}=1"
             )
         else:
-            pinned = (env_models.get(agent_model_env_key(norm, runtime)) or "").strip()
+            pinned = (
+                agent_model_from_project_env(norm, project_dir)
+                if runtime == "codex"
+                else (env_models.get(agent_model_env_key(norm)) or "").strip()
+            )
             if pinned not in (None, "", "inherit"):
                 tool_input["model"] = pinned
         if not definition.overlay.allow_worktree:
@@ -83,7 +88,11 @@ def validate_spawn_input(
 
     spawn_model = resolved_spawn_model(tool_input, definition)
     if spawn_model in (None, "", "inherit") and norm:
-        pinned = (env_models.get(agent_model_env_key(norm, runtime)) or "").strip()
+        pinned = (
+            agent_model_from_project_env(norm, project_dir)
+            if runtime == "codex"
+            else (env_models.get(agent_model_env_key(norm)) or "").strip()
+        )
         if pinned not in (None, "", "inherit"):
             spawn_model = pinned
             if managed and not tool_input.get("model"):

@@ -1,0 +1,195 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-083-role-core-shared-contract
+plan_id: T-HUB-083-role-core-shared-contract
+date: '2026-09-08'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Extract shared memory-bank loading, response format and hub/managed runner
+    policy from three mainrule-core.mdc files. Keep BACK lifecycle/promotion, FRONT
+    visible-UI and parent-only tests, INTEG element-first/contract/gap fanout in compact
+    role cores.
+  source: plan.md#WHAT
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 3
+  fr_satisfied: 3
+  sc_checked: 0
+  layout_paths_total: 5
+  layout_paths_closed: 5
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: Shared contract harness/cursor/rules/shared/role-core-contract.mdc and
+    .cursor/rules/shared/role-core-contract.mdc acts as sole owner of common MEMORY
+    BANK loading, response format prefix, and pytest runner policy with hub exception
+    and managed capability checks.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: BACK, FRONT, and INTEG mainrule-core.mdc each import @.cursor/rules/shared/role-core-contract.mdc
+    exactly once and contain exclusively role-specific semantics (BACK lifecycle/promotion,
+    FRONT visible-UI/parent-only, INTEG element-first/contract/GAP fanout); duplicate
+    common prose completely purged.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: Targeted semantic contract suite test_role_core_contract.py and test_role_core_mode_regression.py
+    assert BACK promotion/lifecycle, FRONT parent-only boundary, INTEG element-first/contract
+    fanout, hub and managed runner branches, and fail-closed behavior on missing imports
+    or copied text.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Negative assertions verify no generic core replaces role responsibility,
+    unconditional managed pytest is rejected, and missing role guards fail closed.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Rules constitution MUST sections respected across all role cores and shared
+    contract.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: 'MUST-1 TDD first followed: red-first tests created in s01 before rule
+    rewires.'
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'MUST-2 No silent fallback: fail-closed validation tests enforce error
+    if shared import or role guard is missing.'
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: 'MUST-3 FRONT tests parent-only: front-tests-parent-only boundary preserved
+    in FRONT mainrule-core.mdc.'
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: 'MUST-4 Lean load: shared contract separates common policy without bloated
+    cross-role loading.'
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: 'MUST-5 Fail-closed misconfiguration: missing import, duplicate import,
+    or missing role guard fails closed.'
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: 'MUST-6 No-guess markers: explicit role markers and response format prefixes
+    enforced.'
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: 'MUST-7 ONE Handoff per step: step handoffs cleanly documented across
+    s01-s05.'
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: 'MUST-8 §0.11 integration parity: mirror sync maintained between harness/cursor/rules
+    and .cursor/rules.'
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: 'MUST-9 Phase authority: AUDIT respects plan intent vs runtime parity
+    without jumping to QA or code modifications.'
+  remaining_work: ''
+architecture_parity:
+- layout_path: harness/cursor/rules/shared/role-core-contract.mdc
+  status: satisfied
+  evidence: Canonical shared role-core contract source defines common memory-bank
+    loading, response format, and runner policy.
+- layout_path: harness/cursor/rules/back_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: BACK mainrule-core imports shared contract once and retains BACK lifecycle/promotion
+    guards.
+- layout_path: harness/cursor/rules/front_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: FRONT mainrule-core imports shared contract once and retains visible-UI
+    and parent-only test guards.
+- layout_path: harness/cursor/rules/integration_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: INTEG mainrule-core imports shared contract once and retains element-first
+    and contract/GAP fanout guards.
+- layout_path: harness/hooks/tests/test_role_core_contract.py
+  status: satisfied
+  evidence: Semantic test suite verifies single shared owner, role imports, and fail-closed
+    behavior.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-083-role-core-shared-contract/s01-role-core-contract-red-tests.yaml
+  delta_paths:
+  - harness/hooks/tests/test_role_core_contract.py
+  evidence: Created red semantic corpus defining common owner and role guard failure
+    matrix.
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-083-role-core-shared-contract/s02-shared-role-core-contract.yaml
+  delta_paths:
+  - harness/cursor/rules/shared/role-core-contract.mdc
+  evidence: Created shared role-core contract owning common loading, format, and runner
+    policy.
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-083-role-core-shared-contract/s03-role-core-wiring-and-preservation.yaml
+  delta_paths:
+  - harness/cursor/rules/back_developer/mainrule-core.mdc
+  - .cursor/rules/back_developer/mainrule-core.mdc
+  - harness/cursor/rules/front_developer/mainrule-core.mdc
+  - .cursor/rules/front_developer/mainrule-core.mdc
+  - harness/cursor/rules/integration_developer/mainrule-core.mdc
+  - .cursor/rules/integration_developer/mainrule-core.mdc
+  - harness/cursor/rules/shared/role-core-contract.mdc
+  - .cursor/rules/shared/role-core-contract.mdc
+  - harness/hooks/tests/test_role_core_contract.py
+  evidence: Rewired BACK, FRONT, and INTEG role cores to import shared contract while
+    preserving role-only guards.
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-083-role-core-shared-contract/s04-role-core-legacy-fallback-purge.yaml
+  delta_paths:
+  - harness/cursor/rules/shared/role-core-contract.mdc
+  - harness/cursor/rules/back_developer/mainrule-core.mdc
+  - harness/cursor/rules/front_developer/mainrule-core.mdc
+  - harness/cursor/rules/integration_developer/mainrule-core.mdc
+  - harness/hooks/tests/test_role_core_contract.py
+  evidence: Purged duplicate common prose from role cores and added fail-closed regression
+    assertions.
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-083-role-core-shared-contract/s05-role-core-semantic-regression.yaml
+  delta_paths:
+  - harness/hooks/tests/test_role_core_mode_regression.py
+  - harness/hooks/tests/test_role_core_contract.py
+  evidence: Built Mode-W regression suite verifying zero compensating role changes
+    across all roles.
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-08'
+  plan_ref: plan.md#replacement--sunset
+  rows:
+  - symbol: common paragraphs copied in 3 cores
+    kind: A
+    command: rg MEMORY_BANK harness/cursor/rules/back_developer/mainrule-core.mdc
+    result: pass
+    prod_callers: 0
+  - symbol: core succeeds without shared policy
+    kind: C
+    command: bin/pytest harness/hooks/tests/test_role_core_contract.py -k test_missing_or_duplicate_import_fails_closed
+    result: pass
+    prod_callers: 0
+  - symbol: duplicate MEMORY BANK/format/runner prose
+    kind: I
+    command: rg RESPONSE_PREFIX harness/cursor/rules/back_developer/mainrule-core.mdc
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+blocked_reason: ''

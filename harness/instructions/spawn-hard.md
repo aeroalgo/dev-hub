@@ -1,4 +1,8 @@
-# HARD — Agent spawn (Claude Code): overlay gates
+# HARD — Shared agent collaboration contract
+
+Этот файл — общая политика gate/subagent для Claude Code, Codex, DSH и loop.
+Runtime adapter добавляет только транспортный dialect запуска и ожидания
+субагента; он не меняет карту gate-агентов, repair-loop или finish-инварианты.
 
 Parent **MAY** spawn любых Agent по нужде.  
 **Обязательные** gate’ы (когда agent enabled в scope): **explorer** (codebase search) · **verify** (pre-FINISH) · **reviewer** (BACK QA).
@@ -55,9 +59,9 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** code-режим сделал широкий codebase search без предшествующего `Agent`→`explorer` в сессии (кроме исключения выше).  
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
 **FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >10 файлов / globs `**` в ALLOW.
-  ├─ verify FAIL → parent @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) → retry @verify
+  ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) → retry @verify
   ├─ gate-repair fail → parent расширяет ALLOW WRITE или чинит сам → retry
-Hooks: `stop-gate` блокирует FINISH при verify FAIL; `agent-pretool` DENY `@gate-repair` без prior verify FAIL; DENY `@verify` если уже PASS.
+Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
 
 **FAIL:** «проверь шаг» / QA review / search без секций.  
 **FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов, ≤10).

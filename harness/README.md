@@ -11,6 +11,7 @@
 
 | Component | Source of Truth (SoT) | Shell / Consumer symlink (dev-hub & product) |
 |---|---|---|
+| Shared Instructions | `harness/instructions/` | Runtime adapters consume shared policy; Claude overlay lives in `harness/claude/instructions/` |
 | Claude Commands | `harness/claude/commands/` | `.claude/commands` -> `harness/claude/commands` |
 | Claude Skills | `harness/claude/skills/` | `.claude/skills` -> `harness/claude/skills` |
 | Claude Rules | `harness/claude/rules/` | `.claude/rules` -> `harness/claude/rules` |

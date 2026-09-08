@@ -180,6 +180,68 @@ def test_bin_pytest_is_a_runnable_checkpoint_command(tmp_path: Path) -> None:
     assert errors == []
 
 
+def test_full_hub_suite_is_forbidden_in_decompose_checkpoint(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "e99.yaml",
+        {
+            "checkpoints": [
+                {"id": "cp1", "criterion": "c", "verify": "bin/pytest -q --tb=line"},
+                {"id": "cp2", "criterion": "c2", "verify": "rg -n 'scoped' src"},
+            ]
+        },
+    )
+    errors, _warnings = validate_decompose_full(p)
+    assert any("full pytest suite" in error and "QA" in error for error in errors)
+
+
+def test_targeted_hub_suite_is_not_classified_as_full(tmp_path: Path) -> None:
+    p = _write(
+        tmp_path / "e99.yaml",
+        {
+            "checkpoints": [
+                {"id": "cp1", "criterion": "c", "verify": "bin/pytest loop/tests/test_foo.py -q"},
+                {"id": "cp2", "criterion": "c2", "verify": "rg -n 'scoped' src"},
+            ]
+        },
+    )
+    errors, _warnings = validate_decompose_full(p)
+    assert not any("full pytest suite" in error for error in errors)
+
+
+def test_validate_decompose_tree_rejects_full_hub_suite(tmp_path: Path) -> None:
+    from epic_yaml import validate_decompose_tree  # noqa: E402
+
+    dec = tmp_path / "memory-bank" / "back" / "plan" / "decompose-demo"
+    dec.mkdir(parents=True)
+    _write_minimal_index_md(dec)
+    (dec / "index.yaml").write_text(
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-full-suite.yaml\n"
+        "  title: full suite\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  status: pending\n",
+        encoding="utf-8",
+    )
+    _write(
+        dec / "s01-full-suite.yaml",
+        {
+            "role": "back",
+            "step_id": "s01",
+            "plan_id": "demo",
+            "next_phase": "BACK IMPLEMENT",
+            "checkpoints": [
+                {"id": "cp1", "criterion": "c", "verify": "bin/pytest -q --tb=line"},
+                {"id": "cp2", "criterion": "c2", "verify": "rg -n 'scoped' src"},
+            ],
+        },
+    )
+    errors = validate_decompose_tree(tmp_path, str(dec))
+    assert any("full pytest suite" in error for error in errors)
+
+
 def test_strict_via_cli_promotes_warnings(tmp_path: Path) -> None:
     import subprocess
 

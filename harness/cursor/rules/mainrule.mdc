@@ -6,7 +6,7 @@ alwaysApply: true
 
 **Layer 0 stub:** @.cursor/rules/token-economy-stub.mdc (always) · **spec-first HARD:** @.cursor/rules/spec-first-replace-hard.mdc (always) · **behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc (PLAN/DECOMPOSE/ANALYZE/AUDIT/QA) · **full economy:** @.cursor/rules/token-economy-core.mdc (PLAN/DECOMPOSE/VAN; IMPLEMENT skip)
 
-**Test runner:** `bin/pytest …` (300s built-in) · @.cursor/rules/shared/test-timeout.mdc
+**Test runner:** `bin/pytest …` (300s built-in) · @.cursor/rules/shared/test-timeout.mdc · @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
 
 `memory-bank/` — канон. **Router:** `activeContext.md` → `load_now`. Index-only: `tasks.md`, `systemPatterns.md`, `plan-*`, `architecture/index.md`. Plan/gap/architecture не резать. Скиллы — `@.agents/skills/` по цепочке workflow, не весь каталог.
 
@@ -43,7 +43,7 @@ alwaysApply: true
 
 Пропущенный Read из **этого** списка — gap процесса, не блок `FINISH`. Выборочно читать только один workflow на PLAN/DECOMPOSE — по-прежнему запрещено.
 
-Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK RECONCILE` → `<epic_id>`. `BACK REPLAN` → `<epic_id>`.
+Распознавание: префикс + режим **UPPERCASE**. Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`, `GAP CLOSE`, `DISCOVER MARKET`, `CONTENT OPS`. `BACK|FRONT|INTEG ANALYZE` → `<epic_id>`. `BACK|FRONT|INTEG AUDIT` → `<epic_id>`. `BACK RECONCILE` → `<epic_id>`. `BACK REPLAN` → `<epic_id>`.
 
 ## Префикс → индекс → core
 

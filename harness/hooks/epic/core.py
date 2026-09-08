@@ -4035,11 +4035,14 @@ def reduce_epic_lifecycle(
     latest_event = events[-1] if events else None
     latest_qa: dict[str, Any] | None = None
     latest_audit: dict[str, Any] | None = None
+    latest_gate_repair: dict[str, Any] | None = None
     for event in events:
         if event.get("kind") in {"qa_pass", "qa_fail"}:
             latest_qa = event
         if event.get("kind") == "audit_done":
             latest_audit = event
+        if event.get("kind") == "repair_applied":
+            latest_gate_repair = event
 
     invalidator: dict[str, Any] | None = None
     state = load_epic_state(cwd_p)
@@ -4068,7 +4071,13 @@ def reduce_epic_lifecycle(
                 and int(event.get("seq", 0)) > qa_seq
             ):
                 bugfix_after_fail = event
-        if bugfix_after_fail is not None:
+        if (
+            latest_gate_repair is not None
+            and int(latest_gate_repair.get("seq", 0)) > qa_seq
+        ):
+            phase = "QA"
+            reason_code = "qa_gate_repair_required"
+        elif bugfix_after_fail is not None:
             phase = "QA"
             reason_code = "bugfix_reopens_qa"
         else:
@@ -4080,6 +4089,12 @@ def reduce_epic_lifecycle(
         if invalidator is not None:
             phase = "QA"
             reason_code = "bugfix_reopens_qa"
+        elif (
+            latest_gate_repair is not None
+            and int(latest_gate_repair.get("seq", 0)) > int(latest_qa.get("seq", 0))
+        ):
+            phase = "QA"
+            reason_code = "qa_gate_repair_required"
         else:
             phase = "DONE"
             reason_code = "qa_passed"

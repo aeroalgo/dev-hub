@@ -258,3 +258,14 @@ class DshAdapter(RuntimeAdapter):
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {"dsh_profile": f"epic-{ctx.phase.lower()}"}
+
+    def collaboration_block(self, ctx: SessionContext) -> str:
+        from loop.runtime_adapters.collaboration import dsh_collaboration_block
+        return dsh_collaboration_block(ctx)
+
+    def parse_session_events(self, raw_log: str, ctx: SessionContext) -> Any:
+        from loop.runtime.session_events import parse_session_events
+        return parse_session_events(raw_log, ctx.runtime_id)
+
+    def post_session(self, cwd: Any, log_path: Any, ctx: SessionContext) -> list[dict[str, Any]]:
+        return []

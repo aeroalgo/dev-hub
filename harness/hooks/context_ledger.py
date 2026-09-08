@@ -376,7 +376,8 @@ class ContextLedger:
         if self._runtime_dir:
             base_dir = self._runtime_dir
         else:
-            base_dir = Path(self.actor_key.project_root) / ".claude" / "runtime"
+            from epic_paths import epic_dir as runtime_epic_dir
+            base_dir = runtime_epic_dir(self.actor_key.project_root).parent
         safe_proj = re.sub(r"[^a-zA-Z0-9._-]+", "_", Path(self.actor_key.project_root).name or "proj")[:64]
         safe_sess = re.sub(r"[^a-zA-Z0-9._-]+", "_", self.actor_key.root_session_id or "sess")[:64]
         safe_inv = re.sub(r"[^a-zA-Z0-9._-]+", "_", self.actor_key.agent_invocation_id or "root")[:64]

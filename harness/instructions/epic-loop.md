@@ -85,16 +85,16 @@ python3 .claude/hooks/epic_resolve.py finalize-step --decompose <id> --step sNN 
 stop
 ```
 
-**verify FAIL branch (HARD):**
+**verify FAIL/BLOCKED/runtime branch (HARD):**
 ```
-@verify → VERDICT: FAIL →
+@verify → VERDICT: FAIL/BLOCKED или repairable gate-runtime error →
 @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY из отчёта verify) →
 repair JSON status done|partial →
 retry @verify (тот же packed prompt) →
 VERDICT: PASS → finalize-step → stop
 ```
 
-Parent **не** FINISH и **не** «ожидает verify» после FAIL — только repair → retry verify.
+Parent **не** FINISH и **не** «ожидает verify» после FAIL/BLOCKED/runtime error — только repair → retry verify.
 
 **HARD:** `finalize-step` вызывается агентом **только после `VERDICT: PASS`** — без исключений.  
 **HARD:** `status: completed` в implement пишет **только** `finalize-step` (вместе с index); агент не ставит completed руками.  

@@ -328,6 +328,7 @@ def test_get_phase_config_unknown_fails_closed():
     assert cfg["arm_template"] == "implement"
     assert get_phase_config("BACK IMPLEMENT")["arm_template"] == "implement"
     assert get_phase_config("front qa")["arm_template"] == get_phase_config("QA")["arm_template"]
+    assert get_phase_config("BACK PLAN REFACTOR")["arm_template"] == "pre_implement"
 
     with pytest.raises(ValueError, match="unknown phase 'BOGUS'"):
         get_phase_config("BOGUS")

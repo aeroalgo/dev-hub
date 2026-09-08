@@ -14,6 +14,7 @@ alwaysApply: false
 2. Index: Requirements coverage · Stages coverage · Outcome map · Replacement cleanup (A|B|C|**I**)
 3. Каждый AC+/AC−/FR/NFR → sNN или `out_of_scope`+`follow_up` **в queue**; FR nouns verbatim ∈ `produces`/`files`
 4. Covered row ⇒ measurable `verify` (не map-only / не surrogate-only для product FR)
+4a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full pytest suite в shard запрещён и передаётся **BACK QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
 5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN **только при отдельном outcome** (не micro-ladder schema→CLI→wire)
 5a. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; audit-хвост / docs+Kind I / core+CLI — сливать. @.cursor/rules/shared/workflow-behavior-first.mdc §3a
 6. Каждый `sNN`: `epic-decompose/v1` + `role: back` + list `as_built`/`delta` + `deletes` + `plan_contract` + `code_surface` + Core(4) ∪ situational ≤6

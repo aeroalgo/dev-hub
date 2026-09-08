@@ -46,3 +46,6 @@ class RuntimeAdapter(Protocol):
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         ...
+
+    def collaboration_block(self, ctx: SessionContext) -> str:
+        ...

@@ -1,11 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-083
-  epic_id: T-HUB-083-role-core-shared-contract
-  plan: plan-T-HUB-083-role-core-shared-contract.md
-  deps: []
-  batch: workflow-read-chain-20260907
 - id: T-HUB-084
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
@@ -341,6 +336,10 @@ done:
 - id: T-HUB-082
   epic_id: T-HUB-082-shared-lean-gate-topology
   plan: plan-T-HUB-082-shared-lean-gate-topology.md
+  batch: workflow-read-chain-20260907
+- id: T-HUB-083
+  epic_id: T-HUB-083-role-core-shared-contract
+  plan: plan-T-HUB-083-role-core-shared-contract.md
   batch: workflow-read-chain-20260907
 batches:
   workflow-loop-hardening:

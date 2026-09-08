@@ -1,0 +1,36 @@
+---
+description: "BACK PLAN REFACTOR gates — refactor inventory before multi-epic planning"
+alwaysApply: false
+---
+# BACK PLAN REFACTOR — gates
+
+**Artifact:** the ordinary BACK PLAN artifacts: `memory-bank/back/roadmap/queue.yaml` plus one `memory-bank/back/plan/<epic_id>/md/plan.md` and `md/prompt.md` per epic.
+
+**Lifecycle:** `BACK PLAN REFACTOR` → `BACK DECOMPOSE` → `BACK ANALYZE` → `BACK IMPLEMENT` → `BACK AUDIT` → `BACK QA`.
+
+## Gates
+
+1. The command is planning-only: no production or test code edits.
+2. Before the epic cut, record a baseline: files, production/test LOC, relevant test commands, and known coverage/complexity signals. Missing tooling or graph data is recorded as a limitation, never silently treated as green.
+3. The inventory must cover, with file/symbol evidence and callers where available:
+   - function nodes and fan-in/fan-out;
+   - adapters, translators, wrappers, and external boundaries;
+   - dead code, dead imports, obsolete flags, routes, and compatibility paths;
+   - exact and semantic duplication;
+   - tests, fixtures, helpers, duplicate assertions, obsolete tests, and missing behavior tests.
+4. Every proposed deletion has a proof method: call-site search, import/reference search, route/config search, or a replacement test. Uncertain candidates are findings, not deletion commitments.
+5. Every epic owns its production behavior and its corresponding test refactor. A standalone test-cleanup epic is allowed only when the test infrastructure is independently shippable.
+6. Multi-epic cut uses `workflow-plan-multi-epic.mdc`: separate independent code trees, risks, or deliverables; do not split a producer from its first required consumer.
+7. Each epic plan contains a deletion ledger with current path/symbol, replacement or merge target, policy, proof, estimated net delta, and owning step.
+8. Each epic plan contains `## Test refactor` and `## Deletion budget`. A plan cannot claim success from readability alone: it must name code/tests to remove or explicitly stop as `no safe deletion found`.
+9. Existing behavior is frozen. Behavior changes are routed to BACK IMPLEMENT/BUGFIX and are not smuggled into this plan.
+10. Queue reconciliation is mandatory in the same session and must return `ok: true`; next is `BACK DECOMPOSE <queue[0]>`.
+
+## Abort
+
+- No inventory evidence → do not write plans.
+- One mega-plan where two or more independent cut criteria apply → FAIL; perform an epic cut.
+- Tests omitted from a production epic → FAIL.
+- A new abstraction is proposed without a deletion/complexity budget → FAIL.
+- A deletion is justified only by “looks unused” or a passing unit test → FAIL.
+- Code changes made during PLAN → stop and restore planning-only scope before FINISH.

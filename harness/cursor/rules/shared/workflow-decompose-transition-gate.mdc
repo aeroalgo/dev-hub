@@ -1,0 +1,42 @@
+---
+description: "Runtime-neutral DECOMPOSE completion and promotion gate"
+alwaysApply: true
+---
+# DECOMPOSE TRANSITION GATE — общий контракт runtime
+
+Этот файл — источник политики для Cursor, Claude Code, Codex и loop. Runtime
+adapter переводит нативные события провайдера в общий результат, но не может
+ослабить lifecycle-gate.
+
+## Hard rules
+
+- `DECOMPOSE` считается завершённым только когда индекс, `md/decompose-index.md`
+  и каждый `sNN/eNN` из `yaml/decompose-index.yaml` физически существуют и
+  проходят `validate-decompose-tree`.
+- Перед следующим шагом обязательны `validate-traceability` с
+  `CRITICAL=0` и свежий `verify-decompose` PASS.
+- `ANALYZE` не может компенсировать отсутствующий shard. Артефакт с
+  `critical_count: 0` при неполном дереве недействителен.
+- Resolver и `arm` обязаны fail-closed: при отсутствии shard следующий
+  маршрут — повторный `BACK/FRONT/INTEG DECOMPOSE <epic_id>`, а не ANALYZE или
+  IMPLEMENT. `plan-next` не является обходом этого правила.
+- `ANALYZE → IMPLEMENT` разрешён только после повторной structural-проверки
+  decompose-графа и analyze gate.
+- Ненулевой exit, timeout, abort или отсутствие обязательного terminal result
+  означает незавершённую сессию, даже если в хвосте лога встретилось слово
+  `FINISH`. Повторяется текущая фаза; completion marker не создаётся.
+
+## Adapter contract
+
+Claude Code и Codex имеют отдельные адаптеры только для запуска и разбора
+провайдерского лога. Оба используют один `SessionEvent`/`SessionAnalysis`
+контракт и одну политику выше. Провайдерские ветки могут классифицировать
+причину abort, но не могут объявить неуспешный процесс завершённым или
+продвинуть фазу без общего gate.
+
+## Required evidence
+
+В trace/session evidence сохраняются runtime, outcome, process exit code,
+semantic status и bounded event summary. Для timeout/abort ожидается
+`task_complete: false`; наличие `explicit_finish: true` само по себе не даёт
+права на promotion.

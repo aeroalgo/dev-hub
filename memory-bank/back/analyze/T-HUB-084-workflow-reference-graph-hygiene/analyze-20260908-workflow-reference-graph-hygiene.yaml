@@ -1,0 +1,125 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+slug: workflow-reference-graph-hygiene
+date: "2026-09-08"
+status: complete
+index_fingerprint: "sha256:c88302fc86854c551bc96a8412d9ab811bac505d449231d4690f426ee334e68c"
+
+findings: []
+
+coverage:
+  - requirement_id: FR-001
+    step_ids:
+      - s02
+      - s03
+      - s04
+      - s05
+    status: covered
+    plan_text_verbatim: "each active W declares a shared dependency once."
+
+  - requirement_id: FR-002
+    step_ids:
+      - s01
+      - s02
+      - s03
+      - s04
+    status: covered
+    plan_text_verbatim: "A→B plus W→B has one owner selected by lazy timing and semantic responsibility."
+
+  - requirement_id: FR-003
+    step_ids:
+      - s01
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "graph validator reports direct duplicate, transitive ambiguity and dangling dead reference."
+
+  - requirement_id: FR-004
+    step_ids:
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "priority mode semantics remain; dead audit cheatsheet has no active caller."
+
+  - requirement_id: "AC+ #1"
+    step_ids:
+      - s01
+    status: covered
+    plan_text_verbatim: "Duplicate edge fixture fails with both lines."
+
+  - requirement_id: "AC+ #2"
+    step_ids:
+      - s01
+      - s05
+    status: covered
+    plan_text_verbatim: "Removing sole owner fails; removing redundant edge passes."
+
+  - requirement_id: "AC+ #3"
+    step_ids:
+      - s05
+    status: covered
+    plan_text_verbatim: "PLAN/DECOMPOSE/ANALYZE markers remain."
+
+  - requirement_id: "AC− #1"
+    step_ids:
+      - s02
+      - s03
+      - s04
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "No inlining large shared policy, archive rewrite, blind `rg` deletion, or compatibility alias."
+
+  - requirement_id: TM-084-01
+    step_ids:
+      - s01
+      - s02
+      - s05
+    status: covered
+    plan_text_verbatim: "direct duplicate"
+
+  - requirement_id: TM-084-02
+    step_ids:
+      - s01
+      - s02
+      - s03
+      - s04
+      - s05
+    status: covered
+    plan_text_verbatim: "transitive owner"
+
+  - requirement_id: TM-084-03
+    step_ids:
+      - s05
+    status: covered
+    plan_text_verbatim: "priority markers"
+
+  - requirement_id: TM-084-04
+    step_ids:
+      - s06
+    status: covered
+    plan_text_verbatim: "dead link"
+
+  - requirement_id: TM-084-05
+    step_ids:
+      - s05
+    status: covered
+    plan_text_verbatim: "archive exclusion"
+
+  - requirement_id: TM-084-06
+    step_ids:
+      - s06
+    status: covered
+    plan_text_verbatim: "full suite"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

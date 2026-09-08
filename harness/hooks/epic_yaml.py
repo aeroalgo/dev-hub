@@ -14,6 +14,7 @@ from loop.stack_profiles.execution import (
     compute_declaration_fingerprint,
 )
 from loop.stack_profiles.evidence import read_capability_evidence
+from test_run_canon import is_full_hub_pytest_command
 
 SCHEMA_EPIC_IMPLEMENT = "epic-implement/v1"
 SCHEMA_EPIC_DECOMPOSE = "epic-decompose/v1"
@@ -765,6 +766,28 @@ def _has_em_dash(cmd: str) -> bool:
     return bool(re.search(r"[—–]", cmd or ""))
 
 
+def _decompose_test_scope_errors(
+    doc: EpicDecomposeDoc,
+    sid: str | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    commands = [
+        (f"checkpoint {cp.id}", cp.verify)
+        for cp in doc.checkpoints
+        if cp.verify
+    ]
+    commands.extend((f"verify[{i}]", value) for i, value in enumerate(doc.verify))
+    prefix = f"{sid} " if sid else ""
+    for source, command in commands:
+        if is_full_hub_pytest_command(command):
+            errors.append(
+                f"{prefix}{source}: full pytest suite is forbidden in "
+                "DECOMPOSE/IMPLEMENT; use targeted tests within shard scope "
+                "and reserve full suite for QA"
+            )
+    return errors
+
+
 def validate_decompose_full(
     path: Path,
 ) -> tuple[list[str], list[str]]:
@@ -865,6 +888,8 @@ def validate_decompose_full(
                 f"checkpoint {cp.id}: verify identical to a global verify — "
                 "checkpoint adds no distinct check"
             )
+
+    errors.extend(_decompose_test_scope_errors(doc))
 
     # D4 — context.files ↔ delta cross-reference consistency.
     ctx = doc.context or {}
@@ -1498,10 +1523,11 @@ def validate_decompose_tree(cwd: str | Path, decompose: str | Path | None) -> li
             errors.append(f"{sid}: missing shard file {rel}")
             continue
         try:
-            load_decompose(shard)
+            decompose_doc = load_decompose(shard)
         except Exception as exc:
             errors.append(f"{sid} ({shard.name}): invalid epic-decompose yaml: {exc}")
             continue
+        errors.extend(_decompose_test_scope_errors(decompose_doc, sid))
         errors.extend(_validate_shard_plan_contract(sid, shard))
     return errors
 

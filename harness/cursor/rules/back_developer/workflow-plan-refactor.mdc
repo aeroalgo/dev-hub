@@ -1,0 +1,63 @@
+---
+description: "BACK PLAN REFACTOR — codebase inventory and multi-epic refactoring plan"
+alwaysApply: false
+---
+### Command: BACK PLAN REFACTOR
+
+**Purpose:** produce a deletion-oriented refactoring plan from an evidence-backed codebase scan. This is a planning command, not `BACK REFACTOR` execution and not a second epic lifecycle.
+
+**Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/plan-refactor.mdc
+**Base plan process:** @.cursor/rules/back_developer/workflow-plan.mdc
+**Multi-epic cut:** @.cursor/rules/shared/workflow-plan-multi-epic.mdc
+**Outcome prompt:** @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc
+**Refactor path/invariants:** @.cursor/rules/shared/workflow-refactor-epic.mdc
+**Behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc
+
+**Skills:**
+- @.agents/skills/writing-plans/SKILL.md
+- @.agents/skills/python-testing-patterns/SKILL.md
+- @.agents/skills/architecture-patterns/SKILL.md
+- @.agents/skills/python-design-patterns/SKILL.md
+- @.agents/skills/python-anti-patterns/SKILL.md
+
+## Hot path
+
+1. Acknowledge: `OK BACK PLAN REFACTOR — начинаю`; immediately emit `SUSPENSION GUARD active — plan output unlimited`.
+2. Run Phase 0 Clarify from the ordinary PLAN orchestration when its triggers apply. Do not write the full plan before the Completion Report.
+3. Freeze the working tree for this command: inspect current changes, do not modify production code or tests, and declare the scan scope and exclusions.
+4. Build the baseline: production/test file counts and LOC, available coverage/complexity signals, test entrypoints, and known generated/vendor areas. Record commands and limitations.
+5. Run the structural scan. If a repository graph exists, inspect function, adapter, caller, and test nodes through the graph before targeted reads. If the graph is unavailable, record that fact and use a bounded `rg`/import/route/config inventory; do not present fallback results as equivalent graph evidence.
+6. Run the mandatory refactor passes:
+   - **Function nodes:** fan-in/fan-out, long or branch-heavy functions, thin forwarding functions, duplicated transformations, and extracted helpers that only move complexity.
+   - **Adapters and boundaries:** entrypoint → adapter → domain/storage/external call, translation ownership, duplicate adapters, wrappers, retry/timeout ownership, and seams required by tests.
+   - **Dead code:** unreachable functions/classes, unused imports, obsolete feature flags/config, stale routes/commands, compatibility shims, and legacy paths. Prove absence of static callers and flag dynamic-reference risk.
+   - **Duplication:** exact/near-duplicate code, semantic duplicate rules, repeated fixtures, repeated mocks, and parallel test assertions. Pick one canonical owner before proposing extraction.
+   - **Tests:** map production symbols to tests; identify tests that are duplicate, obsolete, brittle, too implementation-specific, or missing behavior coverage. Test deletion is allowed only after replacement behavior coverage is named.
+7. For every finding, write an evidence row: finding ID, path/symbol, evidence and callers, category, risk, proposed action (`delete`, `merge`, `move`, `simplify`, or `keep`), replacement owner, affected tests, and estimated net LOC/concept delta. Apply the deletion test: if removing the unit only moves complexity, do not propose it.
+8. Perform the epic cut before writing plans. Multi-epic planning is the default for a broad scan, but do not manufacture a split when the evidence describes one inseparable outcome. Use independent code tree, risk, cutover, or shippable outcome as criteria. Keep each production change with its first required consumer and its tests. Declare `MULTI-EPIC PLAN — N эпиков` when N > 1; never create a mega-plan to avoid the cut.
+9. For each epic, write the ordinary BACK PLAN artifacts: queue row first, then `memory-bank/back/plan/<epic_id>/md/plan.md` and `md/prompt.md`. The plan must include `## Refactor inventory`, `## Deletion budget`, `## Test refactor`, `## Replacement / sunset` when applicable, `## QA consumes draft`, and `## Review readiness`.
+10. For each epic, make the target state measurable: files/symbols to delete or merge, code and test net-delta expectation, behavior-freeze contract, targeted tests per step, full-suite command reserved for BACK QA, and AC− proving no legacy/duplicate path remains.
+11. Reconcile `memory-bank/back/roadmap/queue.yaml` with `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`. On conflict, unknown dependency, empty active queue, or `ok: false`, halt PLAN.
+12. FINISH with the ordinary PLAN doc-router. Handoff must load the canonical queue, the first plan, its prompt, and the clarify artifact if one was created. Next: `BACK DECOMPOSE <queue[0]>`.
+
+## Refactor-specific review questions
+
+- What will be deleted, not merely moved?
+- Which existing abstraction is reused instead of adding another one?
+- Which adapter owns translation after the change?
+- How is dead-code absence proved, including dynamic import/config risk?
+- Which tests are merged/deleted, and which behavior tests replace them?
+- What prevents the plan from increasing the number of concepts, wrappers, and entrypoints?
+
+## Forbidden
+
+- Writing code, tests, or a `refactor/session-*` execution artifact during PLAN.
+- Creating a second refactor plan beside the ordinary `back/plan/<epic_id>/md/plan.md`.
+- Splitting production and its first mandatory consumer into separate epics.
+- Treating a new interface, factory, helper, or adapter as an improvement without a deletion ledger.
+- Deleting tests only to make the suite shorter or green.
+- Claiming “refactored” when a symbol was only renamed or moved.
+
+## Verification
+
+Gates + mandatory inventory categories + epic-cut table + per-epic queue/plan/prompt + deletion budget + test refactor + queue reconcile + no code changes.

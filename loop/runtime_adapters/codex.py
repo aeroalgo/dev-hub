@@ -167,11 +167,14 @@ class CodexAdapter(RuntimeAdapter):
         if unsupported_tool:
             return SessionAnalysis(
                 reason=f"unsupported_tool_call: {unsupported_tool}",
-                retry=False,
+                retry=True,
             )
 
         if exit_code == 127:
             return SessionAnalysis(reason="command not found", retry=False)
+
+        if exit_code == 124:
+            return SessionAnalysis(reason="codex session timeout", retry=True)
 
         if exit_code in (0, None):
             return SessionAnalysis(reason=None, retry=False)
@@ -206,6 +209,24 @@ class CodexAdapter(RuntimeAdapter):
             "native_collaboration": True,
             "collaboration_protocol": "spawn_agent/wait",
         }
+
+    def collaboration_block(self, ctx: SessionContext) -> str:
+        from loop.runtime_adapters.collaboration import codex_collaboration_block
+        return codex_collaboration_block(ctx)
+
+    def parse_session_events(self, raw_log: str, ctx: SessionContext) -> Any:
+        from loop.runtime.session_events import parse_session_events
+        return parse_session_events(raw_log, ctx.runtime_id)
+
+    def post_session(self, cwd: Any, log_path: Any, ctx: SessionContext) -> list[dict[str, Any]]:
+        if not log_path or not Path(log_path).is_file():
+            return []
+        from loop.codex_collab_verdict import mirror_codex_collab_verdicts_from_log
+        return mirror_codex_collab_verdicts_from_log(
+            cwd,
+            log_path,
+            session_id=str(ctx.extras.get("session_id") or ""),
+        )
 
     def normalize_read_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
         from harness.hooks.context_ledger_adapters import normalize_read_payload

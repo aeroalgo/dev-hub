@@ -77,6 +77,9 @@ checkpoints:
     criterion: ...
     verify: "..."
 
+# Test scope (HARD): только targeted проверки по files/delta этого шага.
+# Full suite без path/nodeid/-k — только в QA-артефакте после IMPLEMENT.
+
 verify: []
 tdd: []
 

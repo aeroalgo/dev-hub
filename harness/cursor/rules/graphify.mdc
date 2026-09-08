@@ -7,6 +7,8 @@ alwaysApply: false
 
 Knowledge graph at **repo-root** `graphify-out/graph.json` (`.agents/`, `memory-bank/`, `_archive/` excluded via `.graphifyignore`). Frontend under `frontend/` is indexed.
 
+**Exception:** `BACK PLAN REFACTOR` is a planning command with a mandatory structural inventory. When `graphify-out/graph.json` exists, run the graph query/explain passes before targeted reads; when it is absent in the hub/tooling repository, use the N/A inventory protocol below and do not claim graph evidence.
+
 **This rule activates ONLY inside a recognized role command** (Step 0 of the mainrule chain, before core/workflow) **for code modes**: IMPLEMENT, TASK, BUGFIX, REFACTOR, QA, **SECURITY execute** (@aNN / S one-shot) (+ PM DISCOVER, TL SYNC DEV) **and brownfield VAN** (`BACK/FRONT/INTEG VAN` when writing `memory-bank/architecture/**`). Skip for greenfield VAN, PLAN, DECOMPOSE, CREATIVE, REFLECT, ARCHIVE, **SECURITY PLAN / SECURITY DECOMPOSE**. Plain questions do NOT load it.
 
 ## HARD RULE — cwd = repo root only

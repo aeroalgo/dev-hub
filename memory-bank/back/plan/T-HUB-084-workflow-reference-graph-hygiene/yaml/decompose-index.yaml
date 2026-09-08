@@ -1,0 +1,35 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+source_md: ../md/decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+  - id: s01
+    file: s01-reference-graph-fixtures.yaml
+    title: "Build a fail-closed reference graph validator with direct, transitive, and dangling fixtures"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-behavior-first-owner.yaml
+    title: "Retain one timed owner edge for behavior-first and DECOMPOSE policy"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-analyze-plan-clarify-owners.yaml
+    title: "Retain one owner edge across ANALYZE, PLAN, and CLARIFY orchestration"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s04
+    file: s04-van-refactor-owners.yaml
+    title: "Retain one shared owner edge across VAN and REFACTOR topology"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s05
+    file: s05-active-corpus-gate.yaml
+    title: "Gate the active corpus while preserving priority mode markers and archive exclusions"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s06
+    file: s06-legacy-fallback-purge.yaml
+    title: "Purge the proven-dead audit cheatsheet and close the complete sunset inventory"
+    next_phase: BACK IMPLEMENT
+    status: pending

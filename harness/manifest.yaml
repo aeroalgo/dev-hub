@@ -10,7 +10,7 @@ agents:
         materialize: true
         target: ".codex/agents/verify-implement.toml"
   gate-repair:
-    description: "Fix verify FAIL blockers in-scope (write-only)"
+    description: "Fix verify FAIL/BLOCKED or repairable gate-runtime blockers in-scope (write-only)"
     source: "harness/agents/gate-repair.md"
     runtimes:
       claude:

@@ -20,7 +20,9 @@ VERIFY_MB_FINISH_SUBCMD: dict[str, str] = {
 
 VERIFY_FINISH_AGENTS = frozenset(VERIFY_MB_FINISH_SUBCMD)
 
-BLOCKED_TO_BUGFIX_AGENTS = frozenset({"verify-qa", "reviewer"})
+# QA BLOCKED is a repair-loop signal, not a product BUGFIX transition.  The
+# parent must run gate-repair and retry verify-qa before it can choose FINISH.
+BLOCKED_TO_BUGFIX_AGENTS = frozenset()
 COERCE_VERIFY_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix"})
 REVIEWER_MIRROR_AGENTS = frozenset({"verify-qa", "reviewer"})
 BLOCKED_VERDICT_AGENTS = REVIEWER_MIRROR_AGENTS
@@ -81,6 +83,13 @@ def mb_finish_cli(agent_type: str, verdict: str, cwd: str | Path) -> str | None:
 def mb_finish_hint_after_verdict(
     agent_type: str, verdict: str, cwd: str | Path
 ) -> str | None:
+    norm = str(agent_type or "").strip().lower()
+    verdict_u = str(verdict or "").strip().upper()
+    if norm in REVIEWER_MIRROR_AGENTS and verdict_u == "BLOCKED":
+        return (
+            f"{norm} VERDICT: BLOCKED — parent: spawn `gate-repair` with BLOCKERS + ALLOW WRITE + VERIFY, "
+            "дождись repair JSON и повтори verify-qa. Не вызывай FINISH и не переходи в BUGFIX до PASS."
+        )
     cli = mb_finish_cli(agent_type, verdict, cwd)
     if not cli:
         return None

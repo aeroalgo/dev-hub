@@ -208,12 +208,18 @@ def test_managed_agent_model_comes_from_registry(tmp_path: Path) -> None:
     assert lib.agent_model_from_project_env("researcher", tmp_path) == "openai/gpt-4.1"
 
 
-def test_codex_runtime_uses_runtime_specific_child_model(tmp_path: Path, monkeypatch) -> None:
+def test_codex_runtime_uses_native_child_model_config(tmp_path: Path, monkeypatch) -> None:
     lib = _load()
     _agent(tmp_path, "researcher.md", "name: researcher")
+    (tmp_path / "codex").mkdir()
+    (tmp_path / "codex" / "agents.config.toml").write_text(
+        'schema_version = "codex-agent-settings/v1"\n\n'
+        '[defaults]\nmodel = "cx/default"\n\n'
+        '[agents.researcher]\nmodel = "cx/gpt-5.6-luna"\n',
+        encoding="utf-8",
+    )
     (tmp_path / ".claude" / "project.env").write_text(
-        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n"
-        "PROJECT_AGENT_RESEARCHER_MODEL_CODEX=cx/gpt-5.6-luna\n",
+        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n",
         encoding="utf-8",
     )
 
@@ -324,15 +330,21 @@ def test_pretool_pin_override(tmp_path: Path, monkeypatch) -> None:
     assert hook["updatedInput"]["model"] == "sonnet"
 
 
-def test_pretool_codex_pin_override_is_separate_from_root_model(tmp_path: Path, monkeypatch) -> None:
+def test_pretool_codex_pin_comes_from_native_config(tmp_path: Path, monkeypatch) -> None:
     _agent(
         tmp_path,
         "researcher.md",
         "name: researcher\noverlay:\n  managed: true\n  mode: optional\n  default_loop: true\n  requires_model: true",
     )
+    (tmp_path / "codex").mkdir()
+    (tmp_path / "codex" / "agents.config.toml").write_text(
+        'schema_version = "codex-agent-settings/v1"\n\n'
+        '[defaults]\nmodel = "cx/default"\n\n'
+        '[agents.researcher]\nmodel = "cx/gpt-5.6-luna"\n',
+        encoding="utf-8",
+    )
     (tmp_path / ".claude" / "project.env").write_text(
-        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n"
-        "PROJECT_AGENT_RESEARCHER_MODEL_CODEX=cx/gpt-5.6-luna\n",
+        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("EPIC_LOOP", "1")

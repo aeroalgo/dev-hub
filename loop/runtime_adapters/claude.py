@@ -29,6 +29,17 @@ class ClaudeAdapter(RuntimeAdapter):
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
         return {}
 
+    def collaboration_block(self, ctx: SessionContext) -> str:
+        from loop.runtime_adapters.collaboration import claude_collaboration_block
+        return claude_collaboration_block(ctx)
+
+    def parse_session_events(self, raw_log: str, ctx: SessionContext) -> Any:
+        from loop.runtime.session_events import parse_session_events
+        return parse_session_events(raw_log, ctx.runtime_id)
+
+    def post_session(self, cwd: Any, log_path: Any, ctx: SessionContext) -> list[dict[str, Any]]:
+        return []
+
     def normalize_read_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
         from harness.hooks.context_ledger_adapters import normalize_read_payload
         return normalize_read_payload(payload, provider="claude", default_cwd=cwd)

@@ -49,9 +49,12 @@ def test_mb_finish_hint_maps_all_verify_agents() -> None:
         assert f"mb-finish {subcmd}" in cli
 
 
-def test_verify_qa_blocked_maps_to_bugfix_finish() -> None:
-    from loop.mb_finish.verify_hint import mb_finish_cli
+def test_verify_qa_blocked_stays_in_repair_loop() -> None:
+    from loop.mb_finish.verify_hint import mb_finish_cli, mb_finish_hint_after_verdict
 
     cli = mb_finish_cli("verify-qa", "BLOCKED", "/tmp")
-    assert cli is not None
-    assert "mb-finish bugfix" in cli
+    assert cli is None
+    hint = mb_finish_hint_after_verdict("verify-qa", "BLOCKED", "/tmp")
+    assert hint is not None
+    assert "gate-repair" in hint
+    assert "mb-finish" not in hint

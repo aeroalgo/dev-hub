@@ -23,6 +23,7 @@ if str(_HOOKS) not in sys.path:
 from epic import reduce_epic_lifecycle
 from analyze_gate import critical_count as _critical_count
 from analyze_gate import latest_analyze as _latest_analyze
+from loop.decompose_gate import decompose_shards_diagnostic
 
 from .plan_next import parse_plan_next, validate_plan_next
 
@@ -78,12 +79,30 @@ def resolve_epic_next_action(
         None,
     ) if decompose else None
 
+    # A decompose index is only a queue projection.  Never let an override,
+    # analyze artifact, or completed status bypass an absent v2 shard.
+    shard_diagnostic = decompose_shards_diagnostic(decompose, steps) if decompose else None
+
     artifacts = {
         "plan_exists": plan is not None,
         "decompose_exists": decompose is not None,
+        "decompose_shards_ready": shard_diagnostic is None,
         "pending_steps": first_pending is not None,
         "has_pending_steps": first_pending is not None,
     }
+
+    if shard_diagnostic:
+        cmd = f"{role.upper()} DECOMPOSE {canonical_id}"
+        return EpicNextAction(
+            epic_id=canonical_id,
+            role=role,
+            next_command=cmd,
+            phase="DECOMPOSE",
+            plan_rel=plan_rel,
+            decompose_rel=decompose_rel,
+            reason_code="decompose_shards_missing",
+            diagnostic=shard_diagnostic,
+        )
 
     # Check override
     if plan is not None:

@@ -16,6 +16,8 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 **Нарезка:** по UI-элементам, не по слоям. Не читать: gap/, contracts/, BACK/FRONT decompose.
 
+**Test scope (HARD):** при нарезке каждый `eNN` получает только targeted `verify` по своим `files`/`delta`/`plan_contract`; full suite не записывается в decompose-shard и запускается только отдельным **INTEG QA** outcome после IMPLEMENT.
+
 ## Outcome preserve (HARD)
 
 Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».

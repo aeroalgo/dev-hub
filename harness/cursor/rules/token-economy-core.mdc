@@ -11,7 +11,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 ## 0.0 SUSPENSION GUARD — PLAN / gap-plan / architecture / **DECOMPOSE** artifacts (AUTHORITATIVE)
 
 **Trigger (any of):**
-- Role command: `BACK PLAN`, `FRONT PLAN`, `INTEG PLAN`, `PM PLAN`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
+- Role command: `BACK PLAN`, `FRONT PLAN`, `INTEG PLAN`, `PM PLAN`, `BACK PLAN REFACTOR`, `* SECURITY PLAN`, `* REFACTOR PLAN`, or any `* PLAN`
 - Role command: `BACK DECOMPOSE`, `FRONT DECOMPOSE`, `INTEG DECOMPOSE` (and SECURITY/REFACTOR DECOMPOSE when writing step shards)
 - Role command brownfield: `BACK VAN`, `FRONT VAN`, `INTEG VAN` when writing `memory-bank/architecture/**`
 - Writing/updating: `memory-bank/**/plan-*.md`, `memory-bank/**/plan/decompose-*/**`, `memory-bank/integration/gap/**/gap-*.md`, gap closing plans `plan-BACK-GAP-*` / `plan-FRONT-GAP-*`, `memory-bank/**/security/plan/plan-*.md`, `memory-bank/**/refactor/plan/plan-*.md`, или `memory-bank/architecture/**`
@@ -223,7 +223,7 @@ Mandatory in **BACK IMPLEMENT** (before finish) and **BACK QA**.
 
 - Collect ALL edits per file → one Write/Edit pass
 - Read file once per session; plan edits from that read
-- **Subagents:** **обязательные gate’ы** — широкий codebase search → `explorer` (полный `files:` / `delta_paths_*` → SKIP) · pre-FINISH `verify` (`code_changed`) · BACK QA `reviewer` — `.claude/instructions/spawn-hard.md`. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
+- **Subagents:** **обязательные gate’ы** — широкий codebase search → `explorer` (полный `files:` / `delta_paths_*` → SKIP) · pre-FINISH `verify` (`code_changed`) · BACK QA `reviewer` — общая политика `harness/instructions/spawn-hard.md`, transport через runtime adapter. Прочие Agent — свободно. Frontend-тесты only parent: `.cursor/rules/front-tests-parent-only.mdc` / `~/.claude/rules/02-front-tests-parent-only.md`.
 - `tasks.md` updates: только смена фазы эпика (или `finalize-step`); checkbox-only на shards
 - **PLAN:** prefer one comprehensive Write of `plan-*.md`; size is not a reason to truncate
 

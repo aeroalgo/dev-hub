@@ -877,19 +877,6 @@ FORBIDDEN: `@verify` для CREATIVE.
 """
 
 
-def _codex_native_collaboration_block() -> str:
-    return """## CODEX NATIVE COLLABORATION (HARD)
-Этот запуск выполняется через Codex CLI с включённым native `multi_agent`.
-1. Для субагентов используй только нативную последовательность `spawn_agent` → `wait`.
-2. `multi_agent_v1_spawn_agent` — устаревший идентификатор; его вызов запрещён.
-3. Для managed child используй отдельную модель из `PROJECT_AGENT_<NAME>_MODEL_CODEX`; harness передаёт её в native `spawn_agent.model`. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) от этого не меняй.
-4. Перед FINISH IMPLEMENT/TASK/BUGFIX/QA обязательно spawn ровно одного gate-субагента: `verify-implement`, `verify-bugfix`, `verify-qa` или соответствующий текущему режиму; дождись `wait` и только затем учитывай valid fenced JSON verdict.
-5. Если verify возвращает FAIL, spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись `wait`, затем повтори verify.
-6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Spawn read-only `reconcile-verify` только для явного текущего режима `BACK RECONCILE`, если для текущего epic существует decompose-бандл с входными файлами в ALLOW READ; дождись `wait`, затем сформируй только reconcile artifact.
-7. Не выдумывай receipt/verdict, не редактируй runtime gate state и не выставляй вручную `in_flight`/`status: completed`. Если native spawn недоступен или получил unsupported call — остановись с диагностикой.
-"""
-
-
 def build_prompt(
     cwd: str | Path,
     *,
@@ -1066,6 +1053,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     elif phase_kind == "qa":
         finish_block = (
             "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`\n"
+            "> Перед FINISH всегда нужен свежий автономный PASS от `verify-qa` текущего QA run. После FAIL/BLOCKED или ошибки запуска verify: spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись завершения repair и повтори `verify-qa`; не создавай `qa_pass` и не вызывай FINISH до этого.\n"
             "> После BUGFIX обязателен новый qa-*.yaml с новым именем и reviewer PASS текущего QA run.\n"
         )
     elif phase_kind == "audit":
@@ -1117,10 +1105,17 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     elif phase_kind == "qa":
         phase_work_block = _qa_work_block(scope.role, epic_key)
     commands_block = _commands_block(scope.command)
-    runtime_block = (
-        _codex_native_collaboration_block()
-        if scope.runtime == "codex"
-        else ""
+    from loop.runtime_adapters.base import SessionContext
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+
+    runtime_id = "claude" if scope.runtime == "claude-code" else scope.runtime
+    runtime_adapter = get_adapter_for_runtime(runtime_id)
+    runtime_block = runtime_adapter.collaboration_block(
+        SessionContext(
+            prompt="",
+            phase=scope.phase or "UNKNOWN",
+            runtime_id=runtime_id,
+        )
     )
 
     return f"""{render_prompt_scope(scope)}
@@ -1929,6 +1924,23 @@ def prepare_session(
                 "Write весь `activeContext.md`: `## load_now` → ровно 1× `## Handoff` → ≤1× `## done`.",
                 "В Handoff: что уже сделано + что осталось на текущем шаге; затем доведи шаг или FINISH.",
                 f"Это outer retry после stall (счётчик={stall_n}). Без нового Handoff loop снова retry/halt.",
+            ]
+        )
+
+    gate_diagnostic = str(st.get("gate_diagnostic") or "")
+    if gate_diagnostic in {
+        "verify_spawn_missing",
+        "reviewer_spawn_missing",
+        "verify_runtime_error",
+        "verify_runtime_unsupported_tool",
+    }:
+        resume_lines = list(resume_lines or [])
+        resume_lines.extend(
+            [
+                "## GATE RUNTIME RECOVERY (HARD)",
+                "Предыдущий verify/reviewer не дал валидного gate receipt из-за сбоя native spawn или runtime transport.",
+                "Это repairable blocker: не создавай qa_pass и не останавливай QA.",
+                "Повтори canonical spawn_agent → wait; при повторе ошибки передай BLOCKERS в gate-repair, дождись repair и снова запусти verify-qa.",
             ]
         )
 
@@ -2861,20 +2873,59 @@ def record_abort(
     runtime_id = (
         st.get("runtime") if isinstance(st.get("runtime"), str) else runtime
     )
-    if runtime_id == "codex" and Path(log_path).is_file():
-        try:
-            from loop.codex_collab_verdict import mirror_codex_collab_verdicts_from_log
-
-            mirror_codex_collab_verdicts_from_log(
-                cwd_p,
-                log_path,
-                session_id=str(st.get("session_id") or ""),
-            )
-        except Exception as exc:
-            print(
-                f"codex collab verdict mirror failed: {exc}",
-                file=sys.stderr,
-            )
+    try:
+        from loop.runtime_adapters.base import SessionContext
+        from loop.runtime_adapters.common import get_adapter_for_runtime
+        adapter = get_adapter_for_runtime(runtime_id)
+        session_ctx = SessionContext(
+            prompt="",
+            phase=str(st.get("loop_phase") or st.get("phase") or ""),
+            model=str(st.get("model") or "") or None,
+            runtime_id=runtime_id,
+            extras={"session_id": str(st.get("session_id") or "")},
+        )
+        post_session = getattr(adapter, "post_session", None)
+        if callable(post_session):
+            post_session(cwd_p, log_path, session_ctx)
+    except Exception as exc:
+        print(f"runtime session post-processing failed: {exc}", file=sys.stderr)
+    from loop.incidents.trace import append_trace
+    from epic_paths import epic_dir as runtime_epic_dir
+    from loop.runtime.session_events import append_session_events, parse_session_events
+    raw_session_log = ""
+    try:
+        raw_session_log = Path(log_path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        pass
+    phase = str(st.get("loop_phase") or st.get("phase") or "")
+    role = str(st.get("role") or st.get("role_id") or "")
+    append_session_events(
+        runtime_epic_dir(cwd_p),
+        parse_session_events(raw_session_log, runtime_id),
+        session_id=str(st.get("session_id") or ""),
+        step_id=str(step_id or ""),
+        epic_id=str(plan_id or ""),
+        role=role,
+        phase=phase,
+        outcome=analysis.get("outcome"),
+    )
+    append_trace(
+        runtime_epic_dir(cwd_p),
+        phase,
+        session_id=str(st.get("session_id") or ""),
+        step_id=str(step_id or ""),
+        epic_id=str(plan_id or ""),
+        action="session_result",
+        runtime_provider=runtime_id,
+        detail={
+            "runtime": runtime_id,
+            "role": role,
+            "outcome": analysis.get("outcome"),
+            "semantic_status": analysis.get("semantic_status"),
+            "task_complete": analysis.get("task_complete"),
+            "event_summary": analysis.get("event_summary") or {},
+        },
+    )
     reason = analysis["reason"]
     retryable = analysis["retryable"]
     kind = analysis["abort_kind"]
@@ -2885,6 +2936,14 @@ def record_abort(
             st = load_epic_state(cwd_p)
             step_id = st.get("armed_step")
             resume_from = step_id or resume_from
+    if reason and reason.startswith("unsupported_tool_call:"):
+        st["gate_diagnostic"] = "verify_runtime_unsupported_tool"
+        st["repair_required"] = "gate-repair"
+        st["halt_reason"] = (
+            "repairable gate-runtime error: "
+            + reason
+            + "; retry spawn_agent, then gate-repair and verify"
+        )
     if not analysis["aborted"]:
         marker = write_last_session(
             cwd_p,
@@ -2899,6 +2958,12 @@ def record_abort(
             outcome=analysis["outcome"],
             retry_count=attempt,
             resume_dirty=False,
+            runtime=runtime_id,
+            semantic_status=analysis.get("semantic_status"),
+            task_complete=analysis.get("task_complete"),
+            event_summary=analysis.get("event_summary"),
+            role=role,
+            phase=phase,
         )
         return {
             "ok": True,
@@ -2925,6 +2990,12 @@ def record_abort(
         outcome=analysis["outcome"],
         retry_count=attempt,
         resume_dirty=True,
+        runtime=runtime_id,
+        semantic_status=analysis.get("semantic_status"),
+        task_complete=analysis.get("task_complete"),
+        event_summary=analysis.get("event_summary"),
+        role=role,
+        phase=phase,
     )
     if retryable:
         st["halt_reason"] = reason or "other"

@@ -4,41 +4,70 @@ step_id: s05
 plan_id: T-HUB-083-role-core-shared-contract
 title: s05 — Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных
   изменений IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-08'
 decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s05-role-core-semantic-regression.yaml
-skills_used: []
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Mode-W regression suite created in harness/hooks/tests/test_role_core_mode_regression.py
+  covering BACK promotion/lifecycle, FRONT parent-only boundary, INTEG element-first/contract/GAP
+  fanout, and cross-role isolation.
+- All role-specific guards verified to remain strictly local to their respective role
+  cores without requiring compensating shared branches.
+- 'Targeted semantic contract suite verified green: 23 passed in harness/hooks/tests/test_role_core_contract.py
+  and harness/hooks/tests/test_role_core_mode_regression.py.'
+- TM-083-06 is explicitly handed off to BACK QA for the full hub-suite run; this IMPLEMENT
+  shard records targeted semantic evidence only.
 files:
 - harness/hooks/tests/test_role_core_mode_regression.py
 - harness/hooks/tests/test_role_core_contract.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line
+  -k "back or promotion or mode"`'
+- '`bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line
+  -k "front or parent"`'
+- '`bin/pytest harness/hooks/tests/test_role_core_mode_regression.py -q --tb=line
+  -k "integ or contract or gap"`'
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py harness/hooks/tests/test_role_core_mode_regression.py
+  -q --tb=line`'
+integration_check:
+- Mode-W matrix verifies BACK promotion/lifecycle, FRONT parent-only, and INTEG contract/GAP
+  fanout are preserved locally.
+- All 23 targeted semantic role-core tests pass (23 passed, 0 failed).
+- TM-083-06 is handed off to BACK QA; the full hub suite is not executed or recorded
+  in this IMPLEMENT shard.
 grep_control: []
-verification_results: []
+verification_results:
+- 'cp1: 10 passed in test_role_core_mode_regression.py for BACK promotion and lifecycle
+  mode-W matrix'
+- 'cp2: 2 passed in test_role_core_mode_regression.py for FRONT parent-only boundary
+  and visible-UI guards'
+- 'cp3: 2 passed in test_role_core_mode_regression.py for INTEG element-first, contract
+  and fanout guards'
+- 'cp4: 23 passed across test_role_core_contract.py and test_role_core_mode_regression.py'
 checkpoints:
 - id: cp1
   criterion: Mode-W matrix confirms BACK promotion/lifecycle remains local and does
     not require a compensating shared-path branch.
-  status: pending
+  status: done
 - id: cp2
   criterion: Mode-W matrix confirms FRONT parent-only and visible-UI guards remain
     local and unchanged.
-  status: pending
+  status: done
 - id: cp3
   criterion: Mode-W matrix confirms INTEG element-first, contract and BACK/FRONT/GAP
     fanout remain local and unchanged.
-  status: pending
+  status: done
 - id: cp4
   criterion: The semantic suite observes hub/managed runner wording and all three
     role imports after purge.
-  status: pending
-- id: cp5
-  criterion: The full hub suite runs with the repository wrapper and no targeted-only
-    substitute is recorded as TM-083-06.
-  status: pending
-resume_from: cp1
+  status: done
+resume_from: none

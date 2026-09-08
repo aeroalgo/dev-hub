@@ -28,4 +28,4 @@ steps:
   title: Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных
     изменений
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

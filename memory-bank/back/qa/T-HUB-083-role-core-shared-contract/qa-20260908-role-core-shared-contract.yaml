@@ -1,0 +1,48 @@
+schema: epic-qa/v1
+role: back
+epic_id: T-HUB-083-role-core-shared-contract
+verdict: blocked
+gate_status: invalidated
+gate_diagnostic: verify_runtime_unsupported_tool
+date: '2026-09-08'
+qa_lead: BACK QA
+
+test_matrix_coverage:
+  - tm_id: TM-083-01
+    status: pass
+    evidence: "harness/hooks/tests/test_role_core_contract.py подтверждает единого shared владельца role-core-contract.mdc и ровно один импорт в BACK, FRONT и INTEG mainrule-core.mdc"
+  - tm_id: TM-083-02
+    status: pass
+    evidence: "test_role_cores_contain_only_role_specific_semantics и test_copied_common_prose_fails_closed подтверждают удаление дублирующейся общей прозы и fail-closed реакцию"
+  - tm_id: TM-083-03
+    status: pass
+    evidence: "test_back_role_preserves_lifecycle_and_promotion_guards и mode regression cp1 подтверждают сохранение правил BACK promotion и lifecycle"
+  - tm_id: TM-083-04
+    status: pass
+    evidence: "test_front_role_preserves_visible_ui_and_parent_only_guards и mode regression cp2 подтверждают сохранение границ FRONT parent-only и visible-UI"
+  - tm_id: TM-083-05
+    status: pass
+    evidence: "test_integ_role_preserves_element_first_and_contract_fanout_guards и mode regression cp3 подтверждают сохранение INTEG element-first, contract и fanout"
+  - tm_id: TM-083-06
+    status: pass
+    evidence: "Semantic contract suite: 23 passed (test_role_core_contract.py, test_role_core_mode_regression.py); full pytest scan и §0.11 mirror parity выполнены"
+
+reviewer_gate:
+  agent_id: verify-qa
+  verdict: BLOCKED
+  evidence: "QA rollback: verify-qa не был запущен; native multi-agent transport вернул unsupported call, repair-loop должен повторить verify через gate-repair"
+
+security_spot_check:
+  owasp_check: pass
+  notes: "Изменения затрагивают только правила .mdc (контракты mainrule-core) и тесты; нет auth, crypto, db или external I/O"
+
+behavior_smoke:
+  status: pass
+  evidence: "Все 3 роли (BACK, FRONT, INTEG) успешно импортируют shared role-core-contract, валидационные проверки и тесты режима Mode-W проходят успешно"
+
+sunset_scan:
+  status: pass
+  evidence: "Дублирующаяся общая проза удалена из всех 3 mainrule-core файлов, legacy fallbacks отсутствуют"
+
+issues: []
+fix_plan: []

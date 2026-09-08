@@ -14,7 +14,7 @@ from _lib import (
     emit,
     is_schema_error,
     is_semantic_error,
-    last_verdict_was_fail,
+    last_verdict_allows_repair,
     load_state,
     mark_in_flight,
     normalize_type,
@@ -94,9 +94,9 @@ def main() -> None:
     prompt = tool_input.get("prompt") or ""
 
     if norm == "gate-repair":
-        if not last_verdict_was_fail(cwd, session_id):
+        if not last_verdict_allows_repair(cwd, session_id):
             deny_reasons.append(
-                "semantic_repair_without_fail: @gate-repair только после @verify VERDICT: FAIL"
+                "semantic_repair_without_fail_or_gate_blocker: @gate-repair разрешён только после @verify VERDICT: FAIL/BLOCKED или repairable gate-runtime error"
             )
 
     if norm in {"verify", "verify-implement"} and agent_enabled("verify", cwd or None):

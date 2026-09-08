@@ -63,6 +63,37 @@ def test_finish_qa_happy(tmp_path: Path):
     )
 
 
+def test_finish_qa_active_run_requires_verify_qa_receipt(tmp_path: Path):
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    (qa_dir / "qa-001.yaml").write_text(
+        "verdict: pass\nepic_id: T-HUB-040\n", encoding="utf-8"
+    )
+
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": "T-HUB-040",
+            "armed_role": "BACK",
+            "active": True,
+            "phase": "QA",
+            "phase_run_id": "qa-run-1",
+        },
+    )
+
+    result = finish_qa(
+        MbFinishRequest(
+            phase="BACK QA",
+            step_id="QA",
+            done_summary="qa passed without gate receipt",
+            cwd=str(tmp_path),
+        )
+    )
+
+    assert result.ok is False
+    assert "qa_reviewer_required" in result.diagnostic_codes
+
+
 def test_finish_qa_v2_layout_path_emits_qa_pass(tmp_path: Path):
     qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
     qa_dir.mkdir(parents=True, exist_ok=True)

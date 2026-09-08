@@ -6,8 +6,16 @@ from loop.runtime.registry import get_runtime_adapter, InvalidRuntimeConfig
 from loop.runtime_adapters.base import RuntimeAdapter
 
 
+_RUNTIME_ALIASES = {
+    "claude-code": "claude",
+    "claude_cli": "claude",
+    "claude-cli": "claude",
+}
+
+
 def get_adapter_for_runtime(runtime_id: str) -> RuntimeAdapter:
     """Factory creating RuntimeAdapter instance for given runtime_id using registry."""
+    runtime_id = _RUNTIME_ALIASES.get(str(runtime_id).strip().lower(), runtime_id)
     try:
         obj = get_runtime_adapter(runtime_id)
     except InvalidRuntimeConfig as e:

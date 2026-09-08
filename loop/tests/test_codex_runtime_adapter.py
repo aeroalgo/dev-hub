@@ -166,7 +166,7 @@ def test_analyze_ignores_auth_keyword_inside_command_output():
     assert analysis.retry is False
 
 
-def test_analyze_unsupported_codex_tool_call_is_permanent():
+def test_analyze_unsupported_codex_tool_call_is_repairable_retry():
     adapter = CodexAdapter()
     raw_log = (
         "SESSION_START session=1 mode=headless command=codex\n"
@@ -176,7 +176,7 @@ def test_analyze_unsupported_codex_tool_call_is_permanent():
     ctx = SessionContext(prompt="do task", phase="analyze", extras={"exit_code": 126})
     analysis = adapter.analyze_log(raw_log, ctx)
     assert analysis.reason == "unsupported_tool_call: multi_agent_v1_spawn_agent"
-    assert analysis.retry is False
+    assert analysis.retry is True
 
 
 def test_analyze_log_binary_missing_fixture():

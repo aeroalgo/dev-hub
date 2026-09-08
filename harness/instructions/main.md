@@ -24,6 +24,19 @@ runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную ro
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.
 
+## Workflow-owned skills
+
+Единственный skill-root этого workflow — локальный `.agents/skills/` репозитория
+(в dev-hub он указывает на `harness/skills/`). Автоматический skills-каталог
+Codex отключён в `.codex/config.toml`, поэтому его полный список не является
+частью стартового prompt.
+
+Загружай только конкретные локальные `SKILL.md`, явно указанные выбранной
+role/mode chain или текущим shard (`skills.impl`, `skills.design`,
+`skills.design_skills`, audit skills). Если workflow или shard не назвал
+skill-путь, не загружай skills и не угадывай соседние. Явный запрос пользователя
+или runtime на конкретный skill имеет приоритет.
+
 Для DSH ссылки `@file` — это навигация, а не готовый system prompt: прочитай
 entrypoint, выбери текущую фазу, затем последовательно прочитай только файлы
 выбранной цепочки и явно перечисленные `SKILL.md`.

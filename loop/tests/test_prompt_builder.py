@@ -25,7 +25,7 @@ def test_scope_routes_one_workflow_for_current_command() -> None:
     rendered = render_prompt_scope(scope)
     assert rendered.startswith("COMMAND: BACK IMPLEMENT\n")
     assert "HARD READ" in rendered
-    assert "цепочку связанных файлов" in rendered
+    assert "canonical hot path" in rendered
     assert "workflow-implement.mdc" not in rendered
     assert "AGENTS.md" not in rendered
     assert "CLAUDE.md" in rendered
@@ -90,6 +90,58 @@ def test_scope_selects_codex_entrypoint_without_loading_claude() -> None:
     assert "mainrule.mdc" in rendered
 
 
+def test_scope_limits_skills_to_selected_workflow_refs() -> None:
+    from prompt_builder import build_prompt_scope, render_prompt_scope
+
+    rendered = render_prompt_scope(
+        build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="codex")
+    )
+
+    assert "## SKILLS LOAD POLICY (HARD)" in rendered
+    assert "локального `.agents/skills/`" in rendered
+    assert "автоматический каталог" in rendered
+    assert "skills.impl" in rendered
+    assert "skills.design" in rendered
+    assert "no skill read" in rendered
+    assert "Available skills" not in rendered
+
+
+def test_scope_uses_recursive_chain_only_for_recursive_workflow_modes() -> None:
+    from prompt_builder import build_prompt_scope, render_prompt_scope
+
+    implement = render_prompt_scope(
+        build_prompt_scope(ROOT, command="BACK IMPLEMENT", runtime="codex")
+    )
+    plan = render_prompt_scope(
+        build_prompt_scope(ROOT, command="BACK PLAN", runtime="codex")
+    )
+
+    assert "canonical hot path" in implement
+    assert "не рекурсивно" in implement
+    assert "связанные @-ссылки" in plan
+
+    refactor_plan = render_prompt_scope(
+        build_prompt_scope(ROOT, command="BACK PLAN REFACTOR", runtime="codex")
+    )
+    assert "COMMAND: BACK PLAN REFACTOR" in refactor_plan
+    assert "phase: `PLAN REFACTOR`" in refactor_plan
+    assert "связанные @-ссылки" in refactor_plan
+
+
+def test_composite_refactor_plan_keeps_command_but_uses_plan_step() -> None:
+    from prompt_builder import resolve_session_identity
+
+    identity = resolve_session_identity(
+        None,
+        None,
+        {"phase": "BACK PLAN REFACTOR", "epic": "T-test"},
+    )
+
+    assert identity.command == "BACK PLAN REFACTOR"
+    assert identity.phase == "PLAN REFACTOR"
+    assert identity.step == "PLAN"
+
+
 def test_codex_prompt_requires_native_collaboration_for_gates() -> None:
     from context_loop import build_prompt
 
@@ -107,6 +159,25 @@ def test_codex_prompt_requires_native_collaboration_for_gates() -> None:
     assert "multi_agent_v1_spawn_agent" in prompt
     assert "не является частью обычного IMPLEMENT" in prompt
     assert "RECONCILE REQUIRED" not in prompt
+
+
+def test_claude_prompt_uses_shared_policy_and_claude_transport() -> None:
+    from context_loop import build_prompt
+
+    prompt = build_prompt(
+        ROOT,
+        command="BACK QA",
+        runtime="claude-code",
+        projection={"phase": "BACK QA", "epic": "T-test", "step": "QA"},
+        load_now=[],
+    )
+
+    assert "SHARED GATE COLLABORATION CONTRACT" in prompt
+    assert "gate-repair" in prompt
+    assert "FAIL или BLOCKED" in prompt
+    assert "CLAUDE CODE COLLABORATION ADAPTER" in prompt
+    assert "Agent" in prompt
+    assert "spawn_agent" not in prompt
 
 def test_scope_selects_dsh_native_entrypoint_and_tool_dialect() -> None:
     from prompt_builder import build_prompt_scope, render_prompt_scope
@@ -142,6 +213,7 @@ _ROLE_COMMANDS = [
         for mode in (
             "VAN",
             "PLAN",
+            "PLAN REFACTOR",
             "CLARIFY",
             "DECOMPOSE",
             "ANALYZE",

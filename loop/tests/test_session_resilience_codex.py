@@ -71,7 +71,7 @@ def test_session_resilience_codex_binary_missing(tmp_path: Path):
     assert analysis["abort_kind"] == "fatal"
 
 
-def test_session_resilience_codex_unsupported_tool_is_permanent(tmp_path: Path):
+def test_session_resilience_codex_unsupported_tool_is_repairable(tmp_path: Path):
     log_file = tmp_path / "codex-unsupported-tool.log"
     log_file.write_text(
         "SESSION_START session=1 mode=headless command=codex\n"
@@ -81,11 +81,11 @@ def test_session_resilience_codex_unsupported_tool_is_permanent(tmp_path: Path):
     )
     analysis = analyze_session_log(log_file, exit_code=126, runtime="codex")
 
-    assert analysis["outcome"] == "permanent_failure"
+    assert analysis["outcome"] == "unknown_failure"
     assert analysis["aborted"] is True
     assert analysis["reason"] == "unsupported_tool_call: multi_agent_v1_spawn_agent"
-    assert analysis["retryable"] is False
-    assert analysis["abort_kind"] == "fatal"
+    assert analysis["retryable"] is True
+    assert analysis["abort_kind"] == "transient"
 
 
 def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
@@ -96,4 +96,3 @@ def test_session_resilience_codex_subagent_start_smoke(tmp_path: Path) -> None:
     assert "reviewer" in CONTRACTS
     assert normalize_type("verify-implement") == "verify-implement"
     assert "HARD RULE" in HARD_RULE
-

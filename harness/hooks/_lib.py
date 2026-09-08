@@ -623,7 +623,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
         if agent.id not in GATE_AGENTS
     ]
     agent_lines.extend(
-        f"| Repair agent | @{agent.id} после verify FAIL — чинит BLOCKERS in-scope |"
+        f"| Repair agent | @{agent.id} после verify FAIL/BLOCKED или gate-runtime error — чинит BLOCKERS in-scope |"
         for agent in repair_agents
     )
     agent_lines.extend(
@@ -648,7 +648,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             *search_lines,
             *agent_lines,
             "| Agent running | FORBIDDEN TaskOutput mid-poll — жди completion (VERDICT / repair JSON) |",
-            "| verify FAIL | @gate-repair с BLOCKERS + ALLOW WRITE + VERIFY → retry @verify; "
+            "| verify FAIL/BLOCKED | @gate-repair с BLOCKERS + ALLOW WRITE + VERIFY → retry @verify; "
             "FORBIDDEN: «ожидаю verify», FINISH, новый @verify/repair пока in_flight |",
             "| Parallel spawn | DENY: второй managed пока in_flight; DENY: та же model busy |",
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
@@ -663,7 +663,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "FAIL: второй @verify пока предыдущий running. "
             "FAIL: parallel managed / same-model spawn.",
             "QA FINISH: qa-*.yaml (verdict) + mb-finish qa / BUGFIX/DONE.",
-            "Канон: `.claude/instructions/spawn-hard.md`",
+            "Канон общей политики: `harness/instructions/spawn-hard.md`; transport — runtime adapter",
         ]
     )
 
@@ -693,7 +693,7 @@ AGENT_MODEL_ENV_KEYS: dict[str, str] = {
     "gate-repair": "PROJECT_AGENT_GATE_REPAIR_MODEL",
 }
 _AGENT_MODEL_KEY_RE = re.compile(
-    r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL(?:_[A-Z][A-Z0-9_-]*)?$"
+    r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL(?:_(?:CHAT|LOOP))?$"
 )
 _LOOP_PHASE_MODEL_KEY_RE = re.compile(r"^PROJECT_LOOP_[A-Z][A-Z0-9_]*_MODEL$")
 WORKFLOW_POLICIES = frozenset({"loop", "always", "off"})
@@ -702,12 +702,9 @@ WORKFLOW_POLICIES = frozenset({"loop", "always", "off"})
 def agent_model_env_key(norm: str | None, runtime: str | None = None) -> str:
     if not norm:
         return ""
-    key = AGENT_MODEL_ENV_KEYS.get(
+    return AGENT_MODEL_ENV_KEYS.get(
         norm, f"PROJECT_AGENT_{norm.upper().replace('-', '_')}_MODEL"
     )
-    if (runtime or "").strip().lower() == "codex":
-        return f"{key}_CODEX"
-    return key
 
 
 # Tests may load hooks repeatedly from temporary repositories. Do not retain a
@@ -1414,17 +1411,45 @@ def bash_exports_output_summary_env(project_dir: str | Path | None = None) -> st
     return bash_exports_project_env(project_dir)
 
 
+def _codex_agent_model_from_config(
+    norm: str, project_dir: str | Path | None = None
+) -> str | None:
+    """Resolve a native Codex child model from codex/agents.config.toml."""
+    roots: list[Path] = []
+    if project_dir:
+        roots.append(Path(project_dir).resolve())
+    roots.append(_HUB_ROOT)
+    seen: set[Path] = set()
+    for root in roots:
+        if root in seen:
+            continue
+        seen.add(root)
+        if not (root / "codex" / "agents.config.toml").is_file():
+            continue
+        from loop.runtime_materializers.codex_agent_settings import (
+            resolve_codex_agent_settings,
+        )
+
+        native, _workflow = resolve_codex_agent_settings(root, norm)
+        model = native.get("model")
+        if isinstance(model, str) and model.strip():
+            return model.strip()
+    return None
+
+
 def agent_model_from_project_env(
     norm: str | None, project_dir: str | Path | None = None
 ) -> str | None:
-    """Resolve a managed model from registry, else PROJECT_AGENT_<NAME>_MODEL."""
+    """Resolve a managed child model from its runtime's canonical settings."""
     if not norm:
         return None
-    values = merged_project_env_map(project_dir)
     runtime = os.environ.get("EPIC_RUNTIME_RESOLVED") or os.environ.get("EPIC_RUNTIME")
-    runtime_key = agent_model_env_key(norm, runtime)
+    if (runtime or "").strip().lower() == "codex":
+        return _codex_agent_model_from_config(norm, project_dir)
+
+    values = merged_project_env_map(project_dir)
     base_key = agent_model_env_key(norm)
-    raw = (values.get(runtime_key) or values.get(base_key) or "").strip()
+    raw = (values.get(base_key) or "").strip()
     if raw:
         return raw
     definition = _managed_definition(norm, project_dir)
@@ -2378,6 +2403,59 @@ def last_verdict_was_fail(cwd: str | Path | None = None, session_id: str | None 
     return False
 
 
+def last_verdict_allows_repair(
+    cwd: str | Path | None = None, session_id: str | None = None
+) -> bool:
+    """Return True for a repairable verifier result or gate-runtime failure."""
+    repairable_diagnostics = {
+        "verify_spawn_missing",
+        "reviewer_spawn_missing",
+        "verify_runtime_error",
+        "verify_runtime_unsupported_tool",
+    }
+
+    if session_id and cwd:
+        st = load_state(session_id, str(cwd))
+        verdict = str(st.get("verify_verdict") or "").upper()
+        if st.get("verify_done") and verdict in {"FAIL", "BLOCKED"}:
+            return True
+        if str(st.get("gate_diagnostic") or "") in repairable_diagnostics:
+            return True
+
+    if cwd:
+        try:
+            import sys
+            from pathlib import Path
+
+            loop_root = Path(__file__).resolve().parents[2]
+            if loop_root.is_dir() and str(loop_root) not in sys.path:
+                sys.path.insert(0, str(loop_root))
+            from loop.gate_verdict_store import read_gate_verdict
+
+            record = read_gate_verdict(cwd, "verify")
+            if record is not None and str(record.verdict).upper() in {"FAIL", "BLOCKED"}:
+                return True
+        except Exception:
+            pass
+
+        try:
+            from epic.core import load_epic_state
+
+            epic = load_epic_state(cwd)
+            verdict = str(
+                epic.get("last_verify_verdict")
+                or epic.get("verify_verdict")
+                or ""
+            ).upper()
+            if verdict in {"FAIL", "BLOCKED"}:
+                return True
+            if str(epic.get("gate_diagnostic") or "") in repairable_diagnostics:
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def _schema_retry_key(tool_use_id: str, session_id: str | None = None) -> str:
     tid = str(tool_use_id or "").strip()
     sid = str(session_id or "").strip()
@@ -2486,7 +2564,7 @@ def normalize_agent_tool_input(
     norm: str | None,
     project_dir: str | Path | None = None,
 ) -> list[str]:
-    """Mutate tool_input: strip worktree; model строго из project.env. Return notes."""
+    """Mutate tool_input: enforce worktree and canonical child-model policy."""
     notes: list[str] = []
     definition = _managed_definition(norm, project_dir)
     if definition is None:
@@ -2500,10 +2578,16 @@ def normalize_agent_tool_input(
     if norm in active_overlay(project_dir):
         model = agent_model_from_project_env(norm, project_dir)
         env_key = agent_model_env_key(norm)
+        runtime = os.environ.get("EPIC_RUNTIME_RESOLVED") or os.environ.get("EPIC_RUNTIME")
         if not model:
             tool_input.pop("model", None)
+            source = (
+                "codex/agents.config.toml"
+                if (runtime or "").strip().lower() == "codex"
+                else f"{env_key} в .claude/project.env"
+            )
             notes.append(
-                f"model_missing: задай {env_key} в .claude/project.env"
+                f"model_missing: настрой модель в {source}"
             )
         elif model == "inherit":
             tool_input.pop("model", None)
@@ -2512,11 +2596,9 @@ def normalize_agent_tool_input(
             prev = tool_input.get("model")
             tool_input["model"] = model
             if prev and str(prev) != model:
-                notes.append(
-                    f"model {prev!r} → {model} (строго .claude/project.env)"
-                )
+                notes.append(f"model {prev!r} → {model}")
             else:
-                notes.append(f"model={model} из .claude/project.env")
+                notes.append(f"model={model}")
 
     return notes
 

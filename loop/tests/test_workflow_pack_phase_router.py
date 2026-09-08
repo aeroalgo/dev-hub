@@ -458,6 +458,11 @@ def test_route_command_software() -> None:
     assert route_integ.normalized_phase == "PLAN"
     assert route_integ.rules_mdc_rel == ".cursor/rules/integration_developer/workflow-plan.mdc"
 
+    route_refactor_plan = route_command(software_pack, "BACK PLAN REFACTOR")
+    assert route_refactor_plan.normalized_phase == "PLAN REFACTOR"
+    assert route_refactor_plan.rules_mdc_rel == ".cursor/rules/back_developer/workflow-plan-refactor.mdc"
+    assert (repo_root / route_refactor_plan.rules_mdc_rel).is_file()
+
 
 def test_route_command_custom_prefix(tmp_path: Path) -> None:
     """AC+2 / cp2: route_command with custom video pack."""

@@ -91,7 +91,11 @@ def collect_session_telemetry(
     Never synthesizes zero duplicates when ledger is corrupt or missing.
     """
     root_p = Path(project_root).resolve()
-    base_dir = runtime_dir or root_p / ".claude" / "runtime"
+    if runtime_dir is None:
+        from epic_paths import epic_dir as runtime_epic_dir
+        base_dir = runtime_epic_dir(root_p).parent
+    else:
+        base_dir = runtime_dir
     safe_proj = re.sub(r"[^a-zA-Z0-9._-]+", "_", root_p.name or "proj")[:64]
     safe_sess = re.sub(r"[^a-zA-Z0-9._-]+", "_", session_id or "sess")[:64]
     sess_dir = base_dir / "context-ledger" / safe_proj / safe_sess

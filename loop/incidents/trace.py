@@ -28,6 +28,7 @@ def append_trace(
     action: str = "",
     detail: dict[str, Any] | None = None,
     decide: str | None = None,
+    runtime_provider: str = "",
     ts: str | None = None,
 ) -> dict[str, Any] | None:
     """Append a session trace entry to epic_dir/session-trace.jsonl.
@@ -57,6 +58,8 @@ def append_trace(
     }
     if episode_id:
         entry["episode_id"] = episode_id
+    if runtime_provider:
+        entry["runtime_provider"] = runtime_provider
 
     line = json.dumps(entry, ensure_ascii=False)
     with trace_file.open("a", encoding="utf-8") as f:

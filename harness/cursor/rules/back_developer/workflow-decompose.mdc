@@ -7,6 +7,7 @@ alwaysApply: false
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
 **Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc
 **Policy (по триггеру):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
+**Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)
 **Не грузить:** `executing-plans`, `breakdown-plan`
 
@@ -23,6 +24,7 @@ alwaysApply: false
 2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
 2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a
 2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
+2c. **Test scope (HARD):** в каждом `sNN` записывай только targeted `verify` по `files`/`delta`/`plan_contract`; full suite не добавляй в `verify` или `checkpoints[].verify`. Полный suite — отдельный **BACK QA** outcome после IMPLEMENT.
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
 3a. **Layout:** Target layout ∈ steps или `follow_up:`+queue; bare deferred = FAIL; Appetite Cut ≠ живой layout
 4. `validate-decompose-tree` exit 0 (+ plan_contract machine)

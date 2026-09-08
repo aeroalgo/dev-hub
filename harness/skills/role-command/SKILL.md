@@ -25,7 +25,7 @@ Parse: `{PREFIX} {MODE}` or `{PREFIX} {MODE} FINISH`.
 
 **Нет файла** `.cursor/rules/mainrule-core.mdc` — core только внутри `*_developer/`.
 
-Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
+Multi-word: `ARCHIVE NOW`, `ROADMAP MERGE`, `IDEA PIPELINE CONTINUE`, `INTEG GAP` (алиас `INTEGRATION GAP`), `INTEG GAP CLOSE` (алиас `INTEGRATION GAP CLOSE`), `PLAN REFACTOR`, `SECURITY PLAN`, `SECURITY DECOMPOSE`, `REFACTOR PLAN`, `REFACTOR DECOMPOSE`.
 
 ## Step 0 — graphify (parity with Cursor `mainrule.mdc`)
 
@@ -70,6 +70,15 @@ Fallback на Read/Grep — только после ориентации по г
 - Lean load ≠ lean write: **не** сжимай `plan-*.md` / `gap-*.md` / `security/plan/plan-*.md` под telegraph / 200 lines / chat brief
 - Research / audit / multi-P вход → `.cursor/rules/shared/workflow-plan-multi-epic.mdc`: **N эпиков** + roadmap, не один mega-plan; объяви `MULTI-EPIC PLAN — N эпиков`
 - PLAN → recommend premium model; after PLAN → inline `roadmap-merge` (same session) → new chat for `* DECOMPOSE` первого эпика **canon** queue (не `* ROADMAP MERGE`)
+
+### Если COMMAND = BACK PLAN REFACTOR
+
+- Treat it as a planning-only composite mode. Load `.cursor/rules/back_developer/workflow-plan-refactor.mdc` and `isolation_rules/_lean/plan-refactor.mdc`.
+- Keep the ordinary BACK PLAN artifact contract: `memory-bank/back/roadmap/queue.yaml` + one `back/plan/<epic_id>/md/plan.md` and `md/prompt.md` per epic.
+- This is an explicit exception to the generic PLAN graphify skip: when root `graphify-out/graph.json` exists, run the structural graph inventory first; in a hub without a graph, emit the documented N/A and use bounded inventory.
+- Before writing plans, scan function nodes, adapters/boundaries, dead code, duplication, and tests. Record evidence, callers, deletion/merge action, and net-delta estimate.
+- Use the multi-epic cut when independent axes exist. Keep each production outcome with its first required consumer and its test refactor. Next is `BACK DECOMPOSE <queue[0]>`.
+- Do not edit production/test code and do not create `back/refactor/session-*` during this command.
 ## Step 1 — role index + core
 
 **IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если cheatsheet/Gates ссылаются на TDD/pytest runner и его нет в Gates.
@@ -105,6 +114,7 @@ Fallback на Read/Grep — только после ориентации по г
 | ROADMAP MERGE | `{role_dir}workflow-roadmap-merge.mdc` |
 | SECURITY · SECURITY PLAN · SECURITY DECOMPOSE | `{role_dir}workflow-security.mdc` |
 | REFACTOR · REFACTOR PLAN · REFACTOR DECOMPOSE | `{role_dir}workflow-refactor.mdc` |
+| BACK PLAN REFACTOR | `.cursor/rules/back_developer/workflow-plan-refactor.mdc` |
 | GAP CLOSE | `{role_dir}workflow-gap-close.mdc` |
 
 **IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (cheatsheet + Gates). Читать при FAIL / дыре coverage.

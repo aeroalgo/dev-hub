@@ -1,20 +1,19 @@
 ---
 schema: loop-handoff/v1
 role: BACK
-mode: IMPLEMENT
+mode: QA
 epic_id: T-HUB-083-role-core-shared-contract
-step_id: s05
+step_id: QA
 ---
 
 ## load_now
-1. [back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s05-role-core-semantic-regression.yaml](back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s05-role-core-semantic-regression.yaml) — текущий work shard (BACK IMPLEMENT s05).
-2. [back/plan/T-HUB-083-role-core-shared-contract/yaml/decompose-index.yaml](back/plan/T-HUB-083-role-core-shared-contract/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
+1. [qa-20260908-role-core-shared-contract.yaml](back/qa/T-HUB-083-role-core-shared-contract/qa-20260908-role-core-shared-contract.yaml) — текущий QA artifact и gate diagnostic.
+2. [decompose-index.yaml](back/plan/T-HUB-083-role-core-shared-contract/yaml/decompose-index.yaml) — epic scope и completed steps.
+3. `.cursor/rules/shared/workflow-decompose-transition-gate.mdc` — lifecycle transition contract.
 
-## Handoff BACK IMPLEMENT — s05
-- **Дальше:** выполнить atomic шаг → FINISH (seed-implement → flush cp → suite → evidence in_progress → validate-step → Handoff → @verify → finalize-step)
-- **Эпик:** T-HUB-083-role-core-shared-contract (BACK); armed из `back/plan/T-HUB-083-role-core-shared-contract/yaml/decompose-index.yaml` (прошлый activeContext игнорирован).
-- **Текущий шаг:** s05 — Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных изменений (status=pending в index.yaml).
-- **Команда:** `BACK IMPLEMENT @s05`
-
-## done
-- s01–s04 completed в `back/plan/T-HUB-083-role-core-shared-contract/yaml/decompose-index.yaml` (4 шагов)
+## Handoff BACK QA
+- **Эпик:** T-HUB-083-role-core-shared-contract (BACK).
+- **Режим/шаг:** `BACK QA`.
+- **Причина возврата:** `qa_gate_repair_required`.
+- **Дальше:** запусти `verify-qa`; при FAIL/BLOCKED или runtime transport error запусти `gate-repair`, дождись repair и повтори `verify-qa`.
+- **Запрет:** не создавай `qa_pass` и не вызывай `mb-finish qa` до свежего автономного PASS текущего QA run.
