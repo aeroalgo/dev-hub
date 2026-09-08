@@ -789,6 +789,19 @@ FORBIDDEN: `@verify` для CREATIVE.
 """
 
 
+def _codex_native_collaboration_block() -> str:
+    return """## CODEX NATIVE COLLABORATION (HARD)
+Этот запуск выполняется через Codex CLI с включённым native `multi_agent`.
+1. Для субагентов используй только нативную последовательность `spawn_agent` → `wait`.
+2. `multi_agent_v1_spawn_agent` — устаревший идентификатор; его вызов запрещён.
+3. Для managed child используй отдельную модель из `PROJECT_AGENT_<NAME>_MODEL_CODEX`; harness передаёт её в native `spawn_agent.model`. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) от этого не меняй.
+4. Перед FINISH IMPLEMENT/TASK/BUGFIX/QA обязательно spawn ровно одного gate-субагента: `verify-implement`, `verify-bugfix`, `verify-qa` или соответствующий текущему режиму; дождись `wait` и только затем учитывай valid fenced JSON verdict.
+5. Если verify возвращает FAIL, spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись `wait`, затем повтори verify.
+6. `reconcile` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Spawn read-only `reconcile` только для явного текущего режима `BACK RECONCILE`, если для текущего epic существует decompose-бандл с входными файлами в ALLOW READ; дождись `wait`, затем сформируй только reconcile artifact.
+7. Не выдумывай receipt/verdict, не редактируй runtime gate state и не выставляй вручную `in_flight`/`status: completed`. Если native spawn недоступен или получил unsupported call — остановись с диагностикой.
+"""
+
+
 def build_prompt(
     cwd: str | Path,
     *,
@@ -1016,6 +1029,11 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     elif phase_kind == "qa":
         phase_work_block = _qa_work_block(scope.role, epic_key)
     commands_block = _commands_block(scope.command)
+    runtime_block = (
+        _codex_native_collaboration_block()
+        if scope.runtime == "codex"
+        else ""
+    )
 
     return f"""{render_prompt_scope(scope)}
 Выполни один шаг.
@@ -1026,6 +1044,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
 {path_lines}
 {degraded_block}
 {phase_work_block}{commands_block}
+{runtime_block}
 {explorer_block}
 {extra_block}
 {finish_block}

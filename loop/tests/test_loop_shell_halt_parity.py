@@ -73,3 +73,12 @@ def test_loop_user_interrupt_exits_not_resume_outer() -> None:
     assert "agent_rc -eq 130" in session_block
     assert "agent_rc -eq 143" in session_block
     assert "_exit_loop_user_interrupt" in session_block
+
+
+def test_runtime_adapter_preparation_failure_halts_before_record_session() -> None:
+    assert "RUN_AGENT_PREP_FAILED=0" in LOOP_SH
+    assert "RUN_AGENT_PREP_FAILED=1" in LOOP_SH
+    prep_failure = LOOP_SH.index("RUN_AGENT_PREP_FAILED=1")
+    record_session = LOOP_SH.index('record-session --log')
+    assert prep_failure < record_session
+    assert "runtime adapter preparation failed; session was not started" in LOOP_SH

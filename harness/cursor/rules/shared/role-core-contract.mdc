@@ -1,0 +1,44 @@
+---
+description: "Shared role-core contract: common memory-bank loading, response format, runner policy"
+alwaysApply: false
+---
+# Shared Role-Core Contract
+
+Канон: `@.cursor/rules/shared/role-core-contract.mdc` — единый канонический источник общих правил загрузки контекста (MEMORY BANK), формата ответа и политики runner для ролей BACK, FRONT и INTEG.
+
+## MEMORY BANK & Context Loading
+
+- `activeContext.md` → **`load_now`** first (@.cursor/rules/token-economy-stub.mdc §0.5.1)
+- Index → ONE shard; не грузить `done — do NOT load`
+- Session start: @.cursor/rules/shared/context-session-economy.mdc §3
+- Не читать as-built планы других ролей без необходимости; изменения фиксируются через Handoff в `memory-bank/activeContext.md` и decompose index.
+- Артефакты режимов: `memory-bank/<role>/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`; полная таблица — @.cursor/rules/shared/memory-bank-paths.mdc.
+
+## ФОРМАТ ОТВЕТА (Response Format)
+
+Каждая роль использует стандартный префикс ответа:
+- BACK: `OK BACK <РЕЖИМ> - [действие]`
+- FRONT: `OK FRONT <РЕЖИМ> - [действие]`
+- INTEG: `OK INTEG <РЕЖИМ> - [действие]`
+
+Формат ответа фиксирует текущую роль, выполняемый режим и краткий статус действия.
+
+## pytest runner (HARD — hub exception)
+
+Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
+
+Для тестов самого dev-hub (hub exception):
+1. Shell **cwd** = корень репо (где `.venv/` и `bin/pytest`)
+2. **Предпочтительно:** `bin/pytest …` (300s встроен в wrapper)
+3. Альтернатива: `timeout -k 10s 300s .venv/bin/pytest …` (или `timeout -k 10s 300s .venv/bin/python -m pytest …`)
+4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` / `timeout 300s` без `-k` / system PATH без внешнего timeout
+5. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
+
+Для managed-проектов: верификация и запуск тестов производятся строго через stack profile `capability_checks` (`test.targeted`, `test.full`) и execution evidence, без fallback на generic Python/pytest команды. Запрещён безусловный (unconditional) запуск pytest или неявный fallback без проверки capability stack profile.
+
+## Role-only boundary markers (Границы ответственности ролей)
+
+Общий контракт владеет исключительно общими правилами loading, format и runner policy. Ролевые ядра сохраняют изолированные role-only обязанности:
+- **BACK:** TDD lifecycle, Promote DECOMPOSE→IMPLEMENT, ANALYZE artifact critical_count=0, L1..L4 scope matrix, BACK REPLAN, переходы VAN → PLAN(I1) → DECOMPOSE.
+- **FRONT:** visible_ui contract, DESIGN STACK, front-tests-parent-only (Vitest/RTL/Playwright — только parent), E2E/Playwright targeted сценарии.
+- **INTEG:** ELEMENT-FIRST портальная связка, §Contract в eNN-*.yaml, QueryBuilder, scenario test, GAP fanout / GAP CLOSE.

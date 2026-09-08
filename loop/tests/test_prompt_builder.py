@@ -90,6 +90,24 @@ def test_scope_selects_codex_entrypoint_without_loading_claude() -> None:
     assert "mainrule.mdc" in rendered
 
 
+def test_codex_prompt_requires_native_collaboration_for_gates() -> None:
+    from context_loop import build_prompt
+
+    prompt = build_prompt(
+        ROOT,
+        command="BACK IMPLEMENT",
+        runtime="codex",
+        projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "step": "s01"},
+        load_now=[],
+    )
+
+    assert "CODEX NATIVE COLLABORATION" in prompt
+    assert "spawn_agent" in prompt
+    assert "gate-repair" in prompt
+    assert "multi_agent_v1_spawn_agent" in prompt
+    assert "не является частью обычного IMPLEMENT" in prompt
+    assert "RECONCILE REQUIRED" not in prompt
+
 def test_scope_selects_dsh_native_entrypoint_and_tool_dialect() -> None:
     from prompt_builder import build_prompt_scope, render_prompt_scope
 

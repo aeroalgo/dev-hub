@@ -1,0 +1,80 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-083-role-core-shared-contract
+title: s03 — Три role core импортируют shared policy и сохраняют уникальные обязанности
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s03-role-core-wiring-and-preservation.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Updated BACK, FRONT, and INTEG mainrule-core.mdc to import shared/role-core-contract.mdc
+  exactly once.
+- Extracted duplicated common loading, response format, and pytest runner paragraphs
+  from all three role-core files.
+- 'Preserved BACK-only semantics: TDD lifecycle, scope levels (L1..L4), transitions,
+  and promotion guards (ANALYZE critical_count=0).'
+- 'Preserved FRONT-only semantics: visible_ui contract, DESIGN STACK, front-tests-parent-only
+  (Vitest/RTL/Playwright), and targeted Playwright flows.'
+- 'Preserved INTEG-only semantics: ELEMENT-FIRST slices, §Contract, QueryBuilder,
+  scenario tests, BACK/FRONT wire, and GAP fanout/CLOSE.'
+- Updated semantic test corpus in harness/hooks/tests/test_role_core_contract.py to
+  assert actual repository role-core files.
+files:
+- harness/cursor/rules/back_developer/mainrule-core.mdc
+- .cursor/rules/back_developer/mainrule-core.mdc
+- harness/cursor/rules/front_developer/mainrule-core.mdc
+- .cursor/rules/front_developer/mainrule-core.mdc
+- harness/cursor/rules/integration_developer/mainrule-core.mdc
+- .cursor/rules/integration_developer/mainrule-core.mdc
+- harness/cursor/rules/shared/role-core-contract.mdc
+- .cursor/rules/shared/role-core-contract.mdc
+- harness/hooks/tests/test_role_core_contract.py
+deletes:
+- Duplicated common loading/format/runner paragraphs in harness/cursor/rules/back_developer/mainrule-core.mdc.
+- Duplicated common loading/format/runner paragraphs in harness/cursor/rules/front_developer/mainrule-core.mdc.
+- Duplicated common loading/format/runner paragraphs in harness/cursor/rules/integration_developer/mainrule-core.mdc.
+tests:
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line`'
+integration_check:
+- All three role cores import shared/role-core-contract.mdc exactly once with zero
+  copied common prose.
+- Full test suite harness/hooks/tests/test_role_core_contract.py passes 12/12 with
+  exit code 0.
+grep_control: []
+verification_results:
+- command: for f in harness/cursor/rules/{back_developer,front_developer,integration_developer}/mainrule-core.mdc;
+    do test  -eq 1; done
+  result: exit code 0 (all 3 role cores have exactly 1 shared import)
+- command: rg -n "ПЕРЕХОДЫ|Promote DECOMPOSE|BACK IMPLEMENT|BACK QA|TDD|lifecycle|promotion"
+    harness/cursor/rules/back_developer/mainrule-core.mdc
+  result: matches preserved BACK lifecycle, promotion, and TDD semantics
+- command: rg -n "parent|Vitest|RTL|Playwright|visible_ui|DESIGN STACK" harness/cursor/rules/front_developer/mainrule-core.mdc
+  result: matches preserved FRONT visible_ui and parent-only test guards
+- command: rg -n "ELEMENT-FIRST|element-first|§Contract|BACK / FRONT|GAP|fanout" harness/cursor/rules/integration_developer/mainrule-core.mdc
+  result: matches preserved INTEG element-first, §Contract, and GAP fanout semantics
+- command: bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line
+  result: 12 passed
+checkpoints:
+- id: cp1
+  criterion: Each role core references the same shared owner exactly once and no role
+    references another role's core.
+  status: done
+- id: cp2
+  criterion: BACK keeps lifecycle/promotion and TDD semantics while common policy
+    is no longer copied.
+  status: done
+- id: cp3
+  criterion: FRONT keeps visible-UI and parent-only test guards without weakening
+    them.
+  status: done
+- id: cp4
+  criterion: INTEG keeps element-first, contract and BACK/FRONT/GAP fanout semantics.
+  status: done
+resume_from: none

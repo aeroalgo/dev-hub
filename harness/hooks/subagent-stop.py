@@ -31,6 +31,8 @@ from _lib import (
     verdict_dedupe_key,
     verdict_evidence,
     workflow_state_active,
+    gate_session_id,
+    resolve_hook_agent_type,
 )
 
 _HUB_ROOT = Path(__file__).resolve().parents[2]
@@ -179,7 +181,7 @@ def main() -> None:
     if data.get("stop_hook_active"):
         return
 
-    agent_type = normalize_type(data.get("agent_type")) or data.get("agent_type")
+    agent_type = resolve_hook_agent_type(data)
     msg = data.get("last_assistant_message") or data.get("message") or ""
     transcript = data.get("transcript_path") or data.get("agent_transcript_path")
     if transcript:
@@ -189,7 +191,7 @@ def main() -> None:
                 msg = f"{msg}\n{raw[-12000:]}"
         except OSError:
             pass
-    session_id = data.get("session_id") or ""
+    session_id = gate_session_id(data)
     cwd = str(product_cwd(data.get("cwd") or ""))
     st = load_state(session_id, cwd)
     if not workflow_state_active(st, cwd or None):

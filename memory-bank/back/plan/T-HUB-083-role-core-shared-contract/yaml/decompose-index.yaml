@@ -3,28 +3,29 @@ plan_id: T-HUB-083-role-core-shared-contract
 source_md: ../md/decompose-index.md
 status_canon: decompose-index.yaml
 steps:
-  - id: s01
-    file: s01-role-core-contract-red-tests.yaml
-    title: Semantic corpus устанавливает common-owner и role-guard failure matrix
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02-shared-role-core-contract.yaml
-    title: Shared role-core contract владеет общей loading, format и runner policy
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s03
-    file: s03-role-core-wiring-and-preservation.yaml
-    title: Три role core импортируют shared policy и сохраняют уникальные обязанности
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s04
-    file: s04-role-core-legacy-fallback-purge.yaml
-    title: A/C/I legacy-fallback purge удаляет duplicate common policy и fallback
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s05
-    file: s05-role-core-semantic-regression.yaml
-    title: Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных изменений
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-role-core-contract-red-tests.yaml
+  title: Semantic corpus устанавливает common-owner и role-guard failure matrix
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-shared-role-core-contract.yaml
+  title: Shared role-core contract владеет общей loading, format и runner policy
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-role-core-wiring-and-preservation.yaml
+  title: Три role core импортируют shared policy и сохраняют уникальные обязанности
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-role-core-legacy-fallback-purge.yaml
+  title: A/C/I legacy-fallback purge удаляет duplicate common policy и fallback
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-role-core-semantic-regression.yaml
+  title: Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных
+    изменений
+  next_phase: BACK IMPLEMENT
+  status: pending

@@ -224,6 +224,32 @@ def test_iter_codex_collab_verdicts_prose_verdict_ignored() -> None:
     assert list(iter_codex_collab_verdicts(log)) == []
 
 
+def test_iter_codex_collab_verdicts_requires_observed_spawn() -> None:
+    log = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "id": "wait-1",
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "agents_states": {
+                    "thread-a": {
+                        "status": "completed",
+                        "message": (
+                            "```json\n"
+                            '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement",'
+                            '"verdict":"PASS","step_id":"s05","session_id":"test-session",'
+                            '"epic_id":"T-HUB-044","recorded_at":"2026-09-02T00:00:00Z"}\n'
+                            "```"
+                        ),
+                    }
+                },
+            },
+        }
+    )
+    assert list(iter_codex_collab_verdicts(log)) == []
+
+
 def test_mirror_codex_collab_verdicts_updates_epic_state(tmp_path: Path) -> None:
     _ensure_gate_agents(tmp_path, "verify-implement", "gate-repair")
     decompose_dir = tmp_path / "memory-bank" / "back" / "plan" / "decompose-T-HUB-044"
@@ -377,6 +403,19 @@ def test_mirror_codex_collab_verdicts_verify_qa_fail(tmp_path: Path) -> None:
     log_path = tmp_path / "session.log"
     log_path.write_text(
         json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "spawn-qa",
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "receiver_thread_ids": ["thread-qa"],
+                    "prompt": "agent_type=verify-qa\nBACK QA review",
+                },
+            }
+        )
+        + "\n"
+        + json.dumps(
             {
                 "type": "item.completed",
                 "item": {

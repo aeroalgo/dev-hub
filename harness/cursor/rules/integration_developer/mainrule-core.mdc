@@ -1,8 +1,10 @@
 ---
-description: "INTEG — element-first portal wire, vertical slices (только при INTEG-командах)"
+description: "INTEG — element-first portal wire, vertical slices, contract (только при INTEG-командах)"
 alwaysApply: false
 ---
-# INTEGR — общий контекст
+# INTEG — ролевой контекст
+
+**Shared core:** @.cursor/rules/shared/role-core-contract.mdc
 
 ## ELEMENT-FIRST
 
@@ -14,18 +16,9 @@ alwaysApply: false
 
 User-visible flow → scenario test до FINISH; QA прогон + дыры. Playwright (UI) · pytest HTTP outcome (контракт) · vitest alone **недостаточно** для «пользователь нажал X». **FORBIDDEN Handoff:** «manual smoke only» без scenario path.
 
-## pytest runner (HARD — hub exception)
-
-Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`.
-
-Для тестов самого dev-hub (hub exception):
-cwd = корень репо; **предпочтительно** `bin/pytest …`; альтернатива `timeout -k 10s 300s .venv/bin/pytest …`; **FORBIDDEN** голый `pytest` / `timeout 300s` без `-k`.
-
-Для managed-проектов: верификация сценариев и API выполняется строго через stack profile `capability_checks` (`test.targeted`, `test.full`) и execution evidence, без generic command fallback.
-
 ## QUERY BUILDER
 
-`@.agents/skills/query-builder/SKILL.md` — `HTTP ?filters= → PaginateQueryParams → QueryBuilder → crud.get_multi`; `relation__column` → join; числа → `gt`/`lt`.
+`@.agents/skills/query-builder/SKILL.md` — `HTTP ?filters=` → PaginateQueryParams → QueryBuilder → crud.get_multi; `relation__column` → join; числа → `gt`/`lt`.
 
 ## КОНТРАКТ
 
@@ -33,21 +26,16 @@ cwd = корень репо; **предпочтительно** `bin/pytest …`
 
 ## BACK / FRONT в одном eNN
 
-BACK если §API=❌: schema, endpoint, mapping_filters, targeted pytest. FRONT: api client, filter-utils, wire, vitest, убрать mock. Wire: §0.11 endpoint↔fetch.
+BACK если §API=✗: schema, endpoint, mapping_filters, targeted pytest. FRONT: api client, filter-utils, wire, vitest, убрать mock. Wire: §0.11 endpoint→fetch.
 
-## MEMORY BANK
+## MEMORY BANK (ролевой scope)
 
-- `activeContext` → `load_now` first
 - PLAN: portal implement + routes grep; IMPLEMENT: ONE `eNN-*.yaml`
 - Не читать as-built BACK/FRONT plan/decompose; gap — только через GAP CLOSE
 
 ## ПЕРЕХОДЫ
 
 Next-mode: `memory-bank/activeContext.md` + decompose index
-Runner: `./loop/loop.sh` · context-first gates · GAP fanout: `.claude/instructions/program-loop.md`
+Runner: `./loop/loop.sh` · context-first gates · GAP fanout: `.claude/instructions/program-loop.mdc`
 
 Не копировать next-mode таблицы — transitions + program-loop / FINISH sync.
-
-## ФОРМАТ
-
-`OK INTEG <РЕЖИМ> - [действие]`

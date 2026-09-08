@@ -6,6 +6,7 @@
 
 - Claude Code → `CLAUDE.md`
 - Codex → `AGENTS.md`
+- DSH → `AGENTS.md` with native `read`/`write`/`edit` tools
 
 Не читай другой runtime entrypoint.
 
@@ -22,6 +23,10 @@ runtime, затем `.cursor/rules/mainrule.mdc` и всю выбранную ro
 
 Не загружай workflow или skills заранее и не выбирай другую роль или режим.
 Пути и имена файлов определяются каноническими workflow, index и skills.
+
+Для DSH ссылки `@file` — это навигация, а не готовый system prompt: прочитай
+entrypoint, выбери текущую фазу, затем последовательно прочитай только файлы
+выбранной цепочки и явно перечисленные `SKILL.md`.
 
 ## Session context
 

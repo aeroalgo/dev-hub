@@ -211,6 +211,30 @@ def test_manual_verify_mirror_cannot_authorize_implement(setup_epic_env):
     assert persisted.get("gate_diagnostic") == "verify_spawn_missing"
 
 
+def test_codex_prefix_does_not_bypass_verify_spawn(setup_epic_env):
+    tmp_path = setup_epic_env
+    state = load_epic_state(tmp_path)
+    state["session_id"] = "codex-runner"
+    save_epic_state(tmp_path, state)
+
+    mirror_verify_verdict(
+        tmp_path,
+        "PASS",
+        evidence={
+            "schema": "loop-verifier-receipt/v1",
+            "authority": "autonomous",
+            "step": "s01",
+            "session_id": "codex-runner",
+            "verdict": "PASS",
+        },
+        session_id="codex-runner",
+    )
+
+    persisted = load_epic_state(tmp_path)
+    assert persisted.get("last_verify_verdict") is None
+    assert persisted.get("gate_diagnostic") == "verify_spawn_missing"
+
+
 def test_finish_implement_bad_shape(setup_epic_env):
     tmp_path = setup_epic_env
     original_act = read_active_context(tmp_path)

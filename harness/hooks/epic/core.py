@@ -1738,8 +1738,6 @@ def _has_active_gate_spawn(
     """Require a live managed spawn before accepting a verifier mirror."""
     if not session_id:
         return False
-    if str(session_id).startswith("codex-"):
-        return True
     try:
         from _lib import load_state, normalize_type
 

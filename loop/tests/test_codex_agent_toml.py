@@ -31,3 +31,19 @@ def test_plain_markdown_uses_fallbacks() -> None:
     assert 'name = "worker"' in out
     assert 'description = "Worker agent"' in out
     assert "plain body" in out
+
+
+def test_native_codex_agent_settings_are_rendered() -> None:
+    out = markdown_agent_to_codex_toml(
+        "plain body",
+        fallback_name="worker",
+        fallback_description="Worker agent",
+        native_settings={
+            "model": "cx/gpt-5.6-luna",
+            "model_reasoning_effort": "medium",
+            "sandbox_mode": "read-only",
+        },
+    )
+    assert 'model = "cx/gpt-5.6-luna"' in out
+    assert 'model_reasoning_effort = "medium"' in out
+    assert 'sandbox_mode = "read-only"' in out

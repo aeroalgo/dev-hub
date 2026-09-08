@@ -16,6 +16,7 @@ _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
     r"(?i)^\s*(?:ERROR\s+codex_core::tools::router:\s*error=unsupported call:\s*|"
     r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
 )
+_CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
 
 
 def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
@@ -149,6 +150,8 @@ class CodexAdapter(RuntimeAdapter):
             "--ephemeral",
             "--dangerously-bypass-approvals-and-sandbox",
             "--dangerously-bypass-hook-trust",
+            "--enable",
+            _CODEX_NATIVE_COLLAB_FEATURE,
         ]
         if _uses_omniroute(codex_bin):
             cmd.extend(["-c", 'model_provider="omniroute"'])
@@ -199,7 +202,10 @@ class CodexAdapter(RuntimeAdapter):
         return SessionAnalysis(reason=None, retry=False)
 
     def prepare_extras(self, ctx: SessionContext) -> dict[str, Any]:
-        return {}
+        return {
+            "native_collaboration": True,
+            "collaboration_protocol": "spawn_agent/wait",
+        }
 
     def normalize_read_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
         from harness.hooks.context_ledger_adapters import normalize_read_payload

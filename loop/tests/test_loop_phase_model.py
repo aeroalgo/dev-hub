@@ -70,6 +70,7 @@ def test_loop_phase_model_key_is_file_wins() -> None:
 
     assert is_agent_model_file_wins_key("PROJECT_LOOP_DECOMPOSE_MODEL")
     assert is_agent_model_file_wins_key("PROJECT_AGENT_VERIFY_MODEL")
+    assert is_agent_model_file_wins_key("PROJECT_AGENT_VERIFY_MODEL_CODEX")
     assert not is_agent_model_file_wins_key("EPIC_CHAIN_ROADMAP")
 
 

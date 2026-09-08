@@ -208,6 +208,22 @@ def test_managed_agent_model_comes_from_registry(tmp_path: Path) -> None:
     assert lib.agent_model_from_project_env("researcher", tmp_path) == "openai/gpt-4.1"
 
 
+def test_codex_runtime_uses_runtime_specific_child_model(tmp_path: Path, monkeypatch) -> None:
+    lib = _load()
+    _agent(tmp_path, "researcher.md", "name: researcher")
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n"
+        "PROJECT_AGENT_RESEARCHER_MODEL_CODEX=cx/gpt-5.6-luna\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("EPIC_RUNTIME_RESOLVED", "codex")
+    assert lib.agent_model_from_project_env("researcher", tmp_path) == "cx/gpt-5.6-luna"
+
+    monkeypatch.setenv("EPIC_RUNTIME_RESOLVED", "claude")
+    assert lib.agent_model_from_project_env("researcher", tmp_path) == "sonnet"
+
+
 def test_spawn_map_legacy_agents_preserves_text(tmp_path: Path, monkeypatch) -> None:
     lib = _load()
     _agent(tmp_path, "verify.md", "name: verify")
@@ -306,6 +322,26 @@ def test_pretool_pin_override(tmp_path: Path, monkeypatch) -> None:
     hook = output["hookSpecificOutput"]
     assert hook["permissionDecision"] == "allow"
     assert hook["updatedInput"]["model"] == "sonnet"
+
+
+def test_pretool_codex_pin_override_is_separate_from_root_model(tmp_path: Path, monkeypatch) -> None:
+    _agent(
+        tmp_path,
+        "researcher.md",
+        "name: researcher\noverlay:\n  managed: true\n  mode: optional\n  default_loop: true\n  requires_model: true",
+    )
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_RESEARCHER_MODEL=sonnet\n"
+        "PROJECT_AGENT_RESEARCHER_MODEL_CODEX=cx/gpt-5.6-luna\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    monkeypatch.setenv("EPIC_RUNTIME_RESOLVED", "codex")
+
+    output = _run_pretool(tmp_path, agent="researcher", model="agy/gemini-3.7-flash-medium")
+    hook = output["hookSpecificOutput"]
+    assert hook["permissionDecision"] == "allow"
+    assert hook["updatedInput"]["model"] == "cx/gpt-5.6-luna"
 
 
 def test_pretool_non_managed_free(tmp_path: Path, monkeypatch) -> None:

@@ -4,6 +4,9 @@
 
 name = "verify-implement"
 description = "Pre-FINISH verify gate for IMPLEMENT/REFACTOR/TASK (mandatory when code_changed). Read-only AC+/AC−/§0.11 + named pytest from prompt. Use before FINISH after parent packs AC and VERIFY commands. Never edit code."
+model = "cx/gpt-5.6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
 developer_instructions = '''
 Ты subagent `verify-implement`. Pre-FINISH gate для фазы IMPLEMENT / REFACTOR / TASK. **Не меняй код.**
 

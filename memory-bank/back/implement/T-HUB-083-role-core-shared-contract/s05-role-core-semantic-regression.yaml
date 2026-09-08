@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-083-role-core-shared-contract
+title: s05 — Mode-W matrix и полный hub suite подтверждают отсутствие компенсационных
+  изменений IMPLEMENT
+status: in_progress
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s05-role-core-semantic-regression.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/hooks/tests/test_role_core_mode_regression.py
+- harness/hooks/tests/test_role_core_contract.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Mode-W matrix confirms BACK promotion/lifecycle remains local and does
+    not require a compensating shared-path branch.
+  status: pending
+- id: cp2
+  criterion: Mode-W matrix confirms FRONT parent-only and visible-UI guards remain
+    local and unchanged.
+  status: pending
+- id: cp3
+  criterion: Mode-W matrix confirms INTEG element-first, contract and BACK/FRONT/GAP
+    fanout remain local and unchanged.
+  status: pending
+- id: cp4
+  criterion: The semantic suite observes hub/managed runner wording and all three
+    role imports after purge.
+  status: pending
+- id: cp5
+  criterion: The full hub suite runs with the repository wrapper and no targeted-only
+    substitute is recorded as TM-083-06.
+  status: pending
+resume_from: cp1

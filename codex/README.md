@@ -15,11 +15,25 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
    ./codex/bin/codex-omniroute.sh exec --ephemeral --dangerously-bypass-approvals-and-sandbox "say hi"
    ```
 
+   `codex/dev-hub.config.toml` contains only Codex CLI configuration fields.
+   The setup installs it as `~/.codex/dev-hub.config.toml`; the wrapper loads it
+   with `--profile dev-hub`.
+
    Setup writes:
    - `~/.codex/config.toml` — `model_provider = "omniroute"`, `base_url = http://localhost:20128/v1`
    - `~/.codex/.omniroute_key` — API key (same source as Claude Code / hooks)
 
    Default model: `cx/gpt-5.6-luna-xhigh` (OmniRoute id, not native ChatGPT slug).
+
+   `codex/agents.config.toml` is the Codex-specific subagent/mode source. It
+   configures native per-agent `model`, `model_reasoning_effort` and
+   `sandbox_mode`, plus the workflow mode metadata. `runtime-sync` materializes
+   the native fields into `.codex/agents/*.toml`; workflow mode, turn limits and
+   write policy remain enforced by the harness policy sidecars and hooks.
+
+   `AGENTS.md` and `.codex/hooks.json` are separate workflow surfaces. Their
+   instructions and hook parameters are not treated as Codex TOML configuration
+   fields.
 
    Disable wrapper routing: `CODEX_USE_OMNIROUTE=0 codex …`
 
@@ -62,6 +76,9 @@ To run the loop with Codex runtime:
    ```bash
    bin/runtime-sync --apply --runtime codex
    ```
+
+   This regenerates both the Codex custom-agent files and their policy sidecars
+   from `harness/agents/*.md` and `codex/agents.config.toml`.
 
 2. Configure OmniRoute (once):
    ```bash

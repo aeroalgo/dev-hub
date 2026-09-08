@@ -609,6 +609,7 @@ run_dsh_session() {
 }
 
 run_agent_session() {
+  RUN_AGENT_PREP_FAILED=0
   local iter="$1"
   local prompt_file="$2"
   local log_file="$STATE_DIR/session-${iter}.log"
@@ -622,7 +623,7 @@ run_agent_session() {
     extras_json="${EXTRAS_JSON:-{\}}"
     session_cwd="$PROJECT_ROOT"
   elif [[ "$runtime_id" == "codex" ]]; then
-    extras_json="$(PROJECT_ROOT="$PROJECT_ROOT" python3 -c 'import json,os; print(json.dumps({"project_root": os.environ["PROJECT_ROOT"]}))')"
+    extras_json="$(PROJECT_ROOT="$PROJECT_ROOT" python3 -c 'import json,os; print(json.dumps({"project_root": os.environ["PROJECT_ROOT"], "native_collaboration": True, "collaboration_protocol": "spawn_agent/wait"}))')"
     session_cwd="$PROJECT_ROOT"
   fi
 
@@ -633,10 +634,12 @@ run_agent_session() {
     --phase "${LOOP_PHASE:-IMPLEMENT}" \
     ${SESSION_MODEL:+--model "$SESSION_MODEL"} \
     --extras-json "$extras_json")" || {
+    RUN_AGENT_PREP_FAILED=1
     echo "==> HALT: dispatch print-argv failed for runtime=$runtime_id" >&2
     return 2
   }
   if [[ -z "$argv_json" ]]; then
+    RUN_AGENT_PREP_FAILED=1
     echo "==> HALT: dispatch print-argv empty for runtime=$runtime_id" >&2
     return 2
   fi
@@ -962,6 +965,10 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     set +e
     run_agent_session "$session_tag" "$prompt_file"
     agent_rc=$?
+    if [[ "${RUN_AGENT_PREP_FAILED:-0}" == "1" ]]; then
+      echo "==> HALT: runtime adapter preparation failed; session was not started" >&2
+      exit 2
+    fi
     claude_rc="$agent_rc"
     if [[ $agent_rc -eq 130 || $agent_rc -eq 143 ]]; then
       _exit_loop_user_interrupt

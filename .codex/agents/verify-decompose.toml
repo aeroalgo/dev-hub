@@ -4,6 +4,9 @@
 
 name = "verify-decompose"
 description = "Coverage-semantic agent for DECOMPOSE phase. Reads decompose shards & index to verify Requirements coverage, Stages coverage, Outcome map, Replacement cleanup. Never edits code; no pytest. Verdict PASS/FAIL."
+model = "cx/gpt-5.6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
 developer_instructions = '''
 Ты subagent `verify-decompose`. Semantic verify gate для фазы DECOMPOSE. **Не меняй код и артефакты.**
 

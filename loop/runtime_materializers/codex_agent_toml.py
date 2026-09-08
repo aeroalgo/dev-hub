@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 
 import yaml
 
@@ -46,6 +47,7 @@ def render_codex_agent_toml(
     developer_instructions: str,
     policy_fingerprint: str | None = None,
     source_prompt_sha256: str | None = None,
+    native_settings: Mapping[str, object] | None = None,
 ) -> str:
     agent_name = name.strip()
     agent_description = description.strip()
@@ -56,6 +58,10 @@ def render_codex_agent_toml(
         raise CodexAgentTomlError("agent description is required")
     if not instructions:
         raise CodexAgentTomlError("developer_instructions body is required")
+    settings = dict(native_settings or {})
+    unsupported = sorted(set(settings) - {"model", "model_reasoning_effort", "sandbox_mode"})
+    if unsupported:
+        raise CodexAgentTomlError(f"unsupported Codex native agent settings: {unsupported}")
 
     lines = [
         GENERATED_HEADER,
@@ -68,8 +74,14 @@ def render_codex_agent_toml(
         "",
         f"name = {_toml_basic_string(agent_name)}",
         f"description = {_toml_basic_string(agent_description)}",
-        f"developer_instructions = {_toml_literal_multiline(instructions)}",
     ])
+    for key in ("model", "model_reasoning_effort", "sandbox_mode"):
+        if key in settings:
+            value = settings[key]
+            if not isinstance(value, str) or not value:
+                raise CodexAgentTomlError(f"{key} must be a non-empty string")
+            lines.append(f"{key} = {_toml_basic_string(value)}")
+    lines.append(f"developer_instructions = {_toml_literal_multiline(instructions)}")
     return "\n".join(lines) + "\n"
 
 
@@ -80,6 +92,7 @@ def markdown_agent_to_codex_toml(
     fallback_description: str = "",
     policy_fingerprint: str | None = None,
     source_prompt_sha256: str | None = None,
+    native_settings: Mapping[str, object] | None = None,
 ) -> str:
     meta, body = split_markdown_frontmatter(src_text)
     name = str(meta.get("name") or fallback_name).strip()
@@ -92,4 +105,5 @@ def markdown_agent_to_codex_toml(
         developer_instructions=instructions,
         policy_fingerprint=policy_fingerprint,
         source_prompt_sha256=prompt_sha,
+        native_settings=native_settings,
     )

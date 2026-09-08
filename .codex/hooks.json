@@ -16,7 +16,7 @@
       {
         "type": "command",
         "command": "python3 harness/hooks/agent-pretool.py",
-        "matcher": "Agent|Task"
+        "matcher": "Agent|Task|spawn_agent"
       },
       {
         "type": "command",
@@ -42,7 +42,7 @@
       {
         "type": "command",
         "command": "python3 harness/hooks/agent-posttool.py",
-        "matcher": "Agent|Task"
+        "matcher": "Agent|Task|spawn_agent"
       },
       {
         "type": "command",

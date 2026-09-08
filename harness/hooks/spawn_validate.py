@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -66,6 +67,7 @@ def validate_spawn_input(
     managed = bool(definition is not None and definition.managed)
     is_gate = bool(definition is not None and definition.mode == "gate")
     is_repair = bool(definition is not None and definition.mode == "repair")
+    runtime = os.environ.get("EPIC_RUNTIME_RESOLVED") or os.environ.get("EPIC_RUNTIME")
     if definition is not None and definition.managed:
         enabled = definition.loop_enabled if context == "loop" else definition.chat_enabled
         if not enabled:
@@ -73,7 +75,7 @@ def validate_spawn_input(
                 f"scope_disabled (context={context}); включи _MODEL_{context.upper()}=1"
             )
         else:
-            pinned = (env_models.get(agent_model_env_key(norm)) or "").strip()
+            pinned = (env_models.get(agent_model_env_key(norm, runtime)) or "").strip()
             if pinned not in (None, "", "inherit"):
                 tool_input["model"] = pinned
         if not definition.overlay.allow_worktree:
@@ -81,7 +83,7 @@ def validate_spawn_input(
 
     spawn_model = resolved_spawn_model(tool_input, definition)
     if spawn_model in (None, "", "inherit") and norm:
-        pinned = (env_models.get(agent_model_env_key(norm)) or "").strip()
+        pinned = (env_models.get(agent_model_env_key(norm, runtime)) or "").strip()
         if pinned not in (None, "", "inherit"):
             spawn_model = pinned
             if managed and not tool_input.get("model"):

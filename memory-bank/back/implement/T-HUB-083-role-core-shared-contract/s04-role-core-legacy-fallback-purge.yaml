@@ -1,0 +1,92 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-083-role-core-shared-contract
+title: s04 — role-core-legacy-fallback-purge — A/C/I sunset inventory и fail-closed
+  purge IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s04-role-core-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- 'Kind A sunset inventory verified: common loading, format and runner policy owned
+  exclusively by harness/cursor/rules/shared/role-core-contract.mdc with exactly one
+  import per role core.'
+- 'Kind C scan verified: missing shared import and missing role marker fail closed
+  deterministically in semantic tests without local fallback.'
+- 'Kind I scan verified: duplicate MEMORY BANK/format/runner prose purged from all
+  three role cores while role-only guard markers remain scoped.'
+- Fail-closed validation added for generic core rejection and weakened role guard
+  behavior.
+- All 13 semantic contract tests in harness/hooks/tests/test_role_core_contract.py
+  pass green.
+files:
+- harness/cursor/rules/shared/role-core-contract.mdc
+- harness/cursor/rules/back_developer/mainrule-core.mdc
+- harness/cursor/rules/front_developer/mainrule-core.mdc
+- harness/cursor/rules/integration_developer/mainrule-core.mdc
+- harness/hooks/tests/test_role_core_contract.py
+deletes:
+- Any residual common policy paragraph outside harness/cursor/rules/shared/role-core-contract.mdc.
+- Any fallback or compatibility wording that permits a role core to succeed without
+  the shared import.
+- Any duplicate MEMORY BANK, response-format or runner instruction surface in the
+  three role cores.
+- Obsolete semantic assertions that accept generic-core or unconditional-managed-pytest
+  behavior.
+tests:
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line`'
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k ''missing
+  or fail_closed''`'
+integration_check:
+- Single shared role-core contract owner verified across all three role cores.
+- All 13 unit/semantic contract tests pass (13 passed, 0 failed).
+- Zero duplicate common prose and zero unconditional managed pytest or generic fallback
+  paths.
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 'Kind A verification: exactly 1 shared owner declaration and 1 import per role core'
+- 'Kind C verification: 4 passed (missing import, copied prose, missing matrix, generic
+  core fail closed)'
+- 13 passed in 0.05s
+checkpoints:
+- id: cp1
+  criterion: Kind A inventory has one shared owner and exactly one import per role;
+    copied common body has no live role owner.
+  status: done
+- id: cp2
+  criterion: Kind C scan proves missing import and missing role marker fail closed
+    rather than using a local fallback.
+  status: done
+- id: cp3
+  criterion: Kind I scan proves common MEMORY BANK/format/runner wording has one active
+    owner and role-only markers remain scoped.
+  status: done
+- id: cp4
+  criterion: No semantic test accepts generic-core, unconditional managed pytest or
+    weakened role guard behavior.
+  status: done
+- id: cp5
+  criterion: The shared contract is the sole common policy source and all old A/C/I
+    surfaces are either absent or fail closed.
+  status: done
+- id: cp6
+  criterion: Targeted contract regression is green without restoring sunset prose;
+    full suite is owned by s05.
+  status: done
+resume_from: none

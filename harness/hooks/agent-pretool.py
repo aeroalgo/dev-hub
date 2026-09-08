@@ -27,6 +27,8 @@ from _lib import (
     _discover_registry,
     CUSTOM_OVERLAY,
     GATE_AGENTS,
+    gate_session_id,
+    resolve_hook_agent_type,
 )
 from spawn_validate import validate_spawn_input
 from context_ledger_adapters import (
@@ -49,13 +51,17 @@ def main() -> None:
         emit(resp)
         return
 
-    if tool_name not in {"Agent", "Task"}:
+    if tool_name not in {"Agent", "Task", "spawn_agent"}:
         return
 
     tool_input = dict(data.get("tool_input") or {})
     raw_type = tool_input.get("subagent_type") or tool_input.get("agent_type")
     norm = normalize_type(raw_type)
-    session_id = data.get("session_id") or ""
+    if tool_name == "spawn_agent" and not norm:
+        norm = resolve_hook_agent_type({**data, "tool_input": tool_input})
+        if norm:
+            tool_input["subagent_type"] = norm
+    session_id = gate_session_id(data)
     cwd = str(product_cwd(data.get("cwd") or ""))
     st = load_state(session_id, cwd)
     if not workflow_state_active(st, cwd or None):

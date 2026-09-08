@@ -39,6 +39,7 @@ CUSTOM_OVERLAY = frozenset(
         "explorer",
         "sunset-inventory",
         "gate-repair",
+        "reconcile",
     }
 )
 GATE_AGENTS = frozenset(
@@ -139,6 +140,15 @@ CONTRACTS = {
         "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
         "Ответ без JSON fence = status fail."
     ),
+    "reconcile": (
+        "CONTRACT reconcile: read-only reconciliation gate. Проверь только ALLOW READ: "
+        "activeContext.md, текущий decompose plan/index.yaml, текущий implement/qa artifact "
+        "и runtime diagnostics. Укажи каждый drift как file:line → observed → canonical → next action. "
+        "Не редактируй исходные plan/decompose/implement/code; единственная допустимая запись — "
+        "reconcile artifact через canonical CLI. Не запускай Agent, не создавай gate verdict "
+        "и не утверждай repair/pass. "
+        "Без isolation=worktree."
+    ),
 }
 
 CONTRACTS_SHA256: dict[str, str] = {
@@ -151,6 +161,7 @@ CONTRACTS_SHA256: dict[str, str] = {
     "verify-decompose": "ccfa3391ac21d4d0fc82dd6d841447e195f1a32c7540280da25cec702bed5c95",
     "verify-implement": "0d5712e4bc3f6abc8e907c5275a8361722e4cf972a259a773cf9f27e8dad3589",
     "verify-qa": "9f5c704f29235e7d56b668e15d7ba3239a86308e939735fcba13d006a87f72f3",
+    "reconcile": "a995bad4a87c41cbaef81dba8b7349c706a5ae72a48369bf2ac5a0f28fdd3274",
 }
 
 
@@ -564,7 +575,18 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
 
     overlay_agents = [
         agent_id
-        for agent_id in ("explorer", "verify", "reviewer", "gate-repair")
+        for agent_id in (
+            "explorer",
+            "verify",
+            "verify-implement",
+            "verify-bugfix",
+            "verify-qa",
+            "verify-decompose",
+            "analyze-verify",
+            "reviewer",
+            "gate-repair",
+            "reconcile",
+        )
         if agent_id in definitions
     ]
     overlay_agents.extend(
@@ -608,10 +630,19 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
         f"| Optional agent | @{agent.id} доступен по вызову parent, не блокирует completion |"
         for agent in optional_agents
     )
+    runtime = os.environ.get("EPIC_RUNTIME") or os.environ.get("EPIC_RUNTIME_RESOLVED")
+    runtime_label = "DSH" if os.environ.get("DSH_HOOKS_BRIDGE") == "1" else (
+        "Codex" if runtime == "codex" else "Claude Code"
+    )
+    delegation = (
+        "Делегирование — native Codex collaboration: spawn_agent → wait."
+        if runtime == "codex"
+        else f"Делегирование — как обычно у {runtime_label} (Agent / built-in). Не запрещай spawn."
+    )
     return "\n".join(
         [
-            f"## spawn-gate ({'DSH' if os.environ.get('DSH_HOOKS_BRIDGE') == '1' else 'Claude Code'})",
-            f"Делегирование — как обычно у {'DSH' if os.environ.get('DSH_HOOKS_BRIDGE') == '1' else 'Claude Code'} (Agent / built-in). Не запрещай spawn.",
+            f"## spawn-gate ({runtime_label})",
+            delegation,
             f"Overlay: {overlay} (model строго из `.claude/project.env`).",
             "| Ситуация | Agent |",
             *search_lines,
@@ -661,17 +692,22 @@ AGENT_MODEL_ENV_KEYS: dict[str, str] = {
     "reviewer": "PROJECT_AGENT_REVIEWER_MODEL",
     "gate-repair": "PROJECT_AGENT_GATE_REPAIR_MODEL",
 }
-_AGENT_MODEL_KEY_RE = re.compile(r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL$")
+_AGENT_MODEL_KEY_RE = re.compile(
+    r"^PROJECT_AGENT_[A-Z][A-Z0-9_-]*_MODEL(?:_[A-Z][A-Z0-9_-]*)?$"
+)
 _LOOP_PHASE_MODEL_KEY_RE = re.compile(r"^PROJECT_LOOP_[A-Z][A-Z0-9_]*_MODEL$")
 WORKFLOW_POLICIES = frozenset({"loop", "always", "off"})
 
 
-def agent_model_env_key(norm: str | None) -> str:
+def agent_model_env_key(norm: str | None, runtime: str | None = None) -> str:
     if not norm:
         return ""
-    return AGENT_MODEL_ENV_KEYS.get(
+    key = AGENT_MODEL_ENV_KEYS.get(
         norm, f"PROJECT_AGENT_{norm.upper().replace('-', '_')}_MODEL"
     )
+    if (runtime or "").strip().lower() == "codex":
+        return f"{key}_CODEX"
+    return key
 
 
 # Tests may load hooks repeatedly from temporary repositories. Do not retain a
@@ -1385,7 +1421,10 @@ def agent_model_from_project_env(
     if not norm:
         return None
     values = merged_project_env_map(project_dir)
-    raw = (values.get(agent_model_env_key(norm)) or "").strip()
+    runtime = os.environ.get("EPIC_RUNTIME_RESOLVED") or os.environ.get("EPIC_RUNTIME")
+    runtime_key = agent_model_env_key(norm, runtime)
+    base_key = agent_model_env_key(norm)
+    raw = (values.get(runtime_key) or values.get(base_key) or "").strip()
     if raw:
         return raw
     definition = _managed_definition(norm, project_dir)
@@ -1812,6 +1851,55 @@ def normalize_type(name: str | None) -> str | None:
     if name in ALIAS:
         return ALIAS[name]
     return name
+
+
+def resolve_hook_agent_type(data: dict[str, Any]) -> str | None:
+    """Resolve native and Claude hook payloads to one managed agent id."""
+    for field in ("agent_type", "subagent_type", "type"):
+        raw = data.get(field)
+        if isinstance(raw, str) and raw.strip():
+            return normalize_type(raw.strip().lower())
+    nested = data.get("tool_input")
+    if isinstance(nested, dict):
+        for field in ("agent_type", "subagent_type", "type"):
+            raw = nested.get(field)
+            if isinstance(raw, str) and raw.strip():
+                return normalize_type(raw.strip().lower())
+    prompt = "\n".join(
+        str(data.get(field) or "")
+        for field in ("prompt", "task", "instructions", "message")
+    )
+    if isinstance(nested, dict):
+        prompt += "\n" + str(nested.get("prompt") or "")
+    match = re.search(
+        r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)",
+        prompt,
+    )
+    if match:
+        return normalize_type(match.group(1))
+    for token in (
+        "gate-repair", "verify-bugfix", "verify-implement", "verify-qa",
+        "verify-decompose", "analyze-verify", "reconcile",
+    ):
+        if token in prompt.lower():
+            return token
+    return None
+
+
+def gate_session_id(data: dict[str, Any]) -> str:
+    """Resolve the parent session used by the shared gate state."""
+    for field in ("parent_session_id", "root_session_id"):
+        value = data.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    inherited = str(os.environ.get("EPIC_RUNNER_SESSION_ID") or "").strip()
+    if inherited and (
+        str(data.get("runtime_id") or "").lower() == "codex"
+        or os.environ.get("EPIC_RUNTIME") == "codex"
+        or os.environ.get("EPIC_RUNTIME_RESOLVED") == "codex"
+    ):
+        return inherited
+    return str(data.get("session_id") or "").strip()
 
 
 def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:

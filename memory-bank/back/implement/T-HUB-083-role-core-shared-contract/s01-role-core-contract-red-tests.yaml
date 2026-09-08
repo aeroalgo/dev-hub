@@ -2,38 +2,52 @@ schema: epic-implement/v1
 role: back
 step_id: s01
 plan_id: T-HUB-083-role-core-shared-contract
-title: s01 — Semantic corpus устанавливает common-owner и role-guard failure matrix
-  IMPLEMENT
-status: in_progress
+title: s01 — Semantic corpus устанавливает common-owner и role-guard failure matrix IMPLEMENT
+status: completed
 date: '2026-09-08'
 decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s01-role-core-contract-red-tests.yaml
-skills_used: []
+skills_used:
+  - .agents/skills/tdd/SKILL.md
+  - .agents/skills/python-testing-patterns/SKILL.md
+  - .agents/skills/modern-python/SKILL.md
+  - .agents/skills/python-anti-patterns/SKILL.md
 discovery: []
 gaps:
   status: none
-done: []
+done:
+  - "Created semantic corpus test in harness/hooks/tests/test_role_core_contract.py defining shared owner, import constraints, and fail-closed diagnostics."
+  - "Implemented detection for copied common MEMORY BANK loading, runner policy, and format prose."
+  - "Preserved role-only guard matrix for BACK promotion/lifecycle, FRONT parent-only/visible-UI, and INTEG element-first/contract/GAP."
+  - "Asserted runner policy requirements for both hub exception and managed capability checks branches, rejecting unconditional managed pytest."
 files:
-- harness/hooks/tests/test_role_core_contract.py
+  - harness/hooks/tests/test_role_core_contract.py
 deletes: []
-tests: []
+tests:
+  - harness/hooks/tests/test_role_core_contract.py
 integration_check: []
 grep_control: []
-verification_results: []
+verification_results:
+  - command: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'owner or import'"
+    result: "3 passed"
+  - command: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'duplicate or copied'"
+    result: "3 passed"
+  - command: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'back or front or integ'"
+    result: "3 passed"
+  - command: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -k 'runner or managed'"
+    result: "4 passed"
+  - command: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line"
+    result: "12 passed"
 checkpoints:
-- id: cp1
-  criterion: The red corpus names one shared owner and requires exactly one import
-    from each BACK, FRONT and INTEG role core.
-  status: pending
-- id: cp2
-  criterion: The corpus fails when common MEMORY BANK/format/runner prose is copied
-    into a role core instead of referenced from the shared owner.
-  status: pending
-- id: cp3
-  criterion: 'The corpus keeps the role-only guard matrix: BACK promotion, FRONT parent-only/visible-UI,
-    and INTEG element-first/contract/GAP.'
-  status: pending
-- id: cp4
-  criterion: The corpus rejects unconditional managed pytest and missing hub/managed
-    branch wording.
-  status: pending
-resume_from: cp1
+  - id: cp1
+    criterion: "The red corpus names one shared owner and requires exactly one import from each BACK, FRONT and INTEG role core."
+    status: done
+  - id: cp2
+    criterion: "The corpus fails when common MEMORY BANK/format/runner prose is copied into a role core instead of referenced from the shared owner."
+    status: done
+  - id: cp3
+    criterion: "The corpus keeps the role-only guard matrix: BACK promotion, FRONT parent-only/visible-UI, and INTEG element-first/contract/GAP."
+    status: done
+  - id: cp4
+    criterion: "The corpus rejects unconditional managed pytest and missing hub/managed branch wording."
+    status: done
+resume_from: none

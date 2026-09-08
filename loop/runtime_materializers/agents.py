@@ -11,6 +11,11 @@ from loop.runtime_materializers.agent_policy import (
     parse_agent_policy_text,
 )
 from loop.runtime_materializers.codex_agent_toml import markdown_agent_to_codex_toml
+from loop.runtime_materializers.codex_agent_settings import (
+    CodexAgentSettingsError,
+    resolve_codex_agent_settings,
+    validate_codex_workflow_settings,
+)
 from loop.runtime_materializers.manifest_schema import HarnessManifest
 
 
@@ -72,6 +77,25 @@ def materialize_agents(
 
             policy_fingerprint = policy_record.policy_fingerprint()
             source_prompt_sha256 = hashlib.sha256(src_text.encode("utf-8")).hexdigest()
+            try:
+                native_settings, workflow_settings = resolve_codex_agent_settings(
+                    base_root, policy_record.name
+                )
+                validate_codex_workflow_settings(
+                    workflow_settings,
+                    {
+                        "mode": policy_record.mode,
+                        "maxTurns": policy_record.maxTurns,
+                        "requires_model": policy_record.requires_model,
+                        "allow_worktree": policy_record.allow_worktree,
+                        "verdict": policy_record.verdict,
+                    },
+                    policy_record.name,
+                )
+            except CodexAgentSettingsError as err:
+                raise MaterializationError(
+                    f"Codex agent settings validation failed for {agent_name}: {err}"
+                ) from err
 
             dest_path.write_text(
                 markdown_agent_to_codex_toml(
@@ -80,6 +104,7 @@ def materialize_agents(
                     fallback_description=str(agent_cfg.description or ""),
                     policy_fingerprint=policy_fingerprint,
                     source_prompt_sha256=source_prompt_sha256,
+                    native_settings=native_settings,
                 ),
                 encoding="utf-8",
             )
@@ -93,6 +118,8 @@ def materialize_agents(
                 "disallowedTools": policy_record.disallowedTools,
                 "tools": policy_record.tools,
                 "managed": policy_record.managed,
+                "codex_native_settings": native_settings,
+                "workflow_settings": workflow_settings,
             }
             sidecar_path.write_text(json.dumps(sidecar_data, indent=2) + "\n", encoding="utf-8")
             materialized.append(str(sidecar_path))

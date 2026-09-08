@@ -77,7 +77,7 @@ def generate_hooks_json(
 
         # Add matchers and timeouts based on hook type / Claude parity
         if hook_name in ("agent-pretool", "agent-posttool", "agent-posttool-agent"):
-            entry["matcher"] = "Agent|Task"
+            entry["matcher"] = "Agent|Task|spawn_agent"
         elif hook_name in ("bash-pretool", "bash-output-cap", "agent-posttool-bash"):
             entry["matcher"] = "Bash"
             if hook_name in ("bash-output-cap", "agent-posttool-bash"):

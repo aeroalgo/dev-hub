@@ -17,6 +17,7 @@ from loop.validate_boundary import validate_boundary
 _JSON_FENCE_RE = re.compile(r"```json[^\n`]*\n(.*?)\n```", re.DOTALL)
 _AT_AGENT_RE = re.compile(r"@([\w-]+)")
 _GATE_REPAIR_HINT_RE = re.compile(r"(?i)gate-repair|@gate-repair")
+_AGENT_TYPE_RE = re.compile(r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)")
 
 
 @dataclass(frozen=True)
@@ -25,6 +26,8 @@ class CollabVerdictEvent:
     verdict: str
     message: str
     tool_use_id: str | None
+    thread_id: str | None = None
+    spawn_tool_use_id: str | None = None
 
 
 def _normalize_agent_type(raw: str | None) -> str | None:
@@ -76,6 +79,11 @@ def _infer_agent_type(
         if agent:
             return agent
     if prompt:
+        match = _AGENT_TYPE_RE.search(prompt)
+        if match:
+            agent = _normalize_agent_type(match.group(1))
+            if agent:
+                return agent
         for match in _AT_AGENT_RE.finditer(prompt):
             agent = _normalize_agent_type(match.group(1))
             if agent:
@@ -87,7 +95,7 @@ def _infer_agent_type(
 
 def iter_codex_collab_verdicts(log_text: str) -> Iterator[CollabVerdictEvent]:
     """Yield verify/gate verdicts recorded in Codex JSONL session logs."""
-    pending_threads: dict[str, str] = {}
+    pending_threads: dict[str, tuple[str, str | None]] = {}
     for line in log_text.splitlines():
         line = line.strip()
         if not line:
@@ -110,10 +118,13 @@ def iter_codex_collab_verdicts(log_text: str) -> Iterator[CollabVerdictEvent]:
         prompt = str(item.get("prompt") or "")
         agent_hint = _infer_agent_type(prompt, "")
 
-        if tool == "spawn_agent" and agent_hint:
+        if tool == "spawn_agent":
             for thread_id in item.get("receiver_thread_ids") or []:
                 if isinstance(thread_id, str) and thread_id.strip():
-                    pending_threads[thread_id.strip()] = agent_hint
+                    pending_threads[thread_id.strip()] = (
+                        agent_hint or "",
+                        str(item.get("id") or "").strip() or None,
+                    )
             continue
 
         if tool != "wait":
@@ -127,12 +138,16 @@ def iter_codex_collab_verdicts(log_text: str) -> Iterator[CollabVerdictEvent]:
             if not isinstance(state, dict):
                 continue
             message = str(state.get("message") or "")
+            if str(state.get("status") or "").lower() != "completed":
+                continue
             fence = _parse_gate_verdict_fence(message)
             if fence is None:
                 continue
-            agent_type = pending_threads.get(str(thread_id)) or _infer_agent_type(
-                prompt, message, fence=fence
-            )
+            observed = pending_threads.get(str(thread_id))
+            if not observed:
+                continue
+            agent_type, spawn_tool_use_id = observed
+            agent_type = agent_type or _infer_agent_type(prompt, message, fence=fence)
             if not agent_type:
                 continue
             yield CollabVerdictEvent(
@@ -140,7 +155,47 @@ def iter_codex_collab_verdicts(log_text: str) -> Iterator[CollabVerdictEvent]:
                 verdict=str(fence.verdict).upper(),
                 message=message,
                 tool_use_id=str(item.get("id") or "").strip() or None,
+                thread_id=str(thread_id),
+                spawn_tool_use_id=spawn_tool_use_id,
             )
+
+
+def _invoke_subagent_start(
+    *,
+    cwd: str | Path,
+    session_id: str,
+    agent_type: str,
+    prompt: str,
+    tool_use_id: str | None,
+    thread_id: str | None,
+) -> int:
+    hub_root = Path(__file__).resolve().parents[1]
+    script = hub_root / "harness" / "hooks" / "subagent-start.py"
+    payload = {
+        "agent_type": agent_type,
+        "prompt": prompt,
+        "cwd": str(cwd),
+        "session_id": session_id,
+        "runtime_id": "codex",
+        "tool_name": "spawn_agent",
+        "tool_use_id": tool_use_id or "",
+        "thread_id": thread_id or "",
+    }
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(hub_root)
+    env["EPIC_LOOP"] = "1"
+    env["EPIC_RUNTIME"] = "codex"
+    proc = subprocess.run(
+        [sys.executable, str(script)],
+        input=json.dumps(payload),
+        cwd=str(cwd),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    return proc.returncode
 
 
 def _invoke_subagent_stop(
@@ -201,6 +256,25 @@ def mirror_codex_collab_verdicts_from_log(
 
     results: list[dict[str, Any]] = []
     for event in iter_codex_collab_verdicts(log_text):
+        start_rc = _invoke_subagent_start(
+            cwd=cwd,
+            session_id=sid,
+            agent_type=event.agent_type,
+            prompt=f"agent_type={event.agent_type}\n{event.thread_id or ''}",
+            tool_use_id=event.spawn_tool_use_id,
+            thread_id=event.thread_id,
+        )
+        if start_rc != 0:
+            results.append(
+                {
+                    "agent_type": event.agent_type,
+                    "verdict": event.verdict,
+                    "exit_code": start_rc,
+                    "tool_use_id": event.tool_use_id,
+                    "error": "subagent_start_denied",
+                }
+            )
+            continue
         rc = _invoke_subagent_stop(
             cwd=cwd,
             session_id=sid,

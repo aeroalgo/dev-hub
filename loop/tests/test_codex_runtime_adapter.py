@@ -25,7 +25,23 @@ def test_build_command_contains_exec():
     assert "--ephemeral" in cmd
     assert "--dangerously-bypass-approvals-and-sandbox" in cmd
     assert "--dangerously-bypass-hook-trust" in cmd
+    assert "--enable" in cmd
+    assert "multi_agent" in cmd
     assert "--cd" in cmd
+
+
+def test_codex_loop_allows_root_model_selection_for_runtime_capability_check():
+    adapter = CodexAdapter()
+    ctx = SessionContext(
+        prompt="do task",
+        phase="implement",
+        model="agy/gemini-3.7-flash-medium",
+        extras={"native_collaboration": True},
+    )
+    with patch("loop.runtime_adapters.codex._resolve_codex_binary", return_value="codex"):
+        cmd = adapter.build_command(ctx)
+    assert "--model" in cmd
+    assert "agy/gemini-3.7-flash-medium" in cmd
 
 
 def test_build_command_no_model_when_none():

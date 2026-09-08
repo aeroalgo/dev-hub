@@ -5,11 +5,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
 CONFIG_SRC="${ROOT}/omniroute.config.toml"
 CONFIG_DST="${CODEX_HOME}/config.toml"
+PROFILE_SRC="${ROOT}/dev-hub.config.toml"
+PROFILE_DST="${CODEX_HOME}/dev-hub.config.toml"
 KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${CODEX_HOME}/.omniroute_key}"
 CLAUDE_SETTINGS="${HOME}/.claude/settings.json"
 
 mkdir -p "$CODEX_HOME"
 chmod +x "${ROOT}/bin/codex-omniroute.sh"
+cp "$PROFILE_SRC" "$PROFILE_DST"
+chmod 600 "$PROFILE_DST"
 
 resolve_key() {
   if [[ -n "${OMNIROUTE_API_KEY:-}" ]]; then
@@ -67,6 +71,7 @@ else
 fi
 
 echo "Key file: $KEY_FILE"
+echo "Codex profile: $PROFILE_DST (use --profile dev-hub)"
 echo "Wrapper: ${ROOT}/bin/codex-omniroute.sh"
 echo
 echo "Verify:"

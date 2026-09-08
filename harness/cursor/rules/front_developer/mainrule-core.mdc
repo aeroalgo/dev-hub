@@ -1,12 +1,12 @@
 ---
-description: "FRONT — TDD, Playwright, memory bank (только при FRONT-командах)"
+description: "FRONT — TDD, Playwright, visible UI, parent-only tests (только при FRONT-командах)"
 alwaysApply: false
 ---
-# FRONT — общий контекст
+# FRONT — ролевой контекст
+
+**Shared core:** @.cursor/rules/shared/role-core-contract.mdc
 
 ## ТЕСТИРОВАНИЕ
-
-Канон timeout: `@.cursor/rules/shared/test-timeout.mdc`; pytest — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
 
 - **HARD:** Vitest/RTL/Playwright — **только parent** (never subagent): `.cursor/rules/front-tests-parent-only.mdc`.
 - TDD targeted в IMPLEMENT/TASK; полный suite/Playwright → **FRONT QA**
@@ -17,18 +17,9 @@ alwaysApply: false
 
 Канон: decompose `visible_ui` + Design skills **или** workflow-implement A + `isolation_rules/_lean/implement` gate 6. Read **до** UI-кода. `visible_ui: no` / pure lib — skip. DECOMPOSE обязан проставить `visible_ui` в каждом `sNN`.
 
-## MEMORY BANK
-
-- `activeContext` → `load_now` first (@.cursor/rules/token-economy-stub.mdc §0.5.1); session start: context-session-economy §3
-- Артефакты: `memory-bank/front/<режим>/` — путь в `isolation_rules/_lean/<mode>.mdc`
-
 ## ПЕРЕХОДЫ
 
 Next-mode: `memory-bank/activeContext.md` + decompose index
 Runner: `./loop/loop.sh` · context-first gates  
 
 Не дублировать next-mode таблицы — transitions + FINISH sync ledger.
-
-## ФОРМАТ
-
-`OK FRONT <РЕЖИМ> - [действие]`

@@ -4,6 +4,9 @@
 
 name = "gate-repair"
 description = "Fix verify FAIL blockers in-scope (write-only). Parent spawns after @verify VERDICT:FAIL with BLOCKERS + ALLOW WRITE + VERIFY. Never spawn verify or FINISH."
+model = "cx/gpt-5.6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
 developer_instructions = '''
 Ты subagent `gate-repair`. Parent делегирует **исправление blockers** после `@verify-*` с `VERDICT: FAIL`. **Read-only verify не делаешь** — только fix + pytest из VERIFY.
 

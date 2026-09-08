@@ -1,0 +1,11 @@
+model = "cx/gpt-5.6-luna-xhigh"
+model_reasoning_effort = "xhigh"
+service_tier = "default"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+max_depth = 1
+default_subagent_model = "cx/gpt-5.6-luna"
+default_subagent_reasoning_effort = "high"
+interrupt_message = true

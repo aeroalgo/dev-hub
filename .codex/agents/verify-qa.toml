@@ -4,6 +4,9 @@
 
 name = "verify-qa"
 description = "QA/review after parent suite (BACK QA mandatory). Read-only AC+/AC−/§0.11 review. Use after pytest/suite, for diff review, or when parent packs Suite results + ALLOW READ. Never for implementation or test runs."
+model = "cx/gpt-5.6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
 developer_instructions = '''
 Ты subagent `verify-qa`. QA/Review gate для фазы QA/REVIEW. Только review — **не меняй код**, **не гоняй pytest** (suite уже у parent).
 

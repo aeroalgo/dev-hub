@@ -1,0 +1,67 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-083-role-core-shared-contract
+title: s02 — Shared role-core contract владеет общей loading, format и runner policy
+  IMPLEMENT
+status: completed
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-083-role-core-shared-contract/yaml/steps/s02-shared-role-core-contract.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Created harness/cursor/rules/shared/role-core-contract.mdc as the sole canonical
+  source for shared memory-bank loading, response format, and runner policy.
+- Defined bounded hub runner (bin/pytest from repo root with 300s timeout) and managed
+  capability_checks/evidence branches without unconditional managed pytest.
+- Established explicit role-only boundary markers preserving BACK lifecycle/promotion,
+  FRONT visible-UI/parent-only, and INTEG element-first/contract/GAP boundaries.
+files:
+- harness/cursor/rules/shared/role-core-contract.mdc
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line`'
+integration_check:
+- Shared role-core contract at harness/cursor/rules/shared/role-core-contract.mdc
+  contains memory-bank loading, response format, hub/managed runner policy, and role-only
+  boundary markers.
+- Semantic corpus test_role_core_contract.py validates shared owner declaration and
+  runner policy contract with exit code 0.
+grep_control: []
+verification_results:
+- command: rg -n "activeContext|load_now|MEMORY BANK|ФОРМАТ|response|role-only|BACK|FRONT|INTEG"
+    harness/cursor/rules/shared/role-core-contract.mdc
+  result: 10 matches covering all required sections
+- command: rg -n "bin/pytest|300|capability_checks|execution evidence|managed|unconditional|fallback"
+    harness/cursor/rules/shared/role-core-contract.mdc
+  result: 5 matches covering hub and managed runner branches
+- command: test $(rg -l "role-core-contract.mdc" harness/cursor/rules/shared harness/cursor/rules/{back_developer,front_developer,integration_developer}
+    --glob "*.mdc" | wc -l) -ge 1
+  result: exit code 0 (1 match in shared canonical path)
+- command: bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line
+    -k "owner"
+  result: 1 passed
+- command: bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line
+  result: 12 passed
+checkpoints:
+- id: cp1
+  criterion: The new shared owner contains the complete common loading/memory-bank
+    and response-format contract without role-specific lifecycle/UI/contract rules.
+  status: done
+- id: cp2
+  criterion: The shared owner states both bounded hub runner and managed capability/evidence
+    branches and explicitly rejects unconditional managed pytest.
+  status: done
+- id: cp3
+  criterion: The shared contract has one canonical path and no local compatibility
+    alias or duplicate owner.
+  status: done
+- id: cp4
+  criterion: The red semantic corpus can identify the shared owner without relying
+    on copied test constants for policy content.
+  status: done
+resume_from: none

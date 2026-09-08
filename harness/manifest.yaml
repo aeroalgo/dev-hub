@@ -18,6 +18,15 @@ agents:
       codex:
         materialize: true
         target: ".codex/agents/gate-repair.toml"
+  reconcile:
+    description: "Read-only reconciliation gate for index and runtime drift"
+    source: "harness/agents/reconcile.md"
+    runtimes:
+      claude:
+        copy_to: ".claude/agents/reconcile.md"
+      codex:
+        materialize: true
+        target: ".codex/agents/reconcile.toml"
   verify-bugfix:
     description: "Pre-FINISH verify gate for BUGFIX"
     source: "harness/agents/verify-bugfix.md"

@@ -82,10 +82,10 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-role-core-contract-red-tests.yaml](../yaml/steps/s01-role-core-contract-red-tests.yaml) — semantic corpus for common owner and role guards | [s01…](../../implement/T-HUB-083-role-core-shared-contract/s01-role-core-contract-red-tests.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s01** | [s01-role-core-contract-red-tests.yaml](../yaml/steps/s01-role-core-contract-red-tests.yaml) — semantic corpus for common owner and role guards | [s01…](../../implement/T-HUB-083-role-core-shared-contract/s01-role-core-contract-red-tests.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s02** | [s02-shared-role-core-contract.yaml](../yaml/steps/s02-shared-role-core-contract.yaml) — shared owner for loading, format and runner policy | [s02…](../../implement/T-HUB-083-role-core-shared-contract/s02-shared-role-core-contract.yaml) | no | no | BACK IMPLEMENT | pending |
-| **s03** | [s03-role-core-wiring-and-preservation.yaml](../yaml/steps/s03-role-core-wiring-and-preservation.yaml) — one import plus BACK/FRONT/INTEG-only semantics | [s03…](../../implement/T-HUB-083-role-core-shared-contract/s03-role-core-wiring-and-preservation.yaml) | no | no | BACK IMPLEMENT | pending |
-| **s04** | [s04-role-core-legacy-fallback-purge.yaml](../yaml/steps/s04-role-core-legacy-fallback-purge.yaml) — A/C/I sunset inventory and fail-closed purge | [s04…](../../implement/T-HUB-083-role-core-shared-contract/s04-role-core-legacy-fallback-purge.yaml) | no | no | BACK IMPLEMENT | pending |
+| **s03** | [s03-role-core-wiring-and-preservation.yaml](../yaml/steps/s03-role-core-wiring-and-preservation.yaml) — one import plus BACK/FRONT/INTEG-only semantics | [s03…](../../implement/T-HUB-083-role-core-shared-contract/s03-role-core-wiring-and-preservation.yaml) | no | no | BACK IMPLEMENT | completed |
+| **s04** | [s04-role-core-legacy-fallback-purge.yaml](../yaml/steps/s04-role-core-legacy-fallback-purge.yaml) — A/C/I sunset inventory and fail-closed purge | [s04…](../../implement/T-HUB-083-role-core-shared-contract/s04-role-core-legacy-fallback-purge.yaml) | no | no | BACK IMPLEMENT | completed |
 | **s05** | [s05-role-core-semantic-regression.yaml](../yaml/steps/s05-role-core-semantic-regression.yaml) — mode-W matrix and full suite evidence | [s05…](../../implement/T-HUB-083-role-core-shared-contract/s05-role-core-semantic-regression.yaml) | no | yes | BACK IMPLEMENT | pending |
 
 Следующая фаза после DECOMPOSE — **BACK ANALYZE**. Переход к IMPLEMENT до `validate-decompose-tree` exit 0, `validate-traceability` с `CRITICAL=0` и обязательного ANALYZE с `critical_count=0` запрещён.
