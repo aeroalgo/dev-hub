@@ -44,16 +44,16 @@ def test_codex_loop_allows_root_model_selection_for_runtime_capability_check():
     assert "agy/gemini-3.7-flash-medium" in cmd
 
 
-def test_codex_gate_rejects_non_native_collaboration_model():
+def test_codex_gate_preserves_arbitrary_root_model():
     adapter = CodexAdapter()
     ctx = SessionContext(
         prompt="do task",
         phase="QA",
         model="agy/gemini-3.7-flash-medium",
     )
-    with pytest.raises(ValueError, match="native-capable model"):
-        with patch("loop.runtime_adapters.codex._resolve_codex_binary", return_value="codex"):
-            adapter.build_command(ctx)
+    with patch("loop.runtime_adapters.codex._resolve_codex_binary", return_value="codex"):
+        cmd = adapter.build_command(ctx)
+    assert "agy/gemini-3.7-flash-medium" in cmd
 
 
 def test_build_command_no_model_when_none():
@@ -206,3 +206,20 @@ def test_which_codex_script():
     assert os.path.exists(script_path)
     res = subprocess.run(["bash", script_path], capture_output=True, text=True)
     assert res.returncode in (0, 127)
+
+
+def test_which_codex_prefers_built_patch_when_configured(tmp_path):
+    script_path = os.path.join(os.getcwd(), "codex/bin/which-codex.sh")
+    patched = tmp_path / "codex-patched"
+    patched.write_text("#!/bin/sh\n", encoding="utf-8")
+    patched.chmod(0o755)
+    env = os.environ.copy()
+    env.pop("CODEX_BIN", None)
+    env["CODEX_USE_OMNIROUTE"] = "0"
+    env["CODEX_PATCHED_BIN"] = str(patched)
+    env["PATH"] = "/usr/bin:/bin"
+
+    res = subprocess.run(["bash", script_path], capture_output=True, text=True, env=env)
+
+    assert res.returncode == 0
+    assert res.stdout.strip() == str(patched)

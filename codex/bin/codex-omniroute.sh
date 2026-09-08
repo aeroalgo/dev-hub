@@ -4,6 +4,8 @@ set -euo pipefail
 KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${HOME}/.codex/.omniroute_key}"
 CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
 PROFILE_NAME="${CODEX_PROFILE:-dev-hub}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATCHED_CODEX="${CODEX_PATCHED_BIN:-${SCRIPT_DIR}/../.build/codex-v0.152.0}"
 
 if [[ -z "${OMNIROUTE_API_KEY:-}" && -f "$KEY_FILE" ]]; then
   OMNIROUTE_API_KEY="$(tr -d '\n\r' < "$KEY_FILE")"
@@ -18,6 +20,8 @@ fi
 
 if [[ -n "${CODEX_BIN_REAL:-}" ]]; then
   REAL_CODEX="$CODEX_BIN_REAL"
+elif [[ -x "$PATCHED_CODEX" ]]; then
+  REAL_CODEX="$PATCHED_CODEX"
 elif command -v codex >/dev/null 2>&1; then
   REAL_CODEX="$(command -v codex)"
 else

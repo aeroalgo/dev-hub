@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OMNIROUTE_WRAP="${SCRIPT_DIR}/codex-omniroute.sh"
 CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
+PATCHED_CODEX="${CODEX_PATCHED_BIN:-${SCRIPT_DIR}/../.build/codex-v0.152.0}"
 
 use_omniroute_wrap() {
     [[ "${CODEX_USE_OMNIROUTE:-1}" == "1" ]] || return 1
@@ -25,6 +26,11 @@ fi
 
 if use_omniroute_wrap; then
     echo "$OMNIROUTE_WRAP"
+    exit 0
+fi
+
+if [[ -x "$PATCHED_CODEX" ]]; then
+    echo "$PATCHED_CODEX"
     exit 0
 fi
 

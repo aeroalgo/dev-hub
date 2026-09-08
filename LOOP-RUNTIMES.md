@@ -12,10 +12,10 @@
 
 Codex runtime использует OmniRoute, если в `~/.codex/config.toml` настроен провайдер `omniroute` и существует `~/.codex/.omniroute_key`.
 
-Gate-фазы Codex (`IMPLEMENT`, `TASK`, `BUGFIX`, `QA`, `DECOMPOSE`, `ANALYZE`)
-требуют native-capable модели, потому что workflow вызывает субагентов через
-`spawn_agent → wait`. Для OmniRoute используйте `cx/*`; произвольные модели
-других провайдеров не поддерживают этот transport и будут отклонены до запуска.
+Root-модель Codex может быть произвольной моделью OmniRoute. Managed subagent
+берёт свою модель из `codex/agents.config.toml`; root-модель не передаётся
+child автоматически. Для моделей, которые возвращают flat function-call имена,
+patched Codex transport нормализует их в native collaboration namespace.
 
 ## Claude Code
 

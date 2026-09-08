@@ -12,6 +12,7 @@ agent_trace/
 projects/**/*.env.local
 *.env
 *.env.local
+codex/.build/
 .DS_Store
 .spec-kit/
 node_modules/

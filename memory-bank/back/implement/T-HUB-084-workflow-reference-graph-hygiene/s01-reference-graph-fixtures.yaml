@@ -1,0 +1,40 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: s01 — Build a fail-closed reference graph validator with direct, transitive,
+  and dangling fixtures IMPLEMENT
+status: in_progress
+date: '2026-09-08'
+decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s01-reference-graph-fixtures.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- loop/workflow/pack_graph.py
+- loop/tests/test_pack_graph_doctor.py
+- loop/tests/test_workflow_reference_graph.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: A direct duplicate fixture fails closed and reports both declaring paths
+    and line numbers.
+  status: pending
+- id: cp2
+  criterion: A transitive ambiguity is reported; removing the sole owner fails and
+    removing only a redundant edge passes.
+  status: pending
+- id: cp3
+  criterion: A dangling dead reference is rejected by the production pack-graph entrypoint.
+  status: pending
+- id: cp4
+  criterion: Existing route, gate and skill diagnostics remain fail-closed alongside
+    the new reference diagnostics.
+  status: pending
+resume_from: cp1

@@ -1,0 +1,98 @@
+diff --git a/codex-rs/core/src/tools/router.rs b/codex-rs/core/src/tools/router.rs
+index f7d65f5..05726c7 100644
+--- a/codex-rs/core/src/tools/router.rs
++++ b/codex-rs/core/src/tools/router.rs
+@@ -253,6 +253,7 @@ impl ToolRouter {
+                 call_id,
+                 ..
+             } => {
++                let (namespace, name) = normalize_flat_collaboration_tool_name(namespace, name);
+                 let tool_name = ToolName::new(namespace, name).with_default_namespace();
+                 Ok(Some(ToolCall {
+                     tool_name,
+@@ -382,6 +383,47 @@ impl ToolRouter {
+     }
+ }
+ 
++const LEGACY_COLLABORATION_TOOLS: &[&str] = &[
++    "spawn_agent",
++    "wait_agent",
++    "send_input",
++    "resume_agent",
++    "close_agent",
++    "send_message",
++    "followup_task",
++    "interrupt_agent",
++    "list_agents",
++];
++
++fn normalize_flat_collaboration_tool_name(
++    namespace: Option<String>,
++    name: String,
++) -> (Option<String>, String) {
++    if namespace.is_some() {
++        return (namespace, name);
++    }
++
++    for (prefix, canonical_namespace) in [
++        ("multi_agent_v1_", "multi_agent_v1"),
++        ("collaboration_", "collaboration"),
++    ] {
++        let Some(candidate) = name.strip_prefix(prefix) else {
++            continue;
++        };
++        for tool in LEGACY_COLLABORATION_TOOLS {
++            let suffix = candidate.strip_prefix(tool);
++            let valid_suffix = suffix.is_none_or(|rest| {
++                rest.starts_with('_') && rest[1..].chars().all(|ch| ch.is_ascii_alphanumeric())
++            });
++            if valid_suffix {
++                return (Some(canonical_namespace.to_string()), (*tool).to_string());
++            }
++        }
++    }
++
++    (namespace, name)
++}
++
+ #[cfg(test)]
+ #[path = "router_tests.rs"]
+ mod tests;
+diff --git a/codex-rs/core/src/tools/router_tests.rs b/codex-rs/core/src/tools/router_tests.rs
+index 0193523..c87ae98 100644
+--- a/codex-rs/core/src/tools/router_tests.rs
++++ b/codex-rs/core/src/tools/router_tests.rs
+@@ -312,6 +312,33 @@ fn build_tool_call_normalizes_default_function_and_custom_namespaces() -> anyhow
+     Ok(())
+ }
+ 
++#[test]
++fn build_tool_call_normalizes_flat_collaboration_names() -> anyhow::Result<()> {
++    for (name, namespace, tool) in [
++        (
++            "multi_agent_v1_spawn_agent_88769741",
++            "multi_agent_v1",
++            "spawn_agent",
++        ),
++        ("collaboration_wait_agent", "collaboration", "wait_agent"),
++    ] {
++        let call = ToolRouter::build_tool_call(ResponseItem::FunctionCall {
++            id: None,
++            name: name.to_string(),
++            namespace: None,
++            arguments: "{}".to_string(),
++            encrypted_function_args: None,
++            call_id: "call-flat-collaboration".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        })?
++        .expect("function_call should produce a tool call");
++
++        assert_eq!(call.tool_name, ToolName::namespaced(namespace, tool));
++    }
++
++    Ok(())
++}
++
+ #[tokio::test]
+ async fn mcp_parallel_support_uses_handler_data() -> anyhow::Result<()> {
+     let (_, turn) = make_session_and_context().await;

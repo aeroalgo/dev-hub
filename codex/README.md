@@ -37,6 +37,16 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
 
    Disable wrapper routing: `CODEX_USE_OMNIROUTE=0 codex …`
 
+   To build the Codex CLI transport patch that accepts flat OmniRoute
+   collaboration function names, run:
+   ```bash
+   ./codex/bin/build-patched-codex.sh
+   ```
+   The script checks out `rust-v0.152.0`, applies the tracked patch, builds
+   the release binary, and places it at `codex/.build/codex-v0.152.0`.
+   `which-codex.sh` uses that binary automatically; with OmniRoute enabled it
+   keeps the OmniRoute wrapper and runs the patched binary underneath it.
+
 3. **Direct ChatGPT login (without OmniRoute):**
    ```bash
    codex login
