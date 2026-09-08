@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical pytest runner — external 300s process limit (test-timeout.mdc).
+# Canonical parallel pytest runner — external 300s process limit (test-timeout.mdc).
 # Usage: bin/pytest [pytest args…]
 # -k/--kill-after: if pytest ignores SIGTERM (hung child), escalate to SIGKILL.
 # Without -k, GNU timeout waits forever when the command ignores TERM.
@@ -10,4 +10,33 @@ if [[ ! -x "$PYTEST" ]]; then
   echo "error: $PYTEST not found; run: .venv/bin/pip install -r requirements-dev.txt" >&2
   exit 127
 fi
-exec timeout -k 10s 300s "$PYTEST" "$@"
+
+help_output="$("$PYTEST" --help 2>&1 || true)"
+if ! grep -q -- "--numprocesses" <<<"$help_output"; then
+  echo "error: pytest-xdist is required; run: .venv/bin/pip install -r requirements-dev.txt" >&2
+  exit 127
+fi
+
+parallel_args=()
+worker_arg=1
+distribution_arg=1
+cpu_count="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')"
+if [[ "$cpu_count" =~ ^[0-9]+$ ]] && (( cpu_count > 2 )); then
+  default_workers=$((cpu_count - 2))
+else
+  default_workers=1
+fi
+for arg in "$@"; do
+  case "$arg" in
+    -n|--numprocesses|--numprocesses=*) worker_arg=0 ;;
+    --dist|--dist=*) distribution_arg=0 ;;
+  esac
+done
+if [[ "$worker_arg" -eq 1 ]]; then
+  parallel_args+=( -n "${PYTEST_WORKERS:-$default_workers}" )
+fi
+if [[ -n "${PYTEST_DIST:-}" && "$distribution_arg" -eq 1 ]]; then
+  parallel_args+=( --dist "$PYTEST_DIST" )
+fi
+
+exec timeout -k 10s 300s "$PYTEST" "${parallel_args[@]}" "$@"

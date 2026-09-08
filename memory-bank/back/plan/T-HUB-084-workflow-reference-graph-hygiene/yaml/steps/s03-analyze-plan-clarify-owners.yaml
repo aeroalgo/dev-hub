@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: "Retain one owner edge across ANALYZE, PLAN, and CLARIFY orchestration"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Свести ANALYZE core, PLAN и CLARIFY orchestration к одному владельцу каждой
+  общей dependency с явным timing и сохранить отдельную семантику Phase 0,
+  plan contract и обязательного ANALYZE gate. Транзитивные пары не маскируются
+  повторной ссылкой на shared policy.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-004]
+  nouns:
+    - BACK ANALYZE
+    - BACK PLAN
+    - BACK CLARIFY
+    - workflow-analyze-core.mdc
+    - workflow-clarify-core.mdc
+    - workflow-plan-clarify-orchestration.mdc
+    - isolation_rules/_lean/analyze.mdc
+    - isolation_rules/_lean/plan.mdc
+    - isolation_rules/_lean/clarify.mdc
+    - Phase 0 and mandatory ANALYZE gate semantics
+    - test_workflow_reference_graph_plan.py
+  layout_paths:
+    - harness/cursor/rules/back_developer/workflow-analyze.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+    - harness/cursor/rules/back_developer/workflow-clarify.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
+    - harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+    - harness/hooks/tests/test_workflow_reference_graph_plan.py
+  ac_quotes:
+    - "ANALYZE core and PLAN/CLARIFY orchestration preserve their mode semantics."
+    - "each active W declares a shared dependency once."
+    - "A→B plus W→B has one owner selected by lazy timing and semantic responsibility."
+    - "No inlining large shared policy, archive rewrite, blind rg deletion, or compatibility alias."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:6-19"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:25-40"
+
+context:
+  consumes:
+    - "s01 direct/transitive diagnostics and s02 DECOMPOSE owner convention"
+    - "current ANALYZE, PLAN, CLARIFY workflow/lean files and shared Phase 0 orchestration"
+  produces:
+    - "one canonical owner edge for ANALYZE core, PLAN orchestration and CLARIFY orchestration"
+    - "explicit lazy timing at the owner boundary without changing Phase 0 or mandatory ANALYZE behavior"
+    - "plan/clarify/analyze fixtures proving redundant-edge removal and sole-owner protection"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-001"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-002"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-004"
+  files:
+    - harness/cursor/rules/back_developer/workflow-analyze.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+    - harness/cursor/rules/back_developer/workflow-clarify.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
+    - harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+    - harness/hooks/tests/test_workflow_reference_graph_plan.py
+
+as_built:
+  - "workflow-analyze.mdc and isolation_rules/_lean/analyze.mdc both point into ANALYZE core/gate surfaces while the mandatory ANALYZE transition is independently documented."
+  - "workflow-plan.mdc, workflow-clarify.mdc and workflow-plan-clarify-orchestration.mdc form a shared orchestration chain with repeated policy edges."
+  - "The lean analyze/plan/clarify gates contain mode-specific guard text that must remain available after edge cleanup."
+
+delta:
+  - "Edit workflow-analyze.mdc, lean analyze.mdc, workflow-plan.mdc, lean plan.mdc, workflow-clarify.mdc, lean clarify.mdc and workflow-plan-clarify-orchestration.mdc to assign one owner per shared dependency with explicit lazy timing."
+  - "Remove redundant ANALYZE/PLAN/CLARIFY @ edges while preserving the mandatory ANALYZE gate, Phase 0 orchestration and plan contract semantics."
+  - "Add harness/hooks/tests/test_workflow_reference_graph_plan.py for ownership, timing, marker and transitive-pair behavior."
+
+deletes:
+  - "redundant ANALYZE core edge repeated by its workflow and lean gate"
+  - "redundant PLAN/CLARIFY orchestration edge repeated across workflow, lean gate and shared orchestration files"
+
+out_of_scope:
+  - "DECOMPOSE owner rewrites are s02; VAN and REFACTOR topology is s04."
+  - "Active-corpus scan and archive/history exclusions are s05; legacy back-audit deletion is s06."
+  - "Phase 0 questions, plan content and ANALYZE findings are not redesigned; only dependency ownership and timing are normalized."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "ANALYZE, PLAN and CLARIFY each have one canonical owner edge with an explicit lazy timing contract."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py -q --tb=line -k 'analyze or plan or clarify or lazy'"
+  - id: cp2
+    criterion: "Mandatory ANALYZE gate and Phase 0 PLAN/CLARIFY semantics remain present after edge cleanup."
+    verify: "rg -n 'mandatory ANALYZE|Phase 0|workflow-analyze-core|workflow-plan-clarify-orchestration' harness/cursor/rules/back_developer/workflow-analyze.mdc harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/back_developer/workflow-clarify.mdc harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc"
+  - id: cp3
+    criterion: "Transitive PLAN/CLARIFY and ANALYZE duplicate fixtures report the redundant edge and source locations."
+    verify: "bin/pytest loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'analyze or plan or clarify or transitive'"
+  - id: cp4
+    criterion: "A sole ANALYZE/PLAN/CLARIFY owner cannot be removed without a validation failure."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py -q --tb=line -k 'sole_owner or redundant'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'analyze or plan or clarify'"
+
+tdd:
+  - "test_analyze_plan_clarify_each_have_one_owner"
+  - "test_plan_clarify_phase_zero_semantics_survive"
+  - "test_analyze_sole_owner_is_fail_closed"

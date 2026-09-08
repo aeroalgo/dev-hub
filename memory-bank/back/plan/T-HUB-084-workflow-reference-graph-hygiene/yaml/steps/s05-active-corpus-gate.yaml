@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: "Gate the active corpus while preserving priority mode markers and archive exclusions"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить bounded active-corpus scan к production workflow-pack doctor:
+  duplicate/transitive/dangling edges и повторный mode owner делают gate
+  красным, а archive/history paths не участвуют в active graph. Проверка
+  сохраняет точные PLAN/DECOMPOSE/ANALYZE markers и не превращает архивную
+  историю в объект переписывания.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003, FR-004]
+  nouns:
+    - active corpus validator
+    - loop/workflow/pack_graph.py production gate
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - PLAN marker
+    - DECOMPOSE marker
+    - ANALYZE marker
+    - archive/history exclusion set
+    - workflow-pack doctor fail-closed result
+  layout_paths:
+    - loop/workflow/pack_graph.py
+    - loop/tests/test_pack_graph_doctor.py
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-analyze.mdc
+  ac_quotes:
+    - "Duplicate, dangling or ambiguous edge breaks validation."
+    - "PLAN/DECOMPOSE/ANALYZE markers remain."
+    - "Archive/history files are excluded from active corpus."
+    - "No archive rewrite or blind rg deletion."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:10-31"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:33-40"
+
+context:
+  consumes:
+    - "s01 validator fixtures and s02–s04 owner rewrites"
+    - "existing workflow-pack doctor, canonical PLAN/DECOMPOSE/ANALYZE owner files and hot-path corpus tests"
+  produces:
+    - "check_pack_graph invokes a bounded active-corpus gate and returns source-line diagnostics for invalid edges"
+    - "PLAN, DECOMPOSE and ANALYZE markers have one active owner each"
+    - "archive/history, memory-bank and graphify output are excluded from active-corpus results"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-001"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-003"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-004"
+  files:
+    - loop/workflow/pack_graph.py
+    - loop/tests/test_pack_graph_doctor.py
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - harness/cursor/rules/back_developer/workflow-plan.mdc
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/workflow-analyze.mdc
+
+as_built:
+  - "loop/workflow/pack_graph.py already has the production check_pack_graph and doctor-facing diagnostic result."
+  - "harness/hooks/tests/test_workflow_hot_path_consolidation.py defines canonical hot-path owners and archive exclusion patterns for a bounded corpus."
+  - "Canonical PLAN and DECOMPOSE hot-path tests exist, while the new graph contract must also enforce ANALYZE ownership and direct/transitive edge classes through the production gate."
+
+delta:
+  - "Wire loop/workflow/pack_graph.py to scan only active rule/workflow roots, report duplicate/transitive/dangling edges, and fail closed through check_pack_graph."
+  - "Extend loop/tests/test_pack_graph_doctor.py and harness/hooks/tests/test_workflow_hot_path_consolidation.py for PLAN, DECOMPOSE and ANALYZE markers, one owner, source lines and archive exclusions."
+  - "Keep harness/cursor/rules/back_developer/workflow-plan.mdc, workflow-decompose.mdc and workflow-analyze.mdc as canonical mode owners without copying shared policy bodies."
+
+deletes: []
+
+out_of_scope:
+  - "Archive/history content is classified and excluded, not rewritten."
+  - "The proven-dead back-audit cheatsheet and its loader are removed only in s06 after the caller scan."
+  - "TM-084-06 full suite remains a BACK QA outcome after IMPLEMENT."
+  - "No compatibility alias or permissive fallback is added to make an invalid active graph pass."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Production check_pack_graph fails on direct duplicate, transitive ambiguity and dangling active-corpus fixtures with source lines."
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'active_corpus or duplicate or ambiguous or dangling'"
+  - id: cp2
+    criterion: "PLAN, DECOMPOSE and ANALYZE markers each have exactly one active owner after the corpus scan."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line -k 'marker or owner or hot_path'"
+  - id: cp3
+    criterion: "Archive/history, memory-bank, runtime and graphify paths are excluded from the active corpus."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line -k 'archive or history or excluded'"
+  - id: cp4
+    criterion: "The doctor remains fail-closed for an invalid active corpus and green for a valid redundant-edge removal."
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'doctor or redundant or fail_closed'"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line -k 'active_corpus or marker or archive'"
+
+tdd:
+  - "test_active_corpus_duplicate_and_dangling_edges_fail"
+  - "test_priority_mode_markers_have_single_owner"
+  - "test_archive_history_is_excluded_from_active_scan"

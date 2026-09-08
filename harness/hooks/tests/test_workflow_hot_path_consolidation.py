@@ -199,3 +199,10 @@ def test_archive_and_history_are_not_active_callers():
         rel_str = str(p.relative_to(ROOT))
         is_excluded = any(pat.search(rel_str) for pat in ARCHIVE_EXCLUSION_PATTERNS)
         assert is_excluded, f"Expected {rel_str} to be classified as archive/history and excluded from active corpus"
+
+
+def test_back_audit_cheatsheet_and_loader_are_purged():
+    cheatsheet = ROOT / "harness/cursor/rules/shared/cheatsheets/back-audit.mdc"
+    assert not cheatsheet.exists()
+    core_source = (ROOT / "harness/hooks/epic/core.py").read_text(encoding="utf-8")
+    assert "shared/cheatsheets/back-audit" not in core_source

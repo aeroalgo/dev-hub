@@ -20,22 +20,6 @@ def test_claude_dispatch_dry_run(tmp_path, capsys):
     assert "hello world" in captured.out
 
 
-def test_dsh_dispatch_dry_run(tmp_path, capsys):
-    prompt_file = tmp_path / "prompt.txt"
-    prompt_file.write_text("hello dsh", encoding="utf-8")
-
-    code = run_session(
-        runtime_id="dsh",
-        prompt_file=prompt_file,
-        phase="IMPLEMENT",
-        dry_run=True,
-    )
-    assert code == 0
-    captured = capsys.readouterr()
-    assert "dsh --profile epic-implement" in captured.out
-    assert "hello dsh" in captured.out
-
-
 def test_unknown_runtime_exit2_json_diagnostic(tmp_path, capsys):
     prompt_file = tmp_path / "prompt.txt"
     prompt_file.write_text("test", encoding="utf-8")

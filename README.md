@@ -22,10 +22,19 @@
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-pytest
+bin/pytest
 ```
 
 `requirements-dev.txt` подтягивает `requirements-hub.txt` (pydantic, httpx, pydantic-ai) и pytest/PyYAML.
+
+По умолчанию тесты запускаются параллельно через `pytest-xdist` с распределением `loadfile`:
+
+```bash
+bin/pytest -q --tb=line
+PYTEST_WORKERS=4 bin/pytest loop/tests -q  # явное переопределение
+```
+
+Канонический `bin/pytest …` по умолчанию оставляет два логических CPU свободными; число воркеров можно явно задать через `PYTEST_WORKERS`. Тесты должны быть изолированы от общего checkout и runtime-состояния; для изменяющих файлы тестов можно явно отключить параллелизм через `-n 0`.
 
 ---
 

@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: "Build a fail-closed reference graph validator with direct, transitive, and dangling fixtures"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Создать исполняемую проверку workflow reference graph, которая через
+  существующий workflow-pack doctor различает duplicate, transitive ambiguity
+  и dangling dead reference и сообщает исходные строки, сохраняя fail-closed
+  поведение текущих pack diagnostics.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-003]
+  nouns:
+    - loop/workflow/pack_graph.py
+    - check_pack_graph
+    - direct duplicate edge diagnostic
+    - transitive owner ambiguity diagnostic
+    - dangling dead reference diagnostic
+    - source path and line evidence
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_workflow_reference_graph.py
+  layout_paths:
+    - loop/workflow/pack_graph.py
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_workflow_reference_graph.py
+  ac_quotes:
+    - "Duplicate edge fixture fails with both lines."
+    - "Removing sole owner fails; removing redundant edge passes."
+    - "Validator reports direct duplicate, transitive ambiguity and dangling dead reference."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:10-31"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:33-40"
+
+context:
+  consumes:
+    - "plan.md §FR-001–FR-003, §HOW / Eng spine and TM-084-01/TM-084-02/TM-084-04"
+    - "existing loop.workflow.pack_graph check_pack_graph diagnostics and doctor caller"
+  produces:
+    - "check_pack_graph fails closed for direct duplicate, transitive ambiguity and dangling reference fixtures"
+    - "each diagnostic carries both source paths and line numbers where the fixture has two edges"
+    - "sole-owner removal remains invalid while redundant-edge removal is accepted"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-003"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#how--eng-spine"
+  files:
+    - loop/workflow/pack_graph.py
+    - loop/tests/test_pack_graph_doctor.py
+    - loop/tests/test_workflow_reference_graph.py
+
+as_built:
+  - "loop/workflow/pack_graph.py already validates workflow-pack routes, lean gates, agents, skills and declared schemas."
+  - "loop/tests/test_pack_graph_doctor.py already provides temporary-pack fixtures and multi-diagnostic assertions."
+  - "No current pack-graph diagnostic distinguishes direct duplicate, transitive ambiguity or a dead reference with source-line evidence."
+
+delta:
+  - "Extend loop/workflow/pack_graph.py with a bounded reference-edge model and fail-closed diagnostics for direct duplicate, transitive ambiguity and dangling dead reference."
+  - "Keep check_pack_graph and the doctor caller as the production entrypoint; do not add a parallel CLI or compatibility alias."
+  - "Add loop/tests/test_pack_graph_doctor.py and loop/tests/test_workflow_reference_graph.py fixtures covering both source lines, sole-owner deletion and redundant-edge removal."
+
+deletes: []
+
+out_of_scope:
+  - "Owner rewrites in DECOMPOSE, ANALYZE, PLAN, CLARIFY, VAN and REFACTOR are applied by s02–s04."
+  - "Active-corpus wiring, mode-marker checks and archive exclusions are applied by s05."
+  - "The full TM-084-06 suite is a BACK QA handoff after IMPLEMENT."
+  - "Archive/history files and compatibility aliases remain excluded by AC− #1."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "A direct duplicate fixture fails closed and reports both declaring paths and line numbers."
+    verify: "bin/pytest loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'direct_duplicate or both_lines'"
+  - id: cp2
+    criterion: "A transitive ambiguity is reported; removing the sole owner fails and removing only a redundant edge passes."
+    verify: "bin/pytest loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'transitive or sole_owner or redundant'"
+  - id: cp3
+    criterion: "A dangling dead reference is rejected by the production pack-graph entrypoint."
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'reference or dangling'"
+  - id: cp4
+    criterion: "Existing route, gate and skill diagnostics remain fail-closed alongside the new reference diagnostics."
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'missing_route or missing_lean_gate or missing_skill or multiple_codes'"
+
+verify:
+  - "bin/pytest loop/tests/test_workflow_reference_graph.py loop/tests/test_pack_graph_doctor.py -q --tb=line -k 'reference or graph'"
+
+tdd:
+  - "test_direct_duplicate_reports_both_source_lines"
+  - "test_transitive_ambiguity_requires_single_owner"
+  - "test_dangling_reference_is_fail_closed"

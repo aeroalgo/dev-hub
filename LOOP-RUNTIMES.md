@@ -10,13 +10,12 @@
 ./bin/loop codex decompose-T-HUB-XXX 'cx/gpt-5.6-luna-xhigh'
 ```
 
-Другой пример с моделью Claude, опубликованной OmniRoute:
-
-```bash
-./bin/loop codex decompose-T-HUB-XXX 'agy/claude-sonnet-4-6'
-```
-
 Codex runtime использует OmniRoute, если в `~/.codex/config.toml` настроен провайдер `omniroute` и существует `~/.codex/.omniroute_key`.
+
+Gate-фазы Codex (`IMPLEMENT`, `TASK`, `BUGFIX`, `QA`, `DECOMPOSE`, `ANALYZE`)
+требуют native-capable модели, потому что workflow вызывает субагентов через
+`spawn_agent → wait`. Для OmniRoute используйте `cx/*`; произвольные модели
+других провайдеров не поддерживают этот transport и будут отклонены до запуска.
 
 ## Claude Code
 

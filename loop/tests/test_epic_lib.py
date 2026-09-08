@@ -99,12 +99,6 @@ def test_latest_qa_pass_artifact_docstring_is_reference_only() -> None:
     assert "NOT a completion test" in lib.latest_qa_pass_artifact_for_reference.__doc__
 
 
-def test_find_next_decompose_step_docstring_marks_legacy_fallback() -> None:
-    lib = _load_lib()
-
-    assert "LEGACY FALLBACK" in lib.find_next_decompose_step.__doc__
-
-
 def test_reconcile_deterministic_sort_for_equal_mtime(tmp_path) -> None:
     lib = _load_lib()
     qa_dir = tmp_path / "memory-bank" / "back" / "audit" / "T-037-loop-gap-closure"

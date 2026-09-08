@@ -1495,14 +1495,6 @@ def _promote_if_ready(cwd: str | Path) -> dict[str, Any] | None:
     return out
 
 
-def promote_decompose_phase_if_ready(cwd: str | Path) -> dict[str, Any] | None:
-    """Deprecated shim — use ``_promote_if_ready`` / ``epic_transition.promote_if_ready``."""
-    from loop.epic_transition import _legacy_warn
-
-    _legacy_warn("promote_decompose_phase_if_ready")
-    return _promote_if_ready(cwd)
-
-
 def active_context_identity_mismatch(
     cwd: str | Path,
     *,

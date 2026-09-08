@@ -1,0 +1,198 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: "Purge the proven-dead audit cheatsheet and close the complete sunset inventory"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Выполнить финальный fail-closed purge: после полного caller scan удалить
+  proven-dead `back-audit.mdc` и его active loader block, переписать obsolete
+  assertions и закрыть весь A/B/C/I inventory по reference graph. Ни один
+  архивный или исторический файл не переписывается, а valid active graph
+  остаётся единственным источником проверки.
+
+plan_contract:
+  fr_ids: [FR-003, FR-004]
+  nouns:
+    - harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+    - harness/hooks/epic/core.py audit load_now block
+    - workflow-audit.mdc canonical owner
+    - sunset_inventory A+B+C+I
+    - obsolete caller/test assertions
+    - complete active-corpus import/reference scan
+  layout_paths:
+    - harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - loop/tests/test_pack_graph_doctor.py
+  ac_quotes:
+    - "back-audit.mdc has no active caller after a proven caller scan."
+    - "Duplicate link as safety fallback is removed; validation is fail-closed."
+    - "Stale active @ mentions are replaced by canonical dependency declarations."
+    - "No blind rg deletion; archive/history rewrite and compatibility alias are forbidden."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:33-40"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:10-23"
+
+context:
+  consumes:
+    - "s01 validator, s02–s04 owner rewrites and s05 active-corpus gate"
+    - "plan.md §Replacement / sunset and decompose-index.md §Replacement cleanup"
+  produces:
+    - "harness/cursor/rules/shared/cheatsheets/back-audit.mdc is absent after active caller and import/reference evidence"
+    - "harness/hooks/epic/core.py no longer appends the deprecated back-audit loader block"
+    - "full A/B/C/I sunset evidence shows no active duplicate edge, dead fallback or stale instruction"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#replacement--sunset"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/decompose-index.md#replacement-cleanup"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-004"
+  files:
+    - harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    - loop/tests/test_pack_graph_doctor.py
+
+as_built:
+  - "harness/hooks/epic/core.py still contains the phase-AUDIT cheat_rel mapping that appends shared/cheatsheets/back-audit.mdc when the file exists."
+  - "harness/cursor/rules/shared/cheatsheets/back-audit.mdc still exists and points back to the canonical audit workflow."
+  - "The active corpus tests already exclude archive/history and standalone cheatsheets from their scan; the final inventory must also cover the audit loader, obsolete tests and instruction references."
+
+delta:
+  - "Run the complete A+B+C+I sunset inventory before editing back-audit.mdc or core.py; record active callers, archive exclusions and obsolete assertions in the implement evidence."
+  - "Delete harness/cursor/rules/shared/cheatsheets/back-audit.mdc and remove the audit cheat_rel loader block from harness/hooks/epic/core.py after the scan proves no active caller."
+  - "Rewrite harness/hooks/tests/test_workflow_hot_path_consolidation.py and loop/tests/test_pack_graph_doctor.py assertions that encode the old audit fallback, preserving canonical workflow-audit.mdc and fail-closed diagnostics."
+
+deletes:
+  - "harness/cursor/rules/shared/cheatsheets/back-audit.mdc"
+  - "harness/hooks/epic/core.py phase-AUDIT cheat_rel loader block for shared/cheatsheets/back-audit.mdc"
+  - "obsolete active-caller/test assertions that treat back-audit.mdc or its loader as a valid fallback"
+  - "stale active @back-audit mentions and duplicate-link safety fallback"
+
+out_of_scope:
+  - "Archive/history markdown and zero-reference files other than back-audit.mdc are classified, not rewritten."
+  - "No compatibility alias, shim or permissive fallback remains after this purge."
+  - "TM-084-06 full suite is run by BACK QA after IMPLEMENT, not in this DECOMPOSE shard."
+
+sunset_inventory:
+  - symbol: "repeated/transitive active @ edges"
+    kind: A
+    replacement: "one owner edge with explicit lazy timing plus fail-closed validator"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules harness/claude .cursor/rules .claude"
+    expect: "no active duplicate or transitive owner edge; archive/history excluded"
+  - symbol: "harness/cursor/rules/shared/cheatsheets/back-audit.mdc"
+    kind: A
+    replacement: "canonical workflow-audit.mdc owner"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks loop"
+    expect: "file absent and no active caller"
+  - symbol: "no legacy CLI or entrypoint for back-audit"
+    kind: B
+    replacement: "canonical BACK AUDIT workflow entrypoint"
+    policy: keep
+    rg_scope: "bin loop harness/hooks"
+    expect: "no command or router exposes the deprecated cheatsheet"
+  - symbol: "duplicate link as safety fallback"
+    kind: C
+    replacement: "fail-closed owner validation"
+    policy: delete in-epic
+    rg_scope: "loop/workflow/pack_graph.py harness/hooks/epic/core.py"
+    expect: "invalid active graph cannot pass through a duplicate or missing owner"
+  - symbol: "stale active @back-audit mentions and loader prose"
+    kind: I
+    replacement: "canonical workflow-audit.mdc dependency declaration"
+    policy: delete in-epic
+    rg_scope: "harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks"
+    expect: "zero active stale mentions; archive/history references remain excluded"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: "repeated/transitive active @ edges"
+    command: "rg -n 'workflow-behavior-first|workflow-decompose-transition-gate|workflow-analyze-core|workflow-clarify-core|workflow-plan-clarify-orchestration|workflow-van-brownfield|workflow-refactor-epic' harness/cursor/rules harness/claude .cursor/rules .claude --glob '*.md' --glob '*.mdc' --glob '!**/_archive/**' --glob '!**/archive/**' --glob '!**/memory-bank/**' || true"
+    expect: "active owner map has no duplicate/transitive edge; output is reviewed against canonical owners"
+  - id: inv-a-02
+    kind: A
+    symbol: "back-audit.mdc active caller"
+    command: >-
+      rg -n 'back-audit\.mdc|shared/cheatsheets/back-audit' harness/cursor/rules
+      harness/claude .cursor/rules .claude harness/hooks loop --glob '*.md'
+      --glob '*.mdc' --glob '*.py' --glob '*.yaml' --glob '!**/_archive/**'
+      --glob '!**/archive/**' --glob '!**/memory-bank/**' || true
+    expect: "no active caller after core loader and cheatsheet deletion"
+  - id: inv-a-03
+    kind: A
+    symbol: "obsolete back-audit assertions"
+    command: "rg -n 'back-audit|cheatsheets/back-audit' harness/hooks/tests loop/tests || true"
+    expect: "no test treats the deleted cheatsheet or loader as a valid contract"
+  - id: inv-b-01
+    kind: B
+    symbol: "deprecated back-audit command or router"
+    command: "rg -n 'back-audit|cheatsheets/back-audit' bin loop harness/hooks/epic || true"
+    expect: "no legacy CLI or command entrypoint"
+  - id: inv-c-01
+    kind: C
+    symbol: "duplicate-link safety fallback"
+    command: "rg -n 'back-audit|duplicate|fallback|if.*owner|if.*exists' loop/workflow/pack_graph.py harness/hooks/epic/core.py || true"
+    expect: "no permissive fallback lets an invalid active graph pass"
+  - id: inv-i-01
+    kind: I
+    symbol: "stale active @back-audit instruction"
+    command: >-
+      rg -n '@[^ ]*back-audit|back-audit\.mdc|shared/cheatsheets/back-audit'
+      harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks
+      --glob '*.md' --glob '*.mdc' --glob '*.py' --glob '!**/_archive/**'
+      --glob '!**/archive/**' || true
+    expect: "zero stale active instruction mentions; archive/history is excluded"
+
+sunset_scope:
+  required: true
+  boundary_id: workflow-reference-graph
+  new_sot: loop/workflow/pack_graph.py
+  allow_read:
+    - loop/workflow/
+    - loop/tests/
+    - harness/hooks/epic/core.py
+    - harness/hooks/tests/
+    - harness/cursor/rules/
+    - harness/claude/
+    - .cursor/rules/
+    - .claude/
+    - bin/
+  kind_hint:
+    - A
+    - B
+    - C
+    - I
+
+skills:
+  code_surface: test
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A and B inventory rows inv-a-01..03 and inv-b-01 are run; active back-audit callers, obsolete assertions and legacy command surfaces are absent."
+    verify: "rg -n 'back-audit\\.mdc|shared/cheatsheets/back-audit' harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks loop bin --glob '*.md' --glob '*.mdc' --glob '*.py' --glob '*.yaml' --glob '!**/_archive/**' --glob '!**/archive/**' || true"
+  - id: cp2
+    criterion: "Kind C inventory inv-c-01 proves invalid ownership cannot pass through a duplicate-link or missing-owner fallback."
+    verify: "rg -n 'back-audit|fallback|if.*owner|if.*exists' loop/workflow/pack_graph.py harness/hooks/epic/core.py || true"
+  - id: cp3
+    criterion: "Kind I inventory inv-i-01 is clear in active instructions while archive/history references remain outside the scan."
+    verify: "rg -n '@[^ ]*back-audit|back-audit\\.mdc|shared/cheatsheets/back-audit' harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks --glob '*.md' --glob '*.mdc' --glob '*.py' --glob '!**/_archive/**' --glob '!**/archive/**' || true"
+  - id: cp4
+    criterion: "The deleted cheatsheet, loader block and obsolete assertions are gone; targeted graph and corpus tests remain green without restoring the fallback."
+    verify: "bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line -k 'graph or corpus or audit'"
+
+verify:
+  - "bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py -q --tb=line -k 'graph or corpus'"
+
+tdd:
+  - "test_back_audit_has_no_active_caller_after_purge"
+  - "test_no_legacy_back_audit_loader_or_assertion"
+  - "test_active_graph_remains_fail_closed_after_purge"

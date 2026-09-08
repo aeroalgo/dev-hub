@@ -37,12 +37,19 @@ def test_sole_writer_audit():
     assert count == "0", f"Found ad-hoc activeContext write paths:\n{res.stdout}"
 
 
-def test_full_mb_finish_suite_green():
-    """Regression check for mb_finish tests."""
+def test_full_mb_finish_suite_green(request):
+    """Regression check for mb_finish tests when this file runs alone."""
+    if any(item.path != request.path for item in request.session.items):
+        pytest.skip("mb_finish tests are already part of the parent suite")
     res = subprocess.run(
-        ".venv/bin/pytest harness/hooks/tests/ -q --tb=line "
-        "-k 'mb_finish and not test_full_mb_finish_suite_green'",
-        shell=True,
+        [
+            "bin/pytest",
+            "harness/hooks/tests/",
+            "-q",
+            "--tb=line",
+            "-k",
+            "mb_finish and not test_full_mb_finish_suite_green",
+        ],
         capture_output=True,
         text=True,
     )

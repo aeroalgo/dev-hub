@@ -4,10 +4,7 @@ queue:
 - id: T-HUB-084
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
-  deps:
-  - T-HUB-081
-  - T-HUB-082
-  - T-HUB-083
+  deps: []
   batch: workflow-read-chain-20260907
 - id: T-HUB-079
   epic_id: T-HUB-079-orchestrator-lifecycle-reliability
@@ -31,6 +28,31 @@ queue:
   deps:
   - T-HUB-079
   batch: loop-runner-python-20260908
+- id: T-HUB-087
+  epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+  plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
+  deps:
+  - T-HUB-084
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-088
+  epic_id: T-HUB-088-lifecycle-transition-fallback-purge
+  plan: plan-T-HUB-088-lifecycle-transition-fallback-purge.md
+  deps:
+  - T-HUB-087
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-089
+  epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
+  plan: plan-T-HUB-089-event-dag-roadmap-fallback-purge.md
+  deps:
+  - T-HUB-087
+  - T-HUB-084
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-090
+  epic_id: T-HUB-090-boundary-compatibility-shim-purge
+  plan: plan-T-HUB-090-boundary-compatibility-shim-purge.md
+  deps:
+  - T-HUB-087
+  batch: legacy-fallback-purge-20260908
 - id: plan
   epic_id: T-HUB-076-stack-profile-capability-execution
   plan: plan.md
@@ -405,4 +427,9 @@ batches:
   workflow-read-chain-20260907:
     title: Workflow Read-chain consolidation
     note: Hot paths, shared lean gates, compact role cores and reference graph hygiene.
+  legacy-fallback-purge-20260908:
+    title: Legacy fallback and old implementation purge
+    note: T-HUB-087…090 migrate live callers to canonical late-epic paths, delete
+      old branches and obsolete tests; operational reliability fallbacks remain explicitly
+      scoped.
   chat-plan: {}

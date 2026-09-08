@@ -156,7 +156,7 @@ def test_codex_prompt_requires_native_collaboration_for_gates() -> None:
     assert "CODEX NATIVE COLLABORATION" in prompt
     assert "spawn_agent" in prompt
     assert "gate-repair" in prompt
-    assert "multi_agent_v1_spawn_agent" in prompt
+    assert "multi_agent_v1_spawn_agent" not in prompt
     assert "не является частью обычного IMPLEMENT" in prompt
     assert "RECONCILE REQUIRED" not in prompt
 

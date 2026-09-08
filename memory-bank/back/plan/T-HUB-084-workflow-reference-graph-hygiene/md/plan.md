@@ -43,6 +43,10 @@ TM-084-01 direct duplicate; TM-084-02 transitive owner; TM-084-03 priority marke
 
 Product probe, Eng spine, delivery closure and QA matrix: **done**; dependencies 081–083 explicit.
 
+### CREATIVE need
+
+**Нет** — эпик выполняет bounded graph cleanup по уже зафиксированным правилам owner/timing; новый UX или открытый архитектурный выбор не требуется.
+
 ## Draft stages
 
 1. edge inventory/red fixtures; 2. ownership rewrite; 3. proven dead cleanup; 4. validator/mode suite/sunset scan.

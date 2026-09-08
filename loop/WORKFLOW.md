@@ -109,7 +109,7 @@ promote_if_ready(cwd, epic_id, role)
 
 ### Legacy Deprecations
 
-Functions `promote_decompose_phase_if_ready`, `arm_active_context_from_decompose`, and `arm_pre_implement_context` are deprecated shims delegating to `epic_transition`.
+Functions `arm_active_context_from_decompose` and `arm_pre_implement_context` are deprecated shims delegating to `epic_transition`.
 
 
 ### Loop phase models (main session `--model`)

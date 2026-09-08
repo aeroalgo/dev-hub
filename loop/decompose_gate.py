@@ -1,4 +1,4 @@
-"""Runtime-neutral structural gate for decompose-backed phase transitions."""
+"""Runtime-neutral structural gate for decompose phase phase transitions."""
 
 from __future__ import annotations
 

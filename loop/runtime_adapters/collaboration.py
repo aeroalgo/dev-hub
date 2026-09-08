@@ -28,8 +28,8 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
 ## CODEX NATIVE COLLABORATION ADAPTER (HARD)
 Этот запуск выполняется через Codex CLI с включённым native `multi_agent`.
 1. Для субагентов используй только нативную последовательность `spawn_agent` → `wait`.
-2. `multi_agent_v1_spawn_agent` — устаревший идентификатор; его вызов запрещён.
-3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) от этого не меняй.
+2. Не имитируй и не вызывай устаревшие имена collaboration-инструментов; если `spawn_agent` не доступен, зафиксируй transport blocker.
+3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) должна быть native-capable.
 4. Для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify.
 5. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK RECONCILE` и только с ALLOW READ текущего epic.
 """
@@ -40,4 +40,3 @@ def dsh_collaboration_block(ctx: SessionContext) -> str:
 ## DSH COLLABORATION ADAPTER (HARD)
 Используй native механизм subagent текущего DSH-профиля и дождись его завершения; имена gate-агентов и repair-loop не меняются.
 """
-

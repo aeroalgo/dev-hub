@@ -17,6 +17,33 @@ _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
     r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
 )
 _CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
+_CODEX_GATE_PHASES = frozenset(
+    {"IMPLEMENT", "TASK", "BUGFIX", "QA", "DECOMPOSE", "ANALYZE"}
+)
+
+
+def _codex_model_supports_native_collaboration(model: str | None) -> bool:
+    """Return whether the selected model can issue Codex native tool calls.
+
+    OmniRoute's ``cx/`` models and direct Codex ``gpt-*`` models expose the
+    collaboration tool contract. Arbitrary routed models may answer the
+    collaboration instruction in prose or emit an obsolete tool name instead.
+    """
+    value = (model or "").strip().lower()
+    return not value or value.startswith(("cx/", "gpt-"))
+
+
+def _validate_native_collaboration_model(ctx: SessionContext) -> None:
+    phase = (ctx.phase or "").strip().upper()
+    if phase not in _CODEX_GATE_PHASES:
+        return
+    if _codex_model_supports_native_collaboration(ctx.model):
+        return
+    raise ValueError(
+        "Codex gate phases require a native-capable model for spawn_agent → wait; "
+        f"requested {ctx.model!r}. Use an OmniRoute cx/* model or a direct gpt-* "
+        "Codex model."
+    )
 
 
 def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
@@ -137,6 +164,7 @@ class CodexAdapter(RuntimeAdapter):
     """RuntimeAdapter implementation for OpenAI Codex CLI."""
 
     def build_command(self, ctx: SessionContext) -> list[str]:
+        _validate_native_collaboration_model(ctx)
         codex_bin = _resolve_codex_binary()
 
         project_root = ctx.extras.get("project_root") or os.getcwd()

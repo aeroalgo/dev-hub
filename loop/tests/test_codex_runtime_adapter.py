@@ -34,7 +34,7 @@ def test_codex_loop_allows_root_model_selection_for_runtime_capability_check():
     adapter = CodexAdapter()
     ctx = SessionContext(
         prompt="do task",
-        phase="implement",
+        phase="PLAN",
         model="agy/gemini-3.7-flash-medium",
         extras={"native_collaboration": True},
     )
@@ -42,6 +42,18 @@ def test_codex_loop_allows_root_model_selection_for_runtime_capability_check():
         cmd = adapter.build_command(ctx)
     assert "--model" in cmd
     assert "agy/gemini-3.7-flash-medium" in cmd
+
+
+def test_codex_gate_rejects_non_native_collaboration_model():
+    adapter = CodexAdapter()
+    ctx = SessionContext(
+        prompt="do task",
+        phase="QA",
+        model="agy/gemini-3.7-flash-medium",
+    )
+    with pytest.raises(ValueError, match="native-capable model"):
+        with patch("loop.runtime_adapters.codex._resolve_codex_binary", return_value="codex"):
+            adapter.build_command(ctx)
 
 
 def test_build_command_no_model_when_none():

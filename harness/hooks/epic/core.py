@@ -3788,7 +3788,6 @@ def latest_bugfix_artifact_for_reference(
 
 
 find_qa_pass_artifact = latest_qa_pass_artifact_for_reference
-latest_qa_artifact = latest_qa_any_artifact_for_reference
 
 
 def parse_qa_verdict(path: Path) -> str | None:
@@ -4521,18 +4520,6 @@ def build_post_implement_active_context(
                     "AUDIT workflow — Triple Assess PLAN↔runtime (не pytest)",
                 )
             )
-        cheat_rel = {
-            "back": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
-            "front": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
-            "integration": ".cursor/rules/shared/cheatsheets/back-audit.mdc",
-        }.get(role_norm, ".cursor/rules/shared/cheatsheets/back-audit.mdc")
-        if (cwd / cheat_rel).is_file():
-            load_now.append(
-                (
-                    cheat_rel,
-                    "AUDIT cheatsheet — Intent Inventory → Triple Assess → no pytest",
-                )
-            )
         load_now.append(
             (
                 tracker_link,
@@ -4650,23 +4637,6 @@ def _resolve_href(base_dir: Path, href: str, cwd: Path) -> str | None:
     except ValueError:
         return None
     return rel if cand.exists() else None
-
-
-def find_next_decompose_step(index_text: str) -> dict[str, str] | None:
-    """[LEGACY FALLBACK] Parse next step from Markdown index (md-only path).
-
-    Preferred: find_next_decompose_step_from_queue() when YAML index available.
-    """
-    step = find_next_step(parse_steps_from_md(index_text))
-    if not step:
-        return None
-    return {
-        "step_id": step["id"],
-        "status": step["status"],
-        "shard_href": step.get("file") or "",
-        "next_phase": step.get("next_phase") or "",
-        "title": step.get("title") or "",
-    }
 
 
 def find_next_decompose_step_from_queue(

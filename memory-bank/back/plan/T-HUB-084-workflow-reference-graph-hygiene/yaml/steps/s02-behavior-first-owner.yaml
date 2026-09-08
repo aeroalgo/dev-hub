@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: "Retain one timed owner edge for behavior-first and DECOMPOSE policy"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переподключить DECOMPOSE-политику к одному canonical owner edge с явным
+  моментом lazy-загрузки во всех активных BACK/FRONT/INTEG DECOMPOSE entrypoints.
+  Поведение-first guard, DECOMPOSE marker и transition gate сохраняются без
+  прямых или транзитивных safety-копий.
+
+plan_contract:
+  fr_ids: [FR-001, FR-002, FR-004]
+  nouns:
+    - BACK DECOMPOSE
+    - FRONT DECOMPOSE
+    - INTEG DECOMPOSE
+    - workflow-behavior-first.mdc
+    - workflow-decompose-transition-gate.mdc
+    - isolation_rules/_lean/decompose.mdc
+    - explicit lazy owner timing
+    - DECOMPOSE mode marker and Hot path
+    - test_workflow_reference_graph_decompose.py
+  layout_paths:
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
+    - harness/cursor/rules/front_developer/workflow-decompose.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/decompose.mdc
+    - harness/cursor/rules/integration_developer/workflow-decompose.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc
+    - harness/hooks/tests/test_workflow_reference_graph_decompose.py
+  ac_quotes:
+    - "each active W declares a shared dependency once."
+    - "A→B plus W→B has one owner selected by lazy timing and semantic responsibility."
+    - "PLAN/DECOMPOSE/ANALYZE markers remain."
+    - "No inlining large shared policy or compatibility alias."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:6-19"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md:21-40"
+
+context:
+  consumes:
+    - "s01 reference-graph diagnostics and plan §FR-001/FR-002/FR-004"
+    - "current DECOMPOSE workflow files, lean gate files and shared behavior-first/transition policies"
+  produces:
+    - "one canonical behavior-first owner edge per active DECOMPOSE mode with explicit lazy timing"
+    - "BACK DECOMPOSE, FRONT DECOMPOSE and INTEG DECOMPOSE retain their mode marker, Hot path and transition gate"
+    - "redundant direct and transitive DECOMPOSE references removed while shared policy text stays in its owner"
+  plan_refs:
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-001"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-002"
+    - "memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/md/plan.md#fr-004"
+  files:
+    - harness/cursor/rules/back_developer/workflow-decompose.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
+    - harness/cursor/rules/front_developer/workflow-decompose.mdc
+    - harness/cursor/rules/front_developer/isolation_rules/_lean/decompose.mdc
+    - harness/cursor/rules/integration_developer/workflow-decompose.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc
+    - harness/hooks/tests/test_workflow_reference_graph_decompose.py
+
+as_built:
+  - "BACK DECOMPOSE workflow-decompose.mdc and its lean decompose.mdc both expose shared behavior-first and transition-gate edges in the active chain."
+  - "FRONT DECOMPOSE workflow-decompose.mdc and INTEG DECOMPOSE workflow-decompose.mdc have parallel policy/gate edges that the graph must classify by owner and timing."
+  - "The six DECOMPOSE rule surfaces already carry mode-specific requirements; their mode semantics are not to be collapsed into shared prose."
+
+delta:
+  - "Edit workflow-decompose.mdc and isolation_rules/_lean/decompose.mdc for BACK, FRONT and INTEG so each behavior-first/transition dependency has one canonical owner edge and an explicit lazy timing note."
+  - "Remove redundant direct behavior-first and DECOMPOSE policy edges from the six workflow files while retaining the DECOMPOSE mode marker and Hot path in each owner."
+  - "Add harness/hooks/tests/test_workflow_reference_graph_decompose.py for direct/transitive owner assertions and marker preservation."
+
+deletes:
+  - "redundant direct behavior-first @ edges in the BACK/FRONT/INTEG DECOMPOSE workflow and lean rule files"
+  - "repeated DECOMPOSE transition-policy edge used as a safety fallback"
+
+out_of_scope:
+  - "ANALYZE, PLAN and CLARIFY ownership belongs to s03."
+  - "VAN and REFACTOR ownership belongs to s04."
+  - "Active-corpus validator and archive exclusion belong to s05; proven-dead back-audit purge belongs to s06."
+  - "Shared behavior-first policy body is not inlined or rewritten beyond owner-edge metadata."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Every active BACK/FRONT/INTEG DECOMPOSE chain has exactly one behavior-first owner edge and explicit lazy timing."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_reference_graph_decompose.py -q --tb=line -k 'behavior_first or owner or lazy'"
+  - id: cp2
+    criterion: "DECOMPOSE mode markers and Hot path sections remain in all three canonical workflow owners."
+    verify: "bin/pytest harness/hooks/tests/test_workflow_reference_graph_decompose.py -q --tb=line -k 'marker or hot_path or mode'"
+  - id: cp3
+    criterion: "No redundant direct or transitive DECOMPOSE policy edge remains in the six scoped rule files."
+    verify: "rg -n 'workflow-behavior-first|workflow-decompose-transition-gate' harness/cursor/rules/back_developer/workflow-decompose.mdc harness/cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc harness/cursor/rules/front_developer/workflow-decompose.mdc harness/cursor/rules/front_developer/isolation_rules/_lean/decompose.mdc harness/cursor/rules/integration_developer/workflow-decompose.mdc harness/cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc"
+  - id: cp4
+    criterion: "Removing a DECOMPOSE sole owner is rejected while removing only a redundant edge is accepted."
+    verify: "bin/pytest loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'decompose and (sole_owner or redundant)'"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_workflow_reference_graph_decompose.py loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'decompose or owner'"
+
+tdd:
+  - "test_decompose_edges_have_one_lazy_owner"
+  - "test_decompose_mode_markers_survive_owner_rewrite"
+  - "test_decompose_sole_owner_cannot_be_removed"
