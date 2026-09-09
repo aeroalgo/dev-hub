@@ -11,8 +11,8 @@ alwaysApply: false
 **Единая точка FINISH для BACK / FRONT / INTEG.**  
 Workflow `* IMPLEMENT` только ссылается сюда.
 
-Handoff fill-in: @.cursor/templates/finish-doc-router.md  
-By-command routing / graphify: @.cursor/rules/shared/finish-doc-router.mdc
+Handoff fill-in: .cursor/templates/finish-doc-router.md  
+By-command routing / graphify: .cursor/rules/shared/finish-doc-router.mdc
 
 **Канон курсора:** `$PROJECT_ROOT/memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
 **Anti-mix (HARD):** product-артефакты только в `$PROJECT_ROOT/memory-bank`; hub `T-HUB-*` только в `dev-hub/memory-bank`. Claude cwd=hub → всегда `--cwd "$PROJECT_ROOT"`.  

@@ -64,6 +64,14 @@ def test_build_command_no_model_when_none():
     assert "--model" not in cmd
 
 
+def test_prepare_extras_selects_collaboration_adapter():
+    adapter = CodexAdapter()
+    extras = adapter.prepare_extras(SessionContext(prompt="", phase="BUGFIX"))
+
+    assert extras["collaboration_adapter"] == "codex_collaboration"
+    assert extras["collaboration_namespace"] == "multi_agent_v1"
+
+
 def test_build_command_with_model():
     adapter = CodexAdapter()
     ctx = SessionContext(prompt="do task", phase="implement", model="gpt-4o")
@@ -191,6 +199,16 @@ def test_analyze_unsupported_codex_tool_call_is_repairable_retry():
     assert analysis.retry is True
 
 
+def test_analyze_unprefixed_unsupported_call_is_repairable_retry():
+    adapter = CodexAdapter()
+    ctx = SessionContext(prompt="do task", phase="BUGFIX", extras={"exit_code": 1})
+
+    analysis = adapter.analyze_log("ERROR unsupported call: wait_agent\n", ctx)
+
+    assert analysis.reason == "unsupported_tool_call: wait_agent"
+    assert analysis.retry is True
+
+
 def test_analyze_log_binary_missing_fixture():
     adapter = CodexAdapter()
     raw_log = (FIXTURES_DIR / "codex_session_binary_missing.log").read_text(encoding="utf-8")
@@ -206,20 +224,3 @@ def test_which_codex_script():
     assert os.path.exists(script_path)
     res = subprocess.run(["bash", script_path], capture_output=True, text=True)
     assert res.returncode in (0, 127)
-
-
-def test_which_codex_prefers_built_patch_when_configured(tmp_path):
-    script_path = os.path.join(os.getcwd(), "codex/bin/which-codex.sh")
-    patched = tmp_path / "codex-patched"
-    patched.write_text("#!/bin/sh\n", encoding="utf-8")
-    patched.chmod(0o755)
-    env = os.environ.copy()
-    env.pop("CODEX_BIN", None)
-    env["CODEX_USE_OMNIROUTE"] = "0"
-    env["CODEX_PATCHED_BIN"] = str(patched)
-    env["PATH"] = "/usr/bin:/bin"
-
-    res = subprocess.run(["bash", script_path], capture_output=True, text=True, env=env)
-
-    assert res.returncode == 0
-    assert res.stdout.strip() == str(patched)

@@ -219,7 +219,7 @@ Category finding (ANALYZE/AUDIT): `optional_sot`.
 - suite green **недостаточен** для `verdict: pass`
 - REQUIRED smoke (parent): path exists · registry discover · один enforce-path (`rg` / targeted test) что runtime зовёт нужную поверхность **и** старый SoT не принимается
 - Для `vertical_slice`: smoke обязан вызвать production entrypoint, а не resolver/CLI напрямую; PASS требует evidence success и failure/HALT.
-- При brownfield replace: **`sot_enforce_scan`** — см. @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
+- При brownfield replace: **`sot_enforce_scan`** — см. .cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5
 - PASS при «N unit tests green» и мёртвом FR = **FAIL process**
 - Reflection/QA текст «полностью удалён X» при живых `rg` hits = **FAIL honesty**
 

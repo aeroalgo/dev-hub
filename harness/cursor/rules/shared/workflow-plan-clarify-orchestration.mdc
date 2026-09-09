@@ -4,12 +4,12 @@ alwaysApply: false
 ---
 # PLAN ↔ CLARIFY orchestration
 
-**Канон:** пользователь вводит **одну** команду `* PLAN <slug>`. Агент сам решает, нужен ли Phase 0 Clarify в **той же сессии**.  
+**Канон:** пользователь вводит **одну** команду `* PLAN <slug>`. Агент сам решает, нужен ли Phase 0 Clarify в **той же сессии**.
 **`* CLARIFY`** — отдельная команда для добора (квота 5/5), pipeline-revisit, CRITICAL после draft plan.
 
-**Shared clarify mechanics:** @.cursor/rules/shared/workflow-clarify-core.mdc  
-**Role wrappers:** `workflow-clarify.mdc` (back/front/integration)  
-**Шаблон:** @.cursor/templates/clarify.md
+**Shared clarify mechanics:** `workflow-clarify-core.mdc`
+**Role wrappers:** `workflow-clarify.mdc` (back/front/integration)
+**Шаблон:** `clarify.md`
 
 ---
 
@@ -24,7 +24,7 @@ alwaysApply: false
 - Phase 0: `OK * PLAN — Phase 0 Clarify (<slug>)`
 - Phase 1: `OK * PLAN — Phase 1 Plan writing (<slug>)` + `SUSPENSION GUARD active — plan output unlimited`
 
-**FORBIDDEN в Phase 0:** batch dump вопросов; писать полный plan до Completion Report Phase 0 (кроме patch секций по Q→A).  
+**FORBIDDEN в Phase 0:** batch dump вопросов; писать полный plan до Completion Report Phase 0 (кроме patch секций по Q→A).
 **FORBIDDEN в Phase 1:** повторный full Grill pass вместо ссылки на clarify-артефакт (spike skip → только mini grill §Product probe).
 
 ---
@@ -50,7 +50,7 @@ alwaysApply: false
 ## Phase 0 — исполнение (в сессии PLAN)
 
 1. Прочитать role **CLARIFY gates** (`isolation_rules/_lean/clarify.mdc`) + **shared-core**
-2. **Read** `@.agents/skills/grill-me/SKILL.md` целиком → `## Grill pass` в clarify-артефакт
+2. **Read** `.agents/skills/grill-me/SKILL.md` целиком → `## Grill pass` в clarify-артефакт
 3. Taxonomy scan → coverage map (в артефакт)
 4. ≤5 sequential Q; после каждого A → Q→A log + patch draft plan секций если draft уже есть
 5. CRITICAL → resolve или defer-list (owner/next)
@@ -74,7 +74,7 @@ alwaysApply: false
 
 - Ссылка на clarify в шапке plan: `**Clarify:** memory-bank/{role}/clarify/clarify-…md` (если Phase 0 был или артефакт существует)
 - Секция `## Clarifications` — session ref + краткий summary resolved/deferred (не дублировать весь Q→A)
-- `plan/<epic_id>/md/prompt.md` — абстрактный outcome + Chat decisions (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc); clarify Q→A **не** копировать в prompt
+- `plan/<epic_id>/md/prompt.md` — абстрактный outcome + Chat decisions (`workflow-plan-outcome-prompt.mdc`); clarify Q→A **не** копировать в prompt
 - Остальной процесс — role `workflow-plan.mdc` (multi-epic, merge, FINISH guards)
 
 ---

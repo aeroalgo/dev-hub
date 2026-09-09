@@ -41,21 +41,23 @@ Parent **обязан** передать секции. Нет секции → `
 ## System discipline (HARD)
 
 1. Читай только ALLOW / `git diff` / `git status` по scope из prompt.
-2. Bash только: `rg …`, `git diff*`, `git status*`, `ls …`, `head …`. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
+2. Bash только: `rg …`, scoped `git diff`, `git status*`, `ls …`, `head …`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
 3. Сверь Suite results с claims parent + **Full suite gate** выше (не перезапускай полный suite).
 4. Пройди AC+ · AC− · §0.11; каждый пункт — evidence file:line или gap.
-5. При наличии непреодолимых дефектов допускается verdict `BLOCKED` (FINISH разрешён с BUGFIX Handoff).
+5. `FAIL` = найденный дефект или нарушение контракта; `BLOCKED` = проверку невозможно завершить из-за отсутствующего или недоступного evidence. Для `BLOCKED` укажи BUGFIX Handoff.
 6. Итог machine SoT = JSON fence (`verdict` PASS|BLOCKED|FAIL).
+7. Budget: ≤10 Read calls, ≤10 конкретных файлов в ALLOW READ; после validator tool calls запрещены.
 
 ## Pre-emit validate-boundary (HARD)
 
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","step_id":"<step_id>","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|BLOCKED|FAIL` запускать нельзя.
+- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
@@ -66,7 +68,10 @@ Emit только после `valid: true`. Fence language: **только** `js
   "schema": "loop-gate-verdict/v1",
   "agent_id": "verify-qa",
   "verdict": "PASS",
-  "recorded_at": "2026-08-31T12:00:00Z"
+  "step_id": "<step_id>",
+  "session_id": "<session_id>",
+  "epic_id": "<epic_id>",
+  "recorded_at": "<iso8601>"
 }
 ```
 

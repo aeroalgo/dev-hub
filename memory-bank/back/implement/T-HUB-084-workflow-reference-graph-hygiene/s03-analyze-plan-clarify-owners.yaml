@@ -1,0 +1,65 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: s03 — Retain one owner edge across ANALYZE, PLAN, and CLARIFY orchestration IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s03-analyze-plan-clarify-owners.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Identified duplicate and transitive reference edges across ANALYZE, PLAN, and CLARIFY workflows, lean gates, and shared orchestration.
+- Assigned single canonical owner edges with explicit lazy timing in workflow-analyze.mdc, workflow-plan.mdc, and workflow-clarify.mdc.
+- Converted in-body and lean gate duplicate @ references to plain text references without @.
+gaps:
+  status: none
+done:
+- Updated harness/cursor/rules/back_developer/workflow-analyze.mdc with explicit Policy lazy timing and removed in-body duplicate @ edge.
+- Updated harness/cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc to remove redundant @ edges to analyze-core and template.
+- Updated harness/cursor/rules/back_developer/workflow-plan.mdc with explicit Policy lazy timing and removed in-body duplicate @ edges.
+- Updated harness/cursor/rules/back_developer/isolation_rules/_lean/plan.mdc to remove redundant @ edges.
+- Updated harness/cursor/rules/back_developer/workflow-clarify.mdc with explicit Policy lazy timing and removed in-body duplicate @ edge.
+- Updated harness/cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc to remove redundant @ edges.
+- Updated harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc to remove redundant @ edges.
+- Created harness/hooks/tests/test_workflow_reference_graph_plan.py validating single owner edges, lazy timing, Phase 0/ANALYZE semantics, and sole owner fail-closed behavior.
+files:
+- harness/cursor/rules/back_developer/workflow-analyze.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
+- harness/cursor/rules/back_developer/workflow-plan.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/plan.mdc
+- harness/cursor/rules/back_developer/workflow-clarify.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
+- harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
+- harness/hooks/tests/test_workflow_reference_graph_plan.py
+deletes:
+- redundant ANALYZE core edge repeated by its workflow and lean gate
+- redundant PLAN/CLARIFY orchestration edge repeated across workflow, lean gate and shared orchestration files
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'analyze or plan or clarify'
+integration_check:
+- bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py loop/tests/test_workflow_reference_graph.py -q --tb=line -k 'analyze or plan or clarify' passed (3 passed)
+- Full test_workflow_hot_path_consolidation.py and test_shared_lean_gate_topology.py suites pass cleanly (23 passed).
+grep_control: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''command'': "bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py -q --tb=line -k ''analyze or plan or clarify or lazy''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp2'', ''command'': "rg -n ''mandatory ANALYZE|Phase 0|workflow-analyze-core|workflow-plan-clarify-orchestration'' harness/cursor/rules/back_developer/workflow-analyze.mdc harness/cursor/rules/back_developer/workflow-plan.mdc harness/cursor/rules/back_developer/workflow-clarify.mdc harness/cursor/rules/shared/workflow-plan-clarify-orchestration.mdc", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp3'', ''command'': "bin/pytest loop/tests/test_workflow_reference_graph.py -q --tb=line -k ''analyze or plan or clarify or transitive''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp4'', ''command'': "bin/pytest harness/hooks/tests/test_workflow_reference_graph_plan.py -q --tb=line -k ''sole_owner or redundant''", ''outcome'': ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: ANALYZE, PLAN and CLARIFY each have one canonical owner edge with an explicit lazy timing contract.
+  status: done
+- id: cp2
+  criterion: Mandatory ANALYZE gate and Phase 0 PLAN/CLARIFY semantics remain present after edge cleanup.
+  status: done
+- id: cp3
+  criterion: Transitive PLAN/CLARIFY and ANALYZE duplicate fixtures report the redundant edge and source locations.
+  status: done
+- id: cp4
+  criterion: A sole ANALYZE/PLAN/CLARIFY owner cannot be removed without a validation failure.
+  status: done
+resume_from: cp1

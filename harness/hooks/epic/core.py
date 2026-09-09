@@ -1401,11 +1401,6 @@ def _declared_artifacts(cwd: Path, role_dir: str, epic_id: str) -> list[tuple[st
                         continue
                     if re.search(r"(?m)^status:\s*completed\s*$", text):
                         records.append(("implement_done", path))
-        for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="bugfix"):
-            bugfix_dir = root / "bugfix" / artifact_epic_id
-            if bugfix_dir.is_dir():
-                for path in sorted(bugfix_dir.glob("bugfix-*.md"), key=lambda item: str(item)):
-                    records.append(("bugfix_done", path))
         for root in _role_mb_roots(cwd, role_dir, epic_id=artifact_epic_id, kind="qa"):
             qa_dir = root / "qa" / artifact_epic_id
             if not qa_dir.is_dir():

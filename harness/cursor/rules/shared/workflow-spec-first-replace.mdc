@@ -98,8 +98,8 @@ Plan **обязан** явно записать axiom одной таблице�
 
 | Этап | Правило |
 |------|---------|
-| Sunset / purge / audit / Kind I / QA sot_enforce | @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc |
-| Wire-complete / anti-dilution / optional SoT | @.cursor/rules/shared/workflow-behavior-first.mdc |
+| Sunset / purge / audit / Kind I / QA sot_enforce | .cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc |
+| Wire-complete / anti-dilution / optional SoT | .cursor/rules/shared/workflow-behavior-first.mdc |
 | Plan artifact bar | @.claude/rules/plan-artifact.md |
 | Token economy §0.0 | plan/decompose не резать; axiom не выкидывать «для краткости» |
 

@@ -58,7 +58,7 @@ Cross-cutting. Ограничивает **design и код**, не формат 
 
 **FORBIDDEN:** optional SoT · soft flag default off после эпика · add без enforce · prompts/rules всё ещё учат старый формат.
 
-Полный канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3–§4 · §9 (`wire_complete`).
+Полный канон: .cursor/rules/shared/workflow-behavior-first.mdc §3–§4 · §9 (`wire_complete`).
 
 ---
 

@@ -5,8 +5,8 @@ alwaysApply: false
 # ANALYZE — gates
 
 **Artifact:** `memory-bank/back/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml`
-**Shared:** @.cursor/rules/shared/workflow-analyze-core.mdc
-**Template:** @.cursor/templates/analyze/epic-analyze.yaml
+**Shared:** `workflow-analyze-core.mdc`
+**Template:** `epic-analyze.yaml`
 
 ## Gates
 

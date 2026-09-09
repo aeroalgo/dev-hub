@@ -14,6 +14,32 @@ _SHELL_COMMAND_RE = re.compile(r"^(?:/usr)?/bin/(?:ba)?sh\s+-lc\s+(.+)$")
 _pending_commands: dict[str, str] = {}
 
 
+def _collaboration_tool(item: dict) -> str:
+    tool = str(item.get("tool") or "").strip()
+    try:
+        from loop.runtime_adapters.codex_collaboration import normalize_tool_identity
+
+        _namespace, tool = normalize_tool_identity(tool, item.get("namespace"))
+    except Exception:
+        pass
+    return str(tool or "unknown")
+
+
+def _collaboration_label(item: dict) -> str:
+    prompt = str(item.get("prompt") or "")
+    match = re.search(r"(?im)^\s*(?:role|agent_type|subagent_type)\s*[:=]\s*([^\n]+)", prompt)
+    return match.group(1).strip() if match else "unknown"
+
+
+def _display_child_message(message: str, *, limit: int = 4000) -> str | None:
+    text = (message or "").strip()
+    if not text:
+        return None
+    if len(text) > limit:
+        text = text[:limit] + "…"
+    return text
+
+
 def _write(text: str) -> None:
     try:
         sys.stdout.write(text)
@@ -58,6 +84,14 @@ def emit_from_obj(obj: dict) -> None:
     event_type = obj.get("type")
     if event_type == "item.started":
         item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
+        if item.get("type") == "collab_tool_call":
+            tool = _collaboration_tool(item)
+            if tool == "spawn_agent":
+                _write(f"→ Subagent spawn type={_collaboration_label(item)}\n")
+            elif tool == "wait":
+                count = len(item.get("receiver_thread_ids") or [])
+                _write(f"→ Subagent wait children={count}\n")
+            return
         if item.get("type") == "command_execution":
             command = (item.get("command") or "").strip()
             if command:
@@ -73,6 +107,23 @@ def emit_from_obj(obj: dict) -> None:
 
     item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
     item_type = item.get("type")
+
+    if item_type == "collab_tool_call":
+        tool = _collaboration_tool(item)
+        states = item.get("agents_states")
+        states = states if isinstance(states, dict) else {}
+        if not states:
+            _write(f"← Subagent {tool} completed (child output pending)\n")
+            return
+        for thread_id, state in states.items():
+            if not isinstance(state, dict):
+                continue
+            status = str(state.get("status") or "unknown")
+            _write(f"← Subagent {thread_id} status={status}\n")
+            message = _display_child_message(str(state.get("message") or ""))
+            if message:
+                _write(f"  {message}\n")
+        return
 
     if item_type == "command_execution":
         if item.get("status") != "completed":

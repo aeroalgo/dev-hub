@@ -89,6 +89,20 @@ def test_arm_epic_v2_finds_plan_and_yaml_steps(tmp_path: Path):
     md_idx.parent.mkdir(parents=True, exist_ok=True)
     md_idx.write_text("# index\n", encoding="utf-8")
 
+    step9 = resolve(
+        role,
+        epic_id,
+        EpicLayoutKind.DECOMPOSE_STEP,
+        step_id="s09",
+        step_slug="formula-render-merge",
+        project_root=tmp_path,
+    )
+    step9.parent.mkdir(parents=True, exist_ok=True)
+    step9.write_text(
+        "schema: epic-decompose/v1\nstep_id: s09\nstatus: completed\n",
+        encoding="utf-8",
+    )
+
     step = resolve(
         role,
         epic_id,

@@ -6,7 +6,7 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/decompose.mdc
 **Situational skills:** @.cursor/rules/back_developer/skills-gate-situational.mdc
-**Policy (по триггеру):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc
 **Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
 **Скиллы (сессия):** @.agents/skills/writing-plans/SKILL.md; @.agents/skills/brainstorming/SKILL.md (если фаза размыта)
 **Не грузить:** `executing-plans`, `breakdown-plan`
@@ -22,7 +22,7 @@ alwaysApply: false
 
 1. Read plan → index: Requirements (**FR verbatim**) / Stages / Outcome / Replacement
 2. Нарежь `sNN` + **`plan_contract`** (fr_ids/nouns/layout/ac_quotes/plan_jumps) + deletes + 2–4 cp
-2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a
+2a. **Granularity:** target **5–8** sNN (L3/L4 ≤9); outcome-first — schema+CLI / harness+loop wire / audit-хвост сливать; apply≠purge отдельно. `>9` → justification в index. Канон: shared/workflow-behavior-first.mdc §3a
 2b. **TDD внутри шага (HARD):** TDD = процесс внутри `sNN`, *не* отдельный shard. `s01-*-red-tests` как самостоятельный шаг — **FORBIDDEN**. Failing tests + impl + green = один `sNN` с cp: `[tdd red, impl, green]`. Поле `tdd:` шага = список pytest-имён; шаг = одна production capability.
 2c. **Test scope (HARD):** в каждом `sNN` записывай только targeted `verify` по `files`/`delta`/`plan_contract`; full suite не добавляй в `verify` или `checkpoints[].verify`. Полный suite — отдельный **BACK QA** outcome после IMPLEMENT.
 3. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; ≥1 behavior cp
@@ -31,7 +31,7 @@ alwaysApply: false
 5. `validate-traceability` CRITICAL=0 (deferred OOS без follow_up = CRITICAL)
 6. FINISH → **BACK ANALYZE** (обязателен; **нет** ANALYZE deferred → IMPLEMENT)
 
-→ anti-dilution: @.cursor/rules/shared/workflow-behavior-first.mdc §1 · §1a · §3a
+→ anti-dilution: shared/workflow-behavior-first.mdc §1 · §1a · §3a
 → count в plan = floor, не ceiling (и не повод раздувать до 10–12)
 
 ---
@@ -40,12 +40,12 @@ alwaysApply: false
 
 DECOMPOSE = **максимально подробная** нарезка **по coverage** (FR/AC/Stages/Replacement), не по числу файлов. Артефакты **без** telegraph/200-line economy. Chat MAY be brief.
 
-**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; target band **5–8** sNN (L3/L4 ≤9). Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a.
+**Maximal detail ≠ maximal step count.** Полнота внутри `sNN` + index coverage; target band **5–8** sNN (L3/L4 ≤9). Канон: shared/workflow-behavior-first.mdc §3a.
 
 **TDD — процесс внутри шага, не отдельный shard (HARD):** failing tests + impl + green = один `sNN`. `s01-*-red-tests` как самостоятельный шаг без production behavior — **FORBIDDEN**. Checkpoints: `[tdd red, impl, green]` внутри одного шага. Поле `tdd:` = список pytest-имён, которые должны стать green.
 
 **Index REQUIRED:** `## Requirements coverage` · `## Stages coverage` · `## Outcome map` · `## Replacement cleanup` (A|B|C|**I**).  
-**Coverage rubric / anti-dilution / wire ladder / granularity / Outcome preserve / Replacement cleanup:** канон в @.cursor/rules/shared/workflow-behavior-first.mdc + @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc — **не дублировать** таблицы здесь; FAIL-условия — в Gates.
+**Coverage rubric / anti-dilution / wire ladder / granularity / Outcome preserve / Replacement cleanup:** канон в shared/workflow-behavior-first.mdc + shared/workflow-legacy-fallback-cleanup.mdc — **не дублировать** таблицы здесь; FAIL-условия — в Gates.
 
 **Per-step:** `plan_contract` · delta layer · 2–4 cp · `deletes` · `tdd` · Core(4) ∪ situational ≤6 · lean interfaces (без тел методов).
 

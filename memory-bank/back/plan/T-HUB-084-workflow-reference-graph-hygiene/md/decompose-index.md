@@ -60,11 +60,10 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-reference-graph-fixtures.yaml](../yaml/steps/s01-reference-graph-fixtures.yaml) | [s01-reference-graph-fixtures.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s01-reference-graph-fixtures.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-behavior-first-owner.yaml](../yaml/steps/s02-behavior-first-owner.yaml) | [s02-behavior-first-owner.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s02-behavior-first-owner.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-analyze-plan-clarify-owners.yaml](../yaml/steps/s03-analyze-plan-clarify-owners.yaml) | [s03-analyze-plan-clarify-owners.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s03-analyze-plan-clarify-owners.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s04** | [s04-van-refactor-owners.yaml](../yaml/steps/s04-van-refactor-owners.yaml) | [s04-van-refactor-owners.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s04-van-refactor-owners.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s05** | [s05-active-corpus-gate.yaml](../yaml/steps/s05-active-corpus-gate.yaml) | [s05-active-corpus-gate.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s05-active-corpus-gate.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) | [s06-legacy-fallback-purge.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s06-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
-
+| **s01** | [s01-reference-graph-fixtures.yaml](../yaml/steps/s01-reference-graph-fixtures.yaml) | [s01-reference-graph-fixtures.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s01-reference-graph-fixtures.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-behavior-first-owner.yaml](../yaml/steps/s02-behavior-first-owner.yaml) | [s02-behavior-first-owner.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s02-behavior-first-owner.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-analyze-plan-clarify-owners.yaml](../yaml/steps/s03-analyze-plan-clarify-owners.yaml) | [s03-analyze-plan-clarify-owners.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s03-analyze-plan-clarify-owners.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s04** | [s04-van-refactor-owners.yaml](../yaml/steps/s04-van-refactor-owners.yaml) | [s04-van-refactor-owners.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s04-van-refactor-owners.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s05** | [s05-active-corpus-gate.yaml](../yaml/steps/s05-active-corpus-gate.yaml) | [s05-active-corpus-gate.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s05-active-corpus-gate.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s06** | [s06-legacy-fallback-purge.yaml](../yaml/steps/s06-legacy-fallback-purge.yaml) | [s06-legacy-fallback-purge.yaml](../../implement/T-HUB-084-workflow-reference-graph-hygiene/s06-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **Следующий режим после завершения дерева:** BACK ANALYZE. `ANALYZE deferred` не используется.

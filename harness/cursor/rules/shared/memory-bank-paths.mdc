@@ -42,7 +42,7 @@ alwaysApply: false
 | BUGFIX | `back/bugfix/<epic_id>/` или `back/bugfix/` | `bugfix-YYYYMMDD-<slug>.md` — с эпиком / без |
 | REFACTOR | `back/refactor/` | **Эпик:** `plan/<id>/` + `implement/<id>/rNN-*.yaml`. **Без эпика:** `session-YYYYMMDD-<slug>.md` в корне `refactor/`. Канон: @.cursor/rules/shared/workflow-refactor-epic.mdc |
 | REFLECT (archive) | `back/reflection/` | `reflection-*.md` — **не** gate lifecycle; **не** переносится ARCHIVE |
-| ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: @.cursor/rules/shared/epic-scoped-paths.mdc |
+| ARCHIVE NOW | `memory-bank/archive/back/` | **move** epic tree (plan/implement/creative/qa/bugfix); манифест `archive-*.md` **убран**. Канон: .cursor/rules/shared/epic-scoped-paths.mdc |
 | QA | `back/qa/<epic_id>/` или `back/qa/` | **один** отчёт: `qa-YYYYMMDD-<slug>.yaml` (agent SoT). `qa.yaml` — только scaffold-stub; **FORBIDDEN** писать оба с одним содержимым |
 | AUDIT | `back/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` или `audit.yaml` — **прямо в папке** (без `yaml/` subdir); шаблон `.cursor/templates/audit/epic-audit.yaml` (`epic-audit/v2`) |
 | SECURITY | `back/security/` | **Эпик:** `plan/<id>/` + `implement/<id>/aNN-*.yaml`. **Без эпика:** `security-audit-YYYYMMDD-<slug>.md`. Канон: @.cursor/rules/shared/workflow-security-epic.mdc |
@@ -54,7 +54,7 @@ alwaysApply: false
 | CLARIFY | `front/clarify/` | `clarify-YYYYMMDD-<slug>.md` по `.cursor/templates/clarify.md` |
 | ANALYZE | `front/analyze/<epic_id>/` (с эпиком) · `front/analyze/` (ad-hoc) | `analyze-YYYYMMDD-<slug>.yaml` по `.cursor/templates/analyze/epic-analyze.yaml` |
 | AUDIT | `front/audit/<epic_id>/` | `audit-YYYYMMDD-<slug>.yaml` (`epic-audit/v2`) |
-| SECURITY | `front/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. @.cursor/rules/shared/workflow-security-epic.mdc |
+| SECURITY | `front/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. .cursor/rules/shared/workflow-security-epic.mdc |
 
 **Integration `memory-bank/integration/`:**
 
@@ -72,11 +72,11 @@ alwaysApply: false
 | IMPLEMENT | `integration/implement/<epic_id>/` | `eNN-<slug>.yaml` (прямо в `<epic_id>/`; без `yaml/` subdir); `<epic_id>` тот же stem+slug |
 | TASK | `integration/task/` | `task-YYYYMMDD-<slug>.md` |
 | BUGFIX | `integration/bugfix/<epic_id>/` или плоско | `bugfix-YYYYMMDD-<slug>.md` |
-| REFACTOR | `integration/refactor/` | Как BACK: эпик → `implement/<id>/rNN-*.yaml`; без эпика → `session-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/workflow-refactor-epic.mdc |
+| REFACTOR | `integration/refactor/` | Как BACK: эпик → `implement/<id>/rNN-*.yaml`; без эпика → `session-YYYYMMDD-<slug>.md`. .cursor/rules/shared/workflow-refactor-epic.mdc |
 | REFLECT (archive) | `integration/reflection/` | `reflection-*.md` — не gate; не переносится ARCHIVE |
 | ARCHIVE NOW | `memory-bank/archive/integration/` | move epic tree; без `archive-*.md` манифеста |
 | QA | `integration/qa/<epic_id>/` или плоско | **один** отчёт: `qa-YYYYMMDD-<slug>.yaml` (**FORBIDDEN** дубль `qa.yaml` с тем же содержимым) |
-| SECURITY | `integration/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. @.cursor/rules/shared/workflow-security-epic.mdc |
+| SECURITY | `integration/security/` | Как BACK: эпик → `plan/` + `implement/…/aNN-*.yaml`; S → `security-audit-*.md`. .cursor/rules/shared/workflow-security-epic.mdc |
 | Contracts | `integration/contracts/` | `<domain-slug>.md` |
 | Reference | `integration/reference/` | stubs → query-builder skill |
 

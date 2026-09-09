@@ -8,10 +8,10 @@ alwaysApply: false
 
 **Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/plan-refactor.mdc
 **Base plan process:** @.cursor/rules/back_developer/workflow-plan.mdc
-**Multi-epic cut:** @.cursor/rules/shared/workflow-plan-multi-epic.mdc
-**Outcome prompt:** @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc
-**Refactor path/invariants:** @.cursor/rules/shared/workflow-refactor-epic.mdc
-**Behavior-first:** @.cursor/rules/shared/workflow-behavior-first.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-refactor-epic.mdc
+**Multi-epic cut:** shared/workflow-plan-multi-epic.mdc
+**Outcome prompt:** shared/workflow-plan-outcome-prompt.mdc
+**Behavior-first:** shared/workflow-behavior-first.mdc
 
 **Skills:**
 - @.agents/skills/writing-plans/SKILL.md

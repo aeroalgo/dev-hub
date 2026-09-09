@@ -14,10 +14,61 @@ from loop.workflow.schemas import WorkflowPack
 from loop.workflow.skill_refs import check_skill_refs
 from loop.schemas.boundary_registry import BOUNDARY_REGISTRY
 from harness.hooks.agent_registry import discover_registry
+from typing import Tuple
+
+_REFERENCE_PATTERN = re.compile(r"@([a-zA-Z0-9_\-\./]+)")
+_NON_FILE_REF_KEYWORDS = {
+    "file", "user", "param", "returns", "see", "today", "now",
+    "explorer", "sunset-inventory", "gate-repair", "reconcile-verify",
+    "analyze-verify", "verify", "verify-bugfix", "verify-decompose",
+    "verify-implement", "verify-publish", "verify-script", "verify-edit",
+    "verify-qa", "default", "worker", "aNN", "rNN", "sNN",
+}
+
+
+_ARCHIVE_EXCLUSION_PATTERNS = [
+    re.compile(r"_archive/"),
+    re.compile(r"archive/"),
+    re.compile(r"tasks/log/"),
+    re.compile(r"tasks/"),
+    re.compile(r"memory-bank/"),
+    re.compile(r"\.git/"),
+    re.compile(r"\.claude/runtime/"),
+    re.compile(r"graphify-out/"),
+]
 
 
 _LEAN_GATE_PATTERN = re.compile(r"Gates(?:\*\*|\b)?[:\s]*@([^\s\n]+)")
 _HUB_ROOT = Path(__file__).resolve().parents[2]
+
+_COMPOSITE_STUB_PATTERNS = [
+    re.compile(r"mainrule"),
+    re.compile(r"token-economy"),
+    re.compile(r"spec-first-replace-hard"),
+    re.compile(r"finish-block"),
+    re.compile(r"finish-doc-router"),
+    re.compile(r"memory-bank-paths"),
+    re.compile(r"epic-scoped-paths"),
+    re.compile(r"context-session-economy"),
+    re.compile(r"role-core-contract"),
+    re.compile(r"test-timeout"),
+    re.compile(r"_lean/"),
+    re.compile(r"isolation_rules"),
+]
+
+
+def _is_composite_stub_or_router(path_str: str) -> bool:
+    return any(p.search(path_str) for p in _COMPOSITE_STUB_PATTERNS)
+
+
+def _is_peer_policy_pair(a: str, b: str) -> bool:
+    return (
+        "shared/" in a
+        and "shared/" in b
+        and Path(a).name.startswith("workflow-")
+        and Path(b).name.startswith("workflow-")
+    )
+
 
 
 @dataclass
@@ -27,6 +78,312 @@ class CheckPackGraphResult:
     pack_id: str
     diagnostic_codes: List[str] = field(default_factory=list)
     details: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ReferenceLocation:
+    path: str
+    line: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"path": self.path, "line": self.line}
+
+
+@dataclass
+class ReferenceEdge:
+    source_path: str
+    source_line: int
+    raw_target: str
+    target_path: Optional[str] = None
+    target_canonical: Optional[str] = None
+
+
+@dataclass
+class ReferenceDiagnostic:
+    code: str
+    message: str
+    target: str
+    locations: List[Dict[str, Any]] = field(default_factory=list)
+    details: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "code": self.code,
+            "message": self.message,
+            "target": self.target,
+            "locations": self.locations,
+            "details": self.details,
+        }
+
+
+def _resolve_reference_target(
+    raw: str,
+    source_file: Path,
+    target_root: Path,
+    hub_root: Path,
+    rules_root: Path,
+) -> Tuple[Optional[Path], Optional[str]]:
+    path_part = raw.split("#")[0].split(":")[0]
+    if path_part.startswith("./"):
+        clean_rel = path_part[2:]
+    else:
+        clean_rel = path_part
+
+    candidates = [
+        target_root / clean_rel,
+        hub_root / clean_rel,
+        source_file.parent / clean_rel,
+        rules_root / clean_rel,
+        rules_root.parent / clean_rel,
+    ]
+    if clean_rel.startswith(".cursor/rules/"):
+        suffix = clean_rel[len(".cursor/rules/"):]
+        candidates.extend([
+            target_root / "harness/cursor/rules" / suffix,
+            hub_root / "harness/cursor/rules" / suffix,
+        ])
+    elif clean_rel.startswith("harness/cursor/rules/"):
+        suffix = clean_rel[len("harness/cursor/rules/"):]
+        candidates.extend([
+            target_root / ".cursor/rules" / suffix,
+            hub_root / ".cursor/rules" / suffix,
+        ])
+    elif clean_rel.startswith(".agents/skills/"):
+        suffix = clean_rel[len(".agents/skills/"):]
+        candidates.extend([
+            target_root / "harness/skills" / suffix,
+            hub_root / "harness/skills" / suffix,
+        ])
+    elif clean_rel.startswith(".claude/"):
+        suffix = clean_rel[len(".claude/"):]
+        candidates.extend([
+            target_root / "harness/claude" / suffix,
+            hub_root / "harness/claude" / suffix,
+        ])
+
+    for c in candidates:
+        if c.is_file():
+            resolved = c.resolve()
+            try:
+                canonical = str(resolved.relative_to(target_root.resolve()))
+            except ValueError:
+                try:
+                    canonical = str(resolved.relative_to(hub_root.resolve()))
+                except ValueError:
+                    canonical = str(resolved)
+            return resolved, canonical
+
+    return None, None
+
+
+def extract_reference_edges(
+    file_path: Path,
+    target_root: Path,
+    hub_root: Path,
+    rules_root: Path,
+) -> List[ReferenceEdge]:
+    edges: List[ReferenceEdge] = []
+    try:
+        content = file_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return edges
+
+    try:
+        rel_source = str(file_path.resolve().relative_to(target_root.resolve()))
+    except ValueError:
+        try:
+            rel_source = str(file_path.resolve().relative_to(hub_root.resolve()))
+        except ValueError:
+            rel_source = str(file_path)
+
+    for line_no, line in enumerate(content.splitlines(), start=1):
+        for m in _REFERENCE_PATTERN.finditer(line):
+            chars_to_strip = ".,;:`*)'\""
+            raw = m.group(1).rstrip(chars_to_strip)
+            if not raw or raw in _NON_FILE_REF_KEYWORDS:
+                continue
+            if raw.endswith("/"):
+                continue
+            if any(pat.search(raw) for pat in _ARCHIVE_EXCLUSION_PATTERNS):
+                continue
+            if "/" not in raw and not any(raw.endswith(ext) for ext in (".mdc", ".md", ".yaml", ".yml", ".json", ".py", ".toml", ".sh", ".txt")):
+                continue
+            resolved, canonical = _resolve_reference_target(raw, file_path, target_root, hub_root, rules_root)
+            if resolved is not None and resolved.is_dir():
+                continue
+            if canonical and any(pat.search(canonical) for pat in _ARCHIVE_EXCLUSION_PATTERNS):
+                continue
+            edges.append(ReferenceEdge(
+                source_path=rel_source,
+                source_line=line_no,
+                raw_target=raw,
+                target_path=str(resolved) if resolved else None,
+                target_canonical=canonical or raw,
+            ))
+    return edges
+
+
+def validate_reference_graph(
+    rules_root: Path,
+    target_root: Path,
+    hub_root: Path,
+    active_only: bool = False,
+) -> List[ReferenceDiagnostic]:
+    diagnostics: List[ReferenceDiagnostic] = []
+    if not rules_root.is_dir():
+        return diagnostics
+
+    files: List[Path] = []
+    for p in sorted(rules_root.rglob("*")):
+        if not p.is_file():
+            continue
+        if p.suffix not in (".md", ".mdc", ".yaml", ".yml", ".json"):
+            continue
+        rel_str = str(p)
+        try:
+            rel_str = str(p.resolve().relative_to(target_root.resolve()))
+        except ValueError:
+            try:
+                rel_str = str(p.resolve().relative_to(hub_root.resolve()))
+            except ValueError:
+                pass
+        if any(pat.search(rel_str) for pat in _ARCHIVE_EXCLUSION_PATTERNS) or any(part in ("_archive", "archive", "tasks", "graphify-out", ".git", ".claude/runtime", "memory-bank") for part in p.parts):
+            continue
+        files.append(p)
+
+    file_edges: Dict[Path, List[ReferenceEdge]] = {}
+    for f in files:
+        edges = extract_reference_edges(f, target_root, hub_root, rules_root)
+        if edges:
+            file_edges[f.resolve()] = edges
+
+    if active_only:
+        active_files = {
+            f.resolve() for f in files
+            if f.name.startswith("workflow")
+        }
+        reachable_files = set(active_files)
+        pending = list(active_files)
+        while pending:
+            current = pending.pop()
+            for edge in file_edges.get(current, []):
+                if edge.target_path is None:
+                    continue
+                target = Path(edge.target_path).resolve()
+                if target in file_edges and target not in reachable_files:
+                    reachable_files.add(target)
+                    pending.append(target)
+        files = [f for f in files if f.resolve() in reachable_files]
+        file_edges = {
+            path: edges for path, edges in file_edges.items()
+            if path in reachable_files
+        }
+
+    # 1. Dangling references & 2. Direct duplicate edges
+    for f in files:
+        try:
+            rel_source = str(f.resolve().relative_to(target_root.resolve()))
+        except ValueError:
+            try:
+                rel_source = str(f.resolve().relative_to(hub_root.resolve()))
+            except ValueError:
+                rel_source = str(f)
+        edges = file_edges.get(f.resolve(), [])
+        target_lines: Dict[str, List[int]] = {}
+        for edge in edges:
+            if edge.target_path is None:
+                diagnostics.append(ReferenceDiagnostic(
+                    code="pack_reference_dangling",
+                    message=f"Dangling reference to '{edge.raw_target}' in {rel_source}:{edge.source_line}",
+                    target=edge.raw_target,
+                    locations=[{"path": rel_source, "line": edge.source_line}],
+                    details={"source_path": rel_source, "source_line": edge.source_line, "target": edge.raw_target},
+                ))
+            target_key = edge.target_canonical or edge.raw_target
+            target_lines.setdefault(target_key, []).append(edge.source_line)
+
+        for target_key, lines in target_lines.items():
+            if len(lines) > 1:
+                diagnostics.append(ReferenceDiagnostic(
+                    code="pack_reference_duplicate",
+                    message=f"Direct duplicate reference to '{target_key}' in {rel_source} at lines {lines}",
+                    target=target_key,
+                    locations=[{"path": rel_source, "line": ln} for ln in lines],
+                    details={"source_path": rel_source, "lines": lines, "target": target_key},
+                ))
+
+    # 3. Transitive owner ambiguity
+    adj: Dict[str, List[Tuple[str, int]]] = {}
+    for edges in file_edges.values():
+        if not edges:
+            continue
+        source = edges[0].source_path
+        for edge in edges:
+            if edge.target_canonical and edge.target_path is not None:
+                adj.setdefault(source, []).append((edge.target_canonical, edge.source_line))
+
+    for source, direct_list in adj.items():
+        if _is_composite_stub_or_router(source):
+            continue
+        for direct_target, direct_line in direct_list:
+            if _is_composite_stub_or_router(direct_target) or "templates/" in direct_target or "skills/" in direct_target:
+                continue
+            for intermediate, _ in direct_list:
+                if intermediate == direct_target or _is_composite_stub_or_router(intermediate) or "templates/" in intermediate or "skills/" in intermediate:
+                    continue
+                if "workflow-" in Path(intermediate).name and "workflow-" in Path(source).name and "shared/" not in intermediate:
+                    continue
+                if _is_peer_policy_pair(direct_target, intermediate):
+                    continue
+                for nxt, nxt_line in adj.get(intermediate, []):
+                    if nxt == direct_target:
+                        diagnostics.append(ReferenceDiagnostic(
+                            code="pack_reference_transitive_ambiguity",
+                            message=(
+                                f"Transitive owner ambiguity for '{direct_target}': directly referenced in '{source}' "
+                                f"(line {direct_line}) and transitively via '{intermediate}' (line {nxt_line})"
+                            ),
+                            target=direct_target,
+                            locations=[
+                                {"path": source, "line": direct_line},
+                                {"path": intermediate, "line": nxt_line},
+                            ],
+                            details={
+                                "source_path": source,
+                                "direct_line": direct_line,
+                                "transitive_owner": intermediate,
+                                "transitive_line": nxt_line,
+                                "target": direct_target,
+                            },
+                        ))
+
+    return diagnostics
+
+
+def _check_reference_graph(
+    pack: WorkflowPack,
+    target_root: Path,
+    hub_root: Path,
+    diagnostic_codes: List[str],
+    details: Dict[str, Any],
+) -> None:
+    rules_root_path = target_root / pack.rules_root
+    if not rules_root_path.is_dir():
+        rules_root_path = hub_root / pack.rules_root
+    if not rules_root_path.is_dir():
+        return
+
+    diags = validate_reference_graph(
+        rules_root_path,
+        target_root,
+        hub_root,
+        active_only=True,
+    )
+    if diags:
+        details.setdefault("reference_diagnostics", []).extend([d.to_dict() for d in diags])
+        for d in diags:
+            if d.code not in diagnostic_codes:
+                diagnostic_codes.append(d.code)
 
 
 def _check_lean_gates(rules_root: Path, diagnostic_codes: List[str], hub_root: Path) -> None:
@@ -283,7 +640,10 @@ def check_pack_graph(
             try:
                 intent_table = load_intent_routing(hub_root=target_root)
             except Exception:
-                intent_table = load_intent_routing(hub_root=hub_root_path)
+                try:
+                    intent_table = load_intent_routing(hub_root=hub_root_path)
+                except Exception:
+                    intent_table = load_intent_routing(hub_root=_HUB_ROOT)
 
             for intent_name, intent_route in intent_table.intents.items():
                 if intent_route.pack == pack_id:
@@ -329,11 +689,17 @@ def check_pack_graph(
         # 6. Check schemas
         _check_schemas(pack, target_root, hub_root_path, diagnostic_codes)
 
+        # 7. Check reference graph (direct duplicate, transitive ambiguity, dangling reference)
+        details: Dict[str, Any] = {}
+        if rules_root_path.is_dir():
+            _check_reference_graph(pack, target_root, hub_root_path, diagnostic_codes, details)
+
         ok = len(diagnostic_codes) == 0
         return CheckPackGraphResult(
             ok=ok,
             pack_id=pack_id,
             diagnostic_codes=diagnostic_codes,
+            details=details,
         )
     except Exception as e:
         return CheckPackGraphResult(
@@ -342,3 +708,19 @@ def check_pack_graph(
             diagnostic_codes=["workflow_pack_check_error"],
             details={"error": str(e)},
         )
+
+def main(argv: Optional[List[str]] = None) -> int:
+    import argparse
+    from loop.doctor.checks.workflow_pack import run_doctor_workflow_pack
+    parser = argparse.ArgumentParser(description="Workflow pack graph checker & doctor")
+    parser.add_argument("command", nargs="?", default="doctor", choices=["check", "doctor"])
+    parser.add_argument("--pack", dest="pack_id", default=None)
+    parser.add_argument("--cwd", dest="cwd", default=None)
+    parser.add_argument("--hub-root", dest="hub_root", default=None)
+    args = parser.parse_args(argv)
+    return run_doctor_workflow_pack(cwd=args.cwd, hub_root=args.hub_root, pack_id=args.pack_id)
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

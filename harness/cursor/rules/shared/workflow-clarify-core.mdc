@@ -14,7 +14,7 @@ alwaysApply: false
 
 ## Phase 0 — Grill pass (mandatory)
 
-1. **Read** `@.agents/skills/grill-me/SKILL.md` (full file).
+1. **Read** `.agents/skills/grill-me/SKILL.md` (full file).
 2. Записать `## Grill pass` в clarify-арtefact (Reframe · Premises · Weakest link · Anti-scope · Verdict).
 3. `Verdict=auto_resolved` — только с Evidence на каждый premise из входа; иначе `needs_user_Q`.
 4. Grill-Q (0–2) — **первые** в `## Q→A log`, считаются в лимит ≤5.

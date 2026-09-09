@@ -5,7 +5,7 @@ alwaysApply: false
 ### Команда: BACK CLARIFY
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/clarify.mdc
-**Shared core**: @.cursor/rules/shared/workflow-clarify-core.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-clarify-core.mdc
 **PLAN orchestration**: @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
 **Шаблон**: @.cursor/templates/clarify.md
 
@@ -47,8 +47,8 @@ BACK CLARIFY <feature-slug>
 1. `OK BACK CLARIFY - <slug>`
 2. Прочитай **Gates** + **Shared core**
 3. Создай/открой артефакт: `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md` по шаблону
-4. **Read** `@.agents/skills/grill-me/SKILL.md` → **Phase 0 Grill pass** → секция `## Grill pass` в артефакт
-5. Выполни @.cursor/rules/shared/workflow-clarify-core.mdc:
+4. **Read** `.agents/skills/grill-me/SKILL.md` → **Phase 0 Grill pass** → секция `## Grill pass` в артефакт
+5. Выполни shared/workflow-clarify-core.mdc:
    - §Таксономия → coverage map (внутренний)
    - §Лимиты → ≤5 Q (grill-Q первые), sequential, Recommended/Suggested
    - после каждого A → §Q→A запись в артефакт (+ patch draft plan секций при наличии)

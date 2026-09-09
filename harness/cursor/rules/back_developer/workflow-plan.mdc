@@ -9,7 +9,7 @@ alwaysApply: false
 **CLARIFY (Phase 0 mechanics)**: @.cursor/rules/back_developer/workflow-clarify.mdc · gates `isolation_rules/_lean/clarify.mdc`
 **Multi-epic**: @.cursor/rules/shared/workflow-plan-multi-epic.mdc
 **Outcome prompt**: @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc — `plan/<epic_id>/md/prompt.md` (`## Epic` + `## Covering`)
-**Policy (по триггеру, не всегда целиком):** brownfield replace → @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc; axiom/stack lock → @.cursor/rules/shared/workflow-spec-first-replace.mdc; Independent Test → @.cursor/rules/shared/workflow-behavior-first.mdc §5
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · @.cursor/rules/shared/workflow-spec-first-replace.mdc · @.cursor/rules/shared/workflow-behavior-first.mdc
 
 ---
 
@@ -18,14 +18,14 @@ alwaysApply: false
 1. Phase 0 Clarify (orchestration) → Completion Report / skip → `§Product probe`
 2. `SUSPENSION GUARD` · level в `tasks.md` · Product + Eng review batch (L2+)
 3. Write `plan/<id>/md/plan.md`: WHAT → Technology axiom → HOW → sunset A/B/C/I → Eng spine → `#qa-consumes` ≥3 TM → Review readiness (no pending Required)
-3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — @.cursor/rules/shared/workflow-plan-outcome-prompt.mdc
-3a. **Independent Test = behavior** (не alias/get_*/yaml field) — @.cursor/rules/shared/workflow-behavior-first.mdc §5
+3p. Write `plan/<id>/md/prompt.md` (начинается с `## Epic`; без H1 `# Outcome prompt`; без шапки Role/Deps/ID; Covering без ID; не HOW/FR; не читать соседние plan) — shared/workflow-plan-outcome-prompt.mdc
+3a. **Independent Test = behavior** (не alias/get_*/yaml field) — shared/workflow-behavior-first.mdc §5
 4. Каждый PLAN → апсерт `roadmap/queue.yaml` + plan + `prompt.md`; multi-epic → N rows/plans/prompts (`## Covering` один текст, оси без ID; без roadmap md / без `roadmap/prompt-*`)
 4a. **Queue reconcile (same session, every PLAN):** после апсерта queue обязательно `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back` (conflict/error → halt)
 5. FINISH (`code_changed: no`) → next DECOMPOSE (не ROADMAP MERGE)
 
 → Appetite = timebox + cut_list only (не hard cap sNN)
-→ outline / advisory floor: target band **5–8** sNN (L3/L4 ≤9); не раздувать draft до 10–12 «на всякий» — @.cursor/rules/shared/workflow-behavior-first.mdc §3a
+→ outline / advisory floor: target band **5–8** sNN (L3/L4 ≤9); не раздувать draft до 10–12 «на всякий» — shared/workflow-behavior-first.mdc §3a
 
 ---
 
@@ -46,7 +46,7 @@ alwaysApply: false
 
 **Процесс**:
 0. **Phase 0 Clarify (orchestration):** прочитай **Phase 0 orchestration** + при триггерах выполни clarify mechanics (gates + shared-core). Sequential Q до Completion Report или halt. Skip → краткая запись в plan `§Product probe`. **Не** писать полный plan до Phase 0 gate OK.
-1. `OK BACK PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
+1. `OK BACK PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ token-economy-core.mdc §0.0)
 1a. Прочитай **Gates** (+ Hot path если ещё не)
 1b. **Clarify link:** если clarify-артефакт есть — ссылка в шапке plan + `## Clarifications` (summary, не весь Q→A)
 1c. Если вход = research / audit / multi-P / ≥2 subsystem → прочитай **Multi-epic**; объяви `MULTI-EPIC PLAN — N эпиков`; **запрещён** один mega-plan

@@ -387,6 +387,28 @@ def render_prompt_scope(scope: PromptScope) -> str:
             "- HARD READ: по таблице mainrule выбери текущую роль и режим. "
             "Загрузи только выбранную role/mode chain, её Gates и связанные @-ссылки."
         )
+    elif phase in {"IMPLEMENT", "TASK", "BUGFIX", "REFACTOR"} and scope.role in {
+        "BACK",
+        "FRONT",
+        "INTEG",
+    }:
+        role_dir = {
+            "BACK": "back_developer",
+            "FRONT": "front_developer",
+            "INTEG": "integration_developer",
+        }[scope.role]
+        mode = phase.lower()
+        workflow_path = f"harness/cursor/rules/{role_dir}/workflow-{mode}.mdc"
+        gates_path = (
+            f"harness/cursor/rules/{role_dir}/isolation_rules/_lean/{mode}.mdc"
+        )
+        workflow_read = (
+            "- HARD READ order after mainrule: Gates → scope-lock → canonical Hot path → current shard. "
+            f"Gates: `{gates_path}`; scope-lock: `.cursor/rules/shared/workflow-implement-scope-lock.mdc`; "
+            f"canonical hot path: `{workflow_path}#Hot path`. Read only the `## Hot path` section "
+            "before any code, test, or dirty-file work; do not load the full workflow, "
+            "не рекурсивно следуй `@`."
+        )
     else:
         workflow_read = (
             "- HARD READ: по таблице mainrule выбери текущую роль и режим. "

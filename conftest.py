@@ -19,3 +19,16 @@ def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
     except (AttributeError, OSError):
         cpu_count = os.cpu_count() or 1
     return max(1, cpu_count - 2)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in (
+        "EPIC_RUNTIME",
+        "EPIC_RUNTIME_RESOLVED",
+        "EPIC_RUNNER_SESSION_ID",
+        "EPIC_LOOP",
+        "CODEX_SESSION_ID",
+        "CODEX_THREAD_ID",
+    ):
+        monkeypatch.delenv(key, raising=False)

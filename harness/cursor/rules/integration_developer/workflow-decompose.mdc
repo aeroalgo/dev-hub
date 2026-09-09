@@ -5,6 +5,8 @@ alwaysApply: false
 ### Команда: INTEG DECOMPOSE
 **Контекст**: @.cursor/rules/integration_developer/mainrule-core.mdc
 **Gates**: @.cursor/rules/integration_developer/isolation_rules/_lean/decompose.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-behavior-first.mdc · @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc
+**Transition gate:** @.cursor/rules/shared/workflow-decompose-transition-gate.mdc
 **Скиллы (сессия DECOMPOSE):** @.agents/skills/query-builder/SKILL.md; @.agents/skills/writing-plans/SKILL.md
 **Не грузить:** `executing-plans`
 **FORBIDDEN в полях `back:`/`front:` eNN:** `writing-plans` · `brainstorming` — они сессионные (DECOMPOSE-only). В back/front impl lists — только skills из BACK/FRONT allowlist.
@@ -22,7 +24,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 
 Не ужимать portal/journey intent плана до «wire endpoint». В `index.md` — **`## Outcome map`**: user journey / element outcomes → eNN. Goals eNN — что видит пользователь, не только «подключить API».
 
-**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element; band 5–8 **не** схлопывает registry (1 element = 1 eNN). Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** @.cursor/rules/shared/workflow-behavior-first.mdc. Канон coverage: @.cursor/rules/back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
+**Maximal detail (HARD):** как BACK — **`## Requirements coverage`** + **`## Stages coverage`** + **`## Outcome map`** + **`## Replacement cleanup`** (каждый element/journey/AC из plan Element registry → eNN; replace mock/legacy → `deletes`); batch **всех** элементов; без сжатия «ради токенов». **Maximal detail ≠ layer-first micro-split** одного element; band 5–8 **не** схлопывает registry (1 element = 1 eNN). Канон: shared/workflow-behavior-first.mdc §3a. **Anti-dilution:** shared/workflow-behavior-first.mdc. Канон coverage: back_developer/workflow-decompose.mdc §Maximal detail + §Outcome preserve + **§Replacement cleanup ниже** (роль INTEG).
 
 ---
 
@@ -31,7 +33,7 @@ DECOMPOSE = весь batch; IMPLEMENT = один eNN.
 INTEG DECOMPOSE **обязан** нарезать удаление вытесненного mock/legacy: api clients, filter helpers, dead fetch-ветки, stub UI, дублирующие wire-пути. Иначе IMPLEMENT оставляет mock в prod path рядом с live API.
 
 **PLAN** (`## Replacement / sunset` **A/B/C/I** / Element registry ⚠️ mock) называет поверхности; **DECOMPOSE** — `deletes:` + eNN + verify; **IMPLEMENT** исполняет список (фаза C/E).  
-**Канон policy:** @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc · **Wire-complete:** @.cursor/rules/shared/workflow-behavior-first.mdc §3
+**Канон policy:** shared/workflow-legacy-fallback-cleanup.mdc · **Wire-complete:** shared/workflow-behavior-first.mdc §3
 
 ### REQUIRED
 

@@ -129,6 +129,7 @@ export EPIC_TRANSIENT_RETRY_MAX="$(printf '%s' "$_runtime_config_json" | python3
 export EPIC_DEGRADED_MAX="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_DEGRADED_MAX"])')"
 export EPIC_STATUS_HEARTBEAT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_STATUS_HEARTBEAT_SEC"] or "")')"
 export EPIC_STREAM_IDLE_TIMEOUT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_STREAM_IDLE_TIMEOUT_SEC"] or "")')"
+export EPIC_COLLAB_WAIT_TIMEOUT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_COLLAB_WAIT_TIMEOUT_SEC"] or "")')"
 
 _runtime_owner_path="$STATE_DIR/runner.json"
 _runtime_session_id="$(python3 -c 'import uuid; print(uuid.uuid4())')"
@@ -350,6 +351,7 @@ write_runner_owner(
         timeout_config={
             "session_timeout_sec": int(os.environ["EPIC_SESSION_TIMEOUT_SEC"]),
             "kill_grace_sec": int(os.environ["EPIC_SESSION_KILL_GRACE_SEC"]),
+            "collaboration_wait_timeout_sec": int(os.environ["EPIC_COLLAB_WAIT_TIMEOUT_SEC"]),
         },
     ),
 )
@@ -662,6 +664,7 @@ for part in json.load(sys.stdin):
   fi
 
   local -a stdin_file_args=()
+  local -a collaboration_wait_timeout_args=(--collaboration-wait-timeout "$EPIC_COLLAB_WAIT_TIMEOUT_SEC")
   local progress_mode="tool_json"
   if [[ "$runtime_id" == "codex" ]]; then
     stdin_file_args=(--stdin-file "$prompt_file")
@@ -681,6 +684,7 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        "${collaboration_wait_timeout_args[@]}" \
         --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
@@ -694,6 +698,7 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        "${collaboration_wait_timeout_args[@]}" \
         --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
@@ -708,6 +713,7 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        "${collaboration_wait_timeout_args[@]}" \
         --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
@@ -722,6 +728,7 @@ for part in json.load(sys.stdin):
         --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
         ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
         ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+        "${collaboration_wait_timeout_args[@]}" \
         --progress-mode "$progress_mode" \
         --log "$log_file" \
         ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \
@@ -738,6 +745,7 @@ for part in json.load(sys.stdin):
       --kill-grace "$EPIC_SESSION_KILL_GRACE_SEC" \
       ${EPIC_STATUS_HEARTBEAT_SEC:+--heartbeat-sec "$EPIC_STATUS_HEARTBEAT_SEC"} \
       ${EPIC_STREAM_IDLE_TIMEOUT_SEC:+--idle-timeout "$EPIC_STREAM_IDLE_TIMEOUT_SEC"} \
+      "${collaboration_wait_timeout_args[@]}" \
       --progress-mode "$progress_mode" \
       --log "$log_file" \
       ${SESSION_MODEL:+--expected-model "$SESSION_MODEL"} \

@@ -37,10 +37,6 @@ role/mode chain или текущим shard (`skills.impl`, `skills.design`,
 skill-путь, не загружай skills и не угадывай соседние. Явный запрос пользователя
 или runtime на конкретный skill имеет приоритет.
 
-Для DSH ссылки `@file` — это навигация, а не готовый system prompt: прочитай
-entrypoint, выбери текущую фазу, затем последовательно прочитай только файлы
-выбранной цепочки и явно перечисленные `SKILL.md`.
-
 ## Session context
 
 Для role command используй `memory-bank/activeContext.md` и только текущие

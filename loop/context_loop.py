@@ -102,6 +102,7 @@ from loop.mb_load.session import load_session
 from loop.episodes import begin_episode, finalize_episode
 from loop.prompt_builder import build_prompt_scope, render_prompt_scope
 from harness.hooks.session_resilience import (  # noqa: E402
+    COLLABORATION_WAIT_TIMEOUT_REASON,
     analyze_session_log,
     classify_abort,
     dirty_resume_prompt_lines,
@@ -114,8 +115,8 @@ from harness.hooks.session_resilience import (  # noqa: E402
 RUNTIME_REL = Path("epic")
 PROMPT_NAME = "next-prompt.txt"
 
-# Phase → Claude --model override from .claude/project.env (file wins).
-# Absent override → CLI MODEL from loop.sh. Alias or OmniRoute id OK.
+# Phase model default from .claude/project.env.
+# An explicit CLI --model wins over the phase default. Alias or OmniRoute id OK.
 LOOP_PHASE_MODEL_ENV: dict[str, str] = {
     "DECOMPOSE": "PROJECT_LOOP_DECOMPOSE_MODEL",
     "PLAN": "PROJECT_LOOP_PLAN_MODEL",
@@ -166,7 +167,17 @@ def resolve_loop_phase_model(
     cli_model: str | None = None,
     project_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Pick --model for this session: PROJECT_LOOP_<PHASE>_MODEL > CLI > None."""
+    """Pick the session model: explicit CLI --model > phase env > None."""
+    cli = (cli_model or "").strip() or None
+    if cli:
+        key = loop_phase_key(phase, armed_step)
+        return {
+            "model": cli,
+            "loop_phase": key,
+            "model_source": "cli",
+            "model_env": LOOP_PHASE_MODEL_ENV.get(key) if key else None,
+        }
+
     key = loop_phase_key(phase, armed_step)
     env_name = LOOP_PHASE_MODEL_ENV.get(key) if key else None
     override = ""
@@ -181,14 +192,6 @@ def resolve_loop_phase_model(
             "model": override,
             "loop_phase": key,
             "model_source": "phase_env",
-            "model_env": env_name,
-        }
-    cli = (cli_model or "").strip() or None
-    if cli:
-        return {
-            "model": cli,
-            "loop_phase": key,
-            "model_source": "cli",
             "model_env": env_name,
         }
     return {
@@ -2922,13 +2925,24 @@ def record_abort(
     retryable = analysis["retryable"]
     kind = analysis["abort_kind"]
     cursor_sync: dict[str, Any] | None = None
+    gate_runtime_repair = False
     if retryable and st.get("armed_decompose"):
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
             st = load_epic_state(cwd_p)
             step_id = st.get("armed_step")
             resume_from = step_id or resume_from
-    if reason and reason.startswith("unsupported_tool_call:"):
+    if reason == COLLABORATION_WAIT_TIMEOUT_REASON:
+        gate_runtime_repair = True
+        st["gate_diagnostic"] = "verify_runtime_collaboration_wait_timeout"
+        st["repair_required"] = "gate-repair"
+        st["halt_reason"] = (
+            "repairable gate-runtime error: "
+            + reason
+            + "; retry spawn_agent, then gate-repair and verify"
+        )
+    elif reason and reason.startswith("unsupported_tool_call:"):
+        gate_runtime_repair = True
         st["gate_diagnostic"] = "verify_runtime_unsupported_tool"
         st["repair_required"] = "gate-repair"
         st["halt_reason"] = (
@@ -2990,7 +3004,8 @@ def record_abort(
         phase=phase,
     )
     if retryable:
-        st["halt_reason"] = reason or "other"
+        if not gate_runtime_repair:
+            st["halt_reason"] = reason or "other"
         save_epic_state(cwd_p, st)
     else:
         st["active"] = False

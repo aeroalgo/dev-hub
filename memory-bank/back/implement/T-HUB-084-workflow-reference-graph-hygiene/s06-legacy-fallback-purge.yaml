@@ -1,0 +1,91 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: s06 — Purge the proven-dead audit cheatsheet and close the complete sunset
+  inventory IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- harness/cursor/rules/shared/cheatsheets/back-audit.mdc was confirmed purged from
+  disk.
+- harness/hooks/epic/core.py confirmed free of back-audit loader block and cheatsheet
+  references.
+- Active rule and hook files confirmed to have zero active back-audit callers, while
+  archive/history remains excluded from scans.
+gaps:
+  status: none
+done:
+- Verified complete absence of harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+  and related core loader blocks.
+- Executed full Kind A/B/C/I sunset inventory (inv-a-01..03, inv-b-01, inv-c-01, inv-i-01)
+  with zero active violations.
+- Added TDD tests test_back_audit_has_no_active_caller_after_purge, test_no_legacy_back_audit_loader_or_assertion,
+  and test_active_graph_remains_fail_closed_after_purge to harness/hooks/tests/test_workflow_hot_path_consolidation.py.
+- Verified pack graph doctor and reference graph suite fail closed on dangling references
+  without permissive fallbacks.
+files:
+- harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+- harness/hooks/epic/core.py
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+- loop/tests/test_pack_graph_doctor.py
+deletes:
+- harness/cursor/rules/shared/cheatsheets/back-audit.mdc
+- harness/hooks/epic/core.py phase-AUDIT cheat_rel loader block for shared/cheatsheets/back-audit.mdc
+- obsolete active-caller/test assertions that treat back-audit.mdc or its loader as
+  a valid fallback
+- stale active @back-audit mentions and duplicate-link safety fallback
+tests:
+- bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k "graph or corpus or audit"
+integration_check:
+- bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k "graph or corpus or audit" passed (30 passed)
+- Sunset inventory inv-a-01..03, inv-b-01, inv-c-01, inv-i-01 all verified clean against
+  active corpus
+grep_control: []
+verification_results:
+- checkpoint: cp1
+  command: rg -n "back-audit\.mdc|shared/cheatsheets/back-audit" harness/cursor/rules
+    harness/claude .cursor/rules .claude harness/hooks loop bin --glob "*.md" --glob
+    "*.mdc" --glob "*.py" --glob "*.yaml" --glob "!**/_archive/**" --glob "!**/archive/**"
+    || true
+  outcome: PASS
+- checkpoint: cp2
+  command: rg -n "back-audit|fallback|if.*owner|if.*exists" loop/workflow/pack_graph.py
+    harness/hooks/epic/core.py || true
+  outcome: PASS
+- checkpoint: cp3
+  command: rg -n "@[^ ]*back-audit|back-audit\.mdc|shared/cheatsheets/back-audit"
+    harness/cursor/rules harness/claude .cursor/rules .claude harness/hooks --glob
+    "*.md" --glob "*.mdc" --glob "*.py" --glob "!**/_archive/**" --glob "!**/archive/**"
+    || true
+  outcome: PASS
+- checkpoint: cp4
+  command: bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py
+    -q --tb=line -k "graph or corpus or audit"
+  outcome: PASS
+checkpoints:
+- id: cp1
+  criterion: Kind A and B inventory rows inv-a-01..03 and inv-b-01 are run; active
+    back-audit callers, obsolete assertions and legacy command surfaces are absent.
+  status: done
+- id: cp2
+  criterion: Kind C inventory inv-c-01 proves invalid ownership cannot pass through
+    a duplicate-link or missing-owner fallback.
+  status: done
+- id: cp3
+  criterion: Kind I inventory inv-i-01 is clear in active instructions while archive/history
+    references remain outside the scan.
+  status: done
+- id: cp4
+  criterion: The deleted cheatsheet, loader block and obsolete assertions are gone;
+    targeted graph and corpus tests remain green without restoring the fallback.
+  status: done
+resume_from: cp1

@@ -25,6 +25,12 @@ CANONICAL_HOT_PATH_OWNERS = {
     "INTEG PLAN": "harness/cursor/rules/integration_developer/workflow-plan.mdc",
 }
 
+CANONICAL_PRIORITY_MODE_OWNERS = {
+    "BACK PLAN": "harness/cursor/rules/back_developer/workflow-plan.mdc",
+    "BACK DECOMPOSE": "harness/cursor/rules/back_developer/workflow-decompose.mdc",
+    "BACK ANALYZE": "harness/cursor/rules/back_developer/workflow-analyze.mdc",
+}
+
 # Standalone cheatsheet files that are being consolidated/deprecated
 DEPRECATED_CHEATSHEET_PATTERNS = [
     re.compile(r"shared/cheatsheets/back-decompose(?:\.mdc)?"),
@@ -66,15 +72,20 @@ def get_active_corpus_files():
                 continue
             if p.suffix not in (".md", ".mdc", ".json", ".yaml", ".yml"):
                 continue
-            rel_str = str(p.relative_to(ROOT))
+            resolved = p.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            try:
+                rel_str = str(resolved.relative_to(ROOT))
+            except ValueError:
+                rel_str = str(p.relative_to(ROOT))
             if any(pat.search(rel_str) for pat in ARCHIVE_EXCLUSION_PATTERNS):
                 continue
             # Skip the standalone cheatsheet files themselves during the active caller reference check
             if "shared/cheatsheets" in rel_str:
                 continue
-            if rel_str not in seen:
-                seen.add(rel_str)
-                files.append(p)
+            files.append(resolved)
     return sorted(files)
 
 
@@ -179,8 +190,39 @@ def test_required_markers_and_single_owner_after_purge():
         assert len(sections) == 1, f"Expected exactly 1 '## Hot path' in {rel_owner_path}, got {len(sections)}"
 
 
+def test_priority_mode_markers_have_single_owner():
+    """cp2 / FR-001 / FR-004: Ensure PLAN, DECOMPOSE, and ANALYZE markers each have exactly one active owner."""
+    active_files = get_active_corpus_files()
+    for mode, rel_owner in CANONICAL_PRIORITY_MODE_OWNERS.items():
+        owner_path = ROOT / rel_owner
+        assert owner_path.is_file(), f"Canonical owner {rel_owner} missing for {mode}"
+        owner_content = owner_path.read_text(encoding="utf-8")
+        assert mode in owner_content, f"Marker {mode} missing from owner {rel_owner}"
+
+        cmd_pattern = re.compile(rf"(?:Команда|Command)[:\*]*\s+{re.escape(mode)}(?:\s*$|\s*[\n\r`])", re.MULTILINE | re.IGNORECASE)
+        declaring_files = []
+        for f in active_files:
+            content = f.read_text(encoding="utf-8")
+            if cmd_pattern.search(content):
+                declaring_files.append(str(f.relative_to(ROOT)))
+
+        assert len(declaring_files) == 1, (
+            f"Mode {mode} must have exactly 1 active declaring owner, found {len(declaring_files)}: {declaring_files}"
+        )
+        assert declaring_files[0] == rel_owner or rel_owner.endswith(declaring_files[0])
+
+
 def test_archive_history_excluded_from_active_scan():
     """s05 / AC-3: Ensure archive and history files are excluded from active caller scanning."""
+    active_files = get_active_corpus_files()
+    active_rel_paths = [str(f.relative_to(ROOT)) for f in active_files]
+    for rel in active_rel_paths:
+        for pat in ARCHIVE_EXCLUSION_PATTERNS:
+            assert not pat.search(rel), f"Archive/history file {rel} was unexpectedly included in active corpus"
+
+
+def test_archive_history_is_excluded_from_active_scan():
+    """cp3 / FR-004 / AC-3: Ensure archive and history files are excluded from active caller scanning."""
     active_files = get_active_corpus_files()
     active_rel_paths = [str(f.relative_to(ROOT)) for f in active_files]
     for rel in active_rel_paths:
@@ -201,8 +243,55 @@ def test_archive_and_history_are_not_active_callers():
         assert is_excluded, f"Expected {rel_str} to be classified as archive/history and excluded from active corpus"
 
 
-def test_back_audit_cheatsheet_and_loader_are_purged():
+def test_back_audit_has_no_active_caller_after_purge():
+    """cp1 / cp3 / FR-004: Ensure no active rule/workflow/hook files reference back-audit cheatsheet."""
+    active_files = get_active_corpus_files()
+    back_audit_pat = re.compile(r"back-audit(?:\.mdc)?|shared/cheatsheets/back-audit")
+    offenders = []
+    for f in active_files:
+        text = f.read_text(encoding="utf-8")
+        if back_audit_pat.search(text):
+            offenders.append(str(f.relative_to(ROOT)))
+    assert not offenders, f"Active files still reference purged back-audit cheatsheet: {offenders}"
+
+
+def test_no_legacy_back_audit_loader_or_assertion():
+    """cp1 / cp4 / FR-004: Ensure cheatsheet file is deleted and core.py loader block is removed."""
     cheatsheet = ROOT / "harness/cursor/rules/shared/cheatsheets/back-audit.mdc"
     assert not cheatsheet.exists()
     core_source = (ROOT / "harness/hooks/epic/core.py").read_text(encoding="utf-8")
     assert "shared/cheatsheets/back-audit" not in core_source
+    assert "back-audit" not in core_source
+
+
+def test_active_graph_remains_fail_closed_after_purge(tmp_path: Path):
+    """cp2 / cp4 / FR-003 / FR-004: Ensure reference graph fails closed on dead back-audit reference."""
+    from loop.workflow.pack_graph import check_pack_graph
+    from loop.workflow.schemas import WorkflowPack
+
+    rules_root = tmp_path / ".cursor" / "rules"
+    rules_root.mkdir(parents=True, exist_ok=True)
+    mb_dir = tmp_path / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    phase_reg = tmp_path / "phase_registry.yaml"
+    phase_reg.write_text("schema: phase-registry/v1\nphases: {}\n", encoding="utf-8")
+
+    workflow_mdc = rules_root / "workflow-test.mdc"
+    workflow_mdc.write_text(
+        "---\ndescription: test\n---\n"
+        "Reference to missing: @.cursor/rules/shared/cheatsheets/back-audit.mdc\n",
+        encoding="utf-8",
+    )
+
+    pack = WorkflowPack(
+        id="dangling-doc-pack",
+        roles=["test"],
+        command_prefixes=["TEST"],
+        phase_registry="phase_registry.yaml",
+        memory_bank="memory-bank",
+        rules_root=".cursor/rules",
+    )
+
+    res = check_pack_graph(pack_or_id=pack, cwd=tmp_path, hub_root=tmp_path)
+    assert not res.ok
+    assert "pack_reference_dangling" in res.diagnostic_codes

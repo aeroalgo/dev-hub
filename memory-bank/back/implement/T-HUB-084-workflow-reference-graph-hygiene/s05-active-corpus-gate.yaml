@@ -1,0 +1,77 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: s05 — Gate the active corpus while preserving priority mode markers and archive
+  exclusions IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s05-active-corpus-gate.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- pack_graph.py reference-edge extraction lacked explicit archive/history pattern
+  exclusion and directory-mention handling for the active corpus.
+- test_workflow_hot_path_consolidation.py lacked explicit priority mode owner assertions
+  for ANALYZE alongside PLAN and DECOMPOSE.
+gaps:
+  status: none
+done:
+- Wired loop/workflow/pack_graph.py with explicit archive/history exclusions (_archive,
+  archive, tasks, memory-bank, .git, .claude/runtime, graphify-out) and directory
+  mention skipping.
+- Added test_active_corpus_duplicate_and_dangling_edges_fail to loop/tests/test_pack_graph_doctor.py.
+- Added CANONICAL_PRIORITY_MODE_OWNERS and test_priority_mode_markers_have_single_owner
+  to harness/hooks/tests/test_workflow_hot_path_consolidation.py asserting single
+  owners for PLAN, DECOMPOSE, and ANALYZE.
+- Added test_archive_history_is_excluded_from_active_scan to harness/hooks/tests/test_workflow_hot_path_consolidation.py.
+- Preserved single canonical owners and explicit lazy timing contracts in workflow-plan.mdc,
+  workflow-decompose.mdc, and workflow-analyze.mdc.
+files:
+- loop/workflow/pack_graph.py
+- loop/tests/test_pack_graph_doctor.py
+- harness/hooks/tests/test_workflow_hot_path_consolidation.py
+- harness/cursor/rules/back_developer/workflow-plan.mdc
+- harness/cursor/rules/back_developer/workflow-decompose.mdc
+- harness/cursor/rules/back_developer/workflow-analyze.mdc
+deletes: []
+tests:
+- bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k 'active_corpus or marker or archive'
+integration_check:
+- bin/pytest loop/tests/test_pack_graph_doctor.py harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k 'active_corpus or marker or archive' passed (7 passed in 2.92s)
+- Full pack graph and hot path test suite across loop/tests/ and harness/hooks/tests/
+  passed (42 passed in 3.99s)
+grep_control: []
+verification_results:
+- '{"checkpoint": "cp1", "command": "bin/pytest loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k \"active_corpus or duplicate or ambiguous or dangling\"", "outcome":
+  "PASS"}'
+- '{"checkpoint": "cp2", "command": "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k \"marker or owner or hot_path\"", "outcome": "PASS"}'
+- '{"checkpoint": "cp3", "command": "bin/pytest harness/hooks/tests/test_workflow_hot_path_consolidation.py
+  -q --tb=line -k \"archive or history or excluded\"", "outcome": "PASS"}'
+- '{"checkpoint": "cp4", "command": "bin/pytest loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k \"doctor or redundant or fail_closed\"", "outcome": "PASS"}'
+checkpoints:
+- id: cp1
+  criterion: Production check_pack_graph fails on direct duplicate, transitive ambiguity
+    and dangling active-corpus fixtures with source lines.
+  status: done
+- id: cp2
+  criterion: PLAN, DECOMPOSE and ANALYZE markers each have exactly one active owner
+    after the corpus scan.
+  status: done
+- id: cp3
+  criterion: Archive/history, memory-bank, runtime and graphify paths are excluded
+    from the active corpus.
+  status: done
+- id: cp4
+  criterion: The doctor remains fail-closed for an invalid active corpus and green
+    for a valid redundant-edge removal.
+  status: done
+resume_from: cp1

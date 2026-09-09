@@ -15,6 +15,14 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
    ./codex/bin/codex-omniroute.sh exec --ephemeral --dangerously-bypass-approvals-and-sandbox "say hi"
    ```
 
+   OmniRoute/Gemini can flatten the Responses namespace tool
+   `multi_agent_v1.spawn_agent` to `multi_agent_v1_spawn_agent` or emit a
+   legacy unnamespaced alias. The adapter normalizes these identities before
+   Codex dispatch. Setup patches the running OmniRoute image's compiled
+   response seam and writes a marker; the wrapper then accepts the stock Codex
+   binary only with that seam fixed. Set `CODEX_BUILD_PATCHED=1` to build the
+   pinned Codex-side adapter instead.
+
    `codex/dev-hub.config.toml` contains only Codex CLI configuration fields.
    The setup installs it as `~/.codex/dev-hub.config.toml`; the wrapper loads it
    with `--profile dev-hub`.
@@ -36,16 +44,6 @@ Codex CLI integration contract for `loop/runtime_adapters/codex.py`.
    fields.
 
    Disable wrapper routing: `CODEX_USE_OMNIROUTE=0 codex …`
-
-   To build the Codex CLI transport patch that accepts flat OmniRoute
-   collaboration function names, run:
-   ```bash
-   ./codex/bin/build-patched-codex.sh
-   ```
-   The script checks out `rust-v0.152.0`, applies the tracked patch, builds
-   the release binary, and places it at `codex/.build/codex-v0.152.0`.
-   `which-codex.sh` uses that binary automatically; with OmniRoute enabled it
-   keeps the OmniRoute wrapper and runs the patched binary underneath it.
 
 3. **Direct ChatGPT login (without OmniRoute):**
    ```bash
@@ -103,3 +101,6 @@ To run the loop with Codex runtime:
    ```
 
    `which-codex.sh` auto-selects `codex-omniroute.sh` when `~/.codex/config.toml` contains the OmniRoute provider and key file exists.
+
+   `CODEX_ALLOW_UNPATCHED=1` bypasses the transport guard and is intended only
+   for deliberate non-agent smoke tests.

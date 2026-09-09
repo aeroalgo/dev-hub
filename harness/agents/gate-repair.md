@@ -28,6 +28,10 @@ Parent **обязан** передать секции. Если нет — ср�
 | `VERIFY` | да (точная pytest/CLI команда parent) |
 | `ALLOW READ` | нет (опционально, ≤10 файлов для контекста) |
 
+Для repair после `verify-qa` секция `VERIFY` обязана содержать первым пунктом
+полный `bin/pytest -q --tb=line`. Targeted-команды разрешены только как
+дополнительные проверки и не заменяют полный suite.
+
 ## Scope (HARD)
 
 1. **Первый Read** = implement/bugfix/qa shard из BLOCKERS или ALLOW (если указан).

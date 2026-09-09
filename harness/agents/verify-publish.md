@@ -50,7 +50,7 @@ Parent **обязан** передать секции. Если нет — ср�
 Перед выводом JSON fence — выполни валидацию boundary через Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-publish","verdict":"PASS|FAIL","step_id":"<sNN>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-publish","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 Только при `valid: true` формируй финальный вывод.
@@ -64,6 +64,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
   "schema": "loop-gate-verdict/v1",
   "agent_id": "verify-publish",
   "step_id": "<sNN>",
+  "session_id": "<session_id>",
   "epic_id": "<epic>",
   "verdict": "PASS|FAIL",
   "blockers": ["..."],

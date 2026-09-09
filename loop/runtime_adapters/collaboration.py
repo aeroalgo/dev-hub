@@ -8,7 +8,7 @@ def shared_collaboration_policy() -> str:
 Этот контракт одинаков для всех runtime.
 1. Перед FINISH IMPLEMENT/TASK/BUGFIX/QA запусти ровно один соответствующий gate-субагент: `verify-implement`, `verify-bugfix` или `verify-qa`; дождись завершения и учитывай только valid fenced JSON verdict.
 2. Перед FINISH DECOMPOSE запусти `verify-decompose`; для ANALYZE fix используй `analyze-verify` по текущему workflow.
-3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай BLOCKERS в `gate-repair` с ALLOW WRITE + VERIFY, дождись repair и повтори тот же verify. Это автоматический repair-loop.
+3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай BLOCKERS в `gate-repair` с ALLOW WRITE + VERIFY, дождись repair и повтори тот же verify. Это автоматический repair-loop. Для `gate-repair` в VERIFY всегда включай первым обязательным пунктом полный `bin/pytest -q --tb=line`; targeted-команды только дополняют его и не заменяют.
 4. Не создавай finish/qa_pass без свежего PASS текущего gate-run, не выдумывай receipt/verdict и не редактируй runtime gate state вручную.
 5. Если транспорт сабагента недоступен, зафиксируй blocker как repairable, повтори canonical spawn через adapter и затем запусти `gate-repair`; после ограниченных retry только NEED_HUMAN, но не ложный PASS.
 """
@@ -27,8 +27,8 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
     return shared_collaboration_policy() + """
 ## CODEX NATIVE COLLABORATION ADAPTER (HARD)
 Этот запуск выполняется через Codex CLI с включённым native `multi_agent`.
-1. Для субагентов используй только нативную последовательность `spawn_agent` → `wait`.
-2. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) может быть произвольной. Если OmniRoute возвращает flat tool name, CLI transport обязан нормализовать его в native namespace до dispatch.
+1. Для субагентов используй только каноническую последовательность `multi_agent_v1.spawn_agent` → `multi_agent_v1.wait`; transport adapter принимает также flat aliases и нормализует их до dispatch.
+2. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) может быть произвольной. Child получает managed model из Codex agent config.
 3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); модель child не наследуй из root без явного override.
 4. Для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify.
 5. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK RECONCILE` и только с ALLOW READ текущего epic.

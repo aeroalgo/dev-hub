@@ -1,6 +1,7 @@
 """Tests for loop.dashboard.collect module."""
 
 from __future__ import annotations
+from datetime import datetime, timezone
 
 import json
 from pathlib import Path
@@ -44,7 +45,7 @@ def _setup_fixture_dir(tmp_path: Path) -> Path:
         "schema": "loop-incident/v1",
         "incident_id": "inc-001",
         "status": "open",
-        "opened_at": "2026-09-01T00:00:00+00:00",
+        "opened_at": datetime.now(timezone.utc).isoformat(),
         "project_root": str(tmp_path),
         "epic_id": "T-HUB-038",
         "step_id": "s01",
@@ -57,7 +58,7 @@ def _setup_fixture_dir(tmp_path: Path) -> Path:
         "schema": "loop-incident/v1",
         "incident_id": "inc-002",
         "status": "resolved",
-        "opened_at": "2026-09-01T00:00:00+00:00",
+        "opened_at": datetime.now(timezone.utc).isoformat(),
         "resolved_at": "2026-09-01T01:00:00+00:00",
         "project_root": str(tmp_path),
         "epic_id": "T-HUB-038",
@@ -70,9 +71,9 @@ def _setup_fixture_dir(tmp_path: Path) -> Path:
     (mb / "incidents.jsonl").write_text(json.dumps(inc1) + "\n" + json.dumps(inc2) + "\n", encoding="utf-8")
 
     # 3. events.jsonl
-    evt1 = {"kind": "incident_opened", "timestamp": "2026-09-01T00:00:00+00:00"}
-    evt2 = {"kind": "incident_opened", "timestamp": "2026-09-01T00:05:00+00:00"}
-    evt3 = {"kind": "tier0_repair_pass", "timestamp": "2026-09-01T00:10:00+00:00"}
+    evt1 = {"kind": "incident_opened", "timestamp": datetime.now(timezone.utc).isoformat()}
+    evt2 = {"kind": "incident_opened", "timestamp": datetime.now(timezone.utc).isoformat()}
+    evt3 = {"kind": "tier0_repair_pass", "timestamp": datetime.now(timezone.utc).isoformat()}
     (mb / "events.jsonl").write_text("\n".join(json.dumps(e) for e in [evt1, evt2, evt3]), encoding="utf-8")
 
     # 4. tasks.md

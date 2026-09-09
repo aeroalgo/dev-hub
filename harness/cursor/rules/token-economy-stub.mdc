@@ -30,7 +30,7 @@ Cross-cutting. Restricts **format**, not **content**. Quality (TDD, review, edge
 
 **`load_now` OK для полного plan:** когда следующий режим **PLAN** / **DECOMPOSE** / **ANALYZE** / **AUDIT** и plan — объект работы.
 
-**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + @.cursor/rules/token-economy-core.mdc §0.0.
+**PLAN override:** follow that mode's `workflow-*-plan.mdc` inventory. Doc-router lean defaults yield to workflow PLAN steps + .cursor/rules/token-economy-core.mdc §0.0.
 
 Канон «где стоим»: `activeContext.md` (§Handoff + load_now) + `plan/<epic>/yaml/decompose-index.yaml` (прогресс). `tasks.md` — индекс эпиков. **Нет** `memory-bank/focus/`.
 
@@ -65,11 +65,11 @@ Triggers: `continue project` · role commands · `PM INIT` (архив).
 
 On start: `activeContext.md` → `load_now`; continue from current stage — do not re-run completed stages.
 
-On FINISH: @.cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed). Session detail: @.cursor/rules/shared/context-session-economy.mdc
+On FINISH: .cursor/rules/shared/finish-doc-router.mdc — update `activeContext.md` (+ `tasks.md` index as needed). Session detail: @.cursor/rules/shared/context-session-economy.mdc
 
 ## 0.11 Integration verification (summary)
 
-Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in **BACK IMPLEMENT** and **BACK QA**. Detail: @.cursor/rules/token-economy-core.mdc §0.11
+Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in **BACK IMPLEMENT** and **BACK QA**. Detail: .cursor/rules/token-economy-core.mdc §0.11
 
 ## 0.12 Spec-first replace (HARD)
 
@@ -79,4 +79,4 @@ Every external ref in code — grep counterpart. Missing = **bug**. Mandatory in
 
 ## PLAN / gap / decompose write
 
-**Never shorten** `plan/<epic>/md/plan.md` / `plan/<epic>/yaml/**` / `architecture/**` under chat brevity. Full rules: @.cursor/rules/token-economy-core.mdc §0.0 + §0.0.1
+**Never shorten** `plan/<epic>/md/plan.md` / `plan/<epic>/yaml/**` / `architecture/**` under chat brevity. Full rules: .cursor/rules/token-economy-core.mdc §0.0 + §0.0.1

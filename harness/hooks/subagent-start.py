@@ -10,8 +10,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (
     product_cwd,  # noqa: E402
-    CONTRACTS,
-    CONTRACTS_SHA256,
     HARD_RULE,
     check_contract_drift,
     emit,
@@ -24,6 +22,7 @@ from _lib import (
     save_state,
     _discover_registry,
 )
+from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
 from loop.runtime_materializers.agent_policy import get_always_inject_set
 
 
@@ -67,7 +66,18 @@ def _resolve_agent_type(data: dict[str, object]) -> str | None:
     match = re.search(r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)", prompt)
     if match:
         return normalize_type(match.group(1))
-    for token in ("gate-repair", "verify-bugfix", "verify-implement", "verify-qa", "verify-decompose", "analyze-verify", "reconcile-verify"):
+    for token in (
+        "gate-repair",
+        "verify-bugfix",
+        "verify-implement",
+        "verify-qa",
+        "verify-decompose",
+        "analyze-verify",
+        "verify-script",
+        "verify-edit",
+        "verify-publish",
+        "reconcile-verify",
+    ):
         if token in prompt.lower():
             return token
     return None
@@ -93,7 +103,9 @@ def main() -> None:
     agent_type = _resolve_agent_type(data)
     session_id = _gate_session_id(data)
     cwd = str(product_cwd(data.get("cwd") or ""))
-    contract = CONTRACTS.get(agent_type or "", "")
+    runtime_id = str(data.get("runtime_id") or os.environ.get("EPIC_RUNTIME") or "universal")
+    contract_adapter = get_agent_contract_adapter(runtime_id)
+    contract = contract_adapter.contract(agent_type)
     if not contract:
         return
 
@@ -142,7 +154,17 @@ def main() -> None:
                     tool_use_id=str(data.get("tool_use_id") or data.get("thread_id") or "") or None,
                 )
                 st.setdefault("spawns", []).append(agent_type)
-                if agent_type in {"verify", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose", "analyze-verify"}:
+                if agent_type in {
+                    "verify",
+                    "verify-implement",
+                    "verify-bugfix",
+                    "verify-qa",
+                    "verify-decompose",
+                    "analyze-verify",
+                    "verify-script",
+                    "verify-edit",
+                    "verify-publish",
+                }:
                     st["need_verify"] = True
                 if agent_type == "gate-repair":
                     st["repair_in_flight"] = True

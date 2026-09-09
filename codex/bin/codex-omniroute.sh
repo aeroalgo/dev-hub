@@ -6,6 +6,7 @@ CODEX_HOME="${CODEX_HOME:-${HOME}/.codex}"
 PROFILE_NAME="${CODEX_PROFILE:-dev-hub}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCHED_CODEX="${CODEX_PATCHED_BIN:-${SCRIPT_DIR}/../.build/codex-v0.152.0}"
+OMNIROUTE_MARKER="${CODEX_OMNIROUTE_MARKER:-${CODEX_HOME}/.omniroute_collaboration_fix}"
 
 if [[ -z "${OMNIROUTE_API_KEY:-}" && -f "$KEY_FILE" ]]; then
   OMNIROUTE_API_KEY="$(tr -d '\n\r' < "$KEY_FILE")"
@@ -27,6 +28,15 @@ elif command -v codex >/dev/null 2>&1; then
 else
   echo "Error: codex binary not found in PATH." >&2
   exit 127
+fi
+
+if [[ "$REAL_CODEX" != "$PATCHED_CODEX" \
+  && "${CODEX_ALLOW_UNPATCHED:-0}" != "1" \
+  && ! -f "$OMNIROUTE_MARKER" ]]; then
+  echo "Error: OmniRoute collaboration transport is not patched." >&2
+  echo "Build it with: ${SCRIPT_DIR}/build-patched-codex.sh" >&2
+  echo "Or apply the OmniRoute container fix with: ${SCRIPT_DIR}/apply-omniroute-collaboration-fix.sh" >&2
+  exit 126
 fi
 
 PROFILE_ARGS=()

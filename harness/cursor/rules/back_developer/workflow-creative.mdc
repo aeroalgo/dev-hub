@@ -22,7 +22,7 @@ alwaysApply: false
 
 ### Situational
 
-1. **Read** @.cursor/rules/back_developer/skills-gate-situational.mdc
+1. **Read** .cursor/rules/back_developer/skills-gate-situational.mdc
 2. Прогони **Checklist — CREATIVE** (yes → путь `.agents/skills/<skill>/SKILL.md`)
 3. Cap: situational ≤ **5** (+ 2 core)
 4. В creative-файле блок `## Skills gate` с итоговыми путями. **FORBIDDEN:** Read вне списка; situational вне allowlist; situational >5

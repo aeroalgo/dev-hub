@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -60,7 +61,7 @@ def validate_spawn_input(
     notes = normalize_agent_tool_input(tool_input, norm, project_dir)
     prompt = tool_input.get("prompt") or prompt
 
-    if norm in {"verify", "reviewer", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose"} and VERDICT_FIRST_LINE not in prompt:
+    if norm in {"verify", "reviewer", "verify-implement", "verify-bugfix", "verify-qa", "verify-decompose", "analyze-verify", "verify-script", "verify-edit", "verify-publish"} and VERDICT_FIRST_LINE not in prompt:
         prompt = (prompt.rstrip() + "\n\n" + VERDICT_FIRST_LINE).lstrip()
         tool_input["prompt"] = prompt
 
@@ -142,6 +143,25 @@ def validate_spawn_input(
             if "ALLOW READ пуст" in violation:
                 continue
             deny_reasons.append(violation)
+        qa_repair = bool(re.search(r"(?i)(?:BACK\s+QA|verify-qa)", prompt))
+        verify_match = re.search(r"(?im)^\s*(?:#+\s*)?VERIFY\b[^\n]*", prompt)
+        verify_start = verify_match.end() if verify_match else 0
+        allow_read_match = re.search(
+            r"(?im)^\s*(?:#+\s*)?ALLOW\s+READ\b", prompt[verify_start:]
+        )
+        verify_body = prompt[verify_start:]
+        if allow_read_match:
+            verify_body = verify_body[: allow_read_match.start()]
+        first_pytest = verify_body.lower().find("pytest")
+        full_suite = verify_body.find("bin/pytest -q --tb=line")
+        if qa_repair and (
+            full_suite < 0 or (first_pytest >= 0 and full_suite > first_pytest)
+        ):
+            deny_reasons.append(
+                "qa_repair_verify_incomplete: gate-repair после BACK QA обязан "
+                "содержать первым VERIFY пунктом `bin/pytest -q --tb=line`; "
+                "targeted-команды не заменяют полный suite"
+            )
 
     return deny_reasons, notes
 

@@ -166,6 +166,35 @@ def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> 
     assert deny_reasons == []
 
 
+def test_gate_repair_after_qa_requires_full_suite(tmp_path: Path, monkeypatch) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    prompt = _repair_prompt() + "\nPhase: BACK QA\n"
+    tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert any("qa_repair_verify_incomplete" in reason for reason in deny_reasons)
+
+
+def test_gate_repair_after_qa_accepts_full_suite(tmp_path: Path, monkeypatch) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    prompt = (
+        _repair_prompt().replace(
+            "timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q",
+            "bin/pytest -q --tb=line\n"
+            "timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q",
+        )
+        + "\nPhase: BACK QA\n"
+    )
+    tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert deny_reasons == []
+
+
 def _decompose_setup(tmp_path: Path) -> None:
     _agent(
         tmp_path,

@@ -1,0 +1,92 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-084-workflow-reference-graph-hygiene
+title: s04 — Retain one shared owner edge across VAN and REFACTOR topology IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s04-van-refactor-owners.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Identified duplicate and transitive reference edges across VAN, REFACTOR, and PLAN
+  REFACTOR workflows, lean gates, and shared policy files.
+- Assigned single canonical owner edges with explicit lazy timing in workflow-van.mdc
+  and workflow-refactor.mdc.
+- Cleaned redundant @ edges in isolation_rules/_lean/van.mdc, isolation_rules/_lean/refactor.mdc,
+  workflow-plan-refactor.mdc, workflow-van-brownfield.mdc, and workflow-refactor-epic.mdc.
+gaps:
+  status: none
+done:
+- Updated harness/cursor/rules/back_developer/workflow-van.mdc with explicit Policy
+  lazy timing and removed duplicate @ edges.
+- Updated harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc to remove
+  redundant @ edge to shared van gate.
+- Updated harness/cursor/rules/shared/workflow-van-brownfield.mdc to remove redundant
+  outgoing @ edge to memory-bank-paths.
+- Updated harness/cursor/rules/back_developer/workflow-refactor.mdc with explicit
+  Policy lazy timing.
+- Updated harness/cursor/rules/back_developer/isolation_rules/_lean/refactor.mdc to
+  remove redundant @ edge to refactor epic.
+- Updated harness/cursor/rules/shared/workflow-refactor-epic.mdc to remove redundant
+  outgoing @ edges to memory-bank-paths, epic-scoped-paths, and finish-block.
+- Updated harness/cursor/rules/back_developer/workflow-plan-refactor.mdc with explicit
+  Policy lazy timing and removed redundant @ edges.
+- Created harness/hooks/tests/test_workflow_reference_graph_topology.py validating
+  single owner edges, explicit lazy timing, brownfield/refactor guards, and fail-closed
+  sole owner topology.
+files:
+- harness/cursor/rules/back_developer/workflow-van.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/van.mdc
+- harness/cursor/rules/shared/workflow-van-brownfield.mdc
+- harness/cursor/rules/back_developer/workflow-refactor.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/refactor.mdc
+- harness/cursor/rules/shared/workflow-refactor-epic.mdc
+- harness/cursor/rules/back_developer/workflow-plan-refactor.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/plan-refactor.mdc
+- harness/hooks/tests/test_workflow_reference_graph_topology.py
+deletes:
+- redundant VAN/brownfield policy edges in workflow-van.mdc and isolation_rules/_lean/van.mdc
+- redundant REFACTOR/refactor-path edges in workflow-refactor.mdc, workflow-plan-refactor.mdc
+  and their lean gates
+tests:
+- bin/pytest harness/hooks/tests/test_workflow_reference_graph_topology.py loop/tests/test_workflow_reference_graph.py
+  -q --tb=line -k 'van or refactor'
+integration_check:
+- bin/pytest harness/hooks/tests/test_workflow_reference_graph_topology.py loop/tests/test_workflow_reference_graph.py
+  -q --tb=line -k 'van or refactor' passed (2 passed)
+- Full reference graph suite across harness/hooks/tests/ and loop/tests/ passes cleanly
+  (14 passed).
+grep_control: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''command'': "bin/pytest harness/hooks/tests/test_workflow_reference_graph_topology.py
+  -q --tb=line -k ''van or refactor or lazy''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp2'', ''command'': "rg -n ''workflow-van-brownfield|workflow-refactor-epic|behavior|inventory|path''
+  harness/cursor/rules/back_developer/workflow-van.mdc harness/cursor/rules/shared/workflow-van-brownfield.mdc
+  harness/cursor/rules/back_developer/workflow-refactor.mdc harness/cursor/rules/shared/workflow-refactor-epic.mdc",
+  ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp3'', ''command'': "bin/pytest loop/tests/test_workflow_reference_graph.py
+  -q --tb=line -k ''van or refactor or transitive''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp4'', ''command'': "bin/pytest harness/hooks/tests/test_workflow_reference_graph_topology.py
+  -q --tb=line -k ''sole_owner or redundant''", ''outcome'': ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: VAN and REFACTOR topology each has one canonical owner edge and explicit
+    lazy timing.
+  status: done
+- id: cp2
+  criterion: Brownfield inventory and refactor-path/behavior-freeze guards remain
+    reachable through the owner files.
+  status: done
+- id: cp3
+  criterion: Transitive VAN/REFACTOR duplicate fixtures report both edges and their
+    source locations.
+  status: done
+- id: cp4
+  criterion: Sole-owner deletion fails validation while redundant-edge deletion passes
+    for both topology families.
+  status: done
+resume_from: cp1

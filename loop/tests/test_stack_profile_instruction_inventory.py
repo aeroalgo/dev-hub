@@ -16,10 +16,9 @@ def test_instruction_inventory_has_no_generic_managed_test_runner():
     root = _repo_root()
     instruction_files = [
         root / "harness/cursor/rules/shared/test-timeout.mdc",
-        root / "harness/cursor/rules/back_developer/mainrule-core.mdc",
+        root / "harness/cursor/rules/shared/role-core-contract.mdc",
         root / "harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc",
         root / "harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc",
-        root / "harness/cursor/rules/integration_developer/mainrule-core.mdc",
         root / "harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc",
         root / "harness/claude/skills/role-command/SKILL.md",
     ]
@@ -35,8 +34,7 @@ def test_instruction_inventory_retains_explicit_hub_exception():
     root = _repo_root()
     instruction_files = [
         root / "harness/cursor/rules/shared/test-timeout.mdc",
-        root / "harness/cursor/rules/back_developer/mainrule-core.mdc",
-        root / "harness/cursor/rules/integration_developer/mainrule-core.mdc",
+        root / "harness/cursor/rules/shared/role-core-contract.mdc",
         root / "harness/claude/skills/role-command/SKILL.md",
     ]
 

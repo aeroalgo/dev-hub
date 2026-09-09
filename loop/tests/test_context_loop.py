@@ -2543,6 +2543,39 @@ def test_record_abort_timeout_is_transient(tmp_path: Path) -> None:
     assert out["halted"] is False
 
 
+def test_record_abort_native_collaboration_timeout_is_repairable(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        '{"status":"running", "active":true, "armed_step":"QA", "armed_epic":"T-HUB-084"}\n',
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=4 mode=headless command=codex\n"
+        "SESSION_COLLAB_WAIT_TIMEOUT session=4 timeout=180s wait_for=180.1s threads=child-1\n"
+        '{"type":"result","terminal_reason":"api_error","result":"native collaboration wait timeout","subtype":"success"}\n'
+        "SESSION_END session=4 exit_code=124 elapsed=180.1s\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=124, runtime="codex")
+
+    assert out["retryable"] is True
+    state = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert state["gate_diagnostic"] == "verify_runtime_collaboration_wait_timeout"
+    assert state["repair_required"] == "gate-repair"
+    assert "retry spawn_agent" in state["halt_reason"]
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker["reason"] == "native collaboration wait timeout"
+    assert marker["status"] == "aborted"
+
+
 def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)

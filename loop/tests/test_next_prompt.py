@@ -17,7 +17,7 @@ def test_build_prompt_implement_finish_order_and_handoff():
         projection={"phase": "BACK IMPLEMENT", "epic": "T-test", "next_step": "s01"},
     )
     assert text.startswith("COMMAND: BACK IMPLEMENT\n")
-    assert "workflow-implement.mdc" not in text
+    assert "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path" in text
     assert "AGENTS.md" not in text
     assert "- step: `s01`" in text
     assert "Silent chat (HARD)" in text
@@ -42,7 +42,7 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "mb-finish qa" in text
     assert "## QA canon (HARD)" in text
     assert "выбранного workflow" in text
-    assert "bin/pytest -q --tb=line" not in text
+    assert "bin/pytest -q --tb=line" in text
     assert "suite_not_full" not in text
     assert "BACK BUGFIX" not in text
     assert "code_changed: no" not in text

@@ -3,9 +3,9 @@ description: "Режим BACK REFACTOR — анализ качества, memory
 alwaysApply: false
 ---
 ### Команда: BACK REFACTOR
-**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc  
-**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/refactor.mdc  
-**Epic paths:** @.cursor/rules/shared/workflow-refactor-epic.mdc  
+**Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
+**Gates**: @.cursor/rules/back_developer/isolation_rules/_lean/refactor.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-refactor-epic.mdc
 **Скиллы:**
 - @.agents/skills/improve-codebase-architecture/SKILL.md
 - @.agents/skills/architecture-patterns/SKILL.md
@@ -20,13 +20,13 @@ alwaysApply: false
 1a. Прочитай **Gates** + **workflow-refactor-epic** (path rule)
 1b. Detect epic: `decompose-<id>/` / `@rNN` / plan id в Handoff → **эпик**; иначе **S**
 2. `tasks.md` + load_now; skills из Impl skills шага (эпик) или analysis (S)
-3. **Эпик (M/L):** один `rNN` из decompose → code → FINISH artifact = `refactor/implement/implement-<id>/rNN-<slug>.md`  
+3. **Эпик (M/L):** один `rNN` из decompose → code → FINISH artifact = `refactor/implement/implement-<id>/rNN-<slug>.md`
    **FORBIDDEN:** `session-*.md` в корне `refactor/`
-4. **Без эпика (S):** analysis(+plan) → code → FINISH artifact = `refactor/session-YYYYMMDD-<slug>.md`  
+4. **Без эпика (S):** analysis(+plan) → code → FINISH artifact = `refactor/session-YYYYMMDD-<slug>.md`
    **FORBIDDEN:** `implement/implement-*/rNN-*.md`
 5. Behavior freeze; tests green before → refactor → green after
 6. §0.11 если refs
-7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed` по факту)  
+7. **FINISH:** @.cursor/rules/shared/finish-block.mdc (`code_changed` по факту)
    Next: Handoff `- **Следующий:**` в `memory-bank/activeContext.md` + decompose index
 
 **Верификация**: gates + epic path rule + FINISH + graphify (если code_changed)

@@ -124,6 +124,53 @@ def test_agent_message_plain_text_is_shown() -> None:
     assert out == "Done.\n"
 
 
+def test_collaboration_child_activity_is_shown() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": "Role: verify-qa\nPhase: BACK QA",
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "receiver_thread_ids": ["child-1"],
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "agents_states": {
+                        "child-1": {
+                            "status": "completed",
+                            "message": "Проверка завершена: VERDICT: FAIL",
+                        }
+                    },
+                },
+            }
+        ),
+    ]
+
+    out = _capture_lines(lines)
+
+    assert "→ Subagent spawn type=verify-qa\n" in out
+    assert "→ Subagent wait children=1\n" in out
+    assert "← Subagent child-1 status=completed\n" in out
+    assert "Проверка завершена: VERDICT: FAIL" in out
+
+
 def test_skill_budget_warning_is_hidden() -> None:
     lines = [
         json.dumps(

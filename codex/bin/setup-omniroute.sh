@@ -9,6 +9,7 @@ PROFILE_SRC="${ROOT}/dev-hub.config.toml"
 PROFILE_DST="${CODEX_HOME}/dev-hub.config.toml"
 KEY_FILE="${OMNIROUTE_API_KEY_FILE:-${CODEX_HOME}/.omniroute_key}"
 CLAUDE_SETTINGS="${HOME}/.claude/settings.json"
+PATCHED_CODEX="${CODEX_PATCHED_BIN:-${ROOT}/.build/codex-v0.152.0}"
 
 mkdir -p "$CODEX_HOME"
 chmod +x "${ROOT}/bin/codex-omniroute.sh"
@@ -70,9 +71,20 @@ else
   echo "Updated $CONFIG_DST"
 fi
 
+if [[ "${CODEX_BUILD_PATCHED:-0}" == "1" && ! -x "$PATCHED_CODEX" ]]; then
+  echo "Building the Codex collaboration transport adapter..."
+  "${ROOT}/bin/build-patched-codex.sh"
+fi
+
+if [[ "${OMNIROUTE_PATCH_CONTAINER:-1}" == "1" ]] && command -v docker >/dev/null 2>&1 \
+  && docker inspect "${OMNIROUTE_CONTAINER_NAME:-omniroute}" >/dev/null 2>&1; then
+  bash "${ROOT}/bin/apply-omniroute-collaboration-fix.sh"
+fi
+
 echo "Key file: $KEY_FILE"
 echo "Codex profile: $PROFILE_DST (use --profile dev-hub)"
 echo "Wrapper: ${ROOT}/bin/codex-omniroute.sh"
+echo "Patched Codex: ${PATCHED_CODEX}"
 echo
 echo "Verify:"
 echo "  ${ROOT}/bin/codex-omniroute.sh exec --ephemeral --dangerously-bypass-approvals-and-sandbox 'say hi'"

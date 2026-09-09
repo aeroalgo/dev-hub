@@ -4,9 +4,9 @@ alwaysApply: false
 ---
 # REFACTOR epic — shared
 
-**Paths (канон):** @.cursor/rules/shared/memory-bank-paths.mdc  
-**Epic detect:** @.cursor/rules/shared/epic-scoped-paths.mdc  
-**FINISH:** @.cursor/rules/shared/finish-block.mdc  
+**Paths (канон):** shared/memory-bank-paths.mdc
+**Epic detect:** shared/epic-scoped-paths.mdc
+**FINISH:** shared/finish-block.mdc
 **Шаблоны:** `.cursor/templates/refactor/` (если есть)
 
 ## Execute path rule (HARD)
@@ -44,8 +44,8 @@ memory-bank/{back|front|integration}/refactor/
 | 1–3 файла, ≤1 слой, один чат ок | **S** (без эпика) | `* REFACTOR` one-shot | `refactor/session-*.md` |
 | ≥4 файла / несколько модулей / риск контракта / >1 чата | **M/L** (эпик) | `* REFACTOR PLAN` → `DECOMPOSE` → `* REFACTOR` @rNN | `refactor/implement/implement-<id>/rNN-*.yaml` |
 
-Сомнение → **M/L**.  
-S: **FORBIDDEN** создавать `decompose-*` «на всякий случай».  
+Сомнение → **M/L**.
+S: **FORBIDDEN** создавать `decompose-*` «на всякий случай».
 M/L: **FORBIDDEN** кодить в PLAN/DECOMPOSE; execute только через `rNN` → **implement/**.
 
 ## Commands
@@ -73,7 +73,7 @@ M/L: **FORBIDDEN** кодить в PLAN/DECOMPOSE; execute только чере
 | Implement dir | `{role}/implement/implement-<plan>/` | `{role}/refactor/implement/implement-<id>/` |
 | Execute cmd | `* IMPLEMENT` | `* REFACTOR` |
 
-**Epic loop:** `./loop/loop.sh memory-bank/.../refactor/plan/decompose-<id> MODEL` — `REFACTOR` в `allowed_modes`; один `rNN` на сессию. Канон: `.claude/instructions/epic-loop.md`.  
+**Epic loop:** `./loop/loop.sh memory-bank/.../refactor/plan/decompose-<id> MODEL` — `REFACTOR` в `allowed_modes`; один `rNN` на сессию. Канон: `.claude/instructions/epic-loop.md`.
 В промпт REFACTOR epic: FINISH-артефакт = `implement/.../rNN-*.yaml`, не `session-*`.
 
 ## PLAN output

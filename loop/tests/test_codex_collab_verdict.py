@@ -11,6 +11,33 @@ from loop.codex_collab_verdict import (
 )
 
 
+def test_gate_agent_prompts_publish_complete_verdict_contract() -> None:
+    """Gate prompts must show every field required by loop-gate-verdict/v1."""
+    repo_root = Path(__file__).resolve().parents[2]
+    required_fields = ("step_id", "session_id", "epic_id")
+
+    for agent_name in (
+        "verify-implement",
+        "verify-bugfix",
+        "verify-qa",
+        "verify-decompose",
+        "analyze-verify",
+        "verify-script",
+        "verify-edit",
+        "verify-publish",
+    ):
+        prompt = (repo_root / "harness" / "agents" / f"{agent_name}.md").read_text(
+            encoding="utf-8"
+        )
+        validation_line = next(
+            line
+            for line in prompt.splitlines()
+            if line.startswith("python harness/hooks/epic_resolve.py validate-boundary")
+        )
+        assert all(f'"{field}"' in validation_line for field in required_fields)
+        assert all(f'  "{field}":' in prompt for field in required_fields)
+
+
 def _ensure_gate_agents(cwd: Path, *names: str) -> None:
     agents = cwd / ".claude" / "agents"
     agents.mkdir(parents=True, exist_ok=True)
@@ -80,6 +107,57 @@ def test_iter_codex_collab_verdicts_json_fence() -> None:
     events = list(iter_codex_collab_verdicts(log))
     assert len(events) == 1
     assert events[0].agent_type == "verify-implement"
+    assert events[0].verdict == "PASS"
+
+
+def test_iter_codex_collab_verdicts_accepts_flat_transport_identity() -> None:
+    log = "\n".join(
+        [
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "spawn-flat",
+                        "type": "collab_tool_call",
+                        "tool": "multi_agent_v1_spawn_agent",
+                        "receiver_thread_ids": ["thread-flat"],
+                        "prompt": "agent_type=verify-bugfix",
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "item.completed",
+                    "item": {
+                        "id": "wait-flat",
+                        "type": "collab_tool_call",
+                        "tool": "multi_agent_v1_wait",
+                        "agents_states": {
+                            "thread-flat": {
+                                "status": "completed",
+                                "message": (
+                                    "```json\n"
+                                    '{"schema":"loop-gate-verdict/v1",'
+                                    '"agent_id":"verify-bugfix",'
+                                    '"verdict":"PASS",'
+                                    '"step_id":"BUGFIX",'
+                                    '"session_id":"test-session",'
+                                    '"epic_id":"T-HUB-044",'
+                                    '"recorded_at":"2026-09-09T00:00:00Z"}\n'
+                                    "```"
+                                ),
+                            }
+                        },
+                    },
+                }
+            ),
+        ]
+    )
+
+    events = list(iter_codex_collab_verdicts(log))
+
+    assert len(events) == 1
+    assert events[0].agent_type == "verify-bugfix"
     assert events[0].verdict == "PASS"
 
 

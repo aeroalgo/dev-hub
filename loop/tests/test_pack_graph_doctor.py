@@ -407,3 +407,145 @@ def test_kind_i_no_fully_wired_while_red() -> None:
     assert "pack wired" not in claude_md.lower()
     assert "partial load ok" not in claude_md.lower()
 
+
+
+def test_dangling_reference_rejected_by_doctor(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """cp3 / FR-003: Dangling dead reference is rejected by the production pack-graph doctor entrypoint."""
+    rules_root = tmp_path / ".cursor" / "rules"
+    rules_root.mkdir(parents=True, exist_ok=True)
+    mb_dir = tmp_path / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    phase_reg = tmp_path / "phase_registry.yaml"
+    phase_reg.write_text("schema: phase-registry/v1\nphases: {}\n", encoding="utf-8")
+
+    workflow_mdc = rules_root / "workflow-test.mdc"
+    workflow_mdc.write_text(
+        "---\ndescription: test\n---\n"
+        "Reference to missing: @.cursor/rules/shared/cheatsheets/back-audit.mdc\n",
+        encoding="utf-8",
+    )
+
+    from loop.workflow.schemas import WorkflowPack
+    pack = WorkflowPack(
+        id="dangling-doc-pack",
+        roles=["test"],
+        command_prefixes=["TEST"],
+        phase_registry="phase_registry.yaml",
+        memory_bank="memory-bank",
+        rules_root=".cursor/rules",
+    )
+
+    res = check_pack_graph(pack_or_id=pack, cwd=tmp_path, hub_root=tmp_path)
+    assert not res.ok
+    assert "pack_reference_dangling" in res.diagnostic_codes
+
+
+def test_multiple_codes_with_reference_diagnostics(tmp_path: Path) -> None:
+    """cp4 / FR-003: Existing route, gate, and skill diagnostics remain fail-closed alongside reference diagnostics."""
+    rules_root = tmp_path / ".cursor" / "rules"
+    rules_root.mkdir(parents=True, exist_ok=True)
+    mb_dir = tmp_path / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    phase_reg = tmp_path / "phase_registry.yaml"
+    phase_reg.write_text("schema: phase-registry/v1\nphases: {}\n", encoding="utf-8")
+
+    # 1. Missing lean gate
+    workflow_mdc = rules_root / "workflow-plan.mdc"
+    workflow_mdc.write_text(
+        "---\ndescription: test\n---\n"
+        "**Gates**: @.cursor/rules/isolation_rules/_lean/missing_gate.mdc\n"
+        "Duplicate target: @.cursor/rules/shared/leaf.mdc\n"
+        "Duplicate target: @.cursor/rules/shared/leaf.mdc\n"
+        "Dangling target: @.cursor/rules/shared/missing_file.mdc\n",
+        encoding="utf-8",
+    )
+    shared_dir = rules_root / "shared"
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    (shared_dir / "leaf.mdc").write_text("content\n", encoding="utf-8")
+
+    from loop.workflow.schemas import WorkflowPack
+    pack = WorkflowPack(
+        id="multi-diag-pack",
+        roles=["test"],
+        command_prefixes=["TEST"],
+        phase_registry="phase_registry.yaml",
+        memory_bank="memory-bank",
+        rules_root=".cursor/rules",
+    )
+
+    res = check_pack_graph(pack_or_id=pack, cwd=tmp_path, hub_root=tmp_path)
+    assert not res.ok
+    assert "pack_gate_missing" in res.diagnostic_codes
+    assert "pack_reference_duplicate" in res.diagnostic_codes
+    assert "pack_reference_dangling" in res.diagnostic_codes
+
+
+def test_active_corpus_duplicate_and_dangling_edges_fail(tmp_path: Path) -> None:
+    """cp1 / FR-001 / FR-003 / TM-084-01 / TM-084-04: Production check_pack_graph fails on direct duplicate, transitive ambiguity and dangling active-corpus fixtures with source lines."""
+    rules_root = tmp_path / ".cursor" / "rules"
+    rules_root.mkdir(parents=True, exist_ok=True)
+    mb_dir = tmp_path / "memory-bank"
+    mb_dir.mkdir(parents=True, exist_ok=True)
+    phase_reg = tmp_path / "phase_registry.yaml"
+    phase_reg.write_text("schema: phase-registry/v1\nphases: {}\n", encoding="utf-8")
+
+    shared_dir = rules_root / "shared"
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    (shared_dir / "leaf.mdc").write_text("leaf content\n", encoding="utf-8")
+    (shared_dir / "owner.mdc").write_text(
+        "---\ndescription: owner\n---\n"
+        "@.cursor/rules/shared/leaf.mdc\n",
+        encoding="utf-8",
+    )
+
+    workflow_mdc = rules_root / "workflow-test.mdc"
+    workflow_mdc.write_text(
+        "---\ndescription: test\n---\n"
+        "Duplicate line 4: @.cursor/rules/shared/leaf.mdc\n"
+        "Duplicate line 5: @.cursor/rules/shared/leaf.mdc\n"
+        "Transitive ambiguity line 6: @.cursor/rules/shared/owner.mdc\n"
+        "Dangling dead ref line 7: @.cursor/rules/shared/missing_file.mdc\n",
+        encoding="utf-8",
+    )
+
+    from loop.workflow.schemas import WorkflowPack
+    pack = WorkflowPack(
+        id="active-corpus-fixture-pack",
+        roles=["test"],
+        command_prefixes=["TEST"],
+        phase_registry="phase_registry.yaml",
+        memory_bank="memory-bank",
+        rules_root=".cursor/rules",
+    )
+
+    res = check_pack_graph(pack_or_id=pack, cwd=tmp_path, hub_root=tmp_path)
+    assert not res.ok
+    assert "pack_reference_duplicate" in res.diagnostic_codes
+    assert "pack_reference_transitive_ambiguity" in res.diagnostic_codes
+    assert "pack_reference_dangling" in res.diagnostic_codes
+
+    diags = res.details.get("reference_diagnostics", [])
+    dup_diag = next(d for d in diags if d.get("code") == "pack_reference_duplicate")
+    assert [loc["line"] for loc in dup_diag.get("locations", [])] == [4, 5]
+
+    trans_diag = next(d for d in diags if d.get("code") == "pack_reference_transitive_ambiguity")
+    assert any(loc["line"] in (4, 5) and "workflow-test.mdc" in loc["path"] for loc in trans_diag.get("locations", []))
+    assert any(loc["line"] == 4 and "owner.mdc" in loc["path"] for loc in trans_diag.get("locations", []))
+
+    dangling_diag = next(d for d in diags if d.get("code") == "pack_reference_dangling")
+    assert any(loc["line"] == 7 for loc in dangling_diag.get("locations", []))
+
+def test_pack_graph_module_cli_entrypoint(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify python -m loop.workflow.pack_graph doctor runs as executable CLI entrypoint."""
+    import subprocess
+    import sys
+    proc = subprocess.run(
+        [sys.executable, "-m", "loop.workflow.pack_graph", "doctor"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0
+    data = json.loads(proc.stdout)
+    assert data["ok"] is True
+    assert data["pack_id"] == "dev-hub-software"
+    assert data["diagnostic_codes"] == []

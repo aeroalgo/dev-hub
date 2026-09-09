@@ -1,7 +1,7 @@
 {
   "name": "analyze-verify",
   "policy_fingerprint": "sha256:4d044db594e91b3c686261619ecf8f3082c853691df5382ff31700feaf67b574",
-  "source_prompt_sha256": "9fc737a371a8c09c083d75d8d0665f7ecb1c06fb1d71c8681f629c108f9e3d44",
+  "source_prompt_sha256": "5d510ed7ffde24385d66e92f2342168a883a4a0e8603401b4de6140292171673",
   "disallowedTools": [
     "Write",
     "Edit",

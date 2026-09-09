@@ -37,6 +37,7 @@ All runtime limits are bounded and non-secret. `.claude/project.env` is the chec
 | `EPIC_TRANSIENT_RETRY_MAX` | `30` |
 | `EPIC_DEGRADED_MAX` | `3` |
 | `EPIC_STATUS_HEARTBEAT_SEC` | empty = disabled |
+| `EPIC_COLLAB_WAIT_TIMEOUT_SEC` | `180`; fail-closed deadline for a native Codex `spawn_agent` → `wait` child |
 
 Status output is secret-free and exposes effective values plus their sources; it must not expose prompts, tokens or secret values.
 

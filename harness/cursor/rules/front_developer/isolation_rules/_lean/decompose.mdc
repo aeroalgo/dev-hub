@@ -12,7 +12,7 @@ alwaysApply: false
 1. План из `load_now` или `plan-<id>`
 2. L3–L4: все plan shards
 2a. **Maximal detail + Outcome preserve + Replacement cleanup:** `## Requirements coverage` + `## Stages coverage` + `## Outcome map` + `## Replacement cleanup`; goals связаны с Goal/UX плана (не scaffolding-only). Канон: `workflow-decompose.mdc` §Replacement cleanup (FRONT) + BACK §Maximal detail / §Outcome preserve
-2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify для product FR = incomplete. @.cursor/rules/shared/workflow-behavior-first.mdc
+2a1. **Anti-dilution:** plan FR nouns ∈ `produces`/`files`; surrogate-only verify для product FR = incomplete. shared/workflow-behavior-first.mdc
 2a1a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full suite в shard запрещён и передаётся **FRONT QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
 2a2. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; micro-ladder / audit-хвост пачкой = incomplete. §3a behavior-first
 3. Шаг = один FRONT IMPLEMENT; `step_id`, files, `deletes`, `needs_creative`, `visible_ui`, `tdd`

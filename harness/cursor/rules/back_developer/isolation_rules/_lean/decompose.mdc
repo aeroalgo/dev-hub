@@ -16,7 +16,7 @@ alwaysApply: false
 4. Covered row ⇒ measurable `verify` (не map-only / не surrogate-only для product FR)
 4a. **Test scope (HARD):** каждый `sNN` содержит только targeted `verify` по своему `files`/`delta`; full pytest suite в shard запрещён и передаётся **BACK QA**. Канон: @.cursor/rules/shared/test-timeout.mdc §DECOMPOSE / IMPLEMENT boundary
 5. Titles outcome-first; matrix/lifecycle/existing-services → отдельные sNN **только при отдельном outcome** (не micro-ladder schema→CLI→wire)
-5a. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; audit-хвост / docs+Kind I / core+CLI — сливать. @.cursor/rules/shared/workflow-behavior-first.mdc §3a
+5a. **Granularity:** target 5–8 sNN (≤9 L3/L4); `>9` → justification в index; audit-хвост / docs+Kind I / core+CLI — сливать. shared/workflow-behavior-first.mdc §3a
 6. Каждый `sNN`: `epic-decompose/v1` + `role: back` + list `as_built`/`delta` + `deletes` + `plan_contract` + `code_surface` + Core(4) ∪ situational ≤6
 7. Brownfield ≠ n/a → `deletes` + `*-legacy-fallback-purge` (+ Kind I)
 8. CLI: `validate-decompose-tree` exit 0 · `validate-traceability` **CRITICAL=0**

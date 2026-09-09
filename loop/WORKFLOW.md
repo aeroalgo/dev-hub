@@ -19,7 +19,7 @@
 | Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
 | Runner | `./loop/loop.sh` → `context_loop.py` |
-| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
+| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_COLLAB_WAIT_TIMEOUT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
 
@@ -128,7 +128,7 @@ Functions `arm_active_context_from_decompose` and `arm_pre_implement_context` ar
 | BUGFIX | `PROJECT_LOOP_BUGFIX_MODEL` |
 | REFLECT | `PROJECT_LOOP_REFLECT_MODEL` |
 
-Если override задан в `.claude/project.env` (или `.local`) — он **важнее** CLI `MODEL` (`make loop ARGS=gpt`). Если нет — используется CLI model. Пример: `PROJECT_LOOP_DECOMPOSE_MODEL=agy/claude-sonnet-4-6` при `make loop ARGS=gpt` → DECOMPOSE на sonnet, IMPLEMENT на gpt.
+Если передан явный CLI `--model` (`make loop ARGS="--model gpt"`), он имеет приоритет над phase override. Если CLI-модель не задана, используется `PROJECT_LOOP_<PHASE>_MODEL` из `.claude/project.env` (или `.local`). Пример: `PROJECT_LOOP_DECOMPOSE_MODEL=agy/claude-sonnet-4-6` при `make loop ARGS="--model gpt"` → DECOMPOSE на gpt; без `--model` — на sonnet.
 
 **Fail-closed model swap:** только при явном сообщении Claude/org `is restricted… Using X instead` — session wrapper убивает процесс (`exit 125`), `record-session` → `permanent_failure` / `model_substitution`, loop **HALT**. Разница CLI id vs init alias (например `agy/gemini-3.5-flash-medium` → `gemini-default`) — **не** halt. Fix при настоящем restrict: разрешить модель в org/OmniRoute или убрать недоступный `PROJECT_LOOP_<PHASE>_MODEL`.
 

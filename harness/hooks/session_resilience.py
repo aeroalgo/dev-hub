@@ -88,9 +88,10 @@ MODEL_SUBSTITUTION_EXIT = 125
 _MODEL_SUBSTITUTION_MARKER = "MODEL_SUBSTITUTION\n"
 CODEX_UNSUPPORTED_TOOL_EXIT = 126
 _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
-    r"(?i)^\s*ERROR\s+codex_core::tools::router:\s*"
+    r"(?i)^\s*(?:\d{4}-\d{2}-\d{2}T[\d:.+-]+Z?\s+)?ERROR\s+codex_core::tools::router:\s*"
     r"error=unsupported call:\s*(?P<tool>[A-Za-z0-9_.:-]+)"
 )
+COLLABORATION_WAIT_TIMEOUT_REASON = "native collaboration wait timeout"
 
 
 def _detect_codex_unsupported_tool(text: str) -> str | None:
@@ -166,6 +167,90 @@ def _tool_progress_seen(tail: str, chunk: str, *, progress_mode: str = "tool_jso
         if match.end() > len(tail):
             found = True
     return found, combined[-_TOOL_PROGRESS_TAIL:]
+
+
+_COLLAB_TERMINAL_STATES = frozenset(
+    {"completed", "failed", "errored", "error", "cancelled", "closed", "stopped"}
+)
+
+
+def _update_collaboration_wait_state(
+    line: str,
+    *,
+    pending_threads: set[str],
+    wait_started: float | None,
+    now: float,
+) -> tuple[set[str], float | None, bool]:
+    """Track one native Codex child across repeated wait polling calls.
+
+    Codex may complete a short ``wait`` poll while the child is still pending,
+    then emit another ``wait``.  A plain stream-idle timer therefore gets
+    reset forever.  Keep the child set and the first wait timestamp until a
+    terminal child state is observed.
+    """
+    try:
+        event = json.loads(line)
+    except (TypeError, json.JSONDecodeError):
+        return pending_threads, wait_started, False
+    if not isinstance(event, dict):
+        return pending_threads, wait_started, False
+    item = event.get("item")
+    if not isinstance(item, dict) or item.get("type") != "collab_tool_call":
+        return pending_threads, wait_started, False
+
+    tool = str(item.get("tool") or "").strip()
+    try:
+        from loop.runtime_adapters.codex_collaboration import normalize_tool_identity
+
+        _namespace, tool = normalize_tool_identity(tool, item.get("namespace"))
+    except Exception:
+        pass
+    if tool not in {"spawn_agent", "wait"}:
+        return pending_threads, wait_started, False
+
+    receiver_ids = {
+        str(thread_id).strip()
+        for thread_id in (item.get("receiver_thread_ids") or [])
+        if str(thread_id).strip()
+    }
+    states = item.get("agents_states")
+    if not isinstance(states, dict):
+        states = {}
+    for thread_id, state in states.items():
+        thread = str(thread_id).strip()
+        if not thread:
+            continue
+        status = str(state.get("status") or "").strip().lower() if isinstance(state, dict) else ""
+        if status in _COLLAB_TERMINAL_STATES:
+            pending_threads.discard(thread)
+        else:
+            pending_threads.add(thread)
+
+    if tool == "spawn_agent":
+        pending_threads.update(receiver_ids)
+        # A completed spawn can already report a terminal child state.
+        for thread_id in receiver_ids:
+            state = states.get(thread_id)
+            if isinstance(state, dict) and str(state.get("status") or "").lower() in _COLLAB_TERMINAL_STATES:
+                pending_threads.discard(thread_id)
+        return pending_threads, wait_started, event.get("type") == "item.completed"
+
+    child_activity = False
+    if event.get("type") == "item.completed":
+        for state in states.values():
+            if not isinstance(state, dict):
+                continue
+            message = str(state.get("message") or "").strip()
+            status = str(state.get("status") or "").strip().lower()
+            if message or status in _COLLAB_TERMINAL_STATES:
+                child_activity = True
+    if event.get("type") == "item.started" and receiver_ids:
+        pending_threads.update(receiver_ids)
+        if wait_started is None:
+            wait_started = now
+    if not pending_threads:
+        wait_started = None
+    return pending_threads, wait_started, child_activity
 
 
 class SessionOutcome(str, Enum):
@@ -994,7 +1079,13 @@ def dirty_resume_prompt_lines(
         "full-repo rediscovery when dirty_files non-empty."
     )
     lines.append(
-        "REQUIRED: Read dirty_files first → finish pending checkpoints → flush cp status."
+        "ORDER (HARD): first complete the CURRENT WORKFLOW SCOPE bootstrap "
+        "(entrypoint → mainrule → Gates → scope-lock → canonical Hot path); "
+        "only then read dirty_files."
+    )
+    lines.append(
+        "REQUIRED after workflow bootstrap: read dirty_files → finish pending "
+        "checkpoints → flush cp status."
     )
     cp_trace = load_implement_checkpoint_trace(cwd, step_id, plan_id)
     if cp_trace:
@@ -1062,6 +1153,7 @@ def run_session(
     expected_model: str | None = None,
     heartbeat_sec: float | None = None,
     idle_timeout: float | None = None,
+    collaboration_wait_timeout: float | None = None,
     stdin_text: str | None = None,
     progress_mode: str = "tool_json",
 ) -> int:
@@ -1076,6 +1168,8 @@ def run_session(
         raise ValueError("heartbeat_sec must be positive when provided")
     if idle_timeout is not None and idle_timeout <= 0:
         raise ValueError("idle_timeout must be positive when provided")
+    if collaboration_wait_timeout is not None and collaboration_wait_timeout <= 0:
+        raise ValueError("collaboration_wait_timeout must be positive when provided")
     if progress_mode not in _PROGRESS_MODES:
         raise ValueError(f"progress_mode must be one of {sorted(_PROGRESS_MODES)}")
 
@@ -1091,6 +1185,10 @@ def run_session(
     scan_buf = ""
     tool_tail = ""
     progress_line_buf = ""
+    collaboration_line_buf = ""
+    collaboration_pending_threads: set[str] = set()
+    collaboration_wait_started: float | None = None
+    collaboration_wait_timed_out = False
     last_progress = "starting"
     # Idle: tool_json = last tool_use/tool_result; stream_bytes = last stdout chunk (Codex).
     last_activity = started
@@ -1184,6 +1282,34 @@ def run_session(
                         _safe_killpg(process.pid, signal.SIGKILL)
                         process.wait()
                     break
+                if (
+                    collaboration_wait_timeout is not None
+                    and collaboration_pending_threads
+                    and collaboration_wait_started is not None
+                    and process.poll() is None
+                    and now - collaboration_wait_started >= collaboration_wait_timeout
+                ):
+                    collaboration_wait_timed_out = True
+                    threads = ",".join(sorted(collaboration_pending_threads))
+                    log.write(
+                        f"SESSION_COLLAB_WAIT_TIMEOUT session={session_id} "
+                        f"timeout={collaboration_wait_timeout:g}s "
+                        f"wait_for={now - collaboration_wait_started:.1f}s "
+                        f"threads={threads}\n"
+                    )
+                    log.flush()
+                    _write_status(
+                        f"==> native collaboration wait timeout: session={session_id} "
+                        f"wait_for={now - collaboration_wait_started:.1f}s "
+                        f"limit={collaboration_wait_timeout:g}s threads={threads}\n"
+                    )
+                    _safe_killpg(process.pid, signal.SIGTERM)
+                    try:
+                        process.wait(timeout=kill_grace)
+                    except subprocess.TimeoutExpired:
+                        _safe_killpg(process.pid, signal.SIGKILL)
+                        process.wait()
+                    break
                 for key, _ in events:
                     data = key.fileobj.read1(65536)
                     if data:
@@ -1206,6 +1332,23 @@ def run_session(
                             if progress_line.startswith("==> dsh:"):
                                 last_progress = progress_line[:200]
                         progress_line_buf = progress_line_buf[-512:]
+                        if progress_mode == "codex_json":
+                            collaboration_line_buf += chunk_txt
+                            while "\n" in collaboration_line_buf:
+                                collaboration_line, collaboration_line_buf = collaboration_line_buf.split("\n", 1)
+                                (
+                                    collaboration_pending_threads,
+                                    collaboration_wait_started,
+                                    collaboration_activity,
+                                ) = _update_collaboration_wait_state(
+                                    collaboration_line.strip(),
+                                    pending_threads=collaboration_pending_threads,
+                                    wait_started=collaboration_wait_started,
+                                    now=time.monotonic(),
+                                )
+                                if collaboration_activity:
+                                    last_activity = time.monotonic()
+                            collaboration_line_buf = collaboration_line_buf[-64_000:]
                         if progress_mode == "codex_json":
                             unsupported_tool = _detect_codex_unsupported_tool(chunk_txt)
                             if unsupported_tool:
@@ -1275,6 +1418,11 @@ def run_session(
                 f'{{"type":"result","terminal_reason":"api_error","result":"API Error: Stream idle timeout - no tool_use/tool_result","subtype":"success"}}\n'
             )
             rc = 124
+        elif collaboration_wait_timed_out:
+            log.write(
+                f'{{"type":"result","terminal_reason":"api_error","result":"{COLLABORATION_WAIT_TIMEOUT_REASON}","subtype":"success"}}\n'
+            )
+            rc = 124
         elif timed_out:
             log.write(f"SESSION_TIMEOUT session={session_id} timeout={timeout:g}s\n")
             rc = 124
@@ -1309,6 +1457,7 @@ def _session_cli(argv: list[str]) -> int:
     run_parser.add_argument("--kill-grace", type=float, required=True)
     run_parser.add_argument("--heartbeat-sec", type=float, default=0.0)
     run_parser.add_argument("--idle-timeout", type=float, default=0.0)
+    run_parser.add_argument("--collaboration-wait-timeout", type=float, default=0.0)
     run_parser.add_argument(
         "--progress-mode",
         choices=sorted(_PROGRESS_MODES),
@@ -1347,6 +1496,7 @@ def _session_cli(argv: list[str]) -> int:
             expected_model=(args.expected_model or "").strip() or None,
             heartbeat_sec=args.heartbeat_sec or None,
             idle_timeout=args.idle_timeout or None,
+            collaboration_wait_timeout=args.collaboration_wait_timeout or None,
             stdin_text=stdin_text,
             progress_mode=args.progress_mode,
         )

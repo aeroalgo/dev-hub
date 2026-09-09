@@ -246,10 +246,10 @@ On role command / FINISH: recommend tool if unclear — Cursor + fast-editing (d
 
 ## 0.15 Session & chat economy
 
-Detail: @.cursor/rules/shared/context-session-economy.mdc
+Detail: .cursor/rules/shared/context-session-economy.mdc
 
 - **One chat = one atomic subtask** (not whole epic); new chat on role switch or subtask done
-- **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + @.cursor/rules/shared/finish-doc-router.mdc)
+- **FINISH:** **перезаписать** единственный `## Handoff` в `activeContext.md` (не append) → doc-router → recommend new chat (@.cursor/templates/finish-doc-router.md + .cursor/rules/shared/finish-doc-router.mdc)
 - **Session start:** `load_now` + handoff file; never depend on prior chat transcript
 - **Skills:** lazy — only skills for current subtask
 - **QA:** qa/bugfix shard + diff + §0.11 grep; skip `plan-*.md`; if AC unclear → only `plan §N`, never full plan in `load_now`

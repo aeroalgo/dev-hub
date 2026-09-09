@@ -31,7 +31,7 @@ def test_loop_phase_key_from_armed_step() -> None:
     assert ctx.loop_phase_key("BACK CREATIVE", "s02") == "CREATIVE"
 
 
-def test_resolve_decompose_override_beats_cli(
+def test_resolve_cli_model_beats_phase_default(
     monkeypatch, tmp_path: Path
 ) -> None:
     ctx = _load_ctx()
@@ -42,10 +42,22 @@ def test_resolve_decompose_override_beats_cli(
         cli_model="gpt",
         project_dir=tmp_path,
     )
-    assert out["model"] == "agy/claude-sonnet-4-6"
+    assert out["model"] == "gpt"
     assert out["loop_phase"] == "DECOMPOSE"
-    assert out["model_source"] == "phase_env"
+    assert out["model_source"] == "cli"
     assert out["model_env"] == "PROJECT_LOOP_DECOMPOSE_MODEL"
+
+
+def test_resolve_phase_default_when_cli_model_is_absent(monkeypatch) -> None:
+    ctx = _load_ctx()
+    monkeypatch.setenv("PROJECT_LOOP_DECOMPOSE_MODEL", "agy/claude-sonnet-4-6")
+    out = ctx.resolve_loop_phase_model(
+        phase="DECOMPOSE",
+        armed_step="DECOMPOSE",
+        cli_model=None,
+    )
+    assert out["model"] == "agy/claude-sonnet-4-6"
+    assert out["model_source"] == "phase_env"
 
 
 def test_resolve_falls_back_to_cli_when_no_override(monkeypatch) -> None:

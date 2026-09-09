@@ -5,9 +5,9 @@ alwaysApply: false
 # CLARIFY — gates
 
 **Артефакт:** `memory-bank/back/clarify/clarify-YYYYMMDD-<slug>.md`
-**Shared:** @.cursor/rules/shared/workflow-clarify-core.mdc
-**PLAN orchestration:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc
-**Шаблон:** @.cursor/templates/clarify.md
+**Shared:** `workflow-clarify-core.mdc`
+**PLAN orchestration:** `workflow-plan-clarify-orchestration.mdc`
+**Шаблон:** `clarify.md`
 
 ## Gates
 

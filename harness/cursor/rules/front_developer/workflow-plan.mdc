@@ -27,7 +27,7 @@ alwaysApply: false
 **Batch (Phase 1 only):** шаги за один проход. **Phase 0** — sequential (orchestration).
 
 **Процесс**:
-0. **Phase 0 Clarify (orchestration):** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — при триггерах clarify mechanics до Phase 0 gate OK.
+0. **Phase 0 Clarify (orchestration):** .cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — при триггерах clarify mechanics до Phase 0 gate OK.
 1. `OK FRONT PLAN - Phase 1 Plan writing` + `SUSPENSION GUARD active — plan output unlimited` (→ @.cursor/rules/token-economy-core.mdc §0.0)
 1a. Прочитай **Gates**
 1b. **Clarify link:** clarify-артефакт → шапка plan + `## Clarifications` summary

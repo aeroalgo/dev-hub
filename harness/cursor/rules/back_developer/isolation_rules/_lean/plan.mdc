@@ -4,10 +4,10 @@ alwaysApply: false
 ---
 # PLAN — gates
 
-**Артефакт:** `memory-bank/back/roadmap/queue.yaml` (одна queue row на каждый PLAN) + `memory-bank/back/plan/<task_id>/md/plan.md` + `md/prompt.md` (@.cursor/rules/shared/workflow-plan-outcome-prompt.mdc)
-**Phase 0:** @.cursor/rules/shared/workflow-plan-clarify-orchestration.mdc — auto-clarify в той же сессии PLAN при триггерах  
-**Multi-epic:** research/audit → epic cut + N rows в `memory-bank/back/roadmap/queue.yaml` + N× `plan/<epic_id>/` (@.cursor/rules/shared/workflow-plan-multi-epic.mdc); single-epic также обязан иметь одну row; **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE
-**SUSPENSION GUARD:** @.cursor/rules/token-economy-core.mdc §0.0 — plan без telegraph / 200-line cap
+**Артефакт:** `memory-bank/back/roadmap/queue.yaml` (одна queue row на каждый PLAN) + `memory-bank/back/plan/<task_id>/md/plan.md` + `md/prompt.md` (`workflow-plan-outcome-prompt.mdc`)
+**Phase 0:** `workflow-plan-clarify-orchestration.mdc` — auto-clarify в той же сессии PLAN при триггерах
+**Multi-epic:** research/audit → epic cut + N rows в `memory-bank/back/roadmap/queue.yaml` + N× `plan/<epic_id>/` (`workflow-plan-multi-epic.mdc`); single-epic также обязан иметь одну row; **FORBIDDEN** `plan/roadmap-*` / roadmap md; next = DECOMPOSE
+**SUSPENSION GUARD:** `token-economy-core.mdc §0.0` — plan без telegraph / 200-line cap
 
 ## Gates
 
@@ -16,7 +16,7 @@ alwaysApply: false
 2. L2 substep → L2 scope, не L4 по умолчанию
 3. Сначала сохранён/апсёртнут канонический roadmap row, затем план в path выше + `md/prompt.md` (файл начинается с `## Epic` + `## Covering`; без шапки Role/Deps/ID); при research — roadmap + полный plan **и** prompt на **каждый** эпик (Covering одинаковый; **весь** prompt без ID эпиков / путей чужих plan; не один mega-plan)
 4. `tasks.md` append-only со ссылкой (roadmap + каждый эпик)
-4a. Brownfield replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc. DECOMPOSE нарежет `deletes` + purge sNN
+4a. Brownfield replace → секция **`## Replacement / sunset`** таблицы **A+B+C** + AC− fail-closed; greenfield → `n/a`. Канон: `workflow-legacy-fallback-cleanup.mdc`. DECOMPOSE нарежет `deletes` + purge sNN
 4b. Brownfield FAIL: replace без inventory entrypoints (B) или без fallback table (C) → halt
 5. CREATIVE need (да/нет) перед next mode (per epic при multi-epic)
 6. Multi-epic FAIL: ≥2 cut-критерия в research и только 1 plan → halt; нет per-epic `md/prompt.md` → halt; в `prompt.md` есть `T-HUB-*` / ID / шапка Role·Deps / `plan/<id>/` → halt

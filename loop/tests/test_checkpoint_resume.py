@@ -263,7 +263,8 @@ def test_resume_dirty_block_unchanged(tmp_path: Path) -> None:
 
     text = "\n".join(lines)
     assert "FORBIDDEN: discard/revert dirty step files" in text
-    assert "REQUIRED: Read dirty_files first" in text
+    assert "CURRENT WORKFLOW SCOPE bootstrap" in text
+    assert "REQUIRED after workflow bootstrap: read dirty_files" in text
 
 
 def test_flush_checkpoint_skips_decompose_shard(

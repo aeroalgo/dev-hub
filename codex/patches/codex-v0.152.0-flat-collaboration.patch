@@ -16,6 +16,7 @@ index f7d65f5..05726c7 100644
  
 +const LEGACY_COLLABORATION_TOOLS: &[&str] = &[
 +    "spawn_agent",
++    "wait",
 +    "wait_agent",
 +    "send_input",
 +    "resume_agent",
@@ -30,6 +31,7 @@ index f7d65f5..05726c7 100644
 +    namespace: Option<String>,
 +    name: String,
 +) -> (Option<String>, String) {
++    let namespace = namespace.filter(|value| !value.trim().is_empty());
 +    if namespace.is_some() {
 +        return (namespace, name);
 +    }
@@ -41,6 +43,7 @@ index f7d65f5..05726c7 100644
 +        let Some(candidate) = name.strip_prefix(prefix) else {
 +            continue;
 +        };
++        let candidate = candidate.strip_prefix('_').unwrap_or(candidate);
 +        for tool in LEGACY_COLLABORATION_TOOLS {
 +            let suffix = candidate.strip_prefix(tool);
 +            let valid_suffix = suffix.is_none_or(|rest| {
@@ -50,6 +53,10 @@ index f7d65f5..05726c7 100644
 +                return (Some(canonical_namespace.to_string()), (*tool).to_string());
 +            }
 +        }
++    }
++
++    if LEGACY_COLLABORATION_TOOLS.contains(&name.as_str()) {
++        return (Some("multi_agent_v1".to_string()), name);
 +    }
 +
 +    (namespace, name)
@@ -62,7 +69,7 @@ diff --git a/codex-rs/core/src/tools/router_tests.rs b/codex-rs/core/src/tools/r
 index 0193523..c87ae98 100644
 --- a/codex-rs/core/src/tools/router_tests.rs
 +++ b/codex-rs/core/src/tools/router_tests.rs
-@@ -312,6 +312,33 @@ fn build_tool_call_normalizes_default_function_and_custom_namespaces() -> anyhow
+@@ -312,5 +312,32 @@ fn build_tool_call_normalizes_default_function_and_custom_namespaces() -> anyhow
      Ok(())
  }
  
@@ -74,6 +81,8 @@ index 0193523..c87ae98 100644
 +            "multi_agent_v1",
 +            "spawn_agent",
 +        ),
++        ("multi_agent_v1__wait_agent", "multi_agent_v1", "wait_agent"),
++        ("spawn_agent", "multi_agent_v1", "spawn_agent"),
 +        ("collaboration_wait_agent", "collaboration", "wait_agent"),
 +    ] {
 +        let call = ToolRouter::build_tool_call(ResponseItem::FunctionCall {
@@ -95,4 +104,3 @@ index 0193523..c87ae98 100644
 +
  #[tokio::test]
  async fn mcp_parallel_support_uses_handler_data() -> anyhow::Result<()> {
-     let (_, turn) = make_session_and_context().await;

@@ -130,6 +130,12 @@ def parse_session_events(raw_log: str, runtime: str) -> list[SessionEvent]:
             match = re.search(r"\bexit_code=(-?\d+)", stripped)
             add("session_end", status=match.group(1) if match else None, event_session=session_id)
             continue
+        if stripped.startswith("SESSION_COLLAB_WAIT_TIMEOUT"):
+            add(
+                "error",
+                metadata={"diagnostic": "native_collaboration_wait_timeout"},
+            )
+            continue
         try:
             obj = json.loads(stripped)
         except json.JSONDecodeError:

@@ -6,8 +6,8 @@ alwaysApply: false
 **Контекст**: @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates (shared contract)**: @.cursor/rules/shared/_lean/van.mdc
 **Gates (role patch)**: @.cursor/rules/back_developer/isolation_rules/_lean/van.mdc
-**Brownfield map**: @.cursor/rules/shared/workflow-van-brownfield.mdc
-**Paths**: @.cursor/rules/shared/memory-bank-paths.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-van-brownfield.mdc
+**Paths**: shared/memory-bank-paths.mdc
 
 **Процесс**:
 1. `OK BACK VAN - Запускаю инициализацию / карту backend`

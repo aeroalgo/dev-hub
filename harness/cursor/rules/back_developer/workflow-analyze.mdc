@@ -6,7 +6,7 @@ alwaysApply: false
 
 **Контекст:** @.cursor/rules/back_developer/mainrule-core.mdc
 **Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/analyze.mdc
-**Shared core:** @.cursor/rules/shared/workflow-analyze-core.mdc
+**Policy lazy (по триггеру, не грузить целиком):** @.cursor/rules/shared/workflow-analyze-core.mdc
 **Шаблон:** @.cursor/templates/analyze/epic-analyze.yaml
 
 ## Когда запускать
@@ -33,7 +33,7 @@ Implement YAML не загружается. Подробнее: `_lean/analyze.m
 
 1. Подтверди `epic_id` и read-only scope.
 2. Inventories: plan FR/SC/US/AC±/NFR/layout **verbatim** ↔ `sNN` `plan_refs`/`plan_contract`/`produces`/`files`; Notes `deferred` без `follow_up: T-…`+queue → CRITICAL `layout_dilution`.
-3. Запусти detection passes из `@.cursor/rules/shared/workflow-analyze-core.mdc` (включая Dilution, Optional-SoT, **Layout dilution**, **FR remap**).
+3. Запусти detection passes из `shared/workflow-analyze-core.mdc` (включая Dilution, Optional-SoT, **Layout dilution**, **FR remap**).
 4. Severity + IDs `A1…`; cap 50.
 5. Запиши `analyze-YYYYMMDD-<slug>.yaml`; coverage rows с `plan_text_verbatim`.
 6. Handoff только по FINISH-канону; plan/decompose не патчить.

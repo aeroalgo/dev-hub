@@ -29,6 +29,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
     monkeypatch.delenv("EPIC_DEGRADED_MAX", raising=False)
     monkeypatch.delenv("EPIC_STATUS_HEARTBEAT_SEC", raising=False)
     monkeypatch.delenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", raising=False)
+    monkeypatch.delenv("EPIC_COLLAB_WAIT_TIMEOUT_SEC", raising=False)
     monkeypatch.delenv("EPIC_PERMISSION_MODE", raising=False)
     monkeypatch.delenv("EPIC_RUNTIME", raising=False)
 
@@ -40,6 +41,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
     assert config.degraded_max > 0
     assert config.status_heartbeat_sec == 30
     assert config.stream_idle_timeout_sec == 300
+    assert config.collaboration_wait_timeout_sec == 180
     assert set(config.sources) == {
         "EPIC_SESSION_TIMEOUT_SEC",
         "EPIC_SESSION_KILL_GRACE_SEC",
@@ -47,6 +49,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
         "EPIC_DEGRADED_MAX",
         "EPIC_STATUS_HEARTBEAT_SEC",
         "EPIC_STREAM_IDLE_TIMEOUT_SEC",
+        "EPIC_COLLAB_WAIT_TIMEOUT_SEC",
         "EPIC_PERMISSION_MODE",
         "EPIC_RUNTIME",
     }
@@ -93,6 +96,9 @@ def test_runtime_config_rejects_invalid_timeout(tmp_path: Path, monkeypatch: pyt
         ("EPIC_STREAM_IDLE_TIMEOUT_SEC", "abc"),
         ("EPIC_STREAM_IDLE_TIMEOUT_SEC", "29"),
         ("EPIC_STREAM_IDLE_TIMEOUT_SEC", "86401"),
+        ("EPIC_COLLAB_WAIT_TIMEOUT_SEC", "abc"),
+        ("EPIC_COLLAB_WAIT_TIMEOUT_SEC", "29"),
+        ("EPIC_COLLAB_WAIT_TIMEOUT_SEC", "86401"),
     ],
 )
 def test_runtime_config_rejects_invalid_bounded_values(
@@ -121,6 +127,8 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     monkeypatch.setenv("EPIC_DEGRADED_MAX", "100")
     monkeypatch.setenv("EPIC_STATUS_HEARTBEAT_SEC", "")
     monkeypatch.setenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", "")
+    monkeypatch.setenv("EPIC_COLLAB_WAIT_TIMEOUT_SEC", "180")
+    monkeypatch.setenv("EPIC_PERMISSION_MODE", "dontAsk")
     monkeypatch.setenv("EPIC_RUNTIME", "claude")
 
     config = lib.resolve_runtime_config(tmp_path)
@@ -131,6 +139,7 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     assert config.degraded_max == 100
     assert config.status_heartbeat_sec is None
     assert config.stream_idle_timeout_sec is None
+    assert config.collaboration_wait_timeout_sec == 180
     assert set(config.sources.values()) <= {"process", "project"}
     assert config.sources["EPIC_SESSION_TIMEOUT_SEC"] == "process"
     assert config.sources["EPIC_SESSION_KILL_GRACE_SEC"] == "process"
@@ -147,6 +156,7 @@ def test_runtime_config_status_is_secret_free(tmp_path: Path) -> None:
 
     assert "EPIC_SESSION_TIMEOUT_SEC" in status["effective"]
     assert "EPIC_STREAM_IDLE_TIMEOUT_SEC" in status["effective"]
+    assert "EPIC_COLLAB_WAIT_TIMEOUT_SEC" in status["effective"]
     assert "secret" not in str(status).lower()
     assert "sources" in status
 

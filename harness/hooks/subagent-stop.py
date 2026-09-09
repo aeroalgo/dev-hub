@@ -2,6 +2,7 @@
 """SubagentStop — require VERDICT for verify/reviewer; mark gates done."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -50,6 +51,7 @@ from loop.mb_finish.verify_hint import (  # noqa: E402
 from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY  # noqa: E402
 from loop.sunset_sidecar_store import write_sunset_sidecar  # noqa: E402
 from loop.validate_boundary import validate_boundary  # noqa: E402
+from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
 
 
 def _require_verdict_message(agent_type: str) -> str:
@@ -235,7 +237,9 @@ def main() -> None:
     fence_data = extract_json_fence(msg)
     if agent_type in VERIFY_FINISH_AGENTS:
         if fence_data is not None:
-            val_res = validate_boundary("loop-gate-verdict/v1", fence_data)
+            runtime_id = str(data.get("runtime_id") or os.environ.get("EPIC_RUNTIME") or "universal")
+            contract_adapter = get_agent_contract_adapter(runtime_id)
+            val_res = contract_adapter.validate_gate_verdict(fence_data)
             if not val_res.valid and is_schema_error(val_res.diagnostic_codes):
                 tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
                 retry_count = increment_schema_retry_count(cwd, tool_use_id, session_id=session_id)

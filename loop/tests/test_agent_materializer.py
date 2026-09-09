@@ -220,3 +220,33 @@ workflow_mode = \"gate\"
     assert 'model = "cx/default"' in rendered
     assert 'model_reasoning_effort = "high"' in rendered
     assert 'sandbox_mode = "read-only"' in rendered
+
+
+def test_materialize_codex_agent_model_override(sample_agent_manifest: Path, tmp_path: Path) -> None:
+    agents_config = tmp_path / "codex" / "agents.config.toml"
+    agents_config.parent.mkdir()
+    agents_config.write_text(
+        """schema_version = \"codex-agent-settings/v1\"
+[defaults]
+model = \"cx/default\"
+model_reasoning_effort = \"high\"
+[agents.\"verify-implement\"]
+model = \"agy/gemini-3.7-flash-medium\"
+sandbox_mode = \"read-only\"
+workflow_mode = \"gate\"
+""",
+        encoding="utf-8",
+    )
+    manifest_content = sample_agent_manifest.read_text(encoding="utf-8").replace(
+        ".codex/agents/verify-implement.md", ".codex/agents/verify-implement.toml"
+    ).replace(
+        ".codex/agents/explorer.md", ".codex/agents/explorer.toml"
+    )
+    sample_agent_manifest.write_text(manifest_content, encoding="utf-8")
+    manifest = load_manifest(sample_agent_manifest)
+
+    materialize_agents(manifest, "codex", dest_root=tmp_path, repo_root=tmp_path)
+
+    rendered = (tmp_path / ".codex/agents/verify-implement.toml").read_text(encoding="utf-8")
+    assert 'model = "agy/gemini-3.7-flash-medium"' in rendered
+    assert 'model = "cx/default"' not in rendered

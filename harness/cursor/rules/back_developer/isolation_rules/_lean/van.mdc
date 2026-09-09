@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # VAN — BACK role patch
 
-**Shared contract:** @.cursor/rules/shared/_lean/van.mdc
+**Shared contract:** shared/_lean/van.mdc
 
 ## Role patch (BACK)
 

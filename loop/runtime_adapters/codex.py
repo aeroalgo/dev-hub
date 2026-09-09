@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.hooks.session_resilience import detect_shell_command_not_found
+from harness.hooks.session_resilience import COLLABORATION_WAIT_TIMEOUT_REASON
 from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
 
 _CODEX_ABORT_RE = re.compile(
@@ -17,11 +18,19 @@ _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
     r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
 )
 _CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
+
+
 def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
     for line in raw_log.splitlines():
         match = _CODEX_UNSUPPORTED_TOOL_RE.search(line.strip())
         if match:
             return match.group("tool")
+        loose = re.search(
+            r"(?i)unsupported\s+call\s*:?\s*(?:tool=)?(?P<tool>[A-Za-z0-9_.:-]+)",
+            line,
+        )
+        if loose:
+            return loose.group("tool")
     return None
 
 
@@ -161,6 +170,15 @@ class CodexAdapter(RuntimeAdapter):
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
         exit_code = ctx.extras.get("exit_code")
 
+        if (
+            COLLABORATION_WAIT_TIMEOUT_REASON in raw_log
+            or "SESSION_COLLAB_WAIT_TIMEOUT" in raw_log
+        ):
+            return SessionAnalysis(
+                reason=COLLABORATION_WAIT_TIMEOUT_REASON,
+                retry=True,
+            )
+
         unsupported_tool = _detect_codex_unsupported_tool(raw_log)
         if unsupported_tool:
             return SessionAnalysis(
@@ -206,7 +224,14 @@ class CodexAdapter(RuntimeAdapter):
         return {
             "native_collaboration": True,
             "collaboration_protocol": "spawn_agent/wait",
+            "collaboration_adapter": "codex_collaboration",
+            "collaboration_namespace": "multi_agent_v1",
         }
+
+    def normalize_collaboration_item(self, item: dict[str, Any]) -> dict[str, Any]:
+        from loop.runtime_adapters.codex_collaboration import normalize_collaboration_item
+
+        return normalize_collaboration_item(item)
 
     def collaboration_block(self, ctx: SessionContext) -> str:
         from loop.runtime_adapters.collaboration import codex_collaboration_block

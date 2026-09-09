@@ -66,7 +66,7 @@ Claude hooks в выбранный `$DSH_HOME`. Команду выше можн
 
 ## Приоритет модели
 
-Переменная `PROJECT_LOOP_<PHASE>_MODEL` из `.claude/project.env` имеет приоритет над позиционной моделью. Сейчас `PROJECT_LOOP_DECOMPOSE_MODEL` задана как `cx/gpt-5.6-luna-max`, поэтому DECOMPOSE использует её. Для остальных фаз без отдельного override применяется модель из команды.
+Явный `--model` из команды имеет приоритет над `PROJECT_LOOP_<PHASE>_MODEL`. Если `--model` не передан, применяется phase override из `.claude/project.env`; для остальных фаз используется модель из команды или runtime default.
 
 Если OmniRoute ограничивает выбранную модель или заменяет её, loop останавливается с `model_substitution`, а не продолжает работу на другой модели.
 

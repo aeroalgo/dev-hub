@@ -28,7 +28,7 @@ alwaysApply: false
 
 ## Hot path
 
-**Load (HARD):** не рекурсивный `@`. Канон: @.cursor/rules/mainrule.mdc §Full linked chain.
+**Load (HARD):** не рекурсивный `@`. Канон: .cursor/rules/mainrule.mdc §Full linked chain.
 
 1. **ANALYZE hard gate:** artifact `critical_count=0` (иначе REJECT; нет deferred)
 2. `load_now` → work shard + **`plan_contract`** + `index.yaml` (AC = shard+contract; не весь plan)
@@ -37,7 +37,7 @@ alwaysApply: false
 5. Последний sNN/eNN → **`plan_parity_scan`** (FR+layout checklist)
 6. **Перед FINISH** — Read finish-block. 5 точек → `@verify-implement` → PASS → `finalize-step` → epic done → AUDIT
 
-→ wire-complete: @.cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
+→ wire-complete: .cursor/rules/shared/workflow-behavior-first.mdc §3 · §9 (только boundary/SoT steps)
 
 ### Execution discipline
 

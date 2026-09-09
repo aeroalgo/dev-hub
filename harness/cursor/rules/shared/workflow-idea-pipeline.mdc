@@ -119,12 +119,10 @@ alwaysApply: false
 1. Взять **первую** фазу со status `pending` (или `active` при CONTINUE)
 2. Пометить `active` в idea-*
 3. **Прочитать и выполнить** workflow целевой роли:
-   - PM → @.cursor/rules/project_manager/mainrule-pm.mdc + `workflow-pm-*.mdc`
    - FRONT → @.cursor/rules/front_developer/mainrule.mdc + `workflow-*.mdc`
    - BACK → @.cursor/rules/back_developer/mainrule.mdc + `workflow-*.mdc`
-   - CONTENT → @.cursor/rules/content_growth/mainrule-content.mdc
-   - MARKETING → @.cursor/rules/marketing_growth/mainrule-marketing.mdc
-   - SEO → @.cursor/rules/seo_ops/mainrule-seo.mdc
+   - INTEG → @.cursor/rules/integration_developer/mainrule.mdc + `workflow-*.mdc`
+   - PM / TL / CONTENT / MARKETING / SEO → archived (`_archive/cursor-rules/`)
 4. Результат фазы — артефакт дочернего workflow (не дублировать в idea-*; только ссылка)
 5. **Одна фаза = один чат** (context-session-economy §2). После фазы → FINISH + new chat
 
@@ -132,8 +130,8 @@ alwaysApply: false
 
 1. Пометить текущую фазу `done`, записать ссылку на артефакт
 2. Следующая фаза → `pending`; если IMPLEMENT — проверить approval gate
-3. **Handoff** в idea-* — §Handoff из @.cursor/templates/idea-pipeline.md (`Done` = фаза N — command; `Artifact`; `Next` = фаза N+1 — command; `New chat: yes`)
-4. Обновить `activeContext.md` (@.cursor/rules/shared/finish-doc-router.mdc + шаблон): `load_now` → idea-* + next phase artifact
+3. **Handoff** в idea-* — §Handoff из .cursor/templates/idea-pipeline.md (`Done` = фаза N — command; `Artifact`; `Next` = фаза N+1 — command; `New chat: yes`)
+4. Обновить `activeContext.md` (.cursor/rules/shared/finish-doc-router.mdc + шаблон): `load_now` → idea-* + next phase artifact
 5. Сообщение new chat — шаблон §«Сообщение пользователю» с **точной** next command
 
 ### 4. IDEA PIPELINE STATUS

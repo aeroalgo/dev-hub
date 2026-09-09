@@ -60,6 +60,7 @@ def _setup_epic_fixture(tmp_path: Path) -> dict[str, Any]:
         "schema: epic-analyze/v1\n"
         "epic_id: T-EPIC-DEMO\n"
         "role: back\n"
+        "status: complete\n"
         "verdict: pass\n"
         "metrics:\n"
         "  critical_count: 0\n",
@@ -446,6 +447,9 @@ def test_finish_implement_uses_journal_commit(tmp_path: Path, monkeypatch: pytes
 def test_finish_qa_uses_journal_helper(tmp_path: Path) -> None:
     """FR-010: finish_qa commits via journal states."""
     _setup_epic_fixture(tmp_path)
+    state = load_epic_state(tmp_path)
+    state["active"] = False
+    save_epic_state(tmp_path, state)
     from loop.mb_finish.impl import finish_qa
     from loop.mb_finish.schemas import MbFinishRequest
     from loop.mb_finish.transaction import FinishTxState, read_finish_tx

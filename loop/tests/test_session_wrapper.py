@@ -130,6 +130,151 @@ def test_codex_unsupported_tool_call_fails_fast(tmp_path: Path) -> None:
     assert "SESSION_END session=codex-unsupported exit_code=126" in text
 
 
+def test_codex_timestamped_unsupported_tool_call_fails_fast(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "codex-timestamped-unsupported-tool.log"
+    started = time.monotonic()
+    rc = sr.run_session(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import time; "
+                "print('2026-09-09T04:57:09.458480Z ERROR "
+                "codex_core::tools::router: error=unsupported call: wait_agent', "
+                "flush=True); "
+                "time.sleep(5)"
+            ),
+        ],
+        mode="headless",
+        session_id="codex-timestamped-unsupported",
+        timeout=5,
+        kill_grace=0.2,
+        log_path=log,
+        progress_mode="codex_json",
+    )
+
+    assert rc == 126
+    assert time.monotonic() - started < 2.0
+    text = log.read_text(encoding="utf-8")
+    assert "CODEX_UNSUPPORTED_TOOL_CALL tool=wait_agent" in text
+    assert "SESSION_END session=codex-timestamped-unsupported exit_code=126" in text
+
+
+def test_codex_collaboration_wait_timeout_is_fail_closed(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "codex-collaboration-wait-timeout.log"
+    events = [
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "spawn_agent",
+                "receiver_thread_ids": ["child-1"],
+                "agents_states": {"child-1": {"status": "pending_init"}},
+            },
+        },
+        {
+            "type": "item.started",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "receiver_thread_ids": ["child-1"],
+                "agents_states": {},
+            },
+        },
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "receiver_thread_ids": [],
+                "agents_states": {"child-1": {"status": "pending_init"}},
+            },
+        },
+        {
+            "type": "item.started",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "receiver_thread_ids": ["child-1"],
+                "agents_states": {},
+            },
+        },
+    ]
+    source = (
+        "import json,time; "
+        f"events={events!r}; "
+        "[print(json.dumps(event), flush=True) for event in events]; "
+        "time.sleep(5)"
+    )
+    started = time.monotonic()
+    rc = sr.run_session(
+        [sys.executable, "-c", source],
+        mode="headless",
+        session_id="codex-collab-timeout",
+        timeout=5,
+        kill_grace=0.2,
+        collaboration_wait_timeout=0.5,
+        log_path=log,
+        progress_mode="codex_json",
+    )
+
+    elapsed = time.monotonic() - started
+    text = log.read_text(encoding="utf-8")
+    assert rc == 124
+    assert elapsed < 2.5
+    assert "SESSION_COLLAB_WAIT_TIMEOUT session=codex-collab-timeout" in text
+    assert "threads=child-1" in text
+    assert "native collaboration wait timeout" in text
+    assert "SESSION_END session=codex-collab-timeout exit_code=124" in text
+    analysis = sr.analyze_session_log(log, exit_code=rc, runtime="codex")
+    assert analysis["reason"] == "native collaboration wait timeout"
+    assert analysis["retryable"] is True
+    assert analysis["event_summary"]["event_counts"]["error"] == 1
+
+
+def test_codex_child_message_resets_stream_idle_watchdog(tmp_path: Path) -> None:
+    sr = _load_resilience()
+    log = tmp_path / "codex-child-activity.log"
+    event = {
+        "type": "item.completed",
+        "item": {
+            "type": "collab_tool_call",
+            "tool": "wait",
+            "agents_states": {
+                "child-1": {
+                    "status": "completed",
+                    "message": "child progress",
+                }
+            },
+        },
+    }
+    source = (
+        "import json,time; "
+        "time.sleep(0.35); "
+        f"print(json.dumps({event!r}), flush=True); "
+        "time.sleep(1.0)"
+    )
+    started = time.monotonic()
+    rc = sr.run_session(
+        [sys.executable, "-c", source],
+        mode="headless",
+        session_id="codex-child-activity",
+        timeout=2.0,
+        kill_grace=0.2,
+        idle_timeout=0.6,
+        log_path=log,
+        progress_mode="codex_json",
+    )
+
+    elapsed = time.monotonic() - started
+    text = log.read_text(encoding="utf-8")
+    assert rc == 124
+    assert elapsed >= 0.75
+    assert "SESSION_IDLE_TIMEOUT session=codex-child-activity" in text
+
+
 def test_idle_timeout_ignores_stream_noise_without_tools(tmp_path: Path) -> None:
     sr = _load_resilience()
     log = tmp_path / "idle-noise.log"

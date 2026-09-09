@@ -100,13 +100,38 @@ def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
     )
 
     from gate_receipt import issue_verifier_receipt
-    from harness.hooks._lib import current_gate_identity
+    from harness.hooks._lib import current_gate_identity, mark_in_flight, save_state
     from harness.hooks.epic.core import mirror_gate_verdict, rebuild_epic_projection
     rebuild_epic_projection(tmp_path)
     ident = current_gate_identity(str(tmp_path), "test")
     ident["authority"] = "autonomous"
     receipt = issue_verifier_receipt(ident, "PASS", "verify-bugfix")
-    mirror_gate_verdict(tmp_path, "PASS", evidence=receipt)
+    state = load_epic_state(tmp_path)
+    mark_in_flight(
+        state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    from epic import save_epic_state
+    save_epic_state(tmp_path, state)
+    gate_state = {}
+    mark_in_flight(
+        gate_state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    save_state("test", str(tmp_path), gate_state)
+    mirror_gate_verdict(
+        tmp_path,
+        "PASS",
+        agent_id="verify-bugfix",
+        evidence=receipt,
+        session_id="test",
+    )
 
     out = finish_bugfix(
         MbFinishRequest(

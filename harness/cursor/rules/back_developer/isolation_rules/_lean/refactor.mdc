@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # REFACTOR — gates
 
-**Канон путей:** @.cursor/rules/shared/workflow-refactor-epic.mdc
+**Канон путей:** shared/workflow-refactor-epic.mdc
 
 **Артефакты:**
 - **Эпик:** `refactor/plan/{analysis,plan,decompose-<id>/}` + execute → `refactor/implement/implement-<id>/rNN-*.md`

@@ -1,0 +1,93 @@
+diff --git a/open-sse/handlers/chatCore/requestToolIdentity.ts b/open-sse/handlers/chatCore/requestToolIdentity.ts
+--- a/open-sse/handlers/chatCore/requestToolIdentity.ts
++++ b/open-sse/handlers/chatCore/requestToolIdentity.ts
+@@ -45,3 +45,44 @@
+   delete translatedBody._toolNameMap;
+   return requestToolIdentityMap as Map<string, NamespaceIdentity> | null;
+ }
++
++export function resolveNamespaceIdentity(
++  map: ReadonlyMap<string, unknown> | null | undefined,
++  toolName: string
++): NamespaceIdentity | null {
++  if (!(map instanceof Map) || !toolName) return null;
++
++  const direct = map.get(toolName);
++  if (
++    direct &&
++    typeof direct === "object" &&
++    typeof (direct as NamespaceIdentity).namespace === "string" &&
++    typeof (direct as NamespaceIdentity).name === "string"
++  ) {
++    return direct as NamespaceIdentity;
++  }
++
++  const normalize = (value: string) =>
++    value
++      .trim()
++      .replace(/[^a-zA-Z0-9_]/g, "_")
++      .replace(/_+/g, "_")
++      .replace(/^_+|_+$/g, "");
++  const normalizedName = normalize(toolName);
++  const matches: NamespaceIdentity[] = [];
++  for (const value of map.values()) {
++    if (
++      !value ||
++      typeof value !== "object" ||
++      typeof (value as NamespaceIdentity).namespace !== "string" ||
++      typeof (value as NamespaceIdentity).name !== "string"
++    ) {
++      continue;
++    }
++    const identity = value as NamespaceIdentity;
++    if (
++      [
++        `${identity.namespace}__${identity.name}`,
++        `${identity.namespace}_${identity.name}`,
++        `${identity.namespace}.${identity.name}`,
++      ].some((candidate) => normalize(candidate) === normalizedName)
++    ) {
++      matches.push(identity);
++    }
++  }
++  return matches.length === 1 ? matches[0] : null;
++}
+diff --git a/open-sse/handlers/chatCore.ts b/open-sse/handlers/chatCore.ts
+--- a/open-sse/handlers/chatCore.ts
++++ b/open-sse/handlers/chatCore.ts
+@@ -1,5 +1,6 @@
+ import {
+   extractRequestToolIdentityMap,
++  resolveNamespaceIdentity,
+   toToolNameAliasMap,
+ } from "./chatCore/requestToolIdentity.ts";
+ import { injectMemoryAndSkills } from "./chatCore/memorySkillsInjection.ts";
+@@ -4977,7 +4977,7 @@
+       if (requestToolIdentityMap && Array.isArray(responseOutput)) {
+         for (const item of responseOutput) {
+           if (item?.type !== "function_call") continue;
+-          const identity = requestToolIdentityMap.get(item.name);
++          const identity = resolveNamespaceIdentity(requestToolIdentityMap, item.name);
+           if (identity) {
+             item.namespace = identity.namespace;
+             item.name = identity.name;
+diff --git a/open-sse/utils/stream.ts b/open-sse/utils/stream.ts
+--- a/open-sse/utils/stream.ts
++++ b/open-sse/utils/stream.ts
+@@ -54,6 +54,7 @@
+ } from "./streamErrorFormat.ts";
+ import { recordToolLatency } from "../services/toolLatencyTracker.ts";
+ import { extractToolSchemaMap } from "../translator/response/openai-responses/toolSchemas.ts";
++import { resolveNamespaceIdentity } from "../handlers/chatCore/requestToolIdentity.ts";
+ import {
+   generateSessionId,
+   markToolFinish,
+@@ -234,7 +235,7 @@
+     if (functionCall.type !== "function_call" || typeof functionCall.name !== "string")
+       return false;
+ 
+-    const identity = requestToolIdentityMap.get(functionCall.name);
++    const identity = resolveNamespaceIdentity(requestToolIdentityMap, functionCall.name);
+     if (!identity) return false;
+ 
+     const changed =

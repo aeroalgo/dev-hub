@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Shared spawn-gate state for Claude Code hooks."""
+"""Shared spawn-gate state and runtime-neutral subagent contract bridge."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -27,6 +26,11 @@ from agent_policy import AgentContext, resolve_agent_policy
 from agent_registry import AGENT_ALIASES, discover_registry
 from loop.workflow.resolve import full_resolve
 from loop.workflow.schemas import PackResolveResult
+from loop.runtime_adapters.agent_contract import (
+    CONTRACTS_SHA256,
+    UNIVERSAL_CONTRACTS,
+    get_agent_contract_adapter,
+)
 
 # Known gate/search ids used by spawn-map finish text (verify/reviewer lines).
 CUSTOM_OVERLAY = frozenset(
@@ -50,6 +54,9 @@ GATE_AGENTS = frozenset(
         "verify-qa",
         "verify-decompose",
         "analyze-verify",
+        "verify-script",
+        "verify-edit",
+        "verify-publish",
         "reviewer",
     }
 )
@@ -63,125 +70,22 @@ HARD_RULE = (
     "(vitest/playwright/npm test/e2e). Отчёт parent — на русском."
 )
 
-_GATE_JSON_HARD = (
-    "HARD: финальный ответ содержит fenced ```json``` блок "
-    '({"schema":"loop-gate-verdict/v1","agent_id":"<id>","verdict":"PASS|FAIL|BLOCKED",'
-    '"step_id":"<step_id>","epic_id":"<epic_id>","session_id":"<session_id>",'
-    '"recorded_at":"<iso8601>"}). '
-    "Fence language = только `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`). "
-    "Schema id — поле `schema` внутри JSON. "
-    "Перед emit (последний Bash): "
-    "`python harness/hooks/epic_resolve.py validate-boundary "
-    "--schema-id loop-gate-verdict/v1 --json '…'` → `valid:true`; "
-    "иначе правь по diagnostic_codes и повтори. "
-    "Строка VERDICT: — optional human summary, не machine input. "
-    "После ≤6 Read (+ validate-boundary) — только финальный отчёт, ноль tool. "
-    "Ответ без valid JSON fence = протокольный FAIL."
-)
-
-CONTRACTS = {
-    "verify": (
-        "CONTRACT verify: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
-        + _GATE_JSON_HARD
-        + " Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.yaml + implement step."
-    ),
-    "verify-implement": (
-        "CONTRACT verify-implement: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
-        + _GATE_JSON_HARD
-        + " Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.yaml + implement step."
-    ),
-    "verify-bugfix": (
-        "CONTRACT verify-bugfix: нужен AC+ · AC− · §0.11 · VERIFY · BUGFIX ARTIFACT · ALLOW. "
-        + _GATE_JSON_HARD
-        + " Не edit. Без isolation=worktree."
-    ),
-    "verify-qa": (
-        "CONTRACT verify-qa: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
-        + _GATE_JSON_HARD
-        + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
-    ),
-    "verify-decompose": (
-        "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · "
-        "Outcome map · Replacement cleanup · PLAN EXCERPT · ALLOW. "
-        + _GATE_JSON_HARD
-        + " FORBIDDEN pytest. Без isolation=worktree."
-    ),
-    "reviewer": (
-        "CONTRACT reviewer: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
-        + _GATE_JSON_HARD
-        + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
-    ),
-    "explorer": (
-        "CONTRACT explorer: graphify first, затем узкий Grep/rg только внутри ALLOW из prompt. "
-        "Budget: ≤12 Read · ≤6 Bash · re-read >1× FORBIDDEN. "
-        "FORBIDDEN: repo-wide rg/find/ls; Read/search вне ALLOW без явной ссылки in Цель/shard/plan. "
-        "Не edit. Не Plan Mode — только file:line отчёт на русском. "
-        "Без isolation=worktree."
-    ),
-    "sunset-inventory": (
-        "CONTRACT sunset-inventory: только чтение и as-built инвентаризация устаревшего кода в scope/ALLOW. "
-        "HARD: финальный ответ содержит fenced ```json``` блок "
-        '({"schema":"loop-sunset-inventory/v1",...items...}). '
-        "Fence language = только `json`; schema id внутри JSON. "
-        "Перед emit: validate-boundary --schema-id loop-sunset-inventory/v1. "
-        "Правила: mark=REPLACE, excerpt≤40 строк. "
-        "FORBIDDEN: design/HOW предложения, dual-path, edit/write, Plan Mode. Без isolation=worktree."
-    ),
-    "gate-repair": (
-        "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
-        "HARD: финальный ответ содержит fenced ```json``` блок "
-        '({"schema":"loop-repair-result/v1","status":"done|partial|fail",...}). '
-        "Fence language = только `json`. "
-        "Перед emit: `python harness/hooks/epic_resolve.py validate-boundary "
-        "--schema-id loop-repair-result/v1 --json '…'` → `valid:true`. "
-        "Write/Edit только ALLOW WRITE. После fix — pytest из VERIFY. "
-        "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
-        "Ответ без JSON fence = status fail."
-    ),
-    "reconcile-verify": (
-        "CONTRACT reconcile-verify: read-only reconciliation gate. Проверь только ALLOW READ: "
-        "activeContext.md, текущий decompose plan/index.yaml, текущий implement/qa artifact "
-        "и runtime diagnostics. Укажи каждый drift как file:line → observed → canonical → next action. "
-        "Не редактируй исходные plan/decompose/implement/code; единственная допустимая запись — "
-        "reconcile artifact через canonical CLI. Не запускай Agent, не создавай gate verdict "
-        "и не утверждай repair/pass. "
-        "Без isolation=worktree."
-    ),
-}
-
-CONTRACTS_SHA256: dict[str, str] = {
-    "explorer": "e2841969d9d0e4cf765036d458543a99095a9a67943f23729166a0a075ff863b",
-    "gate-repair": "4e47a2e4502ccf7476abef69499df92453aaef8672ef756172c386384beeb970",
-    "reviewer": "951eca047a8c28bf35debe38d0c0e3c28e9a733bc7b6c2f53588a8aaccbc5bfa",
-    "sunset-inventory": "7bdb8f4401affdc2f5d278f25ae542c23ea02014e0e6d2230da3a4ab62294f18",
-    "verify": "cd6fd6b16ec09039bdce4fefcbd5e955ed327c294ce58bd48f8b23e472ce4390",
-    "verify-bugfix": "7151af797102fe1f904937f6da99e228f7187d069260d7eb02b68459645c1ff1",
-    "verify-decompose": "ccfa3391ac21d4d0fc82dd6d841447e195f1a32c7540280da25cec702bed5c95",
-    "verify-implement": "0d5712e4bc3f6abc8e907c5275a8361722e4cf972a259a773cf9f27e8dad3589",
-    "verify-qa": "9f5c704f29235e7d56b668e15d7ba3239a86308e939735fcba13d006a87f72f3",
-    "reconcile-verify": "0615a2e6c77a7472651ce1b105acb972e9b983b95822b28d04793450e3d7289d",
-}
+CONTRACTS = UNIVERSAL_CONTRACTS
 
 
 def check_contract_drift(agent_type: str | None) -> tuple[bool, str]:
     """Check if CONTRACTS text checksum matches expected CONTRACTS_SHA256 fingerprint."""
-    if not agent_type or agent_type not in CONTRACTS:
-        return True, ""
-    contract_text = CONTRACTS[agent_type]
-    actual_sha = hashlib.sha256(contract_text.encode("utf-8")).hexdigest()
-    expected_sha = CONTRACTS_SHA256.get(agent_type)
-    if expected_sha and actual_sha != expected_sha:
-        return False, f"agent_contract_drift: CONTRACTS['{agent_type}'] sha256 mismatch (actual={actual_sha}, expected={expected_sha})"
-    return True, ""
+    return get_agent_contract_adapter("universal").check_drift(agent_type)
 
 VERDICT_FIRST_LINE = (
     "HARD: финальный ответ содержит fenced ```json``` блок "
     '({"schema":"loop-gate-verdict/v1",...}). '
     "Fence language = только `json` (FORBIDDEN `json loop-gate-verdict/v1` info-string). "
-    "Перед emit: validate-boundary --schema-id loop-gate-verdict/v1 → valid:true. "
-    "После ≤6 Read (+ validate-boundary) — сразу JSON fence + optional summary, без tool. "
+    "Перед emit подставь реальные IDs, один фактический verdict и текущий ISO 8601 recorded_at; "
+    "литеральные плейсхолдеры и `PASS|FAIL|BLOCKED` запрещены. "
+    "Последний Bash (единственное исключение из role allowlist): "
+    "validate-boundary --schema-id loop-gate-verdict/v1 → valid:true. "
+    "После validate-boundary — сразу JSON fence + optional summary, без tool. "
     "VERDICT: prose — не machine input."
 )
 
@@ -233,6 +137,32 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("PLAN EXCERPT", re.compile(_HD + r"PLAN EXCERPT\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
+    "analyze-verify": [
+        ("FINDINGS", re.compile(_HD + r"FINDINGS\s*[:：]?")),
+        ("COVERAGE", re.compile(_HD + r"COVERAGE\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-script": [
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-edit": [
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
+    "verify-publish": [
+        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
+        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
+        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
+        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
+        ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
+    ],
     "gate-repair": [
         ("BLOCKERS", re.compile(_HD + r"BLOCKERS\s*[:：]?")),
         ("ALLOW WRITE", re.compile(_HD + r"ALLOW WRITE\s*[:：]?")),
@@ -244,7 +174,7 @@ _NEXT_SECTION = re.compile(
     _HD
     + r"(?:Suite results|AC\+|AC[−\-]|§?\s*0\.11|VERIFY|RESULT|ALLOW READ|ALLOW WRITE|BLOCKERS|"
     r"Requirements coverage|Stages coverage|Outcome map|Replacement cleanup|"
-    r"PLAN EXCERPT|COVERAGE|"
+    r"PLAN EXCERPT|FINDINGS|COVERAGE|"
     r"FORBID|CREATE/EDIT|GRAPHIFY|Цель|Цель:|Budget|Отчёт|HARD RULE|"
     r"CONTRACT|Scope:)\b"
 )
@@ -727,6 +657,7 @@ class RuntimeConfig:
     degraded_max: int
     status_heartbeat_sec: int | None
     stream_idle_timeout_sec: int | None
+    collaboration_wait_timeout_sec: int | None
     permission_mode: str
     sources: dict[str, str]
     epic_runtime: str = "claude"
@@ -1004,6 +935,7 @@ _RUNTIME_CONFIG_DEFAULTS: dict[str, int | None] = {
     "EPIC_DEGRADED_MAX": 3,
     "EPIC_STATUS_HEARTBEAT_SEC": 30,
     "EPIC_STREAM_IDLE_TIMEOUT_SEC": 300,
+    "EPIC_COLLAB_WAIT_TIMEOUT_SEC": 180,
 }
 _PERMISSION_MODE_DEFAULT = "dontAsk"
 _PERMISSION_MODES = frozenset({"dontAsk", "acceptEdits", "bypassPermissions", "default", "plan"})
@@ -1029,6 +961,7 @@ _RUNTIME_CONFIG_BOUNDS: dict[str, tuple[int, int]] = {
     "EPIC_DEGRADED_MAX": (1, 100),
     "EPIC_STATUS_HEARTBEAT_SEC": (1, 3600),
     "EPIC_STREAM_IDLE_TIMEOUT_SEC": (30, 86400),
+    "EPIC_COLLAB_WAIT_TIMEOUT_SEC": (30, 86400),
 }
 
 
@@ -1045,7 +978,10 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
             sources[key] = "default"
             continue
         if (
-            key in {"EPIC_STATUS_HEARTBEAT_SEC", "EPIC_STREAM_IDLE_TIMEOUT_SEC"}
+            key in {
+                "EPIC_STATUS_HEARTBEAT_SEC",
+                "EPIC_STREAM_IDLE_TIMEOUT_SEC",
+            }
             and raw.strip() == ""
         ):
             values[key] = None
@@ -1098,6 +1034,7 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
         degraded_max=values["EPIC_DEGRADED_MAX"],
         status_heartbeat_sec=values["EPIC_STATUS_HEARTBEAT_SEC"],
         stream_idle_timeout_sec=values["EPIC_STREAM_IDLE_TIMEOUT_SEC"],
+        collaboration_wait_timeout_sec=values["EPIC_COLLAB_WAIT_TIMEOUT_SEC"],
         permission_mode=values["EPIC_PERMISSION_MODE"],
         sources=sources,
         epic_runtime=epic_runtime,
@@ -1113,6 +1050,7 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
             "EPIC_DEGRADED_MAX": config.degraded_max,
             "EPIC_STATUS_HEARTBEAT_SEC": config.status_heartbeat_sec,
             "EPIC_STREAM_IDLE_TIMEOUT_SEC": config.stream_idle_timeout_sec,
+            "EPIC_COLLAB_WAIT_TIMEOUT_SEC": config.collaboration_wait_timeout_sec,
             "EPIC_PERMISSION_MODE": config.permission_mode,
             "EPIC_RUNTIME": config.epic_runtime,
         },
@@ -1123,23 +1061,7 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
 
 
 def extract_json_fence(text: str) -> dict[str, Any] | None:
-    if not isinstance(text, str):
-        return None
-    last: dict[str, Any] | None = None
-    # Allow optional CommonMark info-string after `json`
-    # (models sometimes emit ```json loop-gate-verdict/v1).
-    for match in re.finditer(
-        r"```\s*json[^\n`]*\n(.*?)\n\s*```",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    ):
-        try:
-            data = json.loads(match.group(1))
-        except Exception:
-            continue
-        if isinstance(data, dict):
-            last = data
-    return last
+    return get_agent_contract_adapter("universal").extract_json_fence(text)
 
 
 def parse_gate_verdict_message(
@@ -1158,7 +1080,7 @@ def parse_gate_verdict_message(
 
     try:
         from loop.gate_verdict_store import write_gate_verdict
-        from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDICT
+        from loop.schemas.gate_verdict import SCHEMA_LOOP_GATE_VERDICT
 
         verdict_val = data.get("verdict")
         if not verdict_val:
@@ -1166,10 +1088,9 @@ def parse_gate_verdict_message(
 
         schema = str(data.get("schema") or data.get("schema_version") or "").strip()
         if schema == SCHEMA_LOOP_GATE_VERDICT:
-            payload = dict(data)
-            payload.setdefault("agent_id", agent_id)
-            payload.setdefault("recorded_at", recorded_at)
-            record = GateVerdictRecord.model_validate(payload)
+            record = get_agent_contract_adapter("universal").parse_gate_verdict(text)
+            if record is None:
+                return None
             return write_gate_verdict(
                 cwd,
                 record.agent_id,

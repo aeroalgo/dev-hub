@@ -1,0 +1,38 @@
+diff --git a/open-sse/translator/response/openai-responses/requestToolIdentity.ts b/open-sse/translator/response/openai-responses/requestToolIdentity.ts
+--- a/open-sse/translator/response/openai-responses/requestToolIdentity.ts
++++ b/open-sse/translator/response/openai-responses/requestToolIdentity.ts
+@@ -8,4 +8,12 @@
+     : null;
+ }
+ 
++function normalizeGeminiToolName(name: string): string {
++  return name
++    .trim()
++    .replace(/[^a-zA-Z0-9_]/g, "_")
++    .replace(/_+/g, "_")
++    .replace(/^_+|_+$/g, "");
++}
++
+ /**
+@@ -41,5 +41,16 @@
+     if (identity && `${identity.namespace}.${identity.name}` === toolName) return identity;
+   }
+ 
+-  return null;
++  const normalizedToolName = normalizeGeminiToolName(toolName);
++  const normalizedMatches: RequestToolIdentity[] = [];
++  for (const candidate of candidates) {
++    const identity = asRequestToolIdentity(candidate);
++    if (!identity) continue;
++    const qualifiedNames = [
++      `${identity.namespace}__${identity.name}`,
++      `${identity.namespace}_${identity.name}`,
++      `${identity.namespace}.${identity.name}`,
++    ];
++    if (qualifiedNames.some((qualifiedName) => normalizeGeminiToolName(qualifiedName) === normalizedToolName)) {
++      normalizedMatches.push(identity);
++    }
++  }
++
++  return normalizedMatches.length === 1 ? normalizedMatches[0] : null;
+ }

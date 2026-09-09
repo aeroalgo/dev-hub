@@ -11,10 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
-from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDICT
-from loop.validate_boundary import validate_boundary
+from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
+from loop.schemas.gate_verdict import GateVerdictRecord
 
-_JSON_FENCE_RE = re.compile(r"```json[^\n`]*\n(.*?)\n```", re.DOTALL)
 _AT_AGENT_RE = re.compile(r"@([\w-]+)")
 _GATE_REPAIR_HINT_RE = re.compile(r"(?i)gate-repair|@gate-repair")
 _AGENT_TYPE_RE = re.compile(r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)")
@@ -42,30 +41,8 @@ def _normalize_agent_type(raw: str | None) -> str | None:
     return aliases.get(token, token)
 
 
-def _extract_json_fence(text: str) -> dict[str, Any] | None:
-    if not isinstance(text, str) or not text.strip():
-        return None
-    match = _JSON_FENCE_RE.search(text)
-    if not match:
-        return None
-    try:
-        data = json.loads(match.group(1))
-    except json.JSONDecodeError:
-        return None
-    return data if isinstance(data, dict) else None
-
-
 def _parse_gate_verdict_fence(message: str) -> GateVerdictRecord | None:
-    data = _extract_json_fence(message)
-    if not data or not isinstance(data, dict):
-        return None
-    res = validate_boundary(SCHEMA_LOOP_GATE_VERDICT, data)
-    if not res.valid:
-        return None
-    try:
-        return GateVerdictRecord.model_validate(data)
-    except Exception:
-        return None
+    return get_agent_contract_adapter("codex").parse_gate_verdict(message)
 
 
 def _infer_agent_type(
@@ -113,6 +90,10 @@ def iter_codex_collab_verdicts(log_text: str) -> Iterator[CollabVerdictEvent]:
         item_type = item.get("type")
         if item_type != "collab_tool_call":
             continue
+
+        from loop.runtime_adapters.codex_collaboration import normalize_collaboration_item
+
+        item = normalize_collaboration_item(item)
 
         tool = item.get("tool")
         prompt = str(item.get("prompt") or "")
@@ -177,7 +158,6 @@ def _invoke_subagent_start(
         "cwd": str(cwd),
         "session_id": session_id,
         "runtime_id": "codex",
-        "tool_name": "spawn_agent",
         "tool_use_id": tool_use_id or "",
         "thread_id": thread_id or "",
     }

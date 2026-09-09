@@ -33,7 +33,7 @@ alwaysApply: false
 
 1. Подтверди `epic_id` и read-only scope.
 2. Построй inventories: FR/SC/stories ↔ `sNN` goals/`plan_refs`, AC+/AC−/NFR ↔ checkpoints или явный `out_of_scope`.
-3. Запусти шесть detection passes из `@.cursor/rules/shared/workflow-analyze-core.mdc`: **Duplication**, **Ambiguity**, **Underspecification**, **Coverage Gaps**, **Inconsistency**, **Constitution**.
+3. Запусти шесть detection passes из `.cursor/rules/shared/workflow-analyze-core.mdc`: **Duplication**, **Ambiguity**, **Underspecification**, **Coverage Gaps**, **Inconsistency**, **Constitution**.
 4. Для FRONT отдельно проверь UX journey, component/state coverage, route/param semantics и API/client boundary; findings остаются в общей taxonomy shared core.
 5. Назначь severity по core heuristic, присвой стабильные IDs `A1…`, ограничь findings 50 строками.
 6. Запиши `analyze-YYYYMMDD-<slug>.yaml` по шаблону: findings, coverage, metrics, recommendation, next_actions.

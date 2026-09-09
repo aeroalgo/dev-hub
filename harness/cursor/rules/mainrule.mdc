@@ -16,7 +16,7 @@ alwaysApply: true
 |-----------|----------|
 | Обычный вопрос, без команды роли | **Не** читай workflow, isolation rules, `.agents/skills/` |
 | «Примени workflow» / «от идеи до реализации» | @.cursor/rules/shared/workflow-idea-pipeline.mdc |
-| Команда роли PLAN/DECOMPOSE/VAN | Цепочка ниже + **Read** @.cursor/rules/token-economy-core.mdc |
+| Команда роли PLAN/DECOMPOSE/VAN | Цепочка ниже + **Read** .cursor/rules/token-economy-core.mdc |
 | Команда роли IMPLEMENT/TASK/BUGFIX | Цепочка ниже; stub already-on — **не** грузить full token-economy-core |
 
 ## Цепочка при распознанной команде
@@ -60,7 +60,7 @@ alwaysApply: true
 
 | Команда | Workflow |
 |---------|----------|
-| `IDEA PIPELINE` · `CONTINUE` · `FINISH` · `STATUS` | DECIDE scorecard/verdict перед VAN/PLAN; детали: @.cursor/rules/shared/workflow-idea-pipeline.mdc |
+| `IDEA PIPELINE` · `CONTINUE` · `FINISH` · `STATUS` | DECIDE scorecard/verdict перед VAN/PLAN; детали: .cursor/rules/shared/workflow-idea-pipeline.mdc |
 
 Скиллы без workflow: `find-skills` · `git-commit` · `memory-management` — только по явному запросу.
 

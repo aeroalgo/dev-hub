@@ -4,37 +4,71 @@ step_id: s01
 plan_id: T-HUB-084-workflow-reference-graph-hygiene
 title: s01 — Build a fail-closed reference graph validator with direct, transitive,
   and dangling fixtures IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-08'
 decompose_ref: memory-bank/back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/steps/s01-reference-graph-fixtures.yaml
-skills_used: []
-discovery: []
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- pack_graph.py previously lacked reference-edge extraction and fail-closed diagnostic
+  validation for duplicate, transitive ambiguity and dangling dead references.
+- Added ReferenceEdge, ReferenceDiagnostic, extract_reference_edges and validate_reference_graph
+  to loop/workflow/pack_graph.py.
 gaps:
   status: none
-done: []
+done:
+- Extended loop/workflow/pack_graph.py with bounded reference-edge extraction and
+  fail-closed diagnostics.
+- Implemented direct duplicate detection reporting both source file path and line
+  numbers.
+- Implemented transitive owner ambiguity detection reporting both direct edge line
+  and transitive owner edge line.
+- Implemented dangling dead reference detection with source line evidence and doctor
+  CLI exit code 1.
+- Created loop/tests/test_workflow_reference_graph.py covering duplicate, transitive
+  ambiguity, sole-owner deletion and redundant-edge removal.
+- Updated loop/tests/test_pack_graph_doctor.py with dangling reference rejection and
+  multi-diagnostic assertions.
 files:
 - loop/workflow/pack_graph.py
 - loop/tests/test_pack_graph_doctor.py
 - loop/tests/test_workflow_reference_graph.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- '`bin/pytest loop/tests/test_workflow_reference_graph.py loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k ''reference or graph''`'
+integration_check:
+- bin/pytest loop/tests/test_workflow_reference_graph.py loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k 'reference or graph' passed (20 passed in 3.48s)
+- Full test_pack_graph_doctor.py suite passed 16/16 tests.
 grep_control: []
-verification_results: []
+verification_results:
+- '{''checkpoint'': ''cp1'', ''command'': "bin/pytest loop/tests/test_workflow_reference_graph.py
+  -q --tb=line -k ''direct_duplicate or both_lines''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp2'', ''command'': "bin/pytest loop/tests/test_workflow_reference_graph.py
+  -q --tb=line -k ''transitive or sole_owner or redundant''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp3'', ''command'': "bin/pytest loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k ''reference or dangling''", ''outcome'': ''PASS''}'
+- '{''checkpoint'': ''cp4'', ''command'': "bin/pytest loop/tests/test_pack_graph_doctor.py
+  -q --tb=line -k ''missing_route or missing_lean_gate or missing_skill or multiple_codes''",
+  ''outcome'': ''PASS''}'
 checkpoints:
 - id: cp1
   criterion: A direct duplicate fixture fails closed and reports both declaring paths
     and line numbers.
-  status: pending
+  status: done
 - id: cp2
   criterion: A transitive ambiguity is reported; removing the sole owner fails and
     removing only a redundant edge passes.
-  status: pending
+  status: done
 - id: cp3
   criterion: A dangling dead reference is rejected by the production pack-graph entrypoint.
-  status: pending
+  status: done
 - id: cp4
   criterion: Existing route, gate and skill diagnostics remain fail-closed alongside
     the new reference diagnostics.
-  status: pending
+  status: done
 resume_from: cp1

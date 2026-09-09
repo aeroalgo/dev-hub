@@ -26,7 +26,7 @@ def test_scope_routes_one_workflow_for_current_command() -> None:
     assert rendered.startswith("COMMAND: BACK IMPLEMENT\n")
     assert "HARD READ" in rendered
     assert "canonical hot path" in rendered
-    assert "workflow-implement.mdc" not in rendered
+    assert "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path" in rendered
     assert "AGENTS.md" not in rendered
     assert "CLAUDE.md" in rendered
 
@@ -118,6 +118,8 @@ def test_scope_uses_recursive_chain_only_for_recursive_workflow_modes() -> None:
 
     assert "canonical hot path" in implement
     assert "не рекурсивно" in implement
+    assert "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path" in implement
+    assert "isolation_rules/_lean/implement.mdc" in implement
     assert "связанные @-ссылки" in plan
 
     refactor_plan = render_prompt_scope(
@@ -295,5 +297,17 @@ def test_scope_isolated_for_every_role_command(command: str) -> None:
     assert f"COMMAND: {command}\n" in rendered
     assert f"role: `{role}`" in rendered
     assert "entrypoint: `CLAUDE.md`" in rendered
-    assert "workflow-" not in rendered
+    phase = command.split(maxsplit=1)[1] if " " in command else ""
+    if phase in {"IMPLEMENT", "TASK", "BUGFIX", "REFACTOR"}:
+        role_dir = {
+            "BACK": "back_developer",
+            "FRONT": "front_developer",
+            "INTEG": "integration_developer",
+        }[role]
+        assert (
+            f"harness/cursor/rules/{role_dir}/workflow-{phase.lower()}.mdc#Hot path"
+            in rendered
+        )
+    else:
+        assert "workflow-" not in rendered
     assert all(other not in rendered for other in other_roles)

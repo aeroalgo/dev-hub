@@ -251,7 +251,7 @@ def test_tm_005_session_start_pack_inject(tmp_path: Path, monkeypatch: pytest.Mo
     assert "additionalContext" in payload
     assert payload["additionalContext"].startswith("COMMAND: BACK IMPLEMENT\n")
     assert "entrypoint: `CLAUDE.md`" in payload["additionalContext"]
-    assert "workflow-implement.mdc" not in payload["additionalContext"]
+    assert "harness/cursor/rules/back_developer/workflow-implement.mdc#Hot path" in payload["additionalContext"]
     assert "Prefixes:" not in payload["additionalContext"]
 
 

@@ -16,7 +16,7 @@ command -v cargo >/dev/null 2>&1 || { echo "Error: cargo is required." >&2; exit
 
 if [[ ! -d "$SOURCE_DIR/.git" ]]; then
     mkdir -p "$(dirname "$SOURCE_DIR")"
-    git clone --branch "$SOURCE_TAG" --depth 1 "$SOURCE_REPO" "$SOURCE_DIR"
+    git clone --branch "$SOURCE_TAG" --depth 1 --filter=blob:none "$SOURCE_REPO" "$SOURCE_DIR"
 fi
 
 actual_tag="$(git -C "$SOURCE_DIR" describe --tags --exact-match 2>/dev/null || true)"
