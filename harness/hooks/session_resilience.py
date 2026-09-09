@@ -235,7 +235,7 @@ def _update_collaboration_wait_state(
                 pending_threads.discard(thread_id)
         return pending_threads, wait_started, event.get("type") == "item.completed"
 
-    child_activity = False
+    child_activity = event.get("type") in {"item.started", "item.completed"}
     if event.get("type") == "item.completed":
         for state in states.values():
             if not isinstance(state, dict):
@@ -780,13 +780,20 @@ def analyze_session_log(
     }:
         kind = "fatal"
     retryable = kind == "transient"
+    backoff_sec = (
+        0
+        if reason == COLLABORATION_WAIT_TIMEOUT_REASON
+        else transient_backoff_sec(attempt, idle=is_idle_timeout(reason))
+        if kind == "transient"
+        else 0
+    )
     return result_payload(
         outcome=outcome.value,
         aborted=True,
         retryable=retryable,
         abort_kind=kind,
         reason=reason,
-        backoff_sec=transient_backoff_sec(attempt, idle=is_idle_timeout(reason)) if kind == "transient" else 0,
+        backoff_sec=backoff_sec,
     )
 
 
@@ -1348,6 +1355,7 @@ def run_session(
                                 )
                                 if collaboration_activity:
                                     last_activity = time.monotonic()
+                                    last_progress = "native collaboration wait"
                             collaboration_line_buf = collaboration_line_buf[-64_000:]
                         if progress_mode == "codex_json":
                             unsupported_tool = _detect_codex_unsupported_tool(chunk_txt)

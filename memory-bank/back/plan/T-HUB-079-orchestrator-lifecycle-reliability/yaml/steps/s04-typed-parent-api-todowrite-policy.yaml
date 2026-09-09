@@ -1,0 +1,96 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: Typed parent gate status API and phase-runner TodoWrite lifecycle policy
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Предоставить строго типизированный API проверки статуса ворот (await_gate/get_invocation_status),
+  внедрить политику ограничения TodoWrite фазовым раннером и очистить инструкции от сканирования /tmp.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+  nouns:
+    - await_gate
+    - get_invocation_status
+    - Todo lifecycle
+    - phase runner
+    - TodoWrite limit
+    - instruction surfaces
+  layout_paths:
+    - loop/lifecycle.py
+    - loop/context_loop.py
+    - harness/instructions/epic-loop.md
+    - loop/tests/test_await_gate_api.py
+    - loop/tests/test_todowrite_policy.py
+  ac_quotes:
+    - "Third TodoWrite request is rejected/ignored deterministically and becomes telemetry, not a new side effect."
+    - "No runtime-file crawl is presented as supported remediation in agent instructions."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:27-29"
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:115-120"
+
+context:
+  consumes:
+    - s01, s02, s03
+    - plan §Requirements (FR-005, FR-006)
+  produces:
+    - loop/lifecycle.py
+    - loop/context_loop.py
+    - harness/instructions/epic-loop.md
+    - loop/tests/test_await_gate_api.py
+    - loop/tests/test_todowrite_policy.py
+  plan_refs:
+    - FR-005
+    - FR-006
+  files:
+    - loop/lifecycle.py
+    - loop/context_loop.py
+    - harness/instructions/epic-loop.md
+    - loop/tests/test_await_gate_api.py
+    - loop/tests/test_todowrite_policy.py
+
+as_built:
+  - "loop/context_loop.py — цикл выполнения сессий и обработка фаз"
+  - "harness/instructions/epic-loop.md — инструкции для агентов в цикле эпика"
+
+delta:
+  - "loop/lifecycle.py — реализация await_gate и get_invocation_status без обхода файловой системы"
+  - "loop/context_loop.py — централизованный учет вызовов TodoWrite: не более start+finish для IMPLEMENT, третий вызов игнорируется/отклоняется"
+  - "harness/instructions/epic-loop.md — исключение рекомендаций ручного поиска/чистки маркеров в /tmp"
+  - "loop/tests/test_await_gate_api.py — тесты typed status API"
+  - "loop/tests/test_todowrite_policy.py — тесты ограничения TodoWrite"
+
+deletes: []
+
+out_of_scope:
+  - s01-s03, s05, s06 шаги эпика
+  - full suite → QA
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Функции await_gate и get_invocation_status возвращают типизированный статус
+      инвокации без необходимости сканирования директорий /tmp или home.
+    verify: "bin/pytest loop/tests/test_await_gate_api.py -k test_typed_status_lookup -q --tb=line"
+  - id: cp2
+    criterion: |
+      Phase runner допускает не более start+finish событий TodoWrite для IMPLEMENT,
+      а третий запрос детерминированно отклоняет/игнорирует без побочных эффектов.
+    verify: "bin/pytest loop/tests/test_todowrite_policy.py -k test_third_todowrite_rejected -q --tb=line"
+  - id: cp3
+    criterion: |
+      Инструкции harness/instructions/epic-loop.md содержат только типизированный API
+      и не содержат советов по ручному поиску или удалению файлов маркеров.
+    verify: "rg -n '/tmp|marker.*clear' harness/instructions/epic-loop.md || true"
+
+verify: []
+tdd: []

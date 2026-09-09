@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: Telemetry companion schema, legacy marker migration, and aggregate counters
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Внедрить схему companion JSONL для телеметрии сессий, агрегированные метрики надежности
+  и миграцию старых записей маркеров в диагностический статус legacy_unknown.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-006
+  nouns:
+    - telemetry JSONL companion
+    - first_action_at
+    - aggregate counters
+    - legacy marker migration
+    - legacy_unknown
+  layout_paths:
+    - loop/lifecycle.py
+    - loop/telemetry.py
+    - loop/tests/test_lifecycle_telemetry.py
+  ac_quotes:
+    - "Empty root session has aborted_before_action and a non-empty cause, not an unexplained zero-tool JSONL."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:26-28"
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:121-126"
+
+context:
+  consumes:
+    - s01, s03, s04
+    - plan §Requirements (FR-004, FR-006)
+    - plan §Stages (Stage 4)
+  produces:
+    - loop/lifecycle.py
+    - loop/telemetry.py
+    - loop/tests/test_lifecycle_telemetry.py
+  plan_refs:
+    - FR-004
+    - FR-006
+  files:
+    - loop/lifecycle.py
+    - loop/telemetry.py
+    - loop/tests/test_lifecycle_telemetry.py
+
+as_built:
+  - "loop/context_loop.py — цикл выполнения и сбор телеметрии"
+  - "loop/lifecycle.py — редюсер и модели инвокаций"
+
+delta:
+  - "loop/telemetry.py — генерация companion JSONL записей с first_action_at, timestamps, retry relation"
+  - "loop/lifecycle.py — миграция legacy marker записей в статус legacy_unknown (никогда не PASSED)"
+  - "loop/telemetry.py — агрегация метрик: duplicate-suppressed, terminal-by-cause, zero-action sessions"
+  - "loop/tests/test_lifecycle_telemetry.py — unit-тесты схемы телеметрии, счетчиков и миграции"
+
+deletes: []
+
+out_of_scope:
+  - s01-s04, s06 шаги эпика
+  - full suite → QA
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Companion JSONL сохраняет машиночитаемые атрибуты: invocation_id, first_action_at,
+      terminal_reason, retry_chain_id и timestamps для каждой root/subagent сессии.
+    verify: "bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_companion_jsonl_schema -q --tb=line"
+  - id: cp2
+    criterion: |
+      Агрегатор метрик корректно подсчитывает duplicate-suppressed, распределение терминальных
+      причин и сессии с нулевыми действиями.
+    verify: "bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_aggregate_counters -q --tb=line"
+  - id: cp3
+    criterion: |
+      Миграция старых marker-файлов помечает их как legacy_unknown и категорически
+      не допускает неявного преобразования в PASSED.
+    verify: "bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_legacy_marker_migration_unknown -q --tb=line"
+
+verify: []
+tdd: []

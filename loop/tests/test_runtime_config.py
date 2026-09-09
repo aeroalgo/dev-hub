@@ -26,6 +26,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
     monkeypatch.delenv("EPIC_SESSION_TIMEOUT_SEC", raising=False)
     monkeypatch.delenv("EPIC_SESSION_KILL_GRACE_SEC", raising=False)
     monkeypatch.delenv("EPIC_TRANSIENT_RETRY_MAX", raising=False)
+    monkeypatch.delenv("EPIC_SUBAGENT_RETRY_MAX", raising=False)
     monkeypatch.delenv("EPIC_DEGRADED_MAX", raising=False)
     monkeypatch.delenv("EPIC_STATUS_HEARTBEAT_SEC", raising=False)
     monkeypatch.delenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", raising=False)
@@ -38,6 +39,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
     assert config.session_timeout_sec > 0
     assert config.session_kill_grace_sec > 0
     assert config.transient_retry_max >= 0
+    assert config.subagent_retry_max >= 0
     assert config.degraded_max > 0
     assert config.status_heartbeat_sec == 30
     assert config.stream_idle_timeout_sec == 300
@@ -46,6 +48,7 @@ def test_runtime_config_uses_bounded_defaults_and_sources(tmp_path: Path, monkey
         "EPIC_SESSION_TIMEOUT_SEC",
         "EPIC_SESSION_KILL_GRACE_SEC",
         "EPIC_TRANSIENT_RETRY_MAX",
+        "EPIC_SUBAGENT_RETRY_MAX",
         "EPIC_DEGRADED_MAX",
         "EPIC_STATUS_HEARTBEAT_SEC",
         "EPIC_STREAM_IDLE_TIMEOUT_SEC",
@@ -88,6 +91,8 @@ def test_runtime_config_rejects_invalid_timeout(tmp_path: Path, monkeypatch: pyt
         ("EPIC_SESSION_KILL_GRACE_SEC", "999999"),
         ("EPIC_TRANSIENT_RETRY_MAX", "-1"),
         ("EPIC_TRANSIENT_RETRY_MAX", "101"),
+        ("EPIC_SUBAGENT_RETRY_MAX", "-1"),
+        ("EPIC_SUBAGENT_RETRY_MAX", "101"),
         ("EPIC_DEGRADED_MAX", "0"),
         ("EPIC_DEGRADED_MAX", "101"),
         ("EPIC_STATUS_HEARTBEAT_SEC", "abc"),
@@ -124,6 +129,7 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     monkeypatch.setenv("EPIC_SESSION_TIMEOUT_SEC", "60")
     monkeypatch.setenv("EPIC_SESSION_KILL_GRACE_SEC", "1")
     monkeypatch.setenv("EPIC_TRANSIENT_RETRY_MAX", "0")
+    monkeypatch.setenv("EPIC_SUBAGENT_RETRY_MAX", "0")
     monkeypatch.setenv("EPIC_DEGRADED_MAX", "100")
     monkeypatch.setenv("EPIC_STATUS_HEARTBEAT_SEC", "")
     monkeypatch.setenv("EPIC_STREAM_IDLE_TIMEOUT_SEC", "")
@@ -136,6 +142,7 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     assert config.session_timeout_sec == 60
     assert config.session_kill_grace_sec == 1
     assert config.transient_retry_max == 0
+    assert config.subagent_retry_max == 0
     assert config.degraded_max == 100
     assert config.status_heartbeat_sec is None
     assert config.stream_idle_timeout_sec is None
@@ -144,6 +151,7 @@ def test_runtime_config_accepts_bounds_and_empty_heartbeat(
     assert config.sources["EPIC_SESSION_TIMEOUT_SEC"] == "process"
     assert config.sources["EPIC_SESSION_KILL_GRACE_SEC"] == "process"
     assert config.sources["EPIC_TRANSIENT_RETRY_MAX"] == "process"
+    assert config.sources["EPIC_SUBAGENT_RETRY_MAX"] == "process"
     assert config.sources["EPIC_DEGRADED_MAX"] == "process"
     assert config.sources["EPIC_STATUS_HEARTBEAT_SEC"] == "process"
     assert config.sources["EPIC_STREAM_IDLE_TIMEOUT_SEC"] == "process"
@@ -157,6 +165,7 @@ def test_runtime_config_status_is_secret_free(tmp_path: Path) -> None:
     assert "EPIC_SESSION_TIMEOUT_SEC" in status["effective"]
     assert "EPIC_STREAM_IDLE_TIMEOUT_SEC" in status["effective"]
     assert "EPIC_COLLAB_WAIT_TIMEOUT_SEC" in status["effective"]
+    assert "EPIC_SUBAGENT_RETRY_MAX" in status["effective"]
     assert "secret" not in str(status).lower()
     assert "sources" in status
 

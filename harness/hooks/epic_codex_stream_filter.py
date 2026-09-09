@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import sys
+from pathlib import Path
+
+from loop.runtime_adapters.codex import CodexAdapter
 
 _SKIP_ERROR_SUBSTRINGS = (
     "Skill descriptions were shortened",
 )
 _SHELL_COMMAND_RE = re.compile(r"^(?:/usr)?/bin/(?:ba)?sh\s+-lc\s+(.+)$")
 _pending_commands: dict[str, str] = {}
+_pending_children: set[str] = set()
+_codex_adapter = CodexAdapter()
+_lifecycle: object | None = None
 
 
 def _collaboration_tool(item: dict) -> str:
@@ -26,9 +33,16 @@ def _collaboration_tool(item: dict) -> str:
 
 
 def _collaboration_label(item: dict) -> str:
+    for key in ("agent_type", "subagent_type", "agent_name", "name"):
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value
     prompt = str(item.get("prompt") or "")
     match = re.search(r"(?im)^\s*(?:role|agent_type|subagent_type)\s*[:=]\s*([^\n]+)", prompt)
-    return match.group(1).strip() if match else "unknown"
+    if match:
+        return match.group(1).strip()
+    heading = re.search(r"(?im)^\s*#\s+([a-z][a-z0-9_-]{1,63})(?=\s|:|$)", prompt)
+    return heading.group(1) if heading else "unknown"
 
 
 def _display_child_message(message: str, *, limit: int = 4000) -> str | None:
@@ -38,6 +52,17 @@ def _display_child_message(message: str, *, limit: int = 4000) -> str | None:
     if len(text) > limit:
         text = text[:limit] + "…"
     return text
+
+
+def _child_message(state: dict) -> str | None:
+    for key in ("message", "output", "result", "last_message"):
+        value = state.get(key)
+        if isinstance(value, dict):
+            value = value.get("text") or value.get("message")
+        message = _display_child_message(str(value or ""))
+        if message:
+            return message
+    return None
 
 
 def _write(text: str) -> None:
@@ -77,7 +102,13 @@ def _display_command(command: str) -> str:
 
 
 def reset_stream_state() -> None:
+    global _lifecycle
     _pending_commands.clear()
+    _pending_children.clear()
+    _lifecycle = _codex_adapter.subagent_lifecycle(
+        os.environ.get("PROJECT_ROOT") or str(Path.cwd()),
+        os.environ.get("EPIC_RUNNER_SESSION_ID") or "",
+    )
 
 
 def emit_from_obj(obj: dict) -> None:
@@ -87,8 +118,18 @@ def emit_from_obj(obj: dict) -> None:
         if item.get("type") == "collab_tool_call":
             tool = _collaboration_tool(item)
             if tool == "spawn_agent":
+                _pending_children.update(
+                    str(thread_id)
+                    for thread_id in item.get("receiver_thread_ids") or []
+                    if str(thread_id).strip()
+                )
                 _write(f"→ Subagent spawn type={_collaboration_label(item)}\n")
             elif tool == "wait":
+                _pending_children.update(
+                    str(thread_id)
+                    for thread_id in item.get("receiver_thread_ids") or []
+                    if str(thread_id).strip()
+                )
                 count = len(item.get("receiver_thread_ids") or [])
                 _write(f"→ Subagent wait children={count}\n")
             return
@@ -109,20 +150,39 @@ def emit_from_obj(obj: dict) -> None:
     item_type = item.get("type")
 
     if item_type == "collab_tool_call":
+        if _lifecycle is not None:
+            try:
+                _lifecycle.process_item(_codex_adapter.normalize_collaboration_item(item))
+            except Exception as exc:
+                # The display filter must never terminate the runtime stream;
+                # record-session remains the bounded fallback processor.
+                print(f"codex subagent lifecycle adapter error: {exc}", file=sys.stderr)
         tool = _collaboration_tool(item)
+        _pending_children.update(
+            str(thread_id)
+            for thread_id in item.get("receiver_thread_ids") or []
+            if str(thread_id).strip()
+        )
         states = item.get("agents_states")
         states = states if isinstance(states, dict) else {}
         if not states:
-            _write(f"← Subagent {tool} completed (child output pending)\n")
+            pending = ", ".join(sorted(_pending_children))
+            suffix = f": {pending}" if pending else ""
+            _write(
+                f"← Subagent {tool} completed "
+                f"(child output pending{suffix})\n"
+            )
             return
         for thread_id, state in states.items():
             if not isinstance(state, dict):
                 continue
             status = str(state.get("status") or "unknown")
             _write(f"← Subagent {thread_id} status={status}\n")
-            message = _display_child_message(str(state.get("message") or ""))
+            message = _child_message(state)
             if message:
                 _write(f"  {message}\n")
+            if status.lower() in {"completed", "failed", "error", "closed"}:
+                _pending_children.discard(str(thread_id))
         return
 
     if item_type == "command_execution":

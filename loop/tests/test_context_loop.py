@@ -2632,6 +2632,14 @@ def test_loop_shell_reprepares_on_transient_retry() -> None:
     assert "armed_step resynced" in script
 
 
+def test_loop_shell_has_separate_native_subagent_retry_budget() -> None:
+    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
+    assert 'EPIC_SUBAGENT_RETRY_MAX' in script
+    assert '[[ "$reason" == "native collaboration wait timeout" ]]' in script
+    assert "subagent_retries" in script
+    assert "new root Codex session will repeat spawn_agent" in script
+
+
 def test_loop_shell_terminal_transient_retry_returns_to_outer_prepare() -> None:
     """An EPIC_DONE found during retry must reach roadmap-advance, not check-after.
 

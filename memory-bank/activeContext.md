@@ -1,17 +1,17 @@
 ---
-schema: loop-handoff/v1
+schema: loop-handoff/v1 # handoff
 role: BACK
-mode: QA
-epic_id: T-HUB-084-workflow-reference-graph-hygiene
-step_id: T-HUB-084-workflow-reference-graph-hygiene
+mode: ANALYZE
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+step_id: ANALYZE
 ---
 
 ## load_now
-1. [back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/decompose-index.yaml](back/plan/T-HUB-084-workflow-reference-graph-hygiene/yaml/decompose-index.yaml) — decompose index.yaml (implement queue исчерпана; эпик T-HUB-084-workflow-reference-graph-hygiene).
+1. [plan.md](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md) — source plan/artifact for pre-implement phase ANALYZE.
+2. [`decompose-index.yaml`](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/decompose-index.yaml) — decompose index for ANALYZE gate.
 
-## Handoff BACK QA — T-HUB-084-workflow-reference-graph-hygiene
-- **Дальше:** выполнить `BACK QA` (suite + reviewer); после QA pass — EPIC_DONE. НЕ ставить EPIC_DONE до QA pass
-- **Эпик:** T-HUB-084-workflow-reference-graph-hygiene — все sNN/eNN в index completed/done.
-- **Режим/шаг:** `BACK QA`.
-- **Сделано:** implement queue исчерпана.
-- **ARCHIVE:** вне loop после EPIC_DONE (не в QA сессии).
+## Handoff ANALYZE
+- # epic_id: T-HUB-079-orchestrator-lifecycle-reliability — NOT short queue id
+- **Эпик:** T-HUB-079-orchestrator-lifecycle-reliability (BACK).
+- **Режим/шаг:** `BACK ANALYZE`.
+- **Дальше:** выполнить `BACK ANALYZE`.

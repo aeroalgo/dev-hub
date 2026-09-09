@@ -65,7 +65,7 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
+5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW/diff paths · `git status*` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
 6. Diff вне ALLOW / scope step → blocker (лишние файлы).
 7. Step-файл implement из ALLOW / prompt — **существует на диске** под `implement/implement-*` (не `plan/decompose-*`). Шаблон **по роли** (канон = `epic_lib.validate_implement_step_format`):
    - **INTEG `eNN-*`** (`memory-bank/integration/implement/…/*.yaml`): `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`; обязательны `grep_control` · `verification_results` · `gaps` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard для eNN.
@@ -74,8 +74,8 @@ Parent **обязан** передать секции. Если нет — ср�
    - **REFACTOR `rNN`:** `.cursor/templates/refactor/epic-step.yaml` — `schema: epic-refactor/v1`. **SECURITY `aNN`:** `.cursor/templates/security/epic-step.yaml` — `schema: epic-security/v1`.
    - Не применяй BACK-секции к INTEG eNN и наоборот. Нет → `FAIL` (`template_mismatch` / `step_path_mismatch`).
    - Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`. **Не** требуй `status: completed` для PASS.
-8. **После ≤6 Read** (или раньше, если доказательств достаточно) — **pre-emit validate-boundary** (Bash), затем финальный отчёт с JSON fence. Дальше **ноль** tool calls.
-9. Модель: pin в frontmatter / project.env (parent не передаёт `model=`). Даже на другой модели — step-first, ≤6 Read, JSON fence обязателен.
+8. После Read в пределах Budget (или раньше, если доказательств достаточно) — **pre-emit validate-boundary** (Bash), затем финальный отчёт с JSON fence. Дальше **ноль** tool calls.
+9. Модель: pin в frontmatter / project.env (parent не передаёт `model=`). Даже на другой модели — step-first, JSON fence обязателен.
 
 ## Pre-emit validate-boundary (HARD)
 
@@ -85,6 +85,7 @@ Parent **обязан** передать секции. Если нет — ср�
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
 - `valid: false` → исправь payload по `diagnostic_codes` и повтори Bash.
 - Emit **только** после `valid: true`.
 - Fence language: **только** `json` (строка открытия ` ```json `). Schema id — поле `"schema"` внутри JSON.
@@ -102,7 +103,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
   "step_id": "s06",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-023",
-  "recorded_at": "2026-08-31T12:00:00Z"
+  "recorded_at": "<iso8601>"
 }
 ```
 

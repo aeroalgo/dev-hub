@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+source_md: ../md/decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 3
+  cut_list:
+    - dashboard visualisation
+    - cross-provider shared leases
+steps:
+  - id: s01
+    file: s01-lifecycle-state-machine-red-tests.yaml
+    title: Define immutable lifecycle state machine, idempotency key, and red tests
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-idempotent-gate-dispatch.yaml
+    title: Idempotent verifier and gate dispatch with epoch isolation and receipt linkage
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-terminalization-crash-safety.yaml
+    title: Reducer-owned terminalization, lease expiry, crash safety, and pre-action abort telemetry
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s04
+    file: s04-typed-parent-api-todowrite-policy.yaml
+    title: Typed parent gate status API and phase-runner TodoWrite lifecycle policy
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s05
+    file: s05-telemetry-companion-marker-migration.yaml
+    title: Telemetry companion schema, legacy marker migration, and aggregate counters
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s06
+    file: s06-legacy-fallback-purge.yaml
+    title: s06 — legacy-fallback-purge — sunset inventory scan, obsolete guards/fallbacks deletes, and regression suite
+    next_phase: BACK IMPLEMENT
+    status: pending

@@ -171,6 +171,91 @@ def test_collaboration_child_activity_is_shown() -> None:
     assert "Проверка завершена: VERDICT: FAIL" in out
 
 
+def test_collaboration_wait_without_child_state_names_pending_thread() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "receiver_thread_ids": ["child-1"],
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "receiver_thread_ids": [],
+                    "agents_states": {},
+                },
+            }
+        ),
+    ]
+
+    out = _capture_lines(lines)
+
+    assert "child output pending: child-1" in out
+
+
+def test_collaboration_child_output_accepts_output_field() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "agents_states": {
+                        "child-1": {
+                            "status": "completed",
+                            "output": "VERDICT: PASS",
+                        }
+                    },
+                },
+            }
+        )
+    ]
+
+    out = _capture_lines(lines)
+
+    assert "VERDICT: PASS" in out
+
+
+def test_collaboration_spawn_type_comes_from_prompt_heading_or_item() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": "# verify-qa review: epic\n\n## Suite results",
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "agent_type": "gate-repair",
+                },
+            }
+        ),
+    ]
+
+    out = _capture_lines(lines)
+
+    assert "→ Subagent spawn type=verify-qa\n" in out
+    assert "→ Subagent spawn type=gate-repair\n" in out
+    assert "type=unknown" not in out
+
+
 def test_skill_budget_warning_is_hidden() -> None:
     lines = [
         json.dumps(

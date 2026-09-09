@@ -41,7 +41,7 @@ Parent **обязан** передать секции. Нет секции → `
 ## System discipline (HARD)
 
 1. Читай только ALLOW / `git diff` / `git status` по scope из prompt.
-2. Bash только: `rg …`, scoped `git diff`, `git status*`, `ls …`, `head …`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
+2. Bash только: `rg …`, `git diff` только по ALLOW/diff paths, `git status*`, `ls …`, `head …`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Всё остальное (pytest, vitest, playwright, npm test, compose) — **запрещено**.
 3. Сверь Suite results с claims parent + **Full suite gate** выше (не перезапускай полный suite).
 4. Пройди AC+ · AC− · §0.11; каждый пункт — evidence file:line или gap.
 5. `FAIL` = найденный дефект или нарушение контракта; `BLOCKED` = проверку невозможно завершить из-за отсутствующего или недоступного evidence. Для `BLOCKED` укажи BUGFIX Handoff.

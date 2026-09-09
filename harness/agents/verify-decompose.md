@@ -25,7 +25,7 @@ Parent **обязан** передать секции. Если нет — ср�
 |--------|-------------|
 | `COVERAGE` | да (требования покрытия index/shards) |
 | `PLAN EXCERPT` | да (ссылка на plan/decompose shards) |
-| `ALLOW READ` | да (список файлов для чтения) |
+| `ALLOW READ` | да (≤10 конкретных файлов для чтения) |
 
 ## Status contract
 
@@ -37,7 +37,7 @@ Parent **обязан** передать секции. Если нет — ср�
 0. **Первый Read** = `index.yaml` / decompose shards из ALLOW.
 1. Проверь наличие и полноту обязательных секций и таблиц покрытия (`Requirements coverage`, `Stages coverage`, `Outcome map`, `Replacement cleanup`).
 2. GAPS секция в декомпозиции с `status: blocked` или неустранёнными блокирующими зазорами → `FAIL`.
-3. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW.
+3. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-boundary` command ниже.
 4. **FORBIDDEN pytest / product code paths / test runners.** Только проверка макетов и декомпозиционных yaml/md файлов.
 5. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 6. **Первая строка текста = `VERDICT:`**
@@ -48,7 +48,8 @@ Parent **обязан** передать секции. Если нет — ср�
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-decompose","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
 
 ## Gate Output (JSON fence HARD)
 
@@ -62,7 +63,7 @@ Emit только после `valid: true`. Fence language: **только** `js
   "step_id": "s03",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-039",
-  "recorded_at": "2026-08-31T12:00:00Z"
+  "recorded_at": "<iso8601>"
 }
 ```
 

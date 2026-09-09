@@ -233,6 +233,11 @@ class CodexAdapter(RuntimeAdapter):
 
         return normalize_collaboration_item(item)
 
+    def subagent_lifecycle(self, cwd: Any, session_id: str) -> Any:
+        from loop.runtime_adapters.subagent_lifecycle import SubagentLifecycle
+
+        return SubagentLifecycle(cwd, session_id, "codex")
+
     def collaboration_block(self, ctx: SessionContext) -> str:
         from loop.runtime_adapters.collaboration import codex_collaboration_block
         return codex_collaboration_block(ctx)

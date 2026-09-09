@@ -1,0 +1,174 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s06 — legacy-fallback-purge — sunset inventory scan, obsolete guards/fallbacks deletes, and regression suite
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по ad-hoc in_flight мутациям и разрозненным duplicate-guards;
+  удалить неявные ретраи TaskStop и пустых сессий; очистить инструкции от советов чистки /tmp.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+  nouns:
+    - sunset_inventory
+    - grep_control
+    - in_flight mutation
+    - duplicate-spawn guards
+    - implicit root retry launcher
+    - runtime crawl instructions
+  layout_paths:
+    - loop/lifecycle.py
+    - loop/context_loop.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_orchestrator_lifecycle_regression.py
+  ac_quotes:
+    - "No concurrent duplicate verifier/reviewer for equal identity."
+    - "No runtime-file crawl is presented as supported remediation in agent instructions."
+    - "No automatic retry after terminal failure without an explicit policy/retry identity."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:74-100"
+
+context:
+  consumes:
+    - "plan §Replacement / sunset (таблицы A, B, C, I)"
+    - "decompose index §Replacement cleanup (все строки)"
+    - s01-s05
+  produces:
+    - "удалённые устаревшие ветки мутаций и разрозненных guard-проверок"
+    - "удалённый неявный перезапуск сессий после TaskStop"
+    - loop/tests/test_orchestrator_lifecycle_regression.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+  files:
+    - loop/lifecycle.py
+    - loop/context_loop.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_orchestrator_lifecycle_regression.py
+
+as_built:
+  - "loop/lifecycle.py — целевой редюсер и API статуса"
+  - "loop/context_loop.py — целевой фазовый раннер"
+  - "harness/hooks/session_resilience.py — целевая обработка абортов и сессий"
+
+delta:
+  - "loop/context_loop.py — удаление устаревших ad-hoc guard веток и ручной мутации in_flight"
+  - "harness/hooks/session_resilience.py — удаление неявных fallback-повторов"
+  - "loop/tests/test_orchestrator_lifecycle_regression.py — итоговый сквозной регрессионный сьют"
+
+sunset_inventory:
+  - symbol: ad-hoc in_flight mutation/read branches
+    kind: A
+    replacement: loop.lifecycle.LifecycleReducer
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero ad-hoc in_flight mutations; state transitions exclusively via reducer
+  - symbol: scattered duplicate-spawn guards
+    kind: A
+    replacement: loop.lifecycle.create_or_get_invocation
+    policy: delete in-epic
+    rg_scope: loop/runtime_adapters/ harness/hooks/
+    expect: zero scattered duplicate guards; centralized idempotency resolver
+  - symbol: implicit root-session retry launcher
+    kind: B
+    replacement: invocation-aware launcher with explicit retry relation
+    policy: delete in-epic
+    rg_scope: loop/context_loop.py harness/hooks/session_resilience.py
+    expect: zero implicit re-launches without explicit retry identity
+  - symbol: retry after TaskStop / empty session silently
+    kind: C
+    replacement: named terminal cause (stale/aborted_before_action) + explicit policy
+    policy: delete in-epic
+    rg_scope: harness/hooks/session_resilience.py loop/context_loop.py
+    expect: zero silent fallback retries
+  - symbol: inspect /tmp/runtime and clear marker advice
+    kind: I
+    replacement: await_gate typed API and operator incident handoff
+    policy: delete in-epic
+    rg_scope: harness/instructions/ harness/cursor/rules/
+    expect: zero manual marker deletion/crawl advice
+
+deletes:
+  - ad_hoc_in_flight_branches
+  - scattered_duplicate_guards
+  - implicit_task_stop_retry
+
+out_of_scope:
+  - s01-s05 реализация до cutover
+  - full suite → QA
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: ad-hoc in_flight mutation/read branches
+    command: 'rg -n "in_flight.*=.*True|in_flight.*=.*False" loop/ harness/ --glob "*.py" || true'
+    expect: zero ad-hoc mutations outside reducer
+  - id: inv-a-02
+    kind: A
+    symbol: scattered duplicate-spawn guards
+    command: 'rg -n "_is_already_running|_check_duplicate_spawn" loop/runtime_adapters/ harness/hooks/ --glob "*.py" || true'
+    expect: no scattered duplicate spawn checks
+  - id: inv-b-01
+    kind: B
+    symbol: implicit root-session retry launcher
+    command: 'rg -n "retry_silent_root|auto_relaunch_root" loop/ context_loop.py harness/hooks/ || true'
+    expect: no implicit root retry launchers
+  - id: inv-c-01
+    kind: C
+    symbol: retry after TaskStop / empty session silently
+    command: 'rg -n "soft_retry_task_stop|fallback_empty_session" harness/hooks/ loop/ || true'
+    expect: zero silent fallback retries
+  - id: inv-i-01
+    kind: I
+    symbol: inspect /tmp/runtime and clear marker advice
+    command: 'rg -n "rm .*/tmp/.*marker|clear.*marker.*file" harness/instructions/ harness/cursor/rules/ || true'
+    expect: no manual marker deletion advice
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по строкам sunset_inventory kind=A:
+      0 prod callers ad-hoc in_flight мутаций и разрозненных duplicate-guards.
+    verify: "rg -n 'in_flight.*=.*True' loop/ harness/ --glob '*.py' || true"
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint inventory: исключены неявные автоперезапуски root-сессий.
+    verify: "rg -n 'retry_silent_root|auto_relaunch_root' loop/ context_loop.py harness/hooks/ || true"
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: исключены тихие ретраи после TaskStop или пустых сессий.
+    verify: "rg -n 'soft_retry_task_stop|fallback_empty_session' harness/hooks/ loop/ || true"
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: отсутствуют советы ручного поиска/чистки маркеров в /tmp.
+    verify: "rg -n 'rm .*/tmp/.*marker|clear.*marker.*file' harness/instructions/ harness/cursor/rules/ || true"
+  - id: cp5
+    criterion: |
+      Устаревшие тесты на старые механизмы мутации маркеров удалены/переписаны;
+      целевой тестовый набор зеленый.
+    verify: "bin/pytest loop/tests/test_lifecycle_reducer.py loop/tests/test_idempotent_gate_dispatch.py loop/tests/test_lifecycle_crash_safety.py -q --tb=line"
+  - id: cp6
+    criterion: |
+      Сквозной регрессионный сьют жизненного цикла и надежности оркестратора успешен.
+    verify: "bin/pytest loop/tests/test_orchestrator_lifecycle_regression.py -q --tb=line"
+
+verify: []
+tdd: []

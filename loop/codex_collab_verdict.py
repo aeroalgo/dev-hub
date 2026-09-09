@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
+from loop.runtime_adapters.subagent_lifecycle import (
+    SubagentCompletion,
+    _already_processed,
+)
 from loop.schemas.gate_verdict import GateVerdictRecord
 
 _AT_AGENT_RE = re.compile(r"@([\w-]+)")
@@ -236,6 +240,16 @@ def mirror_codex_collab_verdicts_from_log(
 
     results: list[dict[str, Any]] = []
     for event in iter_codex_collab_verdicts(log_text):
+        completion = SubagentCompletion(
+            agent_type=event.agent_type,
+            message=event.message,
+            verdict=event.verdict,
+            tool_use_id=event.tool_use_id,
+            thread_id=event.thread_id,
+            spawn_tool_use_id=event.spawn_tool_use_id,
+        )
+        if _already_processed(cwd, sid, completion):
+            continue
         start_rc = _invoke_subagent_start(
             cwd=cwd,
             session_id=sid,

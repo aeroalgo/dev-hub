@@ -36,7 +36,8 @@ Parent **обязан** передать секции. Если нет или в
 1. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 2. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 3. Пройди `§0.11` checklist по пунктам. Orphan / missing counterpart → `FAIL`.
-4. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Red → `FAIL`.
+4. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW/diff paths · `git status*` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Red → `FAIL`.
+5. Budget: ≤12 Read calls, ≤10 конкретных файлов в ALLOW READ; после validator tool calls запрещены.
 
 ## Pre-emit validate-boundary (HARD)
 
@@ -46,7 +47,8 @@ Parent **обязан** передать секции. Если нет или в
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"<step_id>","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
@@ -60,7 +62,7 @@ Emit только после `valid: true`. Fence language: **только** `js
   "step_id": "<step_id>",
   "session_id": "<session_id>",
   "epic_id": "<epic_id>",
-  "recorded_at": "2026-08-31T12:00:00Z"
+  "recorded_at": "<iso8601>"
 }
 ```
 

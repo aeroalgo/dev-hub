@@ -215,6 +215,7 @@ def test_codex_collaboration_wait_timeout_is_fail_closed(tmp_path: Path) -> None
         session_id="codex-collab-timeout",
         timeout=5,
         kill_grace=0.2,
+        heartbeat_sec=0.1,
         collaboration_wait_timeout=0.5,
         log_path=log,
         progress_mode="codex_json",
@@ -227,10 +228,12 @@ def test_codex_collaboration_wait_timeout_is_fail_closed(tmp_path: Path) -> None
     assert "SESSION_COLLAB_WAIT_TIMEOUT session=codex-collab-timeout" in text
     assert "threads=child-1" in text
     assert "native collaboration wait timeout" in text
+    assert 'activity="native collaboration wait"' in text
     assert "SESSION_END session=codex-collab-timeout exit_code=124" in text
     analysis = sr.analyze_session_log(log, exit_code=rc, runtime="codex")
     assert analysis["reason"] == "native collaboration wait timeout"
     assert analysis["retryable"] is True
+    assert analysis["backoff_sec"] == 0
     assert analysis["event_summary"]["event_counts"]["error"] == 1
 
 

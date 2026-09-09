@@ -1,7 +1,7 @@
 {
   "name": "verify-bugfix",
   "policy_fingerprint": "sha256:2cd043365115e398f1491ce93f70afe347840bb53f820db63b1a71a37cf03140",
-  "source_prompt_sha256": "d18fa9a71685a1ed0369d250a4ab71f4946b8e542f70ee5082759eb4620a22d6",
+  "source_prompt_sha256": "4aa147e50029e476b48100712d20c5904182c0a896f059886c6f9cd7019b7833",
   "disallowedTools": [
     "Write",
     "Edit",

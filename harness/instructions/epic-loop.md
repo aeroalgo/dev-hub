@@ -35,6 +35,7 @@ All runtime limits are bounded and non-secret. `.claude/project.env` is the chec
 | `EPIC_SESSION_TIMEOUT_SEC` | `3600` |
 | `EPIC_SESSION_KILL_GRACE_SEC` | `30` |
 | `EPIC_TRANSIENT_RETRY_MAX` | `30` |
+| `EPIC_SUBAGENT_RETRY_MAX` | `3`; retries after the initial timed-out native child |
 | `EPIC_DEGRADED_MAX` | `3` |
 | `EPIC_STATUS_HEARTBEAT_SEC` | empty = disabled |
 | `EPIC_COLLAB_WAIT_TIMEOUT_SEC` | `180`; fail-closed deadline for a native Codex `spawn_agent` → `wait` child |

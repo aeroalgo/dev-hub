@@ -19,7 +19,7 @@
 | Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
 | Runner | `./loop/loop.sh` → `context_loop.py` |
-| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_COLLAB_WAIT_TIMEOUT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
+| **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_SUBAGENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_COLLAB_WAIT_TIMEOUT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
 

@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: Idempotent verifier and gate dispatch with epoch isolation and receipt linkage
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Внедрить create_or_get_invocation в диспетчер subagent/gate запусков, связать gate receipt
+  с invocation ID и эпохой, гарантируя единичный запуск для одинаковой идентичности.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-006
+  nouns:
+    - create_or_get_invocation
+    - subagent launch
+    - verifier identity
+    - epoch
+    - gate receipt
+  layout_paths:
+    - loop/lifecycle.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/tests/test_idempotent_gate_dispatch.py
+  ac_quotes:
+    - "Eight requests for the same verifier identity yield one execution and the same completed receipt/status."
+    - "A legitimate new epoch creates a new key; an old result cannot satisfy it."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:53-73"
+
+context:
+  consumes:
+    - s01 (lifecycle reducer и модели)
+    - plan §Requirements (FR-001, FR-002, FR-006)
+  produces:
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/tests/test_idempotent_gate_dispatch.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-006
+  files:
+    - loop/lifecycle.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/tests/test_idempotent_gate_dispatch.py
+
+as_built:
+  - loop/runtime_adapters/base.py — методы запуска субагентов
+  - loop/lifecycle.py — модели и редюсер инвокаций из s01
+
+delta:
+  - loop/lifecycle.py — реализация create_or_get_invocation и привязки receipt
+  - loop/runtime_adapters/base.py — интеграция вызова create_or_get_invocation перед запуском
+  - loop/runtime_adapters/common.py — передача invocation context и epoch
+  - loop/tests/test_idempotent_gate_dispatch.py — тесты конкурентных запусков verifier
+
+deletes: []
+
+out_of_scope:
+  - s01, s03-s06 шаги эпика
+  - full suite → QA
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Диспетчер subagent/gate запускает create_or_get_invocation и возвращает стабильный
+      invocation_id до старта полезной работы; повторные запросы получают текущий статус.
+    verify: "bin/pytest loop/tests/test_idempotent_gate_dispatch.py -k test_stable_invocation_id_pre_launch -q --tb=line"
+  - id: cp2
+    criterion: |
+      Восемь параллельных/последовательных запросов на запуск verifier с одинаковой
+      идентичностью порождают ровно одно исполнение и возвращают общий завершённый receipt.
+    verify: "bin/pytest loop/tests/test_idempotent_gate_dispatch.py -k test_eight_concurrent_launches_single_worker -q --tb=line"
+  - id: cp3
+    criterion: |
+      Receipt содержит invocation_id и epoch; при смене эпохи старый receipt отвергается
+      и инициируется новый цикл проверки.
+    verify: "bin/pytest loop/tests/test_idempotent_gate_dispatch.py -k test_receipt_epoch_isolation -q --tb=line"
+
+verify: []
+tdd: []

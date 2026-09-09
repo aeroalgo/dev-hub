@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -64,6 +65,33 @@ def project_boundary_reason(data: dict, cwd: Path) -> str | None:
     return project_boundary_deny_reason(cwd, raw_path, operation=tool_name.lower())
 
 
+def _emit_deny(data: dict, reason: str) -> None:
+    """Use the native response envelope of the current runtime."""
+    runtime = str(
+        data.get("runtime_id")
+        or data.get("runtime")
+        or os.environ.get("EPIC_RUNTIME")
+        or os.environ.get("EPIC_RUNTIME_RESOLVED")
+        or ""
+    ).strip().lower()
+    if runtime == "codex":
+        emit({"decision": "block", "reason": reason})
+        return
+    emit(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": reason,
+                "additionalContext": (
+                    "finish-boundary DENY: mb-finish уже успешен. "
+                    "Не вызывай другие tools; заверши текущий turn."
+                ),
+            }
+        }
+    )
+
+
 def main() -> None:
     data = read_stdin()
     cwd = product_cwd(data.get("cwd") or "")
@@ -83,33 +111,12 @@ def main() -> None:
         return
     boundary = project_boundary_reason(data, cwd)
     if boundary:
-        emit(
-            {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": boundary,
-                    "additionalContext": "project-boundary DENY: доступ вне project root запрещён.",
-                }
-            }
-        )
+        _emit_deny(data, boundary)
         return
     reason = finish_boundary_reason(cwd)
     if not reason:
         return
-    emit(
-        {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": reason,
-                "additionalContext": (
-                    "finish-boundary DENY: mb-finish уже успешен. "
-                    "Не вызывай другие tools; заверши текущий turn."
-                ),
-            }
-        }
-    )
+    _emit_deny(data, reason)
 
 
 if __name__ == "__main__":

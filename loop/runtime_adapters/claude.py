@@ -33,6 +33,11 @@ class ClaudeAdapter(RuntimeAdapter):
         from loop.runtime_adapters.collaboration import claude_collaboration_block
         return claude_collaboration_block(ctx)
 
+    def subagent_lifecycle(self, cwd: Any, session_id: str) -> Any:
+        from loop.runtime_adapters.subagent_lifecycle import SubagentLifecycle
+
+        return SubagentLifecycle(cwd, session_id, "claude")
+
     def parse_session_events(self, raw_log: str, ctx: SessionContext) -> Any:
         from loop.runtime.session_events import parse_session_events
         return parse_session_events(raw_log, ctx.runtime_id)

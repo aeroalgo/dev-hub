@@ -1058,6 +1058,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`\n"
             "> Перед FINISH всегда нужен свежий автономный PASS от `verify-qa` текущего QA run. После FAIL/BLOCKED или ошибки запуска verify: spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись завершения repair и повтори `verify-qa`; не создавай `qa_pass` и не вызывай FINISH до этого.\n"
             "> После BUGFIX обязателен новый qa-*.yaml с новым именем и reviewer PASS текущего QA run.\n"
+            "> После valid `verify-qa` PASS shared lifecycle автоматически выполняет `mb-finish qa`; если ответ finish содержит `ok: true`, немедленно заверши текущий turn без новых tools.\n"
         )
     elif phase_kind == "audit":
         finish_block = (
@@ -1928,6 +1929,7 @@ def prepare_session(
         "reviewer_spawn_missing",
         "verify_runtime_error",
         "verify_runtime_unsupported_tool",
+        "verify_runtime_collaboration_wait_timeout",
     }:
         resume_lines = list(resume_lines or [])
         resume_lines.extend(

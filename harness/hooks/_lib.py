@@ -654,6 +654,7 @@ class RuntimeConfig:
     session_timeout_sec: int
     session_kill_grace_sec: int
     transient_retry_max: int
+    subagent_retry_max: int
     degraded_max: int
     status_heartbeat_sec: int | None
     stream_idle_timeout_sec: int | None
@@ -932,6 +933,7 @@ _RUNTIME_CONFIG_DEFAULTS: dict[str, int | None] = {
     "EPIC_SESSION_TIMEOUT_SEC": 3600,
     "EPIC_SESSION_KILL_GRACE_SEC": 30,
     "EPIC_TRANSIENT_RETRY_MAX": 3,
+    "EPIC_SUBAGENT_RETRY_MAX": 3,
     "EPIC_DEGRADED_MAX": 3,
     "EPIC_STATUS_HEARTBEAT_SEC": 30,
     "EPIC_STREAM_IDLE_TIMEOUT_SEC": 300,
@@ -958,6 +960,7 @@ _RUNTIME_CONFIG_BOUNDS: dict[str, tuple[int, int]] = {
     "EPIC_SESSION_TIMEOUT_SEC": (1, 86400),
     "EPIC_SESSION_KILL_GRACE_SEC": (1, 600),
     "EPIC_TRANSIENT_RETRY_MAX": (0, 100),
+    "EPIC_SUBAGENT_RETRY_MAX": (0, 100),
     "EPIC_DEGRADED_MAX": (1, 100),
     "EPIC_STATUS_HEARTBEAT_SEC": (1, 3600),
     "EPIC_STREAM_IDLE_TIMEOUT_SEC": (30, 86400),
@@ -1031,6 +1034,7 @@ def resolve_runtime_config(project_dir: str | Path | None = None) -> RuntimeConf
         session_timeout_sec=values["EPIC_SESSION_TIMEOUT_SEC"],
         session_kill_grace_sec=values["EPIC_SESSION_KILL_GRACE_SEC"],
         transient_retry_max=values["EPIC_TRANSIENT_RETRY_MAX"],
+        subagent_retry_max=values["EPIC_SUBAGENT_RETRY_MAX"],
         degraded_max=values["EPIC_DEGRADED_MAX"],
         status_heartbeat_sec=values["EPIC_STATUS_HEARTBEAT_SEC"],
         stream_idle_timeout_sec=values["EPIC_STREAM_IDLE_TIMEOUT_SEC"],
@@ -1047,6 +1051,7 @@ def runtime_config_status(config: RuntimeConfig) -> dict[str, Any]:
             "EPIC_SESSION_TIMEOUT_SEC": config.session_timeout_sec,
             "EPIC_SESSION_KILL_GRACE_SEC": config.session_kill_grace_sec,
             "EPIC_TRANSIENT_RETRY_MAX": config.transient_retry_max,
+            "EPIC_SUBAGENT_RETRY_MAX": config.subagent_retry_max,
             "EPIC_DEGRADED_MAX": config.degraded_max,
             "EPIC_STATUS_HEARTBEAT_SEC": config.status_heartbeat_sec,
             "EPIC_STREAM_IDLE_TIMEOUT_SEC": config.stream_idle_timeout_sec,

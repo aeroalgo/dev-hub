@@ -1,7 +1,7 @@
 {
   "name": "verify-edit",
   "policy_fingerprint": "sha256:e37bdcf3a7e5602bf76252ef19e8b476436243b45c928c5a044a7e04fbdf8007",
-  "source_prompt_sha256": "cc603ffe38ac824260200e55316ad5c7d6b3a39e793aaaae465b9bfaac616076",
+  "source_prompt_sha256": "ac7ff45136c263f7027a74651b537fef48a0e494443d5b5be1276e9598e5e063",
   "disallowedTools": [
     "Write",
     "Edit",

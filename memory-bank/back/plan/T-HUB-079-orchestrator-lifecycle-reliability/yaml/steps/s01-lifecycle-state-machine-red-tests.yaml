@@ -1,0 +1,85 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: Define immutable lifecycle state machine, idempotency key, and red tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Определить модель данных, схему событий, генератор ключей идемпотентности и редюсер
+  жизненного цикла инвокаций с набором red unit-тестов для исключения дублирования запусков.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+  nouns:
+    - invocation ID
+    - idempotency key
+    - lifecycle owner
+    - lifecycle reducer
+    - immutable invocation events
+  layout_paths:
+    - loop/lifecycle.py
+    - loop/tests/test_lifecycle_reducer.py
+  ac_quotes:
+    - "Eight requests for the same verifier identity yield one execution and the same completed receipt/status."
+    - "A legitimate new epoch creates a new key; an old result cannot satisfy it."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:21-50"
+
+context:
+  consumes:
+    - plan §Requirements (FR-001, FR-002, FR-003)
+    - plan §Technology axiom
+  produces:
+    - loop/lifecycle.py
+    - loop/tests/test_lifecycle_reducer.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+  files:
+    - loop/lifecycle.py
+    - loop/tests/test_lifecycle_reducer.py
+
+as_built:
+  - loop/runtime_adapters/base.py — базовые классы сессий и адаптеров
+  - harness/hooks/session_resilience.py — логика возобновления и классификации абортов
+
+delta:
+  - loop/lifecycle.py — создание моделей InvocationKey, InvocationState, InvocationEvent, LifecycleReducer
+  - loop/tests/test_lifecycle_reducer.py — unit-тесты переходов состояний и идемпотентности
+
+deletes: []
+
+out_of_scope:
+  - s02-s06 шаги эпика
+  - full suite → QA
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Определены схемы InvocationKey (session, phase, step, role, epoch),
+      InvocationState (created, running, passed, failed, cancelled, stale, infrastructure_failure, aborted_before_action)
+      и типы событий жизненного цикла в loop/lifecycle.py.
+    verify: "bin/pytest loop/tests/test_lifecycle_reducer.py -k test_schema_and_types -q --tb=line"
+  - id: cp2
+    criterion: |
+      LifecycleReducer валидирует допустимые переходы created -> running -> terminal
+      и запрещает неавторизованные мутации состояний родительским процессом.
+    verify: "bin/pytest loop/tests/test_lifecycle_reducer.py -k test_legal_state_transitions -q --tb=line"
+  - id: cp3
+    criterion: |
+      Unit-тесты подтверждают: повторные запросы с тем же InvocationKey возвращают
+      существующий invocation без повторного выполнения; смена epoch генерирует новый ключ.
+    verify: "bin/pytest loop/tests/test_lifecycle_reducer.py -k test_idempotency_and_epoch_isolation -q --tb=line"
+
+verify: []
+tdd: []

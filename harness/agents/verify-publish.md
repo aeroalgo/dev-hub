@@ -42,7 +42,7 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY (наличие delivery package, target URL, metadata validation). Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `git status*` · `git diff*` · `rg …` · `ls` · `head` · `wc`.
+5. Bash только: `git status*` · `git diff` только по ALLOW/diff paths · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже.
 6. Evidence (cp done + green VERIFY / AC) согласованы; иначе `FAIL`. Не требуй `status: completed` для PASS.
 
 ## Pre-emit validate-boundary (HARD)
@@ -53,7 +53,8 @@ Parent **обязан** передать секции. Если нет — ср�
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-publish","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-Только при `valid: true` формируй финальный вывод.
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- Только при `valid: true` формируй финальный вывод.
 
 ## Gate Output (JSON fence HARD) — machine SoT
 
@@ -66,8 +67,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
   "step_id": "<sNN>",
   "session_id": "<session_id>",
   "epic_id": "<epic>",
-  "verdict": "PASS|FAIL",
-  "blockers": ["..."],
+  "verdict": "PASS",
   "recorded_at": "<iso8601>"
 }
 ```

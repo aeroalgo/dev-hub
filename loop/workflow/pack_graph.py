@@ -70,6 +70,16 @@ def _is_peer_policy_pair(a: str, b: str) -> bool:
     )
 
 
+def _is_active_entrypoint(path: Path, rules_root: Path) -> bool:
+    try:
+        relative_path = path.resolve().relative_to(rules_root.resolve())
+    except ValueError:
+        relative_path = path
+    if "shared" in relative_path.parts:
+        return False
+    return path.name.startswith(("workflow", "mainrule"))
+
+
 
 @dataclass
 class CheckPackGraphResult:
@@ -260,7 +270,7 @@ def validate_reference_graph(
     if active_only:
         active_files = {
             f.resolve() for f in files
-            if f.name.startswith("workflow")
+            if _is_active_entrypoint(f, rules_root)
         }
         reachable_files = set(active_files)
         pending = list(active_files)

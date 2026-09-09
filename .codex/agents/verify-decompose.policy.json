@@ -1,7 +1,7 @@
 {
   "name": "verify-decompose",
   "policy_fingerprint": "sha256:e3024a2da314c6d83f806aeb73932d0747e8e79952995a29cdbca768c752e576",
-  "source_prompt_sha256": "6370d0c391ee668a9d16b42d40dcc414f24a9cbd2f8361a4b492020232ea1417",
+  "source_prompt_sha256": "d3db16a38b2a165d04a72e23640a477bc3c1db44324c13ebfdbf1e66f6644752",
   "disallowedTools": [
     "Write",
     "Edit",

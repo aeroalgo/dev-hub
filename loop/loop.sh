@@ -126,6 +126,7 @@ PY
 export EPIC_SESSION_TIMEOUT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_SESSION_TIMEOUT_SEC"])')"
 export EPIC_SESSION_KILL_GRACE_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_SESSION_KILL_GRACE_SEC"])')"
 export EPIC_TRANSIENT_RETRY_MAX="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_TRANSIENT_RETRY_MAX"])')"
+export EPIC_SUBAGENT_RETRY_MAX="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_SUBAGENT_RETRY_MAX"])')"
 export EPIC_DEGRADED_MAX="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_DEGRADED_MAX"])')"
 export EPIC_STATUS_HEARTBEAT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_STATUS_HEARTBEAT_SEC"] or "")')"
 export EPIC_STREAM_IDLE_TIMEOUT_SEC="$(printf '%s' "$_runtime_config_json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["effective"]["EPIC_STREAM_IDLE_TIMEOUT_SEC"] or "")')"
@@ -964,6 +965,8 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
 
   transient_try=0
   max_transient="${EPIC_TRANSIENT_RETRY_MAX:-3}"
+  max_subagent="${EPIC_SUBAGENT_RETRY_MAX:-3}"
+  subagent_retries=0
   resume_outer=0
   while true; do
     transient_try=$((transient_try + 1))
@@ -997,9 +1000,22 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     backoff="$(echo "$rec_json" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(int(r.get("backoff_sec") or 0))' 2>/dev/null || echo 0)"
     reason="$(echo "$rec_json" | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r.get("reason") or "")' 2>/dev/null || true)"
 
-    if [[ "$retryable" == "1" && $transient_try -lt $max_transient ]]; then
+    retry_limit="$max_transient"
+    retry_count="$transient_try"
+    is_subagent_timeout=0
+    if [[ "$reason" == "native collaboration wait timeout" ]]; then
+      is_subagent_timeout=1
+      retry_limit="$max_subagent"
+      retry_count="$subagent_retries"
+    fi
+
+    if [[ "$retryable" == "1" && $transient_try -lt $max_transient && $retry_count -lt $retry_limit ]]; then
       echo "==> TRANSIENT API abort — retry after ${backoff}s"
       echo "==> reason: $reason"
+      if [[ "$is_subagent_timeout" == "1" ]]; then
+        subagent_retries=$((subagent_retries + 1))
+        echo "==> native collaboration retry: subagent retry ${subagent_retries}/${max_subagent}; new root Codex session will repeat spawn_agent → wait"
+      fi
       [[ "$backoff" -gt 0 ]] && sleep "$backoff"
       set +e
       _reprepare_for_transient_retry "$((transient_try + 1))"

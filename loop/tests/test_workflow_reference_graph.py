@@ -92,6 +92,36 @@ def test_direct_duplicate_both_lines_evidence(tmp_path: Path) -> None:
     assert [loc["line"] for loc in dup[0].locations] == [1, 2]
 
 
+def test_active_only_excludes_orphan_shared_entrypoints(tmp_path: Path) -> None:
+    _, rules_root = _setup_base_pack(tmp_path, "active-corpus-pack")
+
+    shared_dir = rules_root / "shared"
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    reachable = shared_dir / "reachable.mdc"
+    reachable.write_text("reachable\n", encoding="utf-8")
+    orphan = shared_dir / "workflow-orphan.mdc"
+    orphan.write_text(
+        "@.cursor/rules/shared/orphan-missing.mdc\n",
+        encoding="utf-8",
+    )
+    workflow = rules_root / "workflow-plan.mdc"
+    workflow.write_text(
+        "@.cursor/rules/shared/reachable.mdc\n",
+        encoding="utf-8",
+    )
+    mainrule = rules_root / "mainrule.mdc"
+    mainrule.write_text(
+        "@.cursor/rules/shared/mainrule-missing.mdc\n",
+        encoding="utf-8",
+    )
+
+    diagnostics = validate_reference_graph(rules_root, tmp_path, tmp_path, active_only=True)
+
+    assert len(diagnostics) == 1
+    assert diagnostics[0].target == ".cursor/rules/shared/mainrule-missing.mdc"
+    assert diagnostics[0].locations[0]["path"] == ".cursor/rules/mainrule.mdc"
+
+
 def test_transitive_ambiguity_requires_single_owner(tmp_path: Path) -> None:
     """cp2 / FR-002 / TM-084-02: Transitive ambiguity reports both lines; redundant edge removal passes; sole owner deletion fails."""
     pack, rules_root = _setup_base_pack(tmp_path, "transitive-pack")

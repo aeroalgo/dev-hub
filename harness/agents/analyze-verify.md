@@ -37,7 +37,7 @@ Parent **обязан** передать секции. Нет секции → `
 
 0. **Первый Read** = latest `analyze-*.yaml` из ALLOW (если указан) или путь из prompt.
 1. Для каждого CRITICAL id из FINDINGS: Read plan/decompose refs → доказательство fix **или** blocker `finding_open:<id>`.
-2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Без pytest, без implement shards.
+2. Bash только: `rg …` · `head` · `wc` · `ls` по ALLOW. Единственное исключение — ровно один финальный `validate-boundary` command ниже. Без pytest, без implement shards.
 3. После ≤6 Read — **pre-emit validate-boundary** (Bash), затем финальный отчёт, **ноль** дальнейших tool calls.
 4. **Первая строка текста = `VERDICT:`**
 
@@ -47,7 +47,8 @@ Parent **обязан** передать секции. Нет секции → `
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
-Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
+- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
 
 ## Gate Output (JSON fence HARD)
 
@@ -61,7 +62,7 @@ Emit только после `valid: true`. Fence language: **только** `js
   "step_id": "s06",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-023",
-  "recorded_at": "2026-08-31T12:00:00Z"
+  "recorded_at": "<iso8601>"
 }
 ```
 

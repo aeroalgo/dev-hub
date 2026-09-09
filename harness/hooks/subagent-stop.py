@@ -52,6 +52,7 @@ from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY  # noqa:
 from loop.sunset_sidecar_store import write_sunset_sidecar  # noqa: E402
 from loop.validate_boundary import validate_boundary  # noqa: E402
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
+from loop.runtime_adapters.subagent_lifecycle import auto_finish_after_gate  # noqa: E402
 
 
 def _require_verdict_message(agent_type: str) -> str:
@@ -165,6 +166,27 @@ def _handle_verify_finish_agent(
                 f"{agent_type}: mirror verdict failed: {exc}",
                 file=sys.stderr,
             )
+
+    # QA artifacts are already durable before verify-qa is spawned.  The
+    # shared lifecycle therefore owns the QA finish boundary immediately after
+    # a valid reviewer PASS; IMPLEMENT/BUGFIX remain parent-owned because
+    # their artifact is written after the verifier returns.
+    if agent_type in REVIEWER_MIRROR_AGENTS and verdict == "PASS":
+        finish = auto_finish_after_gate(
+            cwd,
+            agent_type=str(agent_type),
+            verdict=verdict,
+            session_id=session_id,
+        )
+        if finish and not finish.get("ok"):
+            print(
+                "verify-qa: automatic mb-finish qa did not complete: "
+                + ", ".join(str(code) for code in finish.get("diagnostic_codes") or [])
+                + (f" ({finish.get('error')})" if finish.get("error") else ""),
+                file=sys.stderr,
+            )
+        elif finish and finish.get("ok"):
+            print("verify-qa: automatic mb-finish qa completed; stop current turn", file=sys.stderr)
 
     clear_in_flight(st, agent=agent_type)
     save_state(session_id, cwd, st)

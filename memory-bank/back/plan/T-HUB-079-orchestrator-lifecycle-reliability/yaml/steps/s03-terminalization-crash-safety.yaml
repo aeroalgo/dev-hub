@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: Reducer-owned terminalization, lease expiry, crash safety, and pre-action abort telemetry
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать механизм lease/heartbeat, перевод зависших/упавших сессий в stale/infrastructure_failure
+  и регистрацию aborted_before_action с непустой причиной для пустых root-сессий.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - FR-004
+  nouns:
+    - owner lease
+    - heartbeat
+    - TaskStop
+    - stale terminal event
+    - aborted_before_action
+    - first-action flag
+  layout_paths:
+    - loop/lifecycle.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_lifecycle_crash_safety.py
+  ac_quotes:
+    - "Crash/TaskStop is terminalized as stale/infrastructure_failure with no parent retry loop or marker deletion."
+    - "Empty root session has aborted_before_action and a non-empty cause, not an unexplained zero-tool JSONL."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:64-73"
+    - "memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md:109-114"
+
+context:
+  consumes:
+    - s01, s02
+    - plan §Requirements (FR-002, FR-003, FR-004)
+    - plan §Failure matrix
+  produces:
+    - loop/lifecycle.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_lifecycle_crash_safety.py
+  plan_refs:
+    - FR-002
+    - FR-003
+    - FR-004
+  files:
+    - loop/lifecycle.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_lifecycle_crash_safety.py
+
+as_built:
+  - harness/hooks/session_resilience.py — обработка абортов и сохранение session logs
+  - loop/lifecycle.py — базовый редюсер и диспетчеризация из s01-s02
+
+delta:
+  - loop/lifecycle.py — добавление логики lease expiry, heartbeat, stale/infrastructure_failure transitions
+  - harness/hooks/session_resilience.py — фиксация first_action_at и статуса aborted_before_action с причиной
+  - loop/tests/test_lifecycle_crash_safety.py — тесты TaskStop, аварийного завершения и пустых сессий
+
+deletes: []
+
+out_of_scope:
+  - s01, s02, s04-s06 шаги эпика
+  - full suite → QA
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Истечение lease или крах процесса без stop-event детерминированно переводит инвокацию
+      в stale/infrastructure_failure редюсером без ручного удаления маркеров.
+    verify: "bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_lease_expiry_stale_transition -q --tb=line"
+  - id: cp2
+    criterion: |
+      Событие TaskStop терминально закрывает сессию с корректным terminal event,
+      предотвращая неконтролируемые повторные запуски.
+    verify: "bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_task_stop_terminalization -q --tb=line"
+  - id: cp3
+    criterion: |
+      Root-сессия, завершившаяся до первого tool-call действия, получает статус
+      aborted_before_action и фиксирует непустую причину останова.
+    verify: "bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_aborted_before_action_telemetry -q --tb=line"
+
+verify: []
+tdd: []

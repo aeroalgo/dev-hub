@@ -16,13 +16,15 @@ HOOK = ROOT / "harness" / "hooks" / "finish-boundary-pretool.py"
 
 
 def _run_hook(
-    tmp_path: Path, *, tool_name: str = "Read", epic_loop: bool = True
+    tmp_path: Path, *, tool_name: str = "Read", epic_loop: bool = True, runtime_id: str | None = None
 ) -> dict:
     payload = {
         "tool_name": tool_name,
         "cwd": str(tmp_path),
         "session_id": "claude-session",
     }
+    if runtime_id:
+        payload["runtime_id"] = runtime_id
     env = os.environ.copy()
     env["PROJECT_ROOT"] = str(tmp_path)
     env.pop("DEV_HUB", None)
@@ -73,6 +75,15 @@ def test_successful_finish_denies_any_followup_tool(tmp_path: Path) -> None:
     assert output["permissionDecision"] == "deny"
     assert "finish_boundary" in output["permissionDecisionReason"]
     assert "заверши текущий turn" in output["additionalContext"]
+
+
+def test_successful_finish_uses_codex_block_envelope(tmp_path: Path) -> None:
+    _state(tmp_path, phase_run_id="run-1", finish_run_id="run-1")
+
+    result = _run_hook(tmp_path, tool_name="Bash", runtime_id="codex")
+
+    assert result["decision"] == "block"
+    assert "finish_boundary" in result["reason"]
 
 
 def test_new_phase_run_is_unblocked_after_finish(tmp_path: Path) -> None:
