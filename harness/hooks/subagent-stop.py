@@ -171,6 +171,7 @@ def _handle_verify_finish_agent(
     # shared lifecycle therefore owns the QA finish boundary immediately after
     # a valid reviewer PASS; IMPLEMENT/BUGFIX remain parent-owned because
     # their artifact is written after the verifier returns.
+    auto_finished = False
     if agent_type in REVIEWER_MIRROR_AGENTS and verdict == "PASS":
         finish = auto_finish_after_gate(
             cwd,
@@ -186,6 +187,7 @@ def _handle_verify_finish_agent(
                 file=sys.stderr,
             )
         elif finish and finish.get("ok"):
+            auto_finished = True
             print("verify-qa: automatic mb-finish qa completed; stop current turn", file=sys.stderr)
 
     clear_in_flight(st, agent=agent_type)
@@ -195,7 +197,7 @@ def _handle_verify_finish_agent(
         print(_fail_hint(agent_type), file=sys.stderr)
         return
 
-    hint = mb_finish_hint_after_verdict(agent_type, verdict, cwd)
+    hint = None if auto_finished else mb_finish_hint_after_verdict(agent_type, verdict, cwd)
     if hint:
         print(hint, file=sys.stderr)
 
@@ -318,6 +320,24 @@ def main() -> None:
             fence_epic = fence_data.get("epic_id")
             fence_session = fence_data.get("session_id")
             fence_agent = fence_data.get("agent_id")
+
+            # Codex native multi_agent has no SubagentStart injection before the
+            # child runs; lifecycle binds the child to the parent runner session.
+            # Treat that transport binding as authoritative for session_id only.
+            runtime_id = str(
+                data.get("runtime_id")
+                or os.environ.get("EPIC_RUNTIME")
+                or os.environ.get("EPIC_RUNTIME_RESOLVED")
+                or ""
+            ).strip().lower()
+            if (
+                runtime_id == "codex"
+                and expected_session
+                and fence_session
+                and str(fence_session).strip() != str(expected_session).strip()
+            ):
+                fence_data["session_id"] = expected_session
+                fence_session = expected_session
 
             mismatches = []
             if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():

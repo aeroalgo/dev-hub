@@ -2576,6 +2576,117 @@ def test_record_abort_native_collaboration_timeout_is_repairable(tmp_path: Path)
     assert marker["status"] == "aborted"
 
 
+def test_record_abort_gate_integrity_never_marks_completed(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "status": "running",
+            "active": True,
+            "armed_step": "ANALYZE",
+            "armed_epic": "T-HUB-079-orchestrator-lifecycle-reliability",
+            "session_id": "runner-current",
+        }),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=runner-current mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"command_execution",'
+        '"command":"python harness/hooks/epic_resolve.py mb-finish analyze",'
+        '"exit_code":2,"status":"failed","aggregated_output":"verdict_wrong_step"}}\n'
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=runner-current exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0, runtime="codex")
+
+    assert out["ok"] is False
+    assert out["retryable"] is True
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker["status"] == "aborted"
+    state = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert state["repair_required"] == "gate-repair"
+    assert state["gate_diagnostic"] == "verdict_wrong_step"
+
+
+def test_record_abort_structured_finish_requires_current_receipt(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "status": "running",
+            "active": True,
+            "armed_step": "s01",
+            "armed_epic": "x",
+            "session_id": "runner-current",
+        }),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=runner-current mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=runner-current exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0, runtime="codex")
+
+    assert out["ok"] is False
+    assert out["reason"] == "finish_receipt_missing_or_mismatched"
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker["status"] == "aborted"
+
+
+def test_record_abort_accepts_current_finish_receipt(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps({
+            "status": "running",
+            "active": True,
+            "armed_step": "s01",
+            "armed_epic": "x",
+            "session_id": "runner-current",
+            "last_finish_tool": {
+                "name": "mb-finish implement",
+                "session_id": "runner-current",
+                "epic_id": "x",
+                "fingerprint": "sha256:finish",
+                "step_id": "s01",
+            },
+            "last_finished_step": "s01",
+        }),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=runner-current mode=headless command=codex\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=runner-current exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0, runtime="codex")
+
+    assert out["ok"] is True
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker["status"] == "completed"
+
+
 def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
@@ -2782,7 +2893,7 @@ def test_prepare_keeps_analyze_when_gate_pending(tmp_path: Path, monkeypatch) ->
     assert "ANALYZE" in str(prep.get("phase") or "")
 
 
-def test_prepare_promotes_analyze_to_implement_when_gate_passes(
+def test_prepare_does_not_promote_analyze_from_artifact_without_receipt(
     tmp_path: Path, monkeypatch
 ) -> None:
     ctx = _load_ctx()
@@ -2836,12 +2947,10 @@ def test_prepare_promotes_analyze_to_implement_when_gate_passes(
     )
     prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True, prep
-    assert prep.get("loop_phase") == "IMPLEMENT" or "s01" in str(
-        prep.get("phase") or prep.get("loop_phase") or ""
-    )
+    assert prep.get("loop_phase") == "ANALYZE"
     text = (tmp_path / "memory-bank/activeContext.md").read_text(encoding="utf-8")
-    assert "s01-env.yaml" in text
-    assert prep.get("loop_phase") != "ANALYZE"
+    assert "ANALYZE" in text
+    assert prep.get("loop_phase") == "ANALYZE"
 
 
 def test_build_prompt_decompose_includes_canon_checklist(tmp_path: Path) -> None:

@@ -146,6 +146,20 @@ def test_analyze_aborted_fixture():
     assert analysis.reason == "aborted"
 
 
+def test_analyze_codex_503_is_retryable():
+    adapter = CodexAdapter()
+    raw_log = (
+        '{"type":"error","message":"unexpected status 503 Service Unavailable: '
+        'Chat admission capacity is temporarily unavailable"}\n'
+    )
+    ctx = SessionContext(prompt="do task", phase="analyze", extras={"exit_code": 1})
+
+    analysis = adapter.analyze_log(raw_log, ctx)
+
+    assert analysis.retry is True
+    assert analysis.reason.startswith("codex_transient_api_error:")
+
+
 def test_analyze_exit0_aborted_in_agent_prose_not_abort():
     adapter = CodexAdapter()
     raw_log = (

@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -117,6 +118,127 @@ PROMPT_NAME = "next-prompt.txt"
 
 # Phase model default from .claude/project.env.
 # An explicit CLI --model wins over the phase default. Alias or OmniRoute id OK.
+class TodoPolicyDecision:
+    """Decision and telemetry for a TodoWrite tool request in a phase session."""
+
+    def __init__(
+        self,
+        allowed: bool,
+        action: str,
+        call_count: int,
+        diagnostic: str | None = None,
+        side_effect: bool = False,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        self.allowed = allowed
+        self.action = action
+        self.call_count = call_count
+        self.diagnostic = diagnostic
+        self.side_effect = side_effect
+        self.metadata = dict(metadata or {})
+
+    def __repr__(self) -> str:
+        return (
+            f"TodoPolicyDecision(allowed={self.allowed!r}, action={self.action!r}, "
+            f"call_count={self.call_count!r}, diagnostic={self.diagnostic!r}, "
+            f"side_effect={self.side_effect!r}, metadata={self.metadata!r})"
+        )
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TodoPolicyDecision):
+            return False
+        return (
+            self.allowed == other.allowed
+            and self.action == other.action
+            and self.call_count == other.call_count
+            and self.diagnostic == other.diagnostic
+            and self.side_effect == other.side_effect
+            and self.metadata == other.metadata
+        )
+
+
+class TodoWritePolicy:
+    """Centralized TodoWrite lifecycle policy enforced by the phase runner.
+
+    For IMPLEMENT phase:
+    - 1st call: start/plan (allowed, side_effect=True)
+    - 2nd call: finish/done (allowed, side_effect=True)
+    - 3rd and subsequent: rejected/ignored deterministically as telemetry without side effects.
+    """
+
+    def __init__(self, phase: str = "IMPLEMENT", max_allowed: int = 2) -> None:
+        self.phase = str(phase or "IMPLEMENT").strip().upper()
+        self.max_allowed = max_allowed
+        self.call_count = 0
+        self.history: list[TodoPolicyDecision] = []
+
+    def record_todowrite_request(self, payload: Any = None) -> TodoPolicyDecision:
+        """Evaluate and record a TodoWrite request under the phase policy."""
+        self.call_count += 1
+        if self.phase == "IMPLEMENT" and self.call_count > self.max_allowed:
+            decision = TodoPolicyDecision(
+                allowed=False,
+                action="rejected",
+                call_count=self.call_count,
+                diagnostic="todowrite_limit_exceeded",
+                side_effect=False,
+                metadata={"phase": self.phase, "max_allowed": self.max_allowed, "payload": payload},
+            )
+            self.history.append(decision)
+            return decision
+
+        action = "start" if self.call_count == 1 else "finish"
+        decision = TodoPolicyDecision(
+            allowed=True,
+            action=action,
+            call_count=self.call_count,
+            diagnostic=None,
+            side_effect=True,
+            metadata={"phase": self.phase, "max_allowed": self.max_allowed, "payload": payload},
+        )
+        self.history.append(decision)
+        return decision
+
+    def is_request_allowed(self) -> bool:
+        """Check if a subsequent TodoWrite request would be allowed."""
+        if self.phase == "IMPLEMENT" and self.call_count >= self.max_allowed:
+            return False
+        return True
+
+    def reset(self) -> None:
+        self.call_count = 0
+        self.history.clear()
+
+
+def evaluate_todowrite_request(
+    phase: str,
+    current_count: int,
+    payload: Any = None,
+    max_allowed: int = 2,
+) -> TodoPolicyDecision:
+    """Pure evaluation of a TodoWrite request given phase and 1-based call count."""
+    ph = str(phase or "IMPLEMENT").strip().upper()
+    if ph == "IMPLEMENT" and current_count > max_allowed:
+        return TodoPolicyDecision(
+            allowed=False,
+            action="rejected",
+            call_count=current_count,
+            diagnostic="todowrite_limit_exceeded",
+            side_effect=False,
+            metadata={"phase": ph, "max_allowed": max_allowed, "payload": payload},
+        )
+
+    action = "start" if current_count <= 1 else "finish"
+    return TodoPolicyDecision(
+        allowed=True,
+        action=action,
+        call_count=current_count,
+        diagnostic=None,
+        side_effect=True,
+        metadata={"phase": ph, "max_allowed": max_allowed, "payload": payload},
+    )
+
+
 LOOP_PHASE_MODEL_ENV: dict[str, str] = {
     "DECOMPOSE": "PROJECT_LOOP_DECOMPOSE_MODEL",
     "PLAN": "PROJECT_LOOP_PLAN_MODEL",
@@ -1570,7 +1692,21 @@ def prepare_session(
     if mismatch:
         return mismatch
 
-    promoted = _promote_if_ready(cwd_p)
+    # Do not attempt ANALYZE promotion merely because the cursor is currently
+    # armed on ANALYZE.  The explicit finish path owns that transition; a
+    # normal ANALYZE session must be allowed to continue until it produces a
+    # bound verifier receipt.
+    state_before_promote = load_epic_state(cwd_p)
+    active_text_before_promote = read_active_context(cwd_p)
+    active_mode_before_promote = re.search(
+        r"(?im)^\s*mode:\s*([^\s]+)", active_text_before_promote
+    )
+    skip_analyze_probe = (
+        str(state_before_promote.get("armed_step") or "").upper() == "ANALYZE"
+        and active_mode_before_promote
+        and active_mode_before_promote.group(1).upper() == "ANALYZE"
+    )
+    promoted = None if skip_analyze_probe else _promote_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -1601,6 +1737,29 @@ def prepare_session(
                 text = read_active_context(cwd_p)
                 state = load_epic_state(cwd_p)
                 projection = rebuild_epic_projection(cwd_p)
+            else:
+                # The artifact can be complete while the verifier receipt is
+                # absent or stale.  Restore the canonical ANALYZE handoff;
+                # never let a hand-edited IMPLEMENT cursor promote the epic.
+                from loop.epic_transition import arm_phase
+
+                epic_id = str(state.get("armed_epic") or "").strip()
+                role_dir = str(
+                    state.get("role") or state.get("armed_role") or "BACK"
+                ).lower()
+                decomp = str(state.get("armed_decompose") or "").strip()
+                if epic_id:
+                    arm_res = arm_phase(
+                        cwd_p,
+                        epic_id,
+                        "ANALYZE",
+                        role_dir,
+                        decompose_rel=decomp or None,
+                    )
+                    if isinstance(arm_res, dict) and arm_res.get("ok"):
+                        text = read_active_context(cwd_p)
+                        state = load_epic_state(cwd_p)
+                        projection = rebuild_epic_projection(cwd_p)
         else:
             # Heal premature AC IMPLEMENT while ANALYZE gate still open.
             from loop.epic_transition import arm_phase
@@ -1703,7 +1862,10 @@ def prepare_session(
                 cursor_sync.get("step_id"),
             )
             # After analyze_gate_rearm (or any sync to ANALYZE), promote if gate now passes.
-            if str(state.get("armed_step") or "").upper() == "ANALYZE":
+            if (
+                str(state.get("armed_step") or "").upper() == "ANALYZE"
+                and not re.search(r"(?im)^\s*mode:\s*ANALYZE\b", text)
+            ):
                 promoted_after = _promote_if_ready(cwd_p)
                 if promoted_after is not None and not promoted_after.get("ok"):
                     res = {
@@ -2886,6 +3048,13 @@ def record_abort(
             post_session(cwd_p, log_path, session_ctx)
     except Exception as exc:
         print(f"runtime session post-processing failed: {exc}", file=sys.stderr)
+    # The agent may have written last_finish_tool, verifier receipts, or gate
+    # diagnostics during the session.  Do not validate terminality against the
+    # pre-session state snapshot.
+    st = load_epic_state(cwd_p)
+    step_id = st.get("armed_step") or step_id
+    plan_id = st.get("armed_epic") or plan_id
+    resume_from = step_id or resume_from
     from loop.incidents.trace import append_trace
     from epic_paths import epic_dir as runtime_epic_dir
     from loop.runtime.session_events import append_session_events, parse_session_events
@@ -2952,6 +3121,74 @@ def record_abort(
             + reason
             + "; retry spawn_agent, then gate-repair and verify"
         )
+    elif reason and reason.startswith("gate_integrity:"):
+        gate_runtime_repair = True
+        diagnostic = reason.split(":", 1)[1] or "gate_integrity_failure"
+        st["gate_diagnostic"] = diagnostic
+        st["repair_required"] = "gate-repair"
+        st["halt_reason"] = (
+            "repairable terminal gate error: "
+            + diagnostic
+            + "; preserve current phase and run gate-repair"
+        )
+
+    # Ownership / schema NEED_HUMAN from gate hooks is a fail-closed halt.
+    # Do not mislabel it as a missing finish receipt and transient-retry the
+    # whole parent session (that produced the NEED_HUMAN thrash loop).
+    need_human = str(st.get("need_human") or "").strip()
+    if need_human and not analysis["aborted"]:
+        analysis = dict(analysis)
+        analysis.update(
+            {
+                "outcome": "permanent_failure",
+                "aborted": True,
+                "retryable": False,
+                "abort_kind": "fatal",
+                "reason": f"NEED_HUMAN: {need_human}",
+                "backoff_sec": 0,
+            }
+        )
+        reason = analysis["reason"]
+        retryable = analysis["retryable"]
+        kind = analysis["abort_kind"]
+
+    # A structured wrapper session is successful only after its finish tool
+    # persisted a receipt for this runner/epic.  FINISH prose alone is not a
+    # terminal result.  Legacy unmarked unit-test logs retain their old
+    # diagnostic-only behavior.
+    event_summary = analysis.get("event_summary") or {}
+    structured_session = bool(
+        event_summary.get("has_session_start") or event_summary.get("has_session_end")
+    )
+    if not analysis["aborted"] and structured_session:
+        finish = st.get("last_finish_tool")
+        finish_step = str(
+            (finish or {}).get("step_id") if isinstance(finish, dict) else ""
+        ).strip()
+        finished_step = str(st.get("last_finished_step") or "").strip()
+        finish_ok = (
+            isinstance(finish, dict)
+            and str(finish.get("session_id") or "") == str(st.get("session_id") or "")
+            and str(finish.get("epic_id") or "") == str(plan_id or "")
+            and bool(finish.get("fingerprint"))
+            and bool(finish_step or finished_step)
+            and (not finish_step or not finished_step or finish_step == finished_step)
+        )
+        if not finish_ok:
+            analysis = dict(analysis)
+            analysis.update(
+                {
+                    "outcome": "malformed_result",
+                    "aborted": True,
+                    "retryable": True,
+                    "abort_kind": "transient",
+                    "reason": "finish_receipt_missing_or_mismatched",
+                    "backoff_sec": transient_backoff_sec(attempt),
+                }
+            )
+            reason = analysis["reason"]
+            retryable = analysis["retryable"]
+            kind = analysis["abort_kind"]
     if not analysis["aborted"]:
         marker = write_last_session(
             cwd_p,
@@ -3005,6 +3242,18 @@ def record_abort(
         role=role,
         phase=phase,
     )
+    # check-after is intentionally skipped by loop.sh for aborted sessions,
+    # but the episode itself must still have a terminal forensic manifest.
+    episode_id = st.get("episode_id")
+    if episode_id:
+        try:
+            finalize_episode(cwd_p, str(episode_id), check_after_result={
+                "halt_reason": reason,
+                "decide": "aborted",
+                "sNN": step_id,
+            })
+        except Exception as exc:
+            logger.warning("record_abort: finalize_episode failed: %s", exc)
     if retryable:
         if not gate_runtime_repair:
             st["halt_reason"] = reason or "other"

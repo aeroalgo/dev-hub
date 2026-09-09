@@ -28,7 +28,7 @@ def test_codex_adapter_uses_shared_spawn_wait_lifecycle(monkeypatch, tmp_path) -
 
     def fake_hook(name, payload, *, cwd, runtime_id):
         calls.append((name, payload))
-        return 0
+        return 0, ""
 
     monkeypatch.setattr(lifecycle, "_run_hook", fake_hook)
     monkeypatch.setattr(
@@ -73,7 +73,7 @@ def test_shared_lifecycle_does_not_replay_same_wait_completion(monkeypatch, tmp_
     monkeypatch.setattr(
         lifecycle,
         "_run_hook",
-        lambda name, payload, *, cwd, runtime_id: calls.append(name) or 0,
+        lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
     )
     monkeypatch.setattr(lifecycle, "auto_finish_after_gate", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")

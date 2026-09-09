@@ -47,6 +47,7 @@ class LifecycleAction:
     start_exit_code: int
     stop_exit_code: int
     finish: dict[str, Any] | None = None
+    stderr: str = ""
 
 
 def normalize_agent_type(raw: str | None) -> str | None:
@@ -98,7 +99,7 @@ def _hook_path(name: str) -> Path:
     return Path(__file__).resolve().parents[2] / "harness" / "hooks" / name
 
 
-def _run_hook(name: str, payload: dict[str, Any], *, cwd: str | Path, runtime_id: str) -> int:
+def _run_hook(name: str, payload: dict[str, Any], *, cwd: str | Path, runtime_id: str) -> tuple[int, str]:
     result = subprocess.run(
         [sys.executable, str(_hook_path(name))],
         input=json.dumps(payload, ensure_ascii=False),
@@ -108,11 +109,10 @@ def _run_hook(name: str, payload: dict[str, Any], *, cwd: str | Path, runtime_id
         text=True,
         check=False,
     )
-    if result.stderr and result.returncode not in (0, 2):
-        # Hook diagnostics are useful to the runtime log, but must not corrupt
-        # the JSONL stream consumed by the parent runtime.
-        print(result.stderr, file=sys.stderr, end="")
-    return result.returncode
+    stderr = result.stderr or ""
+    # Never write hook diagnostics into a JSONL pipe; callers surface them
+    # on the human-readable console stream instead.
+    return result.returncode, stderr
 
 
 def _record_agent_key(agent_type: str) -> str:
@@ -202,7 +202,7 @@ class SubagentLifecycle:
             "tool_use_id": completion.spawn_tool_use_id or completion.thread_id or "",
             "thread_id": completion.thread_id or "",
         }
-        start_rc = _run_hook(
+        start_rc, start_err = _run_hook(
             "subagent-start.py", start_payload, cwd=self.cwd, runtime_id=self.runtime_id
         )
         if start_rc != 0:
@@ -211,6 +211,7 @@ class SubagentLifecycle:
                 completion.verdict,
                 start_rc,
                 start_rc,
+                stderr=start_err,
             )
 
         stop_payload = {
@@ -223,7 +224,7 @@ class SubagentLifecycle:
             "last_assistant_message": completion.message,
             "verdict": completion.verdict,
         }
-        stop_rc = _run_hook(
+        stop_rc, stop_err = _run_hook(
             "subagent-stop.py", stop_payload, cwd=self.cwd, runtime_id=self.runtime_id
         )
         finish = None
@@ -240,6 +241,7 @@ class SubagentLifecycle:
             start_rc,
             stop_rc,
             finish,
+            stderr=stop_err or start_err,
         )
 
     def process_item(self, item: dict[str, Any]) -> list[LifecycleAction]:

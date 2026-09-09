@@ -1,17 +1,17 @@
 ---
-schema: loop-handoff/v1 # handoff
+schema: loop-handoff/v1
 role: BACK
-mode: ANALYZE
+mode: IMPLEMENT
 epic_id: T-HUB-079-orchestrator-lifecycle-reliability
-step_id: ANALYZE
+step_id: s04
 ---
 
 ## load_now
-1. [plan.md](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/md/plan.md) — source plan/artifact for pre-implement phase ANALYZE.
-2. [`decompose-index.yaml`](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/decompose-index.yaml) — decompose index for ANALYZE gate.
+1. [back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s04-typed-parent-api-todowrite-policy.yaml](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s04-typed-parent-api-todowrite-policy.yaml) — текущий work shard (BACK IMPLEMENT s04).
+2. [back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/decompose-index.yaml](back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
 
-## Handoff ANALYZE
-- # epic_id: T-HUB-079-orchestrator-lifecycle-reliability — NOT short queue id
-- **Эпик:** T-HUB-079-orchestrator-lifecycle-reliability (BACK).
-- **Режим/шаг:** `BACK ANALYZE`.
-- **Дальше:** выполнить `BACK ANALYZE`.
+## Handoff BACK IMPLEMENT — s04
+- **Эпик:** T-HUB-079-orchestrator-lifecycle-reliability
+- **Режим/шаг:** BACK IMPLEMENT s04
+- **Сделано:** выполнен bootstrap шага s04, создан implement shard s04-typed-parent-api-todowrite-policy.yaml, начата реализация typed parent API await_gate и TodoWrite lifecycle policy.
+- **Осталось:** завершить cp1 (await_gate/get_invocation_status в loop/lifecycle.py + test_await_gate_api.py), cp2 (TodoWrite policy в loop/context_loop.py + test_todowrite_policy.py), cp3 (проверка/очистка harness/instructions/epic-loop.md), запустить тесты и пройти gate verify.

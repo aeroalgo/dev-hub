@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s03 — Reducer-owned terminalization, lease expiry, crash safety, and pre-action abort telemetry IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s03-terminalization-crash-safety.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - Реализованы owner lease, heartbeat, check_lease_expired, reap_stale и handle_crash в loop/lifecycle.py для детерминированного перехода в stale/infrastructure_failure
+  - Реализованы handle_task_stop и task_stop в loop/lifecycle.py с терминальным закрытием сессии, предотвращающим неконтролируемые перезапуски
+  - Реализованы abort_before_action и record_first_action в loop/lifecycle.py, а также детекция и фиксация first_action_taken и aborted_before_action с непустой причиной в harness/hooks/session_resilience.py
+  - Написаны unit-тесты в loop/tests/test_lifecycle_crash_safety.py, покрывающие cp1, cp2 и cp3
+files:
+  - loop/lifecycle.py
+  - harness/hooks/session_resilience.py
+  - loop/tests/test_lifecycle_crash_safety.py
+deletes: []
+tests:
+  - "`bin/pytest loop/tests/test_lifecycle_crash_safety.py -q --tb=line`"
+integration_check:
+  - "`bin/pytest loop/tests/test_lifecycle_crash_safety.py loop/tests/test_lifecycle_reducer.py loop/tests/test_session_resilience_codex.py -q --tb=line`"
+grep_control: []
+verification_results:
+  - "`bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_lease_expiry_stale_transition -q --tb=line` — 1 passed"
+  - "`bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_task_stop_terminalization -q --tb=line` — 1 passed"
+  - "`bin/pytest loop/tests/test_lifecycle_crash_safety.py -k test_aborted_before_action_telemetry -q --tb=line` — 1 passed"
+checkpoints:
+  - id: cp1
+    criterion: |
+      Истечение lease или крах процесса без stop-event детерминированно переводит инвокацию
+      в stale/infrastructure_failure редюсером без ручного удаления маркеров.
+    status: done
+  - id: cp2
+    criterion: |
+      Событие TaskStop терминально закрывает сессию с корректным terminal event,
+      предотвращая неконтролируемые повторные запуски.
+    status: done
+  - id: cp3
+    criterion: |
+      Root-сессия, завершившаяся до первого tool-call действия, получает статус
+      aborted_before_action и фиксирует непустую причину останова.
+    status: done
+resume_from: cp3

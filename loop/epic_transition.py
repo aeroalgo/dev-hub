@@ -12,6 +12,7 @@ Public contract:
 """
 from __future__ import annotations
 import os
+import re
 import sys
 import warnings
 from pathlib import Path
@@ -361,6 +362,46 @@ def promote_if_ready(
     epic = str(epic_id or st.get("armed_epic") or "").strip()
     if not epic:
         return None
+
+    # ANALYZE → IMPLEMENT is a gate transition.  An artifact or a manually
+    # edited activeContext cannot substitute for a fresh receipt bound to the
+    # current projection.
+    if armed_step == "ANALYZE":
+        # A manually edited IMPLEMENT handoff is handled by prepare_session,
+        # which re-arms ANALYZE after rejecting the missing/stale receipt.  Do
+        # not turn that drift into an implicit promotion here.
+        active_context = cwd_p / "memory-bank" / "activeContext.md"
+        try:
+            active_text = active_context.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            active_text = ""
+        if re.search(r"(?im)^\s*mode:\s*IMPLEMENT\b", active_text) or re.search(
+            r"(?im)^##\s*Handoff\s+(?:BACK|FRONT|INTEG(?:RATION)?)\s+IMPLEMENT\b",
+            active_text,
+        ):
+            return None
+        evidence = st.get("last_verify_evidence") or st.get("last_verify_receipt")
+        if not evidence:
+            return {
+                "ok": False,
+                "error": "ANALYZE promotion requires verifier receipt",
+                "diagnostic_code": "gate_evidence_missing",
+            }
+        try:
+            from epic.core import gate_evidence_matches
+            matched, diagnostic = gate_evidence_matches(cwd_p, evidence)
+        except Exception as exc:
+            return {
+                "ok": False,
+                "error": f"ANALYZE promotion gate validation failed: {exc}",
+                "diagnostic_code": "gate_evidence_invalid",
+            }
+        if not matched:
+            return {
+                "ok": False,
+                "error": f"ANALYZE promotion rejected: {diagnostic}",
+                "diagnostic_code": diagnostic,
+            }
 
     decomp = str(st.get("armed_decompose") or "").strip()
     idx_path: Path | None

@@ -60,6 +60,7 @@ Loop держит effective `--permission-mode bypassPermissions`, загруж�
 - Canon epic runtime dir: `HUB_ROOT/runtime/<slug>/epic/` (same as `loop.sh` `STATE_DIR` / `epic_paths.epic_dir` when `HUB_ROOT`/`DEV_HUB` set). It contains `next-prompt.txt`, `session-*.log`, `last-session.json` and `state.json`. `state.json` mirrors checkpoint telemetry for status/stop-gate and never owns the durable cursor; agents must not edit it. Checkpoint/index conflicts halt fail-closed.
 - Legacy path (product cwd, no hub env): `PROJECT_ROOT/.claude/runtime/epic/` — fallback only in `epic_paths.epic_dir` when hub is unset; docs and operators treat hub `runtime/<slug>/epic/` as primary.
 - After timeout or process death, inspect `<hub>/runtime/<slug>/epic/last-session.json`, preserve event evidence and resume only from the validated checkpoint. A transient retry cap is bounded and does not reset to the first pending step. Never auto-delete product runtime dirs.
+- Gate status and verifiers: runtime exposes `await_gate` and `get_invocation_status` typed API; worker prompts and parent agents receive typed status views without directory scans or manual status file manipulation.
 
 ## Production rollout and rollback
 

@@ -1,0 +1,161 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+slug: orchestrator-lifecycle-reliability
+date: "2026-09-09"
+status: complete
+index_fingerprint: "sha256:b413d16cc54872b758e3db30bf40d8b46787c85d81ca6dcc1b8de6a9301b9b10"
+
+# Read-only pre-IMPLEMENT analysis. Keep findings deterministic and actionable.
+findings: []
+
+# HARD: requirement_id = plan FR/SC/US id verbatim; status covered only if nouns ∈ produces/files
+# OR out_of_scope + follow_up:T-… in queue. Remapped «Кратко» ≠ covered.
+coverage:
+  - requirement_id: FR-001
+    step_ids:
+      - s01
+      - s02
+      - s06
+    status: covered
+    plan_text_verbatim: "launch returns a stable invocation ID before work; duplicate request with same key returns current/result state and never spawns a second worker."
+
+  - requirement_id: FR-002
+    step_ids:
+      - s01
+      - s02
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "only lifecycle owner may transition created → running → terminal; parent receives read-only status and cannot mutate markers."
+
+  - requirement_id: FR-003
+    step_ids:
+      - s01
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "terminal statuses are exhaustive: passed, failed, cancelled, stale, infrastructure_failure, aborted_before_action; every root prompt reaches one within bounded policy."
+
+  - requirement_id: FR-004
+    step_ids:
+      - s03
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "every aborted/dead root session records machine-readable reason, first-action flag, timestamps, owner and retry relation in telemetry/JSONL companion record."
+
+  - requirement_id: FR-005
+    step_ids:
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "Todo lifecycle is managed by phase runner: at most start+finish events for IMPLEMENT and explicit diagnostic for third request."
+
+  - requirement_id: FR-006
+    step_ids:
+      - s02
+      - s04
+      - s05
+      - s06
+    status: covered
+    plan_text_verbatim: "runtime exposes await_gate/get_invocation_status with minimum fields; worker prompts do not need filesystem scans of /tmp, home or runtime directories."
+
+  - requirement_id: "AC+ #1"
+    step_ids:
+      - s01
+      - s02
+    status: covered
+    plan_text_verbatim: "Eight requests for the same verifier identity yield one execution and the same completed receipt/status."
+
+  - requirement_id: "AC+ #2"
+    step_ids:
+      - s03
+    status: covered
+    plan_text_verbatim: "Crash/TaskStop is terminalized as stale/infrastructure_failure with no parent retry loop or marker deletion."
+
+  - requirement_id: "AC+ #3"
+    step_ids:
+      - s03
+      - s05
+    status: covered
+    plan_text_verbatim: "Empty root session has aborted_before_action and a non-empty cause, not an unexplained zero-tool JSONL."
+
+  - requirement_id: "AC+ #4"
+    step_ids:
+      - s01
+      - s02
+    status: covered
+    plan_text_verbatim: "A legitimate new epoch creates a new key; an old result cannot satisfy it."
+
+  - requirement_id: "AC+ #5"
+    step_ids:
+      - s04
+    status: covered
+    plan_text_verbatim: "Third TodoWrite request is rejected/ignored deterministically and becomes telemetry, not a new side effect."
+
+  - requirement_id: "AC− #1"
+    step_ids:
+      - s01
+      - s02
+      - s06
+    status: covered
+    plan_text_verbatim: "No concurrent duplicate verifier/reviewer for equal identity."
+
+  - requirement_id: "AC− #2"
+    step_ids:
+      - s04
+      - s06
+    status: covered
+    plan_text_verbatim: "No runtime-file crawl is presented as supported remediation in agent instructions."
+
+  - requirement_id: "AC− #3"
+    step_ids:
+      - s03
+      - s06
+    status: covered
+    plan_text_verbatim: "No automatic retry after terminal failure without an explicit policy/retry identity."
+
+  - requirement_id: TM-079-01
+    step_ids:
+      - s01
+      - s02
+    status: covered
+    plan_text_verbatim: "duplicate spawn"
+
+  - requirement_id: TM-079-02
+    step_ids:
+      - s03
+    status: covered
+    plan_text_verbatim: "process crash"
+
+  - requirement_id: TM-079-03
+    step_ids:
+      - s03
+      - s05
+    status: covered
+    plan_text_verbatim: "prompt dies before action"
+
+  - requirement_id: TM-079-04
+    step_ids:
+      - s01
+      - s02
+    status: covered
+    plan_text_verbatim: "old epoch retry"
+
+  - requirement_id: TM-079-05
+    step_ids:
+      - s04
+    status: covered
+    plan_text_verbatim: "third Todo request"
+
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+
+recommendation: IMPLEMENT
+next_actions: []
+
+constitution_violations: []

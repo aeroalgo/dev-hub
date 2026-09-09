@@ -769,6 +769,7 @@ def write_last_finish_tool(
         "name": str(name),
         "at": ts,
         "fingerprint": str(fingerprint),
+        "step_id": str(finished_step or st.get("armed_step") or ""),
         "session_id": st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
         "phase_run_id": st.get("phase_run_id") or st.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
         "epic_id": st.get("armed_epic"),

@@ -9,6 +9,10 @@ import shlex
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from loop.runtime_adapters.codex import CodexAdapter
 
 _SKIP_ERROR_SUBSTRINGS = (
@@ -82,7 +86,18 @@ def _agent_text(text: str) -> str | None:
     if not stripped:
         return None
     if "```" in stripped:
-        return None
+        # Keep a readable summary instead of dropping the whole turn — otherwise
+        # verify/repair fences vanish from the console while the parent waits.
+        prose = []
+        in_fence = False
+        for line in stripped.splitlines():
+            if line.strip().startswith("```"):
+                in_fence = not in_fence
+                continue
+            if not in_fence:
+                prose.append(line)
+        compact = "\n".join(prose).strip()
+        return compact or None
     return stripped
 
 
@@ -152,7 +167,20 @@ def emit_from_obj(obj: dict) -> None:
     if item_type == "collab_tool_call":
         if _lifecycle is not None:
             try:
-                _lifecycle.process_item(_codex_adapter.normalize_collaboration_item(item))
+                actions = _lifecycle.process_item(
+                    _codex_adapter.normalize_collaboration_item(item)
+                )
+                for action in actions or []:
+                    stderr = str(getattr(action, "stderr", "") or "").strip()
+                    if stderr:
+                        for line in stderr.splitlines():
+                            _write(f"{line}\n")
+                    stop_rc = int(getattr(action, "stop_exit_code", 0) or 0)
+                    if stop_rc != 0 and not stderr:
+                        _write(
+                            f"← Subagent hook fail agent={getattr(action, 'agent_type', '?')} "
+                            f"rc={stop_rc}\n"
+                        )
             except Exception as exc:
                 # The display filter must never terminate the runtime stream;
                 # record-session remains the bounded fallback processor.

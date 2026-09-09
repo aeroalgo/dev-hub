@@ -18,6 +18,9 @@ _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
     r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
 )
 _CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
+_CODEX_TRANSIENT_STATUS_RE = re.compile(
+    r"(?i)\b(?:429|500|502|503|504)\b[^\n]*(?:service|server|gateway|capacity|temporarily|unavailable|error)"
+)
 
 
 def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
@@ -214,6 +217,13 @@ class CodexAdapter(RuntimeAdapter):
         error_text = _codex_error_text(raw_log).lower()
         if any(kw in error_text for kw in auth_keywords):
             return SessionAnalysis(reason="auth_failed", retry=False)
+
+        transient_status = _CODEX_TRANSIENT_STATUS_RE.search(error_text)
+        if transient_status:
+            return SessionAnalysis(
+                reason=f"codex_transient_api_error: {transient_status.group(0)[:180]}",
+                retry=True,
+            )
 
         if exit_code is not None and exit_code != 0:
             return SessionAnalysis(reason=f"exit_{exit_code}", retry=False)

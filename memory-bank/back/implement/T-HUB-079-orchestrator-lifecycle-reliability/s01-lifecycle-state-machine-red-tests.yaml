@@ -1,0 +1,64 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s01 — Define immutable lifecycle state machine, idempotency key, and red tests
+  IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s01-lifecycle-state-machine-red-tests.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Определены модели InvocationKey, InvocationState, LifecycleEventType, InvocationEvent
+  и InvocationRecord в loop/lifecycle.py
+- Реализован LifecycleReducer с валидацией допустимых переходов состояний и авторизацией
+  владельца инвокации
+- Написан полный набор unit-тестов в loop/tests/test_lifecycle_reducer.py, проверяющий
+  схему, переходы состояний, идемпотентность и изоляцию эпох
+files:
+- loop/lifecycle.py
+- loop/tests/test_lifecycle_reducer.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_lifecycle_reducer.py -q --tb=line
+integration_check:
+- bin/pytest loop/tests/test_lifecycle_reducer.py -q --tb=line — 3 passed
+grep_control: []
+verification_results:
+- bin/pytest loop/tests/test_lifecycle_reducer.py -k test_schema_and_types -q --tb=line
+  — 1 passed
+- bin/pytest loop/tests/test_lifecycle_reducer.py -k test_legal_state_transitions
+  -q --tb=line — 1 passed
+- bin/pytest loop/tests/test_lifecycle_reducer.py -k test_idempotency_and_epoch_isolation
+  -q --tb=line — 1 passed
+checkpoints:
+- id: cp1
+  criterion: 'Определены схемы InvocationKey (session, phase, step, role, epoch),
+
+    InvocationState (created, running, passed, failed, cancelled, stale, infrastructure_failure,
+    aborted_before_action)
+
+    и типы событий жизненного цикла в loop/lifecycle.py.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'LifecycleReducer валидирует допустимые переходы created -> running ->
+    terminal
+
+    и запрещает неавторизованные мутации состояний родительским процессом.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'Unit-тесты подтверждают: повторные запросы с тем же InvocationKey возвращают
+
+    существующий invocation без повторного выполнения; смена epoch генерирует новый
+    ключ.
+
+    '
+  status: done
+resume_from: cp1

@@ -12,6 +12,7 @@ from _lib import (
     product_cwd,  # noqa: E402
     HARD_RULE,
     check_contract_drift,
+    current_gate_identity,
     emit,
     load_state,
     mark_in_flight,
@@ -169,12 +170,22 @@ def main() -> None:
                 if agent_type == "gate-repair":
                     st["repair_in_flight"] = True
                 save_state(session_id, cwd, st)
+    identity = current_gate_identity(cwd, session_id)
+    identity_session = str(identity.get("session_id") or session_id or "").strip()
+    identity_epic = str(identity.get("epic_id") or "").strip()
+    identity_step = str(identity.get("step") or "").strip()
+    identity_block = (
+        f"GATE_IDENTITY session_id={identity_session} "
+        f"epic_id={identity_epic} step_id={identity_step}\n"
+        "Fence MUST use these exact IDs for session_id, epic_id, and step_id.\n"
+    )
     emit(
         {
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
                 "additionalContext": (
                     f"agent_type={agent_type} preset={PRESET_BY_AGENT.get(agent_type, '')}\n"
+                    f"{identity_block}"
                     f"{contract}\n{HARD_RULE}"
                 ),
             }

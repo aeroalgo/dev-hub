@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s02 — Idempotent verifier and gate dispatch with epoch isolation and receipt linkage IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s02-idempotent-gate-dispatch.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+  - Реализованы create_or_get_invocation, get_invocation_status, GateReceipt, bind_receipt и validate_receipt_epoch в loop/lifecycle.py
+  - Интегрированы GateLaunchRequest, GateLaunchResult и GateDispatcher в loop/runtime_adapters/base.py
+  - Реализованы create_invocation_context и потокобезопасный IdempotentGateDispatcher в loop/runtime_adapters/common.py
+  - Написаны unit-тесты в loop/tests/test_idempotent_gate_dispatch.py, проверяющие стабильный invocation_id, 8 параллельных запусков и изоляцию эпох с валидацией receipt
+files:
+  - loop/lifecycle.py
+  - loop/runtime_adapters/base.py
+  - loop/runtime_adapters/common.py
+  - loop/tests/test_idempotent_gate_dispatch.py
+deletes: []
+tests:
+  - bin/pytest loop/tests/test_idempotent_gate_dispatch.py -q --tb=line — 3 passed
+integration_check:
+  - bin/pytest loop/tests/test_idempotent_gate_dispatch.py loop/tests/test_lifecycle_reducer.py -q --tb=line — 6 passed
+grep_control: []
+verification_results:
+  - bin/pytest -q --tb=line — 2405 passed, 4 skipped
+  - bin/pytest loop/tests/test_idempotent_gate_dispatch.py -q --tb=line — 3 passed
+checkpoints:
+  - id: cp1
+    criterion: |
+      Диспетчер subagent/gate запускает create_or_get_invocation и возвращает стабильный
+      invocation_id до старта полезной работы; повторные запросы получают текущий статус.
+    status: done
+  - id: cp2
+    criterion: |
+      Восемь параллельных/последовательных запросов на запуск verifier с одинаковой
+      идентичностью порождают ровно одно исполнение и возвращают общий завершённый receipt.
+    status: done
+  - id: cp3
+    criterion: |
+      Receipt содержит invocation_id и epoch; при смене эпохи старый receipt отвергается
+      и инициируется новый цикл проверки.
+    status: done
+resume_from: cp3

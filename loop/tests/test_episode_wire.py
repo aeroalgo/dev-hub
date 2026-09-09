@@ -132,3 +132,27 @@ def test_tier0_check_after_finalizes(tmp_path: Path):
     ep_path = episode_dir(tmp_path, ep_id)
     assert (ep_path / "manifest.json").is_file()
 
+
+def test_record_abort_finalizes_started_episode(tmp_path: Path):
+    from loop.context_loop import record_abort
+    import json
+
+    ac_file = tmp_path / "memory-bank" / "activeContext.md"
+    ac_file.parent.mkdir(parents=True, exist_ok=True)
+    ac_file.write_text(AC_VALID_CONTENT_1, encoding="utf-8")
+    (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
+
+    prep_res = prepare_session(tmp_path)
+    ep_id = prep_res["episode_id"]
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=abort-1\n"
+        "SESSION_END session=abort-1 exit_code=124\n",
+        encoding="utf-8",
+    )
+
+    record_abort(tmp_path, log_path=log, exit_code=124)
+
+    manifest = episode_dir(tmp_path, ep_id) / "manifest.json"
+    assert manifest.is_file()
+    assert json.loads(manifest.read_text(encoding="utf-8"))["decide"] == "aborted"

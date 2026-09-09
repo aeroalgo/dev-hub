@@ -261,7 +261,7 @@ def test_promote_if_ready_incomplete_index_returns_none(tmp_path):
 
 
 def test_promote_if_ready_analyze_finish_goes_implement(tmp_path):
-    from epic.core import save_epic_state  # noqa: PLC0415
+    from epic.core import load_epic_state, save_epic_state  # noqa: PLC0415
     from loop.epic_transition import promote_if_ready  # noqa: PLC0415
 
     epic = "T-TEST-004"
@@ -280,8 +280,13 @@ def test_promote_if_ready_analyze_finish_goes_implement(tmp_path):
         },
     )
 
-    with patch("loop.epic_transition.arm_phase") as mock_arm:
+    with patch("loop.epic_transition.arm_phase") as mock_arm, patch(
+        "epic.core.gate_evidence_matches", return_value=(True, "matched")
+    ):
         mock_arm.return_value = {"ok": True, "armed_step": "s01"}
+        state = load_epic_state(tmp_path)
+        state["last_verify_evidence"] = {"schema": "loop-verifier-receipt/v1"}
+        save_epic_state(tmp_path, state)
         res = promote_if_ready(tmp_path, epic, "back")
 
     assert res is not None

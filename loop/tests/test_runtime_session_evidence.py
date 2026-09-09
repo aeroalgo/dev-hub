@@ -81,6 +81,42 @@ def test_timeout_with_finish_marker_is_not_completion(tmp_path: Path, runtime: s
     assert result["task_complete"] is False
 
 
+def test_finish_in_failed_command_output_is_not_semantic_completion(tmp_path: Path) -> None:
+    log = tmp_path / "finish-command-failed.log"
+    log.write_text(
+        "SESSION_START session=s-gate\n"
+        '{"type":"item.completed","item":{"type":"command_execution",'
+        '"command":"python harness/hooks/epic_resolve.py mb-finish analyze",'
+        '"aggregated_output":"verdict_wrong_step", "exit_code":2, "status":"failed"}}\n'
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=s-gate exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    result = analyze_session_log(log, exit_code=0, runtime="codex")
+
+    assert result["aborted"] is True
+    assert result["retryable"] is True
+    assert result["reason"] == "gate_integrity:verdict_wrong_step"
+    assert result["semantic_status"] == "complete"
+
+
+def test_started_session_without_session_end_is_not_success(tmp_path: Path) -> None:
+    log = tmp_path / "missing-end.log"
+    log.write_text(
+        "SESSION_START session=s-missing-end\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n',
+        encoding="utf-8",
+    )
+
+    result = analyze_session_log(log, exit_code=0, runtime="codex")
+
+    assert result["outcome"] == "malformed_result"
+    assert result["aborted"] is True
+    assert result["retryable"] is True
+    assert result["reason"] == "session_end_missing"
+
+
 def test_session_event_stream_keeps_step_role_and_runtime(tmp_path: Path) -> None:
     events = parse_session_events("SESSION_START session=s-3\nSESSION_END session=s-3 exit_code=0\n", "dsh")
     target = append_session_events(

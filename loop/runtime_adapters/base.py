@@ -19,7 +19,68 @@ class SessionContext:
     phase: str
     model: str | None = None
     runtime_id: str = "claude"
+    session_id: str | None = None
+    step: str | None = None
+    role: str | None = None
+    epoch: int = 0
+    invocation_id: str | None = None
     extras: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class GateLaunchRequest:
+    """Immutable request specification for launching a gate verifier subagent."""
+
+    session_id: str
+    phase: str
+    step: str
+    role: str
+    epoch: int = 0
+    prompt: str = ""
+    model: str | None = None
+    runtime_id: str = "claude"
+    owner: str = "orchestrator"
+    extras: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def key_tuple(self) -> tuple[str, str, str, str, int]:
+        return (self.session_id, self.phase, self.step, self.role, self.epoch)
+
+    @property
+    def invocation_key(self) -> Any:
+        from loop.lifecycle import InvocationKey
+        return InvocationKey(
+            session=self.session_id,
+            phase=self.phase,
+            step=self.step,
+            role=self.role,
+            epoch=self.epoch,
+        )
+
+
+@dataclass(frozen=True)
+class GateLaunchResult:
+    """Result of dispatching a gate verifier subagent."""
+
+    invocation_id: str
+    key: str
+    state: str
+    is_new_launch: bool
+    receipt: Any | None = None
+    status_view: Any | None = None
+    first_action_taken: bool = False
+
+
+@runtime_checkable
+class GateDispatcher(Protocol):
+    """Protocol for idempotent gate / verifier dispatchers."""
+
+    def dispatch(
+        self,
+        request: GateLaunchRequest,
+        worker_fn: Any | None = None,
+    ) -> GateLaunchResult:
+        ...
 
 
 @dataclass(frozen=True)

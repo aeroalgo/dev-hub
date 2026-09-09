@@ -83,6 +83,15 @@ _MALFORMED_RESULT_PATTERNS = (
     re.compile(r"(?i)invalid stream[- ]json"),
 )
 
+_GATE_INTEGRITY_PATTERNS = (
+    re.compile(r"(?i)\bverdict_wrong_step\b"),
+    re.compile(r"(?i)\bverdict_stale\b"),
+    re.compile(r"(?i)\bepoch_mismatch\b"),
+    re.compile(r"(?i)\b(receipt_digest_mismatch|manual_authority_rejected)\b"),
+    re.compile(r"(?i)\bgate_evidence_(?:missing|invalid)\b"),
+    re.compile(r"(?i)\bfinish_(?:tool_missing|receipt_missing)\b"),
+)
+
 # Process exit when run_session kills Claude after detecting model swap.
 MODEL_SUBSTITUTION_EXIT = 125
 _MODEL_SUBSTITUTION_MARKER = "MODEL_SUBSTITUTION\n"
@@ -113,6 +122,7 @@ def _safe_killpg(pid: int, sig: int) -> None:
 
 
 _TRANSIENT_ABORT_PATTERNS = (
+    re.compile(r"(?i)codex_transient_api_error:"),
     re.compile(r"(?i)timeout: sending signal (?:TERM|KILL) to command"),
     re.compile(r"(?i)timed out|timeout expired|command timed out"),
     re.compile(r"(?i)API Error:\s*terminated"),
@@ -263,15 +273,26 @@ class SessionOutcome(str, Enum):
     PERMANENT_FAILURE = "permanent_failure"
     MALFORMED_RESULT = "malformed_result"
     UNKNOWN_FAILURE = "unknown_failure"
+    ABORTED_BEFORE_ACTION = "aborted_before_action"
+    STALE = "stale"
+    INFRASTRUCTURE_FAILURE = "infrastructure_failure"
 
 
-class SessionAnalysis(TypedDict):
+class SessionAnalysis(TypedDict, total=False):
     outcome: str
     aborted: bool
     retryable: bool
     abort_kind: str | None
     reason: str | None
     backoff_sec: int
+    runtime: str
+    event_summary: dict[str, Any]
+    semantic_status: str
+    task_complete: bool | None
+    gate_diagnostic: str | None
+    first_action_taken: bool
+    first_action_at: float | str | None
+    aborted_before_action: bool
 
 
 def utc_now() -> str:
@@ -632,6 +653,43 @@ def is_idle_timeout(reason: str | None) -> bool:
     return bool(reason and re.search(r"(?i)stream idle timeout", reason))
 
 
+def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
+    """Return a repairable diagnostic for a failed terminal/gate operation."""
+    # A failed mb-finish command is not a successful model turn even when the
+    # outer runtime exits zero.  Restrict this to the finish command so an
+    # exploratory command failure does not poison an otherwise valid turn.
+    for line in (raw_log or "").splitlines():
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(obj, dict) or obj.get("type") != "item.completed":
+            continue
+        item = obj.get("item")
+        if not isinstance(item, dict) or item.get("type") != "command_execution":
+            continue
+        command = str(item.get("command") or "")
+        output = str(item.get("aggregated_output") or "")
+        if re.search(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b", command):
+            for pattern in _GATE_INTEGRITY_PATTERNS:
+                match = pattern.search(output)
+                if match:
+                    return match.group(0).lower()
+        failed = item.get("status") == "failed" or item.get("exit_code") not in (None, 0)
+        if failed and re.search(r"(?i)\bmb-finish\b", command):
+            return "finish_command_failed"
+    # Plain-text wrappers do not have command item envelopes.  Only accept a
+    # diagnostic from a line that names the terminal operation itself.
+    for line in (raw_log or "").splitlines():
+        if not re.search(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b", line):
+            continue
+        for pattern in _GATE_INTEGRITY_PATTERNS:
+            match = pattern.search(line)
+            if match:
+                return match.group(0).lower()
+    return None
+
+
 def transient_backoff_sec(attempt: int, *, idle: bool = False) -> int:
     """Exponential backoff for 1-based retry attempt number."""
     try:
@@ -681,14 +739,29 @@ def analyze_session_log(
         events = parse_session_events(raw_log, runtime)
     from loop.runtime.session_events import summarize_session_events
     evidence = summarize_session_events(events, exit_code=exit_code)
+    gate_diagnostic = _terminal_integrity_diagnostic(raw_log)
+
+    tool_events = [e for e in events if getattr(e, "event_type", None) in {"tool_start", "tool_end", "tool_event", "write"}]
+    first_action_taken = len(tool_events) > 0
+    first_action_at: float | str | None = None
+    if first_action_taken:
+        for ev in events:
+            if getattr(ev, "event_type", None) in {"tool_start", "tool_end", "tool_event", "write"}:
+                first_action_at = (getattr(ev, "metadata", None) or {}).get("timestamp") or getattr(ev, "sequence", None)
+                break
 
     def result_payload(**payload: Any) -> dict[str, Any]:
+        aborted_flag = bool(payload.get("aborted", False))
         payload.update(
             {
                 "runtime": runtime,
                 "event_summary": evidence,
                 "semantic_status": evidence["semantic_status"],
                 "task_complete": evidence["task_complete"],
+                "gate_diagnostic": gate_diagnostic,
+                "first_action_taken": first_action_taken,
+                "first_action_at": first_action_at,
+                "aborted_before_action": bool(not first_action_taken and aborted_flag),
             }
         )
         return payload
@@ -744,6 +817,31 @@ def analyze_session_log(
     permanent = model_sub or bool(
         _match_patterns(reason or "", _PERMANENT_FAILURE_PATTERNS)
     ) or reason == "command not found" or exit_code == 127
+    if gate_diagnostic:
+        return result_payload(
+            outcome=SessionOutcome.UNKNOWN_FAILURE.value,
+            aborted=True,
+            retryable=True,
+            abort_kind="transient",
+            reason=f"gate_integrity:{gate_diagnostic}",
+            backoff_sec=0,
+        )
+    # The wrapper's markers are the lifecycle boundary.  A started structured
+    # session without SESSION_END is incomplete, regardless of exit status or
+    # a FINISH-looking message emitted before the process disappeared.
+    if (
+        evidence.get("has_session_start")
+        and not evidence.get("has_session_end")
+        and exit_code in (0, None)
+    ):
+        return result_payload(
+            outcome=SessionOutcome.MALFORMED_RESULT.value,
+            aborted=True,
+            retryable=True,
+            abort_kind="transient",
+            reason="session_end_missing",
+            backoff_sec=transient_backoff_sec(attempt),
+        )
     if not reason and not interrupted and not timeout and exit_code in (0, None):
         return result_payload(
             outcome=SessionOutcome.CLEAN.value,
@@ -753,6 +851,8 @@ def analyze_session_log(
             reason=None,
             backoff_sec=0,
         )
+    if not first_action_taken and not reason and exit_code not in (0, None):
+        reason = f"aborted before first action: prompt dies before action (exit={exit_code})"
     if timeout:
         reason = reason or "claude session timeout"
         outcome = SessionOutcome.TIMEOUT
@@ -911,6 +1011,8 @@ def write_last_session(
     event_summary: dict[str, Any] | None = None,
     role: str | None = None,
     phase: str | None = None,
+    first_action_taken: bool | None = None,
+    first_action_at: float | str | None = None,
 ) -> Path:
     """Persist the latest session marker, including its owning plan ID."""
     path = last_session_path(cwd, track=track)
@@ -937,6 +1039,8 @@ def write_last_session(
         "event_summary": event_summary or {},
         "role": role,
         "phase": phase,
+        "first_action_taken": first_action_taken,
+        "first_action_at": first_action_at,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
@@ -1252,6 +1356,13 @@ def run_session(
                     break
                 events = selector.select(min(remaining, 0.1))
                 now = time.monotonic()
+                # A blocking native wait emits no parent tool progress while the
+                # child is still working.  Freeze the stream-idle clock for that
+                # window; collaboration_wait_timeout owns the hang detector.
+                if collaboration_pending_threads:
+                    last_activity = now
+                    if last_progress in {"starting", ""}:
+                        last_progress = "native collaboration wait"
                 if heartbeat_sec is not None and now - last_heartbeat >= heartbeat_sec:
                     elapsed = now - started
                     idle_for = now - last_activity

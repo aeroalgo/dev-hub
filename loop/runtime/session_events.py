@@ -181,9 +181,18 @@ def summarize_session_events(events: Iterable[SessionEvent], exit_code: int | No
     counts: dict[str, int] = {}
     for event in materialized:
         counts[event.event_type] = counts.get(event.event_type, 0) + 1
-    explicit_finish = any(event.explicit_finish for event in materialized)
+    # FINISH is a terminal signal only when it comes from model/runtime output.
+    # A command's aggregated_output may contain the word FINISH while the
+    # command itself failed; treating that as completion is a false positive.
+    explicit_finish = any(
+        event.explicit_finish
+        and event.event_type in {"assistant_message", "runtime_text", "result"}
+        for event in materialized
+    )
     has_error = any(event.event_type == "error" for event in materialized)
     has_progress = any(event.event_type in {"tool_start", "tool_end", "tool_event", "assistant_message", "write", "result"} for event in materialized)
+    has_session_start = any(event.event_type == "session_start" for event in materialized)
+    has_session_end = any(event.event_type == "session_end" for event in materialized)
     process_failed = exit_code not in (0, None)
     if process_failed:
         # Provider output may contain a planned FINISH before the wrapper is
@@ -209,6 +218,8 @@ def summarize_session_events(events: Iterable[SessionEvent], exit_code: int | No
         "explicit_finish": explicit_finish,
         "semantic_status": semantic_status,
         "task_complete": task_complete,
+        "has_session_start": has_session_start,
+        "has_session_end": has_session_end,
         "process_exit_code": exit_code,
         "last_event": materialized[-1].event_type if materialized else None,
     }

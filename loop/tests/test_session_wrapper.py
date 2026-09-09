@@ -1036,3 +1036,52 @@ def test_classify_abort_and_table_driven_lock(
         assert kind == "transient"
     else:
         assert kind != "transient"
+
+
+def test_pending_collaboration_freezes_stream_idle(tmp_path: Path) -> None:
+    """While a native child is pending, silent parent stream must not idle-kill."""
+    sr = _load_resilience()
+    log = tmp_path / "codex-collab-idle-freeze.log"
+    events = [
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "spawn_agent",
+                "receiver_thread_ids": ["child-1"],
+                "agents_states": {"child-1": {"status": "pending_init"}},
+            },
+        },
+        {
+            "type": "item.started",
+            "item": {
+                "type": "collab_tool_call",
+                "tool": "wait",
+                "receiver_thread_ids": ["child-1"],
+                "agents_states": {},
+            },
+        },
+    ]
+    source = (
+        "import json,time; "
+        f"events={events!r}; "
+        "[print(json.dumps(event), flush=True) for event in events]; "
+        "time.sleep(1.2)"
+    )
+    rc = sr.run_session(
+        [sys.executable, "-c", source],
+        mode="headless",
+        session_id="codex-collab-idle-freeze",
+        timeout=3.0,
+        kill_grace=0.2,
+        heartbeat_sec=0.2,
+        idle_timeout=0.5,
+        collaboration_wait_timeout=5.0,
+        log_path=log,
+        progress_mode="codex_json",
+    )
+    text = log.read_text(encoding="utf-8")
+    assert "SESSION_IDLE_TIMEOUT" not in text
+    assert "SESSION_END" in text
+    assert rc == 0
+    assert 'activity="native collaboration wait"' in text

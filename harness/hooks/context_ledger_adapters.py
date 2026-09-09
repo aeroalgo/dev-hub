@@ -21,6 +21,9 @@ import sys
 from typing import Any, Literal
 
 _HOOKS_DIR = Path(__file__).resolve().parent
+_HUB_ROOT = _HOOKS_DIR.parents[1]
+if str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
