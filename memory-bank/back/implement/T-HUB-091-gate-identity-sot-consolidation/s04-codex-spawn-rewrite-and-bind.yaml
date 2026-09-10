@@ -1,0 +1,47 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s04 — Codex spawn-time prompt rewrite with GATE_IDENTITY + pending thread SoT
+  bind IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s04-codex-spawn-rewrite-and-bind.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Добавлена функция rewrite_spawn_prompt и NamedTuple PendingSubagent в loop/runtime_adapters/subagent_lifecycle.py
+- SubagentLifecycle.process_item на spawn_agent автоматически переписывает prompt
+  с inject_text(SoT) и связывает pending thread с GateIdentity SoT
+- epic_codex_stream_filter.py вызывает process_item на started collab_tool_call для
+  своевременного связывания pending threads
+- Добавлены unit/integration тесты в loop/tests/test_codex_spawn_identity_delivery.py
+files:
+- loop/runtime_adapters/subagent_lifecycle.py
+- harness/hooks/epic_codex_stream_filter.py
+- loop/tests/test_codex_spawn_identity_delivery.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_codex_spawn_identity_delivery.py -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_codex_spawn_identity_delivery.py -q`'
+- '`bin/pytest loop/tests/test_subagent_lifecycle.py loop/tests/test_epic_codex_stream_filter.py
+  -q`'
+grep_control: []
+verification_results:
+- 'loop/tests/test_codex_spawn_identity_delivery.py: 4 passed'
+- 'loop/tests/test_subagent_lifecycle.py: 12 passed'
+- 'loop/tests/test_epic_codex_stream_filter.py: 11 passed'
+checkpoints:
+- id: cp1
+  criterion: Codex spawn_agent prompt contains GATE_IDENTITY header and frozen SoT
+    fields before child runs
+  status: done
+  done_at: '2026-09-10T16:30:00Z'
+- id: cp2
+  criterion: Pending thread is bound to frozen GateIdentity on spawn observe
+  status: done
+  done_at: '2026-09-10T16:30:00Z'
+resume_from: cp1

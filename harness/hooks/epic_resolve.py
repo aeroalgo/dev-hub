@@ -442,6 +442,11 @@ def main() -> int:
         help="raw inline JSON payload string",
     )
 
+    sub.add_parser(
+        "scope-check",
+        help="machine scope SoT: touch-ledger vs shard files: (foreign git dirty ignored)",
+    )
+
     p_op_repair = sub.add_parser(
         "operator-gate-repair",
         help="audited operator repair command for stuck/stale gate states",
@@ -784,6 +789,13 @@ def main() -> int:
         val_res = validate_boundary(args.schema_id, raw)
         print(json.dumps(val_res.model_dump(by_alias=True), ensure_ascii=False, indent=2))
         return 0 if val_res.valid else 1
+
+    if args.cmd == "scope-check":
+        from touch_ledger import scope_check
+
+        result = scope_check(cwd)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result.get("ok") else 2
 
     if args.cmd == "operator-gate-repair":
         from harness.hooks.epic.core import operator_repair_gate

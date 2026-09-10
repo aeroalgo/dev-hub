@@ -29,14 +29,11 @@ def test_codex_adapter_uses_shared_spawn_wait_lifecycle(monkeypatch, tmp_path) -
 
     def fake_hook(name, payload, *, cwd, runtime_id, session_id=None):
         calls.append((name, payload))
+        if name == "subagent-stop.py":
+            return 0, "verify-qa: automatic mb-finish completed; stop current turn\n"
         return 0, ""
 
     monkeypatch.setattr(lifecycle, "_run_hook", fake_hook)
-    monkeypatch.setattr(
-        lifecycle,
-        "gate_atomic_finish",
-        lambda *args, **kwargs: {"ok": True, "epic_done": True},
-    )
 
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
     adapter.process_item(
@@ -66,7 +63,7 @@ def test_codex_adapter_uses_shared_spawn_wait_lifecycle(monkeypatch, tmp_path) -
     assert [name for name, _ in calls] == ["subagent-start.py", "subagent-stop.py"]
     assert calls[1][1]["runtime_id"] == "codex"
     assert calls[1][1]["verdict"] == "PASS"
-    assert actions[0].finish == {"ok": True, "epic_done": True}
+    assert actions[0].finish == {"ok": True}
 
 
 def test_infer_agent_type_ignores_role_back() -> None:

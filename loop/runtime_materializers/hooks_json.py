@@ -31,6 +31,25 @@ EVENT_MAPPING: dict[str, str] = {
     "agent-posttool-bash": "PostToolUse:bash",
 }
 
+WRITE_TOOL_MATCHER = "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
+AGENT_TOOL_MATCHER = "Agent|Task|spawn_agent"
+AGENT_OR_WRITE_MATCHER = f"{AGENT_TOOL_MATCHER}|{WRITE_TOOL_MATCHER}"
+
+
+def matcher_for_hook(hook_name: str) -> str | None:
+    """Canonical Codex hooks.json matcher for a harness hook name."""
+    if hook_name == "agent-pretool":
+        return AGENT_TOOL_MATCHER
+    if hook_name in ("agent-posttool", "agent-posttool-agent"):
+        return AGENT_OR_WRITE_MATCHER
+    if hook_name in ("bash-pretool", "bash-output-cap", "agent-posttool-bash"):
+        return "Bash"
+    if hook_name in ("write-pretool", "context-ledger"):
+        return WRITE_TOOL_MATCHER
+    if hook_name == "finish-boundary-pretool":
+        return ".*"
+    return None
+
 
 def hooks_meta_path(dest: Path) -> Path:
     return dest.parent / HOOKS_META_NAME
@@ -76,14 +95,11 @@ def generate_hooks_json(
         }
 
         # Add matchers and timeouts based on hook type / Claude parity
-        if hook_name in ("agent-pretool", "agent-posttool", "agent-posttool-agent"):
-            entry["matcher"] = "Agent|Task|spawn_agent"
-        elif hook_name in ("bash-pretool", "bash-output-cap", "agent-posttool-bash"):
-            entry["matcher"] = "Bash"
-            if hook_name in ("bash-output-cap", "agent-posttool-bash"):
-                entry["timeout_ms"] = 45000
-        elif hook_name in ("write-pretool", "context-ledger"):
-            entry["matcher"] = "Write|Edit|NotebookEdit"
+        matcher = matcher_for_hook(hook_name)
+        if matcher is not None:
+            entry["matcher"] = matcher
+        if hook_name in ("bash-output-cap", "agent-posttool-bash"):
+            entry["timeout_ms"] = 45000
 
         if event_name not in hooks_dict:
             hooks_dict[event_name] = []

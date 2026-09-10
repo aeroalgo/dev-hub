@@ -56,6 +56,80 @@ def test_identity_change_resets_ledger(tmp_path: Path, monkeypatch: pytest.Monke
     assert data["step_id"] == "s02"
 
 
+def test_phase_run_id_does_not_wipe_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s03", phase_run_id="run-a")
+    record_touch(
+        project,
+        "harness/hooks/subagent-stop.py",
+        epic_id="T-HUB-091",
+        step_id="s03",
+        phase_run_id="run-a",
+    )
+    ensure_touch_ledger_identity(
+        project,
+        epic_id="T-HUB-091",
+        step_id="s03",
+        phase_run_id="run-b",
+    )
+    assert touched_paths(project) == ["harness/hooks/subagent-stop.py"]
+    data = load_touch_ledger(project)
+    assert data["phase_run_id"] == "run-b"
+
+
+def test_agent_posttool_records_apply_patch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    target = project / "harness" / "hooks" / "x.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("print(1)\n", encoding="utf-8")
+
+    from epic_paths import epic_dir
+
+    epic = epic_dir(project)
+    (epic / "state.json").write_text(
+        json.dumps(
+            {
+                "armed_epic": "T-HUB-091-test",
+                "armed_step": "s03",
+                "phase_run_id": "abc",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    import subprocess
+
+    post = ROOT / "harness" / "hooks" / "agent-posttool.py"
+    payload = {
+        "tool_name": "apply_patch",
+        "cwd": str(project),
+        "session_id": "sess-1",
+        "tool_input": {
+            "path": str(target),
+            "patch": "*** Begin Patch\n*** Update File: harness/hooks/x.py\n@@\n-print(1)\n+print(2)\n*** End Patch\n",
+        },
+    }
+    proc = subprocess.run(
+        [sys.executable, str(post)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=str(project),
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    paths = touched_paths(project)
+    assert any(p.endswith("harness/hooks/x.py") for p in paths), paths
+
+
 def test_bash_discard_dirty_deny_reason() -> None:
     assert bash_discard_dirty_deny_reason("git status") is None
     assert bash_discard_dirty_deny_reason("git restore --staged foo.py") is None
@@ -75,11 +149,116 @@ def test_bash_discard_dirty_deny_reason() -> None:
         assert reason and "git_discard_dirty_forbidden" in reason, cmd
 
 
-def test_verify_implement_contract_mentions_touch_ledger() -> None:
-    text = (ROOT / "harness" / "agents" / "verify-implement.md").read_text(encoding="utf-8")
-    assert "touch-ledger" in text
-    assert "git checkout --" in text
-    assert "IGNORE" in text or "игнорир" in text.lower()
+def test_should_promote_foreign_dirty_fail_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s04")
+
+    from touch_ledger import should_promote_foreign_dirty_fail
+
+    report = """
+```json
+{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"FAIL","step_id":"s04","session_id":"x","epic_id":"T-HUB-091","recorded_at":"2026-09-10T00:00:00Z"}
+```
+AC+: PASS
+VERIFY: PASS
+STEP: PASS
+BLOCKERS:
+- `diff_outside_allow` — `git status` содержит изменения вне scope/ALLOW, включая harness/hooks/subagent-start.py
+"""
+    ok, notes = should_promote_foreign_dirty_fail(project, report)
+    assert ok is True
+    assert any("empty_touch_ledger" in n or "foreign_dirty_ignored" in n for n in notes)
+
+
+def test_empty_ledger_promotes_scope_isolation_fail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s03")
+
+    from touch_ledger import should_promote_foreign_dirty_fail
+
+    report = """
+```json
+{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"FAIL","step_id":"s03","session_id":"x","epic_id":"T-HUB-091","recorded_at":"2026-09-10T00:00:00Z"}
+```
+AC+:
+- PASS — Claude injection ok
+AC−:
+- FAIL — `subagent-stop.py` modifies Codex transport, outside S03 scope.
+§0.11:
+- FAIL — scope isolation violated by Codex changes.
+VERIFY: PASS — 5 passed
+BLOCKERS: `codex_transport_scope_violation` — restore deferred Codex behavior
+"""
+    ok, notes = should_promote_foreign_dirty_fail(project, report)
+    assert ok is True, notes
+    assert any("empty_touch_ledger" in n for n in notes)
+
+
+def test_empty_ledger_does_not_promote_verify_fail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s03")
+
+    from touch_ledger import should_promote_foreign_dirty_fail
+
+    report = """
+AC+: PASS
+AC−: FAIL — Codex transport outside scope
+VERIFY: FAIL — 1 failed
+BLOCKERS:
+- codex_transport_scope_violation | harness/hooks/subagent-stop.py | restore
+"""
+    ok, notes = should_promote_foreign_dirty_fail(project, report)
+    assert ok is False
+    assert any("verify_fail" in n for n in notes)
+
+
+def test_should_not_promote_when_other_blockers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s04")
+
+    from touch_ledger import should_promote_foreign_dirty_fail
+
+    report = """
+BLOCKERS:
+- diff_outside_allow | harness/x.py | ignore
+- silent_exception_drop | harness/hooks/_lib.py | remove bare except
+"""
+    ok, notes = should_promote_foreign_dirty_fail(project, report)
+    assert ok is False
+    assert any("other_blockers" in n for n in notes)
+
+
+def test_repair_denies_foreign_dirty_blocker() -> None:
+    from _lib import repair_blocker_violations
+
+    prompt = """
+BLOCKERS:
+- diff_outside_allow | loop/x.py | ensure scoped
+
+ALLOW WRITE:
+- loop/x.py
+
+VERIFY:
+- bin/pytest -q
+"""
+    viol = repair_blocker_violations(prompt)
+    assert any("foreign_dirty_not_repairable" in v for v in viol)
 
 
 def test_agent_posttool_records_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

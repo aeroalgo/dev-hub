@@ -44,7 +44,12 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
         "CONTRACT verify-implement: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
         + _GATE_JSON_HARD
         + " Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.yaml + implement step."
+        "Канон: activeContext + decompose index.yaml + implement step. "
+        "HARD scope SoT = touch-ledger (runtime/.../touch-ledger.json), не whole-repo git. "
+        "Сначала: `python3 harness/hooks/epic_resolve.py scope-check`. "
+        "Empty ledger = оправдание (нет правок шага) → ignore scope/git dirty FAIL. "
+        "Проверяй только ALLOW ∩ touched paths; чужой dirty вне ledger — ignore. "
+        "FORBIDDEN: git status / whole-repo dirty как FAIL; discard foreign dirty."
     ),
     "verify-bugfix": (
         "CONTRACT verify-bugfix: нужен AC+ · AC− · §0.11 · VERIFY · BUGFIX ARTIFACT · ALLOW. "

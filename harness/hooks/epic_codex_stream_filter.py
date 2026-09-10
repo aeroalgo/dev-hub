@@ -142,6 +142,13 @@ def emit_from_obj(obj: dict) -> None:
     if event_type == "item.started":
         item = obj.get("item") if isinstance(obj.get("item"), dict) else {}
         if item.get("type") == "collab_tool_call":
+            if _lifecycle is not None:
+                try:
+                    _lifecycle.process_item(
+                        _codex_adapter.normalize_collaboration_item(item)
+                    )
+                except Exception as exc:
+                    print(f"codex subagent lifecycle adapter error: {exc}", file=sys.stderr)
             tool = _collaboration_tool(item)
             if tool == "spawn_agent":
                 _pending_children.update(

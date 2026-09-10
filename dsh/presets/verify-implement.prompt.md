@@ -47,10 +47,10 @@ Parent **обязан** передать секции. Если нет — ср�
    - `status` не `in_progress` и не `completed` → `FAIL` (`step_status`).
 1. Если step уже `status: completed` + все checkpoints `done` (re-check после finalize) — дальше только точечные Read/rg по FAIL-рискам из AC+/§0.11 (не читать целиком большие UI без нужды).
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
-3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
-4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW/diff paths · `git status*` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
-6. Diff вне ALLOW / scope step → blocker (лишние файлы).
+3. Пронумеруй `AC−` → для каждого: докажи **только** по файлам из `ALLOW READ` ∩ touch-ledger (Read или `git diff -- <этот path>`). Нарушение в ALLOW∩ledger → `FAIL`. Path в ALLOW без записи в touch-ledger = чужой dirty → ignore.
+4. Пройди `§0.11` checklist по пунктам (rg/diff/read **только** ALLOW∩ledger). Orphan / missing counterpart → `FAIL`.
+5. Bash только: сначала `python3 harness/hooks/epic_resolve.py scope-check` · `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff -- <ALLOW∩ledger path>` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; `git status` / `git status --short` / `git diff` **без** path filter по всему репо. Scope SoT = touch-ledger; **empty ledger = оправдание** (нет правок шага → ignore scope/git dirty FAIL). Не выдумывай suite. Red → `FAIL`.
+6. **Scope (HARD):** проверяй **только** то, что закладывал этот IMPLEMENT — step YAML + `ALLOW READ` + VERIFY. Файлы вне ALLOW (чужой dirty worktree, другие шаги/эпики) **не читай, не diff'и, не включай в BLOCKERS**. **FORBIDDEN:** blocker «лишний файл в git» / `diff_outside_allow` / `scope_outside_*` / FAIL из‑за dirty вне ALLOW; советовать `git checkout --` · `git restore` · `rm`.
 7. Step-файл implement из ALLOW / prompt — **существует на диске** под `implement/implement-*` (не `plan/decompose-*`). Шаблон **по роли** (канон = `epic_lib.validate_implement_step_format`):
    - **INTEG `eNN-*`** (`memory-bank/integration/implement/…/*.yaml`): `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`; обязательны `grep_control` · `verification_results` · `gaps` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard для eNN.
    - **BACK/FRONT `sNN-*`**: `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`, `role: back|front`; обязательны `done` · `files` · `tests` · `integration_check` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard.
@@ -124,6 +124,7 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
 - Совет parent писать `status: completed` руками, вызывать `finalize-step` до PASS, или писать `BLOCKED:` вместо фикса incomplete
 - Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
+- Смотреть / FAIL по файлам вне ALLOW; `git status` по репо; discard чужого dirty (`git checkout --` / `git restore` / `rm`)
 
 ## Budget
 

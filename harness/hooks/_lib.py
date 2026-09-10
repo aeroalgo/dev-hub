@@ -2368,7 +2368,18 @@ def repair_blocker_violations(prompt: str) -> list[str]:
 
     allow = set(allow_write_files(prompt))
     viol: list[str] = []
+    try:
+        from touch_ledger import FOREIGN_DIRTY_BLOCKER_ID_RE as _FOREIGN_DIRTY_ID_RE
+    except Exception:  # pragma: no cover
+        _FOREIGN_DIRTY_ID_RE = None
     for bid, path, _fix in rows:
+        if _FOREIGN_DIRTY_ID_RE is not None and _FOREIGN_DIRTY_ID_RE.match(bid):
+            viol.append(
+                f"foreign_dirty_not_repairable: blocker `{bid}` — чужой git dirty "
+                "не чинится gate-repair (scope SoT = touch-ledger). "
+                "Игнорируй и retry @verify; FORBIDDEN git checkout/restore/rm."
+            )
+            continue
         if path not in allow:
             viol.append(
                 f"prompt_incomplete:blocker_row: blocker `{bid}` path `{path}` "

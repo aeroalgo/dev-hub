@@ -63,13 +63,10 @@ Parent **обязан** передать секции. Если нет — ср�
    - `status` не `in_progress` и не `completed` → `FAIL` (`step_status`).
 1. Если step уже `status: completed` + все checkpoints `done` (re-check после finalize) — дальше только точечные Read/rg по FAIL-рискам из AC+/§0.11 (не читать целиком большие UI без нужды).
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
-3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
-4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW / touch-ledger paths · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
-6. **Scope SoT (HARD):** правки *этого* шага = parent ALLOW + implement shard `files:` + epic **touch-ledger** (`runtime/.../epic/touch-ledger.json`). **Не** весь `git status`.
-   - Dirty в git от других эпиков / прошлых сессий / файлов **вне** touch-ledger → **IGNORE**, не AC− fail, не blocker.
-   - Blocker «лишний файл» **только** если path есть в touch-ledger (эта сессия реально писала) и path ∉ shard allowlist / ALLOW.
-   - **FORBIDDEN:** требовать / советовать `git checkout --` · `git restore` · `git reset --hard` · `git clean` · `rm` «чтобы убрать out-of-scope dirty».
+3. Пронумеруй `AC−` → для каждого: докажи **только** по файлам из `ALLOW READ` ∩ touch-ledger (Read или `git diff -- <этот path>`). Нарушение в ALLOW∩ledger → `FAIL`. Path в ALLOW, но **нет** в touch-ledger = чужой/pre-existing dirty → **ignore** (не FAIL).
+4. Пройди `§0.11` checklist по пунктам (rg/diff/read **только** ALLOW∩ledger). Orphan / missing counterpart → `FAIL`.
+5. Bash только: сначала `python3 harness/hooks/epic_resolve.py scope-check` · `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff -- <ALLOW∩ledger path>` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout; `git status` / `git status --short` / `git diff` **без** path filter по всему репо. Не выдумывай suite. Red → `FAIL`.
+6. **Scope SoT (HARD) = touch-ledger**, не whole-repo git. Machine SoT: `scope-check` (`oos_ledger_paths`). **Empty ledger = оправдание:** нет записанных правок шага → `PASS` по scope; **FORBIDDEN** FAIL из‑за git dirty / AC− «вне scope» / Codex deferred в worktree. Проверяй **только** touched ∩ ALLOW + VERIFY. Файлы вне ledger / вне ALLOW **не читай, не diff'и, не включай в BLOCKERS**. **FORBIDDEN:** blocker «лишний файл в git» / `diff_outside_allow` / `scope_outside_*` / FAIL из‑за dirty вне ledger; советовать `git checkout --` · `git restore` · `rm`.
 7. Step-файл implement из ALLOW / prompt — **существует на диске** под `implement/implement-*` (не `plan/decompose-*`). Шаблон **по роли** (канон = `epic_lib.validate_implement_step_format`):
    - **INTEG `eNN-*`** (`memory-bank/integration/implement/…/*.yaml`): `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`; обязательны `grep_control` · `verification_results` · `gaps` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard для eNN.
    - **BACK/FRONT `sNN-*`**: `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`, `role: back|front`; обязательны `done` · `files` · `tests` · `integration_check` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard.
@@ -143,7 +140,7 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
 - Совет parent писать `status: completed` руками, вызывать `finalize-step` до PASS, или писать `BLOCKED:` вместо фикса incomplete
 - Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
-- FAIL AC− / blocker только из‑за dirty в `git status` вне touch-ledger; советовать discard (`git checkout --` / `git restore` / `rm`) чужих файлов
+- Смотреть / FAIL по файлам вне ALLOW∩touch-ledger; `git status` по репо; discard чужого dirty (`git checkout --` / `git restore` / `rm`)
 
 ## Budget
 

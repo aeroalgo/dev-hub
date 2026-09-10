@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""PreToolUse barrier after a successful mb-finish in the current phase run."""
+"""PreToolUse barrier after a successful mb-finish in the current phase run.
+
+Claude Code parity: deny every follow-up tool in the same phase_run after
+``mb-finish`` / automatic gate finish succeeds, so the parent must stop the
+turn. Codex PreToolUse uses the same ``permissionDecision: deny`` envelope.
+"""
 from __future__ import annotations
 
 import sys
@@ -53,9 +58,9 @@ def finish_boundary_reason(cwd: str | Path) -> str | None:
 def project_boundary_reason(data: dict, cwd: Path) -> str | None:
     tool_name = str(data.get("tool_name") or data.get("tool") or "")
     tool_input = data.get("tool_input") or {}
-    if tool_name == "Bash":
+    if tool_name in {"Bash", "bash", "shell", "shell_command", "local_shell", "exec_command"}:
         return bash_project_boundary_deny_reason(cwd, tool_input.get("command") or "")
-    if tool_name not in {"Read", "Edit", "Write", "NotebookEdit", "Glob", "Grep"}:
+    if tool_name not in {"Read", "Edit", "Write", "NotebookEdit", "Glob", "Grep", "apply_patch"}:
         return None
     raw_path = (
         tool_input.get("file_path")
@@ -65,18 +70,9 @@ def project_boundary_reason(data: dict, cwd: Path) -> str | None:
     return project_boundary_deny_reason(cwd, raw_path, operation=tool_name.lower())
 
 
-def _emit_deny(data: dict, reason: str) -> None:
-    """Use the native response envelope of the current runtime."""
-    runtime = str(
-        data.get("runtime_id")
-        or data.get("runtime")
-        or os.environ.get("EPIC_RUNTIME")
-        or os.environ.get("EPIC_RUNTIME_RESOLVED")
-        or ""
-    ).strip().lower()
-    if runtime == "codex":
-        emit({"decision": "block", "reason": reason})
-        return
+def _emit_deny(reason: str) -> None:
+    """Claude/Codex PreToolUse deny — same envelope (Codex enforces permissionDecision)."""
+    print(f"finish-boundary DENY: {reason}", file=sys.stderr)
     emit(
         {
             "hookSpecificOutput": {
@@ -111,12 +107,12 @@ def main() -> None:
         return
     boundary = project_boundary_reason(data, cwd)
     if boundary:
-        _emit_deny(data, boundary)
+        _emit_deny(boundary)
         return
     reason = finish_boundary_reason(cwd)
     if not reason:
         return
-    _emit_deny(data, reason)
+    _emit_deny(reason)
 
 
 if __name__ == "__main__":

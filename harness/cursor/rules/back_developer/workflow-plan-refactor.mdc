@@ -1,10 +1,19 @@
 ---
-description: "BACK PLAN REFACTOR — codebase inventory and multi-epic refactoring plan"
+description: "BACK PLAN REFACTOR — deletion + consolidation inventory and multi-epic plan"
 alwaysApply: false
 ---
 ### Command: BACK PLAN REFACTOR
 
-**Purpose:** produce a deletion-oriented refactoring plan from an evidence-backed codebase scan. This is a planning command, not `BACK REFACTOR` execution and not a second epic lifecycle.
+**Purpose:** produce a **deletion- and consolidation-oriented** refactoring plan from an evidence-backed codebase scan. Shrink the codebase and number of owners **without changing behavior**. This is a planning command, not `BACK REFACTOR` execution and not a second epic lifecycle.
+
+**Success axes (both required unless explicitly exhausted):**
+
+| Axis | Question | Done signal |
+|------|----------|-------------|
+| **Purge** | What can be removed with proof? | −LOC, −dead symbols/paths |
+| **Consolidate** | What can be merged/extracted so net owners and copies of one meaning ↓? | −copies, one canonical owner per cluster |
+
+Epic success: **net LOC ≤ 0** and **net public symbols / owners ≤ 0**, or an explicit scoped stop: `no safe deletion found` **and** `no safe consolidation found` with scan evidence. A new helper/adapter/interface without removing ≥1 copy of the same meaning = FAIL.
 
 **Gates:** @.cursor/rules/back_developer/isolation_rules/_lean/plan-refactor.mdc
 **Base plan process:** @.cursor/rules/back_developer/workflow-plan.mdc
@@ -24,40 +33,62 @@ alwaysApply: false
 
 1. Acknowledge: `OK BACK PLAN REFACTOR — начинаю`; immediately emit `SUSPENSION GUARD active — plan output unlimited`.
 2. Run Phase 0 Clarify from the ordinary PLAN orchestration when its triggers apply. Do not write the full plan before the Completion Report.
-3. Freeze the working tree for this command: inspect current changes, do not modify production code or tests, and declare the scan scope and exclusions.
-4. Build the baseline: production/test file counts and LOC, available coverage/complexity signals, test entrypoints, and known generated/vendor areas. Record commands and limitations.
+3. Freeze the working tree for this command: inspect current changes, do not modify production code or tests. Declare **scan scope** (`path` / `package` / `theme` from the command or Clarify) and exclusions (generated/vendor). Broad whole-repo scan without a declared scope is allowed only when the user explicitly asked for full-tree; prefer a bounded theme/package so consolidation clusters are deep, not superficial purge-only.
+4. Build the baseline: production/test file counts and LOC, public-symbol / module counts where cheap, available coverage/complexity signals, test entrypoints, and known generated/vendor areas. Record commands and limitations.
 5. Run the structural scan. If a repository graph exists, inspect function, adapter, caller, and test nodes through the graph before targeted reads. If the graph is unavailable, record that fact and use a bounded `rg`/import/route/config inventory; do not present fallback results as equivalent graph evidence.
-6. Run the mandatory refactor passes:
+6. Run the mandatory refactor passes (purge + consolidate):
    - **Function nodes:** fan-in/fan-out, long or branch-heavy functions, thin forwarding functions, duplicated transformations, and extracted helpers that only move complexity.
-   - **Adapters and boundaries:** entrypoint → adapter → domain/storage/external call, translation ownership, duplicate adapters, wrappers, retry/timeout ownership, and seams required by tests.
+   - **Semantic twin clustering (HARD):** cluster by shared meaning — same transform/validate/parse/normalize/retry/error-map, parallel rule tables, twin fixtures/assertions — not only exact/near-duplicate AST. Emit `## Consolidation clusters` before the epic cut: `cluster_id` → members (path/symbol) → canonical owner → action `merge` | `extract` | `keep-split` + why split remains. Prefer a twin-report (or sunset-inventory / read-only twin pass) before cutting epics; if none found, write `no twins in scope` with the search commands used.
+   - **Ownership / layer placement:** for each cluster, name the target layer (domain / adapter / policy / test util) and **one** file owner. `move` without merge/delete of a sibling copy = FAIL. Any `## Target layout` must cite the deletion/consolidation ledger — layout-only reshuffles are forbidden (layout dilution).
+   - **Adapters and boundaries:** entrypoint → adapter → domain/storage/external call; translation ownership; duplicate adapters/wrappers; retry/timeout ownership; test-only seams. **Adapter collapse:** at most one translation owner per external boundary after the epic. A **new** adapter is allowed only if it retires ≥2 existing translation paths (copies_removed_count ≥ 2 across the cluster).
    - **Dead code:** unreachable functions/classes, unused imports, obsolete feature flags/config, stale routes/commands, compatibility shims, and legacy paths. Prove absence of static callers and flag dynamic-reference risk.
-   - **Duplication:** exact/near-duplicate code, semantic duplicate rules, repeated fixtures, repeated mocks, and parallel test assertions. Pick one canonical owner before proposing extraction.
-   - **Tests:** map production symbols to tests; identify tests that are duplicate, obsolete, brittle, too implementation-specific, or missing behavior coverage. Test deletion is allowed only after replacement behavior coverage is named.
-7. For every finding, write an evidence row: finding ID, path/symbol, evidence and callers, category, risk, proposed action (`delete`, `merge`, `move`, `simplify`, or `keep`), replacement owner, affected tests, and estimated net LOC/concept delta. Apply the deletion test: if removing the unit only moves complexity, do not propose it.
-8. Perform the epic cut before writing plans. Multi-epic planning is the default for a broad scan, but do not manufacture a split when the evidence describes one inseparable outcome. Use independent code tree, risk, cutover, or shippable outcome as criteria. Keep each production change with its first required consumer and its tests. Declare `MULTI-EPIC PLAN — N эпиков` when N > 1; never create a mega-plan to avoid the cut.
-9. For each epic, write the ordinary BACK PLAN artifacts: queue row first, then `memory-bank/back/plan/<epic_id>/md/plan.md` and `md/prompt.md`. The plan must include `## Refactor inventory`, `## Deletion budget`, `## Test refactor`, `## Replacement / sunset` when applicable, `## QA consumes draft`, and `## Review readiness`.
-10. For each epic, make the target state measurable: files/symbols to delete or merge, code and test net-delta expectation, behavior-freeze contract, targeted tests per step, full-suite command reserved for BACK QA, and AC− proving no legacy/duplicate path remains.
+   - **Duplication:** exact/near-duplicate code, semantic duplicate rules, repeated fixtures, repeated mocks, and parallel test assertions. Pick one canonical owner **before** proposing extraction.
+   - **Function merge ladder (order, not a menu):** `delete dead` → `merge twins` → `extract shared only if ≥2 callers remain after merge` → `move to layer owner` → `simplify signature`. Extract without subsequent deletion of the duplicate bodies is forbidden.
+   - **Tests:** map production symbols to tests; identify tests that are duplicate, obsolete, brittle, too implementation-specific, or missing behavior coverage. Test deletion is allowed only after replacement behavior coverage is named. Production merge and test consolidate stay in the same epic.
+7. For every finding, write an evidence row with at least:
+   - finding ID, path/symbol, evidence and callers, category, risk;
+   - proposed action (`delete`, `merge`, `extract`, `move`, `simplify`, or `keep`);
+   - `cluster_id`, `canonical_owner`, `copies_removed_count` (integer; required ≥ 1 for `extract` / new `adapter` / merge-of-twins);
+   - `net_loc_delta`, `net_symbol_delta` (numbers, not prose);
+   - `behavior_freeze_oracle` — named targeted test(s) that prove same behavior;
+   - replacement owner, affected tests, proof method.
+   Apply the **deletion/consolidation test:** if the step only moves complexity or does not reduce copies of one meaning, do not propose it.
+8. Perform the epic cut before writing plans. Multi-epic planning is the default for a broad scan, but do not manufacture a split when the evidence describes one inseparable outcome. Prefer cut by **independent meaning cluster**, independent code tree, risk/cutover, or shippable outcome — not by layer alone inside one feature. Keep each production change with its first required consumer and its tests. Do not create a mega-cleanup epic without a cluster table. Declare `MULTI-EPIC PLAN — N эпиков` when N > 1; never create a mega-plan to avoid the cut.
+9. For each epic, write the ordinary BACK PLAN artifacts: queue row first, then `memory-bank/back/plan/<epic_id>/md/plan.md` and `md/prompt.md`. The plan must include:
+   - `## Refactor inventory`
+   - `## Consolidation clusters`
+   - `## Deletion budget`
+   - `## Concept budget` (public symbols, modules in scope, adapter types, test helpers — none may grow; prefer decrease)
+   - `## Test refactor`
+   - `## Replacement / sunset` when applicable
+   - `## QA consumes draft`
+   - `## Review readiness`
+10. For each epic, make the target state measurable: files/symbols to delete or merge, code and test net-delta expectation, concept-budget deltas, behavior-freeze contract, targeted tests per step, full-suite command reserved for BACK QA, and AC− proving no legacy/duplicate owner/path remains.
 11. Reconcile `memory-bank/back/roadmap/queue.yaml` with `python loop/context_loop.py --cwd "$PROJECT_ROOT" roadmap-merge --role back`. On conflict, unknown dependency, empty active queue, or `ok: false`, halt PLAN.
 12. FINISH with the ordinary PLAN doc-router. Handoff must load the canonical queue, the first plan, its prompt, and the clarify artifact if one was created. Next: `BACK DECOMPOSE <queue[0]>`.
 
 ## Refactor-specific review questions
 
 - What will be deleted, not merely moved?
+- How many copies of the same meaning disappear (`copies_removed_count`), and who is the single owner after?
 - Which existing abstraction is reused instead of adding another one?
-- Which adapter owns translation after the change?
+- Which adapter owns translation after the change? Does any boundary still have two translators?
 - How is dead-code absence proved, including dynamic import/config risk?
-- Which tests are merged/deleted, and which behavior tests replace them?
-- What prevents the plan from increasing the number of concepts, wrappers, and entrypoints?
+- Which tests are merged/deleted, and which behavior tests are the freeze oracle?
+- Do net LOC and net public symbols/owners stay ≤ 0?
+- What prevents the plan from increasing concepts, wrappers, and entrypoints?
 
 ## Forbidden
 
 - Writing code, tests, or a `refactor/session-*` execution artifact during PLAN.
 - Creating a second refactor plan beside the ordinary `back/plan/<epic_id>/md/plan.md`.
 - Splitting production and its first mandatory consumer into separate epics.
-- Treating a new interface, factory, helper, or adapter as an improvement without a deletion ledger.
+- Treating a new interface, factory, helper, or adapter as an improvement without a deletion/consolidation ledger and `copies_removed_count ≥ 1` (adapters that replace multiple paths: ≥ 2).
+- `extract` / `move` / “layer cleanup” that does not reduce copies or owners of one meaning.
 - Deleting tests only to make the suite shorter or green.
 - Claiming “refactored” when a symbol was only renamed or moved.
+- Smuggling behavior/API/UX changes into this plan (route to BACK IMPLEMENT / BUGFIX / CREATIVE).
 
 ## Verification
 
-Gates + mandatory inventory categories + epic-cut table + per-epic queue/plan/prompt + deletion budget + test refactor + queue reconcile + no code changes.
+Gates + mandatory inventory categories + twin/consolidation cluster table + epic-cut table + per-epic queue/plan/prompt + deletion budget + concept budget + test refactor + queue reconcile + no code changes.

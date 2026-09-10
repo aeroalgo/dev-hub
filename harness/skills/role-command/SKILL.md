@@ -76,8 +76,9 @@ Fallback на Read/Grep — только после ориентации по г
 - Treat it as a planning-only composite mode. Load `.cursor/rules/back_developer/workflow-plan-refactor.mdc` and `isolation_rules/_lean/plan-refactor.mdc`.
 - Keep the ordinary BACK PLAN artifact contract: `memory-bank/back/roadmap/queue.yaml` + one `back/plan/<epic_id>/md/plan.md` and `md/prompt.md` per epic.
 - This is an explicit exception to the generic PLAN graphify skip: when root `graphify-out/graph.json` exists, run the structural graph inventory first; in a hub without a graph, emit the documented N/A and use bounded inventory.
-- Before writing plans, scan function nodes, adapters/boundaries, dead code, duplication, and tests. Record evidence, callers, deletion/merge action, and net-delta estimate.
-- Use the multi-epic cut when independent axes exist. Keep each production outcome with its first required consumer and its test refactor. Next is `BACK DECOMPOSE <queue[0]>`.
+- Declare scan scope; before writing plans run purge + consolidation passes: function nodes, semantic twin clusters, ownership/layer, adapter collapse, dead code, duplication, merge ladder, tests. Evidence rows need `cluster_id`, `canonical_owner`, `copies_removed_count`, `net_loc_delta`, `net_symbol_delta`, `behavior_freeze_oracle`.
+- Plans must include Consolidation clusters, Deletion budget, Concept budget, Test refactor. Net LOC and net owners/symbols ≤ 0 (or explicit no-safe-deletion **and** no-safe-consolidation). Extract/new adapter without removing copies = FAIL.
+- Use the multi-epic cut by independent meaning clusters / trees / risk when axes exist. Keep each production outcome with its first required consumer and its test refactor. Next is `BACK DECOMPOSE <queue[0]>`.
 - Do not edit production/test code and do not create `back/refactor/session-*` during this command.
 ## Step 1 — role index + core
 

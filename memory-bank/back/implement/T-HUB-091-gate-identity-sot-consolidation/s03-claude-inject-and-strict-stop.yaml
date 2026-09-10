@@ -1,0 +1,44 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s03 — Claude SubagentStart inject + SubagentStop strict ownership assertion
+  via SoT IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s03-claude-inject-and-strict-stop.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- SubagentStart injects exact SoT fields into additionalContext via GateIdentity.inject_text(SoT)
+- SubagentStop validates fence ownership via GateIdentity.assert_fence(policy='strict')
+  for Claude runtime
+- SubagentStop with mismatched step_id/epic_id/session_id produces semantic_ownership_mismatch
+  and exit 2
+files:
+- harness/hooks/subagent-start.py
+- harness/hooks/subagent-stop.py
+- harness/hooks/tests/test_claude_gate_identity_sot.py
+deletes: []
+tests:
+- '`bin/pytest harness/hooks/tests/test_claude_gate_identity_sot.py -q`'
+integration_check:
+- '`bin/pytest harness/hooks/tests/test_claude_gate_identity_sot.py -q`'
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: SubagentStart injects exact SoT fields into additionalContext
+  status: done
+  done_at: '2026-09-10T16:02:35Z'
+- id: cp2
+  criterion: SubagentStop with mismatched step_id produces semantic_ownership_mismatch
+    and exit 2
+  status: done
+  done_at: '2026-09-10T16:02:54Z'
+resume_from: cp1

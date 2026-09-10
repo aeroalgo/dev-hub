@@ -779,6 +779,12 @@ def write_last_finish_tool(
         st["last_finished_step"] = str(finished_step)
         finished_epic = str(st.get("armed_epic") or "").strip()
         st["last_finished_epic"] = finished_epic or None
+        st.pop("finish_failed_step", None)
+        if str(st.get("gate_diagnostic") or "") == "finish_command_failed":
+            st["gate_diagnostic"] = None
+        if str(st.get("repair_required") or "") == "gate-repair":
+            st["repair_required"] = None
+            st["halt_reason"] = None
     if armed_after_finish is not None:
         st["armed_after_finish"] = str(armed_after_finish)
     save_epic_state(cwd, st)
@@ -3490,6 +3496,116 @@ def repair_false_index_completed(
         "repaired": repaired,
         "details": details,
         "index": str(idx),
+    }
+
+
+def repair_premature_completed_after_failed_finish(
+    cwd: str | Path,
+    *,
+    step_id: str,
+    decompose: str | Path | None = None,
+) -> dict[str, Any]:
+    """Roll back agent-written completed after a failed terminal finish.
+
+    When ``mb-finish`` / ``finalize-step`` exits non-zero (e.g. verify_pass_missing),
+    agents may still have written implement/index ``completed`` and a next-step
+    handoff. Cursor sync must not treat that as a successful finish — reopen the
+    failed step so retry stays on the same shard until ``ok: true``.
+    """
+    sid = str(step_id or "").strip().lower()
+    if not sid:
+        return {"ok": False, "repaired": False, "reason": "no_step_id"}
+    cwd_p = Path(cwd)
+    st = load_epic_state(cwd_p)
+    finish = st.get("last_finish_tool")
+    if (
+        isinstance(finish, dict)
+        and str(finish.get("step_id") or "").strip().lower() == sid
+        and finish.get("fingerprint")
+        and str(st.get("last_finished_step") or "").strip().lower() == sid
+    ):
+        # Automatic gate finish already succeeded; a later parent redo failure
+        # must not reopen the step.
+        return {
+            "ok": True,
+            "repaired": False,
+            "skipped": True,
+            "reason": "already_finished_receipt",
+            "step_id": sid,
+            "armed_step": st.get("armed_step"),
+        }
+    decomp = str(decompose or st.get("armed_decompose") or "").strip()
+    if not decomp:
+        return {"ok": False, "repaired": False, "reason": "no_decompose"}
+    loaded = load_decompose_steps_fail_closed(cwd_p, decomp)
+    if not loaded.get("ok"):
+        return {
+            "ok": False,
+            "repaired": False,
+            "reason": "index_load_failed",
+            "diagnostic_code": loaded.get("diagnostic_code"),
+        }
+    idx = Path(loaded["index"])
+    epic_id = epic_id_from_decompose_path(str(idx)) or ""
+    _role, role_dir = _role_dir_from_index_path(idx, cwd_p)
+    plan_id = _index_plan_id(idx)
+    import epic_yaml as ey
+
+    index_rolled = False
+    implement_rolled = False
+    impl_rel = ""
+    for step in loaded.get("steps") or []:
+        if str(step.get("id") or "").strip().lower() != sid:
+            continue
+        status = str(step.get("status") or "").lower()
+        if status in {"completed", "done"}:
+            marked = mark_index_step_status(
+                cwd_p, str(idx), sid, "pending", sync_checklist=False
+            )
+            index_rolled = bool(marked.get("ok"))
+        break
+    try:
+        impl_rel = ey.resolve_implement_path(
+            cwd_p, role_dir, epic_id, sid, plan_id=plan_id or None
+        )
+        impl_path = cwd_p / impl_rel
+        if impl_path.is_file():
+            doc = ey.load_implement(impl_path)
+            if str(doc.status or "").lower() == "completed":
+                set_res = ey.set_implement_status(impl_path, "in_progress")
+                implement_rolled = bool(set_res.get("ok"))
+    except Exception as exc:
+        return {
+            "ok": False,
+            "repaired": bool(index_rolled or implement_rolled),
+            "index_rolled": index_rolled,
+            "implement_rolled": implement_rolled,
+            "step_id": sid,
+            "error": str(exc),
+            "implement_path": impl_rel or None,
+        }
+
+    st = load_epic_state(cwd_p)
+    st["finish_failed_step"] = sid
+    st["gate_diagnostic"] = st.get("gate_diagnostic") or "finish_command_failed"
+    if str(st.get("last_finished_step") or "").strip().lower() == sid:
+        # A failed finish must not leave a success receipt for the same step.
+        finish = st.get("last_finish_tool")
+        if isinstance(finish, dict) and str(finish.get("step_id") or "").strip().lower() == sid:
+            st["last_finish_tool"] = None
+        st["last_finished_step"] = None
+        if str(st.get("last_finished_epic") or "").strip() == str(st.get("armed_epic") or "").strip():
+            st["last_finished_epic"] = None
+    st["armed_step"] = sid
+    save_epic_state(cwd_p, st)
+    return {
+        "ok": True,
+        "repaired": bool(index_rolled or implement_rolled),
+        "index_rolled": index_rolled,
+        "implement_rolled": implement_rolled,
+        "step_id": sid,
+        "implement_path": impl_rel or None,
+        "armed_step": sid,
     }
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -2888,6 +2889,261 @@ def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> N
     )
     assert marker.get("step_id") == "s02"
     assert marker.get("resume_from") == "s02"
+
+
+def test_record_abort_finish_command_failed_does_not_advance_cursor(
+    tmp_path: Path,
+) -> None:
+    """Failed mb-finish must reopen the step; index completed is not a finish SoT."""
+    ctx = _load_ctx()
+    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-demo/index.md",
+        "| step_id | title | next_phase | status |\n"
+        "| :--- | :--- | :--- | :--- |\n"
+        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | completed |\n"
+        "| **s02** | two · [yaml](s02-two.yaml) | BACK IMPLEMENT | pending |\n",
+    )
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n"
+        "- id: s02\n"
+        "  file: s02-two.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: two\n"
+        "  status: pending\n",
+    )
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-one.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s02-two.yaml", "step_id: s02\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: one\nstatus: completed\ndate: '2026-08-16'\n"
+        "done: [x]\nfiles: [a.py]\ntests: ['timeout 300s .venv/bin/pytest -q']\n"
+        "integration_check: [ok]\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: done\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        "1. [s02-two.yaml](back/plan/decompose-demo/s02-two.yaml)\n"
+        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "## Handoff\n- agent claimed s01 done without ok:true\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps(
+            {
+                "armed_decompose": decompose,
+                "armed_step": "s01",
+                "armed_epic": "demo",
+                "status": "running",
+                "active": True,
+                "role": "BACK",
+                "session_id": "runner-finish-fail",
+                "session_start_identity": {
+                    "step_id": "s01",
+                    "phase": "BACK IMPLEMENT",
+                    "epic_id": "demo",
+                },
+            }
+        )
+        + "\n",
+    )
+    failed = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "command_execution",
+                "command": (
+                    "python harness/hooks/epic_resolve.py "
+                    "mb-finish implement --step s01"
+                ),
+                "aggregated_output": json.dumps(
+                    {
+                        "ok": False,
+                        "diagnostic_codes": ["verify_pass_missing"],
+                        "shape_errors": ["verify PASS required before finalize-step"],
+                    }
+                ),
+                "exit_code": 2,
+                "status": "failed",
+            },
+        },
+        separators=(",", ":"),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=runner-finish-fail mode=headless command=codex\n"
+        + failed
+        + "\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=runner-finish-fail exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0, runtime="codex")
+
+    assert out["retryable"] is True
+    assert out["reason"] == "gate_integrity:finish_command_failed"
+    sync = out.get("cursor_sync") or {}
+    assert sync.get("synced") is False
+    assert sync.get("mode") == "finish_command_failed_no_advance"
+    assert sync.get("step_id") == "s01"
+    st = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert st.get("armed_step") == "s01"
+    assert st.get("finish_failed_step") == "s01"
+    assert st.get("gate_diagnostic") == "finish_command_failed"
+    idx = (tmp_path / decompose).read_text(encoding="utf-8")
+    assert re.search(r"(?ms)- id: s01\n.*?status: pending", idx)
+    impl = (
+        tmp_path / "memory-bank/back/implement/implement-demo/s01-one.yaml"
+    ).read_text(encoding="utf-8")
+    assert re.search(r"(?m)^status:\s*in_progress\s*$", impl)
+    marker = json.loads(
+        (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
+    )
+    assert marker.get("step_id") == "s01"
+    assert marker.get("resume_from") == "s01"
+
+
+def test_record_abort_keeps_successful_auto_finish_when_parent_redo_fails(
+    tmp_path: Path,
+) -> None:
+    """Automatic finish receipt wins over a later parent mb-finish redo failure."""
+    ctx = _load_ctx()
+    decompose = "memory-bank/back/plan/decompose-demo/index.yaml"
+    _write(
+        tmp_path,
+        "memory-bank/back/plan/decompose-demo/index.md",
+        "| step_id | title | next_phase | status |\n"
+        "| :--- | :--- | :--- | :--- |\n"
+        "| **s01** | one · [yaml](s01-one.yaml) | BACK IMPLEMENT | completed |\n"
+        "| **s02** | two · [yaml](s02-two.yaml) | BACK IMPLEMENT | pending |\n",
+    )
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        "plan_id: demo\n"
+        "steps:\n"
+        "- id: s01\n"
+        "  file: s01-one.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: one\n"
+        "  status: completed\n"
+        "- id: s02\n"
+        "  file: s02-two.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n"
+        "  title: two\n"
+        "  status: pending\n",
+    )
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s01-one.yaml", "step_id: s01\n")
+    _write(tmp_path, "memory-bank/back/plan/decompose-demo/s02-two.yaml", "step_id: s02\n")
+    _write(
+        tmp_path,
+        "memory-bank/back/implement/implement-demo/s01-one.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nplan_id: demo\n"
+        "title: one\nstatus: completed\ndate: '2026-08-16'\n"
+        "done: [x]\nfiles: [a.py]\ntests: ['timeout 300s .venv/bin/pytest -q']\n"
+        "integration_check: [ok]\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: done\n",
+    )
+    _write(
+        tmp_path,
+        "memory-bank/activeContext.md",
+        "## load_now\n"
+        "1. [s02-two.yaml](back/plan/decompose-demo/s02-two.yaml)\n"
+        "2. [index.yaml](back/plan/decompose-demo/index.yaml)\n\n"
+        "## Handoff\n- continue s02\n",
+    )
+    _write(
+        tmp_path,
+        ".claude/runtime/epic/state.json",
+        json.dumps(
+            {
+                "armed_decompose": decompose,
+                "armed_step": "s02",
+                "armed_epic": "demo",
+                "status": "running",
+                "active": True,
+                "role": "BACK",
+                "session_id": "runner-auto-finish",
+                "last_finished_step": "s01",
+                "last_finish_tool": {
+                    "name": "mb-finish implement",
+                    "step_id": "s01",
+                    "session_id": "runner-auto-finish",
+                    "epic_id": "demo",
+                    "fingerprint": "fp-s01",
+                    "at": "2026-09-10T12:00:00Z",
+                },
+                "session_start_identity": {
+                    "step_id": "s01",
+                    "phase": "BACK IMPLEMENT",
+                    "epic_id": "demo",
+                },
+            }
+        )
+        + "\n",
+    )
+    failed = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "command_execution",
+                "command": (
+                    "python harness/hooks/epic_resolve.py "
+                    "mb-finish implement --step s01"
+                ),
+                "aggregated_output": json.dumps(
+                    {
+                        "ok": False,
+                        "diagnostic_codes": ["verify_pass_missing"],
+                    }
+                ),
+                "exit_code": 2,
+                "status": "failed",
+            },
+        },
+        separators=(",", ":"),
+    )
+    log = tmp_path / "session.log"
+    log.write_text(
+        "SESSION_START session=runner-auto-finish mode=headless command=codex\n"
+        + failed
+        + "\n"
+        '{"type":"item.completed","item":{"type":"agent_message","text":"FINISH"}}\n'
+        "SESSION_END session=runner-auto-finish exit_code=0\n",
+        encoding="utf-8",
+    )
+
+    out = ctx.record_abort(tmp_path, log_path=log, exit_code=0, runtime="codex")
+
+    assert out["ok"] is True
+    assert out["retryable"] is False
+    st = json.loads(
+        (tmp_path / ".claude/runtime/epic/state.json").read_text(encoding="utf-8")
+    )
+    assert st.get("armed_step") == "s02"
+    assert st.get("last_finished_step") == "s01"
+    assert st.get("gate_diagnostic") in (None, "")
+    idx = (tmp_path / decompose).read_text(encoding="utf-8")
+    assert re.search(r"(?ms)- id: s01\n.*?status: completed", idx)
 
 
 def test_prepare_keeps_analyze_when_gate_pending(tmp_path: Path, monkeypatch) -> None:

@@ -98,25 +98,26 @@ def check_codex_parity(
                     issues.append(f"invalid_meta_json: {e}")
 
             # Check if hooks.json was hand-edited vs generated output
+            from loop.runtime_materializers.hooks_json import (
+                EVENT_MAPPING,
+                matcher_for_hook,
+            )
+
             expected_dict: dict[str, list[dict[str, object]]] = {}
             for hook_name, hook_def in manifest.hooks.items():
                 codex_config = hook_def.runtimes.get("codex", {})
                 if not codex_config.get("hooks_json_entry"):
                     continue
-                from loop.runtime_materializers.hooks_json import EVENT_MAPPING
                 ev_name = EVENT_MAPPING.get(hook_name, hook_name)
-                entry = {
+                entry: dict[str, object] = {
                     "type": "command",
                     "command": f"python3 {hook_def.source}",
                 }
-                if hook_name in ("agent-pretool", "agent-posttool", "agent-posttool-agent"):
-                    entry["matcher"] = "Agent|Task|spawn_agent"
-                elif hook_name in ("bash-pretool", "bash-output-cap", "agent-posttool-bash"):
-                    entry["matcher"] = "Bash"
-                    if hook_name in ("bash-output-cap", "agent-posttool-bash"):
-                        entry["timeout_ms"] = 45000
-                elif hook_name in ("write-pretool", "context-ledger"):
-                    entry["matcher"] = "Write|Edit|NotebookEdit"
+                matcher = matcher_for_hook(hook_name)
+                if matcher is not None:
+                    entry["matcher"] = matcher
+                if hook_name in ("bash-output-cap", "agent-posttool-bash"):
+                    entry["timeout_ms"] = 45000
                 if ev_name not in expected_dict:
                     expected_dict[ev_name] = []
                 expected_dict[ev_name].append(entry)

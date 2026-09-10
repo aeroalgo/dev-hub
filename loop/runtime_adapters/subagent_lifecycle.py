@@ -15,8 +15,9 @@ import re
 import subprocess
 import sys
 import threading
-from typing import Any
+from typing import Any, NamedTuple
 
+from loop.gate_identity import GateIdentity
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
 
 
@@ -29,6 +30,28 @@ _IMPLEMENT_ALIASES = {"verify", "verify-implement"}
 _BUGFIX_ALIASES = {"verify-bugfix"}
 _ANALYZE_ALIASES = {"analyze-verify"}
 _STEP_ID_RE = re.compile(r"^[sera]\d{2}$", re.IGNORECASE)
+
+
+class PendingSubagent(NamedTuple):
+    agent_type: str
+    spawn_tool_use_id: str | None = None
+    identity: GateIdentity | None = None
+
+
+def rewrite_spawn_prompt(
+    prompt: str | None,
+    identity: GateIdentity | dict[str, Any] | None = None,
+) -> str:
+    """Prepend GATE_IDENTITY SoT block to prompt if not already present."""
+    if identity is None:
+        return str(prompt or "")
+    raw = str(prompt or "").strip()
+    if "GATE_IDENTITY session_id=" in raw:
+        return str(prompt or "")
+    inject = GateIdentity.inject_text(identity)
+    if not raw:
+        return inject
+    return inject + "\n" + raw
 
 
 @dataclass(frozen=True)
@@ -385,6 +408,51 @@ def auto_finish_after_gate(
     )
 
 
+def _finish_status_from_stop(
+    cwd: str | Path,
+    *,
+    agent_type: str,
+    verdict: str,
+    stop_rc: int,
+    stop_err: str,
+) -> dict[str, Any] | None:
+    """Surface stop-hook auto-finish outcome without invoking finish a second time."""
+    if str(verdict or "").upper() != "PASS":
+        return None
+    err = stop_err or ""
+    if "automatic mb-finish completed" in err or "FINISH ok" in err:
+        return {"ok": True}
+    if "automatic mb-finish did not complete" in err:
+        codes: list[str] = []
+        match = re.search(r"did not complete:\s*([^\n(]+)", err)
+        if match:
+            codes = [part.strip() for part in match.group(1).split(",") if part.strip()]
+        return {
+            "ok": False,
+            "diagnostic_codes": codes or ["auto_finish_failed"],
+            "error": err.strip()[-300:] or "automatic mb-finish did not complete",
+        }
+    if stop_rc != 0:
+        return None
+    try:
+        from harness.hooks.epic.core import load_epic_state
+
+        state = load_epic_state(cwd)
+    except Exception:
+        return None
+    prefixes = {
+        "verify-implement": "mb-finish implement",
+        "verify-bugfix": "mb-finish bugfix",
+        "verify-qa": "mb-finish qa",
+        "analyze-verify": "mb-finish analyze",
+    }
+    norm = normalize_agent_type(agent_type) or str(agent_type or "").strip().lower()
+    prefix = prefixes.get(norm)
+    if prefix and _finish_tool_matches(state, prefix=prefix):
+        return {"ok": True, "already_finished": True}
+    return None
+
+
 class SubagentLifecycle:
     """Consume normalized collaboration items and invoke shared gate hooks."""
 
@@ -392,9 +460,29 @@ class SubagentLifecycle:
         self.cwd = str(cwd)
         self.session_id = str(session_id or "")
         self.runtime_id = runtime_id
-        self._pending: dict[str, tuple[str, str | None]] = {}
+        self._pending: dict[str, PendingSubagent] = {}
         self._completed: set[str] = set()
         self._lock = threading.Lock()
+
+    def get_gate_identity(self) -> GateIdentity:
+        try:
+            from harness.hooks.epic.core import load_epic_state
+            state = load_epic_state(self.cwd)
+        except Exception:
+            state = None
+        return GateIdentity.expected(state, session_id=self.session_id)
+
+    @property
+    def pending_threads(self) -> dict[str, PendingSubagent]:
+        with self._lock:
+            return dict(self._pending)
+
+    def get_pending_identity(self, thread_id: str) -> GateIdentity | None:
+        with self._lock:
+            pending = self._pending.get(str(thread_id).strip())
+            if pending is not None:
+                return pending.identity
+            return None
 
     def _start_and_stop(self, completion: SubagentCompletion) -> LifecycleAction:
         start_payload = {
@@ -439,14 +527,17 @@ class SubagentLifecycle:
             runtime_id=self.runtime_id,
             session_id=self.session_id,
         )
-        finish = None
-        if stop_rc == 0:
-            finish = gate_atomic_finish(
-                self.cwd,
-                agent_type=completion.agent_type,
-                verdict=completion.verdict,
-                session_id=self.session_id,
-            )
+        # Claude parity: subagent-stop.py already runs gate_atomic_finish on PASS.
+        # Do not call gate_atomic_finish again here — a second call races the
+        # finish-boundary / parent turn and historically returned confusing
+        # verify_pass_missing when the parent ignored stop and re-ran mb-finish.
+        finish = _finish_status_from_stop(
+            self.cwd,
+            agent_type=completion.agent_type,
+            verdict=completion.verdict,
+            stop_rc=stop_rc,
+            stop_err=stop_err,
+        )
         return LifecycleAction(
             completion.agent_type,
             completion.verdict,
@@ -464,13 +555,22 @@ class SubagentLifecycle:
     def _process_item(self, item: dict[str, Any]) -> list[LifecycleAction]:
         tool = str(item.get("tool") or "").strip()
         if tool == "spawn_agent":
+            sot = self.get_gate_identity()
             prompt = str(item.get("prompt") or "")
+            rewritten = rewrite_spawn_prompt(prompt, sot)
+            if rewritten != prompt:
+                item["prompt"] = rewritten
+                prompt = rewritten
             hint = infer_agent_type(prompt)
             spawn_id = str(item.get("id") or "").strip() or None
             for thread_id in item.get("receiver_thread_ids") or []:
                 thread = str(thread_id).strip()
                 if thread:
-                    self._pending[thread] = (hint or "", spawn_id)
+                    self._pending[thread] = PendingSubagent(
+                        agent_type=hint or "",
+                        spawn_tool_use_id=spawn_id,
+                        identity=sot,
+                    )
             return []
         if tool != "wait":
             return []
@@ -490,8 +590,8 @@ class SubagentLifecycle:
             fence = get_agent_contract_adapter(self.runtime_id).parse_gate_verdict(message)
             if fence is None:
                 continue
-            pending = self._pending.get(thread, ("", None))
-            agent_type = normalize_agent_type(pending[0]) or infer_agent_type(None, message, fence=fence)
+            pending = self._pending.get(thread, PendingSubagent("", None, None))
+            agent_type = normalize_agent_type(pending.agent_type) or infer_agent_type(None, message, fence=fence)
             if not agent_type:
                 continue
             completion = SubagentCompletion(
@@ -500,7 +600,7 @@ class SubagentLifecycle:
                 verdict=str(fence.verdict).upper(),
                 tool_use_id=wait_id,
                 thread_id=thread,
-                spawn_tool_use_id=pending[1],
+                spawn_tool_use_id=pending.spawn_tool_use_id,
             )
             identity_key = _verifier_identity_key(self.cwd, self.session_id, completion)
             thread_dedupe = f"{thread}:{wait_id or ''}:{completion.verdict}"

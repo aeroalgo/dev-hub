@@ -20,13 +20,13 @@ steps:
   title: s03 — Claude SubagentStart inject + SubagentStop strict ownership assertion
     via SoT
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-codex-spawn-rewrite-and-bind.yaml
   title: s04 — Codex spawn-time prompt rewrite with GATE_IDENTITY + pending thread
     SoT bind
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-codex-stop-transport-bind-and-coerce-removal.yaml
   title: s05 — Codex stop transport_bind via SoT API + delete per-field coerce ladder

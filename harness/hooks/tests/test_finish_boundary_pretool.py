@@ -77,13 +77,16 @@ def test_successful_finish_denies_any_followup_tool(tmp_path: Path) -> None:
     assert "заверши текущий turn" in output["additionalContext"]
 
 
-def test_successful_finish_uses_codex_block_envelope(tmp_path: Path) -> None:
+def test_successful_finish_uses_codex_deny_envelope(tmp_path: Path) -> None:
+    """Codex PreToolUse blocks via permissionDecision deny (Claude parity)."""
     _state(tmp_path, phase_run_id="run-1", finish_run_id="run-1")
 
     result = _run_hook(tmp_path, tool_name="Bash", runtime_id="codex")
 
-    assert result["decision"] == "block"
-    assert "finish_boundary" in result["reason"]
+    output = result["hookSpecificOutput"]
+    assert output["permissionDecision"] == "deny"
+    assert "finish_boundary" in output["permissionDecisionReason"]
+    assert "заверши текущий turn" in output["additionalContext"]
 
 
 def test_new_phase_run_is_unblocked_after_finish(tmp_path: Path) -> None:

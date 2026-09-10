@@ -26,23 +26,24 @@
       {
         "type": "command",
         "command": "python3 harness/hooks/write-pretool.py",
-        "matcher": "Write|Edit|NotebookEdit"
+        "matcher": "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
       },
       {
         "type": "command",
         "command": "python3 harness/hooks/context_ledger_adapters.py",
-        "matcher": "Write|Edit|NotebookEdit"
+        "matcher": "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
       },
       {
         "type": "command",
-        "command": "python3 harness/hooks/finish-boundary-pretool.py"
+        "command": "python3 harness/hooks/finish-boundary-pretool.py",
+        "matcher": ".*"
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
         "command": "python3 harness/hooks/agent-posttool.py",
-        "matcher": "Agent|Task|spawn_agent"
+        "matcher": "Agent|Task|spawn_agent|Write|Edit|NotebookEdit|apply_patch|MultiEdit"
       },
       {
         "type": "command",

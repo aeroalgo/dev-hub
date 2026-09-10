@@ -163,7 +163,9 @@ def test_parity_checker_rejects_duplicate_or_parallel_hook_entrypoint(repo_root:
     pretool_hooks = hooks_data.get("hooks", {}).get("PreToolUse", [])
     ledger_entries = [h for h in pretool_hooks if "context_ledger_adapters.py" in str(h.get("command", ""))]
     assert len(ledger_entries) == 1, f"Expected exactly 1 context-ledger entry in PreToolUse, got {len(ledger_entries)}"
-    assert ledger_entries[0].get("matcher") == "Write|Edit|NotebookEdit"
+    assert ledger_entries[0].get("matcher") == (
+        "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
+    )
 
     # Verify write-pretool and context-ledger share existing registration without duplicate handlers
     all_commands = [h.get("command") for ev in hooks_data.get("hooks", {}).values() for h in ev]

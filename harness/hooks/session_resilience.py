@@ -664,6 +664,9 @@ def is_idle_timeout(reason: str | None) -> bool:
 _TERMINAL_GATE_CMD_RE = re.compile(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b")
 _MB_FINISH_OK_TRUE_RE = re.compile(r'"ok"\s*:\s*true', re.I)
 _MB_FINISH_OK_FALSE_RE = re.compile(r'"ok"\s*:\s*false', re.I)
+_FINISH_STEP_RE = re.compile(
+    r"(?i)(?:--step(?:-id)?|step_id)\s*[=\s]\s*([sera]\d{2}|[A-Z]{2,})",
+)
 
 
 def _gate_integrity_token(text: str) -> str | None:
@@ -674,18 +677,32 @@ def _gate_integrity_token(text: str) -> str | None:
     return None
 
 
-def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
-    """Return a repairable diagnostic for a failed terminal/gate operation.
+def _finish_step_id_from_command(command: str) -> str | None:
+    match = _FINISH_STEP_RE.search(command or "")
+    if not match:
+        return None
+    return str(match.group(1) or "").strip() or None
+
+
+def _terminal_integrity_failure(raw_log: str) -> tuple[str | None, str | None]:
+    """Return ``(diagnostic, step_id)`` for the last failed terminal gate op.
 
     Only the *last* ``mb-finish`` / ``finalize-step`` / ``stop-gate`` command
     decides. An earlier ``verdict_stale`` (or other integrity token) must not
     poison session close after a later successful finish (``ok: true`` / exit 0).
+
+    Inverse: a later failed *redo* after ``ok: true`` for the same step must not
+    poison either — automatic gate finish clears ``last_verify_verdict``, so a
+    parent ``mb-finish`` redo often returns ``verify_pass_missing`` even though
+    the step already finalized.
     """
     # A failed mb-finish command is not a successful model turn even when the
     # outer runtime exits zero.  Restrict this to the finish command so an
     # exploratory command failure does not poison an otherwise valid turn.
     has_structured_items = False
     last_diag: str | None = None
+    last_step: str | None = None
+    last_ok_step: str | None = None
     for line in (raw_log or "").splitlines():
         try:
             obj = json.loads(line)
@@ -709,32 +726,89 @@ def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
             or item.get("exit_code") not in (None, 0)
             or ok_false
         )
+        step_id = _finish_step_id_from_command(command)
         if ok_true and not failed:
             last_diag = None
+            last_step = None
+            last_ok_step = step_id
             continue
         if failed:
+            # Parent redo after automatic finish: verify was consumed.
+            if (
+                step_id
+                and last_ok_step
+                and step_id.lower() == last_ok_step.lower()
+                and (
+                    (diag or "finish_command_failed") == "finish_command_failed"
+                    or "verify_pass_missing" in output
+                    or "already_finished" in output
+                )
+            ):
+                last_diag = None
+                last_step = None
+                continue
             last_diag = diag or "finish_command_failed"
+            last_step = step_id
         elif diag:
             last_diag = diag
+            last_step = step_id
     if has_structured_items:
-        return last_diag
+        return last_diag, last_step
     # Plain-text wrappers do not have command item envelopes.  Only accept a
     # diagnostic from a line that names the terminal operation itself. Last
     # matching terminal line wins (later ok:true clears earlier integrity fail).
     last_diag = None
+    last_step = None
+    last_ok_step = None
     for line in (raw_log or "").splitlines():
         if not _TERMINAL_GATE_CMD_RE.search(line):
             continue
         diag = _gate_integrity_token(line)
         ok_true = bool(_MB_FINISH_OK_TRUE_RE.search(line))
         ok_false = bool(_MB_FINISH_OK_FALSE_RE.search(line))
+        step_id = _finish_step_id_from_command(line)
         if ok_true and not ok_false and not diag:
             last_diag = None
+            last_step = None
+            last_ok_step = step_id
         elif diag:
-            last_diag = diag
+            if (
+                step_id
+                and last_ok_step
+                and step_id.lower() == last_ok_step.lower()
+                and diag in {"finish_command_failed", "verify_pass_missing"}
+            ):
+                last_diag = None
+                last_step = None
+            else:
+                last_diag = diag
+                last_step = step_id
         elif ok_false:
-            last_diag = "finish_command_failed"
-    return last_diag
+            if (
+                step_id
+                and last_ok_step
+                and step_id.lower() == last_ok_step.lower()
+            ):
+                last_diag = None
+                last_step = None
+            else:
+                last_diag = "finish_command_failed"
+                last_step = step_id
+    return last_diag, last_step
+
+
+def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
+    """Return a repairable diagnostic for a failed terminal/gate operation."""
+    diag, _step = _terminal_integrity_failure(raw_log)
+    return diag
+
+
+def failed_finish_step_from_log(raw_log: str) -> str | None:
+    """Step id from the last failed ``mb-finish`` / ``finalize-step`` / ``stop-gate``."""
+    diag, step_id = _terminal_integrity_failure(raw_log)
+    if not diag:
+        return None
+    return step_id
 
 
 def transient_backoff_sec(attempt: int, *, idle: bool = False) -> int:

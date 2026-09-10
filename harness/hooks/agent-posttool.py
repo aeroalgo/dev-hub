@@ -63,13 +63,16 @@ def main() -> None:
         try:
             from context_ledger_adapters import normalize_write_payload
             from touch_ledger import record_touch
+            from _lib import is_epic_loop_env, workflow_state_active, load_state
 
             payload = normalize_write_payload(data, provider="claude", default_cwd=cwd)
-            record_touch(
-                cwd,
-                payload.raw_path,
-                operation=str(payload.operation or "edit"),
-            )
+            st = load_state(session_id, cwd) if session_id else {}
+            if is_epic_loop_env() or workflow_state_active(st, cwd):
+                record_touch(
+                    cwd,
+                    payload.raw_path,
+                    operation=str(payload.operation or "edit"),
+                )
         except Exception:
             pass
         return

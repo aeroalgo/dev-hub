@@ -1,5 +1,5 @@
 ---
-description: "BACK PLAN REFACTOR gates — refactor inventory before multi-epic planning"
+description: "BACK PLAN REFACTOR gates — purge + consolidation inventory before multi-epic planning"
 alwaysApply: false
 ---
 # BACK PLAN REFACTOR — gates
@@ -11,26 +11,31 @@ alwaysApply: false
 ## Gates
 
 1. The command is planning-only: no production or test code edits.
-2. Before the epic cut, record a baseline: files, production/test LOC, relevant test commands, and known coverage/complexity signals. Missing tooling or graph data is recorded as a limitation, never silently treated as green.
+2. Before the epic cut, record a baseline: files, production/test LOC, relevant symbol/module counts where available, test commands, and known coverage/complexity signals. Missing tooling or graph data is recorded as a limitation, never silently treated as green. Scan scope (`path` / `package` / `theme`) is declared; exclusions listed.
 3. The inventory must cover, with file/symbol evidence and callers where available:
    - function nodes and fan-in/fan-out;
-   - adapters, translators, wrappers, and external boundaries;
+   - **semantic twin clusters** (shared meaning, not only textual twins) with canonical owner and action;
+   - ownership / target layer per cluster (one file owner);
+   - adapters, translators, wrappers, and external boundaries (**≤1 translation owner per boundary** after the epic);
    - dead code, dead imports, obsolete flags, routes, and compatibility paths;
    - exact and semantic duplication;
    - tests, fixtures, helpers, duplicate assertions, obsolete tests, and missing behavior tests.
-4. Every proposed deletion has a proof method: call-site search, import/reference search, route/config search, or a replacement test. Uncertain candidates are findings, not deletion commitments.
-5. Every epic owns its production behavior and its corresponding test refactor. A standalone test-cleanup epic is allowed only when the test infrastructure is independently shippable.
-6. Multi-epic cut uses `workflow-plan-multi-epic.mdc`: separate independent code trees, risks, or deliverables; do not split a producer from its first required consumer.
-7. Each epic plan contains a deletion ledger with current path/symbol, replacement or merge target, policy, proof, estimated net delta, and owning step.
-8. Each epic plan contains `## Test refactor` and `## Deletion budget`. A plan cannot claim success from readability alone: it must name code/tests to remove or explicitly stop as `no safe deletion found`.
-9. Existing behavior is frozen. Behavior changes are routed to BACK IMPLEMENT/BUGFIX and are not smuggled into this plan.
-10. Queue reconciliation is mandatory in the same session and must return `ok: true`; next is `BACK DECOMPOSE <queue[0]>`.
+4. Every proposed deletion or merge has a proof method: call-site search, import/reference search, route/config search, twin I/O equivalence, or a replacement test. Uncertain candidates are findings, not deletion/merge commitments.
+5. Every epic owns its production behavior and its corresponding test refactor. A standalone test-cleanup epic is allowed only when the test infrastructure is independently shippable. Production merge without test consolidate in the same epic = FAIL.
+6. Multi-epic cut uses `workflow-plan-multi-epic.mdc`: separate independent **meaning clusters**, code trees, risks, or deliverables; do not split a producer from its first required consumer; do not cut only by layer inside one feature; no mega-cleanup without a cluster table.
+7. Each epic plan contains a deletion/consolidation ledger with current path/symbol, replacement or merge target, `cluster_id`, `canonical_owner`, `copies_removed_count`, `net_loc_delta`, `net_symbol_delta`, `behavior_freeze_oracle`, policy, proof, and owning step.
+8. Each epic plan contains `## Consolidation clusters`, `## Test refactor`, `## Deletion budget`, and `## Concept budget`. Success cannot be claimed from readability alone: the plan must name code/tests to remove or merge with net LOC ≤ 0 and net owners/symbols ≤ 0, or explicitly stop as `no safe deletion found` **and** `no safe consolidation found`.
+9. `extract`, new helper/factory/interface, or new adapter without `copies_removed_count ≥ 1` (new adapter collapsing multiple translators: ≥ 2) = FAIL. `move` without removing a sibling copy = FAIL.
+10. Existing behavior is frozen. Behavior changes are routed to BACK IMPLEMENT/BUGFIX/CREATIVE and are not smuggled into this plan.
+11. Queue reconciliation is mandatory in the same session and must return `ok: true`; next is `BACK DECOMPOSE <queue[0]>`.
 
 ## Abort
 
 - No inventory evidence → do not write plans.
+- Epic cut without consolidation cluster table (or explicit `no twins in scope` + search commands) on a scoped scan that claimed consolidation → FAIL.
 - One mega-plan where two or more independent cut criteria apply → FAIL; perform an epic cut.
 - Tests omitted from a production epic → FAIL.
-- A new abstraction is proposed without a deletion/complexity budget → FAIL.
+- A new abstraction is proposed without a deletion/consolidation and concept budget → FAIL.
 - A deletion is justified only by “looks unused” or a passing unit test → FAIL.
+- Net LOC or net public-symbol/owner budget would grow → FAIL.
 - Code changes made during PLAN → stop and restore planning-only scope before FINISH.

@@ -152,6 +152,66 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     if not epic_id:
         epic_id = epic_id_from_decompose_path(decompose_rel) or "unknown"
 
+    # Idempotent: automatic gate mb-finish may have already closed this step.
+    # Parent redo must return ok:true — not verify_pass_missing (verdict cleared
+    # by finalize_step) — or session integrity treats the redo failure as the
+    # terminal result and rolls the successful finish back.
+    finish_tool = state.get("last_finish_tool")
+    finished_already = str(state.get("last_finished_step") or "").strip().lower() == step_id
+    if (
+        finished_already
+        and isinstance(finish_tool, dict)
+        and str(finish_tool.get("step_id") or "").strip().lower() == step_id
+        and finish_tool.get("fingerprint")
+    ):
+        try:
+            active_context = read_active_context(cwd)
+        except Exception:
+            active_context = None
+        return MbFinishResult(
+            ok=True,
+            active_context=active_context,
+            finished_step=step_id,
+            next_step=state.get("armed_step"),
+            next_phase=state.get("phase"),
+            epic_done=not state.get("active") and state.get("status") == "complete",
+            diagnostic_codes=["already_finished"],
+        )
+    loaded_steps = load_decompose_steps_fail_closed(cwd, idx_ref)
+    if loaded_steps.get("ok"):
+        for step in loaded_steps.get("steps") or []:
+            if str(step.get("id") or "").strip().lower() != step_id:
+                continue
+            if str(step.get("status") or "").lower() not in {"completed", "done"}:
+                break
+            try:
+                import epic_yaml as ey
+                from harness.hooks.epic.core import _role_dir_from_index_path
+
+                idx_path = Path(loaded_steps["index"])
+                _role, role_dir = _role_dir_from_index_path(idx_path, cwd)
+                rel = ey.resolve_implement_path(
+                    cwd, role_dir, epic_id, step_id, plan_id=epic_id
+                )
+                impl_state = ey.implement_load_state(cwd, rel)
+            except Exception:
+                impl_state = {"completed": False}
+            if impl_state.get("completed"):
+                try:
+                    active_context = read_active_context(cwd)
+                except Exception:
+                    active_context = None
+                return MbFinishResult(
+                    ok=True,
+                    active_context=active_context,
+                    finished_step=step_id,
+                    next_step=state.get("armed_step"),
+                    next_phase=state.get("phase"),
+                    epic_done=not state.get("active") and state.get("status") == "complete",
+                    diagnostic_codes=["already_finished"],
+                )
+            break
+
     # 1. validate_finish_integrity_with_repair(cwd, step_id)
     integrity = validate_finish_integrity_with_repair(
         cwd=cwd,

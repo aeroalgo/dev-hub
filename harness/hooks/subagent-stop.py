@@ -52,6 +52,10 @@ from loop.mb_finish.verify_hint import (  # noqa: E402
 from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY  # noqa: E402
 from loop.sunset_sidecar_store import write_sunset_sidecar  # noqa: E402
 from loop.validate_boundary import validate_boundary  # noqa: E402
+from loop.gate_identity import (  # noqa: E402
+    GateOwnershipMismatchError,
+    assert_fence,
+)
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
 from loop.runtime_adapters.subagent_lifecycle import gate_atomic_finish  # noqa: E402
 
@@ -98,6 +102,7 @@ def _handle_verify_finish_agent(
     session_id: str,
     st: dict,
     data: dict,
+    report_text: str | None = None,
 ) -> None:
     identity = current_gate_identity(cwd, session_id)
     sync_gate_identity(st, identity)
@@ -140,6 +145,24 @@ def _handle_verify_finish_agent(
         except Exception as exc:
             print(
                 f"verify: coerce_verify_verdict failed: {exc}",
+                file=sys.stderr,
+            )
+
+    if agent_type in COERCE_VERIFY_AGENTS and verdict == "FAIL":
+        try:
+            from touch_ledger import should_promote_foreign_dirty_fail
+
+            promote, notes = should_promote_foreign_dirty_fail(cwd, report_text)
+            if promote:
+                print(
+                    "verify VERDICT: FAIL promoted → PASS — touch-ledger scope: "
+                    + "; ".join(notes),
+                    file=sys.stderr,
+                )
+                verdict = "PASS"
+        except Exception as exc:
+            print(
+                f"verify: foreign_dirty promote failed: {exc}",
                 file=sys.stderr,
             )
 
@@ -358,62 +381,74 @@ def main() -> None:
             # Check ownership against in-flight gate identity (FR-004 / US-003 / SC-003 / TM-004)
             current_id = current_gate_identity(cwd, session_id)
             sync_gate_identity(st, current_id)
-            expected_step = current_id.get("step")
-            expected_epic = current_id.get("epic_id")
-            # Session match: in autonomous mode with projection, check session_id; if manual, check session_id if present
-            expected_session = current_id.get("session_id") if current_id.get("authority") != "manual" else (session_id or None)
 
-            fence_step = fence_data.get("step_id")
-            fence_epic = fence_data.get("epic_id")
-            fence_session = fence_data.get("session_id")
-            fence_agent = fence_data.get("agent_id")
-
-            # Codex native multi_agent has no SubagentStart injection before the
-            # child runs; lifecycle binds the child to the parent runner session.
-            # Treat that transport binding as authoritative for session/step/epic
-            # (Claude keeps strict fence ownership — SubagentStart injects IDs).
             runtime_id = str(
                 data.get("runtime_id")
                 or os.environ.get("EPIC_RUNTIME")
                 or os.environ.get("EPIC_RUNTIME_RESOLVED")
                 or ""
             ).strip().lower()
-            if runtime_id == "codex":
-                if (
-                    expected_session
-                    and fence_session
-                    and str(fence_session).strip() != str(expected_session).strip()
-                ):
-                    fence_data["session_id"] = expected_session
-                    fence_session = expected_session
-                if (
-                    expected_step
-                    and fence_step
-                    and str(fence_step).strip() != str(expected_step).strip()
-                ):
-                    fence_data["step_id"] = expected_step
-                    fence_step = expected_step
-                if (
-                    expected_epic
-                    and fence_epic
-                    and str(fence_epic).strip() != str(expected_epic).strip()
-                ):
-                    fence_data["epic_id"] = expected_epic
-                    fence_epic = expected_epic
 
-            mismatches = []
-            if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():
-                mismatches.append(f"step_id mismatch (got {fence_step!r}, expected {expected_step!r})")
-            if expected_epic and fence_epic and str(fence_epic).strip() != str(expected_epic).strip():
-                mismatches.append(f"epic_id mismatch (got {fence_epic!r}, expected {expected_epic!r})")
-            if expected_session and fence_session and str(fence_session).strip() != str(expected_session).strip():
-                mismatches.append(f"session_id mismatch (got {fence_session!r}, expected {expected_session!r})")
-            expected_record_key = record_agent_key(str(agent_type))
-            if fence_agent and record_agent_key(str(fence_agent)) != expected_record_key:
-                mismatches.append(f"agent_id mismatch (got {fence_agent!r}, expected {agent_type!r})")
+            try:
+                if runtime_id == "codex":
+                    expected_step = current_id.get("step")
+                    expected_epic = current_id.get("epic_id")
+                    expected_session = (
+                        current_id.get("session_id")
+                        if current_id.get("authority") != "manual"
+                        else (session_id or None)
+                    )
 
-            if mismatches:
-                mismatch_detail = "; ".join(mismatches)
+                    fence_step = fence_data.get("step_id")
+                    fence_epic = fence_data.get("epic_id")
+                    fence_session = fence_data.get("session_id")
+                    fence_agent = fence_data.get("agent_id")
+
+                    if (
+                        expected_session
+                        and fence_session
+                        and str(fence_session).strip() != str(expected_session).strip()
+                    ):
+                        fence_data["session_id"] = expected_session
+                        fence_session = expected_session
+
+                    mismatches = []
+                    if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():
+                        mismatches.append(
+                            f"step_id mismatch (got {fence_step!r}, expected {expected_step!r})"
+                        )
+                    if expected_epic and fence_epic and str(fence_epic).strip() != str(expected_epic).strip():
+                        mismatches.append(
+                            f"epic_id mismatch (got {fence_epic!r}, expected {expected_epic!r})"
+                        )
+                    if expected_session and fence_session and str(fence_session).strip() != str(expected_session).strip():
+                        mismatches.append(
+                            f"session_id mismatch (got {fence_session!r}, expected {expected_session!r})"
+                        )
+                    expected_record_key = record_agent_key(str(agent_type))
+                    if fence_agent and record_agent_key(str(fence_agent)) != expected_record_key:
+                        mismatches.append(
+                            f"agent_id mismatch (got {fence_agent!r}, expected {agent_type!r})"
+                        )
+
+                    if mismatches:
+                        mismatch_detail = "; ".join(mismatches)
+                        print(
+                            f"NEED_HUMAN: semantic_ownership_mismatch ({mismatch_detail})",
+                            file=sys.stderr,
+                        )
+                        st["need_human"] = "semantic_ownership_mismatch"
+                        save_state(session_id, cwd, st)
+                        sys.exit(2)
+                elif runtime_id == "claude":
+                    assert_fence(
+                        fence_data,
+                        current_id,
+                        policy="strict",
+                        agent_type=str(agent_type),
+                    )
+            except GateOwnershipMismatchError as exc:
+                mismatch_detail = "; ".join(exc.mismatches) if exc.mismatches else str(exc)
                 print(
                     f"NEED_HUMAN: semantic_ownership_mismatch ({mismatch_detail})",
                     file=sys.stderr,
@@ -451,6 +486,7 @@ def main() -> None:
                 session_id=session_id,
                 st=st,
                 data=data,
+                report_text=msg,
             )
             return
 

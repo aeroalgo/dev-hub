@@ -22,6 +22,55 @@ def _cmd_item(command: str, output_obj: dict, *, exit_code: int, status: str) ->
     )
 
 
+def test_failed_finish_step_from_log_parses_step(tmp_path: Path) -> None:
+    from harness.hooks.session_resilience import failed_finish_step_from_log
+
+    failed = _cmd_item(
+        "python harness/hooks/epic_resolve.py mb-finish implement --step s03",
+        {"ok": False, "diagnostic_codes": ["verify_pass_missing"]},
+        exit_code=2,
+        status="failed",
+    )
+    log = tmp_path / "fail.log"
+    log.write_text(failed + "\n", encoding="utf-8")
+    assert failed_finish_step_from_log(log.read_text(encoding="utf-8")) == "s03"
+
+
+def test_later_failed_redo_after_ok_finish_does_not_poison(tmp_path: Path) -> None:
+    """Parent mb-finish redo after automatic ok:true must not fail the session."""
+    ok = _cmd_item(
+        "python harness/hooks/epic_resolve.py mb-finish implement --step s03",
+        {"ok": True, "finished_step": "s03", "diagnostic_codes": []},
+        exit_code=0,
+        status="completed",
+    )
+    redo = _cmd_item(
+        "python harness/hooks/epic_resolve.py mb-finish implement --step s03",
+        {"ok": False, "diagnostic_codes": ["verify_pass_missing"]},
+        exit_code=2,
+        status="failed",
+    )
+    log = tmp_path / "ok-then-redo.log"
+    log.write_text(
+        "\n".join(
+            [
+                "SESSION_START session=s-ok mode=headless command=codex",
+                ok,
+                redo,
+                '{"type":"item.completed","item":{"type":"agent_message","text":"done"}}',
+                "SESSION_END session=s-ok exit_code=0",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    result = analyze_session_log(log, exit_code=0, runtime="codex")
+    assert result["aborted"] is False
+    assert result["retryable"] is False
+    assert result.get("reason") is None
+    assert result.get("gate_diagnostic") is None
+
+
 def test_later_successful_mb_finish_clears_earlier_verdict_stale(tmp_path: Path) -> None:
     """Earlier failed finish must not poison session close after a later ok:true mb-finish."""
     failed = _cmd_item(

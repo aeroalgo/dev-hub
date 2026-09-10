@@ -84,6 +84,7 @@ from harness.hooks.epic import (  # noqa: E402
     clear_stale_verify_no_verdict_handoff,
     repair_index_mirror,
     repair_fingerprint_stall,
+    repair_premature_completed_after_failed_finish,
     sync_cursor_from_index,
     save_epic_state,
     validate_active_context_shape,
@@ -109,6 +110,7 @@ from harness.hooks.session_resilience import (  # noqa: E402
     analyze_session_log,
     classify_abort,
     dirty_resume_prompt_lines,
+    failed_finish_step_from_log,
     git_dirty_paths,
     load_last_session,
     transient_backoff_sec,
@@ -1967,6 +1969,26 @@ def prepare_session(
                 "prepare: md mirror repair skipped (yaml remains canon): %s",
                 md_repair.get("error") or md_repair,
             )
+        # Failed finish must not advance on agent-written completed.
+        failed_step = str(state.get("finish_failed_step") or "").strip()
+        if (
+            str(state.get("gate_diagnostic") or "") == "finish_command_failed"
+            and failed_step
+        ):
+            finish_repair = repair_premature_completed_after_failed_finish(
+                cwd_p,
+                step_id=failed_step,
+                decompose=decompose,
+            )
+            state = load_epic_state(cwd_p)
+            text = read_active_context(cwd_p)
+            projection = rebuild_epic_projection(cwd_p)
+            if finish_repair.get("repaired"):
+                logger.warning(
+                    "prepare: rolled back premature completed after "
+                    "finish_command_failed step=%s",
+                    failed_step,
+                )
         # index.yaml is cursor SoT — rewrite AC + armed_step before integrity/checkpoint.
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
@@ -2218,6 +2240,19 @@ def prepare_session(
                 "Предыдущий verify/reviewer не дал валидного gate receipt из-за сбоя native spawn или runtime transport.",
                 "Это repairable blocker: не создавай qa_pass и не останавливай QA.",
                 "Повтори canonical spawn_agent → wait; при повторе ошибки передай BLOCKERS в gate-repair, дождись repair и снова запусти verify-qa.",
+            ]
+        )
+    if gate_diagnostic == "finish_command_failed":
+        failed_step = str(st.get("finish_failed_step") or st.get("armed_step") or "").strip()
+        resume_lines = list(resume_lines or [])
+        resume_lines.extend(
+            [
+                "## FINISH RECOVERY (HARD)",
+                "Предыдущий mb-finish/finalize-step завершился с ошибкой (finish_command_failed).",
+                "Шаг НЕ закрыт: index/implement completed откатывается; cursor остаётся на том же шаге.",
+                f"Текущий шаг: {failed_step or '?'}.",
+                "FORBIDDEN: hand-edit status=completed в index/implement; prose FINISH без ok:true.",
+                "Сделай: verify PASS → mb-finish (жди ok:true) → только после этого следующий шаг.",
             ]
         )
 
@@ -3557,8 +3592,94 @@ def record_abort(
         st = load_epic_state(cwd_p)
         if isinstance(frozen_start, dict) and frozen_start:
             st["session_start_identity"] = frozen_start
-    if retryable and st.get("armed_decompose"):
+    finish_fail_step: str | None = None
+    if reason == "gate_integrity:finish_command_failed":
+        finish_fail_step = (
+            failed_finish_step_from_log(raw_session_log)
+            or (
+                str((frozen_start or {}).get("step_id") or "").strip()
+                if isinstance(frozen_start, dict)
+                else ""
+            )
+            or str(start_step or "").strip()
+            or None
+        )
+        already_finished = False
+        if finish_fail_step:
+            finish_tool = st.get("last_finish_tool")
+            already_finished = (
+                isinstance(finish_tool, dict)
+                and str(finish_tool.get("step_id") or "").strip().lower()
+                == finish_fail_step.lower()
+                and bool(finish_tool.get("fingerprint"))
+                and str(st.get("last_finished_step") or "").strip().lower()
+                == finish_fail_step.lower()
+            )
+        if already_finished and st.get("armed_decompose"):
+            # Parent redo failed after automatic gate finish succeeded.
+            # Do not reopen the step — sync cursor like a normal retryable abort.
+            cursor_sync = sync_cursor_from_index(cwd_p)
+            st = load_epic_state(cwd_p)
+            if isinstance(frozen_start, dict) and frozen_start:
+                st["session_start_identity"] = frozen_start
+            st["gate_diagnostic"] = None
+            st.pop("finish_failed_step", None)
+            if str(st.get("repair_required") or "") == "gate-repair":
+                st["repair_required"] = None
+                st["halt_reason"] = None
+            save_epic_state(cwd_p, st)
+            close_id = resolve_session_close_identity(
+                st,
+                fallback_step_id=start_step or None,
+                fallback_phase=start_phase or None,
+                same_phase_retry=True,
+            )
+            step_id = close_id.record_step_id or step_id
+            resume_from = close_id.resume_from or resume_from
+            phase = close_id.record_phase or phase
+            # Rewrite analysis: session is not a failed finish.
+            analysis = dict(analysis)
+            analysis.update(
+                {
+                    "aborted": False,
+                    "retryable": False,
+                    "abort_kind": None,
+                    "reason": None,
+                    "outcome": "clean",
+                    "backoff_sec": 0,
+                }
+            )
+            reason = None
+            retryable = False
+            kind = None
+            finish_fail_step = None
+        elif finish_fail_step and st.get("armed_decompose"):
+            finish_repair = repair_premature_completed_after_failed_finish(
+                cwd_p,
+                step_id=finish_fail_step,
+                decompose=st.get("armed_decompose"),
+            )
+            st = load_epic_state(cwd_p)
+            if isinstance(frozen_start, dict) and frozen_start:
+                st["session_start_identity"] = frozen_start
+            cursor_sync = {
+                "ok": True,
+                "synced": False,
+                "mode": "finish_command_failed_no_advance",
+                "step_id": finish_fail_step,
+                "repair": finish_repair,
+            }
+            step_id = finish_fail_step
+            resume_from = finish_fail_step
+            close_id = resolve_session_close_identity(
+                st,
+                fallback_step_id=finish_fail_step,
+                fallback_phase=start_phase or None,
+                same_phase_retry=True,
+            )
+    elif retryable and st.get("armed_decompose"):
         # IMPLEMENT queue sync only; if it jumped ahead, rearm again to start.
+        # Skipped for finish_command_failed — agent-written completed is not SoT.
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
             st = load_epic_state(cwd_p)
@@ -3607,6 +3728,9 @@ def record_abort(
             + diagnostic
             + "; preserve current phase and run gate-repair"
         )
+        if diagnostic == "finish_command_failed" and finish_fail_step:
+            st["finish_failed_step"] = finish_fail_step
+            st["armed_step"] = finish_fail_step
 
     # Ownership / schema NEED_HUMAN from gate hooks is a fail-closed halt.
     # Do not mislabel it as a missing finish receipt and transient-retry the

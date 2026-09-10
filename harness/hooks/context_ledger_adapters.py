@@ -163,11 +163,40 @@ def _detect_runtime_provider(data: dict[str, Any], explicit: str | None = None) 
     return "claude"
 
 
+def _extract_path_from_patch(text: str) -> str | None:
+    """Parse Codex/OpenAI apply_patch body for the first file path."""
+    if not text or not str(text).strip():
+        return None
+    for line in str(text).splitlines():
+        s = line.strip()
+        for prefix in (
+            "*** Update File: ",
+            "*** Add File: ",
+            "*** Delete File: ",
+            "*** Move to: ",
+        ):
+            if s.startswith(prefix):
+                path = s[len(prefix) :].strip()
+                if path:
+                    return path
+        if s.startswith("*** Update File:") or s.startswith("*** Add File:"):
+            path = s.split(":", 1)[-1].strip()
+            if path:
+                return path
+    return None
+
+
 def _extract_path_from_input(tool_input: dict[str, Any]) -> str | None:
     for key in PATH_KEYS:
         val = tool_input.get(key)
         if isinstance(val, str) and val.strip():
             return val.strip()
+    for key in ("patch", "input", "diff", "content", "contents"):
+        val = tool_input.get(key)
+        if isinstance(val, str) and val.strip():
+            from_patch = _extract_path_from_patch(val)
+            if from_patch:
+                return from_patch
     return None
 
 
@@ -700,19 +729,23 @@ def evaluate_write_payload(
     current_ledger.record_edit(norm.raw_path, new_content_hash=norm.new_content_hash)
 
     try:
+        from _lib import is_epic_loop_env, load_state, workflow_state_active
         from touch_ledger import record_touch
 
-        record_touch(
-            norm.project_root,
-            norm.raw_path,
-            operation=str(norm.operation or "edit"),
-        )
-        if norm.old_path:
+        session_id = str(norm.root_session_id or "")
+        st = load_state(session_id, norm.project_root) if session_id else {}
+        if is_epic_loop_env() or workflow_state_active(st, str(norm.project_root)):
             record_touch(
                 norm.project_root,
-                norm.old_path,
-                operation="rename_src",
+                norm.raw_path,
+                operation=str(norm.operation or "edit"),
             )
+            if norm.old_path:
+                record_touch(
+                    norm.project_root,
+                    norm.old_path,
+                    operation="rename_src",
+                )
     except Exception:
         pass
 

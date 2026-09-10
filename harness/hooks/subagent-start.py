@@ -23,6 +23,7 @@ from _lib import (
     save_state,
     _discover_registry,
 )
+from loop.gate_identity import GateIdentity
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
 from loop.runtime_materializers.agent_policy import get_always_inject_set
 
@@ -171,14 +172,9 @@ def main() -> None:
                     st["repair_in_flight"] = True
                 save_state(session_id, cwd, st)
     identity = current_gate_identity(cwd, session_id)
-    identity_session = str(identity.get("session_id") or session_id or "").strip()
-    identity_epic = str(identity.get("epic_id") or "").strip()
-    identity_step = str(identity.get("step") or "").strip()
-    identity_block = (
-        f"GATE_IDENTITY session_id={identity_session} "
-        f"epic_id={identity_epic} step_id={identity_step}\n"
-        "Fence MUST use these exact IDs for session_id, epic_id, and step_id.\n"
-    )
+    if session_id and not identity.get("session_id"):
+        identity["session_id"] = session_id
+    identity_block = GateIdentity.inject_text(identity)
     emit(
         {
             "hookSpecificOutput": {
