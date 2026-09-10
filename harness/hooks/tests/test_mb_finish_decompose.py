@@ -61,7 +61,14 @@ def test_finish_decompose_arm(tmp_path: Path):
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "last_verify_verdict": "PASS",
+        "last_verify_evidence": {
+            "agent_id": "verify-decompose",
+            "verdict": "PASS",
+            "schema": "loop-gate-verdict/v1",
+            "authority": "manual",
+        },
     })
 
     req = MbFinishRequest(
@@ -88,7 +95,14 @@ def test_finish_decompose_critical(tmp_path: Path):
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "last_verify_verdict": "PASS",
+        "last_verify_evidence": {
+            "agent_id": "verify-decompose",
+            "verdict": "PASS",
+            "schema": "loop-gate-verdict/v1",
+            "authority": "manual",
+        },
     })
 
     req = MbFinishRequest(
@@ -152,7 +166,14 @@ def test_finish_decompose_armed_step(tmp_path: Path):
         "armed_epic": "T-TEST-001",
         "armed_role": "BACK",
         "armed_step": "DECOMPOSE",
-        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml"
+        "armed_decompose": "memory-bank/back/plan/decompose-T-TEST-001/index.yaml",
+        "last_verify_verdict": "PASS",
+        "last_verify_evidence": {
+            "agent_id": "verify-decompose",
+            "verdict": "PASS",
+            "schema": "loop-gate-verdict/v1",
+            "authority": "manual",
+        },
     })
 
     req = MbFinishRequest(
@@ -241,6 +262,13 @@ def test_finish_decompose_infers_decompose_from_active_context_when_state_missin
             "armed_epic": "T-TEST-001",
             "armed_role": "BACK",
             "armed_step": "DECOMPOSE",
+            "last_verify_verdict": "PASS",
+            "last_verify_evidence": {
+                "agent_id": "verify-decompose",
+                "verdict": "PASS",
+                "schema": "loop-gate-verdict/v1",
+                "authority": "manual",
+            },
         },
     )
 

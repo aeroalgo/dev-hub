@@ -172,6 +172,9 @@ def test_pretool_binds_spawn_gate_sot(tmp_path: Path, monkeypatch: pytest.Monkey
     impl_shard = tmp_path / "memory-bank" / "back" / "implement" / epic / "s02-atomic.yaml"
     impl_shard.parent.mkdir(parents=True, exist_ok=True)
     impl_shard.write_text("schema: epic-implement/v1\nstep_id: s02\n", encoding="utf-8")
+    dec_shard = tmp_path / "memory-bank" / "back" / "plan" / epic / "yaml" / "steps" / "s02-atomic.yaml"
+    dec_shard.parent.mkdir(parents=True, exist_ok=True)
+    dec_shard.write_text("schema: epic-decompose/v1\nstep_id: s02\n", encoding="utf-8")
 
     # Setup epic state with frozen session_start_identity
     save_epic_state(
@@ -203,7 +206,7 @@ def test_pretool_binds_spawn_gate_sot(tmp_path: Path, monkeypatch: pytest.Monkey
         "tool_name": "Agent",
         "tool_input": {
             "subagent_type": "verify-implement",
-            "prompt": f"agent_type: verify-implement\nALLOW READ memory-bank/back/implement/{epic}/s02-atomic.yaml\nVERIFY s02",
+            "prompt": f"agent_type: verify-implement\nALLOW READ memory-bank/back/implement/{epic}/s02-atomic.yaml\nALLOW READ memory-bank/back/plan/{epic}/yaml/steps/s02-atomic.yaml\nVERIFY s02",
         },
         "session_id": session_id,
         "cwd": str(tmp_path),

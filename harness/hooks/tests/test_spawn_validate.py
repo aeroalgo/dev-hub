@@ -325,7 +325,6 @@ def _decompose_prompt(*, plan_excerpt: bool = True, extra_allow: str = "") -> st
     return (
         "## ALLOW READ\n"
         "- memory-bank/back/plan/T-HUB-048/md/plan.md\n"
-        "- memory-bank/back/plan/T-HUB-048/md/decompose-index.md\n"
         "- memory-bank/back/plan/T-HUB-048/yaml/decompose-index.yaml\n"
         "- memory-bank/back/plan/T-HUB-048/yaml/steps/s01-a.yaml\n"
         "- memory-bank/back/plan/T-HUB-048/yaml/steps/s03-b.yaml\n"
@@ -354,9 +353,18 @@ def test_verify_decompose_allow_read_ignores_later_section_paths(
     _decompose_setup(tmp_path)
     monkeypatch.setenv("EPIC_LOOP", "1")
 
+    # Seed required paths for path-violation checks
+    for rel in (
+        "memory-bank/back/plan/T-HUB-048/md/plan.md",
+        "memory-bank/back/plan/T-HUB-048/yaml/decompose-index.yaml",
+    ):
+        p = tmp_path / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("ok\n", encoding="utf-8")
+
     prompt = _decompose_prompt()
     files = lib.allow_read_files(prompt)
-    assert len(files) == 6
+    assert len(files) == 5
     assert lib.allow_read_violations(prompt) == []
 
     tool_input = {"subagent_type": "verify-decompose", "prompt": prompt}
@@ -364,7 +372,7 @@ def test_verify_decompose_allow_read_ignores_later_section_paths(
     assert deny_reasons == []
 
 
-def test_verify_decompose_missing_plan_excerpt_denied(
+def test_verify_decompose_missing_allow_denied(
     tmp_path: Path, monkeypatch
 ) -> None:
     _decompose_setup(tmp_path)
@@ -372,11 +380,11 @@ def test_verify_decompose_missing_plan_excerpt_denied(
 
     tool_input = {
         "subagent_type": "verify-decompose",
-        "prompt": _decompose_prompt(plan_excerpt=False),
+        "prompt": "check coverage only\n",
     }
     deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
     assert any(
-        "prompt_incomplete" in reason and "PLAN EXCERPT" in reason
+        "prompt_incomplete" in reason and "ALLOW READ" in reason
         for reason in deny_reasons
     )
 

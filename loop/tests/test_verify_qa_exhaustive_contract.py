@@ -40,7 +40,7 @@ def test_allow_read_max_elevated_for_verify_qa():
     assert lib.allow_read_max_for("verify-implement") == 10
 
     paths = "\n".join(f"- f{i}.py" for i in range(25))
-    prompt = f"## Suite results\nok\n## AC+\nx\n## AC−\ny\n## §0.11\nz\n## ALLOW READ\n{paths}\n"
+    prompt = f"## Suite results\nok\n## ALLOW READ\n{paths}\n"
     assert lib.allow_read_violations(prompt, agent_type="verify-qa") == []
     assert any("25 файлов > 10" in v for v in lib.allow_read_violations(prompt, agent_type="verify-implement"))
 

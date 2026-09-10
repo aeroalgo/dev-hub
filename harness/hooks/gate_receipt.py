@@ -139,11 +139,16 @@ def validate_verifier_receipt(
         for key in required_keys + ("epic_id", "role", "event_digest"):
             exp = current_identity.get(key)
             obs = receipt.get(key)
-            if exp is not None and obs is not None and obs != exp:
-                if key == "step":
-                    return False, "verdict_wrong_step"
-                if key == "phase_epoch":
-                    return False, "epoch_mismatch"
-                return False, "verdict_stale"
+            if exp is not None and obs is not None:
+                if key == "role":
+                    if str(exp).strip().lower() != str(obs).strip().lower():
+                        return False, "verdict_stale"
+                    continue
+                if obs != exp:
+                    if key == "step":
+                        return False, "verdict_wrong_step"
+                    if key == "phase_epoch":
+                        return False, "epoch_mismatch"
+                    return False, "verdict_stale"
 
     return True, "matched"

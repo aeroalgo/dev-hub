@@ -3,7 +3,7 @@ role: back
 step_id: s07
 plan_id: T-HUB-091-gate-identity-sot-consolidation
 title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-10'
 decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s07-legacy-fallback-purge.yaml
 skills_used: []
@@ -22,6 +22,7 @@ files:
 - harness/hooks/_lib.py
 - loop/session_finalize.py
 - loop/gate_identity.py
+- loop/tests/test_prepare_session_atomic_identity.py
 deletes: []
 tests:
 - bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q

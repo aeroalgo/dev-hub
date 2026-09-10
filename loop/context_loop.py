@@ -1818,7 +1818,7 @@ def prepare_session(
     from loop.schemas.active_context import handoff_mode_from_text
 
     ac_mode = (handoff_mode_from_text(text) or "").upper()
-    if ac_mode == "ANALYZE" or str(state.get("armed_step") or "").upper() == "ANALYZE":
+    if ac_mode == "ANALYZE" and str(state.get("armed_step") or "").upper() == "DECOMPOSE":
         from loop.decompose_gate import decompose_verify_pass_ready
 
         verify_ok = bool(decompose_verify_pass_ready(cwd_p, state).get("ok"))

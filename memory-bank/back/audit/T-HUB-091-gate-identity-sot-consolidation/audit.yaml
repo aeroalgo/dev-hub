@@ -1,0 +1,358 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-091-gate-identity-sot-consolidation
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+date: '2026-09-10'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: One SoT gate identity service for Claude and Codex with pre-child delivery,
+    atomic prepare freeze/mirror, strict vs transport_bind fence assertion/binding,
+    and legacy per-field coerce purge.
+  source: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md#Контекст
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 14
+  fr_satisfied: 14
+  sc_checked: 6
+  layout_paths_total: 5
+  layout_paths_closed: 5
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: GateIdentity.expected reads ownership from frozen session_start_identity
+    and ignores mid-session armed_step drift.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: inject_text generates GATE_IDENTITY block in Claude SubagentStart additionalContext
+    prior to child execution.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: assert_fence strict policy raises GateOwnershipMismatchError on mismatched
+    step_id (e.g. s05 vs BUGFIX) exiting 2.
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: SubagentLifecycle.process_item and stream filter prepend inject_text to
+    spawn_agent prompt and record pending thread.
+  remaining_work: ''
+- source_ref: US-005
+  status: satisfied
+  evidence: bind_fence transport_bind policy in SubagentStop overwrites fence session/epic/step
+    with SoT values while validating agent_id.
+  remaining_work: ''
+- source_ref: US-006
+  status: satisfied
+  evidence: Per-field coerce ladder removed from subagent-stop.py in favor of GateIdentity.bind_fence.
+  remaining_work: ''
+- source_ref: US-007
+  status: satisfied
+  evidence: prepare_session atomically freezes session_start_identity and mirrors
+    into spawn-gate gate_identity.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: loop/gate_identity.py implements GateIdentity SoT API with freeze, expected,
+    inject_text, bind_spawn_gate, assert_fence, bind_fence.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: prepare_session atomically binds session_id, freezes session_start_identity,
+    and mirrors into spawn-gate.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: All ownership readers (start, stop, pretool, lifecycle) use GateIdentity.expected
+    / current_gate_identity via SoT.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: Claude SubagentStart injects GATE_IDENTITY block from SoT into additionalContext
+    payload.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: Claude PreToolUse marks in-flight and runs bind_spawn_gate atomically
+    prior to child dispatch.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: Codex spawn_agent prompt rewrite prepends GATE_IDENTITY and binds pending
+    thread before wait.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: Codex SubagentStop transport_bind policy binds session/epic/step from
+    SoT while enforcing agent_id validation.
+  remaining_work: ''
+- source_ref: FR-008
+  status: satisfied
+  evidence: Claude SubagentStop strict policy raises semantic_ownership_mismatch on
+    any session/epic/step discrepancy.
+  remaining_work: ''
+- source_ref: FR-009
+  status: satisfied
+  evidence: Legacy per-field coerce ladder removed from subagent-stop.py and tests
+    refactored to transport_bind.
+  remaining_work: ''
+- source_ref: FR-010
+  status: satisfied
+  evidence: Post-wait SubagentStart invocation for Codex is documented and handled
+    as mark-only without delivery inject.
+  remaining_work: ''
+- source_ref: FR-011
+  status: satisfied
+  evidence: Kind I agent prompts and verification instructions use exact GATE_IDENTITY
+    constants without guessing.
+  remaining_work: ''
+- source_ref: FR-012
+  status: satisfied
+  evidence: DSH runtime boundaries maintained as thin passthrough without introducing
+    additional transport adapters.
+  remaining_work: ''
+- source_ref: FR-013
+  status: satisfied
+  evidence: PromptScope and session_start_payload remain decoupled from GateIdentity
+    SoT without projection bypasses.
+  remaining_work: ''
+- source_ref: FR-014
+  status: satisfied
+  evidence: Wire-complete implementation ensures zero dual-path branches between legacy
+    coerce and SoT bind.
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: GateIdentity.expected returns frozen step when state session_start_identity
+    and armed_step diverge.
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: Claude stale step fence triggers GateOwnershipMismatchError and exit 2
+    NEED_HUMAN.
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: Codex foreign fence step/epic is bound to SoT without ownership failure.
+  remaining_work: ''
+- source_ref: SC-004
+  status: satisfied
+  evidence: Codex spawn_agent prompt contains GATE_IDENTITY header before child process
+    execution.
+  remaining_work: ''
+- source_ref: SC-005
+  status: satisfied
+  evidence: Zero occurrences of per-field coerce ladder in subagent-stop.py.
+  remaining_work: ''
+- source_ref: SC-006
+  status: satisfied
+  evidence: prepare_session guarantees spawn-gate mirror matches frozen SoT session_start_identity.
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: Zero dual-path fallback branches between legacy coerce and SoT bind.
+  remaining_work: ''
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Ownership reads via raw projection.step without freeze overlay are forbidden
+    and absent.
+  remaining_work: ''
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Ownership mismatch fails closed directly without schema-retry counter
+    reset.
+  remaining_work: ''
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Codex post-wait SubagentStart is mark-only and not treated as pre-child
+    delivery inject.
+  remaining_work: ''
+- source_ref: AC-:5
+  status: satisfied
+  evidence: DSH runtime adapter remains untouched without new out-of-scope requirements.
+  remaining_work: ''
+- source_ref: AC-:6
+  status: satisfied
+  evidence: PromptScope does not act as secondary fence ownership validator.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: Constitutional requirements enforced across all lifecycle transitions.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: MUST-1 TDD first followed with targeted unit tests in loop/tests/ preceding
+    production code.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: MUST-2 No silent fallback enforced via fail-closed GateOwnershipMismatchError
+    and zero dual-paths.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: MUST-3 FRONT tests parent-only invariant preserved.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: MUST-4 Lean load adhered to by scoping audit strictly to current iteration
+    shards.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: MUST-5 Fail-closed misconfiguration enforced across strict and transport_bind
+    policies.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: MUST-6 No-guess markers respected in subagent prompts and instructions.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: MUST-7 ONE Handoff per step maintained in activeContext.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: MUST-8 Section 0.11 integration parity maintained across hooks and adapters.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: MUST-9 Phase authority preserved by preventing audit from re-planning
+    or modifying code.
+  remaining_work: ''
+architecture_parity:
+- layout_path: loop/gate_identity.py
+  status: present
+  follow_up: ''
+  evidence: Canonical GateIdentity SoT module with freeze, expected, inject_text,
+    bind_spawn_gate, assert_fence, bind_fence.
+- layout_path: loop/session_finalize.py
+  status: present
+  follow_up: ''
+  evidence: Freezes session_start_identity and delegates expected ownership resolution
+    to GateIdentity.
+- layout_path: harness/hooks/subagent-stop.py
+  status: present
+  follow_up: ''
+  evidence: Enforces strict vs transport_bind fence assertion and binding without
+    per-field coerce ladder.
+- layout_path: harness/hooks/_lib.py
+  status: present
+  follow_up: ''
+  evidence: Routes current_gate_identity and bind_spawn_gate through GateIdentity
+    SoT.
+- layout_path: loop/runtime_adapters/subagent_lifecycle.py
+  status: present
+  follow_up: ''
+  evidence: Delivers GATE_IDENTITY at spawn time and binds pending threads to SoT.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s01-gate-identity-sot-api.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s02-atomic-prepare-and-pretool-bind.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s03-claude-inject-and-strict-stop.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s04-codex-spawn-rewrite-and-bind.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s05-codex-stop-transport-bind-and-coerce-removal.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s06-instruction-surfaces-kind-i.yaml
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-091-gate-identity-sot-consolidation/s07-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-10'
+  plan_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md#replacement--sunset
+  rows:
+  - symbol: harness/hooks/subagent-stop.py per-field Codex coerce if-ladder
+    kind: A
+    command: rg -n "coerce_step_id|coerce_epic_id" harness/hooks/ || true
+    result: pass
+    prod_callers: []
+    notes: 0 occurrences found
+  - symbol: Raw gate_identity(...) reads without overlay on ownership paths
+    kind: A
+    command: rg -n "def current_gate_identity" harness/hooks/_lib.py
+    result: pass
+    prod_callers: []
+    notes: All ownership reads routed through GateIdentity SoT
+  - symbol: subagent-start._gate_session_id duplicate
+    kind: A
+    command: rg -n "def _gate_session_id" harness/hooks/subagent-start.py || true
+    result: pass
+    prod_callers: []
+    notes: 0 occurrences found; helper consolidated
+  - symbol: loop/tests/test_codex_session_ownership_coerce.py old per-field asserts
+    kind: A
+    command: rg -n "def test_" loop/tests/test_codex_session_ownership_coerce.py
+    result: pass
+    prod_callers: []
+    notes: Rewritten to assert SoT transport_bind policy
+  - symbol: entrypoints/deploy
+    kind: B
+    command: echo "Kind B n/a for this epic"
+    result: pass
+    prod_callers: []
+    notes: Greenfield n/a for deploy
+  - symbol: dual-path fallback coerce ladder retained alongside bind
+    kind: C
+    command: rg -n "fallback.*coerce" harness/hooks/subagent-stop.py || true
+    result: pass
+    prod_callers: []
+    notes: 0 occurrences found; single transport_bind path
+  - symbol: Silent accept LLM fence IDs when SoT present (Claude)
+    kind: C
+    command: rg -n "assert_fence" harness/hooks/subagent-stop.py
+    result: pass
+    prod_callers: []
+    notes: Strict policy rejects mismatched fence IDs
+  - symbol: Ownership from live projection after finish without freeze
+    kind: C
+    command: rg -n "expected" loop/gate_identity.py
+    result: pass
+    prod_callers: []
+    notes: expected(state) prioritizes frozen session_start_identity
+  - symbol: Agent prompts guess step_id instructions
+    kind: I
+    command: rg -i -n "guess.*step_id|угадай.*step_id" harness/agents/ || true
+    result: pass
+    prod_callers: []
+    notes: 0 occurrences found; prompts use GATE_IDENTITY
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-10'
+  rows:
+  - boundary: gate-identity-sot-expected
+    enforce_evidence: GateIdentity.expected strictly prioritizes frozen session_start_identity
+      over armed_step drift
+    result: pass
+    notes: ''
+  - boundary: claude-strict-ownership
+    enforce_evidence: subagent-stop.py calls assert_fence(strict) raising GateOwnershipMismatchError
+      on mismatched step_id
+    result: pass
+    notes: ''
+  - boundary: codex-transport-bind
+    enforce_evidence: subagent-stop.py calls bind_fence(transport_bind) binding fence
+      to SoT while verifying agent_id
+    result: pass
+    notes: ''
+  - boundary: codex-spawn-delivery
+    enforce_evidence: SubagentLifecycle prepends inject_text(SoT) to spawn_agent prompt
+      and binds pending thread before wait
+    result: pass
+    notes: ''
+blocked_reason: ''

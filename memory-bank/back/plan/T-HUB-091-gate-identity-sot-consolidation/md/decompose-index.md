@@ -107,6 +107,5 @@
 | **s04** | [s04-codex-spawn-rewrite-and-bind.yaml](../yaml/steps/s04-codex-spawn-rewrite-and-bind.yaml) | [s04-codex-spawn-rewrite-and-bind.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s04-codex-spawn-rewrite-and-bind.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s05** | [s05-codex-stop-transport-bind-and-coerce-removal.yaml](../yaml/steps/s05-codex-stop-transport-bind-and-coerce-removal.yaml) | [s05-codex-stop-transport-bind-and-coerce-removal.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s05-codex-stop-transport-bind-and-coerce-removal.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s06** | [s06-instruction-surfaces-kind-i.yaml](../yaml/steps/s06-instruction-surfaces-kind-i.yaml) | [s06-instruction-surfaces-kind-i.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s06-instruction-surfaces-kind-i.yaml) | no | yes | BACK IMPLEMENT | completed |
-| **s07** | [s07-legacy-fallback-purge.yaml](../yaml/steps/s07-legacy-fallback-purge.yaml) | [s07-legacy-fallback-purge.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s07-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | pending |
-
+| **s07** | [s07-legacy-fallback-purge.yaml](../yaml/steps/s07-legacy-fallback-purge.yaml) | [s07-legacy-fallback-purge.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s07-legacy-fallback-purge.yaml) | no | yes | BACK IMPLEMENT | completed |
 **Следующий режим после завершения дерева:** BACK ANALYZE. `ANALYZE deferred` не используется.

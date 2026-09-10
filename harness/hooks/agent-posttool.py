@@ -63,7 +63,7 @@ def main() -> None:
         try:
             from context_ledger_adapters import normalize_write_payload
             from touch_ledger import record_touch
-            from _lib import is_epic_loop_env, workflow_state_active, load_state
+            from _lib import is_epic_loop_env, workflow_state_active
 
             payload = normalize_write_payload(data, provider="claude", default_cwd=cwd)
             st = load_state(session_id, cwd) if session_id else {}

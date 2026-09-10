@@ -95,16 +95,10 @@ _HD = r"(?im)^\s*#{0,6}\s*"
 _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
     "reviewer": [
         ("Suite results", re.compile(_HD + r"Suite results\b")),
-        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
-        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
-        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify-qa": [
         ("Suite results", re.compile(_HD + r"Suite results\b")),
-        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
-        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
-        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify": [
@@ -114,19 +108,9 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify-bugfix": [
-        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
-        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
-        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
-        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
-        ("BUGFIX ARTIFACT", re.compile(_HD + r"BUGFIX ARTIFACT\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify-decompose": [
-        ("Requirements coverage", re.compile(_HD + r"Requirements coverage\b")),
-        ("Stages coverage", re.compile(_HD + r"Stages coverage\b")),
-        ("Outcome map", re.compile(_HD + r"Outcome map\b")),
-        ("Replacement cleanup", re.compile(_HD + r"Replacement cleanup\b")),
-        ("PLAN EXCERPT", re.compile(_HD + r"PLAN EXCERPT\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "analyze-verify": [
@@ -576,7 +560,8 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
             "evidence (in_progress) → validate-step → Handoff → "
             "`@verify` ALLOW READ (implement+decompose yaml) → PASS → finalize-step/stop |",
-            "| BACK QA после suite | @reviewer/@verify-qa ОБЯЗАТЕЛЬНО (полный AC matrix; Suite+AC+§0.11/ALLOW ≤40; no fail-fast) |",
+            "| BACK QA после suite | @reviewer/@verify-qa ОБЯЗАТЕЛЬНО "
+            "(Suite+ALLOW+Frozen checklist ≤40; no fail-fast) |",
             "DENY @verify: нет ALLOW READ · ALLOW пуст/дерево · implement/decompose step нет в ALLOW "
             "или path нет на диске · уже PASS · no-VERDICT retry исчерпан.",
             "no-VERDICT exhausted → Handoff `NEED_HUMAN: verify_no_verdict` + stop "
@@ -1802,12 +1787,17 @@ def match_gate_evidence(
     for key in required + ("epic_id", "role", "event_digest"):
         expected = current.get(key)
         observed = evidence.get(key)
-        if expected is not None and observed != expected:
-            if key == "step":
-                return False, "verdict_wrong_step"
-            if key == "phase_epoch":
-                return False, "epoch_mismatch"
-            return False, "verdict_stale"
+        if expected is not None and observed is not None:
+            if key == "role":
+                if str(expected).strip().lower() != str(observed).strip().lower():
+                    return False, "verdict_stale"
+                continue
+            if observed != expected:
+                if key == "step":
+                    return False, "verdict_wrong_step"
+                if key == "phase_epoch":
+                    return False, "epoch_mismatch"
+                return False, "verdict_stale"
     return True, "matched"
 
 
@@ -2580,6 +2570,21 @@ _DECOMPOSE_STEP_RE = re.compile(
     r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
 )
 
+_BUGFIX_ARTIFACT_RE = re.compile(
+    r"(memory-bank/(?:back|front|integration)/bugfix/"
+    r"[^\s`/]+/bugfix-[^\s`]+\.(?:md|ya?ml))"
+)
+
+_DECOMPOSE_INDEX_RE = re.compile(
+    r"(memory-bank/(?:back|front|integration)/plan/"
+    r"[^\s`/]+/yaml/decompose-index\.ya?ml)"
+)
+
+_PLAN_MD_RE = re.compile(
+    r"(memory-bank/(?:back|front|integration)/plan/"
+    r"[^\s`/]+/md/plan\.md)"
+)
+
 
 def implement_steps_in_prompt(prompt: str) -> list[str]:
     """Unique implement step paths mentioned in prompt (ALLOW + body)."""
@@ -2598,6 +2603,40 @@ def decompose_steps_in_prompt(prompt: str) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for m in _DECOMPOSE_STEP_RE.finditer(prompt or ""):
+        p = m.group(1).strip().strip("`").rstrip(",;")
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def bugfix_artifacts_in_prompt(prompt: str) -> list[str]:
+    """Unique bugfix artifact paths mentioned in prompt (ALLOW + body)."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _BUGFIX_ARTIFACT_RE.finditer(prompt or ""):
+        p = m.group(1).strip().strip("`").rstrip(",;")
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def decompose_indexes_in_prompt(prompt: str) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _DECOMPOSE_INDEX_RE.finditer(prompt or ""):
+        p = m.group(1).strip().strip("`").rstrip(",;")
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def plan_mds_in_prompt(prompt: str) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _PLAN_MD_RE.finditer(prompt or ""):
         p = m.group(1).strip().strip("`").rstrip(",;")
         if p and p not in seen:
             seen.add(p)
@@ -2637,6 +2676,59 @@ def verify_step_path_violations(cwd: str | Path, prompt: str) -> list[str]:
         reasons.append(
             "decompose_step_missing: decompose step нет на диске — "
             + ", ".join(missing_dec)
+        )
+    return reasons
+
+
+def verify_bugfix_path_violations(cwd: str | Path, prompt: str) -> list[str]:
+    """DENY: bugfix artifact path must be in ALLOW and on disk."""
+    arts = bugfix_artifacts_in_prompt(prompt)
+    if not arts:
+        return [
+            "missing_bugfix_artifact: в prompt/ALLOW READ нужен путь "
+            "`memory-bank/**/bugfix/**/bugfix-*.md` "
+            "(checklist SoT = bugfix artifact)"
+        ]
+    root = Path(cwd) if cwd else None
+    if root is None:
+        return []
+    missing = [rel for rel in arts if not (root / rel).is_file()]
+    if missing:
+        return [
+            "bugfix_artifact_missing: bugfix artifact нет на диске — "
+            + ", ".join(missing)
+        ]
+    return []
+
+
+def verify_decompose_path_violations(cwd: str | Path, prompt: str) -> list[str]:
+    """DENY: plan.md + yaml/decompose-index.yaml must be in ALLOW and on disk."""
+    reasons: list[str] = []
+    indexes = decompose_indexes_in_prompt(prompt)
+    plans = plan_mds_in_prompt(prompt)
+    if not indexes:
+        reasons.append(
+            "decompose_index_not_in_allow: в prompt/ALLOW READ нужен путь "
+            "`memory-bank/**/plan/.../yaml/decompose-index.yaml`"
+        )
+    if not plans:
+        reasons.append(
+            "plan_md_not_in_allow: в prompt/ALLOW READ нужен путь "
+            "`memory-bank/**/plan/.../md/plan.md`"
+        )
+    root = Path(cwd) if cwd else None
+    if root is None:
+        return reasons
+    missing_idx = [rel for rel in indexes if not (root / rel).is_file()]
+    if missing_idx:
+        reasons.append(
+            "decompose_index_missing: decompose-index нет на диске — "
+            + ", ".join(missing_idx)
+        )
+    missing_plan = [rel for rel in plans if not (root / rel).is_file()]
+    if missing_plan:
+        reasons.append(
+            "plan_md_missing: plan.md нет на диске — " + ", ".join(missing_plan)
         )
     return reasons
 

@@ -28,6 +28,8 @@ from _lib import (
     read_stdin,
     repair_blocker_violations,
     resolved_spawn_model,
+    verify_bugfix_path_violations,
+    verify_decompose_path_violations,
     verify_step_path_violations,
     _discover_registry,
 )
@@ -119,12 +121,27 @@ def validate_spawn_input(
                     "Нужны: ALLOW READ (implement yaml + decompose yaml + code). "
                     "Checklist SoT = decompose shard — AC+/AC−/§0.11/VERIFY в prompt не обязательны."
                 )
+            elif norm == "verify-bugfix":
+                hint = (
+                    "Нужны: ALLOW READ с bugfix artifact "
+                    "`memory-bank/**/bugfix/**/bugfix-*.md`."
+                )
+            elif norm == "verify-decompose":
+                hint = (
+                    "Нужны: ALLOW READ с plan.md + yaml/decompose-index.yaml "
+                    "(coverage SoT = shards, не packed COVERAGE)."
+                )
+            elif norm in {"verify-qa", "reviewer"}:
+                hint = (
+                    "Нужны: Suite results + ALLOW READ "
+                    "(AC matrix SoT = Frozen QA checklist)."
+                )
             else:
                 hint = (
                     "Добавь заголовки с новой строки "
                     "(ASCII `AC-` ок; Unicode `AC−` ок; `# AC+` ок). Нужны: "
                     + (needed_str if needed_str else (
-                        "Suite results / AC+ / AC- / 0.11 / ALLOW READ"
+                        "Suite results / ALLOW READ"
                         if norm == "reviewer"
                         else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
                     ))
@@ -138,8 +155,13 @@ def validate_spawn_input(
                     "ALLOW READ пуст", "ALLOW READ содержит деревья/каталоги: memory-bank/"
                 )
             deny_reasons.append(violation)
-        if norm in {"verify", "verify-implement"} and project_dir and not missing:
-            deny_reasons.extend(verify_step_path_violations(project_dir, prompt))
+        if project_dir and not missing:
+            if norm in {"verify", "verify-implement"}:
+                deny_reasons.extend(verify_step_path_violations(project_dir, prompt))
+            elif norm == "verify-bugfix":
+                deny_reasons.extend(verify_bugfix_path_violations(project_dir, prompt))
+            elif norm == "verify-decompose":
+                deny_reasons.extend(verify_decompose_path_violations(project_dir, prompt))
         if norm in {"verify-qa", "reviewer"}:
             try:
                 from loop.qa_checklist_freeze import spawn_freeze_violations

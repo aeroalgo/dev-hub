@@ -1,0 +1,84 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-091
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+epic_id: T-HUB-091-gate-identity-sot-consolidation
+date: 2026-09-10
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: 67efa3210deb531ebf993c9ef3b2dca778aa323f0a845942b50d2c642178c67b
+verify_scope: full
+
+scope:
+  - "task: T-HUB-091"
+  - "epic: T-HUB-091-gate-identity-sot-consolidation"
+  - "steps: s01–s07"
+  - "files: loop/gate_identity.py, loop/runtime_adapters/subagent_lifecycle.py, harness/hooks/subagent-start.py, harness/hooks/subagent-stop.py, harness/hooks/prepare_session.py, harness/hooks/_lib.py, harness/hooks/pretooluse-guard.py"
+
+ac_plus:
+  - "GateIdentity SoT API — единственный ownership reader для Claude/Codex gate fences."
+  - "Claude: inject pre-child + strict ownership."
+  - "Codex: spawn-time SoT delivery + transport_bind на stop."
+  - "Per-field coerce удалён; тесты переписаны."
+  - "prepare атомарно freeze+mirror; Claude spawn mark+bind."
+  - "Kind I prompts согласованы."
+  - "DSH не в scope и не «случайно» расширен требованиями."
+  - "SC-001: Ownership step при freeze≠armed всегда freeze"
+  - "SC-002: Claude stale step → ownership NEED_HUMAN"
+  - "SC-003: Codex wrong fence IDs → no ownership NEED_HUMAN; IDs=SoT"
+  - "SC-004: Codex spawn prompt contains GATE_IDENTITY before child"
+  - "SC-005: Нет per-field coerce ladder в stop"
+  - "SC-006: prepare leaves spawn-gate mirror == SoT"
+
+ac_minus:
+  - "Нет dual path coerce+SoT bind."
+  - "Нет ownership от сырого `projection.step` в обход freeze."
+  - "Нет schema-retry на ownership."
+  - "Нет «Codex post-wait SubagentStart = inject»."
+  - "Нет нового DSH adapter scope."
+  - "Нет второго SoT в PromptScope/`resolve_session_identity` как fence ownership."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+
+issues:
+  - "suite_red: 12 test failures across loop/tests and harness/hooks/tests"
+
+blockers:
+  - "suite_red: loop/tests/test_context_loop.py::test_prepare_does_not_promote_analyze_from_artifact_without_receipt failed"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_posttool_fail_then_pass_mirrors_epic_last_verify failed"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_posttool_mirror_error_logs_stderr_and_saves_state failed"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set failed"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds failed"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only failed"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync failed"
+  - "suite_red: harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_arm failed"
+  - "suite_red: harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_armed_step failed"
+  - "suite_red: harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_infers_decompose_from_active_context_when_state_missing failed"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent failed"
+  - "suite_red: loop/tests/test_finish_receipt_integrity.py::test_finish_succeeds_with_valid_current_verifier_receipt failed"
+
+fix_plan:
+  - "BACK BUGFIX: fix suite failure loop/tests/test_context_loop.py::test_prepare_does_not_promote_analyze_from_artifact_without_receipt"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_agent_hooks.py::test_posttool_fail_then_pass_mirrors_epic_last_verify"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_agent_hooks.py::test_posttool_mirror_error_logs_stderr_and_saves_state"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync"
+  - "BACK BUGFIX: fix suite failure harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_arm"
+  - "BACK BUGFIX: fix suite failure harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_armed_step"
+  - "BACK BUGFIX: fix suite failure harness/hooks/tests/test_mb_finish_decompose.py::test_finish_decompose_infers_decompose_from_active_context_when_state_missing"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent"
+  - "BACK BUGFIX: fix suite failure loop/tests/test_finish_receipt_integrity.py::test_finish_succeeds_with_valid_current_verifier_receipt"
+
+limitations:
+  - "verify-qa skipped due to red suite in accordance with loop-qa-outcome/v1 classifier"
+
+suite:
+  - "bin/pytest -q --tb=line"

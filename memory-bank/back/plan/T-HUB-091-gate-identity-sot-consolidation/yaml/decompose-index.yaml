@@ -41,4 +41,4 @@ steps:
   file: s07-legacy-fallback-purge.yaml
   title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

@@ -59,23 +59,29 @@ def test_tm003_alias_normalize_reviewer() -> None:
 
 
 def test_tm004_contract_verify_bugfix_sections() -> None:
-    prompt_no_art = "Verify bugfix for issue without artifact AC+ AC- §0.11 VERIFY ALLOW READ: foo.py"
+    prompt_no_art = "Verify bugfix for issue without artifact\nALLOW READ:\nfoo.py\n"
     missing = _lib.missing_contract_sections("verify-bugfix", prompt_no_art)
-    assert "BUGFIX ARTIFACT" in missing
+    assert missing == []
+    assert any(
+        "missing_bugfix_artifact" in r
+        for r in _lib.verify_bugfix_path_violations(".", prompt_no_art)
+    )
 
 
 def test_tm005_contract_verify_decompose() -> None:
-    prompt_no_cov = "Verify decompose stage s01 s02 s03 s04 s05"
+    prompt_no_cov = "Verify decompose stage s01 s02 s03 s04 s05\nALLOW READ\nfoo.py\n"
     missing = _lib.missing_contract_sections("verify-decompose", prompt_no_cov)
-    assert "Requirements coverage" in missing or "Stages coverage" in missing
-    assert "PLAN EXCERPT" in missing
+    assert missing == []
+    viol = _lib.verify_decompose_path_violations(".", prompt_no_cov)
+    assert any("decompose_index_not_in_allow" in r for r in viol)
+    assert any("plan_md_not_in_allow" in r for r in viol)
 
 
 def test_tm005b_allow_read_stops_before_decompose_sections() -> None:
     prompt = (
         "## ALLOW READ\n"
         "- memory-bank/back/plan/E/md/plan.md\n"
-        "- memory-bank/back/plan/E/md/decompose-index.md\n"
+        "- memory-bank/back/plan/E/yaml/decompose-index.yaml\n"
         "## PLAN EXCERPT\n"
         "mentions memory-bank/back/plan/E/yaml/steps/s07.yaml "
         "and memory-bank/back/plan/E/yaml/steps/s08.yaml\n"
@@ -88,7 +94,7 @@ def test_tm005b_allow_read_stops_before_decompose_sections() -> None:
     files = _lib.allow_read_files(prompt)
     assert files == [
         "memory-bank/back/plan/E/md/plan.md",
-        "memory-bank/back/plan/E/md/decompose-index.md",
+        "memory-bank/back/plan/E/yaml/decompose-index.yaml",
     ]
     assert _lib.allow_read_violations(prompt) == []
     assert _lib.missing_contract_sections("verify-decompose", prompt) == []

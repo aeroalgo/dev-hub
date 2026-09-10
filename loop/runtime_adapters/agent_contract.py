@@ -55,18 +55,23 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
         "FORBIDDEN: git status / whole-repo dirty как FAIL; discard foreign dirty."
     ),
     "verify-bugfix": (
-        "CONTRACT verify-bugfix: нужен AC+ · AC− · §0.11 · VERIFY · BUGFIX ARTIFACT · ALLOW. "
+        "CONTRACT verify-bugfix: нужен ALLOW READ с bugfix artifact "
+        "`memory-bank/**/bugfix/**/bugfix-*.md`. "
+        "Checklist SoT = bugfix artifact (Changes/Verification); "
+        "parent-packed AC+/VERIFY не SoT. "
         + _GATE_JSON_HARD
         + " Не edit. Без isolation=worktree."
     ),
     "verify-qa": (
-        "CONTRACT verify-qa: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
+        "CONTRACT verify-qa: нужен Suite results · ALLOW READ · Frozen QA checklist. "
+        "AC matrix SoT = freeze checklist_sha256; parent-packed AC вне freeze не SoT. "
         + _GATE_JSON_HARD
         + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
     ),
     "verify-decompose": (
-        "CONTRACT verify-decompose: нужен Requirements coverage · Stages coverage · "
-        "Outcome map · Replacement cleanup · PLAN EXCERPT · ALLOW. "
+        "CONTRACT verify-decompose: нужен ALLOW READ с plan.md + "
+        "yaml/decompose-index.yaml (+ shards). "
+        "Coverage SoT = ALLOW artifacts; packed COVERAGE/PLAN EXCERPT не SoT. "
         + _GATE_JSON_HARD
         + " FORBIDDEN pytest. Без isolation=worktree."
     ),
@@ -91,7 +96,8 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
         + " Не edit. Без isolation=worktree."
     ),
     "reviewer": (
-        "CONTRACT reviewer: нужен Suite results · AC+ · AC− · §0.11 · ALLOW. "
+        "CONTRACT reviewer: нужен Suite results · ALLOW READ · Frozen QA checklist. "
+        "AC matrix SoT = freeze; parent-packed AC вне freeze не SoT. "
         + _GATE_JSON_HARD
         + " Не pytest. Не Plan Mode / plan-файлы. Без isolation=worktree."
     ),
