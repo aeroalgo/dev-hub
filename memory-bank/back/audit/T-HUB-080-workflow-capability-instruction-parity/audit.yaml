@@ -1,0 +1,644 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Привести активные инструкции, правила режимов, gates, runtime skills,
+    entrypoints, шаблоны и операторскую документацию к строгому ветвлению между dev-hub
+    self-tests и managed capability_checks, устранив неоднозначные прямые runner-рецепты
+    и обучив проверяющие тесты детерминированному обнаружению поверхностей.
+  source: plan.md#Goal
+summary:
+  total_steps: 5
+  implemented: 5
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 10
+  fr_satisfied: 10
+  sc_checked: 8
+  layout_paths_total: 37
+  layout_paths_closed: 37
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: FR-001
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py (get_active_corpus_files
+    discovers all non-archive workflow-*.mdc, _lean, core, skills, entrypoint source,
+    and templates via glob)
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: harness/cursor/rules/**, harness/claude/** (all direct runner recipes
+    qualified with explicit dev-hub self-test condition or replaced with managed capability_checks
+    and typed execution evidence)
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/ (workflow-implement, workflow-task,
+    workflow-bugfix, workflow-qa, mainrule-core, and _lean gates distinguish hub targeted/reproduce/full
+    pytest from managed capability checks)
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/ (workflow-implement, workflow-qa,
+    mainrule-core, _lean gates distinguish hub pytest HTTP tests from managed capability
+    checks; UI browser execution remains parent-only)
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: harness/cursor/rules/front_developer/mainrule-core.mdc (front runner carries
+    hub-only condition and managed capability references while preserving parent-only
+    Vitest/Playwright authority)
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: harness/skills/role-command/SKILL.md and harness/claude/skills/role-command/SKILL.md
+    (brought to full semantic and policy parity for hub self-tests vs managed capability
+    checks)
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: harness/instructions/main.md (describes runtime entrypoint selection and
+    Root classification & Testing distinguishing hub self-tests and managed capability
+    checks; synced to AGENTS.md, CLAUDE.md, DSH.md)
+  remaining_work: ''
+- source_ref: FR-008
+  status: satisfied
+  evidence: harness/cursor/templates/ (plan.md, decompose/epic-step.yaml, legacy-purge-step.yaml,
+    implement/epic-step.yaml, qa/epic-step.yaml, integration-plan.md, refactor/epic-step.yaml,
+    security/epic-step.yaml, finish-doc-router.md qualify runner examples)
+  remaining_work: ''
+- source_ref: FR-009
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py (test_corpus_inventory,
+    test_synthetic_fixtures, test_dynamic_discovery_fails_on_injected_ambiguous_runner
+    provide deterministic discovery and exact line diagnostics)
+  remaining_work: ''
+- source_ref: FR-010
+  status: satisfied
+  evidence: harness/hooks/tests/test_epic_yaml_capability_evidence.py, test_tests_format_managed_capabilities.py
+    (076 capability vocabulary, executor, and evidence schema strictly preserved without
+    regression)
+  remaining_work: ''
+- source_ref: US-001
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/ and integration_developer/ (all action
+    sentences explicitly separate hub-only execution from managed capability declarations)
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: harness/cursor/rules/**/workflow-qa.mdc, _lean/qa.mdc (full/targeted QA
+    checks lead to capability evidence for managed roots and preserve hub full/targeted
+    exception)
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: harness/skills/role-command/SKILL.md, harness/claude/skills/role-command/SKILL.md,
+    AGENTS.md, CLAUDE.md, DSH.md (runtime-sync verified with zero semantic drift)
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: harness/cursor/templates/ (all scaffold templates qualify test examples
+    as hub-only or managed capability_checks with evidence)
+  remaining_work: ''
+- source_ref: SC-001
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py::test_corpus_inventory
+    (zero unqualified managed runner action lines in active workflow corpus)
+  remaining_work: ''
+- source_ref: SC-002
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py::test_corpus_inventory
+    (100% of BACK/INTEG mode files contain explicit hub exception and managed capability
+    guidance)
+  remaining_work: ''
+- source_ref: SC-003
+  status: satisfied
+  evidence: harness/skills/role-command/SKILL.md, harness/claude/skills/role-command/SKILL.md
+    (both role-command skill variants carry equivalent hub/managed markers and no
+    stale legacy fallback)
+  remaining_work: ''
+- source_ref: SC-004
+  status: satisfied
+  evidence: harness/cursor/templates/ (all executable templates showing test commands
+    identify hub-only scope; managed examples demonstrate capability checks)
+  remaining_work: ''
+- source_ref: SC-005
+  status: satisfied
+  evidence: harness/hooks/tests/test_epic_yaml_capability_evidence.py, test_tests_format_managed_capabilities.py
+    (hub test fixtures accepted, managed tests-only proof rejected)
+  remaining_work: ''
+- source_ref: SC-006
+  status: satisfied
+  evidence: python3 -m loop.cli.runtime_sync --check (generated runtime entrypoint
+    destinations AGENTS.md, CLAUDE.md, DSH.md contain branch policy with zero drift)
+  remaining_work: ''
+- source_ref: SC-007
+  status: satisfied
+  evidence: harness/cursor/rules/front-tests-parent-only.mdc, harness/cursor/rules/front_developer/mainrule-core.mdc
+    (FRONT parent-only rule present and no test.e2e capability introduced)
+  remaining_work: ''
+- source_ref: SC-008
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py (all 14 inventory
+    and regression tests pass green from repository root)
+  remaining_work: ''
+- source_ref: AC-:1
+  status: satisfied
+  evidence: All active managed-capable workflows require explicit hub-only markers
+    for pytest; verified by test_corpus_inventory
+  remaining_work: ''
+- source_ref: AC-:2
+  status: satisfied
+  evidence: No managed branch uses generic pytest, cargo, npm, or raw shell strings
+    as proof; capability_checks with typed evidence enforced
+  remaining_work: ''
+- source_ref: AC-:3
+  status: satisfied
+  evidence: Semantic classifier in test_stack_profile_instruction_inventory.py is
+    context-aware and preserves negative assertions and hub exceptions
+  remaining_work: ''
+- source_ref: AC-:4
+  status: satisfied
+  evidence: Corpus discovery uses glob across all active workflow, lean, core, skill,
+    entrypoint, template, and operator doc surfaces
+  remaining_work: ''
+- source_ref: AC-:5
+  status: satisfied
+  evidence: AGENTS.md, CLAUDE.md, and DSH.md generated from harness/instructions/main.md
+    and verified via runtime_sync --check
+  remaining_work: ''
+- source_ref: AC-:6
+  status: satisfied
+  evidence: No test.e2e, browser capability, arbitrary command, or executor modification
+    introduced into the epic
+  remaining_work: ''
+- source_ref: AC-:7
+  status: satisfied
+  evidence: Obsolete 7-file test replaced and test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+    deleted without restoring generic managed authority
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: memory-bank/constitution.md MUST invariants verified across instruction
+    rewrites and inventory tests
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: s01 implemented failing red tests before instruction rewrites (s01-s05
+    all TDD green)
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: fail-closed instruction classifier with zero tolerance for unqualified
+    runner authority in managed projects
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: subagent execution policies and front parent-only testing constraints
+    strictly preserved
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: memory-bank load_now and token economy conventions maintained across all
+    epic shards
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: unqualified runner commands raise inventory test assertion failure and
+    halt convergence
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: explicit typed capability checks and execution evidence used uniformly
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: single Handoff block written per step in activeContext.md across s01-s05
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: integration parity maintained across harness, claude, cursor rules, and
+    runtime entrypoints
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: phase authority strictly enforced across BACK, INTEG, and FRONT workflows
+  remaining_work: ''
+- source_ref: layout:AGENTS.md
+  status: satisfied
+  evidence: AGENTS.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:CLAUDE.md
+  status: satisfied
+  evidence: CLAUDE.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/claude/rules/context-economy-cc.md
+  status: satisfied
+  evidence: harness/claude/rules/context-economy-cc.md (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/claude/skills/role-command/SKILL.md
+  status: satisfied
+  evidence: harness/claude/skills/role-command/SKILL.md (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc (present
+    and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc (present
+    and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc (present
+    and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/mainrule-core.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/workflow-bugfix.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/workflow-bugfix.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/workflow-implement.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/workflow-implement.mdc (present and
+    branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/workflow-qa.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/workflow-qa.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/back_developer/workflow-task.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/back_developer/workflow-task.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/front_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/front_developer/mainrule-core.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/mainrule-core.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/mainrule-core.mdc (present
+    and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/workflow-implement.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/workflow-implement.mdc (present
+    and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/integration_developer/workflow-qa.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/integration_developer/workflow-qa.mdc (present and
+    branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/rules/shared/test-timeout.mdc
+  status: satisfied
+  evidence: harness/cursor/rules/shared/test-timeout.mdc (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/decompose/epic-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/decompose/epic-step.yaml (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/decompose/legacy-purge-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/decompose/legacy-purge-step.yaml (present and
+    branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/finish-doc-router.md
+  status: satisfied
+  evidence: harness/cursor/templates/finish-doc-router.md (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/implement/epic-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/implement/epic-step.yaml (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/integration-plan.md
+  status: satisfied
+  evidence: harness/cursor/templates/integration-plan.md (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/plan.md
+  status: satisfied
+  evidence: harness/cursor/templates/plan.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/qa/epic-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/qa/epic-step.yaml (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/refactor/epic-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/refactor/epic-step.yaml (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/cursor/templates/security/epic-step.yaml
+  status: satisfied
+  evidence: harness/cursor/templates/security/epic-step.yaml (present and branch-qualified
+    in repository)
+  remaining_work: ''
+- source_ref: layout:harness/instructions/main.md
+  status: satisfied
+  evidence: harness/instructions/main.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/manifest.yaml
+  status: satisfied
+  evidence: harness/manifest.yaml (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:harness/skills/role-command/SKILL.md
+  status: satisfied
+  evidence: harness/skills/role-command/SKILL.md (present and branch-qualified in
+    repository)
+  remaining_work: ''
+- source_ref: layout:loop/README.md
+  status: satisfied
+  evidence: loop/README.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:loop/WORKFLOW.md
+  status: satisfied
+  evidence: loop/WORKFLOW.md (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:loop/runtime_materializers/sync.py
+  status: satisfied
+  evidence: loop/runtime_materializers/sync.py (present and branch-qualified in repository)
+  remaining_work: ''
+- source_ref: layout:loop/tests/test_stack_profile_instruction_inventory.py
+  status: satisfied
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py (present and branch-qualified
+    in repository)
+  remaining_work: ''
+architecture_parity:
+- layout_path: AGENTS.md
+  status: present
+  evidence: AGENTS.md is present on disk and conforms to branch-qualified instruction
+    contract
+- layout_path: CLAUDE.md
+  status: present
+  evidence: CLAUDE.md is present on disk and conforms to branch-qualified instruction
+    contract
+- layout_path: harness/claude/rules/context-economy-cc.md
+  status: present
+  evidence: harness/claude/rules/context-economy-cc.md is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/claude/skills/role-command/SKILL.md
+  status: present
+  evidence: harness/claude/skills/role-command/SKILL.md is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc is
+    present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    is present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc is present
+    on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc is
+    present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/mainrule-core.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/mainrule-core.mdc is present on disk
+    and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/workflow-bugfix.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/workflow-bugfix.mdc is present on
+    disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/workflow-implement.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/workflow-implement.mdc is present
+    on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/workflow-qa.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/workflow-qa.mdc is present on disk
+    and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/back_developer/workflow-task.mdc
+  status: present
+  evidence: harness/cursor/rules/back_developer/workflow-task.mdc is present on disk
+    and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/front_developer/mainrule-core.mdc
+  status: present
+  evidence: harness/cursor/rules/front_developer/mainrule-core.mdc is present on disk
+    and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    is present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    is present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    is present on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/mainrule-core.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/mainrule-core.mdc is present
+    on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/workflow-implement.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/workflow-implement.mdc is present
+    on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/integration_developer/workflow-qa.mdc
+  status: present
+  evidence: harness/cursor/rules/integration_developer/workflow-qa.mdc is present
+    on disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/rules/shared/test-timeout.mdc
+  status: present
+  evidence: harness/cursor/rules/shared/test-timeout.mdc is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/decompose/epic-step.yaml
+  status: present
+  evidence: harness/cursor/templates/decompose/epic-step.yaml is present on disk and
+    conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/decompose/legacy-purge-step.yaml
+  status: present
+  evidence: harness/cursor/templates/decompose/legacy-purge-step.yaml is present on
+    disk and conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/finish-doc-router.md
+  status: present
+  evidence: harness/cursor/templates/finish-doc-router.md is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/implement/epic-step.yaml
+  status: present
+  evidence: harness/cursor/templates/implement/epic-step.yaml is present on disk and
+    conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/integration-plan.md
+  status: present
+  evidence: harness/cursor/templates/integration-plan.md is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/plan.md
+  status: present
+  evidence: harness/cursor/templates/plan.md is present on disk and conforms to branch-qualified
+    instruction contract
+- layout_path: harness/cursor/templates/qa/epic-step.yaml
+  status: present
+  evidence: harness/cursor/templates/qa/epic-step.yaml is present on disk and conforms
+    to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/refactor/epic-step.yaml
+  status: present
+  evidence: harness/cursor/templates/refactor/epic-step.yaml is present on disk and
+    conforms to branch-qualified instruction contract
+- layout_path: harness/cursor/templates/security/epic-step.yaml
+  status: present
+  evidence: harness/cursor/templates/security/epic-step.yaml is present on disk and
+    conforms to branch-qualified instruction contract
+- layout_path: harness/instructions/main.md
+  status: present
+  evidence: harness/instructions/main.md is present on disk and conforms to branch-qualified
+    instruction contract
+- layout_path: harness/manifest.yaml
+  status: present
+  evidence: harness/manifest.yaml is present on disk and conforms to branch-qualified
+    instruction contract
+- layout_path: harness/skills/role-command/SKILL.md
+  status: present
+  evidence: harness/skills/role-command/SKILL.md is present on disk and conforms to
+    branch-qualified instruction contract
+- layout_path: loop/README.md
+  status: present
+  evidence: loop/README.md is present on disk and conforms to branch-qualified instruction
+    contract
+- layout_path: loop/WORKFLOW.md
+  status: present
+  evidence: loop/WORKFLOW.md is present on disk and conforms to branch-qualified instruction
+    contract
+- layout_path: loop/runtime_materializers/sync.py
+  status: present
+  evidence: loop/runtime_materializers/sync.py is present on disk and conforms to
+    branch-qualified instruction contract
+- layout_path: loop/tests/test_stack_profile_instruction_inventory.py
+  status: present
+  evidence: loop/tests/test_stack_profile_instruction_inventory.py is present on disk
+    and conforms to branch-qualified instruction contract
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-080-workflow-capability-instruction-parity/s01-corpus-inventory-contract.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-080-workflow-capability-instruction-parity/s02-back-workflow-branch-rewrite.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-080-workflow-capability-instruction-parity/s03-integ-front-shared-branch-rewrite.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-080-workflow-capability-instruction-parity/s04-runtime-skill-entrypoint-template-parity.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-080-workflow-capability-instruction-parity/s05-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-10'
+  plan_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md#replacement--sunset
+  rows:
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_has_no_generic_managed_test_runner
+    kind: A
+    command: .venv/bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: []
+    notes: Replaced by corpus discovery and action-context semantic inventory test_corpus_inventory.
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_retains_explicit_hub_exception
+    kind: A
+    command: .venv/bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+    result: pass
+    prod_callers: []
+    notes: Replaced by test_corpus_inventory checking all discovered active files.
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+    kind: A
+    command: rg -n 'test_sunset_a_b_c_i_scans_have_no_live_legacy_authority' loop/tests
+    result: pass
+    prod_callers: []
+    notes: Obsolete partial symbol check deleted in s05.
+  - symbol: unqualified pytest / runner action sentences across active workflows
+    kind: I
+    command: .venv/bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+      -k test_corpus_inventory
+    result: pass
+    prod_callers: []
+    notes: All active workflows, lean gates, skills, entrypoint source, templates
+      and operator docs rewritten with explicit hub/managed branches.
+  - symbol: stale entrypoint and skill runner authority without root classification
+    kind: B
+    command: python3 -m loop.cli.runtime_sync --check
+    result: pass
+    prod_callers: []
+    notes: Runtime entrypoints AGENTS.md, CLAUDE.md, DSH.md synchronized with harness/instructions/main.md
+      and role skills at parity.
+  - symbol: unqualified fallback to pytest in managed projects
+    kind: C
+    command: .venv/bin/pytest harness/hooks/tests/test_tests_format_managed_capabilities.py
+      harness/hooks/tests/test_epic_yaml_capability_evidence.py
+    result: pass
+    prod_callers: []
+    notes: Managed capability execution contract strictly preserved with no fallback
+      to raw pytest.
+  legacy_surfaces_remaining: []
+  fallback_remaining: []
+  instruction_remaining: []
+  purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-10'
+  rows:
+  - boundary: instruction-inventory
+    enforce_evidence: loop/tests/test_stack_profile_instruction_inventory.py enforces
+      zero unqualified action lines across active corpus
+    result: pass
+    notes: ''
+  - boundary: runtime-sync
+    enforce_evidence: python3 -m loop.cli.runtime_sync --check enforces zero drift
+      between harness/instructions/main.md and AGENTS.md/CLAUDE.md/DSH.md
+    result: pass
+    notes: ''
+  - boundary: capability-evidence-validator
+    enforce_evidence: harness/hooks/tests/test_epic_yaml_capability_evidence.py enforces
+      managed capability declarations with typed execution evidence
+    result: pass
+    notes: ''
+blocked_reason: ''
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true

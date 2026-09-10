@@ -536,3 +536,393 @@ def test_mirror_codex_collab_verdicts_verify_qa_fail(tmp_path: Path) -> None:
     assert state.get("reviewer_verdict") == "FAIL" or state.get(
         "last_verify_verdict"
     ) == "FAIL"
+
+
+def _collab_pair(
+    *,
+    spawn_id: str,
+    wait_id: str,
+    thread_id: str,
+    agent_type: str,
+    verdict: str,
+    session_id: str,
+    epic_id: str = "T-HUB-080",
+    step_id: str = "BUGFIX",
+) -> list[str]:
+    fence = (
+        "```json\n"
+        "{"
+        f'"schema":"loop-gate-verdict/v1",'
+        f'"agent_id":"{agent_type}",'
+        f'"verdict":"{verdict}",'
+        f'"step_id":"{step_id}",'
+        f'"session_id":"{session_id}",'
+        f'"epic_id":"{epic_id}",'
+        f'"recorded_at":"2026-09-10T12:00:00Z"'
+        "}\n"
+        "```"
+    )
+    return [
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": spawn_id,
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "receiver_thread_ids": [thread_id],
+                    "prompt": f"agent_type={agent_type}\nBACK BUGFIX gate",
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": wait_id,
+                    "type": "collab_tool_call",
+                    "tool": "wait",
+                    "agents_states": {
+                        thread_id: {
+                            "status": "completed",
+                            "message": fence,
+                        }
+                    },
+                },
+            }
+        ),
+    ]
+
+
+def test_last_collab_verdict_events_keeps_final_pass_only() -> None:
+    from loop.codex_collab_verdict import (
+        CollabVerdictEvent,
+        _last_collab_verdict_events,
+    )
+
+    events = [
+        CollabVerdictEvent("verify-bugfix", "FAIL", "fail-1", "item_1"),
+        CollabVerdictEvent("verify-bugfix", "FAIL", "fail-2", "item_2"),
+        CollabVerdictEvent("verify-bugfix", "PASS", "pass-3", "item_3"),
+        CollabVerdictEvent("verify-qa", "FAIL", "qa-fail", "item_4"),
+    ]
+    kept = _last_collab_verdict_events(events)
+    assert [(e.agent_type, e.verdict, e.tool_use_id) for e in kept] == [
+        ("verify-bugfix", "PASS", "item_3"),
+        ("verify-qa", "FAIL", "item_4"),
+    ]
+
+
+def test_mirror_codex_collab_verdicts_last_wins_skips_mid_session_fail(
+    tmp_path: Path,
+) -> None:
+    """End-of-session replay must not re-invoke stop for superseded FAIL→PASS."""
+    _ensure_gate_agents(tmp_path, "verify-bugfix")
+    epic_dir = tmp_path / ".claude" / "runtime" / "epic"
+    epic_dir.mkdir(parents=True, exist_ok=True)
+    session_id = "codex-bugfix-session"
+    (epic_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "loop-state/v2",
+                "active": True,
+                "status": "running",
+                "session_id": session_id,
+                "armed_step": "BUGFIX",
+                "armed_epic": "T-HUB-080",
+                "projection": {
+                    "epic_id": "T-HUB-080",
+                    "role": "BACK",
+                    "phase": "BUGFIX",
+                    "step": "BUGFIX",
+                    "projection_hash": "sha256:test",
+                    "phase_epoch": "sha256:test",
+                    "event_digest": "sha256:test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    lines: list[str] = []
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-1",
+            wait_id="wait-1",
+            thread_id="t1",
+            agent_type="verify-bugfix",
+            verdict="FAIL",
+            session_id=session_id,
+        )
+    )
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-2",
+            wait_id="wait-2",
+            thread_id="t2",
+            agent_type="verify-bugfix",
+            verdict="FAIL",
+            session_id=session_id,
+        )
+    )
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-3",
+            wait_id="wait-3",
+            thread_id="t3",
+            agent_type="verify-bugfix",
+            verdict="PASS",
+            session_id=session_id,
+        )
+    )
+    log_path = tmp_path / "session.log"
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    stop_calls: list[str] = []
+    real_stop = __import__(
+        "loop.codex_collab_verdict", fromlist=["_invoke_subagent_stop"]
+    )._invoke_subagent_stop
+
+    def _tracking_stop(**kwargs):
+        stop_calls.append(str(kwargs.get("verdict") or ""))
+        return real_stop(**kwargs)
+
+    import loop.codex_collab_verdict as mod
+
+    original = mod._invoke_subagent_stop
+    mod._invoke_subagent_stop = _tracking_stop  # type: ignore[assignment]
+    try:
+        results = mirror_codex_collab_verdicts_from_log(
+            tmp_path,
+            log_path,
+            session_id=session_id,
+        )
+    finally:
+        mod._invoke_subagent_stop = original  # type: ignore[assignment]
+
+    assert stop_calls == ["PASS"]
+    assert len(results) == 1
+    assert results[0]["verdict"] == "PASS"
+
+
+def test_mirror_skips_when_live_lifecycle_already_recorded_pass(tmp_path: Path) -> None:
+    """Claude parity: live SubagentStop/Lifecycle SoT — post_session must not replay."""
+    from harness.hooks._lib import save_state
+
+    _ensure_gate_agents(tmp_path, "verify-bugfix")
+    session_id = "codex-live-sot"
+    epic_dir = tmp_path / ".claude" / "runtime" / "epic"
+    epic_dir.mkdir(parents=True, exist_ok=True)
+    (epic_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "loop-state/v2",
+                "active": True,
+                "status": "running",
+                "session_id": session_id,
+                "armed_step": "BUGFIX",
+                "armed_epic": "T-HUB-080",
+                "projection": {
+                    "epic_id": "T-HUB-080",
+                    "role": "BACK",
+                    "phase": "BUGFIX",
+                    "step": "BUGFIX",
+                    "projection_hash": "sha256:test",
+                    "phase_epoch": "sha256:test",
+                    "event_digest": "sha256:test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    save_state(
+        session_id,
+        str(tmp_path),
+        {
+            "verify-bugfix_done": True,
+            "verify-bugfix_verdict": "PASS",
+            "verdict_recorded_agents": [f"{session_id}:verify-bugfix:PASS"],
+        },
+    )
+    lines: list[str] = []
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-fail",
+            wait_id="wait-fail",
+            thread_id="tf",
+            agent_type="verify-bugfix",
+            verdict="FAIL",
+            session_id=session_id,
+        )
+    )
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-pass",
+            wait_id="wait-pass",
+            thread_id="tp",
+            agent_type="verify-bugfix",
+            verdict="PASS",
+            session_id=session_id,
+        )
+    )
+    log_path = tmp_path / "session.log"
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    stop_calls: list[str] = []
+    import loop.codex_collab_verdict as mod
+
+    original = mod._invoke_subagent_stop
+
+    def _tracking_stop(**kwargs):
+        stop_calls.append(str(kwargs.get("verdict") or ""))
+        return 0
+
+    mod._invoke_subagent_stop = _tracking_stop  # type: ignore[assignment]
+    try:
+        results = mirror_codex_collab_verdicts_from_log(
+            tmp_path, log_path, session_id=session_id
+        )
+    finally:
+        mod._invoke_subagent_stop = original  # type: ignore[assignment]
+
+    assert results == []
+    assert stop_calls == []
+
+
+def test_mirror_noop_when_mb_finish_already_committed(tmp_path: Path) -> None:
+    _ensure_gate_agents(tmp_path, "verify-bugfix")
+    session_id = "codex-finished"
+    epic_dir = tmp_path / ".claude" / "runtime" / "epic"
+    epic_dir.mkdir(parents=True, exist_ok=True)
+    (epic_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "loop-state/v2",
+                "active": True,
+                "status": "running",
+                "session_id": session_id,
+                "armed_step": "QA",
+                "phase_run_id": "run-1",
+                "last_finish_tool": {
+                    "name": "mb-finish bugfix",
+                    "phase_run_id": "run-1",
+                },
+                "armed_epic": "T-HUB-080",
+                "projection": {
+                    "epic_id": "T-HUB-080",
+                    "role": "BACK",
+                    "phase": "QA",
+                    "projection_hash": "sha256:test",
+                    "phase_epoch": "sha256:test",
+                    "event_digest": "sha256:test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    log_path = tmp_path / "session.log"
+    log_path.write_text(
+        "\n".join(
+            _collab_pair(
+                spawn_id="spawn-1",
+                wait_id="wait-1",
+                thread_id="t1",
+                agent_type="verify-bugfix",
+                verdict="PASS",
+                session_id=session_id,
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    results = mirror_codex_collab_verdicts_from_log(
+        tmp_path, log_path, session_id=session_id
+    )
+    assert results == []
+
+
+def test_mirror_gap_fills_pass_when_live_only_recorded_fail(tmp_path: Path) -> None:
+    """Stream filter died after FAIL — post_session may promote final PASS once."""
+    from harness.hooks._lib import save_state
+
+    _ensure_gate_agents(tmp_path, "verify-bugfix")
+    session_id = "codex-gap-pass"
+    epic_dir = tmp_path / ".claude" / "runtime" / "epic"
+    epic_dir.mkdir(parents=True, exist_ok=True)
+    (epic_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "loop-state/v2",
+                "active": True,
+                "status": "running",
+                "session_id": session_id,
+                "armed_step": "BUGFIX",
+                "armed_epic": "T-HUB-080",
+                "projection": {
+                    "epic_id": "T-HUB-080",
+                    "role": "BACK",
+                    "phase": "BUGFIX",
+                    "step": "BUGFIX",
+                    "projection_hash": "sha256:test",
+                    "phase_epoch": "sha256:test",
+                    "event_digest": "sha256:test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    save_state(
+        session_id,
+        str(tmp_path),
+        {
+            "verify-bugfix_done": True,
+            "verify-bugfix_verdict": "FAIL",
+        },
+    )
+    lines: list[str] = []
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-1",
+            wait_id="wait-1",
+            thread_id="t1",
+            agent_type="verify-bugfix",
+            verdict="FAIL",
+            session_id=session_id,
+        )
+    )
+    lines.extend(
+        _collab_pair(
+            spawn_id="spawn-2",
+            wait_id="wait-2",
+            thread_id="t2",
+            agent_type="verify-bugfix",
+            verdict="PASS",
+            session_id=session_id,
+        )
+    )
+    log_path = tmp_path / "session.log"
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    stop_calls: list[str] = []
+    import loop.codex_collab_verdict as mod
+
+    original_stop = mod._invoke_subagent_stop
+    original_start = mod._invoke_subagent_start
+
+    def _tracking_stop(**kwargs):
+        stop_calls.append(str(kwargs.get("verdict") or ""))
+        return 0
+
+    mod._invoke_subagent_start = lambda **kwargs: 0  # type: ignore[assignment]
+    mod._invoke_subagent_stop = _tracking_stop  # type: ignore[assignment]
+    try:
+        results = mirror_codex_collab_verdicts_from_log(
+            tmp_path, log_path, session_id=session_id
+        )
+    finally:
+        mod._invoke_subagent_stop = original_stop  # type: ignore[assignment]
+        mod._invoke_subagent_start = original_start  # type: ignore[assignment]
+
+    assert stop_calls == ["PASS"]
+    assert len(results) == 1
+    assert results[0]["verdict"] == "PASS"
+

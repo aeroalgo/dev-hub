@@ -87,10 +87,12 @@ def mb_finish_hint_after_verdict(
     verdict_u = str(verdict or "").strip().upper()
     if norm in REVIEWER_MIRROR_AGENTS and verdict_u in {"FAIL", "BLOCKED"}:
         return (
-            f"{norm} VERDICT: {verdict_u} — parent: запиши `qa-*.yaml` с `verdict: fail|blocked`, "
-            "Handoff `* BUGFIX`, вызови "
+            f"{norm} VERDICT: {verdict_u} — parent: только после полного QA pass "
+            "скопируй **eligible** `## BLOCKERS (complete)` + suite/leftover gaps в `qa-*.yaml` "
+            "(`blockers`/`fix_plan` 1:1), Handoff `* BUGFIX`, вызови "
             f"`{_EPIC_RESOLVE} qa --cwd $PROJECT_ROOT`. "
-            "FORBIDDEN: repair-loop / повторный suite / verify retry в этом QA run."
+            "FORBIDDEN: style/naming/comments/«строже plan» в blockers; fail-fast mid-checks / "
+            "partial eligible blockers / repair-loop / повторный suite / verify retry в этом QA run."
         )
     cli = mb_finish_cli(agent_type, verdict, cwd)
     if not cli:

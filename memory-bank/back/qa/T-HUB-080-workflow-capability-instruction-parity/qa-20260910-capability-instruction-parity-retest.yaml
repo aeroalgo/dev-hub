@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01–s05"
+  - "files: harness/cursor/rules/**, harness/skills/**, harness/claude/**, harness/instructions/**, loop/tests/test_stack_profile_instruction_inventory.py"
+
+checks:
+  - "full suite (dev-hub self-test): `bin/pytest -q --tb=line`"
+  - "integration rule (§0.11)"
+  - "runtime_sync --check: zero drift"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "suite_scope was missing in previous qa artifact"
+  - "DSH missing from test_stack_profile_instruction_inventory.py runner inventory (:102, :370)"
+  - "MANAGED_SCOPE_PAT allows raw runner when managed capability marker is present; mixed negative fixture missing"
+
+blockers:
+  - "verify-qa reviewer gate returned FAIL due to inventory gaps and pattern strictness"
+
+fix_plan:
+  - "BACK BUGFIX T-HUB-080-workflow-capability-instruction-parity: add DSH to inventory tests and tighten MANAGED_SCOPE_PAT with negative fixture"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line  # Hub (dev-hub self-test); managed projects: capability_checks: [test.full]"

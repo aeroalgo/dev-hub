@@ -15,7 +15,7 @@ threats:
 
 evidence_commands:
   - "rg …"
-  - ".venv/bin/pytest … -q"
+  - "bin/pytest … -q  # Hub (dev-hub self-test); managed projects: capability_checks"
 
 findings: []
 

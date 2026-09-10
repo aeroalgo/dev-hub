@@ -34,7 +34,7 @@ def test_codex_adapter_uses_shared_spawn_wait_lifecycle(monkeypatch, tmp_path) -
     monkeypatch.setattr(lifecycle, "_run_hook", fake_hook)
     monkeypatch.setattr(
         lifecycle,
-        "auto_finish_after_gate",
+        "gate_atomic_finish",
         lambda *args, **kwargs: {"ok": True, "epic_done": True},
     )
 
@@ -87,7 +87,7 @@ def test_shared_lifecycle_does_not_replay_same_wait_completion(monkeypatch, tmp_
         "_run_hook",
         lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
     )
-    monkeypatch.setattr(lifecycle, "auto_finish_after_gate", lambda *args, **kwargs: None)
+    monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
     adapter.process_item(
         {"tool": "spawn_agent", "id": "spawn", "receiver_thread_ids": ["child"]}
@@ -122,7 +122,7 @@ def test_shared_lifecycle_deduplicates_by_verifier_identity(monkeypatch, tmp_pat
         "_run_hook",
         lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
     )
-    monkeypatch.setattr(lifecycle, "auto_finish_after_gate", lambda *args, **kwargs: None)
+    monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
 
     # 1. Spawn 8 threads for identical verifier request
@@ -181,7 +181,7 @@ def test_shared_lifecycle_process_item_is_thread_safe(monkeypatch, tmp_path) -> 
         "_run_hook",
         lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
     )
-    monkeypatch.setattr(lifecycle, "auto_finish_after_gate", lambda *args, **kwargs: None)
+    monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
     adapter.process_item(
         {
@@ -202,3 +202,97 @@ def test_shared_lifecycle_process_item_is_thread_safe(monkeypatch, tmp_path) -> 
 
     assert sum(len(result) for result in results) == 1
     assert calls == ["subagent-start.py", "subagent-stop.py"]
+
+
+def test_gate_atomic_finish_implement_pass_calls_finish(monkeypatch, tmp_path) -> None:
+    calls: list[str] = []
+
+    class _Res:
+        def model_dump(self):
+            return {"ok": True, "finished_step": "s01"}
+
+    def fake_finish(req):
+        calls.append(req.step_id)
+        return _Res()
+
+    monkeypatch.setattr(
+        "loop.mb_finish.finish_implement.finish_implement_step",
+        fake_finish,
+    )
+
+    from harness.hooks.epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "s01",
+            "armed_epic": "T-HUB-TEST",
+            "phase_run_id": "run-1",
+            "last_verify_verdict": "PASS",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    out = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="verify-implement",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out == {"ok": True, "finished_step": "s01"}
+    assert calls == ["s01"]
+
+    # idempotent when last_finish_tool already recorded for same phase_run
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "s02",
+            "phase_run_id": "run-1",
+            "last_verify_verdict": "PASS",
+            "last_finish_tool": {
+                "name": "mb-finish implement",
+                "step_id": "s01",
+                "phase_run_id": "run-1",
+            },
+        }
+    )
+    save_epic_state(tmp_path, st)
+    out2 = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="verify-implement",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out2 == {"ok": True, "already_finished": True}
+    assert calls == ["s01"]
+
+
+def test_gate_atomic_finish_implement_fail_verdict_skips() -> None:
+    assert (
+        lifecycle.gate_atomic_finish(
+            ".",
+            agent_type="verify-implement",
+            verdict="FAIL",
+            session_id="sess",
+        )
+        is None
+    )
+
+
+def test_gate_atomic_finish_implement_missing_verify(monkeypatch, tmp_path) -> None:
+    from harness.hooks.epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update({"active": True, "armed_step": "s01", "last_verify_verdict": None})
+    save_epic_state(tmp_path, st)
+    out = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="verify-implement",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out is not None
+    assert out["ok"] is False
+    assert "verify_pass_missing" in out["diagnostic_codes"]

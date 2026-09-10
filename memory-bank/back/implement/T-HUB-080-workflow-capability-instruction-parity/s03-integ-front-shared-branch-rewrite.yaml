@@ -3,14 +3,28 @@ role: back
 step_id: s03
 plan_id: T-HUB-080-workflow-capability-instruction-parity
 title: s03 — INTEG, FRONT, and shared workflow rules branch qualification IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-10'
 decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s03-integ-front-shared-branch-rewrite.yaml
 skills_used: []
-discovery: []
+discovery:
+- Audited INTEG workflow, mainrule-core, and lean isolation gates for unqualified
+  runner and scenario wording.
+- Audited FRONT mainrule-core and parent-only rules for runner branch qualifications.
+- Audited shared/test-timeout.mdc, shared/role-core-contract.mdc, and claude/rules/context-economy-cc.md.
 gaps:
   status: none
-done: []
+done:
+- Updated INTEG workflow-implement, workflow-qa, mainrule-core, and lean gates to
+  branch between dev-hub self-tests and managed capability checks with typed execution
+  evidence.
+- Preserved scenario testing distinctions (parent-only Playwright UI vs Hub pytest
+  HTTP outcome vs managed capability evidence).
+- Updated FRONT mainrule-core to carry hub-only condition and managed capability references
+  while preserving parent-only Vitest/Playwright authority without adding test.e2e.
+- Updated shared/test-timeout.mdc, shared/role-core-contract.mdc, and claude/rules/context-economy-cc.md
+  to distinguish hub exceptions from managed projects.
+- Updated inventory test classifier patterns for clean detection across active surfaces.
 files:
 - harness/cursor/rules/integration_developer/workflow-implement.mdc
 - harness/cursor/rules/integration_developer/workflow-qa.mdc
@@ -19,20 +33,38 @@ files:
 - harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
 - harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
 - harness/cursor/rules/front_developer/mainrule-core.mdc
+- harness/cursor/rules/front_developer/workflow-decompose.mdc
+- harness/cursor/rules/front-tests-parent-only.mdc
+- harness/claude/rules/front-tests-parent-only.md
+- harness/cursor/rules/shared/role-core-contract.mdc
 - harness/cursor/rules/shared/test-timeout.mdc
+- harness/cursor/rules/shared/workflow-behavior-first.mdc
 - harness/claude/rules/context-economy-cc.md
+- loop/tests/test_stack_profile_instruction_inventory.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  "integ or front or shared or claude"
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_front_parent_only_boundary
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  "integ or front or shared or claude" — PASS (5 passed)
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_front_parent_only_boundary — PASS (1 passed)
 grep_control: []
-verification_results: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k "integ or front or shared or claude"'', ''outcome'': ''PASS''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_front_parent_only_boundary'', ''outcome'': ''PASS''}'
 checkpoints:
 - id: cp1
   criterion: INTEG, FRONT, shared, and Claude rules report zero unqualified runner
     action lines in inventory.
-  status: pending
+  status: done
 - id: cp2
   criterion: FRONT parent-only boundary is preserved without introducing test.e2e
     capability.
-  status: pending
-resume_from: cp1
+  status: done
+resume_from: cp2

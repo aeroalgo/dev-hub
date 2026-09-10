@@ -17,10 +17,11 @@ DAG-команды:
 ./loop/loop.sh --status
 ```
 
-Phase C canary (локальная evidence-проверка, без запуска runner):
+Phase C canary (локальная evidence-проверка dev-hub self-test, без запуска runner):
 
 ```bash
-timeout 300s .venv/bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_integrity.py -q
+# Dev-hub self-test canary
+timeout 300s bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_integrity.py -q
 ```
 
 Canary проверяет `canary-finish-integrity`: только последовательную цепочку `validate_finish → check_after → prepare_session`, completion artifact и integrity gate. Для rollback не удаляйте checkpoint evidence; восстановите последний валидированный cursor или `resume_from_step` и используйте помеченный manual fallback.
@@ -34,7 +35,7 @@ Canary проверяет `canary-finish-integrity`: только последо
 | **Гайд** | [`WORKFLOW.md`](WORKFLOW.md) |
 | **CLI** | `loop/context_loop.py` |
 | **Runner** | `./loop/loop.sh` |
-| **Тесты** | `.venv/bin/pytest loop/tests -q` |
+| **Тесты** | `bin/pytest loop/tests -q` (dev-hub self-test) |
 | **FINISH** | `.cursor/rules/shared/finish-block.mdc` |
 
 ## Observability & Incident Diagnostics
@@ -106,7 +107,7 @@ export EPIC_EPISODE_RETENTION_DAYS=30
 Снятие fresh fail-list и классификация сбоев в тестовом наборе:
 
 ```bash
-# Снять свежий список сбойных тестов (fail-list)
+# Снять свежий список сбойных тестов dev-hub (fail-list self-test)
 bin/pytest -q --tb=no 2>&1 | rg '^FAILED'
 ```
 
@@ -118,8 +119,9 @@ bin/pytest -q --tb=no 2>&1 | rg '^FAILED'
 
 ### Gate Nodeids Hygiene
 
-Шлюзовые тесты (gate nodeids) должны всегда оставаться чистыми (0 failed) и отсутствовать в fail-list:
+Шлюзовые тесты (gate nodeids dev-hub self-test) должны всегда оставаться чистыми (0 failed) и отсутствовать в fail-list:
 ```bash
+# Dev-hub self-test gate nodeids
 bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|test_agent_pretool_injects'
 ```
 

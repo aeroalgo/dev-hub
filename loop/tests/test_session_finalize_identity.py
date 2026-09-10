@@ -182,3 +182,44 @@ def test_record_abort_keeps_frozen_decompose_identity(tmp_path, monkeypatch):
     assert payload["step_id"] == "DECOMPOSE"
     assert payload["phase"] == "DECOMPOSE"
     assert payload["resume_from"] == "ANALYZE"
+
+
+def test_ownership_prefers_frozen_start_after_finish_advance():
+    from loop.session_finalize import (
+        apply_ownership_identity,
+        freeze_session_start_identity,
+        ownership_expected_step,
+        resolve_session_close_identity,
+    )
+
+    state = {
+        "armed_epic": "E1",
+        "armed_step": "QA",
+        "armed_after_finish": "QA",
+        "role": "BACK",
+        "session_id": "s",
+        "phase_run_id": "r",
+        "last_finished_step": "BUGFIX",
+    }
+    freeze_session_start_identity(
+        state,
+        phase="BACK BUGFIX",
+        step_id="BUGFIX",
+        session_id="s",
+        phase_run_id="r",
+    )
+    assert ownership_expected_step(state) == "BUGFIX"
+    identity = apply_ownership_identity(
+        {"step": "QA", "epic_id": "E1", "session_id": "s"},
+        state,
+    )
+    assert identity["step"] == "BUGFIX"
+    close = resolve_session_close_identity(state)
+    assert close.record_step_id == "BUGFIX"
+    assert close.resume_from == "QA"
+
+
+def test_ownership_without_freeze_follows_armed_step():
+    from loop.session_finalize import ownership_expected_step
+
+    assert ownership_expected_step({"armed_step": "s03"}) == "s03"

@@ -1,0 +1,33 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01–s05"
+  - "files: loop/**, harness/**, memory-bank/**"
+
+checks:
+  - "full suite (dev-hub self-test): `bin/pytest -q --tb=line` (PASSED: 2493 passed, 4 skipped, 79 warnings)"
+  - "verify-qa reviewer (FAILED: missing full equivalent for legacy authority and invalid CapabilityCheckSpec checks)"
+  - "integration rule (§0.11)"
+
+issues:
+  - "verify-qa failed: deletion of test_sunset_a_b_c_i_scans_have_no_live_legacy_authority left gap where invalid target/selector or legacy authority in CapabilityCheckSpec is not fully validated in loop/tests/test_stack_profile_instruction_inventory.py:470"
+
+blockers:
+  - "AC- / §0.11 gap: restore legacy authority and invalid CapabilityCheckSpec validation in test_stack_profile_instruction_inventory.py"
+
+fix_plan:
+  - "BACK BUGFIX legacy-authority-validation-gap: restore legacy authority regression checks and invalid CapabilityCheckSpec validation"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

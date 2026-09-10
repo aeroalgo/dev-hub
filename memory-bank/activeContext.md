@@ -1,17 +1,19 @@
 ---
-schema: loop-handoff/v1
+schema: loop-handoff/v1 # handoff
 role: BACK
-mode: IMPLEMENT
-epic_id: T-HUB-080-workflow-capability-instruction-parity
-step_id: s03
+mode: DECOMPOSE
+epic_id: T-HUB-091-gate-identity-sot-consolidation
+step_id: DECOMPOSE
 ---
 
 ## load_now
-1. [back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s03-integ-front-shared-branch-rewrite.yaml](back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s03-integ-front-shared-branch-rewrite.yaml) — текущий work shard (BACK IMPLEMENT s03).
-2. [back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/decompose-index.yaml](back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/decompose-index.yaml) — очередь/status (canon=yaml).
+1. [plan.md](back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md) — source plan/artifact for pre-implement phase DECOMPOSE.
+2. `.cursor/templates/decompose/` — epic-step.yaml + index.md (layout v2: md/decompose-index.md + yaml/decompose-index.yaml + yaml/steps/sNN-<slug>.yaml).
+3. `.cursor/rules/back_developer/workflow-decompose.mdc` — §Maximal detail + §Replacement cleanup.
+4. Target decompose: [`decompose-index.yaml`](back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/decompose-index.yaml) (layout v2: `back/plan/T-HUB-091-gate-identity-sot-consolidation/md/decompose-index.md` + `back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/decompose-index.yaml` + `yaml/steps/sNN-<slug>.yaml`).
 
-## Handoff BACK IMPLEMENT — s03
-- **Дальше:** продолжить с work shard `memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s03-integ-front-shared-branch-rewrite.yaml`
-- **Эпик:** T-HUB-080-workflow-capability-instruction-parity.
-- **Режим/шаг:** следующий BACK IMPLEMENT `s03`.
-- **Сделано:** предыдущий шаг отмечен `completed`.
+## Handoff DECOMPOSE
+- # epic_id: T-HUB-091-gate-identity-sot-consolidation — NOT short queue id
+- **Эпик:** T-HUB-091-gate-identity-sot-consolidation (BACK).
+- **Режим/шаг:** `BACK DECOMPOSE`.
+- **Дальше:** выполнить `BACK DECOMPOSE`.

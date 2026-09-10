@@ -661,11 +661,31 @@ def is_idle_timeout(reason: str | None) -> bool:
     return bool(reason and re.search(r"(?i)stream idle timeout", reason))
 
 
+_TERMINAL_GATE_CMD_RE = re.compile(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b")
+_MB_FINISH_OK_TRUE_RE = re.compile(r'"ok"\s*:\s*true', re.I)
+_MB_FINISH_OK_FALSE_RE = re.compile(r'"ok"\s*:\s*false', re.I)
+
+
+def _gate_integrity_token(text: str) -> str | None:
+    for pattern in _GATE_INTEGRITY_PATTERNS:
+        match = pattern.search(text or "")
+        if match:
+            return match.group(0).lower()
+    return None
+
+
 def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
-    """Return a repairable diagnostic for a failed terminal/gate operation."""
+    """Return a repairable diagnostic for a failed terminal/gate operation.
+
+    Only the *last* ``mb-finish`` / ``finalize-step`` / ``stop-gate`` command
+    decides. An earlier ``verdict_stale`` (or other integrity token) must not
+    poison session close after a later successful finish (``ok: true`` / exit 0).
+    """
     # A failed mb-finish command is not a successful model turn even when the
     # outer runtime exits zero.  Restrict this to the finish command so an
     # exploratory command failure does not poison an otherwise valid turn.
+    has_structured_items = False
+    last_diag: str | None = None
     for line in (raw_log or "").splitlines():
         try:
             obj = json.loads(line)
@@ -673,29 +693,48 @@ def _terminal_integrity_diagnostic(raw_log: str) -> str | None:
             continue
         if not isinstance(obj, dict) or obj.get("type") != "item.completed":
             continue
+        has_structured_items = True
         item = obj.get("item")
         if not isinstance(item, dict) or item.get("type") != "command_execution":
             continue
         command = str(item.get("command") or "")
-        output = str(item.get("aggregated_output") or "")
-        if re.search(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b", command):
-            for pattern in _GATE_INTEGRITY_PATTERNS:
-                match = pattern.search(output)
-                if match:
-                    return match.group(0).lower()
-        failed = item.get("status") == "failed" or item.get("exit_code") not in (None, 0)
-        if failed and re.search(r"(?i)\bmb-finish\b", command):
-            return "finish_command_failed"
-    # Plain-text wrappers do not have command item envelopes.  Only accept a
-    # diagnostic from a line that names the terminal operation itself.
-    for line in (raw_log or "").splitlines():
-        if not re.search(r"(?i)\b(?:mb-finish|finalize-step|stop-gate)\b", line):
+        if not _TERMINAL_GATE_CMD_RE.search(command):
             continue
-        for pattern in _GATE_INTEGRITY_PATTERNS:
-            match = pattern.search(line)
-            if match:
-                return match.group(0).lower()
-    return None
+        output = str(item.get("aggregated_output") or "")
+        diag = _gate_integrity_token(output)
+        ok_true = bool(_MB_FINISH_OK_TRUE_RE.search(output))
+        ok_false = bool(_MB_FINISH_OK_FALSE_RE.search(output))
+        failed = (
+            item.get("status") == "failed"
+            or item.get("exit_code") not in (None, 0)
+            or ok_false
+        )
+        if ok_true and not failed:
+            last_diag = None
+            continue
+        if failed:
+            last_diag = diag or "finish_command_failed"
+        elif diag:
+            last_diag = diag
+    if has_structured_items:
+        return last_diag
+    # Plain-text wrappers do not have command item envelopes.  Only accept a
+    # diagnostic from a line that names the terminal operation itself. Last
+    # matching terminal line wins (later ok:true clears earlier integrity fail).
+    last_diag = None
+    for line in (raw_log or "").splitlines():
+        if not _TERMINAL_GATE_CMD_RE.search(line):
+            continue
+        diag = _gate_integrity_token(line)
+        ok_true = bool(_MB_FINISH_OK_TRUE_RE.search(line))
+        ok_false = bool(_MB_FINISH_OK_FALSE_RE.search(line))
+        if ok_true and not ok_false and not diag:
+            last_diag = None
+        elif diag:
+            last_diag = diag
+        elif ok_false:
+            last_diag = "finish_command_failed"
+    return last_diag
 
 
 def transient_backoff_sec(attempt: int, *, idle: bool = False) -> int:

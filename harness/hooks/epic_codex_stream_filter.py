@@ -192,6 +192,25 @@ def emit_from_obj(obj: dict) -> None:
                             f"← Subagent hook fail agent={getattr(action, 'agent_type', '?')} "
                             f"rc={stop_rc}\n"
                         )
+                    finish = getattr(action, "finish", None)
+                    if isinstance(finish, dict):
+                        agent = getattr(action, "agent_type", "verify")
+                        if finish.get("ok"):
+                            _write(
+                                f"← {agent}: automatic mb-finish completed; "
+                                "stop current turn\n"
+                            )
+                        else:
+                            codes = ", ".join(
+                                str(c) for c in (finish.get("diagnostic_codes") or [])
+                            )
+                            err = finish.get("error")
+                            suffix = f": {codes}" if codes else ""
+                            if err:
+                                suffix = f"{suffix} ({err})" if suffix else f": {err}"
+                            _write(
+                                f"← {agent}: automatic mb-finish did not complete{suffix}\n"
+                            )
             except Exception as exc:
                 # The display filter must never terminate the runtime stream;
                 # record-session remains the bounded fallback processor.

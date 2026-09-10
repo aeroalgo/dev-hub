@@ -22,9 +22,7 @@ def test_bin_pytest_wrapper_defaults_to_parallel_xdist() -> None:
     assert "pytest-xdist" in text
     assert "--dist" in text
     assert "PYTEST_WORKERS" in text
-    assert "cpu_count" in text
-    assert "default_workers" in text
-    assert "cpu_count - 2" in text
+    assert "default_workers=4" in text
 
 
 def test_parallel_pytest_wrapper_delegates_to_canonical_runner() -> None:
@@ -38,14 +36,14 @@ def test_parallel_pytest_wrapper_delegates_to_canonical_runner() -> None:
 def test_pytest_config_enables_parallel_defaults() -> None:
     root = Path(__file__).resolve().parents[2]
     config = (root / "pytest.ini").read_text(encoding="utf-8")
-    assert "addopts = -n auto --dist loadfile" in config
+    assert "addopts = -n 4 --dist loadfile" in config
 
 
-def test_pytest_auto_worker_hook_reserves_two_cpus() -> None:
+def test_pytest_auto_worker_hook_defaults_to_four_cpus() -> None:
     root = Path(__file__).resolve().parents[2]
     hook = (root / "conftest.py").read_text(encoding="utf-8")
     assert "pytest_xdist_auto_num_workers" in hook
-    assert "cpu_count - 2" in hook
+    assert "return 4" in hook
     assert "PYTEST_XDIST_AUTO_NUM_WORKERS" in hook
 
 

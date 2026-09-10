@@ -1010,7 +1010,11 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
     fi
 
     if [[ "$retryable" == "1" && $transient_try -lt $max_transient && $retry_count -lt $retry_limit ]]; then
-      echo "==> TRANSIENT API abort — retry after ${backoff}s"
+      if [[ "$reason" == gate_integrity:* ]]; then
+        echo "==> TRANSIENT gate integrity — retry after ${backoff}s"
+      else
+        echo "==> TRANSIENT API abort — retry after ${backoff}s"
+      fi
       echo "==> reason: $reason"
       if [[ "$is_subagent_timeout" == "1" ]]; then
         subagent_retries=$((subagent_retries + 1))

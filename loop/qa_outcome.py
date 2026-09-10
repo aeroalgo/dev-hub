@@ -188,9 +188,10 @@ def render_qa_outcome_policy(outcome: QaOutcome) -> str:
         "- Mapping:",
         "  - suite_red / plan_mismatch / ac_gap -> next_action=bugfix (qa-*.yaml fail|blocked, mb-finish qa). FORBIDDEN: verify-qa, repair-loop, second suite.",
         "  - all_green after suite -> next_action=verify_qa (AC review only; do not re-run pytest).",
-        "  - verify PASS -> done; verify FAIL/BLOCKED -> bugfix.",
+        "  - verify PASS (incl. ineligible residuals only) -> done; verify FAIL/BLOCKED with eligible B* -> bugfix.",
         "  - transport_broken -> one retry_spawn; then need_human.",
         "- verify-qa must NOT re-run suite; it reviews AC+/AC-/section 0.11 against Suite results.",
+        "- Anti-ratchet: pack AC+/AC−/§0.11 from Frozen QA checklist (plan AC/SC sha); FORBIDDEN reformulate or raise bar; style/naming/comments not BUGFIX.",
     ]
     if outcome.changed_paths:
         lines.append("- changed_paths: " + ", ".join(f"`{p}`" for p in outcome.changed_paths[:20]))

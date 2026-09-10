@@ -65,7 +65,8 @@
 Локально подтвердите canary evidence до расширения rollout:
 
 ```bash
-timeout 300s .venv/bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_integrity.py -q
+# Dev-hub self-test canary
+timeout 300s bin/pytest loop/tests/test_dag_canary.py loop/tests/test_finish_integrity.py -q
 ```
 
 Тест закрепляет `validate_finish → check_after → prepare_session`: следующий узел остаётся закрытым до completion artifact предшественника, а финальный artifact требует `status: completed` и `integration_gate: pass`. Таймаут, retry и degraded caps берутся из runtime bounds выше; при ошибке сохраните evidence и выполните rollback boundary, не запускайте новый scheduling.

@@ -15,9 +15,9 @@ def shared_collaboration_policy(*, phase: str | None = None) -> str:
 Этот контракт одинаков для всех runtime.
 0. Следуй блоку `QA outcome classifier` в prompt (schema `loop-qa-outcome/v1`) — это runner SoT.
 1. Ровно **один** suite по `suite_command` из classifier: `bin/pytest -q --tb=line`. FORBIDDEN: повторный full suite, смена `--tb`, `python -m pytest`, targeted вместо suite, thrash-перезапуски.
-2. Если suite red, runtime сломан, AC/plan не сходятся, или есть blockers → **не** вызывай `verify-qa` и **не** вызывай `gate-repair`. Запиши `qa-*.yaml` с `verdict: fail|blocked`, Handoff `* BUGFIX`, `mb-finish qa`, останови turn. Чинить продукт в QA-сессии запрещено.
-3. Если suite green и plan/AC ок → ровно один `verify-qa` (в prompt обязательно `agent_type: verify-qa`). Дождись valid fenced JSON verdict.
-4. `verify-qa` PASS → `mb-finish qa` (epic done / DONE). `verify-qa` FAIL/BLOCKED → тот же путь что п.2: qa-*.yaml fail/blocked → BUGFIX, **без** repair-loop и без повторного suite в этом run.
+2. Если suite red, runtime сломан, AC/plan не сходятся, или есть **eligible** blockers → **не** вызывай `verify-qa` и **не** вызывай `gate-repair`. Запиши `qa-*.yaml` с `verdict: fail|blocked`, Handoff `* BUGFIX`, `mb-finish qa`, останови turn. Чинить продукт в QA-сессии запрещено.
+3. Если suite green и plan/AC ок → ровно один `verify-qa` (в prompt обязательно `agent_type: verify-qa`). Pack AC = **Frozen QA checklist** 1:1 (anti-ratchet: не усиливать wording). Дождись valid fenced JSON verdict.
+4. `verify-qa` PASS (включая PASS с ineligible residuals) → `mb-finish qa` (epic done / DONE). `verify-qa` FAIL/BLOCKED с eligible B* → тот же путь что п.2: qa-*.yaml fail/blocked → BUGFIX, **без** repair-loop и без повторного suite в этом run. Style/naming/comments/«строже plan» → **не** BUGFIX.
 5. `gate-repair` в QA запрещён для product/AC дефектов. Он допустим только если сам spawn/wait transport verify-qa сломан (unsupported tool / empty wait) — один retry canonical spawn, иначе NEED_HUMAN.
 6. Не создавай `qa_pass`/finish без свежего PASS текущего verify-qa на green path; не выдумывай receipt.
 """

@@ -1,0 +1,94 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s05 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s05-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- Discovered that all Kind I legacy runner action lines across active workflows, gates,
+  cores, skills, templates, and operator docs are eliminated.
+- Updated test_corpus_inventory in loop/tests/test_stack_profile_instruction_inventory.py
+  to verify 0 violations across active corpus.
+- Deleted obsolete partial symbol assertion test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+  in favor of full inventory verification.
+- Verified Kind A, B, C, and I inventory scans confirm zero live legacy authority.
+gaps:
+  status: none
+done:
+- Updated test_corpus_inventory in loop/tests/test_stack_profile_instruction_inventory.py
+  from red-state discovery assertion to green clean corpus assertion.
+- Deleted obsolete test symbol test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+  from loop/tests/test_stack_profile_instruction_inventory.py as planned.
+- Adjusted integ mainrule-core.mdc to maintain capability evidence qualification without
+  triggering copied shared contract prose markers.
+- Verified all 14 tests in loop/tests/test_stack_profile_instruction_inventory.py
+  pass.
+- Verified 076 capability evidence and tests format fixtures pass.
+- Verified role-core contract suite passes with full regression green.
+- Verified python3 -m loop.cli.runtime_sync --check reports zero drift.
+files:
+- loop/tests/test_stack_profile_instruction_inventory.py
+- harness/cursor/rules/integration_developer/mainrule-core.mdc
+deletes:
+- loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_has_no_generic_managed_test_runner
+- loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_retains_explicit_hub_exception
+- loop/tests/test_stack_profile_instruction_inventory.py::test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+- unqualified bin/pytest / .venv/bin/pytest action patterns in active workflow rules
+- unqualified runner examples in scaffold templates
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_synthetic_fixtures
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_corpus_inventory
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+- bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_tests_format_managed_capabilities.py
+  -q --tb=line
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py harness/hooks/tests/test_role_core_contract.py
+  -q --tb=line
+- python3 -m loop.cli.runtime_sync --check
+integration_check:
+- python3 -m loop.cli.runtime_sync --check
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_synthetic_fixtures'', ''outcome'': ''1 passed''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_corpus_inventory'', ''outcome'': ''1 passed''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line'', ''outcome'': ''14 passed''}'
+- '{''command'': ''bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py
+  harness/hooks/tests/test_tests_format_managed_capabilities.py -q --tb=line'', ''outcome'':
+  ''6 passed''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  harness/hooks/tests/test_role_core_contract.py -q --tb=line'', ''outcome'': ''27
+  passed''}'
+- '{''command'': ''python3 -m loop.cli.runtime_sync --check'', ''outcome'': ''No drift
+  detected''}'
+checkpoints:
+- id: cp1
+  criterion: Kind A — 0 callers of stale allowlist inventory functions; rewritten
+    tests pass on new discovery contract.
+  status: done
+- id: cp2
+  criterion: Kind B — entrypoint inventory n/a (no runtime deploy entrypoint change).
+  status: done
+- id: cp3
+  criterion: Kind C — anti-fallback rg zero silent presence-only or diverging header
+    acceptance.
+  status: done
+- id: cp4
+  criterion: Kind I — 0 unqualified runner action lines across all active workflow,
+    gate, core, skill, template, and operator surfaces.
+  status: done
+- id: cp5
+  criterion: 076 hub and managed evidence verification fixtures remain accepted/rejected
+    as designed.
+  status: done
+- id: cp6
+  criterion: Targeted and epic regression suite green after all instruction parity
+    edits.
+  status: done
+resume_from: cp6

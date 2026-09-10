@@ -99,9 +99,9 @@ response…
 
 ## Test matrix
 
-| Journey | BACK pytest | FRONT vitest | Wire / E2E |
+| Journey | BACK (dev-hub pytest / managed capability_checks) | FRONT vitest parent-only | Wire / E2E parent-only |
 |---------|-------------|--------------|------------|
-| J1 | test_activities | catalog-filters.test | Playwright catalog |
+| J1 | test_activities (dev-hub pytest) | catalog-filters.test (FRONT vitest parent-only) | Playwright parent-only catalog |
 
 ## Risks
 

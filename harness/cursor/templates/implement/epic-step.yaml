@@ -27,7 +27,8 @@ deletes: []
 #   instruction_rg: ""
 
 # tests: HARD — только executable cmds (loop after запускает как shell).
-# OK:  - '`.venv/bin/pytest path -q` — PASS'
+# OK (Hub dev-hub self-test): - '`bin/pytest path -q` — PASS'
+# OK (Managed project): - 'capability_checks: [test.targeted]'
 # OK:  - '`npm exec tsc -- --noEmit`'
 # FAIL: - 'npm exec tsc -- --noEmit — passed'  (prose без backticks)
 # FAIL: - {command: …, result: …}

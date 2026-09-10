@@ -50,6 +50,16 @@ class ClaudeAdapter(RuntimeAdapter):
 
         return resolve_session_close_identity(state)
 
+    def ownership_expected_step(self, state: dict[str, Any]) -> str:
+        from loop.session_finalize import ownership_expected_step
+
+        return ownership_expected_step(state)
+
+    def apply_ownership_identity(self, identity: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+        from loop.session_finalize import apply_ownership_identity
+
+        return apply_ownership_identity(identity, state)
+
     def should_probe_analyze_promotion(self, *, armed_step: Any, active_context_text: str | None = None) -> bool:
         from loop.session_finalize import should_probe_analyze_promotion
 

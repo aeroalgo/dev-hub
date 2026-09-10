@@ -13,12 +13,7 @@ def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
             return max(1, int(configured))
         except ValueError:
             pass
-
-    try:
-        cpu_count = len(os.sched_getaffinity(0))
-    except (AttributeError, OSError):
-        cpu_count = os.cpu_count() or 1
-    return max(1, cpu_count - 2)
+    return 4
 
 
 @pytest.fixture(autouse=True)

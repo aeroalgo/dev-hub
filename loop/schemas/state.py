@@ -51,6 +51,7 @@ class EpicState(BaseModel):
     last_finished_epic: str | None = None
     armed_after_finish: str | None = None
     qa_after_bugfix: QaAfterBugfix | None = None
+    qa_checklist_freeze: dict[str, Any] | None = None
     phase_run_id: str | None = None
 
     drift_counters: DriftCounters = Field(default_factory=DriftCounters)

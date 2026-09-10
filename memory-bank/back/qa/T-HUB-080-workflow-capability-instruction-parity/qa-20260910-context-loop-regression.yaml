@@ -1,0 +1,33 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01–s05"
+  - "files: loop/**, harness/**, memory-bank/**"
+
+checks:
+  - "full suite (dev-hub self-test): `bin/pytest -q --tb=line` (FAILED 2 tests)"
+  - "integration rule (§0.11)"
+
+issues:
+  - "loop/tests/test_context_loop.py::test_prepare_clears_stale_post_implement_checkpoint failed assertion on prepare outcome"
+  - "loop/tests/test_handoff_phase_gates.py::test_prepare_completes_when_qa_pass_despite_legacy_reflect_handoff failed assertion on prepare completion"
+
+blockers:
+  - "Regression in full suite: 2 tests failed in loop/tests"
+
+fix_plan:
+  - "BACK BUGFIX context-loop-regression: fix prepare clearing and qa pass handoff handling in loop/context_loop.py and loop/handoff_phase_gates.py"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

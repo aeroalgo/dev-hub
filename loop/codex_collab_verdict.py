@@ -216,15 +216,94 @@ def _invoke_subagent_stop(
     return proc.returncode
 
 
+def _last_collab_verdict_events(
+    events: list[CollabVerdictEvent],
+) -> list[CollabVerdictEvent]:
+    """Keep only the last verdict per record-agent key (mid-session retries superseded)."""
+    from loop.mb_finish.verify_hint import record_agent_key
+
+    last: dict[str, CollabVerdictEvent] = {}
+    order: list[str] = []
+    for event in events:
+        key = record_agent_key(event.agent_type)
+        if key not in last:
+            order.append(key)
+        last[key] = event
+    return [last[key] for key in order]
+
+
+def _mb_finish_committed(cwd: str | Path) -> bool:
+    """True when live auto-finish / mb-finish already closed the gate (Claude: stop)."""
+    try:
+        from epic_lib import load_epic_state
+
+        st = load_epic_state(cwd) or {}
+    except Exception:
+        return False
+    finish = st.get("last_finish_tool")
+    if not isinstance(finish, dict):
+        return False
+    name = str(finish.get("name") or "")
+    if not name.startswith("mb-finish "):
+        return False
+    finish_run = str(finish.get("phase_run_id") or "").strip()
+    current_run = str(st.get("phase_run_id") or "").strip()
+    if finish_run and current_run and finish_run != current_run:
+        return False
+    return True
+
+
+def _live_agent_gate_covers_event(
+    cwd: str | Path,
+    session_id: str,
+    event: CollabVerdictEvent,
+) -> bool:
+    """Claude parity: live SubagentLifecycle/SubagentStop is SoT.
+
+    Skip post-session gap-fill when live already recorded this agent and either
+    matches the log's last verdict or already holds PASS (supersedes older FAIL).
+    Allow gap-fill only when live has FAIL/none but the log's last event is PASS
+    (stream filter died before the final child).
+    """
+    if not session_id:
+        return False
+    try:
+        from harness.hooks._lib import load_state
+        from loop.mb_finish.verify_hint import record_agent_key
+
+        state = load_state(session_id, str(cwd))
+        key = record_agent_key(event.agent_type)
+        done = bool(state.get(f"{key}_done"))
+        live_v = str(state.get(f"{key}_verdict") or "").upper()
+        if key == "verify" and not done and state.get("verify_done"):
+            done = True
+            live_v = str(state.get("verify_verdict") or "").upper()
+        if not done:
+            return False
+        event_v = str(event.verdict or "").upper()
+        return live_v == event_v or live_v == "PASS"
+    except Exception:
+        return False
+
+
 def mirror_codex_collab_verdicts_from_log(
     cwd: str | Path,
     log_path: str | Path,
     *,
     session_id: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Parse a Codex session log and mirror collab subagent VERDICTs via subagent-stop."""
+    """Gap-fill collab VERDICTs when live Codex lifecycle missed a child.
+
+    Claude Code: native SubagentStop only; ``post_session`` is a no-op.
+    Codex: live ``SubagentLifecycle`` in the stream filter is the same SoT.
+    This fallback must not replay mid-session FAIL hints after a live PASS /
+    committed mb-finish — only fill agents whose gate was never recorded live.
+    """
     path = Path(log_path)
     if not path.is_file():
+        return []
+
+    if _mb_finish_committed(cwd):
         return []
 
     log_text = path.read_text(encoding="utf-8", errors="replace")
@@ -239,7 +318,9 @@ def mirror_codex_collab_verdicts_from_log(
             sid = ""
 
     results: list[dict[str, Any]] = []
-    for event in iter_codex_collab_verdicts(log_text):
+    for event in _last_collab_verdict_events(list(iter_codex_collab_verdicts(log_text))):
+        if _live_agent_gate_covers_event(cwd, sid, event):
+            continue
         completion = SubagentCompletion(
             agent_type=event.agent_type,
             message=event.message,

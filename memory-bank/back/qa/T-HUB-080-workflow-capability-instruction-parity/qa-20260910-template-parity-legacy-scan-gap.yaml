@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01–s05"
+  - "files: loop/**, harness/**, memory-bank/**"
+
+checks:
+  - "full suite (dev-hub self-test): `bin/pytest -q --tb=line` (PASSED: exit code 0)"
+  - "runtime sync check: `python3 -m loop.cli.runtime_sync --check` (PASSED: No drift detected)"
+  - "verify-qa reviewer (FAILED: AC+4 template parity rigor gap and AC+5 legacy A/B/C/I scan execution gap)"
+  - "integration rule (§0.11)"
+
+issues:
+  - "AC+4 (B1): template parity test only checks violation absence rather than exact parity of template headers/bodies (loop/tests/test_stack_profile_instruction_inventory.py:485)."
+  - "AC+5 (B2): legacy fallback scanner in test_stack_profile_instruction_inventory.py:531 imports validators but does not execute full active corpus scan against sunset A/B/C/I patterns."
+
+blockers:
+  - "B1: AC+4 не проверяет exact parity шаблонов · loop/tests/test_stack_profile_instruction_inventory.py:485 проверяет только отсутствие нарушений · добавить строгую template parity-проверку."
+  - "B2: AC+5 не содержит полноценного legacy A/B/C/I scan · loop/tests/test_stack_profile_instruction_inventory.py:531 импортирует валидаторы, но проверки их не выполняют · добавить и запустить полный scan."
+
+fix_plan:
+  - "BACK BUGFIX template-parity-legacy-scan-gap: add strict template parity check asserting exact section/body equivalence for templates, and execute comprehensive active corpus scan against sunset legacy patterns (Kind A/B/C/I)."
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

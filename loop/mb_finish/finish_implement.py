@@ -16,7 +16,7 @@ from harness.hooks.epic.core import (
     read_active_context,
     sync_cursor_from_index,
     utc_now,
-    validate_finish_integrity,
+    validate_finish_integrity_with_repair,
     write_last_finish_tool,
 )
 from harness.hooks.epic_paths import find_decompose_index_path, role_from_decompose_path
@@ -152,8 +152,8 @@ def finish_implement_step(req: MbFinishRequest) -> MbFinishResult:
     if not epic_id:
         epic_id = epic_id_from_decompose_path(decompose_rel) or "unknown"
 
-    # 1. validate_finish_integrity(cwd, step_id)
-    integrity = validate_finish_integrity(
+    # 1. validate_finish_integrity_with_repair(cwd, step_id)
+    integrity = validate_finish_integrity_with_repair(
         cwd=cwd,
         decompose=idx_ref,
         step_id=step_id,

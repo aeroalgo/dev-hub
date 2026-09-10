@@ -62,6 +62,7 @@ entrypoint, выбери текущую фазу, затем последова�
 - Коммиты и PR выполняй только по явному запросу.
 - Комментарии в коде добавляй только по запросу.
 
-## Testing
+## Root classification & Testing
 
-Python tests запускай из корня репозитория через `bin/pytest …`.
+- Hub (dev-hub self-test): Python tests запускай из корня репозитория через `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
+- Managed projects: верификация выполняется строго через stack profile `capability_checks` и typed execution evidence, без generic fallback к raw pytest / unmanaged commands.

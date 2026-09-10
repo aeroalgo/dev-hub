@@ -52,7 +52,7 @@ from loop.schemas.boundary_registry import SCHEMA_LOOP_SUNSET_INVENTORY  # noqa:
 from loop.sunset_sidecar_store import write_sunset_sidecar  # noqa: E402
 from loop.validate_boundary import validate_boundary  # noqa: E402
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
-from loop.runtime_adapters.subagent_lifecycle import auto_finish_after_gate  # noqa: E402
+from loop.runtime_adapters.subagent_lifecycle import gate_atomic_finish  # noqa: E402
 
 
 def _require_verdict_message(agent_type: str) -> str:
@@ -70,7 +70,12 @@ def _require_verdict_message(agent_type: str) -> str:
     )
 
 
-def _fail_hint(agent_type: str) -> str:
+def _fail_hint(agent_type: str, cwd: str | Path = ".") -> str:
+    # verify-qa/reviewer FAIL is a product signal → qa-*.yaml + BUGFIX, never verify retry.
+    if agent_type in REVIEWER_MIRROR_AGENTS:
+        hint = mb_finish_hint_after_verdict(agent_type, "FAIL", cwd)
+        if hint:
+            return hint
     if agent_type in COERCE_VERIFY_AGENTS:
         return (
             "verify VERDICT: FAIL — parent: @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) "
@@ -167,34 +172,35 @@ def _handle_verify_finish_agent(
                 file=sys.stderr,
             )
 
-    # QA artifacts are already durable before verify-qa is spawned.  The
-    # shared lifecycle therefore owns the QA finish boundary immediately after
-    # a valid reviewer PASS; IMPLEMENT/BUGFIX remain parent-owned because
-    # their artifact is written after the verifier returns.
+    # Shared gate lifecycle owns atomic mb-finish after PASS for QA /
+    # IMPLEMENT / BUGFIX (artifact already on disk before verify spawn).
     auto_finished = False
-    if agent_type in REVIEWER_MIRROR_AGENTS and verdict == "PASS":
-        finish = auto_finish_after_gate(
+    if verdict == "PASS" and agent_type in VERIFY_FINISH_AGENTS:
+        finish = gate_atomic_finish(
             cwd,
             agent_type=str(agent_type),
             verdict=verdict,
             session_id=session_id,
         )
         if finish and not finish.get("ok"):
+            codes = ", ".join(str(code) for code in finish.get("diagnostic_codes") or [])
+            err = f" ({finish.get('error')})" if finish.get("error") else ""
             print(
-                "verify-qa: automatic mb-finish qa did not complete: "
-                + ", ".join(str(code) for code in finish.get("diagnostic_codes") or [])
-                + (f" ({finish.get('error')})" if finish.get("error") else ""),
+                f"{agent_type}: automatic mb-finish did not complete: {codes}{err}",
                 file=sys.stderr,
             )
         elif finish and finish.get("ok"):
             auto_finished = True
-            print("verify-qa: automatic mb-finish qa completed; stop current turn", file=sys.stderr)
+            print(
+                f"{agent_type}: automatic mb-finish completed; stop current turn",
+                file=sys.stderr,
+            )
 
     clear_in_flight(st, agent=agent_type)
     save_state(session_id, cwd, st)
 
     if verdict == "FAIL":
-        print(_fail_hint(agent_type), file=sys.stderr)
+        print(_fail_hint(agent_type, cwd), file=sys.stderr)
         return
 
     hint = None if auto_finished else mb_finish_hint_after_verdict(agent_type, verdict, cwd)
@@ -323,21 +329,36 @@ def main() -> None:
 
             # Codex native multi_agent has no SubagentStart injection before the
             # child runs; lifecycle binds the child to the parent runner session.
-            # Treat that transport binding as authoritative for session_id only.
+            # Treat that transport binding as authoritative for session/step/epic
+            # (Claude keeps strict fence ownership — SubagentStart injects IDs).
             runtime_id = str(
                 data.get("runtime_id")
                 or os.environ.get("EPIC_RUNTIME")
                 or os.environ.get("EPIC_RUNTIME_RESOLVED")
                 or ""
             ).strip().lower()
-            if (
-                runtime_id == "codex"
-                and expected_session
-                and fence_session
-                and str(fence_session).strip() != str(expected_session).strip()
-            ):
-                fence_data["session_id"] = expected_session
-                fence_session = expected_session
+            if runtime_id == "codex":
+                if (
+                    expected_session
+                    and fence_session
+                    and str(fence_session).strip() != str(expected_session).strip()
+                ):
+                    fence_data["session_id"] = expected_session
+                    fence_session = expected_session
+                if (
+                    expected_step
+                    and fence_step
+                    and str(fence_step).strip() != str(expected_step).strip()
+                ):
+                    fence_data["step_id"] = expected_step
+                    fence_step = expected_step
+                if (
+                    expected_epic
+                    and fence_epic
+                    and str(fence_epic).strip() != str(expected_epic).strip()
+                ):
+                    fence_data["epic_id"] = expected_epic
+                    fence_epic = expected_epic
 
             mismatches = []
             if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():

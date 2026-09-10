@@ -20,12 +20,7 @@ fi
 parallel_args=()
 worker_arg=1
 distribution_arg=1
-cpu_count="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')"
-if [[ "$cpu_count" =~ ^[0-9]+$ ]] && (( cpu_count > 2 )); then
-  default_workers=$((cpu_count - 2))
-else
-  default_workers=1
-fi
+default_workers=4
 for arg in "$@"; do
   case "$arg" in
     -n|--numprocesses|--numprocesses=*) worker_arg=0 ;;

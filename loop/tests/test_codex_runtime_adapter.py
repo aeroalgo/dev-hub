@@ -223,6 +223,51 @@ def test_analyze_unprefixed_unsupported_call_is_repairable_retry():
     assert analysis.retry is True
 
 
+def test_analyze_unsupported_call_ignores_source_dump_colon_false_positive():
+    """Regression: reading codex.py into the session log must not yield tool=':'."""
+    from loop.runtime_adapters.codex import _detect_codex_unsupported_tool
+
+    source_dump = (
+        '{"type":"item.completed","item":{"type":"command_execution","aggregated_output":'
+        '"_CODEX_UNSUPPORTED_TOOL_RE = re.compile(\\n'
+        '    r\\"(?i)^\\\\s*(?:ERROR\\\\s+codex_core::tools::router:\\\\s*'
+        'error=unsupported call:\\\\s*|\\"\\n'
+        '    r\\"CODEX_UNSUPPORTED_TOOL_CALL\\\\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)\\"\\n"}}\n'
+    )
+    assert _detect_codex_unsupported_tool(source_dump) is None
+
+    adapter = CodexAdapter()
+    ctx = SessionContext(prompt="do task", phase="BUGFIX", extras={"exit_code": 0})
+    analysis = adapter.analyze_log(
+        "SESSION_START session=1\n" + source_dump + "SESSION_END session=1 exit_code=0\n",
+        ctx,
+    )
+    assert analysis.reason is None
+    assert analysis.retry is False
+
+
+def test_analyze_unsupported_call_ignores_jsonl_item_command_dumps():
+    """Claude-like: do not classify unsupported tools from item.completed bash dumps."""
+    import json
+
+    from loop.runtime_adapters.codex import _detect_codex_unsupported_tool
+
+    item_line = json.dumps(
+        {
+            "type": "item.completed",
+            "item": {
+                "type": "command_execution",
+                "aggregated_output": "ERROR unsupported call: wait_agent\n",
+            },
+        }
+    )
+    assert _detect_codex_unsupported_tool(item_line + "\n") is None
+    assert (
+        _detect_codex_unsupported_tool("ERROR unsupported call: wait_agent\n")
+        == "wait_agent"
+    )
+
+
 def test_analyze_log_binary_missing_fixture():
     adapter = CodexAdapter()
     raw_log = (FIXTURES_DIR / "codex_session_binary_missing.log").read_text(encoding="utf-8")

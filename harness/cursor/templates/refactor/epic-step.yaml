@@ -19,7 +19,7 @@ tests: []
 
 checkpoints:
   - id: cp1
-    criterion: behavior freeze preserved + targeted pytest green
+    criterion: behavior freeze preserved + targeted dev-hub bin/pytest / managed capability_checks green
     status: pending
 
 resume_from: cp1

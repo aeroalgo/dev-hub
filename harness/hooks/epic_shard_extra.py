@@ -49,6 +49,11 @@ class EpicQaDoc(BaseModel):
     fix_plan: list[FixPlanRow] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     suite: list[str] = Field(default_factory=list)
+    checklist_sha256: str | None = None
+    ac_plus: list[str] = Field(default_factory=list)
+    ac_minus: list[str] = Field(default_factory=list)
+    section_011: list[str] = Field(default_factory=list)
+    verify_scope: Literal["full", "prior_only"] | None = None
 
     model_config = {"populate_by_name": True}
 
@@ -59,6 +64,10 @@ class EpicQaDoc(BaseModel):
             raise ValueError(f"schema must be {SCHEMA_EPIC_QA!r}")
         return SCHEMA_EPIC_QA
 
+
+ELIGIBLE_BLOCKER_PREFIX_RE = re.compile(
+    r"(?i)^\s*(suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke)\s*:"
+)
 
 class EpicRefactorDoc(BaseModel):
     schema_version: str = Field(alias="schema")
@@ -155,6 +164,13 @@ def validate_qa_yaml(path: Path, *, expected_verdict: str | None = None) -> list
         )
     if doc.verdict in {"fail", "blocked"} and not doc.fix_plan:
         errors.append("fix_plan: required when verdict is fail or blocked")
+    if doc.verdict in {"fail", "blocked"}:
+        for idx, blocker in enumerate(doc.blockers or [], start=1):
+            if not ELIGIBLE_BLOCKER_PREFIX_RE.match(str(blocker)):
+                errors.append(
+                    f"blockers[{idx}]: must start with eligible class "
+                    "suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:"
+                )
     return errors
 
 

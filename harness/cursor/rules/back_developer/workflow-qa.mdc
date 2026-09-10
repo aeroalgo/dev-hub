@@ -20,8 +20,8 @@ code-review (спорный AC / крупный epic merge) · pytest-coverage (
 2a. **Full suite (HARD):** Hub (dev-hub self-test) — full `bin/pytest -q --tb=line` (весь репо, без path/`-k`; targeted/epic-scoped suite = FAIL); Managed project — full capability checks (`test.full`, `typecheck.full`, `lint.full`) с валидным typed execution evidence. Канон: `_lean/qa.mdc`
 2b. Epic QA load rule: если plan содержит anchor `#qa-consumes` (планы L2+), читать только секцию `plan.md#qa-consumes` через offset/grep (не full plan); full `plan §N` — только если test matrix row missing. В qa.yaml поля: `test_matrix_coverage: [TM-001, ...]` сопоставляются с plan Test matrix.
 3. qa-артефакт: с эпиком `memory-bank/back/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`; без — `memory-bank/back/qa/qa-YYYYMMDD-<slug>.yaml` (шаблон `.cursor/templates/qa/epic-step.yaml`). **FORBIDDEN** дубль `qa.yaml` с тем же содержимым. Paths: @.cursor/rules/shared/epic-scoped-paths.mdc
-4. fail|blocked → §Fix plan (конкретные `BACK BUGFIX <subject>`, не общий BUGFIX)
-5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff BACK QA` обязателен  
+4. fail|blocked → §Fix plan: **полный eligible** список из suite+leftover+verify-qa `## BLOCKERS (complete)` (конкретные `BACK BUGFIX <subject>` пункты; один отчёт, не drip). **FORBIDDEN:** fail-fast mid-checks; style/naming/comments/«строже plan» в blockers (anti-ratchet → pass).
+5. **FINISH:** finish-block (`code_changed: no`) + `## Handoff BACK QA` обязателен — только после полного прохода checks  
    Next: Handoff в `memory-bank/activeContext.md` + decompose index
    **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь
 

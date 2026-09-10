@@ -584,7 +584,7 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
             "evidence (in_progress) → validate-step → Handoff → "
             "`@verify` packed → PASS → finalize-step/stop |",
-            "| BACK QA после suite | @reviewer ОБЯЗАТЕЛЬНО (Suite+AC+§0.11/ALLOW ≤10) |",
+            "| BACK QA после suite | @reviewer/@verify-qa ОБЯЗАТЕЛЬНО (полный AC matrix; Suite+AC+§0.11/ALLOW ≤40; no fail-fast) |",
             "DENY @verify: нет секций · ALLOW пуст/дерево · step нет в ALLOW · step path нет "
             "на диске · уже PASS · no-VERDICT retry исчерпан.",
             "no-VERDICT exhausted → Handoff `NEED_HUMAN: verify_no_verdict` + stop "
@@ -1859,6 +1859,10 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
     Prefer epic runner ``session_id`` (state, then ``EPIC_RUNNER_SESSION_ID``)
     over the Claude Code invoke id so verify evidence still matches
     ``finalize-step`` after transient Claude retries / session aborts.
+
+    Ownership comparisons for in-flight verify fences overlay prepare-time
+    ``session_start_identity`` (shared Claude/Codex/DSH rule) so mid-session
+    mb-finish does not invalidate BUGFIX/IMPLEMENT fences after arming QA.
     """
     try:
         from epic_lib import gate_identity as projection_identity, load_epic_state
@@ -1869,7 +1873,13 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
             or str(os.environ.get("EPIC_RUNNER_SESSION_ID") or "").strip()
             or session_id
         )
-        return projection_identity(state, runner_session)
+        identity = projection_identity(state, runner_session)
+        try:
+            from loop.session_finalize import apply_ownership_identity
+
+            return apply_ownership_identity(identity, state)
+        except ImportError:
+            return identity
     except (ImportError, OSError, TypeError, ValueError, json.JSONDecodeError):
         return {
             "session_id": (
@@ -2106,6 +2116,15 @@ def _allow_section_body(prompt: str) -> str | None:
 
 
 ALLOW_READ_MAX = 10
+ALLOW_READ_MAX_BY_AGENT: dict[str, int] = {
+    "verify-qa": 40,
+    "reviewer": 40,
+}
+
+
+def allow_read_max_for(agent_type: str | None = None) -> int:
+    norm = str(agent_type or "").strip().lower()
+    return int(ALLOW_READ_MAX_BY_AGENT.get(norm, ALLOW_READ_MAX))
 
 
 def allow_read_files(prompt: str) -> list[str]:
@@ -2124,13 +2143,14 @@ def allow_read_files(prompt: str) -> list[str]:
     return paths
 
 
-def allow_read_violations(prompt: str) -> list[str]:
-    """Return human-readable violations for ALLOW READ (≤ALLOW_READ_MAX files, no dirs)."""
+def allow_read_violations(prompt: str, *, agent_type: str | None = None) -> list[str]:
+    """Return human-readable violations for ALLOW READ (≤max files, no dirs)."""
     body = _allow_section_body(prompt)
     if body is None:
         return []
 
     paths = allow_read_files(prompt)
+    max_files = allow_read_max_for(agent_type)
 
     viol: list[str] = []
     trees: list[str] = []
@@ -2159,16 +2179,16 @@ def allow_read_violations(prompt: str) -> list[str]:
 
     if trees:
         viol.append(
-            f"ALLOW READ содержит деревья/каталоги (нужны ≤{ALLOW_READ_MAX} файлов): "
+            f"ALLOW READ содержит деревья/каталоги (нужны ≤{max_files} файлов): "
             + ", ".join(trees[:8])
         )
-    if len(files) > ALLOW_READ_MAX:
+    if len(files) > max_files:
         viol.append(
-            f"ALLOW READ: {len(files)} файлов > {ALLOW_READ_MAX} — урежь список"
+            f"ALLOW READ: {len(files)} файлов > {max_files} — урежь список"
         )
     if not files and not trees:
         viol.append(
-            f"ALLOW READ пуст — укажи ≤{ALLOW_READ_MAX} конкретных файлов"
+            f"ALLOW READ пуст — укажи ≤{max_files} конкретных файлов"
         )
     return viol
 

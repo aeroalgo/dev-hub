@@ -17,6 +17,8 @@ from harness.hooks.epic.core import (
     handoff_post_implement_phase,
     latest_audit_artifact_for_reference,
     latest_bugfix_artifact_for_reference,
+    lifecycle_arm_phase,
+    reduce_epic_lifecycle,
     latest_qa_any_artifact_for_reference,
     load_epic_state,
     parse_qa_verdict,
@@ -411,6 +413,63 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     st["status"] = "complete" if next_mode == "DONE" else "armed"
     st["halt_reason"] = None
     st["qa_after_bugfix"] = None
+    from loop.qa_checklist_freeze import (
+        REQA_CYCLE_MAX,
+        bump_reqa_cycle,
+        ensure_freeze,
+        finish_qa_freeze_errors,
+        freeze_from_qa_checks,
+        load_freeze,
+        persist_freeze,
+        read_qa_artifact_lists,
+        with_prior_blockers,
+        with_verify_scope,
+    )
+
+    if next_mode == "DONE":
+        persist_freeze(st, None)
+    elif epic_id:
+        checks, blockers, ac_plus, ac_minus, _art_sha, section_011 = read_qa_artifact_lists(qa_art)
+        freeze_errors = finish_qa_freeze_errors(
+            path=qa_art,
+            freeze=load_freeze(st) or ensure_freeze(cwd, epic_id=epic_id, role=role, state=st),
+            verdict=qa_verdict,
+        )
+        if freeze_errors:
+            rollback_staged_files(cwd, tx_rec.staged_files)
+            tx_rec.state = FinishTxState.ROLLBACK_REQUIRED
+            tx_rec.error = "; ".join(freeze_errors)
+            write_finish_tx(cwd, tx_rec)
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["qa_checklist_enforce_failed"],
+                shape_errors=freeze_errors,
+            )
+        freeze = ensure_freeze(cwd, epic_id=epic_id, role=role, state=st)
+        if freeze is None:
+            try:
+                freeze = freeze_from_qa_checks(
+                    epic_id=epic_id,
+                    checks=checks,
+                    ac_plus=ac_plus or None,
+                    ac_minus=ac_minus or None,
+                    section_011=section_011 or None,
+                    blockers=blockers if qa_verdict in {"fail", "blocked"} else None,
+                    source_path=qa_rel,
+                )
+            except ValueError:
+                freeze = load_freeze(st)
+        if freeze is not None and qa_verdict in {"fail", "blocked"}:
+            freeze = with_prior_blockers(freeze, blockers)
+            freeze = bump_reqa_cycle(freeze)
+            if freeze.reqa_cycles >= REQA_CYCLE_MAX:
+                st["qa_reqa_halt"] = True
+                st["halt_reason"] = (
+                    f"NEED_HUMAN: QA↔BUGFIX cap reached ({freeze.reqa_cycles}/"
+                    f"{REQA_CYCLE_MAX}) on checklist_sha256={freeze.checklist_sha256}"
+                )
+        if freeze is not None:
+            persist_freeze(st, freeze)
     save_epic_state(cwd, st)
 
     # Mark committed in journal
@@ -438,6 +497,34 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
 
 
 
+
+def _bugfix_artifact_for_finish(
+    cwd: Path, role_dir: str, *, epic_id: str
+) -> Path | None:
+    """Prefer the bugfix artifact from activeContext load_now for this epic.
+
+    Multi-artifact folders must not silently finish an older leftover file while
+    the session worked on a newer one; fall back to latest only when AC has none.
+    """
+    try:
+        ctx = read_active_context(cwd)
+    except OSError:
+        ctx = ""
+    marker = f"{role_dir}/bugfix/{epic_id}/"
+    for rel in extract_load_now(ctx):
+        norm = str(rel or "").replace(chr(92), "/").strip()
+        if marker not in norm:
+            continue
+        name = Path(norm).name
+        if not name.startswith("bugfix-") or not name.endswith(".md"):
+            continue
+        candidate = cwd / norm
+        if candidate.is_file():
+            return candidate
+    return latest_bugfix_artifact_for_reference(cwd, role_dir, epic_id=epic_id)
+
+
+
 def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     """Orchestrate Bugfix phase finish atomically."""
     cwd = Path(req.cwd).resolve()
@@ -462,7 +549,7 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=["Bugfix finish requires armed epic_id"],
         )
 
-    bugfix_art = latest_bugfix_artifact_for_reference(
+    bugfix_art = _bugfix_artifact_for_finish(
         cwd, role_dir, epic_id=epic_id
     )
     try:
@@ -579,8 +666,31 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             shape_errors=[str(exc)],
         )
 
-    _append_event(cwd, role_dir, epic_id, "bugfix_done", bugfix_art)
+    appended = _append_event(cwd, role_dir, epic_id, "bugfix_done", bugfix_art)
+    if not appended and not event_persisted(
+        cwd, role_dir, epic_id, "bugfix_done", bugfix_art
+    ):
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_event_not_persisted"],
+            shape_errors=[
+                "bugfix_done event was not written to the epic event log; "
+                "BUGFIX→QA transition is not atomic without it"
+            ],
+        )
     reconcile_epic_events(cwd, role_dir, epic_id)
+    decision = reduce_epic_lifecycle(cwd, role_dir, epic_id)
+    life_phase = lifecycle_arm_phase(str(decision.get("phase") or "QA"), decision)
+    if life_phase == "BUGFIX" or str(decision.get("reason_code") or "") == "qa_failed":
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_event_stale_vs_qa_fail"],
+            shape_errors=[
+                "bugfix_done did not reopen QA after the latest qa_fail "
+                f"(reason={decision.get('reason_code')!r}, artifact={bugfix_rel}); "
+                "finish the current BUGFIX artifact, not a leftover one"
+            ],
+        )
 
     st = load_epic_state(cwd)
     st["armed_step"] = "QA"
@@ -603,6 +713,25 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
         suite_command=suite_plan.suite_command,
         changed_paths=list(suite_plan.changed_paths),
     ).model_dump()
+    from loop.qa_checklist_freeze import (
+        ensure_freeze,
+        persist_freeze,
+        read_qa_artifact_lists,
+        with_prior_blockers,
+        with_verify_scope,
+    )
+
+    freeze = ensure_freeze(cwd, epic_id=epic_id, role=role, state=st, prior_only=True)
+    latest_qa = latest_qa_any_artifact_for_reference(cwd, role_dir, epic_id=epic_id)
+    if freeze is not None and latest_qa is not None and latest_qa.is_file():
+        _checks, blockers, _ap, _am, _sha, _sec = read_qa_artifact_lists(latest_qa)
+        if blockers:
+            freeze = with_prior_blockers(freeze, blockers)
+        freeze = with_verify_scope(freeze, "prior_only")
+        persist_freeze(st, freeze)
+    elif freeze is not None:
+        freeze = with_verify_scope(freeze, "prior_only")
+        persist_freeze(st, freeze)
     save_epic_state(cwd, st)
 
     # Mark committed in journal

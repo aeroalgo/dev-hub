@@ -50,6 +50,8 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "чинит в сессии" not in text
     assert "FIX INCOMPLETE" not in text
     assert "verify-qa до full suite" not in text
+    assert "BLOCKERS (complete)" in text
+    assert "fail-fast" in text
 
 
 def test_build_prompt_qa_uses_current_integration_role():

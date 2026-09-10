@@ -7,7 +7,7 @@ description: "Role command parity chain — BACK/FRONT/INTEG workflow router (gr
 
 **Язык:** все user-facing сообщения — **русский** (@.claude/rules/language.md). Subagent/task prompts: добавь «ответ и отчёт пользователю — на русском».
 
-**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: pytest — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`.
+**Тесты:** общий контракт `@.cursor/rules/shared/test-timeout.mdc`: для hub-тестов самого dev-hub — `bin/pytest …` (300s встроен) или `timeout -k 10s 300s .venv/bin/pytest …`. Для managed-проектов — верификация выполняется строго через stack profile `capability_checks` и evidence, без generic fallback. Lifecycle gate: `@.cursor/rules/shared/workflow-decompose-transition-gate.mdc`.
 
 **FRONT + любой frontend:** тесты (vitest/playwright/npm test/e2e) — **только parent**. Subagent spawn → в промпт вставить HARD RULE из `@.claude/rules/front-tests-parent-only.md` / `~/.claude/rules/02-front-tests-parent-only.md`.
 
@@ -52,7 +52,7 @@ Fallback на Read/Grep — только после ориентации по г
 **HARD RULE:** канон — `.cursor/rules/mainrule.mdc` §Full linked chain.
 
 - **PLAN / DECOMPOSE / brownfield VAN:** `Read` entrypoint текущего runtime (`CLAUDE.md` / `AGENTS.md`) → `mainrule.mdc` → индекс+core → workflow → Gates → `@` рекурсивно.
-- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → cheatsheet → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
+- **IMPLEMENT / TASK / BUGFIX / REFACTOR:** **не** рекурсивный `@`. Старт: `load_now` shard+index → `_lean/<mode>.mdc` → scope-lock → canonical `## Hot path` → `skills.impl` шага. Индекс роли и полный `workflow-implement.mdc` — только при FAIL. `token-economy-core` на IMPLEMENT **не** грузить (stub already-on).
 
 Пропущенный Read из списка режима — gap, не блок FINISH.
 
@@ -81,7 +81,7 @@ Fallback на Read/Grep — только после ориентации по г
 - Do not edit production/test code and do not create `back/refactor/session-*` during this command.
 ## Step 1 — role index + core
 
-**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если cheatsheet/Gates ссылаются на TDD/pytest runner и его нет в Gates.
+**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если Hot path/Gates ссылаются на TDD runner (dev-hub self-test bin/pytest или managed capability_checks) и его нет в Gates.
 
 **PLAN / DECOMPOSE / прочие:** читай **полные пути** (не basename без папки роли):
 
@@ -117,7 +117,7 @@ Fallback на Read/Grep — только после ориентации по г
 | BACK PLAN REFACTOR | `.cursor/rules/back_developer/workflow-plan-refactor.mdc` |
 | GAP CLOSE | `{role_dir}workflow-gap-close.mdc` |
 
-**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (cheatsheet + Gates). Читать при FAIL / дыре coverage.
+**IMPLEMENT:** полный `workflow-implement.mdc` — **не** на старте (Hot path + Gates). Читать при FAIL / дыре coverage.
 
 **ЗАПРЕЩЕНО угадывать:**
 - `workflow-back-bugfix.mdc` / `workflow-front-*.mdc` / `workflow-integ-*.mdc`
@@ -128,7 +128,7 @@ Fallback на Read/Grep — только после ориентации по г
 
 ## Step 3 — isolation (step 1a)
 
-Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно). На IMPLEMENT это **стартовый** файл (вместе с cheatsheet + scope-lock).
+Читай **только** путь из строки **Gates** в `workflow-*.mdc` (копируй дословно). На IMPLEMENT это **стартовый** файл (вместе с Hot path + scope-lock).
 
 Канон BACK QA:
 `.cursor/rules/back_developer/isolation_rules/_lean/qa.mdc`

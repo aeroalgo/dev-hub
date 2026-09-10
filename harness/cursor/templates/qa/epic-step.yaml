@@ -6,6 +6,8 @@ epic_id: <plan_id>
 date: YYYY-MM-DD
 reviewer: BACK QA
 verdict: pass
+checklist_sha256: <from Frozen QA checklist>
+verify_scope: full
 
 scope:
   - "task: T-xxx"
@@ -13,8 +15,12 @@ scope:
   - "steps: s01–sNN"
   - "files: apps/…"
 
+ac_plus: []
+ac_minus: []
+section_011: []
+
 checks:
-  - "full suite green: `bin/pytest -q --tb=line`"
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
   - "integration rule (§0.11)"
   - "no phantom refs"
   - "reviewer gate: VERDICT PASS"
@@ -29,4 +35,4 @@ limitations:
   - "optional QA caveats"
 
 suite:
-  - "bin/pytest -q --tb=line"
+  - "bin/pytest -q --tb=line  # Hub (dev-hub self-test); managed projects: capability_checks: [test.full]"

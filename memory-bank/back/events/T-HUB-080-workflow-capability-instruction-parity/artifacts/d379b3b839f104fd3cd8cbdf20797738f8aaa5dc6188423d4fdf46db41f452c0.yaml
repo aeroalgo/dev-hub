@@ -1,0 +1,34 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: '2026-09-10'
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01–s05"
+  - "files: loop/**, harness/**, memory-bank/**"
+
+checks:
+  - "full suite (dev-hub self-test): `bin/pytest -q --tb=line` (PASSED: 2494 passed, 4 skipped, 79 warnings)"
+  - "verify-qa reviewer (FAILED: AC−-1/AC−-3 classifier false-allow risk and AC-7/AC−-5 parity policy/body equivalence gap)"
+  - "integration rule (§0.11)"
+
+issues:
+  - "AC−-1/AC−-3: classifier joins current line with previous line and could allow action after negative line (loop/tests/test_stack_profile_instruction_inventory.py:57-75); missing adversarial test coverage."
+  - "AC-7/AC−-5: parity check validates only presence of markers rather than policy/body equivalence (loop/tests/test_stack_profile_instruction_inventory.py:395-425)."
+
+blockers:
+  - "AC−-1/AC−-3 and AC-7/AC−-5 gaps in loop/tests/test_stack_profile_instruction_inventory.py"
+
+fix_plan:
+  - "BACK BUGFIX classifier-adversarial-parity-gap: fix classifier line-joining behavior, add adversarial tests, and enforce policy/body equivalence in runtime parity checks"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

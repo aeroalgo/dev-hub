@@ -72,7 +72,7 @@ skills:
 checkpoints:
   - id: cp1
     criterion: атомарный AC (не весь goal)
-    verify: ".venv/bin/pytest path/to/test -q"
+    verify: "bin/pytest path/to/test -q  # Hub (dev-hub self-test); managed: capability_checks: [test.targeted]"
   - id: cp2
     criterion: ...
     verify: "..."
@@ -100,4 +100,4 @@ tdd: []
 # deletes: []  # mock/legacy client paths — HARD при ⚠️ mock→live
 # grep_control: [{ back, front }]
 # goal / as_built / delta / deletes / out_of_scope / plan_contract — обязательны как у BACK/FRONT
-# checkpoints[] — 2–4 cp; у каждого criterion + verify (vitest/pytest/rg)
+# checkpoints[] — 2–4 cp; у каждого criterion + verify (dev-hub bin/pytest / FRONT vitest parent-only / managed capability_checks / rg)

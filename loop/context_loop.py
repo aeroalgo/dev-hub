@@ -882,17 +882,36 @@ def _audit_work_block(_role: str, epic_id: str) -> str:
 
 def _qa_work_block(_role: str, epic_id: str, *, cwd: Path | None = None, state: dict | None = None) -> str:
     from loop.qa_outcome import render_qa_outcome_policy, resolve_qa_suite_plan
+    from loop.qa_checklist_freeze import ensure_freeze, persist_freeze, render_freeze_prompt_block
 
-    plan = resolve_qa_suite_plan(cwd or Path("."), state)
+    cwd_p = Path(cwd or Path("."))
+    st = dict(state or {})
+    prior_only = isinstance(st.get("qa_after_bugfix"), dict)
+    freeze = ensure_freeze(
+        cwd_p,
+        epic_id=str(epic_id or ""),
+        role=_role,
+        state=st,
+        prior_only=prior_only,
+    )
+    if freeze is not None and state is not None:
+        persist_freeze(state, freeze)
+        st = persist_freeze(st, freeze)
+    plan = resolve_qa_suite_plan(cwd_p, st)
     policy = render_qa_outcome_policy(plan)
+    freeze_block = render_freeze_prompt_block(freeze, prior_only=prior_only)
     return (
         f"""## QA canon (HARD) — classifier-driven
 1. Прочитай только QA-цепочку выбранного workflow через entrypoint и `mainrule.mdc`.
 2. Ровно один suite-command из classifier ниже. FORBIDDEN: повторные прогоны, смена flags, `python -m pytest`, thrash.
 3. QA — review epic `{epic_id}`: не чини код в этой сессии.
 4. Следуй `next_action` классификатора: bugfix без verify; verify_qa только на all_green после suite.
+5. Pack verify-qa from **Frozen QA checklist** below (1:1). FORBIDDEN: reformulate AC or raise the bar.
+6. Fail blockers MUST use eligible class prefix: `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`.
 """
         + policy
+        + "\n"
+        + freeze_block
     )
 
 
@@ -1208,6 +1227,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "\n## BUGFIX FINISH\n"
             f"1. Выполни BUGFIX workflow текущей команды для epic `{epic}`.\n"
             "2. Зафиксируй QA source, root cause и regression evidence по правилам workflow.\n"
+            "2a. Закрой **все** `blockers`/`fix_plan` из текущего QA-отчёта в одном BUGFIX (partial = FAIL).\n"
             "3. After verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
             "4. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
             "5. После успешного FINISH останови сессию: BACK QA выполнит следующий запуск runner.\n"
@@ -1226,12 +1246,20 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     elif phase_kind == "qa":
         finish_block = (
-            "\n> QA path (HARD): один suite. Red/mismatch → `qa-*.yaml` fail|blocked + Handoff BUGFIX + "
-            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
-            "FORBIDDEN на red path: verify-qa, gate-repair, повторный suite, правки продукта в QA.\n"
-            "> Green+AC ok → один `verify-qa` (`agent_type: verify-qa`). "
-            "PASS → `mb-finish qa` (DONE). FAIL/BLOCKED → BUGFIX path выше, без repair-loop.\n"
-            "> После BUGFIX runner поднимет новый QA: новый `qa-*.yaml` + (при green) новый verify PASS.\n"
+            "\n> QA path (HARD): заверши **все** checks прогона (suite → leftover/sot → behavior smoke → "
+            "один `verify-qa` с полным AC+/AC−/§0.11). "
+            "Pack `AC+`/`AC−`/`§0.11` = literal plan AC/SC/FR (после BUGFIX: + `Prior blockers` 1:1); "
+            "**запрещено** усиливать wording между QA runs (anti-ratchet). "
+            "Только потом один `qa-*.yaml`: `blockers`/`fix_plan` 1:1 **только с eligible** "
+            "`## BLOCKERS (complete)` (+ suite/leftover gaps). "
+            "FAIL/BLOCKED с eligible B* → Handoff BUGFIX + `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
+            "PASS (в т.ч. только ineligible residuals) → тот же `mb-finish qa` (DONE).\n"
+            "> FORBIDDEN: fail-fast mid-checks / partial eligible blockers / repair-loop / повторный suite / "
+            "правки продукта в QA / spawn verify-qa while suite incomplete / "
+            "BUGFIX из style·naming·comments·«сделай тест строже plan».\n"
+            "> Suite red → `qa-*.yaml` fail без verify-qa, но со **всеми** suite failures в blockers.\n"
+            "> После BUGFIX runner поднимет новый QA: тот же checklist + Prior blockers; "
+            "новый verify PASS без raise планки.\n"
             "> Если `mb-finish` / auto-finish вернул `ok: true` — немедленно останови turn без новых tools.\n"
         )
     elif phase_kind == "audit":
@@ -2300,6 +2328,32 @@ def prepare_session(
         session_id=checkpoint_session,
         phase_run_id=st["phase_run_id"],
     )
+    phase_u = str(armed_step_now or phase_raw or "").upper()
+    if st.get("qa_reqa_halt") and ("QA" in phase_u.split() or phase_u.endswith("QA") or phase_u == "QA"):
+        reason = str(
+            st.get("halt_reason")
+            or "NEED_HUMAN: QA↔BUGFIX re-QA cap reached on frozen checklist_sha256"
+        )
+        st["active"] = False
+        st["status"] = "halted"
+        st["halt_reason"] = reason
+        save_epic_state(cwd_p, st)
+        return {"ok": False, "complete": False, "halt": True, "reason": reason}
+    if "QA" in phase_u.split() or phase_u.endswith("QA") or phase_u == "QA":
+        from loop.qa_checklist_freeze import ensure_freeze, persist_freeze
+
+        epic_for_freeze = str(st.get("armed_epic") or projection.get("epic") or "")
+        role_for_freeze = str(st.get("armed_role") or st.get("role") or "back")
+        prior_only = isinstance(st.get("qa_after_bugfix"), dict)
+        qa_freeze = ensure_freeze(
+            cwd_p,
+            epic_id=epic_for_freeze,
+            role=role_for_freeze,
+            state=st,
+            prior_only=prior_only,
+        )
+        if qa_freeze is not None:
+            persist_freeze(st, qa_freeze)
     proj = st.get("projection")
     if isinstance(proj, dict):
         proj["session_id"] = checkpoint_session

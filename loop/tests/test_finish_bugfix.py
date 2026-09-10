@@ -260,3 +260,95 @@ def test_qa_finish_rejects_bugfix_phase(tmp_path):
     out = finish_qa(MbFinishRequest(cwd=str(tmp_path), phase="QA", step_id="QA", done_summary=""))
     assert not out.ok
     assert "bugfix_finish_required" in out.diagnostic_codes
+
+
+def test_finish_bugfix_fails_when_artifact_already_done_before_latest_qa_fail(
+    tmp_path: Path,
+) -> None:
+    """Stale leftover bugfix_done must not arm QA while latest event is qa_fail."""
+    from epic import load_epic_state, reduce_epic_lifecycle, save_epic_state
+    from harness.hooks.epic.core import (
+        _append_event,
+        mirror_gate_verdict,
+        rebuild_epic_projection,
+    )
+    from harness.hooks._lib import current_gate_identity, mark_in_flight, save_state
+    from gate_receipt import issue_verifier_receipt
+    from loop.mb_finish.impl import finish_bugfix
+    from loop.mb_finish.schemas import MbFinishRequest
+
+    epic = "T-finish-bugfix-stale"
+    _seed_epic(tmp_path, epic)
+    failed = reduce_epic_lifecycle(tmp_path, "back", epic)
+    assert failed["reason_code"] == "qa_failed"
+
+    leftover = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260901-old.md"
+    _write(leftover, "# old\nfixed once\n")
+    assert _append_event(tmp_path, "back", epic, "bugfix_done", leftover)
+
+    qa = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260910-retest.yaml"
+    _write(qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    assert _append_event(tmp_path, "back", epic, "qa_fail", qa)
+
+    leftover_rel = leftover.relative_to(tmp_path).as_posix()
+    _write(
+        tmp_path / "memory-bank/activeContext.md",
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: BUGFIX\n"
+        f"epic_id: {epic}\n"
+        "---\n\n"
+        "## load_now\n"
+        f"1. [{leftover_rel}]({leftover_rel}) — old\n\n"
+        f"## Handoff BACK BUGFIX — {epic}\n"
+        "- **Дальше:** fix\n",
+    )
+
+    rebuild_epic_projection(tmp_path)
+    state = load_epic_state(tmp_path)
+    state["armed_step"] = "BUGFIX"
+    state["phase"] = "BUGFIX"
+    state["active"] = True
+    state["status"] = "running"
+    mark_in_flight(
+        state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    save_epic_state(tmp_path, state)
+
+    ident = current_gate_identity(str(tmp_path), "test")
+    ident["authority"] = "autonomous"
+    receipt = issue_verifier_receipt(ident, "PASS", "verify-bugfix")
+    gate_state = {}
+    mark_in_flight(
+        gate_state,
+        agent="verify-bugfix",
+        model="test-model",
+        managed=True,
+        tool_use_id="test-tool",
+    )
+    save_state("test", str(tmp_path), gate_state)
+    mirror_gate_verdict(
+        tmp_path,
+        "PASS",
+        agent_id="verify-bugfix",
+        evidence=receipt,
+        session_id="test",
+    )
+
+    out = finish_bugfix(
+        MbFinishRequest(
+            cwd=str(tmp_path),
+            phase="BUGFIX",
+            step_id="BUGFIX",
+            done_summary="stale should fail",
+        )
+    )
+    assert out.ok is False, out
+    assert "bugfix_event_stale_vs_qa_fail" in (out.diagnostic_codes or [])
+    st = load_epic_state(tmp_path)
+    assert st.get("armed_step") == "BUGFIX"

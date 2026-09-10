@@ -81,7 +81,7 @@ Fallback на Read/Grep — только после ориентации по г
 - Do not edit production/test code and do not create `back/refactor/session-*` during this command.
 ## Step 1 — role index + core
 
-**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если Hot path/Gates ссылаются на TDD/pytest runner и его нет в Gates.
+**IMPLEMENT / TASK / BUGFIX / REFACTOR:** индекс роли **не** читать (режим уже выбран). Core `{role_dir}mainrule-core.mdc` — только если Hot path/Gates ссылаются на TDD runner (dev-hub self-test bin/pytest или managed capability_checks) и его нет в Gates.
 
 **PLAN / DECOMPOSE / прочие:** читай **полные пути** (не basename без папки роли):
 

@@ -202,7 +202,7 @@ Min: самооценка 1–5 по трем измерениям engineering s
 
 | ID | Priority | Scenario | Command / fixture | Expected | Maps FR/AC |
 |----|----------|----------|-------------------|----------|------------|
-| TM-001 | P0 | … | `.venv/bin/pytest …` | PASS / exit 0 | AC-1 |
+| TM-001 | P0 | … | `bin/pytest …` (dev-hub self-test) или `capability_checks: [test.targeted]` (managed) | PASS / exit 0 | AC-1 |
 
 Min: ≥3 P0 rows для L3; каждый AC+ plan должен иметь ≥1 TM row. TM-IDs cross-link to Failure matrix Test ID.
 

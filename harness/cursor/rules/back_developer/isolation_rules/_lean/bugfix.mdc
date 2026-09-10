@@ -14,7 +14,8 @@ alwaysApply: false
 1. Баг описан; `load_now` first; извлечь `epic_id` → путь; core docs — только cross-cutting (§8)
 2. Root cause — не симптом; no mask/fallback
 3. Regression red → fix → green: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
-4. bugfix-файл complete в правильной папке; **Источник:** qa §Fix plan
+4. bugfix-файл complete в правильной папке; **Источник:** qa §Fix plan / `blockers[]` — **все** пункты текущего QA-отчёта (не subset)
+4a. **Complete fix (HARD):** закрыть каждый `fix_plan`/`blockers` item из QA source в одном BUGFIX; partial close = FAIL. Новый scope вне QA report — только если блокирует regression evidence того же отчёта.
 5. §0.11 если refs
 6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 
@@ -22,3 +23,4 @@ alwaysApply: false
 
 - Mask · tests skipped · FORBIDDEN: голый `pytest` (hub) / raw runner fallback without capability_checks → no FINISH
 - Epic известен, bugfix в корне `bugfix/` без `<epic_id>/` → FAIL
+- FINISH при незакрытом пункте `fix_plan`/`blockers` из QA source → FAIL

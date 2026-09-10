@@ -33,6 +33,7 @@ Parent **обязан** передать секции. Если нет или в
 ## Validation rules
 
 0. **Первый Read** = bugfix artifact из ALLOW (обязателен). Нет файла → сразу `VERDICT: FAIL` (`bugfix_artifact_missing`).
+0a. **Complete QA fix:** если в ALLOW/prompt есть QA source `blockers`/`fix_plan` — каждый пункт должен быть закрыт в bugfix artifact + evidence; partial → `FAIL` (`qa_blockers_incomplete`).
 1. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 2. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 3. Пройди `§0.11` checklist по пунктам. Orphan / missing counterpart → `FAIL`.
@@ -44,10 +45,11 @@ Parent **обязан** передать секции. Если нет или в
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"<step_id>","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"BUGFIX","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id`, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- **`step_id` всегда литерал `BUGFIX`** (FORBIDDEN: `sNN` / implement step / epic step id).
 - Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
 
 ## Gate Output (JSON fence HARD) — machine SoT
@@ -59,7 +61,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
   "schema": "loop-gate-verdict/v1",
   "agent_id": "verify-bugfix",
   "verdict": "PASS",
-  "step_id": "<step_id>",
+  "step_id": "BUGFIX",
   "session_id": "<session_id>",
   "epic_id": "<epic_id>",
   "recorded_at": "<iso8601>"
@@ -68,5 +70,6 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
 
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"FAIL"`.
+- `step_id`: всегда `"BUGFIX"`.
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

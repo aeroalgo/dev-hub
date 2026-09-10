@@ -19,10 +19,13 @@ alwaysApply: false
    - Почему: IMPLEMENT крутит только scope шага; QA — единственный gate regression «сломали ли вокруг».
 2a. **Brownfield replace / cutover:** leftover check — `rg` sunset A/B/C/**I**; compose/Dockerfile без legacy command из plan B; нет fallback patterns из plan C; нет старых machine-format instructions (Kind I); **`sot_enforce_scan`** — старый SoT DENY/HALT. Leftover → FAIL + fix_plan. Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §5 · behavior-first §8
 2b. **Behavior smoke (HARD) при agent/hook/gate/CLI FR в plan:** full suite green **недостаточен**. Parent обязан: path exists (agent/preset/CLI) · registry discover · один enforce-path (`rg` / targeted test) что runtime использует нужный surface. PASS при «N unit green» и мёртвом FR = FAIL. Канон: @.cursor/rules/shared/workflow-behavior-first.mdc §6
-3. После **full** suite → **1× verify-qa** обязателен (или legacy alias `reviewer`) (`Suite results` с командой full `bin/pytest` (dev-hub) / `test.full` capability_checks evidence (managed) · `AC+` · `AC−` · `§0.11` · `ALLOW READ` ≤10). Claude Code: `Agent`→`verify-qa`. Reviewer = основной code-review; **не** дублировать полным `code-review` skill на весь эпик.
+3. После **full** suite → **1× verify-qa** обязателен (или legacy alias `reviewer`). Parent pack: полный `AC+`/`AC−`/`§0.11` = **literal** plan AC/SC/FR (не sample, не усиленная переинтерпретация) · после BUGFIX добавь `Prior blockers` · `Suite results` full · `ALLOW READ` ≤40. Claude Code: `Agent`→`verify-qa`. Reviewer = основной code-review; **не** дублировать полным `code-review` skill на весь эпик.
+3a. **Exhaustive QA (HARD):** parent обязан завершить **все** checks прогона (suite → leftover/sot → behavior smoke → verify-qa) **до** записи `qa-*.yaml`. `verify-qa` — no fail-fast: полный matrix pass, затем один `## BLOCKERS (complete)`. **FORBIDDEN:** mid-check FINISH / qa fail на первом finding / partial eligible `blockers`/`fix_plan`.
+3b. **Anti-ratchet (HARD):** `blockers`/`fix_plan` только **eligible** B* с префиксом `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`. **FORBIDDEN** arm BUGFIX на style · naming · comments · «сделай тест строже plan». Ineligible residuals при green suite → `verdict: pass`. Re-QA: **Frozen QA checklist** (`checklist_sha256`) + Prior blockers; после BUGFIX `verify_scope: prior_only`. Cap: ≥3 QA↔BUGFIX на одном sha → `NEED_HUMAN`.
+3c. **Enforce:** spawn verify-qa без matching `checklist_sha256` → deny; finish_qa при drift sha/`ac_plus` или blockers без class → FAIL.
 4. Security spot-check: OWASP checklist на auth/API в diff (коротко). `semgrep` / `differential-review` — только если в diff есть auth, crypto, external I/O, secrets/config.
-5. qa-артефакт + tasks append-only
-5a. **fail|blocked:** `fix_plan[]` в qa yaml + Handoff — `finish-doc-router.md`
+5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список (suite red + leftover + verify-qa eligible B*).
+5a. **fail|blocked:** полный eligible `fix_plan[]` в qa yaml + Handoff — `finish-doc-router.md`
 6. FINISH: finish-block (`code_changed: no`); next-mode — `memory-bank/activeContext.md` + decompose index
 
 ## Situational (не каждый QA)
@@ -45,6 +48,9 @@ alwaysApply: false
 - PASS при failing full suite · FORBIDDEN: голый `pytest` (hub) / raw command fallback (managed) → reject/FAIL
 - Hub exception: PASS при **только** epic-scoped / path / `-k` / targeted `bin/pytest` (нет full-repo команды) → **FAIL** (`suite_not_full`); Managed project: PASS без `test.full` evidence → **FAIL**
 - BACK QA без reviewer после suite → FAIL
+- FINISH/`qa-*.yaml` до завершения всех checks прогона (suite+gates+verify-qa) → FAIL
+- `blockers`/`fix_plan` не покрывают полный **eligible** `## BLOCKERS (complete)` из verify-qa → FAIL
+- `blockers` содержат style/naming/comments/«строже plan» (ineligible) → FAIL (anti-ratchet)
 - Epic известен, qa-файл в корне `qa/` без `<epic_id>/` → FAIL
 - FINISH qa shard `.md` вместо `.yaml` → FAIL
 - PASS при leftover legacy entrypoint / fallback / Kind I instruction / fail `sot_enforce_scan` из plan sunset → FAIL

@@ -25,6 +25,9 @@ _AGENT_TYPE_RE = re.compile(
 )
 _AT_AGENT_RE = re.compile(r"@([a-z][a-z0-9_-]+)", re.IGNORECASE)
 _REVIEWER_ALIASES = {"reviewer", "verify-qa"}
+_IMPLEMENT_ALIASES = {"verify", "verify-implement"}
+_BUGFIX_ALIASES = {"verify-bugfix"}
+_STEP_ID_RE = re.compile(r"^[sera]\d{2}$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -189,6 +192,139 @@ def _already_processed(cwd: str | Path, session_id: str, completion: SubagentCom
         return False
 
 
+def _finish_tool_matches(
+    state: dict[str, Any],
+    *,
+    prefix: str,
+) -> bool:
+    finish = state.get("last_finish_tool")
+    if not isinstance(finish, dict):
+        return False
+    name = str(finish.get("name") or "")
+    if not name.startswith(prefix):
+        return False
+    finish_run = str(finish.get("phase_run_id") or "").strip()
+    current_run = str(state.get("phase_run_id") or "").strip()
+    if finish_run and current_run and finish_run != current_run:
+        return False
+    return True
+
+
+def _result_dump(result: Any) -> dict[str, Any]:
+    if hasattr(result, "model_dump"):
+        return result.model_dump()
+    if isinstance(result, dict):
+        return result
+    return {"ok": False, "diagnostic_codes": ["auto_finish_invalid_result"]}
+
+
+def gate_atomic_finish(
+    cwd: str | Path,
+    *,
+    agent_type: str,
+    verdict: str,
+    session_id: str,
+) -> dict[str, Any] | None:
+    """Atomically mb-finish after a valid gate PASS (IMPLEMENT / BUGFIX / QA).
+
+    Shared by Claude SubagentStop and Codex SubagentLifecycle. Artifact must
+    already be on disk before verify is spawned; verify PASS is the finish
+    boundary. FAIL / demoted PASS does not finish.
+    """
+    _ = session_id
+    norm = str(agent_type or "").strip().lower()
+    if str(verdict).upper() != "PASS":
+        return None
+    if norm not in _REVIEWER_ALIASES | _IMPLEMENT_ALIASES | _BUGFIX_ALIASES:
+        return None
+
+    try:
+        from harness.hooks.epic.core import load_epic_state
+        from loop.mb_finish.schemas import MbFinishRequest
+
+        state = load_epic_state(cwd)
+        if not state.get("active"):
+            return None
+
+        if norm in _REVIEWER_ALIASES:
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            if phase != "QA":
+                return None
+            if _finish_tool_matches(state, prefix="mb-finish qa"):
+                return {"ok": True, "already_finished": True}
+            from loop.mb_finish.impl import finish_qa
+
+            result = finish_qa(
+                MbFinishRequest(
+                    phase="QA",
+                    step_id="QA",
+                    done_summary="verify-qa PASS; QA finished by shared gate lifecycle",
+                    cwd=str(cwd),
+                )
+            )
+            return _result_dump(result)
+
+        if norm in _BUGFIX_ALIASES:
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            if phase != "BUGFIX":
+                return None
+            if _finish_tool_matches(state, prefix="mb-finish bugfix"):
+                return {"ok": True, "already_finished": True}
+            if str(state.get("last_verify_verdict") or "").upper() != "PASS":
+                return {
+                    "ok": False,
+                    "diagnostic_codes": ["verify_pass_missing"],
+                    "error": "verify PASS required before auto bugfix finish",
+                }
+            from loop.mb_finish.impl import finish_bugfix
+
+            result = finish_bugfix(
+                MbFinishRequest(
+                    phase="BUGFIX",
+                    step_id="BUGFIX",
+                    done_summary="verify-bugfix PASS; BUGFIX finished by shared gate lifecycle",
+                    cwd=str(cwd),
+                )
+            )
+            return _result_dump(result)
+
+        if _finish_tool_matches(state, prefix="mb-finish implement"):
+            return {"ok": True, "already_finished": True}
+        step_id = str(state.get("armed_step") or "").strip()
+        if not _STEP_ID_RE.match(step_id):
+            return {
+                "ok": False,
+                "diagnostic_codes": ["armed_step_missing"],
+                "error": f"implement auto-finish requires armed sNN step, got {step_id!r}",
+            }
+        if str(state.get("last_verify_verdict") or "").upper() != "PASS":
+            return {
+                "ok": False,
+                "diagnostic_codes": ["verify_pass_missing"],
+                "error": "verify PASS required before auto implement finish",
+            }
+        from loop.mb_finish.finish_implement import finish_implement_step
+
+        result = finish_implement_step(
+            MbFinishRequest(
+                phase="IMPLEMENT",
+                step_id=step_id,
+                done_summary=(
+                    f"verify-implement PASS; {step_id} finished by shared gate lifecycle"
+                ),
+                cwd=str(cwd),
+            )
+        )
+        return _result_dump(result)
+    except Exception as exc:
+        code = "auto_qa_finish_failed"
+        if norm in _IMPLEMENT_ALIASES:
+            code = "auto_implement_finish_failed"
+        elif norm in _BUGFIX_ALIASES:
+            code = "auto_bugfix_finish_failed"
+        return {"ok": False, "diagnostic_codes": [code], "error": str(exc)}
+
+
 def auto_finish_after_gate(
     cwd: str | Path,
     *,
@@ -196,41 +332,13 @@ def auto_finish_after_gate(
     verdict: str,
     session_id: str,
 ) -> dict[str, Any] | None:
-    """Finish QA after a valid reviewer PASS, using the canonical mb-finish.
-
-    Implement/bugfix gates intentionally do not finish here: their parent must
-    first persist the implement/bugfix artifact.  QA already has its artifact
-    before the reviewer is spawned, so the reviewer completion is the canonical
-    finish boundary.
-    """
-    if agent_type not in _REVIEWER_ALIASES or str(verdict).upper() != "PASS":
-        return None
-
-    try:
-        from harness.hooks.epic.core import load_epic_state
-
-        state = load_epic_state(cwd)
-        phase = str(state.get("phase") or state.get("armed_step") or "").upper()
-        if phase != "QA" or not state.get("active"):
-            return None
-        finish = state.get("last_finish_tool")
-        if isinstance(finish, dict) and str(finish.get("name") or "").startswith("mb-finish qa"):
-            return {"ok": True, "already_finished": True}
-
-        from loop.mb_finish.impl import finish_qa
-        from loop.mb_finish.schemas import MbFinishRequest
-
-        result = finish_qa(
-            MbFinishRequest(
-                phase="QA",
-                step_id="QA",
-                done_summary="verify-qa PASS; QA finished by shared gate lifecycle",
-                cwd=str(cwd),
-            )
-        )
-        return result.model_dump()
-    except Exception as exc:
-        return {"ok": False, "diagnostic_codes": ["auto_qa_finish_failed"], "error": str(exc)}
+    """Alias for gate_atomic_finish (backward-compatible)."""
+    return gate_atomic_finish(
+        cwd,
+        agent_type=agent_type,
+        verdict=verdict,
+        session_id=session_id,
+    )
 
 
 class SubagentLifecycle:
@@ -281,7 +389,7 @@ class SubagentLifecycle:
         )
         finish = None
         if stop_rc == 0:
-            finish = auto_finish_after_gate(
+            finish = gate_atomic_finish(
                 self.cwd,
                 agent_type=completion.agent_type,
                 verdict=completion.verdict,

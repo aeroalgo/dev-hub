@@ -133,10 +133,10 @@ checkpoints:
     criterion: |
       Obsolete tests на старый контракт удалены или переписаны; suite green без restore legacy.
     verify: |
-      rg per grep_control inv-a-tests-* ; then targeted pytest green
+      rg per grep_control inv-a-tests-* ; then targeted dev-hub bin/pytest / managed capability_checks green
   - id: cp-suite-regression
     criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
-    verify: "bin/pytest loop/tests/ -q --tb=line -k '<epic-or-area>'"
+    verify: "bin/pytest loop/tests/ -q --tb=line -k '<epic-or-area>'  # Hub (dev-hub self-test); managed: capability_checks: [test.targeted]"
 
 verify: []
 tdd: []

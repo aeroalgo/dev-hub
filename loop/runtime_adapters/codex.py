@@ -15,7 +15,14 @@ _CODEX_ABORT_RE = re.compile(
 )
 _CODEX_UNSUPPORTED_TOOL_RE = re.compile(
     r"(?i)^\s*(?:ERROR\s+codex_core::tools::router:\s*error=unsupported call:\s*|"
-    r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z0-9_.:-]+)"
+    r"CODEX_UNSUPPORTED_TOOL_CALL\s+tool=)(?P<tool>[A-Za-z_][A-Za-z0-9_.:-]*)"
+)
+# Real Codex lines always carry ERROR / wrapper marker. Colon after "call" is
+# mandatory; tool must start with letter/underscore so source dumps of this
+# module (e.g. `unsupported call:\s*|`) never yield tool=":".
+_CODEX_UNSUPPORTED_TOOL_LOOSE_RE = re.compile(
+    r"(?i)(?:\bERROR\b|\bCODEX_UNSUPPORTED_TOOL_CALL\b)[^\n]*?"
+    r"unsupported\s+call:\s*(?:tool=)?(?P<tool>[A-Za-z_][A-Za-z0-9_.:-]*)"
 )
 _CODEX_NATIVE_COLLAB_FEATURE = "multi_agent"
 _CODEX_TRANSIENT_STATUS_RE = re.compile(
@@ -24,14 +31,32 @@ _CODEX_TRANSIENT_STATUS_RE = re.compile(
 
 
 def _detect_codex_unsupported_tool(raw_log: str) -> str | None:
+    """Detect real Codex unsupported-tool failures (not agent command dumps).
+
+    Claude abort detection does not grep child/bash stdout. Skip JSONL ``item.*``
+    lines so reading this module's source into the session log cannot false-hit.
+    """
     for line in raw_log.splitlines():
-        match = _CODEX_UNSUPPORTED_TOOL_RE.search(line.strip())
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("{"):
+            try:
+                obj = json.loads(stripped)
+            except json.JSONDecodeError:
+                obj = None
+            if isinstance(obj, dict):
+                event_type = str(obj.get("type") or "")
+                if event_type.startswith("item.") or event_type in {
+                    "thread.started",
+                    "turn.started",
+                    "turn.completed",
+                }:
+                    continue
+        match = _CODEX_UNSUPPORTED_TOOL_RE.search(stripped)
         if match:
             return match.group("tool")
-        loose = re.search(
-            r"(?i)unsupported\s+call\s*:?\s*(?:tool=)?(?P<tool>[A-Za-z0-9_.:-]+)",
-            line,
-        )
+        loose = _CODEX_UNSUPPORTED_TOOL_LOOSE_RE.search(stripped)
         if loose:
             return loose.group("tool")
     return None
@@ -257,6 +282,7 @@ class CodexAdapter(RuntimeAdapter):
         return parse_session_events(raw_log, ctx.runtime_id)
 
     def post_session(self, cwd: Any, log_path: Any, ctx: SessionContext) -> list[dict[str, Any]]:
+        """Gap-fill only — live stream-filter SubagentLifecycle is SoT (Claude: no-op)."""
         if not log_path or not Path(log_path).is_file():
             return []
         from loop.codex_collab_verdict import mirror_codex_collab_verdicts_from_log
@@ -270,6 +296,16 @@ class CodexAdapter(RuntimeAdapter):
         from loop.session_finalize import resolve_session_close_identity
 
         return resolve_session_close_identity(state)
+
+    def ownership_expected_step(self, state: dict[str, Any]) -> str:
+        from loop.session_finalize import ownership_expected_step
+
+        return ownership_expected_step(state)
+
+    def apply_ownership_identity(self, identity: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+        from loop.session_finalize import apply_ownership_identity
+
+        return apply_ownership_identity(identity, state)
 
     def should_probe_analyze_promotion(self, *, armed_step: Any, active_context_text: str | None = None) -> bool:
         from loop.session_finalize import should_probe_analyze_promotion

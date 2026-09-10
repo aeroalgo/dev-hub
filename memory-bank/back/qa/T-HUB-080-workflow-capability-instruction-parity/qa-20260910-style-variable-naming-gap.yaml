@@ -1,0 +1,42 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-080
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+epic_id: T-HUB-080-workflow-capability-instruction-parity
+date: 2026-09-10
+reviewer: BACK QA
+verdict: fail
+
+scope:
+  - "task: T-HUB-080"
+  - "epic: T-HUB-080-workflow-capability-instruction-parity"
+  - "steps: s01-s05"
+  - "files: harness/, loop/, memory-bank/"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line`"
+  - "inventory tests: 19 passed"
+  - "exhaustive QA contract: passed"
+  - "runtime sync: no drift"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "§0.11-3: unrequested comments in template and inventory test"
+  - "§0.11-4: one-letter variables in inventory test"
+  - "§0.11 boundary validator execution"
+
+blockers:
+  - "B1: unrequested comments in `harness/cursor/templates/qa/epic-step.yaml:24` and `loop/tests/test_stack_profile_instruction_inventory.py:437`"
+  - "B2: one-letter variable names `p`/`f` in `loop/tests/test_stack_profile_instruction_inventory.py:620`"
+  - "B3: validate-boundary command execution syntax in verify-qa agent"
+
+fix_plan:
+  - "BACK BUGFIX unrequested comments: remove inline comments from `harness/cursor/templates/qa/epic-step.yaml` and `loop/tests/test_stack_profile_instruction_inventory.py`"
+  - "BACK BUGFIX variable naming: rename single-letter variables in `loop/tests/test_stack_profile_instruction_inventory.py` to descriptive names"
+  - "BACK BUGFIX validate boundary: ensure verify-qa agent validates boundary properly with valid JSON parameters"
+
+limitations:
+  - "Requires clean BUGFIX step to achieve clean §0.11 compliance before final QA pass."
+
+suite:
+  - "bin/pytest -q --tb=line"

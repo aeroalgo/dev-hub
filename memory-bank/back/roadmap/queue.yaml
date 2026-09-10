@@ -1,28 +1,25 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-080
-  epic_id: T-HUB-080-workflow-capability-instruction-parity
-  plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
+- id: T-HUB-091
+  epic_id: T-HUB-091-gate-identity-sot-consolidation
+  plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
   deps: []
-  batch: claude-session-audit-20260907
+  batch: gate-identity-sot-20260910
 - id: T-HUB-085
   epic_id: T-HUB-085-hook-event-dispatcher-consolidation
   plan: plan-T-HUB-085-hook-event-dispatcher-consolidation.md
-  deps:
-  - T-HUB-079
+  deps: []
   batch: hook-runtime-optimization-20260907
 - id: T-HUB-086
   epic_id: T-HUB-086-python-loop-supervisor-cutover
   plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
-  deps:
-  - T-HUB-079
+  deps: []
   batch: loop-runner-python-20260908
 - id: T-HUB-087
   epic_id: T-HUB-087-epic-layout-v2-fallback-purge
   plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
-  deps:
-  - T-HUB-084
+  deps: []
   batch: legacy-fallback-purge-20260908
 - id: T-HUB-088
   epic_id: T-HUB-088-lifecycle-transition-fallback-purge
@@ -35,7 +32,6 @@ queue:
   plan: plan-T-HUB-089-event-dag-roadmap-fallback-purge.md
   deps:
   - T-HUB-087
-  - T-HUB-084
   batch: legacy-fallback-purge-20260908
 - id: T-HUB-090
   epic_id: T-HUB-090-boundary-compatibility-shim-purge
@@ -341,6 +337,10 @@ done:
   epic_id: T-HUB-078-context-budget-enforcement
   plan: plan-T-HUB-078-context-budget-enforcement.md
   batch: claude-session-audit-20260907
+- id: T-HUB-079
+  epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+  plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
+  batch: claude-session-audit-20260907
 - id: T-HUB-081
   epic_id: T-HUB-081-workflow-hot-path-consolidation
   plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
@@ -357,9 +357,9 @@ done:
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
   batch: workflow-read-chain-20260907
-- id: T-HUB-079
-  epic_id: T-HUB-079-orchestrator-lifecycle-reliability
-  plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
+- id: T-HUB-080
+  epic_id: T-HUB-080-workflow-capability-instruction-parity
+  plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
   batch: claude-session-audit-20260907
 batches:
   workflow-loop-hardening:
@@ -431,3 +431,7 @@ batches:
       old branches and obsolete tests; operational reliability fallbacks remain explicitly
       scoped.
   chat-plan: {}
+  gate-identity-sot-20260910:
+    title: GateIdentity SoT consolidation (Claude + Codex)
+    note: T-HUB-091 — single GateIdentity SoT, spawn-time delivery, stop strict|transport_bind;
+      DSH out of scope; details in plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md

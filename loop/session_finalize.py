@@ -98,6 +98,54 @@ def analyze_promotion_requires_bound_receipt(state: dict[str, Any]) -> bool:
     return step == "ANALYZE" or name.endswith("analyze") or " mb-finish analyze" in f" {name}"
 
 
+def ownership_expected_step(state: dict[str, Any]) -> str:
+    """Gate fence ownership step for the current parent session.
+
+    Prefer prepare-time ``session_start_identity.step_id``. Mid-session
+    ``mb-finish`` may advance ``armed_step`` (BUGFIX→QA); in-flight verify
+    fences still belong to the frozen start step, not the post-finish cursor.
+    """
+    start = SessionStartIdentity.from_mapping(state.get("session_start_identity"))
+    if start and start.step_id:
+        return str(start.step_id).strip()
+    return str(
+        state.get("armed_step")
+        or state.get("last_finished_step")
+        or ""
+    ).strip()
+
+
+def ownership_expected_epic(state: dict[str, Any]) -> str:
+    start = SessionStartIdentity.from_mapping(state.get("session_start_identity"))
+    if start and start.epic_id:
+        return str(start.epic_id).strip()
+    return str(state.get("armed_epic") or state.get("epic") or "").strip()
+
+
+def apply_ownership_identity(
+    identity: dict[str, Any],
+    state: dict[str, Any],
+) -> dict[str, Any]:
+    """Overlay frozen session-start step/epic onto a projection gate identity."""
+    out = dict(identity or {})
+    step = ownership_expected_step(state)
+    if step:
+        out["step"] = step
+    epic = ownership_expected_epic(state)
+    if epic:
+        out["epic_id"] = epic
+    return out
+
+
+def post_finish_cursor_step(state: dict[str, Any]) -> str:
+    """Live cursor after an in-session finish (resume target for next prepare)."""
+    return str(
+        state.get("armed_after_finish")
+        or state.get("armed_step")
+        or ""
+    ).strip()
+
+
 def freeze_session_start_identity(
     state: dict[str, Any],
     *,

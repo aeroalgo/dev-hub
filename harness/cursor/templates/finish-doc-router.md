@@ -93,7 +93,7 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 - **Сделано:** …
 - **Артефакт:** [sNN-slug.yaml](back/implement/implement-<plan>/sNN-slug.yaml)
 - **Файлы:** `path/…` (если code_changed)
-- **Проверка:** pytest / verify PASS / validate-step PASS
+- **Проверка:** dev-hub pytest / managed capability_checks / verify PASS / validate-step PASS
 - **Статус:** sNN completed; …
 - **Следующий:** `<ROLE> <MODE>` @target — по Handoff / index (не выдумывать цепочку).
 ```

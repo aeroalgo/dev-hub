@@ -58,13 +58,14 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** BACK QA FINISH без `Agent`→`verify-qa` (или alias `reviewer`).  
 **FAIL:** code-режим сделал широкий codebase search без предшествующего `Agent`→`explorer` в сессии (кроме исключения выше).  
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
-**FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >10 файлов / globs `**` в ALLOW.
+**FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
+**FAIL:** verify-qa fail-fast (FAIL до полного AC+/AC−/§0.11) или partial `## BLOCKERS (complete)`.
   ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) → retry @verify
   ├─ gate-repair fail → parent расширяет ALLOW WRITE или чинит сам → retry
 Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
 
 **FAIL:** «проверь шаг» / QA review / search без секций.  
-**FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов, ≤10).
+**FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов; ≤10 default, ≤40 для verify-qa/reviewer).
    **FAIL:** секции без перевода строки / без этих заголовков.
 
 ## Gate Verdict Contract (JSON Fenced Block) — machine SoT
@@ -93,7 +94,7 @@ Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-
 |-------|----------|-------|
 | explorer | 20 | ≤12 Read · ≤6 Bash · ≤8 Grep/Glob; после graphify только `path=`; re-read >1× FORBIDDEN; plan/creative вне ALLOW FORBIDDEN; repo-wide `rg`/`find`/`ls` FORBIDDEN |
 | verify-implement / verify-bugfix / verify (alias) | 12 | ≤12 read (цель ≤6) · ≤10 ALLOW · re-read запрещён; fenced JSON `loop-gate-verdict/v1` обязателен; после ≤6 Read — только текст |
-| verify-qa / reviewer (alias) | 18 | ≤8 rg · ≤12 read · ≤10 ALLOW · re-read запрещён; финал только текст + fenced JSON `loop-gate-verdict/v1` |
+| verify-qa / reviewer (alias) | 30 | ≤16 rg · ≤40 read · ≤40 ALLOW · exhaustive AC matrix (no fail-fast) · полный `## BLOCKERS (complete)` до JSON · re-read запрещён; финал текст + fenced JSON `loop-gate-verdict/v1` |
 | verify-decompose | 12 | ≤12 read · ≤10 ALLOW · re-read запрещён; fenced JSON `loop-gate-verdict/v1` обязателен |
 
 ## Hooks

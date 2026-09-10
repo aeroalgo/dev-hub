@@ -27,14 +27,14 @@ steps:
   file: s03-integ-front-shared-branch-rewrite.yaml
   title: INTEG, FRONT, and shared workflow rules branch qualification
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-runtime-skill-entrypoint-template-parity.yaml
   title: Runtime skills, main entrypoints, and scaffold templates parity
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-legacy-fallback-purge.yaml
   title: Full sunset inventory scan, legacy fallback purge, and regression verification
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

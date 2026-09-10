@@ -1004,7 +1004,16 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
         next_step = None
         next_status = None
         armed_phase = str(state.get("armed_step") or state.get("phase") or "").upper()
-        if armed_phase in {"ANALYZE", "CLARIFY", "CREATIVE", "PLAN", "DECOMPOSE"}:
+        if armed_phase in {
+            "ANALYZE",
+            "CLARIFY",
+            "CREATIVE",
+            "PLAN",
+            "DECOMPOSE",
+            "AUDIT",
+            "QA",
+            "BUGFIX",
+        }:
             phase = armed_phase
             if armed_phase == "ANALYZE" and epic_id and role_dir and idx is not None:
                 from analyze_gate import analyze_required_before_implement
@@ -1022,7 +1031,26 @@ def rebuild_epic_projection(cwd: str | Path) -> dict[str, Any]:
                         next_phase=step.get("next_phase"),
                         needs_creative=_step_needs_creative(cwd_p, idx, step),
                     )
-            if step:
+            elif armed_phase in {"AUDIT", "QA", "BUGFIX"} and epic_id and role_dir:
+                # Keep explicit post-implement arm, but demote premature QA when
+                # reducer still says qa_failed (no bugfix_done after latest qa_fail).
+                lifecycle = reduce_epic_lifecycle(cwd_p, role_dir, epic_id)
+                life_phase = lifecycle_arm_phase(
+                    str(lifecycle.get("phase") or "QA"), lifecycle
+                )
+                if life_phase == "DONE" or lifecycle.get("phase") == "DONE":
+                    phase = "DONE"
+                elif armed_phase == "QA" and life_phase == "BUGFIX":
+                    phase = "BUGFIX"
+                else:
+                    phase = armed_phase
+            if step and armed_phase in {
+                "ANALYZE",
+                "CLARIFY",
+                "CREATIVE",
+                "PLAN",
+                "DECOMPOSE",
+            }:
                 next_step = step.get("step_id")
                 next_status = step.get("status")
         elif step:
@@ -3792,7 +3820,7 @@ def latest_bugfix_artifact_for_reference(
         if not d.is_dir():
             continue
         glob_pattern = "bugfix-*.md" if epic_id else "**/bugfix-*.md"
-        for p in sorted(d.glob(glob_pattern), reverse=True):
+        for p in sorted(d.glob(glob_pattern), key=lambda x: (x.stat().st_mtime, x.name), reverse=True):
             hits.append(p)
         if hits:
             break

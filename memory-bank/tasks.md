@@ -2,6 +2,7 @@
 
 ## Active
 
+| T-HUB-091 | GateIdentity SoT consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md) · Claude+Codex one SoT · no DSH · next BACK DECOMPOSE · batch gate-identity-sot-20260910 |
 | T-HUB-081…084 | Workflow Read-chain consolidation | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · hot path → shared lean → role core → graph hygiene · next BACK DECOMPOSE T-HUB-081 |
 | T-HUB-085 | Hook event dispatcher consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md) · deps T-HUB-063,065,077,079 · event-specific dispatchers, shared policy/evidence, no mega-hook |
 | T-HUB-086 | Python loop supervisor cutover | L4 | PLAN done | queued | [plan](back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md) · hard dep T-HUB-079 · Python supervisor, shell compatibility shim, runtime/session parity and legacy purge |

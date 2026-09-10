@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s04 — Runtime skills, main entrypoints, and scaffold templates parity IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s04-runtime-skill-entrypoint-template-parity.yaml
+skills_used: []
+discovery:
+- Discovered unqualified runner actions in role-command skills, entrypoints, templates,
+  and operator docs.
+- Brought harness/skills/role-command/SKILL.md to parity with harness/claude/skills/role-command/SKILL.md.
+- Synchronized entrypoints AGENTS.md, CLAUDE.md, and DSH.md via runtime-sync.
+gaps:
+  status: none
+done:
+- Brought harness/skills/role-command/SKILL.md and harness/claude/skills/role-command/SKILL.md
+  to full policy and semantic parity.
+- Updated harness/instructions/main.md with root classification & test policy distinguishing
+  dev-hub self-tests and managed capability_checks.
+- Regenerated AGENTS.md, CLAUDE.md, and DSH.md via runtime-sync without drift.
+- Updated scaffold templates across plan, decompose, implement, qa, security, refactor,
+  integration, and finish-doc-router to qualify runner examples.
+- Updated loop/README.md and loop/WORKFLOW.md operator docs with dev-hub self-test
+  markers.
+files:
+- harness/skills/role-command/SKILL.md
+- harness/claude/skills/role-command/SKILL.md
+- harness/instructions/main.md
+- AGENTS.md
+- CLAUDE.md
+- DSH.md
+- harness/cursor/templates/plan.md
+- harness/cursor/templates/decompose/epic-step.yaml
+- harness/cursor/templates/decompose/legacy-purge-step.yaml
+- harness/cursor/templates/implement/epic-step.yaml
+- harness/cursor/templates/qa/epic-step.yaml
+- harness/cursor/templates/integration-plan.md
+- harness/cursor/templates/refactor/epic-step.yaml
+- harness/cursor/templates/security/epic-step.yaml
+- harness/cursor/templates/finish-doc-router.md
+- loop/WORKFLOW.md
+- loop/README.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  'skill or entrypoint or template or operator'
+- bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_kind_i_runtime_entrypoint.py
+  loop/tests/test_context_contract_materialization.py -q --tb=line
+integration_check:
+- python3 -m loop.cli.runtime_sync --check
+grep_control: []
+verification_results:
+- '{''command'': "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k ''skill or entrypoint or template or operator''", ''outcome'': ''5
+  passed''}'
+- '{''command'': ''bin/pytest loop/tests/test_runtime_sync_check.py loop/tests/test_kind_i_runtime_entrypoint.py
+  loop/tests/test_context_contract_materialization.py -q --tb=line'', ''outcome'':
+  ''24 passed''}'
+checkpoints:
+- id: cp1
+  criterion: Both role-command skills, entrypoints, and templates report zero unqualified
+    runner action lines in inventory.
+  status: done
+- id: cp2
+  criterion: Runtime sync check and entrypoints contain matching policy markers.
+  status: done
+resume_from: cp2

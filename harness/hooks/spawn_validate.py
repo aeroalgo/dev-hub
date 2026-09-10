@@ -122,12 +122,19 @@ def validate_spawn_input(
                     else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
                 ))
             )
-        for violation in allow_read_violations(prompt):
+        for violation in allow_read_violations(prompt, agent_type=norm):
             if "ALLOW READ пуст" in violation and "memory-bank/" in prompt:
                 violation = violation.replace(
                     "ALLOW READ пуст", "ALLOW READ содержит деревья/каталоги: memory-bank/"
                 )
             deny_reasons.append(violation)
+        if norm in {"verify-qa", "reviewer"}:
+            try:
+                from loop.qa_checklist_freeze import spawn_freeze_violations
+
+                deny_reasons.extend(spawn_freeze_violations(prompt, state))
+            except Exception:
+                pass
 
     if is_repair and agent_enabled(norm, project_dir):
         missing = missing_contract_sections(norm, prompt)
