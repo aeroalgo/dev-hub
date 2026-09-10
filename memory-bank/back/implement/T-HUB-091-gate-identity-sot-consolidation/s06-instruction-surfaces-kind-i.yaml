@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s06 — Kind I instruction surfaces alignment (prompts, rules, docs) IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s06-instruction-surfaces-kind-i.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated harness/agents/verify-bugfix.md and verify-qa.md to require taking IDs strictly
+  from GATE_IDENTITY block and keeping step_id as literal BUGFIX/QA without guessing
+  sNN
+- Updated harness/agents/verify-implement.md to require taking session_id, epic_id,
+  step_id strictly from GATE_IDENTITY block
+- Updated harness/agents/gate-repair.md with parent_evidence_id in validate-boundary
+  pre-emit command and output schema
+- Verified absence of coerce_step_id and obsolete per-field coerce documentation across
+  harness/ and loop/
+files:
+- harness/agents/verify-bugfix.md
+- harness/agents/verify-qa.md
+- harness/agents/verify-implement.md
+- harness/agents/gate-repair.md
+deletes: []
+tests:
+- bin/pytest loop/tests/test_gate_identity_sot.py -q
+- bin/pytest loop/tests/test_codex_spawn_identity_delivery.py -q
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q
+- bin/pytest harness/hooks/tests/test_gate_repair.py -q
+integration_check:
+- rg -n "GATE_IDENTITY" harness/agents/verify-bugfix.md harness/agents/verify-qa.md
+- python3 -c "import subprocess; res = subprocess.run(['rg', '-n', 'coerce_step_id',
+  'harness/', 'loop/'], capture_output=True, text=True); assert res.returncode !=
+  0, res.stdout"
+- python3 harness/hooks/epic_resolve.py scope-check
+grep_control: []
+verification_results:
+- 'cp1: rg confirms GATE_IDENTITY in verify-bugfix.md and verify-qa.md'
+- 'cp2: no coerce_step_id occurrences in harness/ or loop/'
+- bin/pytest 42 tests passed
+checkpoints:
+- id: cp1
+  criterion: Agent prompts explicitly instruct taking IDs from GATE_IDENTITY block
+    without guessing sNN
+  status: done
+- id: cp2
+  criterion: No docs/comments describe per-field coerce as valid product mechanism
+  status: done
+resume_from: cp2

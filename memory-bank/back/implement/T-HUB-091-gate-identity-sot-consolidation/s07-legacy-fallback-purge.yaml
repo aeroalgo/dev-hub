@@ -1,0 +1,82 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: in_progress
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s07-legacy-fallback-purge.yaml
+skills_used: []
+discovery:
+- Verified sunset inventory across Kind A, B, C, I surfaces
+- Confirmed zero callers of legacy per-field coerce ladders
+- Confirmed all tests use GateIdentity SoT transport_bind contract
+gaps:
+  status: none
+done:
+- Sunset inventory scan completed across Kind A, B, C, I
+- Verified 0 occurrences of coerce_step_id, coerce_epic_id, and duplicate _gate_session_id
+- Verified full test suite passes for GateIdentity SoT and transport_bind
+files:
+- harness/hooks/subagent-stop.py
+- harness/hooks/_lib.py
+- loop/session_finalize.py
+- loop/gate_identity.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q
+- bin/pytest loop/tests/test_session_finalize_identity.py -q
+- bin/pytest loop/tests/test_gate_identity_sot.py -q
+- bin/pytest loop/tests/test_codex_spawn_identity_delivery.py -q
+- bin/pytest loop/tests/test_prepare_session_atomic_identity.py -q
+integration_check:
+- bin/pytest loop/tests/test_gate_identity_sot.py loop/tests/test_codex_spawn_identity_delivery.py
+  loop/tests/test_codex_session_ownership_coerce.py loop/tests/test_session_finalize_identity.py
+  loop/tests/test_prepare_session_atomic_identity.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- 25 passed
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по каждой строке sunset_inventory kind=A:
+
+    0 prod callers старого поштучного coerce; duplicate helpers удалены.
+
+    '
+  status: done
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: n/a for this epic.
+
+    '
+  status: done
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: dual-path coerce fallback отсутствует; Claude
+    strict mismatch активен.
+
+    '
+  status: done
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: prompts субагентов не содержат указаний
+    подбирать step_id.
+
+    '
+  status: done
+- id: cp5
+  criterion: 'Obsolete tests на старый контракт переписаны на SoT transport_bind;
+    suite green.
+
+    '
+  status: done
+- id: cp6
+  criterion: 'Targeted + epic regression suite green после deletes (без возврата sunset-кода).
+
+    '
+  status: done

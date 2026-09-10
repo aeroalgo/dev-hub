@@ -14,6 +14,7 @@ from _lib import (
     check_contract_drift,
     current_gate_identity,
     emit,
+    gate_session_id,
     load_state,
     mark_in_flight,
     normalize_type,
@@ -85,25 +86,10 @@ def _resolve_agent_type(data: dict[str, object]) -> str | None:
     return None
 
 
-def _gate_session_id(data: dict[str, object]) -> str:
-    for field in ("parent_session_id", "root_session_id"):
-        value = data.get(field)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    inherited = str(os.environ.get("EPIC_RUNNER_SESSION_ID") or "").strip()
-    if inherited and (
-        data.get("runtime_id") == "codex"
-        or os.environ.get("EPIC_RUNTIME") == "codex"
-        or os.environ.get("EPIC_RUNTIME_RESOLVED") == "codex"
-    ):
-        return inherited
-    return str(data.get("session_id") or "").strip()
-
-
 def main() -> None:
     data = read_stdin()
     agent_type = _resolve_agent_type(data)
-    session_id = _gate_session_id(data)
+    session_id = gate_session_id(data)
     cwd = str(product_cwd(data.get("cwd") or ""))
     runtime_id = str(data.get("runtime_id") or os.environ.get("EPIC_RUNTIME") or "universal")
     contract_adapter = get_agent_contract_adapter(runtime_id)

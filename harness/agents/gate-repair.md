@@ -91,10 +91,11 @@ pytest по файлам из ALLOW WRITE (path/nodeid/`-k`). Полный
 Перед финальным текстом — **один** Bash:
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-repair-result/v1 --json '{"schema":"loop-repair-result/v1","agent_id":"gate-repair","status":"done|partial|fail","fixed_blockers":[],"remaining_blockers":[],"recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-repair-result/v1 --json '{"schema":"loop-repair-result/v1","agent_id":"gate-repair","parent_evidence_id":"<parent_evidence_id>","status":"done|partial|fail","fixed_blockers":[],"remaining_blockers":[],"recorded_at":"<iso8601>"}'
 ```
 
-Emit только после `valid: true`. Fence language: **только** `json`.
+- Это шаблон: перед запуском подставь реальные списки blockers, фактический статус (`done`/`partial`/`fail`), `parent_evidence_id` из prompt / `GATE_IDENTITY` context и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `done|partial|fail` запускать нельзя.
+- Emit только после `valid: true`. Fence language: **только** `json`.
 
 ## Output (JSON fence HARD) — machine SoT
 
@@ -103,6 +104,7 @@ Emit только после `valid: true`. Fence language: **только** `js
 ```json
 {
   "schema": "loop-repair-result/v1",
+  "parent_evidence_id": "evidence-fail-001",
   "agent_id": "gate-repair",
   "status": "done",
   "fixed_blockers": ["blocker_id_from_verify"],
@@ -112,6 +114,7 @@ Emit только после `valid: true`. Fence language: **только** `js
 ```
 
 - `schema`: `loop-repair-result/v1`
+- `parent_evidence_id`: id evidence из prompt / `GATE_IDENTITY` context
 - `status`: `done` | `partial` | `fail`
 - `fixed_blockers` / `remaining_blockers`: **только** `<blocker_id>` из секции BLOCKERS parent
 

@@ -2421,6 +2421,19 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
     verdict = str(state.get("last_verify_verdict") or "").upper()
     evidence = state.get("last_verify_evidence") or state.get("last_verify_receipt")
     if verdict != "PASS":
+        if isinstance(evidence, dict) and evidence.get("demoted_from_pass"):
+            blockers = evidence.get("demote_blockers") or []
+            detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+            return {
+                "ok": False,
+                "error": (
+                    "verify PASS was demoted before finalize-step: "
+                    f"{detail}. Fix implement shard and re-verify; do not mb-finish."
+                ),
+                "diagnostic": "verify_demoted_pass",
+                "verdict": verdict or None,
+                "evidence": evidence,
+            }
         return {
             "ok": False,
             "error": "verify PASS required before finalize-step",

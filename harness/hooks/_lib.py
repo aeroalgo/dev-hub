@@ -108,17 +108,9 @@ _SECTION_PATTERNS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify": [
-        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
-        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
-        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
-        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify-implement": [
-        ("AC+", re.compile(_HD + r"AC\+\s*[:：]?")),
-        ("AC−", re.compile(_HD + r"AC[−\-]\s*[:：]?")),
-        ("§0.11", re.compile(_HD + r"§?\s*0\.11\s*[:：]?")),
-        ("VERIFY", re.compile(_HD + r"VERIFY\s*[:：]?")),
         ("ALLOW READ", re.compile(_HD + r"ALLOW READ\s*[:：]?")),
     ],
     "verify-bugfix": [
@@ -583,10 +575,10 @@ def build_spawn_map(project_dir: str | Path | None = None) -> str:
             "| Parallel spawn | DENY: второй managed пока in_flight; DENY: та же model busy |",
             "| Pre-FINISH code_changed | seed-implement → flush cp → suite → "
             "evidence (in_progress) → validate-step → Handoff → "
-            "`@verify` packed → PASS → finalize-step/stop |",
+            "`@verify` ALLOW READ (implement+decompose yaml) → PASS → finalize-step/stop |",
             "| BACK QA после suite | @reviewer/@verify-qa ОБЯЗАТЕЛЬНО (полный AC matrix; Suite+AC+§0.11/ALLOW ≤40; no fail-fast) |",
-            "DENY @verify: нет секций · ALLOW пуст/дерево · step нет в ALLOW · step path нет "
-            "на диске · уже PASS · no-VERDICT retry исчерпан.",
+            "DENY @verify: нет ALLOW READ · ALLOW пуст/дерево · implement/decompose step нет в ALLOW "
+            "или path нет на диске · уже PASS · no-VERDICT retry исчерпан.",
             "no-VERDICT exhausted → Handoff `NEED_HUMAN: verify_no_verdict` + stop "
             "(stop-gate allow; не 3-й @verify).",
             "FAIL: @verify после VERDICT: PASS. FAIL: FINISH до PASS. "
@@ -2581,6 +2573,13 @@ _IMPLEMENT_STEP_RE = re.compile(
     r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
 )
 
+# decompose step: plan/<epic>/yaml/steps/(e|s)NN-*.yaml
+_DECOMPOSE_STEP_RE = re.compile(
+    r"(memory-bank/(?:back|front|integration)/plan/"
+    r"[^\s`/]+/yaml/steps/"
+    r"(?:e|s)\d{2}-[^\s`]+\.ya?ml)"
+)
+
 
 def implement_steps_in_prompt(prompt: str) -> list[str]:
     """Unique implement step paths mentioned in prompt (ALLOW + body)."""
@@ -2594,29 +2593,52 @@ def implement_steps_in_prompt(prompt: str) -> list[str]:
     return out
 
 
+def decompose_steps_in_prompt(prompt: str) -> list[str]:
+    """Unique decompose step paths mentioned in prompt (ALLOW + body)."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _DECOMPOSE_STEP_RE.finditer(prompt or ""):
+        p = m.group(1).strip().strip("`").rstrip(",;")
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
 def verify_step_path_violations(cwd: str | Path, prompt: str) -> list[str]:
-    """DENY reasons: implement step must be in prompt and exist on disk."""
-    steps = implement_steps_in_prompt(prompt)
-    if not steps:
-        return [
+    """DENY reasons: implement + decompose step must be in prompt and exist on disk."""
+    reasons: list[str] = []
+    impl_steps = implement_steps_in_prompt(prompt)
+    if not impl_steps:
+        reasons.append(
             "step_not_in_allow: в prompt/ALLOW READ нужен путь "
             "`memory-bank/**/implement/.../eNN|sNN-*.yaml` "
             "(сначала Write step на диск, потом @verify)"
-        ]
+        )
+    dec_steps = decompose_steps_in_prompt(prompt)
+    if not dec_steps:
+        reasons.append(
+            "decompose_step_not_in_allow: в prompt/ALLOW READ нужен путь "
+            "`memory-bank/**/plan/.../yaml/steps/eNN|sNN-*.yaml` "
+            "(checklist SoT = decompose shard)"
+        )
     root = Path(cwd) if cwd else None
     if root is None:
-        return []
-    missing: list[str] = []
-    for rel in steps:
-        if not (root / rel).is_file():
-            missing.append(rel)
-    if missing:
-        return [
+        return reasons
+    missing_impl = [rel for rel in impl_steps if not (root / rel).is_file()]
+    if missing_impl:
+        reasons.append(
             "step_missing: implement step нет на диске — "
-            + ", ".join(missing)
+            + ", ".join(missing_impl)
             + ". seed-implement → validate-step → затем @verify"
-        ]
-    return []
+        )
+    missing_dec = [rel for rel in dec_steps if not (root / rel).is_file()]
+    if missing_dec:
+        reasons.append(
+            "decompose_step_missing: decompose step нет на диске — "
+            + ", ".join(missing_dec)
+        )
+    return reasons
 
 
 def normalize_agent_tool_input(

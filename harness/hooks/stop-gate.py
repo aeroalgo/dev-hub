@@ -343,7 +343,9 @@ def main() -> None:
         else:
             _block(
                 "spawn-gate: перед FINISH/Handoff обязателен @verify "
-                "(Agent subagent_type=verify) с packed AC+ · AC− · §0.11 · VERIFY · ALLOW READ. "
+                "(Agent subagent_type=verify|verify-implement) с ALLOW READ: "
+                "implement yaml + decompose yaml + code files. "
+                "Checklist SoT = decompose shard. "
                 "Порядок: seed-implement → flush cp → suite → evidence (in_progress) → "
                 "Handoff → @verify → "
                 "FAIL/DENY: fix → снова @verify → PASS → finalize-step → FINISH/stop. "

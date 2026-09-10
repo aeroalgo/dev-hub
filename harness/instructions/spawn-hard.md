@@ -39,7 +39,7 @@ Parent **MAY** spawn любых Agent по нужде.
 |-------|-----------|
 | IMPLEMENT · REFACTOR · BUGFIX · TASK (code) | перед широким поиском → **`@explorer`**, если managed search agent включён; иначе graphify + узкий rg parent |
 | Shard с `sunset_scope.required: true` | перед первым prod Write нового SoT → **`@sunset-inventory`** (`subagent_type=sunset-inventory` или alias `sunset`), scan sunset targets → fenced JSON `loop-sunset-inventory/v1` |
-| Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
+| Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (`ALLOW READ`: implement yaml + decompose yaml + code; checklist SoT = decompose; alias `@verify`); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** |
 | После `@verify-*` VERDICT: FAIL | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry @verify до PASS |
@@ -58,14 +58,14 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** BACK QA FINISH без `Agent`→`verify-qa` (или alias `reviewer`).  
 **FAIL:** code-режим сделал широкий codebase search без предшествующего `Agent`→`explorer` в сессии (кроме исключения выше).  
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
-**FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
+**FAIL:** spawn `verify-implement`/`verify` без `ALLOW READ` или без implement+decompose yaml paths в ALLOW / path нет на диске; spawn других verify/reviewer/gate-repair без обязательных секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
 **FAIL:** verify-qa fail-fast (FAIL до полного AC+/AC−/§0.11) или partial `## BLOCKERS (complete)`.
   ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry @verify
   ├─ gate-repair fail → parent расширяет ALLOW WRITE / уточняет path|fix или чинит сам → retry
 Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
 **FAIL:** `@gate-repair` с голыми blocker id без `| path | fix` или path ∉ ALLOW WRITE.
 
-**FAIL:** «проверь шаг» / QA review / search без секций.  
+**FAIL:** «проверь шаг» / QA review / search без секций (для `verify-implement` — без ALLOW READ + обоих yaml).  
 **FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов; ≤10 default, ≤40 для verify-qa/reviewer).
    **FAIL:** секции без перевода строки / без этих заголовков.
 

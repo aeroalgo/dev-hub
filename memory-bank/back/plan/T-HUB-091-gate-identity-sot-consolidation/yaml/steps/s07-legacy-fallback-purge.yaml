@@ -31,6 +31,8 @@ plan_contract:
     - harness/hooks/_lib.py
     - loop/session_finalize.py
   ac_quotes:
+    - "AC+ #1: Все ownership paths используют frozen GateIdentity SoT без обходных fallback-веток."
+    - "AC+ #2: Sunset inventory A+B+C+I подтверждён grep_control evidence без legacy matches."
     - "AC− #1: Нет dual path coerce+SoT bind."
     - "AC− #2: Нет ownership от сырого projection.step в обход freeze."
     - "SC-005: Нет per-field coerce ladder в stop"
@@ -44,8 +46,8 @@ context:
     - plan.md#replacement--sunset
     - decompose-index.md#replacement-cleanup
   produces:
-    - evidence rg/inventory в implement shard
-    - удалённые fallback-пути
+    - evidence rg/inventory для plan.md#replacement--sunset в implement shard
+    - evidence удалённых fallback-путей для decompose-index.md#replacement-cleanup в implement shard
   plan_refs:
     - plan.md#replacement--sunset
     - plan.md#qa-consumes
@@ -133,9 +135,13 @@ sunset_inventory:
     rg_scope: harness/ hooks/ loop/ docs/
     expect: zero docs/comments claiming Codex coerce is session-only product policy
 
-deletes: []
+deletes:
+  - "Удалить legacy per-field coerce ladders и dual-path fallback branches из stop hook."
+  - "Удалить duplicate _gate_session_id helper и obsolete per-field coerce assertions."
 
-out_of_scope: []
+out_of_scope:
+  - "Не изменять entrypoints/deploy: для этого эпика Kind B остаётся n/a."
+  - "Не добавлять новые transport providers или расширять sunset inventory за пределы A+B+C+I."
 
 grep_control:
   - id: inv-a-01

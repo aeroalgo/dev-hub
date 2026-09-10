@@ -31,12 +31,12 @@ steps:
   file: s05-codex-stop-transport-bind-and-coerce-removal.yaml
   title: s05 — Codex stop transport_bind via SoT API + delete per-field coerce ladder
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-instruction-surfaces-kind-i.yaml
   title: s06 — Kind I instruction surfaces alignment (prompts, rules, docs)
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s07
   file: s07-legacy-fallback-purge.yaml
   title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes

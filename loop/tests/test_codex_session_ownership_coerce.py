@@ -43,45 +43,8 @@ def _run_stop(
     )
 
 
-def test_codex_session_id_label_is_coerced(tmp_path: Path) -> None:
-    from epic.core import default_state, save_epic_state
-
-    st = default_state()
-    st.update(
-        {
-            "active": True,
-            "status": "running",
-            "phase": "BACK IMPLEMENT",
-            "mode": "implement",
-            "armed_epic": "T-HUB-079-orchestrator-lifecycle-reliability",
-            "armed_step": "s02",
-            "session_id": "b667d6da-b99f-46c5-8af5-0e66e3c447fd",
-        }
-    )
-    save_epic_state(tmp_path, st)
-
-    fence = {
-        "schema": "loop-gate-verdict/v1",
-        "agent_id": "verify-implement",
-        "verdict": "FAIL",
-        "step_id": "s02",
-        "epic_id": "T-HUB-079-orchestrator-lifecycle-reliability",
-        "session_id": "verify-implement-s02",
-        "recorded_at": "2026-09-09T12:00:00Z",
-    }
-    proc = _run_stop(
-        tmp_path,
-        fence=fence,
-        agent_type="verify-implement",
-        session_id="b667d6da-b99f-46c5-8af5-0e66e3c447fd",
-        runtime_id="codex",
-    )
-    assert "semantic_ownership_mismatch" not in proc.stderr
-    assert proc.returncode == 0
-
-
-def test_codex_step_id_and_epic_id_are_coerced_from_transport(tmp_path: Path) -> None:
-    """Codex has no pre-spawn SubagentStart; wrong LLM step/epic must bind to runner identity."""
+def test_codex_fence_binds_to_sot(tmp_path: Path) -> None:
+    """Codex stop with wrong fence step_id/epic_id/session_id binds to SoT and succeeds without ownership NEED_HUMAN."""
     from epic.core import default_state, save_epic_state
 
     epic = "T-HUB-080-workflow-capability-instruction-parity"
@@ -128,6 +91,98 @@ def test_codex_step_id_and_epic_id_are_coerced_from_transport(tmp_path: Path) ->
     assert "semantic_ownership_mismatch" not in proc.stderr, proc.stderr
     assert "step_id mismatch" not in proc.stderr
     assert proc.returncode == 0
+
+
+def test_codex_wrong_agent_fails(tmp_path: Path) -> None:
+    """Codex stop with wrong agent_id raises NEED_HUMAN ownership error."""
+    from epic.core import default_state, save_epic_state
+
+    epic = "T-HUB-080-workflow-capability-instruction-parity"
+    session_id = "bugfix-20260910-codex-wrong-agent"
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK BUGFIX",
+            "mode": "bugfix",
+            "armed_epic": epic,
+            "armed_step": "BUGFIX",
+            "session_id": session_id,
+            "session_start_identity": {
+                "schema": "loop-session-start-identity/v1",
+                "phase": "BACK BUGFIX",
+                "step_id": "BUGFIX",
+                "epic_id": epic,
+                "role": "BACK",
+                "phase_run_id": "run-1",
+                "session_id": session_id,
+            },
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    fence = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify-qa",
+        "verdict": "FAIL",
+        "step_id": "BUGFIX",
+        "epic_id": epic,
+        "session_id": session_id,
+        "recorded_at": "2026-09-10T12:00:00Z",
+    }
+    proc = _run_stop(
+        tmp_path,
+        fence=fence,
+        agent_type="verify-bugfix",
+        session_id=session_id,
+        runtime_id="codex",
+    )
+    assert proc.returncode == 2
+    assert "semantic_ownership_mismatch" in proc.stderr
+    assert "agent_id mismatch" in proc.stderr
+
+
+def test_codex_session_id_label_is_coerced(tmp_path: Path) -> None:
+    from epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "status": "running",
+            "phase": "BACK IMPLEMENT",
+            "mode": "implement",
+            "armed_epic": "T-HUB-079-orchestrator-lifecycle-reliability",
+            "armed_step": "s02",
+            "session_id": "b667d6da-b99f-46c5-8af5-0e66e3c447fd",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    fence = {
+        "schema": "loop-gate-verdict/v1",
+        "agent_id": "verify-implement",
+        "verdict": "FAIL",
+        "step_id": "s02",
+        "epic_id": "T-HUB-079-orchestrator-lifecycle-reliability",
+        "session_id": "verify-implement-s02",
+        "recorded_at": "2026-09-09T12:00:00Z",
+    }
+    proc = _run_stop(
+        tmp_path,
+        fence=fence,
+        agent_type="verify-implement",
+        session_id="b667d6da-b99f-46c5-8af5-0e66e3c447fd",
+        runtime_id="codex",
+    )
+    assert "semantic_ownership_mismatch" not in proc.stderr
+    assert proc.returncode == 0
+
+
+def test_codex_step_id_and_epic_id_are_coerced_from_transport(tmp_path: Path) -> None:
+    """Codex has no pre-spawn SubagentStart; wrong LLM step/epic must bind to runner identity."""
+    test_codex_fence_binds_to_sot(tmp_path)
 
 
 def test_claude_keeps_strict_step_id_ownership(tmp_path: Path) -> None:

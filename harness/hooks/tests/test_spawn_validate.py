@@ -33,12 +33,31 @@ def _verify_setup(tmp_path: Path) -> None:
     )
 
 
-def _verify_prompt(allow_read: str = "foo.py") -> str:
-    return (
-        "AC+\n- satisfied\nAC-\n- none\n§0.11\n- checked\n"
-        "VERIFY\n- checked\nALLOW READ\n"
-        f"{allow_read}\n"
-    )
+def _verify_prompt(
+    allow_read: str | None = None,
+    *,
+    with_steps: bool = True,
+    cwd: Path | None = None,
+) -> str:
+    """Minimal verify spawn prompt. When with_steps, seed impl+decompose under cwd."""
+    lines = ["ALLOW READ"]
+    if with_steps and cwd is not None:
+        impl = "memory-bank/back/implement/T-spawn/s01-demo.yaml"
+        dec = "memory-bank/back/plan/T-spawn/yaml/steps/s01-demo.yaml"
+        for rel, body in (
+            (impl, "schema: epic-implement/v1\nstep_id: s01\nstatus: in_progress\n"),
+            (dec, "schema: epic-decompose/v1\nstep_id: s01\n"),
+        ):
+            path = cwd / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if not path.is_file():
+                path.write_text(body, encoding="utf-8")
+            lines.append(rel)
+    if allow_read:
+        lines.append(allow_read)
+    elif not with_steps:
+        lines.append("foo.py")
+    return "\n".join(lines) + "\n"
 
 
 def test_missing_contract_sections_are_denied(tmp_path: Path, monkeypatch) -> None:
@@ -55,7 +74,10 @@ def test_allow_read_directory_is_denied(tmp_path: Path, monkeypatch) -> None:
     _verify_setup(tmp_path)
     monkeypatch.setenv("EPIC_LOOP", "1")
 
-    tool_input = {"subagent_type": "verify", "prompt": _verify_prompt("memory-bank/")}
+    tool_input = {
+        "subagent_type": "verify",
+        "prompt": _verify_prompt("memory-bank/", cwd=tmp_path),
+    }
     deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
 
     assert any("ALLOW READ" in reason and "каталог" in reason for reason in deny_reasons)
@@ -70,7 +92,10 @@ def test_managed_in_flight_is_denied(tmp_path: Path, monkeypatch) -> None:
             {"agent": "explorer", "model": "fable", "managed": True}
         ]
     }
-    tool_input = {"subagent_type": "verify", "prompt": _verify_prompt()}
+    tool_input = {
+        "subagent_type": "verify",
+        "prompt": _verify_prompt(cwd=tmp_path),
+    }
     deny_reasons, _notes = validate_spawn_input(tool_input, state, tmp_path)
 
     assert any("managed_in_flight" in reason for reason in deny_reasons)
@@ -82,10 +107,55 @@ def test_well_formed_prompt_without_in_flight_is_allowed(
     _verify_setup(tmp_path)
     monkeypatch.setenv("EPIC_LOOP", "1")
 
-    tool_input = {"subagent_type": "verify", "prompt": _verify_prompt()}
+    tool_input = {
+        "subagent_type": "verify",
+        "prompt": _verify_prompt(cwd=tmp_path),
+    }
     deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
 
     assert deny_reasons == []
+
+
+def test_verify_implement_requires_decompose_step(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _verify_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    impl = "memory-bank/back/implement/T-spawn/s01-demo.yaml"
+    path = tmp_path / impl
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("status: in_progress\n", encoding="utf-8")
+
+    tool_input = {
+        "subagent_type": "verify-implement",
+        "prompt": f"ALLOW READ\n{impl}\nfoo.py\n",
+    }
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert any("decompose_step_not_in_allow" in reason for reason in deny_reasons)
+
+
+def test_verify_implement_allow_without_ac_sections(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _agent(
+        tmp_path,
+        "verify-implement.md",
+        "name: verify-implement\noverlay:\n  managed: true\n  mode: gate\n  default_loop: true\n  requires_model: true\n  verdict: pass-fail",
+    )
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_VERIFY_MODEL=sonnet\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    tool_input = {
+        "subagent_type": "verify-implement",
+        "prompt": _verify_prompt(cwd=tmp_path),
+    }
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert deny_reasons == []
+    assert "AC+" not in tool_input["prompt"]
 
 
 def test_alias_is_normalized_by_spawn_validation(tmp_path: Path, monkeypatch) -> None:

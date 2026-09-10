@@ -1366,7 +1366,7 @@ def _incomplete_step_fix_blocks(cwd: Path) -> list[str]:
         *[f"- {item}" for item in blockers],
         "Сейчас: устрани причину (добей cp / сними gaps.blocked / дополни harness/parity/seed),",
         "затем validate-step → Handoff → @verify. FAIL → снова fix.",
-        "FORBIDDEN: `BLOCKED:` / «нужен отдельный bugfix» / PASS на consistent blocked-state.",
+        "FORBIDDEN: `BLOCKED:` вместо фикса / PASS на consistent blocked-state.",
     ]
 
 

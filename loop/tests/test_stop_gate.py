@@ -307,19 +307,15 @@ def _run_agent_pretool(cwd: Path, payload: dict, *, epic_loop: bool = True) -> d
 _VERIFY_STEP = (
     "memory-bank/back/implement/implement-vfy/s01-demo.yaml"
 )
+_VERIFY_DECOMPOSE = (
+    "memory-bank/back/plan/T-vfy/yaml/steps/s01-demo.yaml"
+)
 
 _VERIFY_PACKED = f"""Цель: pre-FINISH.
-AC+:
-- ok
-AC−:
-- нет
-§0.11:
-- ok
-VERIFY:
-- .venv/bin/pytest -q
 ALLOW READ:
 1. {_VERIFY_STEP}
-2. .claude/hooks/epic_lib.py
+2. {_VERIFY_DECOMPOSE}
+3. .claude/hooks/epic_lib.py
 """
 
 
@@ -327,6 +323,11 @@ def _seed_verify_step(cwd: Path) -> None:
     _write(
         _VERIFY_STEP,
         "schema: epic-implement/v1\nrole: back\nstep_id: s01\nstatus: completed\n",
+        cwd,
+    )
+    _write(
+        _VERIFY_DECOMPOSE,
+        "schema: epic-decompose/v1\nrole: back\nstep_id: s01\n",
         cwd,
     )
 
@@ -436,14 +437,6 @@ def test_agent_pretool_denies_verify_without_step_in_allow(tmp_path: Path) -> No
         tmp_path,
     )
     packed = """Цель: pre-FINISH.
-AC+:
-- ok
-AC−:
-- нет
-§0.11:
-- ok
-VERIFY:
-- .venv/bin/pytest -q
 ALLOW READ:
 1. .claude/hooks/epic_lib.py
 """
@@ -460,6 +453,7 @@ ALLOW READ:
     assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
     reason = out.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
     assert "step_not_in_allow" in reason
+    assert "decompose_step_not_in_allow" in reason
 
 
 def test_agent_pretool_denies_verify_after_no_verdict_retries(tmp_path: Path) -> None:

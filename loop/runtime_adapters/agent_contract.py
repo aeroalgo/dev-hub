@@ -35,16 +35,19 @@ _GATE_JSON_HARD = (
 
 UNIVERSAL_CONTRACTS: dict[str, str] = {
     "verify": (
-        "CONTRACT verify: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
+        "CONTRACT verify: нужен ALLOW READ с implement yaml + decompose yaml. "
+        "Checklist SoT = decompose (ac_quotes/out_of_scope/deletes); evidence = implement. "
         + _GATE_JSON_HARD
         + " Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.yaml + implement step."
+        "Канон: activeContext + decompose step + implement step."
     ),
     "verify-implement": (
-        "CONTRACT verify-implement: нужен AC+ · AC− · §0.11 · VERIFY · ALLOW. "
+        "CONTRACT verify-implement: нужен ALLOW READ с implement yaml + decompose yaml. "
+        "Checklist SoT = decompose shard; evidence SoT = implement yaml; "
+        "parent-packed AC+/AC−/§0.11/VERIFY не SoT. "
         + _GATE_JSON_HARD
         + " Не edit. Без isolation=worktree. "
-        "Канон: activeContext + decompose index.yaml + implement step. "
+        "Канон: activeContext + decompose step + implement step. "
         "HARD scope SoT = touch-ledger (runtime/.../touch-ledger.json), не whole-repo git. "
         "Сначала: `python3 harness/hooks/epic_resolve.py scope-check`. "
         "Empty ledger = оправдание (нет правок шага) → ignore scope/git dirty FAIL. "

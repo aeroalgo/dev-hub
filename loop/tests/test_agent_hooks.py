@@ -380,44 +380,48 @@ def test_pretool_worktree_strip(tmp_path: Path, monkeypatch) -> None:
     assert "HARD RULE" in hook["updatedInput"]["prompt"]
 
 
-def _seed_verify_files(tmp_path: Path) -> str:
+def _seed_verify_files(tmp_path: Path) -> tuple[str, str]:
     step = (
         "memory-bank/back/implement/implement-T-test/s01-demo.yaml"
+    )
+    decompose = (
+        "memory-bank/back/plan/T-test/yaml/steps/s01-demo.yaml"
     )
     step_path = tmp_path / step
     step_path.parent.mkdir(parents=True, exist_ok=True)
     step_path.write_text("status: completed\n", encoding="utf-8")
+    dec_path = tmp_path / decompose
+    dec_path.parent.mkdir(parents=True, exist_ok=True)
+    dec_path.write_text("schema: epic-decompose/v1\nstep_id: s01\n", encoding="utf-8")
     ac = tmp_path / "memory-bank" / "activeContext.md"
     ac.parent.mkdir(parents=True, exist_ok=True)
     ac.write_text("## load_now\n- x\n## Handoff\nok\n", encoding="utf-8")
-    return step
+    return step, decompose
 
 
-def _verify_prompt(step: str) -> str:
+def _verify_prompt(step: str, decompose: str) -> str:
     return (
-        "Цель\nAC+\n- a\nAC−\n- b\n§0.11\n- c\nVERIFY\n"
-        "timeout 300s .venv/bin/pytest -q\nALLOW READ\n"
+        "Цель\nALLOW READ\n"
         f"{step}\n"
+        f"{decompose}\n"
         "memory-bank/activeContext.md\n"
     )
 
 
-def _verify_prompt_markdown_headings(step: str) -> str:
+def _verify_prompt_markdown_headings(step: str, decompose: str) -> str:
     return (
-        "Цель\n# AC+\n- a\n# AC-\n- b\n# 0.11\n- c\n# VERIFY\n"
-        "timeout 300s .venv/bin/pytest -q\n# ALLOW READ\n"
+        "Цель\n# ALLOW READ\n"
         f"{step}\n"
+        f"{decompose}\n"
         "memory-bank/activeContext.md\n"
     )
 
 
-def test_missing_contract_sections_accepts_markdown_and_ascii_minus() -> None:
+def test_missing_contract_sections_accepts_allow_read_only() -> None:
     lib = _load()
-    prompt = (
-        "# AC+\n- a\n# AC-\n- b\n# 0.11\n- c\n# VERIFY\n"
-        "pytest -q\n# ALLOW READ\nfoo.py\n"
-    )
+    prompt = "# ALLOW READ\nfoo.py\n"
     assert lib.missing_contract_sections("verify", prompt) == []
+    assert lib.missing_contract_sections("verify-implement", prompt) == []
     assert lib.allow_read_files(prompt) == ["foo.py"]
 
 
@@ -432,11 +436,11 @@ def test_pretool_allow_verify_markdown_headings(tmp_path: Path, monkeypatch) -> 
         encoding="utf-8",
     )
     monkeypatch.setenv("EPIC_LOOP", "1")
-    step = _seed_verify_files(tmp_path)
+    step, decompose = _seed_verify_files(tmp_path)
     out = _run_pretool(
         tmp_path,
         agent="verify",
-        prompt=_verify_prompt_markdown_headings(step),
+        prompt=_verify_prompt_markdown_headings(step, decompose),
     )
     assert out["hookSpecificOutput"]["permissionDecision"] == "allow"
 
@@ -459,7 +463,7 @@ def test_pretool_deny_parallel_managed(tmp_path: Path, monkeypatch) -> None:
     )
     monkeypatch.setenv("EPIC_LOOP", "1")
     sid = "sess-parallel-managed"
-    step = _seed_verify_files(tmp_path)
+    step, decompose = _seed_verify_files(tmp_path)
 
     first = _run_pretool(tmp_path, agent="explorer", session_id=sid)
     assert first["hookSpecificOutput"]["permissionDecision"] == "allow"
@@ -468,7 +472,7 @@ def test_pretool_deny_parallel_managed(tmp_path: Path, monkeypatch) -> None:
         tmp_path,
         agent="verify",
         session_id=sid,
-        prompt=_verify_prompt(step),
+        prompt=_verify_prompt(step, decompose),
     )
     hook = second["hookSpecificOutput"]
     assert hook["permissionDecision"] == "deny"
@@ -481,7 +485,7 @@ def test_pretool_deny_parallel_managed(tmp_path: Path, monkeypatch) -> None:
         tmp_path,
         agent="verify",
         session_id=sid,
-        prompt=_verify_prompt(step),
+        prompt=_verify_prompt(step, decompose),
     )
     assert retry["hookSpecificOutput"]["permissionDecision"] == "allow"
 
@@ -504,13 +508,13 @@ def test_pretool_deny_same_model_inflight(tmp_path: Path, monkeypatch) -> None:
     )
     monkeypatch.setenv("EPIC_LOOP", "1")
     sid = "sess-same-model"
-    step = _seed_verify_files(tmp_path)
+    step, decompose = _seed_verify_files(tmp_path)
 
     first = _run_pretool(
         tmp_path,
         agent="verify",
         session_id=sid,
-        prompt=_verify_prompt(step),
+        prompt=_verify_prompt(step, decompose),
     )
     assert first["hookSpecificOutput"]["permissionDecision"] == "allow"
 

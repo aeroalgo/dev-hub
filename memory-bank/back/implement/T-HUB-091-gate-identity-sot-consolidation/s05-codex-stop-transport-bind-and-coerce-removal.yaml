@@ -2,34 +2,47 @@ schema: epic-implement/v1
 role: back
 step_id: s05
 plan_id: T-HUB-091-gate-identity-sot-consolidation
-title: s05 — s05 — Codex stop transport_bind via SoT API + delete per-field coerce
-  ladder IMPLEMENT
-status: in_progress
+title: s05 — Codex stop transport_bind via SoT API + delete per-field coerce ladder
+  IMPLEMENT
+status: completed
 date: '2026-09-10'
 decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s05-codex-stop-transport-bind-and-coerce-removal.yaml
 skills_used: []
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Заменили поштучный coerce ladder в subagent-stop.py на GateIdentity.bind_fence(policy=transport_bind)
+- Для Codex fence поля step_id/epic_id/session_id биндятся из SoT без NEED_HUMAN
+- 'Проверка agent_id сохранена строгой: несовпадение типа агента остаётся NEED_HUMAN
+  ownership error'
+- Переписали loop/tests/test_codex_session_ownership_coerce.py на валидацию transport_bind
+  через SoT API (TM-003, TM-005)
 files:
 - harness/hooks/subagent-stop.py
 - loop/tests/test_codex_session_ownership_coerce.py
 deletes:
 - 'harness/hooks/subagent-stop.py: поштучные if-ladder ветки coerce_session_id/coerce_step_id/coerce_epic_id'
-tests: []
-integration_check: []
+tests:
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q
+- bin/pytest loop/tests/test_stop_gate.py -q
+integration_check:
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q — 5 passed
+- bin/pytest loop/tests/test_stop_gate.py -q — 74 passed
 grep_control: []
-verification_results: []
+verification_results:
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -k test_codex_fence_binds_to_sot
+  -q — PASS
+- bin/pytest loop/tests/test_codex_session_ownership_coerce.py -k test_codex_wrong_agent_fails
+  -q — PASS
 checkpoints:
 - id: cp1
   criterion: Codex stop with wrong fence step_id binds to SoT and succeeds without
     ownership NEED_HUMAN
-  status: pending
+  status: done
 - id: cp2
   criterion: Codex stop with wrong agent_id raises NEED_HUMAN ownership error
-  status: pending
+  status: done
 - id: cp3
   criterion: No per-field coerce if-ladder remains in subagent-stop.py
-  status: pending
-resume_from: cp1
+  status: done

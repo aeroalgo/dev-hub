@@ -285,6 +285,26 @@ def gate_atomic_finish(
         if not state.get("active"):
             return None
 
+        # Demoted PASS must never finish even if the local stop variable was
+        # briefly promoted (scope heuristic) before mirror re-coerced FAIL.
+        receipt = state.get("last_verify_receipt") or state.get("last_verify_evidence") or {}
+        state_verdict = str(state.get("last_verify_verdict") or "").upper()
+        if (
+            isinstance(receipt, dict)
+            and receipt.get("demoted_from_pass")
+            and state_verdict != "PASS"
+        ):
+            blockers = receipt.get("demote_blockers") or []
+            detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+            return {
+                "ok": False,
+                "diagnostic_codes": ["verify_demoted_pass"],
+                "error": (
+                    "demoted verify PASS cannot auto-finish; "
+                    f"{detail}; fix implement shard and re-verify"
+                ),
+            }
+
         if norm in _REVIEWER_ALIASES:
             phase = str(state.get("phase") or state.get("armed_step") or "").upper()
             if phase != "QA":

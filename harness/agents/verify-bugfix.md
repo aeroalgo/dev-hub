@@ -48,8 +48,8 @@ Parent **обязан** передать секции. Если нет или в
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-bugfix","verdict":"PASS|FAIL","step_id":"BUGFIX","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id`, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
-- **`step_id` всегда литерал `BUGFIX`** (FORBIDDEN: `sNN` / implement step / epic step id).
+- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id` строго из предоставленного блока `GATE_IDENTITY` (`GATE_IDENTITY session_id=<session_id> epic_id=<epic_id> step_id=BUGFIX`), один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- **`step_id` всегда литерал `BUGFIX`** (FORBIDDEN: угадывать `sNN` с эпика / implement step / epic step id). Значения `session_id` и `epic_id` бери строго из `GATE_IDENTITY`.
 - Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
 
 ## Gate Output (JSON fence HARD) — machine SoT
@@ -70,6 +70,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
 
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"FAIL"`.
-- `step_id`: всегда `"BUGFIX"`.
+- `step_id`: всегда литерал `"BUGFIX"` (не `sNN` из плана или эпика).
+- `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

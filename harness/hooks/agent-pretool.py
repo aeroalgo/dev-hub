@@ -223,7 +223,8 @@ def main() -> None:
 
     ctx = (
         f"spawn-gate: launching {tool_input.get('subagent_type') or raw_type}. "
-        "CC делегирует как обычно; gate’ы verify/reviewer — packed prompt. "
+        "CC делегирует как обычно; gate’ы verify — ALLOW READ (implement+decompose yaml); "
+        "reviewer — packed Suite/AC/ALLOW. "
         "Parallel managed / same-model spawn — DENY until SubagentStop."
     )
     if notes:

@@ -114,8 +114,8 @@ Ineligible findings → в `## CHECKED` как `ok (ineligible:<reason>)`, **н�
 python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"verify-qa","verdict":"PASS|BLOCKED|FAIL","step_id":"QA","session_id":"<session_id>","epic_id":"<epic_id>","recorded_at":"<iso8601>"}'
 ```
 
-- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id`, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|BLOCKED|FAIL` запускать нельзя.
-- **`step_id` всегда литерал `QA`** (FORBIDDEN: `sNN` / implement step).
+- Это шаблон: перед запуском подставь реальные `session_id`/`epic_id` строго из предоставленного блока `GATE_IDENTITY` (`GATE_IDENTITY session_id=<session_id> epic_id=<epic_id> step_id=QA`), один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|BLOCKED|FAIL` запускать нельзя.
+- **`step_id` всегда литерал `QA`** (FORBIDDEN: угадывать `sNN` с эпика / activeContext / implement step). Значения `session_id` и `epic_id` бери строго из `GATE_IDENTITY`.
 - Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN: `json loop-gate-verdict/v1` info-string).
 - `validate-boundary` — **после** полного `## BLOCKERS` / `## CHECKED` черновика; не раньше завершения матрицы.
 
@@ -137,6 +137,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
 
 - Поле **`schema`** (не `schema_version`).
 - `verdict`: `"PASS"` | `"BLOCKED"` | `"FAIL"`.
-- `step_id`: всегда `"QA"`.
+- `step_id`: всегда литерал `"QA"` (не `sNN` из плана или эпика).
+- `session_id`, `epic_id`: строго из `GATE_IDENTITY`.
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).

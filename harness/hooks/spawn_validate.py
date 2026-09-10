@@ -28,6 +28,7 @@ from _lib import (
     read_stdin,
     repair_blocker_violations,
     resolved_spawn_model,
+    verify_step_path_violations,
     _discover_registry,
 )
 
@@ -113,15 +114,23 @@ def validate_spawn_input(
         missing = missing_contract_sections(norm, prompt)
         if missing:
             needed_str = " / ".join([label for label, _ in _SECTION_PATTERNS.get(norm, [])])
+            if norm in {"verify", "verify-implement"}:
+                hint = (
+                    "Нужны: ALLOW READ (implement yaml + decompose yaml + code). "
+                    "Checklist SoT = decompose shard — AC+/AC−/§0.11/VERIFY в prompt не обязательны."
+                )
+            else:
+                hint = (
+                    "Добавь заголовки с новой строки "
+                    "(ASCII `AC-` ок; Unicode `AC−` ок; `# AC+` ок). Нужны: "
+                    + (needed_str if needed_str else (
+                        "Suite results / AC+ / AC- / 0.11 / ALLOW READ"
+                        if norm == "reviewer"
+                        else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
+                    ))
+                )
             deny_reasons.append(
-                f"prompt_incomplete: нет секций [{', '.join(missing)}]. "
-                "Добавь заголовки с новой строки "
-                "(ASCII `AC-` ок; Unicode `AC−` ок; `# AC+` ок). Нужны: "
-                + (needed_str if needed_str else (
-                    "Suite results / AC+ / AC- / 0.11 / ALLOW READ"
-                    if norm == "reviewer"
-                    else "AC+ / AC- / 0.11 / VERIFY / ALLOW READ"
-                ))
+                f"prompt_incomplete: нет секций [{', '.join(missing)}]. " + hint
             )
         for violation in allow_read_violations(prompt, agent_type=norm):
             if "ALLOW READ пуст" in violation and "memory-bank/" in prompt:
@@ -129,6 +138,8 @@ def validate_spawn_input(
                     "ALLOW READ пуст", "ALLOW READ содержит деревья/каталоги: memory-bank/"
                 )
             deny_reasons.append(violation)
+        if norm in {"verify", "verify-implement"} and project_dir and not missing:
+            deny_reasons.extend(verify_step_path_violations(project_dir, prompt))
         if norm in {"verify-qa", "reviewer"}:
             try:
                 from loop.qa_checklist_freeze import spawn_freeze_violations

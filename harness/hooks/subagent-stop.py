@@ -21,6 +21,7 @@ from _lib import (
     is_schema_error,
     is_semantic_error,
     load_state,
+    mark_in_flight,
     mark_verdict_recorded,
     normalize_type,
     parse_gate_verdict_message,
@@ -55,6 +56,7 @@ from loop.validate_boundary import validate_boundary  # noqa: E402
 from loop.gate_identity import (  # noqa: E402
     GateOwnershipMismatchError,
     assert_fence,
+    bind_fence,
 )
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
 from loop.runtime_adapters.subagent_lifecycle import gate_atomic_finish  # noqa: E402
@@ -86,7 +88,7 @@ def _fail_hint(agent_type: str, cwd: str | Path = ".") -> str:
             "verify VERDICT: FAIL — parent: @gate-repair "
             "(BLOCKERS `- id | path | fix` + ALLOW WRITE + VERIFY) "
             "или чини blockers сам, затем retry @verify. "
-            "Не FINISH. FORBIDDEN: «ожидаю verify», BLOCKED + отдельный bugfix для incomplete AC."
+            "Не FINISH. FORBIDDEN: «ожидаю verify», `BLOCKED:` вместо фикса incomplete AC."
         )
     return (
         f"{agent_type} VERDICT: FAIL — parent: устрани blockers и retry @{agent_type}. "
@@ -106,6 +108,12 @@ def _handle_verify_finish_agent(
 ) -> None:
     identity = current_gate_identity(cwd, session_id)
     sync_gate_identity(st, identity)
+
+    # Coerce demotion is authoritative for incomplete implement shards.
+    # Never let foreign-dirty promote undo it (that caused local PASS +
+    # mirrored FAIL → verify_pass_missing on auto mb-finish).
+    coerce_demoted = False
+    demote_blockers: list[str] = []
 
     if agent_type in COERCE_VERIFY_AGENTS and verdict == "PASS":
         try:
@@ -138,17 +146,22 @@ def _handle_verify_finish_agent(
                         "verify VERDICT: PASS demoted → FAIL — step incomplete: "
                         + "; ".join(demote_blockers)
                         + ". Parent: добей checkpoints/gaps в этом шаге, потом снова @verify. "
-                        "FORBIDDEN: BLOCKED + отдельный bugfix для incomplete AC этого эпика.",
+                        "FORBIDDEN: `BLOCKED:` вместо фикса incomplete AC этого шага.",
                         file=sys.stderr,
                     )
                     verdict = effective or "FAIL"
+                    coerce_demoted = True
         except Exception as exc:
             print(
                 f"verify: coerce_verify_verdict failed: {exc}",
                 file=sys.stderr,
             )
 
-    if agent_type in COERCE_VERIFY_AGENTS and verdict == "FAIL":
+    if (
+        agent_type in COERCE_VERIFY_AGENTS
+        and verdict == "FAIL"
+        and not coerce_demoted
+    ):
         try:
             from touch_ledger import should_promote_foreign_dirty_fail
 
@@ -171,6 +184,10 @@ def _handle_verify_finish_agent(
 
     record_key = record_agent_key(agent_type)
     evidence = verdict_evidence(identity, verdict, verifier_identity=agent_type or "verify")
+    if coerce_demoted and demote_blockers:
+        evidence = dict(evidence)
+        evidence["demoted_from_pass"] = True
+        evidence["demote_blockers"] = list(demote_blockers)
     matched, _diagnostic = record_verdict(st, record_key, verdict, evidence)
     dedupe_key = verdict_dedupe_key(
         session_id,
@@ -190,9 +207,10 @@ def _handle_verify_finish_agent(
     if "need_human" in st and st["need_human"] == "schema_retry_exhausted:B-GATE":
         st.pop("need_human", None)
 
+    mirrored_pass = False
     if matched:
         try:
-            from epic_lib import mirror_gate_verdict, mirror_verify_verdict
+            from epic_lib import load_epic_state, mirror_gate_verdict, mirror_verify_verdict
 
             if agent_type in COERCE_VERIFY_AGENTS:
                 mirror_verify_verdict(
@@ -220,16 +238,61 @@ def _handle_verify_finish_agent(
                     evidence=evidence,
                     session_id=session_id,
                 )
+            epic_after = load_epic_state(cwd) or {}
+            mirrored = str(epic_after.get("last_verify_verdict") or "").upper()
+            receipt = (
+                epic_after.get("last_verify_receipt")
+                or epic_after.get("last_verify_evidence")
+                or {}
+            )
+            if mirrored == "PASS":
+                mirrored_pass = True
+            elif verdict == "PASS":
+                # Mirror demoted / spawn-missing / stale — never tell parent mb-finish.
+                if isinstance(receipt, dict) and receipt.get("demoted_from_pass"):
+                    blockers = receipt.get("demote_blockers") or []
+                    detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+                    print(
+                        f"{agent_type}: VERDICT PASS demoted in epic SoT — {detail}. "
+                        "Parent: fix implement shard (YAML/checkpoints/gaps), then retry "
+                        f"@{agent_type}. FORBIDDEN: mb-finish until mirrored PASS.",
+                        file=sys.stderr,
+                    )
+                    verdict = "FAIL"
+                    coerce_demoted = True
+                else:
+                    diag = str(epic_after.get("gate_diagnostic") or _diagnostic or "")
+                    print(
+                        f"{agent_type}: epic SoT did not accept PASS "
+                        f"(last_verify_verdict={mirrored!r}, diagnostic={diag!r}). "
+                        f"FORBIDDEN: mb-finish; retry @{agent_type} after fixing gate bind.",
+                        file=sys.stderr,
+                    )
+                    verdict = "FAIL"
         except Exception as exc:
             print(
                 f"{agent_type}: mirror verdict failed: {exc}",
                 file=sys.stderr,
             )
+            if verdict == "PASS":
+                verdict = "FAIL"
+    elif verdict == "PASS":
+        print(
+            f"{agent_type}: verdict not recorded (ownership {_diagnostic}) — "
+            f"FORBIDDEN: mb-finish; fix GATE_IDENTITY bind and retry @{agent_type}.",
+            file=sys.stderr,
+        )
+        verdict = "FAIL"
 
     # Shared gate lifecycle owns atomic mb-finish after PASS for QA /
     # IMPLEMENT / BUGFIX / ANALYZE (artifact already on disk before verify spawn).
     auto_finished = False
-    if verdict == "PASS" and agent_type in VERIFY_FINISH_AGENTS:
+    auto_finish_failed = False
+    if (
+        verdict == "PASS"
+        and mirrored_pass
+        and agent_type in VERIFY_FINISH_AGENTS
+    ):
         finish = gate_atomic_finish(
             cwd,
             agent_type=str(agent_type),
@@ -237,10 +300,13 @@ def _handle_verify_finish_agent(
             session_id=session_id,
         )
         if finish and not finish.get("ok"):
+            auto_finish_failed = True
             codes = ", ".join(str(code) for code in finish.get("diagnostic_codes") or [])
             err = f" ({finish.get('error')})" if finish.get("error") else ""
             print(
-                f"{agent_type}: automatic mb-finish did not complete: {codes}{err}",
+                f"{agent_type}: automatic mb-finish did not complete: {codes}{err}. "
+                "FORBIDDEN: parent mb-finish redo until SoT shows last_verify_verdict=PASS "
+                f"without demote; fix blockers then retry @{agent_type}.",
                 file=sys.stderr,
             )
         elif finish and finish.get("ok"):
@@ -259,6 +325,9 @@ def _handle_verify_finish_agent(
 
     if verdict == "FAIL":
         print(_fail_hint(agent_type, cwd), file=sys.stderr)
+        return
+
+    if auto_finish_failed:
         return
 
     hint = None if auto_finished else mb_finish_hint_after_verdict(agent_type, verdict, cwd)
@@ -391,56 +460,13 @@ def main() -> None:
 
             try:
                 if runtime_id == "codex":
-                    expected_step = current_id.get("step")
-                    expected_epic = current_id.get("epic_id")
-                    expected_session = (
-                        current_id.get("session_id")
-                        if current_id.get("authority") != "manual"
-                        else (session_id or None)
+                    bind_fence(
+                        fence_data,
+                        current_id,
+                        policy="transport_bind",
+                        agent_type=str(agent_type),
                     )
-
-                    fence_step = fence_data.get("step_id")
-                    fence_epic = fence_data.get("epic_id")
-                    fence_session = fence_data.get("session_id")
-                    fence_agent = fence_data.get("agent_id")
-
-                    if (
-                        expected_session
-                        and fence_session
-                        and str(fence_session).strip() != str(expected_session).strip()
-                    ):
-                        fence_data["session_id"] = expected_session
-                        fence_session = expected_session
-
-                    mismatches = []
-                    if expected_step and fence_step and str(fence_step).strip() != str(expected_step).strip():
-                        mismatches.append(
-                            f"step_id mismatch (got {fence_step!r}, expected {expected_step!r})"
-                        )
-                    if expected_epic and fence_epic and str(fence_epic).strip() != str(expected_epic).strip():
-                        mismatches.append(
-                            f"epic_id mismatch (got {fence_epic!r}, expected {expected_epic!r})"
-                        )
-                    if expected_session and fence_session and str(fence_session).strip() != str(expected_session).strip():
-                        mismatches.append(
-                            f"session_id mismatch (got {fence_session!r}, expected {expected_session!r})"
-                        )
-                    expected_record_key = record_agent_key(str(agent_type))
-                    if fence_agent and record_agent_key(str(fence_agent)) != expected_record_key:
-                        mismatches.append(
-                            f"agent_id mismatch (got {fence_agent!r}, expected {agent_type!r})"
-                        )
-
-                    if mismatches:
-                        mismatch_detail = "; ".join(mismatches)
-                        print(
-                            f"NEED_HUMAN: semantic_ownership_mismatch ({mismatch_detail})",
-                            file=sys.stderr,
-                        )
-                        st["need_human"] = "semantic_ownership_mismatch"
-                        save_state(session_id, cwd, st)
-                        sys.exit(2)
-                elif runtime_id == "claude":
+                else:
                     assert_fence(
                         fence_data,
                         current_id,
@@ -456,6 +482,29 @@ def main() -> None:
                 st["need_human"] = "semantic_ownership_mismatch"
                 save_state(session_id, cwd, st)
                 sys.exit(2)
+
+            # Ownership fence passed: ensure managed in_flight under the same
+            # session_id stop/mirror use (Codex start↔stop session drift and
+            # TTL prune otherwise yield verify_spawn_missing after a valid PASS).
+            expected_agent = normalize_type(str(agent_type)) or str(agent_type)
+            has_spawn = any(
+                isinstance(entry, dict)
+                and entry.get("managed")
+                and (normalize_type(str(entry.get("agent") or "")) == expected_agent)
+                for entry in (st.get("in_flight") or [])
+            )
+            if not has_spawn:
+                mark_in_flight(
+                    st,
+                    agent=str(agent_type),
+                    model="stop-ownership-ensure",
+                    managed=True,
+                    tool_use_id=str(data.get("tool_use_id") or data.get("thread_id") or "")
+                    or None,
+                    cwd=cwd,
+                    session_id=session_id,
+                )
+                save_state(session_id, cwd, st)
         else:
             tool_use_id = str(data.get("tool_use_id") or session_id or agent_type)
             retry_count = increment_schema_retry_count(cwd, tool_use_id, session_id=session_id)

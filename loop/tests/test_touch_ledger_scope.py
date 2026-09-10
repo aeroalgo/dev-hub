@@ -244,6 +244,33 @@ BLOCKERS:
     assert any("other_blockers" in n for n in notes)
 
 
+def test_empty_ledger_does_not_promote_pass_mentioning_transport_bind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PASS reports about transport_bind work must not look like scope FAILs."""
+    monkeypatch.setenv("HUB_ROOT", str(tmp_path))
+    monkeypatch.setenv("DEV_HUB", str(tmp_path))
+    project = tmp_path / "proj"
+    project.mkdir()
+    reset_touch_ledger(project, epic_id="T-HUB-091", step_id="s05")
+
+    from touch_ledger import should_promote_foreign_dirty_fail
+
+    report = """
+```json
+{"schema":"loop-gate-verdict/v1","agent_id":"verify-implement","verdict":"PASS","step_id":"s05","session_id":"x","epic_id":"T-HUB-091","recorded_at":"2026-09-10T00:00:00Z"}
+```
+AC+:
+- A3: PASS — `bind_fence(..., policy="transport_bind")`.
+AC−:
+- N3: PASS — `scope-check` успешен, `oos_ledger_paths=[]`.
+VERIFY: PASS — 5 passed.
+BLOCKERS: нет.
+"""
+    ok, notes = should_promote_foreign_dirty_fail(project, report)
+    assert ok is False, notes
+
+
 def test_repair_denies_foreign_dirty_blocker() -> None:
     from _lib import repair_blocker_violations
 

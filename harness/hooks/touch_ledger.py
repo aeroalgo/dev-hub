@@ -51,7 +51,7 @@ FOREIGN_DIRTY_REPORT_RE = re.compile(
 EMPTY_LEDGER_SCOPE_REPORT_RE = re.compile(
     r"(?is)(?:diff_outside_allow|scope_outside|out_of_scope|foreign_dirty|"
     r"scope\s+isolation|вне\s+scope|outside\s+S\d+|deferred\s+to\s+s\d+|"
-    r"transport[_\s-]?bind|codex[_\s-]?transport|"
+    r"(?:FAIL|BLOCKERS?).{0,120}(?:codex[_\s-]?transport|transport[_\s-]?bind)|"
     r"изменен\w*.*Codex|modif(?:y|ies|ied).*Codex|"
     r"не\s+трогать.*Codex|Do not modify Codex)"
 )

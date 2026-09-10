@@ -295,6 +295,35 @@ def test_gate_atomic_finish_implement_missing_verify(monkeypatch, tmp_path) -> N
     assert "verify_pass_missing" in out["diagnostic_codes"]
 
 
+def test_gate_atomic_finish_rejects_demoted_pass(tmp_path) -> None:
+    from harness.hooks.epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "s05",
+            "last_verify_verdict": "FAIL",
+            "last_verify_receipt": {
+                "schema": "loop-verifier-receipt/v1",
+                "verdict": "PASS",
+                "demoted_from_pass": True,
+                "demote_blockers": ["implement_load_failed: broken yaml"],
+            },
+        }
+    )
+    save_epic_state(tmp_path, st)
+    out = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="verify-implement",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out is not None
+    assert out["ok"] is False
+    assert "verify_demoted_pass" in out["diagnostic_codes"]
+
+
 def test_gate_atomic_finish_analyze_pass_calls_finish(monkeypatch, tmp_path) -> None:
     calls: list[str] = []
 

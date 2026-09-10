@@ -37,8 +37,8 @@ Parent **обязан** передать секции. Если нет — ср�
 **Incomplete = FAIL (HARD):**
 - Любой `checkpoints[].status != done` → `VERDICT: FAIL` (blocker `checkpoints_pending`)
 - `gaps.status=blocked` (или gaps=`blocked`) → `VERDICT: FAIL` (blocker `gaps_blocked`)
-- FORBIDDEN: `VERDICT: PASS` на «consistent blocked-state», «cutover корректно заблокирован», «нужен отдельный bugfix»
-- Parent обязан **чинить** incomplete в этом эпике и снова `@verify-implement`. Не советуй BLOCKED/bugfix для incomplete AC.
+- FORBIDDEN: `VERDICT: PASS` на «consistent blocked-state», «cutover корректно заблокирован»
+- Parent обязан **чинить** incomplete в этом шаге и снова `@verify-implement`. Не советуй `BLOCKED:` вместо фикса.
 
 **FORBIDDEN для тебя и для parent:**
 - `VERDICT: FAIL` только потому что `status: in_progress` (`step_status` по статусу)
@@ -128,7 +128,7 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - Re-read одного файла >1×
 - Игнорировать AC− / §0.11 «потому что тесты зелёные»
 - `verdict: PASS` при красном VERIFY / cp не все `done` / `gaps` blocked / битом шаблоне step
-- `verdict: PASS` для «blocked is correct» / cutover заблокирован parity FAIL / «нужен bugfix»
+- `verdict: PASS` для «blocked is correct» / cutover заблокирован parity FAIL
 - `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
 - Совет parent писать `status: completed` руками, вызывать `finalize-step` до PASS, или писать `BLOCKED:` вместо фикса incomplete
 - Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
