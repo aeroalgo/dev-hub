@@ -54,10 +54,22 @@ def main() -> None:
     session_id = data.get("session_id") or ""
     cwd = product_cwd(data.get("cwd"))
 
-    # Post-tool write invalidation boundary
+    # Post-tool write invalidation boundary + epic touch ledger
     if tool_name in WRITE_TOOL_ALIASES:
         try:
             evaluate_write_payload(data, provider="claude", cwd=cwd)
+        except Exception:
+            pass
+        try:
+            from context_ledger_adapters import normalize_write_payload
+            from touch_ledger import record_touch
+
+            payload = normalize_write_payload(data, provider="claude", default_cwd=cwd)
+            record_touch(
+                cwd,
+                payload.raw_path,
+                operation=str(payload.operation or "edit"),
+            )
         except Exception:
             pass
         return

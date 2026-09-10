@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -103,18 +104,39 @@ def _handle_verify_finish_agent(
 
     if agent_type in COERCE_VERIFY_AGENTS and verdict == "PASS":
         try:
-            from epic_lib import coerce_verify_verdict
+            from epic_lib import coerce_verify_verdict, load_epic_state
 
-            effective, demote_blockers = coerce_verify_verdict(cwd, verdict)
-            if demote_blockers:
+            ownership_step = str(identity.get("step") or "").strip()
+            armed_step = str((load_epic_state(cwd) or {}).get("armed_step") or "").strip()
+            # After mb-finish promote, frozen ownership step lags armed_step.
+            # Do not demote a still-valid PASS against the next shard.
+            if (
+                ownership_step
+                and armed_step
+                and ownership_step != armed_step
+                and re.match(r"^[sera]\d{2}$", ownership_step, re.I)
+                and re.match(r"^[sera]\d{2}$", armed_step, re.I)
+            ):
                 print(
-                    "verify VERDICT: PASS demoted → FAIL — step incomplete: "
-                    + "; ".join(demote_blockers)
-                    + ". Parent: добей checkpoints/gaps в этом шаге, потом снова @verify. "
-                    "FORBIDDEN: BLOCKED + отдельный bugfix для incomplete AC этого эпика.",
+                    f"verify: stale ownership step={ownership_step!r} "
+                    f"armed={armed_step!r} — skip coerce demote",
                     file=sys.stderr,
                 )
-                verdict = effective or "FAIL"
+            else:
+                effective, demote_blockers = coerce_verify_verdict(
+                    cwd,
+                    verdict,
+                    evidence={"step": ownership_step} if ownership_step else None,
+                )
+                if demote_blockers:
+                    print(
+                        "verify VERDICT: PASS demoted → FAIL — step incomplete: "
+                        + "; ".join(demote_blockers)
+                        + ". Parent: добей checkpoints/gaps в этом шаге, потом снова @verify. "
+                        "FORBIDDEN: BLOCKED + отдельный bugfix для incomplete AC этого эпика.",
+                        file=sys.stderr,
+                    )
+                    verdict = effective or "FAIL"
         except Exception as exc:
             print(
                 f"verify: coerce_verify_verdict failed: {exc}",
@@ -205,7 +227,11 @@ def _handle_verify_finish_agent(
                 file=sys.stderr,
             )
 
-    clear_in_flight(st, agent=agent_type)
+    clear_in_flight(
+        st,
+        agent=agent_type,
+        tool_use_id=str(data.get("tool_use_id") or "").strip() or None,
+    )
     save_state(session_id, cwd, st)
 
     if verdict == "FAIL":
@@ -215,6 +241,12 @@ def _handle_verify_finish_agent(
     hint = None if auto_finished else mb_finish_hint_after_verdict(agent_type, verdict, cwd)
     if hint:
         print(hint, file=sys.stderr)
+    if auto_finished:
+        print(
+            f"{agent_type}: FINISH ok — parent MUST stop this turn now "
+            "(no Bash/Read/Grep after automatic mb-finish)",
+            file=sys.stderr,
+        )
 
 
 def main() -> None:

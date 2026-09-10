@@ -43,7 +43,7 @@ alwaysApply: false
 
 - Shard/step missing · creative open · red skipped → no code/FINISH
 - Нет analyze artifact / `critical_count>0` → REJECT IMPLEMENT
-- **Scope violation:** paths вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT → REVERT + halt
+- **Scope violation:** path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без shard path / `implement this` · другой step/epic · mass index `completed` · auto QA/AUDIT → REVERT **только ledger-paths** + halt. Чужой git dirty (нет в ledger) → ignore, **не** `git checkout --`/`git restore`/`rm`
 - Полный `plan-*.md` в `load_now` как monolith AC **без** plan_jumps → FAIL; отсутствие plan_jumps при непустых fr_ids → FAIL
 - Полный pytest / голый `pytest` / не из корня (для hub) или пропуск capability declaration/evidence (для managed) → BACK QA или FAIL
 - Impl skills из step не Read (если не docs-only skip) · Read скиллов вне step → no FINISH

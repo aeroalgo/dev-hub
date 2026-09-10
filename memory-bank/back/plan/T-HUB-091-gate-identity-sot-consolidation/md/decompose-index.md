@@ -101,8 +101,8 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-gate-identity-sot-api.yaml](../yaml/steps/s01-gate-identity-sot-api.yaml) | [s01-gate-identity-sot-api.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s01-gate-identity-sot-api.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-atomic-prepare-and-pretool-bind.yaml](../yaml/steps/s02-atomic-prepare-and-pretool-bind.yaml) | [s02-atomic-prepare-and-pretool-bind.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s02-atomic-prepare-and-pretool-bind.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s01** | [s01-gate-identity-sot-api.yaml](../yaml/steps/s01-gate-identity-sot-api.yaml) | [s01-gate-identity-sot-api.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s01-gate-identity-sot-api.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-atomic-prepare-and-pretool-bind.yaml](../yaml/steps/s02-atomic-prepare-and-pretool-bind.yaml) | [s02-atomic-prepare-and-pretool-bind.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s02-atomic-prepare-and-pretool-bind.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s03** | [s03-claude-inject-and-strict-stop.yaml](../yaml/steps/s03-claude-inject-and-strict-stop.yaml) | [s03-claude-inject-and-strict-stop.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s03-claude-inject-and-strict-stop.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s04** | [s04-codex-spawn-rewrite-and-bind.yaml](../yaml/steps/s04-codex-spawn-rewrite-and-bind.yaml) | [s04-codex-spawn-rewrite-and-bind.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s04-codex-spawn-rewrite-and-bind.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s05** | [s05-codex-stop-transport-bind-and-coerce-removal.yaml](../yaml/steps/s05-codex-stop-transport-bind-and-coerce-removal.yaml) | [s05-codex-stop-transport-bind-and-coerce-removal.yaml](../../implement/T-HUB-091-gate-identity-sot-consolidation/s05-codex-stop-transport-bind-and-coerce-removal.yaml) | no | yes | BACK IMPLEMENT | pending |

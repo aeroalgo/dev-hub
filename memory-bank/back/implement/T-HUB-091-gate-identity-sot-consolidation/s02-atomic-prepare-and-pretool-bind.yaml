@@ -1,0 +1,43 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s02 — Atomic prepare_session freeze + spawn-gate mirror and Claude pretool
+  bind
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s02-atomic-prepare-and-pretool-bind.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Инициализация session_start_identity в freeze_session_start_identity и GateIdentity.freeze
+  дополнена зеркалированием bind_spawn_gate
+- В harness/hooks/agent-pretool.py и mark_in_flight добавлена привязка GateIdentity
+  SoT
+- Реализованы модульные и интеграционные тесты loop/tests/test_prepare_session_atomic_identity.py
+  (TM-007)
+files:
+- loop/session_finalize.py
+- harness/hooks/agent-pretool.py
+- harness/hooks/_lib.py
+- loop/tests/test_prepare_session_atomic_identity.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_prepare_session_atomic_identity.py -q
+integration_check:
+- bin/pytest loop/tests/test_prepare_session_atomic_identity.py loop/tests/test_gate_identity_sot.py
+  loop/tests/test_session_finalize_identity.py -q
+grep_control: []
+verification_results:
+- 2 passed
+- 16 passed
+checkpoints:
+- id: cp1
+  criterion: prepare_session гарантирует идентичность spawn-gate gate_identity и session_start_identity
+  status: done
+- id: cp2
+  criterion: agent-pretool атомарно обновляет in_flight и mirror spawn-gate из SoT
+  status: done
+resume_from: done

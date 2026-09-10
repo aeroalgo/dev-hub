@@ -35,7 +35,7 @@ alwaysApply: false
 ## Abort
 
 - Shard missing · creative open · E2E шага нет при plan requirement → no FINISH
-- **Scope violation** (scope lock): paths вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT + halt
+- **Scope violation** (scope lock): path из **touch-ledger** вне shard `files:` · `.cursor/rules/**` без разрешения · другой step/epic · auto QA/AUDIT → REVERT **только ledger-paths** + halt. Чужой git dirty → ignore, не `git checkout --`/`git restore`/`rm`
 - Полный `plan-*.md` в `load_now` / Read всего plan «как AC» → FAIL
 - User-visible без Playwright · Handoff «manual smoke only» · visible UI без design Read → reject
 - Impl/Design из step не Read (если слой не skip) · Read вне step → no FINISH

@@ -699,6 +699,23 @@ def evaluate_write_payload(
     )
     current_ledger.record_edit(norm.raw_path, new_content_hash=norm.new_content_hash)
 
+    try:
+        from touch_ledger import record_touch
+
+        record_touch(
+            norm.project_root,
+            norm.raw_path,
+            operation=str(norm.operation or "edit"),
+        )
+        if norm.old_path:
+            record_touch(
+                norm.project_root,
+                norm.old_path,
+                operation="rename_src",
+            )
+    except Exception:
+        pass
+
     resp = (
         {
             "hookSpecificOutput": {

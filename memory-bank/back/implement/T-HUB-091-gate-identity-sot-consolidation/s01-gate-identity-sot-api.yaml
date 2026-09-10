@@ -2,36 +2,51 @@ schema: epic-implement/v1
 role: back
 step_id: s01
 plan_id: T-HUB-091-gate-identity-sot-consolidation
-title: s01 — s01 — GateIdentity SoT API core (freeze, expected, inject_text, assert_fence,
+title: s01 — GateIdentity SoT API core (freeze, expected, inject_text, assert_fence,
   bind_fence) IMPLEMENT
-status: in_progress
+status: completed
 date: '2026-09-10'
 decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s01-gate-identity-sot-api.yaml
 skills_used: []
 discovery: []
 gaps:
   status: none
-done: []
+done:
+- Создан канонический SoT модуль loop/gate_identity.py с классом GateIdentity
+- Реализованы методы freeze, expected, inject_text, bind_spawn_gate, assert_fence,
+  bind_fence
+- 'Зафиксирован инвариант: expected(state) возвращает freeze identity при любом armed_step
+  / projection drift'
+- Обновлён loop/session_finalize.py для делегирования ownership функций в GateIdentity
+  SoT
+- Добавлены юнит-тесты loop/tests/test_gate_identity_sot.py (TM-001)
 files:
 - loop/gate_identity.py
 - loop/session_finalize.py
 - loop/tests/test_gate_identity_sot.py
 deletes: []
-tests: []
-integration_check: []
+tests:
+- bin/pytest loop/tests/test_gate_identity_sot.py -q
+integration_check:
+- bin/pytest loop/tests/test_gate_identity_sot.py loop/tests/test_session_finalize_identity.py
+  -q
 grep_control: []
-verification_results: []
+verification_results:
+- 1 passed
+- 1 passed
+- 1 passed
+- 5 passed
 checkpoints:
 - id: cp1
   criterion: GateIdentity.freeze(state) записывает session_start_identity в state;
     expected(state) возвращает freeze identity при любом armed_step
-  status: pending
+  status: done
 - id: cp2
   criterion: GateIdentity.assert_fence(strict) падает при расхождении полей; bind_fence(transport_bind)
     перезаписывает поля из SoT
-  status: pending
+  status: done
 - id: cp3
   criterion: inject_text(SoT) генерирует formatted markdown/xml block GATE_IDENTITY
     для injection
-  status: pending
-resume_from: cp1
+  status: done
+resume_from: done

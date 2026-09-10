@@ -62,11 +62,11 @@ alwaysApply: false
 
 Перед FINISH IMPLEMENT:
 
-1. Список изменённых путей (аналог `git diff --name-only` + untracked из §2)
-2. Каждый путь ⊆ §2 allowlist (§3 для rules)
-3. Иначе — **REVERT** out-of-scope **до** Handoff / `finalize-step`
+1. Источник путей правки **этого** шага = **touch-ledger** текущего epic+step (`runtime/.../epic/touch-ledger.json`, пишется hooks на Write/Edit) ∪ implement shard `files:` / `deletes:`. **Не** полный `git status` / `git diff --name-only` по всему репо.
+2. Каждый path из touch-ledger ⊆ §2 allowlist (§3 для rules). Чужой dirty (есть в git, нет в ledger) → **игнорировать**.
+3. Иначе — **REVERT только ledger-paths** вне allowlist **до** Handoff / `finalize-step`. **FORBIDDEN:** `git checkout --` / `git restore` / `git reset --hard` / `git clean` / `rm` файлов, которых нет в touch-ledger этого шага (в т.ч. «чтобы verify прошёл»).
 
-В чат — одна строка: `SCOPE CHECK: ok (N files)` или `SCOPE VIOLATION: <paths>` → **halt FINISH**.
+В чат — одна строка: `SCOPE CHECK: ok (N ledger files)` или `SCOPE VIOLATION: <ledger paths>` → **halt FINISH**.
 
 ---
 

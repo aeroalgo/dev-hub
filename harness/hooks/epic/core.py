@@ -1806,16 +1806,23 @@ def session_start_payload(cwd: str | Path, source: str | None = None) -> dict[st
     }
 
 
-def verify_pass_step_blockers(cwd: str | Path) -> list[str]:
-    """Structural blockers that forbid accepting VERDICT: PASS for the armed step.
+def verify_pass_step_blockers(
+    cwd: str | Path,
+    step_id: str | None = None,
+) -> list[str]:
+    """Structural blockers that forbid accepting VERDICT: PASS for a step.
 
     Used to demote a false PASS when checkpoints are still pending or gaps are blocked.
     Parent must fix the step — not treat incomplete work as a successful gate.
+
+    ``step_id`` defaults to armed_step. Callers with verifier evidence for a
+    specific step must pass ``evidence.step`` so a late remirror after promotion
+    does not demote against the next armed shard.
     """
     st = load_epic_state(cwd)
     if not st.get("active"):
         return []
-    step_id = str(st.get("armed_step") or "").strip()
+    step_id = str(step_id or st.get("armed_step") or "").strip()
     decompose = st.get("armed_decompose")
     if not step_id or not decompose:
         return []
@@ -1861,7 +1868,10 @@ def coerce_verify_verdict(
     raw = str(verdict).upper()
     if raw != "PASS":
         return raw, []
-    blockers = verify_pass_step_blockers(cwd)
+    evidence_step = None
+    if isinstance(evidence, dict):
+        evidence_step = str(evidence.get("step") or "").strip() or None
+    blockers = verify_pass_step_blockers(cwd, step_id=evidence_step)
     if blockers:
         return "FAIL", blockers
     return "PASS", []
@@ -1906,6 +1916,20 @@ def mirror_verify_verdict(
         return
     evidence_map = evidence if isinstance(evidence, dict) else {}
     manual_auth = evidence_map.get("authority") == "manual"
+    evidence_step = str(evidence_map.get("step") or "").strip()
+    armed = str(st.get("armed_step") or "").strip()
+    # Late remirror of sNN PASS after promote must not demote against the next
+    # armed step (e.g. s01 PASS after mb-finish already armed s02).
+    if (
+        evidence_step
+        and armed
+        and evidence_step != armed
+        and re.match(r"^[sera]\d{2}$", evidence_step, re.I)
+        and re.match(r"^[sera]\d{2}$", armed, re.I)
+    ):
+        st["gate_diagnostic"] = "stale_verify_step"
+        save_epic_state(cwd, st)
+        return
     sid = session_id or evidence_map.get("session_id")
     if (
         not manual_auth

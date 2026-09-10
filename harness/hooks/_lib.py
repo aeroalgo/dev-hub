@@ -1681,6 +1681,8 @@ def mark_in_flight(
     model: str,
     managed: bool,
     tool_use_id: str | None = None,
+    cwd: str | None = None,
+    session_id: str | None = None,
 ) -> None:
     prune_in_flight(state)
     entry: dict[str, Any] = {
@@ -1692,6 +1694,16 @@ def mark_in_flight(
     if tool_use_id:
         entry["tool_use_id"] = tool_use_id
     state["in_flight"] = list(state.get("in_flight") or []) + [entry]
+    from loop.gate_identity import GateIdentity
+
+    if cwd:
+        from epic_lib import load_epic_state
+
+        epic_st = load_epic_state(cwd)
+        sot = GateIdentity.expected(epic_st, session_id=session_id)
+        GateIdentity.bind_spawn_gate(state, sot)
+    else:
+        GateIdentity.bind_spawn_gate(state)
 
 
 def clear_in_flight(
@@ -1726,40 +1738,51 @@ def utc_now() -> str:
 
 
 def gate_identity(epic: dict[str, Any], session_id: str) -> dict[str, Any]:
-    projection = epic.get("projection")
-    projection = projection if isinstance(projection, dict) else {}
-    return {
-        "session_id": session_id or None,
-        "epic_id": projection.get("epic_id") or epic.get("armed_epic"),
-        "role": projection.get("role") or epic.get("role"),
-        "step": (
-            projection.get("next_step")
-            or projection.get("step")
-            or epic.get("armed_step")
-        ),
-        "projection_hash": projection.get("projection_hash") or epic.get("projection_hash"),
-        "phase_epoch": projection.get("phase_epoch") or epic.get("phase_epoch"),
-        "event_digest": projection.get("event_digest") or epic.get("event_digest"),
-        "authority": (
-            "autonomous"
-            if projection.get("projection_hash") and projection.get("phase_epoch")
-            else "manual"
-        ),
-    }
+    try:
+        from loop.gate_identity import GateIdentity
+
+        return GateIdentity.expected(epic, session_id=session_id).to_dict()
+    except ImportError:
+        projection = epic.get("projection")
+        projection = projection if isinstance(projection, dict) else {}
+        return {
+            "session_id": session_id or None,
+            "epic_id": projection.get("epic_id") or epic.get("armed_epic"),
+            "role": projection.get("role") or epic.get("role"),
+            "step": (
+                projection.get("next_step")
+                or projection.get("step")
+                or epic.get("armed_step")
+            ),
+            "projection_hash": projection.get("projection_hash") or epic.get("projection_hash"),
+            "phase_epoch": projection.get("phase_epoch") or epic.get("phase_epoch"),
+            "event_digest": projection.get("event_digest") or epic.get("event_digest"),
+            "authority": (
+                "autonomous"
+                if projection.get("projection_hash") and projection.get("phase_epoch")
+                else "manual"
+            ),
+        }
 
 
 def set_gate_identity(state: dict[str, Any], identity: dict[str, Any]) -> None:
-    state["gate_identity"] = dict(identity)
-    for key in (
-        "session_id",
-        "epic_id",
-        "role",
-        "step",
-        "projection_hash",
-        "phase_epoch",
-        "event_digest",
-    ):
-        state[key] = identity.get(key)
+    try:
+        from loop.gate_identity import GateIdentity
+
+        GateIdentity.bind_spawn_gate(state, identity)
+    except ImportError:
+        state["gate_identity"] = dict(identity)
+        for key in (
+            "session_id",
+            "epic_id",
+            "role",
+            "step",
+            "projection_hash",
+            "phase_epoch",
+            "event_digest",
+            "authority",
+        ):
+            state[key] = identity.get(key)
 
 
 def match_gate_evidence(
@@ -1856,16 +1879,16 @@ def gate_session_id(data: dict[str, Any]) -> str:
 def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
     """Read the runner-owned projection identity without reconstructing it.
 
-    Prefer epic runner ``session_id`` (state, then ``EPIC_RUNNER_SESSION_ID``)
+    Prefer epic runner session_id (state, then EPIC_RUNNER_SESSION_ID)
     over the Claude Code invoke id so verify evidence still matches
-    ``finalize-step`` after transient Claude retries / session aborts.
+    finalize-step after transient Claude retries / session aborts.
 
     Ownership comparisons for in-flight verify fences overlay prepare-time
-    ``session_start_identity`` (shared Claude/Codex/DSH rule) so mid-session
+    session_start_identity (shared Claude/Codex/DSH rule) so mid-session
     mb-finish does not invalidate BUGFIX/IMPLEMENT fences after arming QA.
     """
     try:
-        from epic_lib import gate_identity as projection_identity, load_epic_state
+        from epic_lib import load_epic_state
 
         state = load_epic_state(cwd)
         runner_session = (
@@ -1873,13 +1896,20 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
             or str(os.environ.get("EPIC_RUNNER_SESSION_ID") or "").strip()
             or session_id
         )
-        identity = projection_identity(state, runner_session)
         try:
-            from loop.session_finalize import apply_ownership_identity
+            from loop.gate_identity import GateIdentity
 
-            return apply_ownership_identity(identity, state)
+            return GateIdentity.expected(state, session_id=runner_session).to_dict()
         except ImportError:
-            return identity
+            from epic_lib import gate_identity as projection_identity
+
+            identity = projection_identity(state, runner_session)
+            try:
+                from loop.session_finalize import apply_ownership_identity
+
+                return apply_ownership_identity(identity, state)
+            except ImportError:
+                return identity
     except (ImportError, OSError, TypeError, ValueError, json.JSONDecodeError):
         return {
             "session_id": (
@@ -2715,6 +2745,37 @@ def bash_gate_state_write_deny_reason(command: str | None) -> str | None:
         "runtime_gate_write_forbidden: direct shell mutation of runtime gate, spawn-gate, "
         "or verifier state is denied on agent tool boundary. "
         "Use authorized verifier spawn or operator repair CLI."
+    )
+
+
+# Discard working-tree dirty via git — FORBIDDEN in epic loop (foreign dirty ≠ scope).
+_GIT_DISCARD_DIRTY_RE = re.compile(
+    r"(?is)(?:^|[\s;|&'`\"(])git\s+"
+    r"(?:"
+    r"checkout\s+(?:HEAD\s+)?--"  # git checkout -- PATH / git checkout HEAD -- PATH
+    r"|restore\s+(?!(?:--staged\b)(?:\s|$))"  # git restore PATH (allow --staged only)
+    r"|reset\s+--hard\b"
+    r"|clean\s+-[a-zA-Z]*f"
+    r")"
+)
+
+
+def bash_discard_dirty_deny_reason(command: str | None) -> str | None:
+    """Deny git checkout/restore/reset --hard/clean that discard foreign dirty trees.
+
+    Scope SoT is the epic touch-ledger + shard ``files:``, not whole-repo git status.
+    Pre-existing dirty from other epics/sessions must not be reverted by the agent.
+    """
+    if not command or not str(command).strip():
+        return None
+    if not _GIT_DISCARD_DIRTY_RE.search(str(command)):
+        return None
+    return (
+        "git_discard_dirty_forbidden: нельзя откатывать dirty через "
+        "`git checkout --` / `git restore` / `git reset --hard` / `git clean` "
+        "потому что файл «вне scope» в git status. "
+        "SoT правок шага = touch-ledger; чужой dirty игнорируй. "
+        "REVERT только path из touch-ledger, если он вне shard files:."
     )
 
 

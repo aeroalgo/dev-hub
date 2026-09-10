@@ -11,6 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (
     product_cwd,  # noqa: E402
     agent_enabled,
+    current_gate_identity,
+    sync_gate_identity,
     emit,
     is_schema_error,
     is_semantic_error,
@@ -66,6 +68,15 @@ def main() -> None:
     st = load_state(session_id, cwd)
     if not workflow_state_active(st, cwd or None):
         return
+
+    sot_identity = current_gate_identity(cwd, session_id)
+    if sot_identity:
+        try:
+            from loop.gate_identity import GateIdentity
+
+            GateIdentity.bind_spawn_gate(st, sot_identity)
+        except ImportError:
+            sync_gate_identity(st, sot_identity)
 
     deny_reasons, notes = validate_spawn_input(tool_input, st, cwd or None)
     norm = normalize_type(tool_input.get("subagent_type") or tool_input.get("agent_type"))
@@ -188,6 +199,8 @@ def main() -> None:
                 if data.get("tool_use_id")
                 else None
             ),
+            cwd=cwd,
+            session_id=session_id,
         )
     if managed:
         spawns = st.setdefault("spawns", [])

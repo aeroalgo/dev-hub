@@ -27,7 +27,7 @@ def _message(agent: str = "verify-qa", verdict: str = "PASS") -> str:
 def test_codex_adapter_uses_shared_spawn_wait_lifecycle(monkeypatch, tmp_path) -> None:
     calls: list[tuple[str, dict]] = []
 
-    def fake_hook(name, payload, *, cwd, runtime_id):
+    def fake_hook(name, payload, *, cwd, runtime_id, session_id=None):
         calls.append((name, payload))
         return 0, ""
 
@@ -85,7 +85,7 @@ def test_shared_lifecycle_does_not_replay_same_wait_completion(monkeypatch, tmp_
     monkeypatch.setattr(
         lifecycle,
         "_run_hook",
-        lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
+        lambda name, payload, *, cwd, runtime_id, session_id=None: (calls.append(name) or 0, ""),
     )
     monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
@@ -120,7 +120,7 @@ def test_shared_lifecycle_deduplicates_by_verifier_identity(monkeypatch, tmp_pat
     monkeypatch.setattr(
         lifecycle,
         "_run_hook",
-        lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
+        lambda name, payload, *, cwd, runtime_id, session_id=None: (calls.append(name) or 0, ""),
     )
     monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")
@@ -179,7 +179,7 @@ def test_shared_lifecycle_process_item_is_thread_safe(monkeypatch, tmp_path) -> 
     monkeypatch.setattr(
         lifecycle,
         "_run_hook",
-        lambda name, payload, *, cwd, runtime_id: (calls.append(name) or 0, ""),
+        lambda name, payload, *, cwd, runtime_id, session_id=None: (calls.append(name) or 0, ""),
     )
     monkeypatch.setattr(lifecycle, "gate_atomic_finish", lambda *args, **kwargs: None)
     adapter = lifecycle.SubagentLifecycle(tmp_path, "root-session", "codex")

@@ -2186,7 +2186,8 @@ def prepare_session(
                 "prev_session: aborted"
                 + (f" — {last['reason']}" if last.get("reason") else ""),
                 f"continue_from_checkpoint: {(last.get('resume_from') or step_id)}",
-                "FORBIDDEN: discard/revert dirty step files; full-repo rediscovery.",
+                "FORBIDDEN: discard/revert dirty step files; full-repo rediscovery; "
+                "`git checkout --`/`git restore` foreign dirty (scope SoT = touch-ledger).",
             ]
 
     if stall_n > 0:
@@ -2361,6 +2362,24 @@ def prepare_session(
         session_id=checkpoint_session,
         phase_run_id=st["phase_run_id"],
     )
+    try:
+        from harness.hooks.touch_ledger import (
+            ensure_touch_ledger_identity,
+            touch_ledger_prompt_block,
+        )
+
+        ensure_touch_ledger_identity(
+            cwd_p,
+            epic_id=str(st.get("armed_epic") or plan_id or "").strip() or None,
+            step_id=str(armed_step_now or "").strip() or None,
+            phase_run_id=str(st.get("phase_run_id") or "").strip() or None,
+        )
+        ledger_block = touch_ledger_prompt_block(cwd_p)
+        if ledger_block.strip():
+            prompt = prompt.rstrip() + "\n\n" + ledger_block + "\n"
+            pp.write_text(prompt, encoding="utf-8")
+    except Exception:
+        pass
     phase_u = str(armed_step_now or phase_raw or "").upper()
     if st.get("qa_reqa_halt") and ("QA" in phase_u.split() or phase_u.endswith("QA") or phase_u == "QA"):
         reason = str(

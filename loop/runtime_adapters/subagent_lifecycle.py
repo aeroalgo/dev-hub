@@ -101,11 +101,14 @@ def infer_agent_type(
     return None
 
 
-def _hook_environment(runtime_id: str) -> dict[str, str]:
+def _hook_environment(runtime_id: str, session_id: str | None = None) -> dict[str, str]:
     env = os.environ.copy()
     env["EPIC_LOOP"] = "1"
     env["EPIC_RUNTIME"] = runtime_id
     env.setdefault("EPIC_RUNTIME_RESOLVED", runtime_id)
+    sid = str(session_id or "").strip() or str(env.get("EPIC_RUNNER_SESSION_ID") or "").strip()
+    if sid:
+        env["EPIC_RUNNER_SESSION_ID"] = sid
     return env
 
 
@@ -113,12 +116,19 @@ def _hook_path(name: str) -> Path:
     return Path(__file__).resolve().parents[2] / "harness" / "hooks" / name
 
 
-def _run_hook(name: str, payload: dict[str, Any], *, cwd: str | Path, runtime_id: str) -> tuple[int, str]:
+def _run_hook(
+    name: str,
+    payload: dict[str, Any],
+    *,
+    cwd: str | Path,
+    runtime_id: str,
+    session_id: str | None = None,
+) -> tuple[int, str]:
     result = subprocess.run(
         [sys.executable, str(_hook_path(name))],
         input=json.dumps(payload, ensure_ascii=False),
         cwd=str(cwd),
-        env=_hook_environment(runtime_id),
+        env=_hook_environment(runtime_id, session_id=session_id),
         capture_output=True,
         text=True,
         check=False,
@@ -397,7 +407,11 @@ class SubagentLifecycle:
             "thread_id": completion.thread_id or "",
         }
         start_rc, start_err = _run_hook(
-            "subagent-start.py", start_payload, cwd=self.cwd, runtime_id=self.runtime_id
+            "subagent-start.py",
+            start_payload,
+            cwd=self.cwd,
+            runtime_id=self.runtime_id,
+            session_id=self.session_id,
         )
         if start_rc != 0:
             return LifecycleAction(
@@ -419,7 +433,11 @@ class SubagentLifecycle:
             "verdict": completion.verdict,
         }
         stop_rc, stop_err = _run_hook(
-            "subagent-stop.py", stop_payload, cwd=self.cwd, runtime_id=self.runtime_id
+            "subagent-stop.py",
+            stop_payload,
+            cwd=self.cwd,
+            runtime_id=self.runtime_id,
+            session_id=self.session_id,
         )
         finish = None
         if stop_rc == 0:

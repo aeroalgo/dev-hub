@@ -65,8 +65,11 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 3. Пронумеруй `AC−` → для каждого: докажи по `git diff` / ALLOW, что запрет не нарушен. Нарушение → `FAIL`.
 4. Пройди `§0.11` checklist по пунктам (rg/diff/read ALLOW). Orphan / missing counterpart → `FAIL`.
-5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW/diff paths · `git status*` · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
-6. Diff вне ALLOW / scope step → blocker (лишние файлы).
+5. Bash только: `bin/pytest …` или `timeout 300s .venv/bin/pytest …` из VERIFY · `git diff` только по ALLOW / touch-ledger paths · `rg …` · `ls` · `head` · `wc`. Единственное исключение — ровно один финальный `validate-boundary` command ниже. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` без внешнего timeout. Не выдумывай suite. Red → `FAIL`.
+6. **Scope SoT (HARD):** правки *этого* шага = parent ALLOW + implement shard `files:` + epic **touch-ledger** (`runtime/.../epic/touch-ledger.json`). **Не** весь `git status`.
+   - Dirty в git от других эпиков / прошлых сессий / файлов **вне** touch-ledger → **IGNORE**, не AC− fail, не blocker.
+   - Blocker «лишний файл» **только** если path есть в touch-ledger (эта сессия реально писала) и path ∉ shard allowlist / ALLOW.
+   - **FORBIDDEN:** требовать / советовать `git checkout --` · `git restore` · `git reset --hard` · `git clean` · `rm` «чтобы убрать out-of-scope dirty».
 7. Step-файл implement из ALLOW / prompt — **существует на диске** под `implement/implement-*` (не `plan/decompose-*`). Шаблон **по роли** (канон = `epic_lib.validate_implement_step_format`):
    - **INTEG `eNN-*`** (`memory-bank/integration/implement/…/*.yaml`): `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`; обязательны `grep_control` · `verification_results` · `gaps` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard для eNN.
    - **BACK/FRONT `sNN-*`**: `.cursor/templates/implement/epic-step.yaml` — `schema: epic-implement/v1`, `role: back|front`; обязательны `done` · `files` · `tests` · `integration_check` · `checkpoints[]` (все cp `done`); pre-FINISH `status: in_progress`. **FORBIDDEN:** `.md` shard.
@@ -140,6 +143,7 @@ BLOCKERS: (пусто если PASS) id · gap · next_fix
 - `verdict: FAIL` с blocker `step_status` лишь из‑за `in_progress` на pre-FINISH
 - Совет parent писать `status: completed` руками, вызывать `finalize-step` до PASS, или писать `BLOCKED:` вместо фикса incomplete
 - Завершать сессию без валидного JSON fence `loop-gate-verdict/v1` (hooks = протокольный FAIL)
+- FAIL AC− / blocker только из‑за dirty в `git status` вне touch-ledger; советовать discard (`git checkout --` / `git restore` / `rm`) чужих файлов
 
 ## Budget
 

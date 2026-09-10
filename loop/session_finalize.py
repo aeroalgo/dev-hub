@@ -157,6 +157,9 @@ def freeze_session_start_identity(
         session_id=str(session_id or state.get("session_id") or "").strip(),
     )
     state["session_start_identity"] = identity.to_dict()
+    from loop.gate_identity import GateIdentity
+
+    GateIdentity.bind_spawn_gate(state)
     return identity
 
 

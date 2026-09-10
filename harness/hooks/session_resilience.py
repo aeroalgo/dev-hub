@@ -1373,6 +1373,7 @@ def dirty_resume_prompt_lines(
             lines.append(f"- {p}")
     lines.append(
         "FORBIDDEN: discard/revert dirty step files; re-do cp со status=done; "
+        "`git checkout --`/`git restore` foreign dirty (scope SoT = touch-ledger); "
         "full-repo rediscovery when dirty_files non-empty."
     )
     lines.append(

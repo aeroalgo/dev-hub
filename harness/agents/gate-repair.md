@@ -136,5 +136,6 @@ evidence:
 - Угадывание path/fix когда parent не дал `| path | fix`
 - `status: done` при незакрытой строке BLOCKERS или red VERIFY
 - Ответ без JSON fence `loop-repair-result/v1`
+- `git checkout --` / `git restore` / `git reset --hard` / `git clean` / удаление файлов **только** потому что они dirty в `git status` вне ALLOW WRITE (чужой dirty ≠ blocker; scope SoT = touch-ledger)
 
 HARD RULE: ты subagent. НЕ запускай frontend-тесты (vitest/playwright/npm test/e2e).
