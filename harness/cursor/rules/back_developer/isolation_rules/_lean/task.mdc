@@ -11,7 +11,7 @@ alwaysApply: false
 1. Задача в том же сообщении что BACK TASK
 2. `load_now` + handoff; projectbrief/techContext/systemPatterns — только cross-cutting (context-session §8)
 3. ONE domain/work shard (`sNN` / task); **не** полный `plan-*.md`; wide search → subagent
-4. TDD red → green: `.venv/bin/pytest` из корня (targeted; полный suite → QA)
+4. TDD red → green: Hub (dev-hub self-test) — targeted `bin/pytest` из корня (полный suite → QA); Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
 5. task-файл + tasks append-only
 6. §0.11 если external refs
 

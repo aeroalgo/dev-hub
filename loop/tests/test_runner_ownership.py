@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -63,8 +64,9 @@ def test_runner_owner_is_atomic_and_cleanup_is_owner_bound(tmp_path: Path) -> No
     assert not owner_path.exists()
 
 
-def test_runner_status_reports_owner_and_lock_without_secrets(tmp_path: Path) -> None:
+def test_runner_status_reports_owner_and_lock_without_secrets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
+    monkeypatch.setattr(lib, "runner_pid_alive", lambda _pid: False)
     state_dir = tmp_path / "runtime"
     state_dir.mkdir()
     (state_dir / "runner.lock").write_text("", encoding="utf-8")
@@ -80,8 +82,9 @@ def test_runner_status_reports_owner_and_lock_without_secrets(tmp_path: Path) ->
     assert "secret" not in json.dumps(status).lower()
 
 
-def test_runner_status_reports_missing_and_malformed_owner_as_inactive(tmp_path: Path) -> None:
+def test_runner_status_reports_missing_and_malformed_owner_as_inactive(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lib = _load_lib()
+    monkeypatch.setattr(lib, "runner_pid_alive", lambda _pid: False)
     state_dir = tmp_path / "runtime"
     state_dir.mkdir()
     owner_path = state_dir / "runner.json"
@@ -137,4 +140,3 @@ def test_runner_owner_status_projects_effective_config_without_secrets(tmp_path:
     assert "model" in status["owner"]
     assert "secret" not in json.dumps(status).lower()
     assert set(status) == {"runner_active", "owner_alive", "lock_age_sec", "owner"}
-

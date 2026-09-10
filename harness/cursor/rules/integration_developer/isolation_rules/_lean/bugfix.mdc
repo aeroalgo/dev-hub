@@ -9,8 +9,8 @@ alwaysApply: false
 ## Gates
 
 1. Classify: BACK / FRONT / CONTRACT drift
-2. TDD failing test before fix; root cause — не mock/fallback
-3. **Scenario:** user-visible → Playwright **или** `.venv/bin/pytest` HTTP outcome; unit alone insufficient
+2. TDD failing test: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence; root cause — не mock/fallback
+3. **Scenario:** user-visible → parent-only Playwright **или** Hub `bin/pytest` HTTP outcome (managed: declared HTTP/API capability evidence); unit alone insufficient
 4. bugfix-файл; contract update if keys; **Источник:** qa §Fix plan
 5. §0.11 re-verify
 6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH

@@ -1,0 +1,39 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-079
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+date: '2026-09-09'
+reviewer: verify-qa
+verdict: pass
+
+scope:
+  - "task: T-HUB-079"
+  - "epic: T-HUB-079-orchestrator-lifecycle-reliability"
+  - "steps: s01–s06"
+  - "files: loop/lifecycle.py, harness/hooks/session_resilience.py, loop/context_loop.py, harness/hooks/epic_codex_stream_filter.py, harness/agents/gate-repair.md, .codex/agents/gate-repair.toml"
+
+checks:
+  - "full suite green: bin/pytest -q --tb=line (2446 passed, 4 skipped, 78 warnings, returncode 0)"
+  - "targeted lifecycle tests: bin/pytest loop/tests/test_todowrite_policy.py loop/tests/test_checkpoint_resume.py loop/tests/test_subagent_lifecycle.py loop/tests/test_epic_codex_stream_filter.py loop/tests/test_context_loop.py (all passed)"
+  - "integration rule (§0.11): valid"
+  - "brownfield sunset clean: no leftover crawler/marker instructions in gate-repair or runtime hooks"
+  - "reviewer gate: verify-qa verdict PASS"
+
+test_matrix_coverage:
+  - "TM-079-01: duplicate spawn idempotency key check (test_codex_adapter_uses_shared_spawn_wait_lifecycle, test_shared_lifecycle_does_not_replay_same_wait_completion)"
+  - "TM-079-02: process crash / stale terminal event"
+  - "TM-079-03: prompt dies before action / aborted_before_action record"
+  - "TM-079-04: old epoch retry / key-epoch isolation"
+  - "TM-079-05: third Todo request / TodoLifecycleManager max 2 policy (test_todowrite_lifecycle_max_events, test_evaluate_todowrite_request_pure, test_enforce_phase_todowrite_policy_runner)"
+
+issues: []
+blockers: []
+fix_plan: []
+
+limitations:
+  - "none"
+
+suite:
+  - "bin/pytest -q --tb=line"
+  - "bin/pytest loop/tests/test_todowrite_policy.py loop/tests/test_checkpoint_resume.py loop/tests/test_subagent_lifecycle.py loop/tests/test_epic_codex_stream_filter.py loop/tests/test_context_loop.py -v"

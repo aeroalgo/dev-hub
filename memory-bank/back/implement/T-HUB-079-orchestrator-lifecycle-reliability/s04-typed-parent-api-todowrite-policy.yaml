@@ -2,9 +2,9 @@ schema: epic-implement/v1
 role: back
 step_id: s04
 plan_id: T-HUB-079-orchestrator-lifecycle-reliability
-title: s04 — Typed parent gate status API and phase-runner TodoWrite lifecycle policy IMPLEMENT
-status: in_progress
-implement_index: ''
+title: s04 — Typed parent gate status API and phase-runner TodoWrite lifecycle policy
+  IMPLEMENT
+status: completed
 date: '2026-09-09'
 decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s04-typed-parent-api-todowrite-policy.yaml
 skills_used: []
@@ -12,43 +12,64 @@ discovery: []
 gaps:
   status: none
 done:
-  - Реализованы await_gate и get_invocation_status в loop/lifecycle.py, предоставляющие строго типизированный InvocationStatusView без обращения к файловой системе (/tmp, home)
-  - Реализована централизованная политика TodoWritePolicy и evaluate_todowrite_request в loop/context_loop.py с ограничением start+finish для фазы IMPLEMENT и детерминированным отклонением 3-го и последующих запросов без побочных эффектов
-  - Обновлены инструкции в harness/instructions/epic-loop.md с фиксацией использования typed status API и отсутствием рекомендаций сканирования или очистки маркеров в /tmp
-  - Написаны unit-тесты в loop/tests/test_await_gate_api.py и loop/tests/test_todowrite_policy.py
+- Реализованы await_gate и get_invocation_status в loop/lifecycle.py, предоставляющие
+  строго типизированный InvocationStatusView без обращения к файловой системе (/tmp,
+  home)
+- Реализована централизованная политика TodoWritePolicy и evaluate_todowrite_request
+  в loop/context_loop.py с ограничением start+finish для фазы IMPLEMENT и детерминированным
+  отклонением 3-го и последующих запросов без побочных эффектов
+- Обновлены инструкции в harness/instructions/epic-loop.md с фиксацией использования
+  typed status API и отсутствием рекомендаций сканирования или очистки маркеров в
+  /tmp
+- Написаны unit-тесты в loop/tests/test_await_gate_api.py и loop/tests/test_todowrite_policy.py
 files:
-  - loop/lifecycle.py
-  - loop/context_loop.py
-  - harness/instructions/epic-loop.md
-  - loop/tests/test_await_gate_api.py
-  - loop/tests/test_todowrite_policy.py
+- loop/lifecycle.py
+- loop/context_loop.py
+- harness/instructions/epic-loop.md
+- loop/tests/test_await_gate_api.py
+- loop/tests/test_todowrite_policy.py
 deletes: []
 tests:
-  - "`bin/pytest loop/tests/test_await_gate_api.py loop/tests/test_todowrite_policy.py -q --tb=line`"
+- '`bin/pytest loop/tests/test_await_gate_api.py loop/tests/test_todowrite_policy.py
+  -q --tb=line`'
 integration_check:
-  - "`bin/pytest loop/tests/test_await_gate_api.py loop/tests/test_todowrite_policy.py loop/tests/test_lifecycle_reducer.py loop/tests/test_idempotent_gate_dispatch.py loop/tests/test_lifecycle_crash_safety.py loop/tests/test_context_loop.py -q --tb=line`"
+- '`bin/pytest loop/tests/test_await_gate_api.py loop/tests/test_todowrite_policy.py
+  loop/tests/test_lifecycle_reducer.py loop/tests/test_idempotent_gate_dispatch.py
+  loop/tests/test_lifecycle_crash_safety.py loop/tests/test_context_loop.py -q --tb=line`'
 grep_control: []
 verification_results:
-  - "`bin/pytest loop/tests/test_await_gate_api.py -k test_typed_status_lookup -q --tb=line` — 1 passed"
-  - "`bin/pytest loop/tests/test_todowrite_policy.py -k test_third_todowrite_rejected -q --tb=line` — 1 passed"
-  - "`rg -n '/tmp|marker.*clear' harness/instructions/epic-loop.md || true` — clean (no matches)"
+- '`bin/pytest -q --tb=line` — 2416 passed, 4 skipped, 78 warnings'
+- '`bin/pytest loop/tests/test_await_gate_api.py -k test_typed_status_lookup -q --tb=line`
+  — 1 passed'
+- '`bin/pytest loop/tests/test_todowrite_policy.py -k test_third_todowrite_rejected
+  -q --tb=line` — 1 passed'
+- '`rg -n ''/tmp|marker.*clear'' harness/instructions/epic-loop.md || true` — clean
+  (no matches)'
 checkpoints:
-  - id: cp1
-    criterion: |
-      Функции await_gate и get_invocation_status возвращают типизированный статус
-      инвокации без необходимости сканирования директорий /tmp или home.
-    status: done
-    done_at: '2026-09-09T14:04:01Z'
-  - id: cp2
-    criterion: |
-      Phase runner допускает не более start+finish событий TodoWrite для IMPLEMENT,
-      а третий запрос детерминированно отклоняет/игнорирует без побочных эффектов.
-    status: done
-    done_at: '2026-09-09T14:04:02Z'
-  - id: cp3
-    criterion: |
-      Инструкции harness/instructions/epic-loop.md содержат только типизированный API
-      и не содержат советов по ручному поиску или удалению файлов маркеров.
-    status: done
-    done_at: '2026-09-09T14:04:02Z'
+- id: cp1
+  criterion: 'Функции await_gate и get_invocation_status возвращают типизированный
+    статус
+
+    инвокации без необходимости сканирования директорий /tmp или home.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:04:01Z'
+- id: cp2
+  criterion: 'Phase runner допускает не более start+finish событий TodoWrite для IMPLEMENT,
+
+    а третий запрос детерминированно отклоняет/игнорирует без побочных эффектов.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:04:02Z'
+- id: cp3
+  criterion: 'Инструкции harness/instructions/epic-loop.md содержат только типизированный
+    API
+
+    и не содержат советов по ручному поиску или удалению файлов маркеров.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:04:02Z'
 resume_from: cp3

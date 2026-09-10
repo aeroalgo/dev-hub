@@ -41,13 +41,13 @@ def test_build_prompt_qa_phase_omits_implement_finish():
     assert "## QA FINISH" not in text
     assert "mb-finish qa" in text
     assert "## QA canon (HARD)" in text
-    assert "выбранного workflow" in text
     assert "bin/pytest -q --tb=line" in text
     assert "suite_not_full" not in text
-    assert "BACK BUGFIX" not in text
+    assert "BUGFIX" in text
+    assert "loop-qa-outcome/v1" in text or "QA outcome classifier" in text
+    assert "gate-repair → full suite → verify-qa" not in text
     assert "code_changed: no" not in text
     assert "чинит в сессии" not in text
-    assert "это чинится в сессии: FAIL → fix → re-verify" not in text
     assert "FIX INCOMPLETE" not in text
     assert "verify-qa до full suite" not in text
 
@@ -63,8 +63,7 @@ def test_build_prompt_qa_uses_current_integration_role():
 
     assert text.startswith("COMMAND: INTEG QA\n")
     assert "workflow-qa.mdc" not in text
-    assert "Handoff `INTEG BUGFIX <subject>`" not in text
-    assert "Handoff `BACK BUGFIX <subject>`" not in text
+    assert "BUGFIX" in text
 
 
 def test_build_prompt_implement_keeps_session_fix():

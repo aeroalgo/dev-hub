@@ -20,8 +20,8 @@ VERIFY_MB_FINISH_SUBCMD: dict[str, str] = {
 
 VERIFY_FINISH_AGENTS = frozenset(VERIFY_MB_FINISH_SUBCMD)
 
-# QA BLOCKED is a repair-loop signal, not a product BUGFIX transition.  The
-# parent must run gate-repair and retry verify-qa before it can choose FINISH.
+# verify-qa FAIL/BLOCKED are product/AC signals: parent writes qa fail and arms BUGFIX.
+# gate-repair is not the QA product path.
 BLOCKED_TO_BUGFIX_AGENTS = frozenset()
 COERCE_VERIFY_AGENTS = frozenset({"verify", "verify-implement", "verify-bugfix"})
 REVIEWER_MIRROR_AGENTS = frozenset({"verify-qa", "reviewer"})
@@ -85,10 +85,12 @@ def mb_finish_hint_after_verdict(
 ) -> str | None:
     norm = str(agent_type or "").strip().lower()
     verdict_u = str(verdict or "").strip().upper()
-    if norm in REVIEWER_MIRROR_AGENTS and verdict_u == "BLOCKED":
+    if norm in REVIEWER_MIRROR_AGENTS and verdict_u in {"FAIL", "BLOCKED"}:
         return (
-            f"{norm} VERDICT: BLOCKED — parent: spawn `gate-repair` with BLOCKERS + ALLOW WRITE + VERIFY, "
-            "дождись repair JSON и повтори verify-qa. Не вызывай FINISH и не переходи в BUGFIX до PASS."
+            f"{norm} VERDICT: {verdict_u} — parent: запиши `qa-*.yaml` с `verdict: fail|blocked`, "
+            "Handoff `* BUGFIX`, вызови "
+            f"`{_EPIC_RESOLVE} qa --cwd $PROJECT_ROOT`. "
+            "FORBIDDEN: repair-loop / повторный suite / verify retry в этом QA run."
         )
     cli = mb_finish_cli(agent_type, verdict, cwd)
     if not cli:

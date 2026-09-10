@@ -14,7 +14,7 @@ alwaysApply: false
 2a. Skills list в `memory-bank/back/task/task-YYYYMMDD-<slug>.md`
 3. ONE domain/work shard (`sNN` / task); **не** полный `plan-*.md`; wide search → subagent (context-session §4)
 4–7. Компоненты → место → reuse/паттерны → краткий план
-8. TDD red → green: `.venv/bin/pytest` из корня (targeted; полный suite → QA)
+8. TDD red → green: Hub (dev-hub self-test) — targeted `bin/pytest` из корня (полный suite → QA); Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
 9. `tasks.md` append-only
 10. §0.11 если external refs
 11. Pre-FINISH skills

@@ -119,7 +119,7 @@ def test_task_stop_terminalization() -> None:
         actor="orchestrator",
         reason="TaskStop: cancelled by user request",
     )
-    assert stopped_record.state == InvocationState.CANCELLED
+    assert stopped_record.state == InvocationState.STALE
     assert stopped_record.is_terminal is True
     assert stopped_record.reason == "TaskStop: cancelled by user request"
 
@@ -128,13 +128,13 @@ def test_task_stop_terminalization() -> None:
     reducer.launch(k_stop2, owner=owner)
     reducer.start(k_stop2, actor=owner)
     stopped2 = reducer.task_stop(k_stop2, actor="orchestrator", reason="TaskStop: interrupt signal")
-    assert stopped2.state == InvocationState.CANCELLED
+    assert stopped2.state == InvocationState.STALE
     assert stopped2.is_terminal is True
     assert stopped2.reason == "TaskStop: interrupt signal"
 
     # Verify event history contains task_stop event
     event_types = [e.event_type for e in stopped_record.events]
-    assert LifecycleEventType.TASK_STOP in event_types or LifecycleEventType.CANCELLED in event_types
+    assert LifecycleEventType.TASK_STOP in event_types
 
     # 3. Subsequent restart attempt on the same key is prevented
     with pytest.raises(InvalidStateTransitionError):
@@ -143,10 +143,10 @@ def test_task_stop_terminalization() -> None:
     with pytest.raises(InvalidStateTransitionError):
         reducer.pass_invocation(key, actor=owner)
 
-    # Re-launch returns the terminal CANCELLED record
+    # Re-launch returns the terminal STALE record
     idempotent_get = reducer.launch(key, owner=owner)
     assert idempotent_get.invocation_id == stopped_record.invocation_id
-    assert idempotent_get.state == InvocationState.CANCELLED
+    assert idempotent_get.state == InvocationState.STALE
 
     # 4. Legitimate new epoch is isolated from the stopped invocation
     new_epoch_key = InvocationKey(session="sess-stop-1", phase="back", step="s03", role="worker", epoch=1)

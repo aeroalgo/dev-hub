@@ -1,0 +1,380 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+slug: workflow-capability-instruction-parity
+date: '2026-09-10'
+status: complete
+index_fingerprint: sha256:bf1323b0f82da35be0041ea071b4b06f7f1f0d5a1693e157e0540c863bdfa542
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: The active instruction corpus MUST include every non-archive
+    `workflow-*.mdc`, relevant `_lean/*.mdc`, role core, shared test contract, role-command
+    skill copy, instruction entrypoint source, and executable shard template that
+    can prescribe tests.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Every direct `pytest`, `cargo`, `npm`, `vitest`, or raw `tests:`
+    execution recipe in an action context MUST be explicitly scoped to hub/self-test
+    or be replaced with `capability_checks` plus typed evidence language.
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: BACK IMPLEMENT, TASK, BUGFIX, and QA mode workflows and gates
+    MUST distinguish hub targeted/full checks from managed targeted/full capability
+    checks without relying on a generic Python default.
+- requirement_id: FR-004
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: INTEG IMPLEMENT and QA, integration core/lean gates, and the
+    HTTP scenario wording MUST distinguish hub pytest HTTP tests from managed capability
+    checks; frontend browser execution remains parent-only and outside the capability
+    executor.
+- requirement_id: FR-005
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: FRONT core runner wording MUST carry the same hub-only condition
+    and managed capability reference while retaining the parent-only Vitest/RTL/Playwright
+    authority.
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: '`harness/skills/role-command/SKILL.md` MUST be brought to semantic
+    parity with `harness/claude/skills/role-command/SKILL.md`; the `.agents/skills`
+    symlink must expose the corrected text.'
+- requirement_id: FR-007
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: '`harness/instructions/main.md` MUST describe both runtime entrypoint
+    selection and the hub-versus-managed test policy; generated `AGENTS.md`/`CLAUDE.md`
+    destinations MUST be checked for the same policy markers.'
+- requirement_id: FR-008
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Templates that create or validate plan/decompose/implement/QA/security/refactor/integration
+    artifacts MUST not contain an unqualified executable managed runner example; examples
+    MUST identify hub-only or capability evidence.
+- requirement_id: FR-009
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: The instruction inventory test MUST detect omitted active files
+    by glob/discovery, report exact stale lines, accept negative statements and archives
+    only under documented exclusions, and preserve hub exception tests.
+- requirement_id: FR-010
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: The epic MUST not alter stack-profile capability vocabulary,
+    resolver/executor/evidence code, receipt provenance, `test.e2e`, arbitrary shell
+    execution, package installation, or frontend parent-only authority.
+- requirement_id: SC-001
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: 0 unqualified managed runner action lines in the active workflow
+    corpus.
+- requirement_id: SC-002
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: 100% of BACK/INTEG mode files that mention tests contain both
+    explicit hub exception and managed capability guidance, or an explicit read-only/negative
+    reason.
+- requirement_id: SC-003
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Both role-command skill variants carry equivalent hub/managed
+    markers and no stale generic runner sentence.
+- requirement_id: SC-004
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: All executable templates that show a test command identify hub-only
+    scope; managed examples use declaration/evidence language.
+- requirement_id: SC-005
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: Hub test fixtures remain accepted and managed tests-only proof
+    remains rejected.
+- requirement_id: SC-006
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Generated runtime entrypoint destinations contain the branch
+    policy after sync check/apply, with no manual divergent body accepted as proof.
+- requirement_id: SC-007
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: FRONT parent-only rule remains present and no `test.e2e` capability
+    is introduced.
+- requirement_id: SC-008
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Full hub suite is green after instruction rewrites.
+- requirement_id: US-001
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Как автор BACK/INTEG workflow, я хочу сразу видеть hub-only
+    и managed branches, чтобы не прописать Python runner для внешнего проекта.
+- requirement_id: US-002
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Как QA owner, я хочу, чтобы full/targeted checks в каждом mode
+    workflow приводили к capability evidence для managed roots и сохраняли hub full/targeted
+    exception.
+- requirement_id: US-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как Codex/Claude operator, я хочу одинаковые правила из `.agents`
+    и `.claude`, чтобы runtime не выбирал разные execution policies.
+- requirement_id: US-004
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как автор нового shard/template, я хочу, чтобы пример `tests:`
+    не обучал managed fallback, даже если он копируется из template.
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: Every active BACK/INTEG/FRONT/shared test decision point states
+    the hub-only runner branch and the managed `capability_checks`/typed-evidence
+    branch, or explicitly states that the mode is read-only and does not execute tests.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s02
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: '`BACK IMPLEMENT`, `BACK TASK`, `BACK BUGFIX`, `BACK QA`, `INTEG
+    IMPLEMENT`, and `INTEG QA` no longer present `.venv/bin/pytest`, `bin/pytest`,
+    or `pytest HTTP outcome` as an unconditional managed recipe.'
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: The stale `harness/skills/role-command/SKILL.md` copy is rewritten;
+    Claude and Codex role-command copies carry equivalent policy markers.
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: The inventory discovers all active workflow files and templates
+    rather than relying on the seven-file 076 allowlist; adding a new active workflow
+    file with an ambiguous runner line makes the test fail.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Hub-only tests remain valid, including `bin/pytest -q --tb=line`
+    for full hub QA and targeted hub checks from repository root with the shared timeout
+    contract.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: Managed test execution is described only through named capability
+    declarations and execution evidence; no fallback to hub pytest, raw tests strings,
+    default target, cargo, npm, or Python command is taught.
+- requirement_id: 'AC+ #7'
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: Runtime entrypoint source and runtime-visible copies retain
+    the same policy, and parity checks report stale destinations instead of silently
+    accepting a generated header.
+- requirement_id: 'AC+ #8'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: FRONT parent-only test authority remains explicit; this epic
+    introduces no `test.e2e` capability or browser execution through the stack-profile
+    executor.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: No action sentence in an active managed-capable workflow can
+    be interpreted as “run pytest” without a hub-only marker.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: No managed branch uses a generic `pytest`, `.venv/bin/pytest`,
+    `bin/pytest`, `cargo test`, `npm test`, `npm run test`, raw shell string, or copied
+    `tests:` result as its proof.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: No broad regex deletes valid negative text such as “no fallback
+    to pytest” or valid hub-only examples; classification must be context-aware.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No workflow file is excluded merely because it was absent from
+    076 s06’s original allowlist; discovery covers active `workflow-*.mdc`, `_lean`,
+    core, skills, entrypoint and template surfaces.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No generated `AGENTS.md`/`CLAUDE.md` body is treated as a separate
+    source that can diverge from `harness/instructions/main.md`.
+- requirement_id: 'AC- #6'
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: No `test.e2e`, browser capability, arbitrary command, installation,
+    profile extension, receipt mutation, or executor change is smuggled into the epic.
+- requirement_id: 'AC- #7'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: No obsolete test is made green by restoring the generic managed
+    command authority removed by 076.
+- requirement_id: TM-080-01
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: P0
+- requirement_id: TM-080-02
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: P0
+- requirement_id: TM-080-03
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: P0
+- requirement_id: TM-080-04
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: P0
+- requirement_id: TM-080-05
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: P0
+- requirement_id: TM-080-06
+  step_ids:
+  - s01
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: P1
+- requirement_id: TM-080-07
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: P1
+- requirement_id: TM-080-08
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: P1
+- requirement_id: TM-080-09
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: P1
+- requirement_id: TM-080-10
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: P1
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

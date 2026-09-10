@@ -1,0 +1,37 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-079
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+date: 2026-09-10
+reviewer: verify-qa
+verdict: fail
+
+scope:
+  - "task: T-HUB-079"
+  - "epic: T-HUB-079-orchestrator-lifecycle-reliability"
+  - "steps: s01–s06"
+  - "files: loop/lifecycle.py, loop/context_loop.py, harness/hooks/session_resilience.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line`"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "AC+3: zero-tool session with exit_code=0 is classified as clean, and companion as passed (harness/hooks/session_resilience.py:860, 961; loop/context_loop.py:3146)"
+  - "AC+4: pass_invocation accepts untagged receipt, bypassing epoch check (loop/lifecycle.py:940-952)"
+  - "AC+2: TaskStop defaults to cancelled, and terminal path clears checkpoint (loop/lifecycle.py:1091-1105; loop/context_loop.py:3473-3483)"
+
+blockers:
+  - "Reviewer verify-qa FAIL on AC+3 zero-tool session handling, AC+4 untagged receipt epoch check, and AC+2 TaskStop terminalization"
+
+fix_plan:
+  - "BACK BUGFIX resolve AC+3, AC+4, and AC+2 lifecycle state machine and session resilience issues"
+
+limitations:
+  - "Full pytest suite green (2508 passed) but reviewer identified AC+3, AC+4, and AC+2 gaps"
+
+suite:
+  - "bin/pytest -q --tb=line"

@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-079
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+date: 2026-09-09
+reviewer: verify-qa
+verdict: fail
+
+scope:
+  - "task: T-HUB-079"
+  - "epic: T-HUB-079-orchestrator-lifecycle-reliability"
+  - "steps: s01–s06"
+  - "files: loop/lifecycle.py, loop/context_loop.py, loop/telemetry.py, harness/hooks/session_resilience.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line` (2506 passed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "start() marks first_action_taken=True on transition to running"
+  - "bind_receipt() epoch validation accepts untagged dicts"
+
+blockers:
+  - "Reviewer verify-qa FAIL after 2 repair cycles"
+
+fix_plan:
+  - "BACK BUGFIX T-HUB-079 start first_action_taken and bind_receipt epoch isolation"
+
+limitations:
+  - "Reviewer raised findings regarding pre-action abort classification and receipt epoch stamping"
+
+suite:
+  - "bin/pytest -q --tb=line"

@@ -163,6 +163,62 @@ def test_checkpoint_trace_skipped_no_shard(tmp_path: Path) -> None:
     ) == []
 
 
+def test_checkpoint_trace_ignores_foreign_epic_same_step(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Missing armed-epic shard must not scan other epics sNN-* hubs."""
+    sr = _load_resilience()
+    foreign = (
+        tmp_path
+        / "memory-bank"
+        / "back"
+        / "implement"
+        / "implement-T-HUB-048-workflow-pack-registry"
+    )
+    foreign.mkdir(parents=True)
+    (foreign / "s05-cli-workflow-resolve.yaml").write_text(
+        "schema: epic-implement/v1\nrole: back\nstep_id: s05\n"
+        "plan_id: T-HUB-048-workflow-pack-registry\n"
+        "title: foreign\nstatus: in_progress\ndate: '2026-09-09'\n"
+        "done: []\nfiles: []\ntests: []\nintegration_check: []\n"
+        "gaps: none\n"
+        "checkpoints:\n- id: cp1\n  criterion: x\n  status: pending\n",
+        encoding="utf-8",
+    )
+    for i in range(5):
+        hub = (
+            tmp_path
+            / "memory-bank"
+            / "back"
+            / "implement"
+            / f"implement-T-HUB-04{i}-other"
+        )
+        hub.mkdir(parents=True)
+        (hub / f"s05-noise-{i}.yaml").write_text(
+            "schema: epic-implement/v1\nrole: back\nstep_id: s05\n"
+            f"plan_id: T-HUB-04{i}-other\n"
+            "title: noise\nstatus: in_progress\ndate: '2026-09-09'\n"
+            "done: []\nfiles: []\ntests: []\nintegration_check: []\n"
+            "gaps: none\n"
+            "checkpoints:\n- id: cp1\n  criterion: x\n  status: pending\n",
+            encoding="utf-8",
+        )
+
+    lines = sr.load_implement_checkpoint_trace(
+        tmp_path, "s05", "T-HUB-079-orchestrator-lifecycle-reliability"
+    )
+    err = capsys.readouterr().err
+    assert lines == []
+    assert "expected one shard" not in err
+
+
+def test_checkpoint_trace_requires_plan_id(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    sr = _load_resilience()
+    make_mock_shard(tmp_path, step_id="s05")
+    lines = sr.load_implement_checkpoint_trace(tmp_path, "s05", None)
+    err = capsys.readouterr().err
+    assert lines == []
+    assert "expected one shard" not in err
+
+
 def test_checkpoint_trace_all_done_skipped(tmp_path: Path) -> None:
     sr = _load_resilience()
     make_mock_shard(

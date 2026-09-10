@@ -81,7 +81,7 @@ FRONT DECOMPOSE **обязан** нарезать удаление устаре�
 ### Situational + Design
 
 1. **Read** front_developer/skills-gate-situational.mdc
-2. Прогони **Checklist — DECOMPOSE** (`visible_ui`, playwright, …)
+2. Прогони **Checklist — DECOMPOSE** (`visible_ui`, parent-only Playwright, …)
 3. `visible_ui: yes` → скопировать **Design Core** (весь пакет Base 4 + Taste 13) в блок Design skills  
    `visible_ui: no` → `**Design skills:** —` + причина
 4. Cap situational ≤ **4** (+ 6 Impl Core; Design Core не в cap situational)

@@ -1023,8 +1023,31 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
       set -e
       if [[ $reprep_rc -eq 2 ]]; then
         # The agent completed the epic before its transient transport abort.
-        # Do not run check-after against the aborted session: the next outer
-        # prepare owns the terminal EPIC_DONE → roadmap-advance transition.
+        # Advance immediately when chaining is on — do not rely solely on the
+        # next outer prepare (mark-done without arm left the runner stopped).
+        if [[ "${EPIC_CHAIN_ROADMAP:-0}" == "1" ]]; then
+          set +e
+          advance_json="$("${CTX[@]}" roadmap-advance)"
+          advance_rc=$?
+          set -e
+          if [[ "$VERBOSE" == "1" ]]; then
+            echo "$advance_json"
+          else
+            echo "$advance_json" | python3 -c '
+import json,sys
+r=json.load(sys.stdin)
+print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") or r.get("complete"))
+' 2>/dev/null || echo "$advance_json"
+          fi
+          if [[ $advance_rc -eq 3 ]]; then
+            echo "==> LOOP COMPLETE (roadmap queue)"
+            exit 0
+          fi
+          if [[ $advance_rc -ne 0 ]]; then
+            echo "==> ERROR: roadmap-advance failed after transient EPIC_DONE (rc=$advance_rc)" >&2
+            exit 1
+          fi
+        fi
         resume_outer=1
         break
       fi

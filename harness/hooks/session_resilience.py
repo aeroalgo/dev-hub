@@ -28,6 +28,7 @@ from epic_yaml import all_checkpoints_done, compute_resume_from, load_implement
 from loop.runtime_adapters.base import AUTH_BANNED_PATTERNS, SessionContext
 from loop.runtime_adapters.common import get_adapter_for_runtime
 from loop.runtime_adapters.dsh import detect_dsh_model_mismatch
+from loop.lifecycle import TodoLifecycleManager
 
 # Match order: specific → broad. classify_abort() separates transient vs fatal.
 _FATAL_ABORT_PATTERNS = (
@@ -483,7 +484,14 @@ def detect_abort_in_text(text: str, *, exit_code: int | None = None) -> str | No
             + _PERMANENT_FAILURE_PATTERNS
             + _TRANSIENT_ABORT_PATTERNS
         )
-    return _match_patterns(text or "", patterns)
+    match = _match_patterns(text or "", patterns)
+    if match:
+        return match
+    if exit_code not in (0, None):
+        api_err = re.search(r"(?i)API Error:[^\n]*", text or "")
+        if api_err:
+            return api_err.group(0).strip()[:200]
+    return None
 
 
 def detect_dsh_abort_in_log(text: str) -> str | None:
@@ -709,6 +717,112 @@ def transient_backoff_sec(attempt: int, *, idle: bool = False) -> int:
     return min(base * (2 ** (n - 1)), cap)
 
 
+_TODOWRITE_TOOL_NAMES = frozenset({"todowrite", "todo_write", "todo-write"})
+
+
+def _is_todowrite_tool(value: Any) -> bool:
+    normalized = str(value or "").strip().lower().replace(" ", "_")
+    return normalized in _TODOWRITE_TOOL_NAMES
+
+
+def _raw_todowrite_requests(raw_log: str) -> list[Any]:
+    requests: list[Any] = []
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            tool_name = value.get("name") or value.get("tool") or value.get("tool_name")
+            if _is_todowrite_tool(tool_name):
+                requests.append(
+                    value.get(
+                        "input",
+                        value.get("arguments", value.get("params", value)),
+                    )
+                )
+                return
+            for item in value.values():
+                visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+
+    for line in (raw_log or "").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        visit(value)
+    return requests
+
+
+def _todowrite_policy_summary(
+    events: list[Any],
+    raw_log: str,
+    *,
+    phase: str,
+) -> dict[str, Any]:
+    raw_requests = _raw_todowrite_requests(raw_log)
+    if raw_requests:
+        requests = [
+            {"sequence": sequence, "payload": payload}
+            for sequence, payload in enumerate(raw_requests)
+        ]
+    else:
+        candidates = [
+            event
+            for event in events
+            if getattr(event, "event_type", None)
+            in {"tool_start", "tool_event", "write"}
+            and _is_todowrite_tool(
+                getattr(event, "tool", None) or getattr(event, "item_type", None)
+            )
+        ]
+        if not candidates:
+            candidates = [
+                event
+                for event in events
+                if getattr(event, "event_type", None) == "tool_end"
+                and _is_todowrite_tool(
+                    getattr(event, "tool", None) or getattr(event, "item_type", None)
+                )
+            ]
+        requests = [
+            {
+                "sequence": getattr(event, "sequence", sequence),
+                "payload": getattr(event, "metadata", None) or {},
+            }
+            for sequence, event in enumerate(candidates)
+        ]
+
+    policy = TodoLifecycleManager(phase=phase or "IMPLEMENT", max_allowed=2)
+    decisions = [
+        policy.record_todowrite_request(payload=request["payload"])
+        for request in requests
+    ]
+    serialized = [
+        {
+            "allowed": decision.allowed,
+            "action": decision.action,
+            "call_count": decision.call_count,
+            "diagnostic": decision.diagnostic,
+            "side_effect": decision.side_effect,
+            "metadata": decision.metadata,
+        }
+        for decision in decisions
+    ]
+    violations = [
+        decision.diagnostic
+        for decision in decisions
+        if not decision.allowed and decision.diagnostic
+    ]
+    return {
+        "todowrite_phase": policy.phase,
+        "todowrite_max_allowed": policy.max_allowed,
+        "todowrite_events": requests,
+        "todowrite_decisions": serialized,
+        "todowrite_policy_violations": violations,
+    }
+
+
 def analyze_session_log(
     log_path: Path,
     *,
@@ -716,6 +830,7 @@ def analyze_session_log(
     attempt: int = 1,
     expected_model: str | None = None,
     runtime: str = "claude",
+    phase: str | None = None,
 ) -> SessionAnalysis:
     """Classify one process result and expose a bounded retry decision."""
     try:
@@ -725,7 +840,7 @@ def analyze_session_log(
     adapter = get_adapter_for_runtime(runtime)
     ctx = SessionContext(
         prompt="",
-        phase="",
+        phase=phase or "",
         model=expected_model,
         runtime_id=runtime,
         extras={"exit_code": exit_code, "attempt": attempt, "log_path": log_path},
@@ -739,6 +854,13 @@ def analyze_session_log(
         events = parse_session_events(raw_log, runtime)
     from loop.runtime.session_events import summarize_session_events
     evidence = summarize_session_events(events, exit_code=exit_code)
+    evidence.update(
+        _todowrite_policy_summary(
+            events,
+            raw_log,
+            phase=ctx.phase or "IMPLEMENT",
+        )
+    )
     gate_diagnostic = _terminal_integrity_diagnostic(raw_log)
 
     tool_events = [e for e in events if getattr(e, "event_type", None) in {"tool_start", "tool_end", "tool_event", "write"}]
@@ -842,7 +964,22 @@ def analyze_session_log(
             reason="session_end_missing",
             backoff_sec=transient_backoff_sec(attempt),
         )
+
     if not reason and not interrupted and not timeout and exit_code in (0, None):
+        if (
+            evidence.get("has_session_start")
+            and not first_action_taken
+            and not evidence.get("explicit_finish")
+            and not evidence.get("task_complete")
+        ):
+            return result_payload(
+                outcome=SessionOutcome.ABORTED_BEFORE_ACTION.value,
+                aborted=True,
+                retryable=False,
+                abort_kind="fatal",
+                reason="aborted before first action: zero tool actions recorded",
+                backoff_sec=0,
+            )
         return result_payload(
             outcome=SessionOutcome.CLEAN.value,
             aborted=False,
@@ -863,11 +1000,15 @@ def analyze_session_log(
         outcome = SessionOutcome.MALFORMED_RESULT
     elif permanent:
         outcome = SessionOutcome.PERMANENT_FAILURE
+    elif reason and _match_patterns(reason, _TRANSIENT_ABORT_PATTERNS):
+        outcome = SessionOutcome.TRANSIENT_ABORT
     elif reason:
-        if _match_patterns(reason, _TRANSIENT_ABORT_PATTERNS):
-            outcome = SessionOutcome.TRANSIENT_ABORT
+        if not first_action_taken and any(phrase in reason for phrase in ("aborted before first action", "prompt dies before action", "prompt validation failed")):
+            outcome = SessionOutcome.ABORTED_BEFORE_ACTION
         else:
             outcome = SessionOutcome.UNKNOWN_FAILURE
+    elif not first_action_taken:
+        outcome = SessionOutcome.ABORTED_BEFORE_ACTION
     else:
         reason = f"process exit={exit_code}"
         outcome = SessionOutcome.UNKNOWN_FAILURE
@@ -877,6 +1018,7 @@ def analyze_session_log(
         SessionOutcome.PERMANENT_FAILURE,
         SessionOutcome.MALFORMED_RESULT,
         SessionOutcome.UNKNOWN_FAILURE,
+        SessionOutcome.ABORTED_BEFORE_ACTION,
     }:
         kind = "fatal"
     retryable = kind == "transient"
@@ -888,7 +1030,7 @@ def analyze_session_log(
         else 0
     )
     return result_payload(
-        outcome=outcome.value,
+        outcome=outcome.value if isinstance(outcome, SessionOutcome) else outcome,
         aborted=True,
         retryable=retryable,
         abort_kind=kind,
@@ -1062,9 +1204,13 @@ def load_implement_checkpoint_trace(
     step_id: str | None,
     plan_id: str | None,
 ) -> list[str]:
-    """Load pending checkpoint state for a dirty resume without writing it."""
+    """Load pending checkpoint state for a dirty resume without writing it.
+
+    Scoped to ``plan_id`` only. Cross-epic globs are forbidden: a missing shard
+    for the armed epic is a normal empty resume, not a scan of every ``sNN-*``.
+    """
     try:
-        if not step_id:
+        if not step_id or not plan_id:
             return []
         if str(step_id).strip().upper() in {
             "QA",
@@ -1081,25 +1227,26 @@ def load_implement_checkpoint_trace(
         }:
             return []
         root = Path(cwd)
+        epic = str(plan_id).strip()
+        sid = str(step_id).strip()
         matches: list[Path] = []
-        if plan_id:
-            matches = list(
-                root.glob(
-                    f"memory-bank/*/implement/implement-{plan_id}/{step_id}-*.yaml"
-                )
-            )
-            matches.extend(
-                root.glob(f"memory-bank/*/implement/{plan_id}/{step_id}-*.yaml")
-            )
+        for pattern in (
+            f"memory-bank/*/implement/implement-{epic}/{sid}-*.yaml",
+            f"memory-bank/*/implement/implement-{epic}/{sid}.yaml",
+            f"memory-bank/*/implement/{epic}/{sid}-*.yaml",
+            f"memory-bank/*/implement/{epic}/{sid}.yaml",
+            f"memory-bank/*/implement/{epic}/yaml/steps/{sid}-*.yaml",
+            f"memory-bank/*/implement/{epic}/yaml/steps/{sid}.yaml",
+        ):
+            for path in root.glob(pattern):
+                if path.is_file() and path not in matches:
+                    matches.append(path)
         if not matches:
-            matches = list(
-                root.glob(f"memory-bank/*/implement/implement-*/{step_id}-*.yaml")
-            )
-        if not matches:
-            matches = list(root.glob(f"memory-bank/*/implement/*/{step_id}-*.yaml"))
-        if len(matches) != 1:
+            return []
+        if len(matches) > 1:
             print(
-                f"checkpoint trace: expected one shard for {step_id}, found {len(matches)}",
+                f"checkpoint trace: expected one shard for {epic}/{sid}, "
+                f"found {len(matches)}",
                 file=sys.stderr,
             )
             return []

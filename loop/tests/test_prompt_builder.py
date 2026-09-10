@@ -174,9 +174,10 @@ def test_claude_prompt_uses_shared_policy_and_claude_transport() -> None:
         load_now=[],
     )
 
-    assert "SHARED GATE COLLABORATION CONTRACT" in prompt
-    assert "gate-repair" in prompt
-    assert "FAIL или BLOCKED" in prompt
+    assert "SHARED GATE COLLABORATION CONTRACT — QA" in prompt
+    assert "loop-qa-outcome/v1" in prompt or "QA outcome classifier" in prompt
+    assert "BUGFIX" in prompt
+    assert "gate-repair → full suite → verify-qa" not in prompt
     assert "CLAUDE CODE COLLABORATION ADAPTER" in prompt
     assert "Agent" in prompt
     assert "spawn_agent" not in prompt

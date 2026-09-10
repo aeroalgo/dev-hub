@@ -28,15 +28,15 @@ steps:
   file: s04-typed-parent-api-todowrite-policy.yaml
   title: Typed parent gate status API and phase-runner TodoWrite lifecycle policy
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-telemetry-companion-marker-migration.yaml
   title: Telemetry companion schema, legacy marker migration, and aggregate counters
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: s06 — legacy-fallback-purge — sunset inventory scan, obsolete guards/fallbacks
     deletes, and regression suite
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

@@ -24,6 +24,9 @@ class QaAfterBugfix(BaseModel):
     epic_id: str
     phase_run_id: str | None
     existing_artifacts: list[str]
+    suite_scope: str = "full"
+    suite_command: str = "bin/pytest -q --tb=line"
+    changed_paths: list[str] = []
 
 
 class EpicState(BaseModel):

@@ -9,8 +9,8 @@ alwaysApply: false
 ## ТЕСТИРОВАНИЕ
 
 - **HARD:** Vitest/RTL/Playwright — **только parent** (never subagent): `.cursor/rules/front-tests-parent-only.mdc`.
-- TDD targeted в IMPLEMENT/TASK; полный suite/Playwright → **FRONT QA**
-- **Scenario:** user-visible flow → Playwright targeted до FINISH; QA дописывает дыры. **FORBIDDEN Handoff:** «manual smoke only» без spec path
+- TDD targeted в IMPLEMENT/TASK (Hub: `bin/pytest`; Managed: `capability_checks: [test.targeted]`); полный suite / parent-only Playwright → **FRONT QA**
+- **Scenario:** user-visible flow → parent-only Playwright targeted до FINISH; QA дописывает дыры. **FORBIDDEN Handoff:** «manual smoke only» без spec path
 - Skill TDD: только `tdd/SKILL.md` из workflow; spawn → HARD RULE строка в промпт subagent
 
 ## DESIGN STACK (visible UI)

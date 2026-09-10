@@ -50,9 +50,9 @@ paths:
 
 **Обязательные** gate’ы: `@explorer` только на **широкий** codebase search (полный `files:` / `delta_paths_*` → SKIP) · `@verify` (FINISH + `code_changed`) · `@reviewer` (BACK QA после suite). Общая политика — `harness/instructions/spawn-hard.md`; Claude transport — `harness/claude/instructions/spawn-hard.md`. Прочие Agent — свободно.
 
-## Bash / logs / pytest (HARD — anti-bloat)
+## Bash / logs / test execution (HARD — anti-bloat)
 
-- pytest: `.venv/bin/pytest … -q --tb=line` (или `--tb=short`). **FORBIDDEN** default `-vv -s` на больших suite
+- Hub pytest: `bin/pytest … -q --tb=line` (или `--tb=short; managed: declare capability_checks`). **FORBIDDEN** default `-vv -s` на больших suite
 - docker logs: `docker compose logs --tail=80 --no-color SERVICE` + `rg` по нужному. **FORBIDDEN** безлимитный dump / `--since=30m` целиком в контекст
 - Большой вывод: `cmd > /tmp/x.log 2>&1; rg -n PATTERN /tmp/x.log | head`; не Read весь log
 - Hook `bash-output-cap` (hybrid): (1) signal extract с **дедупом** повторов (`[×N same]`, max 12 unique / 4KB) (2) иначе cheap LLM summary (3) иначе head+tail. Полный лог → `.claude/runtime/bash-dumps/*.log`

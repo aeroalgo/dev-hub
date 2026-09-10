@@ -21,7 +21,7 @@ alwaysApply: false
 2. Level из step — L2 substep → L2
 3. **Creative hard-stop:** open gate = `needs_creative: yes (CR-…)` **без** `— **closed**` / `— closed`, или `Next Phase: * CREATIVE`, или index `yes (CR-…)` без `✅`. Канон форм: `templates/decompose/epic-step.yaml`. **REJECT** (`REJECT IMPLEMENT — нужен BACK CREATIVE <CR-ID>`); не код/`completed`. `no (… closed)` — запрещённый дрейф, трактовать как open до нормализации
 4. **Skills:** Read **целиком** каждый путь из `skills.impl` текущего decompose-step; `impl: []` / `code_surface: docs` / Kind I-only → skip. Без `limit≤300`; **без** широкого слоя A. Pre-FINISH skills **не** грузить.
-5. Red: targeted `.venv/bin/pytest` из корня до кода — не полный suite
+5. Red: Hub (dev-hub self-test) — targeted `bin/pytest` из корня до кода (не полный suite); Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
 5a. **`sunset_scope` gate (HARD):** если shard `sunset_scope.required: true` — parent обязан вызвать spawn `@sunset-inventory` с `allow_read` из scope → получить fenced JSON `loop-sunset-inventory/v1` → сохранить/приложить как evidence. Только после `status: PASS` разрешён prod Write нового SoT; без inventory report → FINISH DENIED.
 5b. **`deletes`:** выполнить **все** пути/символы из work shard `deletes:`; на FINISH зеркалить в implement `deletes:`; пропуск / «оставим shim» вне out_of_scope = FAIL
 5c. **Purge step:** если slug `*-legacy-fallback-purge` — evidence обязана включать `rg`/entrypoint/**instruction (Kind I)** inventory (shared/workflow-legacy-fallback-cleanup.mdc §3); soft-fail misconfig не добавлять

@@ -1274,6 +1274,39 @@ def test_coerce_verify_demotes_pass_when_checkpoints_pending(tmp_path: Path, mon
     assert any("gaps" in b for b in blockers)
 
 
+
+def test_coerce_verify_missing_shard_message_expects_slug(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("HUB_ROOT", raising=False)
+    from epic import load_epic_state, save_epic_state
+    from epic.core import coerce_verify_verdict
+
+    epic = "T-HUB-079-orchestrator-lifecycle-reliability"
+    decompose = f"memory-bank/back/plan/{epic}/yaml/decompose-index.yaml"
+    _write(
+        tmp_path,
+        decompose,
+        "schema: epic-decompose-index/v1\n"
+        f"plan_id: {epic}\n"
+        "steps:\n"
+        "- id: s05\n  file: s05-telemetry-companion-marker-migration.yaml\n"
+        "  next_phase: BACK IMPLEMENT\n  title: telemetry\n  status: pending\n",
+    )
+    st = load_epic_state(tmp_path)
+    st["active"] = True
+    st["armed_epic"] = epic
+    st["armed_decompose"] = decompose
+    st["armed_step"] = "s05"
+    st["role"] = "BACK"
+    save_epic_state(tmp_path, st)
+
+    effective, blockers = coerce_verify_verdict(tmp_path, "PASS")
+    assert effective == "FAIL"
+    joined = "; ".join(blockers)
+    assert "s05.yaml" not in joined
+    assert "expected s05-<slug>.yaml" in joined
+    assert "implement shard not found for s05" in joined
+
+
 def test_incomplete_step_fix_blocks_forbids_blocked_spin() -> None:
     ctx = _load_ctx()
     block = "\n".join(ctx._incomplete_step_fix_blocks(Path("/nonexistent")))
@@ -2714,7 +2747,7 @@ def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path)
     )
     assert state["status"] == "halted"
     assert state["active"] is False
-    assert not (tmp_path / ".claude/runtime/epic/checkpoint.json").exists()
+    assert (tmp_path / ".claude/runtime/epic/checkpoint.json").exists()
     marker = json.loads(
         (tmp_path / ".claude/runtime/epic/last-session.json").read_text(encoding="utf-8")
     )
@@ -2752,17 +2785,19 @@ def test_loop_shell_has_separate_native_subagent_retry_budget() -> None:
 
 
 def test_loop_shell_terminal_transient_retry_returns_to_outer_prepare() -> None:
-    """An EPIC_DONE found during retry must reach roadmap-advance, not check-after.
+    """An EPIC_DONE found during retry must roadmap-advance before outer resume.
 
     A transport timeout can arrive after the agent has already persisted the
-    FINISH_DOC_ROUTER handoff.  The retry prepare detects that terminal state;
-    it must restart the outer loop, whose prepare branch owns the queue advance.
+    FINISH handoff. The retry prepare detects that terminal state; with
+    EPIC_CHAIN_ROADMAP=1 the shell advances immediately, then restarts the outer
+    loop so prepare arms the next epic session.
     """
     script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
     retry_terminal = script.split('if [[ $reprep_rc -eq 2 ]]; then', 1)[1].split(
         'if [[ $reprep_rc -ne 0 ]]; then', 1
     )[0]
     assert "resume_outer=1" in retry_terminal
+    assert "roadmap-advance" in retry_terminal
     assert "rec_rc=0" not in retry_terminal
 
 

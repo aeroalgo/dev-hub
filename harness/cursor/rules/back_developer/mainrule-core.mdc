@@ -11,7 +11,7 @@ alwaysApply: false
 1. Red → тесты до кода  
 2. Green → минимальный код  
 3. Refactor → тесты зелёные  
-4. **IMPLEMENT / TASK:** только targeted pytest (файл/`-k`/path). Полный suite → **BACK QA**  
+4. **IMPLEMENT / TASK:** Hub (dev-hub self-test) — только targeted `bin/pytest` (файл/`-k`/path); Managed project — declare `capability_checks: [test.targeted]` with typed evidence. Полный suite / full capability checks → **BACK QA**  
 Skill: только `@.agents/skills/tdd/SKILL.md` из workflow (не дублировать вторым TDD-skill).
 
 ## УРОВНИ

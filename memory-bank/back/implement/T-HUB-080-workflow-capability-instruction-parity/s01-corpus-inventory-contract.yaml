@@ -1,0 +1,63 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s01 — Deterministic active-surface discovery and semantic action classifier
+  inventory test IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s01-corpus-inventory-contract.yaml
+skills_used: []
+discovery:
+- Replaced fixed 7-file allowlist with deterministic discovery over active rules,
+  skills, entrypoints, templates, and operator docs in loop/tests/test_stack_profile_instruction_inventory.py.
+- Implemented context-aware action classifier distinguishing hub-only vs managed capability
+  vs negative/read-only/parent-only contexts.
+gaps:
+  status: none
+done:
+- Implemented classify_instruction_line and get_active_corpus_files with deterministic
+  discovery in loop/tests/test_stack_profile_instruction_inventory.py.
+- Added test_synthetic_fixtures verifying positive/negative runner line classifications.
+- Added test_corpus_inventory verifying discovery completeness and exact red diagnostics.
+- Added test_dynamic_discovery_fails_on_injected_ambiguous_runner verifying dynamic
+  discovery detects injected ambiguous runner lines.
+- Added mode-specific tests for subsequent rewrite steps (s02-s04) and preserved legacy
+  regression assertions.
+files:
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_synthetic_fixtures
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_corpus_inventory
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_dynamic_discovery
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  "front_parent_only or sunset"
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_synthetic_fixtures — PASS (1 passed)
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_corpus_inventory — PASS (1 passed)
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  test_dynamic_discovery — PASS (1 passed)
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_synthetic_fixtures'', ''outcome'': ''PASS''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_corpus_inventory'', ''outcome'': ''PASS''}'
+- '{''command'': ''bin/pytest loop/tests/test_stack_profile_instruction_inventory.py
+  -q --tb=line -k test_dynamic_discovery'', ''outcome'': ''PASS''}'
+checkpoints:
+- id: cp1
+  criterion: Synthetic negative/positive fixtures distinguish unqualified pytest lines
+    from explicit hub exception and capability_checks.
+  status: done
+- id: cp2
+  criterion: Inventory test discovers all active workflow/rules/templates and reports
+    current red state with exact paths and lines.
+  status: done
+resume_from: cp2

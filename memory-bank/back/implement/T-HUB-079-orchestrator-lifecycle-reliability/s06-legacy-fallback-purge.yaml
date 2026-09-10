@@ -1,0 +1,98 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s06 — legacy-fallback-purge — sunset inventory scan, obsolete guards/fallbacks
+  deletes, and regression suite IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Проведён полный аудит sunset_inventory Kind A, B, C, I и grep_control: подтверждено
+  отсутствие ad-hoc in_flight мутаций, разрозненных duplicate-guards, неявных root
+  retry launchers и инструкций чистки маркеров в /tmp'
+- Создан сквозной регрессионный тестовый сьют loop/tests/test_orchestrator_lifecycle_regression.py,
+  покрывающий FR-001–FR-006, AC 1–5 и негативные критерии AC-
+- Проверены целевые наборы тестов lifecycle, idempotency dispatch, crash safety, todowrite
+  policy и telemetry migration
+files:
+- loop/lifecycle.py
+- loop/context_loop.py
+- harness/hooks/session_resilience.py
+- loop/tests/test_orchestrator_lifecycle_regression.py
+deletes:
+- ad_hoc_in_flight_branches
+- scattered_duplicate_guards
+- implicit_task_stop_retry
+tests:
+- '`bin/pytest loop/tests/test_orchestrator_lifecycle_regression.py -q --tb=line`'
+integration_check:
+- '`bin/pytest loop/tests/test_lifecycle_reducer.py loop/tests/test_idempotent_gate_dispatch.py
+  loop/tests/test_lifecycle_crash_safety.py loop/tests/test_todowrite_policy.py loop/tests/test_lifecycle_telemetry.py
+  loop/tests/test_orchestrator_lifecycle_regression.py -q --tb=line`'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- '`bin/pytest loop/tests/test_orchestrator_lifecycle_regression.py -q --tb=line`
+  — 7 passed'
+- '`bin/pytest loop/tests/test_lifecycle_reducer.py loop/tests/test_idempotent_gate_dispatch.py
+  loop/tests/test_lifecycle_crash_safety.py loop/tests/test_todowrite_policy.py loop/tests/test_lifecycle_telemetry.py
+  loop/tests/test_orchestrator_lifecycle_regression.py -q --tb=line` — 22 passed'
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по строкам sunset_inventory kind=A:
+
+    0 prod callers ad-hoc in_flight мутаций и разрозненных duplicate-guards.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:34Z'
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: исключены неявные автоперезапуски root-сессий.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:34Z'
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: исключены тихие ретраи после TaskStop или
+    пустых сессий.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:35Z'
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: отсутствуют советы ручного поиска/чистки
+    маркеров в /tmp.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:36Z'
+- id: cp5
+  criterion: 'Устаревшие тесты на старые механизмы мутации маркеров удалены/переписаны;
+
+    целевой тестовый набор зеленый.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:36Z'
+- id: cp6
+  criterion: 'Сквозной регрессионный сьют жизненного цикла и надежности оркестратора
+    успешен.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:57:37Z'
+resume_from: cp6

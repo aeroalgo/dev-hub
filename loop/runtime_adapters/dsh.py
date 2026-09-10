@@ -267,5 +267,18 @@ class DshAdapter(RuntimeAdapter):
         from loop.runtime.session_events import parse_session_events
         return parse_session_events(raw_log, ctx.runtime_id)
 
+    def resolve_session_close_identity(self, state: dict[str, Any]) -> Any:
+        from loop.session_finalize import resolve_session_close_identity
+
+        return resolve_session_close_identity(state)
+
+    def should_probe_analyze_promotion(self, *, armed_step: Any, active_context_text: str | None = None) -> bool:
+        from loop.session_finalize import should_probe_analyze_promotion
+
+        return should_probe_analyze_promotion(
+            armed_step=armed_step,
+            active_context_text=active_context_text,
+        )
+
     def post_session(self, cwd: Any, log_path: Any, ctx: SessionContext) -> list[dict[str, Any]]:
         return []

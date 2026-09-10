@@ -2340,6 +2340,18 @@ def _resolve_implement_shard(
             )
         path = cwd_p / rel
         if not path.is_file():
+            sid = step_id.strip().lower()
+            short_m = re.match(r"^([sera]\d{2})", sid)
+            short = short_m.group(1) if short_m else sid
+            try:
+                parent_rel = str(path.parent.relative_to(cwd_p)).replace("\\", "/")
+            except ValueError:
+                parent_rel = str(path.parent).replace("\\", "/")
+            if path.name in {f"{short}.yaml", f"{sid}.yaml"}:
+                return None, (
+                    f"implement shard not found for {short} under {parent_rel} "
+                    f"(expected {short}-<slug>.yaml)"
+                )
             return None, f"implement shard not found: {rel}"
         return path, None
     except Exception as exc:
@@ -2529,6 +2541,10 @@ def _try_advance_active_context(
         state = load_epic_state(cwd)
         state["armed_step"] = step_id
         state["pending_fingerprint_before"] = None
+        # New step must not inherit prior step verify PASS / demote noise.
+        state["last_verify_verdict"] = None
+        state["last_verify_at"] = None
+        state["last_verify_evidence"] = None
         save_epic_state(cwd, state)
         result["armed_step_updated"] = True
     except Exception as exc:
@@ -5049,6 +5065,7 @@ def arm_epic(
         st["armed_epic"] = epic_id
         st["armed_decompose"] = rel_idx
         st["armed_step"] = phase
+        st["phase"] = phase
         st["role"] = role_u
         st["pending_fingerprint_before"] = None
         save_epic_state(cwd_p, st)
@@ -5192,6 +5209,7 @@ def arm_pre_implement_context(
     st["armed_epic"] = epic_id
     st["armed_decompose"] = armed_decompose
     st["armed_step"] = phase_u
+    st["phase"] = phase_u
     st["role"] = role
     st["pending_fingerprint_before"] = None
     save_epic_state(cwd_p, st)

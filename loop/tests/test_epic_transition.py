@@ -277,6 +277,8 @@ def test_promote_if_ready_analyze_finish_goes_implement(tmp_path):
             "armed_decompose": f"{decomp}/index.yaml",
             "armed_step": "ANALYZE",
             "role": "BACK",
+            "last_finished_step": "ANALYZE",
+            "last_finish_tool": {"name": "mb-finish analyze", "step_id": "ANALYZE"},
         },
     )
 

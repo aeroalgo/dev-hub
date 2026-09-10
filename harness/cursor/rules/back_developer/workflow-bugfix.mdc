@@ -10,7 +10,7 @@ alwaysApply: false
 **Процесс**:
 1. `OK BACK BUGFIX - [суть]` → **Gates** + @.cursor/rules/shared/epic-scoped-paths.mdc
 2. **Вход из QA:** qa §Fix plan — одна строка → `BACK BUGFIX <subject>`; skills в `bugfix-YYYYMMDD-<slug>.md` под `bugfix/<epic_id>/` если эпик, иначе плоско в `bugfix/`
-3. Reproduce → root cause (не mask) → regression red → fix → green (`.venv/bin/pytest` из корня)
+3. Reproduce → root cause (не mask) → regression red → fix → green (Hub dev-hub self-test: targeted `bin/pytest` из корня; Managed project: declare `capability_checks: [test.targeted]` with typed execution evidence)
 4. §0.11 если refs · pre-FINISH skills
 5. **FINISH:** finish-block (`code_changed: yes`); Handoff → `@verify-bugfix` (или legacy alias `@verify`) → runner next session
    Next-mode: `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH

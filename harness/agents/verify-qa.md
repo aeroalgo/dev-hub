@@ -29,14 +29,15 @@ Parent **обязан** передать секции. Нет секции → `
 | `§0.11` | да (≥1 пункт) |
 | `ALLOW READ` | да (≤10 файлов) |
 
-## Full suite gate (HARD)
+## Suite gate (HARD)
 
-В `Suite results` должна быть команда полного прогона репозитория:
+Parent передаёт `suite_scope` + ровно один suite-command. **Не перезапускай pytest.**
 
-- канон: `bin/pytest -q --tb=line`
-- альтернатива: `timeout 300s .venv/bin/pytest -q --tb=line`
+- `suite_scope: full` → в Suite results обязана быть full-команда `bin/pytest -q --tb=line` (или `timeout 300s .venv/bin/pytest -q --tb=line`).
+- `suite_scope: targeted` (после BUGFIX без runtime-path changes) → допустим targeted path/nodeid; **FAIL** только если suite claims противоречат evidence или command отсутствует.
+- Если `suite_scope` не указан — требуй full (fail-closed).
 
-**FAIL** (`suite_not_full`), если в results **нет** такой full-команды, или единственный pytest — epic-scoped / path / nodeid / `-k` (IMPLEMENT-style targeted). Доп. targeted-команды рядом с full — ок; full обязателен. Не перезапускай suite.
+**FAIL** (`suite_not_full`) на full-path, если full-команды нет. Не гоняй suite сам.
 
 ## System discipline (HARD)
 

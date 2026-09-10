@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 2
+  cut_list:
+  - archive/history prose cleanup
+  - cosmetic wording normalization
+  - new capability vocabulary
+  - browser/E2E executor
+  - runtime-sync overlay redesign
+  - package installation and external managed command smoke
+steps:
+- id: s01
+  file: s01-corpus-inventory-contract.yaml
+  title: Deterministic active-surface discovery and semantic action classifier inventory
+    test
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-back-workflow-branch-rewrite.yaml
+  title: BACK mode workflows, mainrule-core, and lean gates branch qualification
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-integ-front-shared-branch-rewrite.yaml
+  title: INTEG, FRONT, and shared workflow rules branch qualification
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-runtime-skill-entrypoint-template-parity.yaml
+  title: Runtime skills, main entrypoints, and scaffold templates parity
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-legacy-fallback-purge.yaml
+  title: Full sunset inventory scan, legacy fallback purge, and regression verification
+  next_phase: BACK IMPLEMENT
+  status: pending

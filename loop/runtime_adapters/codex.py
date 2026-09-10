@@ -266,6 +266,20 @@ class CodexAdapter(RuntimeAdapter):
             session_id=str(ctx.extras.get("session_id") or ""),
         )
 
+    def resolve_session_close_identity(self, state: dict[str, Any]) -> Any:
+        from loop.session_finalize import resolve_session_close_identity
+
+        return resolve_session_close_identity(state)
+
+    def should_probe_analyze_promotion(self, *, armed_step: Any, active_context_text: str | None = None) -> bool:
+        from loop.session_finalize import should_probe_analyze_promotion
+
+        return should_probe_analyze_promotion(
+            armed_step=armed_step,
+            active_context_text=active_context_text,
+        )
+
+
     def normalize_read_event(self, payload: dict[str, Any], cwd: Any = None) -> Any:
         from harness.hooks.context_ledger_adapters import normalize_read_payload
         return normalize_read_payload(payload, provider="codex", default_cwd=cwd)

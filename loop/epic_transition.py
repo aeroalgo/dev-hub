@@ -380,28 +380,34 @@ def promote_if_ready(
             active_text,
         ):
             return None
-        evidence = st.get("last_verify_evidence") or st.get("last_verify_receipt")
-        if not evidence:
-            return {
-                "ok": False,
-                "error": "ANALYZE promotion requires verifier receipt",
-                "diagnostic_code": "gate_evidence_missing",
-            }
-        try:
-            from epic.core import gate_evidence_matches
-            matched, diagnostic = gate_evidence_matches(cwd_p, evidence)
-        except Exception as exc:
-            return {
-                "ok": False,
-                "error": f"ANALYZE promotion gate validation failed: {exc}",
-                "diagnostic_code": "gate_evidence_invalid",
-            }
-        if not matched:
-            return {
-                "ok": False,
-                "error": f"ANALYZE promotion rejected: {diagnostic}",
-                "diagnostic_code": diagnostic,
-            }
+        from loop.session_finalize import analyze_promotion_requires_bound_receipt
+
+        # Arrival at ANALYZE after DECOMPOSE must not fail-closed on a stale
+        # foreign receipt (e.g. previous epic BUGFIX). Bound receipt is required
+        # only after ANALYZE itself finished.
+        if analyze_promotion_requires_bound_receipt(st):
+            evidence = st.get("last_verify_evidence") or st.get("last_verify_receipt")
+            if not evidence:
+                return {
+                    "ok": False,
+                    "error": "ANALYZE promotion requires verifier receipt",
+                    "diagnostic_code": "gate_evidence_missing",
+                }
+            try:
+                from epic.core import gate_evidence_matches
+                matched, diagnostic = gate_evidence_matches(cwd_p, evidence)
+            except Exception as exc:
+                return {
+                    "ok": False,
+                    "error": f"ANALYZE promotion gate validation failed: {exc}",
+                    "diagnostic_code": "gate_evidence_invalid",
+                }
+            if not matched:
+                return {
+                    "ok": False,
+                    "error": f"ANALYZE promotion rejected: {diagnostic}",
+                    "diagnostic_code": diagnostic,
+                }
 
     decomp = str(st.get("armed_decompose") or "").strip()
     idx_path: Path | None

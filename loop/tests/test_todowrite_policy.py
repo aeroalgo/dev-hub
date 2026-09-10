@@ -1,16 +1,24 @@
 """Unit tests for phase-runner TodoWrite lifecycle policy and limit enforcement."""
 
+import json
+from typing import Any
 import pytest
 
+from harness.hooks.session_resilience import _todowrite_policy_summary
 from loop.context_loop import (
     TodoPolicyDecision,
     TodoWritePolicy,
+    enforce_phase_todowrite_policy,
     evaluate_todowrite_request,
+    handle_todowrite_request,
 )
+from loop.lifecycle import TodoLifecycleManager
+from loop.runtime.session_events import SessionEvent
 
 
-def test_third_todowrite_rejected():
+def test_todowrite_lifecycle_max_events():
     """cp2: Phase runner permits at most start+finish events for IMPLEMENT; third request is rejected without side effects."""
+    assert TodoWritePolicy is TodoLifecycleManager
     policy = TodoWritePolicy(phase="IMPLEMENT", max_allowed=2)
     assert policy.is_request_allowed() is True
 
@@ -82,3 +90,136 @@ def test_evaluate_todowrite_request_pure():
     d_plan = evaluate_todowrite_request("PLAN", 3)
     assert d_plan.allowed is True
     assert d_plan.side_effect is True
+
+
+def test_enforce_phase_todowrite_policy_runner():
+    """Verify phase runner enforcement helper on request batch."""
+    requests = [
+        {"action": "plan"},
+        {"action": "finish"},
+        {"action": "extra"},
+        {"action": "another"},
+    ]
+    decisions = enforce_phase_todowrite_policy("IMPLEMENT", requests, max_allowed=2)
+    assert len(decisions) == 4
+    assert decisions[0].allowed is True
+    assert decisions[0].action == "start"
+    assert decisions[0].side_effect is True
+
+    assert decisions[1].allowed is True
+    assert decisions[1].action == "finish"
+    assert decisions[1].side_effect is True
+
+    assert decisions[2].allowed is False
+    assert decisions[2].action == "rejected"
+    assert decisions[2].side_effect is False
+    assert decisions[2].diagnostic == "todowrite_limit_exceeded"
+
+    assert decisions[3].allowed is False
+    assert decisions[3].action == "rejected"
+    assert decisions[3].side_effect is False
+
+
+def test_enforce_phase_todowrite_policy_uses_existing_interceptor_policy():
+    policy = TodoWritePolicy(phase="IMPLEMENT", max_allowed=2)
+    side_effects: list[Any] = []
+
+    decisions = enforce_phase_todowrite_policy(
+        "IMPLEMENT",
+        [{"action": "start"}, {"action": "finish"}, {"action": "extra"}],
+        policy=policy,
+        apply=side_effects.append,
+    )
+
+    assert [decision.call_count for decision in decisions] == [1, 2, 3]
+    assert [decision.allowed for decision in decisions] == [True, True, False]
+    assert side_effects == [{"action": "start"}, {"action": "finish"}]
+    assert policy.call_count == 3
+
+
+def test_handle_todowrite_request_hook():
+    """Verify handle_todowrite_request hook runs side-effect on allowed and skips on rejected."""
+    policy = TodoWritePolicy(phase="IMPLEMENT", max_allowed=2)
+    side_effects: list[Any] = []
+
+    def apply_effect(payload: Any) -> None:
+        side_effects.append(payload)
+
+    # First request: allowed -> side effect runs
+    d1 = handle_todowrite_request(policy, {"action": "start"}, apply=apply_effect)
+    assert d1.allowed is True
+    assert d1.side_effect is True
+    assert len(side_effects) == 1
+    assert side_effects[0] == {"action": "start"}
+
+    # Second request: allowed -> side effect runs
+    d2 = handle_todowrite_request(policy, {"action": "finish"}, apply=apply_effect)
+    assert d2.allowed is True
+    assert d2.side_effect is True
+    assert len(side_effects) == 2
+    assert side_effects[1] == {"action": "finish"}
+
+    # Third request: rejected -> side effect does NOT run
+    d3 = handle_todowrite_request(policy, {"action": "extra"}, apply=apply_effect)
+    assert d3.allowed is False
+    assert d3.side_effect is False
+    assert d3.diagnostic == "todowrite_limit_exceeded"
+    assert len(side_effects) == 2  # Unchanged!
+
+
+def test_session_resilience_todowrite_summary_parses_raw_requests():
+    raw_log = "\n".join(
+        json.dumps(
+            {"type": "tool_use", "name": tool_name, input_key: {"action": action}}
+        )
+        for tool_name, input_key, action in (
+            ("TodoWrite", "input", "start"),
+            ("todo_write", "arguments", "finish"),
+            ("todo-write", "params", "extra"),
+        )
+    )
+
+    summary = _todowrite_policy_summary([], raw_log, phase="IMPLEMENT")
+
+    assert summary["todowrite_phase"] == "IMPLEMENT"
+    assert summary["todowrite_max_allowed"] == 2
+    assert [event["sequence"] for event in summary["todowrite_events"]] == [0, 1, 2]
+    assert [decision["action"] for decision in summary["todowrite_decisions"]] == [
+        "start",
+        "finish",
+        "rejected",
+    ]
+    assert summary["todowrite_decisions"][2]["side_effect"] is False
+    assert summary["todowrite_policy_violations"] == ["todowrite_limit_exceeded"]
+
+
+def test_session_resilience_todowrite_summary_uses_structured_events():
+    events = [
+        SessionEvent(
+            runtime="claude",
+            event_type="tool_start",
+            sequence=4,
+            tool="TodoWrite",
+            metadata={"action": "start"},
+        ),
+        SessionEvent(
+            runtime="claude",
+            event_type="tool_start",
+            sequence=8,
+            tool="todo_write",
+            metadata={"action": "finish"},
+        ),
+    ]
+
+    summary = _todowrite_policy_summary(events, "", phase="PLAN")
+
+    assert [event["sequence"] for event in summary["todowrite_events"]] == [4, 8]
+    assert [event["payload"] for event in summary["todowrite_events"]] == [
+        {"action": "start"},
+        {"action": "finish"},
+    ]
+    assert [decision["allowed"] for decision in summary["todowrite_decisions"]] == [
+        True,
+        True,
+    ]
+    assert summary["todowrite_policy_violations"] == []

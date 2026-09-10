@@ -14,7 +14,7 @@ alwaysApply: false
 
 ## SCENARIO TESTS
 
-User-visible flow → scenario test до FINISH; QA прогон + дыры. Playwright (UI) · pytest HTTP outcome (контракт) · vitest alone **недостаточно** для «пользователь нажал X». **FORBIDDEN Handoff:** «manual smoke only» без scenario path.
+User-visible flow → scenario test до FINISH; QA прогон + дыры. Parent-only Playwright (UI) · Hub pytest HTTP outcome (контракт; managed: declared HTTP/API capability evidence) · vitest alone **недостаточно** для «пользователь нажал X». **FORBIDDEN Handoff:** «manual smoke only» без scenario path.
 
 ## QUERY BUILDER
 
@@ -26,7 +26,7 @@ User-visible flow → scenario test до FINISH; QA прогон + дыры. Pla
 
 ## BACK / FRONT в одном eNN
 
-BACK если §API=✗: schema, endpoint, mapping_filters, targeted pytest. FRONT: api client, filter-utils, wire, vitest, убрать mock. Wire: §0.11 endpoint→fetch.
+BACK если §API=✗: schema, endpoint, mapping_filters, Hub (dev-hub self-test) targeted `bin/pytest` (managed: `capability_checks: [test.targeted]` with typed execution evidence). FRONT: api client, filter-utils, wire, parent-only Vitest, убрать mock. Wire: §0.11 endpoint→fetch.
 
 ## MEMORY BANK (ролевой scope)
 

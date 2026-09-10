@@ -132,7 +132,7 @@ def test_collaboration_child_activity_is_shown() -> None:
                 "item": {
                     "type": "collab_tool_call",
                     "tool": "spawn_agent",
-                    "prompt": "Role: verify-qa\nPhase: BACK QA",
+                    "prompt": "agent_type: verify-qa\nPhase: BACK QA",
                 },
             }
         ),
@@ -255,6 +255,94 @@ def test_collaboration_spawn_type_comes_from_prompt_heading_or_item() -> None:
     assert "→ Subagent spawn type=gate-repair\n" in out
     assert "type=unknown" not in out
 
+
+
+
+def test_collaboration_spawn_type_from_qa_review_and_blockers_pack() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": (
+                        "QA review for epic T-HUB-079\n\n"
+                        "Suite results:\n- green\n"
+                    ),
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": (
+                        "BLOCKERS:\n"
+                        "1. broken AC\n\n"
+                        "ALLOW WRITE:\n"
+                        "- loop/x.py\n\n"
+                        "VERIFY:\n"
+                        "- bin/pytest loop/x.py -q\n"
+                    ),
+                },
+            }
+        ),
+    ]
+    out = _capture_lines(lines)
+    assert "→ Subagent spawn type=verify-qa\n" in out
+    assert "→ Subagent spawn type=gate-repair\n" in out
+    assert "type=unknown" not in out
+
+
+def test_collaboration_spawn_type_ignores_role_back_in_prompt() -> None:
+    lines = [
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": (
+                        "role: BACK\n"
+                        "mode: IMPLEMENT\n"
+                        "agent_type: verify-implement\n"
+                        "# packed AC\n"
+                    ),
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": "role: BACK\n\n# verify-qa review: epic\n",
+                },
+            }
+        ),
+        json.dumps(
+            {
+                "type": "item.started",
+                "item": {
+                    "type": "collab_tool_call",
+                    "tool": "spawn_agent",
+                    "prompt": "role: BACK\nmode: IMPLEMENT\n",
+                },
+            }
+        ),
+    ]
+
+    out = _capture_lines(lines)
+
+    assert "→ Subagent spawn type=verify-implement\n" in out
+    assert "→ Subagent spawn type=verify-qa\n" in out
+    assert "→ Subagent spawn type=unknown\n" in out
+    assert "type=BACK" not in out
+    assert "type=back" not in out
 
 def test_skill_budget_warning_is_hidden() -> None:
     lines = [

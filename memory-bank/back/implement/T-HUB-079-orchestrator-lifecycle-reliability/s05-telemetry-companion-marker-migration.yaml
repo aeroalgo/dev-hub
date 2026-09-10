@@ -1,0 +1,70 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+title: s05 — Telemetry companion schema, legacy marker migration, and aggregate counters
+  IMPLEMENT
+status: completed
+date: '2026-09-09'
+decompose_ref: memory-bank/back/plan/T-HUB-079-orchestrator-lifecycle-reliability/yaml/steps/s05-telemetry-companion-marker-migration.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Реализована схема SessionTelemetryCompanion и утилиты чтения/записи JSONL в loop/telemetry.py
+  с машиночитаемыми полями invocation_id, first_action_at, terminal_reason, retry_chain_id
+  и timestamps
+- Реализован класс TelemetryAggregator в loop/telemetry.py для агрегации метрик duplicate-suppressed,
+  terminal_by_cause, zero_action_sessions и retry_chains
+- Реализованы модели LegacyMarkerResult, функции migrate_legacy_marker, migrate_legacy_marker_files
+  и метод ingest_legacy_marker в loop/lifecycle.py, гарантирующие миграцию в диагностический
+  статус legacy_unknown без преобразования в PASSED
+- Написан полный набор unit-тестов в loop/tests/test_lifecycle_telemetry.py
+files:
+- loop/lifecycle.py
+- loop/telemetry.py
+- loop/tests/test_lifecycle_telemetry.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py -q --tb=line`'
+integration_check:
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py loop/tests/test_lifecycle_reducer.py
+  loop/tests/test_lifecycle_crash_safety.py -q --tb=line`'
+grep_control: []
+verification_results:
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_companion_jsonl_schema
+  -q --tb=line` — 1 passed'
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_aggregate_counters -q
+  --tb=line` — 1 passed'
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py -k test_legacy_marker_migration_unknown
+  -q --tb=line` — 1 passed'
+- '`bin/pytest loop/tests/test_lifecycle_telemetry.py loop/tests/test_lifecycle_reducer.py
+  loop/tests/test_lifecycle_crash_safety.py -q --tb=line` — 9 passed'
+checkpoints:
+- id: cp1
+  criterion: 'Companion JSONL сохраняет машиночитаемые атрибуты: invocation_id, first_action_at,
+
+    terminal_reason, retry_chain_id и timestamps для каждой root/subagent сессии.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:31:17Z'
+- id: cp2
+  criterion: 'Агрегатор метрик корректно подсчитывает duplicate-suppressed, распределение
+    терминальных
+
+    причин и сессии с нулевыми действиями.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:31:18Z'
+- id: cp3
+  criterion: 'Миграция старых marker-файлов помечает их как legacy_unknown и категорически
+
+    не допускает неявного преобразования в PASSED.
+
+    '
+  status: done
+  done_at: '2026-09-09T14:31:19Z'
+resume_from: cp3

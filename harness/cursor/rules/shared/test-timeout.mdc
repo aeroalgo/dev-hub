@@ -19,13 +19,20 @@ alwaysApply: true
 ## Обязательная форма
 
 ```text
+# Hub (dev-hub self-test):
 bin/pytest ...
+# Hub (dev-hub alternative):
 timeout -k 10s 300s .venv/bin/pytest ...
+# Frontend (parent-only):
 timeout -k 10s 300s npm --prefix frontend exec vitest ...
 timeout -k 10s 300s npm --prefix frontend exec tsc ...
+# Frontend scenario (parent-only):
 timeout -k 10s 300s npx playwright test ...
+# Managed projects (capability-scoped execution evidence, no raw runner fallback):
 timeout -k 10s 300s python tests/test_*.py
+# Managed project capability check:
 timeout -k 10s 300s npm test
+# Managed project capability check:
 timeout -k 10s 300s make test
 ```
 
@@ -43,7 +50,7 @@ timeout -k 10s 300s make test
 ## DECOMPOSE / IMPLEMENT boundary (HARD)
 
 - При нарезке каждый `sNN`/`eNN` обязан получать только executable targeted-проверки по своему `files`/`delta`/`plan_contract` scope.
-- Full pytest suite без path/nodeid/`-k` запрещён в `verify` и `checkpoints[].verify` decompose-shard’а: такой shard не проходит `validate-decompose-tree`.
+- Hub full pytest suite без path/nodeid/`-k` запрещён в `verify` и `checkpoints[].verify` decompose-shard’а: такой shard не проходит `validate-decompose-tree`.
 - В decompose можно зафиксировать, что full suite является QA handoff, но executable full-команду записывает и запускает только QA-артефакт после IMPLEMENT.
 - Если проверка требует более широкого покрытия, её нужно вынести в отдельный QA outcome, а не расширять scope implement-шарду.
 

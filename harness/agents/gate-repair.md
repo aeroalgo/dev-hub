@@ -28,9 +28,11 @@ Parent **обязан** передать секции. Если нет — ср�
 | `VERIFY` | да (точная pytest/CLI команда parent) |
 | `ALLOW READ` | нет (опционально, ≤10 файлов для контекста) |
 
-Для repair после `verify-qa` секция `VERIFY` обязана содержать первым пунктом
-полный `bin/pytest -q --tb=line`. Targeted-команды разрешены только как
-дополнительные проверки и не заменяют полный suite.
+Для repair после `verify-qa` секция `VERIFY` обязана содержать **targeted**
+pytest по файлам из ALLOW WRITE (path/nodeid/`-k`). Полный
+`bin/pytest -q --tb=line` гоняет parent перед следующим `verify-qa`, не
+`gate-repair`. Если parent ошибочно передал только full suite — выполни его
+один раз как указано, но не добавляй второй full-прогон сам.
 
 ## Scope (HARD)
 
@@ -38,8 +40,8 @@ Parent **обязан** передать секции. Если нет — ср�
 2. Чини **только** blockers из секции BLOCKERS — по одному, минимальный diff.
 3. **Write/Edit** — **только** пути из `ALLOW WRITE`. Вне ALLOW → не трогать.
 4. **Read/Grep** — ALLOW READ + файлы из ALLOW WRITE + shard paths из prompt.
-5. После правок — **один** прогон команды из VERIFY (parent suite). Red → `status: fail`.
-6. **FORBIDDEN:** spawn Agent/verify, FINISH, правки memory-bank кроме implement shard если явно в ALLOW WRITE, frontend tests.
+5. После правок — **один** прогон команды из VERIFY (targeted). Red → `status: fail`.
+6. **FORBIDDEN:** spawn Agent/verify, FINISH, правки memory-bank кроме implement shard если явно в ALLOW WRITE, frontend tests, повторный full-suite сверх одной команды VERIFY.
 
 ## Pre-emit validate-boundary (HARD)
 

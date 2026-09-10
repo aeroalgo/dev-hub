@@ -42,9 +42,20 @@ def _collaboration_label(item: dict) -> str:
         if value:
             return value
     prompt = str(item.get("prompt") or "")
-    match = re.search(r"(?im)^\s*(?:role|agent_type|subagent_type)\s*[:=]\s*([^\n]+)", prompt)
+    try:
+        from loop.runtime_adapters.subagent_lifecycle import infer_agent_type
+
+        inferred = infer_agent_type(prompt)
+        if inferred:
+            return inferred
+    except Exception:
+        pass
+    match = re.search(
+        r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)",
+        prompt,
+    )
     if match:
-        return match.group(1).strip()
+        return match.group(1).strip().lower()
     heading = re.search(r"(?im)^\s*#\s+([a-z][a-z0-9_-]{1,63})(?=\s|:|$)", prompt)
     return heading.group(1) if heading else "unknown"
 

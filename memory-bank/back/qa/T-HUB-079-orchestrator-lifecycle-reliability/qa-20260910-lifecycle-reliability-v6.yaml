@@ -1,0 +1,36 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-079
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+date: 2026-09-10
+reviewer: verify-qa
+verdict: fail
+
+scope:
+  - "task: T-HUB-079"
+  - "epic: T-HUB-079-orchestrator-lifecycle-reliability"
+  - "steps: s01–s06"
+  - "files: loop/runtime_adapters/subagent_lifecycle.py, loop/lifecycle.py, loop/context_loop.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line`"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "AC 1 / AC−1: identical verifier requests are not deduplicated by identity (dedupe key uses thread:wait:verdict, triggering duplicate subagent-start across different wait/thread contexts in subagent_lifecycle.py:201, 298)"
+  - "§0.11.2: telemetry companion record does not show explicit retry relation field"
+
+blockers:
+  - "Reviewer verify-qa FAIL on AC 1 / AC-1 verifier idempotency key identity deduplication"
+
+fix_plan:
+  - "BACK BUGFIX resolve verifier identity deduplication and telemetry retry relation in loop/runtime_adapters/subagent_lifecycle.py"
+
+limitations:
+  - "Full pytest suite green (10295 passed) but reviewer identified AC 1/AC-1 verifier identity deduplication defect"
+
+suite:
+  - "bin/pytest -q --tb=line"

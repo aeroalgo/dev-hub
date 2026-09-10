@@ -1,0 +1,139 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: Runtime skills, main entrypoints, and scaffold templates parity
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Синхронизировать harness/skills/role-command/SKILL.md с Claude-версией, обновить root classification
+  в harness/instructions/main.md, регенерировать entrypoints AGENTS.md/CLAUDE.md, переписать примеры в
+  шаблонах на scoped hub / capability evidence, и снабдить operator docs метками dev-hub self-test.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-007
+    - FR-008
+    - SC-003
+    - SC-004
+    - SC-006
+    - US-003
+    - US-004
+  nouns:
+    - harness/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/instructions/main.md
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/templates/plan.md
+    - harness/cursor/templates/decompose/epic-step.yaml
+    - harness/cursor/templates/decompose/legacy-purge-step.yaml
+    - harness/cursor/templates/implement/epic-step.yaml
+    - harness/cursor/templates/qa/epic-step.yaml
+    - harness/cursor/templates/integration-plan.md
+    - harness/cursor/templates/refactor/epic-step.yaml
+    - harness/cursor/templates/security/epic-step.yaml
+    - harness/cursor/templates/finish-doc-router.md
+    - loop/WORKFLOW.md
+    - loop/README.md
+  layout_paths:
+    - harness/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/instructions/main.md
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/templates/plan.md
+    - harness/cursor/templates/decompose/epic-step.yaml
+    - harness/cursor/templates/decompose/legacy-purge-step.yaml
+    - harness/cursor/templates/implement/epic-step.yaml
+    - harness/cursor/templates/qa/epic-step.yaml
+    - harness/cursor/templates/integration-plan.md
+    - harness/cursor/templates/refactor/epic-step.yaml
+    - harness/cursor/templates/security/epic-step.yaml
+    - harness/cursor/templates/finish-doc-router.md
+    - loop/WORKFLOW.md
+    - loop/README.md
+  ac_quotes:
+    - "The stale harness/skills/role-command/SKILL.md copy is rewritten; Claude and Codex role-command copies carry equivalent policy markers."
+    - "harness/instructions/main.md describes root classification and test policy; generated AGENTS.md/CLAUDE.md destinations are checked for the same policy markers."
+    - "Templates that create or validate artifacts MUST NOT contain an unqualified executable managed runner example; examples MUST identify hub-only or capability evidence."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:368-379"
+
+context:
+  consumes:
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/instructions/main.md
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/templates/plan.md
+    - harness/cursor/templates/decompose/epic-step.yaml
+    - harness/cursor/templates/decompose/legacy-purge-step.yaml
+    - harness/cursor/templates/implement/epic-step.yaml
+    - harness/cursor/templates/qa/epic-step.yaml
+    - harness/cursor/templates/integration-plan.md
+    - harness/cursor/templates/refactor/epic-step.yaml
+    - harness/cursor/templates/security/epic-step.yaml
+    - harness/cursor/templates/finish-doc-router.md
+    - loop/WORKFLOW.md
+    - loop/README.md
+  plan_refs:
+    - FR-006
+    - FR-007
+    - FR-008
+    - SC-003
+    - SC-004
+    - SC-006
+    - US-003
+    - US-004
+    - plan-T-HUB-080-workflow-capability-instruction-parity.md#stage-4--role-skill-entrypoint-and-template-parity
+  files:
+    - harness/skills/role-command/SKILL.md
+    - harness/claude/skills/role-command/SKILL.md
+    - harness/instructions/main.md
+    - AGENTS.md
+    - CLAUDE.md
+    - harness/cursor/templates/plan.md
+    - harness/cursor/templates/decompose/epic-step.yaml
+    - harness/cursor/templates/decompose/legacy-purge-step.yaml
+    - harness/cursor/templates/implement/epic-step.yaml
+    - harness/cursor/templates/qa/epic-step.yaml
+    - harness/cursor/templates/integration-plan.md
+    - harness/cursor/templates/refactor/epic-step.yaml
+    - harness/cursor/templates/security/epic-step.yaml
+    - harness/cursor/templates/finish-doc-router.md
+    - loop/WORKFLOW.md
+    - loop/README.md
+
+as_built:
+  - "harness/skills/role-command/SKILL.md contains stale generic pytest text; harness/instructions/main.md lacks root classification; templates contain direct unscoped .venv/bin/pytest examples."
+
+delta:
+  - "Bring role-command skills to semantic parity, update harness/instructions/main.md with root classification, regenerate AGENTS.md/CLAUDE.md runtime entrypoints, qualify template examples with hub-only or capability evidence markers, and label hub operator commands in WORKFLOW.md and README.md."
+
+deletes: []
+
+out_of_scope:
+  - "Redesigning runtime-sync header engine beyond semantic policy check."
+  - "Modifying archive/history markdown documents."
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Both role-command skills, entrypoints, and templates report zero unqualified runner action lines in inventory.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'skill or entrypoint or template or operator'"
+  - id: cp2
+    criterion: Runtime sync check and entrypoints contain matching policy markers.
+    verify: "bin/pytest harness/hooks/tests/test_runtime_sync_entrypoints.py -q --tb=line"
+
+verify: []
+tdd: []

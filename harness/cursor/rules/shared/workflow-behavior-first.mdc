@@ -138,7 +138,7 @@ Plan outline / Appetite `~N sNN` = **floor**, не ceiling и **не** пово�
 | harness wire + loop wire | один resolver/SoT, разные call-sites |
 | audit-* хвост | **один** sNN (несколько cp / TM), не s08…s15 audit |
 | docs + Kind I rewrite | один instruction surface pass |
-| TDD / pytest | внутри шага `tdd`/`checkpoints`, не финальный «ещё tests» sNN без нового behavior |
+| Hub TDD / pytest (managed: capability_checks) | внутри шага `tdd`/`checkpoints`, не финальный «ещё tests» sNN без нового behavior |
 
 ### Не сливать
 

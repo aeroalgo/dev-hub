@@ -29,9 +29,9 @@ alwaysApply: false
 
 Для тестов самого dev-hub (hub exception):
 1. Shell **cwd** = корень репо (где `.venv/` и `bin/pytest`)
-2. **Предпочтительно:** `bin/pytest …` (300s встроен в wrapper)
-3. Альтернатива: `timeout -k 10s 300s .venv/bin/pytest …` (или `timeout -k 10s 300s .venv/bin/python -m pytest …`)
-4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` / `timeout 300s` без `-k` / system PATH без внешнего timeout
+2. Hub (dev-hub self-test) предпочтительно: `bin/pytest …` (300s встроен в wrapper)
+3. Hub (dev-hub self-test) альтернатива: `timeout -k 10s 300s .venv/bin/pytest …` (или `timeout -k 10s 300s .venv/bin/python -m pytest …`)
+4. **FORBIDDEN:** голый `.venv/bin/pytest` / `pytest` (hub) / raw runner fallback without capability_checks / `timeout 300s` без `-k` / system PATH без внешнего timeout
 5. Shell `working_directory` = root; не из `app/` / `tests/` / `frontend/`
 
 Для managed-проектов: верификация и запуск тестов производятся строго через stack profile `capability_checks` (`test.targeted`, `test.full`) и execution evidence, без fallback на generic Python/pytest команды. Запрещён безусловный (unconditional) запуск pytest или неявный fallback без проверки capability stack profile.

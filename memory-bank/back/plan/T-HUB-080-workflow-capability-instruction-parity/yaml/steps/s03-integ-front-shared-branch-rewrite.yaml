@@ -1,0 +1,108 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: INTEG, FRONT, and shared workflow rules branch qualification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать инструкции в INTEG (workflow, mainrule-core, _lean gates), FRONT (mainrule-core),
+  shared test-timeout и context-economy-cc. Разделить hub API/self-tests и managed capability_checks,
+  сохранив исключительное parent-only право на выполнение frontend браузерных тестов.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-004
+    - FR-005
+    - SC-002
+    - SC-007
+    - US-001
+    - US-002
+  nouns:
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/claude/rules/context-economy-cc.md
+  layout_paths:
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/claude/rules/context-economy-cc.md
+  ac_quotes:
+    - "INTEG IMPLEMENT and QA, integration core/lean gates, and the HTTP scenario wording MUST distinguish hub pytest HTTP tests from managed capability checks; frontend browser execution remains parent-only."
+    - "FRONT core runner wording MUST carry the same hub-only condition and managed capability reference while retaining the parent-only Vitest/RTL/Playwright authority."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:356-367"
+
+context:
+  consumes:
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/claude/rules/context-economy-cc.md
+  plan_refs:
+    - FR-002
+    - FR-004
+    - FR-005
+    - SC-002
+    - SC-007
+    - US-001
+    - US-002
+    - plan-T-HUB-080-workflow-capability-instruction-parity.md#stage-3--integ-front-shared-and-claude-branch-rewrite
+  files:
+    - harness/cursor/rules/integration_developer/workflow-implement.mdc
+    - harness/cursor/rules/integration_developer/workflow-qa.mdc
+    - harness/cursor/rules/integration_developer/mainrule-core.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+    - harness/cursor/rules/front_developer/mainrule-core.mdc
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - harness/claude/rules/context-economy-cc.md
+
+as_built:
+  - "INTEG, FRONT, shared test-timeout, and Claude context economy contain unqualified pytest runner sentences."
+
+delta:
+  - "Rewrite INTEG, FRONT, shared, and Claude rules to branch between dev-hub self-tests and managed capability declarations, keeping FRONT Playwright/Vitest execution strictly parent-only."
+
+deletes: []
+
+out_of_scope:
+  - "Templates and role skills (s04)."
+  - "Adding test.e2e capability or browser executor code."
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: INTEG, FRONT, shared, and Claude rules report zero unqualified runner action lines in inventory.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k 'integ or front or shared or claude'"
+  - id: cp2
+    criterion: FRONT parent-only boundary is preserved without introducing test.e2e capability.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k test_front_parent_only_boundary"
+
+verify: []
+tdd: []

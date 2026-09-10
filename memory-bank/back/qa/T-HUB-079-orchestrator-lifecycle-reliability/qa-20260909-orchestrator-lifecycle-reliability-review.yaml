@@ -1,0 +1,35 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-079
+plan_id: T-HUB-079-orchestrator-lifecycle-reliability
+epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+date: 2026-09-09
+reviewer: verify-qa
+verdict: fail
+
+scope:
+  - "task: T-HUB-079"
+  - "epic: T-HUB-079-orchestrator-lifecycle-reliability"
+  - "steps: s01–s06"
+  - "files: loop/lifecycle.py, loop/context_loop.py, loop/telemetry.py, harness/hooks/session_resilience.py"
+
+checks:
+  - "full suite green: `bin/pytest -q --tb=line`"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT FAIL"
+
+issues:
+  - "TodoWrite is not intercepted by the phase runner during execution; policy is only validated post-hoc from logs and handle_todowrite_request is not wired to prevent third request side-effects"
+
+blockers:
+  - "Reviewer verify-qa FAIL on AC+ #5 TodoWrite interception"
+
+fix_plan:
+  - "BACK BUGFIX T-HUB-079 wire TodoWrite policy interceptor in phase runner"
+
+limitations:
+  - "Reviewer raised finding regarding runtime phase-runner interception of TodoWrite requests"
+
+suite:
+  - "bin/pytest -q --tb=line"

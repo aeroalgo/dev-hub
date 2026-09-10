@@ -121,16 +121,16 @@ def parse_session_events(raw_log: str, runtime: str) -> list[SessionEvent]:
         stripped = line.strip()
         if not stripped:
             continue
-        if stripped.startswith("SESSION_START"):
+        if "SESSION_START" in stripped:
             session_id = _marker_session_id(stripped) or session_id
             add("session_start", event_session=session_id)
             continue
-        if stripped.startswith("SESSION_END"):
+        if "SESSION_END" in stripped:
             session_id = _marker_session_id(stripped) or session_id
             match = re.search(r"\bexit_code=(-?\d+)", stripped)
             add("session_end", status=match.group(1) if match else None, event_session=session_id)
             continue
-        if stripped.startswith("SESSION_COLLAB_WAIT_TIMEOUT"):
+        if "SESSION_COLLAB_WAIT_TIMEOUT" in stripped:
             add(
                 "error",
                 metadata={"diagnostic": "native_collaboration_wait_timeout"},
@@ -140,9 +140,10 @@ def parse_session_events(raw_log: str, runtime: str) -> list[SessionEvent]:
             obj = json.loads(stripped)
         except json.JSONDecodeError:
             finish, aborted = _text_flags(stripped)
-            if finish or aborted:
+            has_tool = "tool_result" in stripped or "tool_use" in stripped or "command_execution" in stripped
+            if finish or aborted or has_tool:
                 add(
-                    "runtime_text",
+                    "tool_event" if has_tool else "runtime_text",
                     explicit_finish=finish,
                     metadata={"aborted_marker": aborted} if aborted else {},
                 )
@@ -158,6 +159,8 @@ def parse_session_events(raw_log: str, runtime: str) -> list[SessionEvent]:
         item_type = str(item.get("type")) if item and item.get("type") else None
         target = item or source
         finish, aborted = _bounded_text_flags(target)
+        if raw_type.lower() == "result" and (obj.get("subtype") == "success" or (not obj.get("is_error") and obj.get("result") is not None)):
+            finish = True
         status_value = target.get("status") or source.get("status") or obj.get("status")
         status = str(status_value) if status_value is not None else None
         tool_value = target.get("tool") or target.get("name")

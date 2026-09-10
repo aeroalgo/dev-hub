@@ -53,6 +53,7 @@ def test_qa_fail_and_bugfix_done_reopen_current_qa(tmp_path: Path) -> None:
     assert reopened_after_fail["last_event"]["kind"] == "bugfix_done"
 
     qa.write_text("verdict: pass\n", encoding="utf-8")
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", qa)
     passed = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     assert passed["phase"] == "DONE"
     assert passed["reason_code"] == "qa_passed"
@@ -79,6 +80,7 @@ def test_qa_fail_and_bugfix_done_reopen_current_qa(tmp_path: Path) -> None:
 def test_archive_qa_pass_is_not_terminal_after_later_revision(tmp_path: Path) -> None:
     lib = _load_epic_lib()
     qa = _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", qa)
     lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-current.md", "done\n")
     lib._append_event(
@@ -114,7 +116,8 @@ def test_legacy_reflection_artifact_ignored_on_qa_fail(tmp_path: Path) -> None:
 
 def test_bugfix_after_qa_pass_reopens_qa(tmp_path: Path) -> None:
     lib = _load_epic_lib()
-    _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
+    qa = _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", qa)
     lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-late.md", "new fix\n")
     lib._append_event(
@@ -135,6 +138,7 @@ def test_qa_pass_after_bugfix_advances_to_done(tmp_path: Path) -> None:
     """Bugfix after qa_pass reopens QA; a later qa_pass goes DONE."""
     lib = _load_epic_lib()
     qa = _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", qa)
     lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-late.md", "new fix\n")
     lib._append_event(
@@ -149,6 +153,7 @@ def test_qa_pass_after_bugfix_advances_to_done(tmp_path: Path) -> None:
     assert reopened["reason_code"] == "bugfix_reopens_qa"
 
     qa.write_text("verdict: pass\nissues: []\n", encoding="utf-8")
+    assert lib._append_event(tmp_path, "back", "demo", "qa_pass", qa)
     after_qa = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     assert after_qa["phase"] == "DONE"
     assert after_qa["reason_code"] == "qa_passed"
@@ -181,14 +186,12 @@ def test_legacy_reflection_done_event_ignored(tmp_path: Path) -> None:
     assert decision["phase"] == "DONE"
     assert decision["reason_code"] == "qa_passed"
 
-
 def test_same_reconcile_orders_qa_after_bugfix(tmp_path: Path) -> None:
     lib = _load_epic_lib()
     _write(tmp_path, "memory-bank/back/bugfix/demo/bugfix-current.md", "fix\n")
     _write(tmp_path, "memory-bank/back/qa/demo/qa-current.yaml", "verdict: pass\n")
 
     kinds = [kind for kind, _path in lib._declared_artifacts(tmp_path, "back", "demo")]
-
     assert kinds == ["qa_pass"]
     decision = lib.reduce_epic_lifecycle(tmp_path, "back", "demo")
     assert decision["phase"] == "DONE"

@@ -65,7 +65,7 @@ def test_typed_status_lookup():
         reducer.pass_invocation(
             key,
             actor="worker:gate-1",
-            receipt={"schema": "loop-gate-verdict/v1", "verdict": "PASS", "details": "all checks pass"},
+            receipt={"schema": "loop-gate-verdict/v1", "verdict": "PASS", "details": "all checks pass", "epoch": 0},
         )
 
     t = threading.Thread(target=background_worker)
@@ -136,7 +136,7 @@ def test_concurrent_await_gate():
         time.sleep(0.05)
         reducer.start(key, actor="qa-worker")
         time.sleep(0.05)
-        reducer.pass_invocation(key, actor="qa-worker", receipt={"verdict": "PASS"})
+        reducer.pass_invocation(key, actor="qa-worker", receipt={"verdict": "PASS", "epoch": 0})
 
         results = [f.result() for f in futures]
 

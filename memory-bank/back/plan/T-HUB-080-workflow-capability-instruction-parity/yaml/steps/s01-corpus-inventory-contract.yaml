@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: Deterministic active-surface discovery and semantic action classifier inventory test
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Заменить фиксированный 7-файловый список T-HUB-076 s06 на детерминированное обнаружение
+  всего активного корпуса инструкций и семантический классификатор runner-строк.
+  Создать red inventory test, фиксирующий текущие нарушения с точными путями и строками.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-005
+    - SC-007
+    - US-003
+  nouns:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - harness/cursor/rules/**
+    - harness/claude/**
+    - harness/skills/role-command/SKILL.md
+    - harness/instructions/main.md
+    - harness/cursor/templates/**
+    - loop/WORKFLOW.md
+    - loop/README.md
+  layout_paths:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  ac_quotes:
+    - "The inventory discovers all active workflow files and templates rather than relying on the seven-file 076 allowlist; adding a new active workflow file with an ambiguous runner line makes the test fail."
+    - "0 unqualified managed runner action lines in the active workflow corpus."
+    - "Hub test fixtures remain accepted and managed tests-only proof remains rejected."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:325-336"
+
+context:
+  consumes:
+    - harness/cursor/rules/**
+    - harness/claude/**
+    - harness/skills/**
+    - harness/instructions/main.md
+    - harness/cursor/templates/**
+    - loop/WORKFLOW.md
+    - loop/README.md
+  produces:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-005
+    - SC-007
+    - US-003
+    - plan-T-HUB-080-workflow-capability-instruction-parity.md#stage-1--corpus-contract-and-red-inventory-test
+  files:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+
+as_built:
+  - "loop/tests/test_stack_profile_instruction_inventory.py tests a hard-coded 7-file allowlist from T-HUB-076 s06."
+
+delta:
+  - "Replace fixed allowlist with deterministic glob discovery over active workflow/rules/skills/entrypoint/template surfaces, context-aware action classifier, negative/hub fixture acceptance, and exact violation diagnostics."
+
+deletes: []
+
+out_of_scope:
+  - "Rewriting the workflow instruction files themselves (s02-s04)."
+  - "Full test suite execution without targeted nodeid/scope (QA phase)."
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Synthetic negative/positive fixtures distinguish unqualified pytest lines from explicit hub exception and capability_checks.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k test_synthetic_fixtures"
+  - id: cp2
+    criterion: Inventory test discovers all active workflow/rules/templates and reports current red state with exact paths and lines.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k test_corpus_inventory"
+
+verify: []
+tdd: []

@@ -11,7 +11,7 @@ Cursor: `.cursor/rules/front-tests-parent-only.mdc`.
 
 ## Subagent — FORBIDDEN
 
-- Любой запуск `vitest`, `playwright`, `npm/pnpm/yarn test`, e2e в `frontend/`
+- Subagent (только parent): любой запуск `vitest`, `playwright`, `npm/pnpm/yarn test`, e2e в `frontend/`
 - «Быстро один файл» / «проверить green» — тоже запрет
 
 Писать `*.test.*` / `*.spec.*` / e2e-файлы — можно. Запуск — нет.

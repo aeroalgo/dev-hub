@@ -101,7 +101,9 @@ from harness.hooks.epic import (  # noqa: E402
 )
 from loop.mb_load.session import load_session
 from loop.episodes import begin_episode, finalize_episode
+from loop.lifecycle import TodoLifecycleManager, TodoPolicyDecision, TodoWritePolicy
 from loop.prompt_builder import build_prompt_scope, render_prompt_scope
+from loop.telemetry import SessionTelemetryCompanion, append_companion_record
 from harness.hooks.session_resilience import (  # noqa: E402
     COLLABORATION_WAIT_TIMEOUT_REASON,
     analyze_session_log,
@@ -116,100 +118,6 @@ from harness.hooks.session_resilience import (  # noqa: E402
 RUNTIME_REL = Path("epic")
 PROMPT_NAME = "next-prompt.txt"
 
-# Phase model default from .claude/project.env.
-# An explicit CLI --model wins over the phase default. Alias or OmniRoute id OK.
-class TodoPolicyDecision:
-    """Decision and telemetry for a TodoWrite tool request in a phase session."""
-
-    def __init__(
-        self,
-        allowed: bool,
-        action: str,
-        call_count: int,
-        diagnostic: str | None = None,
-        side_effect: bool = False,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        self.allowed = allowed
-        self.action = action
-        self.call_count = call_count
-        self.diagnostic = diagnostic
-        self.side_effect = side_effect
-        self.metadata = dict(metadata or {})
-
-    def __repr__(self) -> str:
-        return (
-            f"TodoPolicyDecision(allowed={self.allowed!r}, action={self.action!r}, "
-            f"call_count={self.call_count!r}, diagnostic={self.diagnostic!r}, "
-            f"side_effect={self.side_effect!r}, metadata={self.metadata!r})"
-        )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, TodoPolicyDecision):
-            return False
-        return (
-            self.allowed == other.allowed
-            and self.action == other.action
-            and self.call_count == other.call_count
-            and self.diagnostic == other.diagnostic
-            and self.side_effect == other.side_effect
-            and self.metadata == other.metadata
-        )
-
-
-class TodoWritePolicy:
-    """Centralized TodoWrite lifecycle policy enforced by the phase runner.
-
-    For IMPLEMENT phase:
-    - 1st call: start/plan (allowed, side_effect=True)
-    - 2nd call: finish/done (allowed, side_effect=True)
-    - 3rd and subsequent: rejected/ignored deterministically as telemetry without side effects.
-    """
-
-    def __init__(self, phase: str = "IMPLEMENT", max_allowed: int = 2) -> None:
-        self.phase = str(phase or "IMPLEMENT").strip().upper()
-        self.max_allowed = max_allowed
-        self.call_count = 0
-        self.history: list[TodoPolicyDecision] = []
-
-    def record_todowrite_request(self, payload: Any = None) -> TodoPolicyDecision:
-        """Evaluate and record a TodoWrite request under the phase policy."""
-        self.call_count += 1
-        if self.phase == "IMPLEMENT" and self.call_count > self.max_allowed:
-            decision = TodoPolicyDecision(
-                allowed=False,
-                action="rejected",
-                call_count=self.call_count,
-                diagnostic="todowrite_limit_exceeded",
-                side_effect=False,
-                metadata={"phase": self.phase, "max_allowed": self.max_allowed, "payload": payload},
-            )
-            self.history.append(decision)
-            return decision
-
-        action = "start" if self.call_count == 1 else "finish"
-        decision = TodoPolicyDecision(
-            allowed=True,
-            action=action,
-            call_count=self.call_count,
-            diagnostic=None,
-            side_effect=True,
-            metadata={"phase": self.phase, "max_allowed": self.max_allowed, "payload": payload},
-        )
-        self.history.append(decision)
-        return decision
-
-    def is_request_allowed(self) -> bool:
-        """Check if a subsequent TodoWrite request would be allowed."""
-        if self.phase == "IMPLEMENT" and self.call_count >= self.max_allowed:
-            return False
-        return True
-
-    def reset(self) -> None:
-        self.call_count = 0
-        self.history.clear()
-
-
 def evaluate_todowrite_request(
     phase: str,
     current_count: int,
@@ -217,26 +125,98 @@ def evaluate_todowrite_request(
     max_allowed: int = 2,
 ) -> TodoPolicyDecision:
     """Pure evaluation of a TodoWrite request given phase and 1-based call count."""
-    ph = str(phase or "IMPLEMENT").strip().upper()
-    if ph == "IMPLEMENT" and current_count > max_allowed:
-        return TodoPolicyDecision(
-            allowed=False,
-            action="rejected",
-            call_count=current_count,
-            diagnostic="todowrite_limit_exceeded",
-            side_effect=False,
-            metadata={"phase": ph, "max_allowed": max_allowed, "payload": payload},
-        )
-
-    action = "start" if current_count <= 1 else "finish"
-    return TodoPolicyDecision(
-        allowed=True,
-        action=action,
-        call_count=current_count,
-        diagnostic=None,
-        side_effect=True,
-        metadata={"phase": ph, "max_allowed": max_allowed, "payload": payload},
+    return TodoLifecycleManager.evaluate_request(
+        phase,
+        current_count,
+        payload=payload,
+        max_allowed=max_allowed,
     )
+
+
+def enforce_phase_todowrite_policy(
+    phase: str,
+    requests: list[dict[str, Any]] | list[Any],
+    *,
+    max_allowed: int = 2,
+    policy: TodoWritePolicy | None = None,
+    apply: Any = None,
+) -> list[TodoPolicyDecision]:
+    """Phase runner enforcement of TodoWrite lifecycle requests."""
+    active_policy = policy or TodoWritePolicy(phase=phase, max_allowed=max_allowed)
+    decisions: list[TodoPolicyDecision] = []
+    for req in requests:
+        decisions.append(
+            handle_todowrite_request(active_policy, payload=req, apply=apply)
+        )
+    return decisions
+
+
+def handle_todowrite_request(
+    policy: TodoWritePolicy,
+    payload: Any = None,
+    apply: Any = None,
+) -> TodoPolicyDecision:
+    """Main-loop hook for enforcing TodoWrite before its side effect runs."""
+    return policy.handle_request(payload=payload, apply=apply)
+
+
+def _validate_todowrite_session(
+    cwd: Path,
+    state: dict[str, Any],
+) -> dict[str, Any] | None:
+    last_session = load_last_session(cwd, track="epic")
+    summary = (last_session or {}).get("event_summary")
+    if not isinstance(summary, dict):
+        return None
+    events = summary.get("todowrite_events")
+    recorded_violations = summary.get("todowrite_policy_violations") or []
+    if not isinstance(events, list) and not recorded_violations:
+        return None
+
+    phase = str(
+        summary.get("todowrite_phase")
+        or state.get("loop_phase")
+        or state.get("phase")
+        or "IMPLEMENT"
+    )
+    policy = TodoLifecycleManager(phase=phase, max_allowed=2)
+    decisions = []
+    for event in events if isinstance(events, list) else []:
+        payload = event.get("payload") if isinstance(event, dict) else event
+        decisions.append(policy.record_todowrite_request(payload=payload))
+    violations = [
+        decision.diagnostic
+        for decision in decisions
+        if not decision.allowed and decision.diagnostic
+    ]
+    violations.extend(
+        str(diagnostic)
+        for diagnostic in recorded_violations
+        if diagnostic and str(diagnostic) not in violations
+    )
+    if not violations:
+        return None
+    diagnostics = sorted(set(violations))
+    return {
+        "ok": False,
+        "halt": True,
+        "diagnostic_code": diagnostics[0],
+        "diagnostic_codes": diagnostics,
+        "reason": "TodoWrite lifecycle policy violation: " + ", ".join(diagnostics),
+        "todowrite_policy": {
+            "phase": policy.phase,
+            "max_allowed": policy.max_allowed,
+            "decisions": [
+                {
+                    "allowed": decision.allowed,
+                    "action": decision.action,
+                    "call_count": decision.call_count,
+                    "diagnostic": decision.diagnostic,
+                }
+                for decision in decisions
+            ],
+        },
+    }
 
 
 LOOP_PHASE_MODEL_ENV: dict[str, str] = {
@@ -407,50 +387,113 @@ def _is_tier0_eligible(diagnostic_code: str, registry_path: str | Path | None = 
 
 
 def _epic_done_stop_result(cwd: str | Path) -> dict[str, Any]:
-    """Complete only when QA pass exists; otherwise halt (never silent DONE)."""
-    gate = epic_complete_allowed(cwd)
-    if gate.get("allowed"):
-        mark_done: dict[str, Any] | None = None
-        try:
-            from roadmap_queue import mark_queue_epic_done
+    """Complete only when QA pass exists; otherwise halt (never silent DONE).
 
-            st = load_epic_state(cwd)
-            epic_ref = str(st.get("armed_epic") or "").strip()
-            role_hint = (
-                str(st.get("armed_role") or st.get("role") or "back").strip().lower()
-                or "back"
-            )
-            if epic_ref:
-                mark_done = mark_queue_epic_done(
-                    cwd,
-                    epic_ref,
-                    role=role_hint,
-                    require_done=False,
-                )
+    With EPIC_CHAIN_ROADMAP=1, mark-done + arm next epic here so prepare/check-after
+    cannot leave the runner in DONE-without-next (shell must not be the only chain owner).
+    """
+    gate = epic_complete_allowed(cwd)
+    if not gate.get("allowed"):
+        return {
+            "ok": False,
+            "complete": False,
+            "halt": True,
+            "reject_epic_done": True,
+            "phase": gate.get("phase"),
+            "reason": gate.get("reason")
+            or "EPIC_DONE запрещён: нет AUDIT/QA pass",
+        }
+
+    from roadmap_queue import epic_chain_roadmap_enabled, mark_queue_epic_done, roadmap_advance
+
+    if epic_chain_roadmap_enabled(cwd):
+        try:
+            adv = roadmap_advance(cwd)
         except Exception as exc:
-            mark_done = {
+            return {
                 "ok": False,
-                "error": "mark_queue_epic_exception",
+                "complete": False,
+                "halt": True,
+                "stop": "NEED_HUMAN: roadmap_advance_exception",
                 "reason": str(exc),
             }
-        out: dict[str, Any] = {
+        if adv.get("armed"):
+            return {
+                "ok": True,
+                "complete": False,
+                "chained": True,
+                "reprepare": True,
+                "reason": f"chained to {adv.get('epic')}",
+                "roadmap_advance": adv,
+            }
+        if adv.get("complete"):
+            return {
+                "ok": False,
+                "complete": True,
+                "stop": "ROADMAP_DONE",
+                "reason": "ROADMAP_DONE",
+                "roadmap_advance": adv,
+            }
+        if adv.get("error") == "queue_yaml_missing" or adv.get("stop") == "NEED_HUMAN: queue_yaml_missing":
+            pass
+        else:
+            return {
+                "ok": False,
+                "complete": False,
+                "halt": True,
+                "stop": adv.get("stop") or "NEED_HUMAN: roadmap_advance_failed",
+                "reason": adv.get("reason") or adv.get("error") or "roadmap_advance failed",
+                "roadmap_advance": adv,
+            }
+
+    mark_done: dict[str, Any] | None = None
+    try:
+        st = load_epic_state(cwd)
+        epic_ref = str(st.get("armed_epic") or "").strip()
+        role_hint = (
+            str(st.get("armed_role") or st.get("role") or "back").strip().lower()
+            or "back"
+        )
+        if epic_ref:
+            mark_done = mark_queue_epic_done(
+                cwd,
+                epic_ref,
+                role=role_hint,
+                require_done=False,
+            )
+    except Exception as exc:
+        mark_done = {
             "ok": False,
-            "complete": True,
-            "reason": "EPIC_DONE",
-            "stop": "EPIC_DONE",
+            "error": "mark_queue_epic_exception",
+            "reason": str(exc),
         }
-        if mark_done is not None:
-            out["mark_done"] = mark_done
-        return out
-    return {
+    out: dict[str, Any] = {
         "ok": False,
-        "complete": False,
-        "halt": True,
-        "reject_epic_done": True,
-        "phase": gate.get("phase"),
-        "reason": gate.get("reason")
-        or "EPIC_DONE запрещён: нет AUDIT/QA pass",
+        "complete": True,
+        "reason": "EPIC_DONE",
+        "stop": "EPIC_DONE",
     }
+    if mark_done is not None:
+        out["mark_done"] = mark_done
+    return out
+
+
+def _follow_epic_done_result(
+    cwd: str | Path,
+    out: dict[str, Any],
+    *,
+    model: str | None = None,
+    runtime: str | None = None,
+    _chain_depth: int = 0,
+) -> dict[str, Any]:
+    """If EPIC_DONE chained to the next epic, continue prepare for that epic."""
+    if out.get("chained") and out.get("reprepare") and _chain_depth < 1:
+        nxt = prepare_session(cwd, model=model, runtime=runtime, _chain_depth=_chain_depth + 1)
+        nxt = dict(nxt)
+        nxt["chained_from_epic_done"] = True
+        nxt["roadmap_advance"] = out.get("roadmap_advance")
+        return nxt
+    return out
 
 
 def mb_paths_for_prompt(cwd: str | Path, load_now: list[str]) -> list[str]:
@@ -837,14 +880,20 @@ def _audit_work_block(_role: str, epic_id: str) -> str:
 """
 
 
-def _qa_work_block(_role: str, epic_id: str) -> str:
-    return f"""## QA canon (HARD) — review, не IMPLEMENT
-1. Прочитай только QA-цепочку текущей команды через entrypoint и `mainrule.mdc`.
-2. Выполняй только проверки и сценарии, определённые выбранным QA workflow.
-3. QA — review текущего epic `{epic_id}`, не IMPLEMENT и не BUGFIX.
-4. При FAIL/blocked используй handoff и artifact-правила выбранного workflow.
-5. На FINISH следуй finish-процедуре текущего workflow.
+def _qa_work_block(_role: str, epic_id: str, *, cwd: Path | None = None, state: dict | None = None) -> str:
+    from loop.qa_outcome import render_qa_outcome_policy, resolve_qa_suite_plan
+
+    plan = resolve_qa_suite_plan(cwd or Path("."), state)
+    policy = render_qa_outcome_policy(plan)
+    return (
+        f"""## QA canon (HARD) — classifier-driven
+1. Прочитай только QA-цепочку выбранного workflow через entrypoint и `mainrule.mdc`.
+2. Ровно один suite-command из classifier ниже. FORBIDDEN: повторные прогоны, смена flags, `python -m pytest`, thrash.
+3. QA — review epic `{epic_id}`: не чини код в этой сессии.
+4. Следуй `next_action` классификатора: bugfix без verify; verify_qa только на all_green после suite.
 """
+        + policy
+    )
 
 
 def _commands_block(command: str) -> str:
@@ -1177,10 +1226,13 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
         )
     elif phase_kind == "qa":
         finish_block = (
-            "\n> После завершения QA → вызови: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`\n"
-            "> Перед FINISH всегда нужен свежий автономный PASS от `verify-qa` текущего QA run. После FAIL/BLOCKED или ошибки запуска verify: spawn `gate-repair` с BLOCKERS + ALLOW WRITE + VERIFY, дождись завершения repair и повтори `verify-qa`; не создавай `qa_pass` и не вызывай FINISH до этого.\n"
-            "> После BUGFIX обязателен новый qa-*.yaml с новым именем и reviewer PASS текущего QA run.\n"
-            "> После valid `verify-qa` PASS shared lifecycle автоматически выполняет `mb-finish qa`; если ответ finish содержит `ok: true`, немедленно заверши текущий turn без новых tools.\n"
+            "\n> QA path (HARD): один suite. Red/mismatch → `qa-*.yaml` fail|blocked + Handoff BUGFIX + "
+            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
+            "FORBIDDEN на red path: verify-qa, gate-repair, повторный suite, правки продукта в QA.\n"
+            "> Green+AC ok → один `verify-qa` (`agent_type: verify-qa`). "
+            "PASS → `mb-finish qa` (DONE). FAIL/BLOCKED → BUGFIX path выше, без repair-loop.\n"
+            "> После BUGFIX runner поднимет новый QA: новый `qa-*.yaml` + (при green) новый verify PASS.\n"
+            "> Если `mb-finish` / auto-finish вернул `ok: true` — немедленно останови turn без новых tools.\n"
         )
     elif phase_kind == "audit":
         finish_block = (
@@ -1229,7 +1281,11 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
     elif phase_kind == "audit":
         phase_work_block = _audit_work_block(scope.role, epic_key)
     elif phase_kind == "qa":
-        phase_work_block = _qa_work_block(scope.role, epic_key)
+        try:
+            st_for_qa = load_epic_state(cwd)
+        except Exception:
+            st_for_qa = {}
+        phase_work_block = _qa_work_block(scope.role, epic_key, cwd=cwd, state=st_for_qa)
     commands_block = _commands_block(scope.command)
     from loop.runtime_adapters.base import SessionContext
     from loop.runtime_adapters.common import get_adapter_for_runtime
@@ -1662,6 +1718,7 @@ def prepare_session(
     *,
     model: str | None = None,
     runtime: str | None = None,
+    _chain_depth: int = 0,
 ) -> dict[str, Any]:
     cwd_p = Path(cwd)
     ac = active_context_path(cwd_p)
@@ -1693,20 +1750,19 @@ def prepare_session(
         return mismatch
 
     # Do not attempt ANALYZE promotion merely because the cursor is currently
-    # armed on ANALYZE.  The explicit finish path owns that transition; a
-    # normal ANALYZE session must be allowed to continue until it produces a
-    # bound verifier receipt.
+    # armed on ANALYZE.  Shared Claude/Codex rule in session_finalize.
+    from loop.session_finalize import should_probe_analyze_promotion
+
     state_before_promote = load_epic_state(cwd_p)
     active_text_before_promote = read_active_context(cwd_p)
-    active_mode_before_promote = re.search(
-        r"(?im)^\s*mode:\s*([^\s]+)", active_text_before_promote
+    promoted = (
+        _promote_if_ready(cwd_p)
+        if should_probe_analyze_promotion(
+            armed_step=state_before_promote.get("armed_step"),
+            active_context_text=active_text_before_promote,
+        )
+        else None
     )
-    skip_analyze_probe = (
-        str(state_before_promote.get("armed_step") or "").upper() == "ANALYZE"
-        and active_mode_before_promote
-        and active_mode_before_promote.group(1).upper() == "ANALYZE"
-    )
-    promoted = None if skip_analyze_probe else _promote_if_ready(cwd_p)
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -1820,7 +1876,7 @@ def prepare_session(
             state["status"] = "complete"
             state["halt_reason"] = None
             save_epic_state(cwd_p, state)
-            return _epic_done_stop_result(cwd_p)
+            return _follow_epic_done_result(cwd_p, _epic_done_stop_result(cwd_p), model=model, runtime=runtime, _chain_depth=_chain_depth)
     if str(state.get("status") or "").lower() == "complete":
         gate = epic_complete_allowed(cwd_p)
         if gate.get("allowed"):
@@ -1891,7 +1947,7 @@ def prepare_session(
                 "cursor_sync": cursor_sync,
             }
         if cursor_sync.get("complete") and cursor_sync.get("arm", {}).get("stop") == "EPIC_DONE":
-            return _epic_done_stop_result(cwd_p)
+            return _follow_epic_done_result(cwd_p, _epic_done_stop_result(cwd_p), model=model, runtime=runtime, _chain_depth=_chain_depth)
         finish_integrity = validate_finish_integrity_with_repair(
             cwd_p,
             decompose=decompose,
@@ -1970,7 +2026,7 @@ def prepare_session(
             if not stop and handoff_indicates_epic_finished(text):
                 stop = "EPIC_DONE"
             if stop == "EPIC_DONE":
-                return _epic_done_stop_result(cwd_p)
+                return _follow_epic_done_result(cwd_p, _epic_done_stop_result(cwd_p), model=model, runtime=runtime, _chain_depth=_chain_depth)
         elif fixed is not None and fixed.get("reject_epic_done"):
             return {
                 "ok": False,
@@ -1980,7 +2036,7 @@ def prepare_session(
                 "phase": fixed.get("phase"),
             }
         elif fixed is None and stop == "EPIC_DONE":
-            return _epic_done_stop_result(cwd_p)
+            return _follow_epic_done_result(cwd_p, _epic_done_stop_result(cwd_p), model=model, runtime=runtime, _chain_depth=_chain_depth)
     stale_verify = clear_stale_verify_no_verdict_handoff(cwd_p)
     if stale_verify.get("cleared"):
         text = read_active_context(cwd_p)
@@ -1989,7 +2045,7 @@ def prepare_session(
             stop = "EPIC_DONE"
     if stop:
         if stop == "EPIC_DONE":
-            return _epic_done_stop_result(cwd_p)
+            return _follow_epic_done_result(cwd_p, _epic_done_stop_result(cwd_p), model=model, runtime=runtime, _chain_depth=_chain_depth)
         if stop.startswith("NEED_HUMAN"):
             return {"ok": False, "complete": True, "reason": stop, "stop": stop}
         # BLOCKED: left by a previous session — strip and retry with FIX INCOMPLETE
@@ -2235,6 +2291,15 @@ def prepare_session(
     )
     st["session_id"] = checkpoint_session
     st["phase_run_id"] = uuid.uuid4().hex
+    from loop.session_finalize import freeze_session_start_identity
+
+    freeze_session_start_identity(
+        st,
+        phase=str(phase_raw) if phase_raw else None,
+        step_id=str(armed_step_now) if armed_step_now else None,
+        session_id=checkpoint_session,
+        phase_run_id=st["phase_run_id"],
+    )
     proj = st.get("projection")
     if isinstance(proj, dict):
         proj["session_id"] = checkpoint_session
@@ -2322,7 +2387,53 @@ def prepare_session(
 
     adapter = get_adapter_for_runtime(effective_runtime)
     loop_phase = resolved.get("loop_phase") or "implement"
-    runtime_ctx = SessionContext(prompt="", phase=loop_phase, model=effective_model, runtime_id=effective_runtime)
+    todowrite_policy = TodoLifecycleManager(phase=loop_phase, max_allowed=2)
+    st["todowrite_policy"] = {
+        "phase": todowrite_policy.phase,
+        "max_allowed": todowrite_policy.max_allowed,
+        "call_count": todowrite_policy.call_count,
+        "decisions": [],
+    }
+    save_epic_state(cwd_p, st)
+
+    def intercept_todowrite_request(payload: Any = None, apply: Any = None) -> TodoPolicyDecision:
+        decisions = enforce_phase_todowrite_policy(
+            loop_phase,
+            [payload],
+            max_allowed=todowrite_policy.max_allowed,
+            policy=todowrite_policy,
+            apply=apply,
+        )
+        decision = decisions[0]
+        st["todowrite_policy"] = {
+            "phase": todowrite_policy.phase,
+            "max_allowed": todowrite_policy.max_allowed,
+            "call_count": todowrite_policy.call_count,
+            "decisions": [
+                {
+                    "allowed": item.allowed,
+                    "action": item.action,
+                    "call_count": item.call_count,
+                    "diagnostic": item.diagnostic,
+                    "side_effect": item.side_effect,
+                }
+                for item in todowrite_policy.history
+            ],
+        }
+        save_epic_state(cwd_p, st)
+        return decision
+
+    runtime_ctx = SessionContext(
+        prompt="",
+        phase=loop_phase,
+        model=effective_model,
+        runtime_id=effective_runtime,
+        extras={
+            "todowrite_policy": todowrite_policy,
+            "todowrite_request_handler": intercept_todowrite_request,
+            "handle_todowrite_request": intercept_todowrite_request,
+        },
+    )
     runtime_extras = adapter.prepare_extras(runtime_ctx)
 
     wf_config = WorkflowConfig.resolve(cwd=cwd_p, hub_root=HUB_ROOT)
@@ -2353,6 +2464,7 @@ def prepare_session(
         "delta_scope": delta_scope,
         "delta_paths": delta_paths,
         "cursor_sync": cursor_sync,
+        "todowrite_policy": st["todowrite_policy"],
     }
     if "dsh_profile" in runtime_extras:
         res_dict["dsh_profile"] = runtime_extras["dsh_profile"]
@@ -2674,6 +2786,11 @@ def check_after(
 
     text = read_active_context(cwd_p)
 
+    state_for_todowrite = load_epic_state(cwd_p)
+    todowrite_validation = _validate_todowrite_session(cwd_p, state_for_todowrite)
+    if todowrite_validation is not None:
+        return _run_tier0_check_after(cwd_p, todowrite_validation)
+
     archived_done = complete_archived_armed_epic(cwd_p)
     if archived_done is not None:
         return archived_done
@@ -2721,42 +2838,24 @@ def check_after(
                     "phase": gate.get("phase"),
                     "reason": gate.get("reason"),
                 }
+        if stop == "EPIC_DONE":
+            st = load_epic_state(cwd_p)
+            st["active"] = False
+            st["status"] = "complete"
+            st["halt_reason"] = None
+            save_epic_state(cwd_p, st)
+            return _epic_done_stop_result(cwd_p)
         st = load_epic_state(cwd_p)
         st["active"] = False
-        st["status"] = "complete" if stop == "EPIC_DONE" else "halted"
-        st["halt_reason"] = None if stop == "EPIC_DONE" else stop
+        st["status"] = "halted"
+        st["halt_reason"] = stop
         save_epic_state(cwd_p, st)
-        mark_done: dict[str, Any] | None = None
-        if stop == "EPIC_DONE":
-            try:
-                from roadmap_queue import mark_queue_epic_done
-
-                epic_ref = str(st.get("armed_epic") or "").strip()
-                role_hint = str(
-                    st.get("armed_role") or st.get("role") or "back"
-                ).strip().lower() or "back"
-                if epic_ref:
-                    mark_done = mark_queue_epic_done(
-                        cwd_p,
-                        epic_ref,
-                        role=role_hint,
-                        require_done=False,
-                    )
-            except Exception as exc:
-                mark_done = {
-                    "ok": False,
-                    "error": "mark_queue_epic_exception",
-                    "reason": str(exc),
-                }
-        out_stop: dict[str, Any] = {
+        return {
             "ok": True,
             "complete": True,
             "stop": stop,
             "reason": stop,
         }
-        if mark_done is not None:
-            out_stop["mark_done"] = mark_done
-        return out_stop
 
     state = load_epic_state(cwd_p)
     armed_step_now = str(state.get("armed_step") or "")
@@ -2916,7 +3015,16 @@ def check_after(
     st["fingerprint_stall_count"] = 0
     st["fingerprint_stall_fingerprint"] = None
     save_epic_state(cwd_p, st)
-    promoted = _promote_if_ready(cwd_p)
+    from loop.session_finalize import should_probe_analyze_promotion
+
+    promoted = (
+        _promote_if_ready(cwd_p)
+        if should_probe_analyze_promotion(
+            armed_step=st.get("armed_step"),
+            active_context_text=text,
+        )
+        else None
+    )
     if promoted is not None and not promoted.get("ok"):
         res = {
             "ok": False,
@@ -3004,6 +3112,108 @@ def check_after(
     return _run_tier0_check_after(cwd_p, res)
 
 
+def _append_terminal_session_companion(
+    cwd: Path,
+    state: dict[str, Any],
+    analysis: dict[str, Any],
+    *,
+    reason: str | None,
+) -> Path:
+    """Persist one machine-readable companion record for a terminal session."""
+    session_id = str(
+        state.get("session_id") or state.get("episode_id") or "session-unknown"
+    ).strip()
+    phase = str(state.get("loop_phase") or state.get("phase") or "").strip()
+    step = str(state.get("armed_step") or "").strip()
+    role = str(state.get("role") or state.get("role_id") or "root").strip()
+    owner = str(state.get("owner") or "orchestrator").strip()
+    raw_epoch = state.get("epoch", state.get("attempt", state.get("retry_count", 0)))
+    if raw_epoch is None:
+        epoch = 0
+    elif isinstance(raw_epoch, bool) or isinstance(raw_epoch, float):
+        raise ValueError(
+            f"invalid companion epoch type {type(raw_epoch).__name__}: {raw_epoch!r}"
+        )
+    elif isinstance(raw_epoch, int):
+        if raw_epoch < 0:
+            raise ValueError(f"invalid companion epoch: {raw_epoch}")
+        epoch = raw_epoch
+    elif isinstance(raw_epoch, str):
+        text_epoch = raw_epoch.strip()
+        if not text_epoch.isdigit():
+            raise ValueError(f"invalid companion epoch: {raw_epoch!r}")
+        epoch = int(text_epoch)
+    else:
+        raise ValueError(f"invalid companion epoch type {type(raw_epoch).__name__}")
+    invocation_id = str(state.get("invocation_id") or "").strip()
+    if not invocation_id:
+        invocation_id = "inv-" + hashlib.sha256(
+            f"{session_id}:{phase}:{step}:{role}:{epoch}".encode("utf-8")
+        ).hexdigest()[:16]
+
+    first_action_taken = bool(analysis.get("first_action_taken"))
+    try:
+        tool_actions_count = int(analysis.get("tool_actions_count") or 0)
+    except (TypeError, ValueError):
+        tool_actions_count = 0
+    if first_action_taken and tool_actions_count <= 0:
+        tool_actions_count = 1
+
+    outcome = str(analysis.get("outcome") or "").strip().lower()
+    terminal_state = (
+        "aborted_before_action"
+        if not first_action_taken
+        else "passed"
+        if not analysis.get("aborted")
+        else outcome
+        if outcome in {"cancelled", "stale", "infrastructure_failure", "aborted_before_action"}
+        else "failed"
+    )
+    event_summary = analysis.get("event_summary")
+    if not isinstance(event_summary, dict):
+        event_summary = {}
+    effective_reason = reason or analysis.get("reason")
+    if not first_action_taken and not effective_reason:
+        effective_reason = "aborted before first action: zero tool actions recorded"
+    now = datetime.now(timezone.utc).timestamp()
+    retry_chain_id = str(state.get("retry_chain_id") or "").strip() or None
+    companion = SessionTelemetryCompanion(
+        invocation_id=invocation_id,
+        session_id=session_id,
+        invocation_key=f"{session_id}:{phase}:{step}:{role}:{epoch}",
+        role=role,
+        step=step,
+        phase=phase,
+        owner=owner,
+        state=terminal_state,
+        terminal_state=terminal_state,
+        terminal_reason=effective_reason,
+        first_action_taken=first_action_taken,
+        first_action_at=now if first_action_taken else None,
+        tool_actions_count=tool_actions_count if first_action_taken else 0,
+        retry_chain_id=retry_chain_id,
+        retry_count=epoch,
+        epoch=epoch,
+        created_at=now,
+        updated_at=now,
+        closed_at=now,
+        duration_sec=0.0,
+        diagnostic_code=str(state.get("gate_diagnostic") or "") or None,
+        metadata={
+            "outcome": analysis.get("outcome"),
+            "abort_kind": analysis.get("abort_kind"),
+            "retryable": bool(analysis.get("retryable")),
+            "todowrite_decisions": analysis.get("todowrite_decisions")
+            or event_summary.get("todowrite_decisions"),
+            "todowrite_policy_violations": analysis.get("todowrite_policy_violations")
+            or event_summary.get("todowrite_policy_violations"),
+        },
+    )
+    telemetry_path = cwd / ".claude" / "runtime" / "epic" / "session-telemetry.jsonl"
+    append_companion_record(telemetry_path, companion)
+    return telemetry_path
+
+
 def record_abort(
     cwd: str | Path,
     *,
@@ -3022,76 +3232,105 @@ def record_abort(
     except RuntimeError:
         dirty = []
 
+    from loop.session_finalize import resolve_session_close_identity
+    from loop.runtime_adapters.base import SessionContext
+    from loop.runtime_adapters.common import get_adapter_for_runtime
+
+    start_phase = str(st.get("loop_phase") or st.get("phase") or "")
+    start_step = str(step_id or "")
+    # Preserve frozen prepare identity across mid-session mb-finish advances.
+    frozen_start = st.get("session_start_identity")
     analysis = analyze_session_log(
         Path(log_path),
         exit_code=exit_code,
         attempt=attempt,
         expected_model=(st.get("model") or None),
         runtime=st.get("runtime") if isinstance(st.get("runtime"), str) else runtime,
+        phase=str(
+            (frozen_start or {}).get("phase")
+            if isinstance(frozen_start, dict)
+            else start_phase
+        )
+        or start_phase,
     )
     runtime_id = (
         st.get("runtime") if isinstance(st.get("runtime"), str) else runtime
     )
     try:
-        from loop.runtime_adapters.base import SessionContext
-        from loop.runtime_adapters.common import get_adapter_for_runtime
         adapter = get_adapter_for_runtime(runtime_id)
         session_ctx = SessionContext(
             prompt="",
-            phase=str(st.get("loop_phase") or st.get("phase") or ""),
+            phase=str(
+                (frozen_start or {}).get("phase")
+                if isinstance(frozen_start, dict)
+                else start_phase
+            )
+            or start_phase,
             model=str(st.get("model") or "") or None,
             runtime_id=runtime_id,
+            step=str(
+                (frozen_start or {}).get("step_id")
+                if isinstance(frozen_start, dict)
+                else start_step
+            )
+            or start_step
+            or None,
+            role=str(st.get("role") or st.get("armed_role") or "") or None,
             extras={"session_id": str(st.get("session_id") or "")},
         )
         post_session = getattr(adapter, "post_session", None)
         if callable(post_session):
             post_session(cwd_p, log_path, session_ctx)
+        resolve_close = getattr(adapter, "resolve_session_close_identity", None)
+        if callable(resolve_close):
+            # Adapter may refine close identity; shared default remains authoritative
+            # unless adapter returns a mapping overlay.
+            _ = resolve_close(st)
     except Exception as exc:
         print(f"runtime session post-processing failed: {exc}", file=sys.stderr)
-    # The agent may have written last_finish_tool, verifier receipts, or gate
-    # diagnostics during the session.  Do not validate terminality against the
-    # pre-session state snapshot.
+    # Reload for finish receipts / gate diagnostics written mid-session, but keep
+    # session_start_identity for record phase/step.
     st = load_epic_state(cwd_p)
-    step_id = st.get("armed_step") or step_id
-    plan_id = st.get("armed_epic") or plan_id
-    resume_from = step_id or resume_from
-    from loop.incidents.trace import append_trace
+    if isinstance(frozen_start, dict) and frozen_start:
+        st["session_start_identity"] = frozen_start
+    close_id = resolve_session_close_identity(
+        st,
+        fallback_step_id=start_step or None,
+        fallback_phase=start_phase or None,
+    )
+    step_id = close_id.record_step_id or step_id
+    plan_id = close_id.record_epic_id or plan_id
+    resume_from = close_id.resume_from or resume_from
+    terminal_abort_state = None
+    state_status = str(st.get("status") or "").strip().lower()
+    outcome_status = str(analysis.get("outcome") or "").strip().lower()
+    if state_status in {"cancelled", "stale", "infrastructure_failure"}:
+        terminal_abort_state = state_status
+    elif outcome_status in {"cancelled", "stale", "infrastructure_failure"}:
+        terminal_abort_state = outcome_status
+    if terminal_abort_state:
+        analysis = dict(analysis)
+        analysis.update(
+            {
+                "outcome": terminal_abort_state,
+                "aborted": True,
+                "retryable": False,
+                "abort_kind": analysis.get("abort_kind") or "fatal",
+                "reason": analysis.get("reason")
+                or f"session terminalized as {terminal_abort_state}",
+                "backoff_sec": 0,
+            }
+        )
     from epic_paths import epic_dir as runtime_epic_dir
-    from loop.runtime.session_events import append_session_events, parse_session_events
+    from loop.session_finalize import commit_session_close
+
     raw_session_log = ""
     try:
         raw_session_log = Path(log_path).read_text(encoding="utf-8", errors="replace")
     except OSError:
         pass
-    phase = str(st.get("loop_phase") or st.get("phase") or "")
-    role = str(st.get("role") or st.get("role_id") or "")
-    append_session_events(
-        runtime_epic_dir(cwd_p),
-        parse_session_events(raw_session_log, runtime_id),
-        session_id=str(st.get("session_id") or ""),
-        step_id=str(step_id or ""),
-        epic_id=str(plan_id or ""),
-        role=role,
-        phase=phase,
-        outcome=analysis.get("outcome"),
-    )
-    append_trace(
-        runtime_epic_dir(cwd_p),
-        phase,
-        session_id=str(st.get("session_id") or ""),
-        step_id=str(step_id or ""),
-        epic_id=str(plan_id or ""),
-        action="session_result",
-        runtime_provider=runtime_id,
-        detail={
-            "runtime": runtime_id,
-            "role": role,
-            "outcome": analysis.get("outcome"),
-            "semantic_status": analysis.get("semantic_status"),
-            "task_complete": analysis.get("task_complete"),
-            "event_summary": analysis.get("event_summary") or {},
-        },
-    )
+    phase = close_id.record_phase
+    role = close_id.record_role
     reason = analysis["reason"]
     retryable = analysis["retryable"]
     kind = analysis["abort_kind"]
@@ -3101,8 +3340,15 @@ def record_abort(
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
             st = load_epic_state(cwd_p)
-            step_id = st.get("armed_step")
-            resume_from = step_id or resume_from
+            if isinstance(frozen_start, dict) and frozen_start:
+                st["session_start_identity"] = frozen_start
+            close_id = resolve_session_close_identity(
+                st,
+                fallback_step_id=start_step or None,
+                fallback_phase=start_phase or None,
+            )
+            step_id = close_id.record_step_id or step_id
+            resume_from = close_id.resume_from or resume_from
     if reason == COLLABORATION_WAIT_TIMEOUT_REASON:
         gate_runtime_repair = True
         st["gate_diagnostic"] = "verify_runtime_collaboration_wait_timeout"
@@ -3136,7 +3382,7 @@ def record_abort(
     # Do not mislabel it as a missing finish receipt and transient-retry the
     # whole parent session (that produced the NEED_HUMAN thrash loop).
     need_human = str(st.get("need_human") or "").strip()
-    if need_human and not analysis["aborted"]:
+    if need_human:
         analysis = dict(analysis)
         analysis.update(
             {
@@ -3190,26 +3436,31 @@ def record_abort(
             retryable = analysis["retryable"]
             kind = analysis["abort_kind"]
     if not analysis["aborted"]:
-        marker = write_last_session(
+        marker = commit_session_close(
             cwd_p,
-            track="epic",
-            status="completed",
-            plan_id=plan_id,
-            step_id=step_id,
-            resume_from=resume_from,
-            dirty=dirty,
-            log_file=str(log_path),
+            identity=close_id,
+            analysis=analysis,
+            runtime_id=runtime_id,
+            log_path=log_path,
             exit_code=exit_code,
-            outcome=analysis["outcome"],
-            retry_count=attempt,
+            attempt=attempt,
+            dirty=dirty,
+            status="completed",
+            reason=None,
+            abort_kind=None,
+            retryable=False,
             resume_dirty=False,
-            runtime=runtime_id,
-            semantic_status=analysis.get("semantic_status"),
-            task_complete=analysis.get("task_complete"),
-            event_summary=analysis.get("event_summary"),
-            role=role,
-            phase=phase,
+            raw_session_log=raw_session_log,
         )
+        companion_state = dict(st)
+        companion_state["epoch"] = int(attempt)
+        companion_state["attempt"] = int(attempt)
+        companion_state["retry_count"] = int(attempt)
+        companion_state["phase"] = close_id.record_phase
+        companion_state["loop_phase"] = close_id.record_phase
+        companion_state["armed_step"] = close_id.record_step_id
+        companion_state["role"] = close_id.record_role or companion_state.get("role")
+        _append_terminal_session_companion(cwd_p, companion_state, analysis, reason=None)
         return {
             "ok": True,
             "retryable": False,
@@ -3219,28 +3470,21 @@ def record_abort(
             "last_session": str(marker),
         }
 
-    marker = write_last_session(
+    marker = commit_session_close(
         cwd_p,
-        track="epic",
+        identity=close_id,
+        analysis=analysis,
+        runtime_id=runtime_id,
+        log_path=log_path,
+        exit_code=exit_code,
+        attempt=attempt,
+        dirty=dirty,
         status="aborted",
         reason=reason,
-        plan_id=plan_id,
-        step_id=step_id,
-        resume_from=resume_from,
-        dirty=dirty,
-        log_file=str(log_path),
-        exit_code=exit_code,
         abort_kind=kind,
         retryable=retryable,
-        outcome=analysis["outcome"],
-        retry_count=attempt,
-        resume_dirty=True,
-        runtime=runtime_id,
-        semantic_status=analysis.get("semantic_status"),
-        task_complete=analysis.get("task_complete"),
-        event_summary=analysis.get("event_summary"),
-        role=role,
-        phase=phase,
+        resume_dirty=retryable and terminal_abort_state is None,
+        raw_session_log=raw_session_log,
     )
     # check-after is intentionally skipped by loop.sh for aborted sessions,
     # but the episode itself must still have a terminal forensic manifest.
@@ -3260,15 +3504,18 @@ def record_abort(
         save_epic_state(cwd_p, st)
     else:
         st["active"] = False
-        st["status"] = "halted"
+        st["status"] = terminal_abort_state or "halted"
         st["halt_reason"] = reason
-        checkpoint = clear_runner_checkpoint(cwd_p)
-        if not checkpoint.get("ok"):
-            st["diagnostic_codes"] = sorted(
-                set(st.get("diagnostic_codes") or [])
-                | {"checkpoint_clear_failed"}
-            )
         save_epic_state(cwd_p, st)
+    companion_state = dict(st)
+    companion_state["epoch"] = int(attempt)
+    companion_state["attempt"] = int(attempt)
+    companion_state["retry_count"] = int(attempt)
+    companion_state["phase"] = close_id.record_phase
+    companion_state["loop_phase"] = close_id.record_phase
+    companion_state["armed_step"] = close_id.record_step_id
+    companion_state["role"] = close_id.record_role or companion_state.get("role")
+    _append_terminal_session_companion(cwd_p, companion_state, analysis, reason=reason)
     return {
         "ok": False,
         "retryable": retryable,

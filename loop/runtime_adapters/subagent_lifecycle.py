@@ -14,13 +14,14 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import threading
 from typing import Any
 
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
 
 
 _AGENT_TYPE_RE = re.compile(
-    r"(?im)^\s*(?:agent_type|subagent_type|role)\s*[:=]\s*([a-z0-9_-]+)"
+    r"(?im)^\s*(?:agent_type|subagent_type)\s*[:=]\s*([a-z0-9_-]+)"
 )
 _AT_AGENT_RE = re.compile(r"@([a-z][a-z0-9_-]+)", re.IGNORECASE)
 _REVIEWER_ALIASES = {"reviewer", "verify-qa"}
@@ -80,10 +81,19 @@ def infer_agent_type(
         agent = normalize_agent_type(match.group(1))
         if agent:
             return agent
-    if re.search(r"(?i)\b(?:BACK\s+)?QA\b|review", prompt or ""):
-        return "verify-qa"
-    if re.search(r"(?i)gate-repair", prompt or ""):
+    prompt_text = prompt or ""
+    if re.search(r"(?i)gate-repair", prompt_text):
         return "gate-repair"
+    if re.search(r"(?im)^\s*BLOCKERS:\s*$", prompt_text) and re.search(
+        r"(?im)^\s*ALLOW\s+WRITE:\s*$", prompt_text
+    ):
+        return "gate-repair"
+    if re.search(r"(?i)\b(?:BACK\s+)?QA\b|\bQA\s+review\b|\breview\b", prompt_text):
+        return "verify-qa"
+    if re.search(r"(?i)verify-bugfix|BUGFIX\s+review", prompt_text):
+        return "verify-bugfix"
+    if re.search(r"(?i)verify-implement|IMPLEMENT\s+review", prompt_text):
+        return "verify-implement"
     return None
 
 
@@ -119,21 +129,62 @@ def _record_agent_key(agent_type: str) -> str:
     return "reviewer" if agent_type in _REVIEWER_ALIASES else agent_type
 
 
+def _verifier_identity_key(
+    cwd: str | Path,
+    session_id: str,
+    completion: SubagentCompletion,
+) -> str:
+    try:
+        from harness.hooks._lib import current_gate_identity
+
+        identity = current_gate_identity(str(cwd), session_id)
+        sid = str(identity.get("session_id") or session_id or "nosession").strip()
+        step = str(identity.get("step") or "").strip()
+        epoch = str(identity.get("phase_epoch") or "").strip()
+        role = str(identity.get("role") or "").strip()
+    except Exception:
+        sid = str(session_id or "nosession").strip()
+        step = ""
+        epoch = ""
+        role = ""
+    agent = _record_agent_key(completion.agent_type)
+    verdict = str(completion.verdict).upper()
+    return f"{sid}:{role}:{step}:{epoch}:{agent}:{verdict}"
+
+
 def _already_processed(cwd: str | Path, session_id: str, completion: SubagentCompletion) -> bool:
     """Prevent the end-of-session fallback from replaying a live completion."""
-    if not session_id or not completion.tool_use_id:
+    if not session_id:
         return False
     try:
         from harness.hooks._lib import load_state, verdict_dedupe_key
 
         state = load_state(session_id, str(cwd))
-        key = verdict_dedupe_key(
+        seen = state.get("verdict_recorded_agents") or []
+        agent_key = _record_agent_key(completion.agent_type)
+
+        if completion.tool_use_id:
+            key_tool = verdict_dedupe_key(
+                session_id,
+                agent_key,
+                tool_use_id=completion.tool_use_id,
+                verdict=completion.verdict,
+            )
+            if key_tool in seen:
+                return True
+
+        key_ident = verdict_dedupe_key(
             session_id,
-            _record_agent_key(completion.agent_type),
-            tool_use_id=completion.tool_use_id,
+            agent_key,
             verdict=completion.verdict,
         )
-        return key in (state.get("verdict_recorded_agents") or [])
+        if key_ident in seen:
+            return True
+
+        if state.get(f"{agent_key}_done") and str(state.get(f"{agent_key}_verdict") or "").upper() == str(completion.verdict).upper():
+            return True
+
+        return False
     except Exception:
         return False
 
@@ -191,6 +242,7 @@ class SubagentLifecycle:
         self.runtime_id = runtime_id
         self._pending: dict[str, tuple[str, str | None]] = {}
         self._completed: set[str] = set()
+        self._lock = threading.Lock()
 
     def _start_and_stop(self, completion: SubagentCompletion) -> LifecycleAction:
         start_payload = {
@@ -246,6 +298,10 @@ class SubagentLifecycle:
 
     def process_item(self, item: dict[str, Any]) -> list[LifecycleAction]:
         """Process one adapter-normalized ``spawn_agent``/``wait`` item."""
+        with self._lock:
+            return self._process_item(item)
+
+    def _process_item(self, item: dict[str, Any]) -> list[LifecycleAction]:
         tool = str(item.get("tool") or "").strip()
         if tool == "spawn_agent":
             prompt = str(item.get("prompt") or "")
@@ -286,11 +342,21 @@ class SubagentLifecycle:
                 thread_id=thread,
                 spawn_tool_use_id=pending[1],
             )
-            dedupe = f"{thread}:{wait_id or ''}:{completion.verdict}"
-            if dedupe in self._completed or _already_processed(self.cwd, self.session_id, completion):
+            identity_key = _verifier_identity_key(self.cwd, self.session_id, completion)
+            thread_dedupe = f"{thread}:{wait_id or ''}:{completion.verdict}"
+            if (
+                identity_key in self._completed
+                or thread_dedupe in self._completed
+                or _already_processed(self.cwd, self.session_id, completion)
+            ):
+                self._pending.pop(thread, None)
                 continue
-            self._completed.add(dedupe)
+            self._completed.add(identity_key)
+            self._completed.add(thread_dedupe)
+            if completion.tool_use_id:
+                self._completed.add(
+                    f"{self.session_id}:{_record_agent_key(completion.agent_type)}:{completion.tool_use_id}"
+                )
             actions.append(self._start_and_stop(completion))
             self._pending.pop(thread, None)
         return actions
-

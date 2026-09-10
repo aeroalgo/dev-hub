@@ -1,0 +1,104 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: BACK mode workflows, mainrule-core, and lean gates branch qualification
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать формулировки в BACK workflow, mainrule-core и _lean gates (implement, task, bugfix, qa).
+  Каждое упоминание runner-команд должно явно разделять dev-hub self-test (bin/pytest) и
+  managed capability execution (capability_checks + typed evidence).
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - SC-002
+    - US-001
+    - US-002
+  nouns:
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-task.mdc
+    - harness/cursor/rules/back_developer/workflow-bugfix.mdc
+    - harness/cursor/rules/back_developer/workflow-qa.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  layout_paths:
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-task.mdc
+    - harness/cursor/rules/back_developer/workflow-bugfix.mdc
+    - harness/cursor/rules/back_developer/workflow-qa.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  ac_quotes:
+    - "BACK IMPLEMENT, BACK TASK, BACK BUGFIX, and BACK QA no longer present .venv/bin/pytest, bin/pytest, or pytest HTTP outcome as an unconditional managed recipe."
+    - "100% of BACK/INTEG mode files that mention tests contain both explicit hub exception and managed capability guidance, or an explicit read-only/negative reason."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:337-355"
+
+context:
+  consumes:
+    - harness/cursor/rules/shared/test-timeout.mdc
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  produces:
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-task.mdc
+    - harness/cursor/rules/back_developer/workflow-bugfix.mdc
+    - harness/cursor/rules/back_developer/workflow-qa.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  plan_refs:
+    - FR-002
+    - FR-003
+    - SC-002
+    - US-001
+    - US-002
+    - plan-T-HUB-080-workflow-capability-instruction-parity.md#stage-2--back-workflow-and-gate-branch-rewrite
+  files:
+    - harness/cursor/rules/back_developer/workflow-implement.mdc
+    - harness/cursor/rules/back_developer/workflow-task.mdc
+    - harness/cursor/rules/back_developer/workflow-bugfix.mdc
+    - harness/cursor/rules/back_developer/workflow-qa.mdc
+    - harness/cursor/rules/back_developer/mainrule-core.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+    - harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+
+as_built:
+  - "BACK mode workflows, mainrule-core, and _lean gates prescribe unqualified pytest commands without distinguishing dev-hub self-tests from managed capability_checks."
+
+delta:
+  - "Rewrite action sentences in BACK implement, task, bugfix, qa, mainrule-core, and _lean gates to state the hub-only runner branch and managed capability_checks/evidence branch."
+
+deletes: []
+
+out_of_scope:
+  - "INTEG and FRONT workflows (s03)."
+  - "Runtime skills and templates (s04)."
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: BACK mode workflows and gates report zero unqualified runner action lines in inventory.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k back"
+  - id: cp2
+    criterion: BACK lean gates and core rules preserve hub timeout contract and managed capability requirements.
+    verify: "bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line"
+
+verify: []
+tdd: []

@@ -138,6 +138,8 @@ def test_legal_state_transitions():
     # Legal transition: created -> running
     record = reducer.start(key, actor=owner)
     assert record.state == InvocationState.RUNNING
+    assert record.first_action_taken is False
+    record = reducer.record_first_action(key, actor=owner)
     assert record.first_action_taken is True
 
     # Read-only status view for parent
@@ -148,7 +150,7 @@ def test_legal_state_transitions():
     assert status.owner == owner
 
     # Legal transition: running -> passed (with receipt)
-    receipt = {"verdict": "PASS", "agent_id": "verify-implement"}
+    receipt = {"verdict": "PASS", "agent_id": "verify-implement", "epoch": 0}
     record = reducer.pass_invocation(key, actor=owner, receipt=receipt)
     assert record.state == InvocationState.PASSED
     assert record.is_terminal is True
@@ -207,7 +209,7 @@ def test_idempotency_and_epoch_isolation():
 
     # Transition to RUNNING then PASSED
     reducer.start(key_epoch0, actor=owner)
-    receipt_data = {"schema": "loop-gate-verdict/v1", "verdict": "PASS"}
+    receipt_data = {"schema": "loop-gate-verdict/v1", "verdict": "PASS", "epoch": 0}
     reducer.pass_invocation(key_epoch0, actor=owner, receipt=receipt_data)
 
     # Subsequent launch calls return the existing completed invocation without spawning or resetting

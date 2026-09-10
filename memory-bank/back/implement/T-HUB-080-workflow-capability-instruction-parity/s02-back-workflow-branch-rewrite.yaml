@@ -1,0 +1,69 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s02 — BACK mode workflows, mainrule-core, and lean gates branch qualification
+  IMPLEMENT
+status: completed
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s02-back-workflow-branch-rewrite.yaml
+skills_used: []
+discovery:
+- Identified all unqualified runner action lines in BACK workflow files, mainrule-core,
+  and _lean gates.
+- Preserved hub-only execution contract with explicit hub exception and timeout contract.
+- Integrated managed project capability_checks declarations and typed evidence requirements.
+gaps:
+  status: none
+done:
+- Rewrote action lines in harness/cursor/rules/back_developer/workflow-implement.mdc
+  to branch between hub targeted bin/pytest and managed capability_checks.
+- Rewrote action lines in harness/cursor/rules/back_developer/workflow-task.mdc with
+  hub and managed branches.
+- Rewrote action lines in harness/cursor/rules/back_developer/workflow-bugfix.mdc
+  with hub and managed branches.
+- Rewrote action lines in harness/cursor/rules/back_developer/workflow-qa.mdc with
+  hub full suite and managed full capability checks.
+- Rewrote action lines in harness/cursor/rules/back_developer/mainrule-core.mdc with
+  hub targeted bin/pytest and managed capability_checks, preserving role core contracts.
+- Rewrote action lines in harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+  with hub and managed branches.
+- Rewrote action lines in harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+  with hub and managed branches.
+- Rewrote action lines in harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+  with hub and managed branches.
+- Rewrote action lines in harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+  with hub and managed branches.
+- Updated loop/tests/test_stack_profile_instruction_inventory.py negative pattern
+  for abort failure markers.
+files:
+- harness/cursor/rules/back_developer/workflow-implement.mdc
+- harness/cursor/rules/back_developer/workflow-task.mdc
+- harness/cursor/rules/back_developer/workflow-bugfix.mdc
+- harness/cursor/rules/back_developer/workflow-qa.mdc
+- harness/cursor/rules/back_developer/mainrule-core.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc
+- harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc
+- loop/tests/test_stack_profile_instruction_inventory.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line
+  -k back`'
+- '`bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line`'
+integration_check:
+- bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k
+  back -> PASS
+- bin/pytest harness/hooks/tests/test_role_core_contract.py -q --tb=line -> PASS
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: BACK mode workflows and gates report zero unqualified runner action lines
+    in inventory.
+  status: done
+- id: cp2
+  criterion: BACK lean gates and core rules preserve hub timeout contract and managed
+    capability requirements.
+  status: done

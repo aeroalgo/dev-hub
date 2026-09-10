@@ -1,0 +1,38 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s03 — INTEG, FRONT, and shared workflow rules branch qualification IMPLEMENT
+status: in_progress
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/yaml/steps/s03-integ-front-shared-branch-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- harness/cursor/rules/integration_developer/workflow-implement.mdc
+- harness/cursor/rules/integration_developer/workflow-qa.mdc
+- harness/cursor/rules/integration_developer/mainrule-core.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc
+- harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc
+- harness/cursor/rules/front_developer/mainrule-core.mdc
+- harness/cursor/rules/shared/test-timeout.mdc
+- harness/claude/rules/context-economy-cc.md
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: INTEG, FRONT, shared, and Claude rules report zero unqualified runner
+    action lines in inventory.
+  status: pending
+- id: cp2
+  criterion: FRONT parent-only boundary is preserved without introducing test.e2e
+    capability.
+  status: pending
+resume_from: cp1

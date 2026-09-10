@@ -1,11 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-079
-  epic_id: T-HUB-079-orchestrator-lifecycle-reliability
-  plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
-  deps: []
-  batch: claude-session-audit-20260907
 - id: T-HUB-080
   epic_id: T-HUB-080-workflow-capability-instruction-parity
   plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
@@ -362,6 +357,10 @@ done:
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
   batch: workflow-read-chain-20260907
+- id: T-HUB-079
+  epic_id: T-HUB-079-orchestrator-lifecycle-reliability
+  plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
+  batch: claude-session-audit-20260907
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

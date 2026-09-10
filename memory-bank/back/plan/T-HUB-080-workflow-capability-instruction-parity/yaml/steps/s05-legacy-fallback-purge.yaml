@@ -1,0 +1,438 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-080-workflow-capability-instruction-parity
+title: s05 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт
+  удалены или переписаны; Kind I instructions переписаны; suite green без restore legacy.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - SC-005
+    - SC-006
+    - SC-007
+    - SC-008
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+  nouns:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+    - sunset_inventory
+    - grep_control
+    - harness/**
+    - loop/**
+  layout_paths:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+  ac_quotes:
+    - "0 unqualified managed runner action lines in the active workflow corpus."
+    - "Full hub suite is green after instruction rewrites."
+    - "No action sentence in an active managed-capable workflow can be interpreted as 'run pytest' without a hub-only marker."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:267-322"
+    - "memory-bank/back/plan/T-HUB-080-workflow-capability-instruction-parity/md/plan.md:380-392"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-009
+    - FR-010
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - SC-005
+    - SC-006
+    - SC-007
+    - SC-008
+    - US-001
+    - US-002
+    - US-003
+    - US-004
+    - plan-T-HUB-080-workflow-capability-instruction-parity.md#replacement--sunset
+  files:
+    - loop/tests/test_stack_profile_instruction_inventory.py
+
+as_built:
+  - "All instruction surfaces across BACK, INTEG, FRONT, shared, skills, entrypoints, and templates have been branch-qualified across s01-s04."
+
+delta:
+  - "Perform final cutover sunset inventory scan, verify zero obsolete test cases or stale instruction patterns, confirm 076 evidence fixtures, and verify suite green."
+
+sunset_inventory:
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_has_no_generic_managed_test_runner
+    kind: A
+    replacement: Corpus discovery + action-context semantic inventory with exact stale-line diagnostics
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: fixed 7-file allowlist test deleted or replaced by glob discovery
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_retains_explicit_hub_exception
+    kind: A
+    replacement: Discovered hub exception assertions over all relevant mode/core/template surfaces
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: fixed 4-file allowlist test replaced by discovered assertions
+  - symbol: loop/tests/test_stack_profile_instruction_inventory.py::test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+    kind: A
+    replacement: Full Kind I scan plus existing 076 hub/managed validator tests
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: partial symbol checks replaced by complete inventory verification
+  - symbol: Obsolete assertions that treat managed presence as sufficient while allowing an unqualified action line
+    kind: A
+    replacement: Assertions on branch semantics and no generic managed authority
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: zero obsolete presence-only assertions
+  - symbol: n/a — this epic does not replace a compose service, Dockerfile CMD, deploy process, or product CLI
+    kind: B
+    replacement: n/a
+    policy: delete in-epic
+    rg_scope: n/a
+    expect: greenfield B (no deploy entrypoints replaced)
+  - symbol: Mixed workflow sentence that silently defaults managed verification to bin/pytest / .venv/bin/pytest
+    kind: C
+    replacement: Explicit managed capability_checks + typed evidence branch; missing branch is inventory failure
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/ harness/claude/rules/
+    expect: zero fallback/default runner sentences in active workflows
+  - symbol: pytest HTTP outcome or raw tests prose presented without hub scope
+    kind: C
+    replacement: Hub-only scenario label or managed evidence contract; no command fallback
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/
+    expect: zero unqualified HTTP scenario runner lines
+  - symbol: Python tests in runtime entrypoint text without root classification
+    kind: C
+    replacement: dev-hub self-tests versus managed project capability checks
+    policy: delete in-epic
+    rg_scope: harness/instructions/main.md AGENTS.md CLAUDE.md
+    expect: zero unclassified runner sentences in entrypoints
+  - symbol: Generated-header bypass treated as proof that a runtime destination matches source semantics
+    kind: C
+    replacement: Required-marker semantic check over source and destination; preserve overlay behavior but fail stale policy
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: zero diverging header-only acceptance
+  - symbol: harness/cursor/rules/back_developer/workflow-implement.mdc:39 direct green (bin/pytest)
+    kind: I
+    replacement: hub-only branch plus managed capability/evidence branch
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/workflow-task.mdc:17 direct .venv/bin/pytest
+    kind: I
+    replacement: Branch-qualified targeted hub test versus test.targeted capability
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/workflow-bugfix.mdc:13 direct regression .venv/bin/pytest
+    kind: I
+    replacement: Branch-qualified reproduction/regression policy
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/workflow-qa.mdc:20 unconditional full bin/pytest
+    kind: I
+    replacement: Hub full suite row and managed full capability row
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/mainrule-core.mdc:12,20-26 any generic runner sentence
+    kind: I
+    replacement: Keep hub exception, attach managed branch to every action context
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/isolation_rules/_lean/implement.mdc:24
+    kind: I
+    replacement: hub targeted bin/pytest or managed capability_checks
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/isolation_rules/_lean/task.mdc:14
+    kind: I
+    replacement: Same branch contract for ad-hoc tasks
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/isolation_rules/_lean/bugfix.mdc:16
+    kind: I
+    replacement: Same branch contract for regression tests
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/back_developer/isolation_rules/_lean/qa.mdc:35,41 generic pytest coverage wording
+    kind: I
+    replacement: Hub-only coverage runner or managed capability coverage evidence
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/back_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/workflow-implement.mdc:29,33 direct targeted pytest / HTTP outcome
+    kind: I
+    replacement: Hub API scenario versus managed capability declaration; Playwright remains parent-only
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/workflow-qa.mdc:12 unconditional full hub pytest
+    kind: I
+    replacement: Hub full suite and managed full capability alternatives
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/mainrule-core.mdc:15,21-24,36 mixed pytest scenario text
+    kind: I
+    replacement: Branch-qualified hub API test and managed capability wording
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/isolation_rules/_lean/implement.mdc:23-24
+    kind: I
+    replacement: Keep explicit hub/managed alternatives and remove bare HTTP pytest action
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/isolation_rules/_lean/bugfix.mdc:13
+    kind: I
+    replacement: Hub HTTP scenario versus managed evidence
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/integration_developer/isolation_rules/_lean/qa.mdc:15
+    kind: I
+    replacement: Hub full suite versus managed full capability checks
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/integration_developer/isolation_rules/_lean/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/front_developer/mainrule-core.mdc:9 generic pytest runner
+    kind: I
+    replacement: Explicit hub-only note plus managed capability reference; preserve parent-only frontend tests
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/front_developer/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/rules/shared/test-timeout.mdc examples only where scope is ambiguous
+    kind: I
+    replacement: Keep canonical examples but label hub-only and managed branches unambiguously
+    policy: delete in-epic
+    rg_scope: harness/cursor/rules/shared/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/claude/rules/context-economy-cc.md:55 generic .venv/bin/pytest anti-bloat recipe
+    kind: I
+    replacement: Hub-only command or managed capability evidence wording
+    policy: delete in-epic
+    rg_scope: harness/claude/rules/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/skills/role-command/SKILL.md:10 stale generic pytest text
+    kind: I
+    replacement: Runtime-neutral hub/managed branch matching Claude role skill
+    policy: delete in-epic
+    rg_scope: harness/skills/role-command/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/claude/skills/role-command/SKILL.md:10 parity drift if wording differs after rewrite
+    kind: I
+    replacement: Same semantic policy with Claude-specific tool mechanics retained
+    policy: delete in-epic
+    rg_scope: harness/claude/skills/role-command/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/instructions/main.md:41 unqualified Python tests sentence
+    kind: I
+    replacement: Explicit dev-hub self-test versus managed capability statement
+    policy: delete in-epic
+    rg_scope: harness/instructions/
+    expect: zero unqualified pytest action lines
+  - symbol: harness/cursor/templates/* direct examples lacking scope
+    kind: I
+    replacement: Scoped hub examples and capability/evidence managed examples
+    policy: delete in-epic
+    rg_scope: harness/cursor/templates/
+    expect: zero unqualified pytest action lines
+  - symbol: loop/WORKFLOW.md and loop/README.md direct test commands without dev-hub self-test label
+    kind: I
+    replacement: Preserve operator commands with explicit hub scope
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero unqualified pytest action lines
+
+deletes:
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_has_no_generic_managed_test_runner"
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_instruction_inventory_retains_explicit_hub_exception"
+  - "loop/tests/test_stack_profile_instruction_inventory.py::test_sunset_a_b_c_i_scans_have_no_live_legacy_authority"
+  - "unqualified bin/pytest / .venv/bin/pytest action patterns in active workflow rules"
+  - "unqualified runner examples in scaffold templates"
+
+out_of_scope: []
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: test_instruction_inventory_has_no_generic_managed_test_runner
+    command: 'rg -n "def test_instruction_inventory_has_no_generic_managed_test_runner" loop/tests/ || true'
+    expect: no output
+  - id: inv-a-02
+    kind: A
+    symbol: test_instruction_inventory_retains_explicit_hub_exception
+    command: 'rg -n "def test_instruction_inventory_retains_explicit_hub_exception" loop/tests/ || true'
+    expect: no output
+  - id: inv-a-03
+    kind: A
+    symbol: test_sunset_a_b_c_i_scans_have_no_live_legacy_authority
+    command: 'rg -n "def test_sunset_a_b_c_i_scans_have_no_live_legacy_authority" loop/tests/ || true'
+    expect: no output
+  - id: inv-a-04
+    kind: A
+    symbol: obsolete presence-only assertions
+    command: 'rg -n "assert.*len\(active_files\)" loop/tests/test_stack_profile_instruction_inventory.py || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: entrypoints deploy check
+    command: 'true'
+    expect: n/a
+  - id: inv-c-01
+    kind: C
+    symbol: silent presence-only allowlist
+    command: 'rg -n "ALLOWED_ACTIVE_FILES\s*=" loop/tests/ || true'
+    expect: no output
+  - id: inv-c-02
+    kind: C
+    symbol: silent default managed verification
+    command: 'rg -n "default.*(bin/pytest|\.venv/bin/pytest)" harness/cursor/rules/ harness/claude/rules/ || true'
+    expect: no output
+  - id: inv-c-03
+    kind: C
+    symbol: unqualified HTTP scenario
+    command: 'rg -n "pytest HTTP outcome" harness/cursor/rules/integration_developer/ || true'
+    expect: no output
+  - id: inv-c-04
+    kind: C
+    symbol: unclassified entrypoint tests
+    command: 'rg -n "Python tests.*из корня" harness/instructions/main.md AGENTS.md CLAUDE.md || true'
+    expect: no output
+  - id: inv-c-05
+    kind: C
+    symbol: generated-header bypass
+    command: 'rg -n "def test_entrypoints_and_templates_have_semantic_destination_parity" loop/tests/ || true'
+    expect: test present and passing
+  - id: inv-i-01
+    kind: I
+    symbol: unqualified pytest action patterns in BACK implement
+    command: 'rg -n "green \(bin/pytest\)" harness/cursor/rules/back_developer/ || true'
+    expect: no output
+  - id: inv-i-02
+    kind: I
+    symbol: unqualified pytest action patterns in BACK task
+    command: 'rg -n "red → green: \.venv/bin/pytest" harness/cursor/rules/back_developer/ || true'
+    expect: no output
+  - id: inv-i-03
+    kind: I
+    symbol: unqualified pytest action patterns in BACK bugfix
+    command: 'rg -n "regression red → fix → green \(\.venv/bin/pytest\)" harness/cursor/rules/back_developer/ || true'
+    expect: no output
+  - id: inv-i-04
+    kind: I
+    symbol: unqualified pytest action patterns in BACK qa
+    command: 'rg -n "Full pytest \.\.\. bin/pytest" harness/cursor/rules/back_developer/ || true'
+    expect: no output
+  - id: inv-i-05
+    kind: I
+    symbol: unqualified pytest action patterns in BACK core
+    command: 'rg -n "\.venv/bin/pytest" harness/cursor/rules/back_developer/mainrule-core.mdc || true'
+    expect: no output without hub condition
+  - id: inv-i-06
+    kind: I
+    symbol: unqualified pytest action patterns in BACK lean gates
+    command: 'rg -n "\.venv/bin/pytest" harness/cursor/rules/back_developer/isolation_rules/_lean/ || true'
+    expect: no output without hub condition
+  - id: inv-i-07
+    kind: I
+    symbol: unqualified pytest action patterns in INTEG implement
+    command: 'rg -n "targeted \.venv/bin/pytest" harness/cursor/rules/integration_developer/ || true'
+    expect: no output
+  - id: inv-i-08
+    kind: I
+    symbol: unqualified pytest action patterns in INTEG qa
+    command: 'rg -n "full bin/pytest" harness/cursor/rules/integration_developer/ || true'
+    expect: no output without hub/managed split
+  - id: inv-i-09
+    kind: I
+    symbol: unqualified pytest action patterns in INTEG core/gates
+    command: 'rg -n "\.venv/bin/pytest" harness/cursor/rules/integration_developer/mainrule-core.mdc harness/cursor/rules/integration_developer/isolation_rules/_lean/ || true'
+    expect: no output without hub condition
+  - id: inv-i-10
+    kind: I
+    symbol: unqualified pytest action patterns in FRONT core
+    command: 'rg -n "\.venv/bin/pytest" harness/cursor/rules/front_developer/mainrule-core.mdc || true'
+    expect: no output without hub condition
+  - id: inv-i-11
+    kind: I
+    symbol: ambiguous test timeout examples
+    command: 'rg -n "pytest \.\.\." harness/cursor/rules/shared/test-timeout.mdc || true'
+    expect: unambiguous branch labels only
+  - id: inv-i-12
+    kind: I
+    symbol: generic context economy recipe
+    command: 'rg -n "\.venv/bin/pytest" harness/claude/rules/context-economy-cc.md || true'
+    expect: no output without hub/managed wording
+  - id: inv-i-13
+    kind: I
+    symbol: stale role-command skills
+    command: 'rg -n "pytest" harness/skills/role-command/SKILL.md harness/claude/skills/role-command/SKILL.md || true'
+    expect: matching branch-qualified text only
+  - id: inv-i-14
+    kind: I
+    symbol: unqualified template runner examples
+    command: 'rg -n "verify: \"\.venv/bin/pytest" harness/cursor/templates/ || true'
+    expect: no output without explicit scope
+  - id: inv-i-15
+    kind: I
+    symbol: operator docs direct commands
+    command: 'rg -n "bin/pytest" loop/WORKFLOW.md loop/README.md || true'
+    expect: labeled as dev-hub self-tests only
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — 0 callers of stale allowlist inventory functions; rewritten tests pass on new discovery contract.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k test_synthetic_fixtures"
+  - id: cp2
+    criterion: Kind B — entrypoint inventory n/a (no runtime deploy entrypoint change).
+    verify: "true"
+  - id: cp3
+    criterion: Kind C — anti-fallback rg zero silent presence-only or diverging header acceptance.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line -k test_corpus_inventory"
+  - id: cp4
+    criterion: Kind I — 0 unqualified runner action lines across all active workflow, gate, core, skill, template, and operator surfaces.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py -q --tb=line"
+  - id: cp5
+    criterion: 076 hub and managed evidence verification fixtures remain accepted/rejected as designed.
+    verify: "bin/pytest harness/hooks/tests/test_epic_yaml_capability_evidence.py harness/hooks/tests/test_tests_format_managed_capabilities.py -q --tb=line"
+  - id: cp6
+    criterion: Targeted and epic regression suite green after all instruction parity edits.
+    verify: "bin/pytest loop/tests/test_stack_profile_instruction_inventory.py harness/hooks/tests/test_role_core_contract.py -q --tb=line"
+
+verify: []
+tdd: []

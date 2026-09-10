@@ -41,6 +41,7 @@ from loop.mb_finish.transaction import (
 )
 from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.state import QaAfterBugfix
+from loop.qa_outcome import extract_changed_paths, suite_plan_after_changes
 
 
 def finish_handoff(
@@ -588,6 +589,8 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     st["status"] = "armed"
     st["halt_reason"] = None
     qa_dir = resolve_mb_root(cwd) / role_dir / "qa" / epic_id
+    changed_paths = extract_changed_paths(bugfix_art.read_text(encoding="utf-8", errors="replace"))
+    suite_plan = suite_plan_after_changes(changed_paths, epic_id=epic_id)
     st["qa_after_bugfix"] = QaAfterBugfix(
         epic_id=epic_id,
         phase_run_id=state.get("phase_run_id") or state.get("session_id") or os.environ.get("EPIC_RUNNER_SESSION_ID"),
@@ -596,6 +599,9 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             for path in sorted(qa_dir.glob("*.yaml"))
             if path.name == "qa.yaml" or path.name.startswith("qa-")
         ],
+        suite_scope=suite_plan.suite_scope,
+        suite_command=suite_plan.suite_command,
+        changed_paths=list(suite_plan.changed_paths),
     ).model_dump()
     save_epic_state(cwd, st)
 
