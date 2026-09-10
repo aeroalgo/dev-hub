@@ -1,0 +1,88 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s02 — Atomic prepare_session freeze + spawn-gate mirror and Claude pretool bind
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Сделать инициализацию session identity в prepare_session атомарной (bind session_id + freeze session_start_identity
+  + mirror bind_spawn_gate), а в Claude PreToolUse (agent-pretool.py) объединить mark_in_flight с bind_spawn_gate(SoT)
+  без race condition.
+
+plan_contract:
+  fr_ids:
+    - FR-002
+    - FR-003
+    - FR-005
+    - SC-006
+    - US-007
+  nouns:
+    - loop/session_finalize.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+    - prepare_session
+    - bind_spawn_gate
+    - mark_in_flight
+    - spawn-gate
+  layout_paths:
+    - loop/session_finalize.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+    - loop/tests/test_prepare_session_atomic_identity.py
+  ac_quotes:
+    - "US-007: Как runner, freeze+mirror spawn-gate атомарны на prepare."
+    - "SC-006: prepare leaves spawn-gate mirror == SoT"
+    - "FR-002: prepare_session атомарно: bind session_id + freeze session_start_identity + bind_spawn_gate (mirror)."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:105-185"
+
+context:
+  consumes:
+    - loop/gate_identity.py
+    - loop/session_finalize.py
+    - harness/hooks/_lib.py
+  produces:
+    - harness/hooks/agent-pretool.py
+    - loop/tests/test_prepare_session_atomic_identity.py
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#user-stories
+    - plan.md#qa-consumes
+  files:
+    - loop/session_finalize.py
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/_lib.py
+    - loop/tests/test_prepare_session_atomic_identity.py
+
+as_built:
+  - "prepare_session в loop/session_finalize.py биндит session_id и сохраняет session_start_identity"
+  - "harness/hooks/agent-pretool.py вызывает mark_in_flight и sync_gate_identity"
+
+delta:
+  - "В prepare_session атомарно вызывать GateIdentity.freeze и зеркалировать bind_spawn_gate в state"
+  - "В harness/hooks/agent-pretool.py связать mark_in_flight с GateIdentity.bind_spawn_gate(state)"
+  - "Добавить тесты на атомарный prepare и mirror spawn-gate (TM-007)"
+
+deletes: []
+
+out_of_scope:
+  - "Codex spawn rewrite -> s04"
+  - "Stop hooks -> s03, s05"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "prepare_session гарантирует идентичность spawn-gate gate_identity и session_start_identity"
+    verify: "bin/pytest loop/tests/test_prepare_session_atomic_identity.py -k test_prepare_mirrors_spawn_gate -q"
+  - id: cp2
+    criterion: "agent-pretool атомарно обновляет in_flight и mirror spawn-gate из SoT"
+    verify: "bin/pytest loop/tests/test_prepare_session_atomic_identity.py -k test_pretool_binds_spawn_gate_sot -q"
+
+verify:
+  - "bin/pytest loop/tests/test_prepare_session_atomic_identity.py -q"
+tdd: []

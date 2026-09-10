@@ -27,6 +27,7 @@ _AT_AGENT_RE = re.compile(r"@([a-z][a-z0-9_-]+)", re.IGNORECASE)
 _REVIEWER_ALIASES = {"reviewer", "verify-qa"}
 _IMPLEMENT_ALIASES = {"verify", "verify-implement"}
 _BUGFIX_ALIASES = {"verify-bugfix"}
+_ANALYZE_ALIASES = {"analyze-verify"}
 _STEP_ID_RE = re.compile(r"^[sera]\d{2}$", re.IGNORECASE)
 
 
@@ -225,17 +226,22 @@ def gate_atomic_finish(
     verdict: str,
     session_id: str,
 ) -> dict[str, Any] | None:
-    """Atomically mb-finish after a valid gate PASS (IMPLEMENT / BUGFIX / QA).
+    """Atomically mb-finish after a valid gate PASS (IMPLEMENT / BUGFIX / QA / ANALYZE).
 
     Shared by Claude SubagentStop and Codex SubagentLifecycle. Artifact must
     already be on disk before verify is spawned; verify PASS is the finish
     boundary. FAIL / demoted PASS does not finish.
+
+    AUDIT has no verify_agent — finish is parent-driven via ``mb-finish audit``;
+    prompts enforce stop-after ``ok: true`` (no subagent PASS trigger).
     """
     _ = session_id
     norm = str(agent_type or "").strip().lower()
     if str(verdict).upper() != "PASS":
         return None
-    if norm not in _REVIEWER_ALIASES | _IMPLEMENT_ALIASES | _BUGFIX_ALIASES:
+    if norm not in (
+        _REVIEWER_ALIASES | _IMPLEMENT_ALIASES | _BUGFIX_ALIASES | _ANALYZE_ALIASES
+    ):
         return None
 
     try:
@@ -259,6 +265,32 @@ def gate_atomic_finish(
                     phase="QA",
                     step_id="QA",
                     done_summary="verify-qa PASS; QA finished by shared gate lifecycle",
+                    cwd=str(cwd),
+                )
+            )
+            return _result_dump(result)
+
+        if norm in _ANALYZE_ALIASES:
+            phase = str(state.get("phase") or state.get("armed_step") or "").upper()
+            if phase != "ANALYZE":
+                return None
+            if _finish_tool_matches(state, prefix="mb-finish analyze"):
+                return {"ok": True, "already_finished": True}
+            if str(state.get("last_verify_verdict") or "").upper() != "PASS":
+                return {
+                    "ok": False,
+                    "diagnostic_codes": ["verify_pass_missing"],
+                    "error": "analyze-verify PASS required before auto analyze finish",
+                }
+            from loop.mb_finish.impl import finish_analyze
+
+            result = finish_analyze(
+                MbFinishRequest(
+                    phase="ANALYZE",
+                    step_id="ANALYZE",
+                    done_summary=(
+                        "analyze-verify PASS; ANALYZE finished by shared gate lifecycle"
+                    ),
                     cwd=str(cwd),
                 )
             )
@@ -322,6 +354,8 @@ def gate_atomic_finish(
             code = "auto_implement_finish_failed"
         elif norm in _BUGFIX_ALIASES:
             code = "auto_bugfix_finish_failed"
+        elif norm in _ANALYZE_ALIASES:
+            code = "auto_analyze_finish_failed"
         return {"ok": False, "diagnostic_codes": [code], "error": str(exc)}
 
 

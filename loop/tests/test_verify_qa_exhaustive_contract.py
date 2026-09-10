@@ -26,9 +26,10 @@ def test_verify_qa_anti_ratchet_blocker_eligibility():
     assert "Ineligible (FORBIDDEN в `## BLOCKERS`" in text
     assert "Style / naming / one-letter locals" in text
     assert "Unrequested comments" in text
-    assert "нельзя провалить новой более строгой интерпретацией" in text
     assert "ok (ineligible:" in text
-    assert "Frozen QA checklist" in text or "checklist_sha256" in text
+    assert "suite_red" in text
+    assert "prior_only" in text
+    assert "checklist_sha256" in text or "Frozen QA checklist" in text
 
 
 def test_allow_read_max_elevated_for_verify_qa():

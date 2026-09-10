@@ -1,0 +1,37 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s01 — s01 — GateIdentity SoT API core (freeze, expected, inject_text, assert_fence,
+  bind_fence) IMPLEMENT
+status: in_progress
+date: '2026-09-10'
+decompose_ref: memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/yaml/steps/s01-gate-identity-sot-api.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done: []
+files:
+- loop/gate_identity.py
+- loop/session_finalize.py
+- loop/tests/test_gate_identity_sot.py
+deletes: []
+tests: []
+integration_check: []
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: GateIdentity.freeze(state) записывает session_start_identity в state;
+    expected(state) возвращает freeze identity при любом armed_step
+  status: pending
+- id: cp2
+  criterion: GateIdentity.assert_fence(strict) падает при расхождении полей; bind_fence(transport_bind)
+    перезаписывает поля из SoT
+  status: pending
+- id: cp3
+  criterion: inject_text(SoT) генерирует formatted markdown/xml block GATE_IDENTITY
+    для injection
+  status: pending
+resume_from: cp1

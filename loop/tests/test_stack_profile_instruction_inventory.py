@@ -516,7 +516,7 @@ def test_templates_inventory():
         },
         "harness/cursor/templates/qa/epic-step.yaml": {
             "schema": "epic-qa/v1",
-            "required_keys": ["schema", "role", "task_id", "plan_id", "epic_id", "date", "reviewer", "verdict", "scope", "checks", "issues", "blockers", "fix_plan", "limitations", "suite"],
+            "required_keys": ["schema", "role", "task_id", "plan_id", "epic_id", "date", "reviewer", "verdict", "scope", "checks", "issues", "blockers", "fix_plan", "limitations", "suite", "checklist_sha256", "ac_plus", "ac_minus", "section_011", "verify_scope"],
             "required_markers": ["full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])", "bin/pytest -q --tb=line  # Hub (dev-hub self-test); managed projects: capability_checks: [test.full]"],
         },
         "harness/cursor/templates/refactor/epic-step.yaml": {

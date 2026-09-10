@@ -1,7 +1,7 @@
 {
   "name": "gate-repair",
   "policy_fingerprint": "sha256:8e7005bf156ea4dbbb15a7871ddd13a37e3dc28dd785208cf2cae2a7ce0c8a6d",
-  "source_prompt_sha256": "54d50a4bfb2937faad29928a4a5e6d72e884955ee0f36ea04921fa2c39d856b1",
+  "source_prompt_sha256": "3d408c19fe2f7d10e213261cea9a7de8e25afb8bbd02e8931d4ce98538caa861",
   "disallowedTools": [
     "Agent",
     "Skill",

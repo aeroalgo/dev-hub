@@ -296,3 +296,103 @@ def test_gate_atomic_finish_implement_missing_verify(monkeypatch, tmp_path) -> N
     assert out is not None
     assert out["ok"] is False
     assert "verify_pass_missing" in out["diagnostic_codes"]
+
+
+def test_gate_atomic_finish_analyze_pass_calls_finish(monkeypatch, tmp_path) -> None:
+    calls: list[str] = []
+
+    class _Res:
+        def model_dump(self):
+            return {"ok": True, "finished_step": "ANALYZE"}
+
+    def fake_finish(req):
+        calls.append(req.step_id)
+        return _Res()
+
+    monkeypatch.setattr("loop.mb_finish.impl.finish_analyze", fake_finish)
+
+    from harness.hooks.epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "ANALYZE",
+            "phase": "ANALYZE",
+            "armed_epic": "T-HUB-TEST",
+            "phase_run_id": "run-analyze",
+            "last_verify_verdict": "PASS",
+        }
+    )
+    save_epic_state(tmp_path, st)
+
+    out = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="analyze-verify",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out == {"ok": True, "finished_step": "ANALYZE"}
+    assert calls == ["ANALYZE"]
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "ANALYZE",
+            "phase": "ANALYZE",
+            "phase_run_id": "run-analyze",
+            "last_verify_verdict": "PASS",
+            "last_finish_tool": {
+                "name": "mb-finish analyze",
+                "step_id": "ANALYZE",
+                "phase_run_id": "run-analyze",
+            },
+        }
+    )
+    save_epic_state(tmp_path, st)
+    out2 = lifecycle.gate_atomic_finish(
+        tmp_path,
+        agent_type="analyze-verify",
+        verdict="PASS",
+        session_id="sess",
+    )
+    assert out2 == {"ok": True, "already_finished": True}
+    assert calls == ["ANALYZE"]
+
+
+def test_gate_atomic_finish_analyze_wrong_phase_skips(tmp_path) -> None:
+    from harness.hooks.epic.core import default_state, save_epic_state
+
+    st = default_state()
+    st.update(
+        {
+            "active": True,
+            "armed_step": "s01",
+            "phase": "IMPLEMENT",
+            "last_verify_verdict": "PASS",
+        }
+    )
+    save_epic_state(tmp_path, st)
+    assert (
+        lifecycle.gate_atomic_finish(
+            tmp_path,
+            agent_type="analyze-verify",
+            verdict="PASS",
+            session_id="sess",
+        )
+        is None
+    )
+
+
+def test_gate_atomic_finish_audit_has_no_verify_trigger() -> None:
+    """AUDIT has verify_agent=null — no subagent PASS → atomic finish path."""
+    assert (
+        lifecycle.gate_atomic_finish(
+            ".",
+            agent_type="audit",
+            verdict="PASS",
+            session_id="sess",
+        )
+        is None
+    )

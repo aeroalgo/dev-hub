@@ -443,13 +443,20 @@ def promote_if_ready(
     if not steps:
         return None
 
-    from loop.decompose_gate import decompose_shards_diagnostic
+    from loop.decompose_gate import decompose_shards_diagnostic, decompose_verify_pass_ready
 
     shard_diagnostic = decompose_shards_diagnostic(idx_path, steps)
     if shard_diagnostic:
         # This is deliberately checked before analyze_gate: an analyze
         # artifact cannot promote an incomplete decompose graph.
         return None
+
+    if armed_step == "DECOMPOSE":
+        verify = decompose_verify_pass_ready(cwd_p, st)
+        if not verify.get("ok"):
+            # Stay on DECOMPOSE (repair exhausted / prepare retry). Do not
+            # fail-closed halt prepare — return None so the same phase reruns.
+            return None
 
     decompose_rel = (
         str(idx_path.relative_to(cwd_p)).replace("\\", "/")

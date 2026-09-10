@@ -1268,12 +1268,18 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish audit`\n"
             "FORBIDDEN: ручной Write activeContext на FINISH AUDIT.\n"
             "FORBIDDEN: pytest/suite как замена plan↔runtime; shallow v1 / empty findings+converged без inventory.\n"
+            "> Если `mb-finish` вернул `ok: true` — немедленно останови turn без новых tools "
+            "(не читай файлы, не запускай дополнительные проверки); следующий шаг — новый runner-эпизод.\n"
         )
     elif phase_kind == "analyze":
         finish_block = (
-            "\n> После analyze yaml на диске и analyze-verify PASS → вызови: "
-            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish analyze`\n"
+            "\n> После analyze yaml на диске и analyze-verify PASS → "
+            "runtime делает atomic `mb-finish analyze` (или parent: "
+            "`python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish analyze`).\n"
             "FORBIDDEN: ручной Write activeContext на FINISH ANALYZE.\n"
+            "> Если `mb-finish` / auto-finish вернул `ok: true` — немедленно останови turn без новых tools "
+            "(не читай файлы, не запускай дополнительные проверки); следующий шаг — новый runner-эпизод.\n"
+            "> FORBIDDEN после analyze-verify PASS: повторный Read/Bash/исследование gate — только finish или stop.\n"
         )
     elif phase_kind == "decompose":
         finish_block = _decompose_finish_block()
@@ -1810,6 +1816,33 @@ def prepare_session(
     from loop.schemas.active_context import handoff_mode_from_text
 
     ac_mode = (handoff_mode_from_text(text) or "").upper()
+    if ac_mode == "ANALYZE" or str(state.get("armed_step") or "").upper() == "ANALYZE":
+        from loop.decompose_gate import decompose_verify_pass_ready
+
+        verify_ok = bool(decompose_verify_pass_ready(cwd_p, state).get("ok"))
+        # Illegal ANALYZE without verify-decompose PASS (repair exhausted /
+        # premature finish / prepare auto-promote). Stay on same phase.
+        if not verify_ok:
+            from loop.epic_transition import arm_phase
+
+            epic_id = str(state.get("armed_epic") or "").strip()
+            role_dir = str(
+                state.get("role") or state.get("armed_role") or "BACK"
+            ).lower()
+            decomp = str(state.get("armed_decompose") or "").strip()
+            if epic_id:
+                arm_res = arm_phase(
+                    cwd_p,
+                    epic_id,
+                    "DECOMPOSE",
+                    role_dir,
+                    decompose_rel=decomp or None,
+                )
+                if isinstance(arm_res, dict) and arm_res.get("ok"):
+                    text = read_active_context(cwd_p)
+                    state = load_epic_state(cwd_p)
+                    projection = rebuild_epic_projection(cwd_p)
+                    ac_mode = (handoff_mode_from_text(text) or "").upper()
     if (
         ac_mode == "IMPLEMENT"
         and str(state.get("armed_step") or "").upper() == "ANALYZE"
@@ -3268,6 +3301,104 @@ def _append_terminal_session_companion(
     return telemetry_path
 
 
+def _rearm_same_phase_after_retry(
+    cwd: Path,
+    state: dict[str, Any],
+    close_id: Any,
+) -> bool:
+    """Force armed cursor + activeContext back to the failed phase/step.
+
+    Used when repair-loop is exhausted or the session aborts retryable: the
+    outer runner must restart the same phase, never a prematurely promoted one.
+    """
+    target_step = str(
+        getattr(close_id, "resume_from", None)
+        or getattr(close_id, "record_step_id", None)
+        or ""
+    ).strip()
+    if not target_step:
+        return False
+    epic_id = str(
+        getattr(close_id, "record_epic_id", None) or state.get("armed_epic") or ""
+    ).strip()
+    if not epic_id:
+        return False
+    role_dir = str(
+        getattr(close_id, "record_role", None)
+        or state.get("role")
+        or state.get("armed_role")
+        or "back"
+    ).lower()
+    decomp = str(state.get("armed_decompose") or "").strip() or None
+    phase_raw = str(
+        getattr(close_id, "record_phase", None) or target_step or ""
+    ).strip()
+    gate_phases = {
+        "PLAN",
+        "DECOMPOSE",
+        "ANALYZE",
+        "CREATIVE",
+        "CLARIFY",
+        "IMPLEMENT",
+        "REFACTOR",
+        "TASK",
+        "BUGFIX",
+        "AUDIT",
+        "QA",
+        "REFLECT",
+    }
+    try:
+        from loop.epic_transition import arm_phase, normalize_registry_phase
+
+        phase_key = normalize_registry_phase(phase_raw) or target_step.upper()
+        target_u = target_step.upper()
+        if phase_key in gate_phases:
+            arm_phase_name = phase_key
+        elif target_u in gate_phases:
+            arm_phase_name = target_u
+        else:
+            arm_phase_name = "IMPLEMENT"
+        if arm_phase_name == "IMPLEMENT" and target_u not in {
+            "IMPLEMENT",
+            "REFACTOR",
+            "TASK",
+        }:
+            arm_res = arm_phase(
+                cwd,
+                epic_id,
+                "IMPLEMENT",
+                role_dir,
+                decompose_rel=decomp,
+            )
+        else:
+            arm_res = arm_phase(
+                cwd,
+                epic_id,
+                arm_phase_name,
+                role_dir,
+                decompose_rel=decomp,
+            )
+        if not (isinstance(arm_res, dict) and arm_res.get("ok")):
+            return False
+        st = load_epic_state(cwd)
+        st.pop("armed_after_finish", None)
+        if arm_phase_name == "IMPLEMENT" and target_u not in {
+            "IMPLEMENT",
+            "REFACTOR",
+            "TASK",
+        }:
+            st["armed_step"] = target_step
+        elif target_u in gate_phases:
+            st["armed_step"] = target_u
+        st["phase"] = str(getattr(close_id, "record_phase", None) or st.get("phase") or "")
+        st["loop_phase"] = st["phase"]
+        save_epic_state(cwd, st)
+        return True
+    except Exception as exc:
+        logger.warning("same-phase rearm after retry failed: %s", exc)
+        return False
+
+
 def record_abort(
     cwd: str | Path,
     *,
@@ -3351,6 +3482,7 @@ def record_abort(
         st,
         fallback_step_id=start_step or None,
         fallback_phase=start_phase or None,
+        same_phase_retry=False,
     )
     step_id = close_id.record_step_id or step_id
     plan_id = close_id.record_epic_id or plan_id
@@ -3390,7 +3522,24 @@ def record_abort(
     kind = analysis["abort_kind"]
     cursor_sync: dict[str, Any] | None = None
     gate_runtime_repair = False
+    # Re-resolve close identity once we know retryable: same-phase restart.
+    if analysis.get("aborted") and retryable:
+        close_id = resolve_session_close_identity(
+            st,
+            fallback_step_id=start_step or None,
+            fallback_phase=start_phase or None,
+            same_phase_retry=True,
+        )
+        step_id = close_id.record_step_id or step_id
+        resume_from = close_id.resume_from or resume_from
+        phase = close_id.record_phase or phase
+        # Always pin cursor to the failed phase before outer-loop retry.
+        _rearm_same_phase_after_retry(cwd_p, st, close_id)
+        st = load_epic_state(cwd_p)
+        if isinstance(frozen_start, dict) and frozen_start:
+            st["session_start_identity"] = frozen_start
     if retryable and st.get("armed_decompose"):
+        # IMPLEMENT queue sync only; if it jumped ahead, rearm again to start.
         cursor_sync = sync_cursor_from_index(cwd_p)
         if cursor_sync.get("synced"):
             st = load_epic_state(cwd_p)
@@ -3400,9 +3549,17 @@ def record_abort(
                 st,
                 fallback_step_id=start_step or None,
                 fallback_phase=start_phase or None,
+                same_phase_retry=True,
             )
             step_id = close_id.record_step_id or step_id
             resume_from = close_id.resume_from or resume_from
+            phase = close_id.record_phase or phase
+            synced_step = str(st.get("armed_step") or "").strip()
+            if synced_step and close_id.resume_from and synced_step != close_id.resume_from:
+                _rearm_same_phase_after_retry(cwd_p, st, close_id)
+                st = load_epic_state(cwd_p)
+                if isinstance(frozen_start, dict) and frozen_start:
+                    st["session_start_identity"] = frozen_start
     if reason == COLLABORATION_WAIT_TIMEOUT_REASON:
         gate_runtime_repair = True
         st["gate_diagnostic"] = "verify_runtime_collaboration_wait_timeout"

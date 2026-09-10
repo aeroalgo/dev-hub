@@ -44,10 +44,11 @@ Parent **обязан** передать секции. Нет секции → `
 ## Pre-emit validate-boundary (HARD)
 
 ```bash
-python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"<sNN>","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
+python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-verdict/v1 --json '{"schema":"loop-gate-verdict/v1","agent_id":"analyze-verify","verdict":"PASS|FAIL","step_id":"ANALYZE","session_id":"<session_id>","epic_id":"<epic>","recorded_at":"<iso8601>"}'
 ```
 
 - Это шаблон: перед запуском подставь реальные IDs, один фактический verdict и текущий ISO 8601 `recorded_at`. Литералы `<…>` и `PASS|FAIL` запускать нельзя.
+- `step_id` для ANALYZE всегда `"ANALYZE"` (не `sNN`).
 - Emit только после `valid: true`. Fence language: **только** `json` (FORBIDDEN info-string `json loop-gate-verdict/v1`).
 
 ## Gate Output (JSON fence HARD)
@@ -59,7 +60,7 @@ python harness/hooks/epic_resolve.py validate-boundary --schema-id loop-gate-ver
   "schema": "loop-gate-verdict/v1",
   "agent_id": "analyze-verify",
   "verdict": "PASS",
-  "step_id": "s06",
+  "step_id": "ANALYZE",
   "session_id": "<session_id>",
   "epic_id": "T-HUB-023",
   "recorded_at": "<iso8601>"
@@ -92,5 +93,6 @@ WARNINGS:
 - `VERDICT: PASS` при открытом CRITICAL из FINDINGS
 - pytest / implement yaml / `@verify` scope
 - повторный full ANALYZE (это задача parent `BACK ANALYZE`)
+- любые tool calls после финального JSON fence / `VERDICT:`
 
-После `PASS`: parent обновляет analyze artifact (`critical_count=0`) или запускает `BACK ANALYZE`, затем loop откроет IMPLEMENT.
+После `PASS`: runtime atomic `mb-finish analyze` (или parent вызывает тот же CLI). **Ноль** дальнейших tool calls у verify и у parent после `ok: true`.

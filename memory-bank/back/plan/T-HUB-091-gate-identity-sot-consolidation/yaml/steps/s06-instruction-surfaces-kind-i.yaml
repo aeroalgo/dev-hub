@@ -1,0 +1,83 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s06 — Kind I instruction surfaces alignment (prompts, rules, docs)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Выверить все instruction surfaces (Kind I): обновить системные промпты агентов (verify-bugfix, verify-qa,
+  gate-repair, verify-implement) для использования IDs из GATE_IDENTITY / литералов фаз (BUGFIX, QA), устранить
+  рекомендации «угадывать sNN с эпика», обновить документацию и правила, подтвердить отсутствие расширения требований DSH.
+
+plan_contract:
+  fr_ids:
+    - FR-011
+    - FR-012
+  nouns:
+    - harness/agents/
+    - harness/cursor/rules/
+    - GATE_IDENTITY
+    - instruction_surfaces
+    - verify-bugfix
+    - verify-qa
+  layout_paths:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/verify-qa.md
+    - harness/agents/verify-implement.md
+    - harness/agents/gate-repair.md
+  ac_quotes:
+    - "AC+ #6: Kind I prompts согласованы."
+    - "FR-011: Kind I: agent/verify prompts — IDs из GATE_IDENTITY / литералы фазы (BUGFIX/QA) согласованы с SoT; не учить «угадай sNN с эпика»."
+    - "FR-012: DSH не расширять; существующие thin passthrough не ломать без явного touch."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:270-310"
+
+context:
+  consumes:
+    - harness/agents/
+    - harness/cursor/rules/
+  produces:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/verify-qa.md
+    - harness/agents/verify-implement.md
+    - harness/agents/gate-repair.md
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#replacement--sunset
+  files:
+    - harness/agents/verify-bugfix.md
+    - harness/agents/verify-qa.md
+    - harness/agents/verify-implement.md
+    - harness/agents/gate-repair.md
+
+as_built:
+  - "Промпты агентов частично ссылаются на GATE_IDENTITY, но могут содержать устаревшие примеры подстановки произвольных step_id"
+
+delta:
+  - "Выверить harness/agents/verify-bugfix.md, verify-qa.md, verify-implement.md, gate-repair.md"
+  - "Убедиться, что инструкции требуют брать session_id, epic_id, step_id строго из предоставленного GATE_IDENTITY блока"
+  - "Устранить формулировки о 'coerce session only' в документации"
+  - "Подтвердить отсутствие изменений контракта DSH"
+
+deletes: []
+
+out_of_scope:
+  - "DSH adapter development -> out of scope"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Agent prompts explicitly instruct taking IDs from GATE_IDENTITY block without guessing sNN"
+    verify: "rg -n \"GATE_IDENTITY\" harness/agents/verify-bugfix.md harness/agents/verify-qa.md"
+  - id: cp2
+    criterion: "No docs/comments describe per-field coerce as valid product mechanism"
+    verify: "python3 -c \"import subprocess; res = subprocess.run(['rg', '-n', 'coerce_step_id', 'harness/', 'loop/'], capture_output=True, text=True); assert res.returncode != 0, res.stdout\""
+
+verify:
+  - "rg -n \"GATE_IDENTITY\" harness/agents/verify-bugfix.md harness/agents/verify-qa.md"
+tdd: []

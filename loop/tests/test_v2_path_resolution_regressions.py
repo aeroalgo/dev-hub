@@ -118,14 +118,20 @@ def test_finish_decompose_discovers_v2_index_from_armed_epic(tmp_path: Path) -> 
         "## load_now\n\n## Handoff BACK DECOMPOSE\n",
     )
 
-    result = finish_decompose(
-        MbFinishRequest(
-            phase="BACK DECOMPOSE",
-            step_id="DECOMPOSE",
-            done_summary="decompose ready",
-            cwd=str(tmp_path),
+    from unittest.mock import patch
+
+    with patch(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        return_value={"ok": True, "diagnostic": "verify_decompose_pass"},
+    ):
+        result = finish_decompose(
+            MbFinishRequest(
+                phase="BACK DECOMPOSE",
+                step_id="DECOMPOSE",
+                done_summary="decompose ready",
+                cwd=str(tmp_path),
+            )
         )
-    )
 
     assert result.ok is True, result.shape_errors
     assert load_state(tmp_path)["armed_decompose"] == index.relative_to(tmp_path).as_posix()

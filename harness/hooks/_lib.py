@@ -2274,6 +2274,79 @@ def allow_write_violations(prompt: str) -> list[str]:
     return viol
 
 
+_REPAIR_BLOCKER_ROW = re.compile(
+    r"(?m)^\s*[-*]\s+"
+    r"(?P<bid>[A-Za-z0-9_.:\-]+)\s*[|｜]\s*"
+    r"(?P<path>[^|｜\n]+?)\s*[|｜]\s*"
+    r"(?P<fix>\S[^\n]*)$"
+)
+
+
+def _blockers_section_body(prompt: str) -> str | None:
+    m = re.search(_HD + r"BLOCKERS[ \t]*[:：]?[ \t]*(.*)$", prompt or "")
+    if not m:
+        return None
+    start = m.end()
+    first = (m.group(1) or "").strip()
+    lines = [first] if first else []
+    for line in (prompt or "")[start:].splitlines():
+        if _NEXT_SECTION.match(line) and not re.match(_HD + r"BLOCKERS\b", line):
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def repair_blocker_rows(prompt: str) -> list[tuple[str, str, str]]:
+    """Parse structured gate-repair BLOCKERS rows: id | path | fix."""
+    body = _blockers_section_body(prompt)
+    if body is None:
+        return []
+    rows: list[tuple[str, str, str]] = []
+    for m in _REPAIR_BLOCKER_ROW.finditer(body):
+        bid = (m.group("bid") or "").strip()
+        path = (m.group("path") or "").strip().strip("`").rstrip(",;")
+        fix = (m.group("fix") or "").strip()
+        if bid and path and fix:
+            rows.append((bid, path, fix))
+    return rows
+
+
+def repair_blocker_violations(prompt: str) -> list[str]:
+    """DENY vague gate-repair BLOCKERS that lack id|path|fix mapped to ALLOW WRITE."""
+    body = _blockers_section_body(prompt)
+    if body is None:
+        return []
+
+    bullet_lines = [
+        line.strip()
+        for line in body.splitlines()
+        if line.strip().startswith(("-", "*"))
+    ]
+    if not bullet_lines:
+        return [
+            "prompt_incomplete:blocker_row: BLOCKERS пуст — нужна ≥1 строка "
+            "`- <id> | <path> | <concrete_fix>`"
+        ]
+
+    rows = repair_blocker_rows(prompt)
+    if len(rows) != len(bullet_lines):
+        return [
+            "prompt_incomplete:blocker_row: каждая строка BLOCKERS обязана быть "
+            "`- <blocker_id> | <path> | <concrete_fix>` (path ∈ ALLOW WRITE); "
+            "голые id без path|fix запрещены"
+        ]
+
+    allow = set(allow_write_files(prompt))
+    viol: list[str] = []
+    for bid, path, _fix in rows:
+        if path not in allow:
+            viol.append(
+                f"prompt_incomplete:blocker_row: blocker `{bid}` path `{path}` "
+                "не входит в ALLOW WRITE"
+            )
+    return viol
+
+
 _REPAIR_JSON_FENCE = re.compile(
     r"```json\s*(\{[\s\S]*?\})\s*```",
     re.MULTILINE,

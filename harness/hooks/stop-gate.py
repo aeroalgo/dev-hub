@@ -563,6 +563,21 @@ def main() -> None:
                     + "; ".join(shard_errs[:12])
                 )
                 return
+            try:
+                from loop.decompose_gate import decompose_verify_pass_ready
+
+                verify = decompose_verify_pass_ready(cwd, epic)
+            except Exception:
+                verify = {"ok": False, "diagnostic": "verify_decompose_pass_missing"}
+            if not verify.get("ok"):
+                if stop_hook_active:
+                    return
+                _block(
+                    "epic-gate: DECOMPOSE FINISH blocked — нужен verify-decompose PASS. "
+                    "Repair-loop exhausted → retry та же фаза DECOMPOSE, не ANALYZE. "
+                    f"diagnostic={verify.get('diagnostic') or 'verify-decompose_pass_missing'}"
+                )
+                return
         strict = _is_handoff_strict(cwd)
         ac_text = read_active_context(cwd)
         shape_errs = validate_active_context_shape(ac_text)

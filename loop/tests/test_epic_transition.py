@@ -163,8 +163,18 @@ def test_promote_if_ready_analyze_gate_required(tmp_path, monkeypatch):
         "armed_decompose": f"{decomp}/index.yaml",
         "armed_step": "DECOMPOSE",
         "role": "BACK",
+        "last_verify_verdict": "PASS",
+        "last_verify_evidence": {
+            "agent_id": "verify-decompose",
+            "verdict": "PASS",
+            "schema": "loop-gate-verdict/v1",
+        },
     }
     save_epic_state(tmp_path, st)
+    monkeypatch.setattr(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        lambda *a, **k: {"ok": True, "diagnostic": "verify_decompose_pass"},
+    )
 
     with patch("loop.epic_transition.arm_phase") as mock_arm:
         mock_arm.return_value = {"ok": True, "armed_step": "ANALYZE"}
@@ -177,7 +187,31 @@ def test_promote_if_ready_analyze_gate_required(tmp_path, monkeypatch):
     assert mock_arm.call_args[0][2] == "ANALYZE"
 
 
-def test_promote_if_ready_no_gate_goes_implement(tmp_path):
+def test_promote_if_ready_decompose_without_verify_stays(tmp_path):
+    from epic.core import save_epic_state  # noqa: PLC0415
+    from loop.epic_transition import promote_if_ready  # noqa: PLC0415
+
+    epic = "T-TEST-001b"
+    decomp = _seed_decompose_index(tmp_path, epic)
+    save_epic_state(
+        tmp_path,
+        {
+            "armed_epic": epic,
+            "armed_decompose": f"{decomp}/index.yaml",
+            "armed_step": "DECOMPOSE",
+            "role": "BACK",
+            "last_verify_verdict": "FAIL",
+        },
+    )
+
+    with patch("loop.epic_transition.arm_phase") as mock_arm:
+        res = promote_if_ready(tmp_path, epic, "back")
+
+    assert res is None
+    mock_arm.assert_not_called()
+
+
+def test_promote_if_ready_no_gate_goes_implement(tmp_path, monkeypatch):
     from epic.core import save_epic_state  # noqa: PLC0415
     from loop.epic_transition import promote_if_ready  # noqa: PLC0415
 
@@ -194,7 +228,13 @@ def test_promote_if_ready_no_gate_goes_implement(tmp_path):
             "armed_decompose": f"{decomp}/index.yaml",
             "armed_step": "DECOMPOSE",
             "role": "BACK",
+            "last_verify_verdict": "PASS",
+            "last_verify_evidence": {"agent_id": "verify-decompose", "verdict": "PASS"},
         },
+    )
+    monkeypatch.setattr(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        lambda *a, **k: {"ok": True, "diagnostic": "verify_decompose_pass"},
     )
 
     with patch("loop.epic_transition.arm_phase") as mock_arm:
@@ -492,6 +532,10 @@ def test_promote_if_ready_front_analyze_gate(tmp_path, monkeypatch):
     (tmp_path / "index.yaml").write_text("schema: epic-decompose-index/v1\nsteps: []\n", encoding="utf-8")
     monkeypatch.setattr("roadmap_queue.load_steps_for_index", lambda cwd, idx_p: {"ok": True, "steps": [{"step_id": "s01", "status": "pending"}]})
     monkeypatch.setattr("analyze_gate.analyze_required_before_implement", lambda cwd, role, eid, steps, index_path=None: {"required": True})
+    monkeypatch.setattr(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        lambda *a, **k: {"ok": True, "diagnostic": "verify_decompose_pass"},
+    )
 
     def mock_arm_phase(cwd, epic_id, phase, role, **kwargs):
         return {"ok": True, "armed_phase": phase, "role": role, "promoted_from": "DECOMPOSE"}

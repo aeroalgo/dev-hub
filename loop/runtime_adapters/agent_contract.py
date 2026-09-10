@@ -105,13 +105,16 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
     ),
     "gate-repair": (
         "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
+        "BLOCKERS только `- <id> | <path> | <concrete_fix>` (path ∈ ALLOW WRITE). "
         "HARD: финальный ответ содержит fenced ```json``` блок "
         '({"schema":"loop-repair-result/v1","status":"done|partial|fail",...}). '
         "Fence language = только `json`. "
         "Перед emit: `python harness/hooks/epic_resolve.py validate-boundary "
         "--schema-id loop-repair-result/v1 --json '…'` → `valid:true`. "
-        "Write/Edit только ALLOW WRITE. После fix — pytest из VERIFY. "
-        "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, правки вне ALLOW WRITE. "
+        "Write/Edit только ALLOW WRITE; чини ровно path|fix из BLOCKERS. "
+        "После fix — команда из VERIFY. "
+        "FORBIDDEN: spawn Agent/verify, FINISH, finalize-step, угадывание path, "
+        "правки вне ALLOW WRITE, status=done при незакрытых blockers. "
         "Ответ без JSON fence = status fail."
     ),
     "reconcile-verify": (

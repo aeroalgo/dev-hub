@@ -1,0 +1,95 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s05 — Codex stop transport_bind via SoT API + delete per-field coerce ladder
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить поштучный симптоматический coerce ladder (session_id, step_id, epic_id) в subagent-stop.py;
+  заменить его на единый вызов GateIdentity.bind_fence(policy=transport_bind), где fence identity перезаписывается
+  из SoT целиком, а проверка agent_id сохраняется строгой (NEED_HUMAN при mismatch). Переписать тесты
+  test_codex_session_ownership_coerce.py на новый контракт.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-007
+    - FR-009
+    - FR-014
+    - SC-003
+    - SC-005
+    - US-005
+    - US-006
+  nouns:
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_codex_session_ownership_coerce.py
+    - transport_bind
+    - bind_fence
+    - coerce
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_codex_session_ownership_coerce.py
+  ac_quotes:
+    - "US-005: Как Codex stop, fence с s05/foreign epic не даёт ownership NEED_HUMAN; identity := SoT."
+    - "US-006: Как инженер, я не вижу поштучный coerce в stop."
+    - "SC-003: Codex wrong fence IDs → no ownership NEED_HUMAN; IDs=SoT"
+    - "SC-005: Нет per-field coerce ladder в stop"
+    - "FR-007: Codex SubagentStop: transport_bind — fence session/epic/step := SoT целиком через API; agent_id mismatch остаётся ownership fail."
+    - "FR-009: Удалить продуктовый поштучный coerce block в subagent-stop.py; переписать тесты coerce на SoT policies."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:105-185"
+
+context:
+  consumes:
+    - loop/gate_identity.py
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_codex_session_ownership_coerce.py
+  produces:
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_codex_session_ownership_coerce.py
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#user-stories
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/subagent-stop.py
+    - loop/tests/test_codex_session_ownership_coerce.py
+
+as_built:
+  - "harness/hooks/subagent-stop.py содержит поштучный coerce блок для Codex (session_id, step_id, epic_id)"
+  - "loop/tests/test_codex_session_ownership_coerce.py тестирует поштучный coerce ladder"
+
+delta:
+  - "Заменить поштучный coerce в subagent-stop.py на GateIdentity.bind_fence(parsed_fence, policy='transport_bind')"
+  - "Гарантировать, что при расхождении step_id/epic_id/session_id для Codex поля биндятся из SoT без NEED_HUMAN"
+  - "Сохранить проверку agent_id: несовпадение типа агента остаётся NEED_HUMAN"
+  - "Переписать loop/tests/test_codex_session_ownership_coerce.py на валидацию transport_bind через SoT API (TM-003, TM-005)"
+
+deletes:
+  - "harness/hooks/subagent-stop.py: поштучные if-ladder ветки coerce_session_id/coerce_step_id/coerce_epic_id"
+
+out_of_scope:
+  - "Claude stop logic -> s03"
+  - "Instruction surfaces -> s06"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "Codex stop with wrong fence step_id binds to SoT and succeeds without ownership NEED_HUMAN"
+    verify: "bin/pytest loop/tests/test_codex_session_ownership_coerce.py -k test_codex_fence_binds_to_sot -q"
+  - id: cp2
+    criterion: "Codex stop with wrong agent_id raises NEED_HUMAN ownership error"
+    verify: "bin/pytest loop/tests/test_codex_session_ownership_coerce.py -k test_codex_wrong_agent_fails -q"
+  - id: cp3
+    criterion: "No per-field coerce if-ladder remains in subagent-stop.py"
+    verify: "python3 -c \"import re, pathlib; txt = pathlib.Path('harness/hooks/subagent-stop.py').read_text(); assert 'coerce_step_id' not in txt and 'coerce_epic_id' not in txt\""
+
+verify:
+  - "bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q"
+tdd: []

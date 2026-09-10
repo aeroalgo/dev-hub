@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+  - id: s01
+    file: s01-gate-identity-sot-api.yaml
+    title: "s01 — GateIdentity SoT API core (freeze, expected, inject_text, assert_fence, bind_fence)"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-atomic-prepare-and-pretool-bind.yaml
+    title: "s02 — Atomic prepare_session freeze + spawn-gate mirror and Claude pretool bind"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-claude-inject-and-strict-stop.yaml
+    title: "s03 — Claude SubagentStart inject + SubagentStop strict ownership assertion via SoT"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s04
+    file: s04-codex-spawn-rewrite-and-bind.yaml
+    title: "s04 — Codex spawn-time prompt rewrite with GATE_IDENTITY + pending thread SoT bind"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s05
+    file: s05-codex-stop-transport-bind-and-coerce-removal.yaml
+    title: "s05 — Codex stop transport_bind via SoT API + delete per-field coerce ladder"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s06
+    file: s06-instruction-surfaces-kind-i.yaml
+    title: "s06 — Kind I instruction surfaces alignment (prompts, rules, docs)"
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s07
+    file: s07-legacy-fallback-purge.yaml
+    title: "s07 — legacy-fallback-purge — full sunset inventory scan + deletes"
+    next_phase: BACK IMPLEMENT
+    status: pending

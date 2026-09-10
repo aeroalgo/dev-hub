@@ -15,9 +15,11 @@ alwaysApply: false
 3. Scenario P0/P1; дыры → дописать Playwright до PASS
 4. Exploratory browser если live app; иначе `skip: no live app`
 5. **fail|blocked:** `review.md` (§Fix plan, §Epic QA) + Handoff — `finish-doc-router.md`
+5a. **Anti-ratchet / freeze (HARD):** pack verify-qa from Frozen QA checklist (`checklist_sha256`); blockers only with eligible class prefix `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`; after BUGFIX `prior_only`; ≥3 QA↔BUGFIX on same sha → NEED_HUMAN. Style/naming/comments ≠ BUGFIX.
 
 ## Abort
 
 - PASS без scenario на user-visible AC · subagent runs tests → reject/FAIL
 - PASS при leftover legacy/fallback из plan sunset → FAIL
 - PASS при agent/hook/gate FR без behavior smoke → FAIL
+- blockers without eligible class prefix / checklist_sha256 drift → FAIL

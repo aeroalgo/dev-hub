@@ -42,7 +42,7 @@ Parent **MAY** spawn любых Agent по нужде.
 | Перед FINISH (`code_changed: yes` IMPLEMENT/REFACTOR/TASK) | **`@verify-implement` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS; после PASS — не повторять |
 | Перед FINISH (`code_changed: yes` BUGFIX) | **`@verify-bugfix` ОБЯЗАТЕЛЬНО** (packed; alias `@verify` поддерживается); FAIL/DENY → fix → retry до PASS |
 | Перед FINISH DECOMPOSE | **`@verify-decompose` ОБЯЗАТЕЛЬНО** |
-| После `@verify-*` VERDICT: FAIL | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed BLOCKERS · ALLOW WRITE · VERIFY); repair done/partial → retry @verify до PASS |
+| После `@verify-*` VERDICT: FAIL | **`@gate-repair` ОБЯЗАТЕЛЬНО** (packed `- id \| path \| fix` · ALLOW WRITE · VERIFY); repair done/partial → retry @verify до PASS |
 | После ANALYZE fix (plan/decompose) | **`@analyze-verify`** (packed); FAIL → fix → retry; PASS → re-ANALYZE или IMPLEMENT gate |
 | BACK QA после suite | **`@verify-qa` ОБЯЗАТЕЛЬНО** (packed; alias `@reviewer` поддерживается); pytest — у parent |
 | Любой режим | доп. Agent — свободно |
@@ -60,9 +60,10 @@ Parent **MAY** spawn любых Agent по нужде.
 **FAIL:** `isolation=worktree` / `model=` на verify|reviewer|explorer — hooks снимают.  
 **FAIL:** spawn verify/reviewer/explorer/gate-repair без packed секций / ALLOW = дерево / >max файлов (10 default; 40 verify-qa) / globs `**` в ALLOW.
 **FAIL:** verify-qa fail-fast (FAIL до полного AC+/AC−/§0.11) или partial `## BLOCKERS (complete)`.
-  ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) → retry @verify
-  ├─ gate-repair fail → parent расширяет ALLOW WRITE или чинит сам → retry
+  ├─ verify FAIL/BLOCKED/runtime error → parent @gate-repair (`- id | path | fix` + ALLOW WRITE + VERIFY) → retry @verify
+  ├─ gate-repair fail → parent расширяет ALLOW WRITE / уточняет path|fix или чинит сам → retry
 Hooks: `stop-gate` блокирует FINISH при verify FAIL/BLOCKED; `agent-pretool` DENY `@gate-repair` без prior repairable gate blocker; DENY `@verify` если уже PASS.
+**FAIL:** `@gate-repair` с голыми blocker id без `| path | fix` или path ∉ ALLOW WRITE.
 
 **FAIL:** «проверь шаг» / QA review / search без секций.  
 **FAIL:** `ALLOW READ` = дерево / glob `dir/**` (нужны конкретные пути файлов; ≤10 default, ≤40 для verify-qa/reviewer).

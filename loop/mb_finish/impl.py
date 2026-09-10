@@ -846,6 +846,23 @@ def finish_decompose(
             shape_errors=tree_errors,
         )
 
+    from loop.decompose_gate import decompose_verify_pass_ready
+
+    verify = decompose_verify_pass_ready(cwd, state)
+    if not verify.get("ok"):
+        diag = str(verify.get("diagnostic") or "verify_decompose_pass_missing")
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=[diag],
+            shape_errors=[
+                str(
+                    verify.get("reason")
+                    or "DECOMPOSE FINISH requires verify-decompose PASS; "
+                    "repair-loop exhaustion must retry the same phase"
+                )
+            ],
+        )
+
     load_now = [
         LoadNowItem(path=decompose_rel, description="Decompose index"),
     ]

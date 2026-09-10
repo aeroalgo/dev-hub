@@ -139,7 +139,10 @@ def _repair_setup(tmp_path: Path) -> None:
 
 def _repair_prompt() -> str:
     return (
-        "BLOCKERS\n- diagnostic_code_mismatch\nALLOW WRITE\n"
+        "BLOCKERS\n"
+        "- diagnostic_code_mismatch | loop/mb_finish/finish_implement.py | "
+        "align diagnostic code with gate identity SoT\n"
+        "ALLOW WRITE\n"
         "loop/mb_finish/finish_implement.py\n"
         "VERIFY\n"
         "timeout 300s .venv/bin/pytest harness/hooks/tests/test_mb_finish_implement.py -q\n"
@@ -164,6 +167,42 @@ def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> 
     deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
 
     assert deny_reasons == []
+
+
+def test_gate_repair_vague_blockers_denied(tmp_path: Path, monkeypatch) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    prompt = (
+        "BLOCKERS\n- missing_symbol\nALLOW WRITE\n"
+        "path/to/file_a.py\n"
+        "VERIFY\n"
+        "bin/pytest path/to/test_c.py -q\n"
+    )
+    tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert any("prompt_incomplete:blocker_row" in reason for reason in deny_reasons)
+
+
+def test_gate_repair_blocker_path_must_be_in_allow_write(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _repair_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    prompt = (
+        "BLOCKERS\n"
+        "- missing_symbol | path/to/other.py | add symbol X\n"
+        "ALLOW WRITE\n"
+        "path/to/file_a.py\n"
+        "VERIFY\n"
+        "bin/pytest path/to/test_c.py -q\n"
+    )
+    tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+
+    assert any("prompt_incomplete:blocker_row" in reason for reason in deny_reasons)
 
 
 def test_gate_repair_after_qa_requires_full_suite(tmp_path: Path, monkeypatch) -> None:

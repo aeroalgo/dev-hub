@@ -1,0 +1,91 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s01 — GateIdentity SoT API core (freeze, expected, inject_text, assert_fence, bind_fence)
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Реализовать единый API GateIdentity SoT в loop/gate_identity.py (или loop/session_finalize.py),
+  предоставляющий методы freeze, expected, inject_text, bind_spawn_gate, assert_fence(policy=strict|transport_bind)
+  и bind_fence, гарантирующий что при mid-session armed drift expected(state) всегда возвращает замороженный identity.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - FR-013
+    - SC-001
+    - US-001
+  nouns:
+    - loop/gate_identity.py
+    - loop/session_finalize.py
+    - GateIdentity
+    - SessionStartIdentity
+    - expected
+    - freeze
+    - assert_fence
+    - bind_fence
+    - inject_text
+  layout_paths:
+    - loop/gate_identity.py
+    - loop/session_finalize.py
+    - loop/tests/test_gate_identity_sot.py
+  ac_quotes:
+    - "US-001: Как loop, я читаю ownership только из GateIdentity SoT."
+    - "SC-001: Ownership step при freeze≠armed всегда freeze"
+    - "FR-001: Ввести единый API GateIdentity SoT: freeze, expected, inject_text, bind_spawn_gate, assert_fence(policy=strict|transport_bind)."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:105-185"
+
+context:
+  consumes:
+    - loop/session_finalize.py
+    - harness/hooks/_lib.py
+  produces:
+    - loop/gate_identity.py
+    - loop/tests/test_gate_identity_sot.py
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#user-stories
+    - plan.md#qa-consumes
+  files:
+    - loop/gate_identity.py
+    - loop/session_finalize.py
+    - loop/tests/test_gate_identity_sot.py
+
+as_built:
+  - "loop/session_finalize.py содержит SessionStartIdentity, apply_ownership_identity и ownership_expected_step_id"
+  - "harness/hooks/_lib.py содержит current_gate_identity и set_gate_identity"
+
+delta:
+  - "Создать/расширить канонический SoT модуль loop/gate_identity.py с классом GateIdentity"
+  - "Реализовать freeze, expected, inject_text, bind_spawn_gate, assert_fence, bind_fence"
+  - "Зафиксировать инвариант: expected(state) возвращает freeze identity при любом armed_step или projection.step"
+  - "Добавить юнит-тесты loop/tests/test_gate_identity_sot.py (TM-001)"
+
+deletes: []
+
+out_of_scope:
+  - "Claude/Codex hook wiring -> s02..s05"
+  - "DSH adapter extensions -> out of scope"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "GateIdentity.freeze(state) записывает session_start_identity в state; expected(state) возвращает freeze identity при любом armed_step"
+    verify: "bin/pytest loop/tests/test_gate_identity_sot.py -k test_freeze_and_expected_ignore_armed -q"
+  - id: cp2
+    criterion: "GateIdentity.assert_fence(strict) падает при расхождении полей; bind_fence(transport_bind) перезаписывает поля из SoT"
+    verify: "bin/pytest loop/tests/test_gate_identity_sot.py -k test_assert_and_bind_fence -q"
+  - id: cp3
+    criterion: "inject_text(SoT) генерирует formatted markdown/xml block GATE_IDENTITY для injection"
+    verify: "bin/pytest loop/tests/test_gate_identity_sot.py -k test_inject_text -q"
+
+verify:
+  - "bin/pytest loop/tests/test_gate_identity_sot.py -q"
+tdd: []

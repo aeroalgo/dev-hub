@@ -3023,5 +3023,25 @@ def test_build_prompt_audit_includes_canon_checklist(tmp_path: Path) -> None:
     assert "runtime evidence" in prompt
     assert "mb-finish audit" in prompt
     assert "FORBIDDEN: pytest" in prompt
+    assert "немедленно останови turn без новых tools" in prompt
     assert "workflow-audit.mdc" not in prompt
     assert "это чинится в сессии: FAIL → fix → re-verify" not in prompt
+
+
+def test_build_prompt_analyze_includes_auto_finish_stop(tmp_path: Path) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    prompt = ctx.build_prompt(
+        tmp_path,
+        load_now=["memory-bank/activeContext.md"],
+        projection={
+            "phase": "BACK ANALYZE",
+            "epic": "T-HUB-091",
+            "role": "back",
+            "step": "ANALYZE",
+        },
+    )
+    assert "mb-finish analyze" in prompt
+    assert "atomic" in prompt.lower() or "auto-finish" in prompt
+    assert "немедленно останови turn без новых tools" in prompt
+    assert "FORBIDDEN после analyze-verify PASS" in prompt

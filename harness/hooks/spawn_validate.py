@@ -26,6 +26,7 @@ from _lib import (
     normalize_agent_tool_input,
     normalize_type,
     read_stdin,
+    repair_blocker_violations,
     resolved_spawn_model,
     _discover_registry,
 )
@@ -145,6 +146,8 @@ def validate_spawn_input(
                 "Нужны: " + (needed_str or "BLOCKERS / ALLOW WRITE / VERIFY")
             )
         for violation in allow_write_violations(prompt):
+            deny_reasons.append(violation)
+        for violation in repair_blocker_violations(prompt):
             deny_reasons.append(violation)
         for violation in allow_read_violations(prompt):
             if "ALLOW READ пуст" in violation:

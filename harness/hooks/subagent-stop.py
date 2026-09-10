@@ -78,7 +78,8 @@ def _fail_hint(agent_type: str, cwd: str | Path = ".") -> str:
             return hint
     if agent_type in COERCE_VERIFY_AGENTS:
         return (
-            "verify VERDICT: FAIL — parent: @gate-repair (BLOCKERS + ALLOW WRITE + VERIFY) "
+            "verify VERDICT: FAIL — parent: @gate-repair "
+            "(BLOCKERS `- id | path | fix` + ALLOW WRITE + VERIFY) "
             "или чини blockers сам, затем retry @verify. "
             "Не FINISH. FORBIDDEN: «ожидаю verify», BLOCKED + отдельный bugfix для incomplete AC."
         )
@@ -146,9 +147,9 @@ def _handle_verify_finish_agent(
 
     if matched:
         try:
-            if agent_type in COERCE_VERIFY_AGENTS:
-                from epic_lib import mirror_verify_verdict
+            from epic_lib import mirror_gate_verdict, mirror_verify_verdict
 
+            if agent_type in COERCE_VERIFY_AGENTS:
                 mirror_verify_verdict(
                     cwd,
                     verdict,
@@ -157,12 +158,20 @@ def _handle_verify_finish_agent(
                     agent_id=agent_type,
                 )
             elif agent_type in REVIEWER_MIRROR_AGENTS:
-                from epic_lib import mirror_gate_verdict
-
                 mirror_gate_verdict(
                     cwd,
                     verdict,
                     agent_id="reviewer",
+                    evidence=evidence,
+                    session_id=session_id,
+                )
+            else:
+                # analyze-verify / verify-decompose / video verify-* — epic SoT
+                # must receive the same receipt as IMPLEMENT/QA or finish fails closed.
+                mirror_gate_verdict(
+                    cwd,
+                    verdict,
+                    agent_id=agent_type,
                     evidence=evidence,
                     session_id=session_id,
                 )
@@ -173,7 +182,7 @@ def _handle_verify_finish_agent(
             )
 
     # Shared gate lifecycle owns atomic mb-finish after PASS for QA /
-    # IMPLEMENT / BUGFIX (artifact already on disk before verify spawn).
+    # IMPLEMENT / BUGFIX / ANALYZE (artifact already on disk before verify spawn).
     auto_finished = False
     if verdict == "PASS" and agent_type in VERIFY_FINISH_AGENTS:
         finish = gate_atomic_finish(

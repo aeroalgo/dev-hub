@@ -25,11 +25,12 @@ def shared_collaboration_policy(*, phase: str | None = None) -> str:
 Этот контракт одинаков для всех runtime.
 1. Перед FINISH IMPLEMENT/TASK/BUGFIX запусти ровно один соответствующий gate-субагент: `verify-implement` или `verify-bugfix`; дождись завершения и учитывай только valid fenced JSON verdict. В spawn prompt всегда пиши `agent_type: <canonical>`.
 2. Перед FINISH DECOMPOSE запусти `verify-decompose`; для ANALYZE fix используй `analyze-verify` по текущему workflow.
-3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай BLOCKERS в `gate-repair` с ALLOW WRITE + VERIFY, дождись repair и повтори тот же verify. Это автоматический repair-loop.
-4. Лимит repair-loop: максимум **2** цикла `gate-repair → re-verify` на один parent-run. После 2-го FAIL/BLOCKED — **не** NEED_HUMAN и **не** начинай 3-й repair в этом run: заверши сессию с retryable outcome на тот же шаг (runner перезапустит). Не изобретай новые nitpick-blockers.
-5. Для `gate-repair` в VERIFY передавай **targeted** pytest по файлам из ALLOW WRITE (path/nodeid/`-k`). Полный `bin/pytest -q --tb=line` — только parent в QA; не требуй full suite внутри `gate-repair`.
-6. Не создавай finish без свежего PASS текущего gate-run, не выдумывай receipt/verdict и не редактируй runtime gate state вручную.
-7. Если транспорт сабагента недоступен, зафиксируй blocker как repairable, повтори canonical spawn через adapter и затем запусти `gate-repair`; после ограниченных retry только NEED_HUMAN, но не ложный PASS.
+3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай в `gate-repair` секции BLOCKERS + ALLOW WRITE + VERIFY, дождись repair и повтори **тот же** verify. Это автоматический repair-loop.
+4. **Pack BLOCKERS (HARD):** каждая строка строго `- <blocker_id> | <path> | <concrete_fix>`, где `<path>` ∈ ALLOW WRITE и `<concrete_fix>` — одно действие из verify-отчёта. Голый список id без path|fix = DENY spawn. Не изобретай blockers сверх verify-отчёта и не проси repair «починить coverage вообще».
+5. Лимит repair-loop: максимум **2** цикла `gate-repair → re-verify` на один parent-run. После 2-го FAIL/BLOCKED — **не** NEED_HUMAN и **не** начинай 3-й repair в этом run: заверши сессию с retryable outcome. Runner **обязан** перезапустить **ту же** phase+step (DECOMPOSE / ANALYZE / sNN / BUGFIX / QA / …). **FORBIDDEN:** mb-finish / promote / Handoff на следующую фазу или следующий sNN после исчерпания repair-loop или при verify FAIL. Не изобретай новые nitpick-blockers.
+6. Для `gate-repair` в VERIFY передавай **точную** команду проверки текущей фазы по файлам из ALLOW WRITE (targeted pytest / CLI validate — как указал parent). Полный `bin/pytest -q --tb=line` — только parent в QA; не требуй full suite внутри `gate-repair`.
+7. Не создавай finish без свежего PASS текущего gate-run, не выдумывай receipt/verdict и не редактируй runtime gate state вручную. Retryable abort / repair exhausted → следующий outer-loop attempt = **та же** phase+step на любом шаге пайплайна.
+8. Если транспорт сабагента недоступен, зафиксируй blocker как repairable, повтори canonical spawn через adapter и затем запусти `gate-repair`; после ограниченных retry только NEED_HUMAN, но не ложный PASS.
 """
 
 

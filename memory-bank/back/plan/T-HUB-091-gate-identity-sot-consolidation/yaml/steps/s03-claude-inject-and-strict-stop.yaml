@@ -1,0 +1,90 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s03 — Claude SubagentStart inject + SubagentStop strict ownership assertion via SoT
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Подключить Claude lifecycle к GateIdentity SoT: в subagent-start.py доставлять GATE_IDENTITY через inject_text(SoT)
+  в additionalContext до запуска child, а в subagent-stop.py валидировать fence через assert_fence(policy=strict)
+  с сохранением ошибки semantic_ownership_mismatch (exit 2) без schema-retry при несовпадении step_id/epic_id/session_id.
+
+plan_contract:
+  fr_ids:
+    - FR-003
+    - FR-004
+    - FR-008
+    - SC-002
+    - US-002
+    - US-003
+  nouns:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - additionalContext
+    - GATE_IDENTITY
+    - semantic_ownership_mismatch
+    - assert_fence
+    - strict
+  layout_paths:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_claude_gate_identity_sot.py
+  ac_quotes:
+    - "US-002: Как Claude verify child, я вижу GATE_IDENTITY = SoT до работы."
+    - "US-003: Как Claude stop, чужой step_id → NEED_HUMAN ownership."
+    - "SC-002: Claude stale step → ownership NEED_HUMAN"
+    - "FR-004: Claude SubagentStart: inject_text(SoT) в additionalContext."
+    - "FR-008: Claude SubagentStop: strict — любое расхождение session/epic/step → semantic_ownership_mismatch."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:105-185"
+
+context:
+  consumes:
+    - loop/gate_identity.py
+    - harness/hooks/_lib.py
+  produces:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_claude_gate_identity_sot.py
+  plan_refs:
+    - plan.md#functional-requirements-fr-
+    - plan.md#user-stories
+    - plan.md#qa-consumes
+  files:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/tests/test_claude_gate_identity_sot.py
+
+as_built:
+  - "harness/hooks/subagent-start.py формирует GATE_IDENTITY блок через _gate_session_id и current_gate_identity"
+  - "harness/hooks/subagent-stop.py сравнивает fence session_id, step_id, epic_id и падает с exit 2 при semantic_ownership_mismatch"
+
+delta:
+  - "Перевести subagent-start.py на GateIdentity.inject_text(SoT) для формирования additionalContext"
+  - "В subagent-stop.py для Claude вызывать GateIdentity.assert_fence(policy='strict')"
+  - "Сохранить exit 2 semantic_ownership_mismatch при расхождении step_id (например s05 vs BUGFIX) без schema-retry"
+  - "Добавить тесты Claude start inject + stop strict (TM-002, TM-005)"
+
+deletes: []
+
+out_of_scope:
+  - "Codex spawn rewrite -> s04"
+  - "Codex stop transport_bind -> s05"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: "SubagentStart injects exact SoT fields into additionalContext"
+    verify: "bin/pytest harness/hooks/tests/test_claude_gate_identity_sot.py -k test_subagent_start_injects_sot -q"
+  - id: cp2
+    criterion: "SubagentStop with mismatched step_id produces semantic_ownership_mismatch and exit 2"
+    verify: "bin/pytest harness/hooks/tests/test_claude_gate_identity_sot.py -k test_subagent_stop_claude_strict_mismatch -q"
+
+verify:
+  - "bin/pytest harness/hooks/tests/test_claude_gate_identity_sot.py -q"
+tdd: []

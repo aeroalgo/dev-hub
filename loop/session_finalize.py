@@ -101,25 +101,19 @@ def analyze_promotion_requires_bound_receipt(state: dict[str, Any]) -> bool:
 def ownership_expected_step(state: dict[str, Any]) -> str:
     """Gate fence ownership step for the current parent session.
 
-    Prefer prepare-time ``session_start_identity.step_id``. Mid-session
-    ``mb-finish`` may advance ``armed_step`` (BUGFIX→QA); in-flight verify
+    Prefer prepare-time session_start_identity.step_id. Mid-session
+    mb-finish may advance armed_step (BUGFIX→QA); in-flight verify
     fences still belong to the frozen start step, not the post-finish cursor.
     """
-    start = SessionStartIdentity.from_mapping(state.get("session_start_identity"))
-    if start and start.step_id:
-        return str(start.step_id).strip()
-    return str(
-        state.get("armed_step")
-        or state.get("last_finished_step")
-        or ""
-    ).strip()
+    from loop.gate_identity import GateIdentity
+
+    return GateIdentity.expected(state).step_id
 
 
 def ownership_expected_epic(state: dict[str, Any]) -> str:
-    start = SessionStartIdentity.from_mapping(state.get("session_start_identity"))
-    if start and start.epic_id:
-        return str(start.epic_id).strip()
-    return str(state.get("armed_epic") or state.get("epic") or "").strip()
+    from loop.gate_identity import GateIdentity
+
+    return GateIdentity.expected(state).epic_id
 
 
 def apply_ownership_identity(
@@ -127,15 +121,15 @@ def apply_ownership_identity(
     state: dict[str, Any],
 ) -> dict[str, Any]:
     """Overlay frozen session-start step/epic onto a projection gate identity."""
-    out = dict(identity or {})
-    step = ownership_expected_step(state)
-    if step:
-        out["step"] = step
-    epic = ownership_expected_epic(state)
-    if epic:
-        out["epic_id"] = epic
-    return out
+    from loop.gate_identity import GateIdentity
 
+    sot = GateIdentity.expected(state)
+    out = dict(identity or {})
+    if sot.step_id:
+        out["step"] = sot.step_id
+    if sot.epic_id:
+        out["epic_id"] = sot.epic_id
+    return out
 
 def post_finish_cursor_step(state: dict[str, Any]) -> str:
     """Live cursor after an in-session finish (resume target for next prepare)."""
@@ -171,6 +165,7 @@ def resolve_session_close_identity(
     *,
     fallback_step_id: str | None = None,
     fallback_phase: str | None = None,
+    same_phase_retry: bool = False,
 ) -> SessionCloseIdentity:
     start = SessionStartIdentity.from_mapping(state.get("session_start_identity"))
     post_step = str(
@@ -221,7 +216,12 @@ def resolve_session_close_identity(
         or state.get("phase_run_id")
         or ""
     ).strip()
-    resume_from = post_step or record_step
+    # Repair-loop exhausted / retryable abort: outer loop must restart the
+    # same phase+step — never resume on a prematurely promoted cursor.
+    if same_phase_retry:
+        resume_from = record_step
+    else:
+        resume_from = post_step or record_step
     return SessionCloseIdentity(
         record_phase=record_phase,
         record_step_id=record_step,

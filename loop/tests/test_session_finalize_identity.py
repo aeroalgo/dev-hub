@@ -15,6 +15,45 @@ def test_resolve_close():
     assert close.resume_from == "ANALYZE"
 
 
+def test_resolve_close_same_phase_retry_keeps_start_step():
+    from loop.session_finalize import freeze_session_start_identity, resolve_session_close_identity
+
+    state = {
+        "armed_epic": "E1",
+        "armed_step": "ANALYZE",
+        "armed_after_finish": "ANALYZE",
+        "role": "back",
+        "session_id": "s",
+        "phase_run_id": "r",
+    }
+    freeze_session_start_identity(
+        state, phase="DECOMPOSE", step_id="DECOMPOSE", session_id="s", phase_run_id="r"
+    )
+    state["armed_step"] = "ANALYZE"
+    close = resolve_session_close_identity(state, same_phase_retry=True)
+    assert close.record_step_id == "DECOMPOSE"
+    assert close.resume_from == "DECOMPOSE"
+
+
+def test_resolve_close_same_phase_retry_keeps_implement_step():
+    from loop.session_finalize import freeze_session_start_identity, resolve_session_close_identity
+
+    state = {
+        "armed_epic": "E1",
+        "armed_step": "s02",
+        "armed_after_finish": "s02",
+        "role": "BACK",
+        "session_id": "s",
+        "phase_run_id": "r",
+    }
+    freeze_session_start_identity(
+        state, phase="BACK IMPLEMENT", step_id="s01", session_id="s", phase_run_id="r"
+    )
+    close = resolve_session_close_identity(state, same_phase_retry=True)
+    assert close.record_step_id == "s01"
+    assert close.resume_from == "s01"
+
+
 def test_promote_stale_receipt_after_decompose(tmp_path):
     from epic.core import save_epic_state
     from loop.epic_transition import promote_if_ready

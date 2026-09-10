@@ -1,0 +1,201 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый поштучный coerce
+  удалены или переписаны; Kind I instructions выверены; targeted + regression suite green.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - FR-009
+    - FR-012
+    - FR-014
+    - SC-005
+    - US-006
+  nouns:
+    - harness/hooks/subagent-stop.py
+    - loop/session_finalize.py
+    - harness/hooks/_lib.py
+    - sunset_inventory
+    - grep_control
+    - legacy-fallback-purge
+  layout_paths:
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/_lib.py
+    - loop/session_finalize.py
+  ac_quotes:
+    - "AC− #1: Нет dual path coerce+SoT bind."
+    - "AC− #2: Нет ownership от сырого projection.step в обход freeze."
+    - "SC-005: Нет per-field coerce ladder в stop"
+    - "US-006: Как инженер, я не вижу поштучный coerce в stop."
+    - "FR-014: Wire-complete: dual path coerce+bind запрещён после эпика."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md:245-310"
+
+context:
+  consumes:
+    - plan.md#replacement--sunset
+    - decompose-index.md#replacement-cleanup
+  produces:
+    - evidence rg/inventory в implement shard
+    - удалённые fallback-пути
+  plan_refs:
+    - plan.md#replacement--sunset
+    - plan.md#qa-consumes
+  files: []
+
+as_built:
+  - "Все предыдущие шаги s01..s06 перевели компоненты на единый GateIdentity SoT"
+
+delta:
+  - "Провести полный sunset inventory scan по таблицам A, B, C, I"
+  - "Удалить любые оставшиеся fallback ветки или дублирующиеся helpers"
+  - "Зафиксировать grep_control evidence"
+
+sunset_inventory:
+  - symbol: harness/hooks/subagent-stop.py per-field Codex coerce if-ladder
+    kind: A
+    replacement: GateIdentity.bind_fence(policy=transport_bind)
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero occurrences of coerce_step_id or per-field coerce ladder in stop hook
+  - symbol: Raw gate_identity(...) reads without overlay on ownership paths
+    kind: A
+    replacement: GateIdentity.expected / current_gate_identity via SoT
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero un-overlaid gate_identity reads on stop/start paths
+  - symbol: subagent-start._gate_session_id duplicate
+    kind: A
+    replacement: _lib.gate_session_id / SoT
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero duplicate helper definitions
+  - symbol: loop/tests/test_codex_session_ownership_coerce.py old per-field asserts
+    kind: A
+    replacement: tests on SoT transport_bind contract
+    policy: delete in-epic
+    rg_scope: loop/tests/
+    expect: all coerce tests assert SoT transport_bind behavior
+  - symbol: Codex post-wait SubagentStart treated as child inject delivery
+    kind: A
+    replacement: mark-only post-wait lifecycle; spawn-time prompt inject
+    policy: delete in-epic
+    rg_scope: harness/hooks/ harness/agents/
+    expect: post-wait SubagentStart is mark-only and never delivery inject
+  - symbol: entrypoints/deploy (n/a — same hooks/CLI)
+    kind: B
+    replacement: greenfield n/a for deploy
+    policy: none
+    rg_scope: entrypoints/deploy
+    expect: same hooks/CLI
+  - symbol: dual-path fallback 'coerce ladder retained alongside bind'
+    kind: C
+    replacement: single GateIdentity.bind_fence path
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-stop.py
+    expect: zero dual-path fallback branches
+  - symbol: Silent accept LLM fence IDs when SoT present (Claude)
+    kind: C
+    replacement: GateIdentity.assert_fence(strict) mismatch
+    policy: delete in-epic
+    rg_scope: harness/hooks/subagent-stop.py
+    expect: strict rejection of mismatched fence IDs for Claude
+  - symbol: Ownership from live projection after finish without freeze
+    kind: C
+    replacement: freeze-only expected
+    policy: delete in-epic
+    rg_scope: loop/session_finalize.py loop/gate_identity.py
+    expect: expected(state) strictly requires frozen identity
+  - symbol: Agent prompts 'подставь любой step_id / sNN с эпика'
+    kind: I
+    replacement: IDs from GATE_IDENTITY / phase literal
+    policy: delete in-epic
+    rg_scope: harness/agents/
+    expect: zero instructions to guess step_id from activeContext
+  - symbol: Collaboration text implying post-wait start = inject
+    kind: I
+    replacement: explicit mark-only lifecycle wording; inject only at spawn
+    policy: delete in-epic
+    rg_scope: harness/agents/
+    expect: collaboration text distinguishes post-wait mark-only from spawn-time inject
+  - symbol: Docs/comments «Codex coerce session only»
+    kind: I
+    replacement: transport_bind SoT policy
+    policy: rewrite in-epic
+    rg_scope: harness/ hooks/ loop/ docs/
+    expect: zero docs/comments claiming Codex coerce is session-only product policy
+
+deletes: []
+
+out_of_scope: []
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: coerce_step_id / coerce_epic_id
+    command: 'rg -n "coerce_step_id|coerce_epic_id" harness/hooks/ || true'
+    expect: no matches
+  - id: inv-a-02
+    kind: A
+    symbol: duplicate _gate_session_id
+    command: 'rg -n "def _gate_session_id" harness/hooks/subagent-start.py || true'
+    expect: no matches
+  - id: inv-c-01
+    kind: C
+    symbol: dual-path coerce fallback
+    command: 'rg -n "fallback.*coerce" harness/hooks/subagent-stop.py || true'
+    expect: no matches
+  - id: inv-i-01
+    kind: I
+    symbol: guess step_id instructions
+    command: 'rg -i -n "guess.*step_id|угадай.*step_id" harness/agents/ || true'
+    expect: no matches
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по каждой строке sunset_inventory kind=A:
+      0 prod callers старого поштучного coerce; duplicate helpers удалены.
+    verify: |
+      rg -n "coerce_step_id|coerce_epic_id" harness/hooks/ || true
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint inventory: n/a for this epic.
+    verify: |
+      echo "Kind B n/a"
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: dual-path coerce fallback отсутствует; Claude strict mismatch активен.
+    verify: |
+      rg -n "fallback.*coerce" harness/hooks/subagent-stop.py || true
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: prompts субагентов не содержат указаний подбирать step_id.
+    verify: |
+      rg -i -n "guess.*step_id" harness/agents/ || true
+  - id: cp5
+    criterion: |
+      Obsolete tests на старый контракт переписаны на SoT transport_bind; suite green.
+    verify: |
+      bin/pytest loop/tests/test_codex_session_ownership_coerce.py -q
+  - id: cp6
+    criterion: |
+      Targeted + epic regression suite green после deletes (без возврата sunset-кода).
+    verify: |
+      bin/pytest loop/tests/test_session_finalize_identity.py -q
+
+verify:
+  - "bin/pytest loop/tests/test_session_finalize_identity.py -q"
+tdd: []

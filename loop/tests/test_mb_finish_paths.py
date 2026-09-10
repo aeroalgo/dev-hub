@@ -195,6 +195,12 @@ def test_finish_decompose_v2_resolver_path(tmp_path: Path):
             "role": role,
             "armed_step": "DECOMPOSE",
             "armed_decompose": str(decomp_yaml.relative_to(tmp_path)),
+            "last_verify_verdict": "PASS",
+            "last_verify_evidence": {
+                "agent_id": "verify-decompose",
+                "verdict": "PASS",
+                "schema": "loop-gate-verdict/v1",
+            },
         }
     )
     save_epic_state(tmp_path, state)
@@ -226,5 +232,11 @@ def test_finish_decompose_v2_resolver_path(tmp_path: Path):
         done_summary="Decompose completed",
         cwd=str(tmp_path),
     )
-    res = finish_decompose(req)
+    from unittest.mock import patch
+
+    with patch(
+        "loop.decompose_gate.decompose_verify_pass_ready",
+        return_value={"ok": True, "diagnostic": "verify_decompose_pass"},
+    ):
+        res = finish_decompose(req)
     assert res.ok is True

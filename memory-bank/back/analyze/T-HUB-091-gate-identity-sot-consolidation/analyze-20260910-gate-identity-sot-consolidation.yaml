@@ -1,0 +1,290 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+slug: gate-identity-sot-consolidation
+date: '2026-09-10'
+status: complete
+index_fingerprint: sha256:ea14f997c1163221b12f7cced3ce96c957f0dcd6e5938b19d6f9710c07862a55
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: 'Ввести единый API GateIdentity SoT (расширение/loop module
+    на базе session_finalize): freeze, expected, inject_text, bind_spawn_gate, assert_fence(policy=strict|transport_bind).'
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: 'prepare_session атомарно: bind session_id + freeze session_start_identity
+    + bind_spawn_gate (mirror).'
+- requirement_id: FR-003
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Все ownership readers (start/stop/posttool/stop-gate/lifecycle
+    dedupe) используют только SoT expected / current_gate_identity через SoT — запрет
+    сырого gate_identity без overlay на ownership path.
+- requirement_id: FR-004
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: 'Claude SubagentStart: inject_text(SoT) в additionalContext
+    (сохранить контракт + HARD_RULE).'
+- requirement_id: FR-005
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: 'Claude PreToolUse: mark_in_flight + bind_spawn_gate(SoT) атомарно
+    (или один helper).'
+- requirement_id: FR-006
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: 'Codex на spawn_agent observe: prepend/rewrite prompt с inject_text(SoT);
+    записать pending thread + SoT bind до wait.'
+- requirement_id: FR-007
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: 'Codex SubagentStop: transport_bind — fence session/epic/step
+    := SoT целиком через API (не if-ladder полей); agent_id mismatch остаётся ownership
+    fail.'
+- requirement_id: FR-008
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: 'Claude SubagentStop: strict — любое расхождение session/epic/step
+    → semantic_ownership_mismatch.'
+- requirement_id: FR-009
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Удалить продуктовый поштучный coerce block в subagent-stop.py;
+    переписать тесты coerce на SoT policies.
+- requirement_id: FR-010
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Post-wait вызов SubagentStart для Codex не считается delivery
+    inject (либо skip inject side-effect, либо document-only mark_in_flight) — запрет
+    ложной симметрии.
+- requirement_id: FR-011
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: 'Kind I: agent/verify prompts — IDs из GATE_IDENTITY / литералы
+    фазы (BUGFIX/QA) согласованы с SoT; не учить «угадай sNN с эпика».'
+- requirement_id: FR-012
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: DSH не расширять; существующие thin passthrough не ломать без
+    явного touch (no new DSH requirements).
+- requirement_id: FR-013
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: session_start_payload / PromptScope не становятся вторым GateIdentity
+    SoT в этом эпике (071 soft); не учить fence ownership через projection overwrite.
+- requirement_id: FR-014
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: 'Wire-complete: dual path coerce+bind запрещён после эпика.'
+- requirement_id: SC-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Ownership step при freeze≠armed всегда freeze
+- requirement_id: SC-002
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Claude stale step → ownership NEED_HUMAN
+- requirement_id: SC-003
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Codex wrong fence IDs → no ownership NEED_HUMAN; IDs=SoT
+- requirement_id: SC-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Codex spawn prompt contains GATE_IDENTITY before child
+- requirement_id: SC-005
+  step_ids:
+  - s05
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Нет per-field coerce ladder в stop
+- requirement_id: SC-006
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: prepare leaves spawn-gate mirror == SoT
+- requirement_id: US-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Как loop, я читаю ownership только из GateIdentity SoT.
+- requirement_id: US-002
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Как Claude verify child, я вижу GATE_IDENTITY = SoT до работы.
+- requirement_id: US-003
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Как Claude stop, чужой step_id → NEED_HUMAN ownership.
+- requirement_id: US-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Как Codex parent, spawn_agent prompt получает GATE_IDENTITY
+    до child.
+- requirement_id: US-005
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Как Codex stop, fence с s05/foreign epic не даёт ownership NEED_HUMAN;
+    identity := SoT.
+- requirement_id: US-006
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Как инженер, я не вижу поштучный coerce в stop.
+- requirement_id: US-007
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: Как runner, freeze+mirror spawn-gate атомарны на prepare.
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: GateIdentity SoT API — единственный ownership reader для Claude/Codex
+    gate fences.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: 'Claude: inject pre-child + strict ownership.'
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: 'Codex: spawn-time SoT delivery + transport_bind на stop.'
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Per-field coerce удалён; тесты переписаны.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: prepare атомарно freeze+mirror; Claude spawn mark+bind.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: Kind I prompts согласованы.
+- requirement_id: 'AC+ #7'
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: DSH не в scope и не «случайно» расширен требованиями.
+- requirement_id: 'AC− #1'
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Нет dual path coerce+SoT bind.
+- requirement_id: 'AC− #2'
+  step_ids:
+  - s01
+  - s02
+  status: covered
+  plan_text_verbatim: Нет ownership от сырого projection.step в обход freeze.
+- requirement_id: 'AC− #3'
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Нет schema-retry на ownership.
+- requirement_id: 'AC− #4'
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Нет «Codex post-wait SubagentStart = inject».
+- requirement_id: 'AC− #5'
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Нет нового DSH adapter scope.
+- requirement_id: 'AC− #6'
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: Нет второго SoT в PromptScope/resolve_session_identity как fence
+    ownership.
+- requirement_id: TM-001
+  step_ids:
+  - s01
+  status: covered
+  plan_text_verbatim: freeze≠armed → expected=freeze
+- requirement_id: TM-002
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Claude stale step ownership
+- requirement_id: TM-003
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Codex wrong fence IDs bind
+- requirement_id: TM-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Codex spawn prompt has GATE_IDENTITY
+- requirement_id: TM-005
+  step_ids:
+  - s03
+  - s05
+  status: covered
+  plan_text_verbatim: agent_id mismatch both runtimes
+- requirement_id: TM-006
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: no coerce ladder leftover
+- requirement_id: TM-007
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: prepare mirror spawn-gate
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

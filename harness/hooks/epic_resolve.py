@@ -583,6 +583,12 @@ def main() -> int:
             from loop.paths.pack_layout import pack_diagnostics
             out.update(pack_diagnostics(cwd))
             print(json.dumps(out, ensure_ascii=False, indent=2))
+            if res.ok and args.mb_cmd in {"analyze", "audit", "qa", "bugfix", "decompose"}:
+                print(
+                    f"mb-finish {args.mb_cmd}: ok=true — stop current turn; "
+                    "no further Read/Bash/tools; next step is a new runner episode",
+                    file=sys.stderr,
+                )
             return 0 if res.ok else 2
 
     if args.cmd == "mb-scaffold":
