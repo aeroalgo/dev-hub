@@ -1,0 +1,115 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s07-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Completed sunset inventory verification across all Kind A, B, C, and I items (23
+  items verified)
+- Verified zero production callers for removed shell orchestration symbols and zero
+  source loop/loop.sh in active tests and instructions
+- Verified loop.sh is a minimal 13-line (7 non-comment lines) execution delegation
+  shim to python3 -m loop.runner
+- Verified fail-closed error handling in SessionInvoker and LoopRunner with zero silent
+  soft-fail fallbacks to shell or Claude
+- Verified active instruction surfaces, READMEs, WORKFLOW, and runbooks teach canonical
+  python3 -m loop.runner and bin/loop
+- Verified full targeted regression test suite passes (114 tests passed across unit,
+  session, orchestrator, e2e, dispatch, and halt parity)
+files:
+- loop/loop.sh
+- bin/loop
+- loop/tests/test_runner_e2e.py
+- README.md
+- loop/README.md
+- loop/WORKFLOW.md
+- LOOP-RUNTIMES.md
+deletes:
+- loop/loop.sh:ensure_dsh_profiles
+- loop/loop.sh:configure_runtime_env
+- loop/loop.sh:find_claude
+- loop/loop.sh:is_epic_spec
+- loop/loop.sh:_cleanup_runner_owner
+- loop/loop.sh:run_claude_session
+- loop/loop.sh:resolve_dsh_bin
+- loop/loop.sh:run_dsh_session
+- loop/loop.sh:run_agent_session
+- loop/loop.sh:_print_prepare_summary
+- loop/loop.sh:_print_prepare_summary / _apply_prepare_session_vars
+- loop/loop.sh:_run_context_prepare
+- loop/loop.sh:_run_context_prepare / _reprepare_for_transient_retry
+- loop/loop.sh:outer while true
+- source loop/loop.sh in tests
+tests:
+- bash -n bin/loop loop/loop.sh
+- test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$' | wc -l) -lt 30
+- '! rg -n ''source .*loop\.sh'' loop/tests/ harness/hooks/tests/'
+- '! rg -n ''source loop/loop\.sh'' README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md
+  harness/instructions/'
+- bin/pytest loop/tests/test_runner_session.py loop/tests/test_runner_orchestrator.py
+  -k 'fail_closed or unknown' -q
+- bin/pytest loop/tests/test_runner_cli.py loop/tests/test_runner_ownership.py loop/tests/test_runner_session.py
+  loop/tests/test_runner_orchestrator.py loop/tests/test_runner_e2e.py -q
+- bin/pytest loop/tests/test_runner_*.py loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py
+  loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py -q
+integration_check:
+- bash -n bin/loop loop/loop.sh
+- test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$' | wc -l) -lt 30
+- bin/pytest loop/tests/test_runner_*.py loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py
+  loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py -q
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- pass
+- pass
+- pass
+- pass
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: Kind A — zero production callers for shell orchestration symbols and
+    zero source loop.sh in tests
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+- id: cp2
+  criterion: Kind B — loop.sh is a minimal delegation shim under 30 non-comment lines
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+- id: cp3
+  criterion: Kind C — runner has fail-closed error handling with zero soft-fail fallbacks
+    to shell or default runtime
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+- id: cp4
+  criterion: Kind I — active instructions, rules, and commands teach canonical Python
+    runner and bin/loop
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+- id: cp5
+  criterion: Obsolete tests sourcing shell scripts are rewritten or purged and test
+    suite is green
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+- id: cp6
+  criterion: Targeted loop runner regression suite is green
+  status: done
+  done_at: '2026-09-11T13:15:00Z'
+resume_from: cp1

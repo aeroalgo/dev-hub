@@ -109,25 +109,6 @@ def parse_cli(argv: Sequence[str] | None = None) -> CliArgs:
     if not argv:
         return CliArgs()
 
-    first = argv[0]
-    if first in ("-h", "--help", "help"):
-        return CliArgs(command="help")
-
-    # Handle direct subcommand shortcuts
-    if first == "status":
-        return CliArgs(command="status", subcommand_args=tuple(argv[1:]))
-    if first == "doctor":
-        return CliArgs(command="doctor", subcommand_args=tuple(argv[1:]))
-    if first == "dashboard":
-        return CliArgs(command="dashboard", subcommand_args=tuple(argv[1:]))
-    if first == "dag-generate":
-        if len(argv) < 2:
-            raise CliParseError("missing value for --dag-generate")
-        pipeline = argv[1]
-        if pipeline == "--pipeline" and len(argv) >= 3:
-            pipeline = argv[2]
-        return CliArgs(command="dag-generate", dag_pipeline=pipeline, subcommand_args=tuple(argv[2:]))
-
     # Check for project dir prefix (e.g. from bin/loop or direct path if it has memory-bank)
     project_dir: str | None = None
     idx = 0
@@ -136,6 +117,28 @@ def parse_cli(argv: Sequence[str] | None = None) -> CliArgs:
         if (cand.is_dir() and (cand / "memory-bank").is_dir()) or argv[0] == ".":
             project_dir = argv[0]
             argv = argv[1:]
+
+    if not argv:
+        return CliArgs(project_dir=project_dir)
+
+    first = argv[0]
+    if first in ("-h", "--help", "help"):
+        return CliArgs(command="help", project_dir=project_dir)
+
+    # Handle direct subcommand shortcuts
+    if first == "status":
+        return CliArgs(command="status", project_dir=project_dir, subcommand_args=tuple(argv[1:]))
+    if first == "doctor":
+        return CliArgs(command="doctor", project_dir=project_dir, subcommand_args=tuple(argv[1:]))
+    if first == "dashboard":
+        return CliArgs(command="dashboard", project_dir=project_dir, subcommand_args=tuple(argv[1:]))
+    if first == "dag-generate":
+        if len(argv) < 2:
+            raise CliParseError("missing value for --dag-generate")
+        pipeline = argv[1]
+        if pipeline == "--pipeline" and len(argv) >= 3:
+            pipeline = argv[2]
+        return CliArgs(command="dag-generate", dag_pipeline=pipeline, project_dir=project_dir, subcommand_args=tuple(argv[2:]))
 
     model: str | None = None
     epic_spec: str | None = None
@@ -343,8 +346,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         sys.stderr.flush()
         return preflight.exit_code or 2
 
-    # Arming step if epic spec or --epic provided
     import loop.context_loop as cl
+    from loop.runner.orchestrator import LoopRunner
+    from loop.runner.ownership import RunnerLockContendedError
+
     target_epic = args.epic_id or args.epic_spec
     if target_epic:
         if args.verbose:
@@ -356,7 +361,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             sys.stderr.flush()
             return 1
 
-    return 0
+    try:
+        outcome = LoopRunner(config).run()
+    except RunnerLockContendedError as exc:
+        sys.stderr.write(f"{exc}\n")
+        sys.stderr.flush()
+        return int(getattr(exc, "exit_code", 1) or 1)
+
+    return int(outcome.exit_code)
 
 
 __all__ = [

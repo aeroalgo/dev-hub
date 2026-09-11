@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s06 — Active operator docs, rules, instructions and architecture data-flow
+  migration IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s06-active-instructions-and-docs.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Updated README.md, loop/README.md, loop/WORKFLOW.md, and LOOP-RUNTIMES.md to present
+  bin/loop and python3 -m loop.runner as canonical supervisor entrypoints and loop.sh
+  as compatibility shim
+- Updated harness/instructions/{epic-loop,loop-state,program-loop}.md and harness/claude/commands/{epic-run,epic-status,loop-run,program-run}.md
+  to invoke canonical bin/loop and python runner
+- Cleaned docs/runbooks/codex-loop-pilot.md and docs/runbooks/dsh-loop-pilot.md to
+  remove internal shell functions and use canonical CLI entrypoints
+files:
+- README.md
+- loop/README.md
+- loop/WORKFLOW.md
+- LOOP-RUNTIMES.md
+- harness/instructions/epic-loop.md
+- harness/instructions/loop-state.md
+- harness/instructions/program-loop.md
+- harness/claude/commands/epic-run.md
+- harness/claude/commands/epic-status.md
+- harness/claude/commands/loop-run.md
+- harness/claude/commands/program-run.md
+- docs/runbooks/codex-loop-pilot.md
+- docs/runbooks/dsh-loop-pilot.md
+deletes: []
+tests:
+- '! rg -n ''source loop/loop\.sh'' README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md'
+- '! rg -n ''source loop/loop\.sh'' harness/instructions/ harness/claude/commands/
+  docs/runbooks/'
+- bin/pytest loop/tests/test_loop_slash_commands.py -q
+integration_check:
+- '! rg -n ''source loop/loop\.sh'' README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md
+  harness/instructions/ harness/claude/commands/ docs/runbooks/'
+- bin/pytest loop/tests/test_loop_slash_commands.py -q
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: Root and loop READMEs, WORKFLOW, and runtime docs describe Python runner
+    and bin/loop without teaching loop.sh functions
+  status: done
+  done_at: '2026-09-11T09:47:54Z'
+- id: cp2
+  criterion: Slash commands, harness instructions, and runbooks invoke canonical bin/loop
+    or python3 -m loop.runner
+  status: done
+  done_at: '2026-09-11T09:47:58Z'
+resume_from: cp1

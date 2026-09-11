@@ -1,0 +1,253 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+slug: epic-layout-v2-fallback-purge
+date: '2026-09-11'
+status: complete
+index_fingerprint: sha256:d823fa1e0c8d8fb69725ea240aed742ed4d3f18564538744dc9e1e907d9879c1
+findings: []
+coverage:
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Как loop, я хочу разрешать plan/decompose/implement только через
+    layout v2, чтобы один epic не имел конкурирующих адресов.
+- requirement_id: US-002
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Как оператор миграции, я хочу перенести текущие legacy implement
+    artifacts в v2 без потери step/status/evidence.
+- requirement_id: US-003
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Как разработчик, я хочу, чтобы Markdown и v1 path fixtures больше
+    не маскировали отсутствие YAML SoT.
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Все live plan/decompose/implement call sites используют `loop.paths.epic_layout`
+    или canonical v2 path API.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Все 8 legacy `implement/implement-*` trees проходят explicit
+    migration/parity check до удаления.
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: '`epic_paths.py` перестаёт искать `plan-*`, `decompose-*` и
+    v1 indexes после cutover.'
+- requirement_id: FR-004
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: '`epic_yaml.py`, `epic/core.py`, `reconcile.py`, `scan_mb.py`,
+    `mb_load/plan_section.py` не имеют v1/Markdown execution fallback.'
+- requirement_id: FR-005
+  step_ids:
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: '`parse_steps_from_md`, `sync_yaml_from_md` и связанные status-write
+    compatibility tests либо удалены, либо оставлены только в offline migration tool
+    с отдельным non-runtime contract.'
+- requirement_id: FR-006
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Ошибка layout/schema не деградирует в другой layout и имеет
+    стабильный diagnostic.
+- requirement_id: FR-007
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Obsolete path tests, fixtures и assertions удалены или переписаны
+    на v2 behavior tests в том же эпике.
+- requirement_id: SC-001
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 0 active v1 layout branches в перечисленных runtime-модулях
+- requirement_id: SC-002
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: 0 live `implement/implement-*` directories в BACK tree
+- requirement_id: SC-003
+  step_ids:
+  - s01
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: v2 arm/load/reconcile/index smoke green
+- requirement_id: SC-004
+  step_ids:
+  - s01
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: legacy path invocation завершается ошибкой, а не v2 lookup
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Вызов canonical v2 для каждого role/epic разрешает plan, decompose
+    index и implement shard без wrapper-ветки.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Legacy `plan-*`, `decompose-*`, `implement-*` и `yaml/steps`
+    runtime paths не вызываются и отсутствуют в active production scope.
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Текущие 8 legacy implement trees мигрированы с сохранением step
+    ids, статусов и ссылок.
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Markdown index остаётся human-readable documentation, но не
+    является источником runtime step/status.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: v1 path/schema input выдаёт explicit failure/diagnostic; silent
+    fallback запрещён.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s01
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Тесты проверяют canonical behavior и denial старого layout,
+    а не наличие старого файла.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: Нет dual v1/v2 resolver path.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s03
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет `try new except legacy` для path resolution.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: Нет production caller у `parse_steps_from_md`/`sync_yaml_from_md`.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: Нет live `implement/implement-*` artifacts после migration gate.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: Нет теста, который требует legacy layout для зелёного runtime.
+- requirement_id: TM-087-01
+  step_ids:
+  - s01
+  - s03
+  - s06
+  status: covered
+  plan_text_verbatim: 'v2 plan lookup: missing plan -> fail-closed diagnostic'
+- requirement_id: TM-087-02
+  step_ids:
+  - s01
+  - s04
+  - s06
+  status: covered
+  plan_text_verbatim: 'v2 index lookup: missing/invalid YAML -> deny arm/load'
+- requirement_id: TM-087-03
+  step_ids:
+  - s01
+  - s02
+  - s06
+  status: covered
+  plan_text_verbatim: 'implement migration: missing step/status -> stop migration,
+    no delete'
+- requirement_id: TM-087-04
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'old target: plan-*/decompose-* input -> layout_v1_removed'
+- requirement_id: TM-087-05
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'board scan: legacy index present -> ignore/diagnose, never
+    execute'
+- requirement_id: TM-087-06
+  step_ids:
+  - s03
+  - s05
+  - s06
+  status: covered
+  plan_text_verbatim: 'mb-load: legacy plan filename -> canonical candidate list /
+    plan_missing'
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

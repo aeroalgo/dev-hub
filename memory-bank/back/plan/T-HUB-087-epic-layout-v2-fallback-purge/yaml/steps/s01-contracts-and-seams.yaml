@@ -1,0 +1,89 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: Characterize layout v2 contracts, denial diagnostics and negative resolution fixtures
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать characterization tests для канонического resolver-а layout v2,
+  определить негативные фикстуры и диагностику отказа при обращении к v1 layout,
+  и составить точный реестр 8 живых legacy implement-деревьев для миграции.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-006
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop.paths.epic_layout.resolve
+    - EpicLayoutKind
+    - memory-bank/back/implement/implement-*
+    - layout_v1_removed
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/decompose-index.yaml
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s01-contracts-and-seams.yaml
+  ac_quotes:
+    - "Вызов canonical v2 для каждого role/epic разрешает plan, decompose index и implement shard без wrapper-ветки."
+    - "v1 path/schema input выдаёт explicit failure/diagnostic; silent fallback запрещён."
+    - "Тесты проверяют canonical behavior и denial старого layout, а не наличие старого файла."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md:19-60"
+
+context:
+  consumes:
+    - loop/paths/epic_layout.py
+    - loop/schemas/epic_layout_schema.py
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md
+  produces:
+    - harness/hooks/tests/test_epic_layout_v2_denial.py
+    - loop/tests/test_v2_path_resolution_regressions.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-006
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - harness/hooks/tests/test_epic_layout_v2_denial.py
+    - loop/tests/test_v2_path_resolution_regressions.py
+
+as_built:
+  - "loop/paths/epic_layout.py содержит функции resolve, resolve_request, discover_v2_epics для layout v2"
+  - "harness/hooks/tests/test_epic_layout_resolver.py проверяет базовый v2 resolver"
+  - "8 живых директорий memory-bank/back/implement/implement-* присутствуют в репозитории"
+
+delta:
+  - "Добавить тесты на отказ и диагностику для v1-путей в harness/hooks/tests/test_epic_layout_v2_denial.py"
+  - "Расширить loop/tests/test_v2_path_resolution_regressions.py проверками v2 contracts и seam baseline"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление legacy-кода из harness/hooks/epic_paths.py (шаг s03)"
+  - "Применение миграции к 8 директориям (шаг s02)"
+  - "Full suite run → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Characterization tests подтверждают корректную работу layout v2 resolver для всех EpicLayoutKind
+    verify: "bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py -q"
+  - id: cp2
+    criterion: Negative characterization tests фиксируют отказ при обращении к v1 layout путям
+    verify: "bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q"
+
+verify: []
+tdd: []

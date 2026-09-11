@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: Remove Markdown runtime execution parsing and enforce fail-closed YAML-only index loading
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить вызовы Markdown status parsing и fallback логику из runtime loader-ов
+  (epic/core.py, epic_index.py), обеспечив строгое fail-closed поведение: отсутствие или
+  невалидность decompose-index.yaml завершается явной ошибкой без попытки парсить index.md.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+    - SC-004
+    - US-003
+  nouns:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_index.py
+    - decompose-index.yaml
+    - load_decompose_steps_fail_closed
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s04-yaml-sot-and-fail-closed-loading.yaml
+  ac_quotes:
+    - "Markdown index остаётся human-readable documentation, но не является источником runtime step/status."
+    - "parse_steps_from_md, sync_yaml_from_md и связанные status-write compatibility tests либо удалены, либо оставлены только в offline migration tool с отдельным non-runtime contract."
+    - "Нет production caller у parse_steps_from_md/sync_yaml_from_md."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md:44-76"
+
+context:
+  consumes:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_index.py
+    - loop/tests/test_index_yaml_only.py
+    - loop/tests/test_index_fail_closed.py
+  produces:
+    - updated YAML-only loading logic in harness/hooks/epic/
+  plan_refs:
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+    - SC-004
+    - US-003
+  files:
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_index.py
+    - loop/tests/test_index_yaml_only.py
+    - loop/tests/test_index_fail_closed.py
+
+as_built:
+  - "harness/hooks/epic/core.py при отсутствии YAML индекса вызывает parse_steps_from_md"
+  - "harness/hooks/epic_index.py экспортирует runtime функции parse_steps_from_md и sync_yaml_from_md"
+
+delta:
+  - "Удалить fallback на parse_steps_from_md из _load_decompose_steps в harness/hooks/epic/core.py"
+  - "Сделать load_decompose_steps_fail_closed строго YAML-only с диагностикой при отсутствии YAML"
+  - "Изолировать parse_steps_from_md от runtime путей"
+
+deletes:
+  - "Markdown parsing fallback in harness/hooks/epic/core.py"
+  - "Runtime invocation of parse_steps_from_md in core resolution"
+
+out_of_scope:
+  - "Массовое удаление устаревших фикстур (шаг s05)"
+  - "Финальный inventory purge (шаг s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Отсутствие decompose-index.yaml вызывает fail-closed ошибку без обращения к index.md
+    verify: "bin/pytest loop/tests/test_index_yaml_only.py loop/tests/test_index_fail_closed.py -q"
+  - id: cp2
+    criterion: В production runtime коде отсутствуют вызовы parse_steps_from_md
+    verify: "rg 'parse_steps_from_md' harness/hooks/epic/core.py || true"
+
+verify: []
+tdd: []

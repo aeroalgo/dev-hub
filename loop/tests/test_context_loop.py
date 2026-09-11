@@ -2784,50 +2784,6 @@ def test_record_abort_401_banned_is_permanent_not_retryable_halt(tmp_path: Path)
     assert "need_human" not in marker
 
 
-def test_loop_shell_skips_check_after_on_retry_cap() -> None:
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    assert "resume_outer=0" in script
-    assert "resume_outer=1" in script
-    assert 'if [[ "$resume_outer" -eq 1 ]]; then' in script
-    assert "continue" in script
-
-
-def test_loop_shell_reprepares_on_transient_retry() -> None:
-    """Transient retry must call prepare again so armed_step matches index.yaml SoT."""
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    assert "_reprepare_for_transient_retry" in script
-    transient_block = script.split("TRANSIENT API abort — retry after", 1)[1].split(
-        "if [[ \"$retryable\" == \"1\" ]]; then", 1
-    )[0]
-    assert "_reprepare_for_transient_retry" in transient_block
-    assert "armed_step resynced" in script
-
-
-def test_loop_shell_has_separate_native_subagent_retry_budget() -> None:
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    assert 'EPIC_SUBAGENT_RETRY_MAX' in script
-    assert '[[ "$reason" == "native collaboration wait timeout" ]]' in script
-    assert "subagent_retries" in script
-    assert "new root Codex session will repeat spawn_agent" in script
-
-
-def test_loop_shell_terminal_transient_retry_returns_to_outer_prepare() -> None:
-    """An EPIC_DONE found during retry must roadmap-advance before outer resume.
-
-    A transport timeout can arrive after the agent has already persisted the
-    FINISH handoff. The retry prepare detects that terminal state; with
-    EPIC_CHAIN_ROADMAP=1 the shell advances immediately, then restarts the outer
-    loop so prepare arms the next epic session.
-    """
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    retry_terminal = script.split('if [[ $reprep_rc -eq 2 ]]; then', 1)[1].split(
-        'if [[ $reprep_rc -ne 0 ]]; then', 1
-    )[0]
-    assert "resume_outer=1" in retry_terminal
-    assert "roadmap-advance" in retry_terminal
-    assert "rec_rc=0" not in retry_terminal
-
-
 def test_record_abort_resyncs_armed_step_on_retryable_abort(tmp_path: Path) -> None:
     """Retryable abort syncs armed_step from index before resume marker."""
     ctx = _load_ctx()

@@ -1,11 +1,6 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-086
-  epic_id: T-HUB-086-python-loop-supervisor-cutover
-  plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
-  deps: []
-  batch: loop-runner-python-20260908
 - id: T-HUB-087
   epic_id: T-HUB-087-epic-layout-v2-fallback-purge
   plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
@@ -359,6 +354,10 @@ done:
   epic_id: T-HUB-085-hook-event-dispatcher-consolidation
   plan: plan-T-HUB-085-hook-event-dispatcher-consolidation.md
   batch: hook-runtime-optimization-20260907
+- id: T-HUB-086
+  epic_id: T-HUB-086-python-loop-supervisor-cutover
+  plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
+  batch: loop-runner-python-20260908
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml

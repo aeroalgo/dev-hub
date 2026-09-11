@@ -1,0 +1,114 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-086
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+epic_id: T-HUB-086-python-loop-supervisor-cutover
+date: 2026-09-11
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: 380f6425767dd9deb2d20163f71429a096a38c363b3c833aef75936b0301c1be
+verify_scope: full
+
+scope:
+  - "task: T-HUB-086"
+  - "epic: T-HUB-086-python-loop-supervisor-cutover"
+  - "steps: s01–s06"
+  - "files: bin/loop, loop/loop.sh, loop/runner/**, loop/tests/**"
+
+ac_plus:
+  - "python3 -m loop.runner --help and loop/loop.sh --help return 0 and show the same operator-relevant options."
+  - "bin/loop resolves a product root exactly as before, then delegates to one Python entrypoint; no shell runner logic is executed after delegation."
+  - "--status, --dag-generate, --phase GAP_FANOUT and doctor paths remain non-session commands and preserve their existing output/exit contracts."
+  - "A normal fake Claude/DSH/Codex session goes through existing adapter and session-resilience contracts, writes the expected log, and returns the runtime exit code to record-session."
+  - "A transient abort re-prepares context before retry, respects configured retry cap/backoff, and resumes outer prepare when cap is reached."
+  - "A permanent failure, model substitution, missing runtime binary, invalid config or DSH profile failure halts non-zero without provider fallback."
+  - "SIGINT/SIGTERM does not cause an outer retry; owned runner.json is cleaned only by the owning pid/session identity."
+  - "check-after action selection is delegated to halt_logic.decide_after_action, and NEED_HUMAN/fail-closed halt is not converted into blind continue."
+  - "Existing runtime state paths, session log retention, last-session.json, trace/incident artifacts and checkpoint ownership remain unchanged."
+  - "Public behavior tests do not source loop.sh, invoke shell functions, or assert implementation text as the only evidence."
+  - "Active docs and instruction surfaces no longer present shell orchestration as the canonical machine path."
+  - "The final purge scan has no A/B/C/I leftovers and the runner shim has exactly one production caller path."
+  - "SC-001: bin/loop --help, bin/loop <project> --status and direct loop/loop.sh --help resolve through Python runner and exit 0."
+  - "SC-002: One fake public loop turn reaches session and terminal decision with no shell function sourcing."
+  - "SC-003: Claude/DSH/Codex runtime-specific command and failure behavior remains green."
+  - "SC-004: rg finds zero production callers of removed shell orchestration symbols and zero source loop/loop.sh in active tests/instructions."
+  - "SC-005: Timeout, interrupt, retry cap, model substitution, missing binary, lock contention and fail-closed check-after have executable evidence."
+  - "SC-006: No second supervisor path remains; loop.sh is a delegation shim under 30 non-comment lines."
+
+ac_minus:
+  - "Нет второго исполняемого supervisor-а с отдельным outer while, retry policy или check-after decision tree."
+  - "Нет source loop/loop.sh в production instructions/tests; shell functions не являются API."
+  - "Нет python3 -c/shell text extraction для machine JSON, runtime result или owner state."
+  - "Нет try new except old, automatic fallback Python → shell или unknown runtime → Claude."
+  - "Misconfiguration, missing binary, invalid adapter, lock contention and malformed result produce explicit non-zero/fail-closed outcome."
+  - "Нет active instruction surface, которая требует чтения/ручного редактирования runner files вместо public status/doctor/CLI."
+  - "Нет obsolete tests, которые вынуждают вернуть удалённый shell contract ради green suite."
+  - "Нет изменения state/telemetry semantics, замаскированного под migration; contract regressions are failures, not accepted migration differences."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> FAILED (34 failed)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+
+issues:
+  - "Suite regression: 34 tests failed during full repository test suite execution"
+
+blockers:
+  - "suite_red: loop/tests/test_roadmap_queue.py::test_roadmap_advance_decompose_prepare_ok_without_index"
+  - "suite_red: loop/tests/test_roadmap_queue.py::test_context_loop_roadmap_advance_cli"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_pin_override"
+  - "suite_red: loop/tests/test_context_loop.py::test_loop_shell_skips_check_after_on_retry_cap"
+  - "suite_red: loop/tests/test_context_loop.py::test_loop_shell_reprepares_on_transient_retry"
+  - "suite_red: loop/tests/test_context_loop.py::test_loop_shell_has_separate_native_subagent_retry_budget"
+  - "suite_red: loop/tests/test_context_loop.py::test_loop_shell_terminal_transient_retry_returns_to_outer_prepare"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_codex_pin_comes_from_native_config"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_worktree_strip"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_allow_verify_markdown_headings"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_deny_parallel_managed"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_deny_same_model_inflight"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_posttool_fail_then_pass_mirrors_epic_last_verify"
+  - "suite_red: loop/tests/test_stop_gate.py::test_loop_runner_uses_bounded_session_wrapper"
+  - "suite_red: loop/tests/test_stop_gate.py::test_loop_sh_does_not_errexit_on_nonzero_session_return"
+  - "suite_red: loop/tests/test_t022_integration.py::test_us001_corrupt_state_json"
+  - "suite_red: loop/tests/test_t022_integration.py::test_us004_save_epic_state_version"
+  - "suite_red: loop/tests/test_t035_invariants.py::test_checkpoint_projection_rebuild_is_idempotent_and_does_not_invent_pending"
+  - "suite_red: loop/tests/test_checkpoint_next_step_advance.py::test_next_step_committed_allows_step_mismatch"
+  - "suite_red: loop/tests/test_checkpoint_next_step_advance.py::test_next_step_committed_rejects_other_field_mismatch"
+  - "suite_red: loop/tests/test_checkpoint_next_step_advance.py::test_next_step_committed_allows_absent_role_in_checkpoint"
+  - "suite_red: loop/tests/test_checkpoint_next_step_advance.py::test_non_next_step_still_conflicts_on_step_mismatch"
+  - "suite_red: loop/tests/test_checkpoint_next_step_advance.py::test_next_step_committed_allows_qa_to_done"
+  - "suite_red: loop/tests/test_finish_receipt_integrity.py::test_finish_succeeds_with_valid_current_verifier_receipt"
+  - "suite_red: loop/tests/test_state_recovery.py::test_rebuilds_missing_state_from_canonical_sources"
+  - "suite_red: loop/tests/test_state_recovery.py::test_rebuilds_malformed_state_and_preserves_runtime_metadata"
+  - "suite_red: loop/tests/test_state_recovery.py::test_cursor_rebuild_does_not_switch_epic"
+  - "suite_red: loop/tests/test_halt_reason_set_on_dirty_resume"
+  - "suite_red: loop/tests/test_status_incidents.py::test_status_metrics_summary"
+  - "suite_red: loop/tests/test_active_context_recovery.py::test_degraded_counter_reaches_configured_cap"
+  - "suite_red: loop/tests/test_projection_identity.py::test_diagnostic_event_changes_projection_identity"
+  - "suite_red: loop/tests/test_dag_scheduler.py::test_scheduler_arms_one_ready_node_in_stable_order"
+  - "suite_red: loop/tests/test_dag_scheduler.py::test_scheduler_reports_dependency_reasons_when_blocked"
+  - "suite_red: harness/hooks/tests/test_no_hardcoded_paths.py::test_no_decompose_hardcoded"
+
+fix_plan:
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_roadmap_queue.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_agent_hooks.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_context_loop.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_stop_gate.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_t022_integration.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_t035_invariants.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_checkpoint_next_step_advance.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_finish_receipt_integrity.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_state_recovery.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_status_incidents.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_active_context_recovery.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_projection_identity.py"
+  - "BACK BUGFIX Fix failing tests in loop/tests/test_dag_scheduler.py"
+  - "BACK BUGFIX Fix failing tests in harness/hooks/tests/test_no_hardcoded_paths.py"
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

@@ -1,6 +1,6 @@
 # Epic loop — fresh session per step
 
-Автоцикл: **`./loop/loop.sh`**  
+Автоцикл: **`./bin/loop`** (Python supervisor: `python3 -m loop.runner`; compatibility shim: `./loop/loop.sh`)  
 Канон переходов: `memory-bank/activeContext.md` + `decompose/index.yaml`; курсор = `memory-bank/activeContext.md`
 
 Один чат = один atomic шаг. Агент читает context и пишет следующий Handoff.
@@ -13,13 +13,13 @@
 **Снаружи** Claude-сессии (отдельный терминал). Агент внутри сессии **не** вызывает runner.
 
 ```bash
-./loop/loop.sh gpt
-./loop/loop.sh decompose-v1-portal gpt
-./loop/loop.sh --status
+./bin/loop gpt
+./bin/loop decompose-v1-portal gpt
+./bin/loop --status
 ```
 
 FORBIDDEN argv (удалены / не поддерживаются): `--track`, `--id`, `--gap`, `--resume-implement`.
-Нет отдельных `epic-loop.sh` / `program-loop.sh` — только `./loop/loop.sh`.
+Нет отдельных `epic-loop.sh` / `program-loop.sh` — канонический запуск через `./bin/loop` (или `./loop/loop.sh` shim).
 
 `decompose-<id>` — ручной switch эпика: **overwrite** `activeContext` из index (первый pending/active/blocked). Без аргумента — текущий activeContext.
 
@@ -57,7 +57,7 @@ Loop держит effective `--permission-mode bypassPermissions`, загруж�
 
 - `activeContext.md` + decompose index + implement step are the transition source of truth; runner status is evidence, not a replacement for those artifacts.
 - A durable checkpoint owns the cursor and `resume_from_step`. Lifecycle checkpoints preserve `pending`, `active`, `completed`, `BLOCKED` and `NEED_HUMAN`; blocked states require explicit validated resume.
-- Canon epic runtime dir: `HUB_ROOT/runtime/<slug>/epic/` (same as `loop.sh` `STATE_DIR` / `epic_paths.epic_dir` when `HUB_ROOT`/`DEV_HUB` set). It contains `next-prompt.txt`, `session-*.log`, `last-session.json` and `state.json`. `state.json` mirrors checkpoint telemetry for status/stop-gate and never owns the durable cursor; agents must not edit it. Checkpoint/index conflicts halt fail-closed.
+- Canon epic runtime dir: `HUB_ROOT/runtime/<slug>/epic/` (same as runner `STATE_DIR` / `epic_paths.epic_dir` when `HUB_ROOT`/`DEV_HUB` set). It contains `next-prompt.txt`, `session-*.log`, `last-session.json` and `state.json`. `state.json` mirrors checkpoint telemetry for status/stop-gate and never owns the durable cursor; agents must not edit it. Checkpoint/index conflicts halt fail-closed.
 - Legacy path (product cwd, no hub env): `PROJECT_ROOT/.claude/runtime/epic/` — fallback only in `epic_paths.epic_dir` when hub is unset; docs and operators treat hub `runtime/<slug>/epic/` as primary.
 - After timeout or process death, inspect `<hub>/runtime/<slug>/epic/last-session.json`, preserve event evidence and resume only from the validated checkpoint. A transient retry cap is bounded and does not reset to the first pending step. Never auto-delete product runtime dirs.
 - Gate status and verifiers: runtime exposes `await_gate` and `get_invocation_status` typed API; worker prompts and parent agents receive typed status views without directory scans or manual status file manipulation.

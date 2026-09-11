@@ -1,0 +1,41 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 5
+  cut_list:
+    - historical archive cleanup
+    - new resolver redesign
+    - operational fallback changes
+steps:
+  - id: s01
+    file: s01-contracts-and-seams.yaml
+    title: Characterize layout v2 contracts, denial diagnostics and negative resolution fixtures
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s02
+    file: s02-migrate-legacy-implement-trees.yaml
+    title: Explicit migration of 8 live legacy implement trees to v2 and parity verification
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s03
+    file: s03-wire-runtime-v2-resolvers.yaml
+    title: Wire runtime modules to canonical v2 resolver without legacy discovery fallback
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s04
+    file: s04-yaml-sot-and-fail-closed-loading.yaml
+    title: Remove Markdown runtime execution parsing and enforce fail-closed YAML-only index loading
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s05
+    file: s05-obsolete-test-and-fixture-rewrite.yaml
+    title: Rewrite and purge obsolete v1 path fixtures and legacy behavior assertions
+    next_phase: BACK IMPLEMENT
+    status: pending
+  - id: s06
+    file: s06-legacy-fallback-purge.yaml
+    title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+    next_phase: BACK IMPLEMENT
+    status: pending

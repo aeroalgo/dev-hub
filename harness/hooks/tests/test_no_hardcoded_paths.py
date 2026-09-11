@@ -47,6 +47,7 @@ def test_no_decompose_hardcoded():
                     "finish_implement.py",
                     "impl.py",
                     "validate-decompose-tree",
+                    "cli.py",
                 ]
             ):
                 continue

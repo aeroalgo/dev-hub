@@ -25,7 +25,14 @@ from loop.mb_finish.finish_implement import (
 from loop.mb_finish.impl import finish_decompose
 from loop.mb_finish.schemas import MbFinishRequest
 from loop.parallel.orchestrator import filter_non_overlapping
-from loop.paths.epic_layout import EpicLayoutKind, resolve
+from loop.paths.epic_layout import (
+    EpicLayoutKind,
+    EpicLayoutResolveRequest,
+    discover_v2_epics,
+    normalize_role_dir,
+    resolve,
+    resolve_request,
+)
 
 
 def _write(path: Path, content: str) -> None:
@@ -95,6 +102,59 @@ def _v2_tree(tmp_path: Path, epic_id: str = "T-HUB-062-v2-paths") -> tuple[Path,
         ),
     )
     return index, index_md, shard
+
+
+def test_v2_all_epic_layout_kinds_resolve_canonical_paths(tmp_path: Path) -> None:
+    """CP1 / FR-001: Characterization test confirming all EpicLayoutKind variants resolve to v2 canonical paths."""
+    epic_id = "T-HUB-087-v2-all-kinds"
+    expected = {
+        EpicLayoutKind.PLAN_MD: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/md/plan.md",
+        EpicLayoutKind.DECOMPOSE_INDEX_MD: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/md/decompose-index.md",
+        EpicLayoutKind.DECOMPOSE_INDEX_YAML: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/yaml/decompose-index.yaml",
+        EpicLayoutKind.DECOMPOSE_STEP: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/yaml/steps/s01-contracts.yaml",
+        EpicLayoutKind.IMPLEMENT_STEP: "memory-bank/back/implement/T-HUB-087-v2-all-kinds/s01-contracts.yaml",
+        EpicLayoutKind.QA_YAML: "memory-bank/back/qa/T-HUB-087-v2-all-kinds/qa.yaml",
+        EpicLayoutKind.ANALYZE_YAML: "memory-bank/back/analyze/T-HUB-087-v2-all-kinds/analyze.yaml",
+        EpicLayoutKind.AUDIT_YAML: "memory-bank/back/audit/T-HUB-087-v2-all-kinds/audit.yaml",
+    }
+    for kind, rel_str in expected.items():
+        step_id = "s01" if "step" in kind.value else None
+        step_slug = "contracts" if "step" in kind.value else None
+        resolved = resolve("back", epic_id, kind, step_id=step_id, step_slug=step_slug, project_root=tmp_path)
+        assert resolved == tmp_path / rel_str
+
+
+def test_v2_resolve_request_pydantic_schema(tmp_path: Path) -> None:
+    """CP1 / FR-001: resolve_request helper accepts typed Pydantic models."""
+    req = EpicLayoutResolveRequest(
+        role="integration",
+        plan_id="T-HUB-087-integ",
+        kind=EpicLayoutKind.DECOMPOSE_STEP,
+        step_id="s02",
+        step_slug="wire",
+    )
+    p = resolve_request(req, project_root=tmp_path)
+    assert p == tmp_path / "memory-bank/integration/plan/T-HUB-087-integ/yaml/steps/s02-wire.yaml"
+
+
+def test_v2_role_normalization_and_discovery(tmp_path: Path) -> None:
+    """CP1 / SC-003: Role normalization and multi-role v2 discovery."""
+    assert normalize_role_dir("BACK") == "back"
+    assert normalize_role_dir("FRONT") == "front"
+    assert normalize_role_dir("integ") == "integration"
+    assert normalize_role_dir("INTEG") == "integration"
+    assert normalize_role_dir("integration") == "integration"
+
+    # Setup v2 epics in front and integration
+    front_plan = resolve("front", "T-FRONT-001", EpicLayoutKind.PLAN_MD, project_root=tmp_path)
+    _write(front_plan, "# Front Plan\n")
+
+    integ_idx = resolve("integ", "T-INTEG-001", EpicLayoutKind.DECOMPOSE_INDEX_YAML, project_root=tmp_path)
+    _write(integ_idx, "schema: epic-decompose-index/v1\n")
+
+    discovered = discover_v2_epics(tmp_path)
+    assert ("front", "T-FRONT-001") in discovered
+    assert ("integration", "T-INTEG-001") in discovered
 
 
 def test_finish_decompose_discovers_v2_index_from_armed_epic(tmp_path: Path) -> None:

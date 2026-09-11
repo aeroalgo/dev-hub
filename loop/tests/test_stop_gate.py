@@ -1490,58 +1490,6 @@ def test_finish_rule_requires_verify_before_mark() -> None:
     assert rule.index("@verify") < rule.index("mark-index-status")
 
 
-def test_loop_runner_uses_bounded_session_wrapper() -> None:
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    assert 'flock -n 9' in script
-    assert 'SESSION_WRAPPER="$HARNESS_HOOKS/session_resilience.py"' in script
-    assert '"$SESSION_WRAPPER" run-session' in script
-    assert '--kill-grace "$EPIC_SESSION_KILL_GRACE_SEC"' in script
-    assert 'command=("$CLAUDE" -p' in script
-    assert 'command=("$CLAUDE" "$prompt"' in script
-
-
-def test_loop_sh_does_not_errexit_on_nonzero_session_return() -> None:
-    """Non-zero claude rc must reach record-session / transient retry.
-
-    Bash errexit: `set -e` then `return 1` inside a function aborts the whole
-    script. That skipped retry after exit_code=1 (Server error mid-response).
-    """
-    script = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
-    fn = script.split("run_claude_session()", 1)[1].split("\n}", 1)[0]
-    assert "return \"$rc\"" in fn
-    assert "set -e\n  return" not in fn
-    assert "set -e\n  return \"$rc\"" not in fn
-    # Live reproduction of the bash gotcha vs the fixed pattern.
-    bad = subprocess.run(
-        [
-            "bash",
-            "-c",
-            "set -euo pipefail\n"
-            "f(){ set +e; rc=1; set -e; return \"$rc\"; }\n"
-            "set +e; f; echo SURVIVED=$?\n",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert "SURVIVED=" not in bad.stdout
-    assert bad.returncode != 0
-    good = subprocess.run(
-        [
-            "bash",
-            "-c",
-            "set -euo pipefail\n"
-            "f(){ set +e; rc=1; return \"$rc\"; }\n"
-            "set +e; f; echo SURVIVED=$?\n",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert "SURVIVED=1" in good.stdout
-    assert good.returncode == 0
-
-
 def _run_user_prompt(cwd: Path, prompt: str, *, epic_loop: bool = True) -> dict:
     _ensure_gate_agents(cwd)
     hook = ROOT / ".claude" / "hooks" / "user-prompt.py"

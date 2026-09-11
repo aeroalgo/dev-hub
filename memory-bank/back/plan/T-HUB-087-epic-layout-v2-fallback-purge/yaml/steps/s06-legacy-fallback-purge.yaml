@@ -1,0 +1,268 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт
+  удалены или переписаны; Kind I instructions переписаны; suite green без restore legacy.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop.paths.epic_layout
+    - decompose-index.yaml
+    - memory-bank/back/implement/
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "0 active v1 layout branches в перечисленных runtime-модулях"
+    - "0 live implement/implement-* directories в BACK tree"
+    - "Нет dual v1/v2 resolver path."
+    - "Нет try new except legacy для path resolution."
+    - "Нет production caller у parse_steps_from_md/sync_yaml_from_md."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md:144-220"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files: []
+
+as_built:
+  - "Шаги s01-s05 мигрировали живые артефакты, перевели runtime callers на v2 resolver и обновили тесты"
+
+delta:
+  - "Выполнить полный inventory scan по всем строкам sunset A/B/C/I"
+  - "Удалить оставшиеся deprecated v1 функции и ссылки в кодовой базе"
+  - "Проверить отсутствие active v1 символов и запустить полный регрессионный сьют"
+
+sunset_inventory:
+  - symbol: harness/hooks/epic_paths.py:find_decompose_index_path v1 branch
+    kind: A
+    replacement: loop.paths.epic_layout.resolve
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_paths.py
+    expect: zero v1 fallback logic
+  - symbol: harness/hooks/epic_paths.py:find_plan_md_path legacy parsing
+    kind: A
+    replacement: v2 plan/<epic>/md/plan.md
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_paths.py
+    expect: zero plan-*.md fallback in v2 resolution
+  - symbol: harness/hooks/epic_yaml.py:resolve_implement_path leftover/v1 branches
+    kind: A
+    replacement: EpicLayoutKind.IMPLEMENT_STEP
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_yaml.py
+    expect: zero implement-* or leftover yaml/steps lookups
+  - symbol: harness/hooks/epic_yaml.py:_resolve_decompose_dir v1 path alternatives
+    kind: A
+    replacement: canonical resolver
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_yaml.py
+    expect: zero decompose-* glob alternatives
+  - symbol: harness/hooks/epic/core.py:_load_decompose_steps Markdown execution path
+    kind: A
+    replacement: YAML-only index loader
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: zero parse_steps_from_md calls
+  - symbol: harness/hooks/epic/reconcile.py:resolve_epic_bundle v1 branch
+    kind: A
+    replacement: v2 implement dir
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/reconcile.py
+    expect: zero implement-{plan_id} fallback
+  - symbol: harness/hooks/epic_resolve.py legacy directory checks
+    kind: A
+    replacement: canonical layout resolver
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_resolve.py
+    expect: zero explicit v1 directory checks
+  - symbol: loop/board_sync/scan_mb.py:_index_paths v1 scan
+    kind: A
+    replacement: v2 glob/resolver
+    policy: delete in-epic
+    rg_scope: loop/board_sync/scan_mb.py
+    expect: zero decompose-*/index.yaml glob
+  - symbol: loop/mb_load/plan_section.py legacy filename candidates
+    kind: A
+    replacement: v2 plan path
+    policy: delete in-epic
+    rg_scope: loop/mb_load/plan_section.py
+    expect: zero plan-<id>[-slug].md candidates
+  - symbol: harness/hooks/epic_index.py:parse_steps_from_md runtime callers
+    kind: A
+    replacement: v2 YAML loader / offline migration tool
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero runtime callers of parse_steps_from_md
+  - symbol: loop/migrate/epic_layout_v1_to_v2.py runtime import
+    kind: A
+    replacement: explicit CLI tool only
+    policy: delete in-epic
+    rg_scope: loop/ harness/
+    expect: zero runtime imports of migration module
+  - symbol: legacy path fixtures/assertions
+    kind: A
+    replacement: v2 fixtures & denial tests
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: zero tests requiring legacy layout for success
+  - symbol: --decompose/path-only arm input
+    kind: B
+    replacement: --epic-id + canonical resolver
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero path-only discovery arming
+  - symbol: implicit v1 migration during load
+    kind: B
+    replacement: explicit migration command
+    policy: delete in-epic
+    rg_scope: loop/mb_load/ harness/hooks/
+    expect: zero automatic in-memory migration
+  - symbol: v2 missing -> v1 path
+    kind: C
+    replacement: explicit missing/invalid diagnostic
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero silent fallback to v1 on missing v2
+  - symbol: YAML missing -> Markdown parse
+    kind: C
+    replacement: fail-closed YAML-only load
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/core.py
+    expect: zero Markdown parsing fallback
+  - symbol: v2 implement missing -> implement-*
+    kind: C
+    replacement: v2 missing diagnostic
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_yaml.py
+    expect: zero implement-* fallback
+  - symbol: instructions naming decompose-*, plan-*.md, implement-* as live paths
+    kind: I
+    replacement: v2 resolver paths
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/
+    expect: zero live path references to v1
+  - symbol: migration wording that implies transparent fallback
+    kind: I
+    replacement: explicit one-time migration then fail-closed runtime
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/
+    expect: zero references to runtime fallback
+
+deletes:
+  - "all dead legacy layout branches across runtime modules"
+
+out_of_scope:
+  - "Archive directory cleanup under memory-bank/archive/"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: _find_layout_v1_deprecated_decompose_index
+    command: 'rg -n "_find_layout_v1_deprecated_decompose_index" harness/hooks/ loop/ || true'
+    expect: no matches
+  - id: inv-a-02
+    kind: A
+    symbol: parse_steps_from_md runtime callers
+    command: 'rg -n "parse_steps_from_md" harness/hooks/epic/core.py || true'
+    expect: no matches
+  - id: inv-a-03
+    kind: A
+    symbol: live implement-* directories
+    command: "python3 -c \"import glob, sys; sys.exit(1 if glob.glob('memory-bank/back/implement/implement-*') else 0)\""
+    expect: exit 0 (zero directories)
+  - id: inv-b-01
+    kind: B
+    symbol: implicit migration on load
+    command: 'rg -n "migrate_epic|migrate_all" loop/mb_load/ harness/hooks/epic/ || true'
+    expect: no matches
+  - id: inv-c-01
+    kind: C
+    symbol: silent fallback in core.py
+    command: 'rg -n "parse_steps_from_md|index\.md" harness/hooks/epic/core.py || true'
+    expect: no matches
+  - id: inv-i-01
+    kind: I
+    symbol: legacy layout live paths in instructions
+    command: 'rg -n "decompose-\*/|implement-\*/" harness/instructions/ || true'
+    expect: no matches
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по каждой строке sunset_inventory kind=A:
+      0 prod callers, 0 dead fallback functions, 0 live implement-* directories.
+    verify: |
+      python3 -c "import glob, sys; sys.exit(1 if glob.glob('memory-bank/back/implement/implement-*') else 0)"
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint inventory: нет неявной миграции при загрузке или arming через v1 пути.
+    verify: |
+      rg -n "migrate_epic|migrate_all" loop/mb_load/ harness/hooks/epic/ || true
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: dual-path / soft default / silent Markdown fallback отсутствуют в core.
+    verify: |
+      rg -n "parse_steps_from_md" harness/hooks/epic/core.py || true
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: инструкции не обучают живым путям v1 layout.
+    verify: |
+      rg -n "decompose-\*/|implement-\*/" harness/instructions/ || true
+  - id: cp5
+    criterion: |
+      Obsolete tests на старый контракт удалены или переписаны; suite green без restore legacy.
+    verify: "bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py -q"
+  - id: cp6
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest harness/hooks/tests/ loop/tests/ -q --tb=line -k 'epic_layout or v2_path or index_yaml'"
+
+verify: []
+tdd: []

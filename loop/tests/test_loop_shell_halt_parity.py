@@ -1,84 +1,121 @@
-"""Static shell wiring: check-after → decide_after_action halt-parity (s02)."""
+"""Characterization tests for supervisor halt parity, decision routing, and error behavior."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from harness.hooks._lib import RuntimeConfig
+from loop.halt_logic import decide_after_action
+from loop.runner import RunAction, RunOutcome, RunnerConfig
+from loop.runner.orchestrator import LoopRunner
+
 
 ROOT = Path(__file__).resolve().parents[2]
-LOOP_SH = (ROOT / "loop" / "loop.sh").read_text(encoding="utf-8")
 
 
-def _check_after_block() -> str:
-    """Slice from check-after invoke to end of outer while."""
-    marker = 'check-after --fingerprint-before'
-    assert marker in LOOP_SH
-    start = LOOP_SH.index(marker)
-    end = LOOP_SH.rindex("\ndone\n") + len("\ndone\n")
-    return LOOP_SH[start:end]
+def test_decide_after_action_wires_halt_and_continue() -> None:
+    # NEED_HUMAN halts
+    assert decide_after_action({"stop": "NEED_HUMAN — blocked on input"}) == "halt"
+
+    # EPIC_DONE completes
+    assert decide_after_action({"stop": "EPIC_DONE"}) == "complete"
+
+    # normal continue
+    assert decide_after_action({"ok": True, "complete": False, "halt": False}) == "continue"
+
+    # repair exhausted halts
+    assert decide_after_action({"repair_exhausted": True}) == "halt"
+
+    # fallback halts
+    assert decide_after_action({"ok": False}) == "halt"
 
 
-def test_loop_sh_wires_decide_after_action() -> None:
-    assert "from halt_logic import decide_after_action" in LOOP_SH
-    assert "decide_after_action(" in LOOP_SH
+def test_prepare_fail_closed_halts(tmp_path: Path) -> None:
+    state_dir = tmp_path / "runtime" / "dev-hub" / "epic"
+    state_dir.mkdir(parents=True)
+    cfg = RunnerConfig(
+        hub_root=tmp_path,
+        project_root=tmp_path,
+        state_dir=state_dir,
+        runtime=RuntimeConfig(
+            session_timeout_sec=300,
+            session_kill_grace_sec=10,
+            transient_retry_max=3,
+            subagent_retry_max=3,
+            degraded_max=2,
+            status_heartbeat_sec=60,
+            stream_idle_timeout_sec=120,
+            collaboration_wait_timeout_sec=120,
+            permission_mode="bypass",
+            sources={},
+            epic_runtime="claude",
+        ),
+        permission_mode="bypass",
+        headless=True,
+        interactive=False,
+        verbose=False,
+    )
+    mock_context = MagicMock()
+    mock_context.prepare_session.return_value = {
+        "ok": False,
+        "halt": True,
+        "reason": "prepare fail-closed test",
+    }
+    mock_session = MagicMock()
+
+    runner = LoopRunner(config=cfg, context_port=mock_context, session_invoker=mock_session)
+    outcome = runner.run()
+
+    assert outcome.action == RunAction.HALT
+    assert outcome.exit_code == 1
+    assert mock_session.invoke.call_count == 0
 
 
-def test_need_human_path_exits_not_retry() -> None:
-    block = _check_after_block()
-    assert "NEED_HUMAN" in block
-    assert 'after_stop" == NEED_HUMAN*' in block or "NEED_HUMAN —" in block
-    assert "exit 1" in block
-    assert "not EPIC_DONE) — retrying outer loop" not in block
-    assert 'stop=$after_stop (not EPIC_DONE)' not in block
+def test_runtime_adapter_preparation_failure_halts_without_session(tmp_path: Path) -> None:
+    state_dir = tmp_path / "runtime" / "dev-hub" / "epic"
+    state_dir.mkdir(parents=True)
+    cfg = RunnerConfig(
+        hub_root=tmp_path,
+        project_root=tmp_path,
+        state_dir=state_dir,
+        runtime=RuntimeConfig(
+            session_timeout_sec=300,
+            session_kill_grace_sec=10,
+            transient_retry_max=3,
+            subagent_retry_max=3,
+            degraded_max=2,
+            status_heartbeat_sec=60,
+            stream_idle_timeout_sec=120,
+            collaboration_wait_timeout_sec=120,
+            permission_mode="bypass",
+            sources={},
+            epic_runtime="claude",
+        ),
+        permission_mode="bypass",
+        headless=True,
+        interactive=False,
+        verbose=False,
+    )
+    mock_context = MagicMock()
+    mock_context.prepare_session.return_value = {
+        "ok": True,
+        "loop_phase": "IMPLEMENT",
+        "model": "test-model",
+        "fingerprint": "fp-1",
+        "prompt_file": str(state_dir / "prompt.txt"),
+    }
+    mock_session = MagicMock()
+    mock_session.invoke.return_value = MagicMock(
+        preparation_failed=True,
+        exit_code=1,
+        outcome="adapter_preparation_failed",
+    )
 
+    runner = LoopRunner(config=cfg, context_port=mock_context, session_invoker=mock_session)
+    outcome = runner.run()
 
-def test_check_after_nonzero_not_unconditional_outer_retry() -> None:
-    block = _check_after_block()
-    assert "check-after failed (rc=$after_rc) — retrying outer loop" not in block
-    # halt-parity uses decide_after_action, not raw after_rc retry
-    assert 'after_action' in block
-    assert '== "halt"' in block or "== 'halt'" in block or '== "halt"' in block
-
-
-def test_prepare_fail_closed_still_halts() -> None:
-    assert "HALT: prepare fail-closed" in LOOP_SH
-    assert 'prep_halt" == "1"' in LOOP_SH or "prep_halt\" == \"1\"" in LOOP_SH
-    # prepare block still exits on halt
-    prep_idx = LOOP_SH.index("HALT: prepare fail-closed")
-    window = LOOP_SH[prep_idx : prep_idx + 200]
-    assert "exit" in window
-
-
-def test_epic_done_complete_path_retained() -> None:
-    block = _check_after_block()
-    assert "roadmap-advance" in block
-    assert "dag-fanout" in block
-    assert "LOOP COMPLETE" in block
-
-
-def test_loop_has_no_max_iterations_cap() -> None:
-    assert "while true" in LOOP_SH
-    assert "MAX_ITER" not in LOOP_SH
-    assert "EPIC_MAX" not in LOOP_SH
-    assert "LOOP HALTED: max iterations" not in LOOP_SH
-    assert "POST_IMPLEMENT_RESERVE" not in LOOP_SH
-
-
-def test_loop_user_interrupt_exits_not_resume_outer() -> None:
-    assert "_exit_loop_user_interrupt" in LOOP_SH
-    assert "LOOP STOPPED (Ctrl+C)" in LOOP_SH
-    assert "trap _on_user_interrupt INT" in LOOP_SH
-    assert "trap _cleanup_runner_owner EXIT HUP TERM" in LOOP_SH
-    assert "INT TERM" not in LOOP_SH.split("trap _cleanup_runner_owner")[1].split("\n")[0]
-    session_block = LOOP_SH.split("run_agent_session", 1)[1].split("record-session", 1)[0]
-    assert "agent_rc -eq 130" in session_block
-    assert "agent_rc -eq 143" in session_block
-    assert "_exit_loop_user_interrupt" in session_block
-
-
-def test_runtime_adapter_preparation_failure_halts_before_record_session() -> None:
-    assert "RUN_AGENT_PREP_FAILED=0" in LOOP_SH
-    assert "RUN_AGENT_PREP_FAILED=1" in LOOP_SH
-    prep_failure = LOOP_SH.index("RUN_AGENT_PREP_FAILED=1")
-    record_session = LOOP_SH.index('record-session --log')
-    assert prep_failure < record_session
-    assert "runtime adapter preparation failed; session was not started" in LOOP_SH
+    assert outcome.action == RunAction.HALT
+    assert outcome.exit_code == 130

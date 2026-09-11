@@ -1,0 +1,74 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s05 — Cutover loop.sh to exec shim, bin/loop delegation and shell-source test
+  rewrite IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s05-cutover-and-compatibility-shims.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Replaced loop/loop.sh (1172 lines) with a minimal 7-line exec shim delegating to
+  python3 -m loop.runner
+- Updated bin/loop launcher to delegate directly to canonical python runner and loop.sh
+  shim with identical argument forwarding
+- Rewrote test_loop_dsh_dispatch.py, test_dsh_e2e_smoke.py, test_loop_shell_halt_parity.py,
+  and test_session_boundary.py to test through public CLI and Python runner API instead
+  of sourcing loop.sh
+- Created loop/tests/test_runner_e2e.py testing end-to-end execution of bin/loop and
+  loop.sh with fake runtime across full loop turn
+files:
+- loop/loop.sh
+- bin/loop
+- loop/tests/test_loop_dsh_dispatch.py
+- loop/tests/test_dsh_e2e_smoke.py
+- loop/tests/test_loop_shell_halt_parity.py
+- loop/tests/test_session_boundary.py
+- loop/tests/test_runner_e2e.py
+deletes:
+- loop/loop.sh:ensure_dsh_profiles
+- loop/loop.sh:configure_runtime_env
+- loop/loop.sh:find_claude
+- loop/loop.sh:is_epic_spec
+- loop/loop.sh:_cleanup_runner_owner
+- loop/loop.sh:run_claude_session
+- loop/loop.sh:resolve_dsh_bin
+- loop/loop.sh:run_dsh_session
+- loop/loop.sh:run_agent_session
+- loop/loop.sh:_print_prepare_summary
+- loop/loop.sh:_apply_prepare_session_vars
+- loop/loop.sh:_run_context_prepare
+- loop/loop.sh:_reprepare_for_transient_retry
+- loop/loop.sh:outer while true loop and all shell process supervision functions
+- source loop/loop.sh calls in loop/tests/
+tests:
+- bash -n loop/loop.sh bin/loop && test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$'
+  | wc -l) -lt 30
+- bin/pytest loop/tests/test_runner_e2e.py -q
+- bin/pytest loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py
+  loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py -q
+integration_check:
+- bin/pytest loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py
+  loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py loop/tests/test_runner_e2e.py
+  -q
+grep_control: []
+verification_results:
+- pass
+- pass
+- pass
+checkpoints:
+- id: cp1
+  criterion: loop.sh is replaced with a minimal exec shim (<30 non-comment lines)
+    and bash -n loop/loop.sh bin/loop passes
+  status: done
+- id: cp2
+  criterion: End-to-end tests through bin/loop and loop.sh execute a full fake loop
+    turn successfully
+  status: done
+- id: cp3
+  criterion: Rewritten dispatch and halt tests pass without sourcing loop.sh
+  status: done

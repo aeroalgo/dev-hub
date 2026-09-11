@@ -205,38 +205,45 @@ class TestPathAndConfigResolution:
         assert state == hub / "runtime" / "my_app" / "epic"
 
     def test_load_project_environment(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        hub = tmp_path / "hub"
-        hub.mkdir()
-        (hub / ".claude").mkdir()
-        (hub / ".claude" / "project.env").write_text("FOO_HUB=bar_hub\n", encoding="utf-8")
+        env_backup = dict(os.environ)
+        try:
+            hub = tmp_path / "hub"
+            hub.mkdir()
+            (hub / ".claude").mkdir()
+            (hub / ".claude" / "project.env").write_text("FOO_HUB=bar_hub\n", encoding="utf-8")
 
-        proj = tmp_path / "proj"
-        proj.mkdir()
-        (proj / "memory-bank").mkdir()
-        (proj / ".claude").mkdir()
-        (proj / ".claude" / "project.env").write_text("FOO_PROJ=bar_proj\n", encoding="utf-8")
+            proj = tmp_path / "proj"
+            proj.mkdir()
+            (proj / "memory-bank").mkdir()
+            (proj / ".claude").mkdir()
+            (proj / ".claude" / "project.env").write_text("FOO_PROJ=bar_proj\n", encoding="utf-8")
 
-        monkeypatch.setenv("HUB_ROOT", str(hub))
-        monkeypatch.setenv("PROJECT_ROOT", str(proj))
-
-        applied = load_project_environment(proj, hub, runtime_name="claude")
-        assert os.environ["HUB_ROOT"] == str(hub)
-        assert os.environ["PROJECT_ROOT"] == str(proj)
-        assert os.environ["EPIC_LOOP"] == "1"
-        assert os.environ["CLAUDE_PROJECT_DIR"] == str(hub)
-        assert "DSH_HOOKS_BRIDGE" not in os.environ
-        assert os.environ.get("FOO_HUB") == "bar_hub"
-        assert os.environ.get("FOO_PROJ") == "bar_proj"
+            applied = load_project_environment(proj, hub, runtime_name="claude")
+            assert os.environ["HUB_ROOT"] == str(hub)
+            assert os.environ["PROJECT_ROOT"] == str(proj)
+            assert os.environ["EPIC_LOOP"] == "1"
+            assert os.environ["CLAUDE_PROJECT_DIR"] == str(hub)
+            assert "DSH_HOOKS_BRIDGE" not in os.environ
+            assert os.environ.get("FOO_HUB") == "bar_hub"
+            assert os.environ.get("FOO_PROJ") == "bar_proj"
+        finally:
+            os.environ.clear()
+            os.environ.update(env_backup)
 
     def test_load_project_environment_dsh_bridge(self, tmp_path: Path) -> None:
-        hub = tmp_path / "hub"
-        hub.mkdir()
-        proj = tmp_path / "proj"
-        proj.mkdir()
+        env_backup = dict(os.environ)
+        try:
+            hub = tmp_path / "hub"
+            hub.mkdir()
+            proj = tmp_path / "proj"
+            proj.mkdir()
 
-        load_project_environment(proj, hub, runtime_name="dsh")
-        assert os.environ["DSH_HOOKS_BRIDGE"] == "1"
-        assert os.environ["CLAUDE_PROJECT_DIR"] == str(proj)
+            load_project_environment(proj, hub, runtime_name="dsh")
+            assert os.environ["DSH_HOOKS_BRIDGE"] == "1"
+            assert os.environ["CLAUDE_PROJECT_DIR"] == str(proj)
+        finally:
+            os.environ.clear()
+            os.environ.update(env_backup)
 
     def test_resolve_runner_config_precedence(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         hub = resolve_hub_root()
@@ -325,3 +332,44 @@ class TestMainExecution:
         assert code == 0
         captured = capsys.readouterr()
         assert "{" in captured.out
+
+    def test_main_run_invokes_loop_runner(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from loop.runner import RunAction, RunOutcome
+
+        proj = tmp_path / "proj"
+        proj.mkdir()
+        (proj / "memory-bank").mkdir()
+        (proj / "memory-bank" / "activeContext.md").write_text(
+            "---\nschema: loop-handoff/v1\nrole: BACK\nmode: IMPLEMENT\n"
+            "epic_id: T-01\nstep_id: s01\n---\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("PROJECT_ROOT", str(proj))
+        monkeypatch.setenv("EPIC_RUNTIME", "claude")
+
+        calls: list[Any] = []
+
+        class _FakeRunner:
+            def __init__(self, config: Any, **kwargs: Any) -> None:
+                calls.append(("init", config, kwargs))
+
+            def run(self) -> RunOutcome:
+                calls.append(("run",))
+                return RunOutcome(action=RunAction.COMPLETE, exit_code=0, reason="test")
+
+        monkeypatch.setattr("loop.runner.orchestrator.LoopRunner", _FakeRunner)
+        monkeypatch.setattr(
+            "loop.runner.cli.run_preflight_checks",
+            lambda config, **kwargs: type(
+                "PF",
+                (),
+                {"ok": True, "reason": None, "exit_code": 0},
+            )(),
+        )
+
+        code = main(["gpt-test-model"])
+        assert code == 0
+        assert any(c[0] == "run" for c in calls)
+        assert any(c[0] == "init" for c in calls)

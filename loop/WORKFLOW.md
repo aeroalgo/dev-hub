@@ -9,7 +9,7 @@
 > **Тесты (канон):** [`.cursor/rules/shared/test-timeout.mdc`](../.cursor/rules/shared/test-timeout.mdc) — каждая test-команда запускается с внешним таймаутом 300 секунд.
 > **HARD:** эпик **не** DONE / `EPIC_DONE`, пока нет **QA pass** + **REFLECT**  
 > **Курсор сессии:** `memory-bank/activeContext.md` (проекция)  
-> **Runner:** [`context_loop.py`](context_loop.py) · [`./loop.sh`](loop.sh)
+> **Runner:** [`loop/runner/`](runner/) (`python3 -m loop.runner`) · [`bin/loop`](../bin/loop) (shim: [`./loop.sh`](loop.sh))
 
 | Канон | Путь |
 |-------|------|
@@ -18,7 +18,7 @@
 | Переходы | `activeContext.md` + `context_loop.py`/`epic` gates |
 | Gate DONE | `epic.epic_complete_allowed` (QA + reflection) |
 | Chain next epic | `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance` |
-| Runner | `./loop/loop.sh` → `context_loop.py` |
+| Runner | `bin/loop` → `python3 -m loop.runner` (shim: `./loop/loop.sh`) |
 | **Runtime bounds** | `EPIC_SESSION_TIMEOUT_SEC`, `EPIC_SESSION_KILL_GRACE_SEC`, `EPIC_TRANSIENT_RETRY_MAX`, `EPIC_SUBAGENT_RETRY_MAX`, `EPIC_DEGRADED_MAX`, `EPIC_STATUS_HEARTBEAT_SEC`, `EPIC_COLLAB_WAIT_TIMEOUT_SEC`, `EPIC_CHAIN_ROADMAP`, `EPIC_RUNTIME` |
 | **Checkpoint** | durable cursor + `resume_from_step`; `state.json` — telemetry projection only |
 | **Scheduler** | `loop-dag/v2`, dependency-ready nodes sequentially, one checkout |
@@ -27,7 +27,7 @@
 
 При синхронизации с task-board через `hub-board`:
 - **Единая карточка эпика (`card_kind: epic`):** На доске создаётся одна карточка на уровень эпика, вместо множества атомарных карточек отдельных шагов `sNN`.
-- **Arm epic & Run:** Армирование контекста выполняется через `arm_epic` (`python3 loop/context_loop.py arm-epic <epic_id>`). Запуск выполнения эпика с таскборда выполняется по кнопке **Run** на карточке эпика или через CLI `./loop/loop.sh --epic-id <epic_id>`.
+- **Arm epic & Run:** Армирование контекста выполняется через `arm_epic` (`python3 loop/context_loop.py arm-epic <epic_id>`). Запуск выполнения эпика с таскборда выполняется по кнопке **Run** на карточке эпика или через CLI `./bin/loop --epic-id <epic_id>`.
 - **Column logic (Статусы колонок):**
   - `running`: эпик в очереди на позициях активной работы (rank 0 / active) и в процессе выполнения (phase PLAN, DECOMPOSE, IMPLEMENT, QA, etc.).
   - `backlog`: эпик находится в очереди roadmap (`roadmap/queue.yaml`), но ждёт своей очереди (rank > 0).

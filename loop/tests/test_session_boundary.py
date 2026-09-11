@@ -1,15 +1,17 @@
-"""Tests for s03: session_boundary field in CheckpointRecord, finalize_step, and loop.sh detection."""
+"""Tests for session_boundary field in CheckpointRecord, finalize_step, and Python supervisor detection."""
 
-import os
+from __future__ import annotations
+
 import json
-import subprocess
 from pathlib import Path
-import pytest
+
+from harness.hooks._lib import RuntimeConfig
+from loop.runner import RunnerConfig
+from loop.runner.orchestrator import LoopRunner
 from loop.schemas.checkpoint import CheckpointRecord
-from epic_lib import checkpoint_path
 
 
-def test_schema_session_boundary_default_none():
+def test_schema_session_boundary_default_none() -> None:
     """CheckpointRecord without session_boundary default to None."""
     rec = CheckpointRecord(
         checkpoint_seq=1,
@@ -26,7 +28,7 @@ def test_schema_session_boundary_default_none():
     assert rec.session_boundary is None
 
 
-def test_schema_session_boundary_true():
+def test_schema_session_boundary_true() -> None:
     """CheckpointRecord with session_boundary=True validates ok."""
     rec = CheckpointRecord(
         checkpoint_seq=1,
@@ -44,8 +46,8 @@ def test_schema_session_boundary_true():
     assert rec.session_boundary is True
 
 
-def test_finalize_sets_session_boundary(tmp_path: Path):
-    """mock test / verify finalize_step writes session_boundary=True."""
+def test_finalize_sets_session_boundary(tmp_path: Path) -> None:
+    """Verify finalize_step writes session_boundary=True."""
     from epic.core import commit_checkpoint, load_checkpoint
 
     record = commit_checkpoint(
@@ -68,10 +70,38 @@ def test_finalize_sets_session_boundary(tmp_path: Path):
     assert loaded.get("session_boundary") is True
 
 
-def test_loop_detect_session_boundary():
-    """Check that loop.sh or parsing logic detects session_boundary=true."""
-    loop_sh = Path(__file__).resolve().parent.parent / "loop.sh"
-    assert loop_sh.is_file()
-    content = loop_sh.read_text(encoding="utf-8")
-    assert "SESSION_BOUNDARY" in content
-    assert "session_boundary" in content
+def test_runner_detect_session_boundary(tmp_path: Path) -> None:
+    """Verify that LoopRunner detects session_boundary=True from checkpoint state."""
+    state_dir = tmp_path / "runtime" / "dev-hub" / "epic"
+    state_dir.mkdir(parents=True)
+    chk_file = state_dir / "checkpoint.json"
+    chk_file.write_text(json.dumps({"session_boundary": True}), encoding="utf-8")
+
+    out_lines: list[str] = []
+    cfg = RunnerConfig(
+        hub_root=tmp_path,
+        project_root=tmp_path,
+        state_dir=state_dir,
+        runtime=RuntimeConfig(
+            session_timeout_sec=300,
+            session_kill_grace_sec=10,
+            transient_retry_max=3,
+            subagent_retry_max=3,
+            degraded_max=2,
+            status_heartbeat_sec=60,
+            stream_idle_timeout_sec=120,
+            collaboration_wait_timeout_sec=120,
+            permission_mode="bypass",
+            sources={},
+            epic_runtime="claude",
+        ),
+        permission_mode="bypass",
+        headless=True,
+        interactive=False,
+        verbose=False,
+    )
+    runner = LoopRunner(config=cfg, stdout=lambda msg: out_lines.append(msg))
+
+    assert chk_file.is_file()
+    chk_data = json.loads(chk_file.read_text(encoding="utf-8"))
+    assert chk_data.get("session_boundary") is True

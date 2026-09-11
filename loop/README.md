@@ -5,16 +5,16 @@
 **Канон переходов:** `memory-bank/activeContext.md` + `plan/decompose-*/index.yaml` + implement step.  
 **Очередь эпиков (loop canon):** `memory-bank/back/roadmap/queue.yaml` (yaml-only). Opt-in: `EPIC_CHAIN_ROADMAP=1` → `roadmap-advance`. Default `0` — stop / optional DAG fanout.
 MULTI-EPIC PLAN дописывает `queue.yaml` (`batch` + `batches.<slug>`); **`* PLAN` не** плодит `plan/roadmap-*`. Ручной `BACK|FRONT|INTEG ROADMAP MERGE` — ops reconcile. Template: `roadmap-queue.yaml`.
-Для cross-epic journey runner использует runner-owned `loop/dag/*.yaml`: манифест `loop-dag/v2`, dependency-ready узлы выбираются последовательно и стабильно. `GAP_FANOUT` в текущем checkout запускается вручную через `./loop/loop.sh --phase GAP_FANOUT`; он не является автоматическим переходом `loop.sh`.  
+Для cross-epic journey runner использует runner-owned `loop/dag/*.yaml`: манифест `loop-dag/v2`, dependency-ready узлы выбираются последовательно и стабильно. `GAP_FANOUT` в текущем checkout запускается вручную через `./bin/loop --phase GAP_FANOUT` (или `./loop/loop.sh --phase GAP_FANOUT` compatibility shim); он не является автоматическим переходом `bin/loop`.  
 Следующий шаг и режим выбираются по activeContext; DAG только переключает эпики. Durable checkpoint cursor не принадлежит `state.json`: `state.json` — телеметрическая проекция checkpoint, а конфликт checkpoint/index останавливается fail-closed.  
 Runner владеет сессией, bounded timeout/retry и status evidence; агент владеет содержимым шага, Handoff и state mutation только через канонические артефакты.
 
 DAG-команды:
 
 ```bash
-./loop/loop.sh --dag-generate portal
-./loop/loop.sh --phase GAP_FANOUT
-./loop/loop.sh --status
+./bin/loop --dag-generate portal
+./bin/loop --phase GAP_FANOUT
+./bin/loop --status
 ```
 
 Phase C canary (локальная evidence-проверка dev-hub self-test, без запуска runner):
@@ -33,8 +33,8 @@ Canary проверяет `canary-finish-integrity`: только последо
 | **Курсор/переходы** | `memory-bank/activeContext.md` + decompose index |
 | **Transition Engine** | `loop/epic_transition.py` (Unified Phase API) |
 | **Гайд** | [`WORKFLOW.md`](WORKFLOW.md) |
-| **CLI** | `loop/context_loop.py` |
-| **Runner** | `./loop/loop.sh` |
+| **CLI** | `bin/loop` · `python3 -m loop.runner` |
+| **Runner** | `python3 -m loop.runner` (Python supervisor) / `./loop/loop.sh` (shim) |
 | **Тесты** | `bin/pytest loop/tests -q` (dev-hub self-test) |
 | **FINISH** | `.cursor/rules/shared/finish-block.mdc` |
 
@@ -58,10 +58,10 @@ graph TD
 - **Incidents Event Log (`incidents.jsonl`)**: Structured record of all reported incidents, diagnostic codes, timestamps, and Tier-0 resolution outcomes.
 - **Trace Event Stream (`events.jsonl`)**: Event stream recording state transitions, session starts, and step executions.
 - **Metrics Aggregator (`metrics.json`)**: Real-time aggregation of session durations, incident counts, and repair success rates.
-- **Loop Doctor CLI (`python3 loop/context_loop.py doctor`)**: Diagnostic command to scan system health, audit locks, verify activeContext shape, check finish integrity, and trigger Tier-0 repairs manually or automatically (`--auto-repair`). Optional preflight execution in `loop.sh` is controlled via `EPIC_LOOP_DOCTOR_PREFLIGHT=1` (default 0).
+- **Loop Doctor CLI (`bin/loop doctor` / `python3 -m loop.runner doctor`)**: Diagnostic command to scan system health, audit locks, verify activeContext shape, check finish integrity, and trigger Tier-0 repairs manually or automatically (`--auto-repair`). Optional preflight execution in supervisor is controlled via `EPIC_LOOP_DOCTOR_PREFLIGHT=1` (default 0).
 - **Tier-0 Auto-Repair Chain**: Automated diagnostic and repair routines invoked during session `check_after` or via `doctor`. Handles deterministic issues such as lock staleness, activeContext formatting, and transient runtime state cleanup. If Tier-0 repair cannot auto-resolve an incident, escalation follows the Tier-0 → Tier-1 alert and routing pipeline (see T-HUB-018 specification).
 - **Traceability Verification (`EPIC_TRACEABILITY_CHECK`)**: Traceability verification runs by default (ON) during DECOMPOSE promotion to ensure requirement coverage before execution. Set `EPIC_TRACEABILITY_CHECK=0` to opt-out.
-- **Loop Status Extensions (`python3 loop/context_loop.py status`)**: Reports active epic, current step, open incidents, and metric summaries.
+- **Loop Status Extensions (`bin/loop --status` / `python3 -m loop.runner --status`)**: Reports active epic, current step, open incidents, and metric summaries.
 
 For incident registry specification, environment flags (`EPIC_INCIDENT_TRACE`, `EPIC_INCIDENT_METRICS`), and runbooks, see [`loop/incidents/README.md`](incidents/README.md).
 
@@ -84,10 +84,10 @@ Inspect episodes using CLI commands:
 
 ```bash
 # List recent episodes summary table
-python3 loop/context_loop.py episode-list --last 10
+python3 -m loop.context_loop episode-list --last 10
 
 # Show detailed manifest and artifacts bundle for an episode
-python3 loop/context_loop.py episode-show 20260831_120000_thub031_abcd
+python3 -m loop.context_loop episode-show 20260831_120000_thub031_abcd
 ```
 
 ### Retention & Disk Growth
@@ -192,9 +192,9 @@ bin/pytest -q --tb=no 2>&1 | rg '^FAILED' | rg 'test_sc006|test_legacy_stubs|tes
 - **Rollback:** stop new scheduling, preserve event/checkpoint evidence, restore the last validated cursor or `resume_from_step`, and use a labelled manual fallback. Never delete `state.json` or reset to the first pending step to hide a conflict.
 
 ```bash
-./loop/loop.sh gpt
-./loop/loop.sh decompose-T-033-concurrent-jobs-outbox gpt implement
-./loop/loop.sh --status
+./bin/loop gpt
+./bin/loop decompose-T-033-concurrent-jobs-outbox gpt implement
+./bin/loop --status
 ```
 
 ## Phase verify agents

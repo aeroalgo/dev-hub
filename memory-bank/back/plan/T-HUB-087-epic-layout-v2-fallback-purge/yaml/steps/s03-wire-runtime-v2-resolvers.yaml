@@ -1,0 +1,99 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: Wire runtime modules to canonical v2 resolver without legacy discovery fallback
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перевести все runtime модули (epic_paths.py, epic_yaml.py, reconcile.py, scan_mb.py,
+  mb_load/plan_section.py, epic_resolve.py) на прямое использование loop.paths.epic_layout
+  и удалить дублирующие v1 ветки поиска/glob discovery.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - FR-004
+    - SC-001
+    - SC-003
+    - US-001
+  nouns:
+    - loop.paths.epic_layout.resolve
+    - harness/hooks/epic_paths.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic/reconcile.py
+    - loop/board_sync/scan_mb.py
+    - loop/mb_load/plan_section.py
+    - harness/hooks/epic_resolve.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s03-wire-runtime-v2-resolvers.yaml
+  ac_quotes:
+    - "Все live plan/decompose/implement call sites используют loop.paths.epic_layout или canonical v2 path API."
+    - "epic_paths.py перестаёт искать plan-*, decompose-* и v1 indexes после cutover."
+    - "epic_yaml.py, epic/core.py, reconcile.py, scan_mb.py, mb_load/plan_section.py не имеют v1/Markdown execution fallback."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md:41-85"
+
+context:
+  consumes:
+    - loop/paths/epic_layout.py
+    - harness/hooks/epic_paths.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic/reconcile.py
+    - loop/board_sync/scan_mb.py
+    - loop/mb_load/plan_section.py
+    - harness/hooks/epic_resolve.py
+  produces:
+    - updated runtime resolver wiring in harness/hooks/ and loop/
+  plan_refs:
+    - FR-001
+    - FR-003
+    - FR-004
+    - SC-001
+    - SC-003
+    - US-001
+  files:
+    - harness/hooks/epic_paths.py
+    - harness/hooks/epic_yaml.py
+    - harness/hooks/epic/reconcile.py
+    - loop/board_sync/scan_mb.py
+    - loop/mb_load/plan_section.py
+    - harness/hooks/epic_resolve.py
+
+as_built:
+  - "harness/hooks/epic_paths.py содержит fallback функции _find_layout_v1_deprecated_decompose_index и glob fallback"
+  - "harness/hooks/epic_yaml.py содержит fallback на implement-* и leftover yaml/steps"
+  - "loop/board_sync/scan_mb.py сканирует decompose-*/index.yaml"
+  - "loop/mb_load/plan_section.py принимает legacy plan-<id>.md имена"
+
+delta:
+  - "Перевести find_decompose_index_path, find_plan_md_path на v2 resolver без v1 fallback"
+  - "Обновить resolve_implement_path и _resolve_decompose_dir в epic_yaml.py на v2 layout"
+  - "Удалить fallback на implement-{plan_id} из harness/hooks/epic/reconcile.py"
+  - "Обновить scan_mb.py и plan_section.py на канонические v2 пути"
+
+deletes:
+  - "_find_layout_v1_deprecated_decompose_index in harness/hooks/epic_paths.py"
+  - "legacy implement directory resolution branches in harness/hooks/epic_yaml.py"
+  - "legacy decompose glob patterns in loop/board_sync/scan_mb.py"
+
+out_of_scope:
+  - "Удаление parse_steps_from_md (шаг s04)"
+  - "Рефакторинг устаревших тестов (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Runtime модули epic_paths.py, epic_yaml.py, reconcile.py используют v2 resolver
+    verify: "bin/pytest harness/hooks/tests/test_epic_paths.py harness/hooks/tests/test_epic_yaml.py -q"
+  - id: cp2
+    criterion: Board sync и mb-load работают через v2 path API
+    verify: "bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_mb_load_plan_section.py -q"
+
+verify: []
+tdd: []

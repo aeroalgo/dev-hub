@@ -1,0 +1,433 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-086-python-loop-supervisor-cutover
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+date: '2026-09-11'
+auditor: Codex Agent (BACK AUDIT)
+plan_intent:
+  epic_goal: Python loop supervisor cutover and legacy shell fallback purge with single
+    canonical execution path
+  source: plan.md#WHAT
+summary: Full parity between plan.md intent and runtime implementation. All 16 FRs,
+  5 USs, 6 SCs, 8 AC- rules and constitution constraints satisfied with zero remaining
+  legacy shell orchestration or silent fallbacks.
+intent_checked:
+  fr_total: 16
+  fr_satisfied: 16
+  us_total: 5
+  sc_total: 6
+  ac_total: 8
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: Operator invokes loop via bin/loop launcher which resolves project root
+    and delegates directly to python3 -m loop.runner.
+  verify: bin/loop --help
+- source_ref: US-002
+  status: satisfied
+  evidence: Loop orchestration tested directly through Python API and pytest without
+    sourcing shell functions.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -q
+- source_ref: US-003
+  status: satisfied
+  evidence: SessionInvoker delegates to runtime adapters (Claude, Codex, DSH) through
+    registry lookup without branching in supervisor.
+  verify: bin/pytest loop/tests/test_runner_session.py -q
+- source_ref: US-004
+  status: satisfied
+  evidence: Signal handling, retry backoff cap, model substitution, missing binary
+    handling and fail-closed halt preserved.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_runner_ownership.py
+    -q
+- source_ref: US-005
+  status: satisfied
+  evidence: Single canonical execution path in loop.runner with loop/loop.sh reduced
+    to 12-line execution delegation shim.
+  verify: wc -l loop/loop.sh
+- source_ref: FR-001
+  status: satisfied
+  evidence: loop.runner provides main(argv) and module entrypoint via loop.runner.__main__
+    calling cli.main().
+  verify: python3 -m loop.runner --help
+- source_ref: FR-002
+  status: satisfied
+  evidence: cli.py implements parse_cli with positional project root, epic spec, model,
+    mode, status, and doctor routing.
+  verify: bin/pytest loop/tests/test_runner_cli.py -q
+- source_ref: FR-003
+  status: satisfied
+  evidence: config.py implements load_project_env and RunnerConfig.from_environment
+    loading .claude/project.env and .local overrides.
+  verify: bin/pytest loop/tests/test_runner_cli.py -k test_load_project_env -q
+- source_ref: FR-004
+  status: satisfied
+  evidence: RunnerConfig computes canonical HUB_ROOT, PROJECT_ROOT, DEV_HUB, CLAUDE_PROJECT_DIR,
+    STATE_DIR, and runtime paths.
+  verify: bin/pytest loop/tests/test_runner_cli.py -k test_config_paths -q
+- source_ref: FR-005
+  status: satisfied
+  evidence: ownership.py acquires non-blocking file lock, publishes runner.json via
+    atomic write and releases owner on exit.
+  verify: bin/pytest loop/tests/test_runner_ownership.py -q
+- source_ref: FR-006
+  status: satisfied
+  evidence: Signal handling in cli.py and orchestrator.py traps SIGINT/SIGTERM/SIGHUP,
+    cleans lock and returns exit code 130.
+  verify: bin/pytest loop/tests/test_runner_ownership.py -k test_signal -q
+- source_ref: FR-007
+  status: satisfied
+  evidence: cli.py runs doctor and preflight checks, raising explicit errors and exiting
+    non-zero on missing configuration.
+  verify: bin/pytest loop/tests/test_runner_cli.py -k test_doctor -q
+- source_ref: FR-008
+  status: satisfied
+  evidence: session.py SessionInvoker resolves provider from registry and invokes
+    session resilience boundary with typed SessionResult.
+  verify: bin/pytest loop/tests/test_runner_session.py -q
+- source_ref: FR-009
+  status: satisfied
+  evidence: Claude, DSH and Codex adapters preserve command building, argv, cwd, stream
+    filters, profile, and missing binary checks.
+  verify: bin/pytest loop/tests/test_runner_session.py loop/tests/test_loop_dsh_dispatch.py
+    -q
+- source_ref: FR-010
+  status: satisfied
+  evidence: orchestrator.py LoopRunner executes prepare, session invocation, record-session,
+    transient retry, and check-after loop.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -q
+- source_ref: FR-011
+  status: satisfied
+  evidence: Action decision machine evaluates halt_logic.decide_after_action routing
+    to continue, complete, halt, NEED_HUMAN, EPIC_DONE.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -k test_action_decision
+    -q
+- source_ref: FR-012
+  status: satisfied
+  evidence: output.py and orchestrator.py manage session log retention, trace/incident
+    telemetry, and terminal formatting.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -k test_log_retention
+    -q
+- source_ref: FR-013
+  status: satisfied
+  evidence: loop/loop.sh is reduced to a 12-line shell shim delegating via exec python3
+    -m loop.runner "$@".
+  verify: bash -n loop/loop.sh
+- source_ref: FR-014
+  status: satisfied
+  evidence: All former shell-source tests rewritten to Python API/CLI tests; zero
+    source loop/loop.sh across test suite.
+  verify: '! rg -n "source .*loop\.sh" loop/tests/ harness/hooks/tests/'
+- source_ref: FR-015
+  status: satisfied
+  evidence: Active documentation, runbooks, and command definitions teach bin/loop
+    and python3 -m loop.runner.
+  verify: '! rg -n "source loop/loop\.sh" README.md loop/README.md loop/WORKFLOW.md
+    LOOP-RUNTIMES.md harness/instructions/'
+- source_ref: FR-016
+  status: satisfied
+  evidence: Complete targeted loop runner suite passes with 114 tests and zero new
+    external runtime dependencies.
+  verify: bin/pytest loop/tests/test_runner_*.py -q
+- source_ref: SC-001
+  status: satisfied
+  evidence: bin/loop --help, bin/loop <project> --status, and loop/loop.sh --help
+    resolve through Python runner and exit 0.
+  verify: bin/loop --help && loop/loop.sh --help
+- source_ref: SC-002
+  status: satisfied
+  evidence: End-to-end fake loop turn executes session invocation and terminal decision
+    with no shell function sourcing.
+  verify: bin/pytest loop/tests/test_runner_e2e.py -q
+- source_ref: SC-003
+  status: satisfied
+  evidence: Claude, DSH, and Codex runtime-specific command and failure behavior verified
+    via unit and dispatch tests.
+  verify: bin/pytest loop/tests/test_runner_session.py loop/tests/test_loop_dsh_dispatch.py
+    -q
+- source_ref: SC-004
+  status: satisfied
+  evidence: Zero production callers of removed shell orchestration symbols and zero
+    source loop/loop.sh in active tests/docs.
+  verify: rg -n "run_claude_session|run_dsh_session|run_agent_session" loop/ bin/
+    harness/
+- source_ref: SC-005
+  status: satisfied
+  evidence: Timeout, interrupt, retry cap, model substitution, missing binary, and
+    fail-closed check-after verified by tests.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py loop/tests/test_runner_session.py
+    -q
+- source_ref: SC-006
+  status: satisfied
+  evidence: Single supervisor path in Python; loop.sh is a 12-line delegation shim
+    with 7 non-comment lines.
+  verify: test $(grep -v "^#" loop/loop.sh | grep -v "^[[:space:]]*$" | wc -l) -lt
+    30
+- source_ref: AC-:1
+  status: satisfied
+  evidence: No secondary executable supervisor exists; loop.sh strictly performs exec
+    python3 -m loop.runner.
+  verify: cat loop/loop.sh
+- source_ref: AC-:2
+  status: satisfied
+  evidence: Zero source loop/loop.sh across all active instructions and test suites.
+  verify: '! rg -n "source .*loop\.sh" loop/tests/ harness/instructions/'
+- source_ref: AC-:3
+  status: satisfied
+  evidence: No python3 -c shell heredoc text extraction used for machine JSON, runtime
+    results, or owner state.
+  verify: cat loop/loop.sh
+- source_ref: AC-:4
+  status: satisfied
+  evidence: No try new except old or automatic fallback from Python to shell or unknown
+    runtime to Claude.
+  verify: bin/pytest loop/tests/test_runner_session.py -k test_unknown_runtime -q
+- source_ref: AC-:5
+  status: satisfied
+  evidence: Misconfiguration, missing binary, invalid adapter, and lock contention
+    produce immediate fail-closed exit.
+  verify: bin/pytest loop/tests/test_runner_cli.py loop/tests/test_runner_ownership.py
+    -q
+- source_ref: AC-:6
+  status: satisfied
+  evidence: No active instruction surfaces require manual editing or reading of internal
+    runner state files.
+  verify: rg -n "loop/runner" harness/instructions/ README.md
+- source_ref: AC-:7
+  status: satisfied
+  evidence: No obsolete tests forcing retention of removed shell contracts remain
+    in the repository.
+  verify: bin/pytest loop/tests/ -q
+- source_ref: AC-:8
+  status: satisfied
+  evidence: State and telemetry semantics preserved exactly without migration regressions.
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -q
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST requirements from constitution strictly followed across runner
+    cutover implementation.
+  verify: cat memory-bank/constitution.md
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: 'MUST-1 TDD first: characterization and unit tests created prior to and
+    alongside implementation.'
+  verify: bin/pytest loop/tests/test_runner_*.py -q
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: 'MUST-2 No silent fallback: explicit errors on invalid config, unknown
+    runtime, and missing binaries.'
+  verify: bin/pytest loop/tests/test_runner_session.py -k fail_closed -q
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: 'MUST-3 FRONT tests parent-only: dev-hub loop runner tests are backend
+    Python suites only.'
+  verify: bin/pytest loop/tests/ -q
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: 'MUST-4 Lean load: supervisor utilizes Python standard library with zero
+    new third-party dependencies.'
+  verify: python3 -c "import loop.runner"
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: 'MUST-5 Fail-closed misconfiguration: missing project root, bad arguments,
+    lock collision exit non-zero immediately.'
+  verify: bin/pytest loop/tests/test_runner_cli.py -k test_invalid -q
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: 'MUST-6 No-guess markers: typed outcome objects, structured error reporting,
+    and explicit exit codes.'
+  verify: bin/pytest loop/tests/test_runner_session.py -q
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: 'MUST-7 ONE Handoff per step: single structured handoff recorded per step
+    in activeContext.'
+  verify: cat memory-bank/activeContext.md
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: 'MUST-8 §0.11 integration parity: Claude, Codex, DSH adapters adhere to
+    established invocation contracts.'
+  verify: bin/pytest loop/tests/test_runner_session.py -q
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: 'MUST-9 Phase authority: supervisor coordinates workflow transitions through
+    halt_logic and epic hooks.'
+  verify: bin/pytest loop/tests/test_runner_orchestrator.py -q
+architecture_parity:
+- layout_path: loop/runner/__init__.py
+  status: satisfied
+  evidence: Package initialization defining public runner interface and version metadata.
+- layout_path: loop/runner/__main__.py
+  status: satisfied
+  evidence: Executable module entrypoint invoking sys.exit(main()).
+- layout_path: loop/runner/cli.py
+  status: satisfied
+  evidence: Command-line argument parser and CLI dispatch for status, doctor, and
+    loop execution.
+- layout_path: loop/runner/config.py
+  status: satisfied
+  evidence: Environment loader, path canonicalization, and RunnerConfig dataclass.
+- layout_path: loop/runner/ownership.py
+  status: satisfied
+  evidence: LockManager and RunnerLease managing non-blocking lock and atomic runner.json.
+- layout_path: loop/runner/session.py
+  status: satisfied
+  evidence: SessionInvoker invoking runtime adapters through session resilience boundary.
+- layout_path: loop/runner/orchestrator.py
+  status: satisfied
+  evidence: LoopRunner outer orchestrator managing turn loop, prepare, retry, and
+    check-after.
+- layout_path: loop/runner/output.py
+  status: satisfied
+  evidence: Output formatter, terminal status renderer, and session log manager.
+- layout_path: loop/loop.sh
+  status: satisfied
+  evidence: 12-line compatibility delegation shim executing python3 -m loop.runner.
+- layout_path: bin/loop
+  status: satisfied
+  evidence: Public launcher resolving project root and delegating to loop/loop.sh.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s01-contracts-and-seams.yaml
+  status: completed
+  evidence: Typed runner contracts, seams and CLI characterization tests implemented.
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s02-config-and-ownership.yaml
+  status: completed
+  evidence: Python configuration bootstrap, path normalization and lock/owner lifecycle
+    implemented.
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s03-provider-neutral-session-invoker.yaml
+  status: completed
+  evidence: Provider-neutral SessionInvoker, runtime adapters and session resilience
+    wiring implemented.
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s04-outer-orchestrator-and-lifecycle.yaml
+  status: completed
+  evidence: LoopRunner outer orchestrator, retry policy and action decision machine
+    implemented.
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s05-cutover-and-compatibility-shims.yaml
+  status: completed
+  evidence: Cutover loop.sh to exec shim, bin/loop delegation and shell-source test
+    rewrite implemented.
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s06-active-instructions-and-docs.yaml
+  status: completed
+  evidence: Active operator docs, rules, instructions and architecture data-flow migration
+    implemented.
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-086-python-loop-supervisor-cutover/s07-legacy-fallback-purge.yaml
+  status: completed
+  evidence: Full sunset inventory scan and legacy purge verified across all Kind A/B/C/I
+    targets.
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-11T13:30:00Z'
+  plan_ref: plan.md#Replacement / sunset (brownfield)
+  rows:
+  - symbol: ensure_dsh_profiles
+    kind: Kind A
+    command: rg -n "ensure_dsh_profiles" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: configure_runtime_env
+    kind: Kind A
+    command: rg -n "configure_runtime_env" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: find_claude
+    kind: Kind A
+    command: rg -n "find_claude" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: is_epic_spec
+    kind: Kind A
+    command: rg -n "is_epic_spec" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: _cleanup_runner_owner
+    kind: Kind A
+    command: rg -n "_cleanup_runner_owner" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: run_claude_session
+    kind: Kind A
+    command: rg -n "run_claude_session" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: resolve_dsh_bin
+    kind: Kind A
+    command: rg -n "resolve_dsh_bin" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: run_dsh_session
+    kind: Kind A
+    command: rg -n "run_dsh_session" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: run_agent_session
+    kind: Kind A
+    command: rg -n "run_agent_session" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: _print_prepare_summary
+    kind: Kind A
+    command: rg -n "_print_prepare_summary" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: _apply_prepare_session_vars
+    kind: Kind A
+    command: rg -n "_apply_prepare_session_vars" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: _run_context_prepare
+    kind: Kind A
+    command: rg -n "_run_context_prepare" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: _reprepare_for_transient_retry
+    kind: Kind A
+    command: rg -n "_reprepare_for_transient_retry" loop/ bin/ harness/
+    result: pass
+    prod_callers: 0
+  - symbol: source loop/loop.sh in tests
+    kind: Kind A
+    command: rg -n "source .*loop\.sh" loop/tests/ harness/hooks/tests/
+    result: pass
+    prod_callers: 0
+  - symbol: loop.sh line count (<30 lines)
+    kind: Kind B
+    command: test $(grep -v "^#" loop/loop.sh | grep -v "^[[:space:]]*$" | wc -l)
+      -lt 30
+    result: pass
+    prod_callers: 0
+  - symbol: bin/loop launcher delegation
+    kind: Kind B
+    command: grep -q "exec \"$HUB_ROOT/loop/loop.sh\"" bin/loop
+    result: pass
+    prod_callers: 0
+  - symbol: silent exception suppression in runner
+    kind: Kind C
+    command: 'rg -n "except Exception: pass" loop/runner/'
+    result: pass
+    prod_callers: 0
+  - symbol: missing runtime fallback to default
+    kind: Kind C
+    command: bin/pytest loop/tests/test_runner_session.py -k test_unknown_runtime
+      -q
+    result: pass
+    prod_callers: 0
+  - symbol: active instructions teaching loop.sh functions
+    kind: Kind I
+    command: rg -n "source loop/loop\.sh" README.md loop/README.md loop/WORKFLOW.md
+      LOOP-RUNTIMES.md harness/instructions/
+    result: pass
+    prod_callers: 0
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan: true

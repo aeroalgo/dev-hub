@@ -15,9 +15,11 @@ case "${1:-}" in
     ;;
 esac
 
-if [[ -z "${PROJECT_ROOT:-}" && $# -ge 1 && -d "${1:-}" && -d "${1}/memory-bank" ]]; then
+if [[ $# -ge 1 && -d "${1:-}" && -d "${1}/memory-bank" ]]; then
   export PROJECT_ROOT="$(cd "$1" && pwd)"
   shift
+elif [[ -z "${PROJECT_ROOT:-}" && -d "./memory-bank" ]]; then
+  export PROJECT_ROOT="$(pwd)"
 elif [[ -z "${PROJECT_ROOT:-}" ]]; then
   echo "Usage: $0 <project-root> [loop args...]" >&2
   echo "   or: PROJECT_ROOT=/path/to/project $0 [loop args...]" >&2

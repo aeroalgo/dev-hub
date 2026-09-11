@@ -30,19 +30,19 @@ steps:
   file: s04-outer-orchestrator-and-lifecycle.yaml
   title: LoopRunner outer orchestrator, retry policy and action decision machine
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-cutover-and-compatibility-shims.yaml
   title: Cutover loop.sh to exec shim, bin/loop delegation and shell-source test rewrite
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-active-instructions-and-docs.yaml
   title: Active operator docs, rules, instructions and architecture data-flow migration
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s07
   file: s07-legacy-fallback-purge.yaml
   title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

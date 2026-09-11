@@ -1,0 +1,80 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: Rewrite and purge obsolete v1 path fixtures and legacy behavior assertions
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить или переписать тесты и фикстуры, проверявшие успешное разрешение через v1 layout,
+  заменив их на явные тесты канонического v2 поведения и проверки отказа (denial tests).
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-007
+    - SC-004
+    - US-003
+  nouns:
+    - loop/tests/fixtures/board_sync/
+    - loop/tests/test_board_sync_scan_mb.py
+    - loop/tests/test_mb_load_plan_section.py
+    - harness/hooks/tests/test_epic_paths.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s05-obsolete-test-and-fixture-rewrite.yaml
+  ac_quotes:
+    - "Obsolete path tests, fixtures и assertions удалены или переписаны на v2 behavior tests в том же эпике."
+    - "legacy path invocation завершается ошибкой, а не v2 lookup"
+    - "Нет теста, который требует legacy layout для зелёного runtime."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/md/plan.md:112-140"
+
+context:
+  consumes:
+    - loop/tests/fixtures/board_sync/
+    - loop/tests/test_board_sync_scan_mb.py
+    - loop/tests/test_mb_load_plan_section.py
+    - harness/hooks/tests/test_epic_paths.py
+  produces:
+    - updated v2-only test suites in loop/tests/ and harness/hooks/tests/
+  plan_refs:
+    - FR-005
+    - FR-007
+    - SC-004
+    - US-003
+  files:
+    - loop/tests/test_board_sync_scan_mb.py
+    - loop/tests/test_mb_load_plan_section.py
+    - harness/hooks/tests/test_epic_paths.py
+
+as_built:
+  - "Тесты в harness/hooks/tests/test_epic_paths.py и loop/tests/fixtures/board_sync содержат v1 фикстуры (decompose-*, plan-*.md)"
+  - "Некоторые тесты проверяют позитивное разрешение v1 путей"
+
+delta:
+  - "Переписать фикстуры и тесты в loop/tests/test_board_sync_scan_mb.py на layout v2"
+  - "Обновить harness/hooks/tests/test_epic_paths.py для проверки v2 разрешения и отказа по v1 путям"
+  - "Удалить устаревшие фикстуры decompose-* из loop/tests/fixtures/"
+
+deletes:
+  - "obsolete test assertions expecting positive v1 path lookup"
+  - "legacy decompose-* fixtures in loop/tests/fixtures/board_sync/"
+
+out_of_scope:
+  - "Финальный sunset inventory scan (шаг s06)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Тесты board_sync_scan_mb и mb_load_plan_section проходят на v2 фикстурах
+    verify: "bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_mb_load_plan_section.py -q"
+  - id: cp2
+    criterion: Тесты epic_paths проверяют канонический v2 layout и отказ v1
+    verify: "bin/pytest harness/hooks/tests/test_epic_paths.py -q"
+
+verify: []
+tdd: []
