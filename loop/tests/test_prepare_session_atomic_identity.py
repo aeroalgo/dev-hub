@@ -99,7 +99,7 @@ def test_prepare_mirrors_spawn_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         },
     )
 
-    res = ctx.prepare_session(tmp_path)
+    res = ctx.prepare_session(tmp_path, model="test-model")
     assert res.get("ok") is True, res
 
     persisted = load_epic_state(tmp_path)

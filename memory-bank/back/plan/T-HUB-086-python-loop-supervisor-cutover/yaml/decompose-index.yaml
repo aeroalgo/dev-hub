@@ -5,43 +5,44 @@ status_canon: decompose-index.yaml
 appetite:
   timebox_days: 5
   cut_list:
-    - unified pretty output renderer
-    - historical archive prose rewrite
-    - new provider capability
-    - parallel DAG execution
+  - unified pretty output renderer
+  - historical archive prose rewrite
+  - new provider capability
+  - parallel DAG execution
 steps:
-  - id: s01
-    file: s01-contracts-and-seams.yaml
-    title: Typed runner contracts, seams and CLI characterization tests
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s02
-    file: s02-config-and-ownership.yaml
-    title: Python configuration bootstrap, path normalization and lock/owner lifecycle
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s03
-    file: s03-provider-neutral-session-invoker.yaml
-    title: Provider-neutral SessionInvoker, runtime adapters and session resilience wiring
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s04
-    file: s04-outer-orchestrator-and-lifecycle.yaml
-    title: LoopRunner outer orchestrator, retry policy and action decision machine
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s05
-    file: s05-cutover-and-compatibility-shims.yaml
-    title: Cutover loop.sh to exec shim, bin/loop delegation and shell-source test rewrite
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s06
-    file: s06-active-instructions-and-docs.yaml
-    title: Active operator docs, rules, instructions and architecture data-flow migration
-    next_phase: BACK IMPLEMENT
-    status: pending
-  - id: s07
-    file: s07-legacy-fallback-purge.yaml
-    title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
-    next_phase: BACK IMPLEMENT
-    status: pending
+- id: s01
+  file: s01-contracts-and-seams.yaml
+  title: Typed runner contracts, seams and CLI characterization tests
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-config-and-ownership.yaml
+  title: Python configuration bootstrap, path normalization and lock/owner lifecycle
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-provider-neutral-session-invoker.yaml
+  title: Provider-neutral SessionInvoker, runtime adapters and session resilience
+    wiring
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-outer-orchestrator-and-lifecycle.yaml
+  title: LoopRunner outer orchestrator, retry policy and action decision machine
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-cutover-and-compatibility-shims.yaml
+  title: Cutover loop.sh to exec shim, bin/loop delegation and shell-source test rewrite
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-active-instructions-and-docs.yaml
+  title: Active operator docs, rules, instructions and architecture data-flow migration
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s07
+  file: s07-legacy-fallback-purge.yaml
+  title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: pending

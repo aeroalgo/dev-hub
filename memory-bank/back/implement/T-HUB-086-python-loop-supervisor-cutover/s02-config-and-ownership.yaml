@@ -1,0 +1,59 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s02 — Python configuration bootstrap, path normalization and lock/owner lifecycle
+  IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s02-config-and-ownership.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/runner/__main__.py as entrypoint for python -m loop.runner
+- Created loop/runner/cli.py implementing argparse with full compatibility for positional
+  args, flags, help, status, doctor, dashboard, and DAG generation
+- Created loop/runner/config.py constructing immutable RunnerConfig with project root,
+  state dir, env overlays, and preflight checks
+- Created loop/runner/ownership.py implementing RunnerLease POSIX flock, atomic runner.json
+  publication, and signal traps (SIGINT -> 130, SIGTERM, SIGHUP)
+- Created loop/tests/test_runner_cli.py and updated test_runner_ownership.py verifying
+  CLI parsing, env precedence, path canonicalization, lock contention, and signal
+  cleanup
+files:
+- loop/runner/__main__.py
+- loop/runner/cli.py
+- loop/runner/config.py
+- loop/runner/ownership.py
+- loop/tests/test_runner_cli.py
+- loop/tests/test_runner_ownership.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_runner_cli.py -q
+- bin/pytest loop/tests/test_runner_ownership.py -q
+- bin/pytest loop/tests/test_runner_contracts.py -q
+integration_check:
+- bin/pytest loop/tests/test_runner_cli.py loop/tests/test_runner_ownership.py loop/tests/test_runner_contracts.py
+  -q
+grep_control: []
+verification_results:
+- '{''command'': ''bin/pytest loop/tests/test_runner_cli.py -q'', ''outcome'': ''pass''}'
+- '{''command'': ''bin/pytest loop/tests/test_runner_ownership.py -q'', ''outcome'':
+  ''pass''}'
+- '{''command'': ''bin/pytest loop/tests/test_runner_contracts.py -q'', ''outcome'':
+  ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: CLI argument parsing, help output, status, doctor, and DAG non-session
+    commands work with exact flag parity
+  status: done
+- id: cp2
+  criterion: Environment variables, project paths, and preflight validations are canonicalized
+    and fail-closed
+  status: done
+- id: cp3
+  criterion: RunnerLease handles non-blocking flock contention, publishes owner JSON,
+    and cleans up on signals
+  status: done

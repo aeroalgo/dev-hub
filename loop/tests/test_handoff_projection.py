@@ -483,6 +483,6 @@ def test_clear_stale_verify_no_verdict_at_audit(tmp_path: Path) -> None:
     assert "verify_no_verdict" not in ac
 
     ctx = __import__("loop.context_loop", fromlist=["prepare_session"])
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
     assert not (prep.get("stop") or "").startswith("NEED_HUMAN")

@@ -1937,6 +1937,19 @@ def mirror_verify_verdict(
         save_epic_state(cwd, st)
         return
     sid = session_id or evidence_map.get("session_id")
+    step_for_gate = evidence_step or armed
+    # IMPLEMENT/sNN verify must never poison SoT with authority=manual PASS:
+    # mirror would skip spawn checks, then mb-finish rejects manual → dead end.
+    if (
+        str(verdict).upper() == "PASS"
+        and manual_auth
+        and re.match(r"^[sera]\d{2}$", str(step_for_gate or ""), re.I)
+        and str(agent_id or "").strip().lower()
+        in {"verify", "verify-implement", "verify-bugfix", "verify-decompose"}
+    ):
+        st["gate_diagnostic"] = "manual_authority_rejected"
+        save_epic_state(cwd, st)
+        return
     if (
         not manual_auth
         and sid
@@ -1954,6 +1967,9 @@ def mirror_verify_verdict(
     if demote_blockers:
         payload["demoted_from_pass"] = True
         payload["demote_blockers"] = demote_blockers
+    elif effective == "PASS":
+        payload.pop("demoted_from_pass", None)
+        payload.pop("demote_blockers", None)
     st["last_verify_verdict"] = effective
     st["last_verify_at"] = utc_now()
     st["last_verify_evidence"] = payload
@@ -1967,6 +1983,17 @@ def mirror_verify_verdict(
         digest = _projection_digest(payload)
     st["last_verify_evidence_sha256"] = digest
     st["last_verify_receipt"] = payload
+    if effective == "PASS":
+        diag = str(st.get("gate_diagnostic") or "")
+        if diag in {
+            "verify_spawn_missing",
+            "manual_authority_rejected",
+            "verify_runtime_collaboration_wait_timeout",
+            "stale_verify_step",
+        }:
+            st.pop("gate_diagnostic", None)
+        if st.get("repair_required") == "gate-repair" and diag.startswith("verify_"):
+            st.pop("repair_required", None)
     save_epic_state(cwd, st)
 
 
@@ -2422,8 +2449,26 @@ def _verify_pass_ready_for_step(cwd: str | Path, step_id: str) -> dict[str, Any]
     evidence = state.get("last_verify_evidence") or state.get("last_verify_receipt")
     if verdict != "PASS":
         if isinstance(evidence, dict) and evidence.get("demoted_from_pass"):
-            blockers = evidence.get("demote_blockers") or []
-            detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+            current_blockers = verify_pass_step_blockers(cwd, step_id=step_id)
+            can_recheck = bool(
+                str(step_id or "").strip()
+                and str(state.get("armed_decompose") or "").strip()
+            )
+            if can_recheck and not current_blockers:
+                return {
+                    "ok": False,
+                    "error": (
+                        "prior verify PASS demotion is stale "
+                        "(implement shard blockers cleared); "
+                        "re-run @verify to mint a fresh autonomous PASS receipt "
+                        "before mb-finish"
+                    ),
+                    "diagnostic": "verify_demoted_stale",
+                    "verdict": verdict or None,
+                    "evidence": evidence,
+                }
+            detail_src = current_blockers or evidence.get("demote_blockers") or []
+            detail = "; ".join(str(b) for b in detail_src) or "step incomplete"
             return {
                 "ok": False,
                 "error": (

@@ -3,8 +3,7 @@ role: back
 step_id: s01
 plan_id: T-HUB-086-python-loop-supervisor-cutover
 title: s01 — Typed runner contracts, seams and CLI characterization tests IMPLEMENT
-status: in_progress
-implement_index: ''
+status: completed
 date: '2026-09-11'
 decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s01-contracts-and-seams.yaml
 skills_used: []
@@ -12,28 +11,31 @@ discovery: []
 gaps:
   status: none
 done:
-  - "Defined RunnerConfig, RuntimeConfig, SessionRequest, SessionResult, RunOutcome, RunAction, PreflightCheckResult frozen dataclasses and enums in loop/runner/__init__.py"
-  - "Defined ContextPort and SessionPort runtime_checkable protocols for decoupled runner orchestration"
-  - "Created comprehensive contract characterization test suite in loop/tests/test_runner_contracts.py"
+- Defined RunnerConfig, RuntimeConfig, SessionRequest, SessionResult, RunOutcome,
+  RunAction, PreflightCheckResult frozen dataclasses and enums in loop/runner/__init__.py
+- Defined ContextPort and SessionPort runtime_checkable protocols for decoupled runner
+  orchestration
+- Created comprehensive contract characterization test suite in loop/tests/test_runner_contracts.py
 files:
-  - loop/runner/__init__.py
-  - loop/tests/test_runner_contracts.py
+- loop/runner/__init__.py
+- loop/tests/test_runner_contracts.py
 deletes: []
 tests:
-  - "`bin/pytest loop/tests/test_runner_contracts.py -q`"
+- '`bin/pytest loop/tests/test_runner_contracts.py -q`'
 integration_check:
-  - "`bin/pytest loop/tests/test_runner_contracts.py -q`"
+- '`bin/pytest loop/tests/test_runner_contracts.py -q`'
 grep_control: []
 verification_results:
-  - command: "`bin/pytest loop/tests/test_runner_contracts.py -q`"
-    outcome: pass
+- '{''command'': ''`bin/pytest loop/tests/test_runner_contracts.py -q`'', ''outcome'':
+  ''pass''}'
 checkpoints:
-  - id: cp1
-    criterion: Typed contract dataclasses and protocols defined with strict typing
-    status: done
-    done_at: '2026-09-11T04:45:16Z'
-  - id: cp2
-    criterion: Contract types support immutability, JSON/state serialization compatibility and preflight checks
-    status: done
-    done_at: '2026-09-11T04:45:20Z'
+- id: cp1
+  criterion: Typed contract dataclasses and protocols defined with strict typing
+  status: done
+  done_at: '2026-09-11T04:45:16Z'
+- id: cp2
+  criterion: Contract types support immutability, JSON/state serialization compatibility
+    and preflight checks
+  status: done
+  done_at: '2026-09-11T04:45:20Z'
 resume_from: cp1

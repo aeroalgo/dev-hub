@@ -5,9 +5,14 @@ import re
 from pathlib import Path
 from typing import Any
 
+import os
+import shutil
+import subprocess
+import sys
 from loop.runtime_adapters.base import (
     AUTH_BANNED_PATTERNS,
     RuntimeAdapter,
+    RuntimePreparationResult,
     SessionAnalysis,
     SessionContext,
 )
@@ -220,9 +225,177 @@ _detect_dsh_model_mismatch = detect_dsh_model_mismatch
 class DshAdapter(RuntimeAdapter):
     """RuntimeAdapter implementation wrapping existing DSH functions."""
 
+    def resolve_binary(self, hub_root: Path | None = None) -> list[str] | None:
+        if os.environ.get("DSH_BIN") and os.access(os.environ["DSH_BIN"], os.X_OK):
+            return [os.environ["DSH_BIN"]]
+
+        root = Path(hub_root) if hub_root else Path(__file__).resolve().parents[2]
+        resolver = os.environ.get("DSH_RESOLVER") or (root / "dsh" / "bin" / "which-dsh.sh")
+        if Path(resolver).exists() and os.access(str(resolver), os.X_OK):
+            try:
+                res = subprocess.run(
+                    [str(resolver)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if res.returncode == 0:
+                    lines = [l.strip() for l in res.stdout.splitlines() if l.strip()]
+                    if lines:
+                        exe = lines[0]
+                        if "/" not in exe:
+                            resolved_which = shutil.which(exe)
+                            if resolved_which:
+                                exe = resolved_which
+                        return [exe] + lines[1:]
+            except Exception:
+                pass
+
+        which_dsh = shutil.which("dsh")
+        if which_dsh:
+            return [which_dsh]
+
+        return None
+
+    def validate_profile(
+        self,
+        profile: str,
+        hub_root: Path | None = None,
+        dsh_home: Path | None = None,
+    ) -> bool:
+        if not profile or not isinstance(profile, str):
+            return False
+        root = Path(hub_root) if hub_root else Path(__file__).resolve().parents[2]
+        repo_profile = root / "dsh" / "profiles" / profile
+        if repo_profile.exists() and repo_profile.is_dir():
+            return True
+        home = Path(dsh_home) if dsh_home else Path(os.environ.get("DSH_HOME", Path.home() / ".dsh"))
+        home_profile = home / "profiles" / profile
+        if home_profile.exists() and home_profile.is_dir():
+            return True
+        # Allow default epic profiles by convention
+        if profile in {
+            "epic-plan",
+            "epic-implement",
+            "epic-creative",
+            "epic-reflect",
+            "epic-bugfix",
+            "epic-decompose",
+            "epic-analyze",
+            "epic-qa",
+            "epic-audit",
+        }:
+            return True
+        return False
+
+    def ensure_profiles(
+        self,
+        hub_root: Path | None = None,
+        dsh_home: Path | None = None,
+    ) -> RuntimePreparationResult:
+        if os.environ.get("DSH_PROFILES_READY") == "1":
+            return RuntimePreparationResult(ok=True)
+
+        root = Path(hub_root) if hub_root else Path(__file__).resolve().parents[2]
+        installer = os.environ.get("DSH_PROFILE_INSTALLER") or (root / "dsh" / "scripts" / "install-profiles.sh")
+        hooks_installer = os.environ.get("DSH_HOOKS_INSTALLER") or (root / "dsh" / "scripts" / "install-cc-hooks.sh")
+
+        if not Path(installer).exists() or not os.access(str(installer), os.X_OK):
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=127,
+                error=f"dsh profile installer not found or not executable: {installer}",
+            )
+        if not Path(hooks_installer).exists() or not os.access(str(hooks_installer), os.X_OK):
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=127,
+                error=f"dsh hooks installer not found or not executable: {hooks_installer}",
+            )
+
+        env = os.environ.copy()
+        if dsh_home:
+            env["DSH_HOME"] = str(dsh_home)
+
+        res1 = subprocess.run([str(installer)], env=env, check=False)
+        if res1.returncode != 0:
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=res1.returncode,
+                error=f"dsh profile installation failed (exit={res1.returncode})",
+            )
+        res2 = subprocess.run([str(hooks_installer)], env=env, check=False)
+        if res2.returncode != 0:
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=res2.returncode,
+                error=f"dsh hooks installation failed (exit={res2.returncode})",
+            )
+
+        os.environ["DSH_PROFILES_READY"] = "1"
+        return RuntimePreparationResult(ok=True)
+
+    def resolve_working_directory(
+        self,
+        project_root: Path,
+        hub_root: Path,
+        ctx: SessionContext | None = None,
+    ) -> Path:
+        return Path(project_root)
+
+    def requires_stdin_prompt(self, mode: str = "headless") -> bool:
+        return False
+
+    def progress_mode(self) -> str:
+        return "stream_bytes"
+
+    def resolve_stream_filter(self, hub_root: Path) -> list[str] | None:
+        filter_path = Path(hub_root) / "harness" / "hooks" / "dsh_stream_filter.py"
+        if filter_path.exists():
+            return [sys.executable, str(filter_path)]
+        return None
+
+    def prepare_runtime(
+        self,
+        hub_root: Path,
+        project_root: Path,
+        extras: dict[str, Any] | None = None,
+    ) -> RuntimePreparationResult:
+        bin_cmd = self.resolve_binary(hub_root)
+        if not bin_cmd:
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=127,
+                error="dsh binary not found; set DSH_BIN or install @deepseek-ai/dsh",
+            )
+
+        profile = (extras or {}).get("dsh_profile") or "epic-implement"
+        if not self.validate_profile(profile, hub_root):
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=127,
+                error=f"invalid dsh profile '{profile}'; profile not found",
+            )
+
+        prof_res = self.ensure_profiles(hub_root)
+        if not prof_res.ok:
+            return prof_res
+
+        return RuntimePreparationResult(ok=True, command=bin_cmd)
+
     def build_command(self, ctx: SessionContext) -> list[str]:
         profile = ctx.extras.get("dsh_profile") or f"epic-{ctx.phase.lower()}"
-        return _build_dsh_command(profile=profile, prompt=ctx.prompt)
+        dsh_bin = (
+            ctx.extras.get("dsh_command")
+            or self.resolve_binary(ctx.extras.get("hub_root"))
+            or ["dsh"]
+        )
+        cmd = list(dsh_bin) + ["--profile", profile, ctx.prompt]
+        extra_args = ctx.extras.get("extra_args")
+        if extra_args:
+            if isinstance(extra_args, (list, tuple)):
+                cmd.extend(list(extra_args))
+        return cmd
 
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
         reason = (

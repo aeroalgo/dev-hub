@@ -267,9 +267,20 @@ def _handle_verify_finish_agent(
                 mirrored_pass = True
             elif verdict == "PASS":
                 # Mirror demoted / spawn-missing / stale — never tell parent mb-finish.
-                if isinstance(receipt, dict) and receipt.get("demoted_from_pass"):
-                    blockers = receipt.get("demote_blockers") or []
-                    detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+                # Re-check live blockers: a prior demoted receipt must not blame
+                # obsolete YAML errors after the shard was already fixed.
+                live_blockers: list[str] = []
+                try:
+                    from epic_lib import verify_pass_step_blockers
+
+                    ownership_step = str(identity.get("step") or "").strip() or None
+                    live_blockers = verify_pass_step_blockers(
+                        cwd, step_id=ownership_step
+                    )
+                except Exception:
+                    live_blockers = []
+                if live_blockers:
+                    detail = "; ".join(str(b) for b in live_blockers)
                     print(
                         f"{agent_type}: VERDICT PASS demoted in epic SoT — {detail}. "
                         "Parent: fix implement shard (YAML/checkpoints/gaps), then retry "
@@ -283,7 +294,9 @@ def _handle_verify_finish_agent(
                     print(
                         f"{agent_type}: epic SoT did not accept PASS "
                         f"(last_verify_verdict={mirrored!r}, diagnostic={diag!r}). "
-                        f"FORBIDDEN: mb-finish; retry @{agent_type} after fixing gate bind.",
+                        "Shard blockers are clear — fix gate bind/spawn "
+                        f"(not obsolete demote text), then retry @{agent_type}. "
+                        "FORBIDDEN: mb-finish; FORBIDDEN: hand-patch authority=manual.",
                         file=sys.stderr,
                     )
                     verdict = "FAIL"

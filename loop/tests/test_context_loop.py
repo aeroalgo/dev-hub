@@ -155,7 +155,7 @@ def test_check_after_recognizes_scoped_worktree_progress_without_handoff(
     )
     _write(tmp_path, "harness/hooks/tests/test_regression.py", "before\n")
 
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep["ok"] is True
     _write(tmp_path, "harness/hooks/tests/test_regression.py", "after\n")
 
@@ -174,7 +174,7 @@ def test_progress_baseline_is_checkpointed_and_tracks_implement_artifact(
     ctx = _load_ctx()
     _seed_context(tmp_path)
 
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep["ok"] is True
 
     checkpoint = ctx.load_checkpoint(tmp_path)
@@ -200,7 +200,7 @@ def test_checkpoint_lifecycle_progress_resets_stall_without_handoff(
 ) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep["ok"] is True
 
     checkpoint = ctx.load_checkpoint(tmp_path)
@@ -522,7 +522,7 @@ def test_prepare_emits_runtime_claude_default(tmp_path: Path, monkeypatch) -> No
     _seed_context(tmp_path)
     monkeypatch.delenv("EPIC_RUNTIME", raising=False)
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
 
     assert out["runtime"] == "claude"
 
@@ -532,7 +532,7 @@ def test_prepare_emits_runtime_dsh(tmp_path: Path, monkeypatch) -> None:
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
 
     assert out["runtime"] == "dsh"
 
@@ -542,7 +542,7 @@ def test_prepare_emits_dsh_profile(tmp_path: Path, monkeypatch) -> None:
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
 
     assert out["dsh_profile"].startswith("epic-")
     assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
@@ -553,7 +553,7 @@ def test_prepare_runtime_extras_via_adapter(tmp_path: Path, monkeypatch) -> None
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "dsh")
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
 
     assert out["runtime_extras"] == {"dsh_profile": "epic-implement"}
 
@@ -563,7 +563,7 @@ def test_prepare_runtime_extras_claude(tmp_path: Path, monkeypatch) -> None:
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "claude")
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
 
     assert out["runtime_extras"] == {}
 
@@ -582,7 +582,7 @@ def test_context_loop_runtime_extras_generic_key(tmp_path: Path, monkeypatch) ->
     ctx = _load_ctx()
     _seed_context(tmp_path)
 
-    out = ctx.prepare_session(tmp_path, runtime="dsh")
+    out = ctx.prepare_session(tmp_path, runtime="dsh", model="test-model")
 
     assert "runtime_extras" in out
     assert isinstance(out["runtime_extras"], dict)
@@ -592,7 +592,7 @@ def test_prepare_emits_dsh_workspace(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
 
-    out = ctx.prepare_session(tmp_path, runtime="dsh")
+    out = ctx.prepare_session(tmp_path, runtime="dsh", model="test-model")
 
     assert out["dsh_workspace"] == str(tmp_path)
 
@@ -602,11 +602,37 @@ def test_prepare_cli_runtime_override(tmp_path: Path, monkeypatch, capsys) -> No
     _seed_context(tmp_path)
     monkeypatch.setenv("EPIC_RUNTIME", "claude")
 
-    rc = ctx.main(["--cwd", str(tmp_path), "prepare", "--runtime", "dsh"])
+    rc = ctx.main(["--cwd", str(tmp_path), "prepare", "--runtime", "dsh", "--model", "test-model"])
     out = json.loads(capsys.readouterr().out)
 
     assert rc == 0
     assert out["runtime"] == "dsh"
+
+
+def test_prepare_halts_without_explicit_model_ignores_stale_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    ctx = _load_ctx()
+    _seed_context(tmp_path)
+    monkeypatch.delenv("PROJECT_LOOP_IMPLEMENT_MODEL", raising=False)
+    monkeypatch.delenv("PROJECT_LOOP_DECOMPOSE_MODEL", raising=False)
+    monkeypatch.delenv("PROJECT_LOOP_ANALYZE_MODEL", raising=False)
+    state_path = tmp_path / ".claude/runtime/epic/state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    st = {}
+    if state_path.is_file():
+        st = json.loads(state_path.read_text(encoding="utf-8"))
+    st["model"] = "stale/should-not-be-reused"
+    state_path.write_text(json.dumps(st), encoding="utf-8")
+
+    out = ctx.prepare_session(tmp_path)
+
+    assert out.get("ok") is False
+    assert out.get("halt") is True
+    assert out.get("diagnostic_code") == "model_required"
+    assert out.get("model") is None
+    assert out.get("model_source") == "missing"
+    assert "stale/should-not-be-reused" not in json.dumps(out)
 
 
 def test_prepare_rebuilds_derived_projection(tmp_path: Path) -> None:
@@ -620,7 +646,7 @@ def test_prepare_rebuilds_derived_projection(tmp_path: Path) -> None:
         "| **e16** | [e16-foo.yaml](e16-foo.yaml) | pending |\n",
     )
     ctx.arm_session(tmp_path, "decompose-x")
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out["ok"] is True
     state = json.loads(
         (tmp_path / ".claude/runtime/epic/state.json").read_text(
@@ -674,7 +700,7 @@ def test_delta_paths_exist_skips_explorer_in_prompt(tmp_path: Path) -> None:
         "## Handoff INTEG IMPLEMENT\n"
         "- **Следующий:** `INTEG IMPLEMENT e16`\n",
     )
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out["ok"] is True
     assert out.get("delta_paths_exist") is True
     assert out.get("delta_scope") == "exist"
@@ -806,7 +832,7 @@ def test_delta_paths_scoped_skips_explorer_for_hub_shard(tmp_path: Path) -> None
         "## Handoff BACK IMPLEMENT\n"
         "- **Следующий:** `BACK IMPLEMENT s02`\n",
     )
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out["ok"] is True
     assert out.get("delta_scope") == "scoped"
     assert out.get("delta_paths_scoped") is True
@@ -846,7 +872,7 @@ def test_prepare_degraded_when_shape_broken(tmp_path: Path) -> None:
         "## load_now\n1. missing.yaml\n\n"
         "## Handoff one\n- a\n\n## Handoff two\n- b\n",
     )
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out["ok"] is True
     assert out.get("degraded") is True
     assert out.get("shape_errors")
@@ -871,7 +897,7 @@ def test_prepare_clears_blocked_and_continues(tmp_path: Path, monkeypatch) -> No
         "s03-dirty-resume-extend.yaml\n\n"
         "## Handoff\nBLOCKED: verify_no_verdict\n",
     )
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     # prepare should now succeed (ok=True) and the marker should be gone
     assert out.get("ok") is True
     ac = (tmp_path / "memory-bank" / "activeContext.md").read_text()
@@ -953,7 +979,7 @@ def test_prepare_recovers_projection_conflict_by_clearing_checkpoint(
     )
     assert checkpoint_path(tmp_path).is_file()
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out.get("ok") is True, out
     assert out.get("halt") is not True
     # prepare rewrites a fresh prepared checkpoint
@@ -1419,7 +1445,7 @@ def test_prepare_syncs_cursor_from_index_yaml_sot(tmp_path: Path) -> None:
         + "\n",
     )
 
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
 
     assert prep.get("ok") is True
     sync = prep.get("cursor_sync") or {}
@@ -1437,7 +1463,7 @@ def test_check_after_fingerprint_stall_retries_then_halts(
     monkeypatch.setenv("EPIC_DEGRADED_MAX", "2")
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep["ok"]
     after1 = ctx.check_after(tmp_path, fingerprint_before=prep["fingerprint"])
     assert after1.get("ok") is True
@@ -1628,7 +1654,7 @@ def test_check_after_repairs_fingerprint_when_index_already_completed(
 def test_check_after_continues_when_handoff_advanced(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
@@ -1654,7 +1680,7 @@ def test_check_after_continues_when_handoff_advanced(tmp_path: Path) -> None:
 def test_check_after_shape_broken_does_not_halt(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
@@ -1679,7 +1705,7 @@ def test_check_after_epic_done(tmp_path: Path) -> None:
         "memory-bank/integration/reflection/reflection-x.md",
         "# Reflection x\nepic: x\n",
     )
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     _write(
         tmp_path,
         "memory-bank/activeContext.md",
@@ -1754,7 +1780,7 @@ def test_degraded_prompt_skips_other_epics_after_epic_done(tmp_path: Path) -> No
 def test_check_after_epic_done_with_backticks(tmp_path: Path) -> None:
     ctx = _load_ctx()
     _seed_context(tmp_path)
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     _write_finished_artifact(
         tmp_path,
         "memory-bank/integration/qa/x/qa-20260802-x.yaml",

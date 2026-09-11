@@ -1,0 +1,54 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s04 — LoopRunner outer orchestrator, retry policy and action decision machine
+  IMPLEMENT
+status: in_progress
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s04-outer-orchestrator-and-lifecycle.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/runner/output.py with pure formatting functions for banners, prepare
+  summaries, retry diagnostics, aborts, check-after, roadmap-advance, and DAG fanouts
+- Created loop/runner/orchestrator.py implementing IncidentTracker, ContextLoopPort,
+  and LoopRunner coordinating outer loop lifecycle, lock acquisition via RunnerLease,
+  transient retry policy with re-prepare, check-after decision dispatch, incident
+  management, and log pruning
+- Created loop/tests/test_runner_orchestrator.py covering clean turn lifecycle, transient
+  retry backoff, subagent wait timeout retry, re-prepare epic completion detection,
+  action decisions (halt, complete, continue, NEED_HUMAN, model_required), log pruning,
+  and pure output formatters
+files:
+- loop/runner/orchestrator.py
+- loop/runner/output.py
+- loop/tests/test_runner_orchestrator.py
+deletes: []
+tests:
+- '`bin/pytest loop/tests/test_runner_orchestrator.py -q`'
+integration_check:
+- '`bin/pytest loop/tests/test_runner_orchestrator.py -q`'
+grep_control: []
+verification_results:
+- '{''command'': ''`bin/pytest loop/tests/test_runner_orchestrator.py -q`'', ''outcome'':
+  ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: LoopRunner completes prepare, session invocation, record-session, and
+    check-after transitions in order
+  status: done
+  done_at: '2026-09-11T08:45:00Z'
+- id: cp2
+  criterion: Transient session failures trigger context re-prepare and bounded exponential
+    backoff retries before bubbling up
+  status: done
+  done_at: '2026-09-11T08:45:00Z'
+- id: cp3
+  criterion: Action decisions (continue, complete, halt, NEED_HUMAN, DAG fanout) match
+    halt_logic specifications and produce proper exit codes
+  status: done
+  done_at: '2026-09-11T08:45:00Z'
+resume_from: cp1

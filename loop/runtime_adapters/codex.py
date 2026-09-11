@@ -1,14 +1,14 @@
+from __future__ import annotations
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
-from harness.hooks.session_resilience import detect_shell_command_not_found
-from harness.hooks.session_resilience import COLLABORATION_WAIT_TIMEOUT_REASON
-from loop.runtime_adapters.base import RuntimeAdapter, SessionAnalysis, SessionContext
+from loop.runtime_adapters.base import RuntimeAdapter, RuntimePreparationResult, SessionAnalysis, SessionContext
 
 _CODEX_ABORT_RE = re.compile(
     r"(?i)(?:session aborted(?:\s+by\b|\s*$)|codex session aborted)"
@@ -119,7 +119,7 @@ def _detect_codex_runtime_abort(raw_log: str) -> bool:
     return False
 
 
-def _resolve_codex_binary() -> str:
+def _resolve_codex_binary(hub_root: Path | None = None) -> str:
     """Locate codex binary using which-codex.sh or direct resolution.
 
     Raises SystemExit(127) fail-closed if binary cannot be resolved or found.
@@ -171,8 +171,68 @@ def _uses_omniroute(codex_bin: str) -> bool:
 class CodexAdapter(RuntimeAdapter):
     """RuntimeAdapter implementation for OpenAI Codex CLI."""
 
+    def resolve_binary(self, hub_root: Path | None = None) -> str | None:
+        root = Path(hub_root) if hub_root else Path(__file__).resolve().parents[2]
+        script_path = root / "codex" / "bin" / "which-codex.sh"
+        if script_path.exists() and os.access(str(script_path), os.X_OK):
+            try:
+                res = subprocess.run(
+                    [str(script_path)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if res.returncode == 0:
+                    bin_path = res.stdout.strip()
+                    if bin_path:
+                        return bin_path
+            except Exception:
+                pass
+        codex_bin_env = os.environ.get("CODEX_BIN")
+        if codex_bin_env and os.access(codex_bin_env, os.X_OK):
+            return codex_bin_env
+        which_path = shutil.which("codex")
+        if which_path:
+            return which_path
+        return None
+
+    def resolve_working_directory(
+        self,
+        project_root: Path,
+        hub_root: Path,
+        ctx: SessionContext | None = None,
+    ) -> Path:
+        return Path(project_root)
+
+    def requires_stdin_prompt(self, mode: str = "headless") -> bool:
+        return True if mode == "headless" else False
+
+    def progress_mode(self) -> str:
+        return "codex_json"
+
+    def resolve_stream_filter(self, hub_root: Path) -> list[str] | None:
+        filter_path = Path(hub_root) / "harness" / "hooks" / "epic_codex_stream_filter.py"
+        if filter_path.exists():
+            return [sys.executable, str(filter_path)]
+        return None
+
+    def prepare_runtime(
+        self,
+        hub_root: Path,
+        project_root: Path,
+        extras: dict[str, Any] | None = None,
+    ) -> RuntimePreparationResult:
+        codex_bin = self.resolve_binary(hub_root)
+        if not codex_bin:
+            return RuntimePreparationResult(
+                ok=False,
+                exit_code=127,
+                error="codex binary not found; install codex or set CODEX_BIN",
+            )
+        return RuntimePreparationResult(ok=True, command=[codex_bin])
+
     def build_command(self, ctx: SessionContext) -> list[str]:
-        codex_bin = _resolve_codex_binary()
+        codex_bin = ctx.extras.get("codex_bin") or _resolve_codex_binary(ctx.extras.get("hub_root"))
 
         project_root = ctx.extras.get("project_root") or os.getcwd()
 
@@ -193,9 +253,19 @@ class CodexAdapter(RuntimeAdapter):
         if ctx.model:
             cmd.extend(["--model", ctx.model])
 
+        extra_args = ctx.extras.get("extra_args")
+        if extra_args:
+            if isinstance(extra_args, (list, tuple)):
+                cmd.extend(list(extra_args))
+
         return cmd
 
     def analyze_log(self, raw_log: str, ctx: SessionContext) -> SessionAnalysis:
+        from harness.hooks.session_resilience import (
+            COLLABORATION_WAIT_TIMEOUT_REASON,
+            detect_shell_command_not_found,
+        )
+
         exit_code = ctx.extras.get("exit_code")
 
         if (

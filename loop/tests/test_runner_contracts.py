@@ -393,7 +393,7 @@ class TestPortsAndProtocols:
         assert isinstance(fake, ContextPort)
 
         # Call the methods to ensure contract compatibility
-        res_prep = fake.prepare_session(tmp_path)
+        res_prep = fake.prepare_session(tmp_path, model="test-model")
         assert res_prep["ok"] is True
         res_check = fake.check_after(tmp_path)
         assert res_check["action"] == "continue"

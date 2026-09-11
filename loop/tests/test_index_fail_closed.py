@@ -449,7 +449,7 @@ def test_prepare_auto_repairs_md_queue_drift(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    result = ctx.prepare_session(tmp_path)
+    result = ctx.prepare_session(tmp_path, model="test-model")
     md_text = (tmp_path / decompose).read_text(encoding="utf-8")
     parsed = parse_steps_from_md(md_text)
 

@@ -171,7 +171,7 @@ def test_prepare_primary_mb_load_fail_closed_on_invalid_shape(tmp_path: Path):
     # Shape broken (missing frontmatter / malformed) -> degraded recovery
     (mb_dir / "activeContext.md").write_text("invalid shape text without headers", encoding="utf-8")
 
-    out = prepare_session(tmp_path)
+    out = prepare_session(tmp_path, model="test-model")
     assert out.get("ok") is True
     assert out.get("degraded") is True
     assert "shape_errors" in out or "diagnostic_codes" in out

@@ -136,7 +136,7 @@ def test_stop_gate_blocks_early_end_without_fingerprint_progress(tmp_path: Path)
     )
     _write("memory-bank/activeContext.md", handoff, tmp_path)
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
 
     result = _run_stop_gate(
@@ -180,7 +180,7 @@ def test_stop_gate_diagnostic_fingerprint_unchanged(tmp_path: Path) -> None:
         tmp_path,
     )
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
 
     result = _run_stop_gate(
@@ -211,7 +211,7 @@ def test_stop_gate_allows_after_handoff_fingerprint_change(tmp_path: Path) -> No
         tmp_path,
     )
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
 
     # FINISH: rewrite handoff (fingerprint changes)
@@ -251,7 +251,7 @@ def test_stop_gate_no_longer_requires_result_yaml(tmp_path: Path) -> None:
         tmp_path,
     )
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
     _write(
         "memory-bank/activeContext.md",
@@ -1052,7 +1052,7 @@ def test_stop_gate_armed_epic_ignored_without_epic_loop(tmp_path: Path) -> None:
         tmp_path,
     )
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
 
     early = _run_stop_gate(
@@ -1095,7 +1095,7 @@ def test_session_start_payload_requires_epic_loop(tmp_path: Path, monkeypatch) -
         tmp_path,
     )
     ctx = _load_context_loop()
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True
 
     monkeypatch.delenv("EPIC_LOOP", raising=False)

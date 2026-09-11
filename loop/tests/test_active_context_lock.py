@@ -180,7 +180,7 @@ def test_prepare_halts_on_ac_armed_epic_split(tmp_path: Path) -> None:
             "status": "armed",
         },
     )
-    out = prepare_session(tmp_path)
+    out = prepare_session(tmp_path, model="test-model")
     assert out["ok"] is False
     assert out.get("halt") is True
     assert out.get("diagnostic_code") == "active_context_identity_mismatch"

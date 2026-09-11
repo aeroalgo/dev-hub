@@ -74,6 +74,39 @@ def test_resolve_falls_back_to_cli_when_no_override(monkeypatch) -> None:
     assert out["model_source"] == "cli"
 
 
+def test_resolve_missing_when_neither_cli_nor_env(monkeypatch) -> None:
+    ctx = _load_ctx()
+    monkeypatch.delenv("PROJECT_LOOP_IMPLEMENT_MODEL", raising=False)
+    monkeypatch.delenv("PROJECT_LOOP_DECOMPOSE_MODEL", raising=False)
+    out = ctx.resolve_loop_phase_model(
+        phase="BACK IMPLEMENT",
+        armed_step="s01",
+        cli_model=None,
+    )
+    assert out["model"] is None
+    assert out["model_source"] == "missing"
+    assert out["model_env"] == "PROJECT_LOOP_IMPLEMENT_MODEL"
+
+
+def test_model_required_halt_payload() -> None:
+    ctx = _load_ctx()
+    halt = ctx._model_required_halt(
+        {
+            "model": None,
+            "model_source": "missing",
+            "model_env": "PROJECT_LOOP_IMPLEMENT_MODEL",
+            "loop_phase": "IMPLEMENT",
+        }
+    )
+    assert halt["ok"] is False
+    assert halt["halt"] is True
+    assert halt["diagnostic_code"] == "model_required"
+    assert "model_required" in halt["reason"]
+    assert "PROJECT_LOOP_IMPLEMENT_MODEL" in halt["reason"]
+    assert halt["model"] is None
+    assert halt["model_source"] == "missing"
+
+
 def test_loop_phase_model_key_is_file_wins() -> None:
     hooks = str(ROOT / ".claude" / "hooks")
     if hooks not in sys.path:

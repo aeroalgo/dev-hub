@@ -82,7 +82,7 @@ def test_prepare_clears_reserved_role_arm(tmp_path: Path) -> None:
     )
     ctx.save_epic_state(tmp_path, state)
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out["ok"] is False
     assert out["halt"] is True
     assert out["diagnostic_code"] == "armed_role_slug"

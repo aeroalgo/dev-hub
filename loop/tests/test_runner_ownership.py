@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import fcntl
 import importlib.util
 import json
+import os
+import signal
 import sys
 from pathlib import Path
 import pytest
+
+from harness.hooks._lib import RuntimeConfig
+from loop.runner import RunnerConfig
+from loop.runner.ownership import RunnerLease, RunnerLockContendedError
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -140,3 +147,107 @@ def test_runner_owner_status_projects_effective_config_without_secrets(tmp_path:
     assert "model" in status["owner"]
     assert "secret" not in json.dumps(status).lower()
     assert set(status) == {"runner_active", "owner_alive", "lock_age_sec", "owner"}
+
+
+class TestRunnerLease:
+    def test_acquire_and_release(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "runtime"
+        lease = RunnerLease(
+            state_dir=state_dir,
+            session_id="test-session-123",
+            mode="implement",
+            model="claude-3-5-sonnet",
+            install_signal_handlers=False,
+        )
+
+        assert not lease.is_acquired
+        with lease:
+            assert lease.is_acquired
+            owner_path = state_dir / "runner.json"
+            assert owner_path.is_file()
+            data = json.loads(owner_path.read_text(encoding="utf-8"))
+            assert data["session_id"] == "test-session-123"
+            assert data["mode"] == "implement"
+            assert data["selected_identity"] == "BACK IMPLEMENT"
+            assert (state_dir / "runner.lock").is_file()
+
+        assert not lease.is_acquired
+        assert not (state_dir / "runner.json").exists()
+
+    def test_lock_contention_raises_runner_lock_contended_error(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "runtime"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        lock_file = state_dir / "runner.lock"
+
+        # Hold flock in current process
+        fd = os.open(str(lock_file), os.O_RDWR | os.O_CREAT, 0o666)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        try:
+            lease = RunnerLease(
+                state_dir=state_dir,
+                session_id="test-session-contended",
+                install_signal_handlers=False,
+            )
+            with pytest.raises(RunnerLockContendedError) as exc_info:
+                lease.acquire()
+
+            assert exc_info.value.exit_code == 1
+            assert "already active" in str(exc_info.value)
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def test_from_config(self, tmp_path: Path) -> None:
+        rc = RuntimeConfig(
+            session_timeout_sec=300,
+            session_kill_grace_sec=10,
+            transient_retry_max=3,
+            subagent_retry_max=2,
+            degraded_max=2,
+            status_heartbeat_sec=30,
+            stream_idle_timeout_sec=60,
+            collaboration_wait_timeout_sec=120,
+            permission_mode="bypass",
+            sources={},
+            epic_runtime="claude",
+        )
+        config = RunnerConfig(
+            hub_root=tmp_path / "hub",
+            project_root=tmp_path / "project",
+            state_dir=tmp_path / "runtime" / "epic",
+            runtime=rc,
+            permission_mode="bypass",
+            headless=True,
+            interactive=False,
+            verbose=False,
+            cli_model="claude-3-7-sonnet",
+            epic_spec="T-HUB-086",
+            epic_id="T-HUB-086",
+            mode="implement",
+        )
+
+        lease = RunnerLease.from_config(config, install_signal_handlers=False)
+        assert lease.state_dir == tmp_path / "runtime" / "epic"
+        assert lease.model == "claude-3-7-sonnet"
+        assert lease.mode == "implement"
+        assert lease.selected_identity == "BACK IMPLEMENT"
+        assert lease.timeout_config["session_timeout_sec"] == 300
+        assert lease.timeout_config["kill_grace_sec"] == 10
+        assert lease.timeout_config["collaboration_wait_timeout_sec"] == 120
+
+    def test_signal_handlers_registered_and_restored(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "runtime"
+        original_sigint = signal.getsignal(signal.SIGINT)
+
+        lease = RunnerLease(
+            state_dir=state_dir,
+            session_id="test-sig",
+            install_signal_handlers=True,
+        )
+        with lease:
+            current_sigint = signal.getsignal(signal.SIGINT)
+            assert current_sigint != original_sigint
+
+        restored_sigint = signal.getsignal(signal.SIGINT)
+        assert restored_sigint == original_sigint

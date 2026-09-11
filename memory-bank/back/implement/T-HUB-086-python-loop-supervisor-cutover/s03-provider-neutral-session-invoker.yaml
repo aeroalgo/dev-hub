@@ -1,0 +1,73 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s03 — Provider-neutral SessionInvoker, runtime adapters and session resilience
+  wiring IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/yaml/steps/s03-provider-neutral-session-invoker.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Created loop/runner/session.py implementing SessionInvoker that delegates to runtime
+  adapters via polymorphism and executes sessions via session_resilience
+- Enhanced loop/runtime_adapters/base.py with RuntimePreparationResult contract and
+  typed metadata for working directory, stdin pipe requirements, stream filters, and
+  profile preparation
+- Enhanced loop/runtime_adapters/claude.py, codex.py, and dsh.py implementing typed
+  methods for working directory, stdin prompt, stream filter resolution, and runtime
+  preparation
+- Encapsulated DSH binary resolution and profile validation inside DshAdapter without
+  external shell supervisor coupling
+- Exposed typed SessionExecutionResult dataclass and direct programmatic entrypoint
+  in harness/hooks/session_resilience.py
+- Created loop/tests/test_runner_session.py verifying Claude, DSH, and Codex invocation,
+  timeout and watchdog resilience, and fail-closed diagnostics without Claude fallback
+files:
+- loop/runner/session.py
+- loop/runtime_adapters/base.py
+- loop/runtime_adapters/common.py
+- loop/runtime_adapters/claude.py
+- loop/runtime_adapters/codex.py
+- loop/runtime_adapters/dsh.py
+- loop/runtime/dispatch.py
+- harness/hooks/session_resilience.py
+- loop/tests/test_runner_session.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_runner_session.py -k 'test_invoke_providers' -q
+- bin/pytest loop/tests/test_runner_session.py -k 'test_resilience_integration' -q
+- bin/pytest loop/tests/test_runner_session.py -k 'test_fail_closed' -q
+integration_check:
+- bin/pytest loop/tests/test_runner_session.py loop/tests/test_runner_contracts.py
+  loop/tests/test_claude_adapter.py loop/tests/test_codex_runtime_adapter.py loop/tests/test_runtime_dispatch.py
+  loop/tests/test_session_resilience_adapter.py loop/tests/test_runtime_adapter_protocol.py
+  -q
+grep_control: []
+verification_results:
+- '{''command'': "bin/pytest loop/tests/test_runner_session.py -k ''test_invoke_providers''
+  -q", ''outcome'': ''pass''}'
+- '{''command'': "bin/pytest loop/tests/test_runner_session.py -k ''test_resilience_integration''
+  -q", ''outcome'': ''pass''}'
+- '{''command'': "bin/pytest loop/tests/test_runner_session.py -k ''test_fail_closed''
+  -q", ''outcome'': ''pass''}'
+- '{''command'': ''bin/pytest loop/tests/test_runner_session.py loop/tests/test_runner_contracts.py
+  loop/tests/test_claude_adapter.py loop/tests/test_codex_runtime_adapter.py loop/tests/test_runtime_dispatch.py
+  loop/tests/test_session_resilience_adapter.py loop/tests/test_runtime_adapter_protocol.py
+  -q'', ''outcome'': ''pass''}'
+checkpoints:
+- id: cp1
+  criterion: SessionInvoker correctly delegates to runtime adapters for Claude, DSH,
+    and Codex without provider-specific if-chains in supervisor
+  status: done
+- id: cp2
+  criterion: Subprocess execution via session_resilience preserves timeouts, idle
+    watchdogs, signal handling, and log writing
+  status: done
+- id: cp3
+  criterion: Missing binary, unknown runtime, or invalid DSH profile exits fail-closed
+    with clear diagnostic and zero Claude fallback
+  status: done

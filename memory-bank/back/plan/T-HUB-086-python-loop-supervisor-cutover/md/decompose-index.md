@@ -142,9 +142,9 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-contracts-and-seams.yaml](../yaml/steps/s01-contracts-and-seams.yaml) | [s01…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s01-contracts-and-seams.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-config-and-ownership.yaml](../yaml/steps/s02-config-and-ownership.yaml) | [s02…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s02-config-and-ownership.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s03** | [s03-provider-neutral-session-invoker.yaml](../yaml/steps/s03-provider-neutral-session-invoker.yaml) | [s03…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s03-provider-neutral-session-invoker.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s01** | [s01-contracts-and-seams.yaml](../yaml/steps/s01-contracts-and-seams.yaml) | [s01…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s01-contracts-and-seams.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-config-and-ownership.yaml](../yaml/steps/s02-config-and-ownership.yaml) | [s02…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s02-config-and-ownership.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s03** | [s03-provider-neutral-session-invoker.yaml](../yaml/steps/s03-provider-neutral-session-invoker.yaml) | [s03…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s03-provider-neutral-session-invoker.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s04** | [s04-outer-orchestrator-and-lifecycle.yaml](../yaml/steps/s04-outer-orchestrator-and-lifecycle.yaml) | [s04…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s04-outer-orchestrator-and-lifecycle.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s05** | [s05-cutover-and-compatibility-shims.yaml](../yaml/steps/s05-cutover-and-compatibility-shims.yaml) | [s05…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s05-cutover-and-compatibility-shims.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s06** | [s06-active-instructions-and-docs.yaml](../yaml/steps/s06-active-instructions-and-docs.yaml) | [s06…](../../implement/T-HUB-086-python-loop-supervisor-cutover/s06-active-instructions-and-docs.yaml) | no | yes | BACK IMPLEMENT | pending |

@@ -78,7 +78,7 @@ def test_corrupt_registry_yaml(tmp_path: Path) -> None:
 
 
 def test_prepare_workflow_pack_field(tmp_path: Path) -> None:
-    """TM-004 / FR-008: prepare_session(cwd) -> dict with workflow_pack key + pack_id=dev-hub-software."""
+    """TM-004 / FR-008: prepare_session(cwd, model="test-model") -> dict with workflow_pack key + pack_id=dev-hub-software."""
     # Setup mock activeContext and minimal memory bank layout
     mb = tmp_path / "memory-bank"
     mb.mkdir(parents=True, exist_ok=True)
@@ -100,7 +100,7 @@ def test_prepare_workflow_pack_field(tmp_path: Path) -> None:
     old_env_wp = os.environ.pop("WORKFLOW_PACK", None)
     old_env_ewp = os.environ.pop("EPIC_WORKFLOW_PACK", None)
     try:
-        prep = prepare_session(tmp_path)
+        prep = prepare_session(tmp_path, model="test-model")
         assert prep.get("ok") is True
         wf_pack_res = prep.get("workflow_pack")
         assert isinstance(wf_pack_res, dict)

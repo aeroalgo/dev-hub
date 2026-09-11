@@ -48,7 +48,7 @@ def test_prepare_session_has_episode_id(tmp_path: Path):
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
 
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert res.get("ok") is True
     assert "episode_id" in res
     assert res["episode_id"] is not None
@@ -66,7 +66,7 @@ def test_check_after_creates_manifest(tmp_path: Path):
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
 
-    prep_res = prepare_session(tmp_path)
+    prep_res = prepare_session(tmp_path, model="test-model")
     assert prep_res.get("ok") is True
     ep_id = prep_res["episode_id"]
 
@@ -96,7 +96,7 @@ def test_finalize_exception_does_not_block(tmp_path: Path):
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
 
-    prep_res = prepare_session(tmp_path)
+    prep_res = prepare_session(tmp_path, model="test-model")
     assert prep_res.get("ok") is True
 
     ac_file.write_text(
@@ -121,7 +121,7 @@ def test_tier0_check_after_finalizes(tmp_path: Path):
     )
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
 
-    prep_res = prepare_session(tmp_path)
+    prep_res = prepare_session(tmp_path, model="test-model")
     assert prep_res.get("ok") is True
     ep_id = prep_res["episode_id"]
 
@@ -142,7 +142,7 @@ def test_record_abort_finalizes_started_episode(tmp_path: Path):
     ac_file.write_text(AC_VALID_CONTENT_1, encoding="utf-8")
     (tmp_path / "memory-bank" / "foo.md").write_text("foo", encoding="utf-8")
 
-    prep_res = prepare_session(tmp_path)
+    prep_res = prepare_session(tmp_path, model="test-model")
     ep_id = prep_res["episode_id"]
     log = tmp_path / "session.log"
     log.write_text(

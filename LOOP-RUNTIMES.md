@@ -66,7 +66,7 @@ Claude hooks в выбранный `$DSH_HOME`. Команду выше можн
 
 ## Приоритет модели
 
-Явный `--model` из команды имеет приоритет над `PROJECT_LOOP_<PHASE>_MODEL`. Если `--model` не передан, применяется phase override из `.claude/project.env`; для остальных фаз используется модель из команды или runtime default.
+Явный `--model` из команды имеет приоритет над `PROJECT_LOOP_<PHASE>_MODEL`. Если `--model` не передан, применяется phase override из `.claude/project.env`. Если нет ни CLI, ни phase env — loop останавливается с `model_required` (тихий default запрещён).
 
 Если OmniRoute ограничивает выбранную модель или заменяет её, loop останавливается с `model_substitution`, а не продолжает работу на другой модели.
 

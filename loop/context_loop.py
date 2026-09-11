@@ -271,7 +271,11 @@ def resolve_loop_phase_model(
     cli_model: str | None = None,
     project_dir: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Pick the session model: explicit CLI --model > phase env > None."""
+    """Pick the session model: explicit CLI --model > phase env only.
+
+    No silent runtime/settings/stale default. Missing both sources → model=None
+    with model_source=missing (caller must fail-closed before starting a session).
+    """
     cli = (cli_model or "").strip() or None
     if cli:
         key = loop_phase_key(phase, armed_step)
@@ -301,8 +305,30 @@ def resolve_loop_phase_model(
     return {
         "model": None,
         "loop_phase": key,
-        "model_source": "default",
+        "model_source": "missing",
         "model_env": env_name,
+    }
+
+
+def _model_required_halt(
+    resolved: dict[str, Any],
+) -> dict[str, Any]:
+    env_name = resolved.get("model_env") or "PROJECT_LOOP_<PHASE>_MODEL"
+    reason = (
+        "model_required: pass CLI --model or set "
+        f"{env_name}; silent runtime/default/stale model selection is forbidden"
+    )
+    return {
+        "ok": False,
+        "complete": False,
+        "halt": True,
+        "reason": reason,
+        "diagnostic_code": "model_required",
+        "diagnostic_codes": ["model_required"],
+        "model": None,
+        "model_source": "missing",
+        "model_env": resolved.get("model_env"),
+        "loop_phase": resolved.get("loop_phase"),
     }
 
 
@@ -2378,9 +2404,10 @@ def prepare_session(
         cli_model=model,
         project_dir=HUB_ROOT,
     )
-    effective_model = resolved.get("model") or model
-    if effective_model:
-        st["model"] = effective_model
+    effective_model = (resolved.get("model") or "").strip() or None
+    if not effective_model:
+        return _model_required_halt(resolved)
+    st["model"] = effective_model
     checkpoint_session = (
         str(st.get("session_id") or "").strip()
         or str(os.environ.get("EPIC_RUNNER_SESSION_ID") or "").strip()
@@ -2585,7 +2612,7 @@ def prepare_session(
         "checkpoint": checkpoint_session,
         "load_now": existing,
         "fingerprint": fp,
-        "model": effective_model or st.get("model"),
+        "model": effective_model,
         "model_source": resolved.get("model_source"),
         "model_env": resolved.get("model_env"),
         "loop_phase": resolved.get("loop_phase"),

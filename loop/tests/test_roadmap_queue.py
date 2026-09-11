@@ -313,7 +313,7 @@ def test_roadmap_advance_decompose_prepare_ok_without_index(tmp_path: Path) -> N
     assert advance["ok"] is True
     assert advance["phase"] == "DECOMPOSE"
     assert advance["epic"] == "T-013"
-    prep = ctx.prepare_session(tmp_path)
+    prep = ctx.prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True, prep
     assert prep.get("halt") is not True
     st_path = tmp_path / ".claude/runtime/epic/state.json"

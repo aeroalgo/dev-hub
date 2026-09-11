@@ -176,6 +176,6 @@ def test_prepare_completes_after_mb_finish_qa(tmp_path: Path) -> None:
     assert finish.epic_done is True
     assert finish.next_phase == "DONE"
 
-    prep = prepare_session(tmp_path)
+    prep = prepare_session(tmp_path, model="test-model")
     assert prep.get("complete") is True, prep
     assert prep.get("stop") == "EPIC_DONE"

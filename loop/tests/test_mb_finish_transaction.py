@@ -160,7 +160,7 @@ def test_crash_after_context_mixed_identity_recovered(tmp_path: Path) -> None:
 
     # Now attempt to recover via prepare_session (which runs recover_finish_transaction and sync_cursor_from_index)
     from loop.context_loop import prepare_session
-    prep = prepare_session(tmp_path)
+    prep = prepare_session(tmp_path, model="test-model")
     assert prep.get("ok") is True, f"prepare_session failed during recovery: {prep}"
 
     # Post-recovery invariant: never mixed identity (either both s01 or both s02)
@@ -570,7 +570,7 @@ def test_prepare_session_recovers_leftover_journal(tmp_path: Path) -> None:
     assert get_finish_tx_path(tmp_path).exists()
 
     # prepare_session should recover transaction (rollback to backup) and clean journal
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert res.get("ok"), f"prepare_session failed: {res}"
 
     # Journal sidecar must be cleaned up
@@ -615,7 +615,7 @@ def test_crash_after_context_recover_aligns(tmp_path: Path) -> None:
     write_finish_tx(tmp_path, rec)
 
     # prepare_session rolls back context_written because index was never committed
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert res.get("ok"), f"prepare_session failed: {res}"
 
     ctx_text = act_path.read_text(encoding="utf-8")
@@ -673,7 +673,7 @@ def test_crash_after_index_pre_marker_recover(tmp_path: Path) -> None:
     write_finish_tx(tmp_path, rec)
 
     # prepare_session commits remainder and cleans up journal
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert not get_finish_tx_path(tmp_path).exists()
     ctx_text = act_path.read_text(encoding="utf-8")
     assert "@s02" in ctx_text or "s02" in ctx_text
@@ -701,7 +701,7 @@ def test_committed_leftover_recover_idempotent(tmp_path: Path) -> None:
     write_finish_tx(tmp_path, rec)
     assert get_finish_tx_path(tmp_path).exists()
 
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert res.get("ok")
     assert not get_finish_tx_path(tmp_path).exists()
 
@@ -716,7 +716,7 @@ def test_corrupt_journal_need_human_fail_closed(tmp_path: Path) -> None:
     sidecar.parent.mkdir(parents=True, exist_ok=True)
     sidecar.write_text("{corrupted_json: true, invalid syntax", encoding="utf-8")
 
-    res = prepare_session(tmp_path)
+    res = prepare_session(tmp_path, model="test-model")
     assert not res.get("ok")
     assert res.get("halt") is True
     assert res.get("stop") == "NEED_HUMAN"

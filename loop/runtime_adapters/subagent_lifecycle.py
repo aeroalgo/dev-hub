@@ -300,8 +300,28 @@ def gate_atomic_finish(
             and receipt.get("demoted_from_pass")
             and state_verdict != "PASS"
         ):
-            blockers = receipt.get("demote_blockers") or []
-            detail = "; ".join(str(b) for b in blockers) or "step incomplete"
+            try:
+                from harness.hooks.epic.core import verify_pass_step_blockers
+
+                armed = str(state.get("armed_step") or "").strip() or None
+                live = verify_pass_step_blockers(cwd, step_id=armed)
+                can_recheck = bool(
+                    armed and str(state.get("armed_decompose") or "").strip()
+                )
+            except Exception:
+                live = []
+                can_recheck = False
+            if can_recheck and not live:
+                return {
+                    "ok": False,
+                    "diagnostic_codes": ["verify_demoted_stale"],
+                    "error": (
+                        "prior demoted verify PASS is stale; "
+                        "re-run @verify for a fresh autonomous PASS before finish"
+                    ),
+                }
+            detail_src = live or list(receipt.get("demote_blockers") or [])
+            detail = "; ".join(str(b) for b in detail_src) or "step incomplete"
             return {
                 "ok": False,
                 "diagnostic_codes": ["verify_demoted_pass"],

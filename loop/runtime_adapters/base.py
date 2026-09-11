@@ -91,6 +91,19 @@ class SessionAnalysis:
     structured_output: dict[str, Any] | None = None
 
 
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class RuntimePreparationResult:
+    """Result of runtime binary and profile readiness verification."""
+
+    ok: bool
+    exit_code: int = 0
+    error: str | None = None
+    command: list[str] | None = None
+
+
 @dataclass(frozen=True)
 class RuntimeCapabilities:
     stream_json: bool = False

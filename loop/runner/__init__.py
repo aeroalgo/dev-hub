@@ -214,13 +214,29 @@ class SessionPort(Protocol):
     def invoke(self, request: SessionRequest) -> SessionResult: ...
 
 
+def __getattr__(name: str) -> Any:
+    if name == "SessionInvoker":
+        from loop.runner.session import SessionInvoker
+
+        return SessionInvoker
+    if name in ("LoopRunner", "IncidentTracker", "ContextLoopPort"):
+        import loop.runner.orchestrator as orch
+
+        return getattr(orch, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
+    "ContextLoopPort",
     "ContextPort",
+    "IncidentTracker",
+    "LoopRunner",
     "PreflightCheckResult",
     "RunAction",
     "RunOutcome",
     "RunnerConfig",
     "RuntimeConfig",
+    "SessionInvoker",
     "SessionPort",
     "SessionRequest",
     "SessionResult",

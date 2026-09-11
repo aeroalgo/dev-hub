@@ -11,10 +11,11 @@ import signal
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Sequence, TypedDict
 
 # Script/import must bind THIS hub's loop/, not a shadowing PYTHONPATH entry
 # (e.g. another checkout's loop/ without runtime_adapters).
@@ -294,6 +295,28 @@ class SessionAnalysis(TypedDict, total=False):
     first_action_taken: bool
     first_action_at: float | str | None
     aborted_before_action: bool
+
+
+@dataclass(frozen=True)
+class SessionExecutionResult:
+    """Typed result of executing a bounded session subprocess."""
+
+    exit_code: int
+    log_file: Path
+    interrupted: bool = False
+    timed_out: bool = False
+    idle_timed_out: bool = False
+    model_substituted: bool = False
+    collaboration_wait_timed_out: bool = False
+    unsupported_tool: str | None = None
+    elapsed_sec: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.log_file, Path):
+            object.__setattr__(self, "log_file", Path(self.log_file))
+
+
+_SESSION_EXECUTION_RESULT = SessionExecutionResult
 
 
 def utc_now() -> str:
@@ -1514,8 +1537,8 @@ def _write_session_log(handle: Any, data: bytes, total: int) -> int:
     return new_total
 
 
-def run_session(
-    command: list[str],
+def execute_session(
+    command: Sequence[str] | list[str],
     *,
     mode: str,
     session_id: str,
@@ -1528,8 +1551,11 @@ def run_session(
     collaboration_wait_timeout: float | None = None,
     stdin_text: str | None = None,
     progress_mode: str = "tool_json",
-) -> int:
-    """Run one Claude session with bounded output and process-group cleanup."""
+    cwd: str | Path | None = None,
+    stream_filter_cmd: Sequence[str] | list[str] | None = None,
+) -> SessionExecutionResult:
+    """Run one session with bounded output, watchdog monitoring, and typed result."""
+    result_cls = _SESSION_EXECUTION_RESULT
     if mode not in {"headless", "interactive"}:
         raise ValueError("mode must be headless or interactive")
     if not command:
@@ -1545,7 +1571,8 @@ def run_session(
     if progress_mode not in _PROGRESS_MODES:
         raise ValueError(f"progress_mode must be one of {sorted(_PROGRESS_MODES)}")
 
-    expected = (expected_model or "").strip() or expected_model_from_command(command)
+    cmd_list = list(command)
+    expected = (expected_model or "").strip() or expected_model_from_command(cmd_list)
     path = Path(log_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
@@ -1565,6 +1592,18 @@ def run_session(
     # Idle: tool_json = last tool_use/tool_result; stream_bytes = last stdout chunk (Codex).
     last_activity = started
     last_heartbeat = started
+    stream_filter_proc = None
+    if stream_filter_cmd and mode == "headless":
+        try:
+            stream_filter_proc = subprocess.Popen(
+                list(stream_filter_cmd),
+                stdin=subprocess.PIPE,
+                stdout=sys.stdout.buffer,
+                stderr=sys.stderr.buffer,
+            )
+        except Exception:
+            stream_filter_proc = None
+
     with path.open("w", encoding="utf-8") as log:
         log.write(f"SESSION_START session={session_id} mode={mode} command={command[0]}\n")
         if expected:
@@ -1577,8 +1616,10 @@ def run_session(
             stdin_handle = subprocess.PIPE
         else:
             stdin_handle = subprocess.DEVNULL
+        cwd_path = str(cwd) if cwd else None
         process = subprocess.Popen(
-            command,
+            cmd_list,
+            cwd=cwd_path,
             stdin=stdin_handle,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -1693,13 +1734,22 @@ def run_session(
                     data = key.fileobj.read1(65536)
                     if data:
                         total = _write_session_log(log, data, total)
-                        try:
-                            sys.stdout.buffer.write(data)
-                            sys.stdout.buffer.flush()
-                        except BrokenPipeError:
-                            # Downstream stream-filter/tty closed — keep draining
-                            # Claude into the session log so SESSION_END is written.
-                            pass
+                        if stream_filter_proc and stream_filter_proc.stdin:
+                            try:
+                                stream_filter_proc.stdin.write(data)
+                                stream_filter_proc.stdin.flush()
+                            except (BrokenPipeError, OSError):
+                                try:
+                                    stream_filter_proc.stdin.close()
+                                except Exception:
+                                    pass
+                                stream_filter_proc = None
+                        else:
+                            try:
+                                sys.stdout.buffer.write(data)
+                                sys.stdout.buffer.flush()
+                            except BrokenPipeError:
+                                pass
                         try:
                             chunk_txt = data.decode("utf-8", errors="replace")
                         except Exception:
@@ -1785,6 +1835,12 @@ def run_session(
                 process.wait()
         finally:
             selector.close()
+            if stream_filter_proc and stream_filter_proc.stdin:
+                try:
+                    stream_filter_proc.stdin.close()
+                    stream_filter_proc.wait(timeout=min(kill_grace, 5.0) if kill_grace > 0 else 1.0)
+                except Exception:
+                    pass
             if process.poll() is None:
                 _safe_killpg(process.pid, signal.SIGKILL)
                 process.wait()
@@ -1822,9 +1878,58 @@ def run_session(
                     log.write(sub + "\n")
                     log.flush()
                     rc = MODEL_SUBSTITUTION_EXIT
-        log.write(f"SESSION_END session={session_id} exit_code={rc} elapsed={time.monotonic() - started:.3f}s\n")
+        elapsed_sec = time.monotonic() - started
+        log.write(f"SESSION_END session={session_id} exit_code={rc} elapsed={elapsed_sec:.3f}s\n")
         log.flush()
-    return rc
+    interrupted = (rc in (124, 125, 126, 130, 137) or timed_out or idle_timed_out or collaboration_wait_timed_out)
+    return result_cls(
+        exit_code=rc,
+        log_file=path,
+        interrupted=interrupted,
+        timed_out=timed_out,
+        idle_timed_out=idle_timed_out,
+        model_substituted=model_substituted,
+        collaboration_wait_timed_out=collaboration_wait_timed_out,
+        unsupported_tool=unsupported_tool,
+        elapsed_sec=elapsed_sec,
+    )
+
+
+def run_session(
+    command: list[str],
+    *,
+    mode: str,
+    session_id: str,
+    timeout: float,
+    kill_grace: float,
+    log_path: str | Path,
+    expected_model: str | None = None,
+    heartbeat_sec: float | None = None,
+    idle_timeout: float | None = None,
+    collaboration_wait_timeout: float | None = None,
+    stdin_text: str | None = None,
+    progress_mode: str = "tool_json",
+    cwd: str | Path | None = None,
+    stream_filter_cmd: Sequence[str] | list[str] | None = None,
+) -> int:
+    """Run one session with bounded output and process-group cleanup (returns exit code)."""
+    result = execute_session(
+        command,
+        mode=mode,
+        session_id=session_id,
+        timeout=timeout,
+        kill_grace=kill_grace,
+        log_path=log_path,
+        expected_model=expected_model,
+        heartbeat_sec=heartbeat_sec,
+        idle_timeout=idle_timeout,
+        collaboration_wait_timeout=collaboration_wait_timeout,
+        stdin_text=stdin_text,
+        progress_mode=progress_mode,
+        cwd=cwd,
+        stream_filter_cmd=stream_filter_cmd,
+    )
+    return result.exit_code
 
 
 def _session_cli(argv: list[str]) -> int:

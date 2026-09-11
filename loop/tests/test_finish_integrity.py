@@ -247,7 +247,7 @@ def test_prepare_session_repairs_false_index_completed(tmp_path: Path) -> None:
         '{"armed_decompose": "' + decompose + '", "armed_step": "s01"}\n',
     )
 
-    result = ctx.prepare_session(tmp_path)
+    result = ctx.prepare_session(tmp_path, model="test-model")
 
     assert result["ok"] is True
     assert result.get("halt") is not True

@@ -131,7 +131,7 @@ def test_prepare_completes_when_qa_pass_despite_legacy_reflect_handoff(
     )
     save_epic_state(tmp_path, st)
 
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     assert out.get("complete") is True, out
     assert out.get("stop") == "EPIC_DONE"
 

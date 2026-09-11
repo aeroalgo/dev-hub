@@ -856,7 +856,11 @@ _reprepare_for_transient_retry() {
     return 1
   fi
   _apply_prepare_session_vars "$PREP_JSON"
-  echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
+  echo "==> session model=${SESSION_MODEL:-?} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-?}"
+  if [[ -z "${SESSION_MODEL:-}" ]]; then
+    echo "==> HALT: model_required: pass --model or set PROJECT_LOOP_<PHASE>_MODEL (silent default forbidden)" >&2
+    exit 2
+  fi
   if [[ -n "$prev_step" && "$ARMED_STEP" != "$prev_step" ]]; then
     echo "==> transient retry: armed_step resynced ${prev_step} → ${ARMED_STEP:-?}"
   else
@@ -961,7 +965,11 @@ print("==> roadmap-advance:", r.get("epic") or r.get("stop") or r.get("reason") 
   fi
 
   _apply_prepare_session_vars "$prep_json"
-  echo "==> session model=${SESSION_MODEL:-default} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-cli}"
+  echo "==> session model=${SESSION_MODEL:-?} phase=${LOOP_PHASE:-?} step=${ARMED_STEP:-?} source=${MODEL_SOURCE:-?}"
+  if [[ -z "${SESSION_MODEL:-}" ]]; then
+    echo "==> HALT: model_required: pass --model or set PROJECT_LOOP_<PHASE>_MODEL (silent default forbidden)" >&2
+    exit 2
+  fi
 
   transient_try=0
   max_transient="${EPIC_TRANSIENT_RETRY_MAX:-3}"

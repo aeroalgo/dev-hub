@@ -129,9 +129,9 @@ Functions `arm_active_context_from_decompose` and `arm_pre_implement_context` ar
 | BUGFIX | `PROJECT_LOOP_BUGFIX_MODEL` |
 | REFLECT | `PROJECT_LOOP_REFLECT_MODEL` |
 
-Если передан явный CLI `--model` (`make loop ARGS="--model gpt"`), он имеет приоритет над phase override. Если CLI-модель не задана, используется `PROJECT_LOOP_<PHASE>_MODEL` из `.claude/project.env` (или `.local`). Пример: `PROJECT_LOOP_DECOMPOSE_MODEL=agy/claude-sonnet-4-6` при `make loop ARGS="--model gpt"` → DECOMPOSE на gpt; без `--model` — на sonnet.
+Если передан явный CLI `--model` (`make loop ARGS="--model gpt"`), он имеет приоритет над phase override. Если CLI-модель не задана, используется `PROJECT_LOOP_<PHASE>_MODEL` из `.claude/project.env` (или `.local`). Если нет ни CLI, ни phase env — prepare **HALT** `model_required` (тихий runtime/settings/stale default запрещён). Пример: `PROJECT_LOOP_DECOMPOSE_MODEL=agy/claude-sonnet-4-6` при `make loop ARGS="--model gpt"` → DECOMPOSE на gpt; без `--model` — на sonnet.
 
-**Fail-closed model swap:** только при явном сообщении Claude/org `is restricted… Using X instead` — session wrapper убивает процесс (`exit 125`), `record-session` → `permanent_failure` / `model_substitution`, loop **HALT**. Разница CLI id vs init alias (например `agy/gemini-3.5-flash-medium` → `gemini-default`) — **не** halt. Fix при настоящем restrict: разрешить модель в org/OmniRoute или убрать недоступный `PROJECT_LOOP_<PHASE>_MODEL`.
+**Fail-closed model swap:** только при явном сообщении Claude/org `is restricted… Using X instead` — session wrapper убивает процесс (`exit 125`), `record-session` → `permanent_failure` / `model_substitution`, loop **HALT**. Разница CLI id vs init alias (например `agy/gemini-3.5-flash-medium` → `gemini-default`) — **не** halt. Fix при настоящем restrict: разрешить модель в org/OmniRoute или указать другую явную модель (CLI / `PROJECT_LOOP_<PHASE>_MODEL`).
 
 Disabled managed agent — это `scope_disabled`/gate bypass, а не ошибка workflow: optional overlay не блокирует переход или completion. Для обязательного gate (`mode: gate`) невалидная конфигурация (`model_invalid` и аналогичные ошибки) остаётся fail-closed и блокирует Stop; корректно выключенный gate только фиксируется в bypass telemetry. Scope policy не даёт агенту implicit permission менять agent state.
 

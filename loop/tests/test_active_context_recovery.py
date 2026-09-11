@@ -80,8 +80,8 @@ def test_degraded_counter_reaches_configured_cap(tmp_path: Path, monkeypatch) ->
         "## load_now\n- broken\n\n## Handoff one\n- x\n\n## Handoff two\n- y\n",
     )
 
-    first = ctx.prepare_session(tmp_path)
-    second = ctx.prepare_session(tmp_path)
+    first = ctx.prepare_session(tmp_path, model="test-model")
+    second = ctx.prepare_session(tmp_path, model="test-model")
 
     assert first["degraded"] is True
     assert second["halt"] is True
@@ -99,10 +99,10 @@ def test_valid_context_resets_degraded_counter(tmp_path: Path, monkeypatch) -> N
         "memory-bank/activeContext.md",
         "## load_now\n- broken\n\n## Handoff one\n- x\n\n## Handoff two\n- y\n",
     )
-    ctx.prepare_session(tmp_path)
+    ctx.prepare_session(tmp_path, model="test-model")
 
     _seed(tmp_path)
-    out = ctx.prepare_session(tmp_path)
+    out = ctx.prepare_session(tmp_path, model="test-model")
     state = ctx.load_epic_state(tmp_path)
 
     assert out["degraded"] is False
