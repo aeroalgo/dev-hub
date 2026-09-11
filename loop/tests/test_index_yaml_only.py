@@ -88,3 +88,24 @@ def test_rebuild_md_from_yaml(tmp_path: Path) -> None:
     updated_md = (tmp_path / base / "index.md").read_text(encoding="utf-8")
     assert "s01" in updated_md
     assert "completed" in updated_md
+
+
+def test_load_decompose_steps_fail_closed_rejects_missing_yaml(tmp_path: Path) -> None:
+    lib = _load_lib()
+    base = "memory-bank/back/plan/decompose-demo"
+    _write(tmp_path, f"{base}/index.md", "| **s01** | demo | pending |\n")
+
+    res = lib.load_decompose_steps_fail_closed(tmp_path, f"{base}/index.md")
+    assert res["ok"] is False
+    assert res["diagnostic_code"] == "index_not_found"
+    assert res["steps"] == []
+
+
+def test_mark_index_step_status_fails_closed_without_yaml(tmp_path: Path) -> None:
+    lib = _load_lib()
+    base = "memory-bank/back/plan/decompose-demo"
+    _write(tmp_path, f"{base}/index.md", "| **s01** | demo | pending |\n")
+
+    res = lib.mark_index_step_status(tmp_path, f"{base}/index.md", "s01", "completed")
+    assert res["ok"] is False
+    assert "missing decompose index" in res["error"]

@@ -1136,15 +1136,6 @@ def main() -> int:
                 pass
 
         if decomp_dir is None or not decomp_dir.is_dir():
-            v1_decomp = Path(cwd) / "memory-bank" / role / "plan" / f"decompose-{plan_id}"
-            if v1_decomp.is_dir():
-                decomp_dir = v1_decomp
-            else:
-                matches = list((Path(cwd) / "memory-bank" / role / "plan").glob(f"decompose-{plan_id}-*"))
-                if matches and matches[0].is_dir():
-                    decomp_dir = matches[0]
-
-        if decomp_dir is None or not decomp_dir.is_dir():
             print(f"Error: decompose dir not found for epic {plan_id}", file=sys.stderr)
             return 2
 
@@ -1160,15 +1151,6 @@ def main() -> int:
                 impl_dir = v2_impl_step.parent
         except Exception:
             pass
-
-        if impl_dir is None or not impl_dir.is_dir():
-            v1_impl = Path(cwd) / "memory-bank" / role / "implement" / f"implement-{plan_id}"
-            if v1_impl.is_dir():
-                impl_dir = v1_impl
-            else:
-                matches = list((Path(cwd) / "memory-bank" / role / "implement").glob(f"implement-{plan_id}-*"))
-                if matches and matches[0].is_dir():
-                    impl_dir = matches[0]
 
         impl_ev = parse_implement_evidence(impl_dir) if impl_dir and impl_dir.is_dir() else {}
 

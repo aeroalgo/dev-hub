@@ -74,7 +74,7 @@ def scan_steps(workspace_refs: list[WorkspaceRef]) -> ScanResult:
 
 
 def _index_paths(memory_bank: Path) -> list[Path]:
-    """Return role-scoped decomposition indexes in stable order (layout v2 with v1 fallback)."""
+    """Return role-scoped decomposition indexes in stable order (layout v2)."""
 
     paths = []
     for role in _ROLES:
@@ -84,12 +84,6 @@ def _index_paths(memory_bank: Path) -> list[Path]:
         # v2 layout: plan/<epic_id>/yaml/decompose-index.yaml
         v2_paths = sorted(plan_dir.glob("*/yaml/decompose-index.yaml"))
         paths.extend(v2_paths)
-        v2_epics = {path.parent.parent.name for path in v2_paths}
-        paths.extend(
-            path
-            for path in sorted(plan_dir.glob("decompose-*/index.yaml"))
-            if path.parent.name.removeprefix("decompose-") not in v2_epics
-        )
     return paths
 
 

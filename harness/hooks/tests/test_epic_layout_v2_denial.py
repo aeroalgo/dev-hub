@@ -18,32 +18,31 @@ from harness.hooks.epic.core import (
 
 
 KNOWN_LEGACY_IMPLEMENT_TREES = [
-    "implement-T-HUB-047-harness-mb-scaffold-epic-layout",
-    "implement-T-HUB-048-workflow-pack-registry",
-    "implement-T-HUB-049-workflow-pack-phase-router",
-    "implement-T-HUB-050-workflow-pack-memory-bank-paths",
-    "implement-T-HUB-051-workflow-pack-reference-video",
-    "implement-T-HUB-052-workflow-pack-adoption-docs",
-    "implement-T-HUB-060-remove-reflect-phase",
-    "implement-T-HUB-061-boundary-cli-doctor-hygiene",
+    "T-HUB-047-harness-mb-scaffold-epic-layout",
+    "T-HUB-048-workflow-pack-registry",
+    "T-HUB-049-workflow-pack-phase-router",
+    "T-HUB-050-workflow-pack-memory-bank-paths",
+    "T-HUB-051-workflow-pack-reference-video",
+    "T-HUB-052-workflow-pack-adoption-docs",
+    "T-HUB-060-remove-reflect-phase",
+    "T-HUB-061-boundary-cli-doctor-hygiene",
 ]
 
 
 def test_legacy_implement_trees_registry_inventory():
-    """Verify exact inventory of 8 live legacy implement trees before s02 migration."""
+    """Verify SC-002: 0 live implement/implement-* directories in BACK tree and all 8 trees are in v2 layout."""
     repo_root = Path(__file__).resolve().parents[3]
     impl_dir = repo_root / "memory-bank" / "back" / "implement"
     assert impl_dir.is_dir()
 
     actual_legacy = sorted([d.name for d in impl_dir.iterdir() if d.is_dir() and d.name.startswith("implement-")])
-    assert actual_legacy == sorted(KNOWN_LEGACY_IMPLEMENT_TREES), (
-        f"Legacy implement trees mismatch: found {len(actual_legacy)}, expected {len(KNOWN_LEGACY_IMPLEMENT_TREES)}"
-    )
+    assert actual_legacy == [], f"Found unexpected legacy implement-* directories: {actual_legacy}"
 
     for tree_name in KNOWN_LEGACY_IMPLEMENT_TREES:
         tree_path = impl_dir / tree_name
+        assert tree_path.is_dir(), f"Expected v2 implement dir {tree_path} to exist"
         yaml_files = list(tree_path.glob("*.yaml"))
-        assert len(yaml_files) > 0, f"Legacy tree {tree_name} has no step yaml files"
+        assert len(yaml_files) > 0, f"V2 tree {tree_name} has no step yaml files"
 
 
 def test_resolver_rejects_legacy_and_invalid_kinds():

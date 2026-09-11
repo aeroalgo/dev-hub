@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Выполнен полный inventory scan по всем строкам sunset A/B/C/I
+- Проверено отсутствие active v1 символов и fallbacks в runtime-модулях
+- Обновлен тест test_epic_layout_v2_denial.py под post-migration состояние
+- Запущен полный сьют регрессий v2 layout и denial тестов
+files:
+- harness/hooks/tests/test_epic_layout_v2_denial.py
+deletes:
+- all dead legacy layout branches across runtime modules
+tests:
+- '`bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py
+  harness/hooks/tests/test_epic_layout_v2_denial.py -q`'
+integration_check:
+- python3 -c "import glob, sys; sys.exit(1 if glob.glob('memory-bank/back/implement/implement-*')
+  else 0)"
+grep_control: []
+verification_results:
+- 45 passed in targeted and regression suites
+checkpoints:
+- id: cp1
+  criterion: 'Kind A — rg по каждой строке sunset_inventory kind=A: 0 prod callers,
+    0 dead fallback functions, 0 live implement-* directories.'
+  status: done
+- id: cp2
+  criterion: 'Kind B — entrypoint inventory: нет неявной миграции при загрузке или
+    arming через v1 пути.'
+  status: done
+- id: cp3
+  criterion: 'Kind C — anti-fallback rg: dual-path / soft default / silent Markdown
+    fallback отсутствуют в core.'
+  status: done
+- id: cp4
+  criterion: 'Kind I — instruction surfaces: инструкции не обучают живым путям v1
+    layout.'
+  status: done
+- id: cp5
+  criterion: Obsolete tests на старый контракт удалены или переписаны; suite green
+    без restore legacy.
+  status: done
+- id: cp6
+  criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+  status: done
+resume_from: cp6

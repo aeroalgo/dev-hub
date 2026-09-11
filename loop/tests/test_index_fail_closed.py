@@ -45,7 +45,7 @@ def test_invalid_yaml_returns_index_invalid_instead_of_pending(tmp_path: Path) -
     assert result["status"] == "invalid"
 
 
-def test_markdown_fallback_is_read_only_and_ambiguous_safe(tmp_path: Path) -> None:
+def test_missing_yaml_fails_closed_without_markdown_fallback(tmp_path: Path) -> None:
     lib = _load_lib()
     decompose = _index(
         tmp_path,
@@ -60,8 +60,8 @@ def test_markdown_fallback_is_read_only_and_ambiguous_safe(tmp_path: Path) -> No
     result = lib.load_decompose_steps_fail_closed(tmp_path, decompose)
 
     assert result["ok"] is False
-    assert result["diagnostic_code"] == "index_ambiguous"
-    assert result["status"] == "ambiguous"
+    assert result["diagnostic_code"] == "index_not_found"
+    assert result["status"] == "not_found"
 
 
 def test_yaml_and_markdown_disagreement_does_not_fail_closed(tmp_path: Path) -> None:

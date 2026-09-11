@@ -85,7 +85,7 @@ def _row_status_from_body(body: str) -> str | None:
 
 
 def parse_steps_from_md(index_text: str) -> list[dict[str, str]]:
-    """Extract queue rows from human index.md table."""
+    """Extract queue rows from human index.md table. Offline migration only — non-runtime."""
     steps: list[dict[str, str]] = []
     for m in _ROW_RE.finditer(index_text):
         sid = m.group(1).lower()
@@ -211,7 +211,7 @@ def sync_yaml_from_md(
     *,
     preserve_yaml_status: bool = True,
 ) -> dict[str, Any]:
-    """Build/refresh index.yaml from index.md structure.
+    """Build/refresh index.yaml from index.md structure (offline migration helper only — non-runtime).
 
     Status policy:
     - preserve_yaml_status=True (default): existing yaml status wins for known ids;

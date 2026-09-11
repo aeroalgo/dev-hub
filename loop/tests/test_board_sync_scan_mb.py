@@ -35,7 +35,7 @@ def test_scan_steps_count() -> None:
 
 def test_corrupt_index_skip(tmp_path: Path) -> None:
     valid = tmp_path / "valid"
-    valid_index = valid / "memory-bank" / "back" / "plan" / "decompose-T-VALID/index.yaml"
+    valid_index = valid / "memory-bank" / "back" / "plan" / "T-VALID/yaml/decompose-index.yaml"
     valid_index.parent.mkdir(parents=True)
     valid_index.write_text(
         yaml.safe_dump(
@@ -48,7 +48,7 @@ def test_corrupt_index_skip(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     corrupt = tmp_path / "corrupt"
-    corrupt_index = corrupt / "memory-bank" / "back" / "plan" / "decompose-T-CORRUPT/index.yaml"
+    corrupt_index = corrupt / "memory-bank" / "back" / "plan" / "T-CORRUPT/yaml/decompose-index.yaml"
     corrupt_index.parent.mkdir(parents=True)
     corrupt_index.write_text("schema: [not valid", encoding="utf-8")
 
@@ -74,7 +74,7 @@ def test_missing_memory_bank_skip(tmp_path: Path) -> None:
 def test_multi_role(tmp_path: Path) -> None:
     project = tmp_path / "project"
     for role in ("back", "front"):
-        index = project / "memory-bank" / role / "plan" / f"decompose-T-{role.upper()}/index.yaml"
+        index = project / "memory-bank" / role / "plan" / f"T-{role.upper()}/yaml/decompose-index.yaml"
         index.parent.mkdir(parents=True)
         index.write_text(
             yaml.safe_dump(
@@ -98,7 +98,7 @@ def test_workitem_fields() -> None:
 
     assert isinstance(item, WorkItem)
     assert item.decompose_rel == (
-        "memory-bank/back/plan/decompose-T-HUB-007-test/index.yaml"
+        "memory-bank/back/plan/T-HUB-007-test/yaml/decompose-index.yaml"
     )
     assert item.epic_id == "T-HUB-007-test"
     assert item.step_id == "s01"

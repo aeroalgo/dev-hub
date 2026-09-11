@@ -1,0 +1,45 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: s05 — Rewrite and purge obsolete v1 path fixtures and legacy behavior assertions
+  IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s05-obsolete-test-and-fixture-rewrite.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Переписаны фикстуры и тесты в loop/tests/test_board_sync_scan_mb.py на layout v2
+- Обновлен loop/tests/test_mb_load_plan_section.py на v2 структуру планов
+- Создан suite harness/hooks/tests/test_epic_paths.py для проверки v2 разрешения и
+  v1 отказа
+- Удалены устаревшие v1 decompose-* фикстуры из loop/tests/fixtures/board_sync/
+files:
+- loop/tests/test_board_sync_scan_mb.py
+- loop/tests/test_mb_load_plan_section.py
+- harness/hooks/tests/test_epic_paths.py
+deletes:
+- obsolete test assertions expecting positive v1 path lookup
+- legacy decompose-* fixtures in loop/tests/fixtures/board_sync/
+tests:
+- bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_mb_load_plan_section.py
+  -q
+- bin/pytest harness/hooks/tests/test_epic_paths.py -q
+integration_check:
+- bin/pytest loop/tests/test_board_sync_scan_mb.py loop/tests/test_mb_load_plan_section.py
+  harness/hooks/tests/test_epic_paths.py -q
+grep_control: []
+verification_results:
+- 11 passed in loop/tests/test_board_sync_scan_mb.py loop/tests/test_mb_load_plan_section.py
+- 8 passed in harness/hooks/tests/test_epic_paths.py
+checkpoints:
+- id: cp1
+  criterion: Тесты board_sync_scan_mb и mb_load_plan_section проходят на v2 фикстурах
+  status: done
+- id: cp2
+  criterion: Тесты epic_paths проверяют канонический v2 layout и отказ v1
+  status: done
+resume_from: cp2

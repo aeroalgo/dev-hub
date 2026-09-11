@@ -75,11 +75,9 @@ from epic_index import (  # noqa: E402
     load_index_yaml,
     md_queue_drift_from_yaml,
     mirror_status_to_md,
-    parse_steps_from_md,
     rebuild_md_queue_from_yaml,
     set_step_status_in_doc,
     steps_from_doc,
-    sync_yaml_from_md,
 )
 from epic_portfolio import sync_portfolio_after_step  # noqa: E402
 
@@ -2264,7 +2262,7 @@ def complete_archived_armed_epic(cwd: str | Path) -> dict[str, Any] | None:
 def _load_decompose_steps(
     cwd: str | Path, decompose: str | None
 ) -> tuple[Path | None, list[dict[str, str]], str]:
-    """Return (md_path, steps, source) where source is 'yaml'|'md'."""
+    """Return (md_path, steps, source) where source is 'yaml'|'missing'."""
     idx = _decompose_index_path(cwd, decompose)
     if idx is None:
         return None, [], "missing"
@@ -2272,10 +2270,7 @@ def _load_decompose_steps(
     if ypath.is_file():
         doc = load_index_yaml(ypath) or {}
         return idx, steps_from_doc(doc), "yaml"
-    if not idx.is_file():
-        return None, [], "missing"
-    text = idx.read_text(encoding="utf-8", errors="replace")
-    return idx, parse_steps_from_md(text), "md"
+    return None, [], "missing"
 
 
 def _index_result(
@@ -2304,7 +2299,7 @@ def _index_result(
 def load_decompose_steps_fail_closed(
     cwd: str | Path, decompose: str | Path | None
 ) -> dict[str, Any]:
-    """Load status-canon index.yaml; md is never a fail-closed gate."""
+    """Load status-canon index.yaml; fail-closed on absence or invalidity (no md fallback)."""
     if decompose is None or not isinstance(decompose, (str, Path)):
         error = f"invalid_arg: expected str/Path, got {type(decompose).__name__}"
         result = _index_result("invalid", "invalid_arg", message=error)
@@ -2320,50 +2315,19 @@ def load_decompose_steps_fail_closed(
         return _index_result("not_found", "index_not_found", message=str(decompose or ""))
 
     ypath = index_yaml_path(idx)
-    if ypath.is_file():
-        try:
-            doc = load_index_yaml(ypath)
-        except (OSError, TypeError, ValueError, yaml.YAMLError) as exc:
-            return _index_result("invalid", "index_invalid", idx=idx, message=str(exc))
-        if not isinstance(doc, dict):
-            return _index_result("invalid", "index_invalid", idx=idx)
-        yaml_steps = steps_from_doc(doc)
-        if not yaml_steps:
-            return _index_result("invalid", "index_invalid", idx=idx, message="index has no steps")
-        # index.yaml is sole SoT — do not fail-closed on human md drift.
-        return _index_result("resolved", "index_loaded", idx=idx, steps=yaml_steps, source="yaml")
-
-    if not idx.is_file():
-        return _index_result("not_found", "index_not_found", message=str(decompose or ""))
+    if not ypath.is_file():
+        return _index_result("not_found", "index_not_found", idx=idx, message=str(decompose or ""))
 
     try:
-        text = idx.read_text(encoding="utf-8", errors="replace")
-        md_steps = parse_steps_from_md(text)
-    except OSError as exc:
+        doc = load_index_yaml(ypath)
+    except (OSError, TypeError, ValueError, yaml.YAMLError) as exc:
         return _index_result("invalid", "index_invalid", idx=idx, message=str(exc))
-    ids = [s.get("id") for s in md_steps]
-    if not md_steps or len(ids) != len(set(ids)):
-        return _index_result("ambiguous", "index_ambiguous", idx=idx)
-    return _index_result("resolved", "index_loaded", idx=idx, steps=md_steps, source="md")
-
-
-def _row_status_from_body(body: str) -> str | None:
-    words = "|".join(_STEP_STATUS_WORDS)
-    status_cell = rf"\**\s*({words})\s*\**"
-    found = re.findall(rf"\|\s*{status_cell}\s*\|", body, flags=re.I)
-    if found:
-        return found[-1].lower()
-    m_end = re.search(rf"(?i)\|\s*{status_cell}\s*$", body.rstrip())
-    return m_end.group(1).lower() if m_end else None
-
-
-def _iter_index_step_rows(index_text: str):
-    for m in re.finditer(
-        r"(?im)^\|\s*\*\*([sera]\d{2})\*\*\s*\|(?P<body>.*)$",
-        index_text,
-    ):
-        body = "|" + m.group("body")
-        yield m.group(1).lower(), body, m.group("body")
+    if not isinstance(doc, dict):
+        return _index_result("invalid", "index_invalid", idx=idx)
+    yaml_steps = steps_from_doc(doc)
+    if not yaml_steps:
+        return _index_result("invalid", "index_invalid", idx=idx, message="index has no steps")
+    return _index_result("resolved", "index_loaded", idx=idx, steps=yaml_steps, source="yaml")
 
 
 def _index_plan_id(idx: Path) -> str:
@@ -2704,11 +2668,7 @@ def mark_index_step_status(
     cwd_p = Path(cwd)
     ypath = index_yaml_path(idx)
     if not ypath.is_file():
-        if not idx.is_file():
-            return {"ok": False, "error": f"missing decompose index: {decompose}"}
-        boot = sync_yaml_from_md(idx, preserve_yaml_status=False)
-        if not boot.get("ok"):
-            return boot
+        return {"ok": False, "error": f"missing decompose index yaml: {ypath}"}
     elif not idx.is_file():
         boot_md = rebuild_md_queue_from_yaml(idx)
         if not boot_md.get("ok"):
@@ -4961,11 +4921,7 @@ def arm_active_context_from_decompose(
     if not loaded["ok"]:
         return loaded
     steps = loaded["steps"]
-    if not index_yaml_path(idx).is_file():
-        steps = [
-            {**item, "status": "completed" if item.get("status") == "done" else item.get("status")}
-            for item in steps
-        ]
+    # steps are loaded directly from YAML canon
     queue_src = loaded["source"]
     epic_id = epic_id_from_decompose_path(
         str(idx.relative_to(cwd_p)) if idx.is_relative_to(cwd_p) else str(idx)

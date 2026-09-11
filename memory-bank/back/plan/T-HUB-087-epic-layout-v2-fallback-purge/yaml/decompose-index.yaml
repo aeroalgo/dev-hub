@@ -24,20 +24,20 @@ steps:
   file: s03-wire-runtime-v2-resolvers.yaml
   title: Wire runtime modules to canonical v2 resolver without legacy discovery fallback
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s04
   file: s04-yaml-sot-and-fail-closed-loading.yaml
   title: Remove Markdown runtime execution parsing and enforce fail-closed YAML-only
     index loading
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s05
   file: s05-obsolete-test-and-fixture-rewrite.yaml
   title: Rewrite and purge obsolete v1 path fixtures and legacy behavior assertions
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed
 - id: s06
   file: s06-legacy-fallback-purge.yaml
   title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
   next_phase: BACK IMPLEMENT
-  status: pending
+  status: completed

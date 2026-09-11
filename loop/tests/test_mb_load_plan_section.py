@@ -28,9 +28,9 @@ def test_load_section_happy(tmp_path):
     (tmp_path / "foo.txt").write_text("hello", encoding="utf-8")
 
     # Setup plan file
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999-test-epic" / "md"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999-test-epic.md"
+    plan_file = plan_dir / "plan.md"
     plan_file.write_text(
         "# Plan Title\n\n"
         "## Section One\nContent for section 1\n\n"
@@ -69,9 +69,9 @@ def test_load_section_cli(tmp_path):
     )
     (tmp_path / "foo.txt").write_text("hello", encoding="utf-8")
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999-test-epic" / "md"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999-test-epic.md"
+    plan_file = plan_dir / "plan.md"
     plan_file.write_text(
         "## Section One\nContent for section 1\n\n"
         "## Section Two\nContent for section 2\n",
@@ -115,9 +115,9 @@ def test_load_section_invalid_n(tmp_path):
     )
     (tmp_path / "foo.txt").write_text("hello", encoding="utf-8")
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999-test-epic" / "md"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999-test-epic.md"
+    plan_file = plan_dir / "plan.md"
     plan_file.write_text(
         "## Section One\nContent for section 1\n",
         encoding="utf-8",
@@ -177,9 +177,9 @@ def test_section_content_no_bleed(tmp_path):
     )
     (tmp_path / "foo.txt").write_text("hello", encoding="utf-8")
 
-    plan_dir = tmp_path / "memory-bank" / "back" / "plan"
+    plan_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999-test-epic" / "md"
     plan_dir.mkdir(parents=True, exist_ok=True)
-    plan_file = plan_dir / "plan-T-HUB-999-test-epic.md"
+    plan_file = plan_dir / "plan.md"
     plan_file.write_text(
         "## Section Three\nText in section 3\n\n"
         "## Section Four\nText in section 4\n",

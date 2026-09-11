@@ -395,24 +395,14 @@ def seed_implement_from_decompose(
     found = None
     impl_dir_rel = ""
     hub_ids = implement_hub_ids(folder_epic, dec.plan_id)
-    is_v2_decompose = dec_path.parent.name == "steps" and dec_path.parent.parent.name == "yaml"
-    if is_v2_decompose:
-        for hub_id in hub_ids:
-            cand_dir = f"memory-bank/{role_dir(dec.role)}/implement/{hub_id}"
-            found = _find_shard_file(cwd, cand_dir, dec.step_id)
-            if found is not None:
-                impl_dir_rel = cand_dir
-                break
-    else:
-        for hub_id in hub_ids:
-            cand_dir = f"memory-bank/{role_dir(dec.role)}/implement/implement-{hub_id}"
-            found = _find_shard_file(cwd, cand_dir, dec.step_id)
-            if found is not None:
-                impl_dir_rel = cand_dir
-                break
+    for hub_id in hub_ids:
+        cand_dir = f"memory-bank/{role_dir(dec.role)}/implement/{hub_id}"
+        found = _find_shard_file(cwd, cand_dir, dec.step_id)
+        if found is not None:
+            impl_dir_rel = cand_dir
+            break
     if found is None:
-        prefix = "" if is_v2_decompose else "implement-"
-        impl_dir_rel = f"memory-bank/{role_dir(dec.role)}/implement/{prefix}{folder_epic}"
+        impl_dir_rel = f"memory-bank/{role_dir(dec.role)}/implement/{folder_epic}"
         impl_dir = root / impl_dir_rel
         out_path = impl_dir / dec_path.name
     else:
@@ -551,7 +541,7 @@ def resolve_implement_path(
     *,
     plan_id: str | None = None,
 ) -> str:
-    """Resolve implement yaml. Prefer flat v2, then v1 hub; yaml/steps is leftover only."""
+    """Resolve implement yaml in canonical v2 layout."""
     root = Path(cwd)
     role_norm = role_dir(role)
     hub_ids = implement_hub_ids(epic_id, plan_id)
@@ -568,14 +558,6 @@ def resolve_implement_path(
     for hub_id in hub_ids:
         v2_flat = f"memory-bank/{role_norm}/implement/{hub_id}"
         found = _find_shard_file(cwd, v2_flat, step_id)
-        if found:
-            return str(found.relative_to(root)).replace("\\", "/")
-        leftover = f"memory-bank/{role_norm}/implement/{hub_id}/yaml/steps"
-        found = _find_shard_file(cwd, leftover, step_id)
-        if found:
-            return str(found.relative_to(root)).replace("\\", "/")
-        rel_dir = f"memory-bank/{role_norm}/implement/implement-{hub_id}"
-        found = _find_shard_file(cwd, rel_dir, step_id)
         if found:
             return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
@@ -608,11 +590,6 @@ def resolve_decompose_path(
     # Check v2 layout: memory-bank/<role>/plan/<epic_id>/yaml/steps/<step_id>.yaml
     v2_steps_dir = f"memory-bank/{role_norm}/plan/{epic_id}/yaml/steps"
     found = _find_shard_file(cwd, v2_steps_dir, step_id)
-    if found:
-        return str(found.relative_to(root)).replace("\\", "/")
-
-    rel_dir = f"memory-bank/{role_norm}/plan/decompose-{epic_id}"
-    found = _find_shard_file(cwd, rel_dir, step_id)
     if found:
         return str(found.relative_to(root)).replace("\\", "/")
     stem = step_id.strip().lower()
@@ -1016,12 +993,10 @@ def _resolve_decompose_dir(cwd: str | Path, decompose: str | Path | None) -> Pat
     cand = root / raw
     if cand.is_file() and cand.name in ("decompose-index.yaml", "decompose-index.yml"):
         cand = cand.parent.parent if cand.parent.name == "yaml" else cand.parent
-    elif cand.is_file() and cand.name.endswith((".yaml", ".yml")) and cand.name != "index.yaml":
+    elif cand.is_file() and cand.name.endswith((".yaml", ".yml")):
         cand = cand.parent
     elif cand.is_file() and cand.name == "decompose-index.md":
         cand = cand.parent.parent if cand.parent.name == "md" else cand.parent
-    elif cand.is_file() and cand.name in ("index.md", "index.yaml"):
-        cand = cand.parent
     elif cand.is_dir() and cand.name == "yaml" and (cand / "decompose-index.yaml").is_file():
         cand = cand.parent
     elif not cand.is_dir():
@@ -1034,10 +1009,6 @@ def _resolve_decompose_dir(cwd: str | Path, decompose: str | Path | None) -> Pat
             if alt.is_dir():
                 cand = alt
                 break
-            alt2 = base / f"decompose-{raw}"
-            if alt2.is_dir():
-                cand = alt2
-                break
     if cand.is_dir():
         return cand
     fallback = root / raw
@@ -1045,28 +1016,8 @@ def _resolve_decompose_dir(cwd: str | Path, decompose: str | Path | None) -> Pat
 
 
 def _plan_path_for_decompose(root: Path, decompose_dir: Path, plan_id: str | None) -> Path | None:
-    slug = decompose_dir.name
     if (decompose_dir / "md" / "plan.md").is_file():
         return decompose_dir / "md" / "plan.md"
-    candidates: list[str] = []
-    if slug.startswith("decompose-"):
-        candidates.append(f"plan-{slug[len('decompose-'):]}.md")
-    if plan_id:
-        candidates.append(f"plan-{plan_id}.md")
-    role_dirs = (
-        root / "memory-bank" / "back" / "plan",
-        root / "memory-bank" / "front" / "plan",
-        root / "memory-bank" / "integration" / "plan",
-    )
-    seen: set[str] = set()
-    for name in candidates:
-        if name in seen:
-            continue
-        seen.add(name)
-        for base in role_dirs:
-            path = base / name
-            if path.is_file():
-                return path
     return None
 
 

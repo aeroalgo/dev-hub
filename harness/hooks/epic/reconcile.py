@@ -112,9 +112,7 @@ def resolve_epic_bundle(cwd: Path, epic_or_plan_id: str) -> EpicBundle | None:
     if plan_path is None or not plan_path.is_file():
         return None
     epic_id = _epic_id_from_key(key, plan_id)
-    v2_implement_dir = cwd / "memory-bank" / "back" / "implement" / plan_id
-    v1_implement_dir = cwd / "memory-bank" / "back" / "implement" / f"implement-{plan_id}"
-    implement_dir = v2_implement_dir if v2_implement_dir.is_dir() else v1_implement_dir
+    implement_dir = cwd / "memory-bank" / "back" / "implement" / plan_id
     return EpicBundle(
         epic_id=epic_id,
         plan_id=plan_id,
