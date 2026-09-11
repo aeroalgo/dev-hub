@@ -2,9 +2,9 @@ schema: epic-implement/v1
 role: back
 step_id: s01
 plan_id: T-HUB-087-epic-layout-v2-fallback-purge
-title: s01 — Characterize layout v2 contracts, denial diagnostics and negative resolution fixtures IMPLEMENT
+title: s01 — Characterize layout v2 contracts, denial diagnostics and negative resolution
+  fixtures IMPLEMENT
 status: completed
-implement_index: ''
 date: '2026-09-11'
 decompose_ref: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s01-contracts-and-seams.yaml
 skills_used: []
@@ -12,29 +12,41 @@ discovery: []
 gaps:
   status: none
 done:
-  - Создан comprehensive test suite harness/hooks/tests/test_epic_layout_v2_denial.py (8 тестов), фиксирующий отказ при обращении к v1 layout путям, fail-closed поведение при отсутствующем/некорректном YAML индексе, валидацию path traversal и точный реестр 8 живых legacy implement-деревьев.
-  - Расширен loop/tests/test_v2_path_resolution_regressions.py проверками v2 contracts для всех EpicLayoutKind, resolve_request с Pydantic схемами, нормализации ролей и multi-role v2 discovery.
-  - Characterization tests и negative fixtures подтверждают канонический layout v2 без wrapper-веток и silent fallback.
+- Создан comprehensive test suite harness/hooks/tests/test_epic_layout_v2_denial.py
+  (8 тестов), фиксирующий отказ при обращении к v1 layout путям, fail-closed поведение
+  при отсутствующем/некорректном YAML индексе, валидацию path traversal и точный реестр
+  8 живых legacy implement-деревьев.
+- Расширен loop/tests/test_v2_path_resolution_regressions.py проверками v2 contracts
+  для всех EpicLayoutKind, resolve_request с Pydantic схемами, нормализации ролей
+  и multi-role v2 discovery.
+- Characterization tests и negative fixtures подтверждают канонический layout v2 без
+  wrapper-веток и silent fallback.
 files:
-  - harness/hooks/tests/test_epic_layout_v2_denial.py
-  - loop/tests/test_v2_path_resolution_regressions.py
+- harness/hooks/tests/test_epic_layout_v2_denial.py
+- loop/tests/test_v2_path_resolution_regressions.py
 deletes: []
 tests:
-  - '`timeout 300s .venv/bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py -q`'
-  - '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q`'
+- '`timeout 300s .venv/bin/pytest loop/tests/test_v2_path_resolution_regressions.py
+  harness/hooks/tests/test_epic_layout_resolver.py -q`'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py
+  -q`'
 integration_check:
-  - '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py harness/hooks/tests/test_epic_layout_resolver.py -q` — 19 passed'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py
+  harness/hooks/tests/test_epic_layout_resolver.py -q` — 19 passed'
 grep_control: []
 verification_results:
-  - .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q — 8 passed
-  - .venv/bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py -q — 25 passed
+- .venv/bin/pytest harness/hooks/tests/test_epic_layout_v2_denial.py -q — 8 passed
+- .venv/bin/pytest loop/tests/test_v2_path_resolution_regressions.py harness/hooks/tests/test_epic_layout_resolver.py
+  -q — 25 passed
 checkpoints:
-  - id: cp1
-    criterion: Characterization tests подтверждают корректную работу layout v2 resolver для всех EpicLayoutKind
-    status: done
-    done_at: '2026-09-11T11:57:21Z'
-  - id: cp2
-    criterion: Negative characterization tests фиксируют отказ при обращении к v1 layout путям
-    status: done
-    done_at: '2026-09-11T11:57:26Z'
+- id: cp1
+  criterion: Characterization tests подтверждают корректную работу layout v2 resolver
+    для всех EpicLayoutKind
+  status: done
+  done_at: '2026-09-11T11:57:21Z'
+- id: cp2
+  criterion: Negative characterization tests фиксируют отказ при обращении к v1 layout
+    путям
+  status: done
+  done_at: '2026-09-11T11:57:26Z'
 resume_from: cp1

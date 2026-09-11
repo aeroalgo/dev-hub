@@ -1,0 +1,48 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-087-epic-layout-v2-fallback-purge
+title: Explicit migration of 8 live legacy implement trees to v2 and parity verification
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-087-epic-layout-v2-fallback-purge/yaml/steps/s02-migrate-legacy-implement-trees.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Обновлен loop/migrate/epic_layout_v1_to_v2.py: расширен discover_v1_epics и is_migrated
+  для обнаружения и миграции legacy implement-* директорий'
+- Выполнена миграция 8 живых директорий memory-bank/back/implement/implement-* в канонический
+  v2 layout
+- Проверен 100% паритет шагов и файлов для всех 8 мигрированных эпиков
+- Добавлены регрессионные тесты паритета и обнаружения implement-* в harness/hooks/tests/test_epic_layout_migrate.py
+files:
+- loop/migrate/epic_layout_v1_to_v2.py
+- harness/hooks/tests/test_epic_layout_migrate.py
+deletes:
+- memory-bank/back/implement/implement-T-HUB-047-harness-mb-scaffold-epic-layout
+- memory-bank/back/implement/implement-T-HUB-048-workflow-pack-registry
+- memory-bank/back/implement/implement-T-HUB-049-workflow-pack-phase-router
+- memory-bank/back/implement/implement-T-HUB-050-workflow-pack-memory-bank-paths
+- memory-bank/back/implement/implement-T-HUB-051-workflow-pack-reference-video
+- memory-bank/back/implement/implement-T-HUB-052-workflow-pack-adoption-docs
+- memory-bank/back/implement/implement-T-HUB-060-remove-reflect-phase
+- memory-bank/back/implement/implement-T-HUB-061-boundary-cli-doctor-hygiene
+tests:
+- bin/pytest harness/hooks/tests/test_epic_layout_migrate.py -q
+integration_check:
+- python3 -c "import glob, sys; sys.exit(1 if glob.glob('memory-bank/back/implement/implement-*')
+  else 0)"
+- bin/pytest harness/hooks/tests/test_epic_layout_migrate.py -q
+grep_control: []
+verification_results: []
+checkpoints:
+- id: cp1
+  criterion: Миграция 8 legacy implement trees выполнена с полным паритетом шагов
+    и файлов
+  status: done
+- id: cp2
+  criterion: В memory-bank/back/implement/ отсутствуют директории implement-*
+  status: done
+resume_from: cp1

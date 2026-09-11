@@ -50,7 +50,7 @@ def get_project_root(cwd: Optional[Union[str, Path]] = None) -> Path:
 
 
 def discover_v1_epics(cwd: Optional[Union[str, Path]] = None) -> List[Tuple[str, str]]:
-    """Discover epics in v1 flat layout across all memory-bank roles.
+    """Discover epics with v1 flat layout artifacts across all memory-bank roles.
 
     Returns list of (role, epic_id) sorted by role, epic_id.
     """
@@ -65,21 +65,57 @@ def discover_v1_epics(cwd: Optional[Union[str, Path]] = None) -> List[Tuple[str,
         if not role_dir.is_dir():
             continue
         role = role_dir.name
+
+        # 1. plan
         plan_dir = role_dir / "plan"
-        if not plan_dir.exists() or not plan_dir.is_dir():
-            continue
+        if plan_dir.exists() and plan_dir.is_dir():
+            for p in plan_dir.glob("plan-*.md"):
+                if p.is_file():
+                    epic_id = p.stem[len("plan-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
 
-        for p in plan_dir.glob("plan-*.md"):
-            if p.is_file():
-                epic_id = p.stem[len("plan-") :]
-                if epic_id:
-                    epics_found.add((role, epic_id))
+            for p in plan_dir.glob("decompose-*"):
+                if p.is_dir():
+                    epic_id = p.name[len("decompose-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
 
-        for p in plan_dir.glob("decompose-*"):
-            if p.is_dir():
-                epic_id = p.name[len("decompose-") :]
-                if epic_id:
-                    epics_found.add((role, epic_id))
+        # 2. implement
+        impl_dir = role_dir / "implement"
+        if impl_dir.exists() and impl_dir.is_dir():
+            for p in impl_dir.glob("implement-*"):
+                if p.is_dir():
+                    epic_id = p.name[len("implement-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
+
+        # 3. qa
+        qa_dir = role_dir / "qa"
+        if qa_dir.exists() and qa_dir.is_dir():
+            for p in qa_dir.glob("qa-*.yaml"):
+                if p.is_file():
+                    epic_id = p.stem[len("qa-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
+
+        # 4. analyze
+        analyze_dir = role_dir / "analyze"
+        if analyze_dir.exists() and analyze_dir.is_dir():
+            for p in analyze_dir.glob("analyze-*.yaml"):
+                if p.is_file():
+                    epic_id = p.stem[len("analyze-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
+
+        # 5. audit
+        audit_dir = role_dir / "audit"
+        if audit_dir.exists() and audit_dir.is_dir():
+            for p in audit_dir.glob("audit-*.yaml"):
+                if p.is_file():
+                    epic_id = p.stem[len("audit-") :]
+                    if epic_id:
+                        epics_found.add((role, epic_id))
 
     return sorted(list(epics_found))
 
@@ -87,17 +123,43 @@ def discover_v1_epics(cwd: Optional[Union[str, Path]] = None) -> List[Tuple[str,
 def is_migrated(epic_id: str, role: str = "back", cwd: Optional[Union[str, Path]] = None) -> bool:
     """Check if epic is already migrated to v2 layout.
 
-    An epic is considered migrated if its v2 plan directory exists and v1 plan artifacts are absent.
+    An epic is considered migrated if no v1 artifacts exist for it and v2 layout is present.
     """
     root = get_project_root(cwd)
-    v2_plan_dir = root / "memory-bank" / role / "plan" / epic_id
-    v1_plan_md = root / "memory-bank" / role / "plan" / f"plan-{epic_id}.md"
-    v1_decomp_dir = root / "memory-bank" / role / "plan" / f"decompose-{epic_id}"
+    base = root / "memory-bank" / role
 
-    # If v1 artifacts do not exist and v2 exists, it's migrated
-    if v2_plan_dir.exists() and not v1_plan_md.exists() and not v1_decomp_dir.exists():
-        return True
-    return False
+    v1_plan_md = base / "plan" / f"plan-{epic_id}.md"
+    v1_decomp_dir = base / "plan" / f"decompose-{epic_id}"
+    v1_impl_dir = base / "implement" / f"implement-{epic_id}"
+    v1_qa_yaml = base / "qa" / f"qa-{epic_id}.yaml"
+    v1_analyze_yaml = base / "analyze" / f"analyze-{epic_id}.yaml"
+    v1_audit_yaml = base / "audit" / f"audit-{epic_id}.yaml"
+
+    has_v1 = any([
+        v1_plan_md.exists(),
+        v1_decomp_dir.exists(),
+        v1_impl_dir.exists(),
+        v1_qa_yaml.exists(),
+        v1_analyze_yaml.exists(),
+        v1_audit_yaml.exists(),
+    ])
+
+    if has_v1:
+        return False
+
+    v2_plan_dir = base / "plan" / epic_id
+    v2_impl_dir = base / "implement" / epic_id
+    v2_qa_dir = base / "qa" / epic_id
+    v2_analyze_dir = base / "analyze" / epic_id
+    v2_audit_dir = base / "audit" / epic_id
+
+    return any([
+        v2_plan_dir.exists(),
+        v2_impl_dir.exists(),
+        v2_qa_dir.exists(),
+        v2_analyze_dir.exists(),
+        v2_audit_dir.exists(),
+    ])
 
 
 def update_refs(file_path: Path, old_refs: List[Tuple[str, str]], dry_run: bool = False) -> bool:
@@ -251,7 +313,19 @@ def migrate_epic(
         # Perform moves
         for src, dst in planned_moves:
             dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(src), str(dst))
+            if dst.exists():
+                try:
+                    src_data = yaml.safe_load(src.read_text(encoding="utf-8")) if src.suffix in (".yaml", ".yml") else None
+                    dst_data = yaml.safe_load(dst.read_text(encoding="utf-8")) if dst.suffix in (".yaml", ".yml") else None
+                    if isinstance(dst_data, dict) and dst_data.get("status") == "completed" and isinstance(src_data, dict) and src_data.get("status") != "completed":
+                        src.unlink()
+                        continue
+                except Exception:
+                    pass
+                if src.exists():
+                    shutil.move(str(src), str(dst))
+            else:
+                shutil.move(str(src), str(dst))
 
         # Cleanup empty v1 dirs
         for d in cleanup_dirs:

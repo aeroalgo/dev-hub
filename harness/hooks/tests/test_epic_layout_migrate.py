@@ -149,3 +149,61 @@ def test_active_implement_guard(v1_fixture: Path):
     res = migrate_epic(epic_id, role="back", cwd=v1_fixture, dry_run=False, force=True)
     assert res["status"] == "migrated"
     assert res["warning"] == "in_progress steps forced"
+
+
+def test_discover_v1_implement_without_v1_plan(tmp_path: Path):
+    """Discover epics that only have legacy implement/implement-* directory."""
+    mb = tmp_path / "memory-bank" / "back"
+    impl_dir = mb / "implement" / "implement-T-HUB-999-legacy-impl"
+    impl_dir.mkdir(parents=True)
+    (impl_dir / "s01-step.yaml").write_text("schema: epic-implement/v1\n", encoding="utf-8")
+
+    # plan is already v2
+    v2_plan = mb / "plan" / "T-HUB-999-legacy-impl" / "yaml"
+    v2_plan.mkdir(parents=True)
+    (v2_plan / "decompose-index.yaml").write_text("schema: epic-decompose-index/v1\nsteps: []\n", encoding="utf-8")
+
+    epics = discover_v1_epics(cwd=tmp_path)
+    assert ("back", "T-HUB-999-legacy-impl") in epics
+    assert not is_migrated("T-HUB-999-legacy-impl", role="back", cwd=tmp_path)
+
+    res = migrate_epic("T-HUB-999-legacy-impl", role="back", cwd=tmp_path, dry_run=False)
+    assert res["status"] == "migrated"
+    assert not impl_dir.exists()
+    assert (mb / "implement" / "T-HUB-999-legacy-impl" / "s01-step.yaml").exists()
+    assert is_migrated("T-HUB-999-legacy-impl", role="back", cwd=tmp_path)
+
+
+def test_migrated_8_live_implement_trees_parity():
+    """Verify all 8 migrated legacy implement trees have full step parity and no implement-* dirs remain."""
+    root = Path(__file__).resolve().parent.parent.parent.parent
+    mb_back = root / "memory-bank" / "back"
+
+    legacy_dirs = list((mb_back / "implement").glob("implement-*"))
+    assert len(legacy_dirs) == 0, f"Expected 0 implement-* dirs, found: {legacy_dirs}"
+
+    migrated_epics = [
+        "T-HUB-047-harness-mb-scaffold-epic-layout",
+        "T-HUB-048-workflow-pack-registry",
+        "T-HUB-049-workflow-pack-phase-router",
+        "T-HUB-050-workflow-pack-memory-bank-paths",
+        "T-HUB-051-workflow-pack-reference-video",
+        "T-HUB-052-workflow-pack-adoption-docs",
+        "T-HUB-060-remove-reflect-phase",
+        "T-HUB-061-boundary-cli-doctor-hygiene",
+    ]
+
+    for epic_id in migrated_epics:
+        decomp_yaml = mb_back / "plan" / epic_id / "yaml" / "decompose-index.yaml"
+        assert decomp_yaml.exists(), f"Decompose index missing for {epic_id}"
+
+        data = yaml.safe_load(decomp_yaml.read_text(encoding="utf-8"))
+        expected_step_files = sorted([s["file"] for s in data.get("steps", [])])
+
+        v2_impl_dir = mb_back / "implement" / epic_id
+        assert v2_impl_dir.exists(), f"Implement dir missing for {epic_id}"
+
+        actual_step_files = sorted([f.name for f in v2_impl_dir.iterdir() if f.is_file()])
+        assert actual_step_files == expected_step_files, (
+            f"Step parity mismatch for {epic_id}: expected {expected_step_files}, got {actual_step_files}"
+        )

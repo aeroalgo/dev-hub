@@ -98,8 +98,8 @@
 
 | step_id | title & files | implement | needs_creative | tdd | next_phase | status |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- |
-| **s01** | [s01-contracts-and-seams.yaml](s01-contracts-and-seams.yaml) | [s01…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s01-contracts-and-seams.yaml) | no | yes | BACK IMPLEMENT | pending |
-| **s02** | [s02-migrate-legacy-implement-trees.yaml](s02-migrate-legacy-implement-trees.yaml) | [s02…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s02-migrate-legacy-implement-trees.yaml) | no | yes | BACK IMPLEMENT | pending |
+| **s01** | [s01-contracts-and-seams.yaml](s01-contracts-and-seams.yaml) | [s01…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s01-contracts-and-seams.yaml) | no | yes | BACK IMPLEMENT | completed |
+| **s02** | [s02-migrate-legacy-implement-trees.yaml](s02-migrate-legacy-implement-trees.yaml) | [s02…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s02-migrate-legacy-implement-trees.yaml) | no | yes | BACK IMPLEMENT | completed |
 | **s03** | [s03-wire-runtime-v2-resolvers.yaml](s03-wire-runtime-v2-resolvers.yaml) | [s03…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s03-wire-runtime-v2-resolvers.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s04** | [s04-yaml-sot-and-fail-closed-loading.yaml](s04-yaml-sot-and-fail-closed-loading.yaml) | [s04…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s04-yaml-sot-and-fail-closed-loading.yaml) | no | yes | BACK IMPLEMENT | pending |
 | **s05** | [s05-obsolete-test-and-fixture-rewrite.yaml](s05-obsolete-test-and-fixture-rewrite.yaml) | [s05…](../../implement/T-HUB-087-epic-layout-v2-fallback-purge/s05-obsolete-test-and-fixture-rewrite.yaml) | no | yes | BACK IMPLEMENT | pending |
