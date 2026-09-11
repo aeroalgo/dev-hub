@@ -1,0 +1,87 @@
+schema: epic-implement/v1
+role: back
+step_id: s07
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s07-legacy-fallback-purge.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery:
+- Verified legacy hook entrypoints in manifest and settings are replaced with pretool-dispatch.py
+  and posttool-dispatch.py.
+- 'Confirmed 5 legacy standalone hook files were deleted: agent-pretool.py, bash-pretool.py,
+  write-pretool.py, finish-boundary-pretool.py, agent-posttool.py.'
+gaps:
+  status: none
+done:
+- Purged 5 legacy standalone hook scripts from harness/hooks/.
+- Updated test suites to target canonical pretool and posttool dispatchers.
+- Updated documentation surfaces to reference canonical dispatchers.
+- Verified Kind A, B, C, I grep controls and full regression test suite pass.
+files:
+- harness/hooks/agent-pretool.py
+- harness/hooks/bash-pretool.py
+- harness/hooks/write-pretool.py
+- harness/hooks/finish-boundary-pretool.py
+- harness/hooks/agent-posttool.py
+deletes:
+- harness/hooks/agent-pretool.py
+- harness/hooks/bash-pretool.py
+- harness/hooks/write-pretool.py
+- harness/hooks/finish-boundary-pretool.py
+- harness/hooks/agent-posttool.py
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+  -q` — 7 passed'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_agent_pretool_gate_write_boundary.py
+  harness/hooks/tests/test_finish_boundary_pretool.py -q` — 8 passed'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py harness/hooks/tests/test_posttool_dispatch.py
+  -q` — 19 passed'
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/ -q --tb=line` — full suite
+  green'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/ -q --tb=line`'
+grep_control:
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+- back: ''
+  front: ''
+verification_results:
+- All 5 legacy hook scripts purged and verified gone.
+- Targeted and full hook test suites passing.
+checkpoints:
+- id: cp1
+  criterion: Kind A — All 5 legacy hook scripts deleted from filesystem and zero prod
+    callers remain.
+  status: done
+- id: cp2
+  criterion: Kind B — No legacy entrypoints in manifest.yaml or settings.json.
+  status: done
+- id: cp3
+  criterion: Kind C — No silent allow exception handlers in hook codebase.
+  status: done
+- id: cp4
+  criterion: Kind I — No stale instruction surfaces referencing deleted hooks.
+  status: done
+- id: cp5
+  criterion: Full targeted test suite and epic regression pass cleanly.
+  status: done

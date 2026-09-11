@@ -1,0 +1,282 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: s07 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Perform final cutover purge: execute full sunset inventory scan across Kind A/B/C/I,
+  confirm zero production callers of shell orchestration symbols, ensure obsolete tests are
+  purged/rewritten, verify fail-closed execution without fallback paths, and run targeted regression suite
+  (FR-013, FR-014, FR-015, FR-016, US-004, US-005, SC-004, SC-005, SC-006).
+
+plan_contract:
+  fr_ids:
+    - US-004
+    - US-005
+    - FR-013
+    - FR-014
+    - FR-015
+    - FR-016
+    - SC-004
+    - SC-005
+    - SC-006
+  nouns:
+    - sunset_inventory
+    - grep_control
+    - sot_enforce_scan
+    - Kind A
+    - Kind B
+    - Kind C
+    - Kind I
+  layout_paths:
+    - loop/runner/
+    - loop/loop.sh
+    - bin/loop
+  ac_quotes:
+    - "FR-016: full targeted runner/runtime suite and shell syntax/public entrypoint smoke pass; no new external dependency is introduced."
+    - "SC-004: rg finds zero production callers of removed shell orchestration symbols and zero source loop/loop.sh in active tests/instructions."
+    - "SC-006: No second supervisor path remains; loop.sh is a delegation shim under 30 non-comment lines."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:412-466"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:560-565"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - verified zero-legacy state
+    - grep_control execution evidence
+  plan_refs:
+    - US-004
+    - US-005
+    - FR-013
+    - FR-014
+    - FR-015
+    - FR-016
+    - SC-004
+    - SC-005
+    - SC-006
+  files:
+    - loop/loop.sh
+    - bin/loop
+    - loop/tests/test_runner_e2e.py
+    - README.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - LOOP-RUNTIMES.md
+
+as_built:
+  - "s01..s06 completed Python runner implementation, shim cutover, and active documentation updates"
+
+delta:
+  - "Run complete sunset inventory verification across all Kind A, B, C, and I items"
+  - "Confirm zero production callers of removed shell functions and zero obsolete shell-source tests"
+  - "Verify test suite green on runner unit, session, orchestrator, and e2e integration suites"
+
+sunset_inventory:
+  - symbol: loop/loop.sh:ensure_dsh_profiles
+    kind: A
+    replacement: loop/runner/config.py and DSH adapter
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:configure_runtime_env
+    kind: A
+    replacement: loop/runner/config.py RunnerConfig.from_environment
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:find_claude
+    kind: A
+    replacement: runtime adapter binary resolution
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:is_epic_spec
+    kind: A
+    replacement: loop/runner/cli.py parser
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:_cleanup_runner_owner
+    kind: A
+    replacement: loop/runner/ownership.py RunnerLease
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:run_claude_session
+    kind: A
+    replacement: loop/runner/session.py SessionInvoker
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:resolve_dsh_bin
+    kind: A
+    replacement: loop/runtime_adapters/dsh.py
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:run_dsh_session
+    kind: A
+    replacement: loop/runner/session.py SessionInvoker
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:run_agent_session
+    kind: A
+    replacement: loop/runner/session.py SessionInvoker
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:_print_prepare_summary
+    kind: A
+    replacement: loop/runner/output.py
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:_print_prepare_summary / _apply_prepare_session_vars
+    kind: A
+    replacement: loop/runner/output.py and RunnerConfig
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:_run_context_prepare
+    kind: A
+    replacement: loop/runner/orchestrator.py LoopRunner.prepare
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:_run_context_prepare / _reprepare_for_transient_retry
+    kind: A
+    replacement: loop/runner/orchestrator.py LoopRunner.prepare retry lifecycle
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: loop/loop.sh:outer while true
+    kind: A
+    replacement: loop/runner/orchestrator.py LoopRunner.run
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero prod callers
+  - symbol: source loop/loop.sh in tests
+    kind: A
+    replacement: public CLI / Python API tests
+    policy: delete in-epic
+    rg_scope: loop/tests/ harness/hooks/tests/
+    expect: zero source loop/loop.sh matches
+  - symbol: loop/loop.sh as full supervisor
+    kind: B
+    replacement: loop/loop.sh exec shim to python3 -m loop.runner
+    policy: delete in-epic
+    rg_scope: loop/ bin/
+    expect: loop.sh has under 35 total lines
+  - symbol: bin/loop -> shell supervisor assumption
+    kind: B
+    replacement: bin/loop delegating to canonical Python runner
+    policy: delete in-epic
+    rg_scope: bin/
+    expect: bin/loop delegates to Python runner / exec shim
+  - symbol: direct source loop/loop.sh operator invocation
+    kind: B
+    replacement: bin/loop or python3 -m loop.runner
+    policy: delete in-epic
+    rg_scope: bin/ loop/ docs/ harness/
+    expect: zero matches
+  - symbol: python3 -c ... 2>/dev/null || true
+    kind: C
+    replacement: load_project_env with fail-closed validation
+    policy: delete in-epic
+    rg_scope: loop/runner/
+    expect: zero soft-fail fallbacks
+  - symbol: echo JSON | python3 -c ... || echo raw
+    kind: C
+    replacement: typed result parser in orchestrator
+    policy: delete in-epic
+    rg_scope: loop/runner/
+    expect: zero blind fallback echo
+  - symbol: inline Python heredocs and repeated python3 -c JSON parsers in loop.sh
+    kind: C
+    replacement: typed Python runner parsers
+    policy: delete in-epic
+    rg_scope: loop/ bin/ harness/
+    expect: zero inline parser matches
+  - symbol: shell fallback unknown runtime to Claude
+    kind: C
+    replacement: fail-closed InvalidRuntimeConfig error
+    policy: delete in-epic
+    rg_scope: loop/runner/ loop/runtime_adapters/
+    expect: zero automatic fallback
+  - symbol: loop.sh implementation runner documentation
+    kind: I
+    replacement: canonical bin/loop and python3 -m loop.runner docs
+    policy: rewrite in-epic
+    rg_scope: README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md harness/instructions/
+    expect: zero active instructions teaching loop.sh internals
+
+deletes: []
+
+out_of_scope:
+  - "Historical archive and memory-bank audit records from past epics"
+  - "Full BACK QA test execution (owned by QA phase)"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: shell orchestration functions
+    command: 'rg -n "run_claude_session|run_dsh_session|run_agent_session|_run_context_prepare|ensure_dsh_profiles" loop/ bin/ harness/ || true'
+    expect: no output
+  - id: inv-a-tests-01
+    kind: A
+    symbol: source loop.sh in tests
+    command: 'rg -n "source .*loop\.sh" loop/tests/ harness/hooks/tests/ || true'
+    expect: no output
+  - id: inv-b-01
+    kind: B
+    symbol: loop.sh line count
+    command: >-
+      test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$' | wc -l) -lt 30 && echo "OK: loop.sh is slim shim"
+    expect: OK
+  - id: inv-c-01
+    kind: C
+    symbol: silent fallback in runner
+    command: 'rg -n "except Exception: pass" loop/runner/ || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: active instructions teaching loop.sh functions
+    command: 'rg -n "source loop/loop\.sh" README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md harness/instructions/ || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Kind A — zero production callers for shell orchestration symbols and zero source loop.sh in tests
+    verify: "rg -n 'run_claude_session|run_dsh_session|run_agent_session' loop/ bin/ harness/ || true"
+  - id: cp2
+    kind: B
+    criterion: Kind B — loop.sh is a minimal delegation shim under 30 non-comment lines
+    verify: "test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$' | wc -l) -lt 30"
+  - id: cp3
+    kind: C
+    criterion: Kind C — runner has fail-closed error handling with zero soft-fail fallbacks to shell or default runtime
+    verify: "bin/pytest loop/tests/test_runner_session.py loop/tests/test_runner_orchestrator.py -k 'fail_closed or unknown' -q"
+  - id: cp4
+    kind: I
+    criterion: Kind I — active instructions, rules, and commands teach canonical Python runner and bin/loop
+    verify: "! rg -n 'source loop/loop\\.sh' README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md harness/instructions/"
+  - id: cp5
+    criterion: Obsolete tests sourcing shell scripts are rewritten or purged and test suite is green
+    verify: "bin/pytest loop/tests/test_runner_cli.py loop/tests/test_runner_ownership.py loop/tests/test_runner_session.py loop/tests/test_runner_orchestrator.py loop/tests/test_runner_e2e.py -q"
+  - id: cp6
+    criterion: Targeted loop runner regression suite is green
+    verify: "bin/pytest loop/tests/test_runner_*.py loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py -q"
+
+verify: []
+tdd: []

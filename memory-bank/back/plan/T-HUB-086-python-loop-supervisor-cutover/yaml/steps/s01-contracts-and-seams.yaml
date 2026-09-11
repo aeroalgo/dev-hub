@@ -1,0 +1,87 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: Typed runner contracts, seams and CLI characterization tests
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Define typed contracts, protocol ports, and contract characterization tests
+  for the new Python loop runner package (FR-001, FR-007, US-002, SC-005).
+
+plan_contract:
+  fr_ids:
+    - US-002
+    - FR-001
+    - FR-007
+    - SC-005
+  nouns:
+    - loop.runner
+    - RunnerConfig
+    - RuntimeConfig
+    - SessionRequest
+    - SessionResult
+    - RunOutcome
+    - RunAction
+    - PreflightCheckResult
+    - ContextPort
+    - SessionPort
+  layout_paths:
+    - loop/runner/__init__.py
+    - loop/tests/test_runner_contracts.py
+  ac_quotes:
+    - "FR-001: loop.runner предоставляет canonical main(argv: Sequence[str] | None) -> int и module execution через python3 -m loop.runner."
+    - "US-002: Как maintainer, я хочу тестировать orchestration в pytest через Python API, чтобы не source-ить shell."
+    - "FR-007: runner performs compile/doctor/preflight checks with explicit result objects."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:187-264"
+
+context:
+  consumes:
+    - loop/context_loop.py
+    - harness/hooks/_lib.py
+    - loop/runtime_adapters/base.py
+  produces:
+    - loop/runner/__init__.py
+    - loop/tests/test_runner_contracts.py
+  plan_refs:
+    - US-002
+    - FR-001
+    - FR-007
+    - SC-005
+  files:
+    - loop/runner/__init__.py
+    - loop/tests/test_runner_contracts.py
+
+as_built:
+  - "loop/loop.sh (1172 lines) houses procedural shell supervisor without typed Python contracts"
+  - "loop/context_loop.py manages domain operations (prepare, record, check-after, doctor)"
+  - "harness/hooks/_lib.py manages RunnerOwner and project env parsing"
+
+delta:
+  - "Create loop/runner/__init__.py exporting typed dataclasses (RunnerConfig, RuntimeConfig, SessionRequest, SessionResult, RunOutcome, RunAction, PreflightCheckResult) and protocol ports (ContextPort, SessionPort)"
+  - "Create loop/tests/test_runner_contracts.py testing immutability, validation, and contract integrity of all runner types"
+
+deletes: []
+
+out_of_scope:
+  - "CLI parser and environment bootstrapping implementation"
+  - "Session invoker execution"
+  - "Outer loop orchestration"
+  - "Full QA suite verification (QA phase)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Typed contract dataclasses and protocols defined with strict typing
+    verify: "bin/pytest loop/tests/test_runner_contracts.py -q"
+  - id: cp2
+    criterion: Contract types support immutability, JSON/state serialization compatibility and preflight checks
+    verify: "bin/pytest loop/tests/test_runner_contracts.py -q"
+
+verify: []
+tdd: []

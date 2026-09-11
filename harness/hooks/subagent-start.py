@@ -24,7 +24,7 @@ from _lib import (
     save_state,
     _discover_registry,
 )
-from loop.gate_identity import GateIdentity
+from gate_runtime import GateIdentity, IdentityService, SessionIdentity
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter
 from loop.runtime_materializers.agent_policy import get_always_inject_set
 
@@ -160,13 +160,14 @@ def main() -> None:
     identity = current_gate_identity(cwd, session_id)
     if session_id and not identity.get("session_id"):
         identity["session_id"] = session_id
-    identity_block = GateIdentity.inject_text(identity)
+    session_ident = SessionIdentity.from_mapping(identity)
+    identity_block = GateIdentity.inject_text(session_ident.to_dict())
     emit(
         {
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
                 "additionalContext": (
-                    f"agent_type={agent_type} preset={PRESET_BY_AGENT.get(agent_type, '')}\n"
+                    f"agent_type={agent_type} preset={PRESET_BY_AGENT.get(agent_type, )}\n"
                     f"{identity_block}"
                     f"{contract}\n{HARD_RULE}"
                 ),

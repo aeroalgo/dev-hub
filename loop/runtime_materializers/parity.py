@@ -116,7 +116,7 @@ def check_codex_parity(
                 matcher = matcher_for_hook(hook_name)
                 if matcher is not None:
                     entry["matcher"] = matcher
-                if hook_name in ("bash-output-cap", "agent-posttool-bash"):
+                if hook_name == "posttool-dispatch":
                     entry["timeout_ms"] = 45000
                 if ev_name not in expected_dict:
                     expected_dict[ev_name] = []

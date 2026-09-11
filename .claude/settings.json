@@ -50,51 +50,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/agent-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/bash-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Read|Glob|Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/context-scope-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/write-pretool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
         "matcher": ".*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/finish-boundary-pretool.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/pretool-dispatch.py\"",
             "timeout": 15
           }
         ]
@@ -102,21 +62,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Agent|Task",
+        "matcher": ".*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/agent-posttool.py\"",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/bash-output-cap.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/posttool-dispatch.py\"",
             "timeout": 45
           }
         ]

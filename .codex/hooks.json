@@ -15,40 +15,15 @@
     "PreToolUse": [
       {
         "type": "command",
-        "command": "python3 harness/hooks/agent-pretool.py",
-        "matcher": "Agent|Task|spawn_agent"
-      },
-      {
-        "type": "command",
-        "command": "python3 harness/hooks/bash-pretool.py",
-        "matcher": "Bash"
-      },
-      {
-        "type": "command",
-        "command": "python3 harness/hooks/write-pretool.py",
-        "matcher": "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
-      },
-      {
-        "type": "command",
-        "command": "python3 harness/hooks/context_ledger_adapters.py",
-        "matcher": "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
-      },
-      {
-        "type": "command",
-        "command": "python3 harness/hooks/finish-boundary-pretool.py",
+        "command": "python3 harness/hooks/pretool-dispatch.py",
         "matcher": ".*"
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
-        "command": "python3 harness/hooks/agent-posttool.py",
-        "matcher": "Agent|Task|spawn_agent|Write|Edit|NotebookEdit|apply_patch|MultiEdit"
-      },
-      {
-        "type": "command",
-        "command": "python3 harness/hooks/bash-output-cap.py",
-        "matcher": "Bash",
+        "command": "python3 harness/hooks/posttool-dispatch.py",
+        "matcher": ".*",
         "timeout_ms": 45000
       }
     ],

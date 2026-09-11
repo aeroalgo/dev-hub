@@ -20,33 +20,20 @@ EVENT_MAPPING: dict[str, str] = {
     "session-start": "SessionStart",
     "subagent-stop": "SubagentStop",
     "subagent-start": "SubagentStart",
-    "agent-pretool": "PreToolUse",
-    "bash-pretool": "PreToolUse",
-    "write-pretool": "PreToolUse",
-    "context-ledger": "PreToolUse",
-    "finish-boundary-pretool": "PreToolUse",
-    "agent-posttool": "PostToolUse",
-    "bash-output-cap": "PostToolUse",
-    "agent-posttool-agent": "PostToolUse:agent",
-    "agent-posttool-bash": "PostToolUse:bash",
+    "pretool-dispatch": "PreToolUse",
+    "posttool-dispatch": "PostToolUse",
 }
 
 WRITE_TOOL_MATCHER = "Write|Edit|NotebookEdit|apply_patch|MultiEdit"
-AGENT_TOOL_MATCHER = "Agent|Task|spawn_agent"
+AGENT_TOOL_MATCHER = (
+    "Agent|Task|spawn_agent|multi_agent_v1_spawn_agent|multi_agent_v1.spawn_agent"
+)
 AGENT_OR_WRITE_MATCHER = f"{AGENT_TOOL_MATCHER}|{WRITE_TOOL_MATCHER}"
 
 
 def matcher_for_hook(hook_name: str) -> str | None:
     """Canonical Codex hooks.json matcher for a harness hook name."""
-    if hook_name == "agent-pretool":
-        return AGENT_TOOL_MATCHER
-    if hook_name in ("agent-posttool", "agent-posttool-agent"):
-        return AGENT_OR_WRITE_MATCHER
-    if hook_name in ("bash-pretool", "bash-output-cap", "agent-posttool-bash"):
-        return "Bash"
-    if hook_name in ("write-pretool", "context-ledger"):
-        return WRITE_TOOL_MATCHER
-    if hook_name == "finish-boundary-pretool":
+    if hook_name in ("pretool-dispatch", "posttool-dispatch"):
         return ".*"
     return None
 
@@ -98,7 +85,7 @@ def generate_hooks_json(
         matcher = matcher_for_hook(hook_name)
         if matcher is not None:
             entry["matcher"] = matcher
-        if hook_name in ("bash-output-cap", "agent-posttool-bash"):
+        if hook_name == "posttool-dispatch":
             entry["timeout_ms"] = 45000
 
         if event_name not in hooks_dict:

@@ -1,0 +1,55 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s01 — Один базовый dispatcher маршрутизирует события и нормализует контекст
+  IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s01-event-dispatch-abstractions.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- Создан общий event-specific dispatch layer harness/hooks/hook_dispatch.py с EventContext,
+  DispatchBranch, DecisionEnvelope, DiagnosticCode и lifecycle event constants.
+- Реализованы ordered branch execution, short-circuit first-deny, merge non-conflicting
+  updatedInput, reject conflicting updatedInput с DiagnosticCode.CONFLICT_INPUT.
+- Реализован fail-closed механизм при неизвестных событиях, недопустимых тулах и необработанных
+  исключениях.
+- Создан comprehensive table-driven test suite harness/hooks/tests/test_hook_dispatch.py
+  (20 тестов), покрывающий все checkpoints и lifecycle events.
+files:
+- harness/hooks/hook_dispatch.py
+- harness/hooks/tests/test_hook_dispatch.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py harness/hooks/tests/test_finish_boundary_pretool.py
+  -q` — 25 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q — 20 passed
+checkpoints:
+- id: cp1
+  criterion: Ordered branch execution preserves project boundary -> finish boundary
+    -> tool policy sequence; first deny halts further checks.
+  status: done
+  done_at: '2026-09-10T22:16:03Z'
+- id: cp2
+  criterion: Conflicting updatedInput proposals between policies return a structured
+    conflict diagnostic without partial mutations.
+  status: done
+  done_at: '2026-09-10T22:16:03Z'
+- id: cp3
+  criterion: Unknown event/tool and unexpected exceptions fail closed with typed diagnostic
+    code, preventing silent bypass.
+  status: done
+  done_at: '2026-09-10T22:16:03Z'
+- id: cp4
+  criterion: Table-driven hook dispatch tests pass completely in test runner.
+  status: done
+  done_at: '2026-09-10T22:16:03Z'
+resume_from: cp1

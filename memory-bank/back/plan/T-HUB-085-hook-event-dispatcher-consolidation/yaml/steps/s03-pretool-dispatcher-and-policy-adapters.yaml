@@ -1,0 +1,122 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "Один canonical PreToolUse dispatcher выполняет цепочку проверок"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Объединить pre-tool проверки (project boundary, finish boundary, agent/task spawn, bash policy, write/edit policy)
+  в канонический `pretool-dispatch.py` и pure адаптеры `pretool_policy.py`, сохраняя семантику каждого матчера
+  и fail-closed deny. Это закрывает Stage 3 и требования US-001, FR-001, FR-002, FR-003, FR-010, FR-011, FR-012.
+
+plan_contract:
+  fr_ids:
+    - US-001
+    - US-004
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-010
+    - FR-011
+    - FR-012
+  nouns:
+    - pretool-dispatch.py
+    - pretool_policy.py
+    - AgentPolicyAdapter
+    - BashPolicyAdapter
+    - WritePolicyAdapter
+    - FinishBoundaryAdapter
+    - updatedInput
+    - tool_name matcher
+  layout_paths:
+    - harness/hooks/pretool-dispatch.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/tests/test_pretool_dispatch.py
+  ac_quotes:
+    - "На PreToolUse зарегистрирован один canonical dispatcher; Agent/Bash/Write/generic fixtures получают те же allow/deny и updated input semantics"
+    - "PreToolUse dispatcher маршрутизирует Agent/Task, Bash, Write/Edit/NotebookEdit и generic tools по tool_name"
+    - "Нельзя получить allow, если любой обязательный pretool policy вернул deny"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:120-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:270-300"
+
+context:
+  consumes:
+    - "harness/hooks/hook_dispatch.py (s01)"
+    - "plan §HOW / proposed file boundaries"
+    - "plan §Failure matrix TM-085-01, TM-085-02, TM-085-03, TM-085-08"
+    - "plan §Stages (Stage 3)"
+  produces:
+    - "harness/hooks/pretool-dispatch.py — canonical CLI entrypoint for PreToolUse"
+    - "harness/hooks/pretool_policy.py — pure policy adapters for boundary, agent, bash, write"
+    - "harness/hooks/tests/test_pretool_dispatch.py — parity test suite for pre-tool policy execution"
+  plan_refs:
+    - US-001
+    - US-004
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-010
+    - FR-011
+    - FR-012
+    - NFR-002
+    - NFR-003
+    - AC+ #1
+    - AC+ #8
+    - AC− #1
+  files:
+    - harness/hooks/pretool-dispatch.py
+    - harness/hooks/pretool_policy.py
+    - harness/hooks/tests/test_pretool_dispatch.py
+
+as_built:
+  - "harness/hooks/agent-pretool.py, bash-pretool.py, write-pretool.py, and finish-boundary-pretool.py are invoked as separate pre-tool scripts."
+  - "Each script independently parses stdin and writes JSON output to stdout, creating redundant process overhead."
+
+delta:
+  - "CREATE harness/hooks/pretool_policy.py with pure policy evaluators for Project/Finish boundary, Agent/Task parameters, Bash command inspection, and Write/Edit path validation."
+  - "CREATE harness/hooks/pretool-dispatch.py as canonical entrypoint that feeds standard stdin through hook_dispatch with pretool_policy adapters."
+  - "CREATE harness/hooks/tests/test_pretool_dispatch.py verifying parity across Agent, Bash, Write, and generic tool fixtures compared to legacy behavior."
+
+deletes: []
+
+out_of_scope:
+  - "PostToolUse dispatcher — s04."
+  - "Manifest and settings registration switchover — s06."
+  - "Physical deletion of legacy scripts — s07."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Agent/Task pretool checks enforce model overrides, prompt validation, and agent type isolation identically to legacy agent-pretool.py."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q --tb=line -k 'agent or task'"
+  - id: cp2
+    criterion: "Bash and Write pretool checks block unmanaged test execution and protected files identically to legacy bash-pretool.py / write-pretool.py."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q --tb=line -k 'bash or write'"
+  - id: cp3
+    criterion: "Finish boundary pretool checks run first and short-circuit on deny across all tool types."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q --tb=line -k 'boundary or finish'"
+  - id: cp4
+    criterion: "All parity and functional tests in test_pretool_dispatch.py pass."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q"
+
+verify:
+  - "pretool-dispatch.py exits cleanly with correct status envelope matching Claude/Codex hook specs."
+  - "Policy order strictly follows project/finish boundary -> tool policy -> argument mutation."
+  - "No valid tool execution is permitted if any mandatory policy denies it."
+
+tdd:
+  - "test_pretool_agent_policy_parity"
+  - "test_pretool_bash_policy_parity"
+  - "test_pretool_write_policy_parity"
+  - "test_pretool_finish_boundary_precedence"

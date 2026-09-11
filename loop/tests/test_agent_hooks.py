@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / ".claude" / "hooks"
-PRETOOL = HOOKS / "agent-pretool.py"
+PRETOOL = HOOKS / "pretool-dispatch.py"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))
 
@@ -38,9 +38,26 @@ def _run_pretool(
     session_id: str | None = None,
     **tool_input: object,
 ) -> dict:
+    sid = session_id or f"test-{agent}"
+    lib = _load()
+    st = lib.load_state(sid, str(tmp_path))
+    identity = st.get("gate_identity") if isinstance(st.get("gate_identity"), dict) else {}
+    if not str(identity.get("epic_id") or "").strip() or not str(
+        identity.get("session_id") or st.get("session_id") or ""
+    ).strip():
+        st["session_id"] = sid
+        st["gate_identity"] = {
+            "schema": "loop-gate-identity/v1",
+            "session_id": sid,
+            "epic_id": "T-test-hooks",
+            "step_id": "s01",
+            "role": "BACK",
+            "phase": "BACK IMPLEMENT",
+        }
+        lib.save_state(sid, str(tmp_path), st)
     payload = {
         "tool_name": "Agent",
-        "session_id": session_id or f"test-{agent}",
+        "session_id": sid,
         "cwd": str(tmp_path),
         "tool_input": {"subagent_type": agent, "prompt": prompt, **tool_input},
     }
@@ -578,7 +595,7 @@ def _run_posttool(
     env["PYTHONPATH"] = str(HOOKS)
     env["EPIC_LOOP"] = "1"
     return subprocess.run(
-        [sys.executable, str(HOOKS / "agent-posttool.py")],
+        [sys.executable, str(HOOKS / "posttool-dispatch.py")],
         input=json.dumps(payload),
         text=True,
         capture_output=True,
@@ -822,7 +839,7 @@ def test_posttool_mirror_error_logs_stderr_and_saves_state(
     env["EPIC_LOOP"] = "1"
     try:
         result = subprocess.run(
-            [sys.executable, str(HOOKS / "agent-posttool.py")],
+            [sys.executable, str(HOOKS / "posttool-dispatch.py")],
             input=json.dumps(payload),
             text=True,
             capture_output=True,

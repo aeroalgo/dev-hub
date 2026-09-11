@@ -1,0 +1,53 @@
+schema: epic-implement/v1
+role: back
+step_id: s04
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s04 — Один canonical PostToolUse dispatcher изолирует agent state и Bash shaping
+  IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s04-posttool-dispatcher-and-output-shaping.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- 'Implemented pure policy adapters in harness/hooks/posttool_policy.py: AgentPostToolAdapter,
+  BashOutputCapAdapter, WritePostToolAdapter.'
+- Implemented canonical PostToolUse CLI dispatcher entrypoint in harness/hooks/posttool-dispatch.py.
+- Implemented test suite harness/hooks/tests/test_posttool_dispatch.py proving verdict
+  persistence, in-flight cleanup, output shaping, dump retention, and idempotency.
+files:
+- harness/hooks/posttool-dispatch.py
+- harness/hooks/posttool_policy.py
+- harness/hooks/tests/test_posttool_dispatch.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q`
+  — 10 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q — 10 passed
+checkpoints:
+- id: cp1
+  criterion: Agent posttool handler correctly records verdict, updates receipts, and
+    clears in_flight markers identically to legacy agent-posttool.py.
+  status: done
+- id: cp2
+  criterion: Bash posttool handler caps large outputs, writes full raw dump to disk,
+    and retains error outputs correctly.
+  status: done
+- id: cp3
+  criterion: Repeated delivery of identical PostToolUse event produces idempotent
+    state mutation with exactly one evidence record.
+  status: done
+- id: cp4
+  criterion: All unit and parity tests in test_posttool_dispatch.py pass.
+  status: done

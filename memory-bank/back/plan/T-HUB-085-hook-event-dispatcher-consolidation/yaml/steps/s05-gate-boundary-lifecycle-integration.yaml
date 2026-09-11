@@ -1,0 +1,131 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "SubagentStart, SubagentStop и Stop подключают shared services"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перевести `subagent-start.py`, `subagent-stop.py` и `stop-gate.py` на использование `gate_runtime.py`,
+  сохранив раздельные точки входа жизненного цикла, авторитетную внешнюю валидацию transcript и защиту
+  от несанкционированного PASS. Это закрывает Stage 5 и требования US-003, FR-001, FR-005, FR-006, FR-007, FR-009, FR-012.
+
+plan_contract:
+  fr_ids:
+    - US-003
+    - US-004
+    - FR-001
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-009
+    - FR-012
+  nouns:
+    - subagent-start.py
+    - subagent-stop.py
+    - stop-gate.py
+    - gate_runtime.py
+    - SubagentStart
+    - SubagentStop
+    - Stop
+    - contract injection
+    - transcript validation
+    - gate verification
+  layout_paths:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/tests/test_gate_boundaries.py
+  ac_quotes:
+    - "SubagentStart, SubagentStop и Stop остаются раздельными entries и проходят отдельные event tests"
+    - "Внешний SubagentStop отвергает malformed fence, schema mismatch, ownership mismatch и stale identity"
+    - "Stop не принимает state-only/manual PASS и не разрешает finish без обязательного gate"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:120-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:310-340"
+
+context:
+  consumes:
+    - "harness/hooks/gate_runtime.py (s02)"
+    - "plan §HOW / proposed file boundaries"
+    - "plan §Failure matrix TM-085-05, TM-085-09, TM-085-10"
+    - "plan §Stages (Stage 5)"
+  produces:
+    - "harness/hooks/subagent-start.py — consuming shared contract service without event merge"
+    - "harness/hooks/subagent-stop.py — consuming shared gate/evidence service with independent validation"
+    - "harness/hooks/stop-gate.py — consuming shared lifecycle/status service with final gate authority"
+    - "harness/hooks/tests/test_gate_boundaries.py — lifecycle integration tests for start/stop/gate"
+  plan_refs:
+    - US-003
+    - US-004
+    - FR-001
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-009
+    - FR-012
+    - NFR-003
+    - NFR-006
+    - AC+ #3
+    - AC+ #4
+    - AC+ #5
+    - AC+ #8
+    - AC− #2
+    - AC− #3
+    - AC− #4
+  files:
+    - harness/hooks/subagent-start.py
+    - harness/hooks/subagent-stop.py
+    - harness/hooks/stop-gate.py
+    - harness/hooks/tests/test_gate_boundaries.py
+
+as_built:
+  - "subagent-start.py, subagent-stop.py, and stop-gate.py implement custom validation, identity checks, and file reading logic."
+  - "SubagentStop and Stop operate as separate hooks, but duplicate the code for checking gate evidence."
+
+delta:
+  - "UPDATE harness/hooks/subagent-start.py to import gate_runtime.py for contract injection and identity setup."
+  - "UPDATE harness/hooks/subagent-stop.py to import gate_runtime.py for strict transcript validation, fence extraction, and evidence recording."
+  - "UPDATE harness/hooks/stop-gate.py to import gate_runtime.py for status/receipt validation before permitting parent finish."
+  - "CREATE harness/hooks/tests/test_gate_boundaries.py testing forged PASS denial, identity mismatch, stale receipt blocking, and valid finish flow."
+
+deletes: []
+
+out_of_scope:
+  - "Manifest registration switch — s06."
+  - "Legacy hook purge — s07."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "SubagentStart, SubagentStop, and Stop operate as distinct registered lifecycle boundaries with independent event tests."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q --tb=line -k 'distinct_boundaries'"
+  - id: cp2
+    criterion: "SubagentStop validates actual transcript fences and rejects malformed payloads even if subagent self-check was advisory PASS."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q --tb=line -k 'subagent_stop or fence'"
+  - id: cp3
+    criterion: "Stop gate rejects state-only manual PASS and blocks parent finish when evidence receipt is missing or stale."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q --tb=line -k 'stop_gate or stale_receipt'"
+  - id: cp4
+    criterion: "All boundary integration tests pass."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q"
+
+verify:
+  - "SubagentStart, SubagentStop, and Stop are not merged into a single hook."
+  - "External SubagentStop validation remains authoritative and independent of agent self-check."
+  - "Stop gate enforces fail-closed gate evidence before finish."
+
+tdd:
+  - "test_subagent_start_contract_injection"
+  - "test_subagent_stop_rejects_malformed_fence"
+  - "test_stop_gate_blocks_stale_or_missing_receipt"
+  - "test_valid_gate_flow_allows_finish"

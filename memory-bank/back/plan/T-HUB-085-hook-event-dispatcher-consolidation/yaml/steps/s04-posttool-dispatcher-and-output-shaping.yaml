@@ -1,0 +1,120 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "Один canonical PostToolUse dispatcher изолирует agent state и Bash shaping"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Объединить post-tool обработку (запись verdict/evidence агентов, release in_flight state, Bash output capping
+  и full dump retention) в канонический `posttool-dispatch.py` и `posttool_policy.py`, сохраняя изоляцию веток
+  и идемпотентность мутаций. Это закрывает Stage 4 и требования US-002, FR-001, FR-004, FR-010, FR-011, FR-012, NFR-004, NFR-005.
+
+plan_contract:
+  fr_ids:
+    - US-002
+    - US-004
+    - FR-001
+    - FR-004
+    - FR-010
+    - FR-011
+    - FR-012
+  nouns:
+    - posttool-dispatch.py
+    - posttool_policy.py
+    - AgentPostToolAdapter
+    - BashOutputCapAdapter
+    - in_flight release
+    - bash full dump
+    - output shaping
+  layout_paths:
+    - harness/hooks/posttool-dispatch.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/tests/test_posttool_dispatch.py
+  ac_quotes:
+    - "На PostToolUse зарегистрирован один canonical dispatcher; Agent verdict/evidence и Bash output cap сохраняют текущие side effects"
+    - "PostToolUse dispatcher маршрутизирует Agent/Task и Bash; agent state/evidence и output-cap не вызывают друг друга"
+    - "Нельзя потерять полный Bash dump из-за dispatcher exception"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:120-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:280-310"
+
+context:
+  consumes:
+    - "harness/hooks/hook_dispatch.py (s01)"
+    - "harness/hooks/gate_runtime.py (s02)"
+    - "plan §HOW / proposed file boundaries"
+    - "plan §Failure matrix TM-085-06, TM-085-07"
+    - "plan §Stages (Stage 4)"
+  produces:
+    - "harness/hooks/posttool-dispatch.py — canonical CLI entrypoint for PostToolUse"
+    - "harness/hooks/posttool_policy.py — pure adapters for Agent evidence/in-flight release and Bash output cap"
+    - "harness/hooks/tests/test_posttool_dispatch.py — parity and idempotency test suite for post-tool processing"
+  plan_refs:
+    - US-002
+    - US-004
+    - FR-001
+    - FR-004
+    - FR-010
+    - FR-011
+    - FR-012
+    - NFR-004
+    - NFR-005
+    - AC+ #2
+    - AC+ #8
+    - AC− #6
+  files:
+    - harness/hooks/posttool-dispatch.py
+    - harness/hooks/posttool_policy.py
+    - harness/hooks/tests/test_posttool_dispatch.py
+
+as_built:
+  - "agent-posttool.py and bash-output-cap.py are registered as distinct posttool hooks."
+  - "Post-tool side effects (evidence writing and output truncation) operate independently without a shared lifecycle dispatcher."
+
+delta:
+  - "CREATE harness/hooks/posttool_policy.py containing pure handlers for Agent verdict persistence, in-flight session cleanup, and Bash output capping/dumping."
+  - "CREATE harness/hooks/posttool-dispatch.py as canonical entrypoint that routes PostToolUse events to appropriate handlers based on tool_name."
+  - "CREATE harness/hooks/tests/test_posttool_dispatch.py proving side effect parity, idempotency of repeated posttool calls, and full Bash dump preservation."
+
+deletes: []
+
+out_of_scope:
+  - "Gate lifecycle integration — s05."
+  - "Manifest and settings registration consolidation — s06."
+  - "Deletion of obsolete posttool scripts — s07."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Agent posttool handler correctly records verdict, updates receipts, and clears in_flight markers identically to legacy agent-posttool.py."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q --tb=line -k 'agent or verdict or in_flight'"
+  - id: cp2
+    criterion: "Bash posttool handler caps large outputs, writes full raw dump to disk, and retains error outputs correctly."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q --tb=line -k 'bash or cap or dump'"
+  - id: cp3
+    criterion: "Repeated delivery of identical PostToolUse event produces idempotent state mutation with exactly one evidence record."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q --tb=line -k 'idempotent'"
+  - id: cp4
+    criterion: "All unit and parity tests in test_posttool_dispatch.py pass."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_posttool_dispatch.py -q"
+
+verify:
+  - "posttool-dispatch.py returns valid payload response with shaped content or updated output."
+  - "Exceptions in output capping never discard the full dump or cause silent failure."
+  - "Agent and Bash branches remain completely disjoint."
+
+tdd:
+  - "test_posttool_agent_evidence_recording"
+  - "test_posttool_bash_output_shaping_and_dump"
+  - "test_posttool_repeated_event_idempotency"
+  - "test_posttool_exception_safety_retains_dump"

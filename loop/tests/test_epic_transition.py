@@ -92,6 +92,55 @@ def test_arm_phase_implement(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# test_arm_phase_audit_with_decompose_rel
+# ---------------------------------------------------------------------------
+def test_arm_phase_audit_with_decompose_rel(tmp_path):
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+
+    expected = {"ok": True, "armed_step": "AUDIT", "active_context": "memory-bank/activeContext.md"}
+    decomp = "memory-bank/back/plan/T-TEST-001/yaml/decompose-index.yaml"
+
+    with patch(
+        "epic.core.arm_active_context_from_decompose",
+        return_value=expected,
+    ) as mock_decomp, patch(
+        "epic.core.arm_epic",
+    ) as mock_epic:
+        res = arm_phase(tmp_path, "T-TEST-001", "AUDIT", "back", decompose_rel=decomp)
+
+    assert res["ok"] is True
+    assert res["armed_step"] == "AUDIT"
+    mock_decomp.assert_called_once_with(tmp_path, decomp)
+    mock_epic.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# test_arm_phase_unknown_strips_decompose_rel_before_arm_epic
+# ---------------------------------------------------------------------------
+def test_arm_phase_unknown_strips_decompose_rel_before_arm_epic(tmp_path):
+    from loop.epic_transition import arm_phase  # noqa: PLC0415
+
+    expected = {"ok": True, "step_id": "UNKNOWN", "active_context": "memory-bank/activeContext.md"}
+
+    with patch(
+        "epic.core.arm_epic",
+        return_value=expected,
+    ) as mock:
+        res = arm_phase(
+            tmp_path,
+            "T-TEST-001",
+            "UNKNOWN_PHASE",
+            "back",
+            decompose_rel="memory-bank/back/plan/x/yaml/decompose-index.yaml",
+            plan_rel="memory-bank/back/plan/x/md/plan.md",
+            env={},
+        )
+
+    mock.assert_called_once_with(tmp_path, "T-TEST-001", role="back")
+    assert res["ok"] is True
+
+
+# ---------------------------------------------------------------------------
 # test_arm_phase_unknown_falls_back_to_arm_epic
 # ---------------------------------------------------------------------------
 def test_arm_phase_unknown_falls_back_to_arm_epic(tmp_path):

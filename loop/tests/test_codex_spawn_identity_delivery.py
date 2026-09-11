@@ -136,6 +136,59 @@ def test_rewrite_spawn_prompt_standalone() -> None:
     assert rewrite_spawn_prompt(None, None) == ""
 
 
+def test_spawn_validate_injects_gate_identity_before_child(tmp_path: Path) -> None:
+    """Real pre-delivery path: spawn_validate mutates prompt for PreToolUse updatedInput."""
+    import sys
+
+    hooks = Path(__file__).resolve().parents[2] / "harness" / "hooks"
+    if str(hooks) not in sys.path:
+        sys.path.insert(0, str(hooks))
+    from spawn_validate import ensure_gate_identity_prompt, validate_spawn_input
+
+    agents = tmp_path / ".claude" / "agents"
+    agents.mkdir(parents=True)
+    (agents / "verify-bugfix.md").write_text(
+        "---\nname: verify-bugfix\noverlay:\n  managed: true\n  mode: gate\n"
+        "  default_loop: true\n  requires_model: true\n  verdict: pass-fail\n---\n",
+        encoding="utf-8",
+    )
+    (tmp_path / ".claude" / "project.env").write_text(
+        "PROJECT_AGENT_VERIFY_BUGFIX_MODEL=sonnet\n", encoding="utf-8"
+    )
+    bugfix = tmp_path / "memory-bank/back/bugfix/T-HUB-091/bugfix-20260910-x.md"
+    bugfix.parent.mkdir(parents=True)
+    bugfix.write_text("# bf\n## Changes Implemented\n- a\n## Verification\n- ok\n", encoding="utf-8")
+
+    state = {
+        "session_id": "sess-codex-delivery-1",
+        "gate_identity": {
+            "session_id": "sess-codex-delivery-1",
+            "epic_id": "T-HUB-091-gate-identity-sot-consolidation",
+            "step_id": "BUGFIX",
+        },
+    }
+    tool_input = {
+        "subagent_type": "verify-bugfix",
+        "prompt": f"agent_type: verify-bugfix\nALLOW READ\n{bugfix.relative_to(tmp_path)}\n",
+    }
+    import os
+
+    os.environ["EPIC_LOOP"] = "1"
+    deny, _ = validate_spawn_input(tool_input, state, tmp_path)
+    assert deny == []
+    assert (
+        "GATE_IDENTITY session_id=sess-codex-delivery-1 "
+        "epic_id=T-HUB-091-gate-identity-sot-consolidation step_id=BUGFIX"
+        in tool_input["prompt"]
+    )
+    # idempotent helper
+    again = dict(tool_input)
+    assert ensure_gate_identity_prompt(
+        again, state, agent_type="verify-bugfix", cwd=tmp_path
+    ) == []
+    assert again["prompt"].count("GATE_IDENTITY session_id=") == 1
+
+
 def test_post_wait_start_is_mark_only(tmp_path: Path, monkeypatch) -> None:
     """FR-010: Post-wait SubagentStart call is mark-only, does not act as delivery channel."""
     epic = "T-HUB-091-gate-identity-sot-consolidation"

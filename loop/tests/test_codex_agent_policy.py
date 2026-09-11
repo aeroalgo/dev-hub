@@ -226,28 +226,13 @@ hooks:
     runtimes:
       codex:
         hooks_json_entry: true
-  agent-pretool:
-    source: "harness/hooks/agent-pretool.py"
+  pretool-dispatch:
+    source: "harness/hooks/pretool-dispatch.py"
     runtimes:
       codex:
         hooks_json_entry: true
-  bash-pretool:
-    source: "harness/hooks/bash-pretool.py"
-    runtimes:
-      codex:
-        hooks_json_entry: true
-  write-pretool:
-    source: "harness/hooks/write-pretool.py"
-    runtimes:
-      codex:
-        hooks_json_entry: true
-  agent-posttool:
-    source: "harness/hooks/agent-posttool.py"
-    runtimes:
-      codex:
-        hooks_json_entry: true
-  bash-output-cap:
-    source: "harness/hooks/bash-output-cap.py"
+  posttool-dispatch:
+    source: "harness/hooks/posttool-dispatch.py"
     runtimes:
       codex:
         hooks_json_entry: true

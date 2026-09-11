@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "Manifest и materializer переключаются на canonical dispatchers"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обновить `harness/manifest.yaml` и генерацию `.claude/settings.json`, заменив разрозненные pre/post hook команды
+  на канонические `pretool-dispatch.py` и `posttool-dispatch.py`, гарантируя ноль active duplicates и паритет
+  между Claude и Codex. Это закрывает Stage 6 и требования US-005, FR-008, FR-011, FR-012, NFR-001, AC 6, AC 7.
+
+plan_contract:
+  fr_ids:
+    - US-005
+    - FR-008
+    - FR-011
+    - FR-012
+  nouns:
+    - manifest.yaml
+    - settings.json
+    - hook registration
+    - realpath uniqueness
+    - materializer
+    - canonical command
+    - registration consolidation
+  layout_paths:
+    - harness/manifest.yaml
+    - .claude/settings.json
+    - harness/hooks/tests/test_hook_registration_consolidation.py
+  ac_quotes:
+    - "Manifest/materializer и committed settings регистрируют ровно один canonical command на (event, matcher, realpath)"
+    - "Duplicate realpath scan даёт ноль active duplicates; old entrypoints не вызываются из settings/manifest"
+    - "Снижение числа registered command entries минимум с текущих 11 до целевого event-specific набора"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:120-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:325-355"
+
+context:
+  consumes:
+    - "harness/hooks/pretool-dispatch.py (s03)"
+    - "harness/hooks/posttool-dispatch.py (s04)"
+    - "harness/manifest.yaml"
+    - "plan §HOW / proposed file boundaries"
+    - "plan §Failure matrix TM-085-04, TM-085-11"
+    - "plan §Stages (Stage 6)"
+  produces:
+    - "harness/manifest.yaml — updated with canonical dispatcher commands and reduction in entries"
+    - ".claude/settings.json — regenerated settings with single canonical pretool/posttool entrypoints"
+    - "harness/hooks/tests/test_hook_registration_consolidation.py — automated registration scan and Claude/Codex parity tests"
+  plan_refs:
+    - US-005
+    - FR-008
+    - FR-011
+    - FR-012
+    - NFR-001
+    - AC+ #1
+    - AC+ #2
+    - AC+ #6
+    - AC+ #7
+    - AC− #5
+  files:
+    - harness/manifest.yaml
+    - .claude/settings.json
+    - harness/hooks/tests/test_hook_registration_consolidation.py
+
+as_built:
+  - "harness/manifest.yaml registers multiple distinct scripts for PreToolUse and PostToolUse."
+  - ".claude/settings.json contains multiple hook commands per event matcher."
+
+delta:
+  - "UPDATE harness/manifest.yaml to declare pretool-dispatch.py for PreToolUse and posttool-dispatch.py for PostToolUse."
+  - "REGENERATE .claude/settings.json via canonical materializer to reflect consolidated hook registration."
+  - "CREATE harness/hooks/tests/test_hook_registration_consolidation.py to verify realpath uniqueness, zero active duplicate entries, and command reduction."
+
+deletes: []
+
+out_of_scope:
+  - "Final file purge of old hook implementations — s07."
+
+skills:
+  code_surface: config
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "harness/manifest.yaml specifies one canonical pretool-dispatch.py and one posttool-dispatch.py command."
+    verify: "rg -n 'pretool-dispatch.py|posttool-dispatch.py' harness/manifest.yaml"
+  - id: cp2
+    criterion: ".claude/settings.json contains zero duplicate realpaths across all registered event matchers."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line -k 'unique_realpath'"
+  - id: cp3
+    criterion: "Total registered command entries is reduced from 11+ to the canonical event-specific count."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q --tb=line -k 'entry_count'"
+  - id: cp4
+    criterion: "All registration and parity tests pass."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q"
+
+verify:
+  - "No single (event, matcher) registers more than one command."
+  - "Old entrypoints are not referenced in active manifest or settings."
+  - "Claude and Codex hook configurations preserve identical lifecycle semantics."
+
+tdd:
+  - "test_manifest_declares_canonical_dispatchers"
+  - "test_settings_realpath_uniqueness"
+  - "test_registration_entry_reduction_count"
+  - "test_claude_codex_materialization_parity"

@@ -17,6 +17,7 @@ def shared_collaboration_policy(*, phase: str | None = None) -> str:
 1. Ровно **один** suite по `suite_command` из classifier: `bin/pytest -q --tb=line`. FORBIDDEN: повторный full suite, смена `--tb`, `python -m pytest`, targeted вместо suite, thrash-перезапуски.
 2. Если suite red, runtime сломан, AC/plan не сходятся, или есть **eligible** blockers → **не** вызывай `verify-qa` и **не** вызывай `gate-repair`. Запиши `qa-*.yaml` с `verdict: fail|blocked`, Handoff `* BUGFIX`, `mb-finish qa`, останови turn. Чинить продукт в QA-сессии запрещено.
 3. Если suite green и plan/AC ок → ровно один `verify-qa` (в prompt обязательно `agent_type: verify-qa`). Pack AC = **Frozen QA checklist** 1:1 (anti-ratchet: не усиливать wording). Дождись valid fenced JSON verdict.
+3a. **GATE_IDENTITY (HARD):** в каждом spawn prompt gate/repair первой строкой после `agent_type:` обязателен блок `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=QA` (значения только из session SoT / active gate identity; FORBIDDEN угадывать или оставлять null). Без строки — spawn DENY / child BLOCKED `prompt_incomplete:GATE_IDENTITY`.
 4. `verify-qa` PASS (включая PASS с ineligible residuals) → `mb-finish qa` (epic done / DONE). `verify-qa` FAIL/BLOCKED с eligible B* → тот же путь что п.2: qa-*.yaml fail/blocked → BUGFIX, **без** repair-loop и без повторного suite в этом run. Style/naming/comments/«строже plan» → **не** BUGFIX.
 5. `gate-repair` в QA запрещён для product/AC дефектов. Он допустим только если сам spawn/wait transport verify-qa сломан (unsupported tool / empty wait) — один retry canonical spawn, иначе NEED_HUMAN.
 6. Не создавай `qa_pass`/finish без свежего PASS текущего verify-qa на green path; не выдумывай receipt.
@@ -24,6 +25,7 @@ def shared_collaboration_policy(*, phase: str | None = None) -> str:
     return """## SHARED GATE COLLABORATION CONTRACT (HARD)
 Этот контракт одинаков для всех runtime.
 1. Перед FINISH IMPLEMENT/TASK/BUGFIX запусти ровно один соответствующий gate-субагент: `verify-implement` или `verify-bugfix`; дождись завершения и учитывай только valid fenced JSON verdict. В spawn prompt всегда пиши `agent_type: <canonical>`.
+1a. **GATE_IDENTITY (HARD):** в каждом spawn prompt `verify-*` / `analyze-verify` / `gate-repair` сразу после `agent_type:` обязателен блок `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=<SoT>` (SoT = session_start_identity / current gate identity). FORBIDDEN null/placeholder. Без строки — PreToolUse DENY или child BLOCKED `prompt_incomplete:GATE_IDENTITY`.
 2. Перед FINISH DECOMPOSE запусти `verify-decompose`; для ANALYZE fix используй `analyze-verify` по текущему workflow.
 3. Если verify возвращает FAIL или BLOCKED, либо запуск verify завершается repairable runtime error, передай в `gate-repair` секции BLOCKERS + ALLOW WRITE + VERIFY, дождись repair и повтори **тот же** verify. Это автоматический repair-loop.
 4. **Pack BLOCKERS (HARD):** каждая строка строго `- <blocker_id> | <path> | <concrete_fix>`, где `<path>` ∈ ALLOW WRITE и `<concrete_fix>` — одно действие из verify-отчёта. Голый список id без path|fix = DENY spawn. Не изобретай blockers сверх verify-отчёта и не проси repair «починить coverage вообще».
@@ -51,7 +53,7 @@ def codex_collaboration_block(ctx: SessionContext) -> str:
 1. Для субагентов используй только каноническую последовательность `multi_agent_v1.spawn_agent` → `multi_agent_v1.wait`; transport adapter принимает также flat aliases и нормализует их до dispatch.
 2. Root-модель (`PROJECT_LOOP_<PHASE>_MODEL` или CLI `--model`) может быть произвольной. Child получает managed model из Codex agent config.
 3. Для managed child используй модель из `codex/agents.config.toml` (после materialize — из `.codex/agents/<agent>.toml`); модель child не наследуй из root без явного override.
-4. В первой строке spawn prompt обязательно `agent_type: <canonical>` (`verify-qa`, `verify-bugfix`, `verify-implement`, `gate-repair`). Без этого label станет unknown.
+4. В первой строке spawn prompt обязательно `agent_type: <canonical>` (`verify-qa`, `verify-bugfix`, `verify-implement`, `gate-repair`). Сразу после — `GATE_IDENTITY session_id=<SoT> epic_id=<SoT> step_id=<SoT>`. Без `agent_type` label станет unknown; без `GATE_IDENTITY` — DENY/BLOCKED.
 5. Вне QA: для FAIL/BLOCKED/runtime error сначала повтори точный `spawn_agent`, затем передай blocker в `gate-repair` и снова запусти verify. В QA — BUGFIX path по QA-контракту, не product repair-loop.
 6. `reconcile-verify` не является частью обычного IMPLEMENT/BUGFIX/QA finish-chain. Запускай его только для явного текущего режима `BACK RECONCILE` и только с ALLOW READ текущего epic.
 """

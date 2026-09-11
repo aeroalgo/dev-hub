@@ -1881,7 +1881,59 @@ def current_gate_identity(cwd: str, session_id: str) -> dict[str, Any]:
         try:
             from loop.gate_identity import GateIdentity
 
-            return GateIdentity.expected(state, session_id=runner_session).to_dict()
+            expected = GateIdentity.expected(state, session_id=runner_session)
+            if not expected.epic_id or not expected.step_id:
+                try:
+                    from loop.schemas.active_context import parse_handoff_meta
+                    from epic.core import read_active_context
+                    ac_text = read_active_context(cwd)
+                    if ac_text:
+                        meta = parse_handoff_meta(ac_text)
+                        ac_epic = (
+                            getattr(meta, "epic_id", "")
+                            or (meta.get("epic_id") if isinstance(meta, dict) else "")
+                            or ""
+                        )
+                        ac_step = (
+                            getattr(meta, "step_id", "")
+                            or (meta.get("step_id") if isinstance(meta, dict) else "")
+                            or ""
+                        )
+                        ac_role = (
+                            getattr(meta, "role", "")
+                            or (meta.get("role") if isinstance(meta, dict) else "")
+                            or ""
+                        )
+                        ac_phase = (
+                            getattr(meta, "mode", "")
+                            or (meta.get("mode") if isinstance(meta, dict) else "")
+                            or ""
+                        )
+                        if not ac_step:
+                            m = re.search(r"@([se]\d{2})", ac_text)
+                            if m:
+                                ac_step = m.group(1)
+                            else:
+                                m = re.search(r"([se]\d{2})", ac_text)
+                                if m:
+                                    ac_step = m.group(1)
+                        if ac_epic or ac_step:
+                            expected = GateIdentity(
+                                schema=expected.schema,
+                                session_id=expected.session_id,
+                                epic_id=expected.epic_id or str(ac_epic).strip(),
+                                step_id=expected.step_id or str(ac_step).strip(),
+                                role=expected.role or str(ac_role).strip(),
+                                phase=expected.phase or str(ac_phase).strip(),
+                                phase_run_id=expected.phase_run_id,
+                                projection_hash=expected.projection_hash,
+                                phase_epoch=expected.phase_epoch,
+                                event_digest=expected.event_digest,
+                                authority=expected.authority,
+                            )
+                except Exception:
+                    pass
+            return expected.to_dict()
         except ImportError:
             from epic_lib import gate_identity as projection_identity
 

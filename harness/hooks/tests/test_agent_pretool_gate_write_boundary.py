@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-WRITE_PRETOOL = ROOT / ".claude" / "hooks" / "write-pretool.py"
-BASH_PRETOOL = ROOT / ".claude" / "hooks" / "bash-pretool.py"
+WRITE_PRETOOL = ROOT / ".claude" / "hooks" / "pretool-dispatch.py"
+BASH_PRETOOL = ROOT / ".claude" / "hooks" / "pretool-dispatch.py"
 HOOKS = ROOT / ".claude" / "hooks"
 if str(HOOKS) not in sys.path:
     sys.path.insert(0, str(HOOKS))

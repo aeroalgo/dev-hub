@@ -1,0 +1,116 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "Один базовый dispatcher маршрутизирует события и нормализует контекст"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Ввести общий event-specific dispatcher layer (`harness/hooks/hook_dispatch.py`) с нормализацией context/payload,
+  упорядоченным выполнением policy branches, merge обновлений input, envelope ответов и fail-closed diagnostics
+  для всех lifecycle events. Это закрывает Stage 1 и закладывает основу для FR-001, FR-002, FR-010 и FR-012.
+
+plan_contract:
+  fr_ids:
+    - US-001
+    - US-004
+    - FR-001
+    - FR-002
+    - FR-010
+    - FR-012
+  nouns:
+    - hook_dispatch.py
+    - EventContext
+    - DispatchBranch
+    - DecisionEnvelope
+    - DiagnosticCode
+    - PreToolUse
+    - PostToolUse
+    - SubagentStart
+    - SubagentStop
+    - Stop
+  layout_paths:
+    - harness/hooks/hook_dispatch.py
+    - harness/hooks/tests/test_hook_dispatch.py
+  ac_quotes:
+    - "Ввести event-specific dispatch layer с отдельными входами для pretool, posttool, subagent_start, subagent_stop и stop"
+    - "PreToolUse сохраняет порядок policy: project boundary -> finish boundary -> tool-specific policy"
+    - "Каждый dispatch branch имеет deterministic diagnostic при deny/retry/error"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:120-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:200-245"
+
+context:
+  consumes:
+    - "plan §HOW / proposed file boundaries"
+    - "plan §Data and control flow"
+    - "plan §Failure matrix TM-085-01, TM-085-02, TM-085-03, TM-085-08"
+    - "plan §Stages (Stage 1)"
+  produces:
+    - "harness/hooks/hook_dispatch.py — event context normalization, ordered branch execution, decision merge, structured diagnostics"
+    - "harness/hooks/tests/test_hook_dispatch.py — baseline characterization and table-driven routing/order/merge/fail-closed tests"
+  plan_refs:
+    - US-001
+    - US-004
+    - FR-001
+    - FR-002
+    - FR-010
+    - FR-012
+    - NFR-002
+    - NFR-003
+    - AC+ #1
+    - AC+ #8
+    - AC− #1
+  files:
+    - harness/hooks/hook_dispatch.py
+    - harness/hooks/tests/test_hook_dispatch.py
+
+as_built:
+  - "harness/hooks/_lib.py provides low-level stdin reading and json dumping, but each hook parses payloads ad-hoc."
+  - "No unified hook_dispatch.py module exists to coordinate ordered policy branches, merge input mutations, or enforce fail-closed error diagnostics across lifecycle events."
+
+delta:
+  - "CREATE harness/hooks/hook_dispatch.py with typed EventContext, DispatchBranch, DecisionEnvelope, DiagnosticCode, ordered branch runner, input merge logic, and fail-closed exception envelope."
+  - "CREATE harness/hooks/tests/test_hook_dispatch.py with table-driven tests for branch ordering, conflicting updatedInput rejection, unknown event/tool diagnostics, and exception handling."
+
+deletes: []
+
+out_of_scope:
+  - "Pure gate validation and receipt services — s02."
+  - "PreToolUse policy adapters migration — s03."
+  - "PostToolUse policy adapters migration — s04."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Ordered branch execution preserves project boundary -> finish boundary -> tool policy sequence; first deny halts further checks."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q --tb=line -k 'order or sequence or first_deny'"
+  - id: cp2
+    criterion: "Conflicting updatedInput proposals between policies return a structured conflict diagnostic without partial mutations."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q --tb=line -k 'conflict or merge'"
+  - id: cp3
+    criterion: "Unknown event/tool and unexpected exceptions fail closed with typed diagnostic code, preventing silent bypass."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q --tb=line -k 'fail_closed or unknown or exception'"
+  - id: cp4
+    criterion: "Table-driven hook dispatch tests pass completely in test runner."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_hook_dispatch.py -q"
+
+verify:
+  - "hook_dispatch.py is synchronous and bounded with zero LLM/network dependencies."
+  - "Decision envelope returns structured status, reason, updatedInput and diagnostic codes."
+  - "All branch execution decisions fail closed on unexpected payload or unhandled exception."
+
+tdd:
+  - "test_ordered_branch_execution_short_circuits_on_deny"
+  - "test_updated_input_merge_detects_conflicts"
+  - "test_unknown_tool_fails_closed_with_diagnostic"
+  - "test_dispatch_exception_fails_closed_without_silent_allow"

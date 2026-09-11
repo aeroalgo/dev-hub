@@ -1,0 +1,60 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-091
+plan_id: T-HUB-091-gate-identity-sot-consolidation
+epic_id: T-HUB-091-gate-identity-sot-consolidation
+date: 2026-09-11
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 67efa3210deb531ebf993c9ef3b2dca778aa323f0a845942b50d2c642178c67b
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-091"
+  - "epic: T-HUB-091-gate-identity-sot-consolidation"
+  - "steps: s01–s07"
+  - "files: loop/gate_identity.py, loop/runtime_adapters/subagent_lifecycle.py, harness/hooks/subagent-start.py, harness/hooks/subagent-stop.py, harness/hooks/prepare_session.py, harness/hooks/_lib.py, harness/hooks/pretooluse-guard.py, harness/hooks/agent-pretool.py, harness/hooks/spawn_validate.py"
+
+ac_plus:
+  - "GateIdentity SoT API — единственный ownership reader для Claude/Codex gate fences."
+  - "Claude: inject pre-child + strict ownership."
+  - "Codex: spawn-time SoT delivery + transport_bind на stop."
+  - "Per-field coerce удалён; тесты переписаны."
+  - "prepare атомарно freeze+mirror; Claude spawn mark+bind."
+  - "Kind I prompts согласованы."
+  - "DSH не в scope и не «случайно» расширен требованиями."
+  - "SC-001: Ownership step при freeze≠armed всегда freeze"
+  - "SC-002: Claude stale step → ownership NEED_HUMAN"
+  - "SC-003: Codex wrong fence IDs → no ownership NEED_HUMAN; IDs=SoT"
+  - "SC-004: Codex spawn prompt contains GATE_IDENTITY before child"
+  - "SC-005: Нет per-field coerce ladder в stop"
+  - "SC-006: prepare leaves spawn-gate mirror == SoT"
+
+ac_minus:
+  - "Нет dual path coerce+SoT bind."
+  - "Нет ownership от сырого `projection.step` в обход freeze."
+  - "Нет schema-retry на ownership."
+  - "Нет «Codex post-wait SubagentStart = inject»."
+  - "Нет нового DSH adapter scope."
+  - "Нет второго SoT в PromptScope/`resolve_session_identity` как fence ownership."
+
+section_011:
+  - "orphan external refs only (API/env/storage/event/DB counterparts); not style/naming/comments"
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` (managed: capability_checks: [test.full])"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+  - "reviewer gate: VERDICT PASS"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations:
+  - "none"
+
+suite:
+  - "bin/pytest -q --tb=line"

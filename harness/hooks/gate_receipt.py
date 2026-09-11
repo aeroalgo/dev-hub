@@ -26,7 +26,7 @@ from typing import Any
 
 RECEIPT_SCHEMA_VERSION = "loop-verifier-receipt/v1"
 ALLOWED_VERIFIER_IDENTITIES = frozenset(
-    {"verify", "verify-implement", "verify-bugfix", "verify-decompose", "verify-qa", "reviewer"}
+    {"verify", "verify-implement", "verify-bugfix", "verify-decompose", "verify-qa", "reviewer", "analyze-verify"}
 )
 
 

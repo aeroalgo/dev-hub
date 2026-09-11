@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from _lib import (
+    GATE_AGENTS,
     HARD_RULE,
     VERDICT_FIRST_LINE,
     _SECTION_PATTERNS,
@@ -18,6 +19,7 @@ from _lib import (
     allow_read_violations,
     allow_write_violations,
     agent_model_from_project_env,
+    current_gate_identity,
     in_flight_deny_reasons,
     is_epic_loop_env,
     load_state,
@@ -34,6 +36,111 @@ from _lib import (
     _discover_registry,
 )
 
+GATE_IDENTITY_MARKER = "GATE_IDENTITY session_id="
+IDENTITY_SPAWN_AGENTS = frozenset(GATE_AGENTS | {"gate-repair"})
+
+
+def _resolve_spawn_identity(
+    state: dict[str, Any],
+    cwd: str | Path | None,
+) -> dict[str, str]:
+    """Resolve SoT session_id/epic_id/step_id for spawn prompt inject."""
+    from loop.gate_identity import GateIdentity
+
+    sid = str(state.get("session_id") or "").strip()
+    raw = state.get("gate_identity")
+    identity = GateIdentity.from_mapping(raw) if isinstance(raw, dict) else None
+    if identity is not None and identity.session_id and identity.epic_id:
+        return {
+            "session_id": str(identity.session_id).strip(),
+            "epic_id": str(identity.epic_id).strip(),
+            "step_id": str(identity.step_id or "").strip(),
+        }
+
+    if cwd is not None:
+        try:
+            resolved = current_gate_identity(str(cwd), sid or str(identity.session_id if identity else ""))
+        except Exception:
+            resolved = {}
+        if isinstance(resolved, dict) and resolved:
+            merged = GateIdentity.from_mapping(resolved)
+            if merged is not None and merged.session_id and merged.epic_id:
+                return {
+                    "session_id": str(merged.session_id).strip(),
+                    "epic_id": str(merged.epic_id).strip(),
+                    "step_id": str(merged.step_id or (identity.step_id if identity else "") or "").strip(),
+                }
+            if not sid:
+                sid = str(resolved.get("session_id") or "").strip()
+
+    try:
+        from epic.core import load_epic_state
+
+        epic_state = load_epic_state(str(cwd)) if cwd is not None else None
+    except Exception:
+        epic_state = None
+    if epic_state is not None or sid:
+        expected = GateIdentity.expected(epic_state, session_id=sid)
+        if expected.session_id and expected.epic_id:
+            return {
+                "session_id": str(expected.session_id).strip(),
+                "epic_id": str(expected.epic_id).strip(),
+                "step_id": str(expected.step_id or "").strip(),
+            }
+        if not sid:
+            sid = str(expected.session_id or "").strip()
+
+    if identity is None:
+        return {"session_id": sid, "epic_id": "", "step_id": ""}
+    return {
+        "session_id": str(identity.session_id or sid or "").strip(),
+        "epic_id": str(identity.epic_id or "").strip(),
+        "step_id": str(identity.step_id or "").strip(),
+    }
+
+
+def ensure_gate_identity_prompt(
+    tool_input: dict[str, Any],
+    state: dict[str, Any],
+    *,
+    agent_type: str | None,
+    cwd: str | Path | None = None,
+) -> list[str]:
+    """Inject GATE_IDENTITY into spawn prompt or DENY when SoT incomplete.
+
+    PreToolUse consumers apply ``updatedInput`` so the child sees the line
+    before run. Missing session_id/epic_id is fail-closed (no silent skip).
+    """
+    norm = normalize_type(agent_type)
+    if not norm or norm not in IDENTITY_SPAWN_AGENTS:
+        return []
+    if not agent_enabled(norm, str(cwd) if cwd is not None else None):
+        return []
+
+    prompt = str(tool_input.get("prompt") or "")
+    if GATE_IDENTITY_MARKER in prompt:
+        return []
+
+    fields = _resolve_spawn_identity(state, cwd)
+    sess = fields["session_id"]
+    epic = fields["epic_id"]
+    step = fields["step_id"]
+    if not sess or not epic:
+        return [
+            "prompt_incomplete:GATE_IDENTITY: нужны session_id и epic_id "
+            "(SoT gate_identity / session_start_identity); "
+            "добавь `GATE_IDENTITY session_id=<id> epic_id=<epic> step_id=<step>` "
+            "или подготовь session identity до spawn"
+        ]
+
+    from loop.gate_identity import GateIdentity
+
+    inject = GateIdentity.inject_text(
+        {"session_id": sess, "epic_id": epic, "step_id": step}
+    )
+    tool_input["prompt"] = (inject + "\n" + prompt.lstrip()).rstrip() + "\n"
+    return []
+
 
 def validate_spawn_input(
     tool_input: dict[str, Any],
@@ -43,8 +150,8 @@ def validate_spawn_input(
     """Normalize a spawn and return ``(deny_reasons, notes)``.
 
     The function mutates ``tool_input`` only for the established hook contract:
-    type aliases, HARD RULE/VERDICT requirements, worktree removal, and model
-    pinning.  It does not mutate the persisted spawn state.
+    type aliases, HARD RULE/VERDICT/GATE_IDENTITY requirements, worktree
+    removal, and model pinning.  It does not mutate the persisted spawn state.
     """
     raw_type = tool_input.get("subagent_type") or tool_input.get("agent_type")
     norm = normalize_type(raw_type)
@@ -70,6 +177,10 @@ def validate_spawn_input(
         tool_input["prompt"] = prompt
 
     deny_reasons: list[str] = []
+    deny_reasons.extend(
+        ensure_gate_identity_prompt(tool_input, state, agent_type=norm, cwd=cwd)
+    )
+    prompt = tool_input.get("prompt") or prompt
     managed = bool(definition is not None and definition.managed)
     is_gate = bool(definition is not None and definition.mode == "gate")
     is_repair = bool(definition is not None and definition.mode == "repair")

@@ -107,7 +107,7 @@ def test_agent_posttool_records_apply_patch(
 
     import subprocess
 
-    post = ROOT / "harness" / "hooks" / "agent-posttool.py"
+    post = ROOT / "harness" / "hooks" / "posttool-dispatch.py"
     payload = {
         "tool_name": "apply_patch",
         "cwd": str(project),
@@ -314,7 +314,7 @@ def test_agent_posttool_records_write(tmp_path: Path, monkeypatch: pytest.Monkey
 
     import subprocess
 
-    post = ROOT / "harness" / "hooks" / "agent-posttool.py"
+    post = ROOT / "harness" / "hooks" / "posttool-dispatch.py"
     payload = {
         "tool_name": "Write",
         "cwd": str(project),

@@ -581,3 +581,7 @@ The final purge shard must include each A/B/C/I row from this plan, including ob
 ## Следующий режим
 
 → **BACK DECOMPOSE T-HUB-086-python-loop-supervisor-cutover** после queue reconcile. Затем ANALYZE/IMPLEMENT по обычной BACK transition chain; не `BACK ROADMAP MERGE`.
+
+### CREATIVE need
+
+**нет**

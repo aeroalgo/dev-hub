@@ -49,6 +49,14 @@ from epic import (  # noqa: E402
 from loop.schemas.active_context import parse_frontmatter
 from epic_paths import resolve_decompose_ref_for_gate  # noqa: E402
 from epic_yaml import validate_decompose_tree  # noqa: E402
+from gate_runtime import (
+    BoundaryValidator,
+    EvidenceRecorder,
+    GateDiagnosticCode,
+    IdentityService,
+    SessionIdentity,
+    VerdictExtractor,
+)
 
 
 def _block(reason: str) -> None:
@@ -198,13 +206,23 @@ def main() -> None:
         for agent in ("verify", "reviewer"):
             evidence = st.get(f"{agent}_evidence")
             if evidence:
-                matched, diagnostic = match_gate_evidence(evidence, identity)
+                valid_receipt, diag = IdentityService.validate_receipt_proof(evidence, identity)
+                if not valid_receipt:
+                    matched = False
+                    diagnostic = diag
+                else:
+                    matched, diagnostic = match_gate_evidence(evidence, identity)
                 evidence["valid"] = matched
                 evidence["diagnostic"] = diagnostic
                 if not matched:
                     st[f"{agent}_done"] = False
                     st[f"{agent}_verdict"] = None
                     st["gate_diagnostic"] = diagnostic
+            elif st.get(f"{agent}_done"):
+                # State-only manual PASS without evidence receipt
+                st[f"{agent}_done"] = False
+                st[f"{agent}_verdict"] = None
+                st["gate_diagnostic"] = GateDiagnosticCode.MANUAL_STATE_REJECTED
         save_state(session_id, cwd, st)
     epic_loop = is_epic_loop_env()
     epic_on = bool(
@@ -517,6 +535,23 @@ def main() -> None:
                 _block(
                     "NEED_HUMAN: finish_tool_missing — verify PASS requires mb-finish tool execution (last_finish_tool fingerprint missing). "
                     "diagnostic=finish_tool_missing"
+                )
+                return
+        epic_receipt = epic.get("last_verify_receipt") or epic.get("last_verify_evidence")
+        if epic_receipt and isinstance(epic_receipt, dict):
+            valid_proof, diag_proof = IdentityService.validate_receipt_proof(epic_receipt, identity)
+            if not valid_proof:
+                if not stop_hook_active:
+                    _block(
+                        f"spawn-gate: required gate verify receipt invalid or stale ({diag_proof}) — fail-closed. "
+                        f"diagnostic={diag_proof}"
+                    )
+                    return
+        elif not st.get("gate_bypass_reason") and verify_active:
+            if not stop_hook_active:
+                _block(
+                    "spawn-gate: required gate verify receipt missing — fail-closed. "
+                    "diagnostic=receipt_missing"
                 )
                 return
         if armed_step_u != "DECOMPOSE":

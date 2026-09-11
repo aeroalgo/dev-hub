@@ -127,7 +127,7 @@ def test_agent_pretool_denies_repair_without_fail(tmp_path):
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    agent_pretool = root / ".claude" / "hooks" / "agent-pretool.py"
+    agent_pretool = root / ".claude" / "hooks" / "pretool-dispatch.py"
     agents = tmp_path / ".claude" / "agents"
     agents.mkdir(parents=True, exist_ok=True)
     (agents / "gate-repair.md").write_text("---\nname: gate-repair\noverlay:\n  managed: true\n---\n", encoding="utf-8")

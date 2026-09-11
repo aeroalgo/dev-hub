@@ -1,0 +1,113 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: Python configuration bootstrap, path normalization and lock/owner lifecycle
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Implement CLI parsing, environment loading, path canonicalization, preflight validation,
+  and signal-safe process lease/ownership management (FR-002, FR-003, FR-004, FR-005, FR-006, US-001, US-004, SC-001).
+
+plan_contract:
+  fr_ids:
+    - US-001
+    - US-004
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+  nouns:
+    - loop.runner.cli
+    - loop.runner.config
+    - loop.runner.ownership
+    - loop/runner/__main__.py
+    - RunnerLease
+    - parse_cli
+    - load_project_env
+    - resolve_runtime_config
+    - runner.json
+  layout_paths:
+    - loop/runner/__main__.py
+    - loop/runner/cli.py
+    - loop/runner/config.py
+    - loop/runner/ownership.py
+    - loop/tests/test_runner_cli.py
+    - loop/tests/test_runner_ownership.py
+  ac_quotes:
+    - "FR-002: CLI сохраняет positional/flag contract текущего loop.sh: project root resolution, epic spec, model, implement, --epic, --phase GAP_FANOUT, --dag-generate, permission mode, interactive/headless, verbose, status и help."
+    - "FR-003: runner загружает .claude/project.env, .local и per-product overrides через Python helper; process env precedence и invalid runtime config semantics остаются явными и fail-closed."
+    - "FR-004: runner вычисляет canonical HUB_ROOT, PROJECT_ROOT, DEV_HUB, EPIC_PROJECT_ROOT, CLAUDE_PROJECT_DIR, STATE_DIR и runtime-specific cwd до первого session call."
+    - "FR-005: runner acquires one non-blocking checkout lock, publishes runner.json through existing atomic owner helper and removes owner only when pid/session id match."
+    - "FR-006: signal handling for SIGINT, SIGTERM, SIGHUP releases owned process/owner state safely; user interrupt returns 130."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:187-264"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:282-289"
+
+context:
+  consumes:
+    - loop/runner/__init__.py
+    - harness/hooks/_lib.py
+    - loop/runtime_registry.yaml
+  produces:
+    - loop/runner/__main__.py
+    - loop/runner/cli.py
+    - loop/runner/config.py
+    - loop/runner/ownership.py
+    - loop/tests/test_runner_cli.py
+    - loop/tests/test_runner_ownership.py
+  plan_refs:
+    - US-001
+    - US-004
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - SC-001
+  files:
+    - loop/runner/__main__.py
+    - loop/runner/cli.py
+    - loop/runner/config.py
+    - loop/runner/ownership.py
+    - loop/tests/test_runner_cli.py
+    - loop/tests/test_runner_ownership.py
+
+as_built:
+  - "harness/hooks/_lib.py has load_project_env, resolve_runtime_config, write_runner_owner, remove_runner_owner_if_owned"
+  - "loop/loop.sh parses positional CLI arguments, exports env vars, acquires flock, and traps signals"
+
+delta:
+  - "Create loop/runner/__main__.py as entrypoint for python3 -m loop.runner"
+  - "Create loop/runner/cli.py implementing argparse with full compatibility for positional args, flags, help, and non-session subcommands (status, doctor, dag-generate)"
+  - "Create loop/runner/config.py constructing immutable RunnerConfig with project root, state dir, env overlays, and preflight checks"
+  - "Create loop/runner/ownership.py implementing RunnerLease POSIX flock, atomic runner.json publication, and signal traps (SIGINT -> 130, SIGTERM, SIGHUP)"
+  - "Create loop/tests/test_runner_cli.py and test_runner_ownership.py verifying CLI parsing, env precedence, path canonicalization, lock contention, and signal cleanup"
+
+deletes: []
+
+out_of_scope:
+  - "Session invoker execution"
+  - "Outer loop orchestration"
+  - "Modifying loop.sh or bin/loop"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: CLI argument parsing, help output, status, doctor, and DAG non-session commands work with exact flag parity
+    verify: "bin/pytest loop/tests/test_runner_cli.py -q"
+  - id: cp2
+    criterion: Environment variables, project paths, and preflight validations are canonicalized and fail-closed
+    verify: "bin/pytest loop/tests/test_runner_cli.py -k 'config or env or path' -q"
+  - id: cp3
+    criterion: RunnerLease handles non-blocking flock contention, publishes owner JSON, and cleans up on signals
+    verify: "bin/pytest loop/tests/test_runner_ownership.py -q"
+
+verify: []
+tdd: []

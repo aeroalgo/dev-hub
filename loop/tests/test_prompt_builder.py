@@ -158,6 +158,7 @@ def test_codex_prompt_requires_native_collaboration_for_gates() -> None:
     assert "CODEX NATIVE COLLABORATION" in prompt
     assert "spawn_agent" in prompt
     assert "gate-repair" in prompt
+    assert "GATE_IDENTITY" in prompt
     assert "multi_agent_v1_spawn_agent" not in prompt
     assert "не является частью обычного IMPLEMENT" in prompt
     assert "RECONCILE REQUIRED" not in prompt
@@ -175,6 +176,7 @@ def test_claude_prompt_uses_shared_policy_and_claude_transport() -> None:
     )
 
     assert "SHARED GATE COLLABORATION CONTRACT — QA" in prompt
+    assert "GATE_IDENTITY" in prompt
     assert "loop-qa-outcome/v1" in prompt or "QA outcome classifier" in prompt
     assert "BUGFIX" in prompt
     assert "gate-repair → full suite → verify-qa" not in prompt

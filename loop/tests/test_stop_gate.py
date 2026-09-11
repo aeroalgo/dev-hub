@@ -13,7 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 STOP_GATE = ROOT / ".claude" / "hooks" / "stop-gate.py"
-AGENT_PRETOOL = ROOT / ".claude" / "hooks" / "agent-pretool.py"
+AGENT_PRETOOL = ROOT / ".claude" / "hooks" / "pretool-dispatch.py"
 EPIC_PACKAGE = ROOT / ".claude" / "hooks" / "epic"
 HOOKS = ROOT / ".claude" / "hooks"
 if str(HOOKS) not in sys.path:
@@ -363,27 +363,73 @@ def test_agent_pretool_allows_verify_without_result_yaml(tmp_path: Path) -> None
 
 
 def test_verify_already_pass_no_reblock(tmp_path: Path) -> None:
+    from gate_receipt import issue_verifier_receipt
+    from loop.gate_identity import GateIdentity
+
     _write(
         "memory-bank/activeContext.md",
         "## load_now\n- x\n\n## Handoff BACK\n- next\n",
         tmp_path,
     )
     _seed_verify_step(tmp_path)
+    _write(
+        "memory-bank/back/plan/T-vfy/yaml/decompose-index.yaml",
+        "schema: epic-decompose-index/v1\n"
+        "steps:\n"
+        "  - id: s01\n"
+        "    file: steps/s01-demo.yaml\n"
+        "    status: completed\n",
+        tmp_path,
+    )
+    _write(
+        "memory-bank/back/implement/implement-vfy/s01-demo.yaml",
+        "schema: epic-implement/v1\nrole: back\nstep_id: s01\nstatus: completed\n",
+        tmp_path,
+    )
+    session_id = "test-verify-already-pass"
+    epic_state = {
+        "active": True,
+        "status": "running",
+        "session_id": session_id,
+        "armed_epic": "T-vfy",
+        "role": "BACK",
+        "phase": "BACK IMPLEMENT",
+        "armed_step": "s01",
+        "armed_decompose": "memory-bank/back/plan/T-vfy/yaml/decompose-index.yaml",
+        "projection_hash": "proj-vap",
+        "phase_epoch": "epoch-vap",
+        "event_digest": "evt-vap",
+        "pending_fingerprint_before": "before",
+        "last_finish_tool": {"tool": "mb-finish", "fingerprint": "fp-vap"},
+        "last_verify_verdict": "PASS",
+    }
+    identity = GateIdentity.expected(epic_state, session_id=session_id).to_dict()
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-implement")
+    epic_state["last_verify_receipt"] = receipt
+    epic_state["last_verify_evidence"] = receipt
+    epic_state["gate_identity"] = identity
+    _write(
+        ".claude/runtime/epic/state.json",
+        json.dumps(epic_state),
+        tmp_path,
+    )
     spawn_dir = tmp_path / ".claude" / "runtime" / "spawn-gate"
     spawn_dir.mkdir(parents=True, exist_ok=True)
-    (spawn_dir / "test-verify-already-pass.json").write_text(
+    (spawn_dir / f"{session_id}.json").write_text(
         json.dumps(
             {
+                "workflow_source": "loop",
                 "need_verify": True,
                 "verify_done": True,
                 "verify_verdict": "PASS",
+                "verify_evidence": receipt,
             }
         ),
         encoding="utf-8",
     )
     payload = {
         "tool_name": "Agent",
-        "session_id": "test-verify-already-pass",
+        "session_id": session_id,
         "cwd": str(tmp_path),
         "tool_input": {
             "subagent_type": "verify",
@@ -399,14 +445,16 @@ def test_verify_already_pass_no_reblock(tmp_path: Path) -> None:
     allowed_stop = _run_stop_gate(
         tmp_path,
         {
-            "session_id": "test-verify-already-pass",
+            "session_id": session_id,
             "cwd": str(tmp_path),
             "last_assistant_message": "FINISH: Handoff updated.",
             "stop_hook_active": False,
         },
         epic_loop=True,
     )
-    assert allowed_stop == {}
+    reason = str(allowed_stop.get("reason") or "")
+    assert "обязателен @verify" not in reason
+    assert "need_verify" not in reason
 
 
 def test_agent_pretool_denies_verify_when_step_missing(tmp_path: Path) -> None:
@@ -882,12 +930,24 @@ def test_subagent_stop_gate_repair_schema_fail_not_recorded_as_repair_done(tmp_p
 def test_stop_gate_pass_without_last_finish_tool_emits_need_human_finish_tool_missing(tmp_path: Path) -> None:
     """cp1 / TM-007 / SC-004: stop-gate after PASS without last_finish_tool emits NEED_HUMAN finish_tool_missing."""
     from epic.core import default_state, save_epic_state
+    from gate_receipt import issue_verifier_receipt
 
     _write(
         "memory-bank/activeContext.md",
         "## load_now\n- [s01](s01.yaml) — s01\n\n## Handoff BACK\n- **Следующий:** BACK IMPLEMENT @s01\n",
         tmp_path,
     )
+    identity = {
+        "session_id": "test-pass-no-finish-tool",
+        "epic_id": "T-HUB",
+        "role": "BACK",
+        "step": "s01",
+        "phase_epoch": "epoch-1",
+        "projection_hash": "proj-1",
+        "event_digest": "evt-1",
+        "authority": "autonomous",
+    }
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-implement")
     st = default_state()
     st.update(
         {
@@ -896,9 +956,12 @@ def test_stop_gate_pass_without_last_finish_tool_emits_need_human_finish_tool_mi
             "phase": "BACK IMPLEMENT",
             "mode": "implement",
             "last_verify_verdict": "PASS",
+            "last_verify_receipt": receipt,
+            "last_verify_evidence": receipt,
             "verify_done": True,
             "verify_verdict": "PASS",
             "armed_step": "s01",
+            "gate_identity": identity,
         }
     )
     save_epic_state(tmp_path, st)
@@ -1046,7 +1109,7 @@ def test_session_start_payload_requires_epic_loop(tmp_path: Path, monkeypatch) -
     assert payload["sessionTitle"].startswith("epic:")
 
 
-BASH_PRETOOL = ROOT / ".claude" / "hooks" / "bash-pretool.py"
+BASH_PRETOOL = ROOT / ".claude" / "hooks" / "pretool-dispatch.py"
 
 
 def _run_bash_pretool(cwd: Path, command: str, *, epic_loop: bool = True) -> dict:
@@ -1254,7 +1317,7 @@ def test_bash_pretool_allows_validate_step_in_epic_loop(tmp_path: Path) -> None:
         "memory-bank/x.yaml",
         epic_loop=True,
     )
-    assert out == {}
+    assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "allow"
 
 
 def test_bash_pretool_skips_outside_epic_loop(tmp_path: Path) -> None:
@@ -1263,7 +1326,7 @@ def test_bash_pretool_skips_outside_epic_loop(tmp_path: Path) -> None:
         "python3 .claude/hooks/epic_resolve.py after",
         epic_loop=False,
     )
-    assert out == {}
+    assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "allow"
 
 
 @pytest.mark.parametrize(
@@ -1757,8 +1820,23 @@ def test_stop_gate_blocks_finish_without_mark_index(tmp_path: Path) -> None:
         "armed_decompose": "memory-bank/back/plan/decompose-sg/index.md",
         "armed_step": "s01",
         "last_verify_verdict": "PASS",
+        "last_verify_receipt": {
+            "schema": "loop-verifier-receipt/v1",
+            "verdict": "PASS",
+            "verifier_identity": "verify-implement",
+            "session_id": "mark-index",
+            "epic_id": "T-HUB",
+            "step": "s01",
+            "authority": "autonomous",
+            "receipt_digest": "sha256:test",
+            "phase_epoch": "e",
+            "projection_hash": "p",
+            "event_digest": "d",
+            "created_at": "2026-09-11T00:00:00Z",
+        },
         "last_finish_tool": {"name": "mb-finish implement", "fingerprint": "fp123"},
     }
+    module.IdentityService.validate_receipt_proof = staticmethod(lambda *_a, **_k: (True, "ok"))
     module.save_state = lambda *_args: None
     module.validate_finish_integrity = lambda *_args, **_kwargs: {
         "ok": False,
@@ -2058,19 +2136,34 @@ def test_stop_gate_optional_no_gate(tmp_path: Path) -> None:
 
 def test_stop_gate_decompose_uses_validate_decompose_tree(tmp_path: Path) -> None:
     _write_gate_fixture(tmp_path)
+    from gate_receipt import issue_verifier_receipt
+    from loop.gate_identity import GateIdentity
+
+    state = {
+        "active": True,
+        "status": "running",
+        "session_id": "gate-fixture",
+        "armed_epic": "T-HUB-GATE",
+        "role": "BACK",
+        "phase": "DECOMPOSE",
+        "armed_step": "DECOMPOSE",
+        "last_verify_verdict": "PASS",
+        "projection_hash": "proj-dec",
+        "phase_epoch": "epoch-dec",
+        "event_digest": "evt-dec",
+        "last_finish_tool": {
+            "name": "mb-finish",
+            "fingerprint": "fp-123",
+        },
+    }
+    identity = GateIdentity.expected(state, session_id="gate-fixture").to_dict()
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-decompose")
+    state["last_verify_receipt"] = receipt
+    state["last_verify_evidence"] = receipt
+    state["gate_identity"] = identity
     _write(
         ".claude/runtime/epic/state.json",
-        json.dumps({
-            "active": True,
-            "status": "running",
-            "phase": "DECOMPOSE",
-            "armed_step": "DECOMPOSE",
-            "last_verify_verdict": "PASS",
-            "last_finish_tool": {
-                "name": "mb-finish",
-                "fingerprint": "fp-123",
-            },
-        }),
+        json.dumps(state),
         tmp_path,
     )
     _write(
@@ -2078,9 +2171,10 @@ def test_stop_gate_decompose_uses_validate_decompose_tree(tmp_path: Path) -> Non
         json.dumps({
             "workflow_source": "loop",
             "mode": "decompose",
-            "need_verify": True,
+            "need_verify": False,
             "verify_done": True,
             "verify_verdict": "PASS",
+            "verify_evidence": receipt,
             "need_reviewer": False,
         }),
         tmp_path,

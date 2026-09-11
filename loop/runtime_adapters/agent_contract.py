@@ -14,6 +14,9 @@ from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDIC
 _JSON_FENCE_RE = re.compile(r"```\s*json[^\n`]*\n(.*?)\n\s*```", re.DOTALL | re.IGNORECASE)
 
 _GATE_JSON_HARD = (
+    "HARD: prompt обязан содержать блок "
+    "`GATE_IDENTITY session_id=<id> epic_id=<epic> step_id=<step>` "
+    "(SoT; session_id/epic_id из него же в fence). "
     "HARD: финальный ответ содержит fenced ```json``` блок "
     '({"schema":"loop-gate-verdict/v1","agent_id":"<id>","verdict":"PASS|FAIL|BLOCKED",'
     '"step_id":"<step_id>","epic_id":"<epic_id>","session_id":"<session_id>",'
@@ -120,6 +123,8 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
     "gate-repair": (
         "CONTRACT gate-repair: нужен BLOCKERS · ALLOW WRITE · VERIFY. "
         "BLOCKERS только `- <id> | <path> | <concrete_fix>` (path ∈ ALLOW WRITE). "
+        "HARD: prompt содержит `GATE_IDENTITY session_id=<id> epic_id=<epic> step_id=<step>` "
+        "(SoT; parent_evidence_id / context из него же). "
         "HARD: финальный ответ содержит fenced ```json``` блок "
         '({"schema":"loop-repair-result/v1","status":"done|partial|fail",...}). '
         "Fence language = только `json`. "

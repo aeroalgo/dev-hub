@@ -213,7 +213,7 @@ def test_pretool_binds_spawn_gate_sot(tmp_path: Path, monkeypatch: pytest.Monkey
         "tool_use_id": "call_pretool_integration",
     }
 
-    hook_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "agent-pretool.py"
+    hook_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "pretool-dispatch.py"
     hooks_dir = Path(__file__).resolve().parents[2] / "harness" / "hooks"
     env = dict(os.environ)
     env["PYTHONPATH"] = str(hooks_dir)

@@ -49,6 +49,12 @@ _PHASE_REGISTRY_CACHE: dict[str, dict[str, Any]] = {}
 _COMPOSITE_PHASE_BASES = {
     "PLAN REFACTOR": "PLAN",
 }
+_ARM_EPIC_KWARGS = frozenset({"require_plan", "dsh_preset"})
+
+
+def _arm_epic_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Keep only kwargs accepted by epic.core.arm_epic (drop decompose_rel/env/…)."""
+    return {k: v for k, v in kwargs.items() if k in _ARM_EPIC_KWARGS}
 
 
 def normalize_registry_phase(phase: str, pack: Any = None) -> str:
@@ -257,7 +263,14 @@ def arm_phase(
                 target_rel=target_rel,
                 decompose_rel=decompose_rel,
             )
-        elif lifecycle_phase_u == "DECOMPOSE" or lifecycle_phase_u in ("IMPLEMENT", "TASK", "REFACTOR", "BUGFIX", "QA"):
+        elif lifecycle_phase_u == "DECOMPOSE" or lifecycle_phase_u in (
+            "IMPLEMENT",
+            "TASK",
+            "REFACTOR",
+            "BUGFIX",
+            "QA",
+            "AUDIT",
+        ):
             if decompose_rel:
                 res = arm_active_context_from_decompose(cwd, decompose_rel)
             elif lifecycle_phase_u == "DECOMPOSE":
@@ -271,13 +284,9 @@ def arm_phase(
                     decompose_rel=decompose_rel,
                 )
             else:
-                kwargs.pop("env", None)
-                kwargs.pop("epic_runtime", None)
-                res = arm_epic(cwd, epic_id, role=role, **kwargs)
+                res = arm_epic(cwd, epic_id, role=role, **_arm_epic_kwargs(kwargs))
         else:
-            kwargs.pop("env", None)
-            kwargs.pop("epic_runtime", None)
-            res = arm_epic(cwd, epic_id, role=role, **kwargs)
+            res = arm_epic(cwd, epic_id, role=role, **_arm_epic_kwargs(kwargs))
     except ActiveContextLocked as exc:
         return {
             "ok": False,

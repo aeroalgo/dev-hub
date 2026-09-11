@@ -172,12 +172,13 @@ def test_hooks_json_stop_event_wired(tmp_path: Path) -> None:
     )
     assert "PreToolUse" in hooks
     assert any(
-        "harness/hooks/agent-pretool.py" in str(item.get("command", ""))
+        "harness/hooks/pretool-dispatch.py" in str(item.get("command", ""))
         for item in hooks["PreToolUse"]
     )
+    assert "PostToolUse" in hooks
     assert any(
-        "harness/hooks/write-pretool.py" in str(item.get("command", ""))
-        for item in hooks["PreToolUse"]
+        "harness/hooks/posttool-dispatch.py" in str(item.get("command", ""))
+        for item in hooks["PostToolUse"]
     )
 
 
@@ -345,8 +346,8 @@ def test_bash_output_cap_codex_post_tool_use(tmp_path: Path) -> None:
 
 
 def test_agent_pretool_deny_incomplete_hard_rule_spawn(tmp_path: Path) -> None:
-    """agent-pretool DENYs incomplete HARD RULE / invalid gate spawn (TM-003)."""
-    agent_pretool_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "agent-pretool.py"
+    """pretool-dispatch DENYs incomplete HARD RULE / invalid gate spawn (TM-003)."""
+    agent_pretool_script = Path(__file__).resolve().parents[2] / "harness" / "hooks" / "pretool-dispatch.py"
     assert agent_pretool_script.exists()
 
     _ensure_gate_agents(tmp_path)

@@ -1,0 +1,56 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-085
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+epic_id: T-HUB-085-hook-event-dispatcher-consolidation
+date: 2026-09-11
+reviewer: BACK QA
+verdict: pass
+checklist_sha256: 5e497ba7c4bafa81cb07a2d4e4085248163ed97bd2986beeaeee8fa2ce3c442a
+verify_scope: prior_only
+
+scope:
+  - "task: T-HUB-085"
+  - "epic: T-HUB-085-hook-event-dispatcher-consolidation"
+  - "steps: s01–s07"
+  - "files: harness/hooks/**, loop/hooks/**, loop/tests/**"
+
+ac_plus:
+  - "AC-1: Single canonical PreToolUse dispatcher registered with consistent allow/deny and updated input semantics across tool matchers."
+  - "AC-2: Single canonical PostToolUse dispatcher registered preserving agent state verdict and output cap side effects."
+  - "AC-3: SubagentStart, SubagentStop, and Stop remain separate lifecycle entries with independent event tests."
+  - "AC-4: External SubagentStop rejects malformed fence, schema mismatch, ownership mismatch, and stale identity."
+  - "AC-5: Stop gate rejects state-only/manual PASS and prevents finish without mandatory gate verification."
+  - "AC-6: Duplicate realpath scan yields zero active duplicates; legacy entrypoints not called from settings/manifest."
+  - "AC-7: Full hub test suite passes without regressions across all hook behavior tests."
+  - "AC-8: Diagnostics distinguish deny, retry, recorded, output_capped, stale, and infrastructure_failure."
+
+ac_minus:
+  - "AC-MINUS-1: Cannot allow execution if any mandatory pretool policy returns deny."
+  - "AC-MINUS-2: Cannot achieve PASS via parent manual verdict/state override without valid verifier receipt."
+  - "AC-MINUS-3: Cannot substitute agent self-check transcript validation for authoritative SubagentStop runtime verification."
+  - "AC-MINUS-4: Cannot execute concurrent managed gate branches for the same session identity."
+  - "AC-MINUS-5: Cannot register duplicate wrapper and canonical dispatchers for the same event matcher."
+  - "AC-MINUS-6: Cannot lose full Bash dump on dispatcher exception."
+
+section_011:
+  - "Zero duplicate active hook command registrations across manifest and settings."
+  - "Pure policy adapters maintain deterministic first-deny short-circuiting."
+  - "Independent authoritative lifecycle enforcement remains external to agent self-inspection."
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> PASSED (2653 passed, 4 skipped in 96s)"
+  - "verify-qa gate passed with zero blockers on prior_only re-QA"
+  - "integration rule (§0.11)"
+  - "no phantom refs / orphan refs"
+
+issues: []
+
+blockers: []
+
+fix_plan: []
+
+limitations: []
+
+suite:
+  - "bin/pytest -q --tb=line"

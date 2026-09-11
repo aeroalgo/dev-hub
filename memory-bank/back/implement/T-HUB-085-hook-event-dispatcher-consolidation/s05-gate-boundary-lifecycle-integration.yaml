@@ -1,0 +1,61 @@
+schema: epic-implement/v1
+role: back
+step_id: s05
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s05 — SubagentStart, SubagentStop и Stop подключают shared services IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s05-gate-boundary-lifecycle-integration.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- subagent-start.py подключен к shared services gate_runtime.py (SessionIdentity,
+  GateIdentity) для внедрения контрактов и identity context.
+- subagent-stop.py подключен к shared services gate_runtime.py (BoundaryValidator,
+  VerdictExtractor, IdentityService, EvidenceRecorder) для строгой валидации transcript
+  fences и идемпотентной фиксации evidence receipts.
+- stop-gate.py подключен к IdentityService и gate_runtime.py для строгой верификации
+  verifier receipts и блокировки state-only manual PASS и stale receipts перед parent
+  finish.
+- Создан интеграционный test suite harness/hooks/tests/test_gate_boundaries.py (8
+  тестов), проверяющий независимые границы жизненного цикла, авторитетную валидацию
+  transcript fences, защиту от поддельных/stale receipts и валидный flow finish.
+files:
+- harness/hooks/subagent-start.py
+- harness/hooks/subagent-stop.py
+- harness/hooks/stop-gate.py
+- harness/hooks/tests/test_gate_boundaries.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q`
+  — 8 passed'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py harness/hooks/tests/test_gate_runtime.py
+  harness/hooks/tests/test_stop_gate_receipt_integrity.py harness/hooks/tests/test_subagent_stop_receipt_integrity.py
+  -q` — 25 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_gate_boundaries.py -q — 8 passed
+checkpoints:
+- id: cp1
+  criterion: SubagentStart, SubagentStop, and Stop operate as distinct registered
+    lifecycle boundaries with independent event tests.
+  status: done
+  done_at: '2026-09-11T02:15:00Z'
+- id: cp2
+  criterion: SubagentStop validates actual transcript fences and rejects malformed
+    payloads even if subagent self-check was advisory PASS.
+  status: done
+  done_at: '2026-09-11T02:15:00Z'
+- id: cp3
+  criterion: Stop gate rejects state-only manual PASS and blocks parent finish when
+    evidence receipt is missing or stale.
+  status: done
+  done_at: '2026-09-11T02:15:00Z'
+- id: cp4
+  criterion: All boundary integration tests pass.
+  status: done
+  done_at: '2026-09-11T02:15:00Z'
+resume_from: cp1

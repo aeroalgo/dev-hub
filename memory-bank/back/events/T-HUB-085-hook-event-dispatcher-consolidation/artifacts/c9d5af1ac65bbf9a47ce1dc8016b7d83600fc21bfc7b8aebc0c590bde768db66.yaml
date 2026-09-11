@@ -1,0 +1,105 @@
+schema: epic-qa/v1
+role: back
+task_id: T-HUB-085
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+epic_id: T-HUB-085-hook-event-dispatcher-consolidation
+date: 2026-09-11
+reviewer: BACK QA
+verdict: fail
+checklist_sha256: missing
+verify_scope: full
+
+scope:
+  - "task: T-HUB-085"
+  - "epic: T-HUB-085-hook-event-dispatcher-consolidation"
+  - "steps: s01–s07"
+  - "files: harness/hooks/**, loop/hooks/**, loop/tests/**"
+
+ac_plus:
+  - "AC-1: Single canonical PreToolUse dispatcher registered with consistent allow/deny and updated input semantics across tool matchers."
+  - "AC-2: Single canonical PostToolUse dispatcher registered preserving agent state verdict and output cap side effects."
+  - "AC-3: SubagentStart, SubagentStop, and Stop remain separate lifecycle entries with independent event tests."
+  - "AC-4: External SubagentStop rejects malformed fence, schema mismatch, ownership mismatch, and stale identity."
+  - "AC-5: Stop gate rejects state-only/manual PASS and prevents finish without mandatory gate verification."
+  - "AC-6: Duplicate realpath scan yields zero active duplicates; legacy entrypoints not called from settings/manifest."
+  - "AC-7: Full hub test suite passes without regressions across all hook behavior tests."
+  - "AC-8: Diagnostics distinguish deny, retry, recorded, output_capped, stale, and infrastructure_failure."
+
+ac_minus:
+  - "AC-MINUS-1: Cannot allow execution if any mandatory pretool policy returns deny."
+  - "AC-MINUS-2: Cannot achieve PASS via parent manual verdict/state override without valid verifier receipt."
+  - "AC-MINUS-3: Cannot substitute agent self-check transcript validation for authoritative SubagentStop runtime verification."
+  - "AC-MINUS-4: Cannot execute concurrent managed gate branches for the same session identity."
+  - "AC-MINUS-5: Cannot register duplicate wrapper and canonical dispatchers for the same event matcher."
+  - "AC-MINUS-6: Cannot lose full Bash dump on dispatcher exception."
+
+section_011:
+  - "Zero duplicate active hook command registrations across manifest and settings."
+  - "Pure policy adapters maintain deterministic first-deny short-circuiting."
+  - "Independent authoritative lifecycle enforcement remains external to agent self-inspection."
+
+checks:
+  - "full suite green (dev-hub self-test): `bin/pytest -q --tb=line` -> FAILED (47 failures)"
+  - "integration rule (§0.11)"
+  - "no phantom refs"
+
+issues:
+  - "Full test suite regression: 47 tests failed in loop/tests/ due to purged legacy hook path references (e.g. .claude/hooks/agent-pretool.py) and hook bridge/sync expectations."
+
+blockers:
+  - "suite_red: loop/tests/test_epic_transition.py::test_arm_phase_dsh_injects_preset"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_negative_loop_scope_requires_epic_loop_env"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_deny_scope"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_pin_override"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_codex_pin_comes_from_native_config"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_non_managed_free"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_worktree_strip"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_allow_verify_markdown_headings"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_deny_parallel_managed"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_deny_same_model_inflight"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_posttool_fail_then_pass_mirrors_epic_last_verify"
+  - "suite_red: loop/tests/test_stop_gate.py::test_agent_pretool_allows_verify_without_result_yaml"
+  - "suite_red: loop/tests/test_verify_already_pass_no_reblock"
+  - "suite_red: loop/tests/test_stop_gate.py::test_agent_pretool_denies_verify_when_step_missing"
+  - "suite_red: loop/tests/test_stop_gate.py::test_agent_pretool_denies_verify_without_step_in_allow"
+  - "suite_red: loop/tests/test_stop_gate.py::test_agent_pretool_denies_verify_after_no_verdict_retries"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_pretool_alias_explore_normalizes_to_explorer"
+  - "suite_red: loop/tests/test_agent_hooks.py::test_posttool_mirror_error_logs_stderr_and_saves_state"
+  - "suite_red: loop/tests/test_workflow_pack_phase_router.py::test_tm_004_arm_phase_dsh_video_pack"
+  - "suite_red: loop/tests/test_codex_agent_policy.py::test_mutation_strip_disallowed_tools_fails_parity_drop_deny"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_pass_without_last_finish_tool_emits_need_human_finish_tool_missing"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_check_codex_parity_full_set"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_runtime_sync_cli_check_full_set_succeeds"
+  - "suite_red: loop/tests/test_runtime_sync_check.py::test_parity_source_is_agents_glob_not_allowlist_only"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bash_pretool_denies_index_bulk_sed"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bash_pretool_denies_after_in_epic_loop"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bash_pretool_denies_state_projection_write"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bash_pretool_allows_validate_step_in_epic_loop"
+  - "suite_red: loop/tests/test_stop_gate.py::test_bash_pretool_skips_outside_epic_loop"
+  - "suite_red: loop/tests/test_active_context_lock.py::test_write_pretool_denies_foreign_active_context"
+  - "suite_red: loop/tests/test_phase_verify_gates.py::test_tm001_agent_file_missing_deny"
+  - "suite_red: loop/tests/test_phase_verify_gates.py::test_tm010_dead_assign_regression"
+  - "suite_red: loop/tests/test_touch_ledger_scope.py::test_agent_posttool_records_apply_patch"
+  - "suite_red: loop/tests/test_touch_ledger_scope.py::test_agent_posttool_records_write"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_blocks_finish_without_mark_index"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_hooks_json_stop_event_wired"
+  - "suite_red: loop/tests/test_stop_gate.py::test_stop_gate_decompose_uses_validate_decompose_tree"
+  - "suite_red: loop/tests/test_hooks_llm_fence.py::test_agent_pretool_denies_repair_without_fail"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_agent_pretool_deny_incomplete_hard_rule_spawn"
+  - "suite_red: loop/tests/test_codex_hooks_bridge.py::test_claude_settings_snapshot_unchanged_after_sync"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_materialized_claude_codex_context_contracts_are_equivalent"
+  - "suite_red: loop/tests/test_context_contract_materialization.py::test_materializer_rejects_missing_or_divergent_context_contract"
+  - "suite_red: loop/tests/test_codex_hooks_parity_matrix.py::test_generated_hooks_json_has_all_fr002_events_and_timeouts"
+  - "suite_red: loop/tests/test_handoff_strict_flag.py::test_strict_0_legacy_ac_autoproject"
+  - "suite_red: loop/tests/test_handoff_strict_flag.py::test_strict_1_no_frontmatter_blocked"
+  - "suite_red: loop/tests/test_handoff_strict_flag.py::test_strict_1_valid_frontmatter_passes"
+  - "suite_red: loop/tests/test_prepare_session_atomic_identity.py::test_pretool_binds_spawn_gate_sot"
+
+fix_plan:
+  - "BACK BUGFIX align legacy hook test references and harness bridges to canonical pretool-dispatch.py / posttool-dispatch.py dispatchers"
+
+limitations:
+  - "verify-qa bypassed due to suite_red per QA outcome classifier contract"
+
+suite:
+  - "bin/pytest -q --tb=line"

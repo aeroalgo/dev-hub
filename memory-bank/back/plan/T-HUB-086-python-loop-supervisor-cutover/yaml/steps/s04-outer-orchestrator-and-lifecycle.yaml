@@ -1,0 +1,103 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: LoopRunner outer orchestrator, retry policy and action decision machine
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Implement LoopRunner managing the outer supervision loop: prepare, session execution,
+  record-session, transient retry with context re-prepare, check-after action dispatch,
+  incident tracking, and DAG continuation (FR-010, FR-011, FR-012, US-002, US-004, SC-002, SC-005).
+
+plan_contract:
+  fr_ids:
+    - US-002
+    - US-004
+    - FR-010
+    - FR-011
+    - FR-012
+    - SC-002
+    - SC-005
+  nouns:
+    - loop.runner.orchestrator
+    - loop.runner.output
+    - LoopRunner
+    - halt_logic
+    - decide_after_action
+    - record-session
+    - check-after
+    - reprepare_for_transient_retry
+    - IncidentTracker
+  layout_paths:
+    - loop/runner/orchestrator.py
+    - loop/runner/output.py
+    - loop/tests/test_runner_orchestrator.py
+  ac_quotes:
+    - "FR-010: outer loop performs prepare, session invocation, record-session, bounded transient retry with re-prepare, and check-after in the same order as current behavior."
+    - "FR-011: action decision is centralized through halt_logic.decide_after_action; continue, complete, halt, NEED_HUMAN, EPIC_DONE, DAG fanout and optional roadmap continuation remain observable."
+    - "FR-012: session log pruning, runtime trace/incident updates, Tier-1 incident attempt and terminal status output are either invoked through existing Python helpers or explicitly preserved in runner collaborators."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:202-264"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:298-307"
+
+context:
+  consumes:
+    - loop/runner/__init__.py
+    - loop/runner/config.py
+    - loop/runner/ownership.py
+    - loop/runner/session.py
+    - loop/context_loop.py
+    - loop/halt_logic.py
+  produces:
+    - loop/runner/orchestrator.py
+    - loop/runner/output.py
+    - loop/tests/test_runner_orchestrator.py
+  plan_refs:
+    - US-002
+    - US-004
+    - FR-010
+    - FR-011
+    - FR-012
+    - SC-002
+    - SC-005
+  files:
+    - loop/runner/orchestrator.py
+    - loop/runner/output.py
+    - loop/tests/test_runner_orchestrator.py
+
+as_built:
+  - "loop/context_loop.py provides cmd_prepare, cmd_record_session, cmd_check_after, and state tracking"
+  - "loop/halt_logic.py provides decide_after_action and halt condition evaluation"
+  - "loop/loop.sh manages the outer while loop, transient retry counter, incident recording, and log pruning using shell logic and python3 -c snippets"
+
+delta:
+  - "Create loop/runner/output.py providing pure formatting functions for prepare summaries, action decisions, incident notes, and terminal outputs"
+  - "Create loop/runner/orchestrator.py implementing LoopRunner class that executes the outer loop lifecycle, manages transient retries, calls context_loop prepare/record/check-after, delegates action decisions to halt_logic, handles incident tracking and log pruning"
+  - "Create loop/tests/test_runner_orchestrator.py with unit and integration tests covering clean continuation, epic completion, transient retry backoff, halt on failure/human need, DAG fanout, and incident transitions"
+
+deletes: []
+
+out_of_scope:
+  - "Replacing loop.sh with shim"
+  - "Documentation and runbook updates"
+  - "Purging old tests and sunset artifacts"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: LoopRunner completes prepare, session invocation, record-session, and check-after transitions in order
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -k 'test_clean_turn_lifecycle' -q"
+  - id: cp2
+    criterion: Transient session failures trigger context re-prepare and bounded exponential backoff retries before bubbling up
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -k 'test_transient_retry' -q"
+  - id: cp3
+    criterion: Action decisions (continue, complete, halt, NEED_HUMAN, DAG fanout) match halt_logic specifications and produce proper exit codes
+    verify: "bin/pytest loop/tests/test_runner_orchestrator.py -k 'test_action_decisions' -q"
+
+verify: []
+tdd: []

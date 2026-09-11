@@ -42,7 +42,13 @@ def rewrite_spawn_prompt(
     prompt: str | None,
     identity: GateIdentity | dict[str, Any] | None = None,
 ) -> str:
-    """Prepend GATE_IDENTITY SoT block to prompt if not already present."""
+    """Prepend GATE_IDENTITY SoT block to prompt if not already present.
+
+    Used for pending-bind / telemetry and PreToolUse-equivalent rewrite of an
+    in-memory spawn item. Live Codex child delivery happens via
+    ``spawn_validate.ensure_gate_identity_prompt`` → PreToolUse ``updatedInput``
+    (stream_filter observe alone is not a delivery channel).
+    """
     if identity is None:
         return str(prompt or "")
     raw = str(prompt or "").strip()

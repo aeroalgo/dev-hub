@@ -10,6 +10,7 @@ type JsonObject = Record<string, unknown>;
 type SpawnValidation = {
   deny_reasons?: unknown;
   notes?: unknown;
+  tool_input?: unknown;
 };
 
 type SpawnValidator = (
@@ -28,6 +29,24 @@ function asObject(value: unknown): JsonObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonObject
     : {};
+}
+
+function applyUpdatedToolInput(exec: ToolExecution, toolInput: unknown): void {
+  const updated = asObject(toolInput);
+  const args = asObject(exec.arguments);
+  if (typeof updated.prompt === 'string') {
+    args.prompt = updated.prompt;
+  }
+  if (typeof updated.subagent_type === 'string') {
+    args.subagent_type = updated.subagent_type;
+  }
+  if (typeof updated.agent_type === 'string') {
+    args.agent_type = updated.agent_type;
+  }
+  if (typeof updated.model === 'string') {
+    args.model = updated.model;
+  }
+  exec.arguments = args;
 }
 
 function validatorConfig(config: EpicGateConfig): Required<EpicGateConfig> {
@@ -109,9 +128,11 @@ export async function preToolUse(
   try {
     const result = await validate(validationPayload(exec), cwd);
     const denyReasons = Array.isArray(result.deny_reasons) ? result.deny_reasons : [];
-    return denyReasons.length > 0
-      ? { kind: 'deny', reason: denyReason(denyReasons) }
-      : { kind: 'allow' };
+    if (denyReasons.length > 0) {
+      return { kind: 'deny', reason: denyReason(denyReasons) };
+    }
+    applyUpdatedToolInput(exec, result.tool_input);
+    return { kind: 'allow' };
   } catch (error) {
     return {
       kind: 'deny',

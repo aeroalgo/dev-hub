@@ -31,7 +31,7 @@ def _run_pretool(
     env = os.environ.copy()
     env["PYTHONPATH"] = str(HOOKS)
     result = subprocess.run(
-        [sys.executable, str(HOOKS / "agent-pretool.py")],
+        [sys.executable, str(HOOKS / "pretool-dispatch.py")],
         input=json.dumps(payload),
         text=True,
         capture_output=True,
@@ -41,10 +41,40 @@ def _run_pretool(
     return json.loads(result.stdout)
 
 
-def test_tm001_agent_file_missing_deny(tmp_path: Path) -> None:
-    out = _run_pretool(tmp_path, agent="verify-implement")
-    raw = json.dumps(out)
-    assert out.get("decision") == "DENY" or "deny" in raw.lower() or "missing" in raw.lower() or "not found" in raw.lower()
+def test_tm001_agent_file_missing_deny(tmp_path: Path, monkeypatch) -> None:
+    """Gated agent without any resolvable .md → deny (agent_file_missing)."""
+    import pytest
+    from hook_dispatch import EventContext, PreToolUse, dispatch_pretool
+    from pretool_policy import create_pretool_branches
+
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    real_is_file = Path.is_file
+
+    def _hide_verify_implement(self: Path) -> bool:
+        if self.name == "verify-implement.md":
+            return False
+        return real_is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", _hide_verify_implement)
+
+    ctx = EventContext(
+        event_name=PreToolUse,
+        tool_name="Agent",
+        tool_input={"subagent_type": "verify-implement", "prompt": "spawn verify"},
+        cwd=str(tmp_path),
+        session_id="test-tm001-missing",
+        raw_payload={
+            "tool_name": "Agent",
+            "session_id": "test-tm001-missing",
+            "cwd": str(tmp_path),
+            "tool_input": {"subagent_type": "verify-implement", "prompt": "spawn verify"},
+        },
+    )
+    envelope = dispatch_pretool(ctx, create_pretool_branches())
+    out = envelope.to_hook_output(PreToolUse)
+    reason = out.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+    assert out.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
+    assert "agent_file_missing" in reason
 
 
 def test_tm002_alias_normalize_verify() -> None:
@@ -187,7 +217,7 @@ def test_legacy_stubs_removed() -> None:
 
 
 def test_tm010_dead_assign_regression() -> None:
-    pretool_path = HOOKS / "agent-pretool.py"
+    pretool_path = HOOKS / "pretool_policy.py"
     text = pretool_path.read_text(encoding="utf-8")
     assert "expected_verify_agent" in text or "verify" in text
 

@@ -5,11 +5,10 @@ FR_002_REQUIRED_EVENTS = {
     "Stop",
     "SubagentStop",
     "PreToolUse",
+    "PostToolUse",
     "UserPromptSubmit",
     "SessionStart",
     "SubagentStart",
-    "PostToolUse:agent",
-    "PostToolUse:bash",
 }
 
 
@@ -44,15 +43,16 @@ def test_generated_hooks_json_has_all_fr002_events_and_timeouts(tmp_path):
     required_events = {"Stop", "SubagentStop", "PreToolUse", "PostToolUse", "UserPromptSubmit", "SessionStart", "SubagentStart"}
     assert required_events.issubset(set(hooks.keys()))
 
-    # cp2: check PostToolUse has Bash entry with timeout_ms >= 45000
+    # cp2: single canonical PostToolUse dispatcher (timeout covers former bash-output-cap)
     post_tool_entries = hooks.get("PostToolUse", [])
-    assert len(post_tool_entries) >= 2
-    bash_entries = [e for e in post_tool_entries if e.get("matcher", "").lower() in ("bash", "shell")]
-    assert len(bash_entries) == 1
-    assert bash_entries[0].get("timeout_ms", 0) >= 45000
-    assert "bash-output-cap.py" in bash_entries[0].get("command", "")
+    assert len(post_tool_entries) == 1
+    post_entry = post_tool_entries[0]
+    assert post_entry.get("matcher") == ".*"
+    assert post_entry.get("timeout_ms", 0) >= 45000
+    assert "posttool-dispatch.py" in post_entry.get("command", "")
 
-    agent_entries = [e for e in post_tool_entries if "agent" in e.get("matcher", "").lower()]
-    assert len(agent_entries) == 1
-    assert "agent-posttool.py" in agent_entries[0].get("command", "")
+    pre_tool_entries = hooks.get("PreToolUse", [])
+    assert len(pre_tool_entries) == 1
+    assert pre_tool_entries[0].get("matcher") == ".*"
+    assert "pretool-dispatch.py" in pre_tool_entries[0].get("command", "")
 

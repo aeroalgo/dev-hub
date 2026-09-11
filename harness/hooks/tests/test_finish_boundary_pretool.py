@@ -12,14 +12,18 @@ from harness.hooks.epic.core import default_state, save_epic_state
 
 
 ROOT = Path(__file__).resolve().parents[3]
-HOOK = ROOT / "harness" / "hooks" / "finish-boundary-pretool.py"
+HOOK = ROOT / "harness" / "hooks" / "pretool-dispatch.py"
 
 
 def _run_hook(
     tmp_path: Path, *, tool_name: str = "Read", epic_loop: bool = True, runtime_id: str | None = None
 ) -> dict:
+    test_file = tmp_path / "README.md"
+    if not test_file.exists():
+        test_file.write_text("test")
     payload = {
         "tool_name": tool_name,
+        "tool_input": {"command": "echo test", "file_path": str(test_file), "path": str(test_file)},
         "cwd": str(tmp_path),
         "session_id": "claude-session",
     }
@@ -92,16 +96,19 @@ def test_successful_finish_uses_codex_deny_envelope(tmp_path: Path) -> None:
 def test_new_phase_run_is_unblocked_after_finish(tmp_path: Path) -> None:
     _state(tmp_path, phase_run_id="run-2", finish_run_id="run-1")
 
-    assert _run_hook(tmp_path, tool_name="Read") == {}
+    res = _run_hook(tmp_path, tool_name="Read")
+    assert res.get("hookSpecificOutput", {}).get("permissionDecision") != "deny"
 
 
 def test_failed_or_missing_finish_does_not_activate_barrier(tmp_path: Path) -> None:
     _state(tmp_path, phase_run_id="run-1", finish_run_id=None)
 
-    assert _run_hook(tmp_path, tool_name="Bash") == {}
+    res = _run_hook(tmp_path, tool_name="Bash")
+    assert res.get("hookSpecificOutput", {}).get("permissionDecision") != "deny"
 
 
 def test_barrier_is_scoped_to_epic_loop(tmp_path: Path) -> None:
     _state(tmp_path, phase_run_id="run-1", finish_run_id="run-1")
 
-    assert _run_hook(tmp_path, tool_name="Read", epic_loop=False) == {}
+    res = _run_hook(tmp_path, tool_name="Read", epic_loop=False)
+    assert res.get("hookSpecificOutput", {}).get("permissionDecision") != "deny"

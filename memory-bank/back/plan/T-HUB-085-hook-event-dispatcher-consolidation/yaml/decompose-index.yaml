@@ -1,0 +1,40 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+source_md: ../md/decompose-index.md
+status_canon: decompose-index.yaml
+steps:
+- id: s01
+  file: s01-event-dispatch-abstractions.yaml
+  title: Один базовый dispatcher маршрутизирует события и нормализует контекст
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-shared-gate-and-evidence-service.yaml
+  title: Общие pure services валидируют identity, boundaries и evidence
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s03
+  file: s03-pretool-dispatcher-and-policy-adapters.yaml
+  title: Один canonical PreToolUse dispatcher выполняет цепочку проверок
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s04
+  file: s04-posttool-dispatcher-and-output-shaping.yaml
+  title: Один canonical PostToolUse dispatcher изолирует agent state и Bash shaping
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s05
+  file: s05-gate-boundary-lifecycle-integration.yaml
+  title: SubagentStart, SubagentStop и Stop подключают shared services
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s06
+  file: s06-manifest-consolidation-and-materialization-cutover.yaml
+  title: Manifest и materializer переключаются на canonical dispatchers
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s07
+  file: s07-legacy-fallback-purge.yaml
+  title: Legacy fallback purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: completed

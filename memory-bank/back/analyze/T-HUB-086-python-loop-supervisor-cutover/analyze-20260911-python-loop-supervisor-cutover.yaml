@@ -1,0 +1,414 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+slug: python-loop-supervisor-cutover
+date: '2026-09-11'
+status: complete
+index_fingerprint: sha256:ad21ff4210017d9c8b7e02223726c730ee657a6eaedc29e452e746da03c021fc
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s05
+  status: covered
+  plan_text_verbatim: '`loop.runner` предоставляет canonical `main(argv: Sequence[str]
+    | None) -> int` и module execution через `python3 -m loop.runner`.'
+- requirement_id: FR-002
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: 'CLI сохраняет positional/flag contract текущего `loop.sh`:
+    project root resolution через `bin/loop`, epic spec, model, `implement`, `--epic`,
+    `--phase GAP_FANOUT`, `--dag-generate`, permission mode, interactive/headless,
+    verbose, status и help.'
+- requirement_id: FR-003
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: runner загружает `.claude/project.env`, `.local` и per-product
+    overrides через Python helper; process env precedence и invalid runtime config
+    semantics остаются явными и fail-closed.
+- requirement_id: FR-004
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: runner вычисляет canonical `HUB_ROOT`, `PROJECT_ROOT`, `DEV_HUB`,
+    `EPIC_PROJECT_ROOT`, `CLAUDE_PROJECT_DIR`, `STATE_DIR` и runtime-specific cwd
+    до первого session call.
+- requirement_id: FR-005
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: runner acquires one non-blocking checkout lock, publishes `runner.json`
+    through existing atomic owner helper and removes owner only when pid/session id
+    match.
+- requirement_id: FR-006
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: signal handling for `SIGINT`, `SIGTERM`, `SIGHUP` releases owned
+    process/owner state safely; user interrupt returns 130 and never enters transient
+    outer retry.
+- requirement_id: FR-007
+  step_ids:
+  - s01
+  - s02
+  status: covered
+  plan_text_verbatim: runner performs compile/doctor/preflight checks with explicit
+    result objects; missing or invalid required code/config exits non-zero before
+    session launch.
+- requirement_id: FR-008
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: '`SessionInvoker` resolves provider through runtime registry/adapters
+    and invokes existing session-resilience boundary with explicit timeout, kill grace,
+    heartbeat, idle timeout, log path, expected model, stdin and progress mode.'
+- requirement_id: FR-009
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Claude, DSH and Codex retain their current cwd, argv, profile,
+    model, stdin and stream-filter behavior; missing DSH/Codex binary has no silent
+    Claude fallback.
+- requirement_id: FR-010
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: outer loop performs `prepare`, session invocation, `record-session`,
+    bounded transient retry with re-prepare, and `check-after` in the same order as
+    current behavior.
+- requirement_id: FR-011
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: action decision is centralized through `halt_logic.decide_after_action`;
+    `continue`, `complete`, `halt`, `NEED_HUMAN`, `EPIC_DONE`, DAG fanout and optional
+    roadmap continuation remain observable.
+- requirement_id: FR-012
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: session log pruning, runtime trace/incident updates, Tier-1
+    incident attempt and terminal status output are either invoked through existing
+    Python helpers or explicitly preserved in runner collaborators; no behavior is
+    dropped as “cleanup”.
+- requirement_id: FR-013
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: '`loop/loop.sh` contains only path resolution, `cd` to hub and
+    `exec python3 -m loop.runner`; it exposes no production orchestration functions.'
+- requirement_id: FR-014
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: every former shell-source test is rewritten to public CLI or
+    importable Python API behavior; no test depends on implementation text in `loop.sh`.
+- requirement_id: FR-015
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: active operator/instruction docs teach `bin/loop` or `python3
+    -m loop.runner`; direct `loop.sh` references are labeled compatibility-only and
+    no document teaches `source loop.sh` functions.
+- requirement_id: FR-016
+  step_ids:
+  - s07
+  status: covered
+  plan_text_verbatim: full targeted runner/runtime suite and shell syntax/public entrypoint
+    smoke pass; no new external dependency is introduced.
+- requirement_id: US-001
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Как operator, я хочу запускать loop прежней командой `bin/loop`,
+    чтобы миграция supervisor-а не требовала смены привычного workflow.
+- requirement_id: US-002
+  step_ids:
+  - s01
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как maintainer, я хочу тестировать orchestration в pytest через
+    Python API, чтобы не `source`-ить shell и не проверять implementation text.
+- requirement_id: US-003
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Как runtime maintainer, я хочу добавлять/менять adapter без
+    нового provider-specific блока в supervisor-е.
+- requirement_id: US-004
+  step_ids:
+  - s02
+  - s04
+  - s07
+  status: covered
+  plan_text_verbatim: Как operator, я хочу, чтобы timeout, Ctrl+C, retry cap, model
+    substitution, missing binary и fail-closed halt сохранялись.
+- requirement_id: US-005
+  step_ids:
+  - s05
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Как reviewer, я хочу видеть один canonical execution path и
+    остаток shell только как shim.
+- requirement_id: SC-001
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`bin/loop --help`, `bin/loop <project> --status` and direct
+    `loop/loop.sh --help` resolve through Python runner and exit 0.'
+- requirement_id: SC-002
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: One fake public loop turn reaches session and terminal decision
+    with no shell function sourcing.
+- requirement_id: SC-003
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: Claude/DSH/Codex runtime-specific command and failure behavior
+    remains green.
+- requirement_id: SC-004
+  step_ids:
+  - s05
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: '`rg` finds zero production callers of removed shell orchestration
+    symbols and zero `source loop/loop.sh` in active tests/instructions.'
+- requirement_id: SC-005
+  step_ids:
+  - s01
+  - s04
+  - s07
+  status: covered
+  plan_text_verbatim: Timeout, interrupt, retry cap, model substitution, missing binary,
+    lock contention and fail-closed `check-after` have executable evidence.
+- requirement_id: SC-006
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: No second supervisor path remains; `loop.sh` is a delegation
+    shim under 30 non-comment lines.
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`python3 -m loop.runner --help` and `loop/loop.sh --help` return
+    0 and show the same operator-relevant options.'
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`bin/loop` resolves a product root exactly as before, then
+    delegates to one Python entrypoint; no shell runner logic is executed after delegation.'
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: '`--status`, `--dag-generate`, `--phase GAP_FANOUT` and `doctor`
+    paths remain non-session commands and preserve their existing output/exit contracts.'
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: A normal fake Claude/DSH/Codex session goes through existing
+    adapter and session-resilience contracts, writes the expected log, and returns
+    the runtime exit code to `record-session`.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: A transient abort re-prepares context before retry, respects
+    configured retry cap/backoff, and resumes outer prepare when cap is reached.
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: A permanent failure, model substitution, missing runtime binary,
+    invalid config or DSH profile failure halts non-zero without provider fallback.
+- requirement_id: 'AC+ #7'
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: '`SIGINT`/`SIGTERM` does not cause an outer retry; owned `runner.json`
+    is cleaned only by the owning pid/session identity.'
+- requirement_id: 'AC+ #8'
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: '`check-after` action selection is delegated to `halt_logic.decide_after_action`,
+    and `NEED_HUMAN`/fail-closed halt is not converted into blind continue.'
+- requirement_id: 'AC+ #9'
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Existing runtime state paths, session log retention, `last-session.json`,
+    trace/incident artifacts and checkpoint ownership remain unchanged.
+- requirement_id: 'AC+ #10'
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: Public behavior tests do not source `loop.sh`, invoke shell
+    functions, or assert implementation text as the only evidence.
+- requirement_id: 'AC+ #11'
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: Active docs and instruction surfaces no longer present shell
+    orchestration as the canonical machine path.
+- requirement_id: 'AC+ #12'
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: The final purge scan has no A/B/C/I leftovers and the runner
+    shim has exactly one production caller path.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s04
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Нет второго исполняемого supervisor-а с отдельным outer `while`,
+    retry policy или `check-after` decision tree.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Нет `source loop/loop.sh` в production instructions/tests; shell
+    functions не являются API.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s02
+  - s04
+  - s07
+  status: covered
+  plan_text_verbatim: Нет `python3 -c`/shell text extraction для machine JSON, runtime
+    result или owner state.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s03
+  - s07
+  status: covered
+  plan_text_verbatim: Нет `try new except old`, automatic fallback Python → shell
+    или unknown runtime → Claude.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s02
+  - s03
+  - s07
+  status: covered
+  plan_text_verbatim: Misconfiguration, missing binary, invalid adapter, lock contention
+    and malformed result produce explicit non-zero/fail-closed outcome.
+- requirement_id: 'AC- #6'
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Нет active instruction surface, которая требует чтения/ручного
+    редактирования runner files вместо public status/doctor/CLI.
+- requirement_id: 'AC- #7'
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: Нет obsolete tests, которые вынуждают вернуть удалённый shell
+    contract ради green suite.
+- requirement_id: 'AC- #8'
+  step_ids:
+  - s01
+  - s04
+  - s07
+  status: covered
+  plan_text_verbatim: Нет изменения state/telemetry semantics, замаскированного под
+    migration; contract regressions are failures, not accepted migration differences.
+- requirement_id: TM-086-01
+  step_ids:
+  - s01
+  - s02
+  status: covered
+  plan_text_verbatim: missing/invalid project root and CLI parity
+- requirement_id: TM-086-02
+  step_ids:
+  - s02
+  - s03
+  status: covered
+  plan_text_verbatim: registry unknown/invalid runtime
+- requirement_id: TM-086-03
+  step_ids:
+  - s02
+  status: covered
+  plan_text_verbatim: lock contention and owner identity
+- requirement_id: TM-086-04
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: fake Claude/DSH/Codex command/session execution
+- requirement_id: TM-086-05
+  step_ids:
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: full public one-turn lifecycle
+- requirement_id: TM-086-06
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: transient retry and reprepare
+- requirement_id: TM-086-07
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: permanent/model/signal/timeout failures
+- requirement_id: TM-086-08
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: check-after action parity
+- requirement_id: TM-086-09
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: non-session commands
+- requirement_id: TM-086-10
+  step_ids:
+  - s05
+  status: covered
+  plan_text_verbatim: public shell shim and syntax
+- requirement_id: TM-086-11
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: sunset/instruction enforcement
+- requirement_id: TM-086-12
+  step_ids:
+  - s05
+  - s07
+  status: covered
+  plan_text_verbatim: targeted loop regression
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

@@ -1,0 +1,327 @@
+schema: epic-analyze/v1
+role: back
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+slug: hook-event-dispatcher-consolidation
+date: '2026-09-11'
+status: complete
+index_fingerprint: sha256:45615d3e8822906bff0e8612d298878b0ad75e76ba78fbfb1f33b848fa935690
+findings: []
+coverage:
+- requirement_id: FR-001
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Ввести event-specific dispatch layer с отдельными входами для `pretool`, `posttool`, `subagent_start`, `subagent_stop` и `stop`; dispatcher не смешивает события и не скрывает отказ.
+- requirement_id: FR-002
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: '`PreToolUse` сохраняет порядок policy: project boundary → finish boundary → tool-specific policy; первый deny является итогом, allow возвращает все нужные `updatedInput` mutations.'
+- requirement_id: FR-003
+  step_ids:
+  - s03
+  status: covered
+  plan_text_verbatim: '`PreToolUse` dispatcher маршрутизирует Agent/Task, Bash, Write/Edit/NotebookEdit и generic tools по `tool_name`, сохраняя текущие matcher semantics.'
+- requirement_id: FR-004
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: '`PostToolUse` dispatcher маршрутизирует Agent/Task и Bash; agent state/evidence и output-cap не вызывают друг друга и сохраняют прежние payload response fields.'
+- requirement_id: FR-005
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Общие pure services для `state identity`, `verdict extraction`, `boundary validation`, `evidence recording` и `diagnostic codes` имеют один контракт и используются hooks/CLI без копирования алгоритма.
+- requirement_id: FR-006
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`SubagentStart` остаётся отдельной точкой contract injection и drift deny; `SubagentStop` остаётся отдельной точкой фактического transcript validation.'
+- requirement_id: FR-007
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`Stop` остаётся отдельным final gate и использует общий read-only status/evidence service, но не доверяет состоянию, созданному только parent agent.'
+- requirement_id: FR-008
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Manifest/materializer и committed settings регистрируют ровно один canonical command на `(event, matcher, realpath)`; dispatcher migration не создаёт dual path.
+- requirement_id: FR-009
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Self-check агента `validate-boundary` и внешний `SubagentStop` validation сохраняются как два разных trust boundary; разрешается общий library implementation, но не удаление внешней проверки.
+- requirement_id: FR-010
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: Каждый dispatch branch имеет deterministic diagnostic при deny/retry/error; исключение не превращается в silent allow.
+- requirement_id: FR-011
+  step_ids:
+  - s03
+  - s04
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Старые entrypoints либо становятся тонкими compatibility wrappers с одним canonical implementation, либо удаляются внутри эпика; вечный dual implementation запрещён.
+- requirement_id: FR-012
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Тесты проверяют parity positive/negative side effects, subprocess registration count, ordering, idempotency и fail-closed behavior.
+- requirement_id: US-001
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: Как runtime, я хочу один pre-tool entrypoint на событие, чтобы policy checks выполнялись детерминированно и без конфликтующих ответов.
+- requirement_id: US-002
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Как runtime, я хочу один post-tool entrypoint на событие, чтобы agent state и Bash output shaping не дублировали dispatcher plumbing.
+- requirement_id: US-003
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Как gate, я хочу общий pure validator для schema/identity/evidence, но отдельный `SubagentStop` boundary.
+- requirement_id: US-004
+  step_ids:
+  - s01
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Как оператор, я хочу видеть, какой dispatch branch сработал и почему был deny/retry.
+- requirement_id: US-005
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Как CI, я хочу запрещать возвращение duplicate active hook commands и мёртвых dispatcher references.
+- requirement_id: NFR-001
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Снижение числа registered command entries минимум с текущих 11 до целевого event-specific набора без снижения числа lifecycle boundaries.
+- requirement_id: NFR-002
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: Dispatcher branch должен быть синхронным и bounded; не добавлять сетевой/LLM вызов в authorization path.
+- requirement_id: NFR-003
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  status: covered
+  plan_text_verbatim: Все deny/retry decisions остаются fail-closed; неизвестный event/tool/branch не получает implicit allow.
+- requirement_id: NFR-004
+  step_ids:
+  - s01
+  - s02
+  - s04
+  status: covered
+  plan_text_verbatim: State mutation выполняется только один раз за hook event и остаётся idempotent по `(session_id, tool_use_id, agent_type, verdict)`.
+- requirement_id: NFR-005
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Полный вывод Bash по-прежнему сохраняется до сокращения, если включён output cap; dispatcher не теряет dump path.
+- requirement_id: NFR-006
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Новые публичные helper API покрываются typed input/output и не принимают произвольные state dict как proof PASS.
+- requirement_id: 'AC+ #1'
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: На `PreToolUse` зарегистрирован один canonical dispatcher; Agent/Bash/Write/generic fixtures получают те же allow/deny и updated input semantics.
+- requirement_id: 'AC+ #2'
+  step_ids:
+  - s01
+  - s04
+  status: covered
+  plan_text_verbatim: На `PostToolUse` зарегистрирован один canonical dispatcher; Agent verdict/evidence и Bash output cap сохраняют текущие side effects.
+- requirement_id: 'AC+ #3'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`SubagentStart`, `SubagentStop` и `Stop` остаются раздельными entries и проходят отдельные event tests.'
+- requirement_id: 'AC+ #4'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Внешний `SubagentStop` отвергает malformed fence, schema mismatch, ownership mismatch и stale identity даже если агентский self-check был успешен.
+- requirement_id: 'AC+ #5'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: '`Stop` не принимает state-only/manual PASS и не разрешает finish без обязательного gate.'
+- requirement_id: 'AC+ #6'
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Duplicate realpath scan даёт ноль active duplicates; old entrypoints не вызываются из settings/manifest.
+- requirement_id: 'AC+ #7'
+  step_ids:
+  - s01
+  - s02
+  - s03
+  - s04
+  - s05
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Все старые registered hook behavior tests зелёные либо заменены parity tests с тем же acceptance.
+- requirement_id: 'AC+ #8'
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: Diagnostics позволяют отличить `deny`, `retry`, `recorded`, `output_capped`, `stale` и `infrastructure_failure`.
+- requirement_id: 'AC- #1'
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: Нельзя получить allow, если любой обязательный pretool policy вернул deny.
+- requirement_id: 'AC- #2'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Нельзя получить PASS только потому, что parent записал verdict/state вручную.
+- requirement_id: 'AC- #3'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Нельзя заменить фактический transcript SubagentStop результатом, который агент проверил сам.
+- requirement_id: 'AC- #4'
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: Нельзя запустить одновременно две managed gate branches для одной identity.
+- requirement_id: 'AC- #5'
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: Нельзя зарегистрировать одновременно wrapper и canonical dispatcher на одном event/matcher.
+- requirement_id: 'AC- #6'
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: Нельзя потерять полный Bash dump из-за dispatcher exception.
+- requirement_id: TM-085-01
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: pretool branch ordering -> deterministic trace
+- requirement_id: TM-085-02
+  step_ids:
+  - s01
+  - s03
+  status: covered
+  plan_text_verbatim: conflicting updated input -> deny, no partial mutation
+- requirement_id: TM-085-03
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: dispatcher import failure -> gate fail-closed
+- requirement_id: TM-085-04
+  step_ids:
+  - s06
+  - s07
+  status: covered
+  plan_text_verbatim: registration duplicate scan -> zero duplicate realpaths
+- requirement_id: TM-085-05
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: self-check vs final transcript -> malformed/mismatch not PASS
+- requirement_id: TM-085-06
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: repeated PostToolUse -> one state/evidence mutation
+- requirement_id: TM-085-07
+  step_ids:
+  - s04
+  status: covered
+  plan_text_verbatim: noisy Bash output -> full dump exists, output bounded
+- requirement_id: TM-085-08
+  step_ids:
+  - s01
+  - s03
+  - s04
+  status: covered
+  plan_text_verbatim: unknown event/tool -> typed diagnostic, no bypass
+- requirement_id: TM-085-09
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: stale receipt at Stop -> block with stale code
+- requirement_id: TM-085-10
+  step_ids:
+  - s02
+  - s05
+  status: covered
+  plan_text_verbatim: valid verifier PASS -> finish still succeeds
+- requirement_id: TM-085-11
+  step_ids:
+  - s06
+  status: covered
+  plan_text_verbatim: Claude/Codex materialization -> same canonical matrix
+- requirement_id: TM-085-12
+  step_ids:
+  - s07
+  status: covered
+  plan_text_verbatim: full hub regression -> PASS
+metrics:
+  coverage_pct: 100
+  critical_count: 0
+  high_count: 0
+  findings_total: 0
+recommendation: IMPLEMENT
+next_actions: []
+constitution_violations: []

@@ -1,0 +1,130 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: Cutover loop.sh to exec shim, bin/loop delegation and shell-source test rewrite
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Replace loop.sh (1172 lines) with an exec shim under 30 lines delegating to python3 -m loop.runner,
+  wire bin/loop launcher, and rewrite all shell-source tests to public CLI/API tests
+  (FR-013, FR-014, US-001, US-002, US-005, SC-001, SC-002, SC-004, SC-006).
+
+plan_contract:
+  fr_ids:
+    - US-001
+    - US-002
+    - US-005
+    - FR-013
+    - FR-014
+    - SC-001
+    - SC-002
+    - SC-004
+    - SC-006
+  nouns:
+    - loop/loop.sh
+    - bin/loop
+    - exec python3 -m loop.runner
+    - test_loop_dsh_dispatch.py
+    - test_dsh_e2e_smoke.py
+    - test_loop_shell_halt_parity.py
+    - test_session_boundary.py
+    - test_runner_e2e.py
+  layout_paths:
+    - loop/loop.sh
+    - bin/loop
+    - loop/tests/test_loop_dsh_dispatch.py
+    - loop/tests/test_dsh_e2e_smoke.py
+    - loop/tests/test_loop_shell_halt_parity.py
+    - loop/tests/test_session_boundary.py
+    - loop/tests/test_runner_e2e.py
+  ac_quotes:
+    - "FR-013: loop/loop.sh contains only path resolution, cd to hub and exec python3 -m loop.runner; it exposes no production orchestration functions."
+    - "FR-014: every former shell-source test is rewritten to public CLI or importable Python API behavior; no test depends on implementation text in loop.sh."
+    - "SC-006: No second supervisor path remains; loop.sh is a delegation shim under 30 non-comment lines."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:282-289"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:412-443"
+
+context:
+  consumes:
+    - loop/runner/__main__.py
+    - loop/runner/cli.py
+    - loop/runner/orchestrator.py
+  produces:
+    - loop/loop.sh
+    - bin/loop
+    - loop/tests/test_loop_dsh_dispatch.py
+    - loop/tests/test_dsh_e2e_smoke.py
+    - loop/tests/test_loop_shell_halt_parity.py
+    - loop/tests/test_session_boundary.py
+    - loop/tests/test_runner_e2e.py
+  plan_refs:
+    - US-001
+    - US-002
+    - US-005
+    - FR-013
+    - FR-014
+    - SC-001
+    - SC-002
+    - SC-004
+    - SC-006
+  files:
+    - loop/loop.sh
+    - bin/loop
+    - loop/tests/test_loop_dsh_dispatch.py
+    - loop/tests/test_dsh_e2e_smoke.py
+    - loop/tests/test_loop_shell_halt_parity.py
+    - loop/tests/test_session_boundary.py
+    - loop/tests/test_runner_e2e.py
+
+as_built:
+  - "loop/loop.sh contains 1172 lines of shell orchestration, runtime branching, and traps"
+  - "bin/loop sets up HUB_ROOT and delegates to loop/loop.sh"
+  - "tests in loop/tests/test_loop_dsh_dispatch.py and test_loop_shell_halt_parity.py source loop/loop.sh"
+
+delta:
+  - "Rewrite loop/loop.sh to a minimal <30 lines compatibility shim that resolves DEV_HUB and executes 'exec python3 -m loop.runner \"$@\"'"
+  - "Update bin/loop to delegate directly to canonical python runner / loop.sh shim with identical argument forwarding"
+  - "Rewrite test_loop_dsh_dispatch.py, test_dsh_e2e_smoke.py, test_loop_shell_halt_parity.py, and test_session_boundary.py to test through public CLI and Python runner API instead of sourcing loop.sh"
+  - "Create loop/tests/test_runner_e2e.py testing end-to-end execution of bin/loop and loop.sh with fake runtime across full loop turn"
+
+deletes:
+  - "loop/loop.sh:ensure_dsh_profiles"
+  - "loop/loop.sh:configure_runtime_env"
+  - "loop/loop.sh:find_claude"
+  - "loop/loop.sh:is_epic_spec"
+  - "loop/loop.sh:_cleanup_runner_owner"
+  - "loop/loop.sh:run_claude_session"
+  - "loop/loop.sh:resolve_dsh_bin"
+  - "loop/loop.sh:run_dsh_session"
+  - "loop/loop.sh:run_agent_session"
+  - "loop/loop.sh:_print_prepare_summary"
+  - "loop/loop.sh:_apply_prepare_session_vars"
+  - "loop/loop.sh:_run_context_prepare"
+  - "loop/loop.sh:_reprepare_for_transient_retry"
+  - "loop/loop.sh:outer while true loop and all shell process supervision functions"
+  - "source loop/loop.sh calls in loop/tests/"
+
+out_of_scope:
+  - "Updating active documentation and runbooks"
+  - "Final legacy purge audit scan"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: loop.sh is replaced with a minimal exec shim (<30 non-comment lines) and bash -n loop/loop.sh bin/loop passes
+    verify: "bash -n loop/loop.sh bin/loop && test $(grep -v '^#' loop/loop.sh | grep -v '^[[:space:]]*$' | wc -l) -lt 30"
+  - id: cp2
+    criterion: End-to-end tests through bin/loop and loop.sh execute a full fake loop turn successfully
+    verify: "bin/pytest loop/tests/test_runner_e2e.py -q"
+  - id: cp3
+    criterion: Rewritten dispatch and halt tests pass without sourcing loop.sh
+    verify: "bin/pytest loop/tests/test_loop_dsh_dispatch.py loop/tests/test_dsh_e2e_smoke.py loop/tests/test_loop_shell_halt_parity.py loop/tests/test_session_boundary.py -q"
+
+verify: []
+tdd: []

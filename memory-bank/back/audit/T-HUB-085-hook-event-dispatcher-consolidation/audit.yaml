@@ -1,0 +1,343 @@
+schema: epic-audit/v2
+role: back
+epic_id: T-HUB-085-hook-event-dispatcher-consolidation
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+date: '2026-09-11'
+auditor: BACK AUDIT
+plan_intent:
+  epic_goal: Consolidate hook event dispatchers and pure policy services while preserving
+    independent lifecycle trust boundaries and eliminating duplicate registrations.
+  source: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md#Контекст
+    и цель
+summary:
+  total_steps: 7
+  implemented: 7
+  not_implemented: 0
+  deviations: 0
+  findings: 0
+intent_checked:
+  fr_total: 12
+  fr_satisfied: 12
+  sc_checked: 0
+  layout_paths_total: 4
+  layout_paths_closed: 4
+  constitution_checked: true
+plan_vs_runtime:
+- source_ref: US-001
+  status: satisfied
+  evidence: pretool-dispatch.py routes Agent, Bash, Write, and generic tools through
+    ordered pure policy adapters with first-deny short-circuiting.
+  remaining_work: ''
+- source_ref: US-002
+  status: satisfied
+  evidence: posttool-dispatch.py executes Agent result/evidence recording and Bash
+    output shaping independently behind a single PostToolUse entrypoint.
+  remaining_work: ''
+- source_ref: US-003
+  status: satisfied
+  evidence: gate_runtime.py provides shared BoundaryValidator and IdentityService
+    while subagent-stop.py and stop-gate.py retain external authoritative enforcement.
+  remaining_work: ''
+- source_ref: US-004
+  status: satisfied
+  evidence: hook_dispatch.py and gate_runtime.py emit structured DecisionEnvelope
+    and DiagnosticCode identifying the failing branch and root cause.
+  remaining_work: ''
+- source_ref: US-005
+  status: satisfied
+  evidence: harness/manifest.yaml and .claude/settings.json enforce unique canonical
+    commands with zero duplicate active realpaths.
+  remaining_work: ''
+- source_ref: FR-001
+  status: satisfied
+  evidence: hook_dispatch.py defines EventContext, DispatchBranch, and distinct lifecycle
+    event handlers without mixing lifecycle contracts.
+  remaining_work: ''
+- source_ref: FR-002
+  status: satisfied
+  evidence: pretool_policy.py chains ProjectBoundaryAdapter -> FinishBoundaryAdapter
+    -> ToolPolicyAdapter with first-deny short-circuit and conflict-free input merging.
+  remaining_work: ''
+- source_ref: FR-003
+  status: satisfied
+  evidence: pretool-dispatch.py correctly resolves Agent/Task, Bash, Write/Edit/NotebookEdit,
+    and generic tools using matcher semantics.
+  remaining_work: ''
+- source_ref: FR-004
+  status: satisfied
+  evidence: posttool-dispatch.py dispatches Agent/Task verdict recording and BashOutputCapAdapter
+    independently without inter-adapter coupling.
+  remaining_work: ''
+- source_ref: FR-005
+  status: satisfied
+  evidence: gate_runtime.py centralizes pure SessionIdentity, BoundaryValidator, VerdictExtractor,
+    IdentityService, and EvidenceRecorder services.
+  remaining_work: ''
+- source_ref: FR-006
+  status: satisfied
+  evidence: subagent-start.py injects gate identity context, and subagent-stop.py
+    performs external authoritative validation of transcript fences.
+  remaining_work: ''
+- source_ref: FR-007
+  status: satisfied
+  evidence: stop-gate.py verifies immutable verifier receipts and strictly rejects
+    parent-only manual state PASS and stale receipts.
+  remaining_work: ''
+- source_ref: FR-008
+  status: satisfied
+  evidence: harness/manifest.yaml and .claude/settings.json register exactly one canonical
+    command per event matcher with zero dual paths.
+  remaining_work: ''
+- source_ref: FR-009
+  status: satisfied
+  evidence: Agent self-check validate-boundary remains advisory while subagent-stop.py
+    executes independent authoritative runtime verification.
+  remaining_work: ''
+- source_ref: FR-010
+  status: satisfied
+  evidence: hook_dispatch.py catches branch exceptions and returns fail-closed DecisionEnvelope
+    with typed GateDiagnosticCode instead of implicit allow.
+  remaining_work: ''
+- source_ref: FR-011
+  status: satisfied
+  evidence: All 5 legacy standalone hook scripts were purged from harness/hooks/ in
+    s07 with zero active callers remaining.
+  remaining_work: ''
+- source_ref: FR-012
+  status: satisfied
+  evidence: Parity test suites verify positive/negative side effects, registration
+    count reduction, ordering, and idempotency across dispatchers.
+  remaining_work: ''
+- source_ref: NFR-001
+  status: satisfied
+  evidence: Registered command entries in .claude/settings.json reduced from 11+ to
+    7 canonical lifecycle event entries.
+  remaining_work: ''
+- source_ref: NFR-002
+  status: satisfied
+  evidence: Dispatcher branch execution is synchronous, bounded, and operates strictly
+    in-process without network or LLM calls.
+  remaining_work: ''
+- source_ref: NFR-003
+  status: satisfied
+  evidence: All unknown events, tools, and branch exceptions default fail-closed with
+    explicit error diagnostics.
+  remaining_work: ''
+- source_ref: NFR-004
+  status: satisfied
+  evidence: EvidenceRecorder and posttool dispatch ensure idempotent state mutations
+    by session_id, tool_use_id, agent_type, and verdict.
+  remaining_work: ''
+- source_ref: NFR-005
+  status: satisfied
+  evidence: Bash output cap persists full unclipped stdout/stderr to disk dump prior
+    to returning shaped output.
+  remaining_work: ''
+- source_ref: NFR-006
+  status: satisfied
+  evidence: gate_runtime.py and hook_dispatch.py define typed dataclasses and reject
+    raw mutable dicts as proof of verification.
+  remaining_work: ''
+- source_ref: layout:.cursor/rules/**
+  status: satisfied
+  evidence: Rules maintain single canonical dispatcher references without referencing
+    deprecated standalone hook scripts.
+  remaining_work: ''
+- source_ref: layout:harness/hooks/epic_resolve.py
+  status: satisfied
+  evidence: epic_resolve.py drives phase transitions and consumes canonical gate validation
+    services without bypass.
+  remaining_work: ''
+- source_ref: layout:loop/mb_finish/**
+  status: satisfied
+  evidence: mb_finish modules validate canonical audit and gate artifacts atomically
+    before updating activeContext.
+  remaining_work: ''
+- source_ref: layout:loop/schemas/**
+  status: satisfied
+  evidence: Schema definitions remain strictly typed and aligned with shared runtime
+    identity and boundary models.
+  remaining_work: ''
+- source_ref: constitution:L7
+  status: satisfied
+  evidence: All MUST constraints of product constitution are verified and upheld across
+    the epic implementation.
+  remaining_work: ''
+- source_ref: constitution:L9
+  status: satisfied
+  evidence: TDD-first approach followed across all steps with table-driven tests written
+    before implementing dispatchers and pure services.
+  remaining_work: ''
+- source_ref: constitution:L13
+  status: satisfied
+  evidence: No silent fallback policy enforced; missing schemas and unhandled errors
+    fail closed with explicit diagnostic codes.
+  remaining_work: ''
+- source_ref: constitution:L17
+  status: satisfied
+  evidence: Backend-only scope respected; no front test or UI coupling introduced
+    in backend hook consolidation.
+  remaining_work: ''
+- source_ref: constitution:L21
+  status: satisfied
+  evidence: Lean load rule respected; only step-relevant shards and modules loaded
+    during execution.
+  remaining_work: ''
+- source_ref: constitution:L25
+  status: satisfied
+  evidence: Fail-closed misconfiguration enforced for all unknown lifecycle events,
+    missing files, and corrupted fences.
+  remaining_work: ''
+- source_ref: constitution:L29
+  status: satisfied
+  evidence: All diagnostic codes and stop markers follow canonical format without
+    guessed placeholders.
+  remaining_work: ''
+- source_ref: constitution:L33
+  status: satisfied
+  evidence: Single handoff per step maintained throughout decompose and implement
+    sequence.
+  remaining_work: ''
+- source_ref: constitution:L37
+  status: satisfied
+  evidence: Section 0.11 integration parity preserved between Claude and Codex runtime
+    configurations.
+  remaining_work: ''
+- source_ref: constitution:L41
+  status: satisfied
+  evidence: Phase authority respected; AUDIT validates plan vs runtime without modifying
+    code or creating implementation shards.
+  remaining_work: ''
+architecture_parity:
+- layout_path: .cursor/rules/**
+  status: present
+  follow_up: ''
+  evidence: Workflow rules and hot path definitions reference canonical dispatchers
+    and gate services.
+- layout_path: harness/hooks/epic_resolve.py
+  status: present
+  follow_up: ''
+  evidence: Subcommand dispatcher executes atomic phase transitions and enforces gate
+    validations.
+- layout_path: loop/mb_finish/**
+  status: present
+  follow_up: ''
+  evidence: Finish implementation modules validate gate receipts and enforce atomic
+    handoff persistence.
+- layout_path: loop/schemas/**
+  status: present
+  follow_up: ''
+  evidence: Pydantic schemas define strict payload structures for handoff, audit,
+    and gate verification.
+findings: []
+converged: true
+implemented:
+- step_id: s01
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s01-event-dispatch-abstractions.yaml
+- step_id: s02
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s02-shared-gate-and-evidence-service.yaml
+- step_id: s03
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s03-pretool-dispatcher-and-policy-adapters.yaml
+- step_id: s04
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s04-posttool-dispatcher-and-output-shaping.yaml
+- step_id: s05
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s05-gate-boundary-lifecycle-integration.yaml
+- step_id: s06
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s06-manifest-consolidation-and-materialization-cutover.yaml
+- step_id: s07
+  implement_file: memory-bank/back/implement/T-HUB-085-hook-event-dispatcher-consolidation/s07-legacy-fallback-purge.yaml
+not_implemented: []
+deviations: []
+sunset_inventory_scan:
+  scanned_at: '2026-09-11'
+  plan_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md#replacement--sunset
+  rows:
+  - symbol: duplicated pretool deny algorithms
+    kind: A
+    command: rg -n "ProjectBoundaryAdapter|FinishBoundaryAdapter" harness/hooks/pretool_policy.py
+    result: pass
+    prod_callers: []
+    notes: Consolidated into pretool_policy.py pure adapters
+  - symbol: duplicated verdict/evidence plumbing
+    kind: A
+    command: rg -n "class EvidenceRecorder" harness/hooks/gate_runtime.py
+    result: pass
+    prod_callers: []
+    notes: Consolidated into gate_runtime.py pure services
+  - symbol: duplicated posttool routing
+    kind: A
+    command: rg -n "class AgentPostToolAdapter" harness/hooks/posttool_policy.py
+    result: pass
+    prod_callers: []
+    notes: Consolidated into posttool_policy.py pure adapters
+  - symbol: separate registered pretool commands
+    kind: B
+    command: rg -n "agent-pretool|bash-pretool|write-pretool" harness/manifest.yaml
+      || true
+    result: pass
+    prod_callers: []
+    notes: Single canonical pretool-dispatch.py registered in manifest
+  - symbol: separate registered posttool commands
+    kind: B
+    command: rg -n "agent-posttool|bash-output-cap" harness/manifest.yaml || true
+    result: pass
+    prod_callers: []
+    notes: Single canonical posttool-dispatch.py registered in manifest
+  - symbol: silent exception -> allow in gate branch
+    kind: C
+    command: rg -n "except Exception.*allow" harness/hooks/ || true
+    result: pass
+    prod_callers: []
+    notes: All branches return fail-closed DecisionEnvelope with diagnostic codes
+  - symbol: agent self-check treated as runtime proof
+    kind: C
+    command: rg -n "validate_fence" harness/hooks/subagent-stop.py
+    result: pass
+    prod_callers: []
+    notes: subagent-stop.py independently validates transcript fences and schemas
+  - symbol: dual wrapper/canonical route
+    kind: C
+    command: ls harness/hooks/agent-pretool.py harness/hooks/bash-pretool.py || true
+    result: pass
+    prod_callers: []
+    notes: Legacy standalone hooks deleted in s07, zero dual path routing
+  - symbol: docs naming removed individual pre/post hooks
+    kind: I
+    command: rg -n "pretool-dispatch.py" .cursor/rules/ harness/manifest.yaml
+    result: pass
+    prod_callers: []
+    notes: Active docs reference canonical dispatchers
+  - symbol: advice to merge all lifecycle events
+    kind: I
+    command: rg -n "SubagentStart.*SubagentStop.*Stop" harness/hooks/hook_dispatch.py
+    result: pass
+    prod_callers: []
+    notes: Distinct lifecycle event constants and boundary contracts preserved
+legacy_surfaces_remaining: []
+fallback_remaining: []
+instruction_remaining: []
+purge_step_present: true
+sot_enforce_scan:
+  scanned_at: '2026-09-11'
+  rows:
+  - boundary: pretool-dispatch-canonical
+    enforce_evidence: Single canonical PreToolUse dispatcher enforces project and
+      finish boundaries followed by tool policy short-circuiting on first deny
+    result: pass
+    notes: ''
+  - boundary: posttool-dispatch-canonical
+    enforce_evidence: Single canonical PostToolUse dispatcher isolates agent state
+      and output shaping with idempotent evidence recording
+    result: pass
+    notes: ''
+  - boundary: independent-stop-gate
+    enforce_evidence: External subagent-stop and stop-gate enforce strict fence and
+      identity checks independent of agent self-check
+    result: pass
+    notes: ''
+  - boundary: manifest-settings-parity
+    enforce_evidence: Manifest and settings register unique realpaths with zero duplicate
+      commands across event matchers
+    result: pass
+    notes: ''
+blocked_reason: ''

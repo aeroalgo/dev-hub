@@ -1,0 +1,223 @@
+schema: epic-decompose/v1
+role: back
+step_id: s07
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "s07 — legacy-fallback-purge — full sunset inventory scan + deletes"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan `## Replacement / sunset` A+B+C+I.
+  Удалить устаревшие файлы `agent-pretool.py`, `bash-pretool.py`, `write-pretool.py`, `finish-boundary-pretool.py`,
+  `agent-posttool.py`, очистить мёртвые вызовы, подтвердить 0 prod callers по каждой строке inventory
+  и доказать зелёный regression suite. Это закрывает Stage 7 и требования FR-008, FR-011, FR-012, NFR-001, AC 6, AC 7.
+
+plan_contract:
+  fr_ids:
+    - US-005
+    - FR-008
+    - FR-011
+    - FR-012
+  nouns:
+    - legacy fallback purge
+    - sunset inventory
+    - grep control
+    - agent-pretool.py
+    - bash-pretool.py
+    - write-pretool.py
+    - finish-boundary-pretool.py
+    - agent-posttool.py
+  layout_paths:
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/bash-pretool.py
+    - harness/hooks/write-pretool.py
+    - harness/hooks/finish-boundary-pretool.py
+    - harness/hooks/agent-posttool.py
+  ac_quotes:
+    - "Старые entrypoints либо становятся тонкими compatibility wrappers с одним canonical implementation, либо удаляются внутри эпика"
+    - "Все старые registered hook behavior tests зелёные либо заменены parity tests с тем же acceptance"
+    - "Duplicate realpath scan даёт ноль active duplicates; old entrypoints не вызываются из settings/manifest"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:180-220"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:340-360"
+
+context:
+  consumes:
+    - "plan §Replacement / sunset (таблицы A, B, C, I)"
+    - "decompose index §Replacement cleanup (все строки)"
+  produces:
+    - "удалённые устаревшие hook entrypoints и дублированные policy функции"
+    - "evidence rg/inventory в implement shard"
+    - "зелёный full hub regression suite"
+  plan_refs:
+    - US-005
+    - FR-008
+    - FR-011
+    - FR-012
+    - NFR-001
+    - AC+ #6
+    - AC+ #7
+    - AC− #5
+  files:
+    - harness/hooks/agent-pretool.py
+    - harness/hooks/bash-pretool.py
+    - harness/hooks/write-pretool.py
+    - harness/hooks/finish-boundary-pretool.py
+    - harness/hooks/agent-posttool.py
+
+as_built:
+  - "s01-s06 deployed canonical hook_dispatch.py, gate_runtime.py, pretool-dispatch.py, posttool-dispatch.py, and updated manifest/settings."
+  - "Old standalone hook files (agent-pretool.py, bash-pretool.py, write-pretool.py, finish-boundary-pretool.py, agent-posttool.py) are no longer called by active configuration."
+
+delta:
+  - "DELETE harness/hooks/agent-pretool.py, bash-pretool.py, write-pretool.py, finish-boundary-pretool.py, agent-posttool.py."
+  - "VERIFY 0 prod callers across codebase for deleted legacy hook files using grep_control."
+  - "RUN targeted hook suite and full hub test suite ensuring 100% pass rate without legacy code."
+
+sunset_inventory:
+  - symbol: harness/hooks/agent-pretool.py
+    kind: A
+    replacement: harness/hooks/pretool_policy.py
+    policy: delete in-epic
+    rg_scope: harness/ loop/ .claude/
+    expect: zero prod callers; no active registration
+  - symbol: harness/hooks/bash-pretool.py
+    kind: A
+    replacement: harness/hooks/pretool_policy.py
+    policy: delete in-epic
+    rg_scope: harness/ loop/ .claude/
+    expect: zero prod callers; no active registration
+  - symbol: harness/hooks/write-pretool.py
+    kind: A
+    replacement: harness/hooks/pretool_policy.py
+    policy: delete in-epic
+    rg_scope: harness/ loop/ .claude/
+    expect: zero prod callers; no active registration
+  - symbol: harness/hooks/finish-boundary-pretool.py
+    kind: A
+    replacement: harness/hooks/pretool_policy.py
+    policy: delete in-epic
+    rg_scope: harness/ loop/ .claude/
+    expect: zero prod callers; no active registration
+  - symbol: harness/hooks/agent-posttool.py
+    kind: A
+    replacement: harness/hooks/posttool_policy.py
+    policy: delete in-epic
+    rg_scope: harness/ loop/ .claude/
+    expect: zero prod callers; no active registration
+  - symbol: separate registered pretool commands in manifest/settings
+    kind: B
+    replacement: pretool-dispatch.py
+    policy: delete in-epic
+    rg_scope: harness/manifest.yaml .claude/settings.json
+    expect: zero occurrences of legacy pretool commands
+  - symbol: separate registered posttool commands in manifest/settings
+    kind: B
+    replacement: posttool-dispatch.py
+    policy: delete in-epic
+    rg_scope: harness/manifest.yaml .claude/settings.json
+    expect: zero occurrences of legacy posttool commands
+  - symbol: silent exception allow in gate branch
+    kind: C
+    replacement: typed fail-closed diagnostic
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero silent allows
+  - symbol: docs naming individual pre/post hooks as independent registration
+    kind: I
+    replacement: event dispatcher contract
+    policy: delete in-epic
+    rg_scope: memory-bank/ docs/ harness/
+    expect: zero active references to separate hook registrations
+
+deletes:
+  - harness/hooks/agent-pretool.py
+  - harness/hooks/bash-pretool.py
+  - harness/hooks/write-pretool.py
+  - harness/hooks/finish-boundary-pretool.py
+  - harness/hooks/agent-posttool.py
+
+out_of_scope:
+  - "External runtime adapters outside dev-hub scope."
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: agent-pretool.py
+    command: 'rg -n "agent-pretool\.py" harness/ loop/ .claude/ || true'
+    expect: no active prod callers
+  - id: inv-a-02
+    kind: A
+    symbol: bash-pretool.py
+    command: 'rg -n "bash-pretool\.py" harness/ loop/ .claude/ || true'
+    expect: no active prod callers
+  - id: inv-a-03
+    kind: A
+    symbol: write-pretool.py
+    command: 'rg -n "write-pretool\.py" harness/ loop/ .claude/ || true'
+    expect: no active prod callers
+  - id: inv-a-04
+    kind: A
+    symbol: finish-boundary-pretool.py
+    command: 'rg -n "finish-boundary-pretool\.py" harness/ loop/ .claude/ || true'
+    expect: no active prod callers
+  - id: inv-a-05
+    kind: A
+    symbol: agent-posttool.py
+    command: 'rg -n "agent-posttool\.py" harness/ loop/ .claude/ || true'
+    expect: no active prod callers
+  - id: inv-b-01
+    kind: B
+    symbol: legacy pretool entrypoints in settings
+    command: 'rg -n "agent-pretool|bash-pretool|write-pretool|finish-boundary-pretool" .claude/settings.json harness/manifest.yaml || true'
+    expect: no output
+  - id: inv-b-02
+    kind: B
+    symbol: legacy posttool entrypoints in settings
+    command: 'rg -n "agent-posttool" .claude/settings.json harness/manifest.yaml || true'
+    expect: no output
+  - id: inv-c-01
+    kind: C
+    symbol: silent allow pattern
+    command: 'rg -n "except Exception.*return.*allow" harness/hooks/ || true'
+    expect: no output
+  - id: inv-i-01
+    kind: I
+    symbol: old individual hook references
+    command: 'rg -n "individual pre/post hooks registration" docs/ memory-bank/activeContext.md || true'
+    expect: no output
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Kind A — All 5 legacy hook scripts deleted from filesystem and zero prod callers remain."
+    verify: "rg -n 'agent-pretool|bash-pretool|write-pretool|finish-boundary-pretool|agent-posttool' harness/manifest.yaml .claude/settings.json || true"
+  - id: cp2
+    criterion: "Kind B — No legacy entrypoints in manifest.yaml or settings.json."
+    verify: "rg -n 'pretool-dispatch.py|posttool-dispatch.py' harness/manifest.yaml"
+  - id: cp3
+    criterion: "Kind C — No silent allow exception handlers in hook codebase."
+    verify: "rg -n 'except Exception' harness/hooks/hook_dispatch.py harness/hooks/gate_runtime.py || true"
+  - id: cp4
+    criterion: "Kind I — No stale instruction surfaces referencing deleted hooks."
+    verify: "rg -n 'agent-pretool|agent-posttool' docs/ || true"
+  - id: cp5
+    criterion: "Full targeted test suite and epic regression pass cleanly."
+    verify: ".venv/bin/pytest harness/hooks/tests/ -q --tb=line"
+
+verify:
+  - "Deleted legacy hook files cannot be imported or executed."
+  - "Manifest and settings reference only canonical dispatchers."
+  - "Full hub pytest regression suite passes without failures."
+
+tdd:
+  - "test_legacy_hook_files_purged"
+  - "test_zero_prod_callers_for_deleted_hooks"
+  - "test_full_suite_regression_green"

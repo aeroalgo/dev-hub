@@ -57,23 +57,50 @@ def _setup_epic_env(cwd: Path) -> None:
         "PROJECT_WORKFLOW_HOOKS=always\nPROJECT_AGENT_VERIFY_MODEL=sonnet\n",
         encoding="utf-8",
     )
+    from gate_receipt import issue_verifier_receipt
+    from loop.gate_identity import GateIdentity
+
+    session_id = "test"
     state = {
         "active": True,
         "status": "running",
+        "session_id": session_id,
         "epic_id": "T-HUB-022",
+        "armed_epic": "T-HUB-022",
+        "role": "BACK",
+        "phase": "BACK IMPLEMENT",
         "armed_step": "s09",
         "armed_decompose": "memory-bank/back/plan/decompose-T-HUB-022-test/index.yaml",
         "pending_fingerprint_before": "old_fp",
         "last_verify_verdict": "PASS",
         "last_finish_tool": {"tool": "mb-finish", "fingerprint": "fp123"},
+        "projection_hash": "proj-handoff",
+        "phase_epoch": "epoch-handoff",
+        "event_digest": "evt-handoff",
     }
+    identity = GateIdentity.expected(state, session_id=session_id).to_dict()
+    receipt = issue_verifier_receipt(identity, "PASS", "verify-implement")
+    state["last_verify_receipt"] = receipt
+    state["last_verify_evidence"] = receipt
+    state["gate_identity"] = identity
     state_path = cwd / ".claude" / "runtime" / "epic" / "state.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(state), encoding="utf-8")
 
     spawn_state_path = cwd / ".claude" / "runtime" / "spawn-gate" / "test.json"
     spawn_state_path.parent.mkdir(parents=True, exist_ok=True)
-    spawn_state_path.write_text(json.dumps({"workflow_source": "loop"}), encoding="utf-8")
+    spawn_state_path.write_text(
+        json.dumps(
+            {
+                "workflow_source": "loop",
+                "need_verify": False,
+                "verify_done": True,
+                "verify_verdict": "PASS",
+                "verify_evidence": receipt,
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _run_stop_gate(cwd: Path, payload: dict, env_overrides: dict | None = None) -> dict:

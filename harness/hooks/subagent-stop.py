@@ -60,6 +60,15 @@ from loop.gate_identity import (  # noqa: E402
 )
 from loop.runtime_adapters.agent_contract import get_agent_contract_adapter  # noqa: E402
 from loop.runtime_adapters.subagent_lifecycle import gate_atomic_finish  # noqa: E402
+from gate_runtime import (
+    BoundaryValidator,
+    EvidenceRecorder,
+    GateDiagnosticCode,
+    IdentityService,
+    SessionIdentity,
+    VerdictExtractor,
+    classify_retry_outcome,
+)
 
 
 def _require_verdict_message(agent_type: str) -> str:
@@ -188,6 +197,15 @@ def _handle_verify_finish_agent(
         evidence = dict(evidence)
         evidence["demoted_from_pass"] = True
         evidence["demote_blockers"] = list(demote_blockers)
+    rec_res = EvidenceRecorder.record_gate_evidence(
+        st,
+        session_id=session_id,
+        tool_use_id=str(data.get("tool_use_id") or "").strip() or None,
+        agent_type=agent_type,
+        verdict=verdict,
+        identity=identity,
+        report_text=report_text,
+    )
     matched, _diagnostic = record_verdict(st, record_key, verdict, evidence)
     dedupe_key = verdict_dedupe_key(
         session_id,

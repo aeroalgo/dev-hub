@@ -1,0 +1,109 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: Provider-neutral SessionInvoker, runtime adapters and session resilience wiring
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Implement SessionInvoker bridging runtime adapters (Claude, DSH, Codex) to the session resilience
+  execution boundary without shell text parsing or silent fallback (FR-008, FR-009, US-003, SC-003).
+
+plan_contract:
+  fr_ids:
+    - US-003
+    - FR-008
+    - FR-009
+    - SC-003
+  nouns:
+    - loop.runner.session
+    - SessionInvoker
+    - RuntimeAdapter
+    - session_resilience
+    - dispatch.py
+    - dsh.py
+    - base.py
+  layout_paths:
+    - loop/runner/session.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime/dispatch.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_runner_session.py
+  ac_quotes:
+    - "FR-008: SessionInvoker resolves provider through runtime registry/adapters and invokes existing session-resilience boundary with explicit timeout, kill grace, heartbeat, idle timeout, log path, expected model, stdin and progress mode."
+    - "FR-009: Claude, DSH and Codex retain their current cwd, argv, profile, model, stdin and stream-filter behavior; missing DSH/Codex binary has no silent Claude fallback."
+    - "US-003: Как runtime maintainer, я хочу добавлять/менять adapter без нового provider-specific блока в supervisor-е."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:202-264"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:290-297"
+
+context:
+  consumes:
+    - loop/runner/__init__.py
+    - loop/runner/config.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime/dispatch.py
+    - harness/hooks/session_resilience.py
+  produces:
+    - loop/runner/session.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime/dispatch.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_runner_session.py
+  plan_refs:
+    - US-003
+    - FR-008
+    - FR-009
+    - SC-003
+  files:
+    - loop/runner/session.py
+    - loop/runtime_adapters/base.py
+    - loop/runtime_adapters/common.py
+    - loop/runtime_adapters/dsh.py
+    - loop/runtime/dispatch.py
+    - harness/hooks/session_resilience.py
+    - loop/tests/test_runner_session.py
+
+as_built:
+  - "loop/runtime_adapters/ defines Claude, DSH, and Codex command generation"
+  - "loop/runtime/dispatch.py resolves CLI args from runtime_registry.yaml"
+  - "harness/hooks/session_resilience.py provides subprocess execution, process group watchdog, timeout and model substitution detection"
+  - "loop/loop.sh has hardcoded shell functions run_claude_session, run_dsh_session, resolve_dsh_bin, ensure_dsh_profiles"
+
+delta:
+  - "Create loop/runner/session.py implementing SessionInvoker that resolves adapter from registry and executes session via session_resilience"
+  - "Enhance loop/runtime_adapters/base.py and common.py with typed metadata for working directory, stdin pipe requirements, stream filters, and profile preparation"
+  - "Enhance loop/runtime_adapters/dsh.py to encapsulate DSH binary resolution and profile validation inside the adapter"
+  - "Expose direct programmatic entrypoint in harness/hooks/session_resilience.py returning typed SessionExecutionResult"
+  - "Create loop/tests/test_runner_session.py verifying Claude, DSH, and Codex execution, timeouts, stream filter pipeline, and missing binary fail-closed errors"
+
+deletes: []
+
+out_of_scope:
+  - "Outer loop state machine and transient retry loop"
+  - "Shell supervisor removal"
+  - "Documentation and runbook updates"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: SessionInvoker correctly delegates to runtime adapters for Claude, DSH, and Codex without provider-specific if-chains in supervisor
+    verify: "bin/pytest loop/tests/test_runner_session.py -k 'test_invoke_providers' -q"
+  - id: cp2
+    criterion: Subprocess execution via session_resilience preserves timeouts, idle watchdogs, signal handling, and log writing
+    verify: "bin/pytest loop/tests/test_runner_session.py -k 'test_resilience_integration' -q"
+  - id: cp3
+    criterion: Missing binary, unknown runtime, or invalid DSH profile exits fail-closed with clear diagnostic and zero Claude fallback
+    verify: "bin/pytest loop/tests/test_runner_session.py -k 'test_fail_closed' -q"
+
+verify: []
+tdd: []

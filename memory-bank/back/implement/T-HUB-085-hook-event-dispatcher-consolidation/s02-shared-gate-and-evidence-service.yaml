@@ -1,0 +1,57 @@
+schema: epic-implement/v1
+role: back
+step_id: s02
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s02 — Общие pure services валидируют identity, boundaries и evidence IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s02-shared-gate-and-evidence-service.yaml
+skills_used: []
+discovery: []
+gaps:
+  status: none
+done:
+- 'Создан harness/hooks/gate_runtime.py с общими pure services: SessionIdentity, BoundaryValidator,
+  VerdictExtractor, IdentityService, EvidenceRecorder и GateDiagnosticCode.'
+- BoundaryValidator проверяет malformed json fences, missing schemas, schema model
+  invalidations и ownership mismatches с типизированными diagnostic codes.
+- IdentityService отвергает stale, forged и parent-only manual state payloads fail-closed,
+  требуя authentic session/agent identity.
+- EvidenceRecorder обеспечивает строгую идемпотентность записи verdict и verifier
+  receipt по (session_id, tool_use_id, agent_type, verdict).
+- Создан unit test suite harness/hooks/tests/test_gate_runtime.py (12 тестов), полностью
+  покрывающий checkpoints cp1-cp4 и TDD сценарии.
+files:
+- harness/hooks/gate_runtime.py
+- harness/hooks/tests/test_gate_runtime.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q` — 12
+  passed'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_gate_runtime.py harness/hooks/tests/test_hook_dispatch.py
+  -q` — 32 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q — 12 passed
+checkpoints:
+- id: cp1
+  criterion: Boundary validator rejects malformed json fences, missing schemas, and
+    ownership mismatches with typed diagnostic codes.
+  status: done
+  done_at: '2026-09-11T01:25:00Z'
+- id: cp2
+  criterion: Identity service rejects stale, forged, or parent-only manual state payloads,
+    requiring authentic session/agent identity.
+  status: done
+  done_at: '2026-09-11T01:25:00Z'
+- id: cp3
+  criterion: Evidence recording is strictly idempotent across repeated invocations
+    for the same (session_id, tool_use_id, agent_type, verdict).
+  status: done
+  done_at: '2026-09-11T01:25:00Z'
+- id: cp4
+  criterion: All unit tests in test_gate_runtime.py pass completely.
+  status: done
+  done_at: '2026-09-11T01:25:00Z'
+resume_from: cp1

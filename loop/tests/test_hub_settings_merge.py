@@ -29,7 +29,7 @@ def harness_settings_file(tmp_path: Path) -> Path:
                     "hooks": [
                         {
                             "type": "command",
-                            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/bash-pretool.py\"",
+                            "command": "python3 \"$CLAUDE_PROJECT_DIR/harness/hooks/pretool-dispatch.py\"",
                             "timeout": 15,
                         }
                     ]

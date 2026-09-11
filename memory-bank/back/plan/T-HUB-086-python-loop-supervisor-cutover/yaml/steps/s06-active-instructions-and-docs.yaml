@@ -1,0 +1,118 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-086-python-loop-supervisor-cutover
+title: Active operator docs, rules, instructions and architecture data-flow migration
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Update active operator documentation, instructions, runbooks, slash commands, and architecture descriptions
+  to reflect the Python runner as canonical and loop.sh as a compatibility shim (FR-015, US-005, SC-004).
+
+plan_contract:
+  fr_ids:
+    - US-005
+    - FR-015
+    - SC-004
+  nouns:
+    - README.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - LOOP-RUNTIMES.md
+    - harness/instructions/epic-loop.md
+    - harness/instructions/loop-state.md
+    - harness/instructions/program-loop.md
+    - harness/claude/commands/epic-run.md
+    - harness/claude/commands/epic-status.md
+    - harness/claude/commands/loop-run.md
+    - harness/claude/commands/program-run.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/dsh-loop-pilot.md
+  layout_paths:
+    - README.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - LOOP-RUNTIMES.md
+    - harness/instructions/epic-loop.md
+    - harness/instructions/loop-state.md
+    - harness/instructions/program-loop.md
+    - harness/claude/commands/epic-run.md
+    - harness/claude/commands/epic-status.md
+    - harness/claude/commands/loop-run.md
+    - harness/claude/commands/program-run.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/dsh-loop-pilot.md
+  ac_quotes:
+    - "FR-015: active operator/instruction docs teach bin/loop or python3 -m loop.runner; direct loop.sh references are labeled compatibility-only and no document teaches source loop.sh functions."
+    - "US-005: Как reviewer, я хочу видеть один canonical execution path и остаток shell только как shim."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:454-466"
+    - "memory-bank/back/plan/T-HUB-086-python-loop-supervisor-cutover/md/plan.md:554-559"
+
+context:
+  consumes:
+    - loop/runner/cli.py
+    - loop/loop.sh
+    - bin/loop
+  produces:
+    - README.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - LOOP-RUNTIMES.md
+    - harness/instructions/epic-loop.md
+    - harness/instructions/loop-state.md
+    - harness/instructions/program-loop.md
+    - harness/claude/commands/epic-run.md
+    - harness/claude/commands/epic-status.md
+    - harness/claude/commands/loop-run.md
+    - harness/claude/commands/program-run.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/dsh-loop-pilot.md
+  plan_refs:
+    - US-005
+    - FR-015
+    - SC-004
+  files:
+    - README.md
+    - loop/README.md
+    - loop/WORKFLOW.md
+    - LOOP-RUNTIMES.md
+    - harness/instructions/epic-loop.md
+    - harness/instructions/loop-state.md
+    - harness/instructions/program-loop.md
+    - harness/claude/commands/epic-run.md
+    - harness/claude/commands/epic-status.md
+    - harness/claude/commands/loop-run.md
+    - harness/claude/commands/program-run.md
+    - docs/runbooks/codex-loop-pilot.md
+    - docs/runbooks/dsh-loop-pilot.md
+
+as_built:
+  - "Documentation, slash commands, and runbooks describe loop.sh as the main implementation runner and contain instructions on sourcing shell functions"
+
+delta:
+  - "Update README.md, loop/README.md, loop/WORKFLOW.md, and LOOP-RUNTIMES.md to document bin/loop and python3 -m loop.runner as canonical entrypoints"
+  - "Update harness/instructions/{epic-loop,loop-state,program-loop}.md and harness/claude/commands/{epic-run,epic-status,loop-run,program-run}.md to invoke public CLI and python runner"
+  - "Update docs/runbooks/{codex-loop-pilot,dsh-loop-pilot}.md to remove shell internal references"
+
+deletes: []
+
+out_of_scope:
+  - "Historical archive / audit logs / completed epic memory-bank prose (retained as historical records)"
+  - "Final legacy purge audit scan"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Root and loop READMEs, WORKFLOW, and runtime docs describe Python runner and bin/loop without teaching loop.sh functions
+    verify: "! rg -n 'source loop/loop\\.sh' README.md loop/README.md loop/WORKFLOW.md LOOP-RUNTIMES.md"
+  - id: cp2
+    criterion: Slash commands, harness instructions, and runbooks invoke canonical bin/loop or python3 -m loop.runner
+    verify: "! rg -n 'source loop/loop\\.sh' harness/instructions/ harness/claude/commands/ docs/runbooks/"
+
+verify: []
+tdd: []

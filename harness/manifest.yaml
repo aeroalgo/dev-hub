@@ -123,50 +123,15 @@ hooks:
         settings_key: "hooks.UserPromptSubmit"
       codex:
         hooks_json_entry: true
-  agent-pretool:
-    source: "harness/hooks/agent-pretool.py"
+  pretool-dispatch:
+    source: "harness/hooks/pretool-dispatch.py"
     runtimes:
       claude:
         settings_key: "hooks.PreToolUse"
       codex:
         hooks_json_entry: true
-  bash-pretool:
-    source: "harness/hooks/bash-pretool.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PreToolUse"
-      codex:
-        hooks_json_entry: true
-  write-pretool:
-    source: "harness/hooks/write-pretool.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PreToolUse"
-      codex:
-        hooks_json_entry: true
-  context-ledger:
-    source: "harness/hooks/context_ledger_adapters.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PreToolUse"
-      codex:
-        hooks_json_entry: true
-  finish-boundary-pretool:
-    source: "harness/hooks/finish-boundary-pretool.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PreToolUse"
-      codex:
-        hooks_json_entry: true
-  agent-posttool:
-    source: "harness/hooks/agent-posttool.py"
-    runtimes:
-      claude:
-        settings_key: "hooks.PostToolUse"
-      codex:
-        hooks_json_entry: true
-  bash-output-cap:
-    source: "harness/hooks/bash-output-cap.py"
+  posttool-dispatch:
+    source: "harness/hooks/posttool-dispatch.py"
     runtimes:
       claude:
         settings_key: "hooks.PostToolUse"

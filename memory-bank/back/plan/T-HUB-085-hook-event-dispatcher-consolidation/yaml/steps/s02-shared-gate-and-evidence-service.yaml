@@ -1,0 +1,119 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: "Общие pure services валидируют identity, boundaries и evidence"
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Вынести общие pure функции валидации session identity, schema/fence checking, boundary validation,
+  verdict extraction, retry classification и evidence recording в `harness/hooks/gate_runtime.py`
+  без дублирования plumbing. Это закрывает Stage 2 и требования US-003, FR-005, FR-006, FR-007, FR-009 и NFR-006.
+
+plan_contract:
+  fr_ids:
+    - US-003
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-009
+    - FR-012
+  nouns:
+    - gate_runtime.py
+    - SessionIdentity
+    - BoundaryValidator
+    - VerdictExtractor
+    - EvidenceRecorder
+    - SubagentStop
+    - Stop
+    - idempotency key
+  layout_paths:
+    - harness/hooks/gate_runtime.py
+    - harness/hooks/tests/test_gate_runtime.py
+  ac_quotes:
+    - "Общие pure services для state identity, verdict extraction, boundary validation, evidence recording и diagnostic codes имеют один контракт"
+    - "Внешний SubagentStop отвергает malformed fence, schema mismatch, ownership mismatch и stale identity"
+    - "Stop не принимает state-only/manual PASS и не разрешает finish без обязательного gate"
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:130-170"
+    - "memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md:210-250"
+
+context:
+  consumes:
+    - "plan §WHAT (FR-005, FR-006, FR-007, FR-009)"
+    - "plan §Failure matrix TM-085-05, TM-085-06, TM-085-09, TM-085-10"
+    - "plan §Stages (Stage 2)"
+  produces:
+    - "harness/hooks/gate_runtime.py — pure typed helpers for boundary validation, identity matching, retry classification, idempotent evidence recording"
+    - "harness/hooks/tests/test_gate_runtime.py — unit tests for valid/malformed/stale/forged identity and evidence payloads"
+  plan_refs:
+    - US-003
+    - US-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - FR-009
+    - FR-010
+    - FR-012
+    - NFR-003
+    - NFR-004
+    - NFR-006
+    - AC+ #4
+    - AC+ #5
+    - AC+ #8
+    - AC− #2
+    - AC− #3
+    - AC− #4
+  files:
+    - harness/hooks/gate_runtime.py
+    - harness/hooks/tests/test_gate_runtime.py
+
+as_built:
+  - "harness/hooks/gate_receipt.py and harness/hooks/subagent-stop.py duplicate logic for extracting fences, matching session identity and validating gate schema."
+  - "harness/hooks/stop-gate.py re-reads gate state independently and lacks a unified pure validator for evidence records."
+
+delta:
+  - "CREATE harness/hooks/gate_runtime.py with pure helper functions for session identity verification, gate schema/fence extraction, retry code derivation, and idempotent evidence writes."
+  - "CREATE harness/hooks/tests/test_gate_runtime.py verifying that forged PASS, manual state injection, mismatched identity, malformed fences, and stale receipts fail closed."
+
+deletes: []
+
+out_of_scope:
+  - "Rewiring SubagentStart/SubagentStop/Stop entrypoints to gate_runtime — s05."
+  - "PreToolUse dispatcher logic — s03."
+  - "PostToolUse dispatcher logic — s04."
+
+skills:
+  code_surface: api
+  impl:
+    - .agents/skills/tdd/SKILL.md
+    - .agents/skills/python-testing-patterns/SKILL.md
+    - .agents/skills/modern-python/SKILL.md
+    - .agents/skills/python-anti-patterns/SKILL.md
+    - .agents/skills/python-type-safety/SKILL.md
+
+checkpoints:
+  - id: cp1
+    criterion: "Boundary validator rejects malformed json fences, missing schemas, and ownership mismatches with typed diagnostic codes."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q --tb=line -k 'boundary or fence or schema'"
+  - id: cp2
+    criterion: "Identity service rejects stale, forged, or parent-only manual state payloads, requiring authentic session/agent identity."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q --tb=line -k 'identity or forged or stale'"
+  - id: cp3
+    criterion: "Evidence recording is strictly idempotent across repeated invocations for the same (session_id, tool_use_id, agent_type, verdict)."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q --tb=line -k 'idempotent or evidence'"
+  - id: cp4
+    criterion: "All unit tests in test_gate_runtime.py pass completely."
+    verify: ".venv/bin/pytest harness/hooks/tests/test_gate_runtime.py -q"
+
+verify:
+  - "gate_runtime.py does not accept raw mutable dict as trusted proof of PASS without valid signature/receipt."
+  - "Self-check validate-boundary and external SubagentStop remain distinct trust boundaries."
+  - "All helper APIs are strictly typed and fail closed on invalid inputs."
+
+tdd:
+  - "test_boundary_validation_fails_on_malformed_fence"
+  - "test_identity_matcher_rejects_stale_or_mismatched_session"
+  - "test_evidence_recording_is_idempotent"
+  - "test_manual_state_injection_rejected"

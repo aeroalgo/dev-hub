@@ -14,6 +14,25 @@ if str(HOOKS) not in sys.path:
 from spawn_validate import validate_spawn_input  # noqa: E402
 
 
+def _identity_state(
+    *,
+    session_id: str = "sess-spawn-test",
+    epic_id: str = "T-spawn",
+    step_id: str = "s01",
+) -> dict:
+    return {
+        "session_id": session_id,
+        "gate_identity": {
+            "schema": "loop-gate-identity/v1",
+            "session_id": session_id,
+            "epic_id": epic_id,
+            "step_id": step_id,
+            "role": "BACK",
+            "phase": "BACK IMPLEMENT",
+        },
+    }
+
+
 def _agent(root: Path, filename: str, frontmatter: str) -> None:
     agents = root / ".claude" / "agents"
     agents.mkdir(parents=True, exist_ok=True)
@@ -65,7 +84,7 @@ def test_missing_contract_sections_are_denied(tmp_path: Path, monkeypatch) -> No
     monkeypatch.setenv("EPIC_LOOP", "1")
 
     tool_input = {"subagent_type": "verify", "prompt": "spawn"}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("prompt_incomplete" in reason for reason in deny_reasons)
 
@@ -78,7 +97,7 @@ def test_allow_read_directory_is_denied(tmp_path: Path, monkeypatch) -> None:
         "subagent_type": "verify",
         "prompt": _verify_prompt("memory-bank/", cwd=tmp_path),
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("ALLOW READ" in reason and "каталог" in reason for reason in deny_reasons)
 
@@ -88,9 +107,10 @@ def test_managed_in_flight_is_denied(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("EPIC_LOOP", "1")
 
     state = {
+        **_identity_state(),
         "in_flight": [
             {"agent": "explorer", "model": "fable", "managed": True}
-        ]
+        ],
     }
     tool_input = {
         "subagent_type": "verify",
@@ -111,7 +131,7 @@ def test_well_formed_prompt_without_in_flight_is_allowed(
         "subagent_type": "verify",
         "prompt": _verify_prompt(cwd=tmp_path),
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert deny_reasons == []
 
@@ -130,7 +150,7 @@ def test_verify_implement_requires_decompose_step(
         "subagent_type": "verify-implement",
         "prompt": f"ALLOW READ\n{impl}\nfoo.py\n",
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("decompose_step_not_in_allow" in reason for reason in deny_reasons)
 
@@ -152,7 +172,7 @@ def test_verify_implement_allow_without_ac_sections(
         "subagent_type": "verify-implement",
         "prompt": _verify_prompt(cwd=tmp_path),
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert deny_reasons == []
     assert "AC+" not in tool_input["prompt"]
@@ -170,7 +190,7 @@ def test_alias_is_normalized_by_spawn_validation(tmp_path: Path, monkeypatch) ->
     monkeypatch.setenv("EPIC_LOOP", "1")
 
     tool_input = {"subagent_type": "explore", "prompt": "spawn"}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert deny_reasons == []
     assert tool_input["subagent_type"] == "explorer"
@@ -224,7 +244,7 @@ def test_gate_repair_missing_sections_denied(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.setenv("EPIC_LOOP", "1")
 
     tool_input = {"subagent_type": "gate-repair", "prompt": "spawn"}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("prompt_incomplete" in reason for reason in deny_reasons)
 
@@ -234,7 +254,7 @@ def test_gate_repair_well_formed_prompt_allowed(tmp_path: Path, monkeypatch) -> 
     monkeypatch.setenv("EPIC_LOOP", "1")
 
     tool_input = {"subagent_type": "gate-repair", "prompt": _repair_prompt()}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert deny_reasons == []
 
@@ -250,7 +270,7 @@ def test_gate_repair_vague_blockers_denied(tmp_path: Path, monkeypatch) -> None:
         "bin/pytest path/to/test_c.py -q\n"
     )
     tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("prompt_incomplete:blocker_row" in reason for reason in deny_reasons)
 
@@ -270,7 +290,7 @@ def test_gate_repair_blocker_path_must_be_in_allow_write(
         "bin/pytest path/to/test_c.py -q\n"
     )
     tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("prompt_incomplete:blocker_row" in reason for reason in deny_reasons)
 
@@ -281,7 +301,7 @@ def test_gate_repair_after_qa_requires_full_suite(tmp_path: Path, monkeypatch) -
 
     prompt = _repair_prompt() + "\nPhase: BACK QA\n"
     tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert any("qa_repair_verify_incomplete" in reason for reason in deny_reasons)
 
@@ -299,7 +319,7 @@ def test_gate_repair_after_qa_accepts_full_suite(tmp_path: Path, monkeypatch) ->
         + "\nPhase: BACK QA\n"
     )
     tool_input = {"subagent_type": "gate-repair", "prompt": prompt}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
 
     assert deny_reasons == []
 
@@ -368,7 +388,7 @@ def test_verify_decompose_allow_read_ignores_later_section_paths(
     assert lib.allow_read_violations(prompt) == []
 
     tool_input = {"subagent_type": "verify-decompose", "prompt": prompt}
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
     assert deny_reasons == []
 
 
@@ -382,7 +402,7 @@ def test_verify_decompose_missing_allow_denied(
         "subagent_type": "verify-decompose",
         "prompt": "check coverage only\n",
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
     assert any(
         "prompt_incomplete" in reason and "ALLOW READ" in reason
         for reason in deny_reasons
@@ -403,5 +423,109 @@ def test_verify_decompose_allow_read_over_limit_still_denied(
         "subagent_type": "verify-decompose",
         "prompt": _decompose_prompt(extra_allow=extra),
     }
-    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    deny_reasons, _notes = validate_spawn_input(tool_input, _identity_state(), tmp_path)
     assert any("ALLOW READ" in reason and "> 10" in reason for reason in deny_reasons)
+
+
+def test_gate_identity_injected_for_all_identity_spawn_agents(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    agents = [
+        ("verify", "verify.md", "gate", "pass-fail"),
+        ("verify-implement", "verify-implement.md", "gate", "pass-fail"),
+        ("verify-bugfix", "verify-bugfix.md", "gate", "pass-fail"),
+        ("verify-qa", "verify-qa.md", "gate", "pass-blocked-fail"),
+        ("verify-decompose", "verify-decompose.md", "gate", "pass-fail"),
+        ("analyze-verify", "analyze-verify.md", "gate", "pass-fail"),
+        ("verify-script", "verify-script.md", "gate", "pass-fail"),
+        ("verify-edit", "verify-edit.md", "gate", "pass-fail"),
+        ("verify-publish", "verify-publish.md", "gate", "pass-fail"),
+        ("gate-repair", "gate-repair.md", "repair", "none"),
+    ]
+    env_lines = []
+    for name, filename, mode, verdict in agents:
+        _agent(
+            tmp_path,
+            filename,
+            f"name: {name}\noverlay:\n  managed: true\n  mode: {mode}\n"
+            f"  default_loop: true\n  requires_model: true\n  verdict: {verdict}",
+        )
+        env_key = name.upper().replace("-", "_")
+        env_lines.append(f"PROJECT_AGENT_{env_key}_MODEL=sonnet\n")
+    (tmp_path / ".claude" / "project.env").write_text(
+        "".join(env_lines), encoding="utf-8"
+    )
+
+    bugfix = tmp_path / "memory-bank/back/bugfix/T-spawn/bugfix-20260910-demo.md"
+    bugfix.parent.mkdir(parents=True, exist_ok=True)
+    bugfix.write_text("# bugfix\n## Changes Implemented\n- x\n## Verification\n- ok\n", encoding="utf-8")
+    plan = tmp_path / "memory-bank/back/plan/T-spawn/md/plan.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("# plan\n", encoding="utf-8")
+    idx = tmp_path / "memory-bank/back/plan/T-spawn/yaml/decompose-index.yaml"
+    idx.parent.mkdir(parents=True, exist_ok=True)
+    idx.write_text("schema: epic-decompose-index/v1\nsteps: []\n", encoding="utf-8")
+
+    prompts = {
+        "verify": _verify_prompt(cwd=tmp_path),
+        "verify-implement": _verify_prompt(cwd=tmp_path),
+        "verify-bugfix": f"ALLOW READ\n{bugfix.relative_to(tmp_path)}\n",
+        "verify-qa": (
+            "Suite results\nbin/pytest -q --tb=line — PASS\n"
+            "ALLOW READ\nfoo.py\n"
+            "## Frozen QA checklist\nchecklist_sha256: abc\n"
+            "### AC+\n- a\n### AC−\n- b\n### §0.11\n- c\n### Prior blockers\n- none\n"
+        ),
+        "verify-decompose": (
+            f"ALLOW READ\n{plan.relative_to(tmp_path)}\n"
+            f"{idx.relative_to(tmp_path)}\n"
+        ),
+        "analyze-verify": (
+            "FINDINGS\n- none\nCOVERAGE\n- ok\nALLOW READ\nfoo.py\n"
+        ),
+        "verify-script": "AC+\n- a\nAC-\n- b\n0.11\n- c\nVERIFY\n- ok\nALLOW READ\nfoo.py\n",
+        "verify-edit": "AC+\n- a\nAC-\n- b\n0.11\n- c\nVERIFY\n- ok\nALLOW READ\nfoo.py\n",
+        "verify-publish": "AC+\n- a\nAC-\n- b\n0.11\n- c\nVERIFY\n- ok\nALLOW READ\nfoo.py\n",
+        "gate-repair": _repair_prompt(),
+    }
+
+    for name, _, _, _ in agents:
+        tool_input = {"subagent_type": name, "prompt": prompts[name]}
+        state = _identity_state(
+            step_id="QA" if name in {"verify-qa", "reviewer"} else "s01"
+        )
+        deny_reasons, _notes = validate_spawn_input(tool_input, state, tmp_path)
+        assert deny_reasons == [], (name, deny_reasons)
+        assert "GATE_IDENTITY session_id=sess-spawn-test epic_id=T-spawn" in tool_input["prompt"]
+        assert tool_input["prompt"].count("GATE_IDENTITY session_id=") == 1
+
+
+def test_gate_identity_missing_sot_is_denied(tmp_path: Path, monkeypatch) -> None:
+    _verify_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+
+    tool_input = {
+        "subagent_type": "verify",
+        "prompt": _verify_prompt(cwd=tmp_path),
+    }
+    deny_reasons, _notes = validate_spawn_input(tool_input, {}, tmp_path)
+    assert any("prompt_incomplete:GATE_IDENTITY" in reason for reason in deny_reasons)
+
+
+def test_gate_identity_already_present_is_idempotent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _verify_setup(tmp_path)
+    monkeypatch.setenv("EPIC_LOOP", "1")
+    prompt = (
+        "GATE_IDENTITY session_id=sess-spawn-test epic_id=T-spawn step_id=s01\n"
+        "Fence MUST use these exact IDs for session_id, epic_id, and step_id.\n\n"
+        + _verify_prompt(cwd=tmp_path)
+    )
+    tool_input = {"subagent_type": "verify", "prompt": prompt}
+    deny_reasons, _notes = validate_spawn_input(
+        tool_input, _identity_state(), tmp_path
+    )
+    assert deny_reasons == []
+    assert tool_input["prompt"].count("GATE_IDENTITY session_id=") == 1

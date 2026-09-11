@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 HOOKS = ROOT / "harness" / "hooks"
-WRITE_PRETOOL = HOOKS / "write-pretool.py"
+WRITE_PRETOOL = HOOKS / "pretool-dispatch.py"
 
 
 def _load_lib():

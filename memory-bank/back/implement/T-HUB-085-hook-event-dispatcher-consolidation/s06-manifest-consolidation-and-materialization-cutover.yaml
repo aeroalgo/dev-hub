@@ -1,0 +1,62 @@
+schema: epic-implement/v1
+role: back
+step_id: s06
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s06 — Manifest и materializer переключаются на canonical dispatchers IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s06-manifest-consolidation-and-materialization-cutover.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- Updated harness/manifest.yaml to declare pretool-dispatch.py for PreToolUse and
+  posttool-dispatch.py for PostToolUse.
+- Updated .claude/settings.json to use single canonical dispatchers for PreToolUse
+  and PostToolUse.
+- Added harness/hooks/tests/test_hook_registration_consolidation.py covering realpath
+  uniqueness, command reduction, and parity.
+files:
+- harness/manifest.yaml
+- .claude/settings.json
+- harness/hooks/tests/test_hook_registration_consolidation.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+  -q` — 4 passed'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py
+  harness/hooks/tests/test_pretool_dispatch.py harness/hooks/tests/test_posttool_dispatch.py
+  harness/hooks/tests/test_gate_boundaries.py harness/hooks/tests/test_gate_runtime.py
+  harness/hooks/tests/test_hook_dispatch.py loop/tests/test_hub_settings_merge.py
+  loop/tests/test_hook_duplicate_realpath.py -q` — 73 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_hook_registration_consolidation.py -q
+  — 4 passed
+checkpoints:
+- id: cp1
+  criterion: harness/manifest.yaml specifies one canonical pretool-dispatch.py and
+    one posttool-dispatch.py command.
+  status: done
+  done_at: '2026-09-11T02:25:00Z'
+- id: cp2
+  criterion: .claude/settings.json contains zero duplicate realpaths across all registered
+    event matchers.
+  status: done
+  done_at: '2026-09-11T02:25:00Z'
+- id: cp3
+  criterion: Total registered command entries is reduced from 11+ to the canonical
+    event-specific count.
+  status: done
+  done_at: '2026-09-11T02:25:00Z'
+- id: cp4
+  criterion: All registration and parity tests pass.
+  status: done
+  done_at: '2026-09-11T02:25:00Z'
+resume_from: cp1

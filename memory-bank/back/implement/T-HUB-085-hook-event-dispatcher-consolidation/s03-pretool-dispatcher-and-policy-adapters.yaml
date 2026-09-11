@@ -1,0 +1,52 @@
+schema: epic-implement/v1
+role: back
+step_id: s03
+plan_id: T-HUB-085-hook-event-dispatcher-consolidation
+title: s03 — Один canonical PreToolUse dispatcher выполняет цепочку проверок IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-085-hook-event-dispatcher-consolidation/yaml/steps/s03-pretool-dispatcher-and-policy-adapters.yaml
+skills_used:
+- .agents/skills/tdd/SKILL.md
+- .agents/skills/python-testing-patterns/SKILL.md
+- .agents/skills/modern-python/SKILL.md
+- .agents/skills/python-anti-patterns/SKILL.md
+- .agents/skills/python-type-safety/SKILL.md
+discovery: []
+gaps:
+  status: none
+done:
+- 'Implemented pure policy adapters in harness/hooks/pretool_policy.py: ProjectBoundaryAdapter,
+  FinishBoundaryAdapter, AgentPolicyAdapter, BashPolicyAdapter, WritePolicyAdapter.'
+- Implemented canonical PreToolUse CLI dispatcher entrypoint in harness/hooks/pretool-dispatch.py.
+- Implemented test suite harness/hooks/tests/test_pretool_dispatch.py with parity
+  and functional tests.
+files:
+- harness/hooks/pretool-dispatch.py
+- harness/hooks/pretool_policy.py
+- harness/hooks/tests/test_pretool_dispatch.py
+deletes: []
+tests:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q`'
+integration_check:
+- '`timeout 300s .venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q`
+  — 9 passed'
+grep_control: []
+verification_results:
+- .venv/bin/pytest harness/hooks/tests/test_pretool_dispatch.py -q — 9 passed
+checkpoints:
+- id: cp1
+  criterion: Agent/Task pretool checks enforce model overrides, prompt validation,
+    and agent type isolation identically to legacy agent-pretool.py.
+  status: done
+- id: cp2
+  criterion: Bash and Write pretool checks block unmanaged test execution and protected
+    files identically to legacy bash-pretool.py / write-pretool.py.
+  status: done
+- id: cp3
+  criterion: Finish boundary pretool checks run first and short-circuit on deny across
+    all tool types.
+  status: done
+- id: cp4
+  criterion: All parity and functional tests in test_pretool_dispatch.py pass.
+  status: done
