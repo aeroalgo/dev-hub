@@ -5,8 +5,10 @@
 
 - `verdict` — pass | fail | blocked (согласован с Handoff)
 - `scope[]`, `checks[]` — обязательны
-- `fix_plan[]` — обязателен при fail/blocked (цепочка → BUGFIX)
+- `fix_plan[]` — обязателен при fail/blocked; `finish_qa` создаёт/мерджит `memory-bank/{role}/bugfix/<epic>/bugfix-queue.yaml`
 
 Validate: `python3 .claude/hooks/epic_resolve.py validate-step --path <shard.yaml>`
+
+Очередь `epic-bugfix-queue/v1` — machine SoT статусов BUGFIX; `bugfix-*.md` не является источником прогресса.
 
 Legacy `review.md` — human outline only; FINISH artifact = yaml.

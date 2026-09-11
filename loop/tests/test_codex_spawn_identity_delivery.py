@@ -158,6 +158,8 @@ def test_spawn_validate_injects_gate_identity_before_child(tmp_path: Path) -> No
     bugfix = tmp_path / "memory-bank/back/bugfix/T-HUB-091/bugfix-20260910-x.md"
     bugfix.parent.mkdir(parents=True)
     bugfix.write_text("# bf\n## Changes Implemented\n- a\n## Verification\n- ok\n", encoding="utf-8")
+    queue = tmp_path / "memory-bank/back/bugfix/T-HUB-091/bugfix-queue.yaml"
+    queue.write_text("schema: epic-bugfix-queue/v1\nepic_id: T-HUB-091-gate-identity-sot-consolidation\n", encoding="utf-8")
 
     state = {
         "session_id": "sess-codex-delivery-1",
@@ -169,7 +171,7 @@ def test_spawn_validate_injects_gate_identity_before_child(tmp_path: Path) -> No
     }
     tool_input = {
         "subagent_type": "verify-bugfix",
-        "prompt": f"agent_type: verify-bugfix\nALLOW READ\n{bugfix.relative_to(tmp_path)}\n",
+        "prompt": f"agent_type: verify-bugfix\nALLOW READ\n{queue.relative_to(tmp_path)}\n{bugfix.relative_to(tmp_path)}\n",
     }
     import os
 

@@ -44,9 +44,9 @@ class EpicQaDoc(BaseModel):
     verdict: Literal["pass", "fail", "blocked"]
     scope: list[str] = Field(default_factory=list)
     checks: list[str] = Field(default_factory=list)
-    issues: list[IssueRow] = Field(default_factory=list)
+    issues: list[IssueRow | str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
-    fix_plan: list[FixPlanRow] = Field(default_factory=list)
+    fix_plan: list[FixPlanRow | str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     suite: list[str] = Field(default_factory=list)
     checklist_sha256: str | None = None
@@ -165,6 +165,8 @@ def validate_qa_yaml(path: Path, *, expected_verdict: str | None = None) -> list
     if doc.verdict in {"fail", "blocked"} and not doc.fix_plan:
         errors.append("fix_plan: required when verdict is fail or blocked")
     if doc.verdict in {"fail", "blocked"}:
+        if len(doc.blockers) != len(doc.fix_plan):
+            errors.append("blockers/fix_plan: must be 1:1 for queue seed")
         for idx, blocker in enumerate(doc.blockers or [], start=1):
             if not ELIGIBLE_BLOCKER_PREFIX_RE.match(str(blocker)):
                 errors.append(

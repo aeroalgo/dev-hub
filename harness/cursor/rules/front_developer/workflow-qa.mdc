@@ -11,7 +11,7 @@ alwaysApply: false
 1. `OK FRONT QA - Выполняю техническую валидацию` → **Gates**
 2. Проверки + exploratory browser (live app) — gates; suite/Playwright **parent only**
 3. `memory-bank/front/qa/<epic_id>/qa-YYYYMMDD-<slug>.yaml`
-4. fail|blocked → §Fix plan (`FRONT BUGFIX <subject>`)
+4. fail|blocked → seed/merge `front/bugfix/<epic_id>/bugfix-queue.yaml`; §Fix plan остаётся source rows
 5. **FINISH:** finish-block (`code_changed: no`|`yes` если дописали тесты) + Handoff  
    Next: Handoff в `memory-bank/activeContext.md` + decompose index
    **FORBIDDEN:** копировать цепочки pass/blocked/fail → … здесь

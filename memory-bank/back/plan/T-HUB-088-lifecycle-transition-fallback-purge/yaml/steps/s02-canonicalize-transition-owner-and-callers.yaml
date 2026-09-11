@@ -1,0 +1,92 @@
+schema: epic-decompose/v1
+role: back
+step_id: s02
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: Absorb legacy arm logic into canonical transition engine and rewire callers
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Перенести реализацию arm_active_context_from_decompose и arm_pre_implement_context в loop.epic_transition,
+  сделав arm_phase единственным владельцем phase transition, и перевести всех production callers (epic_resolve.py,
+  context_loop.py, repairs.py) на канонический API без импорта устаревших символов.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - SC-001
+    - SC-003
+    - US-001
+  nouns:
+    - loop.epic_transition.arm_phase
+    - loop.epic_transition.arm_epic
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+    - loop/incidents/repairs.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s02-canonicalize-transition-owner-and-callers.yaml
+  ac_quotes:
+    - "Все production callers старых arm-функций переходят на loop.epic_transition.arm_phase/canonical arm_epic API."
+    - "epic_resolve.py --decompose и context_loop.arm_session() не вызывают legacy implementation body."
+    - "0 production callers legacy arm symbols."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:41-59"
+
+context:
+  consumes:
+    - loop/epic_transition.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+    - loop/incidents/repairs.py
+  produces:
+    - loop/epic_transition.py
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+    - loop/incidents/repairs.py
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - SC-001
+    - SC-003
+    - US-001
+  files:
+    - loop/epic_transition.py
+    - harness/hooks/epic_resolve.py
+    - loop/context_loop.py
+    - loop/incidents/repairs.py
+
+as_built:
+  - "loop/epic_transition.py импортирует arm_active_context_from_decompose и arm_pre_implement_context из epic.core"
+  - "harness/hooks/epic_resolve.py вызывает arm_active_context_from_decompose для args.decompose"
+  - "loop/context_loop.py и loop/incidents/repairs.py импортируют и вызывают старые arm функции"
+
+delta:
+  - "Перенести логику формирования activeContext для пре-имплемент и имплемент фаз внутрь loop/epic_transition.py"
+  - "Обновить harness/hooks/epic_resolve.py для канонического разрешения через resolve_epic_id / arm_phase"
+  - "Перевести loop/context_loop.py и loop/incidents/repairs.py на вызов arm_epic / arm_phase"
+  - "Устранить зависимость loop/epic_transition.py от устаревших функций в epic.core"
+
+deletes: []
+
+out_of_scope:
+  - "Окончательное удаление deprecated символов из harness/hooks/epic/core.py (шаг s06)"
+  - "Переписывание устаревших тестов, импортирующих старые символы напрямую (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: loop/epic_transition.py не использует устаревшие функции из epic.core для arm_phase
+    verify: "bin/pytest loop/tests/test_epic_transition.py loop/tests/test_arm_phase_smoke.py -q"
+  - id: cp2
+    criterion: Production callers (epic_resolve, context_loop, repairs) не вызывают старые arm функции
+    verify: "python3 -c \"import subprocess, sys; out = subprocess.run(['rg', '-n', 'arm_active_context_from_decompose|arm_pre_implement_context', 'harness/hooks/epic_resolve.py', 'loop/context_loop.py', 'loop/incidents/repairs.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)\""
+
+verify: []
+tdd: []

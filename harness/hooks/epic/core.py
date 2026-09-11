@@ -4022,6 +4022,19 @@ def validate_qa_finish_handoff(
     if verdict in {"blocked", "fail"}:
         if "BUGFIX" not in body.upper():
             return False, "QA FINISH: verdict blocked/fail — Handoff должен быть BACK BUGFIX"
+        try:
+            from loop.bugfix_queue import bugfix_queue_path, validate_queue_for_qa
+
+            queue_path = bugfix_queue_path(cwd, role_dir, epic_id)
+            queue_errors = validate_queue_for_qa(
+                cwd, queue_path, qa, epic_id, role_dir
+            )
+        except (OSError, ValueError) as exc:
+            return False, f"Bugfix queue validation failed: {exc}"
+        if queue_errors:
+            return False, "Bugfix queue validation failed: " + "; ".join(queue_errors)
+        if str(queue_path.relative_to(Path(cwd).resolve()).as_posix()) not in extract_load_now(body):
+            return False, "QA FINISH: Handoff load_now must include bugfix-queue.yaml"
     return True, None
 
 

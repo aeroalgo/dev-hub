@@ -114,6 +114,7 @@ def test_v2_all_epic_layout_kinds_resolve_canonical_paths(tmp_path: Path) -> Non
         EpicLayoutKind.DECOMPOSE_STEP: "memory-bank/back/plan/T-HUB-087-v2-all-kinds/yaml/steps/s01-contracts.yaml",
         EpicLayoutKind.IMPLEMENT_STEP: "memory-bank/back/implement/T-HUB-087-v2-all-kinds/s01-contracts.yaml",
         EpicLayoutKind.QA_YAML: "memory-bank/back/qa/T-HUB-087-v2-all-kinds/qa.yaml",
+        EpicLayoutKind.BUGFIX_QUEUE_YAML: "memory-bank/back/bugfix/T-HUB-087-v2-all-kinds/bugfix-queue.yaml",
         EpicLayoutKind.ANALYZE_YAML: "memory-bank/back/analyze/T-HUB-087-v2-all-kinds/analyze.yaml",
         EpicLayoutKind.AUDIT_YAML: "memory-bank/back/audit/T-HUB-087-v2-all-kinds/audit.yaml",
     }

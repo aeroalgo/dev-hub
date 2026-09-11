@@ -1,0 +1,352 @@
+schema: epic-bugfix-queue/v1
+epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+role: back
+source_qa: memory-bank/back/qa/T-HUB-087-epic-layout-v2-fallback-purge/qa-20260911-fallback-purge.yaml
+checklist_sha256: b8527b923101f670c2142f8d7cebbb54bdc6a09f4845e882863e696c989465d6
+created_at: '2026-09-11T16:49:11Z'
+updated_at: '2026-09-11T17:15:21Z'
+current_id: null
+verification:
+  status: pass
+  command: bin/pytest -q --tb=line
+  last_run_at: '2026-09-11T17:15:21Z'
+  evidence: 'full suite green: bin/pytest -q --tb=line passed all tests'
+items:
+- id: BF-001
+  status: done
+  class: suite_red
+  title: loop/tests/test_epic_transition.py
+  blocker_ref: 'suite_red: loop/tests/test_epic_transition.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_epic_transition.py
+  targets:
+  - loop/tests/test_epic_transition.py
+  verify: bin/pytest loop/tests/test_epic_transition.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_epic_transition.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-002
+  status: done
+  class: suite_red
+  title: loop/tests/test_roadmap_queue.py
+  blocker_ref: 'suite_red: loop/tests/test_roadmap_queue.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_roadmap_queue.py
+  targets:
+  - loop/tests/test_roadmap_queue.py
+  verify: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_roadmap_queue.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-003
+  status: done
+  class: suite_red
+  title: loop/tests/test_convergence_categories.py
+  blocker_ref: 'suite_red: loop/tests/test_convergence_categories.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_categories.py
+  targets:
+  - loop/tests/test_convergence_categories.py
+  verify: bin/pytest loop/tests/test_convergence_categories.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_convergence_categories.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-004
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_launch_arm.py
+  blocker_ref: 'suite_red: loop/tests/test_board_launch_arm.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_board_launch_arm.py
+  targets:
+  - loop/tests/test_board_launch_arm.py
+  verify: bin/pytest loop/tests/test_board_launch_arm.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_board_launch_arm.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-005
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_sync_cli.py
+  blocker_ref: 'suite_red: loop/tests/test_board_sync_cli.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_cli.py
+  targets:
+  - loop/tests/test_board_sync_cli.py
+  verify: bin/pytest loop/tests/test_board_sync_cli.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_board_sync_cli.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-006
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_sync_scan_gates.py
+  blocker_ref: 'suite_red: loop/tests/test_board_sync_scan_gates.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_scan_gates.py
+  targets:
+  - loop/tests/test_board_sync_scan_gates.py
+  verify: bin/pytest loop/tests/test_board_sync_scan_gates.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_board_sync_scan_gates.py -q
+    --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-007
+  status: done
+  class: suite_red
+  title: loop/tests/test_implement_hub_alias.py
+  blocker_ref: 'suite_red: loop/tests/test_implement_hub_alias.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_implement_hub_alias.py
+  targets:
+  - loop/tests/test_implement_hub_alias.py
+  verify: bin/pytest loop/tests/test_implement_hub_alias.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_implement_hub_alias.py -q
+    --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-008
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_mb_finish_decompose.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_mb_finish_decompose.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_mb_finish_decompose.py
+  targets:
+  - harness/hooks/tests/test_mb_finish_decompose.py
+  verify: bin/pytest harness/hooks/tests/test_mb_finish_decompose.py -q --tb=line
+  evidence: 'targeted green: bin/pytest harness/hooks/tests/test_mb_finish_decompose.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-009
+  status: done
+  class: suite_red
+  title: loop/tests/test_board_sync_epic_regression.py
+  blocker_ref: 'suite_red: loop/tests/test_board_sync_epic_regression.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_board_sync_epic_regression.py
+  targets:
+  - loop/tests/test_board_sync_epic_regression.py
+  verify: bin/pytest loop/tests/test_board_sync_epic_regression.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_board_sync_epic_regression.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-010
+  status: done
+  class: suite_red
+  title: loop/tests/test_incidents_tier0.py
+  blocker_ref: 'suite_red: loop/tests/test_incidents_tier0.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_incidents_tier0.py
+  targets:
+  - loop/tests/test_incidents_tier0.py
+  verify: bin/pytest loop/tests/test_incidents_tier0.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_incidents_tier0.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-011
+  status: done
+  class: suite_red
+  title: loop/tests/test_reserved_role_epic_id.py
+  blocker_ref: 'suite_red: loop/tests/test_reserved_role_epic_id.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_reserved_role_epic_id.py
+  targets:
+  - loop/tests/test_reserved_role_epic_id.py
+  verify: bin/pytest loop/tests/test_reserved_role_epic_id.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_reserved_role_epic_id.py -q
+    --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-012
+  status: done
+  class: suite_red
+  title: loop/tests/test_t035_invariants.py
+  blocker_ref: 'suite_red: loop/tests/test_t035_invariants.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_t035_invariants.py
+  targets:
+  - loop/tests/test_t035_invariants.py
+  verify: bin/pytest loop/tests/test_t035_invariants.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_t035_invariants.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-013
+  status: done
+  class: suite_red
+  title: loop/tests/test_convergence_cli.py
+  blocker_ref: 'suite_red: loop/tests/test_convergence_cli.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_cli.py
+  targets:
+  - loop/tests/test_convergence_cli.py
+  verify: bin/pytest loop/tests/test_convergence_cli.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_convergence_cli.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-014
+  status: done
+  class: suite_red
+  title: loop/tests/test_convergence_engine.py
+  blocker_ref: 'suite_red: loop/tests/test_convergence_engine.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_convergence_engine.py
+  targets:
+  - loop/tests/test_convergence_engine.py
+  verify: bin/pytest loop/tests/test_convergence_engine.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_convergence_engine.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-015
+  status: done
+  class: suite_red
+  title: loop/tests/test_finish_receipt_integrity.py
+  blocker_ref: 'suite_red: loop/tests/test_finish_receipt_integrity.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_finish_receipt_integrity.py
+  targets:
+  - loop/tests/test_finish_receipt_integrity.py
+  verify: bin/pytest loop/tests/test_finish_receipt_integrity.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_finish_receipt_integrity.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:20Z'
+  notes: ''
+- id: BF-016
+  status: done
+  class: suite_red
+  title: loop/tests/test_state_recovery.py
+  blocker_ref: 'suite_red: loop/tests/test_state_recovery.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_state_recovery.py
+  targets:
+  - loop/tests/test_state_recovery.py
+  verify: bin/pytest loop/tests/test_state_recovery.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_state_recovery.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-017
+  status: done
+  class: suite_red
+  title: loop/tests/test_context_finish_projection.py
+  blocker_ref: 'suite_red: loop/tests/test_context_finish_projection.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_context_finish_projection.py
+  targets:
+  - loop/tests/test_context_finish_projection.py
+  verify: bin/pytest loop/tests/test_context_finish_projection.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_context_finish_projection.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-018
+  status: done
+  class: suite_red
+  title: loop/tests/test_finalize_atomic_commit.py
+  blocker_ref: 'suite_red: loop/tests/test_finalize_atomic_commit.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_finalize_atomic_commit.py
+  targets:
+  - loop/tests/test_finalize_atomic_commit.py
+  verify: bin/pytest loop/tests/test_finalize_atomic_commit.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_finalize_atomic_commit.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-019
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_mcp_load_parity.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_mcp_load_parity.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_mcp_load_parity.py
+  targets:
+  - harness/hooks/tests/test_mcp_load_parity.py
+  verify: bin/pytest harness/hooks/tests/test_mcp_load_parity.py -q --tb=line
+  evidence: 'targeted green: bin/pytest harness/hooks/tests/test_mcp_load_parity.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-020
+  status: done
+  class: suite_red
+  title: loop/tests/test_projection_identity.py
+  blocker_ref: 'suite_red: loop/tests/test_projection_identity.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_projection_identity.py
+  targets:
+  - loop/tests/test_projection_identity.py
+  verify: bin/pytest loop/tests/test_projection_identity.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_projection_identity.py -q
+    --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-021
+  status: done
+  class: suite_red
+  title: loop/tests/test_gate_atomic_finish.py
+  blocker_ref: 'suite_red: loop/tests/test_gate_atomic_finish.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_gate_atomic_finish.py
+  targets:
+  - loop/tests/test_gate_atomic_finish.py
+  verify: bin/pytest loop/tests/test_gate_atomic_finish.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_gate_atomic_finish.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-022
+  status: done
+  class: suite_red
+  title: harness/hooks/tests/test_stop_gate_fingerprint.py
+  blocker_ref: 'suite_red: harness/hooks/tests/test_stop_gate_fingerprint.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in harness/hooks/tests/test_stop_gate_fingerprint.py
+  targets:
+  - harness/hooks/tests/test_stop_gate_fingerprint.py
+  verify: bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py -q --tb=line
+  evidence: 'targeted green: bin/pytest harness/hooks/tests/test_stop_gate_fingerprint.py
+    -q --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-023
+  status: done
+  class: suite_red
+  title: loop/tests/test_formula_integration.py
+  blocker_ref: 'suite_red: loop/tests/test_formula_integration.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_formula_integration.py
+  targets:
+  - loop/tests/test_formula_integration.py
+  verify: bin/pytest loop/tests/test_formula_integration.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_formula_integration.py -q
+    --tb=line passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-024
+  status: done
+  class: suite_red
+  title: loop/tests/test_t035_acceptance.py
+  blocker_ref: 'suite_red: loop/tests/test_t035_acceptance.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_t035_acceptance.py
+  targets:
+  - loop/tests/test_t035_acceptance.py
+  verify: bin/pytest loop/tests/test_t035_acceptance.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_t035_acceptance.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-025
+  status: done
+  class: suite_red
+  title: loop/tests/test_dag_journey.py
+  blocker_ref: 'suite_red: loop/tests/test_dag_journey.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_dag_journey.py
+  targets:
+  - loop/tests/test_dag_journey.py
+  verify: bin/pytest loop/tests/test_dag_journey.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_dag_journey.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''
+- id: BF-026
+  status: done
+  class: suite_red
+  title: loop/tests/test_phase_epoch.py
+  blocker_ref: 'suite_red: loop/tests/test_phase_epoch.py'
+  fix_plan_ref: BACK BUGFIX Fix failing suite tests in loop/tests/test_phase_epoch.py
+  targets:
+  - loop/tests/test_phase_epoch.py
+  verify: bin/pytest loop/tests/test_phase_epoch.py -q --tb=line
+  evidence: 'targeted green: bin/pytest loop/tests/test_phase_epoch.py -q --tb=line
+    passed'
+  done_at: '2026-09-11T17:15:21Z'
+  notes: ''

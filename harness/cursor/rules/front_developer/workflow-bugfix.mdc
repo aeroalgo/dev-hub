@@ -9,10 +9,10 @@ alwaysApply: false
 
 **Процесс**:
 1. `OK FRONT BUGFIX - [суть]` → **Gates**
-2. **Вход из QA:** §Fix plan → `FRONT BUGFIX <subject>`; visible UI → design stack Read до UI edit
-3. Reproduce → root cause → regression → fix → green; scenario Playwright если user-visible — **parent**
+2. **Вход из QA:** `bugfix-queue.yaml` из `load_now` — единственный курсор; visible UI → design stack Read до UI edit
+3. Первый item по порядку: reproduce → root cause → regression → fix → targeted scenario green → done/evidence; partial между сессиями допустим. Все terminal → full verification command; FAIL → gate repair в ту же queue.
 4. §0.11 · pre-FINISH skills
-5. **FINISH:** finish-block (`code_changed: yes`); Handoff → runner next session  
+5. **FINISH:** finish-block (`code_changed: yes`); `@verify-bugfix` проверяет queue + report → runner next session
    Next-mode: `memory-bank/activeContext.md` + decompose index · §BUGFIX FINISH
 
 **Верификация**: gates + scenario + FINISH + graphify

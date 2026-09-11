@@ -1,0 +1,100 @@
+schema: epic-decompose/v1
+role: back
+step_id: s01
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: Characterize lifecycle transition contracts, denial diagnostics and baseline behavior
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Зафиксировать characterization tests для всех фаз жизненного цикла, маршрутизируемых через loop.epic_transition,
+  определить негативные фикстуры и диагностику отказа при невалидном frontmatter, ручном authority evidence
+  и отсутствии persisted BUGFIX phase, обеспечив безопасную базу перед удалением legacy-кода.
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop.epic_transition.arm_phase
+    - loop.schemas.active_context.validate_handoff_frontmatter
+    - harness.hooks._lib.match_gate_evidence
+    - loop.mb_finish.impl
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/decompose-index.yaml
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s01-contracts-and-characterization.yaml
+  ac_quotes:
+    - "arm_phase проходит все lifecycle phases; legacy function import/call denied."
+    - "malformed/legacy handoff and manual receipt are rejected."
+    - "valid receipt completes; missing/legacy evidence blocks."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:19-68"
+
+context:
+  consumes:
+    - loop/epic_transition.py
+    - loop/schemas/active_context.py
+    - harness/hooks/epic/core.py
+    - harness/hooks/_lib.py
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md
+  produces:
+    - loop/tests/test_arm_phase_smoke.py
+    - loop/tests/test_handoff_strict_flag.py
+  plan_refs:
+    - FR-001
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - loop/tests/test_arm_phase_smoke.py
+    - loop/tests/test_handoff_strict_flag.py
+
+as_built:
+  - "loop/epic_transition.py содержит arm_phase и arm_epic, но частично делегирует в harness/hooks/epic/core.py"
+  - "loop/schemas/active_context.py содержит parse_handoff_meta с raw dict fallback при ошибке валидации"
+  - "harness/hooks/_lib.py содержит match_gate_evidence с fallback для manual authority"
+
+delta:
+  - "Добавить комплексные characterization tests для всех фаз arm_phase в loop/tests/test_arm_phase_smoke.py"
+  - "Добавить characterization тесты для строгого отказа при невалидном frontmatter в loop/tests/test_handoff_strict_flag.py"
+
+deletes: []
+
+out_of_scope:
+  - "Удаление legacy-функций из harness/hooks/epic/core.py (шаг s02/s06)"
+  - "Удаление raw dict fallback в parse_handoff_meta (шаг s03)"
+  - "Удаление manual authority в match_gate_evidence (шаг s04)"
+  - "Full suite run → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Characterization tests подтверждают корректную работу arm_phase для всех фаз жизненного цикла
+    verify: "bin/pytest loop/tests/test_arm_phase_smoke.py loop/tests/test_epic_transition.py -q"
+  - id: cp2
+    criterion: Characterization tests фиксируют диагностику отказа при невалидном handoff frontmatter
+    verify: "bin/pytest loop/tests/test_handoff_strict_flag.py loop/tests/test_schemas_handoff.py -q"
+
+verify: []
+tdd: []

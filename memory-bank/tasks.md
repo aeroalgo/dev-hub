@@ -2,6 +2,10 @@
 
 ## Active
 
+| T-HUB-092…094 | Roadmap cadence (every-2 REPLAN→Refactor→resync) | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · batch roadmap-cadence-20260911 · **092** foundation · **093** REPLAN→Refactor (deps 092) · **094** resync tail (deps 093) · next BACK DECOMPOSE T-HUB-092-roadmap-cadence-foundation |
+| T-HUB-092 | Cadence foundation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-092-roadmap-cadence-foundation/md/plan.md) · [prompt](back/plan/T-HUB-092-roadmap-cadence-foundation/md/prompt.md) · SoT+counter+pause |
+| T-HUB-093 | Cadence REPLAN→Refactor block | L3 | PLAN done | queued | [plan](back/plan/T-HUB-093-roadmap-cadence-replan-refactor-block/md/plan.md) · deps T-HUB-092 |
+| T-HUB-094 | Cadence resync tail | L2–L3 | PLAN done | queued | [plan](back/plan/T-HUB-094-roadmap-cadence-resync-tail/md/plan.md) · deps T-HUB-093 |
 | T-HUB-091 | GateIdentity SoT consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md) · Claude+Codex one SoT · no DSH · next BACK DECOMPOSE · batch gate-identity-sot-20260910 |
 | T-HUB-081…084 | Workflow Read-chain consolidation | L3 | PLAN done | queued | [queue](back/roadmap/queue.yaml) · hot path → shared lean → role core → graph hygiene · next BACK DECOMPOSE T-HUB-081 |
 | T-HUB-085 | Hook event dispatcher consolidation | L3 | PLAN done | queued | [plan](back/plan/T-HUB-085-hook-event-dispatcher-consolidation/md/plan.md) · deps T-HUB-063,065,077,079 · event-specific dispatchers, shared policy/evidence, no mega-hook |

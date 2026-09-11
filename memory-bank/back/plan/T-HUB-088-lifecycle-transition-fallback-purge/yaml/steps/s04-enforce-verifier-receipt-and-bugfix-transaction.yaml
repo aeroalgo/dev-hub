@@ -1,0 +1,93 @@
+schema: epic-decompose/v1
+role: back
+step_id: s04
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: Enforce typed verifier receipt and purge manual BUGFIX authority and artifact-only finish
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Удалить fallback-ветки для manual authority в match_gate_evidence и _verify_pass_ready_for_step,
+  обеспечить строгое требование verifier receipt для BUGFIX, и закрыть возможность artifact-only finish
+  без подтверждённой транзакции и активной фазы.
+
+plan_contract:
+  fr_ids:
+    - FR-005
+    - FR-006
+    - SC-002
+    - US-002
+    - US-003
+  nouns:
+    - harness.hooks._lib.match_gate_evidence
+    - harness.hooks.epic.core._verify_pass_ready_for_step
+    - loop.mb_finish.impl
+    - loop-verifier-receipt/v1
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s04-enforce-verifier-receipt-and-bugfix-transaction.yaml
+  ac_quotes:
+    - "Manual BUGFIX authority и artifact-only mb-finish compatibility удаляются; verifier receipt становится обязательным."
+    - "invalid/manual evidence cannot finish BUGFIX."
+    - "Manual authority and artifact-only finish не проходят boundary."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:41-76"
+
+context:
+  consumes:
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/impl.py
+    - loop/mb_finish/finish_implement.py
+  produces:
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/impl.py
+    - loop/tests/test_finish_receipt_integrity.py
+    - loop/tests/test_finish_bugfix.py
+  plan_refs:
+    - FR-005
+    - FR-006
+    - SC-002
+    - US-002
+    - US-003
+  files:
+    - harness/hooks/_lib.py
+    - harness/hooks/epic/core.py
+    - loop/mb_finish/impl.py
+    - loop/tests/test_finish_receipt_integrity.py
+    - loop/tests/test_finish_bugfix.py
+
+as_built:
+  - "harness/hooks/_lib.py: match_gate_evidence принимает authority == 'manual'"
+  - "harness/hooks/epic/core.py: _verify_pass_ready_for_step содержит legacy compatibility branch для manual BUGFIX"
+  - "loop/mb_finish/impl.py: допускает завершение шагов без строгой проверки транзакции фазы"
+
+delta:
+  - "Удалить поддержку manual authority в match_gate_evidence (harness/hooks/_lib.py)"
+  - "Удалить совместимость manual BUGFIX в _verify_pass_ready_for_step (harness/hooks/epic/core.py)"
+  - "Обеспечить строгое требование активной фазы и валидного verifier receipt в loop/mb_finish/impl.py"
+  - "Добавить/обновить негативные тесты на отказ при manual authority и отсутствии receipt"
+
+deletes:
+  - "manual authority acceptance branch in harness/hooks/_lib.py:match_gate_evidence"
+  - "manual authority BUGFIX branch in harness/hooks/epic/core.py:_verify_pass_ready_for_step"
+  - "artifact-only finish compatibility in loop/mb_finish/impl.py"
+
+out_of_scope:
+  - "Удаление устаревших arm функций (шаг s06)"
+  - "Переписывание устаревших тестов, проверяющих DeprecationWarning (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: match_gate_evidence и _verify_pass_ready_for_step отклоняют manual authority
+    verify: "bin/pytest loop/tests/test_finish_receipt_integrity.py harness/hooks/tests/test_subagent_stop_receipt_integrity.py -q"
+  - id: cp2
+    criterion: BUGFIX finish отклоняется при отсутствии verifier receipt или невалидной транзакции
+    verify: "bin/pytest loop/tests/test_finish_bugfix.py loop/tests/test_mb_finish_transaction.py -q"
+
+verify: []
+tdd: []

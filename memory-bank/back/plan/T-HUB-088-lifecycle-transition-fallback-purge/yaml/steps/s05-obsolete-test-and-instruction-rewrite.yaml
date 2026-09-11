@@ -1,0 +1,94 @@
+schema: epic-decompose/v1
+role: back
+step_id: s05
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: Rewrite obsolete lifecycle tests, fixtures, and instruction surfaces to canonical contracts
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Переписать или удалить устаревшие тесты, завязанные на DeprecationWarning от _legacy_warn, прямой импорт
+  arm_active_context_from_decompose/arm_pre_implement_context, невалидные handoff fixtures и manual BUGFIX authority.
+  Обновить инструкции и правила (Kind I), устранив упоминания старых функций.
+
+plan_contract:
+  fr_ids:
+    - FR-006
+    - FR-007
+    - SC-003
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_finish_bugfix.py
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_reducer_qa_bugfix.py
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s05-obsolete-test-and-instruction-rewrite.yaml
+  ac_quotes:
+    - "Legacy REFLECT остаётся исторически игнорируемым event, но не участвует в live lifecycle decisions."
+    - "Старые transition/handoff/BUGFIX tests удаляются или переписываются на canonical behavior and deny coverage."
+    - "Нет тестов, которые закрепляют старый arm/handoff/BUGFIX contract."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:112-120"
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:169-176"
+
+context:
+  consumes:
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_finish_bugfix.py
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_reducer_qa_bugfix.py
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md
+  produces:
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_finish_bugfix.py
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_reducer_qa_bugfix.py
+  plan_refs:
+    - FR-006
+    - FR-007
+    - SC-003
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - loop/tests/test_epic_transition.py
+    - loop/tests/test_finish_bugfix.py
+    - loop/tests/test_event_legacy_adapter.py
+    - loop/tests/test_reducer_qa_bugfix.py
+
+as_built:
+  - "loop/tests/test_epic_transition.py содержит тесты на _legacy_warn и DeprecationWarning"
+  - "loop/tests/test_finish_bugfix.py содержит тесты, использующие manual authority для прохождения проверок"
+  - "loop/tests/test_event_legacy_adapter.py и test_reducer_qa_bugfix.py проверяют обработку REFLECT"
+
+delta:
+  - "Удалить test_legacy_warn_emits_deprecation и тесты на прямые вызовы устаревших arm функций в test_epic_transition.py"
+  - "Переписать тесты в test_finish_bugfix.py на использование loop-verifier-receipt/v1"
+  - "Убедиться, что REFLECT-события обрабатываются как historical ignore без изменения состояния активной фазы"
+  - "Обновить инструкции в rules/templates (Kind I)"
+
+deletes:
+  - "test_legacy_warn_emits_deprecation in loop/tests/test_epic_transition.py"
+  - "legacy manual authority assertions across test files"
+
+out_of_scope:
+  - "Финальный purge scan (шаг s06)"
+  - "Full suite run → QA"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: Тесты перехода фаз и finish транзакций зелены без использования legacy shims и manual authority
+    verify: "bin/pytest loop/tests/test_epic_transition.py loop/tests/test_finish_bugfix.py -q"
+  - id: cp2
+    criterion: Тесты обработки REFLECT подтверждают историческое игнорирование без побочных эффектов на фазы
+    verify: "bin/pytest loop/tests/test_event_legacy_adapter.py loop/tests/test_reducer_qa_bugfix.py -q"
+
+verify: []
+tdd: []

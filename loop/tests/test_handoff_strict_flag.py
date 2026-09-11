@@ -190,3 +190,153 @@ def test_strict_1_valid_frontmatter_passes(tmp_path: Path) -> None:
     # Run with PROJECT_LOOP_HANDOFF_STRICT=1
     res = _run_stop_gate(tmp_path, {"session_id": "test", "cwd": str(tmp_path), "last_assistant_message": "FINISH: done"}, {"PROJECT_LOOP_HANDOFF_STRICT": "1"})
     assert res.get("decision") != "block", f"Expected non-blocked, got: {res}"
+
+
+def test_strict_1_invalid_schema_blocked(tmp_path: Path) -> None:
+    _setup_epic_env(tmp_path)
+    ac_content = (
+        "---\n"
+        "schema: unknown-schema/v1\n"
+        "role: BACK\n"
+        "epic_id: T-HUB-022\n"
+        "mode: IMPLEMENT\n"
+        "step_id: s09\n"
+        "---\n\n"
+        "## load_now\n"
+        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "## Handoff BACK IMPLEMENT s09\n"
+        "- **Эпик:** T-HUB-022\n"
+        "- **Режим/шаг:** BACK IMPLEMENT s09\n"
+    )
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(ac_content, encoding="utf-8")
+
+    res = _run_stop_gate(tmp_path, {"session_id": "test", "cwd": str(tmp_path), "last_assistant_message": "FINISH: done"}, {"PROJECT_LOOP_HANDOFF_STRICT": "1"})
+    assert res.get("decision") == "block"
+    assert "handoff_frontmatter_schema_invalid" in res.get("reason", "")
+
+
+def test_strict_1_invalid_role_blocked(tmp_path: Path) -> None:
+    _setup_epic_env(tmp_path)
+    ac_content = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: INVALID_ROLE\n"
+        "epic_id: T-HUB-022\n"
+        "mode: IMPLEMENT\n"
+        "step_id: s09\n"
+        "---\n\n"
+        "## load_now\n"
+        "1. [s09.yaml](back/plan/decompose-T-HUB-022-test/s09.yaml)\n\n"
+        "## Handoff BACK IMPLEMENT s09\n"
+        "- **Эпик:** T-HUB-022\n"
+        "- **Режим/шаг:** BACK IMPLEMENT s09\n"
+    )
+    (tmp_path / "memory-bank" / "activeContext.md").write_text(ac_content, encoding="utf-8")
+
+    res = _run_stop_gate(tmp_path, {"session_id": "test", "cwd": str(tmp_path), "last_assistant_message": "FINISH: done"}, {"PROJECT_LOOP_HANDOFF_STRICT": "1"})
+    assert res.get("decision") == "block"
+    assert "handoff_frontmatter_invalid" in res.get("reason", "")
+
+
+def test_validate_handoff_frontmatter_diagnostics_characterization() -> None:
+    """Characterize validate_handoff_frontmatter denial diagnostics."""
+    from loop.schemas.active_context import validate_handoff_frontmatter
+
+    # Missing frontmatter
+    meta, errs = validate_handoff_frontmatter("plain markdown text without frontmatter")
+    assert meta is None
+    assert "missing_handoff_frontmatter" in errs
+
+    # Invalid schema name
+    invalid_schema = "---\nschema: invalid-schema\nrole: BACK\nmode: IMPLEMENT\nepic_id: T-001\n---\n"
+    meta, errs = validate_handoff_frontmatter(invalid_schema)
+    assert meta is None
+    assert "handoff_frontmatter_schema_invalid" in errs
+
+    # Invalid field value
+    invalid_field = "---\nschema: loop-handoff/v1\nrole: UNKNOWN_ROLE\nmode: IMPLEMENT\nepic_id: T-001\n---\n"
+    meta, errs = validate_handoff_frontmatter(invalid_field)
+    assert meta is None
+    assert any("role" in err for err in errs)
+
+    # Valid frontmatter
+    valid_text = (
+        "---\n"
+        "schema: loop-handoff/v1\n"
+        "role: BACK\n"
+        "mode: IMPLEMENT\n"
+        "epic_id: T-001\n"
+        "step_id: s01\n"
+        "---\n\n"
+        "## load_now\n"
+    )
+    meta, errs = validate_handoff_frontmatter(valid_text)
+    assert len(errs) == 0
+    assert meta is not None
+    assert meta.epic_id == "T-001"
+    assert meta.role == "BACK"
+    assert meta.mode == "IMPLEMENT"
+    assert meta.step_id == "s01"
+
+
+def test_match_gate_evidence_characterization() -> None:
+    """Characterize match_gate_evidence behavior for manual and receipt evidence."""
+    from _lib import match_gate_evidence
+
+    # Non-dict evidence is rejected
+    ok, code = match_gate_evidence("invalid_string", {})
+    assert ok is False
+    assert code == "verdict_evidence_missing"
+
+    # None evidence is rejected
+    ok, code = match_gate_evidence(None, {})
+    assert ok is False
+    assert code == "verdict_evidence_missing"
+
+    # Manual authority is accepted with non-authoritative fallback
+    ok, code = match_gate_evidence({"authority": "manual"}, {})
+    assert ok is True
+    assert code == "manual_fallback_non_authoritative"
+
+    # Missing identity fields in evidence
+    ok, code = match_gate_evidence({"step": "s01"}, {"step": "s01", "projection_hash": "h1", "phase_epoch": "e1"})
+    assert ok is False
+    assert code == "verdict_identity_missing"
+
+    # Missing identity fields in current projection
+    ok, code = match_gate_evidence({"step": "s01", "projection_hash": "h1", "phase_epoch": "e1"}, {"step": "s01"})
+    assert ok is False
+    assert code == "projection_identity_missing"
+
+    # Matching identity fields
+    current = {
+        "step": "s01",
+        "projection_hash": "h1",
+        "phase_epoch": "e1",
+        "epic_id": "T-001",
+        "role": "BACK",
+        "event_digest": "d1",
+    }
+    evidence = {
+        "step": "s01",
+        "projection_hash": "h1",
+        "phase_epoch": "e1",
+        "epic_id": "T-001",
+        "role": "BACK",
+        "event_digest": "d1",
+    }
+    ok, code = match_gate_evidence(evidence, current)
+    assert ok is True
+    assert code == "matched"
+
+    # Step mismatch
+    evidence_wrong_step = dict(evidence, step="s02")
+    ok, code = match_gate_evidence(evidence_wrong_step, current)
+    assert ok is False
+    assert code == "verdict_wrong_step"
+
+    # Epoch mismatch
+    evidence_wrong_epoch = dict(evidence, phase_epoch="e2")
+    ok, code = match_gate_evidence(evidence_wrong_epoch, current)
+    assert ok is False
+    assert code == "epoch_mismatch"

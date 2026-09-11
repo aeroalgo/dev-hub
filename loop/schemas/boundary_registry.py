@@ -11,6 +11,7 @@ from loop.schemas.gate_verdict import GateVerdictRecord, SCHEMA_LOOP_GATE_VERDIC
 from loop.schemas.repair_result import RepairResultRecord, SCHEMA_LOOP_REPAIR_RESULT
 from loop.schemas.validate_result import ValidateResult, SCHEMA_LOOP_VALIDATE_RESULT
 from loop.schemas.sunset_inventory import SunsetReport, SCHEMA_LOOP_SUNSET_INVENTORY
+from loop.schemas.bugfix_queue import EpicBugfixQueue, SCHEMA_EPIC_BUGFIX_QUEUE
 
 BOUNDARY_REGISTRY: dict[str, Type[BaseModel]] = {
     SCHEMA_LOOP_MB_LOAD: MbLoadResult,
@@ -18,6 +19,7 @@ BOUNDARY_REGISTRY: dict[str, Type[BaseModel]] = {
     SCHEMA_LOOP_REPAIR_RESULT: RepairResultRecord,
     SCHEMA_LOOP_VALIDATE_RESULT: ValidateResult,
     SCHEMA_LOOP_SUNSET_INVENTORY: SunsetReport,
+    SCHEMA_EPIC_BUGFIX_QUEUE: EpicBugfixQueue,
 }
 
 __all__ = [
@@ -27,4 +29,5 @@ __all__ = [
     "SCHEMA_LOOP_REPAIR_RESULT",
     "SCHEMA_LOOP_VALIDATE_RESULT",
     "SCHEMA_LOOP_SUNSET_INVENTORY",
+    "SCHEMA_EPIC_BUGFIX_QUEUE",
 ]

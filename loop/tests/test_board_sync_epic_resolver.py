@@ -170,13 +170,18 @@ def test_resolve_clarify_required(tmp_path: Path):
     plan_file.parent.mkdir(parents=True, exist_ok=True)
     plan_file.write_text("# Plan T-HUB-999\n- [ ] CRITICAL: Need details\n")
 
-    decomp_dir = plan_dir / "decompose-T-HUB-999"
+    decomp_dir = tmp_path / "memory-bank" / "back" / "plan" / "T-HUB-999" / "yaml"
     decomp_dir.mkdir(parents=True, exist_ok=True)
-    (decomp_dir / "index.yaml").write_text("""
+    (decomp_dir / "decompose-index.yaml").write_text("""
+schema: epic-decompose-index/v1
+plan_id: T-HUB-999
 steps:
-  - step_id: s01
+  - id: s01
+    file: steps/s01.yaml
     status: pending
 """)
+    (decomp_dir / "steps").mkdir(parents=True, exist_ok=True)
+    (decomp_dir / "steps" / "s01.yaml").write_text("schema: epic-decompose/v1\nstep_id: s01\n")
 
     analyze_dir = tmp_path / "memory-bank" / "back" / "analyze" / "T-HUB-999"
     analyze_dir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,60 @@
+schema: epic-implement/v1
+role: back
+step_id: s01
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: s01 — Characterize lifecycle transition contracts, denial diagnostics and baseline
+  behavior IMPLEMENT
+status: completed
+date: '2026-09-11'
+decompose_ref: memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s01-contracts-and-characterization.yaml
+skills_used: []
+discovery:
+- Characterized arm_phase for all lifecycle phases (PLAN, DECOMPOSE, ANALYZE, CREATIVE,
+  CLARIFY, IMPLEMENT, TASK, REFACTOR, BUGFIX, AUDIT, QA, DONE).
+- Characterized handoff frontmatter strictness and rejection diagnostics for missing
+  or invalid schema and role fields.
+- Characterized match_gate_evidence diagnostics for manual fallback vs receipt-based
+  verification.
+gaps:
+  status: none
+done:
+- Added comprehensive characterization tests for arm_phase lifecycle phases, role
+  prefixes, v2 layout resolution, and denial diagnostics in loop/tests/test_arm_phase_smoke.py.
+- Added characterization tests for strict handoff frontmatter validation and denial
+  diagnostics in loop/tests/test_handoff_strict_flag.py.
+- Characterized match_gate_evidence behavior for receipt validation and non-authoritative
+  manual evidence in loop/tests/test_handoff_strict_flag.py.
+files:
+- loop/tests/test_arm_phase_smoke.py
+- loop/tests/test_handoff_strict_flag.py
+deletes: []
+tests:
+- bin/pytest loop/tests/test_arm_phase_smoke.py loop/tests/test_epic_transition.py
+  -q
+- bin/pytest loop/tests/test_handoff_strict_flag.py loop/tests/test_schemas_handoff.py
+  -q
+integration_check:
+- loop.epic_transition.arm_phase operates cleanly across canonical lifecycle phases
+  with v2 layout and role normalization.
+- loop.schemas.active_context.validate_handoff_frontmatter emits structured denial
+  diagnostics for invalid frontmatter schemas and attributes.
+grep_control:
+- back: rg -n 'def test_arm_phase|def test_strict_' loop/tests/
+  front: n/a
+verification_results:
+- 'cp1: bin/pytest loop/tests/test_arm_phase_smoke.py loop/tests/test_epic_transition.py
+  passed.'
+- 'cp2: bin/pytest loop/tests/test_handoff_strict_flag.py loop/tests/test_schemas_handoff.py
+  passed.'
+checkpoints:
+- id: cp1
+  criterion: Characterization tests подтверждают корректную работу arm_phase для всех
+    фаз жизненного цикла
+  status: done
+  done_at: '2026-09-11T18:12:12Z'
+- id: cp2
+  criterion: Characterization tests фиксируют диагностику отказа при невалидном handoff
+    frontmatter
+  status: done
+  done_at: '2026-09-11T18:12:18Z'
+resume_from: cp1

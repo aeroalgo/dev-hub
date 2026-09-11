@@ -19,7 +19,7 @@ def test_reducer_keeps_qa_open_until_post_bugfix_run_finishes(tmp_path: Path):
     qa.write_text("verdict: pass\nepic_id: demo\n")
     _append_event(tmp_path, "back", epic, "qa_pass", qa)
     bugfix = tmp_path / "memory-bank/back/bugfix/demo/bugfix-001.md"
-    bugfix.parent.mkdir(parents=True)
+    bugfix.parent.mkdir(parents=True, exist_ok=True)
     bugfix.write_text("fixed\n")
     _append_event(tmp_path, "back", epic, "bugfix_done", bugfix)
     save_epic_state(tmp_path, {
@@ -66,7 +66,13 @@ def _request(tmp_path: Path, phase: str):
 def _begin_bugfix(tmp_path: Path):
     qa = tmp_path / "memory-bank/back/qa/demo/qa-001.yaml"
     qa.parent.mkdir(parents=True)
-    qa.write_text("verdict: fail\nepic_id: demo\n")
+    qa.write_text(
+        "verdict: fail\nepic_id: demo\nchecklist_sha256: freeze-test\n"
+        "blockers:\n  - 'suite_red: loop/tests/test_fixture.py'\n"
+        "fix_plan:\n  - 'BACK BUGFIX Fix loop/tests/test_fixture.py'\n"
+    )
+    from loop.bugfix_queue import seed_or_merge_bugfix_queue
+    seed_or_merge_bugfix_queue(tmp_path, "back", "demo", qa)
     save_epic_state(tmp_path, {"armed_epic": "demo", "armed_role": "BACK", "phase": "QA", "session_id": "runner", "phase_run_id": "initial-qa"})
     assert finish_qa(_request(tmp_path, "QA")).ok
     st = load_epic_state(tmp_path)
@@ -74,8 +80,13 @@ def _begin_bugfix(tmp_path: Path):
     save_epic_state(tmp_path, st)
     mirror_verify_verdict(tmp_path, "PASS", evidence={"authority": "manual", "step": "BUGFIX", "session_id": "bugfix-session"})
     bugfix = tmp_path / "memory-bank/back/bugfix/demo/bugfix-001.md"
-    bugfix.parent.mkdir(parents=True)
+    bugfix.parent.mkdir(parents=True, exist_ok=True)
     bugfix.write_text("# Fixed\nRoot cause removed.\n")
+    from loop.bugfix_queue import set_bugfix_verification, update_bugfix_item
+    queue_path = tmp_path / "memory-bank/back/bugfix/demo/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="full suite green")
     return qa
 
 

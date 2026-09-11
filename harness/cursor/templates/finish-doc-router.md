@@ -27,6 +27,8 @@ Rules (`finish-doc-router.mdc`) дают **когда** и **By command** / grap
 2. при epic → AUDIT/QA: `decompose-*/index.yaml` (+ qa-артефакт)
 3. опц. qa-артефакт при re-run / BUGFIX из Fix plan
 
+При QA `fail|blocked` обязательно добавляется `memory-bank/{role}/bugfix/<epic>/bugfix-queue.yaml`; при BUGFIX queue идёт первым в `load_now`, затем bugfix report и optional QA source.
+
 Канон **ANALYZE**:
 
 1. `memory-bank/{role}/analyze/<epic_id>/analyze-YYYYMMDD-<slug>.yaml` — read-only findings, coverage и `metrics.critical_count`;
@@ -144,11 +146,12 @@ BUGFIX FINISH — обязательная рекомендация QA:
 ```markdown
 ## Handoff BACK BUGFIX <slug>
 
-- **Предыдущий:** [bugfix-…](memory-bank/back/bugfix/bugfix-….md) — done
+- **Queue:** [bugfix-queue.yaml](memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml) — первый open/in_progress; queue status SoT
+- **Предыдущий:** [bugfix-…](memory-bank/back/bugfix/<epic_id>/bugfix-….md) — progress report
 - **Источник QA:** [qa-…](memory-bank/back/qa/qa-….yaml) — issue QA-1, QA-2
 - **Следующий:** `BACK QA <plan_id> — <предмет>` (повтор эпика; не REFLECT пока QA не pass)
 - **Epic QA:** scope + suite из исходного qa §Epic QA
-- **Осталось в Fix plan:** #2 `BACK BUGFIX …` (если были другие строки)
+- **Осталось в queue:** BF-… `open|in_progress|blocked` (если есть; BUGFIX не завершается)
 - **code_changed:** yes
 - **New chat:** yes → `BACK QA`
 ```

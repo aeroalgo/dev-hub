@@ -460,6 +460,8 @@ def test_gate_identity_injected_for_all_identity_spawn_agents(
     bugfix = tmp_path / "memory-bank/back/bugfix/T-spawn/bugfix-20260910-demo.md"
     bugfix.parent.mkdir(parents=True, exist_ok=True)
     bugfix.write_text("# bugfix\n## Changes Implemented\n- x\n## Verification\n- ok\n", encoding="utf-8")
+    queue = tmp_path / "memory-bank/back/bugfix/T-spawn/bugfix-queue.yaml"
+    queue.write_text("schema: epic-bugfix-queue/v1\nepic_id: T-spawn\n", encoding="utf-8")
     plan = tmp_path / "memory-bank/back/plan/T-spawn/md/plan.md"
     plan.parent.mkdir(parents=True, exist_ok=True)
     plan.write_text("# plan\n", encoding="utf-8")
@@ -470,7 +472,7 @@ def test_gate_identity_injected_for_all_identity_spawn_agents(
     prompts = {
         "verify": _verify_prompt(cwd=tmp_path),
         "verify-implement": _verify_prompt(cwd=tmp_path),
-        "verify-bugfix": f"ALLOW READ\n{bugfix.relative_to(tmp_path)}\n",
+        "verify-bugfix": f"ALLOW READ\n{queue.relative_to(tmp_path)}\n{bugfix.relative_to(tmp_path)}\n",
         "verify-qa": (
             "Suite results\nbin/pytest -q --tb=line — PASS\n"
             "ALLOW READ\nfoo.py\n"

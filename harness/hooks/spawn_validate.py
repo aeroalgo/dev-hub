@@ -234,7 +234,8 @@ def validate_spawn_input(
                 )
             elif norm == "verify-bugfix":
                 hint = (
-                    "Нужны: ALLOW READ с bugfix artifact "
+                    "Нужны: ALLOW READ с bugfix queue "
+                    "`memory-bank/**/bugfix/**/bugfix-queue.yaml` и report "
                     "`memory-bank/**/bugfix/**/bugfix-*.md`."
                 )
             elif norm == "verify-decompose":

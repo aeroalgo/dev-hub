@@ -7,6 +7,7 @@ This directory contains the machine-readable Pydantic schemas and models for the
 | `loop-handoff/v1` | `LoopHandoffFrontmatter` | `loop/schemas/handoff.py` | Frontmatter metadata for `activeContext.md` handoff state |
 | `loop-gate-verdict/v1` | `GateVerdictRecord` | `loop/schemas/gate_verdict.py` | Gate verdict record (PASS/FAIL/BLOCKED) |
 | `loop-repair-result/v1` | `RepairResultRecord` | `loop/schemas/repair_result.py` | Gate repair outcome record (done/partial/fail) |
+| `epic-bugfix-queue/v1` | `EpicBugfixQueue` | `loop/schemas/bugfix_queue.py` | Ordered QA blocker queue and full-verification state |
 | `loop-sunset-inventory/v1` | `SunsetReport` | `loop/schemas/sunset_inventory.py` | Sunset inventory analysis and extraction report |
 | `loop-state/v1` | `LoopState` | `loop/schemas/state.py` | Loop execution state |
 | `loop-checkpoint/v1` | `LoopCheckpoint` | `loop/schemas/checkpoint.py` | Step checkpoint model |

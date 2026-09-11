@@ -51,8 +51,9 @@ def verify_runner_owner(cwd: str | Path) -> bool:
 
 def repair_active_context_shape(cwd: str | Path) -> dict[str, Any]:
     """Rebuild activeContext from decompose index when shape validation fails."""
+    from loop.epic_transition import arm_phase
+    from epic_paths import epic_id_from_decompose_path
     from epic.core import (
-        arm_active_context_from_decompose,
         load_epic_state,
         read_active_context,
         sync_cursor_from_index,
@@ -78,7 +79,9 @@ def repair_active_context_shape(cwd: str | Path) -> dict[str, Any]:
                 "mode": synced.get("mode") or "sync_cursor",
             }
 
-    arm = arm_active_context_from_decompose(cwd_p, decompose)
+    epic_id = (state.get("armed_epic") or "").strip() or epic_id_from_decompose_path(decompose) or "unknown"
+    role = (state.get("role") or "back").lower()
+    arm = arm_phase(cwd_p, epic_id, "IMPLEMENT", role, decompose_rel=decompose)
     if arm.get("ok") and not validate_active_context_shape(read_active_context(cwd_p)):
         return {"repaired": True, "ok": True, "mode": "arm_from_decompose", "arm": arm}
 

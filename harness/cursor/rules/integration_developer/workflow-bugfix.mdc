@@ -9,9 +9,9 @@ alwaysApply: false
 
 **Процесс**:
 1. `OK INTEG BUGFIX - Ищу причину рассинхрона` → **Gates**
-2. **Вход из QA:** §Fix plan → `INTEG|BACK|FRONT BUGFIX <subject>` по владельцу
-3. TDD failing test → root cause → fix; scenario если user-visible — **parent** runs FRONT tests
-4. `integration/bugfix/bugfix-*.md`; contract update if keys
+2. **Вход из QA:** `bugfix-queue.yaml` из `load_now` — единственный курсор; owner выбирается по item target
+3. Первый item по порядку: TDD failing test → root cause → fix → targeted contract/scenario green → done/evidence; partial между сессиями допустим. Все terminal → full verification; FAIL → gate repair в ту же queue.
+4. `integration/bugfix/<epic_id>/bugfix-*.md`; report — narrative, contract update if keys
 5. **FINISH:** finish-block (`code_changed: yes`); Handoff → runner next session  
    Next-mode: `memory-bank/activeContext.md` + decompose index · §BUGFIX FINISH
 

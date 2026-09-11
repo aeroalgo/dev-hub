@@ -4,8 +4,9 @@ alwaysApply: false
 ---
 # BUGFIX — gates
 
-**Артефакт:**  
-- с эпиком: `memory-bank/back/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`  
+**Артефакты:**
+- с эпиком: `memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, status SoT)
+- отчёт: `memory-bank/back/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`
 - без эпика: `memory-bank/back/bugfix/bugfix-YYYYMMDD-<slug>.md`  
 Канон: @.cursor/rules/shared/epic-scoped-paths.mdc
 
@@ -14,8 +15,10 @@ alwaysApply: false
 1. Баг описан; `load_now` first; извлечь `epic_id` → путь; core docs — только cross-cutting (§8)
 2. Root cause — не симптом; no mask/fallback
 3. Regression red → fix → green: Hub (dev-hub self-test) — targeted `bin/pytest` из корня; Managed project — declare `capability_checks: [test.targeted]` with typed execution evidence (no raw runner).
-4. bugfix-файл complete в правильной папке; **Источник:** qa §Fix plan / `blockers[]` — **все** пункты текущего QA-отчёта (не subset)
-4a. **Complete fix (HARD):** закрыть каждый `fix_plan`/`blockers` item из QA source в одном BUGFIX; partial close = FAIL. Новый scope вне QA report — только если блокирует regression evidence того же отчёта.
+4. `bugfix-queue.yaml` загружен и валиден; QA seed/merge сохраняет done и добавляет новые blockers как open по `blocker_ref`.
+4a. **Progress fix (HARD):** взять только первый `open`/`in_progress`; один in_progress максимум. `open → in_progress → done` требует targeted green + evidence + done_at. Partial close между сессиями = OK; прыжок через open = FAIL.
+4b. `blocked` требует `NEED_HUMAN`; `cancelled` допустим только при явном ineligible решении QA. Статусы prose bugfix-*.md не учитываются.
+4c. Полная `verification.command` запускается только когда queue items terminal; `verification: pass` требует command, timestamp и evidence. FAIL → gate repair append в ту же очередь, фаза остаётся BUGFIX.
 5. §0.11 если refs
 6. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 
@@ -23,4 +26,4 @@ alwaysApply: false
 
 - Mask · tests skipped · FORBIDDEN: голый `pytest` (hub) / raw runner fallback without capability_checks → no FINISH
 - Epic известен, bugfix в корне `bugfix/` без `<epic_id>/` → FAIL
-- FINISH при незакрытом пункте `fix_plan`/`blockers` из QA source → FAIL
+- FINISH при missing queue, `open|in_progress|blocked` item или `verification.status != pass` → FAIL (`bugfix_queue_open` / `bugfix_verification_required`)

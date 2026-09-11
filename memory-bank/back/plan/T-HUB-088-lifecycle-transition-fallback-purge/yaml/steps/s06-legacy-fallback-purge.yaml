@@ -1,0 +1,255 @@
+schema: epic-decompose/v1
+role: back
+step_id: s06
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Финальный cutover purge: удалить весь остаток plan ## Replacement / sunset A+B+C+I.
+  Нулевые prod-callers по каждой строке inventory; obsolete tests на старый контракт
+  удалены или переписаны; Kind I instructions переписаны; suite green без restore legacy.
+  Канон: @.cursor/rules/shared/workflow-legacy-fallback-cleanup.mdc §2.2–§2.4
+
+plan_contract:
+  fr_ids:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  nouns:
+    - loop.epic_transition.arm_phase
+    - loop.epic_transition.arm_epic
+    - loop.schemas.active_context.LoopHandoffFrontmatter
+    - loop-verifier-receipt/v1
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s06-legacy-fallback-purge.yaml
+  ac_quotes:
+    - "0 production callers legacy arm symbols."
+    - "invalid/manual evidence cannot finish BUGFIX."
+    - "valid phase transition behavior unchanged."
+    - "no raw Markdown handoff fallback in runtime."
+    - "Нет production import/call для arm_active_context_from_decompose/arm_pre_implement_context."
+    - "Нет authority == manual как успешного verifier evidence."
+    - "Нет raw dict fallback из typed handoff parser."
+    - "Нет artifact-only finish path for active BUGFIX."
+    - "Нет тестов, которые закрепляют старый arm/handoff/BUGFIX contract."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:142-220"
+
+context:
+  consumes:
+    - plan §Replacement / sunset (таблицы A, B, C, I)
+    - decompose index §Replacement cleanup (все строки)
+  produces:
+    - удалённые символы/entrypoints/fallbacks/instructions
+    - удалённые/переписанные obsolete tests
+    - evidence rg/inventory в implement shard
+  plan_refs:
+    - FR-001
+    - FR-002
+    - FR-003
+    - FR-004
+    - FR-005
+    - FR-006
+    - FR-007
+    - SC-001
+    - SC-002
+    - SC-003
+    - SC-004
+    - US-001
+    - US-002
+    - US-003
+  files:
+    - harness/hooks/epic/core.py
+    - loop/epic_transition.py
+
+as_built:
+  - "Шаги s01-s05 перевели runtime callers на canonical transition engine, строгий handoff frontmatter, verifier receipt и обновили тесты"
+
+delta:
+  - "Выполнить полный inventory scan по всем строкам sunset A/B/C/I"
+  - "Удалить arm_active_context_from_decompose и arm_pre_implement_context из harness/hooks/epic/core.py"
+  - "Удалить _legacy_warn из loop/epic_transition.py"
+  - "Проверить отсутствие active legacy символов и запустить полный регрессионный сьют"
+
+sunset_inventory:
+  - symbol: harness/hooks/epic/core.py:arm_active_context_from_decompose
+    kind: A
+    replacement: loop.epic_transition.arm_phase
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero callers in production
+  - symbol: harness/hooks/epic/core.py:arm_pre_implement_context
+    kind: A
+    replacement: loop.epic_transition.arm_phase
+    policy: delete in-epic
+    rg_scope: harness/hooks/ loop/
+    expect: zero callers in production
+  - symbol: loop/epic_transition.py:_legacy_warn
+    kind: A
+    replacement: none (zero callers)
+    policy: delete in-epic
+    rg_scope: loop/
+    expect: zero callers in codebase
+  - symbol: harness/hooks/_lib.py:match_gate_evidence manual authority
+    kind: A
+    replacement: typed verifier receipt validator
+    policy: delete in-epic
+    rg_scope: harness/hooks/
+    expect: zero manual authority accepted
+  - symbol: harness/hooks/epic/core.py:_verify_pass_ready_for_step manual BUGFIX branch
+    kind: A
+    replacement: typed receipt validator
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic/
+    expect: zero manual BUGFIX fallback
+  - symbol: loop/mb_finish/impl.py artifact-only finish
+    kind: A
+    replacement: transaction boundary guard
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/
+    expect: zero finish without active phase
+  - symbol: loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown
+    kind: A
+    replacement: typed handoff parser
+    policy: delete in-epic
+    rg_scope: loop/schemas/
+    expect: zero callers
+  - symbol: unresolved epic_resolve.py --decompose execution
+    kind: B
+    replacement: --epic-id + resolver or explicit diagnostic failure
+    policy: delete in-epic
+    rg_scope: harness/hooks/epic_resolve.py
+    expect: zero unhandled decompose fallback
+  - symbol: legacy mb-finish phase omission
+    kind: B
+    replacement: typed finish transaction
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/
+    expect: zero untyped finish execution
+  - symbol: typed handoff failure -> raw dict fallback
+    kind: C
+    replacement: fail-closed validation error / None
+    policy: delete in-epic
+    rg_scope: loop/schemas/
+    expect: zero raw dict fallback on invalid frontmatter
+  - symbol: manual evidence -> accepted non-authoritative PASS
+    kind: C
+    replacement: reject manual evidence
+    policy: delete in-epic
+    rg_scope: harness/hooks/_lib.py
+    expect: zero non-authoritative PASS
+  - symbol: missing phase -> artifact-only finish
+    kind: C
+    replacement: phase + receipt requirement
+    policy: delete in-epic
+    rg_scope: loop/mb_finish/
+    expect: zero artifact-only bypass
+  - symbol: instructions calling old arm functions
+    kind: I
+    replacement: arm_phase / arm_epic
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/
+    expect: zero old arm function references
+  - symbol: instructions accepting manual BUGFIX evidence
+    kind: I
+    replacement: typed verifier receipt
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/
+    expect: zero manual BUGFIX evidence references
+  - symbol: REFLECT as live next phase
+    kind: I
+    replacement: QA->DONE / QA->BUGFIX rules
+    policy: delete in-epic
+    rg_scope: harness/instructions/ .cursor/rules/
+    expect: zero REFLECT live phase references
+
+deletes:
+  - "harness/hooks/epic/core.py:arm_active_context_from_decompose"
+  - "harness/hooks/epic/core.py:arm_pre_implement_context"
+  - "loop/epic_transition.py:_legacy_warn"
+  - "all dead legacy transition fallback branches across runtime modules"
+
+out_of_scope:
+  - "Archive directory cleanup under memory-bank/archive/"
+
+grep_control:
+  - id: inv-a-01
+    kind: A
+    symbol: arm_active_context_from_decompose
+    command: 'rg -n "arm_active_context_from_decompose" harness/hooks/ loop/ --glob "!*.md" || true'
+    expect: no matches in production or active tests
+  - id: inv-a-02
+    kind: A
+    symbol: arm_pre_implement_context
+    command: 'rg -n "arm_pre_implement_context" harness/hooks/ loop/ --glob "!*.md" || true'
+    expect: no matches in production or active tests
+  - id: inv-a-03
+    kind: A
+    symbol: _legacy_warn
+    command: 'rg -n "_legacy_warn" harness/hooks/ loop/ --glob "!*.md" || true'
+    expect: no matches in production or active tests
+  - id: inv-b-01
+    kind: B
+    symbol: unresolved decompose fallback in epic_resolve
+    command: 'rg -n "args\.decompose" harness/hooks/epic_resolve.py || true'
+    expect: no direct call to deleted arm functions
+  - id: inv-c-01
+    kind: C
+    symbol: manual authority acceptance
+    command: 'rg -n "authority == \"manual\"" harness/hooks/_lib.py harness/hooks/epic/core.py || true'
+    expect: no matches
+  - id: inv-i-01
+    kind: I
+    symbol: legacy arm instructions
+    command: 'rg -n "arm_active_context_from_decompose" harness/instructions/ .cursor/rules/ || true'
+    expect: no matches
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: |
+      Kind A — rg по каждой строке sunset_inventory kind=A:
+      0 prod callers, 0 dead fallback functions, 0 live imports of deleted arm symbols.
+    verify: |
+      rg -n "arm_active_context_from_decompose|arm_pre_implement_context|_legacy_warn" harness/hooks/ loop/ --glob "!*.md" || true
+  - id: cp2
+    criterion: |
+      Kind B — entrypoint inventory: нет обращения к устаревшим arm-функциям из CLI или finish-модулей.
+    verify: |
+      rg -n "args\.decompose" harness/hooks/epic_resolve.py || true
+  - id: cp3
+    criterion: |
+      Kind C — anti-fallback rg: dual-path / soft default / manual authority fallback отсутствуют в core.
+    verify: |
+      rg -n "authority == \"manual\"" harness/hooks/_lib.py harness/hooks/epic/core.py || true
+  - id: cp4
+    criterion: |
+      Kind I — instruction surfaces: инструкции не содержат ссылок на удаленные arm-функции.
+    verify: |
+      rg -n "arm_active_context_from_decompose" harness/instructions/ .cursor/rules/ || true
+  - id: cp5
+    criterion: |
+      Obsolete tests на старый контракт удалены или переписаны; suite green без restore legacy.
+    verify: "bin/pytest loop/tests/test_epic_transition.py loop/tests/test_arm_phase_smoke.py loop/tests/test_finish_bugfix.py -q"
+  - id: cp6
+    criterion: Targeted + epic regression suite green после deletes (без возврата sunset-кода)
+    verify: "bin/pytest loop/tests/ harness/hooks/tests/ -q --tb=line -k 'epic_transition or handoff or finish_bugfix or receipt'"
+
+verify: []
+tdd: []

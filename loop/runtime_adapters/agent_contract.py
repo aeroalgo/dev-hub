@@ -58,9 +58,10 @@ UNIVERSAL_CONTRACTS: dict[str, str] = {
         "FORBIDDEN: git status / whole-repo dirty как FAIL; discard foreign dirty."
     ),
     "verify-bugfix": (
-        "CONTRACT verify-bugfix: нужен ALLOW READ с bugfix artifact "
+        "CONTRACT verify-bugfix: нужен ALLOW READ с bugfix queue "
+        "`memory-bank/**/bugfix/**/bugfix-queue.yaml` и report "
         "`memory-bank/**/bugfix/**/bugfix-*.md`. "
-        "Checklist SoT = bugfix artifact (Changes/Verification); "
+        "Queue SoT = statuses/evidence; report SoT = Changes/Verification; "
         "parent-packed AC+/VERIFY не SoT. "
         + _GATE_JSON_HARD
         + " Не edit. Без isolation=worktree."

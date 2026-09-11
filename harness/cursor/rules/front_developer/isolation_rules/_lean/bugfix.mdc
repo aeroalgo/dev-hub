@@ -4,7 +4,7 @@ alwaysApply: false
 ---
 # FRONT BUGFIX — gates
 
-**Артефакт:** с эпиком `memory-bank/front/bugfix/<epic_id>/bugfix-YYYYMMDD-<slug>.md`; без — `memory-bank/front/bugfix/bugfix-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/epic-scoped-paths.mdc
+**Артефакты:** с эпиком `memory-bank/front/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, status SoT) + `bugfix-YYYYMMDD-<slug>.md`; без эпика — `bugfix-YYYYMMDD-<slug>.md`. @.cursor/rules/shared/epic-scoped-paths.mdc
 
 ## Gates
 
@@ -12,10 +12,12 @@ alwaysApply: false
 2. Root cause; no mask; regression red → fix → green
 3. **Scenario:** user-visible UI → Playwright targeted обязателен; **parent** runs
 4. Visible UI → Read design stack (6 из workflow-implement) **до** UI edit
-5. bugfix-файл; scenario path; **Источник:** qa §Fix plan
+5. Queue first: первый `open`/`in_progress` → `in_progress` → targeted scenario green → `done` + evidence + done_at; partial между сессиями допустим, прыжок через open запрещён. Report — narrative only; **Источник:** queue + QA.
+5a. Все items terminal → только full `verification.command`; PASS требует evidence. FAIL → gate repair append новых open в ту же queue, остаёмся BUGFIX.
 6. §0.11 если applicable
 7. FINISH: finish-block; next-mode — `memory-bank/activeContext.md` + decompose index · `finish-doc-router.md` §BUGFIX FINISH
 
 ## Abort
 
 - Workaround · tests skipped · user-visible без Playwright · «manual smoke only» → no FINISH
+- FINISH при missing queue, open item или verification != pass → FAIL

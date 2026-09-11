@@ -61,9 +61,8 @@ from harness.hooks._lib import (  # noqa: E402
 )
 from harness.hooks.agent_policy import AgentContext, resolve_agent_policy  # noqa: E402
 from harness.hooks.agent_registry import discover_registry  # noqa: E402
+from loop.epic_transition import arm_epic, arm_phase  # noqa: E402
 from harness.hooks.epic import (  # noqa: E402
-    arm_active_context_from_decompose,
-    arm_epic,
     active_context_path,
     checkpoint_lifecycle,
     checkpoint_resume,
@@ -1255,11 +1254,13 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "\n## BUGFIX FINISH\n"
             f"1. Выполни BUGFIX workflow текущей команды для epic `{epic}`.\n"
             "2. Зафиксируй QA source, root cause и regression evidence по правилам workflow.\n"
-            "2a. Закрой **все** `blockers`/`fix_plan` из текущего QA-отчёта в одном BUGFIX (partial = FAIL).\n"
-            "3. After verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
-            "4. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
-            "5. После успешного FINISH останови сессию: BACK QA выполнит следующий запуск runner.\n"
-            "6. Не создавай QA verdict и не вызывай mb-finish qa в BUGFIX-сессии; не изменяй gate evidence.\n"
+            "2a. Читай только `bugfix-queue.yaml`; возьми первый `open`/`in_progress`, переведи в `in_progress`, исправь его и после targeted green запиши `done` + evidence + done_at. За сессию можно закрыть часть очереди.\n"
+            "2b. Не перепрыгивай через open; без human переводи текущий пункт в `blocked` + NEED_HUMAN. `bugfix-queue.yaml` — единственный SoT статусов, prose bugfix-*.md — отчёт.\n"
+            "3. Полную `verification.command` запускай только когда все items terminal; PASS требует evidence. FAIL → gate repair, append новых open в ту же очередь, фаза остаётся BUGFIX.\n"
+            "4. After queue verification PASS and verify-bugfix PASS: `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish bugfix`.\n"
+            "5. Следующий режим и artifact определяет текущий workflow; не придумывай другой маршрут.\n"
+            "6. После успешного FINISH останови сессию: BACK QA выполнит следующий запуск runner.\n"
+            "7. Не создавай QA verdict и не вызывай mb-finish qa в BUGFIX-сессии; не изменяй gate evidence.\n"
         )
     elif phase_kind == "implement":
         explorer_block = _explorer_block(
@@ -1280,7 +1281,7 @@ activeContext не разобран ({'; '.join(reasons)}). Не halt.
             "**запрещено** усиливать wording между QA runs (anti-ratchet). "
             "Только потом один `qa-*.yaml`: `blockers`/`fix_plan` 1:1 **только с eligible** "
             "`## BLOCKERS (complete)` (+ suite/leftover gaps). "
-            "FAIL/BLOCKED с eligible B* → Handoff BUGFIX + `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
+            "FAIL/BLOCKED с eligible B* → seed/merge `bugfix-queue.yaml`, Handoff BUGFIX + `python harness/hooks/epic_resolve.py --cwd $PROJECT_ROOT mb-finish qa`. "
             "PASS (в т.ч. только ineligible residuals) → тот же `mb-finish qa` (DONE).\n"
             "> FORBIDDEN: fail-fast mid-checks / partial eligible blockers / repair-loop / повторный suite / "
             "правки продукта в QA / spawn verify-qa while suite incomplete / "
@@ -1603,7 +1604,11 @@ def resolve_premature_epic_done(cwd: str | Path) -> dict[str, Any] | None:
         "armed_decompose"
     )
     if decompose:
-        out = arm_active_context_from_decompose(cwd_p, str(decompose))
+        from epic_paths import epic_id_from_decompose_path
+        st_arm = load_epic_state(cwd_p) or {}
+        epic_id = (st_arm.get("armed_epic") or "").strip() or epic_id_from_decompose_path(str(decompose)) or "unknown"
+        role = (st_arm.get("role") or "back").lower()
+        out = arm_phase(cwd_p, epic_id, "IMPLEMENT", role=role, decompose_rel=str(decompose))
         if out.get("ok") and not out.get("complete"):
             new_text = read_active_context(cwd_p)
             if detect_stop_marker(new_text) == "EPIC_DONE":

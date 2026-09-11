@@ -14,7 +14,7 @@ alwaysApply: false
 2b. **Behavior smoke** при agent/hook/gate/CLI FR — suite alone недостаточен. @.cursor/rules/shared/workflow-behavior-first.mdc §6
 3. Tests (HARD): Hub (dev-hub self-test) — **полный pytest репозитория** `bin/pytest -q --tb=line` (или `timeout -k 10s 300s .venv/bin/pytest -q --tb=line`) **без** path/nodeid/`-k` + parent-only Vitest + parent-only scenario (Playwright; epic-scoped pytest **не** заменяет full); Managed project — full capability checks (`test.full`, `typecheck.full`, `lint.full`) с валидным typed execution evidence. FRONT runners **parent only**
 4. P0/P1 user-visible без scenario → **write** before PASS
-5. **fail|blocked:** `review.md` + Handoff — `finish-doc-router.md`
+5. **fail|blocked:** создать/merge `memory-bank/integration/bugfix/<epic_id>/bugfix-queue.yaml` (`epic-bugfix-queue/v1`, blockers 1:1; старые done сохранить) + Handoff с queue в `load_now` — `finish-doc-router.md`
 5a. **Anti-ratchet / freeze (HARD):** Frozen QA checklist (`checklist_sha256`) SoT; blockers only `suite_red|ac_gap|leftover|orphan_ref|prior_open|behavior_smoke:`; after BUGFIX `prior_only`; ≥3 cycles same sha → NEED_HUMAN.
 
 ## Abort
@@ -24,3 +24,4 @@ alwaysApply: false
 - PASS при leftover mock/legacy entrypoint / fallback → FAIL
 - PASS при agent/hook/gate/CLI FR без behavior smoke → FAIL
 - blockers without eligible class / checklist_sha256 drift → FAIL
+- fail/blocked без валидной bugfix queue в `load_now` → FAIL

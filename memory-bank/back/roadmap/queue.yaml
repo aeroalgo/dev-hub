@@ -1,34 +1,43 @@
 version: roadmap-queue/v2
 role: back
 queue:
-- id: T-HUB-087
-  epic_id: T-HUB-087-epic-layout-v2-fallback-purge
-  plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
-  deps: []
-  batch: legacy-fallback-purge-20260908
 - id: T-HUB-088
   epic_id: T-HUB-088-lifecycle-transition-fallback-purge
   plan: plan-T-HUB-088-lifecycle-transition-fallback-purge.md
-  deps:
-  - T-HUB-087
+  deps: []
   batch: legacy-fallback-purge-20260908
 - id: T-HUB-089
   epic_id: T-HUB-089-event-dag-roadmap-fallback-purge
   plan: plan-T-HUB-089-event-dag-roadmap-fallback-purge.md
-  deps:
-  - T-HUB-087
+  deps: []
   batch: legacy-fallback-purge-20260908
 - id: T-HUB-090
   epic_id: T-HUB-090-boundary-compatibility-shim-purge
   plan: plan-T-HUB-090-boundary-compatibility-shim-purge.md
-  deps:
-  - T-HUB-087
+  deps: []
   batch: legacy-fallback-purge-20260908
 - id: plan
   epic_id: T-HUB-076-stack-profile-capability-execution
   plan: plan.md
   deps: []
   batch: chat-plan
+- id: T-HUB-092
+  epic_id: T-HUB-092-roadmap-cadence-foundation
+  plan: plan-T-HUB-092-roadmap-cadence-foundation.md
+  deps: []
+  batch: roadmap-cadence-20260911
+- id: T-HUB-093
+  epic_id: T-HUB-093-roadmap-cadence-replan-refactor-block
+  plan: plan-T-HUB-093-roadmap-cadence-replan-refactor-block.md
+  deps:
+  - T-HUB-092
+  batch: roadmap-cadence-20260911
+- id: T-HUB-094
+  epic_id: T-HUB-094-roadmap-cadence-resync-tail
+  plan: plan-T-HUB-094-roadmap-cadence-resync-tail.md
+  deps:
+  - T-HUB-093
+  batch: roadmap-cadence-20260911
 done:
 - id: T-HUB-002
   epic_id: T-HUB-002-canon-sync
@@ -326,6 +335,10 @@ done:
   epic_id: T-HUB-079-orchestrator-lifecycle-reliability
   plan: plan-T-HUB-079-orchestrator-lifecycle-reliability.md
   batch: claude-session-audit-20260907
+- id: T-HUB-080
+  epic_id: T-HUB-080-workflow-capability-instruction-parity
+  plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
+  batch: claude-session-audit-20260907
 - id: T-HUB-081
   epic_id: T-HUB-081-workflow-hot-path-consolidation
   plan: plan-T-HUB-081-workflow-hot-path-consolidation.md
@@ -342,14 +355,6 @@ done:
   epic_id: T-HUB-084-workflow-reference-graph-hygiene
   plan: plan-T-HUB-084-workflow-reference-graph-hygiene.md
   batch: workflow-read-chain-20260907
-- id: T-HUB-080
-  epic_id: T-HUB-080-workflow-capability-instruction-parity
-  plan: plan-T-HUB-080-workflow-capability-instruction-parity.md
-  batch: claude-session-audit-20260907
-- id: T-HUB-091
-  epic_id: T-HUB-091-gate-identity-sot-consolidation
-  plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
-  batch: gate-identity-sot-20260910
 - id: T-HUB-085
   epic_id: T-HUB-085-hook-event-dispatcher-consolidation
   plan: plan-T-HUB-085-hook-event-dispatcher-consolidation.md
@@ -358,6 +363,14 @@ done:
   epic_id: T-HUB-086-python-loop-supervisor-cutover
   plan: plan-T-HUB-086-python-loop-supervisor-cutover.md
   batch: loop-runner-python-20260908
+- id: T-HUB-087
+  epic_id: T-HUB-087-epic-layout-v2-fallback-purge
+  plan: plan-T-HUB-087-epic-layout-v2-fallback-purge.md
+  batch: legacy-fallback-purge-20260908
+- id: T-HUB-091
+  epic_id: T-HUB-091-gate-identity-sot-consolidation
+  plan: plan-T-HUB-091-gate-identity-sot-consolidation.md
+  batch: gate-identity-sot-20260910
 batches:
   workflow-loop-hardening:
     source: memory-bank/back/plan/roadmap-workflow-loop-hardening-epics.queue.yaml
@@ -432,3 +445,7 @@ batches:
     title: GateIdentity SoT consolidation (Claude + Codex)
     note: T-HUB-091 — single GateIdentity SoT, spawn-time delivery, stop strict|transport_bind;
       DSH out of scope; details in plan/T-HUB-091-gate-identity-sot-consolidation/md/plan.md
+  roadmap-cadence-20260911:
+    title: 'Roadmap cadence: every 2 feature done — foundation, REPLAN→Refactor, resync'
+    note: T-HUB-092 foundation; T-HUB-093 REPLAN then PLAN REFACTOR; T-HUB-094 reconcile/resync
+      tail; no sliding window

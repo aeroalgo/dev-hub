@@ -12,6 +12,7 @@ class EpicLayoutKind(str, Enum):
     DECOMPOSE_STEP = "decompose_step"
     IMPLEMENT_STEP = "implement_step"
     QA_YAML = "qa_yaml"
+    BUGFIX_QUEUE_YAML = "bugfix_queue_yaml"
     ANALYZE_YAML = "analyze_yaml"
     AUDIT_YAML = "audit_yaml"
 

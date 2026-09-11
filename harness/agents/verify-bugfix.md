@@ -1,6 +1,6 @@
 ---
 name: verify-bugfix
-description: "Pre-FINISH verify gate for BUGFIX (mandatory when bugfix code changed). Checklist SoT = bugfix artifact in ALLOW READ; parent packs paths only. Never edit code."
+description: "Pre-FINISH verify gate for BUGFIX (mandatory when bugfix code changed). Checklist SoT = bugfix queue + report in ALLOW READ. Never edit code."
 tools: Read, Grep, Bash
 disallowedTools: Write, Edit, Agent, Skill, Glob, NotebookEdit, WebFetch, WebSearch, TodoWrite
 maxTurns: 12
@@ -23,21 +23,22 @@ Parent **обязан** передать только:
 
 | Секция | Обязательна |
 |--------|-------------|
-| `ALLOW READ` | да (≤10) — **обязан** включать bugfix artifact `memory-bank/**/bugfix/**/bugfix-*.md` (+ touched code / qa source) |
+| `ALLOW READ` | да (≤10) — **обязан** включать `bugfix-queue.yaml` и bugfix report `memory-bank/**/bugfix/**/bugfix-*.md` (+ touched code / qa source) |
 
 Нет `ALLOW READ` → `FAIL` `prompt_incomplete:ALLOW READ`. Нет bugfix path в ALLOW → `FAIL` `missing_bugfix_artifact`.
 
-**Checklist SoT = bugfix artifact** (не parent prompt). Parent-packed `AC+` / `AC−` / `§0.11` / `VERIFY` / `BUGFIX ARTIFACT` header **игнорировать** как checklist.
+**Checklist SoT = bugfix queue + report** (не parent prompt). Queue является SoT статусов; parent-packed `AC+` / `AC−` / `§0.11` / `VERIFY` игнорировать как checklist.
 
 ## Validation rules
 
-0. **Первый Read** = bugfix artifact из ALLOW (обязателен). Нет файла → `FAIL` (`bugfix_artifact_missing`).
-0a. Построй checklist из artifact:
+0. **Первый Read** = `bugfix-queue.yaml` из ALLOW (обязателен). Нет файла → `FAIL` (`bugfix_queue_missing`). Затем прочитай report. Queue должен быть `epic-bugfix-queue/v1`.
+0a. **Queue progress:** нет `open|in_progress|blocked`; один current item закрыт по порядку; каждый `done` имеет targeted evidence + done_at. `verification.status=pass` только после full `verification.command` и evidence; fail → gate repair в ту же queue.
+0b. Построй checklist из report:
    - `AC+` ← секция Changes Implemented / список изменённых файлов+поведения (≥1; иначе `FAIL checklist_empty:AC+`)
    - `AC−` ← не ломать unrelated / dispositions ineligible / явный out-of-scope (≥1; иначе `FAIL checklist_empty:AC−`)
    - `§0.11` ← counterparts для путей из Changes (≥1; иначе `FAIL checklist_empty:§0.11`)
    - `VERIFY` ← секция Verification / команды `bin/pytest…` (иначе `FAIL checklist_empty:VERIFY`)
-0b. **Complete QA fix:** если в ALLOW есть QA source `blockers`/`fix_plan` — каждый eligible пункт закрыт в bugfix + evidence; partial → `FAIL` (`qa_blockers_incomplete`).
+0c. **QA queue mapping:** если в ALLOW есть QA source `blockers`/`fix_plan`, каждый eligible blocker присутствует в queue; partial → `FAIL` (`qa_blockers_incomplete`).
 1. Пронумеруй `AC+` → для каждого: file:line **или** вывод VERIFY. Нет доказательства → `FAIL`.
 2. Пронумеруй `AC−` → для каждого: докажи **только** по файлам из `ALLOW READ` (Read или `git diff -- <этот path>`). Нарушение в ALLOW → `FAIL`.
 3. Пройди `§0.11` checklist по пунктам (только ALLOW). Orphan / missing counterpart → `FAIL`.

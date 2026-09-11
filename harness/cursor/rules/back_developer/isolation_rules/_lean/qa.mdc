@@ -25,7 +25,7 @@ alwaysApply: false
 3c. **Enforce:** spawn verify-qa без matching `checklist_sha256` → deny; finish_qa при drift sha/`ac_plus` или blockers без class → FAIL.
 4. Security spot-check: OWASP checklist на auth/API в diff (коротко). `semgrep` / `differential-review` — только если в diff есть auth, crypto, external I/O, secrets/config.
 5. qa-артефакт + tasks append-only — **только после** шага 3–4; `blockers[]` и `fix_plan[]` = 1:1 **eligible** список (suite red + leftover + verify-qa eligible B*).
-5a. **fail|blocked:** полный eligible `fix_plan[]` в qa yaml + Handoff — `finish-doc-router.md`
+5a. **fail|blocked:** до FINISH создать/merge `memory-bank/back/bugfix/<epic_id>/bugfix-queue.yaml`; queue items 1:1 с blockers текущего QA, старые done сохранить, новые добавить open. Handoff `load_now` обязан включать queue — `finish-doc-router.md`.
 6. FINISH: finish-block (`code_changed: no`); next-mode — `memory-bank/activeContext.md` + decompose index
 
 ## Situational (не каждый QA)
@@ -55,3 +55,4 @@ alwaysApply: false
 - FINISH qa shard `.md` вместо `.yaml` → FAIL
 - PASS при leftover legacy entrypoint / fallback / Kind I instruction / fail `sot_enforce_scan` из plan sunset → FAIL
 - PASS при agent/hook/gate/CLI FR без behavior smoke (только unit suite) → FAIL
+- FAIL/blocked без валидной `epic-bugfix-queue/v1` или без queue в `load_now` → FAIL

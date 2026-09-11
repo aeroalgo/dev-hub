@@ -1,0 +1,78 @@
+schema: epic-decompose/v1
+role: back
+step_id: s03
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+title: Enforce typed loop-handoff/v1 frontmatter and remove raw dict / markdown parsing fallbacks
+next_phase: BACK IMPLEMENT
+needs_creative: "no"
+
+goal: |
+  Обеспечить строгое соответствие handoff frontmatter схеме loop-handoff/v1, исключить fallback к нетипизированному
+  raw dict при ошибках валидации в parse_handoff_meta, и удалить неиспользуемый helper _handoff_mode_from_legacy_markdown.
+
+plan_contract:
+  fr_ids:
+    - FR-004
+    - SC-004
+    - US-002
+  nouns:
+    - loop.schemas.active_context.parse_handoff_meta
+    - loop.schemas.active_context.LoopHandoffFrontmatter
+    - loop.schemas.active_context._handoff_mode_from_legacy_markdown
+  layout_paths:
+    - memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/yaml/steps/s03-typed-handoff-and-fail-closed-parsing.yaml
+  ac_quotes:
+    - "Handoff runtime принимает только typed loop-handoff/v1; malformed/transitional raw dict не продолжает lifecycle."
+    - "LoopHandoffFrontmatter validation failure блокирует lifecycle, а не возвращает raw dict."
+    - "no raw Markdown handoff fallback in runtime."
+  plan_jumps:
+    - "memory-bank/back/plan/T-HUB-088-lifecycle-transition-fallback-purge/md/plan.md:41-76"
+
+context:
+  consumes:
+    - loop/schemas/active_context.py
+    - loop/mb_load/session.py
+    - loop/mb_load/plan_section.py
+    - harness/hooks/epic/core.py
+  produces:
+    - loop/schemas/active_context.py
+    - loop/tests/test_schemas_handoff.py
+  plan_refs:
+    - FR-004
+    - SC-004
+    - US-002
+  files:
+    - loop/schemas/active_context.py
+    - loop/tests/test_schemas_handoff.py
+
+as_built:
+  - "loop/schemas/active_context.py: parse_handoff_meta перехватывает ValidationError и возвращает raw dict"
+  - "loop/schemas/active_context.py: содержит _handoff_mode_from_legacy_markdown"
+
+delta:
+  - "Обновить parse_handoff_meta для возврата строго LoopHandoffFrontmatter | None (или raise ValidationError при strict parsing)"
+  - "Удалить _handoff_mode_from_legacy_markdown"
+  - "Обновить unit-тесты схем в loop/tests/test_schemas_handoff.py для проверки fail-closed поведения"
+
+deletes:
+  - "loop/schemas/active_context.py:_handoff_mode_from_legacy_markdown"
+  - "raw dict fallback branch inside parse_handoff_meta"
+
+out_of_scope:
+  - "Удаление manual evidence branch (шаг s04)"
+  - "Переписывание инструкций (шаг s05)"
+
+skills:
+  code_surface: api
+  impl: []
+
+checkpoints:
+  - id: cp1
+    criterion: parse_handoff_meta отклоняет невалидный frontmatter и не возвращает сырой нетипизированный dict
+    verify: "bin/pytest loop/tests/test_schemas_handoff.py loop/tests/test_handoff_strict_flag.py -q"
+  - id: cp2
+    criterion: В loop/schemas/active_context.py отсутствуют fallback-функции разбора markdown
+    verify: "python3 -c \"import subprocess, sys; out = subprocess.run(['rg', '-n', '_handoff_mode_from_legacy_markdown', 'loop/schemas/active_context.py'], capture_output=True, text=True); sys.exit(1 if out.stdout else 0)\""
+
+verify: []
+tdd: []

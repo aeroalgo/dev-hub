@@ -176,7 +176,28 @@ def test_finish_qa_fails_closed_when_lifecycle_event_cannot_be_recorded(tmp_path
 
 
 def test_finish_bugfix_happy(tmp_path: Path):
-    """cp4: finish_bugfix happy path with valid bugfix artifact -> ok=True."""
+    """cp4: finish_bugfix requires a completed queue and report."""
+    from loop.bugfix_queue import seed_or_merge_bugfix_queue, set_bugfix_verification, update_bugfix_item
+
+    qa_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
+    qa_dir.mkdir(parents=True, exist_ok=True)
+    qa_file = qa_dir / "qa-001.yaml"
+    qa_file.write_text(
+        "schema: epic-qa/v1\n"
+        "epic_id: T-HUB-040\n"
+        "verdict: fail\n"
+        "checklist_sha256: freeze-test\n"
+        "blockers:\n  - 'suite_red: loop/tests/test_fixture.py'\n"
+        "fix_plan:\n  - 'BACK BUGFIX Fix loop/tests/test_fixture.py'\n",
+        encoding="utf-8",
+    )
+    queue_path, _ = seed_or_merge_bugfix_queue(tmp_path, "back", "T-HUB-040", qa_file)
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="full suite green")
+    from harness.hooks.epic.core import _append_event
+    _append_event(tmp_path, "back", "T-HUB-040", "qa_fail", qa_file)
+
     bugfix_dir = tmp_path / "memory-bank" / "back" / "bugfix" / "T-HUB-040"
     bugfix_dir.mkdir(parents=True, exist_ok=True)
     (bugfix_dir / "bugfix-001.md").write_text(
@@ -221,7 +242,7 @@ def test_finish_bugfix_fail_closed(tmp_path: Path):
     )
     res = finish_bugfix(req)
     assert res.ok is False
-    assert "bugfix_artifact_missing" in res.diagnostic_codes
+    assert "bugfix_queue_missing" in res.diagnostic_codes
 
 
 import pytest
@@ -232,7 +253,15 @@ def test_finish_qa_verdict_fail_or_blocked_routes_to_bugfix_not_done(tmp_path: P
     mb_dir = tmp_path / "memory-bank" / "back" / "qa" / "T-HUB-040"
     mb_dir.mkdir(parents=True, exist_ok=True)
     qa_file = mb_dir / "qa-001.yaml"
-    qa_file.write_text(f"verdict: {verdict}\nepic_id: T-HUB-040\n", encoding="utf-8")
+    qa_file.write_text(
+        f"verdict: {verdict}\nepic_id: T-HUB-040\n"
+        "checklist_sha256: freeze-test\n"
+        "blockers:\n  - 'suite_red: loop/tests/test_fixture.py'\n"
+        "fix_plan:\n  - 'BACK BUGFIX Fix loop/tests/test_fixture.py'\n",
+        encoding="utf-8",
+    )
+    from loop.bugfix_queue import seed_or_merge_bugfix_queue
+    seed_or_merge_bugfix_queue(tmp_path, "back", "T-HUB-040", qa_file)
 
     save_epic_state(tmp_path, {"armed_epic": "T-HUB-040", "armed_role": "BACK"})
 

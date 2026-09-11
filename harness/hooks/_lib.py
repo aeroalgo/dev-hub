@@ -2624,7 +2624,12 @@ _DECOMPOSE_STEP_RE = re.compile(
 
 _BUGFIX_ARTIFACT_RE = re.compile(
     r"(memory-bank/(?:back|front|integration)/bugfix/"
-    r"[^\s`/]+/bugfix-[^\s`]+\.(?:md|ya?ml))"
+    r"[^\s`/]+/bugfix-[^\s`]+\.md)"
+)
+
+_BUGFIX_QUEUE_RE = re.compile(
+    r"(memory-bank/(?:back|front|integration)/bugfix/"
+    r"[^\s`/]+/bugfix-queue\.yaml)"
 )
 
 _DECOMPOSE_INDEX_RE = re.compile(
@@ -2667,6 +2672,17 @@ def bugfix_artifacts_in_prompt(prompt: str) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for m in _BUGFIX_ARTIFACT_RE.finditer(prompt or ""):
+        p = m.group(1).strip().strip("`").rstrip(",;")
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return out
+
+
+def bugfix_queues_in_prompt(prompt: str) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in _BUGFIX_QUEUE_RE.finditer(prompt or ""):
         p = m.group(1).strip().strip("`").rstrip(",;")
         if p and p not in seen:
             seen.add(p)
@@ -2733,24 +2749,38 @@ def verify_step_path_violations(cwd: str | Path, prompt: str) -> list[str]:
 
 
 def verify_bugfix_path_violations(cwd: str | Path, prompt: str) -> list[str]:
-    """DENY: bugfix artifact path must be in ALLOW and on disk."""
+    """DENY: bugfix queue and report must be in ALLOW and on disk."""
     arts = bugfix_artifacts_in_prompt(prompt)
+    queues = bugfix_queues_in_prompt(prompt)
+    reasons: list[str] = []
     if not arts:
-        return [
+        reasons.append(
             "missing_bugfix_artifact: в prompt/ALLOW READ нужен путь "
             "`memory-bank/**/bugfix/**/bugfix-*.md` "
-            "(checklist SoT = bugfix artifact)"
-        ]
+            "(bugfix report)"
+        )
+    if not queues:
+        reasons.append(
+            "missing_bugfix_queue: в prompt/ALLOW READ нужен путь "
+            "`memory-bank/**/bugfix/**/bugfix-queue.yaml` "
+            "(status SoT)"
+        )
     root = Path(cwd) if cwd else None
     if root is None:
-        return []
+        return reasons
     missing = [rel for rel in arts if not (root / rel).is_file()]
     if missing:
-        return [
+        reasons.append(
             "bugfix_artifact_missing: bugfix artifact нет на диске — "
             + ", ".join(missing)
-        ]
-    return []
+        )
+    missing_queues = [rel for rel in queues if not (root / rel).is_file()]
+    if missing_queues:
+        reasons.append(
+            "bugfix_queue_missing: bugfix queue нет на диске — "
+            + ", ".join(missing_queues)
+        )
+    return reasons
 
 
 def verify_decompose_path_violations(cwd: str | Path, prompt: str) -> list[str]:

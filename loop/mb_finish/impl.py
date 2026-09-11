@@ -44,6 +44,10 @@ from loop.mb_finish.transaction import (
 from loop.paths.pack_layout import resolve_mb_root
 from loop.schemas.state import QaAfterBugfix
 from loop.qa_outcome import extract_changed_paths, suite_plan_after_changes
+from loop.bugfix_queue import (
+    bugfix_queue_path,
+    load_bugfix_queue,
+)
 
 
 def finish_handoff(
@@ -232,10 +236,6 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
     except Exception:
         qa_link = qa_rel.removeprefix("memory-bank/")
 
-    load_now = [
-        LoadNowItem(path=qa_rel, description="QA pass artifact"),
-    ]
-
     qa_verdict = parse_qa_verdict(qa_art)
     if qa_verdict is None:
         return MbFinishResult(
@@ -243,6 +243,25 @@ def finish_qa(req: MbFinishRequest) -> MbFinishResult:
             diagnostic_codes=["qa_verdict_missing"],
             shape_errors=["qa-*.yaml missing or invalid verdict (must be pass, fail, or blocked)"],
         )
+    queue_path: Path | None = None
+    queue_rel: str | None = None
+    if qa_verdict in {"fail", "blocked"} and epic_id:
+        queue_path = bugfix_queue_path(cwd, role_dir, str(epic_id))
+        if not queue_path.is_file():
+            return MbFinishResult(
+                ok=False,
+                diagnostic_codes=["bugfix_queue_missing"],
+                shape_errors=[
+                    "QA fail/blocked requires a prebuilt epic-bugfix-queue/v1 queue"
+                ],
+            )
+        queue_rel = queue_path.relative_to(cwd).as_posix()
+
+    load_now = [
+        LoadNowItem(path=qa_rel, description="QA report"),
+    ]
+    if queue_rel:
+        load_now.insert(0, LoadNowItem(path=queue_rel, description="Bugfix queue — status SoT"))
     # A QA artifact is only a report.  Closing QA requires a fresh autonomous
     # verify-qa receipt for the current run.  Re-QA already had this check;
     # applying it to normal QA closes the path that previously forged qa_pass.
@@ -524,6 +543,22 @@ def _bugfix_artifact_for_finish(
     return latest_bugfix_artifact_for_reference(cwd, role_dir, epic_id=epic_id)
 
 
+def _bugfix_queue_for_finish(cwd: Path, role_dir: str, *, epic_id: str) -> Path | None:
+    try:
+        context = read_active_context(cwd)
+    except OSError:
+        context = ""
+    marker = f"{role_dir}/bugfix/{epic_id}/"
+    for rel in extract_load_now(context):
+        norm = str(rel or "").replace(chr(92), "/").strip()
+        if marker in norm and Path(norm).name == "bugfix-queue.yaml":
+            candidate = cwd / norm
+            if candidate.is_file():
+                return candidate
+    candidate = bugfix_queue_path(cwd, role_dir, epic_id)
+    return candidate if candidate.is_file() else None
+
+
 
 def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     """Orchestrate Bugfix phase finish atomically."""
@@ -547,6 +582,41 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
             ok=False,
             diagnostic_codes=["bugfix_epic_missing"],
             shape_errors=["Bugfix finish requires armed epic_id"],
+        )
+
+    queue_path = _bugfix_queue_for_finish(cwd, role_dir, epic_id=epic_id)
+    if queue_path is None:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_queue_missing"],
+            shape_errors=[
+                f"Bugfix queue missing: memory-bank/{role_dir}/bugfix/{epic_id}/bugfix-queue.yaml"
+            ],
+        )
+    try:
+        queue = load_bugfix_queue(queue_path)
+    except (OSError, ValueError) as exc:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_queue_invalid"],
+            shape_errors=[str(exc)],
+        )
+    open_items = [
+        item.id for item in queue.items if item.status not in {"done", "cancelled"}
+    ]
+    if open_items:
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_queue_open"],
+            shape_errors=[f"Bugfix queue is not complete; open items: {', '.join(open_items)}"],
+        )
+    if queue.verification.status != "pass":
+        return MbFinishResult(
+            ok=False,
+            diagnostic_codes=["bugfix_verification_required"],
+            shape_errors=[
+                "Run the queue verification.command and record verification.status=pass with evidence"
+            ],
         )
 
     bugfix_art = _bugfix_artifact_for_finish(
@@ -583,9 +653,15 @@ def finish_bugfix(req: MbFinishRequest) -> MbFinishResult:
     except ValueError:
         bugfix_rel = str(bugfix_art)
 
+    queue_rel = queue_path.relative_to(cwd).as_posix()
     load_now = [
-        LoadNowItem(path=bugfix_rel, description="Bugfix artifact"),
+        LoadNowItem(path=queue_rel, description="Bugfix queue — status SoT"),
+        LoadNowItem(path=bugfix_rel, description="Bugfix report"),
     ]
+    if queue.source_qa:
+        source_qa = cwd / queue.source_qa
+        if source_qa.is_file():
+            load_now.append(LoadNowItem(path=queue.source_qa, description="QA source", optional=True))
 
     meta = LoopHandoffMeta(
         role=role,

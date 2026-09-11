@@ -40,8 +40,6 @@ from epic.traceability import (
 )
 from epic_lib import (  # noqa: E402
     _decompose_index_path,
-    arm_active_context_from_decompose,
-    arm_epic,
     finalize_step,
     halt_epic,
     load_epic_state,
@@ -1061,18 +1059,19 @@ def main() -> int:
         if args.epic_id:
             r = arm_epic(cwd, args.epic_id, role=role)
         elif args.decompose:
-            from epic_paths import resolve_arm_epic_target
+            from epic_paths import resolve_arm_epic_target, epic_id_from_decompose_path
 
             resolved = resolve_arm_epic_target(args.decompose, cwd)
             if resolved:
                 epic_id, path_role = resolved
                 role = getattr(args, "role", None) or path_role or "back"
-                r = arm_epic(cwd, epic_id, role=role)
+                r = arm_phase(cwd, epic_id, "IMPLEMENT", role=role, decompose_rel=args.decompose)
                 if r.get("ok"):
                     r = dict(r)
                     r["deprecated"] = "use --epic-id instead of --decompose"
             else:
-                r = arm_active_context_from_decompose(cwd, args.decompose)
+                epic_id = epic_id_from_decompose_path(args.decompose) or "unknown"
+                r = arm_phase(cwd, epic_id, "IMPLEMENT", role=role, decompose_rel=args.decompose)
         else:
             print(json.dumps({"ok": False, "error": "missing --epic-id or --decompose"}, ensure_ascii=False))
             return 2

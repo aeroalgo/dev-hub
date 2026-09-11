@@ -92,10 +92,9 @@ def test_tm004_contract_verify_bugfix_sections() -> None:
     prompt_no_art = "Verify bugfix for issue without artifact\nALLOW READ:\nfoo.py\n"
     missing = _lib.missing_contract_sections("verify-bugfix", prompt_no_art)
     assert missing == []
-    assert any(
-        "missing_bugfix_artifact" in r
-        for r in _lib.verify_bugfix_path_violations(".", prompt_no_art)
-    )
+    violations = _lib.verify_bugfix_path_violations(".", prompt_no_art)
+    assert any("missing_bugfix_artifact" in r for r in violations)
+    assert any("missing_bugfix_queue" in r for r in violations)
 
 
 def test_tm005_contract_verify_decompose() -> None:

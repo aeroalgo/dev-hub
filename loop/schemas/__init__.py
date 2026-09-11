@@ -8,6 +8,14 @@ from loop.schemas.active_context import (
     validate_handoff_frontmatter,
 )
 from loop.schemas.board import BoardCardMetadata
+from loop.schemas.bugfix_queue import (
+    BUGFIX_QUEUE_ITEM_CLASSES,
+    BUGFIX_QUEUE_TERMINAL_STATUSES,
+    BugfixQueueItem,
+    BugfixVerification,
+    EpicBugfixQueue,
+    SCHEMA_EPIC_BUGFIX_QUEUE,
+)
 from loop.schemas.checkpoint import (
     CHECKPOINT_ACTIONS,
     CHECKPOINT_RESUME_POLICIES,
@@ -35,6 +43,10 @@ __all__ = [
     "CHECKPOINT_STAGES",
     "CHECKPOINT_STATUSES",
     "BoardCardMetadata",
+    "BUGFIX_QUEUE_ITEM_CLASSES",
+    "BUGFIX_QUEUE_TERMINAL_STATUSES",
+    "BugfixQueueItem",
+    "BugfixVerification",
     "CheckpointRecord",
     "DecomposeFormula",
     "DriftCounters",
@@ -42,6 +54,7 @@ __all__ = [
     "EVENT_SCHEMA",
     "EpicLayoutKind",
     "EpicLayoutResolveRequest",
+    "EpicBugfixQueue",
     "EpicState",
     "FormulaStep",
     "GateVerdictRecord",
@@ -50,6 +63,7 @@ __all__ = [
     "LoopHandoffFrontmatter",
     "LoopHandoffRole",
     "SCHEMA_LOOP_SUNSET_INVENTORY",
+    "SCHEMA_EPIC_BUGFIX_QUEUE",
     "SunsetItem",
     "SunsetKind",
     "SunsetMark",

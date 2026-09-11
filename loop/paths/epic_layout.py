@@ -97,6 +97,8 @@ def resolve(
         return base / "implement" / epic_id / step_filename
     elif kind_enum == EpicLayoutKind.QA_YAML:
         return base / "qa" / epic_id / "qa.yaml"
+    elif kind_enum == EpicLayoutKind.BUGFIX_QUEUE_YAML:
+        return base / "bugfix" / epic_id / "bugfix-queue.yaml"
     elif kind_enum == EpicLayoutKind.ANALYZE_YAML:
         return base / "analyze" / epic_id / "analyze.yaml"
     elif kind_enum == EpicLayoutKind.AUDIT_YAML:
@@ -149,4 +151,3 @@ def discover_v2_epics(cwd: Optional[Union[str, Path]] = None) -> list[tuple[str,
                 epics_found.add((role, child.name))
 
     return sorted(list(epics_found))
-

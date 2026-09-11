@@ -39,7 +39,22 @@ def _seed_epic(tmp_path: Path, epic: str) -> None:
     )
     _write(
         tmp_path / f"memory-bank/back/qa/{epic}/qa-20260902-demo.yaml",
-        "schema: epic-qa/v1\nverdict: fail\nissues: []\n",
+        "schema: epic-qa/v1\n"
+        f"epic_id: {epic}\n"
+        "verdict: fail\n"
+        "checklist_sha256: freeze-test\n"
+        "blockers:\n"
+        "  - 'suite_red: loop/tests/test_fixture.py'\n"
+        "fix_plan:\n"
+        "  - 'BACK BUGFIX Fix loop/tests/test_fixture.py'\n"
+        "issues: []\n",
+    )
+    from loop.bugfix_queue import seed_or_merge_bugfix_queue
+    seed_or_merge_bugfix_queue(
+        tmp_path,
+        "back",
+        epic,
+        tmp_path / f"memory-bank/back/qa/{epic}/qa-20260902-demo.yaml",
     )
     _write(
         tmp_path / "memory-bank/activeContext.md",
@@ -79,7 +94,7 @@ def test_finish_bugfix_fails_without_artifact(tmp_path: Path) -> None:
         )
     )
     assert out.ok is False
-    assert "bugfix_artifact_missing" in (out.diagnostic_codes or [])
+    assert "bugfix_queue_open" in (out.diagnostic_codes or [])
 
 
 def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
@@ -98,6 +113,11 @@ def test_finish_bugfix_requires_artifact_then_arms_qa(tmp_path: Path) -> None:
         tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260902-demo.md",
         f"# bugfix\nepic_id: {epic}\n\nfixed suite regressions\n",
     )
+    from loop.bugfix_queue import set_bugfix_verification, update_bugfix_item
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="full suite green")
 
     from gate_receipt import issue_verifier_receipt
     from harness.hooks._lib import current_gate_identity, mark_in_flight, save_state
@@ -221,9 +241,13 @@ def test_bugfix_rejects_missing_verifier_evidence(tmp_path):
     epic = "T-bugfix-gate"
     _seed_epic(tmp_path, epic)
     _write(tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-20260905-fix.md", "# root cause\nfixed\n")
+    from loop.bugfix_queue import update_bugfix_item
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
     out = finish_bugfix(MbFinishRequest(cwd=str(tmp_path), phase="BUGFIX", step_id="BUGFIX", done_summary=""))
     assert not out.ok
-    assert "verify_pass_missing" in out.diagnostic_codes
+    assert "bugfix_verification_required" in out.diagnostic_codes
 
 
 def test_qa_event_preserves_original_content(tmp_path):
@@ -287,7 +311,24 @@ def test_finish_bugfix_fails_when_artifact_already_done_before_latest_qa_fail(
     assert _append_event(tmp_path, "back", epic, "bugfix_done", leftover)
 
     qa = tmp_path / f"memory-bank/back/qa/{epic}/qa-20260910-retest.yaml"
-    _write(qa, "schema: epic-qa/v1\nverdict: fail\nissues: []\n")
+    _write(
+        qa,
+        "schema: epic-qa/v1\n"
+        f"epic_id: {epic}\n"
+        "verdict: fail\n"
+        "checklist_sha256: freeze-test\n"
+        "blockers:\n"
+        "  - 'suite_red: loop/tests/test_fixture.py'\n"
+        "fix_plan:\n"
+        "  - 'BACK BUGFIX Fix loop/tests/test_fixture.py'\n"
+        "issues: []\n",
+    )
+    from loop.bugfix_queue import seed_or_merge_bugfix_queue, set_bugfix_verification, update_bugfix_item
+    queue_path = tmp_path / f"memory-bank/back/bugfix/{epic}/bugfix-queue.yaml"
+    seed_or_merge_bugfix_queue(tmp_path, "back", epic, qa)
+    update_bugfix_item(queue_path, "BF-001", "in_progress")
+    update_bugfix_item(queue_path, "BF-001", "done", evidence="targeted green")
+    set_bugfix_verification(queue_path, "pass", evidence="full suite green")
     assert _append_event(tmp_path, "back", epic, "qa_fail", qa)
 
     leftover_rel = leftover.relative_to(tmp_path).as_posix()

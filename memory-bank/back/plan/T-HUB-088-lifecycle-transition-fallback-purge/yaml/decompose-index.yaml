@@ -1,0 +1,45 @@
+schema: epic-decompose-index/v1
+plan_id: T-HUB-088-lifecycle-transition-fallback-purge
+source_md: decompose-index.md
+status_canon: decompose-index.yaml
+appetite:
+  timebox_days: 5
+  cut_list:
+  - operational session resilience
+  - historical archive rewriting
+  - new lifecycle features
+steps:
+- id: s01
+  file: s01-contracts-and-characterization.yaml
+  title: Characterize lifecycle transition contracts, denial diagnostics and baseline
+    behavior
+  next_phase: BACK IMPLEMENT
+  status: completed
+- id: s02
+  file: s02-canonicalize-transition-owner-and-callers.yaml
+  title: Absorb legacy arm logic into canonical transition engine and rewire callers
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s03
+  file: s03-typed-handoff-and-fail-closed-parsing.yaml
+  title: Enforce typed loop-handoff/v1 frontmatter and remove raw dict / markdown
+    parsing fallbacks
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s04
+  file: s04-enforce-verifier-receipt-and-bugfix-transaction.yaml
+  title: Enforce typed verifier receipt and purge manual BUGFIX authority and artifact-only
+    finish
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s05
+  file: s05-obsolete-test-and-instruction-rewrite.yaml
+  title: Rewrite obsolete lifecycle tests, fixtures, and instruction surfaces to canonical
+    contracts
+  next_phase: BACK IMPLEMENT
+  status: pending
+- id: s06
+  file: s06-legacy-fallback-purge.yaml
+  title: s06 — legacy-fallback-purge — full sunset inventory scan + deletes
+  next_phase: BACK IMPLEMENT
+  status: pending
